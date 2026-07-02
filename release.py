@@ -51,7 +51,25 @@ def create_release():
     subprocess.run(["ditto", "-c", "-k", "--keepParent", APP_DIR, zip_path])
     
     print("✅ สร้างไฟล์ Release สำเร็จแล้ว!")
-    print(f"📁 คุณสามารถนำไฟล์ {zip_path} ไปอัปโหลดบน GitHub Releases ได้เลยครับ")
+    print(f"📁 คุณสามารถนำไฟล์ {zip_path} ไปใช้งานได้เลย")
+    print("-" * 40)
+    
+    upload = input("☁️ ต้องการอัปโหลดไฟล์นี้ขึ้น GitHub Releases เลยหรือไม่? (y/n): ")
+    if upload.lower() in ['y', 'yes']:
+        print("กำลังอัปโหลด...")
+        tag = f"v{version}"
+        cmd = [
+            "gh", "release", "create", tag, zip_path,
+            "--title", f"Release {tag}",
+            "--notes", f"Automated release for StarHubTH {tag}."
+        ]
+        res = subprocess.run(cmd)
+        if res.returncode == 0:
+            print(f"🎉 อัปโหลด {tag} สำเร็จแล้ว!")
+        else:
+            print("❌ พบปัญหาในการอัปโหลด (โปรดตรวจสอบว่าได้ล็อกอิน 'gh auth login' ไว้หรือยัง)")
+    else:
+        print("✅ ข้ามขั้นตอนการอัปโหลด")
 
 if __name__ == "__main__":
     create_release()
