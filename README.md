@@ -1,12 +1,6 @@
 <p align="center">
-  <img src="assets/banner.png" alt="StarHubTH Banner" width="100%">
-</p>
-
-<p align="center">
   <img src="https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/features_banner.png" alt="ฟีเจอร์หลัก" width="300">
 </p>
-
-## ✨ ฟีเจอร์หลัก (Features)
 
 *   **รันเกมได้ง่ายๆ**: เลือกรันเกมได้ทั้งโหมดปกติ (Vanilla) และโหมดผ่าน SMAPI สำหรับเล่นม็อด
 *   **จัดการส่วนเสริม (Mods Manager)**: เปิด/ปิด ม็อดต่างๆ ได้อย่างง่ายดายผ่านหน้าตาแอปพลิเคชันที่สวยงาม ไม่ต้องเข้าไปย้ายไฟล์เอง
@@ -21,8 +15,6 @@
   <img src="https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/install_banner.png" alt="วิธีติดตั้ง" width="300">
 </p>
 
-## 🚀 การติดตั้งและใช้งาน (Installation)
-
 1. **ดาวน์โหลดแอปพลิเคชัน**: โหลดไฟล์เวอร์ชันล่าสุดจากหน้า [Releases](../../releases)
 2. **เปิดใช้งาน**: แตกไฟล์แล้วลาก `StarHubTH.app` ไปไว้ที่โฟลเดอร์ Applications แล้วดับเบิลคลิกเพื่อเปิดใช้งาน
 3. **กำหนดโฟลเดอร์เกม**: ในครั้งแรกที่เปิด โปรแกรมจะค้นหาโฟลเดอร์เกมของ Steam อัตโนมัติ หากไม่พบ คุณสามารถเลือกโฟลเดอร์ตัวเกม (เช่น `/Applications/Stardew Valley.app/Contents/MacOS`) ได้ด้วยตัวเอง
@@ -31,8 +23,6 @@
 <p align="center">
   <img src="https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/developers_banner.png" alt="สำหรับนักพัฒนา" width="300">
 </p>
-
-## 🛠️ สำหรับนักพัฒนา (For Developers)
 
 แอปพลิเคชันนี้เขียนขึ้นด้วย **Swift** และ **SwiftUI** ผ่านโครงสร้างของแอปพลิเคชัน macOS แท้ๆ
 
@@ -50,7 +40,5 @@ open StarHubTH.app
 <p align="center">
   <img src="https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/credits_banner.png" alt="เครดิตและลิขสิทธิ์" width="300">
 </p>
-
-## 📄 ลิขสิทธิ์ (License)
 
 โปรเจกต์นี้เผยแพร่ภายใต้ MIT License สามารถนำไปดัดแปลงและพัฒนาต่อยอดได้ตามอิสระ
