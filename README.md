@@ -37,8 +37,15 @@ python3 build_app.py
 open StarHubTH.app
 ```
 
+### การแพ็คแอปพลิเคชัน (Release)
+หากต้องการบีบอัดแอปพลิเคชัน (.app) เป็นไฟล์ `.zip` สำหรับนำไปแจกจ่าย สามารถรันคำสั่ง:
+```bash
+python3 release.py
+```
+ไฟล์ Release จะถูกบันทึกไว้ในโฟลเดอร์ `bundles/` ครับ
+
 <p align="center">
   <img src="https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/credits_banner.png" alt="เครดิตและลิขสิทธิ์" width="300">
 </p>
 
-โปรเจกต์นี้เผยแพร่ภายใต้ MIT License สามารถนำไปดัดแปลงและพัฒนาต่อยอดได้ตามอิสระ
+โปรเจกต์นี้เผยแพร่ภายใต้ [MIT License](LICENSE)สามารถนำไปดัดแปลงและพัฒนาต่อยอดได้ตามอิสระ

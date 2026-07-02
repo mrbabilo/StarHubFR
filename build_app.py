@@ -25,8 +25,7 @@ def create_app_bundle():
     # 3. Copy Info.plist and Generate Custom Assets
     shutil.copy2("Info.plist", os.path.join(CONTENTS_DIR, "Info.plist"))
     
-    print("⏳ Generating Custom Stardew UI Assets...")
-    subprocess.run(["python3", "generate_custom_assets.py"])
+    print("⏳ Using existing Custom Stardew UI Assets...")
     
     custom_ui_dir = "assets/custom_ui"
     if os.path.exists(custom_ui_dir):
