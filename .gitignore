@@ -1,0 +1,38 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.env
+.venv/
+
+# Patch scripts (temp tools, not part of release)
+fix*.py
+analyze_images.py
+auto_slice.py
+extract_ui_blocks.py
+remove_bg.py
+unpack_assets.py
+unpack_batch.py
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Build Outputs / Release Zips
+bundles/
+StarHubTH.app/
+mods/*/README.md
+*.xnb
