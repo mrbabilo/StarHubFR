@@ -132,3 +132,4 @@
 "ถอนการติดตั้ง SMAPI สำเร็จ! คืนค่าตัวเกมหลักเรียบร้อย" = "SMAPI uninstalled! Vanilla game restored.";
 "ถอนการติดตั้งล้มเหลว: %@" = "Uninstall failed: %@";
 "SMAPI Installed" = "SMAPI Installed";
+"ค้นหา (Search)" = "Search";
