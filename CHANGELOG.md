@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.3] - 2026-07-03
+
+### Changed
+- Standardized UI components (Settings/Toggles) to match native macOS aesthetics.
+- Replaced custom toggle switches with native macOS `SwitchToggleStyle`.
+- Improved UI alignment by allowing components to size naturally and align right in settings.
+- Moved search bars and action buttons (like refresh/status badges) to the native macOS Navigation Toolbar.
+- Renamed "Game System Info" section to "App Info".
+
+### Fixed
+- Fixed app launching to the incorrect default tab (now opens to the Home/Profile page).
+- Implemented full Navigation History, allowing the macOS Back/Forward toolbar buttons to correctly navigate through previously visited tabs.
+- Reduced sizes of toggle switches and info popover buttons to be properly proportional to the surrounding text.
+- Removed redundant English parenthetical texts from localized Thai UI strings.
+
 ## [1.0.2] - 2026-07-03
 
 ### Added
