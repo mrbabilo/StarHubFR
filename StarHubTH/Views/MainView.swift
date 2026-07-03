@@ -62,7 +62,12 @@ struct MainView: View {
                 if currentTab == "Mods" {
                     ModListView(vm: vm)
                 } else if currentTab == "Saves" {
-                    SavesView(vm: vm)
+                    if let save = vm.editingSave {
+                        SaveEditorView(vm: vm, save: save)
+                            // Remove any extra background here because SaveEditorView will set its own
+                    } else {
+                        SavesView(vm: vm)
+                    }
                 } else if currentTab == "Settings" {
                     SettingsView(vm: vm)
                 } else if currentTab == "Logs" {
@@ -71,34 +76,38 @@ struct MainView: View {
                     HomeView(vm: vm)
                 }
             }
-            .navigationTitle(currentTab == "Mods" ? "ส่วนเสริม (Mods)" :
+            .navigationTitle((currentTab == "Saves" && vm.editingSave != nil) ? vm.editingSave!.playerName : (
+                             currentTab == "Mods" ? "ส่วนเสริม (Mods)" :
                              currentTab == "Saves" ? "เซฟเกม (Saves)" :
                              currentTab == "Settings" ? "ตั้งค่า (Settings)" :
-                             currentTab == "Logs" ? "บันทึก (Logs)" : "หน้าแรก (Home)")
+                             currentTab == "Logs" ? "บันทึก (Logs)" : "หน้าแรก (Home)"))
+            .onChange(of: currentTab) { _ in
+                vm.editingSave = nil
+            }
+            .toolbar {
+                ToolbarItem(placement: .navigation) {
+                    HStack(spacing: 8) {
+                        Button(action: {
+                            if vm.editingSave != nil {
+                                vm.editingSave = nil
+                            }
+                        }) {
+                            Image(systemName: "chevron.left")
+                        }
+                        .disabled(vm.editingSave == nil)
+                        
+                        Button(action: { }) {
+                            Image(systemName: "chevron.right")
+                        }
+                        .disabled(true)
+                    }
+                }
+            }
             .frame(minWidth: 600, minHeight: 460)
             .background(Color(nsColor: .controlBackgroundColor).ignoresSafeArea())
             .toolbarBackground(.hidden, for: .windowToolbar)
         }
         
-        // ── CUSTOM POPUP OVERLAY ──
-        if let save = vm.editingSave {
-            ZStack {
-                Color.black.opacity(0.4)
-                    .ignoresSafeArea()
-                    .onTapGesture {
-                        vm.editingSave = nil
-                    }
-                
-                SaveEditorView(vm: vm, save: save)
-                    .frame(width: 450, height: 600)
-                    .background(Color(nsColor: .windowBackgroundColor))
-                    .cornerRadius(12)
-                    .shadow(color: Color.black.opacity(0.3), radius: 20, x: 0, y: 10)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            // Ensure the ZStack overlays everything
-            .zIndex(100)
-        }
         } // End of outer ZStack
         .frame(width: 900, height: 600)
         .preferredColorScheme(colorScheme)

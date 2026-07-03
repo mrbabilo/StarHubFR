@@ -4,50 +4,45 @@ struct SavesView: View {
     @ObservedObject var vm: StarHubTHViewModel
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Custom Header
-            HStack {
-                Text("เซฟเกมทั้งหมด (\(vm.saves.count))")
-                    .font(.system(size: 16, weight: .bold))
-                Spacer()
-                Button(action: { vm.reloadSaves() }) {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 14))
-                        .foregroundColor(.secondary)
-                }
-                .buttonStyle(.plain)
-                .help("รีเฟรช")
-            }
-            .padding(.horizontal, 40)
-            .padding(.vertical, 20)
-            
-            VStack(spacing: 0) {
+        Form {
+            Section {
                 if vm.saves.isEmpty {
                     VStack(spacing: 16) {
                         Image(systemName: "cloud.bolt")
-                            .font(.system(size: 48))
+                            .font(.system(size: 40))
                             .foregroundColor(.secondary.opacity(0.5))
                         Text("ไม่พบไฟล์เซฟในเครื่อง\nลองเริ่มเล่นเกมสักครั้งก่อนนะ")
                             .multilineTextAlignment(.center)
-                            .font(.system(size: 14))
+                            .font(.system(size: 13))
                             .foregroundColor(.secondary)
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 40)
                 } else {
-                    List(vm.saves, id: \.id) { save in
+                    ForEach(vm.saves, id: \.id) { save in
                         Button(action: { vm.editingSave = save }) {
                             SaveRow(vm: vm, save: save)
-                                .padding(.vertical, 4)
                         }
                         .buttonStyle(.plain)
                     }
-                    .listStyle(.plain)
-                    .scrollContentBackground(.hidden)
-                    .background(Color.clear)
                 }
+            } header: {
+                HStack {
+                    Text("เซฟเกมทั้งหมด (\(vm.saves.count))")
+                    Spacer()
+                    Button(action: { vm.reloadSaves() }) {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                    .buttonStyle(.borderless)
+                    .help("รีเฟรชข้อมูล")
+                }
+            } footer: {
+                Text("ระบบจะดึงข้อมูลเซฟเกมจากโฟลเดอร์เกมของคุณโดยอัตโนมัติ")
             }
-            .background(Color(nsColor: .controlBackgroundColor))
         }
+        .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
+        .background(Color(nsColor: .controlBackgroundColor))
     }
 }
 
@@ -58,55 +53,40 @@ struct SaveRow: View {
     @State private var isHovered = false
 
     var body: some View {
-        HStack(spacing: 16) {
-            // Player info
-            VStack(alignment: .leading, spacing: 4) {
+        HStack(spacing: 12) {
+            // Circular Avatar/Icon
+            ZStack {
+                Circle()
+                    .fill(Color(nsColor: .controlBackgroundColor))
+                    .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+                Image(systemName: "person.crop.circle.fill")
+                    .resizable()
+                    .foregroundColor(Color.accentColor.opacity(0.8))
+                    .frame(width: 32, height: 32)
+            }
+            .frame(width: 32, height: 32)
+            
+            // Text
+            VStack(alignment: .leading, spacing: 2) {
                 Text(save.playerName)
-                    .font(.system(size: 15, weight: .bold))
+                    .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.primary)
-                Text("\(save.farmName) Farm")
+                Text("\(save.farmName) Farm • ปีที่ \(save.year) \(save.seasonName) วันที่ \(save.day) • \(save.money) G")
                     .font(.system(size: 12))
                     .foregroundColor(.secondary)
-            }
-            .frame(width: 140, alignment: .leading)
-            
-            // In-game Date
-            VStack(alignment: .leading, spacing: 4) {
-                Text("ปีที่ \(save.year) - \(save.seasonName)")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(.primary)
-                Text("วันที่ \(save.day)")
-                    .font(.system(size: 12))
-                    .foregroundColor(.secondary)
-            }
-            .frame(width: 130, alignment: .leading)
-            
-            // Farm Type
-            VStack(alignment: .leading, spacing: 4) {
-                Text(save.farmTypeName)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(.primary)
             }
             
             Spacer()
             
-            // Money
-            Text("\(save.money) G")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(.orange)
-            
-            Image(systemName: "chevron.right")
-                .font(.system(size: 12, weight: .bold))
-                .foregroundColor(Color.secondary.opacity(0.3))
-                .padding(.leading, 8)
+            // Info Icon
+            Image(systemName: "info.circle")
+                .foregroundColor(.secondary)
+                .font(.system(size: 16))
+                .padding(.trailing, 4)
         }
-        .padding(.vertical, 12)
-        .padding(.horizontal, 16)
+        .padding(.vertical, 6)
+        .padding(.horizontal, 4)
         .contentShape(Rectangle())
-        .buttonStyle(.plain)
-        .background(isHovered ? Color.primary.opacity(0.05) : Color.clear)
-        .cornerRadius(8)
-        .onHover { isHovered = $0 }
     }
 }
 
@@ -158,61 +138,37 @@ struct SaveEditorView: View {
             Divider()
 
             // Form
-            ScrollView {
-                VStack(spacing: 24) {
-                    StandardSection(title: "ข้อมูลตัวละคร") {
-                        Grid(alignment: .trailing, horizontalSpacing: 12, verticalSpacing: 12) {
-                            GridRow { Text("ชื่อตัวละคร:"); TextField("", text: $name).textFieldStyle(.roundedBorder) }
-                            GridRow { Text("ชื่อฟาร์ม:"); TextField("", text: $farm).textFieldStyle(.roundedBorder) }
-                            GridRow { Text("สิ่งที่ชอบ:"); TextField("", text: $fav).textFieldStyle(.roundedBorder) }
-                        }
-                    }
-                    
-                    StandardSection(title: "ทรัพยากร") {
-                        Grid(alignment: .trailing, horizontalSpacing: 12, verticalSpacing: 12) {
-                            GridRow { Text("จำนวนเงิน (G):"); TextField("", text: $moneyStr).textFieldStyle(.roundedBorder) }
-                            GridRow { Text("เหรียญกาสิโน:"); TextField("", text: $clubCoinsStr).textFieldStyle(.roundedBorder) }
-                            GridRow { Text("วอลนัททองคำ:"); TextField("", text: $goldenWalnutsStr).textFieldStyle(.roundedBorder) }
-                            GridRow { Text("เพชรฉี (Qi Gems):"); TextField("", text: $qiGemsStr).textFieldStyle(.roundedBorder) }
-                        }
-                    }
-                    
-                    StandardSection(title: "สถานะตัวละคร") {
-                        Grid(alignment: .trailing, horizontalSpacing: 12, verticalSpacing: 12) {
-                            GridRow { Text("พลังชีวิตสูงสุด:"); TextField("", text: $maxHealthStr).textFieldStyle(.roundedBorder) }
-                            GridRow { Text("พลังงานสูงสุด:"); TextField("", text: $maxStaminaStr).textFieldStyle(.roundedBorder) }
-                        }
-                    }
-                    StandardSection(title: "การจัดการไฟล์เซฟ") {
-                        HStack(spacing: 16) {
-                            Button(action: { vm.openSaveInFinder(info: save) }) {
-                                Label("เปิดโฟลเดอร์", systemImage: "folder")
-                                    .frame(maxWidth: .infinity)
-                            }
-                            
-                            Button(action: {
-                                vm.duplicateSave(info: save)
-                                vm.editingSave = nil
-                            }) {
-                                Label("ทำสำเนา", systemImage: "doc.on.doc")
-                                    .frame(maxWidth: .infinity)
-                            }
-                            
-                            Button(action: {
-                                vm.deleteSave(info: save)
-                                vm.editingSave = nil
-                            }) {
-                                Label("ลบเซฟ", systemImage: "trash")
-                                    .foregroundColor(.red)
-                                    .frame(maxWidth: .infinity)
-                            }
-                        }
-                        .buttonStyle(.bordered)
+            Form {
+                Section("ข้อมูลตัวละคร") {
+                    TextField("ชื่อตัวละคร", text: $name)
+                    TextField("ชื่อฟาร์ม", text: $farm)
+                    TextField("สิ่งที่ชอบ", text: $fav)
+                }
+                
+                Section("ทรัพยากร") {
+                    TextField("จำนวนเงิน (G)", text: $moneyStr)
+                    TextField("เหรียญกาสิโน", text: $clubCoinsStr)
+                    TextField("วอลนัททองคำ", text: $goldenWalnutsStr)
+                    TextField("เพชรฉี (Qi Gems)", text: $qiGemsStr)
+                }
+                
+                Section("สถานะตัวละคร") {
+                    TextField("พลังชีวิตสูงสุด", text: $maxHealthStr)
+                    TextField("พลังงานสูงสุด", text: $maxStaminaStr)
+                }
+                
+                Section("การจัดการไฟล์เซฟ") {
+                    HStack {
+                        Button("เปิดโฟลเดอร์") { vm.openSaveInFinder(info: save) }
+                        Button("ทำสำเนา") { vm.duplicateSave(info: save); vm.editingSave = nil }
+                        Spacer()
+                        Button("ลบเซฟ") { vm.deleteSave(info: save); vm.editingSave = nil }
+                            .foregroundColor(.red)
                     }
                 }
-                .padding(20)
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .formStyle(.grouped)
+            .scrollContentBackground(.hidden)
             
             Divider()
             

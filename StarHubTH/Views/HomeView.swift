@@ -45,7 +45,8 @@ struct HomeView: View {
                         Text(vm.steamUsername)
                             .font(.system(size: 24, weight: .bold))
                             .foregroundColor(.primary)
-                        Text("Stardew Valley • เวอร์ชัน 1.6 • ภาษาไทย")
+                        let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
+                        Text("Stardew Valley v1.6 • StarHubTH v\(appVersion)")
                             .font(.system(size: 14))
                             .foregroundColor(.secondary)
                     }
@@ -53,7 +54,7 @@ struct HomeView: View {
                 
                 // ── GAME INFO BLOCK ──
                 StandardSection(title: "ข้อมูลระบบเกม") {
-                    StandardRow(title: "ผู้พัฒนา", detail: "ConcernedApe", showDivider: true)
+                    StandardRow(title: "ผู้พัฒนา", detail: "AppleBoiy", showDivider: true)
                     StandardRow(title: "ตัวจัดการม็อด", detail: "SMAPI \(vm.smapiInstalledVersion == "ยังไม่ได้ติดตั้ง" ? "ไม่ได้ติดตั้ง" : vm.smapiInstalledVersion)", showDivider: true)
                     StandardRow(title: "ม็อดที่ติดตั้ง", detail: "\(vm.mods.count) รายการ", showDivider: false)
                 }

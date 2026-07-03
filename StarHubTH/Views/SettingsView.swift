@@ -39,7 +39,7 @@ struct SettingsView: View {
                                 .font(.system(size: 13))
                             Spacer()
                             Toggle("", isOn: $closeAfterLaunch)
-                                .toggleStyle(SwitchToggleStyle(tint: .accentColor))
+                                .toggleStyle(StardewToggleStyle())
                                 .labelsHidden()
                             
                             InfoPopoverButton(text: "ประหยัดทรัพยากรเครื่อง")
@@ -115,7 +115,7 @@ struct SettingsView: View {
                                 .font(.system(size: 13))
                             Spacer()
                             Toggle("", isOn: $showDeveloperLogs)
-                                .toggleStyle(SwitchToggleStyle(tint: .accentColor))
+                                .toggleStyle(StardewToggleStyle())
                                 .labelsHidden()
                             
                             InfoPopoverButton(text: "เครื่องมือแก้ไขปัญหา สำหรับดู Error Log")

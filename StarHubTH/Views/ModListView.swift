@@ -12,53 +12,48 @@ struct ModListView: View {
     var inactiveMods: [ModItem] { filteredMods.filter { !$0.isEnabled } }
 
     var body: some View {
-        VStack(spacing: 0) {
-            // ── Toolbar ───────────────────────────────────────────────
-            HStack(spacing: 12) {
-                // Search
-                HStack(spacing: 8) {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundColor(.secondary)
-                        .font(.system(size: 13))
-                    TextField("ค้นหาส่วนเสริม...", text: $searchText)
-                        .textFieldStyle(PlainTextFieldStyle())
-                        .font(.system(size: 13))
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 32) {
+                // ── Toolbar ───────────────────────────────────────────────
+                HStack(spacing: 12) {
+                    // Search
+                    HStack(spacing: 8) {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundColor(.secondary)
+                            .font(.system(size: 13))
+                        TextField("ค้นหาส่วนเสริม...", text: $searchText)
+                            .textFieldStyle(PlainTextFieldStyle())
+                            .font(.system(size: 13))
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
+                    .background(Color(nsColor: .textBackgroundColor))
+                    .cornerRadius(8)
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.secondary.opacity(0.2), lineWidth: 1))
+                    .frame(maxWidth: 240)
+    
+                    Spacer()
+    
+                    // SMAPI status badge
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(vm.smapiInstalledVersion == "ยังไม่ได้ติดตั้ง" ? Color.red : Color.green)
+                            .frame(width: 8, height: 8)
+                            .shadow(color: vm.smapiInstalledVersion == "ยังไม่ได้ติดตั้ง" ? .clear : Color.green.opacity(0.5), radius: 3)
+                        
+                        Text(vm.smapiInstalledVersion == "ยังไม่ได้ติดตั้ง" ? "API ออฟไลน์" : "API ทำงานปกติ")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color(nsColor: .windowBackgroundColor))
+                    .cornerRadius(12)
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.secondary.opacity(0.1), lineWidth: 1))
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 8)
-                .background(Color(nsColor: .textBackgroundColor))
-                .cornerRadius(8)
-                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.secondary.opacity(0.2), lineWidth: 1))
-                .frame(maxWidth: 240)
-
-                Spacer()
-
-                // SMAPI status badge
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(vm.smapiInstalledVersion == "ยังไม่ได้ติดตั้ง" ? Color.red : Color.green)
-                        .frame(width: 8, height: 8)
-                        .shadow(color: vm.smapiInstalledVersion == "ยังไม่ได้ติดตั้ง" ? .clear : Color.green.opacity(0.5), radius: 3)
-                    
-                    Text(vm.smapiInstalledVersion == "ยังไม่ได้ติดตั้ง" ? "API ออฟไลน์" : "API ทำงานปกติ")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.secondary)
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(Color(nsColor: .windowBackgroundColor))
-                .cornerRadius(12)
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.secondary.opacity(0.1), lineWidth: 1))
-            }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 16)
-            .background(Color(nsColor: .controlBackgroundColor))
-            
-            Divider()
-
-            // ── List ──────────────────────────────────────────────────
-            ScrollView(showsIndicators: false) {
-                LazyVStack(alignment: .leading, spacing: 24) {
+                
+                // ── List ──────────────────────────────────────────────────
+                VStack(alignment: .leading, spacing: 32) {
                     if filteredMods.isEmpty {
                         VStack(spacing: 16) {
                             Image(systemName: "puzzlepiece.extension")
@@ -70,7 +65,7 @@ struct ModListView: View {
                                 .foregroundColor(.secondary)
                         }
                         .frame(maxWidth: .infinity)
-                        .padding(.top, 80)
+                        .padding(.top, 40)
                     } else {
                         if !activeMods.isEmpty {
                             ModSectionGroup(title: "เปิดใช้งานแล้ว", mods: activeMods, vm: vm)
@@ -80,10 +75,10 @@ struct ModListView: View {
                         }
                     }
                 }
-                .padding(40)
             }
-            .background(Color(nsColor: .controlBackgroundColor))
+            .padding(40)
         }
+        .background(Color(nsColor: .controlBackgroundColor))
     }
 }
 
@@ -178,7 +173,7 @@ struct ModListRow: View {
 
             // macOS Native Switch Toggle
             Toggle("", isOn: Binding(get: { mod.isEnabled }, set: { _ in vm.toggleMod(mod) }))
-                .toggleStyle(.switch)
+                .toggleStyle(StardewToggleStyle())
                 .labelsHidden()
                 .tint(.green)
         }
