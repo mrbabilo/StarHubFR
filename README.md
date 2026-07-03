@@ -11,7 +11,9 @@
 *   **บันทึกนักพัฒนา (Developer Logs)**: ติดตามการทำงานของ SMAPI ได้แบบเรียลไทม์ภายในแอป
 *   **UI สไตล์ Native macOS**: หน้าตาแอปพลิเคชันที่สวยงาม ใช้งานง่าย ออกแบบมาให้กลมกลืนกับระบบ macOS อย่างสมบูรณ์แบบ
 
-### 📸 ภาพตัวอย่างการใช้งาน (Screenshots & Use Cases)
+<p align="center">
+  <img src="https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/screenshots_banner.png" alt="ภาพตัวอย่างการใช้งาน" width="300">
+</p>
 
 | หน้าแรก (Home / Profile) | การตั้งค่าแอปพลิเคชัน (Settings) |
 | :---: | :---: |
