@@ -26,11 +26,9 @@ struct SettingsView: View {
                             Text("日本語").tag("ja")
                         }
                         .pickerStyle(MenuPickerStyle())
-                        .frame(width: 150)
+                        .fixedSize()
                         
-                        Image(systemName: "info.circle")
-                            .foregroundColor(.clear)
-                            .font(.system(size: 14))
+                        InfoPopoverButton(text: vm.localizedString(for: "เปลี่ยนภาษาของแอปพลิเคชัน"))
                     }
                 }
                 
@@ -45,11 +43,11 @@ struct SettingsView: View {
                                 .font(.system(size: 13))
                             Spacer()
                             Picker("", selection: $launchProfile) {
-                                Text("เล่นผ่าน SMAPI (ใช้ม็อด)").tag("SMAPI")
-                                Text("ตัวเกมดั้งเดิม (Vanilla)").tag("Vanilla")
+                                Text(vm.localizedString(for: "เล่นผ่าน SMAPI (ใช้ม็อด)")).tag("SMAPI")
+                                Text(vm.localizedString(for: "ตัวเกมดั้งเดิม")).tag("Vanilla")
                             }
                             .pickerStyle(MenuPickerStyle())
-                            .frame(width: 240)
+                            .fixedSize()
                             
                             InfoPopoverButton(text: "โหมดการเปิดเกมครั้งถัดไป")
                         }
@@ -61,7 +59,8 @@ struct SettingsView: View {
                                 .font(.system(size: 13))
                             Spacer()
                             Toggle("", isOn: $closeAfterLaunch)
-                                .toggleStyle(StardewToggleStyle())
+                                .toggleStyle(SwitchToggleStyle(tint: .blue))
+                                .controlSize(.small)
                                 .labelsHidden()
                             
                             InfoPopoverButton(text: "ประหยัดทรัพยากรเครื่อง")
@@ -82,9 +81,8 @@ struct SettingsView: View {
                             Button(action: {
                                 vm.backupAllSaves()
                             }) {
-                                Text("Backup เซฟเกม").frame(maxWidth: .infinity)
+                                Text(vm.localizedString(for: "Backup เซฟเกม"))
                             }
-                            .frame(width: 140)
                             
                             InfoPopoverButton(text: "บีบอัดโฟลเดอร์ Saves เป็นไฟล์ Zip")
                         }
@@ -98,9 +96,8 @@ struct SettingsView: View {
                             Button(action: {
                                 vm.backupAllMods()
                             }) {
-                                Text("Backup ม็อด").frame(maxWidth: .infinity)
+                                Text(vm.localizedString(for: "Backup ม็อด"))
                             }
-                            .frame(width: 140)
                             
                             InfoPopoverButton(text: "บีบอัดโฟลเดอร์ Mods เป็นไฟล์ Zip")
                         }
@@ -119,16 +116,14 @@ struct SettingsView: View {
                                 .font(.system(size: 13))
                             Spacer()
                             Picker("", selection: $appColorScheme) {
-                                Text("ตามระบบ (System)").tag("System")
-                                Text("สว่าง (Light)").tag("Light")
-                                Text("มืด (Dark)").tag("Dark")
+                                Text(vm.localizedString(for: "ตามระบบ")).tag("System")
+                                Text(vm.localizedString(for: "สว่าง")).tag("Light")
+                                Text(vm.localizedString(for: "มืด")).tag("Dark")
                             }
                             .pickerStyle(SegmentedPickerStyle())
-                            .fixedSize(horizontal: true, vertical: false)
+                            .fixedSize()
                             
-                            Image(systemName: "info.circle")
-                                .foregroundColor(.clear)
-                                .font(.system(size: 14))
+                            InfoPopoverButton(text: vm.localizedString(for: "เลือกธีมการแสดงผลของแอป"))
                         }
                         
                         Divider().padding(.leading, 0)
@@ -138,7 +133,8 @@ struct SettingsView: View {
                                 .font(.system(size: 13))
                             Spacer()
                             Toggle("", isOn: $showDeveloperLogs)
-                                .toggleStyle(StardewToggleStyle())
+                                .toggleStyle(SwitchToggleStyle(tint: .blue))
+                                .controlSize(.small)
                                 .labelsHidden()
                             
                             InfoPopoverButton(text: "เครื่องมือแก้ไขปัญหา สำหรับดู Error Log")
@@ -159,9 +155,8 @@ struct SettingsView: View {
                             Button(action: {
                                 vm.openSavesFolder()
                             }) {
-                                Text("เปิดโฟลเดอร์").frame(maxWidth: .infinity)
+                                Text(vm.localizedString(for: "เปิดโฟลเดอร์"))
                             }
-                            .frame(width: 140)
                             
                             InfoPopoverButton(text: "เปิดโฟลเดอร์ใน Finder")
                         }
@@ -175,10 +170,9 @@ struct SettingsView: View {
                             Button(action: {
                                 vm.cleanDisabledMods()
                             }) {
-                                Text("ลบไฟล์ขยะม็อด").frame(maxWidth: .infinity)
+                                Text(vm.localizedString(for: "ลบไฟล์ขยะม็อด"))
                             }
                             .foregroundColor(.red)
-                            .frame(width: 140)
                             
                             InfoPopoverButton(text: "ลบโฟลเดอร์ Mods_disabled ถาวร", color: .red.opacity(0.8))
                         }

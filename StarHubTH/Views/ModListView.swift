@@ -259,11 +259,13 @@ struct ModListRow: View {
             // macOS Native Switch Toggle
             if !isChild {
                 Toggle("", isOn: Binding(get: { mod.isEnabled }, set: { _ in vm.toggleMod(mod) }))
-                    .toggleStyle(StardewToggleStyle())
+                    .toggleStyle(SwitchToggleStyle(tint: .blue))
+                    .controlSize(.small)
                     .labelsHidden()
             } else {
                 Toggle("", isOn: .constant(false))
-                    .toggleStyle(StardewToggleStyle())
+                    .toggleStyle(SwitchToggleStyle(tint: .blue))
+                    .controlSize(.small)
                     .labelsHidden()
                     .opacity(0)
             }

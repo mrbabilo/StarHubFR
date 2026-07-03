@@ -2,8 +2,13 @@ import SwiftUI
 
 struct MainView: View {
     @StateObject var vm = StarHubTHViewModel()
-    @State private var currentTab: String = "Saves"
+    @State private var currentTab: String = "Home"
     @State private var searchText: String = ""
+    
+    // History Management
+    @State private var tabHistory: [String] = ["Home"]
+    @State private var forwardHistory: [String] = []
+    @State private var isNavigatingBackOrForward = false
     
     @AppStorage("appColorScheme") private var appColorScheme: String = "System"
     @AppStorage("showDeveloperLogs") private var showDeveloperLogs: Bool = false
@@ -17,6 +22,18 @@ struct MainView: View {
         return text.contains { $0.lowercased().contains(lowerSearch) }
     }
     
+    private var navigationTitleText: String {
+        if currentTab == "Saves" && vm.editingSave != nil { return vm.editingSave!.playerName }
+        if currentTab == "ThaiHub" && vm.viewingThaiMod != nil { return vm.viewingThaiMod!.name }
+        if currentTab == "Mods" { return vm.localizedString(for: "ส่วนเสริม") }
+        if currentTab == "Updates" { return vm.localizedString(for: "อัปเดตซอฟต์แวร์") }
+        if currentTab == "ThaiHub" { return vm.localizedString(for: "ม็อดแปลไทย") }
+        if currentTab == "Saves" { return vm.localizedString(for: "เซฟเกม") }
+        if currentTab == "Settings" { return vm.localizedString(for: "ตั้งค่าระบบ") }
+        if currentTab == "Logs" { return vm.localizedString(for: "บันทึกระบบ") }
+        return vm.localizedString(for: "หน้าแรก")
+    }
+    
     var body: some View {
         ZStack {
             NavigationSplitView {
@@ -26,7 +43,7 @@ struct MainView: View {
                 HStack {
                     Image(systemName: "magnifyingglass")
                         .foregroundColor(.secondary)
-                    TextField(vm.localizedString(for: "ค้นหา (Search)"), text: $searchText)
+                    TextField(vm.localizedString(for: "ค้นหา"), text: $searchText)
                         .textFieldStyle(PlainTextFieldStyle())
                 }
                 .padding(.horizontal, 8)
@@ -79,32 +96,45 @@ struct MainView: View {
                 
                 // Tools Section
                 VStack(alignment: .leading, spacing: 2) {
-                    if matchesSearch(vm.localizedString(for: "เซฟเกม (Saves)")) {
+                    if matchesSearch(vm.localizedString(for: "เซฟเกม")) {
                         SidebarNavItem(
                             icon: "folder.fill",
                             iconColor: .blue,
-                            label: vm.localizedString(for: "เซฟเกม (Saves)"),
+                            label: vm.localizedString(for: "เซฟเกม"),
                             tab: "Saves",
                             currentTab: $currentTab
                         )
                     }
                     
-                    if matchesSearch(vm.localizedString(for: "ส่วนเสริม (Mods)")) {
+                    if matchesSearch(vm.localizedString(for: "ส่วนเสริม")) {
                         SidebarNavItem(
                             icon: "puzzlepiece.extension.fill",
                             iconColor: .purple,
-                            label: vm.localizedString(for: "ส่วนเสริม (Mods)"),
+                            label: vm.localizedString(for: "ส่วนเสริม"),
                             tab: "Mods",
                             currentTab: $currentTab
                         )
                     }
                     
-                    if matchesSearch(vm.localizedString(for: "ตั้งค่าระบบ (Settings)")) {
+                    if matchesSearch(vm.localizedString(for: "ตั้งค่าระบบ")) {
                         SidebarNavItem(
                             icon: "gearshape.fill",
                             iconColor: .gray,
-                            label: vm.localizedString(for: "ตั้งค่าระบบ (Settings)"),
+                            label: vm.localizedString(for: "ตั้งค่าระบบ"),
                             tab: "Settings",
+                            currentTab: $currentTab
+                        )
+                    }
+                }
+                
+                // Thai Hub Section
+                VStack(alignment: .leading, spacing: 2) {
+                    if matchesSearch(vm.localizedString(for: "ม็อดแปลไทย")) {
+                        SidebarNavItem(
+                            icon: "globe.asia.australia.fill",
+                            iconColor: .blue,
+                            label: vm.localizedString(for: "ม็อดแปลไทย"),
+                            tab: "ThaiHub",
                             currentTab: $currentTab
                         )
                     }
@@ -112,11 +142,11 @@ struct MainView: View {
                 
                 if showDeveloperLogs {
                     VStack(alignment: .leading, spacing: 2) {
-                        if matchesSearch(vm.localizedString(for: "บันทึกระบบ (Logs)")) {
+                        if matchesSearch(vm.localizedString(for: "บันทึกระบบ")) {
                             SidebarNavItem(
                                 icon: "terminal.fill",
                                 iconColor: .black,
-                                label: vm.localizedString(for: "บันทึกระบบ (Logs)"),
+                                label: vm.localizedString(for: "บันทึกระบบ"),
                                 tab: "Logs",
                                 currentTab: $currentTab
                             )
@@ -130,7 +160,7 @@ struct MainView: View {
                 if alertCount > 0 {
                     Button(action: { currentTab = "Updates" }) {
                         HStack {
-                            Text(vm.smapiErrors.isEmpty ? vm.localizedString(for: "อัปเดตซอฟต์แวร์ (Updates)") : vm.localizedString(for: "แจ้งเตือนระบบ (Alerts)"))
+                            Text(vm.smapiErrors.isEmpty ? vm.localizedString(for: "อัปเดตซอฟต์แวร์") : vm.localizedString(for: "แจ้งเตือนระบบ"))
                                 .font(.system(size: 14, weight: .regular))
                                 .foregroundColor(currentTab == "Updates" ? .white : .primary)
                             Spacer()
@@ -192,6 +222,8 @@ struct MainView: View {
                     }
                 } else if currentTab == "Updates" {
                     UpdatesView(vm: vm, currentTab: $currentTab)
+                } else if currentTab == "ThaiHub" {
+                    ThaiTranslationHubView(vm: vm)
                 } else if currentTab == "Settings" {
                     SettingsView(vm: vm)
                 } else if currentTab == "Logs" {
@@ -200,16 +232,19 @@ struct MainView: View {
                     HomeView(vm: vm)
                 }
             }
-            .navigationTitle(
-                (currentTab == "Saves" && vm.editingSave != nil) ? Text(vm.editingSave!.playerName) :
-                (currentTab == "Mods" ? Text(vm.localizedString(for: "ส่วนเสริม (Mods)")) :
-                (currentTab == "Updates" ? Text(vm.localizedString(for: "อัปเดตซอฟต์แวร์ (Updates)")) :
-                (currentTab == "Saves" ? Text(vm.localizedString(for: "เซฟเกม (Saves)")) :
-                (currentTab == "Settings" ? Text(vm.localizedString(for: "ตั้งค่าระบบ (Settings)")) :
-                (currentTab == "Logs" ? Text(vm.localizedString(for: "บันทึกระบบ (Logs)")) : Text(vm.localizedString(for: "หน้าแรก (Home)")))))))
-            )
+            .navigationTitle(navigationTitleText)
             .onChange(of: currentTab) {
                 vm.editingSave = nil
+                vm.viewingThaiMod = nil
+                
+                if !isNavigatingBackOrForward {
+                    if tabHistory.last != currentTab {
+                        tabHistory.append(currentTab)
+                        forwardHistory.removeAll()
+                    }
+                } else {
+                    isNavigatingBackOrForward = false
+                }
             }
             .toolbar {
                 ToolbarItem(placement: .navigation) {
@@ -217,16 +252,29 @@ struct MainView: View {
                         Button(action: {
                             if vm.editingSave != nil {
                                 vm.editingSave = nil
+                            } else if vm.viewingThaiMod != nil {
+                                vm.viewingThaiMod = nil
+                            } else if tabHistory.count > 1 {
+                                isNavigatingBackOrForward = true
+                                let current = tabHistory.removeLast()
+                                forwardHistory.append(current)
+                                currentTab = tabHistory.last ?? "Home"
                             }
                         }) {
                             Image(systemName: "chevron.left")
                         }
-                        .disabled(vm.editingSave == nil)
+                        .disabled(vm.editingSave == nil && vm.viewingThaiMod == nil && tabHistory.count <= 1)
                         
-                        Button(action: { }) {
+                        Button(action: {
+                            if let next = forwardHistory.popLast() {
+                                isNavigatingBackOrForward = true
+                                tabHistory.append(next)
+                                currentTab = next
+                            }
+                        }) {
                             Image(systemName: "chevron.right")
                         }
-                        .disabled(true)
+                        .disabled(forwardHistory.isEmpty)
                     }
                 }
             }
@@ -268,9 +316,9 @@ struct SidebarNavItem: View {
         Button(action: { currentTab = tab }) {
             HStack(spacing: 12) {
                 Image(systemName: icon)
-                    .font(.system(size: 16, weight: .regular))
+                    .font(.system(size: 14, weight: .regular))
                     .foregroundColor(isSelected ? .white : .primary)
-                    .frame(width: 24, alignment: .center)
+                    .frame(width: 20, alignment: .center)
                 
                 Text(label)
                     .font(.system(size: 14, weight: .regular))
@@ -339,7 +387,7 @@ struct UpdatesView: View {
                                             NSWorkspace.shared.open(url)
                                         }
                                     }) {
-                                        Text(vm.localizedString(for: "ดาวน์โหลด (Download)"))
+                                        Text(vm.localizedString(for: "ดาวน์โหลด"))
                                             .font(.system(size: 12, weight: .medium))
                                             .foregroundColor(.primary)
                                             .padding(.horizontal, 16)
@@ -390,7 +438,7 @@ struct UpdatesView: View {
                                 .foregroundColor(.primary)
                             Spacer()
                             Button(action: { currentTab = "Logs" }) {
-                                Text(vm.localizedString(for: "ดูบันทึกระบบ (Logs)"))
+                                Text(vm.localizedString(for: "ดูบันทึกระบบ"))
                                     .font(.system(size: 12, weight: .medium))
                                     .foregroundColor(.primary)
                                     .padding(.horizontal, 12)

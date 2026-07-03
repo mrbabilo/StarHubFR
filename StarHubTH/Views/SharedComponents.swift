@@ -85,7 +85,7 @@ struct InfoPopoverButton: View {
         }) {
             Image(systemName: "info.circle")
                 .foregroundColor(color)
-                .font(.system(size: 14))
+                .font(.system(size: 12))
         }
         .buttonStyle(PlainButtonStyle())
         .pointingHandCursor()

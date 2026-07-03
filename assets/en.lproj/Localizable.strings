@@ -2,22 +2,22 @@
 
 /* MainView */
 "บัญชีผู้ใช้" = "Account";
-"เซฟเกม (Saves)" = "Saves";
-"ส่วนเสริม (Mods)" = "Mods";
-"ตั้งค่าระบบ (Settings)" = "Settings";
+"เซฟเกม" = "Saves";
+"ส่วนเสริม" = "Mods";
+"ตั้งค่าระบบ" = "Settings";
 "เครื่องมือและระบบ" = "Tools & System";
-"บันทึกระบบ (Logs)" = "Logs";
+"บันทึกระบบ" = "Logs";
 "นักพัฒนา" = "Developer";
 "พร้อมลุย!" = "Ready to play!";
 "กำลังเปิดเกม..." = "Launching game...";
 "เข้าสู่เกม" = "Launch Game";
 "แจ้งเตือน" = "Alert";
 "ตกลง" = "OK";
-"หน้าแรก (Home)" = "Home";
+"หน้าแรก" = "Home";
 
 /* HomeView */
 "Stardew Valley v1.6 • StarHubTH v%@" = "Stardew Valley v1.6 • StarHubTH v%@";
-"ข้อมูลระบบเกม" = "Game System Info";
+"ข้อมูลแอป" = "App Info";
 "ผู้พัฒนา" = "Developer";
 "ตัวจัดการม็อด" = "Mod Manager";
 "ไม่ได้ติดตั้ง" = "Not Installed";
@@ -26,12 +26,12 @@
 "ที่ตั้งไฟล์เกม" = "Game Path";
 "ยังไม่ได้กำหนด" = "Not Set";
 "เลือกโฟลเดอร์..." = "Select Folder...";
-"ระบบจัดการม็อด (SMAPI)" = "Mod Manager (SMAPI)";
+"ระบบจัดการม็อด" = "Mod Manager (SMAPI)";
 "สถานะ SMAPI" = "SMAPI Status";
 "ติดตั้งแล้ว (v%@)" = "Installed (v%@)";
 "ติดตั้ง SMAPI" = "Install SMAPI";
 "ถอนการติดตั้ง" = "Uninstall";
-"ส่วนเสริมหลัก (Core Extensions)" = "Core Extensions";
+"ส่วนเสริมหลัก" = "Core Extensions";
 "ติดตั้งและเปิดใช้งานแล้ว" = "Installed and enabled";
 "ไม่ได้ติดตั้ง หรือปิดใช้งานอยู่" = "Not installed or disabled";
 "%lld รายการ" = "%lld items";
@@ -84,27 +84,27 @@
 "คำแนะนำสำหรับระบบ macOS" = "macOS Troubleshooting Tips";
 
 /* SettingsView */
-"การเปิดเกม (Launch Options)" = "Launch Options";
-"สำรองข้อมูล (Backup)" = "Backup";
-"การแสดงผล (Appearance)" = "Appearance";
-"การจัดการ (Management)" = "Management";
+"การเปิดเกม" = "Launch Options";
+"สำรองข้อมูล" = "Backup";
+"การแสดงผล" = "Appearance";
+"การจัดการ" = "Management";
 "โหมดเข้าเกมเริ่มต้น" = "Default Launch Mode";
 "เล่นผ่าน SMAPI (ใช้ม็อด)" = "Play via SMAPI (with mods)";
-"ตัวเกมดั้งเดิม (Vanilla)" = "Vanilla Game";
+"ตัวเกมดั้งเดิม" = "Vanilla Game";
 "ปิด Launcher อัตโนมัติหลังจากเกมเปิดขึ้นมา" = "Close launcher automatically after game launches";
 "สำรองไฟล์เซฟเกม" = "Backup Save Files";
 "Backup เซฟเกม" = "Backup Saves";
 "สำรองโฟลเดอร์ม็อด" = "Backup Mods Folder";
 "Backup ม็อด" = "Backup Mods";
-"ภาษาของแอป (Language)" = "App Language";
+"ภาษาของแอป" = "App Language";
 "เลือกภาษา" = "Select Language";
 "ภาษาไทย" = "ภาษาไทย";
 "English" = "English";
 "ธีมของแอป" = "App Theme";
-"ตามระบบ (System)" = "System";
-"สว่าง (Light)" = "Light";
-"มืด (Dark)" = "Dark";
-"แสดงหน้าต่างนักพัฒนา (Developer Logs)" = "Show Developer Logs";
+"ตามระบบ" = "System";
+"สว่าง" = "Light";
+"มืด" = "Dark";
+"แสดงหน้าต่างนักพัฒนา" = "Show Developer Logs";
 "โฟลเดอร์เซฟเกม" = "Save Games Folder";
 "เปิดโฟลเดอร์" = "Open Folder";
 "ล้างไฟล์ม็อดที่ถูกปิดใช้งาน" = "Clear Disabled Mods";
@@ -132,15 +132,65 @@
 "ถอนการติดตั้ง SMAPI สำเร็จ! คืนค่าตัวเกมหลักเรียบร้อย" = "SMAPI uninstalled! Vanilla game restored.";
 "ถอนการติดตั้งล้มเหลว: %@" = "Uninstall failed: %@";
 "SMAPI Installed" = "SMAPI Installed";
-"ค้นหา (Search)" = "Search";
+"ค้นหา" = "Search";
 
 /* UpdatesView */
 "มีการอัปเดตใหม่ในเว็บไซต์ Nexus Mods" = "New update available on Nexus Mods";
-"ดาวน์โหลด (Download)" = "Download";
+"ดาวน์โหลด" = "Download";
 "อัปเดตนี้เพิ่มคุณสมบัติใหม่และแก้ไขข้อบกพร่องสำหรับม็อดของคุณ" = "This update provides new features and bug fixes for your mod.";
 "สำหรับข้อมูลเกี่ยวกับเนื้อหาของอัปเดตนี้ โปรดไปที่เว็บไซต์:" = "For information on the content of this mod update, please visit this website:";
 "พบข้อผิดพลาดจากตัวเกม หรือม็อด (%lld รายการ)" = "The game encountered errors (%lld items)";
-"ดูบันทึกระบบ (Logs)" = "View Logs";
+"ดูบันทึกระบบ" = "View Logs";
 "เกมพบข้อผิดพลาดระหว่างการรันครั้งล่าสุด ซึ่งอาจเกิดจากม็อดที่ล้าสมัยหรือไฟล์ที่ขาดหายไป" = "The game encountered errors during the last run. This might be caused by missing dependencies or outdated mods.";
-"อัปเดตซอฟต์แวร์ (Updates)" = "Software Update";
-"แจ้งเตือนระบบ (Alerts)" = "System Alerts";
+"อัปเดตซอฟต์แวร์" = "Software Update";
+"แจ้งเตือนระบบ" = "System Alerts";
+
+/* Thai Translation Hub */
+"ม็อดแปลไทย" = "Thai Translation Hub";
+"ศูนย์รวมม็อดแปลไทย" = "Thai Translation Hub";
+"ติดตั้งม็อดภาษาไทยที่รองรับได้ด้วยการคลิกเพียงครั้งเดียว สนับสนุนโดย AppleBoiy" = "Install supported Thai translation mods with a single click. Powered by AppleBoiy.";
+"กำลังโหลดข้อมูลม็อดแปลไทย..." = "Loading Thai translation mods...";
+"สถานะ:" = "Status:";
+"ติดตั้งซ้ำ" = "Reinstall";
+"ติดตั้ง" = "Install";
+"การติดตั้ง" = "Installation";
+"คุณได้ติดตั้งม็อดนี้แล้ว แต่อาจมีเวอร์ชันใหม่ให้ดาวน์โหลด" = "You have already installed this mod, but a new version might be available.";
+"คลิกเพื่อดาวน์โหลดและติดตั้งม็อดแปลไทยลงในโฟลเดอร์เกมของคุณ" = "Click to download and install this Thai translation mod into your game folder.";
+"ข้อมูล" = "Information";
+"เวอร์ชันแปล" = "Version";
+"ดูบน Nexus Mods" = "View on Nexus Mods";
+"หมายเหตุ: ระบบนี้เป็นเพียงศูนย์รวมม็อดแปลภาษาเท่านั้น คุณจำเป็นต้องติดตั้งม็อดต้นฉบับก่อนเพื่อให้ม็อดแปลภาษาทำงานได้" = "Note: This is only a translation hub. You must install the original mod first for the translation to work.";
+"ผู้แปล" = "Translator";
+"ม็อดต้นฉบับ" = "Original Mod";
+"สถานะม็อดต้นฉบับ" = "Original Mod Status";
+"ติดตั้งแล้ว" = "Installed";
+"ยังไม่ได้ติดตั้ง" = "Not Installed";
+"โฟลเดอร์ปลายทาง" = "Destination Folder";
+"รายละเอียด" = "Description";
+"นี่คือม็อดแปลภาษาไทยสำหรับ " = "This is a Thai translation mod for ";
+" โปรดตรวจสอบรายละเอียดเพิ่มเติมจากหน้าม็อดต้นฉบับบน Nexus Mods" = ". Please check the original mod page on Nexus Mods for more details.";
+"เสร็จสมบูรณ์" = "Completed";
+"รอแปล" = "Waiting for translation";
+"พร้อมให้ดาวน์โหลด" = "Available to download";
+"ขาดม็อดต้นฉบับ" = "Missing original mod";
+"ดาวน์โหลดและติดตั้ง" = "Download and Install";
+"การติดตั้ง" = "Installation";
+"ข้อมูล" = "Information";
+"เวอร์ชันแปล" = "Version";
+"ผู้แปล" = "Translator";
+"ม็อดต้นฉบับ" = "Original Mod";
+"โฟลเดอร์ปลายทาง" = "Destination Folder";
+"ติดตั้งซ้ำ (Reinstall)" = "Reinstall";
+"ผู้สร้าง" = "Author";
+"เว็บไซต์" = "Website";
+"ดูบน Nexus Mods" = "View on Nexus Mods";
+"ม็อดแปลภาษาไทย" = "Thai Translation Mod";
+
+/* LogsView */
+"ประวัติการทำงาน" = "System Logs";
+"ประวัติสถานะและคำแนะนำสิทธิ์การเปิดใช้แอปในเซสชันปัจจุบัน" = "Session history and permission recommendations";
+"บันทึกการทำงานของระบบ" = "System Logs";
+"ล้างประวัติ" = "Clear Logs";
+"ไม่มีประวัติการบันทึกในเซสชันนี้" = "No logs for this session...";
+"คำแนะนำสำหรับระบบ macOS" = "macOS Troubleshooting Tips";
+"คำแนะนำสำหรับผู้ใช้ macOS" = "1. If you cannot run the game due to 'Developer cannot be verified', go to System Settings > Privacy & Security and click 'Allow Anyway' next to SMAPI or Stardew Valley.\n2. The mod manager creates a 'Mods_disabled' folder in your game directory to store temporarily disabled mods.";

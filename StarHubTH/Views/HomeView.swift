@@ -53,7 +53,7 @@ struct HomeView: View {
                 }
                 
                 // ── GAME INFO BLOCK ──
-                StandardSection(title: "ข้อมูลระบบเกม") {
+                StandardSection(title: "ข้อมูลแอป") {
                     StandardRow(title: "ผู้พัฒนา", detail: "AppleBoiy", showDivider: true)
                     StandardRow(title: "ตัวจัดการม็อด", detail: vm.smapiInstalledVersion == "ยังไม่ได้ติดตั้ง" ? "ไม่ได้ติดตั้ง" : "SMAPI \(vm.smapiInstalledVersion)", showDivider: true)
                     StandardRow(title: "ม็อดที่ติดตั้ง", detail: "\(vm.mods.count) รายการ", showDivider: false)

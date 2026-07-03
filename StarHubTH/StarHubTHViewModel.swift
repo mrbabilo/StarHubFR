@@ -40,6 +40,37 @@ struct ModUpdateInfo: Identifiable, Equatable {
     let url: String
 }
 
+struct ThaiTranslationMod: Identifiable, Equatable {
+    var id: String { name }
+    let name: String
+    let author: String
+    let version: String
+    let status: String
+    let url: String
+    let nexusUrl: String
+    var isInstalled: Bool = false
+    var isOriginalModInstalled: Bool = false
+    
+    func translatedStatus(vm: StarHubTHViewModel) -> String {
+        if status.contains("เสร็จสมบูรณ์") {
+            return "✅ " + vm.localizedString(for: "เสร็จสมบูรณ์")
+        } else if status.contains("รอแปล") {
+            return "⏳ " + vm.localizedString(for: "รอแปล")
+        }
+        return status
+    }
+    
+    func installationStatusText(vm: StarHubTHViewModel) -> String {
+        if isInstalled {
+            return vm.localizedString(for: "ติดตั้งแล้ว")
+        } else if isOriginalModInstalled {
+            return vm.localizedString(for: "พร้อมให้ดาวน์โหลด")
+        } else {
+            return vm.localizedString(for: "ขาดม็อดต้นฉบับ")
+        }
+    }
+}
+
 class StarHubTHViewModel: ObservableObject {
     @Published var gameDir: String = "" {
         didSet {
@@ -54,6 +85,11 @@ class StarHubTHViewModel: ObservableObject {
     
     @Published var smapiInstalledVersion: String = "ยังไม่ได้ติดตั้ง"
     @Published var mods: [ModItem] = []
+    
+    // Thai Translation Hub State
+    @Published var thaiTranslations: [ThaiTranslationMod] = []
+    @Published var viewingThaiMod: ThaiTranslationMod? = nil
+    
     @Published var logOutput: String = ""
     @Published var alertMessage: String = ""
     @Published var showAlert: Bool = false
@@ -729,6 +765,161 @@ class StarHubTHViewModel: ObservableObject {
         } catch {
             showModal(message: "ลบโฟลเดอร์ Mods_disabled ไม่สำเร็จ: \(error.localizedDescription)")
         }
+    }
+    
+    // MARK: - Thai Translation Hub Logic
+    
+    func fetchThaiTranslations() {
+        guard let url = URL(string: "https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/README.md") else { return }
+        
+        URLSession.shared.dataTask(with: url) { data, response, error in
+            guard let data = data, let content = String(data: data, encoding: .utf8) else { return }
+            
+            var newTranslations: [ThaiTranslationMod] = []
+            let lines = content.components(separatedBy: .newlines)
+            var inTable = false
+            
+            for line in lines {
+                if line.starts(with: "| ชื่อม็อด") {
+                    inTable = true
+                    continue
+                }
+                if inTable && line.starts(with: "| :---") { continue }
+                if inTable && line.starts(with: "|") {
+                    let parts = line.components(separatedBy: "|").map { $0.trimmingCharacters(in: .whitespaces) }
+                    if parts.count >= 6 {
+                        let rawName = parts[1] // **[[CP] Additional Farm Cave](https://...)**
+                        var cleanName = rawName.replacingOccurrences(of: "**", with: "")
+                        var url = ""
+                        
+                        // Use regex to extract name and URL: [Name](URL)
+                        let pattern = "\\[(.*?)\\]\\((.*?)\\)"
+                        if let regex = try? NSRegularExpression(pattern: pattern, options: []),
+                           let match = regex.firstMatch(in: cleanName, options: [], range: NSRange(location: 0, length: cleanName.utf16.count)) {
+                            if let nameRange = Range(match.range(at: 1), in: cleanName) {
+                                let extractedName = String(cleanName[nameRange])
+                                if let urlRange = Range(match.range(at: 2), in: cleanName) {
+                                    url = String(cleanName[urlRange])
+                                }
+                                cleanName = extractedName
+                            }
+                        }
+                        
+                        let author = parts[2]
+                        let version = parts[3]
+                        let status = parts[4]
+                        
+                        let rawNexus = parts[5]
+                        var nexusUrl = ""
+                        if let r1 = rawNexus.range(of: "("), let r2 = rawNexus.range(of: ")") {
+                            nexusUrl = String(rawNexus[rawNexus.index(after: r1.lowerBound)..<r2.lowerBound])
+                        }
+                        
+                        let mod = ThaiTranslationMod(
+                            name: cleanName,
+                            author: author,
+                            version: version,
+                            status: status,
+                            url: url,
+                            nexusUrl: nexusUrl,
+                            isInstalled: false,
+                            isOriginalModInstalled: false
+                        )
+                        newTranslations.append(mod)
+                    }
+                } else if inTable && line.isEmpty {
+                    inTable = false
+                }
+            }
+            
+            DispatchQueue.main.async {
+                self.thaiTranslations = newTranslations
+                self.evaluateThaiTranslationStatus()
+            }
+        }.resume()
+    }
+    
+    func evaluateThaiTranslationStatus() {
+        guard !gameDir.isEmpty else { return }
+        let fm = FileManager.default
+        let modsDir = (gameDir as NSString).appendingPathComponent("Mods")
+        
+        for i in 0..<thaiTranslations.count {
+            // Very simple check: does any mod folder contain an i18n/th.json?
+            // AND does the folder name sort of match the mod name?
+            let nameToCheck = thaiTranslations[i].name.replacingOccurrences(of: "[CP]", with: "").trimmingCharacters(in: .whitespaces)
+            var foundTranslation = false
+            var foundOriginal = false
+            for mod in mods {
+                if mod.name.localizedCaseInsensitiveContains(nameToCheck) || nameToCheck.localizedCaseInsensitiveContains(mod.name) {
+                    foundOriginal = true
+                    let thJsonPath = (modsDir as NSString).appendingPathComponent("\(mod.folderName)/i18n/th.json")
+                    let cpThJsonPath = (modsDir as NSString).appendingPathComponent("\(mod.folderName)/[CP] \(mod.folderName)/i18n/th.json") // Handle nested [CP]
+                    if fm.fileExists(atPath: thJsonPath) || fm.fileExists(atPath: cpThJsonPath) {
+                        foundTranslation = true
+                    }
+                }
+            }
+            thaiTranslations[i].isOriginalModInstalled = foundOriginal
+            thaiTranslations[i].isInstalled = foundTranslation
+        }
+        
+        // Sort installed mods first, then alphabetically
+        thaiTranslations.sort { mod1, mod2 in
+            if mod1.isInstalled != mod2.isInstalled {
+                return mod1.isInstalled
+            }
+            return mod1.name.localizedStandardCompare(mod2.name) == .orderedAscending
+        }
+    }
+    
+    func installThaiTranslation(mod: ThaiTranslationMod) {
+        guard !gameDir.isEmpty else { return }
+        
+        let modsDir = (gameDir as NSString).appendingPathComponent("Mods")
+        let zipName = "\(mod.name.replacingOccurrences(of: "[CP] ", with: "")) - Thai Translation.zip"
+        let encodedZipName = zipName.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? zipName
+        let downloadUrlStr = "https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/bundles/\(encodedZipName)"
+        
+        guard let downloadUrl = URL(string: downloadUrlStr) else {
+            showModal(message: "เกิดข้อผิดพลาดในการสร้าง URL ดาวน์โหลด")
+            return
+        }
+        
+        showModal(message: "กำลังดาวน์โหลดไฟล์แปลภาษา: \(mod.name)...")
+        
+        let task = URLSession.shared.downloadTask(with: downloadUrl) { localUrl, response, error in
+            if let error = error {
+                DispatchQueue.main.async {
+                    self.showModal(message: "ดาวน์โหลดล้มเหลว: \(error.localizedDescription)")
+                }
+                return
+            }
+            
+            guard let localUrl = localUrl else { return }
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
+            process.arguments = ["-o", localUrl.path, "-d", modsDir]
+            
+            do {
+                try process.run()
+                process.waitUntilExit()
+                
+                DispatchQueue.main.async {
+                    if process.terminationStatus == 0 {
+                        self.showModal(message: "ติดตั้งภาษาไทยสำหรับ \(mod.name) สำเร็จ!")
+                        self.evaluateThaiTranslationStatus()
+                    } else {
+                        self.showModal(message: "เกิดข้อผิดพลาดในการแตกไฟล์ Zip ลงโฟลเดอร์ Mods")
+                    }
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    self.showModal(message: "ไม่สามารถรันคำสั่ง Unzip ได้: \(error.localizedDescription)")
+                }
+            }
+        }
+        task.resume()
     }
     
     func openSavesFolder() {

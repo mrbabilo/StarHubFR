@@ -9,15 +9,15 @@ struct LogsView: View {
                 
                 // ── Logs Section ──
                 StandardSection(
-                    title: "ประวัติการทำงาน (System Logs)",
-                    footer: "ประวัติสถานะและคำแนะนำสิทธิ์การเปิดใช้แอปในเซสชันปัจจุบัน"
+                    title: vm.localizedString(for: "ประวัติการทำงาน"),
+                    footer: vm.localizedString(for: "ประวัติสถานะและคำแนะนำสิทธิ์การเปิดใช้แอปในเซสชันปัจจุบัน")
                 ) {
                     VStack(alignment: .leading, spacing: 16) {
                         HStack {
-                            Text("บันทึกการทำงานของระบบ")
+                            Text(vm.localizedString(for: "บันทึกการทำงานของระบบ"))
                                 .font(.system(size: 13))
                             Spacer()
-                            Button("ล้างประวัติ") {
+                            Button(vm.localizedString(for: "ล้างประวัติ")) {
                                 vm.logOutput = ""
                             }
                         }
@@ -29,7 +29,7 @@ struct LogsView: View {
                             ScrollView {
                                 VStack(alignment: .leading) {
                                     if vm.logOutput.isEmpty {
-                                        Text("ไม่มีประวัติการบันทึกในเซสชันนี้")
+                                        Text(vm.localizedString(for: "ไม่มีประวัติการบันทึกในเซสชันนี้"))
                                             .font(.system(size: 12))
                                             .foregroundColor(.secondary)
                                             .italic()
@@ -57,8 +57,8 @@ struct LogsView: View {
                 }
                 
                 // ── Troubleshooting tip card ──
-                StandardSection(title: "คำแนะนำสำหรับระบบ macOS") {
-                    Text("1. หากรันเกมไม่ได้เนื่องจาก 'Developer cannot be verified' ให้ไปที่ System Settings > Privacy & Security แล้วกดปุ่ม 'Allow Anyway' ข้างชื่อ SMAPI หรือ Stardew Valley\n2. ตัวจัดการม็อดจะสร้างโฟลเดอร์ชื่อ 'Mods_disabled' ไว้ในโฟลเดอร์เกม เพื่อเก็บม็อดที่คุณสั่งปิดใช้งานชั่วคราว")
+                StandardSection(title: vm.localizedString(for: "คำแนะนำสำหรับระบบ macOS")) {
+                    Text(vm.localizedString(for: "คำแนะนำสำหรับผู้ใช้ macOS"))
                         .font(.system(size: 13))
                         .foregroundColor(.secondary)
                         .lineSpacing(4)
