@@ -197,3 +197,36 @@
 "ไม่มีประวัติการบันทึกในเซสชันนี้" = "No logs for this session...";
 "คำแนะนำสำหรับระบบ macOS" = "macOS Troubleshooting Tips";
 "คำแนะนำสำหรับผู้ใช้ macOS" = "1. If you cannot run the game due to 'Developer cannot be verified', go to System Settings > Privacy & Security and click 'Allow Anyway' next to SMAPI or Stardew Valley.\n2. The mod manager creates a 'Mods_disabled' folder in your game directory to store temporarily disabled mods.";
+
+/* Mod Profiles */
+"โปรไฟล์ม็อด" = "Mod Profiles";
+"โปรไฟล์ม็อด (Mod Profiles)" = "Mod Profiles";
+"โปรไฟล์ม็อดทั้งหมด" = "All Mod Profiles";
+"เพิ่มโปรไฟล์..." = "Add Profile...";
+"ยังไม่มีโปรไฟล์ม็อด" = "No Mod Profiles yet";
+"เปิดใช้งานอยู่" = "Active";
+"กำลังใช้งาน" = "Active";
+"ไม่ได้ใช้งาน" = "Inactive";
+"ดูรายละเอียดโปรไฟล์นี้" = "View Profile Details";
+"ชื่อโปรไฟล์" = "Profile Name";
+"ลบโปรไฟล์ม็อดนี้" = "Delete Mod Profile";
+"ลบโปรไฟล์นี้" = "Delete this profile";
+"การลบโปรไฟล์จะไม่ลบไฟล์ม็อดในเครื่องของคุณ" = "Deleting a profile will not delete your mod files.";
+"โปรไฟล์ใหม่จะเริ่มต้นโดยไม่มีม็อดใดๆ เปิดใช้งาน คุณสามารถตั้งค่าม็อดได้ในภายหลัง" = "The new profile starts with no active mods. You can configure mods later.";
+"เพิ่มโปรไฟล์ใหม่..." = "Add New Profile...";
+"สร้างโปรไฟล์ม็อดใหม่" = "Create New Mod Profile";
+"ชื่อโปรไฟล์..." = "Profile name...";
+"ลบ..." = "Delete...";
+"ความช่วยเหลือ" = "Help";
+"ยกเลิก" = "Cancel";
+"ตกลง" = "OK";
+"ม็อดในโปรไฟล์นี้ (%lld ม็อด)" = "Mods in this profile (%lld mods)";
+"ม็อดในโปรไฟล์นี้ (%d ม็อด)" = "Mods in this profile (%d mods)";
+"เลือกม็อดที่คุณต้องการให้เปิดใช้งานในโปรไฟล์นี้" = "Select mods to enable for this profile.";
+"จัดการ..." = "Manage...";
+"จัดการม็อดในโปรไฟล์" = "Manage Mods";
+"Dependencies (ม็อดที่ต้องการ)" = "Dependencies";
+"Required" = "Required";
+"Optional" = "Optional";
+"เลือกทั้งหมด" = "Select All";
+"เอาออกทั้งหมด" = "Deselect All";

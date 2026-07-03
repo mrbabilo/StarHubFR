@@ -5,7 +5,7 @@ struct ModListView: View {
     @State private var searchText = ""
 
     var filteredMods: [ModItem] {
-        vm.mods.filter { searchText.isEmpty || $0.name.localizedCaseInsensitiveContains(searchText) }
+        vm.mods.filter { searchText.isEmpty || $0.name.localizedCaseInsensitiveContains(searchText) || $0.uniqueId.localizedCaseInsensitiveContains(searchText) }
     }
 
     var activeMods: [ModItem] { filteredMods.filter { $0.isEnabled } }
@@ -50,25 +50,6 @@ struct ModListView: View {
         }
         .background(Color(nsColor: .controlBackgroundColor))
         .searchable(text: $searchText, prompt: Text(vm.localizedString(for: "ค้นหาส่วนเสริม...")))
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(vm.smapiInstalledVersion == "ยังไม่ได้ติดตั้ง" ? Color.red : Color.green)
-                        .frame(width: 8, height: 8)
-                        .shadow(color: vm.smapiInstalledVersion == "ยังไม่ได้ติดตั้ง" ? .clear : Color.green.opacity(0.5), radius: 3)
-                    
-                    Text(vm.localizedString(for: vm.smapiInstalledVersion == "ยังไม่ได้ติดตั้ง" ? "API ออฟไลน์" : "API ทำงานปกติ"))
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.secondary)
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(Color(nsColor: .windowBackgroundColor))
-                .cornerRadius(12)
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.secondary.opacity(0.1), lineWidth: 1))
-            }
-        }
     }
 }
 
@@ -145,6 +126,8 @@ struct ModListRow: View {
     var isChild: Bool = false
     var isGroupHeader: Bool = false
     @Binding var isExpanded: Bool
+    @State private var localIsOn: Bool?
+    @State private var isShowingDependencies = false
 
     var body: some View {
         HStack(spacing: 12) {
@@ -211,37 +194,125 @@ struct ModListRow: View {
 
             // Actions (always visible)
             HStack(spacing: 12) {
-                    if !mod.nexusUrl.isEmpty {
-                        Button {
-                            if let url = URL(string: mod.nexusUrl) { NSWorkspace.shared.open(url) }
-                        } label: {
-                            Image(systemName: "link")
-                                .font(.system(size: 14))
-                                .foregroundColor(.accentColor)
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                        .help("ดูบน Nexus Mods")
-                        .pointingHandCursor()
-                    }
+                Button {
+                    let baseFolder = mod.isEnabled ? "Mods" : "Mods_disabled"
+                    let url = URL(fileURLWithPath: vm.gameDir)
+                        .appendingPathComponent(baseFolder)
+                        .appendingPathComponent(mod.folderName)
+                    NSWorkspace.shared.open(url)
+                } label: {
+                    Image(systemName: "folder")
+                        .font(.system(size: 14))
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(PlainButtonStyle())
+                .help("เปิดโฟลเดอร์")
+                .pointingHandCursor()
+                
+                if !mod.nexusUrl.isEmpty || !mod.dependencies.isEmpty {
                     Button {
-                        let url = URL(fileURLWithPath: vm.gameDir)
-                            .appendingPathComponent("Mods")
-                            .appendingPathComponent(mod.folderName)
-                        NSWorkspace.shared.open(url)
+                        isShowingDependencies = true
                     } label: {
-                        Image(systemName: "folder")
+                        Image(systemName: "info.circle")
                             .font(.system(size: 14))
                             .foregroundColor(.secondary)
                     }
                     .buttonStyle(PlainButtonStyle())
-                    .help("เปิดโฟลเดอร์")
+                    .help("ข้อมูล (Information)")
                     .pointingHandCursor()
+                    .popover(isPresented: $isShowingDependencies, arrowEdge: .bottom) {
+                        VStack(alignment: .leading, spacing: 12) {
+                            if !mod.nexusUrl.isEmpty {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Nexus Mods")
+                                        .font(.headline)
+                                    Button {
+                                        if let url = URL(string: mod.nexusUrl) { NSWorkspace.shared.open(url) }
+                                    } label: {
+                                        HStack {
+                                            Image(systemName: "link")
+                                            Text("ดูบน Nexus Mods")
+                                        }
+                                        .foregroundColor(.accentColor)
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
+                                    .pointingHandCursor()
+                                }
+                            }
+                            
+                            if !mod.dependencies.isEmpty {
+                                if !mod.nexusUrl.isEmpty {
+                                    Divider()
+                                }
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("Dependencies (ม็อดที่ต้องการ)")
+                                        .font(.headline)
+                                    
+                                    ScrollView {
+                                        VStack(alignment: .leading, spacing: 6) {
+                                            ForEach(mod.dependencies, id: \.uniqueId) { dep in
+                                                let isInstalled = vm.mods.contains { $0.uniqueId.caseInsensitiveCompare(dep.uniqueId) == .orderedSame }
+                                                HStack {
+                                                    if isInstalled {
+                                                        Image(systemName: "checkmark.circle.fill")
+                                                            .foregroundColor(.green)
+                                                            .font(.system(size: 10))
+                                                    } else {
+                                                        Image(systemName: "xmark.circle.fill")
+                                                            .foregroundColor(.red.opacity(0.5))
+                                                            .font(.system(size: 10))
+                                                    }
+                                                    
+                                                    Text(dep.uniqueId)
+                                                        .font(.system(size: 12, design: .monospaced))
+                                                        .foregroundColor(isInstalled ? .primary : .secondary)
+                                                    Spacer()
+                                                    if dep.isRequired {
+                                                        Text("Required")
+                                                            .font(.system(size: 10, weight: .bold))
+                                                            .foregroundColor(.red)
+                                                            .padding(.horizontal, 6)
+                                                            .padding(.vertical, 2)
+                                                            .background(Color.red.opacity(0.1))
+                                                            .cornerRadius(4)
+                                                    } else {
+                                                        Text("Optional")
+                                                            .font(.system(size: 10))
+                                                            .foregroundColor(.secondary)
+                                                            .padding(.horizontal, 6)
+                                                            .padding(.vertical, 2)
+                                                            .background(Color.secondary.opacity(0.1))
+                                                            .cornerRadius(4)
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        .padding()
+                        .frame(width: 300)
+                        .frame(maxHeight: 300)
+                    }
                 }
-                .padding(.trailing, 8)
+            }
+            .padding(.trailing, 8)
 
             // macOS Native Switch Toggle
             if !isChild {
-                Toggle("", isOn: Binding(get: { mod.isEnabled }, set: { _ in vm.toggleMod(mod) }))
+                Toggle("", isOn: Binding(
+                    get: { localIsOn ?? mod.isEnabled },
+                    set: { newValue in
+                        localIsOn = newValue
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            if newValue != mod.isEnabled {
+                                vm.toggleMod(mod)
+                            }
+                            localIsOn = nil
+                        }
+                    }
+                ))
                     .toggleStyle(SwitchToggleStyle(tint: .blue))
                     .controlSize(.small)
                     .labelsHidden()
@@ -261,8 +332,9 @@ struct ModListRow: View {
         .onHover { isHovered = $0 }
         .contextMenu {
             Button("เปิดใน Finder") {
+                let baseFolder = mod.isEnabled ? "Mods" : "Mods_disabled"
                 let url = URL(fileURLWithPath: vm.gameDir)
-                    .appendingPathComponent("Mods")
+                    .appendingPathComponent(baseFolder)
                     .appendingPathComponent(mod.folderName)
                 NSWorkspace.shared.open(url)
             }

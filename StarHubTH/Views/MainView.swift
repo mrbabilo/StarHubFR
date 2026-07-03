@@ -59,17 +59,35 @@ struct MainView: View {
                 if matchesSearch(vm.steamUsername, vm.localizedString(for: "บัญชีผู้ใช้")) {
                     Button(action: { currentTab = "Home" }) {
                         HStack(spacing: 12) {
-                            if let avatarPath = vm.steamAvatarPath, let nsImage = NSImage(contentsOfFile: avatarPath) {
-                                Image(nsImage: nsImage)
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fill)
-                                    .frame(width: 48, height: 48)
-                                    .clipShape(Circle())
-                            } else {
-                                Image(systemName: "person.crop.circle.fill")
-                                    .resizable()
-                                    .frame(width: 48, height: 48)
-                                    .foregroundColor(.gray)
+                            ZStack(alignment: .bottomTrailing) {
+                                if let avatarPath = vm.steamAvatarPath, let nsImage = NSImage(contentsOfFile: avatarPath) {
+                                    Image(nsImage: nsImage)
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                        .frame(width: 48, height: 48)
+                                        .clipShape(Circle())
+                                } else {
+                                    Image(systemName: "person.crop.circle.fill")
+                                        .resizable()
+                                        .frame(width: 48, height: 48)
+                                        .foregroundColor(.gray)
+                                }
+                                
+                                if let activeProfileId = vm.activeProfileId, let activeProfile = vm.modProfiles.first(where: { $0.id == activeProfileId }) {
+                                    ZStack {
+                                        Circle()
+                                            .fill(Color.accentColor)
+                                            .frame(width: 20, height: 20)
+                                            .overlay(
+                                                Circle()
+                                                    .stroke(Color(nsColor: .windowBackgroundColor), lineWidth: 2)
+                                            )
+                                        Text(String(activeProfile.name.prefix(1)).uppercased())
+                                            .font(.system(size: 10, weight: .bold))
+                                            .foregroundColor(.white)
+                                    }
+                                    .offset(x: 4, y: 4)
+                                }
                             }
                                 
                             VStack(alignment: .leading, spacing: 2) {
@@ -79,6 +97,13 @@ struct MainView: View {
                                 Text("Steam Account")
                                     .font(.system(size: 12))
                                     .foregroundColor(.secondary)
+                                
+                                if let activeProfileId = vm.activeProfileId, let activeProfile = vm.modProfiles.first(where: { $0.id == activeProfileId }) {
+                                    Text("\(vm.localizedString(for: "โปรไฟล์ม็อด (Mod Profiles)")): \(activeProfile.name)")
+                                        .font(.system(size: 10, weight: .medium))
+                                        .foregroundColor(.accentColor)
+                                        .padding(.top, 2)
+                                }
                             }
                             Spacer()
                         }
@@ -145,6 +170,16 @@ struct MainView: View {
                             currentTab: $currentTab
                         )
                     }
+                    
+                    if matchesSearch(vm.localizedString(for: "โปรไฟล์ม็อด")) {
+                        SidebarNavItem(
+                            icon: "person.2.fill",
+                            iconColor: .orange,
+                            label: vm.localizedString(for: "โปรไฟล์ม็อด"),
+                            tab: "Profiles",
+                            currentTab: $currentTab
+                        )
+                    }
                 }
                 
                 // System & Settings Section
@@ -206,10 +241,11 @@ struct MainView: View {
                 } else if currentTab == "Saves" {
                     if let save = vm.editingSave {
                         SaveEditorView(vm: vm, save: save)
-                            // Remove any extra background here because SaveEditorView will set its own
                     } else {
                         SavesView(vm: vm)
                     }
+                } else if currentTab == "Profiles" {
+                    ModProfilesView(vm: vm)
                 } else if currentTab == "Updates" {
                     UpdatesView(vm: vm, currentTab: $currentTab)
                 } else if currentTab == "ThaiHub" {

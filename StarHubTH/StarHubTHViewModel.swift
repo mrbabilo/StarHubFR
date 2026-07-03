@@ -109,6 +109,10 @@ class StarHubTHViewModel: ObservableObject {
         }
     }
     
+    
+    @Published var modProfiles: [ModProfile] = []
+    @Published var activeProfileId: UUID? = nil
+    
     let smapiInstaller = SmapiInstaller()
     
     init() {
@@ -124,6 +128,7 @@ class StarHubTHViewModel: ObservableObject {
             self.gameDir = self.detectDefaultGameDir()
         }
         self.refresh()
+        self.loadProfiles()
     }
     
     func detectDefaultGameDir() -> String {
@@ -236,7 +241,7 @@ class StarHubTHViewModel: ObservableObject {
         var scannedMods: [ModItem] = []
         
         // Helper to parse a folder containing manifest.json
-        func parseModFolder(at path: String, isEnabled: Bool) -> ModItem? {
+        func parseModFolder(at path: String, relativePath: String, isEnabled: Bool) -> ModItem? {
             let manifestPath = (path as NSString).appendingPathComponent("manifest.json")
             guard fm.fileExists(atPath: manifestPath) else { return nil }
             
@@ -302,7 +307,7 @@ class StarHubTHViewModel: ObservableObject {
             return ModItem(
                 uniqueId: uniqueId,
                 name: name,
-                folderName: (path as NSString).lastPathComponent,
+                folderName: relativePath.isEmpty ? (path as NSString).lastPathComponent : relativePath,
                 version: version,
                 author: author,
                 description: description,
@@ -322,10 +327,11 @@ class StarHubTHViewModel: ObservableObject {
                 for case let fileURL as URL in enumerator {
                     if fileURL.lastPathComponent.lowercased() == "manifest.json" {
                         let modFolderURL = fileURL.deletingLastPathComponent()
-                        if let mod = parseModFolder(at: modFolderURL.path, isEnabled: isEnabled) {
+                        let relativePath = modFolderURL.path.replacingOccurrences(of: url.path, with: "").trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                        if let mod = parseModFolder(at: modFolderURL.path, relativePath: relativePath, isEnabled: isEnabled) {
                             
                             // Determine top-level folder
-                            let pathComponents = modFolderURL.path.replacingOccurrences(of: url.path, with: "").trimmingCharacters(in: CharacterSet(charactersIn: "/")).components(separatedBy: "/")
+                            let pathComponents = relativePath.components(separatedBy: "/")
                             
                             if pathComponents.count > 1, let topFolder = pathComponents.first, !topFolder.isEmpty {
                                 groups[topFolder, default: []].append(mod)
@@ -516,30 +522,79 @@ class StarHubTHViewModel: ObservableObject {
     
     // Toggle Mod Status (Enabled / Disabled)
     func toggleMod(_ mod: ModItem) {
+        var modsToToggle: Set<String> = [mod.uniqueId]
+        let targetState = !mod.isEnabled // True if we are enabling, false if disabling
+        
+        if targetState == true {
+            // Enabling: Also enable all dependencies recursively
+            var queue = [mod]
+            while !queue.isEmpty {
+                let current = queue.removeFirst()
+                for dep in current.dependencies {
+                    if let depMod = self.mods.first(where: { $0.uniqueId.caseInsensitiveCompare(dep.uniqueId) == .orderedSame }), !depMod.isEnabled {
+                        if !modsToToggle.contains(depMod.uniqueId) {
+                            modsToToggle.insert(depMod.uniqueId)
+                            queue.append(depMod)
+                        }
+                    }
+                }
+            }
+        } else {
+            // Disabling: Disable dependencies if they are not used by other enabled mods
+            var queue = [mod]
+            while !queue.isEmpty {
+                let current = queue.removeFirst()
+                for dep in current.dependencies {
+                    if let depMod = self.mods.first(where: { $0.uniqueId.caseInsensitiveCompare(dep.uniqueId) == .orderedSame }), depMod.isEnabled {
+                        if !modsToToggle.contains(depMod.uniqueId) {
+                            // Check if this dependency is required by another enabled mod that we are NOT disabling
+                            let isUsedByOther = self.mods.contains { otherMod in
+                                otherMod.isEnabled && 
+                                !modsToToggle.contains(otherMod.uniqueId) &&
+                                otherMod.dependencies.contains { $0.uniqueId.caseInsensitiveCompare(depMod.uniqueId) == .orderedSame }
+                            }
+                            
+                            if !isUsedByOther {
+                                modsToToggle.insert(depMod.uniqueId)
+                                queue.append(depMod)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
         let fm = FileManager.default
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
         let disabledModsPath = (gameDir as NSString).appendingPathComponent("Mods_disabled")
+        var anyMoved = false
         
-        let srcPath = ((mod.isEnabled ? modsPath : disabledModsPath) as NSString).appendingPathComponent(mod.folderName)
-        let destFolder = mod.isEnabled ? disabledModsPath : modsPath
-        let destPath = ((destFolder as NSString).appendingPathComponent(mod.folderName) as String)
+        for uniqueId in modsToToggle {
+            guard let m = self.mods.first(where: { $0.uniqueId == uniqueId }) else { continue }
+            if m.isEnabled == targetState { continue }
+            
+            let srcPath = ((m.isEnabled ? modsPath : disabledModsPath) as NSString).appendingPathComponent(m.folderName)
+            let destFolder = m.isEnabled ? disabledModsPath : modsPath
+            let destPath = ((destFolder as NSString).appendingPathComponent(m.folderName) as String)
+            
+            do {
+                let destParent = (destPath as NSString).deletingLastPathComponent
+                if !fm.fileExists(atPath: destParent) {
+                    try fm.createDirectory(atPath: destParent, withIntermediateDirectories: true, attributes: nil)
+                }
+                if fm.fileExists(atPath: destPath) {
+                    try fm.removeItem(atPath: destPath)
+                }
+                try fm.moveItem(atPath: srcPath, toPath: destPath)
+                anyMoved = true
+            } catch {
+                print("Failed to toggle \(m.name): \(error.localizedDescription)")
+            }
+        }
         
-        do {
-            if !fm.fileExists(atPath: destFolder) {
-                try fm.createDirectory(atPath: destFolder, withIntermediateDirectories: true, attributes: nil)
-            }
-            if fm.fileExists(atPath: destPath) {
-                try fm.removeItem(atPath: destPath)
-            }
-            try fm.moveItem(atPath: srcPath, toPath: destPath)
-            
-            // Log action
-            log("\(mod.isEnabled ? "ปิดใช้งาน" : "เปิดใช้งาน")ม็อด: \(mod.name)")
-            
-            // Refresh
+        if anyMoved {
+            log("\(targetState ? "เปิดใช้งาน" : "ปิดใช้งาน")ม็อด: \(mod.name)\(modsToToggle.count > 1 ? " และ Dependencies" : "")")
             self.scanMods()
-        } catch {
-            self.showModal(message: "เปลี่ยนสถานะม็อดไม่สำเร็จ: \(error.localizedDescription)")
         }
     }
     
@@ -926,5 +981,103 @@ class StarHubTHViewModel: ObservableObject {
         let home = NSHomeDirectory()
         let savesDir = URL(fileURLWithPath: "\(home)/.config/StardewValley/Saves")
         NSWorkspace.shared.open(savesDir)
+    }
+    
+    // MARK: - Mod Profiles
+    func loadProfiles() {
+        if let data = UserDefaults.standard.data(forKey: "modProfiles"),
+           let profiles = try? JSONDecoder().decode([ModProfile].self, from: data) {
+            self.modProfiles = profiles
+        } else {
+            self.modProfiles = []
+        }
+        
+        if let activeIdStr = UserDefaults.standard.string(forKey: "activeProfileId"),
+           let activeId = UUID(uuidString: activeIdStr) {
+            self.activeProfileId = activeId
+        }
+    }
+    
+    func saveProfiles() {
+        if let data = try? JSONEncoder().encode(modProfiles) {
+            UserDefaults.standard.set(data, forKey: "modProfiles")
+        }
+        if let activeId = activeProfileId {
+            UserDefaults.standard.set(activeId.uuidString, forKey: "activeProfileId")
+        } else {
+            UserDefaults.standard.removeObject(forKey: "activeProfileId")
+        }
+    }
+    
+    func createProfile(name: String) {
+        let newProfile = ModProfile(name: name, enabledModIds: [])
+        modProfiles.append(newProfile)
+        saveProfiles()
+        applyProfile(id: newProfile.id)
+    }
+    
+    func deleteProfile(id: UUID) {
+        modProfiles.removeAll { $0.id == id }
+        if activeProfileId == id {
+            activeProfileId = nil
+        }
+        saveProfiles()
+    }
+    
+    func updateProfile(id: UUID, newName: String, enabledModIds: [String]) {
+        if let index = modProfiles.firstIndex(where: { $0.id == id }) {
+            modProfiles[index].name = newName
+            modProfiles[index].enabledModIds = enabledModIds
+            saveProfiles()
+            
+            // If the active profile is updated, we should probably re-apply it to sync mods?
+            // Wait, the user might just be editing a background profile. If it's active, maybe apply it?
+            if activeProfileId == id {
+                applyProfile(id: id)
+            }
+        }
+    }
+    
+    func applyProfile(id: UUID?) {
+        guard let id = id, let profile = modProfiles.first(where: { $0.id == id }) else {
+            activeProfileId = nil
+            saveProfiles()
+            return
+        }
+        
+        activeProfileId = id
+        saveProfiles()
+        
+        let fm = FileManager.default
+        let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
+        let disabledModsPath = (gameDir as NSString).appendingPathComponent("Mods_disabled")
+        
+        // 1. First, move all currently enabled mods to disabled (except those that need to stay enabled)
+        let currentlyEnabled = mods.filter { $0.isEnabled }
+        for mod in currentlyEnabled {
+            if !profile.enabledModIds.contains(mod.uniqueId) {
+                let srcPath = (modsPath as NSString).appendingPathComponent(mod.folderName)
+                let destPath = (disabledModsPath as NSString).appendingPathComponent(mod.folderName)
+                let destParent = (destPath as NSString).deletingLastPathComponent
+                try? fm.createDirectory(atPath: destParent, withIntermediateDirectories: true, attributes: nil)
+                try? fm.moveItem(atPath: srcPath, toPath: destPath)
+            }
+        }
+        
+        // 2. Next, move all required disabled mods to enabled
+        let currentlyDisabled = mods.filter { !$0.isEnabled }
+        for mod in currentlyDisabled {
+            if profile.enabledModIds.contains(mod.uniqueId) {
+                let srcPath = (disabledModsPath as NSString).appendingPathComponent(mod.folderName)
+                let destPath = (modsPath as NSString).appendingPathComponent(mod.folderName)
+                let destParent = (destPath as NSString).deletingLastPathComponent
+                try? fm.createDirectory(atPath: destParent, withIntermediateDirectories: true, attributes: nil)
+                try? fm.moveItem(atPath: srcPath, toPath: destPath)
+            }
+        }
+        
+        // 3. Refresh mods list
+        self.scanMods()
+        self.log("สลับโปรไฟล์ม็อดเป็น: \(profile.name)")
     }
 }
