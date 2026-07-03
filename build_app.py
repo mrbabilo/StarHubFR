@@ -39,6 +39,14 @@ def create_app_bundle():
         shutil.copy2(app_icon_path, os.path.join(RESOURCES_DIR, "AppIcon.icns"))
         print("[INFO] Copied AppIcon.icns to App Resources")
         
+    for lang in ["en.lproj", "th.lproj", "ja.lproj"]:
+        lproj_src = os.path.join("assets", lang)
+        if os.path.exists(lproj_src):
+            lproj_dest = os.path.join(RESOURCES_DIR, lang)
+            os.makedirs(lproj_dest, exist_ok=True)
+            shutil.copy2(os.path.join(lproj_src, "Localizable.strings"), os.path.join(lproj_dest, "Localizable.strings"))
+            print(f"[INFO] Copied {lang} to App Resources")
+        
     # 4. Compile Swift App
     app_executable = os.path.join(MACOS_DIR, APP_NAME)
     

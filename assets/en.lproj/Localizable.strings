@@ -1,0 +1,134 @@
+/* English Localized Strings */
+
+/* MainView */
+"บัญชีผู้ใช้" = "Account";
+"เซฟเกม (Saves)" = "Saves";
+"ส่วนเสริม (Mods)" = "Mods";
+"ตั้งค่าระบบ (Settings)" = "Settings";
+"เครื่องมือและระบบ" = "Tools & System";
+"บันทึกระบบ (Logs)" = "Logs";
+"นักพัฒนา" = "Developer";
+"พร้อมลุย!" = "Ready to play!";
+"กำลังเปิดเกม..." = "Launching game...";
+"เข้าสู่เกม" = "Launch Game";
+"แจ้งเตือน" = "Alert";
+"ตกลง" = "OK";
+"หน้าแรก (Home)" = "Home";
+
+/* HomeView */
+"Stardew Valley v1.6 • StarHubTH v%@" = "Stardew Valley v1.6 • StarHubTH v%@";
+"ข้อมูลระบบเกม" = "Game System Info";
+"ผู้พัฒนา" = "Developer";
+"ตัวจัดการม็อด" = "Mod Manager";
+"ไม่ได้ติดตั้ง" = "Not Installed";
+"ม็อดที่ติดตั้ง" = "Installed Mods";
+"โฟลเดอร์เกม" = "Game Folder";
+"ที่ตั้งไฟล์เกม" = "Game Path";
+"ยังไม่ได้กำหนด" = "Not Set";
+"เลือกโฟลเดอร์..." = "Select Folder...";
+"ระบบจัดการม็อด (SMAPI)" = "Mod Manager (SMAPI)";
+"สถานะ SMAPI" = "SMAPI Status";
+"ติดตั้งแล้ว (v%@)" = "Installed (v%@)";
+"ติดตั้ง SMAPI" = "Install SMAPI";
+"ถอนการติดตั้ง" = "Uninstall";
+"ส่วนเสริมหลัก (Core Extensions)" = "Core Extensions";
+"ติดตั้งและเปิดใช้งานแล้ว" = "Installed and enabled";
+"ไม่ได้ติดตั้ง หรือปิดใช้งานอยู่" = "Not installed or disabled";
+"%lld รายการ" = "%lld items";
+
+/* SavesView */
+"ไม่พบไฟล์เซฟในเครื่อง\nลองเริ่มเล่นเกมสักครั้งก่อนนะ" = "No save files found on this machine\nTry starting a game first.";
+"เซฟเกมทั้งหมด (%lld)" = "All Saves (%lld)";
+"ระบบจะดึงข้อมูลเซฟเกมจากโฟลเดอร์เกมของคุณโดยอัตโนมัติ" = "Save games are automatically fetched from your game folder.";
+"%@ Farm • ปีที่ %lld %@ วันที่ %lld • %@ G" = "%@ Farm • Year %lld %@ Day %lld • %@ G";
+"ระบบจะทำการสร้างโฟลเดอร์แบ็คอัพไว้ข้างๆ ไฟล์เดิมอัตโนมัติ" = "A backup folder will be created automatically next to the original file.";
+"เล่นล่าสุดเมื่อ %@" = "Last played on %@";
+"ฤดูใบไม้ผลิ" = "Spring";
+"ฤดูร้อน" = "Summer";
+"ฤดูใบไม้ร่วง" = "Fall";
+"ฤดูหนาว" = "Winter";
+"ข้อมูลตัวละคร" = "Character Info";
+"ชื่อตัวละคร" = "Character Name";
+"ชื่อฟาร์ม" = "Farm Name";
+"สิ่งที่ชอบ" = "Favorite Thing";
+"ทรัพยากร" = "Resources";
+"จำนวนเงิน (G)" = "Money (G)";
+"เหรียญกาสิโน" = "Casino Coins";
+"วอลนัททองคำ" = "Golden Walnuts";
+"เพชรฉี (Qi Gems)" = "Qi Gems";
+"สถานะตัวละคร" = "Character Stats";
+"พลังชีวิตสูงสุด" = "Max Health";
+"พลังงานสูงสุด" = "Max Stamina";
+"การจัดการไฟล์เซฟ" = "Save Management";
+"ทำสำเนา" = "Duplicate";
+"ลบเซฟ" = "Delete Save";
+"บันทึกการเปลี่ยนแปลง" = "Save Changes";
+
+/* ModListView */
+"API ออฟไลน์" = "API Offline";
+"API ทำงานปกติ" = "API Normal";
+"ไม่พบส่วนเสริมที่ติดตั้ง\nโปรดตรวจสอบโฟลเดอร์เกม" = "No installed mods found\nPlease check your game folder.";
+"ไม่พบส่วนเสริม \"%@\"" = "No mod found matching \"%@\"";
+"ค้นหาส่วนเสริม..." = "Search mods...";
+"เปิดใช้งานแล้ว" = "Enabled";
+"ปิดการใช้งาน" = "Disabled";
+"เปิดโฟลเดอร์" = "Open Folder";
+"เปิดใน Finder" = "Open in Finder";
+"ดูบน Nexus Mods" = "View on Nexus Mods";
+"ดูรายละเอียดบน Nexus Mods" = "View details on Nexus Mods";
+
+/* LogsView */
+"บันทึกการทำงานของระบบ" = "System Logs";
+"ไม่มีประวัติการบันทึกในเซสชันนี้" = "No logs for this session";
+"1. หากรันเกมไม่ได้เนื่องจาก 'Developer cannot be verified' ให้ไปที่ System Settings > Privacy & Security แล้วกดปุ่ม 'Allow Anyway' ข้างชื่อ SMAPI หรือ Stardew Valley\n2. ตัวจัดการม็อดจะสร้างโฟลเดอร์ชื่อ 'Mods_disabled' ไว้ในโฟลเดอร์เกม เพื่อเก็บม็อดที่คุณสั่งปิดใช้งานชั่วคราว" = "1. If the game cannot run due to 'Developer cannot be verified', go to System Settings > Privacy & Security and click 'Allow Anyway' next to SMAPI or Stardew Valley.\n2. The mod manager creates a 'Mods_disabled' folder in your game folder to store temporarily disabled mods.";
+"คำแนะนำสำหรับระบบ macOS" = "macOS Troubleshooting Tips";
+
+/* SettingsView */
+"การเปิดเกม (Launch Options)" = "Launch Options";
+"สำรองข้อมูล (Backup)" = "Backup";
+"การแสดงผล (Appearance)" = "Appearance";
+"การจัดการ (Management)" = "Management";
+"โหมดเข้าเกมเริ่มต้น" = "Default Launch Mode";
+"เล่นผ่าน SMAPI (ใช้ม็อด)" = "Play via SMAPI (with mods)";
+"ตัวเกมดั้งเดิม (Vanilla)" = "Vanilla Game";
+"ปิด Launcher อัตโนมัติหลังจากเกมเปิดขึ้นมา" = "Close launcher automatically after game launches";
+"สำรองไฟล์เซฟเกม" = "Backup Save Files";
+"Backup เซฟเกม" = "Backup Saves";
+"สำรองโฟลเดอร์ม็อด" = "Backup Mods Folder";
+"Backup ม็อด" = "Backup Mods";
+"ภาษาของแอป (Language)" = "App Language";
+"เลือกภาษา" = "Select Language";
+"ภาษาไทย" = "ภาษาไทย";
+"English" = "English";
+"ธีมของแอป" = "App Theme";
+"ตามระบบ (System)" = "System";
+"สว่าง (Light)" = "Light";
+"มืด (Dark)" = "Dark";
+"แสดงหน้าต่างนักพัฒนา (Developer Logs)" = "Show Developer Logs";
+"โฟลเดอร์เซฟเกม" = "Save Games Folder";
+"เปิดโฟลเดอร์" = "Open Folder";
+"ล้างไฟล์ม็อดที่ถูกปิดใช้งาน" = "Clear Disabled Mods";
+"ลบไฟล์ขยะม็อด" = "Delete Junk Mods";
+"หากเปิดเกมไม่สำเร็จ ลองเลือกเป็นตัวเกมดั้งเดิม (Vanilla) ดูนะ สำหรับข้อมูลเพิ่มเติม โปรดดูที่: [wiki.stardewvalley.net/Modding](https://stardewvalleywiki.com/Modding)" = "If the game fails to launch, try selecting Vanilla. For more info, see: [wiki.stardewvalley.net/Modding](https://stardewvalleywiki.com/Modding)";
+"สร้างไฟล์ Zip สำหรับข้อมูลสำคัญไปไว้ที่ Desktop ของคุณ การสำรองข้อมูลจะช่วยป้องกันไฟล์เสียหายระหว่างการอัปเดต" = "Create a Zip file of important data on your Desktop. Backups prevent file corruption during updates.";
+"หน้าต่างนักพัฒนา (Developer Logs) มีไว้สำหรับตรวจสอบการทำงานของ SMAPI เวลามีม็อดเกิดปัญหาสามารถคัดลอกข้อความไปสอบถามผู้พัฒนาได้" = "The Developer Logs window is for inspecting SMAPI. When a mod crashes, you can copy the text to ask the developer.";
+"ลบโฟลเดอร์ Mods_disabled เพื่อคืนพื้นที่จัดเก็บ หากคุณไม่ต้องการไฟล์ม็อดที่ปิดการใช้งานแล้ว" = "Delete the Mods_disabled folder to free up storage if you no longer need disabled mods.";
+"โหมดการเปิดเกมครั้งถัดไป" = "Next game launch mode";
+"ประหยัดทรัพยากรเครื่อง" = "Save system resources";
+"บีบอัดโฟลเดอร์ Saves เป็นไฟล์ Zip" = "Compress Saves folder to Zip";
+"บีบอัดโฟลเดอร์ Mods เป็นไฟล์ Zip" = "Compress Mods folder to Zip";
+"เครื่องมือแก้ไขปัญหา สำหรับดู Error Log" = "Troubleshooting tool to view Error Log";
+
+/* SmapiInstaller */
+"กำลังเริ่มดาวน์โหลด SMAPI..." = "Downloading SMAPI...";
+"ดาวน์โหลดล้มเหลว: %@" = "Download failed: %@";
+"ไม่พบข้อมูลไฟล์ที่ดาวน์โหลด" = "Downloaded file not found";
+"ดาวน์โหลดสำเร็จ กำลังคลายไฟล์..." = "Download complete, extracting...";
+"เตรียมติดตั้ง SMAPI ลงในตัวเกม..." = "Preparing to install SMAPI...";
+"ไม่พบไฟล์ Payload สำหรับติดตั้งภายใน SMAPI Zip" = "Payload file not found in SMAPI zip";
+"ติดตั้ง SMAPI เรียบร้อยแล้ว!" = "SMAPI installed successfully!";
+"การติดตั้งเกิดข้อผิดพลาด: %@" = "Installation error: %@";
+"ไม่พบข้อมูลการติดตั้ง SMAPI ในโฟลเดอร์นี้" = "SMAPI installation not found in this folder";
+"ถอนการติดตั้ง SMAPI สำเร็จ! คืนค่าตัวเกมหลักเรียบร้อย" = "SMAPI uninstalled! Vanilla game restored.";
+"ถอนการติดตั้งล้มเหลว: %@" = "Uninstall failed: %@";
+"SMAPI Installed" = "SMAPI Installed";

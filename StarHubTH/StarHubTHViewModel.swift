@@ -34,9 +34,21 @@ class StarHubTHViewModel: ObservableObject {
     @Published var steamUsername: String = "ชาวไร่"
     @Published var steamAvatarPath: String? = nil
     
+    @Published var currentLanguage: String = UserDefaults.standard.string(forKey: "currentLanguage") ?? "en" {
+        didSet {
+            UserDefaults.standard.set(currentLanguage, forKey: "currentLanguage")
+            UserDefaults.standard.set([currentLanguage], forKey: "AppleLanguages")
+            UserDefaults.standard.synchronize()
+        }
+    }
+    
     let smapiInstaller = SmapiInstaller()
     
     init() {
+        // Force sync AppleLanguages with currentLanguage at startup
+        let savedLang = UserDefaults.standard.string(forKey: "currentLanguage") ?? "en"
+        UserDefaults.standard.set([savedLang], forKey: "AppleLanguages")
+        
         // Automatically retrieve saved game path, or attempt to find the default Steam path on Mac
         let savedPath = UserDefaults.standard.string(forKey: "gameDir") ?? ""
         if !savedPath.isEmpty && FileManager.default.fileExists(atPath: savedPath) {
@@ -64,20 +76,25 @@ class StarHubTHViewModel: ObservableObject {
     
     func selectGameDir() {
         let panel = NSOpenPanel()
-        panel.canChooseFiles = false
         panel.canChooseDirectories = true
+        panel.canChooseFiles = false
         panel.allowsMultipleSelection = false
-        if let currentURL = URL(string: gameDir) {
-            panel.directoryURL = currentURL
-        }
-        
         if panel.runModal() == .OK {
-            if let url = panel.url {
-                self.gameDir = url.path
-            }
+            self.gameDir = panel.url?.path ?? ""
+            UserDefaults.standard.set(self.gameDir, forKey: "gameDir")
+            scanMods()
+            checkSmapiVersion()
         }
     }
     
+    // Helper to force localization using the currently selected language bundle
+    func localizedString(for key: String) -> String {
+        guard let path = Bundle.main.path(forResource: currentLanguage, ofType: "lproj"),
+              let bundle = Bundle(path: path) else {
+            return NSLocalizedString(key, comment: "")
+        }
+        return NSLocalizedString(key, tableName: nil, bundle: bundle, value: "", comment: "")
+    }
     
     func refresh() {
         self.checkSmapiVersion()

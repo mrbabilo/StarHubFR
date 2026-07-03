@@ -13,8 +13,8 @@ def get_version():
     if os.path.exists(plist_path):
         with open(plist_path, 'rb') as f:
             plist = plistlib.load(f)
-            return plist.get("CFBundleShortVersionString", "1.1.0")
-    return "1.0.0"
+            return plist.get("CFBundleShortVersionString", "1.0.2")
+    return "1.1.0"
 
 def create_release():
     print("[INFO] Starting release process...")

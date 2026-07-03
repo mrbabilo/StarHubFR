@@ -25,7 +25,7 @@ class SmapiInstaller: ObservableObject {
     // Install SMAPI
     func install(gameDir: String, completion: @escaping (Bool, String) -> Void) {
         self.isInstalling = true
-        self.statusMessage = "กำลังเริ่มดาวน์โหลด SMAPI..."
+        self.statusMessage = String(localized: "กำลังเริ่มดาวน์โหลด SMAPI...")
         self.progress = 0.1
         
         // We use the direct SMAPI download URL for the latest version
@@ -39,7 +39,7 @@ class SmapiInstaller: ObservableObject {
             if let error = error {
                 DispatchQueue.main.async {
                     self.isInstalling = false
-                    completion(false, "ดาวน์โหลดล้มเหลว: \(error.localizedDescription)")
+                    completion(false, String(localized: "ดาวน์โหลดล้มเหลว: \(error.localizedDescription)"))
                 }
                 return
             }
@@ -47,7 +47,7 @@ class SmapiInstaller: ObservableObject {
             guard let localURL = localURL else {
                 DispatchQueue.main.async {
                     self.isInstalling = false
-                    completion(false, "ไม่พบข้อมูลไฟล์ที่ดาวน์โหลด")
+                    completion(false, String(localized: "ไม่พบข้อมูลไฟล์ที่ดาวน์โหลด"))
                 }
                 return
             }
@@ -60,7 +60,7 @@ class SmapiInstaller: ObservableObject {
                 try fm.copyItem(at: localURL, to: zipDest)
                 
                 DispatchQueue.main.async {
-                    self.statusMessage = "ดาวน์โหลดสำเร็จ กำลังคลายไฟล์..."
+                    self.statusMessage = String(localized: "ดาวน์โหลดสำเร็จ กำลังคลายไฟล์...")
                     self.progress = 0.4
                 }
                 
@@ -78,7 +78,7 @@ class SmapiInstaller: ObservableObject {
                 unzipProcess.waitUntilExit()
                 
                 DispatchQueue.main.async {
-                    self.statusMessage = "เตรียมติดตั้ง SMAPI ลงในตัวเกม..."
+                    self.statusMessage = String(localized: "เตรียมติดตั้ง SMAPI ลงในตัวเกม...")
                     self.progress = 0.7
                 }
                 
@@ -96,7 +96,7 @@ class SmapiInstaller: ObservableObject {
                 guard let sourcePayload = payloadDir, fm.fileExists(atPath: sourcePayload) else {
                     DispatchQueue.main.async {
                         self.isInstalling = false
-                        completion(false, "ไม่พบไฟล์ Payload สำหรับติดตั้งภายใน SMAPI Zip")
+                        completion(false, String(localized: "ไม่พบไฟล์ Payload สำหรับติดตั้งภายใน SMAPI Zip"))
                     }
                     return
                 }
@@ -134,13 +134,13 @@ class SmapiInstaller: ObservableObject {
                 DispatchQueue.main.async {
                     self.progress = 1.0
                     self.isInstalling = false
-                    completion(true, "ติดตั้ง SMAPI เรียบร้อยแล้ว!")
+                    completion(true, String(localized: "ติดตั้ง SMAPI เรียบร้อยแล้ว!"))
                 }
                 
             } catch {
                 DispatchQueue.main.async {
                     self.isInstalling = false
-                    completion(false, "การติดตั้งเกิดข้อผิดพลาด: \(error.localizedDescription)")
+                    completion(false, String(localized: "การติดตั้งเกิดข้อผิดพลาด: \(error.localizedDescription)"))
                 }
             }
         }
@@ -156,7 +156,7 @@ class SmapiInstaller: ObservableObject {
         let internalPath = (gameDir as NSString).appendingPathComponent("smapi-internal")
         
         guard fm.fileExists(atPath: originalPath) else {
-            completion(false, "ไม่พบข้อมูลการติดตั้ง SMAPI ในโฟลเดอร์นี้")
+            completion(false, String(localized: "ไม่พบข้อมูลการติดตั้ง SMAPI ในโฟลเดอร์นี้"))
             return
         }
         
@@ -172,9 +172,9 @@ class SmapiInstaller: ObservableObject {
                 try fm.removeItem(atPath: internalPath)
             }
             
-            completion(true, "ถอนการติดตั้ง SMAPI สำเร็จ! คืนค่าตัวเกมหลักเรียบร้อย")
+            completion(true, String(localized: "ถอนการติดตั้ง SMAPI สำเร็จ! คืนค่าตัวเกมหลักเรียบร้อย"))
         } catch {
-            completion(false, "ถอนการติดตั้งล้มเหลว: \(error.localizedDescription)")
+            completion(false, String(localized: "ถอนการติดตั้งล้มเหลว: \(error.localizedDescription)"))
         }
     }
 }

@@ -41,7 +41,7 @@ struct ModListView: View {
                             .frame(width: 8, height: 8)
                             .shadow(color: vm.smapiInstalledVersion == "ยังไม่ได้ติดตั้ง" ? .clear : Color.green.opacity(0.5), radius: 3)
                         
-                        Text(vm.smapiInstalledVersion == "ยังไม่ได้ติดตั้ง" ? "API ออฟไลน์" : "API ทำงานปกติ")
+                        Text(LocalizedStringKey(vm.smapiInstalledVersion == "ยังไม่ได้ติดตั้ง" ? "API ออฟไลน์" : "API ทำงานปกติ"))
                             .font(.system(size: 12, weight: .medium))
                             .foregroundColor(.secondary)
                     }
@@ -59,10 +59,17 @@ struct ModListView: View {
                             Image(systemName: "puzzlepiece.extension")
                                 .font(.system(size: 48))
                                 .foregroundColor(.secondary.opacity(0.5))
-                            Text(vm.mods.isEmpty ? "ไม่พบส่วนเสริมที่ติดตั้ง\nโปรดตรวจสอบโฟลเดอร์เกม" : "ไม่พบส่วนเสริม \"\(searchText)\"")
-                                .multilineTextAlignment(.center)
-                                .font(.system(size: 14))
-                                .foregroundColor(.secondary)
+                            if vm.mods.isEmpty {
+                                Text("ไม่พบส่วนเสริมที่ติดตั้ง\nโปรดตรวจสอบโฟลเดอร์เกม")
+                                    .multilineTextAlignment(.center)
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.secondary)
+                            } else {
+                                Text(LocalizedStringKey("ไม่พบส่วนเสริม \"\(searchText)\""))
+                                    .multilineTextAlignment(.center)
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.secondary)
+                            }
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.top, 40)

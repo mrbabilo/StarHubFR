@@ -38,7 +38,7 @@ struct MainView: View {
                 Section("พร้อมลุย!") {
                     VStack(spacing: 12) {
                         Button(action: { vm.launchGame() }) {
-                            Text(vm.isPlayingGame ? "กำลังเปิดเกม..." : "เข้าสู่เกม")
+                            Text(LocalizedStringKey(vm.isPlayingGame ? "กำลังเปิดเกม..." : "เข้าสู่เกม"))
                                 .font(.system(size: 14, weight: .bold))
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 8)
@@ -76,11 +76,13 @@ struct MainView: View {
                     HomeView(vm: vm)
                 }
             }
-            .navigationTitle((currentTab == "Saves" && vm.editingSave != nil) ? vm.editingSave!.playerName : (
-                             currentTab == "Mods" ? "ส่วนเสริม (Mods)" :
-                             currentTab == "Saves" ? "เซฟเกม (Saves)" :
-                             currentTab == "Settings" ? "ตั้งค่า (Settings)" :
-                             currentTab == "Logs" ? "บันทึก (Logs)" : "หน้าแรก (Home)"))
+            .navigationTitle(
+                (currentTab == "Saves" && vm.editingSave != nil) ? Text(vm.editingSave!.playerName) :
+                (currentTab == "Mods" ? Text(vm.localizedString(for: "ส่วนเสริม (Mods)")) :
+                (currentTab == "Saves" ? Text(vm.localizedString(for: "เซฟเกม (Saves)")) :
+                (currentTab == "Settings" ? Text(vm.localizedString(for: "ตั้งค่าระบบ (Settings)")) :
+                (currentTab == "Logs" ? Text(vm.localizedString(for: "บันทึกระบบ (Logs)")) : Text(vm.localizedString(for: "หน้าแรก (Home)"))))))
+            )
             .onChange(of: currentTab) {
                 vm.editingSave = nil
             }
@@ -111,6 +113,7 @@ struct MainView: View {
         } // End of outer ZStack
         .frame(width: 900, height: 600)
         .preferredColorScheme(colorScheme)
+        .environment(\.locale, Locale(identifier: vm.currentLanguage))
         .alert(isPresented: $vm.showAlert) {
             Alert(title: Text("แจ้งเตือน"), message: Text(vm.alertMessage), dismissButton: .default(Text("ตกลง")))
         }

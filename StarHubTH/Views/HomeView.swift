@@ -55,7 +55,7 @@ struct HomeView: View {
                 // ── GAME INFO BLOCK ──
                 StandardSection(title: "ข้อมูลระบบเกม") {
                     StandardRow(title: "ผู้พัฒนา", detail: "AppleBoiy", showDivider: true)
-                    StandardRow(title: "ตัวจัดการม็อด", detail: "SMAPI \(vm.smapiInstalledVersion == "ยังไม่ได้ติดตั้ง" ? "ไม่ได้ติดตั้ง" : vm.smapiInstalledVersion)", showDivider: true)
+                    StandardRow(title: "ตัวจัดการม็อด", detail: vm.smapiInstalledVersion == "ยังไม่ได้ติดตั้ง" ? "ไม่ได้ติดตั้ง" : "SMAPI \(vm.smapiInstalledVersion)", showDivider: true)
                     StandardRow(title: "ม็อดที่ติดตั้ง", detail: "\(vm.mods.count) รายการ", showDivider: false)
                 }
                 .padding(.horizontal, 40)
@@ -70,11 +70,17 @@ struct HomeView: View {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("ที่ตั้งไฟล์เกม")
                                     .font(.system(size: 13))
-                                Text(vm.gameDir.isEmpty ? "ยังไม่ได้กำหนด" : vm.gameDir)
+                            if vm.gameDir.isEmpty {
+                                Text("ยังไม่ได้กำหนด")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.secondary)
+                            } else {
+                                Text(vm.gameDir)
                                     .font(.system(size: 12))
                                     .foregroundColor(.secondary)
                                     .lineLimit(1)
                                     .truncationMode(.middle)
+                            }
                             }
                             Spacer()
                             Button("เลือกโฟลเดอร์...") { vm.selectGameDir() }
@@ -88,7 +94,7 @@ struct HomeView: View {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("สถานะ SMAPI")
                                     .font(.system(size: 13))
-                                Text(vm.smapiInstalledVersion == "ยังไม่ได้ติดตั้ง" ? "ยังไม่ได้ติดตั้ง" : "ติดตั้งแล้ว (v\(vm.smapiInstalledVersion))")
+                                Text(vm.smapiInstalledVersion == "ยังไม่ได้ติดตั้ง" ? LocalizedStringKey("ยังไม่ได้ติดตั้ง") : LocalizedStringKey("ติดตั้งแล้ว (v\(vm.smapiInstalledVersion))"))
                                     .font(.system(size: 12))
                                     .foregroundColor(.secondary)
                             }
@@ -145,7 +151,7 @@ struct CoreModRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(.system(size: 13))
-                Text(isInstalled ? "ติดตั้งและเปิดใช้งานแล้ว" : "ไม่ได้ติดตั้ง หรือปิดใช้งานอยู่")
+                Text(LocalizedStringKey(isInstalled ? "ติดตั้งและเปิดใช้งานแล้ว" : "ไม่ได้ติดตั้ง หรือปิดใช้งานอยู่"))
                     .font(.system(size: 12))
                     .foregroundColor(isInstalled ? .secondary : .red)
             }

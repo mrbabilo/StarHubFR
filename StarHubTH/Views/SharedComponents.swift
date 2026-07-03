@@ -15,7 +15,7 @@ struct StandardSection<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             if !title.isEmpty {
-                Text(title)
+                Text(LocalizedStringKey(title))
                     .font(.system(size: 13, weight: .bold))
                     .foregroundColor(.primary)
             }
@@ -43,11 +43,11 @@ struct StandardSection<Content: View>: View {
 
 // MARK: - Standard Row
 struct StandardRow: View {
-    let title: String
-    let detail: String
+    let title: LocalizedStringKey
+    let detail: LocalizedStringKey
     let showDivider: Bool
     
-    init(title: String, detail: String, showDivider: Bool = true) {
+    init(title: LocalizedStringKey, detail: LocalizedStringKey, showDivider: Bool = true) {
         self.title = title
         self.detail = detail
         self.showDivider = showDivider

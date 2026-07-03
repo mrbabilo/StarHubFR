@@ -12,6 +12,28 @@ struct SettingsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 32) {
                 
+                // ── Language ──
+                StandardSection(
+                    title: "ภาษาของแอป (Language)"
+                ) {
+                    HStack {
+                        Text("เลือกภาษา")
+                            .font(.system(size: 13))
+                        Spacer()
+                        Picker("", selection: $vm.currentLanguage) {
+                            Text("ภาษาไทย").tag("th")
+                            Text("English").tag("en")
+                            Text("日本語").tag("ja")
+                        }
+                        .pickerStyle(MenuPickerStyle())
+                        .frame(width: 150)
+                        
+                        Image(systemName: "info.circle")
+                            .foregroundColor(.clear)
+                            .font(.system(size: 14))
+                    }
+                }
+                
                 // ── Launch Options ──
                 StandardSection(
                     title: "การเปิดเกม (Launch Options)",
@@ -91,6 +113,7 @@ struct SettingsView: View {
                     footer: "หน้าต่างนักพัฒนา (Developer Logs) มีไว้สำหรับตรวจสอบการทำงานของ SMAPI เวลามีม็อดเกิดปัญหาสามารถคัดลอกข้อความไปสอบถามผู้พัฒนาได้"
                 ) {
                     VStack(alignment: .leading, spacing: 16) {
+
                         HStack {
                             Text("ธีมของแอป")
                                 .font(.system(size: 13))

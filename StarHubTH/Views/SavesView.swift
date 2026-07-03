@@ -71,7 +71,10 @@ struct SaveRow: View {
                 Text(save.playerName)
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.primary)
-                Text("\(save.farmName) Farm • ปีที่ \(save.year) \(save.seasonName) วันที่ \(save.day) • \(save.money) G")
+                let format = vm.localizedString(for: "%@ Farm • ปีที่ %lld %@ วันที่ %lld • %@ G")
+                let moneyStr = NumberFormatter.localizedString(from: NSNumber(value: save.money), number: .decimal)
+                let formattedStr = String(format: format, save.farmName, save.year, vm.localizedString(for: save.seasonName), save.day, moneyStr)
+                Text(formattedStr)
                     .font(.system(size: 12))
                     .foregroundColor(.secondary)
             }
