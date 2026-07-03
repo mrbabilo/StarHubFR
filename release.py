@@ -13,26 +13,26 @@ def get_version():
     if os.path.exists(plist_path):
         with open(plist_path, 'rb') as f:
             plist = plistlib.load(f)
-            return plist.get("CFBundleShortVersionString", "1.0.0")
+            return plist.get("CFBundleShortVersionString", "1.1.0")
     return "1.0.0"
 
 def create_release():
-    print("🚀 เริ่มขั้นตอนการสร้าง Release...")
+    print("[INFO] Starting release process...")
     
     # 1. Build the app using existing build_app.py
-    print("1️⃣ กำลัง Build แอปพลิเคชัน...")
+    print("[INFO] Building application...")
     result = subprocess.run(["python3", "build_app.py"])
     if result.returncode != 0:
-        print("❌ การ Build ล้มเหลว กรุณาตรวจสอบข้อผิดพลาดด้านบน")
+        print("[ERROR] Application build failed. Check the errors above.")
         return
         
     if not os.path.exists(APP_DIR):
-        print(f"❌ ไม่พบโฟลเดอร์ {APP_DIR} หลังจากการ Build")
+        print(f"[ERROR] Output folder {APP_DIR} not found after build.")
         return
         
     # 2. Get version
     version = get_version()
-    print(f"2️⃣ เวอร์ชันปัจจุบัน: v{version}")
+    print(f"[INFO] Current version: v{version}")
     
     # 3. Create bundles directory
     os.makedirs(BUNDLES_DIR, exist_ok=True)
@@ -45,31 +45,32 @@ def create_release():
     if os.path.exists(zip_path):
         os.remove(zip_path)
         
-    print(f"3️⃣ กำลังบีบอัดไฟล์ไปที่ {zip_path}...")
+    print(f"[INFO] Archiving bundle to {zip_path}...")
     
     # We use ditto on macOS to preserve resource forks and codesignatures properly
     subprocess.run(["ditto", "-c", "-k", "--keepParent", APP_DIR, zip_path])
     
-    print("✅ สร้างไฟล์ Release สำเร็จแล้ว!")
-    print(f"📁 คุณสามารถนำไฟล์ {zip_path} ไปใช้งานได้เลย")
+    print("[SUCCESS] Release bundle created successfully.")
+    print(f"[INFO] The bundle is ready at {zip_path}.")
     print("-" * 40)
     
-    upload = input("☁️ ต้องการอัปโหลดไฟล์นี้ขึ้น GitHub Releases เลยหรือไม่? (y/n): ")
+    upload = input("[PROMPT] Do you want to upload this release to GitHub? (y/n): ")
     if upload.lower() in ['y', 'yes']:
-        print("กำลังอัปโหลด...")
+        print("[INFO] Uploading release...")
         tag = f"v{version}"
         cmd = [
             "gh", "release", "create", tag, zip_path,
             "--title", f"Release {tag}",
             "--notes", f"Automated release for StarHubTH {tag}."
         ]
-        res = subprocess.run(cmd)
+        res = subprocess.run(cmd, capture_output=True, text=True)
         if res.returncode == 0:
-            print(f"🎉 อัปโหลด {tag} สำเร็จแล้ว!")
+            print(f"[SUCCESS] Uploaded {tag} successfully.")
+            print(res.stdout.strip())
         else:
-            print("❌ พบปัญหาในการอัปโหลด (โปรดตรวจสอบว่าได้ล็อกอิน 'gh auth login' ไว้หรือยัง)")
+            print(f"[ERROR] Upload failed:\\n{res.stderr.strip()}")
     else:
-        print("✅ ข้ามขั้นตอนการอัปโหลด")
+        print("[INFO] Skipping upload.")
 
 if __name__ == "__main__":
     create_release()

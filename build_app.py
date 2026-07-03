@@ -12,7 +12,7 @@ MACOS_DIR = os.path.join(CONTENTS_DIR, "MacOS")
 RESOURCES_DIR = os.path.join(CONTENTS_DIR, "Resources")
 
 def create_app_bundle():
-    print(f"📦 เริ่มสร้าง {APP_DIR}...")
+    print(f"[INFO] Starting build process for {APP_DIR}...")
     
     # 1. Clean old build
     if os.path.exists(APP_DIR):
@@ -25,19 +25,19 @@ def create_app_bundle():
     # 3. Copy Info.plist and Generate Custom Assets
     shutil.copy2("Info.plist", os.path.join(CONTENTS_DIR, "Info.plist"))
     
-    print("⏳ Using existing Custom Stardew UI Assets...")
+    print("[INFO] Using existing Custom Stardew UI Assets...")
     
     custom_ui_dir = "assets/custom_ui"
     if os.path.exists(custom_ui_dir):
         for img in os.listdir(custom_ui_dir):
             if img.endswith(".png"):
                 shutil.copy2(os.path.join(custom_ui_dir, img), os.path.join(RESOURCES_DIR, img))
-        print("✅ Copied Custom UI Assets to App Resources")
+        print("[INFO] Copied Custom UI Assets to App Resources")
         
     app_icon_path = "assets/AppIcon.icns"
     if os.path.exists(app_icon_path):
         shutil.copy2(app_icon_path, os.path.join(RESOURCES_DIR, "AppIcon.icns"))
-        print("✅ Copied AppIcon.icns to App Resources")
+        print("[INFO] Copied AppIcon.icns to App Resources")
         
     # 4. Compile Swift App
     app_executable = os.path.join(MACOS_DIR, APP_NAME)
@@ -50,25 +50,25 @@ def create_app_bundle():
                 swift_files.append(os.path.join(root, file))
                 
     if not swift_files:
-        print("❌ ไม่พบไฟล์โค้ด Swift (.swift)")
+        print("[ERROR] No Swift source files (.swift) found.")
         return
         
-    print(f"🛠️ กำลังคอมไพล์โค้ด Swift ({len(swift_files)} ไฟล์)...")
+    print(f"[INFO] Compiling Swift code ({len(swift_files)} files)...")
     swiftc_cmd = ["swiftc"] + swift_files + ["-o", app_executable, "-parse-as-library"]
     
     # Run compiler
     result = subprocess.run(swiftc_cmd)
     if result.returncode != 0:
-        print("❌ เกิดข้อผิดพลาดในการคอมไพล์ Swift")
+        print("[ERROR] Swift compilation failed.")
         return
         
     # 5. Ad-hoc codesign to make it run locally without Gatekeeper blocking
-    print("🔐 กำลังเซ็นชื่อ (Codesign) แอปพลิเคชัน...")
+    print("[INFO] Signing application (Codesign)...")
     codesign_cmd = ["codesign", "-s", "-", "-f", APP_DIR]
     subprocess.run(codesign_cmd)
     
-    print(f"✅ สร้าง {APP_DIR} สำเร็จแล้ว!")
-    print("✨ ลองรันคำสั่ง open StarHubTH.app เพื่อเปิดใช้งานโปรแกรมได้เลยครับ")
+    print(f"[SUCCESS] Successfully built {APP_DIR}")
+    print("[INFO] Run 'open StarHubTH.app' to launch the application.")
 
 if __name__ == "__main__":
     create_app_bundle()

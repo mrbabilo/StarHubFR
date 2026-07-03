@@ -81,7 +81,7 @@ struct MainView: View {
                              currentTab == "Saves" ? "เซฟเกม (Saves)" :
                              currentTab == "Settings" ? "ตั้งค่า (Settings)" :
                              currentTab == "Logs" ? "บันทึก (Logs)" : "หน้าแรก (Home)"))
-            .onChange(of: currentTab) { _ in
+            .onChange(of: currentTab) {
                 vm.editingSave = nil
             }
             .toolbar {

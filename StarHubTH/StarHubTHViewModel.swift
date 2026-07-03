@@ -93,7 +93,6 @@ class StarHubTHViewModel: ObservableObject {
         
         // Very basic VDF parsing
         var currentSteamID = ""
-        var foundRecent = false
         var personaName = ""
         
         let lines = content.components(separatedBy: .newlines)
@@ -107,7 +106,6 @@ class StarHubTHViewModel: ObservableObject {
                 if parts.count >= 4 { personaName = parts[3] }
             }
             if tLine.hasPrefix("\"MostRecent\"") && tLine.contains("\"1\"") {
-                foundRecent = true
                 break
             }
         }

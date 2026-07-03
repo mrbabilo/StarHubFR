@@ -208,12 +208,7 @@ class SaveManager {
         
         // We only want to replace the first occurrence (player data is always at the top)
         if let match = regex.firstMatch(in: xml, options: [], range: range) {
-            let replaced = regex.stringByReplacingMatches(
-                in: xml,
-                options: [],
-                range: match.range, // Only replace in the found range
-                withTemplate: "$1\(value)$3"
-            )
+
             // wait, stringByReplacingMatches with match.range will only return the replaced SUBSTRING,
             // no, wait, it returns a new string where the matches within the range are replaced.
             // Oh, the range param to stringByReplacingMatches specifies the portion of the string to search.
@@ -269,7 +264,6 @@ class SaveManager {
                 try fm.moveItem(at: oldFilePath, to: newFilePath)
             }
             // Also old save metadata
-            let oldInfoPath = newFolderPath.appendingPathComponent("SaveGameInfo")
             // Stardew Valley reads both SaveGameInfo and the internal save. We don't necessarily need to rename SaveGameInfo, it's literally named SaveGameInfo.
             // But we must modify the xml internal name and id to prevent collision?
             // Actually, copying it is mostly safe, but SDV uses the folder name and file name to load.

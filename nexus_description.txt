@@ -1,0 +1,56 @@
+[center][img width=300]https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/features_banner.png[/img][/center]
+
+[left]
+[list]
+[*] [b]รันเกมได้ง่ายๆ[/b]: เลือกรันเกมได้ทั้งโหมดปกติ (Vanilla) และโหมดผ่าน SMAPI สำหรับเล่นม็อด
+[*] [b]จัดการส่วนเสริม (Mods Manager)[/b]: เปิด/ปิด ม็อดต่างๆ ได้อย่างง่ายดายผ่านหน้าตาแอปพลิเคชันที่สวยงาม ไม่ต้องเข้าไปย้ายไฟล์เอง
+[*] [b]จัดการเซฟเกม (Save Manager)[/b]: 
+    [list]
+    [*] ดูรายละเอียดเซฟเกมทั้งหมด (จำนวนเงิน, เวลาในเกม, ฤดูกาล, รูปแบบฟาร์ม)
+    [*] ทำสำเนา (Duplicate) หรือลบเซฟเกม
+    [*] แก้ไขเงินและสถานะต่างๆ ของตัวละครเบื้องต้น
+    [/list]
+[*] [b]บันทึกนักพัฒนา (Developer Logs)[/b]: ติดตามการทำงานของ SMAPI ได้แบบเรียลไทม์ภายในแอป
+[*] [b]UI สไตล์ Native macOS[/b]: หน้าตาแอปพลิเคชันที่สวยงาม ใช้งานง่าย ออกแบบมาให้กลมกลืนกับระบบ macOS อย่างสมบูรณ์แบบ
+[/list]
+[/left]
+[center][img width=300]https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/screenshots_banner.png[/img][/center]
+
+[center]
+[b]หน้าแรก (Home / Profile)[/b]
+[img width=500]https://raw.githubusercontent.com/AppleBoiy/StarHubTH/main/screenshots/profile.png[/img]
+
+[b]การตั้งค่าแอปพลิเคชัน (Settings)[/b]
+[img width=500]https://raw.githubusercontent.com/AppleBoiy/StarHubTH/main/screenshots/settings.png[/img]
+
+[b]การจัดการเซฟเกม (Saves)[/b]
+[img width=500]https://raw.githubusercontent.com/AppleBoiy/StarHubTH/main/screenshots/save.png[/img]
+
+[b]การแก้ไขข้อมูลเซฟ (Save Editor)[/b]
+[img width=500]https://raw.githubusercontent.com/AppleBoiy/StarHubTH/main/screenshots/save_edit.png[/img]
+
+[b]การจัดการส่วนเสริม (Mods Manager)[/b]
+[img width=500]https://raw.githubusercontent.com/AppleBoiy/StarHubTH/main/screenshots/mods.png[/img]
+[/center]
+
+[center][img width=300]https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/install_banner.png[/img][/center]
+
+[list=1]
+[*] [b]ดาวน์โหลดแอปพลิเคชัน[/b]: โหลดไฟล์เวอร์ชันล่าสุดจากหน้าแท็บ Files ใน Nexus Mods
+[*] [b]เปิดใช้งาน[/b]: แตกไฟล์แล้วลาก [b]StarHubTH.app[/b] ไปไว้ที่โฟลเดอร์ Applications แล้วดับเบิลคลิกเพื่อเปิดใช้งาน
+[*] [b]กำหนดโฟลเดอร์เกม[/b]: ในครั้งแรกที่เปิด โปรแกรมจะค้นหาโฟลเดอร์เกมของ Steam อัตโนมัติ หากไม่พบ คุณสามารถเลือกโฟลเดอร์ตัวเกม (เช่น /Applications/Stardew Valley.app/Contents/MacOS) ได้ด้วยตัวเอง
+[*] [b]พร้อมลุย![/b]: จัดการม็อดหรือเซฟเกม แล้วกด [b]"เข้าสู่เกม"[/b] จากแถบเมนูด้านซ้ายได้เลย!
+[/list]
+
+[center][img width=300]https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/developers_banner.png[/img][/center]
+
+แอปพลิเคชันนี้เขียนขึ้นด้วย [b]Swift[/b] และ [b]SwiftUI[/b] ผ่านโครงสร้างของแอปพลิเคชัน macOS แท้ๆ
+
+[size=4][b]ความต้องการของระบบ (Requirements)[/b][/size]
+[list]
+[*] macOS 14.0 (Sonoma) หรือใหม่กว่า
+[/list]
+
+[center][img width=300]https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/credits_banner.png[/img][/center]
+
+โปรเจกต์นี้เผยแพร่ภายใต้ MIT License สามารถนำไปดัดแปลงและพัฒนาต่อยอดได้ตามอิสระผ่านโปรเจกต์โอเพนซอร์สบน GitHub ของเรา

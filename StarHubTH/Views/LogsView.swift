@@ -47,7 +47,7 @@ struct LogsView: View {
                             .background(Color.primary.opacity(0.05))
                             .cornerRadius(6)
                             .frame(minHeight: 200, maxHeight: 400)
-                            .onChange(of: vm.logOutput) { _ in
+                            .onChange(of: vm.logOutput) {
                                 withAnimation {
                                     proxy.scrollTo("LogBottom", anchor: .bottom)
                                 }
