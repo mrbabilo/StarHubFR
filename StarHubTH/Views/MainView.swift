@@ -126,6 +126,34 @@ struct MainView: View {
                 
                 Spacer()
                 
+                let alertCount = vm.smapiErrors.count + vm.outOfDateMods.count
+                if alertCount > 0 {
+                    Button(action: { currentTab = "Updates" }) {
+                        HStack {
+                            Text(vm.smapiErrors.isEmpty ? "อัปเดตซอฟต์แวร์ (Updates)" : "แจ้งเตือนระบบ (Alerts)")
+                                .font(.system(size: 14, weight: .regular))
+                                .foregroundColor(currentTab == "Updates" ? .white : .primary)
+                            Spacer()
+                            Text("\(alertCount)")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundColor(currentTab == "Updates" ? .blue : .white)
+                                .frame(minWidth: 18, minHeight: 18)
+                                .padding(.horizontal, 4)
+                                .background(currentTab == "Updates" ? Color.white : Color.red)
+                                .clipShape(Capsule())
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .fill(currentTab == "Updates" ? Color.blue : Color.clear)
+                        )
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .pointingHandCursor()
+                    .padding(.bottom, 8)
+                }
+                
                 // Launch Button
                 VStack(alignment: .leading, spacing: 6) {
                     Button(action: { vm.launchGame() }) {
@@ -162,6 +190,8 @@ struct MainView: View {
                     } else {
                         SavesView(vm: vm)
                     }
+                } else if currentTab == "Updates" {
+                    UpdatesView(vm: vm, currentTab: $currentTab)
                 } else if currentTab == "Settings" {
                     SettingsView(vm: vm)
                 } else if currentTab == "Logs" {
@@ -173,9 +203,10 @@ struct MainView: View {
             .navigationTitle(
                 (currentTab == "Saves" && vm.editingSave != nil) ? Text(vm.editingSave!.playerName) :
                 (currentTab == "Mods" ? Text(vm.localizedString(for: "ส่วนเสริม (Mods)")) :
+                (currentTab == "Updates" ? Text(vm.localizedString(for: "อัปเดตซอฟต์แวร์ (Updates)")) :
                 (currentTab == "Saves" ? Text(vm.localizedString(for: "เซฟเกม (Saves)")) :
                 (currentTab == "Settings" ? Text(vm.localizedString(for: "ตั้งค่าระบบ (Settings)")) :
-                (currentTab == "Logs" ? Text(vm.localizedString(for: "บันทึกระบบ (Logs)")) : Text(vm.localizedString(for: "หน้าแรก (Home)"))))))
+                (currentTab == "Logs" ? Text(vm.localizedString(for: "บันทึกระบบ (Logs)")) : Text(vm.localizedString(for: "หน้าแรก (Home)")))))))
             )
             .onChange(of: currentTab) {
                 vm.editingSave = nil
@@ -261,3 +292,141 @@ struct SidebarNavItem: View {
     }
 }
 
+// MARK: - SMAPI Alerts UI
+// MARK: - Updates View (macOS System Settings style)
+struct UpdatesView: View {
+    @ObservedObject var vm: StarHubTHViewModel
+    @Binding var currentTab: String
+    
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                
+                // Out of date mods (Software Update style)
+                if !vm.outOfDateMods.isEmpty {
+                    ForEach(vm.outOfDateMods) { mod in
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack(alignment: .top, spacing: 16) {
+                                // App Icon Fake
+                                ZStack {
+                                    Circle()
+                                        .fill(Color.blue.opacity(0.1))
+                                    Text(String(mod.name.prefix(2)).uppercased())
+                                        .font(.system(size: 20, weight: .bold))
+                                        .foregroundColor(.blue.opacity(0.8))
+                                }
+                                .frame(width: 56, height: 56)
+                                
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(mod.name)
+                                        .font(.system(size: 16, weight: .bold))
+                                        .foregroundColor(.primary)
+                                    Text(mod.version)
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.secondary)
+                                    
+                                    Text("มีการอัปเดตใหม่ในเว็บไซต์ Nexus Mods")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.red.opacity(0.8))
+                                        .padding(.top, 2)
+                                }
+                                
+                                Spacer()
+                                
+                                HStack(spacing: 8) {
+                                    Button(action: {
+                                        if let url = URL(string: mod.url) {
+                                            NSWorkspace.shared.open(url)
+                                        }
+                                    }) {
+                                        Text("ดาวน์โหลด (Download)")
+                                            .font(.system(size: 12, weight: .medium))
+                                            .foregroundColor(.primary)
+                                            .padding(.horizontal, 16)
+                                            .padding(.vertical, 6)
+                                            .background(Color.primary.opacity(0.1))
+                                            .cornerRadius(6)
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
+                                    .pointingHandCursor()
+                                    
+                                    Button(action: {}) {
+                                        Image(systemName: "info.circle")
+                                            .foregroundColor(.secondary)
+                                            .font(.system(size: 16))
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
+                                }
+                            }
+                            
+                            VStack(alignment: .leading, spacing: 16) {
+                                Text("This update provides new features and bug fixes for your mod.")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(.secondary)
+                                
+                                Text("For information on the content of this mod update, please visit this website: [\(mod.url)](\(mod.url))")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(.secondary)
+                                    .tint(.blue)
+                            }
+                            .padding(.top, 8)
+                        }
+                        .padding(20)
+                        .background(Color.primary.opacity(0.04))
+                        .cornerRadius(12)
+                    }
+                }
+                
+                // SMAPI Errors (More Storage Required style)
+                if !vm.smapiErrors.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.yellow)
+                                .font(.system(size: 16))
+                            Text("พบข้อผิดพลาดจากตัวเกม หรือม็อด (\(vm.smapiErrors.count) รายการ)")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(.primary)
+                            Spacer()
+                            Button(action: { currentTab = "Logs" }) {
+                                Text("ดูบันทึกระบบ (Logs)")
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundColor(.primary)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 4)
+                                    .background(Color.primary.opacity(0.1))
+                                    .cornerRadius(6)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            .pointingHandCursor()
+                        }
+                        
+                        Text("The game encountered errors during the last run. This might be caused by missing dependencies or outdated mods.")
+                            .font(.system(size: 13))
+                            .foregroundColor(.secondary)
+                            .padding(.bottom, 8)
+                        
+                        ForEach(vm.smapiErrors, id: \.self) { error in
+                            HStack(alignment: .top, spacing: 8) {
+                                Circle()
+                                    .fill(Color.secondary.opacity(0.5))
+                                    .frame(width: 4, height: 4)
+                                    .padding(.top, 6)
+                                Text(error)
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                    .padding(20)
+                    .background(Color.primary.opacity(0.04))
+                    .cornerRadius(12)
+                }
+                
+            }
+            .padding(30)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(nsColor: .windowBackgroundColor))
+    }
+}
