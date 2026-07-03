@@ -133,3 +133,14 @@
 "ถอนการติดตั้งล้มเหลว: %@" = "Uninstall failed: %@";
 "SMAPI Installed" = "SMAPI Installed";
 "ค้นหา (Search)" = "Search";
+
+/* UpdatesView */
+"มีการอัปเดตใหม่ในเว็บไซต์ Nexus Mods" = "New update available on Nexus Mods";
+"ดาวน์โหลด (Download)" = "Download";
+"อัปเดตนี้เพิ่มคุณสมบัติใหม่และแก้ไขข้อบกพร่องสำหรับม็อดของคุณ" = "This update provides new features and bug fixes for your mod.";
+"สำหรับข้อมูลเกี่ยวกับเนื้อหาของอัปเดตนี้ โปรดไปที่เว็บไซต์:" = "For information on the content of this mod update, please visit this website:";
+"พบข้อผิดพลาดจากตัวเกม หรือม็อด (%lld รายการ)" = "The game encountered errors (%lld items)";
+"ดูบันทึกระบบ (Logs)" = "View Logs";
+"เกมพบข้อผิดพลาดระหว่างการรันครั้งล่าสุด ซึ่งอาจเกิดจากม็อดที่ล้าสมัยหรือไฟล์ที่ขาดหายไป" = "The game encountered errors during the last run. This might be caused by missing dependencies or outdated mods.";
+"อัปเดตซอฟต์แวร์ (Updates)" = "Software Update";
+"แจ้งเตือนระบบ (Alerts)" = "System Alerts";

@@ -39,7 +39,7 @@ struct MainView: View {
                 )
                 
                 // Account Section (macOS style profile)
-                if matchesSearch(vm.steamUsername, "Player", "Steam Account", "Home", "Profile", "บัญชีผู้ใช้") {
+                if matchesSearch(vm.steamUsername, vm.localizedString(for: "บัญชีผู้ใช้")) {
                     Button(action: { currentTab = "Home" }) {
                         HStack(spacing: 12) {
                             if let avatarPath = vm.steamAvatarPath, let nsImage = NSImage(contentsOfFile: avatarPath) {
@@ -79,7 +79,7 @@ struct MainView: View {
                 
                 // Tools Section
                 VStack(alignment: .leading, spacing: 2) {
-                    if matchesSearch(vm.localizedString(for: "เซฟเกม (Saves)"), "Saves") {
+                    if matchesSearch(vm.localizedString(for: "เซฟเกม (Saves)")) {
                         SidebarNavItem(
                             icon: "folder.fill",
                             iconColor: .blue,
@@ -89,7 +89,7 @@ struct MainView: View {
                         )
                     }
                     
-                    if matchesSearch(vm.localizedString(for: "ส่วนเสริม (Mods)"), "Mods") {
+                    if matchesSearch(vm.localizedString(for: "ส่วนเสริม (Mods)")) {
                         SidebarNavItem(
                             icon: "puzzlepiece.extension.fill",
                             iconColor: .purple,
@@ -99,7 +99,7 @@ struct MainView: View {
                         )
                     }
                     
-                    if matchesSearch(vm.localizedString(for: "ตั้งค่าระบบ (Settings)"), "Settings", "Set") {
+                    if matchesSearch(vm.localizedString(for: "ตั้งค่าระบบ (Settings)")) {
                         SidebarNavItem(
                             icon: "gearshape.fill",
                             iconColor: .gray,
@@ -112,7 +112,7 @@ struct MainView: View {
                 
                 if showDeveloperLogs {
                     VStack(alignment: .leading, spacing: 2) {
-                        if matchesSearch(vm.localizedString(for: "บันทึกระบบ (Logs)"), "Logs") {
+                        if matchesSearch(vm.localizedString(for: "บันทึกระบบ (Logs)")) {
                             SidebarNavItem(
                                 icon: "terminal.fill",
                                 iconColor: .black,
@@ -130,7 +130,7 @@ struct MainView: View {
                 if alertCount > 0 {
                     Button(action: { currentTab = "Updates" }) {
                         HStack {
-                            Text(vm.smapiErrors.isEmpty ? "อัปเดตซอฟต์แวร์ (Updates)" : "แจ้งเตือนระบบ (Alerts)")
+                            Text(vm.smapiErrors.isEmpty ? vm.localizedString(for: "อัปเดตซอฟต์แวร์ (Updates)") : vm.localizedString(for: "แจ้งเตือนระบบ (Alerts)"))
                                 .font(.system(size: 14, weight: .regular))
                                 .foregroundColor(currentTab == "Updates" ? .white : .primary)
                             Spacer()
@@ -325,7 +325,7 @@ struct UpdatesView: View {
                                         .font(.system(size: 12))
                                         .foregroundColor(.secondary)
                                     
-                                    Text("มีการอัปเดตใหม่ในเว็บไซต์ Nexus Mods")
+                                    Text(vm.localizedString(for: "มีการอัปเดตใหม่ในเว็บไซต์ Nexus Mods"))
                                         .font(.system(size: 12))
                                         .foregroundColor(.red.opacity(0.8))
                                         .padding(.top, 2)
@@ -339,7 +339,7 @@ struct UpdatesView: View {
                                             NSWorkspace.shared.open(url)
                                         }
                                     }) {
-                                        Text("ดาวน์โหลด (Download)")
+                                        Text(vm.localizedString(for: "ดาวน์โหลด (Download)"))
                                             .font(.system(size: 12, weight: .medium))
                                             .foregroundColor(.primary)
                                             .padding(.horizontal, 16)
@@ -360,11 +360,11 @@ struct UpdatesView: View {
                             }
                             
                             VStack(alignment: .leading, spacing: 16) {
-                                Text("This update provides new features and bug fixes for your mod.")
+                                Text(vm.localizedString(for: "อัปเดตนี้เพิ่มคุณสมบัติใหม่และแก้ไขข้อบกพร่องสำหรับม็อดของคุณ"))
                                     .font(.system(size: 13))
                                     .foregroundColor(.secondary)
                                 
-                                Text("For information on the content of this mod update, please visit this website: [\(mod.url)](\(mod.url))")
+                                Text("\(vm.localizedString(for: "สำหรับข้อมูลเกี่ยวกับเนื้อหาของอัปเดตนี้ โปรดไปที่เว็บไซต์:")) [\(mod.url)](\(mod.url))")
                                     .font(.system(size: 13))
                                     .foregroundColor(.secondary)
                                     .tint(.blue)
@@ -384,12 +384,13 @@ struct UpdatesView: View {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .foregroundColor(.yellow)
                                 .font(.system(size: 16))
-                            Text("พบข้อผิดพลาดจากตัวเกม หรือม็อด (\(vm.smapiErrors.count) รายการ)")
+                            let errorText = String(format: vm.localizedString(for: "พบข้อผิดพลาดจากตัวเกม หรือม็อด (%lld รายการ)"), vm.smapiErrors.count)
+                            Text(errorText)
                                 .font(.system(size: 14, weight: .bold))
                                 .foregroundColor(.primary)
                             Spacer()
                             Button(action: { currentTab = "Logs" }) {
-                                Text("ดูบันทึกระบบ (Logs)")
+                                Text(vm.localizedString(for: "ดูบันทึกระบบ (Logs)"))
                                     .font(.system(size: 12, weight: .medium))
                                     .foregroundColor(.primary)
                                     .padding(.horizontal, 12)
@@ -401,7 +402,7 @@ struct UpdatesView: View {
                             .pointingHandCursor()
                         }
                         
-                        Text("The game encountered errors during the last run. This might be caused by missing dependencies or outdated mods.")
+                        Text(vm.localizedString(for: "เกมพบข้อผิดพลาดระหว่างการรันครั้งล่าสุด ซึ่งอาจเกิดจากม็อดที่ล้าสมัยหรือไฟล์ที่ขาดหายไป"))
                             .font(.system(size: 13))
                             .foregroundColor(.secondary)
                             .padding(.bottom, 8)
