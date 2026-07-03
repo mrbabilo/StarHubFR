@@ -14,7 +14,7 @@ struct SettingsView: View {
                 
                 // ── Language ──
                 StandardSection(
-                    title: "ภาษาของแอป (Language)"
+                    title: "ภาษาของแอป"
                 ) {
                     HStack {
                         Text("เลือกภาษา")
@@ -34,7 +34,7 @@ struct SettingsView: View {
                 
                 // ── Launch Options ──
                 StandardSection(
-                    title: "การเปิดเกม (Launch Options)",
+                    title: "การเปิดเกม",
                     footer: "หากเปิดเกมไม่สำเร็จ ลองเลือกเป็นตัวเกมดั้งเดิม (Vanilla) ดูนะ สำหรับข้อมูลเพิ่มเติม โปรดดูที่: [wiki.stardewvalley.net/Modding](https://stardewvalleywiki.com/Modding)"
                 ) {
                     VStack(alignment: .leading, spacing: 16) {
@@ -70,7 +70,7 @@ struct SettingsView: View {
                 
                 // ── Directory Config ──
                 StandardSection(
-                    title: "สำรองข้อมูล (Backup)",
+                    title: "สำรองข้อมูล",
                     footer: "สร้างไฟล์ Zip สำหรับข้อมูลสำคัญไปไว้ที่ Desktop ของคุณ การสำรองข้อมูลจะช่วยป้องกันไฟล์เสียหายระหว่างการอัปเดต"
                 ) {
                     VStack(alignment: .leading, spacing: 16) {
@@ -106,7 +106,7 @@ struct SettingsView: View {
                 
                 // ── Appearance ──
                 StandardSection(
-                    title: "การแสดงผล (Appearance)",
+                    title: "การแสดงผล",
                     footer: "หน้าต่างนักพัฒนา (Developer Logs) มีไว้สำหรับตรวจสอบการทำงานของ SMAPI เวลามีม็อดเกิดปัญหาสามารถคัดลอกข้อความไปสอบถามผู้พัฒนาได้"
                 ) {
                     VStack(alignment: .leading, spacing: 16) {
@@ -129,7 +129,7 @@ struct SettingsView: View {
                         Divider().padding(.leading, 0)
                         
                         HStack {
-                            Text("แสดงหน้าต่างนักพัฒนา (Developer Logs)")
+                            Text("แสดงหน้าต่างนักพัฒนา")
                                 .font(.system(size: 13))
                             Spacer()
                             Toggle("", isOn: $showDeveloperLogs)
@@ -144,7 +144,7 @@ struct SettingsView: View {
                 
                 // ── Management ──
                 StandardSection(
-                    title: "การจัดการ (Management)",
+                    title: "การจัดการ",
                     footer: "ลบโฟลเดอร์ Mods_disabled เพื่อคืนพื้นที่จัดเก็บ หากคุณไม่ต้องการไฟล์ม็อดที่ปิดการใช้งานแล้ว"
                 ) {
                     VStack(alignment: .leading, spacing: 16) {

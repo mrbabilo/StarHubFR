@@ -94,8 +94,9 @@ struct MainView: View {
                     .pointingHandCursor()
                 }
                 
-                // Tools Section
+                // Game Section
                 VStack(alignment: .leading, spacing: 2) {
+                    SidebarSectionHeader(title: "จัดการเกม")
                     if matchesSearch(vm.localizedString(for: "เซฟเกม")) {
                         SidebarNavItem(
                             icon: "folder.fill",
@@ -115,6 +116,11 @@ struct MainView: View {
                             currentTab: $currentTab
                         )
                     }
+                }
+                
+                // System & Settings Section
+                VStack(alignment: .leading, spacing: 2) {
+                    SidebarSectionHeader(title: "ระบบ")
                     
                     if matchesSearch(vm.localizedString(for: "ตั้งค่าระบบ")) {
                         SidebarNavItem(
@@ -129,6 +135,7 @@ struct MainView: View {
                 
                 // Thai Hub Section
                 VStack(alignment: .leading, spacing: 2) {
+                    SidebarSectionHeader(title: "ออนไลน์")
                     if matchesSearch(vm.localizedString(for: "ม็อดแปลไทย")) {
                         SidebarNavItem(
                             icon: "globe.asia.australia.fill",
@@ -141,8 +148,7 @@ struct MainView: View {
                 }
                 
                 if showDeveloperLogs {
-                    VStack(alignment: .leading, spacing: 2) {
-                        if matchesSearch(vm.localizedString(for: "บันทึกระบบ")) {
+                    if matchesSearch(vm.localizedString(for: "บันทึกระบบ")) {
                             SidebarNavItem(
                                 icon: "terminal.fill",
                                 iconColor: .black,
@@ -152,7 +158,6 @@ struct MainView: View {
                             )
                         }
                     }
-                }
                 
                 Spacer()
                 
@@ -298,6 +303,20 @@ struct MainView: View {
         case "Dark": return .dark
         default: return nil
         }
+    }
+}
+
+// MARK: - Sidebar Section Header
+struct SidebarSectionHeader: View {
+    let title: String
+    
+    var body: some View {
+        Text(LocalizedStringKey(title))
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundColor(.secondary)
+            .padding(.leading, 8)
+            .padding(.top, 12)
+            .padding(.bottom, 2)
     }
 }
 

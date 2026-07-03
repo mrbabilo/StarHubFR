@@ -2,6 +2,9 @@
 
 /* MainView */
 "บัญชีผู้ใช้" = "Account";
+"จัดการเกม" = "Game Management";
+"ระบบ" = "System Settings";
+"ออนไลน์" = "Online Services";
 "เซฟเกม" = "Saves";
 "ส่วนเสริม" = "Mods";
 "ตั้งค่าระบบ" = "Settings";
