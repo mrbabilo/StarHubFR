@@ -2,6 +2,15 @@ import SwiftUI
 
 struct SavesView: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @State private var searchText = ""
+
+    var filteredSaves: [SaveGameInfo] {
+        if searchText.isEmpty {
+            return vm.saves
+        } else {
+            return vm.saves.filter { $0.playerName.localizedCaseInsensitiveContains(searchText) || $0.farmName.localizedCaseInsensitiveContains(searchText) }
+        }
+    }
 
     var body: some View {
         Form {
@@ -19,7 +28,7 @@ struct SavesView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 40)
                 } else {
-                    ForEach(vm.saves, id: \.id) { save in
+                    ForEach(filteredSaves, id: \.id) { save in
                         Button(action: { vm.editingSave = save }) {
                             SaveRow(vm: vm, save: save)
                         }
@@ -28,7 +37,7 @@ struct SavesView: View {
                 }
             } header: {
                 HStack {
-                    Text("เซฟเกมทั้งหมด (\(vm.saves.count))")
+                    Text("เซฟเกมทั้งหมด (\(filteredSaves.count))")
                     Spacer()
                     Button(action: { vm.reloadSaves() }) {
                         Image(systemName: "arrow.clockwise")
@@ -43,6 +52,7 @@ struct SavesView: View {
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
         .background(Color(nsColor: .controlBackgroundColor))
+        .searchable(text: $searchText, prompt: Text(vm.localizedString(for: "ค้นหา")))
     }
 }
 

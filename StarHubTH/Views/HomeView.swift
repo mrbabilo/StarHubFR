@@ -89,20 +89,38 @@ struct HomeView: View {
                     
                     // SMAPI Settings
                     StandardSection(title: "ระบบจัดการม็อด (SMAPI)") {
-                        HStack {
-                            
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("สถานะ SMAPI")
-                                    .font(.system(size: 13))
-                                Text(vm.smapiInstalledVersion == "ยังไม่ได้ติดตั้ง" ? LocalizedStringKey("ยังไม่ได้ติดตั้ง") : LocalizedStringKey("ติดตั้งแล้ว (v\(vm.smapiInstalledVersion))"))
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.secondary)
+                        VStack(spacing: 0) {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("สถานะ SMAPI")
+                                        .font(.system(size: 13))
+                                    Text(vm.smapiInstalledVersion == "ยังไม่ได้ติดตั้ง" ? LocalizedStringKey("ยังไม่ได้ติดตั้ง") : LocalizedStringKey("ติดตั้งแล้ว (v\(vm.smapiInstalledVersion))"))
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.secondary)
+                                }
+                                Spacer()
+                                if smapiInstaller.isInstalling {
+                                    ProgressView()
+                                        .controlSize(.small)
+                                        .padding(.trailing, 4)
+                                } else if vm.smapiInstalledVersion == "ยังไม่ได้ติดตั้ง" {
+                                    Button("ติดตั้ง SMAPI") { vm.installSmapi() }
+                                } else {
+                                    Button("ถอนการติดตั้ง") { vm.uninstallSmapi() }
+                                }
                             }
-                            Spacer()
-                            if vm.smapiInstalledVersion == "ยังไม่ได้ติดตั้ง" {
-                                Button("ติดตั้ง SMAPI") { vm.installSmapi() }
-                            } else {
-                                Button("ถอนการติดตั้ง") { vm.uninstallSmapi() }
+                            
+                            if smapiInstaller.isInstalling {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    ProgressView(value: smapiInstaller.progress, total: 1.0)
+                                        .progressViewStyle(.linear)
+                                        .tint(.blue)
+                                        .animation(.easeInOut, value: smapiInstaller.progress)
+                                    Text(LocalizedStringKey(smapiInstaller.statusMessage))
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.secondary)
+                                }
+                                .padding(.top, 12)
                             }
                         }
                     }
