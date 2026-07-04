@@ -304,13 +304,13 @@ struct MainView: View {
                     }
                 }
             }
-            .frame(minWidth: 600, minHeight: 460)
+            .frame(minWidth: 560, minHeight: 400)
             .background(Color(nsColor: .windowBackgroundColor).ignoresSafeArea())
             .toolbarBackground(.hidden, for: .windowToolbar)
         }
         
         } // End of outer ZStack
-        .frame(width: 900, height: 600)
+        .frame(minWidth: 820, minHeight: 520)
         .preferredColorScheme(colorScheme)
         .environment(\.locale, Locale(identifier: vm.currentLanguage))
         .onReceive(NotificationCenter.default.publisher(for: .jumpToMod)) { notification in

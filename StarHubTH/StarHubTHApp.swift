@@ -13,6 +13,7 @@ struct StarHubTHApp: App {
         WindowGroup {
             MainView()
         }
-        .windowResizability(.contentSize)
+        .windowResizability(.contentMinSize)
+        .defaultSize(width: 900, height: 600)
     }
 }
