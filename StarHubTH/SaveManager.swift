@@ -3,10 +3,82 @@ import Foundation
 import AppKit
 #endif
 
+// MARK: - Save Backup Model
+
+struct SaveBackup: Identifiable, Equatable {
+    var id: String { folderPath.path }
+    let folderPath: URL
+    let timestamp: Date
+    let saveFolder: String   // parent save folder name
+
+    var formattedDate: String {
+        let f = DateFormatter()
+        f.dateStyle = .medium
+        f.timeStyle = .short
+        f.locale = Locale.current
+        return f.string(from: timestamp)
+    }
+
+    var relativeLabel: String {
+        let secs = Date().timeIntervalSince(timestamp)
+        if secs < 60 { return "เมื่อสักครู่" }
+        if secs < 3600 { return "\(Int(secs/60)) นาทีที่แล้ว" }
+        if secs < 86400 { return "\(Int(secs/3600)) ชั่วโมงที่แล้ว" }
+        return "\(Int(secs/86400)) วันที่แล้ว"
+    }
+}
+
+struct SaveNote: Codable {
+    var tag: String   // emoji tag key e.g. "⭐", "🏆", ""
+    var note: String  // free text
+    var customIconPath: String?
+}
+
+// MARK: - Save Notes Store (UserDefaults-backed)
+
+class SaveNotesStore {
+    static let shared = SaveNotesStore()
+    private let key = "SaveNotes_v2" // Upgraded version key to prevent conflicts
+
+    private var cache: [String: SaveNote] = [:]
+
+    init() { load() }
+
+    func note(for folderName: String) -> SaveNote {
+        cache[folderName] ?? SaveNote(tag: "", note: "", customIconPath: nil)
+    }
+
+    func setNote(for folderName: String, tag: String, note: String, customIconPath: String? = nil) {
+        cache[folderName] = SaveNote(tag: tag, note: note, customIconPath: customIconPath)
+        save()
+    }
+
+    private func load() {
+        guard let data = UserDefaults.standard.data(forKey: key),
+              let decoded = try? JSONDecoder().decode([String: SaveNote].self, from: data)
+        else { return }
+        cache = decoded
+    }
+
+    private func save() {
+        if let data = try? JSONEncoder().encode(cache) {
+            UserDefaults.standard.set(data, forKey: key)
+        }
+    }
+}
+
+
+struct SaveNode: Identifiable, Equatable {
+    var id: String { info.id }
+    let info: SaveGameInfo
+    var children: [SaveNode]
+}
+
 struct SaveGameInfo: Identifiable, Equatable, Hashable {
     var id: String { folderName }
     let folderName: String
     let fileURL: URL
+    let lastModified: Date
     
     var playerName: String
     var farmName: String
@@ -119,9 +191,13 @@ class SaveManager {
         let qiGems = Int(extractTag(tag: "qiGems", from: content) ?? "0") ?? 0
         let clubCoins = Int(extractTag(tag: "clubCoins", from: content) ?? "0") ?? 0
         
+        let attr = try? FileManager.default.attributesOfItem(atPath: url.path)
+        let lastModified = attr?[.modificationDate] as? Date ?? Date()
+        
         return SaveGameInfo(
             folderName: folderName,
             fileURL: url,
+            lastModified: lastModified,
             playerName: playerName,
             farmName: farmName,
             favoriteThing: favoriteThing,
@@ -243,18 +319,42 @@ class SaveManager {
         }
     }
     
-    func duplicateSave(info: SaveGameInfo) -> Bool {
+    private func modifyInternalSaveNames(in folderURL: URL, newSaveName: String, newPlayerName: String, newFarmName: String) {
+        let fm = FileManager.default
+        let saveGameInfoURL = folderURL.appendingPathComponent("SaveGameInfo")
+        let mainSaveURL = folderURL.appendingPathComponent(newSaveName)
+        
+        func updateFile(at url: URL) {
+            guard let content = try? String(contentsOf: url, encoding: .utf8) else { return }
+            var modified = replaceFirstTag(tag: "name", with: newPlayerName, in: content)
+            modified = replaceFirstTag(tag: "farmName", with: newFarmName, in: modified)
+            try? modified.write(to: url, atomically: true, encoding: .utf8)
+        }
+        
+        if fm.fileExists(atPath: saveGameInfoURL.path) {
+            updateFile(at: saveGameInfoURL)
+        }
+        if fm.fileExists(atPath: mainSaveURL.path) {
+            updateFile(at: mainSaveURL)
+        }
+    }
+
+    func duplicateSave(info: SaveGameInfo, newName: String, newFarm: String) -> Bool {
         let fm = FileManager.default
         let folderPath = info.fileURL.deletingLastPathComponent()
         let saveName = folderPath.lastPathComponent
         
-        let newSaveName = "\(saveName)_copy"
-        let newFolderPath = folderPath.deletingLastPathComponent().appendingPathComponent(newSaveName)
+        var newSaveName = "\(saveName)_copy"
+        var newFolderPath = folderPath.deletingLastPathComponent().appendingPathComponent(newSaveName)
+        
+        var counter = 1
+        while fm.fileExists(atPath: newFolderPath.path) {
+            newSaveName = "\(saveName)_copy_\(counter)"
+            newFolderPath = folderPath.deletingLastPathComponent().appendingPathComponent(newSaveName)
+            counter += 1
+        }
         
         do {
-            if fm.fileExists(atPath: newFolderPath.path) {
-                return false // Already exists
-            }
             try fm.copyItem(at: folderPath, to: newFolderPath)
             
             // Rename internal file
@@ -263,13 +363,129 @@ class SaveManager {
             if fm.fileExists(atPath: oldFilePath.path) {
                 try fm.moveItem(at: oldFilePath, to: newFilePath)
             }
-            // Also old save metadata
-            // Stardew Valley reads both SaveGameInfo and the internal save. We don't necessarily need to rename SaveGameInfo, it's literally named SaveGameInfo.
-            // But we must modify the xml internal name and id to prevent collision?
-            // Actually, copying it is mostly safe, but SDV uses the folder name and file name to load.
+            
+            // Modify name and farm name inside XML files
+            modifyInternalSaveNames(in: newFolderPath, newSaveName: newSaveName, newPlayerName: newName, newFarmName: newFarm)
+            
             return true
         } catch {
             print("Failed to duplicate save: \(error)")
+            return false
+        }
+    }
+
+    // MARK: - Backup Timeline
+    
+    func branchFromBackup(backup: SaveBackup, newName: String, newFarm: String) -> Bool {
+        let fm = FileManager.default
+        let backupFolderPath = backup.folderPath
+        let originalSaveName = String(backupFolderPath.lastPathComponent.split(separator: ".")[0])
+        let parentDir = backupFolderPath.deletingLastPathComponent()
+        
+        var newSaveName = "\(originalSaveName)_branch"
+        var newFolderPath = parentDir.appendingPathComponent(newSaveName)
+        
+        var counter = 1
+        while fm.fileExists(atPath: newFolderPath.path) {
+            newSaveName = "\(originalSaveName)_branch_\(counter)"
+            newFolderPath = parentDir.appendingPathComponent(newSaveName)
+            counter += 1
+        }
+        
+        do {
+            try fm.copyItem(at: backupFolderPath, to: newFolderPath)
+            
+            // Rename internal file
+            let oldFilePath = newFolderPath.appendingPathComponent(originalSaveName)
+            let newFilePath = newFolderPath.appendingPathComponent(newSaveName)
+            if fm.fileExists(atPath: oldFilePath.path) {
+                try fm.moveItem(at: oldFilePath, to: newFilePath)
+            }
+            
+            // Modify name and farm name inside XML files
+            modifyInternalSaveNames(in: newFolderPath, newSaveName: newSaveName, newPlayerName: newName, newFarmName: newFarm)
+            
+            return true
+        } catch {
+            print("Failed to branch backup: \(error)")
+            return false
+        }
+    }
+
+    /// List all `.backup_*` sibling folders for a given save
+    func listBackups(for info: SaveGameInfo) -> [SaveBackup] {
+        let saveFolder = info.fileURL.deletingLastPathComponent()
+        let parentDir = saveFolder.deletingLastPathComponent()
+        let saveName = saveFolder.lastPathComponent
+
+        guard let items = try? FileManager.default.contentsOfDirectory(
+            at: parentDir,
+            includingPropertiesForKeys: [.isDirectoryKey, .creationDateKey],
+            options: .skipsHiddenFiles
+        ) else { return [] }
+
+        var backups: [SaveBackup] = []
+        for item in items {
+            let name = item.lastPathComponent
+            // Match pattern: saveName.backup_YYYYMMDD_HHMMSS
+            let prefix = "\(saveName).backup_"
+            guard name.hasPrefix(prefix) else { continue }
+
+            let tsString = String(name.dropFirst(prefix.count))
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyyMMdd_HHmmss"
+            let date = formatter.date(from: tsString) ?? Date()
+
+            var isDir: ObjCBool = false
+            if FileManager.default.fileExists(atPath: item.path, isDirectory: &isDir), isDir.boolValue {
+                backups.append(SaveBackup(folderPath: item, timestamp: date, saveFolder: saveName))
+            }
+        }
+        return backups.sorted { $0.timestamp > $1.timestamp }
+    }
+
+    /// Restore a backup: backup current save first, then swap
+    func restoreBackup(backup: SaveBackup, info: SaveGameInfo) -> Bool {
+        let fm = FileManager.default
+        let saveFolder = info.fileURL.deletingLastPathComponent()
+
+        // 1. First backup the current state before restoring
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyyMMdd_HHmmss"
+        let timestamp = formatter.string(from: Date())
+        let preRestoreBackupPath = saveFolder
+            .deletingLastPathComponent()
+            .appendingPathComponent("\(saveFolder.lastPathComponent).backup_\(timestamp)")
+
+        do {
+            // Backup current state
+            try fm.copyItem(at: saveFolder, to: preRestoreBackupPath)
+
+            // Remove current save folder content (move to trash first, then restore)
+            let tempTrash = saveFolder.deletingLastPathComponent()
+                .appendingPathComponent("\(saveFolder.lastPathComponent)_RESTORING_TEMP")
+            try fm.moveItem(at: saveFolder, to: tempTrash)
+
+            // Copy backup into place
+            try fm.copyItem(at: backup.folderPath, to: saveFolder)
+
+            // Trash the temp
+            try fm.trashItem(at: tempTrash, resultingItemURL: nil)
+
+            return true
+        } catch {
+            print("Failed to restore backup: \(error)")
+            return false
+        }
+    }
+
+    /// Delete a single backup folder
+    func deleteBackup(_ backup: SaveBackup) -> Bool {
+        do {
+            try FileManager.default.trashItem(at: backup.folderPath, resultingItemURL: nil)
+            return true
+        } catch {
+            print("Failed to delete backup: \(error)")
             return false
         }
     }

@@ -78,6 +78,15 @@ enum L10n {
         static let saveChanges          = "บันทึกการเปลี่ยนแปลง"
         static let saves                = "เซฟเกม"
         static let openFolder           = "เปิดโฟลเดอร์"
+        static let timeline             = "ประวัติ Backup"
+        static let restore              = "กู้คืน"
+        static let backupLabel          = "แบ็คอัพ"
+        static let noBackups            = "ยังไม่มีการแบ็คอัพเซฟนี้"
+        static let notes                = "บันทึกช่วยจำ"
+        static let tag                  = "ป้ายกำกับ"
+        static let saveNote             = "พิมพ์บันทึกย่อสำหรับเซฟนี้..."
+        static let confirmRestore       = "ยืนยันการกู้คืนเซฟ"
+        static let confirmRestoreMsg    = "คุณต้องการกู้คืนเซฟนี้หรือไม่?\nข้อมูลเซฟปัจจุบันจะถูกเก็บแบ็คอัพไว้ก่อนการกู้คืน"
     }
 
     // MARK: - ModListView

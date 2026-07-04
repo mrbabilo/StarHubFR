@@ -23,6 +23,7 @@ struct MainView: View {
     }
     
     private var navigationTitleText: String {
+        if currentTab == "Saves" && vm.viewingSaveTimeline != nil { return vm.L(L10n.Saves.timeline) }
         if currentTab == "Saves" && vm.editingSave != nil { return vm.editingSave!.playerName }
         if currentTab == "ThaiHub" && vm.viewingThaiMod != nil { return vm.viewingThaiMod!.name }
         if currentTab == "Mods" { return vm.L(L10n.Mods.mods) }
@@ -239,7 +240,9 @@ struct MainView: View {
                 if currentTab == "Mods" {
                     ModListView(vm: vm)
                 } else if currentTab == "Saves" {
-                    if let save = vm.editingSave {
+                    if let save = vm.viewingSaveTimeline {
+                        SaveTimelineView(vm: vm, save: save)
+                    } else if let save = vm.editingSave {
                         SaveEditorView(vm: vm, save: save)
                     } else {
                         SavesView(vm: vm)

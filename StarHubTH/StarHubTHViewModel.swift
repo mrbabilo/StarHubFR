@@ -111,7 +111,22 @@ struct LogEntry: Identifiable {
     var modName: String? = nil
 }
 
+enum SaveViewMode: String, Codable {
+    case list
+    case grid
+}
+
+enum SaveSortOption: String, Codable {
+    case name
+    case lastPlayed
+    case money
+}
+
 class StarHubTHViewModel: ObservableObject {
+    @Published var saveViewMode: SaveViewMode = .list
+    @Published var saveSortOption: SaveSortOption = .lastPlayed
+    @Published var saveFilterTag: String = ""
+
     @Published var gameDir: String = "" {
         didSet {
             UserDefaults.standard.set(gameDir, forKey: "gameDir")
@@ -140,6 +155,10 @@ class StarHubTHViewModel: ObservableObject {
     
     @Published var saves: [SaveGameInfo] = []
     @Published var editingSave: SaveGameInfo? = nil
+    @Published var viewingSaveTimeline: SaveGameInfo? = nil
+    
+    @Published var saveToDuplicate: SaveGameInfo? = nil
+    @Published var backupToBranch: SaveBackup? = nil
     
     @Published var steamUsername: String = ""
     @Published var steamAvatarPath: String? = nil
@@ -940,8 +959,95 @@ class StarHubTHViewModel: ObservableObject {
         }
     }
     
-    func duplicateSave(info: SaveGameInfo) {
-        if SaveManager.shared.duplicateSave(info: info) {
+    var savesHierarchy: [SaveNode] {
+        func getParentFolderName(for folderName: String) -> String? {
+            let pattern = "^(.+)_(copy|branch)(_\\d+)?$"
+            guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else { return nil }
+            let nsString = folderName as NSString
+            let results = regex.matches(in: folderName, options: [], range: NSRange(location: 0, length: nsString.length))
+            guard let match = results.first, match.numberOfRanges > 1 else { return nil }
+            return nsString.substring(with: match.range(at: 1))
+        }
+        
+        // Build node map for all saves
+        var nodeMap: [String: SaveNode] = [:]
+        for save in saves {
+            nodeMap[save.folderName] = SaveNode(info: save, children: [])
+        }
+        
+        // Assign children to parents
+        for save in saves {
+            if let parentFolderName = getParentFolderName(for: save.folderName),
+               let node = nodeMap[save.folderName],
+               nodeMap[parentFolderName] != nil {
+                nodeMap[parentFolderName]?.children.append(node)
+            }
+        }
+        
+        // Collect root saves (those without a recognized parent in nodeMap)
+        var roots: [SaveNode] = saves.compactMap { save -> SaveNode? in
+            if let parentFolderName = getParentFolderName(for: save.folderName),
+               nodeMap[parentFolderName] != nil {
+                return nil // Not a root
+            }
+            return nodeMap[save.folderName]
+        }
+        
+        // Apply tag filter
+        if !saveFilterTag.isEmpty {
+            roots = roots.filter { node in
+                let tag = SaveNotesStore.shared.note(for: node.info.folderName).tag
+                return tag == saveFilterTag
+            }
+        }
+        
+        // Apply sorting
+        roots = roots.sorted { a, b in
+            switch saveSortOption {
+            case .name:
+                return a.info.playerName.localizedCaseInsensitiveCompare(b.info.playerName) == .orderedAscending
+            case .lastPlayed:
+                return a.info.lastModified > b.info.lastModified
+            case .money:
+                return a.info.money > b.info.money
+            }
+        }
+        
+        return roots
+    }
+    
+    var availableFilterTags: [String] {
+        let allTags = saves.compactMap { SaveNotesStore.shared.note(for: $0.folderName).tag }.filter { !$0.isEmpty }
+        return Array(Set(allTags)).sorted()
+    }
+    
+    func setAvatar(forSave folderName: String, iconPath: String) {
+        let note = SaveNotesStore.shared.note(for: folderName)
+        SaveNotesStore.shared.setNote(for: folderName, tag: note.tag, note: note.note, customIconPath: iconPath)
+        objectWillChange.send()
+    }
+    
+    func selectCustomAvatar(forSave folderName: String) {
+        #if canImport(AppKit)
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.png, .jpeg, .gif]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.title = "เลือกรูปโปรไฟล์"
+        if panel.runModal() == .OK, let url = panel.url {
+            // Copy to app support dir to prevent broken paths
+            let supportDir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+                .appendingPathComponent("StarHubTH/Avatars", isDirectory: true)
+            try? FileManager.default.createDirectory(at: supportDir, withIntermediateDirectories: true)
+            let destURL = supportDir.appendingPathComponent("\(folderName)_\(url.lastPathComponent)")
+            try? FileManager.default.copyItem(at: url, to: destURL)
+            setAvatar(forSave: folderName, iconPath: destURL.path)
+        }
+        #endif
+    }
+    
+    func duplicateSave(info: SaveGameInfo, newName: String, newFarm: String) {
+        if SaveManager.shared.duplicateSave(info: info, newName: newName, newFarm: newFarm) {
             reloadSaves()
             showModal(message: L(L10n.VM.duplicateSaveSuccess))
         } else {
@@ -952,7 +1058,55 @@ class StarHubTHViewModel: ObservableObject {
     func openSaveInFinder(info: SaveGameInfo) {
         SaveManager.shared.openSaveInFinder(info: info)
     }
+
+    // MARK: - Backup Timeline
+
+    func listBackups(for info: SaveGameInfo) -> [SaveBackup] {
+        SaveManager.shared.listBackups(for: info)
+    }
+
+    func createBackup(info: SaveGameInfo) -> Bool {
+        SaveManager.shared.backupSave(info: info)
+    }
     
+    func branchFromBackup(backup: SaveBackup, newName: String, newFarm: String) -> Bool {
+        if SaveManager.shared.branchFromBackup(backup: backup, newName: newName, newFarm: newFarm) {
+            reloadSaves()
+            showModal(message: "✅ แตกสาขาเซฟสำเร็จ! คุณสามารถเล่นเซฟนี้แยกต่างหากได้เลย")
+            return true
+        } else {
+            showModal(message: "❌ ไม่สามารถแตกสาขาเซฟได้ กรุณาลองใหม่อีกครั้ง")
+            return false
+        }
+    }
+
+    func restoreBackup(backup: SaveBackup, info: SaveGameInfo) {
+        if SaveManager.shared.restoreBackup(backup: backup, info: info) {
+            reloadSaves()
+            viewingSaveTimeline = nil
+            editingSave = nil
+            showModal(message: "✅ กู้คืนเซฟสำเร็จ! เซฟก่อนกู้คืนถูกสำรองไว้ให้แล้ว")
+        } else {
+            showModal(message: "❌ กู้คืนเซฟไม่สำเร็จ กรุณาลองใหม่อีกครั้ง")
+        }
+    }
+
+    func deleteBackup(_ backup: SaveBackup) -> Bool {
+        SaveManager.shared.deleteBackup(backup)
+    }
+
+    // MARK: - Save Notes
+
+    func getNote(for folderName: String) -> SaveNote {
+        SaveNotesStore.shared.note(for: folderName)
+    }
+
+    func setNote(for folderName: String, tag: String, note: String) {
+        SaveNotesStore.shared.setNote(for: folderName, tag: tag, note: note)
+        // Trigger UI refresh by reloading saves list
+        objectWillChange.send()
+    }
+
     // MARK: - Backup & Management
     func backupAllSaves() {
         let home = NSHomeDirectory()

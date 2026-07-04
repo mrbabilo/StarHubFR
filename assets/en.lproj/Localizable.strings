@@ -280,3 +280,14 @@
 "ค้นหาใน log..." = "Search logs...";
 "%d / %d รายการ" = "%d / %d entries";
 "โหลด SMAPI-latest.txt ใหม่" = "Reload SMAPI-latest.txt";
+
+/* Saves Timeline & Notes */
+"ประวัติ Backup" = "Backup History";
+"กู้คืน" = "Restore";
+"แบ็คอัพ" = "Backup";
+"ยังไม่มีการแบ็คอัพเซฟนี้" = "No backups found for this save";
+"บันทึกช่วยจำ" = "Notes";
+"ป้ายกำกับ" = "Tag";
+"พิมพ์บันทึกย่อสำหรับเซฟนี้..." = "Type notes for this save...";
+"ยืนยันการกู้คืนเซฟ" = "Confirm Save Restore";
+"คุณต้องการกู้คืนเซฟนี้หรือไม่?\nข้อมูลเซฟปัจจุบันจะถูกเก็บแบ็คอัพไว้ก่อนการกู้คืน" = "Are you sure you want to restore this save?\nThe current save data will be backed up before restoration.";
