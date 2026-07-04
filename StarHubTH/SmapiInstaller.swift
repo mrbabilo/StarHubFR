@@ -9,16 +9,39 @@ class SmapiInstaller: ObservableObject {
     static func getInstalledVersion(gameDir: String) -> String? {
         let fm = FileManager.default
         let originalPath = (gameDir as NSString).appendingPathComponent("StardewValley-original")
-        let manifestPath = (gameDir as NSString).appendingPathComponent("smapi-internal/manifest.json")
-        
+
+        // SMAPI must have replaced the launcher
         guard fm.fileExists(atPath: originalPath) else { return nil }
-        
+
+        // 1. Try smapi-internal/manifest.json (standard path)
+        let manifestPath = (gameDir as NSString).appendingPathComponent("smapi-internal/manifest.json")
         if fm.fileExists(atPath: manifestPath),
            let data = try? Data(contentsOf: URL(fileURLWithPath: manifestPath)),
            let json = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
            let version = json["Version"] as? String {
             return version
         }
+
+        // 2. Fallback: parse version from SMAPI-latest.txt first line
+        // Format: [HH:MM:SS INFO  SMAPI] SMAPI 4.5.2 with Stardew Valley ...
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        let logPath = (home as NSString).appendingPathComponent(
+            ".config/StardewValley/ErrorLogs/SMAPI-latest.txt"
+        )
+        if fm.fileExists(atPath: logPath),
+           let handle = FileHandle(forReadingAtPath: logPath) {
+            let data = handle.readData(ofLength: 256)
+            try? handle.close()
+            if let line = String(data: data, encoding: .utf8)?
+                .components(separatedBy: .newlines).first,
+               let range = line.range(of: #"SMAPI (\d+\.\d+\.\d+)"#, options: .regularExpression) {
+                let match = String(line[range])
+                let version = match.replacingOccurrences(of: "SMAPI ", with: "")
+                return version
+            }
+        }
+
+        // 3. Installed but version unknown
         return "Installed"
     }
     

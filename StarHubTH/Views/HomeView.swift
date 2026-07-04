@@ -168,6 +168,7 @@ struct HomeView: View {
             }
         }
         .background(Color(nsColor: .controlBackgroundColor))
+        .onAppear { vm.refresh() }
     }
 }
 
@@ -186,9 +187,15 @@ extension HomeView {
             if mod.isGroup, let children = mod.children { return children }
             return [mod]
         }
-        guard let mod = allMods.first(where: { $0.name.lowercased().contains(keyword) }) else {
-            return (.notInstalled, nil)
-        }
+        let matches = allMods.filter { $0.name.lowercased().contains(keyword) }
+        guard !matches.isEmpty else { return (.notInstalled, nil) }
+
+        // Prefer enabled mod if multiple match (e.g. "Content Patcher" vs "Content Patcher Animations")
+        let exactEnabled  = matches.first { $0.name.lowercased() == keyword && $0.isEnabled }
+        let anyEnabled    = matches.first { $0.isEnabled }
+        let exactAny      = matches.first { $0.name.lowercased() == keyword }
+        let mod = exactEnabled ?? anyEnabled ?? exactAny ?? matches.first!
+
         return (mod.isEnabled ? .enabledAndInstalled : .installedButDisabled, mod)
     }
 
@@ -197,12 +204,12 @@ extension HomeView {
             if mod.isGroup, let children = mod.children { return children }
             return [mod]
         }
-        guard let mod = allMods.first(where: {
-            $0.folderName.lowercased() == "stardew valley - thai" ||
-            $0.name.localizedCaseInsensitiveContains("thai")
-        }) else {
-            return (.notInstalled, nil)
-        }
+        // Match by folder name first (exact), then by name containing "thai"
+        let mod = allMods.first { $0.folderName.lowercased() == "stardew valley - thai" && $0.isEnabled }
+            ?? allMods.first { $0.name.localizedCaseInsensitiveContains("thai") && $0.isEnabled }
+            ?? allMods.first { $0.folderName.lowercased() == "stardew valley - thai" }
+            ?? allMods.first { $0.name.localizedCaseInsensitiveContains("thai") }
+        guard let mod = mod else { return (.notInstalled, nil) }
         return (mod.isEnabled ? .enabledAndInstalled : .installedButDisabled, mod)
     }
 }
