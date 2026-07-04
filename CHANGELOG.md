@@ -22,11 +22,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Status bar**: Shows filtered entry count vs. total.
   - **Context menu**: Right-click any entry to copy that line.
   - **Color coding**: Red (ERROR), orange (WARN), blue (SMAPI/TRACE), default (INFO/app).
+- **Centralized JSON Localization Source**: Added `assets/en.json` and `assets/th.json` as the source of truth for UI text. `build_app.py` now regenerates `Localizable.strings` from these files and fails if Thai/English keys do not match.
 
 ### Changed
 - `LogEntry` now has a `source` field (`.app` / `.smapi`) to distinguish log origin.
 - `log()` in ViewModel always sets `source: .app`.
 - `loadSmapiLog()` sets `source: .smapi` and parses timestamps directly from the SMAPI format `[HH:MM:SS LEVEL  Context]`, including double-space handling.
+- Removed Japanese localization and the Japanese language picker option. The app now supports English and Thai only.
+- Unsupported or removed saved language values now normalize to a supported language, preferring Thai when the user's system language is Thai.
+- Thai save-branching terminology now uses "สร้างเซฟใหม่" instead of "แตกสาขา".
+- `build_app.py` now uses a project-local Swift module cache so local builds work without writing to the user-level compiler cache.
+
+### Fixed
+- Fixed Thai season names appearing inside the English Saves list by making save seasons use centralized localization keys.
+- Fixed nested save branches disappearing from the parent-child Saves tree by rebuilding the hierarchy recursively from detected parent folders instead of using a single-level `_copy` / `_branch` regex.
+- Fixed mixed-language Backup Timeline labels by localizing backup, restore, branch/create-save, relative time, and date display through the selected app language.
+- Fixed several remaining hardcoded Save/Settings/Logs/Mod List strings so Thai and English translations stay in sync.
 
 ### Notes
 - SMAPI buffers log output and flushes in batches — logs are not written line-by-line in real time. Press Reload after closing the game to see the complete log.
