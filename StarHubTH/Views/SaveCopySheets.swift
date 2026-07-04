@@ -11,29 +11,29 @@ struct DuplicateSaveSheet: View {
     init(vm: StarHubTHViewModel, save: SaveGameInfo) {
         self.vm = vm
         self.save = save
-        _newName = State(initialValue: "\(save.playerName) Copy")
+        _newName = State(initialValue: "\(save.playerName) \(vm.L(L10n.Saves.duplicateDefaultSuffix))")
         _newFarm = State(initialValue: save.farmName)
     }
     
     var body: some View {
         VStack(spacing: 20) {
-            Text("ทำสำเนาเซฟเกม")
+            Text(vm.L(L10n.Saves.duplicateTitle))
                 .font(.headline)
             
             Form {
-                TextField("ชื่อตัวละครใหม่", text: $newName)
-                TextField("ชื่อฟาร์มใหม่", text: $newFarm)
+                TextField(vm.L(L10n.Saves.newCharacterName), text: $newName)
+                TextField(vm.L(L10n.Saves.newFarmName), text: $newFarm)
             }
             .formStyle(.grouped)
             
             HStack(spacing: 12) {
                 Spacer()
-                Button("ยกเลิก") {
+                Button(vm.L(L10n.Saves.cancel)) {
                     dismiss()
                 }
                 .keyboardShortcut(.cancelAction)
                 
-                Button("ทำสำเนา") {
+                Button(vm.L(L10n.Saves.duplicate)) {
                     vm.duplicateSave(info: save, newName: newName, newFarm: newFarm)
                     dismiss()
                 }
@@ -59,12 +59,12 @@ struct BranchBackupSheet: View {
         self.backup = backup
         // Try parsing the original save name from backup folder name
         let originalSaveName = String(backup.folderPath.lastPathComponent.split(separator: ".")[0])
-        _newName = State(initialValue: "\(originalSaveName) Branch")
+        _newName = State(initialValue: "\(originalSaveName) \(vm.L(L10n.Saves.branchDefaultSuffix))")
         
         // We don't easily have the farmName from SaveBackup directly unless we parse the XML of the backup.
         // Let's parse it! We can try reading the SaveGameInfo inside backup folder to pre-fill farm name.
         let saveGameInfoURL = backup.folderPath.appendingPathComponent("SaveGameInfo")
-        var initialFarmName = "Branch Farm"
+        var initialFarmName = vm.L(L10n.Saves.branchDefaultFarm)
         if let content = try? String(contentsOf: saveGameInfoURL, encoding: .utf8) {
             let pattern = "(<farmName>)([^<]+)(</farmName>)"
             if let regex = try? NSRegularExpression(pattern: pattern, options: []),
@@ -78,23 +78,23 @@ struct BranchBackupSheet: View {
     
     var body: some View {
         VStack(spacing: 20) {
-            Text("แตกสาขาเซฟเกมจาก Backup")
+            Text(vm.L(L10n.Saves.branchTitle))
                 .font(.headline)
             
             Form {
-                TextField("ชื่อตัวละครใหม่", text: $newName)
-                TextField("ชื่อฟาร์มใหม่", text: $newFarm)
+                TextField(vm.L(L10n.Saves.newCharacterName), text: $newName)
+                TextField(vm.L(L10n.Saves.newFarmName), text: $newFarm)
             }
             .formStyle(.grouped)
             
             HStack(spacing: 12) {
                 Spacer()
-                Button("ยกเลิก") {
+                Button(vm.L(L10n.Saves.cancel)) {
                     dismiss()
                 }
                 .keyboardShortcut(.cancelAction)
                 
-                Button("แตกสาขา") {
+                Button(vm.L(L10n.Saves.branch)) {
                     _ = vm.branchFromBackup(backup: backup, newName: newName, newFarm: newFarm)
                     dismiss()
                 }

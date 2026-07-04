@@ -13,7 +13,7 @@
     [*] Edit money and basic character stats
     [/list]
 [*] [b]Developer Logs[/b]: Monitor SMAPI output in real time directly within the app.
-[*] [b]Trilingual Support[/b]: Switch the app language instantly between English, Thai (ภาษาไทย), and Japanese (日本語).
+[*] [b]Bilingual Support[/b]: Switch the app language instantly between English and Thai (ภาษาไทย).
 [*] [b]Native macOS UI[/b]: A clean, intuitive interface designed to feel right at home on macOS.
 [/list]
 [/left]

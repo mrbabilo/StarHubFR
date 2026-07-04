@@ -4,15 +4,59 @@ import shutil
 import glob
 import subprocess
 import plistlib
+import json
 
 APP_NAME = "StarHubTH"
 APP_DIR = f"{APP_NAME}.app"
 CONTENTS_DIR = os.path.join(APP_DIR, "Contents")
 MACOS_DIR = os.path.join(CONTENTS_DIR, "MacOS")
 RESOURCES_DIR = os.path.join(CONTENTS_DIR, "Resources")
+SUPPORTED_LOCALES = {
+    "en": "Centralized English Localization Strings",
+    "th": "Centralized Thai Localization Strings",
+}
+
+def strings_escape(value):
+    return (
+        value
+        .replace("\\", "\\\\")
+        .replace('"', '\\"')
+        .replace("\n", "\\n")
+    )
+
+def generate_localizable_strings():
+    locale_data = {}
+    for locale in SUPPORTED_LOCALES:
+        json_path = os.path.join("assets", f"{locale}.json")
+        with open(json_path, "r", encoding="utf-8") as file:
+            locale_data[locale] = json.load(file)
+
+    key_sets = {locale: set(values.keys()) for locale, values in locale_data.items()}
+    reference_locale = "en"
+    reference_keys = key_sets[reference_locale]
+    for locale, keys in key_sets.items():
+        missing = sorted(reference_keys - keys)
+        extra = sorted(keys - reference_keys)
+        if missing or extra:
+            if missing:
+                print(f"[ERROR] {locale}.json is missing keys: {', '.join(missing)}")
+            if extra:
+                print(f"[ERROR] {locale}.json has extra keys: {', '.join(extra)}")
+            raise SystemExit(1)
+
+    for locale, values in locale_data.items():
+        lproj_dir = os.path.join("assets", f"{locale}.lproj")
+        os.makedirs(lproj_dir, exist_ok=True)
+        strings_path = os.path.join(lproj_dir, "Localizable.strings")
+        with open(strings_path, "w", encoding="utf-8") as file:
+            file.write(f"/* {SUPPORTED_LOCALES[locale]} */\n")
+            for key, value in values.items():
+                file.write(f'"{strings_escape(key)}" = "{strings_escape(value)}";\n')
+        print(f"[INFO] Generated {strings_path}")
 
 def create_app_bundle():
     print(f"[INFO] Starting build process for {APP_DIR}...")
+    generate_localizable_strings()
     
     # 1. Clean old build
     if os.path.exists(APP_DIR):
@@ -39,7 +83,7 @@ def create_app_bundle():
         shutil.copy2(app_icon_path, os.path.join(RESOURCES_DIR, "AppIcon.icns"))
         print("[INFO] Copied AppIcon.icns to App Resources")
         
-    for lang in ["en.lproj", "th.lproj", "ja.lproj"]:
+    for lang in ["en.lproj", "th.lproj"]:
         lproj_src = os.path.join("assets", lang)
         if os.path.exists(lproj_src):
             lproj_dest = os.path.join(RESOURCES_DIR, lang)
@@ -49,6 +93,8 @@ def create_app_bundle():
         
     # 4. Compile Swift App
     app_executable = os.path.join(MACOS_DIR, APP_NAME)
+    module_cache_dir = os.path.join(".build", "module-cache")
+    os.makedirs(module_cache_dir, exist_ok=True)
     
     # Find all Swift files recursively under StarHubTH
     swift_files = []
@@ -62,7 +108,11 @@ def create_app_bundle():
         return
         
     print(f"[INFO] Compiling Swift code ({len(swift_files)} files)...")
-    swiftc_cmd = ["swiftc"] + swift_files + ["-o", app_executable, "-parse-as-library"]
+    swiftc_cmd = ["swiftc"] + swift_files + [
+        "-o", app_executable,
+        "-parse-as-library",
+        "-module-cache-path", module_cache_dir,
+    ]
     
     # Run compiler
     result = subprocess.run(swiftc_cmd)

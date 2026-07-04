@@ -11,7 +11,7 @@
     *   Duplicate or delete save files
     *   Edit money and basic character stats
 *   **Developer Logs**: Monitor SMAPI output in real time directly within the app.
-*   **Trilingual Support**: Switch the app language instantly between English, Thai (ภาษาไทย), and Japanese (日本語).
+*   **Bilingual Support**: Switch the app language instantly between English and Thai (ภาษาไทย).
 *   **Native macOS UI**: A clean, intuitive interface designed to feel right at home on macOS.
 
 <p align="center">

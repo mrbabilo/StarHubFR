@@ -127,11 +127,11 @@ struct SaveGameInfo: Identifiable, Equatable, Hashable {
     
     var seasonName: String {
         switch season {
-        case 0: return "ฤดูใบไม้ผลิ" // Spring
-        case 1: return "ฤดูร้อน"    // Summer
-        case 2: return "ฤดูใบไม้ร่วง" // Fall
-        case 3: return "ฤดูหนาว"   // Winter
-        default: return "ไม่ทราบฤดู"
+        case 0: return L10n.Saves.spring
+        case 1: return L10n.Saves.summer
+        case 2: return L10n.Saves.fall
+        case 3: return L10n.Saves.winter
+        default: return L10n.Saves.spring
         }
     }
 }

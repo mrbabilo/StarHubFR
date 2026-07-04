@@ -182,7 +182,7 @@ struct ModListRow: View {
                     HStack(spacing: 4) {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundColor(.yellow)
-                        Text("Missing: \(missingDeps.joined(separator: ", "))")
+                        Text(String(format: vm.L(L10n.Mods.missingDependencies), missingDeps.joined(separator: ", ")))
                             .foregroundColor(.yellow)
                     }
                     .font(.system(size: 11))

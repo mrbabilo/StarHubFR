@@ -173,10 +173,10 @@ struct BackupRow: View {
                         Text(noteTag)
                             .font(.system(size: 14))
                     }
-                    Text(backup.relativeLabel)
+                    Text(relativeLabel)
                         .font(.system(size: 14, weight: .bold))
                     Spacer()
-                    Text(backup.formattedDate)
+                    Text(formattedDate)
                         .font(.system(size: 12))
                         .foregroundColor(.secondary)
                 }
@@ -193,7 +193,7 @@ struct BackupRow: View {
                         TextField(vm.L(L10n.Saves.saveNote), text: $noteText)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                         
-                        Button("Save") {
+                        Button(vm.L(L10n.Profiles.save)) {
                             vm.setNote(for: backup.folderPath.lastPathComponent, tag: noteTag, note: noteText)
                             isEditingNote = false
                         }
@@ -231,7 +231,7 @@ struct BackupRow: View {
                     }) {
                         HStack(spacing: 4) {
                             Image(systemName: "arrow.triangle.branch")
-                            Text("แตกสาขา")
+                            Text(vm.L(L10n.Saves.branch))
                         }
                         .font(.system(size: 12, weight: .medium))
                     }
@@ -267,5 +267,27 @@ struct BackupRow: View {
             )
             .padding(.bottom, isLast ? 20 : 16)
         }
+    }
+    
+    private var formattedDate: String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        formatter.locale = Locale(identifier: vm.currentLanguage)
+        return formatter.string(from: backup.timestamp)
+    }
+    
+    private var relativeLabel: String {
+        let seconds = Date().timeIntervalSince(backup.timestamp)
+        if seconds < 60 {
+            return vm.L(L10n.Saves.relativeJustNow)
+        }
+        if seconds < 3600 {
+            return String(format: vm.L(L10n.Saves.relativeMinutesAgo), Int64(seconds / 60))
+        }
+        if seconds < 86400 {
+            return String(format: vm.L(L10n.Saves.relativeHoursAgo), Int64(seconds / 3600))
+        }
+        return String(format: vm.L(L10n.Saves.relativeDaysAgo), Int64(seconds / 86400))
     }
 }

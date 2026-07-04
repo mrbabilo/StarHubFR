@@ -163,8 +163,21 @@ class StarHubTHViewModel: ObservableObject {
     @Published var steamUsername: String = ""
     @Published var steamAvatarPath: String? = nil
     
-    @Published var currentLanguage: String = UserDefaults.standard.string(forKey: "currentLanguage") ?? "en" {
+    private static let supportedLanguages = Set(["en", "th"])
+    private static func normalizedLanguage(_ language: String?) -> String {
+        guard let language, supportedLanguages.contains(language) else { return defaultLanguage }
+        return language
+    }
+    private static var defaultLanguage: String {
+        Locale.preferredLanguages.contains { $0.lowercased().hasPrefix("th") } ? "th" : "en"
+    }
+    
+    @Published var currentLanguage: String = StarHubTHViewModel.normalizedLanguage(UserDefaults.standard.string(forKey: "currentLanguage")) {
         didSet {
+            if !Self.supportedLanguages.contains(currentLanguage) {
+                currentLanguage = "en"
+                return
+            }
             UserDefaults.standard.set(currentLanguage, forKey: "currentLanguage")
             UserDefaults.standard.set([currentLanguage], forKey: "AppleLanguages")
             UserDefaults.standard.synchronize()
@@ -186,7 +199,8 @@ class StarHubTHViewModel: ObservableObject {
     
     init() {
         // Force sync AppleLanguages with currentLanguage at startup
-        let savedLang = UserDefaults.standard.string(forKey: "currentLanguage") ?? "en"
+        let savedLang = Self.normalizedLanguage(UserDefaults.standard.string(forKey: "currentLanguage"))
+        currentLanguage = savedLang
         UserDefaults.standard.set([savedLang], forKey: "AppleLanguages")
         
         // Automatically retrieve saved game path, or attempt to find the default Steam path on Mac
@@ -235,11 +249,17 @@ class StarHubTHViewModel: ObservableObject {
     
     // Helper to force localization using the currently selected language bundle
     func localizedString(for key: String) -> String {
-        guard let path = Bundle.main.path(forResource: currentLanguage, ofType: "lproj"),
-              let bundle = Bundle(path: path) else {
-            return NSLocalizedString(key, comment: "")
+        // Build the lproj URL directly from resourceURL (more reliable for swiftc-built apps)
+        if let resourceURL = Bundle.main.resourceURL {
+            let lprojURL = resourceURL.appendingPathComponent("\(currentLanguage).lproj")
+            if let bundle = Bundle(url: lprojURL) {
+                // Must call localizedString directly on the bundle object
+                let result = bundle.localizedString(forKey: key, value: "__MISSING__", table: nil)
+                if result != "__MISSING__" { return result }
+            }
         }
-        return NSLocalizedString(key, tableName: nil, bundle: bundle, value: "", comment: "")
+        // Last resort: return key so missing translations are visible
+        return key
     }
 
     /// Typed-key shorthand. Prefer this over localizedString(for:) with raw strings.
@@ -960,38 +980,51 @@ class StarHubTHViewModel: ObservableObject {
     }
     
     var savesHierarchy: [SaveNode] {
+        let saveNames = Set(saves.map(\.folderName))
+        
         func getParentFolderName(for folderName: String) -> String? {
-            let pattern = "^(.+)_(copy|branch)(_\\d+)?$"
-            guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else { return nil }
-            let nsString = folderName as NSString
-            let results = regex.matches(in: folderName, options: [], range: NSRange(location: 0, length: nsString.length))
-            guard let match = results.first, match.numberOfRanges > 1 else { return nil }
-            return nsString.substring(with: match.range(at: 1))
+            var candidate = folderName
+            while let range = candidate.range(of: "_", options: .backwards) {
+                candidate = String(candidate[..<range.lowerBound])
+                if saveNames.contains(candidate) {
+                    return candidate
+                }
+            }
+            return nil
         }
         
-        // Build node map for all saves
-        var nodeMap: [String: SaveNode] = [:]
-        for save in saves {
-            nodeMap[save.folderName] = SaveNode(info: save, children: [])
+        func sortedNodes(_ nodes: [SaveNode]) -> [SaveNode] {
+            nodes
+                .map { SaveNode(info: $0.info, children: sortedNodes($0.children)) }
+                .sorted { a, b in
+                    switch saveSortOption {
+                    case .name:
+                        return a.info.playerName.localizedCaseInsensitiveCompare(b.info.playerName) == .orderedAscending
+                    case .lastPlayed:
+                        return a.info.lastModified > b.info.lastModified
+                    case .money:
+                        return a.info.money > b.info.money
+                    }
+                }
         }
         
-        // Assign children to parents
+        var childrenByParent: [String: [SaveGameInfo]] = [:]
+        var rootSaves: [SaveGameInfo] = []
+        
         for save in saves {
-            if let parentFolderName = getParentFolderName(for: save.folderName),
-               let node = nodeMap[save.folderName],
-               nodeMap[parentFolderName] != nil {
-                nodeMap[parentFolderName]?.children.append(node)
+            if let parentFolderName = getParentFolderName(for: save.folderName) {
+                childrenByParent[parentFolderName, default: []].append(save)
+            } else {
+                rootSaves.append(save)
             }
         }
         
-        // Collect root saves (those without a recognized parent in nodeMap)
-        var roots: [SaveNode] = saves.compactMap { save -> SaveNode? in
-            if let parentFolderName = getParentFolderName(for: save.folderName),
-               nodeMap[parentFolderName] != nil {
-                return nil // Not a root
-            }
-            return nodeMap[save.folderName]
+        func buildNode(for save: SaveGameInfo) -> SaveNode {
+            let children = childrenByParent[save.folderName, default: []].map { buildNode(for: $0) }
+            return SaveNode(info: save, children: children)
         }
+        
+        var roots = rootSaves.map { buildNode(for: $0) }
         
         // Apply tag filter
         if !saveFilterTag.isEmpty {
@@ -1001,17 +1034,7 @@ class StarHubTHViewModel: ObservableObject {
             }
         }
         
-        // Apply sorting
-        roots = roots.sorted { a, b in
-            switch saveSortOption {
-            case .name:
-                return a.info.playerName.localizedCaseInsensitiveCompare(b.info.playerName) == .orderedAscending
-            case .lastPlayed:
-                return a.info.lastModified > b.info.lastModified
-            case .money:
-                return a.info.money > b.info.money
-            }
-        }
+        roots = sortedNodes(roots)
         
         return roots
     }
@@ -1027,13 +1050,13 @@ class StarHubTHViewModel: ObservableObject {
         objectWillChange.send()
     }
     
-    func selectCustomAvatar(forSave folderName: String) {
+    func selectCustomAvatar(forSave folderName: String, completion: ((String) -> Void)? = nil) {
         #if canImport(AppKit)
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.png, .jpeg, .gif]
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = false
-        panel.title = "เลือกรูปโปรไฟล์"
+        panel.title = L(L10n.Saves.avatarPanelTitle)
         if panel.runModal() == .OK, let url = panel.url {
             // Copy to app support dir to prevent broken paths
             let supportDir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
@@ -1042,6 +1065,7 @@ class StarHubTHViewModel: ObservableObject {
             let destURL = supportDir.appendingPathComponent("\(folderName)_\(url.lastPathComponent)")
             try? FileManager.default.copyItem(at: url, to: destURL)
             setAvatar(forSave: folderName, iconPath: destURL.path)
+            completion?(destURL.path)
         }
         #endif
     }
@@ -1072,10 +1096,10 @@ class StarHubTHViewModel: ObservableObject {
     func branchFromBackup(backup: SaveBackup, newName: String, newFarm: String) -> Bool {
         if SaveManager.shared.branchFromBackup(backup: backup, newName: newName, newFarm: newFarm) {
             reloadSaves()
-            showModal(message: "✅ แตกสาขาเซฟสำเร็จ! คุณสามารถเล่นเซฟนี้แยกต่างหากได้เลย")
+            showModal(message: L(L10n.VM.branchSuccess))
             return true
         } else {
-            showModal(message: "❌ ไม่สามารถแตกสาขาเซฟได้ กรุณาลองใหม่อีกครั้ง")
+            showModal(message: L(L10n.VM.branchError))
             return false
         }
     }
@@ -1085,9 +1109,9 @@ class StarHubTHViewModel: ObservableObject {
             reloadSaves()
             viewingSaveTimeline = nil
             editingSave = nil
-            showModal(message: "✅ กู้คืนเซฟสำเร็จ! เซฟก่อนกู้คืนถูกสำรองไว้ให้แล้ว")
+            showModal(message: L(L10n.VM.restoreSuccess))
         } else {
-            showModal(message: "❌ กู้คืนเซฟไม่สำเร็จ กรุณาลองใหม่อีกครั้ง")
+            showModal(message: L(L10n.VM.restoreError))
         }
     }
 
@@ -1102,8 +1126,9 @@ class StarHubTHViewModel: ObservableObject {
     }
 
     func setNote(for folderName: String, tag: String, note: String) {
-        SaveNotesStore.shared.setNote(for: folderName, tag: tag, note: note)
-        // Trigger UI refresh by reloading saves list
+        // Preserve existing customIconPath
+        let existing = SaveNotesStore.shared.note(for: folderName)
+        SaveNotesStore.shared.setNote(for: folderName, tag: tag, note: note, customIconPath: existing.customIconPath)
         objectWillChange.send()
     }
 

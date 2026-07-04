@@ -32,6 +32,7 @@ unpack_batch.py
 *.log
 
 # Build Outputs / Release Zips
+.build/
 bundles/
 StarHubTH.app/
 mods/*/README.md

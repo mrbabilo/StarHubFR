@@ -287,7 +287,7 @@ struct LogEntryRow: View {
         )
         .onHover { isHovered = $0 }
         .contextMenu {
-            Button("Copy Line") {
+            Button(vm.L(L10n.Logs.copyLine)) {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(
                     "[\(entry.timestamp)] [\(entry.level.rawValue)] \(entry.message)",

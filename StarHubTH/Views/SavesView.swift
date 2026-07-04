@@ -50,6 +50,50 @@ struct SaveAvatarView: View {
     }
 }
 
+// MARK: - SaveAvatarViewLocal (iconPath from local @State, no vm needed)
+struct SaveAvatarViewLocal: View {
+    let iconPath: String
+    let size: CGFloat
+    
+    private let presets: [(String, String)] = [
+        ("preset:person", "person.crop.circle.fill"),
+        ("preset:star", "star.fill"),
+        ("preset:leaf", "leaf.fill"),
+        ("preset:heart", "heart.fill"),
+        ("preset:cat", "cat.fill"),
+        ("preset:dog", "dog.fill"),
+        ("preset:hare", "hare.fill"),
+        ("preset:ant", "ant.fill"),
+    ]
+    
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(Color.accentColor.opacity(0.15))
+            
+            if iconPath.hasPrefix("preset:") {
+                let sfName = presets.first(where: { $0.0 == iconPath })?.1 ?? "person.crop.circle.fill"
+                Image(systemName: sfName)
+                    .resizable()
+                    .scaledToFit()
+                    .foregroundColor(Color.accentColor.opacity(0.8))
+                    .padding(size * 0.18)
+            } else if !iconPath.isEmpty, let img = NSImage(contentsOfFile: iconPath) {
+                Image(nsImage: img)
+                    .resizable()
+                    .scaledToFill()
+                    .clipShape(Circle())
+            } else {
+                Image(systemName: "person.crop.circle.fill")
+                    .resizable()
+                    .foregroundColor(Color.accentColor.opacity(0.8))
+                    .frame(width: size * 0.8, height: size * 0.8)
+            }
+        }
+        .frame(width: size, height: size)
+    }
+}
+
 // MARK: - SavesView
 struct SavesView: View {
     @ObservedObject var vm: StarHubTHViewModel
@@ -97,15 +141,22 @@ struct SavesView: View {
                 // Sort
                 Menu {
                     Button(action: { vm.saveSortOption = .lastPlayed }) {
-                        Label("เล่นล่าสุด", systemImage: "clock")
+                        HStack { Image(systemName: "clock"); Text(vm.L(L10n.Saves.sortLastPlayed)) }
                         if vm.saveSortOption == .lastPlayed { Image(systemName: "checkmark") }
                     }
                     Button(action: { vm.saveSortOption = .name }) {
-                        Label("ชื่อตัวละคร", systemImage: "textformat")
+                        HStack {
+                            if vm.currentLanguage == "th" {
+                                Image(systemName: "character.textbox.th") // Icon ก ในช่องสี่เหลี่ยม
+                            } else {
+                                Image(systemName: "a.square")
+                            }
+                            Text(vm.L(L10n.Saves.sortName))
+                        }
                         if vm.saveSortOption == .name { Image(systemName: "checkmark") }
                     }
                     Button(action: { vm.saveSortOption = .money }) {
-                        Label("เงิน", systemImage: "dollarsign")
+                        HStack { Image(systemName: "dollarsign"); Text(vm.L(L10n.Saves.sortMoney)) }
                         if vm.saveSortOption == .money { Image(systemName: "checkmark") }
                     }
                 } label: {
@@ -127,7 +178,7 @@ struct SavesView: View {
                 // Tag Filter
                 Menu {
                     Button(action: { vm.saveFilterTag = "" }) {
-                        Label("ทั้งหมด", systemImage: "tray.2")
+                        HStack { Image(systemName: "tray.2"); Text(vm.L(L10n.Saves.filterAll)) }
                         if vm.saveFilterTag.isEmpty { Image(systemName: "checkmark") }
                     }
                     Divider()
@@ -141,7 +192,7 @@ struct SavesView: View {
                     HStack(spacing: 3) {
                         Image(systemName: vm.saveFilterTag.isEmpty ? "tag" : "tag.fill")
                             .font(.system(size: 11))
-                        Text(vm.saveFilterTag.isEmpty ? "แท็ก" : vm.saveFilterTag)
+                        Text(vm.saveFilterTag.isEmpty ? vm.L(L10n.Saves.filterTag) : vm.saveFilterTag)
                             .font(.system(size: 12))
                     }
                     .foregroundColor(vm.saveFilterTag.isEmpty ? .secondary : .accentColor)
@@ -215,9 +266,9 @@ struct SavesView: View {
     
     var sortLabel: String {
         switch vm.saveSortOption {
-        case .name: return "ชื่อ"
-        case .lastPlayed: return "ล่าสุด"
-        case .money: return "เงิน"
+        case .name:       return vm.L(L10n.Saves.sortLabelName)
+        case .lastPlayed: return vm.L(L10n.Saves.sortLabelLastPlayed)
+        case .money:      return vm.L(L10n.Saves.sortLabelMoney)
         }
     }
 }
@@ -264,7 +315,7 @@ struct SaveCardView: View {
                         .font(.system(size: 11))
                         .foregroundColor(.secondary)
                         .lineLimit(1)
-                    Text("ปีที่ \(save.year) • \(vm.L(save.seasonName)) \(save.day)")
+                    Text(String(format: vm.L(L10n.Saves.yearDayFormat), save.year, vm.L(save.seasonName), save.day))
                         .font(.system(size: 10))
                         .foregroundColor(.secondary)
                 }
@@ -285,13 +336,13 @@ struct SaveCardView: View {
         .buttonStyle(.plain)
         .onHover { isHovered = $0 }
         .contextMenu {
-            Button("แก้ไข") { vm.editingSave = save }
-            Button("ประวัติ Backup") { vm.viewingSaveTimeline = save }
+            Button(vm.L(L10n.Saves.edit)) { vm.editingSave = save }
+            Button(vm.L(L10n.Saves.timeline)) { vm.viewingSaveTimeline = save }
             Divider()
-            Button("ทำสำเนา") { vm.saveToDuplicate = save }
-            Button("เปิดโฟลเดอร์") { vm.openSaveInFinder(info: save) }
+            Button(vm.L(L10n.Saves.duplicate)) { vm.saveToDuplicate = save }
+            Button(vm.L(L10n.Saves.openFolder)) { vm.openSaveInFinder(info: save) }
             Divider()
-            Button("ลบเซฟ", role: .destructive) { vm.deleteSave(info: save) }
+            Button(vm.L(L10n.Saves.deleteSave), role: .destructive) { vm.deleteSave(info: save) }
         }
     }
 }
@@ -445,6 +496,7 @@ struct SaveEditorView: View {
     
     @State private var noteTag: String
     @State private var noteText: String
+    @State private var iconPath: String
     
     let availableTags = ["", "⭐", "🏆", "🧪", "❤️", "💎", "📅"]
     
@@ -475,10 +527,7 @@ struct SaveEditorView: View {
         let note = vm.getNote(for: save.folderName)
         _noteTag = State(initialValue: note.tag)
         _noteText = State(initialValue: note.note)
-    }
-    
-    var currentIconPath: String {
-        vm.getNote(for: save.folderName).customIconPath ?? ""
+        _iconPath = State(initialValue: note.customIconPath ?? "")
     }
     
     var body: some View {
@@ -513,26 +562,31 @@ struct SaveEditorView: View {
             // Form
             Form {
                 // MARK: Avatar Section
-                Section("รูปโปรไฟล์") {
+                Section(vm.L(L10n.Saves.avatarSection)) {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack(spacing: 12) {
-                            SaveAvatarView(folderName: save.folderName, size: 56, vm: vm)
+                            SaveAvatarViewLocal(iconPath: iconPath, size: 56)
                             
                             VStack(alignment: .leading, spacing: 6) {
-                                Text("เลือก Preset")
+                                Text(vm.L(L10n.Saves.avatarPreset))
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                                 
                                 LazyVGrid(columns: Array(repeating: GridItem(.fixed(28), spacing: 6), count: 8), spacing: 6) {
                                     ForEach(presetIcons, id: \.0) { (key, sfName, label) in
-                                        Button(action: { vm.setAvatar(forSave: save.folderName, iconPath: key) }) {
+                                        Button(action: {
+                                            iconPath = key
+                                            SaveNotesStore.shared.setNote(for: save.folderName,
+                                                tag: noteTag, note: noteText, customIconPath: key)
+                                            vm.objectWillChange.send()
+                                        }) {
                                             ZStack {
                                                 Circle()
-                                                    .fill(currentIconPath == key ? Color.accentColor.opacity(0.2) : Color.secondary.opacity(0.1))
+                                                    .fill(iconPath == key ? Color.accentColor.opacity(0.2) : Color.secondary.opacity(0.1))
                                                     .frame(width: 28, height: 28)
                                                 Image(systemName: sfName)
                                                     .font(.system(size: 12))
-                                                    .foregroundColor(currentIconPath == key ? .accentColor : .secondary)
+                                                    .foregroundColor(iconPath == key ? .accentColor : .secondary)
                                             }
                                         }
                                         .buttonStyle(.plain)
@@ -543,15 +597,20 @@ struct SaveEditorView: View {
                         }
                         
                         HStack(spacing: 8) {
-                            Button("เลือกรูปจากเครื่อง") {
-                                vm.selectCustomAvatar(forSave: save.folderName)
+                            Button(vm.L(L10n.Saves.avatarPickFile)) {
+                                vm.selectCustomAvatar(forSave: save.folderName) { path in
+                                    iconPath = path
+                                }
                             }
                             .buttonStyle(.bordered)
                             .controlSize(.small)
                             
-                            if !currentIconPath.isEmpty {
-                                Button("รีเซ็ต") {
-                                    vm.setAvatar(forSave: save.folderName, iconPath: "")
+                            if !iconPath.isEmpty {
+                                Button(vm.L(L10n.Saves.avatarReset)) {
+                                    iconPath = ""
+                                    SaveNotesStore.shared.setNote(for: save.folderName,
+                                        tag: noteTag, note: noteText, customIconPath: nil)
+                                    vm.objectWillChange.send()
                                 }
                                 .buttonStyle(.plain)
                                 .foregroundColor(.secondary)
@@ -632,4 +691,3 @@ struct SaveEditorView: View {
         .background(Color(nsColor: .controlBackgroundColor))
     }
 }
-

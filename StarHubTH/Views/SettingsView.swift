@@ -19,9 +19,8 @@ struct SettingsView: View {
                             .font(.system(size: 13))
                         Spacer()
                         Picker("", selection: $vm.currentLanguage) {
-                            Text("ภาษาไทย").tag("th")
-                            Text("English").tag("en")
-                            Text("日本語").tag("ja")
+                            Text(vm.L(L10n.Settings.languageThai)).tag("th")
+                            Text(vm.L(L10n.Settings.languageEnglish)).tag("en")
                         }
                         .pickerStyle(MenuPickerStyle())
                         .fixedSize()
