@@ -1320,7 +1320,7 @@ class StarHubTHViewModel: ObservableObject {
                     if fm.fileExists(atPath: thJsonPath) || fm.fileExists(atPath: cpThJsonPath) {
                         foundTranslation = true
                     } else if mod.isGroup {
-                        for child in mod.children {
+                        for child in mod.children ?? [] {
                             let childThJsonPath = (modsDir as NSString).appendingPathComponent("\(child.folderName)/i18n/th.json")
                             let childCpThJsonPath = (modsDir as NSString).appendingPathComponent("\(child.folderName)/[CP] \(child.folderName)/i18n/th.json")
                             if fm.fileExists(atPath: childThJsonPath) || fm.fileExists(atPath: childCpThJsonPath) {
