@@ -197,7 +197,7 @@
   "thaihub_reinstall": "ติดตั้งซ้ำ",
   "thaihub_install": "ติดตั้ง",
   "thaihub_installation": "การติดตั้ง",
-  "thaihub_already_installed": "คุณได้ติดตั้งม็อดนี้แล้ว แต่อาจมีเวอร์ชันใหม่ให้ดาวน์โหลด",
+  "thaihub_already_installed": "✅ ม็อดแปลภาษานี้ติดตั้งเสร็จสมบูรณ์และพร้อมใช้งานแล้ว",
   "thaihub_click_to_install": "คลิกเพื่อดาวน์โหลดและติดตั้งม็อดแปลไทยลงในโฟลเดอร์เกมของคุณ",
   "thaihub_information": "ข้อมูล",
   "thaihub_version": "เวอร์ชันแปล",
