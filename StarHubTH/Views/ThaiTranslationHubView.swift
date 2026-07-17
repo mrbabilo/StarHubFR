@@ -186,11 +186,6 @@ struct ThaiModDetailView: View {
                                         .font(.system(size: 13))
                                         
                                     HStack(spacing: 4) {
-                                        if mod.isInstalled {
-                                            Image(systemName: "exclamationmark.triangle.fill")
-                                                .foregroundColor(.yellow)
-                                                .font(.system(size: 10))
-                                        }
                                         Text(vm.L(mod.isInstalled ? L10n.ThaiHub.alreadyInstalled : L10n.ThaiHub.clickToInstall))
                                             .font(.system(size: 11))
                                             .foregroundColor(.secondary)
