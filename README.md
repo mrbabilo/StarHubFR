@@ -7,8 +7,14 @@
 
 *   **Lancement facile du jeu** : Lancez Stardew Valley en mode Vanilla (original) ou via SMAPI pour jouer avec des mods.
 *   **Gestionnaire de Mods** : Activez ou désactivez vos mods facilement grâce à une interface élégante — plus besoin de déplacer les fichiers manuellement.
+*   **Installation de Mods par Glisser-Déposer** : Glissez un fichier `.zip` directement dans l'application pour installer un ou plusieurs mods. Détection automatique de la structure (mono-mod, pack multi-mods), validation d'intégrité (anti-zip-bomb, < 500 Mo), aperçu des conflits et suggestions de dépendances manquantes.
 *   **Profils de Mods** : Regroupez vos mods dans plusieurs profils et passez de l'un à l'autre en un seul clic.
 *   **Centre de Traductions Thaï** : Un espace dédié listant tous les mods de traduction en thaï — parcourez, vérifiez le statut, téléchargez et suivez les mises à jour au même endroit.
+*   **Vérification des Mises à jour Nexus Mods** : Vérifiez manuellement les mises à jour de vos mods via l'API Nexus Mods. Clé API stockée en toute sécurité dans le trousseau macOS (Keychain), détection des mises à jour même à version identique (comparaison de date d'upload).
+*   **Sauvegardes de Mods** :
+    *   *Sauvegarde d'installation* : Sauvegarde automatique avant l'écrasement d'un mod, avec rétention hybride (5 plus récents + ≤30 jours + 1 par mois au-delà).
+    *   *Sauvegarde de configuration* : Sauvegarde et restauration des fichiers `config.json`/`fr.json` des mods activés.
+*   **Liste des Mods Avancée** : Filtrage par catégories, pagination (15 mods/page avec saut de page direct), filtre pour mods non catégorisés, tri par ordre d'activation et support des images de description.
 *   **Gestionnaire de Sauvegardes** :
     *   Consultez les détails de toutes vos sauvegardes (argent, heure dans le jeu, saison, type de ferme)
     *   Dupliquez ou supprimez des sauvegardes

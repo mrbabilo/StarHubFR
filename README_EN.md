@@ -7,8 +7,14 @@
 
 *   **Easy Game Launch**: Launch Stardew Valley in either Vanilla mode or through SMAPI for modded play.
 *   **Mod Manager**: Enable or disable mods effortlessly through a beautiful app interface — no manual file moving required.
+*   **Drag & Drop Mod Installer**: Drag a `.zip` file directly into the app to install one or more mods. Automatic structure detection (single-mod, multi-mod pack), integrity validation (anti-zip-bomb, < 500 MB), conflict preview and missing dependency suggestions.
 *   **Mod Profiles**: Group mods into multiple profiles and switch between them instantly with a single click.
 *   **Thai Translation Hub**: A dedicated hub listing all Thai translation mods — browse, check status, download, and track updates in one place.
+*   **Nexus Mods Update Checker**: Manually check for mod updates via the Nexus Mods API. API key securely stored in macOS Keychain, update detection even at identical version (upload date comparison).
+*   **Mod Backups**:
+    *   *Install backup*: Automatic backup before overwriting a mod, with hybrid retention (5 most recent + ≤30 days + 1 per month beyond).
+    *   *Config backup*: Backup and restore `config.json`/`fr.json` files for enabled mods.
+*   **Advanced Mod List**: Category filtering, pagination (15 mods/page with direct page jump), uncategorized mod filter, activation order sorting and description image support.
 *   **Save Manager**:
     *   View details of all save files (money, in-game time, season, farm layout)
     *   Duplicate or delete save files
