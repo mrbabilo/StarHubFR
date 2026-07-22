@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-07-22
+
+### Added
+- **Enhanced Configuration Backup**: New dedicated error case (`.nothingToBackUp`) that distinguishes between "no enabled mods" and "mods exist but have no config files to back up" — the empty backup folder is now removed instead of creating a zero-content entry.
+- **Complete Localization**: Added 138 missing translation keys across English and Thai so every UI label resolves to real text instead of the raw key.
+- **French Localization Support**: Introduced French as a target language for documentation (`README_FR.md`).
+
+### Changed
+- **SMAPI Uninstaller**: Refactored `uninstall` to run asynchronously on a background queue (`DispatchQueue.global(qos: .userInitiated)`) with staged progress updates (20% → 60% → 100%) so the caller is no longer blocked.
+- **Configuration Backup Manager**: `createDirectory` failures are now propagated instead of silently swallowed, surfacing the real cause instead of a misleading "file not found" later.
+- **Auto-cleanup**: Backup index entries are removed only after the corresponding files are confirmed deleted on disk, preventing the index from diverging from the actual filesystem state.
+- **Install Preview & Shared Components**: Refined the install preview screen and shared UI components for clarity.
+
+### Fixed
+- **Empty Backups**: Fixed creation of empty backup entries when no `config.json`/`fr.json` files are found in any enabled mod.
+- **Index Consistency**: Fixed the backup index diverging from disk when file deletion fails during automatic cleanup.
+
 ## [1.0.9] - 2026-07-18
 
 ### Fixed

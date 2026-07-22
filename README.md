@@ -1,5 +1,5 @@
 > [!IMPORTANT]
-> For non-Thai users, please refer to the [English README](README_EN.md).
+> For non-Thai users, please refer to the [English README](README_EN.md) or [French README](README_FR.md).
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/features_banner.png" alt="ฟีเจอร์หลัก" width="300">
