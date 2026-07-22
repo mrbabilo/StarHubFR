@@ -6,10 +6,10 @@ import Foundation
 /// throwing methods. This class does no threading of its own — callers
 /// (see `ModConfigBackupsView`) dispatch to a background queue and hop back
 /// to main for UI updates, consistent with the rest of the codebase.
-class ModConfigBackupManager {
-    static let shared = ModConfigBackupManager()
+public class ModConfigBackupManager {
+    public static let shared = ModConfigBackupManager()
 
-    enum BackupError: LocalizedError {
+    public enum BackupError: LocalizedError {
         case gameDirEmpty
         case noEnabledMods
         /// Every enabled mod was scanned but none had a config.json/fr.json
@@ -17,7 +17,7 @@ class ModConfigBackupManager {
         /// consider).
         case nothingToBackUp
 
-        var errorDescription: String? {
+        public var errorDescription: String? {
             switch self {
             case .gameDirEmpty: return "Game directory is not set."
             case .noEnabledMods: return "No enabled mods to back up."
@@ -42,12 +42,17 @@ class ModConfigBackupManager {
     private static let minBackupsToKeep = 5
     private static let maxBackupAge: TimeInterval = 30 * 24 * 60 * 60
 
-    private init() {
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-            ?? FileManager.default.temporaryDirectory
-        backupsBasePath = appSupport.appendingPathComponent("StarHubTH/Backups/ModConfigs", isDirectory: true)
-        backupsDirPath = backupsBasePath.appendingPathComponent("backups", isDirectory: true)
-        metadataPath = backupsBasePath.appendingPathComponent("metadata.json")
+    /// `backupsBasePath` is exposed only so tests can point this manager at
+    /// an isolated temporary directory instead of the real Application
+    /// Support folder. Production code always uses `.shared`, which calls
+    /// this with `nil` and gets the exact same directory as before.
+    public init(backupsBasePath overrideBasePath: URL? = nil) {
+        let base = overrideBasePath ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?
+            .appendingPathComponent("StarHubTH/Backups/ModConfigs", isDirectory: true)
+            ?? FileManager.default.temporaryDirectory.appendingPathComponent("StarHubTH/Backups/ModConfigs", isDirectory: true)
+        backupsBasePath = base
+        backupsDirPath = base.appendingPathComponent("backups", isDirectory: true)
+        metadataPath = base.appendingPathComponent("metadata.json")
         try? fm.createDirectory(at: backupsDirPath, withIntermediateDirectories: true)
     }
 
@@ -63,7 +68,7 @@ class ModConfigBackupManager {
     /// `metadata.json` is missing or corrupted — existing backup folders on
     /// disk are left untouched, just not listed, rather than risking a
     /// destructive "rebuild" that guesses at their original structure.
-    func loadBackups() -> [ModConfigBackup] {
+    public func loadBackups() -> [ModConfigBackup] {
         withIndexLock { loadIndex().backups.sorted { $0.timestamp > $1.timestamp } }
     }
 
@@ -85,7 +90,7 @@ class ModConfigBackupManager {
     /// Backs up every enabled mod's config files (including enabled children
     /// of group packs) into a new timestamped folder, and records it in the
     /// index.
-    func createBackup(gameDir: String, mods: [ModItem]) throws -> ModConfigBackup {
+    public func createBackup(gameDir: String, mods: [ModItem]) throws -> ModConfigBackup {
         guard !gameDir.isEmpty else { throw BackupError.gameDirEmpty }
         let enabledMods = mods.filter { $0.isEnabled }
         guard !enabledMods.isEmpty else { throw BackupError.noEnabledMods }
@@ -232,7 +237,7 @@ class ModConfigBackupManager {
     /// failure here doesn't block the restore, since the user has already
     /// confirmed they want to overwrite). Missing source files/folders are
     /// skipped with a log line rather than aborting the whole restore.
-    func restoreBackup(gameDir: String, backup: ModConfigBackup, selectedItems: [ModConfigBackupItem], currentMods: [ModItem]) throws {
+    public func restoreBackup(gameDir: String, backup: ModConfigBackup, selectedItems: [ModConfigBackupItem], currentMods: [ModItem]) throws {
         guard !gameDir.isEmpty else { throw BackupError.gameDirEmpty }
 
         _ = try? createBackup(gameDir: gameDir, mods: currentMods)
@@ -275,7 +280,7 @@ class ModConfigBackupManager {
 
     // MARK: - Delete
 
-    func deleteBackup(_ backup: ModConfigBackup) throws {
+    public func deleteBackup(_ backup: ModConfigBackup) throws {
         try deleteBackupFiles(backup)
         withIndexLock {
             var index = loadIndex()
@@ -296,7 +301,7 @@ class ModConfigBackupManager {
     /// Deletes backups older than 30 days, but always keeps at least the 5
     /// most recent regardless of age — "more than 5 backups" does not mean
     /// "delete down past 5"; the 5 most recent are never eligible.
-    func cleanupOldBackups() -> Int {
+    public func cleanupOldBackups() -> Int {
         withIndexLock {
             var index = loadIndex()
             let sorted = index.backups.sorted { $0.timestamp > $1.timestamp }
