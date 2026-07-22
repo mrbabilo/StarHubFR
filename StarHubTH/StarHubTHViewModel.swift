@@ -1123,21 +1123,16 @@ class StarHubTHViewModel: ObservableObject {
             }
         }
     }
-    @Published var isPlayingGame: Bool = false
-    @Published var selectedProfile: String = "SMAPI"
-    
     // Launch Stardew Valley (with selected profile)
     func launchGame() {
         guard !gameDir.isEmpty else {
             showModal(message: L(L10n.Settings.gameDirNotSet))
             return
         }
-        
+
         let profile = UserDefaults.standard.string(forKey: "launchProfile") ?? "SMAPI"
         let closeAfter = UserDefaults.standard.bool(forKey: "closeAfterLaunch")
-        
-        self.isPlayingGame = true
-        
+
         let originalPath = (gameDir as NSString).appendingPathComponent("StardewValley-original")
         
         if profile == "Vanilla" && FileManager.default.fileExists(atPath: originalPath) {
@@ -1161,9 +1156,6 @@ class StarHubTHViewModel: ObservableObject {
                     log(L(L10n.VM.launchSteamSuccess))
                     startSmapiLogWatcher()
                     if closeAfter { NSApplication.shared.terminate(nil) }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
-                        self.isPlayingGame = false
-                    }
                     return
                 }
             }
@@ -1190,10 +1182,6 @@ class StarHubTHViewModel: ObservableObject {
                 log(L(L10n.VM.cannotStartDirect))
                 showModal(message: L(L10n.VM.cannotStartGame))
             }
-        }
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
-            self.isPlayingGame = false
         }
     }
     

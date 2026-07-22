@@ -479,3 +479,4 @@
 "saves_avatar_preset_dog" = "Dog";
 "saves_avatar_preset_hare" = "Hare";
 "saves_avatar_preset_ant" = "Ant";
+"mod_config_backups_nothing_to_back_up" = "None of the enabled mods have config files to back up.";

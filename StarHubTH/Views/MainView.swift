@@ -78,18 +78,12 @@ struct MainView: View {
                                 }
                                 
                                 if let activeProfile = activeProfile {
-                                    ZStack {
-                                        Circle()
-                                            .fill(Color.accentColor)
-                                            .frame(width: 20, height: 20)
-                                            .overlay(
-                                                Circle()
-                                                    .stroke(Color(nsColor: .windowBackgroundColor), lineWidth: 2)
-                                            )
-                                        Text(String(activeProfile.name.prefix(1)).uppercased())
-                                            .font(.system(size: 10, weight: .bold))
-                                            .foregroundColor(.white)
-                                    }
+                                    InitialsAvatar(
+                                        text: activeProfile.name,
+                                        size: 20,
+                                        fontSize: 10,
+                                        strokeColor: Color(nsColor: .windowBackgroundColor)
+                                    )
                                     .offset(x: 4, y: 4)
                                 }
                             }
@@ -431,14 +425,14 @@ struct UpdatesView: View {
                         VStack(alignment: .leading, spacing: 12) {
                             HStack(alignment: .top, spacing: 16) {
                                 // App Icon Fake
-                                ZStack {
-                                    Circle()
-                                        .fill(Color.blue.opacity(0.1))
-                                    Text(String(mod.name.prefix(2)).uppercased())
-                                        .font(.system(size: 20, weight: .bold))
-                                        .foregroundColor(.blue.opacity(0.8))
-                                }
-                                .frame(width: 56, height: 56)
+                                InitialsAvatar(
+                                    text: mod.name,
+                                    initialsCount: 2,
+                                    size: 56,
+                                    fillColor: Color.blue.opacity(0.1),
+                                    textColor: .blue.opacity(0.8),
+                                    fontSize: 20
+                                )
                                 
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(mod.name)
@@ -601,14 +595,14 @@ struct UpdatesView: View {
                         ForEach(vm.nexusUpdates) { update in
                             let isEnabled = vm.modForNexusUpdate(update)?.isEnabled ?? false
                             HStack(alignment: .top, spacing: 16) {
-                                ZStack {
-                                    Circle()
-                                        .fill(Color.accentColor.opacity(0.12))
-                                    Text(String(update.name.prefix(2)).uppercased())
-                                        .font(.system(size: 16, weight: .bold))
-                                        .foregroundColor(.accentColor)
-                                }
-                                .frame(width: 44, height: 44)
+                                InitialsAvatar(
+                                    text: update.name,
+                                    initialsCount: 2,
+                                    size: 44,
+                                    fillColor: Color.accentColor.opacity(0.12),
+                                    textColor: .accentColor,
+                                    fontSize: 16
+                                )
 
                                 VStack(alignment: .leading, spacing: 4) {
                                     HStack(spacing: 6) {

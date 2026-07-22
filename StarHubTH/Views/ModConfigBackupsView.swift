@@ -189,6 +189,7 @@ struct ModConfigBackupsView: View {
             switch backupError {
             case .gameDirEmpty: return vm.L(L10n.ModConfigBackups.noGameDir)
             case .noEnabledMods: return vm.L(L10n.ModConfigBackups.noEnabledMods)
+            case .nothingToBackUp: return vm.L(L10n.ModConfigBackups.nothingToBackUp)
             }
         }
         return String(format: vm.L(genericKey), error.localizedDescription)

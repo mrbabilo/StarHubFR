@@ -478,5 +478,6 @@
   "saves_avatar_preset_cat": "แมว",
   "saves_avatar_preset_dog": "สุนัข",
   "saves_avatar_preset_hare": "กระต่าย",
-  "saves_avatar_preset_ant": "มด"
+  "saves_avatar_preset_ant": "มด",
+  "mod_config_backups_nothing_to_back_up": "ม็อดที่เปิดใช้งานทั้งหมดไม่มีไฟล์การตั้งค่าให้สำรอง"
 }

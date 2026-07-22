@@ -12,11 +12,16 @@ class ModConfigBackupManager {
     enum BackupError: LocalizedError {
         case gameDirEmpty
         case noEnabledMods
+        /// Every enabled mod was scanned but none had a config.json/fr.json
+        /// to back up — distinct from `.noEnabledMods` (no mods to even
+        /// consider).
+        case nothingToBackUp
 
         var errorDescription: String? {
             switch self {
             case .gameDirEmpty: return "Game directory is not set."
             case .noEnabledMods: return "No enabled mods to back up."
+            case .nothingToBackUp: return "None of the enabled mods have config files to back up."
             }
         }
     }
@@ -134,6 +139,14 @@ class ModConfigBackupManager {
             }
         }
 
+        guard !items.isEmpty else {
+            // Nothing was actually found to back up — remove the (empty)
+            // backup folder rather than creating and listing a backup with
+            // zero content.
+            try? fm.removeItem(at: backupDir)
+            throw BackupError.nothingToBackUp
+        }
+
         let backup = ModConfigBackup(
             timestamp: timestamp,
             items: items,
@@ -236,7 +249,11 @@ class ModConfigBackupManager {
                 continue
             }
 
-            try? fm.createDirectory(at: targetDir, withIntermediateDirectories: true)
+            // Propagate a real failure here instead of swallowing it — a
+            // silently-failed mkdir would otherwise surface as a confusing
+            // "file not found" from the `copyItem` calls below instead of
+            // the actual cause.
+            try fm.createDirectory(at: targetDir, withIntermediateDirectories: true)
 
             for filename in item.files {
                 let source = sourceDir.appendingPathComponent(filename)
@@ -290,14 +307,22 @@ class ModConfigBackupManager {
             let toDelete = sorted.filter { !protectedIds.contains($0.id) && $0.timestamp < cutoff }
             guard !toDelete.isEmpty else { return 0 }
 
+            // Only drop a backup's index entry once its folder is
+            // confirmed actually removed — a `try?`-then-unconditional
+            // index update would let the index silently diverge from what's
+            // really left on disk if a removal failed.
+            var removedIds = Set<UUID>()
             for backup in toDelete {
-                try? deleteBackupFiles(backup)
+                if (try? deleteBackupFiles(backup)) != nil {
+                    removedIds.insert(backup.id)
+                }
             }
-            let deletedIds = Set(toDelete.map { $0.id })
-            index.backups.removeAll { deletedIds.contains($0.id) }
+            guard !removedIds.isEmpty else { return 0 }
+
+            index.backups.removeAll { removedIds.contains($0.id) }
             index.lastAutoCleanup = Date()
             saveIndex(index)
-            return toDelete.count
+            return removedIds.count
         }
     }
 }

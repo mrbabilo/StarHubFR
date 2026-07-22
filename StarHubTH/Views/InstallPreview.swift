@@ -12,7 +12,6 @@ struct InstallPreview: View {
     let onCancel: () -> Void
 
     @State private var selections: [UUID: InstallSelection] = [:]
-    @State private var selectAll: Bool = true
     @State private var cachedDependencies: [ModDependencyReport] = []
 
     /// Status of a single dependency relative to the installed mods + the
@@ -94,12 +93,9 @@ struct InstallPreview: View {
                 }
             }
             Spacer()
-            Toggle("", isOn: $selectAll)
+            Toggle("", isOn: allSelectedBinding)
                 .toggleStyle(.switch)
                 .labelsHidden()
-                .onChange(of: selectAll) { _, newValue in
-                    updateAllSelections(selected: newValue)
-                }
         }
         .padding()
         .background(Color.secondary.opacity(0.05))
@@ -244,6 +240,18 @@ struct InstallPreview: View {
                 configResolution: nil
             )
         }
+    }
+
+    /// Derived (rather than independent `@State`) so the switch always
+    /// reflects whether every mod is actually selected — previously a
+    /// standalone `@State` could go stale after a manual per-mod
+    /// deselection, and toggling it off-then-on again would silently
+    /// re-select mods the user had explicitly unchecked.
+    private var allSelectedBinding: Binding<Bool> {
+        Binding(
+            get: { !selections.isEmpty && selections.values.allSatisfy { $0.selected } },
+            set: { updateAllSelections(selected: $0) }
+        )
     }
 
     private func updateAllSelections(selected: Bool) {

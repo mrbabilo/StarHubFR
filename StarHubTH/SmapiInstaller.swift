@@ -239,34 +239,53 @@ class SmapiInstaller: ObservableObject {
             completion(false, L10n.Smapi.notFound, nil)
             return
         }
-        
-        do {
-            // Move the current (SMAPI) launcher aside instead of deleting it
-            // outright, so it can be put back if restoring the original
-            // fails below — otherwise a failure here leaves neither launcher
-            // in place and the game won't start at all.
-            var setAsideLauncher: String? = nil
-            if fm.fileExists(atPath: launcherPath) {
-                let tempPath = launcherPath + ".smapi_uninstall_tmp"
-                if fm.fileExists(atPath: tempPath) { try? fm.removeItem(atPath: tempPath) }
-                try fm.moveItem(atPath: launcherPath, toPath: tempPath)
-                setAsideLauncher = tempPath
-            }
 
+        self.isInstalling = true
+        self.statusMessage = L10n.Smapi.uninstallSuccess
+        self.progress = 0.2
+
+        // Runs on a background queue (unlike `install`'s network download,
+        // which already hops off main via URLSession) so this doesn't block
+        // the caller — the moves/removes below still touch the game folder
+        // directly and aren't free on a slow disk.
+        DispatchQueue.global(qos: .userInitiated).async {
             do {
-                try fm.moveItem(atPath: originalPath, toPath: launcherPath)
-            } catch {
-                if let setAsideLauncher = setAsideLauncher {
-                    try? fm.moveItem(atPath: setAsideLauncher, toPath: launcherPath)
+                // Move the current (SMAPI) launcher aside instead of deleting
+                // it outright, so it can be put back if restoring the
+                // original fails below — otherwise a failure here leaves
+                // neither launcher in place and the game won't start at all.
+                var setAsideLauncher: String? = nil
+                if fm.fileExists(atPath: launcherPath) {
+                    let tempPath = launcherPath + ".smapi_uninstall_tmp"
+                    if fm.fileExists(atPath: tempPath) { try? fm.removeItem(atPath: tempPath) }
+                    try fm.moveItem(atPath: launcherPath, toPath: tempPath)
+                    setAsideLauncher = tempPath
                 }
-                throw error
-            }
+                DispatchQueue.main.async { self.progress = 0.6 }
 
-            if let setAsideLauncher = setAsideLauncher { try? fm.removeItem(atPath: setAsideLauncher) }
-            if fm.fileExists(atPath: internalPath) { try fm.removeItem(atPath: internalPath) }
-            completion(true, L10n.Smapi.uninstallSuccess, nil)
-        } catch {
-            completion(false, L10n.Smapi.uninstallFailed, error.localizedDescription)
+                do {
+                    try fm.moveItem(atPath: originalPath, toPath: launcherPath)
+                } catch {
+                    if let setAsideLauncher = setAsideLauncher {
+                        try? fm.moveItem(atPath: setAsideLauncher, toPath: launcherPath)
+                    }
+                    throw error
+                }
+
+                if let setAsideLauncher = setAsideLauncher { try? fm.removeItem(atPath: setAsideLauncher) }
+                if fm.fileExists(atPath: internalPath) { try fm.removeItem(atPath: internalPath) }
+
+                DispatchQueue.main.async {
+                    self.progress = 1.0
+                    self.isInstalling = false
+                    completion(true, L10n.Smapi.uninstallSuccess, nil)
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    self.isInstalling = false
+                    completion(false, L10n.Smapi.uninstallFailed, error.localizedDescription)
+                }
+            }
         }
     }
 }

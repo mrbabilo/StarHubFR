@@ -223,6 +223,7 @@ enum L10n {
         static let createdDate               = "mod_config_backups_created_date"
         static let noGameDir                 = "mod_config_backups_no_game_dir"
         static let noEnabledMods             = "mod_config_backups_no_enabled_mods"
+        static let nothingToBackUp           = "mod_config_backups_nothing_to_back_up"
         static let fileNotFound              = "mod_config_backups_file_not_found"
         static let restoreFailed             = "mod_config_backups_restore_failed"
         static let backupAutoCreated         = "mod_config_backups_auto_created"
