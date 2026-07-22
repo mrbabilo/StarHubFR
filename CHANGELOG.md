@@ -8,19 +8,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.1.0] - 2026-07-22
 
 ### Added
-- **Enhanced Configuration Backup**: New dedicated error case (`.nothingToBackUp`) that distinguishes between "no enabled mods" and "mods exist but have no config files to back up" — the empty backup folder is now removed instead of creating a zero-content entry.
-- **Complete Localization**: Added 138 missing translation keys across English and Thai so every UI label resolves to real text instead of the raw key.
-- **French Localization Support**: Introduced French as a target language for documentation (`README_FR.md`).
+- **Mod Zip Installer** (`ModZipInstaller` / `ZipModInfo`): Install mods by drag-and-dropping `.zip` files directly into the app. Heuristic multi-level structure detection: single folder with `manifest.json` → base folder; multiple folders with `manifest.json` → multi-mod pack; `manifest.json` at root → base = root.
+  - Integrity validation: `.zip` extension + ZIP file signature (`PK\x03\x04`) + size limit (< 500 MB) + zip-bomb detection via `unzip -l` uncompressed-size check before extraction.
+  - Dependency handling: scans dependencies via `manifest.json`, flags missing ones, suggests enabling installed-but-disabled mods, lists missing mods with Nexus links.
+  - Config protection: never overwrites existing mods' `config.json` or `fr.json` (conflict reported instead).
+  - Temporary extraction into `/tmp/StarHubTH_<timestamp>/` with conflict preview, then atomic move to `Mods_disabled` after user validation for full rollback.
+  - Active-mod update preservation: when updating an already-enabled mod (in `Mods/`), the new version installs directly into `Mods/` to preserve enabled state; disabled or new mods always go to `Mods_disabled/`.
+- **Mod Install Backup Manager** (`ModInstallBackupManager`): Automatic backup before overwriting an existing mod installation. Hybrid 3-tier retention: (1) 5 most recent always kept, (2) all backups ≤ 30 days kept, (3) beyond 30 days the most recent per calendar month kept.
+- **Mod Config Backup Manager** (`ModConfigBackupManager`): Backup and restore `config.json`/`fr.json` files for enabled mods.
+  - New dedicated error case (`.nothingToBackUp`) distinguishing "no enabled mods" from "mods exist but have no config files" — the empty backup folder is removed instead of creating a zero-content entry.
+  - `createDirectory` failures are now propagated instead of silently swallowed.
+  - Auto-cleanup removes index entries only after confirmed file deletion on disk.
+  - Locking around on-disk JSON index prevents lost updates from concurrent create/restore/delete/cleanup calls.
+  - Fixed nested folder path flattening for single-mod "pack" folders.
+- **Nexus Mods Update Checker** (`NexusUpdateChecker`): Manual check for mod updates via Nexus Mods API (button-triggered, never automatic).
+  - API key stored per-user in macOS Keychain (shared/embedded keys banned by Nexus).
+  - Update detection: version strictly higher, OR same version but Nexus upload date more recent than local `installedFileDate` (folder modification date).
+  - Bounded concurrency (6 parallel requests via `DispatchSemaphore` + `DispatchGroup`) with immediate abort on HTTP 429.
+  - Category names (`category_2..27`) now localized instead of silently falling back to English.
+- **Nexus Category Mapping** (`NexusCategory`): Full mapping of 26 Nexus Mods categories with localized names.
+- **Install Preview View** (`InstallPreview`): Conflict preview screen showing existing vs. incoming files before installation.
+- **Mod Install/Config Backups Views**: Dedicated UI for browsing and restoring installation and configuration backups.
+- **Complete Localization**: Added 138 missing translation keys across English and Thai (100% key parity, 480 total keys) so every UI label resolves to real text instead of the raw key.
+- **French Documentation**: Introduced `README.md` in French as the default project README, with cross-references to Thai (`README_TH.md`) and English (`README_EN.md`) versions.
 
 ### Changed
-- **SMAPI Uninstaller**: Refactored `uninstall` to run asynchronously on a background queue (`DispatchQueue.global(qos: .userInitiated)`) with staged progress updates (20% → 60% → 100%) so the caller is no longer blocked.
-- **Configuration Backup Manager**: `createDirectory` failures are now propagated instead of silently swallowed, surfacing the real cause instead of a misleading "file not found" later.
-- **Auto-cleanup**: Backup index entries are removed only after the corresponding files are confirmed deleted on disk, preventing the index from diverging from the actual filesystem state.
-- **Install Preview & Shared Components**: Refined the install preview screen and shared UI components for clarity.
+- **SMAPI Installer**: Refactored `install` and `uninstall` to run asynchronously on a background queue (`DispatchQueue.global(qos: .userInitiated)`) with staged progress updates (20% → 60% → 100%) so the caller is no longer blocked.
+- **Mod List View**: Major rebuild (`+1135` lines) with category filter menu, pagination (15/page with direct page jump), uncategorized mod filter, mod activation order sorting, and mod description image support.
+- **Main Thread Safety**: `fetchSteamUser`, `editSave`, `saveInventory`, and `zipToDesktop` (Settings backup buttons) now perform file I/O off the main thread instead of blocking the UI.
+- **Dependency Cascade**: `applyChainToSet`'s disable cascade now only walks through currently-enabled mods, matching `toggleMod`'s equivalent BFS.
+- **Save Manager**: Refactored (`+265`/`-` lines) with improved save branching and XML manipulation safety.
+- **Thai Translation Hub**: Refactored view for cleaner download logic using GitHub Releases with normalized zip name comparison (handles dots vs. spaces in GitHub asset naming).
+- **Toggle Button**: Fixed visual rebound and data-loss race condition during toggling.
 
 ### Fixed
+- **Nexus Update Checker**: A run that found real data (updates and/or categories/extras) no longer gets collapsed into `.error`/`.rateLimited` just because one other candidate failed or a 429 cut it short — previously discarded already-fetched data.
+- **Category Counts**: `availableCategories` now resolves the same way the `.category` filter branch does (top-level mod), instead of counting each group child individually.
+- **String Formatting**: 3 sites in `installThaiTranslation` building `"%@"`-template messages via concatenation instead of `String(format:)` now format correctly.
+- **SMAPI Message Keys**: Concatenation bug in SMAPI message keys fixed.
+- **Localization**: Hardcoded English strings routed through L10n: `build_app.py` codesign return code now checked, Steam Account/Player fallback/None tag and avatar-preset tooltips (previously Thai-only), missing "Profiles" case in `navigationTitleText`, unused `saves_item_id` key now applied.
 - **Empty Backups**: Fixed creation of empty backup entries when no `config.json`/`fr.json` files are found in any enabled mod.
-- **Index Consistency**: Fixed the backup index diverging from disk when file deletion fails during automatic cleanup.
+- **Index Consistency**: Fixed backup index diverging from disk when file deletion fails during automatic cleanup.
+- **Mod Config Backup Path**: Fixed `ModConfigBackupManager` flattening a mod's nested folder path (single-mod "pack" folders resolved to the wrong phantom location).
+- **Temp Directory Leak**: Fixed temp-dir leak on mid-analysis sheet dismissal and guarded against dropped zip destroying in-flight temp directories.
 
 ## [1.0.9] - 2026-07-18
 
