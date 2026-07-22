@@ -28,6 +28,7 @@ struct MainView: View {
         if currentTab == "ThaiHub" && vm.viewingThaiMod != nil { return vm.viewingThaiMod!.name }
         if currentTab == "Mods" { return vm.L(L10n.Mods.mods) }
         if currentTab == "ConfigBackups" { return vm.L(L10n.ModConfigBackups.title) }
+        if currentTab == "Profiles" { return vm.L(L10n.Profiles.title) }
         if currentTab == "Updates" { return vm.L(L10n.Main.softwareUpdate) }
         if currentTab == "ThaiHub" { return vm.L(L10n.ThaiHub.title) }
         if currentTab == "Saves" { return vm.L(L10n.Saves.saves) }
@@ -94,10 +95,10 @@ struct MainView: View {
                             }
                                 
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(vm.steamUsername.isEmpty ? "Player" : vm.steamUsername)
+                                Text(vm.steamUsername.isEmpty ? vm.L(L10n.Main.playerFallback) : vm.steamUsername)
                                     .font(.system(size: 15, weight: .bold))
                                     .foregroundColor(.primary)
-                                Text("Steam Account")
+                                Text(vm.L(L10n.Main.steamAccount))
                                     .font(.system(size: 12))
                                     .foregroundColor(.secondary)
                                 
@@ -571,7 +572,11 @@ struct UpdatesView: View {
                             }
                         }
                         .animation(.easeInOut(duration: 0.2), value: vm.nexusCheckProgress?.done)
-                    } else if let err = vm.nexusCheckError {
+                    } else if let err = vm.nexusCheckError, vm.nexusUpdates.isEmpty {
+                        // A partial run that still found updates falls
+                        // through to the list below instead of here — an
+                        // error banner must never hide real data that was
+                        // actually gathered.
                         Text(err == "rate_limited"
                              ? vm.L(L10n.Updates.nexusRateLimited)
                              : vm.L(L10n.Updates.nexusError))

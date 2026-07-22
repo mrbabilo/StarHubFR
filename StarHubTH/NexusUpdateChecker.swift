@@ -138,9 +138,17 @@ final class NexusUpdateChecker {
         let pictureUrl: String
     }
 
-    /// Outcome of a full check pass.
+    /// Outcome of a full check pass. `partialErrorMessage` on `.success` is
+    /// non-nil when at least one candidate succeeded (so there IS real data
+    /// to merge) but the run didn't fully complete cleanly — e.g. a 429
+    /// aborted the remaining candidates after some updates were already
+    /// found, or one unrelated candidate 404'd while everything else
+    /// succeeded. Distinguishing this from a full success without losing
+    /// the gathered data is the whole point of carrying it here rather than
+    /// collapsing the run to `.error` (which would drop it) or plain
+    /// `.success` (which would silently hide that the scan was incomplete).
     enum CheckResult {
-        case success(updates: [ModUpdate], categories: [String: Int], extras: [String: NexusModExtra])
+        case success(updates: [ModUpdate], categories: [String: Int], extras: [String: NexusModExtra], partialErrorMessage: String? = nil)
         case noApiKey
         case rateLimited(retryAfter: TimeInterval)
         case error(String)
@@ -251,6 +259,11 @@ final class NexusUpdateChecker {
             var lastError: String?
             var done = 0
             var aborted = false
+            // Counts candidates that actually completed successfully, so the
+            // final classification below can tell "some real data was
+            // gathered" apart from "nothing succeeded at all" — see
+            // `CheckResult.success(partialErrorMessage:)`.
+            var successCount = 0
 
             // Bounded concurrency: allow up to `maxConcurrent` in-flight requests.
             // 6 is a sweet spot — fast (150 mods in ~15s) yet gentle on the API.
@@ -283,6 +296,7 @@ final class NexusUpdateChecker {
                     lock.lock()
                     switch result {
                     case .success(let latest, let catId, let extra, let uploaded):
+                        successCount += 1
                         // Record the category for every successful fetch,
                         // whether or not the mod has an update. This is what
                         // powers the per-category filter in the mods list.
@@ -360,7 +374,17 @@ final class NexusUpdateChecker {
             let finalResult: CheckResult
             if staleGeneration {
                 finalResult = .noApiKey
-            } else if let err = lastError, updates.isEmpty {
+            } else if successCount > 0 {
+                // At least one candidate produced real data — always
+                // deliver it as `.success` (so the caller merges it) even
+                // when the run didn't fully complete cleanly. Losing this
+                // data to `.error`/`.rateLimited` just because one other
+                // candidate 404'd, or because a 429 cut the run short after
+                // some updates were already found, is exactly the bug this
+                // branch avoids.
+                self.saveCachedUpdates(updates)
+                finalResult = .success(updates: updates, categories: mergedCats, extras: mergedExtras, partialErrorMessage: lastError)
+            } else if let err = lastError {
                 if err.hasPrefix("rate_limited:") {
                     let retry = TimeInterval(err.split(separator: ":").last ?? "0") ?? 0
                     finalResult = .rateLimited(retryAfter: retry)

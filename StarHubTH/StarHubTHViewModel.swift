@@ -253,14 +253,22 @@ class StarHubTHViewModel: ObservableObject {
     @Published var saves: [SaveGameInfo] = []
     @Published var editingSave: SaveGameInfo? = nil {
         didSet {
-            if let save = editingSave {
-                if let items = SaveManager.shared.fetchInventory(for: save) {
-                    inventoryToEdit = items
-                } else {
-                    inventoryToEdit = []
-                }
-            } else {
+            guard let save = editingSave else {
                 inventoryToEdit = []
+                return
+            }
+            // `fetchInventory` reads and parses the full save file from
+            // disk — dispatched off main so opening the inventory editor
+            // doesn't freeze the UI on a large save (verified against a
+            // real ~40MB save file).
+            inventoryToEdit = []
+            let requestedSaveId = save.id
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                let items = SaveManager.shared.fetchInventory(for: save) ?? []
+                DispatchQueue.main.async {
+                    guard let self = self, self.editingSave?.id == requestedSaveId else { return }
+                    self.inventoryToEdit = items
+                }
             }
         }
     }
@@ -444,20 +452,33 @@ class StarHubTHViewModel: ObservableObject {
             }
         }
         
+        let resolvedUsername: String
         if !personaName.isEmpty {
-            self.steamUsername = personaName
+            resolvedUsername = personaName
         } else {
             let defaultName = NSFullUserName().components(separatedBy: " ").first ?? ""
-            self.steamUsername = defaultName.isEmpty ? L(L10n.VM.defaultFarmerName) : defaultName
+            resolvedUsername = defaultName.isEmpty ? L(L10n.VM.defaultFarmerName) : defaultName
         }
-        
+
+        var resolvedAvatarPath: String?
         if !currentSteamID.isEmpty {
             let avatarPathPng = "\(home)/Library/Application Support/Steam/config/avatarcache/\(currentSteamID).png"
             let avatarPathJpg = "\(home)/Library/Application Support/Steam/config/avatarcache/\(currentSteamID).jpg"
             if FileManager.default.fileExists(atPath: avatarPathPng) {
-                self.steamAvatarPath = avatarPathPng
+                resolvedAvatarPath = avatarPathPng
             } else if FileManager.default.fileExists(atPath: avatarPathJpg) {
-                self.steamAvatarPath = avatarPathJpg
+                resolvedAvatarPath = avatarPathJpg
+            }
+        }
+
+        // `fetchSteamUser` is called from `refresh()`'s background dispatch
+        // alongside `scanMods()`/`reloadSaves()` — unlike those two, this
+        // used to mutate these @Published properties directly on that
+        // background thread instead of hopping back to main.
+        DispatchQueue.main.async {
+            self.steamUsername = resolvedUsername
+            if let resolvedAvatarPath = resolvedAvatarPath {
+                self.steamAvatarPath = resolvedAvatarPath
             }
         }
     }
@@ -1362,7 +1383,7 @@ class StarHubTHViewModel: ObservableObject {
             self.isCheckingNexusUpdates = false
             self.nexusCheckProgress = nil
             switch result {
-            case .success(let updates, let categories, let extras):
+            case .success(let updates, let categories, let extras, let partialErrorMessage):
                 // Consolidate per-pack: a pack whose several children each
                 // have an update is shown as a single row, using the highest
                 // latest version among them (ties broken by the most recent
@@ -1382,7 +1403,15 @@ class StarHubTHViewModel: ObservableObject {
                     for (k, v) in extras { mergedExtras[k] = v }
                     self.nexusModExtras = mergedExtras
                 }
-                self.log("Nexus check: \(updates.count) update(s), \(categories.count) categor(ies)", level: .info)
+                if let partialErrorMessage = partialErrorMessage {
+                    // Some candidates succeeded (data above IS merged) but
+                    // others failed or were cut short by a rate limit — flag
+                    // it without discarding what was actually found.
+                    self.nexusCheckError = partialErrorMessage.hasPrefix("rate_limited:") ? "rate_limited" : partialErrorMessage
+                    self.log("Nexus check: \(updates.count) update(s), \(categories.count) categor(ies) — partial run, some candidates failed: \(partialErrorMessage)", level: .warning)
+                } else {
+                    self.log("Nexus check: \(updates.count) update(s), \(categories.count) categor(ies)", level: .info)
+                }
             case .noApiKey:
                 self.nexusCheckError = "no_api_key"
                 self.nexusUpdates = []
@@ -1770,24 +1799,39 @@ class StarHubTHViewModel: ObservableObject {
     }
 
     func editSave(info: SaveGameInfo, newName: String, newFarm: String, newFav: String, newMoney: Int, newTotalMoneyEarned: Int, newMaxHealth: Int, newMaxStamina: Int, newGoldenWalnuts: Int, newQiGems: Int, newClubCoins: Int, newSpouse: String) {
-        let success = SaveManager.shared.updateSave(info: info, newName: newName, newFarm: newFarm, newFav: newFav, newMoney: newMoney, newTotalMoneyEarned: newTotalMoneyEarned, newMaxHealth: newMaxHealth, newMaxStamina: newMaxStamina, newGoldenWalnuts: newGoldenWalnuts, newQiGems: newQiGems, newClubCoins: newClubCoins, newSpouse: newSpouse)
-        if success {
-            reloadSaves()
-            showModal(message: L(L10n.VM.saveSuccess))
-        } else {
-            showModal(message: L(L10n.VM.saveError))
+        // `updateSave` parses and rewrites the full save XML — dispatched
+        // off main so it doesn't block the UI on a large save file.
+        DispatchQueue.global(qos: .userInitiated).async {
+            let success = SaveManager.shared.updateSave(info: info, newName: newName, newFarm: newFarm, newFav: newFav, newMoney: newMoney, newTotalMoneyEarned: newTotalMoneyEarned, newMaxHealth: newMaxHealth, newMaxStamina: newMaxStamina, newGoldenWalnuts: newGoldenWalnuts, newQiGems: newQiGems, newClubCoins: newClubCoins, newSpouse: newSpouse)
+            DispatchQueue.main.async {
+                if success {
+                    self.reloadSaves()
+                    self.showModal(message: self.L(L10n.VM.saveSuccess))
+                } else {
+                    self.showModal(message: self.L(L10n.VM.saveError))
+                }
+            }
         }
     }
-    
+
     func saveInventory() {
         guard let save = editingSave else { return }
-        if SaveManager.shared.updateInventory(info: save, items: inventoryToEdit) {
-            showModal(message: L(L10n.Saves.inventorySuccess))
-            if let items = SaveManager.shared.fetchInventory(for: save) {
-                inventoryToEdit = items
+        let items = inventoryToEdit
+        // Same rationale as `editSave` — the save file read/write below
+        // must not run on the main thread.
+        DispatchQueue.global(qos: .userInitiated).async {
+            let success = SaveManager.shared.updateInventory(info: save, items: items)
+            let refetched = success ? SaveManager.shared.fetchInventory(for: save) : nil
+            DispatchQueue.main.async {
+                if success {
+                    self.showModal(message: self.L(L10n.Saves.inventorySuccess))
+                    if let refetched = refetched {
+                        self.inventoryToEdit = refetched
+                    }
+                } else {
+                    self.showModal(message: self.L(L10n.Saves.inventoryError))
+                }
             }
-        } else {
-            showModal(message: L(L10n.Saves.inventoryError))
         }
     }
     func deleteSave(info: SaveGameInfo) {
@@ -1972,21 +2016,30 @@ class StarHubTHViewModel: ObservableObject {
             .replacingOccurrences(of: ":", with: "")
         let zipPath = "\(desktopDir)/\(filePrefix)_\(timestamp).zip"
 
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/zip")
-        process.arguments = ["-r", zipPath, "."]
-        process.currentDirectoryURL = URL(fileURLWithPath: sourceDir)
+        // Zipping a whole Saves/Mods folder can take a while for large
+        // libraries — run the process and block on its exit off the main
+        // thread so the UI doesn't freeze for the duration.
+        DispatchQueue.global(qos: .userInitiated).async {
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/zip")
+            process.arguments = ["-r", zipPath, "."]
+            process.currentDirectoryURL = URL(fileURLWithPath: sourceDir)
 
-        do {
-            try process.run()
-            process.waitUntilExit()
-            if process.terminationStatus == 0 {
-                showModal(message: String(format: L(successKey), zipPath))
-            } else {
-                showModal(message: L(errorKey))
+            do {
+                try process.run()
+                process.waitUntilExit()
+                DispatchQueue.main.async {
+                    if process.terminationStatus == 0 {
+                        self.showModal(message: String(format: self.L(successKey), zipPath))
+                    } else {
+                        self.showModal(message: self.L(errorKey))
+                    }
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    self.showModal(message: self.L(L10n.VM.cannotRunZip))
+                }
             }
-        } catch {
-            showModal(message: L(L10n.VM.cannotRunZip))
         }
     }
 
@@ -2173,7 +2226,7 @@ class StarHubTHViewModel: ObservableObject {
             
             guard let data = data,
                   let releases = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
-                DispatchQueue.main.async { self.showModal(message: self.L(L10n.VM.downloadFailed) + " (Invalid API Response)") }
+                DispatchQueue.main.async { self.showModal(message: String(format: self.L(L10n.VM.downloadFailed), "Invalid API response")) }
                 return
             }
             
@@ -2199,7 +2252,7 @@ class StarHubTHViewModel: ObservableObject {
             }
             
             guard let downloadUrl = targetDownloadUrl else {
-                DispatchQueue.main.async { self.showModal(message: self.L(L10n.VM.downloadFailed) + " (Zip not found in releases)") }
+                DispatchQueue.main.async { self.showModal(message: String(format: self.L(L10n.VM.downloadFailed), "Zip not found in releases")) }
                 return
             }
             
@@ -2210,7 +2263,7 @@ class StarHubTHViewModel: ObservableObject {
                 }
                 
                 guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-                    DispatchQueue.main.async { self.showModal(message: self.L(L10n.VM.downloadFailed) + " (HTTP \((response as? HTTPURLResponse)?.statusCode ?? 0))") }
+                    DispatchQueue.main.async { self.showModal(message: String(format: self.L(L10n.VM.downloadFailed), "HTTP \((response as? HTTPURLResponse)?.statusCode ?? 0)")) }
                     return
                 }
                 
@@ -2520,6 +2573,16 @@ class StarHubTHViewModel: ObservableObject {
                     let currentIds = providedIds(for: current)
                     for candidate in mods {
                         guard !visited.contains(candidate.folderName) else { continue }
+                        // Only cascade through mods that are *currently*
+                        // enabled in this set — mirrors `performToggle`'s
+                        // disable branch, which is gated on
+                        // `otherMod.isEnabled`. Without this, an
+                        // already-disabled candidate that merely lists a
+                        // dependency on the mod being disabled would get its
+                        // ids incorrectly removed from `result` even though
+                        // it was never enabled to begin with.
+                        let candidateIsEnabled = providedIds(for: candidate).contains { currentEnabled.contains($0) }
+                        guard candidateIsEnabled else { continue }
                         let candidateDeps = getDependencies(for: candidate)
                         let requiresCurrent = candidateDeps.contains { dep in
                             dep.isRequired && currentIds.contains { $0.caseInsensitiveCompare(dep.uniqueId) == .orderedSame }

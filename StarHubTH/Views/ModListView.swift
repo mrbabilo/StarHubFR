@@ -201,14 +201,15 @@ struct ModListView: View {
     /// user-categorized mods appear in the picker as soon as they're pinned.
     private var availableCategories: [(category: NexusCategory, count: Int)] {
         var counts: [Int: Int] = [:]
+        // Counts must be derived the exact same way the `.category` filter
+        // branch resolves a mod (`vm.category(for: mod)` on the top-level
+        // mod, which already resolves a group to its dominant child
+        // category) — counting each child's own category individually (as
+        // this used to) could show a non-zero count for a category that,
+        // once selected, filters nothing in because it's a group's minority
+        // category rather than its dominant one.
         for mod in vm.mods {
-            if mod.isGroup, let children = mod.children {
-                for c in children {
-                    if let cid = vm.category(for: c)?.id { counts[cid, default: 0] += 1 }
-                }
-            } else {
-                if let cid = vm.category(for: mod)?.id { counts[cid, default: 0] += 1 }
-            }
+            if let cid = vm.category(for: mod)?.id { counts[cid, default: 0] += 1 }
         }
         return NexusCategory.all
             .filter { counts[$0.id] != nil }

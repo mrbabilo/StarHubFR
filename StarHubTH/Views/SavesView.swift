@@ -481,15 +481,18 @@ struct SaveEditorView: View {
     
     let availableTags = ["", "⭐", "🏆", "🧪", "❤️", "💎", "📅"]
     
+    // Third element is an L10n key (resolved via `vm.L` at the tooltip call
+    // site below) — these used to be hardcoded Thai text shown regardless
+    // of the app's selected language.
     let presetIcons: [(String, String, String)] = [
-        ("preset:person", "person.crop.circle.fill", "เริ่มต้น"),
-        ("preset:star",   "star.fill",               "ดาว"),
-        ("preset:leaf",   "leaf.fill",               "ใบไม้"),
-        ("preset:heart",  "heart.fill",              "หัวใจ"),
-        ("preset:cat",    "cat.fill",                "แมว"),
-        ("preset:dog",    "dog.fill",                "สุนัข"),
-        ("preset:hare",   "hare.fill",               "กระต่าย"),
-        ("preset:ant",    "ant.fill",                "มด"),
+        ("preset:person", "person.crop.circle.fill", L10n.Saves.avatarPresetDefault),
+        ("preset:star",   "star.fill",               L10n.Saves.avatarPresetStar),
+        ("preset:leaf",   "leaf.fill",               L10n.Saves.avatarPresetLeaf),
+        ("preset:heart",  "heart.fill",              L10n.Saves.avatarPresetHeart),
+        ("preset:cat",    "cat.fill",                L10n.Saves.avatarPresetCat),
+        ("preset:dog",    "dog.fill",                L10n.Saves.avatarPresetDog),
+        ("preset:hare",   "hare.fill",               L10n.Saves.avatarPresetHare),
+        ("preset:ant",    "ant.fill",                L10n.Saves.avatarPresetAnt),
     ]
     
     init(vm: StarHubTHViewModel, save: SaveGameInfo) {
@@ -573,7 +576,7 @@ struct SaveEditorView: View {
                                             }
                                         }
                                         .buttonStyle(.plain)
-                                        .help(label)
+                                        .help(vm.L(label))
                                     }
                                 }
                             }
@@ -606,7 +609,7 @@ struct SaveEditorView: View {
                 Section(vm.L(L10n.Saves.notes)) {
                     Picker(vm.L(L10n.Saves.tag), selection: $noteTag) {
                         ForEach(availableTags, id: \.self) { tag in
-                            Text(tag.isEmpty ? "None" : tag).tag(tag)
+                            Text(tag.isEmpty ? vm.L(L10n.Saves.tagNone) : tag).tag(tag)
                         }
                     }
                     .pickerStyle(.menu)
@@ -658,7 +661,7 @@ struct SaveEditorView: View {
                             HStack {
                                 Text("\(item.name)")
                                     .frame(width: 150, alignment: .leading)
-                                Text("ID: \(item.itemId)")
+                                Text("\(vm.L(L10n.Saves.itemId)): \(item.itemId)")
                                     .foregroundColor(.secondary)
                                 Spacer()
                                 Text(vm.L(L10n.Saves.itemQuantity))
@@ -680,7 +683,7 @@ struct SaveEditorView: View {
                                 Text("\(item.name)")
                                     .frame(width: 150, alignment: .leading)
                                 if !item.itemId.isEmpty {
-                                    Text("ID: \(item.itemId)")
+                                    Text("\(vm.L(L10n.Saves.itemId)): \(item.itemId)")
                                         .foregroundColor(.secondary)
                                 }
                                 Spacer()

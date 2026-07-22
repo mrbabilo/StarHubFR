@@ -123,8 +123,11 @@ def create_app_bundle():
     # 5. Ad-hoc codesign to make it run locally without Gatekeeper blocking
     print("[INFO] Signing application (Codesign)...")
     codesign_cmd = ["codesign", "-s", "-", "-f", APP_DIR]
-    subprocess.run(codesign_cmd)
-    
+    codesign_result = subprocess.run(codesign_cmd)
+    if codesign_result.returncode != 0:
+        print("[ERROR] Codesign failed.")
+        sys.exit(1)
+
     print(f"[SUCCESS] Successfully built {APP_DIR}")
     print("[INFO] Run 'open StarHubTH.app' to launch the application.")
 

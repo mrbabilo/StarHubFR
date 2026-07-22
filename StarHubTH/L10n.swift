@@ -19,6 +19,8 @@ enum L10n {
         static let search               = "main_search"
         static let systemAlerts         = "main_system_alerts"
         static let softwareUpdate       = "main_software_update"
+        static let steamAccount         = "main_steam_account"
+        static let playerFallback       = "main_player_fallback"
     }
 
     // MARK: - Home
@@ -103,6 +105,15 @@ enum L10n {
         static let avatarPickFile       = "saves_avatar_pick_file"
         static let avatarReset          = "saves_avatar_reset"
         static let avatarPanelTitle     = "saves_avatar_panel_title"
+        static let avatarPresetDefault  = "saves_avatar_preset_default"
+        static let avatarPresetStar     = "saves_avatar_preset_star"
+        static let avatarPresetLeaf     = "saves_avatar_preset_leaf"
+        static let avatarPresetHeart    = "saves_avatar_preset_heart"
+        static let avatarPresetCat      = "saves_avatar_preset_cat"
+        static let avatarPresetDog      = "saves_avatar_preset_dog"
+        static let avatarPresetHare     = "saves_avatar_preset_hare"
+        static let avatarPresetAnt      = "saves_avatar_preset_ant"
+        static let tagNone              = "saves_tag_none"
         static let duplicateTitle       = "saves_duplicate_title"
         static let branchTitle          = "saves_branch_title"
         static let edit                 = "saves_edit"
