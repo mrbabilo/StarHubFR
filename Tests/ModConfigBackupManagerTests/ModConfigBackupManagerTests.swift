@@ -309,4 +309,21 @@ struct TestEnvironment {
         #expect(env.manager.loadBackups().count == 5)
         #expect(env.manager.loadBackups().allSatisfy { $0.folderName.hasPrefix("recent-") })
     }
+
+    @Test func loadBackupsReturnsNewestFirst() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let now = Date()
+        let fabricated = [
+            ModConfigBackup(timestamp: now.addingTimeInterval(-100), items: [], totalFiles: 0, totalSize: 0, folderName: "oldest"),
+            ModConfigBackup(timestamp: now, items: [], totalFiles: 0, totalSize: 0, folderName: "newest"),
+            ModConfigBackup(timestamp: now.addingTimeInterval(-50), items: [], totalFiles: 0, totalSize: 0, folderName: "middle"),
+        ]
+        env.manager.seedIndexForTesting(with: fabricated)
+
+        let loaded = env.manager.loadBackups()
+
+        #expect(loaded.map(\.folderName) == ["newest", "middle", "oldest"])
+    }
 }
