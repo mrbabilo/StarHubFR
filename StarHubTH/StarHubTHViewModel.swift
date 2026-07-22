@@ -13,35 +13,6 @@ extension Dictionary where Key == String {
     }
 }
 
-struct ModDependency: Equatable {
-    let uniqueId: String
-    let isRequired: Bool
-}
-
-struct ModItem: Identifiable, Equatable {
-    var id: String { folderName }
-    let uniqueId: String
-    let name: String
-    let folderName: String
-    let version: String
-    let author: String
-    let description: String
-    let nexusUrl: String
-    /// Numeric Nexus Mods mod id parsed from `UpdateKeys: ["nexus:191"]` in the
-    /// mod manifest. Empty when the mod doesn't declare a Nexus update key.
-    let nexusModId: String
-    var isEnabled: Bool
-    let dependencies: [ModDependency]
-    var children: [ModItem]?
-    var isGroup: Bool = false
-    /// Content-modification date of the mod's `manifest.json` on disk, captured
-    /// at scan time. Used to detect same-version updates: when the installed
-    /// version equals the Nexus latest but the Nexus upload is newer than this
-    /// file, the installed copy is stale and an update is offered. `nil` for
-    /// group headers and when the date can't be read.
-    var installedFileDate: Date? = nil
-}
-
 struct ModUpdateInfo: Identifiable, Equatable {
     var id: String { name }
     let name: String
