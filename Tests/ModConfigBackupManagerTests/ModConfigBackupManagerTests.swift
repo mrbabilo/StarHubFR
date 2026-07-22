@@ -73,4 +73,37 @@ struct TestEnvironment {
 
         #expect(env.manager.loadBackups().isEmpty)
     }
+
+    @Test func createBackupBacksUpStandaloneModConfigFile() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let modDir = env.modsDir.appendingPathComponent("StandaloneMod", isDirectory: true)
+        try writeTestFile(in: modDir, filename: "config.json", content: "{\"volume\": 5}")
+
+        let mod = makeTestMod(folderName: "StandaloneMod")
+        let backup = try env.manager.createBackup(gameDir: env.gameDir, mods: [mod])
+
+        #expect(backup.items.count == 1)
+        #expect(backup.items[0].modFolderName == "StandaloneMod")
+        #expect(backup.items[0].files == ["config.json"])
+        #expect(backup.totalFiles == 1)
+        #expect(env.manager.loadBackups().count == 1)
+    }
+
+    @Test func createBackupThrowsWhenNoModsAreEnabled() {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let mod = makeTestMod(folderName: "DisabledMod", isEnabled: false)
+
+        do {
+            _ = try env.manager.createBackup(gameDir: env.gameDir, mods: [mod])
+            Issue.record("Expected createBackup to throw .noEnabledMods")
+        } catch ModConfigBackupManager.BackupError.noEnabledMods {
+            // expected
+        } catch {
+            Issue.record("Expected .noEnabledMods, got \(error)")
+        }
+    }
 }
