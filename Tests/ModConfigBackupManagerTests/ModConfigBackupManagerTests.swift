@@ -214,4 +214,42 @@ struct TestEnvironment {
         // original one created above, plus the automatic safety one).
         #expect(env.manager.loadBackups().count == 2)
     }
+
+    @Test func deleteBackupRemovesItFromTheIndex() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let modDir = env.modsDir.appendingPathComponent("DeleteMod", isDirectory: true)
+        try writeTestFile(in: modDir, filename: "config.json")
+
+        let mod = makeTestMod(folderName: "DeleteMod")
+        let backup = try env.manager.createBackup(gameDir: env.gameDir, mods: [mod])
+        #expect(env.manager.loadBackups().count == 1)
+
+        try env.manager.deleteBackup(backup)
+
+        #expect(env.manager.loadBackups().isEmpty)
+    }
+
+    @Test func twoBackupsCreatedBackToBackGetDistinctFolderNames() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let modDir = env.modsDir.appendingPathComponent("SameSecondMod", isDirectory: true)
+        try writeTestFile(in: modDir, filename: "config.json")
+
+        let mod = makeTestMod(folderName: "SameSecondMod")
+        let first = try env.manager.createBackup(gameDir: env.gameDir, mods: [mod])
+        let second = try env.manager.createBackup(gameDir: env.gameDir, mods: [mod])
+
+        #expect(first.folderName != second.folderName)
+        #expect(env.manager.loadBackups().count == 2)
+
+        // Deleting one must not affect the other — proves they're on
+        // distinct on-disk folders, not sharing one that a single delete
+        // would wipe.
+        try env.manager.deleteBackup(first)
+        #expect(env.manager.loadBackups().count == 1)
+        #expect(env.manager.loadBackups()[0].id == second.id)
+    }
 }
