@@ -13,8 +13,8 @@ def get_version():
     if os.path.exists(plist_path):
         with open(plist_path, 'rb') as f:
             plist = plistlib.load(f)
-            return plist.get("CFBundleShortVersionString", "1.0.2")
-    return "1.1.0"
+            return plist.get("CFBundleShortVersionString", "1.0.9")
+    return "1.0.9"
 
 def create_release():
     print("[INFO] Starting release process...")
@@ -48,8 +48,11 @@ def create_release():
     print(f"[INFO] Archiving bundle to {zip_path}...")
     
     # We use ditto on macOS to preserve resource forks and codesignatures properly
-    subprocess.run(["ditto", "-c", "-k", "--keepParent", APP_DIR, zip_path])
-    
+    result = subprocess.run(["ditto", "-c", "-k", "--keepParent", APP_DIR, zip_path])
+    if result.returncode != 0:
+        print("[ERROR] ditto failed to create the zip archive.")
+        return
+
     print("[SUCCESS] Release bundle created successfully.")
     print(f"[INFO] The bundle is ready at {zip_path}.")
     print("-" * 40)
@@ -68,7 +71,7 @@ def create_release():
             print(f"[SUCCESS] Uploaded {tag} successfully.")
             print(res.stdout.strip())
         else:
-            print(f"[ERROR] Upload failed:\\n{res.stderr.strip()}")
+            print(f"[ERROR] Upload failed:\n{res.stderr.strip()}")
     else:
         print("[INFO] Skipping upload.")
 

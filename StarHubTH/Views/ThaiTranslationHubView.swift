@@ -49,7 +49,20 @@ struct ThaiTranslationHubView: View {
                 .background(Color(nsColor: .controlBackgroundColor))
                 .cornerRadius(10)
                 
-                if vm.thaiTranslations.isEmpty {
+                if let error = vm.thaiTranslationsError {
+                    VStack(spacing: 16) {
+                        Image(systemName: "wifi.exclamationmark")
+                            .font(.system(size: 32))
+                            .foregroundColor(.secondary)
+                        Text(error)
+                            .multilineTextAlignment(.center)
+                            .foregroundColor(.secondary)
+                        Button(vm.L(L10n.ThaiHub.retry)) {
+                            vm.fetchThaiTranslations()
+                        }
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 200)
+                } else if vm.thaiTranslations.isEmpty {
                     VStack(spacing: 16) {
                         ProgressView()
                             .scaleEffect(1.2)
@@ -131,178 +144,134 @@ struct ThaiModRow: View {
     }
 }
 
+/// Section title + rounded card wrapper shared by every info block in
+/// ThaiModDetailView (Description, Installation, Translation Mod, Original Mod).
+private struct InfoCard<Content: View>: View {
+    let title: String
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(.secondary)
+                .padding(.leading, 4)
+
+            VStack(alignment: .leading, spacing: 0) {
+                content
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color(nsColor: .controlBackgroundColor))
+            .cornerRadius(8)
+        }
+    }
+}
+
+/// A label + trailing value row inside an InfoCard, with the card's standard
+/// padding. Rows within a card are separated by the caller inserting an
+/// `InfoDivider()` between them.
+private struct InfoRow: View {
+    let label: String
+    let value: String
+
+    var body: some View {
+        HStack {
+            Text(label)
+                .font(.system(size: 13))
+            Spacer()
+            Text(value)
+                .font(.system(size: 13))
+                .foregroundColor(.secondary)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+    }
+}
+
+private struct InfoDivider: View {
+    var body: some View {
+        Divider().padding(.leading, 16)
+    }
+}
+
 struct ThaiModDetailView: View {
     @ObservedObject var vm: StarHubTHViewModel
     let mod: ThaiTranslationMod
-    
+
     var body: some View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 30) {
-                    
-                    // Description Section
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(vm.L(L10n.ThaiHub.description))
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.secondary)
-                            .padding(.leading, 4)
-                            
-                        VStack(alignment: .leading, spacing: 0) {
-                            Text(vm.L(L10n.ThaiHub.descriptionPrefix) + mod.name + vm.L(L10n.ThaiHub.descriptionSuffix))
+
+                    InfoCard(title: vm.L(L10n.ThaiHub.description)) {
+                        Text(vm.L(L10n.ThaiHub.descriptionPrefix) + mod.name + vm.L(L10n.ThaiHub.descriptionSuffix))
+                            .font(.system(size: 13))
+                            .foregroundColor(.primary)
+                            .lineSpacing(4)
+                            .padding(16)
+                    }
+
+                    InfoCard(title: vm.L(L10n.ThaiHub.installation)) {
+                        InfoRow(label: vm.L(L10n.ThaiHub.status), value: mod.installationStatusText(vm: vm))
+                        InfoDivider()
+                        HStack(alignment: .center) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(vm.L(L10n.ThaiHub.downloadAndInstall))
+                                    .font(.system(size: 13))
+
+                                HStack(spacing: 4) {
+                                    Text(vm.L(mod.isInstalled ? L10n.ThaiHub.alreadyInstalled : L10n.ThaiHub.clickToInstall))
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            Spacer()
+
+                            Button(action: { vm.installThaiTranslation(mod: mod) }) {
+                                Text(vm.L(mod.isInstalled ? L10n.ThaiHub.reinstall : L10n.ThaiHub.install))
+                                    .font(.system(size: 12))
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 4)
+                                    .background(Color.primary.opacity(0.1))
+                                    .cornerRadius(6)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            .pointingHandCursor()
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                    }
+
+                    InfoCard(title: vm.L(L10n.ThaiHub.thaiTranslationMod)) {
+                        InfoRow(label: vm.L(L10n.ThaiHub.translator), value: "AppleBoiy & Contributors")
+                        InfoDivider()
+                        InfoRow(label: vm.L(L10n.ThaiHub.version), value: "v\(mod.version)")
+                        InfoDivider()
+                        InfoRow(label: vm.L(L10n.ThaiHub.destinationFolder), value: "Mods/")
+                    }
+
+                    InfoCard(title: vm.L(L10n.ThaiHub.originalMod)) {
+                        InfoRow(label: vm.L(L10n.ThaiHub.author), value: mod.author)
+                        InfoDivider()
+                        HStack {
+                            Text(vm.L(L10n.ThaiHub.website))
                                 .font(.system(size: 13))
-                                .foregroundColor(.primary)
-                                .lineSpacing(4)
-                                .padding(16)
+                            Spacer()
+                            Button(action: {
+                                let targetUrl = mod.nexusUrl.isEmpty ? mod.url : mod.nexusUrl
+                                if let url = URL(string: targetUrl) { NSWorkspace.shared.open(url) }
+                            }) {
+                                Text(vm.L(L10n.ThaiHub.viewOnNexus))
+                                    .font(.system(size: 13))
+                                    .foregroundColor(.blue)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            .pointingHandCursor()
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color(nsColor: .controlBackgroundColor))
-                        .cornerRadius(8)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
                     }
-                    
-                    // Installation Section
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(vm.L(L10n.ThaiHub.installation))
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.secondary)
-                            .padding(.leading, 4)
-                            
-                        VStack(spacing: 0) {
-                            HStack {
-                                Text(vm.L(L10n.ThaiHub.status))
-                                    .font(.system(size: 13))
-                                Spacer()
-                                Text(mod.installationStatusText(vm: vm))
-                                    .font(.system(size: 13))
-                                    .foregroundColor(.secondary)
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
-                            
-                            Divider().padding(.leading, 16)
-                            
-                            HStack(alignment: .center) {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(vm.L(L10n.ThaiHub.downloadAndInstall))
-                                        .font(.system(size: 13))
-                                        
-                                    HStack(spacing: 4) {
-                                        Text(vm.L(mod.isInstalled ? L10n.ThaiHub.alreadyInstalled : L10n.ThaiHub.clickToInstall))
-                                            .font(.system(size: 11))
-                                            .foregroundColor(.secondary)
-                                    }
-                                }
-                                Spacer()
-                                
-                                Button(action: { vm.installThaiTranslation(mod: mod) }) {
-                                    Text(vm.L(mod.isInstalled ? L10n.ThaiHub.reinstall : L10n.ThaiHub.install))
-                                        .font(.system(size: 12))
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 4)
-                                        .background(Color.primary.opacity(0.1))
-                                        .cornerRadius(6)
-                                }
-                                .buttonStyle(PlainButtonStyle())
-                                .pointingHandCursor()
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
-                        }
-                        .background(Color(nsColor: .controlBackgroundColor))
-                        .cornerRadius(8)
-                    }
-                    
-                    // Thai Translation Mod Section
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(vm.L(L10n.ThaiHub.thaiTranslationMod))
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.secondary)
-                            .padding(.leading, 4)
-                        
-                        VStack(spacing: 0) {
-                            HStack {
-                                Text(vm.L(L10n.ThaiHub.translator))
-                                    .font(.system(size: 13))
-                                Spacer()
-                                Text("AppleBoiy & Contributors")
-                                    .font(.system(size: 13))
-                                    .foregroundColor(.secondary)
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
-                            
-                            Divider().padding(.leading, 16)
-                            
-                            HStack {
-                                Text(vm.L(L10n.ThaiHub.version))
-                                    .font(.system(size: 13))
-                                Spacer()
-                                Text("v\(mod.version)")
-                                    .font(.system(size: 13))
-                                    .foregroundColor(.secondary)
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
-                            
-                            Divider().padding(.leading, 16)
-                            
-                            HStack {
-                                Text(vm.L(L10n.ThaiHub.destinationFolder))
-                                    .font(.system(size: 13))
-                                Spacer()
-                                Text("Mods/")
-                                    .font(.system(size: 13))
-                                    .foregroundColor(.secondary)
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
-                        }
-                        .background(Color(nsColor: .controlBackgroundColor))
-                        .cornerRadius(8)
-                    }
-                    
-                    // Original Mod Section
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(vm.L(L10n.ThaiHub.originalMod))
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.secondary)
-                            .padding(.leading, 4)
-                        
-                        VStack(spacing: 0) {
-                            HStack {
-                                Text(vm.L(L10n.ThaiHub.author))
-                                    .font(.system(size: 13))
-                                Spacer()
-                                Text(mod.author)
-                                    .font(.system(size: 13))
-                                    .foregroundColor(.secondary)
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
-                            
-                            Divider().padding(.leading, 16)
-                            
-                            HStack {
-                                Text(vm.L(L10n.ThaiHub.website))
-                                    .font(.system(size: 13))
-                                Spacer()
-                                Button(action: {
-                                    let targetUrl = mod.nexusUrl.isEmpty ? mod.url : mod.nexusUrl
-                                    if let url = URL(string: targetUrl) { NSWorkspace.shared.open(url) }
-                                }) {
-                                    Text(vm.L(L10n.ThaiHub.viewOnNexus))
-                                        .font(.system(size: 13))
-                                        .foregroundColor(.blue)
-                                }
-                                .buttonStyle(PlainButtonStyle())
-                                .pointingHandCursor()
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
-                        }
-                        .background(Color(nsColor: .controlBackgroundColor))
-                        .cornerRadius(8)
-                    }
-                    
+
                     Spacer()
                 }
                 .padding(30)

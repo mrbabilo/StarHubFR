@@ -86,7 +86,7 @@ struct LogsView: View {
                 // Copy
                 Button {
                     let text = filteredEntries
-                        .map { "[\($0.timestamp)] [\($0.level.rawValue)] \($0.message)" }
+                        .map { $0.formattedLine }
                         .joined(separator: "\n")
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(text, forType: .string)
@@ -289,10 +289,7 @@ struct LogEntryRow: View {
         .contextMenu {
             Button(vm.L(L10n.Logs.copyLine)) {
                 NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(
-                    "[\(entry.timestamp)] [\(entry.level.rawValue)] \(entry.message)",
-                    forType: .string
-                )
+                NSPasteboard.general.setString(entry.formattedLine, forType: .string)
             }
         }
     }

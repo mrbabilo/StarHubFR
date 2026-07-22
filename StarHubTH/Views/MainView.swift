@@ -27,6 +27,7 @@ struct MainView: View {
         if currentTab == "Saves" && vm.editingSave != nil { return vm.editingSave!.playerName }
         if currentTab == "ThaiHub" && vm.viewingThaiMod != nil { return vm.viewingThaiMod!.name }
         if currentTab == "Mods" { return vm.L(L10n.Mods.mods) }
+        if currentTab == "ConfigBackups" { return vm.L(L10n.ModConfigBackups.title) }
         if currentTab == "Updates" { return vm.L(L10n.Main.softwareUpdate) }
         if currentTab == "ThaiHub" { return vm.L(L10n.ThaiHub.title) }
         if currentTab == "Saves" { return vm.L(L10n.Saves.saves) }
@@ -59,6 +60,7 @@ struct MainView: View {
                 // Account Section (macOS style profile)
                 if matchesSearch(vm.steamUsername, vm.L(L10n.Main.account)) {
                     Button(action: { currentTab = "Home" }) {
+                        let activeProfile = vm.activeProfileId.flatMap { id in vm.modProfiles.first(where: { $0.id == id }) }
                         HStack(spacing: 12) {
                             ZStack(alignment: .bottomTrailing) {
                                 if let avatarPath = vm.steamAvatarPath, let nsImage = NSImage(contentsOfFile: avatarPath) {
@@ -74,7 +76,7 @@ struct MainView: View {
                                         .foregroundColor(.gray)
                                 }
                                 
-                                if let activeProfileId = vm.activeProfileId, let activeProfile = vm.modProfiles.first(where: { $0.id == activeProfileId }) {
+                                if let activeProfile = activeProfile {
                                     ZStack {
                                         Circle()
                                             .fill(Color.accentColor)
@@ -99,7 +101,7 @@ struct MainView: View {
                                     .font(.system(size: 12))
                                     .foregroundColor(.secondary)
                                 
-                                if let activeProfileId = vm.activeProfileId, let activeProfile = vm.modProfiles.first(where: { $0.id == activeProfileId }) {
+                                if let activeProfile = activeProfile {
                                     Text("\(vm.L(L10n.Profiles.titleFull)): \(activeProfile.name)")
                                         .font(.system(size: 10, weight: .medium))
                                         .foregroundColor(.accentColor)
@@ -121,7 +123,7 @@ struct MainView: View {
                     .pointingHandCursor()
                 }
                 
-                let alertCount = vm.smapiErrors.count + vm.outOfDateMods.count
+                let alertCount = vm.smapiErrors.count + vm.outOfDateMods.count + vm.nexusUpdates.count
                 if alertCount > 0 {
                     Button(action: { currentTab = "Updates" }) {
                         HStack {
@@ -171,7 +173,17 @@ struct MainView: View {
                             currentTab: $currentTab
                         )
                     }
-                    
+
+                    if matchesSearch(vm.L(L10n.ModConfigBackups.tabTitle)) {
+                        SidebarNavItem(
+                            icon: "archivebox.fill",
+                            iconColor: .green,
+                            label: vm.L(L10n.ModConfigBackups.tabTitle),
+                            tab: "ConfigBackups",
+                            currentTab: $currentTab
+                        )
+                    }
+
                     if matchesSearch(vm.L(L10n.Profiles.title)) {
                         SidebarNavItem(
                             icon: "person.2.fill",
@@ -239,6 +251,8 @@ struct MainView: View {
             Group {
                 if currentTab == "Mods" {
                     ModListView(vm: vm)
+                } else if currentTab == "ConfigBackups" {
+                    ModConfigBackupsView(vm: vm)
                 } else if currentTab == "Saves" {
                     if let save = vm.viewingSaveTimeline {
                         SaveTimelineView(vm: vm, save: save)
@@ -265,7 +279,8 @@ struct MainView: View {
             .onChange(of: currentTab) {
                 vm.editingSave = nil
                 vm.viewingThaiMod = nil
-                
+                vm.viewingSaveTimeline = nil
+
                 if !isNavigatingBackOrForward {
                     if tabHistory.last != currentTab {
                         tabHistory.append(currentTab)
@@ -283,6 +298,8 @@ struct MainView: View {
                                 vm.editingSave = nil
                             } else if vm.viewingThaiMod != nil {
                                 vm.viewingThaiMod = nil
+                            } else if vm.viewingSaveTimeline != nil {
+                                vm.viewingSaveTimeline = nil
                             } else if tabHistory.count > 1 {
                                 isNavigatingBackOrForward = true
                                 let current = tabHistory.removeLast()
@@ -292,7 +309,7 @@ struct MainView: View {
                         }) {
                             Image(systemName: "chevron.left")
                         }
-                        .disabled(vm.editingSave == nil && vm.viewingThaiMod == nil && tabHistory.count <= 1)
+                        .disabled(vm.editingSave == nil && vm.viewingThaiMod == nil && vm.viewingSaveTimeline == nil && tabHistory.count <= 1)
                         
                         Button(action: {
                             if let next = forwardHistory.popLast() {
@@ -480,6 +497,174 @@ struct UpdatesView: View {
                     }
                 }
                 
+                // ── Nexus Mods updates ─────────────────────────────────
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                            .foregroundColor(.accentColor)
+                            .font(.system(size: 16))
+                        Text(vm.L(L10n.Updates.nexusSection))
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(.primary)
+                        Spacer()
+                        if vm.isCheckingNexusUpdates {
+                            ProgressView()
+                                .controlSize(.small)
+                        } else {
+                            Button {
+                                vm.checkNexusUpdates(force: true)
+                            } label: {
+                                Text(vm.L(L10n.Updates.nexusCheckButton))
+                                    .font(.system(size: 12, weight: .medium))
+                            }
+                            .disabled(!vm.hasNexusApiKey)
+                        }
+                    }
+
+                    if !vm.hasNexusApiKey {
+                        // CTA: prompt user to add an API key.
+                        HStack(alignment: .top, spacing: 8) {
+                            Image(systemName: "key.fill")
+                                .foregroundColor(.secondary)
+                                .font(.system(size: 12))
+                                .padding(.top, 2)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(vm.L(L10n.Updates.nexusApiKeyMissing))
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.secondary)
+                                Button {
+                                    if let url = URL(string: "https://www.nexusmods.com/users/myaccount?tab=api") {
+                                        NSWorkspace.shared.open(url)
+                                    }
+                                } label: {
+                                    Text(vm.L(L10n.Updates.nexusGetKey))
+                                        .font(.system(size: 12, weight: .medium))
+                                        .foregroundColor(.accentColor)
+                                }
+                                .buttonStyle(.plain)
+                                .pointingHandCursor()
+                            }
+                        }
+                    } else if vm.isCheckingNexusUpdates {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(spacing: 8) {
+                                ProgressView()
+                                    .controlSize(.small)
+                                Text(vm.L(L10n.Updates.nexusChecking))
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.secondary)
+                                if let prog = vm.nexusCheckProgress, prog.total > 0 {
+                                    Spacer()
+                                    Text("\(prog.done)/\(prog.total)")
+                                        .font(.system(size: 11, design: .monospaced))
+                                        .foregroundColor(.secondary)
+                                        .monospacedDigit()
+                                }
+                            }
+                            // Determinate progress bar when we know the total.
+                            if let prog = vm.nexusCheckProgress, prog.total > 0 {
+                                let fraction = Double(prog.done) / Double(prog.total)
+                                ProgressView(value: fraction)
+                                    .progressViewStyle(.linear)
+                                    .tint(.accentColor)
+                                    .transition(.opacity)
+                            }
+                        }
+                        .animation(.easeInOut(duration: 0.2), value: vm.nexusCheckProgress?.done)
+                    } else if let err = vm.nexusCheckError {
+                        Text(err == "rate_limited"
+                             ? vm.L(L10n.Updates.nexusRateLimited)
+                             : vm.L(L10n.Updates.nexusError))
+                            .font(.system(size: 12))
+                            .foregroundColor(.red.opacity(0.8))
+                    } else if vm.nexusUpdates.isEmpty {
+                        HStack(spacing: 6) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                            Text(vm.L(L10n.Updates.nexusNoUpdates))
+                        }
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                    } else {
+                        // Summary line + list of available updates.
+                        Text(String(format: vm.L(L10n.Updates.nexusUpdatesCount),
+                                    Int64(vm.nexusUpdates.count)))
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                            .padding(.top, 4)
+
+                        ForEach(vm.nexusUpdates) { update in
+                            let isEnabled = vm.modForNexusUpdate(update)?.isEnabled ?? false
+                            HStack(alignment: .top, spacing: 16) {
+                                ZStack {
+                                    Circle()
+                                        .fill(Color.accentColor.opacity(0.12))
+                                    Text(String(update.name.prefix(2)).uppercased())
+                                        .font(.system(size: 16, weight: .bold))
+                                        .foregroundColor(.accentColor)
+                                }
+                                .frame(width: 44, height: 44)
+
+                                VStack(alignment: .leading, spacing: 4) {
+                                    HStack(spacing: 6) {
+                                        Text(update.name)
+                                            .font(.system(size: 14, weight: .semibold))
+                                            .foregroundColor(.primary)
+                                        Text(isEnabled ? vm.L(L10n.Updates.enabled) : vm.L(L10n.Updates.disabled))
+                                            .font(.system(size: 9, weight: .medium))
+                                            .foregroundColor(isEnabled ? .green : .orange)
+                                            .padding(.horizontal, 6)
+                                            .padding(.vertical, 2)
+                                            .background((isEnabled ? Color.green : Color.orange).opacity(0.12))
+                                            .cornerRadius(4)
+                                    }
+                                    HStack(spacing: 12) {
+                                        Label("\(vm.L(L10n.Updates.installedVersion)) \(update.installedVersion)",
+                                              systemImage: "tag.fill")
+                                            .font(.system(size: 11))
+                                            .foregroundColor(.secondary)
+                                        Label("\(vm.L(L10n.Updates.latestVersion)) \(update.latestVersion)",
+                                              systemImage: "sparkles")
+                                            .font(.system(size: 11))
+                                            .foregroundColor(.green)
+                                        if let uploaded = update.uploadedTime {
+                                            Label(vm.formatUploadedDate(uploaded),
+                                                  systemImage: "clock.fill")
+                                                .font(.system(size: 11))
+                                                .foregroundColor(.secondary.opacity(0.8))
+                                        }
+                                    }
+                                }
+
+                                Spacer()
+
+                                Button {
+                                    if let url = URL(string: update.url) {
+                                        NSWorkspace.shared.open(url)
+                                    }
+                                } label: {
+                                    Text(vm.L(L10n.Updates.download))
+                                        .font(.system(size: 12, weight: .medium))
+                                        .foregroundColor(.primary)
+                                        .padding(.horizontal, 14)
+                                        .padding(.vertical, 6)
+                                        .background(Color.primary.opacity(0.1))
+                                        .cornerRadius(6)
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                                .pointingHandCursor()
+                            }
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 12)
+                            .background(isEnabled ? Color.primary.opacity(0.04) : Color.orange.opacity(0.06))
+                            .cornerRadius(10)
+                        }
+                    }
+                }
+                .padding(20)
+                .background(Color.primary.opacity(0.03))
+                .cornerRadius(12)
+
                 // SMAPI Errors (More Storage Required style)
                 if !vm.smapiErrors.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {

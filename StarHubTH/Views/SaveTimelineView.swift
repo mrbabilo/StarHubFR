@@ -104,7 +104,7 @@ struct SaveTimelineView: View {
         .alert(isPresented: $showRestoreConfirm) {
             Alert(
                 title: Text(vm.L(L10n.Saves.confirmRestore)),
-                message: Text(vm.L(L10n.Saves.confirmRestoreMsg)),
+                message: Text(vm.L(vm.isGameRunning() ? L10n.Saves.confirmRestoreMsgGameRunning : L10n.Saves.confirmRestoreMsg)),
                 primaryButton: .destructive(Text(vm.L(L10n.Saves.restore))) {
                     if let b = backupToRestore {
                         vm.restoreBackup(backup: b, info: save)
@@ -119,7 +119,9 @@ struct SaveTimelineView: View {
     }
     
     private func loadBackups() {
-        backups = vm.listBackups(for: save)
+        vm.listBackups(for: save) { fetched in
+            backups = fetched
+        }
     }
 }
 

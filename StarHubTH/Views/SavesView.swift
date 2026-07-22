@@ -3,32 +3,30 @@ import SwiftUI
 import AppKit
 #endif
 
-// MARK: - SaveAvatarView (shared avatar renderer)
-struct SaveAvatarView: View {
-    let folderName: String
+/// Presets shared by both save-avatar renderers below (identifier → SF Symbol name).
+private let saveAvatarPresets: [(String, String)] = [
+    ("preset:person", "person.crop.circle.fill"),
+    ("preset:star", "star.fill"),
+    ("preset:leaf", "leaf.fill"),
+    ("preset:heart", "heart.fill"),
+    ("preset:cat", "cat.fill"),
+    ("preset:dog", "dog.fill"),
+    ("preset:hare", "hare.fill"),
+    ("preset:ant", "ant.fill"),
+]
+
+// MARK: - SaveAvatarViewLocal (renders a resolved iconPath, no vm needed)
+struct SaveAvatarViewLocal: View {
+    let iconPath: String
     let size: CGFloat
-    @ObservedObject var vm: StarHubTHViewModel
-    
-    private let presets: [(String, String)] = [
-        ("preset:person", "person.crop.circle.fill"),
-        ("preset:star", "star.fill"),
-        ("preset:leaf", "leaf.fill"),
-        ("preset:heart", "heart.fill"),
-        ("preset:cat", "cat.fill"),
-        ("preset:dog", "dog.fill"),
-        ("preset:hare", "hare.fill"),
-        ("preset:ant", "ant.fill"),
-    ]
-    
+
     var body: some View {
-        let iconPath = vm.getNote(for: folderName).customIconPath ?? ""
-        
         ZStack {
             Circle()
                 .fill(Color.accentColor.opacity(0.15))
-            
+
             if iconPath.hasPrefix("preset:") {
-                let sfName = presets.first(where: { $0.0 == iconPath })?.1 ?? "person.crop.circle.fill"
+                let sfName = saveAvatarPresets.first(where: { $0.0 == iconPath })?.1 ?? "person.crop.circle.fill"
                 Image(systemName: sfName)
                     .resizable()
                     .scaledToFit()
@@ -50,47 +48,15 @@ struct SaveAvatarView: View {
     }
 }
 
-// MARK: - SaveAvatarViewLocal (iconPath from local @State, no vm needed)
-struct SaveAvatarViewLocal: View {
-    let iconPath: String
+// MARK: - SaveAvatarView (resolves iconPath from the save's note, then
+// delegates rendering to SaveAvatarViewLocal so the two can't drift apart)
+struct SaveAvatarView: View {
+    let folderName: String
     let size: CGFloat
-    
-    private let presets: [(String, String)] = [
-        ("preset:person", "person.crop.circle.fill"),
-        ("preset:star", "star.fill"),
-        ("preset:leaf", "leaf.fill"),
-        ("preset:heart", "heart.fill"),
-        ("preset:cat", "cat.fill"),
-        ("preset:dog", "dog.fill"),
-        ("preset:hare", "hare.fill"),
-        ("preset:ant", "ant.fill"),
-    ]
-    
+    @ObservedObject var vm: StarHubTHViewModel
+
     var body: some View {
-        ZStack {
-            Circle()
-                .fill(Color.accentColor.opacity(0.15))
-            
-            if iconPath.hasPrefix("preset:") {
-                let sfName = presets.first(where: { $0.0 == iconPath })?.1 ?? "person.crop.circle.fill"
-                Image(systemName: sfName)
-                    .resizable()
-                    .scaledToFit()
-                    .foregroundColor(Color.accentColor.opacity(0.8))
-                    .padding(size * 0.18)
-            } else if !iconPath.isEmpty, let img = NSImage(contentsOfFile: iconPath) {
-                Image(nsImage: img)
-                    .resizable()
-                    .scaledToFill()
-                    .clipShape(Circle())
-            } else {
-                Image(systemName: "person.crop.circle.fill")
-                    .resizable()
-                    .foregroundColor(Color.accentColor.opacity(0.8))
-                    .frame(width: size * 0.8, height: size * 0.8)
-            }
-        }
-        .frame(width: size, height: size)
+        SaveAvatarViewLocal(iconPath: vm.getNote(for: folderName).customIconPath ?? "", size: size)
     }
 }
 
@@ -184,7 +150,7 @@ struct SavesView: View {
                     Divider()
                     ForEach(vm.availableFilterTags, id: \.self) { tag in
                         Button(action: { vm.saveFilterTag = (vm.saveFilterTag == tag ? "" : tag) }) {
-                            Text("\(tag) \(tag)")
+                            Text(tag)
                             if vm.saveFilterTag == tag { Image(systemName: "checkmark") }
                         }
                     }
@@ -510,6 +476,8 @@ struct SaveEditorView: View {
     @State private var noteTag: String
     @State private var noteText: String
     @State private var iconPath: String
+    @State private var showStaleWarning = false
+    @State private var pendingSaveAction: (() -> Void)?
     
     let availableTags = ["", "⭐", "🏆", "🧪", "❤️", "💎", "📅"]
     
@@ -732,7 +700,7 @@ struct SaveEditorView: View {
                     }
                     
                     Button(vm.L(L10n.Saves.saveInventory)) {
-                        vm.saveInventory()
+                        confirmedOrWarn(vm.saveInventory)
                     }
                     .buttonStyle(.borderedProminent)
                     .padding(.top, 8)
@@ -761,17 +729,7 @@ struct SaveEditorView: View {
                 Spacer()
                 
                 Button(vm.L(L10n.Saves.saveChanges)) {
-                    let newMoney = Int(moneyStr) ?? save.money
-                    let newTotalMoneyEarned = Int(totalMoneyEarnedStr) ?? save.totalMoneyEarned
-                    let newHealth = Int(maxHealthStr) ?? save.maxHealth
-                    let newStam = Int(maxStaminaStr) ?? save.maxStamina
-                    let newWalnuts = Int(goldenWalnutsStr) ?? save.goldenWalnuts
-                    let newQi = Int(qiGemsStr) ?? save.qiGems
-                    let newClub = Int(clubCoinsStr) ?? save.clubCoins
-                    
-                    vm.setNote(for: save.folderName, tag: noteTag, note: noteText)
-                    vm.editSave(info: save, newName: name, newFarm: farm, newFav: fav, newMoney: newMoney, newTotalMoneyEarned: newTotalMoneyEarned, newMaxHealth: newHealth, newMaxStamina: newStam, newGoldenWalnuts: newWalnuts, newQiGems: newQi, newClubCoins: newClub, newSpouse: spouse)
-                    vm.editingSave = nil
+                    confirmedOrWarn(performSave)
                 }
                 .keyboardShortcut(.defaultAction)
                 .buttonStyle(BorderedProminentButtonStyle())
@@ -779,5 +737,48 @@ struct SaveEditorView: View {
             .padding(20)
         }
         .background(Color(nsColor: .controlBackgroundColor))
+        .alert(isPresented: $showStaleWarning) {
+            Alert(
+                title: Text(vm.L(L10n.Saves.confirmStaleEdit)),
+                message: Text(vm.L(L10n.Saves.confirmStaleEditMsg)),
+                primaryButton: .destructive(Text(vm.L(L10n.Saves.overwriteAnyway))) {
+                    pendingSaveAction?()
+                    pendingSaveAction = nil
+                },
+                secondaryButton: .cancel(Text(vm.L(L10n.Saves.cancel))) {
+                    pendingSaveAction = nil
+                }
+            )
+        }
+    }
+
+    /// Runs `action` immediately, unless the save may have changed on disk
+    /// or Stardew Valley appears to be running — in which case `action` is
+    /// deferred until the user confirms through the warning alert. Shared by
+    /// every write path in this editor (field edits, inventory) so none of
+    /// them can silently overwrite newer progress or race the game's autosave.
+    private func confirmedOrWarn(_ action: @escaping () -> Void) {
+        if vm.isSaveStale(save) || vm.isGameRunning() {
+            pendingSaveAction = action
+            showStaleWarning = true
+        } else {
+            action()
+        }
+    }
+
+    /// Writes the form's current field values to the save file. Go through
+    /// `confirmedOrWarn` rather than calling this directly.
+    private func performSave() {
+        let newMoney = Int(moneyStr) ?? save.money
+        let newTotalMoneyEarned = Int(totalMoneyEarnedStr) ?? save.totalMoneyEarned
+        let newHealth = Int(maxHealthStr) ?? save.maxHealth
+        let newStam = Int(maxStaminaStr) ?? save.maxStamina
+        let newWalnuts = Int(goldenWalnutsStr) ?? save.goldenWalnuts
+        let newQi = Int(qiGemsStr) ?? save.qiGems
+        let newClub = Int(clubCoinsStr) ?? save.clubCoins
+
+        vm.setNote(for: save.folderName, tag: noteTag, note: noteText)
+        vm.editSave(info: save, newName: name, newFarm: farm, newFav: fav, newMoney: newMoney, newTotalMoneyEarned: newTotalMoneyEarned, newMaxHealth: newHealth, newMaxStamina: newStam, newGoldenWalnuts: newWalnuts, newQiGems: newQi, newClubCoins: newClub, newSpouse: spouse)
+        vm.editingSave = nil
     }
 }

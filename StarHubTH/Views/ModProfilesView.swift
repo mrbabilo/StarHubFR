@@ -91,48 +91,53 @@ struct ProfileRow: View {
     @State private var isHovered = false
     
     var body: some View {
-        HStack(spacing: 14) {
-            // Circular Avatar
-            ZStack {
-                Circle()
-                    .fill(isActive ? Color.accentColor : Color.gray.opacity(0.3))
-                    .frame(width: 40, height: 40)
-                
-                Text(String(profile.name.prefix(1)).uppercased())
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundColor(isActive ? .white : .primary)
-            }
-            
-            // Text
-            VStack(alignment: .leading, spacing: 2) {
-                Text(profile.name)
-                    .font(.system(size: 14, weight: .regular))
-                    .foregroundColor(.primary)
-                Text(vm.L(isActive ? L10n.Profiles.inUse : L10n.Profiles.inactive))
-                    .font(.system(size: 12))
-                    .foregroundColor(isActive ? .secondary : .secondary)
-            }
-            
-            Spacer()
-            
-            // Info button (or delete)
-            Button(action: {
-                selectedProfileForDetail = profile
-            }) {
-                Image(systemName: "info.circle")
-                    .font(.system(size: 16))
-                    .foregroundColor(.secondary)
-            }
-            .buttonStyle(.plain)
-            .help(vm.L(L10n.Profiles.viewDetails))
-        }
-        .padding(.vertical, 12)
-        .padding(.horizontal, 16)
-        .contentShape(Rectangle())
-        .background(isHovered ? Color.primary.opacity(0.05) : Color.clear)
-        .onTapGesture {
+        // A plain Button for the whole row (rather than .onTapGesture) so the
+        // nested info Button correctly claims its own tap instead of also
+        // triggering the row's applyProfile action underneath it.
+        Button(action: {
             vm.applyProfile(id: profile.id)
+        }) {
+            HStack(spacing: 14) {
+                // Circular Avatar
+                ZStack {
+                    Circle()
+                        .fill(isActive ? Color.accentColor : Color.gray.opacity(0.3))
+                        .frame(width: 40, height: 40)
+
+                    Text(String(profile.name.prefix(1)).uppercased())
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundColor(isActive ? .white : .primary)
+                }
+
+                // Text
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(profile.name)
+                        .font(.system(size: 14, weight: .regular))
+                        .foregroundColor(.primary)
+                    Text(vm.L(isActive ? L10n.Profiles.inUse : L10n.Profiles.inactive))
+                        .font(.system(size: 12))
+                        .foregroundColor(isActive ? .secondary : .secondary)
+                }
+
+                Spacer()
+
+                // Info button (or delete)
+                Button(action: {
+                    selectedProfileForDetail = profile
+                }) {
+                    Image(systemName: "info.circle")
+                        .font(.system(size: 16))
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help(vm.L(L10n.Profiles.viewDetails))
+            }
+            .padding(.vertical, 12)
+            .padding(.horizontal, 16)
+            .contentShape(Rectangle())
+            .background(isHovered ? Color.primary.opacity(0.05) : Color.clear)
         }
+        .buttonStyle(.plain)
         .onHover { hovering in
             isHovered = hovering
         }
@@ -150,11 +155,11 @@ struct ProfileDetailSheet: View {
 
     /// Mods for the checklist — top-level groups and standalone mods only.
     /// Groups show as a single row; toggling a group toggles all its children.
-    private var flatMods: [ModItem] {
-        vm.mods
-            .filter { !$0.uniqueId.isEmpty || $0.isGroup }
-            .sorted { $0.name.lowercased() < $1.name.lowercased() }
-    }
+    /// Computed once in onAppear rather than as a live computed property —
+    /// vm.mods doesn't change while this sheet is open, so recomputing the
+    /// filter+sort on every checkbox tap (each of which re-renders this
+    /// view via editedEnabledMods) would be wasted work.
+    @State private var flatMods: [ModItem] = []
 
     /// All uniqueIds covered by a ModItem (group = all children's ids, single mod = its own id).
     private func idsFor(_ mod: ModItem) -> [String] {
@@ -345,6 +350,9 @@ struct ProfileDetailSheet: View {
         .background(Color(nsColor: .windowBackgroundColor))
         .onAppear {
             editName = profile.name
+            flatMods = vm.mods
+                .filter { !$0.uniqueId.isEmpty || $0.isGroup }
+                .sorted { $0.name.lowercased() < $1.name.lowercased() }
             // If this is the active profile, reflect actual filesystem state
             if vm.activeProfileId == profile.id {
                 editedEnabledMods = Set(

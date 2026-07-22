@@ -5,7 +5,6 @@ struct StarHubTHApp: App {
     init() {
         if let currentLang = UserDefaults.standard.string(forKey: "currentLanguage") {
             UserDefaults.standard.set([currentLang], forKey: "AppleLanguages")
-            UserDefaults.standard.synchronize()
         }
     }
     

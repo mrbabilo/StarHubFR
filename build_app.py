@@ -3,7 +3,7 @@ import os
 import shutil
 import glob
 import subprocess
-import plistlib
+import sys
 import json
 
 APP_NAME = "StarHubTH"
@@ -105,20 +105,20 @@ def create_app_bundle():
                 
     if not swift_files:
         print("[ERROR] No Swift source files (.swift) found.")
-        return
-        
+        sys.exit(1)
+
     print(f"[INFO] Compiling Swift code ({len(swift_files)} files)...")
     swiftc_cmd = ["swiftc"] + swift_files + [
         "-o", app_executable,
         "-parse-as-library",
         "-module-cache-path", module_cache_dir,
     ]
-    
+
     # Run compiler
     result = subprocess.run(swiftc_cmd)
     if result.returncode != 0:
         print("[ERROR] Swift compilation failed.")
-        return
+        sys.exit(1)
         
     # 5. Ad-hoc codesign to make it run locally without Gatekeeper blocking
     print("[INFO] Signing application (Codesign)...")

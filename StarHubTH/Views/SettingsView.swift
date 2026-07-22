@@ -2,11 +2,15 @@ import SwiftUI
 
 struct SettingsView: View {
     @ObservedObject var vm: StarHubTHViewModel
-    
+
     @AppStorage("launchProfile") private var launchProfile: String = "SMAPI"
     @AppStorage("closeAfterLaunch") private var closeAfterLaunch: Bool = false
     @AppStorage("appColorScheme") private var appColorScheme: String = "System"
     @AppStorage("showDeveloperLogs") private var showDeveloperLogs: Bool = false
+
+    // Nexus Mods API key entry (only used when no key is stored yet).
+    @State private var nexusApiKeyInput: String = ""
+    @State private var nexusKeySavedFlash: Bool = false
     
     var body: some View {
         ScrollView {
@@ -112,8 +116,6 @@ struct SettingsView: View {
                             }
                             .pickerStyle(SegmentedPickerStyle())
                             .fixedSize()
-                            
-                            InfoPopoverButton(text: vm.L(L10n.Settings.selectLanguage))
                         }
                         
                         Divider().padding(.leading, 0)
@@ -181,6 +183,83 @@ struct SettingsView: View {
                             .foregroundColor(.red)
                             
                             InfoPopoverButton(text: vm.L(L10n.Settings.clearDisabledMods), color: .red.opacity(0.8))
+                        }
+                    }
+                }
+
+                // ── Nexus Mods ──
+                StandardSection(
+                    title: vm.L(L10n.Settings.nexusMods),
+                    footer: vm.L(L10n.Settings.nexusApiKeyHint)
+                ) {
+                    VStack(alignment: .leading, spacing: 16) {
+                        if vm.hasNexusApiKey {
+                            // Key stored — offer removal and link to fetch another.
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(vm.L(L10n.Settings.nexusApiKey))
+                                        .font(.system(size: 13))
+                                    Text("••••••••••••")
+                                        .font(.system(size: 12, design: .monospaced))
+                                        .foregroundColor(.secondary)
+                                }
+                                Spacer()
+                                Button(action: {
+                                    if let url = URL(string: "https://www.nexusmods.com/users/myaccount?tab=api") {
+                                        NSWorkspace.shared.open(url)
+                                    }
+                                }) {
+                                    Text(vm.L(L10n.Settings.nexusGetKey))
+                                }
+                                Button(role: .destructive, action: {
+                                    vm.clearNexusApiKey()
+                                }) {
+                                    Text(vm.L(L10n.Settings.nexusClearKey))
+                                }
+                            }
+                        } else {
+                            // No key yet — secure field + save action.
+                            VStack(alignment: .leading, spacing: 8) {
+                                SecureField(vm.L(L10n.Settings.nexusKeyPlaceholder), text: $nexusApiKeyInput)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .font(.system(size: 12, design: .monospaced))
+                                    .autocorrectionDisabled(true)
+                                    .textContentType(.password)
+
+                                HStack {
+                                    Button(action: {
+                                        if let url = URL(string: "https://www.nexusmods.com/users/myaccount?tab=api") {
+                                            NSWorkspace.shared.open(url)
+                                        }
+                                    }) {
+                                        Text(vm.L(L10n.Settings.nexusGetKey))
+                                    }
+
+                                    Spacer()
+
+                                    if nexusKeySavedFlash {
+                                        Text(vm.L(L10n.Settings.nexusKeySaved))
+                                            .font(.system(size: 11))
+                                            .foregroundColor(.green)
+                                            .transition(.opacity)
+                                    }
+
+                                    Button {
+                                        let trimmed = nexusApiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines)
+                                        guard !trimmed.isEmpty else { return }
+                                        vm.setNexusApiKey(trimmed)
+                                        nexusApiKeyInput = ""
+                                        withAnimation { nexusKeySavedFlash = true }
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                            withAnimation { nexusKeySavedFlash = false }
+                                        }
+                                    } label: {
+                                        Text(vm.L(L10n.Settings.nexusSaveKey))
+                                    }
+                                    .buttonStyle(.borderedProminent)
+                                    .disabled(nexusApiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                                }
+                            }
                         }
                     }
                 }

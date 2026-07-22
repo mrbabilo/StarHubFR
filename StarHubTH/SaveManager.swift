@@ -10,22 +10,6 @@ struct SaveBackup: Identifiable, Equatable {
     let folderPath: URL
     let timestamp: Date
     let saveFolder: String   // parent save folder name
-
-    var formattedDate: String {
-        let f = DateFormatter()
-        f.dateStyle = .medium
-        f.timeStyle = .short
-        f.locale = Locale.current
-        return f.string(from: timestamp)
-    }
-
-    var relativeLabel: String {
-        let secs = Date().timeIntervalSince(timestamp)
-        if secs < 60 { return "เมื่อสักครู่" }
-        if secs < 3600 { return "\(Int(secs/60)) นาทีที่แล้ว" }
-        if secs < 86400 { return "\(Int(secs/3600)) ชั่วโมงที่แล้ว" }
-        return "\(Int(secs/86400)) วันที่แล้ว"
-    }
 }
 
 struct SaveNote: Codable {
@@ -140,9 +124,29 @@ struct SaveGameInfo: Identifiable, Equatable, Hashable {
 
 class SaveManager {
     static let shared = SaveManager()
-    
+
     private let savesDir: URL
-    
+
+    /// Cache of compiled regexes for `<tag>([^<]+)</tag>` keyed by tag name.
+    /// `NSRegularExpression` compilation is expensive; `fetchSaves()` parses ~14
+    /// tags per save file, so caching avoids recompiling the same pattern hundreds
+    /// of times across reloads.
+    private static var regexCache: [String: NSRegularExpression] = [:]
+    private static let regexCacheLock = NSLock()
+
+    private static func cachedRegex(for tag: String) -> NSRegularExpression? {
+        Self.regexCacheLock.lock()
+        let cached = Self.regexCache[tag]
+        Self.regexCacheLock.unlock()
+        if let cached = cached { return cached }
+        let pattern = "<\(tag)>([^<]+)</\(tag)>"
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else { return nil }
+        Self.regexCacheLock.lock()
+        Self.regexCache[tag] = regex
+        Self.regexCacheLock.unlock()
+        return regex
+    }
+
     init() {
         let homeDir = FileManager.default.homeDirectoryForCurrentUser
         self.savesDir = homeDir.appendingPathComponent(".config/StardewValley/Saves")
@@ -226,9 +230,8 @@ class SaveManager {
         // The player's name is usually the first <name> inside <player>.
         // A simple regex might catch the first one which is player name, but let's be careful.
         // Actually, player money is <money>, farm name is <farmName>. They are unique or first.
-        
-        let pattern = "<\(tag)>([^<]+)</\(tag)>"
-        guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else { return nil }
+
+        guard let regex = Self.cachedRegex(for: tag) else { return nil }
         let range = NSRange(xml.startIndex..<xml.endIndex, in: xml)
         if let match = regex.firstMatch(in: xml, options: [], range: range) {
             if let swiftRange = Range(match.range(at: 1), in: xml) {
@@ -325,17 +328,17 @@ class SaveManager {
         guard var content = try? String(contentsOf: info.fileURL, encoding: .utf8) else { return false }
         
         // Replace values using regex
-        content = replaceFirstTag(tag: "name", with: newName, in: content)
-        content = replaceFirstTag(tag: "farmName", with: newFarm, in: content)
-        content = replaceFirstTag(tag: "favoriteThing", with: newFav, in: content)
-        content = replaceFirstTag(tag: "money", with: "\(newMoney)", in: content)
-        content = replaceFirstTag(tag: "totalMoneyEarned", with: "\(newTotalMoneyEarned)", in: content)
-        
-        content = replaceFirstTag(tag: "maxHealth", with: "\(newMaxHealth)", in: content)
-        content = replaceFirstTag(tag: "maxStamina", with: "\(newMaxStamina)", in: content)
-        content = replaceFirstTag(tag: "goldenWalnuts", with: "\(newGoldenWalnuts)", in: content)
-        content = replaceFirstTag(tag: "qiGems", with: "\(newQiGems)", in: content)
-        content = replaceFirstTag(tag: "clubCoins", with: "\(newClubCoins)", in: content)
+        content = replaceFirstTagInPlayer(tag: "name", with: newName, in: content)
+        content = replaceFirstTagInPlayer(tag: "farmName", with: newFarm, in: content)
+        content = replaceFirstTagInPlayer(tag: "favoriteThing", with: newFav, in: content)
+        content = replaceFirstTagInPlayer(tag: "money", with: "\(newMoney)", in: content)
+        content = replaceFirstTagInPlayer(tag: "totalMoneyEarned", with: "\(newTotalMoneyEarned)", in: content)
+
+        content = replaceFirstTagInPlayer(tag: "maxHealth", with: "\(newMaxHealth)", in: content)
+        content = replaceFirstTagInPlayer(tag: "maxStamina", with: "\(newMaxStamina)", in: content)
+        content = replaceFirstTagInPlayer(tag: "goldenWalnuts", with: "\(newGoldenWalnuts)", in: content)
+        content = replaceFirstTagInPlayer(tag: "qiGems", with: "\(newQiGems)", in: content)
+        content = replaceFirstTagInPlayer(tag: "clubCoins", with: "\(newClubCoins)", in: content)
         
         let oldSpouse = info.spouse   // NPC name before the edit
         
@@ -363,7 +366,44 @@ class SaveManager {
     /// Changes inside the NPC's `<Friendship>` block (inside a `<key><string>NpcName</string></key>` item):
     ///   - `<Status>Married</Status>`  →  `<Status>Friendly</Status>`
     ///   - `<WeddingDate>...</WeddingDate>` block is removed entirely
+    ///
+    /// Scoped to the `<player>` block (and `<friendshipData>` within it when
+    /// present) so this can't match a farmhand's own friendship data or an
+    /// unrelated `<string>NpcName</string>` occurrence elsewhere in the save.
     private func cleanDivorceNPCFriendship(npcName: String, in xml: String) -> String {
+        guard let playerStartRange = xml.range(of: "<player>"),
+              let playerEndRange = xml.range(of: "</player>", range: playerStartRange.upperBound..<xml.endIndex) else {
+            print("[Divorce] Could not find <player> block")
+            return xml
+        }
+
+        let beforePlayer = String(xml[..<playerStartRange.lowerBound])
+        let playerBlock  = String(xml[playerStartRange.lowerBound..<playerEndRange.upperBound])
+        let afterPlayer  = String(xml[playerEndRange.upperBound...])
+
+        let updatedPlayerBlock = cleanDivorceNPCFriendshipInScope(npcName: npcName, in: playerBlock)
+        return beforePlayer + updatedPlayerBlock + afterPlayer
+    }
+
+    /// Narrows further to `<friendshipData>...</friendshipData>` when present,
+    /// then delegates to `cleanDivorceNPCFriendshipEntry` for the actual edit.
+    private func cleanDivorceNPCFriendshipInScope(npcName: String, in xml: String) -> String {
+        guard let fdStartRange = xml.range(of: "<friendshipData>"),
+              let fdEndRange = xml.range(of: "</friendshipData>", range: fdStartRange.upperBound..<xml.endIndex) else {
+            // friendshipData tag not found under this name in this save version — operate on the player block itself.
+            return cleanDivorceNPCFriendshipEntry(npcName: npcName, in: xml)
+        }
+
+        let before = String(xml[..<fdStartRange.lowerBound])
+        let fdBlock = String(xml[fdStartRange.lowerBound..<fdEndRange.upperBound])
+        let after  = String(xml[fdEndRange.upperBound...])
+
+        return before + cleanDivorceNPCFriendshipEntry(npcName: npcName, in: fdBlock) + after
+    }
+
+    /// Locates the `<item>` block keyed by `npcName` within the given scope
+    /// and applies the Married→Friendly / WeddingDate-removal edit to it.
+    private func cleanDivorceNPCFriendshipEntry(npcName: String, in xml: String) -> String {
         // We locate the <item> block that belongs to this NPC.
         // Structure: <item><key><string>NpcName</string></key><value><Friendship>...</Friendship></value></item>
         let keyMarker = "<string>\(npcName)</string>"
@@ -371,29 +411,29 @@ class SaveManager {
             print("[Divorce] Could not find friendship entry for \(npcName)")
             return xml
         }
-        
+
         // Find the enclosing <item>...</item> that contains this key
         let beforeKey = String(xml[..<keyRange.lowerBound])
         guard let itemStart = beforeKey.range(of: "<item>", options: .backwards) else {
             print("[Divorce] Could not find <item> before key for \(npcName)")
             return xml
         }
-        
+
         let itemStartIdx = itemStart.lowerBound
         guard let itemEnd = xml.range(of: "</item>", range: keyRange.upperBound..<xml.endIndex) else {
             print("[Divorce] Could not find </item> after key for \(npcName)")
             return xml
         }
-        
+
         let itemEndIdx = itemEnd.upperBound
-        
+
         let beforeItem = String(xml[..<itemStartIdx])
         var itemBlock  = String(xml[itemStartIdx..<itemEndIdx])
         let afterItem  = String(xml[itemEndIdx...])
-        
+
         // 1. Change <Status>Married</Status> → <Status>Friendly</Status>
         itemBlock = itemBlock.replacingOccurrences(of: "<Status>Married</Status>", with: "<Status>Friendly</Status>")
-        
+
         // 2. Remove <WeddingDate>...</WeddingDate> (multiline/nested block)
         //    Pattern matches <WeddingDate> followed by any content up to </WeddingDate>
         if let wdRegex = try? NSRegularExpression(pattern: "<WeddingDate>.*?</WeddingDate>", options: .dotMatchesLineSeparators) {
@@ -404,10 +444,37 @@ class SaveManager {
                 withTemplate: ""
             )
         }
-        
+
         return beforeItem + itemBlock + afterItem
     }
 
+
+    /// Like replaceFirstTag, but scoped to the <player> block so it can't
+    /// accidentally match an NPC's, farmhand's (<Farmer> in <farmhands>), or
+    /// location's identically named tag that happens to appear earlier in
+    /// the file than the intended player field.
+    ///
+    /// Falls back to whole-file replacement if the <player> block can't be
+    /// found, or if the tag doesn't appear inside it — some save fields
+    /// (e.g. goldenWalnuts, which is farm-wide) live outside <player>, and
+    /// those must remain editable rather than silently no-op.
+    private func replaceFirstTagInPlayer(tag: String, with value: String, in xml: String) -> String {
+        guard let playerStartRange = xml.range(of: "<player>"),
+              let playerEndRange = xml.range(of: "</player>", range: playerStartRange.upperBound..<xml.endIndex) else {
+            return replaceFirstTag(tag: tag, with: value, in: xml)
+        }
+
+        let beforePlayer = String(xml[..<playerStartRange.lowerBound])
+        let playerBlock  = String(xml[playerStartRange.lowerBound..<playerEndRange.upperBound])
+        let afterPlayer  = String(xml[playerEndRange.upperBound...])
+
+        guard playerBlock.contains("<\(tag)>") else {
+            return replaceFirstTag(tag: tag, with: value, in: xml)
+        }
+
+        let updatedPlayer = replaceFirstTag(tag: tag, with: value, in: playerBlock)
+        return beforePlayer + updatedPlayer + afterPlayer
+    }
 
     private func replaceFirstTag(tag: String, with value: String, in xml: String) -> String {
         let pattern = "(<\(tag)>)([^<]+)(</\(tag)>)"
@@ -471,77 +538,58 @@ class SaveManager {
         }
     }
 
-    func duplicateSave(info: SaveGameInfo, newName: String, newFarm: String) -> Bool {
+    /// Copies `sourceFolder` (a save's own folder or a backup's folder) into
+    /// a new sibling folder named "<baseName>_<suffix>" (appending "_2",
+    /// "_3"... on collision), renames the internal save file to match, and
+    /// patches its name/farm-name XML fields. Shared by duplicateSave and
+    /// branchFromBackup, which differ only in where sourceFolder/baseName
+    /// come from.
+    private func cloneSaveFolder(sourceFolder: URL, baseName: String, suffix: String, newPlayerName: String, newFarmName: String, context: String) -> Bool {
         let fm = FileManager.default
-        let folderPath = info.fileURL.deletingLastPathComponent()
-        let saveName = folderPath.lastPathComponent
-        
-        var newSaveName = "\(saveName)_copy"
-        var newFolderPath = folderPath.deletingLastPathComponent().appendingPathComponent(newSaveName)
-        
+        let parentDir = sourceFolder.deletingLastPathComponent()
+
+        var newSaveName = "\(baseName)_\(suffix)"
+        var newFolderPath = parentDir.appendingPathComponent(newSaveName)
+
         var counter = 1
         while fm.fileExists(atPath: newFolderPath.path) {
-            newSaveName = "\(saveName)_copy_\(counter)"
-            newFolderPath = folderPath.deletingLastPathComponent().appendingPathComponent(newSaveName)
+            newSaveName = "\(baseName)_\(suffix)_\(counter)"
+            newFolderPath = parentDir.appendingPathComponent(newSaveName)
             counter += 1
         }
-        
+
         do {
-            try fm.copyItem(at: folderPath, to: newFolderPath)
-            
+            try fm.copyItem(at: sourceFolder, to: newFolderPath)
+
             // Rename internal file
-            let oldFilePath = newFolderPath.appendingPathComponent(saveName)
+            let oldFilePath = newFolderPath.appendingPathComponent(baseName)
             let newFilePath = newFolderPath.appendingPathComponent(newSaveName)
             if fm.fileExists(atPath: oldFilePath.path) {
                 try fm.moveItem(at: oldFilePath, to: newFilePath)
             }
-            
+
             // Modify name and farm name inside XML files
-            modifyInternalSaveNames(in: newFolderPath, newSaveName: newSaveName, newPlayerName: newName, newFarmName: newFarm)
-            
+            modifyInternalSaveNames(in: newFolderPath, newSaveName: newSaveName, newPlayerName: newPlayerName, newFarmName: newFarmName)
+
             return true
         } catch {
-            print("Failed to duplicate save: \(error)")
+            print("Failed to \(context): \(error)")
             return false
         }
     }
 
+    func duplicateSave(info: SaveGameInfo, newName: String, newFarm: String) -> Bool {
+        let folderPath = info.fileURL.deletingLastPathComponent()
+        let saveName = folderPath.lastPathComponent
+        return cloneSaveFolder(sourceFolder: folderPath, baseName: saveName, suffix: "copy", newPlayerName: newName, newFarmName: newFarm, context: "duplicate save")
+    }
+
     // MARK: - Backup Timeline
-    
+
     func branchFromBackup(backup: SaveBackup, newName: String, newFarm: String) -> Bool {
-        let fm = FileManager.default
         let backupFolderPath = backup.folderPath
         let originalSaveName = String(backupFolderPath.lastPathComponent.split(separator: ".")[0])
-        let parentDir = backupFolderPath.deletingLastPathComponent()
-        
-        var newSaveName = "\(originalSaveName)_branch"
-        var newFolderPath = parentDir.appendingPathComponent(newSaveName)
-        
-        var counter = 1
-        while fm.fileExists(atPath: newFolderPath.path) {
-            newSaveName = "\(originalSaveName)_branch_\(counter)"
-            newFolderPath = parentDir.appendingPathComponent(newSaveName)
-            counter += 1
-        }
-        
-        do {
-            try fm.copyItem(at: backupFolderPath, to: newFolderPath)
-            
-            // Rename internal file
-            let oldFilePath = newFolderPath.appendingPathComponent(originalSaveName)
-            let newFilePath = newFolderPath.appendingPathComponent(newSaveName)
-            if fm.fileExists(atPath: oldFilePath.path) {
-                try fm.moveItem(at: oldFilePath, to: newFilePath)
-            }
-            
-            // Modify name and farm name inside XML files
-            modifyInternalSaveNames(in: newFolderPath, newSaveName: newSaveName, newPlayerName: newName, newFarmName: newFarm)
-            
-            return true
-        } catch {
-            print("Failed to branch backup: \(error)")
-            return false
-        }
+        return cloneSaveFolder(sourceFolder: backupFolderPath, baseName: originalSaveName, suffix: "branch", newPlayerName: newName, newFarmName: newFarm, context: "branch backup")
     }
 
     /// List all `.backup_*` sibling folders for a given save
@@ -588,25 +636,58 @@ class SaveManager {
         let preRestoreBackupPath = saveFolder
             .deletingLastPathComponent()
             .appendingPathComponent("\(saveFolder.lastPathComponent).backup_\(timestamp)")
+        let tempTrash = saveFolder.deletingLastPathComponent()
+            .appendingPathComponent("\(saveFolder.lastPathComponent)_RESTORING_TEMP")
+
+        // A previous restore attempt that failed before reaching cleanup can
+        // leave `tempTrash` behind, which would make `moveItem` below refuse
+        // to overwrite it. Clear it first — anything in it is already
+        // superseded by `preRestoreBackupPath` copies from those attempts.
+        if fm.fileExists(atPath: tempTrash.path) {
+            try? fm.removeItem(at: tempTrash)
+        }
+
+        // Tracks whether the live save folder has been moved aside to
+        // `tempTrash` yet, so a failure after that point can move it back
+        // instead of leaving the path the game expects to find empty.
+        var liveFolderMovedAside = false
+        // Set once the backup has actually been copied into `saveFolder`.
+        // Only failures *before* this point should trigger the rollback —
+        // a failure afterward (e.g. trashing the now-redundant temp copy)
+        // must not undo a restore that already succeeded.
+        var restoreCompleted = false
 
         do {
             // Backup current state
             try fm.copyItem(at: saveFolder, to: preRestoreBackupPath)
 
             // Remove current save folder content (move to trash first, then restore)
-            let tempTrash = saveFolder.deletingLastPathComponent()
-                .appendingPathComponent("\(saveFolder.lastPathComponent)_RESTORING_TEMP")
             try fm.moveItem(at: saveFolder, to: tempTrash)
+            liveFolderMovedAside = true
 
             // Copy backup into place
             try fm.copyItem(at: backup.folderPath, to: saveFolder)
+            restoreCompleted = true
 
-            // Trash the temp
-            try fm.trashItem(at: tempTrash, resultingItemURL: nil)
+            // Trash the temp. Non-fatal: the restore already succeeded, so a
+            // failure here just leaves `tempTrash` for next time to clean up
+            // (see the check at the top of this function) rather than
+            // reverting a completed restore.
+            try? fm.trashItem(at: tempTrash, resultingItemURL: nil)
 
             return true
         } catch {
             print("Failed to restore backup: \(error)")
+            if liveFolderMovedAside && !restoreCompleted {
+                // Put the live save back where the game expects it. Clear
+                // any partial folder a failed copy may have left behind
+                // first — moveItem refuses to overwrite an existing
+                // destination.
+                if fm.fileExists(atPath: saveFolder.path) {
+                    try? fm.removeItem(at: saveFolder)
+                }
+                try? fm.moveItem(at: tempTrash, to: saveFolder)
+            }
             return false
         }
     }

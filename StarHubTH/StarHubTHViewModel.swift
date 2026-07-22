@@ -27,10 +27,19 @@ struct ModItem: Identifiable, Equatable {
     let author: String
     let description: String
     let nexusUrl: String
+    /// Numeric Nexus Mods mod id parsed from `UpdateKeys: ["nexus:191"]` in the
+    /// mod manifest. Empty when the mod doesn't declare a Nexus update key.
+    let nexusModId: String
     var isEnabled: Bool
     let dependencies: [ModDependency]
     var children: [ModItem]?
     var isGroup: Bool = false
+    /// Content-modification date of the mod's `manifest.json` on disk, captured
+    /// at scan time. Used to detect same-version updates: when the installed
+    /// version equals the Nexus latest but the Nexus upload is newer than this
+    /// file, the installed copy is stale and an update is offered. `nil` for
+    /// group headers and when the date can't be read.
+    var installedFileDate: Date? = nil
 }
 
 struct ModUpdateInfo: Identifiable, Equatable {
@@ -109,6 +118,12 @@ struct LogEntry: Identifiable {
     let level: LogLevel
     let source: LogSource
     var modName: String? = nil
+
+    /// The plain-text line used by both "copy all" and "copy line" in
+    /// LogsView, so the two can't format entries differently.
+    var formattedLine: String {
+        "[\(timestamp)] [\(level.rawValue)] \(message)"
+    }
 }
 
 enum SaveViewMode: String, Codable {
@@ -127,32 +142,114 @@ class StarHubTHViewModel: ObservableObject {
     @Published var saveSortOption: SaveSortOption = .lastPlayed
     @Published var saveFilterTag: String = ""
 
+    // Does NOT auto-refresh on set — every call site that changes `gameDir`
+    // (init, selectGameDir) calls `refresh()` itself, exactly once. This
+    // used to auto-refresh here *and* have callers refresh again right
+    // after, firing two overlapping background scans that both read/write
+    // `gameDir` and `self.mods` with no synchronization between them.
     @Published var gameDir: String = "" {
         didSet {
             UserDefaults.standard.set(gameDir, forKey: "gameDir")
-            self.refresh()
         }
     }
     
     @Published var outOfDateMods: [ModUpdateInfo] = []
     @Published var smapiErrors: [String] = []
     @Published var showSmapiAlerts: Bool = false
-    
+
+    /// Mods with an available update on Nexus Mods (from last user-triggered check).
+    @Published var nexusUpdates: [NexusUpdateChecker.ModUpdate] = []
+    /// True while a Nexus check is in flight.
+    @Published var isCheckingNexusUpdates: Bool = false
+    /// Last error message from a Nexus check (nil = none / not run yet).
+    @Published var nexusCheckError: String? = nil
+    /// Progress of the in-flight Nexus check: `(done, total)`. `nil` when idle.
+    @Published var nexusCheckProgress: (done: Int, total: Int)? = nil
+    /// Whether the user has provided a Nexus API key (kept in sync with Keychain).
+    @Published var hasNexusApiKey: Bool = false
+    /// `{ nexusModId: categoryId }` map populated from each Nexus check.
+    /// Survives launches (cached in UserDefaults) so the mods-list category
+    /// filter works even before the user re-checks. Mods without a known
+    /// category simply don't appear under any category scope.
+    @Published var nexusCategories: [String: Int] = [:] {
+        didSet { categoryCache.removeAll() }
+    }
+
+    /// `{ nexusModId: NexusModExtra }` map (summary + primary picture URL)
+    /// populated alongside `nexusCategories` from the same API response.
+    /// Survives launches (cached in UserDefaults). Powers the preview shown
+    /// in the mod details popover.
+    @Published var nexusModExtras: [String: NexusUpdateChecker.NexusModExtra] = [:]
+
+    /// User-assigned category overrides keyed by mod `folderName` (= `ModItem.id`).
+    /// A non-nil entry takes precedence over anything fetched from the Nexus API,
+    /// which lets the user categorize mods that have no `nexus:` UpdateKey (and
+    /// therefore no category_id from the API) as well as correct wrong automatic
+    /// assignments. Persisted in UserDefaults so it survives rescans / launches.
+    @Published var nexusCustomCategories: [String: Int] = [:] {
+        didSet { categoryCache.removeAll() }
+    }
+
+    /// User-assigned Nexus mod id overrides keyed by mod `folderName`. Used to
+    /// give a Nexus link to mods that don't declare a `nexus:<id>` UpdateKey in
+    /// their manifest. When present, it also feeds back into the update check so
+    /// the manually-linked mod can be checked for updates like any other.
+    @Published var nexusCustomModIds: [String: String] = [:] {
+        didSet { categoryCache.removeAll() }
+    }
+
+    /// `{ folderName: lastActivatedDate }` — stamped every time a mod (or a
+    /// whole pack, which moves as a single folder) transitions from
+    /// disabled to enabled, in `toggleMod()` and
+    /// `applyProfileToFilesystem()`. Never touched on disable — it records
+    /// the *last activation*, not the last state change. Drives the
+    /// "Activation order" sort in the mods list. Persisted in UserDefaults.
+    @Published var modActivationTimestamps: [String: Date] = [:]
+
     @Published var smapiInstalledVersion: String? = nil   // nil = not installed
-    @Published var mods: [ModItem] = []
+    @Published var mods: [ModItem] = [] {
+        didSet { categoryCache.removeAll() }
+    }
+    /// Cache for `category(for:)`, invalidated whenever `mods`,
+    /// `nexusCategories`, `nexusCustomCategories`, or `nexusCustomModIds`
+    /// change. Without it, a group's dominant-category scan over its
+    /// children re-ran on every call (badge, filter, `availableCategories`,
+    /// counts) within the same render.
+    private var categoryCache: [String: NexusCategory?] = [:]
+
+    /// Top-level enabled mods (packs included as their own header entry).
+    /// Feeds `ModConfigBackupManager`, which resolves each pack's enabled
+    /// children itself — this stays a simple top-level filter.
+    var enabledMods: [ModItem] {
+        mods.filter { $0.isEnabled }
+    }
+
+    /// Lowercased set of every installed mod's UniqueID (including group children).
+    /// Rebuilt in `scanMods()` so that `getMissingDependencies(for:)` stays O(deps)
+    /// instead of rebuilding the set on every row render.
+    private var installedUniqueIds: Set<String> = []
+
+    /// Lowercased UniqueID → enabled state, rebuilt alongside `installedUniqueIds`.
+    /// Used by `getDisabledDependencies(for:)` to flag required deps that are
+    /// installed but currently disabled (a real problem for the mod that needs them).
+    private var installedModStates: [String: Bool] = [:]
     
     // Thai Translation Hub State
     @Published var thaiTranslations: [ThaiTranslationMod] = []
+    /// Set when fetchThaiTranslations() fails (network error, bad response,
+    /// unparseable content) — lets the hub show a retry state instead of
+    /// spinning forever, since thaiTranslations staying empty is otherwise
+    /// indistinguishable from "still loading".
+    @Published var thaiTranslationsError: String? = nil
     @Published var viewingThaiMod: ThaiTranslationMod? = nil
     
     @Published var logOutput: String = ""
     @Published var logEntries: [LogEntry] = []
-    private var smapiLogFileHandle: FileHandle? = nil
-    @Published var smapiLogTimer: Timer? = nil
+    /// Maximum number of log entries retained in memory to avoid unbounded growth
+    /// during long sessions (each SMAPI reload can append hundreds of lines).
+    private let maxLogEntries = 2000
     @Published var alertMessage: String = ""
     @Published var showAlert: Bool = false
-    @Published var isThaiTranslationInstalled: Bool = false
-    
     @Published var saves: [SaveGameInfo] = []
     @Published var editingSave: SaveGameInfo? = nil {
         didSet {
@@ -193,7 +290,6 @@ class StarHubTHViewModel: ObservableObject {
             }
             UserDefaults.standard.set(currentLanguage, forKey: "currentLanguage")
             UserDefaults.standard.set([currentLanguage], forKey: "AppleLanguages")
-            UserDefaults.standard.synchronize()
         }
     }
     
@@ -202,10 +298,10 @@ class StarHubTHViewModel: ObservableObject {
     @Published var activeProfileId: UUID? = nil
 
     /// When true, toggling a mod also cascades to its dependencies / dependents.
-    /// Persisted in UserDefaults so SettingsView @AppStorage stays in sync.
-    var chainToggleDependencies: Bool {
-        get { UserDefaults.standard.object(forKey: "chainToggleDependencies") as? Bool ?? true }
-        set { UserDefaults.standard.set(newValue, forKey: "chainToggleDependencies") }
+    @Published var chainToggleDependencies: Bool = UserDefaults.standard.object(forKey: "chainToggleDependencies") as? Bool ?? true {
+        didSet {
+            UserDefaults.standard.set(chainToggleDependencies, forKey: "chainToggleDependencies")
+        }
     }
     
     let smapiInstaller = SmapiInstaller()
@@ -230,6 +326,22 @@ class StarHubTHViewModel: ObservableObject {
         }
         // Startup marker — confirms LogsView is receiving entries
         log("StarHubTH started", level: .info)
+        self.hasNexusApiKey = NexusUpdateChecker.shared.apiKey()?.isEmpty == false
+        // Seed the UI with the last known update list (if any) so the Updates
+        // tab isn't blank on first launch after a previous check. Consolidate
+        // per-pack here too — the checker caches the flat list (one row per
+        // child) and we want the pack roll-up on launch as well.
+        self.nexusUpdates = self.consolidateUpdatesByPack(NexusUpdateChecker.shared.cachedUpdates())
+        // Seed the category map so the mods-list filter is usable immediately.
+        self.nexusCategories = NexusUpdateChecker.shared.cachedCategories()
+        // Seed the extras map so the popover preview is usable immediately.
+        self.nexusModExtras = NexusUpdateChecker.shared.cachedExtras()
+        // Load user-defined category + Nexus mod id overrides (manual edits made
+        // from the mods list). Stored outside the checker since they are per-mod
+        // user preferences, not API results.
+        self.nexusCustomCategories = Self.loadCustomCategories()
+        self.nexusCustomModIds = Self.loadCustomModIds()
+        self.modActivationTimestamps = Self.loadModActivationTimestamps()
     }
     
     func detectDefaultGameDir() -> String {
@@ -254,22 +366,37 @@ class StarHubTHViewModel: ObservableObject {
         panel.allowsMultipleSelection = false
         if panel.runModal() == .OK {
             self.gameDir = panel.url?.path ?? ""
-            UserDefaults.standard.set(self.gameDir, forKey: "gameDir")
-            scanMods()
-            checkSmapiVersion()
+            self.refresh()
         }
     }
     
     // Helper to force localization using the currently selected language bundle
+    /// Cache of locale-specific bundles keyed by language code (e.g. "en", "th").
+    /// Avoids rebuilding a `Bundle(url:)` on every `L(...)` call, which is invoked
+    /// dozens of times per render pass.
+    private static var bundleCache: [String: Bundle] = [:]
+    private static let bundleCacheLock = NSLock()
+
+    private func cachedBundle(for language: String) -> Bundle? {
+        Self.bundleCacheLock.lock()
+        let cached = Self.bundleCache[language]
+        Self.bundleCacheLock.unlock()
+        if let cached = cached { return cached }
+
+        guard let resourceURL = Bundle.main.resourceURL else { return nil }
+        let lprojURL = resourceURL.appendingPathComponent("\(language).lproj")
+        guard let bundle = Bundle(url: lprojURL) else { return nil }
+
+        Self.bundleCacheLock.lock()
+        Self.bundleCache[language] = bundle
+        Self.bundleCacheLock.unlock()
+        return bundle
+    }
+
     func localizedString(for key: String) -> String {
-        // Build the lproj URL directly from resourceURL (more reliable for swiftc-built apps)
-        if let resourceURL = Bundle.main.resourceURL {
-            let lprojURL = resourceURL.appendingPathComponent("\(currentLanguage).lproj")
-            if let bundle = Bundle(url: lprojURL) {
-                // Must call localizedString directly on the bundle object
-                let result = bundle.localizedString(forKey: key, value: "__MISSING__", table: nil)
-                if result != "__MISSING__" { return result }
-            }
+        if let bundle = cachedBundle(for: currentLanguage) {
+            let result = bundle.localizedString(forKey: key, value: "__MISSING__", table: nil)
+            if result != "__MISSING__" { return result }
         }
         // Last resort: return key so missing translations are visible
         return key
@@ -282,10 +409,15 @@ class StarHubTHViewModel: ObservableObject {
     }
     
     func refresh() {
+        // Run heavy file I/O off the main thread to keep the UI responsive.
+        // Each sub-method dispatches its @Published mutations back to main.
+        DispatchQueue.global(qos: .userInitiated).async {
+            self.scanMods()          // also kicks off parseSMAPILog internally
+            self.reloadSaves()
+            self.fetchSteamUser()
+        }
+        // Lightweight synchronous check (just reads a file/launches SMAPI -fast).
         self.checkSmapiVersion()
-        self.scanMods()
-        self.reloadSaves()
-        self.fetchSteamUser()
     }
     
     func fetchSteamUser() {
@@ -354,13 +486,28 @@ class StarHubTHViewModel: ObservableObject {
         func parseModFolder(at path: String, relativePath: String, isEnabled: Bool) -> ModItem? {
             let manifestPath = (path as NSString).appendingPathComponent("manifest.json")
             guard fm.fileExists(atPath: manifestPath) else { return nil }
-            
+
+            // Capture the mod FOLDER modification date (not the manifest's):
+            // extracted archives keep the modder's packaging timestamps on
+            // their inner files, which are always *older* than the Nexus upload
+            // and would flag every mod as stale. The folder's own mod date
+            // reflects when the mod was installed/touched on this machine, so
+            // a Nexus upload newer than it means the installed copy is stale.
+            // `nil` if unreadable (then same-version detection is skipped).
+            let installedFileDate: Date? = {
+                if let attrs = try? fm.attributesOfItem(atPath: path) {
+                    return attrs[.modificationDate] as? Date
+                }
+                return nil
+            }()
+
             var name = (path as NSString).lastPathComponent
             var uniqueId = ""
             var version = "Unknown"
             var author = "Unknown"
             var description = ""
             var nexusUrl = ""
+            var nexusModId = ""
             var dependencies: [ModDependency] = []
             
             if let rawData = try? Data(contentsOf: URL(fileURLWithPath: manifestPath)),
@@ -405,15 +552,28 @@ class StarHubTHViewModel: ObservableObject {
                 if let updateKeys = json.caseInsensitiveValue(forKey: "UpdateKeys") as? [String] {
                     for key in updateKeys {
                         if key.lowercased().hasPrefix("nexus:") {
-                            let id = key.replacingOccurrences(of: "nexus:", with: "", options: .caseInsensitive)
-                            nexusUrl = "https://www.nexusmods.com/stardewvalley/mods/\(id.trimmingCharacters(in: .whitespacesAndNewlines))"
-                            break
+                            // Normalize: strip the scheme, trim whitespace, drop
+                            // any `@variant` suffix (Nexus add-on convention),
+                            // then keep only valid positive integer ids.
+                            var id = key.replacingOccurrences(of: "nexus:", with: "", options: .caseInsensitive)
+                                .trimmingCharacters(in: .whitespacesAndNewlines)
+                            if let atIndex = id.firstIndex(of: "@") {
+                                id = String(id[..<atIndex])
+                            }
+                            id = id.trimmingCharacters(in: .whitespacesAndNewlines)
+                            // Reject non-numeric, zero, or negative ids that
+                            // would only produce 404s / garbage from the API.
+                            if let num = Int(id), num > 0 {
+                                nexusModId = id
+                                nexusUrl = "https://www.nexusmods.com/stardewvalley/mods/\(id)"
+                                break
+                            }
                         }
                     }
                 }
             }
         }
-            
+
             return ModItem(
                 uniqueId: uniqueId,
                 name: name,
@@ -422,8 +582,10 @@ class StarHubTHViewModel: ObservableObject {
                 author: author,
                 description: description,
                 nexusUrl: nexusUrl,
+                nexusModId: nexusModId,
                 isEnabled: isEnabled,
-                dependencies: dependencies
+                dependencies: dependencies,
+                installedFileDate: installedFileDate
             )
         }
         
@@ -467,6 +629,7 @@ class StarHubTHViewModel: ObservableObject {
                         author: "Group",
                         description: "\(modsInGroup.count) mods",
                         nexusUrl: "",
+                        nexusModId: "",
                         isEnabled: isEnabled,
                         dependencies: [],
                         children: modsInGroup,
@@ -490,18 +653,33 @@ class StarHubTHViewModel: ObservableObject {
         parseSMAPILog()
             
         DispatchQueue.main.async {
-            self.mods = scannedMods.sorted { 
+            self.mods = scannedMods.sorted {
                 if $0.isGroup != $1.isGroup {
-                    return $0.isGroup 
+                    return $0.isGroup
                 }
-                return $0.name.lowercased() < $1.name.lowercased() 
+                return $0.name.lowercased() < $1.name.lowercased()
             }
+            // Build a lowercased index of every installed UniqueID once per scan
+            // so dependency lookups are O(1) per dep instead of O(N) per row.
+            var ids = Set<String>()
+            var states: [String: Bool] = [:]
+            for m in scannedMods {
+                if m.isGroup, let children = m.children {
+                    for c in children {
+                        let k = c.uniqueId.lowercased()
+                        ids.insert(k)
+                        states[k] = c.isEnabled
+                    }
+                } else {
+                    let k = m.uniqueId.lowercased()
+                    ids.insert(k)
+                    states[k] = m.isEnabled
+                }
+            }
+            self.installedUniqueIds = ids
+            self.installedModStates = states
             if self.selectedMod == nil, let first = self.mods.first {
                 self.selectedMod = first
-            }
-            self.isThaiTranslationInstalled = scannedMods.contains {
-                ($0.folderName.lowercased() == "stardew valley - thai" ||
-                $0.name.localizedCaseInsensitiveContains("thai")) && $0.isEnabled
             }
         }
     }
@@ -603,7 +781,11 @@ class StarHubTHViewModel: ObservableObject {
         }
         
         // Remove duplicates and limit error messages
-        let uniqueErrors = Array(NSOrderedSet(array: errors)).prefix(10).map { $0 as! String }
+        let uniqueErrors = Array(
+            Array(NSOrderedSet(array: errors))
+                .compactMap { $0 as? String }
+                .prefix(10)
+        )
         
         DispatchQueue.main.async {
             self.outOfDateMods = updates
@@ -613,25 +795,101 @@ class StarHubTHViewModel: ObservableObject {
     
     // Returns missing required unique IDs for a given mod
     func getMissingDependencies(for mod: ModItem) -> [String] {
-        var allUniqueIds = Set<String>()
-        for m in mods {
-            if m.isGroup, let children = m.children {
-                for c in children {
-                    allUniqueIds.insert(c.uniqueId.lowercased())
-                }
-            } else {
-                allUniqueIds.insert(m.uniqueId.lowercased())
-            }
-        }
-        
+        // Uses the precomputed index built in scanMods() — O(deps) per call,
+        // safe to invoke from every ModListRow render.
         return mod.dependencies.compactMap { dep in
             guard dep.isRequired else { return nil }
-            return allUniqueIds.contains(dep.uniqueId.lowercased()) ? nil : dep.uniqueId
+            return installedUniqueIds.contains(dep.uniqueId.lowercased()) ? nil : dep.uniqueId
         }
     }
+
+    /// Required dependency UniqueIDs that are installed but currently disabled.
+    /// A disabled required dependency is just as problematic for an enabled mod
+    /// as a missing one, so these are surfaced in the "Issues" filter too.
+    func getDisabledDependencies(for mod: ModItem) -> [String] {
+        return mod.dependencies.compactMap { dep in
+            guard dep.isRequired else { return nil }
+            let key = dep.uniqueId.lowercased()
+            // Only installed-but-disabled deps qualify here.
+            if let enabled = installedModStates[key], !enabled {
+                return dep.uniqueId
+            }
+            return nil
+        }
+    }
+
+    /// Pre-computed snapshot of the four "core extension" statuses shown on Home.
+    /// Computed once per `mods` change (SwiftUI caches getter results within a
+    /// single body evaluation) instead of flatMapping all mods 4× per render.
+    var coreExtensionsSnapshot: CoreExtensionsSnapshot {
+        // Flatten groups once
+        var allMods: [ModItem] = []
+        allMods.reserveCapacity(mods.count)
+        for mod in mods {
+            if mod.isGroup, let children = mod.children {
+                allMods.append(contentsOf: children)
+            } else {
+                allMods.append(mod)
+            }
+        }
+
+        func slot(matching keyword: String) -> CoreModSlot {
+            let matches = allMods.filter { $0.name.lowercased().contains(keyword) }
+            guard !matches.isEmpty else { return CoreModSlot(status: .notInstalled, mod: nil) }
+            let exactEnabled = matches.first { $0.name.lowercased() == keyword && $0.isEnabled }
+            let anyEnabled   = matches.first { $0.isEnabled }
+            let exactAny     = matches.first { $0.name.lowercased() == keyword }
+            let mod = exactEnabled ?? anyEnabled ?? exactAny ?? matches.first!
+            return CoreModSlot(status: mod.isEnabled ? .enabledAndInstalled : .installedButDisabled, mod: mod)
+        }
+
+        let thaiMod = allMods.first { $0.folderName.lowercased() == "stardew valley - thai" && $0.isEnabled }
+            ?? allMods.first { $0.name.localizedCaseInsensitiveContains("thai") && $0.isEnabled }
+            ?? allMods.first { $0.folderName.lowercased() == "stardew valley - thai" }
+            ?? allMods.first { $0.name.localizedCaseInsensitiveContains("thai") }
+        let thaiSlot: CoreModSlot = {
+            guard let mod = thaiMod else { return CoreModSlot(status: .notInstalled, mod: nil) }
+            return CoreModSlot(status: mod.isEnabled ? .enabledAndInstalled : .installedButDisabled, mod: mod)
+        }()
+
+        return CoreExtensionsSnapshot(
+            contentPatcher: slot(matching: "content patcher"),
+            spacecore: slot(matching: "spacecore"),
+            thai: thaiSlot,
+            sve: slot(matching: "stardew valley expanded")
+        )
+    }
     
+    private var isToggling = false
+    private var pendingToggles: [(ModItem, (() -> Void)?)] = []
+
     // Toggle Mod Status (Enabled / Disabled)
-    func toggleMod(_ mod: ModItem) {
+    //
+    // Requests are queued and run one at a time: a queued call only reads
+    // self.mods after the previous toggle's full cycle (file move +
+    // background scanMods + syncActiveProfileIds) has landed. Without this,
+    // two near-simultaneous toggles that share a chain-dependency folder
+    // could each compute their move set from a stale isEnabled snapshot —
+    // the second call could think a folder still needs moving after the
+    // first call already moved it, tripping the "destination already
+    // exists" path on a folder that no longer has a source. See performToggle.
+    func toggleMod(_ mod: ModItem, completion: (() -> Void)? = nil) {
+        pendingToggles.append((mod, completion))
+        processNextToggleIfNeeded()
+    }
+
+    private func processNextToggleIfNeeded() {
+        guard !isToggling, !pendingToggles.isEmpty else { return }
+        isToggling = true
+        let (mod, completion) = pendingToggles.removeFirst()
+        performToggle(mod) {
+            completion?()
+            self.isToggling = false
+            self.processNextToggleIfNeeded()
+        }
+    }
+
+    private func performToggle(_ mod: ModItem, completion: (() -> Void)? = nil) {
         // Helper to find the top-level folder that contains a given uniqueId
         func getTopLevelFolder(for uniqueId: String) -> String? {
             for m in self.mods {
@@ -661,19 +919,27 @@ class StarHubTHViewModel: ObservableObject {
         
         if chainToggleDependencies {
             if targetState == true {
-                // Enabling: recursively enable all REQUIRED dependencies
+                // Enabling: recursively enable all REQUIRED dependencies.
+                // Traversal continues through dependencies that are already
+                // enabled (tracked by `visited`, separate from
+                // `foldersToToggle`) so that a disabled mod two levels down
+                // an already-enabled chain still gets picked up — matching
+                // `applyChainToSet`'s traversal, which has the same
+                // requirement and is not gated on `isEnabled`.
                 var queue = [mod.folderName]
+                var visited: Set<String> = [mod.folderName]
                 while !queue.isEmpty {
                     let currentFolder = queue.removeFirst()
                     let deps = getDependencies(for: currentFolder)
-                    
+
                     for dep in deps where dep.isRequired {
-                        if let depFolder = getTopLevelFolder(for: dep.uniqueId) {
+                        if let depFolder = getTopLevelFolder(for: dep.uniqueId), !visited.contains(depFolder) {
+                            visited.insert(depFolder)
                             let isDepFolderEnabled = self.mods.first(where: { $0.folderName == depFolder })?.isEnabled ?? false
-                            if !isDepFolderEnabled && !foldersToToggle.contains(depFolder) {
+                            if !isDepFolderEnabled {
                                 foldersToToggle.insert(depFolder)
-                                queue.append(depFolder)
                             }
+                            queue.append(depFolder)
                         }
                     }
                 }
@@ -719,44 +985,106 @@ class StarHubTHViewModel: ObservableObject {
             let srcPath = ((m.isEnabled ? modsPath : disabledModsPath) as NSString).appendingPathComponent(m.folderName)
             let destFolder = m.isEnabled ? disabledModsPath : modsPath
             let destPath = ((destFolder as NSString).appendingPathComponent(m.folderName) as String)
-            
+
+            // self.mods can be stale if another toggle's background scanMods()
+            // (see the completion-driven dispatch below) hasn't landed yet.
+            // Trust the filesystem over the cached isEnabled flag: if the
+            // source is already gone, this mod was already moved by a prior
+            // call — skip instead of deleting the (correct) destination copy.
+            guard fm.fileExists(atPath: srcPath) else {
+                print("Skipping toggle for \(m.name): source folder missing at \(srcPath) (likely already moved by a concurrent toggle)")
+                continue
+            }
+
             do {
                 let destParent = (destPath as NSString).deletingLastPathComponent
                 if !fm.fileExists(atPath: destParent) {
                     try fm.createDirectory(atPath: destParent, withIntermediateDirectories: true, attributes: nil)
                 }
+
+                // A pre-existing duplicate at destPath is set aside rather than
+                // deleted outright, so a failed moveItem below can't leave the
+                // mod lost from both locations.
+                var staleDuplicateAside: String? = nil
                 if fm.fileExists(atPath: destPath) {
-                    try fm.removeItem(atPath: destPath)
+                    let asidePath = destPath + ".stale_\(UUID().uuidString)"
+                    try fm.moveItem(atPath: destPath, toPath: asidePath)
+                    staleDuplicateAside = asidePath
                 }
-                try fm.moveItem(atPath: srcPath, toPath: destPath)
+
+                do {
+                    try fm.moveItem(atPath: srcPath, toPath: destPath)
+                } catch {
+                    if let asidePath = staleDuplicateAside {
+                        try? fm.moveItem(atPath: asidePath, toPath: destPath)
+                    }
+                    throw error
+                }
+
+                if let asidePath = staleDuplicateAside {
+                    try? fm.removeItem(atPath: asidePath)
+                }
+
                 anyMoved = true
+                if targetState {
+                    self.modActivationTimestamps[folderName] = Date()
+                }
             } catch {
                 print("Failed to toggle \(m.name): \(error.localizedDescription)")
             }
         }
-        
+
         if anyMoved {
+            if targetState {
+                Self.saveModActivationTimestamps(self.modActivationTimestamps)
+            }
             log("\(targetState ? L(L10n.Mods.enabled) : L(L10n.Mods.disabled)): \(mod.name)\(foldersToToggle.count > 1 ? " + Dependencies" : "")")
-            self.scanMods()
-            self.syncActiveProfileIds()
+            // scanMods() re-enumerates every installed mod's manifest — run it
+            // off the main thread so toggling one mod doesn't freeze the UI.
+            // syncActiveProfileIds() reads `self.mods`, so it's chained after
+            // scanMods()'s internal `DispatchQueue.main.async` write to keep
+            // seeing fresh data (GCD's main queue runs queued blocks in order).
+            // completion fires only once self.mods reflects the new state, so
+            // callers relying on it (e.g. ModListRow's optimistic toggle) don't
+            // release their optimistic UI state before the real data catches up.
+            DispatchQueue.global(qos: .userInitiated).async {
+                self.scanMods()
+                DispatchQueue.main.async {
+                    self.syncActiveProfileIds()
+                    completion?()
+                }
+            }
+        } else {
+            completion?()
         }
     }
     
+    /// Resolves a message key with an optional format detail — the
+    /// counterpart to `SmapiInstaller`'s `(Bool, String, String?)`
+    /// completion, since only this class (not `SmapiInstaller`) can
+    /// translate.
+    private func resolveSmapiMessage(_ key: String, _ detail: String?) -> String {
+        guard let detail = detail else { return self.L(key) }
+        return String(format: self.L(key), detail)
+    }
+
     // Install SMAPI via Installer Helper
     func installSmapi() {
-        smapiInstaller.install(gameDir: gameDir) { success, msg in
+        smapiInstaller.install(gameDir: gameDir) { success, key, detail in
             self.checkSmapiVersion()
-            self.showModal(message: self.L(msg))
-            self.log(self.L(msg))
+            let message = self.resolveSmapiMessage(key, detail)
+            self.showModal(message: message)
+            self.log(message)
         }
     }
-    
+
     // Uninstall SMAPI
     func uninstallSmapi() {
-        smapiInstaller.uninstall(gameDir: gameDir) { success, msg in
+        smapiInstaller.uninstall(gameDir: gameDir) { success, key, detail in
             self.checkSmapiVersion()
-            self.showModal(message: self.L(msg))
-            self.log(self.L(msg))
+            let message = self.resolveSmapiMessage(key, detail)
+            self.showModal(message: message)
+            self.log(message)
         }
     }
     
@@ -848,19 +1176,32 @@ class StarHubTHViewModel: ObservableObject {
         }
     }
     
+    /// Shared formatter (DateFormatter allocation is expensive when logging frequently).
+    private static let logTimeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "HH:mm:ss"
+        return f
+    }()
+
+    private func appendLogEntry(_ entry: LogEntry, timestamp: String, message: String) {
+        logEntries.append(entry)
+        // Cap memory usage: drop oldest app-generated entries when over the limit.
+        if logEntries.count > maxLogEntries {
+            let overflow = logEntries.count - maxLogEntries
+            logEntries.removeFirst(overflow)
+        }
+        logOutput += "[\(timestamp)] \(message)\n"
+    }
+
     func log(_ message: String, level: LogLevel = .info) {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm:ss"
-        let timestamp = formatter.string(from: Date())
+        let timestamp = Self.logTimeFormatter.string(from: Date())
         let entry = LogEntry(timestamp: timestamp, message: message, level: level, source: .app)
 
         if Thread.isMainThread {
-            logEntries.append(entry)
-            logOutput += "[\(timestamp)] \(message)\n"
+            appendLogEntry(entry, timestamp: timestamp, message: message)
         } else {
             DispatchQueue.main.async {
-                self.logEntries.append(entry)
-                self.logOutput += "[\(timestamp)] \(message)\n"
+                self.appendLogEntry(entry, timestamp: timestamp, message: message)
             }
         }
     }
@@ -871,7 +1212,16 @@ class StarHubTHViewModel: ObservableObject {
 
     /// Load SMAPI-latest.txt once when Logs tab is opened.
     /// No live polling — SMAPI doesn't flush continuously anyway.
+    /// Reading + line-by-line parsing of the SMAPI log runs off the main
+    /// thread — the file can be large, and this used to block the UI on
+    /// every call (refresh button, watcher start).
     func loadSmapiLog() {
+        DispatchQueue.global(qos: .userInitiated).async {
+            self.parseAndAppendSmapiLog()
+        }
+    }
+
+    private func parseAndAppendSmapiLog() {
         let path = smapiLogPath
         guard FileManager.default.fileExists(atPath: path),
               let data = FileManager.default.contents(atPath: path),
@@ -934,10 +1284,16 @@ class StarHubTHViewModel: ObservableObject {
             }
         }
 
-        if Thread.isMainThread {
-            logEntries.append(contentsOf: entries)
-        } else {
-            DispatchQueue.main.async { self.logEntries.append(contentsOf: entries) }
+        // Keep only the most recent SMAPI entries to stay within the memory cap.
+        let trimmedEntries = entries.count > maxLogEntries
+            ? Array(entries.suffix(maxLogEntries))
+            : entries
+
+        DispatchQueue.main.async {
+            self.logEntries.append(contentsOf: trimmedEntries)
+            if self.logEntries.count > self.maxLogEntries {
+                self.logEntries.removeFirst(self.logEntries.count - self.maxLogEntries)
+            }
         }
     }
 
@@ -949,30 +1305,470 @@ class StarHubTHViewModel: ObservableObject {
     }
 
     func startSmapiLogWatcher() { loadSmapiLog() }
-    func stopSmapiLogWatcher() {
-        smapiLogTimer?.invalidate()
-        smapiLogTimer = nil
-        try? smapiLogFileHandle?.close()
-        smapiLogFileHandle = nil
+
+    /// Retained for `LogsView.onDisappear`. SMAPI logs are loaded on demand via
+    /// `loadSmapiLog()` (no live polling / file handle to tear down).
+    func stopSmapiLogWatcher() {}
+
+    // MARK: - Nexus Mods update checking
+
+    /// Persists a Nexus Mods API key to Keychain and refreshes `hasNexusApiKey`.
+    func setNexusApiKey(_ key: String) {
+        let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        NexusUpdateChecker.shared.setApiKey(trimmed)
+        hasNexusApiKey = true
     }
 
-    private func smapiLineLevel(_ line: String) -> LogLevel {
-        if line.contains(" ERROR ") || line.contains("[ERROR") { return .error }
-        if line.contains(" WARN ")  || line.contains("[WARN")  { return .warning }
-        if line.contains(" ALERT ") { return .warning }
-        return .smapi
+    /// Removes the stored Nexus Mods API key.
+    func clearNexusApiKey() {
+        NexusUpdateChecker.shared.clearApiKey()
+        hasNexusApiKey = false
+        nexusUpdates = []
+        nexusCategories = [:]
+        nexusModExtras = [:]
+        nexusCheckError = nil
     }
-    
+
+    /// Triggers a Nexus Mods update check across all installed mods.
+    /// `force` bypasses the dedupe window. Updates `nexusUpdates`,
+    /// `isCheckingNexusUpdates`, `nexusCheckProgress`, `nexusCheckError`,
+    /// and `nexusCategories`.
+    func checkNexusUpdates(force: Bool = false) {
+        guard !isCheckingNexusUpdates else { return }
+        isCheckingNexusUpdates = true
+        nexusCheckError = nil
+        nexusCheckProgress = nil
+        log("Nexus update check started", level: .info)
+
+        NexusUpdateChecker.shared.check(
+            mods: mods,
+            customModIds: nexusCustomModIds,
+            force: force,
+            progress: { [weak self] done, total in
+                // Throttle: only publish when progress advances by ≥5% or on
+                // the final request. This avoids a render storm (the VM is a
+                // shared ObservableObject) while keeping the progress bar
+                // responsive.
+                guard let self = self else { return }
+                let lastDone = self.nexusCheckProgress?.done ?? 0
+                let pct = total > 0 ? Double(done - lastDone) / Double(total) : 1
+                if done == total || pct >= 0.05 {
+                    self.nexusCheckProgress = (done, total)
+                }
+            }
+        ) { [weak self] result in
+            guard let self = self else { return }
+            self.isCheckingNexusUpdates = false
+            self.nexusCheckProgress = nil
+            switch result {
+            case .success(let updates, let categories, let extras):
+                // Consolidate per-pack: a pack whose several children each
+                // have an update is shown as a single row, using the highest
+                // latest version among them (ties broken by the most recent
+                // Nexus upload date). Standalone mods pass through unchanged.
+                self.nexusUpdates = self.consolidateUpdatesByPack(updates)
+                // Merge so a partial/aborted run never erases previously
+                // fetched categories. The checker already merged its prior
+                // cache, but this guards against any race.
+                if !categories.isEmpty {
+                    var merged = self.nexusCategories
+                    for (k, v) in categories { merged[k] = v }
+                    self.nexusCategories = merged
+                }
+                // Same merge rationale for extras.
+                if !extras.isEmpty {
+                    var mergedExtras = self.nexusModExtras
+                    for (k, v) in extras { mergedExtras[k] = v }
+                    self.nexusModExtras = mergedExtras
+                }
+                self.log("Nexus check: \(updates.count) update(s), \(categories.count) categor(ies)", level: .info)
+            case .noApiKey:
+                self.nexusCheckError = "no_api_key"
+                self.nexusUpdates = []
+            case .rateLimited(let retry):
+                self.nexusCheckError = "rate_limited"
+                self.log("Nexus check rate-limited, retry in \(Int(retry))s", level: .warning)
+            case .error(let msg):
+                self.nexusCheckError = msg
+                self.log("Nexus check error: \(msg)", level: .error)
+            }
+        }
+    }
+
+    /// Consolidates the flat Nexus update list so each pack (mod group)
+    /// appears as a single row instead of one row per child.
+    ///
+    /// For a pack with multiple children that have updates, the winning row is
+    /// the child whose `latestVersion` is the highest (dotted-numeric
+    /// comparison via `NexusUpdateChecker.compare`); when several children
+    /// share that same highest version, the most recent Nexus `uploadedTime`
+    /// wins. The consolidated row reuses the winning child's version/url/date
+    /// but shows the pack's display name so the user sees the pack as a whole.
+    ///
+    /// Standalone mods (not part of a group) are returned unchanged. Mods whose
+    /// effective Nexus id isn't found in the installed set are also passed
+    /// through (defensive — shouldn't normally happen).
+    private func consolidateUpdatesByPack(_ updates: [NexusUpdateChecker.ModUpdate]) -> [NexusUpdateChecker.ModUpdate] {
+        // Map each effective Nexus id → its parent pack's display name (if any).
+        // A child that lives under a top-level group maps to that group's name;
+        // standalone mods and group headers themselves map to nil.
+        var parentPackName: [String: String] = [:]
+        for mod in mods {
+            if mod.isGroup, let children = mod.children {
+                for child in children {
+                    let id = effectiveNexusModId(for: child)
+                    if !id.isEmpty {
+                        parentPackName[id] = mod.name
+                    }
+                }
+            }
+        }
+
+        // Bucket updates: packs (by pack name) vs standalone.
+        var byPack: [String: [NexusUpdateChecker.ModUpdate]] = [:]
+        var standalone: [NexusUpdateChecker.ModUpdate] = []
+        for update in updates {
+            if let packName = parentPackName[update.nexusModId] {
+                byPack[packName, default: []].append(update)
+            } else {
+                standalone.append(update)
+            }
+        }
+
+        var consolidated: [NexusUpdateChecker.ModUpdate] = []
+        consolidated.reserveCapacity(standalone.count + byPack.count)
+
+        // Standalone mods pass through.
+        consolidated.append(contentsOf: standalone)
+
+        // For each pack, keep only the highest-version child (ties broken by
+        // the most recent upload date), then rewrite its name to the pack's.
+        for (packName, children) in byPack {
+            let winner = pickHighestVersion(children)
+            consolidated.append(
+                NexusUpdateChecker.ModUpdate(
+                    name: packName,
+                    installedVersion: winner.installedVersion,
+                    latestVersion: winner.latestVersion,
+                    nexusModId: winner.nexusModId,
+                    url: winner.url,
+                    uploadedTime: winner.uploadedTime
+                )
+            )
+        }
+        return consolidated
+    }
+
+    /// Picks the update with the highest `latestVersion`. When several updates
+    /// share that version, the one with the most recent `uploadedTime` wins.
+    /// Falls back to the first one if all dates are nil and versions tie.
+    private func pickHighestVersion(_ updates: [NexusUpdateChecker.ModUpdate]) -> NexusUpdateChecker.ModUpdate {
+        precondition(!updates.isEmpty)
+        var best = updates[0]
+        for candidate in updates.dropFirst() {
+            let cmp = NexusUpdateChecker.compare(candidate.latestVersion, best.latestVersion)
+            if cmp == .orderedDescending {
+                best = candidate
+            } else if cmp == .orderedSame {
+                // Same version — break the tie by upload date (most recent wins).
+                let candDate = candidate.uploadedTime ?? .distantPast
+                let bestDate = best.uploadedTime ?? .distantPast
+                if candDate > bestDate {
+                    best = candidate
+                }
+            }
+        }
+        return best
+    }
+
+    /// Formats a Nexus upload timestamp for display next to the latest version
+    /// in the update window. Uses the user's locale so it reads naturally.
+    func formatUploadedDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return String(format: L(L10n.Updates.uploadedOn), formatter.string(from: date))
+    }
+
+    /// Returns the effective category for a mod.
+    ///
+    /// Precedence (first wins):
+    /// 1. User-assigned override keyed by `mod.folderName` — lets the user
+    ///    categorize mods that the API never returned a `category_id` for.
+    ///    Also works for pack headers (whose `folderName` is the group name).
+    /// 2. Category fetched from the Nexus API, keyed by `mod.nexusModId`.
+    /// 3. For pack headers: the dominant category among the children.
+    /// 4. `nil` — unknown.
+    func category(for mod: ModItem) -> NexusCategory? {
+        if let cached = categoryCache[mod.folderName] {
+            return cached
+        }
+        let result = computeCategory(for: mod)
+        categoryCache[mod.folderName] = result
+        return result
+    }
+
+    private func computeCategory(for mod: ModItem) -> NexusCategory? {
+        if let cid = nexusCustomCategories[mod.folderName],
+           let cat = NexusCategory.from(id: cid) {
+            return cat
+        }
+        // Use the effective id (custom override OR manifest) so categories
+        // fetched via the per-mod editor apply to mods with no manifest id.
+        let effectiveId = effectiveNexusModId(for: mod)
+        if !effectiveId.isEmpty,
+           let cid = nexusCategories[effectiveId],
+           let cat = NexusCategory.from(id: cid) {
+            return cat
+        }
+        // Pack header: fall back to the most common child category.
+        if mod.isGroup, let children = mod.children {
+            return dominantCategory(among: children)
+        }
+        return nil
+    }
+
+    /// Most frequent non-nil category among a set of (child) mods. Ties resolve
+    /// to the lower category id for stable output. Returns `nil` when no child
+    /// has a known category.
+    private func dominantCategory(among children: [ModItem]) -> NexusCategory? {
+        var counts: [Int: Int] = [:]
+        for c in children {
+            if let cat = category(for: c) {
+                counts[cat.id, default: 0] += 1
+            }
+        }
+        guard let dominantId = counts.max(by: { lhs, rhs in
+            if lhs.value != rhs.value { return lhs.value < rhs.value }
+            return lhs.key > rhs.key
+        })?.key else { return nil }
+        return NexusCategory.from(id: dominantId)
+    }
+
+    /// The category id the user manually pinned on this mod, or `nil` when the
+    /// mod relies on the automatic (API-fetched) category.
+    func customCategoryId(for mod: ModItem) -> Int? {
+        nexusCustomCategories[mod.folderName]
+    }
+
+    /// Pins a category on a mod. Pass `nil` to revert to the automatic category.
+    func setCustomCategory(for mod: ModItem, categoryId: Int?) {
+        if let cid = categoryId {
+            nexusCustomCategories[mod.folderName] = cid
+        } else {
+            nexusCustomCategories.removeValue(forKey: mod.folderName)
+        }
+        Self.saveCustomCategories(nexusCustomCategories)
+    }
+
+    /// The effective Nexus mod id for a mod: user override first, then the id
+    /// declared in the mod's manifest `UpdateKeys`. Empty when neither is set.
+    func effectiveNexusModId(for mod: ModItem) -> String {
+        if let custom = nexusCustomModIds[mod.folderName], !custom.isEmpty {
+            return custom
+        }
+        return mod.nexusModId
+    }
+
+    /// The Nexus Mods URL for a mod derived from its effective mod id, or the
+    /// manifest's `nexusUrl` when no effective id is available (they normally
+    /// agree, but the manifest URL is the original source of truth). For pack
+    /// headers with no own link, falls back to the first child that has one.
+    /// Empty when neither the mod nor any child has a Nexus link.
+    func nexusLink(for mod: ModItem) -> String {
+        let id = effectiveNexusModId(for: mod)
+        if !id.isEmpty {
+            return "https://www.nexusmods.com/stardewvalley/mods/\(id)"
+        }
+        if !mod.nexusUrl.isEmpty {
+            return mod.nexusUrl
+        }
+        if mod.isGroup, let children = mod.children {
+            for c in children {
+                let link = nexusLink(for: c)
+                if !link.isEmpty { return link }
+            }
+        }
+        return ""
+    }
+
+    /// The cached Nexus summary + picture URL for a mod, or `nil` when none
+    /// has been fetched yet (no check has run, or the mod has no effective
+    /// Nexus id). For pack headers with no own data, falls back to the first
+    /// child that has some — same convention as `nexusLink(for:)`.
+    func modExtra(for mod: ModItem) -> NexusUpdateChecker.NexusModExtra? {
+        let id = effectiveNexusModId(for: mod)
+        if !id.isEmpty, let extra = nexusModExtras[id], !extra.summary.isEmpty || !extra.pictureUrl.isEmpty {
+            return extra
+        }
+        if mod.isGroup, let children = mod.children {
+            for c in children {
+                if let extra = modExtra(for: c) { return extra }
+            }
+        }
+        return nil
+    }
+
+    /// Finds the installed mod corresponding to a Nexus update, by matching
+    /// the effective Nexus mod id. Returns `nil` for orphaned updates (e.g.
+    /// the mod was removed after the check ran). Searches both standalone
+    /// mods and pack children.
+    func modForNexusUpdate(_ update: NexusUpdateChecker.ModUpdate) -> ModItem? {
+        for mod in mods {
+            if effectiveNexusModId(for: mod) == update.nexusModId {
+                return mod
+            }
+            if mod.isGroup, let children = mod.children {
+                if let child = children.first(where: { effectiveNexusModId(for: $0) == update.nexusModId }) {
+                    return child
+                }
+            }
+        }
+        return nil
+    }
+
+    /// Display author for a mod. For pack headers, aggregates the children:
+    /// if every child shares the same author it is shown verbatim, otherwise a
+    /// localized "multiple authors" placeholder is returned.
+    func displayAuthor(for mod: ModItem) -> String {
+        if mod.isGroup, let children = mod.children {
+            let authors = Set(children.map { $0.author }
+                                .filter { !$0.isEmpty && $0 != "Unknown" })
+            if authors.count == 1 { return authors.first! }
+            if authors.isEmpty { return "—" }
+            return L(L10n.Mods.packMultipleAuthors)
+        }
+        return mod.author
+    }
+
+    /// Display version for a mod. For pack headers, shows the shared version
+    /// when every child agrees, otherwise "—" (mixed versions are common in
+    /// packs and a single number would be misleading).
+    func displayVersion(for mod: ModItem) -> String {
+        if mod.isGroup, let children = mod.children {
+            let versions = Set(children.map { $0.version }
+                                .filter { !$0.isEmpty && $0 != "Unknown" })
+            if versions.count == 1 { return versions.first! }
+            return "—"
+        }
+        return mod.version
+    }
+
+    /// Sets a user-defined Nexus mod id for a mod (generates its link and lets
+    /// it participate in update checks). Pass `nil`/empty to clear the override
+    /// and fall back to the manifest-declared id.
+    func setCustomNexusModId(for mod: ModItem, modId: String?) {
+        let trimmed = (modId ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            nexusCustomModIds.removeValue(forKey: mod.folderName)
+        } else {
+            nexusCustomModIds[mod.folderName] = trimmed
+        }
+        Self.saveCustomModIds(nexusCustomModIds)
+    }
+
+    /// Fetches a single mod's metadata (category + latest version + summary/
+    /// picture) from Nexus and applies it to the published `nexusCategories`
+    /// / `nexusModExtras` maps so the mods-list badge and popover preview
+    /// update instantly. Bypasses the dedupe window. Intended for on-demand
+    /// lookups after the user enters a mod id in the per-mod editor popover.
+    /// `completion` is invoked on the main queue.
+    func fetchMetadata(forNexusModId modId: String,
+                       completion: @escaping (NexusUpdateChecker.SingleFetchResult) -> Void) {
+        NexusUpdateChecker.shared.fetchSingleMod(modId: modId) { [weak self] result in
+            guard let self = self else { return }
+            if case .success(_, let catId, let extra) = result {
+                if let cid = catId, cid > 0 {
+                    self.nexusCategories[modId] = cid
+                }
+                self.nexusModExtras[modId] = extra
+            }
+            completion(result)
+        }
+    }
+
+    // MARK: - Custom override persistence
+
+    private static let customCategoriesKey = "nexusCustomCategories"
+    private static let customModIdsKey = "nexusCustomModIds"
+
+    private static func loadCustomCategories() -> [String: Int] {
+        guard let data = UserDefaults.standard.data(forKey: customCategoriesKey) else { return [:] }
+        return (try? JSONDecoder().decode([String: Int].self, from: data)) ?? [:]
+    }
+
+    private static func saveCustomCategories(_ map: [String: Int]) {
+        guard let data = try? JSONEncoder().encode(map) else { return }
+        UserDefaults.standard.set(data, forKey: customCategoriesKey)
+    }
+
+    private static func loadCustomModIds() -> [String: String] {
+        guard let data = UserDefaults.standard.data(forKey: customModIdsKey) else { return [:] }
+        return (try? JSONDecoder().decode([String: String].self, from: data)) ?? [:]
+    }
+
+    private static func saveCustomModIds(_ map: [String: String]) {
+        guard let data = try? JSONEncoder().encode(map) else { return }
+        UserDefaults.standard.set(data, forKey: customModIdsKey)
+    }
+
+    private static let modActivationTimestampsKey = "modActivationTimestamps"
+
+    private static func loadModActivationTimestamps() -> [String: Date] {
+        guard let data = UserDefaults.standard.data(forKey: modActivationTimestampsKey) else { return [:] }
+        return (try? JSONDecoder().decode([String: Date].self, from: data)) ?? [:]
+    }
+
+    private static func saveModActivationTimestamps(_ map: [String: Date]) {
+        guard let data = try? JSONEncoder().encode(map) else { return }
+        UserDefaults.standard.set(data, forKey: modActivationTimestampsKey)
+    }
+
     func showModal(message: String) {
         self.alertMessage = message
         self.showAlert = true
     }
     
     // MARK: - Saves
+
+    /// fetchSaves() scans the Saves directory and parses every save's XML —
+    /// run off the main thread so it doesn't stall the UI when there are
+    /// many saves.
     func reloadSaves() {
-        self.saves = SaveManager.shared.fetchSaves()
+        DispatchQueue.global(qos: .userInitiated).async {
+            let saves = SaveManager.shared.fetchSaves()
+            DispatchQueue.main.async {
+                self.saves = saves
+            }
+        }
     }
-    
+
+    /// Whether Stardew Valley itself currently appears to be running.
+    /// Best-effort process-name check (matches the launcher and the SMAPI-
+    /// renamed process) — used to warn before writing save files, since the
+    /// game's own autosave could conflict with an edit/restore made while
+    /// it's open. Not a guarantee: a differently-named build wouldn't match.
+    func isGameRunning() -> Bool {
+        NSWorkspace.shared.runningApplications.contains {
+            guard let name = $0.localizedName else { return false }
+            return name.caseInsensitiveCompare("Stardew Valley") == .orderedSame
+        }
+    }
+
+    /// Whether `info`'s save file has been modified on disk since `info` was
+    /// captured (e.g. the game was played while an editor was open on the
+    /// stale snapshot). Callers use this to warn before writing — the editor
+    /// forms don't diff individual fields, so a blind write would silently
+    /// revert any progress made since the snapshot was taken.
+    func isSaveStale(_ info: SaveGameInfo) -> Bool {
+        guard let attrs = try? FileManager.default.attributesOfItem(atPath: info.fileURL.path),
+              let currentModified = attrs[.modificationDate] as? Date else {
+            return false
+        }
+        return currentModified > info.lastModified
+    }
+
     func editSave(info: SaveGameInfo, newName: String, newFarm: String, newFav: String, newMoney: Int, newTotalMoneyEarned: Int, newMaxHealth: Int, newMaxStamina: Int, newGoldenWalnuts: Int, newQiGems: Int, newClubCoins: Int, newSpouse: String) {
         let success = SaveManager.shared.updateSave(info: info, newName: newName, newFarm: newFarm, newFav: newFav, newMoney: newMoney, newTotalMoneyEarned: newTotalMoneyEarned, newMaxHealth: newMaxHealth, newMaxStamina: newMaxStamina, newGoldenWalnuts: newGoldenWalnuts, newQiGems: newQiGems, newClubCoins: newClubCoins, newSpouse: newSpouse)
         if success {
@@ -1081,10 +1877,10 @@ class StarHubTHViewModel: ObservableObject {
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = false
         panel.title = L(L10n.Saves.avatarPanelTitle)
-        if panel.runModal() == .OK, let url = panel.url {
+        if panel.runModal() == .OK, let url = panel.url,
+           let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
             // Copy to app support dir to prevent broken paths
-            let supportDir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-                .appendingPathComponent("StarHubTH/Avatars", isDirectory: true)
+            let supportDir = appSupport.appendingPathComponent("StarHubTH/Avatars", isDirectory: true)
             try? FileManager.default.createDirectory(at: supportDir, withIntermediateDirectories: true)
             let destURL = supportDir.appendingPathComponent("\(folderName)_\(url.lastPathComponent)")
             try? FileManager.default.copyItem(at: url, to: destURL)
@@ -1109,8 +1905,16 @@ class StarHubTHViewModel: ObservableObject {
 
     // MARK: - Backup Timeline
 
-    func listBackups(for info: SaveGameInfo) -> [SaveBackup] {
-        SaveManager.shared.listBackups(for: info)
+    /// listBackups scans the backups folder on disk — run off the main
+    /// thread so opening the timeline doesn't stall the UI when there are
+    /// many backups.
+    func listBackups(for info: SaveGameInfo, completion: @escaping ([SaveBackup]) -> Void) {
+        DispatchQueue.global(qos: .userInitiated).async {
+            let backups = SaveManager.shared.listBackups(for: info)
+            DispatchQueue.main.async {
+                completion(backups)
+            }
+        }
     }
 
     func createBackup(info: SaveGameInfo) -> Bool {
@@ -1157,58 +1961,47 @@ class StarHubTHViewModel: ObservableObject {
     }
 
     // MARK: - Backup & Management
-    func backupAllSaves() {
-        let home = NSHomeDirectory()
-        let savesDir = "\(home)/.config/StardewValley/Saves"
-        let desktopDir = "\(home)/Desktop"
-        let timestamp = DateFormatter.localizedString(from: Date(), dateStyle: .short, timeStyle: .medium).replacingOccurrences(of: "/", with: "-").replacingOccurrences(of: ":", with: "")
-        let zipPath = "\(desktopDir)/StardewSaves_Backup_\(timestamp).zip"
-        
+    /// Zips `sourceDir`'s contents to a timestamped file on the Desktop.
+    /// Shared by backupAllSaves/backupAllMods, which differ only in the
+    /// source directory, the output filename prefix, and their localized
+    /// success/error messages.
+    private func zipToDesktop(sourceDir: String, filePrefix: String, successKey: String, errorKey: String) {
+        let desktopDir = "\(NSHomeDirectory())/Desktop"
+        let timestamp = DateFormatter.localizedString(from: Date(), dateStyle: .short, timeStyle: .medium)
+            .replacingOccurrences(of: "/", with: "-")
+            .replacingOccurrences(of: ":", with: "")
+        let zipPath = "\(desktopDir)/\(filePrefix)_\(timestamp).zip"
+
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/zip")
         process.arguments = ["-r", zipPath, "."]
-        process.currentDirectoryURL = URL(fileURLWithPath: savesDir)
-        
+        process.currentDirectoryURL = URL(fileURLWithPath: sourceDir)
+
         do {
             try process.run()
             process.waitUntilExit()
             if process.terminationStatus == 0 {
-                showModal(message: String(format: L(L10n.VM.backupSavesSuccess), zipPath))
+                showModal(message: String(format: L(successKey), zipPath))
             } else {
-                showModal(message: L(L10n.VM.zipSavesError))
+                showModal(message: L(errorKey))
             }
         } catch {
             showModal(message: L(L10n.VM.cannotRunZip))
         }
     }
-    
+
+    func backupAllSaves() {
+        let savesDir = "\(NSHomeDirectory())/.config/StardewValley/Saves"
+        zipToDesktop(sourceDir: savesDir, filePrefix: "StardewSaves_Backup", successKey: L10n.VM.backupSavesSuccess, errorKey: L10n.VM.zipSavesError)
+    }
+
     func backupAllMods() {
         guard !gameDir.isEmpty else {
             showModal(message: L(L10n.Settings.gameDirNotSet))
             return
         }
         let modsDir = (gameDir as NSString).appendingPathComponent("Mods")
-        let home = NSHomeDirectory()
-        let desktopDir = "\(home)/Desktop"
-        let timestamp = DateFormatter.localizedString(from: Date(), dateStyle: .short, timeStyle: .medium).replacingOccurrences(of: "/", with: "-").replacingOccurrences(of: ":", with: "")
-        let zipPath = "\(desktopDir)/StardewMods_Backup_\(timestamp).zip"
-        
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/zip")
-        process.arguments = ["-r", zipPath, "."]
-        process.currentDirectoryURL = URL(fileURLWithPath: modsDir)
-        
-        do {
-            try process.run()
-            process.waitUntilExit()
-            if process.terminationStatus == 0 {
-                showModal(message: String(format: L(L10n.VM.backupModsSuccess), zipPath))
-            } else {
-                showModal(message: L(L10n.VM.zipModsError))
-            }
-        } catch {
-            showModal(message: L(L10n.VM.cannotRunZip))
-        }
+        zipToDesktop(sourceDir: modsDir, filePrefix: "StardewMods_Backup", successKey: L10n.VM.backupModsSuccess, errorKey: L10n.VM.zipModsError)
     }
     
     func cleanDisabledMods() {
@@ -1218,7 +2011,9 @@ class StarHubTHViewModel: ObservableObject {
             if FileManager.default.fileExists(atPath: disabledModsPath) {
                 try FileManager.default.removeItem(atPath: disabledModsPath)
                 showModal(message: L(L10n.VM.cleanModsSuccess))
-                self.scanMods()
+                DispatchQueue.global(qos: .userInitiated).async {
+                    self.scanMods()
+                }
             } else {
                 showModal(message: L(L10n.VM.cleanModsNotFound))
             }
@@ -1231,10 +2026,22 @@ class StarHubTHViewModel: ObservableObject {
     
     func fetchThaiTranslations() {
         guard let url = URL(string: "https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/README.md") else { return }
-        
-        URLSession.shared.dataTask(with: url) { data, response, error in
-            guard let data = data, let content = String(data: data, encoding: .utf8) else { return }
-            
+
+        DispatchQueue.main.async {
+            self.thaiTranslationsError = nil
+        }
+
+        URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
+            guard let self = self else { return }
+            guard error == nil,
+                  let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode),
+                  let data = data, let content = String(data: data, encoding: .utf8) else {
+                DispatchQueue.main.async {
+                    self.thaiTranslationsError = self.L(L10n.ThaiHub.loadError)
+                }
+                return
+            }
+
             var newTranslations: [ThaiTranslationMod] = []
             let lines = content.components(separatedBy: .newlines)
             var inTable = false
@@ -1526,10 +2333,48 @@ class StarHubTHViewModel: ObservableObject {
     }
 
     /// Actually move mod files to match the given profile's enabledModIds.
+    ///
+    /// Unlike `toggleMod`, the previous implementation swallowed every
+    /// filesystem error with `try?`, so a partial failure (e.g. one mod
+    /// folder locked by another process, a permission issue, a stale
+    /// destination) left the Mods/Mods_disabled layout in an inconsistent
+    /// state with no signal to the user. This version captures each move
+    /// error, logs it, and surfaces a user-visible alert summarizing how
+    /// many mods could not be relocated — while still rescanning so the UI
+    /// reflects the actual on-disk state (whatever it is).
     private func applyProfileToFilesystem(profile: ModProfile) {
         let fm = FileManager.default
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
         let disabledModsPath = (gameDir as NSString).appendingPathComponent("Mods_disabled")
+
+        // Records each mod that could not be moved, with the underlying
+        // error for the log. Drives both the user-facing alert and the
+        // per-mod log lines below.
+        struct MoveFailure {
+            let modName: String
+            let direction: String   // "→ Mods" / "→ Mods_disabled"
+            let error: Error
+        }
+        var failures: [MoveFailure] = []
+        var attempted = 0
+        var anyEnabled = false
+
+        // Shared helper: ensure the destination parent directory exists,
+        // then move the folder. Returns nil on success, the error on
+        // failure — never throws so the loop can keep processing the
+        // remaining mods instead of aborting at the first error.
+        func moveModFolder(_ mod: ModItem, from src: String, to dst: String, direction: String) {
+            attempted += 1
+            let dstParent = (dst as NSString).deletingLastPathComponent
+            do {
+                if !fm.fileExists(atPath: dstParent) {
+                    try fm.createDirectory(atPath: dstParent, withIntermediateDirectories: true, attributes: nil)
+                }
+                try fm.moveItem(atPath: src, toPath: dst)
+            } catch {
+                failures.append(MoveFailure(modName: mod.name, direction: direction, error: error))
+            }
+        }
 
         // Check whether a mod (or any of its children) is covered by the profile's enabled list
         func isCoveredByProfile(_ mod: ModItem) -> Bool {
@@ -1541,28 +2386,71 @@ class StarHubTHViewModel: ObservableObject {
 
         // Disable mods not in profile
         for mod in mods.filter({ $0.isEnabled }) {
-            if !isCoveredByProfile(mod) {
-                let src = (modsPath as NSString).appendingPathComponent(mod.folderName)
-                let dst = (disabledModsPath as NSString).appendingPathComponent(mod.folderName)
-                try? fm.createDirectory(atPath: (dst as NSString).deletingLastPathComponent,
-                                        withIntermediateDirectories: true, attributes: nil)
-                try? fm.moveItem(atPath: src, toPath: dst)
-            }
+            guard !isCoveredByProfile(mod) else { continue }
+            let src = (modsPath as NSString).appendingPathComponent(mod.folderName)
+            let dst = (disabledModsPath as NSString).appendingPathComponent(mod.folderName)
+            moveModFolder(mod, from: src, to: dst, direction: "→ Mods_disabled")
         }
 
-        // Enable mods in profile
+        // Enable mods in profile. Only stamp the activation timestamp for
+        // mods that were actually moved — stamping a mod that failed to
+        // move would record a phantom "last activation" for a folder that
+        // is still sitting in Mods_disabled.
         for mod in mods.filter({ !$0.isEnabled }) {
-            if isCoveredByProfile(mod) {
-                let src = (disabledModsPath as NSString).appendingPathComponent(mod.folderName)
-                let dst = (modsPath as NSString).appendingPathComponent(mod.folderName)
-                try? fm.createDirectory(atPath: (dst as NSString).deletingLastPathComponent,
-                                        withIntermediateDirectories: true, attributes: nil)
-                try? fm.moveItem(atPath: src, toPath: dst)
+            guard isCoveredByProfile(mod) else { continue }
+            let src = (disabledModsPath as NSString).appendingPathComponent(mod.folderName)
+            let dst = (modsPath as NSString).appendingPathComponent(mod.folderName)
+            let beforeCount = failures.count
+            moveModFolder(mod, from: src, to: dst, direction: "→ Mods")
+            if failures.count == beforeCount {
+                self.modActivationTimestamps[mod.folderName] = Date()
+                anyEnabled = true
             }
         }
+        if anyEnabled {
+            Self.saveModActivationTimestamps(self.modActivationTimestamps)
+        }
 
-        self.scanMods()
-        self.syncActiveProfileIds()
+        // Log each failure individually so the Logs tab shows exactly
+        // which mod(s) and why — the aggregated alert only gives a count.
+        for failure in failures {
+            log(
+                String(format: "%@ %@: %@",
+                       failure.modName, failure.direction, failure.error.localizedDescription),
+                level: .error
+            )
+        }
+
+        // Always rescan so the list reflects the real on-disk state,
+        // whatever it is after partial failures. syncActiveProfileIds
+        // runs after so the active profile's stored id list tracks the
+        // actual enabled set (possibly fewer than expected if moves
+        // failed).
+        DispatchQueue.global(qos: .userInitiated).async {
+            self.scanMods()
+            DispatchQueue.main.async {
+                self.syncActiveProfileIds()
+                // Surface the outcome to the user. A partial application
+                // is the dangerous case: the profile is "active" but the
+                // filesystem doesn't fully match it, so the next toggle
+                // cycle could compound the inconsistency. Tell the user
+                // explicitly rather than letting it look like success.
+                if !failures.isEmpty {
+                    let profileName = profile.name
+                    if attempted == failures.count {
+                        // Every move failed — profile was not applied at all.
+                        self.showModal(message: String(format: self.L(L10n.VM.applyProfileError),
+                                                       profileName, failures.count))
+                    } else {
+                        // Some moves succeeded, some failed.
+                        self.showModal(message: String(format: self.L(L10n.VM.applyProfilePartial),
+                                                       profileName, failures.count))
+                    }
+                    self.log(String(format: "Profile \"%@\" applied with %lld failure(s)",
+                                    profileName, failures.count), level: .warning)
+                }
+            }
+        }
     }
 
     /// Compute which uniqueIds should be added/removed when toggling a mod in a profile,

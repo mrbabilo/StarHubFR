@@ -145,20 +145,17 @@ struct HomeView: View {
                 // ── CORE EXTENSIONS SECTION ──
                 StandardSection(title: vm.L(L10n.Home.coreExtensions)) {
                     VStack(spacing: 0) {
-                        let (cpStatus, cpMod) = coreModStatus(matching: "content patcher")
-                        CoreModRow(vm: vm, title: "Content Patcher", status: cpStatus, mod: cpMod)
+                        let core = vm.coreExtensionsSnapshot
+                        CoreModRow(vm: vm, title: "Content Patcher", status: core.contentPatcher.status, mod: core.contentPatcher.mod)
                         Rectangle().fill(Color.primary.opacity(0.05)).frame(height: 1).padding(.leading, 12).padding(.vertical, 2)
 
-                        let (scStatus, scMod) = coreModStatus(matching: "spacecore")
-                        CoreModRow(vm: vm, title: "SpaceCore", status: scStatus, mod: scMod)
+                        CoreModRow(vm: vm, title: "SpaceCore", status: core.spacecore.status, mod: core.spacecore.mod)
                         Rectangle().fill(Color.primary.opacity(0.05)).frame(height: 1).padding(.leading, 12).padding(.vertical, 2)
 
-                        let (thStatus, thMod) = coreModStatusThai()
-                        CoreModRow(vm: vm, title: "Stardew Valley Thai", status: thStatus, mod: thMod)
+                        CoreModRow(vm: vm, title: "Stardew Valley Thai", status: core.thai.status, mod: core.thai.mod)
                         Rectangle().fill(Color.primary.opacity(0.05)).frame(height: 1).padding(.leading, 12).padding(.vertical, 2)
 
-                        let (sveStatus, sveMod) = coreModStatus(matching: "stardew valley expanded")
-                        CoreModRow(vm: vm, title: "Stardew Valley Expanded", status: sveStatus, mod: sveMod)
+                        CoreModRow(vm: vm, title: "Stardew Valley Expanded", status: core.sve.status, mod: core.sve.mod)
                     }
                     .padding(.vertical, -8)
                 }
@@ -181,37 +178,16 @@ enum CoreModStatus {
     case notInstalled
 }
 
-extension HomeView {
-    func coreModStatus(matching keyword: String) -> (CoreModStatus, ModItem?) {
-        let allMods = vm.mods.flatMap { mod -> [ModItem] in
-            if mod.isGroup, let children = mod.children { return children }
-            return [mod]
-        }
-        let matches = allMods.filter { $0.name.lowercased().contains(keyword) }
-        guard !matches.isEmpty else { return (.notInstalled, nil) }
+struct CoreModSlot {
+    let status: CoreModStatus
+    let mod: ModItem?
+}
 
-        // Prefer enabled mod if multiple match (e.g. "Content Patcher" vs "Content Patcher Animations")
-        let exactEnabled  = matches.first { $0.name.lowercased() == keyword && $0.isEnabled }
-        let anyEnabled    = matches.first { $0.isEnabled }
-        let exactAny      = matches.first { $0.name.lowercased() == keyword }
-        let mod = exactEnabled ?? anyEnabled ?? exactAny ?? matches.first!
-
-        return (mod.isEnabled ? .enabledAndInstalled : .installedButDisabled, mod)
-    }
-
-    func coreModStatusThai() -> (CoreModStatus, ModItem?) {
-        let allMods = vm.mods.flatMap { mod -> [ModItem] in
-            if mod.isGroup, let children = mod.children { return children }
-            return [mod]
-        }
-        // Match by folder name first (exact), then by name containing "thai"
-        let mod = allMods.first { $0.folderName.lowercased() == "stardew valley - thai" && $0.isEnabled }
-            ?? allMods.first { $0.name.localizedCaseInsensitiveContains("thai") && $0.isEnabled }
-            ?? allMods.first { $0.folderName.lowercased() == "stardew valley - thai" }
-            ?? allMods.first { $0.name.localizedCaseInsensitiveContains("thai") }
-        guard let mod = mod else { return (.notInstalled, nil) }
-        return (mod.isEnabled ? .enabledAndInstalled : .installedButDisabled, mod)
-    }
+struct CoreExtensionsSnapshot {
+    let contentPatcher: CoreModSlot
+    let spacecore: CoreModSlot
+    let thai: CoreModSlot
+    let sve: CoreModSlot
 }
 
 // Helper for core mod status rows

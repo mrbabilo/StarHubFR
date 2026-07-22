@@ -97,32 +97,3 @@ struct InfoPopoverButton: View {
         }
     }
 }
-
-// MARK: - Stardew Toggle Style
-struct StardewToggleStyle: ToggleStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        HStack {
-            configuration.label
-            
-            RoundedRectangle(cornerRadius: 12)
-                .fill(configuration.isOn ? Color.accentColor : Color(nsColor: .controlColor).opacity(0.5))
-                .frame(width: 36, height: 20)
-                .overlay(
-                    Circle()
-                        .fill(Color(nsColor: .controlBackgroundColor))
-                        .shadow(color: Color.black.opacity(0.3), radius: 1, x: 0, y: 1)
-                        .padding(2)
-                        .offset(x: configuration.isOn ? 8 : -8)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.black.opacity(0.2), lineWidth: 1)
-                )
-                .animation(.spring(response: 0.25, dampingFraction: 0.65), value: configuration.isOn)
-                .onTapGesture {
-                    configuration.isOn.toggle()
-                }
-                .pointingHandCursor()
-        }
-    }
-}
