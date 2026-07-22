@@ -215,6 +215,38 @@ struct TestEnvironment {
         #expect(env.manager.loadBackups().count == 2)
     }
 
+    @Test func restoreBackupPreservesNestedPackPathOnRoundTrip() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let childDir = env.modsDir.appendingPathComponent("GroupFolder/ChildFolder", isDirectory: true)
+        try writeTestFile(in: childDir, filename: "config.json", content: "{\"value\": \"original\"}")
+
+        let child = makeTestMod(uniqueId: "child", folderName: "GroupFolder/ChildFolder")
+        let group = makeTestMod(uniqueId: "group", folderName: "GroupFolder", children: [child], isGroup: true)
+
+        let backup = try env.manager.createBackup(gameDir: env.gameDir, mods: [group])
+
+        // Simulate the user changing the live nested config after the backup.
+        try writeTestFile(in: childDir, filename: "config.json", content: "{\"value\": \"changed\"}")
+
+        try env.manager.restoreBackup(
+            gameDir: env.gameDir,
+            backup: backup,
+            selectedItems: backup.items,
+            currentMods: [group]
+        )
+
+        // Read back from the REAL nested location (Mods/GroupFolder/ChildFolder),
+        // not a flattened one — this is what makes the test catch a regression
+        // reintroduced in destinationDir() alone, unlike the metadata-only
+        // Task 4 tests (which would still pass even if the on-disk write/read
+        // path were flattened, since they only check the returned struct's
+        // modFolderName field, not where bytes actually land).
+        let restoredContent = try String(contentsOf: childDir.appendingPathComponent("config.json"), encoding: .utf8)
+        #expect(restoredContent == "{\"value\": \"original\"}")
+    }
+
     @Test func deleteBackupRemovesItFromTheIndex() throws {
         let env = TestEnvironment()
         defer { env.cleanup() }
