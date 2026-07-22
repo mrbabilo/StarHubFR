@@ -143,4 +143,26 @@ struct TestEnvironment {
         #expect(backup.items[0].modFolderName == "PackFolder/ModX")
         #expect(backup.items[0].parentFolderName == nil)
     }
+
+    @Test func createBackupThrowsWhenNoConfigFilesFound() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        // Mod folder exists and is enabled, but has no config.json/fr.json.
+        let modDir = env.modsDir.appendingPathComponent("NoConfigMod", isDirectory: true)
+        try writeTestFile(in: modDir, filename: "manifest.json", content: "{}")
+
+        let mod = makeTestMod(folderName: "NoConfigMod")
+
+        do {
+            _ = try env.manager.createBackup(gameDir: env.gameDir, mods: [mod])
+            Issue.record("Expected createBackup to throw .nothingToBackUp")
+        } catch ModConfigBackupManager.BackupError.nothingToBackUp {
+            // expected
+        } catch {
+            Issue.record("Expected .nothingToBackUp, got \(error)")
+        }
+
+        #expect(env.manager.loadBackups().isEmpty)
+    }
 }
