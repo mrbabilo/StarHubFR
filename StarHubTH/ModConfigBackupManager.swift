@@ -85,6 +85,20 @@ public class ModConfigBackupManager {
         try? data.write(to: metadataPath, options: .atomic)
     }
 
+    /// Test-only seam (visible via `@testable import`) for seeding the
+    /// index with pre-fabricated backups — lets tests exercise
+    /// timestamp-dependent logic (like `cleanupOldBackups`'s 30-day cutoff)
+    /// without waiting real time or injecting a fake clock. Deliberately
+    /// left internal (not `public`) — invisible to any real consumer of
+    /// this library.
+    func seedIndexForTesting(with backups: [ModConfigBackup]) {
+        withIndexLock {
+            var index = loadIndex()
+            index.backups.append(contentsOf: backups)
+            saveIndex(index)
+        }
+    }
+
     // MARK: - Create
 
     /// Backs up every enabled mod's config files (including enabled children

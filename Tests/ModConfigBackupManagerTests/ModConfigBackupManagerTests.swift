@@ -252,4 +252,61 @@ struct TestEnvironment {
         #expect(env.manager.loadBackups().count == 1)
         #expect(env.manager.loadBackups()[0].id == second.id)
     }
+
+    @Test func cleanupOldBackupsKeepsFiveMostRecentRegardlessOfAge() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let veryOld = Date().addingTimeInterval(-60 * 24 * 60 * 60) // 60 days ago
+        let fabricated = (0..<6).map { i in
+            ModConfigBackup(
+                timestamp: veryOld.addingTimeInterval(Double(i)),
+                items: [], totalFiles: 0, totalSize: 0,
+                folderName: "fake-backup-\(i)"
+            )
+        }
+        env.manager.seedIndexForTesting(with: fabricated)
+        #expect(env.manager.loadBackups().count == 6)
+
+        let deletedCount = env.manager.cleanupOldBackups()
+
+        // All 6 are >30 days old, but the 5 most recent must survive
+        // regardless of age.
+        #expect(deletedCount == 1)
+        #expect(env.manager.loadBackups().count == 5)
+    }
+
+    @Test func cleanupOldBackupsDeletesBackupsBeyondFloorAndCutoff() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let now = Date()
+        var fabricated: [ModConfigBackup] = []
+        // 5 recent backups (within 30 days) — always protected by the floor.
+        for i in 0..<5 {
+            fabricated.append(ModConfigBackup(
+                timestamp: now.addingTimeInterval(Double(-i)),
+                items: [], totalFiles: 0, totalSize: 0,
+                folderName: "recent-\(i)"
+            ))
+        }
+        // 3 more, older than 30 days — eligible for deletion since they
+        // fall outside both the 5-most-recent floor and the 30-day window.
+        let old = now.addingTimeInterval(-45 * 24 * 60 * 60)
+        for i in 0..<3 {
+            fabricated.append(ModConfigBackup(
+                timestamp: old.addingTimeInterval(Double(-i)),
+                items: [], totalFiles: 0, totalSize: 0,
+                folderName: "old-\(i)"
+            ))
+        }
+        env.manager.seedIndexForTesting(with: fabricated)
+        #expect(env.manager.loadBackups().count == 8)
+
+        let deletedCount = env.manager.cleanupOldBackups()
+
+        #expect(deletedCount == 3)
+        #expect(env.manager.loadBackups().count == 5)
+        #expect(env.manager.loadBackups().allSatisfy { $0.folderName.hasPrefix("recent-") })
+    }
 }
