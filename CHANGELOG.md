@@ -40,6 +40,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Save Manager**: Refactored (`+265`/`-` lines) with improved save branching and XML manipulation safety.
 - **Thai Translation Hub**: Refactored view for cleaner download logic using GitHub Releases with normalized zip name comparison (handles dots vs. spaces in GitHub asset naming).
 - **Toggle Button**: Fixed visual rebound and data-loss race condition during toggling.
+- **Nexus Cache Reads**: `hasRecentCheck`/`cachedUpdates`/`cachedCategories`/`cachedExtras` now take the same lock every cache-write path already used.
+- **Shared Avatar Component**: Remaining inline avatar-circle implementations in `ModProfilesView` now use the shared `InitialsAvatar` component (already applied elsewhere in this release).
+- **Toggle Staleness**: `toggleMod`'s target enable/disable state is now re-derived from the current mod list at execution time instead of the (possibly stale) snapshot captured when the toggle was queued.
 
 ### Fixed
 - **Nexus Update Checker**: A run that found real data (updates and/or categories/extras) no longer gets collapsed into `.error`/`.rateLimited` just because one other candidate failed or a 429 cut it short — previously discarded already-fetched data.
