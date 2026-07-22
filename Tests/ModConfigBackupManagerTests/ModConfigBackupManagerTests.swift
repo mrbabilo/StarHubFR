@@ -106,4 +106,41 @@ struct TestEnvironment {
             Issue.record("Expected .noEnabledMods, got \(error)")
         }
     }
+
+    @Test func createBackupPreservesGroupChildNestedPath() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let childDir = env.modsDir.appendingPathComponent("GroupFolder/ChildFolder", isDirectory: true)
+        try writeTestFile(in: childDir, filename: "config.json")
+
+        let child = makeTestMod(uniqueId: "child", folderName: "GroupFolder/ChildFolder")
+        let group = makeTestMod(uniqueId: "group", folderName: "GroupFolder", children: [child], isGroup: true)
+
+        let backup = try env.manager.createBackup(gameDir: env.gameDir, mods: [group])
+
+        #expect(backup.items.count == 1)
+        #expect(backup.items[0].modFolderName == "GroupFolder/ChildFolder")
+        #expect(backup.items[0].parentFolderName == "GroupFolder")
+    }
+
+    @Test func createBackupPreservesStandaloneNestedPackPath() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let modDir = env.modsDir.appendingPathComponent("PackFolder/ModX", isDirectory: true)
+        try writeTestFile(in: modDir, filename: "config.json")
+
+        // Not tagged isGroup — mirrors scanFolderForMods only setting
+        // isGroup when a folder contains 2+ manifests; a single mod nested
+        // one level deep still carries its full relative path in
+        // `folderName`.
+        let mod = makeTestMod(folderName: "PackFolder/ModX")
+
+        let backup = try env.manager.createBackup(gameDir: env.gameDir, mods: [mod])
+
+        #expect(backup.items.count == 1)
+        #expect(backup.items[0].modFolderName == "PackFolder/ModX")
+        #expect(backup.items[0].parentFolderName == nil)
+    }
 }
