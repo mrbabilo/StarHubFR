@@ -165,4 +165,53 @@ struct TestEnvironment {
 
         #expect(env.manager.loadBackups().isEmpty)
     }
+
+    @Test func restoreBackupOverwritesLiveConfigFile() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let modDir = env.modsDir.appendingPathComponent("RestoreMod", isDirectory: true)
+        try writeTestFile(in: modDir, filename: "config.json", content: "{\"value\": \"original\"}")
+
+        let mod = makeTestMod(folderName: "RestoreMod")
+        let backup = try env.manager.createBackup(gameDir: env.gameDir, mods: [mod])
+
+        // Simulate the user changing the live config after the backup.
+        try writeTestFile(in: modDir, filename: "config.json", content: "{\"value\": \"changed\"}")
+
+        try env.manager.restoreBackup(
+            gameDir: env.gameDir,
+            backup: backup,
+            selectedItems: backup.items,
+            currentMods: [mod]
+        )
+
+        let restoredContent = try String(contentsOf: modDir.appendingPathComponent("config.json"), encoding: .utf8)
+        #expect(restoredContent == "{\"value\": \"original\"}")
+    }
+
+    @Test func restoreBackupCreatesSafetyBackupOfCurrentState() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let modDir = env.modsDir.appendingPathComponent("RestoreMod", isDirectory: true)
+        try writeTestFile(in: modDir, filename: "config.json", content: "{\"value\": \"original\"}")
+
+        let mod = makeTestMod(folderName: "RestoreMod")
+        let backup = try env.manager.createBackup(gameDir: env.gameDir, mods: [mod])
+
+        try writeTestFile(in: modDir, filename: "config.json", content: "{\"value\": \"changed\"}")
+
+        try env.manager.restoreBackup(
+            gameDir: env.gameDir,
+            backup: backup,
+            selectedItems: backup.items,
+            currentMods: [mod]
+        )
+
+        // restoreBackup takes a best-effort backup of the pre-restore state
+        // before overwriting — there should now be 2 backups total (the
+        // original one created above, plus the automatic safety one).
+        #expect(env.manager.loadBackups().count == 2)
+    }
 }
