@@ -936,7 +936,13 @@ class StarHubTHViewModel: ObservableObject {
         }
         
         var foldersToToggle: Set<String> = [mod.folderName]
-        let targetState = !mod.isEnabled // True if we are enabling, false if disabling
+        // Re-derive from the current snapshot rather than trusting
+        // `mod.isEnabled` — `mod` was captured by value when this call was
+        // enqueued (see `toggleMod`), so by the time a queued call actually
+        // runs, `self.mods` may already reflect a state change from an
+        // earlier queued toggle.
+        let currentIsEnabled = self.mods.first(where: { $0.folderName == mod.folderName })?.isEnabled ?? mod.isEnabled
+        let targetState = !currentIsEnabled // True if we are enabling, false if disabling
         
         if chainToggleDependencies {
             if targetState == true {

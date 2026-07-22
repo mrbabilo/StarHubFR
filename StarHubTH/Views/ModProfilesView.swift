@@ -99,15 +99,14 @@ struct ProfileRow: View {
         }) {
             HStack(spacing: 14) {
                 // Circular Avatar
-                ZStack {
-                    Circle()
-                        .fill(isActive ? Color.accentColor : Color.gray.opacity(0.3))
-                        .frame(width: 40, height: 40)
-
-                    Text(String(profile.name.prefix(1)).uppercased())
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(isActive ? .white : .primary)
-                }
+                InitialsAvatar(
+                    text: profile.name,
+                    size: 40,
+                    fillColor: isActive ? Color.accentColor : Color.gray.opacity(0.3),
+                    textColor: isActive ? .white : .primary,
+                    fontSize: 20,
+                    fontWeight: .medium
+                )
 
                 // Text
                 VStack(alignment: .leading, spacing: 2) {
@@ -184,17 +183,9 @@ struct ProfileDetailSheet: View {
     var body: some View {
         VStack(spacing: 0) {
             // Big Avatar
-            ZStack {
-                Circle()
-                    .fill(Color.accentColor)
-                    .frame(width: 80, height: 80)
-                
-                Text(String(profile.name.prefix(1)).uppercased())
-                    .font(.system(size: 40, weight: .bold))
-                    .foregroundColor(.white)
-            }
-            .padding(.top, 24)
-            .padding(.bottom, 24)
+            InitialsAvatar(text: profile.name, size: 80, fontSize: 40)
+                .padding(.top, 24)
+                .padding(.bottom, 24)
             
             // Settings Box
             VStack(spacing: 0) {

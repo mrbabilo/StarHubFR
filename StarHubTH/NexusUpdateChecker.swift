@@ -59,6 +59,12 @@ final class NexusUpdateChecker {
 
     private init() {}
 
+    private func withMetadataCacheLock<T>(_ body: () -> T) -> T {
+        metadataCacheLock.lock()
+        defer { metadataCacheLock.unlock() }
+        return body()
+    }
+
     // MARK: - API Key (Keychain)
 
     func apiKey() -> String? {
@@ -158,16 +164,18 @@ final class NexusUpdateChecker {
     /// `dedupeInterval`). UI can use this to avoid showing a spinner when the
     /// result hasn't changed.
     func hasRecentCheck() -> Bool {
-        guard let last = UserDefaults.standard.object(forKey: lastCheckKey) as? Date else {
-            return false
+        withMetadataCacheLock {
+            guard let last = UserDefaults.standard.object(forKey: lastCheckKey) as? Date else {
+                return false
+            }
+            return Date().timeIntervalSince(last) < dedupeInterval
         }
-        return Date().timeIntervalSince(last) < dedupeInterval
     }
 
     /// Returns the last successful update list, regardless of freshness.
     /// Useful for seeding the UI on launch before any check runs.
     func cachedUpdates() -> [ModUpdate] {
-        loadCachedUpdates()
+        withMetadataCacheLock { loadCachedUpdates() }
     }
 
     /// Runs a full check across all mods that declare a Nexus id.
@@ -501,7 +509,7 @@ final class NexusUpdateChecker {
     /// freshness. Used to seed the mods-list filter on launch before any check
     /// has run this session.
     func cachedCategories() -> [String: Int] {
-        loadCachedCategories()
+        withMetadataCacheLock { loadCachedCategories() }
     }
 
     private func loadCachedCategories() -> [String: Int] {
@@ -523,7 +531,7 @@ final class NexusUpdateChecker {
     /// of freshness. Used to seed the popover preview on launch before any
     /// check has run this session.
     func cachedExtras() -> [String: NexusModExtra] {
-        loadCachedExtras()
+        withMetadataCacheLock { loadCachedExtras() }
     }
 
     private func loadCachedExtras() -> [String: NexusModExtra] {
