@@ -1,22 +1,24 @@
 > [!IMPORTANT]
-> For non-Thai users, please refer to the [English README](README_EN.md) or [French README](README_FR.md).
+> Ce fork ajoute le support de la langue française. Pour la version originale en thaï, consultez le [README thaï](README_TH.md). Pour la version anglaise, consultez le [README anglais](README_EN.md).
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/features_banner.png" alt="ฟีเจอร์หลัก" width="300">
+  <img src="https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/features_banner.png" alt="Fonctionnalités principales" width="300">
 </p>
 
-*   **รันเกมได้ง่ายๆ**: เลือกรันเกมได้ทั้งโหมดปกติ (Vanilla) และโหมดผ่าน SMAPI สำหรับเล่นม็อด
-*   **จัดการส่วนเสริม (Mods Manager)**: เปิด/ปิด ม็อดต่างๆ ได้อย่างง่ายดายผ่านหน้าตาแอปพลิเคชันที่สวยงาม ไม่ต้องเข้าไปย้ายไฟล์เอง
-*   **จัดการเซฟเกม (Save Manager)**: 
-    *   ดูรายละเอียดเซฟเกมทั้งหมด (จำนวนเงิน, เวลาในเกม, ฤดูกาล, รูปแบบฟาร์ม)
-    *   ทำสำเนา (Duplicate) หรือลบเซฟเกม
-    *   แก้ไขเงินและสถานะต่างๆ ของตัวละครเบื้องต้น
-*   **บันทึกนักพัฒนา (Developer Logs)**: ติดตามการทำงานของ SMAPI ได้แบบเรียลไทม์ภายในแอป
-*   **รองรับ 2 ภาษา (Bilingual Support)**: สลับภาษาในแอปได้ทันทีระหว่างภาษาอังกฤษ (English) และภาษาไทย (Thai)
-*   **UI สไตล์ Native macOS**: หน้าตาแอปพลิเคชันที่สวยงาม ใช้งานง่าย ออกแบบมาให้กลมกลืนกับระบบ macOS อย่างสมบูรณ์แบบ
+*   **Lancement facile du jeu** : Lancez Stardew Valley en mode Vanilla (original) ou via SMAPI pour jouer avec des mods.
+*   **Gestionnaire de Mods** : Activez ou désactivez vos mods facilement grâce à une interface élégante — plus besoin de déplacer les fichiers manuellement.
+*   **Profils de Mods** : Regroupez vos mods dans plusieurs profils et passez de l'un à l'autre en un seul clic.
+*   **Centre de Traductions Thaï** : Un espace dédié listant tous les mods de traduction en thaï — parcourez, vérifiez le statut, téléchargez et suivez les mises à jour au même endroit.
+*   **Gestionnaire de Sauvegardes** :
+    *   Consultez les détails de toutes vos sauvegardes (argent, heure dans le jeu, saison, type de ferme)
+    *   Dupliquez ou supprimez des sauvegardes
+    *   Modifiez l'argent et les statistiques de base du personnage
+*   **Journaux de Développement** : Suivez la sortie SMAPI en temps réel directement dans l'application.
+*   **Support Multilingue** : Basculez instantanément la langue de l'application entre l'anglais et le thaï (ภาษาไทย).
+*   **Interface Native macOS** : Une interface propre et intuitive conçue pour s'intégrer parfaitement à macOS.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/screenshots_banner.png" alt="ภาพตัวอย่างการใช้งาน" width="300">
+  <img src="https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/screenshots_banner.png" alt="Captures d'écran" width="300">
 </p>
 
 |   |   |
@@ -28,42 +30,41 @@
 | <img src="screenshots/9.png" width="400"> | <img src="screenshots/10.png" width="400"> |
 | <img src="screenshots/11.png" width="400"> | <img src="screenshots/12.png" width="400"> |
 
-
 <p align="center">
-  <img src="https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/install_banner.png" alt="วิธีติดตั้ง" width="300">
+  <img src="https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/install_banner.png" alt="Installation" width="300">
 </p>
 
-1. **ดาวน์โหลดแอปพลิเคชัน**: โหลดไฟล์เวอร์ชันล่าสุดจากหน้า [Releases](../../releases)
-2. **เปิดใช้งาน**: แตกไฟล์แล้วลาก `StarHubTH.app` ไปไว้ที่โฟลเดอร์ Applications แล้วดับเบิลคลิกเพื่อเปิดใช้งาน
-3. **กำหนดโฟลเดอร์เกม**: ในครั้งแรกที่เปิด โปรแกรมจะค้นหาโฟลเดอร์เกมของ Steam อัตโนมัติ หากไม่พบ คุณสามารถเลือกโฟลเดอร์ตัวเกม (เช่น `/Applications/Stardew Valley.app/Contents/MacOS`) ได้ด้วยตัวเอง
-4. **พร้อมลุย!**: จัดการม็อดหรือเซฟเกม แล้วกด **"เข้าสู่เกม"** จากแถบเมนูด้านซ้ายได้เลย!
+1. **Télécharger** : Récupérez la dernière version depuis la page [Releases](../../releases).
+2. **Installer** : Décompressez le fichier et glissez `StarHubTH.app` dans votre dossier Applications, puis double-cliquez pour le lancer.
+3. **Définir le dossier du jeu** : Au premier lancement, l'application tentera de détecter automatiquement le dossier du jeu Steam. Si celui-ci n'est pas trouvé, vous pouvez sélectionner manuellement le répertoire du jeu (ex. `/Applications/Stardew Valley.app/Contents/MacOS`).
+4. **C'est prêt !** : Gérez vos mods ou vos sauvegardes, puis cliquez sur **« Lancer le jeu »** dans la barre latérale gauche.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/developers_banner.png" alt="สำหรับนักพัฒนา" width="300">
+  <img src="https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/developers_banner.png" alt="Pour les développeurs" width="300">
 </p>
 
-แอปพลิเคชันนี้เขียนขึ้นด้วย **Swift** และ **SwiftUI** ผ่านโครงสร้างของแอปพลิเคชัน macOS แท้ๆ
+Cette application est développée en **Swift** et **SwiftUI** en tant qu'application macOS native.
 
-### ความต้องการของระบบ (Requirements)
-*   macOS 14.0 (Sonoma) หรือใหม่กว่า
-*   Xcode 15.0 หรือใหม่กว่า (สำหรับการคอมไพล์ซอร์สโค้ด)
+### Prérequis
+*   macOS 14.0 (Sonoma) ou ultérieur
+*   Xcode 15.0 ou ultérieur (pour compiler depuis les sources)
 
-### วิธีการรันโปรเจกต์
-คุณสามารถเปิดโปรเจกต์ผ่าน Xcode หรือใช้สคริปต์คอมไพล์ผ่าน Terminal:
+### Lancer le projet
+Vous pouvez ouvrir le projet dans Xcode ou compiler via le Terminal avec le script de build :
 ```bash
 python3 build_app.py
 open StarHubTH.app
 ```
 
-### การแพ็คแอปพลิเคชัน (Release)
-หากต้องการบีบอัดแอปพลิเคชัน (.app) เป็นไฟล์ `.zip` สำหรับนำไปแจกจ่าย สามารถรันคำสั่ง:
+### Créer une version Release
+Pour empaqueter l'application dans un fichier `.zip` pour la distribution :
 ```bash
 python3 release.py
 ```
-ไฟล์ Release จะถูกบันทึกไว้ในโฟลเดอร์ `bundles/` ครับ
+Les fichiers Release seront sauvegardés dans le dossier `bundles/`.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/credits_banner.png" alt="เครดิตและลิขสิทธิ์" width="300">
+  <img src="https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/credits_banner.png" alt="Crédits et Licence" width="300">
 </p>
 
-โปรเจกต์นี้เผยแพร่ภายใต้ [MIT License](LICENSE)สามารถนำไปดัดแปลงและพัฒนาต่อยอดได้ตามอิสระ
+Ce projet est publié sous la [Licence MIT](LICENSE). N'hésitez pas à forker, modifier et l'améliorer.

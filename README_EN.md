@@ -1,5 +1,5 @@
 > [!IMPORTANT]
-> This fork adds French language support. See the [French README](README_FR.md) or the [original Thai README](README.md).
+> This fork adds French language support. See the [French README](README.md) or the [original Thai README](README_TH.md).
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/features_banner.png" alt="Key Features" width="300">
