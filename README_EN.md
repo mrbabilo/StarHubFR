@@ -2,6 +2,14 @@
 > This fork adds French language support. See the [French README](README.md) or the [original Thai README](README_TH.md).
 
 <p align="center">
+  <a href="https://swift.org"><img src="https://img.shields.io/badge/Swift-F05138?logo=swift&logoColor=white" alt="Swift"></a>
+  <a href="https://developer.apple.com/xcode/swiftui/"><img src="https://img.shields.io/badge/SwiftUI-0288D1?logo=swift&logoColor=white" alt="SwiftUI"></a>
+  <a href="https://www.python.org"><img src="https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white" alt="Python"></a>
+  <a href="#"><img src="https://img.shields.io/badge/Platform-macOS%2014%2B-000000?logo=apple&logoColor=white" alt="macOS"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow" alt="MIT License"></a>
+</p>
+
+<p align="center">
   <img src="https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/features_banner.png" alt="Key Features" width="300">
 </p>
 
@@ -40,6 +48,12 @@
   <img src="https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/install_banner.png" alt="Installation" width="300">
 </p>
 
+### Minimum Requirements
+*   **Operating System**: macOS 14.0 (Sonoma) or later
+*   **Stardew Valley**: the game installed on macOS (Steam or GOG version)
+*   **Optional**: [SMAPI](https://smapi.io/) for playing with mods
+
+### Installation Steps
 1. **Download**: Grab the latest release from the [Releases](../../releases) page.
 2. **Install**: Unzip the file and drag `StarHubTH.app` into your Applications folder, then double-click to launch.
 3. **Set Game Folder**: On first launch, the app will attempt to auto-detect your Steam game folder. If not found, you can manually select the game directory (e.g. `/Applications/Stardew Valley.app/Contents/MacOS`).

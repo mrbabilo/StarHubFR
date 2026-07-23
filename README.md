@@ -2,6 +2,14 @@
 > Ce fork ajoute le support de la langue française. Pour la version originale en thaï, consultez le [README thaï](README_TH.md). Pour la version anglaise, consultez le [README anglais](README_EN.md).
 
 <p align="center">
+  <a href="https://swift.org"><img src="https://img.shields.io/badge/Swift-F05138?logo=swift&logoColor=white" alt="Swift"></a>
+  <a href="https://developer.apple.com/xcode/swiftui/"><img src="https://img.shields.io/badge/SwiftUI-0288D1?logo=swift&logoColor=white" alt="SwiftUI"></a>
+  <a href="https://www.python.org"><img src="https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white" alt="Python"></a>
+  <a href="#"><img src="https://img.shields.io/badge/Plateforme-macOS%2014%2B-000000?logo=apple&logoColor=white" alt="macOS"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/Licence-MIT-yellow" alt="MIT License"></a>
+</p>
+
+<p align="center">
   <img src="https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/features_banner.png" alt="Fonctionnalités principales" width="300">
 </p>
 
@@ -40,6 +48,12 @@
   <img src="https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/install_banner.png" alt="Installation" width="300">
 </p>
 
+### Configuration minimale
+*   **Système d'exploitation** : macOS 14.0 (Sonoma) ou ultérieur
+*   **Stardew Valley** : le jeu installé sur macOS (version Steam ou GOG)
+*   **Optionnel** : [SMAPI](https://smapi.io/) pour jouer avec des mods
+
+### Étapes d'installation
 1. **Télécharger** : Récupérez la dernière version depuis la page [Releases](../../releases).
 2. **Installer** : Décompressez le fichier et glissez `StarHubTH.app` dans votre dossier Applications, puis double-cliquez pour le lancer.
 3. **Définir le dossier du jeu** : Au premier lancement, l'application tentera de détecter automatiquement le dossier du jeu Steam. Si celui-ci n'est pas trouvé, vous pouvez sélectionner manuellement le répertoire du jeu (ex. `/Applications/Stardew Valley.app/Contents/MacOS`).

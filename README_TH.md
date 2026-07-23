@@ -2,6 +2,14 @@
 > For non-Thai users, please refer to the [English README](README_EN.md) or [French README](README.md).
 
 <p align="center">
+  <a href="https://swift.org"><img src="https://img.shields.io/badge/Swift-F05138?logo=swift&logoColor=white" alt="Swift"></a>
+  <a href="https://developer.apple.com/xcode/swiftui/"><img src="https://img.shields.io/badge/SwiftUI-0288D1?logo=swift&logoColor=white" alt="SwiftUI"></a>
+  <a href="https://www.python.org"><img src="https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white" alt="Python"></a>
+  <a href="#"><img src="https://img.shields.io/badge/Platform-macOS%2014%2B-000000?logo=apple&logoColor=white" alt="macOS"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow" alt="MIT License"></a>
+</p>
+
+<p align="center">
   <img src="https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/features_banner.png" alt="ฟีเจอร์หลัก" width="300">
 </p>
 
@@ -41,6 +49,12 @@
   <img src="https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/install_banner.png" alt="วิธีติดตั้ง" width="300">
 </p>
 
+### ความต้องการขั้นต่ำของระบบ
+*   **ระบบปฏิบัติการ**: macOS 14.0 (Sonoma) หรือใหม่กว่า
+*   **Stardew Valley**: เกมที่ติดตั้งบน macOS (เวอร์ชัน Steam หรือ GOG)
+*   **ทางเลือก**: [SMAPI](https://smapi.io/) สำหรับเล่นม็อด
+
+### ขั้นตอนการติดตั้ง
 1. **ดาวน์โหลดแอปพลิเคชัน**: โหลดไฟล์เวอร์ชันล่าสุดจากหน้า [Releases](../../releases)
 2. **เปิดใช้งาน**: แตกไฟล์แล้วลาก `StarHubTH.app` ไปไว้ที่โฟลเดอร์ Applications แล้วดับเบิลคลิกเพื่อเปิดใช้งาน
 3. **กำหนดโฟลเดอร์เกม**: ในครั้งแรกที่เปิด โปรแกรมจะค้นหาโฟลเดอร์เกมของ Steam อัตโนมัติ หากไม่พบ คุณสามารถเลือกโฟลเดอร์ตัวเกม (เช่น `/Applications/Stardew Valley.app/Contents/MacOS`) ได้ด้วยตัวเอง
