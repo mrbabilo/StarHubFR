@@ -502,3 +502,6 @@
 "vm_nexus_dl_request_failed" = "Download failed: %@";
 "vm_nexus_dl_bad_link" = "Invalid Nexus download link.";
 "vm_nexus_dl_starting" = "Downloading mod %lld from Nexus…";
+"vm_nexus_dl_auth_failed" = "Nexus authentication failed — check your API key in Settings.";
+"vm_nexus_dl_rate_limited" = "Too many requests to Nexus — wait a moment and try again.";
+"vm_nexus_dl_server_error" = "Nexus returned an unexpected response (%lld).";

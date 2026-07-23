@@ -369,7 +369,12 @@ struct MainView: View {
         .onChange(of: vm.pendingDownloadedZip) { _, newValue in
             showDownloadedInstall = (newValue != nil)
         }
-        .sheet(isPresented: $showDownloadedInstall, onDismiss: { vm.pendingDownloadedZip = nil }) {
+        .sheet(isPresented: $showDownloadedInstall, onDismiss: {
+            if let url = vm.pendingDownloadedZip {
+                try? FileManager.default.removeItem(at: url)
+            }
+            vm.pendingDownloadedZip = nil
+        }) {
             ModInstallView(vm: vm, preloadedZip: vm.pendingDownloadedZip)
         }
     }

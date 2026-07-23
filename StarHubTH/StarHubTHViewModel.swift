@@ -1760,10 +1760,15 @@ class StarHubTHViewModel: ObservableObject {
     /// (`L(...)`) rather than `errorDescription`'s `NSLocalizedString`, which
     /// doesn't follow in-session language switching.
     private func nexusDownloadMessage(_ error: NexusDownloadError) -> String {
-        if let detail = error.detailArgument {
-            return String(format: L(error.l10nKey), detail)
+        switch error {
+        case .noApiKey:            return L(L10n.VM.nexusDlNoApiKey)
+        case .noValidFile:         return L(L10n.VM.nexusDlNoValidFile)
+        case .noDownloadLink:      return L(L10n.VM.nexusDlNoLink)
+        case .authFailed:          return L(L10n.VM.nexusDlAuthFailed)
+        case .rateLimited:         return L(L10n.VM.nexusDlRateLimited)
+        case .serverError(let code): return String(format: L(L10n.VM.nexusDlServerError), code)
+        case .requestFailed(let msg): return String(format: L(L10n.VM.nexusDlRequestFailed), msg)
         }
-        return L(error.l10nKey)
     }
 
     // MARK: - Custom override persistence

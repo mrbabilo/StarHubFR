@@ -482,6 +482,9 @@ enum L10n {
         static let nexusDlRequestFailed = "vm_nexus_dl_request_failed"
         static let nexusDlBadLink       = "vm_nexus_dl_bad_link"
         static let nexusDlStarting      = "vm_nexus_dl_starting"
+        static let nexusDlAuthFailed    = "vm_nexus_dl_auth_failed"
+        static let nexusDlRateLimited   = "vm_nexus_dl_rate_limited"
+        static let nexusDlServerError   = "vm_nexus_dl_server_error"
     }
 
     // MARK: - ModInstall

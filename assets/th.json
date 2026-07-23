@@ -501,5 +501,8 @@
   "vm_nexus_dl_no_link": "ไม่สามารถรับลิงก์ดาวน์โหลดได้ (การดาวน์โหลดในแอปโดยตรงอาจต้องใช้ Nexus Premium)",
   "vm_nexus_dl_request_failed": "ดาวน์โหลดล้มเหลว: %@",
   "vm_nexus_dl_bad_link": "ลิงก์ดาวน์โหลด Nexus ไม่ถูกต้อง",
-  "vm_nexus_dl_starting": "กำลังดาวน์โหลดม็อด %lld จาก Nexus…"
+  "vm_nexus_dl_starting": "กำลังดาวน์โหลดม็อด %lld จาก Nexus…",
+  "vm_nexus_dl_auth_failed": "การยืนยันตัวตน Nexus ล้มเหลว — ตรวจสอบ API key ในหน้าตั้งค่า",
+  "vm_nexus_dl_rate_limited": "มีคำขอไปยัง Nexus มากเกินไป — โปรดรอสักครู่แล้วลองใหม่",
+  "vm_nexus_dl_server_error": "Nexus ตอบกลับไม่คาดคิด (%lld)"
 }

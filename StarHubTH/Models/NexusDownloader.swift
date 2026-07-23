@@ -4,6 +4,11 @@ enum NexusDownloadError: Error, LocalizedError {
     case noApiKey
     case noValidFile
     case noDownloadLink
+    case authFailed
+    case rateLimited
+    case serverError(Int)
+    /// Reserved for genuine OS/URLSession failures; `%@` is the OS-localized
+    /// `error.localizedDescription`, never a hand-written English string.
     case requestFailed(String)
 
     var errorDescription: String? {
@@ -11,31 +16,15 @@ enum NexusDownloadError: Error, LocalizedError {
         case .noApiKey:            return L10nKey("vm_nexus_dl_no_api_key")
         case .noValidFile:         return L10nKey("vm_nexus_dl_no_valid_file")
         case .noDownloadLink:      return L10nKey("vm_nexus_dl_no_link")
+        case .authFailed:          return L10nKey("vm_nexus_dl_auth_failed")
+        case .rateLimited:         return L10nKey("vm_nexus_dl_rate_limited")
+        case .serverError(let c):  return String(format: L10nKey("vm_nexus_dl_server_error"), c)
         case .requestFailed(let m): return String(format: L10nKey("vm_nexus_dl_request_failed"), m)
         }
     }
     // Small localized-string helper (the ViewModel owns the language bundle;
     // here we fall back to the main bundle, which build_app.py populates).
     private func L10nKey(_ k: String) -> String { NSLocalizedString(k, comment: "") }
-
-    /// L10n key for this case, resolved against the app's live per-language
-    /// bundle by callers (see StarHubTHViewModel.nexusDownloadMessage), instead
-    /// of `errorDescription`'s `NSLocalizedString` (main-bundle only, doesn't
-    /// follow in-session language switching).
-    var l10nKey: String {
-        switch self {
-        case .noApiKey:      return L10n.VM.nexusDlNoApiKey
-        case .noValidFile:   return L10n.VM.nexusDlNoValidFile
-        case .noDownloadLink: return L10n.VM.nexusDlNoLink
-        case .requestFailed: return L10n.VM.nexusDlRequestFailed
-        }
-    }
-
-    /// Associated string argument for `.requestFailed`'s `%@` placeholder; nil otherwise.
-    var detailArgument: String? {
-        if case .requestFailed(let message) = self { return message }
-        return nil
-    }
 }
 
 /// Downloads a Nexus mod file to a temp `.zip`, then hands the URL back to the
@@ -59,15 +48,19 @@ struct NexusDownloader {
         return req
     }
 
-    /// HTTP status codes Nexus uses to signal auth/rate-limit problems that must
-    /// not be misreported as "no file"/"no link" (see resolveFileId / fetchLinkAndDownload).
-    private func statusError(for response: URLResponse?) -> NexusDownloadError? {
+    /// HTTP status codes Nexus uses to signal auth/rate-limit/premium problems
+    /// that must not be misreported as "no file"/"no link" (see resolveFileId /
+    /// fetchLinkAndDownload). `treatForbiddenAsPremium` distinguishes a 403 on
+    /// the premium-only download_link.json call (no key/expires - the account
+    /// simply isn't Premium) from a 403 that really means "bad API key".
+    private func statusError(for response: URLResponse?, treatForbiddenAsPremium: Bool) -> NexusDownloadError? {
         guard let http = response as? HTTPURLResponse else { return nil }
         switch http.statusCode {
         case 200..<300: return nil
-        case 401, 403:  return .requestFailed("authentication failed (check your Nexus API key)")
-        case 429:       return .requestFailed("rate limited by Nexus, try again later")
-        default:        return .requestFailed("unexpected server response (\(http.statusCode))")
+        case 401:       return .authFailed
+        case 403:       return treatForbiddenAsPremium ? .noDownloadLink : .authFailed
+        case 429:       return .rateLimited
+        default:        return .serverError(http.statusCode)
         }
     }
 
@@ -94,14 +87,14 @@ struct NexusDownloader {
     private func resolveFileId(game: String, modId: Int, apiKey: String,
                                completion: @escaping (Result<Int, NexusDownloadError>) -> Void) {
         guard let req = request(path: "/games/\(game)/mods/\(modId)/files.json", apiKey: apiKey) else {
-            completion(.failure(.requestFailed("invalid URL"))); return
+            completion(.failure(.noDownloadLink)); return
         }
         URLSession.shared.dataTask(with: req) { data, response, error in
             if let error = error { completion(.failure(.requestFailed(error.localizedDescription))); return }
-            if let statusError = statusError(for: response) { completion(.failure(statusError)); return }
+            if let statusError = statusError(for: response, treatForbiddenAsPremium: false) { completion(.failure(statusError)); return }
             guard let data = data else { completion(.failure(.noValidFile)); return }
             guard let list = try? NexusDownloadAPI.decodeFileList(data) else {
-                completion(.failure(.requestFailed("unexpected response"))); return
+                completion(.failure(.noValidFile)); return
             }
             guard let fid = NexusDownloadAPI.pickPrimaryFileId(list) else {
                 completion(.failure(.noValidFile)); return
@@ -114,14 +107,14 @@ struct NexusDownloader {
                                       completion: @escaping (Result<URL, NexusDownloadError>) -> Void) {
         let path = NexusDownloadAPI.downloadLinkEndpoint(game: game, modId: modId, fileId: fileId, key: key, expires: expires)
         guard let req = request(path: path, apiKey: apiKey) else {
-            completion(.failure(.requestFailed("invalid URL"))); return
+            completion(.failure(.noDownloadLink)); return
         }
         URLSession.shared.dataTask(with: req) { data, response, error in
             if let error = error { completion(.failure(.requestFailed(error.localizedDescription))); return }
-            if let statusError = statusError(for: response) { completion(.failure(statusError)); return }
+            if let statusError = statusError(for: response, treatForbiddenAsPremium: (key == nil && expires == nil)) { completion(.failure(statusError)); return }
             guard let data = data else { completion(.failure(.noDownloadLink)); return }
             guard let links = try? NexusDownloadAPI.decodeLinks(data) else {
-                completion(.failure(.requestFailed("unexpected response"))); return
+                completion(.failure(.noDownloadLink)); return
             }
             guard let uri = links.first?.URI, let url = URL(string: uri) else {
                 completion(.failure(.noDownloadLink)); return
