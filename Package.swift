@@ -21,6 +21,7 @@ let package = Package(
                 "ModInstallBackupManager.swift",
                 "SaveManager.swift",
                 "Models/InventoryItem.swift",
+                "Models/NxmLink.swift",
                 "L10n.swift",
             ]
         ),
@@ -38,6 +39,11 @@ let package = Package(
             name: "SaveManagerTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/SaveManagerTests"
+        ),
+        .testTarget(
+            name: "NexusDownloadTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/NexusDownloadTests"
         ),
     ]
 )
