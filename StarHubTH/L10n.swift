@@ -21,6 +21,7 @@ enum L10n {
         static let softwareUpdate       = "main_software_update"
         static let steamAccount         = "main_steam_account"
         static let playerFallback       = "main_player_fallback"
+        static let appChangelog         = "main_app_changelog"
     }
 
     // MARK: - Home
@@ -301,6 +302,16 @@ enum L10n {
         static let nexusClearKey        = "settings_nexus_clear_key"
         static let nexusKeySaved        = "settings_nexus_key_saved"
         static let nexusKeyPlaceholder  = "settings_nexus_api_key_placeholder"
+        static let configVisualEditor      = "config_visual_editor"
+        static let configCodeEditor        = "config_code_editor"
+        static let configNoSettingsFound   = "config_no_settings_found"
+        static let configNoSettingsFoundFor = "config_no_settings_found_for"
+        static let configRawJson           = "config_raw_json"
+        static let configReset             = "config_reset"
+        static let configRestoreConfig     = "config_restore_config"
+        static let configSaved             = "config_saved"
+        static let configSearchPlaceholder = "config_search_placeholder"
+        static let configInvalidJson       = "config_invalid_json"
     }
 
     // MARK: - Smapi

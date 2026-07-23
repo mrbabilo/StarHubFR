@@ -479,5 +479,16 @@
   "saves_avatar_preset_dog": "สุนัข",
   "saves_avatar_preset_hare": "กระต่าย",
   "saves_avatar_preset_ant": "มด",
-  "mod_config_backups_nothing_to_back_up": "ม็อดที่เปิดใช้งานทั้งหมดไม่มีไฟล์การตั้งค่าให้สำรอง"
+  "mod_config_backups_nothing_to_back_up": "ม็อดที่เปิดใช้งานทั้งหมดไม่มีไฟล์การตั้งค่าให้สำรอง",
+  "main_app_changelog": "บันทึกการเปลี่ยนแปลง",
+  "config_visual_editor": "ตัวแก้ไขภาพ",
+  "config_code_editor": "ตัวแก้ไขโค้ด",
+  "config_no_settings_found": "ไม่พบการตั้งค่าที่ปรับแต่งได้",
+  "config_no_settings_found_for": "ไม่พบการตั้งค่าสำหรับ \"%@\"",
+  "config_raw_json": "ไฟล์ JSON ต้นฉบับ",
+  "config_reset": "คืนค่าเริ่มต้น",
+  "config_restore_config": "ย้อนคืนการตั้งค่า",
+  "config_saved": "บันทึกการตั้งค่าเรียบร้อยแล้ว",
+  "config_search_placeholder": "ค้นหาการตั้งค่า...",
+  "config_invalid_json": "รูปแบบ JSON ไม่ถูกต้อง"
 }
