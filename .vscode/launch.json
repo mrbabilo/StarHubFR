@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug StarHubFR app",
+      "program": "${workspaceFolder}/StarHubTH.app/Contents/MacOS/StarHubTH",
+      "preLaunchTask": "StarHubFR: Build app",
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}

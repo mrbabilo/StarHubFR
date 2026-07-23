@@ -55,6 +55,53 @@ def generate_localizable_strings():
                 file.write(f'"{strings_escape(key)}" = "{strings_escape(value)}";\n')
         print(f"[INFO] Generated {strings_path}")
 
+def gather_swift_files():
+    """Return every .swift file compiled into the app (whole StarHubTH/ tree)."""
+    swift_files = []
+    for root, dirs, files in os.walk("StarHubTH"):
+        for file in files:
+            if file.endswith(".swift"):
+                swift_files.append(os.path.join(root, file))
+    return sorted(swift_files)
+
+def build_swiftc_command(swift_files, app_executable, module_cache_dir):
+    """The exact swiftc invocation used to compile the app (single module)."""
+    return ["swiftc"] + swift_files + [
+        "-o", app_executable,
+        "-parse-as-library",
+        "-module-cache-path", module_cache_dir,
+    ]
+
+def write_compile_commands(swift_files, app_executable, module_cache_dir):
+    """Write a compile database so SourceKit-LSP indexes ALL files (Core + UI).
+
+    The app is one swiftc-compiled module, so every file's entry carries the
+    full whole-module command. Regenerated on each build; keep out of git.
+    """
+    repo_root = os.path.abspath(".")
+    arguments = build_swiftc_command(swift_files, app_executable, module_cache_dir)
+    entries = [
+        {
+            "directory": repo_root,
+            "file": os.path.abspath(swift_file),
+            "arguments": arguments,
+        }
+        for swift_file in swift_files
+    ]
+    with open("compile_commands.json", "w", encoding="utf-8") as file:
+        json.dump(entries, file, indent=2)
+    print(f"[INFO] Wrote compile_commands.json ({len(entries)} files) for SourceKit-LSP")
+
+def generate_compile_commands_only():
+    """Regenerate compile_commands.json without a full app build."""
+    swift_files = gather_swift_files()
+    if not swift_files:
+        print("[ERROR] No Swift source files (.swift) found.")
+        sys.exit(1)
+    app_executable = os.path.join(MACOS_DIR, APP_NAME)
+    module_cache_dir = os.path.join(".build", "module-cache")
+    write_compile_commands(swift_files, app_executable, module_cache_dir)
+
 def create_app_bundle():
     print(f"[INFO] Starting build process for {APP_DIR}...")
     generate_localizable_strings()
@@ -103,22 +150,16 @@ def create_app_bundle():
     os.makedirs(module_cache_dir, exist_ok=True)
     
     # Find all Swift files recursively under StarHubTH
-    swift_files = []
-    for root, dirs, files in os.walk("StarHubTH"):
-        for file in files:
-            if file.endswith(".swift"):
-                swift_files.append(os.path.join(root, file))
-                
+    swift_files = gather_swift_files()
     if not swift_files:
         print("[ERROR] No Swift source files (.swift) found.")
         sys.exit(1)
 
+    # Keep the LSP compile database in sync with what we actually compile
+    write_compile_commands(swift_files, app_executable, module_cache_dir)
+
     print(f"[INFO] Compiling Swift code ({len(swift_files)} files)...")
-    swiftc_cmd = ["swiftc"] + swift_files + [
-        "-o", app_executable,
-        "-parse-as-library",
-        "-module-cache-path", module_cache_dir,
-    ]
+    swiftc_cmd = build_swiftc_command(swift_files, app_executable, module_cache_dir)
 
     # Run compiler
     result = subprocess.run(swiftc_cmd)
@@ -138,4 +179,8 @@ def create_app_bundle():
     print("[INFO] Run 'open StarHubTH.app' to launch the application.")
 
 if __name__ == "__main__":
-    create_app_bundle()
+    if "--gen-compile-commands" in sys.argv:
+        # Refresh the SourceKit-LSP index without a full app build.
+        generate_compile_commands_only()
+    else:
+        create_app_bundle()

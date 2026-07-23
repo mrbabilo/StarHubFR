@@ -23,10 +23,18 @@ unpack_assets.py
 unpack_batch.py
 
 # Editor / IDE
-.vscode/
+# Version the shared project config, ignore personal editor state.
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
 .idea/
 *.swp
 *.swo
+
+# Claude Code — version shared config/skills, ignore personal/local overrides
+.claude/settings.local.json
 
 # Logs
 *.log
@@ -37,3 +45,6 @@ bundles/
 StarHubTH.app/
 mods/*/README.md
 *.xnb
+
+# Generated SourceKit-LSP compile database
+compile_commands.json

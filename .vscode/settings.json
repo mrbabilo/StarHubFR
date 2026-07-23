@@ -1,0 +1,19 @@
+{
+  // Use the full Xcode toolchain (not the active CommandLineTools) so imports —
+  // including `import Testing` in Tests/ — resolve in-editor. Xcode is installed
+  // but not xcode-selected; this points the extension straight at its toolchain.
+  "swift.path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin",
+
+  // Force SourceKit-LSP to use compile_commands.json for the WHOLE app instead
+  // of the SwiftPM package (which only covers the Core subset). This gives full
+  // completion/diagnostics on the UI/ViewModel files too. Regenerate the DB with
+  // `python3 build_app.py --gen-compile-commands` (also done on every full build).
+  "swift.sourcekit-lsp.serverArguments": [
+    "--default-workspace-type",
+    "compilationDatabase"
+  ],
+  "swift.sourcekit-lsp.backgroundIndexing": true,
+  "swift.swiftEnvironmentVariables": {
+    "DEVELOPER_DIR": "/Applications/Xcode.app/Contents/Developer"
+  }
+}

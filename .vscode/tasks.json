@@ -1,0 +1,31 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "StarHubFR: Build app",
+      "detail": "Compile the full app via build_app.py (raw swiftc over all files) + regenerate compile_commands.json",
+      "type": "shell",
+      "command": "python3 build_app.py",
+      "options": {
+        "env": { "DEVELOPER_DIR": "/Applications/Xcode.app/Contents/Developer" }
+      },
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": ["$swiftc"]
+    },
+    {
+      "label": "StarHubFR: Refresh compile_commands.json",
+      "detail": "Rebuild the SourceKit-LSP compile database without a full app build",
+      "type": "shell",
+      "command": "python3 build_app.py --gen-compile-commands",
+      "problemMatcher": []
+    },
+    {
+      "label": "StarHubFR: Run Core tests",
+      "detail": "Run the SPM Swift Testing suites (Core only) via run_tests.sh",
+      "type": "shell",
+      "command": "./run_tests.sh",
+      "group": { "kind": "test", "isDefault": true },
+      "problemMatcher": ["$swiftc"]
+    }
+  ]
+}
