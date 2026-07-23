@@ -19,6 +19,9 @@ let package = Package(
                 "ZipModInfo.swift",
                 "ModInstallBackup.swift",
                 "ModInstallBackupManager.swift",
+                "SaveManager.swift",
+                "Models/InventoryItem.swift",
+                "L10n.swift",
             ]
         ),
         .testTarget(
@@ -30,6 +33,11 @@ let package = Package(
             name: "ModInstallBackupManagerTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ModInstallBackupManagerTests"
+        ),
+        .testTarget(
+            name: "SaveManagerTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/SaveManagerTests"
         ),
     ]
 )

@@ -5,11 +5,17 @@ import AppKit
 
 // MARK: - Save Backup Model
 
-struct SaveBackup: Identifiable, Equatable {
-    var id: String { folderPath.path }
-    let folderPath: URL
-    let timestamp: Date
-    let saveFolder: String   // parent save folder name
+public struct SaveBackup: Identifiable, Equatable {
+    public var id: String { folderPath.path }
+    public let folderPath: URL
+    public let timestamp: Date
+    public let saveFolder: String   // parent save folder name
+
+    public init(folderPath: URL, timestamp: Date, saveFolder: String) {
+        self.folderPath = folderPath
+        self.timestamp = timestamp
+        self.saveFolder = saveFolder
+    }
 }
 
 struct SaveNote: Codable {
@@ -58,31 +64,71 @@ struct SaveNode: Identifiable, Equatable {
     var children: [SaveNode]
 }
 
-struct SaveGameInfo: Identifiable, Equatable, Hashable {
-    var id: String { folderName }
-    let folderName: String
-    let fileURL: URL
-    let lastModified: Date
-    
-    var playerName: String
-    var farmName: String
-    var favoriteThing: String
-    var money: Int
-    var spouse: String   // empty string = single (no <spouse> tag)
-    
+public struct SaveGameInfo: Identifiable, Equatable, Hashable {
+    public var id: String { folderName }
+    public let folderName: String
+    public let fileURL: URL
+    public let lastModified: Date
+
+    public var playerName: String
+    public var farmName: String
+    public var favoriteThing: String
+    public var money: Int
+    public var spouse: String   // empty string = single (no <spouse> tag)
+
     // Advanced Stats
-    var maxHealth: Int
-    var maxStamina: Int
-    var goldenWalnuts: Int
-    var qiGems: Int
-    var clubCoins: Int
-    var totalMoneyEarned: Int
-    
-    var year: Int
-    var season: Int
-    var day: Int
-    var whichFarm: Int
-    
+    public var maxHealth: Int
+    public var maxStamina: Int
+    public var goldenWalnuts: Int
+    public var qiGems: Int
+    public var clubCoins: Int
+    public var totalMoneyEarned: Int
+
+    public var year: Int
+    public var season: Int
+    public var day: Int
+    public var whichFarm: Int
+
+    public init(
+        folderName: String,
+        fileURL: URL,
+        lastModified: Date,
+        playerName: String,
+        farmName: String,
+        favoriteThing: String,
+        money: Int,
+        spouse: String,
+        maxHealth: Int,
+        maxStamina: Int,
+        goldenWalnuts: Int,
+        qiGems: Int,
+        clubCoins: Int,
+        totalMoneyEarned: Int,
+        year: Int,
+        season: Int,
+        day: Int,
+        whichFarm: Int
+    ) {
+        self.folderName = folderName
+        self.fileURL = fileURL
+        self.lastModified = lastModified
+        self.playerName = playerName
+        self.farmName = farmName
+        self.favoriteThing = favoriteThing
+        self.money = money
+        self.spouse = spouse
+        self.maxHealth = maxHealth
+        self.maxStamina = maxStamina
+        self.goldenWalnuts = goldenWalnuts
+        self.qiGems = qiGems
+        self.clubCoins = clubCoins
+        self.totalMoneyEarned = totalMoneyEarned
+        self.year = year
+        self.season = season
+        self.day = day
+        self.whichFarm = whichFarm
+    }
+
     var farmTypeName: String {
         switch whichFarm {
         case 0: return "ฟาร์มมาตรฐาน" // Standard Farm
@@ -122,8 +168,8 @@ struct SaveGameInfo: Identifiable, Equatable, Hashable {
     }
 }
 
-class SaveManager {
-    static let shared = SaveManager()
+public class SaveManager {
+    public static let shared = SaveManager()
 
     private let savesDir: URL
 
@@ -147,7 +193,7 @@ class SaveManager {
         return regex
     }
 
-    init() {
+    public init() {
         let homeDir = FileManager.default.homeDirectoryForCurrentUser
         self.savesDir = homeDir.appendingPathComponent(".config/StardewValley/Saves")
     }
@@ -303,7 +349,7 @@ class SaveManager {
         }
     }
     
-    func backupSave(info: SaveGameInfo) -> Bool {
+    public func backupSave(info: SaveGameInfo) -> Bool {
         let fm = FileManager.default
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyyMMdd_HHmmss"
@@ -507,7 +553,7 @@ class SaveManager {
         #endif
     }
     
-    func deleteSave(info: SaveGameInfo) -> Bool {
+    public func deleteSave(info: SaveGameInfo) -> Bool {
         let folderPath = info.fileURL.deletingLastPathComponent()
         do {
             try FileManager.default.trashItem(at: folderPath, resultingItemURL: nil)
@@ -578,7 +624,7 @@ class SaveManager {
         }
     }
 
-    func duplicateSave(info: SaveGameInfo, newName: String, newFarm: String) -> Bool {
+    public func duplicateSave(info: SaveGameInfo, newName: String, newFarm: String) -> Bool {
         let folderPath = info.fileURL.deletingLastPathComponent()
         let saveName = folderPath.lastPathComponent
         return cloneSaveFolder(sourceFolder: folderPath, baseName: saveName, suffix: "copy", newPlayerName: newName, newFarmName: newFarm, context: "duplicate save")
@@ -586,14 +632,14 @@ class SaveManager {
 
     // MARK: - Backup Timeline
 
-    func branchFromBackup(backup: SaveBackup, newName: String, newFarm: String) -> Bool {
+    public func branchFromBackup(backup: SaveBackup, newName: String, newFarm: String) -> Bool {
         let backupFolderPath = backup.folderPath
         let originalSaveName = String(backupFolderPath.lastPathComponent.split(separator: ".")[0])
         return cloneSaveFolder(sourceFolder: backupFolderPath, baseName: originalSaveName, suffix: "branch", newPlayerName: newName, newFarmName: newFarm, context: "branch backup")
     }
 
     /// List all `.backup_*` sibling folders for a given save
-    func listBackups(for info: SaveGameInfo) -> [SaveBackup] {
+    public func listBackups(for info: SaveGameInfo) -> [SaveBackup] {
         let saveFolder = info.fileURL.deletingLastPathComponent()
         let parentDir = saveFolder.deletingLastPathComponent()
         let saveName = saveFolder.lastPathComponent
@@ -625,7 +671,7 @@ class SaveManager {
     }
 
     /// Restore a backup: backup current save first, then swap
-    func restoreBackup(backup: SaveBackup, info: SaveGameInfo) -> Bool {
+    public func restoreBackup(backup: SaveBackup, info: SaveGameInfo) -> Bool {
         let fm = FileManager.default
         let saveFolder = info.fileURL.deletingLastPathComponent()
 
@@ -693,7 +739,7 @@ class SaveManager {
     }
 
     /// Delete a single backup folder
-    func deleteBackup(_ backup: SaveBackup) -> Bool {
+    public func deleteBackup(_ backup: SaveBackup) -> Bool {
         do {
             try FileManager.default.trashItem(at: backup.folderPath, resultingItemURL: nil)
             return true
