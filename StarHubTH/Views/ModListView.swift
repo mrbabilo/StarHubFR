@@ -271,19 +271,6 @@ struct ModListView: View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 32) {
 
-                // ── Install Button ─────────────────────────────────────────
-                HStack {
-                    Button {
-                        showInstallSheet = true
-                    } label: {
-                        Label(vm.L(L10n.ModInstall.installButton), systemImage: "plus.circle")
-                    }
-                    .buttonStyle(.borderedProminent)
-                    
-                    Spacer()
-                }
-                .padding(.bottom, 8)
-
                 // ── Scope filter ────────────────────────────────────────
                 VStack(alignment: .leading, spacing: 10) {
                     HStack {
@@ -315,6 +302,13 @@ struct ModListView: View {
                             .help(categories.isEmpty && uncatCount == 0
                                   ? vm.L(L10n.Mods.categoryFilterEmptyHint)
                                   : vm.L(L10n.Mods.categoryFilterHint))
+
+                        Button {
+                            showInstallSheet = true
+                        } label: {
+                            Label(vm.L(L10n.ModInstall.installButton), systemImage: "plus.circle")
+                        }
+                        .buttonStyle(.borderedProminent)
                     }
                     if categories.isEmpty && uncatCount == 0 {
                         Text(vm.L(L10n.Mods.categoryFilterEmptyHint))
@@ -881,6 +875,24 @@ struct ModListRow: View {
                 .buttonStyle(PlainButtonStyle())
                 .help(vm.L(L10n.Mods.openFolder))
                 .pointingHandCursor()
+
+                // Direct config-editor access, mirroring upstream's
+                // discoverability: visible only for a standalone mod (never
+                // a pack header, which has no config.json of its own) that
+                // actually has a config.json. The right-click "Code Editor"
+                // context-menu entry stays as an additional entry point.
+                if !mod.isGroup && mod.hasConfigFile {
+                    Button {
+                        vm.editingModConfig = mod
+                    } label: {
+                        Image(systemName: "gearshape")
+                            .font(.system(size: 14))
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .help(vm.L(L10n.Settings.configCodeEditor))
+                    .pointingHandCursor()
+                }
 
                 // Direct "open on Nexus" button — visible whenever the mod has
                 // an effective Nexus id (manifest-declared or user-assigned).
