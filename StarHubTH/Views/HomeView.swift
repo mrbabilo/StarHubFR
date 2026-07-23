@@ -54,7 +54,7 @@ struct HomeView: View {
                 
                 // ── GAME INFO BLOCK ──
                 StandardSection(title: vm.L(L10n.Home.appInfo)) {
-                    StandardRow(title: LocalizedStringKey(vm.L(L10n.Home.developer)), detail: "AppleBoiy", showDivider: true)
+                    StandardRow(title: LocalizedStringKey(vm.L(L10n.Home.developer)), detail: "AppleBoiy (original) · mrbabilo (fork)", showDivider: true)
                     StandardRow(
                         title: LocalizedStringKey(vm.L(L10n.Home.modManager)),
                         detail: LocalizedStringKey(vm.smapiInstalledVersion == nil
