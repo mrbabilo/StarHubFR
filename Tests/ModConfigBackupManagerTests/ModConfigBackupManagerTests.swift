@@ -91,6 +91,28 @@ struct TestEnvironment {
         #expect(env.manager.loadBackups().count == 1)
     }
 
+    @Test func createBackupBacksUpAllLanguageFiles() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let modDir = env.modsDir.appendingPathComponent("TranslatedMod", isDirectory: true)
+        try writeTestFile(in: modDir, filename: "config.json", content: "{\"volume\": 5}")
+        try writeTestFile(in: modDir, filename: "fr.json", content: "{\"greeting\": \"Bonjour\"}")
+        try writeTestFile(in: modDir, filename: "th.json", content: "{\"greeting\": \"สวัสดี\"}")
+        try writeTestFile(in: modDir, filename: "de.json", content: "{\"greeting\": \"Hallo\"}")
+        // A file that merely ends in .json but isn't a recognized config or
+        // language file must NOT be swept up — this backs up config/language
+        // files specifically, not "every .json in the mod folder".
+        try writeTestFile(in: modDir, filename: "manifest.json", content: "{\"Name\": \"Translated Mod\"}")
+
+        let mod = makeTestMod(folderName: "TranslatedMod")
+        let backup = try env.manager.createBackup(gameDir: env.gameDir, mods: [mod])
+
+        #expect(backup.items.count == 1)
+        #expect(Set(backup.items[0].files) == Set(["config.json", "fr.json", "th.json", "de.json"]))
+        #expect(backup.totalFiles == 4)
+    }
+
     @Test func createBackupThrowsWhenNoModsAreEnabled() {
         let env = TestEnvironment()
         defer { env.cleanup() }

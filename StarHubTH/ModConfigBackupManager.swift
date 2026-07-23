@@ -1,6 +1,7 @@
 import Foundation
 
-/// Backs up and restores enabled mods' `config.json`/`fr.json` files.
+/// Backs up and restores enabled mods' `config.json` plus every
+/// language/translation file (see `targetFiles`).
 ///
 /// Mirrors `SaveManager`'s style: a plain singleton with synchronous,
 /// throwing methods. This class does no threading of its own — callers
@@ -12,8 +13,8 @@ public class ModConfigBackupManager {
     public enum BackupError: LocalizedError {
         case gameDirEmpty
         case noEnabledMods
-        /// Every enabled mod was scanned but none had a config.json/fr.json
-        /// to back up — distinct from `.noEnabledMods` (no mods to even
+        /// Every enabled mod was scanned but none had a config or language
+        /// file to back up — distinct from `.noEnabledMods` (no mods to even
         /// consider).
         case nothingToBackUp
 
@@ -38,7 +39,18 @@ public class ModConfigBackupManager {
     // `saveIndex` silently discards the first call's change.
     private let indexLock = NSLock()
 
-    private static let targetFiles: Set<String> = ["config.json", "fr.json"]
+    /// `config.json` (mod settings) plus every language/translation file this
+    /// modding community's mods ship — matches the exact set of SMAPI `i18n/`
+    /// language codes (en, de, es, fr, hu, id, it, ja, ko, pl, pt, ru, th,
+    /// tr, uk, zh) plus `default.json`, so a backup captures every localized
+    /// override a mod might have, not just French.
+    private static let targetFiles: Set<String> = [
+        "config.json",
+        "default.json",
+        "en.json", "de.json", "es.json", "fr.json", "hu.json", "id.json",
+        "it.json", "ja.json", "ko.json", "pl.json", "pt.json", "ru.json",
+        "th.json", "tr.json", "uk.json", "zh.json"
+    ]
     private static let minBackupsToKeep = 5
     private static let maxBackupAge: TimeInterval = 30 * 24 * 60 * 60
 
@@ -204,8 +216,8 @@ public class ModConfigBackupManager {
         baseDir.appendingPathComponent(leafFolderName)
     }
 
-    /// Recursively finds `config.json`/`fr.json` anywhere under a single
-    /// mod's folder.
+    /// Recursively finds `config.json` and any language file (see
+    /// `targetFiles`) anywhere under a single mod's folder.
     private func findConfigFiles(underModFolderPath path: String) -> [(filename: String, url: URL)] {
         guard let enumerator = fm.enumerator(
             at: URL(fileURLWithPath: path),
