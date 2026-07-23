@@ -208,6 +208,7 @@
 "smapi_not_found" = "SMAPI installation not found in this folder";
 "smapi_uninstall_success" = "SMAPI uninstalled! Vanilla game restored.";
 "smapi_uninstall_failed" = "Uninstall failed: %@";
+"smapi_release_lookup_failed" = "Could not find the latest SMAPI release: %@";
 "updates_new_update" = "New update available on Nexus Mods";
 "updates_download" = "Download";
 "updates_update_description" = "This update provides new features and bug fixes for your mod.";

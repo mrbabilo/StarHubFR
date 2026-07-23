@@ -208,6 +208,7 @@
 "smapi_not_found" = "ไม่พบข้อมูลการติดตั้ง SMAPI ในโฟลเดอร์นี้";
 "smapi_uninstall_success" = "ถอนการติดตั้ง SMAPI สำเร็จ! คืนค่าตัวเกมหลักเรียบร้อย";
 "smapi_uninstall_failed" = "ถอนการติดตั้งล้มเหลว: %@";
+"smapi_release_lookup_failed" = "ไม่พบเวอร์ชันล่าสุดของ SMAPI: %@";
 "updates_new_update" = "มีการอัปเดตใหม่ในเว็บไซต์ Nexus Mods";
 "updates_download" = "ดาวน์โหลด";
 "updates_update_description" = "อัปเดตนี้เพิ่มคุณสมบัติใหม่และแก้ไขข้อบกพร่องสำหรับม็อดของคุณ";

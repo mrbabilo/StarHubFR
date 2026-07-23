@@ -331,6 +331,7 @@ enum L10n {
         static let notFound             = "smapi_not_found"
         static let uninstallSuccess     = "smapi_uninstall_success"
         static let uninstallFailed      = "smapi_uninstall_failed"
+        static let releaseLookupFailed  = "smapi_release_lookup_failed"
     }
 
     // MARK: - Updates

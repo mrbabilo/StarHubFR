@@ -58,11 +58,80 @@ class SmapiInstaller: ObservableObject {
         self.isInstalling = true
         self.statusMessage = L10n.Smapi.downloading
         self.progress = 0.1
-        
-        let smapiZipUrl = URL(string: "https://smapi.io/get/latest")!
+
+        // smapi.io used to serve a `/get/latest` redirect to the current
+        // installer zip; that endpoint now returns a bare 404 (confirmed
+        // directly — no redirect, empty body). SMAPI's actual distribution
+        // channel today is its GitHub Releases page, so resolve the current
+        // release through the GitHub API first, then hand the resolved URL
+        // to the existing download/extract/install flow below.
+        resolveLatestSmapiInstallerURL { result in
+            switch result {
+            case .failure(let message, let detail):
+                DispatchQueue.main.async {
+                    self.isInstalling = false
+                    completion(false, message, detail)
+                }
+            case .success(let smapiZipUrl):
+                self.downloadAndInstall(from: smapiZipUrl, gameDir: gameDir, completion: completion)
+            }
+        }
+    }
+
+    private enum ReleaseResolution {
+        case success(URL)
+        case failure(String, String?)
+    }
+
+    /// Resolves the download URL for SMAPI's current installer zip via the
+    /// GitHub Releases API, rather than a hardcoded/redirected URL that can
+    /// go stale when the version changes or the host reorganizes its site
+    /// (as happened to smapi.io's old `/get/latest` endpoint).
+    ///
+    /// Each release publishes two zips: a plain installer and a
+    /// "-double-zipped" variant (an extra compression layer for platforms
+    /// that need it). This app's extractor only unzips once, so it must
+    /// pick the plain installer specifically — matching on the filename
+    /// pattern rather than assuming a fixed name, since the version number
+    /// is embedded in it (e.g. `SMAPI-4.5.2-installer.zip`).
+    private func resolveLatestSmapiInstallerURL(completion: @escaping (ReleaseResolution) -> Void) {
+        let releaseApiUrl = URL(string: "https://api.github.com/repos/Pathoschild/SMAPI/releases/latest")!
+        var request = URLRequest(url: releaseApiUrl)
+        request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+
+        let releaseTask = URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                completion(.failure(L10n.Smapi.releaseLookupFailed, error.localizedDescription))
+                return
+            }
+            if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
+                completion(.failure(L10n.Smapi.releaseLookupFailed, "HTTP \(http.statusCode)"))
+                return
+            }
+            guard let data = data,
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let assets = json["assets"] as? [[String: Any]] else {
+                completion(.failure(L10n.Smapi.releaseLookupFailed, "unparseable release metadata"))
+                return
+            }
+            guard let installerAsset = assets.first(where: { asset in
+                      guard let name = asset["name"] as? String else { return false }
+                      return name.hasPrefix("SMAPI-") && name.hasSuffix("-installer.zip") && !name.contains("double-zipped")
+                  }),
+                  let downloadUrlString = installerAsset["browser_download_url"] as? String,
+                  let smapiZipUrl = URL(string: downloadUrlString) else {
+                completion(.failure(L10n.Smapi.releaseLookupFailed, "no installer asset found in latest release"))
+                return
+            }
+            completion(.success(smapiZipUrl))
+        }
+        releaseTask.resume()
+    }
+
+    private func downloadAndInstall(from smapiZipUrl: URL, gameDir: String, completion: @escaping (Bool, String, String?) -> Void) {
         let tempDir = NSTemporaryDirectory()
         let zipDest = URL(fileURLWithPath: tempDir).appendingPathComponent("smapi_latest.zip")
-        
+
         let downloadTask = URLSession.shared.downloadTask(with: smapiZipUrl) { localURL, response, error in
             if let error = error {
                 DispatchQueue.main.async {
