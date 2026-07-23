@@ -1,5 +1,5 @@
 > [!IMPORTANT]
-> This fork adds French language support. See the [French README](README.md) or the [original Thai README](README_TH.md).
+> This fork adds French language support and a French-touch UX/UI. See the [French README](README.md) or the [original Thai README](README_TH.md).
 
 <p align="center">
   <a href="https://swift.org"><img src="https://img.shields.io/badge/Swift-F05138?logo=swift&logoColor=white" alt="Swift"></a>
@@ -22,13 +22,15 @@
 *   **Mod Backups**:
     *   *Install backup*: Automatic backup before overwriting a mod, with hybrid retention (5 most recent + ≤30 days + 1 per month beyond).
     *   *Config backup*: Backup and restore `config.json`/`fr.json` files for enabled mods.
-*   **Advanced Mod List**: Category filtering, pagination (15 mods/page with direct page jump), uncategorized mod filter, activation order sorting and description image support.
+*   **Mod Config Editor**: Edit a mod's `config.json` directly in the app, via a hierarchical visual editor (searchable tree of typed settings) or a raw JSON editor with line numbers and live validation. Reset and restore-from-local-backup buttons included.
+*   **Advanced Mod List**: Category filtering, pagination (15 mods/page with direct page jump), uncategorized mod filter, "With Config" filter (configurable mods only), sorting by name (A-Z/Z-A), author, version or activation order, and description image support. A gear icon on each configurable mod opens the config editor directly.
 *   **Save Manager**:
     *   View details of all save files (money, in-game time, season, farm layout)
     *   Duplicate or delete save files
     *   Edit money and basic character stats
 *   **Developer Logs**: Monitor SMAPI output in real time directly within the app.
-*   **Bilingual Support**: Switch the app language instantly between English and Thai (ภาษาไทย).
+*   **In-App Changelog Viewer**: Browse the version history (`CHANGELOG.md`) directly from the app's sidebar.
+*   **Multilingual Support**: Switch the app language instantly between French, English and Thai (ภาษาไทย).
 *   **Native macOS UI**: A clean, intuitive interface designed to feel right at home on macOS.
 
 <p align="center">
@@ -57,7 +59,7 @@
 1. **Download**: Grab the latest release from the [Releases](../../releases) page.
 2. **Install**: Unzip the file and drag `StarHubTH.app` into your Applications folder, then double-click to launch.
 3. **Set Game Folder**: On first launch, the app will attempt to auto-detect your Steam game folder. If not found, you can manually select the game directory (e.g. `/Applications/Stardew Valley.app/Contents/MacOS`).
-4. **You're ready!**: Manage your mods or saves, then hit **"Launch Game"** from the left sidebar.
+4. **You're ready!**: Manage your mods or saves, then hit **"Launch Game"** on the Home page.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/developers_banner.png" alt="For Developers" width="300">
