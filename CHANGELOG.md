@@ -13,15 +13,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Raw JSON editor** tab: a line-numbered, monospaced code editor (`CodeEditorView`, an `NSViewRepresentable` text view) for direct JSON editing, with live validation and an invalid-JSON warning.
   - **Reset** button (revert unsaved edits) and **Restore Config** button (roll back to a local `config.json.bak`, or pick another `.json` file to restore from), independent of the existing `ModConfigBackupManager` history reachable from the "ConfigBackups" tab.
 - **In-App Changelog Viewer** (`AppChangelogView`): New sidebar entry rendering this `CHANGELOG.md` inside the app itself (lightweight Markdown: headings, bullets, inline emphasis), bundled into the app resources at build time.
+- **Mod List Toolbar Rework**: the Install button moved from its own row to the right end of the filter row and renamed "Install mods"; the sort menu gained Name (Z-A), Author, and Version options (its button icon is now fixed instead of changing per selection); a new "With Config" filter scopes the list to mods (or packs with a qualifying child) that have a `config.json`; each configurable mod's row now shows a gear icon opening the config editor directly, matching upstream's discoverability while keeping the existing right-click "Code Editor" entry as a second access point.
+- **Full French Localization** (`assets/fr.json`, 496 strings): French added as a third supported app language (alongside English and Thai), selectable in Settings and prioritized as the default for French-locale systems — matching this fork's own name (StarHubFR).
+- App renamed to **StarHubFR** in the version string shown on the Home page.
+- App Info's Developer row now credits **mrbabilo** for this fork's development, alongside **AppleBoiy** for the original app.
+
+### Changed
+- **Settings Layout**: the Nexus Mods API key section moved from the bottom of Settings to right after the language picker; its footer now explains that the key is stored in the macOS Keychain, encrypted by the system, and never saved in plain text.
+- **Mod Config Backup Manager**: now backs up every language/translation file a mod ships (en/de/es/fr/hu/id/it/ja/ko/pl/pt/ru/th/tr/uk/zh + `default.json`), not just `fr.json` — a backup now captures a mod's full set of localized overrides.
+- **Automated test coverage** expanded across `SaveManager` (backup/restore/duplicate/branch folder operations), `ModConfigBackupManager`, and `ModInstallBackupManager` (created/restore/delete/cleanup-retention paths), using Swift Testing against a dedicated SPM package (`Package.swift`) — including a same-second backup-folder-name collision fix and a `listBackups` parsing fix uncovered while writing the new coverage.
 
 ### Fixed
 - **SMAPI Installer — installation was completely broken.** Two compounding issues, both root-caused against SMAPI's actual current distribution:
   - The hardcoded download endpoint (`smapi.io/get/latest`) no longer exists (confirmed: bare HTTP 404, no redirect). Fixed by resolving the current release dynamically through the GitHub Releases API instead, so this can't go stale again on future SMAPI versions.
   - Even after the download was fixed, installation still failed: SMAPI's packaging changed from a flat `internal/mac/payload` folder (which this app used to copy file-by-file) to a real installer program (`internal/macOS/SMAPI.Installer`) that decides internally which files go where and under what names — not something recoverable from the zip's structure alone. `install()`/`uninstall()` now run this official installer directly (non-interactively, via its stdin prompts) instead of reimplementing its file placement by hand. This also fixes `uninstall()` leaving orphaned `StardewModdingAPI*` files behind, which the old manual/local removal never accounted for.
 - **SMAPI Installed Version Display**: `getInstalledVersion()` relied on `smapi-internal/manifest.json`, which no longer exists in SMAPI's current packaging, so the version shown right after installing stayed a generic "Installed" with no number until the game had been launched once. `install()` now records the exact release tag it downloaded, and the version display reads that back first.
-
-### Changed
-- **Automated test coverage** expanded across `SaveManager` (backup/restore/duplicate/branch folder operations), `ModConfigBackupManager`, and `ModInstallBackupManager` (created/restore/delete/cleanup-retention paths), using Swift Testing against a dedicated SPM package (`Package.swift`) — including a same-second backup-folder-name collision fix and a `listBackups` parsing fix uncovered while writing the new coverage.
+- **Mod List Pagination**: toggling the new "With Config" filter didn't reset the current page, unlike every other filter — could leave the pagination footer's prev/next buttons in a stale state until the next navigation.
 
 ## [1.1.0] - 2026-07-22
 
