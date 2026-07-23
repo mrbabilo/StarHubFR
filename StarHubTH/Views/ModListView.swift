@@ -909,6 +909,9 @@ struct ModListRow: View {
                     .appendingPathComponent(mod.folderName)
                 NSWorkspace.shared.open(url)
             }
+            Button(vm.L(L10n.Settings.configCodeEditor)) {
+                vm.editingModConfig = mod
+            }
             let effectiveLink = vm.nexusLink(for: mod)
             if !effectiveLink.isEmpty {
                 Button(vm.L(L10n.Mods.viewDetailsOnNexus)) {

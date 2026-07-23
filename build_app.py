@@ -82,7 +82,12 @@ def create_app_bundle():
     if os.path.exists(app_icon_path):
         shutil.copy2(app_icon_path, os.path.join(RESOURCES_DIR, "AppIcon.icns"))
         print("[INFO] Copied AppIcon.icns to App Resources")
-        
+
+    changelog_path = "CHANGELOG.md"
+    if os.path.exists(changelog_path):
+        shutil.copy2(changelog_path, os.path.join(RESOURCES_DIR, "CHANGELOG.md"))
+        print("[INFO] Copied CHANGELOG.md to App Resources")
+
     for lang in ["en.lproj", "th.lproj"]:
         lproj_src = os.path.join("assets", lang)
         if os.path.exists(lproj_src):

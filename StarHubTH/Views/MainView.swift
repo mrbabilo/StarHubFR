@@ -26,6 +26,7 @@ struct MainView: View {
         if currentTab == "Saves" && vm.viewingSaveTimeline != nil { return vm.L(L10n.Saves.timeline) }
         if currentTab == "Saves" && vm.editingSave != nil { return vm.editingSave!.playerName }
         if currentTab == "ThaiHub" && vm.viewingThaiMod != nil { return vm.viewingThaiMod!.name }
+        if currentTab == "Mods" && vm.editingModConfig != nil { return vm.editingModConfig!.name }
         if currentTab == "Mods" { return vm.L(L10n.Mods.mods) }
         if currentTab == "ConfigBackups" { return vm.L(L10n.ModConfigBackups.title) }
         if currentTab == "Profiles" { return vm.L(L10n.Profiles.title) }
@@ -34,6 +35,7 @@ struct MainView: View {
         if currentTab == "Saves" { return vm.L(L10n.Saves.saves) }
         if currentTab == "Settings" { return vm.L(L10n.Settings.settings) }
         if currentTab == "Logs" { return vm.L(L10n.Logs.logs) }
+        if currentTab == "AppChangelog" { return vm.L(L10n.Main.appChangelog) }
         return vm.L(L10n.Main.home)
     }
     
@@ -203,6 +205,16 @@ struct MainView: View {
                             currentTab: $currentTab
                         )
                     }
+
+                    if matchesSearch(vm.L(L10n.Main.appChangelog)) {
+                        SidebarNavItem(
+                            icon: "doc.text.fill",
+                            iconColor: .indigo,
+                            label: vm.L(L10n.Main.appChangelog),
+                            tab: "AppChangelog",
+                            currentTab: $currentTab
+                        )
+                    }
                 }
                 
                 // Thai Hub Section
@@ -245,7 +257,11 @@ struct MainView: View {
             // ── CONTENT AREA ─────────────────────────────────────────
             Group {
                 if currentTab == "Mods" {
-                    ModListView(vm: vm)
+                    if let mod = vm.editingModConfig {
+                        ModConfigEditorView(vm: vm, mod: mod)
+                    } else {
+                        ModListView(vm: vm)
+                    }
                 } else if currentTab == "ConfigBackups" {
                     ModConfigBackupsView(vm: vm)
                 } else if currentTab == "Saves" {
@@ -266,6 +282,8 @@ struct MainView: View {
                     SettingsView(vm: vm)
                 } else if currentTab == "Logs" {
                     LogsView(vm: vm)
+                } else if currentTab == "AppChangelog" {
+                    AppChangelogView(vm: vm)
                 } else {
                     HomeView(vm: vm)
                 }
@@ -275,6 +293,7 @@ struct MainView: View {
                 vm.editingSave = nil
                 vm.viewingThaiMod = nil
                 vm.viewingSaveTimeline = nil
+                vm.editingModConfig = nil
 
                 if !isNavigatingBackOrForward {
                     if tabHistory.last != currentTab {
@@ -295,6 +314,8 @@ struct MainView: View {
                                 vm.viewingThaiMod = nil
                             } else if vm.viewingSaveTimeline != nil {
                                 vm.viewingSaveTimeline = nil
+                            } else if vm.editingModConfig != nil {
+                                vm.editingModConfig = nil
                             } else if tabHistory.count > 1 {
                                 isNavigatingBackOrForward = true
                                 let current = tabHistory.removeLast()
@@ -304,7 +325,7 @@ struct MainView: View {
                         }) {
                             Image(systemName: "chevron.left")
                         }
-                        .disabled(vm.editingSave == nil && vm.viewingThaiMod == nil && vm.viewingSaveTimeline == nil && tabHistory.count <= 1)
+                        .disabled(vm.editingSave == nil && vm.viewingThaiMod == nil && vm.viewingSaveTimeline == nil && vm.editingModConfig == nil && tabHistory.count <= 1)
                         
                         Button(action: {
                             if let next = forwardHistory.popLast() {
