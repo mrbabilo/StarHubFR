@@ -31,7 +31,7 @@ struct MainView: View {
         if currentTab == "Mods" { return vm.L(L10n.Mods.mods) }
         if currentTab == "ConfigBackups" { return vm.L(L10n.ModConfigBackups.title) }
         if currentTab == "Profiles" { return vm.L(L10n.Profiles.title) }
-        if currentTab == "Updates" { return vm.L(L10n.Main.softwareUpdate) }
+        if currentTab == "Updates" { return vm.L(L10n.Main.modUpdates) }
         if currentTab == "ThaiHub" { return vm.L(L10n.ThaiHub.title) }
         if currentTab == "Saves" { return vm.L(L10n.Saves.saves) }
         if currentTab == "Settings" { return vm.L(L10n.Settings.settings) }
@@ -125,7 +125,7 @@ struct MainView: View {
                 if alertCount > 0 {
                     Button(action: { currentTab = "Updates" }) {
                         HStack {
-                            Text(vm.smapiErrors.isEmpty ? vm.L(L10n.Main.softwareUpdate) : vm.L(L10n.Main.systemAlerts))
+                            Text(vm.smapiErrors.isEmpty ? vm.L(L10n.Main.modUpdates) : vm.L(L10n.Main.systemAlerts))
                                 .font(.system(size: 14, weight: .regular))
                                 .foregroundColor(currentTab == "Updates" ? .white : .primary)
                             Spacer()
@@ -674,18 +674,21 @@ struct UpdatesView: View {
                                     Button {
                                         vm.downloadModFromNexus(nexusId: nexusId)
                                     } label: {
-                                        Label(vm.L(L10n.Mods.downloadUpdate), systemImage: "arrow.down.circle")
+                                        Label(vm.L(L10n.Mods.premiumUpdate), systemImage: "arrow.down.circle")
                                     }
                                     .buttonStyle(.bordered)
                                     .disabled(vm.isDownloadingFromNexus)
                                 }
 
                                 Button {
-                                    if let url = URL(string: update.url) {
-                                        NSWorkspace.shared.open(url)
+                                    // Open the mod's Files tab directly, where the free
+                                    // "Mod Manager Download" (nxm://) button lives.
+                                    if var comps = URLComponents(string: update.url) {
+                                        comps.queryItems = (comps.queryItems ?? []) + [URLQueryItem(name: "tab", value: "files")]
+                                        if let url = comps.url { NSWorkspace.shared.open(url) }
                                     }
                                 } label: {
-                                    Text(vm.L(L10n.Updates.download))
+                                    Text(vm.L(L10n.Mods.nexusUpdate))
                                         .font(.system(size: 12, weight: .medium))
                                         .foregroundColor(.primary)
                                         .padding(.horizontal, 14)

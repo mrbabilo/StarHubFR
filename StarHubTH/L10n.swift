@@ -18,7 +18,7 @@ enum L10n {
         static let home                 = "main_home"
         static let search               = "main_search"
         static let systemAlerts         = "main_system_alerts"
-        static let softwareUpdate       = "main_software_update"
+        static let modUpdates           = "main_mod_updates"
         static let steamAccount         = "main_steam_account"
         static let playerFallback       = "main_player_fallback"
         static let appChangelog         = "main_app_changelog"
@@ -167,7 +167,8 @@ enum L10n {
         static let sortAuthor           = "mods_sort_author"
         static let sortVersion          = "mods_sort_version"
         static let configFilterLabel    = "mods_config_filter_label"
-        static let downloadUpdate       = "mods_download_update"
+        static let premiumUpdate        = "mods_premium_update"
+        static let nexusUpdate          = "mods_nexus_update"
         // Nexus category filter
         static let categoryFilter           = "mods_category_filter"
         static let categoryFilterAll        = "mods_category_filter_all"
