@@ -35,6 +35,10 @@ struct ModListView: View {
     /// manually; `.uncategorized` is the counterpart for the rest.
     @State private var selectedCategory: CategoryScope = .all
     @State private var selectedSort: ModSortOrder = .name
+    /// Scopes the list to mods (or packs with at least one qualifying child)
+    /// that have a `config.json`. Combines with the category/scope filters —
+    /// AND semantics, same as every other filter in `filteredMods`.
+    @State private var configOnlyFilter: Bool = false
     /// Current page for the paginated mod list (1-based). Reset to 1 whenever
     /// the search text, scope filter, or category filter changes.
     @State private var currentPage: Int = 1
@@ -94,6 +98,9 @@ struct ModListView: View {
                     // category, matching what its badge (absence) shows.
                     return vm.category(for: mod) == nil
                 }
+            }
+            .filter { mod in
+                !configOnlyFilter || matchesSelfOrAnyChild(mod) { $0.hasConfigFile }
             }
             .sorted { lhs, rhs in
                 switch selectedSort {
@@ -298,6 +305,8 @@ struct ModListView: View {
                         Spacer()
 
                         sortPicker
+
+                        configFilterToggle
 
                         // Category filter (Menu picker). Populated from every
                         // mod's effective category (manual override or API).
@@ -559,6 +568,39 @@ struct ModListView: View {
         case .author: return vm.L(L10n.Mods.sortAuthor)
         case .version: return vm.L(L10n.Mods.sortVersion)
         }
+    }
+
+    // MARK: - Config-only filter toggle
+
+    /// Toggle button scoping the list to mods with a `config.json` (see
+    /// `configOnlyFilter`). Same visual family as `sortPicker`/
+    /// `categoryPicker` (rounded chip, same padding/font), but a plain
+    /// toggle rather than a menu — there's only one on/off state, not a
+    /// set of choices.
+    private var configFilterToggle: some View {
+        Button {
+            configOnlyFilter.toggle()
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "gearshape")
+                    .font(.system(size: 11))
+                Text(vm.L(L10n.Mods.configFilterLabel))
+                    .font(.system(size: 12, weight: .medium))
+            }
+            .foregroundColor(configOnlyFilter ? Color.accentColor : .primary)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(configOnlyFilter ? Color.accentColor.opacity(0.15) : Color.secondary.opacity(0.10))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 6)
+                    .stroke(configOnlyFilter ? Color.accentColor.opacity(0.4) : Color.secondary.opacity(0.15), lineWidth: 0.5)
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
+        .help(vm.L(L10n.Mods.configFilterLabel))
     }
 
     // MARK: - Category picker
