@@ -21,7 +21,7 @@ enum CategoryScope: Equatable {
 /// sorts by `vm.modActivationTimestamps`, most recent first; `.installDate`
 /// sorts by `installedFileDate` (folder mod date), most recent first.
 enum ModSortOrder: String, CaseIterable, Identifiable {
-    case name, activationOrder, installDate
+    case name, nameDescending, activationOrder, installDate, author, version
     var id: String { rawValue }
 }
 
@@ -129,6 +129,16 @@ struct ModListView: View {
                     case (nil, nil):
                         return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
                     }
+                case .nameDescending:
+                    return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedDescending
+                case .author:
+                    let authorOrder = lhs.author.localizedCaseInsensitiveCompare(rhs.author)
+                    if authorOrder != .orderedSame { return authorOrder == .orderedAscending }
+                    return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+                case .version:
+                    let versionOrder = NexusUpdateChecker.compare(lhs.version, rhs.version)
+                    if versionOrder != .orderedSame { return versionOrder == .orderedDescending }
+                    return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
                 }
             }
     }
@@ -490,6 +500,11 @@ struct ModListView: View {
                 Label(vm.L(L10n.Mods.sortName), systemImage: "textformat")
             }
             Button {
+                selectedSort = .nameDescending
+            } label: {
+                Label(vm.L(L10n.Mods.sortNameDescending), systemImage: "textformat.size.larger")
+            }
+            Button {
                 selectedSort = .activationOrder
             } label: {
                 Label(vm.L(L10n.Mods.sortActivationOrder), systemImage: "clock.arrow.circlepath")
@@ -499,9 +514,19 @@ struct ModListView: View {
             } label: {
                 Label(vm.L(L10n.Mods.sortInstallDate), systemImage: "calendar.badge.clock")
             }
+            Button {
+                selectedSort = .author
+            } label: {
+                Label(vm.L(L10n.Mods.sortAuthor), systemImage: "person")
+            }
+            Button {
+                selectedSort = .version
+            } label: {
+                Label(vm.L(L10n.Mods.sortVersion), systemImage: "number")
+            }
         } label: {
             HStack(spacing: 6) {
-                Image(systemName: sortIcon)
+                Image(systemName: "arrow.up.arrow.down")
                     .font(.system(size: 11))
                 Text(sortLabel)
                     .font(.system(size: 12, weight: .medium))
@@ -525,19 +550,14 @@ struct ModListView: View {
         .fixedSize()
     }
 
-    private var sortIcon: String {
-        switch selectedSort {
-        case .name: return "textformat"
-        case .activationOrder: return "clock.arrow.circlepath"
-        case .installDate: return "calendar.badge.clock"
-        }
-    }
-
     private var sortLabel: String {
         switch selectedSort {
         case .name: return vm.L(L10n.Mods.sortName)
+        case .nameDescending: return vm.L(L10n.Mods.sortNameDescending)
         case .activationOrder: return vm.L(L10n.Mods.sortActivationOrder)
         case .installDate: return vm.L(L10n.Mods.sortInstallDate)
+        case .author: return vm.L(L10n.Mods.sortAuthor)
+        case .version: return vm.L(L10n.Mods.sortVersion)
         }
     }
 
