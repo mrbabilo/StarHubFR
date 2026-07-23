@@ -20,7 +20,14 @@ struct ModInstallView: View {
     /// `@State` that `onDisappear` already ran past (which would leak it).
     @State private var isViewActive = true
 
+    let preloadedZip: URL?
+
     private let installer = ModZipInstaller()
+
+    init(vm: StarHubTHViewModel, preloadedZip: URL? = nil) {
+        self.vm = vm
+        self.preloadedZip = preloadedZip
+    }
 
     var body: some View {
         VStack(spacing: 20) {
@@ -85,6 +92,9 @@ struct ModInstallView: View {
                 installer.cleanupTempDir(at: tempDir)
                 self.tempDir = nil
             }
+        }
+        .onAppear {
+            if let zip = preloadedZip { analyzeZip(zip) }
         }
     }
 

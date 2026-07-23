@@ -15,6 +15,7 @@ struct MainView: View {
     @AppStorage("launchProfile") private var launchProfile: String = "SMAPI"
     
     @State private var isProfileHovered = false
+    @State private var showDownloadedInstall = false
     
     private func matchesSearch(_ text: String...) -> Bool {
         if searchText.isEmpty { return true }
@@ -364,6 +365,12 @@ struct MainView: View {
                 message: Text(vm.alertMessage),
                 dismissButton: .default(Text(vm.L(L10n.Main.ok)))
             )
+        }
+        .onChange(of: vm.pendingDownloadedZip) { _, newValue in
+            showDownloadedInstall = (newValue != nil)
+        }
+        .sheet(isPresented: $showDownloadedInstall, onDismiss: { vm.pendingDownloadedZip = nil }) {
+            ModInstallView(vm: vm, preloadedZip: vm.pendingDownloadedZip)
         }
     }
     
