@@ -340,4 +340,46 @@ struct TestEnvironment {
         #expect(env.manager.loadBackups()[0].id == second.id)
         #expect(FileManager.default.fileExists(atPath: second.backupPath))
     }
+
+    @Test func cleanupOldBackupsKeepsFiveMostRecentRegardlessOfAge() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let veryOld = Date().addingTimeInterval(-60 * 24 * 60 * 60) // 60 days ago
+        let fabricated = (0..<6).map { i in
+            makeFakeBackup(timestamp: veryOld.addingTimeInterval(Double(i)), folderName: "fake-\(i)")
+        }
+        env.manager.seedIndexForTesting(with: fabricated)
+        #expect(env.manager.loadBackups().count == 6)
+
+        let deletedCount = env.manager.cleanupOldBackups()
+
+        // All 6 share one calendar month and are >30 days old, so tier 3
+        // (most-recent-per-month) protects only the same one entry tier 1
+        // already protects — net: exactly 1 of the 6 (the single least
+        // recent) is eligible for deletion.
+        #expect(deletedCount == 1)
+        #expect(env.manager.loadBackups().count == 5)
+    }
+
+    @Test func cleanupOldBackupsKeepsEverythingWithin30DaysRegardlessOfFloor() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let now = Date()
+        // 8 backups, all within the last 7 days (well inside the 30-day
+        // window) — more than the 5-backup floor, but none should be
+        // deleted, since this test isolates the 30-day-window tier: an
+        // implementation that ignored the window and only kept 5 would
+        // fail this test by deleting 3.
+        let fabricated = (0..<8).map { i in
+            makeFakeBackup(timestamp: now.addingTimeInterval(Double(-i) * 24 * 60 * 60), folderName: "recent-\(i)")
+        }
+        env.manager.seedIndexForTesting(with: fabricated)
+
+        let deletedCount = env.manager.cleanupOldBackups()
+
+        #expect(deletedCount == 0)
+        #expect(env.manager.loadBackups().count == 8)
+    }
 }

@@ -78,6 +78,20 @@ public class ModInstallBackupManager {
         try? data.write(to: metadataPath, options: .atomic)
     }
 
+    /// Test-only seam (visible via `@testable import`) for seeding the
+    /// index with pre-fabricated backups — lets tests exercise
+    /// timestamp-dependent logic (like `cleanupOldBackups`'s retention
+    /// tiers) without waiting real time or injecting a fake clock.
+    /// Deliberately left internal (not `public`) — invisible to any real
+    /// consumer of this library.
+    func seedIndexForTesting(with backups: [ModInstallBackup]) {
+        withIndexLock {
+            var index = loadIndex()
+            index.backups.append(contentsOf: backups)
+            saveIndex(index)
+        }
+    }
+
     // MARK: - Create
 
     /// Backs up a complete mod folder before installation or update.
