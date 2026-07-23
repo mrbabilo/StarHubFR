@@ -22,6 +22,7 @@ let package = Package(
                 "SaveManager.swift",
                 "Models/InventoryItem.swift",
                 "Models/NxmLink.swift",
+                "Models/NexusDownloadAPI.swift",
                 "L10n.swift",
             ]
         ),
