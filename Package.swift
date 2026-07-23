@@ -23,6 +23,7 @@ let package = Package(
                 "Models/InventoryItem.swift",
                 "Models/NxmLink.swift",
                 "Models/NexusDownloadAPI.swift",
+                "Models/ManifestVersionPatcher.swift",
                 "L10n.swift",
             ]
         ),
@@ -45,6 +46,11 @@ let package = Package(
             name: "NexusDownloadTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/NexusDownloadTests"
+        ),
+        .testTarget(
+            name: "ManifestVersionPatcherTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ManifestVersionPatcherTests"
         ),
     ]
 )
