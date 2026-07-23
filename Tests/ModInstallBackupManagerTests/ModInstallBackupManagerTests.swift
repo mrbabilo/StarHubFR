@@ -184,4 +184,55 @@ struct TestEnvironment {
             Issue.record("Expected .gameDirEmpty, got \(error)")
         }
     }
+
+    @Test func restoreBackupCopiesToEmptyDestination() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let modDir = env.modsDir.appendingPathComponent("RestoreMod", isDirectory: true)
+        try writeTestFile(in: modDir, filename: "data.txt", content: "original")
+
+        let mod = makeTestMod(folderName: "RestoreMod", isEnabled: true)
+        let backup = try env.manager.createBackup(for: mod, gameDir: env.gameDir, reason: .beforeInstall)
+
+        // Destination (Mods_disabled/RestoreMod) doesn't exist yet.
+        try env.manager.restoreBackup(backup, gameDir: env.gameDir)
+
+        let restoredPath = env.modsDisabledDir.appendingPathComponent("RestoreMod/data.txt")
+        let restoredContent = try String(contentsOf: restoredPath, encoding: .utf8)
+        #expect(restoredContent == "original")
+    }
+
+    @Test func restoreBackupReplacesExistingFolderAndRegistersItAsNewBackup() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let modDir = env.modsDir.appendingPathComponent("RestoreMod", isDirectory: true)
+        try writeTestFile(in: modDir, filename: "data.txt", content: "original")
+
+        let mod = makeTestMod(folderName: "RestoreMod", isEnabled: true)
+        let backup = try env.manager.createBackup(for: mod, gameDir: env.gameDir, reason: .beforeInstall)
+
+        // A different version is already sitting at the live destination,
+        // with a real manifest.json so the replaced-version registration
+        // (which reads metadata off disk) can succeed.
+        let liveDestDir = env.modsDisabledDir.appendingPathComponent("RestoreMod", isDirectory: true)
+        try writeTestFile(in: liveDestDir, filename: "data.txt", content: "currently live")
+        try writeManifest(in: liveDestDir, uniqueId: "restore.mod", name: "Restore Mod", version: "2.0.0")
+
+        try env.manager.restoreBackup(backup, gameDir: env.gameDir)
+
+        let restoredContent = try String(contentsOf: liveDestDir.appendingPathComponent("data.txt"), encoding: .utf8)
+        #expect(restoredContent == "original")
+
+        // The replaced ("currently live") version must now be registered
+        // as its own backup rather than discarded, so the restore is
+        // itself undoable.
+        let allBackups = env.manager.loadBackups()
+        #expect(allBackups.count == 2)
+        let registered = allBackups.first { $0.id != backup.id }
+        #expect(registered?.reason == .beforeRestore)
+        #expect(registered?.modMetadata.uniqueId == "restore.mod")
+        #expect(registered?.modMetadata.version == "2.0.0")
+    }
 }
