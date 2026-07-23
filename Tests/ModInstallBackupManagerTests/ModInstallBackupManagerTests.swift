@@ -302,4 +302,42 @@ struct TestEnvironment {
         // No live folder should have been created.
         #expect(!FileManager.default.fileExists(atPath: env.modsDisabledDir.appendingPathComponent("RestoreMod").path))
     }
+
+    @Test func deleteBackupRemovesFolderAndIndexEntry() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let modDir = env.modsDir.appendingPathComponent("DeleteMod", isDirectory: true)
+        try writeTestFile(in: modDir, filename: "data.txt")
+
+        let mod = makeTestMod(folderName: "DeleteMod")
+        let backup = try env.manager.createBackup(for: mod, gameDir: env.gameDir, reason: .beforeInstall)
+        #expect(env.manager.loadBackups().count == 1)
+        #expect(FileManager.default.fileExists(atPath: backup.backupPath))
+
+        try env.manager.deleteBackup(backup)
+
+        #expect(env.manager.loadBackups().isEmpty)
+        #expect(!FileManager.default.fileExists(atPath: backup.backupPath))
+    }
+
+    @Test func twoBackupsCreatedBackToBackGetDistinctFolderNames() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let modDir = env.modsDir.appendingPathComponent("SameSecondMod", isDirectory: true)
+        try writeTestFile(in: modDir, filename: "data.txt")
+
+        let mod = makeTestMod(folderName: "SameSecondMod")
+        let first = try env.manager.createBackup(for: mod, gameDir: env.gameDir, reason: .beforeInstall)
+        let second = try env.manager.createBackup(for: mod, gameDir: env.gameDir, reason: .beforeInstall)
+
+        #expect(first.backupPath != second.backupPath)
+        #expect(env.manager.loadBackups().count == 2)
+
+        try env.manager.deleteBackup(first)
+        #expect(env.manager.loadBackups().count == 1)
+        #expect(env.manager.loadBackups()[0].id == second.id)
+        #expect(FileManager.default.fileExists(atPath: second.backupPath))
+    }
 }
