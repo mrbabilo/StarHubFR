@@ -5,6 +5,11 @@ class SmapiInstaller: ObservableObject {
     @Published var statusMessage = ""   // holds an L10n key, translated by caller via vm.L()
     @Published var progress: Double = 0.0
 
+    /// File `install()` writes on success, holding the plain version string
+    /// (e.g. "4.5.2") of the release it just installed — see
+    /// `runOfficialInstaller`'s doc comment for why this exists.
+    private static let installedVersionMarkerRelativePath = "smapi-internal/.starhubth-installed-version"
+
     // Check if SMAPI is installed in the Stardew Valley MacOS directory
     static func getInstalledVersion(gameDir: String) -> String? {
         let fm = FileManager.default
@@ -13,16 +18,25 @@ class SmapiInstaller: ObservableObject {
         // SMAPI must have replaced the launcher
         guard fm.fileExists(atPath: originalPath) else { return nil }
 
-        // 1. Try smapi-internal/manifest.json (standard path)
-        let manifestPath = (gameDir as NSString).appendingPathComponent("smapi-internal/manifest.json")
-        if fm.fileExists(atPath: manifestPath),
-           let data = try? Data(contentsOf: URL(fileURLWithPath: manifestPath)),
-           let json = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
-           let version = json["Version"] as? String {
-            return version
+        // 1. Our own marker, written by `install()` right after a successful
+        // run. SMAPI's packaging no longer includes anything that reliably
+        // states its own version (verified directly against a real
+        // install: no `smapi-internal/manifest.json`, the installed
+        // `StardewModdingAPI.deps.json` is an empty stub, and
+        // `StardewModdingAPI.runtimeconfig.json` only names the .NET
+        // runtime version, not SMAPI's) — so this app records what it
+        // installed itself instead of guessing from artifacts afterward.
+        let markerPath = (gameDir as NSString).appendingPathComponent(installedVersionMarkerRelativePath)
+        if let version = try? String(contentsOfFile: markerPath, encoding: .utf8) {
+            let trimmed = version.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty { return trimmed }
         }
 
-        // 2. Fallback: parse version from SMAPI-latest.txt first line
+        // 2. Fallback: parse version from SMAPI-latest.txt first line, for
+        // an install this app didn't perform itself (e.g. installed
+        // manually, or by a version of this app that predates the marker
+        // above). Only available after the game has been launched at least
+        // once post-install.
         // Format: [HH:MM:SS INFO  SMAPI] SMAPI 4.5.2 with Stardew Valley ...
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         let logPath = (home as NSString).appendingPathComponent(
@@ -72,8 +86,8 @@ class SmapiInstaller: ObservableObject {
                     self.isInstalling = false
                     completion(false, message, detail)
                 }
-            case .success(let smapiZipUrl):
-                self.downloadAndRunInstaller(from: smapiZipUrl, gameDir: gameDir, action: .install, completion: completion)
+            case .success(let smapiZipUrl, let version):
+                self.downloadAndRunInstaller(from: smapiZipUrl, version: version, gameDir: gameDir, action: .install, completion: completion)
             }
         }
     }
@@ -109,14 +123,14 @@ class SmapiInstaller: ObservableObject {
                     self.isInstalling = false
                     completion(false, message, detail)
                 }
-            case .success(let smapiZipUrl):
-                self.downloadAndRunInstaller(from: smapiZipUrl, gameDir: gameDir, action: .uninstall, completion: completion)
+            case .success(let smapiZipUrl, let version):
+                self.downloadAndRunInstaller(from: smapiZipUrl, version: version, gameDir: gameDir, action: .uninstall, completion: completion)
             }
         }
     }
 
     private enum ReleaseResolution {
-        case success(URL)
+        case success(URL, String)
         case failure(String, String?)
     }
 
@@ -156,11 +170,12 @@ class SmapiInstaller: ObservableObject {
                       return name.hasPrefix("SMAPI-") && name.hasSuffix("-installer.zip") && !name.contains("double-zipped")
                   }),
                   let downloadUrlString = installerAsset["browser_download_url"] as? String,
-                  let smapiZipUrl = URL(string: downloadUrlString) else {
+                  let smapiZipUrl = URL(string: downloadUrlString),
+                  let version = json["tag_name"] as? String else {
                 completion(.failure(L10n.Smapi.releaseLookupFailed, "no installer asset found in latest release"))
                 return
             }
-            completion(.success(smapiZipUrl))
+            completion(.success(smapiZipUrl, version))
         }
         releaseTask.resume()
     }
@@ -180,7 +195,7 @@ class SmapiInstaller: ObservableObject {
     /// directly: it renames some of its own files when copying them into
     /// the game directory, a mapping that isn't recoverable from the zip's
     /// structure alone).
-    private func downloadAndRunInstaller(from smapiZipUrl: URL, gameDir: String, action: InstallerAction, completion: @escaping (Bool, String, String?) -> Void) {
+    private func downloadAndRunInstaller(from smapiZipUrl: URL, version: String, gameDir: String, action: InstallerAction, completion: @escaping (Bool, String, String?) -> Void) {
         let tempDir = NSTemporaryDirectory()
         let zipDest = URL(fileURLWithPath: tempDir).appendingPathComponent("smapi_latest.zip")
 
@@ -293,7 +308,7 @@ class SmapiInstaller: ObservableObject {
                     self.progress = 0.8
                 }
 
-                self.runOfficialInstaller(at: smapiInstallerBin, gameDir: gameDir, action: action) { success, message, detail in
+                self.runOfficialInstaller(at: smapiInstallerBin, version: version, gameDir: gameDir, action: action) { success, message, detail in
                     try? fm.removeItem(at: zipDest)
                     try? fm.removeItem(at: extractDir)
                     DispatchQueue.main.async {
@@ -331,7 +346,13 @@ class SmapiInstaller: ObservableObject {
     /// completed the actual install/uninstall work. So success is
     /// determined by a combination of the installer's own "done" message
     /// and concrete file-system evidence, not the exit code by itself.
-    private func runOfficialInstaller(at installerPath: String, gameDir: String, action: InstallerAction, completion: @escaping (Bool, String, String?) -> Void) {
+    ///
+    /// On a successful install, also writes `version` to
+    /// `installedVersionMarkerRelativePath` — verified directly against a
+    /// real install that nothing else on disk reliably states SMAPI's own
+    /// version afterward (see `getInstalledVersion`'s doc comment), so this
+    /// app records what it just installed instead of guessing later.
+    private func runOfficialInstaller(at installerPath: String, version: String, gameDir: String, action: InstallerAction, completion: @escaping (Bool, String, String?) -> Void) {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: installerPath)
 
@@ -364,6 +385,8 @@ class SmapiInstaller: ObservableObject {
         case .install:
             let succeeded = output.contains("SMAPI is installed!") && fm.fileExists(atPath: smapiInternalPath)
             if succeeded {
+                let markerPath = (gameDir as NSString).appendingPathComponent(Self.installedVersionMarkerRelativePath)
+                try? version.write(toFile: markerPath, atomically: true, encoding: .utf8)
                 completion(true, L10n.Smapi.installSuccess, nil)
             } else {
                 completion(false, L10n.Smapi.installError, Self.lastMeaningfulLine(of: output))
