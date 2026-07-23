@@ -1125,15 +1125,44 @@ class StarHubTHViewModel: ObservableObject {
             }
         } else {
             log(L(L10n.VM.launchingSmapi))
-            if let steamURL = URL(string: "steam://run/413150") {
-                if NSWorkspace.shared.open(steamURL) {
-                    log(L(L10n.VM.launchSteamSuccess))
+            // Route through Steam ONLY for an actual Steam install. NSWorkspace.open(steam://)
+            // returns true whenever Steam is installed at all, so an unconditional attempt
+            // hijacks direct/GOG launches (Steam opens, the game never starts). Detect a
+            // Steam install by its path signature — matches detectDefaultGameDir() and holds
+            // for custom Steam library folders too (they still contain `steamapps`).
+            let isSteamInstall = gameDir.contains("steamapps")
+            if isSteamInstall, let steamURL = URL(string: "steam://run/413150"),
+               NSWorkspace.shared.open(steamURL) {
+                log(L(L10n.VM.launchSteamSuccess))
+                startSmapiLogWatcher()
+                if closeAfter { NSApplication.shared.terminate(nil) }
+                return
+            }
+
+            // Direct/GOG install: run SMAPI's launcher in place. SMAPI's installer replaced
+            // `StardewValley` with its own launcher (vanilla backed up as
+            // `StardewValley-original`), so invoking it starts SMAPI. Mirrors the
+            // confirmed-working Vanilla branch above; using bash rather than
+            // NSWorkspace.open(.app) also sidesteps the bundle code signature that SMAPI's
+            // in-place replacement invalidates (which Gatekeeper can block).
+            let smapiLauncher = (gameDir as NSString).appendingPathComponent("StardewValley")
+            if FileManager.default.fileExists(atPath: smapiLauncher) {
+                let process = Process()
+                process.executableURL = URL(fileURLWithPath: "/bin/bash")
+                process.arguments = [smapiLauncher]
+                process.currentDirectoryURL = URL(fileURLWithPath: gameDir)
+                do {
+                    try process.run()
+                    log(L(L10n.VM.launchDirectSuccess))
                     startSmapiLogWatcher()
                     if closeAfter { NSApplication.shared.terminate(nil) }
                     return
+                } catch {
+                    log(String(format: L(L10n.VM.launchVanillaError), error.localizedDescription))
                 }
             }
-            
+
+        // Last-resort fallback: open the app bundle via LaunchServices.
         let nsPath = gameDir as NSString
         var appPath = gameDir
         if nsPath.contains(".app") {

@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Launch Game button** (Home page): starts Stardew Valley directly from StarHubFR using the launch profile configured in Settings (SMAPI or Vanilla), with the active profile shown beneath the button — wiring up launch logic that previously existed in the code but was never reachable from the UI.
+  - Install-type aware: Steam installs launch through Steam (`steam://run/413150`), while direct/GOG installs run SMAPI's in-place launcher (`StardewValley`) directly. Previously the launch always routed through Steam whenever Steam was installed at all, which hijacked direct/GOG launches (Steam opened but the game never started).
 - **Mod Config Editor** (`ModConfigEditorView` / `CodeEditorView`): Edit a mod's `config.json` directly from the app, opened via the "Code Editor" entry in a mod's context menu.
   - Hierarchical **visual editor**: settings are parsed into a searchable tree of typed rows (boolean, string, number), grouped by their nesting path, with an inline search bar to filter by key.
   - **Raw JSON editor** tab: a line-numbered, monospaced code editor (`CodeEditorView`, an `NSViewRepresentable` text view) for direct JSON editing, with live validation and an invalid-JSON warning.

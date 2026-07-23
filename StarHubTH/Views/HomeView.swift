@@ -4,6 +4,9 @@ struct HomeView: View {
     @ObservedObject var vm: StarHubTHViewModel
     @ObservedObject var smapiInstaller: SmapiInstaller
 
+    // Mirrors the key launchGame() reads, so the subtitle reflects the mode that fires.
+    @AppStorage("launchProfile") private var launchProfile: String = "SMAPI"
+
     init(vm: StarHubTHViewModel) {
         self.vm = vm
         self.smapiInstaller = vm.smapiInstaller
@@ -51,7 +54,25 @@ struct HomeView: View {
                             .foregroundColor(.secondary)
                     }
                 }
-                
+
+                // ── LAUNCH BUTTON ──
+                VStack(spacing: 6) {
+                    Button(action: { vm.launchGame() }) {
+                        Label(vm.L(L10n.Main.launchGame), systemImage: "play.fill")
+                            .frame(maxWidth: 240)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .tint(.green)
+                    .disabled(vm.gameDir.isEmpty)
+
+                    Text(launchProfile == "Vanilla"
+                        ? vm.L(L10n.Settings.vanillaGame)
+                        : vm.L(L10n.Settings.playSMAPI))
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                }
+
                 // ── GAME INFO BLOCK ──
                 StandardSection(title: vm.L(L10n.Home.appInfo)) {
                     StandardRow(title: LocalizedStringKey(vm.L(L10n.Home.developer)), detail: "AppleBoiy (original) · mrbabilo (fork)", showDivider: true)
