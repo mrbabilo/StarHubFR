@@ -374,6 +374,7 @@ struct MainView: View {
                 try? FileManager.default.removeItem(at: url)
             }
             vm.pendingDownloadedZip = nil
+            vm.pendingNexusSource = nil
         }) {
             ModInstallView(vm: vm, preloadedZip: vm.pendingDownloadedZip)
         }

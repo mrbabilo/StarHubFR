@@ -130,6 +130,10 @@ class StarHubTHViewModel: ObservableObject {
     /// Set when a Nexus download finishes; MainView observes it to open the
     /// install sheet pre-loaded with the downloaded .zip.
     @Published var pendingDownloadedZip: URL?
+    struct NexusInstallSource: Equatable { let modId: Int; let fileId: Int }
+    /// Set alongside pendingDownloadedZip when the zip came from a Nexus download,
+    /// so the post-install step can reconcile the manifest version.
+    @Published var pendingNexusSource: NexusInstallSource?
     @Published var isDownloadingFromNexus = false
     private let nexusDownloader = NexusDownloader()
     /// `{ nexusModId: categoryId }` map populated from each Nexus check.
@@ -1729,6 +1733,7 @@ class StarHubTHViewModel: ObservableObject {
                 switch result {
                 case .success(let result):
                     self.pendingDownloadedZip = result.url
+                    self.pendingNexusSource = NexusInstallSource(modId: link.modId, fileId: result.fileId)
                 case .failure(let error):
                     self.showModal(message: self.nexusDownloadMessage(error))
                 }
@@ -1749,6 +1754,7 @@ class StarHubTHViewModel: ObservableObject {
                 switch result {
                 case .success(let result):
                     self.pendingDownloadedZip = result.url
+                    self.pendingNexusSource = NexusInstallSource(modId: nexusId, fileId: result.fileId)
                 case .failure(let error):
                     self.showModal(message: self.nexusDownloadMessage(error))
                 }
