@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Mod Config Editor** (`ModConfigEditorView` / `CodeEditorView`): Edit a mod's `config.json` directly from the app, opened via the "Code Editor" entry in a mod's context menu.
+  - Hierarchical **visual editor**: settings are parsed into a searchable tree of typed rows (boolean, string, number), grouped by their nesting path, with an inline search bar to filter by key.
+  - **Raw JSON editor** tab: a line-numbered, monospaced code editor (`CodeEditorView`, an `NSViewRepresentable` text view) for direct JSON editing, with live validation and an invalid-JSON warning.
+  - **Reset** button (revert unsaved edits) and **Restore Config** button (roll back to a local `config.json.bak`, or pick another `.json` file to restore from), independent of the existing `ModConfigBackupManager` history reachable from the "ConfigBackups" tab.
+- **In-App Changelog Viewer** (`AppChangelogView`): New sidebar entry rendering this `CHANGELOG.md` inside the app itself (lightweight Markdown: headings, bullets, inline emphasis), bundled into the app resources at build time.
+
+### Fixed
+- **SMAPI Installer — installation was completely broken.** Two compounding issues, both root-caused against SMAPI's actual current distribution:
+  - The hardcoded download endpoint (`smapi.io/get/latest`) no longer exists (confirmed: bare HTTP 404, no redirect). Fixed by resolving the current release dynamically through the GitHub Releases API instead, so this can't go stale again on future SMAPI versions.
+  - Even after the download was fixed, installation still failed: SMAPI's packaging changed from a flat `internal/mac/payload` folder (which this app used to copy file-by-file) to a real installer program (`internal/macOS/SMAPI.Installer`) that decides internally which files go where and under what names — not something recoverable from the zip's structure alone. `install()`/`uninstall()` now run this official installer directly (non-interactively, via its stdin prompts) instead of reimplementing its file placement by hand. This also fixes `uninstall()` leaving orphaned `StardewModdingAPI*` files behind, which the old manual/local removal never accounted for.
+
+### Changed
+- **Automated test coverage** expanded across `SaveManager` (backup/restore/duplicate/branch folder operations), `ModConfigBackupManager`, and `ModInstallBackupManager` (created/restore/delete/cleanup-retention paths), using Swift Testing against a dedicated SPM package (`Package.swift`) — including a same-second backup-folder-name collision fix and a `listBackups` parsing fix uncovered while writing the new coverage.
+
 ## [1.1.0] - 2026-07-22
 
 ### Added
@@ -72,7 +89,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed an issue in `StandardSection` where excessive padding caused large gaps between UI rows in Settings and App Info pages.
 
-
 ## [1.0.6] - 2026-07-04
 
 ### Added
@@ -95,7 +111,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - `LogEntry` now has a `source` field (`.app` / `.smapi`) to distinguish log origin.
 - `log()` in ViewModel always sets `source: .app`.
-- `loadSmapiLog()` sets `source: .smapi` and parses timestamps directly from the SMAPI format `[HH:MM:SS LEVEL  Context]`, including double-space handling.
+- `loadSmapiLog()` sets `source: .smapi` and parses timestamps directly from the SMAPI format `[HH:MM:SS LEVEL  Context]`, including double-space handling. SMAPI buffers log output and flushes it in batches rather than line-by-line, so the Reload button may need pressing again after closing the game to see the complete log.
 - Removed Japanese localization and the Japanese language picker option. The app now supports English and Thai only.
 - Unsupported or removed saved language values now normalize to a supported language, preferring Thai when the user's system language is Thai.
 - Thai save-branching terminology now uses "สร้างเซฟใหม่" instead of "แตกสาขา".
@@ -106,9 +122,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed nested save branches disappearing from the parent-child Saves tree by rebuilding the hierarchy recursively from detected parent folders instead of using a single-level `_copy` / `_branch` regex.
 - Fixed mixed-language Backup Timeline labels by localizing backup, restore, branch/create-save, relative time, and date display through the selected app language.
 - Fixed several remaining hardcoded Save/Settings/Logs/Mod List strings so Thai and English translations stay in sync.
-
-### Notes
-- SMAPI buffers log output and flushes in batches — logs are not written line-by-line in real time. Press Reload after closing the game to see the complete log.
 
 ## [1.0.5] - 2026-07-04
 
@@ -214,3 +227,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added translation for **Unlockable Bundles** (v4.3.1) by DeLiXx.
 - Added translation for **Wear More Rings** (v7.9) by bcmpinc.
 - Added translation for **World Navigator** (v1.4.2) by pneuma163.
+
+[Unreleased]: https://github.com/mrbabilo/StarHubFR/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/mrbabilo/StarHubFR/compare/e38c4eb...v1.1.0
+[1.0.9]: https://github.com/mrbabilo/StarHubFR/commit/e38c4eb
+[1.0.8]: https://github.com/mrbabilo/StarHubFR/commit/b367896
+[1.0.6]: https://github.com/mrbabilo/StarHubFR/compare/v1.0.5...v1.0.6
+[1.0.5]: https://github.com/mrbabilo/StarHubFR/compare/v1.0.4...v1.0.5
+[1.0.4]: https://github.com/mrbabilo/StarHubFR/compare/v1.0.3...v1.0.4
+[1.0.3]: https://github.com/mrbabilo/StarHubFR/compare/v1.0.2...v1.0.3
+[1.0.2]: https://github.com/mrbabilo/StarHubFR/compare/v1.0.1...v1.0.2
+[1.0.1]: https://github.com/mrbabilo/StarHubFR/compare/v1.0.0...v1.0.1
+[1.0.0]: https://github.com/mrbabilo/StarHubFR/releases/tag/v1.0.0
