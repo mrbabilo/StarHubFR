@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct MainView: View {
-    @StateObject var vm = StarHubTHViewModel()
+    @ObservedObject var vm: StarHubTHViewModel
     @State private var currentTab: String = "Home"
     @State private var searchText: String = ""
     

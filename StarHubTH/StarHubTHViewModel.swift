@@ -127,6 +127,11 @@ class StarHubTHViewModel: ObservableObject {
     @Published var nexusCheckProgress: (done: Int, total: Int)? = nil
     /// Whether the user has provided a Nexus API key (kept in sync with Keychain).
     @Published var hasNexusApiKey: Bool = false
+    /// Set when a Nexus download finishes; MainView observes it to open the
+    /// install sheet pre-loaded with the downloaded .zip.
+    @Published var pendingDownloadedZip: URL?
+    @Published var isDownloadingFromNexus = false
+    private let nexusDownloader = NexusDownloader()
     /// `{ nexusModId: categoryId }` map populated from each Nexus check.
     /// Survives launches (cached in UserDefaults) so the mods-list category
     /// filter works even before the user re-checks. Mods without a known
@@ -1706,6 +1711,39 @@ class StarHubTHViewModel: ObservableObject {
             }
             completion(result)
         }
+    }
+
+    /// Entry point for `nxm://` deep links (free-user "Mod Manager Download").
+    func handleNxmURL(_ url: URL) {
+        guard let link = NxmLink.parse(url) else {
+            showModal(message: L(L10n.VM.nexusDlBadLink))
+            return
+        }
+        isDownloadingFromNexus = true
+        log(String(format: L(L10n.VM.nexusDlStarting), link.modId))
+        nexusDownloader.download(modId: link.modId, fileId: link.fileId, game: link.gameDomain,
+                                 key: link.key, expires: link.expires) { [weak self] result in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                self.isDownloadingFromNexus = false
+                switch result {
+                case .success(let zipURL):
+                    self.pendingDownloadedZip = zipURL
+                case .failure(let error):
+                    self.showModal(message: self.nexusDownloadMessage(error))
+                }
+            }
+        }
+    }
+
+    /// Renders a `NexusDownloadError` through the app's live per-language bundle
+    /// (`L(...)`) rather than `errorDescription`'s `NSLocalizedString`, which
+    /// doesn't follow in-session language switching.
+    private func nexusDownloadMessage(_ error: NexusDownloadError) -> String {
+        if let detail = error.detailArgument {
+            return String(format: L(error.l10nKey), detail)
+        }
+        return L(error.l10nKey)
     }
 
     // MARK: - Custom override persistence

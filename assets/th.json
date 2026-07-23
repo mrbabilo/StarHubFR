@@ -498,5 +498,7 @@
   "vm_nexus_dl_no_api_key": "ยังไม่ได้ตั้งค่า Nexus API key เพิ่มได้ในหน้าตั้งค่า",
   "vm_nexus_dl_no_valid_file": "ไม่พบไฟล์ที่ดาวน์โหลดได้สำหรับม็อดนี้",
   "vm_nexus_dl_no_link": "ไม่สามารถรับลิงก์ดาวน์โหลดได้ (การดาวน์โหลดในแอปโดยตรงอาจต้องใช้ Nexus Premium)",
-  "vm_nexus_dl_request_failed": "ดาวน์โหลดล้มเหลว: %@"
+  "vm_nexus_dl_request_failed": "ดาวน์โหลดล้มเหลว: %@",
+  "vm_nexus_dl_bad_link": "ลิงก์ดาวน์โหลด Nexus ไม่ถูกต้อง",
+  "vm_nexus_dl_starting": "กำลังดาวน์โหลดม็อด %lld จาก Nexus…"
 }

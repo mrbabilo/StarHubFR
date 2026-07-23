@@ -17,6 +17,25 @@ enum NexusDownloadError: Error, LocalizedError {
     // Small localized-string helper (the ViewModel owns the language bundle;
     // here we fall back to the main bundle, which build_app.py populates).
     private func L10nKey(_ k: String) -> String { NSLocalizedString(k, comment: "") }
+
+    /// L10n key for this case, resolved against the app's live per-language
+    /// bundle by callers (see StarHubTHViewModel.nexusDownloadMessage), instead
+    /// of `errorDescription`'s `NSLocalizedString` (main-bundle only, doesn't
+    /// follow in-session language switching).
+    var l10nKey: String {
+        switch self {
+        case .noApiKey:      return L10n.VM.nexusDlNoApiKey
+        case .noValidFile:   return L10n.VM.nexusDlNoValidFile
+        case .noDownloadLink: return L10n.VM.nexusDlNoLink
+        case .requestFailed: return L10n.VM.nexusDlRequestFailed
+        }
+    }
+
+    /// Associated string argument for `.requestFailed`'s `%@` placeholder; nil otherwise.
+    var detailArgument: String? {
+        if case .requestFailed(let message) = self { return message }
+        return nil
+    }
 }
 
 /// Downloads a Nexus mod file to a temp `.zip`, then hands the URL back to the

@@ -475,6 +475,12 @@ enum L10n {
         static let switchProfile        = "vm_switch_profile"
         static let applyProfileError    = "vm_apply_profile_error"
         static let applyProfilePartial  = "vm_apply_profile_partial"
+        static let nexusDlNoApiKey      = "vm_nexus_dl_no_api_key"
+        static let nexusDlNoValidFile   = "vm_nexus_dl_no_valid_file"
+        static let nexusDlNoLink        = "vm_nexus_dl_no_link"
+        static let nexusDlRequestFailed = "vm_nexus_dl_request_failed"
+        static let nexusDlBadLink       = "vm_nexus_dl_bad_link"
+        static let nexusDlStarting      = "vm_nexus_dl_starting"
     }
 
     // MARK: - ModInstall
