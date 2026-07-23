@@ -103,6 +103,18 @@ class SmapiInstaller: ObservableObject {
             // happen after the game's own launcher was actually touched —
             // not for a download/extract failure that never got that far.
             var gameFilesModified = false
+            // Every payload item this run has copied into `gameDir`, in copy
+            // order — lets a failure partway through the loop below undo
+            // exactly what this run changed (not just the launcher binary).
+            // Declared here (not inside the `do` block) because `do`-scoped
+            // locals aren't visible to the matching `catch`.
+            var installedItems: [String] = []
+            // Transient per-run staging for items this run overwrites, so
+            // they can be moved back on failure. Distinct from
+            // `backupGameBin`, which is a *permanent* record `uninstall()`
+            // and `getInstalledVersion(gameDir:)` rely on — this directory
+            // is always removed at the end of this run, success or failure.
+            let rollbackStagingDir = URL(fileURLWithPath: tempDir).appendingPathComponent("smapi_install_rollback")
 
             do {
                 if fm.fileExists(atPath: zipDest.path) { try fm.removeItem(at: zipDest) }
@@ -176,29 +188,54 @@ class SmapiInstaller: ObservableObject {
                 // the game in a half-installed, unplayable state.
                 gameFilesModified = true
 
+                if fm.fileExists(atPath: rollbackStagingDir.path) {
+                    try? fm.removeItem(at: rollbackStagingDir)
+                }
+                try fm.createDirectory(at: rollbackStagingDir, withIntermediateDirectories: true, attributes: nil)
+
                 for item in payloadItems {
                     if item.hasPrefix(".") { continue }
                     let srcItem = (sourcePayload as NSString).appendingPathComponent(item)
                     let destItem = (gameDir as NSString).appendingPathComponent(item)
-                    if fm.fileExists(atPath: destItem) { try fm.removeItem(atPath: destItem) }
+                    if fm.fileExists(atPath: destItem) {
+                        let stagedItem = rollbackStagingDir.appendingPathComponent(item).path
+                        try fm.moveItem(atPath: destItem, toPath: stagedItem)
+                    }
                     try fm.copyItem(atPath: srcItem, toPath: destItem)
+                    installedItems.append(item)
                 }
 
                 var attributes = try fm.attributesOfItem(atPath: targetGameBin)
                 attributes[.posixPermissions] = 0o755
                 try fm.setAttributes(attributes, ofItemAtPath: targetGameBin)
                 
+                try? fm.removeItem(at: rollbackStagingDir)
                 try? fm.removeItem(at: zipDest)
                 try? fm.removeItem(at: extractDir)
-                
+
                 DispatchQueue.main.async {
                     self.progress = 1.0
                     self.isInstalling = false
                     completion(true, L10n.Smapi.installSuccess, nil)
                 }
-                
+
             } catch {
                 let installErrorMessage = error.localizedDescription
+
+                // Undo every payload item this run already copied in, restoring
+                // whatever was staged aside for it (or just removing it if the
+                // item didn't exist before this run), so a failure partway
+                // through the copy loop doesn't leave a mix of old and new files.
+                for item in installedItems.reversed() {
+                    let destItem = (gameDir as NSString).appendingPathComponent(item)
+                    let stagedItem = rollbackStagingDir.appendingPathComponent(item).path
+                    try? fm.removeItem(atPath: destItem)
+                    if fm.fileExists(atPath: stagedItem) {
+                        try? fm.moveItem(atPath: stagedItem, toPath: destItem)
+                    }
+                }
+                try? fm.removeItem(at: rollbackStagingDir)
+
                 // If we'd already started overwriting the game's own files
                 // when this failed, try to put the original launcher back
                 // rather than leaving the game unplayable.
