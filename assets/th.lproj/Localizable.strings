@@ -369,7 +369,7 @@
 "mods_page_jump_label" = "ไปที่หน้า";
 "settings_nexus_mods" = "Nexus Mods";
 "settings_nexus_api_key" = "คีย์ API";
-"settings_nexus_api_key_hint" = "เพิ่มคีย์ API ของ Nexus Mods เพื่อตรวจสอบการอัปเดตม็อดและดึงข้อมูลม็อดโดยอัตโนมัติ";
+"settings_nexus_api_key_hint" = "เพิ่มคีย์ API ของ Nexus Mods เพื่อตรวจสอบการอัปเดตม็อดและดึงข้อมูลม็อดโดยอัตโนมัติ คีย์ของคุณจะถูกจัดเก็บอย่างปลอดภัยในระบบ Keychain ของ macOS และเข้ารหัสโดยระบบ — จะไม่ถูกบันทึกเป็นข้อความธรรมดา";
 "settings_nexus_get_key" = "รับคีย์ API";
 "settings_nexus_save_key" = "บันทึก";
 "settings_nexus_clear_key" = "ลบคีย์";

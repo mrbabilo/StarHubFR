@@ -369,7 +369,7 @@
 "mods_page_jump_label" = "Go to page";
 "settings_nexus_mods" = "Nexus Mods";
 "settings_nexus_api_key" = "API Key";
-"settings_nexus_api_key_hint" = "Add your Nexus Mods API key to check for mod updates and fetch mod info automatically.";
+"settings_nexus_api_key_hint" = "Add your Nexus Mods API key to check for mod updates and fetch mod info automatically. Your key is stored securely in the macOS Keychain, encrypted by the system — it is never saved in plain text.";
 "settings_nexus_get_key" = "Get API Key";
 "settings_nexus_save_key" = "Save";
 "settings_nexus_clear_key" = "Remove Key";
