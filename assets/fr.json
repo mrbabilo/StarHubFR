@@ -494,5 +494,9 @@
   "config_restore_config": "Restaurer la configuration",
   "config_saved": "Configuration enregistrée avec succès",
   "config_search_placeholder": "Rechercher des paramètres...",
-  "config_invalid_json": "Format JSON invalide"
+  "config_invalid_json": "Format JSON invalide",
+  "vm_nexus_dl_no_api_key": "Aucune clé API Nexus définie. Ajoutez-en une dans les Réglages.",
+  "vm_nexus_dl_no_valid_file": "Aucun fichier téléchargeable trouvé pour ce mod.",
+  "vm_nexus_dl_no_link": "Impossible d'obtenir un lien de téléchargement (Nexus Premium peut être requis pour le téléchargement direct in-app).",
+  "vm_nexus_dl_request_failed": "Échec du téléchargement : %@"
 }

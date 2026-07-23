@@ -494,5 +494,9 @@
   "config_restore_config": "Restore Config",
   "config_saved": "Config saved successfully",
   "config_search_placeholder": "Search settings...",
-  "config_invalid_json": "Invalid JSON format"
+  "config_invalid_json": "Invalid JSON format",
+  "vm_nexus_dl_no_api_key": "No Nexus API key set. Add one in Settings.",
+  "vm_nexus_dl_no_valid_file": "No downloadable file found for this mod.",
+  "vm_nexus_dl_no_link": "Could not obtain a download link (Nexus Premium may be required for direct in-app downloads).",
+  "vm_nexus_dl_request_failed": "Download failed: %@"
 }

@@ -494,5 +494,9 @@
   "config_restore_config": "ย้อนคืนการตั้งค่า",
   "config_saved": "บันทึกการตั้งค่าเรียบร้อยแล้ว",
   "config_search_placeholder": "ค้นหาการตั้งค่า...",
-  "config_invalid_json": "รูปแบบ JSON ไม่ถูกต้อง"
+  "config_invalid_json": "รูปแบบ JSON ไม่ถูกต้อง",
+  "vm_nexus_dl_no_api_key": "ยังไม่ได้ตั้งค่า Nexus API key เพิ่มได้ในหน้าตั้งค่า",
+  "vm_nexus_dl_no_valid_file": "ไม่พบไฟล์ที่ดาวน์โหลดได้สำหรับม็อดนี้",
+  "vm_nexus_dl_no_link": "ไม่สามารถรับลิงก์ดาวน์โหลดได้ (การดาวน์โหลดในแอปโดยตรงอาจต้องใช้ Nexus Premium)",
+  "vm_nexus_dl_request_failed": "ดาวน์โหลดล้มเหลว: %@"
 }
