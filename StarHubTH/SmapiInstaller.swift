@@ -4,7 +4,7 @@ class SmapiInstaller: ObservableObject {
     @Published var isInstalling = false
     @Published var statusMessage = ""   // holds an L10n key, translated by caller via vm.L()
     @Published var progress: Double = 0.0
-    
+
     // Check if SMAPI is installed in the Stardew Valley MacOS directory
     static func getInstalledVersion(gameDir: String) -> String? {
         let fm = FileManager.default
@@ -44,7 +44,7 @@ class SmapiInstaller: ObservableObject {
         // 3. Installed but version unknown
         return "Installed"
     }
-    
+
     // Install SMAPI
     //
     // completion's 3rd parameter is an optional detail string to substitute
@@ -64,7 +64,7 @@ class SmapiInstaller: ObservableObject {
         // directly — no redirect, empty body). SMAPI's actual distribution
         // channel today is its GitHub Releases page, so resolve the current
         // release through the GitHub API first, then hand the resolved URL
-        // to the existing download/extract/install flow below.
+        // to the download/extract/run flow below.
         resolveLatestSmapiInstallerURL { result in
             switch result {
             case .failure(let message, let detail):
@@ -73,7 +73,44 @@ class SmapiInstaller: ObservableObject {
                     completion(false, message, detail)
                 }
             case .success(let smapiZipUrl):
-                self.downloadAndInstall(from: smapiZipUrl, gameDir: gameDir, completion: completion)
+                self.downloadAndRunInstaller(from: smapiZipUrl, gameDir: gameDir, action: .install, completion: completion)
+            }
+        }
+    }
+
+    // Uninstall SMAPI
+    //
+    // Runs the same official installer as `install()`, answering its
+    // uninstall question instead. This used to be done locally (swap
+    // `StardewValley-original` back over `StardewValley`, delete
+    // `smapi-internal`) without any download — but the installer's current
+    // packaging also adds top-level `StardewModdingAPI*` files next to the
+    // launcher (see `install()`'s doc comment on `runOfficialInstaller`),
+    // and only the official installer itself reliably knows the full set of
+    // files it added. Re-downloading it for an uninstall is wasteful but
+    // simple and correct; uninstalling isn't a hot path.
+    func uninstall(gameDir: String, completion: @escaping (Bool, String, String?) -> Void) {
+        let fm = FileManager.default
+        let originalPath = (gameDir as NSString).appendingPathComponent("StardewValley-original")
+
+        guard fm.fileExists(atPath: originalPath) else {
+            completion(false, L10n.Smapi.notFound, nil)
+            return
+        }
+
+        self.isInstalling = true
+        self.statusMessage = L10n.Smapi.downloading
+        self.progress = 0.1
+
+        resolveLatestSmapiInstallerURL { result in
+            switch result {
+            case .failure(let message, let detail):
+                DispatchQueue.main.async {
+                    self.isInstalling = false
+                    completion(false, message, detail)
+                }
+            case .success(let smapiZipUrl):
+                self.downloadAndRunInstaller(from: smapiZipUrl, gameDir: gameDir, action: .uninstall, completion: completion)
             }
         }
     }
@@ -128,7 +165,22 @@ class SmapiInstaller: ObservableObject {
         releaseTask.resume()
     }
 
-    private func downloadAndInstall(from smapiZipUrl: URL, gameDir: String, completion: @escaping (Bool, String, String?) -> Void) {
+    private enum InstallerAction: String {
+        case install = "1"
+        case uninstall = "2"
+    }
+
+    /// Downloads SMAPI's installer zip, extracts it, and hands off to
+    /// `runOfficialInstaller`. Older versions of this app manually searched
+    /// the archive for a flat `internal/mac/payload` folder and copied its
+    /// contents into `gameDir` by hand — that folder no longer exists in
+    /// current SMAPI packaging. The archive now ships a real installer
+    /// program (`internal/macOS/SMAPI.Installer`) that must be *run*, since
+    /// it alone knows which files go where and under what names (verified
+    /// directly: it renames some of its own files when copying them into
+    /// the game directory, a mapping that isn't recoverable from the zip's
+    /// structure alone).
+    private func downloadAndRunInstaller(from smapiZipUrl: URL, gameDir: String, action: InstallerAction, completion: @escaping (Bool, String, String?) -> Void) {
         let tempDir = NSTemporaryDirectory()
         let zipDest = URL(fileURLWithPath: tempDir).appendingPathComponent("smapi_latest.zip")
 
@@ -140,14 +192,13 @@ class SmapiInstaller: ObservableObject {
                 }
                 return
             }
-            
+
             // We can't verify the download against a published checksum —
-            // smapi.io's redirect endpoint doesn't expose one, and GitHub's
-            // build attestations aren't something this app can practically
-            // verify. This checks what we *can*: the server actually served
-            // the file (not an error page), the archive extracted cleanly,
-            // and the payload it produced is non-empty — before anything is
-            // chmod'd executable or copied over the player's game files.
+            // GitHub's build attestations aren't something this app can
+            // practically verify. This checks what we *can*: the server
+            // actually served the file (not an error page), and the
+            // archive extracted cleanly — before anything downloaded is
+            // marked executable or run.
             if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
                 DispatchQueue.main.async {
                     self.isInstalling = false
@@ -165,39 +216,20 @@ class SmapiInstaller: ObservableObject {
             }
 
             let fm = FileManager.default
-            let targetGameBin = (gameDir as NSString).appendingPathComponent("StardewValley")
-            let backupGameBin = (gameDir as NSString).appendingPathComponent("StardewValley-original")
-            // Set once we start overwriting files in `gameDir` itself, so the
-            // catch block below only attempts a rollback for failures that
-            // happen after the game's own launcher was actually touched —
-            // not for a download/extract failure that never got that far.
-            var gameFilesModified = false
-            // Every payload item this run has copied into `gameDir`, in copy
-            // order — lets a failure partway through the loop below undo
-            // exactly what this run changed (not just the launcher binary).
-            // Declared here (not inside the `do` block) because `do`-scoped
-            // locals aren't visible to the matching `catch`.
-            var installedItems: [String] = []
-            // Transient per-run staging for items this run overwrites, so
-            // they can be moved back on failure. Distinct from
-            // `backupGameBin`, which is a *permanent* record `uninstall()`
-            // and `getInstalledVersion(gameDir:)` rely on — this directory
-            // is always removed at the end of this run, success or failure.
-            let rollbackStagingDir = URL(fileURLWithPath: tempDir).appendingPathComponent("smapi_install_rollback")
 
             do {
                 if fm.fileExists(atPath: zipDest.path) { try fm.removeItem(at: zipDest) }
                 try fm.copyItem(at: localURL, to: zipDest)
-                
+
                 DispatchQueue.main.async {
                     self.statusMessage = L10n.Smapi.extracting
                     self.progress = 0.4
                 }
-                
+
                 let extractDir = URL(fileURLWithPath: tempDir).appendingPathComponent("smapi_extracted")
                 if fm.fileExists(atPath: extractDir.path) { try fm.removeItem(at: extractDir) }
                 try fm.createDirectory(at: extractDir, withIntermediateDirectories: true, attributes: nil)
-                
+
                 let unzipProcess = Process()
                 unzipProcess.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
                 unzipProcess.arguments = ["-q", zipDest.path, "-d", extractDir.path]
@@ -214,19 +246,22 @@ class SmapiInstaller: ObservableObject {
 
                 DispatchQueue.main.async {
                     self.statusMessage = L10n.Smapi.preparing
-                    self.progress = 0.7
+                    self.progress = 0.6
                 }
-                
-                var payloadDir: String? = nil
+
+                // The installer's containing folder is versioned (e.g.
+                // "SMAPI 4.5.2 installer/"), so search by suffix rather
+                // than a fixed path.
+                var installerPath: String? = nil
                 let enumerator = fm.enumerator(atPath: extractDir.path)
                 while let element = enumerator?.nextObject() as? String {
-                    if element.hasSuffix("internal/mac/payload") {
-                        payloadDir = (extractDir.path as NSString).appendingPathComponent(element)
+                    if element.hasSuffix("internal/macOS/SMAPI.Installer") {
+                        installerPath = (extractDir.path as NSString).appendingPathComponent(element)
                         break
                     }
                 }
-                
-                guard let sourcePayload = payloadDir, fm.fileExists(atPath: sourcePayload) else {
+
+                guard let smapiInstallerBin = installerPath, fm.fileExists(atPath: smapiInstallerBin) else {
                     DispatchQueue.main.async {
                         self.isInstalling = false
                         completion(false, L10n.Smapi.payloadNotFound, nil)
@@ -234,164 +269,125 @@ class SmapiInstaller: ObservableObject {
                     return
                 }
 
-                // Confirm the extracted payload actually has files before we
-                // touch anything in `gameDir` — a truncated/incomplete
-                // archive can unzip "successfully" while producing an empty
-                // or partial payload folder.
-                let payloadItems = try fm.contentsOfDirectory(atPath: sourcePayload)
-                guard !payloadItems.isEmpty else {
-                    DispatchQueue.main.async {
-                        self.isInstalling = false
-                        completion(false, L10n.Smapi.payloadNotFound, nil)
-                    }
-                    return
-                }
+                // The installer and its dependencies were just downloaded, so
+                // macOS marks them quarantined; running a quarantined binary
+                // via Process (bypassing the normal double-click Gatekeeper
+                // flow) fails until the quarantine attribute is cleared. The
+                // official "install on macOS.command" script does the same
+                // thing, recursively, on the whole `internal` folder next to
+                // the binary — mirrored here so this behaves identically.
+                let macOSDir = (smapiInstallerBin as NSString).deletingLastPathComponent
+                let internalRoot = (macOSDir as NSString).deletingLastPathComponent
+                let xattrProcess = Process()
+                xattrProcess.executableURL = URL(fileURLWithPath: "/usr/bin/xattr")
+                xattrProcess.arguments = ["-r", "-d", "com.apple.quarantine", internalRoot]
+                try? xattrProcess.run()
+                xattrProcess.waitUntilExit()
 
-                if fm.fileExists(atPath: targetGameBin) && !fm.fileExists(atPath: backupGameBin) {
-                    try fm.copyItem(atPath: targetGameBin, toPath: backupGameBin)
-                }
-
-                // From here on we're overwriting files inside `gameDir`; if
-                // anything below throws, the catch block restores the
-                // original launcher from `backupGameBin` rather than leaving
-                // the game in a half-installed, unplayable state.
-                gameFilesModified = true
-
-                if fm.fileExists(atPath: rollbackStagingDir.path) {
-                    try? fm.removeItem(at: rollbackStagingDir)
-                }
-                try fm.createDirectory(at: rollbackStagingDir, withIntermediateDirectories: true, attributes: nil)
-
-                for item in payloadItems {
-                    if item.hasPrefix(".") { continue }
-                    let srcItem = (sourcePayload as NSString).appendingPathComponent(item)
-                    let destItem = (gameDir as NSString).appendingPathComponent(item)
-                    if fm.fileExists(atPath: destItem) {
-                        let stagedItem = rollbackStagingDir.appendingPathComponent(item).path
-                        try fm.moveItem(atPath: destItem, toPath: stagedItem)
-                    }
-                    try fm.copyItem(atPath: srcItem, toPath: destItem)
-                    installedItems.append(item)
-                }
-
-                var attributes = try fm.attributesOfItem(atPath: targetGameBin)
+                var attributes = try fm.attributesOfItem(atPath: smapiInstallerBin)
                 attributes[.posixPermissions] = 0o755
-                try fm.setAttributes(attributes, ofItemAtPath: targetGameBin)
-                
-                try? fm.removeItem(at: rollbackStagingDir)
-                try? fm.removeItem(at: zipDest)
-                try? fm.removeItem(at: extractDir)
+                try fm.setAttributes(attributes, ofItemAtPath: smapiInstallerBin)
 
                 DispatchQueue.main.async {
-                    self.progress = 1.0
-                    self.isInstalling = false
-                    completion(true, L10n.Smapi.installSuccess, nil)
+                    self.statusMessage = L10n.Smapi.preparing
+                    self.progress = 0.8
                 }
 
-            } catch {
-                let installErrorMessage = error.localizedDescription
-
-                // Undo every payload item this run already copied in, restoring
-                // whatever was staged aside for it (or just removing it if the
-                // item didn't exist before this run), so a failure partway
-                // through the copy loop doesn't leave a mix of old and new files.
-                for item in installedItems.reversed() {
-                    let destItem = (gameDir as NSString).appendingPathComponent(item)
-                    let stagedItem = rollbackStagingDir.appendingPathComponent(item).path
-                    try? fm.removeItem(atPath: destItem)
-                    if fm.fileExists(atPath: stagedItem) {
-                        try? fm.moveItem(atPath: stagedItem, toPath: destItem)
-                    }
-                }
-                try? fm.removeItem(at: rollbackStagingDir)
-
-                // If we'd already started overwriting the game's own files
-                // when this failed, try to put the original launcher back
-                // rather than leaving the game unplayable.
-                if gameFilesModified && fm.fileExists(atPath: backupGameBin) {
-                    do {
-                        if fm.fileExists(atPath: targetGameBin) { try fm.removeItem(atPath: targetGameBin) }
-                        try fm.copyItem(atPath: backupGameBin, toPath: targetGameBin)
-                        DispatchQueue.main.async {
-                            self.isInstalling = false
-                            completion(false, L10n.Smapi.installErrorRestored, installErrorMessage)
-                        }
-                    } catch let restoreError {
-                        DispatchQueue.main.async {
-                            self.isInstalling = false
-                            completion(false, L10n.Smapi.installErrorRestoreFailed, "\(installErrorMessage) / \(restoreError.localizedDescription)")
-                        }
-                    }
-                } else {
+                self.runOfficialInstaller(at: smapiInstallerBin, gameDir: gameDir, action: action) { success, message, detail in
+                    try? fm.removeItem(at: zipDest)
+                    try? fm.removeItem(at: extractDir)
                     DispatchQueue.main.async {
+                        self.progress = success ? 1.0 : self.progress
                         self.isInstalling = false
-                        completion(false, L10n.Smapi.installError, installErrorMessage)
+                        completion(success, message, detail)
                     }
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    self.isInstalling = false
+                    completion(false, L10n.Smapi.installError, error.localizedDescription)
                 }
             }
         }
 
         downloadTask.resume()
     }
-    
-    // Uninstall SMAPI
-    func uninstall(gameDir: String, completion: @escaping (Bool, String, String?) -> Void) {
-        let fm = FileManager.default
-        let launcherPath = (gameDir as NSString).appendingPathComponent("StardewValley")
-        let originalPath = (gameDir as NSString).appendingPathComponent("StardewValley-original")
-        let internalPath = (gameDir as NSString).appendingPathComponent("smapi-internal")
 
-        guard fm.fileExists(atPath: originalPath) else {
-            completion(false, L10n.Smapi.notFound, nil)
+    /// Runs SMAPI's own official installer binary non-interactively by
+    /// feeding its fixed prompt sequence through stdin in one write:
+    /// color scheme, "enter a custom game path" (option 2 — never trust
+    /// its auto-detected option 1, which only matches well-known install
+    /// locations), the game path itself, then install (1) or uninstall (2).
+    /// Verified directly against a real download: this sequence is stable,
+    /// short, and doesn't require synchronizing on the installer's output
+    /// text (which could reword between versions) — stdin is a queue the
+    /// installer's prompts consume from in order, regardless of what's
+    /// already been printed.
+    ///
+    /// The process's exit code alone isn't fully trustworthy: on its error
+    /// path, the installer tries to read a keypress before exiting, which
+    /// throws an unhandled .NET exception (and a non-zero exit) whenever
+    /// stdin isn't a real terminal — including some cases that already
+    /// completed the actual install/uninstall work. So success is
+    /// determined by a combination of the installer's own "done" message
+    /// and concrete file-system evidence, not the exit code by itself.
+    private func runOfficialInstaller(at installerPath: String, gameDir: String, action: InstallerAction, completion: @escaping (Bool, String, String?) -> Void) {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: installerPath)
+
+        let stdinPipe = Pipe()
+        let stdoutPipe = Pipe()
+        process.standardInput = stdinPipe
+        process.standardOutput = stdoutPipe
+        process.standardError = stdoutPipe
+
+        let answers = "1\n2\n\(gameDir)\n\(action.rawValue)\n"
+
+        do {
+            try process.run()
+        } catch {
+            completion(false, L10n.Smapi.installError, error.localizedDescription)
             return
         }
 
-        self.isInstalling = true
-        self.statusMessage = L10n.Smapi.uninstallSuccess
-        self.progress = 0.2
+        stdinPipe.fileHandleForWriting.write(answers.data(using: .utf8) ?? Data())
+        try? stdinPipe.fileHandleForWriting.close()
 
-        // Runs on a background queue (unlike `install`'s network download,
-        // which already hops off main via URLSession) so this doesn't block
-        // the caller — the moves/removes below still touch the game folder
-        // directly and aren't free on a slow disk.
-        DispatchQueue.global(qos: .userInitiated).async {
-            do {
-                // Move the current (SMAPI) launcher aside instead of deleting
-                // it outright, so it can be put back if restoring the
-                // original fails below — otherwise a failure here leaves
-                // neither launcher in place and the game won't start at all.
-                var setAsideLauncher: String? = nil
-                if fm.fileExists(atPath: launcherPath) {
-                    let tempPath = launcherPath + ".smapi_uninstall_tmp"
-                    if fm.fileExists(atPath: tempPath) { try? fm.removeItem(atPath: tempPath) }
-                    try fm.moveItem(atPath: launcherPath, toPath: tempPath)
-                    setAsideLauncher = tempPath
-                }
-                DispatchQueue.main.async { self.progress = 0.6 }
+        let outputData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+        let output = String(data: outputData, encoding: .utf8) ?? ""
 
-                do {
-                    try fm.moveItem(atPath: originalPath, toPath: launcherPath)
-                } catch {
-                    if let setAsideLauncher = setAsideLauncher {
-                        try? fm.moveItem(atPath: setAsideLauncher, toPath: launcherPath)
-                    }
-                    throw error
-                }
+        let fm = FileManager.default
+        let smapiInternalPath = (gameDir as NSString).appendingPathComponent("smapi-internal")
 
-                if let setAsideLauncher = setAsideLauncher { try? fm.removeItem(atPath: setAsideLauncher) }
-                if fm.fileExists(atPath: internalPath) { try fm.removeItem(atPath: internalPath) }
-
-                DispatchQueue.main.async {
-                    self.progress = 1.0
-                    self.isInstalling = false
-                    completion(true, L10n.Smapi.uninstallSuccess, nil)
-                }
-            } catch {
-                DispatchQueue.main.async {
-                    self.isInstalling = false
-                    completion(false, L10n.Smapi.uninstallFailed, error.localizedDescription)
-                }
+        switch action {
+        case .install:
+            let succeeded = output.contains("SMAPI is installed!") && fm.fileExists(atPath: smapiInternalPath)
+            if succeeded {
+                completion(true, L10n.Smapi.installSuccess, nil)
+            } else {
+                completion(false, L10n.Smapi.installError, Self.lastMeaningfulLine(of: output))
+            }
+        case .uninstall:
+            let succeeded = output.contains("SMAPI is removed!") && !fm.fileExists(atPath: smapiInternalPath)
+            if succeeded {
+                completion(true, L10n.Smapi.uninstallSuccess, nil)
+            } else {
+                completion(false, L10n.Smapi.uninstallFailed, Self.lastMeaningfulLine(of: output))
             }
         }
+    }
+
+    /// Picks a short, useful line from the installer's captured output for
+    /// the error detail shown to the user. Its crash output ends in a C#
+    /// stack trace, which isn't useful verbatim — the actual error message
+    /// is the line announcing the exception, so surface that instead of the
+    /// trace beneath it.
+    private static func lastMeaningfulLine(of output: String) -> String {
+        let lines = output.components(separatedBy: .newlines).map { $0.trimmingCharacters(in: .whitespaces) }
+        if let idx = lines.firstIndex(where: { $0.contains("unexpected exception") || $0.contains("failed") }) {
+            return lines[idx]
+        }
+        return lines.last(where: { !$0.isEmpty }) ?? "unknown error"
     }
 }

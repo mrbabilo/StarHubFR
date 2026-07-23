@@ -373,8 +373,6 @@
   "settings_nexus_api_key_placeholder": "กรอกคีย์ API ของ Nexus",
   "smapi_download_http_error": "ดาวน์โหลดไม่สำเร็จ: %@",
   "smapi_extract_failed": "แตกไฟล์ไม่สำเร็จ: %@",
-  "smapi_install_error_restored": "ติดตั้งไม่สำเร็จ ระบบได้กู้คืนเกมต้นฉบับแล้ว: %@",
-  "smapi_install_error_restore_failed": "ติดตั้งไม่สำเร็จ และไม่สามารถกู้คืนเกมต้นฉบับได้: %@",
   "updates_nexus_section": "การอัปเดตจาก Nexus Mods",
   "updates_nexus_check_button": "ตรวจสอบการอัปเดต",
   "updates_nexus_checking": "กำลังตรวจสอบการอัปเดต…",

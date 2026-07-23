@@ -326,8 +326,6 @@ enum L10n {
         static let payloadNotFound      = "smapi_payload_not_found"
         static let installSuccess       = "smapi_install_success"
         static let installError         = "smapi_install_error"
-        static let installErrorRestored = "smapi_install_error_restored"
-        static let installErrorRestoreFailed = "smapi_install_error_restore_failed"
         static let notFound             = "smapi_not_found"
         static let uninstallSuccess     = "smapi_uninstall_success"
         static let uninstallFailed      = "smapi_uninstall_failed"
