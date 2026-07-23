@@ -14,6 +14,7 @@ RESOURCES_DIR = os.path.join(CONTENTS_DIR, "Resources")
 SUPPORTED_LOCALES = {
     "en": "Centralized English Localization Strings",
     "th": "Centralized Thai Localization Strings",
+    "fr": "Centralized French Localization Strings",
 }
 
 def strings_escape(value):
@@ -88,7 +89,7 @@ def create_app_bundle():
         shutil.copy2(changelog_path, os.path.join(RESOURCES_DIR, "CHANGELOG.md"))
         print("[INFO] Copied CHANGELOG.md to App Resources")
 
-    for lang in ["en.lproj", "th.lproj"]:
+    for lang in ["en.lproj", "th.lproj", "fr.lproj"]:
         lproj_src = os.path.join("assets", lang)
         if os.path.exists(lproj_src):
             lproj_dest = os.path.join(RESOURCES_DIR, lang)

@@ -242,13 +242,18 @@ class StarHubTHViewModel: ObservableObject {
     @Published var steamUsername: String = ""
     @Published var steamAvatarPath: String? = nil
     
-    private static let supportedLanguages = Set(["en", "th"])
+    private static let supportedLanguages = Set(["en", "th", "fr"])
     private static func normalizedLanguage(_ language: String?) -> String {
         guard let language, supportedLanguages.contains(language) else { return defaultLanguage }
         return language
     }
+    /// Thai and French are both checked ahead of the English fallback —
+    /// Thai for the original app's primary audience, French because this
+    /// fork (StarHubFR) targets French-speaking players first.
     private static var defaultLanguage: String {
-        Locale.preferredLanguages.contains { $0.lowercased().hasPrefix("th") } ? "th" : "en"
+        if Locale.preferredLanguages.contains(where: { $0.lowercased().hasPrefix("th") }) { return "th" }
+        if Locale.preferredLanguages.contains(where: { $0.lowercased().hasPrefix("fr") }) { return "fr" }
+        return "en"
     }
     
     @Published var currentLanguage: String = StarHubTHViewModel.normalizedLanguage(UserDefaults.standard.string(forKey: "currentLanguage")) {

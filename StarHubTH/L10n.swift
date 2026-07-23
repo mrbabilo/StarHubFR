@@ -274,6 +274,7 @@ enum L10n {
         static let selectLanguage       = "settings_select_language"
         static let languageThai         = "settings_language_thai"
         static let languageEnglish      = "settings_language_english"
+        static let languageFrench       = "settings_language_french"
         static let appTheme             = "settings_app_theme"
         static let themeSystem          = "settings_theme_system"
         static let themeLight           = "settings_theme_light"
