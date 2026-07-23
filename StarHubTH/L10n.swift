@@ -486,6 +486,9 @@ enum L10n {
         static let nexusDlAuthFailed    = "vm_nexus_dl_auth_failed"
         static let nexusDlRateLimited   = "vm_nexus_dl_rate_limited"
         static let nexusDlServerError   = "vm_nexus_dl_server_error"
+        static let manifestVersionFixed     = "vm_manifest_version_fixed"
+        static let manifestVersionDateFixed = "vm_manifest_version_date_fixed"
+        static let manifestVersionSkipped   = "vm_manifest_version_skipped"
     }
 
     // MARK: - ModInstall

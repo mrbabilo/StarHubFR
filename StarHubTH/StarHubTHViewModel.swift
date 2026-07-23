@@ -1777,6 +1777,56 @@ class StarHubTHViewModel: ObservableObject {
         }
     }
 
+    /// After a Nexus-sourced install, correct the installed mod's manifest
+    /// Version to the Nexus file's version when the author forgot to bump it.
+    /// v1: single-mod installs only (packs are skipped upstream).
+    func reconcileManifestVersion(installedFolderPaths: [String]) {
+        guard let source = pendingNexusSource else { return }
+        guard installedFolderPaths.count == 1, let folderPath = installedFolderPaths.first else {
+            return  // pack / ambiguous → abstain (v1)
+        }
+        let manifestPath = (folderPath as NSString).appendingPathComponent("manifest.json")
+        guard let raw = try? String(contentsOfFile: manifestPath, encoding: .utf8) else { return }
+        let currentVersion = ManifestVersionPatcher.extractVersionValue(from: raw)
+        // The update checker compares the Nexus upload date to this on-disk mtime.
+        let manifestModified = (try? FileManager.default.attributesOfItem(atPath: manifestPath))?[.modificationDate] as? Date
+
+        nexusDownloader.getModFiles(modId: source.modId) { [weak self] result in
+            guard let self = self else { return }
+            guard case .success(let list) = result,
+                  let file = NexusDownloadAPI.file(withId: source.fileId, in: list),
+                  let nexusVersion = file.version, !nexusVersion.isEmpty else { return }
+            let uploaded = file.uploadedTimestamp.map { Date(timeIntervalSince1970: TimeInterval($0)) }
+
+            let decision = ManifestVersionPatcher.decide(
+                nexusVersion: nexusVersion, nexusUploaded: uploaded,
+                manifestVersion: currentVersion, manifestModified: manifestModified,
+                isNewer: { NexusUpdateChecker.isNewer($0, installed: $1) })
+
+            let modName = (folderPath as NSString).lastPathComponent
+            DispatchQueue.main.async {
+                switch decision {
+                case .correctVersion(let newVersion):
+                    if let patched = ManifestVersionPatcher.replaceVersionValue(in: raw, with: newVersion),
+                       (try? patched.write(toFile: manifestPath, atomically: true, encoding: .utf8)) != nil {
+                        self.log(String(format: self.L(L10n.VM.manifestVersionFixed), modName, currentVersion ?? "?", newVersion))
+                        self.refresh()
+                    } else {
+                        self.log(String(format: self.L(L10n.VM.manifestVersionSkipped), modName, currentVersion ?? "?"))
+                    }
+                case .refreshDate:
+                    // No higher version to write (minor update, no bump): touch the
+                    // manifest mtime so the checker stops flagging a phantom update.
+                    try? FileManager.default.setAttributes([.modificationDate: Date()], ofItemAtPath: manifestPath)
+                    self.log(String(format: self.L(L10n.VM.manifestVersionDateFixed), modName))
+                    self.refresh()
+                case .noChange:
+                    self.log(String(format: self.L(L10n.VM.manifestVersionSkipped), modName, currentVersion ?? "?"))
+                }
+            }
+        }
+    }
+
     // MARK: - Custom override persistence
 
     private static let customCategoriesKey = "nexusCustomCategories"

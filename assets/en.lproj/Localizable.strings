@@ -506,3 +506,6 @@
 "vm_nexus_dl_auth_failed" = "Nexus authentication failed — check your API key in Settings.";
 "vm_nexus_dl_rate_limited" = "Too many requests to Nexus — wait a moment and try again.";
 "vm_nexus_dl_server_error" = "Nexus returned an unexpected response (%lld).";
+"vm_manifest_version_fixed" = "Corrected %@ manifest version %@ → %@ to match Nexus.";
+"vm_manifest_version_date_fixed" = "Refreshed %@ manifest date to clear a Nexus minor-update flag.";
+"vm_manifest_version_skipped" = "Left %@ manifest version unchanged (%@).";

@@ -506,3 +506,6 @@
 "vm_nexus_dl_auth_failed" = "Échec de l'authentification Nexus — vérifiez votre clé API dans les Réglages.";
 "vm_nexus_dl_rate_limited" = "Trop de requêtes vers Nexus — patientez un instant puis réessayez.";
 "vm_nexus_dl_server_error" = "Nexus a renvoyé une réponse inattendue (%lld).";
+"vm_manifest_version_fixed" = "Version du manifest de %@ corrigée %@ → %@ pour coller à Nexus.";
+"vm_manifest_version_date_fixed" = "Date du manifest de %@ rafraîchie (MàJ mineure Nexus sans changement de version).";
+"vm_manifest_version_skipped" = "Version du manifest de %@ inchangée (%@).";

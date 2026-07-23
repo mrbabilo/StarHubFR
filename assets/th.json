@@ -505,5 +505,8 @@
   "vm_nexus_dl_starting": "กำลังดาวน์โหลดม็อด %lld จาก Nexus…",
   "vm_nexus_dl_auth_failed": "การยืนยันตัวตน Nexus ล้มเหลว — ตรวจสอบ API key ในหน้าตั้งค่า",
   "vm_nexus_dl_rate_limited": "มีคำขอไปยัง Nexus มากเกินไป — โปรดรอสักครู่แล้วลองใหม่",
-  "vm_nexus_dl_server_error": "Nexus ตอบกลับไม่คาดคิด (%lld)"
+  "vm_nexus_dl_server_error": "Nexus ตอบกลับไม่คาดคิด (%lld)",
+  "vm_manifest_version_fixed": "แก้ไขเวอร์ชัน manifest ของ %@ %@ → %@ ให้ตรงกับ Nexus",
+  "vm_manifest_version_date_fixed": "รีเฟรชวันที่ manifest ของ %@ (อัปเดตย่อยจาก Nexus โดยไม่เปลี่ยนเวอร์ชัน)",
+  "vm_manifest_version_skipped": "คงเวอร์ชัน manifest ของ %@ ไว้ (%@)"
 }

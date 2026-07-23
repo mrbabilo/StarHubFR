@@ -325,6 +325,20 @@ struct ModInstallView: View {
                     self.vm.refresh()
                     self.vm.log(self.vm.L(L10n.ModInstall.installSuccess), level: .info)
 
+                    // A Nexus-sourced install (nxm:// deep link or in-app
+                    // download) may have an author-forgotten manifest
+                    // Version — reconcile it against the Nexus file's own
+                    // version/date now that the mod is on disk.
+                    if self.vm.pendingNexusSource != nil {
+                        let installedFolderPaths = self.installedFolderPaths(
+                            selections: selections,
+                            detectedMods: info.detectedMods,
+                            existingMods: existingMods,
+                            gameDir: gameDir
+                        )
+                        self.vm.reconcileManifestVersion(installedFolderPaths: installedFolderPaths)
+                    }
+
                     // Auto-fetch Nexus metadata (image + description) for
                     // installed mods that have a Nexus mod id, so the mods
                     // list shows them immediately without a manual check.
@@ -344,6 +358,53 @@ struct ModInstallView: View {
                 }
             }
         }
+    }
+
+    /// Mirrors `ModZipInstaller.install`'s destination logic (final folder
+    /// name + `Mods`/`Mods_disabled` zone) so the post-install reconciler can
+    /// find the manifest that was actually written, without the installer
+    /// having to expose its write paths.
+    ///
+    /// `.rename`-resolved mods are excluded: the installer appends an
+    /// internally-generated timestamp suffix (`stampedFolderSuffix()`) that
+    /// isn't surfaced anywhere, so the real folder name can't be reproduced
+    /// here — abstaining is safer than guessing wrong and mutating (or
+    /// misreading) an unrelated manifest.
+    private func installedFolderPaths(selections: [InstallSelection], detectedMods: [DetectedMod], existingMods: [ModItem], gameDir: String) -> [String] {
+        let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
+        let modsDisabledPath = (gameDir as NSString).appendingPathComponent("Mods_disabled")
+
+        var paths: [String] = []
+        for selection in selections {
+            guard selection.selected else { continue }
+            guard let detectedMod = detectedMods.first(where: { $0.id == selection.modId }) else { continue }
+
+            let existingMod = existingMods.first { $0.uniqueId.caseInsensitiveCompare(detectedMod.uniqueId) == .orderedSame }
+
+            let finalDestFolderName: String
+            if existingMod != nil, let resolution = selection.conflictResolution {
+                switch resolution {
+                case .skip:
+                    continue
+                case .rename:
+                    continue  // unreproducible timestamp suffix → abstain
+                case .overwriteWithBackup, .keepExisting, .useNew:
+                    finalDestFolderName = detectedMod.folderName
+                }
+            } else {
+                finalDestFolderName = detectedMod.folderName
+            }
+
+            let destBasePath: String
+            if let existing = existingMod, existing.isEnabled, selection.conflictResolution == .overwriteWithBackup {
+                destBasePath = modsPath
+            } else {
+                destBasePath = modsDisabledPath
+            }
+
+            paths.append((destBasePath as NSString).appendingPathComponent(finalDestFolderName))
+        }
+        return paths
     }
 
     /// Fetches Nexus metadata for installed mods that declare a Nexus mod id
