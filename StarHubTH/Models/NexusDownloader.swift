@@ -1,5 +1,10 @@
 import Foundation
 
+struct NexusDownloadResult {
+    let url: URL
+    let fileId: Int
+}
+
 enum NexusDownloadError: Error, LocalizedError {
     case noApiKey
     case noValidFile
@@ -64,16 +69,35 @@ struct NexusDownloader {
         }
     }
 
+    /// Fetches the mod's file list (used both to resolve the main file id and,
+    /// post-install, to read the downloaded file's version/upload date).
+    func getModFiles(modId: Int, completion: @escaping (Result<NexusModFileList, NexusDownloadError>) -> Void) {
+        guard let apiKey = NexusUpdateChecker.shared.apiKey(), !apiKey.isEmpty else {
+            completion(.failure(.noApiKey)); return
+        }
+        guard let req = request(path: "/games/stardewvalley/mods/\(modId)/files.json", apiKey: apiKey) else {
+            completion(.failure(.noDownloadLink)); return
+        }
+        URLSession.shared.dataTask(with: req) { data, response, error in
+            if let error = error { completion(.failure(.requestFailed(error.localizedDescription))); return }
+            if let statusError = self.statusError(for: response, treatForbiddenAsPremium: false) { completion(.failure(statusError)); return }
+            guard let data = data, let list = try? NexusDownloadAPI.decodeFileList(data) else {
+                completion(.failure(.noValidFile)); return
+            }
+            completion(.success(list))
+        }.resume()
+    }
+
     /// If `fileId` is nil, first resolves the main file id via the files list.
     func download(modId: Int, fileId: Int?, game: String, key: String?, expires: Int?,
-                  completion: @escaping (Result<URL, NexusDownloadError>) -> Void) {
+                  completion: @escaping (Result<NexusDownloadResult, NexusDownloadError>) -> Void) {
         guard let apiKey = NexusUpdateChecker.shared.apiKey(), !apiKey.isEmpty else {
             completion(.failure(.noApiKey)); return
         }
         if let fileId = fileId {
             fetchLinkAndDownload(game: game, modId: modId, fileId: fileId, key: key, expires: expires, apiKey: apiKey, completion: completion)
         } else {
-            resolveFileId(game: game, modId: modId, apiKey: apiKey) { result in
+            resolveFileId(modId: modId) { result in
                 switch result {
                 case .success(let fid):
                     fetchLinkAndDownload(game: game, modId: modId, fileId: fid, key: key, expires: expires, apiKey: apiKey, completion: completion)
@@ -84,27 +108,23 @@ struct NexusDownloader {
         }
     }
 
-    private func resolveFileId(game: String, modId: Int, apiKey: String,
+    private func resolveFileId(modId: Int,
                                completion: @escaping (Result<Int, NexusDownloadError>) -> Void) {
-        guard let req = request(path: "/games/\(game)/mods/\(modId)/files.json", apiKey: apiKey) else {
-            completion(.failure(.noDownloadLink)); return
+        getModFiles(modId: modId) { result in
+            switch result {
+            case .success(let list):
+                guard let fid = NexusDownloadAPI.pickPrimaryFileId(list) else {
+                    completion(.failure(.noValidFile)); return
+                }
+                completion(.success(fid))
+            case .failure(let e):
+                completion(.failure(e))
+            }
         }
-        URLSession.shared.dataTask(with: req) { data, response, error in
-            if let error = error { completion(.failure(.requestFailed(error.localizedDescription))); return }
-            if let statusError = statusError(for: response, treatForbiddenAsPremium: false) { completion(.failure(statusError)); return }
-            guard let data = data else { completion(.failure(.noValidFile)); return }
-            guard let list = try? NexusDownloadAPI.decodeFileList(data) else {
-                completion(.failure(.noValidFile)); return
-            }
-            guard let fid = NexusDownloadAPI.pickPrimaryFileId(list) else {
-                completion(.failure(.noValidFile)); return
-            }
-            completion(.success(fid))
-        }.resume()
     }
 
     private func fetchLinkAndDownload(game: String, modId: Int, fileId: Int, key: String?, expires: Int?, apiKey: String,
-                                      completion: @escaping (Result<URL, NexusDownloadError>) -> Void) {
+                                      completion: @escaping (Result<NexusDownloadResult, NexusDownloadError>) -> Void) {
         let path = NexusDownloadAPI.downloadLinkEndpoint(game: game, modId: modId, fileId: fileId, key: key, expires: expires)
         guard let req = request(path: path, apiKey: apiKey) else {
             completion(.failure(.noDownloadLink)); return
@@ -125,7 +145,7 @@ struct NexusDownloader {
                 guard let localURL = localURL else { completion(.failure(.noDownloadLink)); return }
                 do {
                     try FileManager.default.moveItem(at: localURL, to: temp)
-                    completion(.success(temp))
+                    completion(.success(NexusDownloadResult(url: temp, fileId: fileId)))
                 } catch {
                     completion(.failure(.requestFailed(error.localizedDescription)))
                 }

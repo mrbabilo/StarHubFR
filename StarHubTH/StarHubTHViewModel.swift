@@ -1727,8 +1727,8 @@ class StarHubTHViewModel: ObservableObject {
                 guard let self = self else { return }
                 self.isDownloadingFromNexus = false
                 switch result {
-                case .success(let zipURL):
-                    self.pendingDownloadedZip = zipURL
+                case .success(let result):
+                    self.pendingDownloadedZip = result.url
                 case .failure(let error):
                     self.showModal(message: self.nexusDownloadMessage(error))
                 }
@@ -1747,8 +1747,8 @@ class StarHubTHViewModel: ObservableObject {
                 guard let self = self else { return }
                 self.isDownloadingFromNexus = false
                 switch result {
-                case .success(let zipURL):
-                    self.pendingDownloadedZip = zipURL
+                case .success(let result):
+                    self.pendingDownloadedZip = result.url
                 case .failure(let error):
                     self.showModal(message: self.nexusDownloadMessage(error))
                 }
