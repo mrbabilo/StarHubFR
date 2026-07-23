@@ -120,4 +120,68 @@ struct TestEnvironment {
 
         #expect(env.manager.loadBackups().isEmpty)
     }
+
+    @Test func createBackupCopiesEnabledModFromModsFolder() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let modDir = env.modsDir.appendingPathComponent("EnabledMod", isDirectory: true)
+        try writeTestFile(in: modDir, filename: "data.txt", content: "hello")
+
+        let mod = makeTestMod(folderName: "EnabledMod", isEnabled: true)
+        let backup = try env.manager.createBackup(for: mod, gameDir: env.gameDir, reason: .beforeInstall)
+
+        #expect(backup.originalFolderName == "EnabledMod")
+        #expect(backup.reason == .beforeInstall)
+        let copiedContent = try String(contentsOf: URL(fileURLWithPath: backup.backupPath).appendingPathComponent("data.txt"), encoding: .utf8)
+        #expect(copiedContent == "hello")
+        #expect(env.manager.loadBackups().count == 1)
+    }
+
+    @Test func createBackupCopiesDisabledModFromModsDisabledFolder() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let modDir = env.modsDisabledDir.appendingPathComponent("DisabledMod", isDirectory: true)
+        try writeTestFile(in: modDir, filename: "data.txt", content: "hello")
+
+        let mod = makeTestMod(folderName: "DisabledMod", isEnabled: false)
+        let backup = try env.manager.createBackup(for: mod, gameDir: env.gameDir, reason: .beforeUpdate)
+
+        #expect(backup.originalFolderName == "DisabledMod")
+        let copiedContent = try String(contentsOf: URL(fileURLWithPath: backup.backupPath).appendingPathComponent("data.txt"), encoding: .utf8)
+        #expect(copiedContent == "hello")
+    }
+
+    @Test func createBackupThrowsWhenModFolderNotFound() {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let mod = makeTestMod(folderName: "NonexistentMod")
+
+        do {
+            _ = try env.manager.createBackup(for: mod, gameDir: env.gameDir, reason: .beforeInstall)
+            Issue.record("Expected createBackup to throw .modNotFound")
+        } catch ModInstallBackupManager.InstallBackupError.modNotFound(let folder) {
+            #expect(folder == "NonexistentMod")
+        } catch {
+            Issue.record("Expected .modNotFound, got \(error)")
+        }
+    }
+
+    @Test func createBackupThrowsWhenGameDirEmpty() {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let mod = makeTestMod(folderName: "AnyMod")
+
+        do {
+            _ = try env.manager.createBackup(for: mod, gameDir: "", reason: .beforeInstall)
+            Issue.record("Expected createBackup to throw .gameDirEmpty")
+        } catch ModInstallBackupManager.InstallBackupError.gameDirEmpty {
+            // expected
+        } catch {
+            Issue.record("Expected .gameDirEmpty, got \(error)")
+        }
+    }
 }
