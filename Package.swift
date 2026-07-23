@@ -15,12 +15,21 @@ let package = Package(
                 "ModItem.swift",
                 "ModConfigBackup.swift",
                 "ModConfigBackupManager.swift",
+                "DictionaryExtensions.swift",
+                "ZipModInfo.swift",
+                "ModInstallBackup.swift",
+                "ModInstallBackupManager.swift",
             ]
         ),
         .testTarget(
             name: "ModConfigBackupManagerTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ModConfigBackupManagerTests"
+        ),
+        .testTarget(
+            name: "ModInstallBackupManagerTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ModInstallBackupManagerTests"
         ),
     ]
 )

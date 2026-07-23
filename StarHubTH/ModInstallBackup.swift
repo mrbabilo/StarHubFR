@@ -1,7 +1,7 @@
 import Foundation
 
 /// Reason for creating a mod install backup
-enum BackupReason: String, Codable {
+public enum BackupReason: String, Codable {
     case beforeInstall
     case beforeUpdate
     /// The live version set aside just before a backup was restored over
@@ -11,24 +11,40 @@ enum BackupReason: String, Codable {
 }
 
 /// Metadata about a mod extracted from manifest.json
-struct ModMetadata: Codable, Equatable {
-    let name: String
-    let version: String
-    let author: String
-    let uniqueId: String
+public struct ModMetadata: Codable, Equatable {
+    public let name: String
+    public let version: String
+    public let author: String
+    public let uniqueId: String
+
+    public init(name: String, version: String, author: String, uniqueId: String) {
+        self.name = name
+        self.version = version
+        self.author = author
+        self.uniqueId = uniqueId
+    }
 }
 
 /// Backup of a complete mod folder before installation or update.
 /// Stored in ~/Library/Application Support/StarHubTH/Backups/ModInstalls/
-struct ModInstallBackup: Identifiable, Codable, Equatable {
-    var id: UUID = UUID()
-    let timestamp: Date
-    let originalFolderName: String
-    let backupPath: String
-    let modMetadata: ModMetadata
-    let reason: BackupReason
-    
-    var formattedDate: String {
+public struct ModInstallBackup: Identifiable, Codable, Equatable {
+    public var id: UUID = UUID()
+    public let timestamp: Date
+    public let originalFolderName: String
+    public let backupPath: String
+    public let modMetadata: ModMetadata
+    public let reason: BackupReason
+
+    public init(id: UUID = UUID(), timestamp: Date, originalFolderName: String, backupPath: String, modMetadata: ModMetadata, reason: BackupReason) {
+        self.id = id
+        self.timestamp = timestamp
+        self.originalFolderName = originalFolderName
+        self.backupPath = backupPath
+        self.modMetadata = modMetadata
+        self.reason = reason
+    }
+
+    public var formattedDate: String {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
         formatter.timeStyle = .short

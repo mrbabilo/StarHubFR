@@ -5,16 +5,16 @@ import Foundation
 /// Mirrors `ModConfigBackupManager`'s singleton pattern with synchronous,
 /// throwing methods. Callers dispatch to background queues and hop back to
 /// main for UI updates, consistent with the rest of the codebase.
-class ModInstallBackupManager {
-    static let shared = ModInstallBackupManager()
+public class ModInstallBackupManager {
+    public static let shared = ModInstallBackupManager()
 
-    enum InstallBackupError: LocalizedError {
+    public enum InstallBackupError: LocalizedError {
         case gameDirEmpty
         case modNotFound(String)
         case backupCreationFailed(String)
         case restoreFailed(String)
 
-        var errorDescription: String? {
+        public var errorDescription: String? {
             switch self {
             case .gameDirEmpty: return "Game directory is not set."
             case .modNotFound(let folder): return "Mod '\(folder)' not found."
@@ -38,12 +38,17 @@ class ModInstallBackupManager {
     private static let minBackupsToKeep = 5
     private static let maxBackupAge: TimeInterval = 30 * 24 * 60 * 60 // 30 days
 
-    private init() {
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-            ?? FileManager.default.temporaryDirectory
-        backupsBasePath = appSupport.appendingPathComponent("StarHubTH/Backups/ModInstalls", isDirectory: true)
-        backupsDirPath = backupsBasePath.appendingPathComponent("backups", isDirectory: true)
-        metadataPath = backupsBasePath.appendingPathComponent("install_metadata.json")
+    /// `backupsBasePath` is exposed only so tests can point this manager at
+    /// an isolated temporary directory instead of the real Application
+    /// Support folder. Production code always uses `.shared`, which calls
+    /// this with `nil` and gets the exact same directory as before.
+    public init(backupsBasePath overrideBasePath: URL? = nil) {
+        let base = overrideBasePath ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?
+            .appendingPathComponent("StarHubTH/Backups/ModInstalls", isDirectory: true)
+            ?? FileManager.default.temporaryDirectory.appendingPathComponent("StarHubTH/Backups/ModInstalls", isDirectory: true)
+        backupsBasePath = base
+        backupsDirPath = base.appendingPathComponent("backups", isDirectory: true)
+        metadataPath = base.appendingPathComponent("install_metadata.json")
         try? fm.createDirectory(at: backupsDirPath, withIntermediateDirectories: true, attributes: nil)
     }
 
@@ -56,7 +61,7 @@ class ModInstallBackupManager {
     }
 
     /// All backups, most recent first. Returns empty list if index is missing/corrupted.
-    func loadBackups() -> [ModInstallBackup] {
+    public func loadBackups() -> [ModInstallBackup] {
         withIndexLock { loadIndex().backups.sorted { $0.timestamp > $1.timestamp } }
     }
 
@@ -76,7 +81,7 @@ class ModInstallBackupManager {
     // MARK: - Create
 
     /// Backs up a complete mod folder before installation or update.
-    func createBackup(for mod: ModItem, gameDir: String, reason: BackupReason) throws -> ModInstallBackup {
+    public func createBackup(for mod: ModItem, gameDir: String, reason: BackupReason) throws -> ModInstallBackup {
         guard !gameDir.isEmpty else { throw InstallBackupError.gameDirEmpty }
 
         let modsDisabledPath = (gameDir as NSString).appendingPathComponent("Mods_disabled")
@@ -141,7 +146,7 @@ class ModInstallBackupManager {
     // MARK: - Restore
 
     /// Restores a backed-up mod to the game's Mods_disabled folder.
-    func restoreBackup(_ backup: ModInstallBackup, gameDir: String) throws {
+    public func restoreBackup(_ backup: ModInstallBackup, gameDir: String) throws {
         guard !gameDir.isEmpty else { throw InstallBackupError.gameDirEmpty }
 
         let modsDisabledPath = (gameDir as NSString).appendingPathComponent("Mods_disabled")
@@ -245,7 +250,7 @@ class ModInstallBackupManager {
 
     // MARK: - Delete
 
-    func deleteBackup(_ backup: ModInstallBackup) throws {
+    public func deleteBackup(_ backup: ModInstallBackup) throws {
         // `backupPath` points at the mod folder inside the timestamped
         // backup directory; its parent is the directory to remove. Using the
         // stored path is more robust than reconstructing it from the
@@ -268,7 +273,7 @@ class ModInstallBackupManager {
     /// backup per calendar month for long-term history, and always at least
     /// the 5 most recent backups regardless of age. Returns the count of
     /// deleted backups.
-    func cleanupOldBackups() -> Int {
+    public func cleanupOldBackups() -> Int {
         withIndexLock {
             var index = loadIndex()
             let sorted = index.backups.sorted { $0.timestamp > $1.timestamp }
