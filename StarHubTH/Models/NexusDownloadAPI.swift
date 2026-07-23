@@ -11,9 +11,13 @@ import Foundation
 struct NexusModFile: Decodable {
     let fileId: Int
     let categoryId: Int
+    let version: String?
+    let uploadedTimestamp: Int?
     enum CodingKeys: String, CodingKey {
         case fileId = "file_id"
         case categoryId = "category_id"
+        case version
+        case uploadedTimestamp = "uploaded_timestamp"
     }
 }
 
@@ -48,5 +52,10 @@ enum NexusDownloadAPI {
     /// first file in the list.
     static func pickPrimaryFileId(_ list: NexusModFileList) -> Int? {
         (list.files.first { $0.categoryId == 1 } ?? list.files.first)?.fileId
+    }
+
+    /// Locate a specific file (by id) in a decoded files list.
+    static func file(withId fileId: Int, in list: NexusModFileList) -> NexusModFile? {
+        list.files.first { $0.fileId == fileId }
     }
 }
