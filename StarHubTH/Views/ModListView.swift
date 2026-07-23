@@ -377,6 +377,7 @@ struct ModListView: View {
         .onChange(of: searchText)       { currentPage = 1 }
         .onChange(of: selectedFilter)   { currentPage = 1 }
         .onChange(of: selectedCategory) { currentPage = 1 }
+        .onChange(of: configOnlyFilter) { currentPage = 1 }
         .onChange(of: vm.mods.count)    { currentPage = 1 }
         .sheet(isPresented: $showInstallSheet) {
             ModInstallView(vm: vm)
