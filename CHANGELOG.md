@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Full French Localization** (`assets/fr.json`, 496 strings): French added as a third supported app language (alongside English and Thai), selectable in Settings and prioritized as the default for French-locale systems — matching this fork's own name (StarHubFR).
 - App renamed to **StarHubFR** in the version string shown on the Home page.
 - App Info's Developer row now credits **mrbabilo** for this fork's development, alongside **AppleBoiy** for the original app.
+- **In-App Nexus Downloads**: Download mods directly from StarHubFR, complementing (never replacing) manual drag-and-drop install. Two converging paths feed the existing install pipeline (`ModZipInstaller`): an in-app "Download update" button (Nexus Premium required for a direct link) and the free-user `nxm://` handler — click "Mod Manager Download" on the Nexus website and the app receives the link, downloads the file, and opens the install preview.
 
 ### Changed
 - **Settings Layout**: the Nexus Mods API key section moved from the bottom of Settings to right after the language picker; its footer now explains that the key is stored in the macOS Keychain, encrypted by the system, and never saved in plain text.
