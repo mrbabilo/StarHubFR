@@ -31,7 +31,7 @@
   "home_not_installed_or_disabled": "Not installed or disabled",
   "home_installed_but_disabled": "Installed but disabled",
   "home_item_count": "%lld items",
-  "home_version_string": "Stardew Valley v1.6 • StarHubTH v%@",
+  "home_version_string": "Stardew Valley v1.6 • StarHubFR v%@",
   "home_smapi_not_installed": "Not Installed",
   "saves_no_saves": "No local save files found\nTry starting the game once first.",
   "saves_all_saves": "All Saves (%lld)",

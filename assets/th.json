@@ -31,7 +31,7 @@
   "home_not_installed_or_disabled": "ไม่ได้ติดตั้ง หรือปิดใช้งานอยู่",
   "home_installed_but_disabled": "ติดตั้งแล้ว แต่ปิดใช้งานอยู่",
   "home_item_count": "%lld รายการ",
-  "home_version_string": "Stardew Valley v1.6 • StarHubTH v%@",
+  "home_version_string": "Stardew Valley v1.6 • StarHubFR v%@",
   "home_smapi_not_installed": "ยังไม่ได้ติดตั้ง",
   "saves_no_saves": "ไม่พบไฟล์เซฟในเครื่อง\nลองเริ่มเล่นเกมสักครั้งก่อนนะ",
   "saves_all_saves": "เซฟเกมทั้งหมด (%lld)",
