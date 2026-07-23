@@ -382,4 +382,67 @@ struct TestEnvironment {
         #expect(deletedCount == 0)
         #expect(env.manager.loadBackups().count == 8)
     }
+
+    @Test func cleanupOldBackupsKeepsMostRecentPerCalendarMonthBeyond30Days() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let calendar = Calendar(identifier: .gregorian)
+        let nowComponents = calendar.dateComponents([.year, .month], from: Date())
+        let currentYear = nowComponents.year!
+        let currentMonth = nowComponents.month!
+
+        // Returns the (year, month) that is `n` calendar months before the
+        // current one. Used to build 3 distinct months, each anchored on a
+        // FIXED day-of-month (15th / 5th below) rather than "today minus N
+        // days" — this makes the test's month boundaries deterministic
+        // regardless of what day of the month it happens to run on (a
+        // "today minus 5 days" approach could accidentally cross into the
+        // previous month depending on today's date, which would silently
+        // break the "2 entries in the same month" setup this test relies
+        // on).
+        func monthsAgo(_ n: Int) -> (year: Int, month: Int) {
+            let totalMonths = currentYear * 12 + (currentMonth - 1) - n
+            let year = totalMonths / 12
+            let month = totalMonths % 12 + 1
+            return (year, month)
+        }
+
+        // 3 distinct calendar months, each comfortably more than 30 days
+        // before now (6, 7, 8 months back), each with 2 entries: a
+        // "recent" one (day 15) and an "older" one (day 5) — only the
+        // "recent" one of each pair should survive tier 3.
+        var fabricated: [ModInstallBackup] = []
+        for (index, n) in [6, 7, 8].enumerated() {
+            let (year, month) = monthsAgo(n)
+            let recentDate = calendar.date(from: DateComponents(year: year, month: month, day: 15, hour: 12))!
+            let olderDate = calendar.date(from: DateComponents(year: year, month: month, day: 5, hour: 12))!
+            fabricated.append(makeFakeBackup(timestamp: recentDate, folderName: "month\(index)-recent"))
+            fabricated.append(makeFakeBackup(timestamp: olderDate, folderName: "month\(index)-older"))
+        }
+
+        // Plus 5 backups from "now" to satisfy the 5-most-recent floor
+        // without interfering with the month-tier assertions below (they
+        // land in the current month, entirely separate from the 3
+        // fabricated past months).
+        let now = Date()
+        for i in 0..<5 {
+            fabricated.append(makeFakeBackup(timestamp: now.addingTimeInterval(Double(-i)), folderName: "floor-\(i)"))
+        }
+
+        env.manager.seedIndexForTesting(with: fabricated)
+        #expect(env.manager.loadBackups().count == 11)
+
+        let deletedCount = env.manager.cleanupOldBackups()
+
+        // 6 fabricated "beyond 30 days" entries in, 3 survive (the more
+        // recent of each month's pair) — 3 deleted. The 5 "floor" entries
+        // all survive (protected by both the floor and the 30-day window).
+        #expect(deletedCount == 3)
+        let survivingNames = Set(env.manager.loadBackups().map { $0.originalFolderName })
+        #expect(survivingNames == Set([
+            "floor-0", "floor-1", "floor-2", "floor-3", "floor-4",
+            "month0-recent", "month1-recent", "month2-recent",
+        ]))
+    }
 }
