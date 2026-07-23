@@ -445,4 +445,21 @@ struct TestEnvironment {
             "month0-recent", "month1-recent", "month2-recent",
         ]))
     }
+
+    @Test func loadBackupsReturnsNewestFirst() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let now = Date()
+        let fabricated = [
+            makeFakeBackup(timestamp: now.addingTimeInterval(-100), folderName: "oldest"),
+            makeFakeBackup(timestamp: now, folderName: "newest"),
+            makeFakeBackup(timestamp: now.addingTimeInterval(-50), folderName: "middle"),
+        ]
+        env.manager.seedIndexForTesting(with: fabricated)
+
+        let loaded = env.manager.loadBackups()
+
+        #expect(loaded.map(\.originalFolderName) == ["newest", "middle", "oldest"])
+    }
 }
