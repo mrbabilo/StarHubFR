@@ -22,19 +22,17 @@ remove_bg.py
 unpack_assets.py
 unpack_batch.py
 
-# Editor / IDE
-# Version the shared project config, ignore personal editor state.
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
+# Editor / IDE — local, not versioned
+.vscode/
 .idea/
 *.swp
 *.swo
 
-# Claude Code — version shared config/skills, ignore personal/local overrides
-.claude/settings.local.json
+# Claude Code — local config/skills, not versioned
+.claude/
+
+# Superpowers working docs (specs/plans/audits) — local, not versioned
+docs/superpowers/
 
 # Logs
 *.log
