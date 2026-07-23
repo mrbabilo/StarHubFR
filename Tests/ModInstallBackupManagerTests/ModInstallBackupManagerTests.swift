@@ -235,4 +235,71 @@ struct TestEnvironment {
         #expect(registered?.modMetadata.uniqueId == "restore.mod")
         #expect(registered?.modMetadata.version == "2.0.0")
     }
+
+    @Test func restoreBackupRollsBackOnCopyFailure() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let modDir = env.modsDir.appendingPathComponent("RestoreMod", isDirectory: true)
+        try writeTestFile(in: modDir, filename: "data.txt", content: "original")
+
+        let mod = makeTestMod(folderName: "RestoreMod", isEnabled: true)
+        let backup = try env.manager.createBackup(for: mod, gameDir: env.gameDir, reason: .beforeInstall)
+
+        let liveDestDir = env.modsDisabledDir.appendingPathComponent("RestoreMod", isDirectory: true)
+        try writeTestFile(in: liveDestDir, filename: "data.txt", content: "currently live")
+
+        // Strip all permissions from the backup's own source folder so the
+        // copy-from-backup step fails deterministically — *after* the
+        // live folder has already been moved aside (a normal, permitted
+        // move within Mods_disabled, since only the backup source is
+        // locked down, not Mods_disabled itself). This reproduces exactly
+        // the failure window the rollback protects against. Verified
+        // empirically that a 0-permission source directory makes a
+        // recursive copy fail (`cp -R` against it exits non-zero with
+        // "Permission denied").
+        try FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: backup.backupPath)
+
+        do {
+            try env.manager.restoreBackup(backup, gameDir: env.gameDir)
+            Issue.record("Expected restoreBackup to throw .restoreFailed")
+        } catch ModInstallBackupManager.InstallBackupError.restoreFailed {
+            // expected
+        } catch {
+            Issue.record("Expected .restoreFailed, got \(error)")
+        }
+
+        // The rollback must have moved the live folder back into place —
+        // reading it doesn't require write access to its parent, so this
+        // assertion is valid even while the backup source is still locked.
+        let restoredContent = try String(contentsOf: liveDestDir.appendingPathComponent("data.txt"), encoding: .utf8)
+        #expect(restoredContent == "currently live")
+    }
+
+    @Test func restoreBackupThrowsWhenBackupFolderMissing() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let modDir = env.modsDir.appendingPathComponent("RestoreMod", isDirectory: true)
+        try writeTestFile(in: modDir, filename: "data.txt", content: "original")
+
+        let mod = makeTestMod(folderName: "RestoreMod", isEnabled: true)
+        let backup = try env.manager.createBackup(for: mod, gameDir: env.gameDir, reason: .beforeInstall)
+
+        // Delete the backup's own on-disk folder without going through
+        // deleteBackup, simulating external/corrupted state.
+        try FileManager.default.removeItem(atPath: backup.backupPath)
+
+        do {
+            try env.manager.restoreBackup(backup, gameDir: env.gameDir)
+            Issue.record("Expected restoreBackup to throw .restoreFailed")
+        } catch ModInstallBackupManager.InstallBackupError.restoreFailed {
+            // expected
+        } catch {
+            Issue.record("Expected .restoreFailed, got \(error)")
+        }
+
+        // No live folder should have been created.
+        #expect(!FileManager.default.fileExists(atPath: env.modsDisabledDir.appendingPathComponent("RestoreMod").path))
+    }
 }
