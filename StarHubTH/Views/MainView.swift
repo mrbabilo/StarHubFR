@@ -665,6 +665,16 @@ struct UpdatesView: View {
 
                                 Spacer()
 
+                                if let nexusId = Int(update.nexusModId) {
+                                    Button {
+                                        vm.downloadModFromNexus(nexusId: nexusId)
+                                    } label: {
+                                        Label(vm.L(L10n.Mods.downloadUpdate), systemImage: "arrow.down.circle")
+                                    }
+                                    .buttonStyle(.bordered)
+                                    .disabled(vm.isDownloadingFromNexus)
+                                }
+
                                 Button {
                                     if let url = URL(string: update.url) {
                                         NSWorkspace.shared.open(url)

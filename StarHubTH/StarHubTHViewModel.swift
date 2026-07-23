@@ -1736,6 +1736,26 @@ class StarHubTHViewModel: ObservableObject {
         }
     }
 
+    /// In-app download for the current game via the API key alone (Nexus
+    /// Premium required for a direct link). fileId nil → main file resolved.
+    func downloadModFromNexus(nexusId: Int) {
+        isDownloadingFromNexus = true
+        log(String(format: L(L10n.VM.nexusDlStarting), nexusId))
+        nexusDownloader.download(modId: nexusId, fileId: nil, game: "stardewvalley",
+                                 key: nil, expires: nil) { [weak self] result in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                self.isDownloadingFromNexus = false
+                switch result {
+                case .success(let zipURL):
+                    self.pendingDownloadedZip = zipURL
+                case .failure(let error):
+                    self.showModal(message: self.nexusDownloadMessage(error))
+                }
+            }
+        }
+    }
+
     /// Renders a `NexusDownloadError` through the app's live per-language bundle
     /// (`L(...)`) rather than `errorDescription`'s `NSLocalizedString`, which
     /// doesn't follow in-session language switching.

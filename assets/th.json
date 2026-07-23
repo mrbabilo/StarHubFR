@@ -340,6 +340,7 @@
   "mods_sort_author": "ผู้สร้าง",
   "mods_sort_version": "เวอร์ชัน",
   "mods_config_filter_label": "มีการตั้งค่า",
+  "mods_download_update": "ดาวน์โหลดอัปเดต",
   "mods_category_filter": "หมวดหมู่",
   "mods_category_filter_all": "ทุกหมวดหมู่",
   "mods_category_filter_uncategorized": "ไม่มีหมวดหมู่",

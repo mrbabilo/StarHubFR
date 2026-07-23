@@ -340,6 +340,7 @@
   "mods_sort_author": "Author",
   "mods_sort_version": "Version",
   "mods_config_filter_label": "With Config",
+  "mods_download_update": "Download update",
   "mods_category_filter": "Category",
   "mods_category_filter_all": "All Categories",
   "mods_category_filter_uncategorized": "Uncategorized",

@@ -340,6 +340,7 @@
 "mods_sort_author" = "Auteur";
 "mods_sort_version" = "Version";
 "mods_config_filter_label" = "Avec configuration";
+"mods_download_update" = "Télécharger la MàJ";
 "mods_category_filter" = "Catégorie";
 "mods_category_filter_all" = "Toutes les catégories";
 "mods_category_filter_uncategorized" = "Sans catégorie";
