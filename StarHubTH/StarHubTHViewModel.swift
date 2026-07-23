@@ -482,6 +482,7 @@ class StarHubTHViewModel: ObservableObject {
                 }
                 return nil
             }()
+            let hasConfigFile = fm.fileExists(atPath: (path as NSString).appendingPathComponent("config.json"))
 
             var name = (path as NSString).lastPathComponent
             var uniqueId = ""
@@ -567,7 +568,8 @@ class StarHubTHViewModel: ObservableObject {
                 nexusModId: nexusModId,
                 isEnabled: isEnabled,
                 dependencies: dependencies,
-                installedFileDate: installedFileDate
+                installedFileDate: installedFileDate,
+                hasConfigFile: hasConfigFile
             )
         }
         

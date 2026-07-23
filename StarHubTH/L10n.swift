@@ -161,8 +161,12 @@ enum L10n {
         static let filterAll            = "mods_filter_all"
         static let filterIssues         = "mods_filter_issues"
         static let sortName             = "mods_sort_name"
+        static let sortNameDescending   = "mods_sort_name_descending"
         static let sortActivationOrder  = "mods_sort_activation_order"
         static let sortInstallDate      = "mods_sort_install_date"
+        static let sortAuthor           = "mods_sort_author"
+        static let sortVersion          = "mods_sort_version"
+        static let configFilterLabel    = "mods_config_filter_label"
         // Nexus category filter
         static let categoryFilter           = "mods_category_filter"
         static let categoryFilterAll        = "mods_category_filter_all"

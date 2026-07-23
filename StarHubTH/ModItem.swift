@@ -32,6 +32,13 @@ public struct ModItem: Identifiable, Equatable {
     /// file, the installed copy is stale and an update is offered. `nil` for
     /// group headers and when the date can't be read.
     public var installedFileDate: Date? = nil
+    /// Whether the mod's own folder contains a `config.json`, captured at
+    /// scan time. `false` for group headers (a pack's own folder never has
+    /// one — only its children might) and for anything constructed without
+    /// passing it explicitly (e.g. existing test helpers). Backs both the
+    /// "with configuration" list filter and the per-row config-editor icon
+    /// in `ModListView`.
+    public let hasConfigFile: Bool
 
     public init(
         uniqueId: String,
@@ -46,7 +53,8 @@ public struct ModItem: Identifiable, Equatable {
         dependencies: [ModDependency],
         children: [ModItem]? = nil,
         isGroup: Bool = false,
-        installedFileDate: Date? = nil
+        installedFileDate: Date? = nil,
+        hasConfigFile: Bool = false
     ) {
         self.uniqueId = uniqueId
         self.name = name
@@ -61,5 +69,6 @@ public struct ModItem: Identifiable, Equatable {
         self.children = children
         self.isGroup = isGroup
         self.installedFileDate = installedFileDate
+        self.hasConfigFile = hasConfigFile
     }
 }
