@@ -202,6 +202,7 @@ class StarHubTHViewModel: ObservableObject {
     /// indistinguishable from "still loading".
     @Published var thaiTranslationsError: String? = nil
     @Published var viewingThaiMod: ThaiTranslationMod? = nil
+    @Published var editingModConfig: ModItem? = nil
     
     @Published var logOutput: String = ""
     @Published var logEntries: [LogEntry] = []
