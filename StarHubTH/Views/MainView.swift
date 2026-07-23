@@ -258,7 +258,7 @@ struct MainView: View {
             Group {
                 if currentTab == "Mods" {
                     if let mod = vm.editingModConfig {
-                        ModConfigEditorView(vm: vm, mod: mod)
+                        ModConfigEditorView(vm: vm, mod: mod, initialTab: 1)
                     } else {
                         ModListView(vm: vm)
                     }

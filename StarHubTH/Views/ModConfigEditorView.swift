@@ -37,10 +37,16 @@ struct ModConfigEditorView: View {
     @State private var configText: String = ""
     @State private var originalText: String = ""
     @State private var isInvalidJson: Bool = false
-    @State private var selectedTab: Int = 0
+    @State private var selectedTab: Int
     @State private var configItems: [ConfigItem] = []
     @State private var searchText: String = ""
-    
+
+    init(vm: StarHubTHViewModel, mod: ModItem, initialTab: Int = 0) {
+        self.vm = vm
+        self.mod = mod
+        self._selectedTab = State(initialValue: initialTab)
+    }
+
     var configPath: String {
         let basePath = (vm.gameDir as NSString).appendingPathComponent(mod.isEnabled ? "Mods" : "Mods_disabled")
         let modPath = (basePath as NSString).appendingPathComponent(mod.folderName)
@@ -131,9 +137,7 @@ struct ModConfigEditorView: View {
             } else {
                 VStack {
                     StandardSection(title: vm.L(L10n.Settings.configRawJson)) {
-                        TextEditor(text: $configText)
-                            .font(.system(size: 13, design: .monospaced))
-                            .scrollContentBackground(.hidden)
+                        CodeEditorView(text: $configText)
                             .padding(8)
                             .background(Color(nsColor: .textBackgroundColor))
                             .cornerRadius(6)
