@@ -937,6 +937,15 @@ class StarHubTHViewModel: ObservableObject {
     private var isToggling = false
     private var pendingToggles: [(ModItem, (() -> Void)?)] = []
 
+    /// Progress of an in-flight bulk enable/disable-all operation:
+    /// `(done, total)`. `nil` when idle. Drives the progress overlay in
+    /// `ModListView`. Published on the main thread after each individual move.
+    @Published var bulkToggleProgress: (done: Int, total: Int)? = nil
+    /// Direction of the in-flight bulk toggle: `true` = enabling all,
+    /// `false` = disabling all. Meaningful only while
+    /// `bulkToggleProgress` is non-nil.
+    @Published var bulkToggleEnabling: Bool = false
+
     // Toggle Mod Status (Enabled / Disabled)
     //
     // Requests are queued and run one at a time: a queued call only reads
@@ -948,6 +957,12 @@ class StarHubTHViewModel: ObservableObject {
     // first call already moved it, tripping the "destination already
     // exists" path on a folder that no longer has a source. See performToggle.
     func toggleMod(_ mod: ModItem, completion: (() -> Void)? = nil) {
+        // Refuse individual toggles while a bulk enable/disable-all is in
+        // flight — concurrent moves on the same folders could lose a mod.
+        guard bulkToggleProgress == nil else {
+            completion?()
+            return
+        }
         pendingToggles.append((mod, completion))
         processNextToggleIfNeeded()
     }
@@ -2726,6 +2741,151 @@ class StarHubTHViewModel: ObservableObject {
                     }
                     self.log(String(format: "Profile \"%@\" applied with %lld failure(s)",
                                     profileName, failures.count), level: .warning)
+                }
+            }
+        }
+    }
+
+    /// Enable or disable every installed mod at once. File operations run on a
+    /// background queue so the UI (and the progress bar) stay responsive. Each
+    /// move uses the same "stale duplicate aside" safety pattern as
+    /// `performToggle`: a pre-existing destination folder is set aside first,
+    /// and restored if the main move fails, so no mod can ever end up in
+    /// neither location. Progress is published after every move. Activation
+    /// timestamps are stamped only for mods that were actually moved.
+    func toggleAllMods(enable: Bool) {
+        // Guard against re-entry: a second tap while the first run is still
+        // moving folders would race on the same source/destination paths.
+        guard bulkToggleProgress == nil else { return }
+
+        let modsToMove = mods.filter { $0.isEnabled != enable }
+        guard !modsToMove.isEmpty else {
+            log(enable ? L(L10n.Mods.allAlreadyEnabled) : L(L10n.Mods.allAlreadyDisabled))
+            return
+        }
+
+        let total = modsToMove.count
+        bulkToggleEnabling = enable
+        bulkToggleProgress = (done: 0, total: total)
+
+        let gameDir = self.gameDir
+        let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
+        let disabledModsPath = (gameDir as NSString).appendingPathComponent("Mods_disabled")
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            let fm = FileManager.default
+
+            struct MoveFailure {
+                let modName: String
+                let direction: String
+                let error: Error
+            }
+            var failures: [MoveFailure] = []
+            var attempted = 0
+            var movedCount = 0
+            var anyEnabled = false
+
+            for (index, mod) in modsToMove.enumerated() {
+                attempted += 1
+                let src = ((mod.isEnabled ? modsPath : disabledModsPath) as NSString).appendingPathComponent(mod.folderName)
+                let dst = ((enable ? modsPath : disabledModsPath) as NSString).appendingPathComponent(mod.folderName)
+                let direction = enable ? "→ Mods" : "→ Mods_disabled"
+
+                var didMove = false
+
+                // Safety: trust the filesystem over the cached isEnabled flag.
+                // If the source is already gone, this mod was already moved —
+                // skip instead of operating on a non-existent path.
+                guard fm.fileExists(atPath: src) else {
+                    DispatchQueue.main.async {
+                        self.bulkToggleProgress = (done: index + 1, total: total)
+                    }
+                    continue
+                }
+
+                do {
+                    let dstParent = (dst as NSString).deletingLastPathComponent
+                    if !fm.fileExists(atPath: dstParent) {
+                        try fm.createDirectory(atPath: dstParent, withIntermediateDirectories: true, attributes: nil)
+                    }
+
+                    // A pre-existing duplicate at dst is set aside rather than
+                    // deleted outright, so a failed moveItem below can't leave
+                    // the mod lost from both locations.
+                    var staleDuplicateAside: String? = nil
+                    if fm.fileExists(atPath: dst) {
+                        let asidePath = dst + ".stale_\(UUID().uuidString)"
+                        try fm.moveItem(atPath: dst, toPath: asidePath)
+                        staleDuplicateAside = asidePath
+                    }
+
+                    do {
+                        try fm.moveItem(atPath: src, toPath: dst)
+                        didMove = true
+                    } catch {
+                        // Restore the old destination so the mod isn't lost.
+                        if let asidePath = staleDuplicateAside {
+                            try? fm.moveItem(atPath: asidePath, toPath: dst)
+                        }
+                        throw error
+                    }
+
+                    // Main move succeeded — clean up the stale duplicate.
+                    if let asidePath = staleDuplicateAside {
+                        try? fm.removeItem(atPath: asidePath)
+                    }
+                } catch {
+                    failures.append(MoveFailure(modName: mod.name, direction: direction, error: error))
+                }
+
+                if didMove {
+                    movedCount += 1
+                    if enable {
+                        DispatchQueue.main.async {
+                            self.modActivationTimestamps[mod.folderName] = Date()
+                        }
+                        anyEnabled = true
+                    }
+                }
+
+                // Publish progress on the main thread after each move.
+                DispatchQueue.main.async {
+                    self.bulkToggleProgress = (done: index + 1, total: total)
+                }
+            }
+
+            if anyEnabled {
+                DispatchQueue.main.async {
+                    Self.saveModActivationTimestamps(self.modActivationTimestamps)
+                }
+            }
+
+            for failure in failures {
+                DispatchQueue.main.async {
+                    self.log(
+                        String(format: "%@ %@: %@",
+                               failure.modName, failure.direction, failure.error.localizedDescription),
+                        level: .error
+                    )
+                }
+            }
+
+            // Rescan so the list reflects the real on-disk state, whatever it
+            // is after partial failures. syncActiveProfileIds runs after so the
+            // active profile's stored id list tracks the actual enabled set.
+            self.scanMods()
+            DispatchQueue.main.async {
+                self.bulkToggleProgress = nil
+                self.syncActiveProfileIds()
+                if failures.isEmpty {
+                    self.log(String(format: enable ? self.L(L10n.Mods.enabledAllCount) : self.L(L10n.Mods.disabledAllCount),
+                                    movedCount))
+                } else if attempted == failures.count {
+                    self.showModal(message: String(format: self.L(L10n.Mods.bulkToggleFailed), failures.count))
+                } else {
+                    self.showModal(message: String(format: self.L(L10n.Mods.bulkTogglePartial), movedCount, failures.count))
+                    self.log(String(format: enable ? self.L(L10n.Mods.enabledAllCount) : self.L(L10n.Mods.disabledAllCount),
+                                    movedCount), level: .warning)
                 }
             }
         }

@@ -214,6 +214,22 @@ enum L10n {
         static let detailNoDescription  = "mods_detail_no_description"
         static let detailNoChangelog    = "mods_detail_no_changelog"
         static let detailCached         = "mods_detail_cached"
+        // Bulk enable/disable all mods
+        static let enableAll            = "mods_enable_all"
+        static let disableAll           = "mods_disable_all"
+        static let toggleAllHint        = "mods_toggle_all_hint"
+        static let enableAllConfirm     = "mods_enable_all_confirm"
+        static let enableAllMessage     = "mods_enable_all_message"
+        static let disableAllConfirm    = "mods_disable_all_confirm"
+        static let disableAllMessage    = "mods_disable_all_message"
+        static let enabledAllCount      = "mods_enabled_all_count"
+        static let disabledAllCount     = "mods_disabled_all_count"
+        static let allAlreadyEnabled    = "mods_all_already_enabled"
+        static let allAlreadyDisabled   = "mods_all_already_disabled"
+        static let bulkToggleFailed     = "mods_bulk_toggle_failed"
+        static let bulkTogglePartial    = "mods_bulk_toggle_partial"
+        static let enablingAllProgress  = "mods_enabling_all_progress"
+        static let disablingAllProgress = "mods_disabling_all_progress"
     }
 
     // MARK: - ModConfigBackups

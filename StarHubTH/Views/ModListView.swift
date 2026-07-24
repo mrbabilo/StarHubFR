@@ -51,6 +51,10 @@ struct ModListView: View {
     /// even with several hundred installed mods.
     private let pageSize: Int = 15
     @State private var showInstallSheet = false
+    /// Drives the confirmation dialog when the user picks "Enable All" or
+    /// "Disable All" from the bulk-actions menu. `true` = enabling, `false`
+    /// = disabling — kept as a single optional so the dialog binds cleanly.
+    @State private var bulkToggleTarget: Bool? = nil
 
     /// Whether `mod` itself satisfies `predicate`, or — for a group — any of
     /// its children do. Standalone mods just apply the predicate directly.
@@ -320,6 +324,13 @@ struct ModListView: View {
                                   ? vm.L(L10n.Mods.categoryFilterEmptyHint)
                                   : vm.L(L10n.Mods.categoryFilterHint))
 
+                        // Bulk enable/disable all mods at once. Disabled when
+                        // there is nothing to act on (empty list, or every mod
+                        // is already in the target state), or while a bulk
+                        // toggle operation is already in flight.
+                        bulkToggleMenu
+                            .disabled(vm.mods.isEmpty || vm.bulkToggleProgress != nil)
+
                         Button {
                             showInstallSheet = true
                         } label: {
@@ -390,6 +401,11 @@ struct ModListView: View {
             .padding(24)
         }
         .background(Color(nsColor: .controlBackgroundColor))
+        .overlay {
+            if let prog = vm.bulkToggleProgress, prog.total > 0 {
+                bulkToggleOverlay(done: prog.done, total: prog.total)
+            }
+        }
         .searchable(text: $searchText, prompt: Text(vm.L(L10n.Mods.searchMods)))
         .onChange(of: searchText)       { currentPage = 1 }
         .onChange(of: selectedFilter)   { currentPage = 1 }
@@ -398,6 +414,33 @@ struct ModListView: View {
         .onChange(of: vm.mods.count)    { currentPage = 1 }
         .sheet(isPresented: $showInstallSheet) {
             ModInstallView(vm: vm)
+        }
+        .confirmationDialog(
+            bulkToggleTarget == true
+                ? vm.L(L10n.Mods.enableAllConfirm)
+                : vm.L(L10n.Mods.disableAllConfirm),
+            isPresented: Binding(
+                get: { bulkToggleTarget != nil },
+                set: { if !$0 { bulkToggleTarget = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button(bulkToggleTarget == true
+                   ? vm.L(L10n.Mods.enableAll)
+                   : vm.L(L10n.Mods.disableAll),
+                   role: .destructive) {
+                if let target = bulkToggleTarget {
+                    vm.toggleAllMods(enable: target)
+                }
+                bulkToggleTarget = nil
+            }
+            Button(vm.L(L10n.Saves.cancel), role: .cancel) {
+                bulkToggleTarget = nil
+            }
+        } message: {
+            Text(bulkToggleTarget == true
+                 ? vm.L(L10n.Mods.enableAllMessage)
+                 : vm.L(L10n.Mods.disableAllMessage))
         }
     }
 
@@ -613,6 +656,69 @@ struct ModListView: View {
         }
         .buttonStyle(PlainButtonStyle())
         .help(vm.L(L10n.Mods.configFilterLabel))
+    }
+
+    /// Full-screen overlay shown while a bulk enable/disable-all operation is
+    /// moving mod folders. Blocks all interaction with the list so the user
+    /// can't start a conflicting toggle mid-operation. Shows a determinate
+    /// progress bar with the current/total count.
+    private func bulkToggleOverlay(done: Int, total: Int) -> some View {
+        let fraction = total > 0 ? Double(done) / Double(total) : 0
+        return ZStack {
+            Color.black.opacity(0.25)
+                .ignoresSafeArea()
+            VStack(spacing: 14) {
+                ProgressView(value: fraction, total: 1.0)
+                    .progressViewStyle(.linear)
+                    .tint(.accentColor)
+                    .frame(width: 280)
+                    .animation(.easeInOut(duration: 0.2), value: fraction)
+                HStack(spacing: 6) {
+                    Text(vm.bulkToggleEnabling
+                         ? vm.L(L10n.Mods.enablingAllProgress)
+                         : vm.L(L10n.Mods.disablingAllProgress))
+                        .font(.system(size: 12, weight: .medium))
+                    Text("\(done)/\(total)")
+                        .font(.system(size: 12, design: .monospaced))
+                        .foregroundColor(.secondary)
+                        .monospacedDigit()
+                }
+            }
+            .padding(28)
+            .background(.regularMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .shadow(color: .black.opacity(0.15), radius: 12, y: 4)
+        }
+        .transition(.opacity)
+    }
+
+    /// Menu offering to enable or disable every installed mod at once. Each
+    /// entry is disabled individually when there is nothing to move in that
+    /// direction (all already enabled / all already disabled), so the user
+    /// sees why an action isn't available rather than a dead button.
+    private var bulkToggleMenu: some View {
+        let anyDisabled = vm.mods.contains { !$0.isEnabled }
+        let anyEnabled = vm.mods.contains { $0.isEnabled }
+        return Menu {
+            Button {
+                bulkToggleTarget = true
+            } label: {
+                Label(vm.L(L10n.Mods.enableAll), systemImage: "checkmark.circle")
+            }
+            .disabled(!anyDisabled)
+
+            Button {
+                bulkToggleTarget = false
+            } label: {
+                Label(vm.L(L10n.Mods.disableAll), systemImage: "xmark.circle")
+            }
+            .disabled(!anyEnabled)
+        } label: {
+            Label(vm.L(L10n.Mods.toggleAllHint), systemImage: "power")
+                .labelStyle(.iconOnly)
+                .font(.system(size: 13))
+        }
+        .help(vm.L(L10n.Mods.toggleAllHint))
     }
 
     // MARK: - Category picker
