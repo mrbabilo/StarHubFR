@@ -136,6 +136,90 @@ class StarHubTHViewModel: ObservableObject {
     @Published var pendingNexusSource: NexusInstallSource?
     @Published var isDownloadingFromNexus = false
     private let nexusDownloader = NexusDownloader()
+
+    /// Rich detail state for the mod currently shown in the detail pane
+    /// (Task 3 data layer; nav wiring lands in a later task).
+    struct ModDetailState {
+        let modId: Int
+        var description: [DescriptionBlock]
+        var changelog: [DescriptionBlock]
+        var isStale: Bool     // served from cache/local, refresh in-flight or failed
+        var isLoading: Bool
+    }
+    @Published var modDetailState: ModDetailState?
+    /// Non-nil = the detail pane is showing this mod. Its didSet kicks off
+    /// loading (cache/local instantly, then a background refresh).
+    @Published var viewingModDetail: ModItem? {
+        didSet { if let m = viewingModDetail { loadModDetail(for: m) } }
+    }
+
+    /// Loads a mod's rich detail: cached raw shown instantly (parsed), then a
+    /// background refresh. Offline / no-cache → falls back to the local manifest
+    /// description. The refreshed result is applied only if `viewingModDetail`
+    /// is still this same mod (anti-race guard) — if the user navigated away
+    /// before the network call returned, its result is dropped.
+    func loadModDetail(for mod: ModItem) {
+        let modId = Int(effectiveNexusModId(for: mod)) ?? -1
+        // Immediate: cache if any, else local manifest description.
+        if modId > 0, let cached = ModDetailCache.load(modId: modId) {
+            modDetailState = ModDetailState(modId: modId,
+                description: DescriptionBlockParser.parse(cached.description),
+                changelog: DescriptionBlockParser.parse(cached.changelog),
+                isStale: true, isLoading: modId > 0)
+        } else {
+            modDetailState = ModDetailState(modId: modId,
+                description: DescriptionBlockParser.parse(mod.description),  // local manifest
+                changelog: [], isStale: true, isLoading: modId > 0)
+        }
+        guard modId > 0 else { return }
+        // Background refresh: description (mods/{id}.json) + changelog (files.json).
+        fetchModDetailRemote(modId: modId) { [weak self] raw in
+            guard let self = self, let raw = raw else {
+                DispatchQueue.main.async { self?.markDetailNotLoading(modId: modId) }
+                return
+            }
+            ModDetailCache.save(modId: modId, raw)
+            DispatchQueue.main.async {
+                // Anti-race: only apply if still viewing this mod.
+                guard self.viewingModDetail.map({ Int(self.effectiveNexusModId(for: $0)) }) == modId else { return }
+                self.modDetailState = ModDetailState(modId: modId,
+                    description: DescriptionBlockParser.parse(raw.description),
+                    changelog: DescriptionBlockParser.parse(raw.changelog),
+                    isStale: false, isLoading: false)
+            }
+        }
+    }
+
+    private func markDetailNotLoading(modId: Int) {
+        if modDetailState?.modId == modId { modDetailState?.isLoading = false }
+    }
+
+    /// Fetches the remote description + changelog for `modId`, combining two
+    /// calls: `NexusUpdateChecker.fetchRawDescription` (mods/{id}.json) and
+    /// `nexusDownloader.getModFiles` (files.json, for the first file with a
+    /// non-empty changelog). Both reuse the fork's existing Nexus request
+    /// infra/headers/API key — no second HTTP client. Returns `nil` when the
+    /// description fetch fails (no key / offline / parse error) so the caller
+    /// leaves the cached/local fallback untouched instead of overwriting it
+    /// with blanks.
+    private func fetchModDetailRemote(modId: Int, completion: @escaping (ModDetailRaw?) -> Void) {
+        NexusUpdateChecker.shared.fetchRawDescription(modId: modId) { [weak self] description in
+            guard let self = self, !description.isEmpty else {
+                completion(nil)
+                return
+            }
+            self.nexusDownloader.getModFiles(modId: modId) { result in
+                let changelog: String
+                switch result {
+                case .success(let list):
+                    changelog = list.files.first { $0.changelogHtml?.isEmpty == false }?.changelogHtml ?? ""
+                case .failure:
+                    changelog = ""
+                }
+                completion(ModDetailRaw(description: description, changelog: changelog))
+            }
+        }
+    }
     /// `{ nexusModId: categoryId }` map populated from each Nexus check.
     /// Survives launches (cached in UserDefaults) so the mods-list category
     /// filter works even before the user re-checks. Mods without a known

@@ -641,6 +641,48 @@ final class NexusUpdateChecker {
         task.resume()
     }
 
+    // MARK: - Rich mod detail (Task 3: description + changelog)
+
+    /// Fetches only the raw HTML/BBCode `description` field for a mod, for the
+    /// rich detail pane. Reuses the exact same endpoint/headers as
+    /// `fetchModInfo` above (mods/{id}.json) rather than standing up a second
+    /// client — this is the sole request the VM needs beyond `getModFiles`
+    /// (which already lives on `NexusDownloader` for the changelog).
+    /// Returns `""` on any failure (no API key, network error, non-200 status,
+    /// parse error, missing field) so callers can treat that uniformly as
+    /// "offline / unavailable" and keep showing cached/local data instead.
+    func fetchRawDescription(modId: Int, completion: @escaping (String) -> Void) {
+        guard let apiKey = apiKey(), !apiKey.isEmpty else {
+            completion("")
+            return
+        }
+        guard let url = URL(string: "\(apiBase)/games/\(gameDomain)/mods/\(modId).json") else {
+            completion("")
+            return
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue(apiKey, forHTTPHeaderField: "apikey")
+        request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("StarHubTH", forHTTPHeaderField: "Application-Name")
+        request.setValue("1.0.9", forHTTPHeaderField: "Application-Version")
+
+        let task = URLSession.shared.dataTask(with: request) { data, response, error in
+            guard error == nil,
+                  let http = response as? HTTPURLResponse, http.statusCode == 200,
+                  let data = data,
+                  let json = try? JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed]),
+                  let dict = json as? [String: Any],
+                  let description = dict["description"] as? String else {
+                completion("")
+                return
+            }
+            completion(description)
+        }
+        task.resume()
+    }
+
     /// Legacy fallback for the human-readable `updated_time` string some
     /// older Nexus responses use ("Wed, 21 Oct 2026 07:28:00 GMT").
     private static let legacyNexusFormatter: DateFormatter = {
