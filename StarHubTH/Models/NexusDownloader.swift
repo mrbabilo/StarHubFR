@@ -1,10 +1,5 @@
 import Foundation
 
-struct NexusDownloadResult {
-    let url: URL
-    let fileId: Int
-}
-
 enum NexusDownloadError: Error, LocalizedError {
     case noApiKey
     case noValidFile
@@ -90,7 +85,7 @@ struct NexusDownloader {
 
     /// If `fileId` is nil, first resolves the main file id via the files list.
     func download(modId: Int, fileId: Int?, game: String, key: String?, expires: Int?,
-                  completion: @escaping (Result<NexusDownloadResult, NexusDownloadError>) -> Void) {
+                  completion: @escaping (Result<URL, NexusDownloadError>) -> Void) {
         guard let apiKey = NexusUpdateChecker.shared.apiKey(), !apiKey.isEmpty else {
             completion(.failure(.noApiKey)); return
         }
@@ -124,7 +119,7 @@ struct NexusDownloader {
     }
 
     private func fetchLinkAndDownload(game: String, modId: Int, fileId: Int, key: String?, expires: Int?, apiKey: String,
-                                      completion: @escaping (Result<NexusDownloadResult, NexusDownloadError>) -> Void) {
+                                      completion: @escaping (Result<URL, NexusDownloadError>) -> Void) {
         let path = NexusDownloadAPI.downloadLinkEndpoint(game: game, modId: modId, fileId: fileId, key: key, expires: expires)
         guard let req = request(path: path, apiKey: apiKey) else {
             completion(.failure(.noDownloadLink)); return
@@ -145,7 +140,7 @@ struct NexusDownloader {
                 guard let localURL = localURL else { completion(.failure(.noDownloadLink)); return }
                 do {
                     try FileManager.default.moveItem(at: localURL, to: temp)
-                    completion(.success(NexusDownloadResult(url: temp, fileId: fileId)))
+                    completion(.success(temp))
                 } catch {
                     completion(.failure(.requestFailed(error.localizedDescription)))
                 }
