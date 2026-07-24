@@ -646,8 +646,8 @@ final class NexusUpdateChecker {
     /// Fetches only the raw HTML/BBCode `description` field for a mod, for the
     /// rich detail pane. Reuses the exact same endpoint/headers as
     /// `fetchModInfo` above (mods/{id}.json) rather than standing up a second
-    /// client — this is the sole request the VM needs beyond `getModFiles`
-    /// (which already lives on `NexusDownloader` for the changelog).
+    /// client. The pane's changelog comes separately from `fetchChangelogs`
+    /// (changelogs.json), so this request only owns the description.
     /// Returns `""` on any failure (no API key, network error, non-200 status,
     /// parse error, missing field) so callers can treat that uniformly as
     /// "offline / unavailable" and keep showing cached/local data instead.

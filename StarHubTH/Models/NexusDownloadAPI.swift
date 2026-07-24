@@ -11,13 +11,9 @@ import Foundation
 struct NexusModFile: Decodable {
     let fileId: Int
     let categoryId: Int
-    /// Raw HTML changelog for this file version, when Nexus provides one.
-    /// Optional/nil-tolerant: older API responses and some files omit it.
-    let changelogHtml: String?
     enum CodingKeys: String, CodingKey {
         case fileId = "file_id"
         case categoryId = "category_id"
-        case changelogHtml = "changelog_html"
     }
 }
 
