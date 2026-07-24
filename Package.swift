@@ -25,6 +25,7 @@ let package = Package(
                 "Models/NexusDownloadAPI.swift",
                 "Models/ManifestVersionPatcher.swift",
                 "Models/DescriptionBlockParser.swift",
+                "Models/ModDependencyParser.swift",
                 "L10n.swift",
             ]
         ),
@@ -62,6 +63,11 @@ let package = Package(
             name: "DescriptionBlockTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/DescriptionBlockTests"
+        ),
+        .testTarget(
+            name: "ModDependencyParserTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ModDependencyParserTests"
         ),
     ]
 )
