@@ -230,6 +230,14 @@ enum L10n {
         static let bulkTogglePartial    = "mods_bulk_toggle_partial"
         static let enablingAllProgress  = "mods_enabling_all_progress"
         static let disablingAllProgress = "mods_disabling_all_progress"
+        // Per-mod deletion
+        static let deleteMod            = "mods_delete_mod"
+        static let deleteConfirmTitle   = "mods_delete_confirm_title"
+        static let deleteConfirmMessage = "mods_delete_confirm_message"
+        static let deleteConfirmPack    = "mods_delete_confirm_pack"
+        static let deletedLog           = "mods_deleted_log"
+        static let deleteFailed         = "mods_delete_failed"
+        static let deleteNotFound       = "mods_delete_not_found"
     }
 
     // MARK: - ModConfigBackups

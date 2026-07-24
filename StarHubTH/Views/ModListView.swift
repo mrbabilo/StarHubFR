@@ -897,6 +897,8 @@ struct ModListRow: View {
     var isGroupHeader: Bool = false
     @Binding var isExpanded: Bool
     @State private var localIsOn: Bool?
+    /// Drives the confirmation dialog before deleting this row's mod.
+    @State private var showDeleteConfirm = false
 
     var body: some View {
         HStack(spacing: 12) {
@@ -1064,6 +1066,23 @@ struct ModListRow: View {
                 .buttonStyle(PlainButtonStyle())
                 .help(vm.L(L10n.Mods.viewOnNexus))
                 .pointingHandCursor()
+
+                // Delete button — permanently removes the mod (or pack) from
+                // disk. Hidden for child rows inside a pack, since the pack
+                // header carries the delete action for all children. A
+                // confirmation dialog fires before the actual deletion.
+                if !isChild {
+                    Button {
+                        showDeleteConfirm = true
+                    } label: {
+                        Image(systemName: "trash")
+                            .font(.system(size: 14))
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .help(vm.L(L10n.Mods.deleteMod))
+                    .pointingHandCursor()
+                }
             }
             .padding(.trailing, 8)
 
@@ -1128,6 +1147,26 @@ struct ModListRow: View {
                     if let url = URL(string: effectiveLink) { NSWorkspace.shared.open(url) }
                 }
             }
+            if !isChild {
+                Divider()
+                Button(vm.L(L10n.Mods.deleteMod), role: .destructive) {
+                    showDeleteConfirm = true
+                }
+            }
+        }
+        .confirmationDialog(
+            String(format: vm.L(L10n.Mods.deleteConfirmTitle), mod.name),
+            isPresented: $showDeleteConfirm,
+            titleVisibility: .visible
+        ) {
+            Button(vm.L(L10n.Mods.deleteMod), role: .destructive) {
+                vm.deleteMod(mod)
+            }
+            Button(vm.L(L10n.Saves.cancel), role: .cancel) { }
+        } message: {
+            Text(mod.isGroup
+                 ? vm.L(L10n.Mods.deleteConfirmPack)
+                 : vm.L(L10n.Mods.deleteConfirmMessage))
         }
     }
 }

@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Bulk enable/disable all mods**: a power-button menu in the mods toolbar lets you enable or disable every installed mod at once, with a confirmation dialog.
+  - A **full-screen progress overlay** (determinate progress bar + done/total counter) blocks the list during the operation, keeping the UI responsive by running all file moves on a background queue.
+  - **Lossless moves**: each move uses a stale-duplicate-aside safety pattern — if a move fails, the destination is restored, so no mod can ever end up lost from both `Mods/` and `Mods_disabled/`. Individual toggles are blocked during the operation to prevent concurrent folder races.
+- **Delete mod / mod pack**: a trash button on every mod row (and a context-menu entry) permanently deletes a mod from disk after a per-row confirmation dialog. Packs show a dedicated message clarifying that all child mods are deleted together. Fails with a user-visible alert if the folder can't be removed.
 - **Rich mod detail pane**: the small mod-info popover is replaced by an inline detail pane (in the detail column, reached from the mod's info button) with **Description / Changelog / Dependencies** tabs.
   - **Rich description rendering**: the full Nexus description is rendered as native text — BBCode/HTML converted to **bold**/italic/lists/links (with a pointing-hand cursor on links), inline images shown at their **native size** (never upscaled/blurred), collapsible **spoilers** (which now render their own images and formatting), and `[hr]`/`[line]` shown as real dividers. The parser strips *every* stray/unknown tag (not just a whitelist) so no raw BBCode leaks onto the screen, collapses large blank-line runs, and drops meaningless empty/punctuation-only emphasis.
   - **Complete changelog**: pulled from Nexus's dedicated all-versions changelog endpoint (not a single file's changelog), newest version first.

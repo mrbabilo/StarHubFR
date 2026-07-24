@@ -2891,6 +2891,50 @@ class StarHubTHViewModel: ObservableObject {
         }
     }
 
+    /// Permanently delete a mod (or an entire mod pack) from disk. The mod's
+    /// folder is removed from `Mods/` or `Mods_disabled/` depending on its
+    /// current enabled state. For a pack (`isGroup == true`), this deletes the
+    /// single top-level folder that contains all child mods. The mod list is
+    /// rescanned afterward so the UI reflects the real on-disk state. Surfaces
+    /// a user-visible alert on failure.
+    func deleteMod(_ mod: ModItem) {
+        guard !gameDir.isEmpty else {
+            showModal(message: L(L10n.Settings.gameDirNotSet))
+            return
+        }
+
+        let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
+        let disabledModsPath = (gameDir as NSString).appendingPathComponent("Mods_disabled")
+        let baseFolder = mod.isEnabled ? modsPath : disabledModsPath
+        let modPath = (baseFolder as NSString).appendingPathComponent(mod.folderName)
+
+        let fm = FileManager.default
+        guard fm.fileExists(atPath: modPath) else {
+            showModal(message: L(L10n.Mods.deleteNotFound))
+            DispatchQueue.global(qos: .userInitiated).async {
+                self.scanMods()
+            }
+            return
+        }
+
+        do {
+            try fm.removeItem(atPath: modPath)
+            log(String(format: L(L10n.Mods.deletedLog), mod.name))
+            DispatchQueue.global(qos: .userInitiated).async {
+                self.scanMods()
+                DispatchQueue.main.async {
+                    self.syncActiveProfileIds()
+                }
+            }
+        } catch {
+            log(String(format: "%@: %@",
+                       L(L10n.Mods.deleteFailed), error.localizedDescription),
+                level: .error)
+            showModal(message: String(format: L(L10n.Mods.deleteFailed),
+                                      error.localizedDescription))
+        }
+    }
+
     /// Compute which uniqueIds should be added/removed when toggling a mod in a profile,
     /// using the same chain logic as toggleMod. Works on an in-memory set (no file I/O).
     /// - Parameters:
