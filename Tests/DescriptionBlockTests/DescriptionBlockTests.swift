@@ -49,4 +49,20 @@ struct DescriptionBlockTests {
         let out = DescriptionBlockParser.parse("[b][img]https://x/y.png[/img] caption[/b]")
         #expect(out == [.image(URL(string: "https://x/y.png")!), .text("caption")])
     }
+    @Test func leftoverOrStrayTagsAreStrippedNotShownRaw() {
+        // Generic close tags (`[/]`, `[/*]`), unknown tags (`[color=x]`), and a
+        // stray unbalanced `[b]` must never reach the screen as literal BBCode.
+        #expect(DescriptionBlockParser.parse("a [color=red]b[/color] [b]c[/] d[/*]")
+            == [.text("a b c d")])
+    }
+    @Test func markdownLinkSurvivesTagStripping() {
+        // The generic tag strip must not eat a Markdown link `[text](url)`
+        // produced by the [url] conversion.
+        #expect(DescriptionBlockParser.parse("see [url=https://x/y]here[/url]")
+            == [.text("see [here](https://x/y)")])
+    }
+    @Test func selfClosingImageFormIsExtracted() {
+        #expect(DescriptionBlockParser.parse("[img=https://x/y.png] tail")
+            == [.image(URL(string: "https://x/y.png")!), .text("tail")])
+    }
 }

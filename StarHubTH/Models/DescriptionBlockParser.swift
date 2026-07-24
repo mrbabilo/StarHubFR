@@ -40,8 +40,25 @@ enum DescriptionBlockParser {
         formatted = formatted.replacingOccurrences(of: "(?s)\\[url=(.*?)\\]\\s*(.*?)\\s*\\[/url\\]", with: "[$2]($1)", options: [.regularExpression, .caseInsensitive])
         formatted = formatted.replacingOccurrences(of: "(?s)\\[url\\]\\s*(.*?)\\s*\\[/url\\]", with: "[$1]($1)", options: [.regularExpression, .caseInsensitive])
         formatted = formatted.replacingOccurrences(of: "(?i)\\[/?(?:line|hr)\\]", with: "\n---\n", options: .regularExpression)
-        // 5. strip remaining formatting tags (keep inner content)
-        formatted = formatted.replacingOccurrences(of: "(?s)\\[/?(?:color|center|left|right|font|align|quote|sub|sup|code)(?:=[^\\]]+)?\\]", with: "", options: [.regularExpression, .caseInsensitive])
+        formatted = formatted.replacingOccurrences(of: "(?i)\\[/\\*\\]", with: "", options: .regularExpression)
+        // 5. Strip EVERY remaining BBCode-style tag (a whitelist — upstream's
+        // approach — leaves any unlisted or malformed tag, e.g. `[/]`, `[/*]`,
+        // `[quote=x]`, or a stray unbalanced `[b]`, rendered raw on screen).
+        // Excludes `[img …]` / `[spoiler …]` (the tokenizer below needs them),
+        // and won't touch a Markdown link `[text](url)` produced just above
+        // (the `(?!\()` guard), so only genuine leftover tags are removed.
+        // The negative lookahead sits *before* the optional slash so it rejects
+        // both `[img …]` and `[/img]` (and spoiler) — otherwise `/?` backtracks
+        // and the body swallows `/img`, stripping the closing tag and breaking
+        // image tokenization below.
+        formatted = formatted.replacingOccurrences(
+            of: "(?i)\\[(?!/?(?:img[^a-zA-Z]|spoiler[^a-zA-Z]))/?[^\\[\\]]*\\](?!\\()",
+            with: "", options: .regularExpression)
+
+        // Normalize the self-closing `[img=URL]` form to `[img]URL[/img]` so the
+        // tokenizer picks it up too. Requires `=` right after `img` (optional
+        // spaces), so it never mangles the attributed `[img width=550]…` form.
+        formatted = formatted.replacingOccurrences(of: "(?i)\\[img\\s*=\\s*([^\\]]+)\\]", with: "[img]$1[/img]", options: .regularExpression)
 
         // 6. tokenize by [img] / [spoiler]. The [img] open tag may carry
         // attributes (e.g. `[img width=550]url[/img]`), so match `[img …]`, not
