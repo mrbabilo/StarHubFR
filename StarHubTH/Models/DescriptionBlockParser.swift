@@ -43,22 +43,23 @@ enum DescriptionBlockParser {
         // 5. strip remaining formatting tags (keep inner content)
         formatted = formatted.replacingOccurrences(of: "(?s)\\[/?(?:color|center|left|right|font|align|quote|sub|sup|code)(?:=[^\\]]+)?\\]", with: "", options: [.regularExpression, .caseInsensitive])
 
-        // 6. tokenize by [img] / [spoiler]
+        // 6. tokenize by [img] / [spoiler]. The [img] open tag may carry
+        // attributes (e.g. `[img width=550]url[/img]`), so match `[img …]`, not
+        // just a bare `[img]`.
         var blocks: [DescriptionBlock] = []
-        let combinedPattern = "(?s)(\\[img\\](.*?)\\[/img\\]|\\[spoiler(?:=(.*?))?\\](.*?)\\[/spoiler\\])"
+        let combinedPattern = "(?s)(\\[img[^\\]]*\\](.*?)\\[/img\\]|\\[spoiler(?:=(.*?))?\\](.*?)\\[/spoiler\\])"
         guard let regex = try? NSRegularExpression(pattern: combinedPattern, options: .caseInsensitive) else {
-            let t = formatted.trimmingCharacters(in: .whitespacesAndNewlines)
+            let t = balancedText(formatted)
             return t.isEmpty ? [] : [.text(t)]
         }
         let nsString = formatted as NSString
         let matches = regex.matches(in: formatted, range: NSRange(location: 0, length: nsString.length))
         var lastEnd = 0
         for match in matches {
-            let textStr = nsString.substring(with: NSRange(location: lastEnd, length: match.range.location - lastEnd))
-                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let textStr = balancedText(nsString.substring(with: NSRange(location: lastEnd, length: match.range.location - lastEnd)))
             if !textStr.isEmpty { blocks.append(.text(textStr)) }
             let fullMatch = nsString.substring(with: match.range)
-            if fullMatch.lowercased().hasPrefix("[img]") {
+            if fullMatch.lowercased().hasPrefix("[img") {
                 let r = match.range(at: 2)
                 if r.location != NSNotFound {
                     let s = nsString.substring(with: r).trimmingCharacters(in: .whitespacesAndNewlines)
@@ -77,8 +78,24 @@ enum DescriptionBlockParser {
             }
             lastEnd = match.range.location + match.range.length
         }
-        let finalText = nsString.substring(from: lastEnd).trimmingCharacters(in: .whitespacesAndNewlines)
+        let finalText = balancedText(nsString.substring(from: lastEnd))
         if !finalText.isEmpty { blocks.append(.text(finalText)) }
         return blocks
+    }
+
+    /// Trims, then drops emphasis delimiters left unbalanced when a block-level
+    /// token (an image or spoiler) is extracted from *inside* inline formatting.
+    /// `[b][img]…[/img] caption[/b]` becomes `**[img]…[/img] caption**`, and
+    /// splitting the image out would otherwise strand a lone `**` on each side.
+    /// A block with an odd number of a given delimiter can't render as valid
+    /// Markdown anyway, so removing them yields clean text rather than literal
+    /// `**` on screen.
+    private static func balancedText(_ raw: String) -> String {
+        var s = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        for delim in ["**", "~~"] {
+            let count = s.components(separatedBy: delim).count - 1
+            if count % 2 != 0 { s = s.replacingOccurrences(of: delim, with: "") }
+        }
+        return s.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }

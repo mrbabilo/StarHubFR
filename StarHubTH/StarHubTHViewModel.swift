@@ -159,7 +159,7 @@ class StarHubTHViewModel: ObservableObject {
     /// is still this same mod (anti-race guard) — if the user navigated away
     /// before the network call returned, its result is dropped.
     func loadModDetail(for mod: ModItem) {
-        let modId = Int(effectiveNexusModId(for: mod)) ?? -1
+        let modId = Int(resolvedNexusModId(for: mod)) ?? -1
         // Immediate: cache if any, else local manifest description.
         if modId > 0, let cached = ModDetailCache.load(modId: modId) {
             modDetailState = ModDetailState(modId: modId,
@@ -181,7 +181,7 @@ class StarHubTHViewModel: ObservableObject {
             ModDetailCache.save(modId: modId, raw)
             DispatchQueue.main.async {
                 // Anti-race: only apply if still viewing this mod.
-                guard self.viewingModDetail.map({ Int(self.effectiveNexusModId(for: $0)) }) == modId else { return }
+                guard self.viewingModDetail.map({ Int(self.resolvedNexusModId(for: $0)) }) == modId else { return }
                 self.modDetailState = ModDetailState(modId: modId,
                     description: DescriptionBlockParser.parse(raw.description),
                     changelog: DescriptionBlockParser.parse(raw.changelog),
@@ -196,26 +196,20 @@ class StarHubTHViewModel: ObservableObject {
 
     /// Fetches the remote description + changelog for `modId`, combining two
     /// calls: `NexusUpdateChecker.fetchRawDescription` (mods/{id}.json) and
-    /// `nexusDownloader.getModFiles` (files.json, for the first file with a
-    /// non-empty changelog). Both reuse the fork's existing Nexus request
-    /// infra/headers/API key — no second HTTP client. Returns `nil` when the
-    /// description fetch fails (no key / offline / parse error) so the caller
-    /// leaves the cached/local fallback untouched instead of overwriting it
-    /// with blanks.
+    /// `fetchChangelogs` (mods/{id}/changelogs.json — the *complete*, all-
+    /// versions changelog, not a single file's `changelog_html`). Both reuse
+    /// the fork's existing Nexus request infra/headers/API key — no second HTTP
+    /// client. Returns `nil` when the description fetch fails (no key / offline
+    /// / parse error) so the caller leaves the cached/local fallback untouched
+    /// instead of overwriting it with blanks; an empty changelog is fine (some
+    /// mods simply have none) and doesn't void the description.
     private func fetchModDetailRemote(modId: Int, completion: @escaping (ModDetailRaw?) -> Void) {
-        NexusUpdateChecker.shared.fetchRawDescription(modId: modId) { [weak self] description in
-            guard let self = self, !description.isEmpty else {
+        NexusUpdateChecker.shared.fetchRawDescription(modId: modId) { description in
+            guard !description.isEmpty else {
                 completion(nil)
                 return
             }
-            self.nexusDownloader.getModFiles(modId: modId) { result in
-                let changelog: String
-                switch result {
-                case .success(let list):
-                    changelog = list.files.first { $0.changelogHtml?.isEmpty == false }?.changelogHtml ?? ""
-                case .failure:
-                    changelog = ""
-                }
+            NexusUpdateChecker.shared.fetchChangelogs(modId: modId) { changelog in
                 completion(ModDetailRaw(description: description, changelog: changelog))
             }
         }
@@ -1690,6 +1684,22 @@ class StarHubTHViewModel: ObservableObject {
             return custom
         }
         return mod.nexusModId
+    }
+
+    /// Like `effectiveNexusModId(for:)`, but for a pack header with no own id
+    /// falls back to the first child that has one — mirroring `nexusLink(for:)`
+    /// and `modExtra(for:)`. The detail pane fetches against this id so a pack
+    /// shows the same mod its header links to, instead of no Nexus content.
+    func resolvedNexusModId(for mod: ModItem) -> String {
+        let id = effectiveNexusModId(for: mod)
+        if !id.isEmpty { return id }
+        if mod.isGroup, let children = mod.children {
+            for c in children {
+                let cid = resolvedNexusModId(for: c)
+                if !cid.isEmpty { return cid }
+            }
+        }
+        return ""
     }
 
     /// The Nexus Mods URL for a mod derived from its effective mod id, or the

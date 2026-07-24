@@ -37,4 +37,16 @@ struct DescriptionBlockTests {
     @Test func emptyInputIsEmpty() {
         #expect(DescriptionBlockParser.parse("") == [])
     }
+    @Test func imageTagWithAttributesIsExtracted() {
+        // Nexus emits `[img width=550]url[/img]`; the attributes must not
+        // prevent tokenization (they used to leave the tag as literal text).
+        #expect(DescriptionBlockParser.parse("[img width=550]https://x/y.png[/img]")
+            == [.image(URL(string: "https://x/y.png")!)])
+    }
+    @Test func emphasisWrappingImageDoesNotStrandDelimiters() {
+        // `[b][img]…[/img] caption[/b]` must not render a lone `**` around the
+        // image; the unbalanced bold is dropped, leaving clean caption text.
+        let out = DescriptionBlockParser.parse("[b][img]https://x/y.png[/img] caption[/b]")
+        #expect(out == [.image(URL(string: "https://x/y.png")!), .text("caption")])
+    }
 }

@@ -683,6 +683,55 @@ final class NexusUpdateChecker {
         task.resume()
     }
 
+    /// Fetches a mod's **complete** changelog via the dedicated
+    /// `mods/{id}/changelogs.json` endpoint, which returns every version's
+    /// entries (`{ "1.2.0": ["line", …], … }`) — unlike `files.json`, whose
+    /// per-file `changelog_html` only covers a single upload. Formats the
+    /// result as Markdown, newest version first (compared with
+    /// `NexusUpdateChecker.compare`). Yields `""` on any failure (no key,
+    /// offline, empty) so the caller keeps its cached/local fallback.
+    func fetchChangelogs(modId: Int, completion: @escaping (String) -> Void) {
+        guard let apiKey = apiKey(), !apiKey.isEmpty else {
+            completion("")
+            return
+        }
+        guard let url = URL(string: "\(apiBase)/games/\(gameDomain)/mods/\(modId)/changelogs.json") else {
+            completion("")
+            return
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue(apiKey, forHTTPHeaderField: "apikey")
+        request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("StarHubTH", forHTTPHeaderField: "Application-Name")
+        request.setValue("1.0.9", forHTTPHeaderField: "Application-Version")
+
+        let task = URLSession.shared.dataTask(with: request) { data, response, error in
+            guard error == nil,
+                  let http = response as? HTTPURLResponse, http.statusCode == 200,
+                  let data = data,
+                  let json = try? JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed]),
+                  let dict = json as? [String: [String]], !dict.isEmpty else {
+                completion("")
+                return
+            }
+            completion(Self.formatChangelogs(dict))
+        }
+        task.resume()
+    }
+
+    /// Renders `{version: [entries]}` as Markdown, newest version first: a bold
+    /// version heading followed by one `- ` bullet per entry. Kept pure/static
+    /// so it can be reasoned about (and unit-tested) without networking.
+    static func formatChangelogs(_ dict: [String: [String]]) -> String {
+        let versions = dict.keys.sorted { compare($0, $1) == .orderedDescending }
+        return versions.map { version -> String in
+            let lines = dict[version]?.map { "- \($0)" }.joined(separator: "\n") ?? ""
+            return "**\(version)**\n\(lines)"
+        }.joined(separator: "\n\n")
+    }
+
     /// Legacy fallback for the human-readable `updated_time` string some
     /// older Nexus responses use ("Wed, 21 Oct 2026 07:28:00 GMT").
     private static let legacyNexusFormatter: DateFormatter = {
