@@ -498,6 +498,7 @@ enum L10n {
         static let manifestVersionFixed     = "vm_manifest_version_fixed"
         static let manifestVersionDateFixed = "vm_manifest_version_date_fixed"
         static let manifestVersionSkipped   = "vm_manifest_version_skipped"
+        static let noDependenciesFound      = "vm_no_dependencies_found"
     }
 
     // MARK: - ModInstall

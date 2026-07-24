@@ -517,6 +517,7 @@
   "vm_manifest_version_fixed": "Corrected %@ manifest version %@ → %@ to match Nexus.",
   "vm_manifest_version_date_fixed": "Refreshed %@ manifest date to clear a Nexus minor-update flag.",
   "vm_manifest_version_skipped": "Left %@ manifest version unchanged (%@).",
+  "vm_no_dependencies_found": "No dependencies",
   "mod_tag_translation": "Translation",
   "mod_tag_framework": "Framework",
   "mod_tag_content_patcher": "Content Patcher",

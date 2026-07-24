@@ -517,6 +517,7 @@
 "vm_manifest_version_fixed" = "Version du manifest de %@ corrigée %@ → %@ pour coller à Nexus.";
 "vm_manifest_version_date_fixed" = "Date du manifest de %@ rafraîchie (MàJ mineure Nexus sans changement de version).";
 "vm_manifest_version_skipped" = "Version du manifest de %@ inchangée (%@).";
+"vm_no_dependencies_found" = "Aucune dépendance";
 "mod_tag_translation" = "Traduction";
 "mod_tag_framework" = "Framework";
 "mod_tag_content_patcher" = "Content Patcher";

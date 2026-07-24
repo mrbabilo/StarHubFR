@@ -263,6 +263,7 @@ struct MainView: View {
                         ModConfigEditorView(vm: vm, mod: mod, initialTab: 1)
                     } else if let mod = vm.viewingModDetail {
                         ModDetailView(vm: vm, mod: mod)
+                            .id(mod.folderName)
                     } else {
                         ModListView(vm: vm)
                     }
