@@ -12,6 +12,7 @@ struct MainView: View {
     
     @AppStorage("appColorScheme") private var appColorScheme: String = "System"
     @AppStorage("showDeveloperLogs") private var showDeveloperLogs: Bool = false
+    @AppStorage("showThaiTranslationHub") private var showThaiTranslationHub: Bool = false
     @AppStorage("launchProfile") private var launchProfile: String = "SMAPI"
     
     @State private var isProfileHovered = false
@@ -154,12 +155,13 @@ struct MainView: View {
                 // Game Section
                 VStack(alignment: .leading, spacing: 2) {
                     SidebarSectionHeader(title: vm.L(L10n.Main.gameManagement))
-                    if matchesSearch(vm.L(L10n.Saves.saves)) {
+                    
+                    if matchesSearch(vm.L(L10n.Profiles.title)) {
                         SidebarNavItem(
-                            icon: "folder.fill",
-                            iconColor: .blue,
-                            label: vm.L(L10n.Saves.saves),
-                            tab: "Saves",
+                            icon: "person.2.fill",
+                            iconColor: .orange,
+                            label: vm.L(L10n.Profiles.title),
+                            tab: "Profiles",
                             currentTab: $currentTab
                         )
                     }
@@ -194,12 +196,12 @@ struct MainView: View {
                         )
                     }
 
-                    if matchesSearch(vm.L(L10n.Profiles.title)) {
+                    if matchesSearch(vm.L(L10n.Saves.saves)) {
                         SidebarNavItem(
-                            icon: "person.2.fill",
-                            iconColor: .orange,
-                            label: vm.L(L10n.Profiles.title),
-                            tab: "Profiles",
+                            icon: "folder.fill",
+                            iconColor: .blue,
+                            label: vm.L(L10n.Saves.saves),
+                            tab: "Saves",
                             currentTab: $currentTab
                         )
                     }
@@ -230,17 +232,19 @@ struct MainView: View {
                     }
                 }
                 
-                // Thai Hub Section
-                VStack(alignment: .leading, spacing: 2) {
-                    SidebarSectionHeader(title: vm.L(L10n.Main.online))
-                    if matchesSearch(vm.L(L10n.ThaiHub.title)) {
-                        SidebarNavItem(
-                            icon: "globe.asia.australia.fill",
-                            iconColor: .blue,
-                            label: vm.L(L10n.ThaiHub.title),
-                            tab: "ThaiHub",
-                            currentTab: $currentTab
-                        )
+                if showThaiTranslationHub {
+                    // Thai Hub Section
+                    VStack(alignment: .leading, spacing: 2) {
+                        SidebarSectionHeader(title: vm.L(L10n.Main.online))
+                        if matchesSearch(vm.L(L10n.ThaiHub.title)) {
+                            SidebarNavItem(
+                                icon: "globe.asia.australia.fill",
+                                iconColor: .blue,
+                                label: vm.L(L10n.ThaiHub.title),
+                                tab: "ThaiHub",
+                                currentTab: $currentTab
+                            )
+                        }
                     }
                 }
                 
