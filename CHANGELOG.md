@@ -31,6 +31,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Mod Config Backup Manager**: now backs up every language/translation file a mod ships (en/de/es/fr/hu/id/it/ja/ko/pl/pt/ru/th/tr/uk/zh + `default.json`), not just `fr.json` — a backup now captures a mod's full set of localized overrides.
 - **Automated test coverage** expanded across `SaveManager` (backup/restore/duplicate/branch folder operations), `ModConfigBackupManager`, and `ModInstallBackupManager` (created/restore/delete/cleanup-retention paths), using Swift Testing against a dedicated SPM package (`Package.swift`) — including a same-second backup-folder-name collision fix and a `listBackups` parsing fix uncovered while writing the new coverage.
 
+### Removed
+- **Thai UI language**: Thai is no longer a selectable app language — its translations (`assets/th.json` / `th.lproj`) and the Thai README (`README_TH.md`) were removed, leaving the app **bilingual (English / French)**. The **Thai Translation Hub** (browsing/tracking Thai translation mods) is unchanged. Existing users set to Thai fall back to French (French-locale systems) or English.
+
 ### Fixed
 - **SMAPI Installer — installation was completely broken.** Two compounding issues, both root-caused against SMAPI's actual current distribution:
   - The hardcoded download endpoint (`smapi.io/get/latest`) no longer exists (confirmed: bare HTTP 404, no redirect). Fixed by resolving the current release dynamically through the GitHub Releases API instead, so this can't go stale again on future SMAPI versions.

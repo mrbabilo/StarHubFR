@@ -23,7 +23,6 @@ struct SettingsView: View {
                             .font(.system(size: 13))
                         Spacer()
                         Picker("", selection: $vm.currentLanguage) {
-                            Text(vm.L(L10n.Settings.languageThai)).tag("th")
                             Text(vm.L(L10n.Settings.languageEnglish)).tag("en")
                             Text(vm.L(L10n.Settings.languageFrench)).tag("fr")
                         }

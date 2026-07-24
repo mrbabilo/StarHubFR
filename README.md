@@ -1,5 +1,5 @@
 > [!IMPORTANT]
-> Ce fork ajoute le support de la langue française, ainsi qu'une UX/UI « french touch ». Pour la version originale en thaï, consultez le [README thaï](README_TH.md). Pour la version anglaise, consultez le [README anglais](README_EN.md).
+> Ce fork ajoute le support de la langue française, ainsi qu'une UX/UI « french touch ». Pour la version anglaise, consultez le [README anglais](README_EN.md).
 
 <p align="center">
   <a href="https://swift.org"><img src="https://img.shields.io/badge/Swift-F05138?logo=swift&logoColor=white" alt="Swift"></a>
@@ -30,7 +30,7 @@
     *   Modifiez l'argent et les statistiques de base du personnage
 *   **Journaux de Développement** : Suivez la sortie SMAPI en temps réel directement dans l'application.
 *   **Journal des Modifications Intégré** : Consultez l'historique des versions (`CHANGELOG.md`) directement depuis la barre latérale de l'application.
-*   **Support Multilingue** : Basculez instantanément la langue de l'application entre le français, l'anglais et le thaï (ภาษาไทย).
+*   **Support Bilingue** : Basculez instantanément la langue de l'application entre le français et l'anglais.
 *   **Interface Native macOS** : Une interface propre et intuitive conçue pour s'intégrer parfaitement à macOS.
 
 <p align="center">

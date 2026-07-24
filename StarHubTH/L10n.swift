@@ -274,7 +274,6 @@ enum L10n {
         static let backupModsButton     = "settings_backup_mods_button"
         static let appLanguage          = "settings_app_language"
         static let selectLanguage       = "settings_select_language"
-        static let languageThai         = "settings_language_thai"
         static let languageEnglish      = "settings_language_english"
         static let languageFrench       = "settings_language_french"
         static let appTheme             = "settings_app_theme"

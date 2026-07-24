@@ -1,5 +1,5 @@
 > [!IMPORTANT]
-> This fork adds French language support and a French-touch UX/UI. See the [French README](README.md) or the [original Thai README](README_TH.md).
+> This fork adds French language support and a French-touch UX/UI. See the [French README](README.md).
 
 <p align="center">
   <a href="https://swift.org"><img src="https://img.shields.io/badge/Swift-F05138?logo=swift&logoColor=white" alt="Swift"></a>
@@ -30,7 +30,7 @@
     *   Edit money and basic character stats
 *   **Developer Logs**: Monitor SMAPI output in real time directly within the app.
 *   **In-App Changelog Viewer**: Browse the version history (`CHANGELOG.md`) directly from the app's sidebar.
-*   **Multilingual Support**: Switch the app language instantly between French, English and Thai (ภาษาไทย).
+*   **Bilingual Support**: Switch the app language instantly between French and English.
 *   **Native macOS UI**: A clean, intuitive interface designed to feel right at home on macOS.
 
 <p align="center">

@@ -8,7 +8,9 @@ skills (`.claude/skills/`) ; ce fichier ne fait qu'y pointer.
 - **StarHubFR** — gestionnaire de mods Stardew Valley pour macOS (SwiftUI, macOS 14+).
 - Fork de **StarHubTH** (AppleBoiy). Le dossier source s'appelle encore `StarHubTH/`
   et le bundle produit `StarHubTH.app` ; seul le nom affiché est « StarHubFR ».
-- UI **trilingue** : anglais (`en`), thaï (`th`), français (`fr`).
+- UI **bilingue** : anglais (`en`), français (`fr`). *(Le thaï comme langue d'UI a
+  été retiré ; la fonctionnalité « Thai Translation Hub » — mods de traduction —
+  reste, elle.)*
 
 ## Build & test — LIRE avant de valider un changement
 
@@ -33,8 +35,8 @@ vérification GUI est déléguée à l'humain ; les agents valident par succès 
 
 ## Localisation
 
-`assets/{en,th,fr}.json` sont la **source de vérité**. `build_app.py` valide la
-**parité des clés** entre les trois (build en erreur sinon) et génère les
+`assets/{en,fr}.json` sont la **source de vérité**. `build_app.py` valide la
+**parité des clés** entre les deux (build en erreur sinon) et génère les
 `assets/*.lproj/Localizable.strings`. Les clés sont référencées via `L10n.swift`.
 → Procédure complète : skill `localization`.
 
