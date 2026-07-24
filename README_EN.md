@@ -1,5 +1,7 @@
 > [!IMPORTANT]
 > This fork adds French language support and a French-touch UX/UI. See the [French README](README.md).
+>
+> Original project: [StarHubTH](https://github.com/AppleBoiy/StarHubTH) by **AppleBoiy** — which offers a **Thai** version.
 
 <p align="center">
   <a href="https://swift.org"><img src="https://img.shields.io/badge/Swift-F05138?logo=swift&logoColor=white" alt="Swift"></a>
