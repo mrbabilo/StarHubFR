@@ -31,6 +31,9 @@ unpack_batch.py
 # Claude Code — local config/skills, not versioned
 .claude/
 
+# Kilo — local config/skills, not versioned
+.kilo/
+
 # Superpowers working docs (specs/plans/audits) — local, not versioned
 docs/superpowers/
 
