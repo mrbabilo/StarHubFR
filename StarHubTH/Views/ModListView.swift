@@ -900,8 +900,24 @@ struct ModListRow: View {
     /// Drives the confirmation dialog before deleting this row's mod.
     @State private var showDeleteConfirm = false
 
+    /// The effective enabled state, honoring the optimistic `localIsOn` value
+    /// so the visual styling reacts instantly when the toggle is flipped
+    /// (before `vm.mods` catches up).
+    private var effectiveEnabled: Bool { localIsOn ?? mod.isEnabled }
+
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 0) {
+
+            // Status accent bar — instant at-a-glance enabled/disabled
+            // reading. Green for enabled, muted for disabled. Wider for
+            // top-level rows, slimmer for pack children.
+            RoundedRectangle(cornerRadius: 2)
+                .fill(effectiveEnabled
+                      ? Color(red: 0.20, green: 0.65, blue: 0.35)
+                      : Color.secondary.opacity(0.25))
+                .frame(width: isChild ? 2.5 : 3.5)
+
+            HStack(spacing: 12) {
             
             // Chevron space (ensures perfect alignment for all top-level items)
             if !isChild {
@@ -920,10 +936,20 @@ struct ModListRow: View {
 
             // Info
             VStack(alignment: .leading, spacing: 2) {
-                Text(mod.name)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(.primary)
-                    .lineLimit(1)
+                HStack(spacing: 6) {
+                    Text(mod.name)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(effectiveEnabled ? .primary : .secondary)
+                        .lineLimit(1)
+                    // Inline status dot — helps the name row itself read as
+                    // active/inactive, redundant with the accent bar but
+                    // reinforces the state for quick scanning.
+                    if !effectiveEnabled && !isChild {
+                        Circle()
+                            .fill(Color.secondary.opacity(0.35))
+                            .frame(width: 5, height: 5)
+                    }
+                }
                 
                 if mod.name != mod.folderName {
                     Text(mod.folderName)
@@ -947,9 +973,7 @@ struct ModListRow: View {
                             .foregroundColor(.secondary)
                         Text("•")
                             .foregroundColor(.secondary.opacity(0.5))
-                        Text("v\(mod.version)")
-                            .font(.system(size: 11, design: .monospaced))
-                            .foregroundColor(.secondary)
+                        VersionBadge(version: mod.version)
                     }
                 } else {
                     // Pack header: show the same metadata (category, author,
@@ -966,9 +990,7 @@ struct ModListRow: View {
                             .foregroundColor(.secondary)
                         Text("•")
                             .foregroundColor(.secondary.opacity(0.5))
-                        Text("v\(vm.displayVersion(for: mod))")
-                            .font(.system(size: 11, design: .monospaced))
-                            .foregroundColor(.secondary)
+                        VersionBadge(version: vm.displayVersion(for: mod))
                         Text("•")
                             .foregroundColor(.secondary.opacity(0.5))
                         Text(mod.description)
@@ -992,10 +1014,20 @@ struct ModListRow: View {
                                 Image(systemName: "exclamationmark.octagon.fill")
                                 Text(String(format: vm.L(L10n.Mods.disabledRequiredDeps), disabledDeps.joined(separator: ", ")))
                             }
-                            .foregroundColor(.red)
+                            .foregroundColor(.orange)
                         }
                     }
                     .font(.system(size: 11))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(
+                        RoundedRectangle(cornerRadius: 5)
+                            .fill(Color(red: 0.85, green: 0.25, blue: 0.20).opacity(0.08))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 5)
+                            .stroke(Color(red: 0.85, green: 0.25, blue: 0.20).opacity(0.2), lineWidth: 0.5)
+                    )
                     .padding(.top, 2)
                 }
             }
@@ -1108,7 +1140,7 @@ struct ModListRow: View {
                         }
                     }
                 ))
-                    .toggleStyle(SwitchToggleStyle(tint: .blue))
+                    .toggleStyle(SwitchToggleStyle(tint: Color(red: 0.20, green: 0.65, blue: 0.35)))
                     .controlSize(.small)
                     .labelsHidden()
             } else {
@@ -1118,17 +1150,30 @@ struct ModListRow: View {
                     .labelsHidden()
                     .opacity(0)
             }
+            }
+            .padding(.vertical, 4)
+            .padding(.horizontal, 8)
+            // Dim the content (not the toggle/accent bar) for disabled mods to
+            // create visual hierarchy — active mods draw the eye first.
+            .opacity(effectiveEnabled ? 1.0 : 0.72)
         }
-        .padding(.vertical, 4)
-        .padding(.horizontal, 8)
-        .background(isHovered ? Color.secondary.opacity(0.05) : Color.clear)
+        .background(
+            // Hover: accent-tinted fill for a clearer "interactive" feel.
+            isHovered ? Color.accentColor.opacity(0.06) : Color.clear
+        )
         .background(
             vm.selectedModID == mod.folderName
                 ? Color.accentColor.opacity(0.08)
                 : Color.clear
         )
         .cornerRadius(6)
-        .animation(.easeInOut(duration: 0.1), value: isHovered)
+        .overlay(
+            // Subtle accent border on hover — polished focus ring.
+            RoundedRectangle(cornerRadius: 6)
+                .stroke(isHovered ? Color.accentColor.opacity(0.2) : Color.clear, lineWidth: 1)
+        )
+        .animation(.easeInOut(duration: 0.12), value: isHovered)
+        .animation(.easeInOut(duration: 0.15), value: effectiveEnabled)
         .onHover { isHovered = $0 }
         .contextMenu {
             Button(vm.L(L10n.Mods.openInFinder)) {
@@ -1216,5 +1261,23 @@ private struct InferredTagBadge: View {
             .background(Color.secondary.opacity(0.15))
             .foregroundColor(.secondary)
             .clipShape(Capsule())
+    }
+}
+
+/// Compact monospaced pill for a mod's version number. Replaces the bare
+/// `Text("v\(version)")` so the version reads as a distinct, scannable unit
+/// rather than blending into the metadata row's bullet-separated text.
+private struct VersionBadge: View {
+    let version: String
+    var body: some View {
+        Text("v\(version)")
+            .font(.system(size: 10, weight: .medium, design: .monospaced))
+            .foregroundColor(.secondary)
+            .padding(.horizontal, 5)
+            .padding(.vertical, 1)
+            .background(
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(Color.secondary.opacity(0.10))
+            )
     }
 }

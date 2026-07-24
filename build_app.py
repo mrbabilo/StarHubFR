@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
+from __future__ import annotations
+
+import json
 import os
 import shutil
 import subprocess
 import sys
-import json
 
 APP_NAME = "StarHubFR"
 APP_DIR = f"{APP_NAME}.app"
@@ -49,8 +51,11 @@ def generate_localizable_strings() -> None:
         strings_path = os.path.join(lproj_dir, "Localizable.strings")
         with open(strings_path, "w", encoding="utf-8") as file:
             file.write(f"/* {SUPPORTED_LOCALES[locale]} */\n")
-            for key, value in values.items():
-                file.write(f'"{strings_escape(key)}" = "{strings_escape(value)}";\n')
+            lines = [
+                f'"{strings_escape(key)}" = "{strings_escape(value)}";\n'
+                for key, value in values.items()
+            ]
+            file.writelines(lines)
         print(f"[INFO] Generated {strings_path}")
 
 def gather_swift_files() -> list[str]:
@@ -160,7 +165,7 @@ def create_app_bundle():
     swiftc_cmd = build_swiftc_command(swift_files, app_executable, module_cache_dir)
 
     # Run compiler
-    result = subprocess.run(swiftc_cmd)
+    result = subprocess.run(swiftc_cmd, check=False)
     if result.returncode != 0:
         print("[ERROR] Swift compilation failed.")
         sys.exit(1)
@@ -168,7 +173,7 @@ def create_app_bundle():
     # 5. Ad-hoc codesign to make it run locally without Gatekeeper blocking
     print("[INFO] Signing application (Codesign)...")
     codesign_cmd = ["codesign", "-s", "-", "-f", APP_DIR]
-    codesign_result = subprocess.run(codesign_cmd)
+    codesign_result = subprocess.run(codesign_cmd, check=False)
     if codesign_result.returncode != 0:
         print("[ERROR] Codesign failed.")
         sys.exit(1)

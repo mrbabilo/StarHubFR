@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Mod list row UX overhaul** (`ModListView`): each mod row now carries a colored **status accent bar** on its left edge (green = enabled, muted = disabled) for instant at-a-glance scanning, and disabled mods are **visually dimmed** (content opacity reduced to ~72%, name in secondary color, inline status dot) so active mods naturally draw the eye first. The toggle's tint changed from blue to green to match the new accent, and **hover** now shows a tinted fill with a subtle accent focus ring instead of a flat gray wash.
+- **Version badges**: mod versions are now displayed in a compact monospaced pill (`VersionBadge`) instead of bare text, making them stand out as distinct scannable units in the metadata row.
+- **Dependency warnings restyled**: missing/disabled-dependency warnings now appear in a tinted red box with a border, and disabled dependencies are shown in **orange** (vs. red for missing) for clearer severity distinction.
+- **Link cursor fix** (`ViewExtensions`): `.pointingHandCursor()` now uses `onContinuousHover` instead of `onHover`, so the pointing hand correctly persists over links inside `.textSelection(.enabled)` description text (the hosted NSTextView was re-asserting the I-beam cursor on every mouse move).
+
 ## [1.2.0] - 2026-07-24
 
 ### Added
