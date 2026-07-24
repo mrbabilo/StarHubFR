@@ -1,5 +1,55 @@
 import SwiftUI
 
+/// A description image rendered at (up to) its **native** size: it downscales
+/// to fit the pane when wider, but is never upscaled — the previous
+/// `resizable().scaledToFit()` blew small inline icons up to the full pane
+/// width, making them huge and blurry. Loads via a shared in-memory cache so
+/// re-renders (tab switches, scrolling) don't refetch.
+struct DescriptionImage: View {
+    let url: URL
+    @State private var image: NSImage?
+    @State private var failed = false
+
+    private static let cache = NSCache<NSURL, NSImage>()
+
+    var body: some View {
+        Group {
+            if let image {
+                Image(nsImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    // Cap at the native width so it never upscales; scaledToFit
+                    // still shrinks it to the pane when the pane is narrower.
+                    .frame(maxWidth: image.size.width, alignment: .leading)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+            } else if failed {
+                EmptyView()                       // offline / broken → skip
+            } else {
+                ProgressView().frame(maxWidth: .infinity, minHeight: 60)
+            }
+        }
+        .task(id: url) { await load() }
+    }
+
+    private func load() async {
+        if let cached = Self.cache.object(forKey: url as NSURL) {
+            image = cached
+            return
+        }
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            if let img = NSImage(data: data) {
+                Self.cache.setObject(img, forKey: url as NSURL)
+                image = img
+            } else {
+                failed = true
+            }
+        } catch {
+            failed = true
+        }
+    }
+}
+
 /// Renders a Markdown string as native SwiftUI text, preserving line breaks and
 /// inline formatting (bold/italic/links). Built from a precomputed
 /// `AttributedString` so the (relatively costly) Markdown parse happens once per
@@ -66,15 +116,7 @@ struct DescriptionBlocksView: View {
                 case .text(let markdown):
                     MarkdownText(markdown)
                 case .image(let url):
-                    AsyncImage(url: url) { phase in
-                        if let image = phase.image {
-                            image.resizable().scaledToFit().frame(maxHeight: 400).clipShape(RoundedRectangle(cornerRadius: 8))
-                        } else if phase.error != nil {
-                            EmptyView()               // offline / broken → skip
-                        } else {
-                            ProgressView().frame(maxWidth: .infinity, minHeight: 80)
-                        }
-                    }
+                    DescriptionImage(url: url)
                 case .spoiler(let title, let content):
                     SpoilerView(title: title, content: content, vm: vm)
                 case .divider:
