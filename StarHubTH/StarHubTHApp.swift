@@ -2,11 +2,10 @@ import SwiftUI
 
 /// Handles incoming `nxm://` deep links at the AppKit level.
 ///
-/// Using SwiftUI's `WindowGroup { ….onOpenURL { } }` spawns a NEW window for
-/// every incoming URL on macOS — clicking "Mod Manager Download" repeatedly
-/// stacked extra windows instead of routing to the existing one. Handling the
-/// URL through `application(_:open:)` delivers it to the single running
-/// instance without creating a window; SwiftUI never sees a URL activation.
+/// The URL is delivered through `application(_:open:)` rather than SwiftUI's
+/// `.onOpenURL`, so no SwiftUI URL activation fires. Combined with a single
+/// `Window` scene (not `WindowGroup`), clicking "Mod Manager Download"
+/// repeatedly routes into the one existing window instead of stacking new ones.
 final class AppDelegate: NSObject, NSApplicationDelegate {
     /// URLs delivered before the SwiftUI view wired up its handler — e.g. a
     /// cold launch triggered by an nxm:// click — are buffered, then flushed
@@ -45,11 +44,14 @@ struct StarHubTHApp: App {
     }
 
     var body: some Scene {
-        WindowGroup {
+        // A single `Window` (not `WindowGroup`): macOS never spawns a second
+        // window for it, so an nxm:// activation just brings this one forward
+        // instead of stacking duplicates.
+        Window("StarHubFR", id: "main") {
             MainView(vm: vm)
                 .onAppear {
                     // Route nxm:// links (buffered at cold launch) into the
-                    // single shared ViewModel — no extra windows.
+                    // single shared ViewModel.
                     appDelegate.onURL = { [vm] url in vm.handleNxmURL(url) }
                 }
         }
