@@ -13,7 +13,8 @@ enum ModFilter: String, CaseIterable, Identifiable {
 enum CategoryScope: Equatable {
     case all
     case category(NexusCategory)
-    case uncategorized
+    case inferredTag(String)   // stable inferTag key, for mods with no Nexus category
+    case uncategorized         // mods with no Nexus category whose inferred tag is "Other"
 }
 
 /// Sort order for the mods list. `.name` matches `vm.mods`'s existing
@@ -92,11 +93,13 @@ struct ModListView: View {
                     // dominant child category, so this agrees with the badge
                     // shown on the group's own row by construction.
                     return vm.category(for: mod)?.id == cat.id
+                case .inferredTag(let tag):
+                    return vm.category(for: mod) == nil && vm.inferredTagKey(for: mod) == tag
                 case .uncategorized:
                     // Same reasoning: `vm.category(for:)` returns nil for a
                     // group exactly when none of its children have a known
                     // category, matching what its badge (absence) shows.
-                    return vm.category(for: mod) == nil
+                    return vm.category(for: mod) == nil && vm.inferredTagKey(for: mod) == "Other"
                 }
             }
             .filter { mod in
@@ -235,12 +238,25 @@ struct ModListView: View {
                 .localizedCaseInsensitiveCompare($1.category.localizedName(vm.L)) == .orderedAscending }
     }
 
+    /// (tag key, localized label, count) for top-level mods with no Nexus
+    /// category and a non-"Other" inferred tag — the offline fallback buckets.
+    private var inferredTagBuckets: [(tag: String, label: String, count: Int)] {
+        var counts: [String: Int] = [:]
+        for mod in vm.mods where vm.category(for: mod) == nil {
+            let tag = vm.inferredTagKey(for: mod)
+            if tag != "Other" { counts[tag, default: 0] += 1 }
+        }
+        return counts.map { (tag: $0.key, label: vm.L(L10n.ModTag.key(for: $0.key)), count: $0.value) }
+            .sorted { $0.label < $1.label }
+    }
+
     /// Count of top-level mods (standalone mods + whole packs) with no
-    /// category assigned, matching the `.uncategorized` filter case above —
-    /// both go through `vm.category(for:)` so they can't disagree. Drives
-    /// the "No Category (N)" menu entry and its visibility.
+    /// category assigned AND an inferred tag of "Other" — matching the
+    /// `.uncategorized` filter case above (mods with a more specific inferred
+    /// tag are counted in `inferredTagBuckets` instead). Drives the
+    /// "No Category (N)" menu entry and its visibility.
     private var uncategorizedCount: Int {
-        vm.mods.filter { vm.category(for: $0) == nil }.count
+        vm.mods.filter { vm.category(for: $0) == nil && vm.inferredTagKey(for: $0) == "Other" }.count
     }
 
     /// Precomputed counts for all four scope filters, derived in a single pass
@@ -264,6 +280,7 @@ struct ModListView: View {
         let counts = scopeCounts(for: filtered)
         let categories = availableCategories
         let uncatCount = uncategorizedCount
+        let tagBuckets = inferredTagBuckets
         let display = displayMods(from: filtered)
         let pages = totalPages(for: display)
         let page = effectivePage(totalPages: pages)
@@ -297,9 +314,9 @@ struct ModListView: View {
 
                         // Category filter (Menu picker). Populated from every
                         // mod's effective category (manual override or API).
-                        categoryPicker(categories: categories, uncatCount: uncatCount)
-                            .disabled(categories.isEmpty && uncatCount == 0)
-                            .help(categories.isEmpty && uncatCount == 0
+                        categoryPicker(categories: categories, uncatCount: uncatCount, tagBuckets: tagBuckets)
+                            .disabled(categories.isEmpty && uncatCount == 0 && tagBuckets.isEmpty)
+                            .help(categories.isEmpty && uncatCount == 0 && tagBuckets.isEmpty
                                   ? vm.L(L10n.Mods.categoryFilterEmptyHint)
                                   : vm.L(L10n.Mods.categoryFilterHint))
 
@@ -310,7 +327,7 @@ struct ModListView: View {
                         }
                         .buttonStyle(.borderedProminent)
                     }
-                    if categories.isEmpty && uncatCount == 0 {
+                    if categories.isEmpty && uncatCount == 0 && tagBuckets.isEmpty {
                         Text(vm.L(L10n.Mods.categoryFilterEmptyHint))
                             .font(.system(size: 11))
                             .foregroundColor(.secondary.opacity(0.8))
@@ -603,7 +620,7 @@ struct ModListView: View {
     /// Dropdown listing every category present in the installed mods list.
     /// Selecting one scopes the list to that category; selecting "All" clears
     /// it. Each row shows the category color + localized name + mod count.
-    private func categoryPicker(categories: [(category: NexusCategory, count: Int)], uncatCount: Int) -> some View {
+    private func categoryPicker(categories: [(category: NexusCategory, count: Int)], uncatCount: Int, tagBuckets: [(tag: String, label: String, count: Int)]) -> some View {
         Menu {
             Button {
                 selectedCategory = .all
@@ -631,6 +648,18 @@ struct ModListView: View {
                     Text(entry.category.emoji + " " + entry.category.localizedName(vm.L) + "   (\(entry.count))")
                 }
             }
+            // Offline fallback: mods with no Nexus category, grouped by their
+            // inferred type tag instead of a single "uncategorized" bucket.
+            if !tagBuckets.isEmpty {
+                Divider()
+                ForEach(tagBuckets, id: \.tag) { bucket in
+                    Button {
+                        selectedCategory = .inferredTag(bucket.tag)
+                    } label: {
+                        Text("\(bucket.label)   (\(bucket.count))")
+                    }
+                }
+            }
             if selectedCategory != .all {
                 Divider()
                 Button(role: .destructive) {
@@ -652,6 +681,12 @@ struct ModListView: View {
                         .fill(cat.color)
                         .frame(width: 9, height: 9)
                     Text(cat.localizedName(vm.L))
+                        .font(.system(size: 12, weight: .medium))
+                case .inferredTag(let tag):
+                    Image(systemName: "tag.circle")
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                    Text(vm.L(L10n.ModTag.key(for: tag)))
                         .font(.system(size: 12, weight: .medium))
                 case .uncategorized:
                     Image(systemName: "circle.dashed")
@@ -798,9 +833,12 @@ struct ModListRow: View {
                 if !mod.isGroup {
                     HStack(spacing: 6) {
                         // Category badge — only for mods whose category was
-                        // fetched from Nexus or manually pinned.
+                        // fetched from Nexus or manually pinned. Otherwise
+                        // fall back to the offline-inferred type tag.
                         if let cat = vm.category(for: mod) {
                             CategoryBadge(category: cat, L: vm.L)
+                        } else {
+                            InferredTagBadge(label: vm.L(L10n.ModTag.key(for: vm.inferredTagKey(for: mod))))
                         }
                         Text(mod.author)
                             .font(.system(size: 12))
@@ -818,6 +856,8 @@ struct ModListRow: View {
                     HStack(spacing: 6) {
                         if let cat = vm.category(for: mod) {
                             CategoryBadge(category: cat, L: vm.L)
+                        } else {
+                            InferredTagBadge(label: vm.L(L10n.ModTag.key(for: vm.inferredTagKey(for: mod))))
                         }
                         Text(vm.displayAuthor(for: mod))
                             .font(.system(size: 12))
@@ -1356,5 +1396,20 @@ struct CategoryBadge: View {
                 .stroke(category.color.opacity(0.30), lineWidth: 0.5)
         )
         .help(category.englishName)
+    }
+}
+
+/// Neutral badge shown in place of `CategoryBadge` when a mod has no Nexus
+/// category: displays its offline-inferred type tag (see `ModItem.inferTag`)
+/// instead, so uncategorized mods still carry some at-a-glance grouping info.
+private struct InferredTagBadge: View {
+    let label: String
+    var body: some View {
+        Text(label)
+            .font(.system(size: 10, weight: .medium))
+            .padding(.horizontal, 6).padding(.vertical, 2)
+            .background(Color.secondary.opacity(0.15))
+            .foregroundColor(.secondary)
+            .clipShape(Capsule())
     }
 }
