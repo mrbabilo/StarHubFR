@@ -560,6 +560,7 @@ enum L10n {
         static let restoreBackup        = "mod_install_restore_backup"
         static let deleteBackup         = "mod_install_delete_backup"
         static let noBackups            = "mod_install_no_backups"
+        static let noBackupsHint        = "mod_install_no_backups_hint"
         static let deleteConfirm        = "mod_install_delete_confirm"
         static let restoreConfirm       = "mod_install_restore_confirm"
         static let restoreConfirmMessage = "mod_install_restore_confirm_msg"

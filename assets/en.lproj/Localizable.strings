@@ -459,6 +459,7 @@
 "mod_install_restore_backup" = "Restore";
 "mod_install_delete_backup" = "Delete";
 "mod_install_no_backups" = "No mod install backups yet";
+"mod_install_no_backups_hint" = "Backups are created automatically when you install or update a mod that would overwrite an existing one.";
 "mod_install_delete_confirm" = "Delete Backup?";
 "mod_install_invalid_structure" = "This zip file doesn't contain a valid mod structure (missing manifest.json).";
 "mod_install_oversized" = "This zip file is too large to install.";

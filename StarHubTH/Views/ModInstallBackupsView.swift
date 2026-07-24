@@ -20,18 +20,25 @@ struct ModInstallBackupsView: View {
         VStack(spacing: 0) {
             // Header
             HStack {
-                Text(vm.L(L10n.ModInstall.manageBackups))
-                    .font(.system(size: 20, weight: .semibold))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(vm.L(L10n.ModInstall.manageBackups))
+                        .font(.system(size: 18, weight: .semibold))
+                    Text("\(backups.count) \(vm.L(L10n.ModInstall.manageBackups).lowercased())")
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                }
                 Spacer()
                 Button {
                     loadBackups()
                 } label: {
                     Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 13))
                 }
                 .buttonStyle(.bordered)
                 .help(vm.L(L10n.ModInstall.refreshBackups))
             }
-            .padding()
+            .padding(.horizontal, 20)
+            .padding(.vertical, 16)
 
             Divider()
 
@@ -42,7 +49,7 @@ struct ModInstallBackupsView: View {
                 backupList
             }
         }
-        .frame(minWidth: 500, minHeight: 300)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
             // Opportunistically prune expired backups before showing the
             // list, so what the user sees reflects the retention policy.
@@ -91,35 +98,46 @@ struct ModInstallBackupsView: View {
     }
 
     private var emptyState: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 16) {
             Image(systemName: "tray")
-                .font(.system(size: 40))
-                .foregroundColor(.secondary.opacity(0.5))
+                .font(.system(size: 48))
+                .foregroundColor(.secondary.opacity(0.4))
             Text(vm.L(L10n.ModInstall.noBackups))
                 .font(.system(size: 14))
                 .foregroundColor(.secondary)
+            Text(vm.L(L10n.ModInstall.noBackupsHint))
+                .font(.system(size: 12))
+                .foregroundColor(.secondary.opacity(0.7))
+                .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding()
+        .padding(40)
     }
 
     private var backupList: some View {
         ScrollView {
-            VStack(spacing: 0) {
+            VStack(spacing: 8) {
                 ForEach(backups) { backup in
                     backupRow(backup)
-                    if backup.id != backups.last?.id {
-                        Divider()
-                    }
                 }
             }
-            .padding()
+            .padding(20)
         }
     }
 
     private func backupRow(_ backup: ModInstallBackup) -> some View {
         HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
+            // Reason icon badge
+            ZStack {
+                Circle()
+                    .fill(Color.pink.opacity(0.12))
+                    .frame(width: 34, height: 34)
+                Image(systemName: reasonIcon(for: backup.reason))
+                    .font(.system(size: 13))
+                    .foregroundColor(.pink)
+            }
+
+            VStack(alignment: .leading, spacing: 3) {
                 Text(backup.modMetadata.name)
                     .font(.system(size: 13, weight: .medium))
                 Text("v\(backup.modMetadata.version) • \(backup.modMetadata.author)")
@@ -132,7 +150,7 @@ struct ModInstallBackupsView: View {
 
             Spacer()
 
-            VStack(alignment: .trailing, spacing: 4) {
+            VStack(alignment: .trailing, spacing: 3) {
                 Text(backup.formattedDate)
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
@@ -141,29 +159,42 @@ struct ModInstallBackupsView: View {
                     .foregroundColor(.secondary.opacity(0.8))
             }
 
-            HStack(spacing: 8) {
+            HStack(spacing: 6) {
                 Button {
                     backupToRestore = backup
                     showRestoreConfirm = true
                 } label: {
-                    Label(vm.L(L10n.ModInstall.restoreBackup), systemImage: "arrow.uturn.backward")
+                    Image(systemName: "arrow.uturn.backward")
+                        .font(.system(size: 12))
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
                 .disabled(isBusy)
+                .help(vm.L(L10n.ModInstall.restoreBackup))
 
                 Button {
                     backupToDelete = backup
                     showDeleteConfirm = true
                 } label: {
-                    Label(vm.L(L10n.ModInstall.deleteBackup), systemImage: "trash")
+                    Image(systemName: "trash")
+                        .font(.system(size: 12))
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
                 .disabled(isBusy)
+                .help(vm.L(L10n.ModInstall.deleteBackup))
             }
         }
-        .padding(.vertical, 8)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color(nsColor: .controlBackgroundColor))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.secondary.opacity(0.12), lineWidth: 0.5)
+        )
         .contextMenu {
             Button(vm.L(L10n.ModInstall.restoreBackup)) {
                 backupToRestore = backup
@@ -176,6 +207,14 @@ struct ModInstallBackupsView: View {
             }
         }
         .disabled(isBusy)
+    }
+
+    private func reasonIcon(for reason: BackupReason) -> String {
+        switch reason {
+        case .beforeInstall: return "plus.circle"
+        case .beforeUpdate: return "arrow.up.circle"
+        case .beforeRestore: return "arrow.uturn.backward.circle"
+        }
     }
 
     private func loadBackups() {

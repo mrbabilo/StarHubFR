@@ -30,6 +30,7 @@ struct MainView: View {
         if currentTab == "Mods" && vm.editingModConfig != nil { return vm.editingModConfig!.name }
         if currentTab == "Mods" && vm.viewingModDetail != nil { return vm.viewingModDetail!.name }
         if currentTab == "Mods" { return vm.L(L10n.Mods.mods) }
+        if currentTab == "InstallBackups" { return vm.L(L10n.ModInstall.manageBackups) }
         if currentTab == "ConfigBackups" { return vm.L(L10n.ModConfigBackups.title) }
         if currentTab == "Profiles" { return vm.L(L10n.Profiles.title) }
         if currentTab == "Updates" { return vm.L(L10n.Main.modUpdates) }
@@ -173,6 +174,16 @@ struct MainView: View {
                         )
                     }
 
+                    if matchesSearch(vm.L(L10n.ModInstall.manageBackups)) {
+                        SidebarNavItem(
+                            icon: "arrow.uturn.backward.circle.fill",
+                            iconColor: .pink,
+                            label: vm.L(L10n.ModInstall.manageBackups),
+                            tab: "InstallBackups",
+                            currentTab: $currentTab
+                        )
+                    }
+
                     if matchesSearch(vm.L(L10n.ModConfigBackups.tabTitle)) {
                         SidebarNavItem(
                             icon: "archivebox.fill",
@@ -269,6 +280,8 @@ struct MainView: View {
                     }
                 } else if currentTab == "ConfigBackups" {
                     ModConfigBackupsView(vm: vm)
+                } else if currentTab == "InstallBackups" {
+                    ModInstallBackupsView(vm: vm)
                 } else if currentTab == "Saves" {
                     if let save = vm.viewingSaveTimeline {
                         SaveTimelineView(vm: vm, save: save)
@@ -383,7 +396,7 @@ struct MainView: View {
             vm.pendingDownloadedZip = nil
             vm.pendingNexusSource = nil
         }) {
-            ModInstallView(vm: vm, preloadedZip: vm.pendingDownloadedZip)
+            ModInstallView(vm: vm, isPresented: $showDownloadedInstall, preloadedZip: vm.pendingDownloadedZip)
         }
     }
     

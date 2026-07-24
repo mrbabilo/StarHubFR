@@ -11,21 +11,26 @@ struct ModInstallView: View {
     @State private var errorMessage: String?
     @State private var showError = false
     @State private var tempDir: URL?
-    @State private var showBackups = false
     @State private var installedModNames: [String] = []
     @State private var showSuccess = false
+    @State private var showFilePicker = false
     /// Set false in `onDisappear`. A background analysis started before
     /// dismissal can still complete afterward; its completion checks this
     /// flag so it cleans up the temp dir itself instead of writing into
     /// `@State` that `onDisappear` already ran past (which would leak it).
     @State private var isViewActive = true
 
+    /// Binding controlled by the parent so the sheet can be dismissed from
+    /// inside this view (close button / Done button).
+    @Binding var isPresented: Bool
+
     let preloadedZip: URL?
 
     private let installer = ModZipInstaller()
 
-    init(vm: StarHubTHViewModel, preloadedZip: URL? = nil) {
+    init(vm: StarHubTHViewModel, isPresented: Binding<Bool>, preloadedZip: URL? = nil) {
         self.vm = vm
+        self._isPresented = isPresented
         self.preloadedZip = preloadedZip
     }
 
@@ -39,15 +44,26 @@ struct ModInstallView: View {
                     Text(vm.L(L10n.ModInstall.title))
                         .font(.system(size: 20, weight: .semibold))
                     Spacer()
-                    Button(vm.L(L10n.ModInstall.manageBackups)) {
-                        showBackups = true
+                    Button {
+                        isPresented = false
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 18))
+                            .foregroundColor(.secondary.opacity(0.6))
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.plain)
+                    .pointingHandCursor()
+                    .help(vm.L(L10n.Saves.cancel))
                 }
 
                 // Drop zone
                 if zipModInfo == nil {
                     dropZone
+                        .onTapGesture {
+                            guard !isAnalyzing, !isInstalling else { return }
+                            showFilePicker = true
+                        }
+                        .pointingHandCursor()
                 } else {
                     InstallPreview(
                         zipModInfo: zipModInfo!,
@@ -73,8 +89,17 @@ struct ModInstallView: View {
             handleDrop(providers)
             return true
         }
-        .sheet(isPresented: $showBackups) {
-            ModInstallBackupsView(vm: vm)
+        .fileImporter(isPresented: $showFilePicker, allowedContentTypes: [.zip], allowsMultipleSelection: false) { result in
+            switch result {
+            case .success(let files):
+                if let url = files.first {
+                    // Drop any pending Nexus source so it can't misapply.
+                    self.vm.pendingNexusSource = nil
+                    self.analyzeZip(url)
+                }
+            case .failure:
+                break
+            }
         }
         .alert(vm.L(L10n.ModInstall.validationError), isPresented: $showError) {
             Button(vm.L(L10n.Main.ok)) { }
@@ -129,6 +154,7 @@ struct ModInstallView: View {
             Button(vm.L(L10n.ModInstall.done)) {
                 showSuccess = false
                 installedModNames = []
+                isPresented = false
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
@@ -157,7 +183,7 @@ struct ModInstallView: View {
 
                     Text(vm.L(L10n.ModInstall.dropHint))
                         .font(.system(size: 12))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.accentColor.opacity(0.8))
                 }
             }
         }

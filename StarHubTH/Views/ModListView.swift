@@ -434,7 +434,7 @@ struct ModListView: View {
         .onChange(of: configOnlyFilter) { currentPage = 1 }
         .onChange(of: vm.mods.count)    { currentPage = 1 }
         .sheet(isPresented: $showInstallSheet) {
-            ModInstallView(vm: vm)
+            ModInstallView(vm: vm, isPresented: $showInstallSheet)
         }
         .confirmationDialog(
             bulkToggleTarget == true

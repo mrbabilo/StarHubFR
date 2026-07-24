@@ -459,6 +459,7 @@
   "mod_install_restore_backup": "Restaurer",
   "mod_install_delete_backup": "Supprimer",
   "mod_install_no_backups": "Aucune sauvegarde d'installation de mod pour le moment",
+  "mod_install_no_backups_hint": "Les sauvegardes sont créées automatiquement lorsque vous installez ou mettez à jour un mod qui remplace un mod existant.",
   "mod_install_delete_confirm": "Supprimer la sauvegarde ?",
   "mod_install_invalid_structure": "Ce fichier zip ne contient pas une structure de mod valide (manifest.json manquant).",
   "mod_install_oversized": "Ce fichier zip est trop volumineux pour être installé.",
