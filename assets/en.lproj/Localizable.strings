@@ -483,6 +483,7 @@
 "mod_install_backup_reason_install" = "Before Install";
 "mod_install_backup_reason_update" = "Before Update";
 "mod_install_backup_reason_restore" = "Before Restore";
+"mod_install_retention_policy" = "Backups are kept for up to 30 days (all within that window), plus the most recent backup per calendar month for longer history; at least the 5 most recent backups are always preserved.";
 "category_2" = "Miscellaneous";
 "category_3" = "Gameplay Mechanics";
 "category_4" = "Player";

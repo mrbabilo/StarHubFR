@@ -42,6 +42,11 @@ struct ModInstallBackupsView: View {
 
             Divider()
 
+            // Retention policy info banner
+            retentionInfoBanner
+
+            Divider()
+
             // Content
             if backups.isEmpty {
                 emptyState
@@ -215,6 +220,21 @@ struct ModInstallBackupsView: View {
         case .beforeUpdate: return "arrow.up.circle"
         case .beforeRestore: return "arrow.uturn.backward.circle"
         }
+    }
+
+    private var retentionInfoBanner: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "info.circle.fill")
+                .font(.system(size: 13))
+                .foregroundColor(.accentColor.opacity(0.7))
+            Text(vm.L(L10n.ModInstall.retentionPolicy))
+                .font(.system(size: 11))
+                .foregroundColor(.secondary)
+            Spacer()
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 8)
+        .background(Color(nsColor: .controlBackgroundColor))
     }
 
     private func loadBackups() {

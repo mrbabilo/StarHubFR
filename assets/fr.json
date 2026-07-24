@@ -483,6 +483,7 @@
   "mod_install_backup_reason_install": "Avant installation",
   "mod_install_backup_reason_update": "Avant mise à jour",
   "mod_install_backup_reason_restore": "Avant restauration",
+  "mod_install_retention_policy": "Les sauvegardes sont conservées jusqu'à 30 jours (toutes dans cette fenêtre), plus la sauvegarde la plus récente par mois calendaire ; au moins les 5 sauvegardes les plus récentes sont toujours conservées.",
   "category_2": "Divers",
   "category_3": "Mécaniques de jeu",
   "category_4": "Joueur",
