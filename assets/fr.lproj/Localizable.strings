@@ -145,6 +145,11 @@
 "mods_spoiler_show" = "Afficher";
 "mods_spoiler_hide" = "Masquer";
 "mods_mods" = "Mods";
+"mods_detail_description" = "Description";
+"mods_detail_changelog" = "Journal des modifications";
+"mods_detail_offline" = "Contenu enrichi indisponible hors-ligne";
+"mods_detail_view" = "Voir les détails";
+"mods_detail_cached" = "En cache";
 "logs_system_logs" = "Journaux système";
 "logs_no_logs" = "Aucun journal pour cette session";
 "logs_mac_o_s_tips" = "Astuces de dépannage macOS";

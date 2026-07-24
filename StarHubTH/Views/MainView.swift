@@ -28,6 +28,7 @@ struct MainView: View {
         if currentTab == "Saves" && vm.editingSave != nil { return vm.editingSave!.playerName }
         if currentTab == "ThaiHub" && vm.viewingThaiMod != nil { return vm.viewingThaiMod!.name }
         if currentTab == "Mods" && vm.editingModConfig != nil { return vm.editingModConfig!.name }
+        if currentTab == "Mods" && vm.viewingModDetail != nil { return vm.viewingModDetail!.name }
         if currentTab == "Mods" { return vm.L(L10n.Mods.mods) }
         if currentTab == "ConfigBackups" { return vm.L(L10n.ModConfigBackups.title) }
         if currentTab == "Profiles" { return vm.L(L10n.Profiles.title) }
@@ -260,6 +261,8 @@ struct MainView: View {
                 if currentTab == "Mods" {
                     if let mod = vm.editingModConfig {
                         ModConfigEditorView(vm: vm, mod: mod, initialTab: 1)
+                    } else if let mod = vm.viewingModDetail {
+                        ModDetailView(vm: vm, mod: mod)
                     } else {
                         ModListView(vm: vm)
                     }
@@ -295,6 +298,7 @@ struct MainView: View {
                 vm.viewingThaiMod = nil
                 vm.viewingSaveTimeline = nil
                 vm.editingModConfig = nil
+                vm.viewingModDetail = nil
 
                 if !isNavigatingBackOrForward {
                     if tabHistory.last != currentTab {
@@ -317,6 +321,8 @@ struct MainView: View {
                                 vm.viewingSaveTimeline = nil
                             } else if vm.editingModConfig != nil {
                                 vm.editingModConfig = nil
+                            } else if vm.viewingModDetail != nil {
+                                vm.viewingModDetail = nil
                             } else if tabHistory.count > 1 {
                                 isNavigatingBackOrForward = true
                                 let current = tabHistory.removeLast()
@@ -326,7 +332,7 @@ struct MainView: View {
                         }) {
                             Image(systemName: "chevron.left")
                         }
-                        .disabled(vm.editingSave == nil && vm.viewingThaiMod == nil && vm.viewingSaveTimeline == nil && vm.editingModConfig == nil && tabHistory.count <= 1)
+                        .disabled(vm.editingSave == nil && vm.viewingThaiMod == nil && vm.viewingSaveTimeline == nil && vm.editingModConfig == nil && vm.viewingModDetail == nil && tabHistory.count <= 1)
                         
                         Button(action: {
                             if let next = forwardHistory.popLast() {

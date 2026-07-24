@@ -208,6 +208,12 @@ enum L10n {
         static let spoilerShow          = "mods_spoiler_show"
         static let spoilerHide          = "mods_spoiler_hide"
         static let mods                 = "mods_mods"
+        // Rich detail pane (ModDetailView)
+        static let detailDescription    = "mods_detail_description"
+        static let detailChangelog      = "mods_detail_changelog"
+        static let detailOffline        = "mods_detail_offline"
+        static let detailView           = "mods_detail_view"
+        static let detailCached         = "mods_detail_cached"
     }
 
     // MARK: - ModConfigBackups

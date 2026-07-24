@@ -1027,6 +1027,12 @@ struct ModListRow: View {
             Button(vm.L(L10n.Settings.configCodeEditor)) {
                 vm.editingModConfig = mod
             }
+            // Temporary entry point into the rich detail pane (SP2 Task 4).
+            // Info button keeps opening ModDetailsPopover for category/Nexus-id
+            // editing — repointing it is Task 5.
+            Button(vm.L(L10n.Mods.detailView)) {
+                vm.viewingModDetail = mod
+            }
             let effectiveLink = vm.nexusLink(for: mod)
             if !effectiveLink.isEmpty {
                 Button(vm.L(L10n.Mods.viewDetailsOnNexus)) {
