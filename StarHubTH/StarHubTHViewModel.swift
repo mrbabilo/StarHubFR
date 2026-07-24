@@ -280,7 +280,15 @@ class StarHubTHViewModel: ObservableObject {
     /// Used by `getDisabledDependencies(for:)` to flag required deps that are
     /// installed but currently disabled (a real problem for the mod that needs them).
     private var installedModStates: [String: Bool] = [:]
-    
+
+    /// Lowercased UniqueID → the installed `ModItem` (pack children included),
+    /// rebuilt in `scanMods()`. The single lookup shared by `dependencyTree(for:)`
+    /// (and available to the Issues-filter helpers, which read sibling indexes
+    /// rebuilt from the same `scannedMods`). Unlike the bool maps above it yields
+    /// the resolved mod, needed to read a dependency's OWN dependencies when
+    /// recursing.
+    private var installedModsByUniqueId: [String: ModItem] = [:]
+
     // Thai Translation Hub State
     @Published var thaiTranslations: [ThaiTranslationMod] = []
     /// Set when fetchThaiTranslations() fails (network error, bad response,
@@ -613,14 +621,7 @@ class StarHubTHViewModel: ObservableObject {
                 if let mAuthor = json.caseInsensitiveValue(forKey: "Author") as? String { author = mAuthor }
                 if let mDesc = json.caseInsensitiveValue(forKey: "Description") as? String { description = mDesc }
                 
-                if let deps = json.caseInsensitiveValue(forKey: "Dependencies") as? [[String: Any]] {
-                    for dep in deps {
-                        if let depId = dep.caseInsensitiveValue(forKey: "UniqueID") as? String {
-                            let isReq = dep.caseInsensitiveValue(forKey: "IsRequired") as? Bool ?? true
-                            dependencies.append(ModDependency(uniqueId: depId, isRequired: isReq))
-                        }
-                    }
-                }
+                dependencies = ModDependencyParser.parse(manifest: json)
                 
                 if let updateKeys = json.caseInsensitiveValue(forKey: "UpdateKeys") as? [String] {
                     for key in updateKeys {
@@ -737,21 +738,25 @@ class StarHubTHViewModel: ObservableObject {
             // so dependency lookups are O(1) per dep instead of O(N) per row.
             var ids = Set<String>()
             var states: [String: Bool] = [:]
+            var byId: [String: ModItem] = [:]
             for m in scannedMods {
                 if m.isGroup, let children = m.children {
                     for c in children {
                         let k = c.uniqueId.lowercased()
                         ids.insert(k)
                         states[k] = c.isEnabled
+                        byId[k] = c
                     }
                 } else {
                     let k = m.uniqueId.lowercased()
                     ids.insert(k)
                     states[k] = m.isEnabled
+                    byId[k] = m
                 }
             }
             self.installedUniqueIds = ids
             self.installedModStates = states
+            self.installedModsByUniqueId = byId
             if self.selectedMod == nil, let first = self.mods.first {
                 self.selectedMod = first
             }
@@ -889,6 +894,37 @@ class StarHubTHViewModel: ObservableObject {
                 return dep.uniqueId
             }
             return nil
+        }
+    }
+
+    /// Builds `mod`'s transitive dependency tree (see `DependencyTreeBuilder`).
+    /// For a pack header (group, whose own `dependencies` are empty) it seeds the
+    /// builder with the de-duplicated UNION of its children's dependencies, so a
+    /// pack still shows a meaningful tree. Rebuilds from `@Published mods` state,
+    /// so an "Enable" action (which republishes `mods`) makes the view re-resolve.
+    func dependencyTree(for mod: ModItem) -> [DependencyNode] {
+        let roots: [ModDependency]
+        if mod.isGroup, let children = mod.children {
+            var merged: [ModDependency] = []
+            for child in children {
+                for dep in child.dependencies {
+                    let key = dep.uniqueId.lowercased()
+                    if let idx = merged.firstIndex(where: { $0.uniqueId.lowercased() == key }) {
+                        if dep.isRequired && !merged[idx].isRequired {
+                            merged[idx] = ModDependency(uniqueId: merged[idx].uniqueId, isRequired: true)
+                        }
+                    } else {
+                        merged.append(dep)
+                    }
+                }
+            }
+            roots = merged
+        } else {
+            roots = mod.dependencies
+        }
+        return DependencyTreeBuilder.build(roots) { [weak self] uid in
+            guard let m = self?.installedModsByUniqueId[uid.lowercased()] else { return nil }
+            return (m, m.isEnabled, m.dependencies)
         }
     }
 
