@@ -204,6 +204,9 @@ enum L10n {
         static let pageIndicator        = "mods_page_indicator"
         static let pageShowing          = "mods_page_showing"
         static let pageJumpLabel        = "mods_page_jump_label"
+        static let spoiler              = "mods_spoiler"
+        static let spoilerShow          = "mods_spoiler_show"
+        static let spoilerHide          = "mods_spoiler_hide"
         static let mods                 = "mods_mods"
     }
 
