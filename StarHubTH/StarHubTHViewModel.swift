@@ -1484,7 +1484,10 @@ class StarHubTHViewModel: ObservableObject {
                 )
             )
         }
-        return consolidated
+        // Most recently updated mods first; unknown upload dates sort last.
+        return consolidated.sorted {
+            ($0.uploadedTime ?? .distantPast) > ($1.uploadedTime ?? .distantPast)
+        }
     }
 
     /// Picks the update with the highest `latestVersion`. When several updates
@@ -1779,8 +1782,22 @@ class StarHubTHViewModel: ObservableObject {
         }
     }
 
-    /// After a Nexus-sourced install, correct the installed mod's manifest
-    /// Version to the Nexus file's version when the author forgot to bump it.
+    /// Drops a just-installed mod from the Nexus update list (and the persisted
+    /// cache) so it stops showing as "update available" — the user just
+    /// installed its latest file. Call on the main thread.
+    func dismissNexusUpdate(nexusModId: Int) {
+        let idStr = String(nexusModId)
+        nexusUpdates.removeAll { $0.nexusModId == idStr }
+        NexusUpdateChecker.shared.dismissUpdate(nexusModId: idStr)
+    }
+
+    /// After a Nexus-sourced install, reconcile the installed manifest against
+    /// the SAME "latest" the update checker flags on — the mod's pending
+    /// `ModUpdate` entry (mod version from `/mods/{id}.json`), NOT the
+    /// downloaded file's own version. The file version can differ (e.g. an
+    /// optional file picked on the free nxm:// path), which would write a value
+    /// the checker doesn't recognize and leave the mod re-flagged. Must run
+    /// BEFORE `dismissNexusUpdate` removes the entry. Synchronous; call on main.
     /// v1: single-mod installs only (packs are skipped upstream).
     func reconcileManifestVersion(installedFolderPaths: [String]) {
         guard let source = pendingNexusSource else { return }
@@ -1790,48 +1807,44 @@ class StarHubTHViewModel: ObservableObject {
         guard installedFolderPaths.count == 1, let folderPath = installedFolderPaths.first else {
             return  // pack / ambiguous → abstain (v1)
         }
+        // The update entry the checker computed for this mod (mod version + upload
+        // date). If it isn't flagged, there's nothing to reconcile.
+        let idStr = String(source.modId)
+        guard let update = nexusUpdates.first(where: { $0.nexusModId == idStr }),
+              !update.latestVersion.isEmpty else { return }
+        let nexusVersion = update.latestVersion
+        let uploaded = update.uploadedTime
+
         let manifestPath = (folderPath as NSString).appendingPathComponent("manifest.json")
         guard let raw = try? String(contentsOfFile: manifestPath, encoding: .utf8) else { return }
         let currentVersion = ManifestVersionPatcher.extractVersionValue(from: raw)
-        // The update checker compares the Nexus upload date to the mod
-        // FOLDER's mtime, not the manifest's — see parseModFolder's
-        // `installedFileDate` comment above.
+        // The update checker compares the Nexus upload date to the mod FOLDER's
+        // mtime, not the manifest's — see parseModFolder's `installedFileDate`.
         let manifestModified = (try? FileManager.default.attributesOfItem(atPath: folderPath))?[.modificationDate] as? Date
 
-        nexusDownloader.getModFiles(modId: source.modId) { [weak self] result in
-            guard let self = self else { return }
-            guard case .success(let list) = result,
-                  let file = NexusDownloadAPI.file(withId: source.fileId, in: list),
-                  let nexusVersion = file.version, !nexusVersion.isEmpty else { return }
-            let uploaded = file.uploadedTimestamp.map { Date(timeIntervalSince1970: TimeInterval($0)) }
+        let decision = ManifestVersionPatcher.decide(
+            nexusVersion: nexusVersion, nexusUploaded: uploaded,
+            manifestVersion: currentVersion, manifestModified: manifestModified,
+            isNewer: { NexusUpdateChecker.isNewer($0, installed: $1) })
 
-            let decision = ManifestVersionPatcher.decide(
-                nexusVersion: nexusVersion, nexusUploaded: uploaded,
-                manifestVersion: currentVersion, manifestModified: manifestModified,
-                isNewer: { NexusUpdateChecker.isNewer($0, installed: $1) })
-
-            let modName = (folderPath as NSString).lastPathComponent
-            DispatchQueue.main.async {
-                switch decision {
-                case .correctVersion(let newVersion):
-                    if let patched = ManifestVersionPatcher.replaceVersionValue(in: raw, with: newVersion),
-                       (try? patched.write(toFile: manifestPath, atomically: true, encoding: .utf8)) != nil {
-                        self.log(String(format: self.L(L10n.VM.manifestVersionFixed), modName, currentVersion ?? "?", newVersion))
-                        self.refresh()
-                    } else {
-                        self.log(String(format: self.L(L10n.VM.manifestVersionSkipped), modName, currentVersion ?? "?"))
-                    }
-                case .refreshDate:
-                    // No higher version to write (minor update, no bump): touch
-                    // the mod FOLDER's mtime (what the checker actually reads —
-                    // not the manifest's) so it stops flagging a phantom update.
-                    try? FileManager.default.setAttributes([.modificationDate: Date()], ofItemAtPath: folderPath)
-                    self.log(String(format: self.L(L10n.VM.manifestVersionDateFixed), modName))
-                    self.refresh()
-                case .noChange:
-                    self.log(String(format: self.L(L10n.VM.manifestVersionSkipped), modName, currentVersion ?? "?"))
-                }
+        let modName = (folderPath as NSString).lastPathComponent
+        switch decision {
+        case .correctVersion(let newVersion):
+            if let patched = ManifestVersionPatcher.replaceVersionValue(in: raw, with: newVersion),
+               (try? patched.write(toFile: manifestPath, atomically: true, encoding: .utf8)) != nil {
+                log(String(format: L(L10n.VM.manifestVersionFixed), modName, currentVersion ?? "?", newVersion))
+                refresh()
+            } else {
+                log(String(format: L(L10n.VM.manifestVersionSkipped), modName, currentVersion ?? "?"))
             }
+        case .refreshDate:
+            // No higher version to write (minor update, no bump): touch the mod
+            // FOLDER's mtime (what the checker reads) so it stops flagging.
+            try? FileManager.default.setAttributes([.modificationDate: Date()], ofItemAtPath: folderPath)
+            log(String(format: L(L10n.VM.manifestVersionDateFixed), modName))
+            refresh()
+        case .noChange:
+            log(String(format: L(L10n.VM.manifestVersionSkipped), modName, currentVersion ?? "?"))
         }
     }
 

@@ -178,6 +178,16 @@ final class NexusUpdateChecker {
         withMetadataCacheLock { loadCachedUpdates() }
     }
 
+    /// Removes a mod from the persisted update cache (e.g. right after
+    /// installing its update) so it no longer shows as "update available",
+    /// including across app launches.
+    func dismissUpdate(nexusModId: String) {
+        withMetadataCacheLock {
+            let remaining = loadCachedUpdates().filter { $0.nexusModId != nexusModId }
+            saveCachedUpdates(remaining)
+        }
+    }
+
     /// Runs a full check across all mods that declare a Nexus id.
     /// Uses bounded concurrency (default 6 parallel requests) to stay fast
     /// while remaining friendly with the API rate limit. Calls `completion`

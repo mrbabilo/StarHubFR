@@ -332,14 +332,18 @@ struct ModInstallView: View {
                     // download) may have an author-forgotten manifest
                     // Version — reconcile it against the Nexus file's own
                     // version/date now that the mod is on disk.
-                    if self.vm.pendingNexusSource != nil {
+                    if let source = self.vm.pendingNexusSource {
                         let installedFolderPaths = self.installedFolderPaths(
                             selections: selections,
                             detectedMods: info.detectedMods,
                             existingMods: existingMods,
                             gameDir: gameDir
                         )
+                        // Reconcile FIRST — it reads this mod's update entry to
+                        // learn the version the checker flags on — then drop the
+                        // entry from the list so it no longer appears.
                         self.vm.reconcileManifestVersion(installedFolderPaths: installedFolderPaths)
+                        self.vm.dismissNexusUpdate(nexusModId: source.modId)
                     }
 
                     // Auto-fetch Nexus metadata (image + description) for
