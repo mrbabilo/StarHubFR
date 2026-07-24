@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Offline mod type tags**: each mod is auto-classified into a type (UI, Framework, Content Patcher, Translation, Cosmetic, NPC, Audio, Map, Gameplay, …) inferred from its manifest — shown as a badge and filterable. Used as an **offline fallback** for the category filter: mods with no Nexus category are now grouped under their inferred type instead of a single "uncategorized" bucket. Ported from upstream, localized (en/th/fr).
 - **Launch Game button** (Home page): starts Stardew Valley directly from StarHubFR using the launch profile configured in Settings (SMAPI or Vanilla), with the active profile shown beneath the button — wiring up launch logic that previously existed in the code but was never reachable from the UI.
   - Install-type aware: Steam installs launch through Steam (`steam://run/413150`), while direct/GOG installs run SMAPI's in-place launcher (`StardewValley`) directly. Previously the launch always routed through Steam whenever Steam was installed at all, which hijacked direct/GOG launches (Steam opened but the game never started).
 - **Mod Config Editor** (`ModConfigEditorView` / `CodeEditorView`): Edit a mod's `config.json` directly from the app, opened via the "Code Editor" entry in a mod's context menu.
