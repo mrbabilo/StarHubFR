@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import os
 import shutil
-import glob
 import subprocess
 import sys
 import json
@@ -16,7 +15,7 @@ SUPPORTED_LOCALES = {
     "fr": "Centralized French Localization Strings",
 }
 
-def strings_escape(value):
+def strings_escape(value: str) -> str:
     return (
         value
         .replace("\\", "\\\\")
@@ -24,19 +23,19 @@ def strings_escape(value):
         .replace("\n", "\\n")
     )
 
-def generate_localizable_strings():
-    locale_data = {}
+def generate_localizable_strings() -> None:
+    locale_data: dict[str, dict[str, str]] = {}
     for locale in SUPPORTED_LOCALES:
         json_path = os.path.join("assets", f"{locale}.json")
         with open(json_path, "r", encoding="utf-8") as file:
             locale_data[locale] = json.load(file)
 
-    key_sets = {locale: set(values.keys()) for locale, values in locale_data.items()}
+    key_sets: dict[str, set[str]] = {locale: set(values.keys()) for locale, values in locale_data.items()}
     reference_locale = "en"
-    reference_keys = key_sets[reference_locale]
+    reference_keys: set[str] = key_sets[reference_locale]
     for locale, keys in key_sets.items():
-        missing = sorted(reference_keys - keys)
-        extra = sorted(keys - reference_keys)
+        missing: list[str] = sorted(reference_keys - keys)
+        extra: list[str] = sorted(keys - reference_keys)
         if missing or extra:
             if missing:
                 print(f"[ERROR] {locale}.json is missing keys: {', '.join(missing)}")
@@ -54,16 +53,16 @@ def generate_localizable_strings():
                 file.write(f'"{strings_escape(key)}" = "{strings_escape(value)}";\n')
         print(f"[INFO] Generated {strings_path}")
 
-def gather_swift_files():
+def gather_swift_files() -> list[str]:
     """Return every .swift file compiled into the app (whole StarHubTH/ tree)."""
-    swift_files = []
-    for root, dirs, files in os.walk("StarHubTH"):
+    swift_files: list[str] = []
+    for root, _, files in os.walk("StarHubTH"):
         for file in files:
             if file.endswith(".swift"):
                 swift_files.append(os.path.join(root, file))
     return sorted(swift_files)
 
-def build_swiftc_command(swift_files, app_executable, module_cache_dir):
+def build_swiftc_command(swift_files: list[str], app_executable: str, module_cache_dir: str) -> list[str]:
     """The exact swiftc invocation used to compile the app (single module)."""
     return ["swiftc"] + swift_files + [
         "-o", app_executable,
@@ -71,15 +70,15 @@ def build_swiftc_command(swift_files, app_executable, module_cache_dir):
         "-module-cache-path", module_cache_dir,
     ]
 
-def write_compile_commands(swift_files, app_executable, module_cache_dir):
+def write_compile_commands(swift_files: list[str], app_executable: str, module_cache_dir: str) -> None:
     """Write a compile database so SourceKit-LSP indexes ALL files (Core + UI).
 
     The app is one swiftc-compiled module, so every file's entry carries the
     full whole-module command. Regenerated on each build; keep out of git.
     """
     repo_root = os.path.abspath(".")
-    arguments = build_swiftc_command(swift_files, app_executable, module_cache_dir)
-    entries = [
+    arguments: list[str] = build_swiftc_command(swift_files, app_executable, module_cache_dir)
+    entries: list[dict[str, str | list[str]]] = [
         {
             "directory": repo_root,
             "file": os.path.abspath(swift_file),
