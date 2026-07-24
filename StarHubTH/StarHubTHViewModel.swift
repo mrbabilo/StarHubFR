@@ -1538,6 +1538,13 @@ class StarHubTHViewModel: ObservableObject {
         return result
     }
 
+    /// Stable inferred type key for a mod. For a group, uses the primary
+    /// (first) child — mirrors upstream's "group shows its primary child's tag".
+    func inferredTagKey(for mod: ModItem) -> String {
+        let target = (mod.isGroup ? (mod.children?.first ?? mod) : mod)
+        return ModItem.inferTag(name: target.name, uniqueId: target.uniqueId, description: target.description)
+    }
+
     private func computeCategory(for mod: ModItem) -> NexusCategory? {
         if let cid = nexusCustomCategories[mod.folderName],
            let cat = NexusCategory.from(id: cid) {
