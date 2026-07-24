@@ -35,7 +35,11 @@ enum NexusDownloadAPI {
     static func downloadLinkEndpoint(game: String, modId: Int, fileId: Int, key: String?, expires: Int?) -> String {
         let base = "/games/\(game)/mods/\(modId)/files/\(fileId)/download_link.json"
         if let key = key, let expires = expires {
-            return "\(base)?key=\(key)&expires=\(expires)"
+            // Percent-encode the key so a value containing &, =, or + can't
+            // break the query (Nexus keys are alphanumeric today, but be safe).
+            let allowed = CharacterSet.urlQueryAllowed.subtracting(CharacterSet(charactersIn: "&=+"))
+            let encodedKey = key.addingPercentEncoding(withAllowedCharacters: allowed) ?? key
+            return "\(base)?key=\(encodedKey)&expires=\(expires)"
         }
         return base
     }

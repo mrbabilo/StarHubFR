@@ -43,8 +43,11 @@ enum ManifestVersionPatcher {
 
     /// Regex matching a string-form `"Version": "…"` entry (key case-insensitive,
     /// tolerant of surrounding whitespace). Group 1 = the value.
+    // Case-insensitive on the key ("Version"/"version"/"VERSION"): the opening
+    // quote must sit immediately before the token, so longer keys like
+    // "MinimumApiVersion" never match. Group 2 = the string value.
     private static let versionStringRegex = try! NSRegularExpression(
-        pattern: #"("[Vv]ersion"\s*:\s*")([^"]*)(")"#)
+        pattern: #"("Version"\s*:\s*")([^"]*)(")"#, options: [.caseInsensitive])
 
     static func extractVersionValue(from raw: String) -> String? {
         let range = NSRange(raw.startIndex..., in: raw)
@@ -58,9 +61,11 @@ enum ManifestVersionPatcher {
     /// (dict form / absent) → caller must abstain.
     static func replaceVersionValue(in raw: String, with newVersion: String) -> String? {
         let range = NSRange(raw.startIndex..., in: raw)
-        guard versionStringRegex.firstMatch(in: raw, range: range) != nil else { return nil }
+        guard let m = versionStringRegex.firstMatch(in: raw, range: range) else { return nil }
         let escaped = NSRegularExpression.escapedTemplate(for: newVersion)
+        // Replace only the first match's range, so extract and replace always
+        // agree on which occurrence is the mod's version.
         return versionStringRegex.stringByReplacingMatches(
-            in: raw, range: range, withTemplate: "$1\(escaped)$3")
+            in: raw, range: m.range, withTemplate: "$1\(escaped)$3")
     }
 }

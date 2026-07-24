@@ -31,4 +31,12 @@ struct NxmLinkTests {
         #expect(NxmLink.parse(URL(string: "nxm://stardewvalley/mods/41318")!) == nil)
         #expect(NxmLink.parse(URL(string: "nxm://stardewvalley/mods/abc/files/xyz")!) == nil)
     }
+
+    @Test func rejectsWrongPathKeywords() {
+        #expect(NxmLink.parse(URL(string: "nxm://stardewvalley/foo/41318/bar/174232")!) == nil)
+    }
+
+    @Test func rejectsEmptyHost() {
+        #expect(NxmLink.parse(URL(string: "nxm:///mods/41318/files/174232")!) == nil)
+    }
 }

@@ -95,4 +95,32 @@ struct ManifestVersionPatcherTests {
         let raw = "{ \"version\": \"1.0.0\" }"
         #expect(ManifestVersionPatcher.replaceVersionValue(in: raw, with: "2.0.0") == "{ \"version\": \"2.0.0\" }")
     }
+
+    @Test func replaceMatchesUppercaseKey() {
+        let raw = "{ \"VERSION\": \"1.0.0\" }"
+        #expect(ManifestVersionPatcher.replaceVersionValue(in: raw, with: "2.0.0") == "{ \"VERSION\": \"2.0.0\" }")
+    }
+
+    @Test func replaceEscapesDollarInNewVersion() {
+        let raw = "{ \"Version\": \"1.0.0\" }"
+        // A '$' must be treated literally, not as a regex template backreference.
+        #expect(ManifestVersionPatcher.replaceVersionValue(in: raw, with: "1.0.0$2") == "{ \"Version\": \"1.0.0$2\" }")
+    }
+
+    @Test func emptyNexusVersionIsNoChange() {
+        let d = ManifestVersionPatcher.decide(
+            nexusVersion: "", nexusUploaded: Date(timeIntervalSince1970: 2_000),
+            manifestVersion: "1.0.0", manifestModified: Date(timeIntervalSince1970: 1_000),
+            isNewer: semverNewer)
+        #expect(d == .noChange)
+    }
+
+    @Test func emptyStringManifestVersionFallsThroughToDate() {
+        let older = Date(timeIntervalSince1970: 1_000)
+        let newer = Date(timeIntervalSince1970: 2_000)
+        let d = ManifestVersionPatcher.decide(
+            nexusVersion: "1.2.0", nexusUploaded: newer,
+            manifestVersion: "", manifestModified: older, isNewer: semverNewer)
+        #expect(d == .refreshDate)
+    }
 }

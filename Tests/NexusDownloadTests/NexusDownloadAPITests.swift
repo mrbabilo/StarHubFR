@@ -30,4 +30,15 @@ struct NexusDownloadAPITests {
         let list = try NexusDownloadAPI.decodeFileList(json)
         #expect(NexusDownloadAPI.pickPrimaryFileId(list) == 7)
     }
+
+    @Test func pickPrimaryFileIdIsNilForEmptyList() throws {
+        let json = #"{"files":[]}"#.data(using: .utf8)!
+        let list = try NexusDownloadAPI.decodeFileList(json)
+        #expect(NexusDownloadAPI.pickPrimaryFileId(list) == nil)
+    }
+
+    @Test func freeEndpointPercentEncodesSpecialKeyChars() {
+        let e = NexusDownloadAPI.downloadLinkEndpoint(game: "stardewvalley", modId: 41318, fileId: 174232, key: "a&b=c+d", expires: 1666593200)
+        #expect(e == "/games/stardewvalley/mods/41318/files/174232/download_link.json?key=a%26b%3Dc%2Bd&expires=1666593200")
+    }
 }
