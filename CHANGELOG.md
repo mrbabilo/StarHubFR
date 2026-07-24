@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-07-24
+
 ### Changed
 - **Mod list toolbar redesign**: the flat single-row toolbar is split into a **two-tier layout** for clearer visual hierarchy — the scope segmented picker (All / Enabled / Disabled / Issues) and primary actions (bulk toggle, install button) sit on the top row, while secondary filters (sort, config-only toggle, category picker) are grouped below with visual dividers so they read as a single "refine the list" unit.
 - **Pagination redesign**: the clunky text-field "go to page" input is replaced by **numbered page buttons** with smart ellipsis logic (first, last, current, and neighbors shown; gaps collapsed with "…"). The current page is highlighted in accent color. Removed the now-dead `pageJumpDraft` state and `commitPageJump()` helper.
