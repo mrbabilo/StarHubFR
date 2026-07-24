@@ -192,6 +192,9 @@ struct ModInstallView: View {
             }
 
             DispatchQueue.main.async {
+                // A manually dropped zip is not the Nexus download that opened
+                // this sheet — drop any pending source so it can't misapply.
+                self.vm.pendingNexusSource = nil
                 self.analyzeZip(url)
             }
         }
@@ -371,6 +374,10 @@ struct ModInstallView: View {
     /// here — abstaining is safer than guessing wrong and mutating (or
     /// misreading) an unrelated manifest.
     private func installedFolderPaths(selections: [InstallSelection], detectedMods: [DetectedMod], existingMods: [ModItem], gameDir: String) -> [String] {
+        // Note: unlike ModZipInstaller.install, this doesn't skip sources that
+        // failed the existence check — a path to a not-actually-written folder
+        // is harmless because reconcileManifestVersion fails safe (its
+        // `try? String(contentsOfFile:)` returns nil → no-op).
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
         let modsDisabledPath = (gameDir as NSString).appendingPathComponent("Mods_disabled")
 

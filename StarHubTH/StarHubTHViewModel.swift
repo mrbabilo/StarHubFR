@@ -1727,17 +1727,7 @@ class StarHubTHViewModel: ObservableObject {
         log(String(format: L(L10n.VM.nexusDlStarting), link.modId))
         nexusDownloader.download(modId: link.modId, fileId: link.fileId, game: link.gameDomain,
                                  key: link.key, expires: link.expires) { [weak self] result in
-            DispatchQueue.main.async {
-                guard let self = self else { return }
-                self.isDownloadingFromNexus = false
-                switch result {
-                case .success(let result):
-                    self.pendingDownloadedZip = result.url
-                    self.pendingNexusSource = NexusInstallSource(modId: link.modId, fileId: result.fileId)
-                case .failure(let error):
-                    self.showModal(message: self.nexusDownloadMessage(error))
-                }
-            }
+            self?.handleNexusDownloadResult(result, modId: link.modId)
         }
     }
 
@@ -1748,16 +1738,23 @@ class StarHubTHViewModel: ObservableObject {
         log(String(format: L(L10n.VM.nexusDlStarting), nexusId))
         nexusDownloader.download(modId: nexusId, fileId: nil, game: "stardewvalley",
                                  key: nil, expires: nil) { [weak self] result in
-            DispatchQueue.main.async {
-                guard let self = self else { return }
-                self.isDownloadingFromNexus = false
-                switch result {
-                case .success(let result):
-                    self.pendingDownloadedZip = result.url
-                    self.pendingNexusSource = NexusInstallSource(modId: nexusId, fileId: result.fileId)
-                case .failure(let error):
-                    self.showModal(message: self.nexusDownloadMessage(error))
-                }
+            self?.handleNexusDownloadResult(result, modId: nexusId)
+        }
+    }
+
+    /// Shared completion for both Nexus download entry points: hops to main,
+    /// clears the progress flag, and on success stashes the downloaded zip +
+    /// its Nexus source for the install sheet, or surfaces a localized error.
+    private func handleNexusDownloadResult(_ result: Result<NexusDownloadResult, NexusDownloadError>, modId: Int) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.isDownloadingFromNexus = false
+            switch result {
+            case .success(let dl):
+                self.pendingDownloadedZip = dl.url
+                self.pendingNexusSource = NexusInstallSource(modId: modId, fileId: dl.fileId)
+            case .failure(let error):
+                self.showModal(message: self.nexusDownloadMessage(error))
             }
         }
     }
@@ -1782,6 +1779,9 @@ class StarHubTHViewModel: ObservableObject {
     /// v1: single-mod installs only (packs are skipped upstream).
     func reconcileManifestVersion(installedFolderPaths: [String]) {
         guard let source = pendingNexusSource else { return }
+        // Consume the source once: a later manual install in the same still-open
+        // sheet must not reconcile against this download's mod.
+        pendingNexusSource = nil
         guard installedFolderPaths.count == 1, let folderPath = installedFolderPaths.first else {
             return  // pack / ambiguous → abstain (v1)
         }
