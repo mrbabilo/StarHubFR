@@ -26,6 +26,15 @@ enum ModSortOrder: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+/// A single slot in the pagination footer: either a numbered page button or
+/// an ellipsis gap. Using an enum (instead of a sentinel like `-1`) makes it
+/// impossible for an ellipsis to collide with a page number identity, which
+/// would crash SwiftUI if duplicate `id` values appeared in `ForEach`.
+private enum PageSlot {
+    case page(Int)
+    case ellipsis
+}
+
 struct ModListView: View {
     @ObservedObject var vm: StarHubTHViewModel
     @State private var searchText = ""
@@ -43,10 +52,6 @@ struct ModListView: View {
     /// Current page for the paginated mod list (1-based). Reset to 1 whenever
     /// the search text, scope filter, or category filter changes.
     @State private var currentPage: Int = 1
-    /// Draft text for the "go to page" field. Kept separate from currentPage
-    /// so invalid input (empty / non-numeric) doesn't break the pagination
-    /// state; it's only committed on submit.
-    @State private var pageJumpDraft: String = ""
     /// Number of mods rendered per page. Tuned so the list stays responsive
     /// even with several hundred installed mods.
     private let pageSize: Int = 15
@@ -292,8 +297,11 @@ struct ModListView: View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 32) {
 
-                // ── Scope filter ────────────────────────────────────────
-                VStack(alignment: .leading, spacing: 10) {
+                // ── Toolbar ────────────────────────────────────────────
+                VStack(alignment: .leading, spacing: 8) {
+                    // Primary row: scope picker (left) + primary action (right).
+                    // Keeps the most-used navigation and the key CTA at the
+                    // same visual priority, above the secondary filters.
                     HStack {
                         Picker("", selection: $selectedFilter) {
                             Text("\(vm.L(L10n.Mods.filterAll)) (\(counts.all))")
@@ -308,21 +316,9 @@ struct ModListView: View {
                         }
                         .pickerStyle(.segmented)
                         .labelsHidden()
-                        .frame(maxWidth: 520)
+                        .frame(maxWidth: 480)
 
                         Spacer()
-
-                        sortPicker
-
-                        configFilterToggle
-
-                        // Category filter (Menu picker). Populated from every
-                        // mod's effective category (manual override or API).
-                        categoryPicker(categories: categories, uncatCount: uncatCount, tagBuckets: tagBuckets)
-                            .disabled(categories.isEmpty && uncatCount == 0 && tagBuckets.isEmpty)
-                            .help(categories.isEmpty && uncatCount == 0 && tagBuckets.isEmpty
-                                  ? vm.L(L10n.Mods.categoryFilterEmptyHint)
-                                  : vm.L(L10n.Mods.categoryFilterHint))
 
                         // Bulk enable/disable all mods at once. Disabled when
                         // there is nothing to act on (empty list, or every mod
@@ -338,10 +334,35 @@ struct ModListView: View {
                         }
                         .buttonStyle(.borderedProminent)
                     }
-                    if categories.isEmpty && uncatCount == 0 && tagBuckets.isEmpty {
-                        Text(vm.L(L10n.Mods.categoryFilterEmptyHint))
-                            .font(.system(size: 11))
-                            .foregroundColor(.secondary.opacity(0.8))
+
+                    // Secondary row: filters and sort, grouped as chips.
+                    // Wraps the set of filter controls in a single HStack so
+                    // they read as one visual unit ("refine the list"),
+                    // separate from the primary scope/actions above.
+                    HStack(spacing: 6) {
+                        sortPicker
+
+                        Divider()
+                            .frame(height: 16)
+
+                        configFilterToggle
+
+                        Divider()
+                            .frame(height: 16)
+
+                        categoryPicker(categories: categories, uncatCount: uncatCount, tagBuckets: tagBuckets)
+                            .disabled(categories.isEmpty && uncatCount == 0 && tagBuckets.isEmpty)
+                            .help(categories.isEmpty && uncatCount == 0 && tagBuckets.isEmpty
+                                  ? vm.L(L10n.Mods.categoryFilterEmptyHint)
+                                  : vm.L(L10n.Mods.categoryFilterHint))
+
+                        Spacer()
+
+                        if categories.isEmpty && uncatCount == 0 && tagBuckets.isEmpty {
+                            Text(vm.L(L10n.Mods.categoryFilterEmptyHint))
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary.opacity(0.8))
+                        }
                     }
                 }
 
@@ -475,81 +496,87 @@ struct ModListView: View {
         .padding(.top, 40)
     }
 
-    /// Prev/Next navigation + page indicator + direct page jump shown below
-    /// the mod list when the result set spans more than one page. Takes the
-    /// already-computed total/shown/page/totalPages from `body` instead of
-    /// re-deriving them from `filteredMods` again.
+    /// Prev/Next navigation + numbered page buttons shown below the mod list
+    /// when the result set spans more than one page. Takes the already-computed
+    /// total/shown/page/totalPages from `body` instead of re-deriving them.
+    ///
+    /// Shows up to 7 page slots with smart ellipsis: first, last, current,
+    /// and neighbors — so the user can jump visually without typing.
     private func paginationFooter(total: Int, shown: Int, page: Int, totalPages: Int) -> some View {
         let rangeStart = (page - 1) * pageSize + 1
         let rangeEnd = rangeStart + shown - 1
-        return HStack(spacing: 16) {
-            Button {
-                if currentPage > 1 { currentPage -= 1 }
-            } label: {
-                Label(vm.L(L10n.Mods.pagePrevious), systemImage: "chevron.left")
-                        .labelStyle(.titleAndIcon)
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-            .disabled(currentPage == 1)
+        return VStack(spacing: 8) {
+            HStack(spacing: 6) {
+                Button {
+                    if currentPage > 1 { currentPage -= 1 }
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 10, weight: .semibold))
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(currentPage == 1)
 
-            Spacer()
-
-            VStack(spacing: 2) {
-                Text(String(format: vm.L(L10n.Mods.pageIndicator), page, totalPages))
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.primary)
-                Text(String(format: vm.L(L10n.Mods.pageShowing), rangeStart, rangeEnd, total))
-                    .font(.system(size: 10))
-                    .foregroundColor(.secondary.opacity(0.8))
-            }
-
-            Spacer()
-
-            // Direct page jump: small numeric field. Commits on submit/Enter,
-            // clamps to [1, totalPages], and ignores non-numeric input.
-            HStack(spacing: 4) {
-                Text(vm.L(L10n.Mods.pageJumpLabel))
-                    .font(.system(size: 11))
-                    .foregroundColor(.secondary)
-                TextField("", text: $pageJumpDraft, prompt: Text("\(currentPage)"))
-                    .textFieldStyle(.roundedBorder)
-                    .frame(width: 44)
-                    .controlSize(.small)
-                    .onSubmit { commitPageJump() }
-                    .onChange(of: pageJumpDraft) { oldValue, newValue in
-                        // Keep the field numeric-only as the user types.
-                        if !newValue.allSatisfy({ $0.isNumber }) && !newValue.isEmpty {
-                            pageJumpDraft = oldValue
+                // Numbered page buttons with ellipsis logic.
+                ForEach(Array(pageSlots(current: page, total: totalPages).enumerated()), id: \.offset) { _, slot in
+                    switch slot {
+                    case .ellipsis:
+                        Text("…")
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary.opacity(0.6))
+                            .frame(width: 24)
+                    case .page(let n):
+                        Button {
+                            currentPage = n
+                        } label: {
+                            Text("\(n)")
+                                .font(.system(size: 12, weight: n == page ? .semibold : .regular))
+                                .foregroundColor(n == page ? .white : .primary)
+                                .frame(width: 24, height: 22)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 5)
+                                        .fill(n == page ? Color.accentColor : Color.secondary.opacity(0.08))
+                                )
                         }
+                        .buttonStyle(PlainButtonStyle())
+                        .pointingHandCursor()
                     }
-                Text("\(totalPages)")
-                    .font(.system(size: 11))
-                    .foregroundColor(.secondary)
+                }
+
+                Button {
+                    if currentPage < totalPages { currentPage += 1 }
+                } label: {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .semibold))
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(currentPage == totalPages)
             }
 
-            Button {
-                if currentPage < totalPages { currentPage += 1 }
-            } label: {
-                Label(vm.L(L10n.Mods.pageNext), systemImage: "chevron.right")
-                        .labelStyle(.titleAndIcon)
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-            .disabled(currentPage == totalPages)
+            Text(String(format: vm.L(L10n.Mods.pageShowing), rangeStart, rangeEnd, total))
+                .font(.system(size: 10))
+                .foregroundColor(.secondary.opacity(0.8))
         }
         .padding(.top, 4)
     }
 
-    /// Applies the page-jump field: parses the draft, clamps to the valid
-    /// range, and clears the field so the placeholder (current page) shows
-    /// again.
-    private func commitPageJump() {
-        let trimmed = pageJumpDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, let n = Int(trimmed) else { return }
-        let pages = totalPages(for: displayMods(from: filteredMods))
-        currentPage = min(max(1, n), pages)
-        pageJumpDraft = ""
+    /// Builds the list of page-number slots to render. Always includes first,
+    /// last, current, and the current's immediate neighbors; collapses the
+    /// middle with `.ellipsis` when the total exceeds 7 slots. The enum makes
+    /// it impossible for an ellipsis to collide with a page number.
+    private func pageSlots(current: Int, total: Int) -> [PageSlot] {
+        if total <= 7 {
+            return (1...total).map { .page($0) }
+        }
+        var slots: [PageSlot] = [.page(1)]
+        let lower = max(2, current - 1)
+        let upper = min(total - 1, current + 1)
+        if lower > 2 { slots.append(.ellipsis) }
+        slots.append(contentsOf: (lower...upper).map { .page($0) })
+        if upper < total - 1 { slots.append(.ellipsis) }
+        slots.append(.page(total))
+        return slots
     }
 
     /// Dropdown choosing how the mods list is ordered. `.name` mirrors the
