@@ -72,3 +72,42 @@ public struct ModItem: Identifiable, Equatable {
         self.hasConfigFile = hasConfigFile
     }
 }
+
+extension ModItem {
+    /// Infers an offline "type" category from the mod's manifest fields. Stable
+    /// English keys; display is localized via L10n.ModTag. Ported from upstream.
+    static func inferTag(name: String, uniqueId: String, description: String) -> String {
+        let haystack = "\(name) \(uniqueId) \(description)".lowercased()
+        let matchWord = { (word: String) -> Bool in
+            haystack.range(of: "\\b\(word)\\b", options: .regularExpression) != nil
+        }
+        if matchWord("translation") || matchWord("language") || matchWord("locale") || matchWord("thai") || matchWord("i18n") || matchWord("spanish") || matchWord("chinese") || matchWord("korean") || matchWord("french") || matchWord("russian") || matchWord("german") {
+            return "Translation"
+        }
+        if matchWord("framework") || matchWord("api") || matchWord("library") || matchWord("core") || matchWord("toolkit") || matchWord("util") || matchWord("utility") || haystack.contains("smapi") || (haystack.contains("spacechase") && haystack.contains("core")) {
+            return "Framework"
+        }
+        if haystack.contains("content patcher") || uniqueId.lowercased().hasPrefix("pathoschild.contentpatcher") || matchWord("cp") {
+            return "Content Patcher"
+        }
+        if matchWord("ui") || matchWord("interface") || matchWord("hud") || matchWord("menu") || matchWord("inventory") || matchWord("tooltip") || matchWord("display") || matchWord("cursor") || matchWord("minimap") {
+            return "UI"
+        }
+        if matchWord("cosmetic") || matchWord("portrait") || matchWord("portraits") || matchWord("sprite") || matchWord("sprites") || matchWord("retexture") || matchWord("skin") || matchWord("hair") || matchWord("fashion") || matchWord("visual") || matchWord("texture") || matchWord("textures") || matchWord("recolor") || matchWord("appearance") || matchWord("clothes") || matchWord("shirt") || matchWord("hat") || matchWord("furniture") || matchWord("building") || matchWord("buildings") || matchWord("aesthetic") {
+            return "Cosmetic"
+        }
+        if matchWord("npc") || matchWord("npcs") || matchWord("marriage") || matchWord("bachelor") || matchWord("bachelorette") || matchWord("villager") || matchWord("dialogue") || matchWord("dialogues") || matchWord("event") || matchWord("events") || matchWord("character") || matchWord("schedule") || matchWord("heart") {
+            return "NPC"
+        }
+        if matchWord("music") || matchWord("audio") || matchWord("sound") || matchWord("sounds") || matchWord("ambient") || matchWord("bgm") || matchWord("voice") || matchWord("sfx") {
+            return "Audio"
+        }
+        if matchWord("map") || matchWord("maps") || matchWord("location") || matchWord("locations") || matchWord("world") || matchWord("tile") || matchWord("tiles") || matchWord("expansion") || matchWord("dungeon") || matchWord("greenhouse") || matchWord("cave") || matchWord("caves") || matchWord("town") {
+            return "Map"
+        }
+        if matchWord("cheat") || matchWord("time") || matchWord("speed") || matchWord("gameplay") || matchWord("harvest") || matchWord("farm") || matchWord("crop") || matchWord("crops") || matchWord("fishing") || matchWord("balance") || matchWord("combat") || matchWord("mining") || matchWord("foraging") || matchWord("animal") || matchWord("animals") || matchWord("pet") || matchWord("pets") || matchWord("economy") || matchWord("item") || matchWord("items") || matchWord("recipe") || matchWord("recipes") || matchWord("machine") || matchWord("machines") || matchWord("artisan") || matchWord("tool") || matchWord("tools") || matchWord("weapon") || matchWord("weapons") || matchWord("skill") || matchWord("skills") || matchWord("automate") || matchWord("automation") {
+            return "Gameplay"
+        }
+        return "Other"
+    }
+}

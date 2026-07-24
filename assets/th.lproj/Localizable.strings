@@ -509,3 +509,13 @@
 "vm_manifest_version_fixed" = "แก้ไขเวอร์ชัน manifest ของ %@ %@ → %@ ให้ตรงกับ Nexus";
 "vm_manifest_version_date_fixed" = "รีเฟรชวันที่ manifest ของ %@ (อัปเดตย่อยจาก Nexus โดยไม่เปลี่ยนเวอร์ชัน)";
 "vm_manifest_version_skipped" = "คงเวอร์ชัน manifest ของ %@ ไว้ (%@)";
+"mod_tag_translation" = "การแปล";
+"mod_tag_framework" = "เฟรมเวิร์ก";
+"mod_tag_content_patcher" = "Content Patcher";
+"mod_tag_ui" = "อินเทอร์เฟซ";
+"mod_tag_cosmetic" = "ตกแต่ง";
+"mod_tag_npc" = "NPC";
+"mod_tag_audio" = "เสียง";
+"mod_tag_map" = "แผนที่";
+"mod_tag_gameplay" = "การเล่น";
+"mod_tag_other" = "อื่นๆ";

@@ -508,5 +508,15 @@
   "vm_nexus_dl_server_error": "Nexus returned an unexpected response (%lld).",
   "vm_manifest_version_fixed": "Corrected %@ manifest version %@ → %@ to match Nexus.",
   "vm_manifest_version_date_fixed": "Refreshed %@ manifest date to clear a Nexus minor-update flag.",
-  "vm_manifest_version_skipped": "Left %@ manifest version unchanged (%@)."
+  "vm_manifest_version_skipped": "Left %@ manifest version unchanged (%@).",
+  "mod_tag_translation": "Translation",
+  "mod_tag_framework": "Framework",
+  "mod_tag_content_patcher": "Content Patcher",
+  "mod_tag_ui": "UI",
+  "mod_tag_cosmetic": "Cosmetic",
+  "mod_tag_npc": "NPC",
+  "mod_tag_audio": "Audio",
+  "mod_tag_map": "Map",
+  "mod_tag_gameplay": "Gameplay",
+  "mod_tag_other": "Other"
 }

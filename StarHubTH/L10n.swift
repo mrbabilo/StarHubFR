@@ -546,4 +546,34 @@ enum L10n {
         static let labelUniqueId        = "mod_install_label_unique_id"
         static let depCount             = "mod_install_dep_count"
     }
+
+    // MARK: - ModTag
+    enum ModTag {
+        static let translation    = "mod_tag_translation"
+        static let framework      = "mod_tag_framework"
+        static let contentPatcher = "mod_tag_content_patcher"
+        static let ui             = "mod_tag_ui"
+        static let cosmetic       = "mod_tag_cosmetic"
+        static let npc            = "mod_tag_npc"
+        static let audio          = "mod_tag_audio"
+        static let map            = "mod_tag_map"
+        static let gameplay       = "mod_tag_gameplay"
+        static let other          = "mod_tag_other"
+
+        /// Maps an `ModItem.inferTag` result to its L10n key.
+        static func key(for inferredTag: String) -> String {
+            switch inferredTag {
+            case "Translation":     return translation
+            case "Framework":       return framework
+            case "Content Patcher": return contentPatcher
+            case "UI":              return ui
+            case "Cosmetic":        return cosmetic
+            case "NPC":             return npc
+            case "Audio":           return audio
+            case "Map":             return map
+            case "Gameplay":        return gameplay
+            default:                return other
+            }
+        }
+    }
 }

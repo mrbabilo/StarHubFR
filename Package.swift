@@ -52,5 +52,10 @@ let package = Package(
             dependencies: ["StarHubTHCore"],
             path: "Tests/ManifestVersionPatcherTests"
         ),
+        .testTarget(
+            name: "ModTagTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ModTagTests"
+        ),
     ]
 )

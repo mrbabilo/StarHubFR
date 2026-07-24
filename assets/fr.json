@@ -508,5 +508,15 @@
   "vm_nexus_dl_server_error": "Nexus a renvoyé une réponse inattendue (%lld).",
   "vm_manifest_version_fixed": "Version du manifest de %@ corrigée %@ → %@ pour coller à Nexus.",
   "vm_manifest_version_date_fixed": "Date du manifest de %@ rafraîchie (MàJ mineure Nexus sans changement de version).",
-  "vm_manifest_version_skipped": "Version du manifest de %@ inchangée (%@)."
+  "vm_manifest_version_skipped": "Version du manifest de %@ inchangée (%@).",
+  "mod_tag_translation": "Traduction",
+  "mod_tag_framework": "Framework",
+  "mod_tag_content_patcher": "Content Patcher",
+  "mod_tag_ui": "Interface",
+  "mod_tag_cosmetic": "Cosmétique",
+  "mod_tag_npc": "PNJ",
+  "mod_tag_audio": "Audio",
+  "mod_tag_map": "Carte",
+  "mod_tag_gameplay": "Gameplay",
+  "mod_tag_other": "Autre"
 }
