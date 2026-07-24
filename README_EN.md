@@ -16,16 +16,17 @@
 </p>
 
 *   **Easy Game Launch**: Launch Stardew Valley in either Vanilla mode or through SMAPI for modded play.
-*   **Mod Manager**: Enable or disable mods effortlessly through a beautiful app interface — no manual file moving required.
+*   **Mod Manager**: Enable or disable mods effortlessly through a beautiful app interface — no manual file moving required. Enable or disable **every mod at once** (progress bar, lossless moves) and **delete** a mod or pack from disk after confirmation.
 *   **Drag & Drop Mod Installer**: Drag a `.zip` file directly into the app to install one or more mods. Automatic structure detection (single-mod, multi-mod pack), integrity validation (anti-zip-bomb, < 500 MB), conflict preview and missing dependency suggestions.
 *   **Mod Profiles**: Group mods into multiple profiles and switch between them instantly with a single click.
 *   **Thai Translation Hub**: A dedicated hub listing all Thai translation mods — browse, check status, download, and track updates in one place.
-*   **Nexus Mods Update Checker**: Manually check for mod updates via the Nexus Mods API. API key securely stored in macOS Keychain, update detection even at identical version (upload date comparison).
+*   **Nexus Mods Updates & Downloads**: Check for mod updates via the Nexus Mods API (API key stored in the macOS Keychain, update detection even at identical version by upload date), then **download them right in the app** — a *Premium update* button (Premium account required) or *Nexus update* via the free `nxm://` link. After installing, the `manifest.json` is auto-reconciled so the mod stops showing a phantom "update available".
+*   **Rich Mod Detail Pane**: A dedicated pane shows the mod's **full description** (BBCode/HTML rendered as native text — bold, lists, links, native-size images, collapsible spoilers), its complete **changelog**, and a **transitive dependency tree** (enabled/disabled/missing status, Enable/Nexus/Search actions, click-through between mods). Category and Nexus-id editing live in the pane.
 *   **Mod Backups**:
     *   *Install backup*: Automatic backup before overwriting a mod, with hybrid retention (5 most recent + ≤30 days + 1 per month beyond).
     *   *Config backup*: Backup and restore `config.json`/`fr.json` files for enabled mods.
 *   **Mod Config Editor**: Edit a mod's `config.json` directly in the app, via a hierarchical visual editor (searchable tree of typed settings) or a raw JSON editor with line numbers and live validation. Reset and restore-from-local-backup buttons included.
-*   **Advanced Mod List**: Category filtering, pagination (15 mods/page with direct page jump), uncategorized mod filter, "With Config" filter (configurable mods only), sorting by name (A-Z/Z-A), author, version or activation order, and description image support. A gear icon on each configurable mod opens the config editor directly.
+*   **Advanced Mod List**: Automatic classification by **type** (UI, Framework, Content Patcher, Translation, NPC, Audio, Map…) inferred from the manifest, also used as an offline fallback for the category filter. Category filtering, pagination (15 mods/page with direct page jump), uncategorized mod filter, "With Config" filter (configurable mods only), sorting by name (A-Z/Z-A), author, version or activation order. A gear icon on each configurable mod opens the config editor directly.
 *   **Save Manager**:
     *   View details of all save files (money, in-game time, season, farm layout)
     *   Duplicate or delete save files
