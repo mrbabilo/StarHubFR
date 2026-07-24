@@ -6,6 +6,7 @@ enum DescriptionBlock: Hashable {
     case text(String)
     case image(URL)
     case spoiler(title: String, content: String)
+    case divider
 }
 
 /// Pure BBCode/HTML → blocks parser. Best-effort: never crashes on malformed
@@ -39,7 +40,9 @@ enum DescriptionBlockParser {
         formatted = formatted.replacingOccurrences(of: "(?i)\\[/li\\]", with: "", options: .regularExpression)
         formatted = formatted.replacingOccurrences(of: "(?s)\\[url=(.*?)\\]\\s*(.*?)\\s*\\[/url\\]", with: "[$2]($1)", options: [.regularExpression, .caseInsensitive])
         formatted = formatted.replacingOccurrences(of: "(?s)\\[url\\]\\s*(.*?)\\s*\\[/url\\]", with: "[$1]($1)", options: [.regularExpression, .caseInsensitive])
-        formatted = formatted.replacingOccurrences(of: "(?i)\\[/?(?:line|hr)\\]", with: "\n---\n", options: .regularExpression)
+        // NB: `[hr]` / `[line]` are intentionally NOT converted here — they are
+        // tokenized into a `.divider` block below (a real rule renders, whereas
+        // a Markdown `---` would show literally in inline-only rendering).
         formatted = formatted.replacingOccurrences(of: "(?i)\\[/\\*\\]", with: "", options: .regularExpression)
         // 5. Strip EVERY remaining BBCode-style tag (a whitelist — upstream's
         // approach — leaves any unlisted or malformed tag, e.g. `[/]`, `[/*]`,
@@ -52,7 +55,7 @@ enum DescriptionBlockParser {
         // and the body swallows `/img`, stripping the closing tag and breaking
         // image tokenization below.
         formatted = formatted.replacingOccurrences(
-            of: "(?i)\\[(?!/?(?:img[^a-zA-Z]|spoiler[^a-zA-Z]))/?[^\\[\\]]*\\](?!\\()",
+            of: "(?i)\\[(?!/?(?:img[^a-zA-Z]|spoiler[^a-zA-Z]|hr[^a-zA-Z]|line[^a-zA-Z]))/?[^\\[\\]]*\\](?!\\()",
             with: "", options: .regularExpression)
 
         // Unwrap emphasis whose content is only punctuation/whitespace (e.g.
@@ -61,6 +64,10 @@ enum DescriptionBlockParser {
         // it would show the literal `**`; the bold adds nothing here anyway.
         formatted = formatted.replacingOccurrences(of: "\\*\\*([\\p{P}\\s]+?)\\*\\*", with: "$1", options: .regularExpression)
         formatted = formatted.replacingOccurrences(of: "~~([\\p{P}\\s]+?)~~", with: "$1", options: .regularExpression)
+        // Drop empty emphasis (`****`, `~~~~`) left by an empty tag pair such as
+        // `[b][/b]`, which would otherwise render as literal delimiters.
+        formatted = formatted.replacingOccurrences(of: "\\*\\*\\*\\*", with: "", options: .regularExpression)
+        formatted = formatted.replacingOccurrences(of: "~~~~", with: "", options: .regularExpression)
         // Collapse runs of blank lines (HTML block tags each became a newline,
         // stacking up into large vertical gaps) down to a single blank line.
         formatted = formatted.replacingOccurrences(of: "(?:[ \\t]*\\r?\\n[ \\t]*){2,}", with: "\n\n", options: .regularExpression)
@@ -74,7 +81,7 @@ enum DescriptionBlockParser {
         // attributes (e.g. `[img width=550]url[/img]`), so match `[img …]`, not
         // just a bare `[img]`.
         var blocks: [DescriptionBlock] = []
-        let combinedPattern = "(?s)(\\[img[^\\]]*\\](.*?)\\[/img\\]|\\[spoiler(?:=(.*?))?\\](.*?)\\[/spoiler\\])"
+        let combinedPattern = "(?s)(\\[img[^\\]]*\\](.*?)\\[/img\\]|\\[spoiler(?:=(.*?))?\\](.*?)\\[/spoiler\\]|\\[/?(?:hr|line)[^\\]]*\\])"
         guard let regex = try? NSRegularExpression(pattern: combinedPattern, options: .caseInsensitive) else {
             let t = balancedText(formatted)
             return t.isEmpty ? [] : [.text(t)]
@@ -102,6 +109,9 @@ enum DescriptionBlockParser {
                 let content = contentR.location != NSNotFound
                     ? nsString.substring(with: contentR).trimmingCharacters(in: .whitespacesAndNewlines) : ""
                 blocks.append(.spoiler(title: title, content: content))
+            } else {
+                // [hr] / [line] → a real horizontal rule.
+                blocks.append(.divider)
             }
             lastEnd = match.range.location + match.range.length
         }

@@ -79,4 +79,18 @@ struct DescriptionBlockTests {
         }
         #expect(t == "a\n\nb")
     }
+    @Test func horizontalRuleBecomesDivider() {
+        #expect(DescriptionBlockParser.parse("one[hr]two")
+            == [.text("one"), .divider, .text("two")])
+        #expect(DescriptionBlockParser.parse("a[line]b")
+            == [.text("a"), .divider, .text("b")])
+    }
+    @Test func boldWrappedRuleDropsStrayDelimiters() {
+        // `[b][hr][/b]` used to render `****` around a literal `---`.
+        #expect(DescriptionBlockParser.parse("intro[b][hr][/b]more")
+            == [.text("intro"), .divider, .text("more")])
+    }
+    @Test func emptyEmphasisIsRemoved() {
+        #expect(DescriptionBlockParser.parse("x[b][/b]y") == [.text("xy")])
+    }
 }

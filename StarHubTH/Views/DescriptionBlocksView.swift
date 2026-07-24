@@ -8,9 +8,15 @@ import SwiftUI
 /// newlines a mod description relies on.
 struct MarkdownText: View {
     private let attributed: AttributedString
+    /// Whether any run carries a link, so we can show the pointing-hand cursor
+    /// over this block (SwiftUI `Text` can't scope a cursor to just the link
+    /// sub-range without an AppKit text view, so the hint covers the block).
+    private let hasLink: Bool
 
     init(_ markdown: String) {
-        self.attributed = MarkdownText.render(markdown)
+        let a = MarkdownText.render(markdown)
+        self.attributed = a
+        self.hasLink = a.runs.contains { $0.link != nil }
     }
 
     /// Inline-only parse that *preserves* whitespace/newlines (so multi-line
@@ -31,6 +37,15 @@ struct MarkdownText: View {
             .font(.body)
             .textSelection(.enabled)
             .frame(maxWidth: .infinity, alignment: .leading)
+            .modifier(LinkHandCursor(active: hasLink))
+    }
+}
+
+/// Applies the pointing-hand cursor only when the text actually contains a link.
+private struct LinkHandCursor: ViewModifier {
+    let active: Bool
+    func body(content: Content) -> some View {
+        if active { content.pointingHandCursor() } else { content }
     }
 }
 
@@ -62,6 +77,8 @@ struct DescriptionBlocksView: View {
                     }
                 case .spoiler(let title, let content):
                     SpoilerView(title: title, content: content, vm: vm)
+                case .divider:
+                    Divider().padding(.vertical, 4)
                 }
             }
         }
