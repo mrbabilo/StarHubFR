@@ -24,6 +24,7 @@ let package = Package(
                 "Models/NxmLink.swift",
                 "Models/NexusDownloadAPI.swift",
                 "Models/ManifestVersionPatcher.swift",
+                "Models/DescriptionBlockParser.swift",
                 "L10n.swift",
             ]
         ),
@@ -56,6 +57,11 @@ let package = Package(
             name: "ModTagTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ModTagTests"
+        ),
+        .testTarget(
+            name: "DescriptionBlockTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/DescriptionBlockTests"
         ),
     ]
 )
