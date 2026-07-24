@@ -60,7 +60,7 @@
 
 ### Étapes d'installation
 1. **Télécharger** : Récupérez la dernière version depuis la page [Releases](../../releases).
-2. **Installer** : Décompressez le fichier et glissez `StarHubTH.app` dans votre dossier Applications, puis double-cliquez pour le lancer.
+2. **Installer** : Décompressez le fichier et glissez `StarHubFR.app` dans votre dossier Applications, puis double-cliquez pour le lancer.
 3. **Définir le dossier du jeu** : Au premier lancement, l'application tentera de détecter automatiquement le dossier du jeu Steam. Si celui-ci n'est pas trouvé, vous pouvez sélectionner manuellement le répertoire du jeu (ex. `/Applications/Stardew Valley.app/Contents/MacOS`).
 4. **C'est prêt !** : Gérez vos mods ou vos sauvegardes, puis cliquez sur **« Lancer le jeu »** sur la page d'accueil.
 
@@ -78,7 +78,7 @@ Cette application est développée en **Swift** et **SwiftUI** en tant qu'applic
 Vous pouvez ouvrir le projet dans Xcode ou compiler via le Terminal avec le script de build :
 ```bash
 python3 build_app.py
-open StarHubTH.app
+open StarHubFR.app
 ```
 
 ### Créer une version Release

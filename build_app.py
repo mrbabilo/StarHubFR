@@ -6,7 +6,7 @@ import subprocess
 import sys
 import json
 
-APP_NAME = "StarHubTH"
+APP_NAME = "StarHubFR"
 APP_DIR = f"{APP_NAME}.app"
 CONTENTS_DIR = os.path.join(APP_DIR, "Contents")
 MACOS_DIR = os.path.join(CONTENTS_DIR, "MacOS")
@@ -175,7 +175,7 @@ def create_app_bundle():
         sys.exit(1)
 
     print(f"[SUCCESS] Successfully built {APP_DIR}")
-    print("[INFO] Run 'open StarHubTH.app' to launch the application.")
+    print("[INFO] Run 'open StarHubFR.app' to launch the application.")
 
 if __name__ == "__main__":
     if "--gen-compile-commands" in sys.argv:

@@ -39,7 +39,7 @@
 
 [list=1]
 [*] [b]Download[/b]: Grab the latest release from the Files tab on Nexus Mods.
-[*] [b]Install[/b]: Unzip the file and drag [b]StarHubTH.app[/b] into your Applications folder, then double-click to launch.
+[*] [b]Install[/b]: Unzip the file and drag [b]StarHubFR.app[/b] into your Applications folder, then double-click to launch.
 [*] [b]Set Game Folder[/b]: On first launch, the app will attempt to auto-detect your Steam game folder. If not found, you can manually select the game directory (e.g. /Applications/Stardew Valley.app/Contents/MacOS).
 [*] [b]You're ready![/b]: Manage your mods or saves, then hit [b]"Launch Game"[/b] from the left sidebar.
 [/list]

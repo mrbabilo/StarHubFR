@@ -4,7 +4,7 @@ import shutil
 import subprocess
 import plistlib
 
-APP_NAME = "StarHubTH"
+APP_NAME = "StarHubFR"
 APP_DIR = f"{APP_NAME}.app"
 BUNDLES_DIR = "bundles"
 
@@ -64,7 +64,7 @@ def create_release():
         cmd = [
             "gh", "release", "create", tag, zip_path,
             "--title", f"Release {tag}",
-            "--notes", f"Automated release for StarHubTH {tag}."
+            "--notes", f"Automated release for StarHubFR {tag}."
         ]
         res = subprocess.run(cmd, capture_output=True, text=True)
         if res.returncode == 0:

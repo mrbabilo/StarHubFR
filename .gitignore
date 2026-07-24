@@ -40,6 +40,7 @@ docs/superpowers/
 # Build Outputs / Release Zips
 .build/
 bundles/
+StarHubFR.app/
 StarHubTH.app/
 mods/*/README.md
 *.xnb

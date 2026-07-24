@@ -6,8 +6,9 @@ skills (`.claude/skills/`) ; ce fichier ne fait qu'y pointer.
 ## Projet
 
 - **StarHubFR** — gestionnaire de mods Stardew Valley pour macOS (SwiftUI, macOS 14+).
-- Fork de **StarHubTH** (AppleBoiy). Le dossier source s'appelle encore `StarHubTH/`
-  et le bundle produit `StarHubTH.app` ; seul le nom affiché est « StarHubFR ».
+- Fork de **StarHubTH** (AppleBoiy). Le dossier source s'appelle encore `StarHubTH/`,
+  mais le bundle produit est désormais `StarHubFR.app` (exécutable `StarHubFR`).
+  Seul l'identifiant de bundle reste `com.appleboiy.StarHubTH` (Keychain/préférences).
 - UI **bilingue** : anglais (`en`), français (`fr`). *(Le thaï comme langue d'UI a
   été retiré ; la fonctionnalité « Thai Translation Hub » — mods de traduction —
   reste, elle.)*
