@@ -26,6 +26,7 @@ let package = Package(
                 "Models/ManifestVersionPatcher.swift",
                 "Models/DescriptionBlockParser.swift",
                 "Models/ModDependencyParser.swift",
+                "Models/DependencyTree.swift",
                 "L10n.swift",
             ]
         ),
@@ -68,6 +69,11 @@ let package = Package(
             name: "ModDependencyParserTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ModDependencyParserTests"
+        ),
+        .testTarget(
+            name: "DependencyTreeTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/DependencyTreeTests"
         ),
     ]
 )
