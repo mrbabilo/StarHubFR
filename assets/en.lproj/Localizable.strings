@@ -149,7 +149,6 @@
 "mods_detail_changelog" = "Changelog";
 "mods_detail_no_description" = "No description available";
 "mods_detail_no_changelog" = "No changelog available";
-"mods_detail_view" = "View details";
 "mods_detail_cached" = "Cached";
 "logs_system_logs" = "System Logs";
 "logs_no_logs" = "No logs for this session";
