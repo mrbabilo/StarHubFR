@@ -214,6 +214,12 @@ enum L10n {
         static let detailNoDescription  = "mods_detail_no_description"
         static let detailNoChangelog    = "mods_detail_no_changelog"
         static let detailCached         = "mods_detail_cached"
+        // Dependency tree (DependencyTreeView)
+        static let depActive            = "mods_dep_active"
+        static let depDisabled          = "mods_dep_disabled"
+        static let depMissing           = "mods_dep_missing"
+        static let depEnable            = "mods_dep_enable"
+        static let depSearch            = "mods_dep_search"
         // Bulk enable/disable all mods
         static let enableAll            = "mods_enable_all"
         static let disableAll           = "mods_disable_all"

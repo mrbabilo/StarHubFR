@@ -150,6 +150,11 @@
 "mods_detail_no_description" = "Aucune description disponible";
 "mods_detail_no_changelog" = "Aucun journal des modifications disponible";
 "mods_detail_cached" = "En cache";
+"mods_dep_active" = "Activé";
+"mods_dep_disabled" = "Installé (désactivé)";
+"mods_dep_missing" = "Manquant";
+"mods_dep_enable" = "Activer";
+"mods_dep_search" = "Chercher sur Nexus";
 "mods_enable_all" = "Tout activer";
 "mods_disable_all" = "Tout désactiver";
 "mods_toggle_all_hint" = "Activer ou désactiver tous les mods à la fois";

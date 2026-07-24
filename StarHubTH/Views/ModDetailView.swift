@@ -294,60 +294,11 @@ struct ModDetailView: View {
 
     // MARK: Dependencies
 
-    /// Required/optional dependency list, migrated from `ModDetailsPopover`.
-    /// Its own tab (rather than always-visible) keeps it out of the way for
-    /// mods with none, and mirrors the Description/Changelog tabs' pattern of
-    /// a single scrollable content area per tab.
+    /// Transitive dependency tree (see `DependencyTreeView`), replacing SP2's
+    /// flat list. Empty/loaded states are handled inside the tree view.
     @ViewBuilder
     private var dependenciesSection: some View {
-        if mod.dependencies.isEmpty {
-            ContentUnavailableView(vm.L(L10n.VM.noDependenciesFound), systemImage: "shippingbox")
-                .frame(maxWidth: .infinity, minHeight: 160)
-        } else {
-            VStack(alignment: .leading, spacing: 6) {
-                ForEach(mod.dependencies, id: \.uniqueId) { dep in
-                    let targetMod = vm.mods.first { $0.uniqueId.caseInsensitiveCompare(dep.uniqueId) == .orderedSame }
-                    let isInstalled = targetMod != nil
-                    let isEnabled = targetMod?.isEnabled ?? false
-                    HStack {
-                        if isEnabled {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(.green)
-                                .font(.system(size: 10))
-                        } else if isInstalled {
-                            Image(systemName: "exclamationmark.circle.fill")
-                                .foregroundColor(.orange)
-                                .font(.system(size: 10))
-                        } else {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundColor(.red.opacity(0.5))
-                                .font(.system(size: 10))
-                        }
-                        Text(dep.uniqueId)
-                            .font(.system(size: 12, design: .monospaced))
-                            .foregroundColor(isEnabled ? .primary : .secondary)
-                        Spacer()
-                        if dep.isRequired {
-                            Text(vm.L(L10n.Profiles.required))
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundColor(.red)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.red.opacity(0.1))
-                                .cornerRadius(4)
-                        } else {
-                            Text(vm.L(L10n.Profiles.optional))
-                                .font(.system(size: 10))
-                                .foregroundColor(.secondary)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.secondary.opacity(0.1))
-                                .cornerRadius(4)
-                        }
-                    }
-                }
-            }
-        }
+        DependencyTreeView(vm: vm, mod: mod)
     }
 
     // MARK: Tab content
