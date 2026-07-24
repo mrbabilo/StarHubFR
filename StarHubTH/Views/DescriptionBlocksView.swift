@@ -68,12 +68,21 @@ struct DescriptionBlocksView: View {
     }
 }
 
-/// Collapsible spoiler (native disclosure). Content is Markdown.
+/// Collapsible spoiler (native disclosure). The content is re-parsed into
+/// blocks so it renders images and nested formatting just like the top-level
+/// description — upstream rendered spoiler content as a single Markdown string,
+/// leaving any `[img]` inside shown as raw BBCode.
 struct SpoilerView: View {
     let title: String
-    let content: String
+    private let blocks: [DescriptionBlock]
     @ObservedObject var vm: StarHubTHViewModel
     @State private var isExpanded = false
+
+    init(title: String, content: String, vm: StarHubTHViewModel) {
+        self.title = title
+        self.blocks = DescriptionBlockParser.parse(content)
+        self.vm = vm
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -97,8 +106,9 @@ struct SpoilerView: View {
             .buttonStyle(.plain)
 
             if isExpanded {
-                MarkdownText(content)
+                DescriptionBlocksView(blocks: blocks, vm: vm)
                     .padding(12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .background(Color.primary.opacity(0.03))
                     .clipShape(RoundedRectangle(cornerRadius: 6))
             }

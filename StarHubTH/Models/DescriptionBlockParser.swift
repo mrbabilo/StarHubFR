@@ -55,6 +55,16 @@ enum DescriptionBlockParser {
             of: "(?i)\\[(?!/?(?:img[^a-zA-Z]|spoiler[^a-zA-Z]))/?[^\\[\\]]*\\](?!\\()",
             with: "", options: .regularExpression)
 
+        // Unwrap emphasis whose content is only punctuation/whitespace (e.g.
+        // `[b]:[/b]` → `**:**`). Markdown can't render `**` flanked by a word on
+        // one side and punctuation on the other (CommonMark flanking rules), so
+        // it would show the literal `**`; the bold adds nothing here anyway.
+        formatted = formatted.replacingOccurrences(of: "\\*\\*([\\p{P}\\s]+?)\\*\\*", with: "$1", options: .regularExpression)
+        formatted = formatted.replacingOccurrences(of: "~~([\\p{P}\\s]+?)~~", with: "$1", options: .regularExpression)
+        // Collapse runs of blank lines (HTML block tags each became a newline,
+        // stacking up into large vertical gaps) down to a single blank line.
+        formatted = formatted.replacingOccurrences(of: "(?:[ \\t]*\\r?\\n[ \\t]*){2,}", with: "\n\n", options: .regularExpression)
+
         // Normalize the self-closing `[img=URL]` form to `[img]URL[/img]` so the
         // tokenizer picks it up too. Requires `=` right after `img` (optional
         // spaces), so it never mangles the attributed `[img width=550]…` form.

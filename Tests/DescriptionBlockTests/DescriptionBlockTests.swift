@@ -65,4 +65,18 @@ struct DescriptionBlockTests {
         #expect(DescriptionBlockParser.parse("[img=https://x/y.png] tail")
             == [.image(URL(string: "https://x/y.png")!), .text("tail")])
     }
+    @Test func punctuationOnlyEmphasisIsUnwrapped() {
+        // `[b]:[/b]` → `**:**` can't render (CommonMark flanking) and would show
+        // literal `**`; drop the pointless emphasis, keep the punctuation.
+        #expect(DescriptionBlockParser.parse("mods[b]:[/b]") == [.text("mods:")])
+        // …but emphasis with real words is preserved.
+        #expect(DescriptionBlockParser.parse("[b]Warning:[/b]") == [.text("**Warning:**")])
+    }
+    @Test func blankLineRunsAreCollapsed() {
+        // HTML block tags each became a newline, stacking into large gaps.
+        guard case let .text(t)? = DescriptionBlockParser.parse("a\n\n\n\n\nb").first else {
+            Issue.record("expected text"); return
+        }
+        #expect(t == "a\n\nb")
+    }
 }
