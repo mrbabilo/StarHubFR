@@ -1788,8 +1788,10 @@ class StarHubTHViewModel: ObservableObject {
         let manifestPath = (folderPath as NSString).appendingPathComponent("manifest.json")
         guard let raw = try? String(contentsOfFile: manifestPath, encoding: .utf8) else { return }
         let currentVersion = ManifestVersionPatcher.extractVersionValue(from: raw)
-        // The update checker compares the Nexus upload date to this on-disk mtime.
-        let manifestModified = (try? FileManager.default.attributesOfItem(atPath: manifestPath))?[.modificationDate] as? Date
+        // The update checker compares the Nexus upload date to the mod
+        // FOLDER's mtime, not the manifest's — see parseModFolder's
+        // `installedFileDate` comment above.
+        let manifestModified = (try? FileManager.default.attributesOfItem(atPath: folderPath))?[.modificationDate] as? Date
 
         nexusDownloader.getModFiles(modId: source.modId) { [weak self] result in
             guard let self = self else { return }
@@ -1815,9 +1817,10 @@ class StarHubTHViewModel: ObservableObject {
                         self.log(String(format: self.L(L10n.VM.manifestVersionSkipped), modName, currentVersion ?? "?"))
                     }
                 case .refreshDate:
-                    // No higher version to write (minor update, no bump): touch the
-                    // manifest mtime so the checker stops flagging a phantom update.
-                    try? FileManager.default.setAttributes([.modificationDate: Date()], ofItemAtPath: manifestPath)
+                    // No higher version to write (minor update, no bump): touch
+                    // the mod FOLDER's mtime (what the checker actually reads —
+                    // not the manifest's) so it stops flagging a phantom update.
+                    try? FileManager.default.setAttributes([.modificationDate: Date()], ofItemAtPath: folderPath)
                     self.log(String(format: self.L(L10n.VM.manifestVersionDateFixed), modName))
                     self.refresh()
                 case .noChange:
