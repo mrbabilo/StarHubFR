@@ -1,23 +1,59 @@
 import SwiftUI
 
-/// Renders a parsed mod-description/changelog as native SwiftUI, lazily.
+/// Renders a Markdown string as native SwiftUI text, preserving line breaks and
+/// inline formatting (bold/italic/links). Built from a precomputed
+/// `AttributedString` so the (relatively costly) Markdown parse happens once per
+/// value change, never on every layout pass — `Text(.init(String))` would
+/// re-parse the `LocalizedStringKey` on each pass, and it also collapses the
+/// newlines a mod description relies on.
+struct MarkdownText: View {
+    private let attributed: AttributedString
+
+    init(_ markdown: String) {
+        self.attributed = MarkdownText.render(markdown)
+    }
+
+    /// Inline-only parse that *preserves* whitespace/newlines (so multi-line
+    /// descriptions and list lines stay on their own line) and degrades to the
+    /// raw string rather than throwing on malformed Markdown or stray `%`.
+    static func render(_ s: String) -> AttributedString {
+        (try? AttributedString(
+            markdown: s,
+            options: .init(
+                interpretedSyntax: .inlineOnlyPreservingWhitespace,
+                failurePolicy: .returnPartiallyParsedIfPossible
+            )
+        )) ?? AttributedString(s)
+    }
+
+    var body: some View {
+        Text(attributed)
+            .font(.body)
+            .textSelection(.enabled)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// Renders a parsed mod-description/changelog as native SwiftUI.
+///
+/// Uses a plain (eager) `VStack`, matching upstream: a `LazyVStack` here is
+/// counter-productive because a description tokenizes into only a handful of
+/// blocks — often a single very tall `.text` — and lazily measuring a few huge
+/// items inside a `ScrollView` thrashes layout instead of helping.
 struct DescriptionBlocksView: View {
     let blocks: [DescriptionBlock]
     @ObservedObject var vm: StarHubTHViewModel
 
     var body: some View {
-        LazyVStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 12) {
             ForEach(Array(blocks.enumerated()), id: \.offset) { _, block in
                 switch block {
                 case .text(let markdown):
-                    Text(.init(markdown))            // Markdown-rendered (bold/italic/links)
-                        .font(.body)
-                        .textSelection(.enabled)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    MarkdownText(markdown)
                 case .image(let url):
                     AsyncImage(url: url) { phase in
                         if let image = phase.image {
-                            image.resizable().scaledToFit().clipShape(RoundedRectangle(cornerRadius: 8))
+                            image.resizable().scaledToFit().frame(maxHeight: 400).clipShape(RoundedRectangle(cornerRadius: 8))
                         } else if phase.error != nil {
                             EmptyView()               // offline / broken → skip
                         } else {
@@ -61,11 +97,8 @@ struct SpoilerView: View {
             .buttonStyle(.plain)
 
             if isExpanded {
-                Text(.init(content))
-                    .font(.body)
-                    .textSelection(.enabled)
+                MarkdownText(content)
                     .padding(12)
-                    .frame(maxWidth: .infinity, alignment: .leading)
                     .background(Color.primary.opacity(0.03))
                     .clipShape(RoundedRectangle(cornerRadius: 6))
             }
