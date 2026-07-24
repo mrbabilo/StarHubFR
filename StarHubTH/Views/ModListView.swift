@@ -247,7 +247,7 @@ struct ModListView: View {
             if tag != "Other" { counts[tag, default: 0] += 1 }
         }
         return counts.map { (tag: $0.key, label: vm.L(L10n.ModTag.key(for: $0.key)), count: $0.value) }
-            .sorted { $0.label < $1.label }
+            .sorted { $0.label.localizedCaseInsensitiveCompare($1.label) == .orderedAscending }
     }
 
     /// Count of top-level mods (standalone mods + whole packs) with no
