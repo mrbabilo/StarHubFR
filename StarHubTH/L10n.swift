@@ -211,7 +211,8 @@ enum L10n {
         // Rich detail pane (ModDetailView)
         static let detailDescription    = "mods_detail_description"
         static let detailChangelog      = "mods_detail_changelog"
-        static let detailOffline        = "mods_detail_offline"
+        static let detailNoDescription  = "mods_detail_no_description"
+        static let detailNoChangelog    = "mods_detail_no_changelog"
         static let detailView           = "mods_detail_view"
         static let detailCached         = "mods_detail_cached"
     }

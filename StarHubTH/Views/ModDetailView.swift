@@ -97,9 +97,14 @@ struct ModDetailView: View {
                     ProgressView()
                         .frame(maxWidth: .infinity, minHeight: 160)
                 } else {
+                    // Content genuinely absent (not loading): the mod has no
+                    // description / no changelog for this version. Connectivity
+                    // isn't tracked here, so a neutral per-tab message is more
+                    // honest than an "offline" claim that would also fire for a
+                    // perfectly online mod that simply ships no changelog.
                     ContentUnavailableView(
-                        vm.L(L10n.Mods.detailOffline),
-                        systemImage: "wifi.slash"
+                        vm.L(selectedTab == 0 ? L10n.Mods.detailNoDescription : L10n.Mods.detailNoChangelog),
+                        systemImage: "doc.plaintext"
                     )
                     .frame(maxWidth: .infinity, minHeight: 160)
                 }
