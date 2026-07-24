@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-07-24
+
 ### Added
 - **Bulk enable/disable all mods**: a power-button menu in the mods toolbar lets you enable or disable every installed mod at once, with a confirmation dialog.
   - A **full-screen progress overlay** (determinate progress bar + done/total counter) blocks the list during the operation, keeping the UI responsive by running all file moves on a background queue.
