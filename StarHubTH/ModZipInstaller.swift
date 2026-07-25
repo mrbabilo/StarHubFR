@@ -462,19 +462,33 @@ class ModZipInstaller {
 
             // Restore preserved user configs/translations on top of the freshly
             // installed mod (config.json + all language files the user had).
+            // The existing folder was deleted above, so without this restore the
+            // user would lose their settings/translations if the new archive
+            // doesn't ship them (common case). Failures must surface, not be
+            // swallowed — a silent failure here means data loss.
             for (configFile, tmp) in preservedConfigs {
                 let cfg = (destPath as NSString).appendingPathComponent(configFile)
                 if fm.fileExists(atPath: cfg) {
                     try? fm.removeItem(atPath: cfg)
                 }
-                try? fm.copyItem(atPath: tmp.path, toPath: cfg)
-                try? fm.removeItem(at: tmp)
+                do {
+                    try fm.copyItem(atPath: tmp.path, toPath: cfg)
+                    try? fm.removeItem(at: tmp)
+                } catch {
+                    // Clean up the temp snapshot even on failure, but don't
+                    // mask the error — the caller should know config restore
+                    // failed (the backup in ModInstallBackupManager still has
+                    // the original files for manual recovery).
+                    try? fm.removeItem(at: tmp)
+                    throw InstallError.installFailed("Failed to restore \(configFile): \(error.localizedDescription)")
+                }
             }
         }
     }
 
-    /// Copies `config.json`/`fr.json` from `modFolder` into temp files so
-    /// they survive the folder being replaced during an overwrite install.
+    /// Copies `config.json` and all SMAPI language files from `modFolder` into
+    /// temp files so they survive the folder being replaced during an overwrite
+    /// install. See `ModConfigFiles.preservable` for the full file list.
     private func snapshotUserConfigs(from modFolder: String) -> [String: URL] {
         var snapshots: [String: URL] = [:]
         for configFile in ModConfigFiles.preservable {
@@ -522,6 +536,7 @@ enum InstallError: LocalizedError {
     case unsafeContent
     case gameDirEmpty
     case backupFailed(String)
+    case installFailed(String)
 
     var errorDescription: String? {
         switch self {
@@ -529,6 +544,7 @@ enum InstallError: LocalizedError {
         case .unsafeContent: return "This zip contains unsafe content (symbolic links) and was rejected."
         case .gameDirEmpty: return "Game directory is not set."
         case .backupFailed(let reason): return "Backup of the existing mod failed, installation aborted: \(reason)"
+        case .installFailed(let reason): return "Installation failed: \(reason)"
         }
     }
 }

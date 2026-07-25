@@ -65,8 +65,8 @@ struct InstallPreview: View {
 
             // All scrollable content in one ScrollView so a pack with many
             // mods/dependencies/conflicts never pushes the action buttons off
-            // screen. The frame height is capped relative to the window so the
-            // sheet stays within the visible area even with long lists.
+            // screen. The ScrollView is capped to ~60% of the screen height so
+            // it scrolls internally instead of growing the sheet unboundedly.
             ScrollView {
                 VStack(spacing: 12) {
                     ForEach(zipModInfo.detectedMods) { mod in
@@ -92,6 +92,7 @@ struct InstallPreview: View {
                     }
                 }
             }
+            .frame(maxHeight: NSScreen.main?.visibleFrame.height ?? 600 * 0.6)
 
             // Actions — fixed at bottom, not scrolled.
             actionButtons
