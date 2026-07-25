@@ -265,11 +265,13 @@ struct InstallPreview: View {
             Spacer()
 
             let selectedCount = selections.values.filter { $0.selected }.count
-            Text(selectedCount > 0 ? String(format: vm.L(L10n.ModInstall.installSelected), selectedCount) : vm.L(L10n.ModInstall.cannotInstallEmpty))
-                .font(.system(size: 12))
-                .foregroundColor(selectedCount > 0 ? .primary : .red)
+            if selectedCount == 0 {
+                Text(vm.L(L10n.ModInstall.cannotInstallEmpty))
+                    .font(.system(size: 12))
+                    .foregroundColor(.red)
+            }
 
-            Button(vm.L(L10n.ModInstall.installSelected)) {
+            Button(String(format: vm.L(L10n.ModInstall.installSelected), selectedCount)) {
                 let selected = selections.values.filter { $0.selected }
                 if !selected.isEmpty {
                     onInstall(Array(selected))
