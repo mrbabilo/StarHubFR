@@ -1054,9 +1054,7 @@ class StarHubTHViewModel: ObservableObject {
                 // Traversal continues through dependencies that are already
                 // enabled (tracked by `visited`, separate from
                 // `foldersToToggle`) so that a disabled mod two levels down
-                // an already-enabled chain still gets picked up — matching
-                // `applyChainToSet`'s traversal, which has the same
-                // requirement and is not gated on `isEnabled`.
+                // an already-enabled chain still gets picked up.
                 var queue = [mod.folderName]
                 var visited: Set<String> = [mod.folderName]
                 while !queue.isEmpty {
@@ -2642,6 +2640,13 @@ class StarHubTHViewModel: ObservableObject {
         }
     }
 
+    /// Renames a profile in place (its enabled-mod set is untouched).
+    func renameProfile(id: UUID, newName: String) {
+        guard let index = modProfiles.firstIndex(where: { $0.id == id }) else { return }
+        modProfiles[index].name = newName
+        saveProfiles()
+    }
+
     func applyProfile(id: UUID?) {
         guard let id = id, let profile = modProfiles.first(where: { $0.id == id }) else {
             activeProfileId = nil
@@ -2713,8 +2718,22 @@ class StarHubTHViewModel: ObservableObject {
             return profile.enabledModIds.contains(mod.uniqueId)
         }
 
+        // Whether a mod can be represented in a profile at all. Profiles key on
+        // `UniqueID`, which the enabled list stores (empty ids are filtered out
+        // when snapshotting), so a mod whose manifest has no `UniqueID` can
+        // never be "covered". Without this guard, applying ANY profile would
+        // sweep every such mod into Mods_disabled — a silent data loss. Leave
+        // those mods exactly where they are instead.
+        func isProfileManageable(_ mod: ModItem) -> Bool {
+            if mod.isGroup, let children = mod.children {
+                return children.contains { !$0.uniqueId.isEmpty }
+            }
+            return !mod.uniqueId.isEmpty
+        }
+
         // Disable mods not in profile
         for mod in mods.filter({ $0.isEnabled }) {
+            guard isProfileManageable(mod) else { continue }
             guard !isCoveredByProfile(mod) else { continue }
             let src = (modsPath as NSString).appendingPathComponent(mod.folderName)
             let dst = (disabledModsPath as NSString).appendingPathComponent(mod.folderName)
@@ -2971,99 +2990,6 @@ class StarHubTHViewModel: ObservableObject {
         }
     }
 
-    /// Compute which uniqueIds should be added/removed when toggling a mod in a profile,
-    /// using the same chain logic as toggleMod. Works on an in-memory set (no file I/O).
-    /// - Parameters:
-    ///   - mod: The mod being toggled (can be a group or single mod)
-    ///   - enable: true = enabling, false = disabling
-    ///   - currentEnabled: the current set of enabled uniqueIds in the profile
-    /// - Returns: A new set with the chain applied
-    func applyChainToSet(mod: ModItem, enable: Bool, currentEnabled: Set<String>) -> Set<String> {
-        var result = currentEnabled
-
-        // Build helpers identical to toggleMod
-        func getTopLevelMod(for uniqueId: String) -> ModItem? {
-            for m in mods {
-                if !m.isGroup && m.uniqueId.caseInsensitiveCompare(uniqueId) == .orderedSame { return m }
-                if m.isGroup, let children = m.children,
-                   children.contains(where: { $0.uniqueId.caseInsensitiveCompare(uniqueId) == .orderedSame }) { return m }
-            }
-            return nil
-        }
-
-        func getDependencies(for topMod: ModItem) -> [ModDependency] {
-            if topMod.isGroup, let children = topMod.children { return children.flatMap { $0.dependencies } }
-            return topMod.dependencies
-        }
-
-        // Collect all uniqueIds provided by the target mod (single or group)
-        func providedIds(for topMod: ModItem) -> [String] {
-            if topMod.isGroup, let children = topMod.children { return children.map { $0.uniqueId } }
-            return [topMod.uniqueId]
-        }
-
-        // All top-level mods to process — for a group, start with the group itself
-        let startingMod = mod.isGroup ? mod : (getTopLevelMod(for: mod.uniqueId) ?? mod)
-        let startingIds = providedIds(for: startingMod)
-
-        if enable {
-            // Enable starting mod's ids
-            startingIds.forEach { result.insert($0) }
-
-            if chainToggleDependencies {
-                // BFS: enable all required dependencies
-                var queue = [startingMod]
-                var visited = Set<String>([startingMod.folderName])
-                while !queue.isEmpty {
-                    let current = queue.removeFirst()
-                    for dep in getDependencies(for: current) where dep.isRequired {
-                        if let depMod = getTopLevelMod(for: dep.uniqueId), !visited.contains(depMod.folderName) {
-                            visited.insert(depMod.folderName)
-                            providedIds(for: depMod).forEach { result.insert($0) }
-                            queue.append(depMod)
-                        }
-                    }
-                }
-            }
-        } else {
-            // Disable starting mod's ids
-            startingIds.forEach { result.remove($0) }
-
-            if chainToggleDependencies {
-                // BFS: disable any mod that requires the now-disabled mod
-                var queue = [startingMod]
-                var visited = Set<String>([startingMod.folderName])
-                while !queue.isEmpty {
-                    let current = queue.removeFirst()
-                    let currentIds = providedIds(for: current)
-                    for candidate in mods {
-                        guard !visited.contains(candidate.folderName) else { continue }
-                        // Only cascade through mods that are *currently*
-                        // enabled in this set — mirrors `performToggle`'s
-                        // disable branch, which is gated on
-                        // `otherMod.isEnabled`. Without this, an
-                        // already-disabled candidate that merely lists a
-                        // dependency on the mod being disabled would get its
-                        // ids incorrectly removed from `result` even though
-                        // it was never enabled to begin with.
-                        let candidateIsEnabled = providedIds(for: candidate).contains { currentEnabled.contains($0) }
-                        guard candidateIsEnabled else { continue }
-                        let candidateDeps = getDependencies(for: candidate)
-                        let requiresCurrent = candidateDeps.contains { dep in
-                            dep.isRequired && currentIds.contains { $0.caseInsensitiveCompare(dep.uniqueId) == .orderedSame }
-                        }
-                        if requiresCurrent {
-                            visited.insert(candidate.folderName)
-                            providedIds(for: candidate).forEach { result.remove($0) }
-                            queue.append(candidate)
-                        }
-                    }
-                }
-            }
-        }
-
-        return result
-    }
     /// Call this after any toggleMod so the profile stays up to date.
     func syncActiveProfileIds() {
         guard let id = activeProfileId,
