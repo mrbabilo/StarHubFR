@@ -210,6 +210,8 @@ enum L10n {
         static let deleteModA11yHint    = "mods_delete_mod_a11y_hint"
         static let versionPrefix         = "mods_version_prefix"
         static let missingDependenciesPrefix = "mods_missing_dependencies_prefix"
+        static let searchNexusByModName     = "mods_search_nexus_by_mod_name"
+        static let searchNexusByAuthor      = "mods_search_nexus_by_author"
         static let viewOnNexus          = "mods_view_on_nexus"
         static let viewDetailsOnNexus   = "mods_view_details_on_nexus"
         // Pagination

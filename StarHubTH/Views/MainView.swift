@@ -326,7 +326,7 @@ struct MainView: View {
                 }
             }
             .navigationTitle(navigationTitleText)
-            .onChange(of: currentTab) {
+            .onChange(of: currentTab) { _, _ in
                 vm.editingSave = nil
                 vm.viewingThaiMod = nil
                 vm.viewingSaveTimeline = nil

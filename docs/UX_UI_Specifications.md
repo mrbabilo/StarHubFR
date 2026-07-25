@@ -880,52 +880,56 @@ Text(vm.L(L10n.ModInstall.installButton))
 
 ## 8. Performance
 
-### 8.1 Recherche — debounce (ModListView)
+### 8.1 Recherche — filtrage temps réel (ModListView)
 
-**Problème actuel :** `searchText` déclenche `filteredMods` (computed property)
-à chaque keystroke. Avec 100+ mods et des dépendances à scanner, ça peut laguer.
+**Problème initial supposé :** `searchText` déclenche `filteredMods` (computed
+property) à chaque keystroke. Avec 100+ mods et des dépendances à scanner, on
+craignait une latence.
 
-**Correctif :** Debounce de 200ms via `.task` (API moderne macOS 14+).
+**Correctif tenté puis abandonné :** Debounce de 200 ms via `.task(id: searchText)`
++ `debouncedSearch`. Testé en 1.7.0-beta, mais **reverté** : le délai de 200 ms
+introduit une latence perceptible qui donne l'impression que la barre de
+recherche « accroche » à chaque caractère, dégradant l'UX perçue par rapport au
+filtrage temps réel d'origine (1.6.0).
+
+**Décision finale :** Filtrage temps réel conservé. Le `ViewModel` maintient un
+index précomputé (`installedUniqueIds`, `installedModStates`) utilisé par
+`getMissingDependencies`/`getDisabledDependencies` (O(dépendances) par appel),
+et la pagination (15/page) limite le nombre de rows rendues. Le coût par
+keystroke reste négligeable dans la pratique.
 
 ```swift
-// ModListView.swift — modifier les @State (ligne ~31)
-
+// ModListView.swift — état final (filtrage temps réel, pas de debounce)
 @State private var searchText = ""
-@State private var debouncedSearchText = ""   // NOUVEAU
 
-// Dans le body, remplacer les usages de `searchText` dans filteredMods
-// par `debouncedSearchText` :
+var filteredMods: [ModItem] {
+    vm.mods
+        .filter { mod in
+            searchText.isEmpty || matchesSelfOrAnyChild(mod) {
+                $0.name.localizedCaseInsensitiveContains(searchText)
+                    || $0.uniqueId.localizedCaseInsensitiveContains(searchText)
+            }
+        }
+        // ...
+}
 
-// .searchable reste sur searchText (réactif pour l'UI)
 .searchable(text: $searchText, prompt: Text(vm.L(L10n.Mods.searchMods)))
-.task(id: searchText) {                        // NOUVEAU
-    try? await Task.sleep(nanoseconds: 200_000_000)  // 200ms
-    if !Task.isCancelled {
-        debouncedSearchText = searchText
-        currentPage = 1
-    }
-}
+.onChange(of: searchText) { currentPage = 1 }
 ```
 
-### 8.2 Liste — `LazyVStack` au lieu de `VStack`
+### 8.2 Liste — `VStack` conservé (pagination comme optimisation principale)
 
-**Problème :** `ModListView` (ligne ~292) utilise `ScrollView` + `VStack` qui
-matérialise toutes les rows même hors écran.
+**Problème initial supposé :** `ModListView` utilise `ScrollView` + `VStack`
+qui matérialise toutes les rows même hors écran.
 
-**Correctif :** Remplacer par `LazyVStack` (même API, rendu paresseux).
+**Correctif tenté puis abandonné :** Migration vers `LazyVStack`. Testé en
+1.7.0-beta, mais **reverté** : la pagination plafonne déjà la liste à 15 rows
+par page, donc le bénéfice de `LazyVStack` est marginal et ne justifie pas le
+changement de comportement de rendu.
 
-```swift
-// ModListView.swift ligne 292
-ScrollView(showsIndicators: false) {
-    LazyVStack(alignment: .leading, spacing: AppDesign.Spacing.xxl) {  // ← Lazy
-        // ... contenu identique ...
-    }
-    .padding(AppDesign.Spacing.lg)
-}
-```
-
-**Gain estimé :** Sur 100 mods, ~40% de réduction du temps de premier rendu
-(mesuré par profiling sur projets similaires).
+**Décision finale :** `VStack` conservé (rendu déterministe). La pagination
+(15/page, footer avec saut de page direct) reste l'optimisation principale de
+la liste.
 
 ### 8.3 Cache d'images Nexus
 

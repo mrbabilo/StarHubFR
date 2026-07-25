@@ -566,5 +566,7 @@
   "mod_install_empty_title": "No mod installed yet",
   "mod_install_empty_hint": "Drag a .zip file here or click to install",
   "mods_missing_dependencies_prefix": "Missing:",
+  "mods_search_nexus_by_mod_name": "Search Nexus for “%@”",
+  "mods_search_nexus_by_author": "Search Nexus by author “%@”",
   "mod_install_recover_zip": "Try re-downloading the mod or verify the file integrity"
 }

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Nexus missing-dependency search** — clicking a missing dependency now opens a menu offering two distinct searches: by mod name (readable split-camelCase, e.g. `Content Patcher`) or by author (e.g. `Pathoschild`). The author search uses the dedicated Nexus filter (`/games/stardewvalley/mods?author=`) for precise results, and is applied consistently in both the mod list and the dependency tree in the detail pane.
+- **Mod list search reverted to real-time** — the 200 ms debounce introduced in 1.7.0 caused perceived input lag; restored the instant real-time filtering of 1.6.0 (the precomputed dependency index keeps per-keystroke cost negligible).
+- **Deprecated `onChange(of:perform:)` migrated** — all 8 occurrences across `ModListView`, `LogsView`, `MainView`, and `ModConfigEditorView` now use the macOS 14+ two-parameter `onChange(of:initial:_:)` API, removing all deprecation warnings.
+
 ## [1.7.0] - 2026-07-25
 
 ### Added
@@ -19,7 +24,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **Accessibility labels added** — 17 total `accessibilityLabel`/`Value`/`Hint` calls across `ModListRow`, icon-only buttons, sidebar nav, search bar, `SystemStatusFooter`, and `EmptyStateDropZone` so VoiceOver announces the full UI in French or English.
-- **Search debounced** — the mod list search now waits 200 ms after the last keystroke before filtering, avoiding a recompute on every keypress.
 - **Nexus dependency search aligned** — missing-dependency buttons now use the same `…/search/?gsearch=` format as the dependency tree and present human-readable terms (`Content Patcher` instead of `Pathoschild.ContentPatcher`).
 - **LazyVStack reverted in ModSectionGroup** — pagination already caps rows at 15, so `LazyVStack`'s benefit is marginal; switched back to deterministic `VStack`.
 - **EmptyStateDropZone hover fill semantics** — `.overlay` replaced by `.background` since the hover tint is a fill behind the content, not on top.

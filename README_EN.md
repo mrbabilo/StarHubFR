@@ -39,7 +39,7 @@
 *   **System Status Footer**: Persistent at-a-glance counts for active mods, pending updates, and SMAPI errors in the sidebar.
 *   **Empty-State Drop Zone**: When no mods are installed, a large visual drag-and-drop prompt replaces plain text.
 *   **Cached Mod Images**: Mod detail-pane banners are now cached for faster repeat display.
-*   **Improved Mod Search**: The mod list search is debounced (200 ms) to avoid unnecessary recomputation; missing-dependency links now open Nexus with a human-readable search term.
+*   **Improved Mod Search**: Missing-dependency links now open Nexus with a human-readable search term (e.g. "Content Patcher" instead of "Pathoschild.ContentPatcher").
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/screenshots_banner.png" alt="Screenshots" width="300">

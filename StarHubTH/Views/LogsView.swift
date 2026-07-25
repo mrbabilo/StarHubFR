@@ -142,7 +142,7 @@ struct LogsView: View {
                     }
                     .listStyle(.plain)
                     .id(selectedSource.map { "\($0)" } ?? "all")
-                    .onChange(of: vm.logEntries.count) {
+                    .onChange(of: vm.logEntries.count) { _, _ in
                         if autoScroll, let last = filteredEntries.last {
                             withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
                         }

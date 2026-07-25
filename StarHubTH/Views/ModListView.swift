@@ -38,7 +38,6 @@ private enum PageSlot {
 struct ModListView: View {
     @ObservedObject var vm: StarHubTHViewModel
     @State private var searchText = ""
-    @State private var debouncedSearch = ""
     @State private var selectedFilter: ModFilter = .all
     /// Category-filter scope: show everything, scope to one Nexus category,
     /// or scope to mods with no category assigned. `.category` only affects
@@ -90,8 +89,8 @@ struct ModListView: View {
     var filteredMods: [ModItem] {
         vm.mods
             .filter { mod in
-                debouncedSearch.isEmpty || matchesSelfOrAnyChild(mod) {
-                    $0.name.localizedCaseInsensitiveContains(debouncedSearch) || $0.uniqueId.localizedCaseInsensitiveContains(debouncedSearch)
+                searchText.isEmpty || matchesSelfOrAnyChild(mod) {
+                    $0.name.localizedCaseInsensitiveContains(searchText) || $0.uniqueId.localizedCaseInsensitiveContains(searchText)
                 }
             }
             .filter { mod in
@@ -397,7 +396,7 @@ struct ModListView: View {
                                 Image(systemName: "puzzlepiece.extension")
                                     .font(.system(size: 48))
                                     .foregroundColor(.secondary.opacity(AppDesign.Opacity.disabled))
-                                Text(String(format: vm.L(L10n.Mods.noModFound), debouncedSearch))
+                                Text(String(format: vm.L(L10n.Mods.noModFound), searchText))
                                     .multilineTextAlignment(.center)
                                     .font(AppDesign.Font.rowTitle)
                                     .foregroundColor(.secondary)
@@ -446,17 +445,11 @@ struct ModListView: View {
             }
         }
         .searchable(text: $searchText, prompt: Text(vm.L(L10n.Mods.searchMods)))
-        .task(id: searchText) {
-            do {
-                try await Task.sleep(nanoseconds: 200_000_000)
-                debouncedSearch = searchText
-                currentPage = 1
-            } catch {}
-        }
-        .onChange(of: selectedFilter)   { currentPage = 1 }
-        .onChange(of: selectedCategory) { currentPage = 1 }
-        .onChange(of: configOnlyFilter) { currentPage = 1 }
-        .onChange(of: vm.mods.count)    { currentPage = 1 }
+        .onChange(of: searchText)       { _, _ in currentPage = 1 }
+        .onChange(of: selectedFilter)   { _, _ in currentPage = 1 }
+        .onChange(of: selectedCategory) { _, _ in currentPage = 1 }
+        .onChange(of: configOnlyFilter) { _, _ in currentPage = 1 }
+        .onChange(of: vm.mods.count)    { _, _ in currentPage = 1 }
         .sheet(isPresented: $showInstallSheet) {
             ModInstallView(vm: vm, isPresented: $showInstallSheet)
         }
@@ -1072,11 +1065,32 @@ struct ModListRow: View {
                                 ForEach(Array(missingDeps.enumerated()), id: \.offset) { idx, depId in
                                     HStack(spacing: 2) {
                                         if idx > 0 { Text(",") }
-                                        let searchLabel = searchName(for: depId)
-                                        Button(searchLabel) { openNexusSearch(for: searchLabel) }
-                                            .buttonStyle(.plain)
-                                            .underline()
-                                            .pointingHandCursor()
+                                        let modName = depId.smapiModName
+                                        let author = depId.smapiAuthor
+                                        // Au clic, propose deux recherches Nexus :
+                                        // par nom du mod (défaut) ou par auteur.
+                                        Menu {
+                                            Button {
+                                                openNexusSearch(for: modName)
+                                            } label: {
+                                                Label(String(format: vm.L(L10n.Mods.searchNexusByModName), modName),
+                                                      systemImage: "magnifyingglass")
+                                            }
+                                            if !author.isEmpty {
+                                                Button {
+                                                    openNexusAuthorSearch(for: author)
+                                                } label: {
+                                                    Label(String(format: vm.L(L10n.Mods.searchNexusByAuthor), author),
+                                                          systemImage: "person")
+                                                }
+                                            }
+                                        } label: {
+                                            Text(modName)
+                                                .underline()
+                                                .pointingHandCursor()
+                                        }
+                                        .menuStyle(.button)
+                                        .buttonStyle(.plain)
                                     }
                                 }
                             }
@@ -1328,15 +1342,13 @@ struct ModListRow: View {
         }
     }
 
-    /// Dérive un nom de recherche humainement lisible depuis un uniqueId de
-    /// dépendance : `Pathoschild.ContentPatcher` → `Content Patcher`.
-    private func searchName(for uniqueId: String) -> String {
-        let last = uniqueId.split(separator: ".").last.map(String.init) ?? uniqueId
-        return last.reduce(into: "") { result, char in
-            if char.isUppercase && !result.isEmpty {
-                result.append(" ")
-            }
-            result.append(char)
+    /// Ouvre la liste des mods d'un auteur sur Nexus Mods. Le filtre `?author=`
+    /// est plus précis qu'une recherche plein texte pour retrouver tous les
+    /// mods d'un même auteur.
+    private func openNexusAuthorSearch(for author: String) {
+        let encoded = author.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? author
+        if let url = URL(string: "https://www.nexusmods.com/games/stardewvalley/mods?author=\(encoded)") {
+            NSWorkspace.shared.open(url)
         }
     }
 }

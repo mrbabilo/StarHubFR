@@ -133,14 +133,46 @@ struct DependencyRowView: View {
                 .foregroundColor(.accentColor).pointingHandCursor()
             }
         case .missing:
-            Button(vm.L(L10n.Mods.depSearch)) {
-                let q = node.uniqueId.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? node.uniqueId
-                if let url = URL(string: "https://www.nexusmods.com/stardewvalley/search/?gsearch=\(q)") {
-                    NSWorkspace.shared.open(url)
+            let modName = node.uniqueId.smapiModName
+            let author = node.uniqueId.smapiAuthor
+            Menu {
+                Button {
+                    openNexusSearch(for: modName)
+                } label: {
+                    Label(String(format: vm.L(L10n.Mods.searchNexusByModName), modName),
+                          systemImage: "magnifyingglass")
                 }
+                if !author.isEmpty {
+                    Button {
+                        openNexusAuthorSearch(for: author)
+                    } label: {
+                        Label(String(format: vm.L(L10n.Mods.searchNexusByAuthor), author),
+                              systemImage: "person")
+                    }
+                }
+            } label: {
+                Text(vm.L(L10n.Mods.depSearch))
             }
             .buttonStyle(.borderless).controlSize(.small)
             .foregroundColor(.accentColor).pointingHandCursor()
+        }
+    }
+
+    /// Ouvre la recherche Nexus Mods pour un terme donné (dépendance manquante).
+    private func openNexusSearch(for searchTerm: String) {
+        let encoded = searchTerm.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? searchTerm
+        if let url = URL(string: "https://www.nexusmods.com/stardewvalley/search/?gsearch=\(encoded)") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    /// Ouvre la liste des mods d'un auteur sur Nexus Mods. Le filtre `?author=`
+    /// est plus précis qu'une recherche plein texte pour retrouver tous les
+    /// mods d'un même auteur.
+    private func openNexusAuthorSearch(for author: String) {
+        let encoded = author.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? author
+        if let url = URL(string: "https://www.nexusmods.com/games/stardewvalley/mods?author=\(encoded)") {
+            NSWorkspace.shared.open(url)
         }
     }
 }
