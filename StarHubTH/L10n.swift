@@ -447,7 +447,6 @@ enum L10n {
         static let addProfile           = "profiles_add_profile"
         static let noProfiles           = "profiles_no_profiles"
         static let active               = "profiles_active"
-        static let deleteThisProfile    = "profiles_delete_this_profile"
         static let deleteNote           = "profiles_delete_note"
         static let newProfileNote       = "profiles_new_profile_note"
         static let createNewProfile     = "profiles_create_new_profile"
@@ -463,6 +462,9 @@ enum L10n {
         static let renameTitle          = "profiles_rename_title"
         static let modCount             = "profiles_mod_count"
         static let deleteConfirm        = "profiles_delete_confirm"
+        static let defaultName          = "profiles_default_name"
+        static let activate             = "profiles_activate"
+        static let activeLabel          = "profiles_active_label"
     }
 
     // MARK: - VM

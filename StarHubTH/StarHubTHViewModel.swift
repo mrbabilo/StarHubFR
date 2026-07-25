@@ -760,6 +760,9 @@ class StarHubTHViewModel: ObservableObject {
             if self.selectedMod == nil, let first = self.mods.first {
                 self.selectedMod = first
             }
+            // Seed a default profile on first run (no-op after the first time,
+            // and once mods have actually been scanned).
+            self.ensureDefaultProfileIfNeeded()
         }
     }
     
@@ -2600,6 +2603,27 @@ class StarHubTHViewModel: ObservableObject {
         }
     }
     
+    /// The currently-active profile, if any (nil when none is applied).
+    var activeProfile: ModProfile? {
+        guard let id = activeProfileId else { return nil }
+        return modProfiles.first { $0.id == id }
+    }
+
+    /// One-time: on a fresh install, create a starter profile capturing the
+    /// current mod setup so there's always an active profile to work from.
+    /// Guarded by a persisted flag so deleting every profile later never
+    /// re-creates it, and deferred until a scan has actually found mods so the
+    /// snapshot isn't empty.
+    func ensureDefaultProfileIfNeeded() {
+        let key = "didSeedDefaultProfile"
+        guard !UserDefaults.standard.bool(forKey: key) else { return }
+        guard !mods.isEmpty else { return }   // wait for a scan with mods; don't burn the flag yet
+        if modProfiles.isEmpty {
+            createProfile(name: L(L10n.Profiles.defaultName))
+        }
+        UserDefaults.standard.set(true, forKey: key)
+    }
+
     func createProfile(name: String) {
         // Snapshot the currently enabled mods into the new profile
         let currentEnabledIds = mods

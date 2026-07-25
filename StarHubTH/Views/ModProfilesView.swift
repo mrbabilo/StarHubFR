@@ -131,68 +131,81 @@ struct ProfileRow: View {
     @State private var isHovered = false
 
     var body: some View {
-        // Whole-row Button (not .onTapGesture) so the nested action buttons
-        // claim their own taps instead of also firing the row's apply action.
-        Button(action: onApply) {
-            HStack(spacing: 14) {
-                InitialsAvatar(
-                    text: profile.name,
-                    size: 40,
-                    fillColor: isActive ? Color.accentColor : Color.gray.opacity(0.3),
-                    textColor: isActive ? .white : .primary,
-                    fontSize: 20,
-                    fontWeight: .medium
-                )
+        // A plain row (NOT a tappable button) so switching profiles — which
+        // moves mod folders on disk — only ever happens via the explicit
+        // "Activate"/"Manage" buttons, never an accidental click on the row.
+        HStack(spacing: 14) {
+            InitialsAvatar(
+                text: profile.name,
+                size: 40,
+                fillColor: isActive ? Color.accentColor : Color.gray.opacity(0.3),
+                textColor: isActive ? .white : .primary,
+                fontSize: 20,
+                fontWeight: .medium
+            )
 
-                VStack(alignment: .leading, spacing: 3) {
-                    HStack(spacing: 8) {
-                        Text(profile.name)
-                            .font(.system(size: 14))
-                            .foregroundColor(.primary)
-                        if isActive {
-                            Text(vm.L(L10n.Profiles.active))
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.accentColor)
-                                .clipShape(Capsule())
-                        }
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 8) {
+                    Text(profile.name)
+                        .font(.system(size: 14))
+                        .foregroundColor(.primary)
+                    if isActive {
+                        Text(vm.L(L10n.Profiles.active))
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.accentColor)
+                            .clipShape(Capsule())
                     }
-                    Text(String(format: vm.L(L10n.Profiles.modCount), modCount))
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
                 }
+                Text(String(format: vm.L(L10n.Profiles.modCount), modCount))
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+            }
 
-                Spacer()
+            Spacer()
 
-                // Manage → apply this profile and jump to the Mods page to edit it.
-                Button(vm.L(L10n.Profiles.manageMods)) { onManage() }
+            // Activate → switch to this profile (applies its mod set). Hidden
+            // for the already-active profile.
+            if !isActive {
+                Button(vm.L(L10n.Profiles.activate)) { onApply() }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
                     .pointingHandCursor()
-
-                // Delete (confirmed). Dimmed until hover to keep the row calm.
-                Button(action: onDelete) {
-                    Image(systemName: "trash")
-                        .font(.system(size: 14))
-                        .foregroundColor(.red)
-                }
-                .buttonStyle(.plain)
-                .help(vm.L(L10n.Profiles.deleteThisProfile))
-                .opacity(isHovered ? 1 : 0.35)
-                .pointingHandCursor()
             }
-            .padding(.vertical, 12)
-            .padding(.horizontal, 16)
-            .contentShape(Rectangle())
-            .background(isHovered ? Color.primary.opacity(0.05) : Color.clear)
+
+            // Manage → apply this profile and jump to the Mods page to edit it.
+            Button(vm.L(L10n.Profiles.manageMods)) { onManage() }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .pointingHandCursor()
+
+            // Overflow: rename / delete (delete is confirmed downstream).
+            Menu {
+                Button(vm.L(L10n.Profiles.rename)) { onRename() }
+                Divider()
+                Button(vm.L(L10n.Profiles.delete), role: .destructive) { onDelete() }
+            } label: {
+                Image(systemName: "ellipsis.circle")
+                    .font(.system(size: 15))
+                    .foregroundColor(.secondary)
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+            .help(vm.L(L10n.Profiles.rename))
         }
-        .buttonStyle(.plain)
+        .padding(.vertical, 12)
+        .padding(.horizontal, 16)
+        .contentShape(Rectangle())
+        .background(isHovered ? Color.primary.opacity(0.03) : Color.clear)
         .onHover { isHovered = $0 }
         .contextMenu {
-            Button(vm.L(L10n.Profiles.rename)) { onRename() }
+            if !isActive {
+                Button(vm.L(L10n.Profiles.activate)) { onApply() }
+            }
             Button(vm.L(L10n.Profiles.manageMods)) { onManage() }
+            Button(vm.L(L10n.Profiles.rename)) { onRename() }
             Divider()
             Button(vm.L(L10n.Profiles.delete), role: .destructive) { onDelete() }
         }

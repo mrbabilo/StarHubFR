@@ -363,6 +363,23 @@ struct ModListView: View {
                                 .font(.system(size: 11))
                                 .foregroundColor(.secondary.opacity(0.8))
                         }
+
+                        // Which mod profile is currently applied (read-only hint).
+                        if let profile = vm.activeProfile {
+                            HStack(spacing: 5) {
+                                Image(systemName: "person.crop.circle")
+                                    .font(.system(size: 11))
+                                Text(String(format: vm.L(L10n.Profiles.activeLabel), profile.name))
+                                    .font(.system(size: 11, weight: .medium))
+                                    .lineLimit(1)
+                            }
+                            .foregroundColor(.accentColor)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(Color.accentColor.opacity(0.12))
+                            .clipShape(Capsule())
+                            .help(String(format: vm.L(L10n.Profiles.activeLabel), profile.name))
+                        }
                     }
                 }
 
