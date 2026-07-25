@@ -206,6 +206,13 @@ struct HomeView: View {
                         Rectangle().fill(Color.primary.opacity(0.05)).frame(height: 1).padding(.leading, 12).padding(.vertical, 2)
 
                         CoreModRow(vm: vm, title: "Stardew Valley Expanded", status: core.sve.status, mod: core.sve.mod)
+                        Rectangle().fill(Color.primary.opacity(0.05)).frame(height: 1).padding(.leading, 12).padding(.vertical, 2)
+
+                        CoreToolRow(
+                            title: vm.L(L10n.Home.toolUnar),
+                            status: core.unarTool.installed ? .enabledAndInstalled : .notInstalled,
+                            tooltip: vm.L(L10n.Home.toolUnarTooltip)
+                        )
                     }
                     .padding(.vertical, -8)
                 }
@@ -238,6 +245,11 @@ struct CoreExtensionsSnapshot {
     let spacecore: CoreModSlot
     let thai: CoreModSlot
     let sve: CoreModSlot
+    let unarTool: CoreToolSlot
+}
+
+struct CoreToolSlot {
+    let installed: Bool
 }
 
 // Helper for core mod status rows
@@ -306,5 +318,49 @@ struct CoreModRow: View {
         }
         .padding(.vertical, 4)
         .padding(.horizontal, 8)
+    }
+}
+
+// Row for a non-mod tool status (e.g. unar)
+struct CoreToolRow: View {
+    let title: String
+    let status: CoreModStatus
+    let tooltip: String
+
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 13))
+                Group {
+                    switch status {
+                    case .enabledAndInstalled:
+                        Text("")
+                    case .installedButDisabled:
+                        Text("")
+                    case .notInstalled:
+                        Text("brew install unar")
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .font(.system(size: 11))
+            }
+            Spacer()
+            switch status {
+            case .enabledAndInstalled:
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(.green)
+            case .installedButDisabled:
+                Image(systemName: "minus.circle.fill")
+                    .foregroundColor(.orange)
+            case .notInstalled:
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundColor(.red.opacity(0.6))
+            }
+        }
+        .padding(.vertical, 4)
+        .padding(.horizontal, 8)
+        .help(tooltip)
     }
 }

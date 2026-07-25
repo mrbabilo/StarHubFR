@@ -31,6 +31,10 @@
 "home_install_smapi" = "Installer SMAPI";
 "home_uninstall" = "Désinstaller";
 "home_core_extensions" = "Extensions principales";
+"home_tool_unar" = "The Unarchiver (unar)";
+"home_tool_unar_installed" = "Installé — extraction RAR prise en charge";
+"home_tool_unar_not_installed" = "Non installé — lancez `brew install unar` pour la prise en charge RAR";
+"home_tool_unar_tooltip" = "The Unarchiver (unar) est utilisé pour extraire les archives .rar des mods. Installez-le avec Homebrew : brew install unar";
 "home_installed_and_enabled" = "Installé et activé";
 "home_not_installed_or_disabled" = "Non installé ou désactivé";
 "home_installed_but_disabled" = "Installé mais désactivé";
@@ -566,7 +570,7 @@
 "config_code_editor_a11y_hint" = "Ouvre le fichier de configuration de ce mod dans l'éditeur de code";
 "mods_version_prefix" = "v%@";
 "mod_install_empty_title" = "Aucun mod installé pour le moment";
-"mod_install_empty_hint" = "Glissez un fichier .zip ici ou cliquez pour installer";
+"mod_install_empty_hint" = "Glissez un fichier .zip ou .rar ici ou cliquez pour installer";
 "mods_missing_dependencies_prefix" = "Manquant :";
 "mods_search_nexus_by_mod_name" = "Rechercher sur Nexus « %@ »";
 "mods_search_nexus_by_author" = "Rechercher sur Nexus par auteur « %@ »";

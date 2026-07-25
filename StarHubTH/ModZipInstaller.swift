@@ -40,10 +40,11 @@ class ModZipInstaller {
     private let maxModsPerZip = 10
 
     // MARK: - Validation
-
-    /// Validates a zip file against size, format, and structure requirements.
+    /// Validates an archive file against size, format, and structure requirements.
+    /// Supports `.zip` and `.rar` formats.
     func validateZip(at url: URL) -> ValidationStatus {
-        guard url.pathExtension.lowercased() == "zip" else {
+        let ext = url.pathExtension.lowercased()
+        guard ext == "zip" || ext == "rar" else {
             return .corrupted
         }
 
@@ -62,20 +63,31 @@ class ModZipInstaller {
             return .oversized
         }
 
+        // Verify the file signature matches the declared extension.
         guard let handle = FileHandle(forReadingAtPath: url.path) else {
             return .corrupted
         }
-        let data = handle.readData(ofLength: 4)
+        let data = handle.readData(ofLength: 8)
         handle.closeFile()
 
-        let signature = [0x50, 0x4B, 0x03, 0x04] // PK\03\04
-        let zipSignature = [UInt8](data)
-        guard zipSignature.count == 4,
-              zipSignature[0] == signature[0],
-              zipSignature[1] == signature[1],
-              zipSignature[2] == signature[2],
-              zipSignature[3] == signature[3] else {
-            return .corrupted
+        let bytes = [UInt8](data)
+        if ext == "zip" {
+            // ZIP signature: PK\x03\x04
+            let sig: [UInt8] = [0x50, 0x4B, 0x03, 0x04]
+            guard bytes.count >= 4,
+                  bytes[0] == sig[0], bytes[1] == sig[1],
+                  bytes[2] == sig[2], bytes[3] == sig[3] else {
+                return .corrupted
+            }
+        } else {
+            // RAR signature: "Rar!\x1a\x07" (common to RAR4 and RAR5).
+            let sig: [UInt8] = [0x52, 0x61, 0x72, 0x21, 0x1A, 0x07]
+            guard bytes.count >= 6,
+                  bytes[0] == sig[0], bytes[1] == sig[1],
+                  bytes[2] == sig[2], bytes[3] == sig[3],
+                  bytes[4] == sig[4], bytes[5] == sig[5] else {
+                return .corrupted
+            }
         }
 
         return .valid
@@ -332,18 +344,72 @@ class ModZipInstaller {
 
     // MARK: - Extraction
 
-    /// Extracts a zip archive to a directory using `/usr/bin/unzip`.
-    /// Shared helper — avoids duplicating the Process boilerplate across
-    /// the codebase (`SmapiInstaller` has its own copy for historical reasons).
+    /// Extracts an archive (`.zip` or `.rar`) to a directory.
+    /// - ZIP: uses `/usr/bin/unzip` (always available on macOS).
+    /// - RAR: uses the first available of `unrar`, `unar`, or `7z`
+    ///   (not bundled — checked at runtime). Throws `rarToolMissing` if none
+    ///   is found.
     static func extractArchive(zipUrl: URL, to destDir: URL) throws {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
-        process.arguments = ["-q", zipUrl.path, "-d", destDir.path]
-        try process.run()
-        process.waitUntilExit()
-        guard process.terminationStatus == 0 else {
+        let ext = zipUrl.pathExtension.lowercased()
+
+        if ext == "zip" {
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
+            process.arguments = ["-q", zipUrl.path, "-d", destDir.path]
+            try process.run()
+            process.waitUntilExit()
+            guard process.terminationStatus == 0 else {
+                throw InstallError.extractionFailed
+            }
+        } else if ext == "rar" {
+            guard let tool = findRarTool() else {
+                throw InstallError.rarToolMissing
+            }
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: tool.path)
+            process.arguments = tool.arguments(zipUrl.path, destDir.path)
+            try process.run()
+            process.waitUntilExit()
+            guard process.terminationStatus == 0 else {
+                throw InstallError.extractionFailed
+            }
+        } else {
             throw InstallError.extractionFailed
         }
+    }
+
+    /// Searches the standard PATH locations (plus Homebrew paths) for a RAR
+    /// extraction tool, in order of preference: `unrar` (official, fastest),
+    /// `unar` (The Unarchiver, handles many formats), `7z` (7-Zip).
+    /// Returns `nil` if none is available.
+    private static func findRarTool() -> (path: String, arguments: (String, String) -> [String])? {
+        let searchPaths = [
+            "/usr/local/bin", "/opt/homebrew/bin", "/usr/bin",
+            FileManager.default.homeDirectoryForCurrentUser
+                .appendingPathComponent(".homebrew/bin").path,
+        ]
+        // unrar: `unrar x -o+ <archive> <dest>/`
+        for dir in searchPaths {
+            let p = "\(dir)/unrar"
+            if FileManager.default.isExecutableFile(atPath: p) {
+                return (p, { archive, dest in ["x", "-o+", archive, dest + "/"] })
+            }
+        }
+        // unar: `unar -f -o <dest> <archive>`
+        for dir in searchPaths {
+            let p = "\(dir)/unar"
+            if FileManager.default.isExecutableFile(atPath: p) {
+                return (p, { archive, dest in ["-f", "-o", dest, archive] })
+            }
+        }
+        // 7z: `7z x -aoa -o<dest> <archive>`
+        for dir in searchPaths {
+            let p = "\(dir)/7z"
+            if FileManager.default.isExecutableFile(atPath: p) {
+                return (p, { archive, dest in ["x", "-aoa", "-o\(dest)", archive] })
+            }
+        }
+        return nil
     }
 
     /// Extracts a zip file to a temporary directory using `/usr/bin/unzip`
@@ -585,14 +651,16 @@ enum InstallError: LocalizedError {
     case gameDirEmpty
     case backupFailed(String)
     case installFailed(String)
+    case rarToolMissing
 
     var errorDescription: String? {
         switch self {
-        case .extractionFailed: return "Failed to extract zip file"
-        case .unsafeContent: return "This zip contains unsafe content (symbolic links) and was rejected."
+        case .extractionFailed: return "Failed to extract archive file"
+        case .unsafeContent: return "This archive contains unsafe content (symbolic links) and was rejected."
         case .gameDirEmpty: return "Game directory is not set."
         case .backupFailed(let reason): return "Backup of the existing mod failed, installation aborted: \(reason)"
         case .installFailed(let reason): return "Installation failed: \(reason)"
+        case .rarToolMissing: return "RAR extraction requires 'unrar', 'unar', or '7z' (install via Homebrew: brew install unrar)."
         }
     }
 }

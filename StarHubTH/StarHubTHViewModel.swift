@@ -1005,8 +1005,20 @@ class StarHubTHViewModel: ObservableObject {
             contentPatcher: slot(matching: "content patcher"),
             spacecore: slot(matching: "spacecore"),
             thai: thaiSlot,
-            sve: slot(matching: "stardew valley expanded")
+            sve: slot(matching: "stardew valley expanded"),
+            unarTool: .init(installed: unarInstalled)
         )
+    }
+
+    /// `true` if `unar` (The Unarchiver) is available in PATH. Used by the
+    /// home screen to display a status row for RAR extraction support.
+    var unarInstalled: Bool {
+        let searchPaths = [
+            "/usr/local/bin", "/opt/homebrew/bin", "/usr/bin",
+            FileManager.default.homeDirectoryForCurrentUser
+                .appendingPathComponent(".homebrew/bin").path,
+        ]
+        return searchPaths.contains { FileManager.default.isExecutableFile(atPath: "\($0)/unar") }
     }
     
     private var isToggling = false
