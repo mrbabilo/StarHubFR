@@ -39,6 +39,11 @@ public struct ModItem: Identifiable, Equatable {
     /// "with configuration" list filter and the per-row config-editor icon
     /// in `ModListView`.
     public let hasConfigFile: Bool
+    /// SMAPI i18n language codes the mod ships (from its `i18n/<code>.json`
+    /// files, `default.json` excluded), detected at scan time. Lowercased and
+    /// sorted; for a pack (group) it's the union across children. Empty when the
+    /// mod has no `i18n` folder or wasn't constructed with it (test helpers).
+    public let languages: [String]
 
     public init(
         uniqueId: String,
@@ -54,7 +59,8 @@ public struct ModItem: Identifiable, Equatable {
         children: [ModItem]? = nil,
         isGroup: Bool = false,
         installedFileDate: Date? = nil,
-        hasConfigFile: Bool = false
+        hasConfigFile: Bool = false,
+        languages: [String] = []
     ) {
         self.uniqueId = uniqueId
         self.name = name
@@ -70,6 +76,7 @@ public struct ModItem: Identifiable, Equatable {
         self.isGroup = isGroup
         self.installedFileDate = installedFileDate
         self.hasConfigFile = hasConfigFile
+        self.languages = languages
     }
 }
 

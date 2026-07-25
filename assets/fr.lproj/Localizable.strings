@@ -150,6 +150,11 @@
 "mods_detail_no_description" = "Aucune description disponible";
 "mods_detail_no_changelog" = "Aucun journal des modifications disponible";
 "mods_detail_cached" = "En cache";
+"mods_detail_updated" = "Dernière mise à jour";
+"mods_detail_installed" = "Installé le";
+"mods_detail_languages" = "Langues";
+"mods_detail_pack_contents" = "Contenu du pack (%lld)";
+"mods_detail_bugs" = "Bugs signalés";
 "mods_dep_active" = "Activé";
 "mods_dep_disabled" = "Installé (désactivé)";
 "mods_dep_missing" = "Manquant";

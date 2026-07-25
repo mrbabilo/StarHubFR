@@ -214,6 +214,11 @@ enum L10n {
         static let detailNoDescription  = "mods_detail_no_description"
         static let detailNoChangelog    = "mods_detail_no_changelog"
         static let detailCached         = "mods_detail_cached"
+        static let detailUpdated        = "mods_detail_updated"
+        static let detailInstalled      = "mods_detail_installed"
+        static let detailLanguages      = "mods_detail_languages"
+        static let detailPackContents   = "mods_detail_pack_contents"
+        static let detailBugs           = "mods_detail_bugs"
         // Dependency tree (DependencyTreeView)
         static let depActive            = "mods_dep_active"
         static let depDisabled          = "mods_dep_disabled"

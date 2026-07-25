@@ -148,6 +148,10 @@ final class NexusUpdateChecker {
         /// mod **pack**'s version in the list, since a pack is one Nexus mod
         /// even though its installed children carry their own manifest versions.
         var version: String? = nil
+        /// When the mod's latest file/version was uploaded on Nexus
+        /// (`updated_timestamp`). Optional/back-compatible; shown as the mod's
+        /// "last updated" date in the detail pane.
+        var uploadedTime: Date? = nil
     }
 
     /// Outcome of a full check pass. `partialErrorMessage` on `.success` is
@@ -329,11 +333,10 @@ final class NexusUpdateChecker {
                         }
                         // Same rationale for extras — recorded for every
                         // successful fetch so the popover preview works even
-                        // for mods with no available update. Carry the fetched
-                        // latest version so a pack can display its Nexus version.
-                        extras[modId] = NexusModExtra(summary: extra.summary,
-                                                      pictureUrl: extra.pictureUrl,
-                                                      version: latest)
+                        // for mods with no available update. `extra` already
+                        // carries the latest version + upload date (baked in by
+                        // fetchModInfo), so a pack can display its Nexus version.
+                        extras[modId] = extra
                         // An update is available when:
                         //  (a) the Nexus version is strictly newer than the
                         //      installed one, OR
@@ -626,7 +629,6 @@ final class NexusUpdateChecker {
             // than threading an extra Optional through every caller.
             let summary = (dict["summary"] as? String) ?? ""
             let pictureUrl = (dict["picture_url"] as? String) ?? ""
-            let extra = NexusModExtra(summary: summary, pictureUrl: pictureUrl)
             // Nexus returns the "last updated" instant under TWO keys:
             //  - `updated_timestamp`: a Unix epoch in seconds (the reliable one)
             //  - `updated_time`: a human-readable ISO8601 string (fallback)
@@ -645,6 +647,11 @@ final class NexusUpdateChecker {
                 uploadedDate = iso.date(from: raw)
                     ?? Self.legacyNexusFormatter.date(from: raw)
             }
+            // Single source of truth: bake the latest version + upload date into
+            // the extra so every consumer (update check, single fetch, cache)
+            // carries them without re-injecting at each call site.
+            let extra = NexusModExtra(summary: summary, pictureUrl: pictureUrl,
+                                      version: version, uploadedTime: uploadedDate)
             completion(.success(version: version, categoryId: categoryId, extra: extra, uploadedTime: uploadedDate))
         }
         task.resume()

@@ -585,6 +585,18 @@ class StarHubTHViewModel: ObservableObject {
                 return nil
             }()
             let hasConfigFile = fm.fileExists(atPath: (path as NSString).appendingPathComponent("config.json"))
+            // Detect the SMAPI i18n languages the mod ships (i18n/<code>.json,
+            // excluding the default fallback), for the detail pane.
+            var languages: [String] = []
+            let i18nPath = (path as NSString).appendingPathComponent("i18n")
+            if let files = try? fm.contentsOfDirectory(atPath: i18nPath) {
+                let codes = files.compactMap { file -> String? in
+                    guard file.lowercased().hasSuffix(".json") else { return nil }
+                    let code = (file as NSString).deletingPathExtension.lowercased()
+                    return (code.isEmpty || code == "default") ? nil : code
+                }
+                languages = Set(codes).sorted()
+            }
 
             var name = (path as NSString).lastPathComponent
             var uniqueId = ""
@@ -664,7 +676,8 @@ class StarHubTHViewModel: ObservableObject {
                 isEnabled: isEnabled,
                 dependencies: dependencies,
                 installedFileDate: installedFileDate,
-                hasConfigFile: hasConfigFile
+                hasConfigFile: hasConfigFile,
+                languages: languages
             )
         }
         
@@ -712,7 +725,8 @@ class StarHubTHViewModel: ObservableObject {
                         isEnabled: isEnabled,
                         dependencies: [],
                         children: modsInGroup,
-                        isGroup: true
+                        isGroup: true,
+                        languages: Set(modsInGroup.flatMap { $0.languages }).sorted()
                     )
                     scannedMods.append(groupMod)
                 }
@@ -1857,6 +1871,23 @@ class StarHubTHViewModel: ObservableObject {
         return nexusModExtras[id]?.version
     }
 
+    /// When the mod was last updated on Nexus (from the last check / fetch), or
+    /// nil until one has run / when there's no resolvable Nexus id.
+    func nexusLastUpdated(for mod: ModItem) -> Date? {
+        let id = resolvedNexusModId(for: mod)
+        guard !id.isEmpty else { return nil }
+        return nexusModExtras[id]?.uploadedTime
+    }
+
+    /// The mod's install date (its `manifest.json` mtime). For a pack, the most
+    /// recent child's date (packs have no manifest of their own).
+    func installedDate(for mod: ModItem) -> Date? {
+        if mod.isGroup, let children = mod.children {
+            return children.compactMap { $0.installedFileDate }.max()
+        }
+        return mod.installedFileDate
+    }
+
     /// Sets a user-defined Nexus mod id for a mod (generates its link and lets
     /// it participate in update checks). Pass `nil`/empty to clear the override
     /// and fall back to the manifest-declared id.
@@ -1880,13 +1911,12 @@ class StarHubTHViewModel: ObservableObject {
                        completion: @escaping (NexusUpdateChecker.SingleFetchResult) -> Void) {
         NexusUpdateChecker.shared.fetchSingleMod(modId: modId) { [weak self] result in
             guard let self = self else { return }
-            if case .success(let version, let catId, let extra) = result {
+            if case .success(_, let catId, let extra) = result {
                 if let cid = catId, cid > 0 {
                     self.nexusCategories[modId] = cid
                 }
-                // Keep the fetched latest version so a pack can show it.
-                self.nexusModExtras[modId] = NexusUpdateChecker.NexusModExtra(
-                    summary: extra.summary, pictureUrl: extra.pictureUrl, version: version)
+                // `extra` already carries the latest version + upload date.
+                self.nexusModExtras[modId] = extra
             }
             completion(result)
         }

@@ -38,74 +38,180 @@ struct ModDetailView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                header
-                settingsSection
-                Picker("", selection: $selectedTab) {
-                    Text(vm.L(L10n.Mods.detailDescription)).tag(0)
-                    Text(vm.L(L10n.Mods.detailChangelog)).tag(1)
-                    Text(vm.L(L10n.Profiles.dependencies)).tag(2)
+            VStack(spacing: 0) {
+                banner
+                VStack(alignment: .leading, spacing: 16) {
+                    titleBlock
+                    infoSection
+                    if mod.isGroup { packContentsSection }
+                    settingsSection
+                    Picker("", selection: $selectedTab) {
+                        Text(vm.L(L10n.Mods.detailDescription)).tag(0)
+                        Text(vm.L(L10n.Mods.detailChangelog)).tag(1)
+                        Text(vm.L(L10n.Profiles.dependencies)).tag(2)
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    content
                 }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                content
+                .frame(maxWidth: 700, alignment: .leading)
+                .padding(24)
+                .frame(maxWidth: .infinity)
             }
-            .frame(maxWidth: 700, alignment: .leading)
-            .padding(24)
-            .frame(maxWidth: .infinity)
         }
         .onAppear { seedDraft() }
     }
 
-    // MARK: Header
+    // MARK: Banner (full-width illustration)
+
+    /// Edge-to-edge illustration at the top of the pane. Rendered outside the
+    /// padded content column so it spans the full width like a banner.
+    @ViewBuilder
+    private var banner: some View {
+        if let extra = vm.modExtra(for: mod), !extra.pictureUrl.isEmpty, let url = URL(string: extra.pictureUrl) {
+            AsyncImage(url: url) { phase in
+                if let image = phase.image {
+                    image.resizable().scaledToFill()
+                } else if phase.error != nil {
+                    Color.clear.frame(height: 0)   // offline / broken → no banner
+                } else {
+                    ProgressView().frame(maxWidth: .infinity, minHeight: 120)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 190)
+            .clipped()
+        }
+    }
+
+    // MARK: Title + links
 
     @ViewBuilder
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            if let extra = vm.modExtra(for: mod), !extra.pictureUrl.isEmpty, let url = URL(string: extra.pictureUrl) {
-                AsyncImage(url: url) { phase in
-                    if let image = phase.image {
-                        image
-                            .resizable()
-                            .scaledToFill()
-                            .frame(maxWidth: .infinity, maxHeight: 200)
-                            .clipped()
-                    } else if phase.error != nil {
-                        EmptyView()               // offline / broken → skip, no placeholder box
-                    } else {
-                        ProgressView()
-                            .frame(maxWidth: .infinity, minHeight: 120)
-                    }
-                }
-                .clipShape(RoundedRectangle(cornerRadius: 10))
-            }
-
+    private var titleBlock: some View {
+        VStack(alignment: .leading, spacing: 8) {
             Text(mod.name)
                 .font(.title2.weight(.semibold))
                 .textSelection(.enabled)
 
             HStack(spacing: 6) {
-                Text("v\(mod.version)")
-                Text("•")
-                Text(mod.author)
+                Text("v\(vm.displayVersion(for: mod))")
+                if !mod.isGroup, !mod.author.isEmpty, mod.author != "Unknown" {
+                    Text("•")
+                    Text(mod.author)
+                }
             }
             .font(.subheadline)
             .foregroundStyle(.secondary)
 
             let link = vm.nexusLink(for: mod)
             if !link.isEmpty {
-                Button {
-                    if let url = URL(string: link) { NSWorkspace.shared.open(url) }
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "link")
-                        Text(vm.L(L10n.Mods.nexusOpenPage))
-                    }
-                    .font(.footnote.weight(.medium))
+                HStack(spacing: 16) {
+                    linkButton(icon: "link", label: vm.L(L10n.Mods.nexusOpenPage), url: link)
+                    linkButton(icon: "ladybug", label: vm.L(L10n.Mods.detailBugs), url: link + "?tab=bugs")
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(Color.accentColor)
-                .pointingHandCursor()
+            }
+        }
+    }
+
+    private func linkButton(icon: String, label: String, url: String) -> some View {
+        Button {
+            if let u = URL(string: url) { NSWorkspace.shared.open(u) }
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: icon)
+                Text(label)
+            }
+            .font(.footnote.weight(.medium))
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(Color.accentColor)
+        .pointingHandCursor()
+    }
+
+    // MARK: Info (updated / installed / languages)
+
+    @ViewBuilder
+    private var infoSection: some View {
+        let updated = vm.nexusLastUpdated(for: mod)
+        let installed = vm.installedDate(for: mod)
+        let langs = mod.languages
+        if updated != nil || installed != nil || !langs.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                if let updated {
+                    infoRow(icon: "clock.arrow.circlepath",
+                            label: vm.L(L10n.Mods.detailUpdated),
+                            value: updated.formatted(date: .abbreviated, time: .omitted))
+                }
+                if let installed {
+                    infoRow(icon: "tray.and.arrow.down",
+                            label: vm.L(L10n.Mods.detailInstalled),
+                            value: installed.formatted(date: .abbreviated, time: .omitted))
+                }
+                if !langs.isEmpty {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Image(systemName: "globe").font(.system(size: 12)).foregroundStyle(.secondary).frame(width: 16)
+                        Text(vm.L(L10n.Mods.detailLanguages)).font(.caption).foregroundStyle(.secondary)
+                        Spacer()
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 4) {
+                                ForEach(langs, id: \.self) { code in
+                                    Text(code.uppercased())
+                                        .font(.system(size: 9, weight: .bold))
+                                        .padding(.horizontal, 5).padding(.vertical, 2)
+                                        .background(Color.secondary.opacity(0.15))
+                                        .clipShape(Capsule())
+                                }
+                            }
+                        }
+                        .frame(maxWidth: 260)
+                    }
+                }
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.primary.opacity(0.04))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+    }
+
+    private func infoRow(icon: String, label: String, value: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon).font(.system(size: 12)).foregroundStyle(.secondary).frame(width: 16)
+            Text(label).font(.caption).foregroundStyle(.secondary)
+            Spacer()
+            Text(value).font(.caption).foregroundStyle(.primary)
+        }
+    }
+
+    // MARK: Pack contents (children of a group)
+
+    @ViewBuilder
+    private var packContentsSection: some View {
+        if let children = mod.children, !children.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(String(format: vm.L(L10n.Mods.detailPackContents), children.count))
+                    .font(.headline)
+                VStack(spacing: 6) {
+                    ForEach(children) { child in
+                        HStack(spacing: 10) {
+                            Circle()
+                                .fill(child.isEnabled ? Color.green : Color.secondary.opacity(0.35))
+                                .frame(width: 7, height: 7)
+                            Text(child.name).font(.system(size: 13))
+                            Spacer()
+                            if !child.version.isEmpty, child.version != "Unknown" {
+                                Text("v\(child.version)")
+                                    .font(.system(size: 11, design: .monospaced))
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .padding(.vertical, 3)
+                    }
+                }
+                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.primary.opacity(0.04))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
             }
         }
     }
