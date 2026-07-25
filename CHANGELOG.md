@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-07-25
+
+### Changed
+- **French is now the default language**: the app launches in French regardless of the system locale (an existing saved language choice is still respected); English is used only when explicitly selected.
+- **Language & theme switchers moved to the sidebar**: language (🇫🇷 / 🇬🇧) is now a flag toggle pinned bottom-right of the sidebar, and the app theme (System / Light / Dark) an icon toggle bottom-left — one-click access, both re-localize / re-theme the UI live. The corresponding pickers were removed from Settings (its remaining "Developer" section keeps the developer-logs toggle).
+
 ## [1.4.0] - 2026-07-25
 
 ### Added
