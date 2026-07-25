@@ -12,47 +12,76 @@ struct HomeView: View {
         self.smapiInstaller = vm.smapiInstaller
     }
     
+    private var bannerWithAvatarOverlay: some View {
+        ZStack(alignment: .bottom) {
+            // Nexus banner
+            if let url = Bundle.main.url(forResource: "nexus_banner_final", withExtension: "png"),
+               let nsImage = NSImage(contentsOf: url) {
+                Image(nsImage: nsImage)
+                    .resizable()
+                    .scaledToFit()
+                    .cornerRadius(12)
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.primary.opacity(0.08), lineWidth: 1))
+                    .shadow(color: Color.black.opacity(0.12), radius: 8, x: 0, y: 4)
+            }
+            
+            // Steam avatar overlay - floats on banner
+            VStack(spacing: 0) {
+                Spacer()
+                avatarCircle
+                    .offset(y: 40)
+            }
+        }
+        .padding(.bottom, 40)
+    }
+    
+    private var avatarCircle: some View {
+        ZStack {
+            Circle()
+                .fill(Color(nsColor: .windowBackgroundColor))
+                .frame(width: 100, height: 100)
+                .shadow(color: Color.black.opacity(0.25), radius: 12, x: 0, y: 6)
+            
+            if let avatarPath = vm.steamAvatarPath, let nsImage = NSImage(contentsOfFile: avatarPath) {
+                Image(nsImage: nsImage)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 92, height: 92)
+                    .clipShape(Circle())
+            } else {
+                Image(systemName: "person.fill")
+                    .font(.system(size: 44))
+                    .foregroundColor(.secondary)
+            }
+            
+            // Stardew badge
+            Image(systemName: "leaf.fill")
+                .font(.system(size: 22))
+                .foregroundColor(.green)
+                .background(Circle().fill(Color(nsColor: .windowBackgroundColor)).frame(width: 28, height: 28))
+                .offset(x: 32, y: 32)
+        }
+        .frame(width: 100, height: 100)
+    }
+
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .center, spacing: 24) {
-                
-                // ── USER PROFILE HEADER ──
-                VStack(spacing: 16) {
-                    ZStack {
-                        Circle()
-                            .fill(Color.primary.opacity(0.1))
-                            .frame(width: 100, height: 100)
-                        
-                        if let avatarPath = vm.steamAvatarPath, let nsImage = NSImage(contentsOfFile: avatarPath) {
-                            Image(nsImage: nsImage)
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: 100, height: 100)
-                                .clipShape(Circle())
-                        } else {
-                            Image(systemName: "person.fill")
-                                .font(.system(size: 48))
-                                .foregroundColor(.secondary)
-                        }
-                        
-                        Image(systemName: "leaf.fill")
-                            .font(.system(size: 24))
-                            .foregroundColor(.green)
-                            .background(Circle().fill(Color(nsColor: .windowBackgroundColor)).frame(width: 32, height: 32))
-                            .offset(x: 35, y: 35)
-                    }
-                    .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: 5)
-                    .padding(.top, 32)
-                    
-                    VStack(spacing: 4) {
-                        Text(vm.steamUsername)
-                            .font(.system(size: 24, weight: .bold))
-                            .foregroundColor(.primary)
-                        let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
-                        Text(String(format: vm.L(L10n.Home.versionString), appVersion))
-                            .font(.system(size: 14))
-                            .foregroundColor(.secondary)
-                    }
+
+                // ── BANNER WITH AVATAR OVERLAY ──
+                bannerWithAvatarOverlay
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 40)
+                    .padding(.top, 28)
+                // ── USER INFO ──
+                VStack(spacing: 4) {
+                    Text(vm.steamUsername)
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(.primary)
+                    let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
+                    Text(String(format: vm.L(L10n.Home.versionString), appVersion))
+                        .font(.system(size: 14))
+                        .foregroundColor(.secondary)
                 }
 
                 // ── LAUNCH BUTTON ──
