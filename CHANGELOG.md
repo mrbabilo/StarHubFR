@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.7.1] - 2026-07-25
 
 ### Added
 - **Config & translation preservation on update** — when updating an installed mod (overwrite + backup), the installer now preserves not only `config.json` and `fr.json` but every supported SMAPI language file (`default.json`, `en.json`, `de.json`, `es.json`, `fr.json`, `hu.json`, `id.json`, `it.json`, `ja.json`, `ko.json`, `pl.json`, `pt.json`, `ru.json`, `th.json`, `tr.json`, `uk.json`, `zh.json`) via the shared `ModConfigFiles.preservable` list. The full mod folder is still backed up before overwrite.
@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Nexus missing-dependency search** — clicking a missing dependency now opens a menu offering two distinct searches: by mod name (readable split-camelCase, e.g. `Content Patcher`) or by author (e.g. `Pathoschild`). The author search uses the dedicated Nexus filter (`/games/stardewvalley/mods?author=`) for precise results, and is applied consistently in both the mod list and the dependency tree in the detail pane.
 - **Mod list search reverted to real-time** — the 200 ms debounce introduced in 1.7.0 caused perceived input lag; restored the instant real-time filtering of 1.6.0 (the precomputed dependency index keeps per-keystroke cost negligible).
 - **Deprecated `onChange(of:perform:)` migrated** — all 8 occurrences across `ModListView`, `LogsView`, `MainView`, and `ModConfigEditorView` now use the macOS 14+ two-parameter `onChange(of:initial:_:)` API, removing all deprecation warnings.
+
+## [Unreleased]
 
 ## [1.7.0] - 2026-07-25
 
