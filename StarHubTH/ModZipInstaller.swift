@@ -8,6 +8,30 @@ import Foundation
 class ModZipInstaller {
     private let fm = FileManager.default
     private let maxZipSize: Int64 = 500 * 1024 * 1024 // 500MB
+
+    /// Finds an installed mod whose `uniqueId` matches `targetUniqueId`,
+    /// searching both top-level mods and the `children` of pack groups.
+    /// Pack group headers have an empty `uniqueId`, so a flat top-level
+    /// search would miss mods that are part of a multi-mod pack — this
+    /// resolves that so updates of packed mods are correctly detected as
+    /// conflicts.
+    private func findExistingMod(_ uniqueId: String, in mods: [ModItem]) -> ModItem? {
+        for mod in mods {
+            if !mod.uniqueId.isEmpty
+                && mod.uniqueId.caseInsensitiveCompare(uniqueId) == .orderedSame {
+                return mod
+            }
+            if let children = mod.children {
+                if let child = children.first(where: {
+                    !$0.uniqueId.isEmpty
+                        && $0.uniqueId.caseInsensitiveCompare(uniqueId) == .orderedSame
+                }) {
+                    return child
+                }
+            }
+        }
+        return nil
+    }
     // Caps the *uncompressed* payload a zip is allowed to expand to, checked
     // via `unzip -l` before any extraction happens. `maxZipSize` alone only
     // bounds the compressed archive on disk — a crafted zip well under that
@@ -180,7 +204,7 @@ class ModZipInstaller {
 
             guard let manifest = currentModManifest else { return }
 
-            let existingMod = existingMods.first { $0.uniqueId.caseInsensitiveCompare(manifest.uniqueId) == .orderedSame }
+            let existingMod = findExistingMod(manifest.uniqueId, in: existingMods)
 
             if let existing = existingMod {
                 let conflict = ModConflict(
@@ -213,7 +237,13 @@ class ModZipInstaller {
         case .multiMod(let folders):
             for folder in folders {
                 let modPath = tempDir.appendingPathComponent(folder)
-                scanFolder(at: modPath, relativePath: folder, folderName: folder)
+                // Le folderName de destination est le dernier composant du
+                // chemin relatif (ex. "Parchment" pour "Parchment/Parchment",
+                // "[CP] Parchment Example Pack" pour l'autre), tandis que
+                // relativePath conserve le chemin complet pour retrouver le
+                // dossier source dans le tempDir.
+                let destFolderName = (folder as NSString).lastPathComponent
+                scanFolder(at: modPath, relativePath: folder, folderName: destFolderName)
             }
         case .flatRoot:
             // No enclosing folder — use the temp dir's own name as the mod
@@ -245,7 +275,13 @@ class ModZipInstaller {
     /// Detects the structure of extracted zip contents.
     private func detectZipStructure(at tempDir: URL) -> ZipStructure {
         var rootHasManifest = false
-        var firstLevelFolders: [String] = []
+        /// Dossiers contenant directement un `manifest.json`, indexés par
+        /// leur chemin relatif depuis `tempDir`. Une même clé peut pointer
+        /// vers un mod unique (ex. `["Parchment"]`) ou vers plusieurs mods
+        /// encapsulés dans un dossier racine (ex. `["Parchment/Parchment",
+        /// "Parchment/[CP] ..."]`). On conserve le chemin complet pour
+        /// pouvoir distinguer les structures imbriquées.
+        var manifestFolders: [String] = []
 
         // Use subpathsOfDirectory to get paths relative to tempDir directly.
         // This avoids the symlink resolution mismatch between tempDir.path
@@ -261,20 +297,32 @@ class ModZipInstaller {
             if filename == "manifest.json" {
                 let components = subpath.components(separatedBy: "/").filter { !$0.isEmpty }
                 if components.count == 1 {
+                    // manifest.json directement à la racine du tempDir.
                     rootHasManifest = true
                 } else {
-                    let topLevelFolder = components.first ?? ""
-                    if !firstLevelFolders.contains(topLevelFolder) {
-                        firstLevelFolders.append(topLevelFolder)
+                    // Le dossier conteneur du manifest est le composant juste
+                    // avant "manifest.json". On conserve le chemin relatif
+                    // complet jusqu'à ce dossier (ex. "Parchment/Parchment"),
+                    // ce qui préserve la structure d'encapsulation.
+                    let parentPath = components.dropLast().joined(separator: "/")
+                    if !manifestFolders.contains(parentPath) {
+                        manifestFolders.append(parentPath)
                     }
                 }
             }
         }
 
-        if firstLevelFolders.count == 1 {
-            return .singleMod(folderName: firstLevelFolders[0])
-        } else if firstLevelFolders.count > 1 {
-            return .multiMod(mods: firstLevelFolders)
+        // Cas 1 : un seul dossier de mod, directement à la racine (ex.
+        // "ContentPatcher/manifest.json") → singleMod avec ce dossier.
+        // Cas 2 : plusieurs dossiers de mod partageant le même dossier racine
+        // d'encapsulation (ex. "Parchment/Parchment" +
+        // "Parchment/[CP] ...") → multiMod avec les sous-dossiers.
+        // Cas 3 : plusieurs dossiers de mod à la racine → multiMod.
+        let topLevelFolders = Set(manifestFolders.map { $0.split(separator: "/").first.map(String.init) ?? $0 })
+        if manifestFolders.count == 1 && topLevelFolders.count == 1 {
+            return .singleMod(folderName: manifestFolders[0])
+        } else if manifestFolders.count > 1 {
+            return .multiMod(mods: manifestFolders)
         } else if rootHasManifest {
             return .flatRoot
         } else {
@@ -398,7 +446,7 @@ class ModZipInstaller {
 
             // Resolve conflict (only relevant if a mod with the same UniqueID
             // already exists in Mods or Mods_disabled).
-            let existingMod = existingMods.first { $0.uniqueId.caseInsensitiveCompare(detectedMod.uniqueId) == .orderedSame }
+            let existingMod = findExistingMod(detectedMod.uniqueId, in: existingMods)
 
             let finalDestFolderName: String
             // User config files (config.json/fr.json) snapshotted from the

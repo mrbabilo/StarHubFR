@@ -50,3 +50,4 @@ mods/*/README.md
 
 # Generated SourceKit-LSP compile database
 compile_commands.json
+mods tests/
