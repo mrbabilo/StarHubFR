@@ -167,11 +167,13 @@ struct ProfileRow: View {
             Spacer()
 
             // Activate → switch to this profile (applies its mod set). Hidden
-            // for the already-active profile.
+            // for the already-active profile, and disabled while another
+            // application is still moving files (activation is serialized).
             if !isActive {
                 Button(vm.L(L10n.Profiles.activate)) { onApply() }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
+                    .disabled(vm.isApplyingProfile)
                     .pointingHandCursor()
             }
 
@@ -179,13 +181,17 @@ struct ProfileRow: View {
             Button(vm.L(L10n.Profiles.manageMods)) { onManage() }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
+                .disabled(vm.isApplyingProfile)
                 .pointingHandCursor()
 
-            // Overflow: rename / delete (delete is confirmed downstream).
+            // Overflow: rename / delete. The default profile can't be deleted,
+            // so its menu only offers rename.
             Menu {
                 Button(vm.L(L10n.Profiles.rename)) { onRename() }
-                Divider()
-                Button(vm.L(L10n.Profiles.delete), role: .destructive) { onDelete() }
+                if !vm.isDefaultProfile(profile.id) {
+                    Divider()
+                    Button(vm.L(L10n.Profiles.delete), role: .destructive) { onDelete() }
+                }
             } label: {
                 Image(systemName: "ellipsis.circle")
                     .font(.system(size: 15))
@@ -203,11 +209,15 @@ struct ProfileRow: View {
         .contextMenu {
             if !isActive {
                 Button(vm.L(L10n.Profiles.activate)) { onApply() }
+                    .disabled(vm.isApplyingProfile)
             }
             Button(vm.L(L10n.Profiles.manageMods)) { onManage() }
+                .disabled(vm.isApplyingProfile)
             Button(vm.L(L10n.Profiles.rename)) { onRename() }
-            Divider()
-            Button(vm.L(L10n.Profiles.delete), role: .destructive) { onDelete() }
+            if !vm.isDefaultProfile(profile.id) {
+                Divider()
+                Button(vm.L(L10n.Profiles.delete), role: .destructive) { onDelete() }
+            }
         }
     }
 }

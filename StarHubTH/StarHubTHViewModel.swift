@@ -364,6 +364,11 @@ class StarHubTHViewModel: ObservableObject {
     @Published var modProfiles: [ModProfile] = []
     @Published var activeProfileId: UUID? = nil
 
+    /// True while a profile is being applied to disk (mod folders moving, then
+    /// the rescan). Blocks starting another activation until it finishes, and
+    /// lets the UI disable the Activate/Manage buttons meanwhile.
+    @Published var isApplyingProfile = false
+
     /// When true, toggling a mod also cascades to its dependencies / dependents.
     @Published var chainToggleDependencies: Bool = UserDefaults.standard.object(forKey: "chainToggleDependencies") as? Bool ?? true {
         didSet {
@@ -2609,6 +2614,17 @@ class StarHubTHViewModel: ObservableObject {
         return modProfiles.first { $0.id == id }
     }
 
+    private let defaultProfileKey = "defaultProfileId"
+
+    /// The id of the auto-created default profile (nil if none was seeded).
+    var defaultProfileId: UUID? {
+        UserDefaults.standard.string(forKey: defaultProfileKey).flatMap(UUID.init(uuidString:))
+    }
+
+    /// The default profile is protected from deletion (it's the always-present
+    /// baseline). Everything else about it behaves like a normal profile.
+    func isDefaultProfile(_ id: UUID) -> Bool { defaultProfileId == id }
+
     /// One-time: on a fresh install, create a starter profile capturing the
     /// current mod setup so there's always an active profile to work from.
     /// Guarded by a persisted flag so deleting every profile later never
@@ -2620,6 +2636,10 @@ class StarHubTHViewModel: ObservableObject {
         guard !mods.isEmpty else { return }   // wait for a scan with mods; don't burn the flag yet
         if modProfiles.isEmpty {
             createProfile(name: L(L10n.Profiles.defaultName))
+            // Record the seeded profile as the (undeletable) default.
+            if let seeded = modProfiles.last {
+                UserDefaults.standard.set(seeded.id.uuidString, forKey: defaultProfileKey)
+            }
         }
         UserDefaults.standard.set(true, forKey: key)
     }
@@ -2644,6 +2664,8 @@ class StarHubTHViewModel: ObservableObject {
     }
     
     func deleteProfile(id: UUID) {
+        // The default profile is protected — never delete it.
+        guard !isDefaultProfile(id) else { return }
         modProfiles.removeAll { $0.id == id }
         if activeProfileId == id {
             activeProfileId = nil
@@ -2672,12 +2694,19 @@ class StarHubTHViewModel: ObservableObject {
     }
 
     func applyProfile(id: UUID?) {
+        // Serialize activations: refuse to start a new one while a previous
+        // profile is still being applied (mod folders moving / rescanning), so
+        // two activations can't race on the same Mods/Mods_disabled paths.
+        guard !isApplyingProfile else { return }
+
         guard let id = id, let profile = modProfiles.first(where: { $0.id == id }) else {
             activeProfileId = nil
             saveProfiles()
             return
         }
 
+        // Activation is exclusive: setting activeProfileId below replaces any
+        // previously-active profile (only one can be active at a time).
         // If already active, just sync stored list from current filesystem (no file moves)
         if activeProfileId == id {
             syncActiveProfileIds()
@@ -2701,6 +2730,10 @@ class StarHubTHViewModel: ObservableObject {
     /// many mods could not be relocated — while still rescanning so the UI
     /// reflects the actual on-disk state (whatever it is).
     private func applyProfileToFilesystem(profile: ModProfile) {
+        // Mark an application in progress so `applyProfile` refuses to start a
+        // second one and the UI disables the Activate/Manage buttons until the
+        // move + rescan below completes.
+        isApplyingProfile = true
         let fm = FileManager.default
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
         let disabledModsPath = (gameDir as NSString).appendingPathComponent("Mods_disabled")
@@ -2802,6 +2835,7 @@ class StarHubTHViewModel: ObservableObject {
             self.scanMods()
             DispatchQueue.main.async {
                 self.syncActiveProfileIds()
+                self.isApplyingProfile = false
                 // Surface the outcome to the user. A partial application
                 // is the dangerous case: the profile is "active" but the
                 // filesystem doesn't fully match it, so the next toggle
