@@ -342,12 +342,11 @@ class StarHubTHViewModel: ObservableObject {
         guard let language, supportedLanguages.contains(language) else { return defaultLanguage }
         return language
     }
-    /// French is checked ahead of the English fallback because this fork
-    /// (StarHubFR) targets French-speaking players first.
-    private static var defaultLanguage: String {
-        if Locale.preferredLanguages.contains(where: { $0.lowercased().hasPrefix("fr") }) { return "fr" }
-        return "en"
-    }
+    /// This fork (StarHubFR) launches in **French by default**, regardless of
+    /// the system locale — English is only used when the user explicitly picks
+    /// it (via the sidebar flag toggle). Only affects a first launch with no
+    /// saved `currentLanguage`; an existing choice is always respected.
+    private static var defaultLanguage: String { "fr" }
     
     @Published var currentLanguage: String = StarHubTHViewModel.normalizedLanguage(UserDefaults.standard.string(forKey: "currentLanguage")) {
         didSet {

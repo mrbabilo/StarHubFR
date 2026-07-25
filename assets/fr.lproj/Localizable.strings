@@ -195,7 +195,7 @@
 "logs_copy_line" = "Copier la ligne";
 "settings_launch_options" = "Options de lancement";
 "settings_backup" = "Sauvegarde";
-"settings_appearance" = "Apparence";
+"settings_developer" = "Développeur";
 "settings_management" = "Gestion";
 "settings_default_launch_mode" = "Mode de lancement par défaut";
 "settings_play_s_m_a_p_i" = "Jouer via SMAPI (avec mods)";
@@ -205,11 +205,8 @@
 "settings_backup_saves_button" = "Sauvegarder";
 "settings_backup_mods" = "Sauvegarder le dossier des mods";
 "settings_backup_mods_button" = "Sauvegarder";
-"settings_app_language" = "Langue de l'application";
-"settings_select_language" = "Choisir la langue";
 "settings_language_english" = "Anglais";
 "settings_language_french" = "Français";
-"settings_app_theme" = "Thème de l'application";
 "settings_theme_system" = "Système";
 "settings_theme_light" = "Clair";
 "settings_theme_dark" = "Sombre";

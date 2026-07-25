@@ -5,7 +5,6 @@ struct SettingsView: View {
 
     @AppStorage("launchProfile") private var launchProfile: String = "SMAPI"
     @AppStorage("closeAfterLaunch") private var closeAfterLaunch: Bool = false
-    @AppStorage("appColorScheme") private var appColorScheme: String = "System"
     @AppStorage("showDeveloperLogs") private var showDeveloperLogs: Bool = false
 
     // Nexus Mods API key entry (only used when no key is stored yet).
@@ -15,23 +14,6 @@ struct SettingsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 32) {
-                
-                // ── Language ──
-                StandardSection(title: vm.L(L10n.Settings.appLanguage)) {
-                    HStack {
-                        Text(vm.L(L10n.Settings.selectLanguage))
-                            .font(.system(size: 13))
-                        Spacer()
-                        Picker("", selection: $vm.currentLanguage) {
-                            Text(vm.L(L10n.Settings.languageEnglish)).tag("en")
-                            Text(vm.L(L10n.Settings.languageFrench)).tag("fr")
-                        }
-                        .pickerStyle(MenuPickerStyle())
-                        .fixedSize()
-                        
-                        InfoPopoverButton(text: vm.L(L10n.Settings.selectLanguage))
-                    }
-                }
 
                 // ── Nexus Mods ──
                 StandardSection(
@@ -176,27 +158,14 @@ struct SettingsView: View {
                     }
                 }
                 
-                // ── Appearance ──
+                // ── Developer ──
+                // (App theme and language now live as toggles at the bottom of
+                // the sidebar; this section keeps the developer-logs setting.)
                 StandardSection(
-                    title: vm.L(L10n.Settings.appearance),
+                    title: vm.L(L10n.Settings.developer),
                     footer: vm.L(L10n.Settings.footerAppearance)
                 ) {
                     VStack(alignment: .leading, spacing: 16) {
-                        HStack {
-                            Text(vm.L(L10n.Settings.appTheme))
-                                .font(.system(size: 13))
-                            Spacer()
-                            Picker("", selection: $appColorScheme) {
-                                Text(vm.L(L10n.Settings.themeSystem)).tag("System")
-                                Text(vm.L(L10n.Settings.themeLight)).tag("Light")
-                                Text(vm.L(L10n.Settings.themeDark)).tag("Dark")
-                            }
-                            .pickerStyle(SegmentedPickerStyle())
-                            .fixedSize()
-                        }
-                        
-                        Divider().padding(.leading, 0)
-                        
                         HStack {
                             Text(vm.L(L10n.Settings.showDevLogs))
                                 .font(.system(size: 13))

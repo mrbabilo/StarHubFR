@@ -261,8 +261,13 @@ struct MainView: View {
                     }
                 
                 Spacer()
-                
 
+                // Bottom bar: theme switcher (left) + language switcher (right).
+                HStack {
+                    ThemeToggle(vm: vm, appColorScheme: $appColorScheme)
+                    Spacer()
+                    LanguageFlagToggle(vm: vm)
+                }
             }
             .padding(.horizontal, 10)
             .padding(.top, 14)
@@ -414,6 +419,81 @@ struct MainView: View {
 }
 
 // MARK: - Sidebar Section Header
+/// Compact language switcher shown at the bottom of the sidebar: two flag
+/// buttons (🇫🇷 / 🇬🇧) with the active language highlighted. Setting
+/// `vm.currentLanguage` swaps the bundle live (same path as before), so the UI
+/// re-localizes immediately.
+struct LanguageFlagToggle: View {
+    @ObservedObject var vm: StarHubTHViewModel
+
+    var body: some View {
+        HStack(spacing: 2) {
+            flagButton(flag: "🇫🇷", code: "fr", help: vm.L(L10n.Settings.languageFrench))
+            flagButton(flag: "🇬🇧", code: "en", help: vm.L(L10n.Settings.languageEnglish))
+        }
+        .padding(3)
+        .background(Color.primary.opacity(0.06))
+        .clipShape(Capsule())
+    }
+
+    private func flagButton(flag: String, code: String, help: String) -> some View {
+        let isActive = vm.currentLanguage == code
+        return Button {
+            if vm.currentLanguage != code { vm.currentLanguage = code }
+        } label: {
+            Text(flag)
+                .font(.system(size: 15))
+                .grayscale(isActive ? 0 : 0.9)
+                .opacity(isActive ? 1 : 0.55)
+                .padding(.horizontal, 7)
+                .padding(.vertical, 3)
+                .background(isActive ? Color.accentColor.opacity(0.22) : Color.clear)
+                .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .pointingHandCursor()
+        .help(help)
+    }
+}
+
+/// Compact appearance switcher shown at the bottom-left of the sidebar: System
+/// / Light / Dark, mirroring the language flag toggle on the right. Writes the
+/// same `appColorScheme` AppStorage the app reads for `preferredColorScheme`.
+struct ThemeToggle: View {
+    @ObservedObject var vm: StarHubTHViewModel
+    @Binding var appColorScheme: String
+
+    var body: some View {
+        HStack(spacing: 2) {
+            themeButton(icon: "circle.lefthalf.filled", value: "System", help: vm.L(L10n.Settings.themeSystem))
+            themeButton(icon: "sun.max.fill", value: "Light", help: vm.L(L10n.Settings.themeLight))
+            themeButton(icon: "moon.fill", value: "Dark", help: vm.L(L10n.Settings.themeDark))
+        }
+        .padding(3)
+        .background(Color.primary.opacity(0.06))
+        .clipShape(Capsule())
+    }
+
+    private func themeButton(icon: String, value: String, help: String) -> some View {
+        let isActive = appColorScheme == value
+        return Button {
+            if appColorScheme != value { appColorScheme = value }
+        } label: {
+            Image(systemName: icon)
+                .font(.system(size: 12))
+                .foregroundColor(isActive ? .accentColor : .secondary)
+                .opacity(isActive ? 1 : 0.6)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 4)
+                .background(isActive ? Color.accentColor.opacity(0.18) : Color.clear)
+                .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .pointingHandCursor()
+        .help(help)
+    }
+}
+
 struct SidebarSectionHeader: View {
     let title: String
     
