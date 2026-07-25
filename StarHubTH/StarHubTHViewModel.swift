@@ -1834,12 +1834,27 @@ class StarHubTHViewModel: ObservableObject {
     /// packs and a single number would be misleading).
     func displayVersion(for mod: ModItem) -> String {
         if mod.isGroup, let children = mod.children {
+            // A pack is a single Nexus mod (its children are the installed
+            // sub-mods). Prefer the pack's latest **Nexus** version — the Main
+            // file / changelog version — once a Nexus check (or the per-mod
+            // fetch) has retrieved it, since the children's own manifest
+            // versions can differ or lag behind the pack release.
+            if let v = nexusLatestVersion(for: mod), !v.isEmpty { return v }
             let versions = Set(children.map { $0.version }
                                 .filter { !$0.isEmpty && $0 != "Unknown" })
             if versions.count == 1 { return versions.first! }
             return "—"
         }
         return mod.version
+    }
+
+    /// The latest Nexus version cached for a mod (or, for a pack, its resolved
+    /// Nexus mod id), from the last update check / per-mod fetch. `nil` until a
+    /// check has populated it, or when the mod has no resolvable Nexus id.
+    func nexusLatestVersion(for mod: ModItem) -> String? {
+        let id = resolvedNexusModId(for: mod)
+        guard !id.isEmpty else { return nil }
+        return nexusModExtras[id]?.version
     }
 
     /// Sets a user-defined Nexus mod id for a mod (generates its link and lets
@@ -1865,11 +1880,13 @@ class StarHubTHViewModel: ObservableObject {
                        completion: @escaping (NexusUpdateChecker.SingleFetchResult) -> Void) {
         NexusUpdateChecker.shared.fetchSingleMod(modId: modId) { [weak self] result in
             guard let self = self else { return }
-            if case .success(_, let catId, let extra) = result {
+            if case .success(let version, let catId, let extra) = result {
                 if let cid = catId, cid > 0 {
                     self.nexusCategories[modId] = cid
                 }
-                self.nexusModExtras[modId] = extra
+                // Keep the fetched latest version so a pack can show it.
+                self.nexusModExtras[modId] = NexusUpdateChecker.NexusModExtra(
+                    summary: extra.summary, pictureUrl: extra.pictureUrl, version: version)
             }
             completion(result)
         }

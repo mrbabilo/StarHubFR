@@ -142,6 +142,12 @@ final class NexusUpdateChecker {
     struct NexusModExtra: Codable, Equatable {
         let summary: String
         let pictureUrl: String
+        /// The mod's latest Nexus version (the Main file / changelog version),
+        /// captured on every successful fetch. Optional so older cached entries
+        /// (written before this field existed) still decode. Used to show a
+        /// mod **pack**'s version in the list, since a pack is one Nexus mod
+        /// even though its installed children carry their own manifest versions.
+        var version: String? = nil
     }
 
     /// Outcome of a full check pass. `partialErrorMessage` on `.success` is
@@ -323,8 +329,11 @@ final class NexusUpdateChecker {
                         }
                         // Same rationale for extras — recorded for every
                         // successful fetch so the popover preview works even
-                        // for mods with no available update.
-                        extras[modId] = extra
+                        // for mods with no available update. Carry the fetched
+                        // latest version so a pack can display its Nexus version.
+                        extras[modId] = NexusModExtra(summary: extra.summary,
+                                                      pictureUrl: extra.pictureUrl,
+                                                      version: latest)
                         // An update is available when:
                         //  (a) the Nexus version is strictly newer than the
                         //      installed one, OR
