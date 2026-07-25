@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-07-25
+
 ### Added
 - **Default mod profile on first run**: a fresh install now automatically gets a "Default" profile capturing the current mod setup, so there is always an active profile to work from. It is created once (never re-created if you delete your other profiles) and **cannot be deleted**.
 - **Active-profile indicator on the Mods page**: the mod list's filter row now shows which profile is currently applied (a read-only accent chip), so you always know the context you're editing in.
