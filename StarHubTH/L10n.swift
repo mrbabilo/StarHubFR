@@ -461,7 +461,6 @@ enum L10n {
         static let profileNamePlaceholder = "profiles_profile_name_placeholder"
         static let delete               = "profiles_delete"
         static let save                 = "profiles_save"
-        static let help                 = "profiles_help"
         static let cancel               = "profiles_cancel"
         static let ok                   = "profiles_ok"
         static let modsInProfile        = "profiles_mods_in_profile"

@@ -2615,8 +2615,8 @@ class StarHubTHViewModel: ObservableObject {
 
         let newProfile = ModProfile(name: name, enabledModIds: currentEnabledIds)
         modProfiles.append(newProfile)
-        saveProfiles()
-        // Do NOT applyProfile here — just save so the user can edit it first
+        // Mark it active immediately (its snapshot already matches the current
+        // filesystem, so no file moves are needed — the user can edit it next).
         activeProfileId = newProfile.id
         saveProfiles()
     }

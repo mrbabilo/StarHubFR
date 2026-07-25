@@ -301,7 +301,6 @@
 "profiles_profile_name_placeholder" = "Profile name...";
 "profiles_delete" = "Delete...";
 "profiles_save" = "Save";
-"profiles_help" = "Help";
 "profiles_cancel" = "Cancel";
 "profiles_ok" = "OK";
 "profiles_mods_in_profile" = "Mods in this profile (%d mods)";

@@ -115,12 +115,12 @@ struct ProfileRow: View {
                         .foregroundColor(.primary)
                     Text(vm.L(isActive ? L10n.Profiles.inUse : L10n.Profiles.inactive))
                         .font(.system(size: 12))
-                        .foregroundColor(isActive ? .secondary : .secondary)
+                        .foregroundColor(.secondary)
                 }
 
                 Spacer()
 
-                // Info button (or delete)
+                // Info button — opens the profile detail sheet.
                 Button(action: {
                     selectedProfileForDetail = profile
                 }) {
@@ -309,18 +309,8 @@ struct ProfileDetailSheet: View {
             
             // Cancel / OK
             HStack {
-                Button(action: {
-                    // Action for Help
-                }) {
-                    Image(systemName: "questionmark.circle")
-                        .font(.system(size: 16))
-                }
-                .buttonStyle(.plain)
-                .foregroundColor(.secondary)
-                .help(vm.L(L10n.Profiles.help))
-                
                 Spacer()
-                
+
                 Button(vm.L(L10n.Profiles.cancel)) {
                     isPresented = false
                 }
