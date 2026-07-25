@@ -9,6 +9,7 @@ struct ModInstallView: View {
     @State private var isAnalyzing = false
     @State private var isInstalling = false
     @State private var errorMessage: String?
+    @State private var errorRecoveryHint: String?
     @State private var showError = false
     @State private var tempDir: URL?
     @State private var installedModNames: [String] = []
@@ -105,7 +106,11 @@ struct ModInstallView: View {
             Button(vm.L(L10n.Main.ok)) { }
         } message: {
             if let error = errorMessage {
-                Text(error)
+                if let hint = errorRecoveryHint {
+                    Text("\(error)\n\n\(hint)")
+                } else {
+                    Text(error)
+                }
             }
         }
         .onDisappear {
@@ -212,6 +217,7 @@ struct ModInstallView: View {
                   url.pathExtension.lowercased() == "zip" else {
                 DispatchQueue.main.async {
                     self.errorMessage = vm.L(L10n.ModInstall.invalidZipStructure)
+                    self.errorRecoveryHint = vm.L(L10n.ModInstall.recoverZip)
                     self.showError = true
                 }
                 return
@@ -277,12 +283,16 @@ struct ModInstallView: View {
                         switch info.validationStatus {
                         case .invalidStructure:
                             self.errorMessage = self.vm.L(L10n.ModInstall.invalidZipStructure)
+                            self.errorRecoveryHint = self.vm.L(L10n.ModInstall.recoverZip)
                         case .oversized:
                             self.errorMessage = self.vm.L(L10n.ModInstall.zipOversized)
+                            self.errorRecoveryHint = nil
                         case .tooManyMods:
                             self.errorMessage = self.vm.L(L10n.ModInstall.tooManyMods)
+                            self.errorRecoveryHint = nil
                         case .corrupted:
                             self.errorMessage = self.vm.L(L10n.ModInstall.zipCorrupted)
+                            self.errorRecoveryHint = self.vm.L(L10n.ModInstall.recoverZip)
                         case .valid:
                             break
                         }

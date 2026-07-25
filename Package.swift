@@ -28,6 +28,8 @@ let package = Package(
                 "Models/ModDependencyParser.swift",
                 "Models/DependencyTree.swift",
                 "L10n.swift",
+                "AppDesignCore.swift",
+                "ContrastChecker.swift",
             ]
         ),
         .testTarget(
@@ -74,6 +76,11 @@ let package = Package(
             name: "DependencyTreeTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/DependencyTreeTests"
+        ),
+        .testTarget(
+            name: "DesignSystemTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/DesignSystemTests"
         ),
     ]
 )

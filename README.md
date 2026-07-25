@@ -39,6 +39,11 @@
 *   **Journal des Modifications Intégré** : Consultez l'historique des versions (`CHANGELOG.md`) directement depuis la barre latérale de l'application.
 *   **Support Bilingue** : Basculez instantanément la langue de l'application entre le français et l'anglais.
 *   **Interface Native macOS** : Une interface propre et intuitive conçue pour s'intégrer parfaitement à macOS.
+*   **Accessibilité VoiceOver** : Navigation au lecteur d'écran complète sur la liste des mods, les boutons d'action, la barre latérale et la zone d'installation vide.
+*   **Indicateur d'état système** : Un résumé permanent en bas de la barre latérale affiche le nombre de mods actifs, les mises à jour disponibles et les erreurs SMAPI.
+*   **Zone d'installation vide** : Quand aucun mod n'est installé, une grande zone visuelle invitant à glisser-déposer un `.zip` remplace le simple message texte.
+*   **Images de mods en cache** : Les bannières de mod dans la fiche détaillée sont maintenant mises en cache pour un affichage plus rapide.
+*   **Recherche améliorée** : Le champ de recherche des mods utilise un debounce de 200 ms ; les liens de dépendances manquantes ouvrent Nexus avec un terme de recherche humainement lisible.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/screenshots_banner.png" alt="Captures d'écran" width="300">

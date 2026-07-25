@@ -54,14 +54,15 @@ struct MainView: View {
                         .foregroundColor(.secondary)
                     TextField(vm.L(L10n.Main.search), text: $searchText)
                         .textFieldStyle(PlainTextFieldStyle())
+                        .accessibilityLabel(vm.L(L10n.Main.search))
                 }
-                .padding(.horizontal, 8)
+                .padding(.horizontal, AppDesign.Spacing.sm)
                 .padding(.vertical, 6)
-                .background(Color(nsColor: .textBackgroundColor))
+                .background(AppDesign.Color.textBg)
                 .clipShape(Capsule())
                 .overlay(
                     Capsule()
-                        .stroke(Color.primary.opacity(0.1), lineWidth: 1)
+                        .stroke(Color.primary.opacity(AppDesign.Opacity.light), lineWidth: 1)
                 )
                 
                 // Account Section (macOS style profile)
@@ -150,11 +151,18 @@ struct MainView: View {
                     }
                     .buttonStyle(PlainButtonStyle())
                     .pointingHandCursor()
+                    .accessibilityLabel(
+                        String(
+                            format: vm.L(L10n.Main.alertsNavA11y),
+                            vm.smapiErrors.isEmpty ? vm.L(L10n.Main.modUpdates) : vm.L(L10n.Main.systemAlerts),
+                            Int64(alertCount)
+                        )
+                    )
                 }
                 
                 // Game Section
                 VStack(alignment: .leading, spacing: 2) {
-                    SidebarSectionHeader(title: vm.L(L10n.Main.gameManagement))
+                    SidebarSectionHeader(title: vm.L(L10n.Main.gameManagement), icon: "gamecontroller")
                     
                     if matchesSearch(vm.L(L10n.Profiles.title)) {
                         SidebarNavItem(
@@ -209,7 +217,7 @@ struct MainView: View {
                 
                 // System & Settings Section
                 VStack(alignment: .leading, spacing: 2) {
-                    SidebarSectionHeader(title: vm.L(L10n.Main.system))
+                    SidebarSectionHeader(title: vm.L(L10n.Main.system), icon: "gearshape")
                     
                     if matchesSearch(vm.L(L10n.Settings.settings)) {
                         SidebarNavItem(
@@ -235,7 +243,7 @@ struct MainView: View {
                 if showThaiTranslationHub {
                     // Thai Hub Section
                     VStack(alignment: .leading, spacing: 2) {
-                        SidebarSectionHeader(title: vm.L(L10n.Main.online))
+                        SidebarSectionHeader(title: vm.L(L10n.Main.online), icon: "globe.asia.australia")
                         if matchesSearch(vm.L(L10n.ThaiHub.title)) {
                             SidebarNavItem(
                                 icon: "globe.asia.australia.fill",
@@ -259,7 +267,9 @@ struct MainView: View {
                             )
                         }
                     }
-                
+
+                SystemStatusFooter(vm: vm)
+
                 Spacer()
 
                 // Bottom bar: theme switcher (left) + language switcher (right).
@@ -355,6 +365,7 @@ struct MainView: View {
                         }) {
                             Image(systemName: "chevron.left")
                         }
+                        .accessibilityLabel(vm.L(L10n.Main.navBack))
                         .disabled(vm.editingSave == nil && vm.viewingThaiMod == nil && vm.viewingSaveTimeline == nil && vm.editingModConfig == nil && vm.viewingModDetail == nil && tabHistory.count <= 1)
                         
                         Button(action: {
@@ -366,6 +377,7 @@ struct MainView: View {
                         }) {
                             Image(systemName: "chevron.right")
                         }
+                        .accessibilityLabel(vm.L(L10n.Main.navForward))
                         .disabled(forwardHistory.isEmpty)
                     }
                 }
@@ -453,6 +465,7 @@ struct LanguageFlagToggle: View {
         .buttonStyle(.plain)
         .pointingHandCursor()
         .help(help)
+        .accessibilityLabel(help)
     }
 }
 
@@ -491,19 +504,29 @@ struct ThemeToggle: View {
         .buttonStyle(.plain)
         .pointingHandCursor()
         .help(help)
+        .accessibilityLabel(help)
     }
 }
 
 struct SidebarSectionHeader: View {
     let title: String
-    
+    var icon: String = ""   // optionnel, vide par défaut (pas de breaking change)
+
     var body: some View {
-        Text(title)
-            .font(.system(size: 11, weight: .semibold))
-            .foregroundColor(.secondary)
-            .padding(.leading, 8)
-            .padding(.top, 8)
-            .padding(.bottom, 0)
+        HStack(spacing: AppDesign.Spacing.xs + 2) {
+            if !icon.isEmpty {
+                Image(systemName: icon)
+                    .font(AppDesign.Font.iconXS.weight(.semibold))
+                    .foregroundColor(.secondary)
+            }
+            Text(title)
+                .font(AppDesign.Font.caption(.semibold))
+                .foregroundColor(.secondary)
+        }
+        .padding(.leading, AppDesign.Spacing.sm)
+        .padding(.top, AppDesign.Spacing.sm)
+        .padding(.bottom, 0)
+        .accessibilityAddTraits(.isHeader)
     }
 }
 
@@ -522,12 +545,12 @@ struct SidebarNavItem: View {
         Button(action: { currentTab = tab }) {
             HStack(spacing: 12) {
                 Image(systemName: icon)
-                    .font(.system(size: 14, weight: .regular))
+                    .font(AppDesign.Font.rowTitle)
                     .foregroundColor(isSelected ? .white : .primary)
                     .frame(width: 20, alignment: .center)
-                
+
                 Text(label)
-                    .font(.system(size: 14, weight: .regular))
+                    .font(AppDesign.Font.rowTitle)
                     .foregroundColor(isSelected ? .white : .primary)
                 Spacer()
             }
@@ -535,15 +558,17 @@ struct SidebarNavItem: View {
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
             .background(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                RoundedRectangle(cornerRadius: AppDesign.Radius.sm, style: .continuous)
                     .fill(isSelected
                           ? Color.accentColor
-                          : (isHovered ? Color.primary.opacity(0.05) : Color.clear))
+                          : (isHovered ? Color.primary.opacity(AppDesign.Opacity.subtle) : Color.clear))
             )
         }
         .buttonStyle(PlainButtonStyle())
         .onHover { isHovered = $0 }
         .pointingHandCursor()
+        .accessibilityLabel(label)
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 }
 

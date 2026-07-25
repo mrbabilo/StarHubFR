@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-07-25
+
+### Added
+- **Design token system** — introduced `AppDesignCore` (SPM-testable pure tokens) and `AppDesignUI` (SwiftUI fonts/colors) to eliminate magic numbers across the UI. All spacing, radius, and opacity values now go through `AppDesign.Spacing/Radius/Opacity`.
+- **Design system tests** — 10 tests in the new `StarHubTHCore` target verifying token values and migration correctness.
+- **Accessibility infrastructure** — added `ContrastChecker` (WCAG 2.1 compliant luminance utility in SPM for testability) and 7 new `ContrastCheckerTests`.
+- **System status footer** — new compact sidebar bar showing enabled mod count, pending updates, and SMAPI error count at a glance.
+- **Empty-state drop zone** — when no mods are installed, the list shows a large visual drop zone rather than plain text.
+- **Cached async image loader** — `CachedAsyncImage` replaces the system `AsyncImage` in the mod detail pane, caching fetched mod pictures in `NSCache` to avoid redundant downloads.
+
+### Changed
+- **Accessibility labels added** — 17 total `accessibilityLabel`/`Value`/`Hint` calls across `ModListRow`, icon-only buttons, sidebar nav, search bar, `SystemStatusFooter`, and `EmptyStateDropZone` so VoiceOver announces the full UI in French or English.
+- **Search debounced** — the mod list search now waits 200 ms after the last keystroke before filtering, avoiding a recompute on every keypress.
+- **Nexus dependency search aligned** — missing-dependency buttons now use the same `…/search/?gsearch=` format as the dependency tree and present human-readable terms (`Content Patcher` instead of `Pathoschild.ContentPatcher`).
+- **LazyVStack reverted in ModSectionGroup** — pagination already caps rows at 15, so `LazyVStack`'s benefit is marginal; switched back to deterministic `VStack`.
+- **EmptyStateDropZone hover fill semantics** — `.overlay` replaced by `.background` since the hover tint is a fill behind the content, not on top.
+- **Nexus tooltip fixed** — the `info.circle` button on each row now correctly opens the mod details sheet (was pointing to the wrong action).
+- **Localized accessibility strings** — all VoiceOver strings now go through `L10n` (e.g. `main_system_status_a11y`), removing hardcoded English accessibility copy.
+
+### Fixed
+- **Toggle spinner while enabling/disabling mods** — replaced an `alert(isPresented:)` that showed on every toggle with an inline `ProgressView` tied to `pendingToggleFolder`.
+- **Dead code warning for `InstallationError`** — the typed enum was never instantiated; confirmed removed from `Package.swift` and its phantom L10n keys were pruned.
+
 ## [1.6.0] - 2026-07-25
 
 ### Added

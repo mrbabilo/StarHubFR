@@ -84,18 +84,10 @@ struct ModDetailView: View {
     @ViewBuilder
     private var bannerImage: some View {
         if let extra = vm.modExtra(for: mod), !extra.pictureUrl.isEmpty, let url = URL(string: extra.pictureUrl) {
-            AsyncImage(url: url) { phase in
-                if let image = phase.image {
-                    image.resizable().scaledToFill()
-                } else if phase.error != nil {
-                    Color.clear.frame(height: 0)   // offline / broken → no banner
-                } else {
-                    ProgressView().frame(maxWidth: .infinity, minHeight: 90)
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .frame(height: 120)
-            .clipped()
+            CachedAsyncImage(url: url)
+                .frame(maxWidth: .infinity)
+                .frame(height: 120)
+                .clipped()
         }
     }
 
@@ -111,7 +103,7 @@ struct ModDetailView: View {
                     .textSelection(.enabled)
                     .fixedSize(horizontal: false, vertical: true)   // wrap long names
                 HStack(spacing: 6) {
-                    Text("v\(vm.displayVersion(for: mod))")
+                    Text(String(format: vm.L(L10n.Mods.versionPrefix), vm.displayVersion(for: mod)))
                     if !mod.isGroup, !mod.author.isEmpty, mod.author != "Unknown" {
                         Text("•")
                         Text(mod.author)

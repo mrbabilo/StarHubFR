@@ -38,6 +38,7 @@ private enum PageSlot {
 struct ModListView: View {
     @ObservedObject var vm: StarHubTHViewModel
     @State private var searchText = ""
+    @State private var debouncedSearch = ""
     @State private var selectedFilter: ModFilter = .all
     /// Category-filter scope: show everything, scope to one Nexus category,
     /// or scope to mods with no category assigned. `.category` only affects
@@ -89,8 +90,8 @@ struct ModListView: View {
     var filteredMods: [ModItem] {
         vm.mods
             .filter { mod in
-                searchText.isEmpty || matchesSelfOrAnyChild(mod) {
-                    $0.name.localizedCaseInsensitiveContains(searchText) || $0.uniqueId.localizedCaseInsensitiveContains(searchText)
+                debouncedSearch.isEmpty || matchesSelfOrAnyChild(mod) {
+                    $0.name.localizedCaseInsensitiveContains(debouncedSearch) || $0.uniqueId.localizedCaseInsensitiveContains(debouncedSearch)
                 }
             }
             .filter { mod in
@@ -295,10 +296,10 @@ struct ModListView: View {
         let page = effectivePage(totalPages: pages)
         let paged = pageMods(from: display, page: page)
         ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 32) {
+            VStack(alignment: .leading, spacing: AppDesign.Spacing.xxl) {
 
                 // ── Toolbar ────────────────────────────────────────────
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
                     // Primary row: scope picker (left) + primary action (right).
                     // Keeps the most-used navigation and the key CTA at the
                     // same visual priority, above the secondary filters.
@@ -360,17 +361,17 @@ struct ModListView: View {
 
                         if categories.isEmpty && uncatCount == 0 && tagBuckets.isEmpty {
                             Text(vm.L(L10n.Mods.categoryFilterEmptyHint))
-                                .font(.system(size: 11))
-                                .foregroundColor(.secondary.opacity(0.8))
+                                .font(AppDesign.Font.footnote)
+                                .foregroundColor(.secondary.opacity(AppDesign.Opacity.secondary))
                         }
 
                         // Which mod profile is currently applied (read-only hint).
                         if let profile = vm.activeProfile {
                             HStack(spacing: 5) {
                                 Image(systemName: "person.crop.circle")
-                                    .font(.system(size: 11))
+                                    .font(AppDesign.Font.footnote)
                                 Text(String(format: vm.L(L10n.Profiles.activeLabel), profile.name))
-                                    .font(.system(size: 11, weight: .medium))
+                                    .font(AppDesign.Font.footnote(.medium))
                                     .lineLimit(1)
                             }
                             .foregroundColor(.accentColor)
@@ -384,26 +385,26 @@ struct ModListView: View {
                 }
 
                 // ── List ──────────────────────────────────────────────────
-                VStack(alignment: .leading, spacing: 32) {
+                VStack(alignment: .leading, spacing: AppDesign.Spacing.xxl) {
                     if filtered.isEmpty {
-                        VStack(spacing: 16) {
-                            Image(systemName: "puzzlepiece.extension")
-                                .font(.system(size: 48))
-                                .foregroundColor(.secondary.opacity(0.5))
-                            if vm.mods.isEmpty {
-                                Text(vm.L(L10n.Mods.noModsInstalled))
+                        if vm.mods.isEmpty {
+                            // Première utilisation : zone de drop XXL
+                            EmptyStateDropZone(vm: vm, onInstall: { showInstallSheet = true })
+                                .padding(.top, 40)
+                        } else {
+                            // Recherche sans résultat
+                            VStack(spacing: AppDesign.Spacing.lg) {
+                                Image(systemName: "puzzlepiece.extension")
+                                    .font(.system(size: 48))
+                                    .foregroundColor(.secondary.opacity(AppDesign.Opacity.disabled))
+                                Text(String(format: vm.L(L10n.Mods.noModFound), debouncedSearch))
                                     .multilineTextAlignment(.center)
-                                    .font(.system(size: 14))
-                                    .foregroundColor(.secondary)
-                            } else {
-                                Text(String(format: vm.L(L10n.Mods.noModFound), searchText))
-                                    .multilineTextAlignment(.center)
-                                    .font(.system(size: 14))
+                                    .font(AppDesign.Font.rowTitle)
                                     .foregroundColor(.secondary)
                             }
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 40)
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding(.top, 40)
                     } else if display.isEmpty {
                         // Scope eliminated every mod (e.g. "Disabled" picked but
                         // everything is enabled, or "Issues" with no problems).
@@ -445,7 +446,13 @@ struct ModListView: View {
             }
         }
         .searchable(text: $searchText, prompt: Text(vm.L(L10n.Mods.searchMods)))
-        .onChange(of: searchText)       { currentPage = 1 }
+        .task(id: searchText) {
+            do {
+                try await Task.sleep(nanoseconds: 200_000_000)
+                debouncedSearch = searchText
+                currentPage = 1
+            } catch {}
+        }
         .onChange(of: selectedFilter)   { currentPage = 1 }
         .onChange(of: selectedCategory) { currentPage = 1 }
         .onChange(of: configOnlyFilter) { currentPage = 1 }
@@ -485,14 +492,14 @@ struct ModListView: View {
     /// Placeholder shown when the current scope has no mods to display
     /// (e.g. "Disabled" selected but every mod is enabled).
     private var emptyScopeMessage: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: AppDesign.Spacing.md) {
             Image(systemName: "checkmark.seal")
                 .font(.system(size: 40))
-                .foregroundColor(.secondary.opacity(0.5))
+                .foregroundColor(.secondary.opacity(AppDesign.Opacity.disabled))
             Text(vm.L(selectedFilter == .enabled
                       ? L10n.Mods.disabled
                       : L10n.Mods.enabled))
-                .font(.system(size: 14))
+                .font(AppDesign.Font.rowTitle)
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)
@@ -501,12 +508,12 @@ struct ModListView: View {
 
     /// Placeholder shown when the "Issues" scope has no problematic mods.
     private var noIssuesMessage: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: AppDesign.Spacing.md) {
             Image(systemName: "checkmark.seal.fill")
                 .font(.system(size: 40))
                 .foregroundColor(.green.opacity(0.6))
             Text(vm.L(L10n.Mods.filterIssues))
-                .font(.system(size: 14))
+                .font(AppDesign.Font.rowTitle)
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)
@@ -522,7 +529,7 @@ struct ModListView: View {
     private func paginationFooter(total: Int, shown: Int, page: Int, totalPages: Int) -> some View {
         let rangeStart = (page - 1) * pageSize + 1
         let rangeEnd = rangeStart + shown - 1
-        return VStack(spacing: 8) {
+        return VStack(spacing: AppDesign.Spacing.sm) {
             HStack(spacing: 6) {
                 Button {
                     if currentPage > 1 { currentPage -= 1 }
@@ -539,7 +546,7 @@ struct ModListView: View {
                     switch slot {
                     case .ellipsis:
                         Text("…")
-                            .font(.system(size: 11))
+                            .font(AppDesign.Font.footnote)
                             .foregroundColor(.secondary.opacity(0.6))
                             .frame(width: 24)
                     case .page(let n):
@@ -573,7 +580,7 @@ struct ModListView: View {
 
             Text(String(format: vm.L(L10n.Mods.pageShowing), rangeStart, rangeEnd, total))
                 .font(.system(size: 10))
-                .foregroundColor(.secondary.opacity(0.8))
+                .foregroundColor(.secondary.opacity(AppDesign.Opacity.secondary))
         }
         .padding(.top, 4)
     }
@@ -635,9 +642,9 @@ struct ModListView: View {
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: "arrow.up.arrow.down")
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
                 Text(sortLabel)
-                    .font(.system(size: 12, weight: .medium))
+                    .font(AppDesign.Font.caption(.medium))
                 Image(systemName: "chevron.down")
                     .font(.system(size: 9, weight: .bold))
                     .foregroundColor(.secondary)
@@ -646,12 +653,12 @@ struct ModListView: View {
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
             .background(
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(Color.secondary.opacity(0.10))
+                RoundedRectangle(cornerRadius: AppDesign.Radius.sm)
+                    .fill(Color.secondary.opacity(AppDesign.Opacity.light))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 6)
-                    .stroke(Color.secondary.opacity(0.15), lineWidth: 0.5)
+                RoundedRectangle(cornerRadius: AppDesign.Radius.sm)
+                    .stroke(Color.secondary.opacity(AppDesign.Opacity.medium), lineWidth: 0.5)
             )
         }
         .menuStyle(.borderlessButton)
@@ -682,20 +689,20 @@ struct ModListView: View {
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: "gearshape")
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
                 Text(vm.L(L10n.Mods.configFilterLabel))
-                    .font(.system(size: 12, weight: .medium))
+                    .font(AppDesign.Font.caption(.medium))
             }
             .foregroundColor(configOnlyFilter ? Color.accentColor : .primary)
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
             .background(
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(configOnlyFilter ? Color.accentColor.opacity(0.15) : Color.secondary.opacity(0.10))
+                RoundedRectangle(cornerRadius: AppDesign.Radius.sm)
+                    .fill(configOnlyFilter ? Color.accentColor.opacity(AppDesign.Opacity.medium) : Color.secondary.opacity(AppDesign.Opacity.light))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 6)
-                    .stroke(configOnlyFilter ? Color.accentColor.opacity(0.4) : Color.secondary.opacity(0.15), lineWidth: 0.5)
+                RoundedRectangle(cornerRadius: AppDesign.Radius.sm)
+                    .stroke(configOnlyFilter ? Color.accentColor.opacity(0.4) : Color.secondary.opacity(AppDesign.Opacity.medium), lineWidth: 0.5)
             )
         }
         .buttonStyle(PlainButtonStyle())
@@ -709,7 +716,7 @@ struct ModListView: View {
     private func bulkToggleOverlay(done: Int, total: Int) -> some View {
         let fraction = total > 0 ? Double(done) / Double(total) : 0
         return ZStack {
-            Color.black.opacity(0.25)
+            Color.black.opacity(AppDesign.Opacity.strong)
                 .ignoresSafeArea()
             VStack(spacing: 14) {
                 ProgressView(value: fraction, total: 1.0)
@@ -721,7 +728,7 @@ struct ModListView: View {
                     Text(vm.bulkToggleEnabling
                          ? vm.L(L10n.Mods.enablingAllProgress)
                          : vm.L(L10n.Mods.disablingAllProgress))
-                        .font(.system(size: 12, weight: .medium))
+                        .font(AppDesign.Font.caption(.medium))
                     Text("\(done)/\(total)")
                         .font(.system(size: 12, design: .monospaced))
                         .foregroundColor(.secondary)
@@ -730,8 +737,8 @@ struct ModListView: View {
             }
             .padding(28)
             .background(.regularMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .shadow(color: .black.opacity(0.15), radius: 12, y: 4)
+            .clipShape(RoundedRectangle(cornerRadius: AppDesign.Radius.lg))
+            .shadow(color: .black.opacity(AppDesign.Opacity.medium), radius: 12, y: 4)
         }
         .transition(.opacity)
     }
@@ -760,7 +767,7 @@ struct ModListView: View {
         } label: {
             Label(vm.L(L10n.Mods.toggleAllHint), systemImage: "power")
                 .labelStyle(.iconOnly)
-                .font(.system(size: 13))
+                .font(AppDesign.Font.body)
         }
         .help(vm.L(L10n.Mods.toggleAllHint))
     }
@@ -823,27 +830,27 @@ struct ModListView: View {
                 switch selectedCategory {
                 case .all:
                     Image(systemName: "tag")
-                        .font(.system(size: 11))
+                        .font(AppDesign.Font.footnote)
                     Text(vm.L(L10n.Mods.categoryFilter))
-                        .font(.system(size: 12, weight: .medium))
+                        .font(AppDesign.Font.caption(.medium))
                 case .category(let cat):
                     Circle()
                         .fill(cat.color)
                         .frame(width: 9, height: 9)
                     Text(cat.localizedName(vm.L))
-                        .font(.system(size: 12, weight: .medium))
+                        .font(AppDesign.Font.caption(.medium))
                 case .inferredTag(let tag):
                     Image(systemName: "tag.circle")
-                        .font(.system(size: 11))
+                        .font(AppDesign.Font.footnote)
                         .foregroundColor(.secondary)
                     Text(vm.L(L10n.ModTag.key(for: tag)))
-                        .font(.system(size: 12, weight: .medium))
+                        .font(AppDesign.Font.caption(.medium))
                 case .uncategorized:
                     Image(systemName: "circle.dashed")
-                        .font(.system(size: 11))
+                        .font(AppDesign.Font.footnote)
                         .foregroundColor(.secondary)
                     Text(vm.L(L10n.Mods.categoryFilterUncategorized))
-                        .font(.system(size: 12, weight: .medium))
+                        .font(AppDesign.Font.caption(.medium))
                 }
                 Image(systemName: "chevron.down")
                     .font(.system(size: 9, weight: .bold))
@@ -853,12 +860,12 @@ struct ModListView: View {
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
             .background(
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(Color.secondary.opacity(0.10))
+                RoundedRectangle(cornerRadius: AppDesign.Radius.sm)
+                    .fill(Color.secondary.opacity(AppDesign.Opacity.light))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 6)
-                    .stroke(Color.secondary.opacity(0.15), lineWidth: 0.5)
+                RoundedRectangle(cornerRadius: AppDesign.Radius.sm)
+                    .stroke(Color.secondary.opacity(AppDesign.Opacity.medium), lineWidth: 0.5)
             )
         }
         .menuStyle(.borderlessButton)
@@ -885,7 +892,7 @@ struct ModSectionGroup: View {
                     
                     if idx < mods.count - 1 {
                         Rectangle()
-                            .fill(Color.primary.opacity(0.05))
+                            .fill(Color.primary.opacity(AppDesign.Opacity.subtle))
                             .frame(height: 1)
                             .padding(.leading, 48)
                             .padding(.vertical, 2)
@@ -919,7 +926,7 @@ struct ModGroupRow: View {
                         ModListRow(mod: child, vm: vm, isChild: true, isGroupHeader: false, isExpanded: .constant(false))
                         if cIdx < children.count - 1 {
                             Rectangle()
-                                .fill(Color.primary.opacity(0.05))
+                                .fill(Color.primary.opacity(AppDesign.Opacity.subtle))
                                 .frame(height: 1)
                                 .padding(.leading, 64)
                                 .padding(.vertical, 2)
@@ -944,6 +951,15 @@ struct ModListRow: View {
     /// Drives the confirmation dialog before deleting this row's mod.
     @State private var showDeleteConfirm = false
 
+    private var modRowA11yLabel: String {
+        String(
+            format: vm.L(L10n.Mods.rowA11yLabel),
+            mod.name,
+            mod.author,
+            String(format: vm.L(L10n.Mods.versionPrefix), mod.version)
+        )
+    }
+
     /// The effective enabled state, honoring the optimistic `localIsOn` value
     /// so the visual styling reacts instantly when the toggle is flipped
     /// (before `vm.mods` catches up).
@@ -958,10 +974,10 @@ struct ModListRow: View {
             RoundedRectangle(cornerRadius: 2)
                 .fill(effectiveEnabled
                       ? Color(red: 0.20, green: 0.65, blue: 0.35)
-                      : Color.secondary.opacity(0.25))
+                      : Color.secondary.opacity(AppDesign.Opacity.strong))
                 .frame(width: isChild ? 2.5 : 3.5)
 
-            HStack(spacing: 12) {
+            HStack(spacing: AppDesign.Spacing.md) {
             
             // Chevron space (ensures perfect alignment for all top-level items)
             if !isChild {
@@ -982,7 +998,7 @@ struct ModListRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                     Text(mod.name)
-                        .font(.system(size: 13, weight: .medium))
+                        .font(AppDesign.Font.body(.medium))
                         .foregroundColor(effectiveEnabled ? .primary : .secondary)
                         .lineLimit(1)
                     // Inline status dot — helps the name row itself read as
@@ -997,7 +1013,7 @@ struct ModListRow: View {
                 
                 if mod.name != mod.folderName {
                     Text(mod.folderName)
-                        .font(.system(size: 11))
+                        .font(AppDesign.Font.footnote)
                         .foregroundColor(.secondary.opacity(0.7))
                         .lineLimit(1)
                 }
@@ -1013,10 +1029,10 @@ struct ModListRow: View {
                             InferredTagBadge(label: vm.L(L10n.ModTag.key(for: vm.inferredTagKey(for: mod))))
                         }
                         Text(mod.author)
-                            .font(.system(size: 12))
+                            .font(AppDesign.Font.caption)
                             .foregroundColor(.secondary)
                         Text("•")
-                            .foregroundColor(.secondary.opacity(0.5))
+                            .foregroundColor(.secondary.opacity(AppDesign.Opacity.disabled))
                         VersionBadge(version: mod.version)
                     }
                 } else {
@@ -1030,15 +1046,15 @@ struct ModListRow: View {
                             InferredTagBadge(label: vm.L(L10n.ModTag.key(for: vm.inferredTagKey(for: mod))))
                         }
                         Text(vm.displayAuthor(for: mod))
-                            .font(.system(size: 12))
+                            .font(AppDesign.Font.caption)
                             .foregroundColor(.secondary)
                         Text("•")
-                            .foregroundColor(.secondary.opacity(0.5))
+                            .foregroundColor(.secondary.opacity(AppDesign.Opacity.disabled))
                         VersionBadge(version: vm.displayVersion(for: mod))
                         Text("•")
-                            .foregroundColor(.secondary.opacity(0.5))
+                            .foregroundColor(.secondary.opacity(AppDesign.Opacity.disabled))
                         Text(mod.description)
-                            .font(.system(size: 11))
+                            .font(AppDesign.Font.footnote)
                             .foregroundColor(.secondary.opacity(0.85))
                     }
                 }
@@ -1047,21 +1063,34 @@ struct ModListRow: View {
                 if !missingDeps.isEmpty || !disabledDeps.isEmpty {
                     VStack(alignment: .leading, spacing: 2) {
                         if !missingDeps.isEmpty {
-                            HStack(spacing: 4) {
+                            HStack(spacing: AppDesign.Spacing.xs) {
                                 Image(systemName: "exclamationmark.triangle.fill")
-                                Text(String(format: vm.L(L10n.Mods.missingDependencies), missingDeps.joined(separator: ", ")))
+                                // Chaque dépendance manquante est cliquable :
+                                // ouvre la recherche Nexus Mods pour ce nom.
+                                Text("\(vm.L(L10n.Mods.missingDependenciesPrefix)) ")
+                                    .foregroundColor(.secondary)
+                                ForEach(Array(missingDeps.enumerated()), id: \.offset) { idx, depId in
+                                    HStack(spacing: 2) {
+                                        if idx > 0 { Text(",") }
+                                        let searchLabel = searchName(for: depId)
+                                        Button(searchLabel) { openNexusSearch(for: searchLabel) }
+                                            .buttonStyle(.plain)
+                                            .underline()
+                                            .pointingHandCursor()
+                                    }
+                                }
                             }
                             .foregroundColor(.red)
                         }
                         if !disabledDeps.isEmpty {
-                            HStack(spacing: 4) {
+                            HStack(spacing: AppDesign.Spacing.xs) {
                                 Image(systemName: "exclamationmark.octagon.fill")
                                 Text(String(format: vm.L(L10n.Mods.disabledRequiredDeps), disabledDeps.joined(separator: ", ")))
                             }
                             .foregroundColor(.orange)
                         }
                     }
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
                     .background(
@@ -1079,7 +1108,7 @@ struct ModListRow: View {
             Spacer()
 
             // Actions (always visible)
-            HStack(spacing: 12) {
+            HStack(spacing: AppDesign.Spacing.md) {
                 Button {
                     let baseFolder = mod.isEnabled ? "Mods" : "Mods_disabled"
                     let url = URL(fileURLWithPath: vm.gameDir)
@@ -1088,11 +1117,13 @@ struct ModListRow: View {
                     NSWorkspace.shared.open(url)
                 } label: {
                     Image(systemName: "folder")
-                        .font(.system(size: 14))
+                        .font(AppDesign.Font.rowTitle)
                         .foregroundColor(.secondary)
                 }
                 .buttonStyle(PlainButtonStyle())
                 .help(vm.L(L10n.Mods.openFolder))
+                .accessibilityLabel(vm.L(L10n.Mods.openFolder))
+                .accessibilityHint(vm.L(L10n.Mods.openFolderA11yHint))
                 .pointingHandCursor()
 
                 // Direct config-editor access, mirroring upstream's
@@ -1105,11 +1136,13 @@ struct ModListRow: View {
                         vm.editingModConfig = mod
                     } label: {
                         Image(systemName: "gearshape")
-                            .font(.system(size: 14))
+                            .font(AppDesign.Font.rowTitle)
                             .foregroundColor(.secondary)
                     }
                     .buttonStyle(PlainButtonStyle())
                     .help(vm.L(L10n.Settings.configCodeEditor))
+                    .accessibilityLabel(vm.L(L10n.Settings.configCodeEditor))
+                    .accessibilityHint(vm.L(L10n.Settings.configCodeEditorA11yHint))
                     .pointingHandCursor()
                 }
 
@@ -1121,11 +1154,13 @@ struct ModListRow: View {
                         if let url = URL(string: link) { NSWorkspace.shared.open(url) }
                     } label: {
                         Image(systemName: "safari")
-                            .font(.system(size: 14))
+                            .font(AppDesign.Font.rowTitle)
                             .foregroundColor(.secondary)
                     }
                     .buttonStyle(PlainButtonStyle())
                     .help(vm.L(L10n.Mods.viewOnNexus))
+                    .accessibilityLabel(vm.L(L10n.Mods.viewOnNexus))
+                    .accessibilityHint(vm.L(L10n.Mods.viewOnNexusA11yHint))
                     .pointingHandCursor()
                 }
 
@@ -1136,11 +1171,13 @@ struct ModListRow: View {
                     vm.viewingModDetail = mod
                 } label: {
                     Image(systemName: "info.circle")
-                        .font(.system(size: 14))
+                        .font(AppDesign.Font.rowTitle)
                         .foregroundColor(.secondary)
                 }
                 .buttonStyle(PlainButtonStyle())
-                .help(vm.L(L10n.Mods.viewOnNexus))
+                .help(vm.L(L10n.Mods.openDetails))
+                .accessibilityLabel(vm.L(L10n.Mods.openDetails))
+                .accessibilityHint(vm.L(L10n.Mods.openDetailsHint))
                 .pointingHandCursor()
 
                 // Delete button — permanently removes the mod (or pack) from
@@ -1152,11 +1189,13 @@ struct ModListRow: View {
                         showDeleteConfirm = true
                     } label: {
                         Image(systemName: "trash")
-                            .font(.system(size: 14))
+                            .font(AppDesign.Font.rowTitle)
                             .foregroundColor(.secondary)
                     }
                     .buttonStyle(PlainButtonStyle())
                     .help(vm.L(L10n.Mods.deleteMod))
+                    .accessibilityLabel(vm.L(L10n.Mods.deleteMod))
+                    .accessibilityHint(vm.L(L10n.Mods.deleteModA11yHint))
                     .pointingHandCursor()
                 }
             }
@@ -1165,28 +1204,41 @@ struct ModListRow: View {
 
             // macOS Native Switch Toggle
             if !isChild {
-                Toggle("", isOn: Binding(
-                    get: { localIsOn ?? mod.isEnabled },
-                    set: { newValue in
-                        localIsOn = newValue
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                            if newValue != mod.isEnabled {
-                                // Keep the optimistic value until toggleMod's completion
-                                // confirms vm.mods has actually caught up — clearing it
-                                // eagerly here races the background scanMods() and made
-                                // the switch visibly snap back to its old position.
-                                vm.toggleMod(mod) {
+                HStack(spacing: AppDesign.Spacing.xs) {
+                    // Spinner pendant l'opération de toggle (déplacement du
+                    // dossier entre Mods/ et Mods_disabled/). Disparaît dès
+                    // que pendingToggleFolder est remis à nil par le VM.
+                    if vm.pendingToggleFolder == mod.folderName {
+                        ProgressView()
+                            .controlSize(.small)
+                            .frame(width: 14, height: 14)
+                    }
+                    Toggle("", isOn: Binding(
+                        get: { localIsOn ?? mod.isEnabled },
+                        set: { newValue in
+                            localIsOn = newValue
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                if newValue != mod.isEnabled {
+                                    // Keep the optimistic value until toggleMod's completion
+                                    // confirms vm.mods has actually caught up — clearing it
+                                    // eagerly here races the background scanMods() and made
+                                    // the switch visibly snap back to its old position.
+                                    vm.toggleMod(mod) {
+                                        localIsOn = nil
+                                    }
+                                } else {
                                     localIsOn = nil
                                 }
-                            } else {
-                                localIsOn = nil
                             }
                         }
-                    }
-                ))
-                    .toggleStyle(SwitchToggleStyle(tint: Color(red: 0.20, green: 0.65, blue: 0.35)))
-                    .controlSize(.small)
-                    .labelsHidden()
+                    ))
+                        .toggleStyle(SwitchToggleStyle(tint: Color(red: 0.20, green: 0.65, blue: 0.35)))
+                        .controlSize(.small)
+                        .labelsHidden()
+                        .accessibilityLabel(String(format: vm.L(L10n.Mods.toggleA11yLabel), mod.name))
+                        .accessibilityHint(vm.L(L10n.Mods.toggleA11yHint))
+                        .accessibilityValue(mod.isEnabled ? vm.L(L10n.Mods.enabled) : vm.L(L10n.Mods.disabled))
+                }
             } else {
                 Toggle("", isOn: .constant(false))
                     .toggleStyle(SwitchToggleStyle(tint: .blue))
@@ -1213,12 +1265,18 @@ struct ModListRow: View {
         .cornerRadius(6)
         .overlay(
             // Subtle accent border on hover — polished focus ring.
-            RoundedRectangle(cornerRadius: 6)
+            RoundedRectangle(cornerRadius: AppDesign.Radius.sm)
                 .stroke(isHovered ? Color.accentColor.opacity(0.2) : Color.clear, lineWidth: 1)
         )
         .animation(.easeInOut(duration: 0.12), value: isHovered)
         .animation(.easeInOut(duration: 0.15), value: effectiveEnabled)
         .onHover { isHovered = $0 }
+        // Accessibility : VoiceOver annonce le mod comme un élément unifié
+        // avec son nom, auteur, version et état (activé/désactivé).
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(modRowA11yLabel)
+        .accessibilityValue(mod.isEnabled ? vm.L(L10n.Mods.enabled) : vm.L(L10n.Mods.disabled))
+        .accessibilityHint(vm.L(L10n.Mods.openDetailsHint))
         .contextMenu {
             Button(vm.L(L10n.Mods.openInFinder)) {
                 let baseFolder = mod.isEnabled ? "Mods" : "Mods_disabled"
@@ -1253,9 +1311,32 @@ struct ModListRow: View {
             }
             Button(vm.L(L10n.Saves.cancel), role: .cancel) { }
         } message: {
-            Text(mod.isGroup
+             Text(mod.isGroup
                  ? vm.L(L10n.Mods.deleteConfirmPack)
                  : vm.L(L10n.Mods.deleteConfirmMessage))
+        }
+    }
+
+    /// Ouvre la recherche Nexus Mods pour une dépendance manquante.
+    /// Le terme de recherche utilise le nom lisible (ex. "Content Patcher"
+    /// plutôt que l'identifiant unique "Pathoschild.ContentPatcher") pour
+    /// exploiter l'indexation par nom de Nexus.
+    private func openNexusSearch(for searchTerm: String) {
+        let encoded = searchTerm.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? searchTerm
+        if let url = URL(string: "https://www.nexusmods.com/stardewvalley/search/?gsearch=\(encoded)") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    /// Dérive un nom de recherche humainement lisible depuis un uniqueId de
+    /// dépendance : `Pathoschild.ContentPatcher` → `Content Patcher`.
+    private func searchName(for uniqueId: String) -> String {
+        let last = uniqueId.split(separator: ".").last.map(String.init) ?? uniqueId
+        return last.reduce(into: "") { result, char in
+            if char.isUppercase && !result.isEmpty {
+                result.append(" ")
+            }
+            result.append(char)
         }
     }
 }
@@ -1270,7 +1351,7 @@ struct CategoryBadge: View {
     let L: (String) -> String
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: AppDesign.Spacing.xs) {
             Circle()
                 .fill(category.color)
                 .frame(width: 7, height: 7)
@@ -1302,7 +1383,7 @@ private struct InferredTagBadge: View {
         Text(label)
             .font(.system(size: 10, weight: .medium))
             .padding(.horizontal, 6).padding(.vertical, 2)
-            .background(Color.secondary.opacity(0.15))
+            .background(Color.secondary.opacity(AppDesign.Opacity.medium))
             .foregroundColor(.secondary)
             .clipShape(Capsule())
     }
@@ -1321,7 +1402,7 @@ private struct VersionBadge: View {
             .padding(.vertical, 1)
             .background(
                 RoundedRectangle(cornerRadius: 3)
-                    .fill(Color.secondary.opacity(0.10))
+                    .fill(Color.secondary.opacity(AppDesign.Opacity.light))
             )
     }
 }

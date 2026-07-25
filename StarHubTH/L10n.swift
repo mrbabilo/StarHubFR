@@ -19,6 +19,10 @@ enum L10n {
         static let search               = "main_search"
         static let systemAlerts         = "main_system_alerts"
         static let modUpdates           = "main_mod_updates"
+        static let systemStatusA11y     = "main_system_status_a11y"
+        static let alertsNavA11y        = "main_alerts_nav_a11y"
+        static let navBack              = "main_nav_back"
+        static let navForward           = "main_nav_forward"
         static let steamAccount         = "main_steam_account"
         static let playerFallback       = "main_player_fallback"
         static let appChangelog         = "main_app_changelog"
@@ -196,6 +200,16 @@ enum L10n {
         static let packMultipleAuthors      = "mods_pack_multiple_authors"
         static let openFolder           = "mods_open_folder"
         static let openInFinder         = "mods_open_in_finder"
+        static let openDetails          = "mods_open_details"
+        static let openDetailsHint      = "mods_open_details_hint"
+        static let rowA11yLabel         = "mods_row_a11y_label"
+        static let toggleA11yLabel      = "mods_toggle_a11y_label"
+        static let toggleA11yHint       = "mods_toggle_a11y_hint"
+        static let openFolderA11yHint   = "mods_open_folder_a11y_hint"
+        static let viewOnNexusA11yHint  = "mods_view_on_nexus_a11y_hint"
+        static let deleteModA11yHint    = "mods_delete_mod_a11y_hint"
+        static let versionPrefix         = "mods_version_prefix"
+        static let missingDependenciesPrefix = "mods_missing_dependencies_prefix"
         static let viewOnNexus          = "mods_view_on_nexus"
         static let viewDetailsOnNexus   = "mods_view_details_on_nexus"
         // Pagination
@@ -351,6 +365,7 @@ enum L10n {
         static let nexusKeyPlaceholder  = "settings_nexus_api_key_placeholder"
         static let configVisualEditor      = "config_visual_editor"
         static let configCodeEditor        = "config_code_editor"
+        static let configCodeEditorA11yHint  = "config_code_editor_a11y_hint"
         static let configNoSettingsFound   = "config_no_settings_found"
         static let configNoSettingsFoundFor = "config_no_settings_found_for"
         static let configRawJson           = "config_raw_json"
@@ -534,6 +549,8 @@ enum L10n {
         static let installSuccess       = "mod_install_success"
         static let installFailed        = "mod_install_failed"
         static let successMessage       = "mod_install_success_msg"
+        static let emptyTitle           = "mod_install_empty_title"
+        static let emptyHint            = "mod_install_empty_hint"
         static let done                 = "mod_install_done"
         static let depInstalled         = "mod_install_dep_installed"
         static let depDisabled          = "mod_install_dep_disabled"
@@ -579,6 +596,8 @@ enum L10n {
         static let labelAuthor          = "mod_install_label_author"
         static let labelUniqueId        = "mod_install_label_unique_id"
         static let depCount             = "mod_install_dep_count"
+
+        static let recoverZip           = "mod_install_recover_zip"
     }
 
     // MARK: - ModTag

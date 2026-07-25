@@ -117,6 +117,12 @@ class StarHubTHViewModel: ObservableObject {
     @Published var smapiErrors: [String] = []
     @Published var showSmapiAlerts: Bool = false
 
+    /// Folder name of the mod currently being toggled (enabled/disabled), or
+    /// nil when no toggle operation is in flight. Drives the spinner shown
+    /// next to the toggle in ModListRow during the (potentially slow) folder
+    /// move between Mods/ and Mods_disabled/.
+    @Published var pendingToggleFolder: String? = nil
+
     /// Mods with an available update on Nexus Mods (from last user-triggered check).
     @Published var nexusUpdates: [NexusUpdateChecker.ModUpdate] = []
     /// True while a Nexus check is in flight.
@@ -1040,7 +1046,9 @@ class StarHubTHViewModel: ObservableObject {
         guard !isToggling, !pendingToggles.isEmpty else { return }
         isToggling = true
         let (mod, completion) = pendingToggles.removeFirst()
+        pendingToggleFolder = mod.folderName
         performToggle(mod) {
+            self.pendingToggleFolder = nil
             completion?()
             self.isToggling = false
             self.processNextToggleIfNeeded()
