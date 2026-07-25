@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Default mod profile on first run**: a fresh install now automatically gets a "Default" profile capturing the current mod setup, so there is always an active profile to work from. It is created once (never re-created if you delete your other profiles) and **cannot be deleted**.
+- **Active-profile indicator on the Mods page**: the mod list's filter row now shows which profile is currently applied (a read-only accent chip), so you always know the context you're editing in.
+
+### Changed
+- **Mod Profiles page redesigned**: profile actions now live directly on each row instead of behind an info-button detail sheet. Each row shows its **mod count** and a clear **"Active" badge**; an **Activate** button switches to a profile, **Manage mods** applies it and jumps to the Mods page to edit it (replacing the redundant in-sheet mod checklist that duplicated the main mod manager), and a **⋯ menu** (also right-click) offers **Rename** and **Delete**.
+- **Safer profile activation**: the profile row is no longer one big tap target that silently switched profiles (which moves mod folders on disk) — switching now requires an explicit button. Activation is **serialized** (the Activate/Manage buttons disable while another profile is still being applied) and **exclusive** (only one profile active at a time). Deleting a profile now asks for confirmation.
+
+### Fixed
+- **Profile data loss**: applying a profile no longer sweeps mods that have no manifest `UniqueID` into `Mods_disabled`. Profiles key on `UniqueID`, so such mods could never be "covered" and were silently disabled on every profile switch — they are now left untouched.
+- Removed a dead "Help" button on the profile detail (its click did nothing).
+
 ## [1.3.0] - 2026-07-24
 
 ### Changed
