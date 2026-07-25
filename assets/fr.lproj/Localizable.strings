@@ -444,6 +444,8 @@
 "mod_install_dep_required_missing" = "Requis — non installé";
 "mod_install_dep_download" = "Le télécharger";
 "mod_install_dep_optional" = "Optionnel";
+"mod_install_deps_show_all" = "Tout afficher";
+"mod_install_deps_show_problems_only" = "Problèmes seulement";
 "mod_install_cancel" = "Annuler";
 "mod_install_no_mods" = "Aucun mod valide trouvé dans ce fichier zip";
 "mod_install_mod_info" = "Infos du mod";

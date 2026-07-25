@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Config & translation preservation on update** — when updating an installed mod (overwrite + backup), the installer now preserves not only `config.json` and `fr.json` but every supported SMAPI language file (`default.json`, `en.json`, `de.json`, `es.json`, `fr.json`, `hu.json`, `id.json`, `it.json`, `ja.json`, `ko.json`, `pl.json`, `pt.json`, `ru.json`, `th.json`, `tr.json`, `uk.json`, `zh.json`) via the shared `ModConfigFiles.preservable` list. The full mod folder is still backed up before overwrite.
+- **Dependency sorting & filter toggle in install preview** — dependencies are now sorted by priority (missing/disabled required → missing/disabled optional → satisfied), and a toggle switches between "problems only" (default) and "show all". A pack with many dependencies no longer buries the critical missing ones.
+- **Nexus search menu on missing dependencies** — the install preview's missing-dependency rows now offer the same name/author search menu (by mod name via `?gsearch=`, by author via `/games/stardewvalley/mods?author=`) used elsewhere, replacing the old generic `?terms=` link.
+- **Resizable install preview sheet** — the popup is now scrollable as a whole and capped to a reasonable height, so packs with many mods/dependencies/conflicts no longer push the action buttons off screen.
+
 ### Changed
 - **Nexus missing-dependency search** — clicking a missing dependency now opens a menu offering two distinct searches: by mod name (readable split-camelCase, e.g. `Content Patcher`) or by author (e.g. `Pathoschild`). The author search uses the dedicated Nexus filter (`/games/stardewvalley/mods?author=`) for precise results, and is applied consistently in both the mod list and the dependency tree in the detail pane.
 - **Mod list search reverted to real-time** — the 200 ms debounce introduced in 1.7.0 caused perceived input lag; restored the instant real-time filtering of 1.6.0 (the precomputed dependency index keeps per-keystroke cost negligible).

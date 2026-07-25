@@ -460,7 +460,8 @@ class ModZipInstaller {
             }
             try fm.copyItem(atPath: sourcePath.path, toPath: destPath)
 
-            // Restore preserved user configs on top of the freshly installed mod.
+            // Restore preserved user configs/translations on top of the freshly
+            // installed mod (config.json + all language files the user had).
             for (configFile, tmp) in preservedConfigs {
                 let cfg = (destPath as NSString).appendingPathComponent(configFile)
                 if fm.fileExists(atPath: cfg) {
@@ -476,7 +477,7 @@ class ModZipInstaller {
     /// they survive the folder being replaced during an overwrite install.
     private func snapshotUserConfigs(from modFolder: String) -> [String: URL] {
         var snapshots: [String: URL] = [:]
-        for configFile in ["config.json", "fr.json"] {
+        for configFile in ModConfigFiles.preservable {
             let cfg = (modFolder as NSString).appendingPathComponent(configFile)
             guard fm.fileExists(atPath: cfg) else { continue }
             let tmp = FileManager.default.temporaryDirectory

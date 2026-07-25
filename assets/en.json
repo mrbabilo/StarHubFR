@@ -444,6 +444,8 @@
   "mod_install_dep_required_missing": "Required — not installed",
   "mod_install_dep_download": "Get it",
   "mod_install_dep_optional": "Optional",
+  "mod_install_deps_show_all": "Show all",
+  "mod_install_deps_show_problems_only": "Problems only",
   "mod_install_cancel": "Cancel",
   "mod_install_no_mods": "No valid mods were found in this zip file",
   "mod_install_mod_info": "Mod Info",

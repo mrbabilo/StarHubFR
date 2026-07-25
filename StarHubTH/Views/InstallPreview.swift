@@ -13,6 +13,9 @@ struct InstallPreview: View {
 
     @State private var selections: [UUID: InstallSelection] = [:]
     @State private var cachedDependencies: [ModDependencyReport] = []
+    /// Quand `true`, seules les dépendances problématiques (manquantes ou
+    /// désactivées) sont affichées. `false` affiche tout, trié par priorité.
+    @State private var showOnlyProblematicDeps = true
 
     /// Status of a single dependency relative to the installed mods + the
     /// current zip pack.
@@ -29,6 +32,24 @@ struct InstallPreview: View {
         let isRequired: Bool
         let status: DepStatus
         let nexusUrl: String?
+
+        /// `true` si la dépendance pose problème (manquante ou désactivée).
+        var isProblematic: Bool {
+            status == .missing || status == .installedDisabled
+        }
+
+        /// Rang de tri par priorité croissante : 0 = manquante obligatoire,
+        /// 1 = désactivée obligatoire, 2 = manquante optionnelle,
+        /// 3 = désactivée optionnelle, 4 = satisfaites/dans le pack.
+        var sortRank: Int {
+            switch (status, isRequired) {
+            case (.missing, true):           return 0
+            case (.installedDisabled, true): return 1
+            case (.missing, false):          return 2
+            case (.installedDisabled, false): return 3
+            default:                         return 4
+            }
+        }
     }
 
     struct ModDependencyReport: Identifiable {
@@ -39,10 +60,13 @@ struct InstallPreview: View {
 
     var body: some View {
         VStack(spacing: 20) {
-            // Header info
+            // Header info — fixed at top, not scrolled.
             headerInfo
 
-            // Mods list
+            // All scrollable content in one ScrollView so a pack with many
+            // mods/dependencies/conflicts never pushes the action buttons off
+            // screen. The frame height is capped relative to the window so the
+            // sheet stays within the visible area even with long lists.
             ScrollView {
                 VStack(spacing: 12) {
                     ForEach(zipModInfo.detectedMods) { mod in
@@ -56,20 +80,20 @@ struct InstallPreview: View {
                             vm: vm
                         )
                     }
+
+                    // Dependencies section.
+                    if !displayedDependencies.isEmpty {
+                        dependenciesSection
+                    }
+
+                    // Conflicts section.
+                    if !conflicts.isEmpty {
+                        conflictsSection
+                    }
                 }
             }
 
-            // Dependencies section
-            if !cachedDependencies.isEmpty {
-                dependenciesSection
-            }
-
-            // Conflicts section
-            if !conflicts.isEmpty {
-                conflictsSection
-            }
-
-            // Actions
+            // Actions — fixed at bottom, not scrolled.
             actionButtons
         }
         .onAppear {
@@ -134,26 +158,61 @@ struct InstallPreview: View {
                     let url = packNexusUrls[depIdLower]
                     entries.append(DepEntry(uniqueId: depId, isRequired: depDetail.isRequired, status: .inPack, nexusUrl: url))
                 } else {
-                    // Truly missing — provide a Nexus search link by UniqueID.
-                    let searchUrl = "https://www.nexusmods.com/stardewvalley/mods/?terms=\(depId.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? depId)"
-                    entries.append(DepEntry(uniqueId: depId, isRequired: depDetail.isRequired, status: .missing, nexusUrl: searchUrl))
+                    // Truly missing — the row offers a Nexus search menu
+                    // (by mod name / by author) built from the uniqueId.
+                    entries.append(DepEntry(uniqueId: depId, isRequired: depDetail.isRequired, status: .missing, nexusUrl: nil))
                 }
             }
 
             guard !entries.isEmpty else { return nil }
+            // Tri par priorité : manquante/désactivée obligatoire d'abord, puis
+            // optionnelles, puis satisfaites. Ordre stable par uniqueId au sein
+            // d'un même rang.
+            entries.sort {
+                if $0.sortRank != $1.sortRank { return $0.sortRank < $1.sortRank }
+                return $0.uniqueId.localizedCaseInsensitiveCompare($1.uniqueId) == .orderedAscending
+            }
             return ModDependencyReport(modName: mod.name, entries: entries)
+        }
+    }
+
+    /// Rapports de dépendances filtrés selon `showOnlyProblematicDeps`.
+    /// Quand le filtre est actif, seules les dépendances problématiques
+    /// (manquantes ou désactivées) sont conservées, et un report vide (toutes
+    /// ses deps satisfaites) est masqué.
+    private var displayedDependencies: [ModDependencyReport] {
+        guard showOnlyProblematicDeps else { return cachedDependencies }
+        return cachedDependencies.compactMap { report in
+            let filtered = report.entries.filter { $0.isProblematic }
+            guard !filtered.isEmpty else { return nil }
+            return ModDependencyReport(modName: report.modName, entries: filtered)
         }
     }
 
     @ViewBuilder
     private var dependenciesSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(vm.L(L10n.ModInstall.dependenciesTitle))
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(.primary)
+            HStack {
+                Text(vm.L(L10n.ModInstall.dependenciesTitle))
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.primary)
+                Spacer()
+                // Bascule entre « problématiques seulement » et « tout voir ».
+                Button {
+                    withAnimation { showOnlyProblematicDeps.toggle() }
+                } label: {
+                    Text(showOnlyProblematicDeps
+                         ? vm.L(L10n.ModInstall.depsShowAll)
+                         : vm.L(L10n.ModInstall.depsShowProblemsOnly))
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(.accentColor)
+                }
+                .buttonStyle(.plain)
+                .pointingHandCursor()
+            }
 
             VStack(alignment: .leading, spacing: 10) {
-                ForEach(cachedDependencies) { report in
+                ForEach(displayedDependencies) { report in
                     VStack(alignment: .leading, spacing: 4) {
                         Text(report.modName)
                             .font(.system(size: 12, weight: .semibold))
@@ -339,21 +398,9 @@ struct DependencyRow: View {
                         .font(.system(size: 10))
                         .foregroundColor(.red)
                 }
-                if let url = entry.nexusUrl {
-                    Spacer()
-                    if let nexusUrl = URL(string: url) {
-                        Link(destination: nexusUrl) {
-                            HStack(spacing: 3) {
-                                Image(systemName: "arrow.up.right.square")
-                                    .font(.system(size: 10))
-                                Text(vm.L(L10n.ModInstall.depDownload))
-                                    .font(.system(size: 10, weight: .medium))
-                            }
-                            .foregroundColor(.accentColor)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
+                Spacer()
+                // Recherche Nexus : menu proposant par nom du mod ou par auteur.
+                nexusSearchMenu(for: entry.uniqueId)
             }
             if entry.status != .missing {
                 Spacer()
@@ -369,6 +416,55 @@ struct DependencyRow: View {
             }
         }
         .padding(.vertical, 3)
+    }
+
+    /// Menu proposant la recherche Nexus par nom du mod ou par auteur, dérivés
+    /// de l'uniqueId SMAPI (`Author.ModName`).
+    @ViewBuilder
+    private func nexusSearchMenu(for uniqueId: String) -> some View {
+        let modName = uniqueId.smapiModName
+        let author = uniqueId.smapiAuthor
+        Menu {
+            Button {
+                openNexusSearch(for: modName)
+            } label: {
+                Label(String(format: vm.L(L10n.Mods.searchNexusByModName), modName),
+                      systemImage: "magnifyingglass")
+            }
+            if !author.isEmpty {
+                Button {
+                    openNexusAuthorSearch(for: author)
+                } label: {
+                    Label(String(format: vm.L(L10n.Mods.searchNexusByAuthor), author),
+                          systemImage: "person")
+                }
+            }
+        } label: {
+            HStack(spacing: 3) {
+                Image(systemName: "arrow.up.right.square")
+                    .font(.system(size: 10))
+                Text(vm.L(L10n.ModInstall.depDownload))
+                    .font(.system(size: 10, weight: .medium))
+            }
+            .foregroundColor(.accentColor)
+        }
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .pointingHandCursor()
+    }
+
+    private func openNexusSearch(for searchTerm: String) {
+        let encoded = searchTerm.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? searchTerm
+        if let url = URL(string: "https://www.nexusmods.com/stardewvalley/search/?gsearch=\(encoded)") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    private func openNexusAuthorSearch(for author: String) {
+        let encoded = author.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? author
+        if let url = URL(string: "https://www.nexusmods.com/games/stardewvalley/mods?author=\(encoded)") {
+            NSWorkspace.shared.open(url)
+        }
     }
 }
 

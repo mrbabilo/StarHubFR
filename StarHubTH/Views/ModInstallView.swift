@@ -79,7 +79,7 @@ struct ModInstallView: View {
             }
         }
         .padding(20)
-        .frame(minWidth: 600, minHeight: 400)
+        .frame(minWidth: 600, idealWidth: 700, minHeight: 400, idealHeight: 600, maxHeight: 750)
         .onDrop(of: [.fileURL], isTargeted: $isDropTarget) { providers in
             // Reject drops while an analysis or install is in flight — both
             // read from `tempDir` on a background queue, and `analyzeZip`

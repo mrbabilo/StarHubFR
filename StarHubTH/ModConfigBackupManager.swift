@@ -39,18 +39,10 @@ public class ModConfigBackupManager {
     // `saveIndex` silently discards the first call's change.
     private let indexLock = NSLock()
 
-    /// `config.json` (mod settings) plus every language/translation file this
-    /// modding community's mods ship — matches the exact set of SMAPI `i18n/`
-    /// language codes (en, de, es, fr, hu, id, it, ja, ko, pl, pt, ru, th,
-    /// tr, uk, zh) plus `default.json`, so a backup captures every localized
-    /// override a mod might have, not just French.
-    private static let targetFiles: Set<String> = [
-        "config.json",
-        "default.json",
-        "en.json", "de.json", "es.json", "fr.json", "hu.json", "id.json",
-        "it.json", "ja.json", "ko.json", "pl.json", "pt.json", "ru.json",
-        "th.json", "tr.json", "uk.json", "zh.json"
-    ]
+    /// Liste des fichiers préservés — déléguée à `ModConfigFiles.preservable`
+    /// pour rester cohérente avec la conservation automatique lors d'une mise
+    /// à jour (`ModZipInstaller`).
+    private static let targetFiles: Set<String> = ModConfigFiles.preservable
     private static let minBackupsToKeep = 5
     private static let maxBackupAge: TimeInterval = 30 * 24 * 60 * 60
 

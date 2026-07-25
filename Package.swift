@@ -30,6 +30,7 @@ let package = Package(
                 "L10n.swift",
                 "AppDesignCore.swift",
                 "ContrastChecker.swift",
+                "Extensions/ModConfigFiles.swift",
             ]
         ),
         .testTarget(

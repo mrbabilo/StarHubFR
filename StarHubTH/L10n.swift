@@ -560,6 +560,8 @@ enum L10n {
         static let depRequiredMissing   = "mod_install_dep_required_missing"
         static let depDownload          = "mod_install_dep_download"
         static let depOptional          = "mod_install_dep_optional"
+        static let depsShowAll          = "mod_install_deps_show_all"
+        static let depsShowProblemsOnly = "mod_install_deps_show_problems_only"
         static let cancel               = "mod_install_cancel"
         static let noModsDetected       = "mod_install_no_mods"
         static let modInfo              = "mod_install_mod_info"
