@@ -93,3 +93,4 @@ Release files will be saved in the `bundles/` folder.
 </p>
 
 This project is released under the [MIT License](LICENSE). Feel free to fork, modify, and build upon it.
+Original project: [StarHubTH](https://github.com/AppleBoiy/StarHubTH) by **AppleBoiy** — which offers a **Thai** version.
