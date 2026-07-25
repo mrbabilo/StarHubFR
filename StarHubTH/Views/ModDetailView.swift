@@ -37,12 +37,11 @@ struct ModDetailView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                banner
+        VStack(spacing: 0) {
+            // Fixed hero — stays pinned while the content below scrolls.
+            heroBanner
+            ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    titleBlock
-                    infoSection
                     if mod.isGroup { packContentsSection }
                     settingsSection
                     Picker("", selection: $selectedTab) {
@@ -62,12 +61,19 @@ struct ModDetailView: View {
         .onAppear { seedDraft() }
     }
 
-    // MARK: Banner (full-width illustration)
+    // MARK: Hero banner (full-width illustration + full-width metadata band)
 
-    /// Edge-to-edge illustration at the top of the pane. Rendered outside the
-    /// padded content column so it spans the full width like a banner.
+    private var heroBanner: some View {
+        VStack(spacing: 0) {
+            bannerImage
+            headerBand
+        }
+    }
+
+    /// Edge-to-edge illustration at the top. Full width, so it reads as a
+    /// banner rather than a thumbnail. Omitted entirely when there's no picture.
     @ViewBuilder
-    private var banner: some View {
+    private var bannerImage: some View {
         if let extra = vm.modExtra(for: mod), !extra.pictureUrl.isEmpty, let url = URL(string: extra.pictureUrl) {
             AsyncImage(url: url) { phase in
                 if let image = phase.image {
@@ -84,14 +90,26 @@ struct ModDetailView: View {
         }
     }
 
-    // MARK: Title + links
+    /// Full-width metadata band directly under the image: category tag, the
+    /// mod/pack name (large, on a solid tinted band so it stays readable
+    /// regardless of the illustration), version/author, Nexus/bugs links, and
+    /// the metadata pills (updated, installed, languages).
+    private var headerBand: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                categoryTag
+                Spacer()
+                let link = vm.nexusLink(for: mod)
+                if !link.isEmpty {
+                    linkButton(icon: "link", label: vm.L(L10n.Mods.nexusOpenPage), url: link)
+                    linkButton(icon: "ladybug", label: vm.L(L10n.Mods.detailBugs), url: link + "?tab=bugs")
+                }
+            }
 
-    @ViewBuilder
-    private var titleBlock: some View {
-        VStack(alignment: .leading, spacing: 8) {
             Text(mod.name)
-                .font(.title2.weight(.semibold))
+                .font(.title.weight(.bold))
                 .textSelection(.enabled)
+                .fixedSize(horizontal: false, vertical: true)   // wrap long names
 
             HStack(spacing: 6) {
                 Text("v\(vm.displayVersion(for: mod))")
@@ -103,14 +121,81 @@ struct ModDetailView: View {
             .font(.subheadline)
             .foregroundStyle(.secondary)
 
-            let link = vm.nexusLink(for: mod)
-            if !link.isEmpty {
-                HStack(spacing: 16) {
-                    linkButton(icon: "link", label: vm.L(L10n.Mods.nexusOpenPage), url: link)
-                    linkButton(icon: "ladybug", label: vm.L(L10n.Mods.detailBugs), url: link + "?tab=bugs")
+            metadataPills
+        }
+        .frame(maxWidth: 700, alignment: .leading)
+        .padding(.horizontal, 24)
+        .padding(.vertical, 18)
+        .frame(maxWidth: .infinity)
+        .background(Color.accentColor.opacity(0.06))
+        .overlay(alignment: .bottom) { Divider() }
+    }
+
+    /// The mod's category as a colored chip — the Nexus category when known,
+    /// otherwise the inferred offline type tag (same resolution as the list).
+    @ViewBuilder
+    private var categoryTag: some View {
+        if let cat = vm.category(for: mod) {
+            HStack(spacing: 5) {
+                Circle().fill(cat.color).frame(width: 7, height: 7)
+                Text(cat.localizedName(vm.L)).font(.system(size: 11, weight: .semibold))
+            }
+            .foregroundStyle(.primary)
+            .padding(.horizontal, 9).padding(.vertical, 4)
+            .background(cat.color.opacity(0.18))
+            .clipShape(Capsule())
+        } else {
+            HStack(spacing: 5) {
+                Image(systemName: "tag.fill").font(.system(size: 9))
+                Text(vm.L(L10n.ModTag.key(for: vm.inferredTagKey(for: mod)))).font(.system(size: 11, weight: .semibold))
+            }
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 9).padding(.vertical, 4)
+            .background(Color.secondary.opacity(0.15))
+            .clipShape(Capsule())
+        }
+    }
+
+    /// Compact metadata pills (last update, install date, languages), scrollable
+    /// horizontally so a long language list never breaks the band's layout.
+    @ViewBuilder
+    private var metadataPills: some View {
+        let updated = vm.nexusLastUpdated(for: mod)
+        let installed = vm.installedDate(for: mod)
+        let langs = mod.languages
+        if updated != nil || installed != nil || !langs.isEmpty {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    if let updated {
+                        metaPill(icon: "clock.arrow.circlepath",
+                                 text: updated.formatted(date: .abbreviated, time: .omitted),
+                                 help: vm.L(L10n.Mods.detailUpdated))
+                    }
+                    if let installed {
+                        metaPill(icon: "tray.and.arrow.down",
+                                 text: installed.formatted(date: .abbreviated, time: .omitted),
+                                 help: vm.L(L10n.Mods.detailInstalled))
+                    }
+                    if !langs.isEmpty {
+                        metaPill(icon: "globe",
+                                 text: langs.map { $0.uppercased() }.joined(separator: " "),
+                                 help: vm.L(L10n.Mods.detailLanguages))
+                    }
                 }
             }
         }
+    }
+
+    private func metaPill(icon: String, text: String, help: String) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon).font(.system(size: 10))
+            Text(text).font(.system(size: 11, weight: .medium))
+        }
+        .foregroundStyle(.secondary)
+        .padding(.horizontal, 8).padding(.vertical, 3)
+        .background(Color.secondary.opacity(0.12))
+        .clipShape(Capsule())
+        .help(help)
     }
 
     private func linkButton(icon: String, label: String, url: String) -> some View {
@@ -126,61 +211,6 @@ struct ModDetailView: View {
         .buttonStyle(.plain)
         .foregroundStyle(Color.accentColor)
         .pointingHandCursor()
-    }
-
-    // MARK: Info (updated / installed / languages)
-
-    @ViewBuilder
-    private var infoSection: some View {
-        let updated = vm.nexusLastUpdated(for: mod)
-        let installed = vm.installedDate(for: mod)
-        let langs = mod.languages
-        if updated != nil || installed != nil || !langs.isEmpty {
-            VStack(alignment: .leading, spacing: 8) {
-                if let updated {
-                    infoRow(icon: "clock.arrow.circlepath",
-                            label: vm.L(L10n.Mods.detailUpdated),
-                            value: updated.formatted(date: .abbreviated, time: .omitted))
-                }
-                if let installed {
-                    infoRow(icon: "tray.and.arrow.down",
-                            label: vm.L(L10n.Mods.detailInstalled),
-                            value: installed.formatted(date: .abbreviated, time: .omitted))
-                }
-                if !langs.isEmpty {
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Image(systemName: "globe").font(.system(size: 12)).foregroundStyle(.secondary).frame(width: 16)
-                        Text(vm.L(L10n.Mods.detailLanguages)).font(.caption).foregroundStyle(.secondary)
-                        Spacer()
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 4) {
-                                ForEach(langs, id: \.self) { code in
-                                    Text(code.uppercased())
-                                        .font(.system(size: 9, weight: .bold))
-                                        .padding(.horizontal, 5).padding(.vertical, 2)
-                                        .background(Color.secondary.opacity(0.15))
-                                        .clipShape(Capsule())
-                                }
-                            }
-                        }
-                        .frame(maxWidth: 260)
-                    }
-                }
-            }
-            .padding(12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.primary.opacity(0.04))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-        }
-    }
-
-    private func infoRow(icon: String, label: String, value: String) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: icon).font(.system(size: 12)).foregroundStyle(.secondary).frame(width: 16)
-            Text(label).font(.caption).foregroundStyle(.secondary)
-            Spacer()
-            Text(value).font(.caption).foregroundStyle(.primary)
-        }
     }
 
     // MARK: Pack contents (children of a group)

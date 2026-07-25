@@ -338,6 +338,13 @@ class StarHubTHViewModel: ObservableObject {
     @Published var steamAvatarPath: String? = nil
     
     private static let supportedLanguages = Set(["en", "fr"])
+    /// The SMAPI `i18n` language codes a mod can ship (matches the set
+    /// `ModConfigBackupManager` backs up). Used to detect a mod's languages
+    /// from its `i18n` folder without counting stray JSON files.
+    static let knownLanguageCodes: Set<String> = [
+        "en", "de", "es", "fr", "hu", "id", "it", "ja", "ko",
+        "pl", "pt", "ru", "th", "tr", "uk", "zh"
+    ]
     private static func normalizedLanguage(_ language: String?) -> String {
         guard let language, supportedLanguages.contains(language) else { return defaultLanguage }
         return language
@@ -585,17 +592,22 @@ class StarHubTHViewModel: ObservableObject {
                 return nil
             }()
             let hasConfigFile = fm.fileExists(atPath: (path as NSString).appendingPathComponent("config.json"))
-            // Detect the SMAPI i18n languages the mod ships (i18n/<code>.json,
-            // excluding the default fallback), for the detail pane.
+            // Detect the SMAPI i18n languages the mod ships, for the detail pane.
+            // Recurses into i18n subfolders (some mods nest per-pack i18n dirs),
+            // maps `default.json` to English (it holds the base/EN strings), and
+            // filters to the known SMAPI language codes so stray JSON files don't
+            // count as languages.
             var languages: [String] = []
             let i18nPath = (path as NSString).appendingPathComponent("i18n")
-            if let files = try? fm.contentsOfDirectory(atPath: i18nPath) {
-                let codes = files.compactMap { file -> String? in
-                    guard file.lowercased().hasSuffix(".json") else { return nil }
-                    let code = (file as NSString).deletingPathExtension.lowercased()
-                    return (code.isEmpty || code == "default") ? nil : code
+            if let enumerator = fm.enumerator(atPath: i18nPath) {
+                var codes = Set<String>()
+                for case let rel as String in enumerator where rel.lowercased().hasSuffix(".json") {
+                    let name = ((rel as NSString).lastPathComponent as NSString)
+                        .deletingPathExtension.lowercased()
+                    let code = (name == "default") ? "en" : name
+                    if Self.knownLanguageCodes.contains(code) { codes.insert(code) }
                 }
-                languages = Set(codes).sorted()
+                languages = codes.sorted()
             }
 
             var name = (path as NSString).lastPathComponent
