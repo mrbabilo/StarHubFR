@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-07-25
+
 ### Added
 - **Home page banner**: the home page now leads with a full-width Nexus banner, with the **Steam avatar floating on the banner** (overlapping its bottom edge over a solid disc so it reads as one cohesive hero), followed by the username and version — replacing the standalone centered avatar.
 - **README banner**: the README is now headed by the banner image, above the badges row.
