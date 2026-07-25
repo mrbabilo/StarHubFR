@@ -93,3 +93,4 @@ Les fichiers Release seront sauvegardés dans le dossier `bundles/`.
 </p>
 
 Ce projet est publié sous la [Licence MIT](LICENSE). N'hésitez pas à forker, modifier et l'améliorer.
+Projet original : [StarHubTH](https://github.com/AppleBoiy/StarHubTH) par **AppleBoiy** — qui propose une version en **thaï**.
