@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Richer mod / pack detail pane**: the detail pane now leads with a **fixed hero** — a full-width illustration banner plus a metadata band showing the mod/pack **name**, its **category tag** (Nexus category or the inferred type), version/author, Nexus & bug-report links, and metadata stacked on the right: **last Nexus update**, **install date**, and the mod's **languages** (detected from its `i18n/` folder, recursing subfolders, with `default.json` counted as English). The **Description / Changelog / Dependencies** tabs stay pinned under the hero while their content scrolls; a **pack now lists its contents** (each child mod + enabled state + version) inside the Description tab, alongside the category and Nexus-id editors.
 - **Mod packs now show their latest Nexus version** in the mod list: a pack is a single Nexus mod installed as several sub-mods, whose own manifest versions can differ or lag, so the list previously showed a shared child version or "—". It now displays the pack's latest Nexus version (the Main file / changelog version) once an update check (or a per-mod fetch) has retrieved it.
 
 ## [1.5.0] - 2026-07-25
