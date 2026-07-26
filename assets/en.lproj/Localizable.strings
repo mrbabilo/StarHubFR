@@ -354,6 +354,8 @@
 "vm_cannot_run_zip" = "Failed to run zip command";
 "vm_apply_profile_error" = "Failed to apply mod profile \"%@\". %lld mod(s) could not be moved and may be in an inconsistent state. Check the logs for details.";
 "vm_apply_profile_partial" = "Profile \"%@\" applied, but %lld mod(s) could not be moved and were left in their previous location. Check the logs for details.";
+"vm_apply_profile_move_fail" = "Mod \"%@\" could not be moved (%@): %@";
+"vm_apply_profile_missing" = "Profile \"%@\" references %lld mod(s) that are not installed: %@";
 "vm_backup_mods_success" = "Backed up Mods folder to Desktop successfully\n(%@)";
 "vm_zip_mods_error" = "An error occurred while zipping mods";
 "vm_clean_mods_success" = "Deleted Mods_disabled folder successfully";

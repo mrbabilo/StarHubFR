@@ -548,6 +548,8 @@ enum L10n {
         static let switchProfile        = "vm_switch_profile"
         static let applyProfileError    = "vm_apply_profile_error"
         static let applyProfilePartial  = "vm_apply_profile_partial"
+        static let applyProfileMoveFail = "vm_apply_profile_move_fail"
+        static let applyProfileMissing  = "vm_apply_profile_missing"
         static let nexusDlNoApiKey      = "vm_nexus_dl_no_api_key"
         static let nexusDlNoValidFile   = "vm_nexus_dl_no_valid_file"
         static let nexusDlNoLink        = "vm_nexus_dl_no_link"

@@ -354,6 +354,8 @@
 "vm_cannot_run_zip" = "Échec de l'exécution de la commande zip";
 "vm_apply_profile_error" = "Échec de l'application du profil de mods « %@ ». %lld mod(s) n'ont pas pu être déplacés et peuvent être dans un état incohérent. Consultez les journaux pour plus de détails.";
 "vm_apply_profile_partial" = "Profil « %@ » appliqué, mais %lld mod(s) n'ont pas pu être déplacés et sont restés à leur emplacement précédent. Consultez les journaux pour plus de détails.";
+"vm_apply_profile_move_fail" = "Le mod « %@ » n'a pas pu être déplacé (%@) : %@";
+"vm_apply_profile_missing" = "Le profil « %@ » référence %lld mod(s) non installé(s) : %@";
 "vm_backup_mods_success" = "Dossier des mods sauvegardé sur le Bureau avec succès\n(%@)";
 "vm_zip_mods_error" = "Une erreur s'est produite lors de la compression des mods";
 "vm_clean_mods_success" = "Dossier Mods_disabled supprimé avec succès";

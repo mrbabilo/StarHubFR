@@ -407,6 +407,12 @@ class StarHubTHViewModel: ObservableObject {
     /// lets the UI disable the Activate/Manage buttons meanwhile.
     @Published var isApplyingProfile = false
 
+    /// Id of the profile currently being applied, or nil when none is in
+    /// flight. Drives the per-row spinner in ModProfilesView (the Activate
+    /// button of the matching row is replaced by a ProgressView). Cleared
+    /// together with `isApplyingProfile` once the move + rescan completes.
+    @Published var applyingProfileId: UUID? = nil
+
     /// When true, toggling a mod also cascades to its dependencies / dependents.
     @Published var chainToggleDependencies: Bool = UserDefaults.standard.object(forKey: "chainToggleDependencies") as? Bool ?? true {
         didSet {
@@ -2870,6 +2876,7 @@ class StarHubTHViewModel: ObservableObject {
 
         activeProfileId = id
         saveProfiles()
+        applyingProfileId = id
         applyProfileToFilesystem(profile: profile)
         self.log(String(format: L(L10n.VM.switchProfile), profile.name))
     }
@@ -2904,6 +2911,24 @@ class StarHubTHViewModel: ObservableObject {
         var failures: [MoveFailure] = []
         var attempted = 0
         var anyEnabled = false
+
+        // Detect profile entries that don't match any installed mod. These
+        // are silently skipped by the move loops below, but the user must be
+        // told the profile references mods that aren't there (e.g. uninstalled
+        // since the profile was saved). Compare every profile enabledId
+        // against the set of uniqueIds present on disk (groups resolved to
+        // their children's ids), so a pack mod isn't reported missing when
+        // one of its children satisfies the id.
+        let snapshotMods = mods
+        let installedUniqueIds = Set(
+            snapshotMods.flatMap { mod -> [String] in
+                if mod.isGroup, let children = mod.children {
+                    return children.map { $0.uniqueId }
+                }
+                return [mod.uniqueId]
+            }.filter { !$0.isEmpty }
+        )
+        let missingIds = profile.enabledModIds.filter { !installedUniqueIds.contains($0) }
 
         // Shared helper: ensure the destination parent directory exists,
         // then move the folder. Returns nil on success, the error on
@@ -2971,13 +2996,27 @@ class StarHubTHViewModel: ObservableObject {
             Self.saveModActivationTimestamps(self.modActivationTimestamps)
         }
 
-        // Log each failure individually so the Logs tab shows exactly
-        // which mod(s) and why — the aggregated alert only gives a count.
+        // Log each move failure individually with a localized, structured
+        // message so the Logs tab (source = StarHubFR) shows exactly which
+        // mod(s) failed, in which direction, and why.
         for failure in failures {
             log(
-                String(format: "%@ %@: %@",
+                String(format: L(L10n.VM.applyProfileMoveFail),
                        failure.modName, failure.direction, failure.error.localizedDescription),
                 level: .error
+            )
+        }
+
+        // Log the profile entries that don't match any installed mod — these
+        // were silently ignored by the move loops, so without a log line the
+        // user would believe the profile is fully applied when expected mods
+        // are missing from disk.
+        if !missingIds.isEmpty {
+            let listing = missingIds.joined(separator: ", ")
+            log(
+                String(format: L(L10n.VM.applyProfileMissing),
+                       profile.name, missingIds.count, listing),
+                level: .warning
             )
         }
 
@@ -2986,32 +3025,83 @@ class StarHubTHViewModel: ObservableObject {
         // runs after so the active profile's stored id list tracks the
         // actual enabled set (possibly fewer than expected if moves
         // failed).
+        let profileName = profile.name
+        let failedNames = failures.map { $0.modName }
         DispatchQueue.global(qos: .userInitiated).async {
             self.scanMods()
             DispatchQueue.main.async {
                 self.syncActiveProfileIds()
                 self.isApplyingProfile = false
+                self.applyingProfileId = nil
                 // Surface the outcome to the user. A partial application
                 // is the dangerous case: the profile is "active" but the
                 // filesystem doesn't fully match it, so the next toggle
-                // cycle could compound the inconsistency. Tell the user
-                // explicitly rather than letting it look like success.
-                if !failures.isEmpty {
-                    let profileName = profile.name
-                    if attempted == failures.count {
-                        // Every move failed — profile was not applied at all.
-                        self.showModal(message: String(format: self.L(L10n.VM.applyProfileError),
-                                                       profileName, failures.count))
-                    } else {
-                        // Some moves succeeded, some failed.
-                        self.showModal(message: String(format: self.L(L10n.VM.applyProfilePartial),
-                                                       profileName, failures.count))
-                    }
-                    self.log(String(format: "Profile \"%@\" applied with %lld failure(s)",
-                                    profileName, failures.count), level: .warning)
+                // cycle could compound the inconsistency. Build a message
+                // that names the affected mods (capped to avoid a giant
+                // alert) so the user knows exactly what to fix.
+                if !failures.isEmpty || !missingIds.isEmpty {
+                    let summary = self.profileApplyMessage(
+                        profileName: profileName,
+                        failedNames: failedNames,
+                        missingIds: missingIds,
+                        attempted: attempted,
+                        failureCount: failures.count
+                    )
+                    self.showModal(message: summary)
+                    self.log(
+                        String(format: "Profile \"%@\" applied: %lld move failure(s), %lld missing mod(s)",
+                               profileName, failures.count, missingIds.count),
+                        level: .warning
+                    )
                 }
             }
         }
+    }
+
+    /// Builds the user-facing alert message for a profile application that
+    /// had problems (move failures and/or missing mods). Names the affected
+    /// mods so the user can act on them; caps the lists to keep the alert
+    /// readable, with a "+N more" suffix when truncated.
+    private func profileApplyMessage(profileName: String, failedNames: [String],
+                                     missingIds: [String], attempted: Int,
+                                     failureCount: Int) -> String {
+        let listLimit = 8
+        var sections: [String] = []
+
+        // Move failures — lead with the headline (full-failure vs partial),
+        // then enumerate the mod names.
+        if !failedNames.isEmpty {
+            let headline: String
+            if attempted == failureCount {
+                headline = String(format: L(L10n.VM.applyProfileError), profileName, failureCount)
+            } else {
+                headline = String(format: L(L10n.VM.applyProfilePartial), profileName, failureCount)
+            }
+            sections.append(self.truncatedList(headline: headline,
+                                               names: failedNames, limit: listLimit))
+        }
+
+        // Missing mods — references in the profile that aren't installed.
+        if !missingIds.isEmpty {
+            let headline = String(format: L(L10n.VM.applyProfileMissing),
+                                  profileName, missingIds.count,
+                                  missingIds.prefix(listLimit).joined(separator: ", "))
+            let extra = missingIds.count > listLimit
+                ? " (+\(missingIds.count - listLimit))"
+                : ""
+            sections.append(headline + extra)
+        }
+
+        return sections.joined(separator: "\n\n")
+    }
+
+    /// Formats `headline` followed by a newline-separated, truncated list of
+    /// `names`. After `limit` entries, a "+N more" suffix is appended instead
+    /// of dumping the whole list into the alert.
+    private func truncatedList(headline: String, names: [String], limit: Int) -> String {
+        let shown = names.prefix(limit).joined(separator: " • ")
+        let extra = names.count > limit ? " (+\(names.count - limit))" : ""
+        return headline + "\n" + shown + extra
     }
 
     /// Enable or disable every installed mod at once. File operations run on a

@@ -66,64 +66,18 @@ struct MainView: View {
                         .stroke(Color.primary.opacity(AppDesign.Opacity.light), lineWidth: 1)
                 )
                 
-                // Account Section (macOS style profile)
+                // Account Header Card — compact identity + active profile +
+                // key metadata (mods active/total, SMAPI status). Replaces the
+                // old bulky 48px avatar and the floating SystemStatusFooter:
+                // everything the user needs at-a-glance is now in one card.
                 if matchesSearch(vm.steamUsername, vm.L(L10n.Main.account)) {
-                    Button(action: { currentTab = "Home" }) {
-                        let activeProfile = vm.activeProfileId.flatMap { id in vm.modProfiles.first(where: { $0.id == id }) }
-                        HStack(spacing: 12) {
-                            ZStack(alignment: .bottomTrailing) {
-                                if let avatarPath = vm.steamAvatarPath, let nsImage = NSImage(contentsOfFile: avatarPath) {
-                                    Image(nsImage: nsImage)
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fill)
-                                        .frame(width: 48, height: 48)
-                                        .clipShape(Circle())
-                                } else {
-                                    Image(systemName: "person.crop.circle.fill")
-                                        .resizable()
-                                        .frame(width: 48, height: 48)
-                                        .foregroundColor(.gray)
-                                }
-                                
-                                if let activeProfile = activeProfile {
-                                    InitialsAvatar(
-                                        text: activeProfile.name,
-                                        size: 20,
-                                        fontSize: 10,
-                                        strokeColor: Color(nsColor: .windowBackgroundColor)
-                                    )
-                                    .offset(x: 4, y: 4)
-                                }
-                            }
-                                
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(vm.steamUsername.isEmpty ? vm.L(L10n.Main.playerFallback) : vm.steamUsername)
-                                    .font(.system(size: 15, weight: .bold))
-                                    .foregroundColor(.primary)
-                                Text(vm.L(L10n.Main.steamAccount))
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.secondary)
-                                
-                                if let activeProfile = activeProfile {
-                                    Text("\(vm.L(L10n.Profiles.titleFull)): \(activeProfile.name)")
-                                        .font(.system(size: 10, weight: .medium))
-                                        .foregroundColor(.accentColor)
-                                        .padding(.top, 2)
-                                }
-                            }
-                            Spacer()
-                        }
-                        .contentShape(Rectangle())
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 8)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(currentTab == "Home" ? Color.primary.opacity(0.1) : (isProfileHovered ? Color.primary.opacity(0.05) : Color.clear))
-                        )
-                    }
-                    .buttonStyle(PlainButtonStyle())
+                    AccountHeaderCard(
+                        vm: vm,
+                        isActive: currentTab == "Home",
+                        isHovered: isProfileHovered,
+                        onTap: { currentTab = "Home" }
+                    )
                     .onHover { isProfileHovered = $0 }
-                    .pointingHandCursor()
                 }
                 
                 // Mod Updates: Nexus updates + out-of-date mods (a single
@@ -220,7 +174,10 @@ struct MainView: View {
                     }
                 }
                 
-                // System & Settings Section
+                // System & Settings Section — Quarantine is intentionally NOT
+                // here: it appears as a badge item at the top of the sidebar
+                // when items are quarantined, so a second static entry would
+                // be redundant (and confusing when nothing is quarantined).
                 VStack(alignment: .leading, spacing: 2) {
                     SidebarSectionHeader(title: vm.L(L10n.Main.system), icon: "gearshape")
                     
@@ -234,12 +191,12 @@ struct MainView: View {
                         )
                     }
 
-                    if matchesSearch(vm.L(L10n.Main.quarantine)) {
+                    if matchesSearch(vm.L(L10n.Logs.logs)) {
                         SidebarNavItem(
-                            icon: "archivebox.fill",
-                            iconColor: .purple,
-                            label: vm.L(L10n.Main.quarantine),
-                            tab: "Quarantine",
+                            icon: "terminal.fill",
+                            iconColor: .black,
+                            label: vm.L(L10n.Logs.logs),
+                            tab: "Logs",
                             currentTab: $currentTab
                         )
                     }
@@ -270,18 +227,6 @@ struct MainView: View {
                         }
                     }
                 }
-                
-                if matchesSearch(vm.L(L10n.Logs.logs)) {
-                        SidebarNavItem(
-                            icon: "terminal.fill",
-                            iconColor: .black,
-                            label: vm.L(L10n.Logs.logs),
-                            tab: "Logs",
-                            currentTab: $currentTab
-                        )
-                    }
-
-                SystemStatusFooter(vm: vm)
 
                 Spacer()
 

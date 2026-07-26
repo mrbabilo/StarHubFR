@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0] - 2026-07-26
+
+### Added
+- **Automatic mod folder repair** — a new `ModFolderRepairer` runs before every scan, quarantining OS junk files (`.DS_Store`, `__MACOSX`, `._*`, `Thumbs.db`), empty folders, and orphan folders without any `manifest.json` into a timestamped `_Trash_<datetime>/` folder inside the game directory. Nothing is ever deleted; the user can inspect or restore quarantined items manually.
+- **Duplicate UniqueID detection** — the repairer detects mods that exist in both `Mods/` and `Mods_disabled/` under the same UniqueID and reports them without auto-resolving (surfaced in a new Quarantine tab).
+- **Quarantine tab** — a new sidebar section provides access to the last repair report, an "Open Quarantine Folder" button, and an "Empty to Mac Trash" action that moves all `_Trash_*` folders to the Mac Trash via `NSWorkspace.recycle` with a confirmation dialog.
+- **SMAPI error logging** — SMAPI errors detected by `parseSMAPILog()` are now journaled to the app log (level `.warning`). The Journaux tab is now visible to all users and serves as the persistent consultable record of system alerts.
+- **Content-diffing for SMAPI error journaling** — the VM tracks the last-logged error set, so only genuinely new alerts are appended to the log across re-parses (no duplicate re-logging when counts fluctuate).
+- **Launch spinner overlay** — a full-window `ProgressView` overlay (with localized caption) is shown during the initial mod scan + profile load (`vm.isLaunching`), giving immediate feedback on cold launch instead of a blank window. The scan runs off-main-thread via `performInitialLoad()` and flips the flag once `mods` is published.
+- **Per-row spinners for destructive operations** — mod deletion, backup restore/delete, and profile activation now show an inline `ProgressView` on the affected row instead of leaving the UI silent during the (potentially slow) folder operation:
+  - **Mod deletion** (`ModListView`): the trash button is replaced by a spinner while `vm.pendingDeleteFolder` matches the row; other delete buttons are disabled concurrently.
+  - **Backup restore/delete** (`ModInstallBackupsView`): the global `isBusy` bool is replaced by `busyBackupId: UUID?`, showing a spinner on the in-flight row and disabling the rest.
+  - **Profile activation** (`ModProfilesView`): the Activate button collapses to a spinner while `vm.applyingProfileId` matches the row's profile.
+- **Profile activation error reporting** — when a profile application has problems (move failures and/or missing mods), the alert now names the affected mods (capped to 8 with a "+N" suffix). Each move failure is logged individually with a localized structured message, and profile entries referencing uninstalled mods are detected and reported as "missing" — instead of being silently skipped.
+
+### Changed
+- **Sticky mods header & pagination** (`ModListView`) — the toolbar (scope picker, filters, sort) and the pagination footer are now fixed above and below a scrollable list, mirroring `LogsView`'s layout. Previously the entire view (toolbar + list + pagination) scrolled together.
+- **Sidebar reorganized** — the bulky 48px account badge is replaced by a compact `AccountHeaderCard` (macOS System Settings style) that consolidates the user identity, active profile, and key metadata (mods active/total + SMAPI status) into a single card. The floating `SystemStatusFooter` (redundant with the card) is removed. The Logs entry moves into the System section (was floating without a header), and the duplicate Quarantine entry is removed (the conditional badge at the top of the sidebar suffices).
+- **Sidebar badge items separated** — "Mod Updates" (Nexus updates + out-of-date mods) and "System Alerts" (SMAPI errors) are now distinct sidebar items with their own accent colors (blue and orange) and dedicated views. The Quarantine item appears only when items have been moved.
+- **UpdatesView simplified** — the SMAPI errors section has been moved to its own `SystemAlertsView` with a "View Logs" shortcut to the Journaux tab.
+- **Overwrite install preserves nested pack-child location** — when overwriting a mod installed inside a pack group folder (e.g. `PackName/ChildMod`), the installer now preserves the full nested `folderName` instead of dropping the child to top-level.
+- **`showDeveloperLogs` AppStorage removed from MainView** — the Logs tab is always visible; the dead `@AppStorage` property on `MainView` was unused and removed.
+
+### Fixed
+- **Backup/restore now handles nested pack-child paths** — `ModInstallBackupManager.createBackup`, `restoreBackup`, and `registerSetAsideFolderAsBackup` correctly create intermediate parent directories for nested folder names like `PackName/ChildMod`.
+- **Install tolerates corrupted missing existing mods** — `ModZipInstaller.install()` catches `.modNotFound` during backup as non-fatal when the existing folder is already gone from disk.
+- **Temp file leaks in install** — config snapshot files now have a `defer` cleanup that runs regardless of whether the install completes or fails mid-way.
+- **Temp extract dir leak on install failure** — `ModInstallView` now calls `cleanupTempDir` on the error path as well as the success path.
+- **Background-thread mutation of `@Published` properties** — the `lastRepairReport` from `ModFolderRepairer` is captured on the background scan thread and published on the main queue alongside `self.mods`.
+- **Manifest parsing parity for JSON5** — `ModFolderRepairer.collectUniqueIds` now matches the scanner's reading options (`.json5Allowed` on macOS 12+), so JSON5 manifests are not silently skipped by duplicate detection.
+- **Dead localization keys** — `quarantine_empty` and `logs_system_alerts_section` (unused) were pruned to maintain the 590-key parity contract between `en.json` and `fr.json`.
+
 ## [1.7.1] - 2026-07-25
 
 ### Added
@@ -20,30 +52,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Nexus missing-dependency search** — clicking a missing dependency now opens a menu offering two distinct searches: by mod name (readable split-camelCase, e.g. `Content Patcher`) or by author (e.g. `Pathoschild`). The author search uses the dedicated Nexus filter (`/games/stardewvalley/mods?author=`) for precise results, and is applied consistently in both the mod list and the dependency tree in the detail pane.
 - **Mod list search reverted to real-time** — the 200 ms debounce introduced in 1.7.0 caused perceived input lag; restored the instant real-time filtering of 1.6.0 (the precomputed dependency index keeps per-keystroke cost negligible).
 - **Deprecated `onChange(of:perform:)` migrated** — all 8 occurrences across `ModListView`, `LogsView`, `MainView`, and `ModConfigEditorView` now use the macOS 14+ two-parameter `onChange(of:initial:_:)` API, removing all deprecation warnings.
-
-## [Unreleased]
-
-### Added
-- **Automatic mod folder repair** — a new `ModFolderRepairer` runs before every scan, quarantining OS junk files (`.DS_Store`, `__MACOSX`, `._*`, `Thumbs.db`), empty folders, and orphan folders without any `manifest.json` into a timestamped `_Trash_<datetime>/` folder inside the game directory. Nothing is ever deleted; the user can inspect or restore quarantined items manually.
-- **Duplicate UniqueID detection** — the repairer detects mods that exist in both `Mods/` and `Mods_disabled/` under the same UniqueID and reports them without auto-resolving (surfaced in a new Quarantine tab).
-- **Quarantine tab** — a new sidebar section provides access to the last repair report, an "Open Quarantine Folder" button, and an "Empty to Mac Trash" action that moves all `_Trash_*` folders to the Mac Trash via `NSWorkspace.recycle` with a confirmation dialog.
-- **SMAPI error logging** — SMAPI errors detected by `parseSMAPILog()` are now journaled to the app log (level `.warning`). The Journaux tab is now visible to all users and serves as the persistent consultable record of system alerts.
-- **Content-diffing for SMAPI error journaling** — the VM tracks the last-logged error set, so only genuinely new alerts are appended to the log across re-parses (no duplicate re-logging when counts fluctuate).
-
-### Changed
-- **Sidebar badge items separated** — "Mod Updates" (Nexus updates + out-of-date mods) and "System Alerts" (SMAPI errors) are now distinct sidebar items with their own accent colors (blue and orange) and dedicated views. The Quarantine item appears only when items have been moved.
-- **UpdatesView simplified** — the SMAPI errors section has been moved to its own `SystemAlertsView` with a "View Logs" shortcut to the Journaux tab.
-- **Overwrite install preserves nested pack-child location** — when overwriting a mod installed inside a pack group folder (e.g. `PackName/ChildMod`), the installer now preserves the full nested `folderName` instead of dropping the child to top-level.
-- **`showDeveloperLogs` AppStorage removed from MainView** — the Logs tab is always visible; the dead `@AppStorage` property on `MainView` was unused and removed.
-
-### Fixed
-- **Backup/restore now handles nested pack-child paths** — `ModInstallBackupManager.createBackup`, `restoreBackup`, and `registerSetAsideFolderAsBackup` correctly create intermediate parent directories for nested folder names like `PackName/ChildMod`.
-- **Install tolerates corrupted missing existing mods** — `ModZipInstaller.install()` catches `.modNotFound` during backup as non-fatal when the existing folder is already gone from disk.
-- **Temp file leaks in install** — config snapshot files now have a `defer` cleanup that runs regardless of whether the install completes or fails mid-way.
-- **Temp extract dir leak on install failure** — `ModInstallView` now calls `cleanupTempDir` on the error path as well as the success path.
-- **Background-thread mutation of `@Published` properties** — the `lastRepairReport` from `ModFolderRepairer` is captured on the background scan thread and published on the main queue alongside `self.mods`.
-- **Manifest parsing parity for JSON5** — `ModFolderRepairer.collectUniqueIds` now matches the scanner's reading options (`.json5Allowed` on macOS 12+), so JSON5 manifests are not silently skipped by duplicate detection.
-- **Dead localization keys** — `quarantine_empty` and `logs_system_alerts_section` (unused) were pruned to maintain the 590-key parity contract between `en.json` and `fr.json`.
 
 ## [1.7.0] - 2026-07-25
 
@@ -363,7 +371,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added translation for **Wear More Rings** (v7.9) by bcmpinc.
 - Added translation for **World Navigator** (v1.4.2) by pneuma163.
 
-[Unreleased]: https://github.com/mrbabilo/StarHubFR/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/mrbabilo/StarHubFR/compare/v1.8.0...HEAD
+[1.8.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.7.1...v1.8.0
+[1.7.1]: https://github.com/mrbabilo/StarHubFR/compare/v1.7.0...v1.7.1
+[1.7.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.6.0...v1.7.0
+[1.6.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.5.0...v1.6.0
+[1.5.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.4.0...v1.5.0
+[1.4.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.3.0...v1.4.0
+[1.3.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.2.0...v1.3.0
+[1.2.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/mrbabilo/StarHubFR/compare/e38c4eb...v1.1.0
 [1.0.9]: https://github.com/mrbabilo/StarHubFR/commit/e38c4eb
 [1.0.8]: https://github.com/mrbabilo/StarHubFR/commit/b367896
