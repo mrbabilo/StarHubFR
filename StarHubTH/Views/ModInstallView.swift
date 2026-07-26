@@ -364,6 +364,12 @@ struct ModInstallView: View {
                     self.vm.refresh()
                     self.vm.log(self.vm.L(L10n.ModInstall.installSuccess), level: .info)
 
+                    // The install registry is updated by scanMods() during the
+                    // refresh() above (syncInstalledModRegistry detects the new
+                    // version and stamps it with Date()), so no explicit
+                    // recording is needed here — it covers ALL install paths
+                    // (Nexus, drag-and-drop, manual folder copy).
+
                     // A Nexus-sourced install (nxm:// deep link or in-app
                     // download) may have an author-forgotten manifest
                     // Version — reconcile it against the Nexus file's own

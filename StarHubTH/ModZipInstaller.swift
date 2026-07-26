@@ -606,6 +606,15 @@ class ModZipInstaller {
             }
             try fm.copyItem(atPath: sourcePath.path, toPath: destPath)
 
+            // Touch the installed folder's mtime to NOW. `copyItem` preserves
+            // the source folder's mtime (which reflects when the modder
+            // packaged the archive, not when it was installed on this machine).
+            // The update checker compares the Nexus upload date against this
+            // folder mtime for same-version updates; without this touch every
+            // re-install would leave a stale date and the mod would be
+            // re-flagged as needing an update on the next check.
+            try? fm.setAttributes([.modificationDate: Date()], ofItemAtPath: destPath)
+
             // Restore preserved user configs/translations on top of the freshly
             // installed mod (config.json + all language files the user had).
             // The existing folder was deleted above, so without this restore the

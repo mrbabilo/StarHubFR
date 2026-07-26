@@ -643,19 +643,25 @@ class StarHubTHViewModel: ObservableObject {
             let manifestPath = (path as NSString).appendingPathComponent("manifest.json")
             guard fm.fileExists(atPath: manifestPath) else { return nil }
 
-            // Capture the mod FOLDER modification date (not the manifest's):
-            // extracted archives keep the modder's packaging timestamps on
-            // their inner files, which are always *older* than the Nexus upload
-            // and would flag every mod as stale. The folder's own mod date
-            // reflects when the mod was installed/touched on this machine, so
-            // a Nexus upload newer than it means the installed copy is stale.
-            // `nil` if unreadable (then same-version detection is skipped).
-            let installedFileDate: Date? = {
-                if let attrs = try? fm.attributesOfItem(atPath: path) {
-                    return attrs[.modificationDate] as? Date
-                }
-                return nil
-            }()
+            // Resolve the folder name used as the registry key — mirrors the
+            // logic that sets `folderName` on the ModItem below.
+            let resolvedFolderName = relativePath.isEmpty
+                ? (path as NSString).lastPathComponent
+                : relativePath
+
+            // Install date: prefer the persistent registry (records the actual
+            // installation timestamp on this machine), which is far more
+            // reliable than the on-disk folder mtime — `copyItem` preserves the
+            // archive's packaging date, and backup/restore operations can shift
+            // it too. Fall back to the folder mtime only for mods installed
+            // before the registry existed.
+            let installedFileDate: Date? = installedModDate(for: resolvedFolderName)
+                ?? {
+                    if let attrs = try? fm.attributesOfItem(atPath: path) {
+                        return attrs[.modificationDate] as? Date
+                    }
+                    return nil
+                }()
             let hasConfigFile = fm.fileExists(atPath: (path as NSString).appendingPathComponent("config.json"))
             // Detect the SMAPI i18n languages the mod ships, for the detail pane.
             // Recurses into i18n subfolders (some mods nest per-pack i18n dirs),
@@ -821,7 +827,16 @@ class StarHubTHViewModel: ObservableObject {
         }
         
         parseSMAPILog()
-            
+
+        // Synchronize the installed-mod registry with what's on disk. This
+        // catches mods added by ANY means — drag-and-drop, manual copy into
+        // Mods/ or Mods_disabled/, or the app's own installer. The rules:
+        //   1. A mod whose version changed since last scan → record NOW.
+        //   2. A mod on disk but absent from the registry (first time seen)
+        //      → record with the folder mtime as a best-effort date.
+        //   3. Registry entries whose folder no longer exists → pruned.
+        syncInstalledModRegistry(scannedMods: scannedMods)
+
         DispatchQueue.main.async {
             // Publish the repair report on the main thread (the scan itself
             // runs on a background queue via refresh()).
@@ -2197,6 +2212,157 @@ class StarHubTHViewModel: ObservableObject {
         UserDefaults.standard.set(data, forKey: modActivationTimestampsKey)
     }
 
+    // MARK: - Installed mod registry (version + install date)
+
+    /// Persistent record of when each mod was last installed/updated, keyed by
+    /// folder name. Unlike the on-disk folder mtime (which `copyItem` preserves
+    /// from the archive's packaging date and is therefore unreliable), this
+    /// registry stores the *actual* installation timestamp on this machine.
+    /// The update checker uses it for same-version detection: a Nexus upload
+    /// newer than the registry date means the installed copy is stale.
+    struct InstalledModRecord: Codable {
+        let version: String
+        let installedAt: Date
+    }
+
+    private static let installedModRegistryKey = "installedModRegistry"
+    /// Mirror of the primary registry, written on every save. Used to recover
+    /// automatically when the primary blob is corrupt or missing.
+    private static let installedModRegistryBackupKey = "installedModRegistryBackup"
+
+    /// Loads the install registry from UserDefaults with automatic fallback:
+    ///
+    /// 1. **Primary key** — decode it. If valid, return it.
+    /// 2. **Backup key** — if the primary is absent or corrupt, try the
+    ///    backup. On success, promote the backup back to the primary key and
+    ///    log a recovery notice.
+    /// 3. **Neither is usable** — return `[:]`. The registry will be fully
+    ///    rebuilt from disk by `syncInstalledModRegistry` on the next scan.
+    ///
+    /// Corrupt blobs (primary and/or backup) are purged so they don't block
+    /// future saves.
+    private static func loadInstalledModRegistry() -> [String: InstalledModRecord] {
+        let defaults = UserDefaults.standard
+
+        // 1. Try the primary.
+        if let primary = defaults.data(forKey: installedModRegistryKey),
+           let decoded = try? JSONDecoder().decode([String: InstalledModRecord].self, from: primary) {
+            return decoded
+        }
+
+        // Primary is absent or corrupt — purge it.
+        if defaults.data(forKey: installedModRegistryKey) != nil {
+            defaults.removeObject(forKey: installedModRegistryKey)
+        }
+
+        // 2. Try the backup.
+        if let backup = defaults.data(forKey: installedModRegistryBackupKey),
+           let decoded = try? JSONDecoder().decode([String: InstalledModRecord].self, from: backup) {
+            // Promote the backup to the primary slot so subsequent loads are
+            // fast and the (corrupt) primary is replaced.
+            if let data = try? JSONEncoder().encode(decoded) {
+                defaults.set(data, forKey: installedModRegistryKey)
+            }
+            NSLog("[StarHubFR] Install registry restored from backup (%d entries).",
+                  decoded.count)
+            return decoded
+        }
+
+        // Backup is also absent or corrupt — purge it too.
+        if defaults.data(forKey: installedModRegistryBackupKey) != nil {
+            defaults.removeObject(forKey: installedModRegistryBackupKey)
+            NSLog("[StarHubFR] Install registry and backup both corrupt/unavailable — rebuilding from disk.")
+        }
+
+        // 3. Neither usable — empty; will be rebuilt on next scan.
+        return [:]
+    }
+
+    /// Saves the registry to BOTH the primary and backup keys atomically. The
+    /// backup guarantees that a corruption of one blob (e.g. a crashed write)
+    /// can be recovered from the other on the next load.
+    private static func saveInstalledModRegistry(_ map: [String: InstalledModRecord]) {
+        guard let data = try? JSONEncoder().encode(map) else { return }
+        let defaults = UserDefaults.standard
+        defaults.set(data, forKey: installedModRegistryKey)
+        defaults.set(data, forKey: installedModRegistryBackupKey)
+    }
+
+    /// Returns the recorded install date for a mod folder, or nil if the mod
+    /// was never registered (e.g. installed before this feature existed).
+    func installedModDate(for folderName: String) -> Date? {
+        Self.loadInstalledModRegistry()[folderName]?.installedAt
+    }
+
+    /// Reconciles the persistent install registry with the mods found on disk
+    /// during a scan. Called at the end of every `scanMods()` so that mods
+    /// added by ANY means (app installer, drag-and-drop, manual copy into
+    /// Mods/ or Mods_disabled/) are tracked.
+    ///
+    /// - A mod whose version differs from the registry (new install or update)
+    ///   is recorded with `Date()` — the actual moment it was detected.
+    /// - A mod on disk but absent from the registry (first time seen by the
+    ///   app, e.g. manually copied) is recorded with its folder mtime as a
+    ///   best-effort timestamp.
+    /// - Registry entries for folders no longer on disk are pruned.
+    private func syncInstalledModRegistry(scannedMods: [ModItem]) {
+        let fm = FileManager.default
+        let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
+        let disabledModsPath = (gameDir as NSString).appendingPathComponent("Mods_disabled")
+
+        // Flatten groups into individual mods so pack children are tracked too.
+        let allMods = scannedMods.flatMap { mod -> [ModItem] in
+            mod.isGroup ? (mod.children ?? []) : [mod]
+        }
+
+        var registry = Self.loadInstalledModRegistry()
+        let wasEmpty = registry.isEmpty
+        var seenFolders = Set<String>()
+
+        for mod in allMods {
+            let key = mod.folderName
+            seenFolders.insert(key)
+
+            // Determine the on-disk path to read the folder mtime as a fallback.
+            let modPath = (mod.isEnabled ? modsPath : disabledModsPath) as NSString
+            let fullPath = modPath.appendingPathComponent(key)
+            let folderMtime = (try? fm.attributesOfItem(atPath: fullPath))?[.modificationDate] as? Date
+
+            if let existing = registry[key] {
+                // Version changed since last scan → this is an update; stamp NOW.
+                if existing.version != mod.version {
+                    registry[key] = InstalledModRecord(version: mod.version, installedAt: Date())
+                }
+                // Same version → keep the existing record unchanged.
+            } else {
+                // New mod (not in registry): record with the folder mtime as a
+                // best-effort date, or NOW if the mtime is unreadable.
+                registry[key] = InstalledModRecord(
+                    version: mod.version,
+                    installedAt: folderMtime ?? Date()
+                )
+            }
+        }
+
+        // Prune registry entries for folders that no longer exist on disk.
+        registry = registry.filter { seenFolders.contains($0.key) }
+
+        Self.saveInstalledModRegistry(registry)
+
+        // If the registry was empty (first launch, cleared, or corrupt) and we
+        // just populated it, log the rebuild so the event is traceable. The
+        // dates used are folder mtimes (best-effort), which may be stale for
+        // mods whose folders preserve archive timestamps — but this only
+        // affects same-version detection until each mod is next updated.
+        if wasEmpty && !registry.isEmpty {
+            self.log(
+                String(format: "Install registry rebuilt: %d mod(s) registered from disk.",
+                       registry.count),
+                level: .info
+            )
+        }
+    }
+
     func showModal(message: String) {
         self.alertMessage = message
         self.showAlert = true
@@ -3281,6 +3447,8 @@ class StarHubTHViewModel: ObservableObject {
 
         do {
             try fm.removeItem(atPath: modPath)
+            // The registry entry is pruned by the next scanMods() (below),
+            // which removes entries for folders no longer on disk.
             log(String(format: L(L10n.Mods.deletedLog), mod.name))
             DispatchQueue.global(qos: .userInitiated).async {
                 self.scanMods()
