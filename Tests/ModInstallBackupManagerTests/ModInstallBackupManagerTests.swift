@@ -185,6 +185,47 @@ struct TestEnvironment {
         }
     }
 
+    @Test func createBackupHandlesNestedPackChildFolderName() throws {
+        // Regression: a pack/group child's folderName is a nested path like
+        // "PackName/ChildMod". createBackup must create the intermediate
+        // parent ("PackName") inside the backup dir before copying, otherwise
+        // copyItem fails with "file does not exist" for the leaf component.
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let nestedModDir = env.modsDir.appendingPathComponent("FruitTreesPack/[CP] FruitTreesReforged", isDirectory: true)
+        try writeTestFile(in: nestedModDir, filename: "manifest.json", content: "{}")
+
+        let mod = makeTestMod(folderName: "FruitTreesPack/[CP] FruitTreesReforged", isEnabled: true)
+        let backup = try env.manager.createBackup(for: mod, gameDir: env.gameDir, reason: .beforeUpdate)
+
+        #expect(backup.originalFolderName == "FruitTreesPack/[CP] FruitTreesReforged")
+        // The backup copy exists at the nested path (leaf + file preserved).
+        let backedUpFile = URL(fileURLWithPath: backup.backupPath).appendingPathComponent("manifest.json")
+        #expect(FileManager.default.fileExists(atPath: backedUpFile.path))
+        #expect(env.manager.loadBackups().count == 1)
+    }
+
+    @Test func restoreBackupHandlesNestedPackChildFolderName() throws {
+        // Restoring a nested-folder-name backup must create the intermediate
+        // parent under Mods_disabled before copying, even when that parent
+        // does not yet exist there.
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let nestedModDir = env.modsDir.appendingPathComponent("PackX/ChildMod", isDirectory: true)
+        try writeTestFile(in: nestedModDir, filename: "data.txt", content: "nested original")
+
+        let mod = makeTestMod(folderName: "PackX/ChildMod", isEnabled: true)
+        let backup = try env.manager.createBackup(for: mod, gameDir: env.gameDir, reason: .beforeInstall)
+
+        try env.manager.restoreBackup(backup, gameDir: env.gameDir)
+
+        let restoredPath = env.modsDisabledDir.appendingPathComponent("PackX/ChildMod/data.txt")
+        let restoredContent = try String(contentsOf: restoredPath, encoding: .utf8)
+        #expect(restoredContent == "nested original")
+    }
+
     @Test func restoreBackupCopiesToEmptyDestination() throws {
         let env = TestEnvironment()
         defer { env.cleanup() }

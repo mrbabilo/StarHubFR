@@ -11,7 +11,6 @@ struct MainView: View {
     @State private var isNavigatingBackOrForward = false
     
     @AppStorage("appColorScheme") private var appColorScheme: String = "System"
-    @AppStorage("showDeveloperLogs") private var showDeveloperLogs: Bool = false
     @AppStorage("showThaiTranslationHub") private var showThaiTranslationHub: Bool = false
     @AppStorage("launchProfile") private var launchProfile: String = "SMAPI"
     
@@ -35,6 +34,8 @@ struct MainView: View {
         if currentTab == "ConfigBackups" { return vm.L(L10n.ModConfigBackups.title) }
         if currentTab == "Profiles" { return vm.L(L10n.Profiles.title) }
         if currentTab == "Updates" { return vm.L(L10n.Main.modUpdates) }
+        if currentTab == "SystemAlerts" { return vm.L(L10n.Main.systemAlerts) }
+        if currentTab == "Quarantine" { return vm.L(L10n.Main.quarantine) }
         if currentTab == "ThaiHub" { return vm.L(L10n.ThaiHub.title) }
         if currentTab == "Saves" { return vm.L(L10n.Saves.saves) }
         if currentTab == "Settings" { return vm.L(L10n.Settings.settings) }
@@ -125,38 +126,42 @@ struct MainView: View {
                     .pointingHandCursor()
                 }
                 
-                let alertCount = vm.smapiErrors.count + vm.outOfDateMods.count + vm.nexusUpdates.count
-                if alertCount > 0 {
-                    Button(action: { currentTab = "Updates" }) {
-                        HStack {
-                            Text(vm.smapiErrors.isEmpty ? vm.L(L10n.Main.modUpdates) : vm.L(L10n.Main.systemAlerts))
-                                .font(.system(size: 14, weight: .regular))
-                                .foregroundColor(currentTab == "Updates" ? .white : .primary)
-                            Spacer()
-                            Text("\(alertCount)")
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(currentTab == "Updates" ? .blue : .white)
-                                .frame(minWidth: 18, minHeight: 18)
-                                .padding(.horizontal, 4)
-                                .background(currentTab == "Updates" ? Color.white : Color.red)
-                                .clipShape(Capsule())
-                        }
-                        .contentShape(Rectangle())
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 8)
-                        .background(
-                            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                .fill(currentTab == "Updates" ? Color.blue : Color.clear)
-                        )
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    .pointingHandCursor()
-                    .accessibilityLabel(
-                        String(
-                            format: vm.L(L10n.Main.alertsNavA11y),
-                            vm.smapiErrors.isEmpty ? vm.L(L10n.Main.modUpdates) : vm.L(L10n.Main.systemAlerts),
-                            Int64(alertCount)
-                        )
+                // Mod Updates: Nexus updates + out-of-date mods (a single
+                // badge). Separate from System Alerts so update notifications
+                // don't get hidden behind SMAPI error counts.
+                let modUpdateCount = vm.outOfDateMods.count + vm.nexusUpdates.count
+                if modUpdateCount > 0 {
+                    SidebarBadgeItem(
+                        label: vm.L(L10n.Main.modUpdates),
+                        tab: "Updates",
+                        count: modUpdateCount,
+                        accentColor: .blue,
+                        currentTab: $currentTab
+                    )
+                }
+
+                // System Alerts: SMAPI errors. These are also logged to the
+                // Journaux tab so they remain consultable after the banner
+                // is dismissed.
+                if !vm.smapiErrors.isEmpty {
+                    SidebarBadgeItem(
+                        label: vm.L(L10n.Main.systemAlerts),
+                        tab: "SystemAlerts",
+                        count: vm.smapiErrors.count,
+                        accentColor: .orange,
+                        currentTab: $currentTab
+                    )
+                }
+
+                // Quarantine badge: shown only when items have actually been
+                // quarantined, so the sidebar doesn't show an empty indicator.
+                if let report = vm.lastRepairReport, !report.quarantined.isEmpty {
+                    SidebarBadgeItem(
+                        label: vm.L(L10n.Main.quarantine),
+                        tab: "Quarantine",
+                        count: report.quarantined.count,
+                        accentColor: .purple,
+                        currentTab: $currentTab
                     )
                 }
                 
@@ -229,6 +234,16 @@ struct MainView: View {
                         )
                     }
 
+                    if matchesSearch(vm.L(L10n.Main.quarantine)) {
+                        SidebarNavItem(
+                            icon: "archivebox.fill",
+                            iconColor: .purple,
+                            label: vm.L(L10n.Main.quarantine),
+                            tab: "Quarantine",
+                            currentTab: $currentTab
+                        )
+                    }
+
                     if matchesSearch(vm.L(L10n.Main.appChangelog)) {
                         SidebarNavItem(
                             icon: "doc.text.fill",
@@ -256,16 +271,14 @@ struct MainView: View {
                     }
                 }
                 
-                if showDeveloperLogs {
-                    if matchesSearch(vm.L(L10n.Logs.logs)) {
-                            SidebarNavItem(
-                                icon: "terminal.fill",
-                                iconColor: .black,
-                                label: vm.L(L10n.Logs.logs),
-                                tab: "Logs",
-                                currentTab: $currentTab
-                            )
-                        }
+                if matchesSearch(vm.L(L10n.Logs.logs)) {
+                        SidebarNavItem(
+                            icon: "terminal.fill",
+                            iconColor: .black,
+                            label: vm.L(L10n.Logs.logs),
+                            tab: "Logs",
+                            currentTab: $currentTab
+                        )
                     }
 
                 SystemStatusFooter(vm: vm)
@@ -313,6 +326,10 @@ struct MainView: View {
                     ModProfilesView(vm: vm, currentTab: $currentTab)
                 } else if currentTab == "Updates" {
                     UpdatesView(vm: vm, currentTab: $currentTab)
+                } else if currentTab == "SystemAlerts" {
+                    SystemAlertsView(vm: vm, currentTab: $currentTab)
+                } else if currentTab == "Quarantine" {
+                    QuarantineView(vm: vm)
                 } else if currentTab == "ThaiHub" {
                     ThaiTranslationHubView(vm: vm)
                 } else if currentTab == "Settings" {
@@ -530,6 +547,48 @@ struct SidebarSectionHeader: View {
     }
 }
 
+// MARK: - Sidebar Badge Item (alert-style nav with count capsule)
+struct SidebarBadgeItem: View {
+    let label: String
+    let tab: String
+    let count: Int
+    let accentColor: Color
+    @Binding var currentTab: String
+
+    private var isSelected: Bool { currentTab == tab }
+
+    var body: some View {
+        Button(action: { currentTab = tab }) {
+            HStack {
+                Text(label)
+                    .font(.system(size: 14, weight: .regular))
+                    .foregroundColor(isSelected ? .white : .primary)
+                Spacer()
+                Text("\(count)")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(isSelected ? accentColor : .white)
+                    .frame(minWidth: 18, minHeight: 18)
+                    .padding(.horizontal, 4)
+                    .background(isSelected ? Color.white : accentColor)
+                    .clipShape(Capsule())
+            }
+            .contentShape(Rectangle())
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(isSelected ? accentColor : Color.clear)
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
+        .pointingHandCursor()
+        .accessibilityLabel(
+            String(format: NSLocalizedString("main_alerts_nav_a11y", comment: ""),
+                   label, Int64(count))
+        )
+    }
+}
+
 // MARK: - Sidebar Nav Item (macOS System Settings style)
 struct SidebarNavItem: View {
     let icon: String
@@ -743,7 +802,7 @@ struct UpdatesView: View {
                         HStack(spacing: 6) {
                             Image(systemName: "checkmark.circle.fill")
                                 .foregroundColor(.green)
-                            Text(vm.L(L10n.Updates.nexusNoUpdates))
+                        Text(vm.L(L10n.Logs.systemAlertsSection))
                         }
                         .font(.system(size: 12))
                         .foregroundColor(.secondary)
@@ -840,8 +899,40 @@ struct UpdatesView: View {
                 .background(Color.primary.opacity(0.03))
                 .cornerRadius(12)
 
-                // SMAPI Errors (More Storage Required style)
-                if !vm.smapiErrors.isEmpty {
+            }
+            .padding(30)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(nsColor: .windowBackgroundColor))
+    }
+}
+
+// MARK: - System Alerts View
+
+/// Dedicated view for SMAPI system errors. These are also logged to the
+/// Journaux tab (see StarHubTHViewModel.parseSMAPILog) so they remain
+/// consultable after this banner is dismissed.
+struct SystemAlertsView: View {
+    @ObservedObject var vm: StarHubTHViewModel
+    @Binding var currentTab: String
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                if vm.smapiErrors.isEmpty {
+                    HStack(spacing: 12) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                            .font(.system(size: 28))
+                        Text(vm.L(L10n.Updates.nexusNoUpdates))
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(40)
+                    .background(Color.green.opacity(0.06))
+                    .cornerRadius(12)
+                } else {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             Image(systemName: "exclamationmark.triangle.fill")
@@ -864,12 +955,12 @@ struct UpdatesView: View {
                             .buttonStyle(PlainButtonStyle())
                             .pointingHandCursor()
                         }
-                        
+
                         Text(vm.L(L10n.Updates.errorDescription))
                             .font(.system(size: 13))
                             .foregroundColor(.secondary)
                             .padding(.bottom, 8)
-                        
+
                         ForEach(vm.smapiErrors, id: \.self) { error in
                             HStack(alignment: .top, spacing: 8) {
                                 Circle()
@@ -886,11 +977,230 @@ struct UpdatesView: View {
                     .background(Color.primary.opacity(0.04))
                     .cornerRadius(12)
                 }
-                
             }
             .padding(30)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(nsColor: .windowBackgroundColor))
+    }
+}
+
+// MARK: - Quarantine View
+
+/// Shows the last folder-repair report and provides actions to open the
+/// `_Trash_` quarantine folder or empty it to the Mac Trash (with
+/// confirmation). Quarantined items are never deleted directly — "empty"
+/// moves them to the Mac Trash where they can be recovered until the user
+/// empties the Trash themselves.
+struct QuarantineView: View {
+    @ObservedObject var vm: StarHubTHViewModel
+    @State private var showEmptyConfirmation = false
+
+    var body: some View {
+        let quarantineDir = quarantinePath
+
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                // Header
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(vm.L(L10n.Quarantine.title))
+                        .font(.system(size: 20, weight: .bold))
+                    Text(vm.L(L10n.Quarantine.subtitle))
+                        .font(.system(size: 13))
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                // Last repair report (or empty state when none yet).
+                if let report = vm.lastRepairReport {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(vm.L(L10n.Quarantine.lastRepair))
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.primary)
+
+                        if report.quarantined.isEmpty && report.duplicates.isEmpty {
+                            Text(vm.L(L10n.Quarantine.noQuarantine))
+                                .font(.system(size: 13))
+                                .foregroundColor(.secondary)
+                        } else {
+                            Label(
+                                String(format: vm.L(L10n.Quarantine.itemsQuarantined), Int64(report.quarantined.count)),
+                                systemImage: "tray.and.arrow.down.fill"
+                            )
+                            .font(.system(size: 13))
+                            .foregroundColor(.purple)
+
+                            ForEach(Array(report.quarantined.prefix(20).enumerated()), id: \.offset) { _, item in
+                                HStack(alignment: .top, spacing: 8) {
+                                    Image(systemName: "archivebox.fill")
+                                        .foregroundColor(.purple.opacity(0.7))
+                                        .font(.system(size: 10))
+                                        .padding(.top, 2)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(item.relativePath)
+                                            .font(.system(size: 12, design: .monospaced))
+                                            .foregroundColor(.primary)
+                                        Text(item.reason)
+                                            .font(.system(size: 11))
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                            }
+                            if report.quarantined.count > 20 {
+                                Text("+ \(report.quarantined.count - 20) more…")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.secondary)
+                                    .italic()
+                            }
+                        }
+
+                        if !report.duplicates.isEmpty {
+                            Label(
+                                String(format: vm.L(L10n.Quarantine.duplicatesFound), Int64(report.duplicates.count)),
+                                systemImage: "exclamationmark.triangle.fill"
+                            )
+                            .font(.system(size: 13))
+                            .foregroundColor(.orange)
+
+                            ForEach(Array(report.duplicates.prefix(20).enumerated()), id: \.offset) { _, dup in
+                                HStack(alignment: .top, spacing: 8) {
+                                    Image(systemName: "doc.on.doc.fill")
+                                        .foregroundColor(.orange.opacity(0.7))
+                                        .font(.system(size: 10))
+                                        .padding(.top, 2)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(dup.uniqueId)
+                                            .font(.system(size: 12, design: .monospaced))
+                                            .foregroundColor(.primary)
+                                        Text("\(dup.enabledFolder)  ⇄  \(dup.disabledFolder)")
+                                            .font(.system(size: 11))
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    .padding(20)
+                    .background(Color.primary.opacity(0.04))
+                    .cornerRadius(12)
+                }
+
+                // Actions
+                HStack(spacing: 12) {
+                    Button(action: openQuarantineFolder) {
+                        Label(vm.L(L10n.Quarantine.openFolder), systemImage: "folder.fill")
+                            .font(.system(size: 13, weight: .medium))
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.blue)
+                    .disabled(quarantineDir == nil)
+
+                    Button(role: .destructive, action: { showEmptyConfirmation = true }) {
+                        Label(vm.L(L10n.Quarantine.emptyTrash), systemImage: "trash.fill")
+                            .font(.system(size: 13, weight: .medium))
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(quarantineDir == nil)
+                }
+
+                if let result = vm.quarantineActionMessage {
+                    Label(result, systemImage: "checkmark.circle.fill")
+                        .font(.system(size: 13))
+                        .foregroundColor(.green)
+                        .padding(12)
+                        .background(Color.green.opacity(0.08))
+                        .cornerRadius(8)
+                }
+
+                Spacer(minLength: 20)
+            }
+            .padding(30)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(nsColor: .windowBackgroundColor))
+        .confirmationDialog(
+            vm.L(L10n.Quarantine.emptyConfirmTitle),
+            isPresented: $showEmptyConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(vm.L(L10n.Quarantine.emptyTrash), role: .destructive) {
+                emptyToMacTrash()
+            }
+            Button(vm.L(L10n.Main.ok), role: .cancel) {}
+        } message: {
+            Text(vm.L(L10n.Quarantine.emptyConfirmMessage))
+        }
+    }
+
+    // MARK: - Actions
+
+    /// Resolves the most recent `_Trash_` folder in the game dir (if any).
+    /// The reported path is validated to be inside the game directory and
+    /// start with `_Trash_` before being returned, preventing a crafted
+    /// or stale report from escaping the expected containment.
+    private var quarantinePath: String? {
+        guard !vm.gameDir.isEmpty else { return nil }
+        let gameDirURL = URL(fileURLWithPath: vm.gameDir).resolvingSymlinksInPath()
+        guard let entries = try? FileManager.default.contentsOfDirectory(atPath: gameDirURL.path) else { return nil }
+        // Prefer the path from the last report, fall back to the newest
+        // _Trash_* folder on disk.
+        if let reported = vm.lastRepairReport?.trashPath,
+           FileManager.default.fileExists(atPath: reported) {
+            let reportedURL = URL(fileURLWithPath: reported).resolvingSymlinksInPath()
+            let lastComponent = reportedURL.lastPathComponent
+            // Containment: must be inside gameDir and have the quarantine
+            // naming prefix so a stale/malformed report can't point
+            // outside the expected tree.
+            if lastComponent.hasPrefix("_Trash_"),
+               reportedURL.path.hasPrefix(gameDirURL.path + "/") {
+                return reported
+            }
+        }
+        let trashFolders = entries
+            .filter { $0.hasPrefix("_Trash_") }
+            .sorted()
+        guard let newest = trashFolders.last else { return nil }
+        return (vm.gameDir as NSString).appendingPathComponent(newest)
+    }
+
+    private func openQuarantineFolder() {
+        guard let path = quarantinePath else { return }
+        NSWorkspace.shared.open(URL(fileURLWithPath: path))
+    }
+
+    /// Moves all `_Trash_*` folders in the game dir to the Mac Trash using
+    /// the standard NSWorkspace API. On success, clears the repair report so
+    /// the sidebar badge disappears. The result is published on the VM (not
+    /// @State on this struct) because the recycle completion fires
+    /// asynchronously after this View struct may have been recreated.
+    private func emptyToMacTrash() {
+        let vm = self.vm
+        guard !vm.gameDir.isEmpty else { return }
+        let fm = FileManager.default
+        let gameDirURL = URL(fileURLWithPath: vm.gameDir).resolvingSymlinksInPath()
+        guard let entries = try? fm.contentsOfDirectory(atPath: gameDirURL.path) else { return }
+        let trashURLs = entries
+            .filter { $0.hasPrefix("_Trash_") }
+            .map { gameDirURL.appendingPathComponent($0) }
+
+        guard !trashURLs.isEmpty else {
+            vm.quarantineActionMessage = vm.L(L10n.Quarantine.noQuarantine)
+            return
+        }
+
+        do {
+            try NSWorkspace.shared.recycle(trashURLs, completionHandler: { _, error in
+                DispatchQueue.main.async {
+                    if let error = error {
+                        vm.quarantineActionMessage = error.localizedDescription
+                    } else {
+                        vm.quarantineActionMessage = vm.L(L10n.Quarantine.emptied)
+                        vm.lastRepairReport = nil
+                    }
+                }
+            })
+        } catch {
+            vm.quarantineActionMessage = error.localizedDescription
+        }
     }
 }

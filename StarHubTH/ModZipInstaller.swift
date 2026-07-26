@@ -520,17 +520,44 @@ class ModZipInstaller {
             // top of the freshly installed copy. Drag-drop install must never
             // silently overwrite a user's live config.
             var preservedConfigs: [String: URL] = [:]
+            // Guarantee temp snapshot files never leak, even if this loop
+            // iteration throws partway through (after snapshotting configs but
+            // before restoring them). On the success path the entries are
+            // removed one-by-one as they're restored, leaving the cleanup a
+            // no-op; on the failure path any leftover snapshots are swept.
+            defer {
+                for (_, tmp) in preservedConfigs {
+                    try? fm.removeItem(at: tmp)
+                }
+            }
             if let existing = existingMod, let resolution = selection.conflictResolution {
                 switch resolution {
                 case .skip:
                     continue
                 case .overwriteWithBackup:
+                    // A pack/group child carries a nested folderName like
+                    // "PackName/ChildMod" (see ModItem.folderName /
+                    // scanFolderForMods), while the freshly detected mod's
+                    // folderName is only the last path component (e.g.
+                    // "ChildMod"). Installing to the last component would
+                    // detach the child from its pack folder and create a
+                    // stray top-level entry — the existing location must be
+                    // preserved so the replacement lands exactly where the
+                    // old version lived.
+                    finalDestFolderName = existing.folderName
                     // The backup MUST succeed before the original is ever
                     // touched — swallowing a failure here (e.g. disk full)
                     // would delete the only copy of the existing mod with no
-                    // backup anywhere to recover it from.
+                    // backup anywhere to recover it from. A `.modNotFound`,
+                    // however, signals a corrupted/leftover state where the
+                    // existing folder is already gone on disk: there is
+                    // nothing to back up, so we tolerate it and let the
+                    // install proceed (the new copy replaces nothing).
                     do {
                         _ = try backupManager.createBackup(for: existing, gameDir: gameDir, reason: .beforeUpdate)
+                    } catch ModInstallBackupManager.InstallBackupError.modNotFound {
+                        // Existing mod's folder is missing on disk (corruption
+                        // from a prior partial install) — nothing to back up.
                     } catch {
                         throw InstallError.backupFailed(error.localizedDescription)
                     }
@@ -544,7 +571,6 @@ class ModZipInstaller {
                         preservedConfigs = snapshotUserConfigs(from: existingFolder)
                         try fm.removeItem(atPath: existingFolder)
                     }
-                    finalDestFolderName = detectedMod.folderName
                 case .rename:
                     finalDestFolderName = "\(detectedMod.folderName)_\(timestampStamp)"
                 case .keepExisting, .useNew:
@@ -568,7 +594,13 @@ class ModZipInstaller {
 
             let destPath = (destBasePath as NSString).appendingPathComponent(finalDestFolderName)
 
-            // Replace destination folder with the new mod copy.
+            // Replace destination folder with the new mod copy. For a
+            // pack/group child, `finalDestFolderName` is a nested path
+            // (e.g. "PackName/ChildMod") whose intermediate parent may not
+            // exist yet — create it first, mirroring ModInstallBackupManager
+            // and ModConfigBackupManager.
+            let destParent = (destPath as NSString).deletingLastPathComponent
+            try fm.createDirectory(atPath: destParent, withIntermediateDirectories: true, attributes: nil)
             if fm.fileExists(atPath: destPath) {
                 try fm.removeItem(atPath: destPath)
             }
@@ -587,13 +619,13 @@ class ModZipInstaller {
                 }
                 do {
                     try fm.copyItem(atPath: tmp.path, toPath: cfg)
-                    try? fm.removeItem(at: tmp)
+                    // Mark as consumed so the defer cleanup skips it.
+                    preservedConfigs.removeValue(forKey: configFile)
                 } catch {
-                    // Clean up the temp snapshot even on failure, but don't
-                    // mask the error — the caller should know config restore
-                    // failed (the backup in ModInstallBackupManager still has
-                    // the original files for manual recovery).
-                    try? fm.removeItem(at: tmp)
+                    // Don't mask the error — the caller should know config
+                    // restore failed (the backup in ModInstallBackupManager
+                    // still has the original files for manual recovery). The
+                    // leftover temp snapshot is cleaned by the defer above.
                     throw InstallError.installFailed("Failed to restore \(configFile): \(error.localizedDescription)")
                 }
             }

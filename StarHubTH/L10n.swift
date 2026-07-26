@@ -26,6 +26,7 @@ enum L10n {
         static let steamAccount         = "main_steam_account"
         static let playerFallback       = "main_player_fallback"
         static let appChangelog         = "main_app_changelog"
+        static let quarantine           = "main_quarantine"
     }
 
     // MARK: - Home
@@ -320,6 +321,23 @@ enum L10n {
         static let entryCount           = "logs_entry_count"
         static let refreshHint          = "logs_refresh_hint"
         static let copyLine             = "logs_copy_line"
+        static let systemAlertsSection  = "logs_system_alerts_section"
+        static let alertLogged          = "logs_alert_logged"
+    }
+
+    // MARK: - Quarantine
+    enum Quarantine {
+        static let title                = "quarantine_title"
+        static let subtitle             = "quarantine_subtitle"
+        static let openFolder           = "quarantine_open_folder"
+        static let emptyTrash           = "quarantine_empty_trash"
+        static let emptyConfirmTitle    = "quarantine_empty_confirm_title"
+        static let emptyConfirmMessage  = "quarantine_empty_confirm_message"
+        static let emptied              = "quarantine_emptied"
+        static let lastRepair           = "quarantine_last_repair"
+        static let itemsQuarantined     = "quarantine_items_quarantined"
+        static let duplicatesFound      = "quarantine_duplicates_found"
+        static let noQuarantine         = "quarantine_no_quarantine"
     }
 
     // MARK: - Settings

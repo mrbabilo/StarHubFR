@@ -206,6 +206,19 @@
 "logs_entry_count" = "%d / %d entrées";
 "logs_refresh_hint" = "Recharger SMAPI-latest.txt";
 "logs_copy_line" = "Copier la ligne";
+"logs_system_alerts_section" = "Aucune alerte système";
+"logs_alert_logged" = "SMAPI a signalé %lld alerte(s). Consultez la section Alertes système ci-dessus.";
+"quarantine_title" = "Quarantaine";
+"quarantine_subtitle" = "Les dossiers corrompus ou indésirables sont déplacés ici automatiquement lors des analyses. Rien n'est supprimé — vous pouvez consulter ou restaurer à tout moment.";
+"quarantine_open_folder" = "Ouvrir le dossier de quarantaine";
+"quarantine_empty_trash" = "Vider vers la corbeille Mac";
+"quarantine_empty_confirm_title" = "Déplacer les éléments quarantainés vers la corbeille ?";
+"quarantine_empty_confirm_message" = "Cela déplace tous les dossiers _Trash_ vers la corbeille Mac. Vous pourrez toujours les récupérer depuis la corbeille tant qu'elle n'est pas vidée.";
+"quarantine_emptied" = "Quarantaine déplacée vers la corbeille Mac.";
+"quarantine_last_repair" = "Dernière analyse de réparation";
+"quarantine_items_quarantined" = "%lld élément(s) mis en quarantaine";
+"quarantine_duplicates_found" = "%lld UniqueID(s) en double détecté(s) entre Mods et Mods_disabled";
+"quarantine_no_quarantine" = "Aucun dossier de quarantaine n'existe encore.";
 "settings_launch_options" = "Options de lancement";
 "settings_backup" = "Sauvegarde";
 "settings_developer" = "Développeur";
@@ -526,6 +539,7 @@
 "saves_avatar_preset_ant" = "Fourmi";
 "mod_config_backups_nothing_to_back_up" = "Aucun des mods activés n'a de fichiers de configuration à sauvegarder.";
 "main_app_changelog" = "Journal des modifications";
+"main_quarantine" = "Quarantaine";
 "config_visual_editor" = "Éditeur visuel";
 "config_code_editor" = "Éditeur de code";
 "config_no_settings_found" = "Aucun paramètre configurable trouvé.";

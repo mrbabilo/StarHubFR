@@ -392,6 +392,11 @@ struct ModInstallView: View {
                     self.isInstalling = false
                     self.errorMessage = error.localizedDescription
                     self.showError = true
+                    // Always clean up the temp extract dir, even on failure —
+                    // otherwise a failed multi-mod install leaks the extracted
+                    // zip on disk until the view is dismissed.
+                    self.installer.cleanupTempDir(at: tempDir)
+                    self.tempDir = nil
                     // A partial multi-mod install can leave some mods
                     // actually installed on disk even though this call
                     // threw — refresh so they show up immediately instead

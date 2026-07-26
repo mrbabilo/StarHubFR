@@ -116,6 +116,13 @@ public class ModInstallBackupManager {
         let destPath = backupDir.appendingPathComponent(mod.folderName)
 
         do {
+            // Pack/group children carry a nested folderName like
+            // "PackName/ChildMod" (see ModItem.folderName / the scanner).
+            // `backupDir` is created above, but the intermediate component
+            // ("PackName") is not, so `copyItem` would fail mid-path. Create
+            // the full parent chain first — mirroring ModConfigBackupManager,
+            // which uses the same nested-folderName pattern.
+            try fm.createDirectory(at: destPath.deletingLastPathComponent(), withIntermediateDirectories: true)
             try fm.copyItem(atPath: sourcePath, toPath: destPath.path)
         } catch {
             try? fm.removeItem(at: backupDir)
@@ -191,6 +198,11 @@ public class ModInstallBackupManager {
             }
 
             do {
+                // `originalFolderName` may be a nested path for a pack/group
+                // child (e.g. "PackName/ChildMod"); ensure the intermediate
+                // parent exists under Mods_disabled before copying.
+                let destParent = (destPath as NSString).deletingLastPathComponent
+                try fm.createDirectory(atPath: destParent, withIntermediateDirectories: true)
                 try fm.copyItem(atPath: backup.backupPath, toPath: destPath)
             } catch {
                 // Roll the set-aside folder back so a failed restore doesn't
@@ -240,7 +252,11 @@ public class ModInstallBackupManager {
         let backupDir = backupDirectory(for: timestamp)
         let destPath = backupDir.appendingPathComponent(originalFolderName)
         do {
-            try fm.createDirectory(at: backupDir, withIntermediateDirectories: true, attributes: nil)
+            try fm.createDirectory(at: backupDir, withIntermediateDirectories: true)
+            // `originalFolderName` may be a nested path for a pack/group
+            // child (e.g. "PackName/ChildMod"); create the intermediate
+            // parent chain before moving the set-aside folder in.
+            try fm.createDirectory(at: destPath.deletingLastPathComponent(), withIntermediateDirectories: true)
             try fm.moveItem(atPath: stalePath, toPath: destPath.path)
         } catch {
             try? fm.removeItem(at: backupDir)

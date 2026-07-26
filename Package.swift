@@ -19,6 +19,8 @@ let package = Package(
                 "ZipModInfo.swift",
                 "ModInstallBackup.swift",
                 "ModInstallBackupManager.swift",
+                "ModZipInstaller.swift",
+                "ModFolderRepairer.swift",
                 "SaveManager.swift",
                 "Models/InventoryItem.swift",
                 "Models/NxmLink.swift",
@@ -42,6 +44,16 @@ let package = Package(
             name: "ModInstallBackupManagerTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ModInstallBackupManagerTests"
+        ),
+        .testTarget(
+            name: "ModZipInstallerTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ModZipInstallerTests"
+        ),
+        .testTarget(
+            name: "ModFolderRepairerTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ModFolderRepairerTests"
         ),
         .testTarget(
             name: "SaveManagerTests",

@@ -23,6 +23,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Automatic mod folder repair** — a new `ModFolderRepairer` runs before every scan, quarantining OS junk files (`.DS_Store`, `__MACOSX`, `._*`, `Thumbs.db`), empty folders, and orphan folders without any `manifest.json` into a timestamped `_Trash_<datetime>/` folder inside the game directory. Nothing is ever deleted; the user can inspect or restore quarantined items manually.
+- **Duplicate UniqueID detection** — the repairer detects mods that exist in both `Mods/` and `Mods_disabled/` under the same UniqueID and reports them without auto-resolving (surfaced in a new Quarantine tab).
+- **Quarantine tab** — a new sidebar section provides access to the last repair report, an "Open Quarantine Folder" button, and an "Empty to Mac Trash" action that moves all `_Trash_*` folders to the Mac Trash via `NSWorkspace.recycle` with a confirmation dialog.
+- **SMAPI error logging** — SMAPI errors detected by `parseSMAPILog()` are now journaled to the app log (level `.warning`). The Journaux tab is now visible to all users and serves as the persistent consultable record of system alerts.
+- **Content-diffing for SMAPI error journaling** — the VM tracks the last-logged error set, so only genuinely new alerts are appended to the log across re-parses (no duplicate re-logging when counts fluctuate).
+
+### Changed
+- **Sidebar badge items separated** — "Mod Updates" (Nexus updates + out-of-date mods) and "System Alerts" (SMAPI errors) are now distinct sidebar items with their own accent colors (blue and orange) and dedicated views. The Quarantine item appears only when items have been moved.
+- **UpdatesView simplified** — the SMAPI errors section has been moved to its own `SystemAlertsView` with a "View Logs" shortcut to the Journaux tab.
+- **Overwrite install preserves nested pack-child location** — when overwriting a mod installed inside a pack group folder (e.g. `PackName/ChildMod`), the installer now preserves the full nested `folderName` instead of dropping the child to top-level.
+- **`showDeveloperLogs` AppStorage removed from MainView** — the Logs tab is always visible; the dead `@AppStorage` property on `MainView` was unused and removed.
+
+### Fixed
+- **Backup/restore now handles nested pack-child paths** — `ModInstallBackupManager.createBackup`, `restoreBackup`, and `registerSetAsideFolderAsBackup` correctly create intermediate parent directories for nested folder names like `PackName/ChildMod`.
+- **Install tolerates corrupted missing existing mods** — `ModZipInstaller.install()` catches `.modNotFound` during backup as non-fatal when the existing folder is already gone from disk.
+- **Temp file leaks in install** — config snapshot files now have a `defer` cleanup that runs regardless of whether the install completes or fails mid-way.
+- **Temp extract dir leak on install failure** — `ModInstallView` now calls `cleanupTempDir` on the error path as well as the success path.
+- **Background-thread mutation of `@Published` properties** — the `lastRepairReport` from `ModFolderRepairer` is captured on the background scan thread and published on the main queue alongside `self.mods`.
+- **Manifest parsing parity for JSON5** — `ModFolderRepairer.collectUniqueIds` now matches the scanner's reading options (`.json5Allowed` on macOS 12+), so JSON5 manifests are not silently skipped by duplicate detection.
+- **Dead localization keys** — `quarantine_empty` and `logs_system_alerts_section` (unused) were pruned to maintain the 590-key parity contract between `en.json` and `fr.json`.
+
 ## [1.7.0] - 2026-07-25
 
 ### Added

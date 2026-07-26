@@ -304,7 +304,23 @@ class StarHubTHViewModel: ObservableObject {
     @Published var thaiTranslationsError: String? = nil
     @Published var viewingThaiMod: ThaiTranslationMod? = nil
     @Published var editingModConfig: ModItem? = nil
-    
+
+    /// Result of the last automatic mod-folder repair run. Non-nil when the
+    /// repairer quarantined corrupt items or found duplicates; the UI surfaces
+    /// a banner so the user knows what was moved to `_Trash_` and can review.
+    @Published var lastRepairReport: ModFolderRepairer.Report? = nil
+
+    /// Transient result message from the Quarantine view's "empty to Mac
+    /// Trash" action. Published (not @State on the view) because the recycle
+    /// completion fires asynchronously after the view struct may have been
+    /// recreated — capturing the VM reference keeps the update observable.
+    @Published var quarantineActionMessage: String? = nil
+
+    /// Tracks the set of SMAPI errors already journaled, so only genuinely
+    /// new alerts are logged on each re-parse (prevents re-logging the full
+    /// list when the count fluctuates between game sessions).
+    private var lastLoggedSMAPIErrors: Set<String> = []
+
     @Published var logOutput: String = ""
     @Published var logEntries: [LogEntry] = []
     /// Maximum number of log entries retained in memory to avoid unbounded growth
@@ -572,7 +588,15 @@ class StarHubTHViewModel: ObservableObject {
             self.mods = []
             return
         }
-        
+
+        // Repair corrupt mod folders (orphans, OS junk, empty dirs) *before*
+        // scanning so the scan sees a clean tree. Duplicates are reported but
+        // not auto-resolved. The report is captured here on the background
+        // thread and published on main below (next to self.mods assignment)
+        // to avoid mutating @Published off the main thread.
+        let repairer = ModFolderRepairer()
+        let repairReport = repairer.repairIfNeeded(gameDir: gameDir)
+
         let fm = FileManager.default
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
         let disabledModsPath = (gameDir as NSString).appendingPathComponent("Mods_disabled")
@@ -764,6 +788,15 @@ class StarHubTHViewModel: ObservableObject {
         parseSMAPILog()
             
         DispatchQueue.main.async {
+            // Publish the repair report on the main thread (the scan itself
+            // runs on a background queue via refresh()).
+            if repairReport.isEmpty {
+                self.lastRepairReport = nil
+            } else {
+                self.lastRepairReport = repairReport
+                self.log("Folder repair: \(repairReport.quarantined.count) item(s) quarantined, \(repairReport.duplicates.count) duplicate(s) found.", level: .info)
+            }
+
             self.mods = scannedMods.sorted {
                 if $0.isGroup != $1.isGroup {
                     return $0.isGroup
@@ -908,6 +941,21 @@ class StarHubTHViewModel: ObservableObject {
         DispatchQueue.main.async {
             self.outOfDateMods = updates
             self.smapiErrors = uniqueErrors
+            // Log only genuinely new SMAPI alerts (not seen in the previous
+            // parse) so the Journaux tab stays clean across re-parses. Diff
+            // by content — not count — to catch both added and replaced errors.
+            let currentSet = Set(uniqueErrors)
+            let newAlerts = currentSet.subtracting(self.lastLoggedSMAPIErrors)
+            if !newAlerts.isEmpty {
+                self.lastLoggedSMAPIErrors = currentSet
+                self.log(
+                    String(format: self.L(L10n.Logs.alertLogged), Int64(newAlerts.count)),
+                    level: .warning
+                )
+                for err in uniqueErrors where newAlerts.contains(err) {
+                    self.log(err, level: .warning)
+                }
+            }
         }
     }
     
