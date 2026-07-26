@@ -6,6 +6,7 @@
 "main_ready_to_play" = "Ready to play!";
 "main_launching_game" = "Launching game...";
 "main_launch_game" = "Launch Game";
+"main_launching" = "Loading StarHubFR…";
 "main_alert" = "Alert";
 "main_ok" = "OK";
 "main_home" = "Home";

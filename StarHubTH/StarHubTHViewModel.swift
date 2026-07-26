@@ -260,6 +260,10 @@ class StarHubTHViewModel: ObservableObject {
     @Published var modActivationTimestamps: [String: Date] = [:]
 
     @Published var smapiInstalledVersion: String? = nil   // nil = not installed
+    /// True during the initial launch load (mod scan + save reload + profile
+    /// load). Drives the launch spinner overlay in `MainView` so the user sees
+    /// immediate feedback before the first mod list is ready.
+    @Published var isLaunching: Bool = true
     @Published var mods: [ModItem] = [] {
         didSet { categoryCache.removeAll() }
     }
@@ -419,7 +423,7 @@ class StarHubTHViewModel: ObservableObject {
         } else {
             self.gameDir = self.detectDefaultGameDir()
         }
-        self.refresh()
+        self.performInitialLoad()   // launches the spinner-tracked first load
         self.loadProfiles()
         if self.steamUsername.isEmpty {
             self.steamUsername = L(L10n.VM.defaultFarmerName)
@@ -517,6 +521,25 @@ class StarHubTHViewModel: ObservableObject {
             self.fetchSteamUser()
         }
         // Lightweight synchronous check (just reads a file/launches SMAPI -fast).
+        self.checkSmapiVersion()
+    }
+
+    /// First-launch load tracked by the `isLaunching` spinner. Mirrors
+    /// `refresh()` but flips `isLaunching` to `false` once the background
+    /// scan has finished AND published its results on the main thread, so the
+    /// spinner overlay stays up exactly until the first mod list is ready.
+    private func performInitialLoad() {
+        DispatchQueue.global(qos: .userInitiated).async {
+            self.scanMods()
+            self.reloadSaves()
+            self.fetchSteamUser()
+            // Hop back to main *after* scanMods() has published its own
+            // @Published mutations, so `isLaunching = false` lands on the
+            // same runloop turn as the freshly-populated `mods` array.
+            DispatchQueue.main.async {
+                self.isLaunching = false
+            }
+        }
         self.checkSmapiVersion()
     }
     

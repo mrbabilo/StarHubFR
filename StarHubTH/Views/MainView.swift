@@ -405,6 +405,11 @@ struct MainView: View {
         }
         
         } // End of outer ZStack
+        .overlay {
+            if vm.isLaunching {
+                launchOverlay
+            }
+        }
         .frame(minWidth: 820, minHeight: 520)
         .preferredColorScheme(colorScheme)
         .environment(\.locale, Locale(identifier: vm.currentLanguage))
@@ -438,6 +443,30 @@ struct MainView: View {
         }
     }
     
+    /// Full-window launch overlay shown while the initial mod scan + profile
+    /// load is in flight (`vm.isLaunching`). Blocks interaction so the user
+    /// can't act on a half-populated list, and gives immediate feedback that
+    /// the app is working — same visual family as ModListView's bulk-toggle
+    /// overlay (material card + ProgressView + caption).
+    private var launchOverlay: some View {
+        ZStack {
+            Color(nsColor: .windowBackgroundColor)
+                .ignoresSafeArea()
+            VStack(spacing: 16) {
+                ProgressView()
+                    .controlSize(.large)
+                    .tint(.accentColor)
+                Text(vm.L(L10n.Main.launching))
+                    .font(AppDesign.Font.body(.medium))
+                    .foregroundColor(.secondary)
+            }
+            .padding(32)
+        }
+        .transition(.opacity)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(vm.L(L10n.Main.launching))
+    }
+
     var colorScheme: ColorScheme? {
         switch appColorScheme {
         case "Light": return .light

@@ -13,6 +13,7 @@ enum L10n {
         static let readyToPlay          = "main_ready_to_play"
         static let launchingGame        = "main_launching_game"
         static let launchGame           = "main_launch_game"
+        static let launching            = "main_launching"
         static let alert                = "main_alert"
         static let ok                   = "main_ok"
         static let home                 = "main_home"

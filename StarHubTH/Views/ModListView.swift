@@ -294,96 +294,104 @@ struct ModListView: View {
         let pages = totalPages(for: display)
         let page = effectivePage(totalPages: pages)
         let paged = pageMods(from: display, page: page)
-        ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: AppDesign.Spacing.xxl) {
+        VStack(spacing: 0) {
 
-                // ── Toolbar ────────────────────────────────────────────
-                VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
-                    // Primary row: scope picker (left) + primary action (right).
-                    // Keeps the most-used navigation and the key CTA at the
-                    // same visual priority, above the secondary filters.
-                    HStack {
-                        Picker("", selection: $selectedFilter) {
-                            Text("\(vm.L(L10n.Mods.filterAll)) (\(counts.all))")
-                                .tag(ModFilter.all)
-                            Text("\(vm.L(L10n.Mods.enabled)) (\(counts.enabled))")
-                                .tag(ModFilter.enabled)
-                            Text("\(vm.L(L10n.Mods.disabled)) (\(counts.disabled))")
-                                .tag(ModFilter.disabled)
-                            Label("\(vm.L(L10n.Mods.filterIssues)) (\(counts.issues))",
-                                  systemImage: "exclamationmark.triangle")
-                                .tag(ModFilter.issues)
-                        }
-                        .pickerStyle(.segmented)
-                        .labelsHidden()
-                        .frame(maxWidth: 480)
-
-                        Spacer()
-
-                        // Bulk enable/disable all mods at once. Disabled when
-                        // there is nothing to act on (empty list, or every mod
-                        // is already in the target state), or while a bulk
-                        // toggle operation is already in flight.
-                        bulkToggleMenu
-                            .disabled(vm.mods.isEmpty || vm.bulkToggleProgress != nil)
-
-                        Button {
-                            showInstallSheet = true
-                        } label: {
-                            Label(vm.L(L10n.ModInstall.installButton), systemImage: "plus.circle")
-                        }
-                        .buttonStyle(.borderedProminent)
+            // ── Sticky header ────────────────────────────────────────────
+            // The toolbar (scope picker + filters + sort) stays fixed above
+            // the scrolling list, mirroring LogsView's sticky header layout.
+            VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
+                // Primary row: scope picker (left) + primary action (right).
+                // Keeps the most-used navigation and the key CTA at the
+                // same visual priority, above the secondary filters.
+                HStack {
+                    Picker("", selection: $selectedFilter) {
+                        Text("\(vm.L(L10n.Mods.filterAll)) (\(counts.all))")
+                            .tag(ModFilter.all)
+                        Text("\(vm.L(L10n.Mods.enabled)) (\(counts.enabled))")
+                            .tag(ModFilter.enabled)
+                        Text("\(vm.L(L10n.Mods.disabled)) (\(counts.disabled))")
+                            .tag(ModFilter.disabled)
+                        Label("\(vm.L(L10n.Mods.filterIssues)) (\(counts.issues))",
+                              systemImage: "exclamationmark.triangle")
+                            .tag(ModFilter.issues)
                     }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .frame(maxWidth: 480)
 
-                    // Secondary row: filters and sort, grouped as chips.
-                    // Wraps the set of filter controls in a single HStack so
-                    // they read as one visual unit ("refine the list"),
-                    // separate from the primary scope/actions above.
-                    HStack(spacing: 6) {
-                        sortPicker
+                    Spacer()
 
-                        Divider()
-                            .frame(height: 16)
+                    // Bulk enable/disable all mods at once. Disabled when
+                    // there is nothing to act on (empty list, or every mod
+                    // is already in the target state), or while a bulk
+                    // toggle operation is already in flight.
+                    bulkToggleMenu
+                        .disabled(vm.mods.isEmpty || vm.bulkToggleProgress != nil)
 
-                        configFilterToggle
-
-                        Divider()
-                            .frame(height: 16)
-
-                        categoryPicker(categories: categories, uncatCount: uncatCount, tagBuckets: tagBuckets)
-                            .disabled(categories.isEmpty && uncatCount == 0 && tagBuckets.isEmpty)
-                            .help(categories.isEmpty && uncatCount == 0 && tagBuckets.isEmpty
-                                  ? vm.L(L10n.Mods.categoryFilterEmptyHint)
-                                  : vm.L(L10n.Mods.categoryFilterHint))
-
-                        Spacer()
-
-                        if categories.isEmpty && uncatCount == 0 && tagBuckets.isEmpty {
-                            Text(vm.L(L10n.Mods.categoryFilterEmptyHint))
-                                .font(AppDesign.Font.footnote)
-                                .foregroundColor(.secondary.opacity(AppDesign.Opacity.secondary))
-                        }
-
-                        // Which mod profile is currently applied (read-only hint).
-                        if let profile = vm.activeProfile {
-                            HStack(spacing: 5) {
-                                Image(systemName: "person.crop.circle")
-                                    .font(AppDesign.Font.footnote)
-                                Text(String(format: vm.L(L10n.Profiles.activeLabel), profile.name))
-                                    .font(AppDesign.Font.footnote(.medium))
-                                    .lineLimit(1)
-                            }
-                            .foregroundColor(.accentColor)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 3)
-                            .background(Color.accentColor.opacity(0.12))
-                            .clipShape(Capsule())
-                            .help(String(format: vm.L(L10n.Profiles.activeLabel), profile.name))
-                        }
+                    Button {
+                        showInstallSheet = true
+                    } label: {
+                        Label(vm.L(L10n.ModInstall.installButton), systemImage: "plus.circle")
                     }
+                    .buttonStyle(.borderedProminent)
                 }
 
-                // ── List ──────────────────────────────────────────────────
+                // Secondary row: filters and sort, grouped as chips.
+                // Wraps the set of filter controls in a single HStack so
+                // they read as one visual unit ("refine the list"),
+                // separate from the primary scope/actions above.
+                HStack(spacing: 6) {
+                    sortPicker
+
+                    Divider()
+                        .frame(height: 16)
+
+                    configFilterToggle
+
+                    Divider()
+                        .frame(height: 16)
+
+                    categoryPicker(categories: categories, uncatCount: uncatCount, tagBuckets: tagBuckets)
+                        .disabled(categories.isEmpty && uncatCount == 0 && tagBuckets.isEmpty)
+                        .help(categories.isEmpty && uncatCount == 0 && tagBuckets.isEmpty
+                              ? vm.L(L10n.Mods.categoryFilterEmptyHint)
+                              : vm.L(L10n.Mods.categoryFilterHint))
+
+                    Spacer()
+
+                    if categories.isEmpty && uncatCount == 0 && tagBuckets.isEmpty {
+                        Text(vm.L(L10n.Mods.categoryFilterEmptyHint))
+                            .font(AppDesign.Font.footnote)
+                            .foregroundColor(.secondary.opacity(AppDesign.Opacity.secondary))
+                    }
+
+                    // Which mod profile is currently applied (read-only hint).
+                    if let profile = vm.activeProfile {
+                        HStack(spacing: 5) {
+                            Image(systemName: "person.crop.circle")
+                                .font(AppDesign.Font.footnote)
+                            Text(String(format: vm.L(L10n.Profiles.activeLabel), profile.name))
+                                .font(AppDesign.Font.footnote(.medium))
+                                .lineLimit(1)
+                        }
+                        .foregroundColor(.accentColor)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Color.accentColor.opacity(0.12))
+                        .clipShape(Capsule())
+                        .help(String(format: vm.L(L10n.Profiles.activeLabel), profile.name))
+                    }
+                }
+            }
+            .padding(.horizontal, 24)
+            .padding(.top, 24)
+            .padding(.bottom, 12)
+            .background(Color(nsColor: .controlBackgroundColor))
+
+            Divider()
+
+            // ── Scrollable list ──────────────────────────────────────────
+            ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: AppDesign.Spacing.xxl) {
                     if filtered.isEmpty {
                         if vm.mods.isEmpty {
@@ -429,14 +437,22 @@ struct ModListView: View {
                         case .issues:
                             ModSectionGroup(title: vm.L(L10n.Mods.filterIssues), mods: paged, vm: vm)
                         }
-
-                        if pages > 1 {
-                            paginationFooter(total: display.count, shown: paged.count, page: page, totalPages: pages)
-                        }
                     }
                 }
+                .padding(.horizontal, 24)
+                .padding(.top, AppDesign.Spacing.lg)
             }
-            .padding(24)
+
+            // ── Sticky pagination footer ─────────────────────────────────
+            // Stays pinned at the bottom of the view while the list scrolls,
+            // mirroring LogsView's sticky status bar.
+            if !filtered.isEmpty && !display.isEmpty && pages > 1 {
+                Divider()
+                paginationFooter(total: display.count, shown: paged.count, page: page, totalPages: pages)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 10)
+                    .background(Color(nsColor: .controlBackgroundColor))
+            }
         }
         .background(Color(nsColor: .controlBackgroundColor))
         .overlay {
