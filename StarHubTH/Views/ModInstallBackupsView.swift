@@ -11,8 +11,9 @@ struct ModInstallBackupsView: View {
     @State private var showRestoreConfirm = false
     @State private var backupToRestore: ModInstallBackup?
     /// Guards against a rapid double-click dispatching two concurrent
-    /// restore/delete operations on the same backup.
-    @State private var isBusy = false
+    /// restore/delete operations on the same backup. Carries the id of the
+    /// backup currently in flight so the matching row can show a spinner.
+    @State private var busyBackupId: UUID? = nil
 
     private let backupManager = ModInstallBackupManager.shared
 
@@ -164,30 +165,40 @@ struct ModInstallBackupsView: View {
                     .foregroundColor(.secondary.opacity(0.8))
             }
 
-            HStack(spacing: 6) {
-                Button {
-                    backupToRestore = backup
-                    showRestoreConfirm = true
-                } label: {
-                    Image(systemName: "arrow.uturn.backward")
-                        .font(.system(size: 12))
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                .disabled(isBusy)
-                .help(vm.L(L10n.ModInstall.restoreBackup))
+            // Action buttons: while this row's operation is in flight, the
+            // buttons collapse to a single spinner (and every other row is
+            // disabled via the `.disabled(busyBackupId != nil)` below).
+            if busyBackupId == backup.id {
+                ProgressView()
+                    .controlSize(.small)
+                    .frame(width: 56, alignment: .center)
+                    .help(vm.L(L10n.ModInstall.manageBackups))
+            } else {
+                HStack(spacing: 6) {
+                    Button {
+                        backupToRestore = backup
+                        showRestoreConfirm = true
+                    } label: {
+                        Image(systemName: "arrow.uturn.backward")
+                            .font(.system(size: 12))
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .disabled(busyBackupId != nil)
+                    .help(vm.L(L10n.ModInstall.restoreBackup))
 
-                Button {
-                    backupToDelete = backup
-                    showDeleteConfirm = true
-                } label: {
-                    Image(systemName: "trash")
-                        .font(.system(size: 12))
+                    Button {
+                        backupToDelete = backup
+                        showDeleteConfirm = true
+                    } label: {
+                        Image(systemName: "trash")
+                            .font(.system(size: 12))
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .disabled(busyBackupId != nil)
+                    .help(vm.L(L10n.ModInstall.deleteBackup))
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                .disabled(isBusy)
-                .help(vm.L(L10n.ModInstall.deleteBackup))
             }
         }
         .padding(.horizontal, 14)
@@ -200,6 +211,7 @@ struct ModInstallBackupsView: View {
             RoundedRectangle(cornerRadius: 8)
                 .stroke(Color.secondary.opacity(0.12), lineWidth: 0.5)
         )
+        .opacity(busyBackupId == backup.id ? 0.6 : 1.0)
         .contextMenu {
             Button(vm.L(L10n.ModInstall.restoreBackup)) {
                 backupToRestore = backup
@@ -211,7 +223,7 @@ struct ModInstallBackupsView: View {
                 showDeleteConfirm = true
             }
         }
-        .disabled(isBusy)
+        .disabled(busyBackupId != nil)
     }
 
     private func reasonIcon(for reason: BackupReason) -> String {
@@ -242,27 +254,27 @@ struct ModInstallBackupsView: View {
     }
 
     private func performRestore(_ backup: ModInstallBackup) {
-        guard !isBusy else { return }
+        guard busyBackupId == nil else { return }
         guard !vm.gameDir.isEmpty else {
             errorMessage = vm.L(L10n.Settings.gameDirNotSet)
             showError = true
             return
         }
 
-        isBusy = true
+        busyBackupId = backup.id
         let gameDir = vm.gameDir
         DispatchQueue.global(qos: .userInitiated).async {
             do {
                 try backupManager.restoreBackup(backup, gameDir: gameDir)
                 DispatchQueue.main.async {
-                    isBusy = false
+                    busyBackupId = nil
                     vm.log(vm.L(L10n.ModInstall.backupRestored), level: .info)
                     vm.refresh()
                     loadBackups()
                 }
             } catch {
                 DispatchQueue.main.async {
-                    isBusy = false
+                    busyBackupId = nil
                     errorMessage = error.localizedDescription
                     showError = true
                 }
@@ -271,18 +283,18 @@ struct ModInstallBackupsView: View {
     }
 
     private func performDelete(_ backup: ModInstallBackup) {
-        guard !isBusy else { return }
-        isBusy = true
+        guard busyBackupId == nil else { return }
+        busyBackupId = backup.id
         DispatchQueue.global(qos: .userInitiated).async {
             do {
                 try backupManager.deleteBackup(backup)
                 DispatchQueue.main.async {
-                    isBusy = false
+                    busyBackupId = nil
                     loadBackups()
                 }
             } catch {
                 DispatchQueue.main.async {
-                    isBusy = false
+                    busyBackupId = nil
                     errorMessage = error.localizedDescription
                     showError = true
                 }

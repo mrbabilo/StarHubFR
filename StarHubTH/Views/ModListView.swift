@@ -1214,19 +1214,29 @@ struct ModListRow: View {
                 // disk. Hidden for child rows inside a pack, since the pack
                 // header carries the delete action for all children. A
                 // confirmation dialog fires before the actual deletion.
+                // While the deletion is in flight (folder removal + rescan),
+                // a spinner replaces the trash icon on this row.
                 if !isChild {
-                    Button {
-                        showDeleteConfirm = true
-                    } label: {
-                        Image(systemName: "trash")
-                            .font(AppDesign.Font.rowTitle)
-                            .foregroundColor(.secondary)
+                    if vm.pendingDeleteFolder == mod.folderName {
+                        ProgressView()
+                            .controlSize(.small)
+                            .frame(width: 16, height: 16)
+                            .help(vm.L(L10n.Mods.deleteMod))
+                    } else {
+                        Button {
+                            showDeleteConfirm = true
+                        } label: {
+                            Image(systemName: "trash")
+                                .font(AppDesign.Font.rowTitle)
+                                .foregroundColor(.secondary)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .disabled(vm.pendingDeleteFolder != nil)
+                        .help(vm.L(L10n.Mods.deleteMod))
+                        .accessibilityLabel(vm.L(L10n.Mods.deleteMod))
+                        .accessibilityHint(vm.L(L10n.Mods.deleteModA11yHint))
+                        .pointingHandCursor()
                     }
-                    .buttonStyle(PlainButtonStyle())
-                    .help(vm.L(L10n.Mods.deleteMod))
-                    .accessibilityLabel(vm.L(L10n.Mods.deleteMod))
-                    .accessibilityHint(vm.L(L10n.Mods.deleteModA11yHint))
-                    .pointingHandCursor()
                 }
             }
             .padding(.trailing, 8)

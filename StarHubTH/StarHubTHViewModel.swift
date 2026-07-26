@@ -123,6 +123,12 @@ class StarHubTHViewModel: ObservableObject {
     /// move between Mods/ and Mods_disabled/.
     @Published var pendingToggleFolder: String? = nil
 
+    /// Folder name of the mod currently being deleted, or nil when no delete
+    /// is in flight. Drives the per-row spinner shown in place of the delete
+    /// button (and the row is dimmed) during the (potentially slow) folder
+    /// removal + rescan.
+    @Published var pendingDeleteFolder: String? = nil
+
     /// Mods with an available update on Nexus Mods (from last user-triggered check).
     @Published var nexusUpdates: [NexusUpdateChecker.ModUpdate] = []
     /// True while a Nexus check is in flight.
@@ -3179,6 +3185,10 @@ class StarHubTHViewModel: ObservableObject {
             return
         }
 
+        // Mark this row as deleting so its spinner shows until the rescan
+        // that follows the folder removal has republished `mods`.
+        pendingDeleteFolder = mod.folderName
+
         do {
             try fm.removeItem(atPath: modPath)
             log(String(format: L(L10n.Mods.deletedLog), mod.name))
@@ -3186,9 +3196,11 @@ class StarHubTHViewModel: ObservableObject {
                 self.scanMods()
                 DispatchQueue.main.async {
                     self.syncActiveProfileIds()
+                    self.pendingDeleteFolder = nil
                 }
             }
         } catch {
+            pendingDeleteFolder = nil
             log(String(format: "%@: %@",
                        L(L10n.Mods.deleteFailed), error.localizedDescription),
                 level: .error)
