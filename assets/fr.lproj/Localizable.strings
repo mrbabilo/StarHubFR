@@ -153,7 +153,7 @@
 "mods_spoiler" = "Spoiler";
 "mods_spoiler_show" = "Afficher";
 "mods_spoiler_hide" = "Masquer";
-"mods_mods" = "Mods";
+"mods_mods" = "Gestion des mods";
 "mods_detail_description" = "Description";
 "mods_detail_changelog" = "Journal des modifications";
 "mods_detail_no_description" = "Aucune description disponible";
@@ -474,7 +474,7 @@
 "mod_install_backup_overwrite" = "Sauvegarder l'existant, puis écraser";
 "mod_install_rename" = "Installer à côté dans un nouveau dossier";
 "mod_install_skip" = "Ignorer ce mod";
-"mod_install_manage_backups" = "Gestion des sauvegardes de mods";
+"mod_install_manage_backups" = "Sauvegardes des mods";
 "mod_install_restore_backup" = "Restaurer";
 "mod_install_delete_backup" = "Supprimer";
 "mod_install_no_backups" = "Aucune sauvegarde d'installation de mod pour le moment";
