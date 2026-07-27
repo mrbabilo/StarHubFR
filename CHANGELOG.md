@@ -7,45 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- **Smaller, centered launch splash with hidden menus** — the launch overlay is no longer stretched to fill the entire window. It now renders as a contained card centered on an opaque dark scrim: the cover artwork is capped at 440pt wide (preserving its native 16:9 ratio), with the app name and progress bar stacked below it. Native macOS menus (File / Edit / View / Window / Help) and their keyboard shortcuts are now hidden for the duration of the splash via `NSApp.mainMenu = nil`, then restored verbatim once `isLaunching` flips to false — so no Cmd+W / Cmd+R etc. can act on the half-loaded UI. The hide also runs in `onAppear` (not only `onChange`) so the menus are gone from the very first frame.
-- **Determinate launch overlay with cover artwork** — the indeterminate spinner shown during cold launch is replaced by a full-window overlay using the project's `nexus_cover_final.png` as background, with the app name at the top and a linear progress bar + localized step label at the bottom. The bar advances through every startup phase so the user sees concrete progress instead of a generic "Loading…":
-  1. *Initializing…* (0–5%)
-  2. *Loading mod registry…* (5–15%) — warms the in-memory JSON cache
-  3. *Scanning mods…* (15–70%) — walks `Mods/` and `Mods_disabled/`, parses every manifest, syncs the registry
-  4. *Loading saves…* (70–80%)
-  5. *Loading profiles…* (80–90%) — also fetches the Steam user identity and seeds Nexus caches + user overrides
-  6. *Ready* (100%)
-  The cover image is bundled as a resource by `build_app.py` (no dependency on the source tree at runtime).
-
-### Changed
-- **Faster time-to-first-paint** — `StarHubTHViewModel.init()` previously blocked the main thread on ~6 UserDefaults JSON decodes (Nexus updates / categories / extras caches, user overrides) plus a pack-consolidation pass, all before the app window could even appear. All that work now runs on the background launch task (`seedNexusAndUserData`), so the window renders the launch overlay immediately. The Nexus caches, user category overrides, activation timestamps, and profile list are seeded asynchronously and published on the main thread once ready.
-- **In-memory cache for the install registry** — `loadInstalledModRegistry` no longer re-decodes the ~100KB JSON blob from UserDefaults on every call. It now memoizes the registry in a thread-safe (NSLock-guarded) instance property, refreshed on every save. Since `effectiveVersion` calls `installedModNexusVersion` once per mod during each scan, this previously triggered 100+ full JSON decodes per scan (~10MB of decode churn). After the fix, the decode runs once per session.
-- **Install registry save skips no-op writes** — `syncInstalledModRegistry` now tracks a `didChange` flag and skips the JSON encode + double UserDefaults write when nothing actually changed (the common case of a plain refresh with no install, no delete, no version bump). `saveInstalledModRegistry` also encodes the blob exactly once instead of twice (the primary and backup share the same `Data`).
-- **Mod Updates sidebar entry always visible** — the "Mod Updates" item in the sidebar was previously hidden when there were zero pending updates, leaving no way to reach the tab to manually trigger a Nexus check. It is now always visible; the numeric badge is hidden when the count is 0.
-- **Sidebar search bar removed** — the search field at the top of the sidebar duplicated nothing useful (the Mods list has its own search) and consumed vertical space. It has been removed along with its `searchText` state and `matchesSearch` helper.
-- **Centralized Nexus request builder** — all Nexus API calls now go through a single `NexusRequestBuilder.makeRequest(...)` helper (`StarHubTH/Models/NexusRequestBuilder.swift`), which reads the app version live from the bundle's `CFBundleShortVersionString`. Previously `Application-Version` was hardcoded inconsistently (`"1.0.9"` in `NexusUpdateChecker`, `"1.1.0"` in `NexusDownloader`), making Nexus see two different clients for the same app and producing wrong usage statistics.
-- **Centralized UserDefaults keys** — shared keys (`gameDir`, `currentLanguage`, `modProfiles`, `activeProfileId`, `launchProfile`, `closeAfterLaunch`, `chainToggleDependencies`, `installedModRegistry`, `installedModRegistryBackup`) now live in a single public `UDKey` enum (`StarHubTH/UDKey.swift`), replacing 16 raw-string literals across 5 files. Typos are now compile-time errors instead of silent cross-key writes.
-- **Shared Nexus UpdateKeys parser** — the `nexus:<id>[@variant]` parsing convention (used to resolve a mod's Nexus id) is centralized in `ModManifest.parseNexusId(fromUpdateKeys:)` (public static). Previously duplicated inline in `StarHubTHViewModel.parseModFolder` and `ModManifest.init`.
-- **`LANG=C` enforced on child Processes** — `Process()` invocations that parse text output (notably `/usr/bin/unzip -l` in `ModZipInstaller.uncompressedSize`) now set `LANG=C` / `LC_ALL=C` via a shared `cLocaleEnvironment`. Without this, a non-English user locale would translate the summary line ("3 files" → "3 fichiers") and silently disable the zip-bomb size guard when parsing failed.
-- **`[weak self]` on background closures** — four `DispatchQueue.global().async` closures in `StarHubTHViewModel` (`refresh`, `performInitialLoad`, `loadSmapiLog`, `reloadSaves`) now capture `self` weakly, matching the convention already applied to the other 11 sites. Prevents future retain cycles if the VM ever stops being an app-lifetime singleton.
-- **No `.allowFragments` when a dict is expected** — manifest.json parsers (`ModZipInstaller.scanFolder`, `ModInstallBackupManager.extractModMetadata`, `ModFolderRepairer.collectUniqueIds`) no longer pass `.allowFragments`, which was redundant (the subsequent `as? [String: Any]` would have failed on a non-object fragment anyway) and masked genuinely corrupt files. `.json5Allowed` is preserved where relevant; `.fragmentsAllowed` is kept on Nexus API responses because mod descriptions embed raw control chars.
-
-### Fixed
-- **Nexus UpdateKeys with leading whitespace silently dropped** — `parseNexusId` now trims the key *before* the `hasPrefix("nexus:")` check, so values like `"  Nexus:240"` (previously rejected) resolve correctly. Latent bug in both pre-refactor call sites, surfaced by the new `ParseNexusIdTests` suite.
-- **Force-unwrapped `as!` in `CodeEditorView`** — the `scrollView.documentView as! NSTextView` casts in `makeNSView` and `updateNSView` are replaced with defensive `guard let ... as?` so a future AppKit change degrades gracefully instead of crashing.
-
-### Fixed
-- **Mods re-flagged as updatable after a non-Nexus install** — when a mod was installed/updated by drag-and-drop, manual folder copy, or any path other than the in-app Nexus download, the install registry never recorded the Nexus version (only the in-app flow called `reconcileManifestVersion`). Mods whose author forgot to bump the manifest Version were therefore permanently re-flagged as updatable, because the update checker kept comparing the stale manifest version against the live Nexus version. The registry is now populated for ALL install paths: `syncInstalledModRegistry` reads the Nexus version from the cached `nexusModExtras` map (keyed by Nexus mod id) on every scan, regardless of how the mod landed on disk.
-- **`nexusVersion` lost on update** — when `syncInstalledModRegistry` detected a version change (re-install/update), it rebuilt the `InstalledModRecord` without carrying over the previously reconciled `nexusVersion`, silently dropping it back to `nil` and re-introducing the false-positive flag on the next check. The record now preserves (or refreshes) the known Nexus version across updates.
-- **`recordInstalledModNexusVersion` no-op when entry missing** — the function silently returned if the folder wasn't yet in the registry, which could happen when it was called right after an install but before the first scan completed. It now creates the entry instead of bailing.
-
-### Added
-- **`NexusRequestBuilder`** — single source of truth for Nexus API URL request construction (`apiBase`, `gameDomain`, `appName`, `appVersion` from bundle, `userAgent`).
-- **`UDKey`** — centralized `UserDefaults` keys (public enum).
-- **`ParseNexusIdTests`** — 6 new unit tests locking the contract of `ModManifest.parseNexusId(fromUpdateKeys:)` (plain key, case/whitespace tolerance, `@variant` suffix, multi-key selection, zero/negative rejection, nil/empty input).
-
-
 ## [1.9.0] - 2026-07-27
 
 ### Added
