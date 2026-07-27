@@ -6,6 +6,7 @@ struct SettingsView: View {
     @AppStorage("launchProfile") private var launchProfile: String = "SMAPI"
     @AppStorage("closeAfterLaunch") private var closeAfterLaunch: Bool = false
     @AppStorage("showDeveloperLogs") private var showDeveloperLogs: Bool = false
+    @AppStorage("autoCheckNexusUpdates") private var autoCheckNexusUpdates: Bool = false
 
     // Nexus Mods API key entry (only used when no key is stored yet).
     @State private var nexusApiKeyInput: String = ""
@@ -21,6 +22,17 @@ struct SettingsView: View {
                     footer: vm.L(L10n.Settings.nexusApiKeyHint)
                 ) {
                     VStack(alignment: .leading, spacing: 16) {
+                        HStack {
+                            Text(vm.L(L10n.Settings.nexusAutoCheck))
+                                .font(.system(size: 13))
+                            Spacer()
+                            Toggle("", isOn: $autoCheckNexusUpdates)
+                                .toggleStyle(SwitchToggleStyle(tint: .blue))
+                                .controlSize(.small)
+                                .labelsHidden()
+                            InfoPopoverButton(text: vm.L(L10n.Settings.nexusAutoCheckHint))
+                        }
+
                         if vm.hasNexusApiKey {
                             // Key stored — offer removal and link to fetch another.
                             HStack {

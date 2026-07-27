@@ -397,6 +397,8 @@ enum L10n {
         static let nexusClearKey        = "settings_nexus_clear_key"
         static let nexusKeySaved        = "settings_nexus_key_saved"
         static let nexusKeyPlaceholder  = "settings_nexus_api_key_placeholder"
+        static let nexusAutoCheck        = "settings_nexus_auto_check"
+        static let nexusAutoCheckHint    = "settings_nexus_auto_check_hint"
         static let configVisualEditor      = "config_visual_editor"
         static let configCodeEditor        = "config_code_editor"
         static let configCodeEditorA11yHint  = "config_code_editor_a11y_hint"

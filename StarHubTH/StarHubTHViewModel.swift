@@ -426,6 +426,11 @@ class StarHubTHViewModel: ObservableObject {
             UserDefaults.standard.set(chainToggleDependencies, forKey: UDKey.chainToggleDependencies)
         }
     }
+    @Published var autoCheckNexusUpdates: Bool = UserDefaults.standard.object(forKey: UDKey.autoCheckNexusUpdates) as? Bool ?? false {
+        didSet {
+            UserDefaults.standard.set(autoCheckNexusUpdates, forKey: UDKey.autoCheckNexusUpdates)
+        }
+    }
     
     let smapiInstaller = SmapiInstaller()
     
@@ -656,6 +661,8 @@ class StarHubTHViewModel: ObservableObject {
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
                 self?.isLaunching = false
+                guard let self, self.hasNexusApiKey, self.autoCheckNexusUpdates else { return }
+                self.checkNexusUpdates(force: true)
             }
         }
         // SMAPI version probe runs in parallel — it doesn't block the launch

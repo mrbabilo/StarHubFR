@@ -372,7 +372,7 @@ struct MainView: View {
                         Image(nsImage: bg)
                             .resizable()
                             .scaledToFill()
-                            .frame(maxWidth: 440, maxHeight: 248)
+                            .frame(maxWidth: 560, maxHeight: 315)
                             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -382,7 +382,7 @@ struct MainView: View {
                     } else {
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
                             .fill(Color.white.opacity(0.08))
-                            .frame(width: 440, height: 248)
+                            .frame(width: 560, height: 315)
                     }
                 }
 
@@ -401,7 +401,7 @@ struct MainView: View {
                     ProgressView(value: vm.launchProgress)
                         .progressViewStyle(.linear)
                         .tint(.white)
-                        .frame(width: 320)
+                        .frame(width: 400)
                         .scaleEffect(y: 1.4)
 
                     Text(vm.launchStep.isEmpty ? vm.L(L10n.Main.launching) : vm.launchStep)
@@ -409,7 +409,7 @@ struct MainView: View {
                         .foregroundColor(.white.opacity(0.9))
                         .lineLimit(1)
                         .truncationMode(.tail)
-                        .frame(maxWidth: 320)
+                        .frame(maxWidth: 400)
                 }
             }
             .padding(.vertical, 32)

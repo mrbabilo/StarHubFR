@@ -30,4 +30,6 @@ public enum UDKey {
     /// Auto-backup of `installedModRegistry`, written whenever the registry
     /// itself is updated. Restored if the primary is detected as corrupt.
     public static let installedModRegistryBackup = "installedModRegistryBackup"
+    /// Whether to automatically check Nexus Mods for updates after startup.
+    public static let autoCheckNexusUpdates = "autoCheckNexusUpdates"
 }

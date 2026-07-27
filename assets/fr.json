@@ -598,5 +598,7 @@
   "main_launch_step_saves": "Chargement des sauvegardes…",
   "main_launch_step_profile": "Chargement des profils…",
   "main_launch_step_nexus": "Chargement des données Nexus…",
-  "main_launch_step_done": "Prêt"
+  "main_launch_step_done": "Prêt",
+  "settings_nexus_auto_check": "Vérifier les mises à jour Nexus au démarrage",
+  "settings_nexus_auto_check_hint": "Si activé et qu’une clé API est enregistrée, StarHubFR vérifie les mises à jour automatiquement après le lancement."
 }

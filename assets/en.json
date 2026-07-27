@@ -598,5 +598,7 @@
   "main_launch_step_saves": "Loading saves…",
   "main_launch_step_profile": "Loading profiles…",
   "main_launch_step_nexus": "Loading Nexus data…",
-  "main_launch_step_done": "Ready"
+  "main_launch_step_done": "Ready",
+  "settings_nexus_auto_check": "Auto-check Nexus updates at startup",
+  "settings_nexus_auto_check_hint": "When enabled and an API key is saved, StarHubFR checks for mod updates automatically after launch."
 }
