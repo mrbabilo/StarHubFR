@@ -2234,6 +2234,17 @@ class StarHubTHViewModel: ObservableObject {
     /// automatically when the primary blob is corrupt or missing.
     private static let installedModRegistryBackupKey = UDKey.installedModRegistryBackup
 
+    /// In-memory mirror of the persisted registry. Without this cache, every
+    /// single-mod lookup (`installedModNexusVersion`, `installedModDate`) would
+    /// re-decode the full ~100KB JSON blob from UserDefaults — and since
+    /// `effectiveVersion` calls `installedModNexusVersion` once per mod during
+    /// every scan, that's 100+ full decodes per scan. The cache is populated
+    /// lazily on first access, refreshed on every save, and guarded by
+    /// `installedModRegistryLock` because reads happen on the background scan
+    /// thread while writes (recordInstalledModNexusVersion) can happen on main.
+    private var installedModRegistryCache: [String: InstalledModRecord]?
+    private let installedModRegistryLock = NSLock()
+
     /// Loads the install registry from UserDefaults with automatic fallback:
     ///
     /// 1. **Primary key** — decode it. If valid, return it.
@@ -2245,7 +2256,28 @@ class StarHubTHViewModel: ObservableObject {
     ///
     /// Corrupt blobs (primary and/or backup) are purged so they don't block
     /// future saves.
-    private static func loadInstalledModRegistry() -> [String: InstalledModRecord] {
+    /// Returns the registry, populating the in-memory cache on first access.
+    /// Subsequent calls read from the cache (no JSON decode, no UserDefaults
+    /// I/O) — the cache is refreshed by `saveInstalledModRegistry` on writes.
+    /// Thread-safe via `installedModRegistryLock`.
+    private func loadInstalledModRegistry() -> [String: InstalledModRecord] {
+        installedModRegistryLock.lock()
+        defer { installedModRegistryLock.unlock() }
+        if let cached = installedModRegistryCache {
+            return cached
+        }
+        // Cold path: decode from UserDefaults (with backup fallback) exactly
+        // once per session, then memoize.
+        let loaded = Self.loadInstalledModRegistryFromDisk()
+        installedModRegistryCache = loaded
+        return loaded
+    }
+
+    /// Disk-level load with the primary/backup fallback chain. Static so it
+    /// can run before the cache exists (called by `loadInstalledModRegistry`
+    /// on the cold path, and by `clearInstalledModRegistryForTests` if a
+    /// future test needs a disk-fresh copy).
+    private static func loadInstalledModRegistryFromDisk() -> [String: InstalledModRecord] {
         let defaults = UserDefaults.standard
 
         // 1. Try the primary.
@@ -2285,17 +2317,23 @@ class StarHubTHViewModel: ObservableObject {
     /// Saves the registry to BOTH the primary and backup keys atomically. The
     /// backup guarantees that a corruption of one blob (e.g. a crashed write)
     /// can be recovered from the other on the next load.
-    private static func saveInstalledModRegistry(_ map: [String: InstalledModRecord]) {
+    /// Updates the in-memory cache AND persists to BOTH the primary and backup
+    /// keys. The `data` blob is encoded exactly once and reused for both keys
+    /// (was encoded twice before). Thread-safe via `installedModRegistryLock`.
+    private func saveInstalledModRegistry(_ map: [String: InstalledModRecord]) {
         guard let data = try? JSONEncoder().encode(map) else { return }
+        installedModRegistryLock.lock()
+        installedModRegistryCache = map
+        installedModRegistryLock.unlock()
         let defaults = UserDefaults.standard
-        defaults.set(data, forKey: installedModRegistryKey)
-        defaults.set(data, forKey: installedModRegistryBackupKey)
+        defaults.set(data, forKey: Self.installedModRegistryKey)
+        defaults.set(data, forKey: Self.installedModRegistryBackupKey)
     }
 
     /// Returns the recorded install date for a mod folder, or nil if the mod
     /// was never registered (e.g. installed before this feature existed).
     func installedModDate(for folderName: String) -> Date? {
-        Self.loadInstalledModRegistry()[folderName]?.installedAt
+        loadInstalledModRegistry()[folderName]?.installedAt
     }
 
     /// Returns the recorded Nexus version for a mod folder (the version the
@@ -2305,7 +2343,7 @@ class StarHubTHViewModel: ObservableObject {
     /// Version is stale (author forgot to bump) — without modifying the
     /// manifest.json on disk.
     func installedModNexusVersion(for folderName: String) -> String? {
-        Self.loadInstalledModRegistry()[folderName]?.nexusVersion
+        loadInstalledModRegistry()[folderName]?.nexusVersion
     }
 
     /// Records the Nexus version known at install time for a mod whose
@@ -2313,7 +2351,7 @@ class StarHubTHViewModel: ObservableObject {
     /// (NOT written to the manifest), so the checker can compare against it
     /// instead of the manifest's value.
     func recordInstalledModNexusVersion(folderName: String, nexusVersion: String) {
-        var registry = Self.loadInstalledModRegistry()
+        var registry = loadInstalledModRegistry()
         // Create the entry if it doesn't exist yet — `syncInstalledModRegistry`
         // runs at the end of every scan so the entry would normally already
         // be there, but this guard makes the function safe to call between
@@ -2325,7 +2363,7 @@ class StarHubTHViewModel: ObservableObject {
         )
         existing.nexusVersion = nexusVersion
         registry[folderName] = existing
-        Self.saveInstalledModRegistry(registry)
+        saveInstalledModRegistry(registry)
     }
 
     /// Reconciles the persistent install registry with the mods found on disk
@@ -2372,11 +2410,16 @@ class StarHubTHViewModel: ObservableObject {
             registry = [:]
             UserDefaults.standard.set(true, forKey: Self.registryMigrationV2Key)
         } else {
-            registry = Self.loadInstalledModRegistry()
+            registry = loadInstalledModRegistry()
         }
 
         let wasEmpty = registry.isEmpty
         var seenFolders = Set<String>()
+        // Dirty flag: only persist if something actually changed. A no-op
+        // refresh (no install, no delete, no version bump) is extremely
+        // common and skipping the JSON encode + double UserDefaults write
+        // is a meaningful saving on every scan.
+        var didChange = false
 
         for mod in allMods {
             let key = mod.folderName
@@ -2405,6 +2448,7 @@ class StarHubTHViewModel: ObservableObject {
                         installedAt: Date(),
                         nexusVersion: knownNexusVersion ?? existing.nexusVersion
                     )
+                    didChange = true
                 } else {
                     // Same version → refresh `nexusVersion` if we just learned
                     // one (e.g. first Nexus check after a manual install) but
@@ -2415,6 +2459,7 @@ class StarHubTHViewModel: ObservableObject {
                             installedAt: existing.installedAt,
                             nexusVersion: nv
                         )
+                        didChange = true
                     }
                 }
             } else {
@@ -2430,13 +2475,20 @@ class StarHubTHViewModel: ObservableObject {
                     installedAt: Date(),
                     nexusVersion: knownNexusVersion
                 )
+                didChange = true
             }
         }
 
         // Prune registry entries for folders that no longer exist on disk.
+        let beforePruneCount = registry.count
         registry = registry.filter { seenFolders.contains($0.key) }
+        if registry.count != beforePruneCount {
+            didChange = true
+        }
 
-        Self.saveInstalledModRegistry(registry)
+        if didChange {
+            saveInstalledModRegistry(registry)
+        }
 
         // If the registry was empty (first launch, cleared, corrupt, or just
         // migrated) and we just populated it, log the rebuild.
