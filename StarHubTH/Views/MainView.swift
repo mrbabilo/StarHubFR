@@ -372,7 +372,7 @@ struct MainView: View {
                         Image(nsImage: bg)
                             .resizable()
                             .scaledToFill()
-                            .frame(maxWidth: 560, maxHeight: 315)
+                            .frame(maxWidth: 640, maxHeight: 360)
                             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -382,7 +382,7 @@ struct MainView: View {
                     } else {
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
                             .fill(Color.white.opacity(0.08))
-                            .frame(width: 560, height: 315)
+                            .frame(width: 640, height: 360)
                     }
                 }
 
