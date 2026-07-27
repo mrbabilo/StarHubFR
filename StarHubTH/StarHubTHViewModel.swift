@@ -321,7 +321,12 @@ class StarHubTHViewModel: ObservableObject {
     /// cache entry is detected by `stat()` instead of a full re-read + decode.
     /// Persisted across scans (a rescan with no changes does ~N stats and 0
     /// decodes) and mutated on the background queue that runs `scanMods()`.
+    /// Guarded by `manifestCacheLock`: `scanMods()` can run concurrently with
+    /// itself (refresh + initial load, or a profile activation racing a manual
+    /// refresh), and an unprotected Dictionary subscript setter is a classic
+    /// EXC_BAD_ACCESS under that race.
     private var manifestCache: [String: (mtime: Date, manifest: [String: Any])] = [:]
+    private let manifestCacheLock = NSLock()
 
     // Thai Translation Hub State
     @Published var thaiTranslations: [ThaiTranslationMod] = []
@@ -893,12 +898,19 @@ class StarHubTHViewModel: ObservableObject {
         // Manifest decode cache hit-test helper. Returns the cached JSON when
         // the on-disk mtime matches the cached entry's mtime, nil otherwise
         // (cache miss, file changed, or unreadable). The actual decode + cache
-        // fill happens inline in parseModFolder below.
+        // fill happens inline in parseModFolder below. Reads the cache under
+        // `manifestCacheLock` because two concurrent `scanMods()` runs (refresh
+        // + initial load, or a profile activation racing a manual refresh)
+        // would otherwise race on the dictionary's storage.
         func cachedManifest(at manifestPath: String) -> [String: Any]? {
             guard let attrs = try? fm.attributesOfItem(atPath: manifestPath),
-                  let mtime = attrs[.modificationDate] as? Date,
-                  let cached = manifestCache[manifestPath],
-                  cached.mtime == mtime else {
+                  let mtime = attrs[.modificationDate] as? Date else {
+                return nil
+            }
+            manifestCacheLock.lock()
+            let cached = manifestCache[manifestPath]
+            manifestCacheLock.unlock()
+            guard let cached, cached.mtime == mtime else {
                 return nil
             }
             return cached.manifest
@@ -1031,8 +1043,12 @@ class StarHubTHViewModel: ObservableObject {
                 // is a cheap mtime compare + dict reuse. Storing the raw
                 // decoded JSON (not a narrowed subset) keeps the cache usable
                 // for any future field added to the scan without rework.
+                // Write under the lock — concurrent scans would otherwise race
+                // on the dictionary subscript setter (EXC_BAD_ACCESS).
                 if let mtime = (try? fm.attributesOfItem(atPath: manifestPath))?[.modificationDate] as? Date {
+                    manifestCacheLock.lock()
                     manifestCache[manifestPath] = (mtime: mtime, manifest: json)
+                    manifestCacheLock.unlock()
                 }
             }
         }
