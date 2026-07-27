@@ -3,7 +3,6 @@ import SwiftUI
 struct MainView: View {
     @ObservedObject var vm: StarHubTHViewModel
     @State private var currentTab: String = "Home"
-    @State private var searchText: String = ""
     
     // History Management
     @State private var tabHistory: [String] = ["Home"]
@@ -17,12 +16,7 @@ struct MainView: View {
     @State private var isProfileHovered = false
     @State private var showDownloadedInstall = false
     
-    private func matchesSearch(_ text: String...) -> Bool {
-        if searchText.isEmpty { return true }
-        let lowerSearch = searchText.lowercased()
-        return text.contains { $0.lowercased().contains(lowerSearch) }
-    }
-    
+
     private var navigationTitleText: String {
         if currentTab == "Saves" && vm.viewingSaveTimeline != nil { return vm.L(L10n.Saves.timeline) }
         if currentTab == "Saves" && vm.editingSave != nil { return vm.editingSave!.playerName }
@@ -49,50 +43,32 @@ struct MainView: View {
             NavigationSplitView {
             VStack(alignment: .leading, spacing: 16) {
                 
-                // Search Bar
-                HStack {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundColor(.secondary)
-                    TextField(vm.L(L10n.Main.search), text: $searchText)
-                        .textFieldStyle(PlainTextFieldStyle())
-                        .accessibilityLabel(vm.L(L10n.Main.search))
-                }
-                .padding(.horizontal, AppDesign.Spacing.sm)
-                .padding(.vertical, 6)
-                .background(AppDesign.Color.textBg)
-                .clipShape(Capsule())
-                .overlay(
-                    Capsule()
-                        .stroke(Color.primary.opacity(AppDesign.Opacity.light), lineWidth: 1)
-                )
-                
                 // Account Header Card — compact identity + active profile +
                 // key metadata (mods active/total, SMAPI status). Replaces the
                 // old bulky 48px avatar and the floating SystemStatusFooter:
                 // everything the user needs at-a-glance is now in one card.
-                if matchesSearch(vm.steamUsername, vm.L(L10n.Main.account)) {
-                    AccountHeaderCard(
-                        vm: vm,
-                        isActive: currentTab == "Home",
-                        isHovered: isProfileHovered,
-                        onTap: { currentTab = "Home" }
-                    )
-                    .onHover { isProfileHovered = $0 }
-                }
+                AccountHeaderCard(
+                    vm: vm,
+                    isActive: currentTab == "Home",
+                    isHovered: isProfileHovered,
+                    onTap: { currentTab = "Home" }
+                )
+                .onHover { isProfileHovered = $0 }
                 
                 // Mod Updates: Nexus updates + out-of-date mods (a single
                 // badge). Separate from System Alerts so update notifications
-                // don't get hidden behind SMAPI error counts.
+                // don't get hidden behind SMAPI error counts. Always visible
+                // — even when there are 0 updates, the user must be able to
+                // reach the tab to manually trigger a Nexus check. The badge
+                // is hidden when count == 0 (see `SidebarBadgeItem`).
                 let modUpdateCount = vm.outOfDateMods.count + vm.nexusUpdates.count
-                if modUpdateCount > 0 {
-                    SidebarBadgeItem(
-                        label: vm.L(L10n.Main.modUpdates),
-                        tab: "Updates",
-                        count: modUpdateCount,
-                        accentColor: .blue,
-                        currentTab: $currentTab
-                    )
-                }
+                SidebarBadgeItem(
+                    label: vm.L(L10n.Main.modUpdates),
+                    tab: "Updates",
+                    count: modUpdateCount,
+                    accentColor: .blue,
+                    currentTab: $currentTab
+                )
 
                 // System Alerts: SMAPI errors. These are also logged to the
                 // Journaux tab so they remain consultable after the banner
@@ -123,55 +99,45 @@ struct MainView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     SidebarSectionHeader(title: vm.L(L10n.Main.gameManagement), icon: "gamecontroller")
                     
-                    if matchesSearch(vm.L(L10n.Profiles.title)) {
-                        SidebarNavItem(
-                            icon: "person.2.fill",
-                            iconColor: .orange,
-                            label: vm.L(L10n.Profiles.title),
-                            tab: "Profiles",
-                            currentTab: $currentTab
-                        )
-                    }
+                    SidebarNavItem(
+                        icon: "person.2.fill",
+                        iconColor: .orange,
+                        label: vm.L(L10n.Profiles.title),
+                        tab: "Profiles",
+                        currentTab: $currentTab
+                    )
                     
-                    if matchesSearch(vm.L(L10n.Mods.mods)) {
-                        SidebarNavItem(
-                            icon: "puzzlepiece.extension.fill",
-                            iconColor: .purple,
-                            label: vm.L(L10n.Mods.mods),
-                            tab: "Mods",
-                            currentTab: $currentTab
-                        )
-                    }
+                    SidebarNavItem(
+                        icon: "puzzlepiece.extension.fill",
+                        iconColor: .purple,
+                        label: vm.L(L10n.Mods.mods),
+                        tab: "Mods",
+                        currentTab: $currentTab
+                    )
 
-                    if matchesSearch(vm.L(L10n.ModInstall.manageBackups)) {
-                        SidebarNavItem(
-                            icon: "arrow.uturn.backward.circle.fill",
-                            iconColor: .pink,
-                            label: vm.L(L10n.ModInstall.manageBackups),
-                            tab: "InstallBackups",
-                            currentTab: $currentTab
-                        )
-                    }
+                    SidebarNavItem(
+                        icon: "arrow.uturn.backward.circle.fill",
+                        iconColor: .pink,
+                        label: vm.L(L10n.ModInstall.manageBackups),
+                        tab: "InstallBackups",
+                        currentTab: $currentTab
+                    )
 
-                    if matchesSearch(vm.L(L10n.ModConfigBackups.tabTitle)) {
-                        SidebarNavItem(
-                            icon: "archivebox.fill",
-                            iconColor: .green,
-                            label: vm.L(L10n.ModConfigBackups.tabTitle),
-                            tab: "ConfigBackups",
-                            currentTab: $currentTab
-                        )
-                    }
+                    SidebarNavItem(
+                        icon: "archivebox.fill",
+                        iconColor: .green,
+                        label: vm.L(L10n.ModConfigBackups.tabTitle),
+                        tab: "ConfigBackups",
+                        currentTab: $currentTab
+                    )
 
-                    if matchesSearch(vm.L(L10n.Saves.saves)) {
-                        SidebarNavItem(
-                            icon: "folder.fill",
-                            iconColor: .blue,
-                            label: vm.L(L10n.Saves.saves),
-                            tab: "Saves",
-                            currentTab: $currentTab
-                        )
-                    }
+                    SidebarNavItem(
+                        icon: "folder.fill",
+                        iconColor: .blue,
+                        label: vm.L(L10n.Saves.saves),
+                        tab: "Saves",
+                        currentTab: $currentTab
+                    )
                 }
                 
                 // System & Settings Section — Quarantine is intentionally NOT
@@ -181,50 +147,42 @@ struct MainView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     SidebarSectionHeader(title: vm.L(L10n.Main.system), icon: "gearshape")
                     
-                    if matchesSearch(vm.L(L10n.Settings.settings)) {
-                        SidebarNavItem(
-                            icon: "gearshape.fill",
-                            iconColor: .gray,
-                            label: vm.L(L10n.Settings.settings),
-                            tab: "Settings",
-                            currentTab: $currentTab
-                        )
-                    }
+                    SidebarNavItem(
+                        icon: "gearshape.fill",
+                        iconColor: .gray,
+                        label: vm.L(L10n.Settings.settings),
+                        tab: "Settings",
+                        currentTab: $currentTab
+                    )
 
-                    if matchesSearch(vm.L(L10n.Logs.logs)) {
-                        SidebarNavItem(
-                            icon: "terminal.fill",
-                            iconColor: .black,
-                            label: vm.L(L10n.Logs.logs),
-                            tab: "Logs",
-                            currentTab: $currentTab
-                        )
-                    }
+                    SidebarNavItem(
+                        icon: "terminal.fill",
+                        iconColor: .black,
+                        label: vm.L(L10n.Logs.logs),
+                        tab: "Logs",
+                        currentTab: $currentTab
+                    )
 
-                    if matchesSearch(vm.L(L10n.Main.appChangelog)) {
-                        SidebarNavItem(
-                            icon: "doc.text.fill",
-                            iconColor: .indigo,
-                            label: vm.L(L10n.Main.appChangelog),
-                            tab: "AppChangelog",
-                            currentTab: $currentTab
-                        )
-                    }
+                    SidebarNavItem(
+                        icon: "doc.text.fill",
+                        iconColor: .indigo,
+                        label: vm.L(L10n.Main.appChangelog),
+                        tab: "AppChangelog",
+                        currentTab: $currentTab
+                    )
                 }
                 
                 if showThaiTranslationHub {
                     // Thai Hub Section
                     VStack(alignment: .leading, spacing: 2) {
                         SidebarSectionHeader(title: vm.L(L10n.Main.online), icon: "globe.asia.australia")
-                        if matchesSearch(vm.L(L10n.ThaiHub.title)) {
-                            SidebarNavItem(
-                                icon: "globe.asia.australia.fill",
-                                iconColor: .blue,
-                                label: vm.L(L10n.ThaiHub.title),
-                                tab: "ThaiHub",
-                                currentTab: $currentTab
-                            )
-                        }
+                        SidebarNavItem(
+                            icon: "globe.asia.australia.fill",
+                            iconColor: .blue,
+                            label: vm.L(L10n.ThaiHub.title),
+                            tab: "ThaiHub",
+                            currentTab: $currentTab
+                        )
                     }
                 }
 
@@ -538,13 +496,18 @@ struct SidebarBadgeItem: View {
                     .font(.system(size: 14, weight: .regular))
                     .foregroundColor(isSelected ? .white : .primary)
                 Spacer()
-                Text("\(count)")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundColor(isSelected ? accentColor : .white)
-                    .frame(minWidth: 18, minHeight: 18)
-                    .padding(.horizontal, 4)
-                    .background(isSelected ? Color.white : accentColor)
-                    .clipShape(Capsule())
+                // Badge hidden when count == 0 so a "no updates / no alerts"
+                // item still appears in the sidebar but doesn't show a
+                // misleading empty bubble.
+                if count > 0 {
+                    Text("\(count)")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(isSelected ? accentColor : .white)
+                        .frame(minWidth: 18, minHeight: 18)
+                        .padding(.horizontal, 4)
+                        .background(isSelected ? Color.white : accentColor)
+                        .clipShape(Capsule())
+                }
             }
             .contentShape(Rectangle())
             .padding(.horizontal, 10)
