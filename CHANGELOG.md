@@ -19,6 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Nexus UpdateKeys with leading whitespace silently dropped** — `parseNexusId` now trims the key *before* the `hasPrefix("nexus:")` check, so values like `"  Nexus:240"` (previously rejected) resolve correctly. Latent bug in both pre-refactor call sites, surfaced by the new `ParseNexusIdTests` suite.
 - **Force-unwrapped `as!` in `CodeEditorView`** — the `scrollView.documentView as! NSTextView` casts in `makeNSView` and `updateNSView` are replaced with defensive `guard let ... as?` so a future AppKit change degrades gracefully instead of crashing.
 
+### Fixed
+- **Mods re-flagged as updatable after a non-Nexus install** — when a mod was installed/updated by drag-and-drop, manual folder copy, or any path other than the in-app Nexus download, the install registry never recorded the Nexus version (only the in-app flow called `reconcileManifestVersion`). Mods whose author forgot to bump the manifest Version were therefore permanently re-flagged as updatable, because the update checker kept comparing the stale manifest version against the live Nexus version. The registry is now populated for ALL install paths: `syncInstalledModRegistry` reads the Nexus version from the cached `nexusModExtras` map (keyed by Nexus mod id) on every scan, regardless of how the mod landed on disk.
+- **`nexusVersion` lost on update** — when `syncInstalledModRegistry` detected a version change (re-install/update), it rebuilt the `InstalledModRecord` without carrying over the previously reconciled `nexusVersion`, silently dropping it back to `nil` and re-introducing the false-positive flag on the next check. The record now preserves (or refreshes) the known Nexus version across updates.
+- **`recordInstalledModNexusVersion` no-op when entry missing** — the function silently returned if the folder wasn't yet in the registry, which could happen when it was called right after an install but before the first scan completed. It now creates the entry instead of bailing.
+
 ### Added
 - **`NexusRequestBuilder`** — single source of truth for Nexus API URL request construction (`apiBase`, `gameDomain`, `appName`, `appVersion` from bundle, `userAgent`).
 - **`UDKey`** — centralized `UserDefaults` keys (public enum).

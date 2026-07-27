@@ -2125,16 +2125,16 @@ class StarHubTHViewModel: ObservableObject {
         NexusUpdateChecker.shared.dismissUpdate(nexusModId: idStr)
     }
 
-    /// After a Nexus-sourced install, record the Nexus version the update
-    /// checker flags on for this mod. Some mod authors forget to bump the
-    /// manifest Version field, so the installed manifest can show an older
-    /// version than what Nexus reports — causing a permanent false-positive
-    /// update flag. Instead of rewriting the manifest.json on disk (which is
-    /// fragile and unexpected by the user), we store the known Nexus version
-    /// in the registry. The checker then uses it to decide whether the mod is
-    /// actually up to date.
+    /// After a Nexus-sourced install, log the version reconciliation outcome
+    /// for the just-installed mod. Some mod authors forget to bump the manifest
+    /// Version field, so the installed manifest can show an older version than
+    /// what Nexus reports — the registry now carries the authoritative Nexus
+    /// version (written by `syncInstalledModRegistry` from `nexusModExtras`,
+    /// which covers ALL install paths). This method adds an explicit log line
+    /// and writes the value again as a belt-and-suspenders (it is idempotent).
     ///
-    /// Must run BEFORE `dismissNexusUpdate` removes the entry.
+    /// Must run BEFORE `dismissNexusUpdate` removes the entry (this method
+    /// reads it to extract the version the checker flagged on).
     /// v1: single-mod installs only (packs are skipped upstream).
     func reconcileManifestVersion(installedFolderPaths: [String]) {
         guard let source = pendingNexusSource else { return }
@@ -2314,7 +2314,15 @@ class StarHubTHViewModel: ObservableObject {
     /// instead of the manifest's value.
     func recordInstalledModNexusVersion(folderName: String, nexusVersion: String) {
         var registry = Self.loadInstalledModRegistry()
-        guard var existing = registry[folderName] else { return }
+        // Create the entry if it doesn't exist yet — `syncInstalledModRegistry`
+        // runs at the end of every scan so the entry would normally already
+        // be there, but this guard makes the function safe to call between
+        // scans (e.g. right after an install, before the first refresh).
+        var existing = registry[folderName] ?? InstalledModRecord(
+            version: "",
+            installedAt: Date(),
+            nexusVersion: nil
+        )
         existing.nexusVersion = nexusVersion
         registry[folderName] = existing
         Self.saveInstalledModRegistry(registry)
@@ -2343,6 +2351,16 @@ class StarHubTHViewModel: ObservableObject {
             mod.isGroup ? (mod.children ?? []) : [mod]
         }
 
+        // Snapshot of the Nexus "extras" cache (version + upload date for
+        // every mod id we've ever queried). Used to populate `nexusVersion`
+        // for every mod that declares a Nexus id — regardless of HOW it was
+        // installed (Nexus in-app download, nxm:// deep link, drag-and-drop,
+        // or manual folder copy). Without this, only the in-app Nexus flow
+        // (`reconcileManifestVersion`) populated `nexusVersion`, so mods
+        // whose author forgot to bump the manifest Version were permanently
+        // re-flagged as updatable when installed by any other path.
+        let extrasSnapshot = nexusModExtras
+
         // One-shot migration: wipe any pre-existing registry that was built
         // with stale folder mtimes (from the v1 implementation or from mods
         // registered before the Date()-always fix). This forces every entry
@@ -2364,12 +2382,41 @@ class StarHubTHViewModel: ObservableObject {
             let key = mod.folderName
             seenFolders.insert(key)
 
-            if let existing = registry[key] {
-                // Version changed since last scan → this is an update; stamp NOW.
-                if existing.version != mod.version {
-                    registry[key] = InstalledModRecord(version: mod.version, installedAt: Date())
+            // Resolve the Nexus version for this mod from the extras cache.
+            // Empty/whitespace-only values are normalized to nil so we don't
+            // store a sentinel that the comparator would have to special-case.
+            // `nexusModId` is the manifest's `nexus:<id>` (or a user override
+            // stored elsewhere); both route through the same `extrasSnapshot`
+            // keyed by Nexus mod id.
+            let nexusId = effectiveNexusModId(for: mod)
+            let knownNexusVersion = (nexusId.isEmpty ? nil
+                : extrasSnapshot[nexusId]?.version)?.flatMap { v in
+                    v.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : v
                 }
-                // Same version → keep the existing record unchanged.
+
+            if let existing = registry[key] {
+                // Version changed since last scan → this is an update; stamp
+                // NOW. Crucially, carry over (or refresh) `nexusVersion` so a
+                // re-install doesn't drop the previously reconciled value and
+                // re-introduce a false-positive update flag.
+                if existing.version != mod.version {
+                    registry[key] = InstalledModRecord(
+                        version: mod.version,
+                        installedAt: Date(),
+                        nexusVersion: knownNexusVersion ?? existing.nexusVersion
+                    )
+                } else {
+                    // Same version → refresh `nexusVersion` if we just learned
+                    // one (e.g. first Nexus check after a manual install) but
+                    // leave version/installedAt untouched.
+                    if let nv = knownNexusVersion, nv != existing.nexusVersion {
+                        registry[key] = InstalledModRecord(
+                            version: existing.version,
+                            installedAt: existing.installedAt,
+                            nexusVersion: nv
+                        )
+                    }
+                }
             } else {
                 // New mod (not in registry): always record with NOW. We
                 // intentionally do NOT use the folder mtime — `copyItem`
@@ -2380,7 +2427,8 @@ class StarHubTHViewModel: ObservableObject {
                 // one), so NOW is the most accurate available timestamp.
                 registry[key] = InstalledModRecord(
                     version: mod.version,
-                    installedAt: Date()
+                    installedAt: Date(),
+                    nexusVersion: knownNexusVersion
                 )
             }
         }
