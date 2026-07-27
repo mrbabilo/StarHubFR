@@ -863,34 +863,42 @@ struct UpdatesView: View {
 
                                 Spacer()
 
-                                if let nexusId = Int(update.nexusModId) {
-                                    Button {
-                                        vm.downloadModFromNexus(nexusId: nexusId)
-                                    } label: {
-                                        Label(vm.L(L10n.Mods.premiumUpdate), systemImage: "arrow.down.circle")
+                                if let nexusId = Int(update.nexusModId),
+                                   vm.downloadingNexusModId == nexusId {
+                                    ProgressView()
+                                        .controlSize(.small)
+                                        .help(vm.L(L10n.VM.nexusDlStarting).replacingOccurrences(of: "%lld", with: String(nexusId)))
+                                } else {
+                                    if let nexusId = Int(update.nexusModId) {
+                                        Button {
+                                            vm.downloadModFromNexus(nexusId: nexusId)
+                                        } label: {
+                                            Label(vm.L(L10n.Mods.premiumUpdate), systemImage: "arrow.down.circle")
+                                        }
+                                        .buttonStyle(.bordered)
+                                        .disabled(vm.isDownloadingFromNexus)
                                     }
-                                    .buttonStyle(.bordered)
+
+                                    Button {
+                                        // Open the mod's Files tab directly, where the free
+                                        // "Mod Manager Download" (nxm://) button lives.
+                                        if var comps = URLComponents(string: update.url) {
+                                            comps.queryItems = (comps.queryItems ?? []) + [URLQueryItem(name: "tab", value: "files")]
+                                            if let url = comps.url { NSWorkspace.shared.open(url) }
+                                        }
+                                    } label: {
+                                        Text(vm.L(L10n.Mods.nexusUpdate))
+                                            .font(.system(size: 12, weight: .medium))
+                                            .foregroundColor(.primary)
+                                            .padding(.horizontal, 14)
+                                            .padding(.vertical, 6)
+                                            .background(Color.primary.opacity(0.1))
+                                            .cornerRadius(6)
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
+                                    .pointingHandCursor()
                                     .disabled(vm.isDownloadingFromNexus)
                                 }
-
-                                Button {
-                                    // Open the mod's Files tab directly, where the free
-                                    // "Mod Manager Download" (nxm://) button lives.
-                                    if var comps = URLComponents(string: update.url) {
-                                        comps.queryItems = (comps.queryItems ?? []) + [URLQueryItem(name: "tab", value: "files")]
-                                        if let url = comps.url { NSWorkspace.shared.open(url) }
-                                    }
-                                } label: {
-                                    Text(vm.L(L10n.Mods.nexusUpdate))
-                                        .font(.system(size: 12, weight: .medium))
-                                        .foregroundColor(.primary)
-                                        .padding(.horizontal, 14)
-                                        .padding(.vertical, 6)
-                                        .background(Color.primary.opacity(0.1))
-                                        .cornerRadius(6)
-                                }
-                                .buttonStyle(PlainButtonStyle())
-                                .pointingHandCursor()
                             }
                             .padding(.vertical, 8)
                             .padding(.horizontal, 12)

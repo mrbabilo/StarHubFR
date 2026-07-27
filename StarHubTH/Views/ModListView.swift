@@ -6,6 +6,15 @@ enum ModFilter: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+/// Three-state French-translation filter: off (all mods), only mods that ship
+/// an `fr` i18n file, or only mods that don't. Matches `ModItem.languages`
+/// (lowercased codes from the mod's `i18n/` folder).
+enum FrenchTranslationScope: Equatable {
+    case off
+    case available   // ships an i18n/fr.json
+    case missing     // no i18n/fr.json
+}
+
 /// Scope for the category-filter menu: show everything, scope to one Nexus
 /// category, or scope to mods with no category assigned. A single enum
 /// (rather than `NexusCategory?` plus a separate boolean) keeps these three
@@ -49,6 +58,9 @@ struct ModListView: View {
     /// that have a `config.json`. Combines with the category/scope filters —
     /// AND semantics, same as every other filter in `filteredMods`.
     @State private var configOnlyFilter: Bool = false
+    /// Three-state French-translation filter (see `FrenchTranslationScope`).
+    /// Combines with every other filter — AND semantics.
+    @State private var frenchTranslationFilter: FrenchTranslationScope = .off
     /// Current page for the paginated mod list (1-based). Reset to 1 whenever
     /// the search text, scope filter, or category filter changes.
     @State private var currentPage: Int = 1
@@ -113,6 +125,17 @@ struct ModListView: View {
             }
             .filter { mod in
                 !configOnlyFilter || matchesSelfOrAnyChild(mod) { $0.hasConfigFile }
+            }
+            .filter { mod in
+                switch frenchTranslationFilter {
+                case .off:
+                    return true
+                case .available:
+                    // A group matches if any child ships an fr translation.
+                    return matchesSelfOrAnyChild(mod) { $0.languages.contains("fr") }
+                case .missing:
+                    return !matchesSelfOrAnyChild(mod) { $0.languages.contains("fr") }
+                }
             }
             .sorted { lhs, rhs in
                 switch selectedSort {
@@ -351,6 +374,8 @@ struct ModListView: View {
                     Divider()
                         .frame(height: 16)
 
+                    frenchTranslationPicker
+
                     categoryPicker(categories: categories, uncatCount: uncatCount, tagBuckets: tagBuckets)
                         .disabled(categories.isEmpty && uncatCount == 0 && tagBuckets.isEmpty)
                         .help(categories.isEmpty && uncatCount == 0 && tagBuckets.isEmpty
@@ -465,6 +490,7 @@ struct ModListView: View {
         .onChange(of: selectedFilter)   { _, _ in currentPage = 1 }
         .onChange(of: selectedCategory) { _, _ in currentPage = 1 }
         .onChange(of: configOnlyFilter) { _, _ in currentPage = 1 }
+        .onChange(of: frenchTranslationFilter) { _, _ in currentPage = 1 }
         .onChange(of: vm.mods.count)    { _, _ in currentPage = 1 }
         .sheet(isPresented: $showInstallSheet) {
             ModInstallView(vm: vm, isPresented: $showInstallSheet)
@@ -616,38 +642,30 @@ struct ModListView: View {
     /// list's default (already-alphabetical) order; `.activationOrder`
     /// sorts by `vm.modActivationTimestamps`; `.installDate` sorts by
     /// `installedFileDate` (folder mod date), most recent first.
+    /// `sortItem` shows a checkmark on the currently active option so the
+    /// user can see which sort is applied without scanning the chip label.
+    @ViewBuilder
+    private func sortItem(_ order: ModSortOrder, label: String, icon: String) -> some View {
+        let active = selectedSort == order
+        Button {
+            selectedSort = order
+        } label: {
+            if active {
+                Label(vm.L(label), systemImage: "checkmark")
+            } else {
+                Label(vm.L(label), systemImage: icon)
+            }
+        }
+    }
+
     private var sortPicker: some View {
         Menu {
-            Button {
-                selectedSort = .name
-            } label: {
-                Label(vm.L(L10n.Mods.sortName), systemImage: "textformat")
-            }
-            Button {
-                selectedSort = .nameDescending
-            } label: {
-                Label(vm.L(L10n.Mods.sortNameDescending), systemImage: "textformat.size.larger")
-            }
-            Button {
-                selectedSort = .activationOrder
-            } label: {
-                Label(vm.L(L10n.Mods.sortActivationOrder), systemImage: "clock.arrow.circlepath")
-            }
-            Button {
-                selectedSort = .installDate
-            } label: {
-                Label(vm.L(L10n.Mods.sortInstallDate), systemImage: "calendar.badge.clock")
-            }
-            Button {
-                selectedSort = .author
-            } label: {
-                Label(vm.L(L10n.Mods.sortAuthor), systemImage: "person")
-            }
-            Button {
-                selectedSort = .version
-            } label: {
-                Label(vm.L(L10n.Mods.sortVersion), systemImage: "number")
-            }
+            sortItem(.name, label: L10n.Mods.sortName, icon: "arrow.up.arrow.down")
+            sortItem(.nameDescending, label: L10n.Mods.sortNameDescending, icon: "arrow.down.arrow.up")
+            sortItem(.activationOrder, label: L10n.Mods.sortActivationOrder, icon: "clock.arrow.circlepath")
+            sortItem(.installDate, label: L10n.Mods.sortInstallDate, icon: "calendar")
+            sortItem(.author, label: L10n.Mods.sortAuthor, icon: "person.fill")
+            sortItem(.version, label: L10n.Mods.sortVersion, icon: "tag")
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: "arrow.up.arrow.down")
@@ -716,6 +734,70 @@ struct ModListView: View {
         }
         .buttonStyle(PlainButtonStyle())
         .help(vm.L(L10n.Mods.configFilterLabel))
+    }
+
+    // MARK: - French-translation filter picker
+
+    /// Three-state menu scoping the list to mods that ship (or don't ship) an
+    /// `i18n/fr.json` translation file. Same chip visual family as the
+    /// config-only toggle and the category picker.
+    private var frenchTranslationPicker: some View {
+        let isActive = frenchTranslationFilter != .off
+        let label: String = {
+            switch frenchTranslationFilter {
+            case .off:       return vm.L(L10n.Mods.frTranslationFilterLabel)
+            case .available: return vm.L(L10n.Mods.frTranslationAvailable)
+            case .missing:   return vm.L(L10n.Mods.frTranslationMissing)
+            }
+        }()
+        let icon: String = {
+            switch frenchTranslationFilter {
+            case .off:       return "character.bubble"
+            case .available: return "checkmark.bubble"
+            case .missing:   return "xmark.bubble"
+            }
+        }()
+        return Menu {
+            Button {
+                frenchTranslationFilter = .off
+            } label: {
+                Label(vm.L(L10n.Mods.frTranslationFilterLabel), systemImage: "character.bubble")
+            }
+            Button {
+                frenchTranslationFilter = .available
+            } label: {
+                Label(vm.L(L10n.Mods.frTranslationAvailable), systemImage: "checkmark.bubble")
+            }
+            Button {
+                frenchTranslationFilter = .missing
+            } label: {
+                Label(vm.L(L10n.Mods.frTranslationMissing), systemImage: "xmark.bubble")
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(AppDesign.Font.footnote)
+                Text(label)
+                    .font(AppDesign.Font.caption(.medium))
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundColor(.secondary)
+            }
+            .foregroundColor(isActive ? Color.accentColor : .primary)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(
+                RoundedRectangle(cornerRadius: AppDesign.Radius.sm)
+                    .fill(isActive ? Color.accentColor.opacity(AppDesign.Opacity.medium) : Color.secondary.opacity(AppDesign.Opacity.light))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: AppDesign.Radius.sm)
+                    .stroke(isActive ? Color.accentColor.opacity(0.4) : Color.secondary.opacity(AppDesign.Opacity.medium), lineWidth: 0.5)
+            )
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+        .help(vm.L(L10n.Mods.frTranslationFilterLabel))
     }
 
     /// Full-screen overlay shown while a bulk enable/disable-all operation is
@@ -974,6 +1056,51 @@ struct ModListRow: View {
     /// (before `vm.mods` catches up).
     private var effectiveEnabled: Bool { localIsOn ?? mod.isEnabled }
 
+    /// Compact metadata strip shown under the category/author/version line:
+    /// languages (FR highlighted), last-update date, install date. Returns nil
+    /// when nothing is known so no empty row is rendered. Uses relative dates
+    /// (short form) to keep the line scannable; full dates live in the detail
+    /// pane.
+    private var rowMetadataLine: AnyView? {
+        let updated = vm.nexusLastUpdated(for: mod)
+        let installed = mod.installedFileDate
+        let langs = mod.languages
+        guard updated != nil || installed != nil || !langs.isEmpty else { return nil }
+        return AnyView(
+            HStack(spacing: 6) {
+                if !langs.isEmpty {
+                    Image(systemName: "globe")
+                        .font(.system(size: 9))
+                    Text(langs.map { $0.uppercased() }.joined(separator: " "))
+                    // Highlight FR availability so the translation filter is
+                    // cross-checkable at a glance on every row.
+                    if langs.contains("fr") {
+                        Text(vm.L(L10n.Mods.frTranslationAvailable))
+                            .foregroundColor(.green.opacity(0.9))
+                    }
+                    if updated != nil || installed != nil {
+                        Text("•")
+                            .foregroundColor(.secondary.opacity(AppDesign.Opacity.disabled))
+                    }
+                }
+                if let updated {
+                    Image(systemName: "clock.arrow.circlepath")
+                        .font(.system(size: 9))
+                    Text(updated.formatted(.relative(presentation: .named)))
+                    if installed != nil {
+                        Text("•")
+                            .foregroundColor(.secondary.opacity(AppDesign.Opacity.disabled))
+                    }
+                }
+                if let installed {
+                    Image(systemName: "tray.and.arrow.down")
+                        .font(.system(size: 9))
+                    Text(installed.formatted(date: .abbreviated, time: .omitted))
+                }
+            }
+        )
+    }
+
     var body: some View {
         HStack(spacing: 0) {
 
@@ -1066,6 +1193,13 @@ struct ModListRow: View {
                             .font(AppDesign.Font.footnote)
                             .foregroundColor(.secondary.opacity(0.85))
                     }
+                }
+                // Compact metadata strip: languages + dates. Only shown when
+                // at least one value is known, to avoid an empty row.
+                if let metaLine = rowMetadataLine {
+                    metaLine
+                        .font(AppDesign.Font.caption)
+                        .foregroundColor(.secondary.opacity(0.8))
                 }
                 let missingDeps = vm.getMissingDependencies(for: mod)
                 let disabledDeps = vm.getDisabledDependencies(for: mod)

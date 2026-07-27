@@ -147,6 +147,10 @@ class StarHubTHViewModel: ObservableObject {
     /// so the post-install step can reconcile the manifest version.
     @Published var pendingNexusSource: NexusInstallSource?
     @Published var isDownloadingFromNexus = false
+    /// Nexus mod id of the mod currently being downloaded, or nil when idle.
+    /// Drives the per-row spinner in the Updates list while a premium update
+    /// is in flight (isDownloadingFromNexus only tells "one is running").
+    @Published var downloadingNexusModId: Int? = nil
     private let nexusDownloader = NexusDownloader()
 
     /// Rich detail state for the mod currently shown in the detail pane
@@ -2176,6 +2180,7 @@ class StarHubTHViewModel: ObservableObject {
             return
         }
         isDownloadingFromNexus = true
+        downloadingNexusModId = link.modId
         log(String(format: L(L10n.VM.nexusDlStarting), link.modId))
         nexusDownloader.download(modId: link.modId, fileId: link.fileId, game: link.gameDomain,
                                  key: link.key, expires: link.expires) { [weak self] result in
@@ -2187,6 +2192,7 @@ class StarHubTHViewModel: ObservableObject {
     /// Premium required for a direct link). fileId nil → main file resolved.
     func downloadModFromNexus(nexusId: Int) {
         isDownloadingFromNexus = true
+        downloadingNexusModId = nexusId
         log(String(format: L(L10n.VM.nexusDlStarting), nexusId))
         nexusDownloader.download(modId: nexusId, fileId: nil, game: "stardewvalley",
                                  key: nil, expires: nil) { [weak self] result in
@@ -2201,6 +2207,7 @@ class StarHubTHViewModel: ObservableObject {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             self.isDownloadingFromNexus = false
+            self.downloadingNexusModId = nil
             switch result {
             case .success(let zipURL):
                 self.pendingDownloadedZip = zipURL

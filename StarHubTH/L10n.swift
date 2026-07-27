@@ -186,6 +186,13 @@ enum L10n {
         static let sortAuthor           = "mods_sort_author"
         static let sortVersion          = "mods_sort_version"
         static let configFilterLabel    = "mods_config_filter_label"
+        static let translationFilterLabel = "mods_translation_filter_label"
+        static let frTranslationFilterLabel = "mods_fr_translation_filter_label"
+        static let frTranslationAvailable  = "mods_fr_translation_available"
+        static let frTranslationMissing    = "mods_fr_translation_missing"
+        static let rowLanguages         = "mods_row_languages"
+        static let rowLastUpdated       = "mods_row_last_updated"
+        static let rowInstalledOn       = "mods_row_installed_on"
         static let premiumUpdate        = "mods_premium_update"
         static let nexusUpdate          = "mods_nexus_update"
         // Nexus category filter

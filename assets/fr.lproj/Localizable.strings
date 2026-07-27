@@ -391,6 +391,13 @@
 "mods_sort_author" = "Auteur";
 "mods_sort_version" = "Version";
 "mods_config_filter_label" = "Avec configuration";
+"mods_translation_filter_label" = "Traduction";
+"mods_fr_translation_filter_label" = "Trad. FR";
+"mods_fr_translation_available" = "FR disponible";
+"mods_fr_translation_missing" = "Pas de FR";
+"mods_row_languages" = "Langues";
+"mods_row_last_updated" = "MàJ";
+"mods_row_installed_on" = "Installé";
 "mods_premium_update" = "MàJ Premium";
 "mods_nexus_update" = "MàJ Nexus";
 "mods_category_filter" = "Catégorie";
