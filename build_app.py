@@ -134,6 +134,14 @@ def create_app_bundle():
         shutil.copy2(app_icon_path, os.path.join(RESOURCES_DIR, "AppIcon.icns"))
         print("[INFO] Copied AppIcon.icns to App Resources")
 
+    # Cover artwork used as the launch overlay background (see MainView's
+    # launchBackgroundImage). Bundled so the overlay can find it at runtime
+    # via Bundle.main.resourceURL without depending on the source tree.
+    cover_path = "assets/nexus_cover_final.png"
+    if os.path.exists(cover_path):
+        shutil.copy2(cover_path, os.path.join(RESOURCES_DIR, "nexus_cover_final.png"))
+        print("[INFO] Copied nexus_cover_final.png to App Resources")
+
     changelog_path = "CHANGELOG.md"
     if os.path.exists(changelog_path):
         shutil.copy2(changelog_path, os.path.join(RESOURCES_DIR, "CHANGELOG.md"))

@@ -348,26 +348,89 @@ struct MainView: View {
     
     /// Full-window launch overlay shown while the initial mod scan + profile
     /// load is in flight (`vm.isLaunching`). Blocks interaction so the user
-    /// can't act on a half-populated list, and gives immediate feedback that
-    /// the app is working — same visual family as ModListView's bulk-toggle
-    /// overlay (material card + ProgressView + caption).
+    /// can't act on a half-populated list. Shows a determinate progress bar
+    /// + a localized step label (scanning mods, loading saves, etc.) on top
+    /// of the project's cover artwork — much more informative than the old
+    /// indeterminate spinner.
     private var launchOverlay: some View {
         ZStack {
-            Color(nsColor: .windowBackgroundColor)
-                .ignoresSafeArea()
-            VStack(spacing: 16) {
-                ProgressView()
-                    .controlSize(.large)
-                    .tint(.accentColor)
-                Text(vm.L(L10n.Main.launching))
-                    .font(AppDesign.Font.body(.medium))
-                    .foregroundColor(.secondary)
+            // Background artwork. The cover image is bundled as a resource
+            // (see build_app.py). If absent (e.g. running outside a bundle,
+            // in a unit-test target, or before the asset is copied), we fall
+            // back to the plain window background color so the overlay never
+            // renders an empty rectangle.
+            if let bg = launchBackgroundImage {
+                Image(nsImage: bg)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .ignoresSafeArea()
+            } else {
+                Color(nsColor: .windowBackgroundColor)
+                    .ignoresSafeArea()
             }
-            .padding(32)
+
+            // Subtle dark scrim so the white progress text is readable over
+            // any cover art.kept very light so the artwork still shows.
+            Color.black.opacity(0.35)
+                .ignoresSafeArea()
+
+            VStack(spacing: 20) {
+                Spacer()
+
+                // App identity — centered title at the top of the artwork.
+                VStack(spacing: 4) {
+                    Text("StarHubFR")
+                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                        .shadow(color: .black.opacity(0.6), radius: 4)
+                    Text(vm.L(L10n.Main.launching))
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.white.opacity(0.85))
+                        .shadow(color: .black.opacity(0.6), radius: 3)
+                }
+
+                Spacer()
+
+                // Progress block — anchored to the bottom third of the cover
+                // so it reads as a "loading strip" rather than a centered
+                // modal. Determinate bar with the current step as caption.
+                VStack(spacing: 10) {
+                    ProgressView(value: vm.launchProgress)
+                        .progressViewStyle(.linear)
+                        .tint(.white)
+                        .frame(maxWidth: 360)
+                        .scaleEffect(y: 2)
+                        .shadow(color: .black.opacity(0.5), radius: 3)
+
+                    Text(vm.launchStep.isEmpty ? vm.L(L10n.Main.launching) : vm.launchStep)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.white)
+                        .shadow(color: .black.opacity(0.6), radius: 3)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+                .padding(.bottom, 60)
+            }
+            .padding(.horizontal, 40)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .transition(.opacity)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(vm.L(L10n.Main.launching))
+    }
+
+    /// Cached cover artwork. Loaded once from the app bundle's Resources
+    /// directory (`nexus_cover_final.png`) — bundled by `build_app.py`. Nil
+    /// when the file is missing (dev runs without a bundle, unit tests).
+    private var launchBackgroundImage: NSImage? {
+        // Bundle.main.resourceURL points to MyApp.app/Contents/Resources in a
+        // packaged app. The image lives there alongside AppIcon.icns.
+        if let url = Bundle.main.resourceURL?
+            .appendingPathComponent("nexus_cover_final.png"),
+           let img = NSImage(contentsOf: url) {
+            return img
+        }
+        return nil
     }
 
     var colorScheme: ColorScheme? {

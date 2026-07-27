@@ -14,6 +14,15 @@ enum L10n {
         static let launchingGame        = "main_launching_game"
         static let launchGame           = "main_launch_game"
         static let launching            = "main_launching"
+        // Granular launch step labels — surfaced in the launch overlay so the
+        // user sees what the app is doing instead of an indeterminate spinner.
+        static let launchStepInit         = "main_launch_step_init"
+        static let launchStepRegistry     = "main_launch_step_registry"
+        static let launchStepScan         = "main_launch_step_scan"
+        static let launchStepSaves        = "main_launch_step_saves"
+        static let launchStepProfile      = "main_launch_step_profile"
+        static let launchStepNexus        = "main_launch_step_nexus"
+        static let launchStepDone         = "main_launch_step_done"
         static let alert                = "main_alert"
         static let ok                   = "main_ok"
         static let home                 = "main_home"

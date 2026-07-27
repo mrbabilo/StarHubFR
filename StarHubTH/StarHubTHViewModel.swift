@@ -270,6 +270,13 @@ class StarHubTHViewModel: ObservableObject {
     /// load). Drives the launch spinner overlay in `MainView` so the user sees
     /// immediate feedback before the first mod list is ready.
     @Published var isLaunching: Bool = true
+    /// Granular progress for the launch overlay, 0.0 → 1.0. Drives a
+    /// determinate progress bar instead of an indeterminate spinner, so the
+    /// user sees exactly where the app is in its startup sequence.
+    @Published var launchProgress: Double = 0.0
+    /// Localized label of the current launch step (e.g. "Scanning mods…").
+    /// Updated atomically with `launchProgress` from `performInitialLoad`.
+    @Published var launchStep: String = ""
     @Published var mods: [ModItem] = [] {
         didSet { categoryCache.removeAll() }
     }
@@ -435,29 +442,54 @@ class StarHubTHViewModel: ObservableObject {
         } else {
             self.gameDir = self.detectDefaultGameDir()
         }
-        self.performInitialLoad()   // launches the spinner-tracked first load
-        self.loadProfiles()
-        if self.steamUsername.isEmpty {
-            self.steamUsername = L(L10n.VM.defaultFarmerName)
+        // Seed the first launch step label synchronously so the overlay never
+        // shows an empty string before the first async hop lands.
+        self.launchStep = self.L(L10n.Main.launchStepInit)
+        // IMPORTANT: everything below `performInitialLoad()` runs on a
+        // background thread; this `init()` returns as fast as possible so the
+        // app window can render the launch overlay without waiting for any
+        // JSON decode, file I/O, or cache seeding. The old init blocked the
+        // main thread on ~6 UserDefaults decodes + a pack-consolidation pass
+        // before the window could appear — visibly slow on cold launches.
+        self.performInitialLoad()   // launches the overlay-tracked first load
+    }
+
+    /// Seeds the UI with the last-known Nexus data (cached from the previous
+    /// session) plus user overrides. Moved out of `init()` so the window can
+    /// render the launch overlay immediately; this runs on the background
+    /// launch task and publishes each @Published value on the main thread.
+    /// All these caches are non-blocking for the first frame: the sidebar
+    /// and home tab don't need them, and the mods list catches up the moment
+    /// the Nexus data lands.
+    private func seedNexusAndUserData() {
+        // Keychain lookup — light, but it's still a round-trip to the security
+        // daemon, so we avoid it during the time-critical init.
+        let hasKey = NexusUpdateChecker.shared.apiKey()?.isEmpty == false
+        // Three UserDefaults-backed JSON decodes. Each one independently parses
+        // a blob; running them together here (rather than one-by-one on demand)
+        // front-loads the work so later UI hits are cache-fast.
+        let updates = NexusUpdateChecker.shared.cachedUpdates()
+        let categories = NexusUpdateChecker.shared.cachedCategories()
+        let extras = NexusUpdateChecker.shared.cachedExtras()
+        // User-saved overrides (per-mod custom categories / Nexus id links /
+        // activation timestamps). Small dicts, but still UserDefaults I/O.
+        let customCats = Self.loadCustomCategories()
+        let customIds = Self.loadCustomModIds()
+        let activationTs = Self.loadModActivationTimestamps()
+        // Pack consolidation is a pure in-memory pass over `updates`; cheap,
+        // but no reason to run it on the main thread during init.
+        let consolidated = consolidateUpdatesByPack(updates)
+
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.hasNexusApiKey = hasKey
+            self.nexusUpdates = consolidated
+            self.nexusCategories = categories
+            self.nexusModExtras = extras
+            self.nexusCustomCategories = customCats
+            self.nexusCustomModIds = customIds
+            self.modActivationTimestamps = activationTs
         }
-        // Startup marker — confirms LogsView is receiving entries
-        log("StarHubTH started", level: .info)
-        self.hasNexusApiKey = NexusUpdateChecker.shared.apiKey()?.isEmpty == false
-        // Seed the UI with the last known update list (if any) so the Updates
-        // tab isn't blank on first launch after a previous check. Consolidate
-        // per-pack here too — the checker caches the flat list (one row per
-        // child) and we want the pack roll-up on launch as well.
-        self.nexusUpdates = self.consolidateUpdatesByPack(NexusUpdateChecker.shared.cachedUpdates())
-        // Seed the category map so the mods-list filter is usable immediately.
-        self.nexusCategories = NexusUpdateChecker.shared.cachedCategories()
-        // Seed the extras map so the popover preview is usable immediately.
-        self.nexusModExtras = NexusUpdateChecker.shared.cachedExtras()
-        // Load user-defined category + Nexus mod id overrides (manual edits made
-        // from the mods list). Stored outside the checker since they are per-mod
-        // user preferences, not API results.
-        self.nexusCustomCategories = Self.loadCustomCategories()
-        self.nexusCustomModIds = Self.loadCustomModIds()
-        self.modActivationTimestamps = Self.loadModActivationTimestamps()
     }
     
     func detectDefaultGameDir() -> String {
@@ -540,23 +572,94 @@ class StarHubTHViewModel: ObservableObject {
         self.checkSmapiVersion()
     }
 
-    /// First-launch load tracked by the `isLaunching` spinner. Mirrors
-    /// `refresh()` but flips `isLaunching` to `false` once the background
-    /// scan has finished AND published its results on the main thread, so the
-    /// spinner overlay stays up exactly until the first mod list is ready.
+    /// First-launch load tracked by the launch overlay. Mirrors `refresh()`
+    /// but publishes a granular progress (0.0 → 1.0) + a localized step label
+    /// so the user sees what the app is doing instead of an indeterminate
+    /// spinner. Flips `isLaunching` to `false` once the background scan has
+    /// finished AND published its results on the main thread, so the overlay
+    /// stays up exactly until the first mod list is ready.
+    ///
+    /// Step weights are rough heuristics — the goal is visible progress, not
+    /// precise timing. Heavy filesystem ops (scanMods) get the biggest slice.
     private func performInitialLoad() {
+        // Step 0 — "Initializing": caches already seeded synchronously in
+        // init (game dir, Nexus caches). Just publish the first frame.
+        DispatchQueue.main.async { [weak self] in
+            self?.launchStep = self?.L(L10n.Main.launchStepInit) ?? ""
+            self?.launchProgress = 0.05
+        }
+
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self else { return }
+
+            // Step 1 — Registry: warm the in-memory cache once. This is the
+            // single JSON decode from UserDefaults that every subsequent
+            // read depends on. Cheap (cached after this), but explicit so
+            // the user knows the registry is part of the startup cost.
+            DispatchQueue.main.async { [weak self] in
+                self?.launchStep = self?.L(L10n.Main.launchStepRegistry) ?? ""
+                self?.launchProgress = 0.15
+            }
+            _ = self.loadInstalledModRegistry()
+
+            // Step 2 — Scanning mods: the big one. Walks the game's Mods/
+            // and Mods_disabled/ folders, parses every manifest.json, builds
+            // groups, syncs the registry. Published mutations land on main
+            // inside scanMods() itself.
+            DispatchQueue.main.async { [weak self] in
+                self?.launchStep = self?.L(L10n.Main.launchStepScan) ?? ""
+                self?.launchProgress = 0.25
+            }
             self.scanMods()
+
+            // Step 3 — Saves: read & parse the user's save XML files. Can be
+            // slow when many saves exist.
+            DispatchQueue.main.async { [weak self] in
+                self?.launchStep = self?.L(L10n.Main.launchStepSaves) ?? ""
+                self?.launchProgress = 0.70
+            }
             self.reloadSaves()
+
+            // Step 4 — Steam user identity (lightweight NSUserName call) +
+            // profiles (UserDefaults decode) + Nexus caches / overrides.
+            // Grouped here because they don't block the mod list and can run
+            // concurrently with the UI work that scanMods already published.
+            DispatchQueue.main.async { [weak self] in
+                self?.launchStep = self?.L(L10n.Main.launchStepProfile) ?? ""
+                self?.launchProgress = 0.80
+            }
             self.fetchSteamUser()
-            // Hop back to main *after* scanMods() has published its own
-            // @Published mutations, so `isLaunching = false` lands on the
-            // same runloop turn as the freshly-populated `mods` array.
-            DispatchQueue.main.async {
-                self.isLaunching = false
+            self.loadProfiles()
+            if self.steamUsername.isEmpty {
+                DispatchQueue.main.async { [weak self] in
+                    self?.steamUsername = self?.L(L10n.VM.defaultFarmerName) ?? "Farmer"
+                }
+            }
+
+            // Step 4b — Seed the Nexus caches + user overrides (was blocking
+            // the window's first paint when it ran in init).
+            DispatchQueue.main.async { [weak self] in
+                self?.launchStep = self?.L(L10n.Main.launchStepNexus) ?? ""
+                self?.launchProgress = 0.90
+            }
+            self.seedNexusAndUserData()
+            // Startup marker — confirms LogsView is receiving entries.
+            self.log("StarHubTH started", level: .info)
+
+            // Step 5 — Done. Hop back to main *after* scanMods() has
+            // published its own @Published mutations, so `isLaunching = false`
+            // lands on the same runloop turn as the freshly-populated `mods`
+            // array. Animate the bar to 100% then dismiss.
+            DispatchQueue.main.async { [weak self] in
+                self?.launchStep = self?.L(L10n.Main.launchStepDone) ?? ""
+                self?.launchProgress = 1.0
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+                self?.isLaunching = false
             }
         }
+        // SMAPI version probe runs in parallel — it doesn't block the launch
+        // overlay because it doesn't gate anything the user sees first.
         self.checkSmapiVersion()
     }
     

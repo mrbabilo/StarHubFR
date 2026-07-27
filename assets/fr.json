@@ -591,5 +591,12 @@
   "mods_missing_dependencies_prefix": "Manquant :",
   "mods_search_nexus_by_mod_name": "Rechercher sur Nexus « %@ »",
   "mods_search_nexus_by_author": "Rechercher sur Nexus par auteur « %@ »",
-  "mod_install_recover_zip": "Essayez de retélécharger le mod ou vérifiez l'intégrité du fichier"
+  "mod_install_recover_zip": "Essayez de retélécharger le mod ou vérifiez l'intégrité du fichier",
+  "main_launch_step_init": "Initialisation…",
+  "main_launch_step_registry": "Chargement du registre…",
+  "main_launch_step_scan": "Analyse des mods…",
+  "main_launch_step_saves": "Chargement des sauvegardes…",
+  "main_launch_step_profile": "Chargement des profils…",
+  "main_launch_step_nexus": "Chargement des données Nexus…",
+  "main_launch_step_done": "Prêt"
 }

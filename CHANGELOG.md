@@ -7,7 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Determinate launch overlay with cover artwork** — the indeterminate spinner shown during cold launch is replaced by a full-window overlay using the project's `nexus_cover_final.png` as background, with the app name at the top and a linear progress bar + localized step label at the bottom. The bar advances through every startup phase so the user sees concrete progress instead of a generic "Loading…":
+  1. *Initializing…* (0–5%)
+  2. *Loading mod registry…* (5–15%) — warms the in-memory JSON cache
+  3. *Scanning mods…* (15–70%) — walks `Mods/` and `Mods_disabled/`, parses every manifest, syncs the registry
+  4. *Loading saves…* (70–80%)
+  5. *Loading profiles…* (80–90%) — also fetches the Steam user identity and seeds Nexus caches + user overrides
+  6. *Ready* (100%)
+  The cover image is bundled as a resource by `build_app.py` (no dependency on the source tree at runtime).
+
 ### Changed
+- **Faster time-to-first-paint** — `StarHubTHViewModel.init()` previously blocked the main thread on ~6 UserDefaults JSON decodes (Nexus updates / categories / extras caches, user overrides) plus a pack-consolidation pass, all before the app window could even appear. All that work now runs on the background launch task (`seedNexusAndUserData`), so the window renders the launch overlay immediately. The Nexus caches, user category overrides, activation timestamps, and profile list are seeded asynchronously and published on the main thread once ready.
 - **In-memory cache for the install registry** — `loadInstalledModRegistry` no longer re-decodes the ~100KB JSON blob from UserDefaults on every call. It now memoizes the registry in a thread-safe (NSLock-guarded) instance property, refreshed on every save. Since `effectiveVersion` calls `installedModNexusVersion` once per mod during each scan, this previously triggered 100+ full JSON decodes per scan (~10MB of decode churn). After the fix, the decode runs once per session.
 - **Install registry save skips no-op writes** — `syncInstalledModRegistry` now tracks a `didChange` flag and skips the JSON encode + double UserDefaults write when nothing actually changed (the common case of a plain refresh with no install, no delete, no version bump). `saveInstalledModRegistry` also encodes the blob exactly once instead of twice (the primary and backup share the same `Data`).
 - **Mod Updates sidebar entry always visible** — the "Mod Updates" item in the sidebar was previously hidden when there were zero pending updates, leaving no way to reach the tab to manually trigger a Nexus check. It is now always visible; the numeric badge is hidden when the count is 0.
