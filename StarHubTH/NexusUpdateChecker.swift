@@ -253,9 +253,27 @@ final class NexusUpdateChecker {
                 candidates.append((effectiveId(mod), mod.name, mod.version, mod.installedFileDate))
             }
         }
-        // De-duplicate by Nexus id (a pack may reference the same mod twice).
-        var seen = Set<String>()
-        candidates.removeAll { !seen.insert($0.modId).inserted }
+
+        // De-duplicate by Nexus id. A multi-mod pack (e.g. Swim Mod) ships
+        // several children that all reference the SAME Nexus mod id via
+        // `@variant` UpdateKeys (`Nexus:23169`, `Nexus:23169@SwimItems`, …).
+        // Each child has its OWN version (the SMAPI core at 1.9.0, a CP addon
+        // at 1.0.2, …). Keeping the first-encountered child (which sorts
+        // alphabetically — `[CP]` before `Swim`) would pick the lowest
+        // version and flag a permanent false-positive update. Instead, keep
+        // the candidate with the HIGHEST version per mod id — that's the one
+        // closest to the mod's main Nexus version.
+        var bestPerMod: [String: (modId: String, name: String, version: String, installedFileDate: Date?)] = [:]
+        for cand in candidates {
+            if let existing = bestPerMod[cand.modId] {
+                if Self.isNewer(cand.version, installed: existing.version) {
+                    bestPerMod[cand.modId] = cand
+                }
+            } else {
+                bestPerMod[cand.modId] = cand
+            }
+        }
+        candidates = bestPerMod.values.map { $0 }
         guard !candidates.isEmpty else {
             UserDefaults.standard.set(Date(), forKey: lastCheckKey)
             DispatchQueue.main.async {

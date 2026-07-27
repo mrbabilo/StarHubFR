@@ -39,6 +39,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Background-thread mutation of `@Published` properties** — the `lastRepairReport` from `ModFolderRepairer` is captured on the background scan thread and published on the main queue alongside `self.mods`.
 - **Manifest parsing parity for JSON5** — `ModFolderRepairer.collectUniqueIds` now matches the scanner's reading options (`.json5Allowed` on macOS 12+), so JSON5 manifests are not silently skipped by duplicate detection.
 - **Dead localization keys** — `quarantine_empty` and `logs_system_alerts_section` (unused) were pruned to maintain the 590-key parity contract between `en.json` and `fr.json`.
+- **Multi-mod pack false-positive updates** — `NexusUpdateChecker` de-duplication now keeps the candidate with the highest version per Nexus mod id, instead of the first alphabetically-encountered child. Multi-mod packs (e.g. Swim Mod) that share a Nexus id via `@variant` UpdateKeys no longer permanently flag a false-positive update because a lower-versioned child was selected.
+- **Stale manifest versions no longer cause false updates** — `parseModFolder` now resolves an `effectiveVersion` from the registry's recorded Nexus version when it is newer than the manifest's `Version`. Authors who forget to bump the manifest no longer cause permanent re-flagging, and the manifest.json is never rewritten.
+- **Registry stores Nexus version instead of patching manifest** — `reconcileManifestVersion` now records the Nexus version in the `installedModRegistry` rather than surgically editing the user's manifest.json. This removes fragility and unexpected disk writes while achieving the same anti-re-flagging behavior.
+- **Registry uses install time instead of folder mtime** — `syncInstalledModRegistry` now stamps new entries with `Date()` rather than the folder's modification date, which `FileManager.copyItem` preserves from the modder's archive packaging and would otherwise trigger a spurious same-version update.
+- **One-shot registry migration** — a `registryMigrationV2Done` flag wipes and rebuilds the install registry on first launch after this fix, so existing stale mtime-based entries are replaced with clean `Date()` timestamps and the false-positive cycle is broken exactly once.
 
 ## [1.7.1] - 2026-07-25
 

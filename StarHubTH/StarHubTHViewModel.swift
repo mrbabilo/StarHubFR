@@ -747,11 +747,26 @@ class StarHubTHViewModel: ObservableObject {
             }
         }
 
+            // Effective version: use the registry's Nexus version when it is
+            // newer than the manifest's. Some authors forget to bump the
+            // Version field, so the manifest is stale even after installing the
+            // latest file. By resolving here, every view in the app (mod list,
+            // detail pane, sort, search, etc.) displays the authoritative
+            // version without ever modifying the manifest.json on disk.
+            let effectiveVersion: String = {
+                if let nexusVer = installedModNexusVersion(for: resolvedFolderName),
+                   !nexusVer.isEmpty,
+                   NexusUpdateChecker.isNewer(nexusVer, installed: version) {
+                    return nexusVer
+                }
+                return version
+            }()
+
             return ModItem(
                 uniqueId: uniqueId,
                 name: name,
                 folderName: relativePath.isEmpty ? (path as NSString).lastPathComponent : relativePath,
-                version: version,
+                version: effectiveVersion,
                 author: author,
                 description: description,
                 nexusUrl: nexusUrl,
@@ -2118,13 +2133,16 @@ class StarHubTHViewModel: ObservableObject {
         NexusUpdateChecker.shared.dismissUpdate(nexusModId: idStr)
     }
 
-    /// After a Nexus-sourced install, reconcile the installed manifest against
-    /// the SAME "latest" the update checker flags on — the mod's pending
-    /// `ModUpdate` entry (mod version from `/mods/{id}.json`), NOT the
-    /// downloaded file's own version. The file version can differ (e.g. an
-    /// optional file picked on the free nxm:// path), which would write a value
-    /// the checker doesn't recognize and leave the mod re-flagged. Must run
-    /// BEFORE `dismissNexusUpdate` removes the entry. Synchronous; call on main.
+    /// After a Nexus-sourced install, record the Nexus version the update
+    /// checker flags on for this mod. Some mod authors forget to bump the
+    /// manifest Version field, so the installed manifest can show an older
+    /// version than what Nexus reports — causing a permanent false-positive
+    /// update flag. Instead of rewriting the manifest.json on disk (which is
+    /// fragile and unexpected by the user), we store the known Nexus version
+    /// in the registry. The checker then uses it to decide whether the mod is
+    /// actually up to date.
+    ///
+    /// Must run BEFORE `dismissNexusUpdate` removes the entry.
     /// v1: single-mod installs only (packs are skipped upstream).
     func reconcileManifestVersion(installedFolderPaths: [String]) {
         guard let source = pendingNexusSource else { return }
@@ -2139,39 +2157,25 @@ class StarHubTHViewModel: ObservableObject {
         let idStr = String(source.modId)
         guard let update = nexusUpdates.first(where: { $0.nexusModId == idStr }),
               !update.latestVersion.isEmpty else { return }
+
         let nexusVersion = update.latestVersion
-        let uploaded = update.uploadedTime
+        let folderName = (folderPath as NSString).lastPathComponent
 
+        // Read the manifest's version to compare against the Nexus version.
         let manifestPath = (folderPath as NSString).appendingPathComponent("manifest.json")
-        guard let raw = try? String(contentsOfFile: manifestPath, encoding: .utf8) else { return }
-        let currentVersion = ManifestVersionPatcher.extractVersionValue(from: raw)
-        // The update checker compares the Nexus upload date to the mod FOLDER's
-        // mtime, not the manifest's — see parseModFolder's `installedFileDate`.
-        let manifestModified = (try? FileManager.default.attributesOfItem(atPath: folderPath))?[.modificationDate] as? Date
+        let manifestVersion = (try? String(contentsOfFile: manifestPath, encoding: .utf8))
+            .flatMap { ManifestVersionPatcher.extractVersionValue(from: $0) }
 
-        let decision = ManifestVersionPatcher.decide(
-            nexusVersion: nexusVersion, nexusUploaded: uploaded,
-            manifestVersion: currentVersion, manifestModified: manifestModified,
-            isNewer: { NexusUpdateChecker.isNewer($0, installed: $1) })
+        // Store the Nexus version in the registry so the checker can use it
+        // without ever modifying the manifest.json on disk.
+        recordInstalledModNexusVersion(folderName: folderName, nexusVersion: nexusVersion)
 
-        let modName = (folderPath as NSString).lastPathComponent
-        switch decision {
-        case .correctVersion(let newVersion):
-            if let patched = ManifestVersionPatcher.replaceVersionValue(in: raw, with: newVersion),
-               (try? patched.write(toFile: manifestPath, atomically: true, encoding: .utf8)) != nil {
-                log(String(format: L(L10n.VM.manifestVersionFixed), modName, currentVersion ?? "?", newVersion))
-                refresh()
-            } else {
-                log(String(format: L(L10n.VM.manifestVersionSkipped), modName, currentVersion ?? "?"))
-            }
-        case .refreshDate:
-            // No higher version to write (minor update, no bump): touch the mod
-            // FOLDER's mtime (what the checker reads) so it stops flagging.
-            try? FileManager.default.setAttributes([.modificationDate: Date()], ofItemAtPath: folderPath)
-            log(String(format: L(L10n.VM.manifestVersionDateFixed), modName))
-            refresh()
-        case .noChange:
-            log(String(format: L(L10n.VM.manifestVersionSkipped), modName, currentVersion ?? "?"))
+        // Log the outcome: either the manifest was already correct, or the
+        // registry now carries the authoritative Nexus version.
+        if let mv = manifestVersion, NexusUpdateChecker.isNewer(nexusVersion, installed: mv) {
+            log(String(format: L(L10n.VM.manifestVersionFixed), folderName, mv, nexusVersion))
+        } else if let mv = manifestVersion {
+            log(String(format: L(L10n.VM.manifestVersionSkipped), folderName, mv))
         }
     }
 
@@ -2223,6 +2227,12 @@ class StarHubTHViewModel: ObservableObject {
     struct InstalledModRecord: Codable {
         let version: String
         let installedAt: Date
+        /// The Nexus version known at install time, for mods whose manifest
+        /// Version is stale (the author forgot to bump). When set and newer
+        /// than the manifest version, the update checker uses this instead of
+        /// the manifest's — so the mod is not permanently re-flagged. We never
+        /// modify the user's manifest.json.
+        var nexusVersion: String? = nil
     }
 
     private static let installedModRegistryKey = "installedModRegistry"
@@ -2294,6 +2304,28 @@ class StarHubTHViewModel: ObservableObject {
         Self.loadInstalledModRegistry()[folderName]?.installedAt
     }
 
+    /// Returns the recorded Nexus version for a mod folder (the version the
+    /// checker flagged on when the mod was last installed/updated from Nexus),
+    /// or nil if the mod was never installed via a Nexus-sourced flow. The
+    /// checker uses this to avoid permanently re-flagging mods whose manifest
+    /// Version is stale (author forgot to bump) — without modifying the
+    /// manifest.json on disk.
+    func installedModNexusVersion(for folderName: String) -> String? {
+        Self.loadInstalledModRegistry()[folderName]?.nexusVersion
+    }
+
+    /// Records the Nexus version known at install time for a mod whose
+    /// manifest Version may be stale. The version is stored in the registry
+    /// (NOT written to the manifest), so the checker can compare against it
+    /// instead of the manifest's value.
+    func recordInstalledModNexusVersion(folderName: String, nexusVersion: String) {
+        var registry = Self.loadInstalledModRegistry()
+        guard var existing = registry[folderName] else { return }
+        existing.nexusVersion = nexusVersion
+        registry[folderName] = existing
+        Self.saveInstalledModRegistry(registry)
+    }
+
     /// Reconciles the persistent install registry with the mods found on disk
     /// during a scan. Called at the end of every `scanMods()` so that mods
     /// added by ANY means (app installer, drag-and-drop, manual copy into
@@ -2305,28 +2337,38 @@ class StarHubTHViewModel: ObservableObject {
     ///   app, e.g. manually copied) is recorded with its folder mtime as a
     ///   best-effort timestamp.
     /// - Registry entries for folders no longer on disk are pruned.
-    private func syncInstalledModRegistry(scannedMods: [ModItem]) {
-        let fm = FileManager.default
-        let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
-        let disabledModsPath = (gameDir as NSString).appendingPathComponent("Mods_disabled")
+    /// One-shot migration flag. When false (first launch with the registry
+    /// feature, or an upgrade from a version that used stale folder mtimes),
+    /// the registry is wiped and rebuilt from scratch so every entry gets a
+    /// clean `Date()` instead of the unreliable archive packaging date.
+    private static let registryMigrationV2Key = "registryMigrationV2Done"
 
+    private func syncInstalledModRegistry(scannedMods: [ModItem]) {
         // Flatten groups into individual mods so pack children are tracked too.
         let allMods = scannedMods.flatMap { mod -> [ModItem] in
             mod.isGroup ? (mod.children ?? []) : [mod]
         }
 
-        var registry = Self.loadInstalledModRegistry()
+        // One-shot migration: wipe any pre-existing registry that was built
+        // with stale folder mtimes (from the v1 implementation or from mods
+        // registered before the Date()-always fix). This forces every entry
+        // to be re-registered with a clean Date(), eliminating the false
+        // "same-version update available" flags. Runs exactly once.
+        let migrationDone = UserDefaults.standard.bool(forKey: Self.registryMigrationV2Key)
+        var registry: [String: InstalledModRecord]
+        if !migrationDone {
+            registry = [:]
+            UserDefaults.standard.set(true, forKey: Self.registryMigrationV2Key)
+        } else {
+            registry = Self.loadInstalledModRegistry()
+        }
+
         let wasEmpty = registry.isEmpty
         var seenFolders = Set<String>()
 
         for mod in allMods {
             let key = mod.folderName
             seenFolders.insert(key)
-
-            // Determine the on-disk path to read the folder mtime as a fallback.
-            let modPath = (mod.isEnabled ? modsPath : disabledModsPath) as NSString
-            let fullPath = modPath.appendingPathComponent(key)
-            let folderMtime = (try? fm.attributesOfItem(atPath: fullPath))?[.modificationDate] as? Date
 
             if let existing = registry[key] {
                 // Version changed since last scan → this is an update; stamp NOW.
@@ -2335,11 +2377,16 @@ class StarHubTHViewModel: ObservableObject {
                 }
                 // Same version → keep the existing record unchanged.
             } else {
-                // New mod (not in registry): record with the folder mtime as a
-                // best-effort date, or NOW if the mtime is unreadable.
+                // New mod (not in registry): always record with NOW. We
+                // intentionally do NOT use the folder mtime — `copyItem`
+                // preserves the archive's packaging date, which is always
+                // older than the Nexus upload and would trigger a spurious
+                // same-version update flag. A mod detected on disk for the
+                // first time was installed recently (this session or a prior
+                // one), so NOW is the most accurate available timestamp.
                 registry[key] = InstalledModRecord(
                     version: mod.version,
-                    installedAt: folderMtime ?? Date()
+                    installedAt: Date()
                 )
             }
         }
@@ -2349,11 +2396,8 @@ class StarHubTHViewModel: ObservableObject {
 
         Self.saveInstalledModRegistry(registry)
 
-        // If the registry was empty (first launch, cleared, or corrupt) and we
-        // just populated it, log the rebuild so the event is traceable. The
-        // dates used are folder mtimes (best-effort), which may be stale for
-        // mods whose folders preserve archive timestamps — but this only
-        // affects same-version detection until each mod is next updated.
+        // If the registry was empty (first launch, cleared, corrupt, or just
+        // migrated) and we just populated it, log the rebuild.
         if wasEmpty && !registry.isEmpty {
             self.log(
                 String(format: "Install registry rebuilt: %d mod(s) registered from disk.",
