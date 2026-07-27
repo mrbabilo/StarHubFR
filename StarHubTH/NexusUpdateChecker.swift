@@ -19,9 +19,9 @@ final class NexusUpdateChecker {
 
     private let service = "com.appleboiy.StarHubTH"
     private let keychainAccount = "nexusApiKey"
-    private let gameDomain = "stardewvalley"
-    private let apiBase = "https://api.nexusmods.com/v1"
-    private let userAgent = "StarHubTH/1.0 (macOS; +https://github.com/AppleBoiy/StarHubTH)"
+    // `gameDomain`/`apiBase`/`userAgent`/`appVersion` are centralized in
+    // `NexusRequestBuilder` and accessed via `NexusRequestBuilder.xxx` so the
+    // whole app reports a single consistent client to Nexus.
 
     /// UserDefaults key for the last full check timestamp.
     private let lastCheckKey = "nexusLastCheckAt"
@@ -372,7 +372,7 @@ final class NexusUpdateChecker {
                                 installedVersion: installedVer,
                                 latestVersion: latest,
                                 nexusModId: modId,
-                                url: "https://www.nexusmods.com/\(self.gameDomain)/mods/\(modId)",
+                                url: "https://www.nexusmods.com/\(NexusRequestBuilder.gameDomain)/mods/\(modId)",
                                 uploadedTime: uploaded
                             ))
                         }
@@ -596,18 +596,13 @@ final class NexusUpdateChecker {
 
     private func fetchModInfo(modId: String, apiKey: String,
                               completion: @escaping (FetchResult) -> Void) {
-        guard let url = URL(string: "\(apiBase)/games/\(gameDomain)/mods/\(modId).json") else {
+        guard let request = NexusRequestBuilder.makeRequest(
+            path: "/games/\(NexusRequestBuilder.gameDomain)/mods/\(modId).json",
+            apiKey: apiKey
+        ) else {
             completion(.failure("invalid_url"))
             return
         }
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.setValue(apiKey, forHTTPHeaderField: "apikey")
-        request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        // Nexus recommends telling them which app is calling.
-        request.setValue("StarHubTH", forHTTPHeaderField: "Application-Name")
-        request.setValue("1.0.9", forHTTPHeaderField: "Application-Version")
 
         let task = URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
@@ -690,17 +685,13 @@ final class NexusUpdateChecker {
             completion("")
             return
         }
-        guard let url = URL(string: "\(apiBase)/games/\(gameDomain)/mods/\(modId).json") else {
+        guard let request = NexusRequestBuilder.makeRequest(
+            path: "/games/\(NexusRequestBuilder.gameDomain)/mods/\(modId).json",
+            apiKey: apiKey
+        ) else {
             completion("")
             return
         }
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.setValue(apiKey, forHTTPHeaderField: "apikey")
-        request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.setValue("StarHubTH", forHTTPHeaderField: "Application-Name")
-        request.setValue("1.0.9", forHTTPHeaderField: "Application-Version")
 
         let task = URLSession.shared.dataTask(with: request) { data, response, error in
             guard error == nil,
@@ -729,17 +720,13 @@ final class NexusUpdateChecker {
             completion("")
             return
         }
-        guard let url = URL(string: "\(apiBase)/games/\(gameDomain)/mods/\(modId)/changelogs.json") else {
+        guard let request = NexusRequestBuilder.makeRequest(
+            path: "/games/\(NexusRequestBuilder.gameDomain)/mods/\(modId)/changelogs.json",
+            apiKey: apiKey
+        ) else {
             completion("")
             return
         }
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.setValue(apiKey, forHTTPHeaderField: "apikey")
-        request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.setValue("StarHubTH", forHTTPHeaderField: "Application-Name")
-        request.setValue("1.0.9", forHTTPHeaderField: "Application-Version")
 
         let task = URLSession.shared.dataTask(with: request) { data, response, error in
             guard error == nil,

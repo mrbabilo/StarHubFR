@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- **Centralized Nexus request builder** — all Nexus API calls now go through a single `NexusRequestBuilder.makeRequest(...)` helper (`StarHubTH/Models/NexusRequestBuilder.swift`), which reads the app version live from the bundle's `CFBundleShortVersionString`. Previously `Application-Version` was hardcoded inconsistently (`"1.0.9"` in `NexusUpdateChecker`, `"1.1.0"` in `NexusDownloader`), making Nexus see two different clients for the same app and producing wrong usage statistics.
+- **Centralized UserDefaults keys** — shared keys (`gameDir`, `currentLanguage`, `modProfiles`, `activeProfileId`, `launchProfile`, `closeAfterLaunch`, `chainToggleDependencies`, `installedModRegistry`, `installedModRegistryBackup`) now live in a single public `UDKey` enum (`StarHubTH/UDKey.swift`), replacing 16 raw-string literals across 5 files. Typos are now compile-time errors instead of silent cross-key writes.
+- **Shared Nexus UpdateKeys parser** — the `nexus:<id>[@variant]` parsing convention (used to resolve a mod's Nexus id) is centralized in `ModManifest.parseNexusId(fromUpdateKeys:)` (public static). Previously duplicated inline in `StarHubTHViewModel.parseModFolder` and `ModManifest.init`.
+- **`LANG=C` enforced on child Processes** — `Process()` invocations that parse text output (notably `/usr/bin/unzip -l` in `ModZipInstaller.uncompressedSize`) now set `LANG=C` / `LC_ALL=C` via a shared `cLocaleEnvironment`. Without this, a non-English user locale would translate the summary line ("3 files" → "3 fichiers") and silently disable the zip-bomb size guard when parsing failed.
+- **`[weak self]` on background closures** — four `DispatchQueue.global().async` closures in `StarHubTHViewModel` (`refresh`, `performInitialLoad`, `loadSmapiLog`, `reloadSaves`) now capture `self` weakly, matching the convention already applied to the other 11 sites. Prevents future retain cycles if the VM ever stops being an app-lifetime singleton.
+- **No `.allowFragments` when a dict is expected** — manifest.json parsers (`ModZipInstaller.scanFolder`, `ModInstallBackupManager.extractModMetadata`, `ModFolderRepairer.collectUniqueIds`) no longer pass `.allowFragments`, which was redundant (the subsequent `as? [String: Any]` would have failed on a non-object fragment anyway) and masked genuinely corrupt files. `.json5Allowed` is preserved where relevant; `.fragmentsAllowed` is kept on Nexus API responses because mod descriptions embed raw control chars.
+
+### Fixed
+- **Nexus UpdateKeys with leading whitespace silently dropped** — `parseNexusId` now trims the key *before* the `hasPrefix("nexus:")` check, so values like `"  Nexus:240"` (previously rejected) resolve correctly. Latent bug in both pre-refactor call sites, surfaced by the new `ParseNexusIdTests` suite.
+- **Force-unwrapped `as!` in `CodeEditorView`** — the `scrollView.documentView as! NSTextView` casts in `makeNSView` and `updateNSView` are replaced with defensive `guard let ... as?` so a future AppKit change degrades gracefully instead of crashing.
+
+### Added
+- **`NexusRequestBuilder`** — single source of truth for Nexus API URL request construction (`apiBase`, `gameDomain`, `appName`, `appVersion` from bundle, `userAgent`).
+- **`UDKey`** — centralized `UserDefaults` keys (public enum).
+- **`ParseNexusIdTests`** — 6 new unit tests locking the contract of `ModManifest.parseNexusId(fromUpdateKeys:)` (plain key, case/whitespace tolerance, `@variant` suffix, multi-key selection, zero/negative rejection, nil/empty input).
+
 ## [1.8.0] - 2026-07-26
 
 ### Added

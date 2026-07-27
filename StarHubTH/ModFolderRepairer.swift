@@ -351,7 +351,11 @@ public struct ModFolderRepairer {
             // commas, // comments) are parsed the same way here — otherwise a
             // JSON5 manifest that the scanner accepts would be silently
             // skipped by duplicate detection.
-            var options: JSONSerialization.ReadingOptions = [.allowFragments]
+            // `.json5Allowed` lets JSON5 manifests (some Stardew mods ship
+            // comments / trailing commas) parse. `.allowFragments` was previously
+            // also set but is redundant here — the next line downcasts to a dict,
+            // which a non-object fragment can never satisfy.
+            var options: JSONSerialization.ReadingOptions = []
             if #available(macOS 12.0, *) {
                 options.insert(.json5Allowed)
             }

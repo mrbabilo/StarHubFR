@@ -33,19 +33,12 @@ enum NexusDownloadError: Error, LocalizedError {
 ///  - free: key/expires from an nxm:// link.
 /// Networking only; pure logic lives in NexusDownloadAPI (unit-tested).
 struct NexusDownloader {
-    private let apiBase = "https://api.nexusmods.com/v1"
-
-    /// Mirrors NexusUpdateChecker's request headers so Nexus sees a consistent client.
-    /// Returns nil if `path` doesn't form a valid URL, so callers can fail into
-    /// `.requestFailed(...)` instead of crashing.
+    /// Builds the standard Nexus GET request via the shared `NexusRequestBuilder`
+    /// so headers (User-Agent, Application-Name/Version, Accept, apikey) stay
+    /// consistent with `NexusUpdateChecker`. Returns nil on invalid path so
+    /// callers route to `.requestFailed(...)` instead of crashing.
     private func request(path: String, apiKey: String) -> URLRequest? {
-        guard let url = URL(string: apiBase + path) else { return nil }
-        var req = URLRequest(url: url)
-        req.setValue(apiKey, forHTTPHeaderField: "apikey")
-        req.setValue("StarHubTH", forHTTPHeaderField: "Application-Name")
-        req.setValue("1.1.0", forHTTPHeaderField: "Application-Version")
-        req.setValue("application/json", forHTTPHeaderField: "Accept")
-        return req
+        NexusRequestBuilder.makeRequest(path: path, apiKey: apiKey)
     }
 
     /// HTTP status codes Nexus uses to signal auth/rate-limit/premium problems
@@ -70,7 +63,7 @@ struct NexusDownloader {
         guard let apiKey = NexusUpdateChecker.shared.apiKey(), !apiKey.isEmpty else {
             completion(.failure(.noApiKey)); return
         }
-        guard let req = request(path: "/games/stardewvalley/mods/\(modId)/files.json", apiKey: apiKey) else {
+        guard let req = request(path: "/games/\(NexusRequestBuilder.gameDomain)/mods/\(modId)/files.json", apiKey: apiKey) else {
             completion(.failure(.noDownloadLink)); return
         }
         URLSession.shared.dataTask(with: req) { data, response, error in

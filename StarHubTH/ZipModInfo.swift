@@ -10,7 +10,47 @@ struct ModManifest {
     let nexusModId: String
     let nexusUrl: String
     let dependencies: [ModDependency]
-    
+
+    /// Parses the first valid Nexus mod id from a manifest's `UpdateKeys`
+    /// array. Centralized here (and exposed publicly) so every call site
+    /// (manifest parsing in `ZipModInfo`, on-the-fly scan in
+    /// `StarHubTHViewModel`, future repair flows) shares one implementation.
+    ///
+    /// Accepts the SMAPI/Nexus conventions:
+    ///   - `nexus:191`          → id "191"
+    ///   - `Nexus: 191 `        → id "191" (whitespace + case tolerant)
+    ///   - `Nexus:23169@SwimItems` → id "23169" (drops `@variant` suffix)
+    ///
+    /// Returns `nil` when no valid positive integer id is found, so callers
+    /// can treat the mod as "no Nexus link" without a sentinel empty string.
+    ///
+    /// - Returns: Tuple `(id, url)` where `url` is the canonical
+    ///   `nexusmods.com/games/stardewvalley/mods/<id>` link, or `nil`.
+    public static func parseNexusId(fromUpdateKeys keys: [String]?) -> (id: String, url: String)? {
+        guard let keys else { return nil }
+        for raw in keys {
+            // Trim leading/trailing whitespace BEFORE the prefix check, so a
+            // key like "  Nexus:240" still matches. (Previously the un-trimmed
+            // string was tested and leading whitespace silently rejected the
+            // entry — the same latent bug existed in both pre-refactor sites.)
+            let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard trimmed.lowercased().hasPrefix("nexus:") else { continue }
+            var id = trimmed.replacingOccurrences(of: "nexus:", with: "", options: .caseInsensitive)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            // Drop a `@variant` suffix used by multi-mod packs sharing one
+            // Nexus id (e.g. `Nexus:23169@SwimItems`).
+            if let atIndex = id.firstIndex(of: "@") {
+                id = String(id[..<atIndex])
+            }
+            id = id.trimmingCharacters(in: .whitespacesAndNewlines)
+            // Reject non-numeric, zero, or negative ids — they would only
+            // produce 404s / garbage from the Nexus API.
+            guard let num = Int(id), num > 0 else { continue }
+            return (id, "https://www.nexusmods.com/stardewvalley/mods/\(id)")
+        }
+        return nil
+    }
+
     init?(dict: [String: Any]) {
         guard let name = dict.caseInsensitiveValue(forKey: "Name") as? String,
               let uniqueId = dict.caseInsensitiveValue(forKey: "UniqueID") as? String else {
@@ -39,28 +79,17 @@ struct ModManifest {
 
         self.description = dict.caseInsensitiveValue(forKey: "Description") as? String ?? ""
 
-        // Parse Nexus mod id from UpdateKeys (mirrors VM.parseModFolder logic).
-        var parsedNexusId = ""
-        var parsedNexusUrl = ""
-        if let updateKeys = dict.caseInsensitiveValue(forKey: "UpdateKeys") as? [String] {
-            for key in updateKeys {
-                if key.lowercased().hasPrefix("nexus:") {
-                    var id = key.replacingOccurrences(of: "nexus:", with: "", options: .caseInsensitive)
-                        .trimmingCharacters(in: .whitespacesAndNewlines)
-                    if let atIndex = id.firstIndex(of: "@") {
-                        id = String(id[..<atIndex])
-                    }
-                    id = id.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if let num = Int(id), num > 0 {
-                        parsedNexusId = id
-                        parsedNexusUrl = "https://www.nexusmods.com/stardewvalley/mods/\(id)"
-                        break
-                    }
-                }
-            }
+        // Parse Nexus mod id from UpdateKeys via the shared helper so the
+        // scanning logic stays in one place (also used by
+        // `StarHubTHViewModel.parseModFolder`).
+        let updateKeys = dict.caseInsensitiveValue(forKey: "UpdateKeys") as? [String]
+        if let nexus = Self.parseNexusId(fromUpdateKeys: updateKeys) {
+            self.nexusModId = nexus.id
+            self.nexusUrl = nexus.url
+        } else {
+            self.nexusModId = ""
+            self.nexusUrl = ""
         }
-        self.nexusModId = parsedNexusId
-        self.nexusUrl = parsedNexusUrl
         
         var deps: [ModDependency] = []
         if let depArray = dict.caseInsensitiveValue(forKey: "Dependencies") as? [[String: Any]] {

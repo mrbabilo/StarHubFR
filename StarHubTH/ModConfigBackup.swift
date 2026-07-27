@@ -88,7 +88,7 @@ public struct ModConfigBackup: Identifiable, Codable, Equatable {
         formatter.timeStyle = .short
         // Matches the app's selected language rather than the system
         // locale — same key StarHubTHViewModel.currentLanguage reads.
-        formatter.locale = Locale(identifier: UserDefaults.standard.string(forKey: "currentLanguage") ?? "en")
+        formatter.locale = Locale(identifier: UserDefaults.standard.string(forKey: UDKey.currentLanguage) ?? "en")
         return formatter.string(from: timestamp)
     }
 

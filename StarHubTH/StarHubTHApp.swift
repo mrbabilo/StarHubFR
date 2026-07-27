@@ -38,7 +38,7 @@ struct StarHubTHApp: App {
     @StateObject private var vm = StarHubTHViewModel()
 
     init() {
-        if let currentLang = UserDefaults.standard.string(forKey: "currentLanguage") {
+        if let currentLang = UserDefaults.standard.string(forKey: UDKey.currentLanguage) {
             UserDefaults.standard.set([currentLang], forKey: "AppleLanguages")
         }
     }

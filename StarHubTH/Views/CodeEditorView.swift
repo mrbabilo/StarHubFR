@@ -17,7 +17,12 @@ struct CodeEditorView: NSViewRepresentable {
         scrollView.hasVerticalRuler = true
         scrollView.rulersVisible = true
         
-        let textView = scrollView.documentView as! NSTextView
+        // `scrollableTextView()` always installs an NSTextView as its
+        // documentView, but cast defensively so a future AppKit change
+        // degrades gracefully instead of crashing.
+        guard let textView = scrollView.documentView as? NSTextView else {
+            return scrollView
+        }
         textView.delegate = context.coordinator
         textView.font = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
         textView.isRichText = false
@@ -32,7 +37,9 @@ struct CodeEditorView: NSViewRepresentable {
     }
 
     func updateNSView(_ nsView: NSScrollView, context: Context) {
-        let textView = nsView.documentView as! NSTextView
+        // Defensive cast — bail out silently if the document view isn't the
+        // expected NSTextView (matches `makeNSView`'s guard).
+        guard let textView = nsView.documentView as? NSTextView else { return }
         if textView.string != text {
             textView.string = text
         }

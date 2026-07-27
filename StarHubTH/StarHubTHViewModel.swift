@@ -109,7 +109,7 @@ class StarHubTHViewModel: ObservableObject {
     // `gameDir` and `self.mods` with no synchronization between them.
     @Published var gameDir: String = "" {
         didSet {
-            UserDefaults.standard.set(gameDir, forKey: "gameDir")
+            UserDefaults.standard.set(gameDir, forKey: UDKey.gameDir)
         }
     }
     
@@ -387,13 +387,13 @@ class StarHubTHViewModel: ObservableObject {
     /// saved `currentLanguage`; an existing choice is always respected.
     private static var defaultLanguage: String { "fr" }
     
-    @Published var currentLanguage: String = StarHubTHViewModel.normalizedLanguage(UserDefaults.standard.string(forKey: "currentLanguage")) {
+    @Published var currentLanguage: String = StarHubTHViewModel.normalizedLanguage(UserDefaults.standard.string(forKey: UDKey.currentLanguage)) {
         didSet {
             if !Self.supportedLanguages.contains(currentLanguage) {
                 currentLanguage = "en"
                 return
             }
-            UserDefaults.standard.set(currentLanguage, forKey: "currentLanguage")
+            UserDefaults.standard.set(currentLanguage, forKey: UDKey.currentLanguage)
             UserDefaults.standard.set([currentLanguage], forKey: "AppleLanguages")
         }
     }
@@ -414,9 +414,9 @@ class StarHubTHViewModel: ObservableObject {
     @Published var applyingProfileId: UUID? = nil
 
     /// When true, toggling a mod also cascades to its dependencies / dependents.
-    @Published var chainToggleDependencies: Bool = UserDefaults.standard.object(forKey: "chainToggleDependencies") as? Bool ?? true {
+    @Published var chainToggleDependencies: Bool = UserDefaults.standard.object(forKey: UDKey.chainToggleDependencies) as? Bool ?? true {
         didSet {
-            UserDefaults.standard.set(chainToggleDependencies, forKey: "chainToggleDependencies")
+            UserDefaults.standard.set(chainToggleDependencies, forKey: UDKey.chainToggleDependencies)
         }
     }
     
@@ -424,12 +424,12 @@ class StarHubTHViewModel: ObservableObject {
     
     init() {
         // Force sync AppleLanguages with currentLanguage at startup
-        let savedLang = Self.normalizedLanguage(UserDefaults.standard.string(forKey: "currentLanguage"))
+        let savedLang = Self.normalizedLanguage(UserDefaults.standard.string(forKey: UDKey.currentLanguage))
         currentLanguage = savedLang
         UserDefaults.standard.set([savedLang], forKey: "AppleLanguages")
         
         // Automatically retrieve saved game path, or attempt to find the default Steam path on Mac
-        let savedPath = UserDefaults.standard.string(forKey: "gameDir") ?? ""
+        let savedPath = UserDefaults.standard.string(forKey: UDKey.gameDir) ?? ""
         if !savedPath.isEmpty && FileManager.default.fileExists(atPath: savedPath) {
             self.gameDir = savedPath
         } else {
@@ -527,7 +527,11 @@ class StarHubTHViewModel: ObservableObject {
     func refresh() {
         // Run heavy file I/O off the main thread to keep the UI responsive.
         // Each sub-method dispatches its @Published mutations back to main.
-        DispatchQueue.global(qos: .userInitiated).async {
+        // `[weak self]` even though the VM is app-lifetime today, so a future
+        // non-singleton refactoring (e.g. SwiftUI previews, scoped VMs) can't
+        // turn into a retain cycle.
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self else { return }
             self.scanMods()          // also kicks off parseSMAPILog internally
             self.reloadSaves()
             self.fetchSteamUser()
@@ -541,7 +545,8 @@ class StarHubTHViewModel: ObservableObject {
     /// scan has finished AND published its results on the main thread, so the
     /// spinner overlay stays up exactly until the first mod list is ready.
     private func performInitialLoad() {
-        DispatchQueue.global(qos: .userInitiated).async {
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self else { return }
             self.scanMods()
             self.reloadSaves()
             self.fetchSteamUser()
@@ -722,27 +727,14 @@ class StarHubTHViewModel: ObservableObject {
                 
                 dependencies = ModDependencyParser.parse(manifest: json)
                 
-                if let updateKeys = json.caseInsensitiveValue(forKey: "UpdateKeys") as? [String] {
-                    for key in updateKeys {
-                        if key.lowercased().hasPrefix("nexus:") {
-                            // Normalize: strip the scheme, trim whitespace, drop
-                            // any `@variant` suffix (Nexus add-on convention),
-                            // then keep only valid positive integer ids.
-                            var id = key.replacingOccurrences(of: "nexus:", with: "", options: .caseInsensitive)
-                                .trimmingCharacters(in: .whitespacesAndNewlines)
-                            if let atIndex = id.firstIndex(of: "@") {
-                                id = String(id[..<atIndex])
-                            }
-                            id = id.trimmingCharacters(in: .whitespacesAndNewlines)
-                            // Reject non-numeric, zero, or negative ids that
-                            // would only produce 404s / garbage from the API.
-                            if let num = Int(id), num > 0 {
-                                nexusModId = id
-                                nexusUrl = "https://www.nexusmods.com/stardewvalley/mods/\(id)"
-                                break
-                            }
-                        }
-                    }
+                // Reuse the shared parser so scanning stays in sync with
+                // `ModManifest.init` (single source of truth for the
+                // `nexus:<id>[@variant]` UpdateKey convention).
+                if let nexus = ModManifest.parseNexusId(
+                    fromUpdateKeys: json.caseInsensitiveValue(forKey: "UpdateKeys") as? [String]
+                ) {
+                    nexusModId = nexus.id
+                    nexusUrl = nexus.url
                 }
             }
         }
@@ -1404,8 +1396,8 @@ class StarHubTHViewModel: ObservableObject {
             return
         }
 
-        let profile = UserDefaults.standard.string(forKey: "launchProfile") ?? "SMAPI"
-        let closeAfter = UserDefaults.standard.bool(forKey: "closeAfterLaunch")
+        let profile = UserDefaults.standard.string(forKey: UDKey.launchProfile) ?? "SMAPI"
+        let closeAfter = UserDefaults.standard.bool(forKey: UDKey.closeAfterLaunch)
 
         let originalPath = (gameDir as NSString).appendingPathComponent("StardewValley-original")
         
@@ -1528,8 +1520,8 @@ class StarHubTHViewModel: ObservableObject {
     /// thread — the file can be large, and this used to block the UI on
     /// every call (refresh button, watcher start).
     func loadSmapiLog() {
-        DispatchQueue.global(qos: .userInitiated).async {
-            self.parseAndAppendSmapiLog()
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            self?.parseAndAppendSmapiLog()
         }
     }
 
@@ -2235,10 +2227,12 @@ class StarHubTHViewModel: ObservableObject {
         var nexusVersion: String? = nil
     }
 
-    private static let installedModRegistryKey = "installedModRegistry"
+    // Registry keys are centralized in `UDKey` (shared with `ModFolderRepairer`
+    // and any other module that needs to read/write the install registry).
+    private static let installedModRegistryKey = UDKey.installedModRegistry
     /// Mirror of the primary registry, written on every save. Used to recover
     /// automatically when the primary blob is corrupt or missing.
-    private static let installedModRegistryBackupKey = "installedModRegistryBackup"
+    private static let installedModRegistryBackupKey = UDKey.installedModRegistryBackup
 
     /// Loads the install registry from UserDefaults with automatic fallback:
     ///
@@ -2418,10 +2412,10 @@ class StarHubTHViewModel: ObservableObject {
     /// run off the main thread so it doesn't stall the UI when there are
     /// many saves.
     func reloadSaves() {
-        DispatchQueue.global(qos: .userInitiated).async {
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let saves = SaveManager.shared.fetchSaves()
             DispatchQueue.main.async {
-                self.saves = saves
+                self?.saves = saves
             }
         }
     }
@@ -2955,14 +2949,14 @@ class StarHubTHViewModel: ObservableObject {
     
     // MARK: - Mod Profiles
     func loadProfiles() {
-        if let data = UserDefaults.standard.data(forKey: "modProfiles"),
+        if let data = UserDefaults.standard.data(forKey: UDKey.modProfiles),
            let profiles = try? JSONDecoder().decode([ModProfile].self, from: data) {
             self.modProfiles = profiles
         } else {
             self.modProfiles = []
         }
         
-        if let activeIdStr = UserDefaults.standard.string(forKey: "activeProfileId"),
+        if let activeIdStr = UserDefaults.standard.string(forKey: UDKey.activeProfileId),
            let activeId = UUID(uuidString: activeIdStr) {
             self.activeProfileId = activeId
         }
@@ -2970,12 +2964,12 @@ class StarHubTHViewModel: ObservableObject {
     
     func saveProfiles() {
         if let data = try? JSONEncoder().encode(modProfiles) {
-            UserDefaults.standard.set(data, forKey: "modProfiles")
+            UserDefaults.standard.set(data, forKey: UDKey.modProfiles)
         }
         if let activeId = activeProfileId {
-            UserDefaults.standard.set(activeId.uuidString, forKey: "activeProfileId")
+            UserDefaults.standard.set(activeId.uuidString, forKey: UDKey.activeProfileId)
         } else {
-            UserDefaults.standard.removeObject(forKey: "activeProfileId")
+            UserDefaults.standard.removeObject(forKey: UDKey.activeProfileId)
         }
     }
     

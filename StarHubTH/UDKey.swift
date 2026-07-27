@@ -1,0 +1,33 @@
+import Foundation
+
+/// Centralized `UserDefaults` keys for the app.
+///
+/// Use these constants instead of raw string literals so a typo can never
+/// silently write to a different key (and so renames are caught at compile
+/// time). Keys that are owned by a single module (e.g. Nexus caches in
+/// `NexusUpdateChecker`) stay private to that module — only keys shared
+/// across files are exposed here.
+public enum UDKey {
+    /// Folder path of the user's Stardew Valley install.
+    public static let gameDir = "gameDir"
+    /// Active UI language code (`"en"` / `"fr"` / `"th"`).
+    public static let currentLanguage = "currentLanguage"
+    /// When `true`, toggling a mod on/off also toggles its SMAPI dependencies
+    /// (and optionally its content-pack children) in the same operation.
+    public static let chainToggleDependencies = "chainToggleDependencies"
+    /// Last used launch profile name (`"SMAPI"` / `"Vanilla"` / ...).
+    public static let launchProfile = "launchProfile"
+    /// Whether to quit StarHubTH right after launching the game.
+    public static let closeAfterLaunch = "closeAfterLaunch"
+    /// JSON-encoded list of `ModProfile` (named mod enable/disable sets).
+    public static let modProfiles = "modProfiles"
+    /// UUID string of the currently active `ModProfile`, or `nil` for the
+    /// implicit "everything" profile.
+    public static let activeProfileId = "activeProfileId"
+    /// Registry of installed mods (JSON-encoded) — used for same-version
+    /// update detection and restored from backup on corruption.
+    public static let installedModRegistry = "installedModRegistry"
+    /// Auto-backup of `installedModRegistry`, written whenever the registry
+    /// itself is updated. Restored if the primary is detected as corrupt.
+    public static let installedModRegistryBackup = "installedModRegistryBackup"
+}

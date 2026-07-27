@@ -13,6 +13,7 @@ let package = Package(
             path: "StarHubTH",
             sources: [
                 "ModItem.swift",
+                "UDKey.swift",
                 "ModConfigBackup.swift",
                 "ModConfigBackupManager.swift",
                 "DictionaryExtensions.swift",
@@ -25,6 +26,7 @@ let package = Package(
                 "Models/InventoryItem.swift",
                 "Models/NxmLink.swift",
                 "Models/NexusDownloadAPI.swift",
+                "Models/NexusRequestBuilder.swift",
                 "Models/ManifestVersionPatcher.swift",
                 "Models/DescriptionBlockParser.swift",
                 "Models/ModDependencyParser.swift",
@@ -64,6 +66,11 @@ let package = Package(
             name: "NexusDownloadTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/NexusDownloadTests"
+        ),
+        .testTarget(
+            name: "ParseNexusIdTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ParseNexusIdTests"
         ),
         .testTarget(
             name: "ManifestVersionPatcherTests",

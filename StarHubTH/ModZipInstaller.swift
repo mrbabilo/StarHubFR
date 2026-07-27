@@ -103,6 +103,11 @@ class ModZipInstaller {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
         process.arguments = ["-l", url.path]
+        // Force the C locale so the summary line we parse below always says
+        // "N files" regardless of the user's UI language. Without this a French
+        // locale ("N fichiers") would make `uncompressedSize` return nil and
+        // silently disable the zip-bomb guard.
+        process.environment = Self.cLocaleEnvironment
         let pipe = Pipe()
         process.standardOutput = pipe
         process.standardError = Pipe()
@@ -202,7 +207,9 @@ class ModZipInstaller {
                        let rawString = String(data: data, encoding: .utf8) {
                         let cleanString = rawString.replacingOccurrences(of: "/\\*[\\s\\S]*?\\*/", with: "", options: .regularExpression)
                         if let cleanData = cleanString.data(using: .utf8),
-                           let json = try? JSONSerialization.jsonObject(with: cleanData, options: [.allowFragments]) as? [String: Any],
+                           // No `.allowFragments` here: a manifest MUST be a JSON object — accepting
+                            // a top-level scalar would mask a genuinely corrupt file.
+                            let json = try? JSONSerialization.jsonObject(with: cleanData) as? [String: Any],
                            let manifest = ModManifest(dict: json) {
                             currentModManifest = manifest
                             currentManifestDepth = depth
@@ -356,6 +363,10 @@ class ModZipInstaller {
             let process = Process()
             process.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
             process.arguments = ["-q", zipUrl.path, "-d", destDir.path]
+            // Force the C locale so error/diagnostic output stays parseable
+            // (the summary line is what we read in `uncompressedSize`; keeping
+            // extraction under the same locale makes the two consistent).
+            process.environment = Self.cLocaleEnvironment
             try process.run()
             process.waitUntilExit()
             guard process.terminationStatus == 0 else {
@@ -368,6 +379,7 @@ class ModZipInstaller {
             let process = Process()
             process.executableURL = URL(fileURLWithPath: tool.path)
             process.arguments = tool.arguments(zipUrl.path, destDir.path)
+            process.environment = Self.cLocaleEnvironment
             try process.run()
             process.waitUntilExit()
             guard process.terminationStatus == 0 else {
@@ -377,6 +389,20 @@ class ModZipInstaller {
             throw InstallError.extractionFailed
         }
     }
+
+    /// Minimal environment that pins the locale to `C` (POSIX) for child
+    /// processes whose output we parse — notably `unzip -l`. Without this the
+    /// summary line would be translated under the user's UI locale ("3
+    /// fichiers" instead of "3 files") and our parser would silently fail,
+    /// disabling the zip-bomb size guard. We deliberately inherit the rest of
+    /// the parent environment (PATH especially) so Homebrew tools like
+    /// `unrar` / `unar` / `7z` are still found at their default locations.
+    private static let cLocaleEnvironment: [String: String] = {
+        var env = ProcessInfo.processInfo.environment
+        env["LANG"] = "C"
+        env["LC_ALL"] = "C"
+        return env
+    }()
 
     /// Searches the standard PATH locations (plus Homebrew paths) for a RAR
     /// extraction tool, in order of preference: `unrar` (official, fastest),

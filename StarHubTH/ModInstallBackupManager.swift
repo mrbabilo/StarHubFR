@@ -237,7 +237,9 @@ public class ModInstallBackupManager {
               let rawString = String(data: data, encoding: .utf8) else { return nil }
         let cleanString = rawString.replacingOccurrences(of: "/\\*[\\s\\S]*?\\*/", with: "", options: .regularExpression)
         guard let cleanData = cleanString.data(using: .utf8),
-              let json = try? JSONSerialization.jsonObject(with: cleanData, options: [.allowFragments]) as? [String: Any],
+              // Manifest must be a JSON object — no `.allowFragments`, a corrupt file
+              // must surface as a parse failure rather than silently matching nothing.
+              let json = try? JSONSerialization.jsonObject(with: cleanData) as? [String: Any],
               let manifest = ModManifest(dict: json) else { return nil }
         return ModMetadata(name: manifest.name, version: manifest.version, author: manifest.author, uniqueId: manifest.uniqueId)
     }
