@@ -344,6 +344,9 @@ struct ModInstallView: View {
 
         DispatchQueue.global(qos: .userInitiated).async {
             do {
+                // The installer's `to:` param is now a no-op (mods land under
+                // Mods/ directly), but we still pass the legacy path for
+                // source compatibility.
                 let modsDisabledPath = (gameDir as NSString).appendingPathComponent("Mods_disabled")
                 try self.installer.install(
                     from: tempDir,
@@ -415,9 +418,9 @@ struct ModInstallView: View {
     }
 
     /// Mirrors `ModZipInstaller.install`'s destination logic (final folder
-    /// name + `Mods`/`Mods_disabled` zone) so the post-install reconciler can
-    /// find the manifest that was actually written, without the installer
-    /// having to expose its write paths.
+    /// name + enabled/disabled prefix under Mods/) so the post-install
+    /// reconciler can find the manifest that was actually written, without
+    /// the installer having to expose its write paths.
     ///
     /// `.rename`-resolved mods are excluded: the installer appends an
     /// internally-generated timestamp suffix (`stampedFolderSuffix()`) that
@@ -430,7 +433,6 @@ struct ModInstallView: View {
         // is harmless because reconcileManifestVersion fails safe (its
         // `try? String(contentsOfFile:)` returns nil → no-op).
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
-        let modsDisabledPath = (gameDir as NSString).appendingPathComponent("Mods_disabled")
 
         var paths: [String] = []
         for selection in selections {
@@ -453,14 +455,16 @@ struct ModInstallView: View {
                 finalDestFolderName = detectedMod.folderName
             }
 
-            let destBasePath: String
+            // Enabled-update lands at Mods/X, everything else at Mods/.X
+            // (disabled by default). Mirrors the installer's destFolderPrefix.
+            let prefix: String
             if let existing = existingMod, existing.isEnabled, selection.conflictResolution == .overwriteWithBackup {
-                destBasePath = modsPath
+                prefix = ""
             } else {
-                destBasePath = modsDisabledPath
+                prefix = "."
             }
 
-            paths.append((destBasePath as NSString).appendingPathComponent(finalDestFolderName))
+            paths.append((modsPath as NSString).appendingPathComponent(prefix + finalDestFolderName))
         }
         return paths
     }

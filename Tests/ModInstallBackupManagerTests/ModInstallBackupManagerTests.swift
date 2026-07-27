@@ -138,11 +138,12 @@ struct TestEnvironment {
         #expect(env.manager.loadBackups().count == 1)
     }
 
-    @Test func createBackupCopiesDisabledModFromModsDisabledFolder() throws {
+    @Test func createBackupCopiesDisabledModFromDotPrefixedFolder() throws {
         let env = TestEnvironment()
         defer { env.cleanup() }
 
-        let modDir = env.modsDisabledDir.appendingPathComponent("DisabledMod", isDirectory: true)
+        // A disabled mod now lives at Mods/.<name> (dot prefix).
+        let modDir = env.modsDir.appendingPathComponent(".DisabledMod", isDirectory: true)
         try writeTestFile(in: modDir, filename: "data.txt", content: "hello")
 
         let mod = makeTestMod(folderName: "DisabledMod", isEnabled: false)
@@ -208,8 +209,8 @@ struct TestEnvironment {
 
     @Test func restoreBackupHandlesNestedPackChildFolderName() throws {
         // Restoring a nested-folder-name backup must create the intermediate
-        // parent under Mods_disabled before copying, even when that parent
-        // does not yet exist there.
+        // parent under Mods/ (as a dot-prefixed disabled entry) before
+        // copying, even when that parent does not yet exist there.
         let env = TestEnvironment()
         defer { env.cleanup() }
 
@@ -221,7 +222,8 @@ struct TestEnvironment {
 
         try env.manager.restoreBackup(backup, gameDir: env.gameDir)
 
-        let restoredPath = env.modsDisabledDir.appendingPathComponent("PackX/ChildMod/data.txt")
+        // Restored mod lands disabled (dot prefix) under Mods/.
+        let restoredPath = env.modsDir.appendingPathComponent(".PackX/ChildMod/data.txt")
         let restoredContent = try String(contentsOf: restoredPath, encoding: .utf8)
         #expect(restoredContent == "nested original")
     }
@@ -236,10 +238,10 @@ struct TestEnvironment {
         let mod = makeTestMod(folderName: "RestoreMod", isEnabled: true)
         let backup = try env.manager.createBackup(for: mod, gameDir: env.gameDir, reason: .beforeInstall)
 
-        // Destination (Mods_disabled/RestoreMod) doesn't exist yet.
+        // Destination (Mods/.RestoreMod) doesn't exist yet.
         try env.manager.restoreBackup(backup, gameDir: env.gameDir)
 
-        let restoredPath = env.modsDisabledDir.appendingPathComponent("RestoreMod/data.txt")
+        let restoredPath = env.modsDir.appendingPathComponent(".RestoreMod/data.txt")
         let restoredContent = try String(contentsOf: restoredPath, encoding: .utf8)
         #expect(restoredContent == "original")
     }
@@ -254,10 +256,11 @@ struct TestEnvironment {
         let mod = makeTestMod(folderName: "RestoreMod", isEnabled: true)
         let backup = try env.manager.createBackup(for: mod, gameDir: env.gameDir, reason: .beforeInstall)
 
-        // A different version is already sitting at the live destination,
-        // with a real manifest.json so the replaced-version registration
-        // (which reads metadata off disk) can succeed.
-        let liveDestDir = env.modsDisabledDir.appendingPathComponent("RestoreMod", isDirectory: true)
+        // A different version is already sitting at the live destination
+        // (now Mods/.RestoreMod — the dot prefix means disabled), with a
+        // real manifest.json so the replaced-version registration (which
+        // reads metadata off disk) can succeed.
+        let liveDestDir = env.modsDir.appendingPathComponent(".RestoreMod", isDirectory: true)
         try writeTestFile(in: liveDestDir, filename: "data.txt", content: "currently live")
         try writeManifest(in: liveDestDir, uniqueId: "restore.mod", name: "Restore Mod", version: "2.0.0")
 
@@ -287,18 +290,17 @@ struct TestEnvironment {
         let mod = makeTestMod(folderName: "RestoreMod", isEnabled: true)
         let backup = try env.manager.createBackup(for: mod, gameDir: env.gameDir, reason: .beforeInstall)
 
-        let liveDestDir = env.modsDisabledDir.appendingPathComponent("RestoreMod", isDirectory: true)
+        let liveDestDir = env.modsDir.appendingPathComponent(".RestoreMod", isDirectory: true)
         try writeTestFile(in: liveDestDir, filename: "data.txt", content: "currently live")
 
         // Strip all permissions from the backup's own source folder so the
         // copy-from-backup step fails deterministically — *after* the
         // live folder has already been moved aside (a normal, permitted
-        // move within Mods_disabled, since only the backup source is
-        // locked down, not Mods_disabled itself). This reproduces exactly
-        // the failure window the rollback protects against. Verified
-        // empirically that a 0-permission source directory makes a
-        // recursive copy fail (`cp -R` against it exits non-zero with
-        // "Permission denied").
+        // move within Mods/, since only the backup source is locked down,
+        // not Mods/ itself). This reproduces exactly the failure window
+        // the rollback protects against. Verified empirically that a
+        // 0-permission source directory makes a recursive copy fail
+        // (`cp -R` against it exits non-zero with "Permission denied").
         try FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: backup.backupPath)
 
         do {
@@ -340,8 +342,8 @@ struct TestEnvironment {
             Issue.record("Expected .restoreFailed, got \(error)")
         }
 
-        // No live folder should have been created.
-        #expect(!FileManager.default.fileExists(atPath: env.modsDisabledDir.appendingPathComponent("RestoreMod").path))
+        // No live folder should have been created (Mods/.RestoreMod absent).
+        #expect(!FileManager.default.fileExists(atPath: env.modsDir.appendingPathComponent(".RestoreMod").path))
     }
 
     @Test func deleteBackupRemovesFolderAndIndexEntry() throws {

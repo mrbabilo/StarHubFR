@@ -119,8 +119,8 @@ class StarHubTHViewModel: ObservableObject {
 
     /// Folder name of the mod currently being toggled (enabled/disabled), or
     /// nil when no toggle operation is in flight. Drives the spinner shown
-    /// next to the toggle in ModListRow during the (potentially slow) folder
-    /// move between Mods/ and Mods_disabled/.
+    /// next to the toggle in ModListRow during the (now fast, but still
+    /// background-dispatched) rename within Mods/.
     @Published var pendingToggleFolder: String? = nil
 
     /// Folder name of the mod currently being deleted, or nil when no delete
@@ -315,6 +315,13 @@ class StarHubTHViewModel: ObservableObject {
     /// the resolved mod, needed to read a dependency's OWN dependencies when
     /// recursing.
     private var installedModsByUniqueId: [String: ModItem] = [:]
+
+    /// Manifest decode cache, keyed by manifest.json absolute path. Each
+    /// entry stores the file's mtime alongside the decoded JSON so a stale
+    /// cache entry is detected by `stat()` instead of a full re-read + decode.
+    /// Persisted across scans (a rescan with no changes does ~N stats and 0
+    /// decodes) and mutated on the background queue that runs `scanMods()`.
+    private var manifestCache: [String: (mtime: Date, manifest: [String: Any])] = [:]
 
     // Thai Translation Hub State
     @Published var thaiTranslations: [ThaiTranslationMod] = []
@@ -581,6 +588,107 @@ class StarHubTHViewModel: ObservableObject {
         self.checkSmapiVersion()
     }
 
+    /// One-shot, idempotent migration from the legacy `Mods_disabled/`
+    /// layout to the dot-prefix convention where disabled mods live as
+    /// `Mods/.X` (SMAPI ignores dotted folders). Runs on the background
+    /// queue from `performInitialLoad`, **before** the first `scanMods()`.
+    ///
+    /// Guards itself with a UserDefaults flag so it's a no-op on every
+    /// subsequent launch, and is safe to call from anywhere. On a partial
+    /// failure (e.g. a locked folder) it logs and still sets the flag: any
+    /// leftover mods stay invisible to the app until the user reinstalls
+    /// them (the permanent `Mods_disabled/` warning in `scanMods` covers
+    /// this case and the cross-version-skip case described in the plan's
+    /// step 17).
+    ///
+    /// No registry/timestamp/profile migration is needed: those maps key on
+    /// the logical `folderName` (without the dot), which is unchanged.
+    private func migrateDisabledModsToDotPrefix(gameDir: String) {
+        guard !gameDir.isEmpty else { return }
+        let defaults = UserDefaults.standard
+        if defaults.bool(forKey: UDKey.disabledModsMigratedToDotPrefix) { return }
+
+        let fm = FileManager.default
+        let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
+        let disabledPath = (gameDir as NSString).appendingPathComponent("Mods_disabled")
+
+        // Fast path: no legacy folder → nothing to do.
+        guard fm.fileExists(atPath: disabledPath) else {
+            defaults.set(true, forKey: UDKey.disabledModsMigratedToDotPrefix)
+            return
+        }
+
+        // Ensure Mods/ exists so moves below always have a destination.
+        try? fm.createDirectory(atPath: modsPath, withIntermediateDirectories: true)
+
+        let osJunkNames: Set<String> = [".DS_Store", "Thumbs.db", "ehthumbs.db", "Icon\r"]
+        let osJunkFolders: Set<String> = ["__MACOSX", ".Spotlight-V100", ".Trashes"]
+        func isOsJunk(_ entry: String) -> Bool {
+            osJunkNames.contains(entry)
+                || osJunkFolders.contains(entry)
+                || entry.hasPrefix("._")
+        }
+
+        guard let entries = try? fm.contentsOfDirectory(atPath: disabledPath) else {
+            // Can't even read the folder — leave it and let the scanMods
+            // warning surface it. Don't set the flag so we retry next launch.
+            log("Migration: could not read Mods_disabled/ — skipping (will retry next launch).", level: .warning)
+            return
+        }
+
+        var failed = 0
+        var moved = 0
+        for entry in entries {
+            if isOsJunk(entry) { continue }
+
+            let src = (disabledPath as NSString).appendingPathComponent(entry)
+            var isDir: ObjCBool = false
+            fm.fileExists(atPath: src, isDirectory: &isDir)
+            // Only migrate directories — a stray file at the root of
+            // Mods_disabled/ is left in place (and surfaced by the warning).
+            guard isDir.boolValue else { continue }
+
+            let dotName = "." + entry
+            let dst = (modsPath as NSString).appendingPathComponent(dotName)
+            let finalDst: String
+            if fm.fileExists(atPath: dst) {
+                // Collision: a `.X` already exists in Mods/ (e.g. from a
+                // crashed prior run, or a manual copy). Preserve the data by
+                // moving under a unique suffix rather than overwriting.
+                let uuid8 = String(UUID().uuidString.prefix(8))
+                finalDst = "\(dst)_\(uuid8)"
+                log("Migration: collision — Mods/.\(entry) already exists, moved Mods_disabled/\(entry) → Mods/.\(entry)_\(uuid8).", level: .warning)
+            } else {
+                finalDst = dst
+            }
+
+            do {
+                try fm.moveItem(atPath: src, toPath: finalDst)
+                moved += 1
+            } catch {
+                failed += 1
+                log("Migration: failed to move Mods_disabled/\(entry) → \(finalDst): \(error.localizedDescription)", level: .error)
+            }
+        }
+
+        // Remove Mods_disabled/ entirely if it's now empty or only holds junk.
+        let remaining = (try? fm.contentsOfDirectory(atPath: disabledPath)) ?? []
+        let onlyJunk = remaining.allSatisfy { isOsJunk($0) }
+        if onlyJunk {
+            do {
+                try fm.removeItem(atPath: disabledPath)
+            } catch {
+                // Non-fatal — the permanent warning will re-surface it.
+                log("Migration: could not remove empty Mods_disabled/: \(error.localizedDescription)", level: .warning)
+            }
+        } else {
+            log("Migration: Mods_disabled/ still contains \(remaining.count) non-junk entries (failed moves or stray files) — left in place; see the Mods_disabled warning.", level: .warning)
+        }
+
+        log("Migration: moved \(moved) disabled mod(s) to Mods/.X, \(failed) failure(s).", level: failed > 0 ? .warning : .info)
+        defaults.set(true, forKey: UDKey.disabledModsMigratedToDotPrefix)
+    }
+
     /// First-launch load tracked by the launch overlay. Mirrors `refresh()`
     /// but publishes a granular progress (0.0 → 1.0) + a localized step label
     /// so the user sees what the app is doing instead of an indeterminate
@@ -612,13 +720,20 @@ class StarHubTHViewModel: ObservableObject {
             _ = self.loadInstalledModRegistry()
 
             // Step 2 — Scanning mods: the big one. Walks the game's Mods/
-            // and Mods_disabled/ folders, parses every manifest.json, builds
-            // groups, syncs the registry. Published mutations land on main
-            // inside scanMods() itself.
+            // folder (both enabled entries and `.X` disabled ones, which SMAPI
+            // ignores), parses every manifest.json, builds groups, syncs the
+            // registry. Published mutations land on main inside scanMods()
+            // itself.
             DispatchQueue.main.async { [weak self] in
                 self?.launchStep = self?.L(L10n.Main.launchStepScan) ?? ""
                 self?.launchProgress = 0.25
             }
+            // One-shot migration from the legacy Mods_disabled/ layout to the
+            // dot-prefix convention (Mods/.X = disabled). Must run BEFORE the
+            // first scanMods() so the scanner sees every mod — enabled and
+            // disabled — in a single location. Idempotent and safe to call on
+            // every launch (it self-guards with a UserDefaults flag).
+            self.migrateDisabledModsToDotPrefix(gameDir: self.gameDir)
             self.scanMods()
 
             // Step 3 — Saves: read & parse the user's save XML files. Can be
@@ -753,10 +868,42 @@ class StarHubTHViewModel: ObservableObject {
 
         let fm = FileManager.default
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
+
+        // Permanent safety net: if a legacy `Mods_disabled/` folder still
+        // exists (recréé par un autre outil, ou un retardataire qui passe
+        // d'une version pré-migration directement à la version actuelle),
+        // the mods it holds are now invisible to the app and would otherwise
+        // silently vanish from the list. Surface a single warning so the
+        // user knows to reinstall them via drag-and-drop. Survives the N+1
+        // removal of the one-shot migration method (plan step 17).
         let disabledModsPath = (gameDir as NSString).appendingPathComponent("Mods_disabled")
-        
+        if fm.fileExists(atPath: disabledModsPath) {
+            let hasNonJunk = (try? fm.contentsOfDirectory(atPath: disabledModsPath))?
+                .contains { entry in
+                    !(entry == ".DS_Store" || entry == "Thumbs.db" || entry == "ehthumbs.db"
+                      || entry == "__MACOSX" || entry.hasPrefix("._"))
+                } ?? false
+            if hasNonJunk {
+                log("Mods_disabled/ still contains mods — they are now invisible to StarHubTH. Reinstall them via drag-and-drop to make them appear under Mods/.", level: .warning)
+            }
+        }
+
         var scannedMods: [ModItem] = []
-        
+
+        // Manifest decode cache hit-test helper. Returns the cached JSON when
+        // the on-disk mtime matches the cached entry's mtime, nil otherwise
+        // (cache miss, file changed, or unreadable). The actual decode + cache
+        // fill happens inline in parseModFolder below.
+        func cachedManifest(at manifestPath: String) -> [String: Any]? {
+            guard let attrs = try? fm.attributesOfItem(atPath: manifestPath),
+                  let mtime = attrs[.modificationDate] as? Date,
+                  let cached = manifestCache[manifestPath],
+                  cached.mtime == mtime else {
+                return nil
+            }
+            return cached.manifest
+        }
+
         // Helper to parse a folder containing manifest.json
         func parseModFolder(at path: String, relativePath: String, isEnabled: Bool) -> ModItem? {
             let manifestPath = (path as NSString).appendingPathComponent("manifest.json")
@@ -808,39 +955,68 @@ class StarHubTHViewModel: ObservableObject {
             var nexusUrl = ""
             var nexusModId = ""
             var dependencies: [ModDependency] = []
-            
-            if let rawData = try? Data(contentsOf: URL(fileURLWithPath: manifestPath)),
-               let rawString = String(data: rawData, encoding: .utf8) {
-                
-                // Strip block comments (/* ... */) often added by ModManifestBuilder
-                let cleanString = rawString.replacingOccurrences(of: "/\\*[\\s\\S]*?\\*/", with: "", options: .regularExpression)
-                
-                var options: JSONSerialization.ReadingOptions = []
-                if #available(macOS 12.0, *) {
-                    options.insert(.json5Allowed)
-                }
-                
-                if let data = cleanString.data(using: .utf8),
-                   let json = try? JSONSerialization.jsonObject(with: data, options: options) as? [String: Any] {
-                    
-                    if let mName = json.caseInsensitiveValue(forKey: "Name") as? String { name = mName }
-                if let mUniqueId = json.caseInsensitiveValue(forKey: "UniqueID") as? String { uniqueId = mUniqueId }
-                
-                let mVer = json.caseInsensitiveValue(forKey: "Version")
-                if let vStr = mVer as? String { 
-                    version = vStr 
+
+            // mtime-keyed decode cache: avoids re-reading and re-parsing every
+            // manifest.json on a rescan that follows a toggle (which moved only
+            // one folder). The cache lives across scans on the VM, so a no-op
+            // rescan becomes ~N stat() calls and zero JSON decodes.
+            if let cached = cachedManifest(at: manifestPath) {
+                if let mName = cached.caseInsensitiveValue(forKey: "Name") as? String { name = mName }
+                if let mUniqueId = cached.caseInsensitiveValue(forKey: "UniqueID") as? String { uniqueId = mUniqueId }
+
+                let mVer = cached.caseInsensitiveValue(forKey: "Version")
+                if let vStr = mVer as? String {
+                    version = vStr
                 } else if let vDict = mVer as? [String: Any] {
                     let major = vDict.caseInsensitiveValue(forKey: "MajorVersion") as? Int ?? 1
                     let minor = vDict.caseInsensitiveValue(forKey: "MinorVersion") as? Int ?? 0
                     let patch = vDict.caseInsensitiveValue(forKey: "PatchVersion") as? Int ?? 0
                     version = "\(major).\(minor).\(patch)"
                 }
-                
+
+                if let mAuthor = cached.caseInsensitiveValue(forKey: "Author") as? String { author = mAuthor }
+                if let mDesc = cached.caseInsensitiveValue(forKey: "Description") as? String { description = mDesc }
+
+                dependencies = ModDependencyParser.parse(manifest: cached)
+
+                if let nexus = ModManifest.parseNexusId(
+                    fromUpdateKeys: cached.caseInsensitiveValue(forKey: "UpdateKeys") as? [String]
+                ) {
+                    nexusModId = nexus.id
+                    nexusUrl = nexus.url
+                }
+            } else if let rawData = try? Data(contentsOf: URL(fileURLWithPath: manifestPath)),
+                let rawString = String(data: rawData, encoding: .utf8) {
+
+                // Strip block comments (/* ... */) often added by ModManifestBuilder
+                let cleanString = rawString.replacingOccurrences(of: "/\\*[\\s\\S]*?\\*/", with: "", options: .regularExpression)
+
+                var options: JSONSerialization.ReadingOptions = []
+                if #available(macOS 12.0, *) {
+                    options.insert(.json5Allowed)
+                }
+
+                if let data = cleanString.data(using: .utf8),
+                   let json = try? JSONSerialization.jsonObject(with: data, options: options) as? [String: Any] {
+
+                    if let mName = json.caseInsensitiveValue(forKey: "Name") as? String { name = mName }
+                if let mUniqueId = json.caseInsensitiveValue(forKey: "UniqueID") as? String { uniqueId = mUniqueId }
+
+                let mVer = json.caseInsensitiveValue(forKey: "Version")
+                if let vStr = mVer as? String {
+                    version = vStr
+                } else if let vDict = mVer as? [String: Any] {
+                    let major = vDict.caseInsensitiveValue(forKey: "MajorVersion") as? Int ?? 1
+                    let minor = vDict.caseInsensitiveValue(forKey: "MinorVersion") as? Int ?? 0
+                    let patch = vDict.caseInsensitiveValue(forKey: "PatchVersion") as? Int ?? 0
+                    version = "\(major).\(minor).\(patch)"
+                }
+
                 if let mAuthor = json.caseInsensitiveValue(forKey: "Author") as? String { author = mAuthor }
                 if let mDesc = json.caseInsensitiveValue(forKey: "Description") as? String { description = mDesc }
-                
+
                 dependencies = ModDependencyParser.parse(manifest: json)
-                
+
                 // Reuse the shared parser so scanning stays in sync with
                 // `ModManifest.init` (single source of truth for the
                 // `nexus:<id>[@variant]` UpdateKey convention).
@@ -849,6 +1025,14 @@ class StarHubTHViewModel: ObservableObject {
                 ) {
                     nexusModId = nexus.id
                     nexusUrl = nexus.url
+                }
+
+                // Fill the cache so the next scan of an unchanged manifest
+                // is a cheap mtime compare + dict reuse. Storing the raw
+                // decoded JSON (not a narrowed subset) keeps the cache usable
+                // for any future field added to the scan without rework.
+                if let mtime = (try? fm.attributesOfItem(atPath: manifestPath))?[.modificationDate] as? Date {
+                    manifestCache[manifestPath] = (mtime: mtime, manifest: json)
                 }
             }
         }
@@ -884,23 +1068,31 @@ class StarHubTHViewModel: ObservableObject {
                 languages: languages
             )
         }
-        
-        // Helper to recursively scan folders for manifest.json and group them
-        func scanFolderForMods(at path: String, isEnabled: Bool) {
-            let url = URL(fileURLWithPath: path)
+
+        // Scan a single top-level entry (physicalRoot) for manifest.json files
+        // and group them. `physicalRoot` is the on-disk folder name — which
+        // for a disabled mod starts with `.` (e.g. `Mods/.CJBCheats`). The
+        // `relativePath` passed to parseModFolder is computed relative to
+        // `physicalRoot` so the dot prefix never leaks into `folderName`
+        // (the registry/profile key) or into the pack grouping key.
+        func scanEntryForMods(at physicalRoot: String, isEnabled: Bool) {
+            let url = URL(fileURLWithPath: physicalRoot)
             var groups: [String: [ModItem]] = [:]
             var ungrouped: [ModItem] = []
-            
+
+            // Sub-scan with `.skipsHiddenFiles` so nested junk (.DS_Store,
+            // .git/, ._Foo) stays hidden — the dot-prefix classification of
+            // *top-level* entries is handled by the caller, not here.
             if let enumerator = fm.enumerator(at: url, includingPropertiesForKeys: [.isDirectoryKey], options: [.skipsHiddenFiles]) {
                 for case let fileURL as URL in enumerator {
                     if fileURL.lastPathComponent.lowercased() == "manifest.json" {
                         let modFolderURL = fileURL.deletingLastPathComponent()
                         let relativePath = modFolderURL.path.replacingOccurrences(of: url.path, with: "").trimmingCharacters(in: CharacterSet(charactersIn: "/"))
                         if let mod = parseModFolder(at: modFolderURL.path, relativePath: relativePath, isEnabled: isEnabled) {
-                            
+
                             // Determine top-level folder
                             let pathComponents = relativePath.components(separatedBy: "/")
-                            
+
                             if pathComponents.count > 1, let topFolder = pathComponents.first, !topFolder.isEmpty {
                                 groups[topFolder, default: []].append(mod)
                             } else {
@@ -910,9 +1102,9 @@ class StarHubTHViewModel: ObservableObject {
                     }
                 }
             }
-            
+
             scannedMods.append(contentsOf: ungrouped)
-            
+
             for (groupName, modsInGroup) in groups {
                 if modsInGroup.count == 1 {
                     scannedMods.append(modsInGroup[0])
@@ -936,22 +1128,40 @@ class StarHubTHViewModel: ObservableObject {
                 }
             }
         }
-        
-        // Scan enabled mods folder
-        if fm.fileExists(atPath: modsPath) {
-            scanFolderForMods(at: modsPath, isEnabled: true)
+
+        // Top-level enumeration of Mods/ WITHOUT `.skipsHiddenFiles` so the
+        // dot-prefixed disabled entries (`.X`) are visible. Each entry is
+        // classified exactly the same way `ModFolderRepairer.repairFolder`
+        // classifies top-level entries, so the scanner and the repairer agree
+        // on what counts as OS junk vs. a disabled mod.
+        if fm.fileExists(atPath: modsPath),
+           let topEntries = try? fm.contentsOfDirectory(atPath: modsPath) {
+            for entry in topEntries {
+                let isOsJunk = entry == ".DS_Store"
+                    || entry == "Thumbs.db"
+                    || entry == "ehthumbs.db"
+                    || entry == "__MACOSX"
+                    || entry.hasPrefix("._")
+                if isOsJunk { continue }
+
+                // Dot prefix = disabled mod; strip it for the logical name.
+                // Anything else = enabled mod (including the rare legitimate
+                // dotted folder a user might have placed — treated as enabled
+                // since SMAPI wouldn't load it anyway, but we don't break it).
+                let isEnabled = !entry.hasPrefix(".")
+                let physicalRoot = (modsPath as NSString).appendingPathComponent(entry)
+                var isDir: ObjCBool = false
+                fm.fileExists(atPath: physicalRoot, isDirectory: &isDir)
+                guard isDir.boolValue else { continue }
+                scanEntryForMods(at: physicalRoot, isEnabled: isEnabled)
+            }
         }
-        
-        // Scan disabled mods folder
-        if fm.fileExists(atPath: disabledModsPath) {
-            scanFolderForMods(at: disabledModsPath, isEnabled: false)
-        }
-        
+
         parseSMAPILog()
 
         // Synchronize the installed-mod registry with what's on disk. This
         // catches mods added by ANY means — drag-and-drop, manual copy into
-        // Mods/ or Mods_disabled/, or the app's own installer. The rules:
+        // Mods/, or the app's own installer. The rules:
         //   1. A mod whose version changed since last scan → record NOW.
         //   2. A mod on disk but absent from the registry (first time seen)
         //      → record with the folder mtime as a best-effort date.
@@ -1376,36 +1586,37 @@ class StarHubTHViewModel: ObservableObject {
         
         let fm = FileManager.default
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
-        let disabledModsPath = (gameDir as NSString).appendingPathComponent("Mods_disabled")
         var anyMoved = false
-        
+
         for folderName in foldersToToggle {
             guard let m = self.mods.first(where: { $0.folderName == folderName }) else { continue }
             if m.isEnabled == targetState { continue }
-            
-            let srcPath = ((m.isEnabled ? modsPath : disabledModsPath) as NSString).appendingPathComponent(m.folderName)
-            let destFolder = m.isEnabled ? disabledModsPath : modsPath
-            let destPath = ((destFolder as NSString).appendingPathComponent(m.folderName) as String)
+
+            // Dot-prefix toggle: a rename WITHIN Mods/ flips enabled↔disabled.
+            // `physicalFolderName` carries the current state's prefix; the
+            // destination uses the opposite prefix. Both paths share the same
+            // parent (Mods/), so the rename is atomic and O(1) — no folder
+            // copy, no freeze on large mods.
+            let srcPath = (modsPath as NSString).appendingPathComponent(m.physicalFolderName)
+            let dstName = targetState ? m.folderName : "." + m.folderName
+            let destPath = (modsPath as NSString).appendingPathComponent(dstName)
 
             // self.mods can be stale if another toggle's background scanMods()
             // (see the completion-driven dispatch below) hasn't landed yet.
             // Trust the filesystem over the cached isEnabled flag: if the
-            // source is already gone, this mod was already moved by a prior
-            // call — skip instead of deleting the (correct) destination copy.
+            // source is already gone, this mod was already renamed by a prior
+            // call — skip instead of operating on a non-existent path.
             guard fm.fileExists(atPath: srcPath) else {
-                print("Skipping toggle for \(m.name): source folder missing at \(srcPath) (likely already moved by a concurrent toggle)")
+                print("Skipping toggle for \(m.name): source folder missing at \(srcPath) (likely already renamed by a concurrent toggle)")
                 continue
             }
 
             do {
-                let destParent = (destPath as NSString).deletingLastPathComponent
-                if !fm.fileExists(atPath: destParent) {
-                    try fm.createDirectory(atPath: destParent, withIntermediateDirectories: true, attributes: nil)
-                }
-
                 // A pre-existing duplicate at destPath is set aside rather than
                 // deleted outright, so a failed moveItem below can't leave the
-                // mod lost from both locations.
+                // mod lost from both locations. On a same-parent rename a
+                // collision means a pre-existing `.X` (e.g. from a crashed
+                // prior toggle) — keep the defensive set-aside + rollback.
                 var staleDuplicateAside: String? = nil
                 if fm.fileExists(atPath: destPath) {
                     let asidePath = destPath + ".stale_\(UUID().uuidString)"
@@ -2486,7 +2697,7 @@ class StarHubTHViewModel: ObservableObject {
     /// Reconciles the persistent install registry with the mods found on disk
     /// during a scan. Called at the end of every `scanMods()` so that mods
     /// added by ANY means (app installer, drag-and-drop, manual copy into
-    /// Mods/ or Mods_disabled/) are tracked.
+    /// Mods/) are tracked.
     ///
     /// - A mod whose version differs from the registry (new install or update)
     ///   is recorded with `Date()` — the actual moment it was detected.
@@ -2923,19 +3134,52 @@ class StarHubTHViewModel: ObservableObject {
     
     func cleanDisabledMods() {
         guard !gameDir.isEmpty else { return }
-        let disabledModsPath = (gameDir as NSString).appendingPathComponent("Mods_disabled")
-        do {
-            if FileManager.default.fileExists(atPath: disabledModsPath) {
-                try FileManager.default.removeItem(atPath: disabledModsPath)
-                showModal(message: L(L10n.VM.cleanModsSuccess))
-                DispatchQueue.global(qos: .userInitiated).async {
-                    self.scanMods()
-                }
-            } else {
-                showModal(message: L(L10n.VM.cleanModsNotFound))
+        let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
+        let fm = FileManager.default
+
+        // Disabled mods now live as dot-prefixed folders inside Mods/
+        // (Mods/.X). Enumerate the top level and remove every `.X` that
+        // isn't OS junk.
+        guard let entries = try? fm.contentsOfDirectory(atPath: modsPath) else {
+            showModal(message: L(L10n.VM.cleanModsNotFound))
+            return
+        }
+
+        let osJunkNames: Set<String> = [".DS_Store", "Thumbs.db", "ehthumbs.db", "Icon\r"]
+        let osJunkFolders: Set<String> = ["__MACOSX", ".Spotlight-V100", ".Trashes"]
+        func isOsJunk(_ entry: String) -> Bool {
+            osJunkNames.contains(entry) || osJunkFolders.contains(entry) || entry.hasPrefix("._")
+        }
+
+        var removed = 0
+        var failed = 0
+        var firstError: Error? = nil
+        for entry in entries {
+            // Only dot-prefixed entries that aren't OS junk are disabled mods.
+            guard entry.hasPrefix(".") && !isOsJunk(entry) else { continue }
+            let path = (modsPath as NSString).appendingPathComponent(entry)
+            do {
+                try fm.removeItem(atPath: path)
+                removed += 1
+            } catch {
+                failed += 1
+                if firstError == nil { firstError = error }
             }
-        } catch {
-            showModal(message: String(format: L(L10n.VM.cleanModsError), error.localizedDescription))
+        }
+
+        if removed == 0 && failed == 0 {
+            showModal(message: L(L10n.VM.cleanModsNotFound))
+        } else if failed > 0 {
+            showModal(message: String(format: L(L10n.VM.cleanModsError),
+                                      firstError?.localizedDescription ?? ""))
+        } else {
+            showModal(message: L(L10n.VM.cleanModsSuccess))
+        }
+
+        if removed > 0 || failed > 0 {
+            DispatchQueue.global(qos: .userInitiated).async {
+                self.scanMods()
+            }
         }
     }
     
@@ -3277,8 +3521,8 @@ class StarHubTHViewModel: ObservableObject {
 
     func applyProfile(id: UUID?) {
         // Serialize activations: refuse to start a new one while a previous
-        // profile is still being applied (mod folders moving / rescanning), so
-        // two activations can't race on the same Mods/Mods_disabled paths.
+        // profile is still being applied (mod folders being renamed /
+        // rescanned), so two activations can't race on the same paths.
         guard !isApplyingProfile else { return }
 
         guard let id = id, let profile = modProfiles.first(where: { $0.id == id }) else {
@@ -3307,7 +3551,7 @@ class StarHubTHViewModel: ObservableObject {
     /// Unlike `toggleMod`, the previous implementation swallowed every
     /// filesystem error with `try?`, so a partial failure (e.g. one mod
     /// folder locked by another process, a permission issue, a stale
-    /// destination) left the Mods/Mods_disabled layout in an inconsistent
+    /// destination) left the Mods/ layout in an inconsistent
     /// state with no signal to the user. This version captures each move
     /// error, logs it, and surfaces a user-visible alert summarizing how
     /// many mods could not be relocated — while still rescanning so the UI
@@ -3319,14 +3563,13 @@ class StarHubTHViewModel: ObservableObject {
         isApplyingProfile = true
         let fm = FileManager.default
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
-        let disabledModsPath = (gameDir as NSString).appendingPathComponent("Mods_disabled")
 
         // Records each mod that could not be moved, with the underlying
         // error for the log. Drives both the user-facing alert and the
         // per-mod log lines below.
         struct MoveFailure {
             let modName: String
-            let direction: String   // "→ Mods" / "→ Mods_disabled"
+            let direction: String   // "→ activé" / "→ désactivé"
             let error: Error
         }
         var failures: [MoveFailure] = []
@@ -3351,18 +3594,16 @@ class StarHubTHViewModel: ObservableObject {
         )
         let missingIds = profile.enabledModIds.filter { !installedUniqueIds.contains($0) }
 
-        // Shared helper: ensure the destination parent directory exists,
-        // then move the folder. Returns nil on success, the error on
-        // failure — never throws so the loop can keep processing the
-        // remaining mods instead of aborting at the first error.
-        func moveModFolder(_ mod: ModItem, from src: String, to dst: String, direction: String) {
+        // Shared helper: rename a mod folder within Mods/ to flip its
+        // enabled/disabled state via the dot-prefix convention. `srcPhysical`
+        // is the current on-disk name (with dot if disabled), `dstPhysical`
+        // is the target name (with dot to disable, without to enable).
+        // Never throws so the loop can keep processing the remaining mods
+        // instead of aborting at the first error.
+        func renameModFolder(_ mod: ModItem, from srcPhysical: String, to dstPhysical: String, direction: String) {
             attempted += 1
-            let dstParent = (dst as NSString).deletingLastPathComponent
             do {
-                if !fm.fileExists(atPath: dstParent) {
-                    try fm.createDirectory(atPath: dstParent, withIntermediateDirectories: true, attributes: nil)
-                }
-                try fm.moveItem(atPath: src, toPath: dst)
+                try fm.moveItem(atPath: srcPhysical, toPath: dstPhysical)
             } catch {
                 failures.append(MoveFailure(modName: mod.name, direction: direction, error: error))
             }
@@ -3380,8 +3621,8 @@ class StarHubTHViewModel: ObservableObject {
         // `UniqueID`, which the enabled list stores (empty ids are filtered out
         // when snapshotting), so a mod whose manifest has no `UniqueID` can
         // never be "covered". Without this guard, applying ANY profile would
-        // sweep every such mod into Mods_disabled — a silent data loss. Leave
-        // those mods exactly where they are instead.
+        // sweep every such mod into the disabled set — a silent data loss.
+        // Leave those mods exactly where they are instead.
         func isProfileManageable(_ mod: ModItem) -> Bool {
             if mod.isGroup, let children = mod.children {
                 return children.contains { !$0.uniqueId.isEmpty }
@@ -3389,25 +3630,25 @@ class StarHubTHViewModel: ObservableObject {
             return !mod.uniqueId.isEmpty
         }
 
-        // Disable mods not in profile
+        // Disable mods not in profile: rename Mods/X → Mods/.X
         for mod in mods.filter({ $0.isEnabled }) {
             guard isProfileManageable(mod) else { continue }
             guard !isCoveredByProfile(mod) else { continue }
-            let src = (modsPath as NSString).appendingPathComponent(mod.folderName)
-            let dst = (disabledModsPath as NSString).appendingPathComponent(mod.folderName)
-            moveModFolder(mod, from: src, to: dst, direction: "→ Mods_disabled")
+            let src = (modsPath as NSString).appendingPathComponent(mod.physicalFolderName)
+            let dst = (modsPath as NSString).appendingPathComponent("." + mod.folderName)
+            renameModFolder(mod, from: src, to: dst, direction: "→ désactivé")
         }
 
-        // Enable mods in profile. Only stamp the activation timestamp for
-        // mods that were actually moved — stamping a mod that failed to
-        // move would record a phantom "last activation" for a folder that
-        // is still sitting in Mods_disabled.
+        // Enable mods in profile: rename Mods/.X → Mods/X. Only stamp the
+        // activation timestamp for mods that were actually moved — stamping
+        // a mod that failed to rename would record a phantom "last
+        // activation" for a folder that is still sitting disabled.
         for mod in mods.filter({ !$0.isEnabled }) {
             guard isCoveredByProfile(mod) else { continue }
-            let src = (disabledModsPath as NSString).appendingPathComponent(mod.folderName)
+            let src = (modsPath as NSString).appendingPathComponent(mod.physicalFolderName)
             let dst = (modsPath as NSString).appendingPathComponent(mod.folderName)
             let beforeCount = failures.count
-            moveModFolder(mod, from: src, to: dst, direction: "→ Mods")
+            renameModFolder(mod, from: src, to: dst, direction: "→ activé")
             if failures.count == beforeCount {
                 self.modActivationTimestamps[mod.folderName] = Date()
                 anyEnabled = true
@@ -3549,7 +3790,6 @@ class StarHubTHViewModel: ObservableObject {
 
         let gameDir = self.gameDir
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
-        let disabledModsPath = (gameDir as NSString).appendingPathComponent("Mods_disabled")
 
         DispatchQueue.global(qos: .userInitiated).async {
             let fm = FileManager.default
@@ -3566,14 +3806,17 @@ class StarHubTHViewModel: ObservableObject {
 
             for (index, mod) in modsToMove.enumerated() {
                 attempted += 1
-                let src = ((mod.isEnabled ? modsPath : disabledModsPath) as NSString).appendingPathComponent(mod.folderName)
-                let dst = ((enable ? modsPath : disabledModsPath) as NSString).appendingPathComponent(mod.folderName)
-                let direction = enable ? "→ Mods" : "→ Mods_disabled"
+                // Dot-prefix rename: source uses the current physical name,
+                // destination uses the target state's name (with/without dot).
+                let src = (modsPath as NSString).appendingPathComponent(mod.physicalFolderName)
+                let dstName = enable ? mod.folderName : "." + mod.folderName
+                let dst = (modsPath as NSString).appendingPathComponent(dstName)
+                let direction = enable ? "→ activé" : "→ désactivé"
 
                 var didMove = false
 
                 // Safety: trust the filesystem over the cached isEnabled flag.
-                // If the source is already gone, this mod was already moved —
+                // If the source is already gone, this mod was already renamed —
                 // skip instead of operating on a non-existent path.
                 guard fm.fileExists(atPath: src) else {
                     DispatchQueue.main.async {
@@ -3583,14 +3826,11 @@ class StarHubTHViewModel: ObservableObject {
                 }
 
                 do {
-                    let dstParent = (dst as NSString).deletingLastPathComponent
-                    if !fm.fileExists(atPath: dstParent) {
-                        try fm.createDirectory(atPath: dstParent, withIntermediateDirectories: true, attributes: nil)
-                    }
-
                     // A pre-existing duplicate at dst is set aside rather than
                     // deleted outright, so a failed moveItem below can't leave
-                    // the mod lost from both locations.
+                    // the mod lost from both locations. Kept defensively even
+                    // though a same-parent rename should only collide on a bug
+                    // or a leftover from a crashed prior toggle.
                     var staleDuplicateAside: String? = nil
                     if fm.fileExists(atPath: dst) {
                         let asidePath = dst + ".stale_\(UUID().uuidString)"
@@ -3671,8 +3911,8 @@ class StarHubTHViewModel: ObservableObject {
     }
 
     /// Permanently delete a mod (or an entire mod pack) from disk. The mod's
-    /// folder is removed from `Mods/` or `Mods_disabled/` depending on its
-    /// current enabled state. For a pack (`isGroup == true`), this deletes the
+    /// folder is removed from `Mods/` (disabled mods live there as `.X`,
+    /// enabled ones as `X`). For a pack (`isGroup == true`), this deletes the
     /// single top-level folder that contains all child mods. The mod list is
     /// rescanned afterward so the UI reflects the real on-disk state. Surfaces
     /// a user-visible alert on failure.
@@ -3683,9 +3923,10 @@ class StarHubTHViewModel: ObservableObject {
         }
 
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
-        let disabledModsPath = (gameDir as NSString).appendingPathComponent("Mods_disabled")
-        let baseFolder = mod.isEnabled ? modsPath : disabledModsPath
-        let modPath = (baseFolder as NSString).appendingPathComponent(mod.folderName)
+        // A mod always lives under Mods/ now — disabled ones carry a leading
+        // dot in their physical folder name. `physicalFolderName` resolves
+        // the right on-disk path regardless of enabled state.
+        let modPath = (modsPath as NSString).appendingPathComponent(mod.physicalFolderName)
 
         let fm = FileManager.default
         guard fm.fileExists(atPath: modPath) else {

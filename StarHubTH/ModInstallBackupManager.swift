@@ -98,12 +98,10 @@ public class ModInstallBackupManager {
     public func createBackup(for mod: ModItem, gameDir: String, reason: BackupReason) throws -> ModInstallBackup {
         guard !gameDir.isEmpty else { throw InstallBackupError.gameDirEmpty }
 
-        let modsDisabledPath = (gameDir as NSString).appendingPathComponent("Mods_disabled")
-        let modsEnabledPath = (gameDir as NSString).appendingPathComponent("Mods")
-        
-        let sourcePath = mod.isEnabled 
-            ? (modsEnabledPath as NSString).appendingPathComponent(mod.folderName)
-            : (modsDisabledPath as NSString).appendingPathComponent(mod.folderName)
+        // A mod always lives under Mods/ now — disabled ones carry a leading
+        // dot in `physicalFolderName`. This single source handles both states.
+        let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
+        let sourcePath = (modsPath as NSString).appendingPathComponent(mod.physicalFolderName)
 
         guard fm.fileExists(atPath: sourcePath) else {
             throw InstallBackupError.modNotFound(mod.folderName)
@@ -166,19 +164,22 @@ public class ModInstallBackupManager {
 
     // MARK: - Restore
 
-    /// Restores a backed-up mod to the game's Mods_disabled folder.
+    /// Restores a backed-up mod to the game's Mods/ folder as a disabled
+    /// mod (Mods/.<originalFolderName>), mirroring the new-mod install
+    /// default. The user toggles it on explicitly after reviewing.
     public func restoreBackup(_ backup: ModInstallBackup, gameDir: String) throws {
         guard !gameDir.isEmpty else { throw InstallBackupError.gameDirEmpty }
 
-        let modsDisabledPath = (gameDir as NSString).appendingPathComponent("Mods_disabled")
-        let destPath = (modsDisabledPath as NSString).appendingPathComponent(backup.originalFolderName)
+        let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
+        // Restored mods land disabled by default (dot prefix).
+        let destPath = (modsPath as NSString).appendingPathComponent("." + backup.originalFolderName)
 
         guard fm.fileExists(atPath: backup.backupPath) else {
             throw InstallBackupError.restoreFailed("Backup folder not found")
         }
 
         do {
-            try fm.createDirectory(atPath: modsDisabledPath, withIntermediateDirectories: true, attributes: nil)
+            try fm.createDirectory(atPath: modsPath, withIntermediateDirectories: true, attributes: nil)
 
             // Track the set-aside path so it can be rolled back if the
             // restore copy below fails, or registered as its own backup once
@@ -200,7 +201,7 @@ public class ModInstallBackupManager {
             do {
                 // `originalFolderName` may be a nested path for a pack/group
                 // child (e.g. "PackName/ChildMod"); ensure the intermediate
-                // parent exists under Mods_disabled before copying.
+                // parent exists under Mods/ before copying.
                 let destParent = (destPath as NSString).deletingLastPathComponent
                 try fm.createDirectory(atPath: destParent, withIntermediateDirectories: true)
                 try fm.copyItem(atPath: backup.backupPath, toPath: destPath)

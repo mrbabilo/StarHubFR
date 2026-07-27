@@ -80,7 +80,8 @@ struct RepairerTestEnv {
         let env = RepairerTestEnv()
         defer { env.cleanup() }
 
-        let empty = env.modsDisabledDir.appendingPathComponent("Empty")
+        // The repairer only scans Mods/ now (disabled mods live there as .X).
+        let empty = env.modsDir.appendingPathComponent("Empty")
         try FileManager.default.createDirectory(at: empty, withIntermediateDirectories: true)
 
         let report = ModFolderRepairer().repairIfNeeded(gameDir: env.gameDir)
@@ -93,13 +94,13 @@ struct RepairerTestEnv {
         let env = RepairerTestEnv()
         defer { env.cleanup() }
 
-        // .DS_Store directly at the root of Mods_disabled.
-        try writeFile(in: env.modsDisabledDir, filename: ".DS_Store")
+        // .DS_Store directly at the root of Mods/.
+        try writeFile(in: env.modsDir, filename: ".DS_Store")
 
         let report = ModFolderRepairer().repairIfNeeded(gameDir: env.gameDir)
 
         #expect(report.quarantined.contains { $0.kind == .osJunkFile })
-        #expect(!FileManager.default.fileExists(atPath: env.modsDisabledDir.appendingPathComponent(".DS_Store").path))
+        #expect(!FileManager.default.fileExists(atPath: env.modsDir.appendingPathComponent(".DS_Store").path))
     }
 
     @Test func sweepsJunkDeepInsideValidMod() throws {
@@ -140,7 +141,7 @@ struct RepairerTestEnv {
         let env = RepairerTestEnv()
         defer { env.cleanup() }
 
-        let wrapper = env.modsDisabledDir.appendingPathComponent("WrapperMod")
+        let wrapper = env.modsDir.appendingPathComponent("WrapperMod")
         let nestedMods = wrapper.appendingPathComponent("Mods")
         try writeManifest(in: nestedMods.appendingPathComponent("InnerMod"), uniqueId: "inner.mod")
 
@@ -167,13 +168,14 @@ struct RepairerTestEnv {
         #expect(FileManager.default.fileExists(atPath: pack.appendingPathComponent("ChildA/manifest.json").path))
     }
 
-    @Test func detectsDuplicatesAcrossModsAndDisabled() throws {
+    @Test func detectsDuplicatesAcrossEnabledAndDisabled() throws {
         let env = RepairerTestEnv()
         defer { env.cleanup() }
 
-        // Same UniqueID in both Mods/ (enabled) and Mods_disabled/ (disabled).
+        // Same UniqueID in both an enabled (Mods/DupMod) and a disabled
+        // (Mods/.DupMod_Copy) folder under Mods/.
         try writeManifest(in: env.modsDir.appendingPathComponent("DupMod"), uniqueId: "dup.mod")
-        try writeManifest(in: env.modsDisabledDir.appendingPathComponent("DupMod_Copy"), uniqueId: "dup.mod")
+        try writeManifest(in: env.modsDir.appendingPathComponent(".DupMod_Copy"), uniqueId: "dup.mod")
 
         let report = ModFolderRepairer().repairIfNeeded(gameDir: env.gameDir)
 
@@ -181,7 +183,7 @@ struct RepairerTestEnv {
         #expect(report.duplicates[0].uniqueId == "dup.mod")
         // Duplicates are NOT auto-resolved — both copies stay on disk.
         #expect(FileManager.default.fileExists(atPath: env.modsDir.appendingPathComponent("DupMod/manifest.json").path))
-        #expect(FileManager.default.fileExists(atPath: env.modsDisabledDir.appendingPathComponent("DupMod_Copy/manifest.json").path))
+        #expect(FileManager.default.fileExists(atPath: env.modsDir.appendingPathComponent(".DupMod_Copy/manifest.json").path))
     }
 
     @Test func cleanFolderProducesEmptyReport() throws {

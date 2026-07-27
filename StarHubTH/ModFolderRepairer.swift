@@ -9,9 +9,10 @@ import Foundation
 /// folder inside the game directory, preserving their relative structure so
 /// nothing is ever lost and everything is restorable by hand.
 ///
-/// Duplicate UniqueIDs across Mods/ and Mods_disabled/ are **reported only**:
-/// the correct resolution depends on user intent (which copy to keep), so
-/// they are surfaced for manual action rather than auto-merged.
+/// Duplicate UniqueIDs across an enabled (`Mods/X`) and a disabled
+/// (`Mods/.X`) mod folder are **reported only**: the correct resolution
+/// depends on user intent (which copy to keep), so they are surfaced for
+/// manual action rather than auto-merged.
 ///
 /// This is a standalone value type: `repairIfNeeded()` performs all disk
 /// mutations and returns a structured report the caller surfaces to the user.
@@ -29,7 +30,7 @@ public struct ModFolderRepairer {
             case nestedMods
         }
         public let kind: Kind
-        /// Path relative to the Mods/ (or Mods_disabled/) root it was found in.
+        /// Path relative to the Mods/ root it was found in.
         public let relativePath: String
         /// Why this was flagged — user-facing explanation.
         public let reason: String
@@ -56,8 +57,9 @@ public struct ModFolderRepairer {
     public struct Report: Equatable {
         /// Items moved to quarantine during this repair run.
         public let quarantined: [Item]
-        /// Duplicate UniqueIDs found across Mods/ and Mods_disabled/ (not
-        /// auto-resolved — surfaced for manual action).
+        /// Duplicate UniqueIDs found across an enabled (`X`) and a disabled
+        /// (`.X`) mod folder inside Mods/ (not auto-resolved — surfaced for
+        /// manual action).
         public let duplicates: [Duplicate]
         /// Absolute path of the _Trash_ folder created this run, if any.
         public let trashPath: String?
@@ -99,15 +101,16 @@ public struct ModFolderRepairer {
 
     // MARK: - Public entry point
 
-    /// Scans both mod folders, quarantines corrupt/junk items, and detects
-    /// duplicates. Safe to call on every scan — already-quarantined content
-    /// (under any `_Trash_*` folder) is never re-scanned.
+    /// Scans the game's Mods/ folder (both enabled entries and `.X`
+    /// disabled ones — SMAPI ignores dotted folders), quarantines corrupt/junk
+    /// items, and detects duplicates. Safe to call on every scan —
+    /// already-quarantined content (under any `_Trash_*` folder) is never
+    /// re-scanned.
     @discardableResult
     public func repairIfNeeded(gameDir: String) -> Report {
         guard !gameDir.isEmpty else { return Report() }
 
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
-        let disabledPath = (gameDir as NSString).appendingPathComponent("Mods_disabled")
 
         var allItems: [Item] = []
 
@@ -123,17 +126,19 @@ public struct ModFolderRepairer {
         }
 
         allItems += repairFolder(at: modsPath, gameDir: gameDir, trashProvider: trashDir)
-        allItems += repairFolder(at: disabledPath, gameDir: gameDir, trashProvider: trashDir)
 
-        let duplicates = detectDuplicates(modsPath: modsPath, disabledPath: disabledPath)
+        let duplicates = detectDuplicates(modsPath: modsPath)
 
         return Report(quarantined: allItems, duplicates: duplicates, trashPath: _trashPath)
     }
 
     // MARK: - Per-folder repair
 
-    /// Walks a single mod root (Mods/ or Mods_disabled/), collecting and
-    /// quarantining junk + corrupt items. Returns the list of items moved.
+    /// Walks the Mods/ root, collecting and quarantining junk + corrupt
+    /// items. Returns the list of items moved. Disabled mod folders (`.X`)
+    /// at the top level are left untouched — this is intentional: the
+    /// repairer cleans filesystem corruption (orphans, OS junk, empty dirs),
+    /// not the user's enabled/disabled state.
     ///
     /// Only unambiguous junk (OS metadata, empty dirs) is auto-quarantined.
     /// Orphan folders (no manifest) and nested Mods wrappers are detected
@@ -206,7 +211,7 @@ public struct ModFolderRepairer {
             // --- File cases at the mod root ---
             // OS junk files anywhere in the tree are swept in a second pass
             // below; here we only handle loose files sitting directly at the
-            // root of Mods/ or Mods_disabled/ (a common clutter case).
+            // root of Mods/ (a common clutter case).
             if Self.osJunkFiles.contains(entry) {
                 if moveToTrash(fullPath: fullPath, modsRoot: modsRoot, gameDir: gameDir, trashProvider: trashProvider) {
                     items.append(Item(kind: .osJunkFile, relativePath: rel,
@@ -295,11 +300,21 @@ public struct ModFolderRepairer {
 
     // MARK: - Duplicate detection
 
-    /// Detects mods that exist in BOTH Mods/ (enabled) and Mods_disabled/
-    /// (disabled) under the same UniqueID. Reported, not auto-resolved.
-    private func detectDuplicates(modsPath: String, disabledPath: String) -> [Duplicate] {
-        let enabled = collectUniqueIds(in: modsPath)
-        let disabled = collectUniqueIds(in: disabledPath)
+    /// Detects mods that exist in BOTH an enabled folder (`Mods/X`) and a
+    /// disabled folder (`Mods/.X`) under the same UniqueID. Reported, not
+    /// auto-resolved.
+    private func detectDuplicates(modsPath: String) -> [Duplicate] {
+        let collected = collectUniqueIds(in: modsPath)
+
+        var enabled: [(id: String, folder: String, isEnabled: Bool)] = []
+        var disabled: [(id: String, folder: String, isEnabled: Bool)] = []
+        for entry in collected {
+            if entry.isEnabled {
+                enabled.append(entry)
+            } else {
+                disabled.append(entry)
+            }
+        }
 
         let enabledLower = Dictionary(
             enabled.map { ($0.id.lowercased(), $0) },
@@ -318,18 +333,22 @@ public struct ModFolderRepairer {
         return duplicates.sorted { $0.uniqueId < $1.uniqueId }
     }
 
-    /// Collects (uniqueId, topLevelFolder) pairs for every manifest.json at
-    /// any depth under `modsPath`. Reads manifests leniently (same comment
-    /// stripping as the scanner); a manifest with no readable UniqueID is
-    /// skipped.
-    private func collectUniqueIds(in modsPath: String) -> [(id: String, folder: String)] {
+    /// Collects `(uniqueId, topLevelFolder, isEnabled)` tuples for every
+    /// manifest.json at any depth under `modsPath`. Reads manifests leniently
+    /// (same comment stripping as the scanner); a manifest with no readable
+    /// UniqueID is skipped. The top-level folder name keeps its dot prefix
+    /// (when present) so callers can tell enabled from disabled entries.
+    private func collectUniqueIds(in modsPath: String) -> [(id: String, folder: String, isEnabled: Bool)] {
         let resolvedRoot = URL(fileURLWithPath: modsPath).resolvingSymlinksInPath().path
+        // Enumerate WITHOUT `.skipsHiddenFiles` so the dot-prefixed disabled
+        // mod folders (`.X`) are visible. Nested OS junk (.DS_Store, ._Foo
+        // inside a real mod) is filtered out explicitly below.
         guard let enumerator = fm.enumerator(at: URL(fileURLWithPath: resolvedRoot),
                                              includingPropertiesForKeys: [.isSymbolicLinkKey],
-                                             options: [.skipsHiddenFiles]) else {
+                                             options: []) else {
             return []
         }
-        var results: [(id: String, folder: String)] = []
+        var results: [(id: String, folder: String, isEnabled: Bool)] = []
         for case let fileURL as URL in enumerator {
             // Never follow symlinks into manifests outside the game dir.
             if let vals = try? fileURL.resourceValues(forKeys: [.isSymbolicLinkKey]),
@@ -337,12 +356,28 @@ public struct ModFolderRepairer {
                 continue
             }
             guard fileURL.lastPathComponent.lowercased() == "manifest.json" else { continue }
+            // Resolve the enumerator-reported path so it shares the same
+            // root form as `resolvedRoot` — macOS enumerators report
+            // `/private/...` even when the root URL was `/tmp/...`, and a
+            // naive prefix strip would yield a bogus relative path.
+            let resolvedFile = fileURL.resolvingSymlinksInPath().path
             // Skip manifests under a trash folder.
-            let rel = fileURL.path.replacingOccurrences(of: resolvedRoot, with: "").trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            let rel = resolvedFile.replacingOccurrences(of: resolvedRoot, with: "").trimmingCharacters(in: CharacterSet(charactersIn: "/"))
             let firstComponent = (rel as NSString).components(separatedBy: "/").first ?? rel
             if firstComponent.hasPrefix(Self.trashPrefix) { continue }
 
+            // The top-level folder is the first path component; its dot
+            // prefix (if any) signals a disabled mod. Strip it for the
+            // stored folder name so duplicates compare against the logical
+            // name on both sides.
             let topFolder = (rel as NSString).components(separatedBy: "/").first ?? rel
+            let isDisabled = topFolder.hasPrefix(".") && !Self.osJunkFiles.contains(topFolder) && !topFolder.hasPrefix(Self.appleDoublePrefix)
+            let logicalFolder = isDisabled ? String(topFolder.dropFirst()) : topFolder
+
+            // Skip manifests nested under a known OS junk folder at the top
+            // level (e.g. `__MACOSX/...`). These would otherwise pollute the
+            // duplicate-detection set with throwaway UniqueIDs.
+            if Self.osJunkFolders.contains(topFolder) { continue }
 
             guard let data = try? Data(contentsOf: fileURL),
                   let raw = String(data: data, encoding: .utf8) else { continue }
@@ -363,7 +398,7 @@ public struct ModFolderRepairer {
                   let json = try? JSONSerialization.jsonObject(with: cleanData, options: options) as? [String: Any],
                   let uid = json.caseInsensitiveValue(forKey: "UniqueID") as? String,
                   !uid.isEmpty else { continue }
-            results.append((id: uid, folder: topFolder))
+            results.append((id: uid, folder: logicalFolder, isEnabled: !isDisabled))
         }
         return results
     }

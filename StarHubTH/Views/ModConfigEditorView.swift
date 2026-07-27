@@ -48,8 +48,10 @@ struct ModConfigEditorView: View {
     }
 
     var configPath: String {
-        let basePath = (vm.gameDir as NSString).appendingPathComponent(mod.isEnabled ? "Mods" : "Mods_disabled")
-        let modPath = (basePath as NSString).appendingPathComponent(mod.folderName)
+        // A mod always lives under Mods/ — disabled ones carry a leading dot
+        // in `physicalFolderName`, so a single construction works for both.
+        let basePath = (vm.gameDir as NSString).appendingPathComponent("Mods")
+        let modPath = (basePath as NSString).appendingPathComponent(mod.physicalFolderName)
         return (modPath as NSString).appendingPathComponent("config.json")
     }
     

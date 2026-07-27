@@ -32,4 +32,8 @@ public enum UDKey {
     public static let installedModRegistryBackup = "installedModRegistryBackup"
     /// Whether to automatically check Nexus Mods for updates after startup.
     public static let autoCheckNexusUpdates = "autoCheckNexusUpdates"
+    /// One-shot flag: `true` once the `Mods_disabled/` → `Mods/.X` migration
+    /// has run on this machine. Removed in the release after the one that
+    /// introduces the dot-prefix toggle (N+1) — see the plan's step 17.
+    public static let disabledModsMigratedToDotPrefix = "disabledModsMigratedToDotPrefix"
 }

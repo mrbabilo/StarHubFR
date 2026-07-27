@@ -7,13 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Dot-prefix mod toggle (Mods/.X = disabled)** — toggling a mod no longer moves its folder between `Mods/` and `Mods_disabled/`. Instead, a disabled mod is renamed in place inside `Mods/` with a leading dot (e.g. `Mods/CJBCheats` ↔ `Mods/.CJBCheats`), which SMAPI ignores natively. The toggle is now an atomic same-parent rename (O(1)) instead of a cross-folder move, eliminating the brief UI freeze on large mods. `ModItem.folderName` stays logical (never dotted) so the install registry, profiles, activation timestamps and backups are unchanged.
+- **One-way migration on first launch** — on the first launch of this version, any mods in the legacy `Mods_disabled/` folder are moved into `Mods/` as `.X` and `Mods_disabled/` is removed. The install registry, activation timestamps and profiles need **no** migration (they key on the logical folder name, which is unchanged). This is a one-way door: downgrading after this migration loses visibility of disabled mods. A permanent warning surfaces in the log if `Mods_disabled/` is ever recreated (by another tool or a cross-version skip).
+- **"Clean disabled mods" now removes `Mods/.*`** — the setting no longer deletes a `Mods_disabled/` folder; it enumerates the top level of `Mods/` and removes every dot-prefixed disabled entry. The no-op and error messages were updated accordingly.
+- **Duplicate UniqueID detection scans Mods/ only** — the repairer now detects duplicates between an enabled (`Mods/X`) and a disabled (`Mods/.X`) mod within the same `Mods/` folder, instead of across two folders.
+- **Manifest decode cache in the scanner** — `scanMods()` now caches each manifest's decoded JSON keyed by file mtime, so a rescan following a single-mod toggle (which re-stat()s every mod but only one manifest changed) does ~N `stat()` calls and zero JSON decodes instead of N decodes.
+
 ### Added
 - **Download spinner on Mod Updates rows** — when a Nexus mod download is in flight (both the Premium in-app download and the free `nxm://` "Mod Manager Download" path), the row's action buttons are replaced by an inline spinner tagged to the specific mod being fetched (`downloadingNexusModId`), instead of just disabling every Premium button. Other rows keep their buttons disabled until the download completes.
 - **Mod-list row metadata strip** — each mod row now surfaces a compact metadata line under the category/author/version: shipped i18n language codes (with a green "FR available" badge when `i18n/fr.json` is present), the Nexus last-updated date (relative format), and the local install date (folder modification time). The strip is omitted entirely when none of the values are known.
 - **French-translation filter** — a new three-state chip ("Trad. FR" / "FR available" / "No FR") in the Mods toolbar scopes the list to mods that ship (or don't ship) an `i18n/fr.json`. Works with the same AND semantics as the existing config-only and category filters, and resolves packs via their children.
-
-### Changed
-- **Sort menu icons clarified** — the mod-list sort picker now uses more distinctive, semantically clear SF Symbols (`arrow.up.arrow.down` / `arrow.down.arrow.up` for name order, `calendar` for install date, `person.fill` for author, `tag` for version) instead of the previous generic `textformat`/`number` glyphs, and shows a checkmark on the active option.
 
 ## [1.9.0] - 2026-07-27
 

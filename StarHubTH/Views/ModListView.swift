@@ -1274,10 +1274,9 @@ struct ModListRow: View {
             // Actions (always visible)
             HStack(spacing: AppDesign.Spacing.md) {
                 Button {
-                    let baseFolder = mod.isEnabled ? "Mods" : "Mods_disabled"
                     let url = URL(fileURLWithPath: vm.gameDir)
-                        .appendingPathComponent(baseFolder)
-                        .appendingPathComponent(mod.folderName)
+                        .appendingPathComponent("Mods")
+                        .appendingPathComponent(mod.physicalFolderName)
                     NSWorkspace.shared.open(url)
                 } label: {
                     Image(systemName: "folder")
@@ -1379,8 +1378,8 @@ struct ModListRow: View {
             // macOS Native Switch Toggle
             if !isChild {
                 HStack(spacing: AppDesign.Spacing.xs) {
-                    // Spinner pendant l'opération de toggle (déplacement du
-                    // dossier entre Mods/ et Mods_disabled/). Disparaît dès
+                    // Spinner pendant l'opération de toggle (rename du
+                    // dossier dans Mods/ entre X et .X). Disparaît dès
                     // que pendingToggleFolder est remis à nil par le VM.
                     if vm.pendingToggleFolder == mod.folderName {
                         ProgressView()
@@ -1453,10 +1452,9 @@ struct ModListRow: View {
         .accessibilityHint(vm.L(L10n.Mods.openDetailsHint))
         .contextMenu {
             Button(vm.L(L10n.Mods.openInFinder)) {
-                let baseFolder = mod.isEnabled ? "Mods" : "Mods_disabled"
                 let url = URL(fileURLWithPath: vm.gameDir)
-                    .appendingPathComponent(baseFolder)
-                    .appendingPathComponent(mod.folderName)
+                    .appendingPathComponent("Mods")
+                    .appendingPathComponent(mod.physicalFolderName)
                 NSWorkspace.shared.open(url)
             }
             Button(vm.L(L10n.Settings.configCodeEditor)) {

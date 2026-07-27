@@ -266,7 +266,8 @@ class ModZipInstaller {
             }
         case .flatRoot:
             // No enclosing folder — use the temp dir's own name as the mod
-            // folder name (will become the destination folder under Mods_disabled).
+            // folder name (will become the destination folder under Mods/ as
+            // `.<name>` when disabled by default).
             scanFolder(at: tempDir, relativePath: "", folderName: zipName.replacingOccurrences(of: ".zip", with: "", options: .caseInsensitive))
         case .unrecognized:
             return nil
@@ -504,18 +505,24 @@ class ModZipInstaller {
         }
     }
 
-    /// Installs selected mods from a temporary directory to the game's
-    /// `Mods_disabled` folder. Applies conflict resolutions (overwrite+backup,
-    /// rename, skip) and config-file resolutions (keep existing / use new)
-    /// per selection.
+    /// Installs selected mods from a temporary directory to the game's Mods/
+    /// folder. New mods and updates of previously-disabled mods land as
+    /// `Mods/.X` (disabled by default — SMAPI ignores dotted folders); an
+    /// update of an enabled mod lands at `Mods/X` to keep it enabled. Applies
+    /// conflict resolutions (overwrite+backup, rename, skip) and config-file
+    /// resolutions (keep existing / use new) per selection.
     ///
     /// `detectedMods` is the original list from `ZipModInfo` so selections can
-    /// be resolved to actual mod metadata + source paths.
+    /// be resolved to actual mod metadata + source paths. The `modsDisabledPath`
+    /// parameter is retained for source compatibility but is no longer used —
+    /// disabled mods now live inside Mods/ as `.X`.
     func install(from tempDir: URL, to modsDisabledPath: String, selections: [InstallSelection], detectedMods: [DetectedMod], gameDir: String, existingMods: [ModItem]) throws {
         guard !gameDir.isEmpty else { throw InstallError.gameDirEmpty }
         let backupManager = ModInstallBackupManager.shared
 
-        try fm.createDirectory(atPath: modsDisabledPath, withIntermediateDirectories: true, attributes: nil)
+        // Ensure Mods/ exists as the single install destination.
+        let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
+        try fm.createDirectory(atPath: modsPath, withIntermediateDirectories: true, attributes: nil)
 
         let timestampStamp = Self.stampedFolderSuffix()
 
@@ -537,7 +544,7 @@ class ModZipInstaller {
             guard fm.fileExists(atPath: sourcePath.path) else { continue }
 
             // Resolve conflict (only relevant if a mod with the same UniqueID
-            // already exists in Mods or Mods_disabled).
+            // already exists as an enabled or disabled mod under Mods/).
             let existingMod = findExistingMod(detectedMod.uniqueId, in: existingMods)
 
             let finalDestFolderName: String
@@ -587,12 +594,12 @@ class ModZipInstaller {
                     } catch {
                         throw InstallError.backupFailed(error.localizedDescription)
                     }
-                    // Remove the existing folder wherever it lives (Mods or
-                    // Mods_disabled) so the new copy is the only one.
-                    let existingPath = (existing.isEnabled
-                        ? (gameDir as NSString).appendingPathComponent("Mods")
-                        : modsDisabledPath)
-                    let existingFolder = (existingPath as NSString).appendingPathComponent(existing.folderName)
+                    // Remove the existing folder wherever it lives (enabled
+                    // as Mods/X, or disabled as Mods/.X) so the new copy is
+                    // the only one. `physicalFolderName` carries the dot
+                    // prefix for a disabled mod.
+                    let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
+                    let existingFolder = (modsPath as NSString).appendingPathComponent(existing.physicalFolderName)
                     if fm.fileExists(atPath: existingFolder) {
                         preservedConfigs = snapshotUserConfigs(from: existingFolder)
                         try fm.removeItem(atPath: existingFolder)
@@ -606,19 +613,23 @@ class ModZipInstaller {
                 finalDestFolderName = detectedMod.folderName
             }
 
-            // If the existing mod was enabled, install to Mods/ to keep it
-            // enabled. New mods and previously-disabled mods go to
-            // Mods_disabled/.
+            // If the existing mod was enabled, install to Mods/X to keep it
+            // enabled. New mods and previously-disabled mods go to Mods/.X
+            // (disabled by default — the user toggles them on explicitly).
+            let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
             let destBasePath: String
+            let destFolderPrefix: String
             if let existing = existingMod, existing.isEnabled, selection.conflictResolution == .overwriteWithBackup {
-                destBasePath = (gameDir as NSString).appendingPathComponent("Mods")
+                destBasePath = modsPath
+                destFolderPrefix = ""   // enabled
             } else {
-                destBasePath = modsDisabledPath
+                destBasePath = modsPath
+                destFolderPrefix = "."  // disabled
             }
 
             try fm.createDirectory(atPath: destBasePath, withIntermediateDirectories: true, attributes: nil)
 
-            let destPath = (destBasePath as NSString).appendingPathComponent(finalDestFolderName)
+            let destPath = (destBasePath as NSString).appendingPathComponent(destFolderPrefix + finalDestFolderName)
 
             // Replace destination folder with the new mod copy. For a
             // pack/group child, `finalDestFolderName` is a nested path

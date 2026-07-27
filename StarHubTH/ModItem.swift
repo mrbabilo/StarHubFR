@@ -15,6 +15,14 @@ public struct ModItem: Identifiable, Equatable {
     public let uniqueId: String
     public let name: String
     public let folderName: String
+    /// On-disk folder name within `Mods/`: a leading `.` is prepended when the
+    /// mod is disabled (SMAPI ignores `.X` folders, so a same-parent rename is
+    /// an atomic enable/disable toggle). `folderName` itself stays **logical**
+    /// (never dotted) because it is the key for the install registry, profiles,
+    /// activation timestamps and backups — those maps never migrate.
+    public var physicalFolderName: String {
+        (isEnabled ? "" : ".") + folderName
+    }
     public let version: String
     public let author: String
     public let description: String

@@ -41,7 +41,9 @@ func makeModFolder(base: URL, relativePath: String, uniqueId: String, name: Stri
 
 /// One isolated fake game directory with its own temp root, a fresh
 /// `Backups/` (so the shared backup manager writes into a test-scoped
-/// location), and `Mods/` + `Mods_disabled/` folders.
+/// location), and a `Mods/` folder. `Mods_disabled/` is still created for
+/// source compatibility with the installer's `to:` param, but disabled
+/// mods now live under `Mods/` as `.X`.
 struct InstallerTestEnv {
     let gameDir: String
     let modsDir: URL
@@ -87,17 +89,19 @@ struct InstallerTestEnv {
 
     @Test func overwritePreservesNestedPackChildLocation() throws {
         // Regression: a pack/group child lives at
-        // "Mods_disabled/Pack/[CP] Child". The freshly detected mod from the
-        // zip has folderName = "[CP] Child" (last component only). An
+        // "Mods/.Parchment/[CP] Child" (disabled = dot prefix at the
+        // top-level entry). The freshly detected mod from the zip has
+        // folderName = "[CP] Child" (last component only). An
         // overwrite-with-backup install must land the new copy back at the
-        // nested location, not flatten it to "Mods_disabled/[CP] Child".
+        // nested location, not flatten it to "Mods/.[CP] Child".
         let env = InstallerTestEnv()
         defer { env.cleanup() }
 
-        // Existing mod on disk: a child nested under a pack folder.
+        // Existing mod on disk: a child nested under a disabled pack folder
+        // (the dot prefix marks the whole tree as disabled).
         try makeModFolder(
-            base: env.modsDisabledDir,
-            relativePath: "Parchment/[CP] Parchment Example Pack",
+            base: env.modsDir,
+            relativePath: ".Parchment/[CP] Parchment Example Pack",
             uniqueId: "PeacefulEnd.Parchment.ContentPatcherExample",
             name: "[CP] Parchment Example Pack",
             version: "1.2.0",
@@ -105,7 +109,8 @@ struct InstallerTestEnv {
         )
 
         // The existing ModItem as the scanner would build it: a nested
-        // folderName (full path relative to Mods_disabled).
+        // folderName (logical, no dot — the scanner strips the prefix when
+        // computing folderName).
         let existing = ModItem(
             uniqueId: "PeacefulEnd.Parchment.ContentPatcherExample",
             name: "[CP] Parchment Example Pack",
@@ -161,18 +166,19 @@ struct InstallerTestEnv {
             existingMods: [existing]
         )
 
-        // The new copy MUST be at the nested location, not flattened.
-        let nestedPath = env.modsDisabledDir.appendingPathComponent("Parchment/[CP] Parchment Example Pack/manifest.json")
+        // The new copy MUST be at the nested location under Mods/.Parchment/
+        // (disabled, since the existing mod was disabled), not flattened.
+        let nestedPath = env.modsDir.appendingPathComponent(".Parchment/[CP] Parchment Example Pack/manifest.json")
         #expect(FileManager.default.fileExists(atPath: nestedPath.path),
                "Overwrite should preserve the nested pack-child location")
 
         // And NOT at the flattened root.
-        let flatPath = env.modsDisabledDir.appendingPathComponent("[CP] Parchment Example Pack")
+        let flatPath = env.modsDir.appendingPathComponent(".[CP] Parchment Example Pack")
         #expect(!FileManager.default.fileExists(atPath: flatPath.path),
                "Overwrite must not flatten a nested pack child to the root")
 
         // The new version's content replaced the old.
-        let dataFile = env.modsDisabledDir.appendingPathComponent("Parchment/[CP] Parchment Example Pack/data.txt")
+        let dataFile = env.modsDir.appendingPathComponent(".Parchment/[CP] Parchment Example Pack/data.txt")
         let content = try String(contentsOf: dataFile, encoding: .utf8)
         #expect(content == "new content")
     }
@@ -241,7 +247,9 @@ struct InstallerTestEnv {
         )
 
         // The new copy was installed despite the missing backup source.
-        let installedManifest = env.modsDisabledDir.appendingPathComponent("Parchment/manifest.json")
+        // The existing mod was disabled, so the new copy lands disabled too
+        // (Mods/.Parchment).
+        let installedManifest = env.modsDir.appendingPathComponent(".Parchment/manifest.json")
         #expect(FileManager.default.fileExists(atPath: installedManifest.path))
     }
 
@@ -321,8 +329,9 @@ struct InstallerTestEnv {
         #expect(!FileManager.default.fileExists(atPath: disabledPath.path))
     }
 
-    @Test func newModInstallsToModsDisabled() throws {
-        // A mod with no existing conflict installs fresh into Mods_disabled/.
+    @Test func newModInstallsDisabledUnderMods() throws {
+        // A mod with no existing conflict installs fresh as a disabled mod
+        // (Mods/.BrandNewMod) — the user toggles it on explicitly.
         let env = InstallerTestEnv()
         defer { env.cleanup() }
 
@@ -361,7 +370,8 @@ struct InstallerTestEnv {
             existingMods: []
         )
 
-        let installedPath = env.modsDisabledDir.appendingPathComponent("BrandNewMod/manifest.json")
+        // Lands disabled under Mods/ (dot prefix), not as an enabled entry.
+        let installedPath = env.modsDir.appendingPathComponent(".BrandNewMod/manifest.json")
         #expect(FileManager.default.fileExists(atPath: installedPath.path))
     }
 }
