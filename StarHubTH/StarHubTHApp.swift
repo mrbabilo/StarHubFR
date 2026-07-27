@@ -32,6 +32,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
+/// Holds the saved main menu so it can be restored after the launch splash.
+///
+/// SwiftUI rebuilds the menu bar on the `Window` scene's behalf; saving the
+/// AppKit-level `NSApp.mainMenu` reference and reassigning it after launch is
+/// the most reliable way to get the exact same menus back. Setting it to
+/// `nil` hides BOTH the visible menus AND their keyboard shortcuts, which is
+/// what we want while the splash overlay is up — no Cmd+W / Cmd+R etc.
+/// acting on a half-loaded UI.
+private final class LaunchMenuState {
+    static let shared = LaunchMenuState()
+    var savedMenu: NSMenu?
+    private init() {}
+}
+
 @main
 struct StarHubTHApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
@@ -53,6 +67,30 @@ struct StarHubTHApp: App {
                     // Route nxm:// links (buffered at cold launch) into the
                     // single shared ViewModel.
                     appDelegate.onURL = { [vm] url in vm.handleNxmURL(url) }
+                    // Hide native menus from the very first frame. `onChange`
+                    // below would miss the initial state (isLaunching starts
+                    // true and only fires on change), so we also hide here.
+                    if vm.isLaunching, NSApp.mainMenu != nil {
+                        LaunchMenuState.shared.savedMenu = NSApp.mainMenu
+                        NSApp.mainMenu = nil
+                    }
+                }
+                // Hide macOS native menus (File / Edit / View / Window / Help)
+                // for the duration of the launch splash. Setting
+                // `NSApp.mainMenu = nil` removes both the visible menus AND
+                // their keyboard shortcuts — no Cmd+W / Cmd+R etc. can act on
+                // the half-loaded UI. The original menu is saved first and
+                // restored verbatim once `isLaunching` flips to false.
+                .onChange(of: vm.isLaunching) { _, isLaunching in
+                    if isLaunching {
+                        if NSApp.mainMenu != nil {
+                            LaunchMenuState.shared.savedMenu = NSApp.mainMenu
+                            NSApp.mainMenu = nil
+                        }
+                    } else if NSApp.mainMenu == nil, let saved = LaunchMenuState.shared.savedMenu {
+                        NSApp.mainMenu = saved
+                        LaunchMenuState.shared.savedMenu = nil
+                    }
                 }
         }
         .windowResizability(.contentMinSize)

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Smaller, centered launch splash with hidden menus** — the launch overlay is no longer stretched to fill the entire window. It now renders as a contained card centered on an opaque dark scrim: the cover artwork is capped at 440pt wide (preserving its native 16:9 ratio), with the app name and progress bar stacked below it. Native macOS menus (File / Edit / View / Window / Help) and their keyboard shortcuts are now hidden for the duration of the splash via `NSApp.mainMenu = nil`, then restored verbatim once `isLaunching` flips to false — so no Cmd+W / Cmd+R etc. can act on the half-loaded UI. The hide also runs in `onAppear` (not only `onChange`) so the menus are gone from the very first frame.
 - **Determinate launch overlay with cover artwork** — the indeterminate spinner shown during cold launch is replaced by a full-window overlay using the project's `nexus_cover_final.png` as background, with the app name at the top and a linear progress bar + localized step label at the bottom. The bar advances through every startup phase so the user sees concrete progress instead of a generic "Loading…":
   1. *Initializing…* (0–5%)
   2. *Loading mod registry…* (5–15%) — warms the in-memory JSON cache

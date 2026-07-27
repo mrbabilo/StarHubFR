@@ -346,72 +346,76 @@ struct MainView: View {
         }
     }
     
-    /// Full-window launch overlay shown while the initial mod scan + profile
-    /// load is in flight (`vm.isLaunching`). Blocks interaction so the user
-    /// can't act on a half-populated list. Shows a determinate progress bar
-    /// + a localized step label (scanning mods, loading saves, etc.) on top
-    /// of the project's cover artwork — much more informative than the old
-    /// indeterminate spinner.
+    /// Centered launch card shown while the initial mod scan + profile load
+    /// is in flight (`vm.isLaunching`). Blocks interaction so the user can't
+    /// act on a half-populated list. Renders as a contained card (cover
+    /// artwork at the top, app name, progress bar and current step label
+    /// below) on a translucent dark scrim that obscures the underlying UI —
+    /// the cover image is NOT stretched to the full window (it has a 16:9
+    /// aspect ratio and would look pixelated), and the app's menus/toolbar
+    /// are hidden for the duration of the splash.
     private var launchOverlay: some View {
         ZStack {
-            // Background artwork. The cover image is bundled as a resource
-            // (see build_app.py). If absent (e.g. running outside a bundle,
-            // in a unit-test target, or before the asset is copied), we fall
-            // back to the plain window background color so the overlay never
-            // renders an empty rectangle.
-            if let bg = launchBackgroundImage {
-                Image(nsImage: bg)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .ignoresSafeArea()
-            } else {
-                Color(nsColor: .windowBackgroundColor)
-                    .ignoresSafeArea()
-            }
-
-            // Subtle dark scrim so the white progress text is readable over
-            // any cover art.kept very light so the artwork still shows.
-            Color.black.opacity(0.35)
+            // Dark scrim that fully obscures the half-loaded UI behind. Kept
+            // opaque (not translucent) so the user doesn't glimpse an empty
+            // sidebar / blank list underneath during the brief startup.
+            Color.black.opacity(0.92)
                 .ignoresSafeArea()
 
-            VStack(spacing: 20) {
-                Spacer()
-
-                // App identity — centered title at the top of the artwork.
-                VStack(spacing: 4) {
-                    Text("StarHubFR")
-                        .font(.system(size: 32, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
-                        .shadow(color: .black.opacity(0.6), radius: 4)
-                    Text(vm.L(L10n.Main.launching))
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.white.opacity(0.85))
-                        .shadow(color: .black.opacity(0.6), radius: 3)
+            VStack(spacing: 16) {
+                // Cover artwork, contained — capped at 480pt wide and
+                // preserving the source's 16:9 ratio. The previous full-
+                // window stretch made it look pixelated and leaked behind
+                // the macOS title bar.
+                Group {
+                    if let bg = launchBackgroundImage {
+                        Image(nsImage: bg)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(maxWidth: 440, maxHeight: 248)
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .stroke(Color.white.opacity(0.15), lineWidth: 1)
+                            )
+                            .shadow(color: .black.opacity(0.5), radius: 12, y: 4)
+                    } else {
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(Color.white.opacity(0.08))
+                            .frame(width: 440, height: 248)
+                    }
                 }
 
-                Spacer()
+                // App identity.
+                VStack(spacing: 4) {
+                    Text("StarHubFR")
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                    Text(vm.L(L10n.Main.launching))
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.white.opacity(0.7))
+                }
 
-                // Progress block — anchored to the bottom third of the cover
-                // so it reads as a "loading strip" rather than a centered
-                // modal. Determinate bar with the current step as caption.
-                VStack(spacing: 10) {
+                // Progress block — determinate bar + current step caption.
+                VStack(spacing: 8) {
                     ProgressView(value: vm.launchProgress)
                         .progressViewStyle(.linear)
                         .tint(.white)
-                        .frame(maxWidth: 360)
-                        .scaleEffect(y: 2)
-                        .shadow(color: .black.opacity(0.5), radius: 3)
+                        .frame(width: 320)
+                        .scaleEffect(y: 1.4)
 
                     Text(vm.launchStep.isEmpty ? vm.L(L10n.Main.launching) : vm.launchStep)
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.white)
-                        .shadow(color: .black.opacity(0.6), radius: 3)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.white.opacity(0.9))
                         .lineLimit(1)
                         .truncationMode(.tail)
+                        .frame(maxWidth: 320)
                 }
-                .padding(.bottom, 60)
             }
-            .padding(.horizontal, 40)
+            .padding(.vertical, 32)
+            .padding(.horizontal, 28)
+            // Center the card both horizontally and vertically on the dark
+            // scrim, regardless of window size.
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .transition(.opacity)
