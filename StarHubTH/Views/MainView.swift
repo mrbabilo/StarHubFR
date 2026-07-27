@@ -1162,19 +1162,15 @@ struct QuarantineView: View {
             return
         }
 
-        do {
-            try NSWorkspace.shared.recycle(trashURLs, completionHandler: { _, error in
-                DispatchQueue.main.async {
-                    if let error = error {
-                        vm.quarantineActionMessage = error.localizedDescription
-                    } else {
-                        vm.quarantineActionMessage = vm.L(L10n.Quarantine.emptied)
-                        vm.lastRepairReport = nil
-                    }
+        NSWorkspace.shared.recycle(trashURLs, completionHandler: { _, error in
+            DispatchQueue.main.async {
+                if let error = error {
+                    vm.quarantineActionMessage = error.localizedDescription
+                } else {
+                    vm.quarantineActionMessage = vm.L(L10n.Quarantine.emptied)
+                    vm.lastRepairReport = nil
                 }
-            })
-        } catch {
-            vm.quarantineActionMessage = error.localizedDescription
-        }
+            }
+        })
     }
 }
