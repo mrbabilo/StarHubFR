@@ -44,6 +44,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`NexusRequestBuilder`** — single source of truth for Nexus API URL request construction (`apiBase`, `gameDomain`, `appName`, `appVersion` from bundle, `userAgent`).
 - **`UDKey`** — centralized `UserDefaults` keys (public enum).
 - **`ParseNexusIdTests`** — 6 new unit tests locking the contract of `ModManifest.parseNexusId(fromUpdateKeys:)` (plain key, case/whitespace tolerance, `@variant` suffix, multi-key selection, zero/negative rejection, nil/empty input).
+### Changed
+- **Splash image enlarged to 640×360** — the launch card's cover artwork now uses a larger contained frame while preserving its native 16:9 aspect ratio (`nexus_cover_final.png` is 1672×941). The progress bar width stays at 400pt, keeping the card visually balanced.
+- **Navigation buttons hidden when unused** — the back/forward toolbar buttons are now hidden (`opacity = 0`, animated) when there is no navigation history or forward stack, instead of only being disabled. This removes dead UI chrome from the first frame and from any tab with no history.
+
+### Added
+- **Nexus auto-check toggle in Settings** — a new `Auto-check Nexus updates at startup` toggle lives under the Nexus Mods settings section. When enabled **and** a Nexus API key is stored, the app automatically triggers `checkNexusUpdates(force:)` right after the launch overlay dismisses. The toggle is persisted via `UDKey.autoCheckNexusUpdates` / `L10n.Settings.nexusAutoCheck` with matching `en.json` and `fr.json` strings.
+
 
 ## [1.8.0] - 2026-07-26
 
