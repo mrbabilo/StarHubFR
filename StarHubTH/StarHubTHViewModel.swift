@@ -857,7 +857,7 @@ class StarHubTHViewModel: ObservableObject {
         self.smapiInstalledVersion = SmapiInstaller.getInstalledVersion(gameDir: gameDir)
     }
     
-    func scanMods() {
+    func scanMods(includeRepair: Bool = true) {
         guard !gameDir.isEmpty else {
             self.mods = []
             return
@@ -868,8 +868,19 @@ class StarHubTHViewModel: ObservableObject {
         // not auto-resolved. The report is captured here on the background
         // thread and published on main below (next to self.mods assignment)
         // to avoid mutating @Published off the main thread.
-        let repairer = ModFolderRepairer()
-        let repairReport = repairer.repairIfNeeded(gameDir: gameDir)
+        //
+        // `includeRepair` skips this pass after a toggle: toggling only renames
+        // a folder in place (Mods/X ↔ Mods/.X), which can't create orphans, OS
+        // junk or X/.X duplicates — so the two recursive tree walks plus the
+        // per-manifest JSON decode the repair performs were pure overhead on
+        // the toggle path, and were the dominant cause of the 5–10s toggle
+        // delay. Repairs still run on initial load, manual refresh, install,
+        // delete and profile-apply, where they can actually find new problems.
+        var repairReport = ModFolderRepairer.Report()
+        if includeRepair {
+            let repairer = ModFolderRepairer()
+            repairReport = repairer.repairIfNeeded(gameDir: gameDir)
+        }
 
         let fm = FileManager.default
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
@@ -1204,11 +1215,16 @@ class StarHubTHViewModel: ObservableObject {
         DispatchQueue.main.async {
             // Publish the repair report on the main thread (the scan itself
             // runs on a background queue via refresh()).
-            if repairReport.isEmpty {
-                self.lastRepairReport = nil
-            } else {
-                self.lastRepairReport = repairReport
-                self.log("Folder repair: \(repairReport.quarantined.count) item(s) quarantined, \(repairReport.duplicates.count) duplicate(s) found.", level: .info)
+            // Only touch lastRepairReport when a repair actually ran. A
+            // repair-skipped scan (after a toggle) must preserve the last real
+            // report instead of clearing it to nil.
+            if includeRepair {
+                if repairReport.isEmpty {
+                    self.lastRepairReport = nil
+                } else {
+                    self.lastRepairReport = repairReport
+                    self.log("Folder repair: \(repairReport.quarantined.count) item(s) quarantined, \(repairReport.duplicates.count) duplicate(s) found.", level: .info)
+                }
             }
 
             self.mods = scannedMods.sorted {
@@ -1217,29 +1233,7 @@ class StarHubTHViewModel: ObservableObject {
                 }
                 return $0.name.lowercased() < $1.name.lowercased()
             }
-            // Build a lowercased index of every installed UniqueID once per scan
-            // so dependency lookups are O(1) per dep instead of O(N) per row.
-            var ids = Set<String>()
-            var states: [String: Bool] = [:]
-            var byId: [String: ModItem] = [:]
-            for m in scannedMods {
-                if m.isGroup, let children = m.children {
-                    for c in children {
-                        let k = c.uniqueId.lowercased()
-                        ids.insert(k)
-                        states[k] = c.isEnabled
-                        byId[k] = c
-                    }
-                } else {
-                    let k = m.uniqueId.lowercased()
-                    ids.insert(k)
-                    states[k] = m.isEnabled
-                    byId[k] = m
-                }
-            }
-            self.installedUniqueIds = ids
-            self.installedModStates = states
-            self.installedModsByUniqueId = byId
+            self.rebuildDependencyIndexes()
             if self.selectedMod == nil, let first = self.mods.first {
                 self.selectedMod = first
             }
@@ -1247,6 +1241,35 @@ class StarHubTHViewModel: ObservableObject {
             // and once mods have actually been scanned).
             self.ensureDefaultProfileIfNeeded()
         }
+    }
+
+    /// Rebuilds the lowercased UniqueID → enabled-state / mod lookup indexes
+    /// used for O(1) dependency checks (`getMissingDependencies`, core-mod
+    /// slots, …) from the current `mods`. Called at the end of every full
+    /// `scanMods()` and after an in-memory toggle, which flips `isEnabled`
+    /// without rescanning.
+    private func rebuildDependencyIndexes() {
+        var ids = Set<String>()
+        var states: [String: Bool] = [:]
+        var byId: [String: ModItem] = [:]
+        for m in mods {
+            if m.isGroup, let children = m.children {
+                for c in children {
+                    let k = c.uniqueId.lowercased()
+                    ids.insert(k)
+                    states[k] = c.isEnabled
+                    byId[k] = c
+                }
+            } else {
+                let k = m.uniqueId.lowercased()
+                ids.insert(k)
+                states[k] = m.isEnabled
+                byId[k] = m
+            }
+        }
+        installedUniqueIds = ids
+        installedModStates = states
+        installedModsByUniqueId = byId
     }
     
     // Parses the SMAPI-latest.txt log for updates and errors
@@ -1684,20 +1707,33 @@ class StarHubTHViewModel: ObservableObject {
                 Self.saveModActivationTimestamps(self.modActivationTimestamps)
             }
             log("\(targetState ? L(L10n.Mods.enabled) : L(L10n.Mods.disabled)): \(mod.name)\(foldersToToggle.count > 1 ? " + Dependencies" : "")")
-            // scanMods() re-enumerates every installed mod's manifest — run it
-            // off the main thread so toggling one mod doesn't freeze the UI.
-            // syncActiveProfileIds() reads `self.mods`, so it's chained after
-            // scanMods()'s internal `DispatchQueue.main.async` write to keep
-            // seeing fresh data (GCD's main queue runs queued blocks in order).
-            // completion fires only once self.mods reflects the new state, so
-            // callers relying on it (e.g. ModListRow's optimistic toggle) don't
-            // release their optimistic UI state before the real data catches up.
-            DispatchQueue.global(qos: .userInitiated).async {
-                self.scanMods()
-                DispatchQueue.main.async {
-                    self.syncActiveProfileIds()
-                    completion?()
+            // A toggle only renames Mods/X ↔ Mods/.X in place — every other
+            // mod attribute (name, version, dependencies, …) is unchanged. So
+            // instead of re-walking the whole Mods/ tree (O(total files), which
+            // takes several seconds for large mod collections), flip the
+            // affected mods' isEnabled in memory and rebuild the lightweight
+            // dependency index. `physicalFolderName` is computed from
+            // isEnabled, so it immediately reflects the renamed folder. The
+            // next full scan (launch / refresh / install / delete) reconciles
+            // against the disk. Done on the main thread: it's an O(toggled) map
+            // over self.mods, cheaper than the UI refresh it triggers.
+            let toggledFolders = foldersToToggle
+            let target = targetState
+            DispatchQueue.main.async {
+                self.mods = self.mods.map { mod in
+                    guard toggledFolders.contains(mod.folderName) else { return mod }
+                    var m = mod
+                    m.isEnabled = target
+                    // A pack's children share their top-level folder's state.
+                    if m.isGroup, var children = m.children {
+                        for i in children.indices { children[i].isEnabled = target }
+                        m.children = children
+                    }
+                    return m
                 }
+                self.rebuildDependencyIndexes()
+                self.syncActiveProfileIds()
+                completion?()
             }
         } else {
             completion?()
