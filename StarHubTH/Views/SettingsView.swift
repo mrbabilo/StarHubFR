@@ -6,7 +6,7 @@ struct SettingsView: View {
     @AppStorage("launchProfile") private var launchProfile: String = "SMAPI"
     @AppStorage("closeAfterLaunch") private var closeAfterLaunch: Bool = false
     @AppStorage("showDeveloperLogs") private var showDeveloperLogs: Bool = false
-    @AppStorage("autoCheckNexusUpdates") private var autoCheckNexusUpdates: Bool = false
+    @AppStorage(UDKey.autoCheckNexusUpdates) private var autoCheckNexusUpdates: Bool = true
 
     // Nexus Mods API key entry (only used when no key is stored yet).
     @State private var nexusApiKeyInput: String = ""

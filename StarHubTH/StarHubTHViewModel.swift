@@ -461,7 +461,7 @@ class StarHubTHViewModel: ObservableObject {
             UserDefaults.standard.set(chainToggleDependencies, forKey: UDKey.chainToggleDependencies)
         }
     }
-    @Published var autoCheckNexusUpdates: Bool = UserDefaults.standard.object(forKey: UDKey.autoCheckNexusUpdates) as? Bool ?? false {
+    @Published var autoCheckNexusUpdates: Bool = UserDefaults.standard.object(forKey: UDKey.autoCheckNexusUpdates) as? Bool ?? true {
         didSet {
             UserDefaults.standard.set(autoCheckNexusUpdates, forKey: UDKey.autoCheckNexusUpdates)
         }
@@ -803,8 +803,16 @@ class StarHubTHViewModel: ObservableObject {
                 self?.launchProgress = 1.0
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
-                self?.isLaunching = false
-                guard let self, self.hasNexusApiKey, self.autoCheckNexusUpdates else { return }
+                guard let self else { return }
+                self.isLaunching = false
+                if !self.autoCheckNexusUpdates {
+                    self.log("Auto-check for Nexus updates skipped (disabled in Settings)", level: .info)
+                    return
+                }
+                guard self.hasNexusApiKey else {
+                    self.log("Auto-check for Nexus updates skipped (no Nexus API key set)", level: .info)
+                    return
+                }
                 self.checkNexusUpdates(force: true)
             }
         }
