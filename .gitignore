@@ -37,6 +37,11 @@ unpack_batch.py
 # Superpowers working docs (specs/plans/audits) — local, not versioned
 docs/superpowers/
 
+# Local API keys / launch scripts — secrets, never version
+glm.sh
+*.token
+*_secret.sh
+
 # Logs
 *.log
 
