@@ -921,10 +921,24 @@ class StarHubTHViewModel: ObservableObject {
             let manifestPath = (path as NSString).appendingPathComponent("manifest.json")
             guard fm.fileExists(atPath: manifestPath) else { return nil }
 
+            // Logical on-disk leaf name, with the disabled dot-prefix stripped.
+            // For a top-level disabled mod the physical folder is `Mods/.X`, so
+            // `lastPathComponent` yields `.X`. `folderName` is the logical key
+            // (registry, profiles, activation timestamps, backups) and must
+            // NEVER carry the dot — otherwise `physicalFolderName` (= "." +
+            // folderName) would compute `..X`, and every on-disk access
+            // (toggle, open-in-Finder, config editor) would miss the folder.
+            // This is exactly the bug that left disabled mods un-toggleable and
+            // un-openable. `relativePath` is already computed against the
+            // physical root, so nested/pack mods never carry the prefix and
+            // need no stripping.
+            let physicalLeaf = (path as NSString).lastPathComponent
+            let logicalLeaf = physicalLeaf.hasPrefix(".") ? String(physicalLeaf.dropFirst()) : physicalLeaf
+
             // Resolve the folder name used as the registry key — mirrors the
             // logic that sets `folderName` on the ModItem below.
             let resolvedFolderName = relativePath.isEmpty
-                ? (path as NSString).lastPathComponent
+                ? logicalLeaf
                 : relativePath
 
             // Install date: prefer the persistent registry (records the actual
@@ -959,7 +973,10 @@ class StarHubTHViewModel: ObservableObject {
                 languages = codes.sorted()
             }
 
-            var name = (path as NSString).lastPathComponent
+            // `name` is overridden from the manifest below when a `Name` field
+            // exists, but fall back to the logical (dot-stripped) leaf so a
+            // disabled mod missing a `Name` field displays as `X`, not `.X`.
+            var name = logicalLeaf
             var uniqueId = ""
             var version = "Unknown"
             var author = "Unknown"
@@ -1071,7 +1088,7 @@ class StarHubTHViewModel: ObservableObject {
             return ModItem(
                 uniqueId: uniqueId,
                 name: name,
-                folderName: relativePath.isEmpty ? (path as NSString).lastPathComponent : relativePath,
+                folderName: relativePath.isEmpty ? logicalLeaf : relativePath,
                 version: effectiveVersion,
                 author: author,
                 description: description,

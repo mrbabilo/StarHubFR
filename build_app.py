@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import platform
 import shutil
 import subprocess
 import sys
@@ -69,7 +70,14 @@ def gather_swift_files() -> list[str]:
 
 def build_swiftc_command(swift_files: list[str], app_executable: str, module_cache_dir: str) -> list[str]:
     """The exact swiftc invocation used to compile the app (single module)."""
+    # Pin an explicit deployment target (macOS 14, matching Package.swift and
+    # Info.plist's LSMinimumSystemVersion). Without `-target` swiftc derives it
+    # from the SDK, which on the macOS 26 / Tahoe toolchain fails with
+    # "unable to load standard library for target 'arm64-apple-macosx26.0'".
+    # Detect the host arch so Intel machines aren't broken by a hard-coded arm64.
+    arch = platform.machine()  # arm64 (Apple Silicon) or x86_64 (Intel)
     return ["swiftc"] + swift_files + [
+        "-target", f"{arch}-apple-macosx14.0",
         "-o", app_executable,
         "-parse-as-library",
         "-module-cache-path", module_cache_dir,
@@ -172,8 +180,11 @@ def create_app_bundle():
     print(f"[INFO] Compiling Swift code ({len(swift_files)} files)...")
     swiftc_cmd = build_swiftc_command(swift_files, app_executable, module_cache_dir)
 
-    # Run compiler
-    result = subprocess.run(swiftc_cmd, check=False)
+    # Run compiler. `xcrun` resolves the active Xcode toolchain and exports the
+    # SDKROOT/DEVELOPER_DIR that the swiftc driver needs to locate the standard
+    # library. Invoking `swiftc` directly fails with "unable to load standard
+    # library for target ..." on a clean shell where the toolchain env is unset.
+    result = subprocess.run(["xcrun"] + swiftc_cmd, check=False)
     if result.returncode != 0:
         print("[ERROR] Swift compilation failed.")
         sys.exit(1)
