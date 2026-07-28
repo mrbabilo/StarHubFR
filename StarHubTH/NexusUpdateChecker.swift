@@ -663,9 +663,36 @@ final class NexusUpdateChecker {
             // Single source of truth: bake the latest version + upload date into
             // the extra so every consumer (update check, single fetch, cache)
             // carries them without re-injecting at each call site.
-            let extra = NexusModExtra(summary: summary, pictureUrl: pictureUrl,
-                                      version: version, uploadedTime: uploadedDate)
-            completion(.success(version: version, categoryId: categoryId, extra: extra, uploadedTime: uploadedDate))
+            // Secondary lookup on `files.json`: some mod authors set a stale
+            // overview header version (e.g. "1") while uploading version "2.0.0"
+            // under Main Files. Querying files.json resolves the true main file version.
+            var finalVersion = version
+            let finalize = { (ver: String) in
+                let extra = NexusModExtra(summary: summary, pictureUrl: pictureUrl,
+                                          version: ver, uploadedTime: uploadedDate)
+                completion(.success(version: ver, categoryId: categoryId, extra: extra, uploadedTime: uploadedDate))
+            }
+
+            guard let filesRequest = NexusRequestBuilder.makeRequest(
+                path: "/games/\(NexusRequestBuilder.gameDomain)/mods/\(modId)/files.json",
+                apiKey: apiKey
+            ) else {
+                finalize(finalVersion)
+                return
+            }
+
+            URLSession.shared.dataTask(with: filesRequest) { filesData, _, _ in
+                if let filesData = filesData,
+                   let fileList = try? NexusDownloadAPI.decodeFileList(filesData),
+                   let primaryFile = NexusDownloadAPI.pickPrimaryFile(fileList),
+                   let fileVer = (primaryFile.version ?? primaryFile.modVersion)?.trimmingCharacters(in: .whitespacesAndNewlines),
+                   !fileVer.isEmpty {
+                    if Self.compare(fileVer, finalVersion) == .orderedDescending {
+                        finalVersion = fileVer
+                    }
+                }
+                finalize(finalVersion)
+            }.resume()
         }
         task.resume()
     }

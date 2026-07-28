@@ -11,9 +11,14 @@ import Foundation
 struct NexusModFile: Decodable {
     let fileId: Int
     let categoryId: Int
+    let version: String?
+    let modVersion: String?
+
     enum CodingKeys: String, CodingKey {
         case fileId = "file_id"
         case categoryId = "category_id"
+        case version
+        case modVersion = "mod_version"
     }
 }
 
@@ -50,7 +55,11 @@ enum NexusDownloadAPI {
 
     /// Nexus file category 1 == "Main files". Prefer it; else fall back to the
     /// first file in the list.
+    static func pickPrimaryFile(_ list: NexusModFileList) -> NexusModFile? {
+        list.files.first { $0.categoryId == 1 } ?? list.files.first
+    }
+
     static func pickPrimaryFileId(_ list: NexusModFileList) -> Int? {
-        (list.files.first { $0.categoryId == 1 } ?? list.files.first)?.fileId
+        pickPrimaryFile(list)?.fileId
     }
 }

@@ -1150,10 +1150,9 @@ class StarHubTHViewModel: ObservableObject {
         // `relativePath` passed to parseModFolder is computed relative to
         // `physicalRoot` so the dot prefix never leaks into `folderName`
         // (the registry/profile key) or into the pack grouping key.
-        func scanEntryForMods(at physicalRoot: String, isEnabled: Bool) {
+        func scanEntryForMods(at physicalRoot: String, topLevelLogicalFolder: String, isEnabled: Bool) {
             let url = URL(fileURLWithPath: physicalRoot)
-            var groups: [String: [ModItem]] = [:]
-            var ungrouped: [ModItem] = []
+            var foundMods: [ModItem] = []
 
             // Sub-scan with `.skipsHiddenFiles` so nested junk (.DS_Store,
             // .git/, ._Foo) stays hidden — the dot-prefix classification of
@@ -1165,45 +1164,36 @@ class StarHubTHViewModel: ObservableObject {
                 for case let fileURL as URL in enumerator {
                     if fileURL.lastPathComponent.lowercased() == "manifest.json" {
                         let modFolderURL = fileURL.deletingLastPathComponent()
-                        let relativePath = modFolderURL.path.replacingOccurrences(of: url.path, with: "").trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-                        if let mod = parseModFolder(at: modFolderURL.path, relativePath: relativePath, isEnabled: isEnabled) {
-
-                            // Determine top-level folder
-                            let pathComponents = relativePath.components(separatedBy: "/")
-
-                            if pathComponents.count > 1, let topFolder = pathComponents.first, !topFolder.isEmpty {
-                                groups[topFolder, default: []].append(mod)
-                            } else {
-                                ungrouped.append(mod)
-                            }
+                        let relFromTop = modFolderURL.path.replacingOccurrences(of: url.path, with: "").trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                        let fullRelPath = relFromTop.isEmpty ? topLevelLogicalFolder : "\(topLevelLogicalFolder)/\(relFromTop)"
+                        if let mod = parseModFolder(at: modFolderURL.path, relativePath: fullRelPath, isEnabled: isEnabled) {
+                            foundMods.append(mod)
                         }
                     }
                 }
             }
 
-            scannedMods.append(contentsOf: ungrouped)
-
-            for (groupName, modsInGroup) in groups {
-                if modsInGroup.count == 1 {
-                    scannedMods.append(modsInGroup[0])
-                } else {
-                    let groupMod = ModItem(
-                        uniqueId: "",
-                        name: groupName,
-                        folderName: groupName,
-                        version: "",
-                        author: "Group",
-                        description: "\(modsInGroup.count) mods",
-                        nexusUrl: "",
-                        nexusModId: "",
-                        isEnabled: isEnabled,
-                        dependencies: [],
-                        children: modsInGroup,
-                        isGroup: true,
-                        languages: Set(modsInGroup.flatMap { $0.languages }).sorted()
-                    )
-                    scannedMods.append(groupMod)
-                }
+            if foundMods.isEmpty {
+                return
+            } else if foundMods.count == 1 && foundMods[0].folderName == topLevelLogicalFolder {
+                scannedMods.append(foundMods[0])
+            } else {
+                let groupMod = ModItem(
+                    uniqueId: "",
+                    name: topLevelLogicalFolder,
+                    folderName: topLevelLogicalFolder,
+                    version: "",
+                    author: "Group",
+                    description: "\(foundMods.count) mods",
+                    nexusUrl: "",
+                    nexusModId: "",
+                    isEnabled: isEnabled,
+                    dependencies: [],
+                    children: foundMods,
+                    isGroup: true,
+                    languages: Set(foundMods.flatMap { $0.languages }).sorted()
+                )
+                scannedMods.append(groupMod)
             }
         }
 
@@ -1235,6 +1225,7 @@ class StarHubTHViewModel: ObservableObject {
                 // dotted folder a user might have placed — treated as enabled
                 // since SMAPI wouldn't load it anyway, but we don't break it).
                 let isEnabled = !entry.hasPrefix(".")
+                let topLevelLogicalFolder = entry.hasPrefix(".") ? String(entry.dropFirst()) : entry
                 let physicalRoot = (modsPath as NSString).appendingPathComponent(entry)
                 var isDir: ObjCBool = false
                 fm.fileExists(atPath: physicalRoot, isDirectory: &isDir)
@@ -1247,13 +1238,13 @@ class StarHubTHViewModel: ObservableObject {
                 if now - lastProgressPublish > 0.08 {
                     lastProgressPublish = now
                     let d = scanDone, t = scanTotal
-                    let nm = entry.hasPrefix(".") ? String(entry.dropFirst()) : entry
+                    let nm = topLevelLogicalFolder
                     DispatchQueue.main.async {
                         self.scanProgress = ScanProgress(done: d, total: t, currentName: nm)
                     }
                 }
 
-                scanEntryForMods(at: physicalRoot, isEnabled: isEnabled)
+                scanEntryForMods(at: physicalRoot, topLevelLogicalFolder: topLevelLogicalFolder, isEnabled: isEnabled)
             }
         }
 
