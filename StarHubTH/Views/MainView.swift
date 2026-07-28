@@ -397,8 +397,18 @@ struct MainView: View {
                 }
 
                 // Progress block — determinate bar + current step caption.
+                // While scanMods streams per-mod progress (launch scan), refine
+                // the bar within the [start…end] slice and surface the mod name
+                // so the overlay never looks frozen.
                 VStack(spacing: 8) {
-                    ProgressView(value: vm.launchProgress)
+                    let displayProgress: Double = {
+                        if let sp = vm.scanProgress, sp.total > 0 {
+                            let span = StarHubTHViewModel.launchScanProgressEnd - StarHubTHViewModel.launchScanProgressStart
+                            return StarHubTHViewModel.launchScanProgressStart + span * (Double(sp.done) / Double(sp.total))
+                        }
+                        return vm.launchProgress
+                    }()
+                    ProgressView(value: displayProgress)
                         .progressViewStyle(.linear)
                         .tint(.white)
                         .frame(width: 400)
@@ -410,6 +420,15 @@ struct MainView: View {
                         .lineLimit(1)
                         .truncationMode(.tail)
                         .frame(maxWidth: 400)
+
+                    if let sp = vm.scanProgress {
+                        Text("\(sp.currentName)  (\(sp.done)/\(sp.total))")
+                            .font(.system(size: 11, weight: .regular))
+                            .foregroundColor(.white.opacity(0.6))
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                            .frame(maxWidth: 400)
+                    }
                 }
             }
             .padding(.vertical, 32)

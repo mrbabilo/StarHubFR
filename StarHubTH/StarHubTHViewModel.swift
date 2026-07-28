@@ -281,6 +281,25 @@ class StarHubTHViewModel: ObservableObject {
     /// Localized label of the current launch step (e.g. "Scanning mods…").
     /// Updated atomically with `launchProgress` from `performInitialLoad`.
     @Published var launchStep: String = ""
+
+    /// Per-mod progress published (throttled) during `scanMods()`'s top-level
+    /// enumeration, so the launch overlay can show "Analyse de <mod>… (X/N)"
+    /// instead of a frozen bar. `nil` outside a scan. The overlay maps
+    /// `done/total` onto the [`launchScanProgressStart`…`launchScanProgressEnd`]
+    /// slice of the launch bar.
+    struct ScanProgress: Equatable {
+        let done: Int
+        let total: Int
+        let currentName: String
+    }
+    @Published var scanProgress: ScanProgress? = nil
+
+    /// Launch-bar slice reserved for the "Scanning mods" phase. Kept as
+    /// constants so `performInitialLoad` and the launch overlay agree on how
+    /// far the bar should move while `scanMods` streams per-mod progress.
+    static let launchScanProgressStart: Double = 0.25
+    static let launchScanProgressEnd: Double = 0.70
+
     @Published var mods: [ModItem] = [] {
         didSet { categoryCache.removeAll() }
     }
@@ -731,7 +750,7 @@ class StarHubTHViewModel: ObservableObject {
             // itself.
             DispatchQueue.main.async { [weak self] in
                 self?.launchStep = self?.L(L10n.Main.launchStepScan) ?? ""
-                self?.launchProgress = 0.25
+                self?.launchProgress = Self.launchScanProgressStart
             }
             // One-shot migration from the legacy Mods_disabled/ layout to the
             // dot-prefix convention (Mods/.X = disabled). Must run BEFORE the
@@ -745,7 +764,7 @@ class StarHubTHViewModel: ObservableObject {
             // slow when many saves exist.
             DispatchQueue.main.async { [weak self] in
                 self?.launchStep = self?.L(L10n.Main.launchStepSaves) ?? ""
-                self?.launchProgress = 0.70
+                self?.launchProgress = Self.launchScanProgressEnd
             }
             self.reloadSaves()
 
@@ -877,9 +896,13 @@ class StarHubTHViewModel: ObservableObject {
         // delay. Repairs still run on initial load, manual refresh, install,
         // delete and profile-apply, where they can actually find new problems.
         var repairReport = ModFolderRepairer.Report()
+        // detectDuplicates=false: the repairer's disk-walking duplicate pass
+        // re-decodes every manifest, which is redundant since we scan them just
+        // below. Duplicates are recomputed from `scannedMods` (O(N), in-memory)
+        // after the scan. This removes the bulk of the old launch repair cost.
         if includeRepair {
             let repairer = ModFolderRepairer()
-            repairReport = repairer.repairIfNeeded(gameDir: gameDir)
+            repairReport = repairer.repairIfNeeded(gameDir: gameDir, detectDuplicates: false)
         }
 
         let fm = FileManager.default
@@ -1127,7 +1150,10 @@ class StarHubTHViewModel: ObservableObject {
             // Sub-scan with `.skipsHiddenFiles` so nested junk (.DS_Store,
             // .git/, ._Foo) stays hidden — the dot-prefix classification of
             // *top-level* entries is handled by the caller, not here.
-            if let enumerator = fm.enumerator(at: url, includingPropertiesForKeys: [.isDirectoryKey], options: [.skipsHiddenFiles]) {
+            // includingPropertiesForKeys: [] — we only filter by filename
+            // ("manifest.json"), so prefetching isDirectory per file is pure
+            // overhead on a tree with tens of thousands of files.
+            if let enumerator = fm.enumerator(at: url, includingPropertiesForKeys: [], options: [.skipsHiddenFiles]) {
                 for case let fileURL as URL in enumerator {
                     if fileURL.lastPathComponent.lowercased() == "manifest.json" {
                         let modFolderURL = fileURL.deletingLastPathComponent()
@@ -1180,13 +1206,21 @@ class StarHubTHViewModel: ObservableObject {
         // on what counts as OS junk vs. a disabled mod.
         if fm.fileExists(atPath: modsPath),
            let topEntries = try? fm.contentsOfDirectory(atPath: modsPath) {
+            let scanTotal = topEntries.count
+            var scanDone = 0
+            var lastProgressPublish: CFAbsoluteTime = 0
             for entry in topEntries {
+                scanDone += 1
                 let isOsJunk = entry == ".DS_Store"
                     || entry == "Thumbs.db"
                     || entry == "ehthumbs.db"
                     || entry == "__MACOSX"
                     || entry.hasPrefix("._")
                 if isOsJunk { continue }
+                // Skip trash folders created by a prior repair run — the mods
+                // quarantined inside are not active and must not appear in the
+                // list nor in duplicate detection.
+                if entry.hasPrefix(ModFolderRepairer.trashPrefix) { continue }
 
                 // Dot prefix = disabled mod; strip it for the logical name.
                 // Anything else = enabled mod (including the rare legitimate
@@ -1197,6 +1231,20 @@ class StarHubTHViewModel: ObservableObject {
                 var isDir: ObjCBool = false
                 fm.fileExists(atPath: physicalRoot, isDirectory: &isDir)
                 guard isDir.boolValue else { continue }
+
+                // Throttled progress publish (~12/s) so the launch overlay can
+                // show "Analyse de <mod>… (done/total)" instead of a frozen
+                // bar. Cheap relative to the per-folder scan that follows.
+                let now = CFAbsoluteTimeGetCurrent()
+                if now - lastProgressPublish > 0.08 {
+                    lastProgressPublish = now
+                    let d = scanDone, t = scanTotal
+                    let nm = entry.hasPrefix(".") ? String(entry.dropFirst()) : entry
+                    DispatchQueue.main.async {
+                        self.scanProgress = ScanProgress(done: d, total: t, currentName: nm)
+                    }
+                }
+
                 scanEntryForMods(at: physicalRoot, isEnabled: isEnabled)
             }
         }
@@ -1212,7 +1260,22 @@ class StarHubTHViewModel: ObservableObject {
         //   3. Registry entries whose folder no longer exists → pruned.
         syncInstalledModRegistry(scannedMods: scannedMods)
 
+        // Detect X/.X duplicates from the just-scanned mods instead of the
+        // repairer's separate disk walk — same result, no extra I/O or decode.
+        if includeRepair {
+            let duplicates = ModFolderRepairer().detectDuplicates(from: scannedMods)
+            repairReport = ModFolderRepairer.Report(
+                quarantined: repairReport.quarantined,
+                duplicates: duplicates,
+                trashPath: repairReport.trashPath
+            )
+        }
+
         DispatchQueue.main.async {
+            // Scan finished — clear the per-mod progress published during the
+            // top-level enumeration so the launch overlay falls back to the
+            // coarse launchProgress/launchStep.
+            self.scanProgress = nil
             // Publish the repair report on the main thread (the scan itself
             // runs on a background queue via refresh()).
             // Only touch lastRepairReport when a repair actually ran. A

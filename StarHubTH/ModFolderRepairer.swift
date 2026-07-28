@@ -91,7 +91,9 @@ public struct ModFolderRepairer {
     ]
     /// macOS AppleDouble resource-fork files: `._<filename>`.
     private static let appleDoublePrefix = "._"
-    private static let trashPrefix = "_Trash_"
+    /// Public so the scanner can skip `_Trash_*` folders (mods quarantined by
+    /// a prior repair run) without re-deriving the prefix.
+    public static let trashPrefix = "_Trash_"
 
     private let fm: FileManager
 
@@ -107,7 +109,7 @@ public struct ModFolderRepairer {
     /// already-quarantined content (under any `_Trash_*` folder) is never
     /// re-scanned.
     @discardableResult
-    public func repairIfNeeded(gameDir: String) -> Report {
+    public func repairIfNeeded(gameDir: String, detectDuplicates: Bool = true) -> Report {
         guard !gameDir.isEmpty else { return Report() }
 
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
@@ -127,7 +129,12 @@ public struct ModFolderRepairer {
 
         allItems += repairFolder(at: modsPath, gameDir: gameDir, trashProvider: trashDir)
 
-        let duplicates = detectDuplicates(modsPath: modsPath)
+        // Duplicate detection is optional: the disk-walking implementation
+        // re-decodes every manifest, which is redundant when the caller has
+        // already scanned. scanMods passes detectDuplicates=false here and
+        // instead calls detectDuplicates(from:) with the already-parsed mods.
+        // The default stays on so standalone callers and tests get a full report.
+        let duplicates = detectDuplicates ? self.detectDuplicates(modsPath: modsPath) : []
 
         return Report(quarantined: allItems, duplicates: duplicates, trashPath: _trashPath)
     }
@@ -328,6 +335,39 @@ public struct ModFolderRepairer {
                     enabledFolder: match.folder,
                     disabledFolder: d.folder
                 ))
+            }
+        }
+        return duplicates.sorted { $0.uniqueId < $1.uniqueId }
+    }
+
+    /// Detects X/.X duplicate UniqueIDs straight from an already-scanned mod
+    /// list (standalone mods + every pack child). O(N) in-memory — no
+    /// filesystem walk, no manifest decode — because the scanner has already
+    /// parsed every UniqueID and enabled state. Output-equivalent to the
+    /// disk-walking `detectDuplicates(modsPath:)` above, but free after a scan;
+    /// `scanMods` uses it so the launch scan doesn't decode every manifest
+    /// twice (once here, once in the scanner).
+    public func detectDuplicates(from mods: [ModItem]) -> [Duplicate] {
+        var enabled: [(id: String, folder: String)] = []
+        var disabled: [(id: String, folder: String)] = []
+        for m in mods {
+            let leafs: [ModItem] = m.isGroup ? (m.children ?? []) : [m]
+            for c in leafs where !c.uniqueId.isEmpty {
+                if c.isEnabled {
+                    enabled.append((c.uniqueId, c.folderName))
+                } else {
+                    disabled.append((c.uniqueId, c.folderName))
+                }
+            }
+        }
+        let enabledLower = Dictionary(
+            enabled.map { ($0.id.lowercased(), $0.folder) },
+            uniquingKeysWith: { a, _ in a }
+        )
+        var duplicates: [Duplicate] = []
+        for d in disabled {
+            if let enabledFolder = enabledLower[d.id.lowercased()] {
+                duplicates.append(Duplicate(uniqueId: d.id, enabledFolder: enabledFolder, disabledFolder: d.folder))
             }
         }
         return duplicates.sorted { $0.uniqueId < $1.uniqueId }
