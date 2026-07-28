@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- 
+
+### Changed
+- 
+
+### Fixed
+- 
+
+## [1.9.1] - 2026-07-28
+
 ### Changed
 - **Default Nexus auto-check setting set to true** — `autoCheckNexusUpdates` now defaults to `true` (using `UDKey.autoCheckNexusUpdates` in `SettingsView.swift` and `StarHubTHViewModel.swift`), enabling automatic Nexus update checks at startup when an API key is saved.
 - **Dot-prefix mod toggle (Mods/.X = disabled)** — toggling a mod no longer moves its folder between `Mods/` and `Mods_disabled/`. Instead, a disabled mod is renamed in place inside `Mods/` with a leading dot (e.g. `Mods/CJBCheats` ↔ `Mods/.CJBCheats`), which SMAPI ignores natively. The toggle is now an atomic same-parent rename (O(1)) instead of a cross-folder move, eliminating the brief UI freeze on large mods. `ModItem.folderName` stays logical (never dotted) so the install registry, profiles, activation timestamps and backups are unchanged.
