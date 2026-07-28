@@ -198,6 +198,8 @@
 "logs_history" = "Journaux système";
 "logs_history_subtitle" = "Historique de session et recommandations de permissions";
 "logs_clear_logs" = "Effacer les journaux";
+"logs_clear_confirm_message" = "Cela supprime toutes les entrées StarHubFR. Les entrées SMAPI sont conservées.";
+"logs_clear_confirm_title" = "Effacer les logs StarHubFR ?";
 "logs_logs" = "Journaux";
 "logs_developer" = "Développeur";
 "logs_filter_all" = "Tous";
@@ -368,6 +370,9 @@
 "vm_unzip_error" = "Une erreur s'est produite lors de l'extraction du Zip dans le dossier Mods";
 "vm_unzip_failed" = "Échec de l'exécution de la commande de décompression : %@";
 "vm_switch_profile" = "Profil de mods basculé vers : %@";
+"vm_started" = "StarHubFR démarré";
+"vm_profile_created" = "Profil « %@ » créé (%lld mods)";
+"vm_profile_deleted" = "Profil « %@ » supprimé";
 "saves_inventory_editor" = "Éditeur d'inventaire";
 "saves_item_name" = "Nom de l'objet";
 "saves_item_quantity" = "Quantité";
@@ -569,6 +574,7 @@
 "vm_nexus_dl_auth_failed" = "Échec de l'authentification Nexus — vérifiez votre clé API dans les Réglages.";
 "vm_nexus_dl_rate_limited" = "Trop de requêtes vers Nexus — patientez un instant puis réessayez.";
 "vm_nexus_dl_server_error" = "Nexus a renvoyé une réponse inattendue (%lld).";
+"vm_nexus_dl_completed" = "Téléchargement Nexus #%lld terminé";
 "vm_manifest_version_fixed" = "Version du manifest de %@ corrigée %@ → %@ pour coller à Nexus.";
 "vm_manifest_version_date_fixed" = "Date du manifest de %@ rafraîchie (MàJ mineure Nexus sans changement de version).";
 "vm_manifest_version_skipped" = "Version du manifest de %@ inchangée (%@).";

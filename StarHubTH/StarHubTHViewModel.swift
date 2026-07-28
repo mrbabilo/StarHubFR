@@ -791,7 +791,7 @@ class StarHubTHViewModel: ObservableObject {
             }
             self.seedNexusAndUserData()
             // Startup marker — confirms LogsView is receiving entries.
-            self.log("StarHubTH started", level: .info)
+            self.log(self.L(L10n.VM.started), level: .info)
 
             // Step 5 — Done. Hop back to main *after* scanMods() has
             // published its own @Published mutations, so `isLaunching = false`
@@ -2570,8 +2570,11 @@ class StarHubTHViewModel: ObservableObject {
             case .success(let zipURL):
                 self.pendingDownloadedZip = zipURL
                 self.pendingNexusSource = NexusInstallSource(modId: modId)
+                self.log(String(format: self.L(L10n.VM.nexusDlCompleted), modId))
             case .failure(let error):
-                self.showModal(message: self.nexusDownloadMessage(error))
+                let message = self.nexusDownloadMessage(error)
+                self.showModal(message: message)
+                self.log(message, level: .warning)
             }
         }
     }
@@ -3634,11 +3637,15 @@ class StarHubTHViewModel: ObservableObject {
         // filesystem, so no file moves are needed — the user can edit it next).
         activeProfileId = newProfile.id
         saveProfiles()
+        log(String(format: L(L10n.VM.profileCreated), name, currentEnabledIds.count))
     }
-    
+
     func deleteProfile(id: UUID) {
         // The default profile is protected — never delete it.
         guard !isDefaultProfile(id) else { return }
+        if let name = modProfiles.first(where: { $0.id == id })?.name {
+            log(String(format: L(L10n.VM.profileDeleted), name))
+        }
         modProfiles.removeAll { $0.id == id }
         if activeProfileId == id {
             activeProfileId = nil

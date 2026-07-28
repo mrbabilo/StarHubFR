@@ -3,12 +3,13 @@ import SwiftUI
 struct LogsView: View {
     @ObservedObject var vm: StarHubTHViewModel
 
-    // Source tabs: nil = All, .app = StarHubTH, .smapi = SMAPI
+    // Source tabs: nil = All, .app = StarHubFR, .smapi = SMAPI
     @State private var selectedSource: LogSource? = nil
     // Level filter (only visible when a source is selected)
     @State private var selectedLevel: LogLevel? = nil
     @State private var searchText: String = ""
     @State private var autoScroll: Bool = true
+    @State private var showClearConfirm: Bool = false
 
     var filteredEntries: [LogEntry] {
         vm.logEntries.filter { entry in
@@ -115,9 +116,9 @@ struct LogsView: View {
                 .buttonStyle(.plain)
                 .help(vm.L(L10n.Logs.refreshHint))
 
-                // Clear app logs
+                // Clear app logs (destructive — confirmed via dialog below)
                 Button(vm.L(L10n.Logs.clearLogs)) {
-                    vm.logEntries.removeAll { $0.source == .app }
+                    showClearConfirm = true
                 }
                 .font(.system(size: 12))
             }
@@ -171,6 +172,17 @@ struct LogsView: View {
             .background(Color(nsColor: .windowBackgroundColor))
         }
         .background(Color(nsColor: .controlBackgroundColor))
+        .confirmationDialog(vm.L(L10n.Logs.clearConfirmTitle),
+                            isPresented: $showClearConfirm,
+                            titleVisibility: .visible) {
+            // macOS auto-appends a localized Cancel button since none here has
+            // role .cancel. Only app entries are wiped; SMAPI entries are kept.
+            Button(vm.L(L10n.Logs.clearLogs), role: .destructive) {
+                vm.logEntries.removeAll { $0.source == .app }
+            }
+        } message: {
+            Text(vm.L(L10n.Logs.clearConfirmMessage))
+        }
         .onAppear {
             if vm.logEntries.filter({ $0.source == .smapi }).isEmpty {
                 vm.loadSmapiLog()

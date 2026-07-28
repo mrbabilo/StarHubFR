@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- 
+- **Logs tab: clearer app activity + destructive-action guard** — StarHubFR now logs previously-silent user actions in the user's language: app startup ("StarHubFR started", previously the stale "StarHubTH started"), profile creation (name + mod count) and deletion, and Nexus download success/failure (only the start was logged before). "Clear logs" in the Logs tab now asks for confirmation before wiping, and clarifies that only StarHubFR entries are removed (SMAPI entries are kept).
 
 ### Changed
 - **Logs tab surfaces severity at a glance** — StarHubFR's own log entries are now colored by level (badge + message), so an app error/warning is no longer indistinguishable from an info entry; SMAPI TRACE entries are dimmed to stay readable. The level filter pills now carry per-level count badges (scoped to the selected source), the app source tab is labeled "StarHubFR" (was the stale "StarHubTH"), and "Reload SMAPI log" now replaces the previous snapshot instead of relying on a manual clear.
