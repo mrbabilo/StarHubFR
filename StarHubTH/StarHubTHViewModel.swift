@@ -373,7 +373,6 @@ class StarHubTHViewModel: ObservableObject {
     /// list when the count fluctuates between game sessions).
     private var lastLoggedSMAPIErrors: Set<String> = []
 
-    @Published var logOutput: String = ""
     @Published var logEntries: [LogEntry] = []
     /// Maximum number of log entries retained in memory to avoid unbounded growth
     /// during long sessions (each SMAPI reload can append hundreds of lines).
@@ -1956,14 +1955,12 @@ class StarHubTHViewModel: ObservableObject {
         return f
     }()
 
-    private func appendLogEntry(_ entry: LogEntry, timestamp: String, message: String) {
+    private func appendLogEntry(_ entry: LogEntry) {
         logEntries.append(entry)
-        // Cap memory usage: drop oldest app-generated entries when over the limit.
+        // Cap memory usage: drop oldest entries when over the limit.
         if logEntries.count > maxLogEntries {
-            let overflow = logEntries.count - maxLogEntries
-            logEntries.removeFirst(overflow)
+            logEntries.removeFirst(logEntries.count - maxLogEntries)
         }
-        logOutput += "[\(timestamp)] \(message)\n"
     }
 
     func log(_ message: String, level: LogLevel = .info) {
@@ -1971,10 +1968,10 @@ class StarHubTHViewModel: ObservableObject {
         let entry = LogEntry(timestamp: timestamp, message: message, level: level, source: .app)
 
         if Thread.isMainThread {
-            appendLogEntry(entry, timestamp: timestamp, message: message)
+            appendLogEntry(entry)
         } else {
             DispatchQueue.main.async {
-                self.appendLogEntry(entry, timestamp: timestamp, message: message)
+                self.appendLogEntry(entry)
             }
         }
     }
@@ -2063,6 +2060,12 @@ class StarHubTHViewModel: ObservableObject {
             : entries
 
         DispatchQueue.main.async {
+            // Reload semantics: SMAPI-latest.txt is a single snapshot file, so
+            // each load replaces the previously-loaded SMAPI entries instead of
+            // stacking another full copy. Without this, every game launch
+            // (startSmapiLogWatcher) and every tab open appended the whole log
+            // again, producing N duplicate copies after N launches.
+            self.logEntries.removeAll { $0.source == .smapi }
             self.logEntries.append(contentsOf: trimmedEntries)
             if self.logEntries.count > self.maxLogEntries {
                 self.logEntries.removeFirst(self.logEntries.count - self.maxLogEntries)

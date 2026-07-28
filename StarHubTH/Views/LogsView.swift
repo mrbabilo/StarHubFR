@@ -21,13 +21,23 @@ struct LogsView: View {
         }
     }
 
+    /// Entries reduced to the selected source only (no level/search filter).
+    /// Drives the per-level count badges so they reflect the true severity
+    /// distribution regardless of the active search text.
+    private var sourceEntries: [LogEntry] {
+        vm.logEntries.filter { selectedSource == nil || $0.source == selectedSource }
+    }
+    private func levelCount(_ level: LogLevel) -> Int {
+        sourceEntries.reduce(0) { $1.level == level ? $0 + 1 : $0 }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
 
             // ── Source Tab Bar ───────────────────────────────────────
             HStack(spacing: 0) {
                 sourceTab(nil,       label: vm.L(L10n.Logs.filterAll),  icon: "list.bullet")
-                sourceTab(.app,      label: "StarHubTH",                icon: "app.badge")
+                sourceTab(.app,      label: "StarHubFR",                icon: "app.badge")
                 sourceTab(.smapi,    label: "SMAPI",                     icon: "terminal")
                 Spacer()
             }
@@ -39,11 +49,11 @@ struct LogsView: View {
 
             // ── Level Filter (always visible) ────────────────────────
             HStack(spacing: 6) {
-                levelPill(nil,       label: vm.L(L10n.Logs.filterAll))
-                levelPill(.info,     label: "INFO")
-                levelPill(.warning,  label: "WARN")
-                levelPill(.error,    label: "ERROR")
-                levelPill(.smapi,    label: "TRACE")
+                levelPill(nil,      label: vm.L(L10n.Logs.filterAll), count: sourceEntries.count)
+                levelPill(.info,    label: "INFO",  count: levelCount(.info))
+                levelPill(.warning, label: "WARN",  count: levelCount(.warning))
+                levelPill(.error,   label: "ERROR", count: levelCount(.error))
+                levelPill(.smapi,   label: "TRACE", count: levelCount(.smapi))
                 Spacer()
             }
             .padding(.horizontal, 12)
@@ -96,10 +106,8 @@ struct LogsView: View {
                 .buttonStyle(.plain)
                 .help(vm.L(L10n.Logs.copyAll))
 
-                // Reload SMAPI log
+                // Reload SMAPI log (loadSmapiLog replaces existing SMAPI entries)
                 Button {
-                    // Keep app entries, reload SMAPI entries fresh
-                    vm.logEntries.removeAll { $0.source == .smapi }
                     vm.loadSmapiLog()
                 } label: {
                     Image(systemName: "arrow.clockwise").foregroundColor(.secondary)
@@ -110,7 +118,6 @@ struct LogsView: View {
                 // Clear app logs
                 Button(vm.L(L10n.Logs.clearLogs)) {
                     vm.logEntries.removeAll { $0.source == .app }
-                    vm.logOutput = ""
                 }
                 .font(.system(size: 12))
             }
@@ -197,14 +204,24 @@ struct LogsView: View {
     }
 
     @ViewBuilder
-    private func levelPill(_ level: LogLevel?, label: String) -> some View {
+    private func levelPill(_ level: LogLevel?, label: String, count: Int) -> some View {
         let isSelected = selectedLevel == level
+        let badgeColor = level?.color ?? Color.secondary
         Button { selectedLevel = level } label: {
             HStack(spacing: 4) {
                 if let level = level {
                     Image(systemName: level.icon).font(.system(size: 10))
                 }
                 Text(label).font(.system(size: 11, weight: .medium))
+                if count > 0 {
+                    Text("\(count)")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(isSelected ? badgeColor : .secondary)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 1)
+                        .background(badgeColor.opacity(isSelected ? 0.22 : 0.12))
+                        .cornerRadius(4)
+                }
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
@@ -229,12 +246,15 @@ struct LogEntryRow: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
-            // Source badge
+            // Source badge. For app entries the app-badge shape stays as a
+            // source cue, but it is tinted by severity (level.color) so an
+            // app error/warning is no longer indistinguishable from info.
+            // SMAPI entries show the level icon, also severity-colored.
             Group {
                 switch entry.source {
                 case .app:
                     Image(systemName: "app.badge")
-                        .foregroundColor(.accentColor.opacity(0.7))
+                        .foregroundColor(entry.level.color)
                 case .smapi:
                     Image(systemName: entry.level.icon)
                         .foregroundColor(entry.level.color)
@@ -268,10 +288,14 @@ struct LogEntryRow: View {
                     .pointingHandCursor()
                 }
 
-                // Message
+                // Message — colored by severity for BOTH sources (previously
+                // app entries were always primary, hiding errors/warnings).
+                // SMAPI TRACE entries are dimmed since they're verbose/noisy.
                 Text(entry.message)
                     .font(.system(size: 12, design: .monospaced))
-                    .foregroundColor(entry.source == .app ? .primary : entry.level.color.opacity(entry.level == .smapi ? 0.75 : 1.0))
+                    .foregroundColor(entry.source == .smapi && entry.level == .smapi
+                        ? entry.level.color.opacity(0.75)
+                        : entry.level.color)
                     .textSelection(.enabled)
                     .lineLimit(nil)
                     .fixedSize(horizontal: false, vertical: true)
