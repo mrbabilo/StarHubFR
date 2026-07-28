@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 
 
 ### Fixed
-- 
+- **Multi-component mod packs installed as separate mods instead of one pack (e.g. Lilybrook)** — `ModZipInstaller.detectZipStructure` classified any zip with more than one manifest folder as `.multiMod`, and `buildInfo` then used only the last path component as each component's install destination (`destFolderName = lastPathComponent`), discarding the shared parent folder. A pack like Lilybrook (`[CC]`, `[CP]`, `[FTM]` under one `Lilybrook/` folder) was therefore extracted as separate top-level folders under `Mods/`, and since the scanner only groups mods nested under a single top-level folder, it appeared as individual mods. Fix: in the `.multiMod` branch, when every component shares one top-level parent, preserve it (`Mods/<Parent>/<leaf>`) via a new `commonParent(of:)` helper so the scanner groups the pack into a single entry; flat collections (no shared parent) keep the existing one-folder-per-component behavior. Also fixes a related defect: a bundled dependency shipping its own nested manifest (e.g. `MyMod/lib/SomeDep/manifest.json`) was yanked to a separate top-level mod folder — a manifest folder nested under another manifest folder is now ignored during structure detection.
 
 ## [1.9.1] - 2026-07-28
 

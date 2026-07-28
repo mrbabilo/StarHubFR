@@ -375,3 +375,101 @@ struct InstallerTestEnv {
         #expect(FileManager.default.fileExists(atPath: installedPath.path))
     }
 }
+
+// MARK: - Structure detection (pack grouping)
+
+@Suite struct ModZipInstallerStructureTests {
+
+    /// Fresh temp dir laid out by hand — no real archive needed.
+    private func makeTempDir() throws -> URL {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("StarHubTHStructTests-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        return url
+    }
+
+    @Test func packWithSharedParentInstallsNestedUnderIt() throws {
+        // A genuine multi-component pack: every component lives under one
+        // shared top-level folder ("Lilybrook"). Detection must keep that
+        // parent so each component's dest folderName is nested under it —
+        // the mod-list scanner then groups them into a single pack entry.
+        let dir = try makeTempDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        try makeModFolder(base: dir, relativePath: "Lilybrook/[CC] Lilybrook",
+                          uniqueId: "8BitAlien.Lilybrook.CC", name: "[CC] Lilybrook")
+        try makeModFolder(base: dir, relativePath: "Lilybrook/[CP] Lilybrook",
+                          uniqueId: "8BitAlien.Lilybrook", name: "Lilybrook")
+        try makeModFolder(base: dir, relativePath: "Lilybrook/[FTM] Lilybrook",
+                          uniqueId: "8BitAlien.Lilybrook.FTM", name: "[FTM] Lilybrook")
+
+        let info = ModZipInstaller().analyzeExtractedDir(at: dir, zipName: "Lilybrook.zip", existingMods: [])
+
+        #expect(info.detectedMods.count == 3)
+        #expect(Set(info.detectedMods.map { $0.folderName }) ==
+               ["Lilybrook/[CC] Lilybrook", "Lilybrook/[CP] Lilybrook", "Lilybrook/[FTM] Lilybrook"],
+               "Pack components must install nested under the shared parent, not flattened to top level")
+    }
+
+    @Test func flatCollectionInstallsAtTopLevel() throws {
+        // No shared parent: components sit at the zip root. Behavior is
+        // unchanged — each lands as its own top-level folder (no synthesized
+        // pack name).
+        let dir = try makeTempDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        try makeModFolder(base: dir, relativePath: "[C1]", uniqueId: "mod.one", name: "One")
+        try makeModFolder(base: dir, relativePath: "[C2]", uniqueId: "mod.two", name: "Two")
+
+        let info = ModZipInstaller().analyzeExtractedDir(at: dir, zipName: "coll.zip", existingMods: [])
+
+        #expect(info.detectedMods.count == 2)
+        #expect(Set(info.detectedMods.map { $0.folderName }) == ["[C1]", "[C2]"])
+    }
+
+    @Test func bundledLibraryIsNotSplitOut() throws {
+        // A mod that bundles a dependency in a nested folder (its own
+        // manifest) must NOT have that dependency yanked to a separate
+        // top-level install folder.
+        let dir = try makeTempDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        try makeModFolder(base: dir, relativePath: "MyMod", uniqueId: "my.mod", name: "My Mod")
+        try makeModFolder(base: dir, relativePath: "MyMod/lib/SomeDep", uniqueId: "some.dep", name: "Some Dep")
+
+        let info = ModZipInstaller().analyzeExtractedDir(at: dir, zipName: "MyMod.zip", existingMods: [])
+
+        #expect(info.detectedMods.count == 1, "Bundled library must not be split into its own mod")
+        #expect(info.detectedMods.first?.folderName == "MyMod")
+    }
+
+    @Test func redundantSingleWrapperStaysSingleMod() throws {
+        // Regression: a single mod double-wrapped ("Pack/Pack/manifest.json")
+        // is singleMod (one manifest folder), unaffected by the pack filter
+        // and the shared-parent logic.
+        let dir = try makeTempDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        try makeModFolder(base: dir, relativePath: "Pack/Pack", uniqueId: "pack.mod", name: "Pack")
+
+        let info = ModZipInstaller().analyzeExtractedDir(at: dir, zipName: "Pack.zip", existingMods: [])
+
+        #expect(info.detectedMods.count == 1)
+        #expect(info.detectedMods.first?.folderName == "Pack/Pack")
+    }
+
+    @Test func mixedNestedAndRootInstallsFlat() throws {
+        // Guard: one nested entry + one root entry → no single shared parent
+        // → both stay at their natural (leaf) dest, no forced grouping.
+        let dir = try makeTempDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        try makeModFolder(base: dir, relativePath: "A/X", uniqueId: "mod.x", name: "X")
+        try makeModFolder(base: dir, relativePath: "Y", uniqueId: "mod.y", name: "Y")
+
+        let info = ModZipInstaller().analyzeExtractedDir(at: dir, zipName: "mix.zip", existingMods: [])
+
+        #expect(info.detectedMods.count == 2)
+        #expect(Set(info.detectedMods.map { $0.folderName }) == ["X", "Y"])
+    }
+}

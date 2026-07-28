@@ -154,13 +154,22 @@ class ModZipInstaller {
         // (on cancel or after install).
         onTempDir?(tempDir)
 
+        return analyzeExtractedDir(at: tempDir, zipName: url.lastPathComponent, existingMods: existingMods)
+    }
+
+    /// Analyzes an already-extracted temp directory: detects the archive
+    /// structure and builds the `ZipModInfo`. Split out from `analyzeZip` so
+    /// the structure detection (including multi-component pack grouping) is
+    /// unit-testable without building a real archive — tests lay out a temp
+    /// dir of mod folders and call this directly.
+    func analyzeExtractedDir(at tempDir: URL, zipName: String, existingMods: [ModItem]) -> ZipModInfo {
         let structure = detectZipStructure(at: tempDir)
         guard case .unrecognized = structure else {
             // proceed with a valid structure (single/multi/flatRoot)
-            return buildInfo(from: tempDir, structure: structure, zipName: url.lastPathComponent, existingMods: existingMods, fallbackStatus: .valid)
-                ?? ZipModInfo(zipName: url.lastPathComponent, detectedMods: [], validationStatus: .invalidStructure, conflicts: [], estimatedSize: 0)
+            return buildInfo(from: tempDir, structure: structure, zipName: zipName, existingMods: existingMods, fallbackStatus: .valid)
+                ?? ZipModInfo(zipName: zipName, detectedMods: [], validationStatus: .invalidStructure, conflicts: [], estimatedSize: 0)
         }
-        return ZipModInfo(zipName: url.lastPathComponent, detectedMods: [], validationStatus: .invalidStructure, conflicts: [], estimatedSize: 0)
+        return ZipModInfo(zipName: zipName, detectedMods: [], validationStatus: .invalidStructure, conflicts: [], estimatedSize: 0)
     }
 
     /// Builds the `ZipModInfo` by scanning the extracted temp directory
@@ -254,14 +263,19 @@ class ModZipInstaller {
             let modPath = tempDir.appendingPathComponent(baseFolder)
             scanFolder(at: modPath, relativePath: baseFolder, folderName: baseFolder)
         case .multiMod(let folders):
+            // When every component lives under the same single top-level
+            // folder in the zip (a genuine pack — e.g. "Lilybrook/[CC]",
+            // "Lilybrook/[CP]", "Lilybrook/[FTM]"), preserve that parent so
+            // each component installs under Mods/<Parent>/<leaf>. The mod-list
+            // scanner groups any top-level folder holding several manifests
+            // into one pack entry, so a grouped on-disk layout makes the pack
+            // appear as a single entry — matching what the user downloaded.
+            // Flat collections (no shared parent) keep one-folder-per-component.
+            let sharedParent = Self.commonParent(of: folders)
             for folder in folders {
                 let modPath = tempDir.appendingPathComponent(folder)
-                // Le folderName de destination est le dernier composant du
-                // chemin relatif (ex. "Parchment" pour "Parchment/Parchment",
-                // "[CP] Parchment Example Pack" pour l'autre), tandis que
-                // relativePath conserve le chemin complet pour retrouver le
-                // dossier source dans le tempDir.
-                let destFolderName = (folder as NSString).lastPathComponent
+                let leaf = (folder as NSString).lastPathComponent
+                let destFolderName = sharedParent.map { "\($0)/\(leaf)" } ?? leaf
                 scanFolder(at: modPath, relativePath: folder, folderName: destFolderName)
             }
         case .flatRoot:
@@ -291,6 +305,17 @@ class ModZipInstaller {
     }
 
     // MARK: - Structure Detection
+
+    /// Returns the single top-level parent folder shared by every entry, or
+    /// nil when the entries sit at the zip root or disagree. "Lilybrook" for
+    /// "Lilybrook/[CP] Lilybrook"; nil for a flat collection ("[C1]", "[C2]")
+    /// or a mix of nested and root entries.
+    private static func commonParent(of folders: [String]) -> String? {
+        let parents = folders.map { ($0 as NSString).deletingLastPathComponent }
+        guard parents.allSatisfy({ !$0.isEmpty }) else { return nil }
+        let unique = Set(parents)
+        return unique.count == 1 ? unique.first : nil
+    }
 
     /// Detects the structure of extracted zip contents.
     private func detectZipStructure(at tempDir: URL) -> ZipStructure {
@@ -329,6 +354,18 @@ class ModZipInstaller {
                         manifestFolders.append(parentPath)
                     }
                 }
+            }
+        }
+
+        // A manifest nested under another manifest folder is a bundled
+        // dependency (e.g. "MyMod/lib/SomeDep/manifest.json" under
+        // "MyMod/manifest.json"), not a sibling mod. Drop it so it isn't
+        // installed as a separate top-level folder (which would also create
+        // stray duplicate-mod conflicts when the same dependency is already
+        // installed standalone). Order-independent: checks all ancestor pairs.
+        manifestFolders = manifestFolders.filter { folder in
+            !manifestFolders.contains { other in
+                other != folder && folder.hasPrefix(other + "/")
             }
         }
 
