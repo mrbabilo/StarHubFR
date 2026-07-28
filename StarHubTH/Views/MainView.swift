@@ -396,40 +396,11 @@ struct MainView: View {
                         .foregroundColor(.white.opacity(0.7))
                 }
 
-                // Progress block — determinate bar + current step caption.
-                // While scanMods streams per-mod progress (launch scan), refine
-                // the bar within the [start…end] slice and surface the mod name
-                // so the overlay never looks frozen.
-                VStack(spacing: 8) {
-                    let displayProgress: Double = {
-                        if let sp = vm.scanProgress, sp.total > 0 {
-                            let span = StarHubTHViewModel.launchScanProgressEnd - StarHubTHViewModel.launchScanProgressStart
-                            return StarHubTHViewModel.launchScanProgressStart + span * (Double(sp.done) / Double(sp.total))
-                        }
-                        return vm.launchProgress
-                    }()
-                    ProgressView(value: displayProgress)
-                        .progressViewStyle(.linear)
-                        .tint(.white)
-                        .frame(width: 400)
-                        .scaleEffect(y: 1.4)
-
-                    Text(vm.launchStep.isEmpty ? vm.L(L10n.Main.launching) : vm.launchStep)
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.white.opacity(0.9))
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                        .frame(maxWidth: 400)
-
-                    if let sp = vm.scanProgress {
-                        Text("\(sp.currentName)  (\(sp.done)/\(sp.total))")
-                            .font(.system(size: 11, weight: .regular))
-                            .foregroundColor(.white.opacity(0.6))
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                            .frame(maxWidth: 400)
-                    }
-                }
+                // Progress block — a self-contained creeping bar + current
+                // step caption. See `LaunchProgressBlock` for why the bar
+                // creeps toward its target instead of snapping between the
+                // discrete launch-progress weights.
+                LaunchProgressBlock(vm: vm)
             }
             .padding(.vertical, 32)
             .padding(.horizontal, 28)
@@ -440,6 +411,75 @@ struct MainView: View {
         .transition(.opacity)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(vm.L(L10n.Main.launching))
+    }
+
+    /// Self-contained launch progress block: a determinate bar that CREEPS
+    /// toward its target instead of snapping. Launch progress is published as
+    /// a handful of discrete weights (0.05 → 0.15 → 0.25 → …) with real
+    /// wall-clock gaps between them (registry decode, folder-repair sweep). A
+    /// bar that jumps between those weights looks like it teleports, then
+    /// freezes during each gap. Instead `displayed` chases `target` on a timer
+    /// — always moving, even mid-gap — so the overlay never looks stuck. When
+    /// the scan streams per-mod progress, `target` rises steadily and the bar
+    /// tracks it.
+    private struct LaunchProgressBlock: View {
+        @ObservedObject var vm: StarHubTHViewModel
+        @State private var displayed: Double = 0
+
+        // A single shared publisher (static → one underlying timer, never
+        // stacked across re-renders). `.onReceive` only subscribes while the
+        // overlay is in the tree, so the creep stops once launching finishes.
+        private static let ticker = Timer.publish(every: 0.05, on: .main, in: .common).autoconnect()
+
+        /// The real progress to aim for: the per-mod scan slice when streaming,
+        /// otherwise the coarse launch weight.
+        private var target: Double {
+            if let sp = vm.scanProgress, sp.total > 0 {
+                let span = StarHubTHViewModel.launchScanProgressEnd - StarHubTHViewModel.launchScanProgressStart
+                return StarHubTHViewModel.launchScanProgressStart + span * (Double(sp.done) / Double(sp.total))
+            }
+            return vm.launchProgress
+        }
+
+        var body: some View {
+            VStack(spacing: 8) {
+                ProgressView(value: displayed)
+                    .progressViewStyle(.linear)
+                    .tint(.white)
+                    .frame(width: 400)
+                    .scaleEffect(y: 1.4)
+
+                Text(vm.launchStep.isEmpty ? vm.L(L10n.Main.launching) : vm.launchStep)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.white.opacity(0.9))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .frame(maxWidth: 400)
+
+                if let sp = vm.scanProgress {
+                    Text("\(sp.currentName)  (\(sp.done)/\(sp.total))")
+                        .font(.system(size: 11, weight: .regular))
+                        .foregroundColor(.white.opacity(0.6))
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .frame(maxWidth: 400)
+                }
+            }
+            .onReceive(Self.ticker) { _ in
+                let gap = target - displayed
+                if gap > 0.0005 {
+                    // Asymptotic creep: close ~18% of the remaining gap per
+                    // tick. Always advances while below target (slowing as it
+                    // nears), never overshoots — so the bar keeps moving
+                    // through the gaps between discrete launch-progress events.
+                    displayed += gap * 0.18
+                } else if gap < -0.0005 {
+                    // Defensive: if the target ever drops, snap down so the
+                    // bar never shows more progress than reality.
+                    displayed = target
+                }
+            }
+        }
     }
 
     /// Cached cover artwork. Loaded once from the app bundle's Resources

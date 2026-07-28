@@ -903,6 +903,20 @@ class StarHubTHViewModel: ObservableObject {
         // the toggle path, and were the dominant cause of the 5–10s toggle
         // delay. Repairs still run on initial load, manual refresh, install,
         // delete and profile-apply, where they can actually find new problems.
+
+        // Hoist the file manager + mods path so we can publish an early
+        // (0/N) progress frame BEFORE the repair sweep. Without it the launch
+        // overlay's bar sits frozen at the scan-start weight while the repair
+        // walk + registry decode run with no per-mod name to show yet.
+        let fm = FileManager.default
+        let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
+        if let topCount = try? fm.contentsOfDirectory(atPath: modsPath).count, topCount > 0 {
+            let preparing = self.L(L10n.Main.launchStepPreparing)
+            DispatchQueue.main.async {
+                self.scanProgress = ScanProgress(done: 0, total: topCount, currentName: preparing)
+            }
+        }
+
         var repairReport = ModFolderRepairer.Report()
         // detectDuplicates=false: the repairer's disk-walking duplicate pass
         // re-decodes every manifest, which is redundant since we scan them just
@@ -912,9 +926,6 @@ class StarHubTHViewModel: ObservableObject {
             let repairer = ModFolderRepairer()
             repairReport = repairer.repairIfNeeded(gameDir: gameDir, detectDuplicates: false)
         }
-
-        let fm = FileManager.default
-        let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
 
         // Permanent safety net: if a legacy `Mods_disabled/` folder still
         // exists (recréé par un autre outil, ou un retardataire qui passe
@@ -1271,9 +1282,11 @@ class StarHubTHViewModel: ObservableObject {
         }
 
         DispatchQueue.main.async {
-            // Scan finished — clear the per-mod progress published during the
-            // top-level enumeration so the launch overlay falls back to the
-            // coarse launchProgress/launchStep.
+            // Scan finished — advance the coarse progress to the scan-end
+            // weight BEFORE clearing the per-mod scanProgress, so the overlay
+            // falls back to launchScanProgressEnd (not the stale scan-start
+            // value) and the bar never visibly regresses before step 3 runs.
+            self.launchProgress = Self.launchScanProgressEnd
             self.scanProgress = nil
             // Publish the repair report on the main thread (the scan itself
             // runs on a background queue via refresh()).

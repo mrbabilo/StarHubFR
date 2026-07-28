@@ -601,6 +601,7 @@
   "mod_install_recover_zip": "Essayez de retélécharger le mod ou vérifiez l'intégrité du fichier",
   "main_launch_step_init": "Initialisation…",
   "main_launch_step_registry": "Chargement du registre…",
+  "main_launch_step_preparing": "Préparation des mods…",
   "main_launch_step_scan": "Analyse des mods…",
   "main_launch_step_saves": "Chargement des sauvegardes…",
   "main_launch_step_profile": "Chargement des profils…",

@@ -18,6 +18,7 @@ enum L10n {
         // user sees what the app is doing instead of an indeterminate spinner.
         static let launchStepInit         = "main_launch_step_init"
         static let launchStepRegistry     = "main_launch_step_registry"
+        static let launchStepPreparing    = "main_launch_step_preparing"
         static let launchStepScan         = "main_launch_step_scan"
         static let launchStepSaves        = "main_launch_step_saves"
         static let launchStepProfile      = "main_launch_step_profile"

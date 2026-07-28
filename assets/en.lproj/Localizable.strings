@@ -601,6 +601,7 @@
 "mod_install_recover_zip" = "Try re-downloading the mod or verify the file integrity";
 "main_launch_step_init" = "Initializing…";
 "main_launch_step_registry" = "Loading mod registry…";
+"main_launch_step_preparing" = "Preparing mods…";
 "main_launch_step_scan" = "Scanning mods…";
 "main_launch_step_saves" = "Loading saves…";
 "main_launch_step_profile" = "Loading profiles…";
