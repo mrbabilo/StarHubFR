@@ -87,6 +87,7 @@ struct SavesView: View {
                     }
                     .buttonStyle(.plain)
                     .foregroundColor(vm.saveViewMode == .list ? .accentColor : .secondary)
+                    .help(vm.L(L10n.Saves.listViewHint))
 
                     Button(action: { withAnimation { vm.saveViewMode = .grid } }) {
                         Image(systemName: "square.grid.2x2")
@@ -97,6 +98,7 @@ struct SavesView: View {
                     }
                     .buttonStyle(.plain)
                     .foregroundColor(vm.saveViewMode == .grid ? .accentColor : .secondary)
+                    .help(vm.L(L10n.Saves.gridViewHint))
                 }
                 .padding(2)
                 .background(Color(nsColor: .controlBackgroundColor))
@@ -178,6 +180,7 @@ struct SavesView: View {
                 }
                 .buttonStyle(.plain)
                 .foregroundColor(.secondary)
+                .help(vm.L(L10n.Saves.reloadHint))
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
@@ -385,6 +388,7 @@ struct SaveRow: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .help(vm.L(L10n.Saves.expandHint))
             } else {
                 Spacer().frame(width: 32)
             }
@@ -540,6 +544,7 @@ struct SaveEditorView: View {
                         .font(.title3)
                 }
                 .buttonStyle(.plain)
+                .help(vm.L(L10n.Saves.cancel))
             }
             .padding(20)
             
@@ -676,6 +681,7 @@ struct SaveEditorView: View {
                                         .foregroundColor(.red)
                                 }
                                 .buttonStyle(.plain)
+                                .help(vm.L(L10n.Saves.clearSlotHint))
                                 .padding(.leading, 8)
                             }
                         } else if !item.name.isEmpty {
@@ -697,6 +703,7 @@ struct SaveEditorView: View {
                                         .foregroundColor(.red)
                                 }
                                 .buttonStyle(.plain)
+                                .help(vm.L(L10n.Saves.clearSlotHint))
                                 .padding(.leading, 8)
                             }
                         }

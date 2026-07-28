@@ -286,6 +286,7 @@ struct MainView: View {
                             Image(systemName: "chevron.left")
                         }
                         .accessibilityLabel(vm.L(L10n.Main.navBack))
+                        .help(vm.L(L10n.Main.navBack))
                         .disabled(vm.editingSave == nil && vm.viewingThaiMod == nil && vm.viewingSaveTimeline == nil && vm.editingModConfig == nil && vm.viewingModDetail == nil && tabHistory.count <= 1)
                         
                         Button(action: {
@@ -298,6 +299,7 @@ struct MainView: View {
                             Image(systemName: "chevron.right")
                         }
                         .accessibilityLabel(vm.L(L10n.Main.navForward))
+                        .help(vm.L(L10n.Main.navForward))
                         .disabled(forwardHistory.isEmpty)
                     }
                 }

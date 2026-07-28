@@ -77,6 +77,7 @@ struct LogsView: View {
                         Button { searchText = "" } label: {
                             Image(systemName: "xmark.circle.fill").foregroundColor(.secondary)
                         }.buttonStyle(.plain)
+                         .help(vm.L(L10n.Logs.clearSearchHint))
                     }
                 }
                 .padding(.horizontal, 8)

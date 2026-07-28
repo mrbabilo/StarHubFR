@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Tooltips on icon-only buttons** — the icon-only buttons across the app now show a localized tooltip on hover explaining what they do: Mods list pagination (previous/next page), window back/forward navigation, Saves view-mode (list/grid) + reload + expand/collapse + close editor + clear inventory slot, install-preview mod details, save-timeline edit-note + delete-backup, and the Logs clear-search button. (11 new tooltip strings, en/fr; `InfoPopoverButton` was deliberately skipped since it already surfaces help via a popover.)
 - **Logs tab: clearer app activity + destructive-action guard** — StarHubFR now logs previously-silent user actions in the user's language: app startup ("StarHubFR started", previously the stale "StarHubTH started"), profile creation (name + mod count) and deletion, and Nexus download success/failure (only the start was logged before). "Clear logs" in the Logs tab now asks for confirmation before wiping, and clarifies that only StarHubFR entries are removed (SMAPI entries are kept).
 
 ### Changed

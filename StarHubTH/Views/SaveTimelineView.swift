@@ -227,6 +227,7 @@ struct BackupRow: View {
                     .buttonStyle(.plain)
                     .foregroundColor(.secondary)
                     .padding(.trailing, 4)
+                    .help(vm.L(L10n.Saves.editNoteHint))
                     
                     Button(action: {
                         vm.backupToBranch = backup
@@ -258,6 +259,7 @@ struct BackupRow: View {
                     .buttonStyle(.plain)
                     .foregroundColor(.red.opacity(0.7))
                     .padding(.leading, 8)
+                    .help(vm.L(L10n.Saves.deleteBackupHint))
                 }
             }
             .padding(12)

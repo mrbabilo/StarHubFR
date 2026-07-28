@@ -584,6 +584,7 @@ struct DetectedModRow: View {
                     .foregroundColor(.secondary)
             }
             .buttonStyle(.plain)
+            .help(vm.L(L10n.ModInstall.detailsHint))
         }
         .padding()
         .background(Color.secondary.opacity(0.03))
