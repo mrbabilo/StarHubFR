@@ -492,6 +492,25 @@ struct ModListView: View {
         .onChange(of: configOnlyFilter) { _, _ in currentPage = 1 }
         .onChange(of: frenchTranslationFilter) { _, _ in currentPage = 1 }
         .onChange(of: vm.mods.count)    { _, _ in currentPage = 1 }
+        // Clicking a mod name in the logs must land on that mod, not on the full
+        // list. `selectedModID` alone only tints the row — with filters and
+        // pagination the mod may not even be on the visible page — so scope the
+        // list to it and clear anything that could filter it out.
+        .onReceive(NotificationCenter.default.publisher(for: .jumpToMod)) { note in
+            guard let modName = note.object as? String else { return }
+            // Prefer the resolved mod's own name: SMAPI logs a display name that
+            // may differ slightly from the manifest, and searchText matches on
+            // name/uniqueId.
+            let resolved = vm.mods
+                .flatMap { m -> [ModItem] in m.isGroup ? (m.children ?? []) : [m] }
+                .first { $0.name.localizedCaseInsensitiveContains(modName) }
+            searchText = resolved?.name ?? modName
+            selectedFilter = .all
+            selectedCategory = .all
+            configOnlyFilter = false
+            frenchTranslationFilter = .off
+            currentPage = 1
+        }
         .sheet(isPresented: $showInstallSheet) {
             ModInstallView(vm: vm, isPresented: $showInstallSheet)
         }
