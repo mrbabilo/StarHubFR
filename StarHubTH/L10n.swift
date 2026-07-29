@@ -364,6 +364,7 @@ enum L10n {
         static let healthSuggestionsTitle = "logs_health_suggestions_title"
         static let healthAndMore          = "logs_health_and_more"
         static let healthBenign           = "logs_health_benign"
+        static let healthShowInLog        = "logs_health_show_in_log"
         static let healthExpBenign        = "logs_health_exp_benign"
         static let healthBenignGalaxy     = "logs_health_benign_galaxy"
         static let healthBenignApi        = "logs_health_benign_api"

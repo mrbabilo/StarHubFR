@@ -348,16 +348,27 @@ public struct SmapiDiagnostics {
     /// Which SMAPI warning-group section is currently being parsed.
     private enum WarningGroup { case patched, save, broken, console }
 
-    /// The mod context of a `[HH:MM:SS ERROR ModName] …` line, or nil for
-    /// non-ERROR lines and framework contexts ("SMAPI", "game").
+    /// The mod context of any `[HH:MM:SS LEVEL ModName] …` line, whatever the
+    /// level, or nil for framework contexts ("SMAPI", "game"). SMAPI writes the
+    /// mod name in the header, so this is where most mods are identified.
+    private static func contextMod(of line: String) -> String? {
+        guard line.hasPrefix("["), let close = line.firstIndex(of: "]") else { return nil }
+        let header = String(line[line.index(after: line.startIndex)..<close])
+        let parts = header.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
+        guard parts.count >= 3 else { return nil }
+        let name = parts[2...].joined(separator: " ").trimmingCharacters(in: .whitespaces)
+        guard !name.isEmpty, name != "SMAPI", name != "game" else { return nil }
+        return name
+    }
+
+    /// Same, but only for ERROR lines — used for the per-mod error tally, which
+    /// must not count warnings.
     private static func errorContextMod(of line: String) -> String? {
         guard line.hasPrefix("["), let close = line.firstIndex(of: "]") else { return nil }
         let header = String(line[line.index(after: line.startIndex)..<close])
         let parts = header.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
-        guard parts.count >= 3, parts[1].uppercased() == "ERROR" else { return nil }
-        let name = parts[2...].joined(separator: " ").trimmingCharacters(in: .whitespaces)
-        guard !name.isEmpty, name != "SMAPI", name != "game" else { return nil }
-        return name
+        guard parts.count >= 2, parts[1].uppercased() == "ERROR" else { return nil }
+        return contextMod(of: line)
     }
 
     /// Classifies known-harmless ERROR lines. Returns nil for anything else,
@@ -378,17 +389,23 @@ public struct SmapiDiagnostics {
             || low.contains("you can safely ignore")
             || low.contains("this is not an error") {
             return BenignNotice(kind: .apiIntegration,
-                                mod: modPrefix(of: body, before: ":"),
+                                mod: noticeMod(body: body, line: line),
                                 sample: evidence(from: body))
         }
 
         for rule in benignRules where rule.matches(low) {
-            let mod = rule.namesMod
-                ? (modPrefix(of: body, before: ":") ?? errorContextMod(of: line))
-                : nil
+            let mod = rule.namesMod ? noticeMod(body: body, line: line) : nil
             return BenignNotice(kind: rule.kind, mod: mod, sample: evidence(from: body))
         }
         return nil
+    }
+
+    /// Identifies the mod behind a notice. SMAPI usually puts the name in the
+    /// line header (`[… WARN  Fish Helper UI]`) whatever the level, so that
+    /// wins; some mods instead log through the SMAPI context and prefix their
+    /// own message ("Gunther's Guide: …"), which is the fallback.
+    private static func noticeMod(body: String, line: String) -> String? {
+        contextMod(of: line) ?? modPrefix(of: body, before: ":")
     }
 
     /// A one-line excerpt of the original message, kept as the notice's

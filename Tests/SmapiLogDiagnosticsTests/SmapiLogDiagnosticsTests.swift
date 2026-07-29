@@ -201,6 +201,20 @@ import Testing
         #expect(d.topErrorMods.first?.count == 2)
     }
 
+    /// SMAPI puts the mod name in the line header whatever the level. Naming
+    /// used to be ERROR-only, so WARN notices came back anonymous.
+    @Test func namesModFromWarningHeaderNotJustErrorLines() {
+        let log = """
+        [22:31:04 WARN  Fish Helper UI] Failed to Parse Condition for : LOCATION_Season Here
+        [22:30:15 WARN  UI Info Suite 2] ModEntry: recommended mod not installed - NPC Map Locations
+        """
+        let d = SmapiDiagnostics.parse(logContent: log)
+        #expect(d.benignNotices.first { $0.kind == .modContentParse }?.mod == "Fish Helper UI")
+        #expect(d.benignNotices.first { $0.kind == .optionalModMissing }?.mod == "UI Info Suite 2")
+        // Warnings must never inflate the per-mod ERROR tally.
+        #expect(d.topErrorMods.isEmpty)
+    }
+
     @Test func benignNoticesAreNotCountedAsProblems() {
         let log = "[22:30:28 ERROR SMAPI] Galaxy auth failure: FAILURE_REASON_GALAXY_SERVICE_NOT_SIGNED_IN"
         let d = SmapiDiagnostics.parse(logContent: log)

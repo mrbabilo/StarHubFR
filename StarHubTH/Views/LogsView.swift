@@ -216,6 +216,14 @@ struct LogsView: View {
         .onDisappear {
             vm.stopSmapiLogWatcher()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .filterLogsToMod)) { note in
+            guard let mod = note.object as? String else { return }
+            // Show every level from every source so the mod's lines can't be
+            // filtered out by whatever the user had selected.
+            selectedSource = nil
+            selectedLevel = nil
+            searchText = mod
+        }
     }
 
     // MARK: - Helpers
@@ -359,4 +367,7 @@ struct LogEntryRow: View {
 // MARK: - Notification for mod jump
 extension Notification.Name {
     static let jumpToMod = Notification.Name("StarHubTH.jumpToMod")
+    /// Posted with a mod name to scope the Logs view to that mod's entries —
+    /// lets the health card send the player straight to the underlying lines.
+    static let filterLogsToMod = Notification.Name("StarHubTH.filterLogsToMod")
 }

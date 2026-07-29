@@ -180,6 +180,7 @@ struct SmapiHealthCard: View {
                                                 .font(.system(size: 10))
                                                 .foregroundColor(.secondary)
                                         }
+                                        showInLogButton(mod)
                                     }
                                 }
                                 Text(benignText(notice))
@@ -210,6 +211,7 @@ struct SmapiHealthCard: View {
                             Text(String(format: vm.L(L10n.Logs.healthErrorsCount), Int64(entry.count)))
                                 .font(.system(size: 10))
                                 .foregroundColor(.secondary)
+                            showInLogButton(entry.name)
                         }
                     }
                 }
@@ -244,6 +246,22 @@ struct SmapiHealthCard: View {
 
     /// Max mods listed per category before collapsing into "…and N more".
     private static let maxListedMods = 8
+
+    /// Scopes the Logs view to a mod's entries, so the player can read the
+    /// actual lines behind a diagnostic instead of trusting the summary.
+    @ViewBuilder
+    private func showInLogButton(_ mod: String) -> some View {
+        Button {
+            NotificationCenter.default.post(name: .filterLogsToMod, object: mod)
+        } label: {
+            Image(systemName: "text.magnifyingglass")
+                .font(.system(size: 10))
+                .foregroundColor(.accentColor)
+        }
+        .buttonStyle(.plain)
+        .pointingHandCursor()
+        .help(vm.L(L10n.Logs.healthShowInLog))
+    }
 
     /// Plain-language reassurance for a known-harmless error. The mod name is
     /// rendered separately above, so the wording stays generic and isn't
@@ -338,7 +356,10 @@ struct SmapiHealthCard: View {
                 HStack(alignment: .top, spacing: 6) {
                     Text("•").foregroundColor(.secondary)
                     VStack(alignment: .leading, spacing: 1) {
-                        Text(issue.name).font(.system(size: 11, weight: .medium))
+                        HStack(spacing: 4) {
+                            Text(issue.name).font(.system(size: 11, weight: .medium))
+                            showInLogButton(issue.name)
+                        }
                         Text(issue.reason)
                             .font(.system(size: 11))
                             .foregroundColor(.secondary)
