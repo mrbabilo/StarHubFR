@@ -324,6 +324,10 @@ struct MainView: View {
                     .flatMap { m -> [ModItem] in m.isGroup ? (m.children ?? []) : [m] }
                     .first { $0.name.localizedCaseInsensitiveContains(modName) }?
                     .folderName
+                // Hand the request to the list itself: it may not be on screen
+                // yet (tabs are created on demand), so it picks this up on
+                // appear and scopes itself to the mod.
+                vm.pendingModFocus = modName
                 currentTab = "Mods"
             }
         }

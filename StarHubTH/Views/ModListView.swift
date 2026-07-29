@@ -98,6 +98,24 @@ struct ModListView: View {
                 || !vm.getDisabledDependencies(for: mod).isEmpty)
     }
 
+    /// Scopes the list to the mod the user asked to jump to, clearing anything
+    /// that could filter it out, then clears the request so it fires once.
+    private func consumePendingModFocus() {
+        guard let modName = vm.pendingModFocus else { return }
+        // Prefer the resolved mod's own name: SMAPI logs a display name that can
+        // differ from the manifest, and searchText matches on name/uniqueId.
+        let resolved = vm.mods
+            .flatMap { m -> [ModItem] in m.isGroup ? (m.children ?? []) : [m] }
+            .first { $0.name.localizedCaseInsensitiveContains(modName) }
+        searchText = resolved?.name ?? modName
+        selectedFilter = .all
+        selectedCategory = .all
+        configOnlyFilter = false
+        frenchTranslationFilter = .off
+        currentPage = 1
+        vm.pendingModFocus = nil
+    }
+
     var filteredMods: [ModItem] {
         vm.mods
             .filter { mod in
@@ -496,21 +514,10 @@ struct ModListView: View {
         // list. `selectedModID` alone only tints the row — with filters and
         // pagination the mod may not even be on the visible page — so scope the
         // list to it and clear anything that could filter it out.
-        .onReceive(NotificationCenter.default.publisher(for: .jumpToMod)) { note in
-            guard let modName = note.object as? String else { return }
-            // Prefer the resolved mod's own name: SMAPI logs a display name that
-            // may differ slightly from the manifest, and searchText matches on
-            // name/uniqueId.
-            let resolved = vm.mods
-                .flatMap { m -> [ModItem] in m.isGroup ? (m.children ?? []) : [m] }
-                .first { $0.name.localizedCaseInsensitiveContains(modName) }
-            searchText = resolved?.name ?? modName
-            selectedFilter = .all
-            selectedCategory = .all
-            configOnlyFilter = false
-            frenchTranslationFilter = .off
-            currentPage = 1
-        }
+        // A jump request can arrive before this view exists (from the Logs tab),
+        // so it's read on appear as well as while already on screen.
+        .onAppear { consumePendingModFocus() }
+        .onChange(of: vm.pendingModFocus) { _, _ in consumePendingModFocus() }
         .sheet(isPresented: $showInstallSheet) {
             ModInstallView(vm: vm, isPresented: $showInstallSheet)
         }

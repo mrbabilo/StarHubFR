@@ -1873,6 +1873,14 @@ class StarHubTHViewModel: ObservableObject {
             }
         }
     }
+    /// A mod the user asked to jump to (from a log line or the health card).
+    ///
+    /// Lives on the ViewModel rather than being handled by `ModListView`: tabs
+    /// are built in an `if/else` chain, so when the request is made from the
+    /// Logs tab `ModListView` doesn't exist yet and can't observe a
+    /// notification. It reads and clears this on appear instead.
+    @Published var pendingModFocus: String? = nil
+
     @Published var selectedModID: String? = nil {
         didSet {
             if let id = selectedModID, selectedMod?.folderName != id {
