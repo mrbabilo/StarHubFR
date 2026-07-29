@@ -351,6 +351,8 @@ enum L10n {
         static let entryCount           = "logs_entry_count"
         static let refreshHint          = "logs_refresh_hint"
         static let copyLine             = "logs_copy_line"
+        static let similarLines         = "logs_similar_lines"
+        static let similarLinesHint     = "logs_similar_lines_hint"
         static let systemAlertsSection  = "logs_system_alerts_section"
         static let alertLogged          = "logs_alert_logged"
         // SMAPI health card

@@ -10,6 +10,8 @@ struct LogsView: View {
     @State private var searchText: String = ""
     @State private var autoScroll: Bool = true
     @State private var showClearConfirm: Bool = false
+    /// Ids of folded families the user expanded.
+    @State private var expandedGroups: Set<String> = []
 
     /// Single-pass derivation of everything the Logs UI needs from the raw
     /// entries: the filtered list (source + level + search) for the `List`,
@@ -25,6 +27,22 @@ struct LogsView: View {
         let filtered: [LogEntry]
         let counts: [LogLevel: Int]
         let sourceTotal: Int
+        /// `filtered` folded into rows: repetitive families become one row.
+        let rows: [LogRow]
+    }
+
+    /// One line of the log list: either a single entry, or a run of consecutive
+    /// same-family entries folded into a single expandable row.
+    private enum LogRow: Identifiable {
+        case single(LogEntry)
+        case group(id: String, entries: [LogEntry])
+
+        var id: String {
+            switch self {
+            case .single(let e):    return e.id.uuidString
+            case .group(let id, _): return id
+            }
+        }
     }
     private var logViews: LogViews {
         var filtered: [LogEntry] = []
@@ -44,7 +62,48 @@ struct LogsView: View {
                 filtered.append(entry)
             }
         }
-        return LogViews(filtered: filtered, counts: counts, sourceTotal: sourceTotal)
+        return LogViews(filtered: filtered, counts: counts, sourceTotal: sourceTotal,
+                        rows: Self.fold(filtered))
+    }
+
+    /// Folds runs of consecutive same-family entries into single rows. Only
+    /// *consecutive* runs are folded, so the log keeps its chronological
+    /// reading: a burst of 646 "loaded asset 'X'" lines collapses, but two
+    /// bursts separated by other activity stay apart.
+    ///
+    /// Groups are keyed on the first entry's id, so the key is stable across
+    /// renders (needed for the expanded/collapsed state to stick).
+    private static func fold(_ entries: [LogEntry]) -> [LogRow] {
+        var rows: [LogRow] = []
+        var run: [LogEntry] = []
+        var runSignature: String?
+
+        func flush() {
+            guard !run.isEmpty else { return }
+            if run.count >= LogNoise.groupingThreshold, let first = run.first {
+                rows.append(.group(id: first.id.uuidString, entries: run))
+            } else {
+                rows.append(contentsOf: run.map { LogRow.single($0) })
+            }
+            run = []
+            runSignature = nil
+        }
+
+        for entry in entries {
+            let signature = LogNoise.signature(of: entry.message)
+            // A family is per (signature, level, mod): same wording from two
+            // different mods stays distinguishable.
+            let key = "\(signature)|\(entry.level.rawValue)|\(entry.modName ?? "")"
+            if key == runSignature {
+                run.append(entry)
+            } else {
+                flush()
+                runSignature = key
+                run = [entry]
+            }
+        }
+        flush()
+        return rows
     }
 
     var body: some View {
@@ -169,9 +228,26 @@ struct LogsView: View {
                     // is instant. `.id` per row keeps `proxy.scrollTo` working.
                     ScrollView {
                         LazyVStack(spacing: 0) {
-                            ForEach(views.filtered) { entry in
-                                LogEntryRow(entry: entry, vm: vm)
-                                    .id(entry.id)
+                            ForEach(views.rows) { row in
+                                switch row {
+                                case .single(let entry):
+                                    LogEntryRow(entry: entry, vm: vm)
+                                        .id(entry.id)
+                                case .group(let id, let entries):
+                                    LogGroupRow(
+                                        entries: entries,
+                                        isExpanded: expandedGroups.contains(id),
+                                        vm: vm,
+                                        toggle: {
+                                            if expandedGroups.contains(id) {
+                                                expandedGroups.remove(id)
+                                            } else {
+                                                expandedGroups.insert(id)
+                                            }
+                                        }
+                                    )
+                                    .id(id)
+                                }
                             }
                         }
                     }
@@ -280,6 +356,70 @@ struct LogsView: View {
             )
         }
         .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Folded family row
+
+/// A run of repetitive same-family entries shown as one line ("Content Patcher
+/// loaded asset … — 646 similar lines"), expandable to the individual entries.
+/// Nothing is discarded: the detail is one click away.
+struct LogGroupRow: View {
+    let entries: [LogEntry]
+    let isExpanded: Bool
+    @ObservedObject var vm: StarHubTHViewModel
+    let toggle: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button(action: toggle) {
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                        .font(.system(size: 9))
+                        .foregroundColor(.secondary)
+                        .frame(width: 14)
+                        .padding(.top, 2)
+
+                    Text(entries.first?.timestamp ?? "—")
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundColor(.secondary)
+                        .frame(width: 58, alignment: .leading)
+
+                    VStack(alignment: .leading, spacing: 1) {
+                        if let mod = entries.first?.modName {
+                            Text(mod)
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundColor(.accentColor)
+                        }
+                        Text(entries.first?.message ?? "")
+                            .font(.system(size: 12, design: .monospaced))
+                            .foregroundColor((entries.first?.level.color ?? .primary).opacity(0.75))
+                            .lineLimit(1)
+                        Text(String(format: vm.L(L10n.Logs.similarLines), Int64(entries.count)))
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                    }
+
+                    Spacer()
+                }
+                .padding(.vertical, 3)
+                .padding(.horizontal, 6)
+                .background(
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.primary.opacity(0.03))
+                )
+            }
+            .buttonStyle(.plain)
+            .pointingHandCursor()
+            .help(vm.L(L10n.Logs.similarLinesHint))
+
+            if isExpanded {
+                ForEach(entries) { entry in
+                    LogEntryRow(entry: entry, vm: vm)
+                        .padding(.leading, 16)
+                }
+            }
+        }
     }
 }
 

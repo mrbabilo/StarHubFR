@@ -217,6 +217,8 @@
 "logs_entry_count" = "%d / %d entrées";
 "logs_refresh_hint" = "Recharger SMAPI-latest.txt";
 "logs_copy_line" = "Copier la ligne";
+"logs_similar_lines" = "%lld lignes similaires";
+"logs_similar_lines_hint" = "Afficher ces lignes répétées";
 "logs_system_alerts_section" = "Aucune alerte système";
 "logs_alert_logged" = "SMAPI a signalé %lld alerte(s). Consultez la section Alertes système ci-dessus.";
 "logs_health_healthy" = "Tout est sain";
