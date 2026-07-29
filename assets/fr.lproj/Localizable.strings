@@ -155,6 +155,9 @@
 "mods_disabled" = "Désactivés";
 "mods_open_folder" = "Ouvrir le dossier";
 "mods_open_in_finder" = "Ouvrir dans le Finder";
+"mods_error_history" = "Suivi des erreurs";
+"mods_error_history_hint" = "Erreurs et avertissements journalisés par ce mod, par version — pratique pour savoir si une nouvelle version se comporte moins bien que la précédente.";
+"mods_error_history_current" = "installée";
 "mods_view_on_nexus" = "Voir sur Nexus Mods";
 "mods_view_details_on_nexus" = "Voir les détails sur Nexus Mods";
 "mods_spoiler" = "Spoiler";

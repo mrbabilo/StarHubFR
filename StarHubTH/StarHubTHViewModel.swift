@@ -2118,7 +2118,65 @@ class StarHubTHViewModel: ObservableObject {
             self.smapiDiagnostics = smapiDiag
             self.smapiLogDate = smapiDate
             self.smapiLogStale = smapiStale
+            // Fold this log into the per-version error history. Uses `entries`
+            // (the full parse), not the capped list: the display cap must not
+            // cost us recorded errors.
+            self.recordErrorHistory(from: entries, logDate: smapiDate)
         }
+    }
+
+    // MARK: - Per-mod error history
+
+    /// Per-mod, per-version error history (see `ModErrorHistory`). Loaded once,
+    /// then kept in memory; the mod detail view reads it.
+    @Published var modErrorHistory = ModErrorHistory()
+    /// Log timestamp of the last fold, so the same log is never counted twice.
+    private var lastErrorHistoryLogDate: Date?
+    private var errorHistoryLoaded = false
+
+    /// Folds a parsed SMAPI log into the error history and persists it.
+    ///
+    /// Skips logs already folded in: the same file is re-read on every tab open
+    /// and refresh, which would otherwise inflate every count. A log with no
+    /// date is skipped too — without one we can't tell repeats apart.
+    private func recordErrorHistory(from entries: [LogEntry], logDate: Date?) {
+        if !errorHistoryLoaded {
+            let loaded = ModErrorHistoryStore.load()
+            modErrorHistory = loaded.history
+            lastErrorHistoryLogDate = loaded.lastLogDate
+            errorHistoryLoaded = true
+        }
+
+        guard let logDate else { return }
+        if let last = lastErrorHistoryLogDate, logDate <= last { return }
+
+        let observations: [ModErrorHistory.Observation] = entries.compactMap { entry in
+            guard entry.level == .error || entry.level == .warning,
+                  let modName = entry.modName,
+                  let mod = resolveModFolder(forLoggedName: modName) else { return nil }
+            return .init(mod: mod.folderName,
+                         version: mod.version,
+                         message: entry.message,
+                         isError: entry.level == .error)
+        }
+        guard !observations.isEmpty else {
+            lastErrorHistoryLogDate = logDate
+            ModErrorHistoryStore.save(modErrorHistory, lastLogDate: logDate)
+            return
+        }
+
+        modErrorHistory.merge(observations, at: logDate)
+        lastErrorHistoryLogDate = logDate
+        ModErrorHistoryStore.save(modErrorHistory, lastLogDate: logDate)
+    }
+
+    /// Maps a name as SMAPI logged it to an installed mod. SMAPI logs the
+    /// manifest's display name, which usually matches but isn't guaranteed to,
+    /// hence the tolerant containment match used elsewhere for mod jumps.
+    private func resolveModFolder(forLoggedName name: String) -> ModItem? {
+        let all = mods.flatMap { m -> [ModItem] in m.isGroup ? (m.children ?? []) : [m] }
+        return all.first { $0.name == name }
+            ?? all.first { $0.name.localizedCaseInsensitiveContains(name) }
     }
 
     /// Applies the memory cap to parsed SMAPI entries, dropping TRACE noise
@@ -4176,6 +4234,12 @@ class StarHubTHViewModel: ObservableObject {
             try fm.removeItem(atPath: modPath)
             // The registry entry is pruned by the next scanMods() (below),
             // which removes entries for folders no longer on disk.
+            // Forget the mod's error history too, so the file doesn't keep
+            // growing with mods that are no longer installed.
+            if errorHistoryLoaded {
+                modErrorHistory.remove(mod: mod.folderName)
+                ModErrorHistoryStore.save(modErrorHistory, lastLogDate: lastErrorHistoryLogDate)
+            }
             log(String(format: L(L10n.Mods.deletedLog), mod.name))
             DispatchQueue.global(qos: .userInitiated).async {
                 self.scanMods()

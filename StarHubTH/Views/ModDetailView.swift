@@ -434,6 +434,70 @@ struct ModDetailView: View {
         DependencyTreeView(vm: vm, mod: mod)
     }
 
+    // MARK: Error history
+
+    /// Errors and warnings this mod logged, per version — so a version can be
+    /// compared against the one before it. Hidden entirely when the mod has
+    /// never logged anything, which is the normal case.
+    @ViewBuilder
+    private var errorHistorySection: some View {
+        let records = vm.modErrorHistory.history(for: mod.folderName)
+        if !records.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(vm.L(L10n.Mods.errorHistory))
+                    .font(.system(size: 13, weight: .semibold))
+                Text(vm.L(L10n.Mods.errorHistoryHint))
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                ForEach(records, id: \.version) { record in
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack(spacing: 6) {
+                            Text(record.version)
+                                .font(.system(size: 12, weight: .medium, design: .monospaced))
+                            // The mod's current version, for context: an old
+                            // version's tally isn't what the player runs today.
+                            if record.version == mod.version {
+                                Text(vm.L(L10n.Mods.errorHistoryCurrent))
+                                    .font(.system(size: 9, weight: .medium))
+                                    .padding(.horizontal, 5)
+                                    .padding(.vertical, 1)
+                                    .background(Color.accentColor.opacity(0.15))
+                                    .foregroundColor(.accentColor)
+                                    .cornerRadius(3)
+                            }
+                            Spacer()
+                            if record.errorCount > 0 {
+                                Label("\(record.errorCount)", systemImage: "xmark.octagon")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(.red)
+                            }
+                            if record.warningCount > 0 {
+                                Label("\(record.warningCount)", systemImage: "exclamationmark.triangle")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(.orange)
+                            }
+                        }
+                        Text(record.lastSeen, style: .date)
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                        ForEach(record.samples, id: \.self) { sample in
+                            Text(sample)
+                                .font(.system(size: 10, design: .monospaced))
+                                .foregroundColor(.secondary)
+                                .lineLimit(2)
+                                .textSelection(.enabled)
+                        }
+                    }
+                    .padding(10)
+                    .background(Color.primary.opacity(0.04))
+                    .cornerRadius(8)
+                }
+            }
+        }
+    }
+
     // MARK: Tab content
 
     @ViewBuilder
@@ -449,6 +513,7 @@ struct ModDetailView: View {
             VStack(alignment: .leading, spacing: 16) {
                 if mod.isGroup { packContentsSection }
                 settingsSection
+                errorHistorySection
                 blocksView(isChangelog: false)
             }
         }
