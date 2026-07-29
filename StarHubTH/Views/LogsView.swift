@@ -160,15 +160,19 @@ struct LogsView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollViewReader { proxy in
-                    List(views.filtered) { entry in
-                        LogEntryRow(entry: entry, vm: vm)
-                            .listRowInsets(EdgeInsets(top: 2, leading: 8, bottom: 2, trailing: 8))
-                            .listRowSeparator(.hidden)
-                            .listRowBackground(Color.clear)
-                            .id(entry.id)
+                    // LazyVStack (not List): List was constructing/measuring all
+                    // ~2000 rows when switching to the "All" tab (8-10 s beach
+                    // ball) instead of virtualizing. LazyVStack only builds rows
+                    // as they scroll into view, so growing the set to thousands
+                    // is instant. `.id` per row keeps `proxy.scrollTo` working.
+                    ScrollView {
+                        LazyVStack(spacing: 0) {
+                            ForEach(views.filtered) { entry in
+                                LogEntryRow(entry: entry, vm: vm)
+                                    .id(entry.id)
+                            }
+                        }
                     }
-                    .listStyle(.plain)
-                    .id(selectedSource.map { "\($0)" } ?? "all")
                     .onChange(of: vm.logEntries.count) { _, _ in
                         if autoScroll, let last = logViews.filtered.last {
                             withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
