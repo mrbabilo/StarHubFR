@@ -46,6 +46,37 @@ public enum LogNoise {
         return regex.stringByReplacingMatches(in: string, range: range, withTemplate: template)
     }
 
+    // MARK: - Trimming to a cap
+
+    /// Selects which entries to keep when a log exceeds `cap`, by sacrificing
+    /// low-signal lines instead of cutting the start of the file.
+    ///
+    /// Returns the indices to keep, in original order.
+    ///
+    /// SMAPI writes its diagnostic (skipped mods, save-serializer warnings,
+    /// failed integrations) at startup, so a naive "keep the last N" drops
+    /// precisely the lines a player needs — and makes the log list disagree
+    /// with the diagnostics card, which reads the whole file. Signal lines
+    /// (anything that isn't TRACE) are kept from the start; the remaining room
+    /// goes to the most recent noise, so late TRACE context survives too.
+    public static func trimIndices(count: Int, cap: Int, isNoise: (Int) -> Bool) -> [Int] {
+        guard count > cap else { return Array(0..<count) }
+
+        var signal: [Int] = []
+        var noise: [Int] = []
+        for i in 0..<count {
+            if isNoise(i) { noise.append(i) } else { signal.append(i) }
+        }
+
+        // Signal alone can overflow the cap: keep the earliest lines, where
+        // SMAPI's startup diagnostic lives.
+        if signal.count >= cap { return Array(signal.prefix(cap)) }
+
+        let room = cap - signal.count
+        let keptNoise = Set(noise.suffix(room))
+        return (0..<count).filter { !isNoise($0) || keptNoise.contains($0) }
+    }
+
     // MARK: - Grouping by mod
 
     /// One mod's slice of the log, with the counts needed to flag it in the UI.

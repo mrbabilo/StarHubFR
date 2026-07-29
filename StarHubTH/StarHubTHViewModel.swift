@@ -2079,10 +2079,16 @@ class StarHubTHViewModel: ObservableObject {
             }
         }
 
-        // Keep only the most recent SMAPI entries to stay within the memory cap.
-        let trimmedEntries = entries.count > maxLogEntries
-            ? Array(entries.suffix(maxLogEntries))
-            : entries
+        // Trim to the memory cap by dropping TRACE noise, not by cutting the
+        // head of the file.
+        //
+        // A real log is ~90 % TRACE and can run past 4000 lines, while SMAPI
+        // writes its whole diagnostic (skipped mods, save-serializer warnings,
+        // failed integrations) at *startup* — i.e. at the top. Keeping the last
+        // N lines therefore threw away exactly the lines that matter: they
+        // stayed in the diagnostics card (which parses the full file) but
+        // vanished from the log list, so the two disagreed.
+        let trimmedEntries = Self.trimPreservingSignal(entries, cap: maxLogEntries)
 
         DispatchQueue.main.async {
             // Reload semantics: SMAPI-latest.txt is a single snapshot file, so
@@ -2097,14 +2103,26 @@ class StarHubTHViewModel: ObservableObject {
             // the whole app log whenever the SMAPI log was large (~2000 lines).
             let appCount = self.logEntries.count
             let smapiBudget = max(0, self.maxLogEntries - appCount)
-            let cappedSmapi = trimmedEntries.count > smapiBudget
-                ? Array(trimmedEntries.suffix(smapiBudget))
-                : trimmedEntries
+            // Same rule as above: shed TRACE noise, never the startup
+            // diagnostic at the head of the log.
+            let cappedSmapi = Self.trimPreservingSignal(trimmedEntries, cap: smapiBudget)
             self.logEntries.append(contentsOf: cappedSmapi)
             self.smapiDiagnostics = smapiDiag
             self.smapiLogDate = smapiDate
             self.smapiLogStale = smapiStale
         }
+    }
+
+    /// Applies the memory cap to parsed SMAPI entries, dropping TRACE noise
+    /// rather than the head of the log (see `LogNoise.trimIndices`).
+    static func trimPreservingSignal(_ entries: [LogEntry], cap: Int) -> [LogEntry] {
+        guard entries.count > cap else { return entries }
+        let keep = LogNoise.trimIndices(
+            count: entries.count,
+            cap: cap,
+            isNoise: { entries[$0].level == .trace }
+        )
+        return keep.map { entries[$0] }
     }
 
     private var smapiLogPath: String {

@@ -39,6 +39,43 @@ import Testing
         #expect(LogNoise.signature(of: "   Loaded 'X'   ") == LogNoise.signature(of: "Loaded 'X'"))
     }
 
+    // MARK: - Trimming to a cap
+
+    /// The real bug: a 4038-line log capped at 2000 used to keep the *last*
+    /// 2000, dropping 174 WARN/ERROR/INFO lines that SMAPI writes at startup.
+    /// They stayed in the diagnostics card (full-file parse) but disappeared
+    /// from the log list.
+    @Test func trimKeepsEarlySignalAndDropsNoise() {
+        // Index 0 = a startup WARN, then 4000 TRACE lines.
+        let count = 4001
+        let isNoise: (Int) -> Bool = { $0 != 0 }
+        let keep = LogNoise.trimIndices(count: count, cap: 2000, isNoise: isNoise)
+        #expect(keep.count == 2000)
+        #expect(keep.first == 0, "The startup warning must survive the trim")
+        #expect(keep.last == count - 1, "Recent noise fills the remaining room")
+    }
+
+    @Test func trimReturnsEverythingBelowCap() {
+        let keep = LogNoise.trimIndices(count: 10, cap: 2000, isNoise: { _ in true })
+        #expect(keep == Array(0..<10))
+    }
+
+    @Test func trimKeepsOrderAndRespectsCapWhenSignalOverflows() {
+        // More signal than the cap: keep the earliest, still in order.
+        let keep = LogNoise.trimIndices(count: 3000, cap: 100, isNoise: { _ in false })
+        #expect(keep.count == 100)
+        #expect(keep == Array(0..<100), "Earliest signal wins, order preserved")
+    }
+
+    @Test func trimmedIndicesStayInOriginalOrder() {
+        // Alternating signal/noise, cap forces some noise to be dropped.
+        let keep = LogNoise.trimIndices(count: 100, cap: 60, isNoise: { $0 % 2 == 1 })
+        #expect(keep == keep.sorted(), "Indices must stay in original order")
+        #expect(keep.count == 60)
+        // All 50 signal lines survive.
+        #expect(keep.filter { $0 % 2 == 0 }.count == 50)
+    }
+
     // MARK: - Grouping by mod
 
     /// (mod, isError, isWarning) triples standing in for log entries.
