@@ -360,6 +360,26 @@ enum L10n {
         static let healthConflicts  = "logs_health_conflicts"
         static let healthStale      = "logs_health_stale"
         static let healthReveal     = "logs_health_reveal"
+        // SMAPI health card — v2 (risk categories, per-mod errors, suggestions)
+        static let healthSuggestionsTitle = "logs_health_suggestions_title"
+        static let healthPatched          = "logs_health_patched"
+        static let healthSaveSerializer   = "logs_health_save_serializer"
+        static let healthBroken           = "logs_health_broken"
+        static let healthConsole          = "logs_health_console"
+        static let healthTopErrors        = "logs_health_top_errors"
+        static let healthErrorsCount      = "logs_health_errors_count"
+        static let healthExpPatched       = "logs_health_exp_patched"
+        static let healthExpSave          = "logs_health_exp_save"
+        static let healthExpBroken        = "logs_health_exp_broken"
+        static let healthExpConsole       = "logs_health_exp_console"
+        static let healthSgMissingDep     = "logs_health_sg_missing_dep"
+        static let healthSgSkipped        = "logs_health_sg_skipped"
+        static let healthSgFailed         = "logs_health_sg_failed"
+        static let healthSgSave           = "logs_health_sg_save"
+        static let healthSgBroken         = "logs_health_sg_broken"
+        static let healthSgPatchedMany    = "logs_health_sg_patched_many"
+        static let healthSgRivatuner      = "logs_health_sg_rivatuner"
+        static let healthSgErrorMod       = "logs_health_sg_error_mod"
     }
 
     // MARK: - Quarantine
