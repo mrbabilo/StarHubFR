@@ -36,6 +36,33 @@ public struct SmapiDiagnostics {
         }
     }
 
+    /// A known-harmless ERROR line, classified so the UI can reassure the
+    /// player instead of alarming them. These never count as problems, and are
+    /// excluded from `topErrorMods` so a healthy mod isn't blamed for them.
+    public struct BenignNotice: Identifiable {
+        public enum Kind: String {
+            /// GOG Galaxy isn't signed in — affects the Galaxy overlay only.
+            case galaxyAuth
+            /// A mod's optional integration with another mod (typically its
+            /// config menu) couldn't be wired up, usually a version mismatch.
+            case apiIntegration
+            /// An optional companion mod isn't installed; the mod says so and
+            /// keeps working without it.
+            case optionalModMissing
+            /// A mod couldn't read part of its own content/config data. It's a
+            /// mod-side bug: nothing for the player to fix.
+            case modContentParse
+        }
+        public let id = UUID()
+        public let kind: Kind
+        /// The mod whose optional integration failed, when SMAPI names one.
+        public let mod: String?
+        public init(kind: Kind, mod: String?) {
+            self.kind = kind
+            self.mod = mod
+        }
+    }
+
     /// A mod that requires a dependency which is not installed.
     public struct MissingDep: Identifiable {
         public let id = UUID()
@@ -64,6 +91,8 @@ public struct SmapiDiagnostics {
     public var missingDeps: [MissingDep] = []
     /// Mods that logged the most ERROR lines (context attribution), top 5.
     public var topErrorMods: [ModCount] = []
+    /// Known-harmless errors, explained to the player rather than hidden.
+    public var benignNotices: [BenignNotice] = []
 
     public init() {}
 
@@ -74,6 +103,7 @@ public struct SmapiDiagnostics {
             && skipped.isEmpty && failed.isEmpty && externalConflicts.isEmpty
             && brokenMods.isEmpty && missingDeps.isEmpty && topErrorMods.isEmpty
             && patchedMods.isEmpty && saveSerializerMods.isEmpty && consoleMods.isEmpty
+            && benignNotices.isEmpty
     }
 
     /// Issues to FIX (drive the card's healthy/unhealthy state). Only clear
@@ -159,8 +189,18 @@ public struct SmapiDiagnostics {
                 d.externalConflicts.append("RivaTuner Statistics Server")
             }
 
+            // Known-harmless errors: classify them (so the UI can reassure the
+            // player) and keep them OUT of the per-mod error counts, otherwise
+            // a perfectly working mod gets blamed for an optional integration
+            // it can live without.
+            let benign = benignNotice(inBody: messageBody(of: raw), line: raw)
+            if let notice = benign,
+               !d.benignNotices.contains(where: { $0.kind == notice.kind && $0.mod == notice.mod }) {
+                d.benignNotices.append(notice)
+            }
+
             // Per-mod ERROR counts (context attribution; SMAPI/game excluded).
-            if let mod = errorContextMod(of: raw) {
+            if benign == nil, let mod = errorContextMod(of: raw) {
                 errorCounts[mod, default: 0] += 1
             }
 
@@ -303,6 +343,55 @@ public struct SmapiDiagnostics {
         guard parts.count >= 3, parts[1].uppercased() == "ERROR" else { return nil }
         let name = parts[2...].joined(separator: " ").trimmingCharacters(in: .whitespaces)
         guard !name.isEmpty, name != "SMAPI", name != "game" else { return nil }
+        return name
+    }
+
+    /// Classifies known-harmless ERROR lines. Returns nil for anything else,
+    /// so unknown errors keep their full weight.
+    ///
+    /// - Galaxy auth: GOG Galaxy isn't signed in; only the Galaxy overlay and
+    ///   its achievements are affected, the game and mods run fine.
+    /// - API integration: a mod tried to use another mod's optional API
+    ///   (typically Generic Mod Config Menu) and the interfaces didn't match,
+    ///   usually a version gap. The mod itself still loads and works; only that
+    ///   integration (e.g. its in-game settings page) is unavailable.
+    private static func benignNotice(inBody body: String, line: String) -> BenignNotice? {
+        if body.contains("Galaxy auth failure") || body.contains("GALAXY_SERVICE_NOT_SIGNED_IN") {
+            return BenignNotice(kind: .galaxyAuth, mod: nil)
+        }
+        if body.contains("Tried to map a mod-provided API to interface") {
+            return BenignNotice(kind: .apiIntegration, mod: modPrefix(of: body, before: ": Tried to map") ?? errorContextMod(of: line))
+        }
+        // "Couldn't get the X API, If you don't have X installed, you can
+        // ignore this warning." — the mod itself says it's optional.
+        if body.contains("you can ignore this warning")
+            || (body.contains("Couldn't get the") && body.contains("API")) {
+            return BenignNotice(kind: .apiIntegration, mod: modPrefix(of: body, before: ": Couldn't get"))
+        }
+        // "recommended mod not installed - X" / "optional mod not installed".
+        if body.contains("recommended mod not installed")
+            || body.contains("optional mod not installed") {
+            return BenignNotice(kind: .optionalModMissing, mod: modPrefix(of: body, before: ":"))
+        }
+        // A mod failing to parse its own content/config data (Content Patcher
+        // conditions, numeric fields…). Mod-side bug, no player action.
+        if body.contains("Failed to Parse Condition")
+            || body.contains("Failed to parse condition")
+            || body.contains("Failed to parse integer")
+            || body.contains("Failed to Parse Integer") {
+            return BenignNotice(kind: .modContentParse, mod: modPrefix(of: body, before: ":"))
+        }
+        return nil
+    }
+
+    /// The mod name written before `marker` in a message body
+    /// (`"<Mod Name>: <message>"`), or nil when the body doesn't start that way.
+    /// Guards against sentence-like prefixes so a stray colon isn't read as a
+    /// mod name.
+    private static func modPrefix(of body: String, before marker: String) -> String? {
+        guard let range = body.range(of: marker) else { return nil }
+        let name = body[..<range.lowerBound].trimmingCharacters(in: .whitespaces)
+        guard !name.isEmpty, name.count <= 60, !name.contains(" - ") else { return nil }
         return name
     }
 

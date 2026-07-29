@@ -129,6 +129,53 @@ import Testing
         #expect(d.missingDeps.first { $0.mod == "AnotherMod 1.0" }?.missing == "Some.Library")
     }
 
+    /// Real lines from a user's log: both are harmless, and the API-mapping one
+    /// must not make a working mod look like the top error producer.
+    @Test func classifiesBenignErrorsAndExcludesThemFromModErrorCounts() {
+        let log = """
+        [22:30:28 ERROR SMAPI] Galaxy auth failure: FAILURE_REASON_GALAXY_SERVICE_NOT_SIGNED_IN
+        [22:30:15 ERROR SMAPI] Gunther's Guide: Tried to map a mod-provided API to interface 'GunthersGuide.Integrations.IGenericModConfigMenuApi', which isn't compatible with the actual mod API.
+        [22:30:16 ERROR Real Problem Mod] something genuinely broke
+        """
+        let d = SmapiDiagnostics.parse(logContent: log)
+
+        #expect(d.benignNotices.count == 2)
+        #expect(d.benignNotices.contains { $0.kind == .galaxyAuth })
+        let api = d.benignNotices.first { $0.kind == .apiIntegration }
+        #expect(api?.mod == "Gunther's Guide")
+
+        // The benign lines must not be blamed on any mod; the real one still is.
+        #expect(d.topErrorMods.count == 1)
+        #expect(d.topErrorMods.first?.name == "Real Problem Mod")
+    }
+
+    /// Real WARN lines from a user's log — all harmless, each needing its own
+    /// explanation rather than being dumped on the player as-is.
+    @Test func classifiesBenignWarnings() {
+        let log = """
+        [22:30:15 WARN  SMAPI] UI Info Suite 2 Alternative: ModEntry: recommended mod not installed - NPC Map Locations [Nexus:239] - UIIS2Alt npc map tracking was Removed in v2.7.0
+        [22:30:16 WARN  SMAPI] Global Config Settings Rewrite: Couldn't get the StarControl API, If you don't have StarControl installed, you can ignore this warning.
+        [22:31:04 WARN  SMAPI] Fish Helper UI: Failed to Parse Condition for : LOCATION_Season Here
+        [22:31:04 WARN  SMAPI] Fish Helper UI: Failed to parse integer for Difficulty. ID: FlashShifter.StardewValleyExpandedCP_Dulse_Seaweed, Bad Value: null
+        """
+        let d = SmapiDiagnostics.parse(logContent: log)
+
+        #expect(d.benignNotices.contains { $0.kind == .optionalModMissing })
+        #expect(d.benignNotices.contains { $0.kind == .apiIntegration })
+        let parse = d.benignNotices.first { $0.kind == .modContentParse }
+        #expect(parse?.mod == "Fish Helper UI")
+        // Same mod + same kind collapses into one notice, not one per line.
+        #expect(d.benignNotices.filter { $0.kind == .modContentParse }.count == 1)
+        #expect(d.problemCount == 0, "None of these break the game")
+    }
+
+    @Test func benignNoticesAreNotCountedAsProblems() {
+        let log = "[22:30:28 ERROR SMAPI] Galaxy auth failure: FAILURE_REASON_GALAXY_SERVICE_NOT_SIGNED_IN"
+        let d = SmapiDiagnostics.parse(logContent: log)
+        #expect(d.problemCount == 0, "A benign notice must keep the card healthy")
+        #expect(!d.isEmpty, "…but the card should still be shown to explain it")
+    }
+
     @Test func countsPerModErrorsTop5ExcludingFramework() {
         let log = """
         [12:00:00 ERROR Content Patcher] foo

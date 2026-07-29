@@ -30,7 +30,15 @@ struct SmapiHealthCard: View {
         VStack(alignment: .leading, spacing: 10) {
             header
             if isExpanded && (!isHealthy || hasDetails) {
-                problems
+                // The body scrolls inside a bounded height: on a large modlist
+                // it runs to thousands of points, which used to push the log
+                // list off-screen AND carry the collapse chevron out of view,
+                // making the card impossible to close. The header stays outside
+                // this ScrollView so it is always reachable.
+                ScrollView {
+                    problems
+                }
+                .frame(maxHeight: 260)
             }
         }
         .padding(20)
@@ -146,6 +154,28 @@ struct SmapiHealthCard: View {
             if !diagnostics.consoleMods.isEmpty {
                 modSection(L10n.Logs.healthConsole, explanation: L10n.Logs.healthExpConsole, mods: diagnostics.consoleMods)
             }
+            if !diagnostics.benignNotices.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(vm.L(L10n.Logs.healthBenign))
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.secondary)
+                    Text(vm.L(L10n.Logs.healthExpBenign))
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    ForEach(diagnostics.benignNotices) { notice in
+                        HStack(alignment: .top, spacing: 6) {
+                            Image(systemName: "checkmark.circle")
+                                .font(.system(size: 10))
+                                .foregroundColor(.green)
+                                .padding(.top, 1)
+                            Text(benignText(notice))
+                                .font(.system(size: 11))
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+            }
             if !diagnostics.topErrorMods.isEmpty {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(vm.L(L10n.Logs.healthTopErrors))
@@ -176,9 +206,36 @@ struct SmapiHealthCard: View {
                 .font(.system(size: 10))
                 .foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            ForEach(mods, id: \.self) { mod in
+            // Cap long lists: with ~900 mods a category can hold dozens of
+            // entries. The full picture stays in the raw SMAPI log.
+            ForEach(mods.prefix(Self.maxListedMods), id: \.self) { mod in
                 Text("• \(mod)").font(.system(size: 11))
             }
+            if mods.count > Self.maxListedMods {
+                Text(String(format: vm.L(L10n.Logs.healthAndMore), Int64(mods.count - Self.maxListedMods)))
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
+
+    /// Max mods listed per category before collapsing into "…and N more".
+    private static let maxListedMods = 8
+
+    /// Plain-language reassurance for a known-harmless error.
+    private func benignText(_ notice: SmapiDiagnostics.BenignNotice) -> String {
+        switch notice.kind {
+        case .galaxyAuth:
+            return vm.L(L10n.Logs.healthBenignGalaxy)
+        case .apiIntegration:
+            guard let mod = notice.mod else { return vm.L(L10n.Logs.healthBenignApiGeneric) }
+            return String(format: vm.L(L10n.Logs.healthBenignApi), mod)
+        case .optionalModMissing:
+            guard let mod = notice.mod else { return vm.L(L10n.Logs.healthBenignOptionalGeneric) }
+            return String(format: vm.L(L10n.Logs.healthBenignOptional), mod)
+        case .modContentParse:
+            guard let mod = notice.mod else { return vm.L(L10n.Logs.healthBenignParseGeneric) }
+            return String(format: vm.L(L10n.Logs.healthBenignParse), mod)
         }
     }
 
@@ -198,7 +255,14 @@ struct SmapiHealthCard: View {
         // vaguer one repeating the same root cause.
         let depMods = Set(d.missingDeps.map(\.mod))
         for issue in d.skipped where !depMods.contains(issue.name) {
-            out.append(String(format: vm.L(L10n.Logs.healthSgSkipped), issue.name, issue.reason))
+            // "already loaded / two copies" is cryptic but has a precise fix,
+            // so it gets its own actionable tip instead of the generic one.
+            let r = issue.reason.lowercased()
+            if r.contains("already loaded") || r.contains("two copies") {
+                out.append(String(format: vm.L(L10n.Logs.healthSgDuplicate), issue.name))
+            } else {
+                out.append(String(format: vm.L(L10n.Logs.healthSgSkipped), issue.name, issue.reason))
+            }
         }
         for issue in d.failed where !depMods.contains(issue.name) {
             out.append(String(format: vm.L(L10n.Logs.healthSgFailed), issue.name, issue.reason))
@@ -218,8 +282,19 @@ struct SmapiHealthCard: View {
         if d.patchedMods.count >= 15 {
             out.append(String(format: vm.L(L10n.Logs.healthSgPatchedMany), Int64(d.patchedMods.count)))
         }
+        // Keep the advice list readable: per-mod tips could otherwise run to
+        // dozens of lines. Ordering above puts the most blocking ones first,
+        // and the categories below still list every affected mod.
+        if out.count > Self.maxSuggestions {
+            let hidden = out.count - Self.maxSuggestions
+            out = Array(out.prefix(Self.maxSuggestions))
+            out.append(String(format: vm.L(L10n.Logs.healthAndMore), Int64(hidden)))
+        }
         return out
     }
+
+    /// Max suggestions shown before collapsing into "…and N more".
+    private static let maxSuggestions = 6
 
     private func issueSection(_ titleKey: String, items: [SmapiDiagnostics.Issue]) -> some View {
         VStack(alignment: .leading, spacing: 4) {
