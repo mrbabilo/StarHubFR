@@ -219,6 +219,12 @@
 "logs_copy_line" = "Copier la ligne";
 "logs_system_alerts_section" = "Aucune alerte système";
 "logs_alert_logged" = "SMAPI a signalé %lld alerte(s). Consultez la section Alertes système ci-dessus.";
+"logs_health_healthy" = "Tout est sain";
+"logs_health_skipped" = "Mods ignorés";
+"logs_health_failed" = "Mods en échec";
+"logs_health_conflicts" = "Conflits externes";
+"logs_health_stale" = "Log périmé";
+"logs_health_reveal" = "Ouvrir le log SMAPI dans le Finder";
 "quarantine_title" = "Quarantaine";
 "quarantine_subtitle" = "Les dossiers corrompus ou indésirables sont déplacés ici automatiquement lors des analyses. Rien n'est supprimé — vous pouvez consulter ou restaurer à tout moment.";
 "quarantine_open_folder" = "Ouvrir le dossier de quarantaine";
