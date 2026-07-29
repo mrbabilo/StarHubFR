@@ -130,6 +130,14 @@ struct LogsView: View {
             Divider()
 
             // ── Entries ──────────────────────────────────────────────
+            // SMAPI health card - shown on All + SMAPI tabs only
+            if selectedSource != .app, let diag = vm.smapiDiagnostics, !diag.isEmpty {
+                SmapiHealthCard(vm: vm)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                Divider()
+            }
+
             if filteredEntries.isEmpty {
                 VStack(spacing: 8) {
                     Image(systemName: "text.badge.checkmark")
