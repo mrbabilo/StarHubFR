@@ -180,6 +180,7 @@ struct SmapiHealthCard: View {
                                                 .font(.system(size: 10))
                                                 .foregroundColor(.secondary)
                                         }
+                                        openModButton(mod)
                                         showInLogButton(mod)
                                     }
                                 }
@@ -211,6 +212,7 @@ struct SmapiHealthCard: View {
                             Text(String(format: vm.L(L10n.Logs.healthErrorsCount), Int64(entry.count)))
                                 .font(.system(size: 10))
                                 .foregroundColor(.secondary)
+                            openModButton(entry.name)
                             showInLogButton(entry.name)
                         }
                     }
@@ -234,7 +236,13 @@ struct SmapiHealthCard: View {
             // Cap long lists: with ~900 mods a category can hold dozens of
             // entries. The full picture stays in the raw SMAPI log.
             ForEach(mods.prefix(Self.maxListedMods), id: \.self) { mod in
-                Text("• \(mod)").font(.system(size: 11))
+                HStack(spacing: 4) {
+                    Text("• \(mod)").font(.system(size: 11))
+                    // These categories name installed mods, so the useful move
+                    // is opening the mod itself; its log lines are secondary.
+                    openModButton(mod)
+                    showInLogButton(mod)
+                }
             }
             if mods.count > Self.maxListedMods {
                 Text(String(format: vm.L(L10n.Logs.healthAndMore), Int64(mods.count - Self.maxListedMods)))
@@ -246,6 +254,22 @@ struct SmapiHealthCard: View {
 
     /// Max mods listed per category before collapsing into "…and N more".
     private static let maxListedMods = 8
+
+    /// Opens the mod in the Mods list, scoped to it — the natural next step when
+    /// the diagnostic is about a mod you may want to disable or update.
+    @ViewBuilder
+    private func openModButton(_ mod: String) -> some View {
+        Button {
+            NotificationCenter.default.post(name: .jumpToMod, object: mod)
+        } label: {
+            Image(systemName: "arrow.right.circle")
+                .font(.system(size: 10))
+                .foregroundColor(.accentColor)
+        }
+        .buttonStyle(.plain)
+        .pointingHandCursor()
+        .help(vm.L(L10n.Logs.healthOpenMod))
+    }
 
     /// Scopes the Logs view to a mod's entries, so the player can read the
     /// actual lines behind a diagnostic instead of trusting the summary.
@@ -358,6 +382,7 @@ struct SmapiHealthCard: View {
                     VStack(alignment: .leading, spacing: 1) {
                         HStack(spacing: 4) {
                             Text(issue.name).font(.system(size: 11, weight: .medium))
+                            openModButton(issue.name)
                             showInLogButton(issue.name)
                         }
                         Text(issue.reason)
