@@ -80,9 +80,13 @@ struct LogEntry: Identifiable {
     var modName: String? = nil
 
     /// The plain-text line used by both "copy all" and "copy line" in
-    /// LogsView, so the two can't format entries differently.
+    /// LogsView, so the two can't format entries differently. Includes the
+    /// source (StarHubFR vs SMAPI) and the mod name so the origin and context
+    /// survive the copy (B3 — previously only timestamp/level/message).
     var formattedLine: String {
-        "[\(timestamp)] [\(level.rawValue)] \(message)"
+        let sourceLabel = source == .app ? "StarHubFR" : "SMAPI"
+        let mod = modName.map { "\($0): " } ?? ""
+        return "[\(timestamp)] [\(sourceLabel)] [\(level.rawValue)] \(mod)\(message)"
     }
 }
 
