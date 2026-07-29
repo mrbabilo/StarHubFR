@@ -35,7 +35,8 @@
     *   Consultez les détails de toutes vos sauvegardes (argent, heure dans le jeu, saison, type de ferme)
     *   Dupliquez ou supprimez des sauvegardes
     *   Modifiez l'argent et les statistiques de base du personnage
-*   **Journaux de Développement** : Suivez la sortie SMAPI en temps réel directement dans l'application.
+*   **Journaux de Développement** : Suivez la sortie SMAPI en temps réel directement dans l'application. Filtrage par source (StarHubFR/SMAPI) et par niveau avec compteurs, recherche, et copie de lignes conservant l'origine et le mod concerné.
+*   **Diagnostic SMAPI** : Une carte de santé en haut des journaux résume l'état de votre installation — versions SMAPI/jeu, nombre de mods et packs chargés, mods ignorés ou en échec (avec la raison), dépendances manquantes, mods modifiant le code du jeu ou vos sauvegardes, et mods générant le plus d'erreurs. Elle met en avant **ce que vous pouvez faire** : des conseils actionnables en français clair (« installez telle dépendance », « ce mod est installé en double », …). Une section **« Erreurs que vous pouvez ignorer »** explique les erreurs bénignes fréquentes (connexion GOG Galaxy, intégration optionnelle indisponible, mod compagnon absent, données de mod illisibles) en nommant le mod concerné, avec le message d'origine et un bouton pour retrouver ses lignes dans le journal. Un badge signale un journal périmé, et un bouton l'ouvre dans le Finder.
 *   **Journal des Modifications Intégré** : Consultez l'historique des versions (`CHANGELOG.md`) directement depuis la barre latérale de l'application.
 *   **Support Bilingue** : Basculez instantanément la langue de l'application entre le français et l'anglais.
 *   **Interface Native macOS** : Une interface propre et intuitive conçue pour s'intégrer parfaitement à macOS.
@@ -103,3 +104,11 @@ Les fichiers Release seront sauvegardés dans le dossier `bundles/`.
 
 Ce projet est publié sous la [Licence MIT](LICENSE). N'hésitez pas à forker, modifier et l'améliorer.
 Projet original : [StarHubTH](https://github.com/AppleBoiy/StarHubTH) par **AppleBoiy** — qui propose une version en **thaï**.
+
+### Remerciements
+
+Le **diagnostic SMAPI** de StarHubFR doit beaucoup aux travaux suivants :
+
+*   [**SMAPILogDoctor.py**](https://github.com/ZeroXPatch/Projects-for-Nexus-Mod/blob/main/SMAPILogDoctor.py) par **ZeroXPatch** — l'idée d'un diagnostiqueur de journal SMAPI orienté joueur (mods ignorés avec leur raison, dépendances manquantes, catégories de risque, suggestions de correction) a servi de point de départ à notre analyseur.
+*   [**smapi.io/log**](https://smapi.io/log/) — l'analyseur de journaux officiel de SMAPI, référence pour les informations à extraire d'un journal.
+*   [**SMAPI**](https://github.com/pathoschild/SMAPI) par **Pathoschild** — le format exact des journaux (sections d'avertissement, niveaux, en-têtes) a été vérifié directement dans les sources, notamment `LogManager.cs`.
