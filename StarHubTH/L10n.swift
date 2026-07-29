@@ -353,6 +353,13 @@ enum L10n {
         static let copyLine             = "logs_copy_line"
         static let systemAlertsSection  = "logs_system_alerts_section"
         static let alertLogged          = "logs_alert_logged"
+        // SMAPI health card
+        static let healthHealthy    = "logs_health_healthy"
+        static let healthSkipped    = "logs_health_skipped"
+        static let healthFailed     = "logs_health_failed"
+        static let healthConflicts  = "logs_health_conflicts"
+        static let healthStale      = "logs_health_stale"
+        static let healthReveal     = "logs_health_reveal"
     }
 
     // MARK: - Quarantine
