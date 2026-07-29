@@ -12,6 +12,10 @@ struct LogsView: View {
     @State private var showClearConfirm: Bool = false
     /// Ids of folded families the user expanded.
     @State private var expandedGroups: Set<String> = []
+    /// Group the list into per-mod sections instead of one chronological stream.
+    @State private var groupByMod: Bool = false
+    /// Ids of the per-mod sections currently expanded.
+    @State private var expandedMods: Set<String> = []
 
     /// Single-pass derivation of everything the Logs UI needs from the raw
     /// entries: the filtered list (source + level + search) for the `List`,
@@ -29,6 +33,8 @@ struct LogsView: View {
         let sourceTotal: Int
         /// `filtered` folded into rows: repetitive families become one row.
         let rows: [LogRow]
+        /// `filtered` partitioned per mod (problem mods first, framework last).
+        let modGroups: [LogNoise.ModGroup]
     }
 
     /// One line of the log list: either a single entry, or a run of consecutive
@@ -62,8 +68,17 @@ struct LogsView: View {
                 filtered.append(entry)
             }
         }
+        // Only pay for the grouping when that view is actually on screen.
+        let groups = groupByMod
+            ? LogNoise.groupByMod(
+                count: filtered.count,
+                mod: { filtered[$0].modName },
+                isError: { filtered[$0].level == .error },
+                isWarning: { filtered[$0].level == .warning })
+            : []
         return LogViews(filtered: filtered, counts: counts, sourceTotal: sourceTotal,
-                        rows: Self.fold(filtered))
+                        rows: groupByMod ? [] : Self.fold(filtered),
+                        modGroups: groups)
     }
 
     /// Folds runs of consecutive same-family entries into single rows. Only
@@ -179,6 +194,14 @@ struct LogsView: View {
                 .buttonStyle(.plain)
                 .help(vm.L(L10n.Logs.copyAll))
 
+                // Group by mod
+                Button { groupByMod.toggle() } label: {
+                    Image(systemName: groupByMod ? "rectangle.grid.1x2.fill" : "rectangle.grid.1x2")
+                        .foregroundColor(groupByMod ? .accentColor : .secondary)
+                }
+                .buttonStyle(.plain)
+                .help(vm.L(L10n.Logs.groupByMod))
+
                 // Reload SMAPI log (loadSmapiLog replaces existing SMAPI entries)
                 Button {
                     vm.loadSmapiLog()
@@ -228,31 +251,19 @@ struct LogsView: View {
                     // is instant. `.id` per row keeps `proxy.scrollTo` working.
                     ScrollView {
                         LazyVStack(spacing: 0) {
-                            ForEach(views.rows) { row in
-                                switch row {
-                                case .single(let entry):
-                                    LogEntryRow(entry: entry, vm: vm)
-                                        .id(entry.id)
-                                case .group(let id, let entries):
-                                    LogGroupRow(
-                                        entries: entries,
-                                        isExpanded: expandedGroups.contains(id),
-                                        vm: vm,
-                                        toggle: {
-                                            if expandedGroups.contains(id) {
-                                                expandedGroups.remove(id)
-                                            } else {
-                                                expandedGroups.insert(id)
-                                            }
-                                        }
-                                    )
-                                    .id(id)
+                            if groupByMod {
+                                ForEach(views.modGroups) { group in
+                                    modSection(group, allEntries: views.filtered)
                                 }
+                            } else {
+                                rowList(views.rows)
                             }
                         }
                     }
                     .onChange(of: vm.logEntries.count) { _, _ in
-                        if autoScroll, let last = logViews.filtered.last {
+                        // Pointless when grouped: the list is no longer
+                        // chronological, so the newest line isn't at the bottom.
+                        if autoScroll, !groupByMod, let last = logViews.filtered.last {
                             withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
                         }
                     }
@@ -303,6 +314,82 @@ struct LogsView: View {
     }
 
     // MARK: - Helpers
+
+    /// The chronological stream: single entries plus folded families.
+    @ViewBuilder
+    private func rowList(_ rows: [LogRow]) -> some View {
+        ForEach(rows) { row in
+            switch row {
+            case .single(let entry):
+                LogEntryRow(entry: entry, vm: vm)
+                    .id(entry.id)
+            case .group(let id, let entries):
+                LogGroupRow(
+                    entries: entries,
+                    isExpanded: expandedGroups.contains(id),
+                    vm: vm,
+                    toggle: { toggle(id, in: &expandedGroups) }
+                )
+                .id(id)
+            }
+        }
+    }
+
+    /// One collapsible per-mod section. Its lines keep the family folding of the
+    /// chronological view, so a chatty mod stays readable once expanded.
+    @ViewBuilder
+    private func modSection(_ group: LogNoise.ModGroup, allEntries: [LogEntry]) -> some View {
+        let isExpanded = expandedMods.contains(group.id)
+        VStack(alignment: .leading, spacing: 0) {
+            Button { toggle(group.id, in: &expandedMods) } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                        .font(.system(size: 9))
+                        .foregroundColor(.secondary)
+                        .frame(width: 14)
+
+                    Text(group.mod ?? vm.L(L10n.Logs.frameworkGroup))
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(group.mod == nil ? .secondary : .primary)
+
+                    Text("\(group.lineCount)")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 1)
+                        .background(Color.secondary.opacity(0.12))
+                        .cornerRadius(4)
+
+                    // Severity dot: lets a problem mod be spotted while collapsed.
+                    if group.errorCount > 0 {
+                        Circle().fill(Color.red).frame(width: 6, height: 6)
+                    } else if group.warningCount > 0 {
+                        Circle().fill(Color.orange).frame(width: 6, height: 6)
+                    }
+
+                    Spacer()
+                }
+                .padding(.vertical, 5)
+                .padding(.horizontal, 6)
+                .background(
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.primary.opacity(0.05))
+                )
+            }
+            .buttonStyle(.plain)
+            .pointingHandCursor()
+
+            if isExpanded {
+                rowList(Self.fold(group.indices.map { allEntries[$0] }))
+                    .padding(.leading, 12)
+            }
+        }
+        .padding(.vertical, 1)
+    }
+
+    private func toggle(_ id: String, in set: inout Set<String>) {
+        if set.contains(id) { set.remove(id) } else { set.insert(id) }
+    }
 
     @ViewBuilder
     private func sourceTab(_ source: LogSource?, label: String, icon: String) -> some View {

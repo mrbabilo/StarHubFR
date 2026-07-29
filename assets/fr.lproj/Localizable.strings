@@ -219,6 +219,8 @@
 "logs_copy_line" = "Copier la ligne";
 "logs_similar_lines" = "%lld lignes similaires";
 "logs_similar_lines_hint" = "Afficher ces lignes répétées";
+"logs_group_by_mod" = "Grouper par mod";
+"logs_framework_group" = "SMAPI (framework)";
 "logs_system_alerts_section" = "Aucune alerte système";
 "logs_alert_logged" = "SMAPI a signalé %lld alerte(s). Consultez la section Alertes système ci-dessus.";
 "logs_health_healthy" = "Tout est sain";

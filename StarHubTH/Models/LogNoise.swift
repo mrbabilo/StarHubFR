@@ -45,4 +45,74 @@ public enum LogNoise {
         let range = NSRange(location: 0, length: (string as NSString).length)
         return regex.stringByReplacingMatches(in: string, range: range, withTemplate: template)
     }
+
+    // MARK: - Grouping by mod
+
+    /// One mod's slice of the log, with the counts needed to flag it in the UI.
+    ///
+    /// `mod == nil` is the framework bucket (SMAPI and game lines). Keeping it
+    /// as a real group matters: two thirds of a real log is framework output,
+    /// including errors, so grouping by mod must not make it disappear.
+    public struct ModGroup: Identifiable {
+        public let mod: String?
+        public let lineCount: Int
+        public let errorCount: Int
+        public let warningCount: Int
+        /// Indices into the array that was grouped, in original order.
+        public let indices: [Int]
+
+        public var id: String { mod ?? "\u{0000}framework" }
+        public var hasProblems: Bool { errorCount > 0 || warningCount > 0 }
+
+        public init(mod: String?, lineCount: Int, errorCount: Int, warningCount: Int, indices: [Int]) {
+            self.mod = mod
+            self.lineCount = lineCount
+            self.errorCount = errorCount
+            self.warningCount = warningCount
+            self.indices = indices
+        }
+    }
+
+    /// Partitions entries by mod, described only by what this needs to know:
+    /// each entry's mod (nil = framework), whether it's an error, and whether
+    /// it's a warning. Callers map their own log type onto that.
+    ///
+    /// Ordering puts the mods that need attention first (errors, then
+    /// warnings), then the noisiest, then alphabetical — a player opening this
+    /// view is usually looking for what broke, not for the busiest logger. The
+    /// framework bucket always sorts last: it's context, not a mod to inspect.
+    public static func groupByMod(
+        count: Int,
+        mod: (Int) -> String?,
+        isError: (Int) -> Bool,
+        isWarning: (Int) -> Bool
+    ) -> [ModGroup] {
+        var indices: [String: [Int]] = [:]
+        var mods: [String: String?] = [:]
+        for i in 0..<count {
+            let name = mod(i)
+            let key = name ?? "\u{0000}framework"
+            indices[key, default: []].append(i)
+            mods[key] = name
+        }
+
+        let groups = indices.map { key, idx -> ModGroup in
+            ModGroup(
+                mod: mods[key] ?? nil,
+                lineCount: idx.count,
+                errorCount: idx.reduce(0) { isError($1) ? $0 + 1 : $0 },
+                warningCount: idx.reduce(0) { isWarning($1) ? $0 + 1 : $0 },
+                indices: idx
+            )
+        }
+
+        return groups.sorted { a, b in
+            // Framework last.
+            if (a.mod == nil) != (b.mod == nil) { return b.mod == nil }
+            if a.errorCount != b.errorCount { return a.errorCount > b.errorCount }
+            if a.warningCount != b.warningCount { return a.warningCount > b.warningCount }
+            if a.lineCount != b.lineCount { return a.lineCount > b.lineCount }
+            return (a.mod ?? "").localizedCaseInsensitiveCompare(b.mod ?? "") == .orderedAscending
+        }
+    }
 }

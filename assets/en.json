@@ -219,6 +219,8 @@
   "logs_copy_line": "Copy Line",
   "logs_similar_lines": "%lld similar lines",
   "logs_similar_lines_hint": "Show these repeated lines",
+  "logs_group_by_mod": "Group by mod",
+  "logs_framework_group": "SMAPI (framework)",
   "logs_system_alerts_section": "No system alerts",
   "logs_alert_logged": "SMAPI reported %lld alert(s). See the System Alerts section above.",
   "logs_health_healthy": "All healthy",
