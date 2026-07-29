@@ -230,11 +230,8 @@
 "logs_health_benign" = "Errors you can ignore";
 "logs_health_exp_benign" = "SMAPI flags these as errors, but they don't break your game.";
 "logs_health_benign_galaxy" = "GOG Galaxy isn't signed in. Only the Galaxy overlay and its achievements are affected — the game and your mods run normally.";
-"logs_health_benign_api" = "\"%@\" couldn't connect to another mod's optional feature (usually its in-game settings menu), often because the two versions don't match. The mod still works; only that extra feature is unavailable.";
 "logs_health_benign_api_generic" = "A mod couldn't connect to another mod's optional feature (usually its in-game settings menu), often because the two versions don't match. The mod still works; only that extra feature is unavailable.";
-"logs_health_benign_optional" = "\"%@\" mentions a companion mod you don't have. It's optional — the mod works without it, you just don't get that extra feature.";
 "logs_health_benign_optional_generic" = "A mod mentions a companion mod you don't have. It's optional — the mod works without it, you just don't get that extra feature.";
-"logs_health_benign_parse" = "\"%@\" couldn't read part of its own data. That's a bug in the mod itself, not something you can fix; a small feature may be missing in-game.";
 "logs_health_benign_parse_generic" = "A mod couldn't read part of its own data. That's a bug in the mod itself, not something you can fix; a small feature may be missing in-game.";
 "logs_health_sg_duplicate" = "\"%@\" is installed twice. Keep one copy in Mods/ and delete the other, otherwise it won't load.";
 "logs_health_sg_game_version" = "\"%@\" doesn't support your game or SMAPI version. Check its mod page for an update, or remove it.";

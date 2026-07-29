@@ -164,8 +164,11 @@ import Testing
         #expect(d.benignNotices.contains { $0.kind == .apiIntegration })
         let parse = d.benignNotices.first { $0.kind == .modContentParse }
         #expect(parse?.mod == "Fish Helper UI")
-        // Same mod + same kind collapses into one notice, not one per line.
+        // Same mod + same kind collapses into one notice, not one per line…
         #expect(d.benignNotices.filter { $0.kind == .modContentParse }.count == 1)
+        // …but the tally and the original message are kept as evidence.
+        #expect(parse?.count == 2, "Fish Helper UI logged two parse warnings")
+        #expect(parse?.sample.contains("Failed to Parse Condition") == true)
         #expect(d.problemCount == 0, "None of these break the game")
     }
 

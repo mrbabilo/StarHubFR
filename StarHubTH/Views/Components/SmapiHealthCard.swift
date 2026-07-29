@@ -169,9 +169,32 @@ struct SmapiHealthCard: View {
                                 .font(.system(size: 10))
                                 .foregroundColor(.green)
                                 .padding(.top, 1)
-                            Text(benignText(notice))
-                                .font(.system(size: 11))
-                                .fixedSize(horizontal: false, vertical: true)
+                            VStack(alignment: .leading, spacing: 1) {
+                                // Name the mod up front: the player needs to know
+                                // *which* mod is fine, not just that something is.
+                                if let mod = notice.mod {
+                                    HStack(spacing: 4) {
+                                        Text(mod).font(.system(size: 11, weight: .medium))
+                                        if notice.count > 1 {
+                                            Text("×\(notice.count)")
+                                                .font(.system(size: 10))
+                                                .foregroundColor(.secondary)
+                                        }
+                                    }
+                                }
+                                Text(benignText(notice))
+                                    .font(.system(size: 11))
+                                    .fixedSize(horizontal: false, vertical: true)
+                                // The original line, so the explanation can be
+                                // checked against the raw log.
+                                if !notice.sample.isEmpty {
+                                    Text(notice.sample)
+                                        .font(.system(size: 9, design: .monospaced))
+                                        .foregroundColor(.secondary)
+                                        .textSelection(.enabled)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                            }
                         }
                     }
                 }
@@ -222,20 +245,15 @@ struct SmapiHealthCard: View {
     /// Max mods listed per category before collapsing into "…and N more".
     private static let maxListedMods = 8
 
-    /// Plain-language reassurance for a known-harmless error.
+    /// Plain-language reassurance for a known-harmless error. The mod name is
+    /// rendered separately above, so the wording stays generic and isn't
+    /// repeated in the sentence.
     private func benignText(_ notice: SmapiDiagnostics.BenignNotice) -> String {
         switch notice.kind {
-        case .galaxyAuth:
-            return vm.L(L10n.Logs.healthBenignGalaxy)
-        case .apiIntegration:
-            guard let mod = notice.mod else { return vm.L(L10n.Logs.healthBenignApiGeneric) }
-            return String(format: vm.L(L10n.Logs.healthBenignApi), mod)
-        case .optionalModMissing:
-            guard let mod = notice.mod else { return vm.L(L10n.Logs.healthBenignOptionalGeneric) }
-            return String(format: vm.L(L10n.Logs.healthBenignOptional), mod)
-        case .modContentParse:
-            guard let mod = notice.mod else { return vm.L(L10n.Logs.healthBenignParseGeneric) }
-            return String(format: vm.L(L10n.Logs.healthBenignParse), mod)
+        case .galaxyAuth:        return vm.L(L10n.Logs.healthBenignGalaxy)
+        case .apiIntegration:    return vm.L(L10n.Logs.healthBenignApiGeneric)
+        case .optionalModMissing: return vm.L(L10n.Logs.healthBenignOptionalGeneric)
+        case .modContentParse:   return vm.L(L10n.Logs.healthBenignParseGeneric)
         }
     }
 

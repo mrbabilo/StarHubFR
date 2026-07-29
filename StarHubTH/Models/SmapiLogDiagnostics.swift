@@ -57,9 +57,17 @@ public struct SmapiDiagnostics {
         public let kind: Kind
         /// The mod whose optional integration failed, when SMAPI names one.
         public let mod: String?
-        public init(kind: Kind, mod: String?) {
+        /// How many times this mod hit this kind of notice.
+        public var count: Int
+        /// The first raw message seen, kept so the player can match the notice
+        /// back to the actual log line instead of taking our word for it.
+        public let sample: String
+
+        public init(kind: Kind, mod: String?, count: Int = 1, sample: String = "") {
             self.kind = kind
             self.mod = mod
+            self.count = count
+            self.sample = sample
         }
     }
 
@@ -194,9 +202,15 @@ public struct SmapiDiagnostics {
             // a perfectly working mod gets blamed for an optional integration
             // it can live without.
             let benign = benignNotice(inBody: messageBody(of: raw), line: raw)
-            if let notice = benign,
-               !d.benignNotices.contains(where: { $0.kind == notice.kind && $0.mod == notice.mod }) {
-                d.benignNotices.append(notice)
+            if let notice = benign {
+                // Collapse repeats of the same (kind, mod) but keep the tally —
+                // "3×" tells the player how noisy it was, and the first message
+                // is kept as evidence they can look up in the raw log.
+                if let i = d.benignNotices.firstIndex(where: { $0.kind == notice.kind && $0.mod == notice.mod }) {
+                    d.benignNotices[i].count += 1
+                } else {
+                    d.benignNotices.append(notice)
+                }
             }
 
             // Per-mod ERROR counts (context attribution; SMAPI/game excluded).
@@ -363,16 +377,31 @@ public struct SmapiDiagnostics {
         if low.contains("you can ignore this warning")
             || low.contains("you can safely ignore")
             || low.contains("this is not an error") {
-            return BenignNotice(kind: .apiIntegration, mod: modPrefix(of: body, before: ":"))
+            return BenignNotice(kind: .apiIntegration,
+                                mod: modPrefix(of: body, before: ":"),
+                                sample: evidence(from: body))
         }
 
         for rule in benignRules where rule.matches(low) {
             let mod = rule.namesMod
                 ? (modPrefix(of: body, before: ":") ?? errorContextMod(of: line))
                 : nil
-            return BenignNotice(kind: rule.kind, mod: mod)
+            return BenignNotice(kind: rule.kind, mod: mod, sample: evidence(from: body))
         }
         return nil
+    }
+
+    /// A one-line excerpt of the original message, kept as the notice's
+    /// evidence. Stack traces and multi-line details are cut to the first line
+    /// so the card stays readable.
+    private static func evidence(from body: String) -> String {
+        let firstLine = body
+            .components(separatedBy: .newlines)
+            .first?
+            .trimmingCharacters(in: .whitespaces) ?? body
+        let limit = 160
+        guard firstLine.count > limit else { return firstLine }
+        return String(firstLine.prefix(limit)).trimmingCharacters(in: .whitespaces) + "…"
     }
 
     /// A known-harmless log signature. Adding a case is a table entry, not code:
