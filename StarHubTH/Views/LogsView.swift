@@ -11,55 +11,65 @@ struct LogsView: View {
     @State private var autoScroll: Bool = true
     @State private var showClearConfirm: Bool = false
 
-    var filteredEntries: [LogEntry] {
-        vm.logEntries.filter { entry in
-            let sourceMatch = selectedSource == nil || entry.source == selectedSource
-            let levelMatch  = selectedLevel == nil  || entry.level  == selectedLevel
-            let searchMatch = searchText.isEmpty
-                || entry.message.localizedCaseInsensitiveContains(searchText)
-                || (entry.modName?.localizedCaseInsensitiveContains(searchText) ?? false)
-            return sourceMatch && levelMatch && searchMatch
+    /// Single-pass derivation of everything the Logs UI needs from the raw
+    /// entries: the filtered list (source + level + search) for the `List`,
+    /// copy-all and status bar, plus per-level counts scoped to the selected
+    /// source (so the level pills reflect the true severity distribution
+    /// regardless of the active search) and the source-scoped total.
+    ///
+    /// Replaces three separate computed properties that each did a full O(n)
+    /// pass — and were re-evaluated on every access (the List, isEmpty, copy,
+    /// status bar, and each of the 5 level pills), so a single body render ran
+    /// ~9 full passes over up to 2000 entries. Now one pass, accessed once.
+    private struct LogViews {
+        let filtered: [LogEntry]
+        let counts: [LogLevel: Int]
+        let sourceTotal: Int
+    }
+    private var logViews: LogViews {
+        var filtered: [LogEntry] = []
+        var counts: [LogLevel: Int] = [:]
+        var sourceTotal = 0
+        let source = selectedSource
+        let level = selectedLevel
+        let search = searchText
+        for entry in vm.logEntries {
+            guard source == nil || entry.source == source else { continue }
+            sourceTotal += 1
+            counts[entry.level, default: 0] += 1
+            if (level == nil || entry.level == level),
+               search.isEmpty
+                || entry.message.localizedCaseInsensitiveContains(search)
+                || (entry.modName?.localizedCaseInsensitiveContains(search) ?? false) {
+                filtered.append(entry)
+            }
         }
-    }
-
-    /// Entries reduced to the selected source only (no level/search filter).
-    /// Drives the per-level count badges so they reflect the true severity
-    /// distribution regardless of the active search text.
-    private var sourceEntries: [LogEntry] {
-        vm.logEntries.filter { selectedSource == nil || $0.source == selectedSource }
-    }
-    private func levelCount(_ level: LogLevel) -> Int {
-        sourceEntries.reduce(0) { $1.level == level ? $0 + 1 : $0 }
+        return LogViews(filtered: filtered, counts: counts, sourceTotal: sourceTotal)
     }
 
     var body: some View {
-        VStack(spacing: 0) {
+        let views = logViews
+        return VStack(spacing: 0) {
 
-            // ── Source Tab Bar ───────────────────────────────────────
-            HStack(spacing: 0) {
-                sourceTab(nil,       label: vm.L(L10n.Logs.filterAll),  icon: "list.bullet")
-                sourceTab(.app,      label: "StarHubFR",                icon: "app.badge")
-                sourceTab(.smapi,    label: "SMAPI",                     icon: "terminal")
+            // ── Source + Level filter (one row) ─────────────────────
+            HStack(spacing: 10) {
+                sourceTab(nil,    label: vm.L(L10n.Logs.filterAll), icon: "list.bullet")
+                sourceTab(.app,   label: "StarHubFR",               icon: "app.badge")
+                sourceTab(.smapi, label: "SMAPI",                    icon: "terminal")
+
+                Divider().frame(height: 16)
+
+                levelPill(nil,      label: vm.L(L10n.Logs.filterAll), count: views.sourceTotal)
+                levelPill(.info,    label: "INFO",  count: views.counts[.info] ?? 0)
+                levelPill(.warning, label: "WARN",  count: views.counts[.warning] ?? 0)
+                levelPill(.error,   label: "ERROR", count: views.counts[.error] ?? 0)
+                levelPill(.smapi,   label: "TRACE", count: views.counts[.smapi] ?? 0)
+
                 Spacer()
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
             .background(Color(nsColor: .windowBackgroundColor))
-
-            Divider()
-
-            // ── Level Filter (always visible) ────────────────────────
-            HStack(spacing: 6) {
-                levelPill(nil,      label: vm.L(L10n.Logs.filterAll), count: sourceEntries.count)
-                levelPill(.info,    label: "INFO",  count: levelCount(.info))
-                levelPill(.warning, label: "WARN",  count: levelCount(.warning))
-                levelPill(.error,   label: "ERROR", count: levelCount(.error))
-                levelPill(.smapi,   label: "TRACE", count: levelCount(.smapi))
-                Spacer()
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(Color(nsColor: .windowBackgroundColor).opacity(0.6))
 
             Divider()
 
@@ -97,7 +107,7 @@ struct LogsView: View {
 
                 // Copy
                 Button {
-                    let text = filteredEntries
+                    let text = views.filtered
                         .map { $0.formattedLine }
                         .joined(separator: "\n")
                     NSPasteboard.general.clearContents()
@@ -138,7 +148,7 @@ struct LogsView: View {
                 Divider()
             }
 
-            if filteredEntries.isEmpty {
+            if views.filtered.isEmpty {
                 VStack(spacing: 8) {
                     Image(systemName: "text.badge.checkmark")
                         .font(.system(size: 32))
@@ -150,7 +160,7 @@ struct LogsView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollViewReader { proxy in
-                    List(filteredEntries) { entry in
+                    List(views.filtered) { entry in
                         LogEntryRow(entry: entry, vm: vm)
                             .listRowInsets(EdgeInsets(top: 2, leading: 8, bottom: 2, trailing: 8))
                             .listRowSeparator(.hidden)
@@ -160,7 +170,7 @@ struct LogsView: View {
                     .listStyle(.plain)
                     .id(selectedSource.map { "\($0)" } ?? "all")
                     .onChange(of: vm.logEntries.count) { _, _ in
-                        if autoScroll, let last = filteredEntries.last {
+                        if autoScroll, let last = logViews.filtered.last {
                             withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
                         }
                     }
@@ -171,7 +181,7 @@ struct LogsView: View {
 
             // ── Status bar ───────────────────────────────────────────
             HStack {
-                Text(String(format: vm.L(L10n.Logs.entryCount), filteredEntries.count, vm.logEntries.count))
+                Text(String(format: vm.L(L10n.Logs.entryCount), views.filtered.count, vm.logEntries.count))
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
                 Spacer()
