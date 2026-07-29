@@ -19,10 +19,17 @@ struct SmapiHealthCard: View {
     private var isExpanded: Bool { userCollapsed ?? (diagnostics.problemCount > 0) }
     private var isHealthy: Bool { diagnostics.problemCount == 0 }
 
+    /// Advisory info (risk categories, per-mod errors) exists even on a healthy
+    /// log, so the expanded body has content to show when the user opens it.
+    private var hasDetails: Bool {
+        !diagnostics.patchedMods.isEmpty || !diagnostics.saveSerializerMods.isEmpty
+            || !diagnostics.consoleMods.isEmpty || !diagnostics.topErrorMods.isEmpty
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             header
-            if isExpanded && !isHealthy {
+            if isExpanded && (!isHealthy || hasDetails) {
                 problems
             }
         }
@@ -88,13 +95,37 @@ struct SmapiHealthCard: View {
 
     // MARK: - Problems
 
+    /// Body of the expanded card: what to do first, then the details behind it.
+    /// Suggestions lead because they're the actionable part for a non-expert;
+    /// the category lists below are the evidence.
     private var problems: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
+            if !suggestions.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(vm.L(L10n.Logs.healthSuggestionsTitle))
+                        .font(.system(size: 11, weight: .semibold))
+                    ForEach(Array(suggestions.enumerated()), id: \.offset) { _, text in
+                        HStack(alignment: .top, spacing: 6) {
+                            Image(systemName: "lightbulb")
+                                .font(.system(size: 10))
+                                .foregroundColor(.accentColor)
+                                .padding(.top, 1)
+                            Text(text)
+                                .font(.system(size: 11))
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+            }
+
             if !diagnostics.skipped.isEmpty {
                 issueSection(L10n.Logs.healthSkipped, items: diagnostics.skipped)
             }
             if !diagnostics.failed.isEmpty {
                 issueSection(L10n.Logs.healthFailed, items: diagnostics.failed)
+            }
+            if !diagnostics.brokenMods.isEmpty {
+                modSection(L10n.Logs.healthBroken, explanation: L10n.Logs.healthExpBroken, mods: diagnostics.brokenMods)
             }
             if !diagnostics.externalConflicts.isEmpty {
                 VStack(alignment: .leading, spacing: 4) {
@@ -106,8 +137,88 @@ struct SmapiHealthCard: View {
                     }
                 }
             }
+            if !diagnostics.saveSerializerMods.isEmpty {
+                modSection(L10n.Logs.healthSaveSerializer, explanation: L10n.Logs.healthExpSave, mods: diagnostics.saveSerializerMods)
+            }
+            if !diagnostics.patchedMods.isEmpty {
+                modSection(L10n.Logs.healthPatched, explanation: L10n.Logs.healthExpPatched, mods: diagnostics.patchedMods)
+            }
+            if !diagnostics.consoleMods.isEmpty {
+                modSection(L10n.Logs.healthConsole, explanation: L10n.Logs.healthExpConsole, mods: diagnostics.consoleMods)
+            }
+            if !diagnostics.topErrorMods.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(vm.L(L10n.Logs.healthTopErrors))
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.secondary)
+                    ForEach(diagnostics.topErrorMods) { entry in
+                        HStack(spacing: 6) {
+                            Text("• \(entry.name)").font(.system(size: 11, weight: .medium))
+                            Text(String(format: vm.L(L10n.Logs.healthErrorsCount), Int64(entry.count)))
+                                .font(.system(size: 10))
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+            }
         }
         .padding(.top, 2)
+    }
+
+    /// A named mod list preceded by a one-line, jargon-free explanation of what
+    /// the category means for the player.
+    private func modSection(_ titleKey: String, explanation: String, mods: [String]) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(vm.L(titleKey))
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundColor(.secondary)
+            Text(vm.L(explanation))
+                .font(.system(size: 10))
+                .foregroundColor(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            ForEach(mods, id: \.self) { mod in
+                Text("• \(mod)").font(.system(size: 11))
+            }
+        }
+    }
+
+    // MARK: - Suggestions
+
+    /// Actionable, plain-language advice derived from the diagnostics, ordered
+    /// most-blocking first (missing dependencies and load failures before
+    /// advisory notes). Formatting lives here, not in the pure parser.
+    private var suggestions: [String] {
+        var out: [String] = []
+        let d = diagnostics
+
+        for dep in d.missingDeps {
+            out.append(String(format: vm.L(L10n.Logs.healthSgMissingDep), dep.missing, dep.mod))
+        }
+        // Mods already covered by a missing-dependency tip don't need a second,
+        // vaguer one repeating the same root cause.
+        let depMods = Set(d.missingDeps.map(\.mod))
+        for issue in d.skipped where !depMods.contains(issue.name) {
+            out.append(String(format: vm.L(L10n.Logs.healthSgSkipped), issue.name, issue.reason))
+        }
+        for issue in d.failed where !depMods.contains(issue.name) {
+            out.append(String(format: vm.L(L10n.Logs.healthSgFailed), issue.name, issue.reason))
+        }
+        if !d.brokenMods.isEmpty {
+            out.append(vm.L(L10n.Logs.healthSgBroken))
+        }
+        if d.externalConflicts.contains(where: { $0.contains("RivaTuner") }) {
+            out.append(vm.L(L10n.Logs.healthSgRivatuner))
+        }
+        for mod in d.saveSerializerMods {
+            out.append(String(format: vm.L(L10n.Logs.healthSgSave), mod))
+        }
+        if let worst = d.topErrorMods.first, worst.count >= 5 {
+            out.append(String(format: vm.L(L10n.Logs.healthSgErrorMod), worst.name, Int64(worst.count)))
+        }
+        if d.patchedMods.count >= 15 {
+            out.append(String(format: vm.L(L10n.Logs.healthSgPatchedMany), Int64(d.patchedMods.count)))
+        }
+        return out
     }
 
     private func issueSection(_ titleKey: String, items: [SmapiDiagnostics.Issue]) -> some View {
