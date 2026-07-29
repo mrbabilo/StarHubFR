@@ -234,6 +234,8 @@
 "logs_health_benign" = "Erreurs que vous pouvez ignorer";
 "logs_health_show_in_log" = "Afficher les lignes de ce mod dans le journal";
 "logs_health_open_mod" = "Afficher ce mod dans la liste des mods";
+"logs_health_show_section" = "Afficher la liste complète de SMAPI pour cette catégorie";
+"logs_back_to_all_logs" = "Revenir à tous les journaux";
 "logs_health_exp_benign" = "SMAPI les signale comme des erreurs, mais elles ne cassent pas votre jeu.";
 "logs_health_benign_galaxy" = "Vous n'êtes pas connecté à GOG Galaxy. Seuls la surcouche Galaxy et ses succès sont concernés — le jeu et vos mods fonctionnent normalement.";
 "logs_health_benign_api_generic" = "Un mod n'a pas pu se connecter à une fonction optionnelle d'un autre mod (souvent son menu de réglages en jeu), généralement parce que les deux versions ne correspondent pas. Le mod fonctionne quand même ; seule cette fonction supplémentaire est indisponible.";

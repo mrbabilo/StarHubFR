@@ -39,6 +39,60 @@ import Testing
         #expect(LogNoise.signature(of: "   Loaded 'X'   ") == LogNoise.signature(of: "Loaded 'X'"))
     }
 
+    // MARK: - Locating a warning-group section
+
+    /// Shaped like SMAPI's real output: header, 50-dash separator, blurb, blank,
+    /// entries, blank, then the next section.
+    private static let groupMessages = [
+        "Loaded 64 mods:",
+        "Changed save serializer",
+        String(repeating: "-", count: 50),
+        "These mods change the save serializer. They may corrupt your save files,",
+        "or make them unusable if you uninstall these mods.",
+        "",
+        "- SpaceCore",
+        "- Another Serializer Mod",
+        "",
+        "Patched game code",
+        String(repeating: "-", count: 50),
+        "These mods directly change the game code.",
+        "",
+        "- Content Patcher",
+        ""
+    ]
+
+    @Test func findsWarningGroupSpanFromHeaderThroughLastEntry() {
+        let range = LogNoise.warningGroupRange(messages: Self.groupMessages,
+                                               header: "Changed save serializer")
+        #expect(range == 1..<8, "Header through the last '- Mod' entry")
+        let block = range.map { Array(Self.groupMessages[$0]) } ?? []
+        #expect(block.first == "Changed save serializer")
+        #expect(block.last == "- Another Serializer Mod")
+        #expect(block.contains("- SpaceCore"))
+    }
+
+    /// The block must stop before the next section, not swallow it.
+    @Test func warningGroupStopsBeforeTheNextSection() {
+        let range = LogNoise.warningGroupRange(messages: Self.groupMessages,
+                                               header: "Changed save serializer")
+        let block = range.map { Array(Self.groupMessages[$0]) } ?? []
+        #expect(!block.contains("Patched game code"))
+        #expect(!block.contains("- Content Patcher"))
+    }
+
+    @Test func findsASectionThatRunsToTheEndOfTheLog() {
+        let range = LogNoise.warningGroupRange(messages: Self.groupMessages,
+                                               header: "Patched game code")
+        let block = range.map { Array(Self.groupMessages[$0]) } ?? []
+        #expect(block.first == "Patched game code")
+        #expect(block.last == "- Content Patcher")
+    }
+
+    @Test func returnsNilWhenTheSectionIsAbsent() {
+        #expect(LogNoise.warningGroupRange(messages: Self.groupMessages,
+                                           header: "Direct console access") == nil)
+    }
+
     // MARK: - Trimming to a cap
 
     /// The real bug: a 4038-line log capped at 2000 used to keep the *last*

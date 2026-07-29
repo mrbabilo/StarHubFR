@@ -46,6 +46,51 @@ public enum LogNoise {
         return regex.stringByReplacingMatches(in: string, range: range, withTemplate: template)
     }
 
+    // MARK: - Locating a warning-group section
+
+    /// Finds the span of a SMAPI warning-group section in a list of log
+    /// messages, so the UI can show the block that lists the affected mods
+    /// exactly as SMAPI wrote it.
+    ///
+    /// SMAPI's format is a header line, a 50-dash separator, a blurb, then one
+    /// `- ModName` line per mod. The block ends at the first ordinary line after
+    /// those entries. Returns the range covering header through last entry, or
+    /// nil when the header isn't present.
+    public static func warningGroupRange(messages: [String], header: String) -> Range<Int>? {
+        let target = header.trimmingCharacters(in: .whitespaces)
+        guard let start = messages.firstIndex(where: {
+            $0.trimmingCharacters(in: .whitespaces) == target
+        }) else { return nil }
+
+        var end = start + 1
+        var lastEntry = start
+        var entriesStarted = false
+
+        while end < messages.count {
+            let line = messages[end].trimmingCharacters(in: .whitespaces)
+
+            if !line.isEmpty && line.allSatisfy({ $0 == "-" }) {
+                end += 1                      // separator
+                continue
+            }
+            if line.hasPrefix("- ") {
+                entriesStarted = true
+                lastEntry = end
+                end += 1
+                continue
+            }
+            if line.isEmpty {
+                if entriesStarted { break }   // blank after entries closes it
+                end += 1                      // blank between blurb and entries
+                continue
+            }
+            if entriesStarted { break }       // next section's header
+            end += 1                          // blurb text
+        }
+
+        return start..<(lastEntry + 1)
+    }
+
     // MARK: - Trimming to a cap
 
     /// Selects which entries to keep when a log exceeds `cap`, by sacrificing

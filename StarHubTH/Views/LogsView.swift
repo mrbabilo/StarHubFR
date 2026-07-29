@@ -14,6 +14,9 @@ struct LogsView: View {
     @State private var expandedGroups: Set<String> = []
     /// Group the list into per-mod sections instead of one chronological stream.
     @State private var groupByMod: Bool = false
+    /// When set, the list shows only this SMAPI warning-group block (header +
+    /// the mods it lists), as written in the log.
+    @State private var sectionHeader: String? = nil
     /// Ids of the per-mod sections currently expanded.
     @State private var expandedMods: Set<String> = []
 
@@ -51,6 +54,18 @@ struct LogsView: View {
         }
     }
     private var logViews: LogViews {
+        // Showing one warning-group block: SMAPI writes it as consecutive lines,
+        // so it's located by span in the SMAPI entries rather than by matching
+        // each line — the separator and blurb have nothing in common to match.
+        if let header = sectionHeader {
+            let smapi = vm.logEntries.filter { $0.source == .smapi }
+            let block = LogNoise.warningGroupRange(
+                messages: smapi.map { $0.message }, header: header
+            ).map { Array(smapi[$0]) } ?? []
+            return LogViews(filtered: block, counts: [:], sourceTotal: block.count,
+                            rows: block.map { LogRow.single($0) }, modGroups: [])
+        }
+
         var filtered: [LogEntry] = []
         var counts: [LogLevel: Int] = [:]
         var sourceTotal = 0
@@ -223,6 +238,25 @@ struct LogsView: View {
 
             Divider()
 
+            // Section view is a dead end without a visible way out, since the
+            // usual filters don't apply while it's active.
+            if let header = sectionHeader {
+                HStack(spacing: 8) {
+                    Image(systemName: "line.3.horizontal.decrease.circle.fill")
+                        .foregroundColor(.accentColor)
+                        .font(.system(size: 11))
+                    Text(header)
+                        .font(.system(size: 11, weight: .medium))
+                    Spacer()
+                    Button(vm.L(L10n.Logs.backToAllLogs)) { sectionHeader = nil }
+                        .font(.system(size: 11))
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color.accentColor.opacity(0.08))
+                Divider()
+            }
+
             // ── Entries ──────────────────────────────────────────────
             // SMAPI health card - shown on All + SMAPI tabs only
             if selectedSource != .app, let diag = vm.smapiDiagnostics, !diag.isEmpty {
@@ -307,9 +341,17 @@ struct LogsView: View {
             guard let mod = note.object as? String else { return }
             // Show every level from every source so the mod's lines can't be
             // filtered out by whatever the user had selected.
+            sectionHeader = nil
             selectedSource = nil
             selectedLevel = nil
             searchText = mod
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .showLogSection)) { note in
+            guard let header = note.object as? String else { return }
+            searchText = ""
+            selectedLevel = nil
+            groupByMod = false
+            sectionHeader = header
         }
     }
 
@@ -597,4 +639,7 @@ extension Notification.Name {
     /// Posted with a mod name to scope the Logs view to that mod's entries —
     /// lets the health card send the player straight to the underlying lines.
     static let filterLogsToMod = Notification.Name("StarHubTH.filterLogsToMod")
+    /// Posted with a SMAPI warning-group header ("Changed save serializer", …)
+    /// to show that block of the log verbatim, listing every affected mod.
+    static let showLogSection = Notification.Name("StarHubTH.showLogSection")
 }

@@ -370,6 +370,8 @@ enum L10n {
         static let healthBenign           = "logs_health_benign"
         static let healthShowInLog        = "logs_health_show_in_log"
         static let healthOpenMod          = "logs_health_open_mod"
+        static let healthShowSection      = "logs_health_show_section"
+        static let backToAllLogs          = "logs_back_to_all_logs"
         static let healthExpBenign        = "logs_health_exp_benign"
         static let healthBenignGalaxy     = "logs_health_benign_galaxy"
         static let healthBenignApi        = "logs_health_benign_api"

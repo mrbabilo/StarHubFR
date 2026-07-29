@@ -133,7 +133,7 @@ struct SmapiHealthCard: View {
                 issueSection(L10n.Logs.healthFailed, items: diagnostics.failed)
             }
             if !diagnostics.brokenMods.isEmpty {
-                modSection(L10n.Logs.healthBroken, explanation: L10n.Logs.healthExpBroken, mods: diagnostics.brokenMods)
+                modSection(L10n.Logs.healthBroken, explanation: L10n.Logs.healthExpBroken, mods: diagnostics.brokenMods, logHeader: "Broken mods")
             }
             if !diagnostics.externalConflicts.isEmpty {
                 VStack(alignment: .leading, spacing: 4) {
@@ -146,13 +146,13 @@ struct SmapiHealthCard: View {
                 }
             }
             if !diagnostics.saveSerializerMods.isEmpty {
-                modSection(L10n.Logs.healthSaveSerializer, explanation: L10n.Logs.healthExpSave, mods: diagnostics.saveSerializerMods)
+                modSection(L10n.Logs.healthSaveSerializer, explanation: L10n.Logs.healthExpSave, mods: diagnostics.saveSerializerMods, logHeader: "Changed save serializer")
             }
             if !diagnostics.patchedMods.isEmpty {
-                modSection(L10n.Logs.healthPatched, explanation: L10n.Logs.healthExpPatched, mods: diagnostics.patchedMods)
+                modSection(L10n.Logs.healthPatched, explanation: L10n.Logs.healthExpPatched, mods: diagnostics.patchedMods, logHeader: "Patched game code")
             }
             if !diagnostics.consoleMods.isEmpty {
-                modSection(L10n.Logs.healthConsole, explanation: L10n.Logs.healthExpConsole, mods: diagnostics.consoleMods)
+                modSection(L10n.Logs.healthConsole, explanation: L10n.Logs.healthExpConsole, mods: diagnostics.consoleMods, logHeader: "Direct console access")
             }
             if !diagnostics.benignNotices.isEmpty {
                 VStack(alignment: .leading, spacing: 4) {
@@ -224,11 +224,28 @@ struct SmapiHealthCard: View {
 
     /// A named mod list preceded by a one-line, jargon-free explanation of what
     /// the category means for the player.
-    private func modSection(_ titleKey: String, explanation: String, mods: [String]) -> some View {
+    private func modSection(_ titleKey: String, explanation: String, mods: [String],
+                            logHeader: String? = nil) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(vm.L(titleKey))
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundColor(.secondary)
+            HStack(spacing: 4) {
+                Text(vm.L(titleKey))
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.secondary)
+                // Shows SMAPI's own block for this category — the full list of
+                // affected mods as it was written, beyond the 8 shown here.
+                if let logHeader {
+                    Button {
+                        NotificationCenter.default.post(name: .showLogSection, object: logHeader)
+                    } label: {
+                        Image(systemName: "list.bullet.rectangle")
+                            .font(.system(size: 10))
+                            .foregroundColor(.accentColor)
+                    }
+                    .buttonStyle(.plain)
+                    .pointingHandCursor()
+                    .help(vm.L(L10n.Logs.healthShowSection))
+                }
+            }
             Text(vm.L(explanation))
                 .font(.system(size: 10))
                 .foregroundColor(.secondary)

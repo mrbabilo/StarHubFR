@@ -234,6 +234,8 @@
 "logs_health_benign" = "Errors you can ignore";
 "logs_health_show_in_log" = "Show this mod's lines in the log";
 "logs_health_open_mod" = "Show this mod in the Mods list";
+"logs_health_show_section" = "Show SMAPI's full list for this category";
+"logs_back_to_all_logs" = "Back to all logs";
 "logs_health_exp_benign" = "SMAPI flags these as errors, but they don't break your game.";
 "logs_health_benign_galaxy" = "GOG Galaxy isn't signed in. Only the Galaxy overlay and its achievements are affected — the game and your mods run normally.";
 "logs_health_benign_api_generic" = "A mod couldn't connect to another mod's optional feature (usually its in-game settings menu), often because the two versions don't match. The mod still works; only that extra feature is unavailable.";
