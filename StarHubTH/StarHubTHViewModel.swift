@@ -116,6 +116,17 @@ class StarHubTHViewModel: ObservableObject {
     @Published var outOfDateMods: [ModUpdateInfo] = []
     @Published var smapiErrors: [String] = []
     @Published var showSmapiAlerts: Bool = false
+    /// Structured health diagnostics parsed from SMAPI-latest.txt (nil until
+    /// first parse). Drives the SMAPI health card in LogsView.
+    @Published var smapiDiagnostics: SmapiDiagnostics?
+    /// mtime of the parsed SMAPI log (nil if unread); used for the "stale" badge.
+    @Published var smapiLogDate: Date?
+    /// True when the log's mtime predates this app session (= no game launch
+    /// logged since StarHubFR was opened).
+    @Published var smapiLogStale: Bool = false
+    /// App-session start captured once at init (= app launch for the single
+    /// @StateObject VM). Reference for SMAPI-log staleness.
+    private let sessionStart = Date()
 
     /// Folder name of the mod currently being toggled (enabled/disabled), or
     /// nil when no toggle operation is in flight. Drives the spinner shown
@@ -1357,10 +1368,15 @@ class StarHubTHViewModel: ObservableObject {
             DispatchQueue.main.async {
                 self.outOfDateMods = []
                 self.smapiErrors = []
+                self.smapiDiagnostics = nil
+                self.smapiLogDate = nil
+                self.smapiLogStale = false
             }
             return
         }
         
+        let (smapiDiag, smapiDate, smapiStale) = computeSmapiDiagnostics(logContent: logContent, atPath: logPath)
+
         var updates: [ModUpdateInfo] = []
         var errors: [String] = []
         
@@ -1452,6 +1468,9 @@ class StarHubTHViewModel: ObservableObject {
         DispatchQueue.main.async {
             self.outOfDateMods = updates
             self.smapiErrors = uniqueErrors
+            self.smapiDiagnostics = smapiDiag
+            self.smapiLogDate = smapiDate
+            self.smapiLogStale = smapiStale
             // Log only genuinely new SMAPI alerts (not seen in the previous
             // parse) so the Journaux tab stays clean across re-parses. Diff
             // by content — not count — to catch both added and replaced errors.
@@ -1997,6 +2016,8 @@ class StarHubTHViewModel: ObservableObject {
               let data = FileManager.default.contents(atPath: path),
               let text = String(data: data, encoding: .utf8) else { return }
 
+        let (smapiDiag, smapiDate, smapiStale) = computeSmapiDiagnostics(logContent: text, atPath: path)
+
         let lines = text.components(separatedBy: .newlines)
         var entries: [LogEntry] = []
 
@@ -2067,6 +2088,9 @@ class StarHubTHViewModel: ObservableObject {
             // again, producing N duplicate copies after N launches.
             self.logEntries.removeAll { $0.source == .smapi }
             self.logEntries.append(contentsOf: trimmedEntries)
+            self.smapiDiagnostics = smapiDiag
+            self.smapiLogDate = smapiDate
+            self.smapiLogStale = smapiStale
             if self.logEntries.count > self.maxLogEntries {
                 self.logEntries.removeFirst(self.logEntries.count - self.maxLogEntries)
             }
@@ -2078,6 +2102,23 @@ class StarHubTHViewModel: ObservableObject {
         return (homeDir as NSString).appendingPathComponent(
             ".config/StardewValley/ErrorLogs/SMAPI-latest.txt"
         )
+    }
+
+    /// Parses structured diagnostics + staleness from SMAPI-log content that was
+    /// already read by the caller (no second file read). Safe off-main:
+    /// `SmapiDiagnostics.parse` is pure and the mtime lookup is a single stat.
+    /// Reused by both `parseSMAPILog` (scan/refresh) and `parseAndAppendSmapiLog`
+    /// (reload button) so the health card refreshes on either path.
+    private func computeSmapiDiagnostics(logContent: String, atPath path: String) -> (SmapiDiagnostics, Date?, Bool) {
+        let diag = SmapiDiagnostics.parse(logContent: logContent)
+        let mtime = (try? FileManager.default.attributesOfItem(atPath: path)[.modificationDate]) as? Date
+        let stale = (mtime ?? .distantFuture) < sessionStart
+        return (diag, mtime, stale)
+    }
+
+    /// Reveals SMAPI-latest.txt in a Finder window (U6 "Open in Finder").
+    func revealSmapiLogInFinder() {
+        NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: smapiLogPath)])
     }
 
     func startSmapiLogWatcher() { loadSmapiLog() }
