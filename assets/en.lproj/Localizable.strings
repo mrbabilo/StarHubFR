@@ -237,6 +237,9 @@
 "logs_health_benign_parse" = "\"%@\" couldn't read part of its own data. That's a bug in the mod itself, not something you can fix; a small feature may be missing in-game.";
 "logs_health_benign_parse_generic" = "A mod couldn't read part of its own data. That's a bug in the mod itself, not something you can fix; a small feature may be missing in-game.";
 "logs_health_sg_duplicate" = "\"%@\" is installed twice. Keep one copy in Mods/ and delete the other, otherwise it won't load.";
+"logs_health_sg_game_version" = "\"%@\" doesn't support your game or SMAPI version. Check its mod page for an update, or remove it.";
+"logs_health_sg_manifest" = "\"%@\" has an invalid or missing manifest.json. Reinstall it from its mod page — the folder is probably incomplete.";
+"logs_health_sg_folder" = "\"%@\" is in the wrong folder. Each mod needs its own folder directly inside Mods/, containing its manifest.json.";
 "logs_health_patched" = "Mods changing game code";
 "logs_health_save_serializer" = "Mods changing your saves";
 "logs_health_broken" = "Broken mods";

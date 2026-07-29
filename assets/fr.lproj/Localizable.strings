@@ -237,6 +237,9 @@
 "logs_health_benign_parse" = "« %@ » n'a pas réussi à lire une partie de ses propres données. C'est un bug du mod lui-même, pas quelque chose que vous pouvez corriger ; une petite fonction peut manquer en jeu.";
 "logs_health_benign_parse_generic" = "Un mod n'a pas réussi à lire une partie de ses propres données. C'est un bug du mod lui-même, pas quelque chose que vous pouvez corriger ; une petite fonction peut manquer en jeu.";
 "logs_health_sg_duplicate" = "« %@ » est installé en double. Gardez une seule copie dans Mods/ et supprimez l'autre, sinon il ne se chargera pas.";
+"logs_health_sg_game_version" = "« %@ » ne prend pas en charge votre version du jeu ou de SMAPI. Cherchez une mise à jour sur sa page, ou retirez-le.";
+"logs_health_sg_manifest" = "« %@ » a un manifest.json invalide ou manquant. Réinstallez-le depuis sa page — le dossier est probablement incomplet.";
+"logs_health_sg_folder" = "« %@ » est dans le mauvais dossier. Chaque mod doit avoir son propre dossier directement dans Mods/, contenant son manifest.json.";
 "logs_health_patched" = "Mods modifiant le code du jeu";
 "logs_health_save_serializer" = "Mods modifiant vos sauvegardes";
 "logs_health_broken" = "Mods défaillants";

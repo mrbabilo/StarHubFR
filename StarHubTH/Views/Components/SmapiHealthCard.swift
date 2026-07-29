@@ -255,17 +255,10 @@ struct SmapiHealthCard: View {
         // vaguer one repeating the same root cause.
         let depMods = Set(d.missingDeps.map(\.mod))
         for issue in d.skipped where !depMods.contains(issue.name) {
-            // "already loaded / two copies" is cryptic but has a precise fix,
-            // so it gets its own actionable tip instead of the generic one.
-            let r = issue.reason.lowercased()
-            if r.contains("already loaded") || r.contains("two copies") {
-                out.append(String(format: vm.L(L10n.Logs.healthSgDuplicate), issue.name))
-            } else {
-                out.append(String(format: vm.L(L10n.Logs.healthSgSkipped), issue.name, issue.reason))
-            }
+            out.append(advice(for: issue, fallback: L10n.Logs.healthSgSkipped))
         }
         for issue in d.failed where !depMods.contains(issue.name) {
-            out.append(String(format: vm.L(L10n.Logs.healthSgFailed), issue.name, issue.reason))
+            out.append(advice(for: issue, fallback: L10n.Logs.healthSgFailed))
         }
         if !d.brokenMods.isEmpty {
             out.append(vm.L(L10n.Logs.healthSgBroken))
@@ -295,6 +288,28 @@ struct SmapiHealthCard: View {
 
     /// Max suggestions shown before collapsing into "…and N more".
     private static let maxSuggestions = 6
+
+    /// Maps a load failure to the most specific fix we can offer. SMAPI's raw
+    /// reasons are accurate but cryptic ("its DLL couldn't be loaded: … already
+    /// loaded"), so recognized families get a concrete instruction; anything
+    /// unrecognized falls back to quoting the reason verbatim.
+    private static let adviceRules: [(patterns: [String], key: String)] = [
+        (["already loaded", "two copies", "duplicate"], L10n.Logs.healthSgDuplicate),
+        (["requires a newer version", "older version of smapi", "needs smapi",
+          "compatible with stardew valley", "requires stardew valley",
+          "not compatible with this version"], L10n.Logs.healthSgGameVersion),
+        (["manifest.json", "manifest is invalid", "invalid manifest",
+          "no manifest", "couldn't parse manifest"], L10n.Logs.healthSgManifest),
+        (["not in a folder", "wrong folder", "subfolder"], L10n.Logs.healthSgFolder)
+    ]
+
+    private func advice(for issue: SmapiDiagnostics.Issue, fallback: String) -> String {
+        let reason = issue.reason.lowercased()
+        for rule in Self.adviceRules where rule.patterns.contains(where: reason.contains) {
+            return String(format: vm.L(rule.key), issue.name)
+        }
+        return String(format: vm.L(fallback), issue.name, issue.reason)
+    }
 
     private func issueSection(_ titleKey: String, items: [SmapiDiagnostics.Issue]) -> some View {
         VStack(alignment: .leading, spacing: 4) {

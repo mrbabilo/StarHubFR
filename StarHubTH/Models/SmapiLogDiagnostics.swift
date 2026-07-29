@@ -356,33 +356,80 @@ public struct SmapiDiagnostics {
     ///   usually a version gap. The mod itself still loads and works; only that
     ///   integration (e.g. its in-game settings page) is unavailable.
     private static func benignNotice(inBody body: String, line: String) -> BenignNotice? {
-        if body.contains("Galaxy auth failure") || body.contains("GALAXY_SERVICE_NOT_SIGNED_IN") {
-            return BenignNotice(kind: .galaxyAuth, mod: nil)
+        let low = body.lowercased()
+
+        // A mod that says its own warning is ignorable is taken at its word —
+        // this generalizes to any mod using that phrasing, not a hardcoded list.
+        if low.contains("you can ignore this warning")
+            || low.contains("you can safely ignore")
+            || low.contains("this is not an error") {
+            return BenignNotice(kind: .apiIntegration, mod: modPrefix(of: body, before: ":"))
         }
-        if body.contains("Tried to map a mod-provided API to interface") {
-            return BenignNotice(kind: .apiIntegration, mod: modPrefix(of: body, before: ": Tried to map") ?? errorContextMod(of: line))
-        }
-        // "Couldn't get the X API, If you don't have X installed, you can
-        // ignore this warning." — the mod itself says it's optional.
-        if body.contains("you can ignore this warning")
-            || (body.contains("Couldn't get the") && body.contains("API")) {
-            return BenignNotice(kind: .apiIntegration, mod: modPrefix(of: body, before: ": Couldn't get"))
-        }
-        // "recommended mod not installed - X" / "optional mod not installed".
-        if body.contains("recommended mod not installed")
-            || body.contains("optional mod not installed") {
-            return BenignNotice(kind: .optionalModMissing, mod: modPrefix(of: body, before: ":"))
-        }
-        // A mod failing to parse its own content/config data (Content Patcher
-        // conditions, numeric fields…). Mod-side bug, no player action.
-        if body.contains("Failed to Parse Condition")
-            || body.contains("Failed to parse condition")
-            || body.contains("Failed to parse integer")
-            || body.contains("Failed to Parse Integer") {
-            return BenignNotice(kind: .modContentParse, mod: modPrefix(of: body, before: ":"))
+
+        for rule in benignRules where rule.matches(low) {
+            let mod = rule.namesMod
+                ? (modPrefix(of: body, before: ":") ?? errorContextMod(of: line))
+                : nil
+            return BenignNotice(kind: rule.kind, mod: mod)
         }
         return nil
     }
+
+    /// A known-harmless log signature. Adding a case is a table entry, not code:
+    /// `any` matches if ANY substring is present, `all` requires every one.
+    /// Matching is case-insensitive (patterns must be lowercase).
+    private struct BenignRule {
+        let kind: BenignNotice.Kind
+        var any: [String] = []
+        var all: [String] = []
+        /// Whether the message is prefixed with the mod name ("<Mod>: …").
+        var namesMod = true
+
+        func matches(_ lowercasedBody: String) -> Bool {
+            if !all.isEmpty, !all.allSatisfy(lowercasedBody.contains) { return false }
+            if !any.isEmpty, !any.contains(where: lowercasedBody.contains) { return false }
+            return !(any.isEmpty && all.isEmpty)
+        }
+    }
+
+    /// Generalized signatures of harmless log lines. Each covers a *family* of
+    /// messages rather than one mod's exact wording.
+    private static let benignRules: [BenignRule] = [
+        // Platform sign-in (GOG Galaxy / Steam): overlay + achievements only.
+        .init(kind: .galaxyAuth,
+              any: ["galaxy auth failure", "galaxy_service_not_signed_in", "not signed in to steam"],
+              namesMod: false),
+
+        // Optional integration with another mod's API couldn't be wired up:
+        // interface mismatch, missing API, or the other mod being absent.
+        .init(kind: .apiIntegration,
+              any: ["tried to map a mod-provided api",
+                    "isn't compatible with the actual mod api",
+                    "couldn't get the",          // "Couldn't get the X API"
+                    "could not get the",
+                    "failed to get the",
+                    "api not found",
+                    "integration failed",
+                    "unable to load api"]),
+
+        // An optional/recommended companion mod isn't installed.
+        .init(kind: .optionalModMissing,
+              any: ["recommended mod not installed",
+                    "optional mod not installed",
+                    "optional dependency",
+                    "is not installed, skipping integration",
+                    "not installed - skipping"]),
+
+        // A mod couldn't read part of its own content/config data.
+        .init(kind: .modContentParse,
+              any: ["failed to parse condition",
+                    "failed to parse integer",
+                    "failed to parse boolean",
+                    "failed to parse field",
+                    "bad value:",
+                    "couldn't parse",
+                    "invalid value for"])
+    ]
 
     /// The mod name written before `marker` in a message body
     /// (`"<Mod Name>: <message>"`), or nil when the body doesn't start that way.

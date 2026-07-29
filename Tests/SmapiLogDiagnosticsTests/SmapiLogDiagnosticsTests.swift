@@ -169,6 +169,35 @@ import Testing
         #expect(d.problemCount == 0, "None of these break the game")
     }
 
+    /// The rules must generalize: these are wordings we never hardcoded, from
+    /// mods other than the ones that motivated the feature.
+    @Test func benignRulesGeneralizeToUnseenWordings() {
+        let log = """
+        [10:00:00 WARN  SMAPI] Some Other Mod: Could not get the Automate API, integration failed
+        [10:00:01 WARN  SMAPI] Third Mod: optional dependency Pathoschild.Automate is not installed, skipping integration
+        [10:00:02 WARN  SMAPI] Fourth Mod: Couldn't parse field 'price'. Bad value: abc
+        [10:00:03 WARN  SMAPI] Fifth Mod: this is not an error, just letting you know
+        """
+        let d = SmapiDiagnostics.parse(logContent: log)
+        #expect(d.benignNotices.contains { $0.kind == .apiIntegration && $0.mod == "Some Other Mod" })
+        #expect(d.benignNotices.contains { $0.kind == .optionalModMissing && $0.mod == "Third Mod" })
+        #expect(d.benignNotices.contains { $0.kind == .modContentParse && $0.mod == "Fourth Mod" })
+        // A mod declaring its own message harmless is taken at its word.
+        #expect(d.benignNotices.contains { $0.mod == "Fifth Mod" })
+        #expect(d.problemCount == 0)
+    }
+
+    @Test func genuineErrorsAreNotSwallowedByBenignRules() {
+        let log = """
+        [10:00:00 ERROR Broken Thing] NullReferenceException: Object reference not set to an instance of an object
+        [10:00:01 ERROR Broken Thing] crashed on entry and has been disabled
+        """
+        let d = SmapiDiagnostics.parse(logContent: log)
+        #expect(d.benignNotices.isEmpty, "Unknown errors must keep their full weight")
+        #expect(d.topErrorMods.first?.name == "Broken Thing")
+        #expect(d.topErrorMods.first?.count == 2)
+    }
+
     @Test func benignNoticesAreNotCountedAsProblems() {
         let log = "[22:30:28 ERROR SMAPI] Galaxy auth failure: FAILURE_REASON_GALAXY_SERVICE_NOT_SIGNED_IN"
         let d = SmapiDiagnostics.parse(logContent: log)
