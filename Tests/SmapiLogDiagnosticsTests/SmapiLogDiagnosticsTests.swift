@@ -76,4 +76,73 @@ import Testing
         #expect(d.failed.count == 1)
         #expect(d.failed.first?.reason == "requires Some.Framework (not installed)")
     }
+
+    @Test func parsesPatchedGameCodeGroupAndSkipsSeparator() {
+        let log = """
+        [22:30:00 INFO  SMAPI] SMAPI 4.5.2 with Stardew Valley 1.6.15
+        [22:30:00 INFO  SMAPI]    Patched game code
+        [22:30:00 INFO  SMAPI]    --------------------------------------------------
+        [22:30:00 INFO  SMAPI]       These mods directly change the game code. They're more likely to cause errors or bugs in-game; if
+        [22:30:00 INFO  SMAPI]       your game has issues, try removing these first. Otherwise you can ignore this warning.
+
+        [22:30:00 INFO  SMAPI]       - Content Patcher
+        [22:30:00 INFO  SMAPI]       - Stardew Valley Expanded
+
+        """
+        let d = SmapiDiagnostics.parse(logContent: log)
+        #expect(d.patchedMods == ["Content Patcher", "Stardew Valley Expanded"])
+        // The 50-dash separator line must never be captured as a mod.
+        #expect(d.patchedMods.allSatisfy { !$0.allSatisfy { $0 == "-" } })
+    }
+
+    @Test func parsesMultipleWarningGroups() {
+        let log = """
+        [22:30:00 WARN  SMAPI]    Changed save serializer
+        [22:30:00 WARN  SMAPI]    --------------------------------------------------
+        [22:30:00 WARN  SMAPI]       These mods change the save serializer.
+
+        [22:30:00 WARN  SMAPI]       - Save Serializer Mod
+
+        [22:30:00 ERROR SMAPI]    Broken mods
+        [22:30:00 ERROR SMAPI]    --------------------------------------------------
+        [22:30:00 ERROR SMAPI]       These mods have broken code.
+
+        [22:30:00 ERROR SMAPI]       - Broken Mod One
+        [22:30:00 ERROR SMAPI]       - Broken Mod Two
+
+        """
+        let d = SmapiDiagnostics.parse(logContent: log)
+        #expect(d.saveSerializerMods == ["Save Serializer Mod"])
+        #expect(d.brokenMods == ["Broken Mod One", "Broken Mod Two"])
+    }
+
+    @Test func promotesMissingDependenciesFromFailedAndSkipped() {
+        let log = """
+        [00:00:00 TRACE SMAPI]    NEU Mod (from Mods/NEU/NEU.dll, ID: neu.mod)...
+        [00:00:01 ERROR NEU Mod] Failed: requires mods which aren't installed (Some.Framework)
+        [00:00:02 ERROR SMAPI]    Skipped mods
+        [00:00:02 ERROR SMAPI]       - AnotherMod 1.0 because it requires mods which aren't installed (Some.Library)
+        """
+        let d = SmapiDiagnostics.parse(logContent: log)
+        #expect(d.missingDeps.count == 2)
+        #expect(d.missingDeps.first { $0.mod == "NEU Mod" }?.missing == "Some.Framework")
+        #expect(d.missingDeps.first { $0.mod == "AnotherMod 1.0" }?.missing == "Some.Library")
+    }
+
+    @Test func countsPerModErrorsTop5ExcludingFramework() {
+        let log = """
+        [12:00:00 ERROR Content Patcher] foo
+        [12:00:01 ERROR game] bar
+        [12:00:02 ERROR Content Patcher] baz
+        [12:00:03 ERROR SMAPI] qux
+        [12:00:04 ERROR Another Mod] quux
+        [12:00:05 WARN Content Patcher] not-counted
+        """
+        let d = SmapiDiagnostics.parse(logContent: log)
+        #expect(d.topErrorMods.first?.name == "Content Patcher")
+        #expect(d.topErrorMods.first?.count == 2)
+        #expect(d.topErrorMods.count == 2)
+        let names = d.topErrorMods.map(\.name)
+        #expect(!names.contains("game") && !names.contains("SMAPI"))
+    }
 }
