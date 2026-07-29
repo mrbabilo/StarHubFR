@@ -19,7 +19,6 @@
 *   **Mod Manager**: Enable or disable mods effortlessly through a beautiful app interface — no manual file moving required. Enable or disable **every mod at once** (progress bar, lossless moves) and **delete** a mod or pack from disk after confirmation.
 *   **Drag & Drop Mod Installer**: Drag a `.zip` file directly into the app to install one or more mods. Automatic structure detection (single-mod, multi-mod pack), integrity validation (anti-zip-bomb, < 500 MB), conflict preview and missing dependency suggestions.
 *   **Mod Profiles**: Group mods into multiple profiles and switch between them instantly with a single click.
-*   **Thai Translation Hub**: A dedicated hub listing all Thai translation mods — browse, check status, download, and track updates in one place.
 *   **Nexus Mods Updates & Downloads**: Check for mod updates via the Nexus Mods API (API key stored in the macOS Keychain, update detection even at identical version by upload date), then **download them right in the app** — a *Premium update* button (Premium account required) or *Nexus update* via the free `nxm://` link. After installing, the `manifest.json` is auto-reconciled so the mod stops showing a phantom "update available".
 *   **Rich Mod Detail Pane**: A dedicated pane shows the mod's **full description** (BBCode/HTML rendered as native text — bold, lists, links, native-size images, collapsible spoilers), its complete **changelog**, and a **transitive dependency tree** (enabled/disabled/missing status, Enable/Nexus/Search actions, click-through between mods). Category and Nexus-id editing live in the pane.
 *   **Mod Backups**:
@@ -31,7 +30,8 @@
     *   View details of all save files (money, in-game time, season, farm layout)
     *   Duplicate or delete save files
     *   Edit money and basic character stats
-*   **Developer Logs**: Monitor SMAPI output in real time directly within the app.
+*   **Developer Logs**: Monitor SMAPI output in real time directly within the app. Filter by source (StarHubFR/SMAPI) and by level with counts, search, and copy lines that keep their origin and the mod they came from.
+*   **SMAPI Diagnostics**: A health card at the top of the logs turns `SMAPI-latest.txt` into a readable diagnosis — SMAPI and game versions, loaded mods and content packs, skipped or failed mods **with the reason**, missing dependencies, mods that change game code or your saves, and the mods logging the most errors. It leads with **"What you can do"**: actionable advice in plain language instead of jargon. An **"Errors you can ignore"** section recognizes common false alarms (GOG Galaxy sign-in, an unavailable optional integration, a missing companion mod, a mod failing to read its own data), names the mod involved, quotes the original message, and offers a button that jumps straight to its lines in the log — and they no longer count against the mod. A badge flags a stale log, and a button reveals it in Finder.
 *   **In-App Changelog Viewer**: Browse the version history (`CHANGELOG.md`) directly from the app's sidebar.
 *   **Bilingual Support**: Switch the app language instantly between French and English.
 *   **Native macOS UI**: A clean, intuitive interface designed to feel right at home on macOS.
@@ -99,3 +99,11 @@ Release files will be saved in the `bundles/` folder.
 
 This project is released under the [MIT License](LICENSE). Feel free to fork, modify, and build upon it.
 Original project: [StarHubTH](https://github.com/AppleBoiy/StarHubTH) by **AppleBoiy** — which offers a **Thai** version.
+
+### Acknowledgements
+
+StarHubFR's **SMAPI diagnostics** owe a lot to the following work:
+
+*   [**SMAPILogDoctor.py**](https://github.com/ZeroXPatch/Projects-for-Nexus-Mod/blob/main/SMAPILogDoctor.py) by **ZeroXPatch** — the idea of a player-facing SMAPI log doctor (skipped mods with their reason, missing dependencies, risk categories, suggested fixes) was the starting point for our parser.
+*   [**smapi.io/log**](https://smapi.io/log/) — SMAPI's official log parser, our reference for what's worth extracting from a log.
+*   [**SMAPI**](https://github.com/pathoschild/SMAPI) by **Pathoschild** — the exact log format (warning-group sections, levels, headers) was verified directly against the sources, notably `LogManager.cs`.

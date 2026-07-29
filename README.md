@@ -15,36 +15,65 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/Licence-MIT-yellow" alt="MIT License"></a>
 </p>
 
+**StarHubFR est un gestionnaire de mods Stardew Valley natif pour macOS, en français.**
+Installez, organisez et dépannez votre collection de mods sans jamais toucher au Finder ni au terminal — même avec plusieurs centaines de mods.
+
+## Pourquoi StarHubFR
+
+*   🇫🇷 **Entièrement en français** — interface, messages d'erreur et diagnostics, avec bascule instantanée vers l'anglais.
+*   🩺 **Il vous explique ce qui ne va pas** — StarHubFR lit le journal SMAPI à votre place et vous dit quoi faire, en langage clair, au lieu de vous laisser face à un mur de texte technique.
+*   🍎 **Vraiment natif macOS** — Swift et SwiftUI, sans Electron ni couche web, accessible à VoiceOver.
+*   🧩 **Calibré pour les grosses collections** — pensé et testé sur des installations de plusieurs centaines de mods (SVE et compagnie).
+
 <p align="center">
   <img src="https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/features_banner.png" alt="Fonctionnalités principales" width="300">
 </p>
 
-*   **Lancement facile du jeu** : Lancez Stardew Valley en mode Vanilla (original) ou via SMAPI pour jouer avec des mods.
-*   **Gestionnaire de Mods** : Activez ou désactivez vos mods facilement grâce à une interface élégante — plus besoin de déplacer les fichiers manuellement. Activez ou désactivez **tous les mods d'un coup** (barre de progression, déplacements sans perte) et **supprimez** un mod ou un pack du disque après confirmation.
-*   **Installation de Mods par Glisser-Déposer** : Glissez un fichier `.zip` directement dans l'application pour installer un ou plusieurs mods. Détection automatique de la structure (mono-mod, pack multi-mods), validation d'intégrité (anti-zip-bomb, < 500 Mo), aperçu des conflits et suggestions de dépendances manquantes.
-*   **Profils de Mods** : Regroupez vos mods dans plusieurs profils et passez de l'un à l'autre en un seul clic.
-*   **Centre de Traductions Thaï** : Un espace dédié listant tous les mods de traduction en thaï — parcourez, vérifiez le statut, téléchargez et suivez les mises à jour au même endroit.
-*   **Mises à jour et Téléchargements Nexus Mods** : Vérifiez les mises à jour de vos mods via l'API Nexus Mods (clé API stockée dans le trousseau macOS, détection même à version identique par date d'upload), puis **téléchargez-les directement dans l'application** — bouton *MàJ Premium* (compte Premium requis) ou *MàJ Nexus* via le lien `nxm://` gratuit. Après installation, le `manifest.json` est réconcilié automatiquement pour que le mod ne réapparaisse pas comme « à mettre à jour ».
-*   **Fiche Détaillée de Mod** : Un volet dédié affiche la **description complète** du mod (BBCode/HTML rendu en texte natif — gras, listes, liens, images à taille native, spoilers repliables), son **journal des modifications** complet, et un **arbre de dépendances transitif** (statut activé/désactivé/manquant, actions Activer/Nexus/Chercher, navigation d'un mod à l'autre). Édition de la catégorie et de l'identifiant Nexus depuis le volet.
-*   **Sauvegardes de Mods** :
-    *   *Sauvegarde d'installation* : Sauvegarde automatique avant l'écrasement d'un mod, avec rétention hybride (5 plus récents + ≤30 jours + 1 par mois au-delà).
-    *   *Sauvegarde de configuration* : Sauvegarde et restauration des fichiers `config.json`/`fr.json` des mods activés.
-*   **Éditeur de Configuration de Mods** : Modifiez le fichier `config.json` d'un mod directement dans l'application, via un éditeur visuel hiérarchique (arborescence de réglages typés avec recherche) ou un éditeur JSON brut avec numéros de ligne et validation en direct. Boutons de réinitialisation et de restauration depuis une sauvegarde locale.
-*   **Liste des Mods Avancée** : Classification automatique par **type** (UI, Framework, Content Patcher, Traduction, PNJ, Audio, Carte…) déduit du manifeste, servant aussi de repli hors-ligne au filtre par catégories. Filtrage par catégories, pagination (15 mods/page avec saut de page direct), filtre pour mods non catégorisés, filtre « Avec config » (mods configurables uniquement), tri par nom (A-Z/Z-A), auteur, version ou ordre d'activation. Un bouton d'engrenage sur chaque mod configurable ouvre directement l'éditeur de configuration.
-*   **Gestionnaire de Sauvegardes** :
-    *   Consultez les détails de toutes vos sauvegardes (argent, heure dans le jeu, saison, type de ferme)
-    *   Dupliquez ou supprimez des sauvegardes
-    *   Modifiez l'argent et les statistiques de base du personnage
-*   **Journaux de Développement** : Suivez la sortie SMAPI en temps réel directement dans l'application. Filtrage par source (StarHubFR/SMAPI) et par niveau avec compteurs, recherche, et copie de lignes conservant l'origine et le mod concerné.
-*   **Diagnostic SMAPI** : Une carte de santé en haut des journaux résume l'état de votre installation — versions SMAPI/jeu, nombre de mods et packs chargés, mods ignorés ou en échec (avec la raison), dépendances manquantes, mods modifiant le code du jeu ou vos sauvegardes, et mods générant le plus d'erreurs. Elle met en avant **ce que vous pouvez faire** : des conseils actionnables en français clair (« installez telle dépendance », « ce mod est installé en double », …). Une section **« Erreurs que vous pouvez ignorer »** explique les erreurs bénignes fréquentes (connexion GOG Galaxy, intégration optionnelle indisponible, mod compagnon absent, données de mod illisibles) en nommant le mod concerné, avec le message d'origine et un bouton pour retrouver ses lignes dans le journal. Un badge signale un journal périmé, et un bouton l'ouvre dans le Finder.
-*   **Journal des Modifications Intégré** : Consultez l'historique des versions (`CHANGELOG.md`) directement depuis la barre latérale de l'application.
-*   **Support Bilingue** : Basculez instantanément la langue de l'application entre le français et l'anglais.
-*   **Interface Native macOS** : Une interface propre et intuitive conçue pour s'intégrer parfaitement à macOS.
-*   **Accessibilité VoiceOver** : Navigation au lecteur d'écran complète sur la liste des mods, les boutons d'action, la barre latérale et la zone d'installation vide.
-*   **Indicateur d'état système** : Un résumé permanent en bas de la barre latérale affiche le nombre de mods actifs, les mises à jour disponibles et les erreurs SMAPI.
-*   **Zone d'installation vide** : Quand aucun mod n'est installé, une grande zone visuelle invitant à glisser-déposer un `.zip` remplace le simple message texte.
-*   **Images de mods en cache** : Les bannières de mod dans la fiche détaillée sont maintenant mises en cache pour un affichage plus rapide.
-*   **Recherche améliorée** : Les liens de dépendances manquantes ouvrent Nexus avec un terme de recherche humainement lisible (ex. « Content Patcher » plutôt que « Pathoschild.ContentPatcher »).
+### 🩺 Diagnostic SMAPI — le point fort
+
+Quand le jeu plante ou qu'un mod refuse de se charger, StarHubFR transforme le journal SMAPI en diagnostic lisible.
+
+*   **« Ce que vous pouvez faire »** — des conseils actionnables, pas du jargon : « installez telle dépendance », « ce mod est installé en double, gardez une seule copie », « ce mod ne prend pas en charge votre version du jeu ».
+*   **Un état de santé en un coup d'œil** — versions SMAPI et jeu, mods et packs chargés, mods ignorés ou en échec **avec leur raison**, dépendances manquantes.
+*   **Les mods à surveiller** — ceux qui modifient le code du jeu, ceux qui changent vos sauvegardes, ceux qui génèrent le plus d'erreurs — chacun avec une explication de ce que ça implique pour vous.
+*   **« Erreurs que vous pouvez ignorer »** — les fausses alertes sont reconnues et expliquées (connexion GOG Galaxy, intégration optionnelle indisponible, mod compagnon absent, données de mod illisibles) : le mod est nommé, le message d'origine est cité comme preuve, et un bouton vous emmène directement à ses lignes dans le journal. Elles ne comptent plus comme des problèmes — un mod qui marche n'est plus accusé à tort.
+*   **Journal périmé** — un badge vous prévient si le journal date d'avant votre session, et un bouton l'ouvre dans le Finder.
+
+### 📦 Installation et organisation des mods
+
+*   **Glisser-déposer un `.zip`** — détection automatique de la structure (mod seul ou pack multi-composants), validation d'intégrité (anti-zip-bomb, < 500 Mo), aperçu des conflits et suggestion des dépendances manquantes.
+*   **Activation sans déplacer de fichiers** — activez ou désactivez un mod d'un clic, ou **tous vos mods d'un coup** (barre de progression, aucune perte). Supprimez un mod ou un pack du disque après confirmation.
+*   **Profils de mods** — regroupez vos mods en plusieurs profils et basculez de l'un à l'autre en un clic.
+*   **Liste avancée** — classification automatique par type (UI, Framework, Content Patcher, Traduction, PNJ, Audio, Carte…) déduite du manifeste, qui sert aussi de repli hors ligne. Filtres par catégorie, mods non catégorisés, mods configurables ; tri par nom, auteur, version ou ordre d'activation ; pagination avec saut de page direct.
+
+### 🔄 Mises à jour et téléchargements Nexus Mods
+
+*   **Détection des mises à jour** via l'API Nexus Mods — clé stockée dans le trousseau macOS, détection fiable même à numéro de version identique (comparaison par date d'upload).
+*   **Téléchargement dans l'application** — bouton *MàJ Premium* pour les comptes Premium, ou *MàJ Nexus* via le lien `nxm://` pour les comptes gratuits.
+*   **Réconciliation automatique du `manifest.json`** après installation, pour qu'un mod mis à jour ne réapparaisse pas indéfiniment comme « à mettre à jour ».
+
+### 📖 Fiche détaillée de mod
+
+*   **Description complète** rendue en texte natif (BBCode/HTML) — gras, listes, liens, images à taille native, spoilers repliables.
+*   **Journal des modifications** du mod, et **arbre de dépendances transitif** avec statut (activé, désactivé, manquant), actions *Activer* / *Nexus* / *Chercher*, et navigation d'un mod à l'autre.
+*   Édition de la catégorie et de l'identifiant Nexus directement depuis le volet.
+*   Bannières mises en cache pour un affichage instantané.
+
+### ⚙️ Configuration et sauvegardes
+
+*   **Éditeur de configuration** — modifiez le `config.json` d'un mod via un éditeur visuel hiérarchique (arborescence de réglages typés avec recherche) ou un éditeur JSON brut avec numéros de ligne et validation en direct. Réinitialisation et restauration depuis une sauvegarde locale.
+*   **Sauvegarde d'installation** — copie automatique avant l'écrasement d'un mod, avec rétention hybride (5 plus récentes + celles de moins de 30 jours + 1 par mois au-delà).
+*   **Sauvegarde de configuration** — sauvegardez et restaurez les `config.json` / `fr.json` de vos mods activés.
+*   **Gestionnaire de sauvegardes de partie** — consultez le détail de vos parties (argent, date en jeu, saison, type de ferme), dupliquez-les, supprimez-les, ou ajustez l'argent et les statistiques du personnage.
+
+### 🎮 Au quotidien
+
+*   **Lancement du jeu** — démarrez Stardew Valley en mode Vanilla ou via SMAPI, directement depuis l'accueil.
+*   **Journaux en temps réel** — sortie SMAPI et StarHubFR dans l'application, avec filtrage par source et par niveau (compteurs à l'appui), recherche, et copie de lignes conservant l'origine et le mod concerné.
+*   **Indicateur d'état système** — mods actifs, mises à jour disponibles et erreurs SMAPI, visibles en permanence en bas de la barre latérale.
+*   **Journal des modifications intégré** — l'historique des versions se consulte depuis la barre latérale.
+*   **Accessibilité VoiceOver** — navigation complète au lecteur d'écran sur la liste des mods, les boutons d'action et la barre latérale.
+*   **Détails qui comptent** — zone de glisser-déposer dédiée quand aucun mod n'est installé, recherche Nexus avec des termes lisibles (« Content Patcher » plutôt que `Pathoschild.ContentPatcher`), infobulles sur tous les boutons d'icône.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/screenshots_banner.png" alt="Captures d'écran" width="300">
