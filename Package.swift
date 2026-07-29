@@ -33,6 +33,7 @@ let package = Package(
                 "Models/DependencyTree.swift",
                 "Models/SmapiLogDiagnostics.swift",
                 "Models/LogNoise.swift",
+                "Models/ModErrorHistory.swift",
                 "L10n.swift",
                 "AppDesignCore.swift",
                 "ContrastChecker.swift",
@@ -108,6 +109,11 @@ let package = Package(
             name: "LogNoiseTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/LogNoiseTests"
+        ),
+        .testTarget(
+            name: "ModErrorHistoryTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ModErrorHistoryTests"
         ),
         .testTarget(
             name: "DesignSystemTests",
