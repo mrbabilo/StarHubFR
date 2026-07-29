@@ -5,7 +5,7 @@ struct LogsView: View {
 
     // Source tabs: nil = All, .app = StarHubFR, .smapi = SMAPI
     @State private var selectedSource: LogSource? = nil
-    // Level filter (only visible when a source is selected)
+    // Level filter (TRACE pill hidden on the StarHubFR source)
     @State private var selectedLevel: LogLevel? = nil
     @State private var searchText: String = ""
     @State private var autoScroll: Bool = true
@@ -63,7 +63,9 @@ struct LogsView: View {
                 levelPill(.info,    label: "INFO",  count: views.counts[.info] ?? 0)
                 levelPill(.warning, label: "WARN",  count: views.counts[.warning] ?? 0)
                 levelPill(.error,   label: "ERROR", count: views.counts[.error] ?? 0)
-                levelPill(.smapi,   label: "TRACE", count: views.counts[.smapi] ?? 0)
+                if selectedSource != .app {
+                    levelPill(.trace, label: "TRACE", count: views.counts[.trace] ?? 0)
+                }
 
                 Spacer()
             }
@@ -328,7 +330,7 @@ struct LogEntryRow: View {
                 // SMAPI TRACE entries are dimmed since they're verbose/noisy.
                 Text(entry.message)
                     .font(.system(size: 12, design: .monospaced))
-                    .foregroundColor(entry.source == .smapi && entry.level == .smapi
+                    .foregroundColor(entry.source == .smapi && entry.level == .trace
                         ? entry.level.color.opacity(0.75)
                         : entry.level.color)
                     .textSelection(.enabled)

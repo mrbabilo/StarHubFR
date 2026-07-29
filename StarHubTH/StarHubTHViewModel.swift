@@ -45,14 +45,14 @@ enum LogLevel: String, CaseIterable {
     case info    = "INFO"
     case warning = "WARN"
     case error   = "ERROR"
-    case smapi   = "SMAPI"   // TRACE/DEBUG from SMAPI file
+    case trace   = "TRACE"   // TRACE/DEBUG lines from the SMAPI log
 
     var color: Color {
         switch self {
         case .info:    return .primary
         case .warning: return .orange
         case .error:   return .red
-        case .smapi:   return .blue
+        case .trace:   return .blue
         }
     }
 
@@ -61,7 +61,7 @@ enum LogLevel: String, CaseIterable {
         case .info:    return "info.circle"
         case .warning: return "exclamationmark.triangle"
         case .error:   return "xmark.octagon"
-        case .smapi:   return "terminal"
+        case .trace:   return "terminal"
         }
     }
 }
@@ -2053,7 +2053,7 @@ class StarHubTHViewModel: ObservableObject {
                 case "WARN":   level = .warning
                 case "ALERT":  level = .warning
                 case "INFO":   level = .info
-                default:       level = .smapi  // TRACE, DEBUG, etc.
+                default:       level = .trace  // TRACE, DEBUG, etc.
                 }
 
                 // Message = everything after "] "
@@ -2091,13 +2091,19 @@ class StarHubTHViewModel: ObservableObject {
             // (startSmapiLogWatcher) and every tab open appended the whole log
             // again, producing N duplicate copies after N launches.
             self.logEntries.removeAll { $0.source == .smapi }
-            self.logEntries.append(contentsOf: trimmedEntries)
+            // Budget the SMAPI block to whatever room is left after the app
+            // entries, instead of trimming the *combined* array from the front.
+            // The front holds the StarHubFR (app) entries, so a front-trim wiped
+            // the whole app log whenever the SMAPI log was large (~2000 lines).
+            let appCount = self.logEntries.count
+            let smapiBudget = max(0, self.maxLogEntries - appCount)
+            let cappedSmapi = trimmedEntries.count > smapiBudget
+                ? Array(trimmedEntries.suffix(smapiBudget))
+                : trimmedEntries
+            self.logEntries.append(contentsOf: cappedSmapi)
             self.smapiDiagnostics = smapiDiag
             self.smapiLogDate = smapiDate
             self.smapiLogStale = smapiStale
-            if self.logEntries.count > self.maxLogEntries {
-                self.logEntries.removeFirst(self.logEntries.count - self.maxLogEntries)
-            }
         }
     }
 
