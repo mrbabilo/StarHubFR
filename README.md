@@ -38,6 +38,8 @@ Quand le jeu plante ou qu'un mod refuse de se charger, StarHubFR transforme le j
 *   **Les mods à surveiller** — ceux qui modifient le code du jeu, ceux qui changent vos sauvegardes, ceux qui génèrent le plus d'erreurs — chacun avec une explication de ce que ça implique pour vous.
 *   **« Erreurs que vous pouvez ignorer »** — les fausses alertes sont reconnues et expliquées (connexion GOG Galaxy, intégration optionnelle indisponible, mod compagnon absent, données de mod illisibles) : le mod est nommé, le message d'origine est cité comme preuve, et un bouton vous emmène directement à ses lignes dans le journal. Elles ne comptent plus comme des problèmes — un mod qui marche n'est plus accusé à tort.
 *   **Journal périmé** — un badge vous prévient si le journal date d'avant votre session, et un bouton l'ouvre dans le Finder.
+*   **Journaux lisibles** — les lignes répétitives (un vrai journal en compte des milliers) sont repliées en une ligne dépliable, et un bouton regroupe les entrées par mod, les plus problématiques en tête. Rien n'est supprimé : le détail reste à un clic.
+*   **Suivi des erreurs par version** — chaque mod garde l'historique des erreurs et avertissements qu'il a journalisés, **version par version**, consultable depuis sa fiche : de quoi savoir si une nouvelle version se comporte moins bien que la précédente.
 
 ### 📦 Installation et organisation des mods
 
