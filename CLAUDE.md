@@ -49,5 +49,9 @@ via `release.py`. → skill `release`.
 ## Git
 
 Travailler sur `main`. **Pousser uniquement quand l'utilisateur le demande.**
-Terminer les messages de commit par :
-`Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>`
+Terminer les messages de commit par un trailer nommant le **modèle qui a
+réellement écrit le commit**, et non un modèle figé :
+`Co-Authored-By: Claude <Modèle> <noreply@anthropic.com>`
+— par exemple `Claude Opus 5`, `Claude Sonnet 5`. L'historique antérieur à
+2026-07-30 porte `Claude Sonnet 5` y compris pour des commits d'autres modèles :
+ne pas s'y fier comme source de vérité.
