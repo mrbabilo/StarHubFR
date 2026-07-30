@@ -389,18 +389,30 @@ struct ModDetailView: View {
     }
 
     private func seedDraft() {
-        nexusIdDraft = vm.effectiveNexusModId(for: mod)
+        // `resolved…`, not `effective…`: a pack header carries no id of its own
+        // (it isn't a mod), so `effectiveNexusModId` returned "" and the field
+        // looked empty even though the pack's children declare an id — which
+        // the rest of this pane happily uses, since the header link and the
+        // description both resolve through the children. The field was the only
+        // place showing nothing.
+        nexusIdDraft = vm.resolvedNexusModId(for: mod)
     }
 
     private func commitDraft() {
         let trimmed = nexusIdDraft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard isValidNexusIdDraft(trimmed) else { return }
         vm.setCustomNexusModId(for: mod, modId: trimmed.isEmpty ? nil : trimmed)
-        nexusIdDraft = vm.effectiveNexusModId(for: mod)
+        nexusIdDraft = vm.resolvedNexusModId(for: mod)
+        // The description, changelog and dependency pane all key off the mod
+        // id, but they were only ever loaded when navigating *into* the pane
+        // (`viewingModDetail.didSet`). Entering an id therefore fetched the
+        // metadata below while the description kept showing the local manifest
+        // text — the one thing the user was trying to fix. Reload it here.
+        vm.loadModDetail(for: mod)
         // When a mod id is saved, fetch its metadata (category + latest
         // version) from Nexus so the badge and update detection pick it up
         // immediately. Clearing the id resets the status to idle.
-        let effectiveId = vm.effectiveNexusModId(for: mod)
+        let effectiveId = vm.resolvedNexusModId(for: mod)
         guard !effectiveId.isEmpty else { fetchStatus = .idle; return }
         fetchStatus = .loading
         vm.fetchMetadata(forNexusModId: effectiveId) { result in
@@ -421,7 +433,10 @@ struct ModDetailView: View {
 
     private func resetDraft() {
         vm.setCustomNexusModId(for: mod, modId: nil)
-        nexusIdDraft = vm.effectiveNexusModId(for: mod)
+        nexusIdDraft = vm.resolvedNexusModId(for: mod)
+        // Same reason as in `commitDraft`: dropping a custom id changes which
+        // Nexus mod this pane describes, so the description has to follow.
+        vm.loadModDetail(for: mod)
         fetchStatus = .idle
     }
 
