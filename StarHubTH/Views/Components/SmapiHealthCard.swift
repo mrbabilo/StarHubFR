@@ -2,11 +2,15 @@ import SwiftUI
 
 /// Collapsible SMAPI health summary for the Logs view.
 ///
-/// Renders versions + counts in a header, and — when there are problems — lists
-/// skipped mods, failed mods, and external conflicts (each `name — reason`).
+/// Layout follows severity: a status line and a count-per-severity strip give
+/// the verdict at a glance, then "what you can do", then the evidence grouped
+/// into visually distinct blocks. Sections are cards rather than a single
+/// stack — with eight of them, uniform spacing and one type size made the
+/// content unreadable.
+///
 /// Auto-collapses when healthy (`problemCount == 0`); the chevron toggles a
 /// manual override. Shown only when the ViewModel has parsed a meaningful log
-/// (gating lives in `LogsView`). Card style mirrors `SystemAlertsView`.
+/// (gating lives in `LogsView`).
 struct SmapiHealthCard: View {
     @ObservedObject var vm: StarHubTHViewModel
 
@@ -27,9 +31,10 @@ struct SmapiHealthCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 0) {
             header
             if isExpanded && (!isHealthy || hasDetails) {
+                Divider()
                 // The body scrolls inside a bounded height: on a large modlist
                 // it runs to thousands of points, which used to push the log
                 // list off-screen AND carry the collapse chevron out of view,
@@ -37,234 +42,368 @@ struct SmapiHealthCard: View {
                 // this ScrollView so it is always reachable.
                 ScrollView {
                     problems
+                        .padding(AppDesignCore.Spacing.lg)
                 }
-                .frame(maxHeight: 260)
+                .frame(maxHeight: 340)
             }
         }
-        .padding(20)
-        .background(isHealthy ? Color.green.opacity(0.06) : Color.primary.opacity(0.04))
-        .cornerRadius(12)
+        .background(Color(nsColor: .controlBackgroundColor))
+        .overlay(
+            RoundedRectangle(cornerRadius: AppDesignCore.Radius.lg)
+                .stroke(accent.opacity(AppDesignCore.Opacity.medium), lineWidth: 1)
+        )
+        .cornerRadius(AppDesignCore.Radius.lg)
     }
+
+    /// Card tint follows the verdict, so the state reads before any text does.
+    private var accent: Color { isHealthy ? .green : .orange }
 
     // MARK: - Header
 
+    /// Status, version summary, and a severity strip — the whole verdict without
+    /// expanding anything.
     private var header: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 10) {
-            Image(systemName: isHealthy ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-                .foregroundColor(isHealthy ? .green : .orange)
-                .font(.system(size: 14))
+        VStack(alignment: .leading, spacing: AppDesignCore.Spacing.sm) {
+            HStack(alignment: .center, spacing: AppDesignCore.Spacing.md) {
+                Image(systemName: isHealthy ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                    .foregroundColor(accent)
+                    .font(.system(size: 22))
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(summary)
-                    .font(.system(size: 12, weight: .medium))
-                    .fixedSize(horizontal: false, vertical: true)
-                if isHealthy {
-                    Text(vm.L(L10n.Logs.healthHealthy))
-                        .font(.system(size: 11))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(isHealthy ? vm.L(L10n.Logs.healthHealthy) : vm.L(L10n.Logs.healthTitle))
+                        .font(.system(size: 14, weight: .semibold))
+                    if !versionLine.isEmpty {
+                        Text(versionLine)
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                Spacer()
+
+                if vm.smapiLogStale { staleBadge }
+
+                Button { vm.revealSmapiLogInFinder() } label: {
+                    Image(systemName: "folder")
+                        .font(.system(size: 12))
                         .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+                .pointingHandCursor()
+                .help(vm.L(L10n.Logs.healthReveal))
+
+                if !isHealthy || hasDetails {
+                    Button { userCollapsed = !isExpanded } label: {
+                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .pointingHandCursor()
                 }
             }
 
-            Spacer()
-
-            if vm.smapiLogStale { staleBadge }
-
-            Button { vm.revealSmapiLogInFinder() } label: {
-                Image(systemName: "folder").foregroundColor(.secondary)
+            if !severityCounts.isEmpty {
+                HStack(spacing: AppDesignCore.Spacing.sm) {
+                    ForEach(severityCounts, id: \.label) { item in
+                        countChip(item.count, item.label, item.color)
+                    }
+                }
             }
-            .buttonStyle(.plain)
-            .help(vm.L(L10n.Logs.healthReveal))
-
-            Button { userCollapsed = !isExpanded } label: {
-                Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                    .foregroundColor(.secondary)
-            }
-            .buttonStyle(.plain)
         }
+        .padding(AppDesignCore.Spacing.lg)
+        .background(accent.opacity(0.07))
+    }
+
+    /// Problem counts by kind — the overview the card used to lack entirely:
+    /// previously you had to expand and count list items yourself.
+    private var severityCounts: [(count: Int, label: String, color: Color)] {
+        let d = diagnostics
+        var out: [(Int, String, Color)] = []
+        let blocking = d.skipped.count + d.failed.count + d.brokenMods.count
+        if blocking > 0 { out.append((blocking, vm.L(L10n.Logs.healthCountBlocking), .red)) }
+        if !d.missingDeps.isEmpty { out.append((d.missingDeps.count, vm.L(L10n.Logs.healthCountDeps), .orange)) }
+        let advisory = d.saveSerializerMods.count + d.patchedMods.count + d.consoleMods.count
+        if advisory > 0 { out.append((advisory, vm.L(L10n.Logs.healthCountAdvisory), .secondary)) }
+        if !d.benignNotices.isEmpty { out.append((d.benignNotices.count, vm.L(L10n.Logs.healthCountBenign), .green)) }
+        return out.map { (count: $0.0, label: $0.1, color: $0.2) }
+    }
+
+    private func countChip(_ count: Int, _ label: String, _ color: Color) -> some View {
+        HStack(spacing: AppDesignCore.Spacing.xs) {
+            Text("\(count)")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(color)
+            Text(label)
+                .font(.system(size: 11))
+                .foregroundColor(.secondary)
+        }
+        .padding(.horizontal, AppDesignCore.Spacing.sm)
+        .padding(.vertical, AppDesignCore.Spacing.xs)
+        .background(color.opacity(AppDesignCore.Opacity.light))
+        .cornerRadius(AppDesignCore.Radius.sm)
     }
 
     /// Orange "Stale log" pill + a relative time. Note: `Text(date, style: .relative)`
     /// formats via the *system* locale, not the in-app L10n toggle — accepted as a
     /// minor v1 inconsistency (it is a secondary detail in the badge).
     private var staleBadge: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: AppDesignCore.Spacing.xs) {
+            Image(systemName: "clock.badge.exclamationmark")
+                .font(.system(size: 10))
             Text(vm.L(L10n.Logs.healthStale))
                 .font(.system(size: 10, weight: .medium))
             if let date = vm.smapiLogDate {
                 Text(date, style: .relative).font(.system(size: 10))
             }
         }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 2)
-        .background(Color.orange.opacity(0.15))
-        .cornerRadius(4)
+        .padding(.horizontal, AppDesignCore.Spacing.sm)
+        .padding(.vertical, 3)
+        .background(Color.orange.opacity(AppDesignCore.Opacity.medium))
+        .cornerRadius(AppDesignCore.Radius.sm)
         .foregroundColor(.orange)
     }
 
-    // MARK: - Problems
+    // MARK: - Body
 
-    /// Body of the expanded card: what to do first, then the details behind it.
-    /// Suggestions lead because they're the actionable part for a non-expert;
-    /// the category lists below are the evidence.
+    /// What to do first, then the evidence behind it. Suggestions lead because
+    /// they're the actionable part for a non-expert.
     private var problems: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            if !suggestions.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(vm.L(L10n.Logs.healthSuggestionsTitle))
-                        .font(.system(size: 11, weight: .semibold))
-                    ForEach(Array(suggestions.enumerated()), id: \.offset) { _, text in
-                        HStack(alignment: .top, spacing: 6) {
-                            Image(systemName: "lightbulb")
-                                .font(.system(size: 10))
-                                .foregroundColor(.accentColor)
-                                .padding(.top, 1)
-                            Text(text)
-                                .font(.system(size: 11))
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                }
-            }
+        VStack(alignment: .leading, spacing: AppDesignCore.Spacing.lg) {
+            if !suggestions.isEmpty { suggestionsBlock }
 
             if !diagnostics.skipped.isEmpty {
-                issueSection(L10n.Logs.healthSkipped, items: diagnostics.skipped)
+                issueSection(L10n.Logs.healthSkipped, items: diagnostics.skipped, severity: .red)
             }
             if !diagnostics.failed.isEmpty {
-                issueSection(L10n.Logs.healthFailed, items: diagnostics.failed)
+                issueSection(L10n.Logs.healthFailed, items: diagnostics.failed, severity: .red)
             }
             if !diagnostics.brokenMods.isEmpty {
-                modSection(L10n.Logs.healthBroken, explanation: L10n.Logs.healthExpBroken, mods: diagnostics.brokenMods, logHeader: "Broken mods")
+                modSection(L10n.Logs.healthBroken, explanation: L10n.Logs.healthExpBroken,
+                           mods: diagnostics.brokenMods, severity: .red, logHeader: "Broken mods")
             }
-            if !diagnostics.externalConflicts.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(vm.L(L10n.Logs.healthConflicts))
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(.secondary)
-                    ForEach(diagnostics.externalConflicts, id: \.self) { conflict in
-                        Text("• \(conflict)").font(.system(size: 11))
-                    }
-                }
-            }
+            if !diagnostics.externalConflicts.isEmpty { conflictsBlock }
             if !diagnostics.saveSerializerMods.isEmpty {
-                modSection(L10n.Logs.healthSaveSerializer, explanation: L10n.Logs.healthExpSave, mods: diagnostics.saveSerializerMods, logHeader: "Changed save serializer")
+                modSection(L10n.Logs.healthSaveSerializer, explanation: L10n.Logs.healthExpSave,
+                           mods: diagnostics.saveSerializerMods, severity: .orange,
+                           logHeader: "Changed save serializer")
             }
             if !diagnostics.patchedMods.isEmpty {
-                modSection(L10n.Logs.healthPatched, explanation: L10n.Logs.healthExpPatched, mods: diagnostics.patchedMods, logHeader: "Patched game code")
+                modSection(L10n.Logs.healthPatched, explanation: L10n.Logs.healthExpPatched,
+                           mods: diagnostics.patchedMods, severity: .secondary,
+                           logHeader: "Patched game code")
             }
             if !diagnostics.consoleMods.isEmpty {
-                modSection(L10n.Logs.healthConsole, explanation: L10n.Logs.healthExpConsole, mods: diagnostics.consoleMods, logHeader: "Direct console access")
+                modSection(L10n.Logs.healthConsole, explanation: L10n.Logs.healthExpConsole,
+                           mods: diagnostics.consoleMods, severity: .secondary,
+                           logHeader: "Direct console access")
             }
-            if !diagnostics.benignNotices.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(vm.L(L10n.Logs.healthBenign))
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(.secondary)
-                    Text(vm.L(L10n.Logs.healthExpBenign))
-                        .font(.system(size: 10))
-                        .foregroundColor(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    ForEach(diagnostics.benignNotices) { notice in
-                        HStack(alignment: .top, spacing: 6) {
-                            Image(systemName: "checkmark.circle")
-                                .font(.system(size: 10))
-                                .foregroundColor(.green)
-                                .padding(.top, 1)
-                            VStack(alignment: .leading, spacing: 1) {
-                                // Name the mod up front: the player needs to know
-                                // *which* mod is fine, not just that something is.
-                                if let mod = notice.mod {
-                                    HStack(spacing: 4) {
-                                        Text(mod).font(.system(size: 11, weight: .medium))
-                                        if notice.count > 1 {
-                                            Text("×\(notice.count)")
-                                                .font(.system(size: 10))
-                                                .foregroundColor(.secondary)
-                                        }
-                                        openModButton(mod)
-                                        showInLogButton(mod)
-                                    }
-                                }
-                                Text(benignText(notice))
-                                    .font(.system(size: 11))
-                                    .fixedSize(horizontal: false, vertical: true)
-                                // The original line, so the explanation can be
-                                // checked against the raw log.
-                                if !notice.sample.isEmpty {
-                                    Text(notice.sample)
-                                        .font(.system(size: 9, design: .monospaced))
-                                        .foregroundColor(.secondary)
-                                        .textSelection(.enabled)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                }
-                            }
-                        }
+            if !diagnostics.topErrorMods.isEmpty { topErrorsBlock }
+            if !diagnostics.benignNotices.isEmpty { benignBlock }
+        }
+    }
+
+    // MARK: - Blocks
+
+    private var suggestionsBlock: some View {
+        VStack(alignment: .leading, spacing: AppDesignCore.Spacing.sm) {
+            sectionTitle(vm.L(L10n.Logs.healthSuggestionsTitle), icon: "lightbulb.fill", color: .accentColor)
+            VStack(alignment: .leading, spacing: AppDesignCore.Spacing.sm) {
+                ForEach(Array(suggestions.enumerated()), id: \.offset) { index, text in
+                    HStack(alignment: .top, spacing: AppDesignCore.Spacing.sm) {
+                        Text("\(index + 1).")
+                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .foregroundColor(.accentColor)
+                            .frame(width: 16, alignment: .trailing)
+                        Text(text)
+                            .font(.system(size: 12))
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
             }
-            if !diagnostics.topErrorMods.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(vm.L(L10n.Logs.healthTopErrors))
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(.secondary)
-                    ForEach(diagnostics.topErrorMods) { entry in
-                        HStack(spacing: 6) {
-                            Text("• \(entry.name)").font(.system(size: 11, weight: .medium))
-                            Text(String(format: vm.L(L10n.Logs.healthErrorsCount), Int64(entry.count)))
-                                .font(.system(size: 10))
-                                .foregroundColor(.secondary)
-                            openModButton(entry.name)
-                            showInLogButton(entry.name)
+            .padding(AppDesignCore.Spacing.md)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.accentColor.opacity(0.07))
+            .cornerRadius(AppDesignCore.Radius.md)
+        }
+    }
+
+    private var conflictsBlock: some View {
+        VStack(alignment: .leading, spacing: AppDesignCore.Spacing.sm) {
+            sectionTitle(vm.L(L10n.Logs.healthConflicts), icon: "bolt.trianglebadge.exclamationmark.fill", color: .orange)
+            ForEach(diagnostics.externalConflicts, id: \.self) { conflict in
+                Text(conflict).font(.system(size: 12))
+            }
+        }
+    }
+
+    private var topErrorsBlock: some View {
+        VStack(alignment: .leading, spacing: AppDesignCore.Spacing.sm) {
+            sectionTitle(vm.L(L10n.Logs.healthTopErrors), icon: "chart.bar.fill", color: .secondary)
+            VStack(spacing: AppDesignCore.Spacing.xs) {
+                ForEach(diagnostics.topErrorMods) { entry in
+                    HStack(spacing: AppDesignCore.Spacing.sm) {
+                        Text(entry.name).font(.system(size: 12, weight: .medium))
+                        Text(String(format: vm.L(L10n.Logs.healthErrorsCount), Int64(entry.count)))
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(.red)
+                            .padding(.horizontal, AppDesignCore.Spacing.xs)
+                            .padding(.vertical, 1)
+                            .background(Color.red.opacity(AppDesignCore.Opacity.light))
+                            .cornerRadius(3)
+                        Spacer()
+                        modActions(entry.name)
+                    }
+                }
+            }
+        }
+    }
+
+    private var benignBlock: some View {
+        VStack(alignment: .leading, spacing: AppDesignCore.Spacing.sm) {
+            sectionTitle(vm.L(L10n.Logs.healthBenign), icon: "checkmark.circle.fill", color: .green)
+            Text(vm.L(L10n.Logs.healthExpBenign))
+                .font(.system(size: 11))
+                .foregroundColor(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            VStack(alignment: .leading, spacing: AppDesignCore.Spacing.md) {
+                ForEach(diagnostics.benignNotices) { notice in
+                    VStack(alignment: .leading, spacing: AppDesignCore.Spacing.xs) {
+                        // Name the mod up front: the player needs to know *which*
+                        // mod is fine, not just that something is.
+                        if let mod = notice.mod {
+                            HStack(spacing: AppDesignCore.Spacing.xs) {
+                                Text(mod).font(.system(size: 12, weight: .medium))
+                                if notice.count > 1 {
+                                    Text("×\(notice.count)")
+                                        .font(.system(size: 10, weight: .medium))
+                                        .foregroundColor(.secondary)
+                                        .padding(.horizontal, 4)
+                                        .padding(.vertical, 1)
+                                        .background(Color.secondary.opacity(AppDesignCore.Opacity.light))
+                                        .cornerRadius(3)
+                                }
+                                Spacer()
+                                modActions(mod)
+                            }
+                        }
+                        Text(benignText(notice))
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        // The original line, so the explanation can be checked
+                        // against the raw log.
+                        if !notice.sample.isEmpty {
+                            Text(notice.sample)
+                                .font(.system(size: 10, design: .monospaced))
+                                .foregroundColor(.secondary.opacity(AppDesignCore.Opacity.secondary))
+                                .textSelection(.enabled)
+                                .lineLimit(2)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .padding(AppDesignCore.Spacing.sm)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Color.primary.opacity(0.03))
+                                .cornerRadius(AppDesignCore.Radius.sm)
                         }
                     }
                 }
             }
         }
-        .padding(.top, 2)
+    }
+
+    // MARK: - Section building blocks
+
+    /// A section heading: icon + title in a consistent, larger style than the
+    /// content, so the eye can find section boundaries while scrolling.
+    private func sectionTitle(_ text: String, icon: String, color: Color,
+                              trailing: (() -> AnyView)? = nil) -> some View {
+        HStack(spacing: AppDesignCore.Spacing.xs) {
+            Image(systemName: icon)
+                .font(.system(size: 11))
+                .foregroundColor(color)
+            Text(text)
+                .font(.system(size: 12, weight: .semibold))
+            if let trailing { trailing() }
+            Spacer()
+        }
     }
 
     /// A named mod list preceded by a one-line, jargon-free explanation of what
     /// the category means for the player.
     private func modSection(_ titleKey: String, explanation: String, mods: [String],
-                            logHeader: String? = nil) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 4) {
-                Text(vm.L(titleKey))
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(.secondary)
-                // Shows SMAPI's own block for this category — the full list of
-                // affected mods as it was written, beyond the 8 shown here.
-                if let logHeader {
-                    Button {
-                        NotificationCenter.default.post(name: .showLogSection, object: logHeader)
-                    } label: {
-                        Image(systemName: "list.bullet.rectangle")
-                            .font(.system(size: 10))
-                            .foregroundColor(.accentColor)
+                            severity: Color, logHeader: String? = nil) -> some View {
+        VStack(alignment: .leading, spacing: AppDesignCore.Spacing.sm) {
+            sectionTitle(vm.L(titleKey), icon: "shippingbox.fill", color: severity) {
+                AnyView(
+                    Group {
+                        // Shows SMAPI's own block for this category — the full
+                        // list of affected mods, beyond the few shown here.
+                        if let logHeader {
+                            Button {
+                                NotificationCenter.default.post(name: .showLogSection, object: logHeader)
+                            } label: {
+                                Image(systemName: "list.bullet.rectangle")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.accentColor)
+                            }
+                            .buttonStyle(.plain)
+                            .pointingHandCursor()
+                            .help(vm.L(L10n.Logs.healthShowSection))
+                        }
                     }
-                    .buttonStyle(.plain)
-                    .pointingHandCursor()
-                    .help(vm.L(L10n.Logs.healthShowSection))
-                }
+                )
             }
             Text(vm.L(explanation))
-                .font(.system(size: 10))
+                .font(.system(size: 11))
                 .foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+
             // Cap long lists: with ~900 mods a category can hold dozens of
             // entries. The full picture stays in the raw SMAPI log.
-            ForEach(mods.prefix(Self.maxListedMods), id: \.self) { mod in
-                HStack(spacing: 4) {
-                    Text("• \(mod)").font(.system(size: 11))
-                    // These categories name installed mods, so the useful move
-                    // is opening the mod itself; its log lines are secondary.
-                    openModButton(mod)
-                    showInLogButton(mod)
+            VStack(spacing: AppDesignCore.Spacing.xs) {
+                ForEach(mods.prefix(Self.maxListedMods), id: \.self) { mod in
+                    HStack(spacing: AppDesignCore.Spacing.sm) {
+                        Text(mod).font(.system(size: 12))
+                        Spacer()
+                        modActions(mod)
+                    }
                 }
             }
             if mods.count > Self.maxListedMods {
                 Text(String(format: vm.L(L10n.Logs.healthAndMore), Int64(mods.count - Self.maxListedMods)))
-                    .font(.system(size: 10))
+                    .font(.system(size: 11))
                     .foregroundColor(.secondary)
+            }
+        }
+    }
+
+    private func issueSection(_ titleKey: String, items: [SmapiDiagnostics.Issue],
+                              severity: Color) -> some View {
+        VStack(alignment: .leading, spacing: AppDesignCore.Spacing.sm) {
+            sectionTitle(vm.L(titleKey), icon: "xmark.octagon.fill", color: severity)
+            VStack(alignment: .leading, spacing: AppDesignCore.Spacing.sm) {
+                ForEach(items) { issue in
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: AppDesignCore.Spacing.sm) {
+                            Text(issue.name).font(.system(size: 12, weight: .medium))
+                            Spacer()
+                            modActions(issue.name)
+                        }
+                        Text(issue.reason)
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.leading, AppDesignCore.Spacing.sm)
+                    .overlay(alignment: .leading) {
+                        // A severity rail ties each entry to its section's
+                        // colour without repeating the icon on every row.
+                        Rectangle()
+                            .fill(severity.opacity(AppDesignCore.Opacity.strong))
+                            .frame(width: 2)
+                    }
+                }
             }
         }
     }
@@ -272,36 +411,30 @@ struct SmapiHealthCard: View {
     /// Max mods listed per category before collapsing into "…and N more".
     private static let maxListedMods = 8
 
-    /// Opens the mod in the Mods list, scoped to it — the natural next step when
-    /// the diagnostic is about a mod you may want to disable or update.
-    @ViewBuilder
-    private func openModButton(_ mod: String) -> some View {
-        Button {
-            NotificationCenter.default.post(name: .jumpToMod, object: mod)
-        } label: {
-            Image(systemName: "arrow.right.circle")
-                .font(.system(size: 10))
-                .foregroundColor(.accentColor)
+    /// The two per-mod actions, grouped so they read as one control rather than
+    /// two loose glyphs floating next to the name.
+    private func modActions(_ mod: String) -> some View {
+        HStack(spacing: 2) {
+            actionButton("arrow.right.circle", help: L10n.Logs.healthOpenMod) {
+                NotificationCenter.default.post(name: .jumpToMod, object: mod)
+            }
+            actionButton("text.magnifyingglass", help: L10n.Logs.healthShowInLog) {
+                NotificationCenter.default.post(name: .filterLogsToMod, object: mod)
+            }
         }
-        .buttonStyle(.plain)
-        .pointingHandCursor()
-        .help(vm.L(L10n.Logs.healthOpenMod))
     }
 
-    /// Scopes the Logs view to a mod's entries, so the player can read the
-    /// actual lines behind a diagnostic instead of trusting the summary.
-    @ViewBuilder
-    private func showInLogButton(_ mod: String) -> some View {
-        Button {
-            NotificationCenter.default.post(name: .filterLogsToMod, object: mod)
-        } label: {
-            Image(systemName: "text.magnifyingglass")
-                .font(.system(size: 10))
+    private func actionButton(_ icon: String, help: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: 11))
                 .foregroundColor(.accentColor)
+                .frame(width: 20, height: 20)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .pointingHandCursor()
-        .help(vm.L(L10n.Logs.healthShowInLog))
+        .help(vm.L(help))
     }
 
     /// Plain-language reassurance for a known-harmless error. The mod name is
@@ -388,40 +521,16 @@ struct SmapiHealthCard: View {
         return String(format: vm.L(fallback), issue.name, issue.reason)
     }
 
-    private func issueSection(_ titleKey: String, items: [SmapiDiagnostics.Issue]) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(vm.L(titleKey))
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundColor(.secondary)
-            ForEach(items) { issue in
-                HStack(alignment: .top, spacing: 6) {
-                    Text("•").foregroundColor(.secondary)
-                    VStack(alignment: .leading, spacing: 1) {
-                        HStack(spacing: 4) {
-                            Text(issue.name).font(.system(size: 11, weight: .medium))
-                            openModButton(issue.name)
-                            showInLogButton(issue.name)
-                        }
-                        Text(issue.reason)
-                            .font(.system(size: 11))
-                            .foregroundColor(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-            }
-        }
-    }
-
     // MARK: - Summary
 
     /// `SMAPI 4.5.2 · Stardew Valley 1.6.15 · 64 mods · 19 packs` (only the parts
     /// the parser actually extracted).
-    private var summary: String {
+    private var versionLine: String {
         var parts: [String] = []
         if let v = diagnostics.smapiVersion { parts.append("SMAPI \(v)") }
         if let g = diagnostics.gameVersion { parts.append("Stardew Valley \(g)") }
-        if let m = diagnostics.modsLoaded { parts.append("\(m) mods") }
-        if let c = diagnostics.contentPacksLoaded { parts.append("\(c) packs") }
-        return parts.joined(separator: " · ")
+        if let m = diagnostics.modsLoaded { parts.append(String(format: vm.L(L10n.Logs.healthModsCount), Int64(m))) }
+        if let c = diagnostics.contentPacksLoaded { parts.append(String(format: vm.L(L10n.Logs.healthPacksCount), Int64(c))) }
+        return parts.joined(separator: "  ·  ")
     }
 }

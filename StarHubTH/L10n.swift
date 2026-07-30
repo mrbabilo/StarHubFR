@@ -362,6 +362,13 @@ enum L10n {
         static let alertLogged          = "logs_alert_logged"
         // SMAPI health card
         static let healthHealthy    = "logs_health_healthy"
+        static let healthTitle          = "logs_health_title"
+        static let healthCountBlocking  = "logs_health_count_blocking"
+        static let healthCountDeps      = "logs_health_count_deps"
+        static let healthCountAdvisory  = "logs_health_count_advisory"
+        static let healthCountBenign    = "logs_health_count_benign"
+        static let healthModsCount      = "logs_health_mods_count"
+        static let healthPacksCount     = "logs_health_packs_count"
         static let healthSkipped    = "logs_health_skipped"
         static let healthFailed     = "logs_health_failed"
         static let healthConflicts  = "logs_health_conflicts"

@@ -211,7 +211,7 @@
 "logs_clear_confirm_message" = "This removes all StarHubFR log entries. SMAPI log entries are kept.";
 "logs_clear_search_hint" = "Clear search";
 "logs_clear_confirm_title" = "Clear StarHubFR Logs?";
-"logs_logs" = "Logs";
+"logs_logs" = "Diagnostics & Performance";
 "logs_developer" = "Developer";
 "logs_filter_all" = "All";
 "logs_auto_scroll_hint" = "Auto-scroll to bottom";
@@ -227,6 +227,13 @@
 "logs_system_alerts_section" = "No system alerts";
 "logs_alert_logged" = "SMAPI reported %lld alert(s). See the System Alerts section above.";
 "logs_health_healthy" = "All healthy";
+"logs_health_title" = "Issues detected";
+"logs_health_count_blocking" = "won't load";
+"logs_health_count_deps" = "missing";
+"logs_health_count_advisory" = "to watch";
+"logs_health_count_benign" = "harmless";
+"logs_health_mods_count" = "%lld mods";
+"logs_health_packs_count" = "%lld packs";
 "logs_health_skipped" = "Skipped mods";
 "logs_health_failed" = "Failed mods";
 "logs_health_conflicts" = "External conflicts";
