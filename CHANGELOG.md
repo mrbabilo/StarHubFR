@@ -12,6 +12,16 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.10.1] - 2026-07-30
+
+### Fixed
+- **Mod archives packaged on Windows are no longer rejected.** Such an archive uses backslashes as path separators; `/usr/bin/unzip` converts them, extracts every file correctly, and exits with status 1 and a warning. StarHubFR required status 0, so a perfectly valid extraction was reported as "corrupted archive" — and since most of what Nexus serves is packaged on Windows, this hit a large share of installs. Status 1 ("succeeded with warnings") is now accepted for `unzip`, `unrar` and `7z` alike, and success is confirmed on what actually landed on disk rather than on the exit code alone: an archive that warns *and* produces nothing still fails, with the right message.
+- **RAR mods can now be updated, not just installed.** Drag-and-drop accepted `.zip` and `.rar`, but every Nexus download was written to a temporary file named `.zip` regardless of its real format. As extraction dispatches on the file extension, a RAR update was handed to `unzip` and failed. The download now keeps the archive's real extension, which Nexus' CDN carries in the URL path.
+
+### Changed
+- **The install flow no longer claims to accept only zip files.** Eight of its nine strings mentioned "zip" while the flow has accepted RAR since 1.7.1 — including the drop zone in the "Install a mod" sheet. Error and progress messages now speak of an *archive*, and the drop zone spells out both formats.
+- **The missing-RAR-tool error is localized.** It was hardcoded English (`InstallError` lives in Core, which has no access to the locale bundle) and pointed at `unrar`, while the app's home screen recommends `unar`. It is now translated and consistent with that recommendation.
+
 ## [1.10.0] - 2026-07-30
 
 ### Added

@@ -319,7 +319,14 @@ struct ModInstallView: View {
             } catch {
                 DispatchQueue.main.async {
                     self.isAnalyzing = false
-                    self.errorMessage = error.localizedDescription
+                    // `InstallError`'s descriptions live in Core, which has no
+                    // access to the locale bundle — so the one error a user is
+                    // actually expected to act on gets localized here.
+                    if case InstallError.rarToolMissing = error {
+                        self.errorMessage = self.vm.L(L10n.ModInstall.rarToolMissing)
+                    } else {
+                        self.errorMessage = error.localizedDescription
+                    }
                     self.showError = true
                     if let tempDir = self.tempDir {
                         self.installer.cleanupTempDir(at: tempDir)

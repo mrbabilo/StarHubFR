@@ -407,7 +407,7 @@ class ModZipInstaller {
             process.environment = Self.cLocaleEnvironment
             try process.run()
             process.waitUntilExit()
-            guard process.terminationStatus == 0 else {
+            guard Self.isTolerableExitStatus(process.terminationStatus) else {
                 throw InstallError.extractionFailed
             }
         } else if ext == "rar" {
@@ -420,12 +420,35 @@ class ModZipInstaller {
             process.environment = Self.cLocaleEnvironment
             try process.run()
             process.waitUntilExit()
-            guard process.terminationStatus == 0 else {
+            guard Self.isTolerableExitStatus(process.terminationStatus) else {
                 throw InstallError.extractionFailed
             }
         } else {
             throw InstallError.extractionFailed
         }
+
+        // Status 1 means "extracted, but with warnings" — we accepted it above,
+        // so the real proof of success is the content on disk. An archive that
+        // warns *and* yields nothing is a genuine failure, and catching it here
+        // keeps the user on "extraction failed" instead of the misleading
+        // "no valid mod structure" the scan would report on an empty directory.
+        let produced = (try? FileManager.default.contentsOfDirectory(atPath: destDir.path)) ?? []
+        guard !produced.isEmpty else {
+            throw InstallError.extractionFailed
+        }
+    }
+
+    /// Whether an extraction tool's exit status means "the files are there".
+    ///
+    /// Info-ZIP (`unzip`), `unrar` and `7z` all share the same convention:
+    /// `0` = clean, `1` = **succeeded with warnings**, `>= 2` = real error.
+    /// Status 1 is not an edge case here: every archive packaged on Windows
+    /// with backslashes as path separators — the majority of what Nexus
+    /// serves — extracts correctly and exits 1 with
+    /// `warning: … appears to use backslashes as path separators`.
+    /// Treating that as a failure rejected perfectly valid mods.
+    static func isTolerableExitStatus(_ status: Int32) -> Bool {
+        status == 0 || status == 1
     }
 
     /// Minimal environment that pins the locale to `C` (POSIX) for child

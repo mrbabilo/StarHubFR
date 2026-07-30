@@ -458,6 +458,18 @@ struct InstallerTestEnv {
         #expect(info.detectedMods.first?.folderName == "Pack/Pack")
     }
 
+    @Test func warningExitStatusIsNotAnExtractionFailure() {
+        // Regression: a mod archive packaged on Windows uses backslashes as
+        // path separators. `unzip` converts them, extracts every file, and
+        // exits 1 with a warning — which we used to treat as a failure,
+        // rejecting the majority of what Nexus serves. Info-ZIP, `unrar` and
+        // `7z` all agree: 0 = clean, 1 = warnings, >= 2 = real error.
+        #expect(ModZipInstaller.isTolerableExitStatus(0))
+        #expect(ModZipInstaller.isTolerableExitStatus(1))
+        #expect(!ModZipInstaller.isTolerableExitStatus(2))
+        #expect(!ModZipInstaller.isTolerableExitStatus(9))
+    }
+
     @Test func mixedNestedAndRootInstallsFlat() throws {
         // Guard: one nested entry + one root entry → no single shared parent
         // → both stay at their natural (leaf) dest, no forced grouping.

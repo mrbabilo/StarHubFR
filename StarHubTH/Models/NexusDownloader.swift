@@ -127,7 +127,17 @@ struct NexusDownloader {
             guard let uri = links.first?.URI, let url = URL(string: uri) else {
                 completion(.failure(.noDownloadLink)); return
             }
-            let temp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".zip")
+            // Keep the real archive format. `extractArchive` dispatches on the
+            // file extension, so naming every download ".zip" sent RAR mods
+            // straight to `/usr/bin/unzip` and broke their update path — even
+            // though drag-and-drop installs them fine. Nexus' CDN URL carries
+            // the original filename in its path (…/Mod-1-2-3.rar?md5=…), which
+            // the query string doesn't disturb. Anything unexpected falls back
+            // to zip, the overwhelmingly common case.
+            let ext = ["zip", "rar"].contains(url.pathExtension.lowercased())
+                ? url.pathExtension.lowercased()
+                : "zip"
+            let temp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + "." + ext)
             URLSession.shared.downloadTask(with: url) { localURL, _, dlError in
                 if let dlError = dlError { completion(.failure(.requestFailed(dlError.localizedDescription))); return }
                 guard let localURL = localURL else { completion(.failure(.noDownloadLink)); return }
