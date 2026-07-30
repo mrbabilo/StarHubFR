@@ -49,9 +49,18 @@ via `release.py`. → skill `release`.
 ## Git
 
 Travailler sur `main`. **Pousser uniquement quand l'utilisateur le demande.**
+
 Terminer les messages de commit par un trailer nommant le **modèle qui a
-réellement écrit le commit**, et non un modèle figé :
-`Co-Authored-By: Claude <Modèle> <noreply@anthropic.com>`
-— par exemple `Claude Opus 5`, `Claude Sonnet 5`. L'historique antérieur à
-2026-07-30 porte `Claude Sonnet 5` y compris pour des commits d'autres modèles :
-ne pas s'y fier comme source de vérité.
+réellement écrit le commit** — jamais un nom figé :
+
+- Claude : `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>`
+  (ou `Claude Sonnet 5`, `Claude Haiku 4.5`… selon le modèle actif).
+- GLM : `Co-Authored-By: GLM 5.2 <noreply@z.ai>`.
+
+⚠️ Le dépôt est travaillé avec **plusieurs modèles**, dont GLM 5.2 via `glm.sh`
+(qui route Claude Code vers l'API z.ai : le modèle *actif* est alors GLM, quel
+que soit l'alias `sonnet`/`opus` affiché). Vérifier quel modèle tourne avant de
+signer.
+
+L'historique antérieur au 2026-07-30 porte `Claude Sonnet 5` sur 167 commits,
+y compris ceux d'autres modèles : ne pas s'y fier comme source de vérité.
