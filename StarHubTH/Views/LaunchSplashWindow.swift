@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import CoreImage
 
 /// The launch splash, shown in its own borderless window while the main window
 /// stays hidden.
@@ -193,7 +194,19 @@ struct LaunchSplashView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.black.opacity(0.92))
+                // A gradient rather than a flat fill: the artwork has depth, and
+                // a single tone behind it reads as a printed panel.
+                .fill(
+                    LinearGradient(
+                        colors: [Self.backdrop.opacity(0.97), Self.backdrop.opacity(1.0)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                )
         )
         .accessibilityElement(children: .combine)
         .accessibilityLabel(vm.L(L10n.Main.launching))
@@ -204,6 +217,67 @@ struct LaunchSplashView: View {
         guard let url = Bundle.main.url(forResource: "nexus_cover_final", withExtension: "png") else { return nil }
         return NSImage(contentsOf: url)
     }()
+
+    /// Backdrop derived from the artwork itself rather than a hardcoded colour,
+    /// so the splash stays harmonious if the cover is ever replaced.
+    ///
+    /// A plain black panel read as a hole punched behind the image; sampling the
+    /// cover's dominant tone and darkening it keeps enough contrast for white
+    /// text while letting the panel feel like part of the same picture.
+    private static let backdrop: Color = {
+        guard let image = backgroundImage, let tone = image.dominantColor() else {
+            return Color.black.opacity(0.92)
+        }
+        return Color(nsColor: tone.darkened(to: 0.16))
+    }()
+}
+
+private extension NSImage {
+    /// Average colour of the image, used to tint the splash backdrop.
+    ///
+    /// Averaging via a 1×1 downscale is enough here: the cover is a single
+    /// coherent scene, so its mean lands on the tone that dominates it. A
+    /// histogram/clustering approach would be more accurate on busy artwork but
+    /// is far more machinery than a backdrop tint warrants.
+    func dominantColor() -> NSColor? {
+        guard let tiff = tiffRepresentation,
+              let source = CIImage(data: tiff) else { return nil }
+
+        let extent = source.extent
+        guard extent.width > 0, extent.height > 0 else { return nil }
+
+        guard let filter = CIFilter(name: "CIAreaAverage") else { return nil }
+        filter.setValue(source, forKey: kCIInputImageKey)
+        filter.setValue(CIVector(cgRect: extent), forKey: kCIInputExtentKey)
+        guard let output = filter.outputImage else { return nil }
+
+        var pixel = [UInt8](repeating: 0, count: 4)
+        let context = CIContext(options: [.workingColorSpace: NSNull()])
+        context.render(output,
+                       toBitmap: &pixel,
+                       rowBytes: 4,
+                       bounds: CGRect(x: 0, y: 0, width: 1, height: 1),
+                       format: .RGBA8,
+                       colorSpace: nil)
+
+        return NSColor(srgbRed: CGFloat(pixel[0]) / 255,
+                       green: CGFloat(pixel[1]) / 255,
+                       blue: CGFloat(pixel[2]) / 255,
+                       alpha: 1)
+    }
+}
+
+private extension NSColor {
+    /// Same hue, forced to a low brightness — keeps the tint recognizable while
+    /// staying dark enough for white text to pass contrast.
+    func darkened(to brightness: CGFloat) -> NSColor {
+        guard let hsb = usingColorSpace(.sRGB) else { return self }
+        var h: CGFloat = 0, s: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        hsb.getHue(&h, saturation: &s, brightness: &b, alpha: &a)
+        // Saturation is nudged up a little: averaging washes colours out, and a
+        // fully desaturated backdrop would just look grey.
+        return NSColor(hue: h, saturation: min(1, s * 1.3), brightness: brightness, alpha: 1)
+    }
 }
 
 /// Determinate bar that CREEPS toward its target instead of snapping.
