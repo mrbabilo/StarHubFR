@@ -63,4 +63,44 @@ struct ContrastCheckerTests {
         #expect(ratio > 3.0, "Red on white should pass large-text AA, got \(ratio)")
         #expect(ContrastChecker.passesAA(foreground: .red, background: .white, largeText: true))
     }
+
+    // MARK: - adjusted (couleur d'auteur → ratio AA)
+
+    @Test func adjustedReachesAAOnLightBackground() {
+        // Jaune clair sur fond blanc : ratio ~1.07, bien sous AA. `adjusted` doit
+        // l'assombrir (en s'éloignant du fond clair) jusqu'à 4.5:1, en conservant
+        // la teinte jaune.
+        let adjusted = ContrastChecker.adjusted(.yellow, on: .white, toAtLeast: 4.5)
+        #expect(adjusted != nil, "yellow on white should be darkenable to AA")
+        #expect(ContrastChecker.ratio(adjusted!, .white) >= 4.5)
+    }
+
+    @Test func adjustedReachesAAOnDarkBackground() {
+        // Gris très sombre sur fond noir : `adjusted` doit l'éclaircir jusqu'à AA.
+        // (On utilise un gris — luminance uniforme — plutôt qu'une couleur saturée
+        // pauvre en vert, qui ne pourrait pas atteindre AA sur noir même à pleine
+        // luminosité, la luminance étant dominée par le canal vert.)
+        let veryDark = NSColor(calibratedWhite: 0.05, alpha: 1)
+        let adjusted = ContrastChecker.adjusted(veryDark, on: .black, toAtLeast: 4.5)
+        #expect(adjusted != nil, "dark gray on black should be lightenable to AA")
+        #expect(ContrastChecker.ratio(adjusted!, .black) >= 4.5)
+    }
+
+    @Test func adjustedReturnsNilWhenUnreachableWithinBounds() {
+        // Gris moyen (sRGB 0.45 → luminance ~0.17) sur fond identique : borné à
+        // [0.1, 0.9], assombrir comme éclaircir restent sous AA (la luminance est
+        // dans la zone neutre ~0.18 où ni le noir ni le blanc pur n'atteignent
+        // 4.5, et nos bornes 0.1/0.9 encore moins) → nil, l'appelant retombe sur
+        // la couleur de texte par défaut.
+        let midGray = NSColor(srgbRed: 0.45, green: 0.45, blue: 0.45, alpha: 1)
+        let adjusted = ContrastChecker.adjusted(midGray, on: midGray, toAtLeast: 4.5)
+        #expect(adjusted == nil, "mid-gray on mid-gray can't reach AA within the [0.1, 0.9] bound")
+    }
+
+    @Test func colorNameResolvesAndUnknownReturnsNil() {
+        // Les noms BBCode usuels sont résolus ; un nom inconnu est ignoré.
+        #expect(ContrastChecker.color(named: "red") != nil)
+        #expect(ContrastChecker.color(named: "blue") != nil)
+        #expect(ContrastChecker.color(named: "cerulean") == nil)
+    }
 }
