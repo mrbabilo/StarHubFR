@@ -29,6 +29,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         false
     }
 
+    /// Claims the main window before macOS ever puts it on screen.
+    ///
+    /// Hiding it from SwiftUI's `.onAppear` is already too late: the window has
+    /// been presented by then, so it flashes for a frame before being ordered
+    /// out. This runs before any window is displayed, and watches for the
+    /// window's creation so it can be hidden the instant it exists.
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        LaunchSplashController.shared.claimMainWindowBeforeItAppears()
+    }
+
     func application(_ application: NSApplication, open urls: [URL]) {
         for url in urls where url.scheme?.lowercased() == "nxm" {
             if let handler = onURL {
@@ -61,13 +71,11 @@ struct StarHubTHApp: App {
                     // Route nxm:// links (buffered at cold launch) into the
                     // single shared ViewModel.
                     appDelegate.onURL = { [vm] url in vm.handleNxmURL(url) }
-                    // Put the splash up and hide this window until loading is
-                    // done. Deferred by one runloop turn so AppKit has finished
-                    // creating the window we're about to hide.
+                    // Raise the splash now. The main window was already
+                    // intercepted in `applicationWillFinishLaunching`, so it
+                    // never reached the screen — no need to defer this.
                     if vm.isLaunching {
-                        DispatchQueue.main.async {
-                            LaunchSplashController.shared.show(vm: vm)
-                        }
+                        LaunchSplashController.shared.show(vm: vm)
                     }
                 }
                 // The splash lives in its own window now, so there's no

@@ -20,6 +20,29 @@ final class LaunchSplashController {
     /// Main window we hid at startup, restored once loading finishes.
     private weak var mainWindow: NSWindow?
 
+    /// Hides the main window the moment AppKit creates it, before it is ever
+    /// drawn. Called from `applicationWillFinishLaunching`.
+    ///
+    /// Ordering the window out from SwiftUI's `.onAppear` is too late — it has
+    /// already been presented, so it flashes for a frame. Observing
+    /// `didUpdateNotification` catches the window as soon as it exists.
+    func claimMainWindowBeforeItAppears() {
+        guard observer == nil else { return }
+        observer = NotificationCenter.default.addObserver(
+            forName: NSWindow.didUpdateNotification, object: nil, queue: .main
+        ) { [weak self] note in
+            guard let self, !self.finished,
+                  let window = note.object as? NSWindow,
+                  window !== self.panel,
+                  !(window is NSPanel),
+                  window.styleMask.contains(.titled) else { return }
+            self.mainWindow = window
+            if window.isVisible { window.orderOut(nil) }
+        }
+    }
+
+    private var observer: NSObjectProtocol?
+
     /// Shows the splash and hides the main window until `finish()` is called.
     ///
     /// The main window is found by identifier rather than assumed to be
@@ -64,6 +87,12 @@ final class LaunchSplashController {
     /// happen, so it runs unconditionally.
     func finish() {
         finished = true
+        // Must come first: the observer hides the main window on sight, so
+        // leaving it attached would fight the reveal below.
+        if let observer {
+            NotificationCenter.default.removeObserver(observer)
+            self.observer = nil
+        }
         showMainWindow()
 
         guard let panel else { return }
@@ -92,9 +121,13 @@ final class LaunchSplashController {
     }
 
     private func hideMainWindow() {
-        guard let window = mainAppWindow() else { return }
-        mainWindow = window
-        window.orderOut(nil)
+        // Usually already done by the observer set up in
+        // `claimMainWindowBeforeItAppears`; this covers the case where the
+        // window appeared before the observer was attached.
+        if let window = mainWindow ?? mainAppWindow() {
+            mainWindow = window
+            if window.isVisible { window.orderOut(nil) }
+        }
 
         // Safety net: if loading never completes (or `finish()` is missed), the
         // app must not be left with no visible window at all. Revealing early
