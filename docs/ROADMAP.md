@@ -124,6 +124,7 @@ liste du 2026-07-30 et n'existaient pas dans le document de veille.
 | §8 | Profiler / analyse FPS à l'activation d'un mod | **Reformulé** | Aucune mesure maison possible ; parsing du log Profiler → **D1** |
 | §9 | Support des archives **RAR** | **Fait ✅** | Glisser-déposer depuis v1.7.1 ; chemin téléchargement/mise à jour réparé en séance (**X5**). Reste le guidage au moment de l'échec → **B2-T4** |
 | **§new** | Une archive de mod légitime est refusée à l'installation | **Corrigé ✅** | Cause racine : `unzip` sort en code 1 (avertissement) sur les archives à antislashs, refusé par un `terminationStatus == 0`. Corrigé en séance → **X4** |
+| **§new** | La mise à jour d'un mod échoue si ses dossiers sont en lecture seule | **Corrigé ✅** | Cause racine : `unzip`/`unrar` restituent les modes de l'archive (dossiers en `0o555`) ; la suppression récursive exige l'écriture *sur* chaque dossier. Corrigé en séance, vérifié sur *Tilly - NPC* (38008) → **X7** |
 | §9 | Doc utilisateur, screenshots, publication Nexus, Sentinel | **À faire** | → **E2** |
 | *Thaï* | « Centre de traduction thaï incohérent dans un fork FR » | **Neutralisé, à finir** | `MainView.swift:13` : `showThaiTranslationHub = false` sans réglage pour l'activer → UI morte. Reste l'architecture → **C5** |
 
@@ -202,6 +203,16 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       zip (`settings_hint_compress_*`, `vm_unzip_error`, `smapi_payload_not_found`).
       ▸ **Bonus L10n** : `InstallError.rarToolMissing` (`ModZipInstaller.swift:778`) renvoie
       une phrase **codée en dur en anglais**, non localisée — à faire passer par `L10n`. · **S**
+- [x] **X7** ✅ *(corrigé, en attente de release)* — 🔴 **La mise à jour d'un mod échoue si ses
+      dossiers sont en lecture seule.** `unzip`/`unrar` restituent les bits de permissions stockés
+      dans l'archive ; certains mods livrent leurs dossiers en `0o555` (lecture seule). Or supprimer
+      le contenu d'un dossier exige l'écriture *sur ce dossier*, donc la suppression récursive
+      échouait sur une arborescence que l'app venait d'écrire elle-même (« vous ne disposez pas de
+      l'autorisation nécessaire »), sans issue depuis l'UI. Reproduit et vérifié sur **Tilly - NPC**
+      (38008) : 174 entrées, tous ses dossiers en `0o555`, message d'erreur reproduit à l'identique.
+      ▸ **Correctif** : normaliser les droits à l'extraction (`grantOwnerWriteAccess`) et retenter
+      la suppression après réparation pour les dossiers installés avant le correctif
+      (`removeItemGrantingWriteAccess`, site `ModZipInstaller.swift:714`). · **S**
 - [ ] **X3** — **Bouton « Activer » de la page dépendances sans effet.** Le bouton existe
       (`DependencyTreeView.swift:124` → `vm.toggleMod(depMod)`). Piste d'enquête : si
       `depMod` est un objet reconstruit depuis la référence du manifeste plutôt que le
