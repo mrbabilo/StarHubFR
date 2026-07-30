@@ -373,7 +373,8 @@ enum DescriptionBlockParser {
             if tok.range(at: 5).location != NSNotFound {
                 flushText(upTo: tok.range.location)
                 let level = Int(ns.substring(with: tok.range(at: 5))) ?? 2
-                let body = balancedText(ns.substring(with: tok.range(at: 6)))
+                let body = balancedText(flattenInline(ns.substring(with: tok.range(at: 6)),
+                                                      codeBlocks: codeBlocks))
                 if !body.isEmpty { blocks.append(.heading(body, level: level)) }
                 cursor = tokEnd
                 i += 1
@@ -464,14 +465,15 @@ enum DescriptionBlockParser {
             // spoilers imbriqués et leurs images rendent à l'ouverture.
             blocks.append(.spoiler(title: title, content: trimmed))
         case "quote":
-            if !trimmed.isEmpty { blocks.append(.quote(trimmed)) }
+            let q = balancedText(flattenInline(trimmed, codeBlocks: codeBlocks))
+            if !q.isEmpty { blocks.append(.quote(q)) }
         case "center":
             if !trimmed.isEmpty {
                 blocks.append(.centered(tokenize(inner, codeBlocks: codeBlocks)))
             }
         case "list":
             let ordered = attribute.hasPrefix("=")
-            let items = splitListItems(inner)
+            let items = splitListItems(inner, codeBlocks: codeBlocks)
             if !items.isEmpty { blocks.append(.list(items: items, ordered: ordered)) }
         default:
             break
@@ -480,12 +482,12 @@ enum DescriptionBlockParser {
 
     /// Découpe le contenu d'une `[list]` sur les marqueurs d'item `[*]` / `[li]`.
     /// Le texte éventuel avant le premier marqueur (préambule) est ignoré.
-    private static func splitListItems(_ inner: String) -> [String] {
+    private static func splitListItems(_ inner: String, codeBlocks: [String]) -> [String] {
         guard let regex = try? NSRegularExpression(pattern: "(?i)\\[\\*\\]|\\[li\\]") else { return [] }
         let ns = inner as NSString
         let markers = regex.matches(in: inner, range: NSRange(location: 0, length: ns.length))
         guard !markers.isEmpty else {
-            let t = balancedText(inner)
+            let t = balancedText(flattenInline(inner, codeBlocks: codeBlocks))
             return t.isEmpty ? [] : [t]
         }
         var items: [String] = []
@@ -493,13 +495,41 @@ enum DescriptionBlockParser {
             let start = marker.range.location + marker.range.length
             let end = k + 1 < markers.count ? markers[k + 1].range.location : ns.length
             let raw = ns.substring(with: NSRange(location: start, length: end - start))
-            // Retirer les balises résiduelles ([/li], [/*]).
-            let cleaned = raw.replacingOccurrences(of: "(?i)\\[/?(?:li|\\*)\\]",
-                                                    with: "", options: .regularExpression)
-            let t = balancedText(cleaned)
+            let t = balancedText(flattenInline(raw, codeBlocks: codeBlocks))
             if !t.isEmpty { items.append(t) }
         }
         return items
+    }
+
+    /// Aplatie tout reliquat de balisage bloc qui se retrouve dans un bloc à
+    /// valeur `String` (item de liste, citation, corps de titre) — contextes qui
+    /// ne portent que de l'inline. Les marqueurs de titre y sont démutés en gras,
+    /// les marqueurs de code remplacés par leur contenu verbatim, et les balises
+    /// bloc résiduelles (`[list]`, `[center]`, `[spoiler]`, `[size]`, `[heading]`,
+    /// `[*]`) supprimées (le texte reste). Sans cela, un titre ou un bloc imbriqué
+    /// dans un item de liste fuierait en balisage littéral à l'écran.
+    private static func flattenInline(_ s: String, codeBlocks: [String]) -> String {
+        var out = s
+        out = out.replacingOccurrences(of: "\u{0}H[1-3]\u{0}", with: "**", options: .regularExpression)
+        out = out.replacingOccurrences(of: "\u{0}/H\u{0}", with: "**", options: .regularExpression)
+        if let regex = try? NSRegularExpression(pattern: "\u{0}C(\\d+)\u{0}") {
+            let ns = out as NSString
+            var rebuilt = ""
+            var last = 0
+            for m in regex.matches(in: out, range: NSRange(location: 0, length: ns.length)) {
+                rebuilt += ns.substring(with: NSRange(location: last, length: m.range.location - last))
+                let idx = Int(ns.substring(with: m.range(at: 1))) ?? -1
+                rebuilt += (0..<codeBlocks.count).contains(idx) ? codeBlocks[idx] : ""
+                last = m.range.location + m.range.length
+            }
+            rebuilt += ns.substring(from: last)
+            out = rebuilt
+        }
+        out = out.replacingOccurrences(
+            of: "(?i)\\[/?(?:list|center|spoiler|size|heading|code)(?:=[^\\]]*)?\\]",
+            with: "", options: .regularExpression)
+        out = out.replacingOccurrences(of: "(?i)\\[\\*\\]", with: "", options: .regularExpression)
+        return out
     }
 
     /// Trims, then drops emphasis delimiters left unbalanced when a block-level
