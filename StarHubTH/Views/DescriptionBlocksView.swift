@@ -126,15 +126,36 @@ struct MarkdownText: View {
 
     /// Parse Markdown inline en préservant les espaces/newlines (le corps d'une
     /// description s'appuie sur les sauts de ligne) ; dégrade vers le brut plutôt
-    /// que de planter sur du Markdown malformé ou un `%` parasite.
+    /// que de planter sur du Markdown malformé ou un `%` parasite. Au passage,
+    /// retire toute syntaxe résiduelle d'attribut couleur/souligné qu'un span
+    /// mal formé aurait laissé fuir (couleurs imbriquées, balise vide, span à
+    /// cheval sur un bloc) — voir `scrubResidualColorSyntax`.
     private static func parseInline(_ s: String) -> AttributedString {
-        (try? AttributedString(
-            markdown: s,
+        let cleaned = scrubResidualColorSyntax(s)
+        return (try? AttributedString(
+            markdown: cleaned,
             options: .init(
                 interpretedSyntax: .inlineOnlyPreservingWhitespace,
                 failurePolicy: .returnPartiallyParsedIfPossible
             )
-        )) ?? AttributedString(s)
+        )) ?? AttributedString(cleaned)
+    }
+
+    /// Retire toute syntaxe résiduelle d'attribut couleur/souligné (`^[`,
+    /// `](shcolor: '…')`, `^(shcolor: '…')`, `shcolor: '…'`) qu'un span mal formé
+    /// aurait laissé fuir. Les vrais liens Markdown `[texte](https://…)` ne sont
+    /// pas touchés (ils ne contiennent pas `shcolor`). Garantit qu'aucun balisage
+    /// interne ne s'affiche, même quand le parseur a produit un span imparfait.
+    private static func scrubResidualColorSyntax(_ s: String) -> String {
+        var out = s
+        out = out.replacingOccurrences(of: "\\]\\((?:shcolor|shunderline): '[^']*'\\)",
+                                       with: "", options: .regularExpression)
+        out = out.replacingOccurrences(of: "\\^\\((?:shcolor|shunderline): '[^']*'\\)",
+                                       with: "", options: .regularExpression)
+        out = out.replacingOccurrences(of: "\\^\\[", with: "", options: .regularExpression)
+        out = out.replacingOccurrences(of: "(?:shcolor|shunderline): '[^']*'",
+                                       with: "", options: .regularExpression)
+        return out
     }
 
     var body: some View {
