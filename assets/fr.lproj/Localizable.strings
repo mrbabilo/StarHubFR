@@ -261,7 +261,7 @@
 "logs_health_console" = "Mods à accès console";
 "logs_health_top_errors" = "Mods générant le plus d'erreurs";
 "logs_health_errors_count" = "%lld erreurs";
-"logs_health_exp_patched" = "Ces mods modifient le jeu en profondeur. Si le jeu est instable, cherchez ici en priorité — procéder par moitiés pour trouver le coupable est bien plus rapide que de les tester un par un.";
+"logs_health_exp_patched" = "Ces mods modifient le jeu en profondeur. Ce sont les premiers à suspecter si le jeu devient instable.";
 "logs_health_exp_save" = "Ces mods changent le format de vos sauvegardes. Faites des sauvegardes de secours avant de jouer.";
 "logs_health_exp_broken" = "Du code défaillant a été chargé quand même ; cela peut causer des erreurs en jeu.";
 "logs_health_exp_console" = "Ces mods accèdent directement à la console SMAPI (plus fragile).";
@@ -270,7 +270,7 @@
 "logs_health_sg_failed" = "« %1$@ » a échoué au démarrage (%2$@). Consultez les instructions d'installation sur sa page Nexus.";
 "logs_health_sg_save" = "« %@ » modifie vos sauvegardes : sauvegardez-les avant de continuer et ne le retirez pas en cours de partie.";
 "logs_health_sg_broken" = "Des mods défaillants sont chargés. Mettez-les à jour, ou désactivez-les pour éviter les erreurs en jeu.";
-"logs_health_sg_patched_many" = "Vous avez %lld mods modifiant le code du jeu. En cas de plantage, ne les désactivez pas un par un : coupez-en la moitié et testez. Si le plantage disparaît, le coupable est dans la moitié désactivée ; sinon il est dans l'autre. Recoupez en deux à chaque fois — une dizaine d'essais suffisent, quel que soit le nombre de mods.";
+"logs_health_sg_patched_many" = "Vous avez %lld mods modifiant le code du jeu. En cas de plantage, désactivez-en la moitié et relancez : si le plantage cesse, le coupable est parmi eux ; sinon, il est dans l'autre moitié. Continuez en divisant par deux — une dizaine d'essais suffisent, même avec des centaines de mods.";
 "logs_health_sg_rivatuner" = "RivaTuner peut faire planter le jeu avec SMAPI. Ajoutez Stardew Valley à ses exceptions, ou fermez-le pendant que vous jouez.";
 "logs_health_sg_error_mod" = "« %1$@ » a généré beaucoup d'erreurs (%2$lld). Vérifiez qu'il correspond à votre version du jeu, ou désactivez-le.";
 "quarantine_title" = "Quarantaine";
