@@ -115,14 +115,48 @@ struct DescriptionBlocksView: View {
                 switch block {
                 case .text(let markdown):
                     MarkdownText(markdown)
+                case .heading(let markdown, let level):
+                    // Hiérarchie typographique de l'app (20/16/14), jamais les
+                    // tailles arbitraires reprises de l'auteur.
+                    MarkdownText(markdown).font(DescriptionBlocksView.headingFont(level))
+                case .list(let items, let ordered):
+                    VStack(alignment: .leading, spacing: 4) {
+                        ForEach(Array(items.enumerated()), id: \.offset) { idx, item in
+                            HStack(alignment: .firstTextBaseline) {
+                                Text(ordered ? "\(idx + 1)." : "•")
+                                    .foregroundStyle(.secondary)
+                                MarkdownText(item)
+                            }
+                        }
+                    }
+                case .code(let source):
+                    Text(source)
+                        .font(.system(.body, design: .monospaced))
+                        .textSelection(.enabled)
+                case .quote(let markdown):
+                    MarkdownText(markdown).foregroundStyle(.secondary)
                 case .image(let url):
                     DescriptionImage(url: url)
                 case .spoiler(let title, let content):
                     SpoilerView(title: title, content: content, vm: vm)
                 case .divider:
                     Divider().padding(.vertical, 4)
+                case .centered(let inner):
+                    // Conteneur récursif : on délègue au rendu de blocs, centré.
+                    DescriptionBlocksView(blocks: inner, vm: vm)
+                        .frame(maxWidth: .infinity)
                 }
             }
+        }
+    }
+
+    /// Typo de titre selon le niveau (1 = le plus grand). Hiérarchie 20/16/14
+    /// tirée des tokens `AppDesign.Font`, jamais les tailles de l'auteur.
+    private static func headingFont(_ level: Int) -> SwiftUI.Font {
+        switch level {
+        case 1:  return AppDesign.Font.viewTitle            // 20 semibold
+        case 2:  return AppDesign.Font.headline(.semibold)  // 16
+        default: return AppDesign.Font.rowTitle(.semibold)  // 14
         }
     }
 }

@@ -44,18 +44,65 @@ struct DescriptionBlockTests {
     }
 
     @Test func bodySizedTextIsNotTurnedIntoBold() {
-        // SVE utilise [size=3] 187 fois comme taille de *corps de texte*. En le
-        // convertissant en gras sans regarder la valeur, toute la page passait
-        // en gras et les vrais titres devenaient indiscernables.
+        // [size=3] reste du corps de texte (ni titre, ni gras). [size=4] court est
+        // promu en titre de niveau 3 (échelle 4→3, 5→2, 6-7→1) — plus de gras
+        // aveugle qui rendait les vrais titres indiscernables du corps.
         #expect(DescriptionBlockParser.parse("[size=3]body copy[/size]") == [.text("body copy")])
-        #expect(DescriptionBlockParser.parse("[size=4]A heading[/size]") == [.text("**A heading**")])
+        #expect(DescriptionBlockParser.parse("[size=4]A heading[/size]") == [.heading("A heading", level: 3)])
     }
 
     @Test func headingAlreadyBoldIsNotDoubleWrapped() {
-        // [size=4][b]X[/b][/size] donnait « ****X**** », que la règle « supprimer
-        // les emphases vides » réduisait à « X » — perdant le gras du titre.
+        // [b] dans un [size=4] devient ** avant la promotion en titre ; le gras
+        // survit dans le corps du titre (ni double-wrap `****`, ni perte du gras).
         #expect(DescriptionBlockParser.parse("[size=4][b]Frontier Farm[/b][/size]")
-                == [.text("**Frontier Farm**")])
+                == [.heading("**Frontier Farm**", level: 3)])
+    }
+
+    // MARK: - Nouveaux blocs typés (X2)
+
+    @Test func sizeSixBecomesLevel1Heading() {
+        // Échelle 4→3, 5→2, 6-7→1 (1 = le plus grand).
+        #expect(DescriptionBlockParser.parse("[size=6]Big Title[/size]")
+                == [.heading("Big Title", level: 1)])
+    }
+    @Test func sizeFiveBecomesLevel2Heading() {
+        #expect(DescriptionBlockParser.parse("[size=5]Section[/size]")
+                == [.heading("Section", level: 2)])
+    }
+    @Test func sizeFourParagraphStaysBoldNotHeading() {
+        // Garde-fou : un [size=4] sur plus de 80 caractères reste du gras (dans
+        // .text), ne devient pas un titre géant.
+        let long = String(repeating: "x", count: 90)
+        let out = DescriptionBlockParser.parse("[size=4]\(long)[/size]")
+        guard case let .text(t)? = out.first else { Issue.record("attendu un .text gras"); return }
+        #expect(t.contains("**") && t.contains(long))
+    }
+    @Test func headingWithoutValueIsLevel2() {
+        // [heading] sans valeur → niveau 2 ; [heading=N] suit l'échelle [size].
+        #expect(DescriptionBlockParser.parse("[heading]Section[/heading]")
+                == [.heading("Section", level: 2)])
+    }
+    @Test func codeBlockIsVerbatim() {
+        // Le contenu de [code] est inviolable : un [b] à l'intérieur ressort
+        // littéral, pas converti en **.
+        let out = DescriptionBlockParser.parse("[code]config [b]key[/b] = 1[/code]")
+        guard case let .code(c)? = out.first else { Issue.record("attendu .code"); return }
+        #expect(c == "config [b]key[/b] = 1")
+    }
+    @Test func quoteBecomesQuoteBlock() {
+        #expect(DescriptionBlockParser.parse("[quote]Words of wisdom[/quote]")
+                == [.quote("Words of wisdom")])
+    }
+    @Test func listWithAttributeIsOrdered() {
+        // [list=…] avec n'importe quelle valeur → ordonnée, numérotée depuis 1.
+        #expect(DescriptionBlockParser.parse("[list=1][*]a[*]b[/list]")
+                == [.list(items: ["a", "b"], ordered: true)])
+    }
+    @Test func centerBecomesCenteredContainer() {
+        // [center] enveloppe texte et images : conteneur récursif re-tokenisé.
+        let out = DescriptionBlockParser.parse("[center]Hello[/center]")
+        guard case let .centered(inner)? = out.first else { Issue.record("attendu .centered"); return }
+        #expect(inner == [.text("Hello")])
     }
 
     @Test func emptyLinkLabelDoesNotLeaveDanglingMarkdown() {
@@ -90,11 +137,10 @@ struct DescriptionBlockTests {
     @Test func htmlBreaksBecomeNewlines() {
         #expect(DescriptionBlockParser.parse("a<br>b") == [.text("a\nb")])
     }
-    @Test func bulletListBecomesDashes() {
-        let out = DescriptionBlockParser.parse("[list][*]one[*]two[/list]")
-        // .text with "- one" / "- two" lines (exact whitespace tolerant: check content)
-        guard case let .text(t)? = out.first else { Issue.record("expected text"); return }
-        #expect(t.contains("- one") && t.contains("- two"))
+    @Test func unorderedListBecomesListBlock() {
+        // [list][*]a[*]b[/list] → vrai bloc liste (pas un .text à tirets).
+        #expect(DescriptionBlockParser.parse("[list][*]one[*]two[/list]")
+                == [.list(items: ["one", "two"], ordered: false)])
     }
     @Test func imageTagBecomesImageBlock() {
         #expect(DescriptionBlockParser.parse("[img]https://x/y.png[/img]") == [.image(URL(string: "https://x/y.png")!)])
