@@ -438,6 +438,51 @@ class ModZipInstaller {
         }
     }
 
+    /// Grants the owner write access across a freshly extracted tree.
+    ///
+    /// `unzip` and `unrar` restore the permission bits **stored in the archive**.
+    /// Some mods ship directories as `r-xr-xr-x`, and since removing a directory's
+    /// contents requires write access *on that directory*, the app ended up
+    /// unable to delete a folder it had just written itself: updating such a mod
+    /// failed with "you don't have permission to access it", with no way out from
+    /// the UI.
+    ///
+    /// Read-only bits carry no meaning for a mod folder we own and manage, so we
+    /// normalise them at extraction time rather than working around them later.
+    static func grantOwnerWriteAccess(in directory: URL) {
+        let fm = FileManager.default
+        var targets = [directory]
+        if let e = fm.enumerator(at: directory, includingPropertiesForKeys: nil) {
+            for case let url as URL in e { targets.append(url) }
+        }
+        for url in targets {
+            guard let mode = (try? fm.attributesOfItem(atPath: url.path))?[.posixPermissions] as? NSNumber else {
+                continue
+            }
+            var isDirectory: ObjCBool = false
+            fm.fileExists(atPath: url.path, isDirectory: &isDirectory)
+            // Directories also need `x` to be traversable while we delete them.
+            let wanted = mode.uint16Value | (isDirectory.boolValue ? 0o700 : 0o600)
+            guard wanted != mode.uint16Value else { continue }
+            try? fm.setAttributes([.posixPermissions: NSNumber(value: wanted)], ofItemAtPath: url.path)
+        }
+    }
+
+    /// Deletes an item, repairing permissions first if the filesystem refuses.
+    ///
+    /// Folders installed before `grantOwnerWriteAccess` existed are still on
+    /// disk as read-only, so a plain `removeItem` keeps failing for them. Rather
+    /// than asking the user to run `chmod`, retry once with write access granted.
+    static func removeItemGrantingWriteAccess(atPath path: String) throws {
+        let fm = FileManager.default
+        do {
+            try fm.removeItem(atPath: path)
+        } catch {
+            grantOwnerWriteAccess(in: URL(fileURLWithPath: path))
+            try fm.removeItem(atPath: path)
+        }
+    }
+
     /// Whether an extraction tool's exit status means "the files are there".
     ///
     /// Info-ZIP (`unzip`), `unrar` and `7z` all share the same convention:
@@ -518,6 +563,10 @@ class ModZipInstaller {
             try? fm.removeItem(at: tempDir)
             throw error
         }
+
+        // Archives can carry read-only directory modes; normalise them now so
+        // the installed copy stays manageable (see `grantOwnerWriteAccess`).
+        Self.grantOwnerWriteAccess(in: tempDir)
 
         // Drop macOS packaging metadata so it isn't scanned as a mod folder
         // or copied into the destination (notably for flatRoot zips, where
@@ -662,7 +711,7 @@ class ModZipInstaller {
                     let existingFolder = (modsPath as NSString).appendingPathComponent(existing.physicalFolderName)
                     if fm.fileExists(atPath: existingFolder) {
                         preservedConfigs = snapshotUserConfigs(from: existingFolder)
-                        try fm.removeItem(atPath: existingFolder)
+                        try Self.removeItemGrantingWriteAccess(atPath: existingFolder)
                     }
                 case .rename:
                     finalDestFolderName = "\(detectedMod.folderName)_\(timestampStamp)"

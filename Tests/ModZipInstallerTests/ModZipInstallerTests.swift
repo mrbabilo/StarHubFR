@@ -470,6 +470,52 @@ struct InstallerTestEnv {
         #expect(!ModZipInstaller.isTolerableExitStatus(9))
     }
 
+    @Test func readOnlyFolderFromAnArchiveCanStillBeDeleted() throws {
+        // Régression : `unzip`/`unrar` restituent les permissions stockées dans
+        // l'archive. Deux mods installés livraient leurs dossiers en r-xr-xr-x,
+        // et comme supprimer le contenu d'un dossier exige le droit d'écriture
+        // *sur ce dossier*, l'app ne pouvait plus supprimer ce qu'elle venait
+        // d'écrire : la mise à jour échouait sur « vous ne disposez pas de
+        // l'autorisation nécessaire », sans issue depuis l'interface.
+        let fm = FileManager.default
+        let root = try makeTempDir()
+        defer {
+            ModZipInstaller.grantOwnerWriteAccess(in: root)
+            try? fm.removeItem(at: root)
+        }
+
+        let mod = root.appendingPathComponent("[CP] Read Only")
+        let assets = mod.appendingPathComponent("assets")
+        try fm.createDirectory(at: assets, withIntermediateDirectories: true)
+        try "{}".write(to: mod.appendingPathComponent("manifest.json"), atomically: true, encoding: .utf8)
+        try "x".write(to: assets.appendingPathComponent("a.png"), atomically: true, encoding: .utf8)
+        // Ce que l'archive impose : dossiers en lecture seule, du plus profond
+        // au plus haut (sinon on ne peut plus descendre pour modifier).
+        for dir in [assets, mod] {
+            try fm.setAttributes([.posixPermissions: NSNumber(value: UInt16(0o555))], ofItemAtPath: dir.path)
+        }
+
+        #expect(throws: (any Error).self) { try fm.removeItem(atPath: mod.path) }
+        try ModZipInstaller.removeItemGrantingWriteAccess(atPath: mod.path)
+        #expect(!fm.fileExists(atPath: mod.path))
+    }
+
+    @Test func grantingWriteAccessLeavesOtherPermissionBitsAlone() {
+        // On ajoute le droit d'écriture, on ne réécrit pas le mode entier :
+        // un dossier déjà correct ne doit pas voir ses bits de groupe changer.
+        let fm = FileManager.default
+        guard let root = try? makeTempDir() else { Issue.record("temp dir"); return }
+        defer { try? fm.removeItem(at: root) }
+        let file = root.appendingPathComponent("f.txt")
+        try? "x".write(to: file, atomically: true, encoding: .utf8)
+        try? fm.setAttributes([.posixPermissions: NSNumber(value: UInt16(0o644))], ofItemAtPath: file.path)
+
+        ModZipInstaller.grantOwnerWriteAccess(in: root)
+
+        let mode = (try? fm.attributesOfItem(atPath: file.path))?[.posixPermissions] as? NSNumber
+        #expect(mode?.uint16Value == 0o644)
+    }
+
     @Test func mixedNestedAndRootInstallsFlat() throws {
         // Guard: one nested entry + one root entry → no single shared parent
         // → both stay at their natural (leaf) dest, no forced grouping.
