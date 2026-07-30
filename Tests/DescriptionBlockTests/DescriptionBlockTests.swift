@@ -3,6 +3,84 @@ import Foundation
 @testable import StarHubTHCore
 
 struct DescriptionBlockTests {
+    // MARK: - Régressions relevées sur une description réelle (SVE, Nexus 3753)
+
+    @Test func nestedSpoilersPairWithTheirOwnClosingTag() {
+        // SVE imbrique des spoilers (une galerie repliable par carte). En
+        // appariant l'ouvrant au *premier* fermant, le fermant externe restait
+        // affiché en clair et le contenu interne échappait au bloc.
+        let out = DescriptionBlockParser.parse("[spoiler=Outer]a[spoiler]inner[/spoiler]b[/spoiler]")
+        guard case let .spoiler(title, content)? = out.first else {
+            Issue.record("attendu un spoiler"); return
+        }
+        #expect(title == "Outer")
+        #expect(content.contains("[spoiler]inner[/spoiler]"))
+        #expect(out.count == 1)  // rien après : pas de [/spoiler] orphelin
+    }
+
+    @Test func imagesInsideASpoilerStayInsideItsContent() {
+        // Conséquence directe du défaut ci-dessus : les images vivant dans un
+        // spoiler imbriqué tombaient hors du bloc et s'affichaient en balisage
+        // brut. SpoilerView re-parse son contenu, donc il suffit qu'il le reçoive.
+        let out = DescriptionBlockParser.parse(
+            "[spoiler]before[spoiler][img]https://x/y.png[/img][/spoiler]after[/spoiler]")
+        guard case let .spoiler(_, content)? = out.first else {
+            Issue.record("attendu un spoiler"); return
+        }
+        #expect(content.contains("[img]https://x/y.png[/img]"))
+        // Le contenu est re-parsé par SpoilerView : le spoiler interne devient
+        // un bloc à son tour, et c'est *son* contenu qui porte l'image.
+        guard case let .spoiler(_, inner)? = DescriptionBlockParser.parse(content)
+            .first(where: { if case .spoiler = $0 { return true } else { return false } })
+        else { Issue.record("attendu un spoiler imbriqué"); return }
+        #expect(DescriptionBlockParser.parse(inner) == [.image(URL(string: "https://x/y.png")!)])
+    }
+
+    @Test func unknownBracketedTextIsNotATagAndSurvives() {
+        // « [CP] » n'est pas du BBCode : c'est le nom réel des dossiers de SVE.
+        // Le supprimer rendait les instructions d'installation fausses.
+        #expect(DescriptionBlockParser.parse("Move the [CP] Stardew Valley Expanded folder")
+                == [.text("Move the [CP] Stardew Valley Expanded folder")])
+    }
+
+    @Test func bodySizedTextIsNotTurnedIntoBold() {
+        // SVE utilise [size=3] 187 fois comme taille de *corps de texte*. En le
+        // convertissant en gras sans regarder la valeur, toute la page passait
+        // en gras et les vrais titres devenaient indiscernables.
+        #expect(DescriptionBlockParser.parse("[size=3]body copy[/size]") == [.text("body copy")])
+        #expect(DescriptionBlockParser.parse("[size=4]A heading[/size]") == [.text("**A heading**")])
+    }
+
+    @Test func headingAlreadyBoldIsNotDoubleWrapped() {
+        // [size=4][b]X[/b][/size] donnait « ****X**** », que la règle « supprimer
+        // les emphases vides » réduisait à « X » — perdant le gras du titre.
+        #expect(DescriptionBlockParser.parse("[size=4][b]Frontier Farm[/b][/size]")
+                == [.text("**Frontier Farm**")])
+    }
+
+    @Test func emptyLinkLabelDoesNotLeaveDanglingMarkdown() {
+        // [url=X][/url] devenait « [](X) », que le rendu laisse voir sous la
+        // forme « ](https://…) ».
+        let out = DescriptionBlockParser.parse("[url=https://example.com][/url]")
+        if case let .text(t)? = out.first {
+            #expect(!t.contains("]("))
+        }
+    }
+
+    @Test func boldSpanningALinkKeepsItsDelimitersPaired() {
+        // Produisait « Follow me on[Twitter**](url) » : le gras fermant
+        // atterrissait à l'intérieur du libellé du lien.
+        guard case let .text(t)? = DescriptionBlockParser
+            .parse("[size=3][b]Follow me on [/b][url=https://x][b]Twitter[/b][/url][/size]").first
+        else { Issue.record("attendu du texte"); return }
+        // Le libellé du lien peut légitimement être en gras ; ce qui comptait,
+        // c'est qu'aucun délimiteur ne reste orphelin et que le lien soit entier.
+        #expect(t.contains("[**Twitter**](https://x)"))
+        #expect(t.components(separatedBy: "**").count % 2 == 1)  // délimiteurs appariés
+        // …et que les deux fragments ne se collent pas (« Follow me onTwitter »).
+        #expect(t.contains("on** ["))
+    }
+
     @Test func plainTextIsOneTextBlock() {
         #expect(DescriptionBlockParser.parse("Hello world") == [.text("Hello world")])
     }

@@ -13,7 +13,33 @@ enum DescriptionBlock: Hashable {
 /// input (falls back to a single `.text`). Ported from upstream
 /// NexusAPIService.parseBlocks (+ its list/HTML-linebreak fixes).
 enum DescriptionBlockParser {
+    /// BBCode tags we understand well enough to drop once their meaning has been
+    /// carried over to Markdown (or deliberately discarded). Anything *not* on
+    /// this list is left alone: real descriptions contain bracketed text that is
+    /// not markup at all — SVE ships folders literally named `[CP] Stardew
+    /// Valley Expanded`, and the previous catch-all strip silently turned its
+    /// install instructions into wrong ones.
+    /// `img` / `spoiler` / `hr` / `line` are absent on purpose: the block
+    /// tokenizer still needs them.
+    private static let knownInlineTags = [
+        "b", "i", "u", "s", "size", "color", "center", "left", "right", "justify",
+        "quote", "heading", "list", "font", "youtube", "media", "table", "tr",
+        "td", "th", "code", "indent", "acronym", "abbr", "highlight", "sub",
+        "sup", "url", "email", "attachment", "nomedia", "smilie", "spoilertitle",
+    ]
+
+    /// `[size]` values at or above this render as a heading; anything below is
+    /// body copy. Nexus authors size their *paragraphs* too — SVE uses `size=3`
+    /// 187 times for body text against 16 `size=4` headings — so bolding every
+    /// sized run turned whole pages bold and made real headings invisible.
+    private static let headingSizeThreshold = 4
+
     static func parse(_ str: String) -> [DescriptionBlock] {
+        tokenize(normalize(str))
+    }
+
+    /// HTML + BBCode → Markdown, without touching block-level tags.
+    private static func normalize(_ str: String) -> String {
         var formatted = str
 
         // 1. HTML entities
@@ -22,22 +48,49 @@ enum DescriptionBlockParser {
                              .replacingOccurrences(of: "&lt;", with: "<")
                              .replacingOccurrences(of: "&gt;", with: ">")
                              .replacingOccurrences(of: "&quot;", with: "\"")
+        // 1b. Zero-width junk. Nexus' editor sprinkles BOMs (U+FEFF) through
+        // pasted text; they are invisible but not whitespace, so `\s*` never
+        // matched them and a "blank" label like `[url=X]\u{FEFF}[/url]` survived
+        // every empty-pair guard, reaching the screen as a bare `](https://…)`.
+        // U+200D (ZWJ) is deliberately kept: it joins emoji sequences.
+        formatted = formatted.replacingOccurrences(of: "\u{FEFF}", with: "")
+                             .replacingOccurrences(of: "\u{200B}", with: "")
+                             .replacingOccurrences(of: "\u{200C}", with: "")
         // 2. <br> and block tags → newlines
         formatted = formatted.replacingOccurrences(of: "<br\\s*/?>", with: "\n", options: .regularExpression)
         formatted = formatted.replacingOccurrences(of: "(?i)</?(?:p|div|h[1-6]|li|tr|blockquote)\\b[^>]*>", with: "\n", options: .regularExpression)
         // 3. strip other HTML
         formatted = formatted.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
+        // 3b. Drop tag pairs whose content is empty *before* converting, so they
+        // never become delimiters with nothing between them. `[b][/b]` used to
+        // reach Markdown as `****`, and `[url=X][/url]` as `[](X)` — which the
+        // renderer shows as a literal `](https://…)`. SVE has both.
+        for tag in knownInlineTags {
+            formatted = formatted.replacingOccurrences(
+                of: "(?is)\\[\(tag)(?:=[^\\]]*)?\\]\\s*\\[/\(tag)\\]",
+                with: "", options: .regularExpression)
+        }
+
         // 4. BBCode → Markdown
-        formatted = formatted.replacingOccurrences(of: "(?s)\\[b\\]\\s*(.*?)\\s*\\[/b\\]", with: "**$1**", options: [.regularExpression, .caseInsensitive])
-        formatted = formatted.replacingOccurrences(of: "(?s)\\[i\\]\\s*(.*?)\\s*\\[/i\\]", with: "*$1*", options: [.regularExpression, .caseInsensitive])
-        formatted = formatted.replacingOccurrences(of: "(?s)\\[s\\]\\s*(.*?)\\s*\\[/s\\]", with: "~~$1~~", options: [.regularExpression, .caseInsensitive])
-        formatted = formatted.replacingOccurrences(of: "(?s)\\[u\\]\\s*(.*?)\\s*\\[/u\\]", with: "*$1*", options: [.regularExpression, .caseInsensitive])
-        formatted = formatted.replacingOccurrences(of: "(?s)\\[size=[^\\]]+\\]\\s*(.*?)\\s*\\[/size\\]", with: "**$1**", options: [.regularExpression, .caseInsensitive])
-        formatted = formatted.replacingOccurrences(of: "(?s)\\[heading[=\\d]*\\]\\s*(.*?)\\s*\\[/heading\\]", with: "**$1**", options: [.regularExpression, .caseInsensitive])
+        formatted = formatted.replacingOccurrences(of: "(?s)\\[b\\](\\s*)(.*?)(\\s*)\\[/b\\]", with: "$1**$2**$3", options: [.regularExpression, .caseInsensitive])
+        formatted = formatted.replacingOccurrences(of: "(?s)\\[i\\](\\s*)(.*?)(\\s*)\\[/i\\]", with: "$1*$2*$3", options: [.regularExpression, .caseInsensitive])
+        formatted = formatted.replacingOccurrences(of: "(?s)\\[s\\](\\s*)(.*?)(\\s*)\\[/s\\]", with: "$1~~$2~~$3", options: [.regularExpression, .caseInsensitive])
+        formatted = formatted.replacingOccurrences(of: "(?s)\\[u\\](\\s*)(.*?)(\\s*)\\[/u\\]", with: "$1*$2*$3", options: [.regularExpression, .caseInsensitive])
+        formatted = convertSizes(in: formatted)
+        formatted = formatted.replacingOccurrences(of: "(?s)\\[heading[=\\d]*\\](\\s*)(.*?)(\\s*)\\[/heading\\]", with: "$1**$2**$3", options: [.regularExpression, .caseInsensitive])
         formatted = formatted.replacingOccurrences(of: "(?i)\\[/?list(?:=[^\\]]+)?\\]", with: "\n", options: .regularExpression)
         formatted = formatted.replacingOccurrences(of: "(?i)\\[\\*\\]", with: "\n- ", options: .regularExpression)
         formatted = formatted.replacingOccurrences(of: "(?i)\\[li\\]", with: "\n- ", options: .regularExpression)
         formatted = formatted.replacingOccurrences(of: "(?i)\\[/li\\]", with: "", options: .regularExpression)
+        // A link whose whole label is an image (`[url=X][img]Y[/img][/url]`, how
+        // Nexus authors make a banner clickable) can't survive as Markdown: the
+        // tokenizer lifts the image into its own block and the link's brackets
+        // are left behind as a bare `](https://…)`. Unwrap to the image — a
+        // `.image` block carries no destination, and showing the picture beats
+        // showing the syntax.
+        formatted = formatted.replacingOccurrences(
+            of: "(?is)\\[url(?:=[^\\]]*)?\\]\\s*(\\[img[^\\]]*\\].*?\\[/img\\])\\s*\\[/url\\]",
+            with: "$1", options: .regularExpression)
         formatted = formatted.replacingOccurrences(of: "(?s)\\[url=(.*?)\\]\\s*(.*?)\\s*\\[/url\\]", with: "[$2]($1)", options: [.regularExpression, .caseInsensitive])
         formatted = formatted.replacingOccurrences(of: "(?s)\\[url\\]\\s*(.*?)\\s*\\[/url\\]", with: "[$1]($1)", options: [.regularExpression, .caseInsensitive])
         // NB: `[hr]` / `[line]` are intentionally NOT converted here — they are
@@ -54,16 +107,27 @@ enum DescriptionBlockParser {
         // both `[img …]` and `[/img]` (and spoiler) — otherwise `/?` backtracks
         // and the body swallows `/img`, stripping the closing tag and breaking
         // image tokenization below.
+        let tagAlternation = knownInlineTags.joined(separator: "|")
         formatted = formatted.replacingOccurrences(
-            of: "(?i)\\[(?!/?(?:img[^a-zA-Z]|spoiler[^a-zA-Z]|hr[^a-zA-Z]|line[^a-zA-Z]))/?[^\\[\\]]*\\](?!\\()",
+            of: "(?i)\\[/?(?:\(tagAlternation))(?:=[^\\]]*)?\\](?!\\()",
             with: "", options: .regularExpression)
+        // Bare generic close tag (`[/]`), which no whitelist entry covers.
+        formatted = formatted.replacingOccurrences(of: "\\[/\\]", with: "", options: .regularExpression)
+
+        // Nesting two emphasising tags (`[size=4][b]Title[/b][/size]`) yields
+        // `****Title****`. Collapse the doubled delimiters instead of deleting
+        // them: the old "remove every ****" rule stripped the emphasis whole,
+        // so headings came out as plain text — and, when only one side got
+        // eaten, left a stray `**` on screen.
+        formatted = formatted.replacingOccurrences(of: "\\*\\*\\*\\*(?=\\S)", with: "**", options: .regularExpression)
+        formatted = formatted.replacingOccurrences(of: "(?<=\\S)\\*\\*\\*\\*", with: "**", options: .regularExpression)
 
         // Unwrap emphasis whose content is only punctuation/whitespace (e.g.
         // `[b]:[/b]` → `**:**`). Markdown can't render `**` flanked by a word on
         // one side and punctuation on the other (CommonMark flanking rules), so
         // it would show the literal `**`; the bold adds nothing here anyway.
-        formatted = formatted.replacingOccurrences(of: "\\*\\*([\\p{P}\\s]+?)\\*\\*", with: "$1", options: .regularExpression)
-        formatted = formatted.replacingOccurrences(of: "~~([\\p{P}\\s]+?)~~", with: "$1", options: .regularExpression)
+        formatted = unwrapPunctuationOnlyEmphasis(formatted, delimiter: "**")
+        formatted = unwrapPunctuationOnlyEmphasis(formatted, delimiter: "~~")
         // Drop empty emphasis (`****`, `~~~~`) left by an empty tag pair such as
         // `[b][/b]`, which would otherwise render as literal delimiters.
         formatted = formatted.replacingOccurrences(of: "\\*\\*\\*\\*", with: "", options: .regularExpression)
@@ -77,46 +141,162 @@ enum DescriptionBlockParser {
         // spaces), so it never mangles the attributed `[img width=550]…` form.
         formatted = formatted.replacingOccurrences(of: "(?i)\\[img\\s*=\\s*([^\\]]+)\\]", with: "[img]$1[/img]", options: .regularExpression)
 
-        // 6. tokenize by [img] / [spoiler]. The [img] open tag may carry
-        // attributes (e.g. `[img width=550]url[/img]`), so match `[img …]`, not
-        // just a bare `[img]`.
-        var blocks: [DescriptionBlock] = []
-        let combinedPattern = "(?s)(\\[img[^\\]]*\\](.*?)\\[/img\\]|\\[spoiler(?:=(.*?))?\\](.*?)\\[/spoiler\\]|\\[/?(?:hr|line)[^\\]]*\\])"
-        guard let regex = try? NSRegularExpression(pattern: combinedPattern, options: .caseInsensitive) else {
-            let t = balancedText(formatted)
+        return formatted
+    }
+
+    /// `[size=N]` → heading emphasis or plain text, depending on N. An
+    /// unparseable value is treated as body copy: silently bolding a whole
+    /// description is worse than losing one heading.
+    private static func convertSizes(in str: String) -> String {
+        guard let regex = try? NSRegularExpression(
+            pattern: "(?s)\\[size=([^\\]]+)\\]\\s*(.*?)\\s*\\[/size\\]",
+            options: .caseInsensitive) else { return str }
+        let ns = str as NSString
+        var out = ""
+        var last = 0
+        for m in regex.matches(in: str, range: NSRange(location: 0, length: ns.length)) {
+            out += ns.substring(with: NSRange(location: last, length: m.range.location - last))
+            let rawValue = ns.substring(with: m.range(at: 1)).trimmingCharacters(in: .whitespaces)
+            let body = ns.substring(with: m.range(at: 2))
+            let value = Int(rawValue.prefix(while: { $0.isNumber })) ?? 0
+            out += value >= headingSizeThreshold ? "**\(body)**" : body
+            last = m.range.location + m.range.length
+        }
+        out += ns.substring(from: last)
+        return out
+    }
+
+    /// Drops emphasis whose content is only punctuation or whitespace — `[b]:[/b]`
+    /// becomes `**:**`, which CommonMark's flanking rules can't render, so the
+    /// delimiters would show literally while adding nothing.
+    ///
+    /// Delimiters are paired in order (1st with 2nd, 3rd with 4th…) rather than
+    /// matched by regex. A regex scanning left to right happily reads a *closing*
+    /// delimiter as an opening one: in `**Follow me on** [**Twitter**](url)` it
+    /// paired the closer of "Follow me on" with the opener of "Twitter", saw only
+    /// `" ["` between them, and unwrapped both — stranding a `**` inside the link
+    /// label (`[Twitter**](url)`), exactly as seen on SVE's page.
+    private static func unwrapPunctuationOnlyEmphasis(_ str: String, delimiter: String) -> String {
+        let parts = str.components(separatedBy: delimiter)
+        guard parts.count > 2 else { return str }
+
+        var out = parts[0]
+        var index = 1
+        while index < parts.count {
+            // `parts[index]` is the emphasised body; `parts[index + 1]`, when it
+            // exists, is the ordinary text that follows the closing delimiter.
+            let body = parts[index]
+            guard index + 1 < parts.count else {
+                out += delimiter + body           // unpaired trailing delimiter
+                break
+            }
+            let isPunctuationOnly = !body.isEmpty && body.allSatisfy {
+                $0.isPunctuation || $0.isWhitespace || $0.isSymbol
+            }
+            out += isPunctuationOnly ? body : delimiter + body + delimiter
+            out += parts[index + 1]
+            index += 2
+        }
+        return out
+    }
+
+    // MARK: - Block tokenizer
+
+    /// Splits normalized text into blocks, honouring **nesting**.
+    ///
+    /// The previous single regex paired `[spoiler]` with the *first* `[/spoiler]`
+    /// it found. Real descriptions nest them — SVE wraps a per-map gallery in an
+    /// outer spoiler — so the outer content was cut short, its closing tag was
+    /// left on screen as literal text, and the images sitting in the inner
+    /// spoilers never reached `SpoilerView` (which re-parses its content and
+    /// would have rendered them).
+    private static func tokenize(_ text: String) -> [DescriptionBlock] {
+        let tagPattern = "(?i)\\[(/?)(img|spoiler|hr|line)([^\\]]*)\\]"
+        guard let regex = try? NSRegularExpression(pattern: tagPattern) else {
+            let t = balancedText(text)
             return t.isEmpty ? [] : [.text(t)]
         }
-        let nsString = formatted as NSString
-        let matches = regex.matches(in: formatted, range: NSRange(location: 0, length: nsString.length))
-        var lastEnd = 0
-        for match in matches {
-            let textStr = balancedText(nsString.substring(with: NSRange(location: lastEnd, length: match.range.location - lastEnd)))
-            if !textStr.isEmpty { blocks.append(.text(textStr)) }
-            let fullMatch = nsString.substring(with: match.range)
-            if fullMatch.lowercased().hasPrefix("[img") {
-                let r = match.range(at: 2)
-                if r.location != NSNotFound {
-                    let s = nsString.substring(with: r).trimmingCharacters(in: .whitespacesAndNewlines)
-                    if let url = URL(string: s) { blocks.append(.image(url)) }
-                }
-            } else if fullMatch.lowercased().hasPrefix("[spoiler") {
-                let titleR = match.range(at: 3), contentR = match.range(at: 4)
-                var title = "Spoiler"
-                if titleR.location != NSNotFound {
-                    let e = nsString.substring(with: titleR).trimmingCharacters(in: .whitespacesAndNewlines)
-                    if !e.isEmpty { title = e }
-                }
-                let content = contentR.location != NSNotFound
-                    ? nsString.substring(with: contentR).trimmingCharacters(in: .whitespacesAndNewlines) : ""
-                blocks.append(.spoiler(title: title, content: content))
-            } else {
-                // [hr] / [line] → a real horizontal rule.
-                blocks.append(.divider)
-            }
-            lastEnd = match.range.location + match.range.length
+        let ns = text as NSString
+        let tags = regex.matches(in: text, range: NSRange(location: 0, length: ns.length))
+
+        var blocks: [DescriptionBlock] = []
+        var cursor = 0          // end of what we've already emitted
+        var i = 0               // index into `tags`
+
+        func flushText(upTo location: Int) {
+            guard location > cursor else { return }
+            let t = balancedText(ns.substring(with: NSRange(location: cursor, length: location - cursor)))
+            if !t.isEmpty { blocks.append(.text(t)) }
         }
-        let finalText = balancedText(nsString.substring(from: lastEnd))
-        if !finalText.isEmpty { blocks.append(.text(finalText)) }
+
+        while i < tags.count {
+            let tag = tags[i]
+            let isClosing = ns.substring(with: tag.range(at: 1)) == "/"
+            let name = ns.substring(with: tag.range(at: 2)).lowercased()
+            let attribute = ns.substring(with: tag.range(at: 3))
+            let tagEnd = tag.range.location + tag.range.length
+
+            if name == "hr" || name == "line" {
+                flushText(upTo: tag.range.location)
+                blocks.append(.divider)
+                cursor = tagEnd
+                i += 1
+                continue
+            }
+
+            // A closing tag with no opener is leftover markup, not content:
+            // drop it rather than print it.
+            guard !isClosing else {
+                flushText(upTo: tag.range.location)
+                cursor = tagEnd
+                i += 1
+                continue
+            }
+
+            // Walk forward to the closer that matches *this* opener, counting
+            // deeper openers of the same name on the way.
+            var depth = 1
+            var j = i + 1
+            var closer: NSTextCheckingResult?
+            while j < tags.count {
+                let candidate = tags[j]
+                if ns.substring(with: candidate.range(at: 2)).lowercased() == name {
+                    depth += ns.substring(with: candidate.range(at: 1)) == "/" ? -1 : 1
+                    if depth == 0 { closer = candidate; break }
+                }
+                j += 1
+            }
+            guard let closingTag = closer else {
+                // Unterminated opener: treat it as stray markup and move on.
+                flushText(upTo: tag.range.location)
+                cursor = tagEnd
+                i += 1
+                continue
+            }
+
+            flushText(upTo: tag.range.location)
+            let inner = ns.substring(with: NSRange(location: tagEnd,
+                                                  length: closingTag.range.location - tagEnd))
+            if name == "img" {
+                let src = inner.trimmingCharacters(in: .whitespacesAndNewlines)
+                if let url = URL(string: src) { blocks.append(.image(url)) }
+            } else {
+                var title = "Spoiler"
+                if attribute.hasPrefix("=") {
+                    let raw = String(attribute.dropFirst()).trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !raw.isEmpty { title = raw }
+                }
+                // Content keeps its inner markup: `SpoilerView` parses it again,
+                // so nested spoilers and their images render on expand.
+                blocks.append(.spoiler(title: title,
+                                       content: inner.trimmingCharacters(in: .whitespacesAndNewlines)))
+            }
+            cursor = closingTag.range.location + closingTag.range.length
+            // Resume after the matching closer — everything between was consumed.
+            i = tags.firstIndex(where: { $0.range.location >= cursor }) ?? tags.count
+        }
+
+        flushText(upTo: ns.length)
         return blocks
     }
 

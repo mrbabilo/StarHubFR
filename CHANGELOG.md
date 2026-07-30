@@ -12,6 +12,15 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Fixed
+- **Mod descriptions no longer show their own markup.** Rendering was a chain of text substitutions, which can't see structure — so real Nexus pages leaked BBCode onto the screen. Verified against Stardew Valley Expanded's 23 KB description, which now renders without a single stray tag. Six distinct defects, all fixed:
+  - **Nested spoilers** (SVE wraps a per-map gallery in an outer one) paired an opening tag with the *first* closing tag, printing the leftover `[/spoiler]` as text — and cutting the outer content short, so **5 of the 22 images** never rendered. Block splitting now tracks nesting depth.
+  - **`[size]` was always turned into bold**, whatever the value. Authors size their body copy too: SVE uses `size=3` 187 times for paragraphs against 16 `size=4` headings, so entire pages came out bold with headings indistinguishable from text. Only heading-sized runs are emphasised now.
+  - **A heading that was both sized and bold lost its emphasis entirely**, because the doubled `****` delimiters were deleted rather than collapsed.
+  - **`[CP]` was erased.** It isn't BBCode — it's the literal name of SVE's folders (`[CP] Stardew Valley Expanded`), so install instructions were displayed *wrong*. Only known BBCode tags are stripped; anything else in brackets is left as the text it is.
+  - **Stray `**` on screen** (`Immersive Farm 2 Remastered**`, `[Twitter**](…)`). Delimiters are now paired in order instead of matched by a regex that read a closing delimiter as an opening one. Emphasis also stops eating the space next to it, which used to run two words together.
+  - **A bare `](https://…)` was displayed** where a link had no usable label: either empty, filled with invisible zero-width characters, or wrapping an image (how a banner is made clickable). Empty links are dropped, invisible characters removed, and an image-only link renders as the image.
+
 ## [1.10.1] - 2026-07-30
 
 ### Fixed

@@ -1674,13 +1674,31 @@ class StarHubTHViewModel: ObservableObject {
             }
         }
         
-        var foldersToToggle: Set<String> = [mod.folderName]
+        // Everything below matches against TOP-LEVEL entries of `self.mods`,
+        // so a mod that is a pack *child* has to be mapped to its owning
+        // folder first. This matters because callers don't all pass top-level
+        // items: the dependency tree resolves through `installedModsByUniqueId`,
+        // which indexes children (a dependency usually lives inside a pack), so
+        // its "Enable" button handed us a child whose folderName is
+        // "Pack/Child". No top-level entry matches that, the apply loop hit
+        // `continue`, and the button silently did nothing.
+        let seedFolder: String = {
+            // Already top-level (standalone mod or pack header) → unchanged.
+            if self.mods.contains(where: { $0.folderName == mod.folderName }) {
+                return mod.folderName
+            }
+            // Otherwise resolve the pack that owns this uniqueId — the same
+            // mapping the dependency traversal below already relies on.
+            return getTopLevelFolder(for: mod.uniqueId) ?? mod.folderName
+        }()
+
+        var foldersToToggle: Set<String> = [seedFolder]
         // Re-derive from the current snapshot rather than trusting
         // `mod.isEnabled` — `mod` was captured by value when this call was
         // enqueued (see `toggleMod`), so by the time a queued call actually
         // runs, `self.mods` may already reflect a state change from an
         // earlier queued toggle.
-        let currentIsEnabled = self.mods.first(where: { $0.folderName == mod.folderName })?.isEnabled ?? mod.isEnabled
+        let currentIsEnabled = self.mods.first(where: { $0.folderName == seedFolder })?.isEnabled ?? mod.isEnabled
         let targetState = !currentIsEnabled // True if we are enabling, false if disabling
         
         if chainToggleDependencies {
@@ -1690,8 +1708,8 @@ class StarHubTHViewModel: ObservableObject {
                 // enabled (tracked by `visited`, separate from
                 // `foldersToToggle`) so that a disabled mod two levels down
                 // an already-enabled chain still gets picked up.
-                var queue = [mod.folderName]
-                var visited: Set<String> = [mod.folderName]
+                var queue = [seedFolder]
+                var visited: Set<String> = [seedFolder]
                 while !queue.isEmpty {
                     let currentFolder = queue.removeFirst()
                     let deps = getDependencies(for: currentFolder)
@@ -1709,7 +1727,7 @@ class StarHubTHViewModel: ObservableObject {
                 }
             } else {
                 // Disabling: recursively disable all enabled mods that REQUIRE this mod
-                var queue = [mod.folderName]
+                var queue = [seedFolder]
                 while !queue.isEmpty {
                     let currentFolder = queue.removeFirst()
                     
