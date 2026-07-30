@@ -9,25 +9,38 @@ struct DescriptionImage: View {
     let url: URL
     @State private var image: NSImage?
     @State private var failed = false
+    /// Largeur offerte par le conteneur, mesurée une fois via une
+    /// `PreferenceKey` (un `GeometryReader` en arrière-plan n'altère pas la
+    /// mise en page). Sert à la règle de centrage ci-dessous.
+    @State private var availableWidth: CGFloat = .infinity
 
     private static let cache = NSCache<NSURL, NSImage>()
 
     var body: some View {
         Group {
             if let image {
+                // Une image dont la largeur native dépasse 40 % de la colonne est
+                // centrée ; une icône de 16 px reste alignée à gauche et ne flotte
+                // pas seule au milieu.
+                let centered = image.size.width > 0.4 * availableWidth
                 Image(nsImage: image)
                     .resizable()
                     .scaledToFit()
                     // Cap at the native width so it never upscales; scaledToFit
                     // still shrinks it to the pane when the pane is narrower.
-                    .frame(maxWidth: image.size.width, alignment: .leading)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .frame(maxWidth: image.size.width)
+                    .clipShape(RoundedRectangle(cornerRadius: AppDesignCore.Radius.md))
+                    .frame(maxWidth: .infinity, alignment: centered ? .center : .leading)
             } else if failed {
                 EmptyView()                       // offline / broken → skip
             } else {
                 ProgressView().frame(maxWidth: .infinity, minHeight: 60)
             }
         }
+        .background(GeometryReader { proxy in
+            Color.clear.preference(key: PaneWidthKey.self, value: proxy.size.width)
+        })
+        .onPreferenceChange(PaneWidthKey.self) { availableWidth = $0 }
         .task(id: url) { await load() }
     }
 
@@ -172,11 +185,27 @@ struct DescriptionBlocksView: View {
                         }
                     }
                 case .code(let source):
-                    Text(source)
-                        .font(.system(.body, design: .monospaced))
-                        .textSelection(.enabled)
+                    // Chasse fixe, fond teinté, coins arrondis, défilement
+                    // horizontal : un chemin de fichier ne revient jamais à la
+                    // ligne en plein milieu.
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        Text(source)
+                            .font(.system(.body, design: .monospaced))
+                            .textSelection(.enabled)
+                            .padding(AppDesignCore.Spacing.sm)
+                    }
+                    .background(Color.primary.opacity(AppDesignCore.Opacity.light))
+                    .clipShape(RoundedRectangle(cornerRadius: AppDesignCore.Radius.sm))
                 case .quote(let markdown):
-                    MarkdownText(markdown).foregroundStyle(.secondary)
+                    // Filet vertical à gauche, texte atténué.
+                    MarkdownText(markdown)
+                        .foregroundStyle(.secondary)
+                        .padding(.leading, AppDesignCore.Spacing.sm)
+                        .overlay(alignment: .leading) {
+                            Rectangle()
+                                .frame(width: 2)
+                                .foregroundStyle(Color.primary.opacity(AppDesignCore.Opacity.medium))
+                        }
                 case .image(let url):
                     DescriptionImage(url: url)
                 case .spoiler(let title, let content):
@@ -261,5 +290,13 @@ private extension NSColor {
                   green: CGFloat((n >> 8) & 0xff) / 255,
                   blue: CGFloat(n & 0xff) / 255,
                   alpha: 1)
+    }
+}
+
+/// Largeur offerte à un bloc image, mesurée sans `GeometryReader` envahissant.
+private struct PaneWidthKey: PreferenceKey {
+    static var defaultValue: CGFloat = .infinity
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
     }
 }
