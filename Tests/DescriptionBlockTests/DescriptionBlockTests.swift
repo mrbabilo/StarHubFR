@@ -105,6 +105,36 @@ struct DescriptionBlockTests {
         #expect(inner == [.text("Hello")])
     }
 
+    // MARK: - Couleur et souligné inline (X2)
+
+    @Test func colorTagBecomesCustomAttribute() {
+        // [color=#hex]X[/color] → Markdown à attribut personnalisé shcolor.
+        let out = DescriptionBlockParser.parse("[color=#e69138]Warning[/color]")
+        guard case let .text(t)? = out.first else { Issue.record("attendu .text"); return }
+        #expect(t.contains("shcolor: '#e69138'") && t.contains("Warning"))
+        #expect(!t.contains("[color"))   // la balise ne fuit pas
+    }
+    @Test func colorNameIsResolvedThenCarried() {
+        // [color=red] → la table résout « red » en hex ; le shcolor est transporté.
+        let out = DescriptionBlockParser.parse("[color=red]Stop[/color]")
+        guard case let .text(t)? = out.first else { Issue.record("attendu .text"); return }
+        #expect(t.contains("shcolor:"))
+        #expect(!t.contains("[color"))
+    }
+    @Test func unknownColorNameDropsColorKeepsText() {
+        // Un nom inconnu est ignoré : le texte reste, sans attribut couleur.
+        let out = DescriptionBlockParser.parse("[color=cerulean]Hi[/color]")
+        guard case let .text(t)? = out.first else { Issue.record("attendu .text"); return }
+        #expect(t.contains("Hi") && !t.contains("shcolor") && !t.contains("[color"))
+    }
+    @Test func underlineTagBecomesRealUnderline() {
+        // [u]X[/u] → attribut shunderline (vrai souligné, plus de l'italique).
+        let out = DescriptionBlockParser.parse("[u]underlined[/u]")
+        guard case let .text(t)? = out.first else { Issue.record("attendu .text"); return }
+        #expect(t.contains("shunderline: 'true'") && t.contains("underlined"))
+        #expect(!t.contains("[u]") && !t.contains("[/u]"))   // la balise ne fuit pas
+    }
+
     @Test func emptyLinkLabelDoesNotLeaveDanglingMarkdown() {
         // [url=X][/url] devenait « [](X) », que le rendu laisse voir sous la
         // forme « ](https://…) ».
@@ -174,10 +204,14 @@ struct DescriptionBlockTests {
         #expect(out == [.image(URL(string: "https://x/y.png")!), .text("caption")])
     }
     @Test func leftoverOrStrayTagsAreStrippedNotShownRaw() {
-        // Generic close tags (`[/]`, `[/*]`), unknown tags (`[color=x]`), and a
-        // stray unbalanced `[b]` must never reach the screen as literal BBCode.
-        #expect(DescriptionBlockParser.parse("a [color=red]b[/color] [b]c[/] d[/*]")
-            == [.text("a b c d")])
+        // Balises génériques (`[/]`, `[/*]`) et `[b]` dépareillé ne fuitent pas.
+        // `[color=red]word[/color]` est converti (porte shcolor), pas supprimé.
+        // (Contenu « word » pour éviter qu'il ne commence par la même lettre
+        // qu'une balise et fausse la vérification de fuite.)
+        let out = DescriptionBlockParser.parse("a [color=red]word[/color] [b]c[/] d[/*]")
+        guard case let .text(t)? = out.first else { Issue.record("attendu .text"); return }
+        #expect(!t.contains("[color") && !t.contains("[b") && !t.contains("[/"))
+        #expect(t.contains("a") && t.contains("word") && t.contains("c") && t.contains("d"))
     }
     @Test func markdownLinkSurvivesTagStripping() {
         // The generic tag strip must not eat a Markdown link `[text](url)`

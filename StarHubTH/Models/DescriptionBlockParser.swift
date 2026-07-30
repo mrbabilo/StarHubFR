@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 
 /// A parsed segment of a Nexus mod description. `.text` holds Markdown (BBCode
@@ -104,7 +105,10 @@ enum DescriptionBlockParser {
         formatted = formatted.replacingOccurrences(of: "(?s)\\[b\\](\\s*)(.*?)(\\s*)\\[/b\\]", with: "$1**$2**$3", options: [.regularExpression, .caseInsensitive])
         formatted = formatted.replacingOccurrences(of: "(?s)\\[i\\](\\s*)(.*?)(\\s*)\\[/i\\]", with: "$1*$2*$3", options: [.regularExpression, .caseInsensitive])
         formatted = formatted.replacingOccurrences(of: "(?s)\\[s\\](\\s*)(.*?)(\\s*)\\[/s\\]", with: "$1~~$2~~$3", options: [.regularExpression, .caseInsensitive])
-        formatted = formatted.replacingOccurrences(of: "(?s)\\[u\\](\\s*)(.*?)(\\s*)\\[/u\\]", with: "$1*$2*$3", options: [.regularExpression, .caseInsensitive])
+        // [u]X[/u] → vrai souligné via attribut Markdown personnalisé (était
+        // converti en *italique*, ce n'est pas un souligné).
+        formatted = formatted.replacingOccurrences(of: "(?s)\\[u\\]\\s*(.*?)\\s*\\[/u\\]", with: "^[$1](shunderline: 'true')", options: [.regularExpression, .caseInsensitive])
+        formatted = convertColors(in: formatted)
         formatted = convertSizes(in: formatted)
         formatted = convertHeadings(in: formatted)
         // `[list]`, `[*]` et `[li]` sont gérés au niveau bloc par `tokenize`
@@ -247,6 +251,44 @@ enum DescriptionBlockParser {
         case 5:     return 2
         default:    return 3   // size 4
         }
+    }
+
+    /// `[color=V]body[/color]` → `^[body](shcolor: 'hex')` (attribut Markdown
+    /// personnalisé). V est un `#hex` (passé tel quel) ou un nom résolu par la
+    /// table `ContrastChecker.color(named:)` ; un nom inconnu → corps nu, sans
+    /// attribut couleur. Les paires non appariées restent nettoyées par le strip
+    /// final (`color` et `u` restent dans `knownInlineTags`).
+    private static func convertColors(in str: String) -> String {
+        guard let regex = try? NSRegularExpression(
+            pattern: "(?is)\\[color=([^\\]]+)\\]\\s*(.*?)\\s*\\[/color\\]",
+            options: .caseInsensitive) else { return str }
+        let ns = str as NSString
+        var out = ""
+        var last = 0
+        for m in regex.matches(in: str, range: NSRange(location: 0, length: ns.length)) {
+            out += ns.substring(with: NSRange(location: last, length: m.range.location - last))
+            let value = ns.substring(with: m.range(at: 1)).trimmingCharacters(in: .whitespaces)
+            let body = ns.substring(with: m.range(at: 2))
+            if let hex = resolveColorHex(value) {
+                out += "^[\(body)](shcolor: '\(hex)')"
+            } else {
+                out += body
+            }
+            last = m.range.location + m.range.length
+        }
+        out += ns.substring(from: last)
+        return out
+    }
+
+    /// Résout une valeur `[color=V]` en hex `#rrggbb` : `#hex` passé tel quel,
+    /// ou un nom via `ContrastChecker.color(named:)` ; nil si nom inconnu.
+    private static func resolveColorHex(_ value: String) -> String? {
+        if value.hasPrefix("#") { return value }
+        guard let c = ContrastChecker.color(named: value)?.usingColorSpace(.sRGB) else { return nil }
+        let r = Int(round(c.redComponent * 255))
+        let g = Int(round(c.greenComponent * 255))
+        let b = Int(round(c.blueComponent * 255))
+        return String(format: "#%02X%02X%02X", r, g, b)
     }
 
     /// Drops emphasis whose content is only punctuation or whitespace — `[b]:[/b]`

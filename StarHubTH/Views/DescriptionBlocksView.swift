@@ -69,10 +69,52 @@ struct MarkdownText: View {
         self.hasLink = a.runs.contains { $0.link != nil }
     }
 
-    /// Inline-only parse that *preserves* whitespace/newlines (so multi-line
-    /// descriptions and list lines stay on their own line) and degrades to the
-    /// raw string rather than throwing on malformed Markdown or stray `%`.
+    /// Découpe le Markdown sur les attributs personnalisés `^[X](shcolor: 'hex')`
+    /// (couleur, contraste-corrigée sur le fond fenêtre) et `^[X](shunderline:
+    /// 'true')` (souligné), puis applique de vrais runs natifs `.foregroundColor`
+    /// / `.underlineStyle` sur chaque portion — la couleur et le souligné
+    /// n'existent pas en Markdown, et Foundation n'attache pas fiablement les
+    /// attributs custom en mode inline, on les applique donc soi-même. Le texte
+    /// hors de ces spans est parsé à l'identique d'avant (un seul segment).
     static func render(_ s: String) -> AttributedString {
+        let background = NSColor.windowBackgroundColor.usingColorSpace(.sRGB) ?? .windowBackgroundColor
+        var result = AttributedString()
+        let ns = s as NSString
+        let pattern = "(?s)\\^\\[(.*?)\\]\\((?:shcolor: '([^']*)'|shunderline: '([^']*)')\\)"
+        guard let regex = try? NSRegularExpression(pattern: pattern) else {
+            return parseInline(s)
+        }
+        let matches = regex.matches(in: s, range: NSRange(location: 0, length: ns.length))
+        var cursor = 0
+        for m in matches {
+            if m.range.location > cursor {
+                result += parseInline(ns.substring(with: NSRange(location: cursor,
+                                                                  length: m.range.location - cursor)))
+            }
+            let content = ns.substring(with: m.range(at: 1))
+            let hex = m.range(at: 2).location == NSNotFound ? nil : ns.substring(with: m.range(at: 2))
+            let under = m.range(at: 3).location == NSNotFound ? nil : ns.substring(with: m.range(at: 3))
+            var piece = parseInline(content)
+            if let hex, let nsColor = NSColor(hex: hex),
+               let adjusted = ContrastChecker.adjusted(nsColor, on: background) {
+                piece.foregroundColor = Color(nsColor: adjusted)
+            }
+            if under != nil {
+                piece.underlineStyle = .single
+            }
+            result += piece
+            cursor = m.range.location + m.range.length
+        }
+        if cursor < ns.length {
+            result += parseInline(ns.substring(from: cursor))
+        }
+        return result
+    }
+
+    /// Parse Markdown inline en préservant les espaces/newlines (le corps d'une
+    /// description s'appuie sur les sauts de ligne) ; dégrade vers le brut plutôt
+    /// que de planter sur du Markdown malformé ou un `%` parasite.
+    private static func parseInline(_ s: String) -> AttributedString {
         (try? AttributedString(
             markdown: s,
             options: .init(
@@ -206,5 +248,18 @@ struct SpoilerView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 6))
             }
         }
+    }
+}
+
+private extension NSColor {
+    /// Construit une `NSColor` depuis un `#hex` à 6 chiffres. Nil si invalide.
+    convenience init?(hex: String) {
+        var h = hex
+        if h.hasPrefix("#") { h.removeFirst() }
+        guard h.count == 6, let n = UInt32(h, radix: 16) else { return nil }
+        self.init(srgbRed: CGFloat((n >> 16) & 0xff) / 255,
+                  green: CGFloat((n >> 8) & 0xff) / 255,
+                  blue: CGFloat(n & 0xff) / 255,
+                  alpha: 1)
     }
 }
