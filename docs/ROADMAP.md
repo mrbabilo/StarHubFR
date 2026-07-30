@@ -85,8 +85,8 @@ liste du 2026-07-30 et n'existaient pas dans le document de veille.
 | **§new** | Mutualiser les diagnostics/mesures de perf entre utilisateurs (cf. `circinus.sh`) | **À faire** | Aucun backend → **D2** (décision produit, non chiffrée) |
 | **§new** | Refactoriser le God module | **À faire** | `StarHubTHViewModel.swift` = **4278 lignes** → **F1** |
 | **§new** | Vérifier optimisation (vitesse, mémoire) et sécurité du code | **À faire** | → **F2** |
-| **§new** | Copier/coller du NexusID impossible | **Bug** | `ModDetailView.swift:307` est un `TextField` standard : la cause est probablement en amont (menu Édition) → **X1** |
-| **§new** | BBCode/Markdown non rendu dans la description | **Bug** | `DescriptionBlockParser` traite `b/i/size/list/url/img/spoiler/hr` et **supprime tout le reste** (ligne 58) → **X2** |
+| **§new** | Copier/coller du NexusID impossible | **Non reproduit** | Fonctionne ; le menu Édition est présent → **X1** clos |
+| **§new** | BBCode/Markdown non rendu dans la description | **Bug 🔴** | 6 défauts reproduits sur SVE (3753) : spoilers imbriqués, images perdues, `**` orphelins, `](url)`, tout en gras, `[CP]` effacé → **X2** |
 | **§new** | Rafraîchissement automatique dès qu'on renseigne l'identifiant Nexus | **À faire** | → **B2-T3** |
 | **§new** | `smapi.io/json` comme analyseur de référence pour les JSON Stardew | *(précision)* | Affine la définition de « manifest valide » → **A1-T2** |
 | **§new** | `stardew-i18n-translator` comme référence de pipeline i18n | *(précision)* | Affine **C3** — voir la réserve de licence en §5 |
@@ -138,18 +138,35 @@ L'axe diagnostic de log est derrière nous ; l'essentiel du reste tient dans A, 
 
 Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées.
 
-- [ ] **X1** — **Copier/coller impossible dans le champ NexusID.** Le champ est un
-      `TextField` standard, qui devrait supporter ⌘C/⌘V nativement : l'hypothèse la plus
-      probable n'est donc pas le champ mais **l'absence du menu Édition** (l'app est bâtie
-      par `swiftc` brut, sans nib, et `StarHubTHApp.swift` ne déclare aucun `.commands`).
-      Si c'est le cas, le défaut est **global à l'application**, pas local à ce champ.
-      ▸ *À confirmer par l'utilisateur : ⌘V fonctionne-t-il dans l'éditeur JSON et dans le
-      champ de recherche ?* · **S** si menu manquant, **S** sinon.
-- [ ] **X2** — **BBCode/Markdown non rendu dans la description d'un mod.** Le parseur gère
-      `b`, `i`, `size`, `list`, `url`, `img`, `spoiler`, `hr` et **supprime toute autre
-      balise** (`DescriptionBlockParser.swift:58`) — `[quote]`, `[color]`, `[center]`,
-      `[youtube]` et les tableaux disparaissent donc silencieusement.
-      ▸ *Nécessite un exemple précis (quel mod, quel passage) pour cibler la balise.* · **S–M**
+- [x] **X1** ❌ *(non reproduit — pas de bug)* — Le copier/coller fonctionne dans le champ
+      NexusID comme ailleurs dans l'app (vérifié par l'utilisateur, 2026-07-30). Le menu
+      Édition est bien présent. Rien à corriger.
+- [ ] **X2** — **Le rendu des descriptions casse sur du BBCode réel.** Diagnostic mené
+      sur **SVE** (Nexus 3753, 23 Ko de description) en rejouant `DescriptionBlockParser`
+      à l'identique : **six défauts distincts**, tous reproduits.
+      ▸ **a. Spoilers imbriqués → `[/spoiler]` affiché en clair.** SVE imbrique
+      `[spoiler]` dans `[spoiler]` (4 fois) ; le motif apparie un ouvrant avec le
+      **premier** fermant, le fermant externe reste orphelin dans le texte.
+      ▸ **b. Images dans un spoiler jamais rendues (5 sur 22).** Le spoiler est consommé
+      d'un seul bloc : les `[img]` qu'il contient restent du texte brut, on lit le
+      balisage au lieu de voir l'image.
+      ▸ **c. `**` orphelins à l'écran** (`Immersive Farm 2 Remastered**`,
+      `[Twitter**](…)`). `balancedText` ne retire les délimiteurs que si leur nombre est
+      **impair** ; un découpage de bloc qui en laisse un nombre pair mais mal placé passe
+      au travers et s'affiche littéralement.
+      ▸ **d. `](url)` affiché.** SVE contient des `[url=X][/url]` au libellé vide,
+      convertis en `[](X)` — un lien Markdown sans libellé, que le rendu laisse voir.
+      ▸ **e. Toute la page en gras.** `[size=…]` devient `**gras**` sans regarder la
+      valeur, or SVE utilise `size=3` **187 fois** comme taille de *corps de texte*
+      (contre 16 `size=4` de titres) : 100 % du texte en gras, titres indiscernables.
+      ▸ **f. Perte de contenu sur `[CP]`.** La règle « supprimer toute balise restante »
+      efface `[CP]`, qui n'est pas du BBCode mais le **nom réel des dossiers** de SVE
+      (`[CP] Stardew Valley Expanded`) : les instructions d'installation deviennent
+      fausses. *Le plus grave — les autres dégradent la forme, celui-ci l'information.*
+      ▸ **Conclusion** : `a` et `b` sont des défauts de **structure** (imbrication, bloc
+      dans bloc) qu'une chaîne de `replacingOccurrences` ne peut pas traiter. Le correctif
+      juste est un **petit tokeniseur récursif**, pas une regex de plus.
+      `DescriptionBlockTests` existe déjà en Core : le chantier est testable. · **M**
 - [x] **X4** ✅ *(corrigé, en attente de release)* — 🔴 **Toute archive créée sous Windows est refusée à l'installation.**
       **Cause racine confirmée** (reproduite sur `mods tests/RestAndRecover 49031 1.6.1 …zip`) :
       l'archive utilise des **antislashs** comme séparateurs de chemin. `/usr/bin/unzip`
@@ -228,7 +245,8 @@ Effort : **S** ≈ une session · **M** ≈ 2–3 sessions · **L** ≈ chantier
 
 #### Embarqués
 
-Les correctifs **X1**, **X2**, **X3**, **X6**, **B1-T1**, **B1-T2** du §4.
+Les correctifs **X2** et **X3** du §4 (X1 clos sans suite ; X4/X5/X6 livrés en v1.10.1),
+plus **B1-T1** et **B1-T2**.
 
 > ✅ **X4, X5 et X6 sont corrigés** et consignés dans `[Unreleased]` — reste à couper la
 > **v1.10.1** avec `release.py`. Build vert, 192 tests au vert (dont une régression
