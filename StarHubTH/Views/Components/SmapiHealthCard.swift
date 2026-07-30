@@ -12,6 +12,7 @@ import SwiftUI
 /// manual override. Shown only when the ViewModel has parsed a meaningful log
 /// (gating lives in `LogsView`).
 struct SmapiHealthCard: View {
+
     @ObservedObject var vm: StarHubTHViewModel
 
     /// nil = follow the default (collapsed when healthy). Once the user taps the
@@ -30,7 +31,16 @@ struct SmapiHealthCard: View {
             || !diagnostics.consoleMods.isEmpty || !diagnostics.topErrorMods.isEmpty
     }
 
+    /// Height of the window the card sits in, measured by `LogsView`. The card
+    /// can't measure it itself: inside a VStack a GeometryReader only sees the
+    /// height the card was already given, which would make the sizing circular.
+    var availableHeight: CGFloat = 600
+
     var body: some View {
+        card(maxBodyHeight: availableHeight * 0.66)
+    }
+
+    private func card(maxBodyHeight: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             header
             if isExpanded && (!isHealthy || hasDetails) {
@@ -44,15 +54,19 @@ struct SmapiHealthCard: View {
                     problems
                         .padding(AppDesignCore.Spacing.lg)
                 }
-                .frame(maxHeight: 340)
+                .frame(maxHeight: max(240, maxBodyHeight))
             }
         }
-        .background(Color(nsColor: .controlBackgroundColor))
+        // A distinctly lighter/darker surface than the log list behind it: the
+        // card previously used controlBackgroundColor, the very colour the Logs
+        // view paints itself with, so its edges disappeared.
+        .background(Color(nsColor: .textBackgroundColor))
         .overlay(
             RoundedRectangle(cornerRadius: AppDesignCore.Radius.lg)
-                .stroke(accent.opacity(AppDesignCore.Opacity.medium), lineWidth: 1)
+                .stroke(accent.opacity(AppDesignCore.Opacity.strong), lineWidth: 1)
         )
         .cornerRadius(AppDesignCore.Radius.lg)
+        .shadow(color: Color.black.opacity(AppDesignCore.Opacity.light), radius: 6, y: 2)
     }
 
     /// Card tint follows the verdict, so the state reads before any text does.
@@ -206,7 +220,7 @@ struct SmapiHealthCard: View {
     // MARK: - Blocks
 
     private var suggestionsBlock: some View {
-        VStack(alignment: .leading, spacing: AppDesignCore.Spacing.sm) {
+        sectionCard(.accentColor) {
             sectionTitle(vm.L(L10n.Logs.healthSuggestionsTitle), icon: "lightbulb.fill", color: .accentColor)
             VStack(alignment: .leading, spacing: AppDesignCore.Spacing.sm) {
                 ForEach(Array(suggestions.enumerated()), id: \.offset) { index, text in
@@ -221,15 +235,11 @@ struct SmapiHealthCard: View {
                     }
                 }
             }
-            .padding(AppDesignCore.Spacing.md)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.accentColor.opacity(0.07))
-            .cornerRadius(AppDesignCore.Radius.md)
         }
     }
 
     private var conflictsBlock: some View {
-        VStack(alignment: .leading, spacing: AppDesignCore.Spacing.sm) {
+        sectionCard(.orange) {
             sectionTitle(vm.L(L10n.Logs.healthConflicts), icon: "bolt.trianglebadge.exclamationmark.fill", color: .orange)
             ForEach(diagnostics.externalConflicts, id: \.self) { conflict in
                 Text(conflict).font(.system(size: 12))
@@ -238,7 +248,7 @@ struct SmapiHealthCard: View {
     }
 
     private var topErrorsBlock: some View {
-        VStack(alignment: .leading, spacing: AppDesignCore.Spacing.sm) {
+        sectionCard(.secondary) {
             sectionTitle(vm.L(L10n.Logs.healthTopErrors), icon: "chart.bar.fill", color: .secondary)
             VStack(spacing: AppDesignCore.Spacing.xs) {
                 ForEach(diagnostics.topErrorMods) { entry in
@@ -260,7 +270,7 @@ struct SmapiHealthCard: View {
     }
 
     private var benignBlock: some View {
-        VStack(alignment: .leading, spacing: AppDesignCore.Spacing.sm) {
+        sectionCard(.green) {
             sectionTitle(vm.L(L10n.Logs.healthBenign), icon: "checkmark.circle.fill", color: .green)
             Text(vm.L(L10n.Logs.healthExpBenign))
                 .font(.system(size: 11))
@@ -314,26 +324,49 @@ struct SmapiHealthCard: View {
 
     // MARK: - Section building blocks
 
-    /// A section heading: icon + title in a consistent, larger style than the
-    /// content, so the eye can find section boundaries while scrolling.
+    /// A section heading: a filled icon chip plus the title, sitting on the
+    /// section's own tinted strip so each block announces itself.
     private func sectionTitle(_ text: String, icon: String, color: Color,
                               trailing: (() -> AnyView)? = nil) -> some View {
-        HStack(spacing: AppDesignCore.Spacing.xs) {
+        HStack(spacing: AppDesignCore.Spacing.sm) {
             Image(systemName: icon)
-                .font(.system(size: 11))
-                .foregroundColor(color)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundColor(.white)
+                .frame(width: 18, height: 18)
+                .background(color)
+                .cornerRadius(AppDesignCore.Radius.sm)
             Text(text)
                 .font(.system(size: 12, weight: .semibold))
+                .textCase(.uppercase)
+                .kerning(0.3)
             if let trailing { trailing() }
             Spacer()
         }
+    }
+
+    /// Wraps a section in its own surface with a severity rail, so blocks read
+    /// as separate cards instead of one long stack of paragraphs.
+    private func sectionCard<Content: View>(_ color: Color,
+                                            @ViewBuilder content: () -> Content) -> some View {
+        HStack(spacing: 0) {
+            Rectangle()
+                .fill(color)
+                .frame(width: 3)
+            VStack(alignment: .leading, spacing: AppDesignCore.Spacing.sm) {
+                content()
+            }
+            .padding(AppDesignCore.Spacing.md)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .background(color.opacity(0.06))
+        .cornerRadius(AppDesignCore.Radius.md)
     }
 
     /// A named mod list preceded by a one-line, jargon-free explanation of what
     /// the category means for the player.
     private func modSection(_ titleKey: String, explanation: String, mods: [String],
                             severity: Color, logHeader: String? = nil) -> some View {
-        VStack(alignment: .leading, spacing: AppDesignCore.Spacing.sm) {
+        sectionCard(severity) {
             sectionTitle(vm.L(titleKey), icon: "shippingbox.fill", color: severity) {
                 AnyView(
                     Group {
@@ -380,7 +413,7 @@ struct SmapiHealthCard: View {
 
     private func issueSection(_ titleKey: String, items: [SmapiDiagnostics.Issue],
                               severity: Color) -> some View {
-        VStack(alignment: .leading, spacing: AppDesignCore.Spacing.sm) {
+        sectionCard(severity) {
             sectionTitle(vm.L(titleKey), icon: "xmark.octagon.fill", color: severity)
             VStack(alignment: .leading, spacing: AppDesignCore.Spacing.sm) {
                 ForEach(items) { issue in
@@ -394,14 +427,6 @@ struct SmapiHealthCard: View {
                             .font(.system(size: 11))
                             .foregroundColor(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .padding(.leading, AppDesignCore.Spacing.sm)
-                    .overlay(alignment: .leading) {
-                        // A severity rail ties each entry to its section's
-                        // colour without repeating the icon on every row.
-                        Rectangle()
-                            .fill(severity.opacity(AppDesignCore.Opacity.strong))
-                            .frame(width: 2)
                     }
                 }
             }

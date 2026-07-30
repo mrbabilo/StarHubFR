@@ -17,6 +17,9 @@ struct LogsView: View {
     /// When set, the list shows only this SMAPI warning-group block (header +
     /// the mods it lists), as written in the log.
     @State private var sectionHeader: String? = nil
+    /// Height of the Logs view, so the health card can cap its expanded body to
+    /// a fraction of the window instead of a fixed guess.
+    @State private var viewHeight: CGFloat = 600
     /// Ids of the per-mod sections currently expanded.
     @State private var expandedMods: Set<String> = []
 
@@ -260,7 +263,7 @@ struct LogsView: View {
             // ── Entries ──────────────────────────────────────────────
             // SMAPI health card - shown on All + SMAPI tabs only
             if selectedSource != .app, let diag = vm.smapiDiagnostics, !diag.isEmpty {
-                SmapiHealthCard(vm: vm)
+                SmapiHealthCard(vm: vm, availableHeight: viewHeight)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
                 Divider()
@@ -318,6 +321,16 @@ struct LogsView: View {
             .background(Color(nsColor: .windowBackgroundColor))
         }
         .background(Color(nsColor: .controlBackgroundColor))
+        // Measured here rather than inside the card: within a VStack a
+        // GeometryReader only reports the height its content already claimed,
+        // so the card can't size itself against the window from the inside.
+        .background(
+            GeometryReader { proxy in
+                Color.clear
+                    .onAppear { viewHeight = proxy.size.height }
+                    .onChange(of: proxy.size.height) { _, new in viewHeight = new }
+            }
+        )
         .confirmationDialog(vm.L(L10n.Logs.clearConfirmTitle),
                             isPresented: $showClearConfirm,
                             titleVisibility: .visible) {
