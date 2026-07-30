@@ -20,6 +20,9 @@ struct LogsView: View {
     /// Height of the Logs view, so the health card can cap its expanded body to
     /// a fraction of the window instead of a fixed guess.
     @State private var viewHeight: CGFloat = 600
+    /// Combined height of the fixed bars around the list (source+level filters,
+    /// toolbar, status bar and their dividers).
+    private static let fixedChromeHeight: CGFloat = 120
     /// Ids of the per-mod sections currently expanded.
     @State private var expandedMods: Set<String> = []
 
@@ -263,7 +266,10 @@ struct LogsView: View {
             // ── Entries ──────────────────────────────────────────────
             // SMAPI health card - shown on All + SMAPI tabs only
             if selectedSource != .app, let diag = vm.smapiDiagnostics, !diag.isEmpty {
-                SmapiHealthCard(vm: vm, availableHeight: viewHeight)
+                // The card's share is of the space it actually competes for:
+                // the filter bars, toolbar and status bar are fixed chrome, so
+                // they're taken out before splitting with the log list.
+                SmapiHealthCard(vm: vm, availableHeight: max(300, viewHeight - Self.fixedChromeHeight))
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
                 Divider()

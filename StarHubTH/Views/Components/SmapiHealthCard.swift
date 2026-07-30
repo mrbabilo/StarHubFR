@@ -37,8 +37,15 @@ struct SmapiHealthCard: View {
     var availableHeight: CGFloat = 600
 
     var body: some View {
-        card(maxBodyHeight: availableHeight * 0.66)
+        // Two thirds of the window is the target for the *whole* card, so the
+        // header, its counts strip and the surrounding padding come out of that
+        // budget rather than adding to it.
+        card(maxBodyHeight: availableHeight * 0.66 - Self.headerAllowance)
     }
+
+    /// Rough height of the header block plus the card's outer padding, subtracted
+    /// from the budget so the card as a whole lands on its target share.
+    private static let headerAllowance: CGFloat = 116
 
     private func card(maxBodyHeight: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -54,7 +61,11 @@ struct SmapiHealthCard: View {
                     problems
                         .padding(AppDesignCore.Spacing.lg)
                 }
-                .frame(maxHeight: max(240, maxBodyHeight))
+                // A firm height, not a ceiling: the log list below also wants
+                // all the space it can get, so with `maxHeight` SwiftUI split
+                // the difference and the card only ever reached about half the
+                // window. `height` makes the card claim its share first.
+                .frame(height: max(200, maxBodyHeight))
             }
         }
         // A distinctly lighter/darker surface than the log list behind it: the
