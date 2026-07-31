@@ -25,6 +25,12 @@ struct LogsView: View {
     private static let fixedChromeHeight: CGFloat = 120
     /// Ids of the per-mod sections currently expanded.
     @State private var expandedMods: Set<String> = []
+    /// Hauteur réellement occupée par la carte de recherche guidée. Mesurée
+    /// plutôt qu'estimée : elle passe d'un bouton (~90 pt) à un écran d'étape
+    /// avec liste dépliée. Sans la retrancher du budget, la carte de santé
+    /// réclamait les deux tiers d'une place déjà entamée, et la somme chassait
+    /// la liste des journaux — jusqu'à emporter le chevron de repli hors écran.
+    @State private var bisectionCardHeight: CGFloat = 0
 
     /// Single-pass derivation of everything the Logs UI needs from the raw
     /// entries: the filtered list (source + level + search) for the `List`,
@@ -269,7 +275,8 @@ struct LogsView: View {
                 // The card's share is of the space it actually competes for:
                 // the filter bars, toolbar and status bar are fixed chrome, so
                 // they're taken out before splitting with the log list.
-                SmapiHealthCard(vm: vm, availableHeight: max(300, viewHeight - Self.fixedChromeHeight))
+                SmapiHealthCard(vm: vm,
+                                availableHeight: max(240, viewHeight - Self.fixedChromeHeight - bisectionCardHeight))
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
                 Divider()
@@ -281,6 +288,10 @@ struct LogsView: View {
                 BisectionCard(vm: vm)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
+                    .background(GeometryReader { proxy in
+                        Color.clear.onAppear { bisectionCardHeight = proxy.size.height }
+                            .onChange(of: proxy.size.height) { _, h in bisectionCardHeight = h }
+                    })
                 Divider()
             }
 

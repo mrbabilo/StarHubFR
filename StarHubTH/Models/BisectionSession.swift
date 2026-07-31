@@ -154,6 +154,36 @@ public struct BisectionSession {
         state = .trial(step: step, total: max(totalSteps, step))
     }
 
+    /// Retire d'un ensemble activé tout mod dont une dépendance requise n'y est
+    /// pas — jusqu'à point fixe.
+    ///
+    /// C'est la fermeture qui manquait à l'ensemble *réellement appliqué*. Les
+    /// essais sont fermés vers le haut, mais seulement entre candidats : les
+    /// mods hors périmètre (packs de contenu, sans code) restaient activés
+    /// quoi qu'il arrive. Mettre Content Patcher en pause laissait donc dix-neuf
+    /// packs tourner sans lui — SMAPI les écartait tous en bloc, le jeu changeait
+    /// massivement pour une raison étrangère au mod cherché, et la réponse de
+    /// l'utilisateur portait sur cet effet-là. La recherche désignait alors un
+    /// innocent.
+    ///
+    /// Un besoin que **personne** ne fournissait au départ n'exclut pas : il
+    /// manquait déjà avant la recherche, ce n'est pas elle qui l'a retiré.
+    static func runnable(_ subset: [BisectionCandidate],
+                         knowing all: [BisectionCandidate]) -> [BisectionCandidate] {
+        let providedByAll = Set(all.flatMap(\.uniqueIds))
+        var kept = subset
+        var changed = true
+        while changed {
+            changed = false
+            let present = Set(kept.flatMap(\.uniqueIds))
+            let survivors = kept.filter { c in
+                c.requires.allSatisfy { !providedByAll.contains($0) || present.contains($0) }
+            }
+            if survivors.count != kept.count { kept = survivors; changed = true }
+        }
+        return kept
+    }
+
     /// Complète un sous-ensemble avec les dépendances requises, transitivement.
     ///
     /// Utilisé pour construire un essai : un mod doit pouvoir tourner, sinon

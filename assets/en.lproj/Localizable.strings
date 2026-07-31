@@ -694,6 +694,7 @@
 "bisect_launching" = "Starting the game…";
 "bisect_waiting" = "Over to you. I'll wait here — come back when you know.";
 "bisect_question" = "Is the problem still there?";
+"bisect_quit_game_first" = "Quit Stardew Valley first, then answer — I need to move folders the game is holding open.";
 "bisect_answer_yes" = "Yes, still there";
 "bisect_answer_no" = "No, it's gone";
 "bisect_hint_from_log" = "From the game's log: %@";

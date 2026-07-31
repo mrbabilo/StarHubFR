@@ -97,6 +97,35 @@ struct BisectionSessionTests {
         #expect(Set(s.clearedFolders).union(s.remainingSuspects) == ["A", "B", "C", "D"])
     }
 
+    @Test func aPackWhoseFrameworkIsPausedIsPausedToo() {
+        // Cause racine d'un verdict faux observé en usage réel : Content Patcher
+        // est un code-mod, donc candidat ; les packs de contenu ne le sont pas et
+        // restaient activés quoi qu'il arrive. Le mettre en pause laissait donc
+        // dix-neuf packs tourner sans lui — SMAPI les écartait en bloc, le jeu
+        // changeait massivement pour une raison étrangère au mod cherché, et la
+        // réponse de l'utilisateur portait sur cet effet-là. La recherche
+        // désignait un innocent.
+        let cp = BisectionCandidate(folderName: "ContentPatcher", uniqueIds: ["Pathoschild.ContentPatcher"], requires: [])
+        let pack = BisectionCandidate(folderName: "[CP] SVE", uniqueIds: ["sve"], requires: ["Pathoschild.ContentPatcher"])
+        let other = BisectionCandidate(folderName: "LetsMoveIt", uniqueIds: ["lmi"], requires: [])
+        let all = [cp, pack, other]
+
+        // Essai qui met Content Patcher en pause : le pack doit tomber avec lui.
+        let withoutCP = BisectionSession.runnable([pack, other], knowing: all).map(\.folderName)
+        #expect(withoutCP == ["LetsMoveIt"])
+
+        // Content Patcher présent : le pack tourne.
+        let withCP = BisectionSession.runnable(all, knowing: all).map(\.folderName)
+        #expect(Set(withCP) == ["ContentPatcher", "[CP] SVE", "LetsMoveIt"])
+    }
+
+    @Test func aDependencyNobodyProvidesDoesNotPauseAnything() {
+        // Un besoin déjà manquant avant la recherche ne doit rien exclure : ce
+        // n'est pas la recherche qui l'a retiré, et le jeu tournait ainsi.
+        let mod = BisectionCandidate(folderName: "Solo", uniqueIds: ["solo"], requires: ["jamais.installe"])
+        #expect(BisectionSession.runnable([mod], knowing: [mod]).map(\.folderName) == ["Solo"])
+    }
+
     @Test func aTrialCarriesTheDependenciesItNeeds() {
         // Tester B seul embarque A.
         let a = BisectionCandidate(folderName: "A", uniqueIds: ["fw"], requires: [])

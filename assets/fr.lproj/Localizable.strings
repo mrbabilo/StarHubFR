@@ -694,6 +694,7 @@
 "bisect_launching" = "Je lance le jeu…";
 "bisect_waiting" = "À vous de jouer. Je vous attends ici — revenez quand vous avez la réponse.";
 "bisect_question" = "Le problème est-il toujours là ?";
+"bisect_quit_game_first" = "Quittez d'abord Stardew Valley, puis répondez — je dois déplacer des dossiers que le jeu garde ouverts.";
 "bisect_answer_yes" = "Oui, toujours";
 "bisect_answer_no" = "Non, il a disparu";
 "bisect_hint_from_log" = "D'après le journal du jeu : %@";

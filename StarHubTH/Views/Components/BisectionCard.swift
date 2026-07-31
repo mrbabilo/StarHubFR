@@ -110,6 +110,11 @@ struct BisectionCard: View {
                     Text(String(format: vm.L(L10n.Bisect.hintFromLog), hint))
                         .font(.system(size: 11)).foregroundColor(.secondary)
                 }
+                if runner.gameStillRunning {
+                    Label(vm.L(L10n.Bisect.quitGameFirst), systemImage: "exclamationmark.triangle.fill")
+                        .font(.system(size: 12))
+                        .foregroundColor(.orange)
+                }
                 Text(vm.L(L10n.Bisect.question)).font(.system(size: 12, weight: .medium))
                 HStack {
                     Button(vm.L(L10n.Bisect.answerYes)) { runner.answer(.stillBroken) }

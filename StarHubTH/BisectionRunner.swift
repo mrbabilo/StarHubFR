@@ -17,6 +17,10 @@ final class BisectionRunner: ObservableObject {
     /// l'avancement réel de la recherche et non seulement un numéro d'étape.
     @Published private(set) var clearedFolders: [String] = []
     @Published private(set) var noCandidates = false
+    /// Vrai quand l'utilisateur a répondu sans avoir quitté le jeu. Relancer par
+    /// dessus une partie en cours ouvrirait une seconde instance et, pire,
+    /// renommerait des dossiers de mods que le jeu tient encore ouverts.
+    @Published private(set) var gameStillRunning = false
     @Published var interruptedSnapshot: BisectionSnapshot?
 
     private var session: BisectionSession?
@@ -28,6 +32,11 @@ final class BisectionRunner: ObservableObject {
     /// pack de contenu ne fait pas planter le jeu lui-même, mais un code-mod peut
     /// planter en le lisant. Les désactiver empêcherait de reproduire la panne et
     /// contredirait la promesse « tous vos mods, comme aujourd'hui ».
+    /// Description de **tous** les mods actifs au départ — candidats compris.
+    /// Nécessaire pour savoir ce qui cesse de pouvoir tourner quand un candidat
+    /// est mis en pause : un pack de contenu n'est pas candidat, mais il dépend
+    /// souvent d'un framework qui l'est.
+    private var allEnabled: [BisectionCandidate] = []
     private var nonCandidateFolders: [String] = []
 
     /// Le runner vit aussi longtemps que le ViewModel (`lazy var bisection`),
@@ -51,6 +60,8 @@ final class BisectionRunner: ObservableObject {
 
     func start() {
         guard !isApplying else { return }
+        guard !vm.isGameRunning() else { gameStillRunning = true; return }
+        gameStillRunning = false
         noCandidates = false
         isApplying = true
         let gameDir = vm.gameDir
@@ -81,6 +92,7 @@ final class BisectionRunner: ObservableObject {
         candidateFolders = Set(list.map(\.folderName))
         candidateCount = list.count
         nonCandidateFolders = enabledFolders.filter { !candidateFolders.contains($0) }
+        allEnabled = Self.describe(vm.mods.filter(\.isEnabled))
 
         let s = BisectionSession(candidates: list)
         session = s
@@ -101,6 +113,10 @@ final class BisectionRunner: ObservableObject {
 
     func answer(_ outcome: BisectionOutcome) {
         guard !isApplying, var s = session else { return }
+        // Le jeu doit être fermé avant l'étape suivante : les dossiers de mods
+        // vont être renommés, et le jeu les tient ouverts tant qu'il tourne.
+        guard !vm.isGameRunning() else { gameStillRunning = true; return }
+        gameStillRunning = false
         s.record(outcome)
         session = s
         state = s.state
@@ -178,9 +194,30 @@ final class BisectionRunner: ObservableObject {
                        then next: @escaping (BisectionRestoreOutcome) -> Void) {
         isApplying = true
         currentFolders = trialFolders
-        vm.applyEnabledFolders(trialFolders + nonCandidateFolders) { [weak self] outcome in
+        // Les mods hors périmètre ne sont pas activés aveuglément : un pack de
+        // contenu dont le framework est en pause ne peut pas tourner, et le
+        // laisser actif faisait écarter dix-neuf packs d'un coup par SMAPI —
+        // le jeu changeait pour une raison étrangère au mod cherché.
+        let kept = Set(trialFolders).union(nonCandidateFolders)
+        let applied = BisectionSession.runnable(allEnabled.filter { kept.contains($0.folderName) },
+                                                knowing: allEnabled).map(\.folderName)
+        vm.applyEnabledFolders(applied) { [weak self] outcome in
             self?.isApplying = false
             next(outcome)
+        }
+    }
+
+    /// Décrit des mods sous la forme attendue par la fermeture de dépendances.
+    /// Sans filtre sur le code : on veut aussi les packs de contenu, car ce sont
+    /// eux qui cessent de pouvoir tourner quand leur framework part en pause.
+    private nonisolated static func describe(_ mods: [ModItem]) -> [BisectionCandidate] {
+        mods.map { mod in
+            let children = mod.isGroup ? (mod.children ?? []) : [mod]
+            return BisectionCandidate(
+                folderName: mod.folderName,
+                uniqueIds: children.map(\.uniqueId).filter { !$0.isEmpty },
+                requires: children.flatMap(\.dependencies).filter(\.isRequired).map(\.uniqueId)
+            )
         }
     }
 

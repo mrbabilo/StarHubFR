@@ -770,6 +770,7 @@ enum L10n {
         static let launching          = "bisect_launching"
         static let waiting            = "bisect_waiting"
         static let question           = "bisect_question"
+        static let quitGameFirst      = "bisect_quit_game_first"
         static let answerYes          = "bisect_answer_yes"
         static let answerNo           = "bisect_answer_no"
         static let hintFromLog        = "bisect_hint_from_log"
