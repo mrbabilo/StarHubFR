@@ -132,5 +132,9 @@ let package = Package(
             dependencies: ["StarHubTHCore"],
             path: "Tests/BisectionSnapshotTests"
         ),
+        .testTarget(
+            name: "BisectionCopyTests",
+            path: "Tests/BisectionCopyTests"
+        ),
     ]
 )

@@ -757,4 +757,37 @@ enum L10n {
             }
         }
     }
+
+    // MARK: - Bisect
+    enum Bisect {
+        static let title              = "bisect_title"
+        static let intro              = "bisect_intro"
+        static let start              = "bisect_start"
+        static let reproduceTitle     = "bisect_reproduce_title"
+        static let reproduceBody      = "bisect_reproduce_body"
+        static let stepOf             = "bisect_step_of"
+        static let pausedCount        = "bisect_paused_count"
+        static let launching          = "bisect_launching"
+        static let waiting            = "bisect_waiting"
+        static let question           = "bisect_question"
+        static let answerYes          = "bisect_answer_yes"
+        static let answerNo           = "bisect_answer_no"
+        static let hintFromLog        = "bisect_hint_from_log"
+        static let hintCrashed        = "bisect_hint_crashed"
+        static let hintClean          = "bisect_hint_clean"
+        static let confirmTitle       = "bisect_confirm_title"
+        static let confirmBody        = "bisect_confirm_body"
+        static let concludedTitle     = "bisect_concluded_title"
+        static let concludedBody      = "bisect_concluded_body"
+        static let inconclusiveTitle  = "bisect_inconclusive_title"
+        static let inconclusiveBody   = "bisect_inconclusive_body"
+        static let notReproducibleTitle = "bisect_not_reproducible_title"
+        static let notReproducibleBody  = "bisect_not_reproducible_body"
+        static let restore            = "bisect_restore"
+        static let restored           = "bisect_restored"
+        static let interruptedTitle   = "bisect_interrupted_title"
+        static let interruptedBody    = "bisect_interrupted_body"
+        static let showMods           = "bisect_show_mods"
+        static let noCandidates       = "bisect_no_candidates"
+    }
 }
