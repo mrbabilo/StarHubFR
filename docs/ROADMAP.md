@@ -86,7 +86,7 @@ liste du 2026-07-30 et n'existaient pas dans le document de veille.
 | **§new** | Refactoriser le God module | **À faire** | `StarHubTHViewModel.swift` = **4278 lignes** → **F1** |
 | **§new** | Vérifier optimisation (vitesse, mémoire) et sécurité du code | **À faire** | → **F2** |
 | **§new** | Copier/coller du NexusID impossible | **Non reproduit** | Fonctionne ; le menu Édition est présent → **X1** clos |
-| **§new** | BBCode/Markdown non rendu dans la description | **Bug 🔴** | 6 défauts reproduits sur SVE (3753) : spoilers imbriqués, images perdues, `**` orphelins, `](url)`, tout en gras, `[CP]` effacé → **X2** |
+| **§new** | BBCode/Markdown non rendu dans la description | **Corrigé ✅** | 6 défauts reproduits sur SVE (3753) puis corrigés (tokeniseur récursif) ; rendu typé ajouté (titres/listes/code/citations/centrage/couleur/souligné), vérifié sur 51 descriptions → **X2** |
 | **§new** | Rafraîchissement automatique dès qu'on renseigne l'identifiant Nexus | **À faire** | → **B2-T3** |
 | **§new** | `smapi.io/json` comme analyseur de référence pour les JSON Stardew | *(précision)* | Affine la définition de « manifest valide » → **A1-T2** |
 | **§new** | `stardew-i18n-translator` comme référence de pipeline i18n | *(précision)* | Affine **C3** — voir la réserve de licence en §5 |
@@ -142,7 +142,7 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
 - [x] **X1** ❌ *(non reproduit — pas de bug)* — Le copier/coller fonctionne dans le champ
       NexusID comme ailleurs dans l'app (vérifié par l'utilisateur, 2026-07-30). Le menu
       Édition est bien présent. Rien à corriger.
-- [ ] **X2** — **Le rendu des descriptions casse sur du BBCode réel.** Diagnostic mené
+- [x] **X2** ✅ *(corrigé, en attente de release)* — **Le rendu des descriptions casse sur du BBCode réel.** Diagnostic mené
       sur **SVE** (Nexus 3753, 23 Ko de description) en rejouant `DescriptionBlockParser`
       à l'identique : **six défauts distincts**, tous reproduits.
       ▸ **a. Spoilers imbriqués → `[/spoiler]` affiché en clair.** SVE imbrique
@@ -168,6 +168,11 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       dans bloc) qu'une chaîne de `replacingOccurrences` ne peut pas traiter. Le correctif
       juste est un **petit tokeniseur récursif**, pas une regex de plus.
       `DescriptionBlockTests` existe déjà en Core : le chantier est testable. · **M**
+      ▸ **Fait** : tokeniseur récursif (6 défauts a→f corrigés) **plus** un rendu typé — titres
+      (typo AppDesign 20/16/14, garde-fou <80 char), listes (puces/numérotées), code (verbatim,
+      défilement horizontal), citations, centrage (conteneur récursif), couleur d'auteur
+      (contraste-corrigée AA) et vrai souligné. Vérifié sur les **51 descriptions en cache** :
+      266 spans couleur rendus, 0 balise ou marqueur qui fuit.
 - [x] **X4** ✅ *(corrigé, en attente de release)* — 🔴 **Toute archive créée sous Windows est refusée à l'installation.**
       **Cause racine confirmée** (reproduite sur `mods tests/RestAndRecover 49031 1.6.1 …zip`) :
       l'archive utilise des **antislashs** comme séparateurs de chemin. `/usr/bin/unzip`

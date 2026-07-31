@@ -12,6 +12,15 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+- **Mod descriptions render their real structure, not just their text.** The description pane used to show bold, italics, links, images and spoilers and drop everything else — lists came out with a literal dash, headings didn't exist, code had no fixed-width font or background, and centering, colour and quotes were simply removed. The parser now produces typed blocks and the renderer draws them in the app's own typography:
+  - **Headings** (`[size]`/`[heading]`, with a guard so an over-long sized paragraph stays body copy) use the app's 20/16/14 type scale — never the author's arbitrary sizes.
+  - **Lists** (`[list]`, ordered with `[list=1]`) render as real bullets or numbers — the most common missing structure, present on 69 % of the sampled descriptions.
+  - **Code blocks** (`[code]`, kept verbatim so a `[b]` inside an example stays literal) get a fixed-width font, a tinted background and horizontal scrolling, so a file path never wraps mid-way.
+  - **Quotes** (`[quote]`) get a left rule and dimmed text; **centering** (`[center]`) wraps text and images as a recursive block.
+  - **Author colours** (`[color]`, by name or `#hex`) are honoured after automatic contrast correction to WCAG AA, and **`[u]` is a real underline** (it used to render as italics).
+  - Verified across the 51 cached mod descriptions: 266 colour spans render, and not a single tag or internal marker leaks — including the malformed spans that nested `[color]` tags used to produce.
+
 ### Fixed
 - **Mod descriptions no longer show their own markup.** Rendering was a chain of text substitutions, which can't see structure — so real Nexus pages leaked BBCode onto the screen. Verified against Stardew Valley Expanded's 23 KB description, which now renders without a single stray tag. Six distinct defects, all fixed:
   - **Nested spoilers** (SVE wraps a per-map gallery in an outer one) paired an opening tag with the *first* closing tag, printing the leftover `[/spoiler]` as text — and cutting the outer content short, so **5 of the 22 images** never rendered. Block splitting now tracks nesting depth.
