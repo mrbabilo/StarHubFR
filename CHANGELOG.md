@@ -15,8 +15,8 @@ where the exact log format was verified.
 ### Added
 - **Find the mod that breaks your game.** The app pauses half your mods, starts the game, and asks one question — "is the problem still there?" — narrowing down over roughly seven steps for a hundred mods. It ends on a confirmation run, because halving produces a lead, not a proof.
 - Each step reports how many mods are already in the clear. When no single mod can be blamed, the ones still involved are named rather than withheld.
-- The mods in the clear, and those still in the trial, can be expanded and copied out of the app.
-- **The log is re-read at every step and cross-checked against the search.** Mods the log blames in every failing step — and in none that passed — are named at the end. This is a second signal, independent of your answers, and it also feeds each mod's own error history.
+- The mods in the clear, and those still in the trial, can be expanded and copied out of the app; the lists scroll and flow into columns.
+- **The log is watched while you play, and cross-checked against the search.** StarHubFR's own log view now stays current instead of refreshing only when you answer. Mods the log blames are named at the end, with how often each appeared while the problem was present — an intermittent error shows up in some steps, not all.
 - When the log blames a different mod than the search concluded, the card says so: two mods that don't get along make either one "the" culprit, and the search can only name one of them.
 - Nothing is deleted: your starting state is written to disk before any folder moves, and "put everything back" is one click away at every step. A search interrupted by quitting the app is offered back on the home screen.
 
