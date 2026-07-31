@@ -1,6 +1,6 @@
 import Foundation
 
-public struct ModDependency: Equatable {
+public struct ModDependency: Equatable, Sendable {
     public let uniqueId: String
     public let isRequired: Bool
 
@@ -10,7 +10,7 @@ public struct ModDependency: Equatable {
     }
 }
 
-public struct ModItem: Identifiable, Equatable {
+public struct ModItem: Identifiable, Equatable, Sendable {
     public var id: String { folderName }
     public let uniqueId: String
     public let name: String

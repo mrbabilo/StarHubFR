@@ -30,7 +30,11 @@ final class BisectionRunner: ObservableObject {
     /// Le runner vit aussi longtemps que le ViewModel (`lazy var bisection`),
     /// donc le cycle de vie est garanti : `unowned` évite un cycle de rétention
     /// sans risquer un accès après libération.
-    private unowned let vm: StarHubTHViewModel
+    /// `nonisolated(unsafe)` : référence immuable vers le ViewModel (lui-même non
+    /// isolé). Sûr car le runner est `@MainActor` : `vm` n'est lue que depuis le
+    /// MainActor. La forme `nonisolated` sûre exigerait un type `Sendable`, ce
+    /// qu'une classe mutable comme le ViewModel n'est pas.
+    private nonisolated(unsafe) unowned let vm: StarHubTHViewModel
 
     /// `nonisolated` : l'init ne fait que stocker la référence au ViewModel, il
     /// n'accède à aucun état MainActor. Permet l'instanciation paresseuse depuis
@@ -137,7 +141,10 @@ final class BisectionRunner: ObservableObject {
     /// Candidats = dossiers de premier niveau actifs contenant du code.
     /// Un pack compte pour un, puisqu'il bascule d'un bloc. Statique : ne dépend
     /// d'aucun état d'instance, donc exécutable hors du thread principal.
-    private static func candidates(from mods: [ModItem], gameDir: String) -> [BisectionCandidate] {
+    /// Statique et `nonisolated` : ne dépend d'aucun état d'instance ni du
+    /// MainActor, donc exécutable hors du thread principal (détection des
+    /// candidats déportée depuis `start`).
+    private nonisolated static func candidates(from mods: [ModItem], gameDir: String) -> [BisectionCandidate] {
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
         return mods.compactMap { mod -> BisectionCandidate? in
             guard mod.isEnabled else { return nil }
@@ -154,7 +161,7 @@ final class BisectionRunner: ObservableObject {
 
     /// Un dossier « contient du code » s'il embarque un `.dll` : un pack de
     /// contenu ne s'exécute pas, il est lu par Content Patcher.
-    private static func containsCode(at path: String) -> Bool {
+    private nonisolated static func containsCode(at path: String) -> Bool {
         guard let enumerator = FileManager.default.enumerator(atPath: path) else { return false }
         for case let file as String in enumerator where file.lowercased().hasSuffix(".dll") {
             return true
