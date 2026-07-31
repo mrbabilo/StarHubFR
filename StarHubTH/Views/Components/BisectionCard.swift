@@ -16,8 +16,10 @@ struct BisectionCard: View {
         VStack(alignment: .leading, spacing: 12) {
             Text(vm.L(L10n.Bisect.title)).font(.headline)
 
-            if let snapshot = runner.interruptedSnapshot, runner.state == nil {
+            if let snapshot = runner.interruptedSnapshot, runner.state == nil, !runner.noCandidates {
                 interrupted(snapshot)
+            } else if runner.noCandidates {
+                noCandidatesView
             } else {
                 switch runner.state {
                 case nil:
@@ -44,8 +46,14 @@ struct BisectionCard: View {
 
     private var idle: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(vm.L(L10n.Bisect.intro)).font(.system(size: 12)).foregroundColor(.secondary)
-            Button(vm.L(L10n.Bisect.start)) { runner.start() }.buttonStyle(.borderedProminent)
+            if runner.isApplying {
+                // Préparation de la recherche (détection des candidats) ou
+                // lancement du jeu : rien à proposer tant que ça tourne.
+                Text(vm.L(L10n.Bisect.launching)).font(.system(size: 12)).foregroundColor(.secondary)
+            } else {
+                Text(vm.L(L10n.Bisect.intro)).font(.system(size: 12)).foregroundColor(.secondary)
+                Button(vm.L(L10n.Bisect.start)) { runner.start() }.buttonStyle(.borderedProminent)
+            }
         }
     }
 
@@ -62,8 +70,10 @@ struct BisectionCard: View {
             Text(String(format: vm.L(L10n.Bisect.stepOf), n, total))
                 .font(.system(size: 13, weight: .semibold))
             ProgressView(value: Double(n), total: Double(total))
+            // Mods en pause = candidats (code-mods) moins ceux de l'essai courant.
+            // On ne compte pas les mods déjà désactivés avant la recherche.
             Text(String(format: vm.L(L10n.Bisect.pausedCount),
-                        max(0, vm.mods.count - runner.currentFolders.count)))
+                        max(0, runner.candidateCount - runner.currentFolders.count)))
                 .font(.system(size: 12)).foregroundColor(.secondary)
             DisclosureGroup(vm.L(L10n.Bisect.showMods), isExpanded: $showMods) {
                 Text(runner.currentFolders.sorted().joined(separator: "\n"))
@@ -119,6 +129,7 @@ struct BisectionCard: View {
             Text(vm.L(title)).font(.system(size: 13, weight: .semibold))
             Text(body).font(.system(size: 12)).foregroundColor(.secondary)
             Button(vm.L(L10n.Bisect.restore)) { runner.restoreAndStop() }
+                .disabled(runner.isApplying)
         }
     }
 
@@ -131,6 +142,19 @@ struct BisectionCard: View {
                 .font(.system(size: 12)).foregroundColor(.secondary)
             Button(vm.L(L10n.Bisect.restore)) { runner.restoreAndStop() }
                 .buttonStyle(.borderedProminent)
+                .disabled(runner.isApplying)
+        }
+    }
+
+    /// Aucun code-mod parmi les mods actifs : rien à mettre en pause. Un bouton
+    /// pour refermer et revenir à l'intro (restoreAndStop se contente de
+    /// réinitialiser l'état quand il n'y a rien à restaurer).
+    private var noCandidatesView: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(vm.L(L10n.Bisect.title)).font(.system(size: 13, weight: .semibold))
+            Text(vm.L(L10n.Bisect.noCandidates)).font(.system(size: 12)).foregroundColor(.secondary)
+            Button(vm.L(L10n.Bisect.restore)) { runner.restoreAndStop() }
+                .disabled(runner.isApplying)
         }
     }
 }

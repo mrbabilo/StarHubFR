@@ -10,11 +10,22 @@ import SwiftUI
 final class BisectionRunner: ObservableObject {
     @Published private(set) var state: BisectionState?
     @Published private(set) var isApplying = false
+    /// Candidats de l'essai courant (code-mods seulement), pour l'affichage.
     @Published private(set) var currentFolders: [String] = []
+    @Published private(set) var candidateCount = 0
+    @Published private(set) var noCandidates = false
     @Published var interruptedSnapshot: BisectionSnapshot?
 
     private var session: BisectionSession?
     private var snapshot: BisectionSnapshot?
+    /// Noms des dossiers candidats (code-mods). La recherche ne porte que sur eux.
+    private var candidateFolders: Set<String> = []
+    /// Mods activés au départ qui ne sont **pas** candidats — packs de contenu,
+    /// assets, mods sans code. Toujours laissés actifs pendant la recherche : un
+    /// pack de contenu ne fait pas planter le jeu lui-même, mais un code-mod peut
+    /// planter en le lisant. Les désactiver empêcherait de reproduire la panne et
+    /// contredirait la promesse « tous vos mods, comme aujourd'hui ».
+    private var nonCandidateFolders: [String] = []
 
     /// Le runner vit aussi longtemps que le ViewModel (`lazy var bisection`),
     /// donc le cycle de vie est garanti : `unowned` évite un cycle de rétention
@@ -32,16 +43,37 @@ final class BisectionRunner: ObservableObject {
     }
 
     func start() {
-        let list = candidates(from: vm.mods, gameDir: vm.gameDir)
-        guard !list.isEmpty else { state = .inconclusive; return }
+        guard !isApplying else { return }
+        noCandidates = false
+        isApplying = true
+        let gameDir = vm.gameDir
+        let mods = vm.mods
+        // Détection des candidats déportée hors du thread principal : ouvrir un
+        // énumérateur de fichiers par dossier de mod (pour chercher un .dll) sur
+        // ~900 mods gèlerait l'interface.
+        DispatchQueue.global(qos: .userInitiated).async {
+            let list = Self.candidates(from: mods, gameDir: gameDir)
+            Task { @MainActor [weak self] in self?.continueStart(with: list) }
+        }
+    }
 
+    private func continueStart(with list: [BisectionCandidate]) {
+        guard !list.isEmpty else {
+            // Aucun code-mod parmi les mods actifs : rien à mettre en pause.
+            isApplying = false
+            noCandidates = true
+            return
+        }
+
+        let enabledFolders = vm.mods.filter(\.isEnabled).map(\.folderName)
         // L'instantané part sur le disque AVANT le premier déplacement.
-        let snap = BisectionSnapshot(
-            enabledFolders: vm.mods.filter(\.isEnabled).map(\.folderName),
-            startedAt: Date()
-        )
+        let snap = BisectionSnapshot(enabledFolders: enabledFolders, startedAt: Date())
         BisectionSnapshotStore.save(snap)
         snapshot = snap
+
+        candidateFolders = Set(list.map(\.folderName))
+        candidateCount = list.count
+        nonCandidateFolders = enabledFolders.filter { !candidateFolders.contains($0) }
 
         let s = BisectionSession(candidates: list)
         session = s
@@ -50,7 +82,7 @@ final class BisectionRunner: ObservableObject {
     }
 
     func answer(_ outcome: BisectionOutcome) {
-        guard var s = session else { return }
+        guard !isApplying, var s = session else { return }
         s.record(outcome)
         session = s
         state = s.state
@@ -60,44 +92,57 @@ final class BisectionRunner: ObservableObject {
             // (s'il y en a un), laissé en pause pour que l'utilisateur décide.
             let keepPaused = s.state.concludedFolder.map { [$0] } ?? []
             let restore = (snapshot?.enabledFolders ?? []).filter { !keepPaused.contains($0) }
-            apply(restore) { BisectionSnapshotStore.clear(); self.snapshot = nil }
+            // On n'efface que l'instantané sur disque (ne pas re-proposer une
+            // reprise au prochain démarrage) : l'instantané mémoire reste, car le
+            // bouton « Tout remettre » de la carte finale s'appuie dessus pour
+            // restaurer y compris le coupable. `restoreAndStop` le vide ensuite.
+            apply(restore) { BisectionSnapshotStore.clear() }
         default:
             apply(s.foldersToEnable) { [weak self] in self?.vm.launchGame() }
         }
     }
 
     func restoreAndStop() {
+        guard !isApplying else { return }
         let restore = snapshot?.enabledFolders ?? interruptedSnapshot?.enabledFolders ?? []
-        apply(restore) {
-            BisectionSnapshotStore.clear()
-            self.snapshot = nil
-            self.interruptedSnapshot = nil
-            self.session = nil
-            self.state = nil
-        }
+        // Rien à restaurer (recherche n'ayant rien déplacé — ex. zéro candidat,
+        // ou déjà restauré) : on se contente de réinitialiser l'état, SANS
+        // appeler applyEnabledFolders([]) qui désactiverait tous les mods.
+        guard !restore.isEmpty else { reset(); return }
+        apply(restore) { self.reset() }
     }
 
-    /// Applique un ensemble de dossiers actifs, puis enchaîne. `isApplying`
-    /// borne l'UI : tant qu'il est vrai, la carte affiche « Je lance le jeu… »
-    /// et ne propose pas de réponse — l'utilisateur ne peut pas anticiper la fin
-    /// du rescane.
-    private func apply(_ folders: [String], then next: @escaping () -> Void) {
+    private func reset() {
+        BisectionSnapshotStore.clear()
+        snapshot = nil
+        interruptedSnapshot = nil
+        session = nil
+        state = nil
+        noCandidates = false
+    }
+
+    /// Applique un essai : active les code-mods donnés par le modèle **plus**
+    /// tous les mods non candidats (contenu), met en pause les autres candidats.
+    /// `trialFolders` est publié dans `currentFolders` pour l'affichage (l'essai,
+    /// pas le bruit des content mods).
+    private func apply(_ trialFolders: [String], then next: @escaping () -> Void) {
         isApplying = true
-        currentFolders = folders
-        vm.applyEnabledFolders(folders) { [weak self] in
+        currentFolders = trialFolders
+        vm.applyEnabledFolders(trialFolders + nonCandidateFolders) { [weak self] in
             self?.isApplying = false
             next()
         }
     }
 
     /// Candidats = dossiers de premier niveau actifs contenant du code.
-    /// Un pack compte pour un, puisqu'il bascule d'un bloc.
-    private func candidates(from mods: [ModItem], gameDir: String) -> [BisectionCandidate] {
+    /// Un pack compte pour un, puisqu'il bascule d'un bloc. Statique : ne dépend
+    /// d'aucun état d'instance, donc exécutable hors du thread principal.
+    private static func candidates(from mods: [ModItem], gameDir: String) -> [BisectionCandidate] {
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
         return mods.compactMap { mod -> BisectionCandidate? in
             guard mod.isEnabled else { return nil }
             let folder = (modsPath as NSString).appendingPathComponent(mod.physicalFolderName)
-            guard Self.containsCode(at: folder) else { return nil }
+            guard containsCode(at: folder) else { return nil }
             let children = mod.isGroup ? (mod.children ?? []) : [mod]
             return BisectionCandidate(
                 folderName: mod.folderName,
