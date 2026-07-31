@@ -12,6 +12,9 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+- **The launch screen shows the version.** It sits beside the app name, on the same baseline, so the splash keeps its three-part rhythm — name, status, progress — instead of gaining a line. Read from the bundle, so it follows every release on its own.
+
 ## [1.10.2] - 2026-07-31
 
 ### Added

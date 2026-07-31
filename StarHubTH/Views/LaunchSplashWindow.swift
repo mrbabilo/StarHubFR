@@ -179,9 +179,18 @@ struct LaunchSplashView: View {
             }
 
             VStack(spacing: 4) {
-                Text("StarHubFR")
-                    .font(.system(size: 22, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
+                // Version alongside the wordmark rather than on its own line:
+                // the splash is compact, and a third line would push the
+                // progress bar down for a detail that belongs to the title.
+                // Baseline-aligned so it sits with the name, not the cap height.
+                HStack(alignment: .firstTextBaseline, spacing: 7) {
+                    Text("StarHubFR")
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                    Text("v\(Self.appVersion)")
+                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                        .foregroundColor(.white.opacity(0.55))
+                }
                 Text(vm.L(L10n.Main.launching))
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(.white.opacity(0.7))
@@ -213,6 +222,13 @@ struct LaunchSplashView: View {
     }
 
     /// Cover art bundled as a resource by `build_app.py`.
+    /// Version affichée, lue dans le bundle pour rester juste après chaque
+    /// release (même source que l'écran d'accueil). Le repli ne sert qu'aux
+    /// exécutions hors bundle.
+    private static var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+    }
+
     private static let backgroundImage: NSImage? = {
         guard let url = Bundle.main.url(forResource: "nexus_cover_final", withExtension: "png") else { return nil }
         return NSImage(contentsOf: url)
