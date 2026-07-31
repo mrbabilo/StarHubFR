@@ -108,6 +108,16 @@ public struct BisectionSession {
     private mutating func advance(step: Int) {
         let half = Array(suspects.prefix((suspects.count + 1) / 2))
         currentTrial = Self.withRequiredDependencies(half, within: ordered)
+        // Des mods qui ont besoin les uns des autres forment une grappe que la
+        // fermeture reconstitue depuis n'importe quel sous-ensemble : l'essai
+        // redevient l'ensemble suspect entier et la recherche n'avance plus.
+        // Aucune coupe ne peut les séparer, donc aucun d'eux ne peut être
+        // désigné seul — c'est la même réponse que pour deux mods qui ne
+        // s'entendent qu'ensemble.
+        if Set(currentTrial.map(\.folderName)) == Set(suspects.map(\.folderName)) {
+            state = .inconclusive
+            return
+        }
         state = .trial(step: step, total: totalSteps)
     }
 

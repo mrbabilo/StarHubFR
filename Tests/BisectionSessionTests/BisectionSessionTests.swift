@@ -149,4 +149,27 @@ struct BisectionSessionTests {
         s.record(.stillBroken)
         #expect(s.state == .inconclusive)
     }
+
+    @Test func modsThatNeedEachOtherCannotBeBlamedIndividually() {
+        // Dépendance mutuelle : la fermeture reconstitue la grappe depuis
+        // n'importe quel sous-ensemble. Sans garde, la recherche présentait
+        // indéfiniment le même essai, le compteur d'étapes filant au-delà du
+        // total annoncé.
+        let a = BisectionCandidate(folderName: "A", uniqueIds: ["a"], requires: ["b"])
+        let b = BisectionCandidate(folderName: "B", uniqueIds: ["b"], requires: ["a"])
+        let x = BisectionCandidate(folderName: "X", uniqueIds: ["x"], requires: [])
+        let y = BisectionCandidate(folderName: "Y", uniqueIds: ["y"], requires: [])
+        var s = BisectionSession(candidates: [a, b, x, y])
+        s.record(.stillBroken)                    // reproduction
+        var steps = 0
+        while steps < 12 {
+            steps += 1
+            guard case .trial = s.state else { break }
+            // Le coupable est A : la panne persiste si et seulement si A tourne.
+            s.record(Set(s.foldersToEnable).contains("A") ? .stillBroken : .fixed)
+        }
+        // La recherche doit s'arrêter, et le dire — jamais boucler.
+        #expect(s.state == .inconclusive)
+        #expect(steps < 12, "la recherche n'a pas terminé")
+    }
 }
