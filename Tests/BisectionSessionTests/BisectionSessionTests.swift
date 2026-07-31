@@ -75,20 +75,16 @@ struct BisectionSessionTests {
         #expect(s.state == .inconclusive)
     }
 
-    @Test func aPausedFolderTakesItsDependentsWithIt() {
-        // B a besoin de A. Un essai qui exclut A doit aussi exclure B, sinon B
-        // remonte une erreur de dépendance manquante qui imite la panne.
-        // On éprouve la fermeture directement : passer par une session ferait
-        // dépendre l'assertion de la moitié tirée, et le test pourrait ne rien
-        // vérifier du tout.
+    @Test func aTrialCarriesTheDependenciesItNeeds() {
+        // Tester B seul embarque A.
         let a = BisectionCandidate(folderName: "A", uniqueIds: ["fw"], requires: [])
         let b = BisectionCandidate(folderName: "B", uniqueIds: ["b"], requires: ["fw"])
-        #expect(BisectionSession.closed([b], within: [a, b]).isEmpty)
-        #expect(BisectionSession.closed([a, b], within: [a, b]).count == 2)
-        // Un besoin que personne parmi les candidats ne fournit (mod hors
-        // périmètre, resté actif) ne doit pas exclure.
+        let result = BisectionSession.withRequiredDependencies([b], within: [a, b]).map(\.folderName)
+        #expect(result == ["A", "B"])
+        // Un besoin que personne parmi les candidats ne fournit n'ajoute rien.
         let c = BisectionCandidate(folderName: "C", uniqueIds: ["c"], requires: ["hors.perimetre"])
-        #expect(BisectionSession.closed([c], within: [c]).count == 1)
+        let result2 = BisectionSession.withRequiredDependencies([c], within: [c]).map(\.folderName)
+        #expect(result2 == ["C"])
     }
 
     @Test func dependentsSitNextToTheirFramework() {
@@ -102,6 +98,50 @@ struct BisectionSessionTests {
         let ordered = BisectionSession.clustered(candidates).map(\.folderName)
         let iA = ordered.firstIndex(of: "A")!, iB = ordered.firstIndex(of: "B")!
         #expect(abs(iA - iB) == 1)
+    }
+
+    @Test func aSearchWhoseCulpritNeedsAFrameworkStillConverges() {
+        // Le cas qui bloquait : le coupable B a besoin du framework A, et une
+        // coupe les sépare. Fermer en retirant les orphelins vidait l'essai et
+        // la recherche ne convergeait plus.
+        let candidates = [
+            BisectionCandidate(folderName: "X", uniqueIds: ["x"], requires: []),
+            BisectionCandidate(folderName: "A", uniqueIds: ["fw"], requires: []),
+            BisectionCandidate(folderName: "B", uniqueIds: ["b"], requires: ["fw"]),
+            BisectionCandidate(folderName: "Y", uniqueIds: ["y"], requires: []),
+        ]
+        var s = BisectionSession(candidates: candidates)
+        s.record(.stillBroken)                       // reproduction
+        var guardRail = 0
+        while guardRail < 12 {
+            guardRail += 1
+            let enabled = Set(s.foldersToEnable)
+            #expect(!enabled.isEmpty, "un essai ne doit jamais être vide")
+            switch s.state {
+            case .trial:
+                // Le coupable est B : la panne persiste si et seulement si B tourne.
+                s.record(enabled.contains("B") ? .stillBroken : .fixed)
+            case .confirming:
+                // Sans B, tout va bien.
+                s.record(enabled.contains("B") ? .stillBroken : .fixed)
+            default:
+                break
+            }
+            if case .concluded = s.state { break }
+            if case .inconclusive = s.state { break }
+            if case .notReproducible = s.state { break }
+        }
+        #expect(s.state == .concluded(folderName: "B"))
+    }
+
+    @Test func confirmingAFrameworkAlsoPausesWhatNeedsIt() {
+        // Écarter A sans écarter B ferait échouer la confirmation pour une
+        // raison étrangère à A : B tournerait sans sa dépendance.
+        let a = BisectionCandidate(folderName: "A", uniqueIds: ["fw"], requires: [])
+        let b = BisectionCandidate(folderName: "B", uniqueIds: ["b"], requires: ["fw"])
+        let x = BisectionCandidate(folderName: "X", uniqueIds: ["x"], requires: [])
+        let kept = BisectionSession.excluding("A", from: [a, b, x]).map(\.folderName)
+        #expect(kept == ["X"])
     }
 
     @Test func anEmptySetIsImmediatelyInconclusive() {

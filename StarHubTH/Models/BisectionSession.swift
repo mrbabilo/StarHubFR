@@ -64,7 +64,7 @@ public struct BisectionSession {
         case .trial:
             return currentTrial.map(\.folderName)
         case .confirming(let suspect):
-            return ordered.map(\.folderName).filter { $0 != suspect }
+            return Self.excluding(suspect, from: ordered).map(\.folderName)
         case .concluded, .inconclusive, .notReproducible:
             return ordered.map(\.folderName)
         }
@@ -107,29 +107,60 @@ public struct BisectionSession {
 
     private mutating func advance(step: Int) {
         let half = Array(suspects.prefix((suspects.count + 1) / 2))
-        currentTrial = Self.closed(half, within: ordered)
+        currentTrial = Self.withRequiredDependencies(half, within: ordered)
         state = .trial(step: step, total: totalSteps)
     }
 
-    /// Retire d'un ensemble tout dossier dont une dépendance requise n'y est
-    /// pas, jusqu'à point fixe. Aucun mod ne reste orphelin, donc aucune fausse
-    /// erreur « dépendance manquante » ne vient imiter la panne cherchée.
-    static func closed(_ subset: [BisectionCandidate],
-                       within all: [BisectionCandidate]) -> [BisectionCandidate] {
-        // Un besoin satisfait hors candidats (mod non testé, resté actif) ne
-        // doit pas exclure : seuls les besoins couverts par un candidat comptent.
-        let candidateIds = Set(all.flatMap(\.uniqueIds))
+    /// Complète un sous-ensemble avec les dépendances requises, transitivement.
+    ///
+    /// Utilisé pour construire un essai : un mod doit pouvoir tourner, sinon
+    /// l'erreur « dépendance manquante » qu'il remonte imite la panne cherchée.
+    /// Fermer dans l'autre sens ici — retirer les orphelins — produisait un
+    /// essai vide dès qu'une coupe séparait un mod de sa dépendance, et la
+    /// recherche ne convergeait plus.
+    static func withRequiredDependencies(_ subset: [BisectionCandidate],
+                                         within all: [BisectionCandidate]) -> [BisectionCandidate] {
+        var providers: [String: BisectionCandidate] = [:]
+        for c in all {
+            for id in c.uniqueIds where providers[id] == nil { providers[id] = c }
+        }
         var kept = subset
+        var present = Set(subset.map(\.folderName))
+        var queue = subset
+        while let c = queue.popLast() {
+            for need in c.requires {
+                guard let provider = providers[need],
+                      !present.contains(provider.folderName) else { continue }
+                present.insert(provider.folderName)
+                kept.append(provider)
+                queue.append(provider)
+            }
+        }
+        // Conserver l'ordre canonique, pour que les essais restent lisibles.
+        return all.filter { present.contains($0.folderName) }
+    }
+
+    /// Retire d'un ensemble le dossier donné et tout ce qui en dépend,
+    /// transitivement.
+    ///
+    /// Utilisé pour l'essai de confirmation, où le suspect est délibérément
+    /// écarté : ses dépendants ne peuvent pas tourner sans lui, et les laisser
+    /// actifs ferait échouer la confirmation pour une raison étrangère au mod
+    /// suspecté.
+    static func excluding(_ folderName: String,
+                          from all: [BisectionCandidate]) -> [BisectionCandidate] {
+        var removed = Set([folderName])
         var changed = true
         while changed {
             changed = false
-            let present = Set(kept.flatMap(\.uniqueIds))
-            let survivors = kept.filter { c in
-                c.requires.allSatisfy { !candidateIds.contains($0) || present.contains($0) }
+            for c in all where !removed.contains(c.folderName) {
+                let missing = c.requires.contains { need in
+                    all.contains { removed.contains($0.folderName) && $0.uniqueIds.contains(need) }
+                }
+                if missing { removed.insert(c.folderName); changed = true }
             }
-            if survivors.count != kept.count { kept = survivors; changed = true }
         }
-        return kept
+        return all.filter { !removed.contains($0.folderName) }
     }
 
     /// Ordonne les candidats pour qu'un dossier suive celui dont il a besoin.
