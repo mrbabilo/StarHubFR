@@ -21,6 +21,12 @@ final class BisectionRunner: ObservableObject {
     /// dessus une partie en cours ouvrirait une seconde instance et, pire,
     /// renommerait des dossiers de mods que le jeu tient encore ouverts.
     @Published private(set) var gameStillRunning = false
+    /// Vrai quand la remise en état finale a laissé des dossiers en pause. Les
+    /// écrans de fin annonçaient « tous vos autres mods sont réactivés » avant
+    /// même que la restauration ne soit terminée : si elle échouait en partie,
+    /// l'affirmation restait à l'écran pendant que l'alerte d'échec la
+    /// contredisait.
+    @Published private(set) var restoreIncomplete = false
     /// Mods que le journal met en cause à chaque étape où la panne était encore
     /// là, et jamais quand elle avait disparu. C'est un **second signal**,
     /// indépendant des réponses : la bissection cherche un coupable unique, le
@@ -89,6 +95,7 @@ final class BisectionRunner: ObservableObject {
         guard !isApplying else { return }
         guard !vm.isGameRunning() else { gameStillRunning = true; return }
         gameStillRunning = false
+        restoreIncomplete = false
         noCandidates = false
         isApplying = true
         let gameDir = vm.gameDir
@@ -193,7 +200,12 @@ final class BisectionRunner: ObservableObject {
             // restaurer y compris le coupable. `restoreAndStop` le vide ensuite.
             // Et seulement si tout a bougé : un dossier resté en pause rend
             // l'instantané indispensable, on le garde pour le prochain démarrage.
-            apply(restore) { BisectionSnapshotStore.finish($0) }
+            apply(restore) { [weak self] outcome in
+                // L'instantané ne part que si tout a bougé — un dossier resté en
+                // pause le rend indispensable au prochain démarrage.
+                let complete = BisectionSnapshotStore.finish(outcome)
+                self?.restoreIncomplete = !complete
+            }
         default:
             apply(s.foldersToEnable) { [weak self] _ in self?.launch() }
         }

@@ -781,6 +781,7 @@ enum L10n {
         static let confirmBody        = "bisect_confirm_body"
         static let concludedTitle     = "bisect_concluded_title"
         static let concludedBody      = "bisect_concluded_body"
+        static let restoreIncomplete  = "bisect_restore_incomplete"
         static let logNamesOther      = "bisect_log_names_other"
         static let logEvidence        = "bisect_log_evidence"
         static let logSuspectLine     = "bisect_log_suspect_line"

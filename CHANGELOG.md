@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Fixed
+- **The end of a search no longer claims your mods are back on before they are.** The closing screen is reached before the restore finishes, so a restore that partly failed left the claim on screen while the failure alert contradicted it. The screens now state what actually happened, and say what to try — closing a Finder window on the Mods folder is the usual culprit.
+
+
 ## [1.11.0] - 2026-08-01
 
 ### Added

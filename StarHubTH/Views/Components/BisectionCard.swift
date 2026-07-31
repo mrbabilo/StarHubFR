@@ -209,6 +209,7 @@ struct BisectionCard: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             logEvidenceView
+            restoreWarning
             Button(vm.L(L10n.Bisect.restore)) { runner.restoreAndStop() }
                 .disabled(runner.isApplying)
         }
@@ -244,8 +245,24 @@ struct BisectionCard: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             logEvidenceView
+            restoreWarning
             Button(vm.L(L10n.Bisect.restore)) { runner.restoreAndStop() }
                 .disabled(runner.isApplying)
+        }
+    }
+
+    /// Dit la vérité sur la remise en état. Les écrans de fin affirmaient que
+    /// tout était réactivé alors que l'état terminal est posé **avant** la fin
+    /// de la restauration : en cas d'échec partiel, l'affirmation restait à
+    /// l'écran pendant que l'alerte d'échec la contredisait.
+    @ViewBuilder
+    private var restoreWarning: some View {
+        if runner.restoreIncomplete {
+            Label(vm.L(L10n.Bisect.restoreIncomplete), systemImage: "exclamationmark.triangle.fill")
+                .font(.system(size: 12))
+                .foregroundColor(.orange)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
@@ -290,6 +307,7 @@ struct BisectionCard: View {
         VStack(alignment: .leading, spacing: 10) {
             Text(vm.L(title)).font(.system(size: 13, weight: .semibold))
             Text(body).font(.system(size: 12)).foregroundColor(.secondary)
+            restoreWarning
             Button(vm.L(L10n.Bisect.restore)) { runner.restoreAndStop() }
                 .disabled(runner.isApplying)
         }
