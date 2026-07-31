@@ -35,6 +35,14 @@ public enum LogNoise {
         s = replacing(s, pattern: "\"[^\"]*\"", with: "\"~\"")
         s = replacing(s, pattern: "[0-9]+", with: "~")
 
+        // SMAPI écrit le nom du mod **sans guillemets** dans ses lignes de rejet
+        // (« Skipped Foo (folder name starts with a dot) »), si bien que chaque
+        // ligne avait une signature unique et qu'aucune ne se repliait — une
+        // recherche du mod responsable en produit des centaines. On masque le
+        // nom pour ne garder que la raison, qui est la vraie famille.
+        s = replacing(s, pattern: "(?i)^(Skipped|Removed|Ignored) .+?( \\(| because )",
+                      with: "$1 ~$2")
+
         // Long messages can still differ far to the right; the head carries the
         // shape, so cap it to keep signatures cheap to compare.
         return String(s.prefix(120))

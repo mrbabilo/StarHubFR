@@ -6,6 +6,7 @@ struct BisectionCard: View {
     @ObservedObject var vm: StarHubTHViewModel
     @ObservedObject private var runner: BisectionRunner
     @State private var showMods = false
+    @State private var showCleared = false
 
     init(vm: StarHubTHViewModel) {
         self.vm = vm
@@ -31,8 +32,7 @@ struct BisectionCard: View {
                 case .confirming(let folder):
                     confirming(folder)
                 case .concluded(let folder):
-                    finished(L10n.Bisect.concludedTitle,
-                             String(format: vm.L(L10n.Bisect.concludedBody), folder))
+                    concluded(folder)
                 case .inconclusive(let remaining):
                     inconclusive(remaining)
                 case .notReproducible:
@@ -65,6 +65,29 @@ struct BisectionCard: View {
         }
     }
 
+    /// Liste dépliable avec bouton de copie. Une liste de mods ne sert à rien si
+    /// on ne peut pas la sortir de l'application — pour la coller dans une
+    /// demande d'aide, ou simplement la garder sous les yeux.
+    private func copyableList(_ title: String, _ items: [String],
+                              expanded: Binding<Bool>) -> some View {
+        DisclosureGroup(isExpanded: expanded) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(items.sorted().joined(separator: "\n"))
+                    .font(.system(size: 11, design: .monospaced))
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Button(vm.L(L10n.Bisect.copyList)) {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(items.sorted().joined(separator: "\n"),
+                                                   forType: .string)
+                }
+                .buttonStyle(.borderless).controlSize(.small)
+            }
+        } label: {
+            Text("\(vm.L(title)) (\(items.count))").font(.system(size: 12))
+        }
+    }
+
     private func trial(_ n: Int, _ total: Int) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(String(format: vm.L(L10n.Bisect.stepOf), n, total))
@@ -81,12 +104,10 @@ struct BisectionCard: View {
                 Text(String(format: vm.L(L10n.Bisect.clearedCount), runner.clearedFolders.count))
                     .font(.system(size: 12)).foregroundColor(.secondary)
             }
-            DisclosureGroup(vm.L(L10n.Bisect.showMods), isExpanded: $showMods) {
-                Text(runner.currentFolders.sorted().joined(separator: "\n"))
-                    .font(.system(size: 11, design: .monospaced))
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            copyableList(L10n.Bisect.showMods, runner.currentFolders, expanded: $showMods)
+            if !runner.clearedFolders.isEmpty {
+                copyableList(L10n.Bisect.showCleared, runner.clearedFolders, expanded: $showCleared)
             }
-            .font(.system(size: 12))
             answerButtons
         }
     }
@@ -157,6 +178,32 @@ struct BisectionCard: View {
                     .font(.system(size: 11, design: .monospaced))
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            Button(vm.L(L10n.Bisect.restore)) { runner.restoreAndStop() }
+                .disabled(runner.isApplying)
+        }
+    }
+
+    /// Conclusion, confrontée à ce que le journal dit de son côté.
+    ///
+    /// La bissection suppose **un seul** coupable. Quand la panne naît de deux
+    /// mods qui ne s'entendent pas, retirer l'un ou l'autre la fait disparaître :
+    /// la recherche en désigne un, en toute légitimité, mais présenter ce mod
+    /// comme « la » cause est trompeur — et l'utilisateur qui a vu l'autre nom
+    /// dans le journal n'y croira pas, à raison. Si le journal impute des
+    /// erreurs à un mod différent, on le dit.
+    private func concluded(_ folder: String) -> some View {
+        let blamedByLog = vm.smapiDiagnostics?.topErrorMods
+            .first { !$0.name.localizedCaseInsensitiveContains(folder)
+                  && !folder.localizedCaseInsensitiveContains($0.name) }?.name
+        return VStack(alignment: .leading, spacing: 10) {
+            Text(vm.L(L10n.Bisect.concludedTitle)).font(.system(size: 13, weight: .semibold))
+            Text(String(format: vm.L(L10n.Bisect.concludedBody), folder))
+                .font(.system(size: 12)).foregroundColor(.secondary)
+            if let other = blamedByLog {
+                Label(String(format: vm.L(L10n.Bisect.logNamesOther), other, folder),
+                      systemImage: "info.circle")
+                    .font(.system(size: 12)).foregroundColor(.orange)
             }
             Button(vm.L(L10n.Bisect.restore)) { runner.restoreAndStop() }
                 .disabled(runner.isApplying)

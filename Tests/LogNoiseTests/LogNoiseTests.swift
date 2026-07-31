@@ -192,4 +192,21 @@ import Testing
                                          isError: { _ in false }, isWarning: { _ in false })
         #expect(groups.isEmpty)
     }
+
+    @Test func skippedModsFoldIntoOneFamilyPerReason() {
+        // SMAPI nomme le mod sans guillemets, donc rien ne se repliait : une
+        // recherche du mod responsable met des dizaines de dossiers en pause et
+        // remplissait le journal d'une ligne par mod.
+        let a = LogNoise.signature(of: "Skipped Gunther's Guide (folder name starts with a dot)")
+        let b = LogNoise.signature(of: "Skipped Let's Move It (folder name starts with a dot)")
+        #expect(a == b)
+
+        // Deux raisons différentes restent deux familles.
+        let c = LogNoise.signature(of: "Skipped Foo because it requires mods which aren't installed")
+        #expect(a != c)
+
+        // Une ligne ordinaire n'est pas affectée.
+        let d = LogNoise.signature(of: "Invalidated 3 cache entries.")
+        #expect(d != a)
+    }
 }

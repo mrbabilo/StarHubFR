@@ -704,6 +704,7 @@
   "bisect_confirm_body": "Tout est réactivé sauf « %@ ». Si le problème a disparu, c'est bien lui.",
   "bisect_concluded_title": "Trouvé",
   "bisect_concluded_body": "« %@ » est à l'origine du problème. Il reste en pause et tous vos autres mods sont réactivés. Laissez-le ainsi, ou remettez tout comme avant ci-dessous.",
+  "bisect_log_names_other": "Attention : le journal du jeu signale des erreurs venant de « %@ », pas de « %@ ». Les deux sont sans doute en cause ensemble — retirer l'un suffit à faire disparaître le problème, mais l'autre en est tout autant responsable.",
   "bisect_inconclusive_title": "Pas de réponse simple",
   "bisect_inconclusive_body": "Le problème ne vient pas d'un seul mod : il apparaît quand plusieurs sont actifs ensemble. La recherche a tout de même réduit le champ.",
   "bisect_inconclusive_remaining": "Les mods encore en cause sont :",
@@ -714,6 +715,8 @@
   "bisect_interrupted_title": "Recherche interrompue",
   "bisect_interrupted_body": "Une recherche a été interrompue le %@. Vos mods sont encore en pause. Voulez-vous les remettre comme avant ?",
   "bisect_show_mods": "Voir les mods qui tournent à cette étape",
+  "bisect_show_cleared": "Voir les mods hors de cause",
+  "bisect_copy": "Copier la liste",
   "bisect_cleared_count": "%lld mods sont déjà hors de cause.",
   "bisect_no_candidates": "Aucun mod à tester : ils sont déjà tous en pause.",
   "bisect_profile_name": "Recherche du mod responsable"

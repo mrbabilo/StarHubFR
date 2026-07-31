@@ -15,11 +15,14 @@ where the exact log format was verified.
 ### Added
 - **Find the mod that breaks your game.** The app pauses half your mods, starts the game, and asks one question — "is the problem still there?" — narrowing down over roughly seven steps for a hundred mods. It ends on a confirmation run, because halving produces a lead, not a proof.
 - Each step reports how many mods are already in the clear. When no single mod can be blamed, the ones still involved are named rather than withheld.
+- The mods in the clear, and those still in the trial, can be expanded and copied out of the app.
+- When the log blames a different mod than the search concluded, the card says so: two mods that don't get along make either one "the" culprit, and the search can only name one of them.
 - Nothing is deleted: your starting state is written to disk before any folder moves, and "put everything back" is one click away at every step. A search interrupted by quitting the app is offered back on the home screen.
 
 ### Fixed
 - **The search no longer accuses the wrong mod.** Pausing a framework left the content packs that need it running without it, changing the game for reasons unrelated to the mod being hunted. Packs are now paused alongside their framework.
 - The next step waits for you to quit the game, instead of launching a second copy over the running one.
+- **Skipped-mod lines fold into one row.** SMAPI names the mod without quotes, so nothing matched — a search that pauses fifty folders filled the log with fifty near-identical lines.
 - The diagnostic card no longer pushes the log list and its own collapse chevron off-screen.
 
 ## [1.10.3] - 2026-07-31
