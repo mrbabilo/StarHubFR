@@ -111,6 +111,10 @@ enum ValidationStatus {
     case oversized
     case tooManyMods
     case corrupted
+    /// L'archive est lisible, mais son format n'est pas géré. Distinct de
+    /// `.corrupted` : annoncer « archive corrompue » sur un `.7z` parfaitement
+    /// sain envoie l'utilisateur chercher un problème qui n'existe pas.
+    case unsupportedFormat(String)
 }
 
 /// Type of conflict detected during installation

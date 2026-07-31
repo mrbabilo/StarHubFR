@@ -708,6 +708,7 @@ enum L10n {
         static let tooManyMods          = "mod_install_too_many_mods"
         static let zipCorrupted         = "mod_install_corrupted"
         static let rarToolMissing       = "mod_install_rar_tool_missing"
+        static let unsupportedFormat    = "mod_install_unsupported_format"
         static let dependenciesTitle    = "mod_install_dependencies_title"
         static let conflictsTitle      = "mod_install_conflicts_title"
         static let modsInZip            = "mod_install_mods_in_zip"

@@ -90,7 +90,7 @@ struct ModInstallView: View {
             handleDrop(providers)
             return true
         }
-        .fileImporter(isPresented: $showFilePicker, allowedContentTypes: [.zip, UTType(filenameExtension: "rar")].compactMap({ $0 }), allowsMultipleSelection: false) { result in
+        .fileImporter(isPresented: $showFilePicker, allowedContentTypes: [.zip, UTType(filenameExtension: "rar"), UTType(filenameExtension: "7z")].compactMap({ $0 }), allowsMultipleSelection: false) { result in
             switch result {
             case .success(let files):
                 if let url = files.first {
@@ -214,7 +214,7 @@ struct ModInstallView: View {
             provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, error in
                 guard let data = item as? Data,
                       let url = URL(dataRepresentation: data, relativeTo: nil),
-                      ["zip", "rar"].contains(url.pathExtension.lowercased()) else {
+                      ModZipInstaller.supportedExtensions.contains(url.pathExtension.lowercased()) else {
                 DispatchQueue.main.async {
                     self.errorMessage = vm.L(L10n.ModInstall.invalidZipStructure)
                     self.errorRecoveryHint = vm.L(L10n.ModInstall.recoverZip)
@@ -293,6 +293,9 @@ struct ModInstallView: View {
                         case .corrupted:
                             self.errorMessage = self.vm.L(L10n.ModInstall.zipCorrupted)
                             self.errorRecoveryHint = self.vm.L(L10n.ModInstall.recoverZip)
+                        case .unsupportedFormat(let ext):
+                            self.errorMessage = String(format: self.vm.L(L10n.ModInstall.unsupportedFormat), ext)
+                            self.errorRecoveryHint = nil
                         case .valid:
                             break
                         }

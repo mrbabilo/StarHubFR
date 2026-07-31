@@ -13,6 +13,9 @@ where the exact log format was verified.
 ## [Unreleased]
 
 ### Added
+- **`.7z` archives install.** The format is common on Nexus but was rejected outright, and — worse — the message blamed the file: "this archive appears to be corrupted", sending you to look for a problem that didn't exist. `.7z` is now a first-class format alongside `.zip` and `.rar`, and an unsupported extension now says which formats *are* accepted instead of claiming corruption. Extraction uses `7zz`, `7z` or `unar`, whichever is installed — `unrar` is deliberately excluded, since it can't read 7z.
+
+### Added
 - **The launch screen shows the version.** It sits beside the app name, on the same baseline, so the splash keeps its three-part rhythm — name, status, progress — instead of gaining a line. Read from the bundle, so it follows every release on its own.
 
 ## [1.10.2] - 2026-07-31

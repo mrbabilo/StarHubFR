@@ -526,7 +526,7 @@
 "mod_install_title" = "Install Mod";
 "mod_install_button" = "Install mods";
 "mod_install_details_hint" = "Mod details";
-"mod_install_drop_zone" = "Drop a mod archive here (.zip or .rar)";
+"mod_install_drop_zone" = "Drop a mod archive here (.zip, .rar or .7z)";
 "mod_install_drop_hint" = "or click to browse";
 "mod_install_analyzing" = "Analyzing archive…";
 "mod_install_validation_error" = "Invalid Mod File";
@@ -561,6 +561,7 @@
 "mod_install_oversized" = "This archive is too large to install.";
 "mod_install_too_many_mods" = "This archive contains too many mods to install at once.";
 "mod_install_corrupted" = "This archive appears to be corrupted and could not be read.";
+"mod_install_unsupported_format" = "The \".%@\" format isn't supported. Accepted formats: .zip, .rar and .7z.";
 "mod_install_rar_tool_missing" = "Extracting a .rar archive needs an external tool. Install one with Homebrew: brew install unar";
 "mod_install_dependencies_title" = "Dependencies";
 "mod_install_conflicts_title" = "Conflicts";
@@ -666,7 +667,7 @@
 "config_code_editor_a11y_hint" = "Opens this mod's configuration file in the code editor";
 "mods_version_prefix" = "v%@";
 "mod_install_empty_title" = "No mod installed yet";
-"mod_install_empty_hint" = "Drag a .zip or .rar file here or click to install";
+"mod_install_empty_hint" = "Drag a .zip, .rar or .7z archive here, or click to install";
 "mods_missing_dependencies_prefix" = "Missing:";
 "mods_search_nexus_by_mod_name" = "Search Nexus for “%@”";
 "mods_search_nexus_by_author" = "Search Nexus by author “%@”";

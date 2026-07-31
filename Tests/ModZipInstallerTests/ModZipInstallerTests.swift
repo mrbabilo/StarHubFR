@@ -516,6 +516,51 @@ struct InstallerTestEnv {
         #expect(mode?.uint16Value == 0o644)
     }
 
+    /// Écrit un fichier commençant par `signature`, pour éprouver le contrôle de
+    /// format sans dépendre d'un outil de compression installé.
+    private func makeArchive(named name: String, signature: [UInt8]) throws -> URL {
+        let dir = try makeTempDir()
+        let url = dir.appendingPathComponent(name)
+        try Data(signature + [0x00, 0x00]).write(to: url)
+        return url
+    }
+
+    @Test func sevenZipArchivesAreAccepted() throws {
+        // Le .7z est courant sur Nexus. Avant, toute extension inconnue était
+        // rejetée comme « archive corrompue » : l'utilisateur cherchait un
+        // problème de fichier alors que le format n'était simplement pas géré.
+        let url = try makeArchive(named: "mod.7z", signature: [0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C])
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        guard case .valid = ModZipInstaller().validateZip(at: url) else {
+            Issue.record("un .7z valide doit être accepté"); return
+        }
+    }
+
+    @Test func anUnsupportedExtensionSaysSoInsteadOfClaimingCorruption() throws {
+        let url = try makeArchive(named: "mod.tar.gz", signature: [0x1F, 0x8B, 0x08, 0x00])
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        guard case .unsupportedFormat(let ext) = ModZipInstaller().validateZip(at: url) else {
+            Issue.record("attendu unsupportedFormat"); return
+        }
+        #expect(ext == "gz")
+    }
+
+    @Test func aSevenZipWithTheWrongSignatureIsStillCorrupt() throws {
+        // Le contrôle de signature reste : une extension seule ne prouve rien.
+        let url = try makeArchive(named: "fake.7z", signature: [0x00, 0x01, 0x02, 0x03, 0x04, 0x05])
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        guard case .corrupted = ModZipInstaller().validateZip(at: url) else {
+            Issue.record("attendu corrupted"); return
+        }
+    }
+
+    @Test func sevenZipExtractionToolNeverUsesUnrar() {
+        // unrar ne lit pas le 7z : le proposer produirait un échec obscur.
+        if let tool = ModZipInstaller.find7zTool() {
+            #expect(!tool.path.hasSuffix("/unrar"))
+        }
+    }
+
     @Test func mixedNestedAndRootInstallsFlat() throws {
         // Guard: one nested entry + one root entry → no single shared parent
         // → both stay at their natural (leaf) dest, no forced grouping.

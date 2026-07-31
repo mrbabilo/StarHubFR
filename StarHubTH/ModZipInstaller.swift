@@ -39,13 +39,19 @@ class ModZipInstaller {
     private let maxExtractedSize: Int64 = 2 * 1024 * 1024 * 1024 // 2GB
     private let maxModsPerZip = 10
 
+    /// Formats d'archive acceptés à l'installation. Le `.7z` est courant sur
+    /// Nexus ; avant son ajout, toute extension inconnue était rejetée comme
+    /// « archive corrompue », ce qui envoyait l'utilisateur chercher un problème
+    /// qui n'existait pas.
+    static let supportedExtensions: Set<String> = ["zip", "rar", "7z"]
+
     // MARK: - Validation
     /// Validates an archive file against size, format, and structure requirements.
-    /// Supports `.zip` and `.rar` formats.
+    /// Supports `.zip`, `.rar` and `.7z`.
     func validateZip(at url: URL) -> ValidationStatus {
         let ext = url.pathExtension.lowercased()
-        guard ext == "zip" || ext == "rar" else {
-            return .corrupted
+        guard Self.supportedExtensions.contains(ext) else {
+            return .unsupportedFormat(ext)
         }
 
         var attributes: [FileAttributeKey: Any]?
@@ -79,13 +85,16 @@ class ModZipInstaller {
                   bytes[2] == sig[2], bytes[3] == sig[3] else {
                 return .corrupted
             }
-        } else {
+        } else if ext == "rar" {
             // RAR signature: "Rar!\x1a\x07" (common to RAR4 and RAR5).
             let sig: [UInt8] = [0x52, 0x61, 0x72, 0x21, 0x1A, 0x07]
-            guard bytes.count >= 6,
-                  bytes[0] == sig[0], bytes[1] == sig[1],
-                  bytes[2] == sig[2], bytes[3] == sig[3],
-                  bytes[4] == sig[4], bytes[5] == sig[5] else {
+            guard bytes.count >= 6, Array(bytes.prefix(6)) == sig else {
+                return .corrupted
+            }
+        } else {
+            // 7z signature: "7z\xbc\xaf\x27\x1c".
+            let sig: [UInt8] = [0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C]
+            guard bytes.count >= 6, Array(bytes.prefix(6)) == sig else {
                 return .corrupted
             }
         }
@@ -410,8 +419,10 @@ class ModZipInstaller {
             guard Self.isTolerableExitStatus(process.terminationStatus) else {
                 throw InstallError.extractionFailed
             }
-        } else if ext == "rar" {
-            guard let tool = findRarTool() else {
+        } else {
+            // .rar et .7z passent par un outil externe. `unrar` ne lit pas le
+            // 7z, d'où deux listes de préférence distinctes.
+            guard let tool = ext == "rar" ? Self.findRarTool() : Self.find7zTool() else {
                 throw InstallError.rarToolMissing
             }
             let process = Process()
@@ -423,8 +434,6 @@ class ModZipInstaller {
             guard Self.isTolerableExitStatus(process.terminationStatus) else {
                 throw InstallError.extractionFailed
             }
-        } else {
-            throw InstallError.extractionFailed
         }
 
         // Status 1 means "extracted, but with warnings" — we accepted it above,
@@ -514,7 +523,36 @@ class ModZipInstaller {
     /// extraction tool, in order of preference: `unrar` (official, fastest),
     /// `unar` (The Unarchiver, handles many formats), `7z` (7-Zip).
     /// Returns `nil` if none is available.
-    private static func findRarTool() -> (path: String, arguments: (String, String) -> [String])? {
+    /// Répertoires où chercher un outil d'extraction installé par l'utilisateur.
+    private static let toolSearchPaths = [
+        "/usr/local/bin", "/opt/homebrew/bin", "/usr/bin",
+        FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".homebrew/bin").path,
+    ]
+
+    /// Outil capable de lire un `.7z`. `7zz` est le nom moderne du binaire
+    /// 7-Zip sur Homebrew — l'omettre ferait échouer l'extraction sur une
+    /// machine qui a pourtant l'outil. `unrar` est absent de la liste : il ne
+    /// lit pas le 7z.
+    static func find7zTool() -> (path: String, arguments: (String, String) -> [String])? {
+        for name in ["7zz", "7z"] {
+            for dir in toolSearchPaths {
+                let p = "\(dir)/\(name)"
+                if FileManager.default.isExecutableFile(atPath: p) {
+                    return (p, { archive, dest in ["x", "-aoa", "-o\(dest)", archive] })
+                }
+            }
+        }
+        for dir in toolSearchPaths {
+            let p = "\(dir)/unar"
+            if FileManager.default.isExecutableFile(atPath: p) {
+                return (p, { archive, dest in ["-f", "-o", dest, archive] })
+            }
+        }
+        return nil
+    }
+
+    static func findRarTool() -> (path: String, arguments: (String, String) -> [String])? {
         let searchPaths = [
             "/usr/local/bin", "/opt/homebrew/bin", "/usr/bin",
             FileManager.default.homeDirectoryForCurrentUser
