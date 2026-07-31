@@ -40,7 +40,7 @@ Quand le jeu plante ou qu'un mod refuse de se charger, StarHubFR transforme le j
 *   **Journal périmé** — un badge vous prévient si le journal date d'avant votre session, et un bouton l'ouvre dans le Finder.
 *   **Journaux lisibles** — les lignes répétitives (un vrai journal en compte des milliers) sont repliées en une ligne dépliable, et un bouton regroupe les entrées par mod, les plus problématiques en tête. Rien n'est supprimé : le détail reste à un clic.
 *   **Suivi des erreurs par version** — chaque mod garde l'historique des erreurs et avertissements qu'il a journalisés, **version par version**, consultable depuis sa fiche : de quoi savoir si une nouvelle version se comporte moins bien que la précédente.
-*   **Recherche du mod responsable** — quand le jeu plante sans que le journal désigne personne, StarHubFR met vos mods en pause par moitiés, relance le jeu entre chaque étape et vous pose une seule question à chaque fois. Une dizaine d'étapes suffisent, même avec des centaines de mods. Rien n'est supprimé et tout se remet en un clic.
+*   **Recherche du mod responsable** — quand le jeu plante sans que le journal désigne personne, StarHubFR met vos mods en pause par moitiés et vous pose une seule question à chaque étape. Une dizaine d'essais suffisent, même avec des centaines de mods. Rien n'est supprimé, tout se remet en un clic.
 
 ### 📦 Installation et organisation des mods
 

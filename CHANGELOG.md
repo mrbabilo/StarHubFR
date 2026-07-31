@@ -13,63 +13,51 @@ where the exact log format was verified.
 ## [Unreleased]
 
 ### Added
-- **Finding the mod that breaks your game, step by step.** When Stardew Valley crashes and the log names no one, the only reliable method is to halve the mod list, restart, and repeat. The app now does the halving, the restarting and the bookkeeping: it pauses half your mods, starts the game, waits for you to come back, asks one question — "is the problem still there?" — and narrows down. Roughly seven steps for a hundred mods.
-
-  It tells you where it has got to, not just how far along it is: each step reports how many mods are already in the clear — the count that actually doubles with every answer, unlike the step number, which is only an estimate — and the expandable list says plainly that it holds the mods still *running*. When the search can't name a single culprit, it no longer throws the result away: isolating three inseparable mods out of a hundred is a finding, so those mods are named.
-
-  Nothing is deleted, the starting state is written to disk before a single folder moves, and "put everything back" is one click away at every step. It ends on a confirmation run — everything back on except the mod it points at — because halving produces a lead, not a proof. If the app is quit mid-search, the home screen says so on the next start and offers to put everything back from there. And if a folder can't be moved back — held open by the Finder, a stale twin already in place — the record of your starting state is *kept*, so putting everything back stays retryable instead of being lost.
+- **Find the mod that breaks your game.** The app pauses half your mods, starts the game, and asks one question — "is the problem still there?" — narrowing down over roughly seven steps for a hundred mods. It ends on a confirmation run, because halving produces a lead, not a proof.
+- Each step reports how many mods are already in the clear. When no single mod can be blamed, the ones still involved are named rather than withheld.
+- Nothing is deleted: your starting state is written to disk before any folder moves, and "put everything back" is one click away at every step. A search interrupted by quitting the app is offered back on the home screen.
 
 ### Fixed
-- **The search could accuse the wrong mod.** Pausing a framework left every content pack that needs it running without it, so SMAPI skipped nineteen packs at once and the game changed for a reason unrelated to the mod being hunted — the player's answer described *that*, and the search converged on an innocent. Content packs are now paused alongside the framework they depend on, which also silences the wall of "could not be added to your game" warnings each step used to produce.
-- **The next step no longer starts while the game is still open.** Answering without quitting Stardew Valley relaunched it over the running copy and renamed mod folders the game was holding. The card now says to quit first.
-- **The diagnostic card no longer swallows the window.** It claims two thirds of the space it competes for, but the guided-search card added below it was not counted in that budget — with both open, the log list was pushed off-screen and the collapse chevron went with it. The card's share is now measured against what is actually left.
+- **The search no longer accuses the wrong mod.** Pausing a framework left the content packs that need it running without it, changing the game for reasons unrelated to the mod being hunted. Packs are now paused alongside their framework.
+- The next step waits for you to quit the game, instead of launching a second copy over the running one.
+- The diagnostic card no longer pushes the log list and its own collapse chevron off-screen.
 
 ## [1.10.3] - 2026-07-31
 
 ### Added
-- **A 7-Zip status row on the home screen**, next to the existing one for The Unarchiver, so a missing extraction tool is visible before an install fails rather than after. Both rows are now driven by the same lookup the extractor itself uses, so the screen can't claim a capability the installer doesn't have.
-- **`.7z` archives install.** The format is common on Nexus but was rejected outright, and — worse — the message blamed the file: "this archive appears to be corrupted", sending you to look for a problem that didn't exist. `.7z` is now a first-class format alongside `.zip` and `.rar`, and an unsupported extension now says which formats *are* accepted instead of claiming corruption. Extraction uses whichever of `7zz`, `7z`, `7za`, `7zr` or `unar` is installed — `unrar` is deliberately excluded, since it can't read 7z. All four install routes were checked: drag-and-drop, the install button, a Nexus update (free or premium) and an `nxm://` click. The last two rebuilt the filename and knew only zip and rar, so a 7z downloaded from Nexus would have been handed to `unzip` and failed.
-
-- **The launch screen shows the version.** It sits beside the app name, on the same baseline, so the splash keeps its three-part rhythm — name, status, progress — instead of gaining a line. Read from the bundle, so it follows every release on its own.
+- **`.7z` archives install**, alongside `.zip` and `.rar`, on all four routes: drag-and-drop, the install button, a Nexus update, and an `nxm://` click. Extraction uses whichever of `7zz`, `7z`, `7za`, `7zr` or `unar` is present.
+- A 7-Zip status row on the home screen, beside the one for The Unarchiver, so a missing tool is visible before an install fails.
+- The launch screen shows the app version, beside its name.
 
 ### Fixed
-- **A mod downloaded from Nexus keeps its real format.** The temporary file was named from the download URL, and the free-download link doesn't always carry a usable extension — so a `.7z` was saved as `.zip`, handed to `unzip`, and reported as a corrupted archive. Drag-and-drop worked all along, which made the failure look arbitrary. The format is now read from the file's own first bytes; the URL is only a fallback.
-- **Extraction tools are found wherever they're installed.** The search covered four directories and missed MacPorts, Nix, `~/bin` and anything on the user's `PATH` — so a perfectly installed tool could go unseen. Three separate copies of that list had drifted apart; they now share one lookup. It stays explicit rather than `PATH`-only on purpose: an app launched from the Finder inherits launchd's minimal `PATH`, not the shell's.
-- **A mod folder no longer keeps its archive extension.** Only `.zip` was stripped when naming the installed folder, so a `.7z` or `.rar` without an enclosing directory landed under `Mods/` as `MyMod.7z`.
+- **An unsupported archive is no longer called corrupted.** The message now names the formats that are accepted.
+- **A mod downloaded from Nexus keeps its real format.** The temporary file was named from the download URL, which for free downloads carries no usable extension — a `.7z` was saved as `.zip` and handed to `unzip`. The format is now read from the file's own first bytes.
+- Extraction tools are found wherever they are installed: MacPorts, Nix, `~/bin` and the user's `PATH` were all missed by the previous four-directory search.
+- A mod folder no longer keeps its archive extension when the archive has no enclosing directory.
 
 ## [1.10.2] - 2026-07-31
 
 ### Added
-- **Mod descriptions render their real structure, not just their text.** The description pane used to show bold, italics, links, images and spoilers and drop everything else — lists came out with a literal dash, headings didn't exist, code had no fixed-width font or background, and centering, colour and quotes were simply removed. The parser now produces typed blocks and the renderer draws them in the app's own typography:
-  - **Headings** (`[size]`/`[heading]`, with a guard so an over-long sized paragraph stays body copy) use the app's 20/16/14 type scale — never the author's arbitrary sizes.
-  - **Lists** (`[list]`, ordered with `[list=1]`) render as real bullets or numbers — the most common missing structure, present on 69 % of the sampled descriptions.
-  - **Code blocks** (`[code]`, kept verbatim so a `[b]` inside an example stays literal) get a fixed-width font, a tinted background and horizontal scrolling, so a file path never wraps mid-way.
-  - **Quotes** (`[quote]`) get a left rule and dimmed text; **centering** (`[center]`) wraps text and images as a recursive block.
-  - **Author colours** (`[color]`, by name or `#hex`) are honoured after automatic contrast correction to WCAG AA, and **`[u]` is a real underline** (it used to render as italics).
-  - **Markup can no longer be trapped inside a block.** An image, a code block or a nested colour sitting inside a heading, a link label or a list item used to be printed as raw BBCode, because those containers hold plain text. Each of them now hoists the block out instead: `[size=4][img]…[/img][/size]` shows the image, a list item's image becomes its own block, and a link whose label is an image (or an image plus text) keeps both the picture and the link.
-  - **Inline tags nest correctly.** Authors write "all in white, except these two words in green"; the non-greedy match paired an opening `[color]` with the *first* closing one, printing truncated spans like `^(shcolor: '#ffffff')If you…`. Colours now resolve innermost-first, and an attribute that can't be carried — nested inside another, spanning a line break, wrapping punctuation only, or wrapping a code block — is dropped in favour of the text it contained.
-  - **Emphasis no longer eats the space beside it.** `…donating via` followed by a sized run rendered as `via**PayPal**`: with the separator consumed, Markdown refuses intraword emphasis and printed the asterisks. A link label spanning several lines now keeps its text and drops the link, rather than leaving `](https://…)` on screen.
-  - Verified across the 51 cached mod descriptions: 266 colour spans render, and not a single tag or internal marker leaks — including the malformed spans that nested `[color]` tags used to produce.
+- **Mod descriptions render their structure, not just their text.** Headings, lists, code blocks, quotes and centring are now drawn in the app's own typography; author colours are honoured after automatic contrast correction to WCAG AA, and `[u]` is a real underline. Verified across 51 cached descriptions.
 
 ### Fixed
-- **Mod descriptions no longer show their own markup.** Rendering was a chain of text substitutions, which can't see structure — so real Nexus pages leaked BBCode onto the screen. Verified against Stardew Valley Expanded's 23 KB description, which now renders without a single stray tag. Six distinct defects, all fixed:
-  - **Nested spoilers** (SVE wraps a per-map gallery in an outer one) paired an opening tag with the *first* closing tag, printing the leftover `[/spoiler]` as text — and cutting the outer content short, so **5 of the 22 images** never rendered. Block splitting now tracks nesting depth.
-  - **`[size]` was always turned into bold**, whatever the value. Authors size their body copy too: SVE uses `size=3` 187 times for paragraphs against 16 `size=4` headings, so entire pages came out bold with headings indistinguishable from text. Only heading-sized runs are emphasised now.
-  - **A heading that was both sized and bold lost its emphasis entirely**, because the doubled `****` delimiters were deleted rather than collapsed.
-  - **`[CP]` was erased.** It isn't BBCode — it's the literal name of SVE's folders (`[CP] Stardew Valley Expanded`), so install instructions were displayed *wrong*. Only known BBCode tags are stripped; anything else in brackets is left as the text it is.
-  - **Stray `**` on screen** (`Immersive Farm 2 Remastered**`, `[Twitter**](…)`). Delimiters are now paired in order instead of matched by a regex that read a closing delimiter as an opening one. Emphasis also stops eating the space next to it, which used to run two words together.
-  - **A bare `](https://…)` was displayed** where a link had no usable label: either empty, filled with invisible zero-width characters, or wrapping an image (how a banner is made clickable). Empty links are dropped, invisible characters removed, and an image-only link renders as the image.
-- **Updating a mod whose folders are read-only no longer fails with a permission error.** `unzip` and `unrar` restore the permission bits stored in the archive, and some mods ship their directories as read-only (`r-xr-xr-x`). Removing a directory's contents needs write access *on that directory*, so a recursive delete couldn't undo a tree the app had just written itself — the update aborted on "you don't have permission to access it", with no recovery from the UI. Reproduced on *Tilly - NPC* (Nexus 38008), whose every folder is `0o555`. Permissions are now normalised to owner-writable at extraction time, and the update retries the deletion after repairing them, so folders installed before this change are covered too.
+- **Descriptions no longer show their own markup.** Rendering was a chain of text substitutions, which cannot see structure. Twelve distinct defects, all reproduced on real Nexus pages:
+  - Nested spoilers printed a leftover `[/spoiler]` and hid 5 of 22 images.
+  - `[size]` became bold whatever its value, so pages where the author sized their paragraphs came out entirely bold, headings indistinguishable.
+  - `[CP]` was erased — it is not markup but the literal name of SVE's folders, so install instructions were displayed wrong.
+  - Images inside a heading, a list or a link were printed as markup; stray `**` and bare `](https://…)` appeared throughout.
+  - Nested colours were mispaired, emphasis ate the space beside it, and a multi-line link label produced a broken link.
+- **Updating a mod whose folders are read-only no longer fails.** Some archives ship directories as `r-xr-xr-x`, and removing a directory's contents needs write access on it — the app could not undo a tree it had just written. Permissions are normalised at extraction, and a blocked update repairs them and retries.
 
 ## [1.10.1] - 2026-07-30
 
 ### Fixed
-- **Mod archives packaged on Windows are no longer rejected.** Such an archive uses backslashes as path separators; `/usr/bin/unzip` converts them, extracts every file correctly, and exits with status 1 and a warning. StarHubFR required status 0, so a perfectly valid extraction was reported as "corrupted archive" — and since most of what Nexus serves is packaged on Windows, this hit a large share of installs. Status 1 ("succeeded with warnings") is now accepted for `unzip`, `unrar` and `7z` alike, and success is confirmed on what actually landed on disk rather than on the exit code alone: an archive that warns *and* produces nothing still fails, with the right message.
-- **RAR mods can now be updated, not just installed.** Drag-and-drop accepted `.zip` and `.rar`, but every Nexus download was written to a temporary file named `.zip` regardless of its real format. As extraction dispatches on the file extension, a RAR update was handed to `unzip` and failed. The download now keeps the archive's real extension, which Nexus' CDN carries in the URL path.
+- **Archives packaged on Windows are no longer rejected.** They use backslashes as path separators; `unzip` converts them and extracts everything, but exits with a warning status the app treated as failure. Since most of what Nexus serves is packaged on Windows, this affected a large share of installs. Success is now confirmed on what actually landed on disk.
+- **RAR mods can be updated, not just installed.** Every Nexus download was written to a file named `.zip` regardless of its format, so a RAR update was handed to `unzip`.
 
 ### Changed
-- **The install flow no longer claims to accept only zip files.** Eight of its nine strings mentioned "zip" while the flow has accepted RAR since 1.7.1 — including the drop zone in the "Install a mod" sheet. Error and progress messages now speak of an *archive*, and the drop zone spells out both formats.
-- **The missing-RAR-tool error is localized.** It was hardcoded English (`InstallError` lives in Core, which has no access to the locale bundle) and pointed at `unrar`, while the app's home screen recommends `unar`. It is now translated and consistent with that recommendation.
+- The install flow no longer claims to accept only zip files: eight of its nine strings said "zip" while RAR has been accepted since 1.7.1.
+- The missing-RAR-tool error is localized, and recommends `unar` — the same tool the home screen names.
 
 ## [1.10.0] - 2026-07-30
 
