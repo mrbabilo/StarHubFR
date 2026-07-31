@@ -61,6 +61,8 @@ enum L10n {
         static let toolUnarInstalled    = "home_tool_unar_installed"
         static let toolUnarNotInstalled = "home_tool_unar_not_installed"
         static let toolUnarTooltip      = "home_tool_unar_tooltip"
+        static let toolSevenZip         = "home_tool_7z"
+        static let toolSevenZipTooltip  = "home_tool_7z_tooltip"
         static let installedAndEnabled  = "home_installed_and_enabled"
         static let notInstalledOrDisabled = "home_not_installed_or_disabled"
         static let installedButDisabled = "home_installed_but_disabled"

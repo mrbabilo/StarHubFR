@@ -134,7 +134,7 @@ struct NexusDownloader {
             // the original filename in its path (…/Mod-1-2-3.rar?md5=…), which
             // the query string doesn't disturb. Anything unexpected falls back
             // to zip, the overwhelmingly common case.
-            let ext = ["zip", "rar"].contains(url.pathExtension.lowercased())
+            let ext = ModZipInstaller.supportedExtensions.contains(url.pathExtension.lowercased())
                 ? url.pathExtension.lowercased()
                 : "zip"
             let temp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + "." + ext)

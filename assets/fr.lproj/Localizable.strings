@@ -36,6 +36,8 @@
 "home_tool_unar_installed" = "Installé — extraction RAR prise en charge";
 "home_tool_unar_not_installed" = "Non installé — lancez `brew install unar` pour la prise en charge RAR";
 "home_tool_unar_tooltip" = "The Unarchiver (unar) est utilisé pour extraire les archives .rar des mods. Installez-le avec Homebrew : brew install unar";
+"home_tool_7z" = "7-Zip (7zz)";
+"home_tool_7z_tooltip" = "7-Zip est utilisé pour extraire les archives .7z des mods. Installez-le avec Homebrew : brew install sevenzip";
 "home_installed_and_enabled" = "Installé et activé";
 "home_not_installed_or_disabled" = "Non installé ou désactivé";
 "home_installed_but_disabled" = "Installé mais désactivé";

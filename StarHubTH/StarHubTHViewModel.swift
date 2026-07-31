@@ -1588,20 +1588,25 @@ class StarHubTHViewModel: ObservableObject {
             spacecore: slot(matching: "spacecore"),
             thai: thaiSlot,
             sve: slot(matching: "stardew valley expanded"),
-            unarTool: .init(installed: unarInstalled)
+            unarTool: .init(installed: unarInstalled),
+            sevenZipTool: .init(installed: sevenZipInstalled)
         )
     }
 
     /// `true` if `unar` (The Unarchiver) is available in PATH. Used by the
     /// home screen to display a status row for RAR extraction support.
     var unarInstalled: Bool {
-        let searchPaths = [
-            "/usr/local/bin", "/opt/homebrew/bin", "/usr/bin",
-            FileManager.default.homeDirectoryForCurrentUser
-                .appendingPathComponent(".homebrew/bin").path,
-        ]
-        return searchPaths.contains { FileManager.default.isExecutableFile(atPath: "\($0)/unar") }
+        // Même recherche que l'extraction, pour que l'accueil ne puisse pas
+        // annoncer une capacité que l'installation n'a pas — cette méthode
+        // maintenait auparavant sa propre liste de chemins, plus étroite.
+        ModZipInstaller.firstAvailableTool(named: ["unar"]) != nil
     }
+
+    /// `true` si une archive `.7z` peut être extraite. Adossé à
+    /// `ModZipInstaller.find7zTool()` — celui-là même qui choisit l'outil au
+    /// moment d'extraire — pour que l'accueil ne puisse pas annoncer une
+    /// capacité que l'installation n'a pas.
+    var sevenZipInstalled: Bool { ModZipInstaller.find7zTool() != nil }
     
     private var isToggling = false
     private var pendingToggles: [(ModItem, (() -> Void)?)] = []

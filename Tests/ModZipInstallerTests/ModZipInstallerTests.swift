@@ -561,6 +561,47 @@ struct InstallerTestEnv {
         }
     }
 
+    @Test func folderNameDropsWhicheverArchiveExtensionItHas() {
+        // Une archive sans dossier englobant donne son nom au dossier installé.
+        // Ne retirer que « .zip » produisait « MonMod.7z » sous Mods/.
+        #expect(ModZipInstaller.strippingArchiveExtension(from: "MonMod.zip") == "MonMod")
+        #expect(ModZipInstaller.strippingArchiveExtension(from: "MonMod.7z") == "MonMod")
+        #expect(ModZipInstaller.strippingArchiveExtension(from: "MonMod.RAR") == "MonMod")
+        // Un nom sans extension d'archive reste intact, points compris.
+        #expect(ModZipInstaller.strippingArchiveExtension(from: "Mon.Mod v1.2") == "Mon.Mod v1.2")
+    }
+
+    @Test func toolSearchCoversTheUsualInstallLocations() {
+        // Une application lancée depuis le Finder n'hérite pas du PATH du
+        // shell : la liste doit être explicite, sinon l'extraction échoue chez
+        // quelqu'un qui a pourtant l'outil.
+        let paths = ModZipInstaller.toolSearchPaths
+        for expected in ["/opt/homebrew/bin",   // Homebrew Apple Silicon
+                         "/usr/local/bin",      // Homebrew Intel
+                         "/opt/local/bin",      // MacPorts
+                         "/usr/bin"] {
+            #expect(paths.contains(expected), "chemin manquant : \(expected)")
+        }
+        #expect(paths.contains { $0.hasSuffix("/.nix-profile/bin") })   // Nix
+        #expect(Set(paths).count == paths.count)                        // sans doublon
+    }
+
+    @Test func sevenZipLookupAcceptsEveryBinaryOfTheFamily() {
+        // La formule `sevenzip` fournit `7zz`, p7zip fournit `7z` et `7za`, et
+        // `7zr` est la version réduite — limitée au .7z, précisément notre cas.
+        // N'en connaître qu'un ferait échouer l'extraction sur les autres.
+        let accepted = ["7zz", "7z", "7za", "7zr"]
+        let found = accepted.compactMap { ModZipInstaller.firstAvailableTool(named: [$0]) }
+        // Sur une machine sans aucun d'eux, le repli `unar` doit exister ou
+        // `find7zTool()` renvoyer nil — jamais un chemin fantaisiste.
+        if found.isEmpty {
+            let fallback = ModZipInstaller.find7zTool()
+            #expect(fallback == nil || fallback!.path.hasSuffix("/unar"))
+        } else {
+            #expect(ModZipInstaller.find7zTool() != nil)
+        }
+    }
+
     @Test func mixedNestedAndRootInstallsFlat() throws {
         // Guard: one nested entry + one root entry → no single shared parent
         // → both stay at their natural (leaf) dest, no forced grouping.

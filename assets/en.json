@@ -36,6 +36,8 @@
   "home_tool_unar_installed": "Installed — RAR extraction supported",
   "home_tool_unar_not_installed": "Not installed — run `brew install unar` for RAR support",
   "home_tool_unar_tooltip": "The Unarchiver (unar) is used to extract .rar mod archives. Install it with Homebrew: brew install unar",
+  "home_tool_7z": "7-Zip (7zz)",
+  "home_tool_7z_tooltip": "7-Zip is used to extract .7z mod archives. Install it with Homebrew: brew install sevenzip",
   "home_installed_and_enabled": "Installed and enabled",
   "home_not_installed_or_disabled": "Not installed or disabled",
   "home_installed_but_disabled": "Installed but disabled",

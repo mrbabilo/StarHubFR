@@ -13,7 +13,8 @@ where the exact log format was verified.
 ## [Unreleased]
 
 ### Added
-- **`.7z` archives install.** The format is common on Nexus but was rejected outright, and — worse — the message blamed the file: "this archive appears to be corrupted", sending you to look for a problem that didn't exist. `.7z` is now a first-class format alongside `.zip` and `.rar`, and an unsupported extension now says which formats *are* accepted instead of claiming corruption. Extraction uses `7zz`, `7z` or `unar`, whichever is installed — `unrar` is deliberately excluded, since it can't read 7z.
+- **A 7-Zip status row on the home screen**, next to the existing one for The Unarchiver, so a missing extraction tool is visible before an install fails rather than after. Both rows are now driven by the same lookup the extractor itself uses, so the screen can't claim a capability the installer doesn't have.
+- **`.7z` archives install.** The format is common on Nexus but was rejected outright, and — worse — the message blamed the file: "this archive appears to be corrupted", sending you to look for a problem that didn't exist. `.7z` is now a first-class format alongside `.zip` and `.rar`, and an unsupported extension now says which formats *are* accepted instead of claiming corruption. Extraction uses whichever of `7zz`, `7z`, `7za`, `7zr` or `unar` is installed — `unrar` is deliberately excluded, since it can't read 7z. All four install routes were checked: drag-and-drop, the install button, a Nexus update (free or premium) and an `nxm://` click. The last two rebuilt the filename and knew only zip and rar, so a 7z downloaded from Nexus would have been handed to `unzip` and failed.
 
 ### Added
 - **The launch screen shows the version.** It sits beside the app name, on the same baseline, so the splash keeps its three-part rhythm — name, status, progress — instead of gaining a line. Read from the bundle, so it follows every release on its own.
@@ -33,6 +34,8 @@ where the exact log format was verified.
   - Verified across the 51 cached mod descriptions: 266 colour spans render, and not a single tag or internal marker leaks — including the malformed spans that nested `[color]` tags used to produce.
 
 ### Fixed
+- **Extraction tools are found wherever they're installed.** The search covered four directories and missed MacPorts, Nix, `~/bin` and anything on the user's `PATH` — so a perfectly installed tool could go unseen. The list is explicit rather than `PATH`-only on purpose: an app launched from the Finder inherits launchd's minimal `PATH`, not the shell's.
+- **A mod folder no longer keeps its archive extension.** Only `.zip` was stripped when naming the installed folder, so a `.7z` or `.rar` without an enclosing directory landed under `Mods/` as `MyMod.7z`.
 - **Mod descriptions no longer show their own markup.** Rendering was a chain of text substitutions, which can't see structure — so real Nexus pages leaked BBCode onto the screen. Verified against Stardew Valley Expanded's 23 KB description, which now renders without a single stray tag. Six distinct defects, all fixed:
   - **Nested spoilers** (SVE wraps a per-map gallery in an outer one) paired an opening tag with the *first* closing tag, printing the leftover `[/spoiler]` as text — and cutting the outer content short, so **5 of the 22 images** never rendered. Block splitting now tracks nesting depth.
   - **`[size]` was always turned into bold**, whatever the value. Authors size their body copy too: SVE uses `size=3` 187 times for paragraphs against 16 `size=4` headings, so entire pages came out bold with headings indistinguishable from text. Only heading-sized runs are emphasised now.

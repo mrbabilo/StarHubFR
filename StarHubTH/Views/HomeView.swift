@@ -211,7 +211,16 @@ struct HomeView: View {
                         CoreToolRow(
                             title: vm.L(L10n.Home.toolUnar),
                             status: core.unarTool.installed ? .enabledAndInstalled : .notInstalled,
-                            tooltip: vm.L(L10n.Home.toolUnarTooltip)
+                            tooltip: vm.L(L10n.Home.toolUnarTooltip),
+                            installCommand: "brew install unar"
+                        )
+                        Rectangle().fill(Color.primary.opacity(0.05)).frame(height: 1).padding(.leading, 12).padding(.vertical, 2)
+
+                        CoreToolRow(
+                            title: vm.L(L10n.Home.toolSevenZip),
+                            status: core.sevenZipTool.installed ? .enabledAndInstalled : .notInstalled,
+                            tooltip: vm.L(L10n.Home.toolSevenZipTooltip),
+                            installCommand: "brew install sevenzip"
                         )
                     }
                     .padding(.vertical, -8)
@@ -246,6 +255,7 @@ struct CoreExtensionsSnapshot {
     let thai: CoreModSlot
     let sve: CoreModSlot
     let unarTool: CoreToolSlot
+    let sevenZipTool: CoreToolSlot
 }
 
 struct CoreToolSlot {
@@ -326,6 +336,9 @@ struct CoreToolRow: View {
     let title: String
     let status: CoreModStatus
     let tooltip: String
+    /// Commande à taper quand l'outil manque. Paramétrée : la ligne servait
+    /// jusqu'ici au seul `unar` et l'affichait en dur.
+    let installCommand: String
 
     var body: some View {
         HStack {
@@ -339,7 +352,7 @@ struct CoreToolRow: View {
                     case .installedButDisabled:
                         Text("")
                     case .notInstalled:
-                        Text("brew install unar")
+                        Text(installCommand)
                             .font(.system(size: 10))
                             .foregroundColor(.secondary)
                     }

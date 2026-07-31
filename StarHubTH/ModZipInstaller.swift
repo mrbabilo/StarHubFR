@@ -39,6 +39,14 @@ class ModZipInstaller {
     private let maxExtractedSize: Int64 = 2 * 1024 * 1024 * 1024 // 2GB
     private let maxModsPerZip = 10
 
+    /// Retire l'extension d'archive d'un nom de fichier, pour en tirer un nom de
+    /// dossier propre.
+    static func strippingArchiveExtension(from name: String) -> String {
+        let ext = (name as NSString).pathExtension.lowercased()
+        guard supportedExtensions.contains(ext) else { return name }
+        return (name as NSString).deletingPathExtension
+    }
+
     /// Formats d'archive acceptés à l'installation. Le `.7z` est courant sur
     /// Nexus ; avant son ajout, toute extension inconnue était rejetée comme
     /// « archive corrompue », ce qui envoyait l'utilisateur chercher un problème
@@ -291,7 +299,10 @@ class ModZipInstaller {
             // No enclosing folder — use the temp dir's own name as the mod
             // folder name (will become the destination folder under Mods/ as
             // `.<name>` when disabled by default).
-            scanFolder(at: tempDir, relativePath: "", folderName: zipName.replacingOccurrences(of: ".zip", with: "", options: .caseInsensitive))
+            // Retirer l'extension quelle qu'elle soit : ne traiter que « .zip »
+            // donnait un dossier nommé « MonMod.7z » sous Mods/.
+            scanFolder(at: tempDir, relativePath: "",
+                       folderName: Self.strippingArchiveExtension(from: zipName))
         case .unrecognized:
             return nil
         }
@@ -523,61 +534,77 @@ class ModZipInstaller {
     /// extraction tool, in order of preference: `unrar` (official, fastest),
     /// `unar` (The Unarchiver, handles many formats), `7z` (7-Zip).
     /// Returns `nil` if none is available.
-    /// Répertoires où chercher un outil d'extraction installé par l'utilisateur.
-    private static let toolSearchPaths = [
-        "/usr/local/bin", "/opt/homebrew/bin", "/usr/bin",
-        FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".homebrew/bin").path,
-    ]
+    /// Répertoires où chercher un outil d'extraction.
+    ///
+    /// La liste est explicite plutôt que déduite du `PATH` : une application
+    /// lancée depuis le Finder n'hérite pas du `PATH` du shell — launchd lui
+    /// donne `/usr/bin:/bin:/usr/sbin:/sbin` — donc se fier au `PATH` seul
+    /// ferait échouer l'extraction chez quelqu'un qui a pourtant l'outil. Le
+    /// `PATH` est tout de même ajouté, pour couvrir un lancement en terminal et
+    /// les emplacements exotiques.
+    static var toolSearchPaths: [String] {
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        var dirs = [
+            "/opt/homebrew/bin",                       // Homebrew (Apple Silicon)
+            "/usr/local/bin",                          // Homebrew (Intel), installations manuelles
+            "/opt/local/bin",                          // MacPorts
+            "/opt/homebrew/sbin", "/usr/local/sbin",
+            "/usr/bin", "/bin",
+            home.appendingPathComponent(".homebrew/bin").path,
+            home.appendingPathComponent("bin").path,
+            home.appendingPathComponent(".nix-profile/bin").path,
+            "/run/current-system/sw/bin",              // Nix
+        ]
+        if let path = ProcessInfo.processInfo.environment["PATH"] {
+            dirs.append(contentsOf: path.split(separator: ":").map(String.init))
+        }
+        var seen = Set<String>()
+        return dirs.filter { seen.insert($0).inserted }
+    }
+
+    /// Premier exécutable portant l'un des noms donnés, dans l'ordre de
+    /// préférence.
+    static func firstAvailableTool(named names: [String]) -> String? {
+        for name in names {
+            for dir in toolSearchPaths {
+                let p = "\(dir)/\(name)"
+                if FileManager.default.isExecutableFile(atPath: p) { return p }
+            }
+        }
+        return nil
+    }
 
     /// Outil capable de lire un `.7z`. `7zz` est le nom moderne du binaire
     /// 7-Zip sur Homebrew — l'omettre ferait échouer l'extraction sur une
     /// machine qui a pourtant l'outil. `unrar` est absent de la liste : il ne
     /// lit pas le 7z.
     static func find7zTool() -> (path: String, arguments: (String, String) -> [String])? {
-        for name in ["7zz", "7z"] {
-            for dir in toolSearchPaths {
-                let p = "\(dir)/\(name)"
-                if FileManager.default.isExecutableFile(atPath: p) {
-                    return (p, { archive, dest in ["x", "-aoa", "-o\(dest)", archive] })
-                }
-            }
+        // Toute la famille 7-Zip partage la même ligne de commande. `7zz` est le
+        // binaire de la formule `sevenzip` ; `7z`/`7za` viennent de p7zip ;
+        // `7zr` est la version réduite, limitée au format .7z — précisément le
+        // nôtre. `unrar` est absent : il ne lit pas le 7z.
+        if let path = firstAvailableTool(named: ["7zz", "7z", "7za", "7zr"]) {
+            return (path, { archive, dest in ["x", "-aoa", "-o\(dest)", archive] })
         }
-        for dir in toolSearchPaths {
-            let p = "\(dir)/unar"
-            if FileManager.default.isExecutableFile(atPath: p) {
-                return (p, { archive, dest in ["-f", "-o", dest, archive] })
-            }
+        if let path = firstAvailableTool(named: ["unar"]) {
+            return (path, { archive, dest in ["-f", "-o", dest, archive] })
         }
         return nil
     }
 
     static func findRarTool() -> (path: String, arguments: (String, String) -> [String])? {
-        let searchPaths = [
-            "/usr/local/bin", "/opt/homebrew/bin", "/usr/bin",
-            FileManager.default.homeDirectoryForCurrentUser
-                .appendingPathComponent(".homebrew/bin").path,
-        ]
-        // unrar: `unrar x -o+ <archive> <dest>/`
-        for dir in searchPaths {
-            let p = "\(dir)/unrar"
-            if FileManager.default.isExecutableFile(atPath: p) {
-                return (p, { archive, dest in ["x", "-o+", archive, dest + "/"] })
-            }
+        // `unrar x -o+ <archive> <dest>/` — officiel, le plus rapide.
+        if let path = firstAvailableTool(named: ["unrar"]) {
+            return (path, { archive, dest in ["x", "-o+", archive, dest + "/"] })
         }
-        // unar: `unar -f -o <dest> <archive>`
-        for dir in searchPaths {
-            let p = "\(dir)/unar"
-            if FileManager.default.isExecutableFile(atPath: p) {
-                return (p, { archive, dest in ["-f", "-o", dest, archive] })
-            }
+        // `unar -f -o <dest> <archive>`
+        if let path = firstAvailableTool(named: ["unar"]) {
+            return (path, { archive, dest in ["-f", "-o", dest, archive] })
         }
-        // 7z: `7z x -aoa -o<dest> <archive>`
-        for dir in searchPaths {
-            let p = "\(dir)/7z"
-            if FileManager.default.isExecutableFile(atPath: p) {
-                return (p, { archive, dest in ["x", "-aoa", "-o\(dest)", archive] })
-            }
+        // La famille 7-Zip lit aussi le RAR. `7zr` en est écarté : il ne gère
+        // que le format .7z.
+        if let path = firstAvailableTool(named: ["7zz", "7z", "7za"]) {
+            return (path, { archive, dest in ["x", "-aoa", "-o\(dest)", archive] })
         }
         return nil
     }
