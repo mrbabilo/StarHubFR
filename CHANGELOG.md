@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.10.2] - 2026-07-31
+
 ### Added
 - **Mod descriptions render their real structure, not just their text.** The description pane used to show bold, italics, links, images and spoilers and drop everything else — lists came out with a literal dash, headings didn't exist, code had no fixed-width font or background, and centering, colour and quotes were simply removed. The parser now produces typed blocks and the renderer draws them in the app's own typography:
   - **Headings** (`[size]`/`[heading]`, with a guard so an over-long sized paragraph stays body copy) use the app's 20/16/14 type scale — never the author's arbitrary sizes.
