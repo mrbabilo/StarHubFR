@@ -21,7 +21,7 @@ where the exact log format was verified.
 - Nothing is deleted: your starting state is written to disk before any folder moves, and "put everything back" is one click away at every step. A search interrupted by quitting the app is offered back on the home screen.
 
 ### Fixed
-- **Mods whose manifest keeps SMAPI's own template comments now install.** The template ships with `//` comments and a trailing comma, and many authors leave them in place. The install path stripped only `/* */` blocks, so a perfectly valid mod was refused with "manifest.json missing" — the manifest was right there, it just wouldn't decode. Reproduced on *Susan of Emerald Farm* (Nexus 45990). One string-aware reader now serves all four places that read a manifest, so a URL inside a value is never mistaken for a comment.
+- **Mods whose manifest keeps SMAPI's own template comments now install.** The template ships with `//` comments and a trailing comma, which many authors leave in place. Only the scan accepted them, so a valid mod was refused with "manifest.json missing" while showing up fine if copied in by hand. All four places that read a manifest now share one reader. Reproduced on *Susan of Emerald Farm* (Nexus 45990).
 - An archive with no recognisable mod structure now lists what it does contain, instead of only saying what it lacks.
 - **The search no longer accuses the wrong mod.** Pausing a framework left the content packs that need it running without it, changing the game for reasons unrelated to the mod being hunted. Packs are now paused alongside their framework.
 - The next step waits for you to quit the game, instead of launching a second copy over the running one.
