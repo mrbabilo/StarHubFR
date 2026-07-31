@@ -560,6 +560,7 @@
   "mod_install_no_backups_hint": "Les sauvegardes sont créées automatiquement lorsque vous installez ou mettez à jour un mod qui remplace un mod existant.",
   "mod_install_delete_confirm": "Supprimer la sauvegarde ?",
   "mod_install_invalid_structure": "Cette archive ne contient pas une structure de mod valide (manifest.json manquant).",
+  "mod_install_archive_contains": "L'archive contient : %@",
   "mod_install_oversized": "Cette archive est trop volumineuse pour être installée.",
   "mod_install_too_many_mods": "Cette archive contient trop de mods pour être installés en une fois.",
   "mod_install_corrupted": "Cette archive semble corrompue et n'a pas pu être lue.",

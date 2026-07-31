@@ -560,6 +560,7 @@
 "mod_install_no_backups_hint" = "Backups are created automatically when you install or update a mod that would overwrite an existing one.";
 "mod_install_delete_confirm" = "Delete Backup?";
 "mod_install_invalid_structure" = "This archive doesn't contain a valid mod structure (missing manifest.json).";
+"mod_install_archive_contains" = "The archive contains: %@";
 "mod_install_oversized" = "This archive is too large to install.";
 "mod_install_too_many_mods" = "This archive contains too many mods to install at once.";
 "mod_install_corrupted" = "This archive appears to be corrupted and could not be read.";

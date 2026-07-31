@@ -208,7 +208,27 @@ class ModZipInstaller {
             return buildInfo(from: tempDir, structure: structure, zipName: zipName, existingMods: existingMods, fallbackStatus: .valid)
                 ?? ZipModInfo(zipName: zipName, detectedMods: [], validationStatus: .invalidStructure, conflicts: [], estimatedSize: 0)
         }
-        return ZipModInfo(zipName: zipName, detectedMods: [], validationStatus: .invalidStructure, conflicts: [], estimatedSize: 0)
+        return ZipModInfo(zipName: zipName, detectedMods: [],
+                          validationStatus: .invalidStructure,
+                          extractedTopLevel: Self.topLevelSummary(of: tempDir),
+                          conflicts: [], estimatedSize: 0)
+    }
+
+    /// Ce que l'archive contenait réellement, résumé pour l'affichage.
+    ///
+    /// « manifest.json manquant » n'apprend rien : la détection parcourt toute
+    /// l'arborescence, donc l'utilisateur sait seulement qu'il n'y en avait
+    /// nulle part — sans savoir ce qu'il y avait à la place. Or la cause est
+    /// souvent visible d'un coup d'œil : une archive qui en contient d'autres,
+    /// des fichiers à copier à la main, une documentation seule.
+    static func topLevelSummary(of dir: URL) -> [String] {
+        let entries = (try? FileManager.default.contentsOfDirectory(atPath: dir.path)) ?? []
+        return entries.filter { !$0.hasPrefix(".") }.sorted().prefix(12).map { name in
+            var isDir: ObjCBool = false
+            FileManager.default.fileExists(atPath: dir.appendingPathComponent(name).path,
+                                           isDirectory: &isDir)
+            return isDir.boolValue ? "\(name)/" : name
+        }
     }
 
     /// Builds the `ZipModInfo` by scanning the extracted temp directory

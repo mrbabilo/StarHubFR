@@ -706,6 +706,7 @@ enum L10n {
         static let backupReasonRestore  = "mod_install_backup_reason_restore"
         static let retentionPolicy     = "mod_install_retention_policy"
         static let invalidZipStructure  = "mod_install_invalid_structure"
+        static let archiveContains      = "mod_install_archive_contains"
         static let zipOversized         = "mod_install_oversized"
         static let tooManyMods          = "mod_install_too_many_mods"
         static let zipCorrupted         = "mod_install_corrupted"

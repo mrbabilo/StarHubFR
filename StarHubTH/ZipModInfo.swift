@@ -169,6 +169,9 @@ struct ZipModInfo: Identifiable {
     let zipName: String
     let detectedMods: [DetectedMod]
     let validationStatus: ValidationStatus
+    /// Contenu de premier niveau de l'archive, renseigné seulement quand aucune
+    /// structure de mod n'a été reconnue — c'est là qu'il est utile.
+    var extractedTopLevel: [String] = []
     let conflicts: [ModConflict]
     let estimatedSize: Int64
     

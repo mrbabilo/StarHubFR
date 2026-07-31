@@ -282,7 +282,15 @@ struct ModInstallView: View {
                     if !info.isValid {
                         switch info.validationStatus {
                         case .invalidStructure:
-                            self.errorMessage = self.vm.L(L10n.ModInstall.invalidZipStructure)
+                            // Dire ce que l'archive contenait : sans cela
+                            // l'utilisateur sait seulement qu'il manque un
+                            // manifeste, pas ce qu'il y avait à la place.
+                            var msg = self.vm.L(L10n.ModInstall.invalidZipStructure)
+                            if !info.extractedTopLevel.isEmpty {
+                                msg += "\n\n" + String(format: self.vm.L(L10n.ModInstall.archiveContains),
+                                                       info.extractedTopLevel.joined(separator: ", "))
+                            }
+                            self.errorMessage = msg
                             self.errorRecoveryHint = self.vm.L(L10n.ModInstall.recoverZip)
                         case .oversized:
                             self.errorMessage = self.vm.L(L10n.ModInstall.zipOversized)
