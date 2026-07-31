@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-08-01
+
 ### Added
 - **Find the mod that breaks your game.** The app pauses half your mods, starts the game, and asks one question — "is the problem still there?" — narrowing down over roughly seven steps for a hundred mods. It ends on a confirmation run, because halving produces a lead, not a proof.
 - Each step reports how many mods are already in the clear. When no single mod can be blamed, the ones still involved are named rather than withheld.
