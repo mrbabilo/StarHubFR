@@ -249,6 +249,164 @@ Les analyses automatisées, menées à partir de la roadmap (parfois imprécise)
 
 ---
 
+## Annexe A — Pipeline téléchargement & mise à jour (analyse fine)
+
+> Plongée end-to-end dans la détection de mise à jour, les trois chemins de
+> téléchargement, le panneau de downloads observable et l'installation post-download.
+> Matériau de référence pour les portages **A2** (smapi.io) et **B2-T1** (panneau downloads).
+> Réf. `fichier:ligne` sous `Stardrop/`.
+
+### A.1 — Détection de mise à jour : smapi.io
+
+- **Endpoint** : `POST https://smapi.io/api/v3.0/mods` (`Utilities/External/SMAPI.cs:119`).
+  **Pas de clé API** (public). Headers `Application-Name`/`Version`/`User-Agent` seulement.
+- **Payload exact** (`ModSearchData`, `Models/SMAPI/Web/ModSearchData.cs`) :
+
+  ```json
+  { "mods": [{ "Id": "...", "InstalledVersion": "...", "UpdateKeys": ["..."] }],
+    "apiVersion": "...", "gameVersion": "...", "platform": "...",
+    "includeExtendedMetadata": true }
+  ```
+  `includeExtendedMetadata: true` est **obligatoire** pour récupérer le bloc `Metadata`
+  (compatibilité) — sinon on n'a que `SuggestedUpdate`. Stardop soumet aussi les
+  **dépendances absentes** (UniqueID seul, `SMAPI.cs:100-106`) pour résoudre leur nom + page.
+- **Réponse** typée `List<ModEntry>` (`Models/SMAPI/Web/ModEntry.cs`) : par mod,
+  `SuggestedUpdate { Version, Url }`, `Metadata { Name, Main, Unofficial, CustomUrl,
+  CompatibilityStatus, CompatibilitySummary }`, `Errors[]`.
+- **Arbre de décision** (`MainWindow.axaml.cs:2008-2074`) :
+  - `SuggestedUpdate != null` → update dispo, URL = `SuggestedUpdate.Url`.
+  - Sinon, si `Status == Unofficial && Unofficial != null && IsModOutdated(Unofficial.Version)`
+    → URL unofficial.
+  - Sinon `Metadata.Main` (info-only, pas un update).
+- **Politique de rafraîchissement** : smapi.io est appelé **à chaque boot, sans TTL**
+  (`MainWindow.axaml.cs:165`). `UpdateCache.LastRuntime` est sérialisé mais jamais
+  consulté pour skipper un fetch. **À ne pas imiter** → poser un TTL (6-24 h) + bouton
+  refresh manuel.
+- **Pré-requis** : `GameDetails` (versions SMAPI/SDV/OS) parsé depuis `SMAPI-latest.txt`
+  (regex `SMAPI (?<v>.+) with Stardew Valley (?<v>.+) on (?<v>.+)`, `Program.cs:38`),
+  macOS : `~/.config/StardewValley/ErrorLogs/` (`Pathing.cs:66-68`). StarHubFR connaît déjà
+  ces versions via le log (`SmapiHealthCard.swift:562`).
+- **Cache** : `Cache/Versions.json` (`UpdateCache { LastRuntime, Mods: ModUpdateInfo[] }`)
+  pour l'affichage boot hors-ligne (`GetCachedModUpdates`, `:1881`) ; `Cache/Keys.json`
+  (`ModKeyInfo { UniqueId, Name, PageUrl }`) pour les noms de dépendances et `ModPageUri`.
+- **SemVer** : `IsModOutdated` (`Mod.cs:207-215`) via `SemVersion.CompareSortOrderTo` (gère
+  prereleases). Sentinelle `"bad-version"` (`Mod.cs:128`) pour filtrer les versions
+  inparseables → `HasValidVersion()` gate aussi la soumission à smapi.io (`SMAPI.cs:96`).
+
+### A.2 — Les 3 chemins de téléchargement
+
+Pipeline commun : **sélection fichier → `GetFileDownloadLink` → `ValidateFileSafety` →
+`DownloadFileAndGetPath` → `AddMods` → suppression archive → refresh caches**.
+
+| Chemin | Entrée | Gate Premium | Sélection fichier |
+|---|---|---|---|
+| `nxm://` | `ProcessNXMLink` (`:1766`) | **non** (key/expiry du lien) | fileId direct du lien |
+| Fiche mod | `InstallModViaNexus` (`:2285`) | **oui** (`download_link` sans key) | `GetFileByVersion(SuggestedVersion, flag)` |
+| Bulk | `HandleBulkModInstall` (`:1640`) | **oui, dur** (abort sinon) | idem, **séquentiel** |
+
+- **`GetFileByVersion`** (`NexusClient.cs:236`) : filtre les fichiers par version (SemVer),
+  puis `flag` non null → match `Name`/`Description` contenant le flag ; sinon catégorie `MAIN`.
+  **⚠ Feature `@variant` cassée** (voir A.5, bugs #5/#6).
+- **`GetFileDownloadLink`** (`NexusClient.cs:324`) : non-Premium **toujours** forcé sur
+  `Nexus CDN` quel que soit le réglage ; Premium → sélection par `short_name`. Pas de
+  fallback si le serveur choisi est absent → null.
+- **`ValidateFileSafety`** (`NexusClient.cs:628`) : single POST GraphQL
+  `https://api.nexusmods.com/v2/graphql` :
+
+  ```graphql
+  query GetModFiles { modFiles(gameId: 1303, modId: X) { fileId, scannedV2 } }
+  ```
+  (`gameId: 1303` = Stardew Valley.) Retourne `true` si `scannedV2 != QUARANTINED`.
+  **⚠ Bug** (A.5, #4) : `NOT_SCANNED`/`QUEUED` comptent comme safe.
+
+**Portabilité StarHubFR** : 2 chemins sur 3 existent (`handleNxmURL`, `downloadModFromNexus`).
+Manquent : **bulk install**, **sélection par version/flag** (`pickPrimaryFileId` prend juste
+le main), **virus scan**. Détection Premium : `/validate` renvoie déjà `is_premium` →
+l'exposer comme gate. Le flag `@` est déjà parsé côté StarHubFR, juste non exploité au
+download — porter en **corrigeant** les bugs #5/#6.
+
+### A.3 — Téléchargement + panneau observable
+
+- **`DownloadFileAndGetPath`** (`NexusClient.cs:386`) :
+  `HttpCompletionOption.ResponseHeadersRead` (streame dès les headers) + buffer 80 Ko +
+  `CancellationTokenSource` fraîche par appel (annulable après `DownloadStarted`). Cleanup du
+  fichier partiel en cas d'échec (`:423`). Result typé `NexusDownloadResult { Success,
+  UserCanceled, Failed }`. Fire `DownloadProgressChanged` **à chaque chunk de 80 Ko** →
+  throttling UI obligatoire.
+- **4 events** (`Models/Data/ModDownloadEvents.cs`), tous identifiés par **URI** (clé de
+  dédup) : `DownloadStarted { Uri, Name, Size?, CTS }`, `DownloadProgressChanged { Uri,
+  TotalBytes }`, `DownloadCompleted { Uri }`, `DownloadFailed { Uri }`.
+- **`DownloadPanelViewModel`** (`ViewModels/DownloadPanelViewModel.cs`) :
+  - **Dédup** : même URI en cours (`NotStarted`/`InProgress`) → **ignoré** (« on ne casse
+    pas un DL à 95 % ») ; état terminal (`Failed`/`Canceled`/`Successful`) → retiré puis
+    ré-inséré (sémantique retry).
+  - **Anti-zombies** au `Nexus.ClientChanged` (logout) : cancel tous les DL + clear la liste.
+  - `InProgressDownloads` : compte `Failed + Canceled + InProgress` (« réclament une action
+    user ») → drive le badge.
+- **`ModDownloadViewModel`** (`ViewModels/ModDownloadViewModel.cs`) : dérivés via
+  `ObservableAsPropertyHelper` + `.Sample(500ms)` (throttle 2 Hz) : `%`, libellé taille,
+  `DownloadSpeedLabel`. **⚠ Bug** (A.5, #3) : vitesse = moyenne depuis `_startTime`, pas
+  débit instantané.
+
+**Portage SwiftUI** (= B2-T1, la grosse lacune UX côté StarHubFR) :
+- `URLSessionDownloadTask` + `urlSession(_:downloadTask:didWriteData:totalBytesWritten:totalBytesExpectedToWrite:)`
+  → progression live native (le système throttle déjà).
+- `task.cancel(byProducingResumeData:)` → retry propre (**mieux** que Stardop).
+- `DownloadStore: ObservableObject` avec `@Published var downloads: [DownloadItem]`, dédup
+  par URL (in-flight → ignorer, terminal → remplacer).
+- **Vitesse instantanée** par fenêtre glissante (delta bytes / delta temps) — ne pas porter
+  la moyenne de Stardop.
+- Cleanup : `urlSession(_:task:didCompleteWithError:)` — ne déplacer le tmp vers sa cible
+  que sur `.completed`, sinon suppression.
+
+### A.4 — Installation post-download (`AddMods`, `MainWindow.axaml.cs:2384`)
+
+- **Multi-manifest** par archive (content packs) — pattern `pathToManifests` à copier.
+- **`UpdateCautionMessage`** (`:2444`) : alerte auteur avant overwrite (= B2-T7). **Améliorer
+  Stardop** : si l'utilisateur décline **un** manifest, Stardop skippe **toute l'archive** →
+  skipper juste le manifest décliné.
+- **`DeleteOldVersion` / `AlwaysAskToDelete`** (`:2475-2516`) : fenêtre 3-choix (Yes / Yes to
+  all / No) via `FlexibleOptionWindow`. `TryDeleteMod` retry ×3 sans backoff.
+- **Skip `__MACOSX/` + `.DS_Store`** (`:2549`) — crucial sur macOS.
+- **Heuristique install-path** (`:2555-2565`) pour éviter `Mods/ModName/ModName/` — logique
+  fragile, à porter **avec tests**.
+- **Activation auto** (`EnableModsOnAdd`) + cascade `EnableRequirements` (`:2622`).
+- **Queue d'install** : busy-wait `while(IsLocked) await Task.Delay(500)` (`:2390`) — à
+  remplacer par un `actor` Swift ou une queue série (bug #10).
+
+**Portage macOS** : `TryDeleteMod` ×3 est fragile — préférer `FileManager.trashItem(at:)`
+(récupérable) ou `removeItem` avec `NSFileCoordinator` pour les fichiers tenus par SMAPI.
+
+### A.5 — Bugs & à ne pas imiter (sélection sur le pipeline download/update)
+
+| # | Bug | Leçon de portage |
+|---|---|---|
+| 1 | Auto-update corrompt l'URL sur **Apple Silicon** (`GitHub.cs:92-115`, concat au lieu d'assignation) | Si auto-update → Sparkle |
+| 2 | `FileMode.CreateNew` (`NexusClient.cs:401`) → collision si 2 DL de même nom | Nom tmp unique ou `Create` |
+| 3 | Vitesse = **moyenne** depuis le début (`ModDownloadViewModel.cs:82`) | Fenêtre glissante |
+| 4 | Virus scan : `NOT_SCANNED`/`QUEUED` = safe (`NexusClient.cs:684`) | Distinguer « non vérifié » |
+| 5/6 | Feature `@variant` **cassée** : `GetNexusFlag` retourne `@SwimItems` brut, pas de fallback MAIN, dernier match gagne (`Mod.cs:260`, `NexusClient.cs:262`) | Stripper `@`, fallback MAIN, premier match |
+| 7 | `ParsedStatus` masque `Optional`/`Workaround`/`Abandoned`/`Obsolete` sans bump (`Mod.cs:73`) | Afficher tous les statuts non-Ok |
+| 8 | Pas de contrôle client d'expiry NXM (`NexusClient.cs`) | `expiry < now` → message clair |
+| 9 | `IsModOutdated` **jette** sur `SuggestedVersion` inparseable (`Mod.cs:207`) | `TryParse` |
+| 10 | `AddMods` busy-wait `while(IsLocked)` sans timeout (`:2390`) | `actor` Swift |
+| 11 | Pas de `Retry-After` côté Nexus (`NexusClient.cs:608`) | StarHubFR fait déjà mieux |
+| 12 | Bulk install **séquentiel** (`:1667`) | Paralléliser, concurrence limitée |
+| 13 | Endorsement désérialisé en string, fragile (`NexusClient.cs:507`) | Enum typé |
+| 14 | `mods/{modId}.json` appelé 2× (details + thumbnail) | Mutualiser |
+| 15 | **NXM désactivé sur macOS** côté Stardop (`MainWindow.axaml.cs:173`) | StarHubFR a déjà le bon pattern (Launch Services/`CFBundleURLTypes`) |
+
+### A.6 — Points où StarHubFR est déjà devant
+
+- **Retry-After réactif** sur 429 (Stardop ne lit que le quota — bug #11).
+- **Détection d'archive par signature** des octets (`ModZipInstaller.detectedArchiveExtension`)
+  — Stardop se fie au `file_name`.
+- **Pattern macOS `nxm://` correct** — Stardop a NXM off sur macOS (bug #15), seul `--nxm`
+  CLI marche. L'approche Launch Services de StarHubFR est la bonne.
+- **Gestion fine localisée** du 403 (premium vs auth) et erreurs HTTP typées.
+
+---
+
 ## 8. Limites de l'audit
 
 - **Lecture statique** : aucune exécution de Stardop. Les comportements décrits sont lus dans
