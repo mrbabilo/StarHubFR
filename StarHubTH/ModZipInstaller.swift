@@ -273,11 +273,12 @@ class ModZipInstaller {
                     guard depth < currentManifestDepth else { continue }
                     if let data = try? Data(contentsOf: fileURL),
                        let rawString = String(data: data, encoding: .utf8) {
-                        let cleanString = rawString.replacingOccurrences(of: "/\\*[\\s\\S]*?\\*/", with: "", options: .regularExpression)
-                        if let cleanData = cleanString.data(using: .utf8),
-                           // No `.allowFragments` here: a manifest MUST be a JSON object — accepting
-                            // a top-level scalar would mask a genuinely corrupt file.
-                            let json = try? JSONSerialization.jsonObject(with: cleanData) as? [String: Any],
+                        // `ManifestJSON` gère le JSON5 : le modèle de manifeste
+                        // fourni par SMAPI contient des commentaires `//` et une
+                        // virgule traînante, et ce site ne retirait que les
+                        // commentaires de bloc — un mod valide était refusé à
+                        // l'installation avec « manifest.json manquant ».
+                        if let json = ManifestJSON.decode(rawString),
                            let manifest = ModManifest(dict: json) {
                             currentModManifest = manifest
                             currentManifestDepth = depth
