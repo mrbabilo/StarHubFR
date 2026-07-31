@@ -561,6 +561,27 @@ struct InstallerTestEnv {
         }
     }
 
+    @Test func archiveFormatIsReadFromTheBytesNotTheName() {
+        // Le téléchargement gratuit de Nexus ne porte pas toujours d'extension
+        // exploitable dans son URL : le format doit venir du fichier lui-même,
+        // sinon un .7z est enregistré en .zip et part chez unzip.
+        #expect(ModZipInstaller.archiveExtension(forSignature: [0x50, 0x4B, 0x03, 0x04]) == "zip")
+        #expect(ModZipInstaller.archiveExtension(forSignature: [0x52, 0x61, 0x72, 0x21, 0x1A, 0x07]) == "rar")
+        #expect(ModZipInstaller.archiveExtension(forSignature: [0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C]) == "7z")
+        // Ni un format inconnu ni un fichier trop court ne doivent inventer.
+        #expect(ModZipInstaller.archiveExtension(forSignature: [0x1F, 0x8B, 0x08, 0x00]) == nil)
+        #expect(ModZipInstaller.archiveExtension(forSignature: [0x37, 0x7A]) == nil)
+    }
+
+    @Test func detectionReadsARealFileOnDisk() throws {
+        let dir = try makeTempDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        // Nom volontairement trompeur : c'est le contenu qui doit décider.
+        let url = dir.appendingPathComponent("telechargement-sans-extension")
+        try Data([0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C, 0x00, 0x04]).write(to: url)
+        #expect(ModZipInstaller.detectedArchiveExtension(at: url) == "7z")
+    }
+
     @Test func folderNameDropsWhicheverArchiveExtensionItHas() {
         // Une archive sans dossier englobant donne son nom au dossier installé.
         // Ne retirer que « .zip » produisait « MonMod.7z » sous Mods/.

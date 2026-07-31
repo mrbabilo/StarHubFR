@@ -39,6 +39,28 @@ class ModZipInstaller {
     private let maxExtractedSize: Int64 = 2 * 1024 * 1024 * 1024 // 2GB
     private let maxModsPerZip = 10
 
+    /// Format réel d'une archive, déduit de sa signature — la seule source
+    /// fiable. Le nom d'un fichier peut mentir ou ne rien dire : l'URL de
+    /// téléchargement gratuit de Nexus, notamment, ne porte pas toujours
+    /// d'extension exploitable, ce qui faisait enregistrer un `.7z` sous
+    /// « .zip » et échouer l'extraction.
+    static func archiveExtension(forSignature bytes: [UInt8]) -> String? {
+        func starts(_ sig: [UInt8]) -> Bool {
+            bytes.count >= sig.count && Array(bytes.prefix(sig.count)) == sig
+        }
+        if starts([0x50, 0x4B, 0x03, 0x04]) { return "zip" }
+        if starts([0x52, 0x61, 0x72, 0x21, 0x1A, 0x07]) { return "rar" }
+        if starts([0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C]) { return "7z" }
+        return nil
+    }
+
+    /// Lit les premiers octets d'un fichier pour en déduire le format.
+    static func detectedArchiveExtension(at url: URL) -> String? {
+        guard let handle = FileHandle(forReadingAtPath: url.path) else { return nil }
+        defer { handle.closeFile() }
+        return archiveExtension(forSignature: [UInt8](handle.readData(ofLength: 8)))
+    }
+
     /// Retire l'extension d'archive d'un nom de fichier, pour en tirer un nom de
     /// dossier propre.
     static func strippingArchiveExtension(from name: String) -> String {

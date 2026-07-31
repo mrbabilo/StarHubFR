@@ -127,20 +127,22 @@ struct NexusDownloader {
             guard let uri = links.first?.URI, let url = URL(string: uri) else {
                 completion(.failure(.noDownloadLink)); return
             }
-            // Keep the real archive format. `extractArchive` dispatches on the
-            // file extension, so naming every download ".zip" sent RAR mods
-            // straight to `/usr/bin/unzip` and broke their update path — even
-            // though drag-and-drop installs them fine. Nexus' CDN URL carries
-            // the original filename in its path (…/Mod-1-2-3.rar?md5=…), which
-            // the query string doesn't disturb. Anything unexpected falls back
-            // to zip, the overwhelmingly common case.
-            let ext = ModZipInstaller.supportedExtensions.contains(url.pathExtension.lowercased())
-                ? url.pathExtension.lowercased()
-                : "zip"
-            let temp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + "." + ext)
             URLSession.shared.downloadTask(with: url) { localURL, _, dlError in
                 if let dlError = dlError { completion(.failure(.requestFailed(dlError.localizedDescription))); return }
                 guard let localURL = localURL else { completion(.failure(.noDownloadLink)); return }
+                // Le format est lu dans les octets du fichier téléchargé, pas
+                // deviné d'après l'URL. `extractArchive` s'aiguille sur
+                // l'extension : nommer tout téléchargement « .zip » envoyait un
+                // mod RAR ou 7z droit vers `unzip`. Or l'URL ne suffit pas —
+                // celle du téléchargement gratuit ne porte pas toujours
+                // d'extension exploitable. La signature, elle, ne ment pas ;
+                // l'URL ne sert plus que de repli.
+                let ext = ModZipInstaller.detectedArchiveExtension(at: localURL)
+                    ?? (ModZipInstaller.supportedExtensions.contains(url.pathExtension.lowercased())
+                        ? url.pathExtension.lowercased()
+                        : "zip")
+                let temp = FileManager.default.temporaryDirectory
+                    .appendingPathComponent(UUID().uuidString + "." + ext)
                 do {
                     try FileManager.default.moveItem(at: localURL, to: temp)
                     completion(.success(temp))

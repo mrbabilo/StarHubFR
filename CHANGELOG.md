@@ -19,6 +19,7 @@ where the exact log format was verified.
 - **The launch screen shows the version.** It sits beside the app name, on the same baseline, so the splash keeps its three-part rhythm — name, status, progress — instead of gaining a line. Read from the bundle, so it follows every release on its own.
 
 ### Fixed
+- **A mod downloaded from Nexus keeps its real format.** The temporary file was named from the download URL, and the free-download link doesn't always carry a usable extension — so a `.7z` was saved as `.zip`, handed to `unzip`, and reported as a corrupted archive. Drag-and-drop worked all along, which made the failure look arbitrary. The format is now read from the file's own first bytes; the URL is only a fallback.
 - **Extraction tools are found wherever they're installed.** The search covered four directories and missed MacPorts, Nix, `~/bin` and anything on the user's `PATH` — so a perfectly installed tool could go unseen. Three separate copies of that list had drifted apart; they now share one lookup. It stays explicit rather than `PATH`-only on purpose: an app launched from the Finder inherits launchd's minimal `PATH`, not the shell's.
 - **A mod folder no longer keeps its archive extension.** Only `.zip` was stripped when naming the installed folder, so a `.7z` or `.rar` without an enclosing directory landed under `Mods/` as `MyMod.7z`.
 
