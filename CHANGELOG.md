@@ -12,17 +12,17 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
-### Fixed
-- **The search could accuse the wrong mod.** Pausing a framework left every content pack that needs it running without it, so SMAPI skipped nineteen packs at once and the game changed for a reason unrelated to the mod being hunted — the player's answer described *that*, and the search converged on an innocent. Content packs are now paused alongside the framework they depend on, which also silences the wall of "could not be added to your game" warnings each step used to produce.
-- **The next step no longer starts while the game is still open.** Answering without quitting Stardew Valley relaunched it over the running copy and renamed mod folders the game was holding. The card now says to quit first.
-- **The diagnostic card no longer swallows the window.** It claims two thirds of the space it competes for, but the guided-search card added below it was not counted in that budget — with both open, the log list was pushed off-screen and the collapse chevron went with it. The card's share is now measured against what is actually left.
-
 ### Added
 - **Finding the mod that breaks your game, step by step.** When Stardew Valley crashes and the log names no one, the only reliable method is to halve the mod list, restart, and repeat. The app now does the halving, the restarting and the bookkeeping: it pauses half your mods, starts the game, waits for you to come back, asks one question — "is the problem still there?" — and narrows down. Roughly seven steps for a hundred mods.
 
   It tells you where it has got to, not just how far along it is: each step reports how many mods are already in the clear — the count that actually doubles with every answer, unlike the step number, which is only an estimate — and the expandable list says plainly that it holds the mods still *running*. When the search can't name a single culprit, it no longer throws the result away: isolating three inseparable mods out of a hundred is a finding, so those mods are named.
 
   Nothing is deleted, the starting state is written to disk before a single folder moves, and "put everything back" is one click away at every step. It ends on a confirmation run — everything back on except the mod it points at — because halving produces a lead, not a proof. If the app is quit mid-search, the home screen says so on the next start and offers to put everything back from there. And if a folder can't be moved back — held open by the Finder, a stale twin already in place — the record of your starting state is *kept*, so putting everything back stays retryable instead of being lost.
+
+### Fixed
+- **The search could accuse the wrong mod.** Pausing a framework left every content pack that needs it running without it, so SMAPI skipped nineteen packs at once and the game changed for a reason unrelated to the mod being hunted — the player's answer described *that*, and the search converged on an innocent. Content packs are now paused alongside the framework they depend on, which also silences the wall of "could not be added to your game" warnings each step used to produce.
+- **The next step no longer starts while the game is still open.** Answering without quitting Stardew Valley relaunched it over the running copy and renamed mod folders the game was holding. The card now says to quit first.
+- **The diagnostic card no longer swallows the window.** It claims two thirds of the space it competes for, but the guided-search card added below it was not counted in that budget — with both open, the log list was pushed off-screen and the collapse chevron went with it. The card's share is now measured against what is actually left.
 
 ## [1.10.3] - 2026-07-31
 
