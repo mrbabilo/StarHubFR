@@ -706,7 +706,8 @@
 "bisect_concluded_title" = "Trouvé";
 "bisect_concluded_body" = "« %@ » est à l'origine du problème. Il reste en pause et tous vos autres mods sont réactivés. Laissez-le ainsi, ou remettez tout comme avant ci-dessous.";
 "bisect_log_names_other" = "Attention : le journal du jeu signale des erreurs venant de « %@ », pas de « %@ ». Les deux sont sans doute en cause ensemble — retirer l'un suffit à faire disparaître le problème, mais l'autre en est tout autant responsable.";
-"bisect_log_evidence" = "Sur toutes les étapes où le problème était là — et sur aucune où il avait disparu — le journal a mis en cause :";
+"bisect_log_evidence" = "Ce que le journal a relevé pendant la recherche :";
+"bisect_log_suspect_line" = "%1$@ — mis en cause à %2$lld étape(s) sur %3$lld où le problème était là";
 "bisect_inconclusive_title" = "Pas de réponse simple";
 "bisect_inconclusive_body" = "Le problème ne vient pas d'un seul mod : il apparaît quand plusieurs sont actifs ensemble. La recherche a tout de même réduit le champ.";
 "bisect_inconclusive_remaining" = "Les mods encore en cause sont :";

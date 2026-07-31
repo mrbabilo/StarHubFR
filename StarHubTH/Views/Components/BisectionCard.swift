@@ -72,10 +72,24 @@ struct BisectionCard: View {
                               expanded: Binding<Bool>) -> some View {
         DisclosureGroup(isExpanded: expanded) {
             VStack(alignment: .leading, spacing: 6) {
-                Text(items.sorted().joined(separator: "\n"))
-                    .font(.system(size: 11, design: .monospaced))
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                // Défilement borné et plusieurs colonnes : une liste de
+                // cinquante mods sur une colonne débordait de la carte, et le
+                // bas — bouton de copie compris — devenait inatteignable.
+                ScrollView {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 190), alignment: .leading)],
+                              alignment: .leading, spacing: 2) {
+                        ForEach(items.sorted(), id: \.self) { name in
+                            Text(name)
+                                .font(.system(size: 11, design: .monospaced))
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+                    .padding(.vertical, 2)
+                }
+                .frame(maxHeight: 160)
+                .textSelection(.enabled)
                 Button(vm.L(L10n.Bisect.copyList)) {
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(items.sorted().joined(separator: "\n"),
@@ -194,7 +208,11 @@ struct BisectionCard: View {
     /// dans le journal n'y croira pas, à raison. Si le journal impute des
     /// erreurs à un mod différent, on le dit.
     private func concluded(_ folder: String) -> some View {
-        let blamedByLog = vm.smapiDiagnostics?.topErrorMods
+        // Sur le relevé accumulé, pas sur le dernier journal lu : après la
+        // restauration finale, celui-ci décrit une partie qui n'est plus celle
+        // de la recherche. Et c'est bien le cumul qui porte l'information —
+        // une erreur intermittente n'apparaît qu'à certaines étapes.
+        let blamedByLog = runner.logEvidence
             .first { !$0.name.localizedCaseInsensitiveContains(folder)
                   && !folder.localizedCaseInsensitiveContains($0.name) }?.name
         return VStack(alignment: .leading, spacing: 10) {
@@ -221,10 +239,13 @@ struct BisectionCard: View {
         if !runner.logEvidence.isEmpty {
             Text(vm.L(L10n.Bisect.logEvidence))
                 .font(.system(size: 12, weight: .medium))
-            Text(runner.logEvidence.joined(separator: "\n"))
-                .font(.system(size: 11, design: .monospaced))
-                .textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            ForEach(runner.logEvidence) { suspect in
+                Text(String(format: vm.L(L10n.Bisect.logSuspectLine),
+                            suspect.name, suspect.whenBroken, suspect.brokenSteps))
+                    .font(.system(size: 11, design: .monospaced))
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
     }
 

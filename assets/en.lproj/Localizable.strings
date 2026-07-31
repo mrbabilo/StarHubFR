@@ -706,7 +706,8 @@
 "bisect_concluded_title" = "Found it";
 "bisect_concluded_body" = "\"%@\" is causing the problem. It stays paused and all your other mods are back on. Leave it like this, or put everything back below.";
 "bisect_log_names_other" = "Note: the game's log reports errors from \"%@\", not \"%@\". The two are likely at odds with each other — removing either makes the problem go away, but neither is solely to blame.";
-"bisect_log_evidence" = "Across every step where the problem was present — and none where it was gone — the log blamed:";
+"bisect_log_evidence" = "What the log reported during the search:";
+"bisect_log_suspect_line" = "%1$@ — blamed in %2$lld of %3$lld steps where the problem was present";
 "bisect_inconclusive_title" = "No simple answer";
 "bisect_inconclusive_body" = "The problem doesn't come from one mod alone: it shows up when several are on together. The search still narrowed it down.";
 "bisect_inconclusive_remaining" = "The mods still involved are:";

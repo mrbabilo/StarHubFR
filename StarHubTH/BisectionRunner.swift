@@ -27,11 +27,31 @@ final class BisectionRunner: ObservableObject {
     /// journal, lui, nomme tout ce qui a mal tourné. Les confronter permet de
     /// dire « deux mods sont en cause » là où la recherche seule n'aurait pu
     /// désigner que l'un des deux.
-    @Published private(set) var logEvidence: [String] = []
+    @Published private(set) var logEvidence: [LogSuspect] = []
+
+    /// Un mod que le journal a mis en cause, avec la fréquence à laquelle il
+    /// apparaît selon que la panne était là ou non.
+    struct LogSuspect: Identifiable, Equatable {
+        var id: String { name }
+        let name: String
+        /// Étapes où ce mod était incriminé **et** la panne présente.
+        let whenBroken: Int
+        /// Étapes où il était incriminé alors que tout allait bien.
+        let whenFine: Int
+        /// Nombre total d'étapes en échec, pour situer `whenBroken`.
+        let brokenSteps: Int
+    }
 
     /// Un relevé par étape : ce que le journal imputait, et si la panne était
     /// encore là.
     private var evidenceLog: [(blamed: Set<String>, stillBroken: Bool)] = []
+    /// Surveille le journal SMAPI pendant qu'une partie tourne. Sans elle, la
+    /// vue des journaux de StarHubFR ne se rafraîchissait qu'au moment de
+    /// répondre : l'utilisateur devait ouvrir le vrai fichier de SMAPI pour
+    /// décider, alors que c'est précisément ce que l'application doit lui
+    /// épargner.
+    private var logWatcher: Timer?
+    private var lastLogModified: Date?
     @Published var interruptedSnapshot: BisectionSnapshot?
 
     private var session: BisectionSession?
@@ -120,6 +140,33 @@ final class BisectionRunner: ObservableObject {
     /// Le réglage garde tout son effet pour le bouton de l'accueil.
     private func launch() {
         vm.launchGame(honoringCloseAfterLaunch: false)
+        startWatchingLog()
+    }
+
+    /// Recharge le journal dès que le fichier change, tant qu'une étape est en
+    /// cours. Deux secondes : assez pour suivre une partie, assez peu pour ne
+    /// pas relire un fichier de plusieurs mégaoctets sans raison.
+    private func startWatchingLog() {
+        stopWatchingLog()
+        lastLogModified = logModifiedDate()
+        logWatcher = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                guard let self else { return }
+                let current = self.logModifiedDate()
+                guard current != self.lastLogModified else { return }
+                self.lastLogModified = current
+                self.vm.loadSmapiLog()
+            }
+        }
+    }
+
+    private func stopWatchingLog() {
+        logWatcher?.invalidate()
+        logWatcher = nil
+    }
+
+    private func logModifiedDate() -> Date? {
+        (try? FileManager.default.attributesOfItem(atPath: vm.smapiLogPath))?[.modificationDate] as? Date
     }
 
     func answer(_ outcome: BisectionOutcome) {
@@ -128,6 +175,7 @@ final class BisectionRunner: ObservableObject {
         // vont être renommés, et le jeu les tient ouverts tant qu'il tourne.
         guard !vm.isGameRunning() else { gameStillRunning = true; return }
         gameStillRunning = false
+        stopWatchingLog()
         // Le journal a été réécrit par la partie qui vient de finir : le relire
         // maintenant, sinon on jugerait sur la session précédente.
         vm.loadSmapiLog { [weak self] in
@@ -162,15 +210,26 @@ final class BisectionRunner: ObservableObject {
                          + (vm.smapiDiagnostics?.failed.map(\.name) ?? []))
         evidenceLog.append((blamed: blamed, stillBroken: stillBroken))
 
-        let failures = evidenceLog.filter(\.stillBroken).map(\.blamed)
-        let successes = evidenceLog.filter { !$0.stillBroken }.map(\.blamed)
-        guard let first = failures.first else { logEvidence = []; return }
-        // Présent dans TOUS les échecs…
-        var common = failures.dropFirst().reduce(first) { $0.intersection($1) }
-        // …et dans AUCUNE réussite : un mod qui se plaint aussi quand tout va
-        // bien ne dit rien de la panne.
-        for ok in successes { common.subtract(ok) }
-        logEvidence = common.sorted()
+        // Compter, ne pas intersecter. Exiger qu'un mod soit incriminé à
+        // *toutes* les étapes en échec éliminait précisément le cas qui compte :
+        // une erreur **intermittente** n'apparaît qu'à certaines d'entre elles,
+        // et c'est elle qu'on cherche quand la bissection se trompe.
+        let brokenSteps = evidenceLog.filter(\.stillBroken).count
+        var tally: [String: (broken: Int, fine: Int)] = [:]
+        for step in evidenceLog {
+            for name in step.blamed {
+                var t = tally[name] ?? (0, 0)
+                if step.stillBroken { t.broken += 1 } else { t.fine += 1 }
+                tally[name] = t
+            }
+        }
+        logEvidence = tally
+            .filter { $0.value.broken > 0 }
+            .map { LogSuspect(name: $0.key, whenBroken: $0.value.broken,
+                              whenFine: $0.value.fine, brokenSteps: brokenSteps) }
+            // Le plus incriminé d'abord ; à égalité, le moins vu quand tout va
+            // bien — un mod qui se plaint aussi en bon état dit moins de choses.
+            .sorted { ($0.whenBroken, -$0.whenFine, $0.name) > ($1.whenBroken, -$1.whenFine, $1.name) }
     }
 
     func restoreAndStop() {

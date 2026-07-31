@@ -2226,7 +2226,9 @@ class StarHubTHViewModel: ObservableObject {
         return keep.map { entries[$0] }
     }
 
-    private var smapiLogPath: String {
+    /// Chemin du journal SMAPI. Non privé : la recherche guidée surveille sa
+    /// date de modification pour rafraîchir l'affichage pendant une partie.
+    var smapiLogPath: String {
         let homeDir = FileManager.default.homeDirectoryForCurrentUser.path
         return (homeDir as NSString).appendingPathComponent(
             ".config/StardewValley/ErrorLogs/SMAPI-latest.txt"
