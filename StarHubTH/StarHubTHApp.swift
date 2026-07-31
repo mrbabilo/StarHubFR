@@ -71,6 +71,9 @@ struct StarHubTHApp: App {
                     // Route nxm:// links (buffered at cold launch) into the
                     // single shared ViewModel.
                     appDelegate.onURL = { [vm] url in vm.handleNxmURL(url) }
+                    // Une recherche laissée en plan (app quittée ou plantée en
+                    // cours de bissection) ? Le signaler dès le démarrage.
+                    vm.bisection.checkForInterruptedSession()
                     // Raise the splash now. The main window was already
                     // intercepted in `applicationWillFinishLaunching`, so it
                     // never reached the screen — no need to defer this.

@@ -275,6 +275,15 @@ struct LogsView: View {
                 Divider()
             }
 
+            // Recherche guidée du mod responsable. Présente sur les onglets
+            // liés au jeu (All/SMAPI), masquée sur les logs StarHubFR (.app).
+            if selectedSource != .app {
+                BisectionCard(vm: vm)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                Divider()
+            }
+
             if views.filtered.isEmpty {
                 VStack(spacing: 8) {
                     Image(systemName: "text.badge.checkmark")
