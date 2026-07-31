@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.10.3] - 2026-07-31
+
 ### Added
 - **A 7-Zip status row on the home screen**, next to the existing one for The Unarchiver, so a missing extraction tool is visible before an install fails rather than after. Both rows are now driven by the same lookup the extractor itself uses, so the screen can't claim a capability the installer doesn't have.
 - **`.7z` archives install.** The format is common on Nexus but was rejected outright, and — worse — the message blamed the file: "this archive appears to be corrupted", sending you to look for a problem that didn't exist. `.7z` is now a first-class format alongside `.zip` and `.rar`, and an unsupported extension now says which formats *are* accepted instead of claiming corruption. Extraction uses whichever of `7zz`, `7z`, `7za`, `7zr` or `unar` is installed — `unrar` is deliberately excluded, since it can't read 7z. All four install routes were checked: drag-and-drop, the install button, a Nexus update (free or premium) and an `nxm://` click. The last two rebuilt the filename and knew only zip and rar, so a 7z downloaded from Nexus would have been handed to `unzip` and failed.
