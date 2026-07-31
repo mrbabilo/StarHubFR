@@ -48,6 +48,28 @@ public enum LogNoise {
         return String(s.prefix(120))
     }
 
+    /// Nom de mod porté en préfixe d'un message SMAPI (« Nom du mod: … »).
+    ///
+    /// SMAPI écrit certaines erreurs **pour le compte** d'un mod : le crochet de
+    /// source porte « SMAPI » et le nom n'apparaît qu'en tête du message —
+    /// « [SMAPI] [ERROR] Gunther's Guide: Tried to map… ». Sans cette lecture,
+    /// ces erreurs n'étaient imputées à personne : ni dans l'historique par mod,
+    /// ni dans le relevé de la recherche guidée.
+    ///
+    /// L'appelant filtre sur le niveau ; ici on écarte ce qui ne peut pas être
+    /// un nom de mod, pour qu'une ligne anodine contenant un deux-points
+    /// n'invente pas un coupable.
+    public static func modNamePrefix(in message: String) -> String? {
+        guard let colon = message.firstIndex(of: ":") else { return nil }
+        let candidate = String(message[..<colon]).trimmingCharacters(in: .whitespaces)
+        guard !candidate.isEmpty, candidate.count <= 60,
+              !candidate.contains("\n"),
+              !candidate.contains("/"), !candidate.contains("\\"),  // chemin ou URL
+              !candidate.contains(". "),                            // phrase
+              candidate.rangeOfCharacter(from: .letters) != nil else { return nil }
+        return candidate
+    }
+
     private static func replacing(_ string: String, pattern: String, with template: String) -> String {
         guard let regex = try? NSRegularExpression(pattern: pattern) else { return string }
         let range = NSRange(location: 0, length: (string as NSString).length)

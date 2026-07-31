@@ -206,8 +206,20 @@ final class BisectionRunner: ObservableObject {
     /// Relève ce que le journal impute à cette étape, et recalcule les mods
     /// systématiquement présents dans les échecs et absents des réussites.
     private func recordLogEvidence(stillBroken: Bool) {
-        let blamed = Set((vm.smapiDiagnostics?.topErrorMods.map(\.name) ?? [])
-                         + (vm.smapiDiagnostics?.failed.map(\.name) ?? []))
+        // Toutes les lignes WARN **et** ERROR attribuées à un mod, pas seulement
+        // les erreurs : `topErrorMods` ne compte que les ERROR, et seulement les
+        // cinq premiers mods. Un mod qui n'émet qu'un avertissement — ou qui
+        // n'est sixième que ce jour-là — restait invisible, alors que c'est
+        // exactement le genre de trace qu'on cherche.
+        var blamed = Set(vm.logEntries.compactMap { entry -> String? in
+            guard entry.source == .smapi,
+                  entry.level == .error || entry.level == .warning,
+                  let mod = entry.modName, !mod.isEmpty else { return nil }
+            return mod
+        })
+        // Plus les mods que SMAPI a refusé de charger : eux n'ont pas pu
+        // écrire la moindre ligne.
+        blamed.formUnion(vm.smapiDiagnostics?.failed.map(\.name) ?? [])
         evidenceLog.append((blamed: blamed, stillBroken: stillBroken))
 
         // Compter, ne pas intersecter. Exiger qu'un mod soit incriminé à

@@ -124,6 +124,11 @@ let package = Package(
             path: "Tests/DesignSystemTests"
         ),
         .testTarget(
+            name: "LogAttributionTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/LogAttributionTests"
+        ),
+        .testTarget(
             name: "ManifestJSONTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ManifestJSONTests"

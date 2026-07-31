@@ -185,6 +185,17 @@ struct BisectionCard: View {
             Text(vm.L(L10n.Bisect.inconclusiveTitle)).font(.system(size: 13, weight: .semibold))
             Text(vm.L(L10n.Bisect.inconclusiveBody))
                 .font(.system(size: 12)).foregroundColor(.secondary)
+            // « Pas de réponse simple » est *le* cas de l'interaction : si le
+            // journal accuse un mod que la recherche n'a pas retenu, c'est
+            // l'information la plus utile de tout l'écran.
+            if let other = runner.logEvidence.first(where: { suspect in
+                !remaining.contains { $0.localizedCaseInsensitiveContains(suspect.name)
+                                   || suspect.name.localizedCaseInsensitiveContains($0) }
+            })?.name, let first = remaining.first {
+                Label(String(format: vm.L(L10n.Bisect.logNamesOther), other, first),
+                      systemImage: "info.circle")
+                    .font(.system(size: 12)).foregroundColor(.orange)
+            }
             if !remaining.isEmpty {
                 Text(vm.L(L10n.Bisect.inconclusiveRemaining))
                     .font(.system(size: 12, weight: .medium))

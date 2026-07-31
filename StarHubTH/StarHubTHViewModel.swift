@@ -2106,7 +2106,16 @@ class StarHubTHViewModel: ObservableObject {
 
                 if !message.isEmpty || contextName != nil {
                     var entry = LogEntry(timestamp: ts, message: message, level: level, source: .smapi)
+                    // SMAPI écrit certaines erreurs **pour le compte** d'un mod :
+                    // le crochet de source porte « SMAPI », et le nom du mod
+                    // n'apparaît qu'en préfixe du message —
+                    // « [SMAPI] [ERROR] Gunther's Guide: Tried to map… ».
+                    // Sans cette lecture, ces erreurs n'étaient imputées à
+                    // personne : ni dans l'historique par mod, ni dans le
+                    // relevé de la recherche guidée.
                     entry.modName = contextName
+                        ?? ((level == .error || level == .warning)
+                            ? LogNoise.modNamePrefix(in: message) : nil)
                     entries.append(entry)
                 }
             } else {
