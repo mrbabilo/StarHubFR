@@ -37,4 +37,29 @@ struct BisectionSnapshotTests {
         BisectionSnapshotStore.clear()
         #expect(BisectionSnapshotStore.load() == nil)
     }
+
+    /// Le cas dangereux : une remise en état qui n'aboutit qu'à moitié.
+    /// Effacer l'instantané laisserait des mods en pause **et** supprimerait la
+    /// seule trace de l'état de départ. Il doit survivre, pour que l'utilisateur
+    /// puisse réessayer — au prochain démarrage s'il le faut.
+    @Test func anIncompleteRestoreKeepsTheSnapshot() {
+        useTempDir()
+        let snap = BisectionSnapshot(enabledFolders: ["A", "B", "[CP] Pack"],
+                                     startedAt: Date(timeIntervalSince1970: 1_700_000_000))
+        BisectionSnapshotStore.save(snap)
+
+        #expect(BisectionSnapshotStore.finish(.partial(failedCount: 1)) == false)
+        #expect(BisectionSnapshotStore.load() == snap)
+
+        // L'obstacle levé (dossier refermé, jumeau retiré), la remise en état
+        // aboutit : c'est seulement là qu'on a le droit d'oublier.
+        #expect(BisectionSnapshotStore.finish(.complete) == true)
+        #expect(BisectionSnapshotStore.load() == nil)
+    }
+
+    @Test func theOutcomeIsReadFromTheNumberOfFailedMoves() {
+        #expect(BisectionRestoreOutcome(moveFailures: 0) == .complete)
+        #expect(BisectionRestoreOutcome(moveFailures: 1) == .partial(failedCount: 1))
+        #expect(BisectionRestoreOutcome(moveFailures: 7) == .partial(failedCount: 7))
+    }
 }

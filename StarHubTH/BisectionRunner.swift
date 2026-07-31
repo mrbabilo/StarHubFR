@@ -82,7 +82,17 @@ final class BisectionRunner: ObservableObject {
         let s = BisectionSession(candidates: list)
         session = s
         state = s.state
-        apply(s.foldersToEnable) { [weak self] in self?.vm.launchGame() }
+        apply(s.foldersToEnable) { [weak self] _ in self?.launch() }
+    }
+
+    /// Lance le jeu pour une étape de la recherche.
+    ///
+    /// `honoringCloseAfterLaunch: false` : le réglage « quitter StarHubFR après
+    /// le lancement » ferait quitter l'application à *chaque* étape, en laissant
+    /// la modlist à moitié en pause et sans personne pour recueillir la réponse.
+    /// Le réglage garde tout son effet pour le bouton de l'accueil.
+    private func launch() {
+        vm.launchGame(honoringCloseAfterLaunch: false)
     }
 
     func answer(_ outcome: BisectionOutcome) {
@@ -100,9 +110,11 @@ final class BisectionRunner: ObservableObject {
             // reprise au prochain démarrage) : l'instantané mémoire reste, car le
             // bouton « Tout remettre » de la carte finale s'appuie dessus pour
             // restaurer y compris le coupable. `restoreAndStop` le vide ensuite.
-            apply(restore) { BisectionSnapshotStore.clear() }
+            // Et seulement si tout a bougé : un dossier resté en pause rend
+            // l'instantané indispensable, on le garde pour le prochain démarrage.
+            apply(restore) { BisectionSnapshotStore.finish($0) }
         default:
-            apply(s.foldersToEnable) { [weak self] in self?.vm.launchGame() }
+            apply(s.foldersToEnable) { [weak self] _ in self?.launch() }
         }
     }
 
@@ -113,7 +125,32 @@ final class BisectionRunner: ObservableObject {
         // ou déjà restauré) : on se contente de réinitialiser l'état, SANS
         // appeler applyEnabledFolders([]) qui désactiverait tous les mods.
         guard !restore.isEmpty else { reset(); return }
-        apply(restore) { self.reset() }
+        apply(restore) { [weak self] outcome in
+            guard let self else { return }
+            // Disque et mémoire sont conditionnés à la **même** réponse : ils ne
+            // peuvent pas diverger.
+            guard BisectionSnapshotStore.finish(outcome) else {
+                // Un dossier n'a pas pu être remis en place : l'instantané reste,
+                // sur disque *et* en mémoire, pour que la remise en état soit
+                // réessayable une fois l'obstacle levé (Finder refermé, jumeau
+                // « .Nom » retiré) — au prochain démarrage s'il le faut.
+                // Mais la recherche, elle, s'arrête là : les dossiers sur disque
+                // ne sont plus ceux de l'étape en cours. Laisser l'étape à
+                // l'écran laisserait ses boutons de réponse actifs, et un verdict
+                // rendu sur cet état ferait converger la recherche sur un
+                // innocent. On repasse donc sur l'écran « recherche
+                // interrompue » — carte du Diagnostic et bandeau de l'accueil —
+                // qui ne propose plus qu'une chose : réessayer.
+                // Surtout pas `reset()` : il efface l'instantané.
+                self.interruptedSnapshot = self.snapshot ?? self.interruptedSnapshot
+                self.session = nil
+                self.state = nil
+                return
+            }
+            self.reset()
+            // Une remise en état silencieuse laisse un doute : le dire.
+            self.vm.showModal(message: self.vm.L(L10n.Bisect.restored))
+        }
     }
 
     private func reset() {
@@ -129,12 +166,16 @@ final class BisectionRunner: ObservableObject {
     /// tous les mods non candidats (contenu), met en pause les autres candidats.
     /// `trialFolders` est publié dans `currentFolders` pour l'affichage (l'essai,
     /// pas le bruit des content mods).
-    private func apply(_ trialFolders: [String], then next: @escaping () -> Void) {
+    /// `next` reçoit le résultat de l'application : les étapes s'en moquent (le
+    /// jeu se lance quand même, et l'alerte a déjà prévenu), mais les remises en
+    /// état en dépendent — voir `restoreAndStop`.
+    private func apply(_ trialFolders: [String],
+                       then next: @escaping (BisectionRestoreOutcome) -> Void) {
         isApplying = true
         currentFolders = trialFolders
-        vm.applyEnabledFolders(trialFolders + nonCandidateFolders) { [weak self] in
+        vm.applyEnabledFolders(trialFolders + nonCandidateFolders) { [weak self] outcome in
             self?.isApplying = false
-            next()
+            next(outcome)
         }
     }
 

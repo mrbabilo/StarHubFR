@@ -3,6 +3,7 @@ import SwiftUI
 struct HomeView: View {
     @ObservedObject var vm: StarHubTHViewModel
     @ObservedObject var smapiInstaller: SmapiInstaller
+    @ObservedObject private var bisection: BisectionRunner
 
     // Mirrors the key launchGame() reads, so the subtitle reflects the mode that fires.
     @AppStorage("launchProfile") private var launchProfile: String = "SMAPI"
@@ -10,8 +11,41 @@ struct HomeView: View {
     init(vm: StarHubTHViewModel) {
         self.vm = vm
         self.smapiInstaller = vm.smapiInstaller
+        self.bisection = vm.bisection
     }
-    
+
+    /// Une recherche laissée en plan a laissé des mods en pause. C'est détecté
+    /// au démarrage, mais la carte du Diagnostic ne vit que dans l'onglet
+    /// Journaux : sans ce rappel, l'utilisateur retrouve une liste à moitié en
+    /// pause sans que rien, nulle part, ne dise qu'un clic la remet en état.
+    /// L'accueil est l'écran d'arrivée : c'est là que ça doit se voir.
+    @ViewBuilder
+    private var interruptedSearchNotice: some View {
+        if let snapshot = bisection.interruptedSnapshot, bisection.state == nil {
+            StandardSection(title: vm.L(L10n.Bisect.interruptedTitle)) {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(alignment: .top, spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.orange)
+                        Text(String(format: vm.L(L10n.Bisect.interruptedBody),
+                                    DateFormatter.localizedString(from: snapshot.startedAt,
+                                                                  dateStyle: .short,
+                                                                  timeStyle: .short)))
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Button(vm.L(L10n.Bisect.restore)) { bisection.restoreAndStop() }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(bisection.isApplying)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(.horizontal, 40)
+            .padding(.top, 20)
+        }
+    }
+
     private var bannerWithAvatarOverlay: some View {
         ZStack(alignment: .bottom) {
             // Nexus banner
@@ -67,6 +101,12 @@ struct HomeView: View {
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .center, spacing: 24) {
+
+                // ── RECHERCHE INTERROMPUE ──
+                // (Le rembourrage vit dans la branche : appliqué ici, il
+                // envelopperait l'`EmptyView` du cas courant et laisserait un
+                // blanc en haut de l'accueil quand il n'y a rien à signaler.)
+                interruptedSearchNotice
 
                 // ── BANNER WITH AVATAR OVERLAY ──
                 bannerWithAvatarOverlay

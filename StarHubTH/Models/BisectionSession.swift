@@ -128,7 +128,12 @@ public struct BisectionSession {
             state = .inconclusive
             return
         }
-        state = .trial(step: step, total: totalSteps)
+        // La fermeture vers le haut peut faire *grossir* l'ensemble suspect
+        // (un essai ramène les dépendances restées hors de l'ensemble), donc le
+        // nombre d'étapes réellement parcourues peut dépasser ⌈log₂(n)⌉.
+        // Annoncer « étape 9 sur 7 » ferait mentir la barre de progression :
+        // le total annoncé ne descend jamais en dessous de l'étape en cours.
+        state = .trial(step: step, total: max(totalSteps, step))
     }
 
     /// Complète un sous-ensemble avec les dépendances requises, transitivement.

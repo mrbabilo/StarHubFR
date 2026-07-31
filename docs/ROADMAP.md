@@ -256,8 +256,12 @@ Effort : **S** ≈ une session · **M** ≈ 2–3 sessions · **L** ≈ chantier
       liste des mods de l'essai courant, boutons de verdict, bouton « tout restaurer ». · **M**
 - [x] **A4-T4** — Respect des dépendances : ne jamais désactiver un framework dont un mod
       actif de l'essai dépend (sinon les faux positifs rendent la bissection inutile). · **M**
-- [x] **A4-T5** — Conclusion : à l'issue, proposer les actions sur le mod incriminé
-      (désactiver définitivement, ouvrir Nexus, consulter son historique d'erreurs). · **S**
+- [x] **A4-T5** — Conclusion : l'écran final **nomme le mod trouvé**, le laisse en pause
+      (tous les autres sont réactivés) et offre « tout remettre comme avant ». · **S**
+- [ ] **A4-T6** — Actions sur le mod trouvé, envisagées avec A4-T5 mais **non livrées** :
+      ouvrir sa page Nexus, consulter son historique d'erreurs, le laisser en pause de
+      façon permanente. L'énoncé initial d'A4-T5 les annonçait ; il a été ramené à ce qui
+      existe réellement le 2026-07-31. · **S**
 
 #### Embarqués
 

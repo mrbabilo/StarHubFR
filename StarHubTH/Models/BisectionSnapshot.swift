@@ -16,6 +16,25 @@ public struct BisectionSnapshot: Codable, Equatable {
     }
 }
 
+/// Ce qu'a donné une remise en état : tous les dossiers ont-ils retrouvé leur
+/// place ?
+public enum BisectionRestoreOutcome: Equatable {
+    case complete
+    /// Au moins un dossier n'a pas pu être déplacé (jumeau `.Nom` déjà présent,
+    /// dossier tenu ouvert par le Finder, Dropbox, un antivirus…).
+    case partial(failedCount: Int)
+
+    /// Construit le résultat à partir du nombre de déplacements en échec.
+    ///
+    /// Volontairement fondé sur les **échecs de déplacement seuls**, pas sur les
+    /// mods introuvables : un dossier absent du disque ne sera pas davantage
+    /// retrouvé au prochain essai, et garder l'instantané pour lui ferait
+    /// reproposer indéfiniment une reprise qui ne peut pas aboutir.
+    public init(moveFailures: Int) {
+        self = moveFailures == 0 ? .complete : .partial(failedCount: moveFailures)
+    }
+}
+
 public enum BisectionSnapshotStore {
     /// Dossier où vit l'instantané. Par défaut, le même Application Support que
     /// le reste de l'état de diagnostic, pour qu'un seul endroit concentre la
@@ -49,5 +68,23 @@ public enum BisectionSnapshotStore {
     public static func clear() {
         guard let url = fileURL else { return }
         try? FileManager.default.removeItem(at: url)
+    }
+
+    /// Referme une recherche après une remise en état.
+    ///
+    /// L'instantané n'est oublié que si **tous** les dossiers ont retrouvé leur
+    /// place. S'il en reste un en pause, l'effacer supprimerait la seule trace
+    /// de l'état de départ : la modlist resterait à moitié en pause sans moyen
+    /// de la retrouver. Tant qu'il subsiste, la remise en état reste
+    /// réessayable — au prochain démarrage s'il le faut.
+    ///
+    /// - Returns: `true` si l'instantané a été oublié. L'appelant doit
+    ///   conditionner la remise à zéro de son état mémoire à cette valeur, pour
+    ///   que disque et mémoire ne puissent jamais diverger.
+    @discardableResult
+    public static func finish(_ outcome: BisectionRestoreOutcome) -> Bool {
+        guard outcome == .complete else { return false }
+        clear()
+        return true
     }
 }

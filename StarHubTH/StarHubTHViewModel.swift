@@ -1912,14 +1912,22 @@ class StarHubTHViewModel: ObservableObject {
         }
     }
     // Launch Stardew Valley (with selected profile)
-    func launchGame() {
+    ///
+    /// - Parameter honoringCloseAfterLaunch: whether the user's "quit StarHubFR
+    ///   after launching" setting applies. Defaults to `true` — the Home button
+    ///   behaves exactly as before. The guided search passes `false`: it starts
+    ///   the game at *every* step and needs to still be running when the player
+    ///   comes back to answer, otherwise the app would quit mid-search and leave
+    ///   the mod list half-paused.
+    func launchGame(honoringCloseAfterLaunch: Bool = true) {
         guard !gameDir.isEmpty else {
             showModal(message: L(L10n.Settings.gameDirNotSet))
             return
         }
 
         let profile = UserDefaults.standard.string(forKey: UDKey.launchProfile) ?? "SMAPI"
-        let closeAfter = UserDefaults.standard.bool(forKey: UDKey.closeAfterLaunch)
+        let closeAfter = honoringCloseAfterLaunch
+            && UserDefaults.standard.bool(forKey: UDKey.closeAfterLaunch)
 
         let originalPath = (gameDir as NSString).appendingPathComponent("StardewValley-original")
         
@@ -3843,10 +3851,19 @@ class StarHubTHViewModel: ObservableObject {
     /// `activeProfileId` le temps de l'application — sinon `syncActiveProfileIds`,
     /// lancé à la fin du rescane, réécrirait le profil actif de l'utilisateur
     /// avec l'état éphémère de la recherche.
-    func applyEnabledFolders(_ folders: [String], completion: @escaping () -> Void) {
+    ///
+    /// - Parameter completion: reçoit le **résultat** de l'application. Un
+    ///   déplacement en échec (dossier tenu ouvert, jumeau déjà présent) laisse
+    ///   la modlist à moitié en pause : l'appelant doit le savoir pour ne pas
+    ///   jeter l'instantané qui permettrait de réessayer.
+    func applyEnabledFolders(_ folders: [String],
+                             completion: @escaping (BisectionRestoreOutcome) -> Void) {
         let target = Set(folders)
         let ephemeral = ModProfile(
-            name: "",
+            // Nom lisible : si un déplacement échoue, l'alerte d'application
+            // nomme le « profil » concerné — un nom vide donnerait un message
+            // parlant d'un profil « ».
+            name: L(L10n.Bisect.profileName),
             enabledModIds: mods
                 .filter { target.contains($0.folderName) }
                 .flatMap { $0.isGroup ? ($0.children ?? []).map(\.uniqueId) : [$0.uniqueId] }
@@ -3854,9 +3871,9 @@ class StarHubTHViewModel: ObservableObject {
         )
         let savedActiveProfile = activeProfileId
         activeProfileId = nil
-        applyProfileToFilesystem(profile: ephemeral) { [weak self] in
+        applyProfileToFilesystem(profile: ephemeral) { [weak self] moveFailures in
             self?.activeProfileId = savedActiveProfile
-            completion()
+            completion(BisectionRestoreOutcome(moveFailures: moveFailures))
         }
     }
 
@@ -3897,7 +3914,14 @@ class StarHubTHViewModel: ObservableObject {
     /// error, logs it, and surfaces a user-visible alert summarizing how
     /// many mods could not be relocated — while still rescanning so the UI
     /// reflects the actual on-disk state (whatever it is).
-    private func applyProfileToFilesystem(profile: ModProfile, completion: (() -> Void)? = nil) {
+    ///
+    /// - Parameter completion: appelé après le rescane, avec le **nombre de
+    ///   dossiers qui n'ont pas pu être déplacés** (0 = application complète).
+    ///   Sans cette information, un appelant ne peut pas distinguer un succès
+    ///   d'une application partielle — et la bissection y jetterait l'instantané
+    ///   qui aurait permis de rattraper une modlist restée à moitié en pause.
+    private func applyProfileToFilesystem(profile: ModProfile,
+                                          completion: ((_ moveFailures: Int) -> Void)? = nil) {
         // Mark an application in progress so `applyProfile` refuses to start a
         // second one and the UI disables the Activate/Manage buttons until the
         // move + rescan below completes.
@@ -4059,8 +4083,10 @@ class StarHubTHViewModel: ObservableObject {
                 }
                 // Signaler la fin de l'application une fois le rescane terminé :
                 // la bissection lance le jeu dans ce completion, et ne doit pas le
-                // faire tant qu'un rescane peut encore réécrire `mods`.
-                completion?()
+                // faire tant qu'un rescane peut encore réécrire `mods`. Le nombre
+                // d'échecs remonte avec, pour que l'appelant sache si l'état sur
+                // disque correspond vraiment à ce qui était demandé.
+                completion?(failedNames.count)
             }
         }
     }

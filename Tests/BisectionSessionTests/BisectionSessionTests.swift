@@ -173,6 +173,52 @@ struct BisectionSessionTests {
         #expect(steps < 12, "la recherche n'a pas terminé")
     }
 
+    /// La barre de progression doit toujours dire combien d'étapes restent.
+    /// ⌈log₂(n)⌉ suppose que l'ensemble suspect se divise à chaque étape ; la
+    /// fermeture vers le haut peut le faire **grossir** (un essai ramène les
+    /// dépendances restées dehors, et si la panne persiste elles deviennent
+    /// suspectes à leur tour). Sans garde, la carte affichait « étape 3 sur 2 ».
+    @Test func theAnnouncedTotalNeverFallsBehindTheCurrentStep() {
+        // Chaîne A ← B ← C ← D : chacun a besoin du précédent. ⌈log₂ 4⌉ = 2.
+        let a = BisectionCandidate(folderName: "A", uniqueIds: ["a"], requires: [])
+        let b = BisectionCandidate(folderName: "B", uniqueIds: ["b"], requires: ["a"])
+        let c = BisectionCandidate(folderName: "C", uniqueIds: ["c"], requires: ["b"])
+        let d = BisectionCandidate(folderName: "D", uniqueIds: ["d"], requires: ["c"])
+        var s = BisectionSession(candidates: [a, b, c, d])
+
+        s.record(.stillBroken)                         // reproduction
+        #expect(s.state == .trial(step: 1, total: 2))  // essai = {A, B}
+
+        s.record(.fixed)                               // suspects = {C, D}
+        // L'essai {C} ne peut pas tourner seul : il embarque B, donc A.
+        #expect(Set(s.foldersToEnable) == ["A", "B", "C"])
+        #expect(s.state == .trial(step: 2, total: 2))
+
+        s.record(.stillBroken)                         // suspects = {A, B, C} : ça grossit
+        // Avant correction : « étape 3 sur 2 ».
+        #expect(s.state == .trial(step: 3, total: 3))
+    }
+
+    @Test func theStepNeverOvertakesTheTotalOnALongChain() {
+        // Même mécanique, chaîne plus longue et verdicts arbitraires : à aucun
+        // moment l'étape annoncée ne doit dépasser le total annoncé.
+        let chain = (0..<8).map { i in
+            BisectionCandidate(folderName: "M\(i)",
+                               uniqueIds: ["m\(i)"],
+                               requires: i == 0 ? [] : ["m\(i - 1)"])
+        }
+        var s = BisectionSession(candidates: chain)
+        s.record(.stillBroken)
+        var guardCount = 0
+        while case .trial(let step, let total) = s.state, guardCount < 40 {
+            #expect(step <= total, "étape \(step) annoncée sur un total de \(total)")
+            guardCount += 1
+            // Alterne les réponses pour promener la recherche dans les deux sens.
+            s.record(guardCount.isMultiple(of: 2) ? .fixed : .stillBroken)
+        }
+        #expect(guardCount < 40, "la recherche n'a pas terminé")
+    }
+
     @Test func aSingleCandidateGoesStraightToVerification() {
         // Rien à couper en deux : la session doit vérifier directement, pas
         // conclure « pas de réponse simple » — ce qui arrivait quand l'essai,

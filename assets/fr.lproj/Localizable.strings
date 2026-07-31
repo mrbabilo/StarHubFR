@@ -702,9 +702,9 @@
 "bisect_confirm_title" = "Dernière vérification";
 "bisect_confirm_body" = "Tout est réactivé sauf « %@ ». Si le problème a disparu, c'est bien lui.";
 "bisect_concluded_title" = "Trouvé";
-"bisect_concluded_body" = "« %@ » est à l'origine du problème. Il est en pause ; vous pouvez le laisser ainsi, chercher une mise à jour, ou le remettre en service.";
+"bisect_concluded_body" = "« %@ » est à l'origine du problème. Il reste en pause et tous vos autres mods sont réactivés. Laissez-le ainsi, ou remettez tout comme avant ci-dessous.";
 "bisect_inconclusive_title" = "Pas de réponse simple";
-"bisect_inconclusive_body" = "Le problème ne vient pas d'un seul mod : il apparaît quand plusieurs sont actifs ensemble. Vous pouvez relancer une recherche sur les mods restants.";
+"bisect_inconclusive_body" = "Le problème ne vient pas d'un seul mod : il apparaît quand plusieurs sont actifs ensemble. Remettez tout comme avant ci-dessous — vous pourrez recommencer quand vous voudrez.";
 "bisect_not_reproducible_title" = "Rien à chercher";
 "bisect_not_reproducible_body" = "Le problème ne s'est pas produit cette fois. S'il revient, relancez la recherche à ce moment-là.";
 "bisect_restore" = "Tout remettre comme avant";
@@ -713,3 +713,4 @@
 "bisect_interrupted_body" = "Une recherche a été interrompue le %@. Vos mods sont encore en pause. Voulez-vous les remettre comme avant ?";
 "bisect_show_mods" = "Voir les mods de cette étape";
 "bisect_no_candidates" = "Aucun mod à tester : ils sont déjà tous en pause.";
+"bisect_profile_name" = "Recherche du mod responsable";

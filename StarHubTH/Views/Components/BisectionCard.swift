@@ -119,8 +119,15 @@ struct BisectionCard: View {
     /// Ce que dit le journal, traduit — une suggestion, jamais une décision.
     /// `SmapiDiagnostics` n'expose pas de prédicat « sain » : on se fie au
     /// nombre de problèmes (zéro = le jeu s'est terminé normalement).
+    ///
+    /// Rien tant que le journal n'est pas celui de la partie qu'on vient de
+    /// jouer : un journal périmé décrirait la session *précédente*. Une session
+    /// propre suivie d'un plantage ferait alors dire « le jeu s'est terminé
+    /// normalement » juste après un plantage — l'utilisateur répondrait de
+    /// travers et la recherche désignerait un innocent. Écarte aussi le mode
+    /// sans SMAPI, où il n'y a pas de journal du tout.
     private var logHint: String? {
-        guard let d = vm.smapiDiagnostics else { return nil }
+        guard !vm.smapiLogStale, let d = vm.smapiDiagnostics else { return nil }
         return vm.L(d.problemCount == 0 ? L10n.Bisect.hintClean : L10n.Bisect.hintCrashed)
     }
 
