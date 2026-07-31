@@ -58,6 +58,93 @@ struct DescriptionBlockTests {
                 == [.heading("**Frontier Farm**", level: 3)])
     }
 
+    // MARK: - Régressions relevées à l'écran sur le rendu typé
+
+    @Test func sizedRunKeepsTheSpaceThatSeparatesItFromTheTextBefore() {
+        // « …directly via » suivi d'un [size=4] séparé par une espace insécable
+        // donnait « via**PayPal** » : l'espace consommé collait les deux
+        // fragments, et Markdown refuse l'emphase intra-mot — les astérisques
+        // s'affichaient donc telles quelles.
+        let out = DescriptionBlockParser.parse(
+            "[size=3]donating via[/size][size=4]\u{00A0}[b]PayPal[/b][/size]")
+        guard case let .text(t)? = out.first else { Issue.record("attendu .text"); return }
+        #expect(!t.contains("via**"))
+    }
+
+    @Test func sizedLinkLabelStaysInlineAndKeepsItsLink() {
+        // Régression apparue avec les titres typés : [url=…][size=4]X[/size][/url]
+        // promouvait le libellé en bloc titre, sortant le texte du lien et
+        // laissant « ](https://…) » à l'écran.
+        let out = DescriptionBlockParser.parse(
+            "[url=https://forums.nexusmods.com/user/x][size=4]Poltergeister[/size][/url]")
+        guard case let .text(t)? = out.first else { Issue.record("attendu .text"); return }
+        #expect(t.contains("Poltergeister"))
+        #expect(t.contains("(https://forums.nexusmods.com/user/x)"))
+        #expect(!t.hasPrefix("]"))          // pas de crochet fermant orphelin
+        #expect(out.count == 1)             // pas de titre extrait en bloc
+    }
+
+    @Test func imageTagIsNeverShownAsRawMarkup() {
+        // Une [img] doit toujours donner un bloc image, y compris quand elle est
+        // enveloppée dans une mise en forme inline.
+        let url = URL(string: "https://i.imgur.com/SkgptFd.png")!
+        #expect(DescriptionBlockParser.parse("[img]https://i.imgur.com/SkgptFd.png[/img]")
+                == [.image(url)])
+        #expect(DescriptionBlockParser.parse("[size=4][img]https://i.imgur.com/SkgptFd.png[/img][/size]")
+                == [.image(url)])
+    }
+
+    @Test func imageInsideAListItemIsHoistedOutAsABlock() {
+        // Un item de liste est une chaîne : une [img] qui s'y trouve n'avait
+        // nulle part où aller et s'affichait en balisage brut.
+        let out = DescriptionBlockParser.parse(
+            "[list][*]You're all done[img]https://x/credits.png[/img][/list]")
+        #expect(out.contains(.image(URL(string: "https://x/credits.png")!)))
+        for case let .list(items, _) in out {
+            #expect(items.allSatisfy { !$0.contains("[img") })
+        }
+    }
+
+    @Test func multilineLinkLabelKeepsItsTextAndDropsTheLink() {
+        // Markdown veut un libellé sur une seule ligne. Certains auteurs
+        // enveloppent tout un paragraphe dans un [url] : le crochet fermant
+        // s'affichait sous la forme « ](https://…) ».
+        let out = DescriptionBlockParser.parse(
+            "[url=https://github.com/x/y]\n----\nSource code of C# patches[/url]")
+        guard case let .text(t)? = out.first else { Issue.record("attendu .text"); return }
+        #expect(t.contains("Source code of C# patches"))
+        #expect(!t.contains("](https://github.com/x/y)"))
+    }
+
+    @Test func colorWrappingACodeBlockDoesNotStrandItsAttribute() {
+        // [color=#00FF00][code]…[/code][/color] : le marqueur du bloc code
+        // passait pour du texte, la couleur l'enveloppait, puis le tokeniseur
+        // extrayait le code en laissant « ](shcolor: '#00FF00') » à l'écran.
+        let out = DescriptionBlockParser.parse("[color=#00FF00][code]let x = 1[/code][/color]")
+        #expect(out.contains(.code("let x = 1")))
+        for case let .text(t) in out { #expect(!t.contains("shcolor")) }
+    }
+
+    @Test func nestedColorsResolveInnermostFirst() {
+        // Les auteurs imbriquent les couleurs (« tout en blanc, sauf ces mots
+        // en vert »). L'appariement non-gourmand tronquait les spans.
+        let out = DescriptionBlockParser.parse(
+            "[color=#ffffff]If you [color=#00ff00]like[/color] my mods[/color]")
+        guard case let .text(t)? = out.first else { Issue.record("attendu .text"); return }
+        #expect(t.contains("^[like](shcolor: '#00ff00')"))
+        #expect(!t.contains("^(shcolor"))     // pas de span sans libellé
+        #expect(t.contains("If you") && t.contains("my mods"))
+    }
+
+    @Test func colorOnPunctuationOnlyContentIsDropped() {
+        // [color=#ff0]*[/color] produisait le libellé « [*] », que le
+        // tokeniseur de listes reprenait comme une puce.
+        let out = DescriptionBlockParser.parse("[color=#ffff00]*[/color]Text")
+        guard case let .text(t)? = out.first else { Issue.record("attendu .text"); return }
+        #expect(!t.contains("shcolor"))
+        #expect(t.contains("Text"))
+    }
+
     // MARK: - Nouveaux blocs typés (X2)
 
     @Test func sizeSixBecomesLevel1Heading() {

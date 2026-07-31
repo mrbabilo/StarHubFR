@@ -105,10 +105,12 @@ enum DescriptionBlockParser {
         formatted = formatted.replacingOccurrences(of: "(?s)\\[b\\](\\s*)(.*?)(\\s*)\\[/b\\]", with: "$1**$2**$3", options: [.regularExpression, .caseInsensitive])
         formatted = formatted.replacingOccurrences(of: "(?s)\\[i\\](\\s*)(.*?)(\\s*)\\[/i\\]", with: "$1*$2*$3", options: [.regularExpression, .caseInsensitive])
         formatted = formatted.replacingOccurrences(of: "(?s)\\[s\\](\\s*)(.*?)(\\s*)\\[/s\\]", with: "$1~~$2~~$3", options: [.regularExpression, .caseInsensitive])
-        // [u]X[/u] → vrai souligné via attribut Markdown personnalisé (était
-        // converti en *italique*, ce n'est pas un souligné).
-        formatted = formatted.replacingOccurrences(of: "(?s)\\[u\\]\\s*(.*?)\\s*\\[/u\\]", with: "^[$1](shunderline: 'true')", options: [.regularExpression, .caseInsensitive])
+        // Couleurs d'abord, souligné ensuite : les deux produisent un span
+        // d'attribut, et un span ne peut pas en contenir un autre. Traiter le
+        // souligné en premier laissait un `[color=…]` brut dans son libellé.
         formatted = convertColors(in: formatted)
+        formatted = convertUnderlines(in: formatted)
+        formatted = neutralizeSizesInsideLinks(in: formatted)
         formatted = convertSizes(in: formatted)
         formatted = convertHeadings(in: formatted)
         // `[list]`, `[*]` et `[li]` sont gérés au niveau bloc par `tokenize`
@@ -119,11 +121,8 @@ enum DescriptionBlockParser {
         // are left behind as a bare `](https://…)`. Unwrap to the image — a
         // `.image` block carries no destination, and showing the picture beats
         // showing the syntax.
-        formatted = formatted.replacingOccurrences(
-            of: "(?is)\\[url(?:=[^\\]]*)?\\]\\s*(\\[img[^\\]]*\\].*?\\[/img\\])\\s*\\[/url\\]",
-            with: "$1", options: .regularExpression)
-        formatted = formatted.replacingOccurrences(of: "(?s)\\[url=(.*?)\\]\\s*(.*?)\\s*\\[/url\\]", with: "[$2]($1)", options: [.regularExpression, .caseInsensitive])
-        formatted = formatted.replacingOccurrences(of: "(?s)\\[url\\]\\s*(.*?)\\s*\\[/url\\]", with: "[$1]($1)", options: [.regularExpression, .caseInsensitive])
+        formatted = hoistImagesOutOfLinkLabels(in: formatted)
+        formatted = convertLinks(in: formatted)
         // NB: `[hr]` / `[line]` are intentionally NOT converted here — they are
         // tokenized into a `.divider` block below (a real rule renders, whereas
         // a Markdown `---` would show literally in inline-only rendering).
@@ -181,9 +180,51 @@ enum DescriptionBlockParser {
     /// contenu tient sur une seule ligne et fait ≤ 80 caractères — un `[size=4]`
     /// enveloppant un paragraphe entier ne doit pas devenir un titre géant.
     /// Une valeur non numérique est traitée comme corps (body copy).
+    /// Un contenu qui porte un jeton de niveau bloc — image, spoiler, filet, ou
+    /// le marqueur d'un `[code]` déjà extrait — ne peut pas devenir un titre :
+    /// le titre l'avalerait et son texte serait rendu tel quel, si bien qu'un
+    /// `[size=4][img]…[/img][/size]` affichait le balisage de l'image au lieu de
+    /// l'image. Ces contenus restent du texte, pour que le tokeniseur puisse en
+    /// extraire le bloc normalement.
+    private static func containsBlockToken(_ body: String) -> Bool {
+        if body.contains("\u{0}") { return true }   // marqueur [code]
+        return body.range(of: "(?i)\\[/?(?:img|spoiler|hr|line)\\b",
+                          options: .regularExpression) != nil
+    }
+
+    /// Rétrograde en `[b]` les `[size]` / `[heading]` situés **dans un lien**.
+    ///
+    /// Un libellé de lien est du contenu inline : le promouvoir en titre le sort
+    /// du texte sous forme de bloc, et les crochets du lien restent seuls —
+    /// `[url=…][size=4]Poltergeister[/size][/url]` affichait
+    /// `](https://forums.nexusmods.com/…)`. Régression apparue en même temps que
+    /// les titres typés, invisible tant que `[size]` produisait du gras inline.
+    private static func neutralizeSizesInsideLinks(in str: String) -> String {
+        guard let linkRegex = try? NSRegularExpression(
+            pattern: "(?is)\\[url(?:=[^\\]]*)?\\].*?\\[/url\\]") else { return str }
+        let ns = str as NSString
+        var out = ""
+        var last = 0
+        for m in linkRegex.matches(in: str, range: NSRange(location: 0, length: ns.length)) {
+            out += ns.substring(with: NSRange(location: last, length: m.range.location - last))
+            var link = ns.substring(with: m.range)
+            // Markdown émis directement : `[b]` est déjà converti à ce stade du
+            // pipeline, donc réintroduire la balise BBCode ne produirait rien.
+            for tag in ["size", "heading"] {
+                link = link.replacingOccurrences(
+                    of: "(?is)\\[\(tag)(?:=[^\\]]*)?\\](\\s*)(.*?)(\\s*)\\[/\(tag)\\]",
+                    with: "$1**$2**$3", options: .regularExpression)
+            }
+            out += link
+            last = m.range.location + m.range.length
+        }
+        out += ns.substring(from: last)
+        return out
+    }
+
     private static func convertSizes(in str: String) -> String {
         guard let regex = try? NSRegularExpression(
-            pattern: "(?s)\\[size=([^\\]]+)\\]\\s*(.*?)\\s*\\[/size\\]",
+            pattern: "(?s)\\[size=([^\\]]+)\\](\\s*)(.*?)(\\s*)\\[/size\\]",
             options: .caseInsensitive) else { return str }
         let ns = str as NSString
         var out = ""
@@ -191,9 +232,16 @@ enum DescriptionBlockParser {
         for m in regex.matches(in: str, range: NSRange(location: 0, length: ns.length)) {
             out += ns.substring(with: NSRange(location: last, length: m.range.location - last))
             let rawValue = ns.substring(with: m.range(at: 1)).trimmingCharacters(in: .whitespaces)
-            let body = ns.substring(with: m.range(at: 2))
+            // L'espace de bordure est réémis *hors* du gras ou du titre. Le
+            // consommer collait deux fragments : « …directly via » suivi d'un
+            // [size=4] séparé par une espace insécable donnait « via**PayPal** »,
+            // que Markdown refuse de lire comme du gras (pas d'emphase
+            // intra-mot) et affiche donc avec ses astérisques.
+            let leading = ns.substring(with: m.range(at: 2))
+            let body = ns.substring(with: m.range(at: 3))
+            let trailing = ns.substring(with: m.range(at: 4))
             let value = Int(rawValue.prefix(while: { $0.isNumber })) ?? 0
-            out += emitSize(value: value, body: body)
+            out += leading + emitSize(value: value, body: body) + trailing
             last = m.range.location + m.range.length
         }
         out += ns.substring(from: last)
@@ -206,6 +254,7 @@ enum DescriptionBlockParser {
     private static func emitSize(value: Int, body: String) -> String {
         guard value >= headingSizeThreshold else { return body }
         let trimmed = body.trimmingCharacters(in: .whitespacesAndNewlines)
+        if containsBlockToken(trimmed) { return body }
         if !trimmed.contains("\n") && trimmed.count <= 80 {
             return "\u{0}H\(headingLevel(forSize: value))\u{0}\(body)\u{0}/H\u{0}"
         }
@@ -216,14 +265,19 @@ enum DescriptionBlockParser {
     /// `[heading=N]` suit l'échelle `[size]`). Même garde-fou que les tailles.
     private static func convertHeadings(in str: String) -> String {
         guard let regex = try? NSRegularExpression(
-            pattern: "(?s)\\[heading(?:=([^\\]]+))?\\]\\s*(.*?)\\s*\\[/heading\\]",
+            pattern: "(?s)\\[heading(?:=([^\\]]+))?\\](\\s*)(.*?)(\\s*)\\[/heading\\]",
             options: .caseInsensitive) else { return str }
         let ns = str as NSString
         var out = ""
         var last = 0
         for m in regex.matches(in: str, range: NSRange(location: 0, length: ns.length)) {
             out += ns.substring(with: NSRange(location: last, length: m.range.location - last))
-            let body = ns.substring(with: m.range(at: 2))
+            // Groupes : 1 = valeur, 2 = espace avant, 3 = corps, 4 = espace après.
+            // L'espace de bordure est réémis hors du titre, pour la même raison
+            // que dans `convertSizes`.
+            let leading = ns.substring(with: m.range(at: 2))
+            let body = ns.substring(with: m.range(at: 3))
+            let trailing = ns.substring(with: m.range(at: 4))
             let value: Int
             if m.range(at: 1).location != NSNotFound {
                 let raw = ns.substring(with: m.range(at: 1)).trimmingCharacters(in: .whitespaces)
@@ -233,11 +287,15 @@ enum DescriptionBlockParser {
             }
             let level = value > 0 ? headingLevel(forSize: value) : 2
             let trimmed = body.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmed.contains("\n") && trimmed.count <= 80 {
+            out += leading
+            if containsBlockToken(trimmed) {
+                out += body                      // cf. `containsBlockToken`
+            } else if !trimmed.contains("\n") && trimmed.count <= 80 {
                 out += "\u{0}H\(level)\u{0}\(body)\u{0}/H\u{0}"
             } else {
                 out += "**\(body)**"
             }
+            out += trailing
             last = m.range.location + m.range.length
         }
         out += ns.substring(from: last)
@@ -258,19 +316,131 @@ enum DescriptionBlockParser {
     /// table `ContrastChecker.color(named:)` ; un nom inconnu → corps nu, sans
     /// attribut couleur. Les paires non appariées restent nettoyées par le strip
     /// final (`color` et `u` restent dans `knownInlineTags`).
-    private static func convertColors(in str: String) -> String {
+    /// Un libellé de lien Markdown tient sur **une ligne**. Certains auteurs
+    /// enveloppent tout un paragraphe — titre, filet de tirets, phrase — dans un
+    /// seul `[url]` ; le lien produit était alors illisible et son crochet
+    /// fermant s'affichait, sous la forme `](https://…)`.
+    private static func canBeLinkLabel(_ label: String) -> Bool {
+        !label.contains("\n") && !label.contains("\r")
+    }
+
+    /// `[url=X]Y[/url]` → `[Y](X)`. Quand le libellé ne peut pas en être un
+    /// (multiligne), on garde le texte et on abandonne le lien : perdre une
+    /// destination vaut mieux qu'afficher la syntaxe.
+    private static func convertLinks(in str: String) -> String {
         guard let regex = try? NSRegularExpression(
-            pattern: "(?is)\\[color=([^\\]]+)\\]\\s*(.*?)\\s*\\[/color\\]",
-            options: .caseInsensitive) else { return str }
+            pattern: "(?is)\\[url(?:=([^\\]]*))?\\]\\s*(.*?)\\s*\\[/url\\]") else { return str }
         let ns = str as NSString
         var out = ""
         var last = 0
         for m in regex.matches(in: str, range: NSRange(location: 0, length: ns.length)) {
             out += ns.substring(with: NSRange(location: last, length: m.range.location - last))
-            let value = ns.substring(with: m.range(at: 1)).trimmingCharacters(in: .whitespaces)
-            let body = ns.substring(with: m.range(at: 2))
-            if let hex = resolveColorHex(value) {
-                out += "^[\(body)](shcolor: '\(hex)')"
+            let label = ns.substring(with: m.range(at: 2))
+            let target = m.range(at: 1).location != NSNotFound
+                ? ns.substring(with: m.range(at: 1)).trimmingCharacters(in: .whitespacesAndNewlines)
+                : label.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !label.isEmpty, !target.isEmpty, canBeLinkLabel(label) {
+                out += "[\(label)](\(target))"
+            } else {
+                out += label
+            }
+            last = m.range.location + m.range.length
+        }
+        out += ns.substring(from: last)
+        return out
+    }
+
+    /// Sort les images du libellé d'un lien.
+    ///
+    /// Une image ne peut pas rester dans un libellé Markdown : le tokeniseur la
+    /// hisse en bloc et les crochets du lien restent seuls, affichant
+    /// `](https://…)`. Deux formes réelles : la bannière cliquable
+    /// (`[url=X][img]…[/img][/url]`) et l'image suivie d'un texte
+    /// (`[url=X][img]…[/img] Reddit: KALASH[/url]`). Dans les deux cas l'image
+    /// est émise **avant** le lien ; s'il reste du texte, il devient le libellé,
+    /// sinon le lien disparaît — un bloc `.image` ne porte pas de destination.
+    private static func hoistImagesOutOfLinkLabels(in str: String) -> String {
+        guard let linkRegex = try? NSRegularExpression(
+            pattern: "(?is)\\[url(?:=([^\\]]*))?\\](.*?)\\[/url\\]") else { return str }
+        let ns = str as NSString
+        var out = ""
+        var last = 0
+        for m in linkRegex.matches(in: str, range: NSRange(location: 0, length: ns.length)) {
+            out += ns.substring(with: NSRange(location: last, length: m.range.location - last))
+            last = m.range.location + m.range.length
+
+            let label = ns.substring(with: m.range(at: 2))
+            guard label.range(of: "(?i)\\[img", options: .regularExpression) != nil else {
+                out += ns.substring(with: m.range)          // pas d'image : inchangé
+                continue
+            }
+            var images = ""
+            let rest = label.replacingOccurrences(
+                of: "(?is)\\[img[^\\]]*\\].*?\\[/img\\]",
+                with: "", options: .regularExpression)
+            if let imgRegex = try? NSRegularExpression(pattern: "(?is)\\[img[^\\]]*\\].*?\\[/img\\]") {
+                let ls = label as NSString
+                for im in imgRegex.matches(in: label, range: NSRange(location: 0, length: ls.length)) {
+                    images += ls.substring(with: im.range)
+                }
+            }
+            out += images
+            let remaining = rest.trimmingCharacters(in: .whitespacesAndNewlines)
+            let target = m.range(at: 1).location != NSNotFound ? ns.substring(with: m.range(at: 1)) : remaining
+            if !remaining.isEmpty && !target.isEmpty && canBeLinkLabel(remaining) {
+                out += "[\(remaining)](\(target))"
+            } else if !remaining.isEmpty {
+                out += remaining
+            }
+        }
+        out += ns.substring(from: last)
+        return out
+    }
+
+    /// Un libellé de span d'attribut (`^[libellé](clé: 'valeur')`) doit rester
+    /// du texte simple.
+    ///
+    /// - Des crochets le casseraient : `[color=#ff0]*[/color]` produisait le
+    ///   libellé `[*]`, que le tokeniseur de listes reprenait comme une puce,
+    ///   laissant un `^(shcolor: …)` sans libellé s'afficher en clair.
+    /// - Un span déjà présent ne peut pas être imbriqué dans un autre.
+    /// - Un contenu vide ou réduit à de la ponctuation ne mérite pas d'être
+    ///   coloré ou souligné : on garde le caractère, on abandonne l'attribut.
+    private static func canCarryAttributeSpan(_ body: String) -> Bool {
+        if body.contains("[") || body.contains("]") { return false }
+        if body.contains("^[") || body.contains("](sh") { return false }
+        // Un marqueur de bloc (un `[code]` déjà extrait) n'est pas du texte : le
+        // tokeniseur le remplacera par un bloc, laissant le span éventré.
+        // `[color=#00FF00][code]…[/code][/color]` existe dans la vraie vie.
+        if containsBlockToken(body) { return false }
+        // Un span ne survit pas à un saut de ligne : le corps se retrouve alors
+        // à cheval sur deux paragraphes ou deux items de liste, que la
+        // tokenisation sépare — la parenthèse d'attribut restait seule à
+        // l'écran. Une couleur qui enjambe des blocs n'a de toute façon pas de
+        // sens ici.
+        if body.contains("\n") || body.contains("\r") { return false }
+        let trimmed = body.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty { return false }
+        return trimmed.contains(where: { $0.isLetter || $0.isNumber })
+    }
+
+    /// `[u]X[/u]` → `^[X](shunderline: 'true')` — un vrai souligné, là où la
+    /// conversion précédente produisait de l'*italique*.
+    ///
+    /// Même règle que pour les couleurs : si le corps porte déjà un span
+    /// d'attribut (une couleur imbriquée), le souligné externe est abandonné
+    /// plutôt que d'imbriquer deux spans, ce que la syntaxe ne permet pas.
+    private static func convertUnderlines(in str: String) -> String {
+        guard let regex = try? NSRegularExpression(
+            pattern: "(?is)\\[u\\]\\s*(.*?)\\s*\\[/u\\]") else { return str }
+        let ns = str as NSString
+        var out = ""
+        var last = 0
+        for m in regex.matches(in: str, range: NSRange(location: 0, length: ns.length)) {
+            out += ns.substring(with: NSRange(location: last, length: m.range.location - last))
+            let body = ns.substring(with: m.range(at: 1))
+            if canCarryAttributeSpan(body) {
+                out += "^[\(body)](shunderline: 'true')"
             } else {
                 out += body
             }
@@ -278,6 +448,50 @@ enum DescriptionBlockParser {
         }
         out += ns.substring(from: last)
         return out
+    }
+
+    /// `[color=V]X[/color]` → `^[X](shcolor: '#rrggbb')`, en résolvant les
+    /// **imbrications de l'intérieur vers l'extérieur**.
+    ///
+    /// Les auteurs imbriquent les couleurs (« tout en blanc, sauf ces deux mots
+    /// en vert »). Un motif non-gourmand appariait l'ouvrant externe au *premier*
+    /// fermant, produisant des spans tronqués qui s'affichaient en clair —
+    /// `^(shcolor: '#ffffff')If you…` ou un `](shcolor: '…')` orphelin.
+    /// Le motif ci-dessous ne matche qu'un bloc **sans couleur imbriquée**, donc
+    /// répété il traite les plus internes d'abord.
+    ///
+    /// Un span d'attribut ne peut pas en contenir un autre : quand le corps en
+    /// porte déjà un, la couleur **externe** est abandonnée et le contenu passe
+    /// tel quel. Perdre une teinte englobante vaut mieux qu'afficher la syntaxe.
+    private static func convertColors(in str: String) -> String {
+        guard let regex = try? NSRegularExpression(
+            pattern: "(?is)\\[color=([^\\]]+)\\]\\s*((?:(?!\\[color=)(?!\\[/color\\]).)*?)\\s*\\[/color\\]",
+            options: .caseInsensitive) else { return str }
+
+        var current = str
+        // Une passe par niveau d'imbrication ; la borne évite toute boucle
+        // infinie sur une entrée pathologique.
+        for _ in 0..<8 {
+            let ns = current as NSString
+            let matches = regex.matches(in: current, range: NSRange(location: 0, length: ns.length))
+            guard !matches.isEmpty else { break }
+            var out = ""
+            var last = 0
+            for m in matches {
+                out += ns.substring(with: NSRange(location: last, length: m.range.location - last))
+                let value = ns.substring(with: m.range(at: 1)).trimmingCharacters(in: .whitespaces)
+                let body = ns.substring(with: m.range(at: 2))
+                if let hex = resolveColorHex(value), canCarryAttributeSpan(body) {
+                    out += "^[\(body)](shcolor: '\(hex)')"
+                } else {
+                    out += body
+                }
+                last = m.range.location + m.range.length
+            }
+            out += ns.substring(from: last)
+            current = out
+        }
+        return current
     }
 
     /// Résout une valeur `[color=V]` en hex `#rrggbb` : `#hex` passé tel quel,
@@ -473,11 +687,35 @@ enum DescriptionBlockParser {
             }
         case "list":
             let ordered = attribute.hasPrefix("=")
-            let items = splitListItems(inner, codeBlocks: codeBlocks)
+            // Une image dans un item n'a nulle part où aller : l'item est une
+            // chaîne, donc le balisage s'y affichait en clair. On la sort de la
+            // liste et on l'émet après, plutôt que de la perdre ou de la montrer.
+            let (withoutImages, hoisted) = extractImageURLs(from: inner)
+            let items = splitListItems(withoutImages, codeBlocks: codeBlocks)
             if !items.isEmpty { blocks.append(.list(items: items, ordered: ordered)) }
+            blocks.append(contentsOf: hoisted.map { .image($0) })
         default:
             break
         }
+    }
+
+    /// Retire les `[img]…[/img]` d'un fragment et renvoie leurs URL, pour que
+    /// l'appelant les émette comme blocs à part.
+    private static func extractImageURLs(from str: String) -> (String, [URL]) {
+        guard let regex = try? NSRegularExpression(
+            pattern: "(?is)\\[img[^\\]]*\\](.*?)\\[/img\\]") else { return (str, []) }
+        let ns = str as NSString
+        var urls: [URL] = []
+        var out = ""
+        var last = 0
+        for m in regex.matches(in: str, range: NSRange(location: 0, length: ns.length)) {
+            out += ns.substring(with: NSRange(location: last, length: m.range.location - last))
+            let src = ns.substring(with: m.range(at: 1)).trimmingCharacters(in: .whitespacesAndNewlines)
+            if let u = URL(string: src) { urls.append(u) }
+            last = m.range.location + m.range.length
+        }
+        out += ns.substring(from: last)
+        return (out, urls)
     }
 
     /// Découpe le contenu d'une `[list]` sur les marqueurs d'item `[*]` / `[li]`.
