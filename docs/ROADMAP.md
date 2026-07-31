@@ -128,10 +128,25 @@ liste du 2026-07-30 et n'existaient pas dans le document de veille.
 | §9 | Doc utilisateur, screenshots, publication Nexus, Sentinel | **À faire** | → **E2** |
 | *Thaï* | « Centre de traduction thaï incohérent dans un fork FR » | **Neutralisé, à finir** | `MainView.swift:13` : `showThaiTranslationHub = false` sans réglage pour l'activer → UI morte. Reste l'architecture → **C5** |
 
-**Bilan** — 45 demandes : **4 livrées**, **7 partielles**, **4 bugs à corriger**
-(dont **1 bloquant**), **2 à (re)vérifier**, **1 à instruire** (GMCM), **1 reformulée**
-(FPS), **1 neutralisée** (hub thaï), **2 précisions de cadrage**, **23 à faire**.
-L'axe diagnostic de log est derrière nous ; l'essentiel du reste tient dans A, B et C.
+Lignes ci-dessous issues de l'**audit Stardop (2026-07-31)** — veille concurrentielle, *pas*
+de la liste de l'auteur. Analyse complète et exclusions motivées : `docs/audit-stardrop.md`.
+
+| Source | Demande | État | Preuve / renvoi |
+| :-- | :-- | :-- | :-- |
+| *audit* | Compatibilité mods via l'**API live `smapi.io`** (plutôt que le dump statique `mods.jsonc`) | **À faire** | Plus riche : statut + mise à jour suggérée + URL unofficial. Repositionne **A2** |
+| *audit* | **Configs par profil** (un même mod, plusieurs `config.json`) | **À faire** | Manquante ; merge JSON non-destructif → **B3-T5** |
+| *audit* | Notes libres par mod | **À faire** | → **B3-T6** |
+| *audit* | Quota Nexus quotidien visible | **À faire** | Header déjà reçu, non affiché → **B2-T6** |
+| *audit* | `UpdateCautionMessage` (alerte auteur avant mise à jour) | **À faire** | → **B2-T7** |
+| *audit* | Panneau de downloads observable (%, vitesse, annulation) | **À faire** | Élargit **B2-T1** |
+
+**Bilan** — 45 demandes de la liste initiale : **4 livrées**, **7 partielles**, **4 bugs à
+corriger** (dont **1 bloquant**), **2 à (re)vérifier**, **1 à instruire** (GMCM),
+**1 reformulée** (FPS), **1 neutralisée** (hub thaï), **2 précisions de cadrage**,
+**23 à faire**. S'y ajoutent **6 pistes issues de l'audit Stardop** (5 nouvelles tâches :
+B3-T5/T6, B2-T6/T7, et **A2 repositionné** autour de smapi.io), toutes marquées
+`§audit-stardrop`. L'axe diagnostic de log est derrière nous ; l'essentiel du reste tient
+dans A, B et C.
 
 ---
 
@@ -396,6 +411,15 @@ pouvoir revenir en arrière à tout moment.
 - [ ] **B3-T3** — Duplication d'un profil. · **S**
 - [ ] **B3-T4** — Diagnostic de profil au changement : mods manquants, dépendances non
       satisfaites, couverture FR (réutilise **C1-T1**). · **M**
+- [ ] **B3-T5** — **Configurations par profil** : un même mod peut avoir des `config.json`
+      différents selon le profil (ex. CJB Cheats configuré en solo, désactivé en multi).
+      Capture/restauration au changement de profil avec **merge JSON non-destructif**
+      (`JsonTools.Merge` côté Stardop) pour ne pas écraser les réglages existants. Opt-in,
+      aucun swap sans backup préalable (réutilise `ModConfigBackupManager`). · **L** ·
+      *§audit-stardrop · le chantier le plus volumineux issu de l'audit ; à instruire avant
+      engagement (écriture dans les configs des mods = surface de perte de données).*
+- [ ] **B3-T6** — Notes libres par mod, persistées au profil (annotations contextuelles :
+      « désactivé en multi car désync », « à mettre à jour »). · **S** · *§audit-stardrop*
 
 #### B4 — Page de backups
 
@@ -408,7 +432,10 @@ pouvoir revenir en arrière à tout moment.
 
 #### B2 — Ergonomie transverse
 
-- [ ] **B2-T1** — ETA et débit pendant les téléchargements Nexus. · **S**
+- [ ] **B2-T1** — ETA et débit pendant les téléchargements Nexus, et **panneau de downloads
+      observable** : statut par téléchargement, %, vitesse, annulation, retry (inspiration :
+      `DownloadPanel` de Stardop). Aujourd'hui StarHubFR ne fait que du
+      `URLSession.downloadTask` fire-and-forget, sans progression live. · **M** · *§audit-stardrop*
 - [ ] **B2-T2** — Poids par mod, total de `Mods/`, espace disque restant (en pied de barre
       latérale, près de l'indicateur d'état). · **M**
 - [ ] **B2-T3** — Boutons de rafraîchissement sur la quarantaine et les alertes système ;
@@ -420,6 +447,13 @@ pouvoir revenir en arrière à tout moment.
 - [ ] **B2-T5** — Reprendre l'affichage des dates d'un mod : distinguer explicitement
       *date de création Nexus* et *date de mise à jour*, et vérifier laquelle est montrée
       où (liste, fiche, bandeau de mise à jour). · **S**
+- [ ] **B2-T6** — Quota Nexus quotidien visible (header `x-rl-daily-remaining`). StarHubFR
+      gère déjà le rate-limit réactif (`Retry-After`) mais n'affiche pas le quota restant —
+      trivial, deux headers déjà reçus à chaque réponse. · **S** · *§audit-stardrop*
+- [ ] **B2-T7** — `UpdateCautionMessage` : si un manifest installé expose ce champ
+      (extension SMAPI tolérée, absente = pas d'alerte), alerter l'utilisateur **avant**
+      d'écraser la version existante (breaking change annoncé par l'auteur). · **S** ·
+      *§audit-stardrop*
 - [ ] **B1-T3** — Pastilles d'anomalie dans la liste des mods (erreurs récentes, dépendance
       manquante, manifest illisible) alimentées par `ModErrorHistory`. · **M**
 
@@ -441,18 +475,30 @@ backup se retrouve en moins de dix secondes.
       sert de référence de comportement, et les messages d'erreur doivent être aussi
       explicites que les siens. · **M**
 
-#### A2 — Liste de compatibilité SMAPI distante
+#### A2 — Compatibilité SMAPI via l'API smapi.io
 
-- [ ] **A2-T1** — Client de `Pathoschild/SmapiCompatibilityList` (`mods.jsonc`, ~919 Ko,
-      jointure directe sur `UniqueID`), cache local, dégradation propre hors ligne. · **M**
-- [ ] **A2-T2** — Afficher statut (`Broken`, `Abandoned`, `Unofficial`…), `brokeIn` et
-      **lien de mise à jour non officielle / mod de remplacement** sur la fiche mod et dans
-      la carte de santé. · **M**
-- [ ] **A2-T3** — Bandeau d'obsolescence de la base (date du dernier commit amont). · **S**
+> 🔄 **Repositionné après audit Stardop (2026-07-31 — voir `docs/audit-stardrop.md`)** :
+> Stardop interroge l'API live `smapi.io/api/v3.0/mods` (`IncludeExtendedMetadata`) — la
+> source que SMAPI utilise lui-même au démarrage. **Plus riche que le dump statique
+> `mods.jsonc`** : elle remonte en plus la mise à jour *suggérée* et l'URL de mise à jour
+> *non officielle*. `mods.jsonc` devient le **fallback hors-ligne**, plus la source primaire.
 
-> ⚠️ **Réserve documentée** : `smapi.io/mods` annonce lui-même ne plus être mis à jour
+- [ ] **A2-T1** — Client de l'API `smapi.io/api/v3.0/mods` : POST `ModSearchData`
+      (UniqueID + version installée + update keys + version SMAPI + version du jeu) pour
+      chaque mod à version valide. Réponse typée par mod : `SuggestedUpdate`,
+      `CompatibilityStatus` (`Ok`/`Broken`/`Abandoned`/`Obsolete`/`Unofficial`/`Workaround`),
+      `Unofficial` (URL de mise à jour non officielle), `Main`/`CustomUrl`. Cache local +
+      dégradation propre hors ligne. DTO portables depuis Stardop (`ModSearchEntry`,
+      `ModEntry`, `ModEntryMetadata`). · **M**
+- [ ] **A2-T2** — Afficher le statut, `brokeIn` et le **lien de mise à jour non officielle /
+      mod de remplacement** sur la fiche mod et dans la carte de santé. · **M**
+- [ ] **A2-T3** — Fallback sur `Pathoschild/SmapiCompatibilityList` (`mods.jsonc`,
+      jointure sur `UniqueID`) quand smapi.io est injoignable, et bandeau signalant la
+      fraîcheur de la source effectivement utilisée (live vs cache statique). · **M**
+
+> ⚠️ **Réserve conservée** : `smapi.io/mods` annonce lui-même ne plus être mis à jour
 > exhaustivement, et son avenir est incertain. À traiter comme **complément** au
-> diagnostic de log, jamais comme source unique de vérité.
+> diagnostic de log, jamais comme source unique de vérité — d'où le fallback `mods.jsonc`.
 
 #### A3 — Métadonnées Nexus
 
@@ -554,6 +600,9 @@ produit. Trois verrous à lever *avant* d'écrire la moindre ligne :
 | **xnbcli** / conversion d'assets `.xnb` | **Écarté** | Outillage de moddeur, hors de la promesse « gérer et traduire ses mods ». *Nuance* : la lecture de `Content/Strings/*.xnb` reste pertinente pour le glossaire de **C3-T4**. |
 | **SMAPI-Android-Installer**, moteur de jeu open-source | **Écarté** | Sans rapport avec une app macOS de gestion de mods. |
 | Copier les **profils Stardrop** tels quels | **Écarté** | Le clonage sans dimension FR reproduit un concurrent sans raison d'exister ; **B3-T4** relie au contraire profil, diagnostic et couverture de traduction. |
+| *audit* Activation Stardop par **junctions/symlinks** (`SMAPI_MODS_PATH`) | **Écarté** | Choix d'architecture différent du prefixe `X`/`.X` natif SMAPI : plus complexe et dépendant des permissions OS. Notre convention reste plus simple et fiable. Cf. `docs/audit-stardrop.md`. |
+| *audit* **`SimpleObscure`** (chiffrement maison de la clé Nexus côté Stardop) | **Écarté** | Obfuscation : clé AES + IV stockées en clair à côté du ciphertext. Inférieure au **Keychain macOS** que StarHubFR utilise déjà. |
+| *audit* **Auto-update in-app façon Stardop** (move + restart) | **Écarté (pour l'instant)** | Fragile sur macOS. Si on l'ouvre un jour → **Sparkle**, pas ce bricolage. |
 | Collections Nexus (complétude d'un modpack) | **Reporté** | Fort couplage à des collections mouvantes ; à reconsidérer après **E1**. |
 
 *(La piste GMCM/Modern Config Menu a quitté cette section : elle est réintégrée au
