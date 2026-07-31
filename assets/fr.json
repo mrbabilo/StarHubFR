@@ -704,14 +704,16 @@
   "bisect_concluded_title": "Trouvé",
   "bisect_concluded_body": "« %@ » est à l'origine du problème. Il reste en pause et tous vos autres mods sont réactivés. Laissez-le ainsi, ou remettez tout comme avant ci-dessous.",
   "bisect_inconclusive_title": "Pas de réponse simple",
-  "bisect_inconclusive_body": "Le problème ne vient pas d'un seul mod : il apparaît quand plusieurs sont actifs ensemble. Remettez tout comme avant ci-dessous — vous pourrez recommencer quand vous voudrez.",
+  "bisect_inconclusive_body": "Le problème ne vient pas d'un seul mod : il apparaît quand plusieurs sont actifs ensemble. La recherche a tout de même réduit le champ.",
+  "bisect_inconclusive_remaining": "Les mods encore en cause sont :",
   "bisect_not_reproducible_title": "Rien à chercher",
   "bisect_not_reproducible_body": "Le problème ne s'est pas produit cette fois. S'il revient, relancez la recherche à ce moment-là.",
   "bisect_restore": "Tout remettre comme avant",
   "bisect_restored": "Vos mods sont revenus à leur état de départ.",
   "bisect_interrupted_title": "Recherche interrompue",
   "bisect_interrupted_body": "Une recherche a été interrompue le %@. Vos mods sont encore en pause. Voulez-vous les remettre comme avant ?",
-  "bisect_show_mods": "Voir les mods de cette étape",
+  "bisect_show_mods": "Voir les mods qui tournent à cette étape",
+  "bisect_cleared_count": "%lld mods sont déjà hors de cause.",
   "bisect_no_candidates": "Aucun mod à tester : ils sont déjà tous en pause.",
   "bisect_profile_name": "Recherche du mod responsable"
 }

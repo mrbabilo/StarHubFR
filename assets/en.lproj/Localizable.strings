@@ -704,13 +704,15 @@
 "bisect_concluded_title" = "Found it";
 "bisect_concluded_body" = "\"%@\" is causing the problem. It stays paused and all your other mods are back on. Leave it like this, or put everything back below.";
 "bisect_inconclusive_title" = "No simple answer";
-"bisect_inconclusive_body" = "The problem doesn't come from one mod alone: it shows up when several are on together. Put everything back below — you can start over whenever you like.";
+"bisect_inconclusive_body" = "The problem doesn't come from one mod alone: it shows up when several are on together. The search still narrowed it down.";
+"bisect_inconclusive_remaining" = "The mods still involved are:";
 "bisect_not_reproducible_title" = "Nothing to look for";
 "bisect_not_reproducible_body" = "The problem didn't happen this time. If it comes back, start the search then.";
 "bisect_restore" = "Put everything back";
 "bisect_restored" = "Your mods are back to how they started.";
 "bisect_interrupted_title" = "Search interrupted";
 "bisect_interrupted_body" = "A search was interrupted on %@. Your mods are still paused. Put them back the way they were?";
-"bisect_show_mods" = "See this step's mods";
+"bisect_show_mods" = "See which mods are running this step";
+"bisect_cleared_count" = "%lld mods are already in the clear.";
 "bisect_no_candidates" = "No mods to test: they're all paused already.";
 "bisect_profile_name" = "Mod search";

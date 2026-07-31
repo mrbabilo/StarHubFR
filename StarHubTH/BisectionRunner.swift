@@ -13,6 +13,9 @@ final class BisectionRunner: ObservableObject {
     /// Candidats de l'essai courant (code-mods seulement), pour l'affichage.
     @Published private(set) var currentFolders: [String] = []
     @Published private(set) var candidateCount = 0
+    /// Dossiers déjà mis hors de cause, publiés pour que l'écran puisse montrer
+    /// l'avancement réel de la recherche et non seulement un numéro d'étape.
+    @Published private(set) var clearedFolders: [String] = []
     @Published private(set) var noCandidates = false
     @Published var interruptedSnapshot: BisectionSnapshot?
 
@@ -82,6 +85,7 @@ final class BisectionRunner: ObservableObject {
         let s = BisectionSession(candidates: list)
         session = s
         state = s.state
+        clearedFolders = s.clearedFolders
         apply(s.foldersToEnable) { [weak self] _ in self?.launch() }
     }
 
@@ -100,6 +104,7 @@ final class BisectionRunner: ObservableObject {
         s.record(outcome)
         session = s
         state = s.state
+        clearedFolders = s.clearedFolders
         switch s.state {
         case .concluded, .inconclusive, .notReproducible:
             // Recherche finie : on remet tout comme avant, sauf le mod trouvé

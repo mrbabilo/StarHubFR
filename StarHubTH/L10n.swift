@@ -788,6 +788,8 @@ enum L10n {
         static let interruptedTitle   = "bisect_interrupted_title"
         static let interruptedBody    = "bisect_interrupted_body"
         static let showMods           = "bisect_show_mods"
+        static let clearedCount       = "bisect_cleared_count"
+        static let inconclusiveRemaining = "bisect_inconclusive_remaining"
         static let noCandidates       = "bisect_no_candidates"
         /// Nom donné à l'ensemble de mods appliqué pendant une recherche : il
         /// apparaît dans l'alerte si un dossier ne peut pas être déplacé.

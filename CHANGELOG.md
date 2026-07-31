@@ -13,6 +13,10 @@ where the exact log format was verified.
 ## [Unreleased]
 
 ### Added
+- **The search now says what it has ruled out, and what it found even when it can't name a single culprit.** Three gaps closed at once: a step used to announce "pausing 40 mods" above a list that actually showed the ones still running, with no label saying which side it was; the narrowing itself was invisible, so a player five launches in had no idea 76 mods were already in the clear; and worst, "no simple answer" threw the result away — the search would isolate three inseparable mods out of a hundred and then decline to name them. Each step now reports how many mods are cleared, the list is labelled for what it holds, and the inconclusive screen lists the mods still involved.
+
+
+### Added
 - **Finding the mod that breaks your game, step by step.** When Stardew Valley crashes and the log names no one, the only reliable method is to halve the mod list, restart, and repeat. The app now does the halving, the restarting and the bookkeeping: it pauses half your mods, starts the game, waits for you to come back, asks one question — "is the problem still there?" — and narrows down. Roughly seven steps for a hundred mods. Nothing is deleted, the starting state is written to disk before a single folder moves, and "put everything back" is one click away at every step. It ends on a confirmation run — everything back on except the mod it points at — because halving produces a lead, not a proof. If the app is quit mid-search, the home screen says so on the next start and offers to put everything back from there. And if a folder can't be moved back — held open by the Finder, a stale twin already in place — the record of your starting state is *kept*, so putting everything back stays retryable instead of being lost.
 
 ## [1.10.3] - 2026-07-31

@@ -34,7 +34,11 @@ public enum BisectionState: Equatable {
     case confirming(folderName: String)
     case concluded(folderName: String)
     /// La méthode ne peut pas trancher (deux mods fautifs ensemble, par exemple).
-    case inconclusive
+    /// La méthode ne peut pas désigner un seul responsable — mods inséparables,
+    /// ou panne qui n'apparaît qu'à plusieurs. `remaining` porte les dossiers
+    /// encore en cause : c'est le résultat du travail, et le taire reviendrait à
+    /// jeter sept lancements de jeu à la dernière ligne.
+    case inconclusive(remaining: [String])
     /// Le problème ne s'est pas reproduit : rien à chercher.
     case notReproducible
 }
@@ -57,6 +61,18 @@ public struct BisectionSession {
     }
 
     /// Dossiers à laisser actifs pour l'étape courante.
+    /// Dossiers encore en cause. Rétrécit à chaque réponse — c'est la mesure
+    /// honnête de l'avancement, là où le numéro d'étape n'est qu'une estimation.
+    public var remainingSuspects: [String] { suspects.map(\.folderName) }
+
+    /// Dossiers que la recherche a mis hors de cause. L'utilisateur attend
+    /// pendant plusieurs lancements de jeu : lui montrer ce qui est déjà écarté
+    /// est ce qui donne un sens à cette attente.
+    public var clearedFolders: [String] {
+        let stillSuspect = Set(suspects.map(\.folderName))
+        return ordered.map(\.folderName).filter { !stillSuspect.contains($0) }
+    }
+
     public var foldersToEnable: [String] {
         switch state {
         case .reproducing:
@@ -79,7 +95,7 @@ public struct BisectionSession {
         switch state {
         case .reproducing:
             guard outcome == .stillBroken else { state = .notReproducible; return }
-            guard !suspects.isEmpty else { state = .inconclusive; return }
+            guard !suspects.isEmpty else { state = .inconclusive(remaining: []); return }
             // Un seul candidat : rien à couper en deux, on passe directement à
             // la vérification. Sans ce court-circuit, l'essai serait l'ensemble
             // suspect entier et la garde de grappe le prendrait pour des mods
@@ -98,7 +114,7 @@ public struct BisectionSession {
             suspects = outcome == .stillBroken
                 ? currentTrial
                 : suspects.filter { c in !currentTrial.contains(where: { $0.folderName == c.folderName }) }
-            guard !suspects.isEmpty else { state = .inconclusive; return }
+            guard !suspects.isEmpty else { state = .inconclusive(remaining: []); return }
             if suspects.count == 1 {
                 state = .confirming(folderName: suspects[0].folderName)
                 return
@@ -108,7 +124,9 @@ public struct BisectionSession {
         case .confirming(let suspect):
             // Sans lui le problème disparaît : c'est bien lui. Sinon la méthode
             // a atteint sa limite — plusieurs mods fautifs ensemble.
-            state = outcome == .fixed ? .concluded(folderName: suspect) : .inconclusive
+            state = outcome == .fixed
+                ? .concluded(folderName: suspect)
+                : .inconclusive(remaining: suspects.map(\.folderName))
 
         case .concluded, .inconclusive, .notReproducible:
             break
@@ -125,7 +143,7 @@ public struct BisectionSession {
         // désigné seul — c'est la même réponse que pour deux mods qui ne
         // s'entendent qu'ensemble.
         if Set(currentTrial.map(\.folderName)) == Set(suspects.map(\.folderName)) {
-            state = .inconclusive
+            state = .inconclusive(remaining: suspects.map(\.folderName))
             return
         }
         // La fermeture vers le haut peut faire *grossir* l'ensemble suspect

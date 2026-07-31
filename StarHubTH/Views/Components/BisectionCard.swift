@@ -33,8 +33,8 @@ struct BisectionCard: View {
                 case .concluded(let folder):
                     finished(L10n.Bisect.concludedTitle,
                              String(format: vm.L(L10n.Bisect.concludedBody), folder))
-                case .inconclusive:
-                    finished(L10n.Bisect.inconclusiveTitle, vm.L(L10n.Bisect.inconclusiveBody))
+                case .inconclusive(let remaining):
+                    inconclusive(remaining)
                 case .notReproducible:
                     finished(L10n.Bisect.notReproducibleTitle, vm.L(L10n.Bisect.notReproducibleBody))
                 }
@@ -75,6 +75,12 @@ struct BisectionCard: View {
             Text(String(format: vm.L(L10n.Bisect.pausedCount),
                         max(0, runner.candidateCount - runner.currentFolders.count)))
                 .font(.system(size: 12)).foregroundColor(.secondary)
+            // Ce qui est déjà écarté : la seule mesure honnête de l'avancement,
+            // et ce qui donne un sens à l'attente entre deux lancements de jeu.
+            if !runner.clearedFolders.isEmpty {
+                Text(String(format: vm.L(L10n.Bisect.clearedCount), runner.clearedFolders.count))
+                    .font(.system(size: 12)).foregroundColor(.secondary)
+            }
             DisclosureGroup(vm.L(L10n.Bisect.showMods), isExpanded: $showMods) {
                 Text(runner.currentFolders.sorted().joined(separator: "\n"))
                     .font(.system(size: 11, design: .monospaced))
@@ -129,6 +135,27 @@ struct BisectionCard: View {
     private var logHint: String? {
         guard !vm.smapiLogStale, let d = vm.smapiDiagnostics else { return nil }
         return vm.L(d.problemCount == 0 ? L10n.Bisect.hintClean : L10n.Bisect.hintCrashed)
+    }
+
+    /// « Pas de réponse simple » n'est pas rien : la recherche a réduit le champ
+    /// à ces mods-là. Les taire jetterait le bénéfice de plusieurs lancements de
+    /// jeu à la dernière ligne.
+    private func inconclusive(_ remaining: [String]) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(vm.L(L10n.Bisect.inconclusiveTitle)).font(.system(size: 13, weight: .semibold))
+            Text(vm.L(L10n.Bisect.inconclusiveBody))
+                .font(.system(size: 12)).foregroundColor(.secondary)
+            if !remaining.isEmpty {
+                Text(vm.L(L10n.Bisect.inconclusiveRemaining))
+                    .font(.system(size: 12, weight: .medium))
+                Text(remaining.sorted().joined(separator: "\n"))
+                    .font(.system(size: 11, design: .monospaced))
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            Button(vm.L(L10n.Bisect.restore)) { runner.restoreAndStop() }
+                .disabled(runner.isApplying)
+        }
     }
 
     private func finished(_ title: String, _ body: String) -> some View {

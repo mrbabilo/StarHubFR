@@ -72,7 +72,29 @@ struct BisectionSessionTests {
         s.record(.stillBroken)
         s.record(.stillBroken)
         s.record(.stillBroken)
-        #expect(s.state == .inconclusive)
+        // Le champ réduit est le résultat du travail : il doit être rendu, pas
+        // jeté. Ici la confirmation échoue sur un unique suspect restant.
+        guard case .inconclusive(let remaining) = s.state else {
+            Issue.record("attendu inconclusive, obtenu \(s.state)"); return
+        }
+        #expect(remaining.count == 1)
+        #expect(["A", "B"].contains(remaining[0]))
+    }
+
+    @Test func clearedFoldersGrowAsTheSearchNarrows() {
+        // L'utilisateur attend plusieurs lancements de jeu : ce qui est déjà
+        // écarté est la seule mesure honnête de l'avancement, là où le numéro
+        // d'étape n'est qu'une estimation.
+        var s = BisectionSession(candidates: simple("A", "B", "C", "D"))
+        #expect(s.clearedFolders.isEmpty)          // rien d'écarté au départ
+        #expect(Set(s.remainingSuspects) == ["A", "B", "C", "D"])
+        s.record(.stillBroken)                     // reproduction
+        s.record(.stillBroken)                     // le coupable est dans l'essai
+        #expect(s.clearedFolders.count == 2)
+        #expect(Set(s.remainingSuspects).count == 2)
+        // Les deux ensembles partitionnent toujours les candidats.
+        #expect(Set(s.clearedFolders).isDisjoint(with: Set(s.remainingSuspects)))
+        #expect(Set(s.clearedFolders).union(s.remainingSuspects) == ["A", "B", "C", "D"])
     }
 
     @Test func aTrialCarriesTheDependenciesItNeeds() {
@@ -147,7 +169,7 @@ struct BisectionSessionTests {
     @Test func anEmptySetIsImmediatelyInconclusive() {
         var s = BisectionSession(candidates: [])
         s.record(.stillBroken)
-        #expect(s.state == .inconclusive)
+        #expect(s.state == .inconclusive(remaining: []))
     }
 
     @Test func modsThatNeedEachOtherCannotBeBlamedIndividually() {
@@ -168,8 +190,12 @@ struct BisectionSessionTests {
             // Le coupable est A : la panne persiste si et seulement si A tourne.
             s.record(Set(s.foldersToEnable).contains("A") ? .stillBroken : .fixed)
         }
-        // La recherche doit s'arrêter, et le dire — jamais boucler.
-        #expect(s.state == .inconclusive)
+        // La recherche doit s'arrêter, le dire — jamais boucler — et nommer la
+        // grappe qu'elle a isolée : c'est tout le bénéfice des essais passés.
+        guard case .inconclusive(let remaining) = s.state else {
+            Issue.record("attendu inconclusive, obtenu \(s.state)"); return
+        }
+        #expect(Set(remaining) == ["A", "B"])
         #expect(steps < 12, "la recherche n'a pas terminé")
     }
 
