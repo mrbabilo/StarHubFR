@@ -3831,6 +3831,35 @@ class StarHubTHViewModel: ObservableObject {
         saveProfiles()
     }
 
+    // MARK: - Bissection (recherche du mod responsable)
+
+    /// Pilote une recherche par moitiés. Créée à la demande : la grande majorité
+    /// des sessions ne s'en sert jamais, inutile de l'instancier au démarrage.
+    lazy var bisection = BisectionRunner(vm: self)
+
+    /// Active exactement les dossiers de premier niveau donnés, met les autres
+    /// en pause, puis rescane. Chemin dédié à la bissection : il réutilise le
+    /// déplacement de dossiers éprouvé par les profils, mais neutralise
+    /// `activeProfileId` le temps de l'application — sinon `syncActiveProfileIds`,
+    /// lancé à la fin du rescane, réécrirait le profil actif de l'utilisateur
+    /// avec l'état éphémère de la recherche.
+    func applyEnabledFolders(_ folders: [String], completion: @escaping () -> Void) {
+        let target = Set(folders)
+        let ephemeral = ModProfile(
+            name: "",
+            enabledModIds: mods
+                .filter { target.contains($0.folderName) }
+                .flatMap { $0.isGroup ? ($0.children ?? []).map(\.uniqueId) : [$0.uniqueId] }
+                .filter { !$0.isEmpty }
+        )
+        let savedActiveProfile = activeProfileId
+        activeProfileId = nil
+        applyProfileToFilesystem(profile: ephemeral) { [weak self] in
+            self?.activeProfileId = savedActiveProfile
+            completion()
+        }
+    }
+
     func applyProfile(id: UUID?) {
         // Serialize activations: refuse to start a new one while a previous
         // profile is still being applied (mod folders being renamed /
@@ -3868,7 +3897,7 @@ class StarHubTHViewModel: ObservableObject {
     /// error, logs it, and surfaces a user-visible alert summarizing how
     /// many mods could not be relocated — while still rescanning so the UI
     /// reflects the actual on-disk state (whatever it is).
-    private func applyProfileToFilesystem(profile: ModProfile) {
+    private func applyProfileToFilesystem(profile: ModProfile, completion: (() -> Void)? = nil) {
         // Mark an application in progress so `applyProfile` refuses to start a
         // second one and the UI disables the Activate/Manage buttons until the
         // move + rescan below completes.
@@ -4028,6 +4057,10 @@ class StarHubTHViewModel: ObservableObject {
                         level: .warning
                     )
                 }
+                // Signaler la fin de l'application une fois le rescane terminé :
+                // la bissection lance le jeu dans ce completion, et ne doit pas le
+                // faire tant qu'un rescane peut encore réécrire `mods`.
+                completion?()
             }
         }
     }
