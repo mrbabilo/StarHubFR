@@ -80,6 +80,16 @@ public struct BisectionSession {
         case .reproducing:
             guard outcome == .stillBroken else { state = .notReproducible; return }
             guard !suspects.isEmpty else { state = .inconclusive; return }
+            // Un seul candidat : rien à couper en deux, on passe directement à
+            // la vérification. Sans ce court-circuit, l'essai serait l'ensemble
+            // suspect entier et la garde de grappe le prendrait pour des mods
+            // inséparables — la session conclurait « pas de réponse simple »
+            // sur un cas qui a pourtant une réponse. Symétrique du même
+            // court-circuit dans la branche `.trial`.
+            if suspects.count == 1 {
+                state = .confirming(folderName: suspects[0].folderName)
+                return
+            }
             advance(step: 1)
 
         case .trial(let step, _):

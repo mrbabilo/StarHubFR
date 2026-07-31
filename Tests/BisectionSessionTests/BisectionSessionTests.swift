@@ -172,4 +172,18 @@ struct BisectionSessionTests {
         #expect(s.state == .inconclusive)
         #expect(steps < 12, "la recherche n'a pas terminé")
     }
+
+    @Test func aSingleCandidateGoesStraightToVerification() {
+        // Rien à couper en deux : la session doit vérifier directement, pas
+        // conclure « pas de réponse simple » — ce qui arrivait quand l'essai,
+        // trivialement égal à l'ensemble suspect, déclenchait la garde de grappe.
+        var s = BisectionSession(candidates: [
+            BisectionCandidate(folderName: "Solo", uniqueIds: ["solo"], requires: [])
+        ])
+        s.record(.stillBroken)                       // reproduction
+        #expect(s.state == .confirming(folderName: "Solo"))
+        #expect(s.foldersToEnable.isEmpty)           // tout sauf lui : il est seul
+        s.record(.fixed)                             // sans lui, tout va bien
+        #expect(s.state == .concluded(folderName: "Solo"))
+    }
 }
