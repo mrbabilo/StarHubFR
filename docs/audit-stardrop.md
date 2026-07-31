@@ -407,6 +407,133 @@ download — porter en **corrigeant** les bugs #5/#6.
 
 ---
 
+## Annexe B — Archives, manifests & erreurs d'installation (analyse fine)
+
+> Plongée dans la gestion des formats d'archives, la lecture des manifests et le
+> catalogue des erreurs d'installation/mise à jour. Matériau de référence pour **F2**
+> (audit sécurité extraction) et la robustesse du pipeline install.
+> Réf. `fichier:ligne` sous `Stardrop/`. SharpCompress **0.48.1** (`Stardrop.csproj`).
+
+### B.1 — Formats d'archives
+
+- **Bibliothèque** : SharpCompress 0.48.1 (pur .NET, **zéro dépendance CLI externe**).
+  Formats réellement supportés = ceux de SharpCompress : **zip, rar (lecture), 7zip, tar,
+  gzip**. Aucun filtrage applicatif.
+- **Détection par magic bytes** native (`ArchiveFactory.OpenArchive(string)` /
+  `Open(Stream)` sniffent les premiers octets via `ReaderOptions`). Stardop ne passe **aucun
+  hint** (ni mot de passe, ni extension) → un `.zip` renommé `.lol` s'ouvre correctement.
+- **Extraction** : `entry.WriteToFile(outputPath, { ExtractFullPath = false, Overwrite = true })`
+  (`MainWindowViewModel.cs:368`, `MainWindow.axaml.cs:2582`), `outputPath` construit manuel.
+- 🔴 **Zip-slip non protégé** (path traversal) : aucun check que `Path.GetFullPath(outputPath)`
+  reste sous `installPath`. Une entrée remontant par `../` écrit **hors du dossier cible**.
+  `Overwrite = true` écrase aveuglément. **Vulnérabilité sécurité réelle** — un mod
+  malveillant peut écrire n'importe où.
+- **Pas de protection zip-bomb** (ni taille, ni ratio, ni nombre max d'entrées). Non trouvé.
+- **Antislashs non normalisés** (X4) : seul nettoyage, une regex sur les `/` précédés d'espaces
+  (`MainWindow.axaml.cs:2566`). Bug latent sur Mac/Linux, masqué parce que Stardop est
+  `WinExe` primaire.
+- **Archive corrompue / chiffrée → message générique** : `catch (Exception ex)` indifférencié
+  (`MainWindow.axaml.cs:2597`) → warning `ui.warning.unable_to_load_mod` + log
+  `"Failed to unzip"`. L'utilisateur n'apprend **jamais** la cause (password vs corruption).
+- **Évite X5 nativement** : aucune extension forcée au download (le fichier porte le nom
+  Nexus, magic bytes font le reste). StarHubFR a dû corriger ça activement.
+- **Évite X7 par accident** : `SharpCompress.WriteToFile` **ne préserve pas les modes Unix**
+  (contrairement à `unzip`/`unrar`). Pas une défense active — un choix de bibliothèque.
+
+**Portabilité StarHubFR** : l'approche CLI (`/usr/bin/unzip`, `unrar`, `unar`, `7zz`) rend
+dépendant d'outils externes (peuvent manquer), mais est **plus défensive sur la sécurité**
+(extraction dans un dossier fixe, moins exposée au path traversal). Ne pas porter SharpCompress
+pour la seule raison d'éviter les CLI — mais **F2 doit auditer formellement** l'absence de
+traversée dans le chemin StarHubFR.
+
+### B.2 — Lecture des manifests
+
+- **`ManifestParser`** (`Utilities/Internal/ManifestParser.cs`, 37 lignes) :
+  `JsonSerializer.Deserialize<Manifest>` avec `AllowTrailingCommas = true` +
+  `ReadCommentHandling = Skip` (**`//` ET `/* */`**) + `PropertyNameCaseInsensitive = true`.
+  Repli sur `JsonException` : `manifestText.Replace("\r","").Replace("\n","")` puis retry —
+  **presque toujours nuisable** (colle les lignes, ne règle pas la cause typique d'échec).
+  **Pas de vrai JSON5** (pas de guillemets simples, ni clés nues, ni hex).
+- **Modèle `Manifest`** (`Models/SMAPI/Manifest.cs`) : `Name`, `Description`, `UpdateKeys[]`
+  (avec `[JsonConverter(typeof(ModKeyConverter))]`), `Author`, `Version` (string), `UniqueID`,
+  `ContentPackFor`, `Dependencies[]` + **2 champs custom** `DeleteOldVersion` (bool) et
+  `UpdateCautionMessage` (string?). **`EntryDll` est ignoré** — Stardop ne distingue pas un
+  mod SMAPI d'un content pack sur ce critère.
+- **`ModKeyConverter`** (`Converters/ModKeyConverter.cs:27`) : `UpdateKeys` numérique →
+  `"Nexus: 541"` **avec un espace** après les deux-points (fragile, compensé plus tard par la
+  regex tolérante `Nexus:[^0-9-]*\d+` de `Mod.GetNexusId`). Read-only (Write jette).
+- **`BooleanConverterAssumeTrue`** sur `ManifestDependency.IsRequired` : une dépendance mal
+  formée est silencieusement considérée **requise** (défense par excès). `BooleanConverter`
+  (variante `false`) est **dead code** — aucune référence.
+- **Validation quasi inexistante** : seul check, `UniqueID` vide → skip + log `Alert` dans
+  `DiscoverMods` (`MainWindowViewModel.cs:442`). Pas de contrôle `EntryDll`, pas de rejet de
+  version malformée.
+- **Multi-manifest par archive** : supporté nativement
+  (`archive.Entries.Where(... == "manifest.json")`, `MainWindow.axaml.cs:2427`) — content
+  packs installés en une fois via `Dictionary<string, Manifest?> pathToManifests`.
+- **Cas limites** : version inparseable → sentinelle `0.0.0-bad-version` (`Mod.cs:128`), mod
+  chargé mais exclu des checks d'update ; manifest JSON cassé non récupérable → `null` →
+  warning `no_manifest` (**trompeur** : l'archive en avait un, il était illisible).
+
+**Portabilité StarHubFR** : StarHubFR a déjà le **vrai JSON5** (supériorité nette — l'écosystème
+SMAPI pousse vers JSON5) et un `ModFolderRepairer` plus sophistiqué. Le repli `\r\n` de Stardop
+est à **ne pas imiter**. Le mécanisme multi-manifest (`pathToManifests`) vaut en revanche la
+peine d'être copié si StarHubFR ne gère pas déjà les archives multi-content-packs.
+
+### B.3 — Catalogue des erreurs d'installation / mise à jour
+
+Sélection des cas saillants (17 cas analysés au total) — pour chacun : détection → signal
+utilisateur :
+
+| Cas | Détection | Signal utilisateur |
+|---|---|---|
+| Archive chiffrée / corrompue | `catch (Exception ex)` générique (`:2597`) | Warning `unable_to_load_mod` + log `"Failed to unzip"`. **Indifférencié — l'utilisateur ne sait jamais la cause.** |
+| Aucun `manifest.json` | `pathToManifests.Count == 0` (`:2437`) | Warning `no_manifest` localisé. **Correct.** |
+| Manifest illisible (JSON cassé) | `ManifestParser.GetData` → `null` | Warning `no_manifest` — **trompeur** (le manifest existe). |
+| `UniqueID` vide | Garde seulement dans `DiscoverMods` | **Incohérent** : skip loggué / skip silencieux (`DirectModInstallAsync:295`) / path dégénéré (`AddMods:2470`). |
+| Mod déjà installé (update) | `Mods.FirstOrDefault(UniqueId == …)` (`:2473`) | Branche update : dialog 3-choix si `DeleteOldVersion=false && alwaysAskToDelete`. |
+| `UpdateCautionMessage` présent | `pathToManifests.Values.Where(...)` (`:2445`) | `MessageWindow` **blocant**. Refus → skip tout le bundle. |
+| Échec suppression ancienne version | `TryDeleteMod` retourne false après 3 retries | Warning `failed_to_delete_during_update`. **Pas de blocage** — installe par-dessus (orphelins). |
+| Quota Nexus / 429 | Headers lus (`UpdateRequestCounts:608`) mais pas de check proactif | Affiché dans l'UI ; pas de retry, pas de backoff. |
+| Virus scan `QUARANTINED` | `ValidateFileSafety` → `false` | **Blocage dur** ✅ |
+| Virus scan indéterminé (`null`) | `ValidateFileSafety` → `null` | Dialog « Continue? » — **l'utilisateur décide** ✅ |
+| Download réseau échoue | `DownloadFileAndGetPath` catch (`:420`) | `Failed` + warning. **Pas de retry.** |
+
+- **`TryDeleteMod`** (`:2353`) : retry ×3 **récursif, sans aucun délai**. Pour un fichier
+  verrouillé (SMAPI tournant, antivirus), retry immédiat = échec garanti. Inefficace.
+- **Log écrasé à chaque démarrage** (`Helper.cs:30-41`, `File.Delete` au constructeur) : pas
+  de rotation, pas d'archive. Mauvais pour le support — l'historique est perdu au redémarrage.
+- **Échecs silencieux** notables : manifest sans `UniqueID` dans `DirectModInstallAsync` ;
+  `entry.Key` null ; doublon `UniqueID` à versions égales (le premier gagne) ; archive
+  chiffrée confondue avec corruption ; `Data.json` écrit hors try/catch (crash si disque plein).
+
+### B.4 — Contraste StarHubFR & implication F2
+
+| Domaine | StarHubFR | Stardop |
+|---|---|---|
+| Sécurité extraction (zip-slip) | **Plus défensive** (CLI dans dossier fixe) | 🔴 Vulnérable (path traversal) |
+| Zip-bomb | Non couvert | Non couvert (égalité) |
+| X5 (extension au download) | Corrigé (signature) | Jamais eu le bug (magic bytes natif) |
+| X7 (permissions lecture seule) | Corrigé activement (`grantOwnerWriteAccess`) | Évité par accident (lib ne préserve pas les modes) |
+| Dépendances externes | `unzip`/`unrar`/`unar`/`7zz` (peuvent manquer) | **Zéro** (SharpCompress pur .NET) |
+| JSON5 | **Vrai JSON5** | Pseudo-JSON (trailing commas + commentaires) |
+| Validation manifest | `ModFolderRepairer` + JSON5 | Quasi inexistante, `EntryDll` ignoré |
+| i18n FR | **Parité des clés au build** (gate) | FR partielle (94/218 clés) |
+| Virus scan | Manquant | **Avancé** (GraphQL tri-state) |
+| Retry réseau (download) | Manquant | Manquant (faiblesse partagée) |
+
+**Lecture** : Stardop est **plus robuste côté dépendances** (zéro CLI) et **virus scan**, mais
+**plus fragile côté sécurité** (zip-slip réel, pas de zip-bomb) et **i18n**. Là où StarHubFR a
+corrigé X4/X5/X7 activement, Stardop évite X5/X7 **par construction de sa lib** mais traîne un
+angle mort sécurité.
+
+**→ F2 (audit sécurité)** : la roadmap F2 mentionne explicitement « extraction d'archives
+(traversée de chemin, zip-bomb — déjà partiellement couverte) ». Cet audit **confirme la
+priorité du chantier** : vérifier formellement qu'aucun chemin d'extraction StarHubFR ne peut
+remonter via `../`, et poser une garde anti zip-bomb (taille / ratio / nombre d'entrées).
+
+---
+
 ## 8. Limites de l'audit
 
 - **Lecture statique** : aucune exécution de Stardop. Les comportements décrits sont lus dans
