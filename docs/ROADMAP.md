@@ -483,18 +483,39 @@ backup se retrouve en moins de dix secondes.
 > `mods.jsonc`** : elle remonte en plus la mise à jour *suggérée* et l'URL de mise à jour
 > *non officielle*. `mods.jsonc` devient le **fallback hors-ligne**, plus la source primaire.
 
+> 🧪 **Spike (2026-07-31, modlist réelle ~948 mods)** — la richesse est **confirmée**
+> (`suggestedUpdate` + `metadata{name,nexusID,main,unofficial}`), mais le spike a révélé
+> deux contraintes qui **cadrent l'implémentation** :
+> - **🔴 Rate-limit agressif** : smapi.io répond `[]` **silencieusement** (jamais de 429)
+>   au-delà de ~100 mods/min par IP. Un fetch complet au boot est **impraticable** sur une
+>   grosse modlist. → cache persistant + update check **incrémental** obligatoires.
+> - **✅ Pas de bug URLSession** (test croisé curl / `URLSession.shared` / session éphémère :
+>   tous réagissent **identiquement** au rate-limit, avec le même body et les mêmes headers).
+>   L'intuition initiale d'un bug spécifique URLSession était un artefact de tests en rafale
+>   (URLSession testée en série, curl intercalé de pauses). → **implémentation Swift native
+>   possible, pas de contournement `curl`**. La fenêtre de récupération du rate-limit est en
+>   revanche **longue** (> 60 s après saturation), ce qui renforce la nécessité de **A2-T4**.
+
 - [ ] **A2-T1** — Client de l'API `smapi.io/api/v3.0/mods` : POST `ModSearchData`
       (UniqueID + version installée + update keys + version SMAPI + version du jeu) pour
       chaque mod à version valide. Réponse typée par mod : `SuggestedUpdate`,
       `CompatibilityStatus` (`Ok`/`Broken`/`Abandoned`/`Obsolete`/`Unofficial`/`Workaround`),
-      `Unofficial` (URL de mise à jour non officielle), `Main`/`CustomUrl`. Cache local +
-      dégradation propre hors ligne. DTO portables depuis Stardop (`ModSearchEntry`,
-      `ModEntry`, `ModEntryMetadata`). · **M**
+      `Unofficial` (URL de mise à jour non officielle), `Main`/`CustomUrl`. DTO portables
+      depuis Stardop (`ModSearchEntry`, `ModEntry`, `ModEntryMetadata`).
+      **Filtres obligatoires** (validés par le spike) : ne soumettre que les mods
+      `HasValidVersion && HasUpdateKeys` (comme Stardop) et **normaliser les `UpdateKeys`**
+      (strip espaces : `"Nexus: 20290"` → `"Nexus:20290"`, sinon le mod est invisible). · **M**
 - [ ] **A2-T2** — Afficher le statut, `brokeIn` et le **lien de mise à jour non officielle /
       mod de remplacement** sur la fiche mod et dans la carte de santé. · **M**
 - [ ] **A2-T3** — Fallback sur `Pathoschild/SmapiCompatibilityList` (`mods.jsonc`,
       jointure sur `UniqueID`) quand smapi.io est injoignable, et bandeau signalant la
       fraîcheur de la source effectivement utilisée (live vs cache statique). · **M**
+- [ ] **A2-T4** — **Cache persistant + update check incrémental** (découlant du spike) :
+      persister la dernière réponse par mod (équivalent `Versions.json`), avec un **vrai
+      TTL 6–24 h** (Stardop appelle à chaque boot = son bug — le rate-limit l'interdit ici) ;
+      interroger par **petits lots (~10) avec throttle** (5–8 s), jamais toute la modlist
+      d'un coup ; servir l'affichage boot depuis le cache, rafraîchir en arrière-plan. · **M** ·
+      *risque : sans cette tâche, A2 casse la modlist au boot — à poser en même temps que T1.*
 
 > ⚠️ **Réserve conservée** : `smapi.io/mods` annonce lui-même ne plus être mis à jour
 > exhaustivement, et son avenir est incertain. À traiter comme **complément** au
