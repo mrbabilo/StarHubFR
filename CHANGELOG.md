@@ -12,6 +12,9 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+- **Finding the mod that breaks your game, step by step.** When Stardew Valley crashes and the log names no one, the only reliable method is to halve the mod list, restart, and repeat. The app now does the halving, the restarting and the bookkeeping: it pauses half your mods, starts the game, waits for you to come back, asks one question — "is the problem still there?" — and narrows down. Roughly seven steps for a hundred mods. Nothing is deleted, the starting state is written to disk before a single folder moves, and "put everything back" is one click away at every step. It ends on a confirmation run — everything back on except the suspect — because halving produces a suspect, not a proof.
+
 ## [1.10.3] - 2026-07-31
 
 ### Added

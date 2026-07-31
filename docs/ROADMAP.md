@@ -81,7 +81,7 @@ liste du 2026-07-30 et n'existaient pas dans le document de veille.
 
 | Source | Demande | État | Preuve / renvoi |
 | :-- | :-- | :-- | :-- |
-| **§new** | Désactivation/activation **dichotomique** pour isoler un mod défectueux | **À faire** | N'existe que comme *conseil textuel* (`assets/fr.json:273`, `logs_health_sg_patched_many`) → **A4** |
+| **§new** | Désactivation/activation **dichotomique** pour isoler un mod défectueux | **Fait ✅** | `Models/BisectionSession.swift` (Core, testé) + `BisectionRunner` + `Views/Components/BisectionCard.swift` |
 | **§new** | Mutualiser les diagnostics/mesures de perf entre utilisateurs (cf. `circinus.sh`) | **À faire** | Aucun backend → **D2** (décision produit, non chiffrée) |
 | **§new** | Refactoriser le God module | **À faire** | `StarHubTHViewModel.swift` = **4278 lignes** → **F1** |
 | **§new** | Vérifier optimisation (vitesse, mémoire) et sécurité du code | **À faire** | → **F2** |
@@ -245,18 +245,18 @@ Effort : **S** ≈ une session · **M** ≈ 2–3 sessions · **L** ≈ chantier
 
 #### A4 — Recherche dichotomique du mod fautif
 
-- [ ] **A4-T1** — Modèle de session de bissection (Core, testable) : ensemble de départ,
+- [x] **A4-T1** — Modèle de session de bissection (Core, testable) : ensemble de départ,
       partition en deux, verdict utilisateur (« ça plante encore » / « ça ne plante plus »),
       sous-ensemble suivant, arrêt sur candidat unique. Journal des essais. · **M**
-- [ ] **A4-T2** — Application d'une étape : activer/désactiver la moitié courante en
+- [x] **A4-T2** — Application d'une étape : activer/désactiver la moitié courante en
       réutilisant la machinerie de profils, avec **instantané de l'état initial** et
       restauration intégrale en un clic à la sortie (y compris en cas d'abandon). · **M** ·
       risque : c'est la tâche qui manipule le plus de fichiers → sortie de secours obligatoire.
-- [ ] **A4-T3** — UI de session dans l'onglet Diagnostic : étape *n* sur ~log₂(N),
+- [x] **A4-T3** — UI de session dans l'onglet Diagnostic : étape *n* sur ~log₂(N),
       liste des mods de l'essai courant, boutons de verdict, bouton « tout restaurer ». · **M**
-- [ ] **A4-T4** — Respect des dépendances : ne jamais désactiver un framework dont un mod
+- [x] **A4-T4** — Respect des dépendances : ne jamais désactiver un framework dont un mod
       actif de l'essai dépend (sinon les faux positifs rendent la bissection inutile). · **M**
-- [ ] **A4-T5** — Conclusion : à l'issue, proposer les actions sur le mod incriminé
+- [x] **A4-T5** — Conclusion : à l'issue, proposer les actions sur le mod incriminé
       (désactiver définitivement, ouvrir Nexus, consulter son historique d'erreurs). · **S**
 
 #### Embarqués
