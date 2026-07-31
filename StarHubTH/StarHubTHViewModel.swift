@@ -2217,7 +2217,10 @@ class StarHubTHViewModel: ObservableObject {
     /// Maps a name as SMAPI logged it to an installed mod. SMAPI logs the
     /// manifest's display name, which usually matches but isn't guaranteed to,
     /// hence the tolerant containment match used elsewhere for mod jumps.
-    private func resolveModFolder(forLoggedName name: String) -> ModItem? {
+    /// Relie le nom qu'un mod porte dans le journal au `ModItem` installé.
+    /// Non privé : la recherche guidée croise les erreurs relevées avec les
+    /// dossiers actifs, ce qui exige la même correspondance.
+    func resolveModFolder(forLoggedName name: String) -> ModItem? {
         let all = mods.flatMap { m -> [ModItem] in m.isGroup ? (m.children ?? []) : [m] }
         return all.first { $0.name == name }
             ?? all.first { $0.name.localizedCaseInsensitiveContains(name) }

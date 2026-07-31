@@ -27,24 +27,20 @@ final class BisectionRunner: ObservableObject {
     /// journal, lui, nomme tout ce qui a mal tourné. Les confronter permet de
     /// dire « deux mods sont en cause » là où la recherche seule n'aurait pu
     /// désigner que l'un des deux.
-    @Published private(set) var logEvidence: [LogSuspect] = []
+    @Published private(set) var logEvidence: [BisectionEvidence.LogSuspect] = []
 
     /// Un mod que le journal a mis en cause, avec la fréquence à laquelle il
     /// apparaît selon que la panne était là ou non.
-    struct LogSuspect: Identifiable, Equatable {
-        var id: String { name }
-        let name: String
-        /// Étapes où ce mod était incriminé **et** la panne présente.
-        let whenBroken: Int
-        /// Étapes où il était incriminé alors que tout allait bien.
-        let whenFine: Int
-        /// Nombre total d'étapes en échec, pour situer `whenBroken`.
-        let brokenSteps: Int
-    }
 
     /// Un relevé par étape : ce que le journal imputait, et si la panne était
     /// encore là.
-    private var evidenceLog: [(blamed: Set<String>, stillBroken: Bool)] = []
+    /// Un relevé par étape : les dossiers actifs, les mods incriminés avec un
+    /// extrait de leur erreur, et si la panne était encore là. Les dossiers
+    /// actifs sont indispensables au croisement : sans eux on saurait *quand*
+    /// une erreur apparaît, jamais *avec quoi*.
+    private var evidenceLog: [(enabled: Set<String>,
+                               blamed: [String: String],
+                               stillBroken: Bool)] = []
     /// Surveille le journal SMAPI pendant qu'une partie tourne. Sans elle, la
     /// vue des journaux de StarHubFR ne se rafraîchissait qu'au moment de
     /// répondre : l'utilisateur devait ouvrir le vrai fichier de SMAPI pour
@@ -206,43 +202,33 @@ final class BisectionRunner: ObservableObject {
     /// Relève ce que le journal impute à cette étape, et recalcule les mods
     /// systématiquement présents dans les échecs et absents des réussites.
     private func recordLogEvidence(stillBroken: Bool) {
-        // Toutes les lignes WARN **et** ERROR attribuées à un mod, pas seulement
-        // les erreurs : `topErrorMods` ne compte que les ERROR, et seulement les
-        // cinq premiers mods. Un mod qui n'émet qu'un avertissement — ou qui
-        // n'est sixième que ce jour-là — restait invisible, alors que c'est
-        // exactement le genre de trace qu'on cherche.
-        var blamed = Set(vm.logEntries.compactMap { entry -> String? in
-            guard entry.source == .smapi,
-                  entry.level == .error || entry.level == .warning,
-                  let mod = entry.modName, !mod.isEmpty else { return nil }
-            return mod
-        })
-        // Plus les mods que SMAPI a refusé de charger : eux n'ont pas pu
-        // écrire la moindre ligne.
-        blamed.formUnion(vm.smapiDiagnostics?.failed.map(\.name) ?? [])
-        evidenceLog.append((blamed: blamed, stillBroken: stillBroken))
-
-        // Compter, ne pas intersecter. Exiger qu'un mod soit incriminé à
-        // *toutes* les étapes en échec éliminait précisément le cas qui compte :
-        // une erreur **intermittente** n'apparaît qu'à certaines d'entre elles,
-        // et c'est elle qu'on cherche quand la bissection se trompe.
-        let brokenSteps = evidenceLog.filter(\.stillBroken).count
-        var tally: [String: (broken: Int, fine: Int)] = [:]
-        for step in evidenceLog {
-            for name in step.blamed {
-                var t = tally[name] ?? (0, 0)
-                if step.stillBroken { t.broken += 1 } else { t.fine += 1 }
-                tally[name] = t
+        // Toutes les lignes WARN **et** ERROR attribuées à un mod, avec un
+        // extrait : `topErrorMods` ne compte que les ERROR, et seulement les
+        // cinq premiers mods.
+        var blamed: [String: String] = [:]
+        for entry in vm.logEntries where entry.source == .smapi {
+            guard entry.level == .error || entry.level == .warning,
+                  let mod = entry.modName, !mod.isEmpty else { continue }
+            if blamed[mod] == nil {
+                // Première ligne seulement : les traces d'exécution qui suivent
+                // sont illisibles dans une carte.
+                blamed[mod] = entry.message.split(separator: "\n").first.map(String.init)
+                    ?? entry.message
             }
         }
-        logEvidence = tally
-            .filter { $0.value.broken > 0 }
-            .map { LogSuspect(name: $0.key, whenBroken: $0.value.broken,
-                              whenFine: $0.value.fine, brokenSteps: brokenSteps) }
-            // Le plus incriminé d'abord ; à égalité, le moins vu quand tout va
-            // bien — un mod qui se plaint aussi en bon état dit moins de choses.
-            .sorted { ($0.whenBroken, -$0.whenFine, $0.name) > ($1.whenBroken, -$1.whenFine, $1.name) }
+        // Plus les mods que SMAPI a refusé de charger : eux n'ont pas pu écrire
+        // la moindre ligne.
+        for issue in vm.smapiDiagnostics?.failed ?? [] where blamed[issue.name] == nil {
+            blamed[issue.name] = issue.reason
+        }
+
+        evidenceLog.append((enabled: Set(currentFolders), blamed: blamed,
+                            stillBroken: stillBroken))
+        logEvidence = BisectionEvidence.analyse(evidenceLog, resolve: { [weak vm] name in
+            vm?.resolveModFolder(forLoggedName: name)?.folderName
+        })
     }
+
 
     func restoreAndStop() {
         guard !isApplying else { return }

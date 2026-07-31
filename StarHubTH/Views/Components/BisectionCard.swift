@@ -195,6 +195,10 @@ struct BisectionCard: View {
                 Label(String(format: vm.L(L10n.Bisect.logNamesOther), other, first),
                       systemImage: "info.circle")
                     .font(.system(size: 12)).foregroundColor(.orange)
+                    // Sans cela le texte est tronqué sur une seule ligne : dans
+                    // une VStack, un Label ne se replie pas de lui-même.
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
             if !remaining.isEmpty {
                 Text(vm.L(L10n.Bisect.inconclusiveRemaining))
@@ -234,6 +238,10 @@ struct BisectionCard: View {
                 Label(String(format: vm.L(L10n.Bisect.logNamesOther), other, folder),
                       systemImage: "info.circle")
                     .font(.system(size: 12)).foregroundColor(.orange)
+                    // Sans cela le texte est tronqué sur une seule ligne : dans
+                    // une VStack, un Label ne se replie pas de lui-même.
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
             logEvidenceView
             Button(vm.L(L10n.Bisect.restore)) { runner.restoreAndStop() }
@@ -251,11 +259,29 @@ struct BisectionCard: View {
             Text(vm.L(L10n.Bisect.logEvidence))
                 .font(.system(size: 12, weight: .medium))
             ForEach(runner.logEvidence) { suspect in
-                Text(String(format: vm.L(L10n.Bisect.logSuspectLine),
-                            suspect.name, suspect.whenBroken, suspect.brokenSteps))
-                    .font(.system(size: 11, design: .monospaced))
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(String(format: vm.L(L10n.Bisect.logSuspectLine),
+                                suspect.name, suspect.whenBroken, suspect.brokenSteps))
+                        .font(.system(size: 12, weight: .medium))
+                    if let sample = suspect.sample {
+                        // L'erreur elle-même : un compte ne dit pas ce qui a
+                        // mal tourné, et c'est cela qu'on cherche.
+                        Text(sample)
+                            .font(.system(size: 11, design: .monospaced))
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    if !suspect.appearsOnlyWith.isEmpty {
+                        Text(String(format: vm.L(L10n.Bisect.appearsOnlyWith),
+                                    suspect.appearsOnlyWith.joined(separator: ", ")))
+                            .font(.system(size: 11))
+                            .foregroundColor(.orange)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.bottom, 4)
             }
         }
     }

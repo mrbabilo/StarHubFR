@@ -35,6 +35,7 @@ let package = Package(
                 "Models/LogNoise.swift",
                 "Models/ModErrorHistory.swift",
                 "Models/ManifestJSON.swift",
+                "Models/BisectionEvidence.swift",
                 "Models/BisectionSession.swift",
                 "Models/BisectionSnapshot.swift",
                 "L10n.swift",
@@ -122,6 +123,11 @@ let package = Package(
             name: "DesignSystemTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/DesignSystemTests"
+        ),
+        .testTarget(
+            name: "BisectionEvidenceTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/BisectionEvidenceTests"
         ),
         .testTarget(
             name: "LogAttributionTests",
