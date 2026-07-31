@@ -21,6 +21,17 @@ final class BisectionRunner: ObservableObject {
     /// dessus une partie en cours ouvrirait une seconde instance et, pire,
     /// renommerait des dossiers de mods que le jeu tient encore ouverts.
     @Published private(set) var gameStillRunning = false
+    /// Mods que le journal met en cause à chaque étape où la panne était encore
+    /// là, et jamais quand elle avait disparu. C'est un **second signal**,
+    /// indépendant des réponses : la bissection cherche un coupable unique, le
+    /// journal, lui, nomme tout ce qui a mal tourné. Les confronter permet de
+    /// dire « deux mods sont en cause » là où la recherche seule n'aurait pu
+    /// désigner que l'un des deux.
+    @Published private(set) var logEvidence: [String] = []
+
+    /// Un relevé par étape : ce que le journal imputait, et si la panne était
+    /// encore là.
+    private var evidenceLog: [(blamed: Set<String>, stillBroken: Bool)] = []
     @Published var interruptedSnapshot: BisectionSnapshot?
 
     private var session: BisectionSession?
@@ -117,6 +128,11 @@ final class BisectionRunner: ObservableObject {
         // vont être renommés, et le jeu les tient ouverts tant qu'il tourne.
         guard !vm.isGameRunning() else { gameStillRunning = true; return }
         gameStillRunning = false
+        // Le journal a été réécrit par la partie qui vient de finir : le relire
+        // maintenant, sinon on jugerait sur la session précédente.
+        vm.loadSmapiLog { [weak self] in
+            self?.recordLogEvidence(stillBroken: outcome == .stillBroken)
+        }
         s.record(outcome)
         session = s
         state = s.state
@@ -137,6 +153,24 @@ final class BisectionRunner: ObservableObject {
         default:
             apply(s.foldersToEnable) { [weak self] _ in self?.launch() }
         }
+    }
+
+    /// Relève ce que le journal impute à cette étape, et recalcule les mods
+    /// systématiquement présents dans les échecs et absents des réussites.
+    private func recordLogEvidence(stillBroken: Bool) {
+        let blamed = Set((vm.smapiDiagnostics?.topErrorMods.map(\.name) ?? [])
+                         + (vm.smapiDiagnostics?.failed.map(\.name) ?? []))
+        evidenceLog.append((blamed: blamed, stillBroken: stillBroken))
+
+        let failures = evidenceLog.filter(\.stillBroken).map(\.blamed)
+        let successes = evidenceLog.filter { !$0.stillBroken }.map(\.blamed)
+        guard let first = failures.first else { logEvidence = []; return }
+        // Présent dans TOUS les échecs…
+        var common = failures.dropFirst().reduce(first) { $0.intersection($1) }
+        // …et dans AUCUNE réussite : un mod qui se plaint aussi quand tout va
+        // bien ne dit rien de la panne.
+        for ok in successes { common.subtract(ok) }
+        logEvidence = common.sorted()
     }
 
     func restoreAndStop() {

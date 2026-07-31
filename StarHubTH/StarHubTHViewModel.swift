@@ -2047,13 +2047,16 @@ class StarHubTHViewModel: ObservableObject {
     /// Reading + line-by-line parsing of the SMAPI log runs off the main
     /// thread — the file can be large, and this used to block the UI on
     /// every call (refresh button, watcher start).
-    func loadSmapiLog() {
+    /// Recharge le journal SMAPI. `completion` s'exécute sur le thread principal
+    /// **après** publication des diagnostics : sans elle, un appelant qui lit
+    /// `smapiDiagnostics` juste après jugerait encore sur la session précédente.
+    func loadSmapiLog(completion: (() -> Void)? = nil) {
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            self?.parseAndAppendSmapiLog()
+            self?.parseAndAppendSmapiLog(completion: completion)
         }
     }
 
-    private func parseAndAppendSmapiLog() {
+    private func parseAndAppendSmapiLog(completion: (() -> Void)? = nil) {
         let path = smapiLogPath
         guard FileManager.default.fileExists(atPath: path),
               let data = FileManager.default.contents(atPath: path),
@@ -2153,6 +2156,7 @@ class StarHubTHViewModel: ObservableObject {
             // (the full parse), not the capped list: the display cap must not
             // cost us recorded errors.
             self.recordErrorHistory(from: entries, logDate: smapiDate)
+            completion?()
         }
     }
 

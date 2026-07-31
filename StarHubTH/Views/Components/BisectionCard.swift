@@ -179,6 +179,7 @@ struct BisectionCard: View {
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
+            logEvidenceView
             Button(vm.L(L10n.Bisect.restore)) { runner.restoreAndStop() }
                 .disabled(runner.isApplying)
         }
@@ -205,8 +206,25 @@ struct BisectionCard: View {
                       systemImage: "info.circle")
                     .font(.system(size: 12)).foregroundColor(.orange)
             }
+            logEvidenceView
             Button(vm.L(L10n.Bisect.restore)) { runner.restoreAndStop() }
                 .disabled(runner.isApplying)
+        }
+    }
+
+    /// Ce que le journal a imputé, étape après étape. Signal **indépendant** des
+    /// réponses : la bissection cherche un coupable unique, le journal nomme
+    /// tout ce qui a mal tourné. Quand les deux divergent, c'est presque
+    /// toujours que deux mods sont en cause ensemble.
+    @ViewBuilder
+    private var logEvidenceView: some View {
+        if !runner.logEvidence.isEmpty {
+            Text(vm.L(L10n.Bisect.logEvidence))
+                .font(.system(size: 12, weight: .medium))
+            Text(runner.logEvidence.joined(separator: "\n"))
+                .font(.system(size: 11, design: .monospaced))
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
