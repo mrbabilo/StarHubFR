@@ -39,6 +39,7 @@ let package = Package(
                 "Models/BisectionSession.swift",
                 "Models/BisectionSnapshot.swift",
                 "Models/ModFocusResolver.swift",
+                "Models/LogEntry.swift",
                 "L10n.swift",
                 "AppDesignCore.swift",
                 "ContrastChecker.swift",
