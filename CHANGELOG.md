@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.12.1] - 2026-08-01
+
 ### Fixed
 - **System files no longer show up as paused mods.** The scan treats any dot-prefixed folder as a paused mod, but its idea of "system litter" was narrower than the app's three other copies of that same rule — it didn't know `.Spotlight-V100`, `.Trashes` or a folder's custom `Icon` file. A `.Spotlight-V100` therefore sat in the list as a disabled mod named "Spotlight-V100".
 - **Updates SMAPI reports are detected again.** The "You can update N mods" block SMAPI writes at startup was read until the first line not carrying an `ALERT SMAPI` tag — but the real format puts a blank line between entries, right after the header. The block was therefore closed before a single entry had been read, so no such update ever showed up: not in the sidebar count, not on the Updates screen, not in the footer, and with nothing said about it.
@@ -565,7 +567,8 @@ where the exact log format was verified.
 - Added translation for **Wear More Rings** (v7.9) by bcmpinc.
 - Added translation for **World Navigator** (v1.4.2) by pneuma163.
 
-[Unreleased]: https://github.com/mrbabilo/StarHubFR/compare/v1.12.0...HEAD
+[Unreleased]: https://github.com/mrbabilo/StarHubFR/compare/v1.12.1...HEAD
+[1.12.1]: https://github.com/mrbabilo/StarHubFR/compare/v1.12.0...v1.12.1
 [1.12.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.11.1...v1.12.0
 [1.11.1]: https://github.com/mrbabilo/StarHubFR/compare/v1.11.0...v1.11.1
 [1.11.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.10.3...v1.11.0
