@@ -103,7 +103,7 @@ Une extraction se fait dans cet ordre, et chaque étape est un commit :
    le script échoue vraiment quand il doit échouer. Épreuve passée le 2026-08-01 (les
    deux sortent en 1 : parité de clés rompue, assertion fausse) — **à refaire après
    toute modification de `build_app.py`, `run_tests.sh` ou `release.py`**. C'est là
-   qu'étaient les bugs les plus coûteux de l'upstream : voir §7.
+   qu'étaient les bugs les plus coûteux de l'upstream : voir §8.
 
 ## 5. État
 
@@ -126,10 +126,10 @@ n'en avait aucun.
 | 2 | Registre des mods installés (~298 l.) | Version et date d'installation : de la logique de rapprochement, testable. |
 | 3 | Profils (~115 l.) | Petit, mais la bissection s'appuie sur la même machinerie (dépendance croisée signalée dans `ROADMAP.md`) — extraire l'état avant les opérations. |
 | 4 | Sauvegardes (~350 l., 4 sections éparpillées) | `SaveManager` est déjà en Core : le gain est surtout de lisibilité. |
-| 5 | Le bloc de tête (~2000 l. non marquées) | Scan, filtres, dépendances. Le plus gros et le plus enchevêtré : à faire en dernier, par morceaux. |
+| 5 | Le bloc de tête (1934 l.) | Le God module proprement dit — décomposé au §6. |
 
 **Deux dettes de couche, à traiter au contact plutôt qu'en campagne** — trouvées en
-passant leurs correctifs en revue (§7), et sans urgence propre :
+passant leurs correctifs en revue (§8), et sans urgence propre :
 
 | Dette | Déclencheur |
 | --- | --- |
@@ -140,7 +140,58 @@ passant leurs correctifs en revue (§7), et sans urgence propre :
 ViewModel. Elle naît dans son propre type, que le ViewModel se contente d'appeler.
 Le plan du hub de traduction la respecte déjà.
 
-## 6. Ce que ce plan ne fait pas
+
+## 6. Le bloc de tête — 1934 lignes, 70 propriétés publiées, 36 fonctions
+
+C'est le God module lui-même : tout ce qui précède la première `MARK`. Le décomposer
+est le vrai travail ; le reste n'en est que la préparation.
+
+### Domaines qu'on y distingue
+
+| Domaine | Fonctions représentatives | Destination |
+| --- | --- | --- |
+| **Environnement** | `detectDefaultGameDir`, `selectGameDir`, `fetchSteamUser`, `checkSmapiVersion` | Un type dédié. Le moins enchevêtré : à extraire en premier. `selectGameDir` appelle `NSOpenPanel` → c'est ici que naît `FilePicking` |
+| **Localisation** | `L(_:)`, `localizedString(for:)`, `cachedBundle(for:)` | Un type dédié. Techniquement simple, mais `L(_:)` a **des centaines d'appels** : faire le remplacement mécanique dans un commit séparé de l'extraction, sinon le diff devient illisible |
+| **Scan** | `scanMods`, `parseModFolder`, `scanEntryForMods`, `cachedManifest`, `migrateDisabledModsToDotPrefix`, `isOsJunk` | Le cœur. `parseModFolder` et `isOsJunk` sont de la **logique pure** : les extraire et les tester **avant** de toucher au reste |
+| **Dépendances** | `rebuildDependencyIndexes`, `getMissingDependencies`, `getDisabledDependencies`, `dependencyTree`, `slot(matching:)` | S'appuie déjà sur `DependencyTreeBuilder` (Core, testé). Surtout des index à déplacer |
+| **Bascule des mods** | `toggleMod`, `processNextToggleIfNeeded`, `performToggle` | Manipule le disque et sérialise les opérations. À extraire **après** le scan, dont il dépend |
+| **Détail de mod** | `loadModDetail`, `fetchModDetailRemote`, `markDetailNotLoading` | Réseau Nexus ; rejoint le domaine Nexus déjà identifié |
+
+### Les 70 propriétés publiées sont le vrai sujet
+
+Elles sont de deux natures que le fichier ne distingue pas :
+
+- **État de domaine** (`mods`, `smapiDiagnostics`, `outOfDateMods`…) : il appartient au
+  futur store.
+- **État de présentation** (`viewingModDetail`, `editingModConfig`, `showAlert`,
+  `selectedModID`…) : il appartient à la **vue qui le possède**, en `@State` — c'est la
+  règle 5.3 de l'upstream.
+
+Le tri n'est pas cosmétique : chaque `@Published` du ViewModel publie à **toute** la
+fenêtre, `MainView` l'observant en entier. C'est le mécanisme qu'a montré B1-T2 —
+sortir le cadrage de la liste dans `ModListState` a restauré la portée d'origine.
+
+**Règle** : à chaque domaine extrait, classer ses `@Published`. Ceux de présentation
+ne suivent pas dans le store ; ils redescendent dans la vue.
+
+### Cible
+
+L'upstream a **supprimé** son ViewModel (leur 4.9 : « s'il reste quelque chose, c'est
+qu'il n'a pas été classé »). Ce n'est pas l'objectif ici : sans filet de test sur
+l'UI, viser la suppression pousserait au big-bang que le §7 exclut.
+
+La cible est **fonctionnelle, pas numérique** : plus aucune logique métier dans le
+ViewModel, qui ne garde que la composition — instancier les stores et les relier aux
+vues. Le nombre de lignes en découlera ; le viser directement ferait déplacer du code
+pour le plaisir du compteur.
+
+### Ordre
+
+Environnement → Localisation → *(logique pure du scan)* → Scan → Dépendances →
+Bascule → Détail de mod. Chaque étape est un commit, précédée de ses tests quand la
+cible est du calcul pur.
+
+## 7. Ce que ce plan ne fait pas
 
 - **Pas de big-bang.** La roadmap l'exclut explicitement : sans filet de test sur
   l'UI, un refactor massif ne se vérifie pas.
@@ -151,7 +202,7 @@ Le plan du hub de traduction la respecte déjà.
   domaines ne sont pas séparés : `@MainActor` sur un fourre-tout de 4000 lignes
   révélerait des dizaines de problèmes réels d'un coup, sans moyen de les isoler.
 
-## 7. Leurs correctifs pendant le refactor, passés en revue
+## 8. Leurs correctifs pendant le refactor, passés en revue
 
 Une vingtaine de commits `fix:` entre le 2026-07-24 et le 2026-07-27. Le tri
 complet est ci-dessous pour que personne ne le refasse. **La majorité est sans
