@@ -91,9 +91,14 @@ Une extraction se fait dans cet ordre, et chaque étape est un commit :
 2. **Écrire les tests avant l'extraction**, sur le comportement existant. Un test qui
    n'a jamais été rouge ne prouve rien — le vérifier en cassant volontairement le
    code (fait pour le bloc des mises à jour).
-3. **Déplacer sans modifier.** Swift n'ayant pas d'imports par fichier, un
-   déplacement pur ne peut pas changer le comportement : si le build casse, ce
-   n'était pas un déplacement pur.
+3. **Déplacer sans modifier — sauf à améliorer, et alors le consigner.**
+   Swift n'ayant pas d'imports par fichier, un déplacement pur ne peut pas changer
+   le comportement : si le build casse, ce n'était pas un déplacement pur.
+   **Corriger au passage est autorisé** quand cela répare ou améliore réellement
+   le code (arbitrage de l'auteur, 2026-08-01) — à la condition stricte que la
+   déviation soit **écrite** : dans la documentation du code *et* au tableau
+   ci-dessous. Une amélioration tacite est indiscernable d'une régression
+   introduite par mégarde.
 4. **Traiter les violations de couche qui bloquent.** Un modèle qui prend le
    ViewModel en paramètre, ou qui porte un `Color`, ne peut pas entrer dans Core.
    Le remplacer par une **clé** ou un **état**, que la vue rend.
@@ -227,6 +232,17 @@ Quatre conditions, toutes vérifiables. Sans elles, « extrait » veut seulement
    message de commit plutôt que de laisser croire à un oubli.
 4. **Les deux gates passent** (`./run_tests.sh`, `python3 build_app.py`) et l'auteur a
    exercé la fonctionnalité à la main — aucun agent ne lance l'application.
+
+### Déviations assumées
+
+Tout écart au « déplacer sans modifier », par extraction. Le tableau existe parce
+qu'une de ces trois lignes avait été appliquée sans être dite.
+
+| Extraction | Déviation | Pourquoi, et portée |
+| --- | --- | --- |
+| Regroupement Nexus (`d802b62`) | `precondition(!updates.isEmpty)` → retour optionnel | Retire un point de crash. L'invariance tenait — les listes viennent d'un regroupement — mais l'exprimer vaut mieux que compter dessus. Aucun appelant affecté |
+| Registre des mods (`4d50349`, consigné après coup par `838e32c`) | `Date()` évalué à chaque enregistrement → un instant unique pour tout le lot | Rend la logique vérifiable (l'horloge devient un paramètre) et donne un lot cohérent. Écart réel de quelques microsecondes entre mods d'un même scan ; sans portée, cette date se comparant à une date de mise en ligne dont la granularité est l'heure |
+| Arbre des sauvegardes (`4204c6e`) | Filtre par étiquette appliqué **après** le tri, au lieu d'avant | Conséquence de l'extraction : `SaveTree.build` trie en construisant. Résultat identique — un filtre ne réordonne pas ce qu'il conserve |
 
 ### Travail concurrent
 
