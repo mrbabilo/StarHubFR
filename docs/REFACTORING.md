@@ -265,6 +265,14 @@ Ce qui nous concernait :
 | `bump_version.py` écrivait `Info.plist` avant de valider le CHANGELOG, laissant un état incohérent | lecture de notre flux | **Sans objet** : nous n'avons pas ce script. `release.py` se contente de **lire** `Info.plist`. Le risque n'existe que si un humain bumpe la version sans toucher au CHANGELOG — l'ordre inverse (CHANGELOG d'abord) reste la bonne pratique |
 | `CFBundleVersion` figé à 1 depuis la v1.0.0 | lecture d'`Info.plist` | **Sans objet** : incrémenté à chaque release (8 au 2026-08-01) |
 
+Instruits en second passage, après avoir été écartés à tort sur la seule foi de leur
+titre — aucun ne s'applique, mais l'un a fait apparaître l'angle mort ci-dessus :
+
+| Leur correctif | Chez nous |
+| --- | --- |
+| Tests d'intégration qui se sautaient à chaque exécution : `UserDefaults(suiteName:)` rend **nil** quand le nom de suite égale le bundle ID du processus appelant | **Non concernés** : aucune occurrence de `suiteName`. Le piège reste bon à connaître — notre bundle ID est resté `com.appleboiy.StarHubTH` |
+| Capture non-`Sendable` dans `continuation.onTermination` de leur surveillance du journal, erreur dure en mode Swift 6 | **Forme différente** : notre surveillance est un `Timer.scheduledTimer` (`BisectionRunner.swift:155`), pas un `AsyncStream` + `DispatchSource`. Mais **nous ne compilons pas en concurrence stricte**, donc l'équivalent chez nous serait invisible — voir P5 au §9 |
+
 **Ce que ce passage en revue apprend, au-delà des correctifs** : leurs bugs les plus
 coûteux n'étaient pas dans le code refactoré mais dans **l'outillage qui prétendait
 le vérifier** — un script qui sort 0 sur un échec, des tests d'intégration qui se
@@ -283,7 +291,7 @@ coordonnées et leur outillage ne se transposent pas (§3).
 | **P2 Corriger les violations de couche** | Oui, partiellement fait | `LogLevel.color` et les méthodes de `ThaiTranslationMod` prenant le ViewModel : faits. **Restent** : `Mod.Kind` (qui supprimerait les `flatMap { isGroup ? children : [self] }` réécrits trois fois), les identifiants typés (`Mod.ID` / `NexusID` / `FolderName`), et le `uniqueId` vide des groupes (**F4**) |
 | **P3 Protocoles et injection** | Oui — **plus urgent chez nous** | Ils comptaient 26 accès directs à `UserDefaults` ; nous en avons **33** dans le seul ViewModel. `NSOpenPanel` y est appelé deux fois. Pas besoin de leur `DependencyContainer` : un protocole ici, c'est un fichier de plus dans `Package.swift` |
 | **P4 Découper le ViewModel** | Oui — c'est le §6 | Leur ordre vaut, leurs numéros de ligne non |
-| **P5 Concurrence structurée** | **Douteux** | `swift build` ne couvre que Core : la concurrence stricte sur l'application ne serait vérifiée que par la compilation. À ne pas ouvrir avant que les domaines soient séparés — sinon `@MainActor` sur un fourre-tout de 4000 lignes révèle des dizaines de problèmes réels d'un coup, sans moyen de les isoler |
+| **P5 Concurrence structurée** | **Douteux — et angle mort** | Ni `build_app.py` ni `Package.swift` ne passent `-swift-version 6` ou `-strict-concurrency` : **nous ne savons pas combien de problèmes existent**, faute de les avoir jamais fait compter (leur 0.4 sert à ça). À ne pas ouvrir avant que les domaines soient séparés — `@MainActor` sur un fourre-tout de 4000 lignes en révélerait des dizaines d'un coup, sans moyen de les isoler. **Première étape, peu coûteuse : mesurer** en ajoutant l'avertissement, sans rien corriger |
 | **P6 Balayage de nommage** | **Non** | Des centaines d'appels touchés pour un gain cosmétique, sans revue automatisée. Écarté (§7) |
 | **P7 Erreurs typées** | Oui | **Swift 6.3.3** ici : `throws(E)` est disponible. Ce qui les a mordus (une CI sur Xcode 15.4) ne nous concerne pas |
 | **P8 Découpage des vues** | Oui — **et ça manquait à ce plan** | Ils visent ~150 lignes par vue. Chez nous : `ModListView` **1596**, `MainView` **1125**, `SavesView` 794, `LogsView` 684, `ModDetailView` 683. À traiter au contact, en même temps que le domaine correspondant |
