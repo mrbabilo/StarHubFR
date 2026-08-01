@@ -1361,25 +1361,14 @@ class StarHubTHViewModel: ObservableObject {
     func getMissingDependencies(for mod: ModItem) -> [String] {
         // Uses the precomputed index built in scanMods() — O(deps) per call,
         // safe to invoke from every ModListRow render.
-        return mod.dependencies.compactMap { dep in
-            guard dep.isRequired else { return nil }
-            return installedUniqueIds.contains(dep.uniqueId.lowercased()) ? nil : dep.uniqueId
-        }
+        ModDependencyStatus.missing(for: mod, installedIds: installedUniqueIds)
     }
 
     /// Required dependency UniqueIDs that are installed but currently disabled.
     /// A disabled required dependency is just as problematic for an enabled mod
     /// as a missing one, so these are surfaced in the "Issues" filter too.
     func getDisabledDependencies(for mod: ModItem) -> [String] {
-        return mod.dependencies.compactMap { dep in
-            guard dep.isRequired else { return nil }
-            let key = dep.uniqueId.lowercased()
-            // Only installed-but-disabled deps qualify here.
-            if let enabled = installedModStates[key], !enabled {
-                return dep.uniqueId
-            }
-            return nil
-        }
+        ModDependencyStatus.disabled(for: mod, states: installedModStates)
     }
 
     /// Builds `mod`'s transitive dependency tree (see `DependencyTreeBuilder`).

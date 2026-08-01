@@ -47,6 +47,7 @@ let package = Package(
                 "Models/InstalledModRegistry.swift",
                 "Models/SaveTree.swift",
                 "Models/OSJunk.swift",
+                "Models/ModDependencyStatus.swift",
                 "L10n.swift",
                 "AppDesignCore.swift",
                 "ContrastChecker.swift",
@@ -162,6 +163,11 @@ let package = Package(
             name: "ModFocusResolverTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ModFocusResolverTests"
+        ),
+        .testTarget(
+            name: "ModDependencyStatusTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ModDependencyStatusTests"
         ),
         .testTarget(
             name: "OSJunkTests",
