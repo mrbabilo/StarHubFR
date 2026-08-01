@@ -2,13 +2,6 @@ import Foundation
 import Cocoa
 import SwiftUI
 
-struct ModUpdateInfo: Identifiable, Equatable {
-    var id: String { name }
-    let name: String
-    let version: String
-    let url: String
-}
-
 struct ThaiTranslationMod: Identifiable, Equatable {
     var id: String { name }
     let name: String
@@ -1331,44 +1324,14 @@ class StarHubTHViewModel: ObservableObject {
         
         let (smapiDiag, smapiDate, smapiStale) = computeSmapiDiagnostics(logContent: logContent, atPath: logPath)
 
-        var updates: [ModUpdateInfo] = []
+        // Bloc « You can update N mods » — voir SmapiLogParser.updates(in:).
+        let updates = SmapiLogParser.updates(in: logContent)
         var errors: [String] = []
         
         let lines = logContent.components(separatedBy: .newlines)
-        var isParsingUpdates = false
         var isParsingErrors = false
         
         for line in lines {
-            // Check for Updates
-            if line.contains("You can update") {
-                isParsingUpdates = true
-                continue
-            }
-            if isParsingUpdates {
-                if line.contains("ALERT SMAPI") && line.contains("https://") {
-                    // Example: [12:00:00 ALERT SMAPI]    Content Patcher 2.0.0: https://smapi.io/mods#Content_Patcher
-                    let parts = line.components(separatedBy: "ALERT SMAPI]")
-                    if parts.count > 1 {
-                        let infoString = parts[1].trimmingCharacters(in: .whitespaces)
-                        let split = infoString.components(separatedBy: ": https://")
-                        if split.count == 2 {
-                            let nameAndVersion = split[0]
-                            let url = "https://" + split[1]
-                            
-                            // Naive split by last space for version
-                            let nvSplit = nameAndVersion.components(separatedBy: " ")
-                            let version = nvSplit.last ?? ""
-                            let name = nvSplit.dropLast().joined(separator: " ")
-                            
-                            updates.append(ModUpdateInfo(name: name, version: version, url: url))
-                        }
-                    }
-                } else if !line.contains("ALERT SMAPI") {
-                    // Reached end of alert block
-                    isParsingUpdates = false
-                }
-            }
-            
             // Check for Errors (Skipped mods or general red text)
             if line.contains("ERROR SMAPI") {
                 if line.contains("Skipped mods") {

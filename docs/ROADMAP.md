@@ -313,7 +313,7 @@ dizaine d'essais guidés, et retrouver l'état initial exact à la fin.
 
 ---
 
-### v1.12.0 — Hub de traduction FR, phase 1 : *diagnostic* — **Axe C**
+### v1.13.0 — Hub de traduction FR, phase 1 : *diagnostic* — **Axe C**
 
 Objectif : tenir la promesse du dépôt (« traduction en français ») **en lecture seule**,
 sans risque d'écriture destructive.
@@ -352,7 +352,7 @@ partiellement traduits ou pas du tout, sans ouvrir un seul fichier.
 
 ---
 
-### v1.13.0 — Hub de traduction FR, phase 2 : *édition & assistance* — **Axe C**
+### v1.14.0 — Hub de traduction FR, phase 2 : *édition & assistance* — **Axe C**
 
 C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 
@@ -414,7 +414,7 @@ pouvoir revenir en arrière à tout moment.
 
 ---
 
-### v1.14.0 — Profils, favoris & backups exploitables — **Axe B**
+### v1.15.0 — Profils, favoris & backups exploitables — **Axe B**
 
 #### B3 — Profils
 
@@ -476,7 +476,7 @@ backup se retrouve en moins de dix secondes.
 
 ---
 
-### v1.15.0 — Fiabilité du registre & compatibilité — **Axe A**
+### v1.16.0 — Fiabilité du registre & compatibilité — **Axe A**
 
 #### A1 — Registre robuste
 
@@ -546,7 +546,7 @@ SMAPI 3.0, voici son remplaçant ».
 
 ---
 
-### v1.16.0 — Performance mesurée — **Axe D**
+### v1.17.0 — Performance mesurée — **Axe D**
 
 #### D1 — Exploitation du log du mod *Profiler* (Nexus 12135)
 
@@ -659,7 +659,7 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
         chacun dans un commit isolé, sans changement de comportement. · **M**
   - [ ] **F1-T2** — **Règle permanente** : chaque axe extrait ce qu'il touche. Une
         fonctionnalité nouvelle ne rentre plus dans le VM ; elle arrive dans son propre
-        type, que le VM se contente d'appeler. *(Le risque noté en v1.14 disparaît alors
+        type, que le VM se contente d'appeler. *(Le risque noté en v1.15 disparaît alors
         de lui-même.)*
 - [ ] **F3** — **Latence de frappe dans la recherche de la liste des mods.** Rapportée par
       l'auteur le 2026-08-01 : un délai perceptible entre deux lettres, sur sa modlist
@@ -703,7 +703,7 @@ L'ordre **A4 → C → B → A → D → E** se justifie ainsi :
 5. **D et E** sont des extensions ; les ouvrir avant que C soit stable reproduirait
    exactement la dispersion que le doc de veille reproche.
 
-**Point d'arbitrage restant** : v1.11 (bissection) et v1.12–1.13 (traduction FR) sont
+**Point d'arbitrage restant** : v1.11 (bissection) et v1.13–1.14 (traduction FR) sont
 interchangeables sans dommage. La question est : *le besoin le plus urgent est-il de
 réparer une modlist qui casse, ou de tenir la promesse francophone ?* La roadmap tranche
 pour la première ; cet ordre se renverse en une ligne.

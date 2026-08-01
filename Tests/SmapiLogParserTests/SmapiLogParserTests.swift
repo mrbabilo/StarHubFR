@@ -69,3 +69,55 @@ struct SmapiLogParserTests {
         #expect(out.allSatisfy { $0.source == .smapi })
     }
 }
+
+/// Le bloc « You can update N mods: » que SMAPI écrit au démarrage. C'est la
+/// source des mises à jour signalées hors Nexus : compteur de la barre
+/// latérale, écran Updates, pied de page.
+struct SmapiUpdateBlockTests {
+    /// Format réel : SMAPI intercale une ligne vide entre les entrées, y
+    /// compris juste après l'en-tête. L'ancien découpage traitait toute ligne
+    /// sans « ALERT SMAPI » comme la fin du bloc, donc il s'arrêtait avant
+    /// d'avoir lu une seule entrée — aucune mise à jour n'était jamais
+    /// détectée. Défaut relevé en amont (AppleBoiy/StarHubTH, 6306958) sur un
+    /// journal réel de 122 000 lignes.
+    @Test func blankLinesBetweenEntriesDoNotEndTheBlock() {
+        let log = """
+        [12:00:00 ALERT SMAPI] You can update 2 mods:
+
+        [12:00:00 ALERT SMAPI]    Content Patcher 2.0.0: https://smapi.io/mods#Content_Patcher
+
+        [12:00:00 ALERT SMAPI]    Automate 2.3.1: https://smapi.io/mods#Automate
+
+        [12:00:01 INFO  SMAPI] Launching mods...
+        """
+        let out = SmapiLogParser.updates(in: log)
+        #expect(out.map(\.name) == ["Content Patcher", "Automate"])
+        #expect(out.map(\.version) == ["2.0.0", "2.3.1"])
+        #expect(out.first?.url == "https://smapi.io/mods#Content_Patcher")
+    }
+
+    @Test func aNonBlankNonAlertLineStillEndsTheBlock() {
+        let log = """
+        [12:00:00 ALERT SMAPI] You can update 1 mod:
+        [12:00:00 ALERT SMAPI]    Automate 2.3.1: https://smapi.io/mods#Automate
+        [12:00:01 INFO  SMAPI] Launching mods...
+        [12:00:02 ALERT SMAPI]    NotAnUpdate 1.0: https://example.com/x
+        """
+        #expect(SmapiLogParser.updates(in: log).map(\.name) == ["Automate"])
+    }
+
+    @Test func aLogWithNoUpdateBlockYieldsNothing() {
+        #expect(SmapiLogParser.updates(in: "[12:00:00 INFO  SMAPI] Loaded 900 mods").isEmpty)
+    }
+
+    @Test func aModNameWithSpacesKeepsThemAndOnlyTheVersionIsSplitOff() {
+        let log = """
+        [12:00:00 ALERT SMAPI] You can update 1 mod:
+
+        [12:00:00 ALERT SMAPI]    Stardew Valley Expanded 1.14.20: https://smapi.io/mods#SVE
+        """
+        let out = SmapiLogParser.updates(in: log)
+        #expect(out.first?.name == "Stardew Valley Expanded")
+        #expect(out.first?.version == "1.14.20")
+    }
+}

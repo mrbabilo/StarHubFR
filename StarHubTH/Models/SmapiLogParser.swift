@@ -78,3 +78,63 @@ public enum SmapiLogParser {
         }
     }
 }
+
+/// Une mise à jour de mod signalée par SMAPI lui-même (hors Nexus).
+public struct ModUpdateInfo: Identifiable, Equatable, Sendable {
+    public var id: String { name }
+    public let name: String
+    public let version: String
+    public let url: String
+
+    public init(name: String, version: String, url: String) {
+        self.name = name
+        self.version = version
+        self.url = url
+    }
+}
+
+extension SmapiLogParser {
+    /// Les mises à jour du bloc « You can update N mods: », que SMAPI écrit au
+    /// démarrage.
+    ///
+    /// Une **ligne vide n'interrompt pas le bloc** : le format réel en intercale
+    /// une entre chaque entrée, y compris juste après l'en-tête. Traiter toute
+    /// ligne sans « ALERT SMAPI » comme la fin du bloc revenait donc à s'arrêter
+    /// avant d'avoir lu la moindre entrée — aucune mise à jour n'était jamais
+    /// détectée, sans le moindre message. Défaut relevé en amont
+    /// (AppleBoiy/StarHubTH, `6306958`) sur un journal réel de 122 000 lignes,
+    /// et présent à l'identique ici.
+    public static func updates(in text: String) -> [ModUpdateInfo] {
+        var updates: [ModUpdateInfo] = []
+        var inBlock = false
+
+        for line in text.components(separatedBy: .newlines) {
+            if line.contains("You can update") {
+                inBlock = true
+                continue
+            }
+            guard inBlock else { continue }
+
+            if line.contains("ALERT SMAPI"), line.contains("https://") {
+                // `[12:00:00 ALERT SMAPI]    Content Patcher 2.0.0: https://…`
+                let parts = line.components(separatedBy: "ALERT SMAPI]")
+                guard parts.count > 1 else { continue }
+                let info = parts[1].trimmingCharacters(in: .whitespaces)
+                let split = info.components(separatedBy: ": https://")
+                guard split.count == 2 else { continue }
+                // Le nom peut contenir des espaces ; seul le dernier segment
+                // est la version.
+                let words = split[0].components(separatedBy: " ")
+                updates.append(ModUpdateInfo(name: words.dropLast().joined(separator: " "),
+                                             version: words.last ?? "",
+                                             url: "https://" + split[1]))
+            } else if line.trimmingCharacters(in: .whitespaces).isEmpty {
+                // Respiration du format, pas la fin du bloc.
+                continue
+            } else if !line.contains("ALERT SMAPI") {
+                inBlock = false
+            }
+        }
+        return updates
+    }
+}
