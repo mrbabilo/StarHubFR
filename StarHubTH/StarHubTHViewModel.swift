@@ -7,12 +7,6 @@ enum SaveViewMode: String, Codable {
     case grid
 }
 
-enum SaveSortOption: String, Codable {
-    case name
-    case lastPlayed
-    case money
-}
-
 class StarHubTHViewModel: ObservableObject {
     @Published var saveViewMode: SaveViewMode = .list
     @Published var saveSortOption: SaveSortOption = .lastPlayed
@@ -2946,66 +2940,21 @@ class StarHubTHViewModel: ObservableObject {
         }
     }
     
+    /// L'arbre des sauvegardes tel qu'il s'affiche.
+    ///
+    /// La filiation et le tri vivent dans `SaveTree` (module testable) ; ne
+    /// reste ici que le filtre par étiquette, qui dépend d'un magasin sur
+    /// disque. Le filtre s'applique aux racines seulement, comme avant.
     var savesHierarchy: [SaveNode] {
-        let saveNames = Set(saves.map(\.folderName))
-        
-        func getParentFolderName(for folderName: String) -> String? {
-            var candidate = folderName
-            while let range = candidate.range(of: "_", options: .backwards) {
-                candidate = String(candidate[..<range.lowerBound])
-                if saveNames.contains(candidate) {
-                    return candidate
-                }
-            }
-            return nil
-        }
-        
-        func sortedNodes(_ nodes: [SaveNode]) -> [SaveNode] {
-            nodes
-                .map { SaveNode(info: $0.info, children: sortedNodes($0.children)) }
-                .sorted { a, b in
-                    switch saveSortOption {
-                    case .name:
-                        return a.info.playerName.localizedCaseInsensitiveCompare(b.info.playerName) == .orderedAscending
-                    case .lastPlayed:
-                        return a.info.lastModified > b.info.lastModified
-                    case .money:
-                        return a.info.money > b.info.money
-                    }
-                }
-        }
-        
-        var childrenByParent: [String: [SaveGameInfo]] = [:]
-        var rootSaves: [SaveGameInfo] = []
-        
-        for save in saves {
-            if let parentFolderName = getParentFolderName(for: save.folderName) {
-                childrenByParent[parentFolderName, default: []].append(save)
-            } else {
-                rootSaves.append(save)
-            }
-        }
-        
-        func buildNode(for save: SaveGameInfo) -> SaveNode {
-            let children = childrenByParent[save.folderName, default: []].map { buildNode(for: $0) }
-            return SaveNode(info: save, children: children)
-        }
-        
-        var roots = rootSaves.map { buildNode(for: $0) }
-        
-        // Apply tag filter
+        var roots = SaveTree.build(from: saves, sortedBy: saveSortOption)
         if !saveFilterTag.isEmpty {
-            roots = roots.filter { node in
-                let tag = SaveNotesStore.shared.note(for: node.info.folderName).tag
-                return tag == saveFilterTag
+            roots = roots.filter {
+                SaveNotesStore.shared.note(for: $0.info.folderName).tag == saveFilterTag
             }
         }
-        
-        roots = sortedNodes(roots)
-        
         return roots
     }
-    
+
     var availableFilterTags: [String] {
         let allTags = saves.compactMap { SaveNotesStore.shared.note(for: $0.folderName).tag }.filter { !$0.isEmpty }
         return Array(Set(allTags)).sorted()

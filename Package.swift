@@ -45,6 +45,7 @@ let package = Package(
                 "NexusUpdateChecker.swift",
                 "Models/NexusUpdateConsolidation.swift",
                 "Models/InstalledModRegistry.swift",
+                "Models/SaveTree.swift",
                 "L10n.swift",
                 "AppDesignCore.swift",
                 "ContrastChecker.swift",
@@ -160,6 +161,11 @@ let package = Package(
             name: "ModFocusResolverTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ModFocusResolverTests"
+        ),
+        .testTarget(
+            name: "SaveTreeTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/SaveTreeTests"
         ),
         .testTarget(
             name: "ModItemFlatteningTests",
