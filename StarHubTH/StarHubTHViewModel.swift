@@ -565,13 +565,6 @@ class StarHubTHViewModel: ObservableObject {
         // Ensure Mods/ exists so moves below always have a destination.
         try? fm.createDirectory(atPath: modsPath, withIntermediateDirectories: true)
 
-        let osJunkNames: Set<String> = [".DS_Store", "Thumbs.db", "ehthumbs.db", "Icon\r"]
-        let osJunkFolders: Set<String> = ["__MACOSX", ".Spotlight-V100", ".Trashes"]
-        func isOsJunk(_ entry: String) -> Bool {
-            osJunkNames.contains(entry)
-                || osJunkFolders.contains(entry)
-                || entry.hasPrefix("._")
-        }
 
         guard let entries = try? fm.contentsOfDirectory(atPath: disabledPath) else {
             // Can't even read the folder — leave it and let the scanMods
@@ -583,7 +576,7 @@ class StarHubTHViewModel: ObservableObject {
         var failed = 0
         var moved = 0
         for entry in entries {
-            if isOsJunk(entry) { continue }
+            if OSJunk.isJunk(entry) { continue }
 
             let src = (disabledPath as NSString).appendingPathComponent(entry)
             var isDir: ObjCBool = false
@@ -617,7 +610,7 @@ class StarHubTHViewModel: ObservableObject {
 
         // Remove Mods_disabled/ entirely if it's now empty or only holds junk.
         let remaining = (try? fm.contentsOfDirectory(atPath: disabledPath)) ?? []
-        let onlyJunk = remaining.allSatisfy { isOsJunk($0) }
+        let onlyJunk = remaining.allSatisfy(OSJunk.isJunk)
         if onlyJunk {
             do {
                 try fm.removeItem(atPath: disabledPath)
@@ -1140,12 +1133,7 @@ class StarHubTHViewModel: ObservableObject {
             var lastProgressPublish: CFAbsoluteTime = 0
             for entry in topEntries {
                 scanDone += 1
-                let isOsJunk = entry == ".DS_Store"
-                    || entry == "Thumbs.db"
-                    || entry == "ehthumbs.db"
-                    || entry == "__MACOSX"
-                    || entry.hasPrefix("._")
-                if isOsJunk { continue }
+                if OSJunk.isJunk(entry) { continue }
                 // Skip trash folders created by a prior repair run — the mods
                 // quarantined inside are not active and must not appear in the
                 // list nor in duplicate detection.
@@ -3122,18 +3110,13 @@ class StarHubTHViewModel: ObservableObject {
             return
         }
 
-        let osJunkNames: Set<String> = [".DS_Store", "Thumbs.db", "ehthumbs.db", "Icon\r"]
-        let osJunkFolders: Set<String> = ["__MACOSX", ".Spotlight-V100", ".Trashes"]
-        func isOsJunk(_ entry: String) -> Bool {
-            osJunkNames.contains(entry) || osJunkFolders.contains(entry) || entry.hasPrefix("._")
-        }
 
         var removed = 0
         var failed = 0
         var firstError: Error? = nil
         for entry in entries {
             // Only dot-prefixed entries that aren't OS junk are disabled mods.
-            guard entry.hasPrefix(".") && !isOsJunk(entry) else { continue }
+            guard entry.hasPrefix(".") && !OSJunk.isJunk(entry) else { continue }
             let path = (modsPath as NSString).appendingPathComponent(entry)
             do {
                 try fm.removeItem(atPath: path)

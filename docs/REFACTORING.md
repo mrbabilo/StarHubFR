@@ -209,6 +209,12 @@ pour le plaisir du compteur.
 
 ### Ordre
 
+**Écart d'ordre assumé (2026-08-01)** : la logique pure du scan est passée
+**avant** Environnement. Ce dernier est petit, sans duplication à récupérer, et
+`selectGameDir` y appelle `NSOpenPanel` — il demande donc le protocole `FilePicking`
+et son bouchon, soit un chantier propre. La méthode (§4.1, « chercher la logique
+pure d'abord ») l'emporte ici sur l'ordre indicatif.
+
 Environnement → Localisation → *(logique pure du scan)* → Scan → Dépendances →
 Bascule → Détail de mod. Chaque étape est un commit, précédée de ses tests quand la
 cible est du calcul pur.
@@ -242,6 +248,7 @@ qu'une de ces trois lignes avait été appliquée sans être dite.
 | --- | --- | --- |
 | Regroupement Nexus (`d802b62`) | `precondition(!updates.isEmpty)` → retour optionnel | Retire un point de crash. L'invariance tenait — les listes viennent d'un regroupement — mais l'exprimer vaut mieux que compter dessus. Aucun appelant affecté |
 | Registre des mods (`4d50349`, consigné après coup par `838e32c`) | `Date()` évalué à chaque enregistrement → un instant unique pour tout le lot | Rend la logique vérifiable (l'horloge devient un paramètre) et donne un lot cohérent. Écart réel de quelques microsecondes entre mods d'un même scan ; sans portée, cette date se comparant à une date de mise en ligne dont la granularité est l'heure |
+| Résidu système (`OSJunk`) | Le scan reconnaît trois entrées de plus : `Icon\r`, `.Spotlight-V100`, `.Trashes` | **Correction, pas simple déplacement.** Sa copie locale était amputée ; or le scan traite tout dossier en `.` comme un mod en pause, si bien qu'un `.Spotlight-V100` s'affichait comme un mod désactivé nommé « Spotlight-V100 ». Trois autres copies étaient déjà correctes |
 | Arbre des sauvegardes (`4204c6e`) | Filtre par étiquette appliqué **après** le tri, au lieu d'avant | Conséquence de l'extraction : `SaveTree.build` trie en construisant. Résultat identique — un filtre ne réordonne pas ce qu'il conserve |
 
 ### Travail concurrent
