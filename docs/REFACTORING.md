@@ -44,8 +44,26 @@ Models/ (Foundation seul)  →  Services/ (I/O, protocole + implémentation)  �
 ```
 
 Retenu aussi : leur ordre d'extraction (le moins enchevêtré d'abord), leur recette
-par domaine, et surtout leur exigence d'**un commit par étape numérotée**, pour qu'un
+par domaine, et leur exigence d'**un commit par étape numérotée**, pour qu'un
 `git bisect` reste trivial.
+
+**Et surtout leur mécanisme de testabilité, qui n'a pas encore d'équivalent ici** :
+un protocole par frontière d'I/O (`ModScanning`, `SaveStoring`, `PreferenceStoring`,
+`FilePicking`…), une implémentation `Live`, et un **bouchon par protocole** dans
+`Tests/Stubs/`. C'est ce qui leur permet de tester un store qui lit le disque ou le
+réseau — sans quoi « extraire un store » ne fait que déplacer du code intestable.
+
+Ce mécanisme n'est **pas encore nécessaire** ici, parce que les trois extractions
+faites à ce jour portaient sur de la logique **pure** (parseurs, comparaison), qui
+se teste sans bouchon. Il le deviendra dès la première extraction touchant au
+disque ou au réseau — sauvegardes, registre, Nexus. À ce moment-là : introduire le
+protocole **avec** son bouchon dans le même commit, et non « plus tard », faute de
+quoi le store arrivera dans Core sans un seul test possible.
+
+**Leurs coordonnées ne sont pas transposables.** Leur ViewModel faisait 2102 lignes,
+le nôtre en faisait 4378 au moment de l'audit : tous les numéros de ligne de leur
+plan (`4.1 LocalizationStore 380–413`…) sont inutilisables. Ce qui vaut, c'est
+l'**ordre** et les **dépendances entre domaines**, pas les emplacements.
 
 **Écarté**, parce que dépendant d'une chaîne de build que nous n'avons pas : XcodeGen
 (`project.yml`), les tests `XCUIApplication`, la capture d'écran automatisée, et leur
@@ -54,6 +72,14 @@ lanceur de tests maison (nous utilisons swift-testing via SwiftPM).
 **Leurs correctifs pendant le refactor valent plus que leur plan.** C'est en les
 lisant qu'on a trouvé le bloc de mises à jour SMAPI jamais détecté — bug réel,
 présent à l'identique ici, corrigé le 2026-08-01 (`54113eb`).
+
+Deux autres de leurs défauts ont été cherchés chez nous, avec des résultats
+opposés — les noter évite de refaire la recherche :
+
+| Leur défaut | Chez nous |
+| --- | --- |
+| Groupes construits avec `uniqueId: ""` (leur 2.4) : une dépendance à identifiant vide peut se résoudre sur un groupe et passer pour satisfaite | **Présent dans le code** (`StarHubTHViewModel.swift:1207`), mais la chaîne d'exploitation semble coupée : `rebuildDependencyIndexes()` n'indexe que les enfants, jamais le groupe. Ouvert en **F4**, à instruire avant de conclure |
+| `customModTags` relu depuis `UserDefaults` à chaque lecture — un décodage de plist par ligne et par redessin (leur 3.5) | **N'existe pas ici.** Cherché explicitement : aucune occurrence. Ce n'est donc **pas** l'explication de la latence de frappe (**F3**), et la piste « rendu » reste non confirmée |
 
 ## 4. Méthode
 
