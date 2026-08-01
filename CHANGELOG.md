@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.12.0] - 2026-08-01
+
 ### Added
 - **Pause or delete a mod from its own page.** Both actions were only in the list, so deciding a mod's fate meant going back to it — right after reading the very description, dependencies and error history that informed the decision. Same confirmations as the list, and a pack's components don't carry them: the pack header does, as before.
 
@@ -559,7 +561,8 @@ where the exact log format was verified.
 - Added translation for **Wear More Rings** (v7.9) by bcmpinc.
 - Added translation for **World Navigator** (v1.4.2) by pneuma163.
 
-[Unreleased]: https://github.com/mrbabilo/StarHubFR/compare/v1.11.1...HEAD
+[Unreleased]: https://github.com/mrbabilo/StarHubFR/compare/v1.12.0...HEAD
+[1.12.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.11.1...v1.12.0
 [1.11.1]: https://github.com/mrbabilo/StarHubFR/compare/v1.11.0...v1.11.1
 [1.11.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.10.3...v1.11.0
 [1.10.3]: https://github.com/mrbabilo/StarHubFR/compare/v1.10.2...v1.10.3
