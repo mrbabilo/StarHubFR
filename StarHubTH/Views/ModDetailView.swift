@@ -167,9 +167,13 @@ struct ModDetailView: View {
     private var actionRow: some View {
         if isTopLevel {
             HStack(spacing: 12) {
-                if vm.pendingToggleFolder == mod.folderName {
-                    ProgressView().controlSize(.small).frame(width: 14, height: 14)
-                }
+                // La place du témoin est réservée en permanence : le faire
+                // apparaître et disparaître décalait tout le reste de la rangée
+                // à chaque bascule, et l'interrupteur semblait sauter.
+                ProgressView()
+                    .controlSize(.small)
+                    .frame(width: 14, height: 14)
+                    .opacity(vm.pendingToggleFolder == mod.folderName ? 1 : 0)
                 Toggle(vm.L(L10n.Mods.detailEnabled), isOn: Binding(
                     get: { localIsOn ?? live.isEnabled },
                     set: { newValue in
