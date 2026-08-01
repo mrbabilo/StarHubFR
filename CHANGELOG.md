@@ -13,6 +13,7 @@ where the exact log format was verified.
 ## [Unreleased]
 
 ### Fixed
+- **System files no longer show up as paused mods.** The scan treats any dot-prefixed folder as a paused mod, but its idea of "system litter" was narrower than the app's three other copies of that same rule — it didn't know `.Spotlight-V100`, `.Trashes` or a folder's custom `Icon` file. A `.Spotlight-V100` therefore sat in the list as a disabled mod named "Spotlight-V100".
 - **Updates SMAPI reports are detected again.** The "You can update N mods" block SMAPI writes at startup was read until the first line not carrying an `ALERT SMAPI` tag — but the real format puts a blank line between entries, right after the header. The block was therefore closed before a single entry had been read, so no such update ever showed up: not in the sidebar count, not on the Updates screen, not in the footer, and with nothing said about it.
 
 ## [1.12.0] - 2026-08-01
