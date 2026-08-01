@@ -521,6 +521,15 @@ backup se retrouve en moins de dix secondes.
       (strip espaces : `"Nexus: 20290"` → `"Nexus:20290"`, sinon le mod est invisible). · **M**
 - [ ] **A2-T2** — Afficher le statut, `brokeIn` et le **lien de mise à jour non officielle /
       mod de remplacement** sur la fiche mod et dans la carte de santé. · **M**
+      ⚠️ **Constat du 2026-08-01, à traiter ici** : `NexusUpdateChecker.compare(_:_:)`
+      classe `1.0.0-unofficial.3-auteur` **avant** `1.0.0`, parce que le semver rétrograde
+      toute version portant un tag de pré-version. Or la communauté Stardew publie ces
+      correctifs **après** la version qu'ils réparent, et ils la remplacent. Conséquence :
+      une mise à jour non officielle ne peut pas être présentée comme plus récente.
+      Figé par un test (`Tests/VersionCompareTests`) qui documente le comportement actuel.
+      La correction appartient à cette tâche, pas au comparateur seul : `compare` sert
+      aussi au tri de la liste et à la détection des mises à jour, et la changer sans
+      distinguer les deux usages déplacerait le problème.
 - [ ] **A2-T3** — Fallback sur `Pathoschild/SmapiCompatibilityList` (`mods.jsonc`,
       jointure sur `UniqueID`) quand smapi.io est injoignable, et bandeau signalant la
       fraîcheur de la source effectivement utilisée (live vs cache statique). · **M**
