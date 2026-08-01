@@ -663,9 +663,16 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
         `@MainActor final class … : ObservableObject` **compile dans `StarHubTHCore` et
         s'y teste** — c'est ce qui rend l'extraction de stores payante ici, et non un
         simple rangement sans filet. Vérifié puis retiré.
-        **Domaine 2 : le calcul de couverture i18n de C1** — il naît directement en Core
-        via le plan du hub de traduction, ce qui satisfait F1-T2 (« une fonctionnalité
-        nouvelle arrive dans son propre type ») sans extraction rétroactive.
+        **Domaine 2 livré le 2026-08-01 — catalogue des traductions** : le découpage du
+        tableau Markdown passe en Core avec 11 tests (`ThaiTranslationTable`), et
+        `ThaiTranslationMod` perd les deux méthodes qui prenaient le ViewModel en
+        paramètre — un modèle remontant d'une couche, ce qui l'excluait du module
+        testable (correction 2.1 de l'upstream). Une des deux était morte.
+        **F1-T1 est donc terminé** : le ViewModel passe de 4390 à 4153 lignes sur la
+        journée, avec 24 tests neufs là où il n'y en avait aucun.
+        La suite de l'axe F relève de **F1-T2** (règle permanente : toute fonctionnalité
+        neuve naît dans son propre type) — que le plan du hub de traduction respecte déjà,
+        sa logique pure naissant directement en Core.
         **Audit de l'upstream** (`AppleBoiy/StarHubTH`, refactor phases 0-9 achevé le
         2026-07-25, postérieur à notre fork) : leur découpage par couches
         `Models/ → Services/ (protocole + Live) → Features/<X>Store → vues`, avec un
