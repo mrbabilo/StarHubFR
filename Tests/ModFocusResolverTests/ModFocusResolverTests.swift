@@ -52,6 +52,23 @@ struct ModFocusResolverTests {
         #expect(ModFocusResolver.resolve("RSV Core", in: [pack])?.name == "RSV Core")
     }
 
+    @Test func aPartialMatchReachesAPackByItsName() {
+        // Changement de portée assumé : la résolution précédente ne regardait
+        // que les composants, jamais les packs. « Ridgeside » ne trouvait rien.
+        let pack = mod("Ridgeside Village", folder: "RidgesideVillage",
+                       children: [mod("RSV Core"), mod("RSV Extras")])
+        #expect(ModFocusResolver.resolve("Ridgeside", in: [pack])?.folderName
+                == "RidgesideVillage")
+    }
+
+    @Test func aComponentWinsOverItsPackOnAPartialMatch() {
+        // Quand les deux correspondent partiellement, c'est le composant :
+        // le journal de SMAPI nomme celui qui a parlé, pas son emballage.
+        let pack = mod("RSV", folder: "RidgesideVillage",
+                       children: [mod("RSV Core"), mod("RSV Extras")])
+        #expect(ModFocusResolver.resolve("RSV C", in: [pack])?.name == "RSV Core")
+    }
+
     @Test func anEmptyQueryMatchesNothing() {
         // `contains("")` est vrai partout : sans cette garde, une demande vide
         // ouvrait la fiche du premier mod venu.

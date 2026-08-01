@@ -302,6 +302,12 @@ final class BisectionRunner: ObservableObject {
         session = nil
         state = nil
         noCandidates = false
+        // Plus de recherche en cours, donc plus de remise en état à laquelle un
+        // avertissement pourrait se rapporter. Sans cela, le drapeau levé par un
+        // échec partiel survit à la fermeture de la recherche : seul `start()`
+        // le rabaissait, et l'avertissement se serait affiché sur la conclusion
+        // de la recherche suivante.
+        restoreIncomplete = false
     }
 
     /// Applique un essai : active les code-mods donnés par le modèle **plus**
