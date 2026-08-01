@@ -46,11 +46,19 @@ private enum PageSlot {
 
 struct ModListView: View {
     @ObservedObject var vm: StarHubTHViewModel
-    /// Lecture seule du cadrage courant (recherche, filtres, tri, page). Il vit
-    /// dans le ViewModel pour survivre à un changement d'onglet — voir
-    /// `ModListFilters`. Les écritures passent par `vm.modListFilters` en clair,
-    /// pour qu'on voie au premier coup d'œil ce qui modifie un état partagé.
-    private var filters: ModListFilters { vm.modListFilters }
+    /// Le cadrage de la liste, observé **à part** du ViewModel pour que taper
+    /// dans la recherche ne redessine pas toute la fenêtre — voir `ModListState`.
+    @ObservedObject private var listState: ModListState
+
+    init(vm: StarHubTHViewModel) {
+        self.vm = vm
+        self.listState = vm.modList
+    }
+
+    /// Lecture seule du cadrage courant (recherche, filtres, tri, page). Les
+    /// écritures passent par `listState.filters` en clair, pour qu'on voie au
+    /// premier coup d'œil ce qui modifie un état partagé.
+    private var filters: ModListFilters { listState.filters }
     /// Number of mods rendered per page. Tuned so the list stays responsive
     /// even with several hundred installed mods.
     private let pageSize: Int = 15
@@ -94,7 +102,7 @@ struct ModListView: View {
         // The request may also carry a folder name (the guided search works in
         // those) — `ModFocusResolver` accepts either.
         let resolved = ModFocusResolver.resolve(modName, in: vm.mods)
-        vm.modListFilters.focus(on: resolved?.name ?? modName)
+        listState.filters.focus(on: resolved?.name ?? modName)
         vm.pendingModFocus = nil
     }
 
@@ -327,7 +335,7 @@ struct ModListView: View {
                 // Keeps the most-used navigation and the key CTA at the
                 // same visual priority, above the secondary filters.
                 HStack {
-                    Picker("", selection: $vm.modListFilters.scope) {
+                    Picker("", selection: $listState.filters.scope) {
                         Text("\(vm.L(L10n.Mods.filterAll)) (\(counts.all))")
                             .tag(ModFilter.all)
                         Text("\(vm.L(L10n.Mods.enabled)) (\(counts.enabled))")
@@ -485,13 +493,13 @@ struct ModListView: View {
                 bulkToggleOverlay(done: prog.done, total: prog.total)
             }
         }
-        .searchable(text: $vm.modListFilters.search, prompt: Text(vm.L(L10n.Mods.searchMods)))
+        .searchable(text: $listState.filters.search, prompt: Text(vm.L(L10n.Mods.searchMods)))
         // Les cinq `.onChange` par critère sont partis dans `ModListFilters` :
         // la règle y est portée par le type, donc un filtre ajouté plus tard ne
         // peut plus oublier sa remise à la page 1. Reste celui-ci, qui ne
         // dépend d'aucun filtre : la liste a changé de taille sous nos pieds
         // (installation, suppression, activation d'un profil).
-        .onChange(of: vm.mods.count)    { _, _ in vm.modListFilters.page = 1 }
+        .onChange(of: vm.mods.count)    { _, _ in listState.filters.page = 1 }
         // Clicking a mod name in the logs must land on that mod, not on the full
         // list. `selectedModID` alone only tints the row — with filters and
         // pagination the mod may not even be on the visible page — so scope the
@@ -575,7 +583,7 @@ struct ModListView: View {
         return VStack(spacing: AppDesign.Spacing.sm) {
             HStack(spacing: 6) {
                 Button {
-                    if filters.page > 1 { vm.modListFilters.page -= 1 }
+                    if filters.page > 1 { listState.filters.page -= 1 }
                 } label: {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 10, weight: .semibold))
@@ -595,7 +603,7 @@ struct ModListView: View {
                             .frame(width: 24)
                     case .page(let n):
                         Button {
-                            vm.modListFilters.page = n
+                            listState.filters.page = n
                         } label: {
                             Text("\(n)")
                                 .font(.system(size: 12, weight: n == page ? .semibold : .regular))
@@ -612,7 +620,7 @@ struct ModListView: View {
                 }
 
                 Button {
-                    if filters.page < totalPages { vm.modListFilters.page += 1 }
+                    if filters.page < totalPages { listState.filters.page += 1 }
                 } label: {
                     Image(systemName: "chevron.right")
                         .font(.system(size: 10, weight: .semibold))
@@ -658,7 +666,7 @@ struct ModListView: View {
     private func sortItem(_ order: ModSortOrder, label: String, icon: String) -> some View {
         let active = filters.sort == order
         Button {
-            vm.modListFilters.sort = order
+            listState.filters.sort = order
         } label: {
             if active {
                 Label(vm.L(label), systemImage: "checkmark")
@@ -722,7 +730,7 @@ struct ModListView: View {
     /// set of choices.
     private var configFilterToggle: some View {
         Button {
-            vm.modListFilters.configOnly.toggle()
+            listState.filters.configOnly.toggle()
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: "gearshape")
@@ -769,17 +777,17 @@ struct ModListView: View {
         }()
         return Menu {
             Button {
-                vm.modListFilters.frenchTranslation = .off
+                listState.filters.frenchTranslation = .off
             } label: {
                 Label(vm.L(L10n.Mods.frTranslationFilterLabel), systemImage: "character.bubble")
             }
             Button {
-                vm.modListFilters.frenchTranslation = .available
+                listState.filters.frenchTranslation = .available
             } label: {
                 Label(vm.L(L10n.Mods.frTranslationAvailable), systemImage: "checkmark.bubble")
             }
             Button {
-                vm.modListFilters.frenchTranslation = .missing
+                listState.filters.frenchTranslation = .missing
             } label: {
                 Label(vm.L(L10n.Mods.frTranslationMissing), systemImage: "xmark.bubble")
             }
@@ -881,13 +889,13 @@ struct ModListView: View {
     private func categoryPicker(categories: [(category: NexusCategory, count: Int)], uncatCount: Int, tagBuckets: [(tag: String, label: String, count: Int)]) -> some View {
         Menu {
             Button {
-                vm.modListFilters.category = .all
+                listState.filters.category = .all
             } label: {
                 Label(vm.L(L10n.Mods.categoryFilterAll), systemImage: "square.grid.2x2")
             }
             if uncatCount > 0 {
                 Button {
-                    vm.modListFilters.category = .uncategorized
+                    listState.filters.category = .uncategorized
                 } label: {
                     Label("\(vm.L(L10n.Mods.categoryFilterUncategorized))   (\(uncatCount))", systemImage: "circle.dashed")
                 }
@@ -897,7 +905,7 @@ struct ModListView: View {
             }
             ForEach(categories, id: \.category.id) { entry in
                 Button {
-                    vm.modListFilters.category = .category(entry.category)
+                    listState.filters.category = .category(entry.category)
                 } label: {
                     // SwiftUI Menus render Button labels as plain text — an
                     // HStack would only show its first child. Concatenating
@@ -912,7 +920,7 @@ struct ModListView: View {
                 Divider()
                 ForEach(tagBuckets, id: \.tag) { bucket in
                     Button {
-                        vm.modListFilters.category = .inferredTag(bucket.tag)
+                        listState.filters.category = .inferredTag(bucket.tag)
                     } label: {
                         Text("\(bucket.label)   (\(bucket.count))")
                     }
@@ -921,7 +929,7 @@ struct ModListView: View {
             if filters.category != .all {
                 Divider()
                 Button(role: .destructive) {
-                    vm.modListFilters.category = .all
+                    listState.filters.category = .all
                 } label: {
                     Label(vm.L(L10n.Mods.categoryFilterClear), systemImage: "xmark.circle")
                 }

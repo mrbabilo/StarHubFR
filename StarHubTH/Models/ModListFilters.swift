@@ -1,4 +1,20 @@
 import Foundation
+import Combine
+
+/// Porteur observable du cadrage de la liste, **séparé du ViewModel**.
+///
+/// Ce n'est pas un détail d'organisation : un `@Published` sur le ViewModel
+/// publie à toute la fenêtre, `MainView` comprise — barre latérale, en-tête,
+/// zone de contenu. Chaque lettre tapée dans le champ de recherche redessinait
+/// donc l'application entière, et la frappe accusait une latence perceptible
+/// à ~900 mods. Un objet observable à part limite la publication à qui
+/// l'observe, c'est-à-dire `ModListView` seule — la portée qu'avaient les
+/// `@State` d'origine, sans leur défaut (ils mouraient avec la vue).
+///
+/// Même motif que `vm.bisection`, pour la même raison.
+final class ModListState: ObservableObject {
+    @Published var filters = ModListFilters()
+}
 
 /// Le cadrage courant de la liste des mods : ce qu'on cherche, ce qu'on filtre,
 /// comment on trie, où on en est dans la pagination.

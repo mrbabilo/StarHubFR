@@ -143,6 +143,18 @@ struct ModDetailView: View {
         vm.mods.contains { $0.folderName == mod.folderName }
     }
 
+    /// L'état courant du mod, relu dans `vm.mods` à chaque rendu.
+    ///
+    /// `mod` est une **copie figée** au moment où la fiche a été ouverte
+    /// (`vm.viewingModDetail`), et rien ne la rafraîchit : mettre le mod en
+    /// pause renomme bien le dossier et met à jour `vm.mods`, mais la copie
+    /// garde son ancien `isEnabled`. L'interrupteur revenait donc en position
+    /// « activé » dès que la valeur optimiste s'effaçait — l'affichage
+    /// contredisait le disque.
+    private var live: ModItem {
+        vm.mods.first { $0.folderName == mod.folderName } ?? mod
+    }
+
     /// Mettre en pause et supprimer, depuis la fiche. Jusqu'ici il fallait
     /// revenir à la liste pour les deux — alors que la fiche est justement
     /// l'écran où l'on décide du sort d'un mod, après avoir lu sa description,
@@ -159,7 +171,7 @@ struct ModDetailView: View {
                     ProgressView().controlSize(.small).frame(width: 14, height: 14)
                 }
                 Toggle(vm.L(L10n.Mods.detailEnabled), isOn: Binding(
-                    get: { localIsOn ?? mod.isEnabled },
+                    get: { localIsOn ?? live.isEnabled },
                     set: { newValue in
                         // Même temporisation optimiste que la liste : la valeur
                         // locale tient jusqu'à ce que la complétion confirme
@@ -167,8 +179,8 @@ struct ModDetailView: View {
                         // visiblement en arrière le temps du rescan.
                         localIsOn = newValue
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                            if newValue != mod.isEnabled {
-                                vm.toggleMod(mod) { localIsOn = nil }
+                            if newValue != live.isEnabled {
+                                vm.toggleMod(live) { localIsOn = nil }
                             } else {
                                 localIsOn = nil
                             }

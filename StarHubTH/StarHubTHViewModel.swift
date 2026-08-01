@@ -1907,11 +1907,14 @@ class StarHubTHViewModel: ObservableObject {
     /// Cadrage de la liste des mods : recherche, filtres, tri, page courante.
     ///
     /// Ici et non en `@State` de `ModListView` pour la même raison que
-    /// `pendingModFocus` : SwiftUI construit les onglets dans une chaîne
-    /// `if/else`, donc quitter l'onglet Mods détruit la vue et son état local.
-    /// Tri et filtres repartaient à zéro à chaque aller-retour vers le
-    /// Diagnostic — y compris celui qu'impose la recherche guidée.
-    @Published var modListFilters = ModListFilters()
+    /// `pendingModFocus` : ouvrir une fiche mod *remplace* la liste (voir
+    /// `MainView`), donc la vue est détruite et son état local avec. Tri,
+    /// filtres et page repartaient à zéro dès qu'on ouvrait un mod.
+    ///
+    /// Objet observable à part, et **non** `@Published` ici : sinon chaque
+    /// lettre tapée dans la recherche publierait à toute la fenêtre. Voir
+    /// `ModListState`.
+    let modList = ModListState()
 
     @Published var selectedModID: String? = nil {
         didSet {
