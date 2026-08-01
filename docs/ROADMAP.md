@@ -658,6 +658,9 @@ périmètre en **C4-T3**, sous forme de spike avec décision go/no-go.)*
 
 Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
 
+> **Méthode, ordre des extractions et état d'avancement : [`REFACTORING.md`](REFACTORING.md).**
+> Ce document-ci ne garde que les tâches ; le comment vit là-bas.
+
 - [ ] **F1** — **Découper le God module.** `StarHubTHViewModel.swift` fait **4278 lignes**
       et concentre profils, scan, Nexus, logs, configs et sauvegardes.
       **Méthode imposée par l'environnement** : `swift test` est inutilisable ici, donc un
