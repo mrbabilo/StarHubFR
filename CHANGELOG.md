@@ -12,6 +12,12 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+- **Pause or delete a mod from its own page.** Both actions were only in the list, so deciding a mod's fate meant going back to it — right after reading the very description, dependencies and error history that informed the decision. Same confirmations as the list, and a pack's components don't carry them: the pack header does, as before.
+
+### Fixed
+- **The mod list keeps its sort, filters and page when you open a mod and come back.** Sorting by install date, scoping to one category, paging to the mod you wanted, opening it — and landing back on page 1 of an unsorted, unfiltered list. Opening a mod replaces the list rather than covering it, so it was rebuilt from scratch on the way back; leaving for another tab did the same. The search box keeps its text too.
+
 ## [1.11.1] - 2026-08-01
 
 ### Added

@@ -28,6 +28,11 @@ struct ModDetailView: View {
     /// Nexus mod id). `.idle` hides the status row; `.loading` shows a spinner.
     @State private var fetchStatus: FetchStatus = .idle
 
+    /// Position optimiste de l'interrupteur pendant que le dossier est renommé,
+    /// `nil` dès que `vm.mods` a rattrapé — même mécanique que la liste.
+    @State private var localIsOn: Bool? = nil
+    @State private var showDeleteConfirm = false
+
     enum FetchStatus: Equatable {
         case idle
         case loading
@@ -118,6 +123,7 @@ struct ModDetailView: View {
                         linkButton(icon: "ladybug", label: vm.L(L10n.Mods.detailBugs), url: link + "?tab=bugs")
                     }
                 }
+                actionRow
             }
             Spacer(minLength: 8)
             metadataColumn
@@ -128,6 +134,87 @@ struct ModDetailView: View {
         .frame(maxWidth: .infinity)
         .background(Color.accentColor.opacity(0.06))
         .overlay(alignment: .bottom) { Divider() }
+    }
+
+    /// Whether this mod is a top-level folder rather than one component of a
+    /// pack. Same test as `performToggle`'s seed resolution: `vm.mods` holds
+    /// pack headers and standalone mods, never children.
+    private var isTopLevel: Bool {
+        vm.mods.contains { $0.folderName == mod.folderName }
+    }
+
+    /// Mettre en pause et supprimer, depuis la fiche. Jusqu'ici il fallait
+    /// revenir à la liste pour les deux — alors que la fiche est justement
+    /// l'écran où l'on décide du sort d'un mod, après avoir lu sa description,
+    /// ses dépendances et son historique d'erreurs.
+    ///
+    /// Absent pour un composant de pack, comme dans la liste : c'est l'en-tête
+    /// du pack qui porte ces actions pour tous ses composants, et mettre en
+    /// pause un seul composant n'a pas de sens — SMAPI écarterait les autres.
+    @ViewBuilder
+    private var actionRow: some View {
+        if isTopLevel {
+            HStack(spacing: 12) {
+                if vm.pendingToggleFolder == mod.folderName {
+                    ProgressView().controlSize(.small).frame(width: 14, height: 14)
+                }
+                Toggle(vm.L(L10n.Mods.detailEnabled), isOn: Binding(
+                    get: { localIsOn ?? mod.isEnabled },
+                    set: { newValue in
+                        // Même temporisation optimiste que la liste : la valeur
+                        // locale tient jusqu'à ce que la complétion confirme
+                        // que `vm.mods` a rattrapé, sinon l'interrupteur revient
+                        // visiblement en arrière le temps du rescan.
+                        localIsOn = newValue
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            if newValue != mod.isEnabled {
+                                vm.toggleMod(mod) { localIsOn = nil }
+                            } else {
+                                localIsOn = nil
+                            }
+                        }
+                    }
+                ))
+                .toggleStyle(SwitchToggleStyle(tint: Color(red: 0.20, green: 0.65, blue: 0.35)))
+                .controlSize(.small)
+                .accessibilityLabel(String(format: vm.L(L10n.Mods.toggleA11yLabel), mod.name))
+                .accessibilityHint(vm.L(L10n.Mods.toggleA11yHint))
+
+                // Pas de pendant au spinner de suppression de la liste : la
+                // fiche se referme dès la confirmation, personne ne le verrait.
+                // La garde sur une suppression déjà en vol, elle, reste utile.
+                Button(role: .destructive) {
+                    showDeleteConfirm = true
+                } label: {
+                    Label(vm.L(L10n.Mods.deleteMod), systemImage: "trash")
+                        .font(.system(size: 12))
+                }
+                .buttonStyle(.borderless)
+                .foregroundColor(.red)
+                .disabled(vm.pendingDeleteFolder != nil)
+                .accessibilityHint(vm.L(L10n.Mods.deleteModA11yHint))
+                .pointingHandCursor()
+            }
+            .padding(.top, 2)
+            .confirmationDialog(
+                String(format: vm.L(L10n.Mods.deleteConfirmTitle), mod.name),
+                isPresented: $showDeleteConfirm,
+                titleVisibility: .visible
+            ) {
+                Button(vm.L(L10n.Mods.deleteMod), role: .destructive) {
+                    vm.deleteMod(mod)
+                    // Refermer la fiche : le mod qu'elle décrit n'existe plus.
+                    // La laisser ouverte afficherait une version, des
+                    // dépendances et une description d'un dossier supprimé.
+                    vm.viewingModDetail = nil
+                }
+                Button(vm.L(L10n.Saves.cancel), role: .cancel) { }
+            } message: {
+                Text(mod.isGroup
+                     ? vm.L(L10n.Mods.deleteConfirmPack)
+                     : vm.L(L10n.Mods.deleteConfirmMessage))
+            }
+        }
     }
 
     /// The mod's category as a colored chip — the Nexus category when known,

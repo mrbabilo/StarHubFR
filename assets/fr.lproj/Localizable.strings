@@ -662,6 +662,7 @@
 "mods_open_details" = "Voir les détails";
 "mods_open_details_hint" = "Ouvre la fiche détaillée du mod";
 "mods_row_a11y_label" = "%@, %@, %@";
+"mods_detail_enabled" = "Activé";
 "mods_toggle_a11y_label" = "Mod %@";
 "mods_toggle_a11y_hint" = "Basculer l'activation de ce mod";
 "mods_open_folder_a11y_hint" = "Ouvre le dossier de ce mod dans le Finder";

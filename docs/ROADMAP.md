@@ -100,8 +100,8 @@ liste du 2026-07-30 et n'existaient pas dans le document de veille.
 | §2 | ETA pendant le téléchargement | **À faire** | Rien dans `Models/NexusDownloader.swift` → **B2-T1** |
 | §2 | Poids du mod, taille de `Mods/`, espace disque restant | **À faire** | Tailles calculées uniquement pour les backups → **B2-T2** |
 | §2 | Splashscreen en fenêtre dédiée | **Fait** | `Views/LaunchSplashWindow.swift`, v1.10.0 |
-| §2 | Boutons **Activer** / **Supprimer** sur la fiche mod | **À faire** | `ModDetailView.swift` n'expose que des liens et l'édition catégorie/NexusID → **B1-T1** |
-| §2 | Le retour depuis la fiche conserve tri / filtres / scroll | **À faire** | `MainView.swift:210` remplace `ModListView` par `ModDetailView` : la vue est détruite, ses `@State` avec → **B1-T2** |
+| §2 | Boutons **Activer** / **Supprimer** sur la fiche mod | **Livré** (2026-08-01) | `ModDetailView.actionRow` → **B1-T1** |
+| §2 | Le retour depuis la fiche conserve tri / filtres / scroll | **Partiel** (2026-08-01) | `ModListFilters` porté par le ViewModel ; **le scroll ne l'est pas** → **B1-T2** |
 | §2 | Vérifier le bouton d'activation de la page dépendances | **Bug présumé** | Le bouton existe (`DependencyTreeView.swift:124`) ; c'est son effet qui est douteux → **X3** |
 | §2 | Boutons de rafraîchissement (quarantaine, alertes système) | **À faire** | → **B2-T3** |
 | §3 | Reconnaître les mods de traduction (i18n seul) | **Partiel** | `ModItem.languages`, filtre `FrenchTranslationScope` et heuristique de nom (`ModItem.swift:99`) — mais **aucun test structurel** → **C1-T4** |
@@ -243,10 +243,16 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       parlant que du rendu BBCode, le correctif est passé inaperçu et n'a pas de ligne au
       CHANGELOG. Vérifié en conditions réelles par l'auteur le 2026-08-01 : les trois
       boutons de la page (Activer, Page Nexus, Rechercher) répondent.
-- [ ] **B1-T1** — Boutons **Activer/Désactiver** et **Supprimer** sur la fiche mod
-      (parité avec la liste, mêmes confirmations). · **S**
-- [ ] **B1-T2** — Persister tri, filtres, catégorie et page de `ModListView` dans le
-      ViewModel. · **S**
+- [x] **B1-T1** ✅ *(livré le 2026-08-01)* — Boutons **Activer/Désactiver** et
+      **Supprimer** sur la fiche mod (parité avec la liste, mêmes confirmations).
+      Absents pour un composant de pack, comme dans la liste. La fiche se referme
+      à la suppression. · **S**
+- [x] **B1-T2** ✅ *(livré le 2026-08-01)* — Tri, filtres, catégorie, page **et
+      recherche** portés par `ModListFilters` dans le ViewModel. La remise à la page 1
+      est portée par le type, ce qui a supprimé cinq `.onChange` que la vue devait
+      tenir à jour à la main. **La position de défilement n'est pas conservée** : la
+      pagination (15 par page) rend le scroll intra-page court, et la restaurer
+      demanderait un `ScrollViewReader` — à rouvrir si le besoin se fait sentir. · **S**
 
 ---
 

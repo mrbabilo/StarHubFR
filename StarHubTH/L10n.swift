@@ -240,6 +240,7 @@ enum L10n {
         static let openDetails          = "mods_open_details"
         static let openDetailsHint      = "mods_open_details_hint"
         static let rowA11yLabel         = "mods_row_a11y_label"
+        static let detailEnabled        = "mods_detail_enabled"
         static let toggleA11yLabel      = "mods_toggle_a11y_label"
         static let toggleA11yHint       = "mods_toggle_a11y_hint"
         static let openFolderA11yHint   = "mods_open_folder_a11y_hint"
