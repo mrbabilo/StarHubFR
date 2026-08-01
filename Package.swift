@@ -40,6 +40,7 @@ let package = Package(
                 "Models/BisectionSnapshot.swift",
                 "Models/ModFocusResolver.swift",
                 "Models/LogEntry.swift",
+                "Models/SmapiLogParser.swift",
                 "L10n.swift",
                 "AppDesignCore.swift",
                 "ContrastChecker.swift",
@@ -155,6 +156,11 @@ let package = Package(
             name: "ModFocusResolverTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ModFocusResolverTests"
+        ),
+        .testTarget(
+            name: "SmapiLogParserTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/SmapiLogParserTests"
         ),
         .testTarget(
             name: "BisectionCopyTests",

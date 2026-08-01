@@ -2026,71 +2026,7 @@ class StarHubTHViewModel: ObservableObject {
 
         let (smapiDiag, smapiDate, smapiStale) = computeSmapiDiagnostics(logContent: text, atPath: path)
 
-        let lines = text.components(separatedBy: .newlines)
-        var entries: [LogEntry] = []
-
-        for line in lines {
-            // SMAPI format: [HH:MM:SS LEVEL  Context] message
-            // (double space between level and context is intentional in SMAPI)
-            if line.hasPrefix("[") {
-                guard let bracketEnd = line.firstIndex(of: "]") else {
-                    // malformed — skip
-                    continue
-                }
-
-                let header = String(line[line.index(after: line.startIndex)..<bracketEnd])
-                // Split by whitespace, filter empty (handles double space)
-                let headerParts = header.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
-                // headerParts: [0]=HH:MM:SS, [1]=LEVEL, [2+]=Context
-
-                let ts = headerParts.count >= 1 ? headerParts[0] : "—"
-                let levelStr = headerParts.count >= 2 ? headerParts[1] : ""
-                let contextName: String? = {
-                    guard headerParts.count >= 3 else { return nil }
-                    let name = headerParts[2...].joined(separator: " ")
-                    return (name == "SMAPI" || name == "game") ? nil : name
-                }()
-
-                let level: LogLevel
-                switch levelStr.uppercased() {
-                case "ERROR":  level = .error
-                case "WARN":   level = .warning
-                case "ALERT":  level = .warning
-                case "INFO":   level = .info
-                default:       level = .trace  // TRACE, DEBUG, etc.
-                }
-
-                // Message = everything after "] "
-                let msgStart = line.index(after: bracketEnd)
-                let message = msgStart < line.endIndex
-                    ? String(line[msgStart...]).trimmingCharacters(in: .whitespaces)
-                    : ""
-
-                if !message.isEmpty || contextName != nil {
-                    var entry = LogEntry(timestamp: ts, message: message, level: level, source: .smapi)
-                    // SMAPI écrit certaines erreurs **pour le compte** d'un mod :
-                    // le crochet de source porte « SMAPI », et le nom du mod
-                    // n'apparaît qu'en préfixe du message —
-                    // « [SMAPI] [ERROR] Gunther's Guide: Tried to map… ».
-                    // Sans cette lecture, ces erreurs n'étaient imputées à
-                    // personne : ni dans l'historique par mod, ni dans le
-                    // relevé de la recherche guidée.
-                    entry.modName = contextName
-                        ?? ((level == .error || level == .warning)
-                            ? LogNoise.modNamePrefix(in: message) : nil)
-                    entries.append(entry)
-                }
-            } else {
-                // Continuation line — append to last entry's message
-                let trimmed = line.trimmingCharacters(in: .whitespaces)
-                guard !trimmed.isEmpty, !entries.isEmpty else { continue }
-                let last = entries.removeLast()
-                let combined = last.message.isEmpty ? trimmed : last.message + "\n" + trimmed
-                var updated = LogEntry(timestamp: last.timestamp, message: combined, level: last.level, source: .smapi)
-                updated.modName = last.modName
-                entries.append(updated)
-            }
-        }
+        let entries = SmapiLogParser.parse(text)
 
         // Trim to the memory cap by dropping TRACE noise, not by cutting the
         // head of the file.
