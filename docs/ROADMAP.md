@@ -654,13 +654,38 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
       **Méthode imposée par l'environnement** : `swift test` est inutilisable ici, donc un
       refactor n'a pour filet que la **compilation** (`python3 build_app.py`) — ce qui
       exclut tout big-bang. Deux règles :
-  - [ ] **F1-T1** — Extraire deux domaines nets et autonomes en types dédiés
-        (candidats : la gestion des profils, et le futur calcul de couverture i18n de C1),
-        chacun dans un commit isolé, sans changement de comportement. · **M**
+  - [ ] **F1-T1** — Extraire deux domaines nets et autonomes en types dédiés, chacun dans
+        un commit isolé, sans changement de comportement. · **M**
+        **Domaine 1 livré le 2026-08-01 — journal SMAPI**, en trois commits :
+        `LogEntry` sort du ViewModel (sa présentation `Color` l'excluait du module testable),
+        `SmapiLogParser` est extrait avec 9 tests, puis le bloc des mises à jour avec 4 tests.
+        Le ViewModel passe de 4390 à 4239 lignes. **Sonde préalable décisive** : un
+        `@MainActor final class … : ObservableObject` **compile dans `StarHubTHCore` et
+        s'y teste** — c'est ce qui rend l'extraction de stores payante ici, et non un
+        simple rangement sans filet. Vérifié puis retiré.
+        **Domaine 2 : le calcul de couverture i18n de C1** — il naît directement en Core
+        via le plan du hub de traduction, ce qui satisfait F1-T2 (« une fonctionnalité
+        nouvelle arrive dans son propre type ») sans extraction rétroactive.
+        **Audit de l'upstream** (`AppleBoiy/StarHubTH`, refactor phases 0-9 achevé le
+        2026-07-25, postérieur à notre fork) : leur découpage par couches
+        `Models/ → Services/ (protocole + Live) → Features/<X>Store → vues`, avec un
+        `Tests/Stubs/` par protocole, est la référence. **Non repris** : XcodeGen, les
+        tests `XCUIApplication` et la capture d'écran — ils dépendent d'une chaîne de build
+        que nous n'avons pas. Leurs correctifs *pendant* le refactor valent plus que leur
+        plan : c'est ainsi qu'a été trouvé le bloc de mises à jour jamais détecté (corrigé
+        ici même) et le `uniqueId: ""` des groupes ci-dessous.
   - [ ] **F1-T2** — **Règle permanente** : chaque axe extrait ce qu'il touche. Une
         fonctionnalité nouvelle ne rentre plus dans le VM ; elle arrive dans son propre
         type, que le VM se contente d'appeler. *(Le risque noté en v1.15 disparaît alors
         de lui-même.)*
+- [ ] **F4** — **Les en-têtes de pack portent `uniqueId: ""`.**
+      `StarHubTHViewModel.swift:1207` construit chaque groupe avec une identité vide.
+      L'upstream a traité le même défaut (leur 2.4) : une dépendance déclarée avec un
+      identifiant vide peut alors se résoudre sur un groupe et passer pour satisfaite.
+      **Non reproduit ici** — notre `rebuildDependencyIndexes()` n'indexe que les enfants
+      d'un groupe, jamais le groupe lui-même, donc la chaîne d'exploitation semble
+      coupée. À instruire avant de conclure, puis soit clore, soit corriger
+      structurellement (leur réponse : un groupe cesse de porter une identité de mod). · **S**
 - [ ] **F3** — **Latence de frappe dans la recherche de la liste des mods.** Rapportée par
       l'auteur le 2026-08-01 : un délai perceptible entre deux lettres, sur sa modlist
       réelle (822 dossiers de premier niveau, 918 manifests).
