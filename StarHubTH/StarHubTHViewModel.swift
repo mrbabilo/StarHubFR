@@ -2051,7 +2051,7 @@ class StarHubTHViewModel: ObservableObject {
     /// Non privé : la recherche guidée croise les erreurs relevées avec les
     /// dossiers actifs, ce qui exige la même correspondance.
     func resolveModFolder(forLoggedName name: String) -> ModItem? {
-        let all = mods.flatMap { m -> [ModItem] in m.isGroup ? (m.children ?? []) : [m] }
+        let all = mods.flattenedMods
         return all.first { $0.name == name }
             ?? all.first { $0.name.localizedCaseInsensitiveContains(name) }
     }
@@ -3445,14 +3445,7 @@ class StarHubTHViewModel: ObservableObject {
 
     func createProfile(name: String) {
         // Snapshot the currently enabled mods into the new profile
-        let currentEnabledIds = mods
-            .flatMap { mod -> [String] in
-                if mod.isGroup, let children = mod.children {
-                    return children.filter { $0.isEnabled }.map { $0.uniqueId }
-                }
-                return mod.isEnabled ? [mod.uniqueId] : []
-            }
-            .filter { !$0.isEmpty }
+        let currentEnabledIds = mods.enabledUniqueIds
 
         let newProfile = ModProfile(name: name, enabledModIds: currentEnabledIds)
         modProfiles.append(newProfile)
@@ -3606,14 +3599,7 @@ class StarHubTHViewModel: ObservableObject {
         // their children's ids), so a pack mod isn't reported missing when
         // one of its children satisfies the id.
         let snapshotMods = mods
-        let installedUniqueIds = Set(
-            snapshotMods.flatMap { mod -> [String] in
-                if mod.isGroup, let children = mod.children {
-                    return children.map { $0.uniqueId }
-                }
-                return [mod.uniqueId]
-            }.filter { !$0.isEmpty }
-        )
+        let installedUniqueIds = snapshotMods.allUniqueIds
         let missingIds = profile.enabledModIds.filter { !installedUniqueIds.contains($0) }
 
         // Shared helper: rename a mod folder within Mods/ to flip its
@@ -4002,14 +3988,7 @@ class StarHubTHViewModel: ObservableObject {
         guard let id = activeProfileId,
               let index = modProfiles.firstIndex(where: { $0.id == id }) else { return }
 
-        let actualEnabledIds = mods
-            .flatMap { mod -> [String] in
-                if mod.isGroup, let children = mod.children {
-                    return children.filter { $0.isEnabled }.map { $0.uniqueId }
-                }
-                return mod.isEnabled ? [mod.uniqueId] : []
-            }
-            .filter { !$0.isEmpty }
+        let actualEnabledIds = mods.enabledUniqueIds
 
         modProfiles[index].enabledModIds = actualEnabledIds
         saveProfiles()

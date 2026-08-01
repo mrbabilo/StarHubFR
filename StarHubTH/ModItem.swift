@@ -126,3 +126,29 @@ extension ModItem {
         return "Other"
     }
 }
+
+extension Array where Element == ModItem {
+    /// Les mods individuels : un pack est remplacé par ses composants, un mod
+    /// autonome se représente lui-même.
+    ///
+    /// Ce dépliage était réécrit à la main **22 fois** dans 10 fichiers au
+    /// 2026-08-01, sous des formes voisines mais pas identiques — le terrain
+    /// exact sur lequel ce dépôt a déjà produit des listes divergentes. Une
+    /// seule définition, testée, plutôt que vingt-deux relectures.
+    var flattenedMods: [ModItem] {
+        flatMap { $0.isGroup ? ($0.children ?? []) : [$0] }
+    }
+
+    /// Les identifiants uniques des mods **activés**, ceux qu'un profil retient.
+    /// Les identifiants vides sont écartés : un manifeste sans `UniqueID` ne
+    /// peut être retrouvé par personne, et l'en-tête d'un pack n'en porte pas.
+    var enabledUniqueIds: [String] {
+        flattenedMods.filter(\.isEnabled).map(\.uniqueId).filter { !$0.isEmpty }
+    }
+
+    /// Tous les identifiants uniques présents, activés ou non — ce qui permet de
+    /// dire d'un profil qu'il réclame un mod qui n'est plus installé.
+    var allUniqueIds: Set<String> {
+        Set(flattenedMods.map(\.uniqueId).filter { !$0.isEmpty })
+    }
+}

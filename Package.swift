@@ -162,6 +162,11 @@ let package = Package(
             path: "Tests/ModFocusResolverTests"
         ),
         .testTarget(
+            name: "ModItemFlatteningTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ModItemFlatteningTests"
+        ),
+        .testTarget(
             name: "InstalledModRegistryTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/InstalledModRegistryTests"

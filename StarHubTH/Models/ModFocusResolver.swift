@@ -32,7 +32,7 @@ public enum ModFocusResolver {
             return byFolder
         }
 
-        let all = mods.flatMap { $0.isGroup ? ($0.children ?? []) : [$0] } + mods
+        let all = mods.flattenedMods + mods
         return all.first { $0.name == needle }
             ?? all.first { $0.name.localizedCaseInsensitiveContains(needle) }
     }
