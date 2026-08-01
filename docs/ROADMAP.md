@@ -333,6 +333,17 @@ sans risque d'écriture destructive.
       mais le pack de traduction **vers une autre langue** (`i18n/th.json`, `zh.json`, `ru.json`)
       : il n'a pas de `fr.json`, s'afficherait donc à **0 % FR** alors qu'il est complet
       pour ce qu'il est. Remplace l'heuristique de nom (`ModItem.swift:99`) pour ce cas. · **S**
+- [ ] **C1-T5** — Signaler qu'un `fr.json` disparu **existe encore dans une sauvegarde**.
+      Mesuré le 2026-08-01 sur le parc réel : 92 mods ont un `default.json` sans `fr.json`,
+      et **16 d'entre eux en ont un** dans `Backups/{ModInstalls,ModConfigs}`. Cas vérifié :
+      `BetterInventory` avait `i18n/fr.json` (1348 o) dans la sauvegarde du 25/07, le dossier
+      installé n'a plus que `default.json` — la mise à jour du mod a effacé la traduction,
+      les auteurs ne redistribuant pas toujours les contributions communautaires. Phase 1 se
+      limite à **le dire** (lecture seule) ; la récupération est **B4-T4**. · **M**
+- [ ] **C1-T6** — Décoder les `i18n/*.json` comme le `StreamReader` de SMAPI : honorer la
+      marque d'ordre des octets (un `ru.json` du parc est en UTF-16 LE) puis se rabattre sur
+      un jeu 8 bits hérité (trois `es.json`). Sans quoi 4 fichiers réels restent illisibles
+      alors que le jeu les charge — cf. l'en-tête de `I18nLenientParser.swift`. · **S**
 
 #### C2 — Vue diff EN/FR
 
@@ -443,6 +454,27 @@ pouvoir revenir en arrière à tout moment.
 - [ ] **B4-T3** — Garantir qu'une restauration met à jour le registre : version, écrasement
       du dossier existant, recréation s'il a disparu. · **M** · *comportement actuel non
       prouvé — commencer par un test de caractérisation.*
+- [ ] **B4-T4** — **Récupérer un fichier isolé depuis une sauvegarde**, sans restaurer le mod
+      entier : `i18n/fr.json` et `config.json`. Une mise à jour de mod écrase le dossier et
+      emporte ce que l'auteur ne redistribue pas — traduction communautaire, réglages.
+      Mesuré le 2026-08-01 sur le parc réel (951 mods installés, 74 présents en sauvegarde) :
+      **16 `fr.json`** et **1 `config.json`** absents mais retrouvables ; 10 `config.json` de
+      plus divergent de leur sauvegarde.
+      Trois exigences, la deuxième étant celle qui coûte :
+      1. **Détection** — croiser les dossiers de mods de `Backups/{ModInstalls,ModConfigs}`
+         avec le parc installé ; modèle Core testable (cf. `ModInstallBackupManager`,
+         `ModConfigBackupManager`, qui ne savent aujourd'hui restaurer qu'en tout-ou-rien).
+      2. **Ne pas confondre divergence et perte** — pour `config.json`, un fichier différent
+         de la sauvegarde est le cas *normal* : l'utilisateur a réglé le mod depuis. Ne
+         proposer la récupération que sur un fichier **absent**, ou revenu aux valeurs par
+         défaut alors que la sauvegarde en portait de personnalisées, ce qui suppose une
+         comparaison clé à clé et non octet à octet. Un faux positif ici écrase des réglages
+         voulus : la faute est plus grave que l'oubli. ⚠️ « Revenu aux valeurs par défaut »
+         n'est pas directement observable — SMAPI les régénère depuis le code du mod, pas
+         depuis un fichier de référence. Les deux seuls signaux sûrs sont donc « absent » et
+         « la sauvegarde porte des clés que l'installé n'a plus ».
+      3. **Écriture explicite** — aperçu du contenu avant écrasement, action par fichier et
+         par mod, jamais en lot silencieux. · **L**
 
 #### B2 — Ergonomie transverse
 

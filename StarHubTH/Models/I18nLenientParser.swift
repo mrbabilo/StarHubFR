@@ -23,20 +23,31 @@ import Foundation
 /// 1474 des 2357 fichiers du parc. Ne pas repasser aux `Character`.
 ///
 /// Mesuré sur les 2357 fichiers `i18n/*.json` de la modlist de l'auteur
-/// (2026-08-01, même harnais avant/après) :
-/// - JSON strict en accepterait **1444** ;
-/// - avant la correction, ce parseur en lisait **1869** et en refusait **488** ;
-/// - il en lit désormais **2354** et n'en refuse plus que **3**, sans aucune
+/// (2026-08-01, même harnais avant et après, décodage UTF-8 strict) :
+/// **2353** sont décodables, dont **1471** en CRLF ; JSON strict en accepterait
+/// **1441**.
+/// - avant la correction, ce parseur en lisait **1866** et en refusait **487** ;
+/// - il en lit désormais **2351** et n'en refuse plus que **2**, sans aucune
 ///   régression (aucun fichier lisible en JSON strict n'est refusé).
+/// - **2326** de ces 2351 ne demandent aucune réparation, donc SMAPI les
+///   charge. Vérifié dans les deux sens : le drapeau `neededRepair` concorde
+///   exactement avec la comparaison textuelle des passes 3 et 4 (aucun
+///   désaccord sur 2351), et les 25 fichiers réparés se répartissent en 16 clés
+///   nues (3 mods) et 9 caractères de contrôle bruts — aucun fichier CRLF
+///   ordinaire, ce qui serait le signe d'une passe 4 trop zélée.
 ///
-/// Les 3 refus restants ne relèvent pas des quatre passes :
-/// - 2 fichiers (`DestroyableBushes/i18n/{ru,zh}.json`) sont en **UTF-16 LE
-///   avec BOM**. C'est un problème de *décodage* : la couche qui lira les
-///   fichiers devra honorer la marque d'ordre des octets, comme le
+/// Reste 6 fichiers hors de portée (0,25 %), pour deux raisons étrangères aux
+/// quatre passes :
+/// - **4 par l'encodage** — `DestroyableBushes/i18n/ru.json` est en UTF-16 LE
+///   avec BOM, trois `es.json` sont dans un jeu 8 bits hérité. C'est affaire de
+///   *décodage* : la couche qui lira les fichiers devra honorer la marque
+///   d'ordre des octets et se rabattre sur un jeu hérité, comme le
 ///   `StreamReader` de SMAPI, avant d'appeler ce parseur qui prend une `String`.
-/// - 1 fichier (`SpecialPowerUtilities/i18n/ko.json`) porte des valeurs entre
-///   **apostrophes simples** (`'…'`, avec des `"` à l'intérieur). Newtonsoft
-///   l'accepte, donc le jeu le charge ; ce serait une cinquième passe.
+/// - **2 par des tolérances Newtonsoft de guillemets** que nous n'implémentons
+///   pas : `SpecialPowerUtilities/i18n/ko.json` porte des valeurs entre
+///   apostrophes simples (`'…'` contenant des `"`), et
+///   `DestroyableBushes/i18n/zh.json` échappe l'apostrophe (`\'`), ce que JSON
+///   interdit. Le jeu charge ces deux fichiers ; ce serait une cinquième passe.
 ///
 /// Les 19 tests unitaires d'origine passaient déjà quand la passe 1 détruisait
 /// un fichier sur deux : c'est exactement pourquoi le plan impose une
