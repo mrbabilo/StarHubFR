@@ -699,8 +699,12 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
       debounce de 200 ms a été retiré en 1.7.0 *parce qu'il aggravait* le lag perçu ; le
       remettre suppose un réglage différent, pas un retour en arrière.
       **Non tranché : régression ou défaut préexistant.** `bundles/StarHubFR_v1.11.1.zip`
-      est la version d'avant B1-T2 et sert de témoin pour un A/B. À faire **avant** toute
-      correction : les deux réponses mènent à des travaux opposés. · **M**
+      est la version d'avant B1-T2 et sert de témoin pour un A/B — première étape de la
+      passe, avant d'écrire quoi que ce soit : les deux réponses mènent à des travaux
+      opposés.
+      **Arbitrage de l'auteur (2026-08-01) : traiter dans une passe de performance
+      groupée, en fin de projet** — pas au fil de l'eau. Ne pas rouvrir isolément ; y
+      joindre les autres constats de perf accumulés d'ici là. · **M**
 - [ ] **F2** — **Audit optimisation & sécurité.** Vitesse et mémoire au démarrage et au
       scan (~900 mods), concurrence (`scanMods()` parallèle, verrous du registre), et
       surface de sécurité : extraction d'archives (traversée de chemin, zip-bomb — déjà
