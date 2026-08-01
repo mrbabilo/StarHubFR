@@ -233,10 +233,16 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       ▸ **Correctif** : normaliser les droits à l'extraction (`grantOwnerWriteAccess`) et retenter
       la suppression après réparation pour les dossiers installés avant le correctif
       (`removeItemGrantingWriteAccess`, site `ModZipInstaller.swift:714`). · **S**
-- [ ] **X3** — **Bouton « Activer » de la page dépendances sans effet.** Le bouton existe
-      (`DependencyTreeView.swift:124` → `vm.toggleMod(depMod)`). Piste d'enquête : si
-      `depMod` est un objet reconstruit depuis la référence du manifeste plutôt que le
-      `ModItem` réellement scanné, `toggleMod` peut échouer silencieusement. · **S**
+- [x] **X3** ✅ *(corrigé le 2026-07-30 par `8f0a81e`, sans être mentionné)* — **Bouton
+      « Activer » de la page dépendances sans effet.** La piste consignée était la bonne :
+      quand la dépendance est l'**enfant d'un pack**, `mod.folderName` désigne le dossier
+      de l'enfant, absent de la liste de premier niveau. `performToggle` partait alors de
+      ce dossier introuvable, et sa boucle de renommage sortait par `continue` — aucun
+      déplacement, aucun message. Le commit a introduit `seedFolder`, qui remonte au pack
+      propriétaire via `getTopLevelFolder(for: mod.uniqueId)`. Le message du commit ne
+      parlant que du rendu BBCode, le correctif est passé inaperçu et n'a pas de ligne au
+      CHANGELOG. Vérifié en conditions réelles par l'auteur le 2026-08-01 : les trois
+      boutons de la page (Activer, Page Nexus, Rechercher) répondent.
 - [ ] **B1-T1** — Boutons **Activer/Désactiver** et **Supprimer** sur la fiche mod
       (parité avec la liste, mêmes confirmations). · **S**
 - [ ] **B1-T2** — Persister tri, filtres, catégorie et page de `ModListView` dans le
