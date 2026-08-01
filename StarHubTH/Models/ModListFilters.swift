@@ -49,6 +49,9 @@ struct ModListFilters: Equatable {
         configOnly = false
         frenchTranslation = .off
         search = searchTerm
+        // Pas redondant avec le `didSet` de `search` : sauter deux fois vers le
+        // même mod laisse `search` inchangé, donc son `didSet` ne se déclenche
+        // pas — et sans cette ligne on resterait sur une page où il n'est pas.
         page = 1
     }
 }
