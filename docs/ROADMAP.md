@@ -66,7 +66,8 @@ comme produit distinct de StarHubTH et de Stardrop.
 - **Axe B — Ergonomie mods, profils & backups** : rendre exploitable ce qui existe déjà.
 - **Axe D — Performance** : exploitation du log du mod *Profiler*, puis mutualisation.
 - **Axe E — Packs, distribution & pédagogie** : packaging, rapport de modlist, doc, Nexus.
-- **Axe F — Dette technique** *(transverse)* : découpage du God module, audit perf/sécurité.
+- **Axe F — Dette technique** *(transverse)* : découpage du God module, audit perf/sécurité,
+  réactivité de la liste des mods (**F3**).
 
 **Règle de discipline reprise du document de veille** :
 > *Chaque release ne sert qu'un seul axe principal, plus quelques correctifs gratuits.*
@@ -660,6 +661,21 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
         fonctionnalité nouvelle ne rentre plus dans le VM ; elle arrive dans son propre
         type, que le VM se contente d'appeler. *(Le risque noté en v1.14 disparaît alors
         de lui-même.)*
+- [ ] **F3** — **Latence de frappe dans la recherche de la liste des mods.** Rapportée par
+      l'auteur le 2026-08-01 : un délai perceptible entre deux lettres, sur sa modlist
+      réelle (822 dossiers de premier niveau, 918 manifests).
+      **Déjà mesuré, et écarté — ne pas y revenir** :
+  - le filtrage (`filteredMods`) coûte **~2 à 5 ms par frappe** à cette échelle ;
+  - le tri **0,04 ms**, y compris le cas `.name` dont la closure renvoie toujours `false` ;
+  - un index de recherche pré-minusculé (au lieu de `localizedCaseInsensitiveContains`)
+        ferait gagner ~2 ms : sans rapport avec l'ordre de grandeur perçu.
+      **Piste restante** : le **rendu**, pas le calcul — chaque frappe reconstruit les 15
+      lignes de la page avec leurs images, badges, interrupteurs et boutons. Noter qu'un
+      debounce de 200 ms a été retiré en 1.7.0 *parce qu'il aggravait* le lag perçu ; le
+      remettre suppose un réglage différent, pas un retour en arrière.
+      **Non tranché : régression ou défaut préexistant.** `bundles/StarHubFR_v1.11.1.zip`
+      est la version d'avant B1-T2 et sert de témoin pour un A/B. À faire **avant** toute
+      correction : les deux réponses mènent à des travaux opposés. · **M**
 - [ ] **F2** — **Audit optimisation & sécurité.** Vitesse et mémoire au démarrage et au
       scan (~900 mods), concurrence (`scanMods()` parallèle, verrous du registre), et
       surface de sécurité : extraction d'archives (traversée de chemin, zip-bomb — déjà
