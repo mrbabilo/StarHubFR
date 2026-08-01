@@ -124,6 +124,11 @@ n'en avait aucun.
 
 ### Prochaines extractions, du moins au plus enchevêtré
 
+**Un seul ordre fait foi : celui de ce tableau.** Le §6 détaille l'intérieur de son
+cinquième point (le bloc de tête) et n'ouvre pas une file parallèle — l'ordre qu'il
+donne ne s'applique qu'une fois arrivé là.
+
+
 | Ordre | Cible | Pourquoi |
 | --- | --- | --- |
 | 1 | `consolidateUpdatesByPack` + `pickHighestVersion` (~78 l.) | Transformations pures ; leur type est déjà en Core. Elles décident quelles mises à jour tu vois — un mauvais regroupement en fait disparaître une. |
@@ -202,6 +207,34 @@ pour le plaisir du compteur.
 Environnement → Localisation → *(logique pure du scan)* → Scan → Dépendances →
 Bascule → Détail de mod. Chaque étape est un commit, précédée de ses tests quand la
 cible est du calcul pur.
+
+**Cet ordre est interne au §5.5** : on n'y entre qu'après avoir traité les points 1 à 4
+du tableau des extractions. Le dire, parce que « l'environnement est le moins
+enchevêtré » se lit sinon comme « commencer par lui ».
+
+### Quand un domaine est-il extrait ?
+
+Quatre conditions, toutes vérifiables. Sans elles, « extrait » veut seulement dire
+« déplacé », ce qui ne vaut pas le risque pris :
+
+1. **Plus aucune de ses fonctions dans le ViewModel** — pas même une façade qui
+   délègue, sauf si des vues non encore migrées l'appellent, auquel cas la façade est
+   marquée comme provisoire dans le code.
+2. **Ses `@Published` sont classés** : l'état de domaine est parti dans le type extrait,
+   l'état de présentation est redescendu en `@State` dans la vue qui le possède (§6).
+3. **Sa logique pure est testée** — pas son câblage, sa logique. Si l'extraction n'a
+   produit aucun test, c'est que le domaine n'en contenait pas : le noter dans le
+   message de commit plutôt que de laisser croire à un oubli.
+4. **Les deux gates passent** (`./run_tests.sh`, `python3 build_app.py`) et l'auteur a
+   exercé la fonctionnalité à la main — aucun agent ne lance l'application.
+
+### Travail concurrent
+
+Ce dépôt est travaillé par plusieurs sessions et plusieurs modèles. Une extraction
+touche `StarHubTHViewModel.swift`, c'est-à-dire le fichier que **toute** autre session
+risque de modifier. Deux précautions : annoncer le domaine en cours avant de commencer,
+et préférer plusieurs petits commits poussés vite à une grosse extraction gardée
+locale — un conflit sur 80 lignes se règle, sur 800 il se subit.
 
 ## 7. Ce que ce plan ne fait pas
 
