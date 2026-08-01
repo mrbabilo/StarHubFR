@@ -2649,32 +2649,9 @@ class StarHubTHViewModel: ObservableObject {
     /// registry stores the *actual* installation timestamp on this machine.
     /// The update checker uses it for same-version detection: a Nexus upload
     /// newer than the registry date means the installed copy is stale.
-    struct InstalledModRecord: Codable {
-        let version: String
-        let installedAt: Date
-        /// The Nexus version known at install time, for mods whose manifest
-        /// Version is stale (the author forgot to bump). When set and newer
-        /// than the manifest version, the update checker uses this instead of
-        /// the manifest's — so the mod is not permanently re-flagged. We never
-        /// modify the user's manifest.json.
-        var nexusVersion: String? = nil
-    }
-
-    // Registry keys are centralized in `UDKey` (shared with `ModFolderRepairer`
-    // and any other module that needs to read/write the install registry).
     private static let installedModRegistryKey = UDKey.installedModRegistry
-    /// Mirror of the primary registry, written on every save. Used to recover
-    /// automatically when the primary blob is corrupt or missing.
     private static let installedModRegistryBackupKey = UDKey.installedModRegistryBackup
 
-    /// In-memory mirror of the persisted registry. Without this cache, every
-    /// single-mod lookup (`installedModNexusVersion`, `installedModDate`) would
-    /// re-decode the full ~100KB JSON blob from UserDefaults — and since
-    /// `effectiveVersion` calls `installedModNexusVersion` once per mod during
-    /// every scan, that's 100+ full decodes per scan. The cache is populated
-    /// lazily on first access, refreshed on every save, and guarded by
-    /// `installedModRegistryLock` because reads happen on the background scan
-    /// thread while writes (recordInstalledModNexusVersion) can happen on main.
     private var installedModRegistryCache: [String: InstalledModRecord]?
     private let installedModRegistryLock = NSLock()
 
@@ -2847,77 +2824,23 @@ class StarHubTHViewModel: ObservableObject {
         }
 
         let wasEmpty = registry.isEmpty
-        var seenFolders = Set<String>()
-        // Dirty flag: only persist if something actually changed. A no-op
-        // refresh (no install, no delete, no version bump) is extremely
-        // common and skipping the JSON encode + double UserDefaults write
-        // is a meaningful saving on every scan.
-        var didChange = false
 
-        for mod in allMods {
-            let key = mod.folderName
-            seenFolders.insert(key)
-
-            // Resolve the Nexus version for this mod from the extras cache.
-            // Empty/whitespace-only values are normalized to nil so we don't
-            // store a sentinel that the comparator would have to special-case.
-            // `nexusModId` is the manifest's `nexus:<id>` (or a user override
-            // stored elsewhere); both route through the same `extrasSnapshot`
-            // keyed by Nexus mod id.
-            let nexusId = effectiveNexusModId(for: mod)
-            let knownNexusVersion = (nexusId.isEmpty ? nil
-                : extrasSnapshot[nexusId]?.version)?.flatMap { v in
-                    v.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : v
-                }
-
-            if let existing = registry[key] {
-                // Version changed since last scan → this is an update; stamp
-                // NOW. Crucially, carry over (or refresh) `nexusVersion` so a
-                // re-install doesn't drop the previously reconciled value and
-                // re-introduce a false-positive update flag.
-                if existing.version != mod.version {
-                    registry[key] = InstalledModRecord(
-                        version: mod.version,
-                        installedAt: Date(),
-                        nexusVersion: knownNexusVersion ?? existing.nexusVersion
-                    )
-                    didChange = true
-                } else {
-                    // Same version → refresh `nexusVersion` if we just learned
-                    // one (e.g. first Nexus check after a manual install) but
-                    // leave version/installedAt untouched.
-                    if let nv = knownNexusVersion, nv != existing.nexusVersion {
-                        registry[key] = InstalledModRecord(
-                            version: existing.version,
-                            installedAt: existing.installedAt,
-                            nexusVersion: nv
-                        )
-                        didChange = true
-                    }
-                }
-            } else {
-                // New mod (not in registry): always record with NOW. We
-                // intentionally do NOT use the folder mtime — `copyItem`
-                // preserves the archive's packaging date, which is always
-                // older than the Nexus upload and would trigger a spurious
-                // same-version update flag. A mod detected on disk for the
-                // first time was installed recently (this session or a prior
-                // one), so NOW is the most accurate available timestamp.
-                registry[key] = InstalledModRecord(
-                    version: mod.version,
-                    installedAt: Date(),
-                    nexusVersion: knownNexusVersion
-                )
-                didChange = true
-            }
+        // La résolution de la version Nexus reste ici (elle dépend du registre
+        // Nexus) ; les règles de mise à jour du registre vivent dans
+        // `InstalledModRegistry`, module testable.
+        let seen = allMods.map { mod in
+            InstalledModRegistry.Seen(
+                folder: mod.folderName,
+                version: mod.version,
+                nexusVersion: {
+                    let id = effectiveNexusModId(for: mod)
+                    return id.isEmpty ? nil : extrasSnapshot[id]?.version
+                }())
         }
-
-        // Prune registry entries for folders that no longer exist on disk.
-        let beforePruneCount = registry.count
-        registry = registry.filter { seenFolders.contains($0.key) }
-        if registry.count != beforePruneCount {
-            didChange = true
-        }
+        let (synced, didChange) = InstalledModRegistry.sync(registry: registry,
+                                                            seen: seen,
+                                                            now: Date())
+        registry = synced
 
         if didChange {
             saveInstalledModRegistry(registry)
