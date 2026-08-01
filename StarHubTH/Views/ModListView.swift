@@ -104,9 +104,9 @@ struct ModListView: View {
         guard let modName = vm.pendingModFocus else { return }
         // Prefer the resolved mod's own name: SMAPI logs a display name that can
         // differ from the manifest, and searchText matches on name/uniqueId.
-        let resolved = vm.mods
-            .flatMap { m -> [ModItem] in m.isGroup ? (m.children ?? []) : [m] }
-            .first { $0.name.localizedCaseInsensitiveContains(modName) }
+        // The request may also carry a folder name (the guided search works in
+        // those) — `ModFocusResolver` accepts either.
+        let resolved = ModFocusResolver.resolve(modName, in: vm.mods)
         searchText = resolved?.name ?? modName
         selectedFilter = .all
         selectedCategory = .all

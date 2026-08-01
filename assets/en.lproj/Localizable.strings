@@ -724,4 +724,8 @@
 "bisect_copy" = "Copy the list";
 "bisect_cleared_count" = "%lld mods are already in the clear.";
 "bisect_no_candidates" = "No mods to test: they're all paused already.";
+"bisect_open_nexus" = "Nexus page";
+"bisect_show_mod" = "Show this mod";
+"bisect_keep_paused" = "Keep this mod paused";
+"bisect_kept_paused" = "Everything else is back on; this mod stays paused.";
 "bisect_profile_name" = "Mod search";

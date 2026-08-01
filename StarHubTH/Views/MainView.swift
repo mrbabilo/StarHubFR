@@ -318,10 +318,7 @@ struct MainView: View {
         .environment(\.locale, Locale(identifier: vm.currentLanguage))
         .onReceive(NotificationCenter.default.publisher(for: .jumpToMod)) { notification in
             if let modName = notification.object as? String {
-                vm.selectedModID = vm.mods
-                    .flatMap { m -> [ModItem] in m.isGroup ? (m.children ?? []) : [m] }
-                    .first { $0.name.localizedCaseInsensitiveContains(modName) }?
-                    .folderName
+                vm.selectedModID = ModFocusResolver.resolve(modName, in: vm.mods)?.folderName
                 // Hand the request to the list itself: it may not be on screen
                 // yet (tabs are created on demand), so it picks this up on
                 // appear and scopes itself to the mod.

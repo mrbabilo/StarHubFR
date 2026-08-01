@@ -1,0 +1,65 @@
+import Testing
+import Foundation
+@testable import StarHubTHCore
+
+/// Retrouver le mod visé par une demande de mise au point. Deux origines aux
+/// requêtes, et elles ne parlent pas la même langue : la recherche guidée tient
+/// un **nom de dossier** de premier niveau, le journal de SMAPI un **nom
+/// affiché** de composant. Un seul résolveur pour les deux.
+struct ModFocusResolverTests {
+    private func mod(_ name: String, folder: String? = nil,
+                     children: [ModItem]? = nil) -> ModItem {
+        ModItem(uniqueId: "id.\(name)", name: name, folderName: folder ?? name,
+                version: "1.0", author: "", description: "", nexusUrl: "",
+                nexusModId: "", isEnabled: true, dependencies: [],
+                children: children, isGroup: children != nil)
+    }
+
+    @Test func aFolderNameWinsOverANamePartiallyMatchingIt() {
+        // Le dossier « SVE » existe ; un autre mod s'appelle « SVE Patches ».
+        // La recherche guidée passe le dossier : c'est lui qu'il faut ouvrir.
+        let mods = [mod("Stardew Valley Expanded", folder: "SVE"),
+                    mod("SVE Patches", folder: "SVEPatches")]
+        #expect(ModFocusResolver.resolve("SVE", in: mods)?.folderName == "SVE")
+    }
+
+    @Test func aPackIsFoundByItsFolderName() {
+        // Le cas qui cassait en silence : un pack de premier niveau n'existe
+        // pas dans la liste aplatie, où l'ancienne résolution cherchait seule.
+        let pack = mod("Ridgeside Village", folder: "RidgesideVillage",
+                       children: [mod("RSV Core"), mod("RSV Extras")])
+        #expect(ModFocusResolver.resolve("RidgesideVillage", in: [pack])?.folderName
+                == "RidgesideVillage")
+    }
+
+    @Test func anExactNameWinsOverALongerOneContainingIt() {
+        let mods = [mod("Content Patcher Animations"), mod("Content Patcher")]
+        #expect(ModFocusResolver.resolve("Content Patcher", in: mods)?.name
+                == "Content Patcher")
+    }
+
+    @Test func aLoggedNameStillMatchesPartially() {
+        // Ce que faisait déjà le saut depuis une ligne de log : SMAPI affiche
+        // un nom qui n'est pas toujours celui du manifeste.
+        let mods = [mod("Automate")]
+        #expect(ModFocusResolver.resolve("automate", in: mods)?.name == "Automate")
+    }
+
+    @Test func aChildOfAPackIsFoundByItsOwnName() {
+        // SMAPI nomme le composant, pas le pack qui le contient.
+        let pack = mod("Ridgeside Village", folder: "RidgesideVillage",
+                       children: [mod("RSV Core"), mod("RSV Extras")])
+        #expect(ModFocusResolver.resolve("RSV Core", in: [pack])?.name == "RSV Core")
+    }
+
+    @Test func anEmptyQueryMatchesNothing() {
+        // `contains("")` est vrai partout : sans cette garde, une demande vide
+        // ouvrait la fiche du premier mod venu.
+        #expect(ModFocusResolver.resolve("", in: [mod("Automate")]) == nil)
+        #expect(ModFocusResolver.resolve("   ", in: [mod("Automate")]) == nil)
+    }
+
+    @Test func anUnknownModResolvesToNothing() {
+        #expect(ModFocusResolver.resolve("Jamais installé", in: [mod("Automate")]) == nil)
+    }
+}

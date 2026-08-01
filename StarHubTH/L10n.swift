@@ -800,6 +800,10 @@ enum L10n {
         static let clearedCount       = "bisect_cleared_count"
         static let inconclusiveRemaining = "bisect_inconclusive_remaining"
         static let noCandidates       = "bisect_no_candidates"
+        static let openNexus          = "bisect_open_nexus"
+        static let showMod            = "bisect_show_mod"
+        static let keepPaused         = "bisect_keep_paused"
+        static let keptPaused         = "bisect_kept_paused"
         /// Nom donné à l'ensemble de mods appliqué pendant une recherche : il
         /// apparaît dans l'alerte si un dossier ne peut pas être déplacé.
         static let profileName        = "bisect_profile_name"

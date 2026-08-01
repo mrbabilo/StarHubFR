@@ -273,10 +273,11 @@ Effort : **S** ≈ une session · **M** ≈ 2–3 sessions · **L** ≈ chantier
       actif de l'essai dépend (sinon les faux positifs rendent la bissection inutile). · **M**
 - [x] **A4-T5** — Conclusion : l'écran final **nomme le mod trouvé**, le laisse en pause
       (tous les autres sont réactivés) et offre « tout remettre comme avant ». · **S**
-- [ ] **A4-T6** — Actions sur le mod trouvé, envisagées avec A4-T5 mais **non livrées** :
-      ouvrir sa page Nexus, consulter son historique d'erreurs, le laisser en pause de
-      façon permanente. L'énoncé initial d'A4-T5 les annonçait ; il a été ramené à ce qui
-      existe réellement le 2026-07-31. · **S**
+- [x] **A4-T6** — Actions sur le mod trouvé : page Nexus, fiche du mod (où vit son
+      historique d'erreurs), et « garder ce mod en pause » — qui referme la recherche
+      sans réactiver le coupable, geste qui n'existait pas. Les mods que le journal
+      accuse s'ouvrent de la même façon. A sorti la résolution du saut vers un mod dans
+      `ModFocusResolver` (Core, testé) : elle ignorait les packs. · **S**
 
 #### Embarqués
 

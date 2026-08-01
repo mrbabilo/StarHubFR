@@ -12,7 +12,11 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+- **The mod the search found is no longer just a name.** Its page in the app and its Nexus page open in one click, and "keep this mod paused" closes the search without switching it back on — until now the only button on that screen turned the culprit back on, and accepting the verdict meant clicking nothing. The mods the log blames open the same way.
+
 ### Fixed
+- **Jumping to a mod now works for packs.** Opening a mod from a log line, from the health card or from the search looked it up by display name among individual mods only, so a multi-component pack matched nothing and the jump did nothing at all.
 - **The end of a search no longer claims your mods are back on before they are.** The closing screen is reached before the restore finishes, so a restore that partly failed left the claim on screen while the failure alert contradicted it. The screens now state what actually happened, and say what to try — closing a Finder window on the Mods folder is the usual culprit.
 
 

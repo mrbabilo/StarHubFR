@@ -724,5 +724,9 @@
   "bisect_copy": "Copier la liste",
   "bisect_cleared_count": "%lld mods sont déjà hors de cause.",
   "bisect_no_candidates": "Aucun mod à tester : ils sont déjà tous en pause.",
+  "bisect_open_nexus": "Page Nexus",
+  "bisect_show_mod": "Voir la fiche",
+  "bisect_keep_paused": "Garder ce mod en pause",
+  "bisect_kept_paused": "Tout le reste est réactivé ; ce mod reste en pause.",
   "bisect_profile_name": "Recherche du mod responsable"
 }

@@ -242,6 +242,24 @@ final class BisectionRunner: ObservableObject {
     }
 
 
+    /// Referme la recherche en acceptant son verdict : le mod trouvé reste en
+    /// pause, tout le reste est déjà réactivé.
+    ///
+    /// **Ne déplace aucun dossier** — le disque est déjà dans cet état depuis
+    /// la conclusion (voir la branche `.concluded` d'`answer()`). Il ne manquait
+    /// que le geste : jusqu'ici, accepter le verdict consistait à ne cliquer sur
+    /// rien et à laisser la carte ouverte indéfiniment.
+    ///
+    /// L'appelant ne doit proposer ce chemin que si la remise en état des autres
+    /// mods a réussi : sinon l'instantané, seule trace de l'état de départ,
+    /// disparaîtrait avec `reset()` alors qu'un dossier est resté en pause
+    /// contre le gré de l'utilisateur. Voir `BisectionCard.concluded`.
+    func keepPausedAndStop() {
+        guard !isApplying else { return }
+        reset()
+        vm.showModal(message: vm.L(L10n.Bisect.keptPaused))
+    }
+
     func restoreAndStop() {
         guard !isApplying else { return }
         let restore = snapshot?.enabledFolders ?? interruptedSnapshot?.enabledFolders ?? []

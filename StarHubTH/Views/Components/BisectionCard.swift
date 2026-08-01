@@ -246,8 +246,49 @@ struct BisectionCard: View {
             }
             logEvidenceView
             restoreWarning
-            Button(vm.L(L10n.Bisect.restore)) { runner.restoreAndStop() }
-                .disabled(runner.isApplying)
+            culpritActions(folder)
+        }
+    }
+
+    /// Ce qu'on peut faire du nom obtenu. Sans elles, la recherche se termine
+    /// sur un constat : un mod est nommé, et le seul bouton disponible le
+    /// réactive.
+    ///
+    /// Deux rangées, parce que ce sont deux choses : décider du sort du mod, et
+    /// aller le regarder. Sur une seule ligne, les quatre libellés français
+    /// débordent de la carte.
+    @ViewBuilder
+    private func culpritActions(_ folder: String) -> some View {
+        let mod = ModFocusResolver.resolve(folder, in: vm.mods)
+        let nexus = mod.map { vm.nexusLink(for: $0) } ?? ""
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Button(vm.L(L10n.Bisect.restore)) { runner.restoreAndStop() }
+                    .disabled(runner.isApplying)
+                // Accepter le verdict ne déplace rien : le mod est déjà en pause
+                // et le reste déjà réactivé. Mais pas quand la remise en état a
+                // échoué — l'instantané est alors la seule trace de l'état de
+                // départ, et refermer la recherche l'effacerait avec elle.
+                if !runner.restoreIncomplete {
+                    Button(vm.L(L10n.Bisect.keepPaused)) { runner.keepPausedAndStop() }
+                        .disabled(runner.isApplying)
+                }
+            }
+            HStack(spacing: 12) {
+                Button(vm.L(L10n.Bisect.showMod)) {
+                    NotificationCenter.default.post(name: .jumpToMod, object: folder)
+                }
+                .buttonStyle(.link)
+                // Masqué plutôt que grisé quand le mod n'a pas de lien : rien à
+                // faire de l'information « ce mod n'est pas sur Nexus » ici.
+                if !nexus.isEmpty {
+                    Button(vm.L(L10n.Bisect.openNexus)) {
+                        if let url = URL(string: nexus) { NSWorkspace.shared.open(url) }
+                    }
+                    .buttonStyle(.link)
+                }
+            }
+            .font(.system(size: 12))
         }
     }
 
@@ -277,9 +318,21 @@ struct BisectionCard: View {
                 .font(.system(size: 12, weight: .medium))
             ForEach(runner.logEvidence) { suspect in
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(String(format: vm.L(L10n.Bisect.logSuspectLine),
-                                suspect.name, suspect.whenBroken, suspect.brokenSteps))
-                        .font(.system(size: 12, weight: .medium))
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text(String(format: vm.L(L10n.Bisect.logSuspectLine),
+                                    suspect.name, suspect.whenBroken, suspect.brokenSteps))
+                            .font(.system(size: 12, weight: .medium))
+                        // Le journal accuse parfois un mod que la recherche n'a
+                        // pas retenu : c'est justement celui qu'on veut aller
+                        // regarder. Le nom seul ne mène nulle part.
+                        Button {
+                            NotificationCenter.default.post(name: .jumpToMod, object: suspect.name)
+                        } label: {
+                            Image(systemName: "arrow.right.circle")
+                        }
+                        .buttonStyle(.plain)
+                        .help(vm.L(L10n.Bisect.showMod))
+                    }
                     if let sample = suspect.sample {
                         // L'erreur elle-même : un compte ne dit pas ce qui a
                         // mal tourné, et c'est cela qu'on cherche.
