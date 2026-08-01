@@ -1406,25 +1406,10 @@ class StarHubTHViewModel: ObservableObject {
     /// Computed once per `mods` change (SwiftUI caches getter results within a
     /// single body evaluation) instead of flatMapping all mods 4× per render.
     var coreExtensionsSnapshot: CoreExtensionsSnapshot {
-        // Flatten groups once
-        var allMods: [ModItem] = []
-        allMods.reserveCapacity(mods.count)
-        for mod in mods {
-            if mod.isGroup, let children = mod.children {
-                allMods.append(contentsOf: children)
-            } else {
-                allMods.append(mod)
-            }
-        }
+        let allMods = mods.flattenedMods
 
         func slot(matching keyword: String) -> CoreModSlot {
-            let matches = allMods.filter { $0.name.lowercased().contains(keyword) }
-            guard !matches.isEmpty else { return CoreModSlot(status: .notInstalled, mod: nil) }
-            let exactEnabled = matches.first { $0.name.lowercased() == keyword && $0.isEnabled }
-            let anyEnabled   = matches.first { $0.isEnabled }
-            let exactAny     = matches.first { $0.name.lowercased() == keyword }
-            let mod = exactEnabled ?? anyEnabled ?? exactAny ?? matches.first!
-            return CoreModSlot(status: mod.isEnabled ? .enabledAndInstalled : .installedButDisabled, mod: mod)
+            CoreModSlot.resolve(keyword: keyword, among: allMods)
         }
 
         let thaiMod = allMods.first { $0.folderName.lowercased() == "stardew valley - thai" && $0.isEnabled }

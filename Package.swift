@@ -48,6 +48,7 @@ let package = Package(
                 "Models/SaveTree.swift",
                 "Models/OSJunk.swift",
                 "Models/ModDependencyStatus.swift",
+                "Models/CoreModSlot.swift",
                 "L10n.swift",
                 "AppDesignCore.swift",
                 "ContrastChecker.swift",
@@ -163,6 +164,11 @@ let package = Package(
             name: "ModFocusResolverTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ModFocusResolverTests"
+        ),
+        .testTarget(
+            name: "CoreModSlotTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/CoreModSlotTests"
         ),
         .testTarget(
             name: "ModDependencyStatusTests",

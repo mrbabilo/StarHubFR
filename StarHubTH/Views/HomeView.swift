@@ -278,17 +278,6 @@ struct HomeView: View {
 
 // MARK: - Core Mod Status
 
-enum CoreModStatus {
-    case enabledAndInstalled
-    case installedButDisabled
-    case notInstalled
-}
-
-struct CoreModSlot {
-    let status: CoreModStatus
-    let mod: ModItem?
-}
-
 struct CoreExtensionsSnapshot {
     let contentPatcher: CoreModSlot
     let spacecore: CoreModSlot
