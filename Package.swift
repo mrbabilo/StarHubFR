@@ -43,6 +43,7 @@ let package = Package(
                 "Models/SmapiLogParser.swift",
                 "Models/ThaiTranslationTable.swift",
                 "NexusUpdateChecker.swift",
+                "Models/NexusUpdateConsolidation.swift",
                 "L10n.swift",
                 "AppDesignCore.swift",
                 "ContrastChecker.swift",
@@ -158,6 +159,11 @@ let package = Package(
             name: "ModFocusResolverTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ModFocusResolverTests"
+        ),
+        .testTarget(
+            name: "NexusUpdateConsolidationTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/NexusUpdateConsolidationTests"
         ),
         .testTarget(
             name: "VersionCompareTests",

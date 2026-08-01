@@ -2207,80 +2207,21 @@ class StarHubTHViewModel: ObservableObject {
     /// Standalone mods (not part of a group) are returned unchanged. Mods whose
     /// effective Nexus id isn't found in the installed set are also passed
     /// through (defensive — shouldn't normally happen).
+    /// Regroupe les mises à jour par pack avant affichage.
+    ///
+    /// Ne garde ici que ce qui dépend du ViewModel : la table « identifiant
+    /// Nexus effectif → nom du pack parent ». Le regroupement, le choix du
+    /// composant représentatif et le tri vivent dans `NexusUpdateConsolidation`
+    /// (module testable).
     private func consolidateUpdatesByPack(_ updates: [NexusUpdateChecker.ModUpdate]) -> [NexusUpdateChecker.ModUpdate] {
-        // Map each effective Nexus id → its parent pack's display name (if any).
-        // A child that lives under a top-level group maps to that group's name;
-        // standalone mods and group headers themselves map to nil.
         var parentPackName: [String: String] = [:]
-        for mod in mods {
-            if mod.isGroup, let children = mod.children {
-                for child in children {
-                    let id = effectiveNexusModId(for: child)
-                    if !id.isEmpty {
-                        parentPackName[id] = mod.name
-                    }
-                }
+        for mod in mods where mod.isGroup {
+            for child in mod.children ?? [] {
+                let id = effectiveNexusModId(for: child)
+                if !id.isEmpty { parentPackName[id] = mod.name }
             }
         }
-
-        // Bucket updates: packs (by pack name) vs standalone.
-        var byPack: [String: [NexusUpdateChecker.ModUpdate]] = [:]
-        var standalone: [NexusUpdateChecker.ModUpdate] = []
-        for update in updates {
-            if let packName = parentPackName[update.nexusModId] {
-                byPack[packName, default: []].append(update)
-            } else {
-                standalone.append(update)
-            }
-        }
-
-        var consolidated: [NexusUpdateChecker.ModUpdate] = []
-        consolidated.reserveCapacity(standalone.count + byPack.count)
-
-        // Standalone mods pass through.
-        consolidated.append(contentsOf: standalone)
-
-        // For each pack, keep only the highest-version child (ties broken by
-        // the most recent upload date), then rewrite its name to the pack's.
-        for (packName, children) in byPack {
-            let winner = pickHighestVersion(children)
-            consolidated.append(
-                NexusUpdateChecker.ModUpdate(
-                    name: packName,
-                    installedVersion: winner.installedVersion,
-                    latestVersion: winner.latestVersion,
-                    nexusModId: winner.nexusModId,
-                    url: winner.url,
-                    uploadedTime: winner.uploadedTime
-                )
-            )
-        }
-        // Most recently updated mods first; unknown upload dates sort last.
-        return consolidated.sorted {
-            ($0.uploadedTime ?? .distantPast) > ($1.uploadedTime ?? .distantPast)
-        }
-    }
-
-    /// Picks the update with the highest `latestVersion`. When several updates
-    /// share that version, the one with the most recent `uploadedTime` wins.
-    /// Falls back to the first one if all dates are nil and versions tie.
-    private func pickHighestVersion(_ updates: [NexusUpdateChecker.ModUpdate]) -> NexusUpdateChecker.ModUpdate {
-        precondition(!updates.isEmpty)
-        var best = updates[0]
-        for candidate in updates.dropFirst() {
-            let cmp = NexusUpdateChecker.compare(candidate.latestVersion, best.latestVersion)
-            if cmp == .orderedDescending {
-                best = candidate
-            } else if cmp == .orderedSame {
-                // Same version — break the tie by upload date (most recent wins).
-                let candDate = candidate.uploadedTime ?? .distantPast
-                let bestDate = best.uploadedTime ?? .distantPast
-                if candDate > bestDate {
-                    best = candidate
-                }
-            }
-        }
-        return best
+        return NexusUpdateConsolidation.consolidate(updates, parentPackName: parentPackName)
     }
 
     /// Formats a Nexus upload timestamp for display next to the latest version
