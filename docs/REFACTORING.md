@@ -225,3 +225,42 @@ coûteux n'étaient pas dans le code refactoré mais dans **l'outillage qui pré
 le vérifier** — un script qui sort 0 sur un échec, des tests d'intégration qui se
 sautaient silencieusement à chaque exécution. Vérifier que l'outillage échoue bien
 quand il doit échouer vaut autant que vérifier le code.
+
+## 9. Leur plan est-il transposable ? — phase par phase
+
+Verdict : **oui pour sept phases sur dix**, mais jamais telle quelle — leurs
+coordonnées et leur outillage ne se transposent pas (§3).
+
+| Leur phase | Transposable ? | Chez nous |
+| --- | --- | --- |
+| **P0 Garde-fous** | **Oui, et déjà fait pour l'essentiel** | Leur 0.3 — « extraire la logique pure en fonctions libres, la tester, *puis* refactorer autour » — est exactement la méthode du §4, appliquée trois fois le 2026-08-01. **Manquent** : un tag `pre-refactor-baseline`, et le compteur d'avertissements de concurrence (`-Xfrontend -warn-concurrency` dans `build_app.py`) qui sert de jalon à leur P5 |
+| **P1 Sortir les types des fichiers fourre-tout** | Oui, mécanique | Fait pour `LogEntry`, `ThaiTranslationMod`, `ModUpdateInfo`. **Mais leur table `current → target` vise une arborescence que nous n'avons pas** — voir la question ouverte ci-dessous |
+| **P2 Corriger les violations de couche** | Oui, partiellement fait | `LogLevel.color` et les méthodes de `ThaiTranslationMod` prenant le ViewModel : faits. **Restent** : `Mod.Kind` (qui supprimerait les `flatMap { isGroup ? children : [self] }` réécrits trois fois), les identifiants typés (`Mod.ID` / `NexusID` / `FolderName`), et le `uniqueId` vide des groupes (**F4**) |
+| **P3 Protocoles et injection** | Oui — **plus urgent chez nous** | Ils comptaient 26 accès directs à `UserDefaults` ; nous en avons **33** dans le seul ViewModel. `NSOpenPanel` y est appelé deux fois. Pas besoin de leur `DependencyContainer` : un protocole ici, c'est un fichier de plus dans `Package.swift` |
+| **P4 Découper le ViewModel** | Oui — c'est le §6 | Leur ordre vaut, leurs numéros de ligne non |
+| **P5 Concurrence structurée** | **Douteux** | `swift build` ne couvre que Core : la concurrence stricte sur l'application ne serait vérifiée que par la compilation. À ne pas ouvrir avant que les domaines soient séparés — sinon `@MainActor` sur un fourre-tout de 4000 lignes révèle des dizaines de problèmes réels d'un coup, sans moyen de les isoler |
+| **P6 Balayage de nommage** | **Non** | Des centaines d'appels touchés pour un gain cosmétique, sans revue automatisée. Écarté (§7) |
+| **P7 Erreurs typées** | Oui | **Swift 6.3.3** ici : `throws(E)` est disponible. Ce qui les a mordus (une CI sur Xcode 15.4) ne nous concerne pas |
+| **P8 Découpage des vues** | Oui — **et ça manquait à ce plan** | Ils visent ~150 lignes par vue. Chez nous : `ModListView` **1596**, `MainView` **1125**, `SavesView` 794, `LogsView` 684, `ModDetailView` 683. À traiter au contact, en même temps que le domaine correspondant |
+| **P9 Verrouiller** | Oui — **et ça manquait aussi** | Leur `check_standards.py` empêche la dette de revenir. L'équivalent ici est bon marché : un contrôle dans `build_app.py` refusant qu'un fichier de `Models/` importe SwiftUI, sur le modèle du contrôle de parité des clés qui existe déjà |
+
+### Question ouverte, à trancher avant la première extraction de domaine
+
+Leur arborescence est `App/`, `Features/<Domaine>/`, `Services/<Domaine>/`, `Models/`,
+`DesignSystem/`, `Localization/`, `Support/`. Nous avons `Models/`, `Views/`, et la
+racine. **Ce plan ne tranche pas** où vivront les stores extraits au §6.
+
+Deux voies, à choisir une fois pour toutes plutôt qu'au coup par coup :
+
+1. **Adopter leur arborescence.** Une violation de couche devient visible dans le
+   chemin du fichier, ce qui est leur meilleure idée. Coût : `build_app.py` compile
+   déjà tout `StarHubTH/` récursivement, donc **aucun changement de build** — mais
+   beaucoup de fichiers déplacés en une fois, et des commits de déplacement pur qui
+   brouillent l'historique récent.
+2. **Un seul dossier `Stores/`** à côté de `Models/` et `Views/`, sans toucher au
+   reste. Moins expressif, mais additif et sans déplacement.
+
+Recommandation : **la voie 2 maintenant**, la voie 1 seulement si le nombre de stores
+rend `Stores/` illisible. La règle de couche tient déjà par la contrainte de `Package.swift`
+(ce qui est dans Core n'importe pas SwiftUI), qui est vérifiée par le compilateur —
+plus fort qu'une convention de dossier.
