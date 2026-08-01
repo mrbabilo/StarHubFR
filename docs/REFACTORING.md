@@ -137,3 +137,27 @@ Le plan du hub de traduction la respecte déjà.
 - **Pas de conversion à la concurrence structurée** (leur phase 5) tant que les
   domaines ne sont pas séparés : `@MainActor` sur un fourre-tout de 4000 lignes
   révélerait des dizaines de problèmes réels d'un coup, sans moyen de les isoler.
+
+## 7. Leurs correctifs pendant le refactor, passés en revue
+
+Une vingtaine de commits `fix:` entre le 2026-07-24 et le 2026-07-27. Le tri
+complet est ci-dessous pour que personne ne le refasse. **La majorité est sans
+objet** : elle porte sur leur chaîne de build (CI, Xcode 16.2, `XCUIApplication`,
+capture d'écran, `App Sandbox`), que nous n'avons pas.
+
+Ce qui nous concernait :
+
+| Leur correctif | Vérification ici | Résultat |
+| --- | --- | --- |
+| Le bloc de mises à jour SMAPI ne détectait jamais rien (une ligne vide le refermait) | reproduit sur un journal de test, en cassant volontairement la correction | **Présent à l'identique. Corrigé** le 2026-08-01 (`54113eb`) |
+| `build_app.py` imprimait `[ERROR]` puis sortait en **0** sur échec de compilation ; leur `run_tests.py` ignorait le code de sortie du binaire de test | épreuve empirique : parité de clés cassée volontairement, puis test délibérément faux | **Sain ici.** `build_app.py` → code 1 ; `run_tests.sh` (`set -euo pipefail` + `swift test`) → code 1 |
+| `NSOpenPanel` dans le ViewModel rend ses fonctions intestables (leur 3.4) | `grep` | **Présent** : deux occurrences (`StarHubTHViewModel.swift:477` et `:3158`). Ce sera le premier besoin de protocole (`FilePicking`) — voir §3 |
+| AppKit confiné à un seul fichier non-vue (leur B.2) | `grep` sur les imports | **Non respecté** : `ContrastChecker`, `SaveManager`, `DescriptionBlockParser` et le ViewModel importent Cocoa/AppKit. Les trois premiers sont **déjà dans Core**, où ils compilent — mais c'est une violation de couche à traiter quand on y touchera |
+| `bump_version.py` écrivait `Info.plist` avant de valider le CHANGELOG, laissant un état incohérent | lecture de notre flux | **Sans objet** : nous n'avons pas ce script. `release.py` se contente de **lire** `Info.plist`. Le risque n'existe que si un humain bumpe la version sans toucher au CHANGELOG — l'ordre inverse (CHANGELOG d'abord) reste la bonne pratique |
+| `CFBundleVersion` figé à 1 depuis la v1.0.0 | lecture d'`Info.plist` | **Sans objet** : incrémenté à chaque release (8 au 2026-08-01) |
+
+**Ce que ce passage en revue apprend, au-delà des correctifs** : leurs bugs les plus
+coûteux n'étaient pas dans le code refactoré mais dans **l'outillage qui prétendait
+le vérifier** — un script qui sort 0 sur un échec, des tests d'intégration qui se
+sautaient silencieusement à chaque exécution. Vérifier que l'outillage échoue bien
+quand il doit échouer vaut autant que vérifier le code.
