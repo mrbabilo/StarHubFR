@@ -96,6 +96,34 @@ struct I18nLenientParserTests {
         #expect(out["a"] == "line one\nline two")
     }
 
+    @Test func stripsLineCommentsInACrlfFile() throws {
+        // Cas réel ([CP] Cornucopia More Flowers) : fichier en CRLF avec des
+        // commentaires de section. En Swift, `\r\n` est **un seul** Character —
+        // le comparer à `"\n"` échoue, et un parcours par Character fait courir
+        // la coupure du commentaire jusqu'à la fin du fichier.
+        let json = "{\r\n\t// Crop produce\r\n  \"a\": \"1\",\r\n  \"b\": \"2\"\r\n}"
+        let out = try #require(try? I18nLenientParser.parse(json))
+        #expect(out["a"] == "1")
+        #expect(out["b"] == "2")
+        #expect(out.count == 2)
+    }
+
+    @Test func stripsLineCommentsTerminatedByALoneCarriageReturn() throws {
+        // Fins de ligne héritées de Mac OS classique : le commentaire s'arrête
+        // au `\r` seul comme il s'arrêterait à un `\n`.
+        let json = "{\r // note\r \"a\": \"1\"\r}"
+        let out = try #require(try? I18nLenientParser.parse(json))
+        #expect(out["a"] == "1")
+    }
+
+    @Test func escapesRawCrlfInsideAString() throws {
+        // Même racine que ci-dessus, passe 4 : le cluster `\r\n` ne correspond
+        // ni au cas `"\n"` ni au cas `"\r"` et resterait brut dans le JSON.
+        let json = "{\"a\": \"line one\r\nline two\"}"
+        let out = try #require(try? I18nLenientParser.parse(json))
+        #expect(out["a"] == "line one\r\nline two")
+    }
+
     @Test func ignoresDollarSchemaKey() throws {
         let json = #"{"$schema": "http://…", "a": "1"}"#
         let out = try #require(try? I18nLenientParser.parse(json))
@@ -141,6 +169,14 @@ struct I18nSmapiAcceptanceTests {
         // autorise (allowComments, allowTrailingCommas).
         #expect(I18nLenientParser.smapiAccepts(#"{"a": "1"}"#))
         #expect(I18nLenientParser.smapiAccepts("{\n // note\n \"a\": \"1\",\n}"))
+    }
+
+    @Test func crlfLineEndingsStayAcceptedBySmapi() throws {
+        // Un CRLF entre deux entrées est une espace JSON parfaitement légale :
+        // la réparation ne doit pas s'y déclencher, sinon la moitié du parc de
+        // fichiers (écrits sous Windows) serait signalée à tort comme refusée
+        // par le jeu.
+        #expect(I18nLenientParser.smapiAccepts("{\r\n\t// note\r\n  \"a\": \"1\",\r\n}"))
     }
 
     @Test func bareKeysAreRejectedBySmapi() throws {

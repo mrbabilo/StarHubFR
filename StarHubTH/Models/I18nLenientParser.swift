@@ -15,25 +15,32 @@ import Foundation
 ///
 /// Approche reprise de `scanner.rs` (Nana1873/stardew-i18n-translator, GPL) :
 /// **réimplémentée depuis son principe**, aucun code repris.
-/// ⚠️ **INACHEVÉ au 2026-08-01 — ne pas câbler aux vues en l'état.**
 ///
-/// Éprouvé sur les 2447 fichiers i18n réels de la modlist de l'auteur :
-/// - JSON strict en accepterait **1491** ;
-/// - ce parseur en lit **1920** (+429, ce qui est bien l'objet du laxisme) ;
-/// - mais il en **refuse 526**, dont des fichiers valides une fois leurs
-///   commentaires retirés. La passe 1 (`stripComments`) les casse : vérifié en
-///   isolant les passes une à une sur
-///   `[CP] Cornucopia More Flowers/i18n/default.json` (fichier en CRLF, avec
-///   des commentaires de section). Aucun `//` ne survit au nettoyage, et
-///   pourtant le JSON produit est invalide — donc la passe retire *aussi* du
-///   contenu utile.
+/// ⚠️ Tout le nettoyage travaille sur des `Unicode.Scalar`, **jamais** des
+/// `Character` : en Swift, `\r\n` est un seul Character, que ni `== "\n"` ni
+/// `== "\r"` ne reconnaît. Une première version par Character faisait courir la
+/// coupure d'un commentaire de ligne jusqu'à la fin de tout fichier CRLF — soit
+/// 1474 des 2357 fichiers du parc. Ne pas repasser aux `Character`.
 ///
-/// Les 19 tests unitaires passent : ils ne couvrent pas ce cas. C'est
-/// exactement pourquoi le plan impose une validation sur données réelles avant
-/// clôture — elle a fait son travail.
+/// Mesuré sur les 2357 fichiers `i18n/*.json` de la modlist de l'auteur
+/// (2026-08-01, même harnais avant/après) :
+/// - JSON strict en accepterait **1444** ;
+/// - avant la correction, ce parseur en lisait **1869** et en refusait **488** ;
+/// - il en lit désormais **2354** et n'en refuse plus que **3**, sans aucune
+///   régression (aucun fichier lisible en JSON strict n'est refusé).
 ///
-/// Prochaine étape : réduire le fichier fautif jusqu'à la plus petite entrée
-/// qui casse, en faire un test, puis corriger.
+/// Les 3 refus restants ne relèvent pas des quatre passes :
+/// - 2 fichiers (`DestroyableBushes/i18n/{ru,zh}.json`) sont en **UTF-16 LE
+///   avec BOM**. C'est un problème de *décodage* : la couche qui lira les
+///   fichiers devra honorer la marque d'ordre des octets, comme le
+///   `StreamReader` de SMAPI, avant d'appeler ce parseur qui prend une `String`.
+/// - 1 fichier (`SpecialPowerUtilities/i18n/ko.json`) porte des valeurs entre
+///   **apostrophes simples** (`'…'`, avec des `"` à l'intérieur). Newtonsoft
+///   l'accepte, donc le jeu le charge ; ce serait une cinquième passe.
+///
+/// Les 19 tests unitaires d'origine passaient déjà quand la passe 1 détruisait
+/// un fichier sur deux : c'est exactement pourquoi le plan impose une
+/// validation sur données réelles avant clôture.
 enum I18nLenientParser {
     enum ParseError: Error, Equatable {
         /// Illisible même après nettoyage.
@@ -101,14 +108,18 @@ enum I18nLenientParser {
     }
 
     /// Passe 1 — retire `// …` et `/* … */`, sauf à l'intérieur d'une chaîne.
+    ///
+    /// Le commentaire de ligne s'arrête au premier `\n` **ou** `\r` : les
+    /// fichiers CRLF sont majoritaires, et les fins de ligne héritées de Mac OS
+    /// classique existent encore dans le parc.
     private static func stripComments(_ text: String) -> String {
-        var out = ""
-        out.reserveCapacity(text.count)
+        let chars = Array(text.unicodeScalars)
+        var out = String.UnicodeScalarView()
+        out.reserveCapacity(chars.count)
         var inString = false, escaped = false
-        var iterator = Array(text)
         var i = 0
-        while i < iterator.count {
-            let c = iterator[i]
+        while i < chars.count {
+            let c = chars[i]
             if escaped { out.append(c); escaped = false; i += 1; continue }
             if inString {
                 if c == "\\" { escaped = true }
@@ -116,27 +127,27 @@ enum I18nLenientParser {
                 out.append(c); i += 1; continue
             }
             if c == "\"" { inString = true; out.append(c); i += 1; continue }
-            if c == "/", i + 1 < iterator.count {
-                if iterator[i + 1] == "/" {
-                    while i < iterator.count && iterator[i] != "\n" { i += 1 }
+            if c == "/", i + 1 < chars.count {
+                if chars[i + 1] == "/" {
+                    while i < chars.count, chars[i] != "\n", chars[i] != "\r" { i += 1 }
                     continue
                 }
-                if iterator[i + 1] == "*" {
+                if chars[i + 1] == "*" {
                     i += 2
-                    while i + 1 < iterator.count && !(iterator[i] == "*" && iterator[i + 1] == "/") { i += 1 }
+                    while i + 1 < chars.count && !(chars[i] == "*" && chars[i + 1] == "/") { i += 1 }
                     i += 2
                     continue
                 }
             }
             out.append(c); i += 1
         }
-        return out
+        return String(out)
     }
 
     /// Passe 2 — retire une virgule qui ne précède qu'une fermeture. Consciente
     /// des chaînes : `"x,}"` est une valeur, pas une virgule structurale.
     private static func stripTrailingCommas(_ text: String) -> String {
-        let chars = Array(text)
+        let chars = Array(text.unicodeScalars)
         var keep = [Bool](repeating: true, count: chars.count)
         var inString = false, escaped = false
         for (i, c) in chars.enumerated() {
@@ -150,10 +161,13 @@ enum I18nLenientParser {
             guard c == "," else { continue }
             // Regarder la prochaine chose significative hors chaîne.
             var j = i + 1
-            while j < chars.count, chars[j].isWhitespace { j += 1 }
+            while j < chars.count, isSpace(chars[j]) { j += 1 }
             if j < chars.count, chars[j] == "}" || chars[j] == "]" { keep[i] = false }
         }
-        return String(chars.enumerated().filter { keep[$0.offset] }.map(\.element))
+        var out = String.UnicodeScalarView()
+        out.reserveCapacity(chars.count)
+        for (i, c) in chars.enumerated() where keep[i] { out.append(c) }
+        return String(out)
     }
 
     /// Passe 3 — met entre guillemets une clé nue (`{ Key: "v" }`), **seulement
@@ -162,8 +176,8 @@ enum I18nLenientParser {
     ///
     /// SMAPI **refuse** ces fichiers : intervenir ici lève `neededRepair`.
     private static func quoteBareKeys(_ text: String) -> (String, Bool) {
-        let chars = Array(text)
-        var out = ""
+        let chars = Array(text.unicodeScalars)
+        var out = String.UnicodeScalarView()
         out.reserveCapacity(chars.count)
         var inString = false, escaped = false, expectingKey = false, repaired = false
         var i = 0
@@ -178,18 +192,17 @@ enum I18nLenientParser {
             if c == "\"" { inString = true; expectingKey = false; out.append(c); i += 1; continue }
             if c == "{" || c == "," { expectingKey = true; out.append(c); i += 1; continue }
             if c == ":" || c == "}" { expectingKey = false; out.append(c); i += 1; continue }
-            if expectingKey, c.isLetter || c == "_" || c == "$" {
+            if expectingKey, isKeyStart(c) {
                 var j = i
-                var word = ""
-                while j < chars.count, chars[j].isLetter || chars[j].isNumber
-                        || chars[j] == "_" || chars[j] == "." || chars[j] == "-" || chars[j] == "$" {
-                    word.append(chars[j]); j += 1
-                }
+                var word = String.UnicodeScalarView()
+                while j < chars.count, isKeyBody(chars[j]) { word.append(chars[j]); j += 1 }
                 var k = j
-                while k < chars.count, chars[k].isWhitespace { k += 1 }
+                while k < chars.count, isSpace(chars[k]) { k += 1 }
                 // Ce n'est une clé que si un `:` suit.
                 if k < chars.count, chars[k] == ":" {
-                    out.append("\"\(word)\"")
+                    out.append("\"")
+                    out.append(contentsOf: word)
+                    out.append("\"")
                     repaired = true
                     expectingKey = false
                     i = j
@@ -197,27 +210,48 @@ enum I18nLenientParser {
                 }
                 out.append(contentsOf: word); i = j; continue
             }
-            if !c.isWhitespace { expectingKey = false }
+            if !isSpace(c) { expectingKey = false }
             out.append(c); i += 1
         }
-        return (out, repaired)
+        return (String(out), repaired)
+    }
+
+    // MARK: - Prédicats sur scalaires
+
+    // Tout le nettoyage travaille sur des `Unicode.Scalar`, jamais des
+    // `Character`. En Swift, `\r\n` est **un seul** Character : le comparer à
+    // `"\n"` renvoie faux, ce qui faisait courir la coupure d'un commentaire de
+    // ligne jusqu'à la fin d'un fichier CRLF. `Unicode.Scalar` n'offre pas les
+    // prédicats de `Character`, d'où ces trois helpers.
+
+    private static func isSpace(_ c: Unicode.Scalar) -> Bool { c.properties.isWhitespace }
+
+    private static func isDigit(_ c: Unicode.Scalar) -> Bool { c.value >= 0x30 && c.value <= 0x39 }
+
+    private static func isKeyStart(_ c: Unicode.Scalar) -> Bool {
+        c.properties.isAlphabetic || c == "_" || c == "$"
+    }
+
+    private static func isKeyBody(_ c: Unicode.Scalar) -> Bool {
+        c.properties.isAlphabetic || isDigit(c)
+            || c == "_" || c == "." || c == "-" || c == "$"
     }
 
     /// Passe 4 — échappe un retour à la ligne ou une tabulation bruts dans une
     /// chaîne. JSON les interdit ; SMAPI aussi, d'où `neededRepair`.
     private static func escapeRawControlCharacters(_ text: String) -> (String, Bool) {
-        var out = ""
-        out.reserveCapacity(text.count)
+        var out = String.UnicodeScalarView()
+        out.reserveCapacity(text.unicodeScalars.count)
         var inString = false, escaped = false, repaired = false
-        for c in text {
+        for c in text.unicodeScalars {
             if escaped { out.append(c); escaped = false; continue }
             if inString {
                 if c == "\\" { escaped = true; out.append(c); continue }
                 if c == "\"" { inString = false; out.append(c); continue }
                 switch c {
-                case "\n": out.append("\\n"); repaired = true
-                case "\r": out.append("\\r"); repaired = true
-                case "\t": out.append("\\t"); repaired = true
+                case "\n": out.append(contentsOf: "\\n".unicodeScalars); repaired = true
+                case "\r": out.append(contentsOf: "\\r".unicodeScalars); repaired = true
+                case "\t": out.append(contentsOf: "\\t".unicodeScalars); repaired = true
                 default: out.append(c)
                 }
                 continue
@@ -225,6 +259,6 @@ enum I18nLenientParser {
             if c == "\"" { inString = true }
             out.append(c)
         }
-        return (out, repaired)
+        return (String(out), repaired)
     }
 }
