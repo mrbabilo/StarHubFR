@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.11.1] - 2026-08-01
+
 ### Added
 - **The mod the search found is no longer just a name.** Its page in the app and its Nexus page open in one click, and "keep this mod paused" closes the search without switching it back on — until now the only button on that screen turned the culprit back on, and accepting the verdict meant clicking nothing. The mods the log blames open the same way.
 
@@ -551,7 +553,8 @@ where the exact log format was verified.
 - Added translation for **Wear More Rings** (v7.9) by bcmpinc.
 - Added translation for **World Navigator** (v1.4.2) by pneuma163.
 
-[Unreleased]: https://github.com/mrbabilo/StarHubFR/compare/v1.8.0...HEAD
+[Unreleased]: https://github.com/mrbabilo/StarHubFR/compare/v1.11.1...HEAD
+[1.11.1]: https://github.com/mrbabilo/StarHubFR/compare/v1.11.0...v1.11.1
 [1.8.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.7.1...v1.8.0
 [1.7.1]: https://github.com/mrbabilo/StarHubFR/compare/v1.7.0...v1.7.1
 [1.7.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.6.0...v1.7.0
