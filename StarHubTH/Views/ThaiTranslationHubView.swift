@@ -212,7 +212,7 @@ struct ThaiModDetailView: View {
                     }
 
                     InfoCard(title: vm.L(L10n.ThaiHub.installation)) {
-                        InfoRow(label: vm.L(L10n.ThaiHub.status), value: mod.installationStatusText(vm: vm))
+                        InfoRow(label: vm.L(L10n.ThaiHub.status), value: vm.L(mod.availabilityKey))
                         InfoDivider()
                         HStack(alignment: .center) {
                             VStack(alignment: .leading, spacing: 4) {

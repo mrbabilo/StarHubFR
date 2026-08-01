@@ -41,6 +41,7 @@ let package = Package(
                 "Models/ModFocusResolver.swift",
                 "Models/LogEntry.swift",
                 "Models/SmapiLogParser.swift",
+                "Models/ThaiTranslationTable.swift",
                 "L10n.swift",
                 "AppDesignCore.swift",
                 "ContrastChecker.swift",
@@ -156,6 +157,11 @@ let package = Package(
             name: "ModFocusResolverTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ModFocusResolverTests"
+        ),
+        .testTarget(
+            name: "ThaiTranslationTableTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ThaiTranslationTableTests"
         ),
         .testTarget(
             name: "SmapiLogParserTests",

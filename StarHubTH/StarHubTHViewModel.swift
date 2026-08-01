@@ -2,37 +2,6 @@ import Foundation
 import Cocoa
 import SwiftUI
 
-struct ThaiTranslationMod: Identifiable, Equatable {
-    var id: String { name }
-    let name: String
-    let author: String
-    let version: String
-    let status: String
-    let url: String
-    let nexusUrl: String
-    var isInstalled: Bool = false
-    var isOriginalModInstalled: Bool = false
-    
-    func translatedStatus(vm: StarHubTHViewModel) -> String {
-        if status.contains("เสร็จสมบูรณ์") {
-            return "✅ " + vm.L(L10n.ThaiHub.completed)
-        } else if status.contains("รอแปล") {
-            return "⏳ " + vm.L(L10n.ThaiHub.waitingTranslation)
-        }
-        return status
-    }
-    
-    func installationStatusText(vm: StarHubTHViewModel) -> String {
-        if isInstalled {
-            return vm.L(L10n.ThaiHub.installed)
-        } else if isOriginalModInstalled {
-            return vm.L(L10n.ThaiHub.availableDownload)
-        } else {
-            return vm.L(L10n.ThaiHub.missingOriginal)
-        }
-    }
-}
-
 enum SaveViewMode: String, Codable {
     case list
     case grid
@@ -3398,63 +3367,8 @@ class StarHubTHViewModel: ObservableObject {
                 return
             }
 
-            var newTranslations: [ThaiTranslationMod] = []
-            let lines = content.components(separatedBy: .newlines)
-            var inTable = false
-            
-            for line in lines {
-                if line.starts(with: "| ชื่อม็อด") {
-                    inTable = true
-                    continue
-                }
-                if inTable && line.starts(with: "| :---") { continue }
-                if inTable && line.starts(with: "|") {
-                    let parts = line.components(separatedBy: "|").map { $0.trimmingCharacters(in: .whitespaces) }
-                    if parts.count >= 6 {
-                        let rawName = parts[1] // **[[CP] Additional Farm Cave](https://...)**
-                        var cleanName = rawName.replacingOccurrences(of: "**", with: "")
-                        var url = ""
-                        
-                        // Use regex to extract name and URL: [Name](URL)
-                        let pattern = "\\[(.*?)\\]\\((.*?)\\)"
-                        if let regex = try? NSRegularExpression(pattern: pattern, options: []),
-                           let match = regex.firstMatch(in: cleanName, options: [], range: NSRange(location: 0, length: cleanName.utf16.count)) {
-                            if let nameRange = Range(match.range(at: 1), in: cleanName) {
-                                let extractedName = String(cleanName[nameRange])
-                                if let urlRange = Range(match.range(at: 2), in: cleanName) {
-                                    url = String(cleanName[urlRange])
-                                }
-                                cleanName = extractedName
-                            }
-                        }
-                        
-                        let author = parts[2]
-                        let version = parts[3]
-                        let status = parts[4]
-                        
-                        let rawNexus = parts[5]
-                        var nexusUrl = ""
-                        if let r1 = rawNexus.range(of: "("), let r2 = rawNexus.range(of: ")") {
-                            nexusUrl = String(rawNexus[rawNexus.index(after: r1.lowerBound)..<r2.lowerBound])
-                        }
-                        
-                        let mod = ThaiTranslationMod(
-                            name: cleanName,
-                            author: author,
-                            version: version,
-                            status: status,
-                            url: url,
-                            nexusUrl: nexusUrl,
-                            isInstalled: false,
-                            isOriginalModInstalled: false
-                        )
-                        newTranslations.append(mod)
-                    }
-                } else if inTable && line.isEmpty {
-                    inTable = false
-                }
-            }
-            
+            let newTranslations = ThaiTranslationTable.parse(content)
+
             DispatchQueue.main.async {
                 self.thaiTranslations = newTranslations
                 self.evaluateThaiTranslationStatus()
