@@ -99,7 +99,11 @@ Une extraction se fait dans cet ordre, et chaque étape est un commit :
    Le remplacer par une **clé** ou un **état**, que la vue rend.
 5. **Vérifier des deux côtés** : `./run_tests.sh` *et* `python3 build_app.py`.
    Aucun agent ne lance l'application — la vérification visuelle revient à l'auteur.
-6. **Se méfier de l'outillage autant que du code.** Un « build vert » ne vaut que si
+6. **Poser un repère avant de commencer un domaine.** Un tag
+   `pre-refactor-<domaine>` sur le commit de départ : c'est ce qui rend un `git diff`
+   de fin d'extraction lisible, et une marche arrière possible sans reconstituer
+   l'historique. Repris de leur 0.1, jamais fait ici jusqu'à présent.
+7. **Se méfier de l'outillage autant que du code.** Un « build vert » ne vaut que si
    le script échoue vraiment quand il doit échouer. Épreuve passée le 2026-08-01 (les
    deux sortent en 1 : parité de clés rompue, assertion fausse) — **à refaire après
    toute modification de `build_app.py`, `run_tests.sh` ou `release.py`**. C'est là
@@ -127,6 +131,14 @@ n'en avait aucun.
 | 3 | Profils (~115 l.) | Petit, mais la bissection s'appuie sur la même machinerie (dépendance croisée signalée dans `ROADMAP.md`) — extraire l'état avant les opérations. |
 | 4 | Sauvegardes (~350 l., 4 sections éparpillées) | `SaveManager` est déjà en Core : le gain est surtout de lisibilité. |
 | 5 | Le bloc de tête (1934 l.) | Le God module proprement dit — décomposé au §6. |
+
+**Deux chantiers transverses, repris de leurs phases 8 et 9** — absents de la
+première version de ce plan :
+
+| Chantier | Quand | Pourquoi ici |
+| --- | --- | --- |
+| **Découper les vues** (leur P8, cible ~150 lignes) | **Au contact** : quand on extrait un domaine, on découpe la vue qui le consomme, dans le même mouvement | `ModListView` fait 1596 lignes, `MainView` 1125, `SavesView` 794. Une campagne dédiée serait un big-bang sans filet ; couplé à l'extraction, le découpage a une raison d'être et un périmètre |
+| **Verrouiller les règles** (leur P9) | **Dès que le premier store existe** | Leur `check_standards.py` empêche la dette de revenir. L'équivalent ici est bon marché : un contrôle dans `build_app.py` refusant qu'un fichier de `Models/` importe SwiftUI — même forme que le contrôle de parité des clés qui existe déjà, et qui sort en `SystemExit(1)` |
 
 **Deux dettes de couche, à traiter au contact plutôt qu'en campagne** — trouvées en
 passant leurs correctifs en revue (§8), et sans urgence propre :
@@ -244,9 +256,21 @@ coordonnées et leur outillage ne se transposent pas (§3).
 | **P8 Découpage des vues** | Oui — **et ça manquait à ce plan** | Ils visent ~150 lignes par vue. Chez nous : `ModListView` **1596**, `MainView` **1125**, `SavesView` 794, `LogsView` 684, `ModDetailView` 683. À traiter au contact, en même temps que le domaine correspondant |
 | **P9 Verrouiller** | Oui — **et ça manquait aussi** | Leur `check_standards.py` empêche la dette de revenir. L'équivalent ici est bon marché : un contrôle dans `build_app.py` refusant qu'un fichier de `Models/` importe SwiftUI, sur le modèle du contrôle de parité des clés qui existe déjà |
 
-### Question ouverte, à trancher avant la première extraction de domaine
+### Arborescence — tranché le 2026-08-01 : un dossier `Stores/`
 
-Leur arborescence est `App/`, `Features/<Domaine>/`, `Services/<Domaine>/`, `Models/`,
+**Décision** : les stores extraits vont dans `StarHubTH/Stores/`, à côté de `Models/`
+et `Views/`. Additif, aucun déplacement, `build_app.py` compile déjà `StarHubTH/`
+récursivement. Réversible : adopter leur arborescence complète plus tard reste
+possible si `Stores/` devient illisible.
+
+**Pourquoi pas leur arborescence tout de suite** : leur meilleure idée — rendre une
+violation de couche visible dans le chemin du fichier — est déjà obtenue autrement ici,
+et plus solidement. Ce qui est dans `StarHubTHCore` ne peut pas importer SwiftUI, et
+c'est le **compilateur** qui le vérifie, pas une convention de nommage. Déplacer des
+dizaines de fichiers pour gagner une convention plus faible que la contrainte existante
+serait un mauvais échange.
+
+Le détail de leur découpage, pour mémoire — Leur arborescence est `App/`, `Features/<Domaine>/`, `Services/<Domaine>/`, `Models/`,
 `DesignSystem/`, `Localization/`, `Support/`. Nous avons `Models/`, `Views/`, et la
 racine. **Ce plan ne tranche pas** où vivront les stores extraits au §6.
 
@@ -260,7 +284,4 @@ Deux voies, à choisir une fois pour toutes plutôt qu'au coup par coup :
 2. **Un seul dossier `Stores/`** à côté de `Models/` et `Views/`, sans toucher au
    reste. Moins expressif, mais additif et sans déplacement.
 
-Recommandation : **la voie 2 maintenant**, la voie 1 seulement si le nombre de stores
-rend `Stores/` illisible. La règle de couche tient déjà par la contrainte de `Package.swift`
-(ce qui est dans Core n'importe pas SwiftUI), qui est vérifiée par le compilateur —
-plus fort qu'une convention de dossier.
+*(C'est la voie 2 qui a été retenue, cf. la décision ci-dessus.)*
