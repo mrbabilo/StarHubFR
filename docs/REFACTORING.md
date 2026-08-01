@@ -99,6 +99,11 @@ Une extraction se fait dans cet ordre, et chaque étape est un commit :
    Le remplacer par une **clé** ou un **état**, que la vue rend.
 5. **Vérifier des deux côtés** : `./run_tests.sh` *et* `python3 build_app.py`.
    Aucun agent ne lance l'application — la vérification visuelle revient à l'auteur.
+6. **Se méfier de l'outillage autant que du code.** Un « build vert » ne vaut que si
+   le script échoue vraiment quand il doit échouer. Épreuve passée le 2026-08-01 (les
+   deux sortent en 1 : parité de clés rompue, assertion fausse) — **à refaire après
+   toute modification de `build_app.py`, `run_tests.sh` ou `release.py`**. C'est là
+   qu'étaient les bugs les plus coûteux de l'upstream : voir §7.
 
 ## 5. État
 
@@ -122,6 +127,14 @@ n'en avait aucun.
 | 3 | Profils (~115 l.) | Petit, mais la bissection s'appuie sur la même machinerie (dépendance croisée signalée dans `ROADMAP.md`) — extraire l'état avant les opérations. |
 | 4 | Sauvegardes (~350 l., 4 sections éparpillées) | `SaveManager` est déjà en Core : le gain est surtout de lisibilité. |
 | 5 | Le bloc de tête (~2000 l. non marquées) | Scan, filtres, dépendances. Le plus gros et le plus enchevêtré : à faire en dernier, par morceaux. |
+
+**Deux dettes de couche, à traiter au contact plutôt qu'en campagne** — trouvées en
+passant leurs correctifs en revue (§7), et sans urgence propre :
+
+| Dette | Déclencheur |
+| --- | --- |
+| `NSOpenPanel` appelé depuis le ViewModel (`:477`, `:3158`), ce qui rend ces fonctions intestables | **Le premier protocole à écrire** (`FilePicking`), au moment où l'extraction touche l'installation d'un mod ou le choix du dossier de jeu — avec son bouchon dans le même commit |
+| AppKit importé hors des vues par `ContrastChecker`, `SaveManager`, `DescriptionBlockParser` et le ViewModel — les trois premiers étant **déjà dans Core** | À traiter quand on modifie l'un d'eux, pas avant : ils compilent, la gêne est théorique tant qu'on n'y touche pas |
 
 **Règle permanente (F1-T2)** : une fonctionnalité neuve ne rentre plus dans le
 ViewModel. Elle naît dans son propre type, que le ViewModel se contente d'appeler.
