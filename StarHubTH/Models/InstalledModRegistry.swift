@@ -43,6 +43,12 @@ enum InstalledModRegistry {
         }
     }
 
+    /// `now` vaut pour **tout le lot**, là où le code d'origine évaluait `Date()`
+    /// à chaque enregistrement : les mods d'un même scan portaient des instants
+    /// distants de quelques microsecondes. Sans portée — cette date se compare à
+    /// une date de mise en ligne Nexus, dont la granularité est l'heure — mais la
+    /// différence est réelle, et un lot cohérent vaut mieux qu'un lot dispersé.
+    ///
     /// - Returns: le registre mis à jour, et `didChange` — faux quand rien n'a
     ///   bougé. Un rafraîchissement sans installation ni suppression est le cas
     ///   courant : ne rien réécrire épargne un encodage JSON à chaque scan.
