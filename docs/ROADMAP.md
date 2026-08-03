@@ -346,12 +346,19 @@ sans risque d'écriture destructive.
       `stardew-i18n-translator` (cf. [`audit-nana-ux.md`](audit-nana-ux.md) §3), sans
       reprendre le reste : leur page d'accueil ne sert qu'à la traduction, la nôtre
       a d'autres devoirs. · **S**
-- [ ] **C1-T4** — Test **structurel** « mod de traduction pure » (contenu limité à `i18n/`
-      + `manifest.json`), pour les traiter à part dans les statistiques. Le vrai piège
-      n'est pas le pack FR — sans `default.json`, C1-T1 n'a simplement pas de dénominateur —
-      mais le pack de traduction **vers une autre langue** (`i18n/th.json`, `zh.json`, `ru.json`)
-      : il n'a pas de `fr.json`, s'afficherait donc à **0 % FR** alors qu'il est complet
-      pour ce qu'il est. Remplace l'heuristique de nom (`ModItem.swift:99`) pour ce cas. · **S**
+- [x] **C1-T4** — ~~Test structurel « mod de traduction pure »~~ → **requalifié et livré
+      autrement** (`46ce633`), après mesure sur le parc.
+      - Le symptôme visé — un pack de traduction vers une autre langue affiché à
+        « 0 % FR » — **ne peut plus se produire** depuis C1-T2 : sans français, aucune
+        pastille ne s'affiche. Et le cas lui-même est à **zéro mod** sur le parc, sous
+        un critère strict (contenu limité à `i18n/` + `manifest.json`).
+      - La mesure a en revanche montré un défaut voisin **huit fois plus gros** : le
+        filtre « à traduire » rendait 397 mods dont **310 sans le moindre `i18n`**.
+        Un mod qui n'expose aucun texte n'est pas « sans traduction française », il est
+        hors sujet. Le filtre exige désormais que le mod soit traduisible, et rend 87
+        mods dont 48 vraiment à traduire.
+      - L'heuristique de nom (`ModItem.swift:99`) reste en place : elle sert au **tag**
+        de catégorie, pas à la couverture, et rien ne la met en défaut aujourd'hui.
 - [ ] **C1-T5** — Signaler qu'un `fr.json` disparu **existe encore dans une sauvegarde**.
       Mesuré le 2026-08-01 sur le parc réel : 92 mods ont un `default.json` sans `fr.json`,
       et **16 d'entre eux en ont un** dans `Backups/{ModInstalls,ModConfigs}`. Cas vérifié :
