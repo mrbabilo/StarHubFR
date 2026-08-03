@@ -101,12 +101,38 @@ public enum DroppedContentRecognizer {
         }
 
         let physicalFolder = host.isEnabled ? host.folderName : "." + host.folderName
-        let url = URL(fileURLWithPath: gameDir)
+        let hostRoot = URL(fileURLWithPath: gameDir)
             .appendingPathComponent("Mods")
             .appendingPathComponent(physicalFolder)
+        let url = hostRoot
             .appendingPathComponent(rule.destinationSubpath)
             .appendingPathComponent(safeName)
+
+        // Défense en profondeur : le nom du fichier est déjà filtré, mais le
+        // sous-dossier vient de la table de règles. Vérifier le chemin **après**
+        // construction ferme la porte à une règle mal écrite, sans coût.
+        guard url.standardizedFileURL.path
+                .hasPrefix(hostRoot.standardizedFileURL.path + "/") else {
+            return .unusableFileName
+        }
         return .ready(url, hostIsPaused: !host.isEnabled)
+    }
+
+    /// Écrit le fichier reconnu à sa destination, en créant les dossiers
+    /// manquants — un hôte fraîchement installé peut ne pas avoir encore son
+    /// sous-dossier de contenu.
+    ///
+    /// La sauvegarde de l'hôte avant écrasement appartient à l'appelant : c'est
+    /// une décision d'orchestration, et `ModInstallBackupManager` la porte déjà
+    /// pour toute installation par-dessus un mod existant.
+    public static func install(from source: URL, to destination: URL,
+                               fileManager: FileManager = .default) throws {
+        try fileManager.createDirectory(at: destination.deletingLastPathComponent(),
+                                        withIntermediateDirectories: true)
+        if fileManager.fileExists(atPath: destination.path) {
+            try fileManager.removeItem(at: destination)
+        }
+        try fileManager.copyItem(at: source, to: destination)
     }
 
     /// Le premier fichier JSON d'une archive extraite qu'une règle reconnaît.

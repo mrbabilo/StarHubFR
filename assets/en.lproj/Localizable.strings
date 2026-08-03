@@ -562,6 +562,12 @@
 "mod_install_invalid_structure" = "This archive doesn't contain a valid mod structure (missing manifest.json).";
 "mod_install_archive_contains" = "The archive contains: %@";
 "mod_install_not_a_mod_hint" = "The archive itself is fine — it just isn't a mod. Some downloads are content files meant to be dropped into another mod's folder (an ItemBags bag, for instance). Check the mod page for where the file goes.";
+"mod_install_dropped_title" = "Not a mod — content for another mod";
+"mod_install_dropped_question" = "This file is content for %1$@, not a mod of its own.\n\nInstall it into:\n%2$@";
+"mod_install_dropped_host_paused" = "%@ is paused — the file will take effect when you turn it back on.";
+"mod_install_dropped_host_missing" = "This file is content for %@, but that mod isn't installed.";
+"mod_install_dropped_install" = "Install into %@";
+"mod_install_dropped_done" = "Installed into %@";
 "mod_install_oversized" = "This archive is too large to install.";
 "mod_install_too_many_mods" = "This archive contains too many mods to install at once.";
 "mod_install_corrupted" = "This archive appears to be corrupted and could not be read.";

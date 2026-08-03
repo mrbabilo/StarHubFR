@@ -21,6 +21,22 @@ struct ModInstallView: View {
     /// `@State` that `onDisappear` already ran past (which would leak it).
     @State private var isViewActive = true
 
+    /// Une archive qui n'est pas un mod, mais du contenu reconnu comme
+    /// destiné au dossier d'un autre mod — voir `DroppedContentRecognizer`.
+    /// Le dossier temporaire reste vivant tant que cette proposition est à
+    /// l'écran : c'est de là que le fichier sera copié.
+    private struct DroppedProposal {
+        let hostDisplayName: String
+        /// Le mod hôte lui-même, pour pouvoir le sauvegarder avant écrasement
+        /// sans avoir à le retrouver depuis le chemin de destination.
+        let host: ModItem
+        let sourceURL: URL
+        let destinationURL: URL
+        let hostIsPaused: Bool
+    }
+    @State private var droppedProposal: DroppedProposal?
+    @State private var showDroppedProposal = false
+
     /// Binding controlled by the parent so the sheet can be dismissed from
     /// inside this view (close button / Done button).
     @Binding var isPresented: Bool
@@ -112,6 +128,22 @@ struct ModInstallView: View {
                     Text(error)
                 }
             }
+        }
+        .alert(vm.L(L10n.ModInstall.droppedTitle), isPresented: $showDroppedProposal) {
+            if let proposal = droppedProposal {
+                Button(String(format: vm.L(L10n.ModInstall.droppedInstall),
+                              proposal.hostDisplayName)) {
+                    installDroppedContent(proposal)
+                }
+            }
+            Button(vm.L(L10n.ModInstall.cancel), role: .cancel) {
+                if let tempDir = tempDir {
+                    installer.cleanupTempDir(at: tempDir)
+                    self.tempDir = nil
+                }
+            }
+        } message: {
+            Text(droppedProposalMessage)
         }
         .onDisappear {
             isViewActive = false
@@ -293,6 +325,32 @@ struct ModInstallView: View {
                     self.zipModInfo = info
 
                     if !info.isValid {
+                        // Avant de refuser : ce n'est peut-être pas un mod
+                        // manqué, mais du contenu destiné au dossier d'un autre
+                        // mod. Se décide sur le dossier extrait, donc avant tout
+                        // nettoyage.
+                        if case .invalidStructure = info.validationStatus,
+                           let outcome = self.recognizeDroppedContent() {
+                            switch outcome {
+                            case .proposal(let proposal):
+                                self.droppedProposal = proposal
+                                self.showDroppedProposal = true
+                                self.zipModInfo = nil
+                                return
+                            case .hostMissing(let hostName):
+                                self.errorMessage = String(
+                                    format: self.vm.L(L10n.ModInstall.droppedHostMissing), hostName)
+                                self.errorRecoveryHint = nil
+                                self.showError = true
+                                self.zipModInfo = nil
+                                if let tempDir = self.tempDir {
+                                    self.installer.cleanupTempDir(at: tempDir)
+                                    self.tempDir = nil
+                                }
+                                return
+                            }
+                        }
+
                         switch info.validationStatus {
                         case .invalidStructure:
                             // Dire ce que l'archive contenait : sans cela
@@ -354,6 +412,98 @@ struct ModInstallView: View {
                         self.installer.cleanupTempDir(at: tempDir)
                         self.tempDir = nil
                     }
+                }
+            }
+        }
+    }
+
+    /// Le texte de la proposition. Montre le **chemin exact** : c'est la seule
+    /// façon pour l'utilisateur de vérifier qu'on écrit là où il l'entend.
+    private var droppedProposalMessage: String {
+        guard let proposal = droppedProposal else { return "" }
+        var text = String(format: vm.L(L10n.ModInstall.droppedQuestion),
+                          proposal.hostDisplayName, proposal.destinationURL.path)
+        if proposal.hostIsPaused {
+            text += "\n\n" + String(format: vm.L(L10n.ModInstall.droppedHostPaused),
+                                    proposal.hostDisplayName)
+        }
+        return text
+    }
+
+    /// Ce que la reconnaissance a conclu sur le dossier extrait.
+    private enum DroppedOutcome {
+        case proposal(DroppedProposal)
+        case hostMissing(String)
+    }
+
+    /// Tente de reconnaître, dans le dossier extrait, un fichier destiné au
+    /// dossier d'un autre mod. `nil` si rien n'est reconnu — l'archive suit
+    /// alors le refus ordinaire.
+    private func recognizeDroppedContent() -> DroppedOutcome? {
+        guard let tempDir = tempDir,
+              let found = DroppedContentRecognizer.recognize(inExtractedDirectory: tempDir)
+        else { return nil }
+
+        switch DroppedContentRecognizer.destination(for: found.rule,
+                                                    fileName: found.fileURL.lastPathComponent,
+                                                    installedMods: vm.mods,
+                                                    gameDir: vm.gameDir) {
+        case .ready(let destination, let paused):
+            let wanted = found.rule.hostUniqueId.lowercased()
+            guard let host = vm.mods
+                .flatMap({ $0.isGroup ? ($0.children ?? []) : [$0] })
+                .first(where: { $0.uniqueId.lowercased() == wanted })
+            else { return .hostMissing(found.rule.hostDisplayName) }
+            return .proposal(DroppedProposal(hostDisplayName: found.rule.hostDisplayName,
+                                             host: host,
+                                             sourceURL: found.fileURL,
+                                             destinationURL: destination,
+                                             hostIsPaused: paused))
+        case .hostMissing(let name):
+            return .hostMissing(name)
+        case .unusableFileName:
+            // Nom de fichier refusé : ne rien proposer, l'archive repart sur le
+            // refus ordinaire plutôt que sur une destination approximative.
+            return nil
+        }
+    }
+
+    /// Copie le fichier reconnu chez son hôte, après avoir sauvegardé ce dernier
+    /// si le fichier existait déjà.
+    private func installDroppedContent(_ proposal: DroppedProposal) {
+        isInstalling = true
+        let gameDir = vm.gameDir
+        DispatchQueue.global(qos: .userInitiated).async {
+            var failure: String?
+            do {
+                // Un sac peut avoir été retouché à la main (prix, capacités) :
+                // sauvegarder l'hôte avant d'écraser, comme pour toute
+                // installation par-dessus un mod existant. Rien à préserver si
+                // le fichier n'existait pas.
+                if FileManager.default.fileExists(atPath: proposal.destinationURL.path) {
+                    _ = try? ModInstallBackupManager.shared.createBackup(
+                        for: proposal.host, gameDir: gameDir, reason: .beforeInstall)
+                }
+                try DroppedContentRecognizer.install(from: proposal.sourceURL,
+                                                     to: proposal.destinationURL)
+            } catch {
+                failure = error.localizedDescription
+            }
+            DispatchQueue.main.async {
+                self.isInstalling = false
+                if let tempDir = self.tempDir {
+                    self.installer.cleanupTempDir(at: tempDir)
+                    self.tempDir = nil
+                }
+                if let failure = failure {
+                    self.errorMessage = failure
+                    self.errorRecoveryHint = nil
+                    self.showError = true
+                } else {
+                    self.installedModNames = [String(
+                        format: self.vm.L(L10n.ModInstall.droppedDone), proposal.hostDisplayName)]
+                    self.showSuccess = true
+                    self.vm.scanMods()
                 }
             }
         }

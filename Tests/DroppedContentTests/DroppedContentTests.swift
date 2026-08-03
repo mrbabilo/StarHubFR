@@ -181,3 +181,108 @@ struct DroppedContentScanTests {
         #expect(DroppedContentRecognizer.recognize(inExtractedDirectory: extracted.directory) == nil)
     }
 }
+
+/// L'écriture elle-même.
+struct DroppedContentInstallTests {
+    private func makeSandbox() throws -> URL {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("dropped-install-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
+    }
+
+    @Test func writingCreatesMissingParentDirectories() throws {
+        let sandbox = try makeSandbox()
+        defer { try? FileManager.default.removeItem(at: sandbox) }
+        let source = sandbox.appendingPathComponent("Bag.json")
+        try Data(#"{"BagName": "x"}"#.utf8).write(to: source)
+        // `assets/Modded Bags/` n'existe pas encore : un hôte fraîchement
+        // installé peut ne pas avoir le sous-dossier.
+        let destination = sandbox.appendingPathComponent("Host/assets/Modded Bags/Bag.json")
+
+        try DroppedContentRecognizer.install(from: source, to: destination)
+
+        #expect(FileManager.default.fileExists(atPath: destination.path))
+        #expect(try String(contentsOf: destination, encoding: .utf8) == #"{"BagName": "x"}"#)
+    }
+
+    @Test func writingReplacesAnExistingFile() throws {
+        let sandbox = try makeSandbox()
+        defer { try? FileManager.default.removeItem(at: sandbox) }
+        let source = sandbox.appendingPathComponent("Bag.json")
+        try Data("neuf".utf8).write(to: source)
+        let destination = sandbox.appendingPathComponent("Host/Bag.json")
+        try FileManager.default.createDirectory(at: destination.deletingLastPathComponent(),
+                                                withIntermediateDirectories: true)
+        try Data("ancien".utf8).write(to: destination)
+
+        try DroppedContentRecognizer.install(from: source, to: destination)
+
+        #expect(try String(contentsOf: destination, encoding: .utf8) == "neuf")
+    }
+}
+
+/// Défense en profondeur : la destination doit rester sous le dossier de l'hôte,
+/// vérifié après construction du chemin et non seulement sur le nom.
+struct DroppedContentContainmentTests {
+    @Test func aDestinationEscapingTheHostFolderIsRefused() {
+        // Le sous-dossier d'une règle est une donnée de notre table, pas une
+        // entrée utilisateur — mais la vérification ne coûte rien et fermerait
+        // la porte si une règle future était mal écrite.
+        let escaping = DroppedContentRule(
+            requiredKeys: ["X"], hostUniqueId: "host.id",
+            destinationSubpath: "../../..", hostDisplayName: "Host")
+        let host = ModItem(uniqueId: "host.id", name: "Host", folderName: "Host",
+                           version: "1.0.0", author: "", description: "", nexusUrl: "",
+                           nexusModId: "", isEnabled: true, dependencies: [],
+                           children: nil, isGroup: false, installedFileDate: nil)
+        let result = DroppedContentRecognizer.destination(
+            for: escaping, fileName: "Bag.json", installedMods: [host], gameDir: "/Game")
+        #expect(result == .unusableFileName)
+    }
+}
+
+/// De bout en bout : une archive extraite, un hôte en pause, le fichier écrit
+/// au bon endroit. C'est le parcours que l'utilisateur déclenche.
+struct DroppedContentEndToEndTests {
+    @Test func aBagLandsInsideAPausedHost() throws {
+        let gameDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("e2e-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: gameDir) }
+
+        // L'hôte, en pause : dossier préfixé d'un point, convention du fork.
+        let hostFolder = gameDir.appendingPathComponent("Mods/.ItemBags")
+        try FileManager.default.createDirectory(at: hostFolder, withIntermediateDirectories: true)
+
+        // L'archive extraite : un unique JSON de sac, sans manifeste.
+        let extracted = gameDir.appendingPathComponent("extracted", isDirectory: true)
+        try FileManager.default.createDirectory(at: extracted, withIntermediateDirectories: true)
+        try Data("""
+        {"IsEnabled": true, "ModUniqueId": "selph.textileexpansion", "BagId": "b",
+         "BagName": "Cloth and Colors Bag", "Prices": {}, "Capacities": {}, "SizeSellers": {}}
+        """.utf8).write(to: extracted.appendingPathComponent("Cloth and Colors Bag.json"))
+
+        let host = ModItem(uniqueId: "SlayerDharok.Item_Bags", name: "Item Bags",
+                           folderName: "ItemBags", version: "3.1.0", author: "",
+                           description: "", nexusUrl: "", nexusModId: "", isEnabled: false,
+                           dependencies: [], children: nil, isGroup: false,
+                           installedFileDate: nil)
+
+        let found = try #require(DroppedContentRecognizer.recognize(inExtractedDirectory: extracted))
+        let destination = DroppedContentRecognizer.destination(
+            for: found.rule, fileName: found.fileURL.lastPathComponent,
+            installedMods: [host], gameDir: gameDir.path)
+        guard case .ready(let url, let paused) = destination else {
+            Issue.record("destination inattendue : \(destination)")
+            return
+        }
+        #expect(paused)
+        try DroppedContentRecognizer.install(from: found.fileURL, to: url)
+
+        let written = hostFolder.appendingPathComponent("assets/Modded Bags/Cloth and Colors Bag.json")
+        #expect(FileManager.default.fileExists(atPath: written.path))
+        // Et surtout : rien n'a été créé dans un `ItemBags` sans point.
+        #expect(!FileManager.default.fileExists(
+            atPath: gameDir.appendingPathComponent("Mods/ItemBags").path))
+    }
+}
