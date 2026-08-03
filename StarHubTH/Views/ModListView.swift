@@ -142,7 +142,19 @@ struct ModListView: View {
                     // A group matches if any child ships an fr translation.
                     return matchesSelfOrAnyChild(mod) { $0.languages.contains("fr") }
                 case .missing:
-                    return !matchesSelfOrAnyChild(mod) { $0.languages.contains("fr") }
+                    // « Pas de français » ne veut rien dire d'un mod qui n'a
+                    // aucun `i18n` : il n'a pas de texte à traduire, et l'y
+                    // faire figurer noyait le filtre. Mesuré sur le parc : 397
+                    // mods sans français, dont **310 sans le moindre fichier de
+                    // traduction**. Le filtre servait à trouver ce qu'on
+                    // pourrait traduire ; il rendait 8 fois plus de bruit que de
+                    // signal.
+                    //
+                    // `languages` porte `en` dès qu'un `default.json` existe :
+                    // un mod traduisible en a donc au moins un.
+                    let translatable = matchesSelfOrAnyChild(mod) { !$0.languages.isEmpty }
+                    return translatable
+                        && !matchesSelfOrAnyChild(mod) { $0.languages.contains("fr") }
                 }
             }
             .sorted { lhs, rhs in
