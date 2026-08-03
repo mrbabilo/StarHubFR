@@ -212,14 +212,27 @@ struct ModInstallView: View {
         guard let provider = providers.first else { return }
 
             provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, error in
-                guard let data = item as? Data,
-                      let url = URL(dataRepresentation: data, relativeTo: nil),
-                      ModZipInstaller.supportedExtensions.contains(url.pathExtension.lowercased()) else {
-                DispatchQueue.main.async {
-                    self.errorMessage = vm.L(L10n.ModInstall.invalidZipStructure)
-                    self.errorRecoveryHint = vm.L(L10n.ModInstall.recoverZip)
-                    self.showError = true
+                // Un seul chemin d'échec : le message change, le conseil découle
+                // du statut, et il n'y a qu'un saut vers le fil principal.
+                let fail: (String, ValidationStatus) -> Void = { message, status in
+                    DispatchQueue.main.async {
+                        self.errorMessage = message
+                        self.errorRecoveryHint = status.recoveryHintKey.map { self.vm.L($0) }
+                        self.showError = true
+                    }
                 }
+
+                guard let data = item as? Data,
+                      let url = URL(dataRepresentation: data, relativeTo: nil) else {
+                fail(vm.L(L10n.ModInstall.invalidZipStructure), .invalidStructure)
+                return
+            }
+
+            guard ModZipInstaller.supportedExtensions.contains(url.pathExtension.lowercased()) else {
+                // Un fichier déposé dont l'extension n'est pas gérée n'est ni
+                // corrompu ni mal structuré : le dire pour ce que c'est.
+                fail(String(format: vm.L(L10n.ModInstall.unsupportedFormat), url.pathExtension),
+                     .unsupportedFormat(url.pathExtension))
                 return
             }
 
@@ -291,22 +304,20 @@ struct ModInstallView: View {
                                                        info.extractedTopLevel.joined(separator: ", "))
                             }
                             self.errorMessage = msg
-                            self.errorRecoveryHint = self.vm.L(L10n.ModInstall.recoverZip)
                         case .oversized:
                             self.errorMessage = self.vm.L(L10n.ModInstall.zipOversized)
-                            self.errorRecoveryHint = nil
                         case .tooManyMods:
                             self.errorMessage = self.vm.L(L10n.ModInstall.tooManyMods)
-                            self.errorRecoveryHint = nil
                         case .corrupted:
                             self.errorMessage = self.vm.L(L10n.ModInstall.zipCorrupted)
-                            self.errorRecoveryHint = self.vm.L(L10n.ModInstall.recoverZip)
                         case .unsupportedFormat(let ext):
                             self.errorMessage = String(format: self.vm.L(L10n.ModInstall.unsupportedFormat), ext)
-                            self.errorRecoveryHint = nil
                         case .valid:
                             break
                         }
+                        // Le conseil découle du statut, et cette règle vit dans
+                        // Core avec ses tests — la vue ne fait que l'afficher.
+                        self.errorRecoveryHint = info.validationStatus.recoveryHintKey.map { self.vm.L($0) }
                         self.showError = true
                         self.zipModInfo = nil
                         // Invalid → drop the temp dir.

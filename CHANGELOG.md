@@ -15,6 +15,9 @@ where the exact log format was verified.
 ### Added
 - **Mod translation files are read the way their authors write them.** Comments, trailing commas, unquoted keys, raw line breaks, CRLF endings — a strict JSON reader refuses 912 of the 2357 files in a real modlist. Checked against the game's own JSON library, file by file: what it loads, we now read.
 
+### Fixed
+- **A download that isn't a mod no longer tells you to check the file for damage.** Some Nexus downloads are content files meant to be dropped into another mod's folder — an ItemBags bag, for instance — with no `manifest.json` of their own. Refusing them is right; advising you to re-download an intact file was not, and it sent you round in circles. The app now says the archive is fine and points at what the file actually is. Same for a dropped file whose format isn't supported.
+
 ### Changed
 - **Internal —** Every shipped build now carries its own build number. `release.py` increments `CFBundleVersion` before building instead of it being kept by hand, which is the number macOS and any future update check compare. The version you see is unchanged.
 - **Internal —** Development tooling: a domain-knowledge document for contributors, and a ratchet that fails the build on any *new* breach of the project's Swift conventions while leaving the existing ones alone.

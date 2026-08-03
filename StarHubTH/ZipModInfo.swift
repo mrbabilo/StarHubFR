@@ -117,6 +117,32 @@ enum ValidationStatus {
     case unsupportedFormat(String)
 }
 
+extension ValidationStatus {
+    /// Le conseil à donner après un refus — ou `nil` quand il n'y a rien
+    /// d'utile à dire.
+    ///
+    /// Le conseil doit correspondre à la **raison** du refus. Suggérer de
+    /// retélécharger n'a de sens que pour une archive réellement abîmée : une
+    /// archive intacte qui n'est simplement pas un mod renverrait l'utilisateur
+    /// retélécharger indéfiniment un fichier parfaitement valide. C'est le cas
+    /// vécu sur `Cloth And Colors Bag` (Nexus 50108) — une archive de 1,4 Ko
+    /// contenant un unique fichier de configuration pour ItemBags, à déposer
+    /// dans le dossier de ce mod-là.
+    ///
+    /// Même principe que la distinction `.unsupportedFormat` / `.corrupted`
+    /// ci-dessus, appliqué au cas qui restait.
+    var recoveryHintKey: String? {
+        switch self {
+        case .corrupted:
+            return L10n.ModInstall.recoverZip
+        case .invalidStructure:
+            return L10n.ModInstall.notAModHint
+        case .valid, .oversized, .tooManyMods, .unsupportedFormat:
+            return nil
+        }
+    }
+}
+
 /// Type of conflict detected during installation
 enum ConflictType: Equatable {
     case folderExists

@@ -638,3 +638,37 @@ struct InstallerTestEnv {
         #expect(Set(info.detectedMods.map { $0.folderName }) == ["X", "Y"])
     }
 }
+
+/// Le conseil donné après un refus doit correspondre à la raison du refus.
+///
+/// Le principe est déjà écrit dans `ZipModInfo.swift` pour `.unsupportedFormat` :
+/// « annoncer *archive corrompue* sur un `.7z` parfaitement sain envoie
+/// l'utilisateur chercher un problème qui n'existe pas ». Il ne s'appliquait
+/// pas à `.invalidStructure`.
+struct ZipRecoveryHintTests {
+    @Test func aCorruptedArchiveIsWorthRedownloading() {
+        #expect(ValidationStatus.corrupted.recoveryHintKey == L10n.ModInstall.recoverZip)
+    }
+
+    @Test func anIntactArchiveThatIsNotAModIsNotWorthRedownloading() {
+        // Cas réel : `Cloth And Colors Bag` (Nexus 50108) est une archive
+        // parfaitement saine contenant un unique fichier de configuration pour
+        // ItemBags. Lui conseiller de « vérifier l'intégrité du fichier »
+        // envoie l'utilisateur retélécharger indéfiniment un fichier valide.
+        #expect(ValidationStatus.invalidStructure.recoveryHintKey != L10n.ModInstall.recoverZip)
+    }
+
+    @Test func anIntactArchiveThatIsNotAModExplainsWhatToDo() {
+        // Le refus est juste ; l'utilisateur doit quand même savoir pourquoi et
+        // ce qu'il lui reste à faire.
+        #expect(ValidationStatus.invalidStructure.recoveryHintKey == L10n.ModInstall.notAModHint)
+    }
+
+    @Test func anUnsupportedFormatIsNotAnIntegrityProblemEither() {
+        #expect(ValidationStatus.unsupportedFormat("7z").recoveryHintKey != L10n.ModInstall.recoverZip)
+    }
+
+    @Test func aValidArchiveHasNothingToAdvise() {
+        #expect(ValidationStatus.valid.recoveryHintKey == nil)
+    }
+}
