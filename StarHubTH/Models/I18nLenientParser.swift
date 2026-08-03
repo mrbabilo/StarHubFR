@@ -29,29 +29,42 @@ import Foundation
 /// - avant la correction, ce parseur en lisait **1866** et en refusait **487** ;
 /// - il en lit désormais **2351** et n'en refuse plus que **2**, sans aucune
 ///   régression (aucun fichier lisible en JSON strict n'est refusé).
-/// - **2326** de ces 2351 ne demandent aucune réparation, donc SMAPI les
-///   charge. Vérifié dans les deux sens : le drapeau `neededRepair` concorde
-///   exactement avec la comparaison textuelle des passes 3 et 4 (aucun
-///   désaccord sur 2351), et les 25 fichiers réparés se répartissent en 16 clés
-///   nues (3 mods) et 9 caractères de contrôle bruts — aucun fichier CRLF
-///   ordinaire, ce qui serait le signe d'une passe 4 trop zélée.
+/// **Ce que le jeu charge a été mesuré, pas déduit.** Le même parc a été passé
+/// dans un oracle qui rejoue le chemin exact de SMAPI — `File.ReadAllText` puis
+/// `JsonConvert.DeserializeObject<Dictionary<string, string>>` — avec la
+/// `Newtonsoft.Json.dll` 13.0.4 embarquée dans le jeu. Verdict : **SMAPI charge
+/// les 2357 fichiers, sans exception.** Newtonsoft tolère les commentaires, les
+/// virgules en trop, les clés nues, les guillemets simples, les caractères de
+/// contrôle bruts, les valeurs numériques, et remplace même les guillemets
+/// courbes au second essai. Croisé fichier par fichier avec notre verdict :
+/// **0 faux positif**, 2 faux négatifs (les deux ci-dessous).
 ///
-/// Reste 6 fichiers hors de portée (0,25 %), pour deux raisons étrangères aux
-/// quatre passes :
-/// - **4 par l'encodage** — `DestroyableBushes/i18n/ru.json` est en UTF-16 LE
-///   avec BOM, trois `es.json` sont dans un jeu 8 bits hérité. C'est affaire de
-///   *décodage* : la couche qui lira les fichiers devra honorer la marque
-///   d'ordre des octets et se rabattre sur un jeu hérité, comme le
-///   `StreamReader` de SMAPI, avant d'appeler ce parseur qui prend une `String`.
+/// Ne pas confondre le schéma et le chargeur : `allowComments` et
+/// `allowTrailingCommas` décrivent ce que le validateur de `smapi.io/json`
+/// signale, pas ce que le jeu refuse. S'y fier a fait dire à `smapiAccepts`
+/// « le jeu ne chargera pas ce fichier » sur **31 fichiers** qu'il charge très
+/// bien — l'inverse exact du service rendu. Corrigé le 2026-08-02.
+///
+/// Restent 6 fichiers que **nous** ne lisons pas, pour deux raisons étrangères
+/// aux quatre passes :
+/// - **4 par l'encodage**, hors périmètre de ce parseur qui prend une `String`.
+///   `DestroyableBushes/i18n/ru.json` est en UTF-16 LE avec BOM — SMAPI le lit
+///   parfaitement, `File.ReadAllText` détectant la marque d'ordre des octets.
+///   Trois `es.json` sont dans un jeu 8 bits hérité : SMAPI les charge aussi,
+///   mais en remplaçant les octets invalides par U+FFFD, donc **avec les accents
+///   corrompus**. La couche de lecture devra reproduire les deux comportements
+///   (cf. C1-T6 de la roadmap).
 /// - **2 par des tolérances Newtonsoft de guillemets** que nous n'implémentons
 ///   pas : `SpecialPowerUtilities/i18n/ko.json` porte des valeurs entre
 ///   apostrophes simples (`'…'` contenant des `"`), et
 ///   `DestroyableBushes/i18n/zh.json` échappe l'apostrophe (`\'`), ce que JSON
-///   interdit. Le jeu charge ces deux fichiers ; ce serait une cinquième passe.
+///   interdit. Ce serait une cinquième passe.
 ///
 /// Les 19 tests unitaires d'origine passaient déjà quand la passe 1 détruisait
-/// un fichier sur deux : c'est exactement pourquoi le plan impose une
-/// validation sur données réelles avant clôture.
+/// un fichier sur deux, et deux d'entre eux affirmaient sur SMAPI le contraire
+/// de ce qu'il fait : c'est pourquoi le plan impose une validation sur données
+/// réelles avant clôture — et pourquoi la source d'autorité doit être le
+/// chargeur, jamais un document qui le décrit.
 enum I18nLenientParser {
     enum ParseError: Error, Equatable {
         /// Illisible même après nettoyage.
@@ -83,11 +96,24 @@ enum I18nLenientParser {
 
     /// SMAPI chargerait-il ce fichier tel quel ?
     ///
-    /// Vrai quand seules les passes 1 et 2 ont été nécessaires — commentaires et
-    /// virgules en trop, que le schéma officiel `i18n.json` autorise
-    /// explicitement (`allowComments`, `allowTrailingCommas`). Faux dès qu'une
-    /// clé nue ou un caractère de contrôle brut a dû être réparé : le parseur
-    /// sait les lire, le jeu non.
+    /// **Le juge n'est pas le schéma `i18n.json`, c'est Newtonsoft.** Le schéma
+    /// décrit ce que le validateur de `smapi.io/json` signale ; le jeu, lui,
+    /// appelle `JsonConvert.DeserializeObject<Dictionary<string, string>>` avec
+    /// les réglages par défaut (`SCore.ReadTranslationFiles` →
+    /// `JsonHelper.ReadJsonFileIfExists`), qui tolère bien davantage. Vérifié en
+    /// exécutant ce chemin exact avec la `Newtonsoft.Json.dll` 13.0.4 embarquée
+    /// dans le jeu : commentaires, virgules en trop, clés nues, guillemets
+    /// simples, caractères de contrôle bruts et valeurs numériques passent tous.
+    ///
+    /// Ne reste donc faux que pour ce que Newtonsoft refuse réellement : une clé
+    /// nue contenant un `.`, un `-` ou une espace (`config.name:` sans
+    /// guillemets est refusé, `ConfigName:` accepté), une valeur objet ou
+    /// tableau, et le JSON structurellement cassé.
+    ///
+    /// ⚠️ Faux négatifs résiduels : cette fonction ne peut être exacte que là où
+    /// le parseur sait lire. Les deux fichiers qu'il refuse encore (guillemets
+    /// simples, `\'` — cf. en-tête) sont chargés par le jeu et rapportés ici
+    /// comme refusés.
     static func smapiAccepts(_ text: String) -> Bool {
         let result = clean(text)
         guard !result.neededRepair else { return false }
@@ -101,7 +127,10 @@ enum I18nLenientParser {
 
     private struct Cleaned {
         let text: String
-        /// Vrai si une passe 3 ou 4 a dû intervenir — donc si SMAPI refuserait.
+        /// Vrai si la réparation a porté sur quelque chose que **Newtonsoft
+        /// refuse** — en pratique, une clé nue hors de son jeu de caractères.
+        /// Les autres réparations (contrôles bruts, clés nues ordinaires) sont
+        /// du confort pour `JSONSerialization` : le jeu, lui, les lit déjà.
         let neededRepair: Bool
     }
 
@@ -113,9 +142,11 @@ enum I18nLenientParser {
 
         let withoutComments = stripComments(work)
         let withoutTrailing = stripTrailingCommas(withoutComments)
-        let (quoted, quotedAny) = quoteBareKeys(withoutTrailing)
-        let (escaped, escapedAny) = escapeRawControlCharacters(quoted)
-        return Cleaned(text: escaped, neededRepair: quotedAny || escapedAny)
+        let (quoted, quotedRefusedKey) = quoteBareKeys(withoutTrailing)
+        // La passe 4 ne participe pas au verdict : Newtonsoft lit les retours à
+        // la ligne et tabulations bruts dans une valeur, vérifié sur sa DLL.
+        let escaped = escapeRawControlCharacters(quoted)
+        return Cleaned(text: escaped, neededRepair: quotedRefusedKey)
     }
 
     /// Passe 1 — retire `// …` et `/* … */`, sauf à l'intérieur d'une chaîne.
@@ -185,7 +216,11 @@ enum I18nLenientParser {
     /// en position de clé** : après `{` ou `,`. Une valeur contenant `not: a key`
     /// ne doit pas être touchée.
     ///
-    /// SMAPI **refuse** ces fichiers : intervenir ici lève `neededRepair`.
+    /// Le booléen retourné ne dit pas « j'ai réparé » mais « SMAPI aurait
+    /// refusé ». Newtonsoft lit les clés nues, mais seulement dans son jeu de
+    /// caractères — lettres (Unicode compris), chiffres, `_` et `$`. Un `.`, un
+    /// `-` ou une espace l'arrête : `ConfigName:` passe, `config.name:` non.
+    /// Nous lisons les deux ; seul le second lève le drapeau.
     private static func quoteBareKeys(_ text: String) -> (String, Bool) {
         let chars = Array(text.unicodeScalars)
         var out = String.UnicodeScalarView()
@@ -214,7 +249,7 @@ enum I18nLenientParser {
                     out.append("\"")
                     out.append(contentsOf: word)
                     out.append("\"")
-                    repaired = true
+                    if word.contains(where: { !isNewtonsoftBareKey($0) }) { repaired = true }
                     expectingKey = false
                     i = j
                     continue
@@ -240,29 +275,39 @@ enum I18nLenientParser {
     private static func isDigit(_ c: Unicode.Scalar) -> Bool { c.value >= 0x30 && c.value <= 0x39 }
 
     private static func isKeyStart(_ c: Unicode.Scalar) -> Bool {
-        c.properties.isAlphabetic || c == "_" || c == "$"
+        c.properties.isAlphabetic || isDigit(c) || c == "_" || c == "$"
     }
 
     private static func isKeyBody(_ c: Unicode.Scalar) -> Bool {
-        c.properties.isAlphabetic || isDigit(c)
-            || c == "_" || c == "." || c == "-" || c == "$"
+        isNewtonsoftBareKey(c) || c == "." || c == "-"
+    }
+
+    /// Le jeu de caractères qu'accepte Newtonsoft dans une clé **non quotée**,
+    /// mesuré sur sa DLL : lettres (Unicode compris), chiffres, `_` et `$`.
+    /// `isKeyBody` va plus loin — il tolère `.` et `-` pour *lire* ces fichiers —
+    /// mais ce qu'il ajoute est précisément ce qui fait refuser le fichier par
+    /// le jeu, d'où la distinction.
+    private static func isNewtonsoftBareKey(_ c: Unicode.Scalar) -> Bool {
+        c.properties.isAlphabetic || isDigit(c) || c == "_" || c == "$"
     }
 
     /// Passe 4 — échappe un retour à la ligne ou une tabulation bruts dans une
-    /// chaîne. JSON les interdit ; SMAPI aussi, d'où `neededRepair`.
-    private static func escapeRawControlCharacters(_ text: String) -> (String, Bool) {
+    /// chaîne, que `JSONSerialization` refuse. Newtonsoft, lui, les lit : cette
+    /// passe est du confort pour notre lecteur, elle ne dit rien de ce que le
+    /// jeu accepte et ne participe donc pas à `neededRepair`.
+    private static func escapeRawControlCharacters(_ text: String) -> String {
         var out = String.UnicodeScalarView()
         out.reserveCapacity(text.unicodeScalars.count)
-        var inString = false, escaped = false, repaired = false
+        var inString = false, escaped = false
         for c in text.unicodeScalars {
             if escaped { out.append(c); escaped = false; continue }
             if inString {
                 if c == "\\" { escaped = true; out.append(c); continue }
                 if c == "\"" { inString = false; out.append(c); continue }
                 switch c {
-                case "\n": out.append(contentsOf: "\\n".unicodeScalars); repaired = true
-                case "\r": out.append(contentsOf: "\\r".unicodeScalars); repaired = true
-                case "\t": out.append(contentsOf: "\\t".unicodeScalars); repaired = true
+                case "\n": out.append(contentsOf: "\\n".unicodeScalars)
+                case "\r": out.append(contentsOf: "\\r".unicodeScalars)
+                case "\t": out.append(contentsOf: "\\t".unicodeScalars)
                 default: out.append(c)
                 }
                 continue
@@ -270,6 +315,6 @@ enum I18nLenientParser {
             if c == "\"" { inString = true }
             out.append(c)
         }
-        return (String(out), repaired)
+        return String(out)
     }
 }

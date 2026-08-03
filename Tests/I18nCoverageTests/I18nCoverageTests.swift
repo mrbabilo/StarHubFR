@@ -179,18 +179,31 @@ struct I18nSmapiAcceptanceTests {
         #expect(I18nLenientParser.smapiAccepts("{\r\n\t// note\r\n  \"a\": \"1\",\r\n}"))
     }
 
-    @Test func bareKeysAreRejectedBySmapi() throws {
-        // Le parseur les récupère ; SMAPI, non.
-        #expect(!I18nLenientParser.smapiAccepts(#"{ Key: "v" }"#))
+    @Test func ordinaryBareKeysAreAcceptedBySmapi() throws {
+        // Mesuré sur la `Newtonsoft.Json.dll` du jeu : une clé nue passe tant
+        // qu'elle reste dans son jeu de caractères — lettres, chiffres, `_`, `$`.
+        #expect(I18nLenientParser.smapiAccepts(#"{ Key: "v" }"#))
+        #expect(I18nLenientParser.smapiAccepts(#"{ key_1: "v", $x: "w", clé: "y" }"#))
     }
 
-    @Test func rawControlCharactersAreRejectedBySmapi() throws {
-        #expect(!I18nLenientParser.smapiAccepts("{\"a\": \"line one\nline two\"}"))
+    @Test func dottedOrHyphenatedBareKeysAreRejectedBySmapi() throws {
+        // C'est là que Newtonsoft s'arrête, et c'est le seul cas où notre
+        // réparation de clé nue signale un refus du jeu. Les clés i18n étant
+        // pointées par convention, la distinction n'est pas théorique.
+        #expect(!I18nLenientParser.smapiAccepts(#"{ config.name: "v" }"#))
+        #expect(!I18nLenientParser.smapiAccepts(#"{ my-key: "v" }"#))
+    }
+
+    @Test func rawControlCharactersAreAcceptedBySmapi() throws {
+        // Newtonsoft lit un retour à la ligne ou une tabulation bruts dans une
+        // valeur ; seul `JSONSerialization` les refuse, d'où notre passe 4.
+        #expect(I18nLenientParser.smapiAccepts("{\"a\": \"line one\nline two\"}"))
+        #expect(I18nLenientParser.smapiAccepts("{\"a\": \"col\tonne\"}"))
     }
 
     @Test func aFileSmapiRefusesIsStillReadable() throws {
         // Les deux réponses sont indépendantes : on lit, et on signale.
-        let text = #"{ Key: "v" }"#
+        let text = #"{ config.name: "v" }"#
         #expect((try? I18nLenientParser.parse(text)) != nil)
         #expect(!I18nLenientParser.smapiAccepts(text))
     }
