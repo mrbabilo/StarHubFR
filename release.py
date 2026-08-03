@@ -7,17 +7,61 @@ APP_NAME = "StarHubFR"
 APP_DIR = f"{APP_NAME}.app"
 BUNDLES_DIR = "bundles"
 
+PLIST_PATH = "Info.plist"
+
 def get_version():
-    plist_path = "Info.plist"
-    if os.path.exists(plist_path):
-        with open(plist_path, 'rb') as f:
+    if os.path.exists(PLIST_PATH):
+        with open(PLIST_PATH, 'rb') as f:
             plist = plistlib.load(f)
             return plist.get("CFBundleShortVersionString", "1.1.0")
     return "1.1.0"
 
+def bump_build_number():
+    """Incrémente CFBundleVersion, le compteur de build.
+
+    Deux numéros, deux rôles : CFBundleShortVersionString est la version que
+    l'utilisateur lit et que le CHANGELOG date ; CFBundleVersion est le compteur
+    monotone que macOS, Gatekeeper et un futur mécanisme de mise à jour
+    comparent. Il doit avancer à chaque bundle qui sort, y compris deux bundles
+    de la même version affichée.
+
+    Il était tenu à la main jusqu'ici (4, 5, … 9) — ce qui finit toujours par
+    sauter un tour. L'incrément a lieu avant le build, sinon le bundle produit
+    embarquerait encore l'ancienne valeur.
+    """
+    if not os.path.exists(PLIST_PATH):
+        print(f"[ERROR] {PLIST_PATH} introuvable — impossible d'incrémenter le numéro de build.")
+        return None
+
+    with open(PLIST_PATH, 'rb') as f:
+        plist = plistlib.load(f)
+
+    raw = plist.get("CFBundleVersion")
+    if raw is None:
+        print("[ERROR] CFBundleVersion absent d'Info.plist.")
+        return None
+    if not str(raw).isdigit():
+        # Un compteur non entier ne se compare pas : mieux vaut s'arrêter que
+        # produire un bundle dont la version se compare mal.
+        print(f"[ERROR] CFBundleVersion vaut {raw!r} : ce doit être un entier simple.")
+        return None
+
+    previous = int(raw)
+    plist["CFBundleVersion"] = str(previous + 1)
+    with open(PLIST_PATH, 'wb') as f:
+        plistlib.dump(plist, f)
+
+    print(f"[INFO] Numéro de build : {previous} → {previous + 1} (Info.plist modifié, à commiter).")
+    return previous + 1
+
 def create_release():
     print("[INFO] Starting release process...")
-    
+
+    # 0. Bump the build counter before building, so the bundle carries it.
+    if bump_build_number() is None:
+        print("[ERROR] Release interrompue.")
+        return
+
     # 1. Build the app using existing build_app.py
     print("[INFO] Building application...")
     result = subprocess.run(["python3", "build_app.py"])
