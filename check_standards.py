@@ -2,8 +2,9 @@
 """Cliquet anti-régression sur les conventions Swift du projet.
 
 Ce n'est **pas** une barrière de qualité : le code viole massivement ces
-conventions aujourd'hui (1390 `vm`, 93 `.shared`, 178 `try?`…), et une barrière
-serait rouge dès le premier jour, donc désactivée dans la semaine. C'est un
+conventions aujourd'hui — 1361 `vm`, 761 appels à `L(_:)`, 174 `try?`, 117
+`DispatchQueue` — et une barrière serait rouge dès le premier jour, donc
+désactivée dans la semaine (lancer `--report` pour l'état courant). C'est un
 cliquet : chaque compteur est comparé à une base de référence commitée, et seule
 une **augmentation** échoue. Le refactor fait baisser les compteurs ; la base
 est resserrée d'autant, et ne peut plus remonter.
@@ -19,10 +20,13 @@ Les règles viennent de `docs/SWIFT_STANDARDS.md` de l'upstream, elles-mêmes un
 compression des Swift API Design Guidelines. Voir `docs/REFACTORING.md` pour ce
 qu'on en retient et ce qu'on écarte.
 """
+from __future__ import annotations
+
 import json
 import os
 import re
 import sys
+from typing import Callable, Iterator
 
 SOURCE_DIR = "StarHubTH"
 BASELINE_PATH = ".standards-baseline.json"
@@ -37,12 +41,12 @@ FRAMEWORK_SINGLETONS = {
 }
 
 
-def strip_comments(source):
+def strip_comments(source: str) -> str:
     """Retire les commentaires de ligne, pour qu'écrire *sur* une violation
     n'en soit pas une. Les blocs `/* */` ne sont pas traités : ils sont rares
     ici, et le cliquet ne demande pas l'exactitude — il demande d'être
     déterministe."""
-    out = []
+    out: list[str] = []
     for line in source.splitlines():
         if line.lstrip().startswith("//"):
             continue
@@ -50,16 +54,17 @@ def strip_comments(source):
     return "\n".join(out)
 
 
-def swift_sources():
+def swift_sources() -> Iterator[str]:
     for root, _dirs, files in os.walk(SOURCE_DIR):
         for name in sorted(files):
             if name.endswith(".swift"):
                 yield os.path.join(root, name)
 
 
-def count_shared(text):
+def count_shared(text: str) -> tuple[int, int]:
     """Sépare nos singletons de ceux des frameworks."""
-    ours = framework = 0
+    ours: int = 0
+    framework: int = 0
     for owner in re.findall(r"\b([A-Z]\w*)\.shared\b", text):
         if owner in FRAMEWORK_SINGLETONS:
             framework += 1
@@ -68,11 +73,19 @@ def count_shared(text):
     return ours, framework
 
 
-RULES = {
+RULES: dict[str, Callable[[str], int]] = {
     # §1.4 — abréviations : `vm` est l'abréviation la plus répandue du dépôt.
     "abbreviation_vm": lambda t: len(re.findall(r"\bvm\b", t)),
     # §1.4 — `L(_:)`, une méthode d'une lettre sur le chemin le plus fréquenté.
-    "one_letter_L_calls": lambda t: len(re.findall(r"(?<![\w.])L\(", t)),
+    # ⚠️ Ce compteur ne voit **que** les appels nus `L(...)`. La forme dominante
+    # dans les vues est `vm.L(...)`, exclue ici parce que la négation `(?<![\w.])`
+    # sert d'abord à écarter `URL(`, `HTML(`, `XMLL(`… Ne pas lire ce nombre
+    # comme « le nombre de sites d'appel de L » : il en sous-estime le total d'un
+    # ordre de grandeur. Comme cliquet il reste valable — il est déterministe et
+    # ne peut pas monter en silence.
+    "bare_L_calls": lambda t: len(re.findall(r"(?<![\w.])L\(", t)),
+    # La forme réelle des vues, comptée à part pour que le total soit lisible.
+    "vm_dot_L_calls": lambda t: len(re.findall(r"\bvm\.L\(", t)),
     # §1.1 — pas de préfixe `get` sur un accesseur.
     "get_prefixed_funcs": lambda t: len(re.findall(r"\bfunc get[A-Z]", t)),
     # §2.2 — une classe non `final` qui n'est pas conçue pour l'héritage.
@@ -96,12 +109,12 @@ RULES = {
 }
 
 # Compté et affiché, jamais bloquant : ce sont les singletons d'Apple.
-INFORMATIONAL = {
+INFORMATIONAL: dict[str, Callable[[str], int]] = {
     "framework_shared": lambda t: count_shared(t)[1],
 }
 
 
-def measure():
+def measure() -> tuple[dict[str, int], dict[str, int]]:
     text = "\n".join(strip_comments(open(p, encoding="utf-8").read())
                      for p in swift_sources())
     counts = {name: rule(text) for name, rule in RULES.items()}
@@ -109,20 +122,21 @@ def measure():
     return counts, info
 
 
-def load_baseline():
+def load_baseline() -> dict[str, int] | None:
     if not os.path.exists(BASELINE_PATH):
         return None
     with open(BASELINE_PATH, encoding="utf-8") as f:
-        return json.load(f)
+        loaded: dict[str, int] = json.load(f)
+    return loaded
 
 
-def save_baseline(counts):
+def save_baseline(counts: dict[str, int]) -> None:
     with open(BASELINE_PATH, "w", encoding="utf-8") as f:
         json.dump(counts, f, indent=2, sort_keys=True)
         f.write("\n")
 
 
-def main():
+def main() -> int:
     args = set(sys.argv[1:])
     counts, info = measure()
 
@@ -144,7 +158,9 @@ def main():
         print(f"[ERROR] {BASELINE_PATH} absent — lancer `--update` une fois pour l'établir.")
         return 1
 
-    regressions, improvements, unknown = [], [], []
+    regressions: list[tuple[str, int, int]] = []
+    improvements: list[tuple[str, int, int]] = []
+    unknown: list[str] = []
     for name, value in sorted(counts.items()):
         if name not in baseline:
             unknown.append(name)

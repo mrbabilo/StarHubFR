@@ -27,7 +27,13 @@ def bump_build_number():
 
     Il était tenu à la main jusqu'ici (4, 5, … 9) — ce qui finit toujours par
     sauter un tour. L'incrément a lieu avant le build, sinon le bundle produit
-    embarquerait encore l'ancienne valeur.
+    embarquerait encore l'ancienne valeur : `build_app.py` recopie `Info.plist`
+    dans le bundle à chaque build, donc l'ordre importe.
+
+    Si le build échoue ensuite, le compteur reste incrémenté. C'est sans gravité
+    — un compteur monotone a le droit de sauter des valeurs, il n'a pas le droit
+    de reculer — et il n'y a alors rien à commiter tant qu'aucune release ne
+    sort : relancer `release.py` incrémentera simplement une fois de plus.
     """
     if not os.path.exists(PLIST_PATH):
         print(f"[ERROR] {PLIST_PATH} introuvable — impossible d'incrémenter le numéro de build.")
