@@ -15,6 +15,10 @@ where the exact log format was verified.
 ### Added
 - **Mod translation files are read the way their authors write them.** Comments, trailing commas, unquoted keys, raw line breaks, CRLF endings — a strict JSON reader refuses 912 of the 2357 files in a real modlist. Checked against the game's own JSON library, file by file: what it loads, we now read.
 
+### Changed
+- **Internal —** Every shipped build now carries its own build number. `release.py` increments `CFBundleVersion` before building instead of it being kept by hand, which is the number macOS and any future update check compare. The version you see is unchanged.
+- **Internal —** Development tooling: a domain-knowledge document for contributors, and a ratchet that fails the build on any *new* breach of the project's Swift conventions while leaving the existing ones alone.
+
 ## [1.12.1] - 2026-08-01
 
 ### Fixed
