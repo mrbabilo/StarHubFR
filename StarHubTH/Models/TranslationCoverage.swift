@@ -44,6 +44,19 @@ public enum TranslationCoverage {
             total == 0 ? 0 : Double(translated) / Double(total) * 100
         }
 
+        /// Le nombre à afficher, en pourcentage entier.
+        ///
+        /// Arrondi **vers le bas**, avec deux garde-fous : « 100 » n'est rendu
+        /// que si tout est traduit — annoncer un travail terminé alors qu'il
+        /// manque une clé sur mille est le seul arrondi que ce badge ne peut
+        /// pas se permettre — et un début de traduction n'est jamais ramené à
+        /// « 0 », qui le ferait passer pour rien du tout.
+        public var displayPercent: Int {
+            guard total > 0, translated > 0 else { return 0 }
+            guard translated < total else { return 100 }
+            return max(1, min(99, Int(percent.rounded(.down))))
+        }
+
         public init(total: Int, translated: Int, missing: [String], empty: [String],
                     orphan: [String], identicalToSource: [String]) {
             self.total = total

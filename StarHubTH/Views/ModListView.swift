@@ -1092,9 +1092,24 @@ struct ModListRow: View {
                     Text(langs.map { $0.uppercased() }.joined(separator: " "))
                     // Highlight FR availability so the translation filter is
                     // cross-checkable at a glance on every row.
+                    //
+                    // Le pourcentage remplace la mention dès qu'il est calculé —
+                    // il l'est en tâche de fond après le scan, d'où l'état
+                    // intermédiaire où l'on sait qu'un `fr` existe sans encore
+                    // savoir ce qu'il couvre. « FR disponible » sur un mod
+                    // traduit à 8 % serait une demi-vérité.
                     if langs.contains("fr") {
-                        Text(vm.L(L10n.Mods.frTranslationAvailable))
-                            .foregroundColor(.green.opacity(0.9))
+                        if let percent = vm.frenchCoverage(for: mod) {
+                            Text(percent >= 100
+                                 ? vm.L(L10n.Mods.frCoverageComplete)
+                                 : String(format: vm.L(L10n.Mods.frCoveragePercent), percent))
+                                .foregroundColor(percent >= 100
+                                                 ? .green.opacity(0.9)
+                                                 : .orange.opacity(0.95))
+                        } else {
+                            Text(vm.L(L10n.Mods.frTranslationAvailable))
+                                .foregroundColor(.green.opacity(0.9))
+                        }
                     }
                     if updated != nil || installed != nil {
                         Text("•")

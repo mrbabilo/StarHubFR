@@ -231,7 +231,7 @@ class StarHubTHViewModel: ObservableObject {
     /// Couverture française par mod, en pourcentage, indexée par `folderName`.
     /// Absente tant qu'elle n'est pas calculée — c'est un badge qui apparaît,
     /// pas une valeur qu'on attend.
-    @Published private(set) var frenchCoverageByMod: [String: Double] = [:]
+    @Published private(set) var frenchCoverageByMod: [String: Int] = [:]
 
     /// Le calcul en cours, annulé dès qu'un nouveau scan le rend caduc.
     private var frenchCoverageTask: Task<Void, Never>?
@@ -264,14 +264,14 @@ class StarHubTHViewModel: ObservableObject {
 
         frenchCoverageTask = Task.detached(priority: .utility) { [weak self] in
             let modsPath = (root as NSString).appendingPathComponent("Mods")
-            var batch: [String: Double] = [:]
+            var batch: [String: Int] = [:]
             for mod in snapshot where mod.languages.contains("fr") {
                 if Task.isCancelled { return }
                 let directory = URL(fileURLWithPath: modsPath)
                     .appendingPathComponent(mod.physicalFolderName)
                 guard let coverage = TranslationCoverage.coverage(forModAt: directory,
                                                                   locale: "fr") else { continue }
-                batch[mod.folderName] = coverage.percent
+                batch[mod.folderName] = coverage.displayPercent
                 // Publier par paquets : un envoi par mod ferait redessiner la
                 // liste des centaines de fois pour rien.
                 if batch.count >= 25 {
@@ -286,13 +286,13 @@ class StarHubTHViewModel: ObservableObject {
     }
 
     @MainActor
-    private func mergeFrenchCoverage(_ batch: [String: Double]) {
+    private func mergeFrenchCoverage(_ batch: [String: Int]) {
         guard !batch.isEmpty else { return }
         frenchCoverageByMod.merge(batch) { _, new in new }
     }
 
     /// La couverture française d'un mod, si elle est calculée.
-    func frenchCoverage(for mod: ModItem) -> Double? {
+    func frenchCoverage(for mod: ModItem) -> Int? {
         frenchCoverageByMod[mod.folderName]
     }
 

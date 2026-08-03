@@ -697,3 +697,42 @@ struct ModCoverageTests {
         #expect(c.translated == 1)
     }
 }
+
+/// Le nombre affiché sur le badge.
+struct CoverageDisplayTests {
+    private func coverage(total: Int, translated: Int) -> TranslationCoverage.Coverage {
+        TranslationCoverage.Coverage(total: total, translated: translated, missing: [],
+                                     empty: [], orphan: [], identicalToSource: [])
+    }
+
+    @Test func everythingTranslatedShowsOneHundred() {
+        #expect(coverage(total: 200, translated: 200).displayPercent == 100)
+    }
+
+    @Test func oneMissingKeyOutOfAThousandNeverShowsOneHundred() {
+        // 99,9 % arrondi au plus proche donnerait « 100 % » sur un mod auquel
+        // il manque une clé. C'est le seul arrondi que ce badge ne peut pas se
+        // permettre : il s'agit d'annoncer un travail terminé.
+        #expect(coverage(total: 1000, translated: 999).displayPercent == 99)
+    }
+
+    @Test func partialCoverageRoundsDown() {
+        // 2/3 = 66,67 % → 66, jamais 67 : mieux vaut annoncer un peu moins que
+        // ce qui est fait qu'un peu plus.
+        #expect(coverage(total: 3, translated: 2).displayPercent == 66)
+    }
+
+    @Test func nothingTranslatedShowsZero() {
+        #expect(coverage(total: 10, translated: 0).displayPercent == 0)
+    }
+
+    @Test func aTranslatedKeyNeverShowsZero() {
+        // 1/1000 = 0,1 % : arrondir à 0 ferait passer un début de traduction
+        // pour rien du tout.
+        #expect(coverage(total: 1000, translated: 1).displayPercent == 1)
+    }
+
+    @Test func nothingToTranslateShowsZero() {
+        #expect(coverage(total: 0, translated: 0).displayPercent == 0)
+    }
+}
