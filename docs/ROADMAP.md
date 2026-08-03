@@ -340,10 +340,14 @@ sans risque d'écriture destructive.
       installé n'a plus que `default.json` — la mise à jour du mod a effacé la traduction,
       les auteurs ne redistribuant pas toujours les contributions communautaires. Phase 1 se
       limite à **le dire** (lecture seule) ; la récupération est **B4-T4**. · **M**
-- [ ] **C1-T6** — Décoder les `i18n/*.json` comme le `StreamReader` de SMAPI : honorer la
-      marque d'ordre des octets (un `ru.json` du parc est en UTF-16 LE) puis se rabattre sur
-      un jeu 8 bits hérité (trois `es.json`). Sans quoi 4 fichiers réels restent illisibles
-      alors que le jeu les charge — cf. l'en-tête de `I18nLenientParser.swift`. · **S**
+- [ ] **C1-T6** — Décoder les `i18n/*.json` comme le fait SMAPI, dont le comportement a été
+      mesuré sur la DLL du jeu : `File.ReadAllText` honore la marque d'ordre des octets — un
+      `ru.json` du parc est en UTF-16 LE et se charge **parfaitement** — puis se rabat sur
+      UTF-8 en remplaçant les octets invalides par U+FFFD, sans erreur : trois `es.json` en
+      jeu 8 bits hérité se chargent donc **avec les accents corrompus**. Reproduire les deux,
+      et signaler le second comme une anomalie du mod plutôt que comme un échec de lecture.
+      Sans quoi 4 fichiers réels restent illisibles chez nous — cf. l'en-tête de
+      `I18nLenientParser.swift`. · **S**
 
 #### C2 — Vue diff EN/FR
 
