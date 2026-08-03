@@ -13,6 +13,12 @@ skills (`.claude/skills/`) ; ce fichier ne fait qu'y pointer.
   été retiré ; la fonctionnalité « Thai Translation Hub » — mods de traduction —
   reste, elle.)*
 
+**Avant de toucher aux mods, à SMAPI, à Nexus, aux profils, aux sauvegardes ou aux
+fichiers de traduction : lire `docs/DOMAINE.md`.** Il porte ce que le code ne dit
+pas — notamment que « pack », « profil » et « sauvegarde » désignent ici autre
+chose que chez l'upstream, et qu'un mod en pause est un dossier **préfixé par un
+point** dans `Mods/`, pas un dossier déplacé.
+
 ## Build & test — LIRE avant de valider un changement
 
 Le build est **scindé en deux systèmes** ; vérifier lequel couvre le fichier touché.
