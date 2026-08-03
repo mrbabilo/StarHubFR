@@ -1086,31 +1086,22 @@ struct ModListRow: View {
         guard updated != nil || installed != nil || !langs.isEmpty else { return nil }
         return AnyView(
             HStack(spacing: 6) {
+                // La couverture française ouvre la ligne : c'est l'information
+                // que ce produit existe pour donner, et elle se perdait au
+                // milieu des codes de langue, de l'horloge et de la date.
+                if langs.contains("fr") {
+                    FrenchCoverageBadge(
+                        percent: vm.frenchCoverage(for: mod),
+                        // Un code de langue, pas une phrase : il ne se traduit
+                        // pas, exactement comme la liste des langues à côté.
+                        unmeasuredLabel: "FR",
+                        percentFormat: vm.L(L10n.Mods.frCoveragePercent)
+                    )
+                }
                 if !langs.isEmpty {
                     Image(systemName: "globe")
                         .font(.system(size: 9))
                     Text(langs.map { $0.uppercased() }.joined(separator: " "))
-                    // Highlight FR availability so the translation filter is
-                    // cross-checkable at a glance on every row.
-                    //
-                    // Le pourcentage remplace la mention dès qu'il est calculé —
-                    // il l'est en tâche de fond après le scan, d'où l'état
-                    // intermédiaire où l'on sait qu'un `fr` existe sans encore
-                    // savoir ce qu'il couvre. « FR disponible » sur un mod
-                    // traduit à 8 % serait une demi-vérité.
-                    if langs.contains("fr") {
-                        if let percent = vm.frenchCoverage(for: mod) {
-                            Text(percent >= 100
-                                 ? vm.L(L10n.Mods.frCoverageComplete)
-                                 : String(format: vm.L(L10n.Mods.frCoveragePercent), percent))
-                                .foregroundColor(percent >= 100
-                                                 ? .green.opacity(0.9)
-                                                 : .orange.opacity(0.95))
-                        } else {
-                            Text(vm.L(L10n.Mods.frTranslationAvailable))
-                                .foregroundColor(.green.opacity(0.9))
-                        }
-                    }
                     if updated != nil || installed != nil {
                         Text("•")
                             .foregroundColor(.secondary.opacity(AppDesign.Opacity.disabled))
@@ -1589,6 +1580,46 @@ private struct InferredTagBadge: View {
             .background(Color.secondary.opacity(AppDesign.Opacity.medium))
             .foregroundColor(.secondary)
             .clipShape(Capsule())
+    }
+}
+
+/// Pastille de couverture française, dans le vocabulaire de `VersionBadge` :
+/// une unité compacte et scannable plutôt qu'un mot noyé dans la ligne grise.
+///
+/// **Le nombre porte l'information, la couleur la renforce** — jamais
+/// l'inverse. Un badge dont le sens tiendrait au seul vert contre orange serait
+/// illisible pour un daltonien et invisible en balayage rapide ; c'est le taux
+/// écrit qui se compare d'une ligne à l'autre.
+///
+/// Trois états, parce qu'il y en a trois : mesuré et complet, mesuré et
+/// partiel, et **pas encore mesuré** — le calcul se fait en tâche de fond après
+/// le scan. Ce dernier état se lit en gris et sans nombre : annoncer un taux
+/// qu'on ignore serait pire que de ne rien annoncer.
+private struct FrenchCoverageBadge: View {
+    /// `nil` tant que la mesure n'a pas abouti.
+    let percent: Int?
+    let unmeasuredLabel: String
+    let percentFormat: String
+
+    private var tint: Color {
+        guard let percent else { return .secondary }
+        return percent >= 100 ? Color(red: 0.20, green: 0.62, blue: 0.34) : .orange
+    }
+
+    var body: some View {
+        Text(percent.map { String(format: percentFormat, $0) } ?? unmeasuredLabel)
+            .font(.system(size: 10, weight: .semibold))
+            .foregroundColor(tint)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(
+                Capsule().fill(tint.opacity(AppDesign.Opacity.medium))
+            )
+            .overlay(
+                // Un liseré porte le contour que l'aplat à 15 % ne donne pas —
+                // sans lui la pastille se dissout sur un fond clair.
+                Capsule().stroke(tint.opacity(AppDesign.Opacity.strong), lineWidth: 0.5)
+            )
     }
 }
 
