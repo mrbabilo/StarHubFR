@@ -13,10 +13,12 @@ where the exact log format was verified.
 ## [Unreleased]
 
 ### Added
+- **Every mod now shows how much of it is actually translated into French.** The list carried "FR available" as soon as an `fr.json` existed — a half-truth on a mod translated at 8%. A pill now gives the rate: green when it's complete, amber when it isn't. It only reads 100% when every key is done, so a mod one key short reads 99%. The figure is measured in the background after a scan, so it appears shortly after the list.
 - **A download that belongs inside another mod is now installed there.** Some Nexus files are content for a framework, not mods of their own — an ItemBags bag, say — and carry no `manifest.json`. The app recognises them and offers to put the file where it belongs, showing the exact path first. It works while the host mod is paused, and says so. An existing file is backed up first; a backup that fails cancels the install rather than overwriting anyway.
 - **Mod translation files are read the way their authors write them.** Comments, trailing commas, unquoted keys, raw line breaks, CRLF endings — a strict JSON reader refuses 912 of the 2357 files in a real modlist. Checked against the game's own JSON library, file by file: what it loads, we now read.
 
 ### Fixed
+- **The French filter no longer misses most of your translated mods.** Language detection only looked at `<mod>/i18n`, and only at file names. But a content pack keeps its `i18n` one level down, and a mod can put a whole folder per language. On a 821-mod library that came to **90 mods read wrongly, 81 of them with their French invisible** — so the filter, the mod page and the language list were all wrong about them. Regional variants (`pt-BR`) now count towards their base language, and Vietnamese was missing from the list of languages entirely.
 - **An archive that isn't a mod no longer tells you to check the file for damage.** Refusing it is right; sending you to re-download an intact file was not. The app now says the archive is fine and what the file appears to be. Same for a dropped file whose format isn't supported.
 
 ### Changed
