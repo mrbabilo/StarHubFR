@@ -25,6 +25,7 @@ where the exact log format was verified.
 - **An archive that isn't a mod no longer tells you to check the file for damage.** Refusing it is right; sending you to re-download an intact file was not. The app now says the archive is fine and what the file appears to be. Same for a dropped file whose format isn't supported.
 
 ### Changed
+- **Internal —** Groundwork for the key-by-key EN/FR view: a mod's components are diffed separately, each against its own `default.json`, so two components defining the same key stay two lines to translate. Nothing displays it yet.
 - **Internal —** Every shipped build now carries its own build number. `release.py` increments `CFBundleVersion` before building instead of it being kept by hand, which is the number macOS and any future update check compare. The version you see is unchanged.
 - **Internal —** Development tooling: a domain-knowledge document for contributors, and a ratchet that fails the build on any *new* breach of the project's Swift conventions while leaving the existing ones alone.
 
