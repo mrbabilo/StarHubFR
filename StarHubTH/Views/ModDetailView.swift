@@ -554,6 +554,86 @@ struct ModDetailView: View {
 
     // MARK: Error history
 
+    // MARK: Traduction
+
+    /// Ce que la liste ne peut pas dire, faute de place : **quoi** manque.
+    ///
+    /// Le taux seul ne distingue pas deux situations que le joueur ne vit pas
+    /// de la même façon. Une clé **absente** laisse l'anglais s'afficher et le
+    /// jeu tourne ; une clé **vide** n'affiche rien du tout, en silence. Un mod
+    /// à 98 % dont les 2 % restants sont vides est plus cassé qu'un mod à 60 %.
+    ///
+    /// Masquée quand le mod ne livre pas de français : il n'y a alors rien à
+    /// mesurer, et une section vide serait du bruit.
+    @ViewBuilder
+    private var translationSection: some View {
+        if mod.languages.contains("fr") {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(vm.L(L10n.Mods.translationSection))
+                    .font(.system(size: 13, weight: .semibold))
+
+                if let coverage = vm.frenchCoverageDetail(for: mod) {
+                    TranslationProgressBar(percent: coverage.displayPercent)
+                    Text(String(format: vm.L(L10n.Mods.translationCounts),
+                                coverage.translated, coverage.total))
+                        .font(.system(size: 11).monospacedDigit())
+                        .foregroundColor(.secondary)
+
+                    // Les vides d'abord : c'est le seul défaut qui casse
+                    // vraiment l'affichage, et il passerait inaperçu derrière un
+                    // pourcentage flatteur.
+                    if !coverage.empty.isEmpty {
+                        translationNote(String(format: vm.L(L10n.Mods.translationEmpty),
+                                               coverage.empty.count),
+                                        icon: "exclamationmark.triangle.fill",
+                                        color: .orange)
+                    }
+                    if !coverage.missing.isEmpty {
+                        translationNote(String(format: vm.L(L10n.Mods.translationMissing),
+                                               coverage.missing.count),
+                                        icon: "text.badge.minus", color: .secondary)
+                    }
+                    // Seulement quand c'est significatif. Une valeur française
+                    // identique à l'anglaise est le plus souvent légitime — un
+                    // nom propre, un nombre — et la note s'afficherait sur 228
+                    // des 424 mods traduits du parc, soit plus d'un sur deux :
+                    // une note qui apparaît partout n'informe plus. Au-delà d'un
+                    // cinquième des clés, en revanche, elle trahit une
+                    // traduction recopiée : 12 mods, et ceux-là méritent l'œil.
+                    if coverage.total > 0,
+                       Double(coverage.identicalToSource.count) / Double(coverage.total) > 0.2 {
+                        translationNote(String(format: vm.L(L10n.Mods.translationIdentical),
+                                               coverage.identicalToSource.count),
+                                        icon: "equal.circle", color: .secondary)
+                    }
+                    if !coverage.orphan.isEmpty {
+                        translationNote(String(format: vm.L(L10n.Mods.translationOrphan),
+                                               coverage.orphan.count),
+                                        icon: "questionmark.circle", color: .secondary)
+                    }
+                } else {
+                    // Le calcul se fait en tâche de fond : le dire plutôt que
+                    // de laisser un blanc qu'on prendrait pour une erreur.
+                    Text(vm.L(L10n.Mods.translationPending))
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+    }
+
+    private func translationNote(_ text: String, icon: String, color: Color) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 10))
+                .foregroundColor(color)
+            Text(text)
+                .font(.system(size: 11))
+                .foregroundColor(color == .secondary ? .secondary : color)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
     /// Errors and warnings this mod logged, per version — so a version can be
     /// compared against the one before it. Hidden entirely when the mod has
     /// never logged anything, which is the normal case.
@@ -631,6 +711,7 @@ struct ModDetailView: View {
             VStack(alignment: .leading, spacing: 16) {
                 if mod.isGroup { packContentsSection }
                 settingsSection
+                translationSection
                 errorHistorySection
                 blocksView(isChangelog: false)
             }
@@ -679,5 +760,39 @@ struct ModDetailView: View {
         Label(vm.L(L10n.Mods.detailCached), systemImage: "arrow.triangle.2.circlepath")
             .font(.caption)
             .foregroundStyle(.secondary)
+    }
+}
+
+/// La barre de progression de la traduction.
+///
+/// Sa place est ici et non dans la liste : la ligne de liste porte déjà le
+/// globe, les langues et deux dates, là où la fiche a l'espace. La barre donne
+/// la comparaison instantanée, le nombre juste à côté donne la précision —
+/// deux rôles, deux éléments.
+///
+/// Le remplissage n'est jamais nul quand une seule clé est traduite : une barre
+/// vide sur un travail commencé le nierait. Symétriquement, seul un travail
+/// terminé remplit toute la largeur.
+private struct TranslationProgressBar: View {
+    let percent: Int
+
+    private var tint: Color {
+        percent >= 100 ? Color(red: 0.20, green: 0.62, blue: 0.34) : .orange
+    }
+
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Color.secondary.opacity(AppDesign.Opacity.light))
+                Capsule()
+                    .fill(tint)
+                    .frame(width: max(geometry.size.width * CGFloat(percent) / 100,
+                                      percent > 0 ? 3 : 0))
+            }
+        }
+        .frame(height: 5)
+        .accessibilityElement()
+        .accessibilityLabel(Text("\(percent) %"))
     }
 }

@@ -737,5 +737,12 @@
   "bisect_show_mod": "Voir la fiche",
   "bisect_keep_paused": "Garder ce mod en pause",
   "bisect_kept_paused": "Tout le reste est réactivé ; ce mod reste en pause.",
-  "bisect_profile_name": "Recherche du mod responsable"
+  "bisect_profile_name": "Recherche du mod responsable",
+  "mods_translation_section": "Traduction française",
+  "mods_translation_counts": "%1$d clés traduites sur %2$d",
+  "mods_translation_missing": "%d clés restent à traduire — l'anglais s'affiche à leur place, rien n'est cassé",
+  "mods_translation_empty": "%d clés sont vides — rien ne s'affichera en jeu à leur place",
+  "mods_translation_identical": "%d clés sont identiques à l'anglais",
+  "mods_translation_orphan": "%d clés n'existent qu'en français et ne correspondent à rien",
+  "mods_translation_pending": "Mesure en cours…"
 }

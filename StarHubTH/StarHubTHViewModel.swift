@@ -228,10 +228,15 @@ class StarHubTHViewModel: ObservableObject {
         }
     }
 
-    /// Couverture française par mod, en pourcentage, indexée par `folderName`.
-    /// Absente tant qu'elle n'est pas calculée — c'est un badge qui apparaît,
-    /// pas une valeur qu'on attend.
-    @Published private(set) var frenchCoverageByMod: [String: Int] = [:]
+    /// Couverture française par mod, indexée par `folderName`. Absente tant
+    /// qu'elle n'est pas calculée — c'est un badge qui apparaît, pas une valeur
+    /// qu'on attend.
+    ///
+    /// La `Coverage` entière est conservée, pas seulement son pourcentage : la
+    /// fiche mod doit pouvoir dire **ce qui** manque — les clés absentes, et
+    /// surtout les vides, qui cassent l'affichage en jeu au lieu de retomber
+    /// sur l'anglais.
+    @Published private(set) var frenchCoverageByMod: [String: TranslationCoverage.Coverage] = [:]
 
     /// Le calcul en cours, annulé dès qu'un nouveau scan le rend caduc.
     private var frenchCoverageTask: Task<Void, Never>?
@@ -264,14 +269,14 @@ class StarHubTHViewModel: ObservableObject {
 
         frenchCoverageTask = Task.detached(priority: .utility) { [weak self] in
             let modsPath = (root as NSString).appendingPathComponent("Mods")
-            var batch: [String: Int] = [:]
+            var batch: [String: TranslationCoverage.Coverage] = [:]
             for mod in snapshot where mod.languages.contains("fr") {
                 if Task.isCancelled { return }
                 let directory = URL(fileURLWithPath: modsPath)
                     .appendingPathComponent(mod.physicalFolderName)
                 guard let coverage = TranslationCoverage.coverage(forModAt: directory,
                                                                   locale: "fr") else { continue }
-                batch[mod.folderName] = coverage.displayPercent
+                batch[mod.folderName] = coverage
                 // Publier par paquets : un envoi par mod ferait redessiner la
                 // liste des centaines de fois pour rien.
                 if batch.count >= 25 {
@@ -286,13 +291,19 @@ class StarHubTHViewModel: ObservableObject {
     }
 
     @MainActor
-    private func mergeFrenchCoverage(_ batch: [String: Int]) {
+    private func mergeFrenchCoverage(_ batch: [String: TranslationCoverage.Coverage]) {
         guard !batch.isEmpty else { return }
         frenchCoverageByMod.merge(batch) { _, new in new }
     }
 
-    /// La couverture française d'un mod, si elle est calculée.
+    /// Le taux à afficher sur la pastille de la liste, si mesuré.
     func frenchCoverage(for mod: ModItem) -> Int? {
+        frenchCoverageByMod[mod.folderName]?.displayPercent
+    }
+
+    /// Le détail de la couverture — ce qui manque, ce qui est vide — pour la
+    /// fiche mod, qui a la place de l'expliquer.
+    func frenchCoverageDetail(for mod: ModItem) -> TranslationCoverage.Coverage? {
         frenchCoverageByMod[mod.folderName]
     }
 

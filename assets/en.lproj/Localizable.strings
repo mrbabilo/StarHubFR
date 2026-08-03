@@ -738,3 +738,10 @@
 "bisect_keep_paused" = "Keep this mod paused";
 "bisect_kept_paused" = "Everything else is back on; this mod stays paused.";
 "bisect_profile_name" = "Mod search";
+"mods_translation_section" = "French translation";
+"mods_translation_counts" = "%1$d of %2$d keys translated";
+"mods_translation_missing" = "%d keys left to translate — English shows in their place, nothing breaks";
+"mods_translation_empty" = "%d keys are empty — nothing will show in game for them";
+"mods_translation_identical" = "%d keys read the same as the English";
+"mods_translation_orphan" = "%d keys exist only in French and match nothing";
+"mods_translation_pending" = "Measuring…";
