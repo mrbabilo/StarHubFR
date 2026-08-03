@@ -15,6 +15,9 @@ where the exact log format was verified.
 ### Added
 - **Mod translation files are read the way their authors write them.** Comments, trailing commas, unquoted keys, raw line breaks, CRLF endings — a strict JSON reader refuses 912 of the 2357 files in a real modlist. Checked against the game's own JSON library, file by file: what it loads, we now read.
 
+### Added
+- **A download that belongs inside another mod is now installed there.** Some Nexus files are content for a framework rather than mods of their own — an ItemBags bag, for instance — and have no `manifest.json`. The app recognises them and offers to put the file where it belongs, showing the exact path first. It works while the host mod is paused, and says so: the file takes effect when you turn it back on. If the host isn't installed, the app names it instead of guessing. An existing file is backed up before being replaced, and a backup that fails cancels the install rather than overwriting anyway.
+
 ### Fixed
 - **A download that isn't a mod no longer tells you to check the file for damage.** Some Nexus downloads are content files meant to be dropped into another mod's folder — an ItemBags bag, for instance — with no `manifest.json` of their own. Refusing them is right; advising you to re-download an intact file was not, and it sent you round in circles. The app now says the archive is fine and points at what the file actually is. Same for a dropped file whose format isn't supported.
 

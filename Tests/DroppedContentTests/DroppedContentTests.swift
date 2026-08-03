@@ -286,3 +286,38 @@ struct DroppedContentEndToEndTests {
             atPath: gameDir.appendingPathComponent("Mods/ItemBags").path))
     }
 }
+
+/// La sauvegarde promise avant écrasement — sur un hôte **en pause**, où le
+/// dossier réel porte un point que `folderName` n'a pas.
+struct DroppedContentBackupTests {
+    @Test func overwritingAPausedHostBacksItUpFirst() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("dropped-backup-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let gameDir = root.appendingPathComponent("Game")
+        let bagsDir = gameDir.appendingPathComponent("Mods/.ItemBags/assets/Modded Bags")
+        try FileManager.default.createDirectory(at: bagsDir, withIntermediateDirectories: true)
+        // Le fichier déjà présent, retouché à la main — c'est lui qu'on doit
+        // pouvoir retrouver après coup.
+        let existing = bagsDir.appendingPathComponent("Bag.json")
+        try Data("réglages personnalisés".utf8).write(to: existing)
+
+        let host = ModItem(uniqueId: "SlayerDharok.Item_Bags", name: "Item Bags",
+                           folderName: "ItemBags", version: "3.1.0", author: "",
+                           description: "", nexusUrl: "", nexusModId: "", isEnabled: false,
+                           dependencies: [], children: nil, isGroup: false,
+                           installedFileDate: nil)
+
+        let manager = ModInstallBackupManager(backupsBasePath: root.appendingPathComponent("Backups"))
+        // `createBackup` résout le dossier par `physicalFolderName`, qui ajoute
+        // le point : sans cela il lèverait `modNotFound` sur un hôte en pause.
+        let backup = try manager.createBackup(for: host, gameDir: gameDir.path,
+                                              reason: .beforeInstall)
+
+        let saved = URL(fileURLWithPath: backup.backupPath)
+            .appendingPathComponent("assets/Modded Bags/Bag.json")
+        #expect(FileManager.default.fileExists(atPath: saved.path))
+        #expect(try String(contentsOf: saved, encoding: .utf8) == "réglages personnalisés")
+    }
+}

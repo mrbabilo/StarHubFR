@@ -477,11 +477,15 @@ struct ModInstallView: View {
             var failure: String?
             do {
                 // Un sac peut avoir été retouché à la main (prix, capacités) :
-                // sauvegarder l'hôte avant d'écraser, comme pour toute
-                // installation par-dessus un mod existant. Rien à préserver si
-                // le fichier n'existait pas.
+                // sauvegarder l'hôte avant d'écraser. Rien à préserver si le
+                // fichier n'existait pas.
+                //
+                // Le `try` n'est pas un `try?` : « sauvegarder **puis**
+                // écraser » n'a de sens que si l'échec de la sauvegarde arrête
+                // l'écrasement. L'avaler écraserait un fichier retouché sans
+                // filet et sans le dire.
                 if FileManager.default.fileExists(atPath: proposal.destinationURL.path) {
-                    _ = try? ModInstallBackupManager.shared.createBackup(
+                    _ = try ModInstallBackupManager.shared.createBackup(
                         for: proposal.host, gameDir: gameDir, reason: .beforeInstall)
                 }
                 try DroppedContentRecognizer.install(from: proposal.sourceURL,
@@ -500,10 +504,13 @@ struct ModInstallView: View {
                     self.errorRecoveryHint = nil
                     self.showError = true
                 } else {
+                    // Pas de `scanMods()` ici : le fichier a atterri *dans* un
+                    // mod existant, aucun dossier de mod n'a bougé. Rescanner
+                    // ne changerait rien à l'écran et laisserait croire le
+                    // contraire.
                     self.installedModNames = [String(
                         format: self.vm.L(L10n.ModInstall.droppedDone), proposal.hostDisplayName)]
                     self.showSuccess = true
-                    self.vm.scanMods()
                 }
             }
         }
