@@ -323,10 +323,29 @@ sans risque d'écriture destructive.
 - [ ] **C1-T1** — Calculer, pour chaque mod, la couverture i18n : clés de
       `i18n/default.json` (ou `en.json`) présentes/absentes dans `i18n/fr.json`, plus les
       clés orphelines côté FR. Modèle Core testable, aucune UI. · **M**
-- [ ] **C1-T2** — Badge de couverture dans la liste des mods (`—` / `x %` / `100 %`),
-      branché sur le filtre `FrenchTranslationScope` existant. · **S**
+- [x] **C1-T2** — Badge de couverture dans la liste des mods, branché sur le filtre
+      `FrenchTranslationScope` existant. **Livré** (`c6d4fec`, `beda7ed`) : pastille
+      dans le vocabulaire de `VersionBadge`, chiffres à chasse fixe, trois états dont
+      « pas encore mesuré ». · **S**
 - [ ] **C1-T3** — Section « Traduction » sur la fiche mod : compteur, date du dernier
-      `fr.json`, lien vers l'éditeur. · **S**
+      `fr.json`, lien vers l'éditeur. · **M**
+      - **Barre de progression**, à sa place ici et non dans la liste : la ligne de
+        liste porte déjà globe, langues et deux dates, alors que la fiche a l'espace.
+        La barre donne la comparaison instantanée, le nombre la précision — deux
+        rôles, deux éléments (cf. [`audit-nana-ux.md`](audit-nana-ux.md) §2).
+      - **Dire ce qui manque, pas seulement combien.** C'est ce que la liste ne peut
+        pas faire : les clés absentes, et surtout les **vides**, qui cassent
+        l'affichage en jeu au lieu de retomber sur l'anglais. 26 mods du parc en
+        portent.
+      - ⚠️ **Le cache ne contient qu'un entier.** `frenchCoverageByMod` stocke
+        `displayPercent` ; afficher « 142 clés sur 197 » suppose d'y ranger la
+        `Coverage` complète. Limite introduite en C1-T2, à lever ici.
+- [ ] **C1-T7** — Carte « mods partiellement traduits » : la liste vraiment utile.
+      Sur le parc, 392 mods sont complets et **31 partiels** — ces 31 sont
+      aujourd'hui noyés parmi les autres. Transposé du tableau de bord de
+      `stardew-i18n-translator` (cf. [`audit-nana-ux.md`](audit-nana-ux.md) §3), sans
+      reprendre le reste : leur page d'accueil ne sert qu'à la traduction, la nôtre
+      a d'autres devoirs. · **S**
 - [ ] **C1-T4** — Test **structurel** « mod de traduction pure » (contenu limité à `i18n/`
       + `manifest.json`), pour les traiter à part dans les statistiques. Le vrai piège
       n'est pas le pack FR — sans `default.json`, C1-T1 n'a simplement pas de dénominateur —
