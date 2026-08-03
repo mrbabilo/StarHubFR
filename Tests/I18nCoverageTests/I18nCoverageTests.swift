@@ -444,6 +444,28 @@ struct I18nLocaleResolverTests {
         #expect(I18nLocaleResolver.locales(in: layoutB.directory) == ["default", "fr", "zh"])
     }
 
+    @Test func mergeKeepsTheFirstOccurrenceOfAKey() {
+        // `ReadTranslationFiles` fusionne par `TryAdd` : à clé égale, l'entrée
+        // déjà présente est conservée et le doublon signalé. Le fichier qui
+        // gagne dépend donc de l'ordre de lecture — que nous fixons par le tri
+        // sur le nom, là où SMAPI suit l'ordre du système de fichiers. Sans ce
+        // test, cette promesse de déterminisme n'existe que dans un commentaire.
+        let merged = I18nLocaleResolver.merge([["k": "premier", "a": "1"],
+                                               ["k": "second", "b": "2"]])
+        #expect(merged["k"] == "premier")
+        #expect(merged["a"] == "1")
+        #expect(merged["b"] == "2")
+    }
+
+    @Test func layoutBFilesAreMergedInNameOrder() throws {
+        // Deux fichiers d'une même locale définissant la même clé : c'est le
+        // tri par nom qui tranche, donc `a.json` avant `z.json`.
+        let fixture = try I18nFixture(files: ["fr/z.json", "fr/a.json"])
+        defer { fixture.cleanup() }
+        let files = I18nLocaleResolver.files(in: fixture.directory, locale: "fr")
+        #expect(files.map(\.lastPathComponent) == ["a.json", "z.json"])
+    }
+
     @Test func nonJsonFilesAreIgnored() throws {
         let fixture = try I18nFixture(files: ["fr.json", "readme.txt", "fr/notes.md", "fr/a.json"])
         defer { fixture.cleanup() }
