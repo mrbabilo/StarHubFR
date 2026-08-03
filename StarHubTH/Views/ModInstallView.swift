@@ -550,6 +550,13 @@ struct ModInstallView: View {
                     self.installedModNames = modsBeingInstalled.map { $0.name }
                     self.showSuccess = true
                     self.zipModInfo = nil
+                    // Les fichiers de ces mods viennent de changer : leur
+                    // couverture en cache ne vaut plus rien. Sans cela, un mod
+                    // mis à jour garderait le pourcentage de sa version
+                    // précédente indéfiniment.
+                    for mod in modsBeingInstalled {
+                        self.vm.invalidateFrenchCoverage(for: mod.folderName)
+                    }
                     self.vm.refresh()
                     self.vm.log(self.vm.L(L10n.ModInstall.installSuccess), level: .info)
 

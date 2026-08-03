@@ -222,7 +222,86 @@ class StarHubTHViewModel: ObservableObject {
     static let launchScanProgressEnd: Double = 0.70
 
     @Published var mods: [ModItem] = [] {
-        didSet { categoryCache.removeAll() }
+        didSet {
+            categoryCache.removeAll()
+            recomputeFrenchCoverage()
+        }
+    }
+
+    /// Couverture française par mod, en pourcentage, indexée par `folderName`.
+    /// Absente tant qu'elle n'est pas calculée — c'est un badge qui apparaît,
+    /// pas une valeur qu'on attend.
+    @Published private(set) var frenchCoverageByMod: [String: Double] = [:]
+
+    /// Le calcul en cours, annulé dès qu'un nouveau scan le rend caduc.
+    private var frenchCoverageTask: Task<Void, Never>?
+
+    /// Recalcule la couverture française **hors du thread principal**.
+    ///
+    /// Jamais pendant le scan : celui-ci est déjà le coût dominant au
+    /// lancement, et lire tous les `default.json` et `fr.json` du parc y
+    /// ajouterait des secondes. Le badge peut apparaître après la liste.
+    ///
+    /// Seuls les mods que la détection dit traduits en français sont mesurés —
+    /// c'est ce qui rend la passe abordable, et c'est pourquoi cette détection
+    /// devait être juste d'abord.
+    ///
+    /// **Incrémental.** La passe complète coûte ~13 s de lecture disque sur le
+    /// parc de référence (424 mods, 159 503 clés), et `mods` est republié à
+    /// chaque mise en pause, chaque rafraîchissement, chaque activation de
+    /// profil : tout recalculer à chaque fois relancerait ce travail pour rien.
+    /// Seuls les mods dont la couverture n'est pas déjà connue sont mesurés.
+    /// Mettre un mod en pause déplace son dossier sans toucher à ses fichiers de
+    /// traduction — le résultat reste valable. `invalidateFrenchCoverage(for:)`
+    /// est là pour les cas où le contenu change réellement.
+    private func recomputeFrenchCoverage() {
+        frenchCoverageTask?.cancel()
+        let root = gameDir
+        guard !root.isEmpty else { return }
+        let known = Set(frenchCoverageByMod.keys)
+        let snapshot = mods.filter { !known.contains($0.folderName) }
+        guard !snapshot.isEmpty else { return }
+
+        frenchCoverageTask = Task.detached(priority: .utility) { [weak self] in
+            let modsPath = (root as NSString).appendingPathComponent("Mods")
+            var batch: [String: Double] = [:]
+            for mod in snapshot where mod.languages.contains("fr") {
+                if Task.isCancelled { return }
+                let directory = URL(fileURLWithPath: modsPath)
+                    .appendingPathComponent(mod.physicalFolderName)
+                guard let coverage = TranslationCoverage.coverage(forModAt: directory,
+                                                                  locale: "fr") else { continue }
+                batch[mod.folderName] = coverage.percent
+                // Publier par paquets : un envoi par mod ferait redessiner la
+                // liste des centaines de fois pour rien.
+                if batch.count >= 25 {
+                    let published = batch
+                    batch.removeAll(keepingCapacity: true)
+                    await self?.mergeFrenchCoverage(published)
+                }
+            }
+            if Task.isCancelled { return }
+            await self?.mergeFrenchCoverage(batch)
+        }
+    }
+
+    @MainActor
+    private func mergeFrenchCoverage(_ batch: [String: Double]) {
+        guard !batch.isEmpty else { return }
+        frenchCoverageByMod.merge(batch) { _, new in new }
+    }
+
+    /// La couverture française d'un mod, si elle est calculée.
+    func frenchCoverage(for mod: ModItem) -> Double? {
+        frenchCoverageByMod[mod.folderName]
+    }
+
+    /// Oublie la couverture d'un mod dont les fichiers ont pu changer —
+    /// installation, mise à jour, restauration de sauvegarde. Le prochain
+    /// passage la recalculera. Sans cet appel, un mod mis à jour garderait
+    /// éternellement le pourcentage de sa version précédente.
+    func invalidateFrenchCoverage(for folderName: String) {
+        frenchCoverageByMod.removeValue(forKey: folderName)
     }
     /// Cache for `category(for:)`, invalidated whenever `mods`,
     /// `nexusCategories`, `nexusCustomCategories`, or `nexusCustomModIds`

@@ -146,6 +146,64 @@ public enum TranslationCoverage {
         return rows
     }
 
+    /// La couverture d'un **mod entier**, composants compris.
+    ///
+    /// Chaque dossier `i18n` est mesuré séparément — il a son propre
+    /// `default.json` au dénominateur — puis les compteurs sont additionnés.
+    /// Fusionner les dictionnaires de clés donnerait un pourcentage qui ne
+    /// correspond à aucun fichier réel : deux composants définissant chacun une
+    /// clé `a` font bien deux clés à traduire, pas une.
+    ///
+    /// Rend `nil` quand rien n'est mesurable — aucun `i18n`, ou aucun avec un
+    /// `default.json`. Un pack de traduction pur (un `fr.json` sans source) n'a
+    /// pas de dénominateur : il ne doit ni compter pour 0 %, ni fausser le
+    /// total du mod.
+    public static func coverage(forModAt modDirectory: URL, locale: String,
+                                fileManager: FileManager = .default) -> Coverage? {
+        var total = 0, translated = 0
+        var missing: [String] = [], empty: [String] = []
+        var orphan: [String] = [], identical: [String] = []
+        var measuredAny = false
+
+        for directory in I18nLocaleResolver.i18nDirectories(inModDirectory: modDirectory,
+                                                            fileManager: fileManager) {
+            guard let source = entries(of: "default", in: directory, fileManager: fileManager)
+            else { continue }
+            let target = entries(of: locale, in: directory, fileManager: fileManager) ?? [:]
+            let part = compute(source: source, target: target)
+            measuredAny = true
+            total += part.total
+            translated += part.translated
+            missing += part.missing
+            empty += part.empty
+            orphan += part.orphan
+            identical += part.identicalToSource
+        }
+
+        guard measuredAny else { return nil }
+        return Coverage(total: total, translated: translated,
+                        missing: missing.sorted(), empty: empty.sorted(),
+                        orphan: orphan.sorted(), identicalToSource: identical.sorted())
+    }
+
+    /// Les entrées d'une locale dans un dossier `i18n`, fichiers fusionnés.
+    /// `nil` si la locale n'y est pas, ou si aucun de ses fichiers n'est lisible.
+    private static func entries(of locale: String, in directory: URL,
+                                fileManager: FileManager) -> [String: String]? {
+        let files = I18nLocaleResolver.files(in: directory, locale: locale,
+                                             fileManager: fileManager)
+        guard !files.isEmpty else { return nil }
+        var parsed: [[String: String]] = []
+        for file in files {
+            guard let data = fileManager.contents(atPath: file.path),
+                  let text = String(data: data, encoding: .utf8),
+                  let map = try? I18nLenientParser.parse(text)
+            else { continue }
+            parsed.append(map)
+        }
+        return parsed.isEmpty ? nil : I18nLocaleResolver.merge(parsed)
+    }
+
     /// Pliage d'une clé pour la comparaison : **minuscules seulement**.
     ///
     /// SMAPI construit ses dictionnaires avec `StringComparer.OrdinalIgnoreCase`

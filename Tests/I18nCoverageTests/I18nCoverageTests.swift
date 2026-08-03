@@ -604,3 +604,96 @@ struct ModLanguageVariantTests {
         #expect(!I18nLocaleResolver.languageCodes(inModDirectory: mod).contains("fr"))
     }
 }
+
+/// La couverture d'un **mod entier**, composants compris.
+///
+/// Chaque dossier `i18n` est calculé séparément — il a son propre
+/// `default.json` au dénominateur — puis les compteurs sont additionnés.
+/// Fusionner les dictionnaires de clés donnerait un pourcentage qui ne
+/// correspondrait à aucun fichier réel.
+struct ModCoverageTests {
+    private func fixture(_ files: [String: String]) throws -> URL {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("modcov-\(UUID().uuidString)", isDirectory: true)
+        for (relative, content) in files {
+            let url = dir.appendingPathComponent(relative)
+            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(),
+                                                    withIntermediateDirectories: true)
+            try Data(content.utf8).write(to: url)
+        }
+        return dir
+    }
+
+    @Test func aSingleComponentIsItsOwnCoverage() throws {
+        let mod = try fixture([
+            "i18n/default.json": #"{"a": "1", "b": "2"}"#,
+            "i18n/fr.json": #"{"a": "un"}"#,
+        ])
+        defer { try? FileManager.default.removeItem(at: mod) }
+        let c = try #require(TranslationCoverage.coverage(forModAt: mod, locale: "fr"))
+        #expect(c.total == 2)
+        #expect(c.translated == 1)
+    }
+
+    @Test func componentsAddUpWithoutMergingTheirKeys() throws {
+        // Les deux composants définissent une clé `a` : additionner les
+        // compteurs donne 2 clés au total, alors que fusionner les
+        // dictionnaires n'en compterait qu'une.
+        let mod = try fixture([
+            "A/i18n/default.json": #"{"a": "1"}"#,
+            "A/i18n/fr.json": #"{"a": "un"}"#,
+            "B/i18n/default.json": #"{"a": "2"}"#,
+            "B/i18n/fr.json": #"{"a": "deux"}"#,
+        ])
+        defer { try? FileManager.default.removeItem(at: mod) }
+        let c = try #require(TranslationCoverage.coverage(forModAt: mod, locale: "fr"))
+        #expect(c.total == 2)
+        #expect(c.translated == 2)
+    }
+
+    @Test func anUntranslatedComponentStillCountsAgainstTheMod() throws {
+        // Un mod dont un composant sur deux est traduit n'est pas à 100 %.
+        let mod = try fixture([
+            "A/i18n/default.json": #"{"a": "1"}"#,
+            "A/i18n/fr.json": #"{"a": "un"}"#,
+            "B/i18n/default.json": #"{"b": "2"}"#,
+        ])
+        defer { try? FileManager.default.removeItem(at: mod) }
+        let c = try #require(TranslationCoverage.coverage(forModAt: mod, locale: "fr"))
+        #expect(c.total == 2)
+        #expect(c.translated == 1)
+        #expect(c.missing == ["b"])
+    }
+
+    @Test func aComponentWithoutASourceHasNoDenominator() throws {
+        // Un pack de traduction pur (`i18n/fr.json` sans `default.json`) n'a
+        // rien à mesurer : il ne doit ni compter pour 0 %, ni fausser le total.
+        let mod = try fixture([
+            "A/i18n/default.json": #"{"a": "1"}"#,
+            "A/i18n/fr.json": #"{"a": "un"}"#,
+            "B/i18n/fr.json": #"{"z": "orphelin"}"#,
+        ])
+        defer { try? FileManager.default.removeItem(at: mod) }
+        let c = try #require(TranslationCoverage.coverage(forModAt: mod, locale: "fr"))
+        #expect(c.total == 1)
+        #expect(c.translated == 1)
+    }
+
+    @Test func aModWithNoTranslationsAtAllHasNoCoverage() throws {
+        let mod = try fixture(["manifest.json": "{}"])
+        defer { try? FileManager.default.removeItem(at: mod) }
+        #expect(TranslationCoverage.coverage(forModAt: mod, locale: "fr") == nil)
+    }
+
+    @Test func layoutBComponentsAreMeasuredToo() throws {
+        let mod = try fixture([
+            "i18n/default/a.json": #"{"a": "1"}"#,
+            "i18n/default/b.json": #"{"b": "2"}"#,
+            "i18n/fr/a.json": #"{"a": "un"}"#,
+        ])
+        defer { try? FileManager.default.removeItem(at: mod) }
+        let c = try #require(TranslationCoverage.coverage(forModAt: mod, locale: "fr"))
+        #expect(c.total == 2)
+        #expect(c.translated == 1)
+    }
+}
