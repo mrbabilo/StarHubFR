@@ -321,3 +321,50 @@ struct DroppedContentBackupTests {
         #expect(try String(contentsOf: saved, encoding: .utf8) == "réglages personnalisés")
     }
 }
+
+/// Ces fichiers sont écrits à la main par des auteurs de mods, exactement comme
+/// les fichiers i18n — et ils portent les mêmes tolérances.
+struct DroppedContentLenientParsingTests {
+    private func extracted(_ content: String) throws -> URL {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("lenient-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        try Data(content.utf8).write(to: dir.appendingPathComponent("Bag.json"))
+        return dir
+    }
+
+    @Test func aBagFileWithCommentsIsStillRecognized() throws {
+        // Cas réel : `Cloth And Colors Bag` (Nexus 50108) porte un
+        // `//Special Items` au milieu de sa liste d'objets. `JSONSerialization`
+        // le refuse ; le fichier n'en est pas moins un sac parfaitement
+        // ordinaire, et ItemBags le charge.
+        let dir = try extracted("""
+        {
+          "BagId": "b", "BagName": "Cloth and Colors Bag",
+          "Prices": {}, "Capacities": {},
+          "SizeSellers": {},
+          "Items": [
+            {"Name": "Cloth"},
+            //Special Items
+            {"Name": "Linen"}
+          ]
+        }
+        """)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        #expect(DroppedContentRecognizer.recognize(inExtractedDirectory: dir) != nil)
+    }
+
+    @Test func aBagFileWithATrailingCommaIsStillRecognized() throws {
+        let dir = try extracted("""
+        {"BagId": "b", "BagName": "x", "Prices": {}, "Capacities": {}, "SizeSellers": {},}
+        """)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        #expect(DroppedContentRecognizer.recognize(inExtractedDirectory: dir) != nil)
+    }
+
+    @Test func trulyBrokenJsonIsStillRefused() throws {
+        let dir = try extracted("{not json at all")
+        defer { try? FileManager.default.removeItem(at: dir) }
+        #expect(DroppedContentRecognizer.recognize(inExtractedDirectory: dir) == nil)
+    }
+}

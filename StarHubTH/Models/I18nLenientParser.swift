@@ -79,12 +79,7 @@ enum I18nLenientParser {
     /// avec SMAPI**, qui la traite comme une clé ordinaire — sans quoi nos
     /// totaux différeraient des siens de un.
     static func parse(_ text: String) throws -> [String: String] {
-        let cleaned = clean(text).text
-        guard let data = cleaned.data(using: .utf8),
-              let any = try? JSONSerialization.jsonObject(with: data),
-              let object = any as? [String: Any] else {
-            throw ParseError.malformed
-        }
+        guard let object = lenientObject(text) else { throw ParseError.malformed }
         var out: [String: String] = [:]
         out.reserveCapacity(object.count)
         for (key, value) in object where key != "$schema" {
@@ -92,6 +87,25 @@ enum I18nLenientParser {
             out[key] = string
         }
         return out
+    }
+
+    /// L'objet JSON d'un texte, après les mêmes tolérances qu'un fichier i18n —
+    /// **sans** exiger un objet plat de chaînes.
+    ///
+    /// Le nettoyage n'a rien de spécifique à l'i18n : commentaires, virgules en
+    /// trop, clés nues et caractères de contrôle bruts se trouvent dans tous les
+    /// fichiers JSON qu'écrivent les auteurs de mods. Un sac ItemBags du parc
+    /// (`Cloth and Colors Bag`) porte ainsi un `//Special Items` au milieu de sa
+    /// liste d'objets : `JSONSerialization` le refuse, le jeu le charge.
+    ///
+    /// Exposer ce nettoyage plutôt que d'en écrire un second ailleurs — quatre
+    /// copies d'une même règle, dont une amputée, ont déjà fait afficher un
+    /// `.Spotlight-V100` comme un mod.
+    static func lenientObject(_ text: String) -> [String: Any]? {
+        guard let data = clean(text).text.data(using: .utf8),
+              let any = try? JSONSerialization.jsonObject(with: data),
+              let object = any as? [String: Any] else { return nil }
+        return object
     }
 
     /// SMAPI chargerait-il ce fichier tel quel ?

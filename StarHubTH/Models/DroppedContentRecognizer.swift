@@ -144,17 +144,21 @@ public enum DroppedContentRecognizer {
     public static func recognize(inExtractedDirectory directory: URL,
                                  fileManager: FileManager = .default)
         -> (rule: DroppedContentRule, fileURL: URL)? {
-        // Deux `try?` délibérés, tous deux sur des échecs attendus : un dossier
-        // illisible n'a simplement rien à reconnaître, et un JSON invalide se
-        // saute au profit du suivant plutôt que d'interrompre l'examen. Les
-        // remonter n'apporterait rien — l'appelant ne peut qu'afficher le refus
-        // ordinaire. Couvert par `anUnparsableJsonDoesNotCrashTheScan`.
+        // `try?` délibéré : un dossier illisible n'a simplement rien à
+        // reconnaître, et l'appelant ne pourrait qu'afficher le refus ordinaire.
         let entries = (try? fileManager.contentsOfDirectory(
             at: directory, includingPropertiesForKeys: nil)) ?? []
         for url in entries.sorted(by: { $0.lastPathComponent < $1.lastPathComponent })
         where url.pathExtension.lowercased() == "json" {
+            // Lecture **laxiste** : ces fichiers sont écrits à la main par les
+            // mêmes auteurs que les i18n et portent les mêmes tolérances. Le
+            // sac qui a motivé cette fonctionnalité contient un
+            // `//Special Items` que `JSONSerialization` refuse — s'en tenir à
+            // lui rendait le reconnaisseur aveugle au cas même qui l'a fait
+            // naître.
             guard let data = fileManager.contents(atPath: url.path),
-                  let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let text = String(data: data, encoding: .utf8),
+                  let object = I18nLenientParser.lenientObject(text),
                   let match = rule(forJSONKeys: Set(object.keys))
             else { continue }
             return (match, url)
