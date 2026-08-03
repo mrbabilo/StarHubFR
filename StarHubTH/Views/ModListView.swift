@@ -12,7 +12,11 @@ enum ModFilter: String, CaseIterable, Identifiable {
 enum FrenchTranslationScope: Equatable {
     case off
     case available   // ships an i18n/fr.json
-    case missing     // no i18n/fr.json
+    /// Traduit, mais pas entièrement — ceux sur lesquels il reste à faire.
+    /// Sur le parc, 31 mods contre 392 complets : sans ce cadrage ils sont
+    /// introuvables.
+    case partial
+    case missing     // translatable, but ships no i18n/fr.json
 }
 
 /// Scope for the category-filter menu: show everything, scope to one Nexus
@@ -141,6 +145,15 @@ struct ModListView: View {
                 case .available:
                     // A group matches if any child ships an fr translation.
                     return matchesSelfOrAnyChild(mod) { $0.languages.contains("fr") }
+                case .partial:
+                    // Ne montre que les mods **déjà mesurés** : la couverture
+                    // se calcule en tâche de fond, et annoncer « complet » sur
+                    // un mod qu'on n'a pas encore lu serait faux. La liste se
+                    // complète donc à mesure que le calcul avance.
+                    return matchesSelfOrAnyChild(mod) { child in
+                        guard let coverage = vm.frenchCoverage(for: child) else { return false }
+                        return coverage < 100
+                    }
                 case .missing:
                     // « Pas de français » ne veut rien dire d'un mod qui n'a
                     // aucun `i18n` : il n'a pas de texte à traduire, et l'y
@@ -777,6 +790,7 @@ struct ModListView: View {
             switch filters.frenchTranslation {
             case .off:       return vm.L(L10n.Mods.frTranslationFilterLabel)
             case .available: return vm.L(L10n.Mods.frTranslationAvailable)
+            case .partial:   return vm.L(L10n.Mods.frTranslationPartial)
             case .missing:   return vm.L(L10n.Mods.frTranslationMissing)
             }
         }()
@@ -784,6 +798,7 @@ struct ModListView: View {
             switch filters.frenchTranslation {
             case .off:       return "character.bubble"
             case .available: return "checkmark.bubble"
+            case .partial:   return "ellipsis.bubble"
             case .missing:   return "xmark.bubble"
             }
         }()
@@ -797,6 +812,11 @@ struct ModListView: View {
                 listState.filters.frenchTranslation = .available
             } label: {
                 Label(vm.L(L10n.Mods.frTranslationAvailable), systemImage: "checkmark.bubble")
+            }
+            Button {
+                listState.filters.frenchTranslation = .partial
+            } label: {
+                Label(vm.L(L10n.Mods.frTranslationPartial), systemImage: "ellipsis.bubble")
             }
             Button {
                 listState.filters.frenchTranslation = .missing

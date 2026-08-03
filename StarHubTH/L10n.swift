@@ -202,6 +202,7 @@ enum L10n {
         static let frTranslationFilterLabel = "mods_fr_translation_filter_label"
         static let frTranslationAvailable  = "mods_fr_translation_available"
         static let frCoveragePercent       = "mods_fr_coverage_percent"
+        static let frTranslationPartial    = "mods_fr_translation_partial"
         static let translationSection      = "mods_translation_section"
         static let translationCounts       = "mods_translation_counts"
         static let translationMissing      = "mods_translation_missing"

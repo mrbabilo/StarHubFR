@@ -745,3 +745,4 @@
 "mods_translation_identical" = "%d clés sont identiques à l'anglais";
 "mods_translation_orphan" = "%d clés n'existent qu'en français et ne correspondent à rien";
 "mods_translation_pending" = "Mesure en cours…";
+"mods_fr_translation_partial" = "Partiellement traduits";

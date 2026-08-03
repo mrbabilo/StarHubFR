@@ -745,3 +745,4 @@
 "mods_translation_identical" = "%d keys read the same as the English";
 "mods_translation_orphan" = "%d keys exist only in French and match nothing";
 "mods_translation_pending" = "Measuring…";
+"mods_fr_translation_partial" = "Partly translated";
