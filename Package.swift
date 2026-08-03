@@ -41,6 +41,7 @@ let package = Package(
                 "Models/ModFocusResolver.swift",
                 "Models/LogEntry.swift",
                 "Models/SmapiLogParser.swift",
+                "Models/DroppedContentRecognizer.swift",
                 "Models/I18nLenientParser.swift",
                 "Models/I18nLocaleResolver.swift",
                 "Models/TranslationCoverage.swift",
@@ -72,6 +73,11 @@ let package = Package(
             name: "ModZipInstallerTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ModZipInstallerTests"
+        ),
+        .testTarget(
+            name: "DroppedContentTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/DroppedContentTests"
         ),
         .testTarget(
             name: "ModFolderRepairerTests",
