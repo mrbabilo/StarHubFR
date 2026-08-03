@@ -13,13 +13,11 @@ where the exact log format was verified.
 ## [Unreleased]
 
 ### Added
+- **A download that belongs inside another mod is now installed there.** Some Nexus files are content for a framework, not mods of their own — an ItemBags bag, say — and carry no `manifest.json`. The app recognises them and offers to put the file where it belongs, showing the exact path first. It works while the host mod is paused, and says so. An existing file is backed up first; a backup that fails cancels the install rather than overwriting anyway.
 - **Mod translation files are read the way their authors write them.** Comments, trailing commas, unquoted keys, raw line breaks, CRLF endings — a strict JSON reader refuses 912 of the 2357 files in a real modlist. Checked against the game's own JSON library, file by file: what it loads, we now read.
 
-### Added
-- **A download that belongs inside another mod is now installed there.** Some Nexus files are content for a framework rather than mods of their own — an ItemBags bag, for instance — and have no `manifest.json`. The app recognises them and offers to put the file where it belongs, showing the exact path first. It works while the host mod is paused, and says so: the file takes effect when you turn it back on. If the host isn't installed, the app names it instead of guessing. An existing file is backed up before being replaced, and a backup that fails cancels the install rather than overwriting anyway.
-
 ### Fixed
-- **A download that isn't a mod no longer tells you to check the file for damage.** Some Nexus downloads are content files meant to be dropped into another mod's folder — an ItemBags bag, for instance — with no `manifest.json` of their own. Refusing them is right; advising you to re-download an intact file was not, and it sent you round in circles. The app now says the archive is fine and points at what the file actually is. Same for a dropped file whose format isn't supported.
+- **An archive that isn't a mod no longer tells you to check the file for damage.** Refusing it is right; sending you to re-download an intact file was not. The app now says the archive is fine and what the file appears to be. Same for a dropped file whose format isn't supported.
 
 ### Changed
 - **Internal —** Every shipped build now carries its own build number. `release.py` increments `CFBundleVersion` before building instead of it being kept by hand, which is the number macOS and any future update check compare. The version you see is unchanged.
