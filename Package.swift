@@ -42,6 +42,8 @@ let package = Package(
                 "Models/LogEntry.swift",
                 "Models/SmapiLogParser.swift",
                 "Models/I18nLenientParser.swift",
+                "Models/I18nLocaleResolver.swift",
+                "Models/TranslationCoverage.swift",
                 "Models/ThaiTranslationTable.swift",
                 "NexusUpdateChecker.swift",
                 "Models/NexusUpdateConsolidation.swift",
