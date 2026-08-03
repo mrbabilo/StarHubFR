@@ -113,7 +113,15 @@ enum I18nLenientParser {
     /// ⚠️ Faux négatifs résiduels : cette fonction ne peut être exacte que là où
     /// le parseur sait lire. Les deux fichiers qu'il refuse encore (guillemets
     /// simples, `\'` — cf. en-tête) sont chargés par le jeu et rapportés ici
-    /// comme refusés.
+    /// comme refusés. Le parc de l'auteur n'en contient que deux, mais rien ne
+    /// borne ce que d'autres modlists contiennent : Newtonsoft s'est révélé plus
+    /// permissif que nous sur *tous* les axes mesurés.
+    ///
+    /// **Ce qu'un appelant a le droit d'en conclure** : `false` signifie « nous
+    /// ne savons pas lire ce fichier », pas « le jeu le refusera ». Une vue qui
+    /// afficherait un avertissement rouge « ne se chargera pas » sur cette base
+    /// rejouerait exactement le mensonge corrigé le 2026-08-02. Seul `true` est
+    /// une affirmation sûre sur le jeu.
     static func smapiAccepts(_ text: String) -> Bool {
         let result = clean(text)
         guard !result.neededRepair else { return false }
