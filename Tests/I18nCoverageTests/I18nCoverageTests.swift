@@ -736,3 +736,75 @@ struct CoverageDisplayTests {
         #expect(coverage(total: 0, translated: 0).displayPercent == 0)
     }
 }
+
+/// Le diff d'un **mod entier**, dont les composants restent distincts.
+///
+/// Un mod multi-composants a plusieurs dossiers `i18n`, chacun avec son propre
+/// `default.json`. Deux composants peuvent définir la même clé : ce sont deux
+/// lignes à traduire, pas une. Les fusionner en perdrait une — et ferait
+/// collision sur l'identité des rangées.
+struct ModDiffRowsTests {
+    private func fixture(_ files: [String: String]) throws -> URL {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("moddiff-\(UUID().uuidString)", isDirectory: true)
+        for (relative, content) in files {
+            let url = dir.appendingPathComponent(relative)
+            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(),
+                                                    withIntermediateDirectories: true)
+            try Data(content.utf8).write(to: url)
+        }
+        return dir
+    }
+
+    @Test func aSingleComponentCarriesNoComponentLabel() throws {
+        let mod = try fixture([
+            "i18n/default.json": #"{"a": "Hello"}"#,
+            "i18n/fr.json": #"{"a": "Bonjour"}"#,
+        ])
+        defer { try? FileManager.default.removeItem(at: mod) }
+        let rows = TranslationCoverage.diffRows(forModAt: mod, locale: "fr")
+        #expect(rows.count == 1)
+        #expect(rows.first?.component == nil)
+        #expect(rows.first?.french == "Bonjour")
+    }
+
+    @Test func sameKeyInTwoComponentsGivesTwoRows() throws {
+        let mod = try fixture([
+            "A/i18n/default.json": #"{"a": "One"}"#,
+            "A/i18n/fr.json": #"{"a": "Un"}"#,
+            "B/i18n/default.json": #"{"a": "Two"}"#,
+        ])
+        defer { try? FileManager.default.removeItem(at: mod) }
+        let rows = TranslationCoverage.diffRows(forModAt: mod, locale: "fr")
+        #expect(rows.count == 2)
+        // Les identités doivent différer, sinon la liste en perdrait une.
+        #expect(Set(rows.map(\.id)).count == 2)
+        #expect(Set(rows.compactMap(\.component)) == ["A", "B"])
+    }
+
+    @Test func componentsAreNamedByTheirFolder() throws {
+        let mod = try fixture([
+            "[CP] Something/i18n/default.json": #"{"a": "1"}"#,
+            "Other/i18n/default.json": #"{"b": "2"}"#,
+        ])
+        defer { try? FileManager.default.removeItem(at: mod) }
+        let rows = TranslationCoverage.diffRows(forModAt: mod, locale: "fr")
+        #expect(Set(rows.compactMap(\.component)) == ["[CP] Something", "Other"])
+    }
+
+    @Test func rowsAreGroupedByComponentThenSortedByKey() throws {
+        let mod = try fixture([
+            "B/i18n/default.json": #"{"z": "1", "a": "2"}"#,
+            "A/i18n/default.json": #"{"m": "3"}"#,
+        ])
+        defer { try? FileManager.default.removeItem(at: mod) }
+        let rows = TranslationCoverage.diffRows(forModAt: mod, locale: "fr")
+        #expect(rows.map { "\($0.component ?? "")/\($0.key)" } == ["A/m", "B/a", "B/z"])
+    }
+
+    @Test func aModWithoutTranslationsHasNoRows() throws {
+        let mod = try fixture(["manifest.json": "{}"])
+        defer { try? FileManager.default.removeItem(at: mod) }
+        #expect(TranslationCoverage.diffRows(forModAt: mod, locale: "fr").isEmpty)
+    }
+}

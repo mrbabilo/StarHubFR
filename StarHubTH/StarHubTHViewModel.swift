@@ -307,6 +307,25 @@ class StarHubTHViewModel: ObservableObject {
         frenchCoverageByMod[mod.folderName]
     }
 
+    /// Le diff EN/FR d'un mod, clé par clé.
+    ///
+    /// **Hors du fil principal, obligatoirement.** Lire et analyser les fichiers
+    /// d'un mod n'est pas gratuit : `East Scarp NPCs` en compte 11 021 clés
+    /// réparties sur plusieurs composants. Le faire dans un `.task` synchrone
+    /// figerait la fenêtre le temps du chargement — c'est la faute qui avait
+    /// rendu la vue des journaux inutilisable à 2 000 lignes.
+    ///
+    /// Rien n'est mis en cache ici : le diff ne sert qu'à une vue ouverte à la
+    /// demande, là où la couverture alimente une liste entière.
+    func translationDiff(for mod: ModItem) async -> [TranslationCoverage.DiffRow] {
+        let directory = URL(fileURLWithPath: (gameDir as NSString)
+            .appendingPathComponent("Mods"))
+            .appendingPathComponent(mod.physicalFolderName)
+        return await Task.detached(priority: .userInitiated) {
+            TranslationCoverage.diffRows(forModAt: directory, locale: "fr")
+        }.value
+    }
+
     /// Oublie la couverture d'un mod dont les fichiers ont pu changer —
     /// installation, mise à jour, restauration de sauvegarde. Le prochain
     /// passage la recalculera. Sans cet appel, un mod mis à jour garderait

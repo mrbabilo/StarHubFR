@@ -113,13 +113,23 @@ public enum TranslationCoverage {
         public let english: String
         public let french: String
         public let state: State
-        public var id: String { key }
+        /// Le composant d'où vient la clé, quand le mod en a plusieurs — `nil`
+        /// pour un mod à un seul dossier `i18n`, le cas courant.
+        ///
+        /// Deux composants peuvent définir la même clé : ce sont **deux** lignes
+        /// à traduire, avec chacune son anglais. Sans cette distinction, elles
+        /// partageraient la même identité et la liste en perdrait une.
+        public let component: String?
 
-        public init(key: String, english: String, french: String, state: State) {
+        public var id: String { component.map { "\($0)/\(key)" } ?? key }
+
+        public init(key: String, english: String, french: String, state: State,
+                    component: String? = nil) {
             self.key = key
             self.english = english
             self.french = french
             self.state = state
+            self.component = component
         }
     }
 
@@ -197,6 +207,48 @@ public enum TranslationCoverage {
         return Coverage(total: total, translated: translated,
                         missing: missing.sorted(), empty: empty.sorted(),
                         orphan: orphan.sorted(), identicalToSource: identical.sorted())
+    }
+
+    /// Le diff d'un **mod entier**, ses composants restant distincts.
+    ///
+    /// Chaque dossier `i18n` est diffé contre son propre `default.json` — les
+    /// fusionner produirait des rangées qui ne correspondent à aucun fichier, et
+    /// perdrait une clé définie par deux composants. Les rangées sont groupées
+    /// par composant, chacun trié par clé, pour que la vue puisse les séparer
+    /// visuellement sans retrier.
+    ///
+    /// Le composant reste `nil` quand le mod n'a qu'un dossier `i18n`, le cas
+    /// courant : afficher « i18n/ » sur chaque ligne d'un mod simple serait du
+    /// bruit.
+    public static func diffRows(forModAt modDirectory: URL, locale: String,
+                                fileManager: FileManager = .default) -> [DiffRow] {
+        let directories = I18nLocaleResolver.i18nDirectories(inModDirectory: modDirectory,
+                                                             fileManager: fileManager)
+        let isMultiComponent = directories.count > 1
+
+        return directories
+            .map { directory -> (label: String, rows: [DiffRow]) in
+                let label = componentLabel(of: directory, under: modDirectory)
+                guard let source = entries(of: "default", in: directory, fileManager: fileManager)
+                else { return (label, []) }
+                let target = entries(of: locale, in: directory, fileManager: fileManager) ?? [:]
+                let rows = diffRows(source: source, target: target).map {
+                    DiffRow(key: $0.key, english: $0.english, french: $0.french,
+                            state: $0.state, component: isMultiComponent ? label : nil)
+                }
+                return (label, rows)
+            }
+            .sorted { $0.label < $1.label }
+            .flatMap(\.rows)
+    }
+
+    /// Le nom du composant : le dossier qui contient le `i18n`, relatif au mod.
+    /// Pour `Mod/[CP] X/i18n` c'est `[CP] X` ; pour `Mod/i18n`, le nom du mod.
+    private static func componentLabel(of i18nDirectory: URL, under modDirectory: URL) -> String {
+        let parent = i18nDirectory.deletingLastPathComponent()
+        return parent.path == modDirectory.path
+            ? modDirectory.lastPathComponent
+            : parent.lastPathComponent
     }
 
     /// Les entrées d'une locale dans un dossier `i18n`, fichiers fusionnés.
