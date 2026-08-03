@@ -197,6 +197,18 @@ def create_app_bundle():
         print("[ERROR] Codesign failed.")
         sys.exit(1)
 
+    # 6. Ratchet on the Swift conventions. Runs after a successful compile so a
+    # genuine compile error is never buried under convention noise. It only
+    # fails on an *increase* against the committed baseline — see
+    # check_standards.py for why it's a ratchet and not a gate.
+    if "--skip-standards" not in sys.argv and os.path.exists("check_standards.py"):
+        print("[INFO] Checking Swift conventions (ratchet)...")
+        standards = subprocess.run([sys.executable, "check_standards.py"], check=False)
+        if standards.returncode != 0:
+            print("[ERROR] Build stopped: new convention violations. "
+                  "Rerun with --skip-standards to build anyway.")
+            sys.exit(1)
+
     print(f"[SUCCESS] Successfully built {APP_DIR}")
     print("[INFO] Run 'open StarHubFR.app' to launch the application.")
 

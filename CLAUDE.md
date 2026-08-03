@@ -36,6 +36,13 @@ Le build est **scindé en deux systèmes** ; vérifier lequel couvre le fichier 
 - **`compile_commands.json`** (racine, généré, gitignoré) alimente SourceKit-LSP
   pour l'autocomplétion sur *tous* les fichiers. Régénéré à chaque build ;
   rafraîchir seul avec `python3 build_app.py --gen-compile-commands`.
+- **`check_standards.py`** — cliquet sur les conventions Swift, lancé par
+  `build_app.py` après une compilation réussie. Il n'échoue que si un compteur
+  **augmente** par rapport à `.standards-baseline.json` : le code viole
+  massivement ces règles aujourd'hui, une barrière serait rouge dès le premier
+  jour. Faire baisser un compteur puis `--update` pour resserrer ; `--report`
+  pour voir l'état. Un ajout délibéré demande un `--update` explicite, visible
+  dans le diff. `--skip-standards` débloque un build ponctuel.
 
 **Ne jamais lancer l'app ni prendre de capture depuis un agent/sous-agent.** La
 vérification GUI est déléguée à l'humain ; les agents valident par succès de build.
