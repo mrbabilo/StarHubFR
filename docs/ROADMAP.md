@@ -340,12 +340,12 @@ sans risque d'écriture destructive.
       - ⚠️ **Le cache ne contient qu'un entier.** `frenchCoverageByMod` stocke
         `displayPercent` ; afficher « 142 clés sur 197 » suppose d'y ranger la
         `Coverage` complète. Limite introduite en C1-T2, à lever ici.
-- [ ] **C1-T7** — Carte « mods partiellement traduits » : la liste vraiment utile.
-      Sur le parc, 392 mods sont complets et **31 partiels** — ces 31 sont
-      aujourd'hui noyés parmi les autres. Transposé du tableau de bord de
-      `stardew-i18n-translator` (cf. [`audit-nana-ux.md`](audit-nana-ux.md) §3), sans
-      reprendre le reste : leur page d'accueil ne sert qu'à la traduction, la nôtre
-      a d'autres devoirs. · **S**
+- [x] **C1-T7** — Isoler les mods **partiellement traduits** : sur le parc, 392 sont
+      complets et **31 ne le sont qu'en partie**. **Livré** (`6755f22`) en quatrième
+      cadrage du filtre de traduction, et non en carte d'accueil comme envisagé
+      d'après `stardew-i18n-translator` — leur page d'accueil ne sert qu'à la
+      traduction, la nôtre a d'autres devoirs, et c'est dans la liste que le travail
+      se fait. · **S**
 - [x] **C1-T4** — ~~Test structurel « mod de traduction pure »~~ → **requalifié et livré
       autrement** (`46ce633`), après mesure sur le parc.
       - Le symptôme visé — un pack de traduction vers une autre langue affiché à
