@@ -476,3 +476,131 @@ struct I18nLocaleResolverTests {
     }
 }
 
+
+/// Quelles langues un **mod** fournit — tous ses dossiers `i18n` confondus.
+///
+/// Distinct de la couverture : pour la détection on **unit** les locales (un mod
+/// est traduit en français dès qu'un de ses composants l'est) ; pour la
+/// couverture chaque dossier `i18n` reste une unité séparée, avec son propre
+/// `default.json` au dénominateur.
+struct ModLanguageDetectionTests {
+    private struct ModFixture {
+        let directory: URL
+        init(files: [String]) throws {
+            directory = FileManager.default.temporaryDirectory
+                .appendingPathComponent("mod-\(UUID().uuidString)", isDirectory: true)
+            for relative in files {
+                let url = directory.appendingPathComponent(relative)
+                try FileManager.default.createDirectory(at: url.deletingLastPathComponent(),
+                                                        withIntermediateDirectories: true)
+                try Data("{}".utf8).write(to: url)
+            }
+        }
+        func cleanup() { try? FileManager.default.removeItem(at: directory) }
+    }
+
+    @Test func aPlainModAtTheTopLevel() throws {
+        let mod = try ModFixture(files: ["i18n/default.json", "i18n/fr.json"])
+        defer { mod.cleanup() }
+        #expect(I18nLocaleResolver.languageCodes(inModDirectory: mod.directory) == ["en", "fr"])
+    }
+
+    @Test func aContentPackNestsItsI18nOneLevelDown() throws {
+        // Forme dominante du parc : 121 dossiers `i18n` sont à deux niveaux.
+        // Ne regarder que `<mod>/i18n` rendait invisible le français de 81 mods.
+        let mod = try ModFixture(files: [
+            "[CP] Something/i18n/default.json", "[CP] Something/i18n/fr.json",
+        ])
+        defer { mod.cleanup() }
+        #expect(I18nLocaleResolver.languageCodes(inModDirectory: mod.directory) == ["en", "fr"])
+    }
+
+    @Test func severalComponentsUnionTheirLanguages() throws {
+        let mod = try ModFixture(files: [
+            "A/i18n/default.json", "A/i18n/fr.json",
+            "B/i18n/default.json", "B/i18n/es.json",
+        ])
+        defer { mod.cleanup() }
+        #expect(I18nLocaleResolver.languageCodes(inModDirectory: mod.directory) == ["en", "es", "fr"])
+    }
+
+    @Test func aLayoutBComponentIsSeenToo() throws {
+        let mod = try ModFixture(files: ["i18n/Default/strings.json", "i18n/Fr/strings.json"])
+        defer { mod.cleanup() }
+        #expect(I18nLocaleResolver.languageCodes(inModDirectory: mod.directory) == ["en", "fr"])
+    }
+
+    @Test func deeplyNestedI18nIsStillFound() throws {
+        // Un mod du parc range son `i18n` à quatre niveaux. Une limite à deux
+        // le perdrait — même faute que de ne lire que `<mod>/i18n`.
+        let mod = try ModFixture(files: ["a/b/c/i18n/default.json", "a/b/c/i18n/fr.json"])
+        defer { mod.cleanup() }
+        #expect(I18nLocaleResolver.languageCodes(inModDirectory: mod.directory) == ["en", "fr"])
+    }
+
+    @Test func strayJsonFilesAreNotLanguages() throws {
+        // Un `content.json` ou un `manifest.json` dans un `i18n/` ne fait pas
+        // une langue : seuls les codes que SMAPI connaît comptent.
+        let mod = try ModFixture(files: [
+            "i18n/default.json", "i18n/fr.json", "i18n/content.json", "i18n/notes.json",
+        ])
+        defer { mod.cleanup() }
+        #expect(I18nLocaleResolver.languageCodes(inModDirectory: mod.directory) == ["en", "fr"])
+    }
+
+    @Test func aModWithoutI18nHasNoLanguages() throws {
+        let mod = try ModFixture(files: ["manifest.json"])
+        defer { mod.cleanup() }
+        #expect(I18nLocaleResolver.languageCodes(inModDirectory: mod.directory).isEmpty)
+    }
+
+    @Test func i18nDirectoriesAreListedSeparatelyForCoverage() throws {
+        // La couverture ne peut pas fusionner : chaque dossier a son propre
+        // `default.json` au dénominateur.
+        let mod = try ModFixture(files: ["A/i18n/default.json", "B/i18n/default.json"])
+        defer { mod.cleanup() }
+        let dirs = I18nLocaleResolver.i18nDirectories(inModDirectory: mod.directory)
+        #expect(dirs.count == 2)
+    }
+}
+
+/// Les variantes régionales et les langues que notre liste ignorait.
+struct ModLanguageVariantTests {
+    private func fixture(_ files: [String]) throws -> URL {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("variant-\(UUID().uuidString)", isDirectory: true)
+        for relative in files {
+            let url = dir.appendingPathComponent(relative)
+            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(),
+                                                    withIntermediateDirectories: true)
+            try Data("{}".utf8).write(to: url)
+        }
+        return dir
+    }
+
+    @Test func aRegionalVariantCountsAsItsBaseLanguage() throws {
+        // `Translator.GetRelevantLocales` remonte `pt-BR` → `pt` → `default` :
+        // une variante régionale est bien servie à qui demande la langue de
+        // base. 19 `pt-br.json` dans le parc.
+        let mod = try fixture(["i18n/default.json", "i18n/pt-BR.json"])
+        defer { try? FileManager.default.removeItem(at: mod) }
+        #expect(I18nLocaleResolver.languageCodes(inModDirectory: mod) == ["en", "pt"])
+    }
+
+    @Test func vietnameseIsALanguageToo() throws {
+        // 27 fichiers `vi.json` dans le parc, qui ne comptaient pour rien.
+        let mod = try fixture(["i18n/default.json", "i18n/vi.json"])
+        defer { try? FileManager.default.removeItem(at: mod) }
+        #expect(I18nLocaleResolver.languageCodes(inModDirectory: mod).contains("vi"))
+    }
+
+    @Test func aLocaleTheGameNeverAsksForIsNotALanguage() throws {
+        // Un dossier `French/` produirait la locale « french », qui n'est dans
+        // la chaîne de repli d'aucune locale du jeu : SMAPI ne la servira
+        // jamais. La compter afficherait une traduction fantôme — précisément
+        // le mensonge que ce hub ne peut pas se permettre.
+        let mod = try fixture(["i18n/default.json", "i18n/French/strings.json"])
+        defer { try? FileManager.default.removeItem(at: mod) }
+        #expect(!I18nLocaleResolver.languageCodes(inModDirectory: mod).contains("fr"))
+    }
+}
