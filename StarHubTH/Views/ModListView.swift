@@ -1608,7 +1608,10 @@ private struct FrenchCoverageBadge: View {
 
     var body: some View {
         Text(percent.map { String(format: percentFormat, $0) } ?? unmeasuredLabel)
-            .font(.system(size: 10, weight: .semibold))
+            // Chiffres à chasse fixe : dans une liste, « 8 % » et « 72 % »
+            // doivent s'aligner verticalement pour se comparer d'un coup d'œil,
+            // sinon chaque pastille danse d'une ligne à l'autre.
+            .font(.system(size: 10, weight: .semibold).monospacedDigit())
             .foregroundColor(tint)
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
