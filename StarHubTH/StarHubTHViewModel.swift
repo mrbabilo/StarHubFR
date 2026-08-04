@@ -326,6 +326,29 @@ class StarHubTHViewModel: ObservableObject {
         }.value
     }
 
+    /// Une traduction française de ce mod retrouvée dans une sauvegarde.
+    ///
+    /// Une mise à jour remplace le dossier du mod, et les auteurs ne
+    /// redistribuent pas toujours les traductions communautaires : le `fr.json`
+    /// disparaît sans que rien ne le signale. Sur le parc de l'auteur, **43 des
+    /// 86 mods traduisibles sans français** ont pourtant une traduction dans une
+    /// sauvegarde — la moitié.
+    ///
+    /// Phase 1 se limite à le dire. La récupération relève de B4-T4.
+    func backupTranslation(for mod: ModItem) async -> TranslationBackupFinder.Found? {
+        let base = FileManager.default
+            .urls(for: .applicationSupportDirectory, in: .userDomainMask).first?
+            .appendingPathComponent("StarHubTH/Backups", isDirectory: true)
+        guard let base else { return nil }
+        let roots = ["ModInstalls/backups", "ModConfigs/backups"]
+            .map { base.appendingPathComponent($0, isDirectory: true) }
+        let folderName = mod.folderName
+        return await Task.detached(priority: .utility) {
+            TranslationBackupFinder.mostRecentFrenchFile(forModFolder: folderName,
+                                                         inBackupRoots: roots)
+        }.value
+    }
+
     /// Oublie la couverture d'un mod dont les fichiers ont pu changer —
     /// installation, mise à jour, restauration de sauvegarde. Le prochain
     /// passage la recalculera. Sans cet appel, un mod mis à jour garderait

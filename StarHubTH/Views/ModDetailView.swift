@@ -33,6 +33,10 @@ struct ModDetailView: View {
     @State private var localIsOn: Bool? = nil
     @State private var showDeleteConfirm = false
 
+    /// Une traduction française retrouvée dans une sauvegarde, pour un mod qui
+    /// n'en a plus. Cherché à l'ouverture de la fiche, hors du fil principal.
+    @State private var backupTranslation: TranslationBackupFinder.Found?
+
     enum FetchStatus: Equatable {
         case idle
         case loading
@@ -55,6 +59,12 @@ struct ModDetailView: View {
             }
         }
         .onAppear { seedDraft() }
+        .task {
+            // Seulement quand il y a quelque chose à retrouver : un mod déjà
+            // traduit n'a pas besoin qu'on fouille les sauvegardes.
+            guard !mod.languages.contains("fr") else { return }
+            backupTranslation = await vm.backupTranslation(for: mod)
+        }
     }
 
     /// The Description / Changelog / Dependencies switcher, pinned under the
@@ -573,12 +583,22 @@ struct ModDetailView: View {
     /// mesurer, et une section vide serait du bruit.
     @ViewBuilder
     private var translationSection: some View {
-        if mod.languages.contains("fr") {
+        // La section s'affiche aussi pour un mod **sans** français dès qu'une
+        // sauvegarde en contient un : c'est précisément le cas où l'utilisateur
+        // a quelque chose à apprendre.
+        if mod.languages.contains("fr") || backupTranslation != nil {
             VStack(alignment: .leading, spacing: 8) {
                 Text(vm.L(L10n.Mods.translationSection))
                     .font(.system(size: 13, weight: .semibold))
 
-                if let coverage = vm.frenchCoverageDetail(for: mod) {
+                if let backup = backupTranslation {
+                    translationNote(String(format: vm.L(L10n.Mods.translationInBackup),
+                                           backup.modifiedAt.formatted(date: .abbreviated,
+                                                                       time: .omitted)),
+                                    icon: "clock.arrow.circlepath", color: .orange)
+                }
+
+                if mod.languages.contains("fr"), let coverage = vm.frenchCoverageDetail(for: mod) {
                     TranslationProgressBar(percent: coverage.displayPercent)
                     Text(String(format: vm.L(L10n.Mods.translationCounts),
                                 coverage.translated, coverage.total))
@@ -617,7 +637,7 @@ struct ModDetailView: View {
                                                coverage.orphan.count),
                                         icon: "questionmark.circle", color: .secondary)
                     }
-                } else {
+                } else if mod.languages.contains("fr") {
                     // Le calcul se fait en tâche de fond : le dire plutôt que
                     // de laisser un blanc qu'on prendrait pour une erreur.
                     Text(vm.L(L10n.Mods.translationPending))

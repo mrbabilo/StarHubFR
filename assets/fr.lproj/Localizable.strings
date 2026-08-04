@@ -762,3 +762,4 @@
 "mods_diff_none" = "Ce mod ne livre aucun fichier de traduction.";
 "mods_diff_loading" = "Lecture des fichiers de traduction…";
 "mods_diff_empty_value" = "(vide — rien ne s'affiche en jeu)";
+"mods_translation_in_backup" = "Une traduction française de ce mod existe dans une sauvegarde du %@ — le dossier du mod n'en a plus. Une mise à jour l'a probablement remplacée.";
