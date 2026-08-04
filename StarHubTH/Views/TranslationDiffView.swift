@@ -36,6 +36,13 @@ struct TranslationDiffView: View {
             } else {
                 filterBar
                 Divider()
+                // En-tête **hors** de la zone défilante : sans lui, rien ne
+                // disait laquelle des deux colonnes portait l'anglais et
+                // laquelle le français. L'épingler dans la `ScrollView` aurait
+                // concurrencé l'épinglage des en-têtes de composant ; au-dessus,
+                // il reste visible sans rien disputer.
+                columnHeader
+                Divider()
                 table
             }
         }
@@ -158,6 +165,24 @@ struct TranslationDiffView: View {
         }
     }
 
+    /// Le nom des colonnes. Reprend les métriques partagées, sans quoi
+    /// l'en-tête et les lignes dériveraient l'un de l'autre au premier
+    /// ajustement.
+    private var columnHeader: some View {
+        HStack(alignment: .firstTextBaseline, spacing: DiffMetrics.spacing) {
+            Color.clear.frame(width: DiffMetrics.glyphWidth, height: 1)
+            Text(vm.L(L10n.Mods.diffColKey))
+                .frame(width: DiffMetrics.keyWidth, alignment: .leading)
+            Text(vm.L(L10n.Mods.diffColEnglish))
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Text(vm.L(L10n.Mods.diffColFrench))
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .font(.system(size: 10, weight: .semibold))
+        .foregroundColor(.secondary)
+        .padding(.vertical, 5)
+    }
+
     private func componentHeader(_ name: String) -> some View {
         Text(name)
             .font(.system(size: 10, weight: .semibold))
@@ -233,6 +258,15 @@ struct TranslationDiffView: View {
     }
 }
 
+/// Les largeurs de colonne, partagées par l'en-tête et les lignes. Deux jeux de
+/// nombres séparés auraient dérivé au premier ajustement, et l'en-tête aurait
+/// alors désigné la mauvaise colonne — pire que pas d'en-tête du tout.
+private enum DiffMetrics {
+    static let spacing: CGFloat = 10
+    static let glyphWidth: CGFloat = 14
+    static let keyWidth: CGFloat = 150
+}
+
 /// Une ligne du diff : la clé, l'anglais, le français, et l'état marqué à la
 /// fois par un glyphe et par la teinte.
 private struct DiffRowView: View {
@@ -240,15 +274,15 @@ private struct DiffRowView: View {
     let emptyPlaceholder: String
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .top, spacing: DiffMetrics.spacing) {
             Image(systemName: glyph)
                 .font(.system(size: 10))
                 .foregroundColor(tint)
-                .frame(width: 14)
+                .frame(width: DiffMetrics.glyphWidth)
             Text(row.key)
                 .font(.system(size: 10, design: .monospaced))
                 .foregroundColor(.secondary)
-                .frame(width: 150, alignment: .leading)
+                .frame(width: DiffMetrics.keyWidth, alignment: .leading)
                 .textSelection(.enabled)
             Text(row.english)
                 .font(.system(size: 11))
