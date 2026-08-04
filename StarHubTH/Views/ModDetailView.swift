@@ -64,6 +64,12 @@ struct ModDetailView: View {
             Text(vm.L(L10n.Mods.detailDescription)).tag(0)
             Text(vm.L(L10n.Mods.detailChangelog)).tag(1)
             Text(vm.L(L10n.Profiles.dependencies)).tag(2)
+            // Quatrième onglet plutôt qu'une feuille : la barre est déjà
+            // épinglée sous la bannière, et le diff est une lecture du mod
+            // comme les autres — pas une action modale.
+            if mod.languages.contains("fr") {
+                Text(vm.L(L10n.Mods.diffTab)).tag(3)
+            }
         }
         .pickerStyle(.segmented)
         .labelsHidden()
@@ -701,6 +707,8 @@ struct ModDetailView: View {
     @ViewBuilder
     private var content: some View {
         switch selectedTab {
+        case 3:
+            TranslationDiffView(vm: vm, mod: mod)
         case 2:
             dependenciesSection
         case 1:
