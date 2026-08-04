@@ -110,7 +110,7 @@ struct SaveTimelineView: View {
                         vm.restoreBackup(backup: b, info: save)
                     }
                 },
-                secondaryButton: .cancel(Text(vm.L(L10n.Main.ok)))
+                secondaryButton: .cancel(Text(vm.L(L10n.Saves.cancel)))
             )
         }
         .sheet(item: $vm.backupToBranch) { backup in

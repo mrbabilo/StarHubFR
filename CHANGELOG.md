@@ -23,6 +23,9 @@ where the exact log format was verified.
 - **Mod translation files are read the way their authors write them.** Comments, trailing commas, unquoted keys, raw line breaks, CRLF endings — a strict JSON reader refuses 912 of the 2357 files in a real modlist. Checked against the game's own JSON library, file by file: what it loads, we now read.
 
 ### Fixed
+- **A failed quarantine action no longer looks like a success.** Emptying the trash could fail, but the error was shown with a green checkmark; a failure now shows in red with an error icon.
+- **A mod's update link is now clickable, and its dead info button is gone.** The "visit website" URL rendered as raw Markdown text instead of a link; the info button next to it did nothing, so it was removed.
+- **The cancel button on the restore confirmation now says Cancel, not OK.**
 - **The Thai translation hub now matches a mod the same way when checking and when installing.** The two steps stripped the `[CP]` prefix differently, so a content pack whose name had no space after `[CP]` could be detected but installed under the wrong zip name.
 - **A logged mod name now resolves to the right mod, not just the first whose name contains it.** An exact match is tried first, and among partial matches the most specific (shortest) name wins — so "Farm" no longer resolves to "FarmExpansion".
 - **Installing a Thai translation no longer uses a blind `unzip`.** It now extracts through the same archive handler as mod installs, so a translation shipped as `.7z` or `.rar` installs instead of silently failing.

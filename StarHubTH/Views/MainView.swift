@@ -601,25 +601,26 @@ struct UpdatesView: View {
                                     }
                                     .buttonStyle(PlainButtonStyle())
                                     .pointingHandCursor()
-                                    
-                                    Button(action: {}) {
-                                        Image(systemName: "info.circle")
-                                            .foregroundColor(.secondary)
-                                            .font(.system(size: 16))
-                                    }
-                                    .buttonStyle(PlainButtonStyle())
                                 }
                             }
-                            
+
                             VStack(alignment: .leading, spacing: 16) {
                                 Text(vm.L(L10n.Updates.updateDescription))
                                     .font(.system(size: 13))
                                     .foregroundColor(.secondary)
-                                
-                                Text("\(vm.L(L10n.Updates.visitWebsite)) [\(mod.url)](\(mod.url))")
-                                    .font(.system(size: 13))
-                                    .foregroundColor(.secondary)
-                                    .tint(.blue)
+
+                                HStack(spacing: 4) {
+                                    Text(vm.L(L10n.Updates.visitWebsite))
+                                        .font(.system(size: 13))
+                                        .foregroundColor(.secondary)
+                                    // Vrai lien cliquable plutôt qu'un Markdown
+                                    // `[url](url)` interpolé que Text rendait en brut.
+                                    if let url = URL(string: mod.url) {
+                                        Link(url.absoluteString, destination: url)
+                                            .font(.system(size: 13))
+                                    }
+                                }
+                                .tint(.blue)
                             }
                             .padding(.top, 8)
                         }
@@ -1027,11 +1028,11 @@ struct QuarantineView: View {
                 }
 
                 if let result = vm.quarantineActionMessage {
-                    Label(result, systemImage: "checkmark.circle.fill")
+                    Label(result.text, systemImage: result.isError ? "xmark.octagon.fill" : "checkmark.circle.fill")
                         .font(.system(size: 13))
-                        .foregroundColor(.green)
+                        .foregroundColor(result.isError ? .red : .green)
                         .padding(12)
-                        .background(Color.green.opacity(0.08))
+                        .background((result.isError ? Color.red : Color.green).opacity(0.08))
                         .cornerRadius(8)
                 }
 
@@ -1107,16 +1108,16 @@ struct QuarantineView: View {
             .map { gameDirURL.appendingPathComponent($0) }
 
         guard !trashURLs.isEmpty else {
-            vm.quarantineActionMessage = vm.L(L10n.Quarantine.noQuarantine)
+            vm.quarantineActionMessage = .init(text: vm.L(L10n.Quarantine.noQuarantine), isError: false)
             return
         }
 
         NSWorkspace.shared.recycle(trashURLs, completionHandler: { _, error in
             DispatchQueue.main.async {
                 if let error = error {
-                    vm.quarantineActionMessage = error.localizedDescription
+                    vm.quarantineActionMessage = .init(text: error.localizedDescription, isError: true)
                 } else {
-                    vm.quarantineActionMessage = vm.L(L10n.Quarantine.emptied)
+                    vm.quarantineActionMessage = .init(text: vm.L(L10n.Quarantine.emptied), isError: false)
                     vm.lastRepairReport = nil
                 }
             }

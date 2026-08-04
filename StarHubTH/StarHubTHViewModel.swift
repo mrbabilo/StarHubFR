@@ -419,7 +419,14 @@ class StarHubTHViewModel: ObservableObject {
     /// Trash" action. Published (not @State on the view) because the recycle
     /// completion fires asynchronously after the view struct may have been
     /// recreated — capturing the VM reference keeps the update observable.
-    @Published var quarantineActionMessage: String? = nil
+    /// Résultat d'une action de quarantaine : le texte affiché, et s'il
+    /// s'agit d'une erreur (rendue en rouge, pas en vert de succès).
+    struct QuarantineMessage: Equatable {
+        let text: String
+        let isError: Bool
+    }
+
+    @Published var quarantineActionMessage: QuarantineMessage? = nil
 
     /// Tracks the set of SMAPI errors already journaled, so only genuinely
     /// new alerts are logged on each re-parse (prevents re-logging the full
