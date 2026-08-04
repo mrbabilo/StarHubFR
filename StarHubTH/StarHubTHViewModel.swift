@@ -817,9 +817,11 @@ class StarHubTHViewModel: ObservableObject {
             DispatchQueue.main.async { [weak self] in
                 self?.launchStep = self?.L(L10n.Main.launchStepProfile) ?? ""
                 self?.launchProgress = 0.80
+                // loadProfiles() mutates @Published (modProfiles/activeProfileId):
+                // call it here, on main, rather than on the background queue below.
+                self?.loadProfiles()
             }
             self.fetchSteamUser()
-            self.loadProfiles()
             if self.steamUsername.isEmpty {
                 DispatchQueue.main.async { [weak self] in
                     self?.steamUsername = self?.L(L10n.VM.defaultFarmerName) ?? "Farmer"
@@ -3412,13 +3414,18 @@ class StarHubTHViewModel: ObservableObject {
     
     // MARK: - Mod Profiles
     func loadProfiles() {
+        // Must be called on the main actor: `modProfiles` and `activeProfileId`
+        // are `@Published`, and mutating them off-main triggers a SwiftUI
+        // runtime warning ("Publishing changes from background threads").
+        // `performInitialLoad` honours this by calling us from its `main.async`
+        // block (we're the only caller).
         if let data = UserDefaults.standard.data(forKey: UDKey.modProfiles),
            let profiles = try? JSONDecoder().decode([ModProfile].self, from: data) {
             self.modProfiles = profiles
         } else {
             self.modProfiles = []
         }
-        
+
         if let activeIdStr = UserDefaults.standard.string(forKey: UDKey.activeProfileId),
            let activeId = UUID(uuidString: activeIdStr) {
             self.activeProfileId = activeId
