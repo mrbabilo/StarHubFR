@@ -79,10 +79,13 @@ class ModZipInstaller {
     /// Validates an archive file against size, format, and structure requirements.
     /// Supports `.zip`, `.rar` and `.7z`.
     func validateZip(at url: URL) -> ValidationStatus {
-        let ext = url.pathExtension.lowercased()
-        guard Self.supportedExtensions.contains(ext) else {
-            return .unsupportedFormat(ext)
-        }
+        // Le format se lit dans la signature du fichier, pas dans son
+        // extension : un `.zip` qui est en réalité un `.7z` (ou l'inverse)
+        // est courant — l'URL d'un téléchargement gratuit Nexus ne porte pas
+        // toujours d'extension exploitable, et un fichier renommé garde sa
+        // vraie nature. L'extension déclarée ne sert plus qu'à distinguer
+        // « format que l'app ne gère pas » de « fichier illisible ».
+        let declared = url.pathExtension.lowercased()
 
         var attributes: [FileAttributeKey: Any]?
         do {
@@ -99,37 +102,27 @@ class ModZipInstaller {
             return .oversized
         }
 
-        // Verify the file signature matches the declared extension.
         guard let handle = FileHandle(forReadingAtPath: url.path) else {
             return .corrupted
         }
-        let data = handle.readData(ofLength: 8)
+        let bytes = [UInt8](handle.readData(ofLength: 8))
         handle.closeFile()
 
-        let bytes = [UInt8](data)
-        if ext == "zip" {
-            // ZIP signature: PK\x03\x04
-            let sig: [UInt8] = [0x50, 0x4B, 0x03, 0x04]
-            guard bytes.count >= 4,
-                  bytes[0] == sig[0], bytes[1] == sig[1],
-                  bytes[2] == sig[2], bytes[3] == sig[3] else {
-                return .corrupted
-            }
-        } else if ext == "rar" {
-            // RAR signature: "Rar!\x1a\x07" (common to RAR4 and RAR5).
-            let sig: [UInt8] = [0x52, 0x61, 0x72, 0x21, 0x1A, 0x07]
-            guard bytes.count >= 6, Array(bytes.prefix(6)) == sig else {
-                return .corrupted
-            }
-        } else {
-            // 7z signature: "7z\xbc\xaf\x27\x1c".
-            let sig: [UInt8] = [0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C]
-            guard bytes.count >= 6, Array(bytes.prefix(6)) == sig else {
-                return .corrupted
-            }
+        // Signature reconnue → l'archive est valide, dans son vrai format
+        // (zip, rar ou 7z). `extractArchive` relit cette même signature pour
+        // aiguiller l'outil d'extraction : partager `archiveExtension(forSignature:)`
+        // plutôt qu'un contrôle par extension évite que les deux ne divergent.
+        if Self.archiveExtension(forSignature: bytes) != nil {
+            return .valid
         }
 
-        return .valid
+        // Aucune signature connue. Si l'extension est gérée, le contenu ne
+        // correspond pas à son nom → corrompu. Sinon, l'app ne sait pas lire
+        // ce format et le dit, plutôt que d'inventer une corruption.
+        if Self.supportedExtensions.contains(declared) {
+            return .corrupted
+        }
+        return .unsupportedFormat(declared)
     }
 
     /// Reads the total uncompressed size an archive would expand to, via
@@ -458,7 +451,11 @@ class ModZipInstaller {
     ///   (not bundled — checked at runtime). Throws `rarToolMissing` if none
     ///   is found.
     static func extractArchive(zipUrl: URL, to destDir: URL) throws {
-        let ext = zipUrl.pathExtension.lowercased()
+        // Le format vient de la signature, comme dans `validateZip` et le
+        // téléchargement Nexus : un `.zip` mal nommé en `.7z` doit partir vers
+        // le bon outil d'extraction. L'extension n'est qu'un repli, atteint
+        // seulement si `validateZip` a été contournée.
+        let ext = Self.detectedArchiveExtension(at: zipUrl) ?? zipUrl.pathExtension.lowercased()
 
         if ext == "zip" {
             let process = Process()

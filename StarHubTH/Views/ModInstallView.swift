@@ -260,9 +260,13 @@ struct ModInstallView: View {
                 return
             }
 
-            guard ModZipInstaller.supportedExtensions.contains(url.pathExtension.lowercased()) else {
-                // Un fichier déposé dont l'extension n'est pas gérée n'est ni
-                // corrompu ni mal structuré : le dire pour ce que c'est.
+            // Le format se juge sur la signature, pas sur l'extension : un
+            // dépôt sans extension exploitable mais à la signature reconnue
+            // reste une archive installable. L'extension ne sert qu'au message
+            // quand rien ne colle.
+            let declared = url.pathExtension.lowercased()
+            let recognised = ModZipInstaller.detectedArchiveExtension(at: url) != nil
+            guard recognised || ModZipInstaller.supportedExtensions.contains(declared) else {
                 fail(String(format: vm.L(L10n.ModInstall.unsupportedFormat), url.pathExtension),
                      .unsupportedFormat(url.pathExtension))
                 return

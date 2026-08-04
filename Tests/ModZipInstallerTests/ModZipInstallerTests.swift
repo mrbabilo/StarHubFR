@@ -554,6 +554,19 @@ struct InstallerTestEnv {
         }
     }
 
+    @Test func aMislabeledArchiveIsAcceptedByItsSignature() throws {
+        // Un fichier nommé `.zip` mais dont le contenu est un vrai `.7z` :
+        // l'extension ment, la signature non. Le chemin Nexus le gérait déjà
+        // (renommage du temporaire d'après les octets) ; le drag-drop passait
+        // l'URL brute à `validateZip`, qui déclarait le format d'après
+        // l'extension et rejetait l'archive saine comme « corrompue ».
+        let url = try makeArchive(named: "mymod.zip", signature: [0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C])
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        guard case .valid = ModZipInstaller().validateZip(at: url) else {
+            Issue.record("une archive saine mais mal nommée doit être lue par sa signature"); return
+        }
+    }
+
     @Test func sevenZipExtractionToolNeverUsesUnrar() {
         // unrar ne lit pas le 7z : le proposer produirait un échec obscur.
         if let tool = ModZipInstaller.find7zTool() {
