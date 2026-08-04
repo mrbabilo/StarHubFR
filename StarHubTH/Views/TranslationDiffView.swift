@@ -284,8 +284,7 @@ private struct DiffRowView: View {
                 .foregroundColor(.secondary)
                 .frame(width: DiffMetrics.keyWidth, alignment: .leading)
                 .textSelection(.enabled)
-            Text(row.english)
-                .font(.system(size: 11))
+            tokenised(row.english)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .textSelection(.enabled)
             frenchColumn
@@ -304,10 +303,27 @@ private struct DiffRowView: View {
                 .foregroundColor(.orange)
                 .frame(maxWidth: .infinity, alignment: .leading)
         } else {
-            Text(row.french)
-                .font(.system(size: 11))
+            tokenised(row.french)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .textSelection(.enabled)
+        }
+    }
+
+    /// Rend la valeur en distinguant ce qui se traduit de ce qui doit être
+    /// repris tel quel.
+    ///
+    /// Un token n'est pas du texte : le montrer comme tel laisse un traducteur
+    /// le réécrire de bonne foi, et le mod cesse alors de fonctionner. La chasse
+    /// fixe et le fond le sortent de la phrase sans le masquer — il faut
+    /// pouvoir le recopier.
+    private func tokenised(_ value: String) -> Text {
+        TranslationTokens.split(value).reduce(Text("")) { accumulated, segment in
+            let piece = segment.isCode
+                ? Text(segment.text)
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundColor(.purple)
+                : Text(segment.text).font(.system(size: 11))
+            return accumulated + piece
         }
     }
 

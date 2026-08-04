@@ -43,6 +43,7 @@ let package = Package(
                 "Models/SmapiLogParser.swift",
                 "Models/DroppedContentRecognizer.swift",
                 "Models/TranslationBackupFinder.swift",
+                "Models/TranslationTokens.swift",
                 "Models/I18nLenientParser.swift",
                 "Models/I18nLocaleResolver.swift",
                 "Models/TranslationCoverage.swift",
@@ -74,6 +75,11 @@ let package = Package(
             name: "ModZipInstallerTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ModZipInstallerTests"
+        ),
+        .testTarget(
+            name: "TranslationTokenTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/TranslationTokenTests"
         ),
         .testTarget(
             name: "TranslationBackupTests",
