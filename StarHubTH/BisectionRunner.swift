@@ -181,8 +181,13 @@ final class BisectionRunner: ObservableObject {
         stopWatchingLog()
         // Le journal a été réécrit par la partie qui vient de finir : le relire
         // maintenant, sinon on jugerait sur la session précédente.
+        // Gèle les dossiers de cet essai *maintenant* : apply() ci-dessous
+        // (essai suivant, ou restauration de conclusion) met `currentFolders` à
+        // jour de façon synchrone, avant que cette completion async ne tire —
+        // l'evidence serait sinon collée à l'essai d'après.
+        let played = Set(currentFolders)
         vm.loadSmapiLog { [weak self] in
-            self?.recordLogEvidence(stillBroken: outcome == .stillBroken)
+            self?.recordLogEvidence(stillBroken: outcome == .stillBroken, enabled: played)
         }
         s.record(outcome)
         session = s
@@ -213,7 +218,7 @@ final class BisectionRunner: ObservableObject {
 
     /// Relève ce que le journal impute à cette étape, et recalcule les mods
     /// systématiquement présents dans les échecs et absents des réussites.
-    private func recordLogEvidence(stillBroken: Bool) {
+    private func recordLogEvidence(stillBroken: Bool, enabled: Set<String>) {
         // Toutes les lignes WARN **et** ERROR attribuées à un mod, avec un
         // extrait : `topErrorMods` ne compte que les ERROR, et seulement les
         // cinq premiers mods.
@@ -234,7 +239,7 @@ final class BisectionRunner: ObservableObject {
             blamed[issue.name] = issue.reason
         }
 
-        evidenceLog.append((enabled: Set(currentFolders), blamed: blamed,
+        evidenceLog.append((enabled: enabled, blamed: blamed,
                             stillBroken: stillBroken))
         logEvidence = BisectionEvidence.analyse(evidenceLog, resolve: { [weak vm] name in
             vm?.resolveModFolder(forLoggedName: name)?.folderName
