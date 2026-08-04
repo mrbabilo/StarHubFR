@@ -120,16 +120,22 @@ public enum TranslationCoverage {
         /// à traduire, avec chacune son anglais. Sans cette distinction, elles
         /// partageraient la même identité et la liste en perdrait une.
         public let component: String?
+        /// Le commentaire sous lequel l'auteur a rangé cette clé dans son
+        /// fichier **anglais** — « Config », « Dialogue locationnel ». C'est la
+        /// seule structure fiable de ces fichiers ; l'anglais fait référence
+        /// parce qu'un `fr.json` peut n'avoir aucun commentaire.
+        public let section: String?
 
         public var id: String { component.map { "\($0)/\(key)" } ?? key }
 
         public init(key: String, english: String, french: String, state: State,
-                    component: String? = nil) {
+                    component: String? = nil, section: String? = nil) {
             self.key = key
             self.english = english
             self.french = french
             self.state = state
             self.component = component
+            self.section = section
         }
     }
 
@@ -140,14 +146,20 @@ public enum TranslationCoverage {
     /// conservant l'ordre de lecture — demanderait que le parseur rende autre
     /// chose qu'un dictionnaire ; c'est un raffinement de phase 2.)*
     public static func diffRows(source: [String: String],
-                                target: [String: String]) -> [DiffRow] {
+                                target: [String: String],
+                                following outline: I18nOutline.Outline? = nil) -> [DiffRow] {
         let targetByFolded = foldedLookup(target)
         let sourceFolded = Set(source.keys.filter(isCounted).map(fold))
 
         var rows: [DiffRow] = []
         rows.reserveCapacity(source.count + target.count)
 
-        for key in source.keys.filter(isCounted).sorted() {
+        // L'ordre du fichier quand on le connaît, l'alphabet sinon. Trier
+        // alphabétiquement disperserait les sections de l'auteur : une clé
+        // « alpha » de la dernière section remonterait au-dessus de la première.
+        let sourceKeys = orderedSourceKeys(source, following: outline)
+
+        for key in sourceKeys {
             let english = source[key] ?? ""
             guard let french = targetByFolded[fold(key)] else {
                 rows.append(DiffRow(key: key, english: english, french: "", state: .missing))
@@ -167,6 +179,22 @@ public enum TranslationCoverage {
             rows.append(DiffRow(key: key, english: "", french: target[key] ?? "", state: .orphan))
         }
         return rows
+    }
+
+    /// Les clés source dans l'ordre du fichier si la structure est connue,
+    /// alphabétique sinon. Les clés que la structure ignore — un fichier
+    /// illisible pour elle, une entrée ajoutée depuis — sont ajoutées à la fin
+    /// plutôt que perdues.
+    private static func orderedSourceKeys(_ source: [String: String],
+                                          following outline: I18nOutline.Outline?)
+        -> [String] {
+        let counted = source.keys.filter(isCounted)
+        guard let outline else { return counted.sorted() }
+        let known = Set(counted)
+        var ordered = outline.orderedKeys.filter(known.contains)
+        let seen = Set(ordered)
+        ordered.append(contentsOf: counted.filter { !seen.contains($0) }.sorted())
+        return ordered
     }
 
     /// La couverture d'un **mod entier**, composants compris.
@@ -232,14 +260,41 @@ public enum TranslationCoverage {
                 guard let source = entries(of: "default", in: directory, fileManager: fileManager)
                 else { return (label, []) }
                 let target = entries(of: locale, in: directory, fileManager: fileManager) ?? [:]
-                let rows = diffRows(source: source, target: target).map {
+                // L'ordre et les sections viennent du fichier **anglais** : il
+                // fait référence, et un `fr.json` peut n'avoir aucun
+                // commentaire. Un tri alphabétique disperserait les sections.
+                let outline = sourceOutline(in: directory, fileManager: fileManager)
+                let rows = diffRows(source: source, target: target, following: outline).map {
                     DiffRow(key: $0.key, english: $0.english, french: $0.french,
-                            state: $0.state, component: isMultiComponent ? label : nil)
+                            state: $0.state, component: isMultiComponent ? label : nil,
+                            section: outline?.section(of: $0.key))
                 }
                 return (label, rows)
             }
             .sorted { $0.label < $1.label }
             .flatMap(\.rows)
+    }
+
+    /// La structure du fichier anglais : l'ordre de ses clés et ses sections.
+    /// `nil` s'il n'est pas lisible — les rangées repassent alors par le tri
+    /// alphabétique.
+    private static func sourceOutline(in directory: URL,
+                                      fileManager: FileManager) -> I18nOutline.Outline? {
+        let files = I18nLocaleResolver.files(in: directory, locale: "default",
+                                             fileManager: fileManager)
+        // Un layout B éclate une locale en plusieurs fichiers ; leurs structures
+        // se suivent dans l'ordre de lecture, déjà trié par nom.
+        var keys: [String] = []
+        var sections: [String: String] = [:]
+        for file in files {
+            guard let data = fileManager.contents(atPath: file.path),
+                  let decoded = I18nFileDecoder.decode(data) else { continue }
+            let outline = I18nOutline.read(decoded.text)
+            keys.append(contentsOf: outline.orderedKeys)
+            sections.merge(outline.sectionByKey) { first, _ in first }
+        }
+        guard !keys.isEmpty else { return nil }
+        return I18nOutline.Outline(orderedKeys: keys, sectionByKey: sections)
     }
 
     /// Le nom du composant : le dossier qui contient le `i18n`, relatif au mod.

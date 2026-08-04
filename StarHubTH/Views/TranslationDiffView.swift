@@ -142,7 +142,7 @@ struct TranslationDiffView: View {
             } else {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
-                        ForEach(groupedRows, id: \.component) { group in
+                        ForEach(groupedRows, id: \.header) { group in
                             Section {
                                 ForEach(group.rows) { row in
                                     DiffRowView(row: row,
@@ -153,8 +153,8 @@ struct TranslationDiffView: View {
                                 // Un mod à un seul dossier `i18n` n'a pas
                                 // d'en-tête : répéter son nom sur chaque écran
                                 // serait du bruit.
-                                if let component = group.component {
-                                    componentHeader(component)
+                                if let header = group.header {
+                                    componentHeader(header)
                                 }
                             }
                         }
@@ -206,18 +206,40 @@ struct TranslationDiffView: View {
         return visible
     }
 
-    /// Les rangées regroupées par composant, dans l'ordre où le Core les a
-    /// rendues — il les a déjà triées, on ne retrie pas.
-    private var groupedRows: [(component: String?, rows: [TranslationCoverage.DiffRow])] {
-        var groups: [(component: String?, rows: [TranslationCoverage.DiffRow])] = []
+    /// Les rangées regroupées par composant **puis par section**, dans l'ordre
+    /// où le Core les a rendues — il suit celui du fichier, on ne retrie pas.
+    ///
+    /// Les sections sont les commentaires que l'auteur a écrits dans son
+    /// fichier anglais. C'est la seule structure fiable de ces fichiers :
+    /// déduire un personnage des clés ne marche pas.
+    ///
+    /// Elles ne s'affichent que dans l'ordre naturel : dès qu'un filtre par état
+    /// s'applique, les lignes retenues ne se suivent plus dans le fichier et un
+    /// titre de section mentirait sur ce qu'il coiffe.
+    private var groupedRows: [(header: String?, rows: [TranslationCoverage.DiffRow])] {
+        let showSections = stateFilter == nil
+        var groups: [(header: String?, rows: [TranslationCoverage.DiffRow])] = []
         for row in filteredRows {
-            if let last = groups.last, last.component == row.component {
+            let header = heading(for: row, withSections: showSections)
+            if let last = groups.last, last.header == header {
                 groups[groups.count - 1].rows.append(row)
             } else {
-                groups.append((row.component, [row]))
+                groups.append((header, [row]))
             }
         }
         return groups
+    }
+
+    /// Le titre qui coiffe une rangée : son composant, sa section, ou les deux.
+    private func heading(for row: TranslationCoverage.DiffRow,
+                         withSections: Bool) -> String? {
+        let section = withSections ? row.section : nil
+        switch (row.component, section) {
+        case let (component?, section?): return "\(component) — \(section)"
+        case let (component?, nil):      return component
+        case let (nil, section?):        return section
+        case (nil, nil):                 return nil
+        }
     }
 
     // MARK: - Vocabulaire des états

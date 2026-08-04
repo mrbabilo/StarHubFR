@@ -792,19 +792,99 @@ struct ModDiffRowsTests {
         #expect(Set(rows.compactMap(\.component)) == ["[CP] Something", "Other"])
     }
 
-    @Test func rowsAreGroupedByComponentThenSortedByKey() throws {
+    @Test func rowsAreGroupedByComponentThenFollowTheFileOrder() throws {
+        // Les composants restent triés entre eux, mais **à l'intérieur** d'un
+        // fichier c'est l'ordre de l'auteur qui prime — ici `z` avant `a`,
+        // comme écrit. Trier alphabétiquement disperserait ses sections.
         let mod = try fixture([
             "B/i18n/default.json": #"{"z": "1", "a": "2"}"#,
             "A/i18n/default.json": #"{"m": "3"}"#,
         ])
         defer { try? FileManager.default.removeItem(at: mod) }
         let rows = TranslationCoverage.diffRows(forModAt: mod, locale: "fr")
-        #expect(rows.map { "\($0.component ?? "")/\($0.key)" } == ["A/m", "B/a", "B/z"])
+        #expect(rows.map { "\($0.component ?? "")/\($0.key)" } == ["A/m", "B/z", "B/a"])
     }
 
     @Test func aModWithoutTranslationsHasNoRows() throws {
         let mod = try fixture(["manifest.json": "{}"])
         defer { try? FileManager.default.removeItem(at: mod) }
         #expect(TranslationCoverage.diffRows(forModAt: mod, locale: "fr").isEmpty)
+    }
+}
+
+/// Les rangées du diff portent la section que l'auteur a écrite dans son
+/// fichier anglais — la seule structure fiable de ces fichiers.
+struct DiffRowSectionTests {
+    private func fixture(_ files: [String: String]) throws -> URL {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("diffsec-\(UUID().uuidString)", isDirectory: true)
+        for (relative, content) in files {
+            let url = dir.appendingPathComponent(relative)
+            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(),
+                                                    withIntermediateDirectories: true)
+            try Data(content.utf8).write(to: url)
+        }
+        return dir
+    }
+
+    @Test func rowsCarryTheSourceSection() throws {
+        // La section vient de `default.json` : c'est l'anglais qui fait
+        // référence, et un `fr.json` peut n'avoir aucun commentaire.
+        let mod = try fixture([
+            "i18n/default.json": """
+            {
+              // Config
+              "a": "1",
+              // Dialogue
+              "b": "2"
+            }
+            """,
+            "i18n/fr.json": #"{"a": "un", "b": "deux"}"#,
+        ])
+        defer { try? FileManager.default.removeItem(at: mod) }
+        let rows = TranslationCoverage.diffRows(forModAt: mod, locale: "fr")
+        let byKey = Dictionary(uniqueKeysWithValues: rows.map { ($0.key, $0.section) })
+        #expect(byKey["a"] == "Config")
+        #expect(byKey["b"] == "Dialogue")
+    }
+
+    @Test func rowsFollowTheFileOrderNotTheAlphabet() throws {
+        // Trier alphabétiquement disperserait les sections : une clé « alpha »
+        // de la dernière section remonterait au-dessus de la première.
+        let mod = try fixture([
+            "i18n/default.json": """
+            {
+              // Premiere
+              "zebre": "1",
+              // Seconde
+              "alpha": "2"
+            }
+            """,
+            "i18n/fr.json": "{}",
+        ])
+        defer { try? FileManager.default.removeItem(at: mod) }
+        #expect(TranslationCoverage.diffRows(forModAt: mod, locale: "fr").map(\.key)
+                == ["zebre", "alpha"])
+    }
+
+    @Test func aFileWithoutCommentsHasNoSections() throws {
+        let mod = try fixture([
+            "i18n/default.json": #"{"a": "1"}"#,
+            "i18n/fr.json": #"{"a": "un"}"#,
+        ])
+        defer { try? FileManager.default.removeItem(at: mod) }
+        #expect(TranslationCoverage.diffRows(forModAt: mod, locale: "fr").first?.section == nil)
+    }
+
+    @Test func orphanRowsHaveNoSection() throws {
+        // Une clé qui n'existe qu'en français n'a pas de place dans la
+        // structure de l'anglais.
+        let mod = try fixture([
+            "i18n/default.json": "{\n  // Config\n  \"a\": \"1\"\n}",
+            "i18n/fr.json": #"{"a": "un", "zz": "orpheline"}"#,
+        ])
+        defer { try? FileManager.default.removeItem(at: mod) }
+        let rows = TranslationCoverage.diffRows(forModAt: mod, locale: "fr")
+        #expect(rows.first { $0.key == "zz" }?.section == nil)
     }
 }
