@@ -401,8 +401,10 @@ public struct ModFolderRepairer {
             // `/private/...` even when the root URL was `/tmp/...`, and a
             // naive prefix strip would yield a bogus relative path.
             let resolvedFile = fileURL.resolvingSymlinksInPath().path
-            // Skip manifests under a trash folder.
-            let rel = resolvedFile.replacingOccurrences(of: resolvedRoot, with: "").trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            // Relative path via la source canonique `relativePath` (hasPrefix +
+            // dropFirst), comme ligne 271. Un `replacingOccurrences(of: root)`
+            // amputait tout chemin contenant la racine plusieurs fois.
+            let rel = relativePath(of: resolvedFile, from: resolvedRoot)
             let firstComponent = (rel as NSString).components(separatedBy: "/").first ?? rel
             if firstComponent.hasPrefix(Self.trashPrefix) { continue }
 

@@ -222,7 +222,14 @@ public class ModInstallBackupManager {
             // duplicate/corrupt entry.
             if let stale = stalePath {
                 if registerSetAsideFolderAsBackup(atPath: stale, originalFolderName: backup.originalFolderName) == nil {
-                    try? fm.removeItem(atPath: stale)
+                    // Enregistrer comme backup a échoué (manifeste illisible) :
+                    // on supprime le dossier mis de côté. La suppression robuste
+                    // répare d'abord les perms en lecture seule (un mod installé
+                    // avant `grantOwnerWriteAccess` peut encore en porter) — un
+                    // simple `removeItem` échouait dessus et laissait un
+                    // `.stale_*` oublié, remonté chez le scanner comme un mod en
+                    // pause.
+                    try? ModZipInstaller.removeItemGrantingWriteAccess(atPath: stale)
                 }
             }
         } catch {

@@ -50,10 +50,27 @@ enum ManifestVersionPatcher {
         pattern: #"("Version"\s*:\s*")([^"]*)(")"#, options: [.caseInsensitive])
 
     static func extractVersionValue(from raw: String) -> String? {
-        let range = NSRange(raw.startIndex..., in: raw)
-        guard let m = versionStringRegex.firstMatch(in: raw, range: range),
-              let valueRange = Range(m.range(at: 2), in: raw) else { return nil }
-        return String(raw[valueRange])
+        // Lire la `Version` comme le fait le scanner (JSON5, commentaires
+        // inclus), pas par regex sur le texte brut : un `"Version"` laissé en
+        // commentaire (usage courant en JSONC chez les mods Stardew) était
+        // matché avant la vraie valeur. Les commentaires de bloc ne sont pas
+        // fiablement gérés par `.json5Allowed` — on les retire d'abord, à
+        // l'identique de `ModFolderRepairer`. La forme dictionnaire
+        // `{MajorVersion,…}` ressort `nil` (échec du `as? String`), comme la
+        // regex.
+        let cleaned = raw.replacingOccurrences(of: "/\\*[\\s\\S]*?\\*/", with: "",
+                                               options: .regularExpression)
+        var options: JSONSerialization.ReadingOptions = []
+        if #available(macOS 12.0, *) { options.insert(.json5Allowed) }
+        guard let data = cleaned.data(using: .utf8) else { return nil }
+        do {
+            guard let json = try JSONSerialization.jsonObject(with: data, options: options) as? [String: Any] else {
+                return nil
+            }
+            return json.caseInsensitiveValue(forKey: "Version") as? String
+        } catch {
+            return nil
+        }
     }
 
     /// Replaces ONLY the string value of the `Version` field, leaving everything

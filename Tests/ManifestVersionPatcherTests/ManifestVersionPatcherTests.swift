@@ -79,6 +79,24 @@ struct ManifestVersionPatcherTests {
         #expect(ManifestVersionPatcher.extractVersionValue(from: "{ \"Name\": \"X\" }") == nil)
     }
 
+    @Test func extractIgnoresALineCommentedVersion() {
+        // Un auteur laisse son ancienne version en commentaire JSONC — courant
+        // chez les mods Stardew. La regex brute la matchait en premier.
+        let raw = "{\n  // \"Version\": \"0.1.0\",\n  \"Name\": \"X\",\n  \"Version\": \"1.2.3\",\n  \"UniqueID\": \"a.b\"\n}"
+        #expect(ManifestVersionPatcher.extractVersionValue(from: raw) == "1.2.3")
+    }
+
+    @Test func extractIgnoresABlockCommentedVersion() {
+        let raw = "{\n  \"Name\": \"X\",\n  /* \"Version\": \"9.9.9\" */\n  \"Version\": \"1.2.3\",\n  \"UniqueID\": \"a.b\"\n}"
+        #expect(ManifestVersionPatcher.extractVersionValue(from: raw) == "1.2.3")
+    }
+
+    @Test func extractDoesNotMistakeHttpsForAComment() {
+        // Garde-fou : `https://` dans une valeur ne doit pas casser la lecture.
+        let raw = "{\n  \"Name\": \"X\",\n  \"Version\": \"1.2.3\",\n  \"Homepage\": \"https://mod.example/foo\"\n}"
+        #expect(ManifestVersionPatcher.extractVersionValue(from: raw) == "1.2.3")
+    }
+
     // ── replaceVersionValue ──────────────────────────────────────
     @Test func replacesOnlyTheVersionValuePreservingRest() {
         let raw = "{\n  // author comment\n  \"Name\": \"X\",\n  \"Version\": \"1.1.0\",\n  \"UniqueID\": \"a.b\"\n}"

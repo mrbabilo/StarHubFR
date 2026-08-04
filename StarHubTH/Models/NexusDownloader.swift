@@ -127,8 +127,16 @@ struct NexusDownloader {
             guard let uri = links.first?.URI, let url = URL(string: uri) else {
                 completion(.failure(.noDownloadLink)); return
             }
-            URLSession.shared.downloadTask(with: url) { localURL, _, dlError in
+            URLSession.shared.downloadTask(with: url) { localURL, response, dlError in
                 if let dlError = dlError { completion(.failure(.requestFailed(dlError.localizedDescription))); return }
+                // Le CDN peut renvoyer une page HTML (403 lien expiré, 429
+                // limite de débit) au lieu de l'archive : sans ce contrôle, elle
+                // était sauvée comme le fichier du mod. Même statut qu'en ligne
+                // 122, mais `treatForbiddenAsPremium: false` : un 403 sur le CDN
+                // n'annonce pas une clé premium, mais un lien périmé.
+                if let statusError = self.statusError(for: response, treatForbiddenAsPremium: false) {
+                    completion(.failure(statusError)); return
+                }
                 guard let localURL = localURL else { completion(.failure(.noDownloadLink)); return }
                 // Le format est lu dans les octets du fichier téléchargé, pas
                 // deviné d'après l'URL. `extractArchive` s'aiguille sur

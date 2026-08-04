@@ -564,23 +564,27 @@ public class SaveManager {
         }
     }
     
-    private func modifyInternalSaveNames(in folderURL: URL, newSaveName: String, newPlayerName: String, newFarmName: String) {
+    private func modifyInternalSaveNames(in folderURL: URL, newSaveName: String, newPlayerName: String, newFarmName: String) throws {
         let fm = FileManager.default
         let saveGameInfoURL = folderURL.appendingPathComponent("SaveGameInfo")
         let mainSaveURL = folderURL.appendingPathComponent(newSaveName)
-        
-        func updateFile(at url: URL) {
+
+        func updateFile(at url: URL) throws {
+            // Lecture tolérante : un fichier absent/illisible n'a rien à
+            // patcher, on l'ignore. En revanche l'échec en écriture est une
+            // perte de données silencieuse — la sauvegarde clonée porterait
+            // l'ancien nom interne, invisible pour Stardew — donc on propage.
             guard let content = try? String(contentsOf: url, encoding: .utf8) else { return }
             var modified = replaceFirstTag(tag: "name", with: newPlayerName, in: content)
             modified = replaceFirstTag(tag: "farmName", with: newFarmName, in: modified)
-            try? modified.write(to: url, atomically: true, encoding: .utf8)
+            try modified.write(to: url, atomically: true, encoding: .utf8)
         }
-        
+
         if fm.fileExists(atPath: saveGameInfoURL.path) {
-            updateFile(at: saveGameInfoURL)
+            try updateFile(at: saveGameInfoURL)
         }
         if fm.fileExists(atPath: mainSaveURL.path) {
-            updateFile(at: mainSaveURL)
+            try updateFile(at: mainSaveURL)
         }
     }
 
@@ -615,10 +619,14 @@ public class SaveManager {
             }
 
             // Modify name and farm name inside XML files
-            modifyInternalSaveNames(in: newFolderPath, newSaveName: newSaveName, newPlayerName: newPlayerName, newFarmName: newFarmName)
+            try modifyInternalSaveNames(in: newFolderPath, newSaveName: newSaveName, newPlayerName: newPlayerName, newFarmName: newFarmName)
 
             return true
         } catch {
+            // Un clone partiel (dossier copié mais renommage/patchage raté)
+            // laisserait une sauvegarde illisible par Stardew : on la retire
+            // plutôt que de signaler une réussite sur un dossier cassé.
+            try? fm.removeItem(at: newFolderPath)
             print("Failed to \(context): \(error)")
             return false
         }
