@@ -875,44 +875,68 @@ class ModZipInstaller {
             // user would lose their settings/translations if the new archive
             // doesn't ship them (common case). Failures must surface, not be
             // swallowed — a silent failure here means data loss.
-            for (configFile, tmp) in preservedConfigs {
-                let cfg = (destPath as NSString).appendingPathComponent(configFile)
-                if fm.fileExists(atPath: cfg) {
-                    try? fm.removeItem(atPath: cfg)
-                }
-                do {
-                    try fm.copyItem(atPath: tmp.path, toPath: cfg)
-                    // Mark as consumed so the defer cleanup skips it.
-                    preservedConfigs.removeValue(forKey: configFile)
-                } catch {
-                    // Don't mask the error — the caller should know config
-                    // restore failed (the backup in ModInstallBackupManager
-                    // still has the original files for manual recovery). The
-                    // leftover temp snapshot is cleaned by the defer above.
-                    throw InstallError.installFailed("Failed to restore \(configFile): \(error.localizedDescription)")
-                }
-            }
+            try restoreUserConfigs(&preservedConfigs, into: destPath)
         }
     }
 
-    /// Copies `config.json` and all SMAPI language files from `modFolder` into
-    /// temp files so they survive the folder being replaced during an overwrite
-    /// install. See `ModConfigFiles.preservable` for the full file list.
-    private func snapshotUserConfigs(from modFolder: String) -> [String: URL] {
+    /// Copies `config.json` and all SMAPI language files (`i18n/*.json`) from
+    /// `modFolder` into temp files so they survive the folder being replaced
+    /// during an overwrite install. The dictionary is keyed by the file's
+    /// **relative path** (`"config.json"`, `"i18n/fr.json"`…) so `restoreUserConfigs`
+    /// can put each one back where it belongs — including under `i18n/`. Without
+    /// the relative path, language files were looked up at the mod root (where
+    /// they never live) and the community translation was silently lost on every
+    /// update (B4-T4). See `ModConfigFiles.preservableFiles` for the search.
+    func snapshotUserConfigs(from modFolder: String) -> [String: URL] {
         var snapshots: [String: URL] = [:]
-        for configFile in ModConfigFiles.preservable {
-            let cfg = (modFolder as NSString).appendingPathComponent(configFile)
-            guard fm.fileExists(atPath: cfg) else { continue }
+        for file in ModConfigFiles.preservableFiles(under: modFolder) {
+            // Flat temp name (no '/'): the relative path is the dictionary
+            // key, the temp file is just throwaway storage.
+            let flat = file.relativePath.replacingOccurrences(of: "/", with: "__")
             let tmp = FileManager.default.temporaryDirectory
-                .appendingPathComponent("starhubth_preserve_\(UUID().uuidString)_\(configFile)")
+                .appendingPathComponent("starhubth_preserve_\(UUID().uuidString)_\(flat)")
             do {
-                try fm.copyItem(atPath: cfg, toPath: tmp.path)
-                snapshots[configFile] = tmp
+                try fm.copyItem(atPath: file.url.path, toPath: tmp.path)
+                snapshots[file.relativePath] = tmp
             } catch {
                 try? fm.removeItem(at: tmp)
             }
         }
         return snapshots
+    }
+
+    /// Restores snapshotted files (keyed by relative path, e.g. `"i18n/fr.json"`)
+    /// on top of the freshly installed copy at `destPath`, recreating any
+    /// intermediate subfolder (`i18n/`) the new archive didn't ship. Each
+    /// successfully restored entry is removed from `preservedConfigs` so the
+    /// caller's `defer` cleanup only sweeps genuinely leftover snapshots. A
+    /// restore failure is surfaced (not swallowed): a silent failure here means
+    /// data loss — the backup in `ModInstallBackupManager` still holds the
+    /// originals for manual recovery.
+    func restoreUserConfigs(_ preservedConfigs: inout [String: URL], into destPath: String) throws {
+        // Iterate over a materialized copy of the keys: we mutate the
+        // dictionary (removeValue) inside the loop.
+        for relativePath in Array(preservedConfigs.keys) {
+            guard let tmp = preservedConfigs[relativePath] else { continue }
+            let cfg = (destPath as NSString).appendingPathComponent(relativePath)
+            // The fresh archive may not create i18n/ (common when the author
+            // doesn't redistribute translations) — create it on demand. A real
+            // failure here must surface: a silently-skipped directory would
+            // make the copyItem below fail with a confusing "no such file".
+            let cfgDir = (cfg as NSString).deletingLastPathComponent
+            if !fm.fileExists(atPath: cfgDir) {
+                try fm.createDirectory(atPath: cfgDir, withIntermediateDirectories: true)
+            }
+            if fm.fileExists(atPath: cfg) {
+                try? fm.removeItem(atPath: cfg)
+            }
+            do {
+                try fm.copyItem(atPath: tmp.path, toPath: cfg)
+                preservedConfigs.removeValue(forKey: relativePath)
+            } catch {
+                throw InstallError.installFailed("Failed to restore \(relativePath): \(error.localizedDescription)")
+            }
+        }
     }
 
     /// Short timestamp suffix used for renamed duplicate mod folders.
