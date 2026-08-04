@@ -119,7 +119,57 @@ gestionnaire de mods ; sa page d'accueil a d'autres devoirs.
 
 ---
 
-## 5. Hygiène générale
+## 5. Les tokens — leur liste, et ce qu'on lui doit
+
+`src/strings/protectedTokens.ts` énumère ce qu'une traduction **doit** conserver
+sous peine de casser le mod. Comparée à la nôtre, leur liste portait trois formes
+composées qui nous manquaient, toutes confirmées dans le parc :
+
+| forme | ce que c'est | dans le parc |
+| --- | --- | --- |
+| `${him^her^them}$` | sélection selon le genre du joueur | **1520** |
+| `%item object 349 10 %%` | commande de courrier : identifiants et quantités | 110 |
+| `%action AddQuest … %%` | commande de courrier | 6 |
+
+La première était la plus coûteuse : son `^` interne passait pour un saut de
+ligne et ses mots pour du texte à traduire — traduire « him » en « lui » y casse
+la sélection. **Reprises** (`ee844ee`).
+
+Leur ordre de lecture va du plus spécifique au plus court, pour la raison qui
+nous a rattrapés : une forme longue entamée par une forme courte laisse son reste
+passer pour du texte.
+
+Deux nuances de leur part qui méritent d'être retenues pour la suite : `\n` est
+extrait comme token **mais traité comme mise en page**, jamais comme syntaxe — une
+traduction se replie librement, l'allemand est plus long que l'anglais ; et les
+apostrophes appariées relèvent de la ponctuation, pas de la syntaxe SMAPI. Les
+deux sont des avertissements, jamais des blocages.
+
+## 6. L'édition — ce qu'ils garantissent à l'écriture
+
+À lire avant d'ouvrir C3. `src-tauri/src/export.rs` et `translations.rs` :
+
+- **L'ordre des clés de `default.json` est préservé**, jamais alphabétique. Un
+  fichier réordonné produit un diff illisible et une revue impossible.
+- **Écriture atomique** : sérialiser → écrire dans un `.tmp` voisin → **relire
+  pour vérifier que le JSON est valide** → renommer par-dessus la cible. La
+  relecture avant renommage est le détail qui empêche d'écrire un fichier cassé.
+- **Copie `.bak`** de la cible avant écrasement.
+- UTF-8 **sans** marque d'ordre des octets, indentation à deux espaces.
+- **Les clés non traduites sont omises** du fichier écrit — SMAPI retombe sur
+  `default.json`. Écrire une valeur vide serait pire que ne rien écrire : c'est
+  l'état qui casse l'affichage sans prévenir (cf. §1 de notre propre analyse).
+- **Un écart de compte de tokens bloque l'export du mod entier**, avant toute
+  sauvegarde et toute écriture — pas seulement la chaîne fautive.
+
+Leur validation compte huit règles, réparties en erreurs et avertissements :
+`token-missing` et `token-added` (comparés comme **multiensembles**, pour
+attraper un second `$b` disparu), `json-invalid` — puis en avertissements
+`newline-mismatch`, `quote-mismatch`, `empty-target`, `identical-to-source`,
+`escape-suspicious`. La séparation est instructive : ne bloque que ce qui casse
+le mod à l'exécution.
+
+## 7. Hygiène générale
 
 `:focus-visible` et `prefers-reduced-motion` sont présents dans leur CSS, et les
 régions portent des `aria-label`. Notre application applique cela de façon
@@ -127,7 +177,7 @@ inégale — c'est une dette à traiter globalement, pas au fil de l'eau.
 
 ---
 
-## 6. Ce qu'on en fait
+## 8. Ce qu'on en fait
 
 | Constat | Décision |
 | --- | --- |
@@ -139,4 +189,46 @@ inégale — c'est une dette à traiter globalement, pas au fil de l'eau.
 | Table virtualisée + filtre par statut compté | **Phase 2**, pour la vue diff |
 | Réserve chromatique explicite | À trancher si le vert prend un troisième sens |
 | `Math.round` du pourcentage | **Écarté** — nos tests l'interdisent |
+| Formes composées de tokens (`${…}$`, `%… %%`) | **Reprises** (`ee844ee`) |
+| Regroupement par **section de commentaire** | **À prévoir** — voir ci-dessous |
+| Écriture atomique, `.bak`, ordre des clés préservé | **À reprendre** en C3 |
+| Clés non traduites omises à l'écriture | **À reprendre** en C3 |
 | Barre dans la ligne de liste | **Écarté** — notre ligne est déjà dense |
+
+---
+
+## 9. Ce qu'ils ne font pas : regrouper par personnage
+
+Question posée le 2026-08-04 : peut-on afficher les dialogues **par personnage** ?
+
+**Ils ne le font pas.** Aucune notion de PNJ, de locuteur ni de dialogue dans
+leur interface — seulement dans leur liste de tokens.
+
+La mesure explique pourquoi. Sur le parc :
+
+- 60 863 clés françaises portent des marques de dialogue (34 %) — le besoin est
+  réel ;
+- mais **24 % seulement** nomment un personnage, et le nom désigne souvent un
+  **lieu** (`HaleyHouse`, `WizardHouse`) ou un **participant d'événement**
+  (`Events.Changes.2.Entries.10536_f_Haley`), pas le locuteur. Haley ressort à
+  6693 occurrences contre ~450 pour les autres : c'est un mod de maison, pas une
+  bavarde ;
+- la seule voie explicite — les cibles `Characters/Dialogue/<Nom>` d'un content
+  pack — ne concerne que **6 mods**, 19 cibles, et **aucune** ne passe par les
+  fichiers i18n.
+
+Déduire qui parle n'est donc pas fiable, et une attribution fausse serait pire
+qu'aucune.
+
+**Ce qu'ils font à la place, et qui est transposable** : un séparateur de section
+au-dessus de chaque suite de lignes partageant un même commentaire `//` du
+fichier (leur SPEC §7.4). La structure vient de l'auteur, pas d'une déduction.
+Détail à reprendre : les séparateurs ne s'affichent que dans l'ordre naturel du
+fichier — un tri les rendrait mensongers.
+
+**Applicable chez nous** : **167 des 450** fichiers français du parc (37 %)
+portent de tels commentaires, 3290 sections au total — et souvent déjà traduits
+(« Titres des nouveaux livres d'Elliott », « Dialogue locationnel »). Obstacle
+connu : la passe 1 de notre parseur **supprime** les commentaires ; il faudrait
+les conserver comme marqueurs de position. À filtrer aussi, les lignes de
+décoration (`-----`, `*****`) qui ne titrent rien.

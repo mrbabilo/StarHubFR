@@ -382,7 +382,18 @@ sans risque d'écriture destructive.
 - [ ] **C2-T2** — Détection d'obsolescence : une valeur FR est suspecte si la valeur EN a
       changé depuis la dernière écriture du `fr.json` (empreinte stockée à côté du backup
       de config existant). · **M** · risque : heuristique, à présenter comme telle.
-- [ ] **C2-T3** — Recherche et filtre par état. · **S**
+- [x] **C2-T3** — Recherche et filtre par état. **Livré** avec la vue diff
+      (`8538c17`) : un cadrage par état dont le libellé porte le compte, les états
+      absents du mod n'étant pas proposés, plus une recherche sur la clé, l'anglais
+      et le français, et une échappatoire quand elle ne rend rien. · **S**
+- [ ] **C2-T5** — Regrouper les lignes du diff par **section de commentaire** du
+      fichier. Répond au besoin de « voir les dialogues par personnage » — mais par
+      la structure que l'auteur a écrite, la seule fiable : déduire le locuteur des
+      clés ne marche pas (mesuré, cf. [`audit-nana-ux.md`](audit-nana-ux.md) §9).
+      **167 des 450** fichiers français du parc portent de tels commentaires, 3290
+      sections, souvent déjà traduites. Obstacle : la passe 1 du parseur les
+      supprime — il faudra les conserver comme marqueurs de position. Ne les
+      afficher que dans l'ordre naturel : un tri les rendrait mensongers. · **M**
 - [ ] **C2-T4** — Après mise à jour d'un mod, signaler les clés de config **et** de
       traduction ajoutées ou disparues (réutilise l'empreinte de C2-T2). · **M**
 
