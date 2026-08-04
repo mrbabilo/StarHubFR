@@ -63,7 +63,7 @@ public enum LogNoise {
         guard let colon = message.firstIndex(of: ":") else { return nil }
         let candidate = String(message[..<colon]).trimmingCharacters(in: .whitespaces)
         guard !candidate.isEmpty, candidate.count <= 60,
-              !candidate.contains("\n"),
+              !candidate.contains(where: { $0.isNewline }),  // multi-ligne (CRLF = 1 Character)
               !candidate.contains("/"), !candidate.contains("\\"),  // chemin ou URL
               !candidate.contains(". "),                            // phrase
               candidate.rangeOfCharacter(from: .letters) != nil else { return nil }

@@ -116,6 +116,38 @@ struct DescriptionBlockTests {
         #expect(!t.contains("](https://github.com/x/y)"))
     }
 
+    @Test func multilineLinkLabelWithCRLFKeepsItsTextAndDropsTheLink() {
+        // Variante CRLF du test ci-dessus. En Swift `\r\n` est UN seul
+        // Character isNewline, donc `contains("\n")` le rate et le libellé
+        // multi-ligne était émis en Markdown invalide — `](https://…)` vu en
+        // clair. Cas réel : le web Nexus édite en CRLF.
+        let out = DescriptionBlockParser.parse(
+            "[url=https://github.com/x/y]\r\n----\r\nSource code of C# patches[/url]")
+        guard case let .text(t)? = out.first else { Issue.record("attendu .text"); return }
+        #expect(t.contains("Source code of C# patches"))
+        #expect(!t.contains("](https://github.com/x/y)"))
+    }
+
+    @Test func sizedMultilineCRLFTextIsNotPromotedToHeading() {
+        // Un titre exige une seule ligne. En CRLF, `contains("\n")` rate le
+        // saut : un corps multi-ligne était promu heading à tort.
+        let out = DescriptionBlockParser.parse("[size=4]Ligne un\r\nLigne deux[/size]")
+        #expect(!out.contains { block in
+            if case .heading = block { return true }
+            return false
+        })
+    }
+
+    @Test func colorSpanAcrossCRLFDropsItsAttribute() {
+        // Un span couleur ne doit pas enjamber un saut de ligne. En CRLF,
+        // `contains("\n")` le rateait et le span était émis, laissant
+        // `](shcolor: '…')` en clair.
+        let out = DescriptionBlockParser.parse("[color=red]Ligne un\r\nLigne deux[/color]")
+        for case let .text(t) in out {
+            #expect(!t.contains("shcolor"))
+        }
+    }
+
     @Test func colorWrappingACodeBlockDoesNotStrandItsAttribute() {
         // [color=#00FF00][code]…[/code][/color] : le marqueur du bloc code
         // passait pour du texte, la couleur l'enveloppait, puis le tokeniseur

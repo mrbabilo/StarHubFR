@@ -255,7 +255,7 @@ enum DescriptionBlockParser {
         guard value >= headingSizeThreshold else { return body }
         let trimmed = body.trimmingCharacters(in: .whitespacesAndNewlines)
         if containsBlockToken(trimmed) { return body }
-        if !trimmed.contains("\n") && trimmed.count <= 80 {
+        if !trimmed.contains(where: { $0.isNewline }) && trimmed.count <= 80 {
             return "\u{0}H\(headingLevel(forSize: value))\u{0}\(body)\u{0}/H\u{0}"
         }
         return "**\(body)**"
@@ -290,7 +290,7 @@ enum DescriptionBlockParser {
             out += leading
             if containsBlockToken(trimmed) {
                 out += body                      // cf. `containsBlockToken`
-            } else if !trimmed.contains("\n") && trimmed.count <= 80 {
+            } else if !trimmed.contains(where: { $0.isNewline }) && trimmed.count <= 80 {
                 out += "\u{0}H\(level)\u{0}\(body)\u{0}/H\u{0}"
             } else {
                 out += "**\(body)**"
@@ -321,7 +321,7 @@ enum DescriptionBlockParser {
     /// seul `[url]` ; le lien produit était alors illisible et son crochet
     /// fermant s'affichait, sous la forme `](https://…)`.
     private static func canBeLinkLabel(_ label: String) -> Bool {
-        !label.contains("\n") && !label.contains("\r")
+        !label.contains(where: { $0.isNewline })
     }
 
     /// `[url=X]Y[/url]` → `[Y](X)`. Quand le libellé ne peut pas en être un
@@ -418,7 +418,7 @@ enum DescriptionBlockParser {
         // tokenisation sépare — la parenthèse d'attribut restait seule à
         // l'écran. Une couleur qui enjambe des blocs n'a de toute façon pas de
         // sens ici.
-        if body.contains("\n") || body.contains("\r") { return false }
+        if body.contains(where: { $0.isNewline }) { return false }
         let trimmed = body.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty { return false }
         return trimmed.contains(where: { $0.isLetter || $0.isNumber })
