@@ -23,6 +23,9 @@ where the exact log format was verified.
 - **Mod translation files are read the way their authors write them.** Comments, trailing commas, unquoted keys, raw line breaks, CRLF endings — a strict JSON reader refuses 912 of the 2357 files in a real modlist. Checked against the game's own JSON library, file by file: what it loads, we now read.
 
 ### Fixed
+- **The Thai translation hub now matches a mod the same way when checking and when installing.** The two steps stripped the `[CP]` prefix differently, so a content pack whose name had no space after `[CP]` could be detected but installed under the wrong zip name.
+- **A logged mod name now resolves to the right mod, not just the first whose name contains it.** An exact match is tried first, and among partial matches the most specific (shortest) name wins — so "Farm" no longer resolves to "FarmExpansion".
+- **Installing a Thai translation no longer uses a blind `unzip`.** It now extracts through the same archive handler as mod installs, so a translation shipped as `.7z` or `.rar` installs instead of silently failing.
 - **Cloning a save no longer reports success when rewriting its internal XML fails.** The clone got a new folder name but its inner name fields were left stale, so Stardew saw a save that didn't match — yet it was shown as a success. A failed rewrite now aborts and removes the partial clone.
 - **A mod's version is now read through its JSON parser, not a raw text match.** A `"Version"` left in a comment — common in Stardew's JSONC manifests — was matched before the real one, so the wrong version could be read or compared.
 - **A failed Nexus download is no longer saved as the mod file.** A 403 (expired link) or 429 (rate limit) returns an HTML page, which was kept as the archive; the HTTP status is now checked before saving.

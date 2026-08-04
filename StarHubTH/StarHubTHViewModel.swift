@@ -2133,8 +2133,17 @@ class StarHubTHViewModel: ObservableObject {
     /// dossiers actifs, ce qui exige la même correspondance.
     func resolveModFolder(forLoggedName name: String) -> ModItem? {
         let all = mods.flattenedMods
-        return all.first { $0.name == name }
-            ?? all.first { $0.name.localizedCaseInsensitiveContains(name) }
+        // Égalité exacte (insensible à la casse) d'abord — SMAPI journalise le
+        // `Name` du manifeste, donc le cas courant se résout sans ambiguïté.
+        if let exact = all.first(where: { $0.name.caseInsensitiveCompare(name) == .orderedSame }) {
+            return exact
+        }
+        // Repli tolérant : SMAPI peut tronquer ou orner le nom. Parmi ceux qui
+        // le contiennent, le nom le plus court est le plus spécifique — un nom
+        // long qui le contient (ex. « Farm » vs « FarmExpansion ») est
+        // probablement un autre mod, que le premier-venu renvoyait à tort.
+        let containing = all.filter { $0.name.localizedCaseInsensitiveContains(name) }
+        return containing.min(by: { $0.name.count < $1.name.count })
     }
 
     /// Applies the memory cap to parsed SMAPI entries, dropping TRACE noise
@@ -3279,7 +3288,7 @@ class StarHubTHViewModel: ObservableObject {
         for i in 0..<thaiTranslations.count {
             // Very simple check: does any mod folder contain an i18n/th.json?
             // AND does the folder name sort of match the mod name?
-            let nameToCheck = thaiTranslations[i].name.replacingOccurrences(of: "[CP]", with: "").trimmingCharacters(in: .whitespaces)
+            let nameToCheck = Self.strippingCPPrefix(thaiTranslations[i].name)
             var foundTranslation = false
             var foundOriginal = false
             for mod in mods {
@@ -3316,11 +3325,19 @@ class StarHubTHViewModel: ObservableObject {
         }
     }
     
+    /// Retire un préfixe de catégorie `[CP]` d'un nom (avec ou sans espace
+    /// suivant). La détection d'état et l'install du hub thaï normalisaient
+    /// différemment (`[CP]` vs `[CP] `), ce qui désaccordait le nom du zip et
+    /// le mod détecté pour un `[CP]Mod` sans espace — source unique désormais.
+    private static func strippingCPPrefix(_ name: String) -> String {
+        name.replacingOccurrences(of: "[CP]", with: "").trimmingCharacters(in: .whitespaces)
+    }
+
     func installThaiTranslation(mod: ThaiTranslationMod) {
         guard !gameDir.isEmpty else { return }
         
         let modsDir = (gameDir as NSString).appendingPathComponent("Mods")
-        let zipName = "\(mod.name.replacingOccurrences(of: "[CP] ", with: "")) - Thai Translation.zip"
+        let zipName = "\(Self.strippingCPPrefix(mod.name)) - Thai Translation.zip"
         
         showModal(message: String(format: L(L10n.VM.downloadingTranslation), mod.name))
         
@@ -3380,21 +3397,16 @@ class StarHubTHViewModel: ObservableObject {
                 }
                 
                 guard let localUrl = localUrl else { return }
-                let process = Process()
-                process.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
-                process.arguments = ["-o", localUrl.path, "-d", modsDir]
-                
+                // Extraction via le `ModZipInstaller` partagé (détection du
+                // format par signature, outil adapté à rar/7z) plutôt qu'un
+                // `/usr/bin/unzip` aveugle — une traduction en .7z/.rar
+                // échouait silencieusement. Voir trust-bytes-not-filenames.
                 do {
-                    try process.run()
-                    process.waitUntilExit()
-                    
+                    try ModZipInstaller.extractArchive(zipUrl: localUrl, to: URL(fileURLWithPath: modsDir))
+                    ModZipInstaller.grantOwnerWriteAccess(in: URL(fileURLWithPath: modsDir))
                     DispatchQueue.main.async {
-                        if process.terminationStatus == 0 {
-                            self.showModal(message: String(format: self.L(L10n.VM.installThaiSuccess), mod.name))
-                            self.evaluateThaiTranslationStatus()
-                        } else {
-                            self.showModal(message: self.L(L10n.VM.unzipError))
-                        }
+                        self.showModal(message: String(format: self.L(L10n.VM.installThaiSuccess), mod.name))
+                        self.evaluateThaiTranslationStatus()
                     }
                 } catch {
                     DispatchQueue.main.async {
