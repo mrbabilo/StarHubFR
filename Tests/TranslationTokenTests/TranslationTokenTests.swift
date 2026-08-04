@@ -101,3 +101,43 @@ struct TranslationTokenTests {
         #expect(segments(source).map(\.text).joined() == source)
     }
 }
+
+/// Trois formes relevées dans la liste de `stardew-i18n-translator` et
+/// confirmées dans le parc — toutes trois mal découpées auparavant.
+struct TranslationTokenComposedFormsTests {
+    private func codeParts(_ text: String) -> [String] {
+        TranslationTokens.split(text).filter(\.isCode).map(\.text)
+    }
+
+    @Test func aGenderSelectorIsOneToken() {
+        // 1520 occurrences dans le parc. Sans reconnaissance dédiée, le `^`
+        // interne passait pour un saut de ligne et les mots pour du texte à
+        // traduire — or traduire « him » en « lui » ici casse la sélection.
+        #expect(codeParts("Dis-lui ${him^her^them}$ bonjour") == ["${him^her^them}$"])
+    }
+
+    @Test func aMailItemCommandIsOneToken() {
+        // `%item object 349 10 351 10 %%` : les nombres sont des identifiants
+        // d'objet, pas du texte. En marquer seulement `%item` laissait le reste
+        // à la merci du traducteur.
+        #expect(codeParts("Cadeau %item object 349 10 %% pour toi")
+                == ["%item object 349 10 %%"])
+    }
+
+    @Test func aMailActionCommandIsOneToken() {
+        #expect(codeParts("%action AddQuest Mod.Quest %%") == ["%action AddQuest Mod.Quest %%"])
+    }
+
+    @Test func aBareSubstitutionStillWorks() {
+        // `%farm` sans `%%` reste une substitution simple.
+        #expect(codeParts("Bienvenue à %farm !") == ["%farm"])
+    }
+
+    @Test func composedFormsPreserveTheText() {
+        let source = "Salut ${him^her}$, prends %item object 349 %% et @^à bientôt"
+        let segments = TranslationTokens.split(source)
+        #expect(segments.map(\.text).joined() == source)
+        #expect(segments.filter(\.isCode).map(\.text)
+                == ["${him^her}$", "%item object 349 %%", "@", "^"])
+    }
+}

@@ -60,13 +60,55 @@ public enum TranslationTokens {
     /// L'ordre compte : `#$b#` contient `$b`, et le reconnaître d'abord évite
     /// de rendre trois fragments là où il n'y a qu'une marque.
     private static func token(in characters: [Character], at start: Int) -> Int? {
-        dialogueSeparator(characters, start)
+        // L'ordre va du plus spécifique au plus court : `${…}$` avant la
+        // commande `$x`, `%… %%` avant la substitution `%mot`. Autrement, la
+        // forme longue se ferait entamer par la courte et le reste passerait
+        // pour du texte à traduire.
+        genderSelector(characters, start)
+            ?? mailCommand(characters, start)
+            ?? dialogueSeparator(characters, start)
             ?? contentPatcherToken(characters, start)
             ?? positionalPlaceholder(characters, start)
             ?? portraitCommand(characters, start)
             ?? substitution(characters, start)
             ?? itemIndex(characters, start)
             ?? singleCharacterMark(characters, start)
+    }
+
+    /// `${him^her^them}$` — sélection selon le genre du joueur.
+    ///
+    /// 1520 occurrences dans le parc. Sans reconnaissance dédiée, le `^` interne
+    /// passait pour un saut de ligne et les mots pour du texte : traduire
+    /// « him » en « lui » ici casse la sélection.
+    private static func genderSelector(_ c: [Character], _ i: Int) -> Int? {
+        guard i + 1 < c.count, c[i] == "$", c[i + 1] == "{" else { return nil }
+        var j = i + 2
+        while j < c.count, c[j] != "}" { j += 1 }
+        guard j + 1 < c.count, c[j] == "}", c[j + 1] == "$" else { return nil }
+        return j + 2
+    }
+
+    /// `%item … %%`, `%action … %%` — commandes de courrier.
+    ///
+    /// Les arguments sont des identifiants d'objet et des quantités, pas du
+    /// texte : n'en marquer que `%item` laissait le reste à la merci du
+    /// traducteur. 110 occurrences de la première forme dans le parc.
+    private static func mailCommand(_ c: [Character], _ i: Int) -> Int? {
+        guard c[i] == "%" else { return nil }
+        for word in ["item", "action", "revealtaste"] {
+            let end = i + 1 + word.count
+            guard end <= c.count,
+                  String(c[(i + 1)..<end]).lowercased() == word else { continue }
+            // Chercher le `%%` de fermeture, sans franchir une fin de ligne :
+            // un `%` isolé plus loin dans le texte ne ferme rien.
+            var j = end
+            while j + 1 < c.count, !c[j].isNewline {
+                if c[j] == "%" && c[j + 1] == "%" { return j + 2 }
+                j += 1
+            }
+            return nil
+        }
+        return nil
     }
 
     /// `#$b#`, `#$e#` — pause et fin de page dans un dialogue.
