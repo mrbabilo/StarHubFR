@@ -32,13 +32,20 @@ final class LaunchSplashController {
         observer = NotificationCenter.default.addObserver(
             forName: NSWindow.didUpdateNotification, object: nil, queue: .main
         ) { [weak self] note in
-            guard let self, !self.finished,
-                  let window = note.object as? NSWindow,
-                  window !== self.panel,
-                  !(window is NSPanel),
-                  window.styleMask.contains(.titled) else { return }
-            self.mainWindow = window
-            if window.isVisible { window.orderOut(nil) }
+            // `queue: .main` livre l'observateur sur le MainActor, mais le bloc
+            // est typé `@Sendable` et le compilateur ne le sait pas. On le lui
+            // affirme via `assumeIsolated` (vérifié au runtime) plutôt que de
+            // différer : un `orderOut` retardé d'un cycle laisserait la fenêtre
+            // flasher avant d'être masquée. Aucun changement de comportement.
+            MainActor.assumeIsolated {
+                guard let self, !self.finished,
+                      let window = note.object as? NSWindow,
+                      window !== self.panel,
+                      !(window is NSPanel),
+                      window.styleMask.contains(.titled) else { return }
+                self.mainWindow = window
+                if window.isVisible { window.orderOut(nil) }
+            }
         }
     }
 
