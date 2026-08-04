@@ -149,6 +149,77 @@ struct I18nOutlineTests {
         #expect(outline.section(of: "config.Enabled.desc") == "main options")
         #expect(outline.section(of: "config.Connectors.name") == "connectors")
     }
+
+    // MARK: - Rang de section
+
+    @Test func twoSectionsWithTheSameTitleGetDifferentRanks() {
+        // Ridgeside Village porte 65 sections « Spring ». Identifier une section
+        // par son titre les confondrait toutes les 65 : replier l'une les
+        // replierait toutes, et la table des matières tomberait sur la première.
+        let text = """
+        {
+          // Spring
+          "a": "1",
+          // Summer
+          "b": "2",
+          // Spring
+          "c": "3"
+        }
+        """
+        let outline = I18nOutline.read(text)
+        #expect(outline.sectionIndex(of: "a") == 0)
+        #expect(outline.sectionIndex(of: "b") == 1)
+        #expect(outline.sectionIndex(of: "c") == 2)
+        // Le titre, lui, reste bien le même.
+        #expect(outline.section(of: "a") == "Spring")
+        #expect(outline.section(of: "c") == "Spring")
+    }
+
+    @Test func keysAboveTheFirstCommentHaveNoRank() {
+        let text = """
+        {
+          "avant": "1",
+          // Config
+          "apres": "2"
+        }
+        """
+        let outline = I18nOutline.read(text)
+        #expect(outline.sectionIndex(of: "avant") == nil)
+        #expect(outline.sectionIndex(of: "apres") == 0)
+    }
+
+    @Test func keysUnderOneCommentShareOneRank() {
+        let text = """
+        {
+          // Config
+          "a": "1",
+          "b": "2"
+        }
+        """
+        let outline = I18nOutline.read(text)
+        #expect(outline.sectionIndex(of: "a") == 0)
+        #expect(outline.sectionIndex(of: "b") == 0)
+    }
+
+    @Test func decorationLinesDoNotConsumeARank() {
+        // `-----` ne titre rien : lui donner un rang ferait diverger le rang du
+        // titre affiché.
+        let text = "{\n  // -----\n  // Config\n  \"a\": \"1\"\n}"
+        let outline = I18nOutline.read(text)
+        #expect(outline.section(of: "a") == "Config")
+        #expect(outline.sectionIndex(of: "a") == 0)
+    }
+
+    @Test func ranksSurviveCRLF() {
+        // En Swift, `\r\n` est un seul Character : deux bugs le même jour sont
+        // partis d'une comparaison littérale à "\n". Toute suite touchant ce
+        // parcours garde une fixture CRLF.
+        let text = "{\r\n  // Spring\r\n  \"a\": \"1\",\r\n  // Spring\r\n  \"b\": \"2\"\r\n}"
+        let outline = I18nOutline.read(text)
+        #expect(outline.orderedKeys == ["a", "b"])
+        #expect(outline.sectionIndex(of: "a") == 0)
+        #expect(outline.sectionIndex(of: "b") == 1)
+    }
 }
 
 /// Le piège des fins de ligne, déjà payé une fois dans `I18nLenientParser`.

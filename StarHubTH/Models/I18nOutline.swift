@@ -25,13 +25,26 @@ public enum I18nOutline {
         public let orderedKeys: [String]
         /// Le titre de section sous lequel chaque clé se trouve.
         public let sectionByKey: [String: String]
+        /// Le **rang** de cette section dans l'ordre de lecture du fichier.
+        ///
+        /// Le titre ne suffit pas à identifier une section : `[CP] Ridgeside
+        /// Village` en porte 65 nommées « Spring », 1407 de ses 2056 titres
+        /// sont des doublons. Sans ce rang, replier l'une les replierait
+        /// toutes et la navigation tomberait toujours sur la première.
+        public let sectionIndexByKey: [String: Int]
 
-        public init(orderedKeys: [String], sectionByKey: [String: String]) {
+        public init(orderedKeys: [String], sectionByKey: [String: String],
+                    sectionIndexByKey: [String: Int] = [:]) {
             self.orderedKeys = orderedKeys
             self.sectionByKey = sectionByKey
+            self.sectionIndexByKey = sectionIndexByKey
         }
 
         public func section(of key: String) -> String? { sectionByKey[key] }
+
+        /// Le rang de la section d'une clé, `nil` si elle précède tout
+        /// commentaire.
+        public func sectionIndex(of key: String) -> Int? { sectionIndexByKey[key] }
 
         /// Vrai si l'auteur a structuré son fichier — sinon rien à regrouper.
         public var hasSections: Bool { !sectionByKey.isEmpty }
@@ -42,6 +55,9 @@ public enum I18nOutline {
         var orderedKeys: [String] = []
         var sectionByKey: [String: String] = [:]
         var currentSection: String?
+        var currentSectionIndex: Int?
+        var sectionIndexByKey: [String: Int] = [:]
+        var sectionCount = 0
         var depth = 0
         var index = 0
 
@@ -59,6 +75,7 @@ public enum I18nOutline {
                 if literal != "$schema" {
                     orderedKeys.append(literal)
                     if let section = currentSection { sectionByKey[literal] = section }
+                    if let rank = currentSectionIndex { sectionIndexByKey[literal] = rank }
                 }
                 continue
             }
@@ -66,13 +83,21 @@ public enum I18nOutline {
             if character == "/", index + 1 < characters.count {
                 if characters[index + 1] == "/" {
                     let (comment, next) = readLineComment(characters, from: index)
-                    if let title = sectionTitle(comment) { currentSection = title }
+                    if let title = sectionTitle(comment) {
+                        currentSection = title
+                        currentSectionIndex = sectionCount
+                        sectionCount += 1
+                    }
                     index = next
                     continue
                 }
                 if characters[index + 1] == "*" {
                     let (comment, next) = readBlockComment(characters, from: index)
-                    if let title = sectionTitle(comment) { currentSection = title }
+                    if let title = sectionTitle(comment) {
+                        currentSection = title
+                        currentSectionIndex = sectionCount
+                        sectionCount += 1
+                    }
                     index = next
                     continue
                 }
@@ -90,6 +115,7 @@ public enum I18nOutline {
                     if literal != "$schema" {
                         orderedKeys.append(literal)
                         if let section = currentSection { sectionByKey[literal] = section }
+                        if let rank = currentSectionIndex { sectionIndexByKey[literal] = rank }
                     }
                     index = end
                     continue
@@ -103,7 +129,8 @@ public enum I18nOutline {
             index += 1
         }
 
-        return Outline(orderedKeys: orderedKeys, sectionByKey: sectionByKey)
+        return Outline(orderedKeys: orderedKeys, sectionByKey: sectionByKey,
+                       sectionIndexByKey: sectionIndexByKey)
     }
 
     // MARK: - Détail
