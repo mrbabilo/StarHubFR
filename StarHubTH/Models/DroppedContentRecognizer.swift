@@ -157,8 +157,8 @@ public enum DroppedContentRecognizer {
             // lui rendait le reconnaisseur aveugle au cas même qui l'a fait
             // naître.
             guard let data = fileManager.contents(atPath: url.path),
-                  let text = String(data: data, encoding: .utf8),
-                  let object = I18nLenientParser.lenientObject(text),
+                  let decoded = I18nFileDecoder.decode(data),
+                  let object = I18nLenientParser.lenientObject(decoded.text),
                   let match = rule(forJSONKeys: Set(object.keys))
             else { continue }
             return (match, url)

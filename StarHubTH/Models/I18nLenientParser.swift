@@ -78,6 +78,17 @@ enum I18nLenientParser {
     /// c'est une annotation d'éditeur, pas une traduction. **Divergence assumée
     /// avec SMAPI**, qui la traite comme une clé ordinaire — sans quoi nos
     /// totaux différeraient des siens de un.
+    /// Les entrées d'un fichier i18n **depuis ses octets**.
+    ///
+    /// C'est la porte d'entrée à préférer : décoder d'abord en `String` avec
+    /// `String(data:encoding:.utf8)` rejetait quatre fichiers du parc que le jeu
+    /// lit très bien — un en UTF-16, trois dans un jeu 8 bits hérité. Voir
+    /// `I18nFileDecoder`.
+    static func parse(_ data: Data) throws -> [String: String] {
+        guard let decoded = I18nFileDecoder.decode(data) else { throw ParseError.malformed }
+        return try parse(decoded.text)
+    }
+
     static func parse(_ text: String) throws -> [String: String] {
         guard let object = lenientObject(text) else { throw ParseError.malformed }
         var out: [String: String] = [:]

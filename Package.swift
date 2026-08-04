@@ -44,6 +44,7 @@ let package = Package(
                 "Models/DroppedContentRecognizer.swift",
                 "Models/TranslationBackupFinder.swift",
                 "Models/TranslationTokens.swift",
+                "Models/I18nFileDecoder.swift",
                 "Models/I18nLenientParser.swift",
                 "Models/I18nLocaleResolver.swift",
                 "Models/TranslationCoverage.swift",
@@ -75,6 +76,11 @@ let package = Package(
             name: "ModZipInstallerTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ModZipInstallerTests"
+        ),
+        .testTarget(
+            name: "I18nDecodingTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/I18nDecodingTests"
         ),
         .testTarget(
             name: "TranslationTokenTests",

@@ -260,9 +260,10 @@ public enum TranslationCoverage {
         guard !files.isEmpty else { return nil }
         var parsed: [[String: String]] = []
         for file in files {
+            // Depuis les octets : quatre fichiers du parc ne sont pas en
+            // UTF-8, et le jeu les lit malgré tout (cf. `I18nFileDecoder`).
             guard let data = fileManager.contents(atPath: file.path),
-                  let text = String(data: data, encoding: .utf8),
-                  let map = try? I18nLenientParser.parse(text)
+                  let map = try? I18nLenientParser.parse(data)
             else { continue }
             parsed.append(map)
         }
