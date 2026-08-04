@@ -61,6 +61,30 @@ class ModZipInstaller {
         return archiveExtension(forSignature: [UInt8](handle.readData(ofLength: 8)))
     }
 
+    /// Total non compressé d'un listing `7zz l -slt` : somme des lignes
+    /// `Size = <octets>` (une par entrée du fichier). Les en-têtes `Physical
+    /// Size` et `Headers Size`, ainsi que `Packed Size`, ont un préfixe qui les
+    /// distingue d'une ligne `Size =` nue et sont ignorés. Renvoie `nil` si
+    /// aucune taille d'entrée n'est lue (sortie vide, ou archive chiffrée sans
+    /// mot de passe) — l'appelant fail-open dans ce cas, comme pour `unzip -l`.
+    static func totalSizeFromSevenZipListing(_ output: String) -> Int64? {
+        var total: Int64 = 0
+        var found = false
+        for raw in output.split(separator: "\n", omittingEmptySubsequences: false) {
+            // `.whitespacesAndNewlines` plutôt que `.whitespaces` : un éventuel
+            // `\r` final (CRLF) ne doit pas pourrir le `Int64` ci-dessous.
+            let line = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard line.hasPrefix("Size =") else { continue }
+            let value = line.dropFirst("Size =".count)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            if let n = Int64(value) {
+                total += n
+                found = true
+            }
+        }
+        return found ? total : nil
+    }
+
     /// Retire l'extension d'archive d'un nom de fichier, pour en tirer un nom de
     /// dossier propre.
     static func strippingArchiveExtension(from name: String) -> String {
@@ -159,6 +183,33 @@ class ModZipInstaller {
         return nil
     }
 
+    /// Même rôle que `uncompressedSize(ofZipAt:)`, mais pour les formats que
+    /// `unzip -l` ne sait pas lister (7z, et rar via l'outil 7z qui le lit
+    /// aussi). S'appuie sur le même outil que l'extraction (`find7zTool`) : s'il
+    /// est absent, le listing renvoie nil — mais l'extraction échouerait alors
+    /// de la même façon (`rarToolMissing`/pas d'outil), donc aucune bombe n'est
+    /// écrite. Le total vient du parseur testé `totalSizeFromSevenZipListing`.
+    private func uncompressedSizeViaSevenZip(at url: URL) -> Int64? {
+        guard let tool = Self.find7zTool() else { return nil }
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: tool.path)
+        process.arguments = ["l", "-slt", url.path]
+        process.environment = Self.cLocaleEnvironment
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = Pipe()
+        do {
+            try process.run()
+        } catch {
+            return nil
+        }
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+        guard process.terminationStatus == 0,
+              let output = String(data: data, encoding: .utf8) else { return nil }
+        return Self.totalSizeFromSevenZipListing(output)
+    }
+
     // MARK: - Analysis
 
     /// Analyzes a zip file's contents and returns detailed information.
@@ -175,8 +226,13 @@ class ModZipInstaller {
 
         // Check the *uncompressed* size the archive would expand to before
         // extracting anything, so a zip-bomb never gets written to disk in
-        // the first place.
-        if let uncompressed = uncompressedSize(ofZipAt: url), uncompressed > maxExtractedSize {
+        // the first place. `unzip -l` ne liste que le zip ; le 7z (et le rar
+        // via l'outil 7z) passe par `uncompressedSizeViaSevenZip`.
+        let format = Self.detectedArchiveExtension(at: url)
+        let uncompressed = format == "zip"
+            ? uncompressedSize(ofZipAt: url)
+            : uncompressedSizeViaSevenZip(at: url)
+        if uncompressed ?? 0 > maxExtractedSize {
             return ZipModInfo(zipName: url.lastPathComponent, detectedMods: [], validationStatus: .oversized, conflicts: [], estimatedSize: 0)
         }
 

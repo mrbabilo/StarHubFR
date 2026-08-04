@@ -595,6 +595,33 @@ struct InstallerTestEnv {
         #expect(ModZipInstaller.detectedArchiveExtension(at: url) == "7z")
     }
 
+    @Test func sevenZipListingTotalSizeSumsEachFile() {
+        // `7zz l -slt` décrit chaque entrée en lignes clé-valeur ; la taille non
+        // compressée d'un fichier est sa ligne `Size = <octets>`. Le total est
+        // ce que la garde anti-zip-bomb compare au plafond, pour les formats que
+        // `unzip -l` ne sait pas lister (7z, et rar via 7zz).
+        let listing = """
+        Path = probe.7z
+        Type = 7z
+        Physical Size = 287
+        Headers Size = 161
+
+        Path = a.bin
+        Size = 100000
+        Packed Size = 126
+
+        Path = b.bin
+        Size = 250000
+        Packed Size =
+        """
+        #expect(ModZipInstaller.totalSizeFromSevenZipListing(listing) == 350000)
+        // Les en-têtes `Physical Size` / `Headers Size` ne sont pas des `Size =`
+        // nus : ils ne doivent pas gonfler le total. Aucune entrée → nil
+        // (fail-open, cohérent avec `unzip -l`).
+        #expect(ModZipInstaller.totalSizeFromSevenZipListing("Physical Size = 287\nHeaders Size = 161\n") == nil)
+        #expect(ModZipInstaller.totalSizeFromSevenZipListing("n'importe quoi") == nil)
+    }
+
     @Test func folderNameDropsWhicheverArchiveExtensionItHas() {
         // Une archive sans dossier englobant donne son nom au dossier installé.
         // Ne retirer que « .zip » produisait « MonMod.7z » sous Mods/.
