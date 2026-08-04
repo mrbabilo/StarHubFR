@@ -13,6 +13,9 @@ where the exact log format was verified.
 ## [Unreleased]
 
 ### Added
+- **See the French of a mod key by key.** A new Translation tab on a mod's page lists every key with its English and French side by side, and what state it's in — translated, to translate, empty, same as English, orphan. Each filter carries its count, so "Empty 3" catches the eye before you click. Components of a multi-part mod stay separate, each with its own English source.
+- **What must not be translated is now visible.** A translation value mixes the sentence with marks the game reads: a Content Patcher token, a dialogue separator, the command that changes a portrait's expression. Translate or move one and the mod breaks. They now show in monospace and colour, in both columns. Across 450 French files, 54% of values contain at least one.
+- **A French translation lost to a mod update is now reported.** Mod updates replace the whole folder, and authors don't always ship back the community translations sent to them — the `fr.json` just vanishes. Where a StarHubFR backup still holds one, the mod's page says so with its date. In a real library that's 43 of the 86 translatable mods without French: half of them.
 - **A mod's page now says what's missing from its French, not just how much.** A key that's *absent* falls back to English and nothing breaks; a key that's *empty* shows nothing at all, silently — a mod at 98% whose last 2% are empty is more broken than one at 60%. The two are listed separately, empty first. 24 mods in a real library carry empty keys and nothing flagged them. A progress bar and the key counts sit above.
 - **The translation filter can now show the mods you've started but not finished.** 392 mods fully translated against 31 partly done: those 31 are the work left, and they were unfindable among the rest.
 - **Every mod now shows how much of it is actually translated into French.** The list carried "FR available" as soon as an `fr.json` existed — a half-truth on a mod translated at 8%. A pill now gives the rate: green when it's complete, amber when it isn't. It only reads 100% when every key is done, so a mod one key short reads 99%. The figure is measured in the background after a scan, so it appears shortly after the list.
@@ -25,7 +28,6 @@ where the exact log format was verified.
 - **An archive that isn't a mod no longer tells you to check the file for damage.** Refusing it is right; sending you to re-download an intact file was not. The app now says the archive is fine and what the file appears to be. Same for a dropped file whose format isn't supported.
 
 ### Changed
-- **Internal —** Groundwork for the key-by-key EN/FR view: a mod's components are diffed separately, each against its own `default.json`, so two components defining the same key stay two lines to translate. Nothing displays it yet.
 - **Internal —** Every shipped build now carries its own build number. `release.py` increments `CFBundleVersion` before building instead of it being kept by hand, which is the number macOS and any future update check compare. The version you see is unchanged.
 - **Internal —** Development tooling: a domain-knowledge document for contributors, and a ratchet that fails the build on any *new* breach of the project's Swift conventions while leaving the existing ones alone.
 
