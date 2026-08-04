@@ -31,6 +31,9 @@ struct ModDetailView: View {
     /// Position optimiste de l'interrupteur pendant que le dossier est renommé,
     /// `nil` dès que `vm.mods` a rattrapé — même mécanique que la liste.
     @State private var localIsOn: Bool? = nil
+    /// Debounce du toggle : annule un toggle en attente si l'utilisateur
+    /// rebascule avant le délai (sinon le 1er clic d'un double-clic gagnait).
+    @State private var pendingToggle: DispatchWorkItem? = nil
     @State private var showDeleteConfirm = false
 
     /// Une traduction française retrouvée dans une sauvegarde, pour un mod qui
@@ -198,13 +201,18 @@ struct ModDetailView: View {
                         // que `vm.mods` a rattrapé, sinon l'interrupteur revient
                         // visiblement en arrière le temps du rescan.
                         localIsOn = newValue
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        // Annule un toggle en attente : sans cela, un double-clic
+                        // laissait deux timers tirer et le 1er clic gagnait.
+                        pendingToggle?.cancel()
+                        let work = DispatchWorkItem {
                             if newValue != live.isEnabled {
                                 vm.toggleMod(live) { localIsOn = nil }
                             } else {
                                 localIsOn = nil
                             }
                         }
+                        pendingToggle = work
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: work)
                     }
                 ))
                 .toggleStyle(SwitchToggleStyle(tint: Color(red: 0.20, green: 0.65, blue: 0.35)))

@@ -1089,6 +1089,10 @@ struct ModListRow: View {
     var isGroupHeader: Bool = false
     @Binding var isExpanded: Bool
     @State private var localIsOn: Bool?
+    /// Debounce du toggle : annule un toggle en attente si l'utilisateur
+    /// rebascule avant le délai — sinon un double-clic laissait les deux timers
+    /// tirer et le 1er clic gagnait (l'utilisateur finit sur OFF, le mod s'active).
+    @State private var pendingToggle: DispatchWorkItem?
     /// Drives the confirmation dialog before deleting this row's mod.
     @State private var showDeleteConfirm = false
 
@@ -1446,7 +1450,11 @@ struct ModListRow: View {
                         get: { localIsOn ?? mod.isEnabled },
                         set: { newValue in
                             localIsOn = newValue
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            // Annule un toggle en attente : sans cela, un
+                            // double-clic laissait deux timers tirer et le 1er
+                            // clic gagnait au lieu du dernier.
+                            pendingToggle?.cancel()
+                            let work = DispatchWorkItem {
                                 if newValue != mod.isEnabled {
                                     // Keep the optimistic value until toggleMod's completion
                                     // confirms vm.mods has actually caught up — clearing it
@@ -1459,6 +1467,8 @@ struct ModListRow: View {
                                     localIsOn = nil
                                 }
                             }
+                            pendingToggle = work
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: work)
                         }
                     ))
                         .toggleStyle(SwitchToggleStyle(tint: Color(red: 0.20, green: 0.65, blue: 0.35)))
