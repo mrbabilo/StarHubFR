@@ -634,7 +634,11 @@ public class SaveManager {
 
     public func branchFromBackup(backup: SaveBackup, newName: String, newFarm: String) -> Bool {
         let backupFolderPath = backup.folderPath
-        let originalSaveName = String(backupFolderPath.lastPathComponent.split(separator: ".")[0])
+        // `backup.saveFolder` porte le nom d'origine de la partie (ex. « Farm.1 »).
+        // L'ancien `split(".")[0]` l'amputait à « Farm » dès qu'il contenait un
+        // point, le fichier interne n'était alors jamais renommé et Stardew
+        // ignorait la branche (nom dossier ≠ nom fichier).
+        let originalSaveName = backup.saveFolder
         return cloneSaveFolder(sourceFolder: backupFolderPath, baseName: originalSaveName, suffix: "branch", newPlayerName: newName, newFarmName: newFarm, context: "branch backup")
     }
 

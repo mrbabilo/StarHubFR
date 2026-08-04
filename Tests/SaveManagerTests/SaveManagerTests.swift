@@ -106,4 +106,29 @@ struct TestEnvironment {
         #expect(save.folderName == "SmokeTest")
         #expect(save.playerName == "TestPlayer")
     }
+
+    @Test func branchFromBackupKeepsDotsInSaveName() throws {
+        // Une partie dont le nom contient un point (« Farm.1 ») : l'ancien
+        // `split(".")[0]` la réduisait à « Farm », le fichier interne n'était
+        // jamais renommé, et Stardew ignorait la branche (nom dossier ≠ nom
+        // fichier). On lit désormais le nom d'origine porté par le backup.
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let info = try env.makeSave(named: "Farm.1", content: "<SaveGame><name>Farm.1</name></SaveGame>")
+        #expect(SaveManager.shared.backupSave(info: info))
+
+        let backups = SaveManager.shared.listBackups(for: info)
+        try #require(backups.count == 1)
+        #expect(backups[0].saveFolder == "Farm.1")
+
+        #expect(SaveManager.shared.branchFromBackup(backup: backups[0], newName: "Alice", newFarm: "NewFarm"))
+
+        // Le fichier interne de la branche doit porter le nom du dossier
+        // (Farm.1_branch) — pas rester « Farm.1 », sinon Stardew ne voit pas
+        // la sauvegarde.
+        let branchedFile = env.savesDir.appendingPathComponent("Farm.1_branch")
+            .appendingPathComponent("Farm.1_branch")
+        #expect(FileManager.default.fileExists(atPath: branchedFile.path))
+    }
 }
