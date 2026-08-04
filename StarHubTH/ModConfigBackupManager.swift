@@ -1,7 +1,7 @@
 import Foundation
 
 /// Backs up and restores enabled mods' `config.json` plus every
-/// language/translation file (see `targetFiles`).
+/// language/translation file (see `ModConfigFiles.preservable`).
 ///
 /// Mirrors `SaveManager`'s style: a plain singleton with synchronous,
 /// throwing methods. This class does no threading of its own — callers
@@ -39,10 +39,6 @@ public class ModConfigBackupManager {
     // `saveIndex` silently discards the first call's change.
     private let indexLock = NSLock()
 
-    /// Liste des fichiers préservés — déléguée à `ModConfigFiles.preservable`
-    /// pour rester cohérente avec la conservation automatique lors d'une mise
-    /// à jour (`ModZipInstaller`).
-    private static let targetFiles: Set<String> = ModConfigFiles.preservable
     private static let minBackupsToKeep = 5
     private static let maxBackupAge: TimeInterval = 30 * 24 * 60 * 60
 
@@ -132,7 +128,7 @@ public class ModConfigBackupManager {
                 // component) so the backup/restore folder mirrors the real
                 // on-disk location instead of a flattened one.
                 let leafPath = (modsPath as NSString).appendingPathComponent(leaf.folderName)
-                let found = findConfigFiles(underModFolderPath: leafPath)
+                let found = ModConfigFiles.preservableFiles(under: leafPath)
                 guard !found.isEmpty else { continue }
 
                 let destDir = destinationDir(in: backupDir, leafFolderName: leaf.folderName)
@@ -140,15 +136,19 @@ public class ModConfigBackupManager {
 
                 var fileNames: [String] = []
                 var fileSizes: [String: Int] = [:]
-                for (filename, sourceURL) in found {
-                    let destURL = destDir.appendingPathComponent(filename)
+                for (relativePath, sourceURL) in found {
+                    // Préserve le sous-dossier i18n/ (destDir/i18n/fr.json, pas
+                    // destDir/fr.json) : sinon le restore aplatit et SMAPI ne
+                    // retrouverait pas la traduction à son emplacement réel.
+                    let destURL = destDir.appendingPathComponent(relativePath)
+                    try fm.createDirectory(at: destURL.deletingLastPathComponent(), withIntermediateDirectories: true)
                     if fm.fileExists(atPath: destURL.path) {
                         try? fm.removeItem(at: destURL)
                     }
                     try fm.copyItem(at: sourceURL, to: destURL)
                     let size = (try? fm.attributesOfItem(atPath: destURL.path))?[.size] as? Int ?? 0
-                    fileNames.append(filename)
-                    fileSizes[filename] = size
+                    fileNames.append(relativePath)
+                    fileSizes[relativePath] = size
                     totalSize += size
                 }
 
@@ -208,26 +208,6 @@ public class ModConfigBackupManager {
         baseDir.appendingPathComponent(leafFolderName)
     }
 
-    /// Recursively finds `config.json` and any language file (see
-    /// `targetFiles`) anywhere under a single mod's folder.
-    private func findConfigFiles(underModFolderPath path: String) -> [(filename: String, url: URL)] {
-        guard let enumerator = fm.enumerator(
-            at: URL(fileURLWithPath: path),
-            includingPropertiesForKeys: [.isRegularFileKey],
-            options: [.skipsHiddenFiles]
-        ) else {
-            return []
-        }
-        var found: [(String, URL)] = []
-        for case let fileURL as URL in enumerator {
-            let name = fileURL.lastPathComponent
-            if Self.targetFiles.contains(name) {
-                found.append((name, fileURL))
-            }
-        }
-        return found
-    }
-
     /// Builds a fresh, unique folder name for a new backup. A UUID suffix
     /// guarantees each backup gets its own directory even when several are
     /// created within the same second (e.g. a manual backup racing an
@@ -278,13 +258,16 @@ public class ModConfigBackupManager {
             // the actual cause.
             try fm.createDirectory(at: targetDir, withIntermediateDirectories: true)
 
-            for filename in item.files {
-                let source = sourceDir.appendingPathComponent(filename)
+            for relativePath in item.files {
+                let source = sourceDir.appendingPathComponent(relativePath)
                 guard fm.fileExists(atPath: source.path) else {
-                    print("ModConfigBackup restore: file missing \(filename) for \(item.modFolderName), skipping")
+                    print("ModConfigBackup restore: file missing \(relativePath) for \(item.modFolderName), skipping")
                     continue
                 }
-                let target = targetDir.appendingPathComponent(filename)
+                let target = targetDir.appendingPathComponent(relativePath)
+                // Recrée le sous-dossier i18n/ si l'état live ne l'a plus
+                // (traduction disparue entre le backup et maintenant).
+                try fm.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
                 // copyItem throws if the destination already exists — which
                 // it always does on a restore (the live config being
                 // overwritten) — so the existing file must be removed first.

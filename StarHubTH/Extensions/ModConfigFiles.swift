@@ -29,11 +29,11 @@ enum ModConfigFiles {
     /// mise à jour avec backup (B4-T4 — 16 `fr.json` du parc de référence ne
     /// survivent qu'en sauvegarde). Voir `docs/DOMAINE.md` §5.
     ///
-    /// Source unique pour la conservation à l'update (`ModZipInstaller`).
-    /// `ModConfigBackupManager.findConfigFiles` est encore une copie parallèle
-    /// à unifier ici : en l'état, le backup manuel aplatit les fichiers de langue
-    /// et les restore à la racine du mod au lieu de `i18n/` (bug associé, à
-    /// corriger séparément).
+    /// Source unique partagée entre la conservation à l'update
+    /// (`ModZipInstaller`) et le backup manuel (`ModConfigBackupManager`) :
+    /// une seule logique de recherche pour qu'elles ne divergent plus, et le
+    /// chemin relatif garantit que les fichiers de langue reviennent sous
+    /// `i18n/` dans les deux cas.
     static func preservableFiles(under modFolder: String) -> [(relativePath: String, url: URL)] {
         let fm = FileManager.default
         let baseURL = URL(fileURLWithPath: modFolder, isDirectory: true)

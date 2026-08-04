@@ -269,6 +269,60 @@ struct TestEnvironment {
         #expect(restoredContent == "{\"value\": \"original\"}")
     }
 
+    @Test func createBackupPreservesLanguageFileRelativePath() throws {
+        // Les fichiers de langue vivent sous i18n/, pas à la racine. Le backup
+        // doit conserver ce chemin relatif — sinon le restore (plus bas) ne
+        // saurait pas remettre le fichier sous i18n/ et SMAPI ne le lirait pas.
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let modDir = env.modsDir.appendingPathComponent("TranslatedI18nMod", isDirectory: true)
+        try writeTestFile(in: modDir, filename: "config.json", content: "{\"v\":1}")
+        try writeTestFile(in: modDir.appendingPathComponent("i18n"), filename: "fr.json", content: "{\"k\":\"Bonjour\"}")
+        try writeTestFile(in: modDir.appendingPathComponent("i18n"), filename: "default.json", content: "{\"k\":\"Hi\"}")
+
+        let mod = makeTestMod(folderName: "TranslatedI18nMod")
+        let backup = try env.manager.createBackup(gameDir: env.gameDir, mods: [mod])
+
+        #expect(backup.items.count == 1)
+        let files = Set(backup.items[0].files)
+        #expect(files.contains("config.json"))
+        #expect(files.contains("i18n/fr.json"))
+        #expect(files.contains("i18n/default.json"))
+        // Chemin relatif, pas nom aplati :
+        #expect(!files.contains("fr.json"))
+    }
+
+    @Test func restoreBackupPutsLanguageFilesBackInI18nFolder() throws {
+        // La traduction communautaire (i18n/fr.json) doit survivre à un
+        // cycle backup → perte → restore, et retourner SOUS i18n/.
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let modDir = env.modsDir.appendingPathComponent("RestoreI18nMod", isDirectory: true)
+        try writeTestFile(in: modDir, filename: "config.json", content: "{\"v\":1}")
+        let i18nDir = modDir.appendingPathComponent("i18n")
+        try writeTestFile(in: i18nDir, filename: "fr.json", content: "{\"k\":\"Bonjour\"}")
+
+        let mod = makeTestMod(folderName: "RestoreI18nMod")
+        let backup = try env.manager.createBackup(gameDir: env.gameDir, mods: [mod])
+
+        // L'archive neuve ne redistribue pas le fr.json communautaire.
+        try? FileManager.default.removeItem(at: i18nDir.appendingPathComponent("fr.json"))
+
+        try env.manager.restoreBackup(
+            gameDir: env.gameDir,
+            backup: backup,
+            selectedItems: backup.items,
+            currentMods: [mod]
+        )
+
+        let restored = i18nDir.appendingPathComponent("fr.json")
+        #expect(FileManager.default.fileExists(atPath: restored.path))
+        let content = try String(contentsOf: restored, encoding: .utf8)
+        #expect(content.contains("Bonjour"))
+    }
+
     @Test func deleteBackupRemovesItFromTheIndex() throws {
         let env = TestEnvironment()
         defer { env.cleanup() }
