@@ -85,6 +85,26 @@ class ModZipInstaller {
         return found ? total : nil
     }
 
+    /// Noms d'entries extraits d'un listing `7zz l -slt` (lignes `Path = …`).
+    /// Symétrique au parseur de taille `totalSizeFromSevenZipListing`. Sert à la
+    /// garde zip-slip. Audit 2026-08-05.
+    static func pathNamesFromSevenZipListing(_ output: String) -> [String] {
+        output.split(separator: "\n", omittingEmptySubsequences: false).compactMap { raw in
+            let line = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard line.hasPrefix("Path =") else { return nil }
+            return String(line.dropFirst("Path =".count)).trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+    }
+
+    /// Vrai si un des noms d'entries tente un path-traversal : composante `..`
+    /// (ex. `../../etc/x`) ou chemin absolu (`/etc/x`). `unzip` (Info-ZIP)
+    /// extrait ces entries hors de destDir (zip-slip). Logique pure, testée.
+    static func containsTraversalPath(_ names: [String]) -> Bool {
+        names.contains { name in
+            name.hasPrefix("/") || name.split(separator: "/").contains("..")
+        }
+    }
+
     /// Retire l'extension d'archive d'un nom de fichier, pour en tirer un nom de
     /// dossier propre.
     static func strippingArchiveExtension(from name: String) -> String {
@@ -208,6 +228,39 @@ class ModZipInstaller {
         guard process.terminationStatus == 0,
               let output = String(data: data, encoding: .utf8) else { return nil }
         return Self.totalSizeFromSevenZipListing(output)
+    }
+
+    /// Vrai si l'archive contient une entry en path-traversal (zip-slip).
+    /// Pré-validé avant extraction : `unzip` (Info-ZIP) extrait les `../`
+    /// hors de destDir ; 7zz/unrar modernes les sanitizent, mais on garde pour
+    /// les deux par défense en profondeur. Fail-open si le listing échoue
+    /// (l'extraction échouerait aussi). Audit 2026-08-05.
+    private static func hasTraversalEntry(zipUrl: URL, ext: String) -> Bool {
+        let process = Process()
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = Pipe()
+        process.environment = Self.cLocaleEnvironment
+        if ext == "zip" {
+            // `-Z1` (mode ZipInfo) liste les noms d'entries, un par ligne.
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
+            process.arguments = ["-Z1", zipUrl.path]
+        } else {
+            // 7z et rar lus par l'outil 7z (cf. commentaire uncompressedSizeViaSevenZip).
+            guard let tool = Self.find7zTool() else { return false }
+            process.executableURL = URL(fileURLWithPath: tool.path)
+            process.arguments = ["l", "-slt", zipUrl.path]
+        }
+        guard (try? process.run()) != nil else { return false }
+        process.waitUntilExit()
+        guard process.terminationStatus == 0,
+              let output = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) else {
+            return false
+        }
+        let names = ext == "zip"
+            ? output.split(separator: "\n").map(String.init)
+            : Self.pathNamesFromSevenZipListing(output)
+        return Self.containsTraversalPath(names)
     }
 
     // MARK: - Analysis
@@ -512,6 +565,12 @@ class ModZipInstaller {
         // le bon outil d'extraction. L'extension n'est qu'un repli, atteint
         // seulement si `validateZip` a été contournée.
         let ext = Self.detectedArchiveExtension(at: zipUrl) ?? zipUrl.pathExtension.lowercased()
+
+        // Garde zip-slip : refuser toute entry en path-traversal avant d'extraire
+        // (unzip extrait les `../` hors de destDir). Audit 2026-08-05.
+        if Self.hasTraversalEntry(zipUrl: zipUrl, ext: ext) {
+            throw InstallError.extractionFailed
+        }
 
         if ext == "zip" {
             let process = Process()
