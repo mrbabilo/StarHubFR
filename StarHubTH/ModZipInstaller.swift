@@ -908,10 +908,31 @@ class ModZipInstaller {
             // and ModConfigBackupManager.
             let destParent = (destPath as NSString).deletingLastPathComponent
             try fm.createDirectory(atPath: destParent, withIntermediateDirectories: true, attributes: nil)
+            // Back up any pre-existing destination in tempDir (NOT in Mods/,
+            // where a `.rollback_*` folder would be picked up by the scanner
+            // as a paused mod). A failed copy restores it instead of leaving
+            // the user with nothing — audit 2026-08-05 (removeItem puis copyItem
+            // sans rollback = data-loss si copyItem échoue, ex. disque plein).
+            var rollbackBackup: String? = nil
             if fm.fileExists(atPath: destPath) {
-                try fm.removeItem(atPath: destPath)
+                let bk = tempDir.appendingPathComponent(".rollback_\(UUID().uuidString)").path
+                try fm.moveItem(atPath: destPath, toPath: bk)
+                rollbackBackup = bk
             }
-            try fm.copyItem(atPath: sourcePath.path, toPath: destPath)
+            do {
+                try fm.copyItem(atPath: sourcePath.path, toPath: destPath)
+                // Succès : le backup n'est plus nécessaire.
+                if let bk = rollbackBackup {
+                    try? Self.removeItemGrantingWriteAccess(atPath: bk)
+                }
+            } catch {
+                if let bk = rollbackBackup {
+                    // Effacer la copie partielle puis restaurer l'original.
+                    try? Self.removeItemGrantingWriteAccess(atPath: destPath)
+                    try? fm.moveItem(atPath: bk, toPath: destPath)
+                }
+                throw error
+            }
 
             // Touch the installed folder's mtime to NOW. `copyItem` preserves
             // the source folder's mtime (which reflects when the modder
