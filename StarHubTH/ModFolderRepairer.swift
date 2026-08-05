@@ -75,22 +75,9 @@ public struct ModFolderRepairer {
 
     // MARK: - Constants (mirrors the reference Python cleaner)
 
-    /// OS metadata files that Stardew/SMAPI never uses and that commonly sneak
-    /// in via zips downloaded from Nexus.
-    private static let osJunkFiles: Set<String> = [
-        ".DS_Store",
-        "Thumbs.db",
-        "ehthumbs.db",
-        "Icon\r",
-    ]
-    /// OS metadata directories to remove wholesale.
-    private static let osJunkFolders: Set<String> = [
-        "__MACOSX",
-        ".Spotlight-V100",
-        ".Trashes",
-    ]
-    /// macOS AppleDouble resource-fork files: `._<filename>`.
-    private static let appleDoublePrefix = "._"
+    // Fichiers/dossiers junk OS et préfixe AppleDouble : source unique `OSJunk`
+    // (Models/OSJunk.swift). Ce fichier gardait une copie conforme, divergente
+    // dès qu'OSJunk est enrichi — la quatrième copie (cf. diverging-copies-hide-bugs).
     /// Public so the scanner can skip `_Trash_*` folders (mods quarantined by
     /// a prior repair run) without re-deriving the prefix.
     public static let trashPrefix = "_Trash_"
@@ -167,7 +154,7 @@ public struct ModFolderRepairer {
         for entry in topEntries {
             // Skip hidden top-level entries UNLESS they are known OS junk
             // (.DS_Store, ._*, etc.) which we actively quarantine.
-            let isOsJunk = Self.osJunkFiles.contains(entry) || entry.hasPrefix(Self.appleDoublePrefix)
+            let isOsJunk = OSJunk.files.contains(entry) || entry.hasPrefix(OSJunk.appleDoublePrefix)
             if entry.hasPrefix(".") && !isOsJunk { continue }
 
             let fullPath = (modsRoot as NSString).appendingPathComponent(entry)
@@ -187,7 +174,7 @@ public struct ModFolderRepairer {
                 }
 
                 // OS junk folder (e.g. __MACOSX) → quarantine wholesale.
-                if Self.osJunkFolders.contains(entry) {
+                if OSJunk.folders.contains(entry) {
                     if moveToTrash(fullPath: fullPath, modsRoot: modsRoot, gameDir: gameDir, trashProvider: trashProvider) {
                         items.append(Item(kind: .osJunkFolder, relativePath: rel,
                                           reason: "OS metadata folder (\(entry)), not used by Stardew/SMAPI."))
@@ -219,14 +206,14 @@ public struct ModFolderRepairer {
             // OS junk files anywhere in the tree are swept in a second pass
             // below; here we only handle loose files sitting directly at the
             // root of Mods/ (a common clutter case).
-            if Self.osJunkFiles.contains(entry) {
+            if OSJunk.files.contains(entry) {
                 if moveToTrash(fullPath: fullPath, modsRoot: modsRoot, gameDir: gameDir, trashProvider: trashProvider) {
                     items.append(Item(kind: .osJunkFile, relativePath: rel,
                                       reason: "OS metadata file (\(entry)), not used by Stardew/SMAPI."))
                 }
                 continue
             }
-            if entry.hasPrefix(Self.appleDoublePrefix) {
+            if entry.hasPrefix(OSJunk.appleDoublePrefix) {
                 if moveToTrash(fullPath: fullPath, modsRoot: modsRoot, gameDir: gameDir, trashProvider: trashProvider) {
                     items.append(Item(kind: .appleDouble, relativePath: rel,
                                       reason: "macOS AppleDouble resource-fork file, not used by Stardew/SMAPI."))
@@ -282,12 +269,12 @@ public struct ModFolderRepairer {
             fm.fileExists(atPath: fullPath, isDirectory: &isDir)
             if isDir.boolValue { continue }
 
-            if Self.osJunkFiles.contains(filename) {
+            if OSJunk.files.contains(filename) {
                 if moveToTrash(fullPath: fullPath, modsRoot: resolvedRoot, gameDir: gameDir, trashProvider: trashProvider) {
                     items.append(Item(kind: .osJunkFile, relativePath: rel,
                                       reason: "OS metadata file (\(filename)), not used by Stardew/SMAPI."))
                 }
-            } else if filename.hasPrefix(Self.appleDoublePrefix) {
+            } else if filename.hasPrefix(OSJunk.appleDoublePrefix) {
                 if moveToTrash(fullPath: fullPath, modsRoot: resolvedRoot, gameDir: gameDir, trashProvider: trashProvider) {
                     items.append(Item(kind: .appleDouble, relativePath: rel,
                                       reason: "macOS AppleDouble resource-fork file, not used by Stardew/SMAPI."))
@@ -413,13 +400,13 @@ public struct ModFolderRepairer {
             // stored folder name so duplicates compare against the logical
             // name on both sides.
             let topFolder = (rel as NSString).components(separatedBy: "/").first ?? rel
-            let isDisabled = topFolder.hasPrefix(".") && !Self.osJunkFiles.contains(topFolder) && !topFolder.hasPrefix(Self.appleDoublePrefix)
+            let isDisabled = topFolder.hasPrefix(".") && !OSJunk.files.contains(topFolder) && !topFolder.hasPrefix(OSJunk.appleDoublePrefix)
             let logicalFolder = isDisabled ? String(topFolder.dropFirst()) : topFolder
 
             // Skip manifests nested under a known OS junk folder at the top
             // level (e.g. `__MACOSX/...`). These would otherwise pollute the
             // duplicate-detection set with throwaway UniqueIDs.
-            if Self.osJunkFolders.contains(topFolder) { continue }
+            if OSJunk.folders.contains(topFolder) { continue }
 
             guard let data = try? Data(contentsOf: fileURL),
                   let raw = String(data: data, encoding: .utf8) else { continue }

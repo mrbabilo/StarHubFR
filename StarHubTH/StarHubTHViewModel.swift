@@ -987,11 +987,12 @@ class StarHubTHViewModel: ObservableObject {
         // removal of the one-shot migration method (plan step 17).
         let disabledModsPath = (gameDir as NSString).appendingPathComponent("Mods_disabled")
         if fm.fileExists(atPath: disabledModsPath) {
+            // Source unique OSJunk.isJunk (files + folders + AppleDouble). La liste
+            // inline précédente omettait Icon\r, .Spotlight-V100 et .Trashes → un
+            // Mods_disabled/ ne contenant que ces résidus déclenchait un faux
+            // warning « still contains mods » (divergence de copie).
             let hasNonJunk = (try? fm.contentsOfDirectory(atPath: disabledModsPath))?
-                .contains { entry in
-                    !(entry == ".DS_Store" || entry == "Thumbs.db" || entry == "ehthumbs.db"
-                      || entry == "__MACOSX" || entry.hasPrefix("._"))
-                } ?? false
+                .contains { entry in !OSJunk.isJunk(entry) } ?? false
             if hasNonJunk {
                 log("Mods_disabled/ still contains mods — they are now invisible to StarHubTH. Reinstall them via drag-and-drop to make them appear under Mods/.", level: .warning)
             }
