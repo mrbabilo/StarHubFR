@@ -24,6 +24,14 @@ public enum I18nOutline {
         /// Les clés dans l'ordre du fichier, `$schema` exclu.
         public let orderedKeys: [String]
         /// Le titre de section sous lequel chaque clé se trouve.
+        ///
+        /// Une clé lue deux fois dans le fichier — du JSON à clés dupliquées,
+        /// que le jeu accepte — garde la section de sa **première**
+        /// occurrence, jamais la dernière : l'ordre et la section doivent
+        /// désigner l'occurrence dont on montre la valeur, et c'est la
+        /// première que retient notre parseur JSON (`I18nLenientParser`,
+        /// premier-gagne). Mesuré sur `[CP] Tea` : `spring_23` y est défini
+        /// deux fois, sous deux sections différentes.
         public let sectionByKey: [String: String]
         /// Le **rang** de cette section dans l'ordre de lecture du fichier.
         ///
@@ -74,8 +82,14 @@ public enum I18nOutline {
                       characters[colon] == ":" else { continue }
                 if literal != "$schema" {
                     orderedKeys.append(literal)
-                    if let section = currentSection { sectionByKey[literal] = section }
-                    if let rank = currentSectionIndex { sectionIndexByKey[literal] = rank }
+                    // Une clé lue deux fois garde la section de sa **première**
+                    // occurrence — voir la note sur `sectionByKey`/`sectionIndexByKey`.
+                    if let section = currentSection, sectionByKey[literal] == nil {
+                        sectionByKey[literal] = section
+                    }
+                    if let rank = currentSectionIndex, sectionIndexByKey[literal] == nil {
+                        sectionIndexByKey[literal] = rank
+                    }
                 }
                 continue
             }
@@ -114,8 +128,14 @@ public enum I18nOutline {
                     let literal = String(characters[index..<end])
                     if literal != "$schema" {
                         orderedKeys.append(literal)
-                        if let section = currentSection { sectionByKey[literal] = section }
-                        if let rank = currentSectionIndex { sectionIndexByKey[literal] = rank }
+                        // Même règle que la clé quotée ci-dessus : première
+                        // occurrence gagne.
+                        if let section = currentSection, sectionByKey[literal] == nil {
+                            sectionByKey[literal] = section
+                        }
+                        if let rank = currentSectionIndex, sectionIndexByKey[literal] == nil {
+                            sectionIndexByKey[literal] = rank
+                        }
                     }
                     index = end
                     continue

@@ -940,7 +940,7 @@ struct DiffRowSectionTests {
                     .first?.sectionIndex == nil)
     }
 
-    @Test func aDuplicateKeyProducesOneRowAtItsLastOccurrence() throws {
+    @Test func aDuplicateKeyProducesOneRowAtItsFirstOccurrence() throws {
         // Mesuré sur `[CP] Tea` : `spring_23` est défini deux fois dans le
         // même `default.json`, sous deux sections différentes — du JSON à
         // clés dupliquées, que Newtonsoft (donc le jeu) accepte. `orderedKeys`
@@ -962,11 +962,13 @@ struct DiffRowSectionTests {
         let rows = TranslationCoverage.diffRows(forModAt: mod, locale: "fr")
         let matches = rows.filter { $0.key == "spring_23" }
         #expect(matches.count == 1)
-        // La section et le rang viennent de `I18nOutline`, qui écrase déjà
-        // vers la dernière occurrence : c'est elle qui doit rester cohérente
-        // avec la position de la rangée dans la liste.
-        #expect(matches.first?.section == "Marriage")
-        #expect(matches.first?.sectionIndex == 1)
+        // L'anglais affiché (`source["spring_23"]`) est celui de la
+        // **première** occurrence : notre parseur JSON garde le premier
+        // gagnant sur une clé dupliquée. La section et le rang doivent
+        // désigner la même occurrence que la valeur montrée, sous peine
+        // d'un intitulé qui ne correspond pas au texte affiché en dessous.
+        #expect(matches.first?.section == "Seasonal")
+        #expect(matches.first?.sectionIndex == 0)
         #expect(Set(rows.map(\.id)).count == rows.count)
     }
 }

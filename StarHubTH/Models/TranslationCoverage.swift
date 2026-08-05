@@ -196,24 +196,30 @@ public enum TranslationCoverage {
     /// occurrences d'une clé lue deux fois dans le fichier — du JSON à clés
     /// dupliquées, que Newtonsoft (donc le jeu) accepte. Mesuré sur
     /// `[CP] Tea` : `spring_23` y est défini sous « Seasonal + Day-Specific
-    /// Dialogue » puis sous « Marriage Dialogue ». `I18nOutline` retient déjà
-    /// la **dernière** occurrence pour `section(of:)` et `sectionIndex(of:)`
-    /// — une simple écriture de dictionnaire, qui écrase les précédentes à
-    /// chaque passage. La position de la clé dans cette liste doit suivre la
-    /// même règle : la placer à sa première occurrence l'afficherait dans le
-    /// bloc de la mauvaise section — précisément le défaut que ce
-    /// dédoublonnage doit éviter, pas seulement déplacer.
+    /// Dialogue » puis sous « Marriage Dialogue ».
+    ///
+    /// **L'ordre et la section doivent désigner l'occurrence dont on montre
+    /// la valeur.** La rangée affiche `source[clé]` — une seule valeur — donc
+    /// sa position et sa section ne peuvent pas venir d'une autre occurrence
+    /// que celle-là, sous peine d'un intitulé qui ne correspond pas au texte
+    /// affiché en dessous. `I18nOutline` retient donc la **première**
+    /// occurrence pour `section(of:)`/`sectionIndex(of:)` (voir sa note), et
+    /// cette liste doit choisir la même clé de tri.
+    ///
+    /// « Première gagne » suit ici notre parseur JSON (`I18nLenientParser`,
+    /// premier-gagne via `JSONSerialization`) et non Newtonsoft/le jeu
+    /// (dernier-gagne) — un écart réel mais distinct, hors périmètre ici.
     private static func orderedSourceKeys(_ source: [String: String],
                                           following outline: I18nOutline.Outline?)
         -> [String] {
         let counted = source.keys.filter(isCounted)
         guard let outline else { return counted.sorted() }
         let known = Set(counted)
-        var lastOccurrence: [String: Int] = [:]
+        var firstOccurrence: [String: Int] = [:]
         for (position, key) in outline.orderedKeys.enumerated() where known.contains(key) {
-            lastOccurrence[key] = position
+            if firstOccurrence[key] == nil { firstOccurrence[key] = position }
         }
-        var ordered = lastOccurrence.keys.sorted { lastOccurrence[$0]! < lastOccurrence[$1]! }
+        var ordered = firstOccurrence.keys.sorted { firstOccurrence[$0]! < firstOccurrence[$1]! }
         let seen = Set(ordered)
         ordered.append(contentsOf: counted.filter { !seen.contains($0) }.sorted())
         return ordered
