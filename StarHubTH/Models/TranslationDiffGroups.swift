@@ -40,19 +40,53 @@ extension TranslationCoverage {
         }
 
         public func remaining(_ state: DiffRow.State) -> Int { counts[state] ?? 0 }
+
+        /// Le même groupe, restreint aux rangées retenues par un filtre.
+        ///
+        /// `id`, `title`, `component` et `firstKey` sont recopiés tels quels :
+        /// ce sont des propriétés du **fichier**, pas du filtre en cours — les
+        /// muter ferait sauter le repliage d'une section à l'autre à chaque
+        /// frappe. Seuls `rows` et les comptes changent, puisque c'est ce que
+        /// l'en-tête doit refléter. Rend `nil` si le filtre ne laisse aucune
+        /// rangée : un groupe vide n'a rien à afficher.
+        public func filtered(_ isIncluded: (DiffRow) -> Bool) -> DiffGroup? {
+            let kept = rows.filter(isIncluded)
+            guard !kept.isEmpty else { return nil }
+            return DiffGroup(id: id, component: component, title: title,
+                             firstKey: firstKey, rows: kept)
+        }
     }
 
-    /// Regroupe des rangées **déjà filtrées**, dans l'ordre où elles arrivent —
-    /// celui du fichier. Les comptes portent donc sur ce qui est visible : un
-    /// en-tête annonçant 12 au-dessus de 3 lignes mentirait.
+    /// Regroupe **toutes** les rangées d'un mod, en un seul passage — jamais un
+    /// sous-ensemble déjà filtré : c'est `DiffGroup.filtered` qui applique le
+    /// filtre en cours, sur des groupes dont l'identité a déjà été fixée une
+    /// fois pour toutes ici. Sans quoi un filtre qui change fait et défait des
+    /// groupes à chaque frappe, et l'état de repliage se retrouve à désigner
+    /// une autre section.
+    ///
+    /// Les rangées arrivent dans l'ordre du fichier ; les comptes d'un groupe
+    /// portent donc sur toutes ses rangées, filtre à part — c'est
+    /// `DiffGroup.filtered` qui restreint l'affichage.
     public static func diffGroups(rows: [DiffRow]) -> [DiffGroup] {
         var groups: [DiffGroup] = []
         var currentRows: [DiffRow] = []
         var currentIdentity: String?
+        // Combien de fois une identité de base a déjà été vue : une clé
+        // dupliquée dans le fichier source (JSON à clés répétées, que le jeu
+        // charge malgré tout) entrelace les rangs de section — 69, 77, 69,
+        // 77… — et fait réapparaître un même rang dans un bloc non contigu
+        // plus loin. Rien ne garantit que ce soit la seule cause possible :
+        // l'unicité de l'identité ne doit donc pas dépendre de l'absence
+        // d'un tel accident, elle doit être structurelle.
+        var occurrences: [String: Int] = [:]
 
         func flush() {
             guard let first = currentRows.first else { return }
-            groups.append(DiffGroup(id: identity(of: first),
+            let base = identity(of: first)
+            let occurrence = (occurrences[base] ?? 0) + 1
+            occurrences[base] = occurrence
+            let id = occurrence == 1 ? base : "\(base)/\(occurrence)"
+            groups.append(DiffGroup(id: id,
                                     component: first.component,
                                     title: first.section,
                                     firstKey: first.key,
@@ -72,8 +106,11 @@ extension TranslationCoverage {
         return groups
     }
 
-    /// L'identité d'une section : son composant, son rang, et le fait d'être
-    /// orpheline.
+    /// L'identité **de base** d'une section : son composant, son rang, et le
+    /// fait d'être orpheline. Deux occurrences non contiguës de la même
+    /// identité de base reçoivent un suffixe dans `diffGroups` — voir
+    /// `occurrences` ci-dessus — mais cette fonction ne rend que la part
+    /// commune aux deux.
     ///
     /// Les rangs de deux composants se recouvrent — chacun repart de 0 — d'où
     /// le composant. Et **deux** blocs de rangées n'ont aucun rang : les clés

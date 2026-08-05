@@ -939,6 +939,36 @@ struct DiffRowSectionTests {
         #expect(TranslationCoverage.diffRows(forModAt: mod, locale: "fr")
                     .first?.sectionIndex == nil)
     }
+
+    @Test func aDuplicateKeyProducesOneRowAtItsLastOccurrence() throws {
+        // Mesuré sur `[CP] Tea` : `spring_23` est défini deux fois dans le
+        // même `default.json`, sous deux sections différentes — du JSON à
+        // clés dupliquées, que Newtonsoft (donc le jeu) accepte. `orderedKeys`
+        // porte les deux occurrences ; sans dédoublonnage, la clé produirait
+        // deux `DiffRow` de même `id`.
+        let mod = try fixture([
+            "i18n/default.json": """
+            {
+              // Seasonal
+              "spring_23": "1",
+              "other": "x",
+              // Marriage
+              "spring_23": "2"
+            }
+            """,
+            "i18n/fr.json": #"{"spring_23": "un", "other": "x"}"#,
+        ])
+        defer { try? FileManager.default.removeItem(at: mod) }
+        let rows = TranslationCoverage.diffRows(forModAt: mod, locale: "fr")
+        let matches = rows.filter { $0.key == "spring_23" }
+        #expect(matches.count == 1)
+        // La section et le rang viennent de `I18nOutline`, qui écrase déjà
+        // vers la dernière occurrence : c'est elle qui doit rester cohérente
+        // avec la position de la rangée dans la liste.
+        #expect(matches.first?.section == "Marriage")
+        #expect(matches.first?.sectionIndex == 1)
+        #expect(Set(rows.map(\.id)).count == rows.count)
+    }
 }
 
 /// Le regroupement des rangées du diff par section.
@@ -1047,5 +1077,53 @@ struct DiffGroupTests {
 
     @Test func noRowsGiveNoGroups() {
         #expect(TranslationCoverage.diffGroups(rows: []).isEmpty)
+    }
+
+    @Test func nonContiguousBlocksOfTheSameRankGetDistinctIds() {
+        // Mesuré sur le parc (7 mods / 512) : une clé dupliquée dans le
+        // fichier source entrelace les rangs (69, 77, 69, 77…). Même après le
+        // dédoublonnage des rangées (une clé, une rangée), rien ne garantit
+        // structurellement qu'un même rang ne réapparaisse pas plus loin —
+        // l'unicité de l'identité ne doit pas en dépendre.
+        let rows = [
+            row("a", .translated, section: "Seasonal", index: 69),
+            row("b", .translated, section: "Marriage", index: 77),
+            row("c", .translated, section: "Seasonal", index: 69),
+        ]
+        let groups = TranslationCoverage.diffGroups(rows: rows)
+        #expect(groups.count == 3)
+        #expect(Set(groups.map(\.id)).count == 3)
+    }
+
+    @Test func filteredKeepsIdTitleAndFirstKeyEvenWhenTheFirstRowIsDropped() {
+        let rows = [
+            row("a", .missing, section: "Config", index: 0),
+            row("b", .translated, section: "Config", index: 0),
+        ]
+        let group = try! #require(TranslationCoverage.diffGroups(rows: rows).first)
+        let filtered = try! #require(group.filtered { $0.state == .translated })
+        #expect(filtered.id == group.id)
+        #expect(filtered.title == group.title)
+        #expect(filtered.firstKey == group.firstKey)
+        #expect(filtered.rows.map(\.key) == ["b"])
+    }
+
+    @Test func filteredReturnsNilWhenNothingSurvives() {
+        let rows = [row("a", .missing, section: "Config", index: 0)]
+        let group = try! #require(TranslationCoverage.diffGroups(rows: rows).first)
+        #expect(group.filtered { $0.state == .translated } == nil)
+    }
+
+    @Test func filteredCountsOnlyTheRowsRetained() {
+        let rows = [
+            row("a", .missing, section: "Config", index: 0),
+            row("b", .missing, section: "Config", index: 0),
+            row("c", .translated, section: "Config", index: 0),
+        ]
+        let group = try! #require(TranslationCoverage.diffGroups(rows: rows).first)
+        let filtered = try! #require(group.filtered { $0.state == .missing })
+        #expect(filtered.remaining(.missing) == 2)
+        #expect(filtered.remaining(.translated) == 0)
+        #expect(filtered.rows.count == 2)
     }
 }

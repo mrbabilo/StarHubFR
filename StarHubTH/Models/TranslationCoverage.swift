@@ -191,13 +191,29 @@ public enum TranslationCoverage {
     /// alphabétique sinon. Les clés que la structure ignore — un fichier
     /// illisible pour elle, une entrée ajoutée depuis — sont ajoutées à la fin
     /// plutôt que perdues.
+    ///
+    /// **Une clé, une rangée.** `outline.orderedKeys` porte **toutes** les
+    /// occurrences d'une clé lue deux fois dans le fichier — du JSON à clés
+    /// dupliquées, que Newtonsoft (donc le jeu) accepte. Mesuré sur
+    /// `[CP] Tea` : `spring_23` y est défini sous « Seasonal + Day-Specific
+    /// Dialogue » puis sous « Marriage Dialogue ». `I18nOutline` retient déjà
+    /// la **dernière** occurrence pour `section(of:)` et `sectionIndex(of:)`
+    /// — une simple écriture de dictionnaire, qui écrase les précédentes à
+    /// chaque passage. La position de la clé dans cette liste doit suivre la
+    /// même règle : la placer à sa première occurrence l'afficherait dans le
+    /// bloc de la mauvaise section — précisément le défaut que ce
+    /// dédoublonnage doit éviter, pas seulement déplacer.
     private static func orderedSourceKeys(_ source: [String: String],
                                           following outline: I18nOutline.Outline?)
         -> [String] {
         let counted = source.keys.filter(isCounted)
         guard let outline else { return counted.sorted() }
         let known = Set(counted)
-        var ordered = outline.orderedKeys.filter(known.contains)
+        var lastOccurrence: [String: Int] = [:]
+        for (position, key) in outline.orderedKeys.enumerated() where known.contains(key) {
+            lastOccurrence[key] = position
+        }
+        var ordered = lastOccurrence.keys.sorted { lastOccurrence[$0]! < lastOccurrence[$1]! }
         let seen = Set(ordered)
         ordered.append(contentsOf: counted.filter { !seen.contains($0) }.sorted())
         return ordered
