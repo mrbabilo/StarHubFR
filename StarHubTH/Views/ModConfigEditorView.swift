@@ -333,7 +333,11 @@ struct ModConfigEditorView: View {
                 }
             case .number:
                 valToSet = item.isInt ? Int(item.numberValue) : item.numberValue
-            case .string, .other:
+            case .string:
+                valToSet = item.stringValue
+            case .other:
+                // Type non reconnu : ne pas réécrire, on risquerait de corrompre
+                // la valeur d'origine qu'on ne sait pas interpréter.
                 continue
             }
             setValue(in: &json, path: item.keyPath, value: valToSet)
@@ -514,6 +518,18 @@ struct ModConfigEditorView: View {
                         .labelsHidden()
                     }
                 }
+            case .string:
+                TextField("", text: Binding(
+                    get: { item.stringValue },
+                    set: { newValue in
+                        if let i = configItems.firstIndex(where: { $0.id == item.id }) {
+                            configItems[i].stringValue = newValue
+                            syncToText()
+                        }
+                    }
+                ))
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .controlSize(.small)
             default:
                 EmptyView()
             }
