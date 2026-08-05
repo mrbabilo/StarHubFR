@@ -68,6 +68,12 @@ mtime, quasi impossible à échouer après `copyItem` réussi), `BisectionSnapsh
 
 ### Haute sévérité
 
+> ✅ **Les 9 hauts ont été corrigés le 2026-08-05** (commits `cc737f1` print→log,
+> `d82cc3b` échappement XML + validateJson, `df1aeda` rollback install,
+> `6bdb0b8` bisection recovery, `582bf06` zip-slip, `dd6b4d1` ForEach + saveIndex).
+> Le tableau est l'instantané de l'audit ; les détails de chaque correction sont
+> dans les messages de commit.
+
 | Site | Bug | Scénario d'échec |
 |------|-----|------------------|
 | `SaveManager:540` (`replaceFirstTag`) | **Injection XML** : valeurs saisies (nom/ferme/conjoint/favThing) interpolées brutes dans `<tag>\(value)</tag>` sans échapper `<`/`&`. | Ferme « D&D Farm » → `<farmName>D&D Farm</farmName>` (`&` nu invalide) → parse nul au `fetchSaves` suivant → save live corrompue, disparaît de la liste. |
