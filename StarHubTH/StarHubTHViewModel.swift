@@ -1769,7 +1769,7 @@ class StarHubTHViewModel: ObservableObject {
             // source is already gone, this mod was already renamed by a prior
             // call — skip instead of operating on a non-existent path.
             guard fm.fileExists(atPath: srcPath) else {
-                print("Skipping toggle for \(m.name): source folder missing at \(srcPath) (likely already renamed by a concurrent toggle)")
+                log("Skipping toggle for \(m.name): source folder missing at \(srcPath) (likely already renamed by a concurrent toggle)", level: .warning)
                 continue
             }
 
@@ -1793,7 +1793,7 @@ class StarHubTHViewModel: ObservableObject {
                         do {
                             try fm.moveItem(atPath: asidePath, toPath: destPath)
                         } catch {
-                            print("CRITICAL: toggle rollback failed — mod still in \(asidePath) (could not move back to \(destPath): \(error))")
+                            log("CRITICAL: toggle rollback failed — mod still in \(asidePath) (could not move back to \(destPath): \(error))", level: .error)
                         }
                     }
                     throw error
@@ -1808,7 +1808,7 @@ class StarHubTHViewModel: ObservableObject {
                     self.modActivationTimestamps[folderName] = Date()
                 }
             } catch {
-                print("Failed to toggle \(m.name): \(error.localizedDescription)")
+                log("Failed to toggle \(m.name): \(error.localizedDescription)", level: .error)
             }
         }
 
@@ -3105,7 +3105,7 @@ class StarHubTHViewModel: ObservableObject {
             do {
                 try FileManager.default.copyItem(at: url, to: destURL)
             } catch {
-                print("selectCustomAvatar: copy failed — avatar path not set: \(error)")
+                log("selectCustomAvatar: copy failed — avatar path not set: \(error)", level: .error)
                 return
             }
             setAvatar(forSave: folderName, iconPath: destURL.path)
@@ -3941,7 +3941,7 @@ class StarHubTHViewModel: ObservableObject {
                             do {
                                 try fm.moveItem(atPath: asidePath, toPath: dst)
                             } catch {
-                                print("CRITICAL: toggle rollback failed — mod still in \(asidePath) (could not move back to \(dst): \(error))")
+                                self.log("CRITICAL: toggle rollback failed — mod still in \(asidePath) (could not move back to \(dst): \(error))", level: .error)
                             }
                         }
                         throw error
