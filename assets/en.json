@@ -763,5 +763,8 @@
   "mods_diff_none": "This mod ships no translation files.",
   "mods_diff_loading": "Reading translation files…",
   "mods_diff_empty_value": "(empty — nothing shows in game)",
+  "mods_diff_section_untitled": "Before the first section",
+  "mods_diff_collapse_all": "Collapse all",
+  "mods_diff_expand_all": "Expand all",
   "mods_translation_in_backup": "A French translation for this mod exists in a backup from %@ — the mod folder no longer has one. A mod update likely replaced it."
 }

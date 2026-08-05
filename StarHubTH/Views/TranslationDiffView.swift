@@ -26,6 +26,17 @@ struct TranslationDiffView: View {
     @State private var isLoading = true
     @State private var stateFilter: TranslationCoverage.DiffRow.State?
     @State private var searchText = ""
+    /// Les groupes tels que le fichier les donne, calculés **une fois** sur les
+    /// rangées complètes. Leur identité ne dépend donc jamais du filtre en
+    /// cours : c'est ce qui permet à un repli de désigner toujours la même
+    /// section, quoi qu'on tape dans la recherche.
+    @State private var allGroups: [TranslationCoverage.DiffGroup] = []
+    /// Ce que la vue affiche : les mêmes groupes, réduits aux rangées retenues.
+    @State private var groups: [TranslationCoverage.DiffGroup] = []
+    /// Les sections repliées, par identité de groupe. Déplié par défaut : le
+    /// repliage est une aide à la navigation, pas un correctif de performance —
+    /// le `LazyVStack` encaisse déjà 11 021 clés.
+    @State private var collapsed: Set<String> = []
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -39,7 +50,7 @@ struct TranslationDiffView: View {
                 // En-tête **hors** de la zone défilante : sans lui, rien ne
                 // disait laquelle des deux colonnes portait l'anglais et
                 // laquelle le français. L'épingler dans la `ScrollView` aurait
-                // concurrencé l'épinglage des en-têtes de composant ; au-dessus,
+                // concurrencé l'épinglage des en-têtes de section ; au-dessus,
                 // il reste visible sans rien disputer.
                 columnHeader
                 Divider()
@@ -50,8 +61,18 @@ struct TranslationDiffView: View {
             // Chargement détaché côté ViewModel : lire et analyser 11 021 clés
             // sur le fil principal figerait la fenêtre.
             rows = await vm.translationDiff(for: mod)
+            // Le regroupement une seule fois, sur les rangées complètes.
+            allGroups = TranslationCoverage.diffGroups(rows: rows)
+            // Les groupes avant le drapeau : sans quoi une passe de rendu
+            // pourrait tomber sur des rangées sans groupes et afficher
+            // brièvement « aucune clé ne correspond ».
+            rebuildGroups()
             isLoading = false
         }
+        // Le regroupement ne peut pas vivre dans `body` : regrouper 17 910
+        // lignes à chaque frappe rendrait la recherche inutilisable.
+        .onChange(of: stateFilter) { _, _ in rebuildGroups() }
+        .onChange(of: searchText) { _, _ in rebuildGroups() }
     }
 
     // MARK: - Chargement et vides
@@ -89,9 +110,19 @@ struct TranslationDiffView: View {
                     }
                 }
             }
-            TextField(vm.L(L10n.Mods.diffSearch), text: $searchText)
-                .textFieldStyle(.roundedBorder)
-                .font(.system(size: 11))
+            HStack(spacing: 8) {
+                TextField(vm.L(L10n.Mods.diffSearch), text: $searchText)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.system(size: 11))
+                if groups.count > 1 {
+                    Button(vm.L(collapsed.isEmpty ? L10n.Mods.diffCollapseAll
+                                                  : L10n.Mods.diffExpandAll)) {
+                        collapsed = collapsed.isEmpty ? Set(groups.map(\.id)) : []
+                    }
+                    .buttonStyle(.link)
+                    .font(.system(size: 10))
+                }
+            }
         }
         .padding(.bottom, 10)
     }
@@ -103,7 +134,7 @@ struct TranslationDiffView: View {
             stateFilter = isSelected ? nil : state
         } label: {
             HStack(spacing: 4) {
-                if let state { Image(systemName: glyph(for: state)).font(.system(size: 9)) }
+                if let state { Image(systemName: DiffStateStyle.glyph(state)).font(.system(size: 9)) }
                 Text(label).font(.system(size: 10, weight: .medium))
                 Text("\(count)")
                     .font(.system(size: 10, weight: .semibold).monospacedDigit())
@@ -116,7 +147,7 @@ struct TranslationDiffView: View {
                                ? Color.accentColor.opacity(AppDesign.Opacity.strong)
                                : Color.secondary.opacity(AppDesign.Opacity.light))
             )
-            .foregroundColor(state.map(tint) ?? .primary)
+            .foregroundColor(state.map(DiffStateStyle.tint) ?? .primary)
         }
         .buttonStyle(.plain)
         .pointingHandCursor()
@@ -125,9 +156,8 @@ struct TranslationDiffView: View {
     // MARK: - Table
 
     private var table: some View {
-        let visible = filteredRows
-        return Group {
-            if visible.isEmpty {
+        Group {
+            if groups.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
                     emptyRow(vm.L(L10n.Mods.diffNoMatch))
                     // L'échappatoire : sans elle, un filtre trop étroit est une
@@ -142,20 +172,17 @@ struct TranslationDiffView: View {
             } else {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
-                        ForEach(groupedRows, id: \.header) { group in
+                        ForEach(groups) { group in
                             Section {
-                                ForEach(group.rows) { row in
-                                    DiffRowView(row: row,
-                                                emptyPlaceholder: vm.L(L10n.Mods.diffEmptyValue))
-                                    Divider()
+                                if !collapsed.contains(group.id) {
+                                    ForEach(group.rows) { row in
+                                        DiffRowView(row: row,
+                                                    emptyPlaceholder: vm.L(L10n.Mods.diffEmptyValue))
+                                        Divider()
+                                    }
                                 }
                             } header: {
-                                // Un mod à un seul dossier `i18n` n'a pas
-                                // d'en-tête : répéter son nom sur chaque écran
-                                // serait du bruit.
-                                if let header = group.header {
-                                    componentHeader(header)
-                                }
+                                sectionHeader(group)
                             }
                         }
                     }
@@ -183,78 +210,114 @@ struct TranslationDiffView: View {
         .padding(.vertical, 5)
     }
 
-    private func componentHeader(_ name: String) -> some View {
-        Text(name)
-            .font(.system(size: 10, weight: .semibold))
-            .foregroundColor(.secondary)
-            .padding(.vertical, 4)
+    /// L'en-tête d'une section : ce qui la nomme, et ce qu'il y reste à faire.
+    ///
+    /// Le reste à faire se lit par un glyphe **et** une teinte, jamais par la
+    /// couleur seule (`docs/audit-nana-ux.md` §1). Une section complète n'affiche
+    /// rien : l'œil doit tomber sur ce qui reste.
+    private func sectionHeader(_ group: TranslationCoverage.DiffGroup) -> some View {
+        let isCollapsed = collapsed.contains(group.id)
+        return Button {
+            if isCollapsed { collapsed.remove(group.id) } else { collapsed.insert(group.id) }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundColor(.secondary)
+                Text(title(of: group))
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
+                Spacer(minLength: 8)
+                remainderBadges(group)
+            }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 5)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color(nsColor: .controlBackgroundColor))
+            .background(Color.accentColor.opacity(AppDesign.Opacity.light))
+            .overlay(alignment: .bottom) { Divider() }
+        }
+        .buttonStyle(.plain)
+        .pointingHandCursor()
+    }
+
+    /// Ce qu'il reste à faire dans la section, tel que le filtre en cours le
+    /// laisse voir. Les vides d'abord : c'est le seul état qui casse l'affichage
+    /// en jeu.
+    @ViewBuilder
+    private func remainderBadges(_ group: TranslationCoverage.DiffGroup) -> some View {
+        HStack(spacing: 8) {
+            ForEach([TranslationCoverage.DiffRow.State.empty, .missing], id: \.self) { state in
+                let count = group.remaining(state)
+                if count > 0 {
+                    HStack(spacing: 3) {
+                        Image(systemName: DiffStateStyle.glyph(state)).font(.system(size: 9))
+                        Text("\(count)")
+                            .font(.system(size: 10, weight: .semibold).monospacedDigit())
+                    }
+                    .foregroundColor(DiffStateStyle.tint(state))
+                }
+            }
+        }
+    }
+
+    /// Le nom du groupe : sa section, préfixée du composant quand le mod en a
+    /// plusieurs.
+    ///
+    /// Deux groupes n'ont pas de titre, et pour des raisons opposées : les clés
+    /// d'avant le premier commentaire, en tête du fichier, et les orphelines —
+    /// qui n'existent qu'en français et viennent après tout. Les coiffer du même
+    /// « Avant la première section » serait faux dans les deux sens.
+    private func title(of group: TranslationCoverage.DiffGroup) -> String {
+        let fallback = group.isOrphan ? L10n.Mods.diffStateOrphan
+                                      : L10n.Mods.diffSectionUntitled
+        let section = (group.isOrphan ? nil : group.title) ?? vm.L(fallback)
+        return group.component.map { "\($0) — \(section)" } ?? section
     }
 
     // MARK: - Données dérivées
 
-    private var filteredRows: [TranslationCoverage.DiffRow] {
-        var visible = stateFilter.map { state in rows.filter { $0.state == state } } ?? rows
+    /// Le filtre courant, appliqué rangée par rangée.
+    private func matches(_ row: TranslationCoverage.DiffRow) -> Bool {
+        if let stateFilter, row.state != stateFilter { return false }
         let query = searchText.trimmingCharacters(in: .whitespaces).lowercased()
-        guard !query.isEmpty else { return visible }
-        visible = visible.filter {
-            $0.key.lowercased().contains(query)
-                || $0.english.lowercased().contains(query)
-                || $0.french.lowercased().contains(query)
-        }
-        return visible
+        guard !query.isEmpty else { return true }
+        return row.key.lowercased().contains(query)
+            || row.english.lowercased().contains(query)
+            || row.french.lowercased().contains(query)
     }
 
-    /// Les rangées regroupées par composant **puis par section**, dans l'ordre
-    /// où le Core les a rendues — il suit celui du fichier, on ne retrie pas.
-    ///
-    /// Les sections sont les commentaires que l'auteur a écrits dans son
-    /// fichier anglais. C'est la seule structure fiable de ces fichiers :
-    /// déduire un personnage des clés ne marche pas.
-    ///
-    /// Elles ne s'affichent que dans l'ordre naturel : dès qu'un filtre par état
-    /// s'applique, les lignes retenues ne se suivent plus dans le fichier et un
-    /// titre de section mentirait sur ce qu'il coiffe.
-    private var groupedRows: [(header: String?, rows: [TranslationCoverage.DiffRow])] {
-        let showSections = stateFilter == nil
-        var groups: [(header: String?, rows: [TranslationCoverage.DiffRow])] = []
-        for row in filteredRows {
-            let header = heading(for: row, withSections: showSections)
-            if let last = groups.last, last.header == header {
-                groups[groups.count - 1].rows.append(row)
-            } else {
-                groups.append((header, [row]))
-            }
-        }
-        return groups
-    }
-
-    /// Le titre qui coiffe une rangée : son composant, sa section, ou les deux.
-    private func heading(for row: TranslationCoverage.DiffRow,
-                         withSections: Bool) -> String? {
-        let section = withSections ? row.section : nil
-        switch (row.component, section) {
-        case let (component?, section?): return "\(component) — \(section)"
-        case let (component?, nil):      return component
-        case let (nil, section?):        return section
-        case (nil, nil):                 return nil
-        }
+    /// Réduit les groupes du fichier à ce que le filtre laisse voir. Les groupes
+    /// eux-mêmes ne sont **pas** recalculés : leur identité vient du fichier, et
+    /// un repli doit désigner la même section avant et après une frappe.
+    private func rebuildGroups() {
+        groups = allGroups.compactMap { $0.filtered(matches) }
     }
 
     // MARK: - Vocabulaire des états
 
     private func label(for state: TranslationCoverage.DiffRow.State) -> String {
+        let key: String
         switch state {
-        case .translated:        return vm.L(L10n.Mods.diffStateTranslated)
-        case .missing:           return vm.L(L10n.Mods.diffStateMissing)
-        case .empty:             return vm.L(L10n.Mods.diffStateEmpty)
-        case .identicalToSource: return vm.L(L10n.Mods.diffStateIdentical)
-        case .orphan:            return vm.L(L10n.Mods.diffStateOrphan)
+        case .translated:        key = L10n.Mods.diffStateTranslated
+        case .missing:           key = L10n.Mods.diffStateMissing
+        case .empty:             key = L10n.Mods.diffStateEmpty
+        case .identicalToSource: key = L10n.Mods.diffStateIdentical
+        case .orphan:            key = L10n.Mods.diffStateOrphan
         }
+        return vm.L(key)
     }
+}
 
-    private func glyph(for state: TranslationCoverage.DiffRow.State) -> String {
+/// Le vocabulaire visuel d'un état, partagé par la barre de filtres, les
+/// en-têtes de section, les lignes et la table des matières.
+///
+/// Un seul exemplaire : des copies divergentes de la même logique ont déjà
+/// coûté un bug d'affichage ici. Un état se lit par le glyphe **et** par la
+/// teinte, chacun suffisant seul — un diff dont le sens tiendrait à la couleur
+/// serait illisible pour un daltonien (`docs/audit-nana-ux.md` §1).
+enum DiffStateStyle {
+    static func glyph(_ state: TranslationCoverage.DiffRow.State) -> String {
         switch state {
         case .translated:        return "checkmark.circle"
         case .missing:           return "text.badge.minus"
@@ -264,7 +327,7 @@ struct TranslationDiffView: View {
         }
     }
 
-    private func tint(for state: TranslationCoverage.DiffRow.State) -> Color {
+    static func tint(_ state: TranslationCoverage.DiffRow.State) -> Color {
         switch state {
         case .translated:
             return Color(red: 0.20, green: 0.62, blue: 0.34)
@@ -297,9 +360,9 @@ private struct DiffRowView: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: DiffMetrics.spacing) {
-            Image(systemName: glyph)
+            Image(systemName: DiffStateStyle.glyph(row.state))
                 .font(.system(size: 10))
-                .foregroundColor(tint)
+                .foregroundColor(DiffStateStyle.tint(row.state))
                 .frame(width: DiffMetrics.glyphWidth)
             Text(row.key)
                 .font(.system(size: 10, design: .monospaced))
@@ -346,24 +409,6 @@ private struct DiffRowView: View {
                     .foregroundColor(.purple)
                 : Text(segment.text).font(.system(size: 11))
             return accumulated + piece
-        }
-    }
-
-    private var glyph: String {
-        switch row.state {
-        case .translated:        return "checkmark.circle"
-        case .missing:           return "text.badge.minus"
-        case .empty:             return "exclamationmark.triangle.fill"
-        case .identicalToSource: return "equal.circle"
-        case .orphan:            return "questionmark.circle"
-        }
-    }
-
-    private var tint: Color {
-        switch row.state {
-        case .translated:        return Color(red: 0.20, green: 0.62, blue: 0.34)
-        case .empty:             return .orange
-        case .missing, .identicalToSource, .orphan: return .secondary
         }
     }
 }
