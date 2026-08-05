@@ -73,9 +73,13 @@ struct SaveTimelineView: View {
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
-                        ForEach(backups.indices, id: \.self) { index in
-                            let backup = backups[index]
-                            let isLast = index == backups.count - 1
+                        ForEach(backups) { backup in
+                            // Pas d'index comme id : la liste est triée par
+                            // timestamp décroissant, un nouveau backup décale les
+                            // index et le @State (note en cours) fuyait vers la
+                            // rangée héritant de l'index → note sur le mauvais
+                            // backup. SaveBackup est Identifiable. Audit 2026-08-05.
+                            let isLast = backup.id == backups.last?.id
                             
                             BackupRow(
                                 vm: vm,

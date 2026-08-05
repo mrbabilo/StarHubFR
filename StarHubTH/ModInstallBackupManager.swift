@@ -75,7 +75,14 @@ public class ModInstallBackupManager {
 
     private func saveIndex(_ index: ModInstallBackupsIndex) {
         guard let data = try? JSONEncoder().encode(index) else { return }
-        try? data.write(to: metadataPath, options: .atomic)
+        do {
+            try data.write(to: metadataPath, options: .atomic)
+        } catch {
+            // Un backup peut déjà être sur disque (createBackup) sans être
+            // référencé dans l'index → orphelin invisible (impossible à
+            // restaurer/supprimer depuis l'UI). Consigner pour la traçabilité.
+            print("CRITICAL: ModInstallBackup index write failed at \(metadataPath.path): \(error) — backups may be orphaned")
+        }
     }
 
     /// Test-only seam (visible via `@testable import`) for seeding the
