@@ -275,6 +275,10 @@ struct ModConfigEditorView: View {
                     newItems.append(ConfigItem(keyPath: parentPath, boolValue: true, stringValue: "true_as_string", type: .boolean, originalValue: value))
                 } else if s.lowercased() == "false" {
                     newItems.append(ConfigItem(keyPath: parentPath, boolValue: false, stringValue: "false_as_string", type: .boolean, originalValue: value))
+                } else {
+                    // Les vraies chaînes (noms, chemins…) étaient ignorées : le
+                    // case .string était mort. Désormais modélisées et éditables.
+                    newItems.append(ConfigItem(keyPath: parentPath, stringValue: s, type: .string, originalValue: value))
                 }
             }
         }

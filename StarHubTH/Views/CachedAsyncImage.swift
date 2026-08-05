@@ -33,6 +33,12 @@ struct CachedAsyncImage: View {
     }
 
     private func load() async {
+        // Réinitialise l'état à chaque chargement : sans quoi l'image du mod
+        // précédent restait affichée si la nouvelle URL échouait (seul
+        // loadError était mis, et `if let image` montrait l'ancienne). La
+        // vérif de cache synchrone juste après évite tout clignotement.
+        image = nil
+        loadError = nil
         guard let url = url else { return }
 
         if let cached = AsyncImageCache.nsImage(for: url) {
