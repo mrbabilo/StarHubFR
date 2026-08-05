@@ -887,4 +887,56 @@ struct DiffRowSectionTests {
         let rows = TranslationCoverage.diffRows(forModAt: mod, locale: "fr")
         #expect(rows.first { $0.key == "zz" }?.section == nil)
     }
+
+    @Test func rowsCarryTheSectionRank() throws {
+        let mod = try fixture([
+            "i18n/default.json": """
+            {
+              // Spring
+              "a": "1",
+              // Summer
+              "b": "2",
+              // Spring
+              "c": "3"
+            }
+            """,
+            "i18n/fr.json": "{}",
+        ])
+        defer { try? FileManager.default.removeItem(at: mod) }
+        let rows = TranslationCoverage.diffRows(forModAt: mod, locale: "fr")
+        let byKey = Dictionary(uniqueKeysWithValues: rows.map { ($0.key, $0.sectionIndex) })
+        // Les deux « Spring » sont deux sections, pas une.
+        #expect(byKey["a"] == 0)
+        #expect(byKey["b"] == 1)
+        #expect(byKey["c"] == 2)
+    }
+
+    @Test func ranksDoNotCollideAcrossSplitLocaleFiles() throws {
+        // Layout B : une locale éclatée en plusieurs fichiers. Chaque fichier
+        // recommence à 0 ; sans décalage, la section 0 de `two.json` se
+        // confondrait avec celle de `one.json`.
+        let mod = try fixture([
+            "i18n/default/one.json": "{\n  // Alpha\n  \"a\": \"1\"\n}",
+            "i18n/default/two.json": "{\n  // Beta\n  \"b\": \"2\"\n}",
+            // Un `fr.json` à la racine ferait gagner la racine sur tout le
+            // dossier `i18n/` — y compris pour `default` — et viderait la
+            // fixture ; `fr/` en sous-dossier garde le layout B cohérent.
+            "i18n/fr/dialogue.json": "{}",
+        ])
+        defer { try? FileManager.default.removeItem(at: mod) }
+        let rows = TranslationCoverage.diffRows(forModAt: mod, locale: "fr")
+        let ranks = Dictionary(uniqueKeysWithValues: rows.map { ($0.key, $0.sectionIndex) })
+        #expect(ranks["a"] != nil)
+        #expect(ranks["a"] != ranks["b"])
+    }
+
+    @Test func aRowWithoutSectionHasNoRank() throws {
+        let mod = try fixture([
+            "i18n/default.json": #"{"a": "1"}"#,
+            "i18n/fr.json": "{}",
+        ])
+        defer { try? FileManager.default.removeItem(at: mod) }
+        #expect(TranslationCoverage.diffRows(forModAt: mod, locale: "fr")
+                    .first?.sectionIndex == nil)
+    }
 }

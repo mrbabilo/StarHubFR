@@ -125,17 +125,23 @@ public enum TranslationCoverage {
         /// seule structure fiable de ces fichiers ; l'anglais fait référence
         /// parce qu'un `fr.json` peut n'avoir aucun commentaire.
         public let section: String?
+        /// Le rang de cette section dans l'ordre du fichier. Deux sections
+        /// homonymes — 65 « Spring » dans Ridgeside — n'ont pas le même rang :
+        /// c'est lui qui les distingue, jamais leur titre.
+        public let sectionIndex: Int?
 
         public var id: String { component.map { "\($0)/\(key)" } ?? key }
 
         public init(key: String, english: String, french: String, state: State,
-                    component: String? = nil, section: String? = nil) {
+                    component: String? = nil, section: String? = nil,
+                    sectionIndex: Int? = nil) {
             self.key = key
             self.english = english
             self.french = french
             self.state = state
             self.component = component
             self.section = section
+            self.sectionIndex = sectionIndex
         }
     }
 
@@ -267,7 +273,8 @@ public enum TranslationCoverage {
                 let rows = diffRows(source: source, target: target, following: outline).map {
                     DiffRow(key: $0.key, english: $0.english, french: $0.french,
                             state: $0.state, component: isMultiComponent ? label : nil,
-                            section: outline?.section(of: $0.key))
+                            section: outline?.section(of: $0.key),
+                            sectionIndex: outline?.sectionIndex(of: $0.key))
                 }
                 return (label, rows)
             }
@@ -286,15 +293,25 @@ public enum TranslationCoverage {
         // se suivent dans l'ordre de lecture, déjà trié par nom.
         var keys: [String] = []
         var sections: [String: String] = [:]
+        var ranks: [String: Int] = [:]
+        // Chaque fichier recommence ses rangs à 0 : les décaler du nombre de
+        // sections déjà vues, sinon deux sections distinctes partageraient une
+        // identité et le repliage de l'une replierait l'autre.
+        var offset = 0
         for file in files {
             guard let data = fileManager.contents(atPath: file.path),
                   let decoded = I18nFileDecoder.decode(data) else { continue }
             let outline = I18nOutline.read(decoded.text)
             keys.append(contentsOf: outline.orderedKeys)
             sections.merge(outline.sectionByKey) { first, _ in first }
+            for (key, rank) in outline.sectionIndexByKey where ranks[key] == nil {
+                ranks[key] = rank + offset
+            }
+            offset += (outline.sectionIndexByKey.values.max().map { $0 + 1 }) ?? 0
         }
         guard !keys.isEmpty else { return nil }
-        return I18nOutline.Outline(orderedKeys: keys, sectionByKey: sections)
+        return I18nOutline.Outline(orderedKeys: keys, sectionByKey: sections,
+                                   sectionIndexByKey: ranks)
     }
 
     /// Le nom du composant : le dossier qui contient le `i18n`, relatif au mod.
