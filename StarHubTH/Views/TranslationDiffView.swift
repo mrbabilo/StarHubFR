@@ -277,10 +277,12 @@ struct TranslationDiffView: View {
 
     // MARK: - Données dérivées
 
-    /// Le filtre courant, appliqué rangée par rangée.
-    private func matches(_ row: TranslationCoverage.DiffRow) -> Bool {
+    /// Le filtre courant, appliqué rangée par rangée. `query` est calculée une
+    /// fois par `rebuildGroups()`, pas ici : la recomputer à chaque rangée
+    /// l'aurait fait jusqu'à ~17 910 fois par frappe, alors qu'une seule
+    /// suffit.
+    private func matches(_ row: TranslationCoverage.DiffRow, query: String) -> Bool {
         if let stateFilter, row.state != stateFilter { return false }
-        let query = searchText.trimmingCharacters(in: .whitespaces).lowercased()
         guard !query.isEmpty else { return true }
         return row.key.lowercased().contains(query)
             || row.english.lowercased().contains(query)
@@ -291,7 +293,8 @@ struct TranslationDiffView: View {
     /// eux-mêmes ne sont **pas** recalculés : leur identité vient du fichier, et
     /// un repli doit désigner la même section avant et après une frappe.
     private func rebuildGroups() {
-        groups = allGroups.compactMap { $0.filtered(matches) }
+        let query = searchText.trimmingCharacters(in: .whitespaces).lowercased()
+        groups = allGroups.compactMap { group in group.filtered { matches($0, query: query) } }
     }
 
     // MARK: - Vocabulaire des états
@@ -385,7 +388,7 @@ private struct DiffRowView: View {
         if row.state == .empty {
             Text(emptyPlaceholder)
                 .font(.system(size: 11).italic())
-                .foregroundColor(.orange)
+                .foregroundColor(DiffStateStyle.tint(.empty))
                 .frame(maxWidth: .infinity, alignment: .leading)
         } else {
             tokenised(row.french)
