@@ -330,9 +330,19 @@ final class BisectionRunner: ObservableObject {
         // contenu dont le framework est en pause ne peut pas tourner, et le
         // laisser actif faisait écarter dix-neuf packs d'un coup par SMAPI —
         // le jeu changeait pour une raison étrangère au mod cherché.
-        let kept = Set(trialFolders).union(nonCandidateFolders)
-        let applied = BisectionSession.runnable(allEnabled.filter { kept.contains($0.folderName) },
+        let applied: [String]
+        if allEnabled.isEmpty {
+            // Mode recovery (restoreAndStop après crash) : checkForInterruptedSession
+            // ne peuple que interruptedSnapshot, pas allEnabled/nonCandidateFolders.
+            // Filtrer par allEnabled vide produirait [] → applyEnabledFolders([])
+            // désactiverait toute la modlist au lieu de restaurer l'état d'origine.
+            // On applique donc directement les dossiers à restaurer. Audit 2026-08-05.
+            applied = trialFolders
+        } else {
+            let kept = Set(trialFolders).union(nonCandidateFolders)
+            applied = BisectionSession.runnable(allEnabled.filter { kept.contains($0.folderName) },
                                                 knowing: allEnabled).map(\.folderName)
+        }
         vm.applyEnabledFolders(applied) { [weak self] outcome in
             self?.isApplying = false
             next(outcome)
