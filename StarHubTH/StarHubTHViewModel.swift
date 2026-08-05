@@ -1220,7 +1220,19 @@ class StarHubTHViewModel: ObservableObject {
                 for case let fileURL as URL in enumerator {
                     if fileURL.lastPathComponent.lowercased() == "manifest.json" {
                         let modFolderURL = fileURL.deletingLastPathComponent()
-                        let relFromTop = modFolderURL.path.replacingOccurrences(of: url.path, with: "").trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                        // Chemin relatif canonique : on résout les symlinks des
+                        // deux côtés (l'énumérateur macOS rapporte /private/var/…
+                        // même si la racine était /var/…) puis on ne retire le
+                        // préfixe racine qu'une fois. Un replacingOccurrences(of:
+                        // url.path) l'amputait à nouveau si la racine réapparaissait
+                        // plus loin dans le sous-chemin — jumeau du bug M6 dans
+                        // ModFolderRepairer.collectUniqueIds.
+                        let resolvedMod = modFolderURL.resolvingSymlinksInPath().path
+                        let resolvedRoot = url.resolvingSymlinksInPath().path
+                        let rootStd = resolvedRoot.hasSuffix("/") ? resolvedRoot : resolvedRoot + "/"
+                        let relFromTop = (resolvedMod.hasPrefix(rootStd)
+                            ? String(resolvedMod.dropFirst(rootStd.count))
+                            : "").trimmingCharacters(in: CharacterSet(charactersIn: "/"))
                         let fullRelPath = relFromTop.isEmpty ? topLevelLogicalFolder : "\(topLevelLogicalFolder)/\(relFromTop)"
                         if let mod = parseModFolder(at: modFolderURL.path, relativePath: fullRelPath, isEnabled: isEnabled) {
                             foundMods.append(mod)
