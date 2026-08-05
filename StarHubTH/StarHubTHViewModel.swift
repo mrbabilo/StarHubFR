@@ -1790,7 +1790,11 @@ class StarHubTHViewModel: ObservableObject {
                     try fm.moveItem(atPath: srcPath, toPath: destPath)
                 } catch {
                     if let asidePath = staleDuplicateAside {
-                        try? fm.moveItem(atPath: asidePath, toPath: destPath)
+                        do {
+                            try fm.moveItem(atPath: asidePath, toPath: destPath)
+                        } catch {
+                            print("CRITICAL: toggle rollback failed — mod still in \(asidePath) (could not move back to \(destPath): \(error))")
+                        }
                     }
                     throw error
                 }
@@ -3098,7 +3102,12 @@ class StarHubTHViewModel: ObservableObject {
             let supportDir = appSupport.appendingPathComponent("StarHubTH/Avatars", isDirectory: true)
             try? FileManager.default.createDirectory(at: supportDir, withIntermediateDirectories: true)
             let destURL = supportDir.appendingPathComponent("\(folderName)_\(url.lastPathComponent)")
-            try? FileManager.default.copyItem(at: url, to: destURL)
+            do {
+                try FileManager.default.copyItem(at: url, to: destURL)
+            } catch {
+                print("selectCustomAvatar: copy failed — avatar path not set: \(error)")
+                return
+            }
             setAvatar(forSave: folderName, iconPath: destURL.path)
             completion?(destURL.path)
         }
@@ -3929,7 +3938,11 @@ class StarHubTHViewModel: ObservableObject {
                     } catch {
                         // Restore the old destination so the mod isn't lost.
                         if let asidePath = staleDuplicateAside {
-                            try? fm.moveItem(atPath: asidePath, toPath: dst)
+                            do {
+                                try fm.moveItem(atPath: asidePath, toPath: dst)
+                            } catch {
+                                print("CRITICAL: toggle rollback failed — mod still in \(asidePath) (could not move back to \(dst): \(error))")
+                            }
                         }
                         throw error
                     }

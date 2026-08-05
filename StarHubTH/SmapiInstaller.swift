@@ -386,7 +386,14 @@ class SmapiInstaller: ObservableObject {
             let succeeded = output.contains("SMAPI is installed!") && fm.fileExists(atPath: smapiInternalPath)
             if succeeded {
                 let markerPath = (gameDir as NSString).appendingPathComponent(Self.installedVersionMarkerRelativePath)
-                try? version.write(toFile: markerPath, atomically: true, encoding: .utf8)
+                do {
+                    try version.write(toFile: markerPath, atomically: true, encoding: .utf8)
+                } catch {
+                    // Le marqueur est un cache de version pour l'UI ; SMAPI est bien
+                    // installé. Consigner l'échec — sinon l'app croit au prochain
+                    // lancement que SMAPI est absent (jusqu'à la re-détection).
+                    print("Warning: SMAPI install succeeded but version marker write failed at \(markerPath): \(error)")
+                }
                 completion(true, L10n.Smapi.installSuccess, nil)
             } else {
                 completion(false, L10n.Smapi.installError, Self.lastMeaningfulLine(of: output))

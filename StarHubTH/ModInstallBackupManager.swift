@@ -209,7 +209,11 @@ public class ModInstallBackupManager {
                 // Roll the set-aside folder back so a failed restore doesn't
                 // leave the mod missing.
                 if let stale = stalePath {
-                    try? fm.moveItem(atPath: stale, toPath: destPath)
+                    do {
+                        try fm.moveItem(atPath: stale, toPath: destPath)
+                    } catch {
+                        print("CRITICAL: restore rollback failed — mod still in \(stale) (could not move back to \(destPath): \(error))")
+                    }
                 }
                 throw error
             }
@@ -229,7 +233,11 @@ public class ModInstallBackupManager {
                     // simple `removeItem` échouait dessus et laissait un
                     // `.stale_*` oublié, remonté chez le scanner comme un mod en
                     // pause.
-                    try? ModZipInstaller.removeItemGrantingWriteAccess(atPath: stale)
+                    do {
+                        try ModZipInstaller.removeItemGrantingWriteAccess(atPath: stale)
+                    } catch {
+                        print("Warning: could not remove leftover .stale folder \(stale) — it may resurface as a paused mod: \(error)")
+                    }
                 }
             }
         } catch {
