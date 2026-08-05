@@ -230,8 +230,11 @@ struct ModConfigEditorView: View {
     }
     
     private func validateJson(_ text: String) {
-        if text.isEmpty {
-            isInvalidJson = false
+        // Un fichier vide (ou seulement des espaces) n'est pas un JSON valide :
+        // laisser le bouton Save actif écraserait config.json par un fichier que
+        // SMAPI ne pourrait pas parser au prochain lancement.
+        if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            isInvalidJson = true
             return
         }
         if let data = text.data(using: .utf8) {

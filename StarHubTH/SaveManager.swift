@@ -281,7 +281,10 @@ public class SaveManager {
         let range = NSRange(xml.startIndex..<xml.endIndex, in: xml)
         if let match = regex.firstMatch(in: xml, options: [], range: range) {
             if let swiftRange = Range(match.range(at: 1), in: xml) {
-                return String(xml[swiftRange])
+                // Stardew stocke les noms échappés (« D&amp;D ») : décoder pour
+                // exposer la vraie valeur (éditeur, matching) et éviter le double-
+                // encodage à la réécriture. No-op sur les valeurs numériques.
+                return XMLEntities.unescape(String(xml[swiftRange]))
             }
         }
         return nil
@@ -329,7 +332,9 @@ public class SaveManager {
             // Remove the <spouse>...</spouse> tag entirely
             return regex.stringByReplacingMatches(in: block, options: [], range: fullRange, withTemplate: "")
         } else {
-            let replacement = "<spouse>\(newSpouse)</spouse>"
+            // Échapper le nom du conjoint (peut contenir des caractères XML).
+            let escapedSpouse = XMLEntities.escape(newSpouse)
+            let replacement = "<spouse>\(escapedSpouse)</spouse>"
             let firstMatch = regex.firstMatch(in: block, options: [], range: fullRange)
             if firstMatch != nil {
                 // Tag exists — replace it
@@ -343,7 +348,7 @@ public class SaveManager {
                     return block  // cannot insert safely
                 }
                 var modified = block
-                modified.insert(contentsOf: "<spouse>\(newSpouse)</spouse>", at: nameRange.upperBound)
+                modified.insert(contentsOf: "<spouse>\(escapedSpouse)</spouse>", at: nameRange.upperBound)
                 return modified
             }
         }
@@ -537,7 +542,11 @@ public class SaveManager {
             // Better to use mutating String method.
             if let swiftRange = Range(match.range, in: xml) {
                 var modified = xml
-                modified.replaceSubrange(swiftRange, with: "<\(tag)>\(value)</\(tag)>")
+                // Échapper la valeur : un nom de ferme « D&D » ou un « < »
+                // cassait le XML sans cela (data-loss au prochain fetchSaves).
+                // Échappement centralisé ici → tous les callers (édition, clone,
+                // remariage) sont protégés. Symétrique du unescape d'extractTag.
+                modified.replaceSubrange(swiftRange, with: "<\(tag)>\(XMLEntities.escape(value))</\(tag)>")
                 return modified
             }
         }

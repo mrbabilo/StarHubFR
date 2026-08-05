@@ -57,6 +57,7 @@ let package = Package(
                 "Models/OSJunk.swift",
                 "Models/ModDependencyStatus.swift",
                 "Models/CoreModSlot.swift",
+                "Models/XMLEntities.swift",
                 "L10n.swift",
                 "AppDesignCore.swift",
                 "ContrastChecker.swift",
@@ -212,6 +213,11 @@ let package = Package(
             name: "OSJunkTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/OSJunkTests"
+        ),
+        .testTarget(
+            name: "XMLEntitiesTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/XMLEntitiesTests"
         ),
         .testTarget(
             name: "SaveTreeTests",
