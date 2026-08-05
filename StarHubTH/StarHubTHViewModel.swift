@@ -937,7 +937,10 @@ class StarHubTHViewModel: ObservableObject {
     
     func scanMods(includeRepair: Bool = true) {
         guard !gameDir.isEmpty else {
-            self.mods = []
+            // scanMods est appelé depuis background (refresh, initialLoad…).
+            // Muter @Published mods sur ce thread déclenche un warning SwiftUI —
+            // dispatcher sur main, comme l'affectation principale plus bas.
+            DispatchQueue.main.async { self.mods = [] }
             return
         }
 

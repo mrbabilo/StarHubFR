@@ -128,6 +128,7 @@
   "mod_config_backups_created_date": "Created",
   "mod_config_backups_creating": "Creating backup...",
   "mod_config_backups_delete": "Delete",
+  "mod_config_backups_delete_failed": "Delete failed: %@",
   "mod_config_backups_delete_confirm": "Delete this backup? This cannot be undone.",
   "mod_config_backups_empty": "No backups yet",
   "mod_config_backups_failed": "Failed to create backup: %@",

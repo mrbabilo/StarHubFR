@@ -228,13 +228,20 @@ struct ModConfigBackupsView: View {
 
     private func performDelete(_ backup: ModConfigBackup) {
         DispatchQueue.global(qos: .userInitiated).async {
-            try? ModConfigBackupManager.shared.deleteBackup(backup)
-            let fetched = ModConfigBackupManager.shared.loadBackups()
-            DispatchQueue.main.async {
-                self.backups = fetched
-                if self.expandedBackupId == backup.id {
-                    self.expandedBackupId = nil
-                    self.selectedItemIds = []
+            do {
+                try ModConfigBackupManager.shared.deleteBackup(backup)
+                let fetched = ModConfigBackupManager.shared.loadBackups()
+                DispatchQueue.main.async {
+                    self.backups = fetched
+                    if self.expandedBackupId == backup.id {
+                        self.expandedBackupId = nil
+                        self.selectedItemIds = []
+                    }
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    self.vm.alertMessage = self.localizedMessage(for: error, genericKey: L10n.ModConfigBackups.deleteFailed)
+                    self.vm.showAlert = true
                 }
             }
         }

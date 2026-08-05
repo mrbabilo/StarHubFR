@@ -744,7 +744,15 @@ public class SaveManager {
                 if fm.fileExists(atPath: saveFolder.path) {
                     try? fm.removeItem(at: saveFolder)
                 }
-                try? fm.moveItem(at: tempTrash, to: saveFolder)
+                do {
+                    try fm.moveItem(at: tempTrash, to: saveFolder)
+                } catch {
+                    // Ne pas avaler silencieusement : la save live est coincée
+                    // dans tempTrash et saveFolder est vide. Signaler le chemin
+                    // pour que l'utilisateur puisse la récupérer manuellement,
+                    // sinon c'est une perte de donnée invisible.
+                    print("CRITICAL: restore rollback failed — live save still in \(tempTrash.path) (could not move to \(saveFolder.path): \(error))")
+                }
             }
             return false
         }

@@ -357,6 +357,7 @@ enum L10n {
         static let nothingToBackUp           = "mod_config_backups_nothing_to_back_up"
         static let fileNotFound              = "mod_config_backups_file_not_found"
         static let restoreFailed             = "mod_config_backups_restore_failed"
+        static let deleteFailed              = "mod_config_backups_delete_failed"
         static let backupAutoCreated         = "mod_config_backups_auto_created"
         static let cleanupComplete           = "mod_config_backups_cleanup_complete"
         static let partOfGroup               = "mod_config_backups_part_of_group"

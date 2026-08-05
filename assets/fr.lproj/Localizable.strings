@@ -128,6 +128,7 @@
 "mod_config_backups_created_date" = "Créée le";
 "mod_config_backups_creating" = "Création de la sauvegarde...";
 "mod_config_backups_delete" = "Supprimer";
+"mod_config_backups_delete_failed" = "Échec de la suppression : %@";
 "mod_config_backups_delete_confirm" = "Supprimer cette sauvegarde ? Cette action est irréversible.";
 "mod_config_backups_empty" = "Aucune sauvegarde pour le moment";
 "mod_config_backups_failed" = "Échec de la création de la sauvegarde : %@";
