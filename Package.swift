@@ -49,6 +49,7 @@ let package = Package(
                 "Models/I18nLenientParser.swift",
                 "Models/I18nLocaleResolver.swift",
                 "Models/TranslationCoverage.swift",
+                "Models/TranslationDiffGroups.swift",
                 "Models/ThaiTranslationTable.swift",
                 "NexusUpdateChecker.swift",
                 "Models/NexusUpdateConsolidation.swift",

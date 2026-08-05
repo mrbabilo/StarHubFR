@@ -940,3 +940,112 @@ struct DiffRowSectionTests {
                     .first?.sectionIndex == nil)
     }
 }
+
+/// Le regroupement des rangées du diff par section.
+///
+/// L'identité d'une section est son **rang**, jamais son titre : Ridgeside
+/// Village porte 65 sections « Spring ». Les comptes portent sur les rangées
+/// reçues — donc sur les rangées filtrées, ce que l'en-tête doit afficher.
+struct DiffGroupTests {
+    private func row(_ key: String, _ state: TranslationCoverage.DiffRow.State,
+                     section: String? = nil, index: Int? = nil,
+                     component: String? = nil) -> TranslationCoverage.DiffRow {
+        TranslationCoverage.DiffRow(key: key, english: "en", french: "fr", state: state,
+                                    component: component, section: section, sectionIndex: index)
+    }
+
+    @Test func twoHomonymousSectionsStayTwoGroups() {
+        let rows = [
+            row("a", .translated, section: "Spring", index: 0),
+            row("b", .missing, section: "Summer", index: 1),
+            row("c", .missing, section: "Spring", index: 2),
+        ]
+        let groups = TranslationCoverage.diffGroups(rows: rows)
+        #expect(groups.count == 3)
+        #expect(Set(groups.map(\.id)).count == 3)
+        #expect(groups.map(\.title) == ["Spring", "Summer", "Spring"])
+    }
+
+    @Test func groupsFollowTheFileOrderNotTheAlphabet() {
+        let rows = [
+            row("z", .translated, section: "Zebre", index: 0),
+            row("a", .translated, section: "Alpha", index: 1),
+        ]
+        #expect(TranslationCoverage.diffGroups(rows: rows).map(\.title) == ["Zebre", "Alpha"])
+    }
+
+    @Test func keysAboveTheFirstCommentFormAnUntitledGroupFirst() {
+        let rows = [
+            row("intro", .translated),
+            row("a", .translated, section: "Config", index: 0),
+        ]
+        let groups = TranslationCoverage.diffGroups(rows: rows)
+        #expect(groups.first?.title == nil)
+        #expect(groups.first?.rows.map(\.key) == ["intro"])
+        #expect(groups.count == 2)
+    }
+
+    @Test func aFileWithoutSectionsGivesOneUntitledGroup() {
+        let groups = TranslationCoverage.diffGroups(rows: [row("a", .translated),
+                                                           row("b", .missing)])
+        #expect(groups.count == 1)
+        #expect(groups.first?.title == nil)
+        #expect(groups.first?.rows.count == 2)
+    }
+
+    @Test func countsMatchTheRowsReceived() {
+        let rows = [
+            row("a", .missing, section: "Config", index: 0),
+            row("b", .missing, section: "Config", index: 0),
+            row("c", .empty, section: "Config", index: 0),
+            row("d", .translated, section: "Config", index: 0),
+        ]
+        let group = try! #require(TranslationCoverage.diffGroups(rows: rows).first)
+        #expect(group.remaining(.missing) == 2)
+        #expect(group.remaining(.empty) == 1)
+        #expect(group.remaining(.orphan) == 0)
+        #expect(group.rows.count == 4)
+    }
+
+    @Test func theSameSectionInTwoComponentsStaysSeparate() {
+        // Deux composants d'un même mod peuvent avoir chacun leur « Config » :
+        // ce sont deux sections, et leurs rangs se recouvrent.
+        let rows = [
+            row("a", .translated, section: "Config", index: 0, component: "A"),
+            row("b", .translated, section: "Config", index: 0, component: "B"),
+        ]
+        let groups = TranslationCoverage.diffGroups(rows: rows)
+        #expect(groups.count == 2)
+        #expect(Set(groups.map(\.id)).count == 2)
+    }
+
+    @Test func theFirstKeyDistinguishesHomonymousSections() {
+        // C'est ce que montre la table des matières : sans elle, 65 lignes
+        // « Spring » indiscernables.
+        let rows = [
+            row("Ravi.Spring.1", .translated, section: "Spring", index: 0),
+            row("Elis.Spring.1", .translated, section: "Spring", index: 1),
+        ]
+        #expect(TranslationCoverage.diffGroups(rows: rows).map(\.firstKey)
+                == ["Ravi.Spring.1", "Elis.Spring.1"])
+    }
+
+    @Test func untitledLeadingRowsAndOrphansAreNotTheSameGroup() {
+        // Deux blocs sans rang, aux deux bouts du tableau : les clés d'avant le
+        // premier commentaire, et les orphelines que `diffRows` ajoute à la fin.
+        // Sans discriminant, ils partageraient une identité — replier l'un
+        // replierait l'autre.
+        let rows = [row("intro", .translated),
+                    row("a", .translated, section: "Config", index: 0),
+                    row("zz", .orphan)]
+        let groups = TranslationCoverage.diffGroups(rows: rows)
+        #expect(groups.count == 3)
+        #expect(Set(groups.map(\.id)).count == 3)
+        #expect(groups.last?.isOrphan == true)
+        #expect(groups.first?.isOrphan == false)
+    }
+
+    @Test func noRowsGiveNoGroups() {
+        #expect(TranslationCoverage.diffGroups(rows: []).isEmpty)
+    }
+}
