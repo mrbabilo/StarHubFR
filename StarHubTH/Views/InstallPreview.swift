@@ -92,7 +92,10 @@ struct InstallPreview: View {
                     }
                 }
             }
-            .frame(maxHeight: NSScreen.main?.visibleFrame.height ?? 600 * 0.6)
+            // 60 % de la hauteur utile dans les deux branches du `??` :
+            // auparavant l'écran présent → hauteur *entière*, poussant les
+            // boutons d'action hors vue sur un gros pack.
+            .frame(maxHeight: (NSScreen.main?.visibleFrame.height ?? 600) * 0.6)
 
             // Actions — fixed at bottom, not scrolled.
             actionButtons

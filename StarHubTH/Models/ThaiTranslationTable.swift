@@ -104,8 +104,10 @@ public enum ThaiTranslationTable {
 
     /// La cible d'un lien Markdown, ou une chaîne vide. Volontairement tolérant :
     /// la colonne Nexus contient parfois un tiret au lieu d'un lien.
-    private static func linkTarget(in text: String) -> String {
-        guard let open = text.range(of: "("), let close = text.range(of: ")") else { return "" }
+    static func linkTarget(in text: String) -> String {
+        guard let open = text.range(of: "("),
+              let close = text.range(of: ")"),
+              open.lowerBound < close.lowerBound else { return "" }
         return String(text[text.index(after: open.lowerBound)..<close.lowerBound])
     }
 }

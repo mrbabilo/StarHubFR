@@ -58,7 +58,11 @@ struct BranchBackupSheet: View {
         self.vm = vm
         self.backup = backup
         // Try parsing the original save name from backup folder name
-        let originalSaveName = String(backup.folderPath.lastPathComponent.split(separator: ".")[0])
+        // Try parsing the original save name from backup folder name.
+        // `.first` (pas `[0]`) : un `lastPathComponent` vide ou sans point
+        // donnait un tableau vide → crash à l'ouverture de la feuille.
+        let originalSaveName = backup.folderPath.lastPathComponent
+            .split(separator: ".").first.map(String.init) ?? backup.folderPath.lastPathComponent
         _newName = State(initialValue: "\(originalSaveName) \(vm.L(L10n.Saves.branchDefaultSuffix))")
         
         // We don't easily have the farmName from SaveBackup directly unless we parse the XML of the backup.

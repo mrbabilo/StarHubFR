@@ -103,4 +103,17 @@ struct ThaiTranslationAvailabilityTests {
     @Test func beingInstalledWinsOverTheBaseModBeingPresent() {
         #expect(mod(installed: true, original: true).availabilityKey == L10n.ThaiHub.installed)
     }
+
+    // MARK: linkTarget (garde contre les parens inversées)
+
+    @Test func linkTargetExtractsUrlBetweenParens() {
+        #expect(ThaiTranslationTable.linkTarget(in: "[Nexus](https://nexusmods.com/stardewvalley/mods/123)") == "https://nexusmods.com/stardewvalley/mods/123")
+    }
+
+    @Test func reversedParensDoNotCrash() {
+        // ")text(" : `)` précède `(` → sans garde, lowerBound > upperBound →
+        // crash fatal. Le catalogue Nexus vient d'un dépôt tiers non contrôlé.
+        #expect(ThaiTranslationTable.linkTarget(in: ")text(") == "")
+        #expect(ThaiTranslationTable.linkTarget(in: ") (") == "")
+    }
 }
