@@ -308,6 +308,7 @@
   "settings_saves_folder": "Save Games Folder",
   "settings_open_folder": "Open Folder",
   "settings_clear_disabled_mods": "Clear Disabled Mods",
+  "settings_clear_disabled_confirm": "This permanently deletes all disabled mods in the current profile. Continue?",
   "settings_delete_junk_mods": "Delete Junk Mods",
   "settings_settings": "Settings",
   "settings_game_dir_not_set": "Please select game folder first",

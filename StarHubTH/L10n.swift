@@ -488,6 +488,7 @@ enum L10n {
         static let savesFolder          = "settings_saves_folder"
         static let openFolder           = "settings_open_folder"
         static let clearDisabledMods    = "settings_clear_disabled_mods"
+        static let clearDisabledConfirm = "settings_clear_disabled_confirm"
         static let deleteJunkMods       = "settings_delete_junk_mods"
         static let settings             = "settings_settings"
         static let gameDirNotSet        = "settings_game_dir_not_set"

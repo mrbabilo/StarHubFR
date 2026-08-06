@@ -11,6 +11,7 @@ struct SettingsView: View {
     // Nexus Mods API key entry (only used when no key is stored yet).
     @State private var nexusApiKeyInput: String = ""
     @State private var nexusKeySavedFlash: Bool = false
+    @State private var showClearDisabledConfirm = false
     
     var body: some View {
         ScrollView {
@@ -235,7 +236,7 @@ struct SettingsView: View {
                             Text(vm.L(L10n.Settings.clearDisabledMods))
                                 .font(.system(size: 13))
                             Spacer()
-                            Button(action: { vm.cleanDisabledMods() }) {
+                            Button(action: { showClearDisabledConfirm = true }) {
                                 Text(vm.L(L10n.Settings.deleteJunkMods))
                             }
                             .foregroundColor(.red)
@@ -248,5 +249,18 @@ struct SettingsView: View {
             .padding(40)
         }
         .background(Color(nsColor: .controlBackgroundColor))
+        .alert(isPresented: $showClearDisabledConfirm) {
+            // cleanDisabledMods fait un removeItem définitif (pas la corbeille) :
+            // sans cette confirmation, un clic supprimait tous les mods désactivés
+            // du profil sans retour possible.
+            Alert(
+                title: Text(vm.L(L10n.Settings.clearDisabledMods)),
+                message: Text(vm.L(L10n.Settings.clearDisabledConfirm)),
+                primaryButton: .destructive(Text(vm.L(L10n.Settings.deleteJunkMods))) {
+                    vm.cleanDisabledMods()
+                },
+                secondaryButton: .cancel(Text(vm.L(L10n.Saves.cancel)))
+            )
+        }
     }
 }

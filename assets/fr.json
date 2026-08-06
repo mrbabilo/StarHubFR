@@ -308,6 +308,7 @@
   "settings_saves_folder": "Dossier des sauvegardes",
   "settings_open_folder": "Ouvrir le dossier",
   "settings_clear_disabled_mods": "Vider les mods désactivés",
+  "settings_clear_disabled_confirm": "Cela supprime définitivement tous les mods désactivés du profil actuel. Continuer ?",
   "settings_delete_junk_mods": "Supprimer les mods inutiles",
   "settings_settings": "Réglages",
   "settings_game_dir_not_set": "Veuillez d'abord sélectionner le dossier du jeu",
