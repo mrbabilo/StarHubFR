@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.13.0] - 2026-08-06
+
 ### Added
 - **The translation tab now has an outline.** Sections an author wrote in their file are headed, collapsible, and carry what's left to do in them — so a section that's done stops competing for attention. A sections list jumps straight to one: Ridgeside Village has 1881 of them.
 - **See the French of a mod key by key.** A new Translation tab on a mod's page lists every key with its English and French side by side, and what state it's in — translated, to translate, empty, same as English, orphan. Each filter carries its count, so "Empty 3" catches the eye before you click. Components of a multi-part mod stay separate, each with its own English source.
