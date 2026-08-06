@@ -829,11 +829,6 @@ class StarHubTHViewModel: ObservableObject {
                 self?.loadProfiles()
             }
             self.fetchSteamUser()
-            if self.steamUsername.isEmpty {
-                DispatchQueue.main.async { [weak self] in
-                    self?.steamUsername = self?.L(L10n.VM.defaultFarmerName) ?? "Farmer"
-                }
-            }
 
             // Step 4b — Seed the Nexus caches + user overrides (was blocking
             // the window's first paint when it ran in init).
@@ -920,7 +915,13 @@ class StarHubTHViewModel: ObservableObject {
         // used to mutate these @Published properties directly on that
         // background thread instead of hopping back to main.
         DispatchQueue.main.async {
-            self.steamUsername = resolvedUsername
+            // Le fallback « Farmer » appartient ici, à côté de la publication
+            // du vrai nom : un check `isEmpty` côté appelant (performInitialLoad)
+            // s'exécutait avant cette fermeture main et voyait toujours "" → le
+            // fallback écrasait le vrai nom (main FIFO). Audit 2026-08-05.
+            self.steamUsername = resolvedUsername.isEmpty
+                ? (self.L(L10n.VM.defaultFarmerName) ?? "Farmer")
+                : resolvedUsername
             if let resolvedAvatarPath = resolvedAvatarPath {
                 self.steamAvatarPath = resolvedAvatarPath
             }
@@ -2223,8 +2224,12 @@ class StarHubTHViewModel: ObservableObject {
     func setNexusApiKey(_ key: String) {
         let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        NexusUpdateChecker.shared.setApiKey(trimmed)
-        hasNexusApiKey = true
+        // Ne déclarer la clé configurée que si la Keychain l'a acceptée : sinon
+        // l'UI affichait « configurée » et le prochain check partait en .noApiKey
+        // (Keychain locked, quota, sandbox).
+        if NexusUpdateChecker.shared.setApiKey(trimmed) {
+            hasNexusApiKey = true
+        }
     }
 
     /// Removes the stored Nexus Mods API key.
@@ -2848,13 +2853,34 @@ class StarHubTHViewModel: ObservableObject {
     /// keys. The `data` blob is encoded exactly once and reused for both keys
     /// (was encoded twice before). Thread-safe via `installedModRegistryLock`.
     private func saveInstalledModRegistry(_ map: [String: InstalledModRecord]) {
-        guard let data = try? JSONEncoder().encode(map) else { return }
         installedModRegistryLock.lock()
         installedModRegistryCache = map
         installedModRegistryLock.unlock()
+        persistInstalledModRegistry(map)
+    }
+
+    /// Persistance disque seule (primary + backup), hors lock. Extraite pour que
+    /// `mutateInstalledModRegistry` puisse écrire après avoir relâché le lock
+    /// (UserDefaults.set est lent : on ne tient pas le lock pendant l'écriture).
+    private func persistInstalledModRegistry(_ map: [String: InstalledModRecord]) {
+        guard let data = try? JSONEncoder().encode(map) else { return }
         let defaults = UserDefaults.standard
         defaults.set(data, forKey: Self.installedModRegistryKey)
         defaults.set(data, forKey: Self.installedModRegistryBackupKey)
+    }
+
+    /// RMW atomique sur le registre d'install : la séquence lecture du cache →
+    /// mutation → écriture du cache se fait sous un seul lock, pour qu'un second
+    /// scan concurrent ne puisse pas charger la même version, muter, et écraser
+    /// nos changements (audit 2026-08-05 : faux « update available » perpétuel
+    /// quand l'entrée nexusVersion était perdue dans la course).
+    private func mutateInstalledModRegistry(_ body: (inout [String: InstalledModRecord]) -> Void) {
+        installedModRegistryLock.lock()
+        var map = installedModRegistryCache ?? Self.loadInstalledModRegistryFromDisk()
+        body(&map)
+        installedModRegistryCache = map
+        installedModRegistryLock.unlock()
+        persistInstalledModRegistry(map)
     }
 
     /// Returns the recorded install date for a mod folder, or nil if the mod
@@ -2878,19 +2904,22 @@ class StarHubTHViewModel: ObservableObject {
     /// (NOT written to the manifest), so the checker can compare against it
     /// instead of the manifest's value.
     func recordInstalledModNexusVersion(folderName: String, nexusVersion: String) {
-        var registry = loadInstalledModRegistry()
-        // Create the entry if it doesn't exist yet — `syncInstalledModRegistry`
-        // runs at the end of every scan so the entry would normally already
-        // be there, but this guard makes the function safe to call between
-        // scans (e.g. right after an install, before the first refresh).
-        var existing = registry[folderName] ?? InstalledModRecord(
-            version: "",
-            installedAt: Date(),
-            nexusVersion: nil
-        )
-        existing.nexusVersion = nexusVersion
-        registry[folderName] = existing
-        saveInstalledModRegistry(registry)
+        // RMW atomique via `mutateInstalledModRegistry` (au lieu de load → mutate
+        // → save lockés séparément) : un scan concurrent ne peut plus écraser
+        // l'entrée `nexusVersion` qu'on vient d'écrire. Create the entry if it
+        // doesn't exist yet — `syncInstalledModRegistry` runs at the end of every
+        // scan so the entry would normally already be there, but this guard
+        // makes the function safe to call between scans (right after an install,
+        // before the first refresh).
+        mutateInstalledModRegistry { registry in
+            var existing = registry[folderName] ?? InstalledModRecord(
+                version: "",
+                installedAt: Date(),
+                nexusVersion: nil
+            )
+            existing.nexusVersion = nexusVersion
+            registry[folderName] = existing
+        }
     }
 
     /// Reconciles the persistent install registry with the mods found on disk
@@ -2919,28 +2948,18 @@ class StarHubTHViewModel: ObservableObject {
         // Snapshot of the Nexus "extras" cache (version + upload date for
         // every mod id we've ever queried). Used to populate `nexusVersion`
         // for every mod that declares a Nexus id — regardless of HOW it was
-        // installed (Nexus in-app download, nxm:// deep link, drag-and-drop,
-        // or manual folder copy). Without this, only the in-app Nexus flow
-        // (`reconcileManifestVersion`) populated `nexusVersion`, so mods
-        // whose author forgot to bump the manifest Version were permanently
-        // re-flagged as updatable when installed by any other path.
+        // installed. Without this, only the in-app Nexus flow populated
+        // `nexusVersion`, so mods whose author forgot to bump the manifest
+        // Version were permanently re-flagged as updatable.
         let extrasSnapshot = nexusModExtras
+        let now = Date()
 
-        // One-shot migration: wipe any pre-existing registry that was built
-        // with stale folder mtimes (from the v1 implementation or from mods
-        // registered before the Date()-always fix). This forces every entry
-        // to be re-registered with a clean Date(), eliminating the false
-        // "same-version update available" flags. Runs exactly once.
+        // One-shot migration: wipe any pre-existing registry built with stale
+        // folder mtimes. Runs exactly once.
         let migrationDone = UserDefaults.standard.bool(forKey: Self.registryMigrationV2Key)
-        var registry: [String: InstalledModRecord]
         if !migrationDone {
-            registry = [:]
             UserDefaults.standard.set(true, forKey: Self.registryMigrationV2Key)
-        } else {
-            registry = loadInstalledModRegistry()
         }
-
-        let wasEmpty = registry.isEmpty
 
         // La résolution de la version Nexus reste ici (elle dépend du registre
         // Nexus) ; les règles de mise à jour du registre vivent dans
@@ -2954,21 +2973,29 @@ class StarHubTHViewModel: ObservableObject {
                     return id.isEmpty ? nil : extrasSnapshot[id]?.version
                 }())
         }
-        let (synced, didChange) = InstalledModRegistry.sync(registry: registry,
-                                                            seen: seen,
-                                                            now: Date())
-        registry = synced
 
-        if didChange {
-            saveInstalledModRegistry(registry)
+        // RMW atomique (load → sync → save sous un seul lock) : un scan
+        // concurrent ne peut plus charger la même version du registre et
+        // écraser nos changements (audit 2026-08-05 : faux « update available »
+        // perpétuel quand l'entrée nexusVersion était perdue dans la course).
+        // On perd la petite optimisation « n'écrire que si didChange », mais la
+        // persistance d'un registre inchangé est idempotente et peu coûteuse.
+        var rebuiltCount = 0
+        var wasEmpty = false
+        mutateInstalledModRegistry { registry in
+            if !migrationDone { registry = [:] }
+            wasEmpty = registry.isEmpty
+            let (synced, _) = InstalledModRegistry.sync(registry: registry,
+                                                        seen: seen,
+                                                        now: now)
+            registry = synced
+            if wasEmpty && !registry.isEmpty { rebuiltCount = registry.count }
         }
 
-        // If the registry was empty (first launch, cleared, corrupt, or just
-        // migrated) and we just populated it, log the rebuild.
-        if wasEmpty && !registry.isEmpty {
+        if wasEmpty && rebuiltCount > 0 {
             self.log(
                 String(format: "Install registry rebuilt: %d mod(s) registered from disk.",
-                       registry.count),
+                       rebuiltCount),
                 level: .info
             )
         }

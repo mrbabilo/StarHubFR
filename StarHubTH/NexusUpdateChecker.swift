@@ -82,7 +82,8 @@ final class NexusUpdateChecker {
         return key
     }
 
-    func setApiKey(_ key: String) {
+    @discardableResult
+    func setApiKey(_ key: String) -> Bool {
         let data = Data(key.utf8)
         let baseQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -92,11 +93,15 @@ final class NexusUpdateChecker {
         let attrs: [String: Any] = [kSecValueData as String: data]
         // Try update first; if no item exists, add a new one.
         let updateStatus = SecItemUpdate(baseQuery as CFDictionary, attrs as CFDictionary)
+        if updateStatus == errSecSuccess { return true }
         if updateStatus == errSecItemNotFound {
             var newItem = baseQuery
             newItem[kSecValueData as String] = data
-            SecItemAdd(newItem as CFDictionary, nil)
+            // Retourner le statut : sans cela, l'appelant croyait la clé
+            // configurée même si la Keychain refusait (locked, quota, sandbox).
+            return SecItemAdd(newItem as CFDictionary, nil) == errSecSuccess
         }
+        return false
     }
 
     func clearApiKey() {
