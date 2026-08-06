@@ -1128,4 +1128,78 @@ struct DiffGroupTests {
         #expect(filtered.remaining(.translated) == 0)
         #expect(filtered.rows.count == 2)
     }
+
+    // MARK: - displayTitle
+
+    @Test func displayTitleRendersTheTitleForATitledGroup() {
+        let rows = [row("a", .translated, section: "Spring", index: 0)]
+        let group = try! #require(TranslationCoverage.diffGroups(rows: rows).first)
+        #expect(group.displayTitle(fallback: "Avant la première section", orphan: "Orpheline") == "Spring")
+    }
+
+    @Test func displayTitleFallsBackForAnUntitledGroup() {
+        let rows = [row("intro", .translated)]
+        let group = try! #require(TranslationCoverage.diffGroups(rows: rows).first)
+        #expect(group.title == nil)
+        #expect(group.displayTitle(fallback: "Avant la première section", orphan: "Orpheline")
+                == "Avant la première section")
+    }
+
+    @Test func displayTitleUsesTheOrphanLabelNotTheUntitledOne() {
+        // C'est exactement la confusion que la tâche 4 avait dû corriger :
+        // les orphelines n'ont pas de titre non plus, mais ce n'est pas pour
+        // la même raison que les clés d'avant le premier commentaire.
+        let rows = [row("a", .translated, section: "Config", index: 0), row("zz", .orphan)]
+        let group = try! #require(TranslationCoverage.diffGroups(rows: rows).last)
+        #expect(group.isOrphan)
+        #expect(group.displayTitle(fallback: "Avant la première section", orphan: "Orpheline") == "Orpheline")
+    }
+
+    @Test func displayTitlePrefixesTheComponentForEveryKindOfGroup() {
+        // La même règle de préfixe s'applique aux trois : un mod à plusieurs
+        // dossiers `i18n` doit distinguer ses groupes sans titre et ses
+        // orphelins par composant, pas seulement ses sections titrées.
+        let rows = [
+            row("intro", .translated, component: "NPCs"),
+            row("a", .translated, section: "Spring", index: 0, component: "NPCs"),
+            row("zz", .orphan, component: "NPCs"),
+        ]
+        let groups = TranslationCoverage.diffGroups(rows: rows)
+        #expect(groups.count == 3)
+        #expect(groups[0].displayTitle(fallback: "Avant", orphan: "Orpheline") == "NPCs — Avant")
+        #expect(groups[1].displayTitle(fallback: "Avant", orphan: "Orpheline") == "NPCs — Spring")
+        #expect(groups[2].displayTitle(fallback: "Avant", orphan: "Orpheline") == "NPCs — Orpheline")
+    }
+
+    /// La seule justification du `@autoclosure` sur `fallback`/`orphan` :
+    /// un seul des deux libellés se résout jamais par groupe. Sans ce test,
+    /// une signature en `String` ordinaire compilerait tout aussi bien et
+    /// doublerait silencieusement les recherches localisées à l'appel.
+    @Test func displayTitleEvaluatesOnlyTheLabelItUses() {
+        final class CallCounter {
+            private(set) var fallbackCalls = 0
+            private(set) var orphanCalls = 0
+            func fallback() -> String { fallbackCalls += 1; return "F" }
+            func orphan() -> String { orphanCalls += 1; return "O" }
+        }
+
+        let titled = try! #require(
+            TranslationCoverage.diffGroups(rows: [row("a", .translated, section: "Spring", index: 0)]).first)
+        let titledCounter = CallCounter()
+        _ = titled.displayTitle(fallback: titledCounter.fallback(), orphan: titledCounter.orphan())
+        #expect(titledCounter.fallbackCalls == 0)
+        #expect(titledCounter.orphanCalls == 0)
+
+        let untitled = try! #require(TranslationCoverage.diffGroups(rows: [row("intro", .translated)]).first)
+        let untitledCounter = CallCounter()
+        _ = untitled.displayTitle(fallback: untitledCounter.fallback(), orphan: untitledCounter.orphan())
+        #expect(untitledCounter.fallbackCalls == 1)
+        #expect(untitledCounter.orphanCalls == 0)
+
+        let orphanGroup = try! #require(TranslationCoverage.diffGroups(rows: [row("zz", .orphan)]).first)
+        let orphanCounter = CallCounter()
+        _ = orphanGroup.displayTitle(fallback: orphanCounter.fallback(), orphan: orphanCounter.orphan())
+        #expect(orphanCounter.fallbackCalls == 0)
+        #expect(orphanCounter.orphanCalls == 1)
+    }
 }
