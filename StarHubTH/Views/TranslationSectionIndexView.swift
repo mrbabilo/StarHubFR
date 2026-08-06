@@ -7,11 +7,11 @@ import SwiftUI
 ///
 /// Chaque ligne montre le titre **et la première clé de la section**. Sans cette
 /// seconde ligne, la table des matières de `[CP] Ridgeside Village` serait des
-/// dizaines de lignes « Spring » indiscernables — sur ses 1878 sections
-/// titrées (mesuré via `diffGroups`, pas les 2056 lignes de commentaire brutes
+/// dizaines de lignes « Spring » indiscernables — sur ses 1861 sections
+/// titrées (mesuré via `diffGroups`, pas les 2065 lignes de commentaire brutes
 /// du fichier : ce dernier chiffre compte autre chose, voir `I18nOutline`).
 ///
-/// La liste est paresseuse : jusqu'à 1881 lignes (tous les groupes de
+/// La liste est paresseuse : jusqu'à 1862 lignes (tous les groupes de
 /// `[CP] Ridgeside Village`, bloc sans titre et orphelin compris) ne se
 /// rendent pas d'un bloc.
 struct TranslationSectionIndexView: View {

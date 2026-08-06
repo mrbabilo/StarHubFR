@@ -6,7 +6,7 @@ import Foundation
 /// rouage : la couverture se calcule sans savoir comment on l'affichera.
 ///
 /// **Une section s'identifie par son rang, jamais par son titre.**
-/// `[CP] Ridgeside Village` porte 1878 sections titrées, et des dizaines
+/// `[CP] Ridgeside Village` porte 1861 sections titrées, et des dizaines
 /// d'entre elles partagent le même titre « Spring » — une par saison de
 /// personnage. Une identité par titre les replierait toutes d'un coup, ferait
 /// atterrir la navigation sur la première, et donnerait à SwiftUI des
@@ -54,7 +54,7 @@ extension TranslationCoverage {
         /// Les deux paramètres sont des `@autoclosure` : un seul des deux se
         /// résout jamais par groupe (`isOrphan` les rend mutuellement
         /// exclusifs), et l'appelant y loge une recherche localisée — l'évaluer
-        /// systématiquement en doublerait le coût sur les 1878 en-têtes de
+        /// systématiquement en doublerait le coût sur les 1862 en-têtes de
         /// `[CP] Ridgeside Village`.
         public func displayTitle(fallback: @autoclosure () -> String,
                                  orphan: @autoclosure () -> String) -> String {

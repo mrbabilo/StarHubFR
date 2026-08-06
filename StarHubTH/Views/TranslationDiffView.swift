@@ -129,7 +129,7 @@ struct TranslationDiffView: View {
                             // exactement ce que le popover ci-dessous liste (blocs
                             // sans titre et orphelin compris). Annoncer les titrés
                             // pour une liste qui en montre plus serait un compte
-                            // faux — mesuré sur Ridgeside : 1878 annoncés pour 1881
+                            // faux — mesuré sur Ridgeside : 1861 annoncés pour 1862
                             // lignes listées.
                             Text("\(groups.count)")
                                 .font(.system(size: 10, weight: .semibold).monospacedDigit())
@@ -155,7 +155,11 @@ struct TranslationDiffView: View {
                         }
                     }
                 }
-                if allGroups.count > 1 {
+                // `fileHasTitledSections` en plus de `allGroups.count > 1` : un
+                // fichier sans section titrée mais avec des orphelines forme deux
+                // groupes sans qu'aucun en-tête ne soit affiché (cf. `table`) —
+                // replier n'a de sens que là où quelque chose nomme ce qu'on replie.
+                if allGroups.count > 1 && fileHasTitledSections {
                     Button(vm.L(collapsed.isEmpty ? L10n.Mods.diffCollapseAll
                                                   : L10n.Mods.diffExpandAll)) {
                         // Sur `allGroups`, volontairement, pas `groups` : l'état de
