@@ -1432,3 +1432,155 @@ struct TranslationBaselineTests {
         #expect(TranslationBaseline.loadIndex(in: dir) == ["Other": 5])
     }
 }
+
+/// L'adoption et la détection : deux fonctions pures, sans disque.
+///
+/// L'état obsolète est **dérivé** à chaque calcul, jamais stocké — rien à
+/// invalider, rien à migrer, et l'état ne peut pas mentir.
+struct TranslationBaselineRulesTests {
+    private func row(_ key: String, english: String, french: String,
+                     state: TranslationCoverage.DiffRow.State = .translated,
+                     component: String? = nil) -> TranslationCoverage.DiffRow {
+        TranslationCoverage.DiffRow(key: key, english: english, french: french,
+                                    state: state, component: component)
+    }
+
+    private func entry(_ source: String, _ target: String) -> TranslationBaseline.Entry {
+        TranslationBaseline.Entry(source: source, target: target)
+    }
+
+    // MARK: - Adoption
+
+    @Test func aTranslatedRowWithoutBaselineIsAdopted() {
+        let adopted = TranslationBaselineRules.adoptions(
+            rows: [row("a", english: "Hello", french: "Bonjour")], existing: [:])
+        #expect(adopted == [TranslationBaseline.key(component: nil, key: "a"):
+                             entry("Hello", "Bonjour")])
+    }
+
+    @Test func adoptionIsIdempotent() {
+        let existing = [TranslationBaseline.key(component: nil, key: "a"):
+                         entry("Hello", "Bonjour")]
+        #expect(TranslationBaselineRules.adoptions(
+            rows: [row("a", english: "Hello", french: "Bonjour")],
+            existing: existing).isEmpty)
+    }
+
+    @Test func rowsWithoutAFrenchValueAreNotAdopted() {
+        // Rien à dater : il n'y a pas de traduction dont l'anglais pourrait
+        // avoir bougé depuis.
+        let rows = [row("a", english: "Hello", french: "", state: .missing),
+                    row("b", english: "Hi", french: "", state: .empty)]
+        #expect(TranslationBaselineRules.adoptions(rows: rows, existing: [:]).isEmpty)
+    }
+
+    @Test func orphanRowsAreNotAdopted() {
+        // Une clé qui n'existe qu'en français n'a pas d'anglais de référence.
+        let rows = [row("zz", english: "", french: "Orpheline", state: .orphan)]
+        #expect(TranslationBaselineRules.adoptions(rows: rows, existing: [:]).isEmpty)
+    }
+
+    @Test func twoComponentsAreAdoptedSeparately() {
+        let rows = [row("a", english: "One", french: "Un", component: "A"),
+                    row("a", english: "Two", french: "Deux", component: "B")]
+        #expect(TranslationBaselineRules.adoptions(rows: rows, existing: [:]).count == 2)
+    }
+
+    // MARK: - Rafraîchissement
+
+    @Test func aRetranslatedKeyIsReanchored() {
+        // Le français a changé : quelqu'un a retraduit. Sans réancrage, la
+        // référence resterait sur l'ancien couple pour toujours et la clé ne
+        // pourrait plus **jamais** être signalée obsolète — la détection exige
+        // que le français corresponde à la référence.
+        let existing = [TranslationBaseline.key(component: nil, key: "a"):
+                         entry("Hello", "Bonjour")]
+        let refreshed = TranslationBaselineRules.refreshments(
+            rows: [row("a", english: "Hello there", french: "Salut à toi")],
+            existing: existing)
+        #expect(refreshed == [TranslationBaseline.key(component: nil, key: "a"):
+                               entry("Hello there", "Salut à toi")])
+    }
+
+    @Test func anUnchangedKeyIsNotReanchored() {
+        let existing = [TranslationBaseline.key(component: nil, key: "a"):
+                         entry("Hello", "Bonjour")]
+        #expect(TranslationBaselineRules.refreshments(
+            rows: [row("a", english: "Hello", french: "Bonjour")],
+            existing: existing).isEmpty)
+    }
+
+    @Test func anOutdatedKeyIsNotReanchored() {
+        // L'anglais a changé, le français non : c'est précisément le cas qu'on
+        // veut continuer à signaler. Réancrer ici effacerait le signal.
+        let existing = [TranslationBaseline.key(component: nil, key: "a"):
+                         entry("Hello", "Bonjour")]
+        #expect(TranslationBaselineRules.refreshments(
+            rows: [row("a", english: "Hello there", french: "Bonjour")],
+            existing: existing).isEmpty)
+    }
+
+    @Test func anUnknownKeyIsNotReanchored() {
+        #expect(TranslationBaselineRules.refreshments(
+            rows: [row("a", english: "Hello", french: "Bonjour")], existing: [:]).isEmpty)
+    }
+
+    // MARK: - Détection
+
+    @Test func englishChangedAndFrenchDidNotIsOutdated() {
+        let baseline = [TranslationBaseline.key(component: nil, key: "a"):
+                         entry("Hello", "Bonjour")]
+        let rows = TranslationBaselineRules.applying(
+            baseline: baseline, to: [row("a", english: "Hello there", french: "Bonjour")])
+        #expect(rows.first?.state == .outdated)
+        #expect(rows.first?.previousEnglish == "Hello")
+    }
+
+    @Test func bothChangedMeansSomeoneRetranslated() {
+        let baseline = [TranslationBaseline.key(component: nil, key: "a"):
+                         entry("Hello", "Bonjour")]
+        let rows = TranslationBaselineRules.applying(
+            baseline: baseline, to: [row("a", english: "Hello there", french: "Salut à toi")])
+        #expect(rows.first?.state == .translated)
+        #expect(rows.first?.previousEnglish == nil)
+    }
+
+    @Test func anUnchangedEnglishIsNotOutdated() {
+        let baseline = [TranslationBaseline.key(component: nil, key: "a"):
+                         entry("Hello", "Bonjour")]
+        let rows = TranslationBaselineRules.applying(
+            baseline: baseline, to: [row("a", english: "Hello", french: "Bonjour")])
+        #expect(rows.first?.state == .translated)
+    }
+
+    @Test func aRowWithoutBaselineIsNeverOutdated() {
+        // Pas de référence, pas de verdict : c'est toute la limite du signal,
+        // et elle doit se voir dans le code.
+        let rows = TranslationBaselineRules.applying(
+            baseline: [:], to: [row("a", english: "Hello there", french: "Bonjour")])
+        #expect(rows.first?.state == .translated)
+        #expect(rows.first?.previousEnglish == nil)
+    }
+
+    @Test func anUntranslatedRowIsNeverOutdated() {
+        // Une clé à traduire le reste : la signaler obsolète masquerait le
+        // travail réel derrière un état plus faible.
+        let baseline = [TranslationBaseline.key(component: nil, key: "a"):
+                         entry("Hello", "")]
+        let rows = TranslationBaselineRules.applying(
+            baseline: baseline, to: [row("a", english: "New", french: "", state: .missing)])
+        #expect(rows.first?.state == .missing)
+    }
+
+    @Test func theBaselineOfTheRightComponentIsUsed() {
+        let baseline = [TranslationBaseline.key(component: "A", key: "a"): entry("One", "Un"),
+                        TranslationBaseline.key(component: "B", key: "a"): entry("Two", "Deux")]
+        let rows = TranslationBaselineRules.applying(baseline: baseline, to: [
+            row("a", english: "One", french: "Un", component: "A"),
+            row("a", english: "Two changed", french: "Deux", component: "B"),
+        ])
+        #expect(rows[0].state == .translated)
+        #expect(rows[1].state == .outdated)
+        #expect(rows[1].previousEnglish == "Two")
+    }
+}

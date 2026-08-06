@@ -108,6 +108,10 @@ public enum TranslationCoverage {
     public struct DiffRow: Equatable, Sendable, Identifiable {
         public enum State: String, Sendable, CaseIterable {
             case translated, missing, empty, identicalToSource, orphan
+            /// Traduite, mais l'anglais a changé depuis : la référence gardée
+            /// pour cette clé ne correspond plus à la valeur source actuelle.
+            /// Dérivé à chaque calcul, jamais stocké.
+            case outdated
         }
         public let key: String
         public let english: String
@@ -129,12 +133,16 @@ public enum TranslationCoverage {
         /// homonymes — 65 « Spring » dans Ridgeside — n'ont pas le même rang :
         /// c'est lui qui les distingue, jamais leur titre.
         public let sectionIndex: Int?
+        /// La valeur anglaise du jour où la traduction a été vue pour la
+        /// première fois. Renseignée uniquement pour une rangée `.outdated` —
+        /// c'est elle qui permet de montrer *ce qui* a changé.
+        public let previousEnglish: String?
 
         public var id: String { component.map { "\($0)/\(key)" } ?? key }
 
         public init(key: String, english: String, french: String, state: State,
                     component: String? = nil, section: String? = nil,
-                    sectionIndex: Int? = nil) {
+                    sectionIndex: Int? = nil, previousEnglish: String? = nil) {
             self.key = key
             self.english = english
             self.french = french
@@ -142,6 +150,7 @@ public enum TranslationCoverage {
             self.component = component
             self.section = section
             self.sectionIndex = sectionIndex
+            self.previousEnglish = previousEnglish
         }
     }
 
