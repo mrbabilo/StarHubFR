@@ -438,18 +438,23 @@ enum DiffStateStyle {
 }
 
 /// Ce qu'il reste à faire dans un groupe : les vides d'abord — le seul état
-/// qui casse l'affichage en jeu —, puis les manquantes. Partagé par l'en-tête
-/// de section et la table des matières : une même composition qui existait en
-/// double a déjà divergé une fois dans ce fichier (`DiffStateStyle`), pas de
-/// raison de reproduire l'erreur ici. Seul l'espacement extérieur varie d'un
-/// endroit à l'autre.
+/// qui casse l'affichage en jeu —, puis les obsolètes, puis les manquantes.
+/// Ces trois-là seulement : ce sont les états qui représentent du travail
+/// restant, à la différence de « traduite » ou « identique à l'anglais ».
+/// Sans les obsolètes ici, une section entièrement dépassée par l'anglais
+/// s'afficherait comme si elle était finie — sur un fichier à 1 881 sections,
+/// c'est justement là qu'on repère où se trouve le travail. Partagé par
+/// l'en-tête de section et la table des matières : une même composition qui
+/// existait en double a déjà divergé une fois dans ce fichier
+/// (`DiffStateStyle`), pas de raison de reproduire l'erreur ici. Seul
+/// l'espacement extérieur varie d'un endroit à l'autre.
 struct RemainderBadges: View {
     let group: TranslationCoverage.DiffGroup
     var spacing: CGFloat = 8
 
     var body: some View {
         HStack(spacing: spacing) {
-            ForEach([TranslationCoverage.DiffRow.State.empty, .missing], id: \.self) { state in
+            ForEach([TranslationCoverage.DiffRow.State.empty, .outdated, .missing], id: \.self) { state in
                 let count = group.remaining(state)
                 if count > 0 {
                     HStack(spacing: 3) {
