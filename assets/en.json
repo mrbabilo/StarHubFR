@@ -766,5 +766,8 @@
   "mods_diff_section_untitled": "Before the first section",
   "mods_diff_collapse_all": "Collapse all",
   "mods_diff_expand_all": "Expand all",
+  "mods_diff_sections": "Sections",
+  "mods_diff_sections_search": "Filter sections",
+  "mods_diff_sections_no_match": "No section matches.",
   "mods_translation_in_backup": "A French translation for this mod exists in a backup from %@ — the mod folder no longer has one. A mod update likely replaced it."
 }

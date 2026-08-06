@@ -37,6 +37,10 @@ struct TranslationDiffView: View {
     /// repliage est une aide à la navigation, pas un correctif de performance —
     /// le `LazyVStack` encaisse déjà 11 021 clés.
     @State private var collapsed: Set<String> = []
+    @State private var isShowingSectionIndex = false
+    /// La section à rejoindre, posée par la table des matières et consommée par
+    /// le `ScrollViewReader`.
+    @State private var scrollTarget: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -114,6 +118,37 @@ struct TranslationDiffView: View {
                 TextField(vm.L(L10n.Mods.diffSearch), text: $searchText)
                     .textFieldStyle(.roundedBorder)
                     .font(.system(size: 11))
+                if hasSections {
+                    Button {
+                        isShowingSectionIndex = true
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "list.bullet.indent").font(.system(size: 10))
+                            Text(vm.L(L10n.Mods.diffSections)).font(.system(size: 10, weight: .medium))
+                            Text("\(groups.count)")
+                                .font(.system(size: 10, weight: .semibold).monospacedDigit())
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .pointingHandCursor()
+                    .popover(isPresented: $isShowingSectionIndex, arrowEdge: .bottom) {
+                        TranslationSectionIndexView(
+                            groups: groups,
+                            searchPlaceholder: vm.L(L10n.Mods.diffSectionsSearch),
+                            noMatchLabel: vm.L(L10n.Mods.diffSectionsNoMatch),
+                            untitledLabel: vm.L(L10n.Mods.diffSectionUntitled),
+                            orphanLabel: vm.L(L10n.Mods.diffStateOrphan)
+                        ) { group in
+                            isShowingSectionIndex = false
+                            // Déplier avant de viser : dans une section repliée
+                            // les lignes ne sont pas dans la hiérarchie, mais
+                            // l'en-tête, lui, l'est toujours.
+                            collapsed.remove(group.id)
+                            scrollTarget = group.id
+                        }
+                    }
+                }
                 if groups.count > 1 {
                     Button(vm.L(collapsed.isEmpty ? L10n.Mods.diffCollapseAll
                                                   : L10n.Mods.diffExpandAll)) {
@@ -170,24 +205,31 @@ struct TranslationDiffView: View {
                     .font(.system(size: 11))
                 }
             } else {
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
-                        ForEach(groups) { group in
-                            Section {
-                                if !collapsed.contains(group.id) {
-                                    ForEach(group.rows) { row in
-                                        DiffRowView(row: row,
-                                                    emptyPlaceholder: vm.L(L10n.Mods.diffEmptyValue))
-                                        Divider()
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
+                            ForEach(groups) { group in
+                                Section {
+                                    if !collapsed.contains(group.id) {
+                                        ForEach(group.rows) { row in
+                                            DiffRowView(row: row,
+                                                        emptyPlaceholder: vm.L(L10n.Mods.diffEmptyValue))
+                                            Divider()
+                                        }
                                     }
+                                } header: {
+                                    sectionHeader(group).id(group.id)
                                 }
-                            } header: {
-                                sectionHeader(group)
                             }
                         }
                     }
+                    .frame(maxHeight: 460)
+                    .onChange(of: scrollTarget) { _, target in
+                        guard let target else { return }
+                        withAnimation { proxy.scrollTo(target, anchor: .top) }
+                        scrollTarget = nil
+                    }
                 }
-                .frame(maxHeight: 460)
             }
         }
     }
@@ -276,6 +318,12 @@ struct TranslationDiffView: View {
     }
 
     // MARK: - Données dérivées
+
+    /// Un mod sans commentaire n'a qu'un groupe sans titre : lui proposer une
+    /// table des matières serait proposer une liste à une entrée vide.
+    private var hasSections: Bool {
+        groups.contains { $0.title != nil }
+    }
 
     /// Le filtre courant, appliqué rangée par rangée. `query` est calculée une
     /// fois par `rebuildGroups()`, pas ici : la recomputer à chaque rangée
