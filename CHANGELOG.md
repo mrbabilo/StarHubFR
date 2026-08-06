@@ -13,6 +13,7 @@ where the exact log format was verified.
 ## [Unreleased]
 
 ### Added
+- **The translation tab now has an outline.** Sections an author wrote in their file are headed, collapsible, and carry what's left to do in them — so a section that's done stops competing for attention. A sections list jumps straight to one: Ridgeside Village has 1881 of them.
 - **See the French of a mod key by key.** A new Translation tab on a mod's page lists every key with its English and French side by side, and what state it's in — translated, to translate, empty, same as English, orphan. Each filter carries its count, so "Empty 3" catches the eye before you click. Components of a multi-part mod stay separate, each with its own English source.
 - **What must not be translated is now visible.** A translation value mixes the sentence with marks the game reads: a Content Patcher token, a dialogue separator, the command that changes a portrait's expression. Translate or move one and the mod breaks. They now show in monospace and colour, in both columns. Across 450 French files, 54% of values contain at least one.
 - **A French translation lost to a mod update is now reported.** Mod updates replace the whole folder, and authors don't always ship back the community translations sent to them — the `fr.json` just vanishes. Where a StarHubFR backup still holds one, the mod's page says so with its date. In a real library that's 43 of the 86 translatable mods without French: half of them.
