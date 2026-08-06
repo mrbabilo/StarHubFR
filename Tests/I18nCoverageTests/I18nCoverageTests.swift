@@ -1254,6 +1254,23 @@ struct TranslationFreshnessTests {
         #expect(TranslationFreshness.staleness(forModAt: mod, locale: "fr") == nil)
     }
 
+    /// Encadre la marge de 60 s : au-delà elle signale, en deçà elle se tait.
+    /// Verrouille l'usage de la marge, pas seulement sa valeur — un
+    /// `#expect(margin == 60)` seul laisserait passer un appelant qui l'ignore.
+    @Test func aGapJustOverTheMarginIsFlagged() throws {
+        let mod = try fixture([("i18n/default.json", now),
+                               ("i18n/fr.json", now.addingTimeInterval(-61))])
+        defer { try? FileManager.default.removeItem(at: mod) }
+        #expect(TranslationFreshness.staleness(forModAt: mod, locale: "fr")?.gap == 61)
+    }
+
+    @Test func aGapJustUnderTheMarginIsNotFlagged() throws {
+        let mod = try fixture([("i18n/default.json", now),
+                               ("i18n/fr.json", now.addingTimeInterval(-59))])
+        defer { try? FileManager.default.removeItem(at: mod) }
+        #expect(TranslationFreshness.staleness(forModAt: mod, locale: "fr") == nil)
+    }
+
     @Test func aModWithoutFrenchIsNeverFlagged() throws {
         let mod = try fixture([("i18n/default.json", now)])
         defer { try? FileManager.default.removeItem(at: mod) }
