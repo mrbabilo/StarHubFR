@@ -88,6 +88,18 @@ mtime, quasi impossible à échouer après `copyItem` réussi), `BisectionSnapsh
 
 ### Moyenne sévérité
 
+> ⚠️ **13 sur 23 corrigés le 2026-08-06** (commits `353333e` à `99138ac` :
+> crash `linkTarget`/`split`, `InstallPreview`, watcher Journaux, `ForEach`
+> fiches, confirm. `cleanDisabledMods`, règle benign, jumeau M4, RMW
+> `installedModRegistry`, `steamUsername`, `setNexusApiKey`, `deleteBackup`
+> read-only, snapshot bissection). **Restent** : le rate-limit Nexus fragmenté
+> (groupe 4 — mini rate-limiter partagé à concevoir), les write-paths save hors
+> main (`VM:3117+`, refactor d'API void/Bool → async), le remariage NPC
+> (`SaveManager:396`, XML spécifique Stardew), le lock fichier (`:371/814`,
+> `NSFileCoordinator`), et quelques UX bas impact (confirmations sur actions en
+> corbeille, `pendingToggle` cancel). `VM:1811` était déjà corrigé (régression
+> print→log `cc737f1`).
+
 | Site | Bug | Scénario |
 |------|-----|----------|
 | `ThaiTranslationTable:109` | **Crash** `linkTarget` : si `)` précède `(`, `index(after: open)..<close` a lowerBound > upperBound. | Cellule Nexus d'un dépôt tiers contenant `)text(` → crash fatal (`Range requires lowerBound <= upperBound`). Source externe non contrôlée. |
