@@ -1312,3 +1312,100 @@ struct TranslationFreshnessTests {
         #expect(TranslationFreshness.staleness(forModAt: mod, locale: "fr")?.gap == 7_200)
     }
 }
+
+/// Le magasin de références : ce que l'anglais et le français disaient le jour
+/// où on les a vus pour la première fois.
+///
+/// On garde la **valeur** anglaise, pas son empreinte : c'est ce qui permet de
+/// montrer plus tard ce que la phrase disait, seule information qui permette de
+/// juger si le français tient encore.
+struct TranslationBaselineTests {
+    private func makeDirectory() -> URL {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("baseline-\(UUID().uuidString)", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
+    }
+
+    @Test func whatIsSavedComesBack() throws {
+        let dir = makeDirectory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let entries = [TranslationBaseline.key(component: nil, key: "a"):
+                        TranslationBaseline.Entry(source: "Hello", target: "Bonjour")]
+        try TranslationBaseline.save(entries, modFolderName: "MyMod", in: dir)
+        #expect(TranslationBaseline.load(modFolderName: "MyMod", in: dir) == entries)
+    }
+
+    @Test func twoComponentsKeepTheSameKeyApart() {
+        // Deux composants d'un même mod peuvent définir la même clé : ce sont
+        // deux traductions distinctes, avec chacune son anglais.
+        #expect(TranslationBaseline.key(component: "A", key: "a")
+                != TranslationBaseline.key(component: "B", key: "a"))
+        #expect(TranslationBaseline.key(component: nil, key: "a")
+                != TranslationBaseline.key(component: "A", key: "a"))
+    }
+
+    @Test func anUnknownModHasNoBaseline() {
+        let dir = makeDirectory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        #expect(TranslationBaseline.load(modFolderName: "Absent", in: dir).isEmpty)
+    }
+
+    @Test func aCorruptedStoreIsTreatedAsAbsent() throws {
+        // Un magasin illisible ne doit jamais faire échouer l'affichage du
+        // diff : au pire on perd la détection, on ne perd pas l'écran.
+        let dir = makeDirectory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try TranslationBaseline.save([:], modFolderName: "Broken", in: dir)
+        let file = dir.appendingPathComponent("Broken.json")
+        try Data("ceci n'est pas du JSON".utf8).write(to: file)
+        #expect(TranslationBaseline.load(modFolderName: "Broken", in: dir).isEmpty)
+    }
+
+    @Test func savingTwiceReplacesRatherThanAppends() throws {
+        let dir = makeDirectory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let first = [TranslationBaseline.key(component: nil, key: "a"):
+                      TranslationBaseline.Entry(source: "One", target: "Un")]
+        let second = [TranslationBaseline.key(component: nil, key: "b"):
+                       TranslationBaseline.Entry(source: "Two", target: "Deux")]
+        try TranslationBaseline.save(first, modFolderName: "MyMod", in: dir)
+        try TranslationBaseline.save(second, modFolderName: "MyMod", in: dir)
+        #expect(TranslationBaseline.load(modFolderName: "MyMod", in: dir) == second)
+    }
+
+    @Test func theIndexRemembersACountPerMod() throws {
+        // Le filtre de la liste lit ce seul fichier : ouvrir 350 magasins à
+        // chaque scan pour compter des clés serait payer cher un chiffre.
+        let dir = makeDirectory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try TranslationBaseline.updateIndex(modFolderName: "A", outdatedCount: 3, in: dir)
+        try TranslationBaseline.updateIndex(modFolderName: "B", outdatedCount: 0, in: dir)
+        let index = TranslationBaseline.loadIndex(in: dir)
+        #expect(index["A"] == 3)
+        #expect(index["B"] == 0)
+        #expect(index["C"] == nil)
+    }
+
+    @Test func theIndexUpdatesInPlace() throws {
+        let dir = makeDirectory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try TranslationBaseline.updateIndex(modFolderName: "A", outdatedCount: 3, in: dir)
+        try TranslationBaseline.updateIndex(modFolderName: "A", outdatedCount: 1, in: dir)
+        #expect(TranslationBaseline.loadIndex(in: dir) == ["A": 1])
+    }
+
+    @Test func aModNameWithASlashDoesNotEscapeTheDirectory() throws {
+        // Un nom de dossier ne peut pas contenir de `/` sur macOS, mais le
+        // magasin ne doit pas s'y fier : un nom qui en porterait un écrirait
+        // ailleurs que dans le dossier prévu.
+        let dir = makeDirectory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let entries = [TranslationBaseline.key(component: nil, key: "a"):
+                        TranslationBaseline.Entry(source: "s", target: "t")]
+        try TranslationBaseline.save(entries, modFolderName: "../evil", in: dir)
+        let written = try FileManager.default.contentsOfDirectory(atPath: dir.path)
+        #expect(written.count == 1)
+        #expect(TranslationBaseline.load(modFolderName: "../evil", in: dir) == entries)
+    }
+}

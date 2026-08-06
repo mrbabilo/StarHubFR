@@ -51,6 +51,7 @@ let package = Package(
                 "Models/TranslationCoverage.swift",
                 "Models/TranslationDiffGroups.swift",
                 "Models/TranslationFreshness.swift",
+                "Models/TranslationBaseline.swift",
                 "Models/ThaiTranslationTable.swift",
                 "NexusUpdateChecker.swift",
                 "Models/NexusUpdateConsolidation.swift",
