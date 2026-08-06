@@ -216,6 +216,8 @@ enum L10n {
         static let diffStateEmpty         = "mods_diff_state_empty"
         static let diffStateIdentical     = "mods_diff_state_identical"
         static let diffStateOrphan        = "mods_diff_state_orphan"
+        static let diffStateOutdated      = "mods_diff_state_outdated"
+        static let diffPreviousEnglish    = "mods_diff_previous_english"
         static let diffSearch             = "mods_diff_search"
         static let diffNoMatch            = "mods_diff_no_match"
         static let diffClearFilters       = "mods_diff_clear_filters"

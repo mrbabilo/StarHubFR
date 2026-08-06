@@ -230,7 +230,8 @@ struct TranslationDiffView: View {
                                     if !collapsed.contains(group.id) {
                                         ForEach(group.rows) { row in
                                             DiffRowView(row: row,
-                                                        emptyPlaceholder: vm.L(L10n.Mods.diffEmptyValue))
+                                                        emptyPlaceholder: vm.L(L10n.Mods.diffEmptyValue),
+                                                        previousEnglishLabel: vm.L(L10n.Mods.diffPreviousEnglish))
                                             Divider()
                                         }
                                     }
@@ -389,6 +390,7 @@ struct TranslationDiffView: View {
         case .empty:             key = L10n.Mods.diffStateEmpty
         case .identicalToSource: key = L10n.Mods.diffStateIdentical
         case .orphan:            key = L10n.Mods.diffStateOrphan
+        case .outdated:          key = L10n.Mods.diffStateOutdated
         }
         return vm.L(key)
     }
@@ -409,6 +411,7 @@ enum DiffStateStyle {
         case .empty:             return "exclamationmark.triangle.fill"
         case .identicalToSource: return "equal.circle"
         case .orphan:            return "questionmark.circle"
+        case .outdated:          return "clock.badge.exclamationmark"
         }
     }
 
@@ -424,6 +427,12 @@ enum DiffStateStyle {
             // Une clé absente laisse l'anglais s'afficher — c'est du travail
             // restant, pas une panne. La peindre en rouge crierait au loup.
             return .secondary
+        case .outdated:
+            // Violet : ni alarmant comme le rouge — le mod fonctionne — ni
+            // satisfait comme le vert. Le violet des tokens ne paraît que dans
+            // le texte des valeurs, celui-ci que dans la colonne d'état et la
+            // puce de filtre : deux zones disjointes.
+            return Color(red: 0.55, green: 0.35, blue: 0.75)
         }
     }
 }
@@ -469,6 +478,7 @@ private enum DiffMetrics {
 private struct DiffRowView: View {
     let row: TranslationCoverage.DiffRow
     let emptyPlaceholder: String
+    let previousEnglishLabel: String
 
     var body: some View {
         HStack(alignment: .top, spacing: DiffMetrics.spacing) {
@@ -481,9 +491,20 @@ private struct DiffRowView: View {
                 .foregroundColor(.secondary)
                 .frame(width: DiffMetrics.keyWidth, alignment: .leading)
                 .textSelection(.enabled)
-            tokenised(row.english)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .textSelection(.enabled)
+            VStack(alignment: .leading, spacing: 2) {
+                tokenised(row.english)
+                // L'ancien anglais sous le nouveau, barré : c'est ce qui permet
+                // de juger si le français tient encore. Un simple « obsolète »
+                // obligerait à aller chercher soi-même ce qui a changé.
+                if let previous = row.previousEnglish {
+                    Text(String(format: previousEnglishLabel, previous))
+                        .font(.system(size: 10))
+                        .strikethrough()
+                        .foregroundColor(.secondary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .textSelection(.enabled)
             frenchColumn
         }
         .padding(.vertical, 4)

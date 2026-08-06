@@ -321,8 +321,33 @@ class StarHubTHViewModel: ObservableObject {
         let directory = URL(fileURLWithPath: (gameDir as NSString)
             .appendingPathComponent("Mods"))
             .appendingPathComponent(mod.physicalFolderName)
+        let folderName = mod.folderName
         return await Task.detached(priority: .userInitiated) {
-            TranslationCoverage.diffRows(forModAt: directory, locale: "fr")
+            let rows = TranslationCoverage.diffRows(forModAt: directory, locale: "fr")
+            guard let store = TranslationBaseline.defaultDirectory() else { return rows }
+
+            // La référence d'abord : elle ne dépend que de ce qu'on a déjà vu.
+            let baseline = TranslationBaseline.load(modFolderName: folderName, in: store)
+            let marked = TranslationBaselineRules.applying(baseline: baseline, to: rows)
+
+            // Puis l'adoption de ce qu'on découvre — sans elle, une traduction
+            // déjà présente sur le disque ne pourrait jamais être dite obsolète,
+            // faute de point de comparaison — et le réancrage de ce qui a été
+            // retraduit, sans quoi ces clés-là deviendraient des angles morts
+            // permanents.
+            let adopted = TranslationBaselineRules.adoptions(rows: marked, existing: baseline)
+            let refreshed = TranslationBaselineRules.refreshments(rows: marked, existing: baseline)
+            if !adopted.isEmpty || !refreshed.isEmpty {
+                let updated = baseline
+                    .merging(adopted) { _, new in new }
+                    .merging(refreshed) { _, new in new }
+                try? TranslationBaseline.save(updated, modFolderName: folderName, in: store)
+            }
+            // L'index alimente le filtre de la liste sans rouvrir les magasins.
+            let outdated = marked.filter { $0.state == .outdated }.count
+            try? TranslationBaseline.updateIndex(modFolderName: folderName,
+                                                 outdatedCount: outdated, in: store)
+            return marked
         }.value
     }
 

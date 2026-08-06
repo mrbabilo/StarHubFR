@@ -761,6 +761,8 @@
   "mods_diff_state_empty": "Empty",
   "mods_diff_state_identical": "Same as English",
   "mods_diff_state_orphan": "Orphan",
+  "mods_diff_state_outdated": "Outdated",
+  "mods_diff_previous_english": "was: %@",
   "mods_diff_search": "Search keys and text",
   "mods_diff_no_match": "No key matches.",
   "mods_diff_clear_filters": "Clear search and filter",

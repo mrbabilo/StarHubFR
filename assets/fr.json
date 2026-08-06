@@ -761,6 +761,8 @@
   "mods_diff_state_empty": "Vides",
   "mods_diff_state_identical": "Identiques à l'anglais",
   "mods_diff_state_orphan": "Orphelines",
+  "mods_diff_state_outdated": "Obsolète",
+  "mods_diff_previous_english": "disait : %@",
   "mods_diff_search": "Rechercher dans les clés et les textes",
   "mods_diff_no_match": "Aucune clé ne correspond.",
   "mods_diff_clear_filters": "Effacer la recherche et le filtre",
