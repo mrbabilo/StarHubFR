@@ -1343,6 +1343,11 @@ struct TranslationBaselineTests {
                 != TranslationBaseline.key(component: "B", key: "a"))
         #expect(TranslationBaseline.key(component: nil, key: "a")
                 != TranslationBaseline.key(component: "A", key: "a"))
+        // Le cas qui distingue un vrai séparateur d'une simple concaténation :
+        // sans octet nul entre les deux membres, `"Aa" + ""` et `"A" + "a"`
+        // produiraient la même chaîne.
+        #expect(TranslationBaseline.key(component: "Aa", key: "")
+                != TranslationBaseline.key(component: "A", key: "a"))
     }
 
     @Test func anUnknownModHasNoBaseline() {
@@ -1357,7 +1362,7 @@ struct TranslationBaselineTests {
         let dir = makeDirectory()
         defer { try? FileManager.default.removeItem(at: dir) }
         try TranslationBaseline.save([:], modFolderName: "Broken", in: dir)
-        let file = dir.appendingPathComponent("Broken.json")
+        let file = dir.appendingPathComponent("mods").appendingPathComponent("Broken.json")
         try Data("ceci n'est pas du JSON".utf8).write(to: file)
         #expect(TranslationBaseline.load(modFolderName: "Broken", in: dir).isEmpty)
     }
@@ -1404,8 +1409,26 @@ struct TranslationBaselineTests {
         let entries = [TranslationBaseline.key(component: nil, key: "a"):
                         TranslationBaseline.Entry(source: "s", target: "t")]
         try TranslationBaseline.save(entries, modFolderName: "../evil", in: dir)
+        // Le seul contenu attendu à la racine du magasin est le sous-dossier
+        // `mods/` : aucune trace de `../evil` en dehors du dossier prévu.
         let written = try FileManager.default.contentsOfDirectory(atPath: dir.path)
-        #expect(written.count == 1)
+        #expect(written == ["mods"])
         #expect(TranslationBaseline.load(modFolderName: "../evil", in: dir) == entries)
+    }
+
+    @Test func aModNamedIndexDoesNotCollideWithTheSharedIndex() throws {
+        // `fileURL("index", …)` et `indexURL(…)` pointaient jadis vers le même
+        // chemin : le magasin d'un mod nommé « index » et l'index partagé
+        // s'écrasaient l'un l'autre en silence, et `loadIndex` échouait alors à
+        // décoder un magasin de clés comme un index de comptes — perdant le
+        // décompte de *tous* les autres mods sans la moindre erreur visible.
+        let dir = makeDirectory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try TranslationBaseline.updateIndex(modFolderName: "Other", outdatedCount: 5, in: dir)
+        let entries = [TranslationBaseline.key(component: nil, key: "a"):
+                        TranslationBaseline.Entry(source: "s", target: "t")]
+        try TranslationBaseline.save(entries, modFolderName: "index", in: dir)
+        #expect(TranslationBaseline.load(modFolderName: "index", in: dir) == entries)
+        #expect(TranslationBaseline.loadIndex(in: dir) == ["Other": 5])
     }
 }

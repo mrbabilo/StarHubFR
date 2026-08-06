@@ -28,7 +28,10 @@ public enum TranslationBaseline {
     }
 
     /// L'identité d'une clé dans un mod : son composant et son nom, séparés par
-    /// un octet nul — un caractère qu'aucun des deux ne peut contenir.
+    /// un octet nul — en pratique, ni l'un ni l'autre n'en contient, mais rien
+    /// ne le garantit par construction. Une simple concaténation collisionnerait
+    /// (`"Aa"` + `""` == `"A"` + `"a"`) ; le séparateur l'évite tant qu'aucun des
+    /// deux membres ne le porte lui-même.
     public static func key(component: String?, key: String) -> String {
         "\(component ?? "")\u{0}\(key)"
     }
@@ -57,12 +60,22 @@ public enum TranslationBaseline {
     public static func save(_ entries: [String: Entry], modFolderName: String,
                             in directory: URL,
                             fileManager: FileManager = .default) throws {
-        try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
+        let file = fileURL(modFolderName, in: directory)
+        try fileManager.createDirectory(at: file.deletingLastPathComponent(),
+                                        withIntermediateDirectories: true)
         let data = try JSONEncoder().encode(entries)
-        try data.write(to: fileURL(modFolderName, in: directory), options: .atomic)
+        try data.write(to: file, options: .atomic)
     }
 
     // MARK: - Index
+
+    /// Protège l'intervalle lecture-modification-écriture de `updateIndex`, pas
+    /// l'écriture seule — celle-ci est déjà atomique. Sans ce verrou, deux
+    /// appels qui se croisent liraient tous deux l'index avant qu'aucun n'écrive,
+    /// et le second effacerait la mise à jour du premier. Aujourd'hui l'appel
+    /// vient de l'ouverture d'un onglet (donc séquentiel), mais rien ne
+    /// l'empêchera d'être déclenché par un balayage sur tout le parc de mods.
+    private static let indexLock = NSLock()
 
     /// Le nombre de clés obsolètes connues, par mod, au dernier calcul.
     ///
@@ -78,6 +91,8 @@ public enum TranslationBaseline {
 
     public static func updateIndex(modFolderName: String, outdatedCount: Int, in directory: URL,
                                    fileManager: FileManager = .default) throws {
+        indexLock.lock()
+        defer { indexLock.unlock() }
         try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
         var index = loadIndex(in: directory, fileManager: fileManager)
         index[modFolderName] = outdatedCount
@@ -89,9 +104,17 @@ public enum TranslationBaseline {
 
     /// Le nom de fichier d'un mod, réduit à son dernier composant de chemin :
     /// un nom porteur de `/` ou de `..` écrirait sinon hors du dossier.
+    ///
+    /// Rangé dans un sous-dossier `mods/`, séparé de `index.json` : sans cette
+    /// séparation, un mod nommé `index` produirait le même chemin que l'index
+    /// partagé, et l'écraserait — perdant silencieusement le décompte de tous
+    /// les autres mods au prochain `loadIndex` (qui échouerait à décoder un
+    /// magasin de clés comme un index de comptes, et rendrait `[:]`).
     private static func fileURL(_ modFolderName: String, in directory: URL) -> URL {
         let safe = (modFolderName as NSString).lastPathComponent
-        return directory.appendingPathComponent("\(safe.isEmpty ? "_" : safe).json")
+        return directory
+            .appendingPathComponent("mods", isDirectory: true)
+            .appendingPathComponent("\(safe.isEmpty ? "_" : safe).json")
     }
 
     private static func indexURL(in directory: URL) -> URL {
