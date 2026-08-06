@@ -1525,6 +1525,18 @@ struct TranslationBaselineRulesTests {
             rows: [row("a", english: "Hello", french: "Bonjour")], existing: [:]).isEmpty)
     }
 
+    @Test func orphanRowsAreNotReanchored() {
+        // La clé a été retirée du `default.json` par une mise à jour du mod :
+        // la rangée devient orpheline (anglais vide) tout en gardant le
+        // français déjà traduit. Sans la garde, ceci réécrirait la référence
+        // avec `source: ""`, détruisant la ligne de base pour cette clé.
+        let existing = [TranslationBaseline.key(component: nil, key: "a"):
+                         entry("Hello", "Bonjour")]
+        #expect(TranslationBaselineRules.refreshments(
+            rows: [row("a", english: "", french: "Bonjour", state: .orphan)],
+            existing: existing).isEmpty)
+    }
+
     // MARK: - Détection
 
     @Test func englishChangedAndFrenchDidNotIsOutdated() {
@@ -1582,5 +1594,20 @@ struct TranslationBaselineRulesTests {
         #expect(rows[0].state == .translated)
         #expect(rows[1].state == .outdated)
         #expect(rows[1].previousEnglish == "Two")
+    }
+
+    @Test func anOrphanRowIsNeverOutdated() {
+        // La clé a disparu du `default.json` du mod (anglais vide) mais la
+        // référence garde encore l'ancien anglais, et le français correspond
+        // toujours à la référence : les trois conditions de la détection sont
+        // réunies. Sans la garde sur l'état orphelin, cette rangée serait dite
+        // obsolète au lieu d'orpheline, masquant le vrai problème — la clé
+        // n'existe plus côté anglais, elle n'a pas simplement changé.
+        let baseline = [TranslationBaseline.key(component: nil, key: "a"):
+                         entry("Hello", "Bonjour")]
+        let rows = TranslationBaselineRules.applying(
+            baseline: baseline, to: [row("a", english: "", french: "Bonjour", state: .orphan)])
+        #expect(rows.first?.state == .orphan)
+        #expect(rows.first?.previousEnglish == nil)
     }
 }
