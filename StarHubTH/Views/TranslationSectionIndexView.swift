@@ -6,10 +6,14 @@ import SwiftUI
 /// 460 pt dans un onglet de fiche, une colonne latérale n'aurait pas de place.
 ///
 /// Chaque ligne montre le titre **et la première clé de la section**. Sans cette
-/// seconde ligne, la table des matières de `[CP] Ridgeside Village` serait 65
-/// lignes « Spring » indiscernables — ses 2056 titres comptent 1407 doublons.
+/// seconde ligne, la table des matières de `[CP] Ridgeside Village` serait des
+/// dizaines de lignes « Spring » indiscernables — sur ses 1878 sections
+/// titrées (mesuré via `diffGroups`, pas les 2056 lignes de commentaire brutes
+/// du fichier : ce dernier chiffre compte autre chose, voir `I18nOutline`).
 ///
-/// La liste est paresseuse : 2056 lignes ne se rendent pas d'un bloc.
+/// La liste est paresseuse : jusqu'à 1881 lignes (tous les groupes de
+/// `[CP] Ridgeside Village`, bloc sans titre et orphelin compris) ne se
+/// rendent pas d'un bloc.
 struct TranslationSectionIndexView: View {
     let groups: [TranslationCoverage.DiffGroup]
     let searchPlaceholder: String
@@ -84,8 +88,13 @@ struct TranslationSectionIndexView: View {
     private var matches: [TranslationCoverage.DiffGroup] {
         let needle = query.trimmingCharacters(in: .whitespaces).lowercased()
         guard !needle.isEmpty else { return groups }
+        // Sur `displayTitle`, pas le `title` brut : c'est ce que `row(_:)`
+        // affiche juste en dessous, préfixe de composant et libellés « Orpheline »
+        // / « Avant la première section » compris. Filtrer sur le titre brut
+        // laisserait lire une ligne sans pouvoir la retrouver par ce qu'elle montre.
         return groups.filter {
-            ($0.title ?? "").lowercased().contains(needle)
+            $0.displayTitle(fallback: untitledLabel, orphan: orphanLabel)
+                .lowercased().contains(needle)
                 || $0.firstKey.lowercased().contains(needle)
         }
     }

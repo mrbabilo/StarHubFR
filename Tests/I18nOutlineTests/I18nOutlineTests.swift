@@ -111,7 +111,8 @@ struct I18nOutlineTests {
     @Test func aFileWithoutCommentsHasNoSections() {
         let outline = I18nOutline.read(#"{"a": "1", "b": "2"}"#)
         #expect(outline.orderedKeys == ["a", "b"])
-        #expect(outline.hasSections == false)
+        #expect(outline.section(of: "a") == nil)
+        #expect(outline.section(of: "b") == nil)
     }
 
     @Test func nestedKeysAreNotCollected() {

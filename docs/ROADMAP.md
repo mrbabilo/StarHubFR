@@ -435,6 +435,18 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       saisons), amorcé depuis les traductions officielles. · **M**
 - [ ] **C3-T5** — Export/import d'un lot de travail (`.json`) pour traduire à plusieurs,
       puis fusion contrôlée. · **M**
+- [ ] **C3-T6** — `I18nLenientParser` garde la **première** occurrence d'une clé JSON
+      dupliquée ; le jeu (Newtonsoft) garde la **dernière**. Trouvé pendant C2-T5, mesuré
+      sur le parc : 7 mods sur 512 concernés (ex. `[CP] Tea`, `spring_23` défini deux fois
+      sous deux sections). Sans dommage tant que l'écran ne fait qu'**afficher** (C2) —
+      mais C3 écrira des fichiers depuis ce même diff, et un traducteur traduirait alors
+      le mauvais texte anglais. **Le comportement de référence doit être établi en
+      exécutant la DLL Newtonsoft du jeu, jamais en lisant une spécification JSON**
+      (cf. `docs/DOMAINE.md`). Consigné aujourd'hui uniquement dans des commentaires de
+      code (`I18nOutline`, `TranslationCoverage`), nulle part ailleurs dans cette
+      roadmap avant cette entrée. · **S** · risque : correctif mécanique une fois la
+      référence connue, mais un écart de comportement mal vérifié contaminerait toutes
+      les écritures de C3.
 
 #### C4 — Éditeur de config lisible
 

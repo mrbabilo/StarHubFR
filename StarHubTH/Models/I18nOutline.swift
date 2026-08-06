@@ -36,9 +36,13 @@ public enum I18nOutline {
         /// Le **rang** de cette section dans l'ordre de lecture du fichier.
         ///
         /// Le titre ne suffit pas à identifier une section : `[CP] Ridgeside
-        /// Village` en porte 65 nommées « Spring », 1407 de ses 2056 titres
-        /// sont des doublons. Sans ce rang, replier l'une les replierait
-        /// toutes et la navigation tomberait toujours sur la première.
+        /// Village` porte, au sens de ce parseur, 2056 lignes de commentaire
+        /// titrées — dont un grand nombre de « Spring » homonymes, une par
+        /// saison de personnage. (Un compte différent de celui des groupes du
+        /// diff, 1878 : celui-ci ne déduit pas les titres qui ne précèdent
+        /// aucune clé — voir `TranslationDiffGroups`.) Sans ce rang, replier
+        /// l'une les replierait toutes et la navigation tomberait toujours sur
+        /// la première.
         public let sectionIndexByKey: [String: Int]
 
         public init(orderedKeys: [String], sectionByKey: [String: String],
@@ -53,9 +57,6 @@ public enum I18nOutline {
         /// Le rang de la section d'une clé, `nil` si elle précède tout
         /// commentaire.
         public func sectionIndex(of key: String) -> Int? { sectionIndexByKey[key] }
-
-        /// Vrai si l'auteur a structuré son fichier — sinon rien à regrouper.
-        public var hasSections: Bool { !sectionByKey.isEmpty }
     }
 
     public static func read(_ text: String) -> Outline {

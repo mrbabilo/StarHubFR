@@ -125,7 +125,13 @@ struct TranslationDiffView: View {
                         HStack(spacing: 4) {
                             Image(systemName: "list.bullet.indent").font(.system(size: 10))
                             Text(vm.L(L10n.Mods.diffSections)).font(.system(size: 10, weight: .medium))
-                            Text("\(titledSectionCount)")
+                            // `groups.count`, pas les seuls groupes titrés : c'est
+                            // exactement ce que le popover ci-dessous liste (blocs
+                            // sans titre et orphelin compris). Annoncer les titrés
+                            // pour une liste qui en montre plus serait un compte
+                            // faux — mesuré sur Ridgeside : 1878 annoncés pour 1881
+                            // lignes listées.
+                            Text("\(groups.count)")
                                 .font(.system(size: 10, weight: .semibold).monospacedDigit())
                                 .foregroundColor(.secondary)
                         }
@@ -149,10 +155,17 @@ struct TranslationDiffView: View {
                         }
                     }
                 }
-                if groups.count > 1 {
+                if allGroups.count > 1 {
                     Button(vm.L(collapsed.isEmpty ? L10n.Mods.diffCollapseAll
                                                   : L10n.Mods.diffExpandAll)) {
-                        collapsed = collapsed.isEmpty ? Set(groups.map(\.id)) : []
+                        // Sur `allGroups`, volontairement, pas `groups` : l'état de
+                        // repliage est indépendant du filtre — c'est tout l'intérêt
+                        // d'avoir des identités stables — donc « Tout replier » doit
+                        // aussi replier ce que le filtre masque. Sinon, replier sous
+                        // un filtre puis l'effacer ferait réapparaître des sections
+                        // dépliées pendant que le bouton proposerait encore
+                        // « Tout déplier ».
+                        collapsed = collapsed.isEmpty ? Set(allGroups.map(\.id)) : []
                     }
                     .buttonStyle(.link)
                     .font(.system(size: 10))
@@ -218,7 +231,17 @@ struct TranslationDiffView: View {
                                         }
                                     }
                                 } header: {
-                                    sectionHeader(group).id(group.id)
+                                    // Rien pour un mod sans commentaire : avant ce
+                                    // travail, un tel fichier n'affichait aucun
+                                    // en-tête, et c'est la majorité du parc. Dès
+                                    // qu'une section est titrée, tous les en-têtes
+                                    // s'affichent — y compris celui du bloc sans
+                                    // titre et celui de l'orphelin, qui séparent
+                                    // alors utilement le contenu au lieu de mentir
+                                    // sur une structure que le fichier n'a pas.
+                                    if fileHasTitledSections {
+                                        sectionHeader(group).id(group.id)
+                                    }
                                 }
                             }
                         }
@@ -270,6 +293,11 @@ struct TranslationDiffView: View {
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundColor(.primary)
                     .lineLimit(1)
+                    // Le titre est tronqué à une ligne : deux sections homonymes
+                    // (65 « Spring » sur Ridgeside) y restent indiscernables. La
+                    // première clé du groupe est le discriminant qui existe déjà
+                    // ailleurs (table des matières) ; l'offrir ici aussi en info-bulle.
+                    .help(group.firstKey)
                 Spacer(minLength: 8)
                 RemainderBadges(group: group)
             }
@@ -302,22 +330,29 @@ struct TranslationDiffView: View {
 
     // MARK: - Données dérivées
 
-    /// Un mod sans commentaire n'a qu'un groupe sans titre : lui proposer une
-    /// table des matières serait proposer une liste à une entrée vide.
+    /// Vrai si **le fichier** porte au moins une section titrée par l'auteur —
+    /// indépendant du filtre en cours. Gouverne l'affichage des en-têtes
+    /// eux-mêmes (`table`, ci-dessus) : un mod sans commentaire ne doit jamais
+    /// hériter d'un en-tête, filtre ou pas, sous peine d'une barre « Avant la
+    /// première section » cliquable et repliable sur un tableau qui n'a pas de
+    /// section — la régression corrigée dans cette passe.
     ///
-    /// Porte sur `allGroups`, pas `groups` : sinon une recherche qui ne laisse
-    /// aucune ligne dans une section titrée ferait disparaître le bouton au
-    /// moment précis où l'on voudrait s'en servir pour se repérer.
-    private var hasSections: Bool {
+    /// À dessein sur `allGroups`, pas `groups` : la présence des en-têtes ne
+    /// doit pas clignoter au gré d'une recherche, seulement dépendre de ce que
+    /// l'auteur a écrit dans le fichier.
+    private var fileHasTitledSections: Bool {
         allGroups.contains { $0.title != nil }
     }
 
-    /// Le nombre affiché à côté du bouton « Sections » : les seuls groupes
-    /// **titrés** par l'auteur, dans le filtre courant — ni le bloc sans titre
-    /// d'avant le premier commentaire, ni le bloc orphelin, qui ne sont pas des
-    /// sections écrites par l'auteur.
-    private var titledSectionCount: Int {
-        groups.filter { $0.title != nil }.count
+    /// Vrai si le bouton « Sections » a quelque chose à proposer **dans le
+    /// filtre courant**. Porte sur `groups`, comme le popover qu'il ouvre : un
+    /// `hasSections` lu sur `allGroups` survivrait à un filtre qui a vidé
+    /// toutes les sections, pour ouvrir sur « aucune section ne correspond ».
+    /// Et une entrée de la table des matières ne peut viser qu'un en-tête
+    /// réellement présent dans la hiérarchie affichée — sinon le `scrollTo`
+    /// qu'elle déclenche n'a pas de cible.
+    private var hasSections: Bool {
+        groups.contains { $0.title != nil }
     }
 
     /// Le filtre courant, appliqué rangée par rangée. `query` est calculée une

@@ -6,10 +6,11 @@ import Foundation
 /// rouage : la couverture se calcule sans savoir comment on l'affichera.
 ///
 /// **Une section s'identifie par son rang, jamais par son titre.**
-/// `[CP] Ridgeside Village` porte 65 sections « Spring », 1407 de ses 2056
-/// titres sont des doublons. Une identité par titre replierait les 65 d'un
-/// coup, ferait atterrir la navigation sur la première, et donnerait à SwiftUI
-/// des identités dupliquées dans un `ForEach` — donc des rangées perdues.
+/// `[CP] Ridgeside Village` porte 1878 sections titrées, et des dizaines
+/// d'entre elles partagent le même titre « Spring » — une par saison de
+/// personnage. Une identité par titre les replierait toutes d'un coup, ferait
+/// atterrir la navigation sur la première, et donnerait à SwiftUI des
+/// identités dupliquées dans un `ForEach` — donc des rangées perdues.
 extension TranslationCoverage {
     public struct DiffGroup: Identifiable, Equatable, Sendable {
         /// Composant et rang : stable, unique, et indépendant du titre.
@@ -53,7 +54,7 @@ extension TranslationCoverage {
         /// Les deux paramètres sont des `@autoclosure` : un seul des deux se
         /// résout jamais par groupe (`isOrphan` les rend mutuellement
         /// exclusifs), et l'appelant y loge une recherche localisée — l'évaluer
-        /// systématiquement en doublerait le coût sur les 2056 en-têtes de
+        /// systématiquement en doublerait le coût sur les 1878 en-têtes de
         /// `[CP] Ridgeside Village`.
         public func displayTitle(fallback: @autoclosure () -> String,
                                  orphan: @autoclosure () -> String) -> String {
@@ -138,9 +139,13 @@ extension TranslationCoverage {
     /// que `diffRows` ajoute en queue. Sans le troisième terme, ces deux blocs
     /// disjoints partageraient une identité.
     ///
-    /// L'identité n'est jamais positionnelle : les positions bougent à chaque
-    /// filtre, et l'état de repliage désignerait alors une autre section à
-    /// chaque frappe.
+    /// Cette identité de base n'est jamais positionnelle. Le suffixe
+    /// d'occurrence qui la complète dans `diffGroups`, lui, l'est bel et bien
+    /// par bloc — c'est l'ordre de rencontre des blocs non contigus qui décide
+    /// `/1`, `/2`… Ce n'est sans danger que parce que `diffGroups` s'appelle
+    /// toujours sur les rangées **non filtrées** : un filtre qui retirerait un
+    /// bloc intermédiaire changerait cet ordre de rencontre, et donc les
+    /// suffixes, à chaque frappe.
     private static func identity(of row: DiffRow) -> String {
         let rank = row.state == .orphan ? "orphan" : (row.sectionIndex.map(String.init) ?? "-")
         return "\(row.component ?? "")#\(rank)"
