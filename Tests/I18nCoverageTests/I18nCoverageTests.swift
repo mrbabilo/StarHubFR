@@ -1526,14 +1526,17 @@ struct TranslationBaselineRulesTests {
     }
 
     @Test func orphanRowsAreNotReanchored() {
-        // La clé a été retirée du `default.json` par une mise à jour du mod :
-        // la rangée devient orpheline (anglais vide) tout en gardant le
-        // français déjà traduit. Sans la garde, ceci réécrirait la référence
-        // avec `source: ""`, détruisant la ligne de base pour cette clé.
+        // La clé a été retirée du `default.json` par une mise à jour du mod,
+        // et quelqu'un a retouché la traduction française depuis : la rangée
+        // est orpheline (anglais vide) avec un français qui **diffère** de la
+        // référence — la condition qui, sans la garde sur l'état orphelin,
+        // déclencherait le réancrage. Celui-ci écraserait alors la référence
+        // avec `source: ""`, l'anglais vide de l'orpheline, détruisant la
+        // ligne de base pour de bon.
         let existing = [TranslationBaseline.key(component: nil, key: "a"):
                          entry("Hello", "Bonjour")]
         #expect(TranslationBaselineRules.refreshments(
-            rows: [row("a", english: "", french: "Bonjour", state: .orphan)],
+            rows: [row("a", english: "", french: "Bonjour à toi", state: .orphan)],
             existing: existing).isEmpty)
     }
 
