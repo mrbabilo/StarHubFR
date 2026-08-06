@@ -54,8 +54,8 @@ extension TranslationCoverage {
         /// Les deux paramètres sont des `@autoclosure` : un seul des deux se
         /// résout jamais par groupe (`isOrphan` les rend mutuellement
         /// exclusifs), et l'appelant y loge une recherche localisée — l'évaluer
-        /// systématiquement en doublerait le coût sur les 1862 en-têtes de
-        /// `[CP] Ridgeside Village`.
+        /// systématiquement en doublerait le coût sur les 1881 en-têtes de
+        /// `Ridgeside Village`.
         public func displayTitle(fallback: @autoclosure () -> String,
                                  orphan: @autoclosure () -> String) -> String {
             let section = isOrphan ? orphan() : (title ?? fallback())

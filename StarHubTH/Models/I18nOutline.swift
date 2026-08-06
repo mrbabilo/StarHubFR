@@ -38,9 +38,11 @@ public enum I18nOutline {
         /// Le titre ne suffit pas à identifier une section : `[CP] Ridgeside
         /// Village` porte, au sens de ce parseur, 2065 lignes de commentaire
         /// titrées — dont un grand nombre de « Spring » homonymes, une par
-        /// saison de personnage. (Un compte différent de celui des groupes du
-        /// diff, 1861 : celui-ci ne déduit pas les titres qui ne précèdent
-        /// aucune clé — voir `TranslationDiffGroups`.) Sans ce rang, replier
+        /// saison de personnage. (Un compte différent de celui des groupes que
+        /// ce fichier donne au diff, 1861 : lui ne retient pas les titres qui
+        /// ne précèdent aucune clé — voir `TranslationDiffGroups`. Le mod
+        /// entier, ses trois composants réunis, en rend 1878 titrés.) Sans ce
+        /// rang, replier
         /// l'une les replierait toutes et la navigation tomberait toujours sur
         /// la première.
         public let sectionIndexByKey: [String: Int]

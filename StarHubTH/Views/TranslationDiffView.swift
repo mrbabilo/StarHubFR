@@ -129,7 +129,7 @@ struct TranslationDiffView: View {
                             // exactement ce que le popover ci-dessous liste (blocs
                             // sans titre et orphelin compris). Annoncer les titrés
                             // pour une liste qui en montre plus serait un compte
-                            // faux — mesuré sur Ridgeside : 1861 annoncés pour 1862
+                            // faux — mesuré sur Ridgeside : 1878 annoncés pour 1881
                             // lignes listées.
                             Text("\(groups.count)")
                                 .font(.system(size: 10, weight: .semibold).monospacedDigit())
