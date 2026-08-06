@@ -1203,3 +1203,95 @@ struct DiffGroupTests {
         #expect(orphanCounter.orphanCalls == 1)
     }
 }
+
+/// Le soupçon par les dates : l'anglais d'un mod a-t-il été touché après son
+/// français ?
+///
+/// C'est le seul signal disponible **le premier jour** : les archives de mods
+/// conservent les dates de l'auteur, et sur le parc réel 21 fichiers anglais
+/// sont plus récents que leur français, jusqu'à 454 jours d'écart. La référence
+/// par clé, elle, ne dira rien avant la prochaine mise à jour.
+struct TranslationFreshnessTests {
+    /// Crée un mod jetable dont chaque fichier porte la date demandée.
+    private func fixture(_ files: [(path: String, date: Date)]) throws -> URL {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("fresh-\(UUID().uuidString)", isDirectory: true)
+        for file in files {
+            let url = dir.appendingPathComponent(file.path)
+            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(),
+                                                    withIntermediateDirectories: true)
+            try Data(#"{"a": "1"}"#.utf8).write(to: url)
+            try FileManager.default.setAttributes([.modificationDate: file.date],
+                                                  ofItemAtPath: url.path)
+        }
+        return dir
+    }
+
+    private let now = Date(timeIntervalSince1970: 1_700_000_000)
+
+    @Test func englishTouchedAfterFrenchIsFlagged() throws {
+        let mod = try fixture([("i18n/default.json", now),
+                               ("i18n/fr.json", now.addingTimeInterval(-86_400))])
+        defer { try? FileManager.default.removeItem(at: mod) }
+        let stale = try #require(TranslationFreshness.staleness(forModAt: mod, locale: "fr"))
+        #expect(stale.gap == 86_400)
+        #expect(stale.component == nil)
+    }
+
+    @Test func frenchNewerThanEnglishIsNotFlagged() throws {
+        let mod = try fixture([("i18n/default.json", now.addingTimeInterval(-86_400)),
+                               ("i18n/fr.json", now)])
+        defer { try? FileManager.default.removeItem(at: mod) }
+        #expect(TranslationFreshness.staleness(forModAt: mod, locale: "fr") == nil)
+    }
+
+    @Test func aGapUnderTheMarginIsNotFlagged() throws {
+        // 55 paires du parc partagent leur horodatage à la seconde près : des
+        // mods installés par copie, que rien ne distingue. La marge les écarte.
+        let mod = try fixture([("i18n/default.json", now),
+                               ("i18n/fr.json", now.addingTimeInterval(-30))])
+        defer { try? FileManager.default.removeItem(at: mod) }
+        #expect(TranslationFreshness.staleness(forModAt: mod, locale: "fr") == nil)
+    }
+
+    @Test func aModWithoutFrenchIsNeverFlagged() throws {
+        let mod = try fixture([("i18n/default.json", now)])
+        defer { try? FileManager.default.removeItem(at: mod) }
+        #expect(TranslationFreshness.staleness(forModAt: mod, locale: "fr") == nil)
+    }
+
+    @Test func theWidestGapWinsAndNamesItsComponent() throws {
+        let mod = try fixture([
+            ("A/i18n/default.json", now),
+            ("A/i18n/fr.json", now.addingTimeInterval(-3_600)),
+            ("B/i18n/default.json", now),
+            ("B/i18n/fr.json", now.addingTimeInterval(-864_000)),
+        ])
+        defer { try? FileManager.default.removeItem(at: mod) }
+        let stale = try #require(TranslationFreshness.staleness(forModAt: mod, locale: "fr"))
+        #expect(stale.gap == 864_000)
+        #expect(stale.component == "B")
+    }
+
+    @Test func aSplitLocaleIsDatedByItsNewestFile() throws {
+        // Layout B : une locale éclatée en plusieurs fichiers. Dater par
+        // `fr.json` n'aurait rien trouvé — ce fichier n'existe pas.
+        let mod = try fixture([
+            ("i18n/default/one.json", now),
+            ("i18n/fr/a.json", now.addingTimeInterval(-864_000)),
+            ("i18n/fr/b.json", now.addingTimeInterval(-3_600)),
+        ])
+        defer { try? FileManager.default.removeItem(at: mod) }
+        let stale = try #require(TranslationFreshness.staleness(forModAt: mod, locale: "fr"))
+        #expect(stale.gap == 3_600)
+    }
+
+    @Test func anEnglishNamedSourceCounts() throws {
+        // Certains auteurs nomment leur source `en.json` plutôt que
+        // `default.json` ; c'est la même chose pour SMAPI.
+        let mod = try fixture([("i18n/en.json", now),
+                               ("i18n/fr.json", now.addingTimeInterval(-7_200))])
+        defer { try? FileManager.default.removeItem(at: mod) }
+        #expect(TranslationFreshness.staleness(forModAt: mod, locale: "fr")?.gap == 7_200)
+    }
+}

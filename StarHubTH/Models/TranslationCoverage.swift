@@ -338,7 +338,11 @@ public enum TranslationCoverage {
 
     /// Le nom du composant : le dossier qui contient le `i18n`, relatif au mod.
     /// Pour `Mod/[CP] X/i18n` c'est `[CP] X` ; pour `Mod/i18n`, le nom du mod.
-    private static func componentLabel(of i18nDirectory: URL, under modDirectory: URL) -> String {
+    ///
+    /// Partagé avec `TranslationFreshness` : une seconde copie de cette règle
+    /// finirait par diverger, et deux écrans nommeraient alors le même composant
+    /// différemment.
+    static func componentLabel(of i18nDirectory: URL, under modDirectory: URL) -> String {
         let parent = i18nDirectory.deletingLastPathComponent()
         return parent.path == modDirectory.path
             ? modDirectory.lastPathComponent

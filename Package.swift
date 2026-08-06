@@ -50,6 +50,7 @@ let package = Package(
                 "Models/I18nLocaleResolver.swift",
                 "Models/TranslationCoverage.swift",
                 "Models/TranslationDiffGroups.swift",
+                "Models/TranslationFreshness.swift",
                 "Models/ThaiTranslationTable.swift",
                 "NexusUpdateChecker.swift",
                 "Models/NexusUpdateConsolidation.swift",
