@@ -187,7 +187,10 @@ struct DescriptionBlocksView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            ForEach(Array(blocks.enumerated()), id: \.offset) { _, block in
+            // id: \.self (contenu Hashable) plutôt que \.offset : l'offset est
+            // réutilisé entre fiches de mods, donc le @State (SpoilerView
+            // isExpanded) fuyait d'un mod à l'autre. Le contenu, lui, diffère.
+            ForEach(blocks, id: \.self) { block in
                 switch block {
                 case .text(let markdown):
                     MarkdownText(markdown)

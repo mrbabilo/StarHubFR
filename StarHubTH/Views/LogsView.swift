@@ -369,9 +369,11 @@ struct LogsView: View {
             Text(vm.L(L10n.Logs.clearConfirmMessage))
         }
         .onAppear {
-            if vm.logEntries.filter({ $0.source == .smapi }).isEmpty {
-                vm.loadSmapiLog()
-            }
+            // Pas de watcher live (ni polling ni handle) : c'est à l'apparition
+            // de l'onglet que le log SMAPI se rafraîchit. Sans cela, le `if isEmpty`
+            // sautait le rechargement après le premier affichage → log périmé
+            // en revenant sur l'onglet.
+            vm.loadSmapiLog()
         }
         .onDisappear {
             vm.stopSmapiLogWatcher()
