@@ -1473,6 +1473,10 @@ struct ModListRow: View {
                     ))
                         .toggleStyle(SwitchToggleStyle(tint: Color(red: 0.20, green: 0.65, blue: 0.35)))
                         .controlSize(.small)
+                        // Annuler un toggle en attente quand la rangée disparaît
+                        // (virtualisation, navigation) : sinon le debounce 300 ms
+                        // tirait pour un mod désaffiché.
+                        .onDisappear { pendingToggle?.cancel() }
                         .labelsHidden()
                         .accessibilityLabel(String(format: vm.L(L10n.Mods.toggleA11yLabel), mod.name))
                         .accessibilityHint(vm.L(L10n.Mods.toggleA11yHint))

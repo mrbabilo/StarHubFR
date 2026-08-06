@@ -7,6 +7,7 @@ struct SaveTimelineView: View {
     @State private var backups: [SaveBackup] = []
     @State private var backupToRestore: SaveBackup?
     @State private var showRestoreConfirm = false
+    @State private var backupToDelete: SaveBackup?
     @State private var isHoveredReturn = false
     
     var body: some View {
@@ -90,9 +91,7 @@ struct SaveTimelineView: View {
                                     showRestoreConfirm = true
                                 },
                                 onDelete: {
-                                    if vm.deleteBackup(backup) {
-                                        loadBackups()
-                                    }
+                                    backupToDelete = backup
                                 }
                             )
                         }
@@ -112,6 +111,21 @@ struct SaveTimelineView: View {
                 primaryButton: .destructive(Text(vm.L(L10n.Saves.restore))) {
                     if let b = backupToRestore {
                         vm.restoreBackup(backup: b, info: save)
+                    }
+                },
+                secondaryButton: .cancel(Text(vm.L(L10n.Saves.cancel)))
+            )
+        }
+        .alert(item: $backupToDelete) { backup in
+            // La restauration (destructive) confirmait, pas la suppression.
+            // Celle-ci va à la corbeille (récupérable), mais le clic « trash »
+            // mérite quand même une garde (audit 2026-08-05).
+            Alert(
+                title: Text(vm.L(L10n.Saves.confirmDeleteBackup)),
+                message: Text(vm.L(L10n.Saves.confirmDeleteBackupMsg)),
+                primaryButton: .destructive(Text(vm.L(L10n.Saves.deleteBackup))) {
+                    if vm.deleteBackup(backup) {
+                        loadBackups()
                     }
                 },
                 secondaryButton: .cancel(Text(vm.L(L10n.Saves.cancel)))

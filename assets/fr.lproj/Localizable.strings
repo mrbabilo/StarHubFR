@@ -75,6 +75,9 @@
 "saves_open_folder" = "Ouvrir le dossier";
 "saves_timeline" = "Historique des sauvegardes";
 "saves_restore" = "Restaurer";
+"saves_delete_backup" = "Supprimer";
+"saves_confirm_delete_backup" = "Supprimer cette sauvegarde ?";
+"saves_confirm_delete_backup_msg" = "Elle sera déplacée vers la corbeille et pourra être restaurée depuis là.";
 "saves_backup_label" = "Sauvegarde";
 "saves_no_backups" = "Aucune sauvegarde trouvée pour cette partie";
 "saves_notes" = "Notes";
