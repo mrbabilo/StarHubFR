@@ -1,12 +1,12 @@
 {
   "abbreviation_vm": 1416,
   "bare_L_calls": 63,
-  "dispatch_queue": 121,
+  "dispatch_queue": 120,
   "get_prefixed_funcs": 7,
   "non_final_classes": 10,
   "our_shared_singletons": 49,
-  "print_calls": 21,
+  "print_calls": 22,
   "published_without_private_set": 69,
-  "try_optional": 176,
+  "try_optional": 175,
   "vm_dot_L_calls": 739
 }

@@ -57,7 +57,14 @@ public enum BisectionSnapshotStore {
 
     public static func save(_ snapshot: BisectionSnapshot) {
         guard let url = fileURL, let data = try? JSONEncoder().encode(snapshot) else { return }
-        try? data.write(to: url, options: .atomic)
+        do {
+            try data.write(to: url, options: .atomic)
+        } catch {
+            // L'unique filet de récupération après crash : si l'écriture échoue
+            // (disque plein, perms), la reprise sera impossible au prochain
+            // démarrage. Le signaler plutôt que de l'avaler silencieusement.
+            print("Warning: bisection snapshot write failed at \(url.path): \(error)")
+        }
     }
 
     public static func load() -> BisectionSnapshot? {

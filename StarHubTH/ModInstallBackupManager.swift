@@ -310,7 +310,10 @@ public class ModInstallBackupManager {
         // timestamp format.
         let backupDir = URL(fileURLWithPath: backup.backupPath).deletingLastPathComponent()
         if fm.fileExists(atPath: backupDir.path) {
-            try fm.removeItem(at: backupDir)
+            // removeItemGrantingWriteAccess (pas removeItem) : les backups
+            // héritent des perms read-only POSIX du mod source, et un removeItem
+            // simple échouait dessus (audit 2026-08-05, même famille que M3).
+            try ModZipInstaller.removeItemGrantingWriteAccess(atPath: backupDir.path)
         }
 
         withIndexLock {
