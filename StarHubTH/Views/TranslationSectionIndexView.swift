@@ -55,18 +55,22 @@ struct TranslationSectionIndexView: View {
         } label: {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(group.isOrphan ? orphanLabel : (group.title ?? untitledLabel))
+                    // Même règle de préfixe que l'en-tête (`DiffGroup.displayTitle`) :
+                    // sans le composant, deux sections homonymes de composants
+                    // différents seraient indiscernables ici, sauf par leur
+                    // première clé.
+                    Text(group.displayTitle(fallback: untitledLabel, orphan: orphanLabel))
                         .font(.system(size: 11, weight: .medium))
                         .foregroundColor(.primary)
                         .lineLimit(1)
-                    // Ce qui distingue deux sections homonymes.
+                    // Ce qui distingue deux sections homonymes du même composant.
                     Text(group.firstKey)
                         .font(.system(size: 9, design: .monospaced))
                         .foregroundColor(.secondary)
                         .lineLimit(1)
                 }
                 Spacer(minLength: 6)
-                badges(group)
+                RemainderBadges(group: group, spacing: 6)
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
@@ -75,25 +79,6 @@ struct TranslationSectionIndexView: View {
         }
         .buttonStyle(.plain)
         .pointingHandCursor()
-    }
-
-    /// Le même vocabulaire que les en-têtes, et le **même** code : `DiffStateStyle`
-    /// est l'unique exemplaire du couple glyphe/teinte.
-    @ViewBuilder
-    private func badges(_ group: TranslationCoverage.DiffGroup) -> some View {
-        HStack(spacing: 6) {
-            ForEach([TranslationCoverage.DiffRow.State.empty, .missing], id: \.self) { state in
-                let count = group.remaining(state)
-                if count > 0 {
-                    HStack(spacing: 3) {
-                        Image(systemName: DiffStateStyle.glyph(state)).font(.system(size: 9))
-                        Text("\(count)")
-                            .font(.system(size: 10, weight: .semibold).monospacedDigit())
-                    }
-                    .foregroundColor(DiffStateStyle.tint(state))
-                }
-            }
-        }
     }
 
     private var matches: [TranslationCoverage.DiffGroup] {

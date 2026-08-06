@@ -41,6 +41,26 @@ extension TranslationCoverage {
 
         public func remaining(_ state: DiffRow.State) -> Int { counts[state] ?? 0 }
 
+        /// Le nom affiché : la section, préfixée du composant quand le mod en a
+        /// plusieurs. `fallback` nomme les clés d'avant le premier commentaire,
+        /// `orphan` les clés qui n'existent qu'en français.
+        ///
+        /// Partagé par l'en-tête du diff et la table des matières : sans quoi
+        /// un mod à plusieurs dossiers `i18n` verrait deux sections homonymes
+        /// de composants différents devenir indiscernables dans l'un des deux
+        /// endroits mais pas l'autre.
+        ///
+        /// Les deux paramètres sont des `@autoclosure` : un seul des deux se
+        /// résout jamais par groupe (`isOrphan` les rend mutuellement
+        /// exclusifs), et l'appelant y loge une recherche localisée — l'évaluer
+        /// systématiquement en doublerait le coût sur les 2056 en-têtes de
+        /// `[CP] Ridgeside Village`.
+        public func displayTitle(fallback: @autoclosure () -> String,
+                                 orphan: @autoclosure () -> String) -> String {
+            let section = isOrphan ? orphan() : (title ?? fallback())
+            return component.map { "\($0) — \(section)" } ?? section
+        }
+
         /// Le même groupe, restreint aux rangées retenues par un filtre.
         ///
         /// `id`, `title`, `component` et `firstKey` sont recopiés tels quels :

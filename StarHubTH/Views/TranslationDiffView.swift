@@ -125,7 +125,7 @@ struct TranslationDiffView: View {
                         HStack(spacing: 4) {
                             Image(systemName: "list.bullet.indent").font(.system(size: 10))
                             Text(vm.L(L10n.Mods.diffSections)).font(.system(size: 10, weight: .medium))
-                            Text("\(groups.count)")
+                            Text("\(titledSectionCount)")
                                 .font(.system(size: 10, weight: .semibold).monospacedDigit())
                                 .foregroundColor(.secondary)
                         }
@@ -271,7 +271,7 @@ struct TranslationDiffView: View {
                     .foregroundColor(.primary)
                     .lineLimit(1)
                 Spacer(minLength: 8)
-                remainderBadges(group)
+                RemainderBadges(group: group)
             }
             .padding(.horizontal, 6)
             .padding(.vertical, 5)
@@ -283,26 +283,6 @@ struct TranslationDiffView: View {
         .pointingHandCursor()
     }
 
-    /// Ce qu'il reste à faire dans la section, tel que le filtre en cours le
-    /// laisse voir. Les vides d'abord : c'est le seul état qui casse l'affichage
-    /// en jeu.
-    @ViewBuilder
-    private func remainderBadges(_ group: TranslationCoverage.DiffGroup) -> some View {
-        HStack(spacing: 8) {
-            ForEach([TranslationCoverage.DiffRow.State.empty, .missing], id: \.self) { state in
-                let count = group.remaining(state)
-                if count > 0 {
-                    HStack(spacing: 3) {
-                        Image(systemName: DiffStateStyle.glyph(state)).font(.system(size: 9))
-                        Text("\(count)")
-                            .font(.system(size: 10, weight: .semibold).monospacedDigit())
-                    }
-                    .foregroundColor(DiffStateStyle.tint(state))
-                }
-            }
-        }
-    }
-
     /// Le nom du groupe : sa section, préfixée du composant quand le mod en a
     /// plusieurs.
     ///
@@ -310,19 +290,34 @@ struct TranslationDiffView: View {
     /// d'avant le premier commentaire, en tête du fichier, et les orphelines —
     /// qui n'existent qu'en français et viennent après tout. Les coiffer du même
     /// « Avant la première section » serait faux dans les deux sens.
+    ///
+    /// Règle de préfixe partagée avec la table des matières via
+    /// `DiffGroup.displayTitle` : deux copies avaient déjà divergé une fois
+    /// dans ce fichier (`DiffStateStyle`), pas de raison d'en ouvrir une
+    /// troisième.
     private func title(of group: TranslationCoverage.DiffGroup) -> String {
-        let fallback = group.isOrphan ? L10n.Mods.diffStateOrphan
-                                      : L10n.Mods.diffSectionUntitled
-        let section = (group.isOrphan ? nil : group.title) ?? vm.L(fallback)
-        return group.component.map { "\($0) — \(section)" } ?? section
+        group.displayTitle(fallback: vm.L(L10n.Mods.diffSectionUntitled),
+                            orphan: vm.L(L10n.Mods.diffStateOrphan))
     }
 
     // MARK: - Données dérivées
 
     /// Un mod sans commentaire n'a qu'un groupe sans titre : lui proposer une
     /// table des matières serait proposer une liste à une entrée vide.
+    ///
+    /// Porte sur `allGroups`, pas `groups` : sinon une recherche qui ne laisse
+    /// aucune ligne dans une section titrée ferait disparaître le bouton au
+    /// moment précis où l'on voudrait s'en servir pour se repérer.
     private var hasSections: Bool {
-        groups.contains { $0.title != nil }
+        allGroups.contains { $0.title != nil }
+    }
+
+    /// Le nombre affiché à côté du bouton « Sections » : les seuls groupes
+    /// **titrés** par l'auteur, dans le filtre courant — ni le bloc sans titre
+    /// d'avant le premier commentaire, ni le bloc orphelin, qui ne sont pas des
+    /// sections écrites par l'auteur.
+    private var titledSectionCount: Int {
+        groups.filter { $0.title != nil }.count
     }
 
     /// Le filtre courant, appliqué rangée par rangée. `query` est calculée une
@@ -390,6 +385,33 @@ enum DiffStateStyle {
             // Une clé absente laisse l'anglais s'afficher — c'est du travail
             // restant, pas une panne. La peindre en rouge crierait au loup.
             return .secondary
+        }
+    }
+}
+
+/// Ce qu'il reste à faire dans un groupe : les vides d'abord — le seul état
+/// qui casse l'affichage en jeu —, puis les manquantes. Partagé par l'en-tête
+/// de section et la table des matières : une même composition qui existait en
+/// double a déjà divergé une fois dans ce fichier (`DiffStateStyle`), pas de
+/// raison de reproduire l'erreur ici. Seul l'espacement extérieur varie d'un
+/// endroit à l'autre.
+struct RemainderBadges: View {
+    let group: TranslationCoverage.DiffGroup
+    var spacing: CGFloat = 8
+
+    var body: some View {
+        HStack(spacing: spacing) {
+            ForEach([TranslationCoverage.DiffRow.State.empty, .missing], id: \.self) { state in
+                let count = group.remaining(state)
+                if count > 0 {
+                    HStack(spacing: 3) {
+                        Image(systemName: DiffStateStyle.glyph(state)).font(.system(size: 9))
+                        Text("\(count)")
+                            .font(.system(size: 10, weight: .semibold).monospacedDigit())
+                    }
+                    .foregroundColor(DiffStateStyle.tint(state))
+                }
+            }
         }
     }
 }
