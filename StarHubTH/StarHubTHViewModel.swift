@@ -238,6 +238,27 @@ class StarHubTHViewModel: ObservableObject {
     /// sur l'anglais.
     @Published private(set) var frenchCoverageByMod: [String: TranslationCoverage.Coverage] = [:]
 
+    /// L'index des clés obsolètes, relu après chaque calcul de diff. Le lire
+    /// depuis le disque à chaque ligne de la liste ouvrirait un fichier par mod
+    /// affiché.
+    @Published private(set) var outdatedKeysByMod: [String: Int] = [:]
+
+    /// Les mods dont l'anglais est plus récent que le français, mesuré au scan.
+    /// Deux lectures d'attributs par dossier `i18n` : assez léger pour la liste
+    /// entière, contrairement à la lecture des fichiers eux-mêmes.
+    @Published private(set) var staleTranslationMods: Set<String> = []
+
+    /// `@MainActor` explicite : `translationDiff(for:)` n'est pas lui-même
+    /// isolé à l'acteur principal, et la reprise après un `await` sur une
+    /// tâche détachée n'y revient pas toute seule — `scanMods()` documente
+    /// déjà ce piège plus haut dans ce fichier. Sans l'annotation, cette
+    /// mutation de `@Published` s'exécuterait parfois hors du fil principal.
+    @MainActor
+    func reloadOutdatedKeyIndex() {
+        guard let store = TranslationBaseline.defaultDirectory() else { return }
+        outdatedKeysByMod = TranslationBaseline.loadIndex(in: store)
+    }
+
     /// Le calcul en cours, annulé dès qu'un nouveau scan le rend caduc.
     private var frenchCoverageTask: Task<Void, Never>?
 
@@ -270,6 +291,7 @@ class StarHubTHViewModel: ObservableObject {
         frenchCoverageTask = Task.detached(priority: .utility) { [weak self] in
             let modsPath = (root as NSString).appendingPathComponent("Mods")
             var batch: [String: TranslationCoverage.Coverage] = [:]
+            var staleBatch: Set<String> = []
             for mod in snapshot where mod.languages.contains("fr") {
                 if Task.isCancelled { return }
                 let directory = URL(fileURLWithPath: modsPath)
@@ -277,23 +299,30 @@ class StarHubTHViewModel: ObservableObject {
                 guard let coverage = TranslationCoverage.coverage(forModAt: directory,
                                                                   locale: "fr") else { continue }
                 batch[mod.folderName] = coverage
+                if TranslationFreshness.staleness(forModAt: directory, locale: "fr") != nil {
+                    staleBatch.insert(mod.folderName)
+                }
                 // Publier par paquets : un envoi par mod ferait redessiner la
                 // liste des centaines de fois pour rien.
                 if batch.count >= 25 {
                     let published = batch
+                    let publishedStale = staleBatch
                     batch.removeAll(keepingCapacity: true)
-                    await self?.mergeFrenchCoverage(published)
+                    staleBatch.removeAll(keepingCapacity: true)
+                    await self?.mergeFrenchCoverage(published, stale: publishedStale)
                 }
             }
             if Task.isCancelled { return }
-            await self?.mergeFrenchCoverage(batch)
+            await self?.mergeFrenchCoverage(batch, stale: staleBatch)
         }
     }
 
     @MainActor
-    private func mergeFrenchCoverage(_ batch: [String: TranslationCoverage.Coverage]) {
-        guard !batch.isEmpty else { return }
+    private func mergeFrenchCoverage(_ batch: [String: TranslationCoverage.Coverage],
+                                     stale: Set<String>) {
+        guard !batch.isEmpty || !stale.isEmpty else { return }
         frenchCoverageByMod.merge(batch) { _, new in new }
+        staleTranslationMods.formUnion(stale)
     }
 
     /// Le taux à afficher sur la pastille de la liste, si mesuré.
@@ -322,7 +351,7 @@ class StarHubTHViewModel: ObservableObject {
             .appendingPathComponent("Mods"))
             .appendingPathComponent(mod.physicalFolderName)
         let folderName = mod.folderName
-        return await Task.detached(priority: .userInitiated) {
+        let rows = await Task.detached(priority: .userInitiated) {
             let rows = TranslationCoverage.diffRows(forModAt: directory, locale: "fr")
             guard let store = TranslationBaseline.defaultDirectory() else { return rows }
 
@@ -349,6 +378,28 @@ class StarHubTHViewModel: ObservableObject {
                                                  outdatedCount: outdated, in: store)
             return marked
         }.value
+        await reloadOutdatedKeyIndex()
+        return rows
+    }
+
+    /// L'anglais de ce mod a-t-il été touché après son français ?
+    ///
+    /// Hors du fil principal : la mesure lit les attributs de chaque fichier de
+    /// chaque dossier `i18n`, et un mod peut en avoir plusieurs.
+    func translationStaleness(for mod: ModItem) async -> TranslationFreshness.Staleness? {
+        let directory = URL(fileURLWithPath: (gameDir as NSString)
+            .appendingPathComponent("Mods"))
+            .appendingPathComponent(mod.physicalFolderName)
+        return await Task.detached(priority: .utility) {
+            TranslationFreshness.staleness(forModAt: directory, locale: "fr")
+        }.value
+    }
+
+    /// Le nombre de clés obsolètes connues pour ce mod, tel que l'index le
+    /// garde du dernier calcul de son diff. Zéro tant qu'on n'a jamais ouvert
+    /// son onglet Traduction : sans référence, il n'y a pas de verdict.
+    func outdatedKeyCount(for mod: ModItem) -> Int {
+        outdatedKeysByMod[mod.folderName] ?? 0
     }
 
     /// Une traduction française de ce mod retrouvée dans une sauvegarde.
@@ -380,6 +431,7 @@ class StarHubTHViewModel: ObservableObject {
     /// éternellement le pourcentage de sa version précédente.
     func invalidateFrenchCoverage(for folderName: String) {
         frenchCoverageByMod.removeValue(forKey: folderName)
+        staleTranslationMods.remove(folderName)
     }
     /// Cache for `category(for:)`, invalidated whenever `mods`,
     /// `nexusCategories`, `nexusCustomCategories`, or `nexusCustomModIds`

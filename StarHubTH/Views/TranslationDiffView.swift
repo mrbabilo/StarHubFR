@@ -41,6 +41,10 @@ struct TranslationDiffView: View {
     /// La section à rejoindre, posée par la table des matières et consommée par
     /// le `ScrollViewReader`.
     @State private var scrollTarget: String?
+    /// L'anglais de ce mod a-t-il été touché après son français ? Rappelé ici
+    /// même si la fiche l'affiche déjà : c'est là qu'on travaille effectivement
+    /// la traduction.
+    @State private var staleness: TranslationFreshness.Staleness?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -50,6 +54,20 @@ struct TranslationDiffView: View {
                 emptyRow(vm.L(L10n.Mods.diffNone))
             } else {
                 filterBar
+                if let staleness {
+                    HStack(spacing: 6) {
+                        Image(systemName: "clock.badge.exclamationmark")
+                            .font(.system(size: 10))
+                        Text(String(format: vm.L(L10n.Mods.translationSourceNewer),
+                                    staleness.sourceDate.formatted(date: .abbreviated,
+                                                                   time: .omitted),
+                                    Int(staleness.gap / 86_400)))
+                            .font(.system(size: 11))
+                        Spacer(minLength: 0)
+                    }
+                    .foregroundColor(.secondary)
+                    .padding(.bottom, 8)
+                }
                 Divider()
                 // En-tête **hors** de la zone défilante : sans lui, rien ne
                 // disait laquelle des deux colonnes portait l'anglais et
@@ -65,6 +83,7 @@ struct TranslationDiffView: View {
             // Chargement détaché côté ViewModel : lire et analyser 11 021 clés
             // sur le fil principal figerait la fenêtre.
             rows = await vm.translationDiff(for: mod)
+            staleness = await vm.translationStaleness(for: mod)
             // Le regroupement une seule fois, sur les rangées complètes.
             allGroups = TranslationCoverage.diffGroups(rows: rows)
             // Les groupes avant le drapeau : sans quoi une passe de rendu

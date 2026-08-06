@@ -40,6 +40,10 @@ struct ModDetailView: View {
     /// n'en a plus. Cherché à l'ouverture de la fiche, hors du fil principal.
     @State private var backupTranslation: TranslationBackupFinder.Found?
 
+    /// L'anglais de ce mod a-t-il été touché après son français ? Mesuré à
+    /// l'ouverture de la fiche, hors du fil principal.
+    @State private var translationStaleness: TranslationFreshness.Staleness?
+
     enum FetchStatus: Equatable {
         case idle
         case loading
@@ -63,6 +67,7 @@ struct ModDetailView: View {
         }
         .onAppear { seedDraft() }
         .task {
+            translationStaleness = await vm.translationStaleness(for: mod)
             // Seulement quand il y a quelque chose à retrouver : un mod déjà
             // traduit n'a pas besoin qu'on fouille les sauvegardes.
             guard !mod.languages.contains("fr") else { return }
@@ -597,7 +602,7 @@ struct ModDetailView: View {
         // La section s'affiche aussi pour un mod **sans** français dès qu'une
         // sauvegarde en contient un : c'est précisément le cas où l'utilisateur
         // a quelque chose à apprendre.
-        if mod.languages.contains("fr") || backupTranslation != nil {
+        if mod.languages.contains("fr") || backupTranslation != nil || translationStaleness != nil {
             VStack(alignment: .leading, spacing: 8) {
                 Text(vm.L(L10n.Mods.translationSection))
                     .font(.system(size: 13, weight: .semibold))
@@ -607,6 +612,22 @@ struct ModDetailView: View {
                                            backup.modifiedAt.formatted(date: .abbreviated,
                                                                        time: .omitted)),
                                     icon: "clock.arrow.circlepath", color: .orange)
+                }
+
+                if let stale = translationStaleness {
+                    // Le fait et ses deux dates, jamais un verdict : l'auteur a
+                    // pu retoucher son fichier sans changer une phrase.
+                    translationNote(String(format: vm.L(L10n.Mods.translationSourceNewer),
+                                           stale.sourceDate.formatted(date: .abbreviated,
+                                                                      time: .omitted),
+                                           Int(stale.gap / 86_400)),
+                                    icon: "clock.badge.exclamationmark", color: .secondary)
+                }
+                if vm.outdatedKeyCount(for: mod) > 0 {
+                    translationNote(String(format: vm.L(L10n.Mods.translationOutdatedKeys),
+                                           vm.outdatedKeyCount(for: mod)),
+                                    icon: "clock.badge.exclamationmark",
+                                    color: Color(red: 0.55, green: 0.35, blue: 0.75))
                 }
 
                 if mod.languages.contains("fr"), let coverage = vm.frenchCoverageDetail(for: mod) {

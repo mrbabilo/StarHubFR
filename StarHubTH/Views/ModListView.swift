@@ -17,6 +17,10 @@ enum FrenchTranslationScope: Equatable {
     /// introuvables.
     case partial
     case missing     // translatable, but ships no i18n/fr.json
+    /// Traduit, mais l'anglais a bougé depuis — par la date du fichier ou par
+    /// une clé dont la référence ne correspond plus. 21 mods du parc au premier
+    /// lancement, sans qu'aucun diff ait été ouvert.
+    case stale
 }
 
 /// Scope for the category-filter menu: show everything, scope to one Nexus
@@ -168,6 +172,14 @@ struct ModListView: View {
                     let translatable = matchesSelfOrAnyChild(mod) { !$0.languages.isEmpty }
                     return translatable
                         && !matchesSelfOrAnyChild(mod) { $0.languages.contains("fr") }
+                case .stale:
+                    // Les deux signaux réunis : la date, connue de tous les
+                    // mods dès le scan, et les clés, connues des seuls mods
+                    // dont on a déjà ouvert le diff.
+                    return matchesSelfOrAnyChild(mod) { child in
+                        vm.staleTranslationMods.contains(child.folderName)
+                            || vm.outdatedKeyCount(for: child) > 0
+                    }
                 }
             }
             .sorted { lhs, rhs in
@@ -792,6 +804,7 @@ struct ModListView: View {
             case .available: return vm.L(L10n.Mods.frTranslationAvailable)
             case .partial:   return vm.L(L10n.Mods.frTranslationPartial)
             case .missing:   return vm.L(L10n.Mods.frTranslationMissing)
+            case .stale:     return vm.L(L10n.Mods.frTranslationStale)
             }
         }()
         let icon: String = {
@@ -800,6 +813,7 @@ struct ModListView: View {
             case .available: return "checkmark.bubble"
             case .partial:   return "ellipsis.bubble"
             case .missing:   return "xmark.bubble"
+            case .stale:     return "clock.badge.exclamationmark"
             }
         }()
         return Menu {
@@ -822,6 +836,12 @@ struct ModListView: View {
                 listState.filters.frenchTranslation = .missing
             } label: {
                 Label(vm.L(L10n.Mods.frTranslationMissing), systemImage: "xmark.bubble")
+            }
+            Button {
+                listState.filters.frenchTranslation = .stale
+            } label: {
+                Label(vm.L(L10n.Mods.frTranslationStale),
+                      systemImage: "clock.badge.exclamationmark")
             }
         } label: {
             HStack(spacing: 6) {
