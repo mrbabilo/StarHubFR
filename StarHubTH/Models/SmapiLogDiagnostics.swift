@@ -451,12 +451,15 @@ public struct SmapiDiagnostics {
         .init(kind: .apiIntegration,
               any: ["tried to map a mod-provided api",
                     "isn't compatible with the actual mod api",
-                    "couldn't get the",          // "Couldn't get the X API"
-                    "could not get the",
-                    "failed to get the",
                     "api not found",
                     "integration failed",
                     "unable to load api"]),
+        // "Couldn't get the X API" : exiger « api » pour ne pas classer benign
+        // « Couldn't get the world state loaded » (audit 2026-08-05), qui masquait
+        // une erreur réelle derrière une carte de santé « sain ».
+        .init(kind: .apiIntegration,
+              any: ["couldn't get the", "could not get the", "failed to get the"],
+              all: ["api"]),
 
         // An optional/recommended companion mod isn't installed.
         .init(kind: .optionalModMissing,

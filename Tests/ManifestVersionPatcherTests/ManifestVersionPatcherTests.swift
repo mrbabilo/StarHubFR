@@ -125,6 +125,21 @@ struct ManifestVersionPatcherTests {
         #expect(ManifestVersionPatcher.replaceVersionValue(in: raw, with: "1.0.0$2") == "{ \"Version\": \"1.0.0$2\" }")
     }
 
+    @Test func replaceSkipsVersionInLineComment() {
+        // Un `"Version"` laissé en commentaire JSONC avant la vraie : replace
+        // doit patcher la vraie, pas le commentaire — sinon le patch restait
+        // inefficace et l'update revenait sans cesse (jumeau du bug M4).
+        let raw = "// \"Version\": \"0.0.1\"\n{ \"Version\": \"1.1.0\" }"
+        #expect(ManifestVersionPatcher.replaceVersionValue(in: raw, with: "1.2.0")
+                == "// \"Version\": \"0.0.1\"\n{ \"Version\": \"1.2.0\" }")
+    }
+
+    @Test func replaceSkipsVersionInBlockComment() {
+        let raw = "/* \"Version\": \"0.0.1\" */ { \"Version\": \"1.1.0\" }"
+        #expect(ManifestVersionPatcher.replaceVersionValue(in: raw, with: "1.2.0")
+                == "/* \"Version\": \"0.0.1\" */ { \"Version\": \"1.2.0\" }")
+    }
+
     @Test func emptyNexusVersionIsNoChange() {
         let d = ManifestVersionPatcher.decide(
             nexusVersion: "", nexusUploaded: Date(timeIntervalSince1970: 2_000),

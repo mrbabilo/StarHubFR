@@ -238,4 +238,19 @@ import Testing
         let names = d.topErrorMods.map(\.name)
         #expect(!names.contains("game") && !names.contains("SMAPI"))
     }
+
+    @Test func genericGetWithoutApiIsNotBenign() {
+        // « Couldn't get the X API » est benign, mais pas « Couldn't get the
+        // world state loaded » (pas d'API) — sinon une vraie erreur se cachait
+        // derrière une carte de santé « sain ». Audit 2026-08-05.
+        let log = """
+        [10:00:00 ERROR Bad Mod] Couldn't get the world state loaded
+        """
+        let d = SmapiDiagnostics.parse(logContent: log)
+        #expect(d.benignNotices.allSatisfy { $0.kind != .apiIntegration })
+        // L'erreur n'étant plus masquée comme benign, elle remonte dans le top
+        // 5 des mods en erreur (avant la correction, la règle trop large
+        // l'avalait — carte de santé « sain » trompeuse).
+        #expect(d.topErrorMods.contains { $0.name == "Bad Mod" })
+    }
 }

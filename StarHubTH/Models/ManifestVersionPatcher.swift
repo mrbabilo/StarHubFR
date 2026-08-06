@@ -78,11 +78,43 @@ enum ManifestVersionPatcher {
     /// (dict form / absent) → caller must abstain.
     static func replaceVersionValue(in raw: String, with newVersion: String) -> String? {
         let range = NSRange(raw.startIndex..., in: raw)
-        guard let m = versionStringRegex.firstMatch(in: raw, range: range) else { return nil }
+        // Choisir le 1er match hors commentaire : un `"Version"` laissé en
+        // commentaire JSONC (usage courant chez les mods Stardew) était patché
+        // à la place de la vraie valeur — le patch restait inefficace et
+        // l'update revenait sans cesse. Sans cette garde, extractVersionValue
+        // (qui strip les commentaires) et replaceVersionValue ne voyaient pas
+        // la même occurrence (jumeau du bug M4).
+        let target = versionStringRegex.matches(in: raw, range: range)
+            .first { !Self.isInComment(raw, matchRange: $0.range) }
+        guard let target else { return nil }
         let escaped = NSRegularExpression.escapedTemplate(for: newVersion)
-        // Replace only the first match's range, so extract and replace always
-        // agree on which occurrence is the mod's version.
         return versionStringRegex.stringByReplacingMatches(
-            in: raw, range: m.range, withTemplate: "$1\(escaped)$3")
+            in: raw, range: target.range, withTemplate: "$1\(escaped)$3")
+    }
+
+    /// Vrai si `matchRange` tombe dans un commentaire JSONC du raw (`//…` ou
+    /// `/*…*/`). Approximation simple (pas string-aware) : un `//` dans une
+    /// URL sur la même ligne que la `Version` donnerait un faux positif — mais
+    /// le résultat est conservateur (le patch s'abstient) plutôt que destructeur.
+    private static func isInComment(_ raw: String, matchRange: NSRange) -> Bool {
+        let ns = raw as NSString
+        let loc = matchRange.location
+        guard loc <= ns.length else { return false }
+        let prefix = ns.substring(to: loc)
+
+        // Commentaire de ligne : un `//` après le dernier saut de ligne du préfixe.
+        let nlRange = (prefix as NSString).range(of: "\n", options: .backwards)
+        let lineStart = nlRange.location == NSNotFound ? 0 : nlRange.upperBound
+        if (prefix as NSString).substring(from: lineStart).contains("//") { return true }
+
+        // Commentaire de bloc : un `/*` non refermé par un `*/` dans le préfixe.
+        let openRange = (prefix as NSString).range(of: "/*", options: .backwards)
+        if openRange.location != NSNotFound {
+            let afterOpen = (prefix as NSString).substring(from: openRange.upperBound)
+            if (afterOpen as NSString).range(of: "*/").location == NSNotFound {
+                return true
+            }
+        }
+        return false
     }
 }
