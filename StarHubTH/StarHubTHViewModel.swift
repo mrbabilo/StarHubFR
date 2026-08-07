@@ -282,6 +282,20 @@ class StarHubTHViewModel: ObservableObject {
     /// est là pour les cas où le contenu change réellement.
     private func recomputeFrenchCoverage() {
         frenchCoverageTask?.cancel()
+        // L'index des clés obsolètes survit au redémarrage sur disque
+        // (`TranslationBaseline.updateIndex`, dans `translationDiff(for:)`),
+        // mais sans cette relecture il ne serait jamais chargé en bloc : le
+        // filtre « À revoir » repartirait de zéro à chaque lancement pour tout
+        // le parc, jusqu'à ce qu'on rouvre un par un les onglets Traduction
+        // déjà consultés lors d'une session précédente. Une seule lecture d'un
+        // petit fichier JSON, sans mesure de fichiers : le coût est
+        // négligeable, même répété à chaque recalcul (mise en pause,
+        // rafraîchissement, activation de profil). `Task { @MainActor … }`
+        // plutôt qu'un appel direct : cette fonction n'est pas elle-même
+        // isolée à l'acteur principal.
+        Task { @MainActor [weak self] in
+            self?.reloadOutdatedKeyIndex()
+        }
         let root = gameDir
         guard !root.isEmpty else { return }
         let known = Set(frenchCoverageByMod.keys)
@@ -428,10 +442,19 @@ class StarHubTHViewModel: ObservableObject {
     /// Oublie la couverture d'un mod dont les fichiers ont pu changer —
     /// installation, mise à jour, restauration de sauvegarde. Le prochain
     /// passage la recalculera. Sans cet appel, un mod mis à jour garderait
-    /// éternellement le pourcentage de sa version précédente.
+    /// éternellement le pourcentage de sa version précédente — et, sans le
+    /// retrait de `outdatedKeysByMod`, son ancien compte de clés obsolètes,
+    /// sa note sur la fiche et sa place dans le filtre « À revoir » jusqu'à
+    /// ce qu'on rouvre son onglet Traduction.
+    ///
+    /// `@MainActor` explicite comme `reloadOutdatedKeyIndex()` : trois
+    /// `@Published` mutés ici, et rien ne garantirait le fil principal pour
+    /// un futur appelant sans l'annotation.
+    @MainActor
     func invalidateFrenchCoverage(for folderName: String) {
         frenchCoverageByMod.removeValue(forKey: folderName)
         staleTranslationMods.remove(folderName)
+        outdatedKeysByMod.removeValue(forKey: folderName)
     }
     /// Cache for `category(for:)`, invalidated whenever `mods`,
     /// `nexusCategories`, `nexusCustomCategories`, or `nexusCustomModIds`
