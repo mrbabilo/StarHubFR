@@ -374,14 +374,26 @@ sans risque d'écriture destructive.
       et signaler le second comme une anomalie du mod plutôt que comme un échec de lecture.
       Sans quoi 4 fichiers réels restent illisibles chez nous — cf. l'en-tête de
       `I18nLenientParser.swift`. · **S**
+- [ ] **C1-T8** — Un mod dont la seule traduction est `fr-FR.json` (variante régionale)
+      s'affiche « traduit en français » dans le filtre et la pastille de couverture, mais
+      sa couverture mesurée est **0 %** et il ne sera jamais signalé obsolète par la
+      fraîcheur : `languageCodes(inModDirectory:)` replie les variantes régionales sur leur
+      langue de base, `I18nLocaleResolver.files(in:locale:)` non. Affecte déjà l'écran de
+      couverture livré en v1.13.0 ; trouvé pendant ce plan, non corrigé. · **S**
 
 #### C2 — Vue diff EN/FR
 
 - [x] **C2-T1** — Vue côte à côte : clé, valeur EN, valeur FR, état (traduite / manquante /
       identique à l'EN / obsolète). · **M** **Livré** (`8538c17`).
-- [ ] **C2-T2** — Détection d'obsolescence : une valeur FR est suspecte si la valeur EN a
+- [x] **C2-T2** — Détection d'obsolescence : une valeur FR est suspecte si la valeur EN a
       changé depuis la dernière écriture du `fr.json` (empreinte stockée à côté du backup
       de config existant). · **M** · risque : heuristique, à présenter comme telle.
+      **Livré** autrement que prévu : l'empreinte seule ne dirait rien avant des
+      mois (mesuré : 32 clés changées sur 35 mods comparables, 3 traductions
+      réellement périmées dans un seul mod). Deux signaux à la place — la date du
+      fichier, disponible au premier lancement sur 18 mods, et une référence par
+      clé qui s'adopte à la première ouverture du diff, reprise d'`imported_baselines`
+      de `stardew-i18n-translator`.
 - [x] **C2-T3** — Recherche et filtre par état. **Livré** avec la vue diff
       (`8538c17`) : un cadrage par état dont le libellé porte le compte, les états
       absents du mod n'étant pas proposés, plus une recherche sur la clé, l'anglais

@@ -12,6 +12,9 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+- **A French translation the English has moved past is now flagged.** The mod's page shows both dates, a "To review" filter gathers them, and outdated keys are marked in the diff with the old English struck through.
+
 ## [1.13.0] - 2026-08-06
 
 ### Added
