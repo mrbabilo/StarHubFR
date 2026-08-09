@@ -61,6 +61,7 @@ struct TranslationDiffView: View {
                         Text(staleness.note(
                             sourceNewerFormat: vm.L(L10n.Mods.translationSourceNewer),
                             sameDayFormat: vm.L(L10n.Mods.translationSourceNewerToday),
+                            oneDayFormat: vm.L(L10n.Mods.translationSourceNewerOneDay),
                             dateText: staleness.sourceDate.formatted(date: .abbreviated,
                                                                      time: .omitted)))
                             .font(.system(size: 11))

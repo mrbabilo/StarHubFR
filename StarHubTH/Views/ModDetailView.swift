@@ -620,6 +620,7 @@ struct ModDetailView: View {
                     translationNote(
                         stale.note(sourceNewerFormat: vm.L(L10n.Mods.translationSourceNewer),
                                   sameDayFormat: vm.L(L10n.Mods.translationSourceNewerToday),
+                                  oneDayFormat: vm.L(L10n.Mods.translationSourceNewerOneDay),
                                   dateText: stale.sourceDate.formatted(date: .abbreviated,
                                                                        time: .omitted)),
                         icon: "clock.badge.exclamationmark", color: .secondary)

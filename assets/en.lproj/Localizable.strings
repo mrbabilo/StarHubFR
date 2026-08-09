@@ -765,6 +765,7 @@
 "mods_diff_previous_english" = "was: %@";
 "mods_translation_source_newer" = "English was edited on %1$@, %2$d days after the French translation.";
 "mods_translation_source_newer_today" = "English was edited on %@, the same day as the French translation.";
+"mods_translation_source_newer_one_day" = "English was edited on %@, 1 day after the French translation.";
 "mods_translation_outdated_keys" = "%d keys whose English has changed since";
 "mods_fr_translation_stale" = "To review";
 "mods_diff_search" = "Search keys and text";

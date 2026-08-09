@@ -1352,16 +1352,29 @@ struct TranslationFreshnessTests {
 
     /// La seule copie du choix de format : les deux vues qui l'affichent
     /// appellent cette fonction plutôt que de dupliquer le `if let days`.
+    private func note(gap: TimeInterval, dateText: String = "9 août") -> String {
+        staleness(gap: gap).note(sourceNewerFormat: "%1$@|%2$d", sameDayFormat: "%@|same",
+                                 oneDayFormat: "%@|one", dateText: dateText)
+    }
+
     @Test func aMultiDayGapUsesTheSourceNewerFormat() {
-        let note = staleness(gap: 454 * 86_400).note(
-            sourceNewerFormat: "%1$@|%2$d", sameDayFormat: "%@|same", dateText: "9 août")
-        #expect(note == "9 août|454")
+        #expect(note(gap: 454 * 86_400) == "9 août|454")
     }
 
     @Test func aSubDayGapUsesTheSameDayFormat() {
-        let note = staleness(gap: 61).note(
-            sourceNewerFormat: "%1$@|%2$d", sameDayFormat: "%@|same", dateText: "9 août")
-        #expect(note == "9 août|same")
+        #expect(note(gap: 61) == "9 août|same")
+    }
+
+    /// Sans cette forme, un écart de 24 à 48 h rendrait « 1 jours » / "1
+    /// days" — la même famille de faute que « 0 jours » sous 24 h, un cran
+    /// plus loin. Aucun mod du parc n'y tombe aujourd'hui, mais c'est une
+    /// fenêtre glissante qu'une prochaine mise à jour de mod peut ouvrir.
+    @Test func aGapOfExactly24HoursUsesTheOneDayFormat() {
+        #expect(note(gap: 86_400) == "9 août|one")
+    }
+
+    @Test func aGapOfExactly48HoursUsesThePluralFormat() {
+        #expect(note(gap: 2 * 86_400) == "9 août|2")
     }
 }
 

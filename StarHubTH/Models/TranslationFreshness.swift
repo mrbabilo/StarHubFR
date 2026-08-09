@@ -45,14 +45,25 @@ public enum TranslationFreshness {
         /// formatteurs dupliquée dans chacune serait la même faute que celle
         /// que `days` vient de corriger, un cran plus haut.
         ///
-        /// `sourceNewerFormat` attend deux substitutions (`%1$@` la date,
-        /// `%2$d` les jours) ; `sameDayFormat` en attend une seule (la date).
-        public func note(sourceNewerFormat: String, sameDayFormat: String,
+        /// Trois formats, un par régime d'accord : `sourceNewerFormat` attend
+        /// deux substitutions (`%1$@` la date, `%2$d` les jours, pluriel) ;
+        /// `oneDayFormat` et `sameDayFormat` n'en attendent qu'une (la date)
+        /// — « 1 jour » et « le jour même » ne varient jamais en nombre.
+        /// Sans `oneDayFormat`, un écart de 24 à 48 h rendrait « 1 jours » /
+        /// "1 days" : la même famille de faute que celle qui affichait
+        /// « 0 jours » sous 24 h, seulement décalée d'un cran. Aucun mod du
+        /// parc n'y tombe aujourd'hui (4 sous 24 h, les autres bien
+        /// au-delà) — fenêtre glissante qu'une prochaine mise à jour de mod
+        /// peut ouvrir, fermée par avance.
+        public func note(sourceNewerFormat: String, sameDayFormat: String, oneDayFormat: String,
                          dateText: String) -> String {
             guard let days else {
                 // Sous 24 heures : ni « 0 jours » ni « 1 jour » ne seraient
                 // vrais.
                 return String(format: sameDayFormat, dateText)
+            }
+            guard days != 1 else {
+                return String(format: oneDayFormat, dateText)
             }
             return String(format: sourceNewerFormat, dateText, days)
         }

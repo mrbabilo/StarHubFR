@@ -765,6 +765,7 @@
 "mods_diff_previous_english" = "disait : %@";
 "mods_translation_source_newer" = "L'anglais a été modifié le %1$@, %2$d jours après la traduction française.";
 "mods_translation_source_newer_today" = "L'anglais a été modifié le %@, le jour même de la traduction française.";
+"mods_translation_source_newer_one_day" = "L'anglais a été modifié le %@, 1 jour après la traduction française.";
 "mods_translation_outdated_keys" = "%d clés dont l'anglais a changé depuis";
 "mods_fr_translation_stale" = "À revoir";
 "mods_diff_search" = "Rechercher dans les clés et les textes";
