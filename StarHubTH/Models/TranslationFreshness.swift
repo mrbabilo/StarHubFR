@@ -7,10 +7,11 @@ import Foundation
 /// ses deux dates, jamais un verdict.
 ///
 /// C'est aussi le seul signal disponible le premier jour. Les archives de mods
-/// conservent les dates de l'auteur : sur le parc réel, **21 fichiers anglais
-/// sont plus récents que leur français**, jusqu'à 454 jours d'écart. La
-/// référence par clé (`TranslationBaseline`) est plus juste, mais elle ne peut
-/// rien dire avant la première mise à jour qui suit son adoption.
+/// conservent les dates de l'auteur : sur le parc réel, **21 dossiers `i18n`
+/// ont un anglais plus récent que leur français, répartis sur 18 mods** (un
+/// mod multi-composants pèse pour plusieurs dossiers), jusqu'à 454 jours
+/// d'écart. La référence par clé (`TranslationBaseline`) est plus juste, mais
+/// elle ne peut rien dire avant la première mise à jour qui suit son adoption.
 public enum TranslationFreshness {
     /// Un écart mesuré : l'anglais est postérieur au français de `gap` secondes.
     public struct Staleness: Equatable, Sendable {

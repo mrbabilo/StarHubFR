@@ -1208,9 +1208,10 @@ struct DiffGroupTests {
 /// français ?
 ///
 /// C'est le seul signal disponible **le premier jour** : les archives de mods
-/// conservent les dates de l'auteur, et sur le parc réel 21 fichiers anglais
-/// sont plus récents que leur français, jusqu'à 454 jours d'écart. La référence
-/// par clé, elle, ne dira rien avant la prochaine mise à jour.
+/// conservent les dates de l'auteur, et sur le parc réel 21 dossiers `i18n` ont
+/// un anglais plus récent que leur français, répartis sur 18 mods, jusqu'à 454
+/// jours d'écart. La référence par clé, elle, ne dira rien avant la prochaine
+/// mise à jour.
 struct TranslationFreshnessTests {
     /// Crée un mod jetable dont chaque fichier porte la date demandée.
     private func fixture(_ files: [(path: String, date: Date)]) throws -> URL {

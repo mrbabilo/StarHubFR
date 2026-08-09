@@ -18,7 +18,7 @@ enum FrenchTranslationScope: Equatable {
     case partial
     case missing     // translatable, but ships no i18n/fr.json
     /// Traduit, mais l'anglais a bougé depuis — par la date du fichier ou par
-    /// une clé dont la référence ne correspond plus. 21 mods du parc au premier
+    /// une clé dont la référence ne correspond plus. 18 mods du parc au premier
     /// lancement, sans qu'aucun diff ait été ouvert.
     case stale
 }

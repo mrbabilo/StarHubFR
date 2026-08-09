@@ -388,12 +388,13 @@ sans risque d'écriture destructive.
 - [x] **C2-T2** — Détection d'obsolescence : une valeur FR est suspecte si la valeur EN a
       changé depuis la dernière écriture du `fr.json` (empreinte stockée à côté du backup
       de config existant). · **M** · risque : heuristique, à présenter comme telle.
-      **Livré** autrement que prévu : l'empreinte seule ne dirait rien avant des
-      mois (mesuré : 32 clés changées sur 35 mods comparables, 3 traductions
-      réellement périmées dans un seul mod). Deux signaux à la place — la date du
-      fichier, disponible au premier lancement sur 18 mods, et une référence par
-      clé qui s'adopte à la première ouverture du diff, reprise d'`imported_baselines`
-      de `stardew-i18n-translator`.
+      **Livré** (`7f92dac`, `d8b9ee3`, `b5180ec`, `31a34ff`, `e75e6ea`) autrement que
+      prévu : l'empreinte seule ne dirait rien avant des mois (mesuré : 32 clés
+      changées sur 35 mods comparables, 3 traductions réellement périmées dans un
+      seul mod). Deux signaux à la place — la date du fichier, disponible au
+      premier lancement sur 21 dossiers `i18n` répartis sur 18 mods, et une
+      référence par clé qui s'adopte à la première ouverture du diff, reprise
+      d'`imported_baselines` de `stardew-i18n-translator`.
 - [x] **C2-T3** — Recherche et filtre par état. **Livré** avec la vue diff
       (`8538c17`) : un cadrage par état dont le libellé porte le compte, les états
       absents du mod n'étant pas proposés, plus une recherche sur la clé, l'anglais
