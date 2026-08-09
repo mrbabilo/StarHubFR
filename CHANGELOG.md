@@ -13,7 +13,7 @@ where the exact log format was verified.
 ## [Unreleased]
 
 ### Added
-- **A French translation the English has moved past is now flagged.** The mod's page shows both dates from first launch, and a "To review" filter gathers them. Once its Translation tab has been opened once, outdated keys are marked there too, old English struck through.
+- **A French translation the English has moved past is now flagged.** The mod's page names the date English was last edited and the gap to the French translation, and a "To review" filter gathers them. Its Translation tab marks outdated keys too, once opened, old English struck through.
 
 ## [1.13.0] - 2026-08-06
 

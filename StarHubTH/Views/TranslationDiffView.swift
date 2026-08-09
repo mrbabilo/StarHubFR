@@ -58,10 +58,11 @@ struct TranslationDiffView: View {
                     HStack(spacing: 6) {
                         Image(systemName: "clock.badge.exclamationmark")
                             .font(.system(size: 10))
-                        Text(String(format: vm.L(L10n.Mods.translationSourceNewer),
-                                    staleness.sourceDate.formatted(date: .abbreviated,
-                                                                   time: .omitted),
-                                    Int(staleness.gap / 86_400)))
+                        Text(staleness.note(
+                            sourceNewerFormat: vm.L(L10n.Mods.translationSourceNewer),
+                            sameDayFormat: vm.L(L10n.Mods.translationSourceNewerToday),
+                            dateText: staleness.sourceDate.formatted(date: .abbreviated,
+                                                                     time: .omitted)))
                             .font(.system(size: 11))
                         Spacer(minLength: 0)
                     }
@@ -448,9 +449,9 @@ enum DiffStateStyle {
             return .secondary
         case .outdated:
             // Violet : ni alarmant comme le rouge — le mod fonctionne — ni
-            // satisfait comme le vert. Le violet des tokens ne paraît que dans
-            // le texte des valeurs, celui-ci que dans la colonne d'état et la
-            // puce de filtre : deux zones disjointes.
+            // satisfait comme le vert. Ce violet d'état ne paraît jamais dans
+            // le texte d'une valeur, où seul le violet des tokens a cours :
+            // deux teintes, deux significations, jamais sur la même surface.
             return Color(red: 0.55, green: 0.35, blue: 0.75)
         }
     }

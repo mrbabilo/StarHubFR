@@ -388,8 +388,9 @@ sans risque d'écriture destructive.
 - [x] **C2-T2** — Détection d'obsolescence : une valeur FR est suspecte si la valeur EN a
       changé depuis la dernière écriture du `fr.json` (empreinte stockée à côté du backup
       de config existant). · **M** · risque : heuristique, à présenter comme telle.
-      **Livré** (`7f92dac`, `d8b9ee3`, `b5180ec`, `31a34ff`, `e75e6ea`) autrement que
-      prévu : l'empreinte seule ne dirait rien avant des mois (mesuré : 32 clés
+      **Livré** (`7f92dac`, `d8b9ee3`, `b5180ec`, `31a34ff`, `e75e6ea`, `d5deef5`,
+      `8467e4a`) autrement que prévu : l'empreinte seule ne dirait rien avant des
+      mois (mesuré : 32 clés
       changées sur 35 mods comparables, 3 traductions réellement périmées dans un
       seul mod). Deux signaux à la place — la date du fichier, disponible au
       premier lancement sur 21 dossiers `i18n` répartis sur 18 mods, et une

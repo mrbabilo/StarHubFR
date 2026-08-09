@@ -336,6 +336,12 @@ class StarHubTHViewModel: ObservableObject {
                                      stale: Set<String>) {
         guard !batch.isEmpty || !stale.isEmpty else { return }
         frenchCoverageByMod.merge(batch) { _, new in new }
+        // Un mod du lot qui n'y est plus signalé a cessé d'être suspect — le
+        // retirer d'abord laisse `formUnion` ne faire grandir l'ensemble que
+        // de ce que ce lot confirme. Latent aujourd'hui, le balayage étant
+        // incrémental (chaque mod n'est mesuré qu'une fois) ; nécessaire dès
+        // qu'une re-mesure ciblée existera.
+        staleTranslationMods.subtract(batch.keys)
         staleTranslationMods.formUnion(stale)
     }
 
@@ -4190,6 +4196,22 @@ class StarHubTHViewModel: ObservableObject {
             if errorHistoryLoaded {
                 modErrorHistory.remove(mod: mod.folderName)
                 ModErrorHistoryStore.save(modErrorHistory, lastLogDate: lastErrorHistoryLogDate)
+            }
+            // TranslationBaseline picked up every convention
+            // ModErrorHistoryStore follows except the one that bounds its
+            // growth — without this, a deleted mod's reference store (every
+            // English/French pair seen) stays on disk forever.
+            if let store = TranslationBaseline.defaultDirectory() {
+                try? TranslationBaseline.remove(modFolderName: mod.folderName, in: store)
+            }
+            // `invalidateFrenchCoverage` is `@MainActor` (three `@Published`
+            // mutations); `deleteMod` isn't itself isolated, but both call
+            // sites are button actions in a View, always on the main thread.
+            // `assumeIsolated` keeps this synchronous and right after the
+            // disk purge above — a `Task` hop here would reopen the very
+            // race `d5deef5`/`8467e4a` closed for the index.
+            MainActor.assumeIsolated {
+                invalidateFrenchCoverage(for: mod.folderName)
             }
             log(String(format: L(L10n.Mods.deletedLog), mod.name))
             DispatchQueue.global(qos: .userInitiated).async {

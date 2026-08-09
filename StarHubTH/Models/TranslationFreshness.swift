@@ -27,6 +27,35 @@ public enum TranslationFreshness {
         }
 
         public var gap: TimeInterval { sourceDate.timeIntervalSince(targetDate) }
+
+        /// L'écart en jours entiers, tronqué — jamais arrondi, pour rester
+        /// cohérent avec la valeur brute de `gap`. `nil` sous 24 heures : ni
+        /// « 0 jours » (faux, l'anglais a bel et bien bougé) ni « 1 jour »
+        /// (faux aussi, 61 secondes n'en font pas un). Deux vues affichaient
+        /// chacune leur propre `Int(gap / 86_400)` avant que cette propriété
+        /// ne les remplace — sur le parc réel, 4 des 21 dossiers signalés
+        /// tombaient dans ce cas et affichaient « 0 jours ».
+        public var days: Int? {
+            gap < 86_400 ? nil : Int(gap / 86_400)
+        }
+
+        /// Le libellé complet, formats fournis par l'appelant — seule une vue
+        /// peut résoudre `vm.L(…)`. Unique copie : `ModDetailView` et
+        /// `TranslationDiffView` affichent la même note, et une paire de
+        /// formatteurs dupliquée dans chacune serait la même faute que celle
+        /// que `days` vient de corriger, un cran plus haut.
+        ///
+        /// `sourceNewerFormat` attend deux substitutions (`%1$@` la date,
+        /// `%2$d` les jours) ; `sameDayFormat` en attend une seule (la date).
+        public func note(sourceNewerFormat: String, sameDayFormat: String,
+                         dateText: String) -> String {
+            guard let days else {
+                // Sous 24 heures : ni « 0 jours » ni « 1 jour » ne seraient
+                // vrais.
+                return String(format: sameDayFormat, dateText)
+            }
+            return String(format: sourceNewerFormat, dateText, days)
+        }
     }
 
     /// En deçà de cette marge, l'écart ne veut rien dire : 55 paires du parc

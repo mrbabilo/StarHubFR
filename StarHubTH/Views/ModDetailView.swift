@@ -617,17 +617,18 @@ struct ModDetailView: View {
                 if let stale = translationStaleness {
                     // Le fait et ses deux dates, jamais un verdict : l'auteur a
                     // pu retoucher son fichier sans changer une phrase.
-                    translationNote(String(format: vm.L(L10n.Mods.translationSourceNewer),
-                                           stale.sourceDate.formatted(date: .abbreviated,
-                                                                      time: .omitted),
-                                           Int(stale.gap / 86_400)),
-                                    icon: "clock.badge.exclamationmark", color: .secondary)
+                    translationNote(
+                        stale.note(sourceNewerFormat: vm.L(L10n.Mods.translationSourceNewer),
+                                  sameDayFormat: vm.L(L10n.Mods.translationSourceNewerToday),
+                                  dateText: stale.sourceDate.formatted(date: .abbreviated,
+                                                                       time: .omitted)),
+                        icon: "clock.badge.exclamationmark", color: .secondary)
                 }
                 if vm.outdatedKeyCount(for: mod) > 0 {
                     translationNote(String(format: vm.L(L10n.Mods.translationOutdatedKeys),
                                            vm.outdatedKeyCount(for: mod)),
                                     icon: "clock.badge.exclamationmark",
-                                    color: Color(red: 0.55, green: 0.35, blue: 0.75))
+                                    color: DiffStateStyle.tint(.outdated))
                 }
 
                 if mod.languages.contains("fr"), let coverage = vm.frenchCoverageDetail(for: mod) {

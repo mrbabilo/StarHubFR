@@ -124,6 +124,30 @@ public enum TranslationBaseline {
         try data.write(to: indexURL(in: directory), options: .atomic)
     }
 
+    /// Supprime le magasin d'un mod **et** son entrée dans l'index partagé —
+    /// à appeler quand le mod lui-même disparaît, pas quand son contenu
+    /// change (c'est `removeFromIndex`, seul, qui sert ce second cas via
+    /// `invalidateFrenchCoverage`).
+    ///
+    /// Ce magasin a repris toutes les conventions de `ModErrorHistoryStore`
+    /// sauf celle qui borne sa croissance : sans cette fonction, un mod
+    /// désinstallé garde son fichier de références pour toujours. Sur
+    /// `Ridgeside Village` à lui seul, 17 748 paires anglais/français.
+    ///
+    /// Réutilise `removeFromIndex` plutôt que de refaire sa logique de
+    /// verrouillage — `NSLock` n'est pas réentrant, verrouiller ici puis
+    /// entrer dans `removeFromIndex` interbloquerait. La suppression du
+    /// fichier par mod, elle, n'a pas besoin du même verrou : chaque mod a le
+    /// sien, sans cycle lecture-modification-écriture partagé qu'un appel
+    /// concurrent pourrait croiser.
+    public static func remove(modFolderName: String, in directory: URL,
+                              fileManager: FileManager = .default) throws {
+        try removeFromIndex(modFolderName: modFolderName, in: directory, fileManager: fileManager)
+        let file = fileURL(modFolderName, in: directory)
+        guard fileManager.fileExists(atPath: file.path) else { return }
+        try fileManager.removeItem(at: file)
+    }
+
     // MARK: - Détail
 
     /// Le nom de fichier d'un mod, réduit à son dernier composant de chemin :

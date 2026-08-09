@@ -1312,6 +1312,57 @@ struct TranslationFreshnessTests {
         defer { try? FileManager.default.removeItem(at: mod) }
         #expect(TranslationFreshness.staleness(forModAt: mod, locale: "fr")?.gap == 7_200)
     }
+
+    // MARK: - days
+
+    /// `days` est ce que les deux vues affichent ; verrouillé ici parce que
+    /// c'est le seul endroit testable — la logique vivait avant en double
+    /// dans `ModDetailView` et `TranslationDiffView`, chacune tronquant
+    /// `gap / 86_400` et affichant « 0 jours » sous la journée.
+    private func staleness(gap: TimeInterval) -> TranslationFreshness.Staleness {
+        TranslationFreshness.Staleness(component: nil, sourceDate: now,
+                                       targetDate: now.addingTimeInterval(-gap))
+    }
+
+    @Test func aGapUnder24HoursHasNoDayCount() {
+        // 61 secondes : le plus petit écart que la marge laisse passer.
+        #expect(staleness(gap: 61).days == nil)
+    }
+
+    @Test func aGapOfSeveralHoursStillHasNoDayCount() {
+        // 20 heures : sous la journée, mais loin d'être négligeable — le cas
+        // que « 0 jours » rendait ridicule.
+        #expect(staleness(gap: 20 * 3_600).days == nil)
+    }
+
+    @Test func aGapOfManyDaysIsTruncatedNotRounded() {
+        // 454 jours : l'écart le plus large mesuré sur le parc réel.
+        #expect(staleness(gap: 454 * 86_400).days == 454)
+    }
+
+    @Test func aGapJustOver24HoursCountsAsOneDay() {
+        #expect(staleness(gap: 86_400 + 1).days == 1)
+    }
+
+    @Test func aGapOfExactly24HoursCountsAsOneDay() {
+        #expect(staleness(gap: 86_400).days == 1)
+    }
+
+    // MARK: - note
+
+    /// La seule copie du choix de format : les deux vues qui l'affichent
+    /// appellent cette fonction plutôt que de dupliquer le `if let days`.
+    @Test func aMultiDayGapUsesTheSourceNewerFormat() {
+        let note = staleness(gap: 454 * 86_400).note(
+            sourceNewerFormat: "%1$@|%2$d", sameDayFormat: "%@|same", dateText: "9 août")
+        #expect(note == "9 août|454")
+    }
+
+    @Test func aSubDayGapUsesTheSameDayFormat() {
+        let note = staleness(gap: 61).note(
+            sourceNewerFormat: "%1$@|%2$d", sameDayFormat: "%@|same", dateText: "9 août")
+        #expect(note == "9 août|same")
+    }
 }
 
 /// Le magasin de références : ce que l'anglais et le français disaient le jour
@@ -1463,6 +1514,53 @@ struct TranslationBaselineTests {
         try TranslationBaseline.updateIndex(modFolderName: "B", outdatedCount: 7, in: dir)
         try TranslationBaseline.removeFromIndex(modFolderName: "Absent", in: dir)
         #expect(TranslationBaseline.loadIndex(in: dir) == ["B": 7])
+    }
+
+    // MARK: - Suppression d'un mod
+
+    /// `remove`, appelé à la désinstallation d'un mod : le magasin ne doit
+    /// pas garder ses références pour toujours, comme `ModErrorHistoryStore`
+    /// élague la sienne.
+    @Test func deletingAModRemovesItsStoreFile() throws {
+        let dir = makeDirectory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let entries = [TranslationBaseline.key(component: nil, key: "a"):
+                        TranslationBaseline.Entry(source: "Hello", target: "Bonjour")]
+        try TranslationBaseline.save(entries, modFolderName: "MyMod", in: dir)
+        try TranslationBaseline.remove(modFolderName: "MyMod", in: dir)
+        #expect(TranslationBaseline.load(modFolderName: "MyMod", in: dir).isEmpty)
+    }
+
+    @Test func deletingAModAlsoDropsItsIndexEntry() throws {
+        let dir = makeDirectory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try TranslationBaseline.save([:], modFolderName: "MyMod", in: dir)
+        try TranslationBaseline.updateIndex(modFolderName: "MyMod", outdatedCount: 3, in: dir)
+        try TranslationBaseline.remove(modFolderName: "MyMod", in: dir)
+        #expect(TranslationBaseline.loadIndex(in: dir)["MyMod"] == nil)
+    }
+
+    @Test func deletingAModLeavesOtherModsUntouched() throws {
+        let dir = makeDirectory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let entries = [TranslationBaseline.key(component: nil, key: "a"):
+                        TranslationBaseline.Entry(source: "s", target: "t")]
+        try TranslationBaseline.save(entries, modFolderName: "Keep", in: dir)
+        try TranslationBaseline.updateIndex(modFolderName: "Keep", outdatedCount: 1, in: dir)
+        try TranslationBaseline.save([:], modFolderName: "Gone", in: dir)
+        try TranslationBaseline.updateIndex(modFolderName: "Gone", outdatedCount: 2, in: dir)
+        try TranslationBaseline.remove(modFolderName: "Gone", in: dir)
+        #expect(TranslationBaseline.load(modFolderName: "Keep", in: dir) == entries)
+        #expect(TranslationBaseline.loadIndex(in: dir) == ["Keep": 1])
+    }
+
+    @Test func removingAModWithNoStoreOnDiskIsANoOp() throws {
+        // Un mod dont le diff n'a jamais été ouvert n'a pas de fichier de
+        // magasin : la suppression ne doit pas échouer pour autant.
+        let dir = makeDirectory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try TranslationBaseline.remove(modFolderName: "NeverOpened", in: dir)
+        #expect(TranslationBaseline.load(modFolderName: "NeverOpened", in: dir).isEmpty)
     }
 }
 

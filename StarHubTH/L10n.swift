@@ -219,6 +219,7 @@ enum L10n {
         static let diffStateOutdated       = "mods_diff_state_outdated"
         static let diffPreviousEnglish     = "mods_diff_previous_english"
         static let translationSourceNewer  = "mods_translation_source_newer"
+        static let translationSourceNewerToday = "mods_translation_source_newer_today"
         static let translationOutdatedKeys = "mods_translation_outdated_keys"
         static let frTranslationStale      = "mods_fr_translation_stale"
         static let diffSearch              = "mods_diff_search"
