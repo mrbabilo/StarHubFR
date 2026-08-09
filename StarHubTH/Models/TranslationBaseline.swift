@@ -100,6 +100,30 @@ public enum TranslationBaseline {
         try data.write(to: indexURL(in: directory), options: .atomic)
     }
 
+    /// Retire l'entrée d'un mod de l'index partagé — installation, mise à
+    /// jour, restauration de sauvegarde.
+    ///
+    /// Sans cette fonction, `outdatedKeysByMod` ne pouvait être purgé qu'en
+    /// mémoire côté ViewModel : le prochain `loadIndex` (au scan suivant, ou
+    /// à l'ouverture d'un autre onglet Traduction) relisait l'ancien compte
+    /// depuis `index.json` et le réinjectait, ramenant silencieusement la
+    /// note et la place dans le filtre d'un mod pourtant réinstallé. La seule
+    /// façon de rester juste quel que soit l'ordre des rechargements est de
+    /// purger l'entrée **sur le disque**, pas seulement en mémoire.
+    ///
+    /// Même verrou que `updateIndex` : c'est la même séquence
+    /// lecture-modification-écriture, elle court le même risque de
+    /// croisement entre deux appels concurrents.
+    public static func removeFromIndex(modFolderName: String, in directory: URL,
+                                       fileManager: FileManager = .default) throws {
+        indexLock.lock()
+        defer { indexLock.unlock() }
+        var index = loadIndex(in: directory, fileManager: fileManager)
+        guard index.removeValue(forKey: modFolderName) != nil else { return }
+        let data = try JSONEncoder().encode(index)
+        try data.write(to: indexURL(in: directory), options: .atomic)
+    }
+
     // MARK: - Détail
 
     /// Le nom de fichier d'un mod, réduit à son dernier composant de chemin :

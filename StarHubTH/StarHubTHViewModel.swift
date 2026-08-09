@@ -450,8 +450,23 @@ class StarHubTHViewModel: ObservableObject {
     /// `@MainActor` explicite comme `reloadOutdatedKeyIndex()` : trois
     /// `@Published` mutés ici, et rien ne garantirait le fil principal pour
     /// un futur appelant sans l'annotation.
+    ///
+    /// **La purge de l'index sur disque doit précéder celle en mémoire, et
+    /// s'exécuter de façon synchrone.** Purger seulement `outdatedKeysByMod`
+    /// ne suffit pas : `index.json` garderait l'ancien compte, et le premier
+    /// `reloadOutdatedKeyIndex()` qui suit — au prochain scan, puisque
+    /// `recomputeFrenchCoverage()` en déclenche un à chaque republication de
+    /// `mods` — le relirait et le réinjecterait, ramenant silencieusement la
+    /// note et la place dans le filtre d'un mod pourtant réinstallé. Rendre
+    /// cette écriture asynchrone rouvrirait la même fenêtre : un rechargement
+    /// qui passerait entre les deux compléterait la course. Le fichier ne
+    /// contient que quelques centaines d'entiers — la justesse vaut ici plus
+    /// qu'un hoquet théorique sur le fil principal.
     @MainActor
     func invalidateFrenchCoverage(for folderName: String) {
+        if let store = TranslationBaseline.defaultDirectory() {
+            try? TranslationBaseline.removeFromIndex(modFolderName: folderName, in: store)
+        }
         frenchCoverageByMod.removeValue(forKey: folderName)
         staleTranslationMods.remove(folderName)
         outdatedKeysByMod.removeValue(forKey: folderName)

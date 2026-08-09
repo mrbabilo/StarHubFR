@@ -1431,6 +1431,38 @@ struct TranslationBaselineTests {
         #expect(TranslationBaseline.load(modFolderName: "index", in: dir) == entries)
         #expect(TranslationBaseline.loadIndex(in: dir) == ["Other": 5])
     }
+
+    @Test func removingAnEntryDropsItFromTheReloadedIndex() throws {
+        // Le seul chemin qui reste juste quel que soit l'ordre des
+        // rechargements : purger sur le disque, pas seulement en mémoire.
+        // Sans ça, un `loadIndex` qui suit une réinstallation ramène
+        // silencieusement l'ancien compte.
+        let dir = makeDirectory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try TranslationBaseline.updateIndex(modFolderName: "A", outdatedCount: 3, in: dir)
+        try TranslationBaseline.removeFromIndex(modFolderName: "A", in: dir)
+        #expect(TranslationBaseline.loadIndex(in: dir)["A"] == nil)
+    }
+
+    @Test func removingAnEntryLeavesTheOthersUntouched() throws {
+        let dir = makeDirectory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try TranslationBaseline.updateIndex(modFolderName: "A", outdatedCount: 3, in: dir)
+        try TranslationBaseline.updateIndex(modFolderName: "B", outdatedCount: 7, in: dir)
+        try TranslationBaseline.removeFromIndex(modFolderName: "A", in: dir)
+        #expect(TranslationBaseline.loadIndex(in: dir) == ["B": 7])
+    }
+
+    @Test func removingAnAbsentModIsANoOp() throws {
+        // Une réinstallation peut invalider un mod dont le diff n'a jamais
+        // été ouvert — donc jamais présent dans l'index. Ne doit ni échouer
+        // ni créer une entrée fantôme.
+        let dir = makeDirectory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try TranslationBaseline.updateIndex(modFolderName: "B", outdatedCount: 7, in: dir)
+        try TranslationBaseline.removeFromIndex(modFolderName: "Absent", in: dir)
+        #expect(TranslationBaseline.loadIndex(in: dir) == ["B": 7])
+    }
 }
 
 /// L'adoption et la détection : deux fonctions pures, sans disque.
