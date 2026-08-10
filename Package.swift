@@ -27,6 +27,7 @@ let package = Package(
                 "Models/NxmLink.swift",
                 "Models/NexusDownloadAPI.swift",
                 "Models/NexusRequestBuilder.swift",
+                "Models/NexusRateLimitGate.swift",
                 "Models/ManifestVersionPatcher.swift",
                 "Models/DescriptionBlockParser.swift",
                 "Models/ModDependencyParser.swift",
@@ -122,6 +123,11 @@ let package = Package(
             name: "NexusDownloadTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/NexusDownloadTests"
+        ),
+        .testTarget(
+            name: "NexusRateLimitTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/NexusRateLimitTests"
         ),
         .testTarget(
             name: "ParseNexusIdTests",

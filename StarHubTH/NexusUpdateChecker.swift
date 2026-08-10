@@ -57,7 +57,46 @@ final class NexusUpdateChecker {
     /// data right after `clearApiKey()` removed it).
     private var metadataGeneration = 0
 
+    /// Back-off partagé après un 429. Les trois chemins réseau (`fetchModInfo`,
+    /// `fetchRawDescription`, `fetchChangelogs`) l'arment et le consultent :
+    /// sans lui, seul `check()` freinait, et parcourir les fiches de mods
+    /// pendant une limitation continuait de taper l'API.
+    private var rateLimitGate = NexusRateLimitGate()
+    private let rateLimitLock = NSLock()
+
     private init() {}
+
+    /// `true` si la requête doit être refusée sans partir. Armé par
+    /// `noteRateLimit`, relâché tout seul à l'expiration du délai.
+    private func isRateLimited() -> Bool {
+        rateLimitLock.lock()
+        defer { rateLimitLock.unlock() }
+        return rateLimitGate.isBlocked()
+    }
+
+    /// Enregistre un 429 pour tous les chemins réseau à la fois.
+    private func noteRateLimit(retryAfter: TimeInterval) {
+        rateLimitLock.lock()
+        rateLimitGate.note(retryAfter: retryAfter)
+        rateLimitLock.unlock()
+    }
+
+    /// Attente restante en secondes, pour rendre un `.rateLimited` cohérent
+    /// quand la requête est refusée localement plutôt que par le serveur.
+    private func rateLimitRemaining() -> TimeInterval {
+        rateLimitLock.lock()
+        defer { rateLimitLock.unlock() }
+        return rateLimitGate.remaining() ?? 0
+    }
+
+    /// Arme la porte quand une réponse est un 429. Pour les chemins qui rendent
+    /// `""` sur n'importe quel échec (`fetchRawDescription`, `fetchChangelogs`)
+    /// : ils ne distinguent pas le 429 du reste, mais leur 429 doit quand même
+    /// freiner tout le monde.
+    private func noteRateLimitIfThrottled(_ response: URLResponse?) {
+        guard let http = response as? HTTPURLResponse, http.statusCode == 429 else { return }
+        noteRateLimit(retryAfter: Self.parseRetryAfter(http.value(forHTTPHeaderField: "Retry-After")))
+    }
 
     private func withMetadataCacheLock<T>(_ body: () -> T) -> T {
         metadataCacheLock.lock()
@@ -601,6 +640,13 @@ final class NexusUpdateChecker {
 
     private func fetchModInfo(modId: String, apiKey: String,
                               completion: @escaping (FetchResult) -> Void) {
+        // Ne pas repartir tant que le back-off d'un 429 précédent court : la
+        // boucle de `check()` s'arrête alors dès le premier mod, et un appel à
+        // la demande échoue localement au lieu d'ajouter une requête bannie.
+        if isRateLimited() {
+            completion(.rateLimited(retryAfter: rateLimitRemaining()))
+            return
+        }
         guard let request = NexusRequestBuilder.makeRequest(
             path: "/games/\(NexusRequestBuilder.gameDomain)/mods/\(modId).json",
             apiKey: apiKey
@@ -619,7 +665,9 @@ final class NexusUpdateChecker {
                 return
             }
             if http.statusCode == 429 {
-                completion(.rateLimited(retryAfter: Self.parseRetryAfter(http.value(forHTTPHeaderField: "Retry-After"))))
+                let retry = Self.parseRetryAfter(http.value(forHTTPHeaderField: "Retry-After"))
+                self.noteRateLimit(retryAfter: retry)
+                completion(.rateLimited(retryAfter: retry))
                 return
             }
             guard http.statusCode == 200, let data = data else {
@@ -686,7 +734,12 @@ final class NexusUpdateChecker {
                 return
             }
 
-            URLSession.shared.dataTask(with: filesRequest) { filesData, _, _ in
+            URLSession.shared.dataTask(with: filesRequest) { filesData, response, _ in
+                // La fenêtre de quota peut se fermer entre la requête principale
+                // (200) et cette requête secondaire files.json : son 429 doit lui
+                // aussi armer la porte partagée, sinon les chemins suivants
+                // repartent pendant la limitation.
+                self.noteRateLimitIfThrottled(response)
                 if let filesData = filesData,
                    let fileList = try? NexusDownloadAPI.decodeFileList(filesData),
                    let primaryFile = NexusDownloadAPI.pickPrimaryFile(fileList),
@@ -717,6 +770,12 @@ final class NexusUpdateChecker {
             completion("")
             return
         }
+        // Un 429 en cours vaut « indisponible » : la fiche garde ses données en
+        // cache au lieu d'ajouter une requête pendant la limitation.
+        guard !isRateLimited() else {
+            completion("")
+            return
+        }
         guard let request = NexusRequestBuilder.makeRequest(
             path: "/games/\(NexusRequestBuilder.gameDomain)/mods/\(modId).json",
             apiKey: apiKey
@@ -726,6 +785,7 @@ final class NexusUpdateChecker {
         }
 
         let task = URLSession.shared.dataTask(with: request) { data, response, error in
+            self.noteRateLimitIfThrottled(response)
             guard error == nil,
                   let http = response as? HTTPURLResponse, http.statusCode == 200,
                   let data = data,
@@ -752,6 +812,10 @@ final class NexusUpdateChecker {
             completion("")
             return
         }
+        guard !isRateLimited() else {
+            completion("")
+            return
+        }
         guard let request = NexusRequestBuilder.makeRequest(
             path: "/games/\(NexusRequestBuilder.gameDomain)/mods/\(modId)/changelogs.json",
             apiKey: apiKey
@@ -761,6 +825,7 @@ final class NexusUpdateChecker {
         }
 
         let task = URLSession.shared.dataTask(with: request) { data, response, error in
+            self.noteRateLimitIfThrottled(response)
             guard error == nil,
                   let http = response as? HTTPURLResponse, http.statusCode == 200,
                   let data = data,
