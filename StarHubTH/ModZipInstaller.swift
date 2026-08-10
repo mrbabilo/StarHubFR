@@ -89,8 +89,21 @@ class ModZipInstaller {
     /// Symétrique au parseur de taille `totalSizeFromSevenZipListing`. Sert à la
     /// garde zip-slip. Audit 2026-08-05.
     static func pathNamesFromSevenZipListing(_ output: String) -> [String] {
-        output.split(separator: "\n", omittingEmptySubsequences: false).compactMap { raw in
-            let line = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        // ⚠️ Le listing `-slt` s'ouvre sur un **en-tête décrivant l'archive
+        // elle-même**, dont un `Path =` qui porte son chemin absolu sur le
+        // disque. Le compter parmi les entries faisait voir une évasion dans
+        // toute archive saine — donc rejeter tout `.7z` et tout `.rar` avec
+        // « Failed to extract archive file » (mod Nexus 47840). Les entries ne
+        // commencent qu'après la ligne de tirets qui ferme l'en-tête.
+        //
+        // Une sortie sans en-tête est lue en entier : les listings synthétiques
+        // des tests n'en ont pas, et un `7z` futur qui changerait de forme doit
+        // continuer à être gardé plutôt que d'être ignoré en silence.
+        let lines = output.split(separator: "\n", omittingEmptySubsequences: false)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        let firstEntry = lines.firstIndex { $0.hasPrefix("----------") }
+            .map { lines.index(after: $0) } ?? lines.startIndex
+        return lines[firstEntry...].compactMap { line in
             guard line.hasPrefix("Path =") else { return nil }
             return String(line.dropFirst("Path =".count)).trimmingCharacters(in: .whitespacesAndNewlines)
         }
