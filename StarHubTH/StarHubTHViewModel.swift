@@ -445,6 +445,20 @@ class StarHubTHViewModel: ObservableObject {
         }.value
     }
 
+    /// Les fichiers de traduction de ce mod que le jeu n'ouvrira jamais — un
+    /// `pt-BR.json` sans `pt.json`, un `fr-FR.json` mort à côté d'un `fr.json`
+    /// bien nommé. Cherché à l'ouverture de la fiche, hors du fil principal :
+    /// une lecture de dossier par composant, pas gratuite sur un mod à
+    /// plusieurs `i18n`.
+    func unloadableLocaleFiles(for mod: ModItem) async -> [I18nLocaleResolver.UnloadableLocaleFile] {
+        let directory = URL(fileURLWithPath: (gameDir as NSString)
+            .appendingPathComponent("Mods"))
+            .appendingPathComponent(mod.physicalFolderName)
+        return await Task.detached(priority: .utility) {
+            I18nLocaleResolver.unloadableLocaleFiles(inModDirectory: directory)
+        }.value
+    }
+
     /// Oublie la couverture d'un mod dont les fichiers ont pu changer —
     /// installation, mise à jour, restauration de sauvegarde. Le prochain
     /// passage la recalculera. Sans cet appel, un mod mis à jour garderait

@@ -578,13 +578,16 @@ struct ModLanguageVariantTests {
         return dir
     }
 
-    @Test func aRegionalVariantCountsAsItsBaseLanguage() throws {
-        // `Translator.GetRelevantLocales` remonte `pt-BR` → `pt` → `default` :
-        // une variante régionale est bien servie à qui demande la langue de
-        // base. 19 `pt-br.json` dans le parc.
+    @Test func aRegionalVariantAloneCountsForNothing() throws {
+        // Le chargeur de SMAPI n'ouvre que des fichiers dont le nom **est** un
+        // code connu — `Translator.GetRelevantLocales` remonte bien la chaîne
+        // à l'exécution, mais seulement parmi ce qui a été chargé. Un
+        // `pt-BR.json` sans `pt.json` à côté n'est donc jamais lu : 16 fichiers
+        // de ce genre dans le parc annonçaient une traduction fantôme avant ce
+        // correctif. Signalé séparément par `unloadableLocaleFiles`.
         let mod = try fixture(["i18n/default.json", "i18n/pt-BR.json"])
         defer { try? FileManager.default.removeItem(at: mod) }
-        #expect(I18nLocaleResolver.languageCodes(inModDirectory: mod) == ["en", "pt"])
+        #expect(I18nLocaleResolver.languageCodes(inModDirectory: mod) == ["en"])
     }
 
     @Test func vietnameseIsALanguageToo() throws {
@@ -602,6 +605,65 @@ struct ModLanguageVariantTests {
         let mod = try fixture(["i18n/default.json", "i18n/French/strings.json"])
         defer { try? FileManager.default.removeItem(at: mod) }
         #expect(!I18nLocaleResolver.languageCodes(inModDirectory: mod).contains("fr"))
+    }
+}
+
+/// Les fichiers qu'un mod fournit mais que le jeu n'ouvrira jamais — le pendant
+/// « ce qui ne marche pas » de `ModLanguageVariantTests`.
+struct UnloadableLocaleFileTests {
+    private func fixture(_ files: [String]) throws -> URL {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("unloadable-\(UUID().uuidString)", isDirectory: true)
+        for relative in files {
+            let url = dir.appendingPathComponent(relative)
+            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(),
+                                                    withIntermediateDirectories: true)
+            try Data("{}".utf8).write(to: url)
+        }
+        return dir
+    }
+
+    @Test func aRegionalVariantAloneIsSignaledWithItsExpectedName() throws {
+        let mod = try fixture(["i18n/default.json", "i18n/pt-BR.json"])
+        defer { try? FileManager.default.removeItem(at: mod) }
+        let found = I18nLocaleResolver.unloadableLocaleFiles(inModDirectory: mod)
+        #expect(found == [.init(fileName: "pt-BR.json", expectedName: "pt.json")])
+    }
+
+    @Test func aVariantNextToItsBaseHasNoExpectedNameSinceItIsTaken() throws {
+        // Cas réel (`.BetterJukebox`) : `fr-FR.json` cohabite avec `fr.json` et
+        // porte des clés propres, jamais lues — mort quand même, mais proposer
+        // « fr.json » comme nom serait absurde puisqu'il existe déjà.
+        let mod = try fixture(["i18n/default.json", "i18n/fr.json", "i18n/fr-FR.json"])
+        defer { try? FileManager.default.removeItem(at: mod) }
+        let found = I18nLocaleResolver.unloadableLocaleFiles(inModDirectory: mod)
+        #expect(found == [.init(fileName: "fr-FR.json", expectedName: nil)])
+    }
+
+    @Test func aNameWithNoDeducibleBaseHasNoExpectedName() throws {
+        let mod = try fixture(["i18n/default.json", "i18n/zh_old.json"])
+        defer { try? FileManager.default.removeItem(at: mod) }
+        let found = I18nLocaleResolver.unloadableLocaleFiles(inModDirectory: mod)
+        #expect(found == [.init(fileName: "zh_old.json", expectedName: nil)])
+    }
+
+    @Test func defaultAndKnownCodesAreNeverSignaled() throws {
+        let mod = try fixture(["i18n/default.json", "i18n/fr.json"])
+        defer { try? FileManager.default.removeItem(at: mod) }
+        #expect(I18nLocaleResolver.unloadableLocaleFiles(inModDirectory: mod).isEmpty)
+    }
+
+    @Test func bothI18nDirectoriesOfAMultiComponentModAreRendered() throws {
+        let mod = try fixture([
+            "A/i18n/default.json", "A/i18n/pt-BR.json",
+            "B/i18n/default.json", "B/i18n/zh_old.json",
+        ])
+        defer { try? FileManager.default.removeItem(at: mod) }
+        let found = I18nLocaleResolver.unloadableLocaleFiles(inModDirectory: mod)
+        #expect(found == [
+            .init(fileName: "pt-BR.json", expectedName: "pt.json"),
+            .init(fileName: "zh_old.json", expectedName: nil),
+        ])
     }
 }
 

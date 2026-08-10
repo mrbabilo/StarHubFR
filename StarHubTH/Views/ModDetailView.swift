@@ -44,6 +44,11 @@ struct ModDetailView: View {
     /// l'ouverture de la fiche, hors du fil principal.
     @State private var translationStaleness: TranslationFreshness.Staleness?
 
+    /// Les fichiers de traduction de ce mod que le jeu n'ouvrira jamais — un
+    /// `pt-BR.json` sans `pt.json`, par exemple. Cherché à l'ouverture de la
+    /// fiche, hors du fil principal.
+    @State private var unloadableLocaleFiles: [I18nLocaleResolver.UnloadableLocaleFile] = []
+
     enum FetchStatus: Equatable {
         case idle
         case loading
@@ -68,6 +73,7 @@ struct ModDetailView: View {
         .onAppear { seedDraft() }
         .task {
             translationStaleness = await vm.translationStaleness(for: mod)
+            unloadableLocaleFiles = await vm.unloadableLocaleFiles(for: mod)
             // Seulement quand il y a quelque chose à retrouver : un mod déjà
             // traduit n'a pas besoin qu'on fouille les sauvegardes.
             guard !mod.languages.contains("fr") else { return }
@@ -600,12 +606,37 @@ struct ModDetailView: View {
     @ViewBuilder
     private var translationSection: some View {
         // La section s'affiche aussi pour un mod **sans** français dès qu'une
-        // sauvegarde en contient un : c'est précisément le cas où l'utilisateur
-        // a quelque chose à apprendre.
-        if mod.languages.contains("fr") || backupTranslation != nil || translationStaleness != nil {
+        // sauvegarde en contient un, ou qu'un de ses fichiers ne sera jamais
+        // lu par le jeu : c'est précisément le cas où l'utilisateur a quelque
+        // chose à apprendre, français ou pas — un mod purement portugais avec
+        // un `pt-BR.json` mort n'a pas besoin de français pour mériter la note.
+        if mod.languages.contains("fr") || backupTranslation != nil || translationStaleness != nil
+            || !unloadableLocaleFiles.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
                 Text(vm.L(L10n.Mods.translationSection))
                     .font(.system(size: 13, weight: .semibold))
+
+                // Un défaut du mod, pas une panne de l'app : le jeu ne charge
+                // que des codes de langue nus, donc un `pt-BR.json` sans
+                // `pt.json` n'est jamais lu — sauf si un autre mod déclare
+                // cette langue via `Data/AdditionalLanguages`, ce qu'aucun mod
+                // du parc ne fait aujourd'hui mais que SMAPI permet.
+                // `fileName` seul ne suffit pas comme identifiant : un mod à
+                // plusieurs dossiers `i18n` peut porter le même nom fautif deux
+                // fois avec un `expectedName` différent (base absente d'un
+                // côté, déjà prise de l'autre) — l'indice de tableau est le
+                // seul identifiant qui ne collisionne jamais ici.
+                ForEach(Array(unloadableLocaleFiles.enumerated()), id: \.offset) { _, file in
+                    if let expected = file.expectedName {
+                        translationNote(String(format: vm.L(L10n.Mods.translationUnloadableExpected),
+                                               file.fileName, expected),
+                                        icon: "exclamationmark.triangle", color: .secondary)
+                    } else {
+                        translationNote(String(format: vm.L(L10n.Mods.translationUnloadableUnknown),
+                                               file.fileName),
+                                        icon: "exclamationmark.triangle", color: .secondary)
+                    }
+                }
 
                 if let backup = backupTranslation {
                     translationNote(String(format: vm.L(L10n.Mods.translationInBackup),

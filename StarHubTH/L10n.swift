@@ -243,6 +243,8 @@ enum L10n {
         static let translationOrphan       = "mods_translation_orphan"
         static let translationPending      = "mods_translation_pending"
         static let translationInBackup     = "mods_translation_in_backup"
+        static let translationUnloadableExpected = "mods_translation_unloadable_expected"
+        static let translationUnloadableUnknown  = "mods_translation_unloadable_unknown"
         static let frTranslationMissing    = "mods_fr_translation_missing"
         static let rowLanguages         = "mods_row_languages"
         static let rowLastUpdated       = "mods_row_last_updated"

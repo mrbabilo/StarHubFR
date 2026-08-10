@@ -93,14 +93,20 @@ enum I18nLocaleResolver {
 
     /// La langue de base d'une locale : `pt-br` → `pt`.
     ///
-    /// `Translator.GetRelevantLocales` remonte de variante en variante jusqu'à
-    /// `default` — une traduction `pt-BR` est donc bien servie à qui demande du
-    /// portugais. 19 `pt-br.json` dans le parc en dépendent.
+    /// **N'intervient plus dans `languageCodes`.** `Translator.GetRelevantLocales`
+    /// remonte bien de variante en variante à l'exécution, mais ça remonte une
+    /// chaîne de *traductions déjà chargées* — pas de *fichiers sur le disque*.
+    /// Le chargeur, lui, n'ouvre que des fichiers dont le nom **est** un code
+    /// connu : `pt-BR.json` n'est jamais lu, même si `pt.json` existe à côté.
+    /// Compter `pt-br` pour `pt` ici afficherait une traduction que SMAPI ne
+    /// sert jamais.
+    ///
+    /// Sert uniquement à `unloadableLocaleFiles`, pour proposer le nom que
+    /// l'auteur aurait dû donner à son fichier quand on peut le déduire.
     ///
     /// Une locale qui n'est la variante d'aucune langue connue — un dossier
-    /// `French/`, par exemple — n'entre dans la chaîne de repli d'aucune locale
-    /// du jeu : SMAPI ne la servira jamais. La compter afficherait une
-    /// traduction que le joueur ne verra pas.
+    /// `French/`, par exemple, ou `zh_old` — n'a pas de nom de repli déductible :
+    /// renvoie `nil`.
     static func baseLanguage(of locale: String) -> String? {
         var candidate = locale
         while true {
@@ -154,6 +160,13 @@ enum I18nLocaleResolver {
     ///
     /// `default` est rendu comme `en` : c'est la locale de repli de SMAPI, qui
     /// porte l'anglais de référence.
+    ///
+    /// **Une variante régionale seule ne compte pour rien.** Le jeu ne charge
+    /// que des codes nus — `pt.json`, pas `pt-BR.json` — donc un `pt-BR.json`
+    /// sans `pt.json` à côté n'est jamais lu, quoi qu'annonce son nom. Mesuré
+    /// sur le parc : 26 fichiers de ce genre, dont 16 `pt-BR.json`, ne
+    /// contribuent donc plus ici. Ils restent signalés séparément par
+    /// `unloadableLocaleFiles`.
     public static func languageCodes(inModDirectory modDirectory: URL,
                                      maxDepth: Int = maxModDepth,
                                      fileManager: FileManager = .default) -> [String] {
@@ -162,10 +175,95 @@ enum I18nLocaleResolver {
                                          maxDepth: maxDepth, fileManager: fileManager) {
             for locale in locales(in: directory, fileManager: fileManager) {
                 let resolved = (locale == "default") ? "en" : locale
-                if let code = baseLanguage(of: resolved) { codes.insert(code) }
+                if knownLanguageCodes.contains(resolved) { codes.insert(resolved) }
             }
         }
         return codes.sorted()
+    }
+
+    /// Un fichier de traduction dont le nom n'est pas un code de langue que le
+    /// jeu charge, avec le nom qu'il devrait porter quand on peut le déduire.
+    public struct UnloadableLocaleFile: Equatable, Sendable {
+        /// Tel qu'il est sur le disque — `"pt-BR.json"`, pas `"pt-br.json"`.
+        public let fileName: String
+        /// `"pt.json"` quand `baseLanguage(of:)` déduit un code de base absent
+        /// du dossier ; `nil` quand aucun code n'est déductible (`zh_old.json`)
+        /// **ou** que le fichier attendu existe déjà à côté (`fr-FR.json` à
+        /// côté de `fr.json`) — dans ce dernier cas, proposer un nom serait
+        /// absurde puisqu'il est déjà pris.
+        public let expectedName: String?
+    }
+
+    /// Les fichiers de traduction qu'un mod fournit mais que le jeu n'ouvrira
+    /// jamais, tous dossiers `i18n` confondus.
+    ///
+    /// Parcourt exactement les mêmes dossiers que `languageCodes` — même
+    /// `i18nDirectories(inModDirectory:)` — mais rend l'information inverse :
+    /// pas les langues qui marchent, les fichiers qui ne marchent pas.
+    public static func unloadableLocaleFiles(inModDirectory modDirectory: URL,
+                                             maxDepth: Int = maxModDepth,
+                                             fileManager: FileManager = .default)
+        -> [UnloadableLocaleFile] {
+        var found: [UnloadableLocaleFile] = []
+        for directory in i18nDirectories(inModDirectory: modDirectory,
+                                         maxDepth: maxDepth, fileManager: fileManager) {
+            found.append(contentsOf: unloadableFiles(in: directory, fileManager: fileManager))
+        }
+
+        var unique: [UnloadableLocaleFile] = []
+        for file in found where !unique.contains(file) {
+            unique.append(file)
+        }
+        return unique.sorted { $0.fileName < $1.fileName }
+    }
+
+    /// `default` et tout code de `knownLanguageCodes` : les seuls noms que le
+    /// chargeur ouvre.
+    private static func isLoadable(_ foldedName: String) -> Bool {
+        foldedName == "default" || knownLanguageCodes.contains(foldedName)
+    }
+
+    /// Le nom de repli à proposer pour une locale illisible, ou `nil` s'il n'y
+    /// en a pas — soit qu'aucun code de base ne s'en déduit, soit que ce code
+    /// est déjà servi par une locale du même dossier.
+    private static func expectedFileName(for foldedLocale: String,
+                                         siblingLocales: Set<String>) -> String? {
+        guard let base = baseLanguage(of: foldedLocale), !siblingLocales.contains(base) else {
+            return nil
+        }
+        return "\(base).json"
+    }
+
+    /// Les fichiers illisibles d'un seul dossier `i18n`, layout A ou B — mêmes
+    /// deux layouts que `locales(in:)`, avec la même règle : la racine
+    /// l'emporte entièrement dès qu'elle contient un `.json`.
+    private static func unloadableFiles(in i18nDirectory: URL,
+                                        fileManager: FileManager) -> [UnloadableLocaleFile] {
+        let root = jsonFiles(in: i18nDirectory, fileManager: fileManager)
+        if !root.isEmpty {
+            let siblings = Set(root.map { fold($0.deletingPathExtension().lastPathComponent) })
+            return root.compactMap { file in
+                let folded = fold(file.deletingPathExtension().lastPathComponent)
+                guard !isLoadable(folded) else { return nil }
+                return UnloadableLocaleFile(
+                    fileName: file.lastPathComponent,
+                    expectedName: expectedFileName(for: folded, siblingLocales: siblings))
+            }
+        }
+
+        // Layout B : la locale est un sous-dossier. `locales(in:)` n'accepte
+        // que ceux qui ont au moins un `.json` — un sous-dossier vide n'est
+        // pas une locale, illisible ou pas.
+        let directories = subdirectories(of: i18nDirectory, fileManager: fileManager)
+            .filter { !jsonFiles(in: $0, fileManager: fileManager).isEmpty }
+        let siblings = Set(directories.map { fold($0.lastPathComponent) })
+        return directories.compactMap { directory in
+            let folded = fold(directory.lastPathComponent)
+            guard !isLoadable(folded) else { return nil }
+            return UnloadableLocaleFile(
+                fileName: directory.lastPathComponent,
+                expectedName: expectedFileName(for: folded, siblingLocales: siblings))
+        }
     }
 
     // MARK: - Détail

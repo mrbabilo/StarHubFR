@@ -780,5 +780,7 @@
   "mods_diff_sections": "Sections",
   "mods_diff_sections_search": "Filter sections",
   "mods_diff_sections_no_match": "No section matches.",
-  "mods_translation_in_backup": "A French translation for this mod exists in a backup from %@ — the mod folder no longer has one. A mod update likely replaced it."
+  "mods_translation_in_backup": "A French translation for this mod exists in a backup from %@ — the mod folder no longer has one. A mod update likely replaced it.",
+  "mods_translation_unloadable_expected": "“%@” will never be read by the game — it only loads bare language codes. It should be named “%@” instead, unless some mod adds a language with this exact code via SMAPI's Data/AdditionalLanguages.",
+  "mods_translation_unloadable_unknown": "“%@” will never be read by the game — it only loads bare language codes, and none matches this one. It would only be read if some mod added a language with this exact code via SMAPI's Data/AdditionalLanguages."
 }
