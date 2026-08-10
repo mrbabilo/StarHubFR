@@ -16,6 +16,8 @@ where the exact log format was verified.
 - **A French translation the English has moved past is now flagged.** The mod's page names the date English was last edited and the gap to the French translation, and a "To review" filter gathers them. Its Translation tab marks outdated keys too, once opened, old English struck through.
 
 ### Fixed
+- **Mod install errors now speak the app's language.** The ten failures an install can report — extraction refused, backup failed, mod not found — only ever came out in English, whatever the interface was set to.
+- **A downloaded archive is no longer lost when a second Nexus link arrives.** A second `nxm://` link while the install sheet was open replaced the waiting archive: the first was orphaned in the temp folder, and the cleanup then deleted the wrong one. The second download is now refused until the first is installed.
 - **Installing a `.7z` or `.rar` works again.** The zip-slip guard added in 1.13.0 read the archive's own absolute path from the listing header and took it for an entry escaping the folder, so every such archive was refused as "failed to extract". Only zips were unaffected.
 - **A translation the game will never load no longer counts as one.** The game opens bare language codes only, so a `pt-BR.json` is dead weight — 26 of them in a real library. They were credited to their base language; the mod's page now names each and the name it should carry.
 

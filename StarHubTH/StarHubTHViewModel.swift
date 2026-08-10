@@ -2752,9 +2752,13 @@ class StarHubTHViewModel: ObservableObject {
     /// n'en connaisse plus le chemin. Supprimer l'ancienne à la place n'est pas
     /// une option : la feuille ouverte est peut-être en train d'en extraire.
     ///
-    /// Aucun risque de blocage durable : `pendingDownloadedZip` est remis à nil
-    /// à la fermeture de la feuille (`MainView`, `.sheet(onDismiss:)`), quelle
-    /// que soit la façon dont elle se ferme.
+    /// Aucun des deux verrous ne peut rester fermé pour la session — ce qui
+    /// couperait le lien `nxm://`, seule voie de téléchargement d'un compte non
+    /// premium. `pendingDownloadedZip` est remis à nil à la fermeture de la
+    /// feuille (`MainView`, `.sheet(onDismiss:)`), quelle que soit la façon dont
+    /// elle se ferme ; `isDownloadingFromNexus` est remis à false par
+    /// `handleNexusDownloadResult`, et chaque branche de
+    /// `NexusDownloader.download` appelle sa complétion exactement une fois.
     private func rejectNexusDownloadIfBusy() -> Bool {
         guard isDownloadingFromNexus || pendingDownloadedZip != nil else { return false }
         showModal(message: L(L10n.VM.nexusDlBusy))
