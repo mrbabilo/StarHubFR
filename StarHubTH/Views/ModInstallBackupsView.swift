@@ -275,7 +275,7 @@ struct ModInstallBackupsView: View {
             } catch {
                 DispatchQueue.main.async {
                     busyBackupId = nil
-                    errorMessage = error.localizedDescription
+                    errorMessage = vm.installErrorMessage(error)
                     showError = true
                 }
             }
@@ -295,7 +295,7 @@ struct ModInstallBackupsView: View {
             } catch {
                 DispatchQueue.main.async {
                     busyBackupId = nil
-                    errorMessage = error.localizedDescription
+                    errorMessage = vm.installErrorMessage(error)
                     showError = true
                 }
             }

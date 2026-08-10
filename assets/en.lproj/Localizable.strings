@@ -579,6 +579,14 @@
 "mod_install_corrupted" = "This archive appears to be corrupted and could not be read.";
 "mod_install_unsupported_format" = "The \".%@\" format isn't supported. Accepted formats: .zip, .rar and .7z.";
 "mod_install_rar_tool_missing" = "Extracting a .rar archive needs an external tool. Install one with Homebrew: brew install unar";
+"mod_install_err_extraction" = "The archive could not be extracted. It may be damaged, or its contents were refused.";
+"mod_install_err_unsafe" = "This archive was refused: it contains symbolic links, which mods never need and which could write outside the mods folder.";
+"mod_install_err_game_dir" = "The game folder is not set. Choose it in Settings.";
+"mod_install_err_backup" = "Backing up the existing mod failed, so the installation was cancelled: %@";
+"mod_install_err_backup_create" = "Backup failed: %@";
+"mod_install_err_install" = "Installation failed: %@";
+"mod_install_err_mod_missing" = "Mod “%@” not found.";
+"mod_install_err_restore" = "Restoring the backup failed: %@";
 "mod_install_dependencies_title" = "Dependencies";
 "mod_install_conflicts_title" = "Conflicts";
 "mod_install_mods_in_zip" = "%d mod(s) in this file";

@@ -765,6 +765,18 @@ enum L10n {
         static let tooManyMods          = "mod_install_too_many_mods"
         static let zipCorrupted         = "mod_install_corrupted"
         static let rarToolMissing       = "mod_install_rar_tool_missing"
+        // Les erreurs d'installation, rendues ici plutôt que par
+        // `errorDescription` : celui-ci passe par `NSLocalizedString`, qui ne
+        // suit pas le changement de langue en cours de session — même raison
+        // que `nexusDownloadMessage(_:)` dans le ViewModel.
+        static let errExtraction        = "mod_install_err_extraction"
+        static let errUnsafe            = "mod_install_err_unsafe"
+        static let errGameDir           = "mod_install_err_game_dir"
+        static let errBackup            = "mod_install_err_backup"
+        static let errBackupCreate      = "mod_install_err_backup_create"
+        static let errInstall           = "mod_install_err_install"
+        static let errModMissing        = "mod_install_err_mod_missing"
+        static let errRestore           = "mod_install_err_restore"
         static let unsupportedFormat    = "mod_install_unsupported_format"
         static let dependenciesTitle    = "mod_install_dependencies_title"
         static let conflictsTitle      = "mod_install_conflicts_title"

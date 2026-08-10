@@ -2806,6 +2806,41 @@ class StarHubTHViewModel: ObservableObject {
         }
     }
 
+    /// Renders an installation-time error through the app's live per-language
+    /// bundle, for the same reason as `nexusDownloadMessage(_:)` above:
+    /// `errorDescription` goes through `NSLocalizedString`, which doesn't
+    /// follow an in-session language switch.
+    ///
+    /// The two `as?` casts + exhaustive switches are deliberate: adding a case
+    /// to either enum breaks the build here instead of silently falling back
+    /// to an English string. Anything else (FileManager, `DroppedContentRecognizer`)
+    /// keeps its system description, which macOS already localizes.
+    ///
+    /// Note the reasons carried by `.backupFailed` / `.installFailed` are built
+    /// in English inside `ModZipInstaller`: the frame gets translated, the
+    /// embedded technical detail doesn't.
+    func installErrorMessage(_ error: Error) -> String {
+        if let error = error as? InstallError {
+            switch error {
+            case .extractionFailed:       return L(L10n.ModInstall.errExtraction)
+            case .unsafeContent:          return L(L10n.ModInstall.errUnsafe)
+            case .gameDirEmpty:           return L(L10n.ModInstall.errGameDir)
+            case .rarToolMissing:         return L(L10n.ModInstall.rarToolMissing)
+            case .backupFailed(let reason):  return String(format: L(L10n.ModInstall.errBackup), reason)
+            case .installFailed(let reason): return String(format: L(L10n.ModInstall.errInstall), reason)
+            }
+        }
+        if let error = error as? ModInstallBackupManager.InstallBackupError {
+            switch error {
+            case .gameDirEmpty:           return L(L10n.ModInstall.errGameDir)
+            case .modNotFound(let folder): return String(format: L(L10n.ModInstall.errModMissing), folder)
+            case .backupCreationFailed(let reason): return String(format: L(L10n.ModInstall.errBackupCreate), reason)
+            case .restoreFailed(let reason):        return String(format: L(L10n.ModInstall.errRestore), reason)
+            }
+        }
+        return error.localizedDescription
+    }
+
     /// Drops a just-installed mod from the Nexus update list (and the persisted
     /// cache) so it stops showing as "update available" — the user just
     /// installed its latest file. Call on the main thread.
