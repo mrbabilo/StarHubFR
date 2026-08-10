@@ -15,6 +15,9 @@ where the exact log format was verified.
 ### Added
 - **A French translation the English has moved past is now flagged.** The mod's page names the date English was last edited and the gap to the French translation, and a "To review" filter gathers them. Its Translation tab marks outdated keys too, once opened, old English struck through.
 
+### Fixed
+- **A translation the game will never load no longer counts as one.** The game opens bare language codes only, so a `pt-BR.json` is dead weight — 26 of them in a real library. They were credited to their base language; the mod's page now names each and the name it should carry.
+
 ## [1.13.0] - 2026-08-06
 
 ### Added

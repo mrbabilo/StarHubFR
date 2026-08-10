@@ -226,12 +226,17 @@ enum I18nLocaleResolver {
     /// Le nom de repli à proposer pour une locale illisible, ou `nil` s'il n'y
     /// en a pas — soit qu'aucun code de base ne s'en déduit, soit que ce code
     /// est déjà servi par une locale du même dossier.
+    ///
+    /// L'extension n'est ajoutée que pour un **fichier** : en layout B la locale
+    /// est un sous-dossier, et conseiller d'y renommer « pt.json » enverrait
+    /// l'utilisateur créer un fichier à la place de son dossier.
     private static func expectedFileName(for foldedLocale: String,
-                                         siblingLocales: Set<String>) -> String? {
+                                         siblingLocales: Set<String>,
+                                         isDirectory: Bool = false) -> String? {
         guard let base = baseLanguage(of: foldedLocale), !siblingLocales.contains(base) else {
             return nil
         }
-        return "\(base).json"
+        return isDirectory ? base : "\(base).json"
     }
 
     /// Les fichiers illisibles d'un seul dossier `i18n`, layout A ou B — mêmes
@@ -262,7 +267,8 @@ enum I18nLocaleResolver {
             guard !isLoadable(folded) else { return nil }
             return UnloadableLocaleFile(
                 fileName: directory.lastPathComponent,
-                expectedName: expectedFileName(for: folded, siblingLocales: siblings))
+                expectedName: expectedFileName(for: folded, siblingLocales: siblings,
+                                               isDirectory: true))
         }
     }
 

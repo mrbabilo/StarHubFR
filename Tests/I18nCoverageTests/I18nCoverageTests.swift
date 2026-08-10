@@ -653,6 +653,16 @@ struct UnloadableLocaleFileTests {
         #expect(I18nLocaleResolver.unloadableLocaleFiles(inModDirectory: mod).isEmpty)
     }
 
+    @Test func aLocaleFolderIsNamedAsAFolderNotAsAFile() throws {
+        // Layout B : la locale est un sous-dossier, pas un fichier. Conseiller
+        // « pt.json » pour renommer un dossier enverrait l'utilisateur créer un
+        // fichier à la place de son dossier de traductions.
+        let mod = try fixture(["i18n/default/main.json", "i18n/pt-BR/main.json"])
+        defer { try? FileManager.default.removeItem(at: mod) }
+        let found = I18nLocaleResolver.unloadableLocaleFiles(inModDirectory: mod)
+        #expect(found == [.init(fileName: "pt-BR", expectedName: "pt")])
+    }
+
     @Test func bothI18nDirectoriesOfAMultiComponentModAreRendered() throws {
         let mod = try fixture([
             "A/i18n/default.json", "A/i18n/pt-BR.json",
