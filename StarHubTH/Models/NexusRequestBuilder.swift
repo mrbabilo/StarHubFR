@@ -58,4 +58,15 @@ enum NexusRequestBuilder {
         req.setValue("application/json", forHTTPHeaderField: "Accept")
         return req
     }
+
+    /// `true` si `modId` est un identifiant Nexus valide (entier strictement
+    /// positif). Un modId vient d'un `UpdateKey` de manifest (« nexus:191 »),
+    /// source externe non fiable : sans cette garde, interpoler un `modId` comme
+    /// « ../games/fallout4 » ou « 191?fields=… » dans `/games/.../mods/\(modId).json`
+    /// ferait du path traversal ou de l'injection de query dans l'API. `Int(_:)`
+    /// rejette tout ce qui n'est pas un entier ASCII, et la borne `> 0` écarte
+    /// zéro et les négatifs (aucun modId Nexus n'est ≤ 0).
+    static func isValidModId(_ modId: String) -> Bool {
+        Int(modId).map { $0 > 0 } ?? false
+    }
 }

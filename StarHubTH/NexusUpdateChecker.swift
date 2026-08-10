@@ -647,6 +647,13 @@ final class NexusUpdateChecker {
             completion(.rateLimited(retryAfter: rateLimitRemaining()))
             return
         }
+        // Un modId vient d'un UpdateKey de manifest — source externe non fiable.
+        // Sans validation, l'interpoler dans le chemin (`/mods/<modId>.json`)
+        // ouvrirait la porte au path traversal et à l'injection de query.
+        guard NexusRequestBuilder.isValidModId(modId) else {
+            completion(.failure("invalid_mod_id"))
+            return
+        }
         guard let request = NexusRequestBuilder.makeRequest(
             path: "/games/\(NexusRequestBuilder.gameDomain)/mods/\(modId).json",
             apiKey: apiKey
