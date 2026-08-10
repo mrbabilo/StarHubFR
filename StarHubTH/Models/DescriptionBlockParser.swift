@@ -324,6 +324,22 @@ enum DescriptionBlockParser {
         !label.contains(where: { $0.isNewline })
     }
 
+    /// Schemes autorisés dans une description Nexus. Une description vient d'un
+    /// auteur externe : `[url=javascript:…]` deviendrait un lien actif, et un
+    /// `[img]file:///…[/img]` chargerait un fichier local. `URL(string:)` accepte
+    /// ces schemes — il faut donc exiger le scheme explicitement avant de garder
+    /// la destination. `nxm` est le scheme officiel Nexus (lance NMM/Vortex),
+    /// légitime dans la description d'un mod.
+    private static let allowedSchemes: Set<String> = ["http", "https", "nxm"]
+
+    /// `true` si `string` est un lien sûr à rendre (http/https/nxm). Tout autre
+    /// scheme (`javascript:`, `file:`, `data:`, `vbscript:`…) est rejeté, ainsi
+    /// que les chaînes sans scheme (« //host », « host.com »).
+    static func isAllowedURL(_ string: String) -> Bool {
+        guard let scheme = URL(string: string)?.scheme?.lowercased() else { return false }
+        return allowedSchemes.contains(scheme)
+    }
+
     /// `[url=X]Y[/url]` → `[Y](X)`. Quand le libellé ne peut pas en être un
     /// (multiligne), on garde le texte et on abandonne le lien : perdre une
     /// destination vaut mieux qu'afficher la syntaxe.
@@ -339,7 +355,7 @@ enum DescriptionBlockParser {
             let target = m.range(at: 1).location != NSNotFound
                 ? ns.substring(with: m.range(at: 1)).trimmingCharacters(in: .whitespacesAndNewlines)
                 : label.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !label.isEmpty, !target.isEmpty, canBeLinkLabel(label) {
+            if !label.isEmpty, !target.isEmpty, canBeLinkLabel(label), Self.isAllowedURL(target) {
                 out += "[\(label)](\(target))"
             } else {
                 out += label
@@ -387,7 +403,7 @@ enum DescriptionBlockParser {
             out += images
             let remaining = rest.trimmingCharacters(in: .whitespacesAndNewlines)
             let target = m.range(at: 1).location != NSNotFound ? ns.substring(with: m.range(at: 1)) : remaining
-            if !remaining.isEmpty && !target.isEmpty && canBeLinkLabel(remaining) {
+            if !remaining.isEmpty && !target.isEmpty && canBeLinkLabel(remaining), Self.isAllowedURL(target) {
                 out += "[\(remaining)](\(target))"
             } else if !remaining.isEmpty {
                 out += remaining
@@ -668,7 +684,7 @@ enum DescriptionBlockParser {
         let trimmed = inner.trimmingCharacters(in: .whitespacesAndNewlines)
         switch name {
         case "img":
-            if let url = URL(string: trimmed) { blocks.append(.image(url)) }
+            if Self.isAllowedURL(trimmed), let url = URL(string: trimmed) { blocks.append(.image(url)) }
         case "spoiler":
             var title = "Spoiler"
             if attribute.hasPrefix("=") {
@@ -711,7 +727,7 @@ enum DescriptionBlockParser {
         for m in regex.matches(in: str, range: NSRange(location: 0, length: ns.length)) {
             out += ns.substring(with: NSRange(location: last, length: m.range.location - last))
             let src = ns.substring(with: m.range(at: 1)).trimmingCharacters(in: .whitespacesAndNewlines)
-            if let u = URL(string: src) { urls.append(u) }
+            if Self.isAllowedURL(src), let u = URL(string: src) { urls.append(u) }
             last = m.range.location + m.range.length
         }
         out += ns.substring(from: last)

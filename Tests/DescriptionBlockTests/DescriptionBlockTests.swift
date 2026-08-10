@@ -370,4 +370,64 @@ struct DescriptionBlockTests {
     @Test func emptyEmphasisIsRemoved() {
         #expect(DescriptionBlockParser.parse("x[b][/b]y") == [.text("xy")])
     }
+
+    // MARK: - Sécurité — allowlist de schemes (javascript:/file:/data: rejetés)
+
+    /// Une description Nexus est une source externe non fiable : un auteur
+    /// malveillant peut y glisser `[url=javascript:…]` ou `[img]file:///…[/img]`.
+    /// Sans allowlist, le premier devient un lien actif, le second charge un
+    /// fichier local. On n'accepte que http(s) — et `nxm`, le scheme officiel
+    /// Nexus (lance NMM/Vortex), légitime dans une description de mod.
+    @Test func javascriptSchemeLinksAreNeutralized() {
+        let out = DescriptionBlockParser.parse("[url=javascript:alert(1)]click[/url]")
+        guard case let .text(t)? = out.first else {
+            Issue.record("attendu du texte"); return
+        }
+        // Le libellé survit, la destination dangereuse est abandonnée.
+        #expect(t.contains("click"))
+        #expect(!t.contains("javascript:"))
+        #expect(!t.contains("](javascript"))
+    }
+
+    @Test func fileSchemeImagesAreDropped() {
+        let out = DescriptionBlockParser.parse("[img]file:///etc/passwd[/img]")
+        #expect(out.allSatisfy { if case .image = $0 { return false } else { return true } })
+    }
+
+    @Test func dataSchemeImagesAreDropped() {
+        let out = DescriptionBlockParser.parse("[img]data:text/html,<script>[/img]")
+        #expect(out.allSatisfy { if case .image = $0 { return false } else { return true } })
+    }
+
+    @Test func httpLinksArePreserved() {
+        let out = DescriptionBlockParser.parse("[url=https://example.com]ok[/url]")
+        guard case let .text(t)? = out.first else {
+            Issue.record("attendu du texte"); return
+        }
+        #expect(t.contains("[ok](https://example.com)"))
+    }
+
+    @Test func httpsImagesArePreserved() {
+        #expect(DescriptionBlockParser.parse("[img]https://x/y.png[/img]")
+            == [.image(URL(string: "https://x/y.png")!)])
+    }
+
+    @Test func nxmLinksArePreserved() {
+        let out = DescriptionBlockParser.parse("[url=nxm://stardewvalley/mods/191]nmm[/url]")
+        guard case let .text(t)? = out.first else {
+            Issue.record("attendu du texte"); return
+        }
+        #expect(t.contains("nxm://stardewvalley/mods/191"))
+    }
+
+    @Test func aDangerousBannerDestinationIsNotKept() {
+        // Bannière cliquable avec une destination dangereuse : l'image survit,
+        // mais la destination `javascript:` ne doit fuiter dans aucun bloc texte.
+        let out = DescriptionBlockParser.parse("[url=javascript:evil][img]https://x/b.png[/img][/url]")
+        for block in out {
+            if case let .text(s) = block {
+                #expect(!s.contains("javascript:"))
+            }
+        }
+    }
 }
