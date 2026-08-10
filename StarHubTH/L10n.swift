@@ -697,6 +697,7 @@ enum L10n {
         static let nexusDlNoLink        = "vm_nexus_dl_no_link"
         static let nexusDlRequestFailed = "vm_nexus_dl_request_failed"
         static let nexusDlBadLink       = "vm_nexus_dl_bad_link"
+        static let nexusDlBusy          = "vm_nexus_dl_busy"
         static let nexusDlStarting      = "vm_nexus_dl_starting"
         static let nexusDlAuthFailed    = "vm_nexus_dl_auth_failed"
         static let nexusDlRateLimited   = "vm_nexus_dl_rate_limited"

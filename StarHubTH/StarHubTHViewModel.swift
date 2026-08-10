@@ -2743,12 +2743,31 @@ class StarHubTHViewModel: ObservableObject {
         }
     }
 
+    /// Refuse un second téléchargement tant qu'un premier tourne, ou que son
+    /// archive attend encore dans la feuille d'installation.
+    ///
+    /// Sans ce garde-fou, un second lien `nxm://` — livré par AppKit, donc
+    /// insensible à la feuille ouverte — écrasait `pendingDownloadedZip` : la
+    /// première archive restait dans le dossier temporaire sans que personne
+    /// n'en connaisse plus le chemin. Supprimer l'ancienne à la place n'est pas
+    /// une option : la feuille ouverte est peut-être en train d'en extraire.
+    ///
+    /// Aucun risque de blocage durable : `pendingDownloadedZip` est remis à nil
+    /// à la fermeture de la feuille (`MainView`, `.sheet(onDismiss:)`), quelle
+    /// que soit la façon dont elle se ferme.
+    private func rejectNexusDownloadIfBusy() -> Bool {
+        guard isDownloadingFromNexus || pendingDownloadedZip != nil else { return false }
+        showModal(message: L(L10n.VM.nexusDlBusy))
+        return true
+    }
+
     /// Entry point for `nxm://` deep links (free-user "Mod Manager Download").
     func handleNxmURL(_ url: URL) {
         guard let link = NxmLink.parse(url) else {
             showModal(message: L(L10n.VM.nexusDlBadLink))
             return
         }
+        if rejectNexusDownloadIfBusy() { return }
         isDownloadingFromNexus = true
         downloadingNexusModId = link.modId
         log(String(format: L(L10n.VM.nexusDlStarting), link.modId))
@@ -2761,6 +2780,7 @@ class StarHubTHViewModel: ObservableObject {
     /// In-app download for the current game via the API key alone (Nexus
     /// Premium required for a direct link). fileId nil → main file resolved.
     func downloadModFromNexus(nexusId: Int) {
+        if rejectNexusDownloadIfBusy() { return }
         isDownloadingFromNexus = true
         downloadingNexusModId = nexusId
         log(String(format: L(L10n.VM.nexusDlStarting), nexusId))
