@@ -35,10 +35,10 @@ struct AppChangelogView: View {
             do {
                 changelogText = try String(contentsOf: url, encoding: .utf8)
             } catch {
-                changelogText = "Failed to read CHANGELOG.md: \(error.localizedDescription)"
+                changelogText = String(format: vm.L(L10n.Main.changelogReadError), error.localizedDescription)
             }
         } else {
-            changelogText = "CHANGELOG.md not found in app bundle."
+            changelogText = vm.L(L10n.Main.changelogMissing)
         }
     }
 }

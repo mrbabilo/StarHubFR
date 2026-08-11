@@ -1,6 +1,14 @@
 import Foundation
 
 class SmapiInstaller: ObservableObject {
+    /// Chemin vers l'onglet Journaux pour ce que la complétion ne peut pas dire.
+    ///
+    /// L'installation peut réussir **et** laisser un défaut derrière elle : le
+    /// marqueur de version non écrit fait croire à l'app, au lancement suivant,
+    /// que SMAPI est absent. Rendre `false` mentirait, et un `print` n'apparaît
+    /// nulle part dans l'app — d'où ce canal séparé, branché par le ViewModel.
+    var onWarning: ((String) -> Void)?
+
     @Published var isInstalling = false
     @Published var statusMessage = ""   // holds an L10n key, translated by caller via vm.L()
     @Published var progress: Double = 0.0
@@ -392,7 +400,7 @@ class SmapiInstaller: ObservableObject {
                     // Le marqueur est un cache de version pour l'UI ; SMAPI est bien
                     // installé. Consigner l'échec — sinon l'app croit au prochain
                     // lancement que SMAPI est absent (jusqu'à la re-détection).
-                    print("Warning: SMAPI install succeeded but version marker write failed at \(markerPath): \(error)")
+                    onWarning?("SMAPI install succeeded but version marker write failed at \(markerPath): \(error.localizedDescription)")
                 }
                 completion(true, L10n.Smapi.installSuccess, nil)
             } else {

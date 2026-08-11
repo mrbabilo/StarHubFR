@@ -37,6 +37,8 @@ enum L10n {
         static let steamAccount         = "main_steam_account"
         static let playerFallback       = "main_player_fallback"
         static let appChangelog         = "main_app_changelog"
+        static let changelogReadError   = "main_changelog_read_error"
+        static let changelogMissing     = "main_changelog_missing"
         static let quarantine           = "main_quarantine"
     }
 
@@ -536,6 +538,13 @@ enum L10n {
         static let configReset             = "config_reset"
         static let configRestoreConfig     = "config_restore_config"
         static let configSaved             = "config_saved"
+        static let configReadError         = "config_read_error"
+        static let configSaveError         = "config_save_error"
+        static let configRestoredBak       = "config_restored_bak"
+        static let configRestoreBakFailed  = "config_restore_bak_failed"
+        static let configBackupPanelTitle  = "config_backup_panel_title"
+        static let configLoadedFrom        = "config_loaded_from"
+        static let configLoadFailed        = "config_load_failed"
         static let configSearchPlaceholder = "config_search_placeholder"
         static let configInvalidJson       = "config_invalid_json"
     }
@@ -741,6 +750,7 @@ enum L10n {
         static let renameMod            = "mod_install_rename"
         static let skipMod              = "mod_install_skip"
         static let manageBackups        = "mod_install_manage_backups"
+        static let backupsCount         = "mod_install_backups_count"
         static let restoreBackup        = "mod_install_restore_backup"
         static let deleteBackup         = "mod_install_delete_backup"
         static let noBackups            = "mod_install_no_backups"

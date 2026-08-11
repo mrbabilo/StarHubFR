@@ -661,6 +661,12 @@ class StarHubTHViewModel: ObservableObject {
     let smapiInstaller = SmapiInstaller()
     
     init() {
+        // Les avertissements de l'installateur SMAPI n'ont pas d'autre chemin
+        // vers l'onglet Journaux : sa complétion ne porte qu'un succès ou un
+        // échec, et une installation peut réussir en laissant un défaut.
+        smapiInstaller.onWarning = { [weak self] message in
+            self?.log(message, level: .warning)
+        }
         // Force sync AppleLanguages with currentLanguage at startup
         let savedLang = Self.normalizedLanguage(UserDefaults.standard.string(forKey: UDKey.currentLanguage))
         currentLanguage = savedLang

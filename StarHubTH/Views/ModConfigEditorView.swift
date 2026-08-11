@@ -220,7 +220,7 @@ struct ModConfigEditorView: View {
                 validateJson(configText)
                 parseToVisual()
             } catch {
-                configText = "Error reading config.json"
+                configText = vm.L(L10n.Settings.configReadError)
                 isInvalidJson = true
             }
         } else {
@@ -370,7 +370,7 @@ struct ModConfigEditorView: View {
             vm.showModal(message: vm.L(L10n.Settings.configSaved))
             return true
         } catch {
-            vm.showModal(message: "Error saving config.json: \(error.localizedDescription)")
+            vm.showModal(message: String(format: vm.L(L10n.Settings.configSaveError), error.localizedDescription))
             return false
         }
     }
@@ -385,15 +385,19 @@ struct ModConfigEditorView: View {
                 originalText = content
                 validateJson(configText)
                 parseToVisual()
-                vm.showModal(message: "Restored config from config.json.bak successfully!")
+                vm.showModal(message: vm.L(L10n.Settings.configRestoredBak))
                 return
             } catch {
-                print("Failed to restore .bak: \(error)")
+                // Consigné, pas avalé : l'échec fait retomber sur le sélecteur
+                // de fichier ci-dessous, ce qui, sans trace, ressemble à un
+                // simple changement d'avis de l'app.
+                vm.log(String(format: vm.L(L10n.Settings.configRestoreBakFailed),
+                              error.localizedDescription), level: .warning)
             }
         }
         
         let panel = NSOpenPanel()
-        panel.title = "Select Config Backup (.json)"
+        panel.title = vm.L(L10n.Settings.configBackupPanelTitle)
         panel.allowedContentTypes = [.json]
         panel.allowsMultipleSelection = false
         if panel.runModal() == .OK, let url = panel.url {
@@ -404,9 +408,9 @@ struct ModConfigEditorView: View {
                 originalText = content
                 validateJson(configText)
                 parseToVisual()
-                vm.showModal(message: "Loaded config from \(url.lastPathComponent) successfully!")
+                vm.showModal(message: String(format: vm.L(L10n.Settings.configLoadedFrom), url.lastPathComponent))
             } catch {
-                vm.showModal(message: "Failed to load config: \(error.localizedDescription)")
+                vm.showModal(message: String(format: vm.L(L10n.Settings.configLoadFailed), error.localizedDescription))
             }
         }
     }

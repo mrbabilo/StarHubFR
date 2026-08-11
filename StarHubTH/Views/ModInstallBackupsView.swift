@@ -24,7 +24,9 @@ struct ModInstallBackupsView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(vm.L(L10n.ModInstall.manageBackups))
                         .font(.system(size: 18, weight: .semibold))
-                    Text("\(backups.count) \(vm.L(L10n.ModInstall.manageBackups).lowercased())")
+                    // Clé dédiée : mettre en minuscules le titre « Gérer les
+                    // sauvegardes » donnait « 12 gérer les sauvegardes ».
+                    Text(String(format: vm.L(L10n.ModInstall.backupsCount), backups.count))
                         .font(.system(size: 11))
                         .foregroundColor(.secondary)
                 }
