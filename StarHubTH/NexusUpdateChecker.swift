@@ -42,6 +42,14 @@ final class NexusUpdateChecker {
     private let cachedExtrasKey = "nexusCachedExtras"
     /// Minimum interval between two full checks (seconds). Re-checks sooner than
     /// this return the cached result without hitting the network.
+    ///
+    /// ⚠️ Mécanique dormante : les deux appelants actuels (le bouton de
+    /// `MainView` et la passe de lancement) passent `force: true`, donc cette
+    /// fenêtre ne s'applique à rien aujourd'hui. Le jour où un appel **non
+    /// forcé** apparaît — un rafraîchissement automatique à l'ouverture d'un
+    /// onglet, typiquement — elle redevient vivante, et tout ce qui estampille
+    /// `lastCheckKey` sans avoir réellement interrogé l'API rendra l'app muette
+    /// pendant une heure. N'estampiller que les passes qui ont vraiment tourné.
     private let dedupeInterval: TimeInterval = 60 * 60 // 1 hour
 
     /// Guards all metadata-cache mutations (categories + extras) so
@@ -319,7 +327,11 @@ final class NexusUpdateChecker {
         }
         candidates = bestPerMod.values.map { $0 }
         guard !candidates.isEmpty else {
-            UserDefaults.standard.set(Date(), forKey: lastCheckKey)
+            // Pas de tampon `lastCheckKey` ici : il signifie « une vérification
+            // a eu lieu », et cette passe n'a interrogé personne. L'estampiller
+            // ferait mentir `hasRecentCheck()`, qui court-circuiterait alors une
+            // passe non forcée pendant une heure — sans que rien n'ait jamais
+            // été vérifié. Ressortir ici est gratuit : aucun réseau.
             DispatchQueue.main.async {
                 // Aucun candidat ne veut pas dire « aucune mise à jour » : la
                 // liste des mods peut ne pas être encore scannée. Rendre `[]`
