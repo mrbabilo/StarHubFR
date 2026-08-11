@@ -33,12 +33,17 @@ struct DuplicateSaveSheet: View {
                 }
                 .keyboardShortcut(.cancelAction)
                 
+                // `Task` non structurée, lancée depuis l'action du bouton : la
+                // copie doit survivre au `dismiss()` qui suit. Un `.task` de
+                // vue serait annulé à la fermeture de la feuille, laissant un
+                // dossier de sauvegarde copié à moitié.
                 Button(vm.L(L10n.Saves.duplicate)) {
-                    vm.duplicateSave(info: save, newName: newName, newFarm: newFarm)
+                    Task { await vm.duplicateSave(info: save, newName: newName, newFarm: newFarm) }
                     dismiss()
                 }
                 .keyboardShortcut(.defaultAction)
                 .buttonStyle(.borderedProminent)
+                .disabled(vm.isSaveOperationRunning)
             }
         }
         .padding()
@@ -98,12 +103,15 @@ struct BranchBackupSheet: View {
                 }
                 .keyboardShortcut(.cancelAction)
                 
+                // Même raison qu'au-dessus : la `Task` doit survivre au
+                // `dismiss()`, donc non structurée.
                 Button(vm.L(L10n.Saves.branch)) {
-                    _ = vm.branchFromBackup(backup: backup, newName: newName, newFarm: newFarm)
+                    Task { _ = await vm.branchFromBackup(backup: backup, newName: newName, newFarm: newFarm) }
                     dismiss()
                 }
                 .keyboardShortcut(.defaultAction)
                 .buttonStyle(.borderedProminent)
+                .disabled(vm.isSaveOperationRunning)
             }
         }
         .padding()

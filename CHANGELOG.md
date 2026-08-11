@@ -13,6 +13,7 @@ where the exact log format was verified.
 ## [Unreleased]
 
 ### Fixed
+- **Deleting, duplicating, backing up or restoring a save no longer freezes the window.** Each copies or removes a whole save folder — tens of megabytes over hundreds of files — on the main thread. They now run in the background, buttons disabled meanwhile so a second click can't start a second copy.
 - **A detected update no longer vanishes when the next check can't reach its mod.** A rate limit cuts a check short and the mods it never queried were dropped from the list — and from the cache, so the loss survived a restart and replayed for an hour. At 900 mods that happened on most checks. An update now stays until it is actually installed; only a mod the check confirms is current loses its row. A check that found no mods to query no longer counts as a check either.
 - **Installing a pack no longer fires a burst of Nexus requests.** Once installed, the app looks up each mod's Nexus page, and the loop sent every request at once — a 20-mod pack opened 20 connections in one go, the fastest way to get rate-limited. They now go six at a time, the same bound the update check uses.
 

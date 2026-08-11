@@ -311,7 +311,10 @@ struct SaveCardView: View {
             Button(vm.L(L10n.Saves.duplicate)) { vm.saveToDuplicate = save }
             Button(vm.L(L10n.Saves.openFolder)) { vm.openSaveInFinder(info: save) }
             Divider()
-            Button(vm.L(L10n.Saves.deleteSave), role: .destructive) { vm.deleteSave(info: save) }
+            Button(vm.L(L10n.Saves.deleteSave), role: .destructive) {
+                Task { await vm.deleteSave(info: save) }
+            }
+            .disabled(vm.isSaveOperationRunning)
         }
     }
 }
@@ -435,9 +438,10 @@ struct SaveRow: View {
                     Label(vm.L(L10n.Saves.duplicate), systemImage: "doc.on.doc")
                 }
                 Divider()
-                Button(role: .destructive, action: { vm.deleteSave(info: save) }) {
+                Button(role: .destructive, action: { Task { await vm.deleteSave(info: save) } }) {
                     Label(vm.L(L10n.Saves.deleteSave), systemImage: "trash")
                 }
+                .disabled(vm.isSaveOperationRunning)
             } label: {
                 Image(systemName: "info.circle")
                     .foregroundColor(.secondary)
@@ -721,8 +725,18 @@ struct SaveEditorView: View {
                         Button(vm.L(L10n.Saves.openFolder)) { vm.openSaveInFinder(info: save) }
                         Button(vm.L(L10n.Saves.duplicate)) { vm.saveToDuplicate = save; vm.editingSave = nil }
                         Spacer()
-                        Button(vm.L(L10n.Saves.deleteSave)) { vm.deleteSave(info: save); vm.editingSave = nil }
+                        // `editingSave = nil` après l'`await` : la suppression
+                        // est asynchrone maintenant, et fermer l'éditeur avant
+                        // qu'elle aboutisse afficherait l'erreur sur une fiche
+                        // déjà disparue.
+                        Button(vm.L(L10n.Saves.deleteSave)) {
+                            Task {
+                                await vm.deleteSave(info: save)
+                                vm.editingSave = nil
+                            }
+                        }
                             .foregroundColor(.red)
+                            .disabled(vm.isSaveOperationRunning)
                     }
                 }
             }

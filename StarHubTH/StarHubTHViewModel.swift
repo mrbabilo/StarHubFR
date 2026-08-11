@@ -601,6 +601,16 @@ class StarHubTHViewModel: ObservableObject {
     
     @Published var saveToDuplicate: SaveGameInfo? = nil
     @Published var backupToBranch: SaveBackup? = nil
+
+    /// Vrai pendant qu'une écriture de sauvegarde (suppression, duplication,
+    /// backup, restauration) tourne en tâche de fond.
+    ///
+    /// Ces opérations bloquaient le fil principal, ce qui empêchait par
+    /// accident un second clic. Une fois asynchrones, le bouton reste vivant :
+    /// sans ce drapeau, deux clics sur « Dupliquer » lanceraient deux copies
+    /// concurrentes du même dossier. Même rôle qu'`isApplyingProfile` —
+    /// `guard` dans le ViewModel, `.disabled` sur les boutons.
+    @Published private(set) var isSaveOperationRunning = false
     
     @Published var steamUsername: String = ""
     @Published var steamAvatarPath: String? = nil
@@ -3281,8 +3291,22 @@ class StarHubTHViewModel: ObservableObject {
             }
         }
     }
-    func deleteSave(info: SaveGameInfo) {
-        if SaveManager.shared.deleteSave(info: info) {
+    /// Envoie le dossier de sauvegarde à la corbeille.
+    ///
+    /// **Hors du fil principal, obligatoirement** : une sauvegarde de fin de
+    /// partie pèse des dizaines de mégaoctets répartis sur des centaines de
+    /// fichiers, et le déplacement se faisait ici même, fenêtre figée.
+    /// `@MainActor` sur la méthode : seul le corps du `Task.detached` quitte
+    /// le fil principal, les `@Published` touchés après l'`await` y restent.
+    @MainActor
+    func deleteSave(info: SaveGameInfo) async {
+        guard !isSaveOperationRunning else { return }
+        isSaveOperationRunning = true
+        let deleted = await Task.detached(priority: .userInitiated) {
+            SaveManager.shared.deleteSave(info: info)
+        }.value
+        isSaveOperationRunning = false
+        if deleted {
             reloadSaves()
             showModal(message: L(L10n.VM.deleteSaveSuccess))
         } else {
@@ -3341,8 +3365,18 @@ class StarHubTHViewModel: ObservableObject {
         #endif
     }
     
-    func duplicateSave(info: SaveGameInfo, newName: String, newFarm: String) {
-        if SaveManager.shared.duplicateSave(info: info, newName: newName, newFarm: newFarm) {
+    /// Copie le dossier de sauvegarde puis réécrit les noms dans son XML.
+    /// Même raison qu'`deleteSave` de tourner hors du fil principal — ici
+    /// c'est une copie complète, l'opération la plus lente de l'onglet.
+    @MainActor
+    func duplicateSave(info: SaveGameInfo, newName: String, newFarm: String) async {
+        guard !isSaveOperationRunning else { return }
+        isSaveOperationRunning = true
+        let duplicated = await Task.detached(priority: .userInitiated) {
+            SaveManager.shared.duplicateSave(info: info, newName: newName, newFarm: newFarm)
+        }.value
+        isSaveOperationRunning = false
+        if duplicated {
             reloadSaves()
             showModal(message: L(L10n.VM.duplicateSaveSuccess))
         } else {
@@ -3368,12 +3402,29 @@ class StarHubTHViewModel: ObservableObject {
         }
     }
 
-    func createBackup(info: SaveGameInfo) -> Bool {
-        SaveManager.shared.backupSave(info: info)
+    /// Copie la sauvegarde entière dans le dossier des backups. C'est la plus
+    /// lourde des écritures de l'onglet ; elle tournait pourtant sur le fil
+    /// principal, bouton « Sauvegarder » compris.
+    @MainActor
+    func createBackup(info: SaveGameInfo) async -> Bool {
+        guard !isSaveOperationRunning else { return false }
+        isSaveOperationRunning = true
+        let created = await Task.detached(priority: .userInitiated) {
+            SaveManager.shared.backupSave(info: info)
+        }.value
+        isSaveOperationRunning = false
+        return created
     }
-    
-    func branchFromBackup(backup: SaveBackup, newName: String, newFarm: String) -> Bool {
-        if SaveManager.shared.branchFromBackup(backup: backup, newName: newName, newFarm: newFarm) {
+
+    @MainActor
+    func branchFromBackup(backup: SaveBackup, newName: String, newFarm: String) async -> Bool {
+        guard !isSaveOperationRunning else { return false }
+        isSaveOperationRunning = true
+        let branched = await Task.detached(priority: .userInitiated) {
+            SaveManager.shared.branchFromBackup(backup: backup, newName: newName, newFarm: newFarm)
+        }.value
+        isSaveOperationRunning = false
+        if branched {
             reloadSaves()
             showModal(message: L(L10n.VM.branchSuccess))
             return true
@@ -3383,8 +3434,15 @@ class StarHubTHViewModel: ObservableObject {
         }
     }
 
-    func restoreBackup(backup: SaveBackup, info: SaveGameInfo) {
-        if SaveManager.shared.restoreBackup(backup: backup, info: info) {
+    @MainActor
+    func restoreBackup(backup: SaveBackup, info: SaveGameInfo) async {
+        guard !isSaveOperationRunning else { return }
+        isSaveOperationRunning = true
+        let restored = await Task.detached(priority: .userInitiated) {
+            SaveManager.shared.restoreBackup(backup: backup, info: info)
+        }.value
+        isSaveOperationRunning = false
+        if restored {
             reloadSaves()
             viewingSaveTimeline = nil
             editingSave = nil
@@ -3394,8 +3452,15 @@ class StarHubTHViewModel: ObservableObject {
         }
     }
 
-    func deleteBackup(_ backup: SaveBackup) -> Bool {
-        SaveManager.shared.deleteBackup(backup)
+    @MainActor
+    func deleteBackup(_ backup: SaveBackup) async -> Bool {
+        guard !isSaveOperationRunning else { return false }
+        isSaveOperationRunning = true
+        let deleted = await Task.detached(priority: .userInitiated) {
+            SaveManager.shared.deleteBackup(backup)
+        }.value
+        isSaveOperationRunning = false
+        return deleted
     }
 
     // MARK: - Save Notes

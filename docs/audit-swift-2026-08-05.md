@@ -103,11 +103,14 @@ mtime, quasi impossible à échouer après `copyItem` réussi), `BisectionSnapsh
 > (`NexusRateLimitGate`, back-off partagé consulté par chaque chemin réseau).
 > Table re-vérifiée ligne à ligne le 2026-08-11.
 >
-> **Les 5 restants** (numéros de ligne re-relevés le 2026-08-11 — ils avaient dérivé) :
+> **Les 4 restants** (numéros de ligne re-relevés le 2026-08-11 — ils avaient dérivé) :
 >
-> - `StarHubTHViewModel:3284/3344/3375/3386` — `deleteSave`, `duplicateSave`,
->   `branchFromBackup`, `restoreBackup` appellent `SaveManager` **sur le main
->   thread**. Demande un refactor d'API void/Bool → async.
+> - ✅ `StarHubTHViewModel:3284/3344/3375/3386` — corrigé le 2026-08-11. Les
+>   six write-paths (les quatre listés **plus** `createBackup` et `deleteBackup`,
+>   du même défaut mais absents du finding — `backupSave` copie la sauvegarde
+>   entière, c'était le plus lourd) passent en `@MainActor … async` avec le
+>   travail disque dans un `Task.detached`. Un `isSaveOperationRunning` publié
+>   ferme la ré-entrance que le blocage du main thread empêchait par accident.
 > - `SaveManager:376/826` — `updateSave`/`updateInventory` toujours sans verrou
 >   fichier (`NSFileCoordinator`).
 > - `SaveManager:401` — remariage. `cleanDivorceNPCFriendship` démote bien
@@ -141,7 +144,7 @@ l'audit du 2026-08-05 sauf mention « auj. ».
 | ✅ `BisectionSnapshot:58` | `save` en `try?` : l'unique filet de récupération après crash avale l'erreur disque. | Disque plein → reprise impossible, modlist laissée à moitié en pause, sans avertissement. |
 | ⛔️ `SaveManager:396` (auj. `401`) | Divorce/remariage : la démotion de l'ancien conjoint est faite (`Married`→`Friendly`, `WeddingDate` retiré, l. 485-490) ; c'est la **promotion du nouveau** qui manque. | Changement « Abigail → Penny » → glitch du nouveau conjoint à l'arrivée en ferme. |
 | ⛔️ `SaveManager:371/814` | Pas de verrou fichier : `updateSave`/`updateInventory` (ou autosave du jeu) peuvent s'entrelacer. | Deux écritures concurrentes → dernier gagne, changements de l'autre perdus. |
-| ⛔️ `StarHubTHViewModel:3117/3148/3159/3057` | `duplicateSave`/`branchFromBackup`/`restoreBackup`/`deleteSave` ne dispatchent pas hors main (contrairement à `editSave`/`saveInventory`). | Copie de plusieurs centaines de Mo → spinner bloqué, rainbow. |
+| ✅ `StarHubTHViewModel:3117/3148/3159/3057` | `duplicateSave`/`branchFromBackup`/`restoreBackup`/`deleteSave` ne dispatchent pas hors main (contrairement à `editSave`/`saveInventory`). Le finding en manquait deux du même défaut : `createBackup` et `deleteBackup`. | Copie de plusieurs centaines de Mo → spinner bloqué, rainbow. |
 | ✅ `SaveTimelineView:88` | `onDelete` sans confirmation, alors que la restauration (réversible, juste à côté) en a une. | Clic « trash » → backup supprimé sans avertissement (asymétrie du risque). |
 | ✅ `LogsView:371` | Le watcher SMAPI n'est relancé au `onAppear` que si les entrées sont vides. | Quitter/revenir à l'onglet Journaux → suivi live de `SMAPI.log` perdu. |
 | ✅ `SettingsView:238` | `cleanDisabledMods` supprime en lot tous les mods en pause sans confirmation. | Un clic efface tous les mods désactivés du profil (juste un message post-op). |
@@ -265,7 +268,7 @@ Synthèse consolidée des 8 zones. Plusieurs recoupent des mémoires existantes
   `log(level: .error)` (rollbacks toggleMod/restoreBackup, marqueur SMAPI, avatar) pour qu'ils
   soient visibles dans l'onglet Journaux.
 - **Ensuite (moyens à impact large)** : rate-limiter Nexus unifié ; `ForEach` Identifiable ;
-  échappement manifest unifié ; dispatch des write-paths save hors main.
+  échappement manifest unifié ; ~~dispatch des write-paths save hors main~~ (fait le 2026-08-11).
 
 ## Compteur
 
@@ -279,7 +282,7 @@ Synthèse consolidée des 8 zones. Plusieurs recoupent des mémoires existantes
 | Sévérité | Corrigés | Restants |
 |----------|----------|----------|
 | Haute (9) | 9 | 0 |
-| Moyenne (23) | 18 | **5** — write-paths save, verrou fichier, remariage NPC, `lastError`, `dismiss()` des feuilles |
+| Moyenne (23) | 19 | **4** — verrou fichier, remariage NPC, `lastError`, `dismiss()` des feuilles |
 | Basse (~40) | lot parsing/encodage/localisation (`a3b2e8e`, `55e5a5e`) + les 2 de sécurité (`a4d7d9e`, `0758206`) | le reste des thèmes, dont 3 bloqués (voir ci-dessous) |
 
 ⚠️ **Périmètre de cette re-vérification** : la table des moyens a été relue ligne

@@ -38,12 +38,19 @@ struct SaveTimelineView: View {
                 Spacer()
                 // Backup Button
                 Button(action: {
-                    if vm.createBackup(info: save) {
-                        loadBackups()
+                    Task {
+                        if await vm.createBackup(info: save) {
+                            loadBackups()
+                        }
                     }
                 }) {
                     HStack(spacing: 4) {
-                        Image(systemName: "plus.circle.fill")
+                        if vm.isSaveOperationRunning {
+                            ProgressView()
+                                .controlSize(.small)
+                        } else {
+                            Image(systemName: "plus.circle.fill")
+                        }
                         Text(vm.L(L10n.Saves.backupLabel))
                     }
                     .font(.system(size: 12, weight: .medium))
@@ -51,6 +58,7 @@ struct SaveTimelineView: View {
                 .buttonStyle(.plain)
                 .foregroundColor(.accentColor)
                 .padding(.trailing, 8)
+                .disabled(vm.isSaveOperationRunning)
             }
             .padding()
             .background(Color(nsColor: .windowBackgroundColor))
@@ -110,7 +118,7 @@ struct SaveTimelineView: View {
                 message: Text(vm.L(vm.isGameRunning() ? L10n.Saves.confirmRestoreMsgGameRunning : L10n.Saves.confirmRestoreMsg)),
                 primaryButton: .destructive(Text(vm.L(L10n.Saves.restore))) {
                     if let b = backupToRestore {
-                        vm.restoreBackup(backup: b, info: save)
+                        Task { await vm.restoreBackup(backup: b, info: save) }
                     }
                 },
                 secondaryButton: .cancel(Text(vm.L(L10n.Saves.cancel)))
@@ -124,8 +132,10 @@ struct SaveTimelineView: View {
                 title: Text(vm.L(L10n.Saves.confirmDeleteBackup)),
                 message: Text(vm.L(L10n.Saves.confirmDeleteBackupMsg)),
                 primaryButton: .destructive(Text(vm.L(L10n.Saves.deleteBackup))) {
-                    if vm.deleteBackup(backup) {
-                        loadBackups()
+                    Task {
+                        if await vm.deleteBackup(backup) {
+                            loadBackups()
+                        }
                     }
                 },
                 secondaryButton: .cancel(Text(vm.L(L10n.Saves.cancel)))
