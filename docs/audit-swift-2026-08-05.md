@@ -111,6 +111,11 @@ mtime, quasi impossible à échouer après `copyItem` réussi), `BisectionSnapsh
 >   entière, c'était le plus lourd) passent en `@MainActor … async` avec le
 >   travail disque dans un `Task.detached`. Un `isSaveOperationRunning` publié
 >   ferme la ré-entrance que le blocage du main thread empêchait par accident.
+>   ⚠️ Ce drapeau ne couvre **que** ces six chemins : `editSave` et
+>   `saveInventory` écrivaient déjà hors main sans le consulter, donc une
+>   duplication peut toujours démarrer pendant une écriture d'inventaire. La
+>   sérialisation complète des écritures reste à faire — c'est le verrou
+>   fichier ci-dessous.
 > - `SaveManager:376/826` — `updateSave`/`updateInventory` toujours sans verrou
 >   fichier (`NSFileCoordinator`).
 > - `SaveManager:401` — remariage. `cleanDivorceNPCFriendship` démote bien

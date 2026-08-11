@@ -725,15 +725,10 @@ struct SaveEditorView: View {
                         Button(vm.L(L10n.Saves.openFolder)) { vm.openSaveInFinder(info: save) }
                         Button(vm.L(L10n.Saves.duplicate)) { vm.saveToDuplicate = save; vm.editingSave = nil }
                         Spacer()
-                        // `editingSave = nil` après l'`await` : la suppression
-                        // est asynchrone maintenant, et fermer l'éditeur avant
-                        // qu'elle aboutisse afficherait l'erreur sur une fiche
-                        // déjà disparue.
+                        // La fermeture de l'éditeur est faite par `deleteSave`
+                        // lui-même, sur succès seulement (voir le ViewModel).
                         Button(vm.L(L10n.Saves.deleteSave)) {
-                            Task {
-                                await vm.deleteSave(info: save)
-                                vm.editingSave = nil
-                            }
+                            Task { await vm.deleteSave(info: save) }
                         }
                             .foregroundColor(.red)
                             .disabled(vm.isSaveOperationRunning)

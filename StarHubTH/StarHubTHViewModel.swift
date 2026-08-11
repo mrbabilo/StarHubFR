@@ -3307,6 +3307,12 @@ class StarHubTHViewModel: ObservableObject {
         }.value
         isSaveOperationRunning = false
         if deleted {
+            // Fermer l'éditeur ici, pas côté vue : la suppression est
+            // asynchrone, et un `editingSave = nil` enchaîné après l'appel
+            // fermait la fiche même quand le `guard` ci-dessus avait renvoyé
+            // sans rien supprimer. Ne ferme que la fiche de la sauvegarde
+            // supprimée — on peut en éditer une autre depuis l'arbre.
+            if editingSave?.id == info.id { editingSave = nil }
             reloadSaves()
             showModal(message: L(L10n.VM.deleteSaveSuccess))
         } else {
