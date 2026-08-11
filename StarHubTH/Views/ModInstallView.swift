@@ -660,17 +660,37 @@ struct ModInstallView: View {
     }
 
     /// Fetches Nexus metadata for installed mods that declare a Nexus mod id
-    /// in their manifest UpdateKeys. Rate limiting is handled internally by
-    /// the NexusUpdateChecker (bounded concurrency).
+    /// in their manifest UpdateKeys.
+    ///
+    /// `fetchMetadata` part sans attendre : la boucle rendait donc la main
+    /// aussitôt et lâchait toutes les requêtes d'un coup — un pack de 20 mods
+    /// en envoyait 20 en même temps, juste après une installation. Le
+    /// commentaire d'origine affirmait ici que `NexusUpdateChecker` bornait la
+    /// concurrence : c'est vrai de `check()`, qui a sa propre sémaphore, pas de
+    /// `fetchSingleMod`, qui tire directement.
+    ///
+    /// Même borne que `check()` : l'app doit se présenter à l'API Nexus comme un
+    /// seul client cohérent, quel que soit le chemin qui appelle.
     private func fetchNexusMetadata(for mods: [DetectedMod]) {
         let toFetch = mods.filter { !$0.nexusModId.isEmpty }
         guard !toFetch.isEmpty else { return }
         DispatchQueue.global(qos: .utility).async {
+            let limiter = DispatchSemaphore(value: Self.maxConcurrentMetadataFetches)
             for mod in toFetch {
-                self.vm.fetchMetadata(forNexusModId: mod.nexusModId) { _ in }
+                limiter.wait()
+                // La complétion de `fetchMetadata` est garantie sur le main par
+                // `fetchSingleMod`, sur tous ses chemins de sortie : la place
+                // est donc toujours rendue, même sur 429 ou clé absente.
+                self.vm.fetchMetadata(forNexusModId: mod.nexusModId) { _ in
+                    limiter.signal()
+                }
             }
         }
     }
+
+    /// Requêtes de métadonnées Nexus en vol au maximum. Aligné sur le
+    /// `maxConcurrent` de `NexusUpdateChecker.check`.
+    private static let maxConcurrentMetadataFetches = 6
 
     private func cancelInstall() {
         zipModInfo = nil

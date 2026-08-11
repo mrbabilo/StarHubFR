@@ -88,11 +88,12 @@ mtime, quasi impossible à échouer après `copyItem` réussi), `BisectionSnapsh
 
 ### Moyenne sévérité
 
-> ⚠️ **17 sur 23 corrigés** — 2026-08-06 (`353333e`→`99138ac` : crash
+> ⚠️ **18 sur 23 corrigés** — 2026-08-06 (`353333e`→`99138ac` : crash
 > `linkTarget`/`split`, `InstallPreview`, watcher Journaux, `ForEach` fiches,
 > confirm. `cleanDisabledMods`, règle benign, jumeau M4, RMW
 > `installedModRegistry`, `steamUsername`, `setNexusApiKey`, `deleteBackup`
-> read-only, snapshot bissection), puis `f0bb19e` et 2026-08-10 `d0a906d`.
+> read-only, snapshot bissection), puis `f0bb19e`, 2026-08-10 `d0a906d` et 2026-08-11 le throttle de
+> `ModInstallView`.
 > `VM:1811` était déjà corrigé (régression print→log `cc737f1`).
 >
 > Le décompte « 13 sur 23 » écrit ici le 2026-08-06 (`9666217`) était périmé dans
@@ -102,7 +103,7 @@ mtime, quasi impossible à échouer après `copyItem` réussi), `BisectionSnapsh
 > (`NexusRateLimitGate`, back-off partagé consulté par chaque chemin réseau).
 > Table re-vérifiée ligne à ligne le 2026-08-11.
 >
-> **Les 6 restants** (numéros de ligne re-relevés le 2026-08-11 — ils avaient dérivé) :
+> **Les 5 restants** (numéros de ligne re-relevés le 2026-08-11 — ils avaient dérivé) :
 >
 > - `StarHubTHViewModel:3284/3344/3375/3386` — `deleteSave`, `duplicateSave`,
 >   `branchFromBackup`, `restoreBackup` appellent `SaveManager` **sur le main
@@ -114,10 +115,6 @@ mtime, quasi impossible à échouer après `copyItem` réussi), `BisectionSnapsh
 >   mais **rien ne promeut le nouveau**. Bloqué : `~/.config/StardewValley/Saves`
 >   est vide, pas de save de test — et le XML de mariage est à mesurer, pas à
 >   deviner.
-> - `ModInstallView:665` — la boucle `fetchNexusMetadata` n'a toujours aucun
->   throttle, et le commentaire « bounded concurrency » (l. 663) reste faux. La
->   porte de `d0a906d` amortit _après_ le premier 429 ; elle n'empêche pas la
->   rafale initiale d'un pack de 20 mods.
 > - `NexusUpdateChecker:424-428` — classification `lastError`. Le cas
 >   `successCount>0` est intentionnel ; seul `==0` reste trompeur.
 > - `SaveCopySheets:38/103` — `dismiss()` inconditionnel. ⛔️ Le scénario écrit
@@ -138,7 +135,7 @@ l'audit du 2026-08-05 sauf mention « auj. ».
 | ✅ `StarHubTHViewModel:1811` | `performToggle` catch en `print` au lieu de `log(.error)` (`toggleAllMods` logge correctement à 3982). | Échec de toggle invisible dans l'UI et les Journaux. |
 | ✅ `NexusUpdateChecker:723/758` | 429 silencieux : `fetchRawDescription`/`fetchChangelogs` retournent `""` sur tout non-200, ignorant le circuit rate-limit de `check()`. | Navigation entre mods pendant un 429 → nouvelles requêtes sans back-off → aggravation du ban. |
 | ⛔️ `NexusUpdateChecker:425` | Classification `lastError` : une requête post-abort peut l'écraser. Le cas `successCount>0` est **intentionnel** (commentaire), mais `==0` reste trompeur. | Un 404 en vol après un 429 masque le message « rate-limited ». |
-| ⛔️ `ModInstallView:672` | `fetchNexusMetadata` boucle sans throttle (commentaire « bounded concurrency » trompeur). | Pack de 20 mods → rafale de ~40 requêtes → 429/ban. |
+| ✅ `ModInstallView:672` | `fetchNexusMetadata` boucle sans throttle (commentaire « bounded concurrency » trompeur). | Pack de 20 mods → rafale de ~40 requêtes → 429/ban. |
 | ✅ `ModInstallBackupManager:299` | `deleteBackup` en `removeItem` simple au lieu de `removeItemGrantingWriteAccess`. | Backups read-only (POSIX hérités) non supprimables, erreur sans workaround UI. |
 | ✅ `SmapiLogDiagnostics:451` | Règle benign `.apiIntegration` matche « couldn't get the »/« failed to get the » sans exiger « API ». | Erreur réelle classée benign → carte « sain » trompeuse, mod absent du top 5. |
 | ✅ `BisectionSnapshot:58` | `save` en `try?` : l'unique filet de récupération après crash avale l'erreur disque. | Disque plein → reprise impossible, modlist laissée à moitié en pause, sans avertissement. |
@@ -282,7 +279,7 @@ Synthèse consolidée des 8 zones. Plusieurs recoupent des mémoires existantes
 | Sévérité | Corrigés | Restants |
 |----------|----------|----------|
 | Haute (9) | 9 | 0 |
-| Moyenne (23) | 17 | **6** — write-paths save, verrou fichier, remariage NPC, throttle `ModInstallView`, `lastError`, `dismiss()` des feuilles |
+| Moyenne (23) | 18 | **5** — write-paths save, verrou fichier, remariage NPC, `lastError`, `dismiss()` des feuilles |
 | Basse (~40) | lot parsing/encodage/localisation (`a3b2e8e`, `55e5a5e`) + les 2 de sécurité (`a4d7d9e`, `0758206`) | le reste des thèmes, dont 3 bloqués (voir ci-dessous) |
 
 ⚠️ **Périmètre de cette re-vérification** : la table des moyens a été relue ligne
