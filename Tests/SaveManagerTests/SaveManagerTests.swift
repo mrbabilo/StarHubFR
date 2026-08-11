@@ -131,4 +131,56 @@ struct TestEnvironment {
             .appendingPathComponent("Farm.1_branch")
         #expect(FileManager.default.fileExists(atPath: branchedFile.path))
     }
+
+    /// Une balise **vide** doit pouvoir recevoir une valeur. La regex de
+    /// remplacement exigeait au moins un caractère (`[^<]+`) : sur une sauvegarde
+    /// où `<favoriteThing></favoriteThing>` est vide, l'édition rendait « réussi »
+    /// et n'écrivait rien. Le champ restait vide sans un mot d'explication.
+    @Test func anEmptyTagStillReceivesItsNewValue() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let xml = """
+        <SaveGame><player><name>Alice</name><farmName>Ferme</farmName>\
+        <favoriteThing></favoriteThing><money>500</money>\
+        <totalMoneyEarned>500</totalMoneyEarned><maxHealth>100</maxHealth>\
+        <maxStamina>270</maxStamina><goldenWalnuts>0</goldenWalnuts>\
+        <qiGems>0</qiGems><clubCoins>0</clubCoins></player></SaveGame>
+        """
+        let info = try env.makeSave(named: "EmptyTag", content: xml)
+
+        #expect(SaveManager.shared.updateSave(
+            info: info, newName: "Alice", newFarm: "Ferme", newFav: "Le café",
+            newMoney: 500, newTotalMoneyEarned: 500, newMaxHealth: 100,
+            newMaxStamina: 270, newGoldenWalnuts: 0, newQiGems: 0,
+            newClubCoins: 0, newSpouse: ""))
+
+        let written = try String(contentsOf: info.fileURL, encoding: .utf8)
+        #expect(written.contains("<favoriteThing>Le café</favoriteThing>"))
+    }
+
+    /// Le pendant : une balise déjà remplie garde le comportement d'avant.
+    @Test func aFilledTagIsStillReplaced() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let xml = """
+        <SaveGame><player><name>Alice</name><farmName>Ferme</farmName>\
+        <favoriteThing>Ancien</favoriteThing><money>500</money>\
+        <totalMoneyEarned>500</totalMoneyEarned><maxHealth>100</maxHealth>\
+        <maxStamina>270</maxStamina><goldenWalnuts>0</goldenWalnuts>\
+        <qiGems>0</qiGems><clubCoins>0</clubCoins></player></SaveGame>
+        """
+        let info = try env.makeSave(named: "FilledTag", content: xml)
+
+        #expect(SaveManager.shared.updateSave(
+            info: info, newName: "Alice", newFarm: "Ferme", newFav: "Nouveau",
+            newMoney: 700, newTotalMoneyEarned: 500, newMaxHealth: 100,
+            newMaxStamina: 270, newGoldenWalnuts: 0, newQiGems: 0,
+            newClubCoins: 0, newSpouse: ""))
+
+        let written = try String(contentsOf: info.fileURL, encoding: .utf8)
+        #expect(written.contains("<favoriteThing>Nouveau</favoriteThing>"))
+        #expect(written.contains("<money>700</money>"))
+    }
 }

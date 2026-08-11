@@ -148,7 +148,11 @@ public enum I18nOutline {
             }
 
             if character == "{" || character == "[" { depth += 1 }
-            if character == "}" || character == "]" { depth -= 1 }
+            // Borné à zéro : une accolade fermante en trop — un fichier que le
+            // parseur laxiste répare pourtant — faisait passer la profondeur
+            // sous zéro, et toutes les clés suivantes étaient alors vues hors
+            // du premier niveau, donc perdues.
+            if character == "}" || character == "]" { depth = max(0, depth - 1) }
             index += 1
         }
 
@@ -180,23 +184,53 @@ public enum I18nOutline {
 
     /// Lit une chaîne JSON à partir du guillemet ouvrant. Rend son contenu
     /// déséchappé sommairement et l'index qui suit le guillemet fermant.
+    /// ⚠️ Déséchapper est obligatoire, pas cosmétique : c'est par ce nom que la
+    /// clé est retrouvée dans ce que rend le parseur, et `JSONSerialization`
+    /// rend `a"b`, jamais `a\"b`. Garder l'échappement brut — ce que faisait ce
+    /// code — donnait deux orthographes de la même clé, donc une clé sans
+    /// section ni rang dans l'onglet Traduction.
+    ///
+    /// Les unités UTF-16 sont accumulées telles quelles pour que `😀`
+    /// se recompose en un seul emoji, comme le fait le parseur.
     private static func readString(_ c: [Character], from start: Int) -> (String, Int) {
-        var value = ""
+        var units: [UInt16] = []
         var index = start + 1
         while index < c.count {
             if c[index] == "\\", index + 1 < c.count {
-                // Conserver l'échappement tel quel suffit ici : on compare des
-                // noms de clés, pas des valeurs affichées.
-                value.append(c[index])
-                value.append(c[index + 1])
+                let escaped = c[index + 1]
+                switch escaped {
+                case "\"", "\\", "/": units.append(contentsOf: String(escaped).utf16)
+                case "b": units.append(0x08)
+                case "f": units.append(0x0C)
+                case "n": units.append(0x0A)
+                case "r": units.append(0x0D)
+                case "t": units.append(0x09)
+                case "u":
+                    let hexStart = index + 2
+                    let hexEnd = hexStart + 4
+                    if hexEnd <= c.count,
+                       let unit = UInt16(String(c[hexStart..<hexEnd]), radix: 16) {
+                        units.append(unit)
+                        index = hexEnd
+                        continue
+                    }
+                    // Séquence tronquée ou non hexadécimale : la laisser telle
+                    // quelle plutôt que d'inventer un caractère.
+                    units.append(contentsOf: "\\u".utf16)
+                default:
+                    // Échappement inconnu : le parseur le refuserait, l'analyse
+                    // reste tolérante et garde les deux caractères.
+                    units.append(contentsOf: String(c[index]).utf16)
+                    units.append(contentsOf: String(escaped).utf16)
+                }
                 index += 2
                 continue
             }
-            if c[index] == "\"" { return (value, index + 1) }
-            value.append(c[index])
+            if c[index] == "\"" { return (String(decoding: units, as: UTF16.self), index + 1) }
+            units.append(contentsOf: String(c[index]).utf16)
             index += 1
         }
-        return (value, index)
+        return (String(decoding: units, as: UTF16.self), index)
     }
 
     /// ⚠️ `isNewline`, **jamais** `!= "\n" && != "\r"`. En Swift, `\r\n` est un

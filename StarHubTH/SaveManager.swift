@@ -528,7 +528,10 @@ public class SaveManager {
     }
 
     private func replaceFirstTag(tag: String, with value: String, in xml: String) -> String {
-        let pattern = "(<\(tag)>)([^<]+)(</\(tag)>)"
+        // `*`, pas `+` : une balise vide (`<favoriteThing></favoriteThing>`) est
+        // une valeur comme une autre. Avec `+`, la regex ne la voyait pas,
+        // l'édition n'écrivait rien et se déclarait quand même réussie.
+        let pattern = "(<\(tag)>)([^<]*)(</\(tag)>)"
         guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else { return xml }
         let range = NSRange(xml.startIndex..<xml.endIndex, in: xml)
         

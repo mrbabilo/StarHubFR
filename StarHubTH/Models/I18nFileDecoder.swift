@@ -33,8 +33,8 @@ public enum I18nFileDecoder {
     /// forment rien d'exploitable, ce qui n'arrive pas en pratique — la
     /// substitution garantit un résultat.
     public static func decode(_ data: Data) -> Decoded? {
-        if let markedUTF16 = decodeUTF16WithMark(data) {
-            return Decoded(text: markedUTF16, hasReplacedBytes: false)
+        if let marked = decodeWithByteOrderMark(data) {
+            return Decoded(text: marked, hasReplacedBytes: false)
         }
 
         let body = data.starts(with: [0xEF, 0xBB, 0xBF]) ? data.dropFirst(3) : data
@@ -50,12 +50,28 @@ public enum I18nFileDecoder {
         return Decoded(text: String(decoding: body, as: UTF8.self), hasReplacedBytes: true)
     }
 
-    /// UTF-16 avec marque d'ordre des octets, dans les deux boutismes.
-    private static func decodeUTF16WithMark(_ data: Data) -> String? {
-        guard data.count >= 2 else { return nil }
-        let first = data[data.startIndex]
-        let second = data[data.index(after: data.startIndex)]
-        switch (first, second) {
+    /// UTF-16 ou UTF-32 annoncé par une marque d'ordre des octets.
+    ///
+    /// L'ordre des tests reproduit celui de `StreamReader.DetectEncoding` côté
+    /// .NET, mesuré avec `File.ReadAllText` sous mono : la marque UTF-32 LE
+    /// **commence** par celle de l'UTF-16 LE (`FF FE`), et seuls les deux octets
+    /// suivants les séparent. Les prendre pour de l'UTF-16 intercalait un
+    /// caractère nul entre chaque lettre ; la marque UTF-32 BE, elle, n'était
+    /// pas reconnue du tout et le fichier partait en UTF-8 avec substitution.
+    private static func decodeWithByteOrderMark(_ data: Data) -> String? {
+        let bytes = [UInt8](data.prefix(4))
+        guard bytes.count >= 2 else { return nil }
+
+        if bytes.count >= 4 {
+            if bytes[0] == 0x00, bytes[1] == 0x00, bytes[2] == 0xFE, bytes[3] == 0xFF {
+                return String(data: data.dropFirst(4), encoding: .utf32BigEndian)
+            }
+            if bytes[0] == 0xFF, bytes[1] == 0xFE, bytes[2] == 0x00, bytes[3] == 0x00 {
+                return String(data: data.dropFirst(4), encoding: .utf32LittleEndian)
+            }
+        }
+
+        switch (bytes[0], bytes[1]) {
         case (0xFF, 0xFE):
             return String(data: data.dropFirst(2), encoding: .utf16LittleEndian)
         case (0xFE, 0xFF):

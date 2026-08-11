@@ -77,6 +77,49 @@ struct I18nFileDecoderTests {
         let decoded = try #require(I18nFileDecoder.decode(Data([0xEF, 0xBB, 0xBF])))
         #expect(decoded.text.isEmpty)
     }
+
+    /// La marque UTF-32 LE **commence** par celle de l'UTF-16 LE (`FF FE`) : la
+    /// lire comme de l'UTF-16 donnait un caractère nul entre chaque lettre, donc
+    /// un fichier illisible. Mesuré sur `File.ReadAllText` (mono) : .NET
+    /// distingue les deux sur les deux octets suivants, et lit bien de l'UTF-32.
+    @Test func utf32LittleEndianIsNotMistakenForUtf16() throws {
+        let source = #"{"a": "été"}"#
+        var data = Data([0xFF, 0xFE, 0x00, 0x00])
+        for scalar in source.unicodeScalars {
+            let value = scalar.value
+            data.append(contentsOf: [UInt8(value & 0xFF), UInt8((value >> 8) & 0xFF),
+                                     UInt8((value >> 16) & 0xFF), UInt8((value >> 24) & 0xFF)])
+        }
+        let decoded = try #require(I18nFileDecoder.decode(data))
+        #expect(decoded.text == source)
+        #expect(decoded.hasReplacedBytes == false)
+    }
+
+    /// Même mesure pour le gros-boutiste : `00 00 FE FF` ne ressemble à aucune
+    /// autre marque, mais nous n'en tenions aucun compte et le fichier partait
+    /// en UTF-8 avec substitution.
+    @Test func utf32BigEndianIsRead() throws {
+        let source = #"{"a": "été"}"#
+        var data = Data([0x00, 0x00, 0xFE, 0xFF])
+        for scalar in source.unicodeScalars {
+            let value = scalar.value
+            data.append(contentsOf: [UInt8((value >> 24) & 0xFF), UInt8((value >> 16) & 0xFF),
+                                     UInt8((value >> 8) & 0xFF), UInt8(value & 0xFF)])
+        }
+        let decoded = try #require(I18nFileDecoder.decode(data))
+        #expect(decoded.text == source)
+        #expect(decoded.hasReplacedBytes == false)
+    }
+
+    /// Le garde-fou de la correction : un vrai fichier UTF-16 LE dont le premier
+    /// caractère est nul n'existe pas, mais un `FF FE` suivi d'un contenu court
+    /// ne doit pas basculer en UTF-32 par accident.
+    @Test func aShortUtf16FileStaysUtf16() throws {
+        var data = Data([0xFF, 0xFE])
+        data.append(contentsOf: [0x7B, 0x00, 0x7D, 0x00]) // "{}"
+        let decoded = try #require(I18nFileDecoder.decode(data))
+        #expect(decoded.text == "{}")
+    }
 }
 
 /// Le parseur laxiste doit accepter des octets, pas seulement une `String` déjà

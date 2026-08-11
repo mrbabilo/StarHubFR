@@ -277,8 +277,13 @@ enum I18nLocaleResolver {
     /// `.ToLower().Trim()`, appliqué par SMAPI au nom du fichier comme du
     /// dossier. À ne pas confondre avec le pliage des *clés*, qui lui ne trime
     /// pas — voir `TranslationCoverage.fold`.
+    ///
+    /// `.whitespacesAndNewlines`, pas `.whitespaces` : mesuré sous mono, le
+    /// `Trim()` de .NET enlève aussi `\n`, `\r`, `\t` et `\v`. Avec le jeu de
+    /// caractères plus étroit, un `fr\n.json` — nom légal sur macOS — n'était
+    /// pas reconnu comme français alors que le jeu le charge.
     private static func fold(_ name: String) -> String {
-        name.lowercased().trimmingCharacters(in: .whitespaces)
+        name.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     /// Le seul point de lecture du disque de ce type.

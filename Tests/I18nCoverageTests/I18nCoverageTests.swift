@@ -505,6 +505,16 @@ struct ModLanguageDetectionTests {
         #expect(I18nLocaleResolver.languageCodes(inModDirectory: mod.directory) == ["en", "fr"])
     }
 
+    /// `fold` prétend reproduire le `.ToLower().Trim()` de SMAPI. Mesuré sous
+    /// mono : le `Trim()` de .NET enlève aussi les sauts de ligne et les
+    /// tabulations, que `.whitespaces` laissait — un `fr\n.json` n'était donc
+    /// pas reconnu comme français alors que le jeu, lui, le charge.
+    @Test func aFileNameWithAStrayNewlineIsStillALanguage() throws {
+        let mod = try ModFixture(files: ["i18n/default.json", "i18n/fr\n.json"])
+        defer { mod.cleanup() }
+        #expect(I18nLocaleResolver.languageCodes(inModDirectory: mod.directory) == ["en", "fr"])
+    }
+
     @Test func aContentPackNestsItsI18nOneLevelDown() throws {
         // Forme dominante du parc : 121 dossiers `i18n` sont à deux niveaux.
         // Ne regarder que `<mod>/i18n` rendait invisible le français de 81 mods.

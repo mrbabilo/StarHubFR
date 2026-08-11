@@ -268,4 +268,43 @@ struct I18nOutlineBareKeyTests {
         let outline = I18nOutline.read(#"{"a": true, "b": "1"}"#)
         #expect(outline.orderedKeys == ["a", "b"])
     }
+
+    /// L'analyse gardait l'échappement brut (`a\"b`) là où le parseur rend la
+    /// clé déséchappée (`a"b`) : la clé du fichier ne correspondait alors à
+    /// aucune clé de l'analyse, donc ni section ni rang — orpheline dans
+    /// l'onglet Traduction.
+    @Test func anEscapedKeyMatchesWhatTheParserReturns() throws {
+        let text = #"{"a\"b": "1", "c\\d": "2", "e\nf": "3"}"#
+        let outline = I18nOutline.read(text)
+        let parsed = try I18nLenientParser.parse(text)
+        #expect(Set(outline.orderedKeys) == Set(parsed.keys))
+        #expect(outline.orderedKeys == [#"a"b"#, #"c\d"#, "e\nf"])
+    }
+
+    /// Même exigence sur les échappements Unicode, y compris une paire de
+    /// substitution (un emoji), que `JSONSerialization` recompose.
+    @Test func aUnicodeEscapeInAKeyIsResolved() throws {
+        let text = #"{"caf\u00e9": "1", "\ud83d\ude00": "2"}"#
+        let outline = I18nOutline.read(text)
+        let parsed = try I18nLenientParser.parse(text)
+        #expect(Set(outline.orderedKeys) == Set(parsed.keys))
+        #expect(outline.orderedKeys == ["café", "😀"])
+    }
+
+    /// Durcissement, pas correctif d'un cas observé : une accolade fermante en
+    /// trop faisait passer la profondeur sous zéro, et le décalage se propageait
+    /// à tout le reste du fichier — l'objet réel était alors compté au niveau 0
+    /// et **toutes** ses clés perdues. Borner à zéro fait retomber l'analyse sur
+    /// ses pieds à la première accolade ouvrante.
+    @Test func aStrayClosingBraceDoesNotShiftEveryLevelBelow() {
+        let text = """
+        }
+        {
+          "a": "1",
+          "b": "2"
+        }
+        """
+        let outline = I18nOutline.read(text)
+        #expect(outline.orderedKeys == ["a", "b"])
+    }
 }
