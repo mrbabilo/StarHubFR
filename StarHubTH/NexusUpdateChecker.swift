@@ -321,12 +321,26 @@ final class NexusUpdateChecker {
         guard !candidates.isEmpty else {
             UserDefaults.standard.set(Date(), forKey: lastCheckKey)
             DispatchQueue.main.async {
-                completion(.success(updates: [], categories: self.loadCachedCategories(), extras: self.loadCachedExtras()))
+                // Aucun candidat ne veut pas dire « aucune mise à jour » : la
+                // liste des mods peut ne pas être encore scannée. Rendre `[]`
+                // ici vidait l'écran des mises à jour alors qu'aucune n'avait
+                // été installée. On rejoue ce qu'on savait.
+                completion(.success(updates: self.loadCachedUpdates(),
+                                    categories: self.loadCachedCategories(),
+                                    extras: self.loadCachedExtras()))
             }
             return
         }
 
         let total = candidates.count
+        // Tous les candidats de cette passe, y compris ceux qu'un 429 empêchera
+        // d'être interrogés : `NexusUpdateMerge` s'en sert pour purger les mods
+        // qui ne sont plus installés et pour rafraîchir la version installée
+        // d'une ligne conservée.
+        let installedVersionByModId = Dictionary(
+            candidates.map { ($0.modId, $0.version) },
+            uniquingKeysWith: { first, _ in first }
+        )
         DispatchQueue.main.async { progress?(0, total) }
 
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
@@ -347,6 +361,10 @@ final class NexusUpdateChecker {
             // whatever extras were already known.
             var extras: [String: NexusModExtra] = self.loadCachedExtras()
             var lastError: String?
+            // Les candidats dont la requête a abouti, mise à jour ou non. C'est
+            // ce qui distingue « à jour » (ligne à retirer) de « pas regardé »
+            // (ligne à conserver) — voir `NexusUpdateMerge`.
+            var completedModIds: Set<String> = []
             var done = 0
             var aborted = false
             // Counts candidates that actually completed successfully, so the
@@ -387,6 +405,7 @@ final class NexusUpdateChecker {
                     switch result {
                     case .success(let latest, let catId, let extra, let uploaded):
                         successCount += 1
+                        completedModIds.insert(modId)
                         // Record the category for every successful fetch,
                         // whether or not the mod has an update. This is what
                         // powers the per-category filter in the mods list.
@@ -447,6 +466,7 @@ final class NexusUpdateChecker {
             let staleGeneration = self.metadataGeneration != startGeneration
             var mergedCats = self.loadCachedCategories()
             var mergedExtras = self.loadCachedExtras()
+            let cachedUpdatesBefore = self.loadCachedUpdates()
             if staleGeneration {
                 // The API key was cleared mid-check — this run's results were
                 // fetched under an account that no longer applies. Discard
@@ -463,6 +483,15 @@ final class NexusUpdateChecker {
                 self.saveCachedExtras(mergedExtras)
                 self.metadataCacheLock.unlock()
             }
+            // Une passe partielle ne rapporte que les mods qu'elle a pu
+            // interroger : la livrer telle quelle effacerait les mises à jour
+            // des autres, à l'écran comme dans le cache.
+            let mergedUpdates = NexusUpdateMerge.merge(
+                cached: cachedUpdatesBefore,
+                found: updates,
+                completedModIds: completedModIds,
+                installedVersionByModId: installedVersionByModId
+            )
             let finalResult: CheckResult
             if staleGeneration {
                 finalResult = .noApiKey
@@ -474,8 +503,8 @@ final class NexusUpdateChecker {
                 // candidate 404'd, or because a 429 cut the run short after
                 // some updates were already found, is exactly the bug this
                 // branch avoids.
-                self.saveCachedUpdates(updates)
-                finalResult = .success(updates: updates, categories: mergedCats, extras: mergedExtras, partialErrorMessage: lastError)
+                self.saveCachedUpdates(mergedUpdates)
+                finalResult = .success(updates: mergedUpdates, categories: mergedCats, extras: mergedExtras, partialErrorMessage: lastError)
             } else if let err = lastError {
                 if err.hasPrefix("rate_limited:") {
                     let retry = TimeInterval(err.split(separator: ":").last ?? "0") ?? 0
@@ -484,8 +513,8 @@ final class NexusUpdateChecker {
                     finalResult = .error(err)
                 }
             } else {
-                self.saveCachedUpdates(updates)
-                finalResult = .success(updates: updates, categories: mergedCats, extras: mergedExtras)
+                self.saveCachedUpdates(mergedUpdates)
+                finalResult = .success(updates: mergedUpdates, categories: mergedCats, extras: mergedExtras)
             }
             DispatchQueue.main.async { completion(finalResult) }
         }
