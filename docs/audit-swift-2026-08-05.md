@@ -125,31 +125,34 @@ mtime, quasi impossible à échouer après `copyItem` réussi), `BisectionSnapsh
 >   modal d'échec (`duplicateSaveError`/`branchError`). Il ne reste que la feuille
 >   qui se ferme sur un échec, ce qui vaut « bas », pas « moyen ».
 
+Dans la table : ✅ = corrigé, ⛔️ = ouvert. Les numéros de ligne sont ceux de
+l'audit du 2026-08-05 sauf mention « auj. ».
+
 | Site | Bug | Scénario |
 |------|-----|----------|
-| `ThaiTranslationTable:109` | **Crash** `linkTarget` : si `)` précède `(`, `index(after: open)..<close` a lowerBound > upperBound. | Cellule Nexus d'un dépôt tiers contenant `)text(` → crash fatal (`Range requires lowerBound <= upperBound`). Source externe non contrôlée. |
-| `ManifestVersionPatcher:79` | **Jumeau de M4** : `replaceVersionValue` regex sur le `raw` **non nettoyé** alors que `extractVersionValue` strip les commentaires. Le commentaire « extract and replace always agree » (l.83) est faux. | decide() lit la vraie version, le patch écrit dans un `"Version"` commenté → patch inefficace, update re-flaggué. |
-| `StarHubTHViewModel:2880/2913` | RMW sur `installedModRegistry` : `load → mutate → save` sans lock couvrant la séquence (le lock ne protège que chaque appel). | 2 scans concurrents s'écrasent → `nexusVersion` perdu → faux « update available » perpétuel. |
-| `StarHubTHViewModel:832` | `steamUsername.isEmpty` checké avant la publication `main.async` de `fetchSteamUser` (922). | Le fallback « Farmer » est toujours planifié et écrase le vrai nom (main FIFO) → nom par défaut faux au 1er launch. |
-| `StarHubTHViewModel:2223` | `setNexusApiKey` met `hasNexusApiKey = true` sans vérifier le retour de `SecItemAdd`. | UI dit « clé configurée » si la Keychain refuse → le prochain `checkNexusUpdates` part en `.noApiKey`. |
-| `StarHubTHViewModel:1811` | `performToggle` catch en `print` au lieu de `log(.error)` (`toggleAllMods` logge correctement à 3982). | Échec de toggle invisible dans l'UI et les Journaux. |
-| `NexusUpdateChecker:723/758` | 429 silencieux : `fetchRawDescription`/`fetchChangelogs` retournent `""` sur tout non-200, ignorant le circuit rate-limit de `check()`. | Navigation entre mods pendant un 429 → nouvelles requêtes sans back-off → aggravation du ban. |
-| `NexusUpdateChecker:425` | Classification `lastError` : une requête post-abort peut l'écraser. Le cas `successCount>0` est **intentionnel** (commentaire), mais `==0` reste trompeur. | Un 404 en vol après un 429 masque le message « rate-limited ». |
-| `ModInstallView:672` | `fetchNexusMetadata` boucle sans throttle (commentaire « bounded concurrency » trompeur). | Pack de 20 mods → rafale de ~40 requêtes → 429/ban. |
-| `ModInstallBackupManager:299` | `deleteBackup` en `removeItem` simple au lieu de `removeItemGrantingWriteAccess`. | Backups read-only (POSIX hérités) non supprimables, erreur sans workaround UI. |
-| `SmapiLogDiagnostics:451` | Règle benign `.apiIntegration` matche « couldn't get the »/« failed to get the » sans exiger « API ». | Erreur réelle classée benign → carte « sain » trompeuse, mod absent du top 5. |
-| `BisectionSnapshot:58` | `save` en `try?` : l'unique filet de récupération après crash avale l'erreur disque. | Disque plein → reprise impossible, modlist laissée à moitié en pause, sans avertissement. |
-| `SaveManager:396` | Divorce/remariage : `cleanDivorceNPCFriendship` nettoie l'ancien conjoint mais ne **promeut pas** le nouveau (Status=Friendly, pas de WeddingDate). | Changement « Abigail → Penny » → glitch du nouveau conjoint à l'arrivée en ferme. |
-| `SaveManager:371/814` | Pas de verrou fichier : `updateSave`/`updateInventory` (ou autosave du jeu) peuvent s'entrelacer. | Deux écritures concurrentes → dernier gagne, changements de l'autre perdus. |
-| `StarHubTHViewModel:3117/3148/3159/3057` | `duplicateSave`/`branchFromBackup`/`restoreBackup`/`deleteSave` ne dispatchent pas hors main (contrairement à `editSave`/`saveInventory`). | Copie de plusieurs centaines de Mo → spinner bloqué, rainbow. |
-| `SaveTimelineView:88` | `onDelete` sans confirmation, alors que la restauration (réversible, juste à côté) en a une. | Clic « trash » → backup supprimé sans avertissement (asymétrie du risque). |
-| `LogsView:371` | Le watcher SMAPI n'est relancé au `onAppear` que si les entrées sont vides. | Quitter/revenir à l'onglet Journaux → suivi live de `SMAPI.log` perdu. |
-| `SettingsView:238` | `cleanDisabledMods` supprime en lot tous les mods en pause sans confirmation. | Un clic efface tous les mods désactivés du profil (juste un message post-op). |
-| `DescriptionBlocksView:190/200` | `ForEach(id: \.offset)` → @State `isExpanded` des spoilers fuit entre fiches. | Spoilers dépliés sur la fiche du mod A se retrouvent dépliés sur la fiche B. |
-| `SaveCopySheets:61` | `split(separator: ".")[0]` sans garde. | `lastPathComponent` vide → crash à l'ouverture de la feuille de branchement. |
-| `SaveCopySheets:37/98` | `duplicateSave`/`branchFromBackup` suivis de `dismiss()` inconditionnel. | Échec (disque plein, nom pris) → feuille fermée, aucune sauvegarde créée, silence total. |
-| `ModListView:1456` / `ModDetailView:206` | `pendingToggle` (debounce) jamais cancellé au `.onDisappear`. | `toggleMod` se déclenche pour un mod désaffiché (scroll rapide, navigation). |
-| `InstallPreview:95` | `.frame(maxHeight: visibleFrame.height)` entier, pas 60 % comme l'indique le commentaire. | Boutons d'action poussés hors vue sur un pack de 50 mods. |
+| ✅ `ThaiTranslationTable:109` | **Crash** `linkTarget` : si `)` précède `(`, `index(after: open)..<close` a lowerBound > upperBound. | Cellule Nexus d'un dépôt tiers contenant `)text(` → crash fatal (`Range requires lowerBound <= upperBound`). Source externe non contrôlée. |
+| ✅ `ManifestVersionPatcher:79` | **Jumeau de M4** : `replaceVersionValue` regex sur le `raw` **non nettoyé** alors que `extractVersionValue` strip les commentaires. Le commentaire « extract and replace always agree » (l.83) est faux. | decide() lit la vraie version, le patch écrit dans un `"Version"` commenté → patch inefficace, update re-flaggué. |
+| ✅ `StarHubTHViewModel:2880/2913` | RMW sur `installedModRegistry` : `load → mutate → save` sans lock couvrant la séquence (le lock ne protège que chaque appel). | 2 scans concurrents s'écrasent → `nexusVersion` perdu → faux « update available » perpétuel. |
+| ✅ `StarHubTHViewModel:832` | `steamUsername.isEmpty` checké avant la publication `main.async` de `fetchSteamUser` (922). | Le fallback « Farmer » est toujours planifié et écrase le vrai nom (main FIFO) → nom par défaut faux au 1er launch. |
+| ✅ `StarHubTHViewModel:2223` | `setNexusApiKey` met `hasNexusApiKey = true` sans vérifier le retour de `SecItemAdd`. | UI dit « clé configurée » si la Keychain refuse → le prochain `checkNexusUpdates` part en `.noApiKey`. |
+| ✅ `StarHubTHViewModel:1811` | `performToggle` catch en `print` au lieu de `log(.error)` (`toggleAllMods` logge correctement à 3982). | Échec de toggle invisible dans l'UI et les Journaux. |
+| ✅ `NexusUpdateChecker:723/758` | 429 silencieux : `fetchRawDescription`/`fetchChangelogs` retournent `""` sur tout non-200, ignorant le circuit rate-limit de `check()`. | Navigation entre mods pendant un 429 → nouvelles requêtes sans back-off → aggravation du ban. |
+| ⛔️ `NexusUpdateChecker:425` | Classification `lastError` : une requête post-abort peut l'écraser. Le cas `successCount>0` est **intentionnel** (commentaire), mais `==0` reste trompeur. | Un 404 en vol après un 429 masque le message « rate-limited ». |
+| ⛔️ `ModInstallView:672` | `fetchNexusMetadata` boucle sans throttle (commentaire « bounded concurrency » trompeur). | Pack de 20 mods → rafale de ~40 requêtes → 429/ban. |
+| ✅ `ModInstallBackupManager:299` | `deleteBackup` en `removeItem` simple au lieu de `removeItemGrantingWriteAccess`. | Backups read-only (POSIX hérités) non supprimables, erreur sans workaround UI. |
+| ✅ `SmapiLogDiagnostics:451` | Règle benign `.apiIntegration` matche « couldn't get the »/« failed to get the » sans exiger « API ». | Erreur réelle classée benign → carte « sain » trompeuse, mod absent du top 5. |
+| ✅ `BisectionSnapshot:58` | `save` en `try?` : l'unique filet de récupération après crash avale l'erreur disque. | Disque plein → reprise impossible, modlist laissée à moitié en pause, sans avertissement. |
+| ⛔️ `SaveManager:396` (auj. `401`) | Divorce/remariage : la démotion de l'ancien conjoint est faite (`Married`→`Friendly`, `WeddingDate` retiré, l. 485-490) ; c'est la **promotion du nouveau** qui manque. | Changement « Abigail → Penny » → glitch du nouveau conjoint à l'arrivée en ferme. |
+| ⛔️ `SaveManager:371/814` | Pas de verrou fichier : `updateSave`/`updateInventory` (ou autosave du jeu) peuvent s'entrelacer. | Deux écritures concurrentes → dernier gagne, changements de l'autre perdus. |
+| ⛔️ `StarHubTHViewModel:3117/3148/3159/3057` | `duplicateSave`/`branchFromBackup`/`restoreBackup`/`deleteSave` ne dispatchent pas hors main (contrairement à `editSave`/`saveInventory`). | Copie de plusieurs centaines de Mo → spinner bloqué, rainbow. |
+| ✅ `SaveTimelineView:88` | `onDelete` sans confirmation, alors que la restauration (réversible, juste à côté) en a une. | Clic « trash » → backup supprimé sans avertissement (asymétrie du risque). |
+| ✅ `LogsView:371` | Le watcher SMAPI n'est relancé au `onAppear` que si les entrées sont vides. | Quitter/revenir à l'onglet Journaux → suivi live de `SMAPI.log` perdu. |
+| ✅ `SettingsView:238` | `cleanDisabledMods` supprime en lot tous les mods en pause sans confirmation. | Un clic efface tous les mods désactivés du profil (juste un message post-op). |
+| ✅ `DescriptionBlocksView:190/200` | `ForEach(id: \.offset)` → @State `isExpanded` des spoilers fuit entre fiches. | Spoilers dépliés sur la fiche du mod A se retrouvent dépliés sur la fiche B. |
+| ✅ `SaveCopySheets:61` | `split(separator: ".")[0]` sans garde. | `lastPathComponent` vide → crash à l'ouverture de la feuille de branchement. |
+| ⛔️ `SaveCopySheets:37/98` (auj. `38/103`) | `duplicateSave`/`branchFromBackup` suivis de `dismiss()` inconditionnel. | Échec (disque plein, nom pris) → feuille fermée, aucune sauvegarde créée. ⛔️ Le « silence total » écrit ici est faux : le ViewModel affiche un modal d'échec. |
+| ✅ `ModListView:1456` / `ModDetailView:206` | `pendingToggle` (debounce) jamais cancellé au `.onDisappear`. | `toggleMod` se déclenche pour un mod désaffiché (scroll rapide, navigation). |
+| ✅ `InstallPreview:95` | `.frame(maxHeight: visibleFrame.height)` entier, pas 60 % comme l'indique le commentaire. | Boutons d'action poussés hors vue sur un pack de 50 mods. |
 
 ### Basse sévérité
 
@@ -281,6 +284,13 @@ Synthèse consolidée des 8 zones. Plusieurs recoupent des mémoires existantes
 | Haute (9) | 9 | 0 |
 | Moyenne (23) | 17 | **6** — write-paths save, verrou fichier, remariage NPC, throttle `ModInstallView`, `lastError`, `dismiss()` des feuilles |
 | Basse (~40) | lot parsing/encodage/localisation (`a3b2e8e`, `55e5a5e`) + les 2 de sécurité (`a4d7d9e`, `0758206`) | le reste des thèmes, dont 3 bloqués (voir ci-dessous) |
+
+⚠️ **Périmètre de cette re-vérification** : la table des moyens a été relue ligne
+à ligne dans le code, et deux thèmes basse sévérité (parsing/encodage,
+localisation, sécurité). Les **six autres thèmes basse sévérité** — `print` au
+lieu de `log`, gels UI, concurrence/lifecycle, attribution, UX, data secondaire —
+**n'ont pas été re-vérifiés** : ils peuvent contenir des lignes déjà corrigées,
+comme la sécurité en contenait deux.
 
 **Bloqués sur un fait externe, pas sur du temps** : le remariage NPC (pas de save
 de test, `~/.config/StardewValley/Saves` est vide), le jeton `%revealtaste` (il
