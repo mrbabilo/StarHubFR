@@ -16,6 +16,11 @@ where the exact log format was verified.
 - **A French translation the English has moved past is now flagged.** The mod's page names the date English was last edited and the gap to the French translation, and a "To review" filter gathers them. Its Translation tab marks outdated keys too, once opened, old English struck through.
 
 ### Fixed
+- **A mod's translation file is now read the way the game reads it.** A file saved as UTF-32 came back with a null character between every letter, and a name the system pads with a stray newline stopped counting as a language at all. Both behaviours were measured against .NET's own reader, not guessed.
+- **A translation key holding a quote is no longer orphaned.** The Translation tab read `a\"b` where the parser gives `a"b`, so the key matched nothing: no section, no rank, no place in the outline.
+- **Editing a save field that was empty now works.** Filling in a blank favourite thing changed nothing on disk — and still reported success.
+- **The config editor speaks French.** Nine of its messages were written in English whatever the interface language, and a failed `.bak` restore left no trace at all: the file picker just opened, unexplained. The backup counter also read "12 gérer les sauvegardes"; it now reads "12 sauvegarde(s)".
+- **A SMAPI install that half-succeeds now says so.** The version marker can fail to write while SMAPI itself installs fine — the app would then believe SMAPI was missing at the next launch, with nothing in the Logs tab about it.
 - **Mod install errors now speak the app's language.** The ten failures an install can report — extraction refused, backup failed, mod not found — only ever came out in English, whatever the interface was set to.
 - **A downloaded archive is no longer lost when a second Nexus link arrives.** A second `nxm://` link while the install sheet was open replaced the waiting archive: the first was orphaned in the temp folder, and the cleanup then deleted the wrong one. The second download is now refused until the first is installed.
 - **Installing a `.7z` or `.rar` works again.** The zip-slip guard added in 1.13.0 read the archive's own absolute path from the listing header and took it for an entry escaping the folder, so every such archive was refused as "failed to extract". Only zips were unaffected.

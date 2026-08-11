@@ -131,6 +131,32 @@ mtime, quasi impossible à échouer après `copyItem` réussi), `BisectionSnapsh
 Regroupés par thème (~40 findings). Sévérité basse = scénario rare, cosmétique, ou sans impact
 fonctionnel réel. Les sites précis sont conservés pour action ciblée.
 
+> ✅ **Lot parsing/encodage + localisation traité le 2026-08-11** (`a3b2e8e`, `55e5a5e`).
+> Corrigés : BOM UTF-32 (les deux boutismes), échappement des clés de
+> `I18nOutline`, `fold` sans les sauts de ligne, `replaceFirstTag` sur balise
+> vide, profondeur bornée, les 9 chaînes en dur de `ModConfigEditorView` /
+> `AppChangelogView`, le compteur de `ModInstallBackupsView`, et un canal
+> d'avertissement pour `SmapiInstaller`. Chaque écart .NET a été mesuré sous
+> mono, pas déduit.
+>
+> ⛔️ **Deux findings de cette liste sont faux** :
+> - `extractTag:284` (décodage des entités) était **déjà corrigé** (`d82cc3b`),
+>   et le « regex CRLF » n'en est pas un : `[^<]` accepte déjà les sauts de ligne.
+> - `TranslationTokens:96` (« `mailCommand` sans limite de mot ») : appliquer la
+>   limite **casserait** le parc. Mesuré sur les mods installés, `%revealtaste`
+>   colle son argument (`%revealtasteSenS767`) dans 237 valeurs. Le vrai défaut
+>   est ailleurs : aucune de ces 237 valeurs ne porte le `%%` de fermeture
+>   qu'exige notre reconnaissance, donc le jeton n'est **jamais** protégé.
+>   Corriger demande de connaître la fin exacte du jeton côté jeu — à ne pas
+>   deviner.
+>
+> ⏳ Non traité dans ce lot : `MainView:501` (a11y). La clé existe pourtant dans
+> les deux JSON ; seul `NSLocalizedString` y contourne `vm.L` et ne suit donc pas
+> un changement de langue en session. Le composant `SidebarBadgeItem` n'a pas
+> accès au ViewModel, et lui ajouter un champ fait dépasser le vérificateur de
+> types sur le `body` de `MainView` (constaté). Demande soit un
+> `environmentObject` (absent du projet), soit un découpage de `MainView`.
+
 - **Erreurs silencieuses / `print` au lieu de `log`** : `ModZipInstaller:951` (catch snapshotUserConfigs), `performToggle:1772` (skip), `selectCustomAvatar:3108`, `SmapiInstaller:299` (xattr quarantine).
 - **Gels UI (main thread)** : `evaluateThaiTranslationStatus:3315` (~180k `fileExists` mods×thai), `deleteMod:4043` (`removeItem` synchrone sur gros mod), `HomeView:274` (`refresh()` à chaque `onAppear`).
 - **Parsing / encoding edge cases** : `I18nFileDecoder:54` (UTF-32 LE confondu UTF-16 LE → caractères nuls), `I18nOutline:160` (échappement `\"` conservé vs JSON déséchappé → clé orpheline), `TranslationTokens:96` (`mailCommand` sans limite de mot), `I18nOutline:127` (`depth` négatif sur JSON malformé), `I18nLocaleResolver:176` (`fold` whitespace au lieu de `whitespacesAndNewlines`), `extractTag:284` (pas de décodage entités → double-encodage), `replaceFirstTag:526` (regex `[^<]+` exige ≥1 char), regex CRLF dans `extractTag`.
