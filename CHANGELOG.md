@@ -13,7 +13,7 @@ where the exact log format was verified.
 ## [Unreleased]
 
 ### Fixed
-- **A detected update no longer vanishes when the next check can't reach its mod.** A rate limit cuts a check short and the mods it never queried were dropped from the list — and from the cache, so the loss survived a restart and replayed for an hour. At 900 mods that happened on most checks. An update now stays until it is actually installed; only a mod the check confirms is current loses its row.
+- **A detected update no longer vanishes when the next check can't reach its mod.** A rate limit cuts a check short and the mods it never queried were dropped from the list — and from the cache, so the loss survived a restart and replayed for an hour. At 900 mods that happened on most checks. An update now stays until it is actually installed; only a mod the check confirms is current loses its row. A check that found no mods to query no longer counts as a check either.
 
 ## [1.13.1] - 2026-08-11
 
