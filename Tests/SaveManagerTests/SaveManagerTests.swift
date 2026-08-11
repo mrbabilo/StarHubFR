@@ -159,6 +159,38 @@ struct TestEnvironment {
         #expect(written.contains("<favoriteThing>Le café</favoriteThing>"))
     }
 
+    /// Le risque de la correction : accepter une balise vide élargit ce que la
+    /// regex peut attraper, donc le « premier » résultat pourrait se déplacer.
+    /// Ici un objet d'inventaire porte un `<name>` vide **après** celui du
+    /// joueur — c'est bien celui du joueur qui doit être réécrit.
+    @Test func anEmptyTagFurtherDownDoesNotStealTheMatch() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let xml = """
+        <SaveGame><player><name>Alice</name><farmName>Ferme</farmName>\
+        <favoriteThing></favoriteThing><money>500</money>\
+        <totalMoneyEarned>500</totalMoneyEarned><maxHealth>100</maxHealth>\
+        <maxStamina>270</maxStamina><goldenWalnuts>0</goldenWalnuts>\
+        <qiGems>0</qiGems><clubCoins>0</clubCoins>\
+        <items><Item><name></name></Item><Item><name>Houe</name></Item></items>\
+        </player></SaveGame>
+        """
+        let info = try env.makeSave(named: "Inventory", content: xml)
+
+        #expect(SaveManager.shared.updateSave(
+            info: info, newName: "Bérénice", newFarm: "Ferme", newFav: "Le café",
+            newMoney: 500, newTotalMoneyEarned: 500, newMaxHealth: 100,
+            newMaxStamina: 270, newGoldenWalnuts: 0, newQiGems: 0,
+            newClubCoins: 0, newSpouse: ""))
+
+        let written = try String(contentsOf: info.fileURL, encoding: .utf8)
+        #expect(written.contains("<name>Bérénice</name>"))
+        // L'objet d'inventaire reste intact, vide comme il l'était.
+        #expect(written.contains("<Item><name></name></Item>"))
+        #expect(written.contains("<Item><name>Houe</name></Item>"))
+    }
+
     /// Le pendant : une balise déjà remplie garde le comportement d'avant.
     @Test func aFilledTagIsStillReplaced() throws {
         let env = TestEnvironment()

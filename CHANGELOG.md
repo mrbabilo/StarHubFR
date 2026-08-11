@@ -16,7 +16,7 @@ where the exact log format was verified.
 - **A French translation the English has moved past is now flagged.** The mod's page names the date English was last edited and the gap to the French translation, and a "To review" filter gathers them. Its Translation tab marks outdated keys too, once opened, old English struck through.
 
 ### Fixed
-- **A mod's translation file is now read the way the game reads it.** A file saved as UTF-32 came back with a null character between every letter, and a name the system pads with a stray newline stopped counting as a language at all. Both behaviours were measured against .NET's own reader, not guessed.
+- **A mod's translation file saved as UTF-32 is now readable.** It came back with a null character between every letter, because its byte-order mark starts with UTF-16's. Measured against .NET's own reader, which the game uses — as was a second, smaller alignment: a file name holding a stray newline now folds to its language code the way the game folds it.
 - **A translation key holding a quote is no longer orphaned.** The Translation tab read `a\"b` where the parser gives `a"b`, so the key matched nothing: no section, no rank, no place in the outline.
 - **Editing a save field that was empty now works.** Filling in a blank favourite thing changed nothing on disk — and still reported success.
 - **The config editor speaks French.** Nine of its messages were written in English whatever the interface language, and a failed `.bak` restore left no trace at all: the file picker just opened, unexplained. The backup counter also read "12 gérer les sauvegardes"; it now reads "12 sauvegarde(s)".
