@@ -88,17 +88,42 @@ mtime, quasi impossible à échouer après `copyItem` réussi), `BisectionSnapsh
 
 ### Moyenne sévérité
 
-> ⚠️ **13 sur 23 corrigés le 2026-08-06** (commits `353333e` à `99138ac` :
-> crash `linkTarget`/`split`, `InstallPreview`, watcher Journaux, `ForEach`
-> fiches, confirm. `cleanDisabledMods`, règle benign, jumeau M4, RMW
+> ⚠️ **17 sur 23 corrigés** — 2026-08-06 (`353333e`→`99138ac` : crash
+> `linkTarget`/`split`, `InstallPreview`, watcher Journaux, `ForEach` fiches,
+> confirm. `cleanDisabledMods`, règle benign, jumeau M4, RMW
 > `installedModRegistry`, `steamUsername`, `setNexusApiKey`, `deleteBackup`
-> read-only, snapshot bissection). **Restent** : le rate-limit Nexus fragmenté
-> (groupe 4 — mini rate-limiter partagé à concevoir), les write-paths save hors
-> main (`VM:3117+`, refactor d'API void/Bool → async), le remariage NPC
-> (`SaveManager:396`, XML spécifique Stardew), le lock fichier (`:371/814`,
-> `NSFileCoordinator`), et quelques UX bas impact (confirmations sur actions en
-> corbeille, `pendingToggle` cancel). `VM:1811` était déjà corrigé (régression
-> print→log `cc737f1`).
+> read-only, snapshot bissection), puis `f0bb19e` et 2026-08-10 `d0a906d`.
+> `VM:1811` était déjà corrigé (régression print→log `cc737f1`).
+>
+> Le décompte « 13 sur 23 » écrit ici le 2026-08-06 (`9666217`) était périmé dans
+> l'heure : `f0bb19e` du même jour a fermé les deux UX (confirmation de
+> suppression de backup, `pendingToggle` annulé au `.onDisappear` — dans les
+> **deux** vues), et `d0a906d` a fermé le rate-limit Nexus fragmenté du groupe 4
+> (`NexusRateLimitGate`, back-off partagé consulté par chaque chemin réseau).
+> Table re-vérifiée ligne à ligne le 2026-08-11.
+>
+> **Les 6 restants** (numéros de ligne re-relevés le 2026-08-11 — ils avaient dérivé) :
+>
+> - `StarHubTHViewModel:3284/3344/3375/3386` — `deleteSave`, `duplicateSave`,
+>   `branchFromBackup`, `restoreBackup` appellent `SaveManager` **sur le main
+>   thread**. Demande un refactor d'API void/Bool → async.
+> - `SaveManager:376/826` — `updateSave`/`updateInventory` toujours sans verrou
+>   fichier (`NSFileCoordinator`).
+> - `SaveManager:401` — remariage. `cleanDivorceNPCFriendship` démote bien
+>   l'ancien conjoint (`Married`→`Friendly`, `WeddingDate` retiré, l. 485-490),
+>   mais **rien ne promeut le nouveau**. Bloqué : `~/.config/StardewValley/Saves`
+>   est vide, pas de save de test — et le XML de mariage est à mesurer, pas à
+>   deviner.
+> - `ModInstallView:665` — la boucle `fetchNexusMetadata` n'a toujours aucun
+>   throttle, et le commentaire « bounded concurrency » (l. 663) reste faux. La
+>   porte de `d0a906d` amortit _après_ le premier 429 ; elle n'empêche pas la
+>   rafale initiale d'un pack de 20 mods.
+> - `NexusUpdateChecker:424-428` — classification `lastError`. Le cas
+>   `successCount>0` est intentionnel ; seul `==0` reste trompeur.
+> - `SaveCopySheets:38/103` — `dismiss()` inconditionnel. ⛔️ Le scénario écrit
+>   plus bas (« silence total ») est **inexact** : le ViewModel affiche bien un
+>   modal d'échec (`duplicateSaveError`/`branchError`). Il ne reste que la feuille
+>   qui se ferme sur un échec, ce qui vaut « bas », pas « moyen ».
 
 | Site | Bug | Scénario |
 |------|-----|----------|
@@ -131,6 +156,13 @@ mtime, quasi impossible à échouer après `copyItem` réussi), `BisectionSnapsh
 Regroupés par thème (~40 findings). Sévérité basse = scénario rare, cosmétique, ou sans impact
 fonctionnel réel. Les sites précis sont conservés pour action ciblée.
 
+> ✅ **Les deux findings « Sécurité » ont été corrigés le 2026-08-10** :
+> l'allowlist de scheme des descriptions Nexus (`a4d7d9e` — http/https + `nxm`,
+> appliquée aux 4 points de construction de lien/image) et la validation du
+> `modId` avant interpolation dans l'URL de l'API (`0758206` —
+> `NexusRequestBuilder.isValidModId`, entier strictement positif). Ils étaient
+> restés listés comme ouverts ici jusqu'au 2026-08-11.
+>
 > ✅ **Lot parsing/encodage + localisation traité le 2026-08-11** (`a3b2e8e`, `55e5a5e`).
 > Corrigés : BOM UTF-32 (les deux boutismes), échappement des clés de
 > `I18nOutline`, `fold` sans les sauts de ligne, `replaceFirstTag` sur balise
@@ -161,7 +193,7 @@ fonctionnel réel. Les sites précis sont conservés pour action ciblée.
 - **Gels UI (main thread)** : `evaluateThaiTranslationStatus:3315` (~180k `fileExists` mods×thai), `deleteMod:4043` (`removeItem` synchrone sur gros mod), `HomeView:274` (`refresh()` à chaque `onAppear`).
 - **Parsing / encoding edge cases** : `I18nFileDecoder:54` (UTF-32 LE confondu UTF-16 LE → caractères nuls), `I18nOutline:160` (échappement `\"` conservé vs JSON déséchappé → clé orpheline), `TranslationTokens:96` (`mailCommand` sans limite de mot), `I18nOutline:127` (`depth` négatif sur JSON malformé), `I18nLocaleResolver:176` (`fold` whitespace au lieu de `whitespacesAndNewlines`), `extractTag:284` (pas de décodage entités → double-encodage), `replaceFirstTag:526` (regex `[^<]+` exige ≥1 char), regex CRLF dans `extractTag`.
 - **Localisation (chaînes hardcoded contournant `vm.L`/L10n)** : `ModConfigEditorView:223/385/404/406`, `AppChangelogView:38/41`, `MainView:501` (`NSLocalizedString` brut pour l'a11y — clé probablement absente des JSON), `ModInstallBackupsView:27` (`lowercased()` sur chaîne localisée).
-- **Sécurité (schéma URL / injection)** : `DescriptionBlockParser:343/671` (pas d'allowlist `http(s)` → `javascript:`/`file:`), `NexusUpdateChecker:599` (`modId` interpolé sans validation numérique), `LogNoise:62` (`modNamePrefix` prend « http » comme nom de mod).
+- **Sécurité (schéma URL / injection)** : ✅ `DescriptionBlockParser:343/671` (pas d'allowlist `http(s)` → `javascript:`/`file:`) — corrigé `a4d7d9e` ; ✅ `NexusUpdateChecker:599` (`modId` interpolé sans validation numérique) — corrigé `0758206` ; reste `LogNoise:62` (`modNamePrefix` prend « http » comme nom de mod).
 - **Concurrence / lifecycle** : `applyEnabledFolders:3589` (pas de guard `isApplyingProfile`), `BisectionRunner:94` (`start` sans garde `interruptedSnapshot`), `installSmapi:1863/1873` (capture `self` forte), `categoryCache:2362` (dict mutable sans lock), `loadSmapiLog:189` (timing : log de la mauvaise étape), `SmapiInstaller:72` (`@Published` muté sans main explicite).
 - **Attribution / faux négatifs** : `SmapiLogDiagnostics:328` (`modName` inclut la version → `resolveModFolder` ne matche pas), `LogNoise:121` (`warningGroupRange` header orphelin).
 - **UX / logique UI** : tri saves non localisé, `ModListView:575` (état vide affiche le label *opposé*), `DescriptionBlockParser:658` (perf O(n²) `firstIndex`), `DependencyTreeView:88` (`onTapGesture` sur rangée à boutons), `BisectionCard:155` (Yes/No sans debounce double-clic), `InstallPreview:95` (déjà en moyen).
@@ -220,6 +252,11 @@ Synthèse consolidée des 8 zones. Plusieurs recoupent des mémoires existantes
 
 ## Priorisation suggérée
 
+> 📌 **Cette section est l'instantané du 2026-08-05.** Au 2026-08-11 tout ce qu'elle
+> désigne comme urgent est corrigé, y compris le rate-limiter Nexus unifié
+> (`d0a906d`). Ce qui reste à arbitrer se lit dans la liste « les 6 restants » de
+> la section Moyenne sévérité et dans les thèmes basse sévérité non cochés.
+
 - **À corriger en premier (data-loss / crash / sécurité)** : l'injection XML SaveManager
   (#1, 2 HAUT) — helper `xmlEscape`/`xmlUnescape` ; `BisectionRunner.restoreAndStop` (désactive
   la modlist en recovery) ; `ModZipInstaller:911` (rollback manquant) ; `validateJson` vide
@@ -236,3 +273,22 @@ Synthèse consolidée des 8 zones. Plusieurs recoupent des mémoires existantes
   avait recensé 52, dont 8 hauts et 12 moyens déjà corrigés ; cette passe a élargi le périmètre
   au-delà des patterns transverses et a consolidé les moyens/bas qui n'étaient consignés nulle
   part).
+
+**État au 2026-08-11** (re-vérifié dans le code, pas déduit des messages de commit) :
+
+| Sévérité | Corrigés | Restants |
+|----------|----------|----------|
+| Haute (9) | 9 | 0 |
+| Moyenne (23) | 17 | **6** — write-paths save, verrou fichier, remariage NPC, throttle `ModInstallView`, `lastError`, `dismiss()` des feuilles |
+| Basse (~40) | lot parsing/encodage/localisation (`a3b2e8e`, `55e5a5e`) + les 2 de sécurité (`a4d7d9e`, `0758206`) | le reste des thèmes, dont 3 bloqués (voir ci-dessous) |
+
+**Bloqués sur un fait externe, pas sur du temps** : le remariage NPC (pas de save
+de test, `~/.config/StardewValley/Saves` est vide), le jeton `%revealtaste` (il
+faut la syntaxe de fin exacte côté jeu — 237 valeurs réelles en dépendent), et
+`MainView:501` (le corriger sature le vérificateur de types sur le `body` de
+`MainView` ; demande un `environmentObject` ou un découpage).
+
+> ⚠️ **Ce document se périme vite.** Il a listé comme ouverts pendant 5 jours
+> trois findings corrigés le 2026-08-10, et son décompte des moyens était faux
+> dans l'heure qui a suivi son écriture. Avant d'attaquer une ligne, passer
+> `git log -S` sur le symbole concerné — mémoire `verify-open-tasks-are-still-bugs`.
