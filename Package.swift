@@ -63,6 +63,7 @@ let package = Package(
                 "Models/ModVersionAnchorRules.swift",
                 "Models/ModVersionAnchorStore.swift",
                 "Models/InstalledModRegistry.swift",
+                "Models/SmapiUpdateRequest.swift",
                 "Models/SaveTree.swift",
                 "Models/OSJunk.swift",
                 "Models/ModDependencyStatus.swift",
@@ -283,6 +284,11 @@ let package = Package(
             name: "VersionCompareTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/VersionCompareTests"
+        ),
+        .testTarget(
+            name: "SmapiUpdateRequestTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/SmapiUpdateRequestTests"
         ),
         .testTarget(
             name: "ThaiTranslationTableTests",
