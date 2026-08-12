@@ -4,7 +4,7 @@
 "main_system" = "System Settings";
 "main_online" = "Online Services";
 "main_ready_to_play" = "Ready to play!";
-"main_launching_game" = "Launching game...";
+"main_launching_game" = "Launching game…";
 "main_launch_game" = "Launch Game";
 "main_launching" = "Loading StarHubFR…";
 "main_alert" = "Alert";
@@ -25,7 +25,7 @@
 "home_game_folder" = "Game Folder";
 "home_game_path" = "Game Path";
 "home_not_set" = "Not Set";
-"home_select_folder" = "Select Folder...";
+"home_select_folder" = "Select Folder…";
 "home_smapi_manager" = "Mod Manager (SMAPI)";
 "home_smapi_status" = "SMAPI Status";
 "home_smapi_installed" = "Installed (v%@)";
@@ -82,7 +82,7 @@
 "saves_no_backups" = "No backups found for this save";
 "saves_notes" = "Notes";
 "saves_tag" = "Tag";
-"saves_save_note" = "Type notes for this save...";
+"saves_save_note" = "Type notes for this save…";
 "saves_confirm_restore" = "Confirm Save Restore";
 "saves_confirm_restore_msg" = "Do you want to restore this save?\nThe current save will be backed up before restoring.";
 "saves_sort_last_played" = "Last Played";
@@ -129,7 +129,7 @@
 "mod_config_backups_create" = "Create Backup";
 "mod_config_backups_created" = "Backup created successfully.";
 "mod_config_backups_created_date" = "Created";
-"mod_config_backups_creating" = "Creating backup...";
+"mod_config_backups_creating" = "Creating backup…";
 "mod_config_backups_delete" = "Delete";
 "mod_config_backups_delete_failed" = "Delete failed: %@";
 "mod_config_backups_delete_confirm" = "Delete this backup? This cannot be undone.";
@@ -145,7 +145,7 @@
 "mod_config_backups_restore_warning" = "This will overwrite the selected mods' current config files. Continue?";
 "mod_config_backups_restored" = "Backup restored successfully.";
 "mod_config_backups_restore_failed" = "Restore failed: %@";
-"mod_config_backups_restoring" = "Restoring...";
+"mod_config_backups_restoring" = "Restoring…";
 "mod_config_backups_select_files" = "Select the mods to restore";
 "mod_config_backups_size" = "Size";
 "mod_config_backups_tab_title" = "Configuration Backups";
@@ -156,7 +156,7 @@
 "mods_no_mods_installed" = "No installed mods found\nPlease check your game folder";
 "mods_no_mod_found" = "No mod found for \"%@\"";
 "mods_missing_dependencies" = "Missing: %@";
-"mods_search_mods" = "Search mods...";
+"mods_search_mods" = "Search mods…";
 "mods_enabled" = "Enabled";
 "mods_disabled" = "Disabled";
 "mods_open_folder" = "Open Folder";
@@ -222,7 +222,7 @@
 "logs_filter_all" = "All";
 "logs_auto_scroll_hint" = "Auto-scroll to bottom";
 "logs_copy_all" = "Copy all visible logs";
-"logs_search_placeholder" = "Search logs...";
+"logs_search_placeholder" = "Search logs…";
 "logs_entry_count" = "%d / %d entries";
 "logs_refresh_hint" = "Reload SMAPI-latest.txt";
 "logs_copy_line" = "Copy Line";
@@ -327,11 +327,11 @@
 "settings_footer_backup" = "Create a Zip file of important data on your Desktop. Backups prevent file corruption during updates.";
 "settings_footer_appearance" = "The Developer Logs window is for inspecting SMAPI. When a mod crashes, you can copy the text to ask the developer.";
 "settings_footer_management" = "Remove all disabled mods (Mods/.X folders) to free up storage if you no longer need them.";
-"smapi_downloading" = "Downloading SMAPI...";
+"smapi_downloading" = "Downloading SMAPI…";
 "smapi_download_failed" = "Download failed: %@";
 "smapi_downloaded_file_not_found" = "Downloaded file not found";
-"smapi_extracting" = "Download complete, extracting...";
-"smapi_preparing" = "Preparing to install SMAPI...";
+"smapi_extracting" = "Download complete, extracting…";
+"smapi_preparing" = "Preparing to install SMAPI…";
 "smapi_payload_not_found" = "Payload file not found in SMAPI zip";
 "smapi_install_success" = "SMAPI installed successfully!";
 "smapi_install_error" = "Installation error: %@";
@@ -349,7 +349,7 @@
 "thaihub_title" = "Thai Translation Hub";
 "thaihub_hub_title" = "Thai Translation Hub";
 "thaihub_subtitle" = "Install supported Thai translation mods with a single click. Powered by AppleBoiy.";
-"thaihub_loading" = "Loading Thai translation mods...";
+"thaihub_loading" = "Loading Thai translation mods…";
 "thaihub_status" = "Status";
 "thaihub_reinstall" = "Reinstall";
 "thaihub_install" = "Install";
@@ -379,14 +379,14 @@
 "thaihub_thai_translation_mod" = "Thai Translation Mod";
 "profiles_title" = "Mod Profiles";
 "profiles_title_full" = "Mod Profiles";
-"profiles_add_profile" = "Add Profile...";
+"profiles_add_profile" = "Add Profile…";
 "profiles_no_profiles" = "No Mod Profiles yet";
 "profiles_active" = "Active";
 "profiles_delete_note" = "Deleting a profile will not delete your mod files.";
 "profiles_new_profile_note" = "The new profile starts with no active mods. You can configure mods later.";
 "profiles_create_new_profile" = "Create New Mod Profile";
-"profiles_profile_name_placeholder" = "Profile name...";
-"profiles_delete" = "Delete...";
+"profiles_profile_name_placeholder" = "Profile name…";
+"profiles_delete" = "Delete…";
 "profiles_save" = "Save";
 "profiles_cancel" = "Cancel";
 "profiles_manage_mods" = "Manage Mods";
@@ -401,11 +401,11 @@
 "profiles_activate" = "Activate";
 "profiles_active_label" = "Profile: %@";
 "vm_default_farmer_name" = "Farmer";
-"vm_launching_vanilla" = "Launching Stardew Valley (Vanilla)...";
+"vm_launching_vanilla" = "Launching Stardew Valley (Vanilla)…";
 "vm_launch_vanilla_success" = "Vanilla game session launched successfully";
 "vm_launch_vanilla_error" = "Could not open main game executable: %@";
 "vm_cannot_start_vanilla" = "Failed to start Vanilla game";
-"vm_launching_smapi" = "Launching Stardew Valley (SMAPI)...";
+"vm_launching_smapi" = "Launching Stardew Valley (SMAPI)…";
 "vm_launch_steam_success" = "Launched via Steam successfully";
 "vm_launch_direct_success" = "Launched game app directly successfully";
 "vm_cannot_start_direct" = "Could not start game, please verify your game folder";
@@ -433,7 +433,7 @@
 "vm_clean_mods_not_found" = "No disabled mods found";
 "vm_clean_mods_error" = "Failed to remove one or more disabled mods: %@";
 "vm_url_error" = "An error occurred while creating download URL";
-"vm_downloading_translation" = "Downloading translation: %@...";
+"vm_downloading_translation" = "Downloading translation: %@…";
 "vm_download_failed" = "Download failed: %@";
 "vm_install_thai_success" = "Thai translation installed successfully for %@!";
 "vm_unzip_error" = "An error occurred while extracting Zip into Mods folder";
@@ -664,7 +664,7 @@
 "main_changelog_read_error" = "Could not read CHANGELOG.md: %@";
 "main_changelog_missing" = "CHANGELOG.md is missing from the app bundle.";
 "mod_install_backups_count" = "%d backup(s)";
-"config_search_placeholder" = "Search settings...";
+"config_search_placeholder" = "Search settings…";
 "config_invalid_json" = "Invalid JSON format";
 "vm_nexus_dl_no_api_key" = "No Nexus API key set. Add one in Settings.";
 "vm_nexus_dl_no_valid_file" = "No downloadable file found for this mod.";
