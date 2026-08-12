@@ -73,6 +73,22 @@ struct ModVersionAnchorRulesTests {
         #expect(anchor?.nexusFacts?.fileId == 3)
     }
 
+    @Test func aReferenceReinstallWithNewFactsOverwritesTheOldOnes() {
+        // Miroir du test précédent : une réinstallation du fichier principal
+        // rafraîchit le `file_id` et la date de mise en ligne réellement posés.
+        // Garder l'ancien fait ferait reposer la règle de re-publication (lot C)
+        // sur un fichier périmé et manquer un correctif reposté sous le même
+        // numéro. Le nouveau fait l'emporte, l'ancien ne s'intercale pas.
+        let existing = ModVersionAnchor(uniqueId: "a", anchoredVersion: "1.0.0",
+                                        origin: .install, anchoredAt: before,
+                                        nexusFacts: facts(file: 3))
+        let anchor = ModVersionAnchorRules.afterInstall(
+            existing: existing, uniqueId: "a", installedVersion: "2.0.0",
+            facts: facts(file: 10), isReferenceFile: true, now: now)
+        #expect(anchor?.anchoredVersion == "2.0.0")
+        #expect(anchor?.nexusFacts?.fileId == 10, "le nouveau fait Nexus l'emporte sur l'ancien")
+    }
+
     // MARK: affirmation
 
     @Test func userAffirmationAnchorsTheSuggestedVersion() {
@@ -152,5 +168,24 @@ struct ModVersionAnchorRulesTests {
         #expect(anchor?.anchoredVersion == "2.0.0")
         #expect(anchor?.origin == .diskObserved)
         #expect(anchor?.nexusFacts?.modId == "22256", "les faits Nexus sont reportés")
+    }
+
+    @Test func aDiskChangeOverridesAUserAffirmedAnchor() {
+        // Seules les ancres `.install` sont protégées, et c'est délibéré : elles
+        // seules portent la date de fichier Nexus, irremplaçable. Une affirmation
+        // n'a aucun fait à perdre, et le manifeste est ce que SMAPI charge — quand
+        // il bouge, il est la vérité de terrain, même face au mot de
+        // l'utilisateur. Une affirmation que le disque ne contredit jamais (pas
+        // de changement) tient, elle : seul l'événement fait céder.
+        let existing = ModVersionAnchor(uniqueId: "a", anchoredVersion: "2.0.0",
+                                        origin: .userAffirmed, anchoredAt: before,
+                                        nexusFacts: nil)
+        let anchor = ModVersionAnchorRules.afterDiskChange(
+            existing: existing, uniqueId: "a",
+            previousManifestVersion: "1.0.0", currentManifestVersion: "1.5.0",
+            suggestedVersion: "1.5.0", now: now)
+        #expect(anchor?.anchoredVersion == "1.5.0")
+        #expect(anchor?.origin == .diskObserved)
+        #expect(anchor?.nexusFacts == nil, "une affirmation ne portait aucun fait à conserver")
     }
 }
