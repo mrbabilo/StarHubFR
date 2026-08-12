@@ -140,6 +140,11 @@ public enum SmapiUpdateRequest {
     /// Fusionne deux candidats strictement égaux (même statut et version).
     /// L'ensemble des UpdateKeys est l'union des deux, dédoublonnée et triée.
     /// Le manualNexusId retenu est le plus petit lexicographiquement, ou nil.
+    /// La version retenue est la plus petite chaîne lexicographiquement.
+    /// Les deux chaînes comparent égal par construction (`isNewer` est faux
+    /// dans les deux sens) ; seule compte la stabilité du choix, pas son
+    /// contenu. Sans elle, `"1.0"` et `"1.0.0"` produiraient deux requêtes
+    /// différentes selon l'ordre de parcours du disque.
     private static func merge(_ candidate: Candidate, with existing: Candidate) -> Candidate {
         let mergedKeys = Set(candidate.updateKeys + existing.updateKeys)
             .sorted()
@@ -147,10 +152,13 @@ public enum SmapiUpdateRequest {
             .compactMap { $0 }
             .sorted()
             .first
+        let version = [candidate.manifestVersion, existing.manifestVersion]
+            .sorted()
+            .first ?? candidate.manifestVersion
 
         return Candidate(
             uniqueId: candidate.uniqueId,
-            manifestVersion: candidate.manifestVersion,
+            manifestVersion: version,
             updateKeys: mergedKeys,
             isPaused: candidate.isPaused,
             manualNexusId: manualId

@@ -139,6 +139,24 @@ struct SmapiUpdateRequestTests {
         #expect(entries1[0].updateKeys == entries2[0].updateKeys)
     }
 
+    @Test func mergingVersionStringsIsOrderIndependent() {
+        // Deux versions sémantiquement égales ("1.0" et "1.0.0") mais
+        // textuellement différentes ne produisent pas deux requêtes différentes
+        // selon l'ordre du scan disque. La version retenue est la plus petite
+        // lexicographiquement.
+        let entries1 = SmapiUpdateRequest.entries(
+            from: [candidate("a", "1.0"), candidate("a", "1.0.0")],
+            anchors: [:])
+
+        let entries2 = SmapiUpdateRequest.entries(
+            from: [candidate("a", "1.0.0"), candidate("a", "1.0")],
+            anchors: [:])
+
+        // Les deux doivent produire la même version ("1.0" < "1.0.0" lexicographiquement)
+        #expect(entries1[0].installedVersion == entries2[0].installedVersion)
+        #expect(entries1[0].installedVersion == "1.0")
+    }
+
     @Test func aModWithNoIdentifierAtAllIsStillSent() {
         // smapi.io résout par UniqueID seul pour une partie du parc : c'est
         // ainsi que LovedLabels et SexyCombatIdols, sans aucune UpdateKey,
