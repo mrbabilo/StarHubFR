@@ -1,5 +1,15 @@
 import Foundation
 
+/// Résultat de la migration du registre hors du champ `nexusVersion`.
+/// Distinguer « rien à faire » de « illisible » n'est pas du zèle : cette
+/// migration répare des données réelles, et un registre qu'on n'a pas su lire
+/// doit se voir, pas se taire.
+public enum RegistryMigrationOutcome: Equatable {
+    case nothingToDo
+    case stripped(Int)
+    case registryUnreadable
+}
+
 /// Persistance des ancres, indexée par `UniqueID`.
 ///
 /// `UserDefaults` est injecté : les tests écriraient sinon dans les
@@ -55,12 +65,17 @@ public final class ModVersionAnchorStore {
     /// le type ne porte plus le champ, un aller-retour de décodage le
     /// supprimerait sans qu'on puisse le compter, ni signaler ce qu'on a fait.
     ///
-    /// - Returns: le nombre d'enregistrements effectivement nettoyés.
+    /// - Returns: `.nothingToDo` si la clé est absente ou si aucun enregistrement
+    ///   ne porte `nexusVersion` ; `.stripped(n)` si n enregistrements ont été
+    ///   nettoyés et persistés ; `.registryUnreadable` si la charge n'est pas
+    ///   parsable ou si la ré-sérialisation a échoué.
     @discardableResult
-    public static func migrateAwayFromNexusVersion(defaults: UserDefaults = .standard) -> Int {
-        guard let data = defaults.data(forKey: registryKey),
-              var json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else {
-            return 0
+    public static func migrateAwayFromNexusVersion(defaults: UserDefaults = .standard) -> RegistryMigrationOutcome {
+        guard let data = defaults.data(forKey: registryKey) else {
+            return .nothingToDo
+        }
+        guard var json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else {
+            return .registryUnreadable
         }
         var stripped = 0
         for (folder, value) in json {
@@ -69,12 +84,14 @@ public final class ModVersionAnchorStore {
             json[folder] = record
             stripped += 1
         }
-        guard stripped > 0,
-              let rewritten = try? JSONSerialization.data(withJSONObject: json) else {
-            return stripped
+        guard stripped > 0 else {
+            return .nothingToDo
+        }
+        guard let rewritten = try? JSONSerialization.data(withJSONObject: json) else {
+            return .registryUnreadable
         }
         defaults.set(rewritten, forKey: registryKey)
-        return stripped
+        return .stripped(stripped)
     }
 
     // MARK: - Privé

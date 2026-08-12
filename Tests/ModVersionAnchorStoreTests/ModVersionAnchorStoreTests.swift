@@ -71,9 +71,9 @@ struct ModVersionAnchorStoreTests {
         """
         defaults.set(Data(legacy.utf8), forKey: "installedModRegistry")
 
-        let stripped = ModVersionAnchorStore.migrateAwayFromNexusVersion(defaults: defaults)
+        let outcome = ModVersionAnchorStore.migrateAwayFromNexusVersion(defaults: defaults)
 
-        #expect(stripped == 1)
+        #expect(outcome == .stripped(1))
         let raw = defaults.data(forKey: "installedModRegistry")!
         let json = try! JSONSerialization.jsonObject(with: raw) as! [String: [String: Any]]
         #expect(json["Mod A"]?["nexusVersion"] == nil)
@@ -82,6 +82,22 @@ struct ModVersionAnchorStoreTests {
     }
 
     @Test func migrationOnAnAbsentRegistryDoesNothing() {
-        #expect(ModVersionAnchorStore.migrateAwayFromNexusVersion(defaults: freshDefaults()) == 0)
+        #expect(ModVersionAnchorStore.migrateAwayFromNexusVersion(defaults: freshDefaults()) == .nothingToDo)
+    }
+
+    @Test func migrationOnAnUnreadableRegistryReturnsUnreadable() {
+        let defaults = freshDefaults()
+        defaults.set(Data("pas du json".utf8), forKey: "installedModRegistry")
+        #expect(ModVersionAnchorStore.migrateAwayFromNexusVersion(defaults: defaults) == .registryUnreadable)
+    }
+
+    @Test func migrationOnARegistryWithoutNexusVersionReturnsNothingToDo() {
+        let defaults = freshDefaults()
+        let legacy = """
+        {"Mod A":{"version":"1.0","installedAt":700000000},
+         "Mod B":{"version":"3.0","installedAt":700000001}}
+        """
+        defaults.set(Data(legacy.utf8), forKey: "installedModRegistry")
+        #expect(ModVersionAnchorStore.migrateAwayFromNexusVersion(defaults: defaults) == .nothingToDo)
     }
 }
