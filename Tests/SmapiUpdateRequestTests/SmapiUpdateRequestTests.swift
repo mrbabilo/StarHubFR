@@ -89,6 +89,56 @@ struct SmapiUpdateRequestTests {
         #expect(entries[0].installedVersion == "2.0.0")
     }
 
+    @Test func theActiveCopyWinsEvenWhenListedFirst() {
+        // Ordre inverse du test précédent : ensemble, ils écartent une
+        // implémentation « le dernier écrit gagne », qui passerait l'un des deux.
+        let entries = SmapiUpdateRequest.entries(
+            from: [candidate("a", "1.0.0"),
+                   candidate("a", "9.9.9", paused: true)],
+            anchors: [:])
+        #expect(entries[0].installedVersion == "1.0.0")
+    }
+
+    @Test func theHighestPausedVersionWinsEvenWhenListedFirst() {
+        // Ordre inverse du test précédent : ensemble, ils écartent une
+        // implémentation « le dernier écrit gagne ».
+        let entries = SmapiUpdateRequest.entries(
+            from: [candidate("a", "2.0.0", paused: true),
+                   candidate("a", "1.0.0", paused: true)],
+            anchors: [:])
+        #expect(entries[0].installedVersion == "2.0.0")
+    }
+
+    @Test func duplicateCandidatesWithSameStatusAndVersionMergeUpdateKeys() {
+        // Deux copies identiques en statut et version : fusion des clés.
+        // Swim Mod peut être en pack et à plat avec la même version.
+        let entries = SmapiUpdateRequest.entries(
+            from: [candidate("a", "1.0", keys: ["Nexus:1", "GitHub:me/repo"]),
+                   candidate("a", "1.0", keys: ["GitHub:me/repo", "Nexus:2"])],
+            anchors: [:])
+        #expect(entries.count == 1)
+        // Union triée des deux listes
+        #expect(entries[0].updateKeys == ["GitHub:me/repo", "Nexus:1", "Nexus:2"])
+    }
+
+    @Test func mergingUpdateKeysIsOrderIndependent() {
+        // Le résultat de fusion doit être identique quel que soit l'ordre.
+        let keys1 = ["Nexus:1"]
+        let keys2 = ["GitHub:me/repo"]
+
+        let entries1 = SmapiUpdateRequest.entries(
+            from: [candidate("a", "1.0", keys: keys1),
+                   candidate("a", "1.0", keys: keys2)],
+            anchors: [:])
+
+        let entries2 = SmapiUpdateRequest.entries(
+            from: [candidate("a", "1.0", keys: keys2),
+                   candidate("a", "1.0", keys: keys1)],
+            anchors: [:])
+
+        #expect(entries1[0].updateKeys == entries2[0].updateKeys)
+    }
+
     @Test func aModWithNoIdentifierAtAllIsStillSent() {
         // smapi.io résout par UniqueID seul pour une partie du parc : c'est
         // ainsi que LovedLabels et SexyCombatIdols, sans aucune UpdateKey,

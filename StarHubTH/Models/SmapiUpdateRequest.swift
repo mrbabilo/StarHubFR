@@ -63,7 +63,9 @@ public enum SmapiUpdateRequest {
     ///
     /// Sur le parc réel, 6 `UniqueID` sont portés par deux dossiers — Swim Mod
     /// est installé en pack *et* à plat. Envoyer les deux ferait dépendre le
-    /// verdict de l'ordre de parcours du disque.
+    /// verdict de l'ordre de parcours du disque. Quand deux candidats sont
+    /// strictement égaux sur statut et version, on fusionne leurs UpdateKeys
+    /// pour garantir le déterminisme : c'est l'union, dédoublonnée, triée.
     public static func entries(from candidates: [Candidate],
                                anchors: [String: ModVersionAnchor]) -> [Entry] {
         var best: [String: Candidate] = [:]
@@ -72,8 +74,14 @@ public enum SmapiUpdateRequest {
                 best[candidate.uniqueId] = candidate
                 continue
             }
-            if prefer(candidate, over: existing) {
+            let comparison = compare(candidate, with: existing)
+            switch comparison {
+            case .prefers:
                 best[candidate.uniqueId] = candidate
+            case .merges:
+                best[candidate.uniqueId] = merge(candidate, with: existing)
+            case .keepExisting:
+                break
             }
         }
         return best.values
@@ -95,11 +103,58 @@ public enum SmapiUpdateRequest {
 
     // MARK: - Privé
 
-    /// La copie active décrit ce qui tourne ; à défaut, la plus haute version.
-    private static func prefer(_ candidate: Candidate, over existing: Candidate) -> Bool {
-        if existing.isPaused != candidate.isPaused { return !candidate.isPaused }
-        return NexusUpdateChecker.isNewer(candidate.manifestVersion,
-                                          installed: existing.manifestVersion)
+    /// Résultat de la comparaison de deux candidats avec le même UniqueID.
+    private enum Comparison {
+        case prefers      // le candidat courant remplace l'existant
+        case merges       // stricte égalité sur statut et version, fusion requise
+        case keepExisting // l'existant reste meilleur
+    }
+
+    /// Compare deux candidats pour déterminer lequel retenir.
+    /// La priorité est : (1) statut pause, (2) version, (3) fusion si égalité stricte.
+    /// La fusion garantit que les UpdateKeys de deux copies identiques ne dépendent
+    /// pas de l'ordre de parcours du disque.
+    private static func compare(_ candidate: Candidate, with existing: Candidate) -> Comparison {
+        // La copie active décrit ce qui tourne ; elle l'emporte sur la copie en pause.
+        if existing.isPaused != candidate.isPaused {
+            return !candidate.isPaused ? .prefers : .keepExisting
+        }
+
+        // Comparaison stricte des versions.
+        let candidateIsNewer = NexusUpdateChecker.isNewer(candidate.manifestVersion,
+                                                          installed: existing.manifestVersion)
+        if candidateIsNewer {
+            return .prefers
+        }
+
+        let existingIsNewer = NexusUpdateChecker.isNewer(existing.manifestVersion,
+                                                         installed: candidate.manifestVersion)
+        if existingIsNewer {
+            return .keepExisting
+        }
+
+        // Versions égales : fusion requise pour le déterminisme.
+        return .merges
+    }
+
+    /// Fusionne deux candidats strictement égaux (même statut et version).
+    /// L'ensemble des UpdateKeys est l'union des deux, dédoublonnée et triée.
+    /// Le manualNexusId retenu est le plus petit lexicographiquement, ou nil.
+    private static func merge(_ candidate: Candidate, with existing: Candidate) -> Candidate {
+        let mergedKeys = Set(candidate.updateKeys + existing.updateKeys)
+            .sorted()
+        let manualId = [candidate.manualNexusId, existing.manualNexusId]
+            .compactMap { $0 }
+            .sorted()
+            .first
+
+        return Candidate(
+            uniqueId: candidate.uniqueId,
+            manifestVersion: candidate.manifestVersion,
+            updateKeys: mergedKeys,
+            isPaused: candidate.isPaused,
+            manualNexusId: manualId
+        )
     }
 
     /// L'identifiant saisi à la main devient une `UpdateKey` synthétique —
