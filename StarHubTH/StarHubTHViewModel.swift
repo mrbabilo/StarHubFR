@@ -2738,6 +2738,47 @@ class StarHubTHViewModel: ObservableObject {
         Self.saveCustomModIds(nexusCustomModIds)
     }
 
+    /// Retient l'identifiant Nexus d'une installation venue de Nexus, quand le
+    /// manifeste installé n'en déclare aucun.
+    ///
+    /// Sans ça, l'app connaissait l'identifiant (elle venait de télécharger
+    /// depuis cette page) et le jetait : un mod dont l'auteur a oublié
+    /// `UpdateKeys` n'était plus jamais interrogé, sans le moindre signal. Sur
+    /// un parc de 966 mods, 111 étaient dans ce cas.
+    ///
+    /// Doit être appelé **avant** `reconcileManifestVersion`, qui consomme
+    /// `pendingNexusSource`. La décision elle-même vit dans
+    /// `NexusInstallIdRecording` (Core, testée).
+    ///
+    /// v1 : installations d'un seul mod. Un pack livre plusieurs dossiers pour
+    /// une seule page Nexus — les relier tous au même identifiant ferait de
+    /// chaque composant un faux candidat, avec sa propre version.
+    func recordNexusModId(_ modId: Int, installedFolderPaths: [String]) {
+        guard installedFolderPaths.count == 1,
+              let folderPath = installedFolderPaths.first else { return }
+
+        // Le dossier vient d'être installé, donc actif ; on retire quand même
+        // un point de tête pour indexer sur le nom *logique*, celui que la
+        // vérification utilise (un mod en pause est un dossier préfixé).
+        let leaf = (folderPath as NSString).lastPathComponent
+        let folderName = leaf.hasPrefix(".") ? String(leaf.dropFirst()) : leaf
+
+        let manifestPath = (folderPath as NSString).appendingPathComponent("manifest.json")
+        let updateKeys = (try? String(contentsOfFile: manifestPath, encoding: .utf8))
+            .flatMap { ManifestJSON.decode($0) }
+            .flatMap { $0.caseInsensitiveValue(forKey: "UpdateKeys") as? [String] }
+
+        guard let id = NexusInstallIdRecording.idToRecord(
+            downloadedModId: modId,
+            manifestUpdateKeys: updateKeys,
+            existingOverride: nexusCustomModIds[folderName]
+        ) else { return }
+
+        nexusCustomModIds[folderName] = id
+        Self.saveCustomModIds(nexusCustomModIds)
+        log(String(format: L(L10n.VM.nexusIdLearned), folderName, id))
+    }
+
     /// Fetches a single mod's metadata (category + latest version + summary/
     /// picture) from Nexus and applies it to the published `nexusCategories`
     /// / `nexusModExtras` maps so the mods-list badge and popover preview

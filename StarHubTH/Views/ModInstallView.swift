@@ -574,6 +574,12 @@ struct ModInstallView: View {
                             existingMods: existingMods,
                             gameDir: gameDir
                         )
+                        // Retenir l'identifiant AVANT tout le reste : c'est la
+                        // seule occasion où l'app le connaît, et
+                        // `reconcileManifestVersion` consomme
+                        // `pendingNexusSource` en le remettant à nil.
+                        self.vm.recordNexusModId(source.modId,
+                                                 installedFolderPaths: installedFolderPaths)
                         // Reconcile FIRST — it reads this mod's update entry to
                         // learn the version the checker flags on — then drop the
                         // entry from the list so it no longer appears.
