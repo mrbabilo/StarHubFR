@@ -61,6 +61,7 @@ let package = Package(
                 "Models/NexusInstallIdRecording.swift",
                 "Models/ModVersionAnchor.swift",
                 "Models/ModVersionAnchorRules.swift",
+                "Models/ModVersionAnchorStore.swift",
                 "Models/InstalledModRegistry.swift",
                 "Models/SaveTree.swift",
                 "Models/OSJunk.swift",
@@ -272,6 +273,11 @@ let package = Package(
             name: "ModVersionAnchorRulesTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ModVersionAnchorRulesTests"
+        ),
+        .testTarget(
+            name: "ModVersionAnchorStoreTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ModVersionAnchorStoreTests"
         ),
         .testTarget(
             name: "VersionCompareTests",
