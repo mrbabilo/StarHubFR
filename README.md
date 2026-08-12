@@ -44,7 +44,8 @@ Quand le jeu plante ou qu'un mod refuse de se charger, StarHubFR transforme le j
 
 ### 📦 Installation et organisation des mods
 
-*   **Glisser-déposer un `.zip`** — détection automatique de la structure (mod seul ou pack multi-composants), validation d'intégrité (anti-zip-bomb, < 500 Mo), aperçu des conflits et suggestion des dépendances manquantes.
+*   **Glisser-déposer une archive** (`.zip`, `.7z`, `.rar`) — détection automatique de la structure (mod seul ou pack multi-composants), validation d'intégrité (taille d'archive plafonnée à 500 Mo, garde anti-zip-bomb à 2 Go décompressés couvrant les trois formats, détection du vrai format par la signature du fichier et non son extension), aperçu des conflits et suggestion des dépendances manquantes.
+*   **Un fichier destiné à un autre mod s'installe au bon endroit** — certains téléchargements Nexus sont du contenu pour un framework (un sac *ItemBags*, par ex.), pas un mod autonome, et ne portent pas de `manifest.json`. L'app les reconnaît et propose de les placer où ils appartiennent, en montrant le chemin exact et en sauvegardant d'abord un fichier existant ; un mod hôte en pause est géré, et une sauvegarde qui échoue annule l'installation plutôt que d'écraser.
 *   **Activation sans déplacer de fichiers** — activez ou désactivez un mod d'un clic, ou **tous vos mods d'un coup** (barre de progression, aucune perte). Supprimez un mod ou un pack du disque après confirmation.
 *   **Profils de mods** — regroupez vos mods en plusieurs profils et basculez de l'un à l'autre en un clic.
 *   **Liste avancée** — classification automatique par type (UI, Framework, Content Patcher, Traduction, PNJ, Audio, Carte…) déduite du manifeste, qui sert aussi de repli hors ligne. Filtres par catégorie, mods non catégorisés, mods configurables ; tri par nom, auteur, version ou ordre d'activation ; pagination avec saut de page direct.
@@ -61,6 +62,20 @@ Quand le jeu plante ou qu'un mod refuse de se charger, StarHubFR transforme le j
 *   **Journal des modifications** du mod, et **arbre de dépendances transitif** avec statut (activé, désactivé, manquant), actions *Activer* / *Nexus* / *Chercher*, et navigation d'un mod à l'autre.
 *   Édition de la catégorie et de l'identifiant Nexus directement depuis le volet.
 *   Bannières mises en cache pour un affichage instantané.
+
+### 🌐 Traduction française — clé par clé
+
+Un onglet **Traduction** sur la fiche de chaque mod vous montre l'état réel de son français, là où la liste se contentait d'un « FR disponible » dès qu'un `fr.json` existait — une demi-vérité sur un mod traduit à 8 %.
+
+*   **Chaque clé sous ses deux langues** — l'anglais et le français côte à côte, avec l'état de la clé (traduit, à traduire, vide, identique à l'anglais, orphelin). Chaque filtre porte son compte, pour qu'un « Vides 3 » saute aux yeux avant même de cliquer.
+*   **Ce qui ne doit pas être traduit est visible** — une valeur mêle la phrase et les marques que le jeu lit : token Content Patcher, séparateur de dialogue, commande qui change une expression de portrait. Les traduire ou les déplacer casse le mod ; elles s'affichent en chasse fixe et en couleur, dans les deux colonnes. Plus de la moitié des valeurs en contiennent au moins une.
+*   **Les sections mises en évidence** — celles qu'un auteur a écrites dans son fichier deviennent des titres repliables, avec ce qu'il reste à y faire, et une liste permet de sauter directement à l'une.
+*   **Taux de traduction par mod** — une pastille donne le pourcentage réel : verte quand c'est complet, ambre sinon. Elle ne lit 100 % que si toutes les clés sont faites, donc un mod à une clé près lit 99 %.
+*   **Clé absente ou clé vide, la différence compte** — une clé absente retombe sur l'anglais et ne casse rien ; une clé vide n'affiche rien du tout, silencieusement. Les deux sont listées séparément, vides d'abord, car un mod à 98 % dont les 2 % restants sont vides est plus cassé qu'un mod à 60 %.
+*   **Traduction obsolète signalée** — si l'anglais a été édité plus récemment que le français, la fiche donne l'écart de date et un filtre « À revoir » les rassemble ; les clés obsolètes sont marquées dans l'onglet, l'ancien anglais barré.
+*   **Traduction perdue lors d'une mise à jour** — les mises à jour remplacent tout le dossier et les auteurs ne renvoient pas toujours les traductions communautaires. Quand une sauvegarde StarHubFR en conserve une, la fiche le dit avec sa date.
+*   **Filtre des mods entamés mais inachevés** — pour isoler le travail qui reste parmi ceux déjà commencés, noyés dans le reste.
+*   **Des fichiers lus comme leurs auteurs les écrivent** — commentaires, virgules en fin de ligne, clés sans guillemets, fins de ligne Windows (CRLF), encodages UTF-16/UTF-32/8 bits hérités : le lecteur permissif accepte ce que le jeu lui-même accepte, vérifié fichier par fichier contre sa propre bibliothèque JSON.
 
 ### ⚙️ Configuration et sauvegardes
 
