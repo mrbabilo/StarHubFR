@@ -57,7 +57,6 @@ let package = Package(
                 "Models/ThaiTranslationTable.swift",
                 "NexusUpdateChecker.swift",
                 "Models/NexusUpdateConsolidation.swift",
-                "Models/NexusUpdateMerge.swift",
                 "Models/NexusInstallIdRecording.swift",
                 "Models/ModVersionAnchor.swift",
                 "Models/ModVersionAnchorRules.swift",
@@ -255,11 +254,6 @@ let package = Package(
             name: "NexusUpdateConsolidationTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/NexusUpdateConsolidationTests"
-        ),
-        .testTarget(
-            name: "NexusUpdateMergeTests",
-            dependencies: ["StarHubTHCore"],
-            path: "Tests/NexusUpdateMergeTests"
         ),
         .testTarget(
             name: "NexusInstallIdRecordingTests",

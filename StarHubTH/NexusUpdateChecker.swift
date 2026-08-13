@@ -1,19 +1,24 @@
 import Foundation
 import Security
 
-/// Checks installed Stardew Valley mods against Nexus Mods for available updates.
+/// Client Nexus Mods pour tout ce qui n'est pas la détection de mises à jour
+/// en masse : fiche d'un mod à la demande, description, changelogs, et les
+/// caches partagés (catégories, résumés/images, liste de mises à jour connue)
+/// que ces requêtes alimentent.
 ///
-/// Uses the Nexus Mods public API (https://api-docs.nexusmods.com/). Each user
-/// must provide their own personal API key, available free of charge from
-/// `https://www.nexusmods.com/users/myaccount?tab=api`. Keys are stored in the
-/// macOS Keychain (never in UserDefaults), one per app.
+/// ⚠️ Ancien rôle disparu : ce client faisait autrefois LA détection de mises
+/// à jour, en interrogeant Nexus mod par mod (`check()`, jusqu'à ~850
+/// requêtes sur ce parc). Ce chemin a été retiré (Task 10, lot « ancrage des
+/// versions ») : `StarHubTHViewModel.checkNexusUpdates` interroge désormais
+/// `smapi.io/api/v3.0/mods` en quelques appels groupés — voir
+/// `SmapiUpdateClient`. Ce fichier ne fait plus que du ponctuel, à la demande
+/// de l'utilisateur (éditeur par mod, fiche détaillée), plus les caches que
+/// `checkNexusUpdates` lit pour afficher immédiatement au lancement.
 ///
-/// Rate-limit policy on the public API is generous for legitimate per-user use
-/// (a few thousand requests/day). To stay well under the limit, we:
-///   - Only query mods that declare a `nexus:<id>` UpdateKey.
-///   - Issue requests serially (no parallel fan-out).
-///   - Cache last-seen versions in UserDefaults keyed by Nexus mod id, so a
-///     re-check inside the dedupe window (default 1 hour) is a no-op.
+/// Utilise l'API publique de Nexus Mods (https://api-docs.nexusmods.com/).
+/// Chaque utilisateur fournit sa propre clé API personnelle, gratuite via
+/// `https://www.nexusmods.com/users/myaccount?tab=api`. Les clés sont
+/// stockées dans le Trousseau macOS (jamais dans UserDefaults), une par app.
 final class NexusUpdateChecker {
     static let shared = NexusUpdateChecker()
 
@@ -43,13 +48,17 @@ final class NexusUpdateChecker {
     /// Minimum interval between two full checks (seconds). Re-checks sooner than
     /// this return the cached result without hitting the network.
     ///
-    /// ⚠️ Mécanique dormante : les deux appelants actuels (le bouton de
-    /// `MainView` et la passe de lancement) passent `force: true`, donc cette
-    /// fenêtre ne s'applique à rien aujourd'hui. Le jour où un appel **non
-    /// forcé** apparaît — un rafraîchissement automatique à l'ouverture d'un
-    /// onglet, typiquement — elle redevient vivante, et tout ce qui estampille
-    /// `lastCheckKey` sans avoir réellement interrogé l'API rendra l'app muette
-    /// pendant une heure. N'estampiller que les passes qui ont vraiment tourné.
+    /// ⚠️ Mécanique orpheline depuis le retrait de `check()` (Task 10) : plus
+    /// personne n'écrit `lastCheckKey` ni n'appelle `hasRecentCheck()`.
+    /// `checkNexusUpdates` (le chemin smapi.io qui a remplacé `check()`) n'a
+    /// pas de fenêtre de dédoublonnage — rien ne casse à laisser ce trio
+    /// (`dedupeInterval`/`lastCheckKey`/`hasRecentCheck()`) en place, mais rien
+    /// ne le lit non plus aujourd'hui. Conservé tel quel plutôt que retiré :
+    /// non nommé par la revue qui a demandé ce nettoyage, donc traité comme un
+    /// signal à faire remonter plutôt qu'une décision à prendre ici (voir le
+    /// rapport de la Task 10). Un futur appelant non forcé le retrouvera prêt
+    /// à l'emploi — mais si ce jour n'arrive pas, ce bloc est le candidat
+    /// évident d'un prochain nettoyage.
     private let dedupeInterval: TimeInterval = 60 * 60 // 1 hour
 
     /// Guards all metadata-cache mutations (categories + extras) so
@@ -206,22 +215,6 @@ final class NexusUpdateChecker {
         var uploadedTime: Date? = nil
     }
 
-    /// Outcome of a full check pass. `partialErrorMessage` on `.success` is
-    /// non-nil when at least one candidate succeeded (so there IS real data
-    /// to merge) but the run didn't fully complete cleanly — e.g. a 429
-    /// aborted the remaining candidates after some updates were already
-    /// found, or one unrelated candidate 404'd while everything else
-    /// succeeded. Distinguishing this from a full success without losing
-    /// the gathered data is the whole point of carrying it here rather than
-    /// collapsing the run to `.error` (which would drop it) or plain
-    /// `.success` (which would silently hide that the scan was incomplete).
-    enum CheckResult {
-        case success(updates: [ModUpdate], categories: [String: Int], extras: [String: NexusModExtra], partialErrorMessage: String? = nil)
-        case noApiKey
-        case rateLimited(retryAfter: TimeInterval)
-        case error(String)
-    }
-
     /// Returns `true` if a recent cached check is still valid (within
     /// `dedupeInterval`). UI can use this to avoid showing a spinner when the
     /// result hasn't changed.
@@ -247,288 +240,6 @@ final class NexusUpdateChecker {
         withMetadataCacheLock {
             let remaining = loadCachedUpdates().filter { $0.nexusModId != nexusModId }
             saveCachedUpdates(remaining)
-        }
-    }
-
-    /// Runs a full check across all mods that declare a Nexus id.
-    /// Uses bounded concurrency (default 6 parallel requests) to stay fast
-    /// while remaining friendly with the API rate limit. Calls `completion`
-    /// exactly once on the main queue, and `progress` for each request that
-    /// completes (also on the main queue).
-    ///
-    /// - Parameters:
-    ///   - mods: All installed mods (groups are flattened automatically).
-    ///   - customModIds: Per-folder overrides `{ folderName: nexusModId }` so
-    ///     mods with no manifest id but a user-assigned one still get checked.
-    ///   - force: If `true`, ignore the dedupe window and always hit the API.
-    ///   - progress: Optional callback `(done, total)` invoked on the main thread.
-    ///   - completion: Invoked on the main thread with the result.
-    func check(mods: [ModItem],
-               customModIds: [String: String] = [:],
-               force: Bool = false,
-               progress: ((Int, Int) -> Void)? = nil,
-               completion: @escaping (CheckResult) -> Void) {
-        guard let apiKey = apiKey(), !apiKey.isEmpty else {
-            DispatchQueue.main.async { completion(.noApiKey) }
-            return
-        }
-
-        if !force, hasRecentCheck() {
-            // Replay the cached update list so the UI keeps showing updates
-            // found during the previous real check.
-            let cached = loadCachedUpdates()
-            let cats = loadCachedCategories()
-            let extras = loadCachedExtras()
-            DispatchQueue.main.async { completion(.success(updates: cached, categories: cats, extras: extras)) }
-            return
-        }
-
-        // Helper: resolve a mod's effective Nexus id (custom override first).
-        func effectiveId(_ mod: ModItem) -> String {
-            if let custom = customModIds[mod.folderName], !custom.isEmpty { return custom }
-            return mod.nexusModId
-        }
-
-        // Flatten groups and keep only mods with an effective Nexus id + known
-        // version. The effective id includes user-assigned overrides so mods
-        // that lack a manifest `nexus:` key but were manually linked are still
-        // checked for updates.
-        // `installedFileDate` (on-disk manifest mod date) is carried so a
-        // same-version but newer Nexus upload is still flagged as an update.
-        var candidates: [(modId: String, name: String, version: String, installedFileDate: Date?)] = []
-        for mod in mods {
-            if mod.isGroup, let children = mod.children {
-                for child in children where !effectiveId(child).isEmpty && child.version != "Unknown" {
-                    candidates.append((effectiveId(child), child.name, child.version, child.installedFileDate))
-                }
-            } else if !effectiveId(mod).isEmpty && mod.version != "Unknown" {
-                candidates.append((effectiveId(mod), mod.name, mod.version, mod.installedFileDate))
-            }
-        }
-
-        // De-duplicate by Nexus id. A multi-mod pack (e.g. Swim Mod) ships
-        // several children that all reference the SAME Nexus mod id via
-        // `@variant` UpdateKeys (`Nexus:23169`, `Nexus:23169@SwimItems`, …).
-        // Each child has its OWN version (the SMAPI core at 1.9.0, a CP addon
-        // at 1.0.2, …). Keeping the first-encountered child (which sorts
-        // alphabetically — `[CP]` before `Swim`) would pick the lowest
-        // version and flag a permanent false-positive update. Instead, keep
-        // the candidate with the HIGHEST version per mod id — that's the one
-        // closest to the mod's main Nexus version.
-        var bestPerMod: [String: (modId: String, name: String, version: String, installedFileDate: Date?)] = [:]
-        for cand in candidates {
-            if let existing = bestPerMod[cand.modId] {
-                if Self.isNewer(cand.version, installed: existing.version) {
-                    bestPerMod[cand.modId] = cand
-                }
-            } else {
-                bestPerMod[cand.modId] = cand
-            }
-        }
-        candidates = bestPerMod.values.map { $0 }
-        guard !candidates.isEmpty else {
-            // Pas de tampon `lastCheckKey` ici : il signifie « une vérification
-            // a eu lieu », et cette passe n'a interrogé personne. L'estampiller
-            // ferait mentir `hasRecentCheck()`, qui court-circuiterait alors une
-            // passe non forcée pendant une heure — sans que rien n'ait jamais
-            // été vérifié. Ressortir ici est gratuit : aucun réseau.
-            DispatchQueue.main.async {
-                // Aucun candidat ne veut pas dire « aucune mise à jour » : la
-                // liste des mods peut ne pas être encore scannée. Rendre `[]`
-                // ici vidait l'écran des mises à jour alors qu'aucune n'avait
-                // été installée. On rejoue ce qu'on savait.
-                completion(.success(updates: self.loadCachedUpdates(),
-                                    categories: self.loadCachedCategories(),
-                                    extras: self.loadCachedExtras()))
-            }
-            return
-        }
-
-        let total = candidates.count
-        // Tous les candidats de cette passe, y compris ceux qu'un 429 empêchera
-        // d'être interrogés : `NexusUpdateMerge` s'en sert pour purger les mods
-        // qui ne sont plus installés et pour rafraîchir la version installée
-        // d'une ligne conservée.
-        let installedVersionByModId = Dictionary(
-            candidates.map { ($0.modId, $0.version) },
-            uniquingKeysWith: { first, _ in first }
-        )
-        DispatchQueue.main.async { progress?(0, total) }
-
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            guard let self = self else { return }
-
-            self.metadataCacheLock.lock()
-            let startGeneration = self.metadataGeneration
-            self.metadataCacheLock.unlock()
-
-            // Thread-safe accumulators shared across concurrent requests.
-            let lock = NSLock()
-            var updates: [ModUpdate] = []
-            // `categories` is seeded from the existing cache so that a partial
-            // run (aborted by rate-limit) still preserves older lookups and so
-            // that newly fetched ids just overwrite their previous entry.
-            var categories: [String: Int] = self.loadCachedCategories()
-            // Same seeding rationale as `categories` — a partial run keeps
-            // whatever extras were already known.
-            var extras: [String: NexusModExtra] = self.loadCachedExtras()
-            var lastError: String?
-            // Les candidats dont la requête a abouti, mise à jour ou non. C'est
-            // ce qui distingue « à jour » (ligne à retirer) de « pas regardé »
-            // (ligne à conserver) — voir `NexusUpdateMerge`.
-            var completedModIds: Set<String> = []
-            var done = 0
-            var aborted = false
-            // Counts candidates that actually completed successfully, so the
-            // final classification below can tell "some real data was
-            // gathered" apart from "nothing succeeded at all" — see
-            // `CheckResult.success(partialErrorMessage:)`.
-            var successCount = 0
-
-            // Bounded concurrency: allow up to `maxConcurrent` in-flight requests.
-            // 6 is a sweet spot — fast (150 mods in ~15s) yet gentle on the API.
-            let maxConcurrent = 6
-            let concurrencyLimiter = DispatchSemaphore(value: maxConcurrent)
-            let group = DispatchGroup()
-
-            for candidate in candidates {
-                // If a hard rate-limit came back, stop scheduling new requests.
-                lock.lock()
-                let shouldStop = aborted
-                lock.unlock()
-                if shouldStop { break }
-
-                concurrencyLimiter.wait()
-                group.enter()
-
-                // Capture per-request context to avoid races on `candidate`.
-                let modId = candidate.modId
-                let modName = candidate.name
-                let installedVer = candidate.version
-                let installedFileDate = candidate.installedFileDate
-
-                self.fetchModInfo(modId: modId, apiKey: apiKey) { result in
-                    defer {
-                        concurrencyLimiter.signal()
-                        group.leave()
-                    }
-
-                    lock.lock()
-                    switch result {
-                    case .success(let latest, let catId, let extra, let uploaded):
-                        successCount += 1
-                        completedModIds.insert(modId)
-                        // Record the category for every successful fetch,
-                        // whether or not the mod has an update. This is what
-                        // powers the per-category filter in the mods list.
-                        if let cid = catId, cid > 0 {
-                            categories[modId] = cid
-                        }
-                        // Same rationale for extras — recorded for every
-                        // successful fetch so the popover preview works even
-                        // for mods with no available update. `extra` already
-                        // carries the latest version + upload date (baked in by
-                        // fetchModInfo), so a pack can display its Nexus version.
-                        extras[modId] = extra
-                        // An update is available when:
-                        //  (a) the Nexus version is strictly newer than the
-                        //      installed one, OR
-                        //  (b) the versions are identical BUT the Nexus upload
-                        //      is more recent than the local manifest file date
-                        //      (same-version re-upload — the installed copy is
-                        //      stale and should be re-downloaded).
-                        let versionBumped = Self.isNewer(latest, installed: installedVer)
-                        let sameVersionNewerFile = !versionBumped
-                            && Self.compare(latest, installedVer) == .orderedSame
-                            && Self.isNexusUploadNewer(uploaded, than: installedFileDate)
-                        if versionBumped || sameVersionNewerFile {
-                            updates.append(ModUpdate(
-                                name: modName,
-                                installedVersion: installedVer,
-                                latestVersion: latest,
-                                nexusModId: modId,
-                                url: "https://www.nexusmods.com/\(NexusRequestBuilder.gameDomain)/mods/\(modId)",
-                                uploadedTime: uploaded
-                            ))
-                        }
-                    case .rateLimited(let retry):
-                        lastError = "rate_limited:\(retry)"
-                        // Stop scheduling further requests after a 429.
-                        aborted = true
-                    case .failure(let msg):
-                        lastError = msg
-                    }
-                    done += 1
-                    let snapshotDone = done
-                    lock.unlock()
-
-                    DispatchQueue.main.async { progress?(snapshotDone, total) }
-                }
-            }
-
-            // Wait for all in-flight requests to drain.
-            group.wait()
-
-            // Persist the merged category + extras maps so the mods-list
-            // filter and popover preview can show data even before the user
-            // re-runs a check. Lock to avoid racing with a concurrent
-            // fetchSingleMod write, and to check `metadataGeneration`
-            // atomically with the write itself.
-            self.metadataCacheLock.lock()
-            let staleGeneration = self.metadataGeneration != startGeneration
-            var mergedCats = self.loadCachedCategories()
-            var mergedExtras = self.loadCachedExtras()
-            let cachedUpdatesBefore = self.loadCachedUpdates()
-            if staleGeneration {
-                // The API key was cleared mid-check — this run's results were
-                // fetched under an account that no longer applies. Discard
-                // them instead of merging them back over whatever the clear
-                // just removed.
-                self.metadataCacheLock.unlock()
-            } else {
-                UserDefaults.standard.set(Date(), forKey: self.lastCheckKey)
-                // Merge with any categories/extras fetched by on-demand calls
-                // while this check was running, so we don't clobber them.
-                for (k, v) in categories { mergedCats[k] = v }
-                self.saveCachedCategories(mergedCats)
-                for (k, v) in extras { mergedExtras[k] = v }
-                self.saveCachedExtras(mergedExtras)
-                self.metadataCacheLock.unlock()
-            }
-            // Une passe partielle ne rapporte que les mods qu'elle a pu
-            // interroger : la livrer telle quelle effacerait les mises à jour
-            // des autres, à l'écran comme dans le cache.
-            let mergedUpdates = NexusUpdateMerge.merge(
-                cached: cachedUpdatesBefore,
-                found: updates,
-                completedModIds: completedModIds,
-                installedVersionByModId: installedVersionByModId
-            )
-            let finalResult: CheckResult
-            if staleGeneration {
-                finalResult = .noApiKey
-            } else if successCount > 0 {
-                // At least one candidate produced real data — always
-                // deliver it as `.success` (so the caller merges it) even
-                // when the run didn't fully complete cleanly. Losing this
-                // data to `.error`/`.rateLimited` just because one other
-                // candidate 404'd, or because a 429 cut the run short after
-                // some updates were already found, is exactly the bug this
-                // branch avoids.
-                self.saveCachedUpdates(mergedUpdates)
-                finalResult = .success(updates: mergedUpdates, categories: mergedCats, extras: mergedExtras, partialErrorMessage: lastError)
-            } else if let err = lastError {
-                if err.hasPrefix("rate_limited:") {
-                    let retry = TimeInterval(err.split(separator: ":").last ?? "0") ?? 0
-                    finalResult = .rateLimited(retryAfter: retry)
-                } else {
-                    finalResult = .error(err)
-                }
-            } else {
-                self.saveCachedUpdates(mergedUpdates)
-                finalResult = .success(updates: mergedUpdates, categories: mergedCats, extras: mergedExtras)
-            }
-            DispatchQueue.main.async { completion(finalResult) }
         }
     }
 
