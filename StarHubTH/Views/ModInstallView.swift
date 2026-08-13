@@ -580,6 +580,11 @@ struct ModInstallView: View {
                         // `pendingNexusSource` en le remettant à nil.
                         self.vm.recordNexusModId(source.modId,
                                                  installedFolderPaths: installedFolderPaths)
+                        // L'installation est le seul instant où l'app sait avec
+                        // certitude ce qui est posé. `isReferenceFile: true` :
+                        // le téléchargement intégré et les liens `nxm://` ne
+                        // servent aujourd'hui que le fichier principal.
+                        self.vm.anchorInstalledMods(installedFolderPaths: installedFolderPaths)
                         // Reconcile FIRST — it reads this mod's update entry to
                         // learn the version the checker flags on — then drop the
                         // entry from the list so it no longer appears.

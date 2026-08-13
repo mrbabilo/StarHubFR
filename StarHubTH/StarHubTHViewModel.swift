@@ -52,6 +52,10 @@ class StarHubTHViewModel: ObservableObject {
 
     /// Mods with an available update on Nexus Mods (from last user-triggered check).
     @Published var nexusUpdates: [NexusUpdateChecker.ModUpdate] = []
+    /// Pourquoi un mod n'a pas pu être vérifié, par `UniqueID`. 115 mods du
+    /// parc réel en portent un motif ; ils étaient jusqu'ici indistinguables
+    /// à l'écran d'un mod vérifié et à jour.
+    @Published private(set) var unverifiableMods: [String: SmapiUpdateResponse.Blocker] = [:]
     /// True while a Nexus check is in flight.
     @Published var isCheckingNexusUpdates: Bool = false
     /// Last error message from a Nexus check (nil = none / not run yet).
@@ -933,6 +937,33 @@ class StarHubTHViewModel: ObservableObject {
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self else { return }
 
+            // Le champ `nexusVersion` du registre affirmait une version installée
+            // que rien n'attestait. On le retire une fois pour toutes, avant que
+            // rien d'autre ne touche le registre ; ce que l'app affirme vit
+            // désormais dans les ancres.
+            //
+            // Hors du fil principal comme le reste de cette étape : c'est une
+            // lecture UserDefaults suivie d'une désérialisation JSON complète du
+            // registre (jusqu'à ~900 entrées), pas le genre de travail que le
+            // commentaire au-dessus de `performInitialLoad` veut voir bloquer le
+            // premier rendu de l'overlay.
+            //
+            // Un registre illisible se signale au lieu de se taire : c'est un
+            // filet de récupération, pas un cache. Sans cette branche, un registre
+            // corrompu ne serait jamais migré et rien ne le dirait. Naturellement
+            // idempotente (rien à retirer une fois fait) : pas besoin d'un drapeau
+            // UserDefaults dédié comme la migration voisine.
+            switch ModVersionAnchorStore.migrateAwayFromNexusVersion() {
+            case .stripped(let count):
+                self.log("Registre nettoyé : \(count) entrées portaient une version Nexus non constatée",
+                    level: .info)
+            case .registryUnreadable:
+                self.log("Registre des mods illisible : la migration n'a pas pu retirer les versions Nexus non constatées",
+                    level: .warning)
+            case .nothingToDo:
+                break
+            }
+
             // Step 1 — Registry: warm the in-memory cache once. This is the
             // single JSON decode from UserDefaults that every subsequent
             // read depends on. Cheap (cached after this), but explicit so
@@ -1237,6 +1268,7 @@ class StarHubTHViewModel: ObservableObject {
             var description = ""
             var nexusUrl = ""
             var nexusModId = ""
+            var updateKeys: [String] = []
             var dependencies: [ModDependency] = []
 
             // mtime-keyed decode cache: avoids re-reading and re-parsing every
@@ -1261,10 +1293,9 @@ class StarHubTHViewModel: ObservableObject {
                 if let mDesc = cached.caseInsensitiveValue(forKey: "Description") as? String { description = mDesc }
 
                 dependencies = ModDependencyParser.parse(manifest: cached)
+                updateKeys = cached.caseInsensitiveValue(forKey: "UpdateKeys") as? [String] ?? []
 
-                if let nexus = ModManifest.parseNexusId(
-                    fromUpdateKeys: cached.caseInsensitiveValue(forKey: "UpdateKeys") as? [String]
-                ) {
+                if let nexus = ModManifest.parseNexusId(fromUpdateKeys: updateKeys) {
                     nexusModId = nexus.id
                     nexusUrl = nexus.url
                 }
@@ -1299,13 +1330,12 @@ class StarHubTHViewModel: ObservableObject {
                 if let mDesc = json.caseInsensitiveValue(forKey: "Description") as? String { description = mDesc }
 
                 dependencies = ModDependencyParser.parse(manifest: json)
+                updateKeys = json.caseInsensitiveValue(forKey: "UpdateKeys") as? [String] ?? []
 
                 // Reuse the shared parser so scanning stays in sync with
                 // `ModManifest.init` (single source of truth for the
                 // `nexus:<id>[@variant]` UpdateKey convention).
-                if let nexus = ModManifest.parseNexusId(
-                    fromUpdateKeys: json.caseInsensitiveValue(forKey: "UpdateKeys") as? [String]
-                ) {
+                if let nexus = ModManifest.parseNexusId(fromUpdateKeys: updateKeys) {
                     nexusModId = nexus.id
                     nexusUrl = nexus.url
                 }
@@ -1333,6 +1363,7 @@ class StarHubTHViewModel: ObservableObject {
                 description: description,
                 nexusUrl: nexusUrl,
                 nexusModId: nexusModId,
+                updateKeys: updateKeys,
                 isEnabled: isEnabled,
                 dependencies: dependencies,
                 installedFileDate: installedFileDate,
@@ -2378,76 +2409,146 @@ class StarHubTHViewModel: ObservableObject {
         nexusCheckError = nil
     }
 
-    /// Triggers a Nexus Mods update check across all installed mods.
-    /// `force` bypasses the dedupe window. Updates `nexusUpdates`,
-    /// `isCheckingNexusUpdates`, `nexusCheckProgress`, `nexusCheckError`,
-    /// and `nexusCategories`.
+    /// Demande à smapi.io, en un appel groupé, s'il existe plus récent.
+    ///
+    /// L'app ne compare plus de numéros : smapi.io le fait, en tenant compte
+    /// des `UpdateKeys` du mod (Nexus, GitHub, CurseForge, ModDrop) et en
+    /// jugeant chaque composant d'un pack sur *sa* version. Ce que l'app
+    /// fournit, c'est la version qu'elle **affirme** installée — d'ancre s'il
+    /// y en a une, de manifest sinon.
     func checkNexusUpdates(force: Bool = false) {
         guard !isCheckingNexusUpdates else { return }
         isCheckingNexusUpdates = true
         nexusCheckError = nil
         nexusCheckProgress = nil
-        log("Nexus update check started", level: .info)
+        log("Vérification des mises à jour démarrée", level: .info)
 
-        NexusUpdateChecker.shared.check(
-            mods: mods,
-            customModIds: nexusCustomModIds,
-            force: force,
+        let anchors = anchorStore.all()
+        let candidates = allInstalledMods().map { mod in
+            SmapiUpdateRequest.Candidate(
+                uniqueId: mod.uniqueId,
+                manifestVersion: mod.version,
+                updateKeys: mod.updateKeys,
+                isPaused: !mod.isEnabled,
+                manualNexusId: nexusCustomModIds[mod.folderName])
+        }
+        let entries = SmapiUpdateRequest.entries(from: candidates, anchors: anchors)
+
+        SmapiUpdateClient.shared.fetch(
+            entries: entries,
+            gameVersion: smapiDiagnostics?.gameVersion ?? "1.6.15",
             progress: { [weak self] done, total in
-                // Throttle: only publish when progress advances by ≥5% or on
-                // the final request. This avoids a render storm (the VM is a
-                // shared ObservableObject) while keeping the progress bar
-                // responsive.
-                guard let self = self else { return }
-                let lastDone = self.nexusCheckProgress?.done ?? 0
-                let pct = total > 0 ? Double(done - lastDone) / Double(total) : 1
-                if done == total || pct >= 0.05 {
-                    self.nexusCheckProgress = (done, total)
+                self?.nexusCheckProgress = (done, total)
+            },
+            completion: { [weak self] result in
+                guard let self else { return }
+                self.isCheckingNexusUpdates = false
+                self.nexusCheckProgress = nil
+                switch result {
+                case .success(let mods):
+                    self.applySmapiResults(mods, entries: entries)
+                case .failure(let failure):
+                    // On ne vide pas la liste : une panne réseau n'est pas une
+                    // preuve que les mises à jour connues ont disparu.
+                    self.nexusCheckError = "\(failure)"
+                    self.log("Vérification des mises à jour en échec : \(failure)", level: .warning)
                 }
+            })
+    }
+
+    /// Transforme les verdicts de smapi.io en lignes affichables, et retient
+    /// les motifs de non-vérifiabilité.
+    private func applySmapiResults(_ mods: [SmapiUpdateResponse.Mod],
+                                   entries: [SmapiUpdateRequest.Entry]) {
+        let assertedVersion = Dictionary(entries.map { ($0.id, $0.installedVersion) },
+                                         uniquingKeysWith: { first, _ in first })
+        var updates: [NexusUpdateChecker.ModUpdate] = []
+        var blockers: [String: SmapiUpdateResponse.Blocker] = [:]
+
+        for mod in mods {
+            if let first = mod.errors.first {
+                blockers[mod.id] = SmapiUpdateResponse.blocker(for: first)
             }
-        ) { [weak self] result in
-            guard let self = self else { return }
-            self.isCheckingNexusUpdates = false
-            self.nexusCheckProgress = nil
-            switch result {
-            case .success(let updates, let categories, let extras, let partialErrorMessage):
-                // Consolidate per-pack: a pack whose several children each
-                // have an update is shown as a single row, using the highest
-                // latest version among them (ties broken by the most recent
-                // Nexus upload date). Standalone mods pass through unchanged.
-                self.nexusUpdates = self.consolidateUpdatesByPack(updates)
-                // Merge so a partial/aborted run never erases previously
-                // fetched categories. The checker already merged its prior
-                // cache, but this guards against any race.
-                if !categories.isEmpty {
-                    var merged = self.nexusCategories
-                    for (k, v) in categories { merged[k] = v }
-                    self.nexusCategories = merged
-                }
-                // Same merge rationale for extras.
-                if !extras.isEmpty {
-                    var mergedExtras = self.nexusModExtras
-                    for (k, v) in extras { mergedExtras[k] = v }
-                    self.nexusModExtras = mergedExtras
-                }
-                if let partialErrorMessage = partialErrorMessage {
-                    // Some candidates succeeded (data above IS merged) but
-                    // others failed or were cut short by a rate limit — flag
-                    // it without discarding what was actually found.
-                    self.nexusCheckError = partialErrorMessage.hasPrefix("rate_limited:") ? "rate_limited" : partialErrorMessage
-                    self.log("Nexus check: \(updates.count) update(s), \(categories.count) categor(ies) — partial run, some candidates failed: \(partialErrorMessage)", level: .warning)
-                } else {
-                    self.log("Nexus check: \(updates.count) update(s), \(categories.count) categor(ies)", level: .info)
-                }
-            case .noApiKey:
-                self.nexusCheckError = "no_api_key"
-                self.nexusUpdates = []
-            case .rateLimited(let retry):
-                self.nexusCheckError = "rate_limited"
-                self.log("Nexus check rate-limited, retry in \(Int(retry))s", level: .warning)
-            case .error(let msg):
-                self.nexusCheckError = msg
-                self.log("Nexus check error: \(msg)", level: .error)
+            guard let suggested = mod.suggestedUpdate else { continue }
+            updates.append(NexusUpdateChecker.ModUpdate(
+                name: mod.metadata?.name ?? mod.id,
+                installedVersion: assertedVersion[mod.id] ?? "",
+                latestVersion: suggested.version,
+                nexusModId: mod.metadata?.nexusID.map(String.init) ?? mod.id,
+                url: suggested.url ?? "",
+                uploadedTime: nil))
+        }
+
+        // Un mod ABSENT de la réponse n'a pas de verdict — il n'est pas « à
+        // jour ». Le client rend ce qui a abouti même quand un lot échoue :
+        // sur 7 lots, un 503 au quatrième laisse ~510 mods sans réponse.
+        // Les traiter comme confirmés serait le défaut d'origine sous une
+        // autre forme. On conserve donc leur ligne précédente.
+        //
+        // `ModUpdate.id` (= `nexusModId`) porte l'identifiant Nexus quand
+        // smapi.io le connaît, l'`UniqueID` sinon — c'est ce qu'`updates`
+        // vient de construire juste au-dessus. Une ligne précédente peut
+        // porter l'une ou l'autre forme selon ce que le check antérieur avait
+        // appris ; `answered` doit donc couvrir les deux, sous peine de
+        // considérer répondu un mod qui, cette fois, ne l'a en fait pas été
+        // (et inversement, de dupliquer sa ligne).
+        let answered = Set(mods.map(\.id))
+            .union(mods.compactMap { $0.metadata?.nexusID.map(String.init) })
+        let unanswered = nexusUpdates.filter { !answered.contains($0.id) }
+
+        nexusUpdates = (updates + unanswered)
+            .sorted { $0.name.lowercased() < $1.name.lowercased() }
+        unverifiableMods = blockers
+
+        let missing = entries.count - mods.count
+        if missing > 0 {
+            log("Vérification incomplète : \(mods.count) mods sur \(entries.count) ont répondu ; "
+                + "\(unanswered.count) lignes conservées faute de verdict",
+                level: .warning)
+        }
+        log("Mises à jour : \(updates.count) sur \(mods.count) mods interrogés, \(blockers.count) non vérifiables",
+            level: .info)
+    }
+
+    /// « Je l'ai déjà » : l'utilisateur affirme avoir la version suggérée.
+    func affirmInstalled(uniqueId: String, version: String) {
+        anchorStore.put(ModVersionAnchorRules.afterUserAffirmation(
+            uniqueId: uniqueId, version: version, now: Date()))
+        nexusUpdates.removeAll { $0.name == uniqueId || $0.nexusModId == uniqueId }
+    }
+
+    /// Pose une ancre `.install` pour chaque mod que l'installation vient de
+    /// poser. C'est le seul moment où l'app sait avec certitude ce qui est sur
+    /// le disque.
+    func anchorInstalledMods(installedFolderPaths: [String]) {
+        let now = Date()
+        for path in installedFolderPaths {
+            let manifestPath = (path as NSString).appendingPathComponent("manifest.json")
+            // `FileManager.contents` + `String(data:encoding:)` plutôt que
+            // `try? String(contentsOfFile:)` : même échec silencieux sur un
+            // fichier illisible, sans ajouter de `try?` au cliquet des
+            // conventions (§7.1 — déjà à sa base sur ce dépôt).
+            guard let data = FileManager.default.contents(atPath: manifestPath),
+                  let raw = String(data: data, encoding: .utf8),
+                  let manifest = ManifestJSON.decode(raw),
+                  let uniqueId = manifest.caseInsensitiveValue(forKey: "UniqueID") as? String,
+                  !uniqueId.isEmpty,
+                  let version = manifest.caseInsensitiveValue(forKey: "Version") as? String
+            else { continue }
+            // `facts: nil` — le lot A ne va pas chercher `files.json`, donc il
+            // ne connaît ni le `file_id` posé ni sa date de mise en ligne.
+            // Inventer ces valeurs ferait déclencher à tort la règle de
+            // re-publication du lot C sur toute page mise à jour après
+            // l'installation. La spec §5.4 le dit : « ailleurs, on ne peut
+            // rien dire, et on ne dit rien. »
+            if let anchor = ModVersionAnchorRules.afterInstall(
+                existing: anchorStore.anchor(for: uniqueId),
+                uniqueId: uniqueId,
+                installedVersion: version,
+                facts: nil,
+                isReferenceFile: true,
+                now: now) {
+                anchorStore.put(anchor)
             }
         }
     }
@@ -2959,6 +3060,9 @@ class StarHubTHViewModel: ObservableObject {
 
     // MARK: - Custom override persistence
 
+    /// Ce que l'app affirme avoir installé, par `UniqueID`.
+    let anchorStore = ModVersionAnchorStore()
+
     private static let customCategoriesKey = "nexusCustomCategories"
     private static let customModIdsKey = "nexusCustomModIds"
 
@@ -3137,6 +3241,13 @@ class StarHubTHViewModel: ObservableObject {
     /// clean `Date()` instead of the unreliable archive packaging date.
     private static let registryMigrationV2Key = "registryMigrationV2Done"
 
+    /// Tous les mods, packs aplatis en leurs composants. Réutilise
+    /// `flattenedMods` (module Core testé) plutôt que de réécrire le
+    /// dépliage une 23e fois — voir son commentaire pour l'historique.
+    private func allInstalledMods() -> [ModItem] {
+        mods.flattenedMods
+    }
+
     private func syncInstalledModRegistry(scannedMods: [ModItem]) {
         // Flatten groups into individual mods so pack children are tracked too.
         let allMods = scannedMods.flatMap { mod -> [ModItem] in
@@ -3173,6 +3284,10 @@ class StarHubTHViewModel: ObservableObject {
             registry = synced
             if wasEmpty && !registry.isEmpty { rebuiltCount = registry.count }
         }
+
+        // Un mod supprimé ne doit pas laisser son affirmation derrière lui :
+        // réinstallé plus tard, il hériterait d'une version qu'il n'a pas.
+        anchorStore.pruneAnchors(keeping: Set(allMods.map(\.uniqueId).filter { !$0.isEmpty }))
 
         if wasEmpty && rebuiltCount > 0 {
             self.log(

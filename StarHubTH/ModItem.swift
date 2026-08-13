@@ -30,6 +30,10 @@ public struct ModItem: Identifiable, Equatable, Sendable {
     /// Numeric Nexus Mods mod id parsed from `UpdateKeys: ["nexus:191"]` in the
     /// mod manifest. Empty when the mod doesn't declare a Nexus update key.
     public let nexusModId: String
+    /// `UpdateKeys` bruts du manifest (`["Nexus:191", "GitHub:auteur/mod"]`,
+    /// etc.) — ce que smapi.io compare lui-même. Vide quand le manifest n'en
+    /// déclare aucune.
+    public let updateKeys: [String]
     public var isEnabled: Bool
     public let dependencies: [ModDependency]
     public var children: [ModItem]?
@@ -62,6 +66,7 @@ public struct ModItem: Identifiable, Equatable, Sendable {
         description: String,
         nexusUrl: String,
         nexusModId: String,
+        updateKeys: [String] = [],
         isEnabled: Bool,
         dependencies: [ModDependency],
         children: [ModItem]? = nil,
@@ -78,6 +83,7 @@ public struct ModItem: Identifiable, Equatable, Sendable {
         self.description = description
         self.nexusUrl = nexusUrl
         self.nexusModId = nexusModId
+        self.updateKeys = updateKeys
         self.isEnabled = isEnabled
         self.dependencies = dependencies
         self.children = children
