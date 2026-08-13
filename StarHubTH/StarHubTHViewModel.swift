@@ -2450,7 +2450,16 @@ class StarHubTHViewModel: ObservableObject {
                 case .failure(let failure):
                     // On ne vide pas la liste : une panne réseau n'est pas une
                     // preuve que les mises à jour connues ont disparu.
-                    self.nexusCheckError = "\(failure)"
+                    //
+                    // `"rate_limited"` est le seul code que `MainView` traduit
+                    // en message dédié (les autres tombent sur le message
+                    // générique) : un 429 mérite ce traitement particulier,
+                    // les autres échecs gardent leur description brute.
+                    if case .http(429) = failure {
+                        self.nexusCheckError = "rate_limited"
+                    } else {
+                        self.nexusCheckError = "\(failure)"
+                    }
                     self.log("Vérification des mises à jour en échec : \(failure)", level: .warning)
                 }
             })
