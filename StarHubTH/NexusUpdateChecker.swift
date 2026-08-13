@@ -49,9 +49,11 @@ final class NexusUpdateChecker {
     /// this return the cached result without hitting the network.
     ///
     /// ⚠️ Mécanique orpheline depuis le retrait de `check()` (Task 10) : plus
-    /// personne n'écrit `lastCheckKey` ni n'appelle `hasRecentCheck()`.
-    /// `checkNexusUpdates` (le chemin smapi.io qui a remplacé `check()`) n'a
-    /// pas de fenêtre de dédoublonnage — rien ne casse à laisser ce trio
+    /// personne n'estampille `lastCheckKey` (seule `clearApiKey()` le purge,
+    /// par précaution, sans jamais y écrire de date fraîche) ni n'appelle
+    /// `hasRecentCheck()`. `checkNexusUpdates` (le chemin smapi.io qui a
+    /// remplacé `check()`) n'a pas de fenêtre de dédoublonnage — rien ne casse
+    /// à laisser ce trio
     /// (`dedupeInterval`/`lastCheckKey`/`hasRecentCheck()`) en place, mais rien
     /// ne le lit non plus aujourd'hui. Conservé tel quel plutôt que retiré :
     /// non nommé par la revue qui a demandé ce nettoyage, donc traité comme un
