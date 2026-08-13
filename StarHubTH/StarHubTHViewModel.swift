@@ -1324,26 +1324,11 @@ class StarHubTHViewModel: ObservableObject {
             }
         }
 
-            // Effective version: use the registry's Nexus version when it is
-            // newer than the manifest's. Some authors forget to bump the
-            // Version field, so the manifest is stale even after installing the
-            // latest file. By resolving here, every view in the app (mod list,
-            // detail pane, sort, search, etc.) displays the authoritative
-            // version without ever modifying the manifest.json on disk.
-            let effectiveVersion: String = {
-                if let nexusVer = installedModNexusVersion(for: resolvedFolderName),
-                   !nexusVer.isEmpty,
-                   NexusUpdateChecker.isNewer(nexusVer, installed: version) {
-                    return nexusVer
-                }
-                return version
-            }()
-
             return ModItem(
                 uniqueId: uniqueId,
                 name: name,
                 folderName: relativePath.isEmpty ? logicalLeaf : relativePath,
-                version: effectiveVersion,
+                version: version,
                 author: author,
                 description: description,
                 nexusUrl: nexusUrl,
@@ -2934,10 +2919,9 @@ class StarHubTHViewModel: ObservableObject {
     /// After a Nexus-sourced install, log the version reconciliation outcome
     /// for the just-installed mod. Some mod authors forget to bump the manifest
     /// Version field, so the installed manifest can show an older version than
-    /// what Nexus reports — the registry now carries the authoritative Nexus
-    /// version (written by `syncInstalledModRegistry` from `nexusModExtras`,
-    /// which covers ALL install paths). This method adds an explicit log line
-    /// and writes the value again as a belt-and-suspenders (it is idempotent).
+    /// what Nexus reports. This method only logs the discrepancy — it no
+    /// longer writes anything to the registry (that write used to feed
+    /// `nexusVersion`, removed 2026-08-12; see `InstalledModRegistry.swift`).
     ///
     /// Must run BEFORE `dismissNexusUpdate` removes the entry (this method
     /// reads it to extract the version the checker flagged on).
@@ -2964,12 +2948,8 @@ class StarHubTHViewModel: ObservableObject {
         let manifestVersion = (try? String(contentsOfFile: manifestPath, encoding: .utf8))
             .flatMap { ManifestVersionPatcher.extractVersionValue(from: $0) }
 
-        // Store the Nexus version in the registry so the checker can use it
-        // without ever modifying the manifest.json on disk.
-        recordInstalledModNexusVersion(folderName: folderName, nexusVersion: nexusVersion)
-
-        // Log the outcome: either the manifest was already correct, or the
-        // registry now carries the authoritative Nexus version.
+        // Log the outcome: either the manifest was already correct, or it
+        // lags behind what Nexus reports.
         if let mv = manifestVersion, NexusUpdateChecker.isNewer(nexusVersion, installed: mv) {
             log(String(format: L(L10n.VM.manifestVersionFixed), folderName, mv, nexusVersion))
         } else if let mv = manifestVersion {
@@ -3140,39 +3120,6 @@ class StarHubTHViewModel: ObservableObject {
         loadInstalledModRegistry()[folderName]?.installedAt
     }
 
-    /// Returns the recorded Nexus version for a mod folder (the version the
-    /// checker flagged on when the mod was last installed/updated from Nexus),
-    /// or nil if the mod was never installed via a Nexus-sourced flow. The
-    /// checker uses this to avoid permanently re-flagging mods whose manifest
-    /// Version is stale (author forgot to bump) — without modifying the
-    /// manifest.json on disk.
-    func installedModNexusVersion(for folderName: String) -> String? {
-        loadInstalledModRegistry()[folderName]?.nexusVersion
-    }
-
-    /// Records the Nexus version known at install time for a mod whose
-    /// manifest Version may be stale. The version is stored in the registry
-    /// (NOT written to the manifest), so the checker can compare against it
-    /// instead of the manifest's value.
-    func recordInstalledModNexusVersion(folderName: String, nexusVersion: String) {
-        // RMW atomique via `mutateInstalledModRegistry` (au lieu de load → mutate
-        // → save lockés séparément) : un scan concurrent ne peut plus écraser
-        // l'entrée `nexusVersion` qu'on vient d'écrire. Create the entry if it
-        // doesn't exist yet — `syncInstalledModRegistry` runs at the end of every
-        // scan so the entry would normally already be there, but this guard
-        // makes the function safe to call between scans (right after an install,
-        // before the first refresh).
-        mutateInstalledModRegistry { registry in
-            var existing = registry[folderName] ?? InstalledModRecord(
-                version: "",
-                installedAt: Date(),
-                nexusVersion: nil
-            )
-            existing.nexusVersion = nexusVersion
-            registry[folderName] = existing
-        }
-    }
-
     /// Reconciles the persistent install registry with the mods found on disk
     /// during a scan. Called at the end of every `scanMods()` so that mods
     /// added by ANY means (app installer, drag-and-drop, manual copy into
@@ -3196,13 +3143,6 @@ class StarHubTHViewModel: ObservableObject {
             mod.isGroup ? (mod.children ?? []) : [mod]
         }
 
-        // Snapshot of the Nexus "extras" cache (version + upload date for
-        // every mod id we've ever queried). Used to populate `nexusVersion`
-        // for every mod that declares a Nexus id — regardless of HOW it was
-        // installed. Without this, only the in-app Nexus flow populated
-        // `nexusVersion`, so mods whose author forgot to bump the manifest
-        // Version were permanently re-flagged as updatable.
-        let extrasSnapshot = nexusModExtras
         let now = Date()
 
         // One-shot migration: wipe any pre-existing registry built with stale
@@ -3212,17 +3152,8 @@ class StarHubTHViewModel: ObservableObject {
             UserDefaults.standard.set(true, forKey: Self.registryMigrationV2Key)
         }
 
-        // La résolution de la version Nexus reste ici (elle dépend du registre
-        // Nexus) ; les règles de mise à jour du registre vivent dans
-        // `InstalledModRegistry`, module testable.
-        let seen = allMods.map { mod in
-            InstalledModRegistry.Seen(
-                folder: mod.folderName,
-                version: mod.version,
-                nexusVersion: {
-                    let id = effectiveNexusModId(for: mod)
-                    return id.isEmpty ? nil : extrasSnapshot[id]?.version
-                }())
+        let seen = allMods.map {
+            InstalledModRegistry.Seen(folder: $0.folderName, version: $0.version)
         }
 
         // RMW atomique (load → sync → save sous un seul lock) : un scan

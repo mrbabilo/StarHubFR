@@ -677,7 +677,7 @@
   "vm_nexus_dl_rate_limited": "Trop de requêtes vers Nexus — patientez un instant puis réessayez.",
   "vm_nexus_dl_server_error": "Nexus a renvoyé une réponse inattendue (%lld).",
   "vm_nexus_dl_completed": "Téléchargement Nexus #%lld terminé",
-  "vm_manifest_version_fixed": "Version du manifest de %@ corrigée %@ → %@ pour coller à Nexus.",
+  "vm_manifest_version_fixed": "Le manifest de %@ déclare la version %@, alors que Nexus propose déjà %@.",
   "vm_manifest_version_date_fixed": "Date du manifest de %@ rafraîchie (MàJ mineure Nexus sans changement de version).",
   "vm_manifest_version_skipped": "Version du manifest de %@ inchangée (%@).",
   "vm_nexus_id_learned": "%@ relié au mod Nexus %@ — son manifest n'en déclare aucun, la vérification des mises à jour l'aurait ignoré.",

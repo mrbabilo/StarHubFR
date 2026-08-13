@@ -1,16 +1,20 @@
 import Foundation
 
-/// Ce qu'on sait d'un mod installé : la version vue sur disque, la date à
-/// laquelle on l'a constatée, et la version publiée sur Nexus si on la connaît.
+/// Ce qu'on sait d'un mod installé : la version vue sur disque et la date à
+/// laquelle on l'a constatée.
+///
+/// `nexusVersion` a été retiré le 2026-08-12. Il portait « la dernière version
+/// publiée sur Nexus » sous le nom d'une version installée, sans qu'aucune
+/// installation ne l'atteste : le vérificateur comparait ensuite cette version
+/// à elle-même et concluait « à jour ». Ce que l'app affirme avoir installé
+/// vit désormais dans `ModVersionAnchor`, et ne s'écrit que sur un constat.
 struct InstalledModRecord: Codable, Equatable {
     let version: String
     let installedAt: Date
-    var nexusVersion: String? = nil
 
-    init(version: String, installedAt: Date, nexusVersion: String? = nil) {
+    init(version: String, installedAt: Date) {
         self.version = version
         self.installedAt = installedAt
-        self.nexusVersion = nexusVersion
     }
 }
 
@@ -18,28 +22,20 @@ struct InstalledModRecord: Codable, Equatable {
 ///
 /// Extrait du ViewModel, où rien ne le testait — alors que ses décisions
 /// commandent la détection des mises à jour : une date d'installation erronée
-/// signale une mise à jour qui n'existe pas, et une version Nexus perdue en
-/// réintroduit une déjà écartée.
+/// signale une mise à jour qui n'existe pas.
 ///
 /// Pur : l'appelant fournit le registre courant, ce que le scan a vu, et
 /// **l'instant présent**. Cette dernière injection est ce qui rend la logique
 /// vérifiable, les trois quarts des règles portant sur l'horodatage.
 enum InstalledModRegistry {
-    /// Un mod tel que le scan l'a vu, sa version Nexus déjà résolue par
-    /// l'appelant (la résolution dépend du registre Nexus, pas d'ici).
+    /// Un mod tel que le scan l'a vu.
     struct Seen {
         let folder: String
         let version: String
-        let nexusVersion: String?
 
-        init(folder: String, version: String, nexusVersion: String? = nil) {
+        init(folder: String, version: String) {
             self.folder = folder
             self.version = version
-            // Une version vide ou blanche vaut « inconnue » : stocker un
-            // marqueur obligerait chaque comparateur à le traiter à part.
-            self.nexusVersion = nexusVersion
-                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                .flatMap { $0.isEmpty ? nil : $0 }
         }
     }
 
@@ -68,29 +64,18 @@ enum InstalledModRegistry {
                 // de l'archive, toujours antérieure à la mise en ligne, ce qui
                 // ferait signaler une mise à jour pour la version déjà installée.
                 registry[mod.folder] = InstalledModRecord(version: mod.version,
-                                                          installedAt: now,
-                                                          nexusVersion: mod.nexusVersion)
+                                                          installedAt: now)
                 didChange = true
                 continue
             }
 
             if existing.version != mod.version {
                 // La version a changé depuis le dernier scan : c'est une mise à
-                // jour. On reporte la version Nexus connue plutôt que de la
-                // perdre — sans quoi une réinstallation ferait réapparaître une
-                // mise à jour déjà écartée.
-                registry[mod.folder] = InstalledModRecord(
-                    version: mod.version,
-                    installedAt: now,
-                    nexusVersion: mod.nexusVersion ?? existing.nexusVersion)
-                didChange = true
-            } else if let known = mod.nexusVersion, known != existing.nexusVersion {
-                // Même version, mais on vient d'apprendre celle de Nexus (par
-                // exemple à la première vérification après une pose manuelle) :
-                // on l'enregistre sans toucher à la date d'installation.
-                registry[mod.folder] = InstalledModRecord(version: existing.version,
-                                                          installedAt: existing.installedAt,
-                                                          nexusVersion: known)
+                // jour. C'est aussi l'événement que `ModVersionAnchorRules
+                // .afterDiskChange` consomme — le seul moment où l'app peut
+                // constater une installation qu'elle n'a pas faite.
+                registry[mod.folder] = InstalledModRecord(version: mod.version,
+                                                          installedAt: now)
                 didChange = true
             }
         }
