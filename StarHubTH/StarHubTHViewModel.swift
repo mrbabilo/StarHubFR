@@ -2743,22 +2743,39 @@ class StarHubTHViewModel: ObservableObject {
         return nil
     }
 
-    /// Finds the installed mod corresponding to a Nexus update, by matching
-    /// the effective Nexus mod id. Returns `nil` for orphaned updates (e.g.
-    /// the mod was removed after the check ran). Searches both standalone
-    /// mods and pack children.
+    /// Finds the installed mod corresponding to a Nexus update. Searches both
+    /// standalone mods and pack children. Returns `nil` for orphaned updates
+    /// (e.g. the mod was removed after the check ran).
+    ///
+    /// `update.nexusModId` porte l'identifiant Nexus quand smapi.io le connaît,
+    /// l'`UniqueID` du mod sinon (voir `applySmapiResults`) — un mod publié sur
+    /// GitHub, ou simplement absent de la base de smapi.io, n'a aucun
+    /// identifiant Nexus du tout. Ne comparer qu'à `effectiveNexusModId(for:)`
+    /// laisserait ces mods sans correspondance, avec pour effet un badge
+    /// Activé/Désactivé faux sur leur ligne. D'où les deux passes ci-dessous
+    /// plutôt qu'un unique prédicat combiné : un `UniqueID` pourrait en
+    /// principe coïncider avec l'identifiant Nexus d'un AUTRE mod, et la
+    /// correspondance par identifiant Nexus — celle que smapi.io a réellement
+    /// vérifiée — doit l'emporter chaque fois qu'elle s'applique.
     func modForNexusUpdate(_ update: NexusUpdateChecker.ModUpdate) -> ModItem? {
-        for mod in mods {
-            if effectiveNexusModId(for: mod) == update.nexusModId {
-                return mod
-            }
-            if mod.isGroup, let children = mod.children {
-                if let child = children.first(where: { effectiveNexusModId(for: $0) == update.nexusModId }) {
+        guard !update.nexusModId.isEmpty else { return nil }
+
+        func find(_ matches: (ModItem) -> Bool) -> ModItem? {
+            for mod in mods {
+                if matches(mod) { return mod }
+                if mod.isGroup, let children = mod.children,
+                   let child = children.first(where: matches) {
                     return child
                 }
             }
+            return nil
         }
-        return nil
+
+        if let byNexusId = find({ !effectiveNexusModId(for: $0).isEmpty
+                                    && effectiveNexusModId(for: $0) == update.nexusModId }) {
+            return byNexusId
+        }
+        return find({ $0.uniqueId == update.nexusModId })
     }
 
     /// Display author for a mod. For pack headers, aggregates the children:
