@@ -13,9 +13,9 @@ where the exact log format was verified.
 ## [Unreleased]
 
 ### Fixed
+- **Mod updates are found again.** The app was recording whatever Nexus had published as the version you had installed, so it compared that version against itself, concluded you were current, and dropped the row — every update erased itself on the next check. On a 966-mod library it now finds 41 updates where it showed 1, and names a reason for each of the 115 mods it cannot check. A mod the check couldn't reach keeps its row instead of passing for up to date.
 - **A mod installed from Nexus is now linked to its Nexus page.** The app knew the mod's id at download time and discarded it, so a mod whose manifest omits `UpdateKeys` was never checked for updates again, with nothing said. New installs only — mods already installed still need the id entered by hand.
 - **Deleting, duplicating, backing up or restoring a save no longer freezes the window.** Each copies or removes a whole save folder — tens of megabytes over hundreds of files — on the main thread. They now run in the background, buttons disabled meanwhile so a second click can't start a second copy.
-- **A detected update no longer vanishes when the next check can't reach its mod.** A rate limit cuts a check short and the mods it never queried were dropped from the list — and from the cache, so the loss survived a restart and replayed for an hour. At 900 mods that happened on most checks. An update a check never reached now stays; only a mod the check reports as current loses its row. A check that found no mods to query no longer counts as a check either.
 - **Installing a pack no longer fires a burst of Nexus requests.** Once installed, the app looks up each mod's Nexus page, and the loop sent every request at once — a 20-mod pack opened 20 connections in one go, the fastest way to get rate-limited. They now go six at a time, the same bound the update check uses.
 
 ## [1.13.1] - 2026-08-11
