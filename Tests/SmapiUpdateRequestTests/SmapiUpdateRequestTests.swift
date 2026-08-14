@@ -211,6 +211,39 @@ struct SmapiUpdateRequestTests {
         #expect(apiVersion?.isEmpty == false, "une chaîne vide ne suggère rien non plus")
     }
 
+    // MARK: version de jeu
+
+    @Test func aWellFormedGameVersionPassesThrough() {
+        #expect(SmapiUpdateRequest.sanitizedGameVersion("1.6.15") == "1.6.15")
+        #expect(SmapiUpdateRequest.sanitizedGameVersion("1.6") == "1.6")
+        #expect(SmapiUpdateRequest.sanitizedGameVersion(" 1.6.15 ") == "1.6.15")
+    }
+
+    @Test func aTrailingDotFallsBackInsteadOfEmptyingTheBatch() {
+        // Le cas atteignable : la regex du journal SMAPI est `[0-9][0-9.]*`,
+        // qui accepte un point final. Mesuré contre smapi.io, `"1.6.15."` fait
+        // renvoyer une **liste vide** — le lot entier disparaît sans erreur
+        // HTTP ni message, exactement la panne d'`apiVersion` par l'autre
+        // champ. On ne poste que ce que le serveur sait analyser.
+        #expect(SmapiUpdateRequest.sanitizedGameVersion("1.6.15.")
+                == SmapiUpdateRequest.defaultGameVersion)
+    }
+
+    @Test func anUnparsableOrAbsentGameVersionFallsBack() {
+        for raw in ["x.y.z", "", "   ", "1..6", "1.6.15 build 24356"] {
+            #expect(SmapiUpdateRequest.sanitizedGameVersion(raw)
+                    == SmapiUpdateRequest.defaultGameVersion, "\(raw)")
+        }
+        #expect(SmapiUpdateRequest.sanitizedGameVersion(nil)
+                == SmapiUpdateRequest.defaultGameVersion)
+    }
+
+    @Test func theDefaultGameVersionIsItselfWellFormed() {
+        // Sinon le repli poste la valeur qui vide le lot.
+        #expect(SmapiUpdateRequest.sanitizedGameVersion(SmapiUpdateRequest.defaultGameVersion)
+                == SmapiUpdateRequest.defaultGameVersion)
+    }
+
     @Test func theDeclaredApiVersionParsesAsThreeNumbers() {
         // Le serveur ne filtre pas sur la valeur (`1.0.0` et `4.1.10` rendent
         // les mêmes 42 mises à jour), mais il exige qu'elle s'analyse : une

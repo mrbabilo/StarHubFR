@@ -29,6 +29,36 @@ public enum SmapiUpdateRequest {
     /// d'un fichier optionnel pour un gain nul serait rejouer la panne.
     public static let apiVersion = "4.1.10"
 
+    /// Le repli quand la version du jeu n'a pas pu être lue, ou ne s'analyse
+    /// pas. Vérifié par test comme bien formé : un repli malformé viderait le
+    /// lot qu'il est censé sauver.
+    public static let defaultGameVersion = "1.6.15"
+
+    /// La version de jeu à poster — ou le repli.
+    ///
+    /// Second champ capable de faire disparaître un lot en silence. Mesuré
+    /// contre smapi.io : `"1.6.15."` (un point final) et `"x.y.z"` font
+    /// renvoyer une **liste vide**, sans erreur HTTP ni message. C'est la
+    /// panne d'`apiVersion` par une autre porte.
+    ///
+    /// Et ce cas est atteignable : la version vient d'une expression
+    /// régulière sur l'en-tête du journal SMAPI, `[0-9][0-9.]*`, qui accepte
+    /// justement un point final. On ne poste donc que ce que le serveur sait
+    /// analyser — une suite de nombres séparés par des points.
+    public static func sanitizedGameVersion(_ raw: String?) -> String {
+        guard let trimmed = raw?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !trimmed.isEmpty else {
+            return defaultGameVersion
+        }
+        let parts = trimmed.split(separator: ".", omittingEmptySubsequences: false)
+        // `isASCII && isNumber`, pas `isNumber` seul : ce dernier accepte les
+        // chiffres arabo-indiens et autres, que le serveur n'analyse pas.
+        guard parts.allSatisfy({ !$0.isEmpty && $0.allSatisfy { $0.isASCII && $0.isNumber } }) else {
+            return defaultGameVersion
+        }
+        return trimmed
+    }
+
     /// Un dossier de mod tel que le scan l'a vu.
     public struct Candidate {
         public let uniqueId: String

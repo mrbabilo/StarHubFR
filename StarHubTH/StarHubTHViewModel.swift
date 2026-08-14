@@ -2436,7 +2436,11 @@ class StarHubTHViewModel: ObservableObject {
 
         SmapiUpdateClient.shared.fetch(
             entries: entries,
-            gameVersion: smapiDiagnostics?.gameVersion ?? "1.6.15",
+            // Passe par `sanitizedGameVersion` : la version vient d'une regex
+            // sur le journal SMAPI, et une valeur qui ne s'analyse pas fait
+            // rendre une liste vide à smapi.io — le lot entier disparaîtrait
+            // sans erreur.
+            gameVersion: SmapiUpdateRequest.sanitizedGameVersion(smapiDiagnostics?.gameVersion),
             progress: { [weak self] done, total in
                 self?.nexusCheckProgress = (done, total)
             },
