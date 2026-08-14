@@ -12,6 +12,9 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Removed
+- **Internal: the update check's dedupe window is gone.** It had held no value and answered no question since the check moved to smapi.io — nothing stamped the timestamp, nothing read it. Behaviour is unchanged; the orphaned `nexusLastCheckAt` preference is simply no longer used.
+
 ## [1.14.1] - 2026-08-14
 
 ### Fixed

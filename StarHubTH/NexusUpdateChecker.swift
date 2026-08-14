@@ -28,11 +28,10 @@ final class NexusUpdateChecker {
     // `NexusRequestBuilder` and accessed via `NexusRequestBuilder.xxx` so the
     // whole app reports a single consistent client to Nexus.
 
-    /// UserDefaults key for the last full check timestamp.
-    private let lastCheckKey = "nexusLastCheckAt"
     /// UserDefaults key caching the last successful update list (JSON-encoded
-    /// `[ModUpdate]`). Used to replay the result inside the dedupe window
-    /// instead of clearing the UI on a repeated non-forced check.
+    /// `[ModUpdate]`). C'est la **vérité** de la liste des mises à jour, à
+    /// plat : ce qui s'affiche en est la consolidation par pack, jamais
+    /// l'inverse (voir `StarHubTHViewModel.republishUpdatesFromCache`).
     private let cachedUpdatesKey = "nexusCachedUpdates"
     /// UserDefaults key caching the Nexus category id for every mod we've ever
     /// queried (`{ "modId": categoryId }`). Persisted independently from
@@ -45,23 +44,6 @@ final class NexusUpdateChecker {
     /// lifetime rules as `cachedCategoriesKey` — populated for free from the
     /// same API response, so it's kept alongside it.
     private let cachedExtrasKey = "nexusCachedExtras"
-    /// Minimum interval between two full checks (seconds). Re-checks sooner than
-    /// this return the cached result without hitting the network.
-    ///
-    /// ⚠️ Mécanique orpheline depuis le retrait de `check()` (Task 10) : plus
-    /// personne n'estampille `lastCheckKey` (seule `clearApiKey()` le purge,
-    /// par précaution, sans jamais y écrire de date fraîche) ni n'appelle
-    /// `hasRecentCheck()`. `checkNexusUpdates` (le chemin smapi.io qui a
-    /// remplacé `check()`) n'a pas de fenêtre de dédoublonnage — rien ne casse
-    /// à laisser ce trio
-    /// (`dedupeInterval`/`lastCheckKey`/`hasRecentCheck()`) en place, mais rien
-    /// ne le lit non plus aujourd'hui. Conservé tel quel plutôt que retiré :
-    /// non nommé par la revue qui a demandé ce nettoyage, donc traité comme un
-    /// signal à faire remonter plutôt qu'une décision à prendre ici (voir le
-    /// rapport de la Task 10). Un futur appelant non forcé le retrouvera prêt
-    /// à l'emploi — mais si ce jour n'arrive pas, ce bloc est le candidat
-    /// évident d'un prochain nettoyage.
-    private let dedupeInterval: TimeInterval = 60 * 60 // 1 hour
 
     /// Guards all metadata-cache mutations (categories + extras) so
     /// `fetchSingleMod` (on-demand) and `check` (full scan) can't lose entries
@@ -184,7 +166,6 @@ final class NexusUpdateChecker {
         // de l'API Nexus : leur purge reste juste.
         metadataCacheLock.lock()
         metadataGeneration += 1
-        UserDefaults.standard.removeObject(forKey: lastCheckKey)
         UserDefaults.standard.removeObject(forKey: cachedCategoriesKey)
         UserDefaults.standard.removeObject(forKey: cachedExtrasKey)
         metadataCacheLock.unlock()
@@ -230,18 +211,6 @@ final class NexusUpdateChecker {
         /// (`updated_timestamp`). Optional/back-compatible; shown as the mod's
         /// "last updated" date in the detail pane.
         var uploadedTime: Date? = nil
-    }
-
-    /// Returns `true` if a recent cached check is still valid (within
-    /// `dedupeInterval`). UI can use this to avoid showing a spinner when the
-    /// result hasn't changed.
-    func hasRecentCheck() -> Bool {
-        withMetadataCacheLock {
-            guard let last = UserDefaults.standard.object(forKey: lastCheckKey) as? Date else {
-                return false
-            }
-            return Date().timeIntervalSince(last) < dedupeInterval
-        }
     }
 
     /// Returns the last successful update list, regardless of freshness.
@@ -291,7 +260,7 @@ final class NexusUpdateChecker {
     }
 
     /// Fetches a single mod's metadata (latest version + category id + summary/
-    /// picture) by Nexus mod id, bypassing the dedupe window. Caches the
+    /// picture) by Nexus mod id. Caches the
     /// category and extra immediately so the mods list badge and popover
     /// preview pick them up without a full check. The completion is always
     /// invoked on the main queue.

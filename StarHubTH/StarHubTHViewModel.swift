@@ -2992,7 +2992,7 @@ class StarHubTHViewModel: ObservableObject {
     /// Fetches a single mod's metadata (category + latest version + summary/
     /// picture) from Nexus and applies it to the published `nexusCategories`
     /// / `nexusModExtras` maps so the mods-list badge and popover preview
-    /// update instantly. Bypasses the dedupe window. Intended for on-demand
+    /// update instantly. Intended for on-demand
     /// lookups after the user enters a mod id in the per-mod editor popover.
     /// `completion` is invoked on the main queue.
     func fetchMetadata(forNexusModId modId: String,
