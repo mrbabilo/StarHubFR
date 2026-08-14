@@ -196,4 +196,29 @@ struct SmapiUpdateRequestTests {
         #expect(json["platform"] as? String == "Mac")
         #expect((json["mods"] as? [[String: Any]])?.count == 1)
     }
+
+    @Test func theBodyDeclaresAnApiVersion() throws {
+        // LE champ sans lequel smapi.io ne suggère rien. Mesuré sur le parc
+        // réel, requête identique à un champ près : 42 mises à jour avec,
+        // 0 sans — l'API répond bien, elle ne calcule simplement aucune
+        // suggestion pour un client qui ne s'annonce pas.
+        let body = SmapiUpdateRequest.Body(
+            mods: [.init(id: "a", updateKeys: ["Nexus:1"], installedVersion: "1.0")],
+            gameVersion: "1.6.15")
+        let json = try JSONSerialization.jsonObject(
+            with: try JSONEncoder().encode(body)) as! [String: Any]
+        let apiVersion = json["apiVersion"] as? String
+        #expect(apiVersion?.isEmpty == false, "une chaîne vide ne suggère rien non plus")
+    }
+
+    @Test func theDeclaredApiVersionParsesAsThreeNumbers() {
+        // Le serveur ne filtre pas sur la valeur (`1.0.0` et `4.1.10` rendent
+        // les mêmes 42 mises à jour), mais il exige qu'elle s'analyse : une
+        // version malformée lui fait renvoyer une **liste vide**, et le lot
+        // entier disparaît sans erreur. D'où une constante vérifiée ici plutôt
+        // qu'une valeur tirée de l'installation de l'utilisateur.
+        let parts = SmapiUpdateRequest.apiVersion.split(separator: ".")
+        #expect(parts.count == 3)
+        #expect(parts.allSatisfy { Int($0) != nil })
+    }
 }

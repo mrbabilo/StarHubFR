@@ -8,6 +8,27 @@ import Foundation
 /// parc réel : 960 mods, 41 mises à jour, 115 diagnostics, sans clé ni quota.
 public enum SmapiUpdateRequest {
 
+    /// La version de client déclarée à smapi.io. **Sans elle, l'API ne suggère
+    /// aucune mise à jour** : elle répond 200, rend les métadonnées de chaque
+    /// mod, et omet simplement `suggestedUpdate`. Un client qui ne s'annonce
+    /// pas est traité comme ancien, et l'API le laisse comparer lui-même.
+    ///
+    /// Mesuré sur le parc réel, à un champ près dans la requête : 42 mises à
+    /// jour avec, 0 sans. C'était la panne — la vérification manuelle allait
+    /// au bout de ses 7 lots et ne rapportait rien.
+    ///
+    /// Une **constante**, et non la version de SMAPI installée, sur deux
+    /// mesures :
+    /// - la valeur ne change pas le résultat : `1.0.0` et `4.1.10` rendent les
+    ///   mêmes 42 mises à jour, aux mêmes mods ;
+    /// - une valeur vide ne suggère rien, et une valeur malformée fait
+    ///   renvoyer une **liste vide** — le lot entier disparaît sans erreur.
+    ///
+    /// La version installée, elle, est absente quand SMAPI a été posé hors de
+    /// l'app (le marqueur est écrit par nous). Faire dépendre la vérification
+    /// d'un fichier optionnel pour un gain nul serait rejouer la panne.
+    public static let apiVersion = "4.1.10"
+
     /// Un dossier de mod tel que le scan l'a vu.
     public struct Candidate {
         public let uniqueId: String
@@ -47,15 +68,20 @@ public enum SmapiUpdateRequest {
         public let includeExtendedMetadata: Bool
         public let gameVersion: String
         public let platform: String
+        /// Voir `SmapiUpdateRequest.apiVersion` : sans ce champ, la réponse ne
+        /// porte aucune suggestion de mise à jour.
+        public let apiVersion: String
 
         public init(mods: [Entry],
                     includeExtendedMetadata: Bool = true,
                     gameVersion: String,
-                    platform: String = "Mac") {
+                    platform: String = "Mac",
+                    apiVersion: String = SmapiUpdateRequest.apiVersion) {
             self.mods = mods
             self.includeExtendedMetadata = includeExtendedMetadata
             self.gameVersion = gameVersion
             self.platform = platform
+            self.apiVersion = apiVersion
         }
     }
 
