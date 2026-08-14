@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.14.0] - 2026-08-14
+
 ### Added
 - **"I already have it" on an update you've already installed.** Some authors ship a new version without bumping the `Version` in their manifest, so the check sees a gap that isn't there and reports it again at every pass, forever. The row now carries a button that records the version you actually have and drops the row. On a pack it covers the component the row stands for, not every mod in the pack.
 
