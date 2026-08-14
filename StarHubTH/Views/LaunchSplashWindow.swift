@@ -43,7 +43,15 @@ final class LaunchSplashController {
                       window !== self.panel,
                       !(window is NSPanel),
                       window.styleMask.contains(.titled) else { return }
-                self.mainWindow = window
+                // Ne capturer que la **première** fenêtre titrée, et ne plus
+                // jamais réviser ce choix. Le code réassignait `mainWindow` à
+                // chaque notification : toute autre fenêtre titrée paraissant
+                // avant `finish()` — une feuille d'installation ouverte par un
+                // lien `nxm://`, par exemple — devenait « la fenêtre
+                // principale ». `showMainWindow()` révélait alors celle-là, et
+                // la vraie restait masquée, l'app inatteignable.
+                if self.mainWindow == nil { self.mainWindow = window }
+                guard window === self.mainWindow else { return }
                 if window.isVisible { window.orderOut(nil) }
             }
         }
