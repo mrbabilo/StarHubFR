@@ -2481,6 +2481,11 @@ class StarHubTHViewModel: ObservableObject {
         // `ModManifest.resolveNexusId`.
         let declaredKeys = Dictionary(entries.map { ($0.id, $0.updateKeys) },
                                       uniquingKeysWith: { first, _ in first })
+        // Le nom que le mod déclare, celui que la liste des mods affiche : un
+        // même mod ne doit pas changer de nom d'un écran à l'autre.
+        let installedName = Dictionary(
+            allInstalledMods().filter { !$0.uniqueId.isEmpty }.map { ($0.uniqueId, $0.name) },
+            uniquingKeysWith: { first, _ in first })
         var updates: [NexusUpdateChecker.ModUpdate] = []
         var blockers: [String: SmapiUpdateResponse.Blocker] = [:]
 
@@ -2491,7 +2496,9 @@ class StarHubTHViewModel: ObservableObject {
             guard let suggested = mod.suggestedUpdate else { continue }
             updates.append(NexusUpdateChecker.ModUpdate(
                 uniqueId: mod.id,
-                name: mod.metadata?.name ?? mod.id,
+                name: ModManifest.resolveDisplayName(installedName: installedName[mod.id],
+                                                     metadataName: mod.metadata?.name,
+                                                     uniqueId: mod.id),
                 installedVersion: assertedVersion[mod.id] ?? "",
                 latestVersion: suggested.version,
                 // `?? mod.id` reste la sentinelle : un mod suivi seulement par

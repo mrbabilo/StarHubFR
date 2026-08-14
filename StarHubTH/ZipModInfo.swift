@@ -51,6 +51,33 @@ struct ModManifest {
         return nil
     }
 
+    /// Le nom à afficher sur une ligne de mise à jour.
+    ///
+    /// Le nom **installé** d'abord — celui que le mod déclare dans son
+    /// manifest, donc celui que la liste des mods affiche déjà. Un même mod ne
+    /// doit pas changer de nom d'un écran à l'autre.
+    ///
+    /// Le nom de la liste de compatibilité SMAPI ensuite : il manque pour la
+    /// plupart des mods (15 des 23 mises à jour du parc réel n'en avaient
+    /// aucun) et porte parfois un renommage — « Kids for the School → Kids for
+    /// the School Tokens » — qui n'est pas un nom d'affichage.
+    ///
+    /// L'`UniqueID` en dernier recours seulement. C'était le repli immédiat, et
+    /// il s'affichait donc sur ces 15 lignes : « xzqute.ChoreTrail » à la place
+    /// de « ChoreTrail ».
+    ///
+    /// Un nom vide ou blanc ne gagne pas : il laisserait une ligne sans
+    /// étiquette, ce qu'aucune des trois sources ne vaut.
+    public static func resolveDisplayName(installedName: String?,
+                                          metadataName: String?,
+                                          uniqueId: String) -> String {
+        for candidate in [installedName, metadataName] {
+            let trimmed = candidate?.trimmingCharacters(in: .whitespacesAndNewlines)
+            if let trimmed, !trimmed.isEmpty { return trimmed }
+        }
+        return uniqueId
+    }
+
     /// L'identifiant Nexus d'une ligne de mise à jour, ou `nil` si le mod n'a
     /// pas de page Nexus.
     ///

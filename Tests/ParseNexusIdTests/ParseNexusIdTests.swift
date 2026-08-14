@@ -9,6 +9,38 @@ import Foundation
 /// guarantee future changes only need to be made once.
 struct ParseNexusIdTests {
 
+    // MARK: nom affiché sur une ligne de mise à jour
+
+    @Test func theInstalledNameWinsOverTheCompatibilityListName() {
+        // Le mod affiche partout ailleurs le nom qu'il déclare : la page des
+        // mises à jour doit dire la même chose. Le nom de la liste de
+        // compatibilité SMAPI porte parfois un renommage (« A → B »), qui n'est
+        // pas un nom d'affichage.
+        #expect(ModManifest.resolveDisplayName(installedName: "Machine Terrain Framework",
+                                               metadataName: "Custom Tapper Framework",
+                                               uniqueId: "x") == "Machine Terrain Framework")
+    }
+
+    @Test func anEmptyInstalledNameDoesNotWin() {
+        for blank in ["", "   ", "\n"] {
+            #expect(ModManifest.resolveDisplayName(installedName: blank,
+                                                   metadataName: "Loved Labels",
+                                                   uniqueId: "x") == "Loved Labels")
+        }
+        #expect(ModManifest.resolveDisplayName(installedName: nil,
+                                               metadataName: "Loved Labels",
+                                               uniqueId: "x") == "Loved Labels")
+    }
+
+    @Test func theUniqueIdIsTheLastResortOnly() {
+        // Ce qu'affichaient 15 des 23 lignes du parc réel : « xzqute.ChoreTrail »
+        // au lieu de « ChoreTrail », faute d'entrée dans la liste SMAPI.
+        #expect(ModManifest.resolveDisplayName(installedName: nil, metadataName: nil,
+                                               uniqueId: "xzqute.ChoreTrail") == "xzqute.ChoreTrail")
+        #expect(ModManifest.resolveDisplayName(installedName: "  ", metadataName: "  ",
+                                               uniqueId: "xzqute.ChoreTrail") == "xzqute.ChoreTrail")
+    }
+
     // MARK: identifiant d'une ligne de mise à jour
 
     @Test func theMetadataIdWinsWhenSmapiKnowsTheMod() {
