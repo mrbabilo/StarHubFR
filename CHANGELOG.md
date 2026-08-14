@@ -13,7 +13,7 @@ where the exact log format was verified.
 ## [Unreleased]
 
 ### Added
-- **"I already have it" on an update you've already installed.** Some authors ship a new version without bumping the `Version` in their manifest, so the check sees a gap that isn't there and reports it again at every pass, forever. The row now carries a button that records the version you actually have and closes it until the next release.
+- **"I already have it" on an update you've already installed.** Some authors ship a new version without bumping the `Version` in their manifest, so the check sees a gap that isn't there and reports it again at every pass, forever. The row now carries a button that records the version you actually have and drops the row. On a pack it covers the component the row stands for, not every mod in the pack.
 
 ### Fixed
 - **Checking for updates no longer needs a Nexus API key.** The check runs through smapi.io, which asks for neither key nor quota, but the button stayed greyed out without one — and the "add a key" prompt sat where the list of updates should have been, so a user without a Nexus account saw no update at all. The key is now only what it still is: what the in-app download needs.

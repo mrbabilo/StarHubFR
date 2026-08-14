@@ -521,7 +521,7 @@
 "updates_nexus_api_key_missing" = "Checking for updates works without a key. Add a Nexus API key to download from the app.";
 "updates_nexus_get_key" = "Get API Key";
 "updates_nexus_already_have" = "I already have it";
-"updates_nexus_already_have_help" = "You already have this version, but the author forgot to record it in their manifest. This row won't come back until the next release.";
+"updates_nexus_already_have_help" = "You already have this version, but the author didn't record it in their manifest. The row goes away. On a pack, this only covers the component it stands for.";
 "updates_nexus_no_updates" = "All mods are up to date";
 "updates_nexus_updates_count" = "%lld update(s) available";
 "updates_nexus_error" = "An error occurred while checking for updates";

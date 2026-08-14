@@ -521,7 +521,7 @@
   "updates_nexus_api_key_missing": "La vérification des mises à jour fonctionne sans clé. Ajoutez une clé API Nexus pour télécharger depuis l'app.",
   "updates_nexus_get_key": "Obtenir une clé API",
   "updates_nexus_already_have": "Je l'ai déjà",
-  "updates_nexus_already_have_help": "Vous avez déjà cette version, mais l'auteur a oublié de l'inscrire dans son manifest. La ligne ne réapparaîtra plus jusqu'à la prochaine version.",
+  "updates_nexus_already_have_help": "Vous avez déjà cette version, mais l'auteur ne l'a pas inscrite dans son manifest. La ligne s'efface. Sur un pack, cela ne vaut que pour le composant qu'elle représente.",
   "updates_nexus_no_updates": "Tous les mods sont à jour",
   "updates_nexus_updates_count": "%lld mise(s) à jour disponible(s)",
   "updates_nexus_error": "Une erreur s'est produite lors de la vérification des mises à jour",
