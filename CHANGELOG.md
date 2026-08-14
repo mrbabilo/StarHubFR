@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.14.1] - 2026-08-14
+
 ### Fixed
 - **The update list no longer changes count between a check and a restart.** Mods belonging to one pack were grouped into a single row when the app started, but not after clicking Check for updates — so the same library read differently depending on how you got there. The list shown is now always the grouping of the list stored, whichever path you take. A stored row could also end up carrying a pack's name in place of its own.
 - **Removing your Nexus API key no longer erases the updates found.** They were cleared along with the cached account data, from a time when they came from Nexus itself. They come from smapi.io, which has no account — there was nothing to clear, and getting them back meant running the whole check again.
