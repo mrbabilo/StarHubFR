@@ -3300,6 +3300,42 @@ class StarHubTHViewModel: ObservableObject {
         mods.flattenedMods
     }
 
+    /// Constate sur disque les mises à jour que l'app n'a pas menées, et
+    /// déplace l'ancre en conséquence.
+    ///
+    /// Sans cet appel, `ModVersionAnchorRules.afterDiskChange` n'avait aucun
+    /// appelant et l'origine `.diskObserved` ne se produisait jamais : un mod
+    /// ancré à la version X, puis mis à jour à la main (glisser-déposer, copie),
+    /// continuait d'annoncer X comme version installée. smapi.io répondait
+    /// « mise à jour disponible » indéfiniment — le défaut d'origine en miroir,
+    /// une fausse mise à jour affirmée au lieu d'une vraie effacée.
+    ///
+    /// - Parameter excluding: les dossiers en grâce. Leur version « change »
+    ///   parce que la lecture a changé, pas le disque : les ancrer ici
+    ///   affirmerait une installation qui n'a pas eu lieu.
+    private func anchorModsUpdatedOnDisk(_ allMods: [ModItem],
+                                         previousVersions: [String: String],
+                                         excluding graceFolders: Set<String>,
+                                         now: Date) {
+        // La version que smapi.io suggère, par `UniqueID` : c'est la cible que
+        // le manifest doit rejoindre pour qu'on tienne l'installation pour
+        // accomplie. Sans suggestion connue, la règle compare à la version du
+        // manifest elle-même, donc l'atteint d'office.
+        let suggested = Dictionary(nexusUpdates.map { ($0.uniqueId, $0.latestVersion) },
+                                   uniquingKeysWith: { first, _ in first })
+        for mod in allMods where !mod.uniqueId.isEmpty && !graceFolders.contains(mod.folderName) {
+            guard let previous = previousVersions[mod.folderName] else { continue }
+            guard let anchor = ModVersionAnchorRules.afterDiskChange(
+                existing: anchorStore.anchor(for: mod.uniqueId),
+                uniqueId: mod.uniqueId,
+                previousManifestVersion: previous,
+                currentManifestVersion: mod.version,
+                suggestedVersion: suggested[mod.uniqueId] ?? mod.version,
+                now: now) else { continue }
+            anchorStore.put(anchor)
+        }
+    }
+
     private func syncInstalledModRegistry(scannedMods: [ModItem]) {
         // Flatten groups into individual mods so pack children are tracked too.
         let allMods = scannedMods.flatMap { mod -> [ModItem] in
@@ -3333,6 +3369,12 @@ class StarHubTHViewModel: ObservableObject {
         // perpétuel quand l'entrée nexusVersion était perdue dans la course).
         // On perd la petite optimisation « n'écrire que si didChange », mais la
         // persistance d'un registre inchangé est idempotente et peu coûteuse.
+        // La version que le registre portait AVANT cette passe. C'est le seul
+        // endroit où l'app voit l'ancienne et la nouvelle version d'un dossier
+        // côte à côte, donc le seul d'où l'on puisse constater qu'une
+        // installation a eu lieu hors de l'app. À lire avant la mutation.
+        let previousVersions = loadInstalledModRegistry().mapValues(\.version)
+
         var rebuiltCount = 0
         var wasEmpty = false
         mutateInstalledModRegistry { registry in
@@ -3345,6 +3387,11 @@ class StarHubTHViewModel: ObservableObject {
             registry = synced
             if wasEmpty && !registry.isEmpty { rebuiltCount = registry.count }
         }
+
+        anchorModsUpdatedOnDisk(allMods,
+                                previousVersions: previousVersions,
+                                excluding: graceFolders,
+                                now: now)
 
         if !graceFolders.isEmpty {
             UserDefaults.standard.removeObject(forKey: Self.installDateGraceKey)
