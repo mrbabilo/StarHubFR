@@ -9,6 +9,39 @@ import Foundation
 /// guarantee future changes only need to be made once.
 struct ParseNexusIdTests {
 
+    // MARK: identifiant d'une ligne de mise à jour
+
+    @Test func theMetadataIdWinsWhenSmapiKnowsTheMod() {
+        #expect(ModManifest.resolveNexusId(metadataNexusID: 1915,
+                                           updateKeys: ["Nexus:9999"]) == "1915")
+    }
+
+    @Test func theDeclaredKeyAnswersWhenSmapiHasNoMetadataId() {
+        // Le cas mesuré : 15 des 23 mises à jour du parc réel n'ont **aucun**
+        // `metadata.nexusID` dans la réponse smapi.io — elle ne le connaît que
+        // pour les mods de sa liste de compatibilité — alors que toutes
+        // déclarent un `Nexus:<id>`. Sans ce repli, l'identifiant retombait sur
+        // l'`UniqueID`, non numérique, et le bouton de téléchargement
+        // disparaissait de la ligne.
+        #expect(ModManifest.resolveNexusId(metadataNexusID: nil,
+                                           updateKeys: ["Nexus:41318"]) == "41318")
+    }
+
+    @Test func aModWithNoNexusKeyResolvesToNothing() {
+        // GitHub ou CurseForge seuls : il n'y a pas de page Nexus, donc rien à
+        // proposer au téléchargement. `nil`, pas une chaîne vide — l'appelant
+        // choisit sa sentinelle.
+        #expect(ModManifest.resolveNexusId(metadataNexusID: nil,
+                                           updateKeys: ["GitHub:Pathoschild/SMAPI"]) == nil)
+        #expect(ModManifest.resolveNexusId(metadataNexusID: nil, updateKeys: nil) == nil)
+    }
+
+    @Test func aNonPositiveMetadataIdFallsBackToTheKey() {
+        // `0` ne mène qu'à un 404 : il ne doit pas l'emporter sur une clé saine.
+        #expect(ModManifest.resolveNexusId(metadataNexusID: 0,
+                                           updateKeys: ["Nexus:41318"]) == "41318")
+    }
+
     @Test func parsesPlainNexusKey() {
         let r = ModManifest.parseNexusId(fromUpdateKeys: ["nexus:191"])
         #expect(r?.id == "191")

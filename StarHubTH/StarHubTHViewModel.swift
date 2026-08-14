@@ -2475,6 +2475,12 @@ class StarHubTHViewModel: ObservableObject {
                                    entries: [SmapiUpdateRequest.Entry]) {
         let assertedVersion = Dictionary(entries.map { ($0.id, $0.installedVersion) },
                                          uniquingKeysWith: { first, _ in first })
+        // Les `UpdateKeys` telles qu'envoyées — donc y compris la clé
+        // synthétique construite depuis un identifiant saisi à la main. C'est
+        // le repli quand smapi.io ne connaît pas le mod ; voir
+        // `ModManifest.resolveNexusId`.
+        let declaredKeys = Dictionary(entries.map { ($0.id, $0.updateKeys) },
+                                      uniquingKeysWith: { first, _ in first })
         var updates: [NexusUpdateChecker.ModUpdate] = []
         var blockers: [String: SmapiUpdateResponse.Blocker] = [:]
 
@@ -2488,7 +2494,12 @@ class StarHubTHViewModel: ObservableObject {
                 name: mod.metadata?.name ?? mod.id,
                 installedVersion: assertedVersion[mod.id] ?? "",
                 latestVersion: suggested.version,
-                nexusModId: mod.metadata?.nexusID.map(String.init) ?? mod.id,
+                // `?? mod.id` reste la sentinelle : un mod suivi seulement par
+                // GitHub ou CurseForge n'a pas de page Nexus, et sa ligne doit
+                // légitimement rester sans bouton de téléchargement.
+                nexusModId: ModManifest.resolveNexusId(
+                    metadataNexusID: mod.metadata?.nexusID,
+                    updateKeys: declaredKeys[mod.id]) ?? mod.id,
                 url: suggested.url ?? "",
                 uploadedTime: nil))
         }

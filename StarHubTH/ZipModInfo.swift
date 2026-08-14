@@ -51,6 +51,29 @@ struct ModManifest {
         return nil
     }
 
+    /// L'identifiant Nexus d'une ligne de mise à jour, ou `nil` si le mod n'a
+    /// pas de page Nexus.
+    ///
+    /// `metadata.nexusID` d'abord — c'est smapi.io qui parle. Mais elle ne le
+    /// connaît que pour les mods de sa liste de compatibilité : mesuré sur le
+    /// parc réel, **15 des 23 mises à jour n'en avaient aucun**, alors que
+    /// toutes déclaraient un `Nexus:<id>` dans leur manifest. Sans ce repli,
+    /// l'appelant retombait sur l'`UniqueID` — non numérique — et le bouton de
+    /// téléchargement disparaissait de la ligne.
+    ///
+    /// La clé déclarée passe par `parseNexusId`, donc hérite de sa tolérance
+    /// (casse, espaces, suffixe `@variante`) et de son refus des identifiants
+    /// nuls ou négatifs. Un `metadata.nexusID` non positif ne l'emporte pas :
+    /// il ne mènerait qu'à un 404.
+    ///
+    /// `nil` plutôt qu'une chaîne vide : un mod suivi seulement par GitHub ou
+    /// CurseForge n'a rien à proposer au téléchargement, et l'appelant choisit
+    /// sa propre sentinelle.
+    public static func resolveNexusId(metadataNexusID: Int?, updateKeys: [String]?) -> String? {
+        if let id = metadataNexusID, id > 0 { return String(id) }
+        return parseNexusId(fromUpdateKeys: updateKeys)?.id
+    }
+
     init?(dict: [String: Any]) {
         guard let name = dict.caseInsensitiveValue(forKey: "Name") as? String,
               let uniqueId = dict.caseInsensitiveValue(forKey: "UniqueID") as? String else {
