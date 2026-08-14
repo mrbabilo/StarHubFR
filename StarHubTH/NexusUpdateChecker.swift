@@ -174,9 +174,16 @@ final class NexusUpdateChecker {
         // the old key discards its results instead of writing them back
         // after this clear. All under the same lock those writes use, so
         // this can't interleave with one of them mid-write either.
+        //
+        // **Les mises à jour ne sont plus de celles-là.** Elles viennent de
+        // smapi.io — source publique, sans compte ni clé — et se déduisent des
+        // manifests du disque : rien à faire fuir d'un compte à l'autre. Les
+        // effacer ici ne faisait que détruire un travail valide, et obligeait à
+        // refaire les 7 lots pour retrouver ce que le retrait de la clé n'avait
+        // aucune raison d'emporter. Catégories et fiches, elles, viennent bien
+        // de l'API Nexus : leur purge reste juste.
         metadataCacheLock.lock()
         metadataGeneration += 1
-        UserDefaults.standard.removeObject(forKey: cachedUpdatesKey)
         UserDefaults.standard.removeObject(forKey: lastCheckKey)
         UserDefaults.standard.removeObject(forKey: cachedCategoriesKey)
         UserDefaults.standard.removeObject(forKey: cachedExtrasKey)

@@ -716,10 +716,11 @@ class StarHubTHViewModel: ObservableObject {
         // Keychain lookup — light, but it's still a round-trip to the security
         // daemon, so we avoid it during the time-critical init.
         let hasKey = NexusUpdateChecker.shared.apiKey()?.isEmpty == false
-        // Three UserDefaults-backed JSON decodes. Each one independently parses
+        // Two UserDefaults-backed JSON decodes. Each one independently parses
         // a blob; running them together here (rather than one-by-one on demand)
-        // front-loads the work so later UI hits are cache-fast.
-        let updates = NexusUpdateChecker.shared.cachedUpdates()
+        // front-loads the work so later UI hits are cache-fast. (Le cache des
+        // mises à jour, lui, se relit sur le fil principal juste en dessous —
+        // c'est une petite liste, et sa consolidation doit lire `mods`.)
         let categories = NexusUpdateChecker.shared.cachedCategories()
         let extras = NexusUpdateChecker.shared.cachedExtras()
         // User-saved overrides (per-mod custom categories / Nexus id links /
@@ -727,14 +728,14 @@ class StarHubTHViewModel: ObservableObject {
         let customCats = Self.loadCustomCategories()
         let customIds = Self.loadCustomModIds()
         let activationTs = Self.loadModActivationTimestamps()
-        // Pack consolidation is a pure in-memory pass over `updates`; cheap,
-        // but no reason to run it on the main thread during init.
-        let consolidated = consolidateUpdatesByPack(updates)
-
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             self.hasNexusApiKey = hasKey
-            self.nexusUpdates = consolidated
+            // `republishUpdatesFromCache` et non une consolidation calculée en
+            // amont : elle lit `mods`, qui est `@Published`, et la lire depuis
+            // la file de fond était une lecture non synchronisée. Sur le fil
+            // principal, et par le même chemin que la vérification manuelle.
+            self.republishUpdatesFromCache()
             self.nexusCategories = categories
             self.nexusModExtras = extras
             self.nexusCustomCategories = customCats
@@ -2403,7 +2404,8 @@ class StarHubTHViewModel: ObservableObject {
     func clearNexusApiKey() {
         NexusUpdateChecker.shared.clearApiKey()
         hasNexusApiKey = false
-        nexusUpdates = []
+        // Les mises à jour restent : elles ne doivent rien à la clé, qui ne
+        // sert plus qu'au téléchargement intégré et aux fiches.
         nexusCategories = [:]
         nexusModExtras = [:]
         nexusCheckError = nil
@@ -2528,7 +2530,13 @@ class StarHubTHViewModel: ObservableObject {
         // elle une ligne de mod désinstallé n'est jamais « répondue », donc
         // conservée à vie. `entries` décrit exactement le parc envoyé.
         let stillInstalled = Set(entries.map(\.id))
-        let previousRows = nexusUpdates
+        // Les lignes précédentes viennent du **cache**, pas de `nexusUpdates`.
+        // La liste affichée est consolidée par pack : une ligne de pack porte
+        // le nom du pack et l'`UniqueID` d'un seul de ses composants. Fusionner
+        // à partir d'elle, puis persister le résultat, écrivait cette ligne
+        // hybride dans le cache — un pack y prenait la place de ses enfants.
+        // Le cache est la vérité, à plat ; l'affichage n'en est qu'une vue.
+        let previousRows = NexusUpdateChecker.shared.cachedUpdates()
         let unanswered = previousRows.filter {
             !answered.contains($0.id) && stillInstalled.contains($0.id)
         }
@@ -2538,13 +2546,17 @@ class StarHubTHViewModel: ObservableObject {
 
         let merged = (updates + unanswered)
             .sorted { $0.name.lowercased() < $1.name.lowercased() }
-        nexusUpdates = merged
         unverifiableMods = blockers
 
         // Persister, sinon tout ceci meurt à la fermeture et le lancement
         // suivant réaffiche `cachedUpdates()` — la liste écrite par le code que
         // cette branche remplace.
         NexusUpdateChecker.shared.replaceCachedUpdates(merged)
+        // Puis republier depuis ce cache : une vérification manuelle affiche
+        // désormais la même chose qu'un redémarrage. Le regroupement par pack
+        // ne s'appliquait qu'au chargement, si bien que le même parc donnait
+        // deux décomptes selon le chemin emprunté.
+        republishUpdatesFromCache()
 
         let missing = entries.count - mods.count
         if missing > 0 {
@@ -2571,10 +2583,11 @@ class StarHubTHViewModel: ObservableObject {
         // `$0.id` — c'est-à-dire l'`UniqueID`. Le prédicat comparait `name`,
         // un nom d'affichage, et `nexusModId`, une identité partagée : il ne
         // retirait donc jamais la bonne ligne, quand il en retirait une.
-        nexusUpdates.removeAll { $0.id == uniqueId }
-        // Sans persistance, le lancement suivant réaffiche `cachedUpdates()` et
-        // la ligne revient — l'affirmation ne survivait pas à la fermeture.
+        // Le cache d'abord — sans persistance, le lancement suivant réaffiche
+        // `cachedUpdates()` et la ligne revient : l'affirmation ne survivait
+        // pas à la fermeture. L'affichage se recalcule ensuite depuis lui.
         NexusUpdateChecker.shared.dismissUpdate(uniqueId: uniqueId)
+        republishUpdatesFromCache()
     }
 
     /// Pose une ancre `.install` pour chaque mod que l'installation vient de
@@ -2626,6 +2639,25 @@ class StarHubTHViewModel: ObservableObject {
             anchored.append(uniqueId)
         }
         return anchored
+    }
+
+    /// **L'invariant de la liste des mises à jour** : ce qui est affiché est,
+    /// toujours, la consolidation par pack de ce que porte le cache.
+    ///
+    /// Le cache est plat — une ligne par `UniqueID` — parce que c'est la forme
+    /// dans laquelle les verdicts arrivent, celle qu'un retrait cible, et celle
+    /// que la fusion sait comparer. Le regroupement par pack est une vue, et
+    /// rien d'autre : il n'est jamais écrit.
+    ///
+    /// Passer par ici plutôt que d'écrire `nexusUpdates` à la main, sans quoi
+    /// les chemins divergent — ce qu'ils faisaient : seul le chargement
+    /// consolidait, et le même parc donnait deux décomptes selon qu'on venait
+    /// de redémarrer ou de cliquer « Vérifier ».
+    ///
+    /// À appeler sur le fil principal (`nexusUpdates` est `@Published`), et
+    /// après le scan : la table des packs se lit dans `mods`.
+    private func republishUpdatesFromCache() {
+        nexusUpdates = consolidateUpdatesByPack(NexusUpdateChecker.shared.cachedUpdates())
     }
 
     /// Consolidates the flat Nexus update list so each pack (mod group)
@@ -3118,11 +3150,14 @@ class StarHubTHViewModel: ObservableObject {
     /// qu'une ligne effacée à tort.
     func dismissInstalledUpdates(uniqueIds: [String]) {
         guard !uniqueIds.isEmpty else { return }
-        let installed = Set(uniqueIds)
-        nexusUpdates.removeAll { installed.contains($0.id) }
         for uniqueId in uniqueIds {
             NexusUpdateChecker.shared.dismissUpdate(uniqueId: uniqueId)
         }
+        // Recalculer plutôt que retirer de la liste affichée : sur un pack, le
+        // retrait d'un composant ne fait pas forcément disparaître la ligne —
+        // elle reste si d'autres composants ont encore une mise à jour, et
+        // c'est la consolidation qui sait le dire.
+        republishUpdatesFromCache()
     }
 
     /// After a Nexus-sourced install, log the version reconciliation outcome
