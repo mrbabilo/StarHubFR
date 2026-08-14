@@ -190,7 +190,15 @@ final class NexusUpdateChecker {
     /// file/version upload) — used to break ties when several children of a
     /// pack share the same highest version, and surfaced in the UI.
     struct ModUpdate: Identifiable, Equatable {
-        var id: String { nexusModId }
+        /// L'identité d'une ligne est le `UniqueID` du mod, **pas** son
+        /// identifiant Nexus. Sur le parc réel, 58 identifiants Nexus sont
+        /// portés par plusieurs dossiers et l'identifiant 8828 rassemble trois
+        /// mods sans rapport : indexer sur lui donnait plusieurs lignes de même
+        /// `id` à un `ForEach`, avec les lignes fantômes et la sélection
+        /// incohérente que ça entraîne. L'ancien code s'en protégeait par sa
+        /// déduplication par identifiant Nexus, partie avec lui.
+        var id: String { uniqueId }
+        let uniqueId: String
         let name: String
         let installedVersion: String
         let latestVersion: String
@@ -233,6 +241,17 @@ final class NexusUpdateChecker {
     /// Useful for seeding the UI on launch before any check runs.
     func cachedUpdates() -> [ModUpdate] {
         withMetadataCacheLock { loadCachedUpdates() }
+    }
+
+    /// Remplace entièrement le cache des mises à jour.
+    ///
+    /// C'est le **seul** point de persistance du chemin smapi.io. Sans lui, les
+    /// lignes trouvées mouraient à la fermeture et le lancement suivant
+    /// réaffichait `cachedUpdates()`, c'est-à-dire la liste écrite par le code
+    /// que cette branche remplace. L'ancien `check()` persistait ; la garantie
+    /// est partie avec lui.
+    func replaceCachedUpdates(_ updates: [ModUpdate]) {
+        withMetadataCacheLock { saveCachedUpdates(updates) }
     }
 
     /// Removes a mod from the persisted update cache (e.g. right after
@@ -308,6 +327,9 @@ final class NexusUpdateChecker {
 
     // MARK: - Cached results
     private struct CachedUpdate: Codable {
+        /// Optionnel : une charge écrite avant que `ModUpdate` porte ce champ
+        /// se décode encore, et retombe alors sur `nexusModId`.
+        let uniqueId: String?
         let name: String
         let installedVersion: String
         let latestVersion: String
@@ -320,7 +342,8 @@ final class NexusUpdateChecker {
 
     private func saveCachedUpdates(_ updates: [ModUpdate]) {
         let codable = updates.map {
-            CachedUpdate(name: $0.name, installedVersion: $0.installedVersion,
+            CachedUpdate(uniqueId: $0.uniqueId,
+                         name: $0.name, installedVersion: $0.installedVersion,
                          latestVersion: $0.latestVersion, nexusModId: $0.nexusModId, url: $0.url,
                          uploadedTime: $0.uploadedTime)
         }
@@ -335,7 +358,8 @@ final class NexusUpdateChecker {
             return []
         }
         return decoded.map {
-            ModUpdate(name: $0.name, installedVersion: $0.installedVersion,
+            ModUpdate(uniqueId: $0.uniqueId ?? $0.nexusModId,
+                      name: $0.name, installedVersion: $0.installedVersion,
                       latestVersion: $0.latestVersion, nexusModId: $0.nexusModId, url: $0.url,
                       uploadedTime: $0.uploadedTime)
         }

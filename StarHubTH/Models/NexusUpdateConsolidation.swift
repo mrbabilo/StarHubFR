@@ -39,6 +39,10 @@ enum NexusUpdateConsolidation {
             guard let winner = highestVersion(among: components) else { continue }
             consolidated.append(
                 NexusUpdateChecker.ModUpdate(
+                    // La ligne du pack hérite de l'identité du composant
+                    // retenu : c'est lui qu'on installera, et c'est la seule
+                    // identité de la liste qui soit garantie unique.
+                    uniqueId: winner.uniqueId,
                     name: packName,
                     installedVersion: winner.installedVersion,
                     latestVersion: winner.latestVersion,

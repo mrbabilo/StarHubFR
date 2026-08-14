@@ -6,9 +6,14 @@ import Foundation
 /// l'écran des mises à jour. Un pack de dix composants ne doit pas produire dix
 /// lignes, et surtout : la ligne retenue ne doit pas en cacher une plus récente.
 struct NexusUpdateConsolidationTests {
+    /// `uniqueId` distinct de `nexusModId` par défaut : c'est la disposition
+    /// réelle du parc, où 58 identifiants Nexus sont portés par plusieurs
+    /// dossiers. Les faire coïncider dans les tests masquerait un
+    /// regroupement qui se tromperait d'identité.
     private func update(_ id: String, name: String = "n",
                         latest: String, uploaded: Date? = nil) -> NexusUpdateChecker.ModUpdate {
-        .init(name: name, installedVersion: "1.0.0", latestVersion: latest,
+        .init(uniqueId: "uid.\(id)", name: name, installedVersion: "1.0.0",
+              latestVersion: latest,
               nexusModId: id, url: "https://x/\(id)", uploadedTime: uploaded)
     }
     private func date(_ day: Int) -> Date {

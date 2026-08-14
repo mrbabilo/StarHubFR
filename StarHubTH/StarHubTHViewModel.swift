@@ -2479,6 +2479,7 @@ class StarHubTHViewModel: ObservableObject {
             }
             guard let suggested = mod.suggestedUpdate else { continue }
             updates.append(NexusUpdateChecker.ModUpdate(
+                uniqueId: mod.id,
                 name: mod.metadata?.name ?? mod.id,
                 installedVersion: assertedVersion[mod.id] ?? "",
                 latestVersion: suggested.version,
@@ -2493,26 +2494,43 @@ class StarHubTHViewModel: ObservableObject {
         // Les traiter comme confirmés serait le défaut d'origine sous une
         // autre forme. On conserve donc leur ligne précédente.
         //
-        // `ModUpdate.id` (= `nexusModId`) porte l'identifiant Nexus quand
-        // smapi.io le connaît, l'`UniqueID` sinon — c'est ce qu'`updates`
-        // vient de construire juste au-dessus. Une ligne précédente peut
-        // porter l'une ou l'autre forme selon ce que le check antérieur avait
-        // appris ; `answered` doit donc couvrir les deux, sous peine de
-        // considérer répondu un mod qui, cette fois, ne l'a en fait pas été
-        // (et inversement, de dupliquer sa ligne).
+        // `ModUpdate.id` est désormais l'`UniqueID`, tout comme `Mod.id` de la
+        // réponse et `Entry.id` de la requête : une seule forme d'identité de
+        // bout en bout, plus de correspondance croisée à tenir.
         let answered = Set(mods.map(\.id))
-            .union(mods.compactMap { $0.metadata?.nexusID.map(String.init) })
-        let unanswered = nexusUpdates.filter { !answered.contains($0.id) }
 
-        nexusUpdates = (updates + unanswered)
+        // …mais une ligne n'est conservée que si son mod est **encore
+        // installé**. `NexusUpdateMerge` purgeait les mods disparus ; c'est la
+        // seule de ses quatre règles à n'avoir pas eu de remplaçant, et sans
+        // elle une ligne de mod désinstallé n'est jamais « répondue », donc
+        // conservée à vie. `entries` décrit exactement le parc envoyé.
+        let stillInstalled = Set(entries.map(\.id))
+        let previousRows = nexusUpdates
+        let unanswered = previousRows.filter {
+            !answered.contains($0.id) && stillInstalled.contains($0.id)
+        }
+        let dropped = previousRows.filter {
+            !answered.contains($0.id) && !stillInstalled.contains($0.id)
+        }.count
+
+        let merged = (updates + unanswered)
             .sorted { $0.name.lowercased() < $1.name.lowercased() }
+        nexusUpdates = merged
         unverifiableMods = blockers
+
+        // Persister, sinon tout ceci meurt à la fermeture et le lancement
+        // suivant réaffiche `cachedUpdates()` — la liste écrite par le code que
+        // cette branche remplace.
+        NexusUpdateChecker.shared.replaceCachedUpdates(merged)
 
         let missing = entries.count - mods.count
         if missing > 0 {
             log("Vérification incomplète : \(mods.count) mods sur \(entries.count) ont répondu ; "
                 + "\(unanswered.count) lignes conservées faute de verdict",
                 level: .warning)
+        }
+        if dropped > 0 {
+            log("\(dropped) lignes retirées : leur mod n'est plus installé", level: .info)
         }
         log("Mises à jour : \(updates.count) sur \(mods.count) mods interrogés, \(blockers.count) non vérifiables",
             level: .info)
