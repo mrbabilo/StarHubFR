@@ -1279,15 +1279,7 @@ class StarHubTHViewModel: ObservableObject {
                 if let mName = cached.caseInsensitiveValue(forKey: "Name") as? String { name = mName }
                 if let mUniqueId = cached.caseInsensitiveValue(forKey: "UniqueID") as? String { uniqueId = mUniqueId }
 
-                let mVer = cached.caseInsensitiveValue(forKey: "Version")
-                if let vStr = mVer as? String {
-                    version = vStr
-                } else if let vDict = mVer as? [String: Any] {
-                    let major = vDict.caseInsensitiveValue(forKey: "MajorVersion") as? Int ?? 1
-                    let minor = vDict.caseInsensitiveValue(forKey: "MinorVersion") as? Int ?? 0
-                    let patch = vDict.caseInsensitiveValue(forKey: "PatchVersion") as? Int ?? 0
-                    version = "\(major).\(minor).\(patch)"
-                }
+                if let read = ManifestVersionReader.version(from: cached) { version = read }
 
                 if let mAuthor = cached.caseInsensitiveValue(forKey: "Author") as? String { author = mAuthor }
                 if let mDesc = cached.caseInsensitiveValue(forKey: "Description") as? String { description = mDesc }
@@ -2542,7 +2534,11 @@ class StarHubTHViewModel: ObservableObject {
                   let manifest = ManifestJSON.decode(raw),
                   let uniqueId = manifest.caseInsensitiveValue(forKey: "UniqueID") as? String,
                   !uniqueId.isEmpty,
-                  let version = manifest.caseInsensitiveValue(forKey: "Version") as? String
+                  // `ManifestVersionReader` et non `as? String` : SMAPI accepte
+                  // aussi la forme objet, et l'abandon silencieux sur cette
+                  // forme privait d'ancre le seul chemin où l'app sait avec
+                  // certitude ce qu'elle vient d'écrire.
+                  let version = ManifestVersionReader.version(from: manifest)
             else { continue }
             // `facts: nil` — le lot A ne va pas chercher `files.json`, donc il
             // ne connaît ni le `file_id` posé ni sa date de mise en ligne.
