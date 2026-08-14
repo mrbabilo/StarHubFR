@@ -2559,9 +2559,12 @@ class StarHubTHViewModel: ObservableObject {
     /// poser. C'est le seul moment où l'app sait avec certitude ce qui est sur
     /// le disque.
     ///
-    /// - Returns: les `UniqueID` réellement ancrés. L'appelant s'en sert pour
-    ///   n'éteindre que les lignes de mise à jour des mods qu'il vient de
-    ///   poser — une lecture de manifest, une seule source d'identité.
+    /// - Returns: les `UniqueID` **constatés sur disque** — ceux dont le
+    ///   manifest a pu être lu. Pas « ceux qui ont reçu une ancre » : c'est le
+    ///   constat qui autorise à éteindre une ligne, pas le verdict de la règle
+    ///   d'ancrage, qui peut légitimement s'abstenir. L'appelant s'en sert pour
+    ///   n'éteindre que les lignes des mods qu'il vient de poser — une lecture
+    ///   de manifest, une seule source d'identité.
     @discardableResult
     func anchorInstalledMods(installedFolderPaths: [String]) -> [String] {
         let now = Date()
