@@ -29,6 +29,62 @@ struct InstalledModRegistryTests {
         #expect(reg["Automate"]?.installedAt == t0)
     }
 
+    // MARK: - Grâce sur la date d'installation
+
+    // Le retrait de `nexusVersion` a changé ce que le registre enregistre :
+    // avant, la version Nexus quand elle était plus haute ; maintenant, celle
+    // du manifest. Au premier scan, ~52 dossiers du parc réel voient donc leur
+    // version « changer » sans que le disque ait bougé — et seraient
+    // ré-estampillés à maintenant, écrasant sans retour la seule trace de leur
+    // date d'installation.
+
+    @Test func aFolderUnderGraceKeepsItsInstallDateWhenTheVersionChanges() {
+        let current = ["A": InstalledModRecord(version: "3.0", installedAt: t0)]
+        let (reg, changed) = InstalledModRegistry.sync(
+            registry: current, seen: [seen("A", "1.0")], now: t1,
+            installDateGrace: ["A"])
+        #expect(changed, "la version enregistrée change bien")
+        #expect(reg["A"]?.version == "1.0")
+        #expect(reg["A"]?.installedAt == t0, "la date d'origine survit")
+    }
+
+    @Test func aFolderOutsideGraceIsRestampedAsBefore() {
+        let current = ["B": InstalledModRecord(version: "3.0", installedAt: t0)]
+        let (reg, _) = InstalledModRegistry.sync(
+            registry: current, seen: [seen("B", "1.0")], now: t1,
+            installDateGrace: ["A"])
+        #expect(reg["B"]?.installedAt == t1)
+    }
+
+    @Test func graceDoesNotApplyToAFolderTheRegistryHasNeverSeen() {
+        // Un dossier neuf s'horodate à maintenant, grâce ou pas : il n'y a
+        // aucune date d'origine à préserver.
+        let (reg, _) = InstalledModRegistry.sync(
+            registry: [:], seen: [seen("A", "1.0")], now: t1,
+            installDateGrace: ["A"])
+        #expect(reg["A"]?.installedAt == t1)
+    }
+
+    @Test func graceLeavesAnUnchangedVersionAlone() {
+        let current = ["A": InstalledModRecord(version: "1.0", installedAt: t0)]
+        let (reg, changed) = InstalledModRegistry.sync(
+            registry: current, seen: [seen("A", "1.0")], now: t1,
+            installDateGrace: ["A"])
+        #expect(!changed)
+        #expect(reg["A"]?.installedAt == t0)
+    }
+
+    @Test func aSecondVersionChangeRestampsEvenAFormerlyGracedFolder() {
+        // La grâce ne vaut que pour la passe qui suit la migration ; l'appelant
+        // vide le lot ensuite. Une vraie mise à jour, plus tard, doit bien
+        // ré-estampiller — sans quoi la date resterait fausse à jamais.
+        let afterGrace = ["A": InstalledModRecord(version: "1.0", installedAt: t0)]
+        let (reg, _) = InstalledModRegistry.sync(
+            registry: afterGrace, seen: [seen("A", "2.0")], now: t1,
+            installDateGrace: [])
+        #expect(reg["A"]?.installedAt == t1)
+    }
+
     @Test func aVersionChangeRestampsTheInstallDate() {
         let current = ["Automate": InstalledModRecord(version: "1.0", installedAt: t0)]
         let (reg, changed) = InstalledModRegistry.sync(

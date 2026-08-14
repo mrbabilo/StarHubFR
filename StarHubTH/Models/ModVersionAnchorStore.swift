@@ -6,7 +6,12 @@ import Foundation
 /// doit se voir, pas se taire.
 public enum RegistryMigrationOutcome: Equatable {
     case nothingToDo
-    case stripped(Int)
+    /// Les dossiers dont le champ a été retiré. Ce ne sont pas seulement des
+    /// noms pour le journal : la version qu'ils portaient au registre était
+    /// celle de Nexus, donc au prochain scan leur version « changera » sans que
+    /// le disque ait bougé. Sans cette liste, `InstalledModRegistry.sync` les
+    /// ré-estampillerait, écrasant sans retour leur date d'installation.
+    case stripped([String])
     case registryUnreadable
 }
 
@@ -66,7 +71,7 @@ public final class ModVersionAnchorStore {
     /// supprimerait sans qu'on puisse le compter, ni signaler ce qu'on a fait.
     ///
     /// - Returns: `.nothingToDo` si la clé est absente ou si aucun enregistrement
-    ///   ne porte `nexusVersion` ; `.stripped(n)` si n enregistrements ont été
+    ///   ne porte `nexusVersion` ; `.stripped(dossiers)` si des enregistrements ont été
     ///   nettoyés et persistés ; `.registryUnreadable` si la charge n'est pas
     ///   parsable ou si la ré-sérialisation a échoué.
     @discardableResult
@@ -77,21 +82,21 @@ public final class ModVersionAnchorStore {
         guard var json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else {
             return .registryUnreadable
         }
-        var stripped = 0
+        var stripped: [String] = []
         for (folder, value) in json {
             guard var record = value as? [String: Any],
                   record.removeValue(forKey: "nexusVersion") != nil else { continue }
             json[folder] = record
-            stripped += 1
+            stripped.append(folder)
         }
-        guard stripped > 0 else {
+        guard !stripped.isEmpty else {
             return .nothingToDo
         }
         guard let rewritten = try? JSONSerialization.data(withJSONObject: json) else {
             return .registryUnreadable
         }
         defaults.set(rewritten, forKey: registryKey)
-        return .stripped(stripped)
+        return .stripped(stripped.sorted())
     }
 
     // MARK: - Privé

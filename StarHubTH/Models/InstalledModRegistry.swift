@@ -45,12 +45,19 @@ enum InstalledModRegistry {
     /// une date de mise en ligne Nexus, dont la granularité est l'heure — mais la
     /// différence est réelle, et un lot cohérent vaut mieux qu'un lot dispersé.
     ///
+    /// - Parameter installDateGrace: les dossiers dont un changement de version
+    ///   ne doit **pas** ré-estampiller la date d'installation, parce qu'il
+    ///   vient d'un changement de lecture et non du disque. Alimenté une seule
+    ///   fois, par la migration qui retire `nexusVersion` du registre ;
+    ///   l'appelant vide le lot après la passe qui suit. Un dossier absent de
+    ///   cette passe est de toute façon purgé du registre, donc une passe suffit.
     /// - Returns: le registre mis à jour, et `didChange` — faux quand rien n'a
     ///   bougé. Un rafraîchissement sans installation ni suppression est le cas
     ///   courant : ne rien réécrire épargne un encodage JSON à chaque scan.
     static func sync(registry current: [String: InstalledModRecord],
                      seen: [Seen],
-                     now: Date) -> (registry: [String: InstalledModRecord], didChange: Bool) {
+                     now: Date,
+                     installDateGrace: Set<String> = []) -> (registry: [String: InstalledModRecord], didChange: Bool) {
         var registry = current
         var didChange = false
         var seenFolders = Set<String>()
@@ -69,7 +76,19 @@ enum InstalledModRegistry {
                 continue
             }
 
-            if existing.version != mod.version {
+            if existing.version != mod.version, installDateGrace.contains(mod.folder) {
+                // Ce dossier figure au lot de grâce : sa version « change »
+                // parce que la LECTURE a changé, pas le disque. Le registre
+                // enregistrait la version Nexus quand elle dépassait celle du
+                // manifest ; depuis le retrait de cette substitution, il
+                // enregistre celle du manifest. Ré-estampiller ici écraserait
+                // sans retour la seule trace de la date d'installation — elle
+                // n'est écrite nulle part ailleurs, et la date du dossier ne la
+                // reconstitue pas (c'est la date d'empaquetage de l'archive).
+                registry[mod.folder] = InstalledModRecord(version: mod.version,
+                                                          installedAt: existing.installedAt)
+                didChange = true
+            } else if existing.version != mod.version {
                 // La version a changé depuis le dernier scan : c'est une mise à
                 // jour. C'est aussi l'événement que `ModVersionAnchorRules
                 // .afterDiskChange` consomme — le seul moment où l'app peut

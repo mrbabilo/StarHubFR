@@ -954,8 +954,15 @@ class StarHubTHViewModel: ObservableObject {
             // idempotente (rien à retirer une fois fait) : pas besoin d'un drapeau
             // UserDefaults dédié comme la migration voisine.
             switch ModVersionAnchorStore.migrateAwayFromNexusVersion() {
-            case .stripped(let count):
-                self.log("Registre nettoyé : \(count) entrées portaient une version Nexus non constatée",
+            case .stripped(let folders):
+                // Ces dossiers verront leur version « changer » au prochain scan
+                // sans que le disque ait bougé — le registre portait la version
+                // Nexus, il portera celle du manifest. On les met en grâce pour
+                // que `syncInstalledModRegistry` ne ré-estampille pas leur date
+                // d'installation, seule trace qu'aucune autre source ne
+                // reconstitue.
+                UserDefaults.standard.set(folders, forKey: Self.installDateGraceKey)
+                self.log("Registre nettoyé : \(folders.count) entrées portaient une version Nexus non constatée",
                     level: .info)
             case .registryUnreadable:
                 self.log("Registre des mods illisible : la migration n'a pas pu retirer les versions Nexus non constatées",
@@ -3129,6 +3136,11 @@ class StarHubTHViewModel: ObservableObject {
     /// The update checker uses it for same-version detection: a Nexus upload
     /// newer than the registry date means the installed copy is stale.
     private static let installedModRegistryKey = UDKey.installedModRegistry
+    /// Les dossiers dont la migration a retiré `nexusVersion`. Posée une fois
+    /// par la migration, consommée et effacée par la synchronisation suivante :
+    /// elle empêche que le changement de *lecture* de la version passe pour un
+    /// changement sur le disque et écrase leur date d'installation.
+    private static let installDateGraceKey = "installDateGraceFolders"
     private static let installedModRegistryBackupKey = UDKey.installedModRegistryBackup
 
     private var installedModRegistryCache: [String: InstalledModRecord]?
@@ -3289,6 +3301,14 @@ class StarHubTHViewModel: ObservableObject {
             InstalledModRegistry.Seen(folder: $0.folderName, version: $0.version)
         }
 
+        // Les dossiers que la migration a nettoyés de leur `nexusVersion` : leur
+        // version change à cette passe parce que la LECTURE a changé, pas le
+        // disque. On les met en grâce pour cette passe seulement, puis on vide
+        // le lot — un dossier absent de cette passe est de toute façon purgé du
+        // registre, donc une passe suffit.
+        let graceFolders = Set(
+            UserDefaults.standard.stringArray(forKey: Self.installDateGraceKey) ?? [])
+
         // RMW atomique (load → sync → save sous un seul lock) : un scan
         // concurrent ne peut plus charger la même version du registre et
         // écraser nos changements (audit 2026-08-05 : faux « update available »
@@ -3302,9 +3322,16 @@ class StarHubTHViewModel: ObservableObject {
             wasEmpty = registry.isEmpty
             let (synced, _) = InstalledModRegistry.sync(registry: registry,
                                                         seen: seen,
-                                                        now: now)
+                                                        now: now,
+                                                        installDateGrace: graceFolders)
             registry = synced
             if wasEmpty && !registry.isEmpty { rebuiltCount = registry.count }
+        }
+
+        if !graceFolders.isEmpty {
+            UserDefaults.standard.removeObject(forKey: Self.installDateGraceKey)
+            log("Dates d'installation préservées pour \(graceFolders.count) mods dont seule la lecture de version avait changé",
+                level: .info)
         }
 
         // Un mod supprimé ne doit pas laisser son affirmation derrière lui :

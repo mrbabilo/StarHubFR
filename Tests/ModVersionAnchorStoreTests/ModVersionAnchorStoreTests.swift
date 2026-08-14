@@ -73,7 +73,9 @@ struct ModVersionAnchorStoreTests {
 
         let outcome = ModVersionAnchorStore.migrateAwayFromNexusVersion(defaults: defaults)
 
-        #expect(outcome == .stripped(1))
+        // La liste nomme les dossiers, pas seulement leur nombre : c'est elle
+        // qui protège leur date d'installation au premier scan suivant.
+        #expect(outcome == .stripped(["Mod A"]))
         let raw = defaults.data(forKey: "installedModRegistry")!
         let json = try! JSONSerialization.jsonObject(with: raw) as! [String: [String: Any]]
         #expect(json["Mod A"]?["nexusVersion"] == nil)
