@@ -1044,10 +1044,11 @@ class StarHubTHViewModel: ObservableObject {
                     self.log("Auto-check for Nexus updates skipped (disabled in Settings)", level: .info)
                     return
                 }
-                guard self.hasNexusApiKey else {
-                    self.log("Auto-check for Nexus updates skipped (no Nexus API key set)", level: .info)
-                    return
-                }
+                // Aucune garde sur la clé API : la vérification passe par
+                // smapi.io, qui n'en demande pas. La clé ne sert qu'au
+                // téléchargement intégré et aux métadonnées de la fiche. La
+                // garde qui était ici privait de toute détection de mise à
+                // jour quiconque n'avait pas de compte Nexus.
                 self.checkNexusUpdates(force: true)
             }
         }
@@ -2537,10 +2538,21 @@ class StarHubTHViewModel: ObservableObject {
     }
 
     /// « Je l'ai déjà » : l'utilisateur affirme avoir la version suggérée.
+    ///
+    /// C'est la seule échappatoire quand l'auteur a oublié d'incrémenter le
+    /// champ `Version` de son manifest : smapi.io compare des chaînes, voit un
+    /// retard qui n'existe pas, et le redira à chaque passe. L'ancre
+    /// `.userAffirmed` fige la version envoyée et éteint la ligne pour de bon.
     func affirmInstalled(uniqueId: String, version: String) {
         anchorStore.put(ModVersionAnchorRules.afterUserAffirmation(
             uniqueId: uniqueId, version: version, now: Date()))
-        nexusUpdates.removeAll { $0.name == uniqueId || $0.nexusModId == uniqueId }
+        // `$0.id` — c'est-à-dire l'`UniqueID`. Le prédicat comparait `name`,
+        // un nom d'affichage, et `nexusModId`, une identité partagée : il ne
+        // retirait donc jamais la bonne ligne, quand il en retirait une.
+        nexusUpdates.removeAll { $0.id == uniqueId }
+        // Sans persistance, le lancement suivant réaffiche `cachedUpdates()` et
+        // la ligne revient — l'affirmation ne survivait pas à la fermeture.
+        NexusUpdateChecker.shared.dismissUpdate(uniqueId: uniqueId)
     }
 
     /// Pose une ancre `.install` pour chaque mod que l'installation vient de

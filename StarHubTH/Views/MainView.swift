@@ -650,12 +650,16 @@ struct UpdatesView: View {
                                 Text(vm.L(L10n.Updates.nexusCheckButton))
                                     .font(.system(size: 12, weight: .medium))
                             }
-                            .disabled(!vm.hasNexusApiKey)
                         }
                     }
 
+                    // Note, plus barrage : la vérification passe par smapi.io,
+                    // sans clé ni quota. La clé ne manque qu'au téléchargement
+                    // intégré. Tant que ce bloc était la première branche de la
+                    // chaîne, il **remplaçait** la liste : sans compte Nexus,
+                    // aucune mise à jour n'était visible, quand bien même
+                    // l'app en avait trouvé.
                     if !vm.hasNexusApiKey {
-                        // CTA: prompt user to add an API key.
                         HStack(alignment: .top, spacing: 8) {
                             Image(systemName: "key.fill")
                                 .foregroundColor(.secondary)
@@ -678,7 +682,9 @@ struct UpdatesView: View {
                                 .pointingHandCursor()
                             }
                         }
-                    } else if vm.isCheckingNexusUpdates {
+                    }
+
+                    if vm.isCheckingNexusUpdates {
                         VStack(alignment: .leading, spacing: 8) {
                             HStack(spacing: 8) {
                                 ProgressView()
@@ -810,6 +816,22 @@ struct UpdatesView: View {
                                     .buttonStyle(PlainButtonStyle())
                                     .pointingHandCursor()
                                     .disabled(vm.isDownloadingFromNexus)
+
+                                    // La seule sortie quand l'auteur a oublié
+                                    // d'incrémenter son manifest : la
+                                    // comparaison de chaînes réclamera cette
+                                    // mise à jour à chaque passe, sinon.
+                                    Button {
+                                        vm.affirmInstalled(uniqueId: update.uniqueId,
+                                                           version: update.latestVersion)
+                                    } label: {
+                                        Text(vm.L(L10n.Updates.nexusAlreadyHave))
+                                            .font(.system(size: 12))
+                                            .foregroundColor(.secondary)
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
+                                    .pointingHandCursor()
+                                    .help(vm.L(L10n.Updates.nexusAlreadyHaveHelp))
                                 }
                             }
                             .padding(.vertical, 8)

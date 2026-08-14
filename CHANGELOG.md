@@ -12,7 +12,11 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+- **"I already have it" on an update you've already installed.** Some authors ship a new version without bumping the `Version` in their manifest, so the check sees a gap that isn't there and reports it again at every pass, forever. The row now carries a button that records the version you actually have and closes it until the next release.
+
 ### Fixed
+- **Checking for updates no longer needs a Nexus API key.** The check runs through smapi.io, which asks for neither key nor quota, but the button stayed greyed out without one — and the "add a key" prompt sat where the list of updates should have been, so a user without a Nexus account saw no update at all. The key is now only what it still is: what the in-app download needs.
 - **Mod updates are found again.** The app was recording whatever Nexus had published as the version you had installed, so it compared that version against itself, concluded you were current, and dropped the row — every update erased itself on the next check. On a 966-mod library it now finds 41 updates where it showed 1. A mod the check couldn't reach keeps its row instead of passing for up to date, and the Logs tab reports how many mods could not be checked at all — 115 of them, where nothing distinguished them from a mod verified and current.
 - **A mod no longer shows a version it doesn't have.** 52 folders of a 966-mod library displayed the version published on Nexus instead of the one their own `manifest.json` declares — the same wrong reading that made updates vanish. Each mod now shows its own version.
 - **A mod installed from Nexus is now linked to its Nexus page.** The app knew the mod's id at download time and discarded it, so a mod whose manifest omits `UpdateKeys` was never checked for updates again, with nothing said. New installs only — mods already installed still need the id entered by hand.

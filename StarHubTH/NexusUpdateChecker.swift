@@ -264,6 +264,23 @@ final class NexusUpdateChecker {
         }
     }
 
+    /// Même retrait, mais sur l'identité qui fait foi : le `UniqueID`.
+    ///
+    /// Le retrait par identifiant Nexus emporte tout ce qui partage la page —
+    /// 58 identifiants du parc réel sont portés par plusieurs dossiers. Quand
+    /// l'appelant sait de quel mod il parle (« je l'ai déjà » vise une ligne
+    /// précise), c'est cette clé qu'il faut.
+    ///
+    /// Retrait ciblé plutôt que `replaceCachedUpdates(nexusUpdates)` : la liste
+    /// en mémoire est consolidée par pack au lancement, pas le cache. La
+    /// réécrire entière effacerait les lignes des enfants absorbés.
+    func dismissUpdate(uniqueId: String) {
+        withMetadataCacheLock {
+            let remaining = loadCachedUpdates().filter { $0.uniqueId != uniqueId }
+            saveCachedUpdates(remaining)
+        }
+    }
+
     // MARK: - Single-mod fetch
 
     /// Outcome of an on-demand single-mod metadata fetch (used when the user

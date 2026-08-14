@@ -582,6 +582,8 @@ enum L10n {
         static let nexusChecking        = "updates_nexus_checking"
         static let nexusApiKeyMissing   = "updates_nexus_api_key_missing"
         static let nexusGetKey          = "updates_nexus_get_key"
+        static let nexusAlreadyHave     = "updates_nexus_already_have"
+        static let nexusAlreadyHaveHelp = "updates_nexus_already_have_help"
         static let nexusNoUpdates       = "updates_nexus_no_updates"
         static let nexusUpdatesCount    = "updates_nexus_updates_count"
         static let nexusError           = "updates_nexus_error"
