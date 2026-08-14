@@ -584,12 +584,13 @@ struct ModInstallView: View {
                         // certitude ce qui est posé. `isReferenceFile: true` :
                         // le téléchargement intégré et les liens `nxm://` ne
                         // servent aujourd'hui que le fichier principal.
-                        self.vm.anchorInstalledMods(installedFolderPaths: installedFolderPaths)
+                        let anchoredIds = self.vm.anchorInstalledMods(
+                            installedFolderPaths: installedFolderPaths)
                         // Reconcile FIRST — it reads this mod's update entry to
                         // learn the version the checker flags on — then drop the
                         // entry from the list so it no longer appears.
                         self.vm.reconcileManifestVersion(installedFolderPaths: installedFolderPaths)
-                        self.vm.dismissNexusUpdate(nexusModId: source.modId)
+                        self.vm.dismissInstalledUpdates(uniqueIds: anchoredIds)
                     }
 
                     // Auto-fetch Nexus metadata (image + description) for

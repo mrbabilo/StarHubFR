@@ -254,22 +254,13 @@ final class NexusUpdateChecker {
         withMetadataCacheLock { saveCachedUpdates(updates) }
     }
 
-    /// Removes a mod from the persisted update cache (e.g. right after
-    /// installing its update) so it no longer shows as "update available",
-    /// including across app launches.
-    func dismissUpdate(nexusModId: String) {
-        withMetadataCacheLock {
-            let remaining = loadCachedUpdates().filter { $0.nexusModId != nexusModId }
-            saveCachedUpdates(remaining)
-        }
-    }
-
-    /// Même retrait, mais sur l'identité qui fait foi : le `UniqueID`.
+    /// Retire une ligne du cache persistant des mises à jour, sur l'identité
+    /// qui fait foi : le `UniqueID`.
     ///
-    /// Le retrait par identifiant Nexus emporte tout ce qui partage la page —
-    /// 58 identifiants du parc réel sont portés par plusieurs dossiers. Quand
-    /// l'appelant sait de quel mod il parle (« je l'ai déjà » vise une ligne
-    /// précise), c'est cette clé qu'il faut.
+    /// La variante sur identifiant Nexus, retirée avec son dernier appelant,
+    /// emportait tout ce qui partage la page — et le parc réel montre que
+    /// « la page » n'est pas une identité : 47 identifiants y sont déclarés par
+    /// plusieurs `UniqueID`, dont le 8828 par trois mods sans rapport.
     ///
     /// Retrait ciblé plutôt que `replaceCachedUpdates(nexusUpdates)` : la liste
     /// en mémoire est consolidée par pack au lancement, pas le cache. La

@@ -2558,8 +2558,14 @@ class StarHubTHViewModel: ObservableObject {
     /// Pose une ancre `.install` pour chaque mod que l'installation vient de
     /// poser. C'est le seul moment où l'app sait avec certitude ce qui est sur
     /// le disque.
-    func anchorInstalledMods(installedFolderPaths: [String]) {
+    ///
+    /// - Returns: les `UniqueID` réellement ancrés. L'appelant s'en sert pour
+    ///   n'éteindre que les lignes de mise à jour des mods qu'il vient de
+    ///   poser — une lecture de manifest, une seule source d'identité.
+    @discardableResult
+    func anchorInstalledMods(installedFolderPaths: [String]) -> [String] {
         let now = Date()
+        var anchored: [String] = []
         for path in installedFolderPaths {
             let manifestPath = (path as NSString).appendingPathComponent("manifest.json")
             // `FileManager.contents` + `String(data:encoding:)` plutôt que
@@ -2592,7 +2598,9 @@ class StarHubTHViewModel: ObservableObject {
                 now: now) {
                 anchorStore.put(anchor)
             }
+            anchored.append(uniqueId)
         }
+        return anchored
     }
 
     /// Consolidates the flat Nexus update list so each pack (mod group)
@@ -3067,13 +3075,29 @@ class StarHubTHViewModel: ObservableObject {
         return error.localizedDescription
     }
 
-    /// Drops a just-installed mod from the Nexus update list (and the persisted
-    /// cache) so it stops showing as "update available" — the user just
-    /// installed its latest file. Call on the main thread.
-    func dismissNexusUpdate(nexusModId: Int) {
-        let idStr = String(nexusModId)
-        nexusUpdates.removeAll { $0.nexusModId == idStr }
-        NexusUpdateChecker.shared.dismissUpdate(nexusModId: idStr)
+    /// Éteint les lignes de mise à jour des mods que l'installation vient de
+    /// poser — eux seuls. À appeler sur le fil principal.
+    ///
+    /// Le retrait se faisait sur l'identifiant Nexus, que le parc réel montre
+    /// non unique : 47 identifiants y sont déclarés par plusieurs `UniqueID`,
+    /// et le 8828 par **trois mods sans rapport** du même auteur (A Cavalcade
+    /// of Kombucha, From Source to Sea, Much Ado About Mushrooms), qui ont
+    /// hérité du même `UpdateKeys`. Installer l'un effaçait la mise à jour des
+    /// deux autres, qui repassaient pour à jour jusqu'à la vérification
+    /// suivante.
+    ///
+    /// Les `UniqueID` viennent de `anchorInstalledMods`, c'est-à-dire des
+    /// manifests réellement écrits : le même constat sert à ancrer et à
+    /// éteindre. Une liste vide n'éteint rien — un manifest illisible ne
+    /// prouve aucune installation, et une ligne conservée à tort coûte moins
+    /// qu'une ligne effacée à tort.
+    func dismissInstalledUpdates(uniqueIds: [String]) {
+        guard !uniqueIds.isEmpty else { return }
+        let installed = Set(uniqueIds)
+        nexusUpdates.removeAll { installed.contains($0.id) }
+        for uniqueId in uniqueIds {
+            NexusUpdateChecker.shared.dismissUpdate(uniqueId: uniqueId)
+        }
     }
 
     /// After a Nexus-sourced install, log the version reconciliation outcome
@@ -3083,7 +3107,7 @@ class StarHubTHViewModel: ObservableObject {
     /// longer writes anything to the registry (that write used to feed
     /// `nexusVersion`, removed 2026-08-12; see `InstalledModRegistry.swift`).
     ///
-    /// Must run BEFORE `dismissNexusUpdate` removes the entry (this method
+    /// Must run BEFORE `dismissInstalledUpdates` removes the entry (this method
     /// reads it to extract the version the checker flagged on).
     /// v1: single-mod installs only (packs are skipped upstream).
     func reconcileManifestVersion(installedFolderPaths: [String]) {
