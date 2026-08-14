@@ -1049,7 +1049,7 @@ class StarHubTHViewModel: ObservableObject {
                 // téléchargement intégré et aux métadonnées de la fiche. La
                 // garde qui était ici privait de toute détection de mise à
                 // jour quiconque n'avait pas de compte Nexus.
-                self.checkNexusUpdates(force: true)
+                self.checkNexusUpdates()
             }
         }
         // SMAPI version probe runs in parallel — it doesn't block the launch
@@ -2416,7 +2416,7 @@ class StarHubTHViewModel: ObservableObject {
     /// jugeant chaque composant d'un pack sur *sa* version. Ce que l'app
     /// fournit, c'est la version qu'elle **affirme** installée — d'ancre s'il
     /// y en a une, de manifest sinon.
-    func checkNexusUpdates(force: Bool = false) {
+    func checkNexusUpdates() {
         guard !isCheckingNexusUpdates else { return }
         isCheckingNexusUpdates = true
         nexusCheckError = nil

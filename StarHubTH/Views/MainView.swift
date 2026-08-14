@@ -645,7 +645,7 @@ struct UpdatesView: View {
                                 .controlSize(.small)
                         } else {
                             Button {
-                                vm.checkNexusUpdates(force: true)
+                                vm.checkNexusUpdates()
                             } label: {
                                 Text(vm.L(L10n.Updates.nexusCheckButton))
                                     .font(.system(size: 12, weight: .medium))
