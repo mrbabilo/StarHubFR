@@ -73,8 +73,14 @@ let package = Package(
                 "L10n.swift",
                 "AppDesignCore.swift",
                 "ContrastChecker.swift",
+                "Models/OrderedJSONWriter.swift",
                 "Extensions/ModConfigFiles.swift",
             ]
+        ),
+        .testTarget(
+            name: "OrderedJSONWriterTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/OrderedJSONWriterTests"
         ),
         .testTarget(
             name: "ModConfigBackupManagerTests",
