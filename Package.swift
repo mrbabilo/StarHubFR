@@ -74,8 +74,14 @@ let package = Package(
                 "AppDesignCore.swift",
                 "ContrastChecker.swift",
                 "Models/OrderedJSONWriter.swift",
+                "Models/TranslationTokenCheck.swift",
                 "Extensions/ModConfigFiles.swift",
             ]
+        ),
+        .testTarget(
+            name: "TranslationTokenCheckTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/TranslationTokenCheckTests"
         ),
         .testTarget(
             name: "OrderedJSONWriterTests",
