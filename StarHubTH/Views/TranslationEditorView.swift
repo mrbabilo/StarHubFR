@@ -192,6 +192,16 @@ struct TranslationEditorView: View {
     }
 
     private func save(acceptingMismatch: Bool = false) {
+        // Rien n'a changé : fermer sans écrire. Sans cette garde, cliquer
+        // Enregistrer sur une ligne `.empty` sans y toucher (`draft` et
+        // `row.french` valent tous deux `""`) supprimait la clé du fichier —
+        // un effet de bord sur un clic qui n'a l'air de rien faire, et qui
+        // change pourtant le comportement en jeu (retour au repli anglais).
+        guard draft != row.french else {
+            isPresented = false
+            return
+        }
+
         // Effacé avant l'appel, pas dans `onChange(of: draft)` : un ancien
         // échec ne doit pas rester affiché après un nouveau succès, mais ne
         // doit pas non plus disparaître avant qu'on sache si la nouvelle

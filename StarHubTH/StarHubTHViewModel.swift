@@ -552,13 +552,13 @@ class StarHubTHViewModel: ObservableObject {
         let realKey: String
         if !localeFiles.isEmpty {
             // La locale existe déjà, sur un ou plusieurs fichiers (layout B).
-            // On édite celui qui porte déjà la clé — repliée, puisque SMAPI
-            // compare ses clés en `OrdinalIgnoreCase` (`TranslationCoverage.fold`) —
-            // jamais un autre : y écrire une clé absente créerait un doublon
-            // invisible en jeu (voir la Critique 2 plus bas). `files(in:locale:)`
-            // rend ses fichiers triés par nom ; le premier qui porte la clé
-            // l'emporte, comme `I18nLocaleResolver.merge` le ferait à la
-            // lecture.
+            // Quand la clé y est déjà, on édite le fichier qui la porte —
+            // repliée, puisque SMAPI compare ses clés en `OrdinalIgnoreCase`
+            // (`TranslationCoverage.fold`) — jamais un autre : y écrire une
+            // clé absente créerait un doublon invisible en jeu (voir la
+            // Critique 2 plus bas). `files(in:locale:)` rend ses fichiers
+            // triés par nom ; le premier qui porte la clé l'emporte, comme
+            // `I18nLocaleResolver.merge` le ferait à la lecture.
             let folded = TranslationCoverage.fold(row.key)
             var found: (file: URL, key: String)?
             for file in localeFiles {
@@ -570,17 +570,27 @@ class StarHubTHViewModel: ObservableObject {
                     break
                 }
             }
-            guard let found else {
-                // Refuser plutôt qu'inventer un fichier où ranger une clé
-                // neuve, en layout B : rien ne dit dans lequel des
-                // `fr/*.json` elle devrait vivre.
-                let message = "Traduction non enregistrée : \(row.key) absente des fichiers "
-                    + "existants de \(locale) dans \(i18n.path)"
+            if let found {
+                target = found.file
+                realKey = found.key
+            } else if localeFiles.count == 1 {
+                // Un seul fichier pour cette locale : aucune ambiguïté à
+                // résoudre, que ce soit layout A (`fr.json`) ou layout B à un
+                // seul composant. La clé est neuve pour cette locale — le cas
+                // central de l'écran, une ligne « À traduire » — donc écrite
+                // sous la casse de la source dans cet unique fichier.
+                target = localeFiles[0]
+                realKey = row.key
+            } else {
+                // Layout B à plusieurs fichiers, et aucun ne porte déjà la
+                // clé : refuser plutôt qu'inventer celui où la ranger, faute
+                // de savoir laquelle des sections (`fr/dialogue.json`,
+                // `fr/items.json`…) devrait l'accueillir.
+                let message = "Traduction non enregistrée : \(row.key) absente des "
+                    + "\(localeFiles.count) fichiers de \(locale) dans \(i18n.path)"
                 log(message, level: .warning)
                 return .failed(message)
             }
-            target = found.file
-            realKey = found.key
         } else {
             // La locale n'existe pas encore. La créer à la racine (layout A)
             // n'est légitime que si le dossier n'est **pas** déjà en layout B
@@ -653,6 +663,33 @@ class StarHubTHViewModel: ObservableObject {
             // Le fichier vient de changer : sa couverture en cache ne vaut plus
             // rien. Sans cela le pourcentage affiché reste celui d'avant.
             invalidateFrenchCoverage(for: mod.folderName)
+
+            // Remesurée pour ce seul mod, hors du fil principal : le
+            // rafraîchissement habituel (`recomputeFrenchCoverage`, déclenché
+            // par le `didSet` de `mods`) ne s'applique pas ici — rien ne
+            // republie `mods` — et son propre filtre le manquerait de toute
+            // façon : `mod.languages.contains("fr")` est calé sur la
+            // détection du dernier scan, donc encore faux au moment précis où
+            // l'on vient de poser le tout premier `fr.json` d'un mod. Sans ce
+            // recalcul ciblé, la carte de couverture de la fiche et la
+            // pastille de la liste resteraient vides jusqu'à la fin de la
+            // session — `frenchCoverageDetail(for:)` rend `nil`, et
+            // `ModDetailView` masque toute la section.
+            let root = gameDir
+            let folderName = mod.folderName
+            let physicalFolderName = mod.physicalFolderName
+            Task.detached(priority: .utility) { [weak self] in
+                let directory = URL(fileURLWithPath: (root as NSString)
+                    .appendingPathComponent("Mods"))
+                    .appendingPathComponent(physicalFolderName)
+                guard let coverage = TranslationCoverage.coverage(forModAt: directory,
+                                                                   locale: locale) else { return }
+                let isStale = TranslationFreshness.staleness(forModAt: directory,
+                                                              locale: locale) != nil
+                await self?.mergeFrenchCoverage([folderName: coverage],
+                                                stale: isStale ? [folderName] : [])
+            }
+
             log("Traduction enregistrée : \(mod.name) — \(row.key)", level: .info)
             return .saved
         } catch {

@@ -292,9 +292,14 @@ struct TranslationDiffView: View {
                             // `rebuildGroups()` seul ne suffit pas, il filtre
                             // `allGroups`, qui ne serait pas recalculé — la ligne
                             // enregistrée garderait son ancien état à l'écran.
+                            // `staleness` aussi : sans ce recalcul, le bandeau
+                            // « l'anglais a changé après le français » pouvait
+                            // rester affiché sur une clé qu'on vient justement
+                            // de retraduire.
                             onSaved: {
                                 Task {
                                     rows = await vm.translationDiff(for: mod)
+                                    staleness = await vm.translationStaleness(for: mod)
                                     allGroups = TranslationCoverage.diffGroups(rows: rows)
                                     rebuildGroups()
                                 }
