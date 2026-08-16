@@ -12,6 +12,9 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Fixed
+- **Game markers are highlighted correctly in the Translation tab.** Three forms were being cut in half, so part of a command showed as ordinary text a translator could edit: `$10` read as `$1`, leaving the `0` behind; `%kid1` and `%kid2` both read as `%kid`, making the first and second child indistinguishable; and `#$action AddQuest` shrank to `$a`, leaving "ction AddQuest" looking translatable. Found by measuring the reader against 2365 real translation files.
+
 ### Removed
 - **Internal: the update check's dedupe window is gone.** It had held no value and answered no question since the check moved to smapi.io — nothing stamped the timestamp, nothing read it. Behaviour is unchanged; the orphaned `nexusLastCheckAt` preference is simply no longer used.
 
