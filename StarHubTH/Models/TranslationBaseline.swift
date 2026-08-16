@@ -20,10 +20,31 @@ public enum TranslationBaseline {
         /// La valeur française alors présente. Sert à distinguer « l'anglais a
         /// changé » de « les deux ont changé, donc quelqu'un a retraduit ».
         public let target: String
+        /// Le traducteur a explicitement accepté une divergence de marques pour
+        /// **ce** couple source/cible — voir `TranslationWaiver`.
+        ///
+        /// Absent des fichiers écrits avant cette version : il décode alors à
+        /// `false`, sans quoi les références déjà posées deviendraient
+        /// illisibles, et avec elles la seule preuve qu'une traduction a été
+        /// faite sur un anglais donné.
+        public let tokenMismatchAccepted: Bool
 
-        public init(source: String, target: String) {
+        enum CodingKeys: String, CodingKey {
+            case source, target, tokenMismatchAccepted
+        }
+
+        public init(source: String, target: String, tokenMismatchAccepted: Bool = false) {
             self.source = source
             self.target = target
+            self.tokenMismatchAccepted = tokenMismatchAccepted
+        }
+
+        public init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            source = try container.decode(String.self, forKey: .source)
+            target = try container.decode(String.self, forKey: .target)
+            tokenMismatchAccepted =
+                try container.decodeIfPresent(Bool.self, forKey: .tokenMismatchAccepted) ?? false
         }
     }
 

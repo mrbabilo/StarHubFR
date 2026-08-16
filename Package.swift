@@ -78,8 +78,14 @@ let package = Package(
                 "Models/TranslationComponentResolver.swift",
                 "Models/TranslationDocument.swift",
                 "Models/TranslationFileStore.swift",
+                "Models/TranslationWaiver.swift",
                 "Extensions/ModConfigFiles.swift",
             ]
+        ),
+        .testTarget(
+            name: "TranslationWaiverTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/TranslationWaiverTests"
         ),
         .testTarget(
             name: "TranslationFileStoreTests",
