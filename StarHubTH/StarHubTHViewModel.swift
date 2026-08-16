@@ -485,10 +485,26 @@ class StarHubTHViewModel: ObservableObject {
                          acceptingTokenMismatch: Bool = false) -> [TranslationTokenCheck.Mismatch] {
         let blocking = TranslationTokenCheck.mismatches(source: row.english, target: value)
             .filter(\.isHard)
+
+        // Un accord déjà donné pour ce couple source/cible exact vaut réponse
+        // — c'est ici, pas côté appelant, que se prend la décision de
+        // bloquer. Le magasin n'est consulté que si un blocage est en jeu :
+        // payer cette lecture disque à chaque enregistrement ordinaire serait
+        // pour rien, la quasi-totalité des sauvegardes n'ayant aucune
+        // divergence dure.
+        var waived = false
+        var baselineStore: URL?
+        var existingBaseline: [String: TranslationBaseline.Entry] = [:]
+        if !blocking.isEmpty, let store = TranslationBaseline.defaultDirectory() {
+            baselineStore = store
+            existingBaseline = TranslationBaseline.load(modFolderName: mod.folderName, in: store)
+            let entry = existingBaseline[TranslationBaseline.key(component: row.component, key: row.key)]
+            waived = TranslationWaiver.isAccepted(entry, source: row.english, target: value)
+        }
+        let accepted = acceptingTokenMismatch || waived
         // Rendues à l'appelant plutôt qu'écrites : c'est lui qui demandera
-        // confirmation. Un accord déjà donné pour ce couple source/cible exact
-        // vaut réponse — voir `TranslationWaiver`.
-        if !blocking.isEmpty && !acceptingTokenMismatch { return blocking }
+        // confirmation, sauf quand l'accord ci-dessus en tient déjà lieu.
+        if !blocking.isEmpty && !accepted { return blocking }
 
         let modDirectory = URL(fileURLWithPath: (gameDir as NSString)
             .appendingPathComponent("Mods"))
@@ -519,13 +535,13 @@ class StarHubTHViewModel: ObservableObject {
             }
             try TranslationFileStore.write(text, to: target)
 
-            // Consigner l'accord, et lui seul. Le reste de la référence est
+            // Consigner l'accord, et lui seul — le reste de la référence est
             // adopté par `TranslationBaselineRules` au prochain calcul du diff :
             // écrire ici ce qu'il sait déjà poser créerait un second chemin vers
-            // le même magasin.
-            if !blocking.isEmpty, acceptingTokenMismatch,
-               let store = TranslationBaseline.defaultDirectory() {
-                var baseline = TranslationBaseline.load(modFolderName: mod.folderName, in: store)
+            // le même magasin. Un accord qui tenait déjà (`waived`) n'est pas
+            // réécrit : rien n'a changé pour lui.
+            if !blocking.isEmpty, accepted, !waived, let store = baselineStore {
+                var baseline = existingBaseline
                 baseline[TranslationBaseline.key(component: row.component, key: row.key)] =
                     TranslationWaiver.accepting(source: row.english, target: value)
                 try? TranslationBaseline.save(baseline, modFolderName: mod.folderName, in: store)
