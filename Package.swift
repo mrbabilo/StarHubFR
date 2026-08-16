@@ -77,8 +77,14 @@ let package = Package(
                 "Models/TranslationTokenCheck.swift",
                 "Models/TranslationComponentResolver.swift",
                 "Models/TranslationDocument.swift",
+                "Models/TranslationFileStore.swift",
                 "Extensions/ModConfigFiles.swift",
             ]
+        ),
+        .testTarget(
+            name: "TranslationFileStoreTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/TranslationFileStoreTests"
         ),
         .testTarget(
             name: "TranslationDocumentTests",
