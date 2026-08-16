@@ -76,8 +76,14 @@ let package = Package(
                 "Models/OrderedJSONWriter.swift",
                 "Models/TranslationTokenCheck.swift",
                 "Models/TranslationComponentResolver.swift",
+                "Models/TranslationDocument.swift",
                 "Extensions/ModConfigFiles.swift",
             ]
+        ),
+        .testTarget(
+            name: "TranslationDocumentTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/TranslationDocumentTests"
         ),
         .testTarget(
             name: "TranslationComponentResolverTests",
