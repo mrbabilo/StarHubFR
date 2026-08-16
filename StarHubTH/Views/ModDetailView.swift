@@ -91,7 +91,13 @@ struct ModDetailView: View {
             // Quatrième onglet plutôt qu'une feuille : la barre est déjà
             // épinglée sous la bannière, et le diff est une lecture du mod
             // comme les autres — pas une action modale.
-            if mod.languages.contains("fr") {
+            // `en` autant que `fr` : un mod qui n'a qu'un `default.json` est
+            // précisément celui qu'il reste à traduire, et c'est lui qui a le
+            // plus besoin de cet onglet. Le réserver aux mods déjà traduits
+            // n'ouvrait l'éditeur que là où le travail était fait.
+            // (`I18nLocaleResolver.languageCodes` rend `default` sous la forme
+            // `en` : la présence de `en` signifie donc « il y a une source ».)
+            if mod.languages.contains("fr") || mod.languages.contains("en") {
                 Text(vm.L(L10n.Mods.diffTab)).tag(3)
             }
         }
