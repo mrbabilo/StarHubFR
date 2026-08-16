@@ -113,9 +113,17 @@ public enum TranslationTokens {
 
     /// `#$b#`, `#$e#` — pause et fin de page dans un dialogue.
     private static func dialogueSeparator(_ c: [Character], _ i: Int) -> Int? {
-        guard i + 3 < c.count, c[i] == "#", c[i + 1] == "$", c[i + 3] == "#",
+        guard i + 2 < c.count, c[i] == "#", c[i + 1] == "$",
               c[i + 2].isLetter || c[i + 2].isNumber else { return nil }
-        return i + 4
+        // Le mot entier, pas sa première lettre : `#$action` se réduisait à
+        // `$a`, ce qui abandonnait « ction AddQuest » au traducteur.
+        var j = i + 2
+        while j < c.count, c[j].isLetter || c[j].isNumber { j += 1 }
+        // Le `#` de fermeture quand il existe (`#$b#`) ; les formes ouvertes
+        // (`#$r`, `#$action`) s'arrêtent au mot — mais gardent leur `#` de
+        // tête, qui se perdait.
+        if j < c.count, c[j] == "#" { j += 1 }
+        return j
     }
 
     /// `{{…}}`, **imbrication comprise**.
@@ -157,7 +165,14 @@ public enum TranslationTokens {
     private static func portraitCommand(_ c: [Character], _ i: Int) -> Int? {
         guard c[i] == "$", i + 1 < c.count,
               c[i + 1].isLetter || c[i + 1].isNumber else { return nil }
-        return i + 2
+        // Un index à deux chiffres reste entier : `$10` se rendait `$1`, et le
+        // `0` retombait dans le texte traduisible. Les formes littérales, elles,
+        // tiennent en une lettre (`$b`, `$h`, `$s`) — consommer la suite
+        // avalerait le mot qui suit.
+        guard c[i + 1].isNumber else { return i + 2 }
+        var j = i + 1
+        while j < c.count, c[j].isNumber { j += 1 }
+        return j
     }
 
     /// `%item`, `%farm` — substitution du jeu.
@@ -165,6 +180,10 @@ public enum TranslationTokens {
         guard c[i] == "%", i + 1 < c.count, c[i + 1].isLetter else { return nil }
         var j = i + 1
         while j < c.count, c[j].isLetter { j += 1 }
+        // Les chiffres qui suivent appartiennent à la marque : `%kid1` et
+        // `%kid2` se réduisaient tous deux à `%kid`, si bien qu'intervertir le
+        // premier et le second enfant passait la comparaison sans un mot.
+        while j < c.count, c[j].isNumber { j += 1 }
         return j
     }
 

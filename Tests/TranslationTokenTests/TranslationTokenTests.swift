@@ -140,4 +140,36 @@ struct TranslationTokenComposedFormsTests {
         #expect(segments.filter(\.isCode).map(\.text)
                 == ["${him^her}$", "%item object 349 %%", "@", "^"])
     }
+
+    // MARK: bornes mesurées sur le parc (2026-08-15)
+
+    @Test func aTwoDigitPortraitCommandIsNotCutInHalf() {
+        // `$10` était rendu `$1`, laissant le `0` au texte traduisible : un
+        // traducteur pouvait le supprimer sans que rien ne le signale.
+        #expect(codeParts("Portrait $10 puis $2") == ["$10", "$2"])
+        #expect(codeParts("Expression $h et $s") == ["$h", "$s"])
+    }
+
+    @Test func aNumberedSubstitutionKeepsItsNumber() {
+        // `%kid1` et `%kid2` se réduisaient tous deux à `%kid` : intervertir le
+        // premier et le second enfant passait inaperçu à la comparaison.
+        #expect(codeParts("Enfants %kid1 et %kid2") == ["%kid1", "%kid2"])
+        #expect(codeParts("Bienvenue à %farm !") == ["%farm"])
+    }
+
+    @Test func aHashPrefixedCommandKeepsItsHashAndItsWord() {
+        // `#$action AddQuest` se réduisait à `$a`, abandonnant « ction
+        // AddQuest » à la traduction. Le `#` de tête se perdait aussi sur les
+        // formes non refermées.
+        #expect(codeParts("Sep #$r et #$action AddQuest") == ["#$r", "#$action"])
+        #expect(codeParts("Pause#$b#suite") == ["#$b#"], "la forme refermée ne change pas")
+    }
+
+    @Test func theTextStaysIntactAroundTheseForms() {
+        // Le découpage doit rester réversible : c'est ce qui garantit qu'aucun
+        // caractère ne se perd à l'affichage.
+        let source = "Portrait $10, %kid1 et #$action AddQuest"
+        let segments = TranslationTokens.split(source)
+        #expect(segments.map(\.text).joined() == source)
+    }
 }
