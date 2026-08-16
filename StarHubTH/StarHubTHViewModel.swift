@@ -463,6 +463,84 @@ class StarHubTHViewModel: ObservableObject {
         }.value
     }
 
+    /// Enregistre une valeur traduite pour une ligne du diff.
+    ///
+    /// Rend les divergences de tokens **dures**. Non vide, rien n'a été écrit :
+    /// un token dur perdu casse le mod en jeu, et l'utilisateur n'aurait aucun
+    /// moyen de s'en apercevoir avant de lancer une partie. Les divergences
+    /// souples ne bloquent pas et ne figurent pas ici.
+    ///
+    /// La référence anglaise n'est pas écrite ici : `TranslationBaselineRules`
+    /// l'adopte et la réancre au prochain calcul du diff. Un second chemin
+    /// d'écriture vers le même magasin est exactement ce que ce dépôt a déjà
+    /// payé ailleurs.
+    ///
+    /// `@MainActor` explicite : `invalidateFrenchCoverage(for:)` l'exige déjà,
+    /// et cette méthode mute in fine les mêmes `@Published` par son biais.
+    @MainActor
+    @discardableResult
+    func saveTranslation(mod: ModItem, locale: String,
+                         row: TranslationCoverage.DiffRow,
+                         value: String,
+                         acceptingTokenMismatch: Bool = false) -> [TranslationTokenCheck.Mismatch] {
+        let blocking = TranslationTokenCheck.mismatches(source: row.english, target: value)
+            .filter(\.isHard)
+        // Rendues à l'appelant plutôt qu'écrites : c'est lui qui demandera
+        // confirmation. Un accord déjà donné pour ce couple source/cible exact
+        // vaut réponse — voir `TranslationWaiver`.
+        if !blocking.isEmpty && !acceptingTokenMismatch { return blocking }
+
+        let modDirectory = URL(fileURLWithPath: (gameDir as NSString)
+            .appendingPathComponent("Mods"))
+            .appendingPathComponent(mod.physicalFolderName)
+        guard let i18n = TranslationComponentResolver.directory(forComponent: row.component,
+                                                                inModDirectory: modDirectory) else {
+            log("Traduction non enregistrée : composant introuvable pour \(mod.name)", level: .warning)
+            return []
+        }
+
+        let target = i18n.appendingPathComponent("\(locale).json")
+        let sourceURL = i18n.appendingPathComponent("default.json")
+        guard let sourceData = FileManager.default.contents(atPath: sourceURL.path),
+              let sourceText = I18nFileDecoder.decode(sourceData)?.text else {
+            log("Traduction non enregistrée : \(sourceURL.path) illisible", level: .warning)
+            return []
+        }
+
+        do {
+            let text: String
+            if let data = FileManager.default.contents(atPath: target.path),
+               let existing = I18nFileDecoder.decode(data)?.text {
+                text = try TranslationDocument.apply(edits: [row.key: value],
+                                                     toTarget: existing, sourceText: sourceText)
+            } else {
+                text = try TranslationDocument.create(fromSource: sourceText,
+                                                      translations: [row.key: value])
+            }
+            try TranslationFileStore.write(text, to: target)
+
+            // Consigner l'accord, et lui seul. Le reste de la référence est
+            // adopté par `TranslationBaselineRules` au prochain calcul du diff :
+            // écrire ici ce qu'il sait déjà poser créerait un second chemin vers
+            // le même magasin.
+            if !blocking.isEmpty, acceptingTokenMismatch,
+               let store = TranslationBaseline.defaultDirectory() {
+                var baseline = TranslationBaseline.load(modFolderName: mod.folderName, in: store)
+                baseline[TranslationBaseline.key(component: row.component, key: row.key)] =
+                    TranslationWaiver.accepting(source: row.english, target: value)
+                try? TranslationBaseline.save(baseline, modFolderName: mod.folderName, in: store)
+            }
+
+            // Le fichier vient de changer : sa couverture en cache ne vaut plus
+            // rien. Sans cela le pourcentage affiché reste celui d'avant.
+            invalidateFrenchCoverage(for: mod.folderName)
+            log("Traduction enregistrée : \(mod.name) — \(row.key)", level: .info)
+        } catch {
+            log("Traduction non enregistrée : \(error)", level: .warning)
+        }
+        return []
+    }
+
     /// Oublie la couverture d'un mod dont les fichiers ont pu changer —
     /// installation, mise à jour, restauration de sauvegarde. Le prochain
     /// passage la recalculera. Sans cet appel, un mod mis à jour garderait
