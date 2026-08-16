@@ -463,12 +463,28 @@ class StarHubTHViewModel: ObservableObject {
         }.value
     }
 
+    /// Le résultat d'un `saveTranslation(...)`.
+    ///
+    /// Un simple `[Mismatch]` ne distinguait pas un enregistrement réussi d'un
+    /// échec : les deux rendaient `[]`, composant introuvable ou `default.json`
+    /// illisible compris. Un traducteur aurait cru son travail sauvé.
+    enum SaveOutcome: Equatable {
+        /// Écrit sur le disque.
+        case saved
+        /// Une divergence de token dure, ni acceptée ni déjà déroguée : rien
+        /// n'a été écrit, à l'appelant de demander confirmation.
+        case blocked([TranslationTokenCheck.Mismatch])
+        /// Rien n'a été écrit. Le message est déjà dans le journal — cette
+        /// valeur ne fait que le rendre visible à l'appelant.
+        case failed(String)
+    }
+
     /// Enregistre une valeur traduite pour une ligne du diff.
     ///
-    /// Rend les divergences de tokens **dures**. Non vide, rien n'a été écrit :
-    /// un token dur perdu casse le mod en jeu, et l'utilisateur n'aurait aucun
-    /// moyen de s'en apercevoir avant de lancer une partie. Les divergences
-    /// souples ne bloquent pas et ne figurent pas ici.
+    /// Bloque sur une divergence de tokens **dure**, ni acceptée ni déjà
+    /// déroguée : un token dur perdu casse le mod en jeu, et l'utilisateur
+    /// n'aurait aucun moyen de s'en apercevoir avant de lancer une partie. Les
+    /// divergences souples ne bloquent pas.
     ///
     /// La référence anglaise n'est pas écrite ici : `TranslationBaselineRules`
     /// l'adopte et la réancre au prochain calcul du diff. Un second chemin
@@ -482,7 +498,7 @@ class StarHubTHViewModel: ObservableObject {
     func saveTranslation(mod: ModItem, locale: String,
                          row: TranslationCoverage.DiffRow,
                          value: String,
-                         acceptingTokenMismatch: Bool = false) -> [TranslationTokenCheck.Mismatch] {
+                         acceptingTokenMismatch: Bool = false) -> SaveOutcome {
         let blocking = TranslationTokenCheck.mismatches(source: row.english, target: value)
             .filter(\.isHard)
 
@@ -504,34 +520,112 @@ class StarHubTHViewModel: ObservableObject {
         let accepted = acceptingTokenMismatch || waived
         // Rendues à l'appelant plutôt qu'écrites : c'est lui qui demandera
         // confirmation, sauf quand l'accord ci-dessus en tient déjà lieu.
-        if !blocking.isEmpty && !accepted { return blocking }
+        if !blocking.isEmpty && !accepted { return .blocked(blocking) }
 
         let modDirectory = URL(fileURLWithPath: (gameDir as NSString)
             .appendingPathComponent("Mods"))
             .appendingPathComponent(mod.physicalFolderName)
         guard let i18n = TranslationComponentResolver.directory(forComponent: row.component,
                                                                 inModDirectory: modDirectory) else {
-            log("Traduction non enregistrée : composant introuvable pour \(mod.name)", level: .warning)
-            return []
+            let message = "Traduction non enregistrée : composant introuvable pour \(mod.name)"
+            log(message, level: .warning)
+            return .failed(message)
         }
 
-        let target = i18n.appendingPathComponent("\(locale).json")
-        let sourceURL = i18n.appendingPathComponent("default.json")
-        guard let sourceData = FileManager.default.contents(atPath: sourceURL.path),
+        // Un dossier i18n range ses fichiers de deux façons, et SMAPI accepte
+        // les deux (voir `I18nLocaleResolver`) : layout A, un fichier par
+        // locale à la racine (`fr.json`) ; layout B, un sous-dossier par
+        // locale (`fr/dialogue.json`, `fr/items.json`…). Composer
+        // "i18n/<locale>.json" à la main revient à ignorer le second cas — et
+        // pire, à *casser* un mod en layout B : un seul `.json` écrit à la
+        // racine suffit à faire ignorer tous les sous-dossiers par SMAPI, pour
+        // toutes les locales (« la racine gagne, entièrement »).
+        let sourceFiles = I18nLocaleResolver.files(in: i18n, locale: "default")
+        guard !sourceFiles.isEmpty else {
+            let message = "Traduction non enregistrée : aucun default.json dans \(i18n.path)"
+            log(message, level: .warning)
+            return .failed(message)
+        }
+        let localeFiles = I18nLocaleResolver.files(in: i18n, locale: locale)
+
+        let target: URL
+        let realKey: String
+        if !localeFiles.isEmpty {
+            // La locale existe déjà, sur un ou plusieurs fichiers (layout B).
+            // On édite celui qui porte déjà la clé — repliée, puisque SMAPI
+            // compare ses clés en `OrdinalIgnoreCase` (`TranslationCoverage.fold`) —
+            // jamais un autre : y écrire une clé absente créerait un doublon
+            // invisible en jeu (voir la Critique 2 plus bas). `files(in:locale:)`
+            // rend ses fichiers triés par nom ; le premier qui porte la clé
+            // l'emporte, comme `I18nLocaleResolver.merge` le ferait à la
+            // lecture.
+            let folded = TranslationCoverage.fold(row.key)
+            var found: (file: URL, key: String)?
+            for file in localeFiles {
+                guard let data = FileManager.default.contents(atPath: file.path),
+                      let text = I18nFileDecoder.decode(data)?.text,
+                      let parsed = try? I18nLenientParser.parse(text) else { continue }
+                if let match = parsed.keys.first(where: { TranslationCoverage.fold($0) == folded }) {
+                    found = (file, match)
+                    break
+                }
+            }
+            guard let found else {
+                // Refuser plutôt qu'inventer un fichier où ranger une clé
+                // neuve, en layout B : rien ne dit dans lequel des
+                // `fr/*.json` elle devrait vivre.
+                let message = "Traduction non enregistrée : \(row.key) absente des fichiers "
+                    + "existants de \(locale) dans \(i18n.path)"
+                log(message, level: .warning)
+                return .failed(message)
+            }
+            target = found.file
+            realKey = found.key
+        } else {
+            // La locale n'existe pas encore. La créer à la racine (layout A)
+            // n'est légitime que si le dossier n'est **pas** déjà en layout B
+            // — `sourceFiles` en layout A vit dans `i18n` lui-même ; en
+            // layout B, dans un sous-dossier `default/`. Le confondre
+            // écrirait un `fr.json` à la racine d'un dossier en layout B, et
+            // SMAPI cesserait d'y lire quoi que ce soit.
+            let sourceIsLayoutA = sourceFiles.allSatisfy {
+                $0.deletingLastPathComponent().path == i18n.path
+            }
+            guard sourceIsLayoutA else {
+                let message = "Traduction non enregistrée : \(locale) inexistante et \(i18n.path) "
+                    + "est en layout B — créer un fichier à la racine casserait la lecture des "
+                    + "sous-dossiers existants"
+                log(message, level: .warning)
+                return .failed(message)
+            }
+            target = i18n.appendingPathComponent("\(locale).json")
+            realKey = row.key
+        }
+
+        // Le texte source correspondant : celui qui porte le même nom de
+        // fichier que la cible choisie, à défaut le premier. Il ne sert qu'à
+        // la garde de lisibilité et à l'ordre des clés *nouvelles* — jamais
+        // consulté ici, puisqu'une clé trouvée par le bloc ci-dessus a déjà
+        // son rang dans le fichier cible, et qu'une création en layout A n'a
+        // qu'un seul fichier source possible.
+        let sourceFile = sourceFiles.first { $0.lastPathComponent == target.lastPathComponent }
+            ?? sourceFiles[0]
+        guard let sourceData = FileManager.default.contents(atPath: sourceFile.path),
               let sourceText = I18nFileDecoder.decode(sourceData)?.text else {
-            log("Traduction non enregistrée : \(sourceURL.path) illisible", level: .warning)
-            return []
+            let message = "Traduction non enregistrée : \(sourceFile.path) illisible"
+            log(message, level: .warning)
+            return .failed(message)
         }
 
         do {
             let text: String
             if let data = FileManager.default.contents(atPath: target.path),
                let existing = I18nFileDecoder.decode(data)?.text {
-                text = try TranslationDocument.apply(edits: [row.key: value],
+                text = try TranslationDocument.apply(edits: [realKey: value],
                                                      toTarget: existing, sourceText: sourceText)
             } else {
                 text = try TranslationDocument.create(fromSource: sourceText,
-                                                      translations: [row.key: value])
+                                                      translations: [realKey: value])
             }
             try TranslationFileStore.write(text, to: target)
 
@@ -544,17 +638,28 @@ class StarHubTHViewModel: ObservableObject {
                 var baseline = existingBaseline
                 baseline[TranslationBaseline.key(component: row.component, key: row.key)] =
                     TranslationWaiver.accepting(source: row.english, target: value)
-                try? TranslationBaseline.save(baseline, modFolderName: mod.folderName, in: store)
+                do {
+                    try TranslationBaseline.save(baseline, modFolderName: mod.folderName, in: store)
+                } catch {
+                    // La traduction, elle, est déjà sur le disque : seul
+                    // l'accord de dérogation ne survit pas. Le journaliser
+                    // comme toute autre branche d'échec — un `try?` muet
+                    // l'aurait fait disparaître sans trace.
+                    log("Accord de dérogation non enregistré pour \(mod.name) — \(row.key) : \(error)",
+                        level: .warning)
+                }
             }
 
             // Le fichier vient de changer : sa couverture en cache ne vaut plus
             // rien. Sans cela le pourcentage affiché reste celui d'avant.
             invalidateFrenchCoverage(for: mod.folderName)
             log("Traduction enregistrée : \(mod.name) — \(row.key)", level: .info)
+            return .saved
         } catch {
-            log("Traduction non enregistrée : \(error)", level: .warning)
+            let message = "Traduction non enregistrée : \(error)"
+            log(message, level: .warning)
+            return .failed(message)
         }
-        return []
     }
 
     /// Oublie la couverture d'un mod dont les fichiers ont pu changer —
