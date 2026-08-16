@@ -45,6 +45,11 @@ struct TranslationDiffView: View {
     /// même si la fiche l'affiche déjà : c'est là qu'on travaille effectivement
     /// la traduction.
     @State private var staleness: TranslationFreshness.Staleness?
+    /// La ligne ouverte dans l'éditeur, ou `nil`. `DiffRow.id` vaut
+    /// `component/key` (ou `key` seul) : deux composants définissant la même
+    /// clé restent deux lignes distinctes, et `.sheet(item:)` rouvre toujours
+    /// la bonne.
+    @State private var editing: TranslationCoverage.DiffRow?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -253,6 +258,8 @@ struct TranslationDiffView: View {
                                             DiffRowView(row: row,
                                                         emptyPlaceholder: vm.L(L10n.Mods.diffEmptyValue),
                                                         previousEnglishLabel: vm.L(L10n.Mods.diffPreviousEnglish))
+                                                .contentShape(Rectangle())
+                                                .onTapGesture { editing = row }
                                             Divider()
                                         }
                                     }
@@ -277,6 +284,23 @@ struct TranslationDiffView: View {
                         guard let target else { return }
                         withAnimation { proxy.scrollTo(target, anchor: .top) }
                         scrollTarget = nil
+                    }
+                    .sheet(item: $editing) { row in
+                        TranslationEditorView(
+                            vm: vm, mod: mod, locale: "fr", row: row,
+                            // Reprend exactement la séquence du `.task` initial :
+                            // `rebuildGroups()` seul ne suffit pas, il filtre
+                            // `allGroups`, qui ne serait pas recalculé — la ligne
+                            // enregistrée garderait son ancien état à l'écran.
+                            onSaved: {
+                                Task {
+                                    rows = await vm.translationDiff(for: mod)
+                                    allGroups = TranslationCoverage.diffGroups(rows: rows)
+                                    rebuildGroups()
+                                }
+                            },
+                            isPresented: Binding(get: { editing != nil },
+                                                 set: { if !$0 { editing = nil } }))
                     }
                 }
             }

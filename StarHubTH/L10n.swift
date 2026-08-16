@@ -224,6 +224,19 @@ enum L10n {
         static let translationSourceNewerToday = "mods_translation_source_newer_today"
         static let translationSourceNewerOneDay = "mods_translation_source_newer_one_day"
         static let translationOutdatedKeys = "mods_translation_outdated_keys"
+        static let translationEditorSource      = "mods_translation_editor_source"
+        static let translationEditorTarget      = "mods_translation_editor_target"
+        static let translationEditorSave        = "mods_translation_editor_save"
+        static let translationEditorCancel      = "mods_translation_editor_cancel"
+        static let translationEditorKeepEnglish = "mods_translation_editor_keep_english"
+        static let translationEditorTokens      = "mods_translation_editor_tokens"
+        static let translationEditorBlocked     = "mods_translation_editor_blocked"
+        static let translationEditorSaveAnyway  = "mods_translation_editor_save_anyway"
+        static let translationEditorMismatchHint = "mods_translation_editor_mismatch_hint"
+        /// Le constat, distinct du diagnostic technique affiché juste dessous
+        /// (`SaveOutcome.failed`) : lui seul est localisé, parce que c'est la
+        /// seule partie qu'un traducteur ne peut pas se permettre de manquer.
+        static let translationEditorFailed      = "mods_translation_editor_failed"
         static let frTranslationStale      = "mods_fr_translation_stale"
         static let diffSearch              = "mods_diff_search"
         static let diffNoMatch             = "mods_diff_no_match"
