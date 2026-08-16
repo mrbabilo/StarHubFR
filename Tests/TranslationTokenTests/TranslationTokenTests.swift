@@ -157,6 +157,24 @@ struct TranslationTokenComposedFormsTests {
         #expect(codeParts("Bienvenue à %farm !") == ["%farm"])
     }
 
+    @Test func onlyAttestedMultiLetterCommandsAreTakenWhole() {
+        // Mesuré sur le parc : après `#$`, 22 formes multi-lettres existent et
+        // **une seule** est une commande — `#$action`, 812 fois. Les 21 autres
+        // sont une commande d'une lettre suivie de prose : `#$bWhat` (19 fois)
+        // est `#$b` puis « What ». Tout avaler soustrairait ce texte à la
+        // traduction.
+        #expect(codeParts("Pause#$bWhat a day") == ["#$b"])
+        #expect(codeParts("Sep #$action AddQuest") == ["#$action"])
+    }
+
+    @Test func aClosingHashIsNotStolenFromTheNextSeparator() {
+        // `#$action#$b#` : le `#` qui suit `action` est la tête du séparateur
+        // suivant, pas la fermeture du premier. L'avaler dégradait `#$b#` en
+        // `$b` et laissait un `#` orphelin.
+        #expect(codeParts("Texte#$action#$b#suite") == ["#$action", "#$b#"])
+        #expect(codeParts("Pause#$b#suite") == ["#$b#"], "la fermeture normale tient")
+    }
+
     @Test func aHashPrefixedCommandKeepsItsHashAndItsWord() {
         // `#$action AddQuest` se réduisait à `$a`, abandonnant « ction
         // AddQuest » à la traduction. Le `#` de tête se perdait aussi sur les

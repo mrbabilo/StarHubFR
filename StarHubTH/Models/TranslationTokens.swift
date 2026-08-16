@@ -112,17 +112,31 @@ public enum TranslationTokens {
     }
 
     /// `#$b#`, `#$e#` — pause et fin de page dans un dialogue.
+    /// Les commandes de plus d'une lettre attestées après `#$`.
+    ///
+    /// Mesuré sur le parc : 22 formes multi-lettres y suivent `#$`, et **une
+    /// seule** est une commande — `#$action`, 812 occurrences. Les 21 autres
+    /// sont une commande d'une lettre suivie de prose : `#$bWhat` (19 fois) est
+    /// `#$b` puis « What ». D'où une liste close plutôt qu'un mot gourmand :
+    /// tout avaler soustrairait ce texte à la traduction.
+    private static let multiLetterSeparators: Set<String> = ["action"]
+
     private static func dialogueSeparator(_ c: [Character], _ i: Int) -> Int? {
         guard i + 2 < c.count, c[i] == "#", c[i + 1] == "$",
               c[i + 2].isLetter || c[i + 2].isNumber else { return nil }
-        // Le mot entier, pas sa première lettre : `#$action` se réduisait à
-        // `$a`, ce qui abandonnait « ction AddQuest » au traducteur.
-        var j = i + 2
-        while j < c.count, c[j].isLetter || c[j].isNumber { j += 1 }
-        // Le `#` de fermeture quand il existe (`#$b#`) ; les formes ouvertes
-        // (`#$r`, `#$action`) s'arrêtent au mot — mais gardent leur `#` de
-        // tête, qui se perdait.
-        if j < c.count, c[j] == "#" { j += 1 }
+        // Une lettre par défaut ; le mot entier seulement s'il est attesté.
+        var j = i + 3
+        var word = i + 2
+        while word < c.count, c[word].isLetter { word += 1 }
+        if word > i + 3, multiLetterSeparators.contains(String(c[(i + 2)..<word])) {
+            j = word
+        }
+        // Le `#` de fermeture (`#$b#`) — sauf quand il ouvre le séparateur
+        // suivant : dans `#$action#$b#`, le `#` appartient à `#$b#`, et
+        // l'avaler dégradait celui-ci en `$b` en laissant un `#` orphelin.
+        if j < c.count, c[j] == "#", !(j + 1 < c.count && c[j + 1] == "$") {
+            j += 1
+        }
         return j
     }
 

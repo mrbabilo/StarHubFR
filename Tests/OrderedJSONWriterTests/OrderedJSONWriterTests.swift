@@ -53,4 +53,32 @@ struct OrderedJSONWriterTests {
         #expect(text.contains("\u{1}") == false)
         #expect(try I18nLenientParser.parse(text)["a"] == "x\u{1}y")
     }
+
+    @Test func aDuplicateKeyIsRefusedNotFatal() throws {
+        // `I18nOutline.read` produit sciemment des doublons — il note qu'« une
+        // clé lue deux fois garde la section de sa première occurrence ». Un
+        // `fr.json` écrit à la main avec une clé recopiée suffit donc, et
+        // `Dictionary(uniqueKeysWithValues:)` tuait l'app au lieu de lever.
+        #expect(throws: OrderedJSONWriter.WriteError.duplicateKey("a")) {
+            try OrderedJSONWriter.text(orderedKeys: ["a", "b", "a"],
+                                       values: ["a": "A", "b": "B"])
+        }
+    }
+
+    @Test func aValueWithNoPlaceInTheOrderIsRefused() throws {
+        // La garde comparait le texte relu au sous-ensemble que l'écrivain
+        // avait lui-même retenu : une valeur fournie sans place dans l'ordre
+        // disparaissait en silence, relecture verte à l'appui. C'est le travail
+        // du traducteur qui se perdait.
+        #expect(throws: OrderedJSONWriter.WriteError.valueWithoutOrder("b")) {
+            try OrderedJSONWriter.text(orderedKeys: ["a"], values: ["a": "A", "b": "B"])
+        }
+    }
+
+    @Test func anEmptyValueNeedsNoPlaceInTheOrder() throws {
+        // Une valeur vide n'est pas écrite : ne pas lui réclamer de rang, sinon
+        // « je ne traduis plus cette clé » deviendrait une erreur.
+        let text = try OrderedJSONWriter.text(orderedKeys: ["a"], values: ["a": "A", "b": ""])
+        #expect(text.contains("\"b\"") == false)
+    }
 }
