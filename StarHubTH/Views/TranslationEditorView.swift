@@ -83,7 +83,7 @@ struct TranslationEditorView: View {
                     Image(systemName: "chevron.up")
                 }
                 .disabled(previous == nil)
-                .keyboardShortcut("[", modifiers: .command)
+                .keyboardShortcut(.leftArrow, modifiers: .command)
                 .help(vm.L(L10n.Mods.translationEditorPrevious))
 
                 Button {
@@ -92,7 +92,7 @@ struct TranslationEditorView: View {
                     Image(systemName: "chevron.down")
                 }
                 .disabled(next == nil)
-                .keyboardShortcut("]", modifiers: .command)
+                .keyboardShortcut(.rightArrow, modifiers: .command)
                 .help(vm.L(L10n.Mods.translationEditorNext))
 
                 Button(vm.L(L10n.Mods.translationEditorKeepEnglish)) { draft = row.english }
