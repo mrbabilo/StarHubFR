@@ -864,6 +864,55 @@ struct ModDiffRowsTests {
         #expect(Set(rows.compactMap(\.component)) == ["A", "B"])
     }
 
+    /// Un composant sans `default.json` mais avec du français **déjà écrit**
+    /// ne doit pas disparaître. Le parc en tient un — `East Scarp REMASTERED`,
+    /// dont le composant `East Scarp Core` ne livre qu'un `fr.json`. Le
+    /// composant voisin fournissant des rangées, la vue n'affichait aucun
+    /// message : cette traduction-là était simplement invisible.
+    @Test func aComponentWithoutASourceStillShowsItsExistingFrench() throws {
+        let mod = try fixture([
+            "NPCs/i18n/default.json": #"{"a": "One"}"#,
+            "Core/i18n/fr.json": #"{"b": "Deux"}"#,
+        ])
+        defer { try? FileManager.default.removeItem(at: mod) }
+        let rows = TranslationCoverage.diffRows(forModAt: mod, locale: "fr")
+        let core = rows.filter { $0.component == "Core" }
+        #expect(core.count == 1)
+        #expect(core.first?.key == "b")
+        #expect(core.first?.french == "Deux")
+        // Sans source, la clé n'a rien à quoi se comparer : c'est exactement
+        // ce que `.orphan` dit déjà d'une clé traduite mais absente de
+        // l'anglais.
+        #expect(core.first?.state == .orphan)
+    }
+
+    /// La distinction qui compte : `entries` rend `nil` pour un fichier absent
+    /// **comme** pour un fichier illisible. Traiter le second en absence de
+    /// source ferait basculer tout le français en `.orphan` — un écran de
+    /// fausses alertes sur une simple erreur de syntaxe. Là, le silence reste
+    /// le bon comportement.
+    @Test func anUnreadableSourceIsNotAnAbsentSource() throws {
+        let mod = try fixture([
+            "NPCs/i18n/default.json": #"{"a": "One"}"#,
+            "Broken/i18n/default.json": "{ ceci n'est pas du JSON",
+            "Broken/i18n/fr.json": #"{"b": "Deux"}"#,
+        ])
+        defer { try? FileManager.default.removeItem(at: mod) }
+        let rows = TranslationCoverage.diffRows(forModAt: mod, locale: "fr")
+        #expect(rows.filter { $0.component == "Broken" }.isEmpty)
+    }
+
+    /// Le pendant : rien à montrer ne doit rien inventer.
+    @Test func aComponentWithNeitherSourceNorTargetStaysSilent() throws {
+        let mod = try fixture([
+            "NPCs/i18n/default.json": #"{"a": "One"}"#,
+            "Empty/i18n/readme.md": "pas du JSON",
+        ])
+        defer { try? FileManager.default.removeItem(at: mod) }
+        let rows = TranslationCoverage.diffRows(forModAt: mod, locale: "fr")
+        #expect(rows.filter { $0.component == "Empty" }.isEmpty)
+    }
+
     @Test func componentsAreNamedByTheirFolder() throws {
         let mod = try fixture([
             "[CP] Something/i18n/default.json": #"{"a": "1"}"#,

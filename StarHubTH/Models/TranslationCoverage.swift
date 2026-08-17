@@ -294,7 +294,25 @@ public enum TranslationCoverage {
         return directories
             .map { directory -> (label: String, rows: [DiffRow]) in
                 let label = componentLabel(of: directory, under: modDirectory)
-                guard let source = entries(of: "default", in: directory, fileManager: fileManager)
+                // Pas de source n'est pas « rien à montrer » : un composant qui
+                // ne livre qu'un `fr.json` porte du travail déjà fait, et
+                // l'abandonner le rendait **invisible** — sans message, dès lors
+                // qu'un composant voisin fournissait des rangées. Le parc en
+                // tient un (`East Scarp REMASTERED` / `East Scarp Core`).
+                // Ces clés ressortent en `.orphan`, ce que ce même diff dit déjà
+                // d'une clé traduite mais absente de l'anglais. Deux dictionnaires
+                // vides ne donnent aucune rangée : rien ne s'invente.
+                //
+                // La substitution se fait sur l'absence de **fichier**, pas sur
+                // le `nil` d'`entries` : celui-ci vaut aussi pour un fichier
+                // présent mais illisible, et traiter les deux pareil noierait la
+                // vue de fausses alertes — tout le français en `.orphan` sur une
+                // simple erreur de syntaxe. Là, le silence reste le bon choix.
+                let hasSourceFile = !I18nLocaleResolver.files(in: directory, locale: "default",
+                                                             fileManager: fileManager).isEmpty
+                guard let source = entries(of: "default", in: directory,
+                                           fileManager: fileManager)
+                        ?? (hasSourceFile ? nil : [:])
                 else { return (label, []) }
                 let target = entries(of: locale, in: directory, fileManager: fileManager) ?? [:]
                 // L'ordre et les sections viennent du fichier **anglais** : il

@@ -19,6 +19,9 @@ where the exact log format was verified.
 
 ### Fixed
 - **Clicking a line in the Translation tab opens it.** Selectable text covered nearly the whole row and swallowed the click, so only the status icon and the margins responded — the editor looked inert on every line you would naturally aim at.
+- **A mod's existing French no longer vanishes when one of its folders ships no English file.** The whole component was dropped, and since a sibling folder still listed keys, nothing said so — 724 already-translated lines were simply absent from the tab.
+- **Navigation keeps its direction when a save fails.** Pressing ⌥⌘→, failing to save, then ⌥⌘← and failing again would jump to the *next* key on the first save that went through — the opposite of the last thing you asked for.
+- **VoiceOver names the two navigation buttons.** Now that the shortcut is written on the button, their only label was "⌥⌘←" — announced as symbols rather than "Previous key".
 - **Game markers are highlighted correctly in the Translation tab.** Three forms were being cut in half, so part of a command showed as ordinary text a translator could edit: `$10` read as `$1`, leaving the `0` behind; `%kid1` and `%kid2` both read as `%kid`, making the first and second child indistinguishable; and `#$action AddQuest` shrank to `$a`, leaving "ction AddQuest" looking translatable. Found by measuring the reader against 2365 real translation files.
 
 ### Removed
