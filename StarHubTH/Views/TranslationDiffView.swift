@@ -290,8 +290,18 @@ struct TranslationDiffView: View {
                         scrollTarget = nil
                     }
                     .sheet(item: $editing) { row in
+                        // L'ordre **affiché**, filtre compris : « suivant »
+                        // doit mener où l'œil irait, pas dans la liste
+                        // complète que le filtre vient d'écarter. Les groupes
+                        // repliés restent du voyage — replier est un confort
+                        // de lecture, pas une exclusion.
+                        let shown = groups.flatMap(\.rows)
+                        let here = shown.firstIndex { $0.id == row.id }
                         TranslationEditorView(
                             vm: vm, mod: mod, locale: "fr", row: row,
+                            previous: here.flatMap { $0 > 0 ? shown[$0 - 1] : nil },
+                            next: here.flatMap { $0 + 1 < shown.count ? shown[$0 + 1] : nil },
+                            onNavigate: { editing = $0 },
                             // Reprend exactement la séquence du `.task` initial :
                             // `rebuildGroups()` seul ne suffit pas, il filtre
                             // `allGroups`, qui ne serait pas recalculé — la ligne

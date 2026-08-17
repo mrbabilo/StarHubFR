@@ -796,6 +796,8 @@
   "mods_translation_editor_keep_english": "Garder l'anglais",
   "mods_translation_editor_tokens": "À ne pas traduire",
   "mods_translation_editor_blocked": "%lld marque(s) du jeu manquante(s) : rien n'a été enregistré.",
+  "mods_translation_editor_previous": "Clé précédente (⌘[)",
+  "mods_translation_editor_next": "Clé suivante (⌘])",
   "mods_translation_editor_save_anyway": "Enregistrer quand même",
   "mods_translation_editor_mismatch_hint": "Si c'est voulu — une phrase neutre n'a pas besoin du sélecteur de genre — vous pouvez passer outre. L'accord ne vaudra que pour cette version de l'anglais.",
   "mods_translation_editor_failed": "Rien n'a été enregistré.",

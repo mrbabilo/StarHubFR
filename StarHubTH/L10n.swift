@@ -231,6 +231,8 @@ enum L10n {
         static let translationEditorKeepEnglish = "mods_translation_editor_keep_english"
         static let translationEditorTokens      = "mods_translation_editor_tokens"
         static let translationEditorBlocked     = "mods_translation_editor_blocked"
+        static let translationEditorPrevious    = "mods_translation_editor_previous"
+        static let translationEditorNext        = "mods_translation_editor_next"
         static let translationEditorSaveAnyway  = "mods_translation_editor_save_anyway"
         static let translationEditorMismatchHint = "mods_translation_editor_mismatch_hint"
         /// Le constat, distinct du diagnostic technique affiché juste dessous

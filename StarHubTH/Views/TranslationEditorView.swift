@@ -10,6 +10,12 @@ struct TranslationEditorView: View {
     let mod: ModItem
     let locale: String
     let row: TranslationCoverage.DiffRow
+    /// Les voisines de `row` dans l'ordre **affiché** — filtre compris. `nil`
+    /// aux deux bouts de la liste.
+    let previous: TranslationCoverage.DiffRow?
+    let next: TranslationCoverage.DiffRow?
+    /// Remplace la ligne éditée par sa voisine, sans refermer la feuille.
+    let onNavigate: (TranslationCoverage.DiffRow) -> Void
     let onSaved: () -> Void
     @Binding var isPresented: Bool
 
@@ -69,6 +75,26 @@ struct TranslationEditorView: View {
             statusNotice.frame(height: 90, alignment: .topLeading)
 
             HStack {
+                // Enchaîner les clés sans repasser par la liste : c'est le
+                // geste d'un traducteur qui en traite des centaines.
+                Button {
+                    navigate(to: previous)
+                } label: {
+                    Image(systemName: "chevron.up")
+                }
+                .disabled(previous == nil)
+                .keyboardShortcut("[", modifiers: .command)
+                .help(vm.L(L10n.Mods.translationEditorPrevious))
+
+                Button {
+                    navigate(to: next)
+                } label: {
+                    Image(systemName: "chevron.down")
+                }
+                .disabled(next == nil)
+                .keyboardShortcut("]", modifiers: .command)
+                .help(vm.L(L10n.Mods.translationEditorNext))
+
                 Button(vm.L(L10n.Mods.translationEditorKeepEnglish)) { draft = row.english }
                 Spacer()
                 Button(vm.L(L10n.Mods.translationEditorCancel)) { isPresented = false }
@@ -86,6 +112,15 @@ struct TranslationEditorView: View {
         .padding(20)
         .frame(minWidth: 560, minHeight: 540)
         .onAppear { draft = row.french }
+        // `.sheet(item:)` peut réutiliser cette vue en changeant seulement
+        // `row` : `onAppear` ne se redéclencherait pas, et le brouillon de la
+        // ligne précédente s'écrirait dans la suivante. On réarme donc sur
+        // l'identité de la ligne, pas sur l'apparition de la vue.
+        .onChange(of: row.id) { _, _ in
+            draft = row.french
+            blocked = []
+            failureMessage = nil
+        }
         // Retoucher la phrase remet le refus de tokens à zéro : l'accord porte
         // sur un couple source/cible précis, et la cible vient de changer.
         // `failureMessage` n'est volontairement pas concerné, voir sa
@@ -189,6 +224,32 @@ struct TranslationEditorView: View {
         } else {
             EmptyView()
         }
+    }
+
+    /// Passe à une voisine — **en enregistrant d'abord** si le texte a changé.
+    ///
+    /// Naviguer en abandonnant une modification perdrait le travail sans le
+    /// dire, ce qui est le pire résultat possible ici. Et si l'enregistrement
+    /// est refusé — marque du jeu manquante, ou panne — on ne bouge pas : le
+    /// motif s'affiche sur la ligne qu'il concerne, pas sur la suivante.
+    private func navigate(to target: TranslationCoverage.DiffRow?) {
+        guard let target else { return }
+        if draft != row.french {
+            failureMessage = nil
+            switch vm.saveTranslation(mod: mod, locale: locale, row: row, value: draft) {
+            case .saved:
+                blocked = []
+                onSaved()
+            case .blocked(let mismatches):
+                blocked = mismatches
+                return
+            case .failed(let message):
+                blocked = []
+                failureMessage = message
+                return
+            }
+        }
+        onNavigate(target)
     }
 
     private func save(acceptingMismatch: Bool = false) {
