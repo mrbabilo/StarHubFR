@@ -77,10 +77,20 @@ struct TranslationEditorView: View {
             HStack {
                 // Enchaîner les clés sans repasser par la liste : c'est le
                 // geste d'un traducteur qui en traite des centaines.
+                //
+                // Le raccourci est **écrit sur le bouton**, pas seulement dans
+                // l'infobulle : une combinaison qu'il faut survoler pour
+                // découvrir n'est apprise par personne. Les chevrons suivent
+                // le sens des flèches — un chevron vertical au-dessus d'un
+                // `⌘←` se contredirait.
                 Button {
                     navigate(to: previous)
                 } label: {
-                    Image(systemName: "chevron.up")
+                    Label {
+                        Text(verbatim: "⌘←").font(.system(size: 10, design: .monospaced))
+                    } icon: {
+                        Image(systemName: "chevron.left")
+                    }
                 }
                 .disabled(previous == nil)
                 .keyboardShortcut(.leftArrow, modifiers: .command)
@@ -89,7 +99,11 @@ struct TranslationEditorView: View {
                 Button {
                     navigate(to: next)
                 } label: {
-                    Image(systemName: "chevron.down")
+                    Label {
+                        Text(verbatim: "⌘→").font(.system(size: 10, design: .monospaced))
+                    } icon: {
+                        Image(systemName: "chevron.right")
+                    }
                 }
                 .disabled(next == nil)
                 .keyboardShortcut(.rightArrow, modifiers: .command)

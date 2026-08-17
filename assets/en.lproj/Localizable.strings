@@ -796,8 +796,8 @@
 "mods_translation_editor_keep_english" = "Keep English";
 "mods_translation_editor_tokens" = "Do not translate";
 "mods_translation_editor_blocked" = "%lld game marker(s) missing: nothing was saved.";
-"mods_translation_editor_previous" = "Previous key (⌘←)";
-"mods_translation_editor_next" = "Next key (⌘→)";
+"mods_translation_editor_previous" = "Previous key";
+"mods_translation_editor_next" = "Next key";
 "mods_translation_editor_save_anyway" = "Save anyway";
 "mods_translation_editor_mismatch_hint" = "If this is deliberate — a gender-neutral sentence needs no gender switch — you can go ahead. The agreement only holds for this revision of the English.";
 "mods_translation_editor_failed" = "Nothing was saved.";
