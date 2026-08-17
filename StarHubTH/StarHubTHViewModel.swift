@@ -683,7 +683,15 @@ class StarHubTHViewModel: ObservableObject {
                     .appendingPathComponent("Mods"))
                     .appendingPathComponent(physicalFolderName)
                 guard let coverage = TranslationCoverage.coverage(forModAt: directory,
-                                                                   locale: locale) else { return }
+                                                                   locale: locale) else {
+                    // Sans cette ligne, l'échec du recalcul rendait exactement
+                    // le défaut que ce chemin ferme — carte de couverture vide
+                    // jusqu'à la fin de la session — mais sans rien laisser
+                    // pour le diagnostiquer.
+                    await self?.log("Couverture non recalculée pour \(folderName) : "
+                                    + "\(directory.path) illisible", level: .warning)
+                    return
+                }
                 let isStale = TranslationFreshness.staleness(forModAt: directory,
                                                               locale: locale) != nil
                 await self?.mergeFrenchCoverage([folderName: coverage],

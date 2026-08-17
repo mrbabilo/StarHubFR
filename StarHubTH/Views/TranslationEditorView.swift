@@ -30,6 +30,11 @@ struct TranslationEditorView: View {
     /// dossier ou de disque s'est réglé tout seul ; il ne se réarme qu'au
     /// prochain appel de `save()`, jamais avant.
     @State private var failureMessage: String?
+    /// La ligne qu'on voulait rejoindre quand un refus de marques a interrompu
+    /// la navigation. Sans elle, « Enregistrer quand même » refermait la
+    /// feuille et l'intention se perdait en silence : il fallait rouvrir et
+    /// refaire le geste.
+    @State private var pendingNavigation: TranslationCoverage.DiffRow?
 
     /// Dédoublonnées et triées : la même marque répétée trois fois ne donne
     /// qu'une pastille, et l'ordre ne doit pas sauter d'une ouverture à l'autre.
@@ -143,6 +148,7 @@ struct TranslationEditorView: View {
             draft = row.french
             blocked = []
             failureMessage = nil
+            pendingNavigation = nil
         }
         // Retoucher la phrase remet le refus de tokens à zéro : l'accord porte
         // sur un couple source/cible précis, et la cible vient de changer.
@@ -265,6 +271,9 @@ struct TranslationEditorView: View {
                 onSaved()
             case .blocked(let mismatches):
                 blocked = mismatches
+                // On retient où l'on allait : accepter la divergence doit
+                // reprendre le voyage, pas le clore.
+                pendingNavigation = target
                 return
             case .failed(let message):
                 blocked = []
@@ -272,6 +281,7 @@ struct TranslationEditorView: View {
                 return
             }
         }
+        pendingNavigation = nil
         onNavigate(target)
     }
 
@@ -296,7 +306,14 @@ struct TranslationEditorView: View {
         case .saved:
             blocked = []
             onSaved()
-            isPresented = false
+            // Reprendre le voyage interrompu par le refus, plutôt que de
+            // refermer sur une intention avortée.
+            if let target = pendingNavigation {
+                pendingNavigation = nil
+                onNavigate(target)
+            } else {
+                isPresented = false
+            }
         case .blocked(let mismatches):
             blocked = mismatches
         case .failed(let message):
