@@ -109,6 +109,10 @@ struct TranslationEditorView: View {
                 .disabled(previous == nil)
                 .keyboardShortcut(.leftArrow, modifiers: [.command, .option])
                 .help(vm.L(L10n.Mods.translationEditorPrevious))
+                // Le libellé du bouton est le raccourci : sans cela, VoiceOver
+                // annoncerait « ⌥⌘← » — des symboles, pas une action. `.help`
+                // est une infobulle, il ne sert pas de nom accessible.
+                .accessibilityLabel(vm.L(L10n.Mods.translationEditorPrevious))
 
                 Button {
                     navigate(to: next)
@@ -122,6 +126,7 @@ struct TranslationEditorView: View {
                 .disabled(next == nil)
                 .keyboardShortcut(.rightArrow, modifiers: [.command, .option])
                 .help(vm.L(L10n.Mods.translationEditorNext))
+                .accessibilityLabel(vm.L(L10n.Mods.translationEditorNext))
 
                 Button(vm.L(L10n.Mods.translationEditorKeepEnglish)) { draft = row.english }
                 Spacer()
