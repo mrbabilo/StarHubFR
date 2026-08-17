@@ -260,6 +260,10 @@ struct TranslationDiffView: View {
                                                         previousEnglishLabel: vm.L(L10n.Mods.diffPreviousEnglish))
                                                 .contentShape(Rectangle())
                                                 .onTapGesture { editing = row }
+                                                // Rien n'indiquait qu'une
+                                                // rangée s'ouvre : le curseur
+                                                // le dit avant le clic.
+                                                .pointingHandCursor()
                                             Divider()
                                         }
                                     }
@@ -537,6 +541,13 @@ private struct DiffRowView: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: DiffMetrics.spacing) {
+            // Aucun `.textSelection(.enabled)` sur cette rangée, et c'est
+            // délibéré : il couvrait la clé et les deux colonnes, donc presque
+            // toute la surface, et **avalait le clic** — seuls l'icône d'état
+            // et les marges ouvraient l'éditeur, le reste affichant un curseur
+            // de sélection. La rangée a une action principale, ouvrir
+            // l'éditeur ; copier un texte reste possible dans l'éditeur, où les
+            // deux valeurs sont sélectionnables.
             Image(systemName: DiffStateStyle.glyph(row.state))
                 .font(.system(size: 10))
                 .foregroundColor(DiffStateStyle.tint(row.state))
@@ -545,7 +556,6 @@ private struct DiffRowView: View {
                 .font(.system(size: 10, design: .monospaced))
                 .foregroundColor(.secondary)
                 .frame(width: DiffMetrics.keyWidth, alignment: .leading)
-                .textSelection(.enabled)
             VStack(alignment: .leading, spacing: 2) {
                 tokenised(row.english)
                 // L'ancien anglais sous le nouveau, barré : c'est ce qui permet
@@ -559,7 +569,6 @@ private struct DiffRowView: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .textSelection(.enabled)
             frenchColumn
         }
         .padding(.vertical, 4)
@@ -578,7 +587,6 @@ private struct DiffRowView: View {
         } else {
             tokenised(row.french)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .textSelection(.enabled)
         }
     }
 
