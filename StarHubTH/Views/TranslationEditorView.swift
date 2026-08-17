@@ -283,6 +283,13 @@ struct TranslationEditorView: View {
             case .failed(let message):
                 blocked = []
                 failureMessage = message
+                // Même raison que pour un refus de marques, et surtout : sans
+                // cette ligne, `.failed` était la seule branche à ne rien dire
+                // de l'intention. Elle laissait donc en place celle d'un aller
+                // précédent — presser ⌥⌘→, échouer, puis ⌥⌘← et échouer encore
+                // faisait repartir vers la *suivante* au premier enregistrement
+                // réussi, à l'opposé du dernier geste.
+                pendingNavigation = target
                 return
             }
         }
