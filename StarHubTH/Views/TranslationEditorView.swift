@@ -81,32 +81,41 @@ struct TranslationEditorView: View {
                 // Le raccourci est **écrit sur le bouton**, pas seulement dans
                 // l'infobulle : une combinaison qu'il faut survoler pour
                 // découvrir n'est apprise par personne. Les chevrons suivent
-                // le sens des flèches — un chevron vertical au-dessus d'un
-                // `⌘←` se contredirait.
+                // le sens des flèches — un chevron vertical au-dessus d'une
+                // flèche horizontale se contredirait.
+                //
+                // `⌥⌘` et pas plus simple : toutes les combinaisons à flèches
+                // plus courtes sont déjà prises par le système, et le champ de
+                // traduction est un éditeur de texte souvent au focus. `⌘←`
+                // va au début de la ligne (constaté à l'essai), `⌥←` recule
+                // d'un mot, `⌃←` change d'espace de travail, `⇧⌘←` sélectionne
+                // jusqu'au bord. `⌥⌘←` est l'idiome « élément précédent » de
+                // macOS — le changement d'onglet — et n'est pas une commande
+                // de texte.
                 Button {
                     navigate(to: previous)
                 } label: {
                     Label {
-                        Text(verbatim: "⌘←").font(.system(size: 10, design: .monospaced))
+                        Text(verbatim: "⌥⌘←").font(.system(size: 10, design: .monospaced))
                     } icon: {
                         Image(systemName: "chevron.left")
                     }
                 }
                 .disabled(previous == nil)
-                .keyboardShortcut(.leftArrow, modifiers: .command)
+                .keyboardShortcut(.leftArrow, modifiers: [.command, .option])
                 .help(vm.L(L10n.Mods.translationEditorPrevious))
 
                 Button {
                     navigate(to: next)
                 } label: {
                     Label {
-                        Text(verbatim: "⌘→").font(.system(size: 10, design: .monospaced))
+                        Text(verbatim: "⌥⌘→").font(.system(size: 10, design: .monospaced))
                     } icon: {
                         Image(systemName: "chevron.right")
                     }
                 }
                 .disabled(next == nil)
-                .keyboardShortcut(.rightArrow, modifiers: .command)
+                .keyboardShortcut(.rightArrow, modifiers: [.command, .option])
                 .help(vm.L(L10n.Mods.translationEditorNext))
 
                 Button(vm.L(L10n.Mods.translationEditorKeepEnglish)) { draft = row.english }
