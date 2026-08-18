@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.15.0] - 2026-08-18
+
 ### Added
 - **You can now translate a mod into French from the app.** The Translation tab was a report; it is now an editor. Click any line to open it side by side — English on the left, read-only; French on the right, yours to write — then step to the next key, or back to the previous one, without returning to the list. A mod with no French file yet gets one on the first save.
 - **The game's markers are protected as you translate.** A translation mixes the sentence with things the game reads: a Content Patcher token, a dialogue break, the command that changes a portrait's expression. Losing one breaks the mod, silently. They show as clickable chips you insert rather than retype, and a save that drops one is refused, naming what is missing — with a way through when the omission is deliberate, since a gender-neutral French sentence has no use for a gender switch.
