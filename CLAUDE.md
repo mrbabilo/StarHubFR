@@ -68,9 +68,9 @@ réellement écrit le commit** — jamais un nom figé :
 
 - Claude : `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>`
   (ou `Claude Sonnet 5`, `Claude Haiku 4.5`… selon le modèle actif).
-- GLM : `Co-Authored-By: GLM 5.2 <noreply@z.ai>`.
+- GLM : `Co-Authored-By: GLM 5.3 <noreply@z.ai>`.
 
-⚠️ Le dépôt est travaillé avec **plusieurs modèles**, dont GLM 5.2 via `glm.sh`
+⚠️ Le dépôt est travaillé avec **plusieurs modèles**, dont GLM via `glm.sh`
 (qui route Claude Code vers l'API z.ai : le modèle *actif* est alors GLM, quel
 que soit l'alias `sonnet`/`opus` affiché). Vérifier quel modèle tourne avant de
 signer.
