@@ -21,6 +21,7 @@ Installez, organisez et dépannez votre collection de mods sans jamais toucher a
 ## Pourquoi StarHubFR
 
 *   🇫🇷 **Entièrement en français** — interface, messages d'erreur et diagnostics, avec bascule instantanée vers l'anglais.
+*   ✍️ **Vous traduisez les mods dans l'app** — un éditeur clé par clé écrit le `fr.json`, avec les marqueurs du jeu protégés au passage.
 *   🩺 **Il vous explique ce qui ne va pas** — StarHubFR lit le journal SMAPI à votre place et vous dit quoi faire, en langage clair, au lieu de vous laisser face à un mur de texte technique.
 *   🍎 **Vraiment natif macOS** — Swift et SwiftUI, sans Electron ni couche web, accessible à VoiceOver.
 *   🧩 **Calibré pour les grosses collections** — pensé et testé sur des installations de plusieurs centaines de mods (SVE et compagnie).
@@ -50,10 +51,11 @@ Quand le jeu plante ou qu'un mod refuse de se charger, StarHubFR transforme le j
 *   **Profils de mods** — regroupez vos mods en plusieurs profils et basculez de l'un à l'autre en un clic.
 *   **Liste avancée** — classification automatique par type (UI, Framework, Content Patcher, Traduction, PNJ, Audio, Carte…) déduite du manifeste, qui sert aussi de repli hors ligne. Filtres par catégorie, mods non catégorisés, mods configurables ; tri par nom, auteur, version ou ordre d'activation ; pagination avec saut de page direct.
 
-### 🔄 Mises à jour et téléchargements Nexus Mods
+### 🔄 Mises à jour et téléchargements
 
-*   **Détection des mises à jour** via l'API Nexus Mods — clé stockée dans le trousseau macOS, détection fiable même à numéro de version identique (comparaison par date d'upload).
-*   **Téléchargement dans l'application** — bouton *MàJ Premium* pour les comptes Premium, ou *MàJ Nexus* via le lien `nxm://` pour les comptes gratuits.
+*   **Détection des mises à jour** via [smapi.io](https://smapi.io/) — sans clé API ni compte Nexus : la vérification lit ce que chaque mod déclare dans son manifeste, et un mod qu'elle n'a pas pu joindre reste signalé au lieu de passer pour à jour.
+*   **« Je l'ai déjà »** — certains auteurs publient une nouvelle version sans incrémenter celle de leur manifeste : le contrôle voit un écart qui n'existe pas et le réaffiche à chaque passage. La ligne porte un bouton qui enregistre la version réellement installée, puis s'efface.
+*   **Téléchargement dans l'application** — bouton *MàJ Premium* pour les comptes Premium, ou *MàJ Nexus* via le lien `nxm://` pour les comptes gratuits. La clé API Nexus, stockée dans le trousseau macOS, ne sert qu'à télécharger.
 *   **Réconciliation automatique du `manifest.json`** après installation, pour qu'un mod mis à jour ne réapparaisse pas indéfiniment comme « à mettre à jour ».
 
 ### 📖 Fiche détaillée de mod
@@ -65,8 +67,10 @@ Quand le jeu plante ou qu'un mod refuse de se charger, StarHubFR transforme le j
 
 ### 🌐 Traduction française — clé par clé
 
-Un onglet **Traduction** sur la fiche de chaque mod vous montre l'état réel de son français, là où la liste se contentait d'un « FR disponible » dès qu'un `fr.json` existait — une demi-vérité sur un mod traduit à 8 %.
+Un onglet **Traduction** sur la fiche de chaque mod vous montre l'état réel de son français, là où la liste se contentait d'un « FR disponible » dès qu'un `fr.json` existait — une demi-vérité sur un mod traduit à 8 %. Et c'est un éditeur, pas seulement un rapport : le français s'écrit ici, sans quitter l'app.
 
+*   **Traduire sans quitter l'app** — cliquez une ligne pour l'ouvrir en édition : l'anglais à gauche, en lecture seule ; votre français à droite. Passez à la clé suivante, ou revenez à la précédente, sans repasser par la liste. Un mod qui n'a pas encore de `fr.json` en obtient un au premier enregistrement — l'onglet s'ouvre aussi sur les mods sans aucun français, pas seulement là où le travail est déjà commencé.
+*   **Les marqueurs du jeu sont protégés pendant la traduction** — dans l'éditeur, ils s'insèrent d'un clic plutôt qu'ils ne se retapent ; un enregistrement qui en fait disparaître un est refusé, en nommant celui qui manque. Une issue existe quand l'omission est délibérée : une phrase française neutre n'a que faire d'un sélecteur de genre.
 *   **Chaque clé sous ses deux langues** — l'anglais et le français côte à côte, avec l'état de la clé (traduit, à traduire, vide, identique à l'anglais, orphelin). Chaque filtre porte son compte, pour qu'un « Vides 3 » saute aux yeux avant même de cliquer.
 *   **Ce qui ne doit pas être traduit est visible** — une valeur mêle la phrase et les marques que le jeu lit : token Content Patcher, séparateur de dialogue, commande qui change une expression de portrait. Les traduire ou les déplacer casse le mod ; elles s'affichent en chasse fixe et en couleur, dans les deux colonnes. Plus de la moitié des valeurs en contiennent au moins une.
 *   **Les sections mises en évidence** — celles qu'un auteur a écrites dans son fichier deviennent des titres repliables, avec ce qu'il reste à y faire, et une liste permet de sauter directement à l'une.
