@@ -83,48 +83,33 @@ struct TranslationEditorView: View {
                 // Enchaîner les clés sans repasser par la liste : c'est le
                 // geste d'un traducteur qui en traite des centaines.
                 //
-                // Le raccourci est **écrit sur le bouton**, pas seulement dans
-                // l'infobulle : une combinaison qu'il faut survoler pour
-                // découvrir n'est apprise par personne. Les chevrons suivent
-                // le sens des flèches — un chevron vertical au-dessus d'une
-                // flèche horizontale se contredirait.
+                // **Aucun raccourci clavier, et c'est délibéré.** Le champ de
+                // traduction est un éditeur de texte le plus souvent au focus,
+                // et macOS y réserve toutes les combinaisons à flèches : `⌘←`
+                // va au début de la ligne, `⌥←` recule d'un mot, `⌃←` change
+                // d'espace de travail, `⇧⌘←` sélectionne jusqu'au bord. `⌥⌘←`
+                // restait, mais n'a pas tenu à l'essai non plus. Le bouton est
+                // le seul chemin — il vaut mieux que la promesse d'un raccourci
+                // qui ne répond pas.
                 //
-                // `⌥⌘` et pas plus simple : toutes les combinaisons à flèches
-                // plus courtes sont déjà prises par le système, et le champ de
-                // traduction est un éditeur de texte souvent au focus. `⌘←`
-                // va au début de la ligne (constaté à l'essai), `⌥←` recule
-                // d'un mot, `⌃←` change d'espace de travail, `⇧⌘←` sélectionne
-                // jusqu'au bord. `⌥⌘←` est l'idiome « élément précédent » de
-                // macOS — le changement d'onglet — et n'est pas une commande
-                // de texte.
+                // Le nom passe par `.help` **et** `.accessibilityLabel` : un
+                // chevron seul n'a pas de nom accessible, et l'infobulle n'en
+                // tient pas lieu. C'est la convention du dépôt.
                 Button {
                     navigate(to: previous)
                 } label: {
-                    Label {
-                        Text(verbatim: "⌥⌘←").font(.system(size: 10, design: .monospaced))
-                    } icon: {
-                        Image(systemName: "chevron.left")
-                    }
+                    Image(systemName: "chevron.left")
                 }
                 .disabled(previous == nil)
-                .keyboardShortcut(.leftArrow, modifiers: [.command, .option])
                 .help(vm.L(L10n.Mods.translationEditorPrevious))
-                // Le libellé du bouton est le raccourci : sans cela, VoiceOver
-                // annoncerait « ⌥⌘← » — des symboles, pas une action. `.help`
-                // est une infobulle, il ne sert pas de nom accessible.
                 .accessibilityLabel(vm.L(L10n.Mods.translationEditorPrevious))
 
                 Button {
                     navigate(to: next)
                 } label: {
-                    Label {
-                        Text(verbatim: "⌥⌘→").font(.system(size: 10, design: .monospaced))
-                    } icon: {
-                        Image(systemName: "chevron.right")
-                    }
+                    Image(systemName: "chevron.right")
                 }
                 .disabled(next == nil)
-                .keyboardShortcut(.rightArrow, modifiers: [.command, .option])
                 .help(vm.L(L10n.Mods.translationEditorNext))
                 .accessibilityLabel(vm.L(L10n.Mods.translationEditorNext))
 
@@ -286,9 +271,10 @@ struct TranslationEditorView: View {
                 // Même raison que pour un refus de marques, et surtout : sans
                 // cette ligne, `.failed` était la seule branche à ne rien dire
                 // de l'intention. Elle laissait donc en place celle d'un aller
-                // précédent — presser ⌥⌘→, échouer, puis ⌥⌘← et échouer encore
-                // faisait repartir vers la *suivante* au premier enregistrement
-                // réussi, à l'opposé du dernier geste.
+                // précédent — demander la suivante, échouer, puis demander la
+                // précédente et échouer encore faisait repartir vers la
+                // *suivante* au premier enregistrement réussi, à l'opposé du
+                // dernier geste.
                 pendingNavigation = target
                 return
             }

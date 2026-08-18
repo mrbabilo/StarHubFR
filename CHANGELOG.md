@@ -13,15 +13,13 @@ where the exact log format was verified.
 ## [Unreleased]
 
 ### Added
-- **You can now translate a mod into French from the app.** The Translation tab was a report; it is now an editor. Click any line to open it side by side — English on the left, read-only; French on the right, yours to write — then move through the keys with ⌥⌘← and ⌥⌘→ without going back to the list. A mod with no French file yet gets one on the first save.
+- **You can now translate a mod into French from the app.** The Translation tab was a report; it is now an editor. Click any line to open it side by side — English on the left, read-only; French on the right, yours to write — then step to the next key, or back to the previous one, without returning to the list. A mod with no French file yet gets one on the first save.
 - **The game's markers are protected as you translate.** A translation mixes the sentence with things the game reads: a Content Patcher token, a dialogue break, the command that changes a portrait's expression. Losing one breaks the mod, silently. They show as clickable chips you insert rather than retype, and a save that drops one is refused, naming what is missing — with a way through when the omission is deliberate, since a gender-neutral French sentence has no use for a gender switch.
 - **The Translation tab now opens on mods that have no French at all.** It was shown only where the work was already done: 115 translatable folders in a real library had no way in.
 
 ### Fixed
 - **Clicking a line in the Translation tab opens it.** Selectable text covered nearly the whole row and swallowed the click, so only the status icon and the margins responded — the editor looked inert on every line you would naturally aim at.
 - **A mod's existing French no longer vanishes when one of its folders ships no English file.** The whole component was dropped, and since a sibling folder still listed keys, nothing said so — 724 already-translated lines were simply absent from the tab.
-- **Navigation keeps its direction when a save fails.** Pressing ⌥⌘→, failing to save, then ⌥⌘← and failing again would jump to the *next* key on the first save that went through — the opposite of the last thing you asked for.
-- **VoiceOver names the two navigation buttons.** Now that the shortcut is written on the button, their only label was "⌥⌘←" — announced as symbols rather than "Previous key".
 - **Game markers are highlighted correctly in the Translation tab.** Three forms were being cut in half, so part of a command showed as ordinary text a translator could edit: `$10` read as `$1`, leaving the `0` behind; `%kid1` and `%kid2` both read as `%kid`, making the first and second child indistinguishable; and `#$action AddQuest` shrank to `$a`, leaving "ction AddQuest" looking translatable. Found by measuring the reader against 2365 real translation files.
 
 ### Removed
