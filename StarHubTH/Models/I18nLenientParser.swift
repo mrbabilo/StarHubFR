@@ -113,7 +113,25 @@ enum I18nLenientParser {
     /// copies d'une même règle, dont une amputée, ont déjà fait afficher un
     /// `.Spotlight-V100` comme un mod.
     static func lenientObject(_ text: String) -> [String: Any]? {
-        guard let data = clean(text).text.data(using: .utf8),
+        let cleaned = clean(text).text
+        // Une clé écrite deux fois : le jeu retient la **dernière** valeur,
+        // `JSONSerialization` la première. Voir `neutralizeDuplicateKeys`.
+        let neutralized = neutralizeDuplicateKeys(cleaned)
+        if let object = decodeObject(neutralized) {
+            guard neutralized != cleaned else { return object }
+            return object.filter { !$0.key.unicodeScalars.contains(duplicateMark) }
+        }
+        // La neutralisation n'a pas produit un texte lisible : ne pas perdre
+        // le fichier pour autant — on retombe sur ce qu'on savait déjà lire.
+        guard neutralized != cleaned else { return nil }
+        return decodeObject(cleaned)
+    }
+
+    /// Le décodage lui-même, sans jugement — un texte que Foundation refuse
+    /// rend `nil`, l'appelant décide de ce qu'il en fait. Le `try?` est le
+    /// comportement voulu : c'est lui qui rend le parseur tolérant.
+    private static func decodeObject(_ text: String) -> [String: Any]? {
+        guard let data = text.data(using: .utf8),
               let any = try? JSONSerialization.jsonObject(with: data),
               let object = any as? [String: Any] else { return nil }
         return object
@@ -181,6 +199,99 @@ enum I18nLenientParser {
         let escaped = escapeRawControlCharacters(quoted)
         return Cleaned(text: escaped, neededRepair: quotedRefusedKey)
     }
+
+    // MARK: - Clés répétées
+
+    /// La marque posée dans le nom d'une occurrence à écarter, une fois le texte
+    /// décodé. `U+0000` ne peut pas figurer dans une clé réelle : le fichier
+    /// serait illisible bien avant d'arriver ici.
+    private static let duplicateMark: Unicode.Scalar = "\u{0000}"
+
+    /// La même marque telle qu'elle s'écrit **dans le texte** : la séquence
+    /// d'échappement, jamais l'octet brut — la passe 4 vient précisément
+    /// d'échapper les caractères de contrôle que `JSONSerialization` refuse, et
+    /// en réintroduire un ici ferait échouer la lecture du fichier entier.
+    private static let duplicateMarkEscape = #"\u0000"#
+
+    /// Neutralise les occurrences **non finales** d'une clé répétée.
+    ///
+    /// Le jeu retient la **dernière** valeur d'une clé écrite deux fois, à la
+    /// **position** de la première — mesuré en exécutant la `Newtonsoft.Json.dll`
+    /// 13.0.4 embarquée dans le jeu, sur le chemin `SCore.ReadTranslationFiles`
+    /// (le 2026-08-18). `JSONSerialization` et `JSONDecoder` retiennent l'inverse,
+    /// et aucun ne se règle : c'est donc au texte qu'on s'adresse.
+    ///
+    /// **Le texte n'est pas découpé** — chaque occurrence à écarter reçoit un
+    /// `\u0000` à l'intérieur de son nom. La structure JSON reste valide par
+    /// construction (une insertion entre deux guillemets), seule la clé change de
+    /// nom, et `lenientObject` jette ensuite ces entrées. Supprimer les paires
+    /// aurait demandé de manier des plages sur un texte que `clean` vient de
+    /// réécrire : un décalage d'index y produirait une valeur fausse au lieu d'un
+    /// refus visible.
+    ///
+    /// L'ordre, lui, n'est pas l'affaire de ce parseur : `I18nOutline` garde déjà
+    /// la position de la première occurrence, comme le jeu.
+    ///
+    /// - Note: travaille sur le texte **nettoyé**, donc après que la passe 3 a
+    ///   mis les clés nues entre guillemets — sinon un doublon écrit `Key:` ne
+    ///   serait pas vu.
+    private static func neutralizeDuplicateKeys(_ text: String) -> String {
+        let chars = Array(text.unicodeScalars)
+        var positionsByKey: [String: [Int]] = [:]
+        var depth = 0
+        var i = 0
+
+        while i < chars.count {
+            let c = chars[i]
+            if c == "\"" {
+                var literal = String.UnicodeScalarView()
+                var j = i + 1
+                var escaped = false
+                while j < chars.count {
+                    let d = chars[j]
+                    if escaped { literal.append(d); escaped = false; j += 1; continue }
+                    if d == "\\" { literal.append(d); escaped = true; j += 1; continue }
+                    if d == "\"" { j += 1; break }
+                    literal.append(d)
+                    j += 1
+                }
+                // Une clé est une chaîne suivie d'un `:` **au premier niveau** :
+                // ni une valeur, ni la clé d'un objet imbriqué. Même règle que
+                // `I18nOutline`, à qui l'ordre est demandé.
+                if depth == 1 {
+                    var k = j
+                    while k < chars.count, isSpace(chars[k]) { k += 1 }
+                    if k < chars.count, chars[k] == ":" {
+                        positionsByKey[String(literal), default: []].append(i)
+                    }
+                }
+                i = j
+                continue
+            }
+            if c == "{" || c == "[" { depth += 1 }
+            else if c == "}" || c == "]" { depth = max(0, depth - 1) }
+            i += 1
+        }
+
+        var marked = Set<Int>()
+        for (_, positions) in positionsByKey where positions.count > 1 {
+            marked.formUnion(positions.dropLast())
+        }
+        guard !marked.isEmpty else { return text }
+
+        var out = String.UnicodeScalarView()
+        out.reserveCapacity(chars.count + marked.count * duplicateMarkEscape.unicodeScalars.count)
+        for (index, c) in chars.enumerated() {
+            out.append(c)
+            // Après le guillemet ouvrant : la marque entre dans le nom.
+            if marked.contains(index) {
+                out.append(contentsOf: duplicateMarkEscape.unicodeScalars)
+            }
+        }
+        return String(out)
+    }
+
+    // MARK: - Nettoyage (suite)
 
     /// Passe 1 — retire `// …` et `/* … */`, sauf à l'intérieur d'une chaîne.
     ///

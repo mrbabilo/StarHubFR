@@ -110,17 +110,17 @@ struct TranslationDocumentTests {
     }
 
     @Test func aTargetWithARepeatedKeyStaysEditable() throws {
-        // Mesuré : 71 des 2387 fichiers i18n du parc portent une clé répétée,
+        // Mesuré : 58 des 2487 fichiers i18n du parc portent une clé répétée,
         // `fr.json` compris. Refuser de les enregistrer les rendrait
         // définitivement inéditables. Le doublon disparaît donc du fichier
         // écrit : c'est une réparation, et le `.bak` garde l'original.
         //
-        // La valeur retenue est la **première**, et la position aussi — c'est
-        // ce que rendent `I18nLenientParser` et `JSONSerialization`, vérifié.
-        // Autrement dit : on réécrit exactement ce que l'app a montré au
-        // traducteur. ⚠️ Ce que le jeu retient, lui, n'est pas vérifié ici —
-        // Newtonsoft pourrait garder la dernière. À trancher avant de se fier
-        // à ces 71 fichiers pour autre chose que de l'édition.
+        // **La réparation doit écrire ce que le jeu lisait**, sans quoi
+        // l'enregistrement changerait en silence un texte affiché en jeu. Le jeu
+        // retient la **dernière** valeur, à la **position** de la première —
+        // mesuré sur la `Newtonsoft.Json.dll` du jeu le 2026-08-18. La réserve
+        // que portait ce test est levée ; c'est ce que fait désormais
+        // `I18nLenientParser`.
         let target = """
         {
           "intro": "Bonjour",
@@ -131,10 +131,30 @@ struct TranslationDocumentTests {
         let text = try TranslationDocument.apply(edits: [:], toTarget: target,
                                                  sourceText: source)
         let parsed = try I18nLenientParser.parse(text)
-        #expect(parsed["intro"] == "Bonjour", "celle que l'app a montrée au traducteur")
+        #expect(parsed["intro"] == "Rebonjour", "celle que le jeu affiche")
         let intro = try #require(text.range(of: "\"intro\""))
         let outro = try #require(text.range(of: "\"outro\""))
         #expect(intro.lowerBound < outro.lowerBound, "la première position est gardée")
         #expect(text.components(separatedBy: "\"intro\"").count == 2, "une seule occurrence")
+    }
+
+    @Test func aRepeatedKeyWhoseLastValueIsEmptyLeavesTheFile() throws {
+        // Le point où les deux règles se rencontrent. Le jeu retient la dernière
+        // valeur, ici vide : il n'affiche donc rien pour cette clé et retombe sur
+        // `default.json`. `OrderedJSONWriter` omet les valeurs vides — la clé
+        // doit disparaître du fichier écrit, ce qui reproduit exactement ce que
+        // le jeu faisait déjà. Retenir « la dernière valeur non vide » paraîtrait
+        // raisonnable et changerait le texte affiché en jeu.
+        let target = """
+        {
+          "intro": "Bonjour",
+          "outro": "Salut",
+          "intro": ""
+        }
+        """
+        let text = try TranslationDocument.apply(edits: [:], toTarget: target,
+                                                 sourceText: source)
+        #expect(text.range(of: "\"intro\"") == nil, "la clé quitte le fichier")
+        #expect(try I18nLenientParser.parse(text)["outro"] == "Salut", "le reste est intact")
     }
 }

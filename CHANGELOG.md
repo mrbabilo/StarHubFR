@@ -12,6 +12,9 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Fixed
+- **A translation key written twice now reads the value the game uses.** The game keeps the **last** value of a duplicated key, the app kept the first — so the Translation tab could show text the game never displays, and saving a mod wrote back the value the game ignores. The parser now keeps the last value, at the first occurrence's position: the game's own rule, measured on its bundled Newtonsoft.Json. On a real library, 58 translation files carry a duplicated key and 39 of them show two values that disagree.
+
 ## [1.15.0] - 2026-08-18
 
 ### Added

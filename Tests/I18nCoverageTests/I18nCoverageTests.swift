@@ -186,6 +186,82 @@ struct I18nLenientParserTests {
     }
 }
 
+/// Une clé écrite deux fois dans le même fichier : le jeu retient la **dernière**
+/// valeur, nous retenions la première.
+///
+/// Mesuré en exécutant la `Newtonsoft.Json.dll` 13.0.4 du jeu (le 2026-08-18) :
+/// `{"a":"PREMIERE","b":"x","a":"DERNIERE"}` donne `a=DERNIERE`, à la **position**
+/// de la première occurrence. `JSONSerialization` comme `JSONDecoder` rendent
+/// l'inverse — d'où l'écart. Sur le parc réel, 58 des 2487 fichiers i18n portent
+/// une clé répétée et 39 d'entre eux (19 mods, 89 clés) ont des valeurs
+/// divergentes : 7 `default.json`, qui montraient au traducteur un texte anglais
+/// que le jeu n'affiche pas, et 5 `fr.json`, que l'éditeur réécrivait alors avec
+/// la valeur que le jeu ignore.
+struct I18nDuplicateKeyTests {
+    @Test func keepsTheLastValueOfADuplicatedKey() throws {
+        // Cas réel : `[CP] Cornucopia More Flowers` déclare
+        // `config.Rose Color Explosion.description` deux fois — le nom du réglage
+        // d'abord, sa description ensuite. Le jeu affiche la description.
+        let json = #"{"a": "PREMIERE", "b": "x", "a": "DERNIERE"}"#
+        let out = try #require(try? I18nLenientParser.parse(json))
+        #expect(out["a"] == "DERNIERE")
+        #expect(out["b"] == "x")
+        #expect(out.count == 2)
+    }
+
+    @Test func keepsTheLastValueOfATripledKey() throws {
+        let out = try #require(try? I18nLenientParser.parse(#"{"a": "UNE", "a": "DEUX", "a": "TROIS"}"#))
+        #expect(out["a"] == "TROIS")
+        #expect(out.count == 1)
+    }
+
+    @Test func keepsAnEmptyLastValue() throws {
+        // Vérifié sur la DLL : la dernière gagne même vide. La clé garde alors
+        // une valeur vide, qu'`OrderedJSONWriter` omettra à l'écriture — le jeu
+        // retombe sur `default.json`, ce qu'il fait déjà avec le fichier
+        // d'origine.
+        let out = try #require(try? I18nLenientParser.parse(#"{"a": "PREMIERE", "a": ""}"#))
+        #expect(out["a"] == "")
+    }
+
+    @Test func keepsTheLastValueAcrossASectionComment() throws {
+        // Forme du parc : les deux occurrences sont séparées par un commentaire
+        // de section, donc par la passe 1 du nettoyage.
+        let json = """
+        {
+            "a": "PREMIERE",
+            // Section
+            "a": "DERNIERE"
+        }
+        """
+        let out = try #require(try? I18nLenientParser.parse(json))
+        #expect(out["a"] == "DERNIERE")
+    }
+
+    @Test func aBareDuplicatedKeyAlsoKeepsItsLastValue() throws {
+        // La clé nue est quotée par la passe 3 : la neutralisation des doublons
+        // doit voir le texte **après** cette réparation, pas avant.
+        let out = try #require(try? I18nLenientParser.parse("{RingsName: \"PREMIERE\", RingsName: \"DERNIERE\"}"))
+        #expect(out["RingsName"] == "DERNIERE")
+    }
+
+    @Test func aValueThatLooksLikeAKeyIsNotOne() throws {
+        // Une valeur contenant `":"` ne doit pas être prise pour une clé
+        // répétée : la neutralisation ne travaille qu'au premier niveau, et
+        // jamais à l'intérieur d'une chaîne.
+        let out = try #require(try? I18nLenientParser.parse(#"{"a": "\"b\": 1", "b": "vraie"}"#))
+        #expect(out["a"] == #""b": 1"#)
+        #expect(out["b"] == "vraie")
+        #expect(out.count == 2)
+    }
+
+    @Test func aFileWithoutDuplicatesIsUntouched() throws {
+        let json = #"{"a": "1", "b": "2", "c": "3"}"#
+        let out = try #require(try? I18nLenientParser.parse(json))
+        #expect(out == ["a": "1", "b": "2", "c": "3"])
+    }
+}
+
 /// Ce que SMAPI **charge réellement**. Le parseur va plus loin que lui pour
 /// pouvoir lire un fichier abîmé ; cette fonction dit si le jeu l'accepterait.
 /// Sans elle, un mod afficherait « 100 % traduit » alors que son français ne se

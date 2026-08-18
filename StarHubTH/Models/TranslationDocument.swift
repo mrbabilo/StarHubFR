@@ -76,13 +76,17 @@ public enum TranslationDocument {
 
     /// L'ordre débarrassé de ses répétitions, **première position gardée**.
     ///
-    /// 71 des 2387 fichiers i18n d'un parc réel portent une clé répétée,
+    /// 58 des 2487 fichiers i18n d'un parc réel portent une clé répétée,
     /// `fr.json` compris : refuser de les écrire les rendrait définitivement
-    /// inéditables. On garde la position **et** la valeur de la première
-    /// occurrence — c'est ce que rendent `I18nLenientParser` et
-    /// `JSONSerialization`, donc ce que l'app a montré au traducteur. Le
-    /// doublon disparaît du fichier écrit : c'est une réparation, et le `.bak`
-    /// garde l'original.
+    /// inéditables. Le doublon disparaît donc du fichier écrit — une réparation,
+    /// dont le `.bak` garde l'original.
+    ///
+    /// **La règle du jeu, mesurée sur sa `Newtonsoft.Json.dll` le 2026-08-18 :
+    /// la position de la première occurrence, la valeur de la dernière.** Cette
+    /// fonction tient la première moitié ; `I18nLenientParser` tient la seconde,
+    /// en écartant les occurrences non finales. Écrire l'une sans l'autre
+    /// changerait en silence un texte affiché en jeu, sur un fichier que le
+    /// traducteur n'a pas touché.
     private static func deduplicated(_ keys: [String]) -> [String] {
         var seen = Set<String>()
         return keys.filter { seen.insert($0).inserted }
