@@ -109,3 +109,9 @@ StarHubFR's **SMAPI diagnostics** owe a lot to the following work:
 *   [**SMAPILogDoctor.py**](https://github.com/ZeroXPatch/Projects-for-Nexus-Mod/blob/main/SMAPILogDoctor.py) by **ZeroXPatch** — the idea of a player-facing SMAPI log doctor (skipped mods with their reason, missing dependencies, risk categories, suggested fixes) was the starting point for our parser.
 *   [**smapi.io/log**](https://smapi.io/log/) — SMAPI's official log parser, our reference for what's worth extracting from a log.
 *   [**SMAPI**](https://github.com/pathoschild/SMAPI) by **Pathoschild** — the exact log format (warning-group sections, levels, headers) was verified directly against the sources, notably `LogManager.cs`.
+
+StarHubFR's **assisted translation** (game-term glossary, AI pre-translation) owes a lot to the following work:
+
+*   [**lzxd**](https://github.com/Lonami/lzxd) by **Lonami** (MIT / Apache-2.0) — our LZX decoder, which reads the game's official localization files straight from your install, is a Swift transliteration of this implementation.
+*   [**stardew-i18n-translator**](https://github.com/Nana1873/stardew-i18n-translator) by **Nana1873** (GPL-3.0) — a Windows mod-translation app whose workflow served as the design reference for ours. No code is taken from it: the licenses rule that out.
+*   [**StardewXnbHack**](https://github.com/Pathoschild/StardewXnbHack) by **Pathoschild** (MIT) — used as the oracle that validates our game-file reader, byte for byte.

@@ -163,3 +163,9 @@ Le **diagnostic SMAPI** de StarHubFR doit beaucoup aux travaux suivants :
 *   [**SMAPILogDoctor.py**](https://github.com/ZeroXPatch/Projects-for-Nexus-Mod/blob/main/SMAPILogDoctor.py) par **ZeroXPatch** — l'idée d'un diagnostiqueur de journal SMAPI orienté joueur (mods ignorés avec leur raison, dépendances manquantes, catégories de risque, suggestions de correction) a servi de point de départ à notre analyseur.
 *   [**smapi.io/log**](https://smapi.io/log/) — l'analyseur de journaux officiel de SMAPI, référence pour les informations à extraire d'un journal.
 *   [**SMAPI**](https://github.com/pathoschild/SMAPI) par **Pathoschild** — le format exact des journaux (sections d'avertissement, niveaux, en-têtes) a été vérifié directement dans les sources, notamment `LogManager.cs`.
+
+La **traduction assistée** (glossaire des termes du jeu, pré-traduction IA) doit beaucoup aux travaux suivants :
+
+*   [**lzxd**](https://github.com/Lonami/lzxd) par **Lonami** (MIT / Apache-2.0) — notre décodeur LZX, qui lit les fichiers de traduction officiels du jeu directement depuis votre installation, est une translittération en Swift de cette implémentation.
+*   [**stardew-i18n-translator**](https://github.com/Nana1873/stardew-i18n-translator) par **Nana1873** (GPL-3.0) — application Windows de traduction de mods dont le workflow a servi de référence de conception à la nôtre. Aucun code n'est repris : les licences l'excluent.
+*   [**StardewXnbHack**](https://github.com/Pathoschild/StardewXnbHack) par **Pathoschild** (MIT) — sert d'oracle pour valider notre lecteur de fichiers du jeu, octet par octet.
