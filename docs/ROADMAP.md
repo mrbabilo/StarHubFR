@@ -320,15 +320,20 @@ sans risque d'écriture destructive.
 
 #### C1 — Couverture de traduction par mod
 
-- [ ] **C1-T1** — Calculer, pour chaque mod, la couverture i18n : clés de
+- [x] **C1-T1** — Calculer, pour chaque mod, la couverture i18n : clés de
       `i18n/default.json` (ou `en.json`) présentes/absentes dans `i18n/fr.json`, plus les
       clés orphelines côté FR. Modèle Core testable, aucune UI. · **M**
+      **Livré** (v1.13.0, sous la pastille de C1-T2) : `TranslationCoverage`
+      et ses états absent/vide distincts, mesurés en arrière-plan après le scan.
 - [x] **C1-T2** — Badge de couverture dans la liste des mods, branché sur le filtre
       `FrenchTranslationScope` existant. **Livré** (`c6d4fec`, `beda7ed`) : pastille
       dans le vocabulaire de `VersionBadge`, chiffres à chasse fixe, trois états dont
       « pas encore mesuré ». · **S**
-- [ ] **C1-T3** — Section « Traduction » sur la fiche mod : compteur, date du dernier
+- [x] **C1-T3** — Section « Traduction » sur la fiche mod : compteur, date du dernier
       `fr.json`, lien vers l'éditeur. · **M**
+      **Livré** (v1.13.0) : compteur « X clés traduites sur Y », barre de
+      progression, absentes et vides listées séparément — et la limite « le cache
+      ne contient qu'un entier », levée avec.
       - **Barre de progression**, à sa place ici et non dans la liste : la ligne de
         liste porte déjà globe, langues et deux dates, alors que la fiche a l'espace.
         La barre donne la comparaison instantanée, le nombre la précision — deux
@@ -359,14 +364,15 @@ sans risque d'écriture destructive.
         mods dont 48 vraiment à traduire.
       - L'heuristique de nom (`ModItem.swift:99`) reste en place : elle sert au **tag**
         de catégorie, pas à la couverture, et rien ne la met en défaut aujourd'hui.
-- [ ] **C1-T5** — Signaler qu'un `fr.json` disparu **existe encore dans une sauvegarde**.
+- [x] **C1-T5** — Signaler qu'un `fr.json` disparu **existe encore dans une sauvegarde**.
       Mesuré le 2026-08-01 sur le parc réel : 92 mods ont un `default.json` sans `fr.json`,
       et **16 d'entre eux en ont un** dans `Backups/{ModInstalls,ModConfigs}`. Cas vérifié :
       `BetterInventory` avait `i18n/fr.json` (1348 o) dans la sauvegarde du 25/07, le dossier
       installé n'a plus que `default.json` — la mise à jour du mod a effacé la traduction,
       les auteurs ne redistribuant pas toujours les contributions communautaires. Phase 1 se
       limite à **le dire** (lecture seule) ; la récupération est **B4-T4**. · **M**
-- [ ] **C1-T6** — Décoder les `i18n/*.json` comme le fait SMAPI, dont le comportement a été
+      **Livré** (v1.13.0) : la fiche nomme la sauvegarde et sa date.
+- [x] **C1-T6** — Décoder les `i18n/*.json` comme le fait SMAPI, dont le comportement a été
       mesuré sur la DLL du jeu : `File.ReadAllText` honore la marque d'ordre des octets — un
       `ru.json` du parc est en UTF-16 LE et se charge **parfaitement** — puis se rabat sur
       UTF-8 en remplaçant les octets invalides par U+FFFD, sans erreur : trois `es.json` en
@@ -374,12 +380,18 @@ sans risque d'écriture destructive.
       et signaler le second comme une anomalie du mod plutôt que comme un échec de lecture.
       Sans quoi 4 fichiers réels restent illisibles chez nous — cf. l'en-tête de
       `I18nLenientParser.swift`. · **S**
-- [ ] **C1-T8** — Un mod dont la seule traduction est `fr-FR.json` (variante régionale)
+      **Livré** (v1.13.1) : `I18nFileDecoder` honore la marque d'ordre, remplace
+      les octets invalides, et `hasReplacedBytes` distingue l'anomalie du mod de
+      l'échec de lecture.
+- [x] **C1-T8** — Un mod dont la seule traduction est `fr-FR.json` (variante régionale)
       s'affiche « traduit en français » dans le filtre et la pastille de couverture, mais
       sa couverture mesurée est **0 %** et il ne sera jamais signalé obsolète par la
       fraîcheur : `languageCodes(inModDirectory:)` replie les variantes régionales sur leur
       langue de base, `I18nLocaleResolver.files(in:locale:)` non. Affecte déjà l'écran de
       couverture livré en v1.13.0 ; trouvé pendant ce plan, non corrigé. · **S**
+      **Livré** (v1.13.1) : une variante régionale seule ne compte plus pour sa
+      langue de base, et `unloadableLocaleFiles` nomme chaque fichier que le jeu
+      n'ouvrira jamais, avec le nom qu'il devrait porter.
 
 #### C2 — Vue diff EN/FR
 
@@ -411,7 +423,8 @@ sans risque d'écriture destructive.
       **Livré** : regroupement (`01c3dc9`), puis en-têtes mis en évidence, repliage
       et table des matières.
 - [ ] **C2-T4** — Après mise à jour d'un mod, signaler les clés de config **et** de
-      traduction ajoutées ou disparues (réutilise l'empreinte de C2-T2). · **M**
+      traduction ajoutées ou disparues (s'appuie sur les références par clé adoptées
+      en C2-T2 — l'empreinte prévue n'a pas été retenue, cf. C2-T2). · **M**
 
 **Risques** : formats i18n hétérogènes (tous les mods n'ont pas de `default.json`) ; gros
 mods (SVE ≈ milliers de clés) → calcul hors du thread principal.
@@ -424,6 +437,10 @@ partiellement traduits ou pas du tout, sans ouvrir un seul fichier.
 
 C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 
+> *Les numéros de cette section sont des libellés de planification : les livraisons
+> réelles ont glissé vers d'autres versions — C3-T1 en v1.15.0, C3-T6 après elle.
+> Chaque tâche cochée porte sa version réelle.*
+
 #### C3 — Éditeur `fr.json` assisté
 
 > **Référence** : `Nana1873/stardew-i18n-translator` — app de bureau **Windows x64**
@@ -435,9 +452,12 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 > *workflow*, on ne recopie pas le code. Bonne nouvelle stratégique : elle est
 > **Windows uniquement** — la place est libre sur macOS.
 
-- [ ] **C3-T1** — Édition en place depuis la vue diff (écriture atomique, backup
+- [x] **C3-T1** — Édition en place depuis la vue diff (écriture atomique, backup
       systématique via `ModConfigBackupManager`). · **M** · risque : écriture destructive
       → aucun enregistrement sans backup préalable.
+      **Livré** (v1.15.0) : l'onglet Traduction est devenu un éditeur — édition
+      côte à côte, `fr.json` créé au premier enregistrement, `.bak` avant chaque
+      écriture, marqueurs du jeu protégés au passage.
 - [ ] **C3-T2** — Scan élargi aux assets Content Patcher (`events.json`, `dialogues.json`,
       `content.json`) : repérer les chaînes affichées restées en anglais. · **L** ·
       risque : forte hétérogénéité des packs → livrer en « suggestions », jamais en verdict.
@@ -449,7 +469,7 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       saisons), amorcé depuis les traductions officielles. · **M**
 - [ ] **C3-T5** — Export/import d'un lot de travail (`.json`) pour traduire à plusieurs,
       puis fusion contrôlée. · **M**
-- [ ] **C3-T6** — `I18nLenientParser` garde la **première** occurrence d'une clé JSON
+- [x] **C3-T6** — `I18nLenientParser` garde la **première** occurrence d'une clé JSON
       dupliquée ; le jeu (Newtonsoft) garde la **dernière**. Trouvé pendant C2-T5, mesuré
       sur le parc : 7 mods sur 512 concernés (ex. `[CP] Tea`, `spring_23` défini deux fois
       sous deux sections). Sans dommage tant que l'écran ne fait qu'**afficher** (C2) —
@@ -461,6 +481,11 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       roadmap avant cette entrée. · **S** · risque : correctif mécanique une fois la
       référence connue, mais un écart de comportement mal vérifié contaminerait toutes
       les écritures de C3.
+      **Livré** le 2026-08-18 (`bc9a9f9`), dans le sens inverse de l'énoncé : la
+      référence établie sur la DLL dit **dernière valeur, à la position de la
+      première occurrence** — c'est elle que le parseur applique désormais, plutôt
+      que de « garder la première ». Chiffres recalés sur le parc du jour :
+      58 fichiers i18n sur 2487, dont 39 aux valeurs divergentes.
 
 #### C4 — Éditeur de config lisible
 
