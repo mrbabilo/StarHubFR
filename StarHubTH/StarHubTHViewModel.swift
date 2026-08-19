@@ -612,6 +612,56 @@ class StarHubTHViewModel: ObservableObject {
         }.value
     }
 
+    // MARK: - Glossaire (réglages)
+
+    /// Le suffixe de fichier du jeu pour une langue cible du hub. Le code du
+    /// paramètre (`fr`) est la langue de l'éditeur ; le suffixe (`fr-FR`)
+    /// est celui des assets localisés du jeu — deux vocabulaires différents,
+    /// la correspondance vit ici.
+    private static func gameAssetSuffix(for language: String) -> String {
+        switch language {
+        case "fr": "fr-FR"
+        default: language
+        }
+    }
+
+    /// Reconstruit le glossaire depuis les sources du jeu installé et
+    /// sauvegarde le cache. Rend le nombre d'entrées ; `nil` quand aucune
+    /// source n'est trouvable — l'appelant le dit plutôt que d'afficher
+    /// « 0 termes » sur un jeu introuvable.
+    @MainActor
+    @discardableResult
+    func rebuildGlossary(language: String = "fr") async -> Int? {
+        let folder = gameDir
+        let suffix = Self.gameAssetSuffix(for: language)
+        let (entries, saved) = await Task.detached(priority: .utility) {
+            guard let kind = GlossarySource.resolve(gameFolder: URL(fileURLWithPath: folder))
+            else { return ([GlossaryEntry](), false) }
+            let entries = GlossaryBuilder.build(
+                english: { GlossarySource.load(asset: $0, language: "", from: kind) },
+                french: { GlossarySource.load(asset: $0, language: suffix, from: kind) })
+            var saved = false
+            if let appSupport = Self.glossaryAppSupport() {
+                saved = ((try? GlossaryStore.save(Glossary(entries: entries),
+                                                  language: language,
+                                                  appSupport: appSupport)) != nil)
+            }
+            return (entries, saved)
+        }.value
+        if saved { glossaryCache = nil }   // le cache mémoire doit relire
+        log(saved ? "Glossaire \(language) reconstruit : \(entries.count) entrées"
+                  : "Glossaire \(language) non reconstruit — sources introuvables ou écriture refusée",
+            level: .info)
+        return saved ? entries.count : nil
+    }
+
+    /// La date de construction du glossaire en cache — pour la ligne
+    /// d'information des réglages.
+    func glossaryBuiltDate(language: String = "fr") -> Date? {
+        guard let appSupport = Self.glossaryAppSupport() else { return nil }
+        return GlossaryStore.builtDate(language: language, appSupport: appSupport)
+    }
+
     @MainActor
     private func runBatch(mod: ModItem, locale: String,
                           rows: [TranslationCoverage.DiffRow]) async {

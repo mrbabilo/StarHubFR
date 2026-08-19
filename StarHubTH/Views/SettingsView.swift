@@ -105,6 +105,9 @@ struct SettingsView: View {
                     }
                 }
 
+                // ── Traduction assistée ──
+                LocalAISettingsSection(vm: vm)
+
                 // ── Launch Options ──
                 StandardSection(
                     title: vm.L(L10n.Settings.launchOptions),
@@ -261,6 +264,189 @@ struct SettingsView: View {
                 },
                 secondaryButton: .cancel(Text(vm.L(L10n.Saves.cancel)))
             )
+        }
+    }
+}
+
+/// La section « Traduction assistée » des réglages (tâche 15 du plan P2b,
+/// spec §6) : serveur IA local + glossaire du jeu.
+///
+/// Le sondage des briques connues (Ollama 11434, LM Studio 1234) tourne à
+/// l'apparition, en parallèle, timeout 2 s : une répond → URL préremplie ;
+/// les deux → deux lignes, au choix ; aucune → champ libre et la mention
+/// d'installation. La saisie manuelle reste toujours possible — le champ
+/// n'est jamais verrouillé sur ce que le sondage a vu.
+private struct LocalAISettingsSection: View {
+    @ObservedObject var vm: StarHubTHViewModel
+
+    @AppStorage(UDKey.localAIBaseURL) private var baseURL: String = ""
+    @AppStorage(UDKey.localAIModel) private var model: String = ""
+
+    @State private var probes: [LocalLLMClient.ProbeResult] = []
+    @State private var isProbing = true
+    @State private var models: [String] = []
+    @State private var testVerdictOK: Bool?
+    @State private var isRebuildingGlossary = false
+    @State private var glossaryCount: Int?
+    @State private var glossaryDate: Date?
+
+    var body: some View {
+        VStack(spacing: 32) {
+            StandardSection(
+                title: vm.L(L10n.Settings.localAITitle),
+                footer: vm.L(L10n.Settings.localAIPrivacy)
+            ) {
+                VStack(alignment: .leading, spacing: 12) {
+                    if isProbing {
+                        HStack(spacing: 6) {
+                            ProgressView().controlSize(.small)
+                        }
+                    } else if probes.isEmpty {
+                        Text(vm.L(L10n.Settings.localAINoneDetected))
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    } else {
+                        // Chaque brique détectée est cliquable : elle préremplit
+                        // l'URL et ses modèles — deux briques, deux lignes, le
+                        // choix appartient à l'utilisateur.
+                        ForEach(probes, id: \.baseURL.absoluteString) { probe in
+                            Button {
+                                baseURL = probe.baseURL.absoluteString
+                                models = probe.models
+                                if model.isEmpty || !probe.models.contains(model) {
+                                    model = probe.models.first ?? ""
+                                }
+                                testVerdictOK = nil
+                            } label: {
+                                Label(String(format: vm.L(L10n.Settings.localAIDetected),
+                                             probe.baseURL.absoluteString,
+                                             Int64(probe.models.count)),
+                                      systemImage: "circle.fill")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.accentColor)
+                            }
+                            .buttonStyle(.plain)
+                            .pointingHandCursor()
+                        }
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(vm.L(L10n.Settings.localAIURL)).font(.system(size: 13))
+                        TextField("http://localhost:11434", text: $baseURL)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .font(.system(size: 12, design: .monospaced))
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text(vm.L(L10n.Settings.localAIModel)).font(.system(size: 13))
+                            if !models.isEmpty {
+                                // Les modèles vus sur ce serveur, en choix
+                                // rapide — le champ reste la voie de saisie
+                                // libre, jamais remplacé.
+                                Menu(vm.L(L10n.Settings.localAIModel)) {
+                                    ForEach(models, id: \.self) { name in
+                                        Button(name) { model = name }
+                                    }
+                                }
+                                .menuStyle(.borderlessButton)
+                                .fixedSize()
+                            }
+                        }
+                        TextField("qwen2.5", text: $model)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .font(.system(size: 12, design: .monospaced))
+                    }
+
+                    HStack(spacing: 8) {
+                        Button {
+                            testConnection()
+                        } label: {
+                            Text(vm.L(L10n.Settings.localAITest))
+                        }
+                        .disabled(baseURL.isEmpty)
+                        if testVerdictOK == true {
+                            Text(vm.L(L10n.Settings.localAIOK))
+                                .font(.system(size: 11))
+                                .foregroundColor(.green)
+                        } else if testVerdictOK == false {
+                            Text(vm.L(L10n.Settings.localAINoneDetected))
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+            }
+
+            StandardSection(title: vm.L(L10n.Settings.glossaryTitle)) {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        if let count = glossaryCount, let date = glossaryDate {
+                            Text(String(format: vm.L(L10n.Settings.glossaryInfo),
+                                        Int64(count),
+                                        date.formatted(date: .abbreviated, time: .shortened)))
+                                .font(.system(size: 12))
+                                .foregroundColor(.secondary)
+                        } else {
+                            Text(vm.L(L10n.Settings.localAINoneDetected))
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                        Button {
+                            rebuildGlossary()
+                        } label: {
+                            if isRebuildingGlossary {
+                                ProgressView().controlSize(.small)
+                            } else {
+                                Text(vm.L(L10n.Settings.glossaryRebuild))
+                            }
+                        }
+                        .disabled(isRebuildingGlossary)
+                    }
+                }
+            }
+        }
+        .task {
+            // Sondage parallèle des deux briques, timeout 2 s (spec §6).
+            probes = await LocalLLMClient.probeBricks(
+                session: LocalLLMEndpoint.makeSession(timeout: 2))
+            isProbing = false
+            if baseURL.isEmpty, let first = probes.first {
+                baseURL = first.baseURL.absoluteString
+                models = first.models
+            }
+            if model.isEmpty, let first = probes.first {
+                model = first.models.first ?? ""
+            }
+            glossaryCount = vm.currentGlossary(language: "fr")?.entries.count
+            glossaryDate = vm.glossaryBuiltDate(language: "fr")
+        }
+    }
+
+    private func testConnection() {
+        Task {
+            guard let url = LocalLLMEndpoint.validate(baseURL) else {
+                testVerdictOK = false
+                return
+            }
+            do {
+                models = try await LocalLLMClient.listModels(
+                    baseURL: url, session: LocalLLMEndpoint.makeSession(timeout: 5))
+                testVerdictOK = true
+            } catch {
+                testVerdictOK = false
+            }
+        }
+    }
+
+    private func rebuildGlossary() {
+        Task {
+            isRebuildingGlossary = true
+            defer { isRebuildingGlossary = false }
+            glossaryCount = await vm.rebuildGlossary(language: "fr")
+            glossaryDate = vm.glossaryBuiltDate(language: "fr")
         }
     }
 }
