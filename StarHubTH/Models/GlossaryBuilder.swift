@@ -49,7 +49,15 @@ public enum GlossaryBuilder {
         ("StringsFromCSFiles", .season, .seasonsOnly),
     ]
 
-    private static let seasonKeys: Set<String> = ["spring", "summer", "fall", "winter"]
+    /// Les clés de saison de `StringsFromCSFiles`, relevées dans l'asset du
+    /// jeu : les quatre premières portent la saison **en minuscules**
+    /// (`spring` → « printemps »), les `Utility.cs.568x` la portent
+    /// capitalisée (`Spring` → « Printemps »). Le matching étant sensible
+    /// à la casse, les deux formes méritent leur entrée.
+    private static let seasonKeys: Set<String> = [
+        "spring", "summer", "fall", "winter",
+        "Utility.cs.5680", "Utility.cs.5681", "Utility.cs.5682", "Utility.cs.5683",
+    ]
 
     /// Stoplist UI (la référence, spec §5) — minuscules, comparaison
     /// insensible à la casse.
@@ -70,10 +78,16 @@ public enum GlossaryBuilder {
     private static let endPunctuation: Set<Character> = [".", "!", "?", ":"]
 
     /// La gate qualité, testable seule. `true` = l'entrée entre au glossaire.
-    public static func passesGate(en: String, fr: String) -> Bool {
+    ///
+    /// `allowsLowercaseInitial` n'est levé que pour la table des saisons :
+    /// le jeu écrit `spring` en minuscules et l'exiger capitalisé vidait la
+    /// catégorie entière. Partout ailleurs la majuscule initiale reste le
+    /// filtre qui écarte les fragments d'interface.
+    public static func passesGate(en: String, fr: String,
+                                  allowsLowercaseInitial: Bool = false) -> Bool {
         guard !en.isEmpty, !fr.isEmpty else { return false }
         guard en != fr else { return false }
-        guard en.first?.isUppercase == true else { return false }
+        guard allowsLowercaseInitial || en.first?.isUppercase == true else { return false }
         guard en.count <= 30 else { return false }
         let enWords = en.split(whereSeparator: \.isWhitespace)
         guard enWords.count <= 4 else { return false }
@@ -99,11 +113,16 @@ public enum GlossaryBuilder {
             guard let enMap = english(table.asset),
                   let frMap = french(table.asset) else { continue }
             for key in enMap.keys.sorted() where frMap[key] != nil && keeps(table.rule, key: key) {
-                let source = enMap[key]!
+                // Sept valeurs du jeu traînent une espace : on rabote avant
+                // la gate, jamais un terme imposé au modèle avec son espace.
+                let source = enMap[key]!.trimmingCharacters(in: .whitespaces)
+                let target = frMap[key]!.trimmingCharacters(in: .whitespaces)
                 guard !accepted.contains(source),
-                      passesGate(en: source, fr: frMap[key]!) else { continue }
+                      passesGate(en: source, fr: target,
+                                 allowsLowercaseInitial: table.kind == .season)
+                else { continue }
                 accepted.insert(source)
-                entries.append(GlossaryEntry(en: source, fr: frMap[key]!, kind: table.kind))
+                entries.append(GlossaryEntry(en: source, fr: target, kind: table.kind))
             }
         }
         return entries.sorted { $0.en < $1.en }
