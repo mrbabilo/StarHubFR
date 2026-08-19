@@ -5,14 +5,14 @@ import Foundation
 /// utiles ici (le `.xnb` du jeu décode en `kb64` ; `kb32` couvre les tests).
 /// Le Rust expose 11 tailles ; n'en porter que deux évite du code mort —
 /// `positionSlots` garde les valeurs exactes du Rust pour chacune.
-enum LzxdWindowSize {
+public enum LzxdWindowSize {
     /// 32 Kio (`0x8000` dans le Rust).
     case kb32
     /// 64 Kio (`0x1_0000`) — la taille des `.xnb` de Stardew Valley.
     case kb64
 
     /// Taille du tampon, en octets.
-    var byteCount: Int {
+    public var byteCount: Int {
         switch self {
         case .kb32: 32 * 1024
         case .kb64: 64 * 1024
@@ -21,7 +21,7 @@ enum LzxdWindowSize {
 
     /// Nombre de subdivisions de fenêtre — détermine la taille de l'arbre
     /// principal (256 + 8 × slots). Valeurs mesurées de `window.rs`.
-    var positionSlots: Int {
+    public var positionSlots: Int {
         switch self {
         case .kb32: 30
         case .kb64: 32
