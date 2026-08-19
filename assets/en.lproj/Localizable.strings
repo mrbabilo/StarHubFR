@@ -805,6 +805,14 @@
 "mods_translation_editor_pretranslating" = "Local translation in progress…";
 "mods_translation_editor_pretranslate_failed" = "The local AI didn't answer — check the settings";
 "mods_translation_editor_glossary" = "Game terms";
+"mods_translation_batch_button" = "Batch pre-translate";
+"mods_translation_batch_recap" = "%1$lld keys to translate with %2$@. Every result will be marked To review.";
+"mods_translation_batch_progress" = "%1$lld of %2$lld";
+"mods_translation_batch_cancel" = "Stop";
+"mods_translation_batch_report" = "%1$lld translated, %2$lld refused (missing markers), %3$lld errors.";
+"mods_translation_batch_soft_ignored" = "%lld glossary term(s) not kept by the AI.";
+"mods_translation_review_needed" = "To review";
+"mods_translation_batch_close" = "Close";
 "mods_fr_translation_stale" = "To review";
 "mods_diff_search" = "Search keys and text";
 "mods_diff_no_match" = "No key matches.";

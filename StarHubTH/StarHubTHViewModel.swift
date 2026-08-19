@@ -517,6 +517,25 @@ class StarHubTHViewModel: ObservableObject {
         currentGlossary(language: language)?.matchEntries(in: source) ?? []
     }
 
+    /// L'endpoint IA validé depuis les préférences, `nil` si l'URL saisie
+    /// n'est pas du loopback admissible.
+    private var localAIEndpoint: URL? {
+        UserDefaults.standard.string(forKey: UDKey.localAIBaseURL)
+            .flatMap(LocalLLMEndpoint.validate)
+    }
+
+    /// Le nom de modèle choisi, chaîne vide si non configuré.
+    private var localAIModelName: String {
+        UserDefaults.standard.string(forKey: UDKey.localAIModel) ?? ""
+    }
+
+    /// `true` quand URL validée **et** modèle nommé — ce qui rend le bouton
+    /// de lot visible (spec §7 : visible s'il reste des clés à traduire et
+    /// qu'une IA est configurée).
+    var isLocalAIConfigured: Bool {
+        localAIEndpoint != nil && !localAIModelName.isEmpty
+    }
+
     /// Propose une traduction par IA locale pour une ligne du diff. Rend la
     /// proposition, ou `nil` — **rien n'est écrit sur le disque** : le
     /// brouillon remplit le champ, l'« Enregistrer » explicite reste le seul
@@ -529,15 +548,12 @@ class StarHubTHViewModel: ObservableObject {
     @MainActor
     func preTranslate(mod: ModItem, locale: String,
                       row: TranslationCoverage.DiffRow) async -> String? {
-        let configured = UserDefaults.standard.string(forKey: UDKey.localAIBaseURL)
-            .flatMap(LocalLLMEndpoint.validate)
-        let model = UserDefaults.standard.string(forKey: UDKey.localAIModel) ?? ""
-        guard let base = configured, !model.isEmpty else {
+        guard let base = localAIEndpoint, !localAIModelName.isEmpty else {
             preTranslateNeedsSettings = true
             return nil
         }
         let request = LocalLLMClient.Request(
-            model: model,
+            model: localAIModelName,
             source: row.english,
             glossary: glossaryMatches(for: row.english, language: locale),
             sectionLabel: row.component)
@@ -546,6 +562,121 @@ class StarHubTHViewModel: ObservableObject {
         log("Pré-traduction \(mod.folderName)/\(row.key) : \(outcome)", level: .info)
         guard case .translated(let proposal) = outcome else { return nil }
         return proposal
+    }
+
+    // MARK: - Pré-traduction par lot
+
+    /// Où en est le lot en cours — `nil` quand aucun lot ne tourne.
+    struct BatchProgress: Equatable {
+        let done: Int
+        let total: Int
+    }
+
+    /// Le bilan du dernier lot : les traduites, les clés refusées pour
+    /// marques manquantes (nommées), les erreurs, et les termes du glossaire
+    /// que l'IA n'a pas repris — un signalement doux, jamais bloquant.
+    struct BatchReport: Equatable {
+        let translated: Int
+        let refusedRowIDs: [String]
+        let errors: Int
+        let softGlossaryIgnored: Int
+    }
+
+    @Published private(set) var batchProgress: BatchProgress?
+    @Published private(set) var batchReport: BatchReport?
+    private var batchTask: Task<Void, Never>?
+
+    /// Lance le lot — **une requête à la fois** : le GPU local est le goulot
+    /// (spec §7). Chaque résultat est persisté immédiatement, avant toute
+    /// navigation (spec §8.4) : annuler ou fermer ne perd rien, relancer
+    /// reprend ce qui reste.
+    @MainActor
+    func startBatch(mod: ModItem, locale: String, rows: [TranslationCoverage.DiffRow]) {
+        guard batchTask == nil else { return }
+        batchReport = nil
+        batchTask = Task { await runBatch(mod: mod, locale: locale, rows: rows) }
+    }
+
+    /// Arrêt coopératif : la clé en cours finit, la suivante ne part pas.
+    func cancelBatch() {
+        batchTask?.cancel()
+    }
+
+    /// Les identités des clés « à relire » d'un mod, au format de
+    /// `DiffRow.id` — le badge et le filtre du diff comparent directement.
+    func reviewNeededRowIDs(for mod: ModItem) async -> Set<String> {
+        guard let store = TranslationBaseline.defaultDirectory() else { return [] }
+        let folder = mod.folderName
+        return await Task.detached(priority: .utility) {
+            TranslationBaseline.reviewNeededRowIDs(modFolderName: folder, in: store)
+        }.value
+    }
+
+    @MainActor
+    private func runBatch(mod: ModItem, locale: String,
+                          rows: [TranslationCoverage.DiffRow]) async {
+        defer { batchTask = nil; batchProgress = nil }
+        guard let base = localAIEndpoint, !localAIModelName.isEmpty else {
+            preTranslateNeedsSettings = true
+            return
+        }
+        // Jamais une valeur française existante (spec §8.2) : le planneur ne
+        // retient que ce qui est absent ou vide.
+        let eligible = TranslationBatchPlanner.eligibleRows(rows)
+        var translated = 0
+        var refused: [String] = []
+        var errors = 0
+        var softIgnored = 0
+        batchProgress = BatchProgress(done: 0, total: eligible.count)
+        for (index, row) in eligible.enumerated() {
+            // Le point d'arrêt : la clé en cours est déjà partie, la
+            // suivante ne partira pas — son résultat, s'il arrive, n'est pas
+            // écrit puisque l'écriture suit le retour.
+            if Task.isCancelled { break }
+            let matches = glossaryMatches(for: row.english, language: locale)
+            let request = LocalLLMClient.Request(
+                model: localAIModelName, source: row.english,
+                glossary: matches, sectionLabel: row.component)
+            let outcome = await LocalLLMClient.translate(
+                request, baseURL: base, session: LocalLLMEndpoint.makeSession())
+            switch outcome {
+            case .translated(let proposal):
+                // Le chemin d'écriture existant, avec son `.bak` et son gate
+                // de marques — le client n'a déjà rendu que des traductions
+                // sans marque dure manquante, mais le gate reste juge.
+                if case .saved = saveTranslation(mod: mod, locale: locale,
+                                                 row: row, value: proposal) {
+                    if let store = TranslationBaseline.defaultDirectory() {
+                        do {
+                            try TranslationBaseline.setReviewNeeded(
+                                component: row.component, key: row.key,
+                                source: row.english, target: proposal,
+                                modFolderName: mod.folderName, in: store)
+                        } catch {
+                            log("Drapeau à relire non posé pour \(mod.name) — \(row.key) : \(error)",
+                                level: .warning)
+                        }
+                    }
+                    translated += 1
+                    // Signalement doux : l'IA n'a pas repris le terme imposé.
+                    // Jamais bloquant — le texte reste valide — mais le
+                    // rapport le dit.
+                    softIgnored += matches.filter { !proposal.contains($0.fr) }.count
+                } else {
+                    errors += 1
+                }
+            case .refusedTokens:
+                refused.append(row.id)
+            case .endpointError:
+                errors += 1
+            }
+            batchProgress = BatchProgress(done: index + 1, total: eligible.count)
+        }
+        batchReport = BatchReport(translated: translated, refusedRowIDs: refused,
+                                  errors: errors, softGlossaryIgnored: softIgnored)
+        log("Lot \(mod.folderName) : \(translated) traduites, \(refused.count) refusées "
+            + "(marques manquantes), \(errors) erreurs, \(softIgnored) termes glossaire ignorés",
+            level: .info)
     }
 
     /// Enregistre une valeur traduite pour une ligne du diff.
@@ -725,6 +856,22 @@ class StarHubTHViewModel: ObservableObject {
                     // comme toute autre branche d'échec — un `try?` muet
                     // l'aurait fait disparaître sans trace.
                     log("Accord de dérogation non enregistré pour \(mod.name) — \(row.key) : \(error)",
+                        level: .warning)
+                }
+            }
+
+            // Enregistrer la clé (modifiée ou non) retire « à relire »
+            // (spec §7) : quelqu'un vient de la relire. Sans drapeau posé,
+            // la fonction ne réécrit rien — ce coût est une lecture par
+            // enregistrement ordinaire.
+            if let store = TranslationBaseline.defaultDirectory() {
+                do {
+                    try TranslationBaseline.clearReviewNeeded(component: row.component,
+                                                              key: row.key,
+                                                              modFolderName: mod.folderName,
+                                                              in: store)
+                } catch {
+                    log("Retrait du drapeau à relire non enregistré pour \(mod.name) — \(row.key) : \(error)",
                         level: .warning)
                 }
             }

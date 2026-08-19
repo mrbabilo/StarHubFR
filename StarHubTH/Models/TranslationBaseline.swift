@@ -100,6 +100,65 @@ public enum TranslationBaseline {
         try data.write(to: file, options: .atomic)
     }
 
+    // MARK: - Drapeau « à relire » (lot P2b)
+
+    /// Pose le drapeau « écrit sans être relu » pour une clé du mod (spec
+    /// §2.4 : seul le lot le pose). L'entrée est créée s'il faut — les clés
+    /// du lot n'ont jamais de référence, elles étaient vides ou absentes —
+    /// et une entrée existante garde ses valeurs : le drapeau est une
+    /// propriété de la clé, pas une réévaluation de sa référence.
+    public static func setReviewNeeded(component: String?, key: String,
+                                       source: String, target: String,
+                                       modFolderName: String, in directory: URL,
+                                       fileManager: FileManager = .default) throws {
+        let id = Self.key(component: component, key: key)
+        var entries = load(modFolderName: modFolderName, in: directory,
+                           fileManager: fileManager)
+        let existing = entries[id]
+        entries[id] = Entry(source: existing?.source ?? source,
+                            target: existing?.target ?? target,
+                            tokenMismatchAccepted: existing?.tokenMismatchAccepted ?? false,
+                            reviewNeeded: true)
+        try save(entries, modFolderName: modFolderName, in: directory,
+                 fileManager: fileManager)
+    }
+
+    /// Retire le drapeau — enregistrer la clé (modifiée ou non) la relit
+    /// (spec §7). Sans entrée ou sans drapeau, ne fait rien : ce chemin
+    /// sert aussi au cas ordinaire d'un enregistrement qui n'a jamais été
+    /// touché par le lot.
+    public static func clearReviewNeeded(component: String?, key: String,
+                                         modFolderName: String, in directory: URL,
+                                         fileManager: FileManager = .default) throws {
+        let id = Self.key(component: component, key: key)
+        var entries = load(modFolderName: modFolderName, in: directory,
+                           fileManager: fileManager)
+        guard let existing = entries[id], existing.reviewNeeded else { return }
+        entries[id] = Entry(source: existing.source, target: existing.target,
+                            tokenMismatchAccepted: existing.tokenMismatchAccepted,
+                            reviewNeeded: false)
+        try save(entries, modFolderName: modFolderName, in: directory,
+                 fileManager: fileManager)
+    }
+
+    /// Les identités des clés « à relire », au même format que
+    /// `TranslationCoverage.DiffRow.id` (`component/key`, ou `key`) : le
+    /// badge du diff et son filtre comparent directement les deux.
+    public static func reviewNeededRowIDs(modFolderName: String, in directory: URL,
+                                          fileManager: FileManager = .default) -> Set<String> {
+        let entries = load(modFolderName: modFolderName, in: directory,
+                           fileManager: fileManager)
+        // La clé du magasin est `component\u{0}key` (voir `key(component:key:)`) :
+        // on repasse au séparateur lisible de `DiffRow.id`.
+        return Set(entries.filter(\.value.reviewNeeded).keys.map { composite in
+            let parts = composite.split(separator: "\u{0}", maxSplits: 1,
+                                        omittingEmptySubsequences: false)
+            guard parts.count == 2 else { return composite }
+            let component = String(parts[0])
+            return component.isEmpty ? String(parts[1]) : "\(component)/\(parts[1])"
+        })
+    }
+
     // MARK: - Index
 
     /// Protège l'intervalle lecture-modification-écriture de `updateIndex`, pas

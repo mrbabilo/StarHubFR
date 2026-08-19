@@ -53,6 +53,7 @@ let package = Package(
                 "Models/TranslationDiffGroups.swift",
                 "Models/TranslationFreshness.swift",
                 "Models/TranslationBaseline.swift",
+                "Models/TranslationBatchPlanner.swift",
                 "Models/TranslationBaselineRules.swift",
                 "Models/ThaiTranslationTable.swift",
                 "NexusUpdateChecker.swift",
@@ -410,6 +411,11 @@ let package = Package(
             name: "TranslationBaselineTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/TranslationBaselineTests"
+        ),
+        .testTarget(
+            name: "TranslationBatchPlannerTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/TranslationBatchPlannerTests"
         ),
         .testTarget(
             name: "LocalLLMEndpointTests",

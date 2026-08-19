@@ -22,10 +22,25 @@ struct TranslationDiffView: View {
     @ObservedObject var vm: StarHubTHViewModel
     let mod: ModItem
 
+    /// Ce que la barre de filtres peut cadrer : un état du diff, ou le
+    /// drapeau « À relire » posé par le lot.
+    enum DiffFilter: Equatable {
+        case state(TranslationCoverage.DiffRow.State)
+        case reviewNeeded
+    }
+
     @State private var rows: [TranslationCoverage.DiffRow] = []
     @State private var isLoading = true
-    @State private var stateFilter: TranslationCoverage.DiffRow.State?
+    /// Le cadrage choisi. Un état du diff, ou « À relire » — qui n'est pas un
+    /// état mais un drapeau du magasin de références : il vit ici, à côté de
+    /// son modèle, pour être filtré par la même barre.
+    @State private var filter: DiffFilter?
     @State private var searchText = ""
+    /// Les clés « à relire » de ce mod (issues du lot), au format de
+    /// `DiffRow.id` : c'est ce qui fait vivre le badge et le filtre.
+    @State private var reviewNeededIDs: Set<String> = []
+    /// La feuille du lot de pré-traduction.
+    @State private var isShowingBatch = false
     /// Les groupes tels que le fichier les donne, calculés **une fois** sur les
     /// rangées complètes. Leur identité ne dépend donc jamais du filtre en
     /// cours : c'est ce qui permet à un repli de désigner toujours la même
@@ -91,6 +106,7 @@ struct TranslationDiffView: View {
             // sur le fil principal figerait la fenêtre.
             rows = await vm.translationDiff(for: mod)
             staleness = await vm.translationStaleness(for: mod)
+            reviewNeededIDs = await vm.reviewNeededRowIDs(for: mod)
             // Le regroupement une seule fois, sur les rangées complètes.
             allGroups = TranslationCoverage.diffGroups(rows: rows)
             // Les groupes avant le drapeau : sans quoi une passe de rendu
@@ -101,7 +117,7 @@ struct TranslationDiffView: View {
         }
         // Le regroupement ne peut pas vivre dans `body` : regrouper 17 910
         // lignes à chaque frappe rendrait la recherche inutilisable.
-        .onChange(of: stateFilter) { _, _ in rebuildGroups() }
+        .onChange(of: filter) { _, _ in rebuildGroups() }
         .onChange(of: searchText) { _, _ in rebuildGroups() }
     }
 
@@ -131,16 +147,66 @@ struct TranslationDiffView: View {
     /// qui n'existe pas.
     private var filterBar: some View {
         let counts = Dictionary(grouping: rows, by: \.state).mapValues(\.count)
+        // « À relire » compte les clés du drapeau encore présentes dans les
+        // rangées : les drapeaux des clés disparues ne grossissent pas le
+        // filtre, elles ne mènent nulle part.
+        let reviewCount = rows.filter { reviewNeededIDs.contains($0.id) }.count
         return VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
                 filterChip(nil, label: vm.L(L10n.Mods.diffStateAll), count: rows.count)
                 ForEach(TranslationCoverage.DiffRow.State.allCases, id: \.self) { state in
                     if let count = counts[state], count > 0 {
-                        filterChip(state, label: label(for: state), count: count)
+                        filterChip(.state(state), label: label(for: state), count: count)
                     }
+                }
+                if reviewCount > 0 {
+                    // Comme les autres : glyphe et compte dans le libellé, on
+                    // sait ce qu'on va trouver avant de cliquer.
+                    filterChip(.reviewNeeded,
+                               label: vm.L(L10n.Mods.translationReviewNeeded),
+                               count: reviewCount,
+                               glyph: "text.magnifyingglass",
+                               tint: .orange)
                 }
             }
             HStack(spacing: 8) {
+                // Le lot : visible seulement s'il reste du travail pour lui
+                // et qu'une IA est configurée (spec §7) — sinon il n'aurait
+                // rien à proposer et cacher le bouton vaut mieux qu'un clic
+                // qui échoue.
+                if vm.isLocalAIConfigured
+                    && !TranslationBatchPlanner.eligibleRows(rows).isEmpty {
+                    Button {
+                        isShowingBatch = true
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "wand.and.rays").font(.system(size: 10))
+                            Text(vm.L(L10n.Mods.translationBatchButton))
+                                .font(.system(size: 10, weight: .medium))
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .pointingHandCursor()
+                    .help(vm.L(L10n.Mods.translationBatchButton))
+                    .accessibilityLabel(vm.L(L10n.Mods.translationBatchButton))
+                    .sheet(isPresented: $isShowingBatch) {
+                        TranslationBatchView(
+                            vm: vm, mod: mod, locale: "fr", rows: rows,
+                            onClose: {
+                                isShowingBatch = false
+                                // Recharger ce que le lot vient d'écrire, et
+                                // rouvrir cadré sur ce qu'il a produit :
+                                // c'est là qu'il faut relire.
+                                filter = .reviewNeeded
+                                Task {
+                                    rows = await vm.translationDiff(for: mod)
+                                    reviewNeededIDs = await vm.reviewNeededRowIDs(for: mod)
+                                    allGroups = TranslationCoverage.diffGroups(rows: rows)
+                                    rebuildGroups()
+                                }
+                            })
+                    }
+                }
                 TextField(vm.L(L10n.Mods.diffSearch), text: $searchText)
                     .textFieldStyle(.roundedBorder)
                     .font(.system(size: 11))
@@ -205,14 +271,20 @@ struct TranslationDiffView: View {
         .padding(.bottom, 10)
     }
 
-    private func filterChip(_ state: TranslationCoverage.DiffRow.State?,
-                            label: String, count: Int) -> some View {
-        let isSelected = stateFilter == state
+    private func filterChip(_ criterion: DiffFilter?,
+                            label: String, count: Int,
+                            glyph: String? = nil,
+                            tint: Color? = nil) -> some View {
+        let isSelected = filter == criterion
         return Button {
-            stateFilter = isSelected ? nil : state
+            filter = isSelected ? nil : criterion
         } label: {
             HStack(spacing: 4) {
-                if let state { Image(systemName: DiffStateStyle.glyph(state)).font(.system(size: 9)) }
+                if let glyph {
+                    Image(systemName: glyph).font(.system(size: 9))
+                } else if case .state(let state) = criterion {
+                    Image(systemName: DiffStateStyle.glyph(state)).font(.system(size: 9))
+                }
                 Text(label).font(.system(size: 10, weight: .medium))
                 Text("\(count)")
                     .font(.system(size: 10, weight: .semibold).monospacedDigit())
@@ -225,10 +297,16 @@ struct TranslationDiffView: View {
                                ? Color.accentColor.opacity(AppDesign.Opacity.strong)
                                : Color.secondary.opacity(AppDesign.Opacity.light))
             )
-            .foregroundColor(state.map(DiffStateStyle.tint) ?? .primary)
+            .foregroundColor(derivedTint(criterion, override: tint))
         }
         .buttonStyle(.plain)
         .pointingHandCursor()
+    }
+
+    private func derivedTint(_ criterion: DiffFilter?, override: Color?) -> Color {
+        if let override { return override }
+        if case .state(let state) = criterion { return DiffStateStyle.tint(state) }
+        return .primary
     }
 
     // MARK: - Table
@@ -242,7 +320,7 @@ struct TranslationDiffView: View {
                     // impasse dont on ne voit pas la sortie.
                     Button(vm.L(L10n.Mods.diffClearFilters)) {
                         searchText = ""
-                        stateFilter = nil
+                        filter = nil
                     }
                     .buttonStyle(.link)
                     .font(.system(size: 11))
@@ -257,7 +335,9 @@ struct TranslationDiffView: View {
                                         ForEach(group.rows) { row in
                                             DiffRowView(row: row,
                                                         emptyPlaceholder: vm.L(L10n.Mods.diffEmptyValue),
-                                                        previousEnglishLabel: vm.L(L10n.Mods.diffPreviousEnglish))
+                                                        previousEnglishLabel: vm.L(L10n.Mods.diffPreviousEnglish),
+                                                        needsReview: reviewNeededIDs.contains(row.id),
+                                                        reviewLabel: vm.L(L10n.Mods.translationReviewNeeded))
                                                 .contentShape(Rectangle())
                                                 .onTapGesture { editing = row }
                                                 // Rien n'indiquait qu'une
@@ -314,6 +394,9 @@ struct TranslationDiffView: View {
                                 Task {
                                     rows = await vm.translationDiff(for: mod)
                                     staleness = await vm.translationStaleness(for: mod)
+                                    // Le drapeau part à l'enregistrement : le
+                                    // badge et le compte du filtre suivent.
+                                    reviewNeededIDs = await vm.reviewNeededRowIDs(for: mod)
                                     allGroups = TranslationCoverage.diffGroups(rows: rows)
                                     rebuildGroups()
                                 }
@@ -429,7 +512,11 @@ struct TranslationDiffView: View {
     /// l'aurait fait jusqu'à ~17 910 fois par frappe, alors qu'une seule
     /// suffit.
     private func matches(_ row: TranslationCoverage.DiffRow, query: String) -> Bool {
-        if let stateFilter, row.state != stateFilter { return false }
+        switch filter {
+        case .state(let state) where row.state != state: return false
+        case .reviewNeeded where !reviewNeededIDs.contains(row.id): return false
+        default: break
+        }
         guard !query.isEmpty else { return true }
         return row.key.lowercased().contains(query)
             || row.english.lowercased().contains(query)
@@ -548,6 +635,11 @@ private struct DiffRowView: View {
     let row: TranslationCoverage.DiffRow
     let emptyPlaceholder: String
     let previousEnglishLabel: String
+    /// « Écrit sans être relu » par le lot : un badge discret, jamais un
+    /// état — la rangée reste ce qu'elle est, le drapeau dit d'où vient sa
+    /// valeur.
+    let needsReview: Bool
+    let reviewLabel: String
 
     var body: some View {
         HStack(alignment: .top, spacing: DiffMetrics.spacing) {
@@ -562,10 +654,21 @@ private struct DiffRowView: View {
                 .font(.system(size: 10))
                 .foregroundColor(DiffStateStyle.tint(row.state))
                 .frame(width: DiffMetrics.glyphWidth)
-            Text(row.key)
-                .font(.system(size: 10, design: .monospaced))
-                .foregroundColor(.secondary)
-                .frame(width: DiffMetrics.keyWidth, alignment: .leading)
+            HStack(alignment: .firstTextBaseline, spacing: 3) {
+                Text(row.key)
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundColor(.secondary)
+                if needsReview {
+                    // Discret : un glyphe orange collé à la clé, nommé au
+                    // survol — le glyphe ET la teinte, comme pour les états.
+                    Image(systemName: "text.magnifyingglass")
+                        .font(.system(size: 8))
+                        .foregroundColor(.orange)
+                        .help(reviewLabel)
+                        .accessibilityLabel(reviewLabel)
+                }
+            }
+            .frame(width: DiffMetrics.keyWidth, alignment: .leading)
             VStack(alignment: .leading, spacing: 2) {
                 tokenised(row.english)
                 // L'ancien anglais sous le nouveau, barré : c'est ce qui permet
