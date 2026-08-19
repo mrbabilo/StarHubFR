@@ -479,6 +479,75 @@ class StarHubTHViewModel: ObservableObject {
         case failed(String)
     }
 
+    // MARK: - Pré-traduction assistée
+
+    /// Posé quand une pré-traduction échoue faute de serveur configuré :
+    /// l'appelant en fait l'invitation à ouvrir les réglages au lieu d'un
+    /// message d'erreur générique.
+    @Published private(set) var preTranslateNeedsSettings = false
+
+    /// Le glossaire en mémoire — une langue à la fois : le hub FR n'en charge
+    /// qu'une, et recharger le JSON à chaque clé traduite serait payer le
+    /// même fichier des centaines de fois dans un lot.
+    private var glossaryCache: (language: String, glossary: Glossary)?
+
+    /// Le dossier racine du glossaire en Application Support — même règle de
+    /// placement que `TranslationBaseline`, jamais Caches.
+    private static func glossaryAppSupport() -> URL? {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)
+            .first?.appendingPathComponent("StarHubTH", isDirectory: true)
+    }
+
+    /// Le glossaire courant s'il existe (construit depuis les réglages),
+    /// chargé une fois puis gardé en mémoire.
+    func currentGlossary(language: String) -> Glossary? {
+        if let cache = glossaryCache, cache.language == language { return cache.glossary }
+        guard let appSupport = Self.glossaryAppSupport(),
+              let glossary = GlossaryStore.load(language: language, appSupport: appSupport) else {
+            return nil
+        }
+        glossaryCache = (language, glossary)
+        return glossary
+    }
+
+    /// Les termes du jeu présents dans une source anglaise — les chips de
+    /// l'éditeur et le prompt IA se servent dans le même panier, c'est ce qui
+    /// garantit que l'IA impose ce que les chips proposent.
+    func glossaryMatches(for source: String, language: String) -> [GlossaryEntry] {
+        currentGlossary(language: language)?.matchEntries(in: source) ?? []
+    }
+
+    /// Propose une traduction par IA locale pour une ligne du diff. Rend la
+    /// proposition, ou `nil` — **rien n'est écrit sur le disque** : le
+    /// brouillon remplit le champ, l'« Enregistrer » explicite reste le seul
+    /// chemin d'écriture, et la voie par clé ne pose jamais le drapeau
+    /// « à relire » (spec §2.4).
+    ///
+    /// Un échec faute de configuration pose `preTranslateNeedsSettings` pour
+    /// que l'appelant oriente vers les réglages plutôt que vers un message
+    /// d'erreur qui n'aidera pas.
+    @MainActor
+    func preTranslate(mod: ModItem, locale: String,
+                      row: TranslationCoverage.DiffRow) async -> String? {
+        let configured = UserDefaults.standard.string(forKey: UDKey.localAIBaseURL)
+            .flatMap(LocalLLMEndpoint.validate)
+        let model = UserDefaults.standard.string(forKey: UDKey.localAIModel) ?? ""
+        guard let base = configured, !model.isEmpty else {
+            preTranslateNeedsSettings = true
+            return nil
+        }
+        let request = LocalLLMClient.Request(
+            model: model,
+            source: row.english,
+            glossary: glossaryMatches(for: row.english, language: locale),
+            sectionLabel: row.component)
+        let outcome = await LocalLLMClient.translate(
+            request, baseURL: base, session: LocalLLMEndpoint.makeSession())
+        log("Pré-traduction \(mod.folderName)/\(row.key) : \(outcome)", level: .info)
+        guard case .translated(let proposal) = outcome else { return nil }
+        return proposal
+    }
+
     /// Enregistre une valeur traduite pour une ligne du diff.
     ///
     /// Bloque sur une divergence de tokens **dure**, ni acceptée ni déjà

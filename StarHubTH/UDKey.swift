@@ -36,4 +36,9 @@ public enum UDKey {
     /// has run on this machine. Removed in the release after the one that
     /// introduces the dot-prefix toggle (N+1) — see the plan's step 17.
     public static let disabledModsMigratedToDotPrefix = "disabledModsMigratedToDotPrefix"
+    /// Base URL of the local LLM server (Ollama / LM Studio) for assisted
+    /// translation — loopback only, validated by `LocalLLMEndpoint`.
+    public static let localAIBaseURL = "localAIBaseURL"
+    /// Model name used for assisted translation requests.
+    public static let localAIModel = "localAIModel"
 }

@@ -239,6 +239,10 @@ enum L10n {
         /// (`SaveOutcome.failed`) : lui seul est localisé, parce que c'est la
         /// seule partie qu'un traducteur ne peut pas se permettre de manquer.
         static let translationEditorFailed      = "mods_translation_editor_failed"
+        static let translationEditorPretranslate = "mods_translation_editor_pretranslate"
+        static let translationEditorPretranslating = "mods_translation_editor_pretranslating"
+        static let translationEditorPretranslateFailed = "mods_translation_editor_pretranslate_failed"
+        static let translationEditorGlossary    = "mods_translation_editor_glossary"
         static let frTranslationStale      = "mods_fr_translation_stale"
         static let diffSearch              = "mods_diff_search"
         static let diffNoMatch             = "mods_diff_no_match"

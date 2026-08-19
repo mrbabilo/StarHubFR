@@ -801,6 +801,10 @@
 "mods_translation_editor_save_anyway" = "Save anyway";
 "mods_translation_editor_mismatch_hint" = "If this is deliberate — a gender-neutral sentence needs no gender switch — you can go ahead. The agreement only holds for this revision of the English.";
 "mods_translation_editor_failed" = "Nothing was saved.";
+"mods_translation_editor_pretranslate" = "Pre-translate";
+"mods_translation_editor_pretranslating" = "Local translation in progress…";
+"mods_translation_editor_pretranslate_failed" = "The local AI didn't answer — check the settings";
+"mods_translation_editor_glossary" = "Game terms";
 "mods_fr_translation_stale" = "To review";
 "mods_diff_search" = "Search keys and text";
 "mods_diff_no_match" = "No key matches.";

@@ -21,6 +21,11 @@ struct TranslationEditorView: View {
 
     @State private var draft: String = ""
     @State private var blocked: [TranslationTokenCheck.Mismatch] = []
+    /// Le verrou du bouton « Pré-traduire » pendant l'appel à l'IA locale.
+    @State private var isPreTranslating = false
+    /// Les termes du jeu matchés dans la source anglaise — calculés par ligne,
+    /// pas à chaque frappe : le matching parcourt tout le glossaire.
+    @State private var glossaryMatches: [GlossaryEntry] = []
     /// Le diagnostic d'un `.failed` : composant introuvable, `default.json`
     /// illisible, écriture refusée par le disque. Contrairement à `blocked`,
     /// **rien ici ne se remet à zéro quand `draft` change** — ce ne sont pas
@@ -75,11 +80,34 @@ struct TranslationEditorView: View {
                     .stroke(Color.primary.opacity(0.15), lineWidth: 1))
 
             tokenChips.frame(height: 46, alignment: .topLeading)
+            // Réserve **fixe**, comme au-dessus : une rangée qui n'existerait
+            // que sur les lignes à termes ferait danser le champ entre deux
+            // clés — exactement ce que l'en-tête du fichier interdit. 24pt :
+            // une seule rangée de chips, sans intitulé.
+            glossaryChips.frame(height: 24, alignment: .topLeading)
             // 90pt, pas 36 : dimensionné sur le pire cas réaliste, pas la
             // moyenne. Voir le calcul au-dessus de `statusNotice`.
             statusNotice.frame(height: 90, alignment: .topLeading)
 
             HStack {
+                // Pré-traduire par l'IA locale : remplit le brouillon, rien
+                // de plus — l'« Enregistrer » explicite reste le seul chemin
+                // d'écriture, et cette voie ne pose jamais « à relire ».
+                Button {
+                    Task { await preTranslate() }
+                } label: {
+                    if isPreTranslating {
+                        ProgressView().controlSize(.small)
+                    } else {
+                        Image(systemName: "wand.and.stars")
+                    }
+                }
+                .disabled(isPreTranslating)
+                .help(isPreTranslating
+                      ? vm.L(L10n.Mods.translationEditorPretranslating)
+                      : vm.L(L10n.Mods.translationEditorPretranslate))
+                .accessibilityLabel(vm.L(L10n.Mods.translationEditorPretranslate))
+
                 // Enchaîner les clés sans repasser par la liste : c'est le
                 // geste d'un traducteur qui en traite des centaines.
                 //
@@ -129,7 +157,10 @@ struct TranslationEditorView: View {
         }
         .padding(20)
         .frame(minWidth: 560, minHeight: 540)
-        .onAppear { draft = row.french }
+        .onAppear {
+            draft = row.french
+            glossaryMatches = vm.glossaryMatches(for: row.english, language: locale)
+        }
         // `.sheet(item:)` peut réutiliser cette vue en changeant seulement
         // `row` : `onAppear` ne se redéclencherait pas, et le brouillon de la
         // ligne précédente s'écrirait dans la suivante. On réarme donc sur
@@ -139,6 +170,7 @@ struct TranslationEditorView: View {
             blocked = []
             failureMessage = nil
             pendingNavigation = nil
+            glossaryMatches = vm.glossaryMatches(for: row.english, language: locale)
         }
         // Retoucher la phrase remet le refus de tokens à zéro : l'accord porte
         // sur un couple source/cible précis, et la cible vient de changer.
@@ -171,6 +203,47 @@ struct TranslationEditorView: View {
                     }
                 }
             }
+        }
+    }
+
+    /// Les termes du jeu matchés dans la source, en `EN → FR` monospace :
+    /// cliquer insère la forme française, la même mécanique que les chips de
+    /// marques — l'IA locale impose ces mêmes termes dans son prompt, ce sont
+    /// les mêmes matchs (`vm.glossaryMatches`).
+    @ViewBuilder private var glossaryChips: some View {
+        if glossaryMatches.isEmpty {
+            EmptyView()
+        } else {
+            HStack(spacing: 6) {
+                ForEach(glossaryMatches, id: \.en) { entry in
+                    Button { draft += entry.fr } label: {
+                        Text("\(entry.en) → \(entry.fr)")
+                            .font(.system(size: 11, design: .monospaced))
+                            .padding(.horizontal, 6).padding(.vertical, 2)
+                            .background(Color.green.opacity(0.12))
+                            .cornerRadius(4)
+                    }
+                    .buttonStyle(.plain)
+                    .pointingHandCursor()
+                    .help("\(vm.L(L10n.Mods.translationEditorGlossary)) : \(entry.en) → \(entry.fr)")
+                }
+            }
+            .help(vm.L(L10n.Mods.translationEditorGlossary))
+        }
+    }
+
+    /// Demande une proposition à l'IA locale et la verse dans le brouillon.
+    /// L'échec réutilise `failureMessage` — c'est une panne structurelle
+    /// (serveur injoignable, non configuré), pas un désaccord sur le texte :
+    /// retaper la phrase n'y changera rien, et l'avis ne doit pas s'effacer
+    /// au premier caractère, pour la même raison que celui de `save()`.
+    private func preTranslate() async {
+        isPreTranslating = true
+        defer { isPreTranslating = false }
+        if let proposal = await vm.preTranslate(mod: mod, locale: locale, row: row) {
+            draft = proposal
+        } else {
+            failureMessage = vm.L(L10n.Mods.translationEditorPretranslateFailed)
         }
     }
 
