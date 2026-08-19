@@ -83,6 +83,7 @@ let package = Package(
                 "Models/LzxdWindow.swift",
                 "Models/LzxdTree.swift",
                 "Models/LzxdDecoder.swift",
+                "Models/XnbStringDictionaryReader.swift",
                 "Extensions/ModConfigFiles.swift",
             ]
         ),
@@ -374,6 +375,11 @@ let package = Package(
             name: "LzxdDecoderTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/LzxdDecoderTests"
+        ),
+        .testTarget(
+            name: "XnbStringDictionaryReaderTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/XnbStringDictionaryReaderTests"
         ),
     ]
 )
