@@ -107,7 +107,12 @@ public enum GlossaryStore {
         let entries: [GlossaryEntry]
     }
 
-    private static let formatVersion = 1
+    /// Version du contrat de sortie du cache, **relue** au chargement : un
+    /// cache d'une autre version se jette et se reconstruit. Passée à 2
+    /// quand le builder a changé de rendu (saisons admises, termes rabotés)
+    /// — les fichiers du jeu, eux, n'avaient pas bougé, et la date seule
+    /// aurait servi l'ancien glossaire indéfiniment.
+    private static let formatVersion = 2
 
     private static func fileURL(language: String, appSupport: URL) -> URL {
         appSupport.appendingPathComponent("Glossary/\(language).json", isDirectory: false)
@@ -116,19 +121,24 @@ public enum GlossaryStore {
     /// Le glossaire en cache, `nil` s'il n'existe pas encore.
     public static func load(language: String, appSupport: URL,
                             fileManager: FileManager = .default) -> Glossary? {
-        let file = fileURL(language: language, appSupport: appSupport)
-        guard let data = try? Data(contentsOf: file),
-              let cache = try? JSONDecoder().decode(Cache.self, from: data) else { return nil }
+        guard let cache = cache(language: language, appSupport: appSupport) else { return nil }
         return Glossary(entries: cache.entries)
     }
 
     /// La date de construction du cache — l'entrée d'`needsRebuild`.
     public static func builtDate(language: String, appSupport: URL,
                                  fileManager: FileManager = .default) -> Date? {
+        cache(language: language, appSupport: appSupport)?.builtAt
+    }
+
+    /// Le cache lu et **validé** : une autre version de format est traitée
+    /// comme une absence, pas comme un cache utilisable.
+    private static func cache(language: String, appSupport: URL) -> Cache? {
         let file = fileURL(language: language, appSupport: appSupport)
         guard let data = try? Data(contentsOf: file),
-              let cache = try? JSONDecoder().decode(Cache.self, from: data) else { return nil }
-        return cache.builtAt
+              let cache = try? JSONDecoder().decode(Cache.self, from: data),
+              cache.formatVersion == formatVersion else { return nil }
+        return cache
     }
 
     /// Écrit le cache de façon atomique (`.tmp` → rename via `Data.write`).

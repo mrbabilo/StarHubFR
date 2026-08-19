@@ -34,10 +34,20 @@ struct XnbOracleTests {
 
         var checked = 0
         var matched = 0
+        var nonDictionaries = 0
         for file in files {
-            guard let data = try? Data(contentsOf: file),
-                  let ours = try? XnbStringDictionaryReader.read(data) else {
-                Issue.record("Illisible par notre lecteur : \(file.lastPathComponent)")
+            let ours: [String: String]
+            do {
+                ours = try XnbStringDictionaryReader.read(try Data(contentsOf: file))
+            } catch XnbStringDictionaryReader.ReadError.rootNotStringDictionary {
+                // Refus **voulu** : les 12 `credits.*.xnb` sont des
+                // `List<String>`, pas des dictionnaires — le lecteur est
+                // délibérément étroit, et StardewXnbHack en fait un tableau
+                // JSON qu'on ne saurait pas comparer non plus.
+                nonDictionaries += 1
+                continue
+            } catch {
+                Issue.record("Illisible par notre lecteur : \(file.lastPathComponent) → \(error)")
                 continue
             }
             let jsonName = file.deletingPathExtension()
@@ -54,7 +64,8 @@ struct XnbOracleTests {
                 Issue.record("Divergence sur \(file.lastPathComponent)")
             }
         }
-        #expect(checked > 300, "chaque fichier doit être lisible ET comparable")
+        #expect(checked > 300, "chaque dictionnaire doit être lisible ET comparable")
+        #expect(nonDictionaries == 12, "les 12 `credits.*.xnb` sont les seuls non-dictionnaires")
         #expect(checked == matched, "égalité intégrale attendue — \(checked - matched) divergences")
     }
 }

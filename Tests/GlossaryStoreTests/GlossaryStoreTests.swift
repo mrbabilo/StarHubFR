@@ -186,6 +186,23 @@ struct GlossaryStoreTests {
         #expect(GlossaryStore.builtDate(language: "fr", appSupport: support) != nil)
     }
 
+    /// Le cache porte un `formatVersion` que personne ne relisait : un
+    /// glossaire écrit par une version antérieure du builder (saisons
+    /// absentes, termes non rabotés) restait servi indéfiniment, les
+    /// fichiers du jeu n'ayant pas bougé. Une version étrangère se jette.
+    @Test func aCacheFromAnotherFormatVersionIsIgnored() throws {
+        let support = root
+        defer { try? FileManager.default.removeItem(at: support) }
+        let folder = support.appendingPathComponent("Glossary")
+        try mkdirs([folder])
+        let stale = """
+        {"formatVersion":1,"builtAt":760000000,        "entries":[{"en":"Spring","fr":"Printemps","kind":"season"}]}
+        """
+        try Data(stale.utf8).write(to: folder.appendingPathComponent("fr.json"))
+        #expect(GlossaryStore.load(language: "fr", appSupport: support) == nil)
+        #expect(GlossaryStore.builtDate(language: "fr", appSupport: support) == nil)
+    }
+
     @Test func loadWithoutCacheReturnsNil() throws {
         #expect(GlossaryStore.load(language: "fr", appSupport: root) == nil)
         #expect(GlossaryStore.builtDate(language: "fr", appSupport: root) == nil)
