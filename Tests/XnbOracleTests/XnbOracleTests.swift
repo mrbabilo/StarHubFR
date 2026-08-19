@@ -47,7 +47,7 @@ struct XnbOracleTests {
 
         var checked = 0
         var matched = 0
-        var nonDictionaries = 0
+        var nonDictionaries: [String] = []
         for file in files {
             let ours: [String: String]
             do {
@@ -57,7 +57,7 @@ struct XnbOracleTests {
                 // `List<String>`, pas des dictionnaires — le lecteur est
                 // délibérément étroit, et StardewXnbHack en fait un tableau
                 // JSON qu'on ne saurait pas comparer non plus.
-                nonDictionaries += 1
+                nonDictionaries.append(file.lastPathComponent)
                 continue
             } catch {
                 Issue.record("Illisible par notre lecteur : \(file.lastPathComponent) → \(error)")
@@ -78,9 +78,15 @@ struct XnbOracleTests {
             }
         }
         print("ORACLE \(files.count) fichiers — \(checked) dictionnaires comparés, "
-            + "\(matched) identiques, \(nonDictionaries) non-dictionnaires")
+            + "\(matched) identiques, \(nonDictionaries.count) non-dictionnaires")
         #expect(checked > 300, "chaque dictionnaire doit être lisible ET comparable")
-        #expect(nonDictionaries == 12, "les 12 `credits.*.xnb` sont les seuls non-dictionnaires")
+        // Compter les `credits.*` figerait le nombre de langues du jeu : une
+        // langue ajoutée virerait l'oracle au rouge sans rien dire du
+        // lecteur. Ce qui compte, c'est qu'aucun **autre** asset ne se
+        // refuse — 12 fichiers `credits` le 2026-08-19, sur 372.
+        let unexpected = nonDictionaries.filter { !$0.hasPrefix("credits") }
+        #expect(unexpected.isEmpty,
+                "seuls les `credits.*.xnb` (des `List<String>`) peuvent se refuser — reçu \(unexpected)")
         #expect(checked == matched, "égalité intégrale attendue — \(checked - matched) divergences")
     }
 }
