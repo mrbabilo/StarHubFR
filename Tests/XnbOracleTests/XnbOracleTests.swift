@@ -6,11 +6,24 @@ import Testing
 /// fichiers **réels** du jeu installé. Une erreur de bit LZX ne survit pas
 /// au parse structuré — l'égalité est intégrale, fichier par fichier.
 ///
-/// Se skippe proprement sans l'environnement : il exige `STARDEW_GAME_DIR`
-/// (le dossier `Resources` du jeu) et un `Content (unpacked)` produit une
-/// fois par StardewXnbHack (https://github.com/Pathoschild/StardewXnbHack —
-/// dézipper dans le dossier du jeu, lancer le binaire). Aucune donnée du
-/// jeu ne vit dans le dépôt.
+/// Se skippe proprement sans l'environnement : il exige `STARDEW_GAME_DIR`,
+/// un dossier qui expose `Content/Strings` (les `.xnb`) **et**
+/// `Content (unpacked)/Strings` (les `.json` de StardewXnbHack). Aucune
+/// donnée du jeu ne vit dans le dépôt.
+///
+/// Recette mesurée le 2026-08-19 (macOS, jeu GOG), qui ne touche pas au
+/// bundle installé — StardewXnbHack démarre une instance du jeu, il lui
+/// faut donc **tout** `Content`, pas seulement `Strings` :
+///
+/// 1. `StardewXnbHack-<v>-for-macOS.zip` → un binaire unique.
+/// 2. Monter un faux dossier de jeu : liens vers tout
+///    `Stardew Valley.app/Contents/MacOS/*` (sauf `Mods`), **copie** de
+///    `Contents/Resources/Content`, et le binaire dedans.
+/// 3. L'exécuter depuis ce `MacOS/` ; il écrit `Content (unpacked)` à côté.
+///    L'exception finale (`Cannot read keys…`) n'est que le « press any
+///    key » sans console : le travail est fait.
+/// 4. Un dossier racine avec deux liens — `Content` vers le vrai jeu,
+///    `Content (unpacked)` vers la sortie — puis `STARDEW_GAME_DIR=…`.
 struct XnbOracleTests {
     static let gameDir = ProcessInfo.processInfo.environment["STARDEW_GAME_DIR"]
         .map { URL(fileURLWithPath: $0) }
@@ -30,7 +43,7 @@ struct XnbOracleTests {
         let files = try FileManager.default.contentsOfDirectory(
             at: strings, includingPropertiesForKeys: nil)
             .filter { $0.pathExtension == "xnb" }
-        #expect(files.count > 300, "le jeu expose ~373 fichiers Strings")
+        #expect(files.count > 300, "le jeu expose 372 fichiers Strings")
 
         var checked = 0
         var matched = 0
@@ -64,6 +77,8 @@ struct XnbOracleTests {
                 Issue.record("Divergence sur \(file.lastPathComponent)")
             }
         }
+        print("ORACLE \(files.count) fichiers — \(checked) dictionnaires comparés, "
+            + "\(matched) identiques, \(nonDictionaries) non-dictionnaires")
         #expect(checked > 300, "chaque dictionnaire doit être lisible ET comparable")
         #expect(nonDictionaries == 12, "les 12 `credits.*.xnb` sont les seuls non-dictionnaires")
         #expect(checked == matched, "égalité intégrale attendue — \(checked - matched) divergences")
