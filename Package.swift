@@ -80,6 +80,7 @@ let package = Package(
                 "Models/TranslationFileStore.swift",
                 "Models/TranslationWaiver.swift",
                 "Models/LzxdBitstream.swift",
+                "Models/LzxdWindow.swift",
                 "Extensions/ModConfigFiles.swift",
             ]
         ),
@@ -356,6 +357,11 @@ let package = Package(
             name: "LzxdBitstreamTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/LzxdBitstreamTests"
+        ),
+        .testTarget(
+            name: "LzxdWindowTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/LzxdWindowTests"
         ),
     ]
 )
