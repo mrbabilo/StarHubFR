@@ -85,6 +85,7 @@ let package = Package(
                 "Models/LzxdDecoder.swift",
                 "Models/XnbStringDictionaryReader.swift",
                 "Models/GlossaryBuilder.swift",
+                "Models/Glossary.swift",
                 "Extensions/ModConfigFiles.swift",
             ]
         ),
@@ -383,9 +384,19 @@ let package = Package(
             path: "Tests/XnbStringDictionaryReaderTests"
         ),
         .testTarget(
+            name: "XnbOracleTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/XnbOracleTests"
+        ),
+        .testTarget(
             name: "GlossaryBuilderTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/GlossaryBuilderTests"
+        ),
+        .testTarget(
+            name: "GlossaryMatchingTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/GlossaryMatchingTests"
         ),
     ]
 )
