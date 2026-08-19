@@ -7,7 +7,7 @@ import Foundation
 /// termes ≥ 3 caractères, tri par longueur décroissante : le terme le plus
 /// spécifique réclame sa plage de caractères (`Iridium Ore` avant `Ore` sur
 /// le même texte), plafond 15 par valeur.
-public struct Glossary: Codable, Sendable {
+public struct Glossary: Codable, Equatable, Sendable {
     public let entries: [GlossaryEntry]
 
     public init(entries: [GlossaryEntry]) {
