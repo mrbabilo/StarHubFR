@@ -28,15 +28,25 @@ public enum TranslationBaseline {
         /// illisibles, et avec elles la seule preuve qu'une traduction a été
         /// faite sur un anglais donné.
         public let tokenMismatchAccepted: Bool
+        /// « Écrit sans être relu » : posé par la pré-traduction par lot
+        /// uniquement (spec §2.4 — la voie par clé passe par un
+        /// « Enregistrer » explicite, elle ne pose jamais le drapeau).
+        /// Enregistrer la clé, modifiée ou non, le retire.
+        ///
+        /// Absent des sidecars écrits avant la P2b : il décode alors à
+        /// `false`, comme `tokenMismatchAccepted` avant lui.
+        public let reviewNeeded: Bool
 
         enum CodingKeys: String, CodingKey {
-            case source, target, tokenMismatchAccepted
+            case source, target, tokenMismatchAccepted, reviewNeeded
         }
 
-        public init(source: String, target: String, tokenMismatchAccepted: Bool = false) {
+        public init(source: String, target: String, tokenMismatchAccepted: Bool = false,
+                    reviewNeeded: Bool = false) {
             self.source = source
             self.target = target
             self.tokenMismatchAccepted = tokenMismatchAccepted
+            self.reviewNeeded = reviewNeeded
         }
 
         public init(from decoder: Decoder) throws {
@@ -45,6 +55,8 @@ public enum TranslationBaseline {
             target = try container.decode(String.self, forKey: .target)
             tokenMismatchAccepted =
                 try container.decodeIfPresent(Bool.self, forKey: .tokenMismatchAccepted) ?? false
+            reviewNeeded =
+                try container.decodeIfPresent(Bool.self, forKey: .reviewNeeded) ?? false
         }
     }
 

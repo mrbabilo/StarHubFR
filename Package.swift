@@ -404,5 +404,10 @@ let package = Package(
             dependencies: ["StarHubTHCore"],
             path: "Tests/GlossaryStoreTests"
         ),
+        .testTarget(
+            name: "TranslationBaselineTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/TranslationBaselineTests"
+        ),
     ]
 )
