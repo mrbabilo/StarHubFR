@@ -12,15 +12,17 @@ import Foundation
 /// LE à l'offset 10 puis le framing de blocs. Non compressé : contenu à
 /// l'offset 10. LZ4 (`0x40`) : refusé — le jeu ne l'utilise jamais.
 ///
-/// Encodage du contenu : compteurs de readers, ressources partagées et
-/// index de reader en **7-bit** ; compteur d'entrées et longueurs de
-/// chaînes en **`u32` LE** (le format XNA — pas du 7-bit partout).
+/// Encodage du contenu : compteurs de readers, ressources partagées,
+/// index de reader et **longueurs de chaînes** en 7-bit little-endian
+/// (`Read7BitEncodedInt`) ; seuls le compteur d'entrées du dictionnaire et
+/// la version de chaque reader sont des `u32` LE.
 ///
-/// Framing LZX : blocs de `0x8000` octets décompressés. Chaque bloc :
-/// `u16` BE de taille compressée ; si `0xFFFF`, le bloc est stocké brut —
-/// `frame_size u16` BE + `block_size u16` BE puis les octets tels quels
-/// (la compression aurait grossi le texte) ; sinon les `block_size` octets
-/// nourrissent `LzxdDecoder.decompressNext`.
+/// Framing LZX : blocs de `0x8000` octets décompressés. Un bloc standard
+/// commence par sa taille compressée `u16` BE ; le bloc **non standard**
+/// — celui dont la sortie ne remplit pas un cadre entier — commence par le
+/// marqueur d'un octet `0xff`, suivi de `frame_size u16` BE et
+/// `block_size u16` BE. Les deux restent compressés : seule la taille de
+/// sortie passée à `LzxdDecoder.decompressNext` change.
 ///
 /// Toute dérive est une **erreur nommée** — jamais un dictionnaire
 /// silencieusement vide (spec §8.5).
@@ -46,8 +48,6 @@ public enum XnbStringDictionaryReader {
         case truncated
     }
 
-    private static let dictionaryReaderName =
-        "Microsoft.Xna.Framework.Content.DictionaryReader`2[[System.String],[System.String]]"
     private static let stringReaderName =
         "Microsoft.Xna.Framework.Content.StringReader"
 
@@ -103,30 +103,45 @@ public enum XnbStringDictionaryReader {
         var pos = 14
 
         while out.count < target {
-            guard pos + 2 <= bytes.count else { throw ReadError.compressedHeaderMissing }
-            let blockSize = Int(bytes[pos]) << 8 | Int(bytes[pos + 1])
-
-            if blockSize == 0xFFFF {
-                // Bloc stocké brut : la compression aurait grossi le texte.
-                guard pos + 6 <= bytes.count else { throw ReadError.compressedHeaderMissing }
-                let frameSize = Int(bytes[pos + 2]) << 8 | Int(bytes[pos + 3])
-                let rawSize = Int(bytes[pos + 4]) << 8 | Int(bytes[pos + 5])
-                guard frameSize > 0, rawSize > 0,
-                      pos + 6 + rawSize <= bytes.count else {
+            guard pos < bytes.count else { throw ReadError.compressedHeaderMissing }
+            // Le framing, mesuré sur les fichiers du jeu (Objects.xnb
+            // @0xD562 : `ff 48 63 …`) : un bloc **standard** commence par sa
+            // taille compressée `u16` BE et décode exactement 0x8000 octets ;
+            // le bloc **non standard** — le dernier, dont la sortie ne remplit
+            // pas un cadre entier — commence par le marqueur **un octet
+            // `0xff`**, puis `frame_size u16` BE et `block_size u16` BE. Il
+            // reste compressé : il nourrit le décodeur comme les autres,
+            // seule sa taille de sortie change. (Un bloc standard ne peut
+            // jamais commencer par 0xff : sa taille compressée est
+            // nécessairement inférieure au cadre de 0x8000 octets qu'il
+            // produit.)
+            if bytes[pos] == 0xFF {
+                guard pos + 5 <= bytes.count else { throw ReadError.compressedHeaderMissing }
+                let frameSize = Int(bytes[pos + 1]) << 8 | Int(bytes[pos + 2])
+                let blockSize = Int(bytes[pos + 3]) << 8 | Int(bytes[pos + 4])
+                guard frameSize > 0, blockSize > 0,
+                      pos + 5 + blockSize <= bytes.count else {
                     throw ReadError.truncated
                 }
-                out += bytes[(pos + 6)..<(pos + 6 + rawSize)]
-                pos += 6 + rawSize
+                do {
+                    out += try decoder.decompressNext(
+                        bytes[(pos + 5)..<(pos + 5 + blockSize)][...],
+                        outputLength: frameSize)
+                } catch let error as LzxdError {
+                    throw ReadError.lzxFailed("\(error)")
+                }
+                pos += 5 + blockSize
             } else {
+                guard pos + 2 <= bytes.count else { throw ReadError.compressedHeaderMissing }
+                let blockSize = Int(bytes[pos]) << 8 | Int(bytes[pos + 1])
                 pos += 2
                 guard blockSize > 0, pos + blockSize <= bytes.count else {
                     throw ReadError.truncated
                 }
-                let frame = min(LzxdWindowSize.maxChunkSize, target - out.count)
                 do {
-                    let decoded = try decoder.decompressNext(
-                        bytes[pos..<(pos + blockSize)][...], outputLength: frame)
-                    out += decoded
+                    out += try decoder.decompressNext(
+                        bytes[pos..<(pos + blockSize)][...],
+                        outputLength: LzxdWindowSize.maxChunkSize)
                 } catch let error as LzxdError {
                     throw ReadError.lzxFailed("\(error)")
                 }
@@ -159,7 +174,7 @@ public enum XnbStringDictionaryReader {
 
         let rootIndex = try cursor.vint()
         guard rootIndex >= 1, rootIndex <= readerCount else { throw ReadError.entryOverflow }
-        guard names[rootIndex - 1] == dictionaryReaderName else {
+        guard isStringDictionaryReader(names[rootIndex - 1]) else {
             throw ReadError.rootNotStringDictionary(names[rootIndex - 1])
         }
 
@@ -185,6 +200,23 @@ public enum XnbStringDictionaryReader {
             dictionary[key] = value
         }
         return dictionary
+    }
+
+    /// Le nom du reader racine, comparé **argument par argument** : le jeu
+    /// qualifie chaque type générique par son assembly (`System.String,
+    /// mscorlib, Version=…, PublicKeyToken=…`), la forme courte n'apparaît
+    /// que dans nos fixtures. On exige le `DictionaryReader\`2` et deux
+    /// `System.String` — un dictionnaire à valeurs entières reste refusé.
+    private static func isStringDictionaryReader(_ name: String) -> Bool {
+        let prefix = "Microsoft.Xna.Framework.Content.DictionaryReader`2[["
+        guard name.hasPrefix(prefix), name.hasSuffix("]]") else { return false }
+        let arguments = name.dropFirst(prefix.count).dropLast(2)
+            .components(separatedBy: "],[")
+        guard arguments.count == 2 else { return false }
+        return arguments.allSatisfy { argument in
+            argument.split(separator: ",", maxSplits: 1)[0]
+                .trimmingCharacters(in: .whitespaces) == "System.String"
+        }
     }
 
     /// Une chaîne de paire : index de reader 7-bit (0 = null → vide, sinon
@@ -219,21 +251,25 @@ public enum XnbStringDictionaryReader {
             return value
         }
 
-        /// Entier 7-bit encodé (continuation sur le bit de poids fort).
+        /// Entier 7-bit encodé, **groupe de poids faible d'abord**
+        /// (`BinaryReader.Read7BitEncodedInt`) : continuation sur le bit de
+        /// poids fort. L'ordre compte dès 128 — les noms de readers du jeu
+        /// dépassent tous ce seuil.
         mutating func vint() throws -> Int {
             var value = 0
-            for _ in 0..<5 {   // 5 octets suffisent pour un Int32
+            for group in 0..<5 {   // 5 groupes suffisent pour un Int32
                 let byte = try byte()
-                value = (value << 7) | Int(byte & 0x7F)
+                value |= Int(byte & 0x7F) << (7 * group)
                 if byte & 0x80 == 0 { return value }
             }
             throw ReadError.truncated
         }
 
-        /// Chaîne XNA : longueur `u32` LE + UTF-8. Le plafond précède la
-        /// vérification de présence : un compteur fou doit se nommer.
+        /// Chaîne XNA : longueur **7-bit** + UTF-8 (`BinaryWriter.Write` pour
+        /// une `String`). Le plafond précède la vérification de présence :
+        /// un compteur fou doit se nommer.
         mutating func string() throws -> String {
-            let length = Int(try u32LE())
+            let length = try vint()
             guard length <= maxStringLength else { throw ReadError.stringTooLong(length) }
             guard remaining >= length else { throw ReadError.truncated }
             defer { pos += length }

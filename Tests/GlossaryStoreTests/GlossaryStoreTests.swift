@@ -42,7 +42,7 @@ struct GlossaryStoreTests {
         }
 
         static func string(_ s: String) -> [UInt8] {
-            u32(s.utf8.count) + Array(s.utf8)
+            vint(s.utf8.count) + Array(s.utf8)
         }
 
         static func xnb(entries: [(String, String)]) -> Data {

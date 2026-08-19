@@ -19,7 +19,10 @@ enum XnbFixture {
          UInt8((value >> 16) & 0xFF), UInt8((value >> 24) & 0xFF)]
     }
 
-    /// Entier 7-bit, comme l'écrit XNA pour compteurs et index de readers.
+    /// Entier 7-bit **little-endian** (groupe de poids faible d'abord) — la
+    /// forme qu'écrit `BinaryWriter.Write7BitEncodedInt`, mesurée sur les
+    /// fichiers du jeu : le nom du `DictionaryReader` fait 237 octets et sa
+    /// longueur s'écrit `ed 01`, pas `01 6d`.
     static func vint(_ value: Int) -> [UInt8] {
         var v = value
         var out: [UInt8] = []
@@ -32,9 +35,10 @@ enum XnbFixture {
         return out
     }
 
-    /// Chaîne XNA : longueur `u32` LE + UTF-8.
+    /// Chaîne XNA : longueur **7-bit** + UTF-8 — `BinaryWriter.Write(String)`.
+    /// Seul le compteur d'entrées du `DictionaryReader` est un `u32` LE.
     static func string(_ s: String) -> [UInt8] {
-        u32(s.utf8.count) + Array(s.utf8)
+        vint(s.utf8.count) + Array(s.utf8)
     }
 
     /// Le corps type : readers déclarés, ressources partagées, index racine,
@@ -200,7 +204,7 @@ struct XnbStringDictionaryReaderTests {
     }
 
     @Test func rejectsOversizedString() {
-        let entryBytes = XnbFixture.u32(1) + [2] + XnbFixture.u32(2_000_000)
+        let entryBytes = XnbFixture.u32(1) + [2] + XnbFixture.vint(2_000_000)
         let file = XnbFixture.xnb(content: XnbFixture.body(entryBytes: entryBytes))
         #expect(throws: XnbStringDictionaryReader.ReadError.stringTooLong(2_000_000)) {
             _ = try XnbStringDictionaryReader.read(file)
@@ -210,6 +214,46 @@ struct XnbStringDictionaryReaderTests {
     @Test func compressedHeaderMissingWhenNoBlockFollows() {
         let file = XnbFixture.emptyLzx(decompressedSize: 100)
         #expect(throws: XnbStringDictionaryReader.ReadError.compressedHeaderMissing) {
+            _ = try XnbStringDictionaryReader.read(file)
+        }
+    }
+
+    /// Une chaîne de plus de 127 octets force la longueur 7-bit sur deux
+    /// groupes : c'est le cas des fichiers réels (le nom du `DictionaryReader`
+    /// en fait 237) et le seul qui distingue l'ordre little-endian du reste.
+    /// Lue à l'envers, la longueur devient 9217 et le fichier paraît tronqué.
+    @Test func readsAKeyLongerThanSevenBitsWorthOfLength() throws {
+        let longKey = String(repeating: "k", count: 200)
+        let file = XnbFixture.xnb(content: XnbFixture.body(
+            entryBytes: XnbFixture.standardEntries([(longKey, "Valeur")])))
+        let map = try XnbStringDictionaryReader.read(file)
+        #expect(map == [longKey: "Valeur"])
+    }
+
+    /// Le jeu écrit le nom du reader **qualifié par l'assembly** — chaque
+    /// argument générique traîne `, mscorlib, Version=…, PublicKeyToken=…`.
+    /// Exiger la forme courte rejetait les 372 fichiers du jeu.
+    @Test func acceptsTheAssemblyQualifiedDictionaryReaderName() throws {
+        let qualified = "Microsoft.Xna.Framework.Content.DictionaryReader`2"
+            + "[[System.String, mscorlib, Version=4.0.0.0, Culture=neutral, "
+            + "PublicKeyToken=b77a5c561934e089],[System.String, mscorlib, "
+            + "Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]]"
+        let file = XnbFixture.xnb(content: XnbFixture.body(
+            readers: [qualified, XnbFixture.stringReaderName],
+            entryBytes: XnbFixture.standardEntries([("spring", "Printemps")])))
+        #expect(try XnbStringDictionaryReader.read(file) == ["spring": "Printemps"])
+    }
+
+    /// La tolérance sur l'assembly ne doit pas ouvrir la porte à un autre
+    /// dictionnaire : `String → Int32` reste un refus nommé.
+    @Test func stillRejectsADictionaryWhoseValuesAreNotStrings() {
+        let intValued = "Microsoft.Xna.Framework.Content.DictionaryReader`2"
+            + "[[System.String, mscorlib, Version=4.0.0.0],"
+            + "[System.Int32, mscorlib, Version=4.0.0.0]]"
+        let file = XnbFixture.xnb(content: XnbFixture.body(
+            readers: [intValued, XnbFixture.stringReaderName],
+            entryBytes: XnbFixture.standardEntries([("spring", "Printemps")])))
+        #expect(throws: XnbStringDictionaryReader.ReadError.rootNotStringDictionary(intValued)) {
             _ = try XnbStringDictionaryReader.read(file)
         }
     }
