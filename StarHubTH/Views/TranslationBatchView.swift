@@ -32,8 +32,17 @@ struct TranslationBatchView: View {
             } else if let progress = vm.batchProgress {
                 progressView(progress)
             } else {
-                // Le lot vient d'être lancé : l'état n'est pas encore posé.
-                ProgressView().controlSize(.small)
+                // Le lot vient d'être lancé et l'état n'est pas encore posé
+                // — ou il n'a pas pu partir du tout (l'IA dé-réglée entre
+                // l'ouverture et le clic, un lot déjà en cours). Sans ce
+                // bouton la feuille restait sans aucune sortie.
+                VStack(alignment: .leading, spacing: 12) {
+                    ProgressView().controlSize(.small)
+                    HStack {
+                        Spacer()
+                        Button(vm.L(L10n.Mods.translationBatchCancel)) { onClose() }
+                    }
+                }
             }
         }
         .padding(20)

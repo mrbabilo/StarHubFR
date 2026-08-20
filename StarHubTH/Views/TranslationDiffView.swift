@@ -46,6 +46,12 @@ struct TranslationDiffView: View {
     /// cours : c'est ce qui permet à un repli de désigner toujours la même
     /// section, quoi qu'on tape dans la recherche.
     @State private var allGroups: [TranslationCoverage.DiffGroup] = []
+    /// Les comptes de la barre de filtres, refaits par `rebuildGroups()` et
+    /// non dans `body` : pendant un lot, le ViewModel republie une fois par
+    /// clé traduite, et trois parcours des rangées (jusqu'à 17 910 sur East
+    /// Scarp) à chaque republication tenaient le fil principal occupé du
+    /// début à la fin du lot.
+    @State private var filterSummary = FilterSummary()
     /// Ce que la vue affiche : les mêmes groupes, réduits aux rangées retenues.
     @State private var groups: [TranslationCoverage.DiffGroup] = []
     /// Les sections repliées, par identité de groupe. Déplié par défaut : le
@@ -150,11 +156,8 @@ struct TranslationDiffView: View {
     /// ne s'affichent pas : proposer « Vides 0 » ferait chercher un problème
     /// qui n'existe pas.
     private var filterBar: some View {
-        let counts = Dictionary(grouping: rows, by: \.state).mapValues(\.count)
-        // « À relire » compte les clés du drapeau encore présentes dans les
-        // rangées : les drapeaux des clés disparues ne grossissent pas le
-        // filtre, elles ne mènent nulle part.
-        let reviewCount = rows.filter { reviewNeededIDs.contains($0.id) }.count
+        let counts = filterSummary.counts
+        let reviewCount = filterSummary.reviewCount
         return VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
                 filterChip(nil, label: vm.L(L10n.Mods.diffStateAll), count: rows.count)
@@ -178,8 +181,7 @@ struct TranslationDiffView: View {
                 // et qu'une IA est configurée (spec §7) — sinon il n'aurait
                 // rien à proposer et cacher le bouton vaut mieux qu'un clic
                 // qui échoue.
-                if vm.isLocalAIConfigured
-                    && !TranslationBatchPlanner.eligibleRows(rows).isEmpty {
+                if vm.isLocalAIConfigured && filterSummary.hasBatchWork {
                     Button {
                         isShowingBatch = true
                     } label: {
@@ -533,6 +535,26 @@ struct TranslationDiffView: View {
     private func rebuildGroups() {
         let query = searchText.trimmingCharacters(in: .whitespaces).lowercased()
         groups = allGroups.compactMap { group in group.filtered { matches($0, query: query) } }
+        filterSummary = FilterSummary(rows: rows, reviewNeededIDs: reviewNeededIDs)
+    }
+
+    /// Ce que la barre de filtres a besoin de savoir des rangées : un compte
+    /// par état, le compte « À relire » et s'il reste du travail pour le lot.
+    private struct FilterSummary {
+        var counts: [TranslationCoverage.DiffRow.State: Int] = [:]
+        var reviewCount = 0
+        var hasBatchWork = false
+
+        init() {}
+
+        init(rows: [TranslationCoverage.DiffRow], reviewNeededIDs: Set<String>) {
+            counts = Dictionary(grouping: rows, by: \.state).mapValues(\.count)
+            // « À relire » compte les clés du drapeau encore présentes dans
+            // les rangées : les drapeaux des clés disparues ne grossissent
+            // pas le filtre, elles ne mènent nulle part.
+            reviewCount = rows.filter { reviewNeededIDs.contains($0.id) }.count
+            hasBatchWork = !TranslationBatchPlanner.eligibleRows(rows).isEmpty
+        }
     }
 
     // MARK: - Vocabulaire des états
