@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.16.0] - 2026-08-20
+
 ### Added
 - **The app can now suggest a French translation, from a model running on your own machine.** One key at a time, or a batch you can stop. Suggestions arrive marked *Needs review*, with a filter to find them, and the game's markers are verified before anything is written. Nothing leaves your Mac.
 - **The app warns when your model reasons before answering.** It spends its whole answer budget deliberating, so every key comes back truncated and refused — on one Mac, over 300 seconds for a single word. Settings asks the server what the model does, and says so before you start a batch.
