@@ -859,5 +859,6 @@
 "mods_translation_lot_wrong_mod" = "Ce lot appartient à un autre mod.";
 "mods_translation_lot_unreadable" = "Ce fichier n'a pas pu être lu comme un lot.";
 "mods_translation_lot_reason_missing_markers" = "marque(s) manquante(s) : %@";
+"mods_translation_lot_reason_extra_markers" = "marque(s) en trop : %@";
 "mods_translation_lot_reason_unknown_key" = "clé inconnue";
 "mods_translation_lot_reason_source_altered" = "source modifiée depuis l'export";
