@@ -14,6 +14,7 @@ where the exact log format was verified.
 
 ### Added
 - **The app can now suggest a French translation, from a model running on your own machine.** One key at a time, or a batch you can stop. Suggestions arrive marked *Needs review*, with a filter to find them, and the game's markers are verified before anything is written. Nothing leaves your Mac.
+- **The app now tells you which model to install.** A fresh Ollama has no model, and the right name is not guessable. Settings reads this Mac's memory, names a model that fits and the one command to run — or points at a suitable model you already have, sparing you the download.
 - **Suggestions speak the game's own French.** A glossary built from your installed game — 1 126 names, from items and tools to characters, locations and seasons — is imposed on the model, so a suggestion reads *Minerai d’iridium*, not an invented synonym. The terms show as chips in the editor.
 
 ### Fixed
