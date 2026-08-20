@@ -123,6 +123,48 @@ public enum TranslationBaseline {
                  fileManager: fileManager)
     }
 
+    /// Une clé à marquer « à relire », pour la forme plurielle.
+    public struct ReviewFlag: Equatable, Sendable {
+        public let component: String?
+        public let key: String
+        public let source: String
+        public let target: String
+
+        public init(component: String?, key: String, source: String, target: String) {
+            self.component = component
+            self.key = key
+            self.source = source
+            self.target = target
+        }
+    }
+
+    /// Pose le drapeau sur plusieurs clés en **une** lecture et **une**
+    /// écriture. Le lot en marque des centaines : appelée une par une, la
+    /// forme singulière relit et réécrit tout le sidecar à chaque clé, et le
+    /// fichier grossit au fil du lot — le coût devient quadratique, sur le
+    /// thread principal, entre deux appels réseau.
+    ///
+    /// Mêmes règles que la forme singulière, entrée par entrée : ce qui
+    /// existe garde ses valeurs. Une liste vide n'écrit rien — surtout pas un
+    /// sidecar pour un lot qui n'a rien traduit.
+    public static func setReviewNeeded(_ flags: [ReviewFlag],
+                                       modFolderName: String, in directory: URL,
+                                       fileManager: FileManager = .default) throws {
+        guard !flags.isEmpty else { return }
+        var entries = load(modFolderName: modFolderName, in: directory,
+                           fileManager: fileManager)
+        for flag in flags {
+            let id = Self.key(component: flag.component, key: flag.key)
+            let existing = entries[id]
+            entries[id] = Entry(source: existing?.source ?? flag.source,
+                                target: existing?.target ?? flag.target,
+                                tokenMismatchAccepted: existing?.tokenMismatchAccepted ?? false,
+                                reviewNeeded: true)
+        }
+        try save(entries, modFolderName: modFolderName, in: directory,
+                 fileManager: fileManager)
+    }
+
     /// Retire le drapeau — enregistrer la clé (modifiée ou non) la relit
     /// (spec §7). Sans entrée ou sans drapeau, ne fait rien : ce chemin
     /// sert aussi au cas ordinaire d'un enregistrement qui n'a jamais été

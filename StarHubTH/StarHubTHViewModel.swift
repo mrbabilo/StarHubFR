@@ -556,9 +556,11 @@ class StarHubTHViewModel: ObservableObject {
             model: localAIModelName,
             source: row.english,
             glossary: glossaryMatches(for: row.english, language: locale),
-            sectionLabel: row.component)
+            sectionLabel: row.section)
+        let session = LocalLLMEndpoint.makeSession()
+        defer { session.finishTasksAndInvalidate() }
         let outcome = await LocalLLMClient.translate(
-            request, baseURL: base, session: LocalLLMEndpoint.makeSession())
+            request, baseURL: base, session: session)
         log("Pré-traduction \(mod.folderName)/\(row.key) : \(outcome)", level: .info)
         guard case .translated(let proposal) = outcome else { return nil }
         return proposal
@@ -677,6 +679,12 @@ class StarHubTHViewModel: ObservableObject {
         var refused: [String] = []
         var errors = 0
         var softIgnored = 0
+        var flags: [TranslationBaseline.ReviewFlag] = []
+        // Une seule session pour tout le lot : `URLSession` retient fortement
+        // son délégué jusqu'à invalidation, une par clé laissait autant de
+        // sessions, de délégués et de pools de connexions vivants.
+        let session = LocalLLMEndpoint.makeSession()
+        defer { session.finishTasksAndInvalidate() }
         batchProgress = BatchProgress(done: 0, total: eligible.count)
         for (index, row) in eligible.enumerated() {
             // Le point d'arrêt : la clé en cours est déjà partie, la
@@ -686,27 +694,21 @@ class StarHubTHViewModel: ObservableObject {
             let matches = glossaryMatches(for: row.english, language: locale)
             let request = LocalLLMClient.Request(
                 model: localAIModelName, source: row.english,
-                glossary: matches, sectionLabel: row.component)
+                glossary: matches, sectionLabel: row.section)
             let outcome = await LocalLLMClient.translate(
-                request, baseURL: base, session: LocalLLMEndpoint.makeSession())
+                request, baseURL: base, session: session)
             switch outcome {
             case .translated(let proposal):
                 // Le chemin d'écriture existant, avec son `.bak` et son gate
                 // de marques — le client n'a déjà rendu que des traductions
                 // sans marque dure manquante, mais le gate reste juge.
+                // Le retrait du drapeau est sauté : la clé n'en a pas (le
+                // planneur ne retient que du vide) et le lot va le poser.
                 if case .saved = saveTranslation(mod: mod, locale: locale,
-                                                 row: row, value: proposal) {
-                    if let store = TranslationBaseline.defaultDirectory() {
-                        do {
-                            try TranslationBaseline.setReviewNeeded(
-                                component: row.component, key: row.key,
-                                source: row.english, target: proposal,
-                                modFolderName: mod.folderName, in: store)
-                        } catch {
-                            log("Drapeau à relire non posé pour \(mod.name) — \(row.key) : \(error)",
-                                level: .warning)
-                        }
-                    }
+                                                 row: row, value: proposal,
+                                                 clearingReviewFlag: false) {
+                    flags.append(.init(component: row.component, key: row.key,
+                                       source: row.english, target: proposal))
                     translated += 1
                     // Signalement doux : l'IA n'a pas repris le terme imposé.
                     // Jamais bloquant — le texte reste valide — mais le
@@ -718,9 +720,22 @@ class StarHubTHViewModel: ObservableObject {
             case .refusedTokens:
                 refused.append(row.id)
             case .endpointError:
-                errors += 1
+                // `data(for:)` honore l'annulation : la requête en vol échoue
+                // *par notre fait*. La compter ferait rapporter une erreur
+                // fantôme à chaque arrêt demandé.
+                if !Task.isCancelled { errors += 1 }
             }
             batchProgress = BatchProgress(done: index + 1, total: eligible.count)
+        }
+        // Les drapeaux en une écriture, arrêt compris : posés un par un, ils
+        // relisaient et réécrivaient tout le sidecar à chaque clé.
+        if !flags.isEmpty, let store = TranslationBaseline.defaultDirectory() {
+            do {
+                try TranslationBaseline.setReviewNeeded(flags, modFolderName: mod.folderName,
+                                                        in: store)
+            } catch {
+                log("Drapeaux à relire non posés pour \(mod.name) : \(error)", level: .warning)
+            }
         }
         batchReport = BatchReport(translated: translated, refusedRowIDs: refused,
                                   errors: errors, softGlossaryIgnored: softIgnored)
@@ -748,7 +763,8 @@ class StarHubTHViewModel: ObservableObject {
     func saveTranslation(mod: ModItem, locale: String,
                          row: TranslationCoverage.DiffRow,
                          value: String,
-                         acceptingTokenMismatch: Bool = false) -> SaveOutcome {
+                         acceptingTokenMismatch: Bool = false,
+                         clearingReviewFlag: Bool = true) -> SaveOutcome {
         let blocking = TranslationTokenCheck.mismatches(source: row.english, target: value)
             .filter(\.isHard)
 
@@ -914,7 +930,7 @@ class StarHubTHViewModel: ObservableObject {
             // (spec §7) : quelqu'un vient de la relire. Sans drapeau posé,
             // la fonction ne réécrit rien — ce coût est une lecture par
             // enregistrement ordinaire.
-            if let store = TranslationBaseline.defaultDirectory() {
+            if clearingReviewFlag, let store = TranslationBaseline.defaultDirectory() {
                 do {
                     try TranslationBaseline.clearReviewNeeded(component: row.component,
                                                               key: row.key,

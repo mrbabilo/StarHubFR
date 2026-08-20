@@ -60,6 +60,60 @@ struct TranslationBaselineReviewFlagTests {
                 == ["intro"])
     }
 
+    /// Le lot pose le drapeau sur des centaines de clés. Une par une, chaque
+    /// pose relit **tout** le sidecar et le réécrit : sur un mod à 11 000
+    /// clés le coût devient quadratique, sur le thread principal, entre deux
+    /// appels réseau. La forme plurielle fait une lecture et une écriture.
+    @Test func flaggingManyKeysReadsAndWritesTheSidecarOnce() throws {
+        let dir = store
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try TranslationBaseline.save(
+            [TranslationBaseline.key(component: nil, key: "old"):
+                TranslationBaseline.Entry(source: "Old", target: "Vieux")],
+            modFolderName: "ModA", in: dir)
+        try TranslationBaseline.setReviewNeeded(
+            [.init(component: nil, key: "a", source: "A", target: "Ah"),
+             .init(component: "CP", key: "b", source: "B", target: "Bé")],
+            modFolderName: "ModA", in: dir)
+        let entries = TranslationBaseline.load(modFolderName: "ModA", in: dir)
+        #expect(entries[TranslationBaseline.key(component: nil, key: "a")]?.reviewNeeded == true)
+        #expect(entries[TranslationBaseline.key(component: "CP", key: "b")]?.target == "Bé")
+        // L'entrée qui n'était pas du lot est intacte, drapeau compris.
+        #expect(entries[TranslationBaseline.key(component: nil, key: "old")]
+                == TranslationBaseline.Entry(source: "Old", target: "Vieux"))
+    }
+
+    /// Même règle que la forme singulière : une entrée existante garde ses
+    /// valeurs, le drapeau n'est pas une réévaluation de la référence.
+    @Test func flaggingManyKeysKeepsTheValuesOfExistingEntries() throws {
+        let dir = store
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try TranslationBaseline.save(
+            [TranslationBaseline.key(component: nil, key: "a"):
+                TranslationBaseline.Entry(source: "Old", target: "Vieux",
+                                          tokenMismatchAccepted: true)],
+            modFolderName: "ModA", in: dir)
+        try TranslationBaseline.setReviewNeeded(
+            [.init(component: nil, key: "a", source: "New", target: "Neuf")],
+            modFolderName: "ModA", in: dir)
+        let entry = TranslationBaseline.load(modFolderName: "ModA", in: dir)[
+            TranslationBaseline.key(component: nil, key: "a")]
+        #expect(entry?.source == "Old")
+        #expect(entry?.target == "Vieux")
+        #expect(entry?.tokenMismatchAccepted == true)
+        #expect(entry?.reviewNeeded == true)
+    }
+
+    /// Rien à poser : ni lecture ni écriture, et surtout pas un sidecar créé
+    /// pour un lot qui n'a rien traduit.
+    @Test func flaggingNothingWritesNoSidecar() throws {
+        let dir = store
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try TranslationBaseline.setReviewNeeded([], modFolderName: "ModA", in: dir)
+        #expect(TranslationBaseline.load(modFolderName: "ModA", in: dir).isEmpty)
+        #expect(!FileManager.default.fileExists(atPath: dir.path))
+    }
+
     @Test func setReviewNeededKeepsTheValuesOfAnExistingEntry() throws {
         let dir = store
         defer { try? FileManager.default.removeItem(at: dir) }
