@@ -135,23 +135,25 @@ struct TranslationLotImportTests {
     }
 
     /// Une clé que le lot n'a jamais envoyée n'entre pas : c'est une invention
-    /// du modèle, et elle n'a rien à faire dans le `fr.json` du mod. Une
-    /// entrée légitime et remplie voisine ("a") doit survivre : sinon rien ne
-    /// prouve que c'est bien la clé inventée qui a été identifiée, plutôt
-    /// qu'un court-circuit qui n'atteint jamais son traitement.
+    /// du modèle, et elle n'a rien à faire dans le `fr.json` du mod. La clé
+    /// inventée est placée **avant** une entrée légitime et remplie ("a") :
+    /// avec l'ordre inverse, "a" serait déjà acceptée à une itération
+    /// antérieure et un court-circuit sur la dernière itération ne coûterait
+    /// rien — le test ne pincerait alors plus rien. Ici, "a" ne peut survivre
+    /// que si le traitement continue après le rejet de la clé inventée.
     @Test func anInventedKeyIsRejected() throws {
         let sent = lot([("a", "One")])
         var tampered = sent
         tampered.entries[0].target = "Un"
-        tampered.entries.append(TranslationLot.Entry(component: nil, key: "inventée",
+        tampered.entries.insert(TranslationLot.Entry(component: nil, key: "inventée",
                                                      source: "One", section: nil,
-                                                     glossary: [:], target: "Inventé"))
+                                                     glossary: [:], target: "Inventé"), at: 0)
         let data = try JSONEncoder().encode(tampered)
         // L'empreinte du fichier reste celle du lot envoyé : c'est le contenu
         // qui a été altéré après coup, pas le lot.
         let report = try TranslationLotImport.read(data, expecting: sent)
-        #expect(report.accepted.map(\.key) == ["a"])
         #expect(report.rejected.map(\.key) == ["inventée"])
+        #expect(report.accepted.map(\.key) == ["a"])
     }
 
     /// Une entrée dont l'anglais a été modifié après l'export garde une
