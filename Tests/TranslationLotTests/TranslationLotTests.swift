@@ -78,8 +78,10 @@ struct TranslationLotTests {
 struct TranslationLotBuildTests {
 
     private func row(_ key: String, english: String, french: String,
-                     state: TranslationCoverage.DiffRow.State) -> TranslationCoverage.DiffRow {
-        TranslationCoverage.DiffRow(key: key, english: english, french: french, state: state)
+                     state: TranslationCoverage.DiffRow.State,
+                     component: String? = nil, section: String? = nil) -> TranslationCoverage.DiffRow {
+        TranslationCoverage.DiffRow(key: key, english: english, french: french, state: state,
+                                    component: component, section: section)
     }
 
     /// Ce qui a déjà un français ne part pas : le lot ne peut donc pas
@@ -92,9 +94,22 @@ struct TranslationLotBuildTests {
         #expect(lot.entries.map(\.key) == ["a", "c"])
     }
 
-    /// Une orpheline n'a pas d'anglais de référence : rien à traduire.
+    /// `TranslationCoverage` stocke le français **brut** : une valeur faite
+    /// uniquement d'espaces est classée `.empty` (via `isBlank`) mais n'est
+    /// pas la chaîne vide. C'est le cas réel le plus courant — un traducteur
+    /// qui laisse un espace plutôt qu'une valeur franchement vide — et il
+    /// doit rester exportable, sous peine de clés jamais traduites.
+    @Test func rowsWithWhitespaceOnlyFrenchAreStillExported() {
+        let rows = [row("c", english: "Three", french: "   ", state: .empty)]
+        let lot = TranslationLot.build(mod: "M", language: "fr", rows: rows, glossary: nil)
+        #expect(lot.entries.map(\.key) == ["c"])
+    }
+
+    /// Une orpheline porte, en pratique, un français **non vide** (la
+    /// traduction existante d'une clé disparue de l'anglais) et un anglais
+    /// vide : rien à traduire, elle n'a pas de référence.
     @Test func orphanRowsAreNeverExported() {
-        let rows = [row("z", english: "", french: "", state: .orphan)]
+        let rows = [row("z", english: "", french: "Valeur existante", state: .orphan)]
         #expect(TranslationLot.build(mod: "M", language: "fr", rows: rows,
                                      glossary: nil).entries.isEmpty)
     }
@@ -103,6 +118,17 @@ struct TranslationLotBuildTests {
         let rows = [row("a", english: "One", french: "", state: .missing)]
         let lot = TranslationLot.build(mod: "M", language: "fr", rows: rows, glossary: nil)
         #expect(lot.entries.allSatisfy { $0.target.isEmpty })
+    }
+
+    /// `component` et `section` doivent atterrir dans le bon champ de
+    /// l'entrée — pas l'inverse, ce qu'une simple absence de valeur ne
+    /// pourrait pas trahir.
+    @Test func componentAndSectionLandInTheRightField() {
+        let rows = [row("a", english: "One", french: "", state: .missing,
+                        component: "ComponentA", section: "SectionA")]
+        let lot = TranslationLot.build(mod: "M", language: "fr", rows: rows, glossary: nil)
+        #expect(lot.entries.first?.component == "ComponentA")
+        #expect(lot.entries.first?.section == "SectionA")
     }
 
     /// Les termes imposés voyagent avec l'entrée : le chat n'a pas le

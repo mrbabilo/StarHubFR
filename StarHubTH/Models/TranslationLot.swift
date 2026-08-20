@@ -79,16 +79,23 @@ public struct TranslationLot: Codable, Equatable, Sendable {
         ]
     }
 
-    /// Le lot d'un mod : **seulement** les clés sans français, jamais une
-    /// valeur existante (spec §8.2), jamais une orpheline (pas d'anglais de
-    /// référence). Le glossaire, s'il est chargé, dépose sur chaque entrée les
-    /// termes qui la concernent — le chat n'a pas la table du jeu.
+    /// Le lot d'un mod : **seulement** les clés `.missing` ou `.empty`, jamais
+    /// une valeur française existante (spec §8.2). Délègue à
+    /// `TranslationBatchPlanner.eligibleRows` la définition de « reste à
+    /// traduire » plutôt que de la retester ici : `TranslationCoverage`
+    /// stocke le français **brut**, donc un simple `row.french.isEmpty`
+    /// laisserait passer une valeur faite uniquement d'espaces (état
+    /// `.empty` malgré des octets non vides). `.orphan` est déjà écarté par
+    /// `eligibleRows`, qui ne garde que `.missing`/`.empty` — inutile de le
+    /// retester. Le garde-fou restant protège une rangée sans anglais de
+    /// référence, qui n'a rien à traduire. Le glossaire, s'il est chargé,
+    /// dépose sur chaque entrée les termes qui la concernent — le chat n'a
+    /// pas la table du jeu.
     public static func build(mod: String, language: String,
                              rows: [TranslationCoverage.DiffRow],
                              glossary: Glossary?) -> TranslationLot {
-        let entries = rows.compactMap { row -> Entry? in
-            guard row.state != .orphan, row.french.isEmpty, !row.english.isEmpty
-            else { return nil }
+        let entries = TranslationBatchPlanner.eligibleRows(rows).compactMap { row -> Entry? in
+            guard !row.english.isEmpty else { return nil }
             let matched = glossary?.matchEntries(in: row.english) ?? []
             return Entry(component: row.component, key: row.key, source: row.english,
                          section: row.section,
