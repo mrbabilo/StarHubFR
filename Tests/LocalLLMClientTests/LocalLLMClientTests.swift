@@ -352,4 +352,35 @@ struct LocalLLMClientTests {
         #expect(try #require(LLMStub.seenURLs.first).absoluteString
                 == "http://127.0.0.1:1234/v1/chat/completions")   // pas de /v1/v1
     }
+
+    /// Un copier-coller depuis la barre d'adresse d'un navigateur porte un
+    /// slash final. Concaténé tel quel, il donnait `//v1/chat/completions` :
+    /// le serveur répond alors 301 pour normaliser, la redirection est
+    /// refusée par sécurité, et **toutes** les clés du lot échouent en
+    /// « HTTP 301 » sur une URL que le bouton Tester venait d'accepter.
+    @Test func aTrailingSlashInTheBaseUrlDoesNotDoubleTheSeparator() async throws {
+        LLMStub.route { _ in .json(Self.completion("ok")) }
+        _ = await LocalLLMClient.translate(
+            request(source: "Hello"),
+            baseURL: URL(string: "http://127.0.0.1:11434/")!, session: stubbedSession())
+        #expect(try #require(LLMStub.seenURLs.first).absoluteString
+                == "http://127.0.0.1:11434/v1/chat/completions")
+
+        LLMStub.route { _ in .json(Self.completion("ok")) }
+        _ = await LocalLLMClient.translate(
+            request(source: "Hello"),
+            baseURL: URL(string: "http://127.0.0.1:1234/v1/")!, session: stubbedSession())
+        #expect(try #require(LLMStub.seenURLs.first).absoluteString
+                == "http://127.0.0.1:1234/v1/chat/completions")
+    }
+
+    /// Le même slash final sur la liste des modèles — c'est ce chemin que le
+    /// bouton « Tester » emprunte, celui qui déclarait l'URL bonne.
+    @Test func listModelsAlsoSurvivesATrailingSlash() async throws {
+        LLMStub.route { _ in .json(#"{"data":[{"id":"mistral"}]}"#) }
+        _ = try await LocalLLMClient.listModels(
+            baseURL: URL(string: "http://127.0.0.1:11434/")!, session: stubbedSession())
+        #expect(try #require(LLMStub.seenURLs.first).absoluteString
+                == "http://127.0.0.1:11434/v1/models")
+    }
 }

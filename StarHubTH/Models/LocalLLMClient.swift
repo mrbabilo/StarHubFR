@@ -217,10 +217,19 @@ public enum LocalLLMClient {
     }
 
     /// `{base}/v1{path}`, sans doubler le `/v1` quand l'URL saisie le porte
-    /// déjà (LM Studio s'annonce souvent en `http://localhost:1234/v1`).
+    /// déjà (LM Studio s'annonce souvent en `http://localhost:1234/v1`) **ni
+    /// le séparateur** quand elle finit par un slash — ce que donne un
+    /// copier-coller depuis une barre d'adresse. Concaténé tel quel, ce
+    /// slash produisait `//v1/chat/completions` : le serveur répond 301 pour
+    /// normaliser, la redirection est refusée par sécurité, et tout le lot
+    /// échoue sur une URL que le bouton « Tester » venait d'accepter.
+    ///
+    /// Repli sur `base` plutôt qu'un `!` : une URL improbable doit échouer en
+    /// erreur HTTP nommée, jamais tuer l'application.
     private static func api(_ base: URL, _ path: String) -> URL {
-        base.path.hasSuffix("/v1")
-            ? URL(string: base.absoluteString + path)!
-            : URL(string: base.absoluteString + "/v1" + path)!
+        var text = base.absoluteString
+        while text.hasSuffix("/") { text.removeLast() }
+        if !text.hasSuffix("/v1") { text += "/v1" }
+        return URL(string: text + path) ?? base
     }
 }
