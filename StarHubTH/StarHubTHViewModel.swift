@@ -709,6 +709,29 @@ class StarHubTHViewModel: ObservableObject {
         return GlossaryStore.builtDate(language: language, appSupport: appSupport)
     }
 
+    /// Le nombre de drapeaux « à relire » gardés en mémoire avant écriture.
+    /// Un compromis assumé : la borne de ce qu'un arrêt brutal peut perdre,
+    /// et le diviseur du nombre de réécritures du sidecar.
+    private static let reviewFlagFlushSize = 25
+
+    /// Écrit les drapeaux accumulés et vide la liste. Une lecture et une
+    /// écriture pour tout le paquet ; rien du tout s'il est vide.
+    @MainActor
+    private func flushReviewFlags(_ flags: inout [TranslationBaseline.ReviewFlag],
+                                  mod: ModItem) {
+        guard !flags.isEmpty, let store = TranslationBaseline.defaultDirectory() else {
+            flags.removeAll()
+            return
+        }
+        do {
+            try TranslationBaseline.setReviewNeeded(flags, modFolderName: mod.folderName,
+                                                    in: store)
+        } catch {
+            log("Drapeaux à relire non posés pour \(mod.name) : \(error)", level: .warning)
+        }
+        flags.removeAll()
+    }
+
     @MainActor
     private func runBatch(mod: ModItem, locale: String,
                           rows: [TranslationCoverage.DiffRow]) async {
@@ -754,6 +777,16 @@ class StarHubTHViewModel: ObservableObject {
                     flags.append(.init(component: row.component, key: row.key,
                                        source: row.english, target: proposal))
                     translated += 1
+                    // Le français est déjà sur le disque ; le drapeau suit par
+                    // paquets. Tout garder pour la fin exposerait un arrêt
+                    // brutal — fermeture forcée, panne — à rendre des valeurs
+                    // écrites par la machine sans leur badge, donc présentées
+                    // comme relues. Un paquet borne la perte à 25 clés au lieu
+                    // du lot entier, pour une écriture toutes les 25 au lieu
+                    // d'une par clé.
+                    if flags.count >= Self.reviewFlagFlushSize {
+                        flushReviewFlags(&flags, mod: mod)
+                    }
                     // Signalement doux : l'IA n'a pas repris le terme imposé.
                     // Jamais bloquant — le texte reste valide — mais le
                     // rapport le dit.
@@ -771,16 +804,7 @@ class StarHubTHViewModel: ObservableObject {
             }
             batchProgress = BatchProgress(done: index + 1, total: eligible.count)
         }
-        // Les drapeaux en une écriture, arrêt compris : posés un par un, ils
-        // relisaient et réécrivaient tout le sidecar à chaque clé.
-        if !flags.isEmpty, let store = TranslationBaseline.defaultDirectory() {
-            do {
-                try TranslationBaseline.setReviewNeeded(flags, modFolderName: mod.folderName,
-                                                        in: store)
-            } catch {
-                log("Drapeaux à relire non posés pour \(mod.name) : \(error)", level: .warning)
-            }
-        }
+        flushReviewFlags(&flags, mod: mod)   // le reliquat, arrêt compris
         batchReport = BatchReport(translated: translated, refusedRowIDs: refused,
                                   errors: errors, softGlossaryIgnored: softIgnored)
         log("Lot \(mod.folderName) : \(translated) traduites, \(refused.count) refusées "

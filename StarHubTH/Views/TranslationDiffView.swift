@@ -111,10 +111,6 @@ struct TranslationDiffView: View {
             // Chargement détaché côté ViewModel : lire et analyser 11 021 clés
             // sur le fil principal figerait la fenêtre.
             rows = await vm.translationDiff(for: mod)
-            // Une mise à jour du jeu réécrit `Content/Strings` : le glossaire
-            // en cache se refait si ses sources ont bougé (une fois par
-            // lancement, pas à chaque ouverture).
-            await vm.refreshGlossaryIfSourcesChanged()
             staleness = await vm.translationStaleness(for: mod)
             reviewNeededIDs = await vm.reviewNeededRowIDs(for: mod)
             // Le regroupement une seule fois, sur les rangées complètes.
@@ -124,6 +120,12 @@ struct TranslationDiffView: View {
             // brièvement « aucune clé ne correspond ».
             rebuildGroups()
             isLoading = false
+            // Après l'affichage, jamais avant : une mise à jour du jeu réécrit
+            // `Content/Strings` et le glossaire en cache se refait alors — un
+            // parcours des dates du dossier, parfois une reconstruction. Rien
+            // ici n'a besoin du glossaire ; les chips et la pré-traduction, si,
+            // et elles viennent après. Une fois par lancement.
+            await vm.refreshGlossaryIfSourcesChanged()
         }
         // Le regroupement ne peut pas vivre dans `body` : regrouper 17 910
         // lignes à chaque frappe rendrait la recherche inutilisable.

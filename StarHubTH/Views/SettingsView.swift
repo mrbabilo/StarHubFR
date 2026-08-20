@@ -432,12 +432,15 @@ private struct LocalAISettingsSection: View {
         }
     }
 
-    /// La brique sondée que `text` désigne — appariée sur hôte **et** port,
-    /// pas sur l'ordre du sondage. `nil` si l'URL n'est pas valide ou ne
-    /// correspond à aucune brique détectée.
+    /// La brique sondée que `text` désigne — appariée sur le **port**, pas
+    /// sur l'ordre du sondage. Comparer les hôtes serait un piège : les
+    /// briques connues s'annoncent en `127.0.0.1`, l'invite du champ propose
+    /// `localhost`, et `validate` accepte aussi `::1` et tout `127.x.x.x`.
+    /// Trois écritures de la même machine — seul le port distingue Ollama de
+    /// LM Studio, et l'endpoint est loopback par construction.
     private func probeMatching(_ text: String) -> LocalLLMClient.ProbeResult? {
         guard let url = LocalLLMEndpoint.validate(text) else { return nil }
-        return probes.first { $0.baseURL.host == url.host && $0.baseURL.port == url.port }
+        return probes.first { $0.baseURL.port == url.port }
     }
 
     private func testConnection() {
