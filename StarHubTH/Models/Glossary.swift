@@ -10,8 +10,37 @@ import Foundation
 public struct Glossary: Codable, Equatable, Sendable {
     public let entries: [GlossaryEntry]
 
+    /// Les entrées prêtes pour le matching : filtrées et triées **une fois**,
+    /// à la construction. Refaire ce tri à chaque appel coûtait, sur le
+    /// glossaire réel (1 126 entrées), environ 2·n log n évaluations de
+    /// `String.count` — une longueur en graphèmes, donc O(n) — par rangée
+    /// traduite, et un lot en traite des milliers.
+    ///
+    /// Dérivé de `entries`, donc hors du JSON : la clé de codage reste seule.
+    private let candidates: [GlossaryEntry]
+
+    private enum CodingKeys: String, CodingKey {
+        case entries
+    }
+
     public init(entries: [GlossaryEntry]) {
         self.entries = entries
+        self.candidates = Self.candidates(from: entries)
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(entries: try container.decode([GlossaryEntry].self, forKey: .entries))
+    }
+
+    /// Termes d'au moins 3 caractères, longueur décroissante puis ordre
+    /// alphabétique : le terme le plus spécifique réclame sa plage d'abord.
+    private static func candidates(from entries: [GlossaryEntry]) -> [GlossaryEntry] {
+        entries
+            .filter { $0.en.count >= 3 }
+            .sorted {
+                $0.en.count != $1.en.count ? $0.en.count > $1.en.count : $0.en < $1.en
+            }
     }
 
     /// Les entrées du glossaire présentes dans `source`, longueur d'`en`
@@ -19,11 +48,6 @@ public struct Glossary: Codable, Equatable, Sendable {
     public func matchEntries(in source: String) -> [GlossaryEntry] {
         var claimed: [Range<String.Index>] = []
         var matched: [GlossaryEntry] = []
-        let candidates = entries
-            .filter { $0.en.count >= 3 }
-            .sorted {
-                $0.en.count != $1.en.count ? $0.en.count > $1.en.count : $0.en < $1.en
-            }
         for entry in candidates where !entry.en.isEmpty {
             if let free = source.ranges(of: entry.en).first(where: { range in
                 isBoundary(source, immediatelyBefore: range.lowerBound)
