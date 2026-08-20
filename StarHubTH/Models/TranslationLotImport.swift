@@ -91,13 +91,39 @@ public enum TranslationLotImport {
     }
 
     /// Un chat rend volontiers son JSON dans une clôture Markdown, précédé
-    /// d'une phrase. On garde ce qui va de la première accolade à la dernière.
+    /// d'une phrase. Cette phrase peut elle-même citer une accolade — nos
+    /// consignes (`TranslationLot.instructions`) lui demandent justement de
+    /// préserver des marques comme `{{Token}}` — donc un découpage
+    /// première-`{`/dernière-`}` naïf risquerait de démarrer dans
+    /// l'introduction. On cherche d'abord la clôture ```` ``` ````, la forme
+    /// la plus fréquente et la plus fiable, et on ne retombe sur le
+    /// découpage première/dernière accolade qu'à défaut.
     private static func decode(_ data: Data) -> TranslationLot? {
-        if let lot = try? JSONDecoder().decode(TranslationLot.self, from: data) { return lot }
-        guard let text = String(data: data, encoding: .utf8),
-              let first = text.firstIndex(of: "{"),
+        if let lot = attempt(data) { return lot }
+        guard let text = String(data: data, encoding: .utf8) else { return nil }
+        if let fenced = fencedBody(in: text), let lot = attempt(Data(fenced.utf8)) {
+            return lot
+        }
+        guard let first = text.firstIndex(of: "{"),
               let last = text.lastIndex(of: "}"), first < last else { return nil }
-        let carved = String(text[first...last])
-        return try? JSONDecoder().decode(TranslationLot.self, from: Data(carved.utf8))
+        return attempt(Data(text[first...last].utf8))
+    }
+
+    /// Le contenu d'une clôture ```` ``` ```` (avec ou sans étiquette de
+    /// langage, ex. ` ```json `), sans les lignes de clôture elles-mêmes.
+    private static func fencedBody(in text: String) -> String? {
+        let lines = text.components(separatedBy: "\n")
+        guard let openIndex = lines.firstIndex(where: { $0.hasPrefix("```") }),
+              let closeOffset = lines[(openIndex + 1)...].firstIndex(where: { $0.hasPrefix("```") })
+        else { return nil }
+        return lines[(openIndex + 1)..<closeOffset].joined(separator: "\n")
+    }
+
+    private static func attempt(_ data: Data) -> TranslationLot? {
+        do {
+            return try JSONDecoder().decode(TranslationLot.self, from: data)
+        } catch {
+            return nil
+        }
     }
 }

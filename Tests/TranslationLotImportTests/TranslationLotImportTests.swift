@@ -112,6 +112,21 @@ struct TranslationLotImportTests {
         #expect(report.accepted.first?.target == "Un")
     }
 
+    /// Nos propres consignes (`TranslationLot.instructions`) demandent au
+    /// modèle de préserver les marques `{{Token}}` : une phrase d'introduction
+    /// qui en cite une contient donc une accolade **avant** la clôture
+    /// Markdown. Un découpage première-`{`/dernière-`}` naïf démarrerait dans
+    /// cette phrase et perdrait tout le lot. La clôture doit être reconnue en
+    /// priorité.
+    @Test func aMarkdownFenceIsFoundEvenWhenTheIntroContainsABrace() throws {
+        let sent = lot([("a", "One")])
+        let body = String(decoding: json(sent, filling: ["a": "Un"]), as: UTF8.self)
+        let fenced = Data(
+            "Voici le JSON (j'ai bien gardé les {{Token}}) :\n```json\n\(body)\n```\n".utf8)
+        let report = try TranslationLotImport.read(fenced, expecting: sent)
+        #expect(report.accepted.first?.target == "Un")
+    }
+
     @Test func anUnreadableFileIsRefusedWhole() {
         let sent = lot([("a", "One")])
         #expect(throws: TranslationLotImport.FileRefusal.unreadable) {
@@ -120,10 +135,14 @@ struct TranslationLotImportTests {
     }
 
     /// Une clé que le lot n'a jamais envoyée n'entre pas : c'est une invention
-    /// du modèle, et elle n'a rien à faire dans le `fr.json` du mod.
+    /// du modèle, et elle n'a rien à faire dans le `fr.json` du mod. Une
+    /// entrée légitime et remplie voisine ("a") doit survivre : sinon rien ne
+    /// prouve que c'est bien la clé inventée qui a été identifiée, plutôt
+    /// qu'un court-circuit qui n'atteint jamais son traitement.
     @Test func anInventedKeyIsRejected() throws {
         let sent = lot([("a", "One")])
         var tampered = sent
+        tampered.entries[0].target = "Un"
         tampered.entries.append(TranslationLot.Entry(component: nil, key: "inventée",
                                                      source: "One", section: nil,
                                                      glossary: [:], target: "Inventé"))
@@ -131,7 +150,30 @@ struct TranslationLotImportTests {
         // L'empreinte du fichier reste celle du lot envoyé : c'est le contenu
         // qui a été altéré après coup, pas le lot.
         let report = try TranslationLotImport.read(data, expecting: sent)
-        #expect(report.accepted.isEmpty)
+        #expect(report.accepted.map(\.key) == ["a"])
         #expect(report.rejected.map(\.key) == ["inventée"])
+    }
+
+    /// Une entrée dont l'anglais a été modifié après l'export garde une
+    /// empreinte de fichier valide : `digest` ne se recalcule pas depuis
+    /// `lot.entries`, il compare la chaîne stockée à celle du lot envoyé. Le
+    /// seul rempart restant est la comparaison de `source` entrée par entrée
+    /// — c'est elle qu'on éprouve ici, pendant qu'une entrée voisine
+    /// inchangée doit continuer à passer.
+    @Test func anEntryWithAnAlteredSourceIsRejectedAlone() throws {
+        let sent = lot([("a", "One"), ("b", "Two")])
+        let data = json(sent, filling: ["a": "Un", "b": "Deux"])
+        var object = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        var entries = object["entries"] as! [[String: Any]]
+        for index in entries.indices where entries[index]["key"] as? String == "a" {
+            entries[index]["source"] = "One changed"
+        }
+        object["entries"] = entries
+        let tampered = try JSONSerialization.data(withJSONObject: object)
+        let report = try TranslationLotImport.read(tampered, expecting: sent)
+        #expect(report.accepted.map(\.key) == ["b"])
+        #expect(report.rejected.count == 1)
+        #expect(report.rejected.first?.key == "a")
+        #expect(report.rejected.first?.reason == .sourceAltered)
     }
 }
