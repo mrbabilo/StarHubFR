@@ -818,6 +818,12 @@
 "settings_localai_detected" = "Détecté : %1$@ (%2$lld modèles)";
 "settings_localai_none_detected" = "Aucun serveur local détecté — installez Ollama ou LM Studio, ou saisissez une URL";
 "settings_localai_test_failed" = "Pas de réponse à cette URL — vérifiez que le serveur tourne et que l'adresse est la bonne";
+"settings_localai_advice_pull" = "%1$lld Go de mémoire ici — %2$@ conviendra (%3$@ Go à télécharger). Lancez ceci dans le Terminal :";
+"settings_localai_advice_installed" = "%1$@ est déjà installé et convient aux %2$lld Go de ce Mac.";
+"settings_localai_advice_use" = "Utiliser %1$@";
+"settings_localai_copy" = "Copier";
+"settings_localai_copied" = "Copié";
+"settings_localai_install_ollama" = "Installer Ollama";
 "settings_localai_test" = "Tester";
 "settings_localai_ok" = "Connexion établie";
 "settings_glossary_title" = "Glossaire du jeu";

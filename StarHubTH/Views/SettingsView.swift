@@ -289,6 +289,10 @@ private struct LocalAISettingsSection: View {
     @State private var isRebuildingGlossary = false
     @State private var glossaryCount: Int?
     @State private var glossaryDate: Date?
+    /// La mémoire de la machine, lue une fois : un `sysctl` à chaque passe de
+    /// rendu serait payé pour rien, elle ne change pas.
+    @State private var ramGB = LocalModelAdvisor.machineRAMGB()
+    @State private var didCopyPullCommand = false
 
     var body: some View {
         VStack(spacing: 32) {
@@ -357,6 +361,11 @@ private struct LocalAISettingsSection: View {
                         TextField("qwen2.5", text: $model)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .font(.system(size: 12, design: .monospaced))
+                        // Ollama fraîchement installé n'a aucun modèle, et le
+                        // bon nom n'est pas devinable. L'aide ne s'affiche que
+                        // tant que le champ est vide : une fois réglé, elle
+                        // n'a plus rien à dire.
+                        if model.isEmpty { modelAdvice }
                     }
 
                     HStack(spacing: 8) {
@@ -430,6 +439,71 @@ private struct LocalAISettingsSection: View {
             glossaryCount = vm.currentGlossary(language: "fr")?.entries.count
             glossaryDate = vm.glossaryBuiltDate(language: "fr")
         }
+    }
+
+    /// Quel modèle prendre, pour cette machine et ce qui est déjà installé.
+    /// Un modèle déjà présent qui convient vaut mieux que six gigaoctets à
+    /// télécharger ; sinon, la commande exacte, copiable — on ne demande pas
+    /// à l'utilisateur de retaper un tag sans se tromper.
+    @ViewBuilder
+    private var modelAdvice: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            switch LocalModelAdvisor.advise(ramGB: ramGB, installed: models) {
+            case .useInstalled(let tag):
+                Text(String(format: vm.L(L10n.Settings.localAIAdviceInstalled),
+                            tag, Int64(ramGB)))
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button(String(format: vm.L(L10n.Settings.localAIAdviceUse), tag)) {
+                    model = tag
+                }
+                .controlSize(.small)
+            case .pull(let candidate):
+                Text(String(format: vm.L(L10n.Settings.localAIAdvicePull),
+                            Int64(ramGB), candidate.tag,
+                            candidate.downloadGB.formatted(
+                                .number.precision(.fractionLength(0...1)))))
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 8) {
+                    Text("ollama pull \(candidate.tag)")
+                        .font(.system(size: 11, design: .monospaced))
+                        .textSelection(.enabled)
+                    Button(vm.L(didCopyPullCommand ? L10n.Settings.localAICopied
+                                                   : L10n.Settings.localAICopy)) {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString("ollama pull \(candidate.tag)",
+                                                       forType: .string)
+                        // « Copié » deux secondes, comme le flash de la clé
+                        // Nexus — mais sans `DispatchQueue`, que le cliquet
+                        // des conventions cherche justement à faire reculer.
+                        withAnimation { didCopyPullCommand = true }
+                        Task {
+                            try? await Task.sleep(nanoseconds: 2_000_000_000)
+                            withAnimation { didCopyPullCommand = false }
+                        }
+                    }
+                    .controlSize(.small)
+                }
+                // Le lien n'a de sens que si rien n'a répondu : avec un
+                // serveur détecté, Ollama est déjà là.
+                if probes.isEmpty, let url = URL(string: "https://ollama.com/download") {
+                    Button(vm.L(L10n.Settings.localAIInstallOllama)) {
+                        NSWorkspace.shared.open(url)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundColor(.accentColor)
+                    .font(.system(size: 11))
+                    .pointingHandCursor()
+                }
+            }
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.secondary.opacity(0.08))
+        .cornerRadius(6)
     }
 
     /// La brique sondée que `text` désigne — appariée sur le **port**, pas
