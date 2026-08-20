@@ -92,6 +92,7 @@ let package = Package(
                 "Models/LocalLLMClient.swift",
                 "Models/LocalModelAdvisor.swift",
                 "Models/OllamaCapabilities.swift",
+                "Models/TranslationLot.swift",
                 "Extensions/ModConfigFiles.swift",
             ]
         ),
@@ -438,6 +439,11 @@ let package = Package(
             name: "LocalLLMClientTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/LocalLLMClientTests"
+        ),
+        .testTarget(
+            name: "TranslationLotTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/TranslationLotTests"
         ),
     ]
 )
