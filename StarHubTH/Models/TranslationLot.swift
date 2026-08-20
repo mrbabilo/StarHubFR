@@ -79,6 +79,26 @@ public struct TranslationLot: Codable, Equatable, Sendable {
         ]
     }
 
+    /// Le lot d'un mod : **seulement** les clés sans français, jamais une
+    /// valeur existante (spec §8.2), jamais une orpheline (pas d'anglais de
+    /// référence). Le glossaire, s'il est chargé, dépose sur chaque entrée les
+    /// termes qui la concernent — le chat n'a pas la table du jeu.
+    public static func build(mod: String, language: String,
+                             rows: [TranslationCoverage.DiffRow],
+                             glossary: Glossary?) -> TranslationLot {
+        let entries = rows.compactMap { row -> Entry? in
+            guard row.state != .orphan, row.french.isEmpty, !row.english.isEmpty
+            else { return nil }
+            let matched = glossary?.matchEntries(in: row.english) ?? []
+            return Entry(component: row.component, key: row.key, source: row.english,
+                         section: row.section,
+                         glossary: Dictionary(matched.map { ($0.en, $0.fr) },
+                                              uniquingKeysWith: { first, _ in first }),
+                         target: "")
+        }
+        return TranslationLot(mod: mod, language: language, entries: entries)
+    }
+
     /// SHA-256 sur le mod, la langue et les couples `(composant, clé, anglais)`
     /// **triés** : un jeu de clés, pas une séquence, donc l'ordre des entrées
     /// ne change pas l'empreinte.

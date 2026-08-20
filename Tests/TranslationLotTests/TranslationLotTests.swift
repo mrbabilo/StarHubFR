@@ -74,3 +74,44 @@ struct TranslationLotTests {
         #expect(lot.instructions.count >= 4)
     }
 }
+
+struct TranslationLotBuildTests {
+
+    private func row(_ key: String, english: String, french: String,
+                     state: TranslationCoverage.DiffRow.State) -> TranslationCoverage.DiffRow {
+        TranslationCoverage.DiffRow(key: key, english: english, french: french, state: state)
+    }
+
+    /// Ce qui a déjà un français ne part pas : le lot ne peut donc pas
+    /// l'écraser au retour.
+    @Test func onlyRowsWithoutFrenchAreExported() {
+        let rows = [row("a", english: "One", french: "", state: .missing),
+                    row("b", english: "Two", french: "Deux", state: .translated),
+                    row("c", english: "Three", french: "", state: .empty)]
+        let lot = TranslationLot.build(mod: "M", language: "fr", rows: rows, glossary: nil)
+        #expect(lot.entries.map(\.key) == ["a", "c"])
+    }
+
+    /// Une orpheline n'a pas d'anglais de référence : rien à traduire.
+    @Test func orphanRowsAreNeverExported() {
+        let rows = [row("z", english: "", french: "", state: .orphan)]
+        #expect(TranslationLot.build(mod: "M", language: "fr", rows: rows,
+                                     glossary: nil).entries.isEmpty)
+    }
+
+    @Test func everyExportedEntryHasAnEmptyTarget() {
+        let rows = [row("a", english: "One", french: "", state: .missing)]
+        let lot = TranslationLot.build(mod: "M", language: "fr", rows: rows, glossary: nil)
+        #expect(lot.entries.allSatisfy { $0.target.isEmpty })
+    }
+
+    /// Les termes imposés voyagent avec l'entrée : le chat n'a pas le
+    /// glossaire du jeu, il faut le lui donner.
+    @Test func matchedGlossaryTermsTravelWithTheirEntry() {
+        let glossary = Glossary(entries: [GlossaryEntry(en: "Iridium Ore",
+                                                        fr: "Minerai d'iridium", kind: .item)])
+        let rows = [row("a", english: "Give me Iridium Ore", french: "", state: .missing)]
+        let lot = TranslationLot.build(mod: "M", language: "fr", rows: rows, glossary: glossary)
+        #expect(lot.entries.first?.glossary == ["Iridium Ore": "Minerai d'iridium"])
+    }
+}
