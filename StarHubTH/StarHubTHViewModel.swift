@@ -1079,6 +1079,13 @@ class StarHubTHViewModel: ObservableObject {
     struct LotOutcome: Equatable {
         let written: Int
         let rejected: [TranslationLotImport.Rejection]
+        /// Accepté par la relecture du lot, mais refusé par le chemin
+        /// d'écriture lui-même (`saveTranslation`) — typiquement une marque
+        /// dure dupliquée : `report.rejected` ne voit que les marques
+        /// *manquantes*, pas les marques en trop, que seul `saveTranslation`
+        /// détecte. Compté à part de `rejected`, qui ne porte que les motifs
+        /// de la relecture du lot.
+        let writeFailures: Int
         /// Le fichier a été refusé en bloc — rien n'a été écrit.
         let refusal: TranslationLotImport.FileRefusal?
     }
@@ -1103,38 +1110,58 @@ class StarHubTHViewModel: ObservableObject {
             report = try TranslationLotImport.read(data, expecting: sent)
         } catch let refusal as TranslationLotImport.FileRefusal {
             log("Lot refusé pour \(mod.name) : \(refusal)", level: .warning)
-            return LotOutcome(written: 0, rejected: [], refusal: refusal)
+            return LotOutcome(written: 0, rejected: [], writeFailures: 0, refusal: refusal)
         } catch {
-            return LotOutcome(written: 0, rejected: [],
+            return LotOutcome(written: 0, rejected: [], writeFailures: 0,
                               refusal: .unreadable)
         }
 
-        // Les rangées par identité : l'écriture passe par le chemin existant,
-        // qui a besoin de la rangée, pas seulement de la clé.
+        // Les rangées par identité, filtrées comme `sent` l'a été par
+        // `TranslationLot.build` (via `TranslationBatchPlanner.eligibleRows`) :
+        // les deux chemins doivent voir exactement le même jeu de rangées,
+        // sans quoi une identité partagée par deux `DiffRow` d'états
+        // différents pourrait résoudre une entrée acceptée vers la mauvaise
+        // rangée — et écrire par-dessus un français déjà présent.
         var byIdentity: [String: TranslationCoverage.DiffRow] = [:]
-        for row in rows {
+        for row in TranslationBatchPlanner.eligibleRows(rows) {
             byIdentity["\(row.component ?? "")\u{1F}\(row.key)"] = row
         }
 
         var written = 0
+        var writeFailures = 0
         var flags: [TranslationBaseline.ReviewFlag] = []
         for entry in report.accepted {
             guard let row = byIdentity["\(entry.component ?? "")\u{1F}\(entry.key)"] else {
                 // Ne devrait pas se produire : `TranslationLotImport.read` n'accepte
                 // une entrée que si son identité correspond à une clé de `sent`, donc
-                // à une rangée de `rows` — mais un accepté qui se perd ici serait
-                // compté nulle part, ni écrit ni écarté. Journalisé pour rester visible
-                // si l'invariant se rompt un jour.
+                // à une rangée éligible de `rows` — mais un accepté qui se perd ici
+                // serait compté nulle part, ni écrit ni écarté. Journalisé pour
+                // rester visible si l'invariant se rompt un jour.
                 log("Entrée acceptée introuvable parmi les rangées pour \(mod.name) — "
                     + "\(entry.key)", level: .warning)
+                writeFailures += 1
                 continue
             }
-            if case .saved = saveTranslation(mod: mod, locale: locale, row: row,
-                                             value: entry.target,
-                                             clearingReviewFlag: false) {
+            let outcome = saveTranslation(mod: mod, locale: locale, row: row,
+                                          value: entry.target,
+                                          clearingReviewFlag: false)
+            switch outcome {
+            case .saved:
                 written += 1
                 flags.append(.init(component: entry.component, key: entry.key,
                                    source: entry.source, target: entry.target))
+            case .blocked, .failed:
+                // Accepté par la relecture du lot (donc sans marque dure
+                // *manquante*), mais refusé par `saveTranslation` — le cas
+                // ordinaire est une marque dure *dupliquée*, que la relecture
+                // du lot ne détecte pas (`TranslationLotImport.read` ne
+                // rejette que `found < expected`, jamais `found > expected`).
+                // `saveTranslation` ne journalise pas systématiquement ce
+                // refus (`.blocked` ne log rien) : le faire ici explicitement,
+                // plutôt que de compter sur son propre logging.
+                log("Entrée acceptée mais non écrite pour \(mod.name) — "
+                    + "\(entry.key) : \(outcome)", level: .warning)
+                writeFailures += 1
             }
         }
         if !flags.isEmpty, let store = TranslationBaseline.defaultDirectory() {
@@ -1146,8 +1173,10 @@ class StarHubTHViewModel: ObservableObject {
             }
         }
         log("Lot importé pour \(mod.folderName) : \(written) écrites, "
-            + "\(report.rejected.count) écartées", level: .info)
-        return LotOutcome(written: written, rejected: report.rejected, refusal: nil)
+            + "\(report.rejected.count) écartées, \(writeFailures) refusées à l'écriture",
+            level: .info)
+        return LotOutcome(written: written, rejected: report.rejected,
+                          writeFailures: writeFailures, refusal: nil)
     }
 
     /// Oublie la couverture d'un mod dont les fichiers ont pu changer —
