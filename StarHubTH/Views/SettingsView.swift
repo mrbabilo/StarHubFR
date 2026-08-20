@@ -293,6 +293,9 @@ private struct LocalAISettingsSection: View {
     /// rendu serait payé pour rien, elle ne change pas.
     @State private var ramGB = LocalModelAdvisor.machineRAMGB()
     @State private var didCopyPullCommand = false
+    /// Le modèle réglé délibère avant de répondre — su par la route native
+    /// d'Ollama, inconnue de LM Studio (qui laisse alors ce drapeau à `false`).
+    @State private var modelThinks = false
 
     var body: some View {
         VStack(spacing: 32) {
@@ -361,6 +364,16 @@ private struct LocalAISettingsSection: View {
                         TextField("qwen2.5", text: $model)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .font(.system(size: 12, design: .monospaced))
+                        // Un modèle à raisonnement épuise le budget de jetons
+                        // en délibérant : la réponse revient tronquée et le
+                        // client la rejette. Le dire ici, pas après un lot.
+                        if modelThinks {
+                            Label(vm.L(L10n.Settings.localAIModelThinks),
+                                  systemImage: "exclamationmark.triangle.fill")
+                                .font(.system(size: 11))
+                                .foregroundColor(.orange)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                         // Ollama fraîchement installé n'a aucun modèle, et le
                         // bon nom n'est pas devinable. L'aide ne s'affiche que
                         // tant que le champ est vide : une fois réglé, elle
@@ -436,6 +449,7 @@ private struct LocalAISettingsSection: View {
                 models = current.models
                 if model.isEmpty { model = current.models.first ?? "" }
             }
+            await refreshModelSuitability()
             glossaryCount = vm.currentGlossary(language: "fr")?.entries.count
             glossaryDate = vm.glossaryBuiltDate(language: "fr")
         }
@@ -517,6 +531,21 @@ private struct LocalAISettingsSection: View {
         return probes.first { $0.baseURL.port == url.port }
     }
 
+    /// Demande au serveur ce qu'il sait du modèle réglé. Silencieux quand il
+    /// ne sait rien (LM Studio n'a pas cette route) : une information absente
+    /// n'est pas un avertissement.
+    private func refreshModelSuitability() async {
+        guard let url = LocalLLMEndpoint.validate(baseURL), !model.isEmpty else {
+            modelThinks = false
+            return
+        }
+        let session = LocalLLMEndpoint.makeSession(timeout: 5)
+        defer { session.finishTasksAndInvalidate() }
+        let report = await OllamaCapabilities.fetch(model: model, baseURL: url,
+                                                    session: session)
+        modelThinks = report?.thinks ?? false
+    }
+
     private func testConnection() {
         Task {
             guard let url = LocalLLMEndpoint.validate(baseURL) else {
@@ -528,6 +557,7 @@ private struct LocalAISettingsSection: View {
             do {
                 models = try await LocalLLMClient.listModels(baseURL: url, session: session)
                 testVerdictOK = true
+                await refreshModelSuitability()
             } catch {
                 testVerdictOK = false
             }

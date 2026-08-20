@@ -815,6 +815,7 @@
   "settings_localai_title": "Assisted translation",
   "settings_localai_url": "Server URL (Ollama, LM Studio…)",
   "settings_localai_model": "Model",
+  "settings_localai_model_thinks": "This model reasons before answering — unusable for translating here: every key would be refused or time out. Pick one that answers directly.",
   "settings_localai_detected": "Detected: %1$@ (%2$lld models)",
   "settings_localai_none_detected": "No local server detected — install Ollama or LM Studio, or enter a URL",
   "settings_localai_test_failed": "No answer from this URL — check the server is running and the address is right",

@@ -552,6 +552,7 @@ enum L10n {
         static let localAITitle         = "settings_localai_title"
         static let localAIURL           = "settings_localai_url"
         static let localAIModel         = "settings_localai_model"
+        static let localAIModelThinks   = "settings_localai_model_thinks"
         static let localAIDetected      = "settings_localai_detected"
         static let localAINoneDetected  = "settings_localai_none_detected"
         static let localAITestFailed    = "settings_localai_test_failed"

@@ -3,10 +3,21 @@ import Foundation
 /// Quel modèle local proposer à **cette** machine, et quand ne rien faire
 /// télécharger parce que ce qu'il faut est déjà là.
 ///
-/// La contrainte qui décide est la mémoire : un modèle local se charge en
-/// RAM (unifiée sur Apple Silicon), et un modèle trop gros pour la machine
-/// ne rame pas — il refuse ou fait ramer tout le reste. Le reste (cœurs,
-/// GPU) change la vitesse, pas la faisabilité : on ne s'en sert pas.
+/// **Deux** contraintes décident, et la première a coûté cher pour être
+/// apprise :
+///
+/// 1. **Ce que le modèle fait avant de répondre.** Un modèle à *raisonnement*
+///    (`thinking`) produit une chaîne de pensée avant sa réponse. Conseillé
+///    ici le 2026-08-20, `qwen3.5:9b` a mis **plus de 300 secondes** à
+///    répondre « Bonjour » sur un M1 Pro 16 Go — et surtout, son raisonnement
+///    épuisait le `max_tokens` de `LocalLLMClient`, qui rejette alors la
+///    réponse pour `finish_reason=length` : **chaque clé échouait**. La
+///    traduction veut un modèle qui répond, pas un qui délibère. La *vision*
+///    est écartée pour une raison plus simple : elle alourdit le modèle sans
+///    servir à traduire du texte.
+/// 2. **La mémoire.** Un modèle se charge en RAM (unifiée sur Apple Silicon) ;
+///    trop gros, il ne rame pas, il fait ramer tout le reste. Les cœurs et le
+///    GPU changent la vitesse, pas la faisabilité : on ne s'en sert pas.
 ///
 /// La table est **figée dans le code**, comme `LocalLLMClient.knownBricks` :
 /// pas d'appel sortant depuis un panneau qui promet que rien ne quitte la
@@ -43,13 +54,21 @@ public enum LocalModelAdvisor {
         case pull(Candidate)
     }
 
-    /// Trois paliers, mémoire croissante. `qwen3.5` pour sa famille
-    /// multilingue et ses tailles régulières ; un palier par classe de Mac
-    /// courante (8 Go, 16 Go, 32 Go et au-delà).
+    /// Les familles écartées : elles délibèrent ou regardent des images, et
+    /// aucune des deux ne sert à traduire une ligne de dialogue. La liste
+    /// vaut pour la table **et** pour ce qui est déjà installé.
+    public static let reasoningOrVisionFamilies = ["qwen3", "deepseek-r1", "llava",
+                                                  "gpt-oss", "magistral"]
+
+    /// Trois paliers, mémoire croissante. `qwen2.5` : multilingue, tailles
+    /// régulières, **ni raisonnement ni vision**, et explicitement taillé pour
+    /// le suivi d'instructions et la sortie structurée. Un palier par classe
+    /// de Mac courante (8 Go, 16 Go, 32 Go et au-delà).
+    /// Tailles relevées sur ollama.com le 2026-08-20.
     public static let candidates: [Candidate] = [
-        Candidate(tag: "qwen3.5:4b", downloadGB: 3.4, minimumRAMGB: 8),
-        Candidate(tag: "qwen3.5:9b", downloadGB: 6.6, minimumRAMGB: 12),
-        Candidate(tag: "qwen3.5:27b", downloadGB: 17, minimumRAMGB: 32),
+        Candidate(tag: "qwen2.5:3b", downloadGB: 1.9, minimumRAMGB: 8),
+        Candidate(tag: "qwen2.5:7b", downloadGB: 4.7, minimumRAMGB: 12),
+        Candidate(tag: "qwen2.5:14b", downloadGB: 9.0, minimumRAMGB: 32),
     ]
 
     /// Le plus capable des candidats que cette mémoire supporte. Une machine
@@ -67,9 +86,14 @@ public enum LocalModelAdvisor {
     /// ni sa taille ni ce qu'il vaut ne sont connus.
     public static func advise(ramGB ram: Int, installed: [String]) -> Advice {
         let affordable = candidates.filter { $0.minimumRAMGB <= ram }
-        // Du plus capable au plus modeste : le premier installé gagne.
+        // Du plus capable au plus modeste : le premier installé gagne. Un
+        // modèle d'une famille écartée ne compte pas, même s'il tient en
+        // mémoire — il y tient, et il ne répond pas.
+        let usable = installed.filter { tag in
+            !reasoningOrVisionFamilies.contains { tag.hasPrefix($0) }
+        }
         for candidate in affordable.reversed() {
-            if let match = installed.first(where: { $0.hasPrefix(candidate.tag) }) {
+            if let match = usable.first(where: { $0.hasPrefix(candidate.tag) }) {
                 return .useInstalled(match)
             }
         }

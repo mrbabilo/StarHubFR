@@ -815,6 +815,7 @@
 "settings_localai_title" = "Traduction assistée";
 "settings_localai_url" = "URL du serveur (Ollama, LM Studio…)";
 "settings_localai_model" = "Modèle";
+"settings_localai_model_thinks" = "Ce modèle raisonne avant de répondre — inutilisable pour traduire ici : chaque clé serait refusée ou expirerait. Choisissez-en un qui répond directement.";
 "settings_localai_detected" = "Détecté : %1$@ (%2$lld modèles)";
 "settings_localai_none_detected" = "Aucun serveur local détecté — installez Ollama ou LM Studio, ou saisissez une URL";
 "settings_localai_test_failed" = "Pas de réponse à cette URL — vérifiez que le serveur tourne et que l'adresse est la bonne";
