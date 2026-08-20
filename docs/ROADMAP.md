@@ -257,13 +257,22 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
 
 ---
 
-## 5. Roadmap versionnée
+## 5. Roadmap par chantier
 
 Effort : **S** ≈ une session · **M** ≈ 2–3 sessions · **L** ≈ chantier multi-sessions.
 
+> **Les chantiers ne portent plus de numéro de version prévisionnel.** Ils en ont
+> porté, et la réalité les a démentis trois fois : la v1.14.0 est partie sur
+> l'ancrage des versions et non sur l'éditeur de traduction, la v1.15.0 sur
+> l'éditeur et non sur les profils, la v1.16.0 sur le glossaire et l'IA locale et
+> non sur le registre. Un numéro annoncé ici est une promesse que l'ordre des
+> travaux ne tient pas — et une roadmap qui ment sur l'état réel ne vaut rien
+> (§9). **Un titre ne porte un numéro que si cette version est sortie**, et le
+> `CHANGELOG.md` reste le journal de ce qui est livré.
+
 ---
 
-### v1.11.0 — Bissection guidée — **Axe A**
+### Bissection guidée — **Axe A** · livrée en **v1.11.0**
 
 > **Changement d'ordre assumé** : la version précédente de cette roadmap plaçait la
 > traduction FR en v1.11. La bissection passe devant parce que l'auteur l'a placée en
@@ -313,7 +322,7 @@ dizaine d'essais guidés, et retrouver l'état initial exact à la fin.
 
 ---
 
-### v1.13.0 — Hub de traduction FR, phase 1 : *diagnostic* — **Axe C**
+### Hub de traduction FR, phase 1 : *diagnostic* — **Axe C** · livrée en **v1.13.0**, sauf **C2-T4**
 
 Objectif : tenir la promesse du dépôt (« traduction en français ») **en lecture seule**,
 sans risque d'écriture destructive.
@@ -433,13 +442,14 @@ partiellement traduits ou pas du tout, sans ouvrir un seul fichier.
 
 ---
 
-### v1.14.0 — Hub de traduction FR, phase 2 : *édition & assistance* — **Axe C**
+### Hub de traduction FR, phase 2 : *édition & assistance* — **Axe C** · livrée par morceaux (**v1.15.0**, puis `[Unreleased]`)
 
 C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 
-> *Les numéros de cette section sont des libellés de planification : les livraisons
-> réelles ont glissé vers d'autres versions — C3-T1 en v1.15.0, C3-T6 après elle.
-> Chaque tâche cochée porte sa version réelle.*
+> *Ce chantier est parti en trois : **P2a** l'éditeur (livré en v1.15.0), **P2b** le
+> glossaire et l'IA locale (livré, dans `[Unreleased]`), **P2c** le lot JSON et
+> l'export ZIP — sans plan écrit à ce jour. Chaque tâche cochée porte sa version
+> réelle.*
 
 #### C3 — Éditeur `fr.json` assisté
 
@@ -556,7 +566,7 @@ pouvoir revenir en arrière à tout moment.
 
 ---
 
-### v1.15.0 — Profils, favoris & backups exploitables — **Axe B**
+### Profils, favoris & backups exploitables — **Axe B** · à faire
 
 #### B3 — Profils
 
@@ -639,7 +649,7 @@ backup se retrouve en moins de dix secondes.
 
 ---
 
-### v1.16.0 — Fiabilité du registre & compatibilité — **Axe A**
+### Fiabilité du registre & compatibilité — **Axe A** · à faire
 
 #### A1 — Registre robuste
 
@@ -718,7 +728,7 @@ SMAPI 3.0, voici son remplaçant ».
 
 ---
 
-### v1.17.0 — Performance mesurée — **Axe D**
+### Performance mesurée — **Axe D** · à faire
 
 #### D1 — Exploitation du log du mod *Profiler* (Nexus 12135)
 
@@ -742,7 +752,7 @@ sans lire une ligne de log.
 
 ---
 
-### v2.0.0 — Packs, distribution & pédagogie — **Axe E**
+### Horizon 2.0 — Packs, distribution & pédagogie — **Axe E**
 
 #### E1 — Packs
 
@@ -914,13 +924,19 @@ L'ordre **A4 → C → B → A → D → E** se justifie ainsi :
 5. **D et E** sont des extensions ; les ouvrir avant que C soit stable reproduirait
    exactement la dispersion que le doc de veille reproche.
 
-**Point d'arbitrage restant** : v1.11 (bissection) et v1.13–1.14 (traduction FR) sont
-interchangeables sans dommage. La question est : *le besoin le plus urgent est-il de
-réparer une modlist qui casse, ou de tenir la promesse francophone ?* La roadmap tranche
-pour la première ; cet ordre se renverse en une ligne.
+**Cet arbitrage est tranché — par les faits.** La question posée ici était :
+*réparer d'abord une modlist qui casse, ou tenir d'abord la promesse francophone ?*
+Les deux ont été faits. La bissection est sortie en v1.11.0, et l'axe C a suivi sans
+attendre : diagnostic (v1.13.0), éditeur (v1.15.0), glossaire et IA locale
+(`[Unreleased]`). Le « plus petit incrément qui rende le positionnement défendable »
+— `C1` + `C2` — est livré depuis la v1.13.0.
 
-**Si un seul chantier devait être fait** : `C1` + `C2` (couverture + diff EN/FR) — le plus
-petit incrément qui rende le positionnement défendable.
+**L'arbitrage ouvert aujourd'hui** est ailleurs : **finir C** (P2c le lot JSON et
+l'export ZIP, C3-T7 le secours en ligne, C4 la config lisible, C5 le hub agnostique
+de la langue) ou **ouvrir B** (profils, backups, fiche mod — des dettes d'usage sur
+des fonctionnalités déjà payées). Le raisonnement du point 3 ci-dessus plaide pour B
+dès que C est *stable* ; C est fonctionnel mais son dernier palier n'a pas encore de
+plan écrit.
 
 ---
 
