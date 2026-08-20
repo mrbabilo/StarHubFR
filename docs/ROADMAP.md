@@ -503,6 +503,13 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       voulu, un nom identique n'a pas besoin d'être imposé.
 - [ ] **C3-T5** — Export/import d'un lot de travail (`.json`) pour traduire à plusieurs,
       puis fusion contrôlée. · **M**
+      **Plan écrit** le 2026-08-20 (`docs/superpowers/plans/2026-08-20-lot-json-traduction.md`),
+      pour l'**autre** usage du même mécanisme : faire traduire le lot par le chat
+      que l'utilisateur a déjà — la troisième voie de la référence. C'est la seule
+      voie qui ne dépende ni d'un serveur local, ni d'une clé, ni d'un quota, et
+      elle a gagné en priorité le jour où l'IA locale s'est révélée impraticable
+      sur une machine de milieu de gamme. La fusion entre humains reste hors du
+      plan ; l'export ZIP aussi (livrable distinct).
 - [x] **C3-T6** — `I18nLenientParser` garde la **première** occurrence d'une clé JSON
       dupliquée ; le jeu (Newtonsoft) garde la **dernière**. Trouvé pendant C2-T5, mesuré
       sur le parc : 7 mods sur 512 concernés (ex. `[CP] Tea`, `spring_23` défini deux fois
