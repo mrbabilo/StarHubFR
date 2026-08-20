@@ -849,5 +849,16 @@
   "mods_diff_sections_no_match": "Aucune section ne correspond.",
   "mods_translation_in_backup": "Une traduction française de ce mod existe dans une sauvegarde du %@ — le dossier du mod n'en a plus. Une mise à jour l'a probablement remplacée.",
   "mods_translation_unloadable_expected": "« %@ » ne sera jamais lu par le jeu — il ne charge que des codes de langue nus. Il devrait s'appeler « %@ », sauf si un mod ajoute une langue portant exactement ce code via Data/AdditionalLanguages de SMAPI.",
-  "mods_translation_unloadable_unknown": "« %@ » ne sera jamais lu par le jeu — il ne charge que des codes de langue nus, et aucun ne correspond à celui-ci. Il ne serait lu que si un mod ajoutait une langue portant exactement ce code via Data/AdditionalLanguages de SMAPI."
+  "mods_translation_unloadable_unknown": "« %@ » ne sera jamais lu par le jeu — il ne charge que des codes de langue nus, et aucun ne correspond à celui-ci. Il ne serait lu que si un mod ajoutait une langue portant exactement ce code via Data/AdditionalLanguages de SMAPI.",
+  "mods_translation_lot_export": "Exporter un lot…",
+  "mods_translation_lot_import": "Importer un lot…",
+  "mods_translation_lot_nothing": "Plus rien à traduire dans ce mod.",
+  "mods_translation_lot_hint": "Déposez le fichier dans le chat de votre choix, puis réimportez ce qu'il rend.",
+  "mods_translation_lot_done": "%1$lld clés écrites, %2$lld écartées",
+  "mods_translation_lot_stale": "Ce lot ne correspond plus au mod — il a changé depuis l'export. Exportez-en un nouveau.",
+  "mods_translation_lot_wrong_mod": "Ce lot appartient à un autre mod.",
+  "mods_translation_lot_unreadable": "Ce fichier n'a pas pu être lu comme un lot.",
+  "mods_translation_lot_reason_missing_markers": "marque(s) manquante(s) : %@",
+  "mods_translation_lot_reason_unknown_key": "clé inconnue",
+  "mods_translation_lot_reason_source_altered": "source modifiée depuis l'export"
 }

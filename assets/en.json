@@ -849,5 +849,16 @@
   "mods_diff_sections_no_match": "No section matches.",
   "mods_translation_in_backup": "A French translation for this mod exists in a backup from %@ — the mod folder no longer has one. A mod update likely replaced it.",
   "mods_translation_unloadable_expected": "“%@” will never be read by the game — it only loads bare language codes. It should be named “%@” instead, unless some mod adds a language with this exact code via SMAPI's Data/AdditionalLanguages.",
-  "mods_translation_unloadable_unknown": "“%@” will never be read by the game — it only loads bare language codes, and none matches this one. It would only be read if some mod added a language with this exact code via SMAPI's Data/AdditionalLanguages."
+  "mods_translation_unloadable_unknown": "“%@” will never be read by the game — it only loads bare language codes, and none matches this one. It would only be read if some mod added a language with this exact code via SMAPI's Data/AdditionalLanguages.",
+  "mods_translation_lot_export": "Export a batch…",
+  "mods_translation_lot_import": "Import a batch…",
+  "mods_translation_lot_nothing": "Nothing left to translate in this mod.",
+  "mods_translation_lot_hint": "Drop the file into any chat model, then import what it gives back.",
+  "mods_translation_lot_done": "%1$lld keys written, %2$lld set aside",
+  "mods_translation_lot_stale": "This batch no longer matches the mod — it changed since the export. Export a new one.",
+  "mods_translation_lot_wrong_mod": "This batch belongs to another mod.",
+  "mods_translation_lot_unreadable": "This file could not be read as a batch.",
+  "mods_translation_lot_reason_missing_markers": "missing marker(s): %@",
+  "mods_translation_lot_reason_unknown_key": "unknown key",
+  "mods_translation_lot_reason_source_altered": "source changed since export"
 }
