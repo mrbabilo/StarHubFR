@@ -93,6 +93,7 @@ let package = Package(
                 "Models/LocalModelAdvisor.swift",
                 "Models/OllamaCapabilities.swift",
                 "Models/TranslationLot.swift",
+                "Models/TranslationLotImport.swift",
                 "Extensions/ModConfigFiles.swift",
             ]
         ),
@@ -444,6 +445,11 @@ let package = Package(
             name: "TranslationLotTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/TranslationLotTests"
+        ),
+        .testTarget(
+            name: "TranslationLotImportTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/TranslationLotImportTests"
         ),
     ]
 )
