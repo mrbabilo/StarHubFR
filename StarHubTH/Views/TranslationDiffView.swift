@@ -105,6 +105,10 @@ struct TranslationDiffView: View {
             // Chargement détaché côté ViewModel : lire et analyser 11 021 clés
             // sur le fil principal figerait la fenêtre.
             rows = await vm.translationDiff(for: mod)
+            // Une mise à jour du jeu réécrit `Content/Strings` : le glossaire
+            // en cache se refait si ses sources ont bougé (une fois par
+            // lancement, pas à chaque ouverture).
+            await vm.refreshGlossaryIfSourcesChanged()
             staleness = await vm.translationStaleness(for: mod)
             reviewNeededIDs = await vm.reviewNeededRowIDs(for: mod)
             // Le regroupement une seule fois, sur les rangées complètes.

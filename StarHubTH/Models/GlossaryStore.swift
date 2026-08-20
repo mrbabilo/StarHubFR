@@ -49,24 +49,49 @@ public enum GlossarySource {
         return nil
     }
 
+    /// Ce qu'un asset a rendu. Un fichier **absent** n'est pas une erreur
+    /// (spec §5 : toutes les versions du jeu n'ont pas toutes les tables) ;
+    /// un fichier **présent mais illisible** en est une, et la confondre
+    /// avec l'absence faisait sortir le glossaire amputé d'une table
+    /// entière, avec un décompte rassurant et rien au journal.
+    public enum LoadOutcome: Equatable, Sendable {
+        case loaded([String: String])
+        case absent
+        case unreadable
+    }
+
     /// La map d'un asset pour une langue : `<asset>.xnb` / `<asset>.json`
     /// quand `language` est vide (anglais), `<asset>.fr-FR.xnb` /
-    /// `<asset>.fr-FR.json` sinon. `nil` = asset absent ou illisible — le
-    /// builder l'ignore (spec §5 : un asset absent n'est pas une erreur).
-    public static func load(asset: String, language: String,
+    /// `<asset>.fr-FR.json` sinon.
+    public static func read(asset: String, language: String,
                             from kind: Kind,
-                            fileManager: FileManager = .default) -> [String: String]? {
+                            fileManager: FileManager = .default) -> LoadOutcome {
         let suffix = language.isEmpty ? "" : ".\(language)"
         let file = kind.folder.appendingPathComponent("\(asset)\(suffix).\(kind.fileExtension)")
-        guard let data = try? Data(contentsOf: file) else { return nil }
+        guard let data = try? Data(contentsOf: file) else { return .absent }
+        let map: [String: String]?
         switch kind {
         case .xnbStrings:
-            return try? XnbStringDictionaryReader.read(data)
+            map = try? XnbStringDictionaryReader.read(data)
         case .unpackedStrings:
             // StardewXnbHack écrit du JSON standard ; le parseur permissif
             // d'i18n le lit, tolérances en plus (commentaires, BOM…).
-            return try? I18nLenientParser.parse(data)
+            map = try? I18nLenientParser.parse(data)
         }
+        return map.map(LoadOutcome.loaded) ?? .unreadable
+    }
+
+    /// La map d'un asset, sans distinguer l'absence de l'illisible — la forme
+    /// qu'attend le builder, qui ignore les deux. Qui veut journaliser les
+    /// assets perdus passe par `read`.
+    public static func load(asset: String, language: String,
+                            from kind: Kind,
+                            fileManager: FileManager = .default) -> [String: String]? {
+        guard case .loaded(let map) = read(asset: asset, language: language,
+                                           from: kind, fileManager: fileManager) else {
+            return nil
+        }
+        return map
     }
 
     /// La date de modification la plus récente des fichiers sources du

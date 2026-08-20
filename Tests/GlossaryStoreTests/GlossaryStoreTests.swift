@@ -132,6 +132,26 @@ struct GlossaryStoreTests {
         #expect(GlossarySource.load(asset: "Objects", language: "", from: kind) == nil)   // absent
     }
 
+    /// `load` rend `nil` pour un asset **absent** comme pour un asset
+    /// **illisible** : le glossaire sortait alors amputé d'une table entière
+    /// sans que rien ne le dise, avec un décompte rassurant. La forme qui
+    /// distingue les deux permet de nommer l'asset au journal.
+    @Test func readTellsAnAbsentAssetFromAnUnreadableOne() throws {
+        let dir = root.appendingPathComponent("Content/Strings")
+        defer { try? FileManager.default.removeItem(at: dir.deletingLastPathComponent()) }
+        try mkdirs([dir])
+        try Fx.xnb(entries: [("spring", "Spring")])
+            .write(to: dir.appendingPathComponent("Objects.xnb"))
+        // Un XNB tronqué : présent, illisible.
+        try Data("XNB".utf8).write(to: dir.appendingPathComponent("Locations.xnb"))
+        let kind = GlossarySource.Kind.xnbStrings(dir)
+
+        #expect(GlossarySource.read(asset: "Objects", language: "", from: kind)
+                == .loaded(["spring": "Spring"]))
+        #expect(GlossarySource.read(asset: "Locations", language: "", from: kind) == .unreadable)
+        #expect(GlossarySource.read(asset: "NPCNames", language: "", from: kind) == .absent)
+    }
+
     @Test func loadReadsJsonInUnpackedFallback() throws {
         let strings = root.appendingPathComponent("unpacked/Strings")
         defer { try? FileManager.default.removeItem(at: root) }

@@ -489,6 +489,9 @@ class StarHubTHViewModel: ObservableObject {
     /// qu'une, et recharger le JSON à chaque clé traduite serait payer le
     /// même fichier des centaines de fois dans un lot.
     private var glossaryCache: (language: String, glossary: Glossary)?
+    /// Le contrôle de fraîcheur du glossaire n'a lieu qu'une fois par
+    /// lancement — voir `refreshGlossaryIfSourcesChanged`.
+    private var checkedGlossaryFreshness = false
 
     /// Le dossier racine du glossaire en Application Support — même règle de
     /// placement que `TranslationBaseline`, jamais Caches.
@@ -634,25 +637,69 @@ class StarHubTHViewModel: ObservableObject {
     func rebuildGlossary(language: String = "fr") async -> Int? {
         let folder = gameDir
         let suffix = Self.gameAssetSuffix(for: language)
-        let (entries, saved) = await Task.detached(priority: .utility) {
+        let (entries, saved, unreadable) = await Task.detached(priority: .utility) {
             guard let kind = GlossarySource.resolve(gameFolder: URL(fileURLWithPath: folder))
-            else { return ([GlossaryEntry](), false) }
-            let entries = GlossaryBuilder.build(
-                english: { GlossarySource.load(asset: $0, language: "", from: kind) },
-                french: { GlossarySource.load(asset: $0, language: suffix, from: kind) })
+            else { return ([GlossaryEntry](), false, [String]()) }
+            // Un asset présent mais illisible amputait le glossaire d'une
+            // table entière en silence : le décompte restait rassurant.
+            // Absent reste normal (spec §5), illisible se nomme.
+            var unreadable: [String] = []
+            func map(_ asset: String, _ language: String) -> [String: String]? {
+                switch GlossarySource.read(asset: asset, language: language, from: kind) {
+                case .loaded(let map): return map
+                case .absent: return nil
+                case .unreadable:
+                    unreadable.append(language.isEmpty ? asset : "\(asset).\(language)")
+                    return nil
+                }
+            }
+            let entries = GlossaryBuilder.build(english: { map($0, "") },
+                                                french: { map($0, suffix) })
             var saved = false
             if let appSupport = Self.glossaryAppSupport() {
                 saved = ((try? GlossaryStore.save(Glossary(entries: entries),
                                                   language: language,
                                                   appSupport: appSupport)) != nil)
             }
-            return (entries, saved)
+            return (entries, saved, unreadable)
         }.value
         if saved { glossaryCache = nil }   // le cache mémoire doit relire
+        if !unreadable.isEmpty {
+            log("Glossaire \(language) : \(unreadable.count) asset(s) illisibles, ignorés — "
+                + unreadable.joined(separator: ", "), level: .warning)
+        }
         log(saved ? "Glossaire \(language) reconstruit : \(entries.count) entrées"
                   : "Glossaire \(language) non reconstruit — sources introuvables ou écriture refusée",
             level: .info)
         return saved ? entries.count : nil
+    }
+
+    /// Reconstruit le glossaire si les assets du jeu ont bougé depuis sa
+    /// construction — une mise à jour de Stardew réécrit `Content/Strings`,
+    /// et sans ça le cache gardait les anciens termes indéfiniment, sauf
+    /// reconstruction à la main. Une fois par lancement : le contrôle
+    /// parcourt les dates du dossier, inutile de le refaire à chaque
+    /// ouverture de l'onglet.
+    ///
+    /// Sans glossaire en cache, rien à faire : c'est « Reconstruire » qui
+    /// pose le premier, pas une mise à jour du jeu.
+    @MainActor
+    func refreshGlossaryIfSourcesChanged(language: String = "fr") async {
+        guard !checkedGlossaryFreshness else { return }
+        checkedGlossaryFreshness = true
+        guard let appSupport = Self.glossaryAppSupport(),
+              let builtAt = GlossaryStore.builtDate(language: language, appSupport: appSupport)
+        else { return }
+        let folder = gameDir
+        let stale = await Task.detached(priority: .utility) { () -> Bool in
+            guard let kind = GlossarySource.resolve(gameFolder: URL(fileURLWithPath: folder)),
+                  let newest = GlossarySource.newestSourceDate(of: kind) else { return false }
+            return GlossaryStore.needsRebuild(cachedAt: builtAt, sourcesNewerThan: newest)
+        }.value
+        guard stale else { return }
+        log("Glossaire \(language) périmé — les assets du jeu ont changé depuis sa construction",
+            level: .info)
+        await rebuildGlossary(language: language)
     }
 
     /// La date de construction du glossaire en cache — pour la ligne
