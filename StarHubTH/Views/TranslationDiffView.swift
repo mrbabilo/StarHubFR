@@ -524,6 +524,9 @@ struct TranslationDiffView: View {
         case .missingHardMarkers(let markers):
             return String(format: vm.L(L10n.Mods.translationLotReasonMissingMarkers),
                            markers.joined(separator: ", "))
+        case .extraHardMarkers(let markers):
+            return String(format: vm.L(L10n.Mods.translationLotReasonExtraMarkers),
+                           markers.joined(separator: ", "))
         case .unknownKey:
             return vm.L(L10n.Mods.translationLotReasonUnknownKey)
         case .sourceAltered:

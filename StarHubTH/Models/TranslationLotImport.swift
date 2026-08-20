@@ -4,9 +4,11 @@ import Foundation
 ///
 /// Deux niveaux de refus, et la distinction est ce qui rend l'import
 /// utilisable : ce qui met en cause le **fichier** (mauvais mod, mauvaise
-/// langue, empreinte périmée, illisible) le fait rejeter en bloc **avant toute
-/// écriture** ; ce qui met en cause **une entrée** (marque dure perdue, clé
-/// inventée) écarte cette entrée-là et laisse passer le reste.
+/// langue, format illisible, ou un lot dont **aucune** clé ne concerne
+/// l'état courant) le fait rejeter en bloc **avant toute écriture** ; ce
+/// qui met en cause **une entrée** (marque dure perdue ou doublée, clé
+/// inventée, source modifiée) écarte cette entrée-là et laisse passer le
+/// reste.
 public enum TranslationLotImport {
 
     public struct Accepted: Equatable, Sendable {
@@ -19,6 +21,7 @@ public enum TranslationLotImport {
     public struct Rejection: Equatable, Sendable {
         public enum Reason: Equatable, Sendable {
             case missingHardMarkers([String])
+            case extraHardMarkers([String])
             case unknownKey
             case sourceAltered
         }
@@ -47,7 +50,6 @@ public enum TranslationLotImport {
         }
         guard lot.mod == sent.mod else { throw FileRefusal.wrongMod }
         guard lot.language == sent.language else { throw FileRefusal.wrongLanguage }
-        guard lot.digest == sent.digest else { throw FileRefusal.staleDigest }
 
         // Les sources envoyées, par identité : c'est elles qui font foi, pas
         // celles que le fichier prétend porter.
@@ -55,6 +57,16 @@ public enum TranslationLotImport {
         for entry in sent.entries {
             expected[identity(entry.component, entry.key)] = entry
         }
+
+        // L'empreinte du fichier ne fait plus foi à elle seule : un chat rend
+        // volontiers un gros lot en plusieurs messages, et l'import du premier
+        // fait sortir ses clés de l'état courant — l'empreinte du second ne
+        // peut alors plus correspondre, et le refuser en bloc perdrait tout
+        // son travail. Le refus en bloc d'« empreinte périmée » ne survit que
+        // ici : un fichier dont **aucune** clé ne concerne l'état courant ne
+        // peut rien apporter, c'est le lot d'un autre moment du mod.
+        guard lot.entries.contains(where: { expected[identity($0.component, $0.key)] != nil })
+        else { throw FileRefusal.staleDigest }
 
         var accepted: [Accepted] = []
         var rejected: [Rejection] = []
@@ -71,17 +83,27 @@ public enum TranslationLotImport {
                                           reason: .sourceAltered))
                 continue
             }
-            let missing = TranslationTokenCheck
-                .mismatches(source: origin.source, target: entry.target)
-                .filter { $0.isHard && $0.found < $0.expected }
-                .map(\.token)
+            // Marques dures : `saveTranslation` bloque sur toute divergence,
+            // dans les deux sens — la relecture doit voir exactement la même
+            // chose, sans quoi l'entrée serait acceptée ici puis refusée à
+            // l'écriture, et finirait dans un compte nu sans clé ni motif.
+            let diverging = TranslationTokenCheck
+                .mismatches(source: origin.source, target: target)
+                .filter(\.isHard)
+            let missing = diverging.filter { $0.found < $0.expected }.map(\.token)
             guard missing.isEmpty else {
                 rejected.append(Rejection(component: entry.component, key: entry.key,
                                           reason: .missingHardMarkers(missing)))
                 continue
             }
+            let extra = diverging.filter { $0.found > $0.expected }.map(\.token)
+            guard extra.isEmpty else {
+                rejected.append(Rejection(component: entry.component, key: entry.key,
+                                          reason: .extraHardMarkers(extra)))
+                continue
+            }
             accepted.append(Accepted(component: entry.component, key: entry.key,
-                                     source: origin.source, target: entry.target))
+                                     source: origin.source, target: target))
         }
         return Report(accepted: accepted, rejected: rejected)
     }

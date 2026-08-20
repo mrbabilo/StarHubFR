@@ -53,15 +53,69 @@ struct TranslationLotImportTests {
         #expect(report.rejected.first?.key == "a")
     }
 
-    /// Un fichier qui ne correspond plus au mod est refusé **en bloc**, avant
-    /// toute écriture : le mod a bougé depuis l'export.
-    @Test func aLotWhoseDigestNoLongerMatchesIsRefusedWhole() {
+    /// Une source qui a changé depuis l'export ne fait plus tomber le fichier
+    /// entier : elle est écartée **entrée par entrée**, avec son motif. C'est
+    /// le contrôle `sourceAltered` qui porte l'invariant « ne jamais écrire
+    /// sur une clé qui a bougé », pas l'empreinte du fichier.
+    @Test func anAlteredSourceIsSetAsideEntryByEntry() throws {
         let sent = lot([("a", "One")])
         let other = lot([("a", "Changed")])
+        let report = try TranslationLotImport.read(json(other, filling: ["a": "Un"]),
+                                                   expecting: sent)
+        #expect(report.accepted.isEmpty)
+        #expect(report.rejected.map(\.reason) == [.sourceAltered])
+    }
+
+    /// **Le cas qui motive tout ce chemin.** Un chat rend un gros lot en deux
+    /// messages : le premier fichier s'importe, ce qui fait sortir ses clés de
+    /// l'ensemble éligible et change donc l'empreinte de l'état courant. Le
+    /// second fichier ne doit pas être refusé en bloc pour autant — la clé
+    /// déjà écrite est simplement inconnue de l'état courant, donc écartée,
+    /// et le reste passe.
+    @Test func anEntryWrittenSinceTheExportDoesNotSinkTheRest() throws {
+        let file = lot([("a", "One"), ("b", "Two")])
+        let sent = lot([("b", "Two")])          // « a » a acquis un français
+        #expect(file.digest != sent.digest)
+        let report = try TranslationLotImport.read(
+            json(file, filling: ["a": "Un", "b": "Deux"]), expecting: sent)
+        #expect(report.accepted.map(\.key) == ["b"])
+        #expect(report.rejected.map(\.key) == ["a"])
+        #expect(report.rejected.first?.reason == .unknownKey)
+    }
+
+    /// L'autre bout du même chemin : quand l'empreinte diffère **et** que rien
+    /// de ce fichier ne concerne l'état courant, il n'y a rien à raconter
+    /// entrée par entrée — le refus en bloc reste la bonne réponse.
+    @Test func aLotWhereNothingResolvesIsRefusedWhole() {
+        let sent = lot([("a", "One")])
+        let other = lot([("b", "Two")])
         #expect(throws: TranslationLotImport.FileRefusal.staleDigest) {
-            _ = try TranslationLotImport.read(json(other, filling: ["a": "Un"]),
-                                              expecting: sent)
+            _ = try TranslationLotImport.read(json(other, filling: [:]), expecting: sent)
         }
+    }
+
+    /// Une marque dure **en trop** est écartée comme une marque manquante :
+    /// `saveTranslation` bloque sur toute divergence dure, dans les deux sens,
+    /// et la relecture du lot doit voir exactement la même chose — sans quoi
+    /// l'entrée serait acceptée ici puis refusée à l'écriture, et finirait
+    /// dans un nombre nu sans clé ni motif.
+    @Test func anEntryThatDuplicatesAHardMarkerIsRejectedAlone() throws {
+        let sent = lot([("a", "Hello {{Name}}"), ("b", "Two")])
+        let report = try TranslationLotImport.read(
+            json(sent, filling: ["a": "Bonjour {{Name}} {{Name}}", "b": "Deux"]),
+            expecting: sent)
+        #expect(report.accepted.map(\.key) == ["b"])
+        #expect(report.rejected.map(\.reason) == [.extraHardMarkers(["{{Name}}"])])
+    }
+
+    /// Un chat rend volontiers `"Bonjour "` ou `"Bonjour\n"`. Cet espace ne
+    /// doit pas atterrir dans le `fr.json` du mod : c'est la valeur élaguée —
+    /// celle qui a servi au test de vide — qui est transportée.
+    @Test func theAcceptedTargetIsTrimmed() throws {
+        let sent = lot([("a", "One")])
+        let report = try TranslationLotImport.read(
+            json(sent, filling: ["a": "  Un\n"]), expecting: sent)
+        #expect(report.accepted.map(\.target) == ["Un"])
     }
 
     @Test func aLotFromAnotherModIsRefusedWhole() {
