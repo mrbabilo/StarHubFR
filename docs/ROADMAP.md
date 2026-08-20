@@ -118,7 +118,7 @@ liste du 2026-07-30 et n'existaient pas dans le document de veille.
 | §5 | Aide à la configuration des raccourcis clavier | **À faire** | → **C4-T2** |
 | §6 | Éditeur `fr.json` avec diagnostic des clés | **À faire** | → **C2**, **C3** |
 | §6 | Chaînes anglaises non traduites hors i18n (`events.json`, `dialogues.json`…) | **À faire** | → **C3-T2** |
-| §6 | Pré-traduction (DeepL / Claude / Google) | **À faire** | → **C3-T3** |
+| §6 | Pré-traduction (DeepL / Claude / Google) | **Partiel ✅** | Voie **locale** livrée (Ollama / LM Studio, par clé et par lot, glossaire du jeu imposé) → **C3-T3**. Voie **distante** spécifiée, non livrée → **C3-T7** |
 | §6 | Une mise à jour de mod signale les conflits de config/traduction | **À faire** | → **C2-T4** |
 | §7 | Packs de mods et de configs distribuables | **À faire** | → **E1** |
 | §8 | Éditeur de sauvegardes enrichi | **Partiel** | `SaveManager.swift` : argent, stats de base, duplication → **E3** (arbitrage) |
@@ -461,12 +461,36 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 - [ ] **C3-T2** — Scan élargi aux assets Content Patcher (`events.json`, `dialogues.json`,
       `content.json`) : repérer les chaînes affichées restées en anglais. · **L** ·
       risque : forte hétérogénéité des packs → livrer en « suggestions », jamais en verdict.
-- [ ] **C3-T3** — Pré-traduction assistée. **Deux voies, l'une n'exclut pas l'autre** :
+- [x] **C3-T3** — Pré-traduction assistée. **Deux voies, l'une n'exclut pas l'autre** :
       API distante (DeepL/Claude/Google, clé au trousseau) ou **endpoint local compatible
       OpenAI** (Ollama/LM Studio — ni coût, ni fuite de données, précédent établi par la
       référence ci-dessus). Opt-in explicite, diff obligatoire avant écriture. · **M**
-- [ ] **C3-T4** — Glossaire de termes du jeu pour la cohérence (noms de PNJ, objets,
+      **Livré** le 2026-08-19/20 (P2b, `[Unreleased]`) — **la voie locale seule** :
+      Ollama et LM Studio sondés en loopback, par clé et par lot arrêtable, sans
+      proxy ni redirection suivie. Le panneau conseille en plus un modèle adapté à
+      la mémoire de la machine, ou en retient un déjà installé plutôt que de faire
+      télécharger plusieurs gigaoctets.
+      **Deux écarts assumés par rapport à l'énoncé.** *Le diff avant écriture* n'est
+      obligatoire que sur la voie **par clé** : la proposition remplit un brouillon
+      qu'un « Enregistrer » explicite valide. Le **lot** écrit directement — mais
+      jamais sur une valeur française existante (il ne traite que l'absent et le
+      vide), avec `.bak`, et chaque valeur écrite porte le drapeau **« À relire »**
+      avec son filtre. C'est ce drapeau qui remplace le diff sur cette voie ; sans
+      lui, une valeur machine se présenterait comme relue.
+      *La voie distante* n'est pas livrée : spec écrite le 2026-08-20
+      (`docs/superpowers/specs/2026-08-20-secours-traduction-en-ligne-design.md`),
+      voir **C3-T7**.
+- [x] **C3-T4** — Glossaire de termes du jeu pour la cohérence (noms de PNJ, objets,
       saisons), amorcé depuis les traductions officielles. · **M**
+      **Livré** le 2026-08-19 (P2b, `[Unreleased]`) : 1 126 termes lus **dans les
+      `.xnb` du jeu installé** — objets, artisanat, armes, outils, vêtements, PNJ,
+      lieux, saisons — et imposés au modèle, avec pastilles cliquables dans
+      l'éditeur. A demandé d'écrire un décodeur LZX et un lecteur XNB complets
+      (translittérés de `lzxd`), validés **octet par octet** contre StardewXnbHack :
+      360 dictionnaires réels, 360 identiques.
+      Écart assumé : la gate de qualité exige `en != fr`, donc les noms propres
+      identiques dans les deux langues (« Abigail ») **sortent** du glossaire —
+      voulu, un nom identique n'a pas besoin d'être imposé.
 - [ ] **C3-T5** — Export/import d'un lot de travail (`.json`) pour traduire à plusieurs,
       puis fusion contrôlée. · **M**
 - [x] **C3-T6** — `I18nLenientParser` garde la **première** occurrence d'une clé JSON
@@ -486,6 +510,19 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       première occurrence** — c'est elle que le parseur applique désormais, plutôt
       que de « garder la première ». Chiffres recalés sur le parc du jour :
       58 fichiers i18n sur 2487, dont 39 aux valeurs divergentes.
+
+- [ ] **C3-T7** — **Secours de traduction en ligne (DeepL)** : quand l'IA locale
+      échoue — serveur injoignable, ou refus faute de marques dures après retry —,
+      la clé part chez DeepL, et seulement alors. Accord explicite par case à
+      cocher, décochée par défaut ; clé au trousseau ; quota lu sur `/v2/usage`
+      plutôt que codé en dur. · **M** · risque : un moteur générique ignore les
+      marques du jeu — la protection passe par `tag_handling: xml` + `ignore_tags`,
+      et c'est là qu'est le vrai travail, pas dans l'appel HTTP.
+      Spec validée le 2026-08-20 :
+      `docs/superpowers/specs/2026-08-20-secours-traduction-en-ligne-design.md`.
+      Google Traduction écarté (pas d'API gratuite officielle ; les points d'entrée
+      non documentés violent les conditions d'utilisation), LibreTranslate écarté
+      (pas d'équivalent d'`ignore_tags`).
 
 #### C4 — Éditeur de config lisible
 
