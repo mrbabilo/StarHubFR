@@ -804,6 +804,7 @@
 "mods_translation_editor_pretranslate" = "Pre-translate";
 "mods_translation_editor_pretranslating" = "Local translation in progress…";
 "mods_translation_editor_pretranslate_failed" = "The local AI didn't answer — check the settings";
+"mods_translation_editor_pretranslate_no_ai" = "No local AI configured — set a server URL and a model in Settings › Assisted translation";
 "mods_translation_editor_glossary" = "Game terms";
 "mods_translation_batch_button" = "Batch pre-translate";
 "mods_translation_batch_recap" = "%1$lld keys to translate with %2$@. Every result will be marked To review.";

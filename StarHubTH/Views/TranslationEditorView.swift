@@ -238,6 +238,13 @@ struct TranslationEditorView: View {
     /// retaper la phrase n'y changera rien, et l'avis ne doit pas s'effacer
     /// au premier caractère, pour la même raison que celui de `save()`.
     private func preTranslate() async {
+        // Rien à demander sans IA réglée : la panne serait annoncée comme un
+        // serveur muet, alors qu'il n'y a pas de serveur. Le lot cache son
+        // bouton dans ce cas (spec §7) ; ici il reste, mais il dit où aller.
+        guard vm.isLocalAIConfigured else {
+            failureMessage = vm.L(L10n.Mods.translationEditorPretranslateNoAI)
+            return
+        }
         isPreTranslating = true
         defer { isPreTranslating = false }
         if let proposal = await vm.preTranslate(mod: mod, locale: locale, row: row) {

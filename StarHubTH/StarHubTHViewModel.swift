@@ -484,7 +484,6 @@ class StarHubTHViewModel: ObservableObject {
     /// Posé quand une pré-traduction échoue faute de serveur configuré :
     /// l'appelant en fait l'invitation à ouvrir les réglages au lieu d'un
     /// message d'erreur générique.
-    @Published private(set) var preTranslateNeedsSettings = false
 
     /// Le glossaire en mémoire — une langue à la fois : le hub FR n'en charge
     /// qu'une, et recharger le JSON à chaque clé traduite serait payer le
@@ -542,14 +541,13 @@ class StarHubTHViewModel: ObservableObject {
     /// chemin d'écriture, et la voie par clé ne pose jamais le drapeau
     /// « à relire » (spec §2.4).
     ///
-    /// Un échec faute de configuration pose `preTranslateNeedsSettings` pour
-    /// que l'appelant oriente vers les réglages plutôt que vers un message
-    /// d'erreur qui n'aidera pas.
+    /// Sans IA réglée, la vue n'appelle même pas : elle affiche où aller
+    /// (`isLocalAIConfigured` est son garde-fou). La garde ci-dessous reste
+    /// la ceinture — rendre `nil` plutôt qu'un message trompeur.
     @MainActor
     func preTranslate(mod: ModItem, locale: String,
                       row: TranslationCoverage.DiffRow) async -> String? {
         guard let base = localAIEndpoint, !localAIModelName.isEmpty else {
-            preTranslateNeedsSettings = true
             return nil
         }
         let request = LocalLLMClient.Request(
@@ -669,7 +667,6 @@ class StarHubTHViewModel: ObservableObject {
                           rows: [TranslationCoverage.DiffRow]) async {
         defer { batchTask = nil; batchProgress = nil }
         guard let base = localAIEndpoint, !localAIModelName.isEmpty else {
-            preTranslateNeedsSettings = true
             return
         }
         // Jamais une valeur française existante (spec §8.2) : le planneur ne
