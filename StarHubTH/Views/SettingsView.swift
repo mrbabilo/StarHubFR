@@ -371,7 +371,9 @@ private struct LocalAISettingsSection: View {
                                 .font(.system(size: 11))
                                 .foregroundColor(.green)
                         } else if testVerdictOK == false {
-                            Text(vm.L(L10n.Settings.localAINoneDetected))
+                            // Pas « aucun serveur détecté » : l'utilisateur
+                            // vient de saisir une URL, c'est d'elle qu'on parle.
+                            Text(vm.L(L10n.Settings.localAITestFailed))
                                 .font(.system(size: 11))
                                 .foregroundColor(.secondary)
                         }
@@ -389,7 +391,7 @@ private struct LocalAISettingsSection: View {
                                 .font(.system(size: 12))
                                 .foregroundColor(.secondary)
                         } else {
-                            Text(vm.L(L10n.Settings.localAINoneDetected))
+                            Text(vm.L(L10n.Settings.glossaryNone))
                                 .font(.system(size: 11))
                                 .foregroundColor(.secondary)
                         }
@@ -410,19 +412,32 @@ private struct LocalAISettingsSection: View {
         }
         .task {
             // Sondage parallèle des deux briques, timeout 2 s (spec §6).
-            probes = await LocalLLMClient.probeBricks(
-                session: LocalLLMEndpoint.makeSession(timeout: 2))
+            let session = LocalLLMEndpoint.makeSession(timeout: 2)
+            probes = await LocalLLMClient.probeBricks(session: session)
+            session.finishTasksAndInvalidate()
             isProbing = false
             if baseURL.isEmpty, let first = probes.first {
                 baseURL = first.baseURL.absoluteString
-                models = first.models
             }
-            if model.isEmpty, let first = probes.first {
-                model = first.models.first ?? ""
+            // Les modèles proposés — et le modèle par défaut — viennent du
+            // serveur que **l'URL désigne**, jamais du premier sondé : une URL
+            // déjà réglée sur Ollama recevait sinon un modèle de LM Studio, et
+            // chaque requête postait un nom que le serveur ne connaît pas.
+            if let current = probeMatching(baseURL) {
+                models = current.models
+                if model.isEmpty { model = current.models.first ?? "" }
             }
             glossaryCount = vm.currentGlossary(language: "fr")?.entries.count
             glossaryDate = vm.glossaryBuiltDate(language: "fr")
         }
+    }
+
+    /// La brique sondée que `text` désigne — appariée sur hôte **et** port,
+    /// pas sur l'ordre du sondage. `nil` si l'URL n'est pas valide ou ne
+    /// correspond à aucune brique détectée.
+    private func probeMatching(_ text: String) -> LocalLLMClient.ProbeResult? {
+        guard let url = LocalLLMEndpoint.validate(text) else { return nil }
+        return probes.first { $0.baseURL.host == url.host && $0.baseURL.port == url.port }
     }
 
     private func testConnection() {
@@ -431,9 +446,10 @@ private struct LocalAISettingsSection: View {
                 testVerdictOK = false
                 return
             }
+            let session = LocalLLMEndpoint.makeSession(timeout: 5)
+            defer { session.finishTasksAndInvalidate() }
             do {
-                models = try await LocalLLMClient.listModels(
-                    baseURL: url, session: LocalLLMEndpoint.makeSession(timeout: 5))
+                models = try await LocalLLMClient.listModels(baseURL: url, session: session)
                 testVerdictOK = true
             } catch {
                 testVerdictOK = false

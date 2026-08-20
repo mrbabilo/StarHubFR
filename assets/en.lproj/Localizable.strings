@@ -816,11 +816,13 @@
 "settings_localai_model" = "Model";
 "settings_localai_detected" = "Detected: %1$@ (%2$lld models)";
 "settings_localai_none_detected" = "No local server detected — install Ollama or LM Studio, or enter a URL";
+"settings_localai_test_failed" = "No answer from this URL — check the server is running and the address is right";
 "settings_localai_test" = "Test";
 "settings_localai_ok" = "Connection working";
 "settings_glossary_title" = "Game glossary";
 "settings_glossary_rebuild" = "Rebuild";
 "settings_glossary_info" = "%1$lld terms, built on %2$@";
+"settings_glossary_none" = "No glossary yet — Rebuild reads the terms from your installed game";
 "settings_localai_privacy" = "Everything stays on this machine: nothing is sent anywhere but your local server.";
 "mods_translation_review_needed" = "To review";
 "mods_translation_batch_close" = "Close";
