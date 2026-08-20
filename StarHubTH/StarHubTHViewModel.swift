@@ -1057,6 +1057,99 @@ class StarHubTHViewModel: ObservableObject {
         }
     }
 
+    /// Le lot d'un mod, prêt à être écrit sur disque. `nil` s'il n'y a rien à
+    /// traduire — l'appelant le dit plutôt que d'écrire un fichier vide.
+    @MainActor
+    func exportTranslationLot(mod: ModItem, locale: String,
+                              rows: [TranslationCoverage.DiffRow]) -> Data? {
+        let lot = TranslationLot.build(mod: mod.folderName, language: locale,
+                                       rows: rows, glossary: currentGlossary(language: locale))
+        guard !lot.entries.isEmpty else { return nil }
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes]
+        do {
+            return try encoder.encode(lot)
+        } catch {
+            log("Lot non exporté pour \(mod.name) : \(error)", level: .warning)
+            return nil
+        }
+    }
+
+    /// Ce qu'un import a produit, pour le dire à l'utilisateur.
+    struct LotOutcome: Equatable {
+        let written: Int
+        let rejected: [TranslationLotImport.Rejection]
+        /// Le fichier a été refusé en bloc — rien n'a été écrit.
+        let refusal: TranslationLotImport.FileRefusal?
+    }
+
+    /// Écrit ce qu'un lot rapporte, par le chemin d'écriture existant (avec
+    /// son `.bak` et son gate de marques), et pose « À relire » sur tout —
+    /// une traduction machine reste une traduction machine.
+    ///
+    /// `sent` est **reconstruit** depuis `rows` — l'état courant du mod au
+    /// moment de l'import, pas relu depuis le fichier reçu. C'est cette
+    /// reconstruction qui fait toute la protection de `TranslationLotImport` :
+    /// un lot exporté avant une mise à jour du mod ne peut pas écrire ses
+    /// traductions sur des clés qui ont changé entretemps, puisque l'empreinte
+    /// de `sent` ne correspondrait plus à celle du fichier reçu.
+    @MainActor
+    func importTranslationLot(_ data: Data, mod: ModItem, locale: String,
+                              rows: [TranslationCoverage.DiffRow]) -> LotOutcome {
+        let sent = TranslationLot.build(mod: mod.folderName, language: locale,
+                                        rows: rows, glossary: currentGlossary(language: locale))
+        let report: TranslationLotImport.Report
+        do {
+            report = try TranslationLotImport.read(data, expecting: sent)
+        } catch let refusal as TranslationLotImport.FileRefusal {
+            log("Lot refusé pour \(mod.name) : \(refusal)", level: .warning)
+            return LotOutcome(written: 0, rejected: [], refusal: refusal)
+        } catch {
+            return LotOutcome(written: 0, rejected: [],
+                              refusal: .unreadable)
+        }
+
+        // Les rangées par identité : l'écriture passe par le chemin existant,
+        // qui a besoin de la rangée, pas seulement de la clé.
+        var byIdentity: [String: TranslationCoverage.DiffRow] = [:]
+        for row in rows {
+            byIdentity["\(row.component ?? "")\u{1F}\(row.key)"] = row
+        }
+
+        var written = 0
+        var flags: [TranslationBaseline.ReviewFlag] = []
+        for entry in report.accepted {
+            guard let row = byIdentity["\(entry.component ?? "")\u{1F}\(entry.key)"] else {
+                // Ne devrait pas se produire : `TranslationLotImport.read` n'accepte
+                // une entrée que si son identité correspond à une clé de `sent`, donc
+                // à une rangée de `rows` — mais un accepté qui se perd ici serait
+                // compté nulle part, ni écrit ni écarté. Journalisé pour rester visible
+                // si l'invariant se rompt un jour.
+                log("Entrée acceptée introuvable parmi les rangées pour \(mod.name) — "
+                    + "\(entry.key)", level: .warning)
+                continue
+            }
+            if case .saved = saveTranslation(mod: mod, locale: locale, row: row,
+                                             value: entry.target,
+                                             clearingReviewFlag: false) {
+                written += 1
+                flags.append(.init(component: entry.component, key: entry.key,
+                                   source: entry.source, target: entry.target))
+            }
+        }
+        if !flags.isEmpty, let store = TranslationBaseline.defaultDirectory() {
+            do {
+                try TranslationBaseline.setReviewNeeded(flags, modFolderName: mod.folderName,
+                                                        in: store)
+            } catch {
+                log("Drapeaux à relire non posés pour \(mod.name) : \(error)", level: .warning)
+            }
+        }
+        log("Lot importé pour \(mod.folderName) : \(written) écrites, "
+            + "\(report.rejected.count) écartées", level: .info)
+        return LotOutcome(written: written, rejected: report.rejected, refusal: nil)
+    }
+
     /// Oublie la couverture d'un mod dont les fichiers ont pu changer —
     /// installation, mise à jour, restauration de sauvegarde. Le prochain
     /// passage la recalculera. Sans cet appel, un mod mis à jour garderait
