@@ -467,15 +467,20 @@ struct TranslationDiffView: View {
                     .font(.system(size: 12))
                     .fixedSize(horizontal: false, vertical: true)
             } else {
-                // « Écartées » compte tout ce qui n'a pas été écrit : les
-                // entrées rejetées à la relecture du lot, et celles acceptées
-                // par la relecture mais qui ont ensuite échoué à l'écriture
-                // elle-même (typiquement une marque dure en trop) — les deux
-                // sont un travail qui reste à faire, le compte le doit dire
-                // en entier même si seules les premières ont une clé à lister.
+                // Trois nombres distincts, comme le rapport du lot IA
+                // (`mods_translation_batch_report`) : fondre les rejets de
+                // relecture et les échecs d'écriture dans un seul « écarté »
+                // annonçait des entrées que la liste ci-dessous ne montrait
+                // jamais — `writeFailures` n'a pas de clé à lister (accepté
+                // par la relecture du lot, refusé par `saveTranslation` lui-
+                // même, typiquement une marque dure en trop). Séparer les
+                // deux comptes rend visible ce que la liste ne peut pas
+                // nommer, plutôt que de le noyer dans un total plus gros que
+                // ce qu'on montre.
                 Text(String(format: vm.L(L10n.Mods.translationLotDone),
                             Int64(outcome.written),
-                            Int64(outcome.rejected.count + outcome.writeFailures)))
+                            Int64(outcome.rejected.count),
+                            Int64(outcome.writeFailures)))
                     .font(.system(size: 12))
                     .fixedSize(horizontal: false, vertical: true)
                 if !outcome.rejected.isEmpty {
@@ -502,15 +507,15 @@ struct TranslationDiffView: View {
         .frame(minWidth: 460, minHeight: 140)
     }
 
-    /// La ligne d'une entrée écartée : sa clé — préfixée de son composant
-    /// comme `DiffRow.id`, pour que deux composants définissant la même clé
-    /// restent deux lignes distinctes — puis pourquoi elle l'a été. Une clé
-    /// nue ne dit pas si c'est une marque perdue (à corriger dans le chat et
-    /// réimporter) ou une clé inventée (à ignorer) : deux suites différentes,
-    /// le compte rendu doit distinguer les deux.
+    /// La ligne d'une entrée écartée : sa clé — au format exact de
+    /// `DiffRow.id` (`component.map { "\($0)/\(key)" } ?? key`), pour que
+    /// deux composants définissant la même clé restent deux lignes
+    /// distinctes — puis pourquoi elle l'a été. Une clé nue ne dit pas si
+    /// c'est une marque perdue (à corriger dans le chat et réimporter) ou
+    /// une clé inventée (à ignorer) : deux suites différentes, le compte
+    /// rendu doit distinguer les deux.
     private func rejectionLabel(_ rejection: TranslationLotImport.Rejection) -> String {
-        let key = rejection.component.map { $0.isEmpty ? rejection.key : "\($0)/\(rejection.key)" }
-            ?? rejection.key
+        let key = rejection.component.map { "\($0)/\(rejection.key)" } ?? rejection.key
         return "\(key) — \(rejectionReasonLabel(rejection.reason))"
     }
 

@@ -854,7 +854,7 @@
 "mods_translation_lot_import" = "Importer un lot…";
 "mods_translation_lot_nothing" = "Plus rien à traduire dans ce mod.";
 "mods_translation_lot_hint" = "Déposez le fichier dans le chat de votre choix, puis réimportez ce qu'il rend.";
-"mods_translation_lot_done" = "%1$lld clés écrites, %2$lld écartées";
+"mods_translation_lot_done" = "%1$lld clés écrites, %2$lld écartées, %3$lld échouées à l'écriture";
 "mods_translation_lot_stale" = "Ce lot ne correspond plus au mod — il a changé depuis l'export. Exportez-en un nouveau.";
 "mods_translation_lot_wrong_mod" = "Ce lot appartient à un autre mod.";
 "mods_translation_lot_unreadable" = "Ce fichier n'a pas pu être lu comme un lot.";

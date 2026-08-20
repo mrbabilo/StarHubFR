@@ -854,7 +854,7 @@
   "mods_translation_lot_import": "Import a batch…",
   "mods_translation_lot_nothing": "Nothing left to translate in this mod.",
   "mods_translation_lot_hint": "Drop the file into any chat model, then import what it gives back.",
-  "mods_translation_lot_done": "%1$lld keys written, %2$lld set aside",
+  "mods_translation_lot_done": "%1$lld keys written, %2$lld set aside, %3$lld failed to write",
   "mods_translation_lot_stale": "This batch no longer matches the mod — it changed since the export. Export a new one.",
   "mods_translation_lot_wrong_mod": "This batch belongs to another mod.",
   "mods_translation_lot_unreadable": "This file could not be read as a batch.",
