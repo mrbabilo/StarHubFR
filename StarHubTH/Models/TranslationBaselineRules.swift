@@ -53,7 +53,14 @@ public enum TranslationBaselineRules {
             guard row.state != .orphan, !row.french.isEmpty else { continue }
             let key = TranslationBaseline.key(component: row.component, key: row.key)
             guard let reference = existing[key], reference.target != row.french else { continue }
-            refreshed[key] = TranslationBaseline.Entry(source: row.english, target: row.french)
+            // Le réancrage déplace le couple source/cible, rien d'autre : les
+            // drapeaux sont des propriétés de la clé, pas de sa référence.
+            // Les reconstruire à `false` effaçait le badge « à relire » d'une
+            // valeur écrite par le lot dès la fermeture du dialogue.
+            refreshed[key] = TranslationBaseline.Entry(
+                source: row.english, target: row.french,
+                tokenMismatchAccepted: reference.tokenMismatchAccepted,
+                reviewNeeded: reference.reviewNeeded)
         }
         return refreshed
     }

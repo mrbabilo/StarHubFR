@@ -1853,6 +1853,25 @@ struct TranslationBaselineRulesTests {
                                entry("Hello there", "Salut à toi")])
     }
 
+    /// Le réancrage ne juge que le couple source/cible : les drapeaux de la
+    /// clé — « à relire » posé par le lot, dérogation de marques acceptée par
+    /// le traducteur — n'ont rien à voir avec l'obsolescence et doivent
+    /// traverser. Sans ça, une valeur écrite par la machine perdait son badge
+    /// à la fermeture du lot et se présentait comme relue.
+    @Test func reanchoringKeepsTheKeysFlags() {
+        let key = TranslationBaseline.key(component: nil, key: "a")
+        let existing = [key: TranslationBaseline.Entry(
+            source: "Hello", target: "Bonjour",
+            tokenMismatchAccepted: true, reviewNeeded: true)]
+        let refreshed = TranslationBaselineRules.refreshments(
+            rows: [row("a", english: "Hello there", french: "Salut à toi")],
+            existing: existing)
+        #expect(refreshed[key]?.tokenMismatchAccepted == true)
+        #expect(refreshed[key]?.reviewNeeded == true)
+        #expect(refreshed[key]?.source == "Hello there")
+        #expect(refreshed[key]?.target == "Salut à toi")
+    }
+
     @Test func anUnchangedKeyIsNotReanchored() {
         let existing = [TranslationBaseline.key(component: nil, key: "a"):
                          entry("Hello", "Bonjour")]
