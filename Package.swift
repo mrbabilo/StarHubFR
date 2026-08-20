@@ -90,6 +90,7 @@ let package = Package(
                 "Models/GlossaryStore.swift",
                 "Models/LocalLLMEndpoint.swift",
                 "Models/LocalLLMClient.swift",
+                "Models/LocalModelAdvisor.swift",
                 "Extensions/ModConfigFiles.swift",
             ]
         ),
@@ -396,6 +397,11 @@ let package = Package(
             name: "GlossaryBuilderTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/GlossaryBuilderTests"
+        ),
+        .testTarget(
+            name: "LocalModelAdvisorTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/LocalModelAdvisorTests"
         ),
         .testTarget(
             name: "GlossaryMatchingTests",
