@@ -13,7 +13,7 @@ where the exact log format was verified.
 ## [Unreleased]
 
 ### Added
-- **You can now translate a mod with the chat you already use — no local server, no API key, no quota.** Export what's missing French into one self-contained file, hand it to the chat, reimport the answer. It never overwrites French, and an outdated batch is refused.
+- **You can now translate a mod with the chat you already use — no local server, no API key, no quota.** Export the keys with no French yet into one self-contained file, hand it to the chat, reimport what comes back. Existing French is never overwritten, and a batch older than the mod is refused.
 
 ## [1.16.0] - 2026-08-20
 
