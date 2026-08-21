@@ -396,9 +396,16 @@ struct TranslationDiffView: View {
     /// sauvegarde — donc le lot exporté décrit exactement ce que le mod
     /// contient à cet instant.
     private func exportTranslationLot() {
-        guard let data = vm.exportTranslationLot(mod: mod, locale: "fr", rows: rows) else {
+        let data: Data
+        switch vm.exportTranslationLot(mod: mod, locale: "fr", rows: rows) {
+        case .nothingToTranslate:
             vm.showModal(message: vm.L(L10n.Mods.translationLotNothing))
             return
+        case .failed:
+            vm.showModal(message: vm.L(L10n.Mods.translationLotExportFailed))
+            return
+        case .data(let encoded):
+            data = encoded
         }
         let panel = NSSavePanel()
         panel.title = vm.L(L10n.Mods.translationLotExport)
@@ -465,6 +472,14 @@ struct TranslationDiffView: View {
         VStack(alignment: .leading, spacing: 12) {
             if let refusal = outcome.refusal {
                 Text(refusalMessage(refusal))
+                    .font(.system(size: 12))
+                    .fixedSize(horizontal: false, vertical: true)
+            } else if outcome.producedNothing {
+                // « 0 écrites, 0 écartées, 0 échecs » ne dit rien de la suite
+                // à donner : le cas ordinaire est un fichier rendu tel quel,
+                // passé par aucun chat — le dire, plutôt que compter des
+                // zéros.
+                Text(vm.L(L10n.Mods.translationLotNothingTranslated))
                     .font(.system(size: 12))
                     .fixedSize(horizontal: false, vertical: true)
             } else {

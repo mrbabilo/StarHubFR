@@ -1057,21 +1057,30 @@ class StarHubTHViewModel: ObservableObject {
         }
     }
 
-    /// Le lot d'un mod, prêt à être écrit sur disque. `nil` s'il n'y a rien à
-    /// traduire — l'appelant le dit plutôt que d'écrire un fichier vide.
+    /// Ce qu'un export de lot produit : les données prêtes à écrire, ou
+    /// pourquoi il n'y en a pas. Les deux « rien » ne se disent pas de la
+    /// même façon à l'utilisateur — un mod fini et un encodage raté ne
+    /// appellent pas la même suite.
+    enum TranslationLotExport: Equatable {
+        case nothingToTranslate
+        case failed
+        case data(Data)
+    }
+
+    /// Le lot d'un mod, prêt à être écrit sur disque.
     @MainActor
     func exportTranslationLot(mod: ModItem, locale: String,
-                              rows: [TranslationCoverage.DiffRow]) -> Data? {
+                              rows: [TranslationCoverage.DiffRow]) -> TranslationLotExport {
         let lot = TranslationLot.build(mod: mod.folderName, language: locale,
                                        rows: rows, glossary: currentGlossary(language: locale))
-        guard !lot.entries.isEmpty else { return nil }
+        guard !lot.entries.isEmpty else { return .nothingToTranslate }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes]
         do {
-            return try encoder.encode(lot)
+            return .data(try encoder.encode(lot))
         } catch {
             log("Lot non exporté pour \(mod.name) : \(error)", level: .warning)
-            return nil
+            return .failed
         }
     }
 
@@ -1088,6 +1097,14 @@ class StarHubTHViewModel: ObservableObject {
         let writeFailures: Int
         /// Le fichier a été refusé en bloc — rien n'a été écrit.
         let refusal: TranslationLotImport.FileRefusal?
+
+        /// Le fichier est passé, mais n'a rien produit : aucune écriture,
+        /// aucun rejet — le cas ordinaire est un fichier rendu sans qu'aucune
+        /// cible n'ait été remplie. Trois zéros ne se racontent pas en
+        /// nombres : ça se dit.
+        var producedNothing: Bool {
+            refusal == nil && written == 0 && rejected.isEmpty && writeFailures == 0
+        }
     }
 
     /// Écrit ce qu'un lot rapporte, par le chemin d'écriture existant (avec

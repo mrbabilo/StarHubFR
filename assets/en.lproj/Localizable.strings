@@ -858,6 +858,8 @@
 "mods_translation_lot_stale" = "This batch no longer matches the mod — it changed since the export. Export a new one.";
 "mods_translation_lot_wrong_mod" = "This batch belongs to another mod.";
 "mods_translation_lot_unreadable" = "This file could not be read as a batch.";
+"mods_translation_lot_export_failed" = "The batch could not be prepared — see the log for details.";
+"mods_translation_lot_nothing_translated" = "Nothing translated in this file — every target came back empty.";
 "mods_translation_lot_reason_missing_markers" = "missing marker(s): %@";
 "mods_translation_lot_reason_extra_markers" = "extra marker(s): %@";
 "mods_translation_lot_reason_unknown_key" = "unknown key";

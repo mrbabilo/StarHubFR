@@ -261,6 +261,8 @@ enum L10n {
         static let translationLotStale          = "mods_translation_lot_stale"
         static let translationLotWrongMod       = "mods_translation_lot_wrong_mod"
         static let translationLotUnreadable     = "mods_translation_lot_unreadable"
+        static let translationLotExportFailed   = "mods_translation_lot_export_failed"
+        static let translationLotNothingTranslated = "mods_translation_lot_nothing_translated"
         static let translationLotReasonMissingMarkers = "mods_translation_lot_reason_missing_markers"
         static let translationLotReasonExtraMarkers    = "mods_translation_lot_reason_extra_markers"
         static let translationLotReasonUnknownKey      = "mods_translation_lot_reason_unknown_key"
