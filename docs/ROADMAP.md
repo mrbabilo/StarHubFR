@@ -552,9 +552,15 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       Google Traduction écarté (pas d'API gratuite officielle ; les points d'entrée
       non documentés violent les conditions d'utilisation), LibreTranslate écarté
       (pas d'équivalent d'`ignore_tags`).
-      **Livré** le 2026-08-21 (`9ec6030`…`d542608`). Comme pour tout ce qui touche
-      l'écran dans ce dépôt, la vérification à l'affichage revient à l'humain —
-      ici avec une vraie clé gratuite, avant la release.
+      **Livré** le 2026-08-21 (`9ec6030`…`d542608`), **sorti en v1.17.0** et
+      validé à l'écran le même jour, sur une vraie clé gratuite.
+      **Un défaut a survécu à toute la suite stubée** : `ignore_tags` partait en
+      chaîne là où l'API JSON attend un tableau, et le service refusait *chaque*
+      traduction (`HTTP 400`). Rien ne l'a vu — ni les tests, ni la relecture —
+      parce qu'un stub accepte n'importe quel corps ; c'est le compteur de
+      caractères du compte, resté à zéro, qui l'a dit. D'où `DeepLLiveTests`,
+      un oracle sur le vrai service (`DEEPL_API_KEY=…:fx ./run_tests.sh`), sur
+      le modèle de l'oracle XNB.
       Deux écarts assumés par rapport à la spec, tous deux constatés en écrivant
       le code :
       1. **Le secours peut être le seul moteur.** La spec le décrivait comme un
@@ -567,6 +573,21 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
          voulait « la même coupure », et c'est bien la même — mais rien n'a été
          consommé, et l'annoncer comme un quota enverrait l'utilisateur chercher
          un problème qui n'existe pas.
+
+- [x] **C3-T8** — **Traduire une sélection de la source**. Une valeur entière
+      n'est pas toujours ce qu'on veut traduire : il manque un mot, une
+      tournure, et le reste est déjà écrit. La sélection de l'anglais part
+      seule — clic droit ou bouton —, la phrase entière servant de contexte non
+      traduit. · **S**
+      **Livré** le 2026-08-21 (`ab964c1`…`e786dfa`), sorti en v1.17.0, validé à
+      l'écran. Trois décisions inscrites dans le code : le résultat est une
+      pastille qu'on clique pour l'insérer (macOS 14 ne dit pas où est le
+      curseur d'un `TextEditor`, « insérer au curseur » aurait dégénéré en
+      « ajouter à la fin ») ; une sélection qui emporte une marque du jeu est
+      refusée, les marques nommées ; cette voie passe par le service en ligne
+      **seul**, le prompt local étant bâti pour une valeur entière.
+      Le panneau anglais est devenu un pont AppKit : SwiftUI rend un texte
+      sélectionnable mais ne dit pas ce qui l'est avant macOS 15.
 
 #### C4 — Éditeur de config lisible
 
@@ -962,15 +983,17 @@ L'ordre **A4 → C → B → A → D → E** se justifie ainsi :
 *réparer d'abord une modlist qui casse, ou tenir d'abord la promesse francophone ?*
 Les deux ont été faits. La bissection est sortie en v1.11.0, et l'axe C a suivi sans
 attendre : diagnostic (v1.13.0), éditeur (v1.15.0), glossaire et IA locale
-(`[Unreleased]`). Le « plus petit incrément qui rende le positionnement défendable »
-— `C1` + `C2` — est livré depuis la v1.13.0.
+(v1.16.0), les trois voies sans modèle local (v1.17.0). Le « plus petit incrément
+qui rende le positionnement défendable » — `C1` + `C2` — est livré depuis la
+v1.13.0.
 
-**L'arbitrage ouvert aujourd'hui** est ailleurs : **finir C** (l'export ZIP, C3-T7
-le secours en ligne, C4 la config lisible, C5 le hub agnostique de la langue) ou
-**ouvrir B** (profils, backups, fiche mod — des dettes d'usage sur des
-fonctionnalités déjà payées). Le raisonnement du point 3 ci-dessus plaide pour B
-dès que C est *stable* ; C est fonctionnel, validé à la main jusqu'au lot JSON, et
-son dernier palier (C3-T7) a sa spec et son plan.
+**L'arbitrage ouvert aujourd'hui.** La pré-traduction est complète depuis la
+v1.17.0 : locale, par son propre chat, par API distante, plus la traduction
+d'une sélection — toutes validées à l'écran. Ce qui reste de C n'est plus une
+promesse tenue à moitié mais des extensions : l'export ZIP, C4 la config
+lisible, C5 le hub agnostique de la langue. Le raisonnement du point 3 ci-dessus
+plaide pour **ouvrir B** (profils, backups, fiche mod — des dettes d'usage sur
+des fonctionnalités déjà payées) dès que C est *stable* : il l'est.
 
 ---
 
