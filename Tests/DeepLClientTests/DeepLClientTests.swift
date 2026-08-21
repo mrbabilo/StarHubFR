@@ -149,3 +149,114 @@ struct DeepLUsageTests {
         }
     }
 }
+
+/// Même stub, donc même sérialisation : la suite est unique et ses tests
+/// s'exécutent l'un après l'autre.
+extension DeepLUsageTests {
+
+    private func body(_ text: String) -> String {
+        #"{"translations":[{"detected_source_language":"EN","text":"\#(text)"}]}"#
+    }
+
+    private func sentPayload(_ index: Int = 0) throws -> [String: Any] {
+        let data = try #require(DeepLStub.seenBodies.indices.contains(index)
+                                ? DeepLStub.seenBodies[index] : nil)
+        return try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+    }
+
+    @Test func aTranslationComesBackUnwrapped() async {
+        DeepLStub.reply(body("Salut <x>{{Name}}</x> !"))
+        let outcome = await DeepLClient.translate("Hi {{Name}}!", context: nil,
+                                                  credentials: free,
+                                                  session: DeepLStub.session())
+        #expect(outcome == .translated("Salut {{Name}} !"))
+    }
+
+    /// Ce qui part est **enveloppé** : c'est cette ligne du corps qui protège
+    /// les marques, et rien d'autre.
+    @Test func theRequestCarriesWrappedTextAndTheIgnoreTagsSwitches() async throws {
+        DeepLStub.reply(body("Salut"))
+        _ = await DeepLClient.translate("Hi {{Name}}!", context: nil,
+                                        credentials: free, session: DeepLStub.session())
+        let sent = try sentPayload()
+        #expect(sent["text"] as? [String] == ["Hi <x>{{Name}}</x>!"])
+        #expect(sent["tag_handling"] as? String == "xml")
+        #expect(sent["ignore_tags"] as? String == "x")
+        #expect(sent["target_lang"] as? String == "FR")
+        #expect(sent["source_lang"] as? String == "EN")
+        #expect(sent["split_sentences"] as? String == "nonewlines")
+        #expect(DeepLStub.seenURLs.first?.absoluteString
+                == "https://api-free.deepl.com/v2/translate")
+    }
+
+    /// L'étiquette de section voyage par `context`, que DeepL ne traduit pas.
+    @Test func theSectionLabelTravelsAsUntranslatedContext() async throws {
+        DeepLStub.reply(body("Salut"))
+        _ = await DeepLClient.translate("Hi", context: "Dialogue locationnel",
+                                        credentials: free, session: DeepLStub.session())
+        #expect(try sentPayload()["context"] as? String == "Dialogue locationnel")
+    }
+
+    @Test func quotaExhaustedIsNamed() async {
+        DeepLStub.reply("", status: 456)
+        let outcome = await DeepLClient.translate("Hi", context: nil,
+                                                  credentials: free,
+                                                  session: DeepLStub.session())
+        #expect(outcome == .quotaExhausted)
+        #expect(DeepLStub.seenURLs.count == 1)  // un 456 ne se retente pas
+    }
+
+    /// 429 : une seule nouvelle tentative, temporisée. Si elle passe, la
+    /// traduction est rendue — c'est tout l'intérêt du retry.
+    @Test func aRateLimitIsRetriedOnceAndSucceeds() async {
+        DeepLStub.reply(body("Salut"), status: 429, then: [200])
+        let outcome = await DeepLClient.translate("Hi", context: nil,
+                                                  credentials: free,
+                                                  session: DeepLStub.session(),
+                                                  retryDelay: .zero)
+        #expect(outcome == .translated("Salut"))
+        #expect(DeepLStub.seenURLs.count == 2)
+    }
+
+    /// Le second 429 arrête tout : marteler une API qui a déjà dit non deux
+    /// fois ne la fera pas céder. L'appelant coupe le secours pour le lot.
+    @Test func aSecondRateLimitStopsTheFallback() async {
+        DeepLStub.reply("", status: 429, then: [429])
+        let outcome = await DeepLClient.translate("Hi", context: nil,
+                                                  credentials: free,
+                                                  session: DeepLStub.session(),
+                                                  retryDelay: .zero)
+        #expect(outcome == .rateLimited)
+        #expect(DeepLStub.seenURLs.count == 2)
+    }
+
+    @Test func aRefusedKeyIsRejectedNotRetried() async {
+        DeepLStub.reply("", status: 403)
+        let outcome = await DeepLClient.translate("Hi", context: nil,
+                                                  credentials: free,
+                                                  session: DeepLStub.session())
+        guard case .rejected = outcome else {
+            Issue.record("attendu .rejected, reçu \(outcome)"); return
+        }
+        #expect(DeepLStub.seenURLs.count == 1)
+    }
+
+    /// Le message d'erreur ne doit **jamais** porter la clé.
+    @Test func noErrorMessageEverCarriesTheKey() async {
+        DeepLStub.reply("", status: 500)
+        let outcome = await DeepLClient.translate("Hi", context: nil,
+                                                  credentials: free,
+                                                  session: DeepLStub.session())
+        #expect(!"\(outcome)".contains("k:fx"))
+    }
+
+    @Test func anEmptyTranslationListIsRejected() async {
+        DeepLStub.reply(#"{"translations":[]}"#)
+        let outcome = await DeepLClient.translate("Hi", context: nil,
+                                                  credentials: free,
+                                                  session: DeepLStub.session())
+        guard case .rejected = outcome else {
+            Issue.record("attendu .rejected, reçu \(outcome)"); return
+        }
+    }
+}
