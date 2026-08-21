@@ -54,8 +54,7 @@ struct TranslationBatchView: View {
     private var recap: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(String(format: vm.L(L10n.Mods.translationBatchRecap),
-                        Int64(eligible.count),
-                        UserDefaults.standard.string(forKey: UDKey.localAIModel) ?? ""))
+                        Int64(eligible.count), engineName))
                 .font(.system(size: 12))
                 .fixedSize(horizontal: false, vertical: true)
             HStack {
@@ -69,6 +68,17 @@ struct TranslationBatchView: View {
                 .disabled(eligible.isEmpty)
             }
         }
+    }
+
+    /// Ce qui va traduire, tel quel : le modèle local, « DeepL » quand il est
+    /// seul, les deux quand le secours doublera le local. Le nom du modèle
+    /// seul mentait dès qu'aucun n'était réglé — le récapitulatif annonçait
+    /// « à traduire avec  », sans rien après.
+    private var engineName: String {
+        let model = UserDefaults.standard.string(forKey: UDKey.localAIModel) ?? ""
+        guard vm.isLocalAIConfigured, !model.isEmpty else { return "DeepL" }
+        guard vm.isFallbackEnabled else { return model }
+        return String(format: vm.L(L10n.Mods.translationBatchEngineBoth), model)
     }
 
     // MARK: - En cours
@@ -101,6 +111,24 @@ struct TranslationBatchView: View {
                             Int64(report.softGlossaryIgnored)))
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if report.translatedByFallback > 0 {
+                // La provenance doit être visible : une traduction venue d'un
+                // service en ligne n'a pas le même statut qu'une locale.
+                Text(String(format: vm.L(L10n.Mods.translationBatchFallback),
+                            Int64(report.translatedByFallback)))
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if let stop = report.fallbackStop {
+                // Deux causes, deux phrases : un quota épuisé se règle chez
+                // DeepL, un rythme refusé se règle en attendant.
+                Text(vm.L(stop == .quotaExhausted ? L10n.Mods.translationBatchQuota
+                                                  : L10n.Mods.translationBatchRateLimited))
+                    .font(.system(size: 11))
+                    .foregroundColor(.orange)
                     .fixedSize(horizontal: false, vertical: true)
             }
             if !report.refusedRowIDs.isEmpty {

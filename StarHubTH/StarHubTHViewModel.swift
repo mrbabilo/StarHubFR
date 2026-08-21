@@ -545,6 +545,26 @@ class StarHubTHViewModel: ObservableObject {
         return DeepLClient.Credentials(key: key)
     }
 
+    /// Une clé de secours est-elle enregistrée ? **Mémorisé** : la question
+    /// se pose à chaque passe de rendu de l'onglet Traduction, et interroger
+    /// le trousseau à ce rythme se paie. Les deux écritures ci-dessous sont
+    /// les seules qui la changent.
+    @Published private(set) var hasDeepLKey = KeychainSecret.deepLApiKey.read() != nil
+
+    /// Enregistre la clé du secours. Rend `false` si le trousseau refuse —
+    /// l'appelant ne doit pas annoncer une clé enregistrée qui ne l'est pas.
+    @discardableResult
+    func setDeepLKey(_ key: String) -> Bool {
+        let saved = KeychainSecret.deepLApiKey.write(key)
+        hasDeepLKey = saved
+        return saved
+    }
+
+    func clearDeepLKey() {
+        KeychainSecret.deepLApiKey.clear()
+        hasDeepLKey = false
+    }
+
     /// `true` dès qu'**un** moteur peut traduire — ce qui rend le bouton de
     /// lot et le bouton « Pré-traduire » visibles (spec §7 : visibles s'il
     /// reste des clés à traduire et qu'une IA est configurée).
@@ -553,7 +573,15 @@ class StarHubTHViewModel: ObservableObject {
     /// tourne confortablement, c'est la seule voie, et la lui cacher
     /// reviendrait à ne rien offrir du tout.
     var isTranslationAssistAvailable: Bool {
-        isLocalAIConfigured || deepLCredentials != nil
+        isLocalAIConfigured || isFallbackEnabled
+    }
+
+    /// Le secours part-il vraiment ? Une case cochée sans clé n'envoie rien,
+    /// et une clé sans case non plus : les deux conditions, jamais l'une.
+    /// Ne touche pas au trousseau — c'est cette propriété que l'interface
+    /// interroge, à chaque passe de rendu.
+    var isFallbackEnabled: Bool {
+        hasDeepLKey && UserDefaults.standard.bool(forKey: UDKey.deepLFallbackEnabled)
     }
 
     /// Propose une traduction par IA locale pour une ligne du diff. Rend la

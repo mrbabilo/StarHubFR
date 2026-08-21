@@ -297,11 +297,24 @@ private struct LocalAISettingsSection: View {
     /// d'Ollama, inconnue de LM Studio (qui laisse alors ce drapeau à `false`).
     @State private var modelThinks = false
 
+    /// Le secours en ligne. La clé n'est **jamais** réaffichée : le champ
+    /// sert à en saisir une nouvelle, et « Clé enregistrée » dit qu'il y en a
+    /// une. La relire pour la remettre dans un champ n'apporterait rien et
+    /// promènerait un secret dans la mémoire de la vue.
+    @AppStorage(UDKey.deepLFallbackEnabled) private var fallbackEnabled = false
+    @State private var fallbackKeyDraft = ""
+    @State private var fallbackUsage: DeepLClient.Usage?
+    @State private var fallbackTestError: String?
+    @State private var isTestingFallback = false
+
     var body: some View {
         VStack(spacing: 32) {
             StandardSection(
                 title: vm.L(L10n.Settings.localAITitle),
-                footer: vm.L(L10n.Settings.localAIPrivacy)
+                // « Rien n'est envoyé ailleurs que sur votre serveur local »
+                // devient faux dès que le secours est actif : la phrase de
+                // confidentialité passe alors au bloc qui en est la cause.
+                footer: isFallbackActive ? nil : vm.L(L10n.Settings.localAIPrivacy)
             ) {
                 VStack(alignment: .leading, spacing: 12) {
                     if isProbing {
@@ -403,6 +416,8 @@ private struct LocalAISettingsSection: View {
                 }
             }
 
+            fallbackSection
+
             StandardSection(title: vm.L(L10n.Settings.glossaryTitle)) {
                 VStack(alignment: .leading, spacing: 10) {
                     HStack {
@@ -452,6 +467,127 @@ private struct LocalAISettingsSection: View {
             await refreshModelSuitability()
             glossaryCount = vm.currentGlossary(language: "fr")?.entries.count
             glossaryDate = vm.glossaryBuiltDate(language: "fr")
+        }
+    }
+
+    // MARK: - Secours en ligne
+
+    /// Le secours part-il vraiment ? La même question que
+    /// `vm.isFallbackEnabled`, posée sur l'`@AppStorage` local pour que la
+    /// vue se redessine à l'instant où la case change.
+    private var isFallbackActive: Bool { fallbackEnabled && vm.hasDeepLKey }
+
+    /// La phrase de confidentialité suit l'état, y compris le cas où DeepL
+    /// est le **seul** moteur : dire « quand l'IA locale échoue » à qui n'en
+    /// a pas serait faux, et c'est justement la configuration la plus
+    /// probable sur une machine qui ne fait pas tourner de modèle.
+    private var fallbackPrivacy: String {
+        guard isFallbackActive else { return vm.L(L10n.Settings.fallbackPrivacyOff) }
+        return vm.isLocalAIConfigured
+            ? vm.L(L10n.Settings.fallbackPrivacyOn)
+            : vm.L(L10n.Settings.fallbackPrivacyOnNoLocal)
+    }
+
+    private var fallbackSection: some View {
+        StandardSection(title: vm.L(L10n.Settings.fallbackTitle),
+                        footer: fallbackPrivacy) {
+            VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(vm.L(L10n.Settings.fallbackKey)).font(.system(size: 13))
+                    HStack(spacing: 8) {
+                        SecureField("", text: $fallbackKeyDraft)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .font(.system(size: 12, design: .monospaced))
+                        Button(vm.L(L10n.Settings.fallbackSave)) { saveFallbackKey() }
+                            .disabled(fallbackKeyDraft
+                                .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    }
+                    if vm.hasDeepLKey {
+                        HStack(spacing: 8) {
+                            Text(vm.L(L10n.Settings.fallbackSaved))
+                                .font(.system(size: 11))
+                                .foregroundColor(.green)
+                            Button(vm.L(L10n.Settings.fallbackClear)) {
+                                vm.clearDeepLKey()
+                                // Une case cochée sans clé n'aurait plus de
+                                // sens : la décocher évite qu'elle se
+                                // rallume toute seule à la prochaine clé.
+                                fallbackEnabled = false
+                                fallbackUsage = nil
+                                fallbackTestError = nil
+                            }
+                            .buttonStyle(.link)
+                        }
+                    } else {
+                        Text(vm.L(L10n.Settings.fallbackNeedsKey))
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+
+                HStack(spacing: 8) {
+                    Button(vm.L(L10n.Settings.fallbackTest)) { testFallback() }
+                        .disabled(!vm.hasDeepLKey || isTestingFallback)
+                    if isTestingFallback {
+                        ProgressView().controlSize(.small)
+                    } else if let usage = fallbackUsage {
+                        // Le plafond vient du service : le coder en dur
+                        // mentirait au premier changement d'offre.
+                        Text(String(format: vm.L(L10n.Settings.fallbackQuota),
+                                    Int64(usage.used), Int64(usage.limit)))
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                    } else if let error = fallbackTestError {
+                        Text(error)
+                            .font(.system(size: 11))
+                            .foregroundColor(.orange)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+
+                Toggle(vm.L(vm.isLocalAIConfigured ? L10n.Settings.fallbackEnable
+                                                   : L10n.Settings.fallbackEnableNoLocal),
+                       isOn: $fallbackEnabled)
+                    .disabled(!vm.hasDeepLKey)
+                    .font(.system(size: 13))
+            }
+        }
+    }
+
+    private func saveFallbackKey() {
+        let key = fallbackKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !key.isEmpty else { return }
+        fallbackUsage = nil
+        fallbackTestError = vm.setDeepLKey(key) ? nil : vm.L(L10n.Settings.fallbackFailed)
+        // Le champ se vide : la clé vit au trousseau, pas dans la vue.
+        fallbackKeyDraft = ""
+    }
+
+    private func testFallback() {
+        guard let credentials = KeychainSecret.deepLApiKey.read()
+            .flatMap(DeepLClient.Credentials.init(key:)) else {
+            fallbackTestError = vm.L(L10n.Settings.fallbackFailed)
+            return
+        }
+        isTestingFallback = true
+        fallbackUsage = nil
+        fallbackTestError = nil
+        Task { @MainActor in
+            defer { isTestingFallback = false }
+            let session = LocalLLMEndpoint.makeSession(timeout: 20)
+            defer { session.finishTasksAndInvalidate() }
+            do {
+                fallbackUsage = try await DeepLClient.usage(credentials: credentials,
+                                                            session: session)
+            } catch DeepLClient.UsageError.unauthorized {
+                fallbackTestError = vm.L(L10n.Settings.fallbackFailed)
+            } catch {
+                // Ni la clé ni l'URL : un service muet ou une réponse
+                // illisible ne disent rien de la clé, et l'annoncer refusée
+                // enverrait l'utilisateur la changer pour rien.
+                fallbackTestError = vm.L(L10n.Settings.fallbackUnreachable)
+            }
         }
     }
 
