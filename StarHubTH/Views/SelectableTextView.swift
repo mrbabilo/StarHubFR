@@ -80,12 +80,17 @@ struct SelectableTextView: NSViewRepresentable {
             guard !parent.actionTitle.isEmpty, view.selectedRange().length > 0 else {
                 return menu
             }
+            // Une **copie**, jamais le menu reçu : AppKit construit celui d'un
+            // `NSTextView` depuis un modèle de classe, et y insérer notre
+            // entrée la ferait réapparaître aux clics suivants — y compris
+            // sans sélection, où elle n'a rien à traduire.
+            guard let ours = menu.copy() as? NSMenu else { return menu }
             let item = NSMenuItem(title: parent.actionTitle,
                                   action: #selector(runAction), keyEquivalent: "")
             item.target = self
-            menu.insertItem(item, at: 0)
-            menu.insertItem(.separator(), at: 1)
-            return menu
+            ours.insertItem(item, at: 0)
+            ours.insertItem(.separator(), at: 1)
+            return ours
         }
 
         @objc private func runAction() {
