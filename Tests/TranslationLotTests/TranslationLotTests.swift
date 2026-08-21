@@ -10,59 +10,18 @@ struct TranslationLotTests {
                              section: nil, glossary: [:], target: "")
     }
 
-    /// L'empreinte lie le lot à **un** mod, **une** langue et **un** jeu de
-    /// sources anglaises. Elle n'est plus comparée au retour : c'est la
-    /// relecture clé par clé qui écarte un lot périmé — l'empreinte dit
-    /// seulement si deux fichiers décrivent les mêmes sources anglaises.
-    @Test func theDigestIsStableForTheSameContent() {
-        let a = TranslationLot.digest(mod: "SVE", language: "fr",
-                                      entries: [entry("a", "One"), entry("b", "Two")])
-        let b = TranslationLot.digest(mod: "SVE", language: "fr",
-                                      entries: [entry("a", "One"), entry("b", "Two")])
-        #expect(a == b)
-        #expect(!a.isEmpty)
-    }
-
-    /// L'ordre des entrées ne doit pas changer l'empreinte : c'est un jeu de
-    /// clés, pas une séquence.
-    @Test func theDigestIgnoresTheOrderOfEntries() {
-        #expect(TranslationLot.digest(mod: "SVE", language: "fr",
-                                      entries: [entry("a", "One"), entry("b", "Two")])
-                == TranslationLot.digest(mod: "SVE", language: "fr",
-                                         entries: [entry("b", "Two"), entry("a", "One")]))
-    }
-
-    @Test func changingTheEnglishChangesTheDigest() {
-        #expect(TranslationLot.digest(mod: "SVE", language: "fr", entries: [entry("a", "One")])
-                != TranslationLot.digest(mod: "SVE", language: "fr", entries: [entry("a", "Un")]))
-    }
-
-    @Test func theModAndTheLanguageAreBoundIn() {
-        let base = TranslationLot.digest(mod: "SVE", language: "fr", entries: [entry("a", "One")])
-        #expect(base != TranslationLot.digest(mod: "RSV", language: "fr",
-                                              entries: [entry("a", "One")]))
-        #expect(base != TranslationLot.digest(mod: "SVE", language: "de",
-                                              entries: [entry("a", "One")]))
-    }
-
-    /// Deux composants peuvent définir la même clé : ce sont deux entrées,
-    /// et l'empreinte doit les distinguer.
-    @Test func twoComponentsWithTheSameKeyAreTwoEntries() {
-        #expect(TranslationLot.digest(mod: "M", language: "fr",
-                                      entries: [entry("a", "One", component: "A")])
-                != TranslationLot.digest(mod: "M", language: "fr",
-                                         entries: [entry("a", "One", component: "B")]))
-    }
-
-    /// Le fichier se relit lui-même : ce qu'on écrit, on sait le rouvrir.
+    /// Le fichier se relit lui-même : ce qu'on écrit, on sait le rouvrir —
+    /// champs propres **et** entrées complètes, composant et section compris.
     @Test func theDocumentSurvivesAJsonRoundTrip() throws {
         let lot = TranslationLot(mod: "SVE", language: "fr",
-                                 entries: [entry("a", "One")])
+                                 entries: [entry("a", "One", component: "C"),
+                                           entry("b", "Two\r\nLines")])
         let data = try JSONEncoder().encode(lot)
         let back = try JSONDecoder().decode(TranslationLot.self, from: data)
         #expect(back.mod == "SVE")
-        #expect(back.entries.count == 1)
-        #expect(back.digest == lot.digest)
+        #expect(back.language == "fr")
+        #expect(back.formatVersion == TranslationLot.currentFormatVersion)
+        #expect(back.entries == lot.entries)
     }
 
     /// Les consignes voyagent dans le fichier : c'est ce qui permet de le

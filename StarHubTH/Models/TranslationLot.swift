@@ -1,5 +1,4 @@
 import Foundation
-import CryptoKit
 
 /// Un lot de traduction : les clés d'un mod qui n'ont pas encore de français,
 /// dans **un** fichier qui se suffit à lui-même.
@@ -42,13 +41,6 @@ public struct TranslationLot: Codable, Equatable, Sendable {
     public let formatVersion: Int
     public let mod: String
     public let language: String
-    /// Scellée à l'export : mod, langue et couples (composant, clé, anglais).
-    /// Au retour, plus rien ne la compare — la protection contre un lot
-    /// périmé vient de la reconstruction de l'état courant au moment de
-    /// l'import, jugée clé par clé (`TranslationLotImport.read`). Elle reste
-    /// pour l'œil : deux fichiers de même empreinte décrivent les mêmes
-    /// sources anglaises.
-    public let digest: String
     public let instructions: [String]
     public var entries: [Entry]
 
@@ -59,7 +51,6 @@ public struct TranslationLot: Codable, Equatable, Sendable {
         self.formatVersion = Self.currentFormatVersion
         self.mod = mod
         self.language = language
-        self.digest = Self.digest(mod: mod, language: language, entries: entries)
         self.instructions = Self.instructions(language: language)
         self.entries = entries
     }
@@ -70,8 +61,8 @@ public struct TranslationLot: Codable, Equatable, Sendable {
         [
             "Translate each entry of \"entries\" from English into \(language).",
             "Write your translation into the \"target\" field. Leave every other "
-                + "field exactly as it is — \"source\", \"key\", \"component\" and "
-                + "\"digest\" must come back unchanged.",
+                + "field exactly as it is — \"source\", \"key\" and \"component\" "
+                + "must come back unchanged.",
             "Keep every game marker exactly as it appears in \"source\": things "
                 + "like {{Token}}, $q, #$b#, %kid1, ${him^her^them}$. They are read "
                 + "by the game, not shown to the player. Do not translate, reorder "
@@ -108,18 +99,5 @@ public struct TranslationLot: Codable, Equatable, Sendable {
                          target: "")
         }
         return TranslationLot(mod: mod, language: language, entries: entries)
-    }
-
-    /// SHA-256 sur le mod, la langue et les couples `(composant, clé, anglais)`
-    /// **triés** : un jeu de clés, pas une séquence, donc l'ordre des entrées
-    /// ne change pas l'empreinte.
-    public static func digest(mod: String, language: String, entries: [Entry]) -> String {
-        let body = entries
-            .map { "\($0.component ?? "")\u{1F}\($0.key)\u{1F}\($0.source)" }
-            .sorted()
-            .joined(separator: "\u{1E}")
-        let material = "\(mod)\u{1E}\(language)\u{1E}\(body)"
-        return SHA256.hash(data: Data(material.utf8))
-            .map { String(format: "%02x", $0) }.joined()
     }
 }

@@ -544,7 +544,7 @@ struct TranslationDiffView: View {
     /// d'illisibilité reste honnête.
     private func refusalMessage(_ refusal: TranslationLotImport.FileRefusal) -> String {
         switch refusal {
-        case .staleDigest: return vm.L(L10n.Mods.translationLotStale)
+        case .staleLot: return vm.L(L10n.Mods.translationLotStale)
         case .wrongMod: return vm.L(L10n.Mods.translationLotWrongMod)
         case .unreadable, .wrongLanguage, .unsupportedFormat:
             return vm.L(L10n.Mods.translationLotUnreadable)

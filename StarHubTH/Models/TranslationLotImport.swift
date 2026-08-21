@@ -39,7 +39,9 @@ public enum TranslationLotImport {
         case unreadable
         case wrongMod
         case wrongLanguage
-        case staleDigest
+        /// Le lot entier est périmé : **aucune** de ses clés ne concerne
+        /// l'état courant du mod.
+        case staleLot
         case unsupportedFormat(Int)
     }
 
@@ -58,15 +60,14 @@ public enum TranslationLotImport {
             expected[identity(entry.component, entry.key)] = entry
         }
 
-        // L'empreinte du fichier ne fait plus foi à elle seule : un chat rend
-        // volontiers un gros lot en plusieurs messages, et l'import du premier
-        // fait sortir ses clés de l'état courant — l'empreinte du second ne
-        // peut alors plus correspondre, et le refuser en bloc perdrait tout
-        // son travail. Le refus en bloc d'« empreinte périmée » ne survit que
-        // ici : un fichier dont **aucune** clé ne concerne l'état courant ne
-        // peut rien apporter, c'est le lot d'un autre moment du mod.
+        // Le refus en bloc ne survit qu'ici : un fichier dont **aucune** clé
+        // ne concerne l'état courant ne peut rien apporter, c'est le lot d'un
+        // autre moment du mod. Dès qu'une clé résout, chaque entrée est
+        // jugée seule — un chat rend volontiers un gros lot en plusieurs
+        // messages, et l'import du premier fait sortir ses clés de l'état
+        // courant : refuser le second en bloc perdrait tout son travail.
         guard lot.entries.contains(where: { expected[identity($0.component, $0.key)] != nil })
-        else { throw FileRefusal.staleDigest }
+        else { throw FileRefusal.staleLot }
 
         var accepted: [Accepted] = []
         var rejected: [Rejection] = []

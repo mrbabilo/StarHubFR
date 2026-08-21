@@ -67,15 +67,14 @@ struct TranslationLotImportTests {
     }
 
     /// **Le cas qui motive tout ce chemin.** Un chat rend un gros lot en deux
-    /// messages : le premier fichier s'importe, ce qui fait sortir ses clés de
-    /// l'ensemble éligible et change donc l'empreinte de l'état courant. Le
-    /// second fichier ne doit pas être refusé en bloc pour autant — la clé
-    /// déjà écrite est simplement inconnue de l'état courant, donc écartée,
-    /// et le reste passe.
+    /// messages : le premier fichier s'importe, ce qui fait sortir ses clés
+    /// de l'ensemble éligible — l'état courant n'offre plus à écrire que le
+    /// reste. Le second fichier ne doit pas être refusé en bloc pour autant —
+    /// la clé déjà écrite est simplement inconnue de l'état courant, donc
+    /// écartée, et le reste passe.
     @Test func anEntryWrittenSinceTheExportDoesNotSinkTheRest() throws {
         let file = lot([("a", "One"), ("b", "Two")])
         let sent = lot([("b", "Two")])          // « a » a acquis un français
-        #expect(file.digest != sent.digest)
         let report = try TranslationLotImport.read(
             json(file, filling: ["a": "Un", "b": "Deux"]), expecting: sent)
         #expect(report.accepted.map(\.key) == ["b"])
@@ -83,13 +82,13 @@ struct TranslationLotImportTests {
         #expect(report.rejected.first?.reason == .unknownKey)
     }
 
-    /// L'autre bout du même chemin : quand l'empreinte diffère **et** que rien
-    /// de ce fichier ne concerne l'état courant, il n'y a rien à raconter
-    /// entrée par entrée — le refus en bloc reste la bonne réponse.
+    /// L'autre bout du même chemin : quand rien de ce fichier ne concerne
+    /// l'état courant, il n'y a rien à raconter entrée par entrée — le refus
+    /// en bloc reste la bonne réponse.
     @Test func aLotWhereNothingResolvesIsRefusedWhole() {
         let sent = lot([("a", "One")])
         let other = lot([("b", "Two")])
-        #expect(throws: TranslationLotImport.FileRefusal.staleDigest) {
+        #expect(throws: TranslationLotImport.FileRefusal.staleLot) {
             _ = try TranslationLotImport.read(json(other, filling: [:]), expecting: sent)
         }
     }
@@ -127,9 +126,9 @@ struct TranslationLotImportTests {
         }
     }
 
-    /// Même mod, même clés, mais une langue différente : la langue fait
-    /// partie de l'empreinte, donc ce cas distingue bien le refus
-    /// `wrongLanguage` d'un simple `staleDigest` — utile pour surveiller
+    /// Même mod, même clés, mais une langue différente : la garde langue
+    /// précède la résolution des clés, donc ce cas distingue bien le refus
+    /// `wrongLanguage` d'un simple `staleLot` — utile pour surveiller
     /// l'ordre des gardes dans `read`.
     @Test func aLotOfAnotherLanguageIsRefusedWhole() {
         let sent = lot([("a", "One")])
@@ -203,19 +202,17 @@ struct TranslationLotImportTests {
                                                      source: "One", section: nil,
                                                      glossary: [:], target: "Inventé"), at: 0)
         let data = try JSONEncoder().encode(tampered)
-        // L'empreinte du fichier reste celle du lot envoyé : c'est le contenu
-        // qui a été altéré après coup, pas le lot.
+        // L'altération est après coup, dans le contenu rendu — pas dans la
+        // forme du lot, qui reste celle de l'export.
         let report = try TranslationLotImport.read(data, expecting: sent)
         #expect(report.rejected.map(\.key) == ["inventée"])
         #expect(report.accepted.map(\.key) == ["a"])
     }
 
-    /// Une entrée dont l'anglais a été modifié après l'export garde une
-    /// empreinte de fichier valide : `digest` ne se recalcule pas depuis
-    /// `lot.entries`, il compare la chaîne stockée à celle du lot envoyé. Le
-    /// seul rempart restant est la comparaison de `source` entrée par entrée
-    /// — c'est elle qu'on éprouve ici, pendant qu'une entrée voisine
-    /// inchangée doit continuer à passer.
+    /// Une entrée dont l'anglais a été modifié après l'export n'a aucun
+    /// scellé qui la trahisse : c'est la comparaison de `source` entrée par
+    /// entrée qui fait foi — c'est elle qu'on éprouve ici, pendant qu'une
+    /// entrée voisine inchangée doit continuer à passer.
     @Test func anEntryWithAnAlteredSourceIsRejectedAlone() throws {
         let sent = lot([("a", "One"), ("b", "Two")])
         let data = json(sent, filling: ["a": "Un", "b": "Deux"])
@@ -264,9 +261,10 @@ struct TranslationLotImportTests {
 struct TranslationLotWritableRowsTests {
 
     private func row(_ key: String, english: String,
-                     state: TranslationCoverage.DiffRow.State) -> TranslationCoverage.DiffRow {
+                     state: TranslationCoverage.DiffRow.State,
+                     component: String? = nil) -> TranslationCoverage.DiffRow {
         TranslationCoverage.DiffRow(key: key, english: english, french: "", state: state,
-                                    component: nil, section: nil)
+                                    component: component, section: nil)
     }
 
     /// Le garde-fou de l'export (`TranslationLot.build` écarte une rangée
@@ -306,5 +304,36 @@ struct TranslationLotWritableRowsTests {
     @Test func aTranslatedRowIsNotWritable() {
         let rows = [row("a", english: "One", state: .translated)]
         #expect(TranslationLotImport.writableRows(rows).isEmpty)
+    }
+
+    /// Deux composants peuvent définir la même clé : deux rangées distinctes.
+    /// (Ce que l'empreinte du fichier vérifiait avant d'être retirée du
+    /// format — la formule d'identité, elle, reste.)
+    @Test func twoComponentsWithTheSameKeyAreTwoRows() {
+        let rows = [row("a", english: "One", state: .missing, component: "A"),
+                    row("a", english: "Uno", state: .missing, component: "B")]
+        #expect(TranslationLotImport.writableRows(rows).count == 2)
+    }
+
+    /// Et l'appariement du **retour** distingue les composants : une entrée
+    /// rendue sous le composant B s'apparie à la rangée de B, pas à celle de
+    /// A qui porte la même clé avec une autre source.
+    @Test func theReturnMatchesTheEntryOfItsOwnComponent() throws {
+        let sent = TranslationLot(mod: "M", language: "fr", entries: [
+            TranslationLot.Entry(component: "A", key: "a", source: "One",
+                                 section: nil, glossary: [:], target: ""),
+            TranslationLot.Entry(component: "B", key: "a", source: "Uno",
+                                 section: nil, glossary: [:], target: ""),
+        ])
+        var filled = sent
+        filled.entries = filled.entries.map { entry -> TranslationLot.Entry in
+            var filled = entry
+            filled.target = entry.component == "B" ? "Un" : ""
+            return filled
+        }
+        let report = try TranslationLotImport.read(
+            try JSONEncoder().encode(filled), expecting: sent)
+        #expect(report.accepted.map(\.component) == ["B"])
+        #expect(report.accepted.first?.source == "Uno")
     }
 }
