@@ -232,6 +232,30 @@ struct TranslationLotImportTests {
         #expect(report.rejected.first?.key == "a")
         #expect(report.rejected.first?.reason == .sourceAltered)
     }
+
+    /// Un chat normalise volontiers les fins de ligne de ce qu'il renvoie :
+    /// une source CRLF revient en LF. L'appariement est **octet à octet**
+    /// (en Swift, `\r\n` est un caractère unique et `One\r\nTwo` diffère de
+    /// `One\nTwo`) : l'entrée est écartée `.sourceAltered`, jamais « réparée »
+    /// en silence — on ne sait pas ce que le chat a normalisé d'autre.
+    @Test func aSourceWhoseLineEndingsWereNormalizedIsSetAside() throws {
+        let sent = lot([("a", "One\r\nTwo")])
+        let normalized = lot([("a", "One\nTwo")])
+        let report = try TranslationLotImport.read(
+            json(normalized, filling: ["a": "Un\nDeux"]), expecting: sent)
+        #expect(report.accepted.isEmpty)
+        #expect(report.rejected.map(\.reason) == [.sourceAltered])
+    }
+
+    /// L'autre bord : un CRLF qui survit à l'aller-retour du chat passe tel
+    /// quel — le `\r\n` interne de la cible est le texte du mod, il ne doit
+    /// être ni normalisé ni replié.
+    @Test func aSourceAndTargetWhoseCrlfSurvivesTheChatAreKept() throws {
+        let sent = lot([("a", "One\r\nTwo")])
+        let report = try TranslationLotImport.read(
+            json(sent, filling: ["a": "Un\r\nDeux"]), expecting: sent)
+        #expect(report.accepted.map(\.target) == ["Un\r\nDeux"])
+    }
 }
 
 /// Les rangées qu'une entrée acceptée a le droit d'écrire : le miroir
