@@ -94,6 +94,7 @@ let package = Package(
                 "Models/OllamaCapabilities.swift",
                 "Models/TranslationLot.swift",
                 "Models/TranslationLotImport.swift",
+                "Models/TokenShield.swift",
                 "Extensions/ModConfigFiles.swift",
             ]
         ),
@@ -450,6 +451,11 @@ let package = Package(
             name: "TranslationLotImportTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/TranslationLotImportTests"
+        ),
+        .testTarget(
+            name: "TokenShieldTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/TokenShieldTests"
         ),
     ]
 )
