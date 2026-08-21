@@ -247,9 +247,16 @@ struct TranslationEditorView: View {
         }
         isPreTranslating = true
         defer { isPreTranslating = false }
-        if let proposal = await vm.preTranslate(mod: mod, locale: locale, row: row) {
+        switch await vm.preTranslate(mod: mod, locale: locale, row: row) {
+        case .proposal(let proposal):
             draft = proposal
-        } else {
+        case .fallbackStopped(let stop):
+            // Nommer la cause : sur ce chemin on reclique, et un message
+            // générique ferait retenter une clé que le service ne rendra pas.
+            failureMessage = vm.L(stop == .quotaExhausted
+                                  ? L10n.Mods.translationEditorQuota
+                                  : L10n.Mods.translationEditorRateLimited)
+        case .failed:
             failureMessage = vm.L(L10n.Mods.translationEditorPretranslateFailed)
         }
     }

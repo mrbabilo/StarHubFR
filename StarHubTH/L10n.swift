@@ -244,6 +244,8 @@ enum L10n {
         static let translationEditorPretranslateFailed = "mods_translation_editor_pretranslate_failed"
         static let translationEditorPretranslateNoAI
                                         = "mods_translation_editor_pretranslate_no_ai"
+        static let translationEditorQuota       = "mods_translation_editor_quota"
+        static let translationEditorRateLimited = "mods_translation_editor_rate_limited"
         static let translationEditorGlossary    = "mods_translation_editor_glossary"
         static let translationBatchButton       = "mods_translation_batch_button"
         static let translationBatchRecap        = "mods_translation_batch_recap"

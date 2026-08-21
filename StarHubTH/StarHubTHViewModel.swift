@@ -593,11 +593,22 @@ class StarHubTHViewModel: ObservableObject {
     /// Sans IA réglée, la vue n'appelle même pas : elle affiche où aller
     /// (`isLocalAIConfigured` est son garde-fou). La garde ci-dessous reste
     /// la ceinture — rendre `nil` plutôt qu'un message trompeur.
+    /// Ce qu'une pré-traduction par clé a donné. Un `String?` suffisait tant
+    /// que l'échec n'avait qu'une cause ; avec un service en ligne il en a
+    /// trois, et le chemin par clé est justement celui où l'on reclique.
+    /// Rendre `nil` pour un quota épuisé condamnait l'utilisateur à retenter
+    /// sans jamais apprendre pourquoi.
+    enum PreTranslation: Equatable {
+        case proposal(String)
+        case failed
+        case fallbackStopped(BatchReport.FallbackStop)
+    }
+
     @MainActor
     func preTranslate(mod: ModItem, locale: String,
-                      row: TranslationCoverage.DiffRow) async -> String? {
+                      row: TranslationCoverage.DiffRow) async -> PreTranslation {
         let credentials = deepLCredentials
-        guard isLocalAIConfigured || credentials != nil else { return nil }
+        guard isLocalAIConfigured || credentials != nil else { return .failed }
         let request = LocalLLMClient.Request(
             model: localAIModelName,
             source: row.english,
@@ -611,8 +622,12 @@ class StarHubTHViewModel: ObservableObject {
             request, localBaseURL: localAIEndpoint, localSession: session,
             fallback: credentials, fallbackSession: session)
         log("Pré-traduction \(mod.folderName)/\(row.key) : \(outcome)", level: .info)
-        guard case .translated(let proposal, _) = outcome else { return nil }
-        return proposal
+        switch outcome {
+        case .translated(let proposal, _): return .proposal(proposal)
+        case .quotaExhausted: return .fallbackStopped(.quotaExhausted)
+        case .fallbackRateLimited: return .fallbackStopped(.rateLimited)
+        case .refusedTokens, .endpointError: return .failed
+        }
     }
 
     // MARK: - Pré-traduction par lot

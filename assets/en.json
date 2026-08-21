@@ -805,6 +805,8 @@
   "mods_translation_editor_pretranslating": "Local translation in progress…",
   "mods_translation_editor_pretranslate_failed": "The local AI didn't answer — check the settings",
   "mods_translation_editor_pretranslate_no_ai": "No translation engine configured — set a local server and model, or a DeepL key, in Settings › Assisted translation",
+  "mods_translation_editor_quota": "DeepL's monthly quota is used up — the fallback cannot translate until it renews.",
+  "mods_translation_editor_rate_limited": "DeepL refused the pace twice in a row — try again in a moment.",
   "mods_translation_editor_glossary": "Game terms",
   "mods_translation_batch_button": "Batch pre-translate",
   "mods_translation_batch_recap": "%1$lld keys to translate with %2$@. Every result will be marked To review.",
