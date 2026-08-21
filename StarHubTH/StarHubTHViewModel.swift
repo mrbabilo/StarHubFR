@@ -631,6 +631,52 @@ class StarHubTHViewModel: ObservableObject {
         }
     }
 
+    /// Ce qu'a donné la traduction d'une **sélection** de l'anglais.
+    enum FragmentTranslation: Equatable {
+        case proposal(String)
+        /// La sélection emporte des marques du jeu, nommées pour que
+        /// l'utilisateur sache autour de quoi resélectionner.
+        case refusedMarkers([String])
+        case nothingSelected
+        /// Aucun secours en ligne réglé — cette voie n'a pas d'autre moteur.
+        case noFallback
+        case failed
+        case fallbackStopped(BatchReport.FallbackStop)
+    }
+
+    /// Traduit un fragment de la source, la phrase entière servant de
+    /// contexte — le canal que le service prévoit pour ça, et qu'il ne
+    /// traduit pas.
+    ///
+    /// **Le service en ligne seulement, pas l'IA locale.** Le prompt local est
+    /// bâti pour une valeur entière et rend volontiers la phrase là où on
+    /// demandait un mot ; le paramètre `context` du service, lui, existe
+    /// exactement pour cet usage. Sans clé, la voie n'est pas offerte plutôt
+    /// que servie par un moteur qui ferait autre chose.
+    @MainActor
+    func translateFragment(_ selection: String,
+                           inside sentence: String) async -> FragmentTranslation {
+        let fragment: String
+        switch TranslationFragment.prepare(selection) {
+        case .ready(let prepared): fragment = prepared
+        case .empty: return .nothingSelected
+        case .containsMarkers(let markers): return .refusedMarkers(markers)
+        }
+        guard let credentials = deepLCredentials else { return .noFallback }
+        let session = LocalLLMEndpoint.makeSession()
+        defer { session.finishTasksAndInvalidate() }
+        let outcome = await DeepLClient.translate(fragment, context: sentence,
+                                                  credentials: credentials, session: session)
+        log("Traduction d'un fragment (\(fragment.count) caractères) : \(outcome)", level: .info)
+        switch outcome {
+        case .translated(let text): return .proposal(text)
+        case .quotaExhausted: return .fallbackStopped(.quotaExhausted)
+        case .rateLimited: return .fallbackStopped(.rateLimited)
+        case .unauthorized: return .fallbackStopped(.unauthorized)
+        case .rejected, .transportError: return .failed
+        }
+    }
+
     // MARK: - Pré-traduction par lot
 
     /// Où en est le lot en cours — `nil` quand aucun lot ne tourne.

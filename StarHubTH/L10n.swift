@@ -247,6 +247,14 @@ enum L10n {
         static let translationEditorQuota       = "mods_translation_editor_quota"
         static let translationEditorRateLimited = "mods_translation_editor_rate_limited"
         static let translationEditorUnauthorized = "mods_translation_editor_unauthorized"
+        static let translationEditorTranslateSelection
+                                        = "mods_translation_editor_translate_selection"
+        static let translationEditorTranslateSelectionMenu
+                                        = "mods_translation_editor_translate_selection_menu"
+        static let translationEditorSelectionMarkers
+                                        = "mods_translation_editor_selection_markers"
+        static let translationEditorSelectionNoFallback
+                                        = "mods_translation_editor_selection_no_fallback"
         static let translationEditorGlossary    = "mods_translation_editor_glossary"
         static let translationBatchButton       = "mods_translation_batch_button"
         static let translationBatchRecap        = "mods_translation_batch_recap"

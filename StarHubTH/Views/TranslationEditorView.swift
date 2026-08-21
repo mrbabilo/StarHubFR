@@ -40,6 +40,14 @@ struct TranslationEditorView: View {
     /// feuille et l'intention se perdait en silence : il fallait rouvrir et
     /// refaire le geste.
     @State private var pendingNavigation: TranslationCoverage.DiffRow?
+    /// Ce qui est sélectionné dans le panneau anglais, remonté par le pont
+    /// AppKit — SwiftUI ne sait pas le dire avant macOS 15.
+    @State private var sourceSelection = ""
+    /// La traduction du fragment, en attente d'un clic. Elle ne s'écrit pas
+    /// toute seule dans le brouillon : c'est une proposition sur un morceau,
+    /// le traducteur décide où elle va.
+    @State private var fragmentProposal: String?
+    @State private var isTranslatingFragment = false
 
     /// Dédoublonnées et triées : la même marque répétée trois fois ne donne
     /// qu'une pastille, et l'ordre ne doit pas sauter d'une ouverture à l'autre.
@@ -62,13 +70,19 @@ struct TranslationEditorView: View {
             Text(vm.L(L10n.Mods.translationEditorSource))
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundColor(.secondary)
-            Text(row.english)
-                .font(.system(size: 13))
-                .textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(8)
+            // Le pont AppKit remplace un `Text` sélectionnable : c'est la
+            // sélection **lue** qui manquait, pas la sélection elle-même.
+            SelectableTextView(
+                text: row.english,
+                selection: $sourceSelection,
+                actionTitle: vm.L(L10n.Mods.translationEditorTranslateSelectionMenu),
+                action: { Task { await translateSelection() } })
+                .frame(maxWidth: .infinity)
+                .frame(height: 88)
                 .background(Color.primary.opacity(0.04))
                 .cornerRadius(6)
+
+            selectionRow.frame(height: 24, alignment: .leading)
 
             Text(vm.L(L10n.Mods.translationEditorTarget))
                 .font(.system(size: 11, weight: .semibold))
@@ -156,7 +170,7 @@ struct TranslationEditorView: View {
             }
         }
         .padding(20)
-        .frame(minWidth: 560, minHeight: 540)
+        .frame(minWidth: 560, minHeight: 580)
         .onAppear {
             draft = row.french
             glossaryMatches = vm.glossaryMatches(for: row.english, language: locale)
@@ -206,6 +220,61 @@ struct TranslationEditorView: View {
         }
     }
 
+    /// Le geste de la sélection et son résultat sur la **même** rangée, sous
+    /// la source : l'action près de ce sur quoi elle porte, et une hauteur qui
+    /// ne bouge pas selon qu'une pastille est là ou non.
+    @ViewBuilder private var selectionRow: some View {
+        HStack(spacing: 8) {
+            Button(vm.L(L10n.Mods.translationEditorTranslateSelection)) {
+                Task { await translateSelection() }
+            }
+            .controlSize(.small)
+            .disabled(sourceSelection.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                      || isTranslatingFragment)
+            if isTranslatingFragment {
+                ProgressView().controlSize(.small)
+            } else if let proposal = fragmentProposal {
+                // Même mécanique que les chips de glossaire : cliquer insère.
+                Button { draft += proposal } label: {
+                    Text(proposal)
+                        .font(.system(size: 11))
+                        .lineLimit(1)
+                        .padding(.horizontal, 6).padding(.vertical, 2)
+                        .background(Color.accentColor.opacity(0.15))
+                        .cornerRadius(4)
+                }
+                .buttonStyle(.plain)
+                .pointingHandCursor()
+                .help(proposal)
+            }
+            Spacer()
+        }
+    }
+
+    /// Traduit ce qui est sélectionné dans la source, la phrase entière en
+    /// contexte. Les refus réutilisent `failureMessage` : ce sont des pannes
+    /// ou des règles, pas un désaccord sur le texte tapé.
+    private func translateSelection() async {
+        isTranslatingFragment = true
+        defer { isTranslatingFragment = false }
+        fragmentProposal = nil
+        switch await vm.translateFragment(sourceSelection, inside: row.english) {
+        case .proposal(let text):
+            fragmentProposal = text
+        case .refusedMarkers(let markers):
+            failureMessage = String(format: vm.L(L10n.Mods.translationEditorSelectionMarkers),
+                                    markers.joined(separator: ", "))
+        case .noFallback:
+            failureMessage = vm.L(L10n.Mods.translationEditorSelectionNoFallback)
+        case .nothingSelected:
+            break
+        case .fallbackStopped(let stop):
+            failureMessage = vm.L(stopMessage(stop))
+        case .failed:
+            failureMessage = vm.L(L10n.Mods.translationEditorPretranslateFailed)
+        }
+    }
+
     /// Les termes du jeu matchés dans la source, en `EN → FR` monospace :
     /// cliquer insère la forme française, la même mécanique que les chips de
     /// marques — l'IA locale impose ces mêmes termes dans son prompt, ce sont
@@ -232,6 +301,16 @@ struct TranslationEditorView: View {
         }
     }
 
+    /// Trois causes d'arrêt du secours, trois phrases : un quota se règle chez
+    /// le service, un rythme en attendant, une clé dans les réglages.
+    private func stopMessage(_ stop: StarHubTHViewModel.BatchReport.FallbackStop) -> String {
+        switch stop {
+        case .quotaExhausted: L10n.Mods.translationEditorQuota
+        case .rateLimited: L10n.Mods.translationEditorRateLimited
+        case .unauthorized: L10n.Mods.translationEditorUnauthorized
+        }
+    }
+
     /// Demande une proposition à l'IA locale et la verse dans le brouillon.
     /// L'échec réutilise `failureMessage` — c'est une panne structurelle
     /// (serveur injoignable, non configuré), pas un désaccord sur le texte :
@@ -253,14 +332,7 @@ struct TranslationEditorView: View {
         case .fallbackStopped(let stop):
             // Nommer la cause : sur ce chemin on reclique, et un message
             // générique ferait retenter une clé que le service ne rendra pas.
-            switch stop {
-            case .quotaExhausted:
-                failureMessage = vm.L(L10n.Mods.translationEditorQuota)
-            case .rateLimited:
-                failureMessage = vm.L(L10n.Mods.translationEditorRateLimited)
-            case .unauthorized:
-                failureMessage = vm.L(L10n.Mods.translationEditorUnauthorized)
-            }
+            failureMessage = vm.L(stopMessage(stop))
         case .failed:
             failureMessage = vm.L(L10n.Mods.translationEditorPretranslateFailed)
         }
