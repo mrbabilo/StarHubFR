@@ -230,15 +230,18 @@ extension DeepLUsageTests {
         #expect(DeepLStub.seenURLs.count == 2)
     }
 
-    @Test func aRefusedKeyIsRejectedNotRetried() async {
-        DeepLStub.reply("", status: 403)
-        let outcome = await DeepLClient.translate("Hi", context: nil,
-                                                  credentials: free,
-                                                  session: DeepLStub.session())
-        guard case .rejected = outcome else {
-            Issue.record("attendu .rejected, reçu \(outcome)"); return
+    /// Une clé refusée ne se retente pas, et ne se confond pas avec une
+    /// réponse illisible : c'est une panne **définitive**, la seule que
+    /// retenter à chaque clé d'un lot ne peut pas réparer.
+    @Test func aRefusedKeyIsNamedAndNotRetried() async {
+        for status in [401, 403] {
+            DeepLStub.reply("", status: status)
+            let outcome = await DeepLClient.translate("Hi", context: nil,
+                                                      credentials: free,
+                                                      session: DeepLStub.session())
+            #expect(outcome == .unauthorized, "statut \(status)")
+            #expect(DeepLStub.seenURLs.count == 1)
         }
-        #expect(DeepLStub.seenURLs.count == 1)
     }
 
     /// Le message d'erreur ne doit **jamais** porter la clé.

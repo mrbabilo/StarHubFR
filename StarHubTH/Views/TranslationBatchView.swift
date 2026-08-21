@@ -70,6 +70,16 @@ struct TranslationBatchView: View {
         }
     }
 
+    /// Trois causes de coupure, trois phrases : un quota épuisé se règle chez
+    /// DeepL, un rythme refusé en attendant, une clé refusée dans les réglages.
+    private func batchStopMessage(_ stop: StarHubTHViewModel.BatchReport.FallbackStop) -> String {
+        switch stop {
+        case .quotaExhausted: L10n.Mods.translationBatchQuota
+        case .rateLimited: L10n.Mods.translationBatchRateLimited
+        case .unauthorized: L10n.Mods.translationBatchUnauthorized
+        }
+    }
+
     /// Ce qui va traduire, tel quel : le modèle local, « DeepL » quand il est
     /// seul, les deux quand le secours doublera le local. Le nom du modèle
     /// seul mentait dès qu'aucun n'était réglé — le récapitulatif annonçait
@@ -125,8 +135,7 @@ struct TranslationBatchView: View {
             if let stop = report.fallbackStop {
                 // Deux causes, deux phrases : un quota épuisé se règle chez
                 // DeepL, un rythme refusé se règle en attendant.
-                Text(vm.L(stop == .quotaExhausted ? L10n.Mods.translationBatchQuota
-                                                  : L10n.Mods.translationBatchRateLimited))
+                Text(vm.L(batchStopMessage(stop)))
                     .font(.system(size: 11))
                     .foregroundColor(.orange)
                     .fixedSize(horizontal: false, vertical: true)

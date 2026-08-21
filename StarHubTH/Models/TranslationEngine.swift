@@ -19,6 +19,9 @@ public enum TranslationEngine {
         /// L'appelant le coupe comme pour un quota — mais rien n'a été
         /// consommé, et l'utilisateur mérite de l'entendre dire autrement.
         case fallbackRateLimited
+        /// La clé du service de secours est refusée. Coupe pareil, et se
+        /// répare ailleurs : dans les réglages, pas en attendant.
+        case fallbackUnauthorized
     }
 
     public static func translate(
@@ -62,9 +65,14 @@ public enum TranslationEngine {
             // Le gate de marques, sur le français **déballé** : sur le texte
             // enveloppé, chaque marque serait trouvée intacte dans sa balise
             // et le contrôle rendrait toujours vrai.
+            // Le même filtre que le client local et que le chemin d'écriture :
+            // toute divergence dure, la marque **dupliquée** comprise. Ne
+            // retenir que les manquantes laissait passer un doublon que
+            // `saveTranslation` refuserait ensuite — la clé finissait alors
+            // dans les erreurs au lieu de la liste de ce qui reste à faire.
             let missing = TranslationTokenCheck
                 .mismatches(source: request.source, target: text)
-                .filter { $0.isHard && $0.found < $0.expected }
+                .filter(\.isHard)
                 .map(\.token)
             return missing.isEmpty ? .translated(text, by: .fallback)
                                    : .refusedTokens(missing: missing)
@@ -72,6 +80,8 @@ public enum TranslationEngine {
             return .quotaExhausted
         case .rateLimited:
             return .fallbackRateLimited
+        case .unauthorized:
+            return .fallbackUnauthorized
         case .rejected(let message), .transportError(let message):
             return .endpointError(message)
         }

@@ -144,6 +144,33 @@ struct TranslationEngineTests {
         #expect(outcome == .refusedTokens(missing: ["{{Name}}"]))
     }
 
+    /// Une marque dure **dupliquée** est une divergence, pas un détail : le
+    /// chemin d'écriture la refuse, et le moteur doit la refuser pareil —
+    /// sinon la clé finit dans les erreurs plutôt que dans la liste de ce
+    /// qu'il reste à traduire à la main.
+    @Test func aFallbackAnswerDoublingAHardMarkerIsRefused() async {
+        Stub.reset()
+        Stub.localReply = localCompletion("Salut !")
+        Stub.deepLReply = deepL("Salut <x>{{Name}}</x> et <x>{{Name}}</x> !")
+        let outcome = await TranslationEngine.translate(
+            request, localBaseURL: local, localSession: session(),
+            fallback: key, fallbackSession: session())
+        #expect(outcome == .refusedTokens(missing: ["{{Name}}"]))
+    }
+
+    /// Une clé refusée coupe le secours pour tout le lot : c'est la panne que
+    /// retenter à chaque clé ne peut pas réparer.
+    @Test func aRefusedKeyStopsTheFallback() async {
+        Stub.reset()
+        Stub.deepLReply = ""
+        Stub.deepLStatus = 403
+        let outcome = await TranslationEngine.translate(
+            request, localBaseURL: local, localSession: session(),
+            fallback: key, fallbackSession: session())
+        #expect(outcome == .fallbackUnauthorized)
+        #expect(Stub.deepLCalls == 1)
+    }
+
     @Test func quotaExhaustedIsReportedAsSuch() async {
         Stub.reset()
         Stub.deepLReply = ""

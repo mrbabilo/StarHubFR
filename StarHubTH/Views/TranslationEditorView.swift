@@ -253,9 +253,14 @@ struct TranslationEditorView: View {
         case .fallbackStopped(let stop):
             // Nommer la cause : sur ce chemin on reclique, et un message
             // générique ferait retenter une clé que le service ne rendra pas.
-            failureMessage = vm.L(stop == .quotaExhausted
-                                  ? L10n.Mods.translationEditorQuota
-                                  : L10n.Mods.translationEditorRateLimited)
+            switch stop {
+            case .quotaExhausted:
+                failureMessage = vm.L(L10n.Mods.translationEditorQuota)
+            case .rateLimited:
+                failureMessage = vm.L(L10n.Mods.translationEditorRateLimited)
+            case .unauthorized:
+                failureMessage = vm.L(L10n.Mods.translationEditorUnauthorized)
+            }
         case .failed:
             failureMessage = vm.L(L10n.Mods.translationEditorPretranslateFailed)
         }

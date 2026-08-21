@@ -626,6 +626,7 @@ class StarHubTHViewModel: ObservableObject {
         case .translated(let proposal, _): return .proposal(proposal)
         case .quotaExhausted: return .fallbackStopped(.quotaExhausted)
         case .fallbackRateLimited: return .fallbackStopped(.rateLimited)
+        case .fallbackUnauthorized: return .fallbackStopped(.unauthorized)
         case .refusedTokens, .endpointError: return .failed
         }
     }
@@ -658,6 +659,7 @@ class StarHubTHViewModel: ObservableObject {
         enum FallbackStop: Equatable {
             case quotaExhausted
             case rateLimited
+            case unauthorized
         }
     }
 
@@ -832,7 +834,9 @@ class StarHubTHViewModel: ObservableObject {
         let session = LocalLLMEndpoint.makeSession()
         defer { session.finishTasksAndInvalidate() }
         batchProgress = BatchProgress(done: 0, total: eligible.count)
-        for (index, row) in eligible.enumerated() {
+        // La boucle porte un nom parce qu'on en sort depuis un `switch` :
+        // un `break` nu y termine le `switch` et laisse la boucle courir.
+        rowLoop: for (index, row) in eligible.enumerated() {
             // Le point d'arrêt : la clé en cours est déjà partie, la
             // suivante ne partira pas — son résultat, s'il arrive, n'est pas
             // écrit puisque l'écriture suit le retour.
@@ -882,11 +886,15 @@ class StarHubTHViewModel: ObservableObject {
                 // *par notre fait*. La compter ferait rapporter une erreur
                 // fantôme à chaque arrêt demandé.
                 if !Task.isCancelled { errors += 1 }
-            case .quotaExhausted, .fallbackRateLimited:
+            case .quotaExhausted, .fallbackRateLimited, .fallbackUnauthorized:
                 // Couper le secours pour le reste du lot : marteler un service
-                // qui a déjà dit non ne le fera pas céder. Le local, lui, reste
-                // en course — la boucle continue sans le secours.
-                fallbackStop = outcome == .quotaExhausted ? .quotaExhausted : .rateLimited
+                // qui a déjà dit non ne le fera pas céder, et une clé refusée
+                // le sera autant à la clé suivante.
+                switch outcome {
+                case .quotaExhausted: fallbackStop = .quotaExhausted
+                case .fallbackRateLimited: fallbackStop = .rateLimited
+                default: fallbackStop = .unauthorized
+                }
                 fallbackCredentials = nil
                 errors += 1
                 // Le local reste en course s'il est réglé. Sinon plus rien ne
@@ -895,7 +903,7 @@ class StarHubTHViewModel: ObservableObject {
                 // passé et ce qu'il reste à faire.
                 if !isLocalAIConfigured {
                     batchProgress = BatchProgress(done: index + 1, total: eligible.count)
-                    break
+                    break rowLoop
                 }
             }
             batchProgress = BatchProgress(done: index + 1, total: eligible.count)

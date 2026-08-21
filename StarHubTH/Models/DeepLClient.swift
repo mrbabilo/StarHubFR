@@ -86,6 +86,9 @@ public enum DeepLClient {
         /// suite. Distinct du quota : rien n'est consommé, et le message à
         /// l'utilisateur n'est pas le même — mais l'appelant coupe pareil.
         case rateLimited
+        /// La clé est refusée (401/403). Panne **définitive** : la seule que
+        /// retenter à chaque clé d'un lot ne peut pas réparer.
+        case unauthorized
         /// Le service a répondu, mais pas une traduction utilisable.
         case rejected(String)
         case transportError(String)
@@ -140,6 +143,7 @@ public enum DeepLClient {
             let status = (response as? HTTPURLResponse)?.statusCode ?? 0
             if status == 456 { return .quotaExhausted }
             if status == 429 { return .rateLimited }
+            if status == 401 || status == 403 { return .unauthorized }
             guard status == 200 else { return .rejected("HTTP \(status)") }
             guard data.count <= maxResponseBytes,
                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
