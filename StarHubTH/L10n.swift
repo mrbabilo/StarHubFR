@@ -593,6 +593,8 @@ enum L10n {
         static let localAIPrivacy       = "settings_localai_privacy"
         static let fallbackTitle        = "settings_fallback_title"
         static let fallbackKey          = "settings_fallback_key"
+        static let fallbackGetKey       = "settings_fallback_get_key"
+        static let fallbackDesktopApp   = "settings_fallback_desktop_app"
         static let fallbackSave         = "settings_fallback_save"
         static let fallbackSaved        = "settings_fallback_saved"
         static let fallbackClear        = "settings_fallback_clear"

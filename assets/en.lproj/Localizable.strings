@@ -842,6 +842,8 @@
 "settings_localai_privacy" = "Everything stays on this machine: nothing is sent anywhere but your local server.";
 "settings_fallback_title" = "Online fallback";
 "settings_fallback_key" = "DeepL API key";
+"settings_fallback_get_key" = "Get an API key";
+"settings_fallback_desktop_app" = "The DeepL app is installed on this Mac — but it offers no entry point another app can connect to. Translating from StarHubFR goes through an API key, free of charge.";
 "settings_fallback_save" = "Save";
 "settings_fallback_saved" = "Key saved";
 "settings_fallback_clear" = "Remove";

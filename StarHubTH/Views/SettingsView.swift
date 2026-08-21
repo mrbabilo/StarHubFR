@@ -306,6 +306,10 @@ private struct LocalAISettingsSection: View {
     @State private var fallbackUsage: DeepLClient.Usage?
     @State private var fallbackTestError: String?
     @State private var isTestingFallback = false
+    /// LaunchServices interrogé **une fois**, à la création de la vue : la
+    /// réponse ne change pas pendant qu'on règle un panneau, et la question
+    /// n'a pas à être reposée à chaque passe de rendu.
+    @State private var isDeepLAppInstalled = DeepLDesktop.isInstalled()
 
     var body: some View {
         VStack(spacing: 32) {
@@ -501,6 +505,20 @@ private struct LocalAISettingsSection: View {
                         Button(vm.L(L10n.Settings.fallbackSave)) { saveFallbackKey() }
                             .disabled(fallbackKeyDraft
                                 .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        // La page que la documentation de DeepL nomme
+                        // elle-même ; sans session, elle mène à la connexion,
+                        // d'où l'offre gratuite est accessible.
+                        Button(vm.L(L10n.Settings.fallbackGetKey)) {
+                            NSWorkspace.shared.open(DeepLDesktop.apiKeyPageURL)
+                        }
+                    }
+                    // Dit seulement quand l'application est là. Une résolution
+                    // vide ne prouve pas l'absence, donc on n'affirme rien.
+                    if isDeepLAppInstalled {
+                        Text(vm.L(L10n.Settings.fallbackDesktopApp))
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     if vm.hasDeepLKey {
                         HStack(spacing: 8) {

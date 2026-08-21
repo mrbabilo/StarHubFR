@@ -13,7 +13,7 @@ where the exact log format was verified.
 ## [Unreleased]
 
 ### Added
-- **When the local AI fails — or isn't there at all — DeepL can take over.** Off by default and inert without a key you enter yourself. The game's markers are shielded from the service, your real quota is read from your account, and the batch report says what came from where.
+- **When the local AI fails — or isn't there at all — DeepL can take over.** Off by default and inert without a key you enter yourself. The game's markers are shielded from the service, your real quota is read from your account, and the batch report says what came from where. Settings links straight to the page where DeepL shows the key — and if you already have the DeepL app on your Mac, says why it still needs one.
 - **You can now translate a mod with the chat you already use — no local server, no API key, no quota.** Export the keys with no French yet into one self-contained file, hand it to the chat, reimport what comes back. Existing French is never overwritten; a moved source, or a marker the chat lost or doubled, sets that one key aside by name — the rest still imports.
 
 ## [1.16.0] - 2026-08-20

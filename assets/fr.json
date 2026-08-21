@@ -842,6 +842,8 @@
   "settings_localai_privacy": "Tout se passe sur cette machine : rien n'est envoyé ailleurs que sur votre serveur local.",
   "settings_fallback_title": "Secours en ligne",
   "settings_fallback_key": "Clé d'API DeepL",
+  "settings_fallback_get_key": "Obtenir une clé API",
+  "settings_fallback_desktop_app": "L'application DeepL est installée sur ce Mac — mais elle n'offre aucun point d'entrée auquel une autre application puisse se brancher. La traduction depuis StarHubFR passe par une clé d'API, gratuite.",
   "settings_fallback_save": "Enregistrer",
   "settings_fallback_saved": "Clé enregistrée",
   "settings_fallback_clear": "Retirer",
