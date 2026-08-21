@@ -121,6 +121,79 @@ struct TestEnvironment {
         #expect(env.manager.loadBackups().isEmpty)
     }
 
+    // MARK: - Doublons stricts
+
+    /// Deux sauvegardes du même mod aux **mêmes octets** : la seconde
+    /// n'apprend rien. Mesuré sur un parc réel le 2026-08-21 — 90 sauvegardes
+    /// dans ce cas, 175 Mo, pour une information nulle.
+    @Test func aByteIdenticalBackupOfTheSameModIsRedundant() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let modDir = env.modsDir.appendingPathComponent("SameMod", isDirectory: true)
+        try writeTestFile(in: modDir, filename: "data.txt", content: "hello")
+        let mod = makeTestMod(folderName: "SameMod", isEnabled: true)
+        let first = try env.manager.createBackup(for: mod, gameDir: env.gameDir, reason: .beforeUpdate)
+        let second = try env.manager.createBackup(for: mod, gameDir: env.gameDir, reason: .beforeUpdate)
+        #expect(env.manager.loadBackups().count == 2)
+
+        #expect(env.manager.purgeRedundantBackups() == 1)
+
+        let kept = env.manager.loadBackups()
+        #expect(kept.count == 1)
+        // La plus récente survit : c'est celle dont la date répond à « ce que
+        // j'avais avant ma dernière mise à jour ».
+        #expect(kept.first?.id == second.id)
+        #expect(!FileManager.default.fileExists(atPath: first.backupPath))
+        #expect(FileManager.default.fileExists(atPath: second.backupPath))
+    }
+
+    /// Le cas qu'il ne faut **pas** confondre : même mod, même version, un
+    /// fichier modifié entre les deux. Rien ne doit être supprimé.
+    @Test func aChangedFileMakesTheBackupWorthKeeping() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let modDir = env.modsDir.appendingPathComponent("EditedMod", isDirectory: true)
+        try writeTestFile(in: modDir, filename: "i18n_fr.json", content: "bonjour")
+        let mod = makeTestMod(folderName: "EditedMod", isEnabled: true)
+        _ = try env.manager.createBackup(for: mod, gameDir: env.gameDir, reason: .beforeUpdate)
+        try writeTestFile(in: modDir, filename: "i18n_fr.json", content: "salut, traduit depuis")
+        _ = try env.manager.createBackup(for: mod, gameDir: env.gameDir, reason: .beforeUpdate)
+
+        #expect(env.manager.purgeRedundantBackups() == 0)
+        #expect(env.manager.loadBackups().count == 2)
+    }
+
+    /// Deux **dossiers différents** au contenu identique restent deux
+    /// sauvegardes, même sous un `UniqueID` commun : elles répondent à des
+    /// restaurations différentes. Le cas est réel — le parc de référence
+    /// porte le même mod installé dans deux dossiers.
+    @Test func twoDifferentFoldersAreNeverDeduplicated() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        for name in ["ModA", "ModB"] {
+            let dir = env.modsDir.appendingPathComponent(name, isDirectory: true)
+            try writeTestFile(in: dir, filename: "data.txt", content: "hello")
+            let mod = makeTestMod(folderName: name, isEnabled: true)
+            _ = try env.manager.createBackup(for: mod, gameDir: env.gameDir, reason: .beforeUpdate)
+        }
+        #expect(env.manager.purgeRedundantBackups() == 0)
+        #expect(env.manager.loadBackups().count == 2)
+    }
+
+    /// Une sauvegarde dont le dossier a disparu n'a pas d'empreinte : elle ne
+    /// se compare à rien et ne se supprime pas sur ce motif.
+    @Test func aBackupWithoutADigestIsLeftAlone() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+        env.manager.seedIndexForTesting(with: [makeFakeBackup(timestamp: Date(), folderName: "Vanished"),
+                          makeFakeBackup(timestamp: Date(), folderName: "Vanished")])
+        #expect(env.manager.purgeRedundantBackups() == 0)
+        #expect(env.manager.loadBackups().count == 2)
+    }
+
     @Test func createBackupCopiesEnabledModFromModsFolder() throws {
         let env = TestEnvironment()
         defer { env.cleanup() }

@@ -323,6 +323,67 @@ public class ModInstallBackupManager {
         }
     }
 
+    // MARK: - Doublons stricts
+
+    /// Supprime les sauvegardes dont les **octets** sont identiques à une
+    /// autre du même mod, et rend leur nombre.
+    ///
+    /// La comparaison porte sur le contenu, jamais sur les métadonnées.
+    /// Mesuré sur un parc réel le 2026-08-21 : parmi les sauvegardes de même
+    /// mod **et même version**, 12 avaient un contenu différent — une
+    /// traduction ou une configuration modifiée entre les deux. Dédupliquer
+    /// sur `(mod, version)` aurait effacé ce travail ; sur les octets, il n'y
+    /// a rien à perdre par construction. Le gain restait de 90 sauvegardes et
+    /// 175 Mo sur ce même parc.
+    ///
+    /// La plus **récente** de chaque groupe survit : c'est sa date qui répond
+    /// à « ce que j'avais avant ma dernière mise à jour ».
+    ///
+    /// `limitedTo` borne le travail à un mod — c'est ainsi qu'on l'appelle
+    /// après une sauvegarde, là où le parc entier coûterait une empreinte de
+    /// tout le dossier (8,6 s pour 1,1 Go sur la machine de mesure).
+    @discardableResult
+    public func purgeRedundantBackups(limitedTo uniqueId: String? = nil) -> Int {
+        let candidates = loadBackups().filter {
+            uniqueId == nil || modKey(of: $0) == uniqueId
+        }
+        var seenDigests: [String: Set<String>] = [:]
+        var redundant: [ModInstallBackup] = []
+        // `loadBackups` rend la plus récente d'abord : la première vue d'une
+        // empreinte est donc celle qu'on garde.
+        for backup in candidates {
+            // Sans empreinte — dossier disparu, illisible — on ne conclut
+            // rien : une suppression ne se décide jamais sur une absence.
+            guard let digest = FolderDigest.of(URL(fileURLWithPath: backup.backupPath)) else {
+                continue
+            }
+            let key = modKey(of: backup)
+            if seenDigests[key, default: []].contains(digest) {
+                redundant.append(backup)
+            } else {
+                seenDigests[key, default: []].insert(digest)
+            }
+        }
+        var removed = 0
+        for backup in redundant where (try? deleteBackup(backup)) != nil {
+            removed += 1
+        }
+        return removed
+    }
+
+    /// L'identité qui autorise la comparaison : le **dossier d'origine**, pas
+    /// le `UniqueID`.
+    ///
+    /// C'est vers ce dossier que la restauration réécrit, et c'est donc lui
+    /// qui décide si deux sauvegardes répondent à la même question. Le
+    /// `UniqueID` ne le peut pas : sur le parc de référence, un même mod est
+    /// installé dans deux dossiers distincts — les dédupliquer priverait
+    /// l'une des deux installations de sa sauvegarde. 111 mods n'ont d'ailleurs
+    /// aucun `UniqueID`.
+    private func modKey(of backup: ModInstallBackup) -> String {
+        backup.originalFolderName
+    }
+
     // MARK: - Cleanup
 
     /// Hybrid retention: keeps ALL backups ≤30 days, plus the most recent

@@ -100,6 +100,7 @@ let package = Package(
                 "Models/KeychainSecret.swift",
                 "Models/DeepLDesktop.swift",
                 "Models/TranslationFragment.swift",
+                "Models/FolderDigest.swift",
                 "Extensions/ModConfigFiles.swift",
             ]
         ),
@@ -456,6 +457,11 @@ let package = Package(
             name: "TranslationLotImportTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/TranslationLotImportTests"
+        ),
+        .testTarget(
+            name: "FolderDigestTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/FolderDigestTests"
         ),
         .testTarget(
             name: "DeepLLiveTests",

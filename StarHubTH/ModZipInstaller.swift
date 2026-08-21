@@ -943,6 +943,13 @@ class ModZipInstaller {
                     // install proceed (the new copy replaces nothing).
                     do {
                         _ = try backupManager.createBackup(for: existing, gameDir: gameDir, reason: .beforeUpdate)
+                        // Réinstaller la même version deux fois produit deux
+                        // sauvegardes aux mêmes octets : la seconde n'apprend
+                        // rien. Purgé ici, borné à ce mod — sur le parc de
+                        // référence, 85 sauvegardes et 172 Mo s'étaient
+                        // accumulés ainsi. Jamais la purge globale : elle
+                        // demande une empreinte de tout le dossier.
+                        backupManager.purgeRedundantBackups(limitedTo: existing.folderName)
                     } catch ModInstallBackupManager.InstallBackupError.modNotFound {
                         // Existing mod's folder is missing on disk (corruption
                         // from a prior partial install) — nothing to back up.

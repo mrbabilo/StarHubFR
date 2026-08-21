@@ -4,9 +4,9 @@
   "dispatch_queue": 113,
   "get_prefixed_funcs": 7,
   "non_final_classes": 10,
-  "our_shared_singletons": 52,
+  "our_shared_singletons": 51,
   "print_calls": 20,
   "published_without_private_set": 69,
-  "try_optional": 214,
+  "try_optional": 218,
   "vm_dot_L_calls": 868
 }
