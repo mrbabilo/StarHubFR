@@ -12,10 +12,12 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.17.0] - 2026-08-21
+
 ### Added
-- **Select an English word or phrase and have just that translated.** Right-click the source, or use the button under it: the proposal comes back as a chip you click to insert where you want it. The whole sentence travels as context, untranslated.
-- **When the local AI fails — or isn't there at all — DeepL can take over.** Off by default, inert without a key, with a link to where DeepL shows it (the desktop app isn't one). Markers are shielded, your quota is read from your account, and the report says what came from where.
 - **You can now translate a mod with the chat you already use — no local server, no API key, no quota.** Export the keys with no French yet into one self-contained file, hand it to the chat, reimport what comes back. Existing French is never overwritten; a moved source, or a marker the chat lost or doubled, sets that one key aside by name — the rest still imports.
+- **When the local AI fails — or isn't there at all — DeepL can take over.** Off by default, inert without a key, with a link to where DeepL shows it (the desktop app isn't one). Markers are shielded, your quota is read from your account, and the report says what came from where.
+- **Select an English word or phrase and have just that translated.** Right-click the source, or use the button under it: the proposal comes back as a chip you click to insert where you want it. The whole sentence travels as context, untranslated.
 
 ## [1.16.0] - 2026-08-20
 
