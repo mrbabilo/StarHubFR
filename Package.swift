@@ -95,6 +95,7 @@ let package = Package(
                 "Models/TranslationLot.swift",
                 "Models/TranslationLotImport.swift",
                 "Models/TokenShield.swift",
+                "Models/DeepLClient.swift",
                 "Extensions/ModConfigFiles.swift",
             ]
         ),
@@ -451,6 +452,11 @@ let package = Package(
             name: "TranslationLotImportTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/TranslationLotImportTests"
+        ),
+        .testTarget(
+            name: "DeepLClientTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/DeepLClientTests"
         ),
         .testTarget(
             name: "TokenShieldTests",
