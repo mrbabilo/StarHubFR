@@ -1117,22 +1117,15 @@ class StarHubTHViewModel: ObservableObject {
                               refusal: .unreadable)
         }
 
-        // Les rangées par identité, filtrées comme `sent` l'a été par
-        // `TranslationLot.build` (via `TranslationBatchPlanner.eligibleRows`) :
-        // les deux chemins doivent voir exactement le même jeu de rangées,
-        // sans quoi une identité partagée par deux `DiffRow` d'états
-        // différents pourrait résoudre une entrée acceptée vers la mauvaise
-        // rangée — et écrire par-dessus un français déjà présent.
-        var byIdentity: [String: TranslationCoverage.DiffRow] = [:]
-        for row in TranslationBatchPlanner.eligibleRows(rows) {
-            byIdentity["\(row.component ?? "")\u{1F}\(row.key)"] = row
-        }
+        // Les rangées par identité, résolues par le même filtre que
+        // `TranslationLot.build` — `writableRows` en est le miroir testé.
+        let byIdentity = TranslationLotImport.writableRows(rows)
 
         var written = 0
         var writeFailures = 0
         var flags: [TranslationBaseline.ReviewFlag] = []
         for entry in report.accepted {
-            guard let row = byIdentity["\(entry.component ?? "")\u{1F}\(entry.key)"] else {
+            guard let row = byIdentity[TranslationLotImport.identity(entry.component, entry.key)] else {
                 // Ne devrait pas se produire : `TranslationLotImport.read` n'accepte
                 // une entrée que si son identité correspond à une clé de `sent`, donc
                 // à une rangée éligible de `rows` — mais un accepté qui se perd ici

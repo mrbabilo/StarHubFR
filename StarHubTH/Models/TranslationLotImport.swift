@@ -108,7 +108,30 @@ public enum TranslationLotImport {
         return Report(accepted: accepted, rejected: rejected)
     }
 
-    private static func identity(_ component: String?, _ key: String) -> String {
+    /// Les rangées qu'une entrée acceptée a le droit d'écrire, par identité —
+    /// le même filtre et le même ordre que `TranslationLot.build` applique à
+    /// l'export (`eligibleRows`, puis le garde-fou « anglais non vide »), et
+    /// la même règle de dernière occurrence : `read` n'apparie une entrée
+    /// rendue qu'à la dernière entrée exportée de son identité, l'écriture
+    /// doit donc résoudre vers cette rangée-là. Un écart entre les deux —
+    /// typiquement une clé dupliquée dont la dernière occurrence a un
+    /// anglais vide — ferait évaluer les marques depuis une source vide :
+    /// plus rien ne serait attendu, et le gate d'écriture deviendrait plus
+    /// laxiste que celui de la relecture.
+    public static func writableRows(_ rows: [TranslationCoverage.DiffRow])
+        -> [String: TranslationCoverage.DiffRow] {
+        var byIdentity: [String: TranslationCoverage.DiffRow] = [:]
+        for row in TranslationBatchPlanner.eligibleRows(rows) where !row.english.isEmpty {
+            byIdentity[identity(row.component, row.key)] = row
+        }
+        return byIdentity
+    }
+
+    /// L'identité d'une entrée ou d'une rangée : son composant et sa clé,
+    /// joints par un séparateur qui ne peut pas apparaître dans une clé.
+    /// Publique parce que la formule n'a pas le droit d'être copiée — deux
+    /// formules d'identité, c'est une de trop : elles divergeraient.
+    public static func identity(_ component: String?, _ key: String) -> String {
         "\(component ?? "")\u{1F}\(key)"
     }
 

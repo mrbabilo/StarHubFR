@@ -233,3 +233,54 @@ struct TranslationLotImportTests {
         #expect(report.rejected.first?.reason == .sourceAltered)
     }
 }
+
+/// Les rangées qu'une entrée acceptée a le droit d'écrire : le miroir
+/// exact du filtre d'export, parce qu'un écart entre les deux rendrait le
+/// gate d'écriture plus laxiste que celui de la relecture.
+struct TranslationLotWritableRowsTests {
+
+    private func row(_ key: String, english: String,
+                     state: TranslationCoverage.DiffRow.State) -> TranslationCoverage.DiffRow {
+        TranslationCoverage.DiffRow(key: key, english: english, french: "", state: state,
+                                    component: nil, section: nil)
+    }
+
+    /// Le garde-fou de l'export (`TranslationLot.build` écarte une rangée
+    /// sans anglais) doit se refléter ici : une rangée éligible mais sans
+    /// référence anglaise n'a pas de clés à écrire.
+    @Test func anEligibleRowWithNoEnglishIsNotWritable() {
+        let rows = [row("a", english: "", state: .missing)]
+        #expect(TranslationLotImport.writableRows(rows).isEmpty)
+    }
+
+    /// Une clé dupliquée dont la dernière occurrence a un anglais vide
+    /// résout vers l'occurrence pleine — celle-là même que la relecture a
+    /// appariée. Sans le garde-fou, l'écriture évaluerait les marques
+    /// depuis une source vide : rien ne serait jamais attendu, et une
+    /// traduction truffée de marques passerait le gate.
+    @Test func aDuplicatedKeyResolvesToItsFilledOccurrence() {
+        let rows = [row("a", english: "One", state: .missing),
+                    row("a", english: "", state: .missing)]
+        let writable = TranslationLotImport.writableRows(rows)
+        #expect(writable.count == 1)
+        #expect(writable.values.first?.english == "One")
+    }
+
+    /// La règle de la relecture, reprise à l'identique : à identité
+    /// partagée, la **dernière** occurrence pleine gagne — la même que le
+    /// jeu lit (dernière valeur d'une clé dupliquée) et que
+    /// `TranslationLotImport.read` retient dans `expected`.
+    @Test func theLastFilledOccurrenceOfAKeyWins() {
+        let rows = [row("a", english: "One", state: .missing),
+                    row("a", english: "Two", state: .missing)]
+        let writable = TranslationLotImport.writableRows(rows)
+        #expect(writable.values.first?.english == "Two")
+    }
+
+    /// Ce qui a déjà un français ne se réécrit pas par ce chemin —
+    /// `eligibleRows` l'écarte, comme à l'export.
+    @Test func aTranslatedRowIsNotWritable() {
+        let rows = [row("a", english: "One", state: .translated)]
+        #expect(TranslationLotImport.writableRows(rows).isEmpty)
+    }
+}
