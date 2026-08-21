@@ -118,7 +118,7 @@ liste du 2026-07-30 et n'existaient pas dans le document de veille.
 | §5 | Aide à la configuration des raccourcis clavier | **À faire** | → **C4-T2** |
 | §6 | Éditeur `fr.json` avec diagnostic des clés | **À faire** | → **C2**, **C3** |
 | §6 | Chaînes anglaises non traduites hors i18n (`events.json`, `dialogues.json`…) | **À faire** | → **C3-T2** |
-| §6 | Pré-traduction (DeepL / Claude / Google) | **Partiel ✅** | Voie **locale** livrée (Ollama / LM Studio, par clé et par lot, glossaire du jeu imposé) → **C3-T3**. Voie **distante** spécifiée, non livrée → **C3-T7** |
+| §6 | Pré-traduction (DeepL / Claude / Google) | **Partiel ✅** | Voie **locale** livrée (Ollama / LM Studio, par clé et par lot, glossaire du jeu imposé) → **C3-T3**. Voie **par son propre chat** livrée (lot `.json` exporté puis réimporté) → **C3-T5**. Voie **distante par API** spécifiée, non livrée → **C3-T7** |
 | §6 | Une mise à jour de mod signale les conflits de config/traduction | **À faire** | → **C2-T4** |
 | §7 | Packs de mods et de configs distribuables | **À faire** | → **E1** |
 | §8 | Éditeur de sauvegardes enrichi | **Partiel** | `SaveManager.swift` : argent, stats de base, duplication → **E3** (arbitrage) |
@@ -501,8 +501,11 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       Écart assumé : la gate de qualité exige `en != fr`, donc les noms propres
       identiques dans les deux langues (« Abigail ») **sortent** du glossaire —
       voulu, un nom identique n'a pas besoin d'être imposé.
-- [ ] **C3-T5** — Export/import d'un lot de travail (`.json`) pour traduire à plusieurs,
-      puis fusion contrôlée. · **M**
+- [ ] **C3-T5** — **Partiel ✅** — Export/import d'un lot de travail (`.json`) pour
+      traduire à plusieurs, puis fusion contrôlée. · **M**
+      **Reste à livrer** : la fusion entre humains (deux traducteurs sur le même mod,
+      arbitrage des divergences) et l'export ZIP. La case reste décochée pour cela ;
+      l'usage « faire traduire le lot par son propre chat » est, lui, livré (ci-dessous).
       **Plan écrit** le 2026-08-20 (`docs/superpowers/plans/2026-08-20-lot-json-traduction.md`),
       pour l'**autre** usage du même mécanisme : faire traduire le lot par le chat
       que l'utilisateur a déjà — la troisième voie de la référence. C'est la seule
