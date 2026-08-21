@@ -893,7 +893,12 @@ class StarHubTHViewModel: ObservableObject {
                 switch outcome {
                 case .quotaExhausted: fallbackStop = .quotaExhausted
                 case .fallbackRateLimited: fallbackStop = .rateLimited
-                default: fallbackStop = .unauthorized
+                case .fallbackUnauthorized: fallbackStop = .unauthorized
+                // Inatteignable : le `case` extérieur ne laisse passer que
+                // les trois ci-dessus. Nommé plutôt que replié sur un
+                // `default`, qui annoncerait un jour une clé refusée pour un
+                // cas ajouté ailleurs — mauvais message, mauvais remède.
+                case .translated, .refusedTokens, .endpointError: break
                 }
                 fallbackCredentials = nil
                 errors += 1

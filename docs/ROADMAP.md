@@ -552,7 +552,7 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       Google Traduction écarté (pas d'API gratuite officielle ; les points d'entrée
       non documentés violent les conditions d'utilisation), LibreTranslate écarté
       (pas d'équivalent d'`ignore_tags`).
-      **Livré** le 2026-08-21 (`9ec6030`…`HEAD`). Comme pour tout ce qui touche
+      **Livré** le 2026-08-21 (`9ec6030`…`d542608`). Comme pour tout ce qui touche
       l'écran dans ce dépôt, la vérification à l'affichage revient à l'humain —
       ici avec une vraie clé gratuite, avant la release.
       Deux écarts assumés par rapport à la spec, tous deux constatés en écrivant
