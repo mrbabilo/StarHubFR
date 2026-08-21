@@ -115,7 +115,12 @@ public enum DeepLClient {
             "target_lang": "FR",
             "source_lang": "EN",
             "tag_handling": "xml",
-            "ignore_tags": TokenShield.tagName,
+            // Un **tableau**, jamais une chaîne : en JSON, DeepL refuse la
+            // seconde par « Value for 'ignore_tags' not supported. », et
+            // refuse alors la traduction entière. La liste séparée par des
+            // virgules n'a cours que sur la forme `application/x-www-form-
+            // urlencoded`, que ce client n'emploie pas.
+            "ignore_tags": [TokenShield.tagName],
             "preserve_formatting": true,
             "split_sentences": "nonewlines",
         ]
@@ -137,6 +142,17 @@ public enum DeepLClient {
         return await send(request, session: session)
     }
 
+    /// « HTTP 400 : Value for 'ignore_tags' not supported. », ou « HTTP 400 »
+    /// si le corps ne porte rien de lisible.
+    private static func refusal(status: Int, body: Data) -> String {
+        guard body.count <= maxResponseBytes,
+              let json = try? JSONSerialization.jsonObject(with: body) as? [String: Any],
+              let message = json["message"] as? String, !message.isEmpty else {
+            return "HTTP \(status)"
+        }
+        return "HTTP \(status) : \(message)"
+    }
+
     private static func send(_ request: URLRequest, session: URLSession) async -> Outcome {
         do {
             let (data, response) = try await session.data(for: request)
@@ -144,7 +160,13 @@ public enum DeepLClient {
             if status == 456 { return .quotaExhausted }
             if status == 429 { return .rateLimited }
             if status == 401 || status == 403 { return .unauthorized }
-            guard status == 200 else { return .rejected("HTTP \(status)") }
+            // Ce que le service dit de son refus, quand il le dit : un
+            // « HTTP 400 » nu a masqué une journée durant un paramètre mal
+            // formé que la réponse nommait en toutes lettres. Le message de
+            // DeepL décrit la requête, jamais la clé.
+            guard status == 200 else {
+                return .rejected(refusal(status: status, body: data))
+            }
             guard data.count <= maxResponseBytes,
                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                   let list = json["translations"] as? [[String: Any]],

@@ -458,6 +458,11 @@ let package = Package(
             path: "Tests/TranslationLotImportTests"
         ),
         .testTarget(
+            name: "DeepLLiveTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/DeepLLiveTests"
+        ),
+        .testTarget(
             name: "TranslationFragmentTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/TranslationFragmentTests"

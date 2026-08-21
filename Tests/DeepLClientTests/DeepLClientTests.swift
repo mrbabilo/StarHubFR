@@ -181,7 +181,11 @@ extension DeepLUsageTests {
         let sent = try sentPayload()
         #expect(sent["text"] as? [String] == ["Hi <x>{{Name}}</x>!"])
         #expect(sent["tag_handling"] as? String == "xml")
-        #expect(sent["ignore_tags"] as? String == "x")
+        // Un **tableau**, pas une chaîne : en JSON, DeepL refuse la seconde
+        // forme par « Value for 'ignore_tags' not supported. » — mesuré sur
+        // l'API réelle le 2026-08-21, après que la chaîne eut fait échouer
+        // chaque traduction sans que rien ne le dise.
+        #expect(sent["ignore_tags"] as? [String] == ["x"])
         #expect(sent["target_lang"] as? String == "FR")
         #expect(sent["source_lang"] as? String == "EN")
         #expect(sent["split_sentences"] as? String == "nonewlines")
@@ -251,6 +255,26 @@ extension DeepLUsageTests {
                                                   credentials: free,
                                                   session: DeepLStub.session())
         #expect(!"\(outcome)".contains("k:fx"))
+    }
+
+    /// Ce que le service **dit** de son refus voyage jusqu'à l'appelant : un
+    /// « HTTP 400 » nu a masqué pendant une journée un paramètre mal formé
+    /// que la réponse nommait en toutes lettres.
+    @Test func theServiceOwnRefusalMessageIsCarried() async {
+        DeepLStub.reply(#"{"message":"Value for 'ignore_tags' not supported."}"#, status: 400)
+        let outcome = await DeepLClient.translate("Hi", context: nil,
+                                                  credentials: free,
+                                                  session: DeepLStub.session())
+        #expect(outcome == .rejected("HTTP 400 : Value for 'ignore_tags' not supported."))
+    }
+
+    /// Une réponse d'erreur sans message reste nommée par son statut.
+    @Test func aRefusalWithoutAMessageKeepsItsStatus() async {
+        DeepLStub.reply("", status: 400)
+        let outcome = await DeepLClient.translate("Hi", context: nil,
+                                                  credentials: free,
+                                                  session: DeepLStub.session())
+        #expect(outcome == .rejected("HTTP 400"))
     }
 
     @Test func anEmptyTranslationListIsRejected() async {
