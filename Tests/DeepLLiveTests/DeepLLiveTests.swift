@@ -45,6 +45,24 @@ struct DeepLLiveTests {
         #expect(!french.contains("<x>"))
     }
 
+    /// La forme exacte des voies **par clé** et **par lot** : le contexte y
+    /// est l'étiquette de section du fichier i18n, pas une phrase choisie.
+    /// `I18nOutline` ne rend jamais d'étiquette vide (`sectionTitle` écarte
+    /// le vide et le purement décoratif), mais rien ne borne son contenu —
+    /// c'est du commentaire écrit par un moddeur.
+    @Test(.enabled(if: credentials != nil))
+    func aSectionLabelIsAcceptedAsContext() async throws {
+        let outcome = await DeepLClient.translate(
+            "Welcome back!", context: "Dialogue — Abigail (heart events 2-6) // ⚠ ne pas traduire les tokens",
+            credentials: try #require(Self.credentials),
+            session: LocalLLMEndpoint.makeSession())
+        guard case .translated(let french) = outcome else {
+            Issue.record("le service a refusé : \(outcome)")
+            return
+        }
+        #expect(!french.isEmpty)
+    }
+
     /// Un fragment traduit avec sa phrase en contexte — la voie de la
     /// sélection.
     @Test(.enabled(if: credentials != nil))
