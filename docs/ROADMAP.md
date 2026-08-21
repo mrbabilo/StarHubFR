@@ -447,9 +447,9 @@ partiellement traduits ou pas du tout, sans ouvrir un seul fichier.
 C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 
 > *Ce chantier est parti en trois : **P2a** l'éditeur (livré en v1.15.0), **P2b** le
-> glossaire et l'IA locale (livré, dans `[Unreleased]`), **P2c** le lot JSON et
-> l'export ZIP — sans plan écrit à ce jour. Chaque tâche cochée porte sa version
-> réelle.*
+> glossaire et l'IA locale (livré, dans `[Unreleased]`), **P2c** le lot JSON (livré,
+> dans `[Unreleased]` ; l'export ZIP reste un livrable distinct, non planifié).
+> Chaque tâche cochée porte sa version réelle.*
 
 #### C3 — Éditeur `fr.json` assisté
 
@@ -510,6 +510,15 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       elle a gagné en priorité le jour où l'IA locale s'est révélée impraticable
       sur une machine de milieu de gamme. La fusion entre humains reste hors du
       plan ; l'export ZIP aussi (livrable distinct).
+      **Livré** le 2026-08-21 (`c66ef31`…`a162ffe`), validé à la main sur un mod
+      réel : deux boutons dans l'onglet Traduction, consignes de traduction
+      embarquées dans le fichier, jamais d'écrasement d'un français existant.
+      Écart à la ligne `LotExchange` de la spec : l'empreinte SHA-256, livrée
+      puis devenue morte au passage au jugement entrée par entrée (un chat
+      rend un gros lot en plusieurs messages, et l'import du premier fait
+      sortir ses clés de l'état courant), a été retirée du format avant toute
+      livraison — le refus en bloc ne survit qu'au cas où aucune clé du
+      fichier ne concerne l'état courant.
 - [x] **C3-T6** — `I18nLenientParser` garde la **première** occurrence d'une clé JSON
       dupliquée ; le jeu (Newtonsoft) garde la **dernière**. Trouvé pendant C2-T5, mesuré
       sur le parc : 7 mods sur 512 concernés (ex. `[CP] Tea`, `spring_23` défini deux fois
@@ -938,12 +947,12 @@ attendre : diagnostic (v1.13.0), éditeur (v1.15.0), glossaire et IA locale
 (`[Unreleased]`). Le « plus petit incrément qui rende le positionnement défendable »
 — `C1` + `C2` — est livré depuis la v1.13.0.
 
-**L'arbitrage ouvert aujourd'hui** est ailleurs : **finir C** (P2c le lot JSON et
-l'export ZIP, C3-T7 le secours en ligne, C4 la config lisible, C5 le hub agnostique
-de la langue) ou **ouvrir B** (profils, backups, fiche mod — des dettes d'usage sur
-des fonctionnalités déjà payées). Le raisonnement du point 3 ci-dessus plaide pour B
-dès que C est *stable* ; C est fonctionnel mais son dernier palier n'a pas encore de
-plan écrit.
+**L'arbitrage ouvert aujourd'hui** est ailleurs : **finir C** (l'export ZIP, C3-T7
+le secours en ligne, C4 la config lisible, C5 le hub agnostique de la langue) ou
+**ouvrir B** (profils, backups, fiche mod — des dettes d'usage sur des
+fonctionnalités déjà payées). Le raisonnement du point 3 ci-dessus plaide pour B
+dès que C est *stable* ; C est fonctionnel, validé à la main jusqu'au lot JSON, et
+son dernier palier (C3-T7) a sa spec et son plan.
 
 ---
 
