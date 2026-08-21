@@ -241,7 +241,7 @@ struct TranslationEditorView: View {
         // Rien à demander sans IA réglée : la panne serait annoncée comme un
         // serveur muet, alors qu'il n'y a pas de serveur. Le lot cache son
         // bouton dans ce cas (spec §7) ; ici il reste, mais il dit où aller.
-        guard vm.isLocalAIConfigured else {
+        guard vm.isTranslationAssistAvailable else {
             failureMessage = vm.L(L10n.Mods.translationEditorPretranslateNoAI)
             return
         }

@@ -41,4 +41,8 @@ public enum UDKey {
     public static let localAIBaseURL = "localAIBaseURL"
     /// Model name used for assisted translation requests.
     public static let localAIModel = "localAIModel"
+    /// Autorise le secours en ligne quand l'IA locale échoue — ou quand il
+    /// n'y en a aucune. Décoché par défaut : rien ne sort de la machine sans
+    /// ce geste. La clé, elle, vit au trousseau (`KeychainSecret`).
+    public static let deepLFallbackEnabled = "deepLFallbackEnabled"
 }

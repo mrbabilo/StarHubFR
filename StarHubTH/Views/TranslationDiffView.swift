@@ -186,7 +186,7 @@ struct TranslationDiffView: View {
                 // et qu'une IA est configurée (spec §7) — sinon il n'aurait
                 // rien à proposer et cacher le bouton vaut mieux qu'un clic
                 // qui échoue.
-                if vm.isLocalAIConfigured && filterSummary.hasBatchWork {
+                if vm.isTranslationAssistAvailable && filterSummary.hasBatchWork {
                     Button {
                         isShowingBatch = true
                     } label: {

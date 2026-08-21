@@ -531,11 +531,29 @@ class StarHubTHViewModel: ObservableObject {
         UserDefaults.standard.string(forKey: UDKey.localAIModel) ?? ""
     }
 
-    /// `true` quand URL validée **et** modèle nommé — ce qui rend le bouton
-    /// de lot visible (spec §7 : visible s'il reste des clés à traduire et
-    /// qu'une IA est configurée).
+    /// `true` quand URL validée **et** modèle nommé.
     var isLocalAIConfigured: Bool {
         localAIEndpoint != nil && !localAIModelName.isEmpty
+    }
+
+    /// Les identifiants du secours en ligne, `nil` si la case est décochée ou
+    /// si aucune clé n'est enregistrée. Les deux conditions sont nécessaires :
+    /// une clé sans accord ne sort pas, un accord sans clé n'a rien à envoyer.
+    var deepLCredentials: DeepLClient.Credentials? {
+        guard UserDefaults.standard.bool(forKey: UDKey.deepLFallbackEnabled),
+              let key = KeychainSecret.deepLApiKey.read() else { return nil }
+        return DeepLClient.Credentials(key: key)
+    }
+
+    /// `true` dès qu'**un** moteur peut traduire — ce qui rend le bouton de
+    /// lot et le bouton « Pré-traduire » visibles (spec §7 : visibles s'il
+    /// reste des clés à traduire et qu'une IA est configurée).
+    ///
+    /// Le secours seul suffit : sur une machine où aucun modèle local ne
+    /// tourne confortablement, c'est la seule voie, et la lui cacher
+    /// reviendrait à ne rien offrir du tout.
+    var isTranslationAssistAvailable: Bool {
+        isLocalAIConfigured || deepLCredentials != nil
     }
 
     /// Propose une traduction par IA locale pour une ligne du diff. Rend la
@@ -550,20 +568,22 @@ class StarHubTHViewModel: ObservableObject {
     @MainActor
     func preTranslate(mod: ModItem, locale: String,
                       row: TranslationCoverage.DiffRow) async -> String? {
-        guard let base = localAIEndpoint, !localAIModelName.isEmpty else {
-            return nil
-        }
+        let credentials = deepLCredentials
+        guard isLocalAIConfigured || credentials != nil else { return nil }
         let request = LocalLLMClient.Request(
             model: localAIModelName,
             source: row.english,
             glossary: glossaryMatches(for: row.english, language: locale),
             sectionLabel: row.section)
+        // Une seule session pour les deux moteurs : éphémère, sans proxy,
+        // redirections refusées — des propriétés qu'on veut aussi côté DeepL.
         let session = LocalLLMEndpoint.makeSession()
         defer { session.finishTasksAndInvalidate() }
-        let outcome = await LocalLLMClient.translate(
-            request, baseURL: base, session: session)
+        let outcome = await TranslationEngine.translate(
+            request, localBaseURL: localAIEndpoint, localSession: session,
+            fallback: credentials, fallbackSession: session)
         log("Pré-traduction \(mod.folderName)/\(row.key) : \(outcome)", level: .info)
-        guard case .translated(let proposal) = outcome else { return nil }
+        guard case .translated(let proposal, _) = outcome else { return nil }
         return proposal
     }
 
@@ -583,6 +603,19 @@ class StarHubTHViewModel: ObservableObject {
         let refusedRowIDs: [String]
         let errors: Int
         let softGlossaryIgnored: Int
+        /// Combien de ces traductions viennent du secours en ligne — la
+        /// provenance doit être visible, jamais devinée.
+        let translatedByFallback: Int
+        /// Le secours s'est arrêté en cours de lot, et pourquoi.
+        let fallbackStop: FallbackStop?
+
+        /// Ce qui a coupé le secours en ligne au milieu d'un lot. Deux
+        /// causes, deux phrases : un quota épuisé se règle chez DeepL, un
+        /// rythme refusé se règle en attendant.
+        enum FallbackStop: Equatable {
+            case quotaExhausted
+            case rateLimited
+        }
     }
 
     @Published private(set) var batchProgress: BatchProgress?
@@ -736,9 +769,10 @@ class StarHubTHViewModel: ObservableObject {
     private func runBatch(mod: ModItem, locale: String,
                           rows: [TranslationCoverage.DiffRow]) async {
         defer { batchTask = nil; batchProgress = nil }
-        guard let base = localAIEndpoint, !localAIModelName.isEmpty else {
-            return
-        }
+        // La garde admet le cas « pas d'IA locale, mais un secours réglé » :
+        // sans ça, une machine sans modèle local n'aurait rien du tout.
+        var fallbackCredentials = deepLCredentials
+        guard isLocalAIConfigured || fallbackCredentials != nil else { return }
         // Jamais une valeur française existante (spec §8.2) : le planneur ne
         // retient que ce qui est absent ou vide.
         let eligible = TranslationBatchPlanner.eligibleRows(rows)
@@ -746,6 +780,8 @@ class StarHubTHViewModel: ObservableObject {
         var refused: [String] = []
         var errors = 0
         var softIgnored = 0
+        var translatedByFallback = 0
+        var fallbackStop: BatchReport.FallbackStop?
         var flags: [TranslationBaseline.ReviewFlag] = []
         // Une seule session pour tout le lot : `URLSession` retient fortement
         // son délégué jusqu'à invalidation, une par clé laissait autant de
@@ -762,10 +798,12 @@ class StarHubTHViewModel: ObservableObject {
             let request = LocalLLMClient.Request(
                 model: localAIModelName, source: row.english,
                 glossary: matches, sectionLabel: row.section)
-            let outcome = await LocalLLMClient.translate(
-                request, baseURL: base, session: session)
+            let outcome = await TranslationEngine.translate(
+                request, localBaseURL: localAIEndpoint, localSession: session,
+                fallback: fallbackCredentials, fallbackSession: session)
             switch outcome {
-            case .translated(let proposal):
+            case .translated(let proposal, let by):
+                if by == .fallback { translatedByFallback += 1 }
                 // Le chemin d'écriture existant, avec son `.bak` et son gate
                 // de marques — le client n'a déjà rendu que des traductions
                 // sans marque dure manquante, mais le gate reste juge.
@@ -801,14 +839,25 @@ class StarHubTHViewModel: ObservableObject {
                 // *par notre fait*. La compter ferait rapporter une erreur
                 // fantôme à chaque arrêt demandé.
                 if !Task.isCancelled { errors += 1 }
+            case .quotaExhausted, .fallbackRateLimited:
+                // Couper le secours pour le reste du lot : marteler un service
+                // qui a déjà dit non ne le fera pas céder. Le local, lui, reste
+                // en course — la boucle continue sans le secours.
+                fallbackStop = outcome == .quotaExhausted ? .quotaExhausted : .rateLimited
+                fallbackCredentials = nil
+                errors += 1
             }
             batchProgress = BatchProgress(done: index + 1, total: eligible.count)
         }
         flushReviewFlags(&flags, mod: mod)   // le reliquat, arrêt compris
         batchReport = BatchReport(translated: translated, refusedRowIDs: refused,
-                                  errors: errors, softGlossaryIgnored: softIgnored)
-        log("Lot \(mod.folderName) : \(translated) traduites, \(refused.count) refusées "
-            + "(marques manquantes), \(errors) erreurs, \(softIgnored) termes glossaire ignorés",
+                                  errors: errors, softGlossaryIgnored: softIgnored,
+                                  translatedByFallback: translatedByFallback,
+                                  fallbackStop: fallbackStop)
+        log("Lot \(mod.folderName) : \(translated) traduites (dont \(translatedByFallback) "
+            + "par le secours en ligne), \(refused.count) refusées (marques manquantes), "
+            + "\(errors) erreurs, \(softIgnored) termes glossaire ignorés"
+            + (fallbackStop.map { ", secours coupé : \($0)" } ?? ""),
             level: .info)
     }
 
