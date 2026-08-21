@@ -11,8 +11,9 @@ struct TranslationLotTests {
     }
 
     /// L'empreinte lie le lot à **un** mod, **une** langue et **un** jeu de
-    /// sources anglaises. Elle est ce qui permet de refuser un fichier revenu
-    /// après une mise à jour du mod.
+    /// sources anglaises. Elle n'est plus comparée au retour : c'est la
+    /// relecture clé par clé qui écarte un lot périmé — l'empreinte dit
+    /// seulement si deux fichiers décrivent les mêmes sources anglaises.
     @Test func theDigestIsStableForTheSameContent() {
         let a = TranslationLot.digest(mod: "SVE", language: "fr",
                                       entries: [entry("a", "One"), entry("b", "Two")])

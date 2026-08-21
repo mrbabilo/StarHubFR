@@ -423,11 +423,12 @@ struct TranslationDiffView: View {
     /// périmer ce `@State` sans que rien ici ne le sache
     /// (`invalidateFrenchCoverage` ne touche pas les vues déjà ouvertes). On
     /// relit donc `vm.translationDiff(for: mod)` **juste avant** l'appel, et
-    /// c'est cette lecture-là — pas une plus ancienne — qui sert à construire
-    /// l'empreinte comparée à celle du lot reçu : un lot exporté avant un
-    /// changement du mod ne peut ainsi jamais écrire ses traductions sur des
-    /// clés qui ont bougé entretemps, le refus `.staleDigest` l'arrête avant
-    /// toute écriture.
+    /// c'est cette lecture-là — pas une plus ancienne — qui reconstruit
+    /// l'état courant attendu du mod : un lot exporté avant un changement du
+    /// mod ne peut ainsi jamais écrire ses traductions sur des clés qui ont
+    /// bougé entretemps — chaque entrée rendue est appariée à cet état-là
+    /// (`.sourceAltered`, `.unknownKey`), et un fichier dont aucune clé ne
+    /// s'y retrouve est refusé en bloc.
     private func importTranslationLot() {
         let panel = NSOpenPanel()
         panel.title = vm.L(L10n.Mods.translationLotImport)
@@ -472,11 +473,11 @@ struct TranslationDiffView: View {
                 // relecture et les échecs d'écriture dans un seul « écarté »
                 // annonçait des entrées que la liste ci-dessous ne montrait
                 // jamais — `writeFailures` n'a pas de clé à lister (accepté
-                // par la relecture du lot, refusé par `saveTranslation` lui-
-                // même, typiquement une marque dure en trop). Séparer les
-                // deux comptes rend visible ce que la liste ne peut pas
-                // nommer, plutôt que de le noyer dans un total plus gros que
-                // ce qu'on montre.
+                // par la relecture, refusé par l'écriture elle-même, qui
+                // échoue pour ses propres raisons : composant introuvable,
+                // disque). Séparer les deux comptes rend visible ce que la
+                // liste ne peut pas nommer, plutôt que de le noyer dans un
+                // total plus gros que ce qu'on montre.
                 Text(String(format: vm.L(L10n.Mods.translationLotDone),
                             Int64(outcome.written),
                             Int64(outcome.rejected.count),

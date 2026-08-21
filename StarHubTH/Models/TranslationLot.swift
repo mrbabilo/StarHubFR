@@ -42,8 +42,12 @@ public struct TranslationLot: Codable, Equatable, Sendable {
     public let formatVersion: Int
     public let mod: String
     public let language: String
-    /// Lie ce fichier à un mod, une langue et un jeu de sources anglaises.
-    /// Au retour, il refuse un lot qui ne correspond plus à l'état du mod.
+    /// Scellée à l'export : mod, langue et couples (composant, clé, anglais).
+    /// Au retour, plus rien ne la compare — la protection contre un lot
+    /// périmé vient de la reconstruction de l'état courant au moment de
+    /// l'import, jugée clé par clé (`TranslationLotImport.read`). Elle reste
+    /// pour l'œil : deux fichiers de même empreinte décrivent les mêmes
+    /// sources anglaises.
     public let digest: String
     public let instructions: [String]
     public var entries: [Entry]

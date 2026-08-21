@@ -1080,11 +1080,11 @@ class StarHubTHViewModel: ObservableObject {
         let written: Int
         let rejected: [TranslationLotImport.Rejection]
         /// Accepté par la relecture du lot, mais refusé par le chemin
-        /// d'écriture lui-même (`saveTranslation`) — typiquement une marque
-        /// dure dupliquée : `report.rejected` ne voit que les marques
-        /// *manquantes*, pas les marques en trop, que seul `saveTranslation`
-        /// détecte. Compté à part de `rejected`, qui ne porte que les motifs
-        /// de la relecture du lot.
+        /// d'écriture lui-même (`saveTranslation`) — une divergence de
+        /// marques dures, manquantes **ou en trop**, est déjà vue et nommée
+        /// par la relecture ; ce qui reste ici, c'est l'échec propre à
+        /// l'écriture : composant introuvable, disque. Compté à part de
+        /// `rejected`, qui ne porte que les motifs de la relecture du lot.
         let writeFailures: Int
         /// Le fichier a été refusé en bloc — rien n'a été écrit.
         let refusal: TranslationLotImport.FileRefusal?
@@ -1098,8 +1098,9 @@ class StarHubTHViewModel: ObservableObject {
     /// moment de l'import, pas relu depuis le fichier reçu. C'est cette
     /// reconstruction qui fait toute la protection de `TranslationLotImport` :
     /// un lot exporté avant une mise à jour du mod ne peut pas écrire ses
-    /// traductions sur des clés qui ont changé entretemps, puisque l'empreinte
-    /// de `sent` ne correspondrait plus à celle du fichier reçu.
+    /// traductions sur des clés qui ont changé entretemps — chaque entrée
+    /// rendue est appariée à cet état-là, et une clé changée ou disparue est
+    /// écartée (`.sourceAltered`, `.unknownKey`).
     @MainActor
     func importTranslationLot(_ data: Data, mod: ModItem, locale: String,
                               rows: [TranslationCoverage.DiffRow]) -> LotOutcome {
@@ -1151,14 +1152,15 @@ class StarHubTHViewModel: ObservableObject {
                 flags.append(.init(component: entry.component, key: entry.key,
                                    source: entry.source, target: entry.target))
             case .blocked, .failed:
-                // Accepté par la relecture du lot (donc sans marque dure
-                // *manquante*), mais refusé par `saveTranslation` — le cas
-                // ordinaire est une marque dure *dupliquée*, que la relecture
-                // du lot ne détecte pas (`TranslationLotImport.read` ne
-                // rejette que `found < expected`, jamais `found > expected`).
-                // `saveTranslation` ne journalise pas systématiquement ce
-                // refus (`.blocked` ne log rien) : le faire ici explicitement,
-                // plutôt que de compter sur son propre logging.
+                // Accepté par la relecture, mais refusé par l'écriture. La
+                // relecture et `saveTranslation` comparent désormais les
+                // mêmes divergences de marques dures, dans les deux sens :
+                // `.blocked` ne devrait donc plus survenir — il reste compté
+                // plutôt que déclaré impossible, un invariant est plus utile
+                // surveillé qu'affirmé. `saveTranslation` ne journalise pas
+                // systématiquement ce refus (`.blocked` ne log rien) : le
+                // faire ici explicitement, plutôt que de compter sur son
+                // propre logging.
                 log("Entrée acceptée mais non écrite pour \(mod.name) — "
                     + "\(entry.key) : \(outcome)", level: .warning)
                 writeFailures += 1
