@@ -118,7 +118,7 @@ liste du 2026-07-30 et n'existaient pas dans le document de veille.
 | §5 | Aide à la configuration des raccourcis clavier | **À faire** | → **C4-T2** |
 | §6 | Éditeur `fr.json` avec diagnostic des clés | **À faire** | → **C2**, **C3** |
 | §6 | Chaînes anglaises non traduites hors i18n (`events.json`, `dialogues.json`…) | **À faire** | → **C3-T2** |
-| §6 | Pré-traduction (DeepL / Claude / Google) | **Partiel ✅** | Voie **locale** livrée (Ollama / LM Studio, par clé et par lot, glossaire du jeu imposé) → **C3-T3**. Voie **par son propre chat** livrée (lot `.json` exporté puis réimporté) → **C3-T5**. Voie **distante par API** spécifiée, non livrée → **C3-T7** |
+| §6 | Pré-traduction (DeepL / Claude / Google) | **Fait** | Trois voies livrées : **locale** (Ollama / LM Studio, glossaire du jeu imposé) → **C3-T3** ; **par son propre chat** (lot `.json` exporté puis réimporté) → **C3-T5** ; **distante par API** (DeepL, marques protégées, quota lu) → **C3-T7**. Google et LibreTranslate écartés, voir la spec |
 | §6 | Une mise à jour de mod signale les conflits de config/traduction | **À faire** | → **C2-T4** |
 | §7 | Packs de mods et de configs distribuables | **À faire** | → **E1** |
 | §8 | Éditeur de sauvegardes enrichi | **Partiel** | `SaveManager.swift` : argent, stats de base, duplication → **E3** (arbitrage) |
@@ -540,7 +540,7 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       que de « garder la première ». Chiffres recalés sur le parc du jour :
       58 fichiers i18n sur 2487, dont 39 aux valeurs divergentes.
 
-- [ ] **C3-T7** — **Secours de traduction en ligne (DeepL)** : quand l'IA locale
+- [x] **C3-T7** — **Secours de traduction en ligne (DeepL)** : quand l'IA locale
       échoue — serveur injoignable, ou refus faute de marques dures après retry —,
       la clé part chez DeepL, et seulement alors. Accord explicite par case à
       cocher, décochée par défaut ; clé au trousseau ; quota lu sur `/v2/usage`
@@ -552,6 +552,19 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       Google Traduction écarté (pas d'API gratuite officielle ; les points d'entrée
       non documentés violent les conditions d'utilisation), LibreTranslate écarté
       (pas d'équivalent d'`ignore_tags`).
+      **Livré** le 2026-08-21 (`9ec6030`…`e0732b4`), reste l'essai réel à la main.
+      Deux écarts assumés par rapport à la spec, tous deux constatés en écrivant
+      le code :
+      1. **Le secours peut être le seul moteur.** La spec le décrivait comme un
+         recours après échec local ; sur une machine qui ne fait pas tourner de
+         modèle — celle de l'auteur — il n'y a pas d'échec local, il n'y a pas de
+         local du tout. La case, la phrase de confidentialité et le
+         récapitulatif de lot ont chacun leur variante pour ce cas, plutôt que
+         d'annoncer un secours à qui n'a rien à secourir.
+      2. **Le 429 a son propre état**, distinct du quota épuisé : la spec les
+         voulait « la même coupure », et c'est bien la même — mais rien n'a été
+         consommé, et l'annoncer comme un quota enverrait l'utilisateur chercher
+         un problème qui n'existe pas.
 
 #### C4 — Éditeur de config lisible
 
