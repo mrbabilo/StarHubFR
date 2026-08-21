@@ -1,5 +1,4 @@
 import Foundation
-import Security
 
 /// Client Nexus Mods pour tout ce qui n'est pas la détection de mises à jour
 /// en masse : fiche d'un mod à la demande, description, changelogs, et les
@@ -22,8 +21,6 @@ import Security
 final class NexusUpdateChecker {
     static let shared = NexusUpdateChecker()
 
-    private let service = "com.appleboiy.StarHubTH"
-    private let keychainAccount = "nexusApiKey"
     // `gameDomain`/`apiBase`/`userAgent`/`appVersion` are centralized in
     // `NexusRequestBuilder` and accessed via `NexusRequestBuilder.xxx` so the
     // whole app reports a single consistent client to Nexus.
@@ -108,49 +105,16 @@ final class NexusUpdateChecker {
     // MARK: - API Key (Keychain)
 
     func apiKey() -> String? {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: keychainAccount,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne,
-        ]
-        var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
-        guard status == errSecSuccess, let data = item as? Data,
-              let key = String(data: data, encoding: .utf8) else { return nil }
-        return key
+        KeychainSecret.nexusApiKey.read()
     }
 
     @discardableResult
     func setApiKey(_ key: String) -> Bool {
-        let data = Data(key.utf8)
-        let baseQuery: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: keychainAccount,
-        ]
-        let attrs: [String: Any] = [kSecValueData as String: data]
-        // Try update first; if no item exists, add a new one.
-        let updateStatus = SecItemUpdate(baseQuery as CFDictionary, attrs as CFDictionary)
-        if updateStatus == errSecSuccess { return true }
-        if updateStatus == errSecItemNotFound {
-            var newItem = baseQuery
-            newItem[kSecValueData as String] = data
-            // Retourner le statut : sans cela, l'appelant croyait la clé
-            // configurée même si la Keychain refusait (locked, quota, sandbox).
-            return SecItemAdd(newItem as CFDictionary, nil) == errSecSuccess
-        }
-        return false
+        KeychainSecret.nexusApiKey.write(key)
     }
 
     func clearApiKey() {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: keychainAccount,
-        ]
-        SecItemDelete(query as CFDictionary)
+        KeychainSecret.nexusApiKey.clear()
         // Drop any cached results so they don't leak across accounts, and
         // bump the generation so an in-flight check()/fetchSingleMod() from
         // the old key discards its results instead of writing them back
