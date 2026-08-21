@@ -874,6 +874,14 @@ class StarHubTHViewModel: ObservableObject {
                 fallbackStop = outcome == .quotaExhausted ? .quotaExhausted : .rateLimited
                 fallbackCredentials = nil
                 errors += 1
+                // Le local reste en course s'il est réglé. Sinon plus rien ne
+                // peut traduire : continuer collectionnerait une erreur par
+                // clé restante, là où le rapport a déjà dit ce qui s'est
+                // passé et ce qu'il reste à faire.
+                if !isLocalAIConfigured {
+                    batchProgress = BatchProgress(done: index + 1, total: eligible.count)
+                    break
+                }
             }
             batchProgress = BatchProgress(done: index + 1, total: eligible.count)
         }
