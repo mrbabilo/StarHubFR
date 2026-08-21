@@ -49,6 +49,13 @@ struct InstallerTestEnv {
     let modsDir: URL
     let modsDisabledDir: URL
     let tempExtractDir: URL
+    /// Le magasin de sauvegardes **du test**. Sans lui, chaque exécution
+    /// déposait une sauvegarde dans les vraies données de l'utilisateur :
+    /// 1 148 des 1 494 entrées de son index venaient d'ici, mesuré le
+    /// 2026-08-21.
+    let backupManager: ModInstallBackupManager
+    /// Là où ce magasin écrit — ce que le test vérifie.
+    let backupsRoot: URL
     private let root: URL
 
     init() {
@@ -63,14 +70,12 @@ struct InstallerTestEnv {
         try? FileManager.default.createDirectory(at: tempExtractDir, withIntermediateDirectories: true)
         gameDir = gameDirURL.path
 
-        // Point the shared backup manager at an isolated location for the
-        // duration of this test so it doesn't pollute (or read) real backups.
-        let backupsBase = root.appendingPathComponent("Backups", isDirectory: true)
-        // ModInstallBackupManager.shared can't be re-pointed at runtime, so
-        // we rely on the fact that createBackup only ever appends under its
-        // own base — tests here don't assert on backup location, only on the
-        // final install destination under the fake game dir.
-        _ = backupsBase
+        // Un magasin de sauvegardes à soi, sous le dossier temporaire du
+        // test. L'installateur le reçoit à la construction : ce qui suivait
+        // ici auparavant ne faisait que **constater** que le magasin partagé
+        // n'était pas repointable, et laissait donc écrire dans le vrai.
+        backupsRoot = root.appendingPathComponent("Backups", isDirectory: true)
+        backupManager = ModInstallBackupManager(backupsBasePath: backupsRoot)
     }
 
     func cleanup() {
@@ -156,7 +161,7 @@ struct InstallerTestEnv {
             configResolution: nil
         )
 
-        let installer = ModZipInstaller()
+        let installer = ModZipInstaller(backupManager: env.backupManager)
         try installer.install(
             from: env.tempExtractDir,
             to: env.modsDisabledDir.path,
@@ -165,6 +170,13 @@ struct InstallerTestEnv {
             gameDir: env.gameDir,
             existingMods: [existing]
         )
+
+        // La sauvegarde de l'écrasement va **là où on l'a dit**, et nulle part
+        // ailleurs. Le magasin n'était pas injectable : ce test écrivait pour
+        // de bon dans `Application Support`, à chaque exécution.
+        let backups = env.backupManager.loadBackups()
+        #expect(backups.count == 1)
+        #expect(backups.first?.backupPath.hasPrefix(env.backupsRoot.path) == true)
 
         // The new copy MUST be at the nested location under Mods/.Parchment/
         // (disabled, since the existing mod was disabled), not flattened.
@@ -235,7 +247,7 @@ struct InstallerTestEnv {
             configResolution: nil
         )
 
-        let installer = ModZipInstaller()
+        let installer = ModZipInstaller(backupManager: env.backupManager)
         // Must NOT throw — the missing existing folder is tolerated.
         try installer.install(
             from: env.tempExtractDir,
@@ -311,7 +323,7 @@ struct InstallerTestEnv {
             configResolution: nil
         )
 
-        let installer = ModZipInstaller()
+        let installer = ModZipInstaller(backupManager: env.backupManager)
         try installer.install(
             from: env.tempExtractDir,
             to: env.modsDisabledDir.path,
@@ -360,7 +372,7 @@ struct InstallerTestEnv {
             configResolution: nil
         )
 
-        let installer = ModZipInstaller()
+        let installer = ModZipInstaller(backupManager: env.backupManager)
         try installer.install(
             from: env.tempExtractDir,
             to: env.modsDisabledDir.path,

@@ -6,6 +6,20 @@ import Foundation
 /// third-party library — the app is built with plain `swiftc` (see
 /// `build_app.py`) which has no SPM dependency resolution.
 class ModZipInstaller {
+    /// Le magasin de sauvegardes d'installation.
+    ///
+    /// **Injecté, et pas pris sur le singleton dans `install`** : les tests
+    /// écrivaient sinon de vraies sauvegardes dans l'`Application Support` de
+    /// l'utilisateur. Mesuré le 2026-08-21 sur une machine réelle — 582
+    /// exécutions de la suite y avaient déposé 1 148 des 1 494 entrées de son
+    /// index, noyant son historique sous deux mods de fixture. La production
+    /// passe par le défaut et voit exactement le même dossier qu'avant.
+    private let backupManager: ModInstallBackupManager
+
+    init(backupManager: ModInstallBackupManager = .shared) {
+        self.backupManager = backupManager
+    }
+
     private let fm = FileManager.default
     private let maxZipSize: Int64 = 500 * 1024 * 1024 // 500MB
 
@@ -860,7 +874,6 @@ class ModZipInstaller {
     /// disabled mods now live inside Mods/ as `.X`.
     func install(from tempDir: URL, to modsDisabledPath: String, selections: [InstallSelection], detectedMods: [DetectedMod], gameDir: String, existingMods: [ModItem]) throws {
         guard !gameDir.isEmpty else { throw InstallError.gameDirEmpty }
-        let backupManager = ModInstallBackupManager.shared
 
         // Ensure Mods/ exists as the single install destination.
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
