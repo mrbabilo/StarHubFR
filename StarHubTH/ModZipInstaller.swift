@@ -874,6 +874,10 @@ class ModZipInstaller {
     /// disabled mods now live inside Mods/ as `.X`.
     func install(from tempDir: URL, to modsDisabledPath: String, selections: [InstallSelection], detectedMods: [DetectedMod], gameDir: String, existingMods: [ModItem]) throws {
         guard !gameDir.isEmpty else { throw InstallError.gameDirEmpty }
+        // Est-ce que cette installation a produit une sauvegarde ? Sinon il
+        // n'y a rien de neuf à élaguer, et balayer l'index serait payé pour
+        // rien.
+        var didBackUp = false
 
         // Ensure Mods/ exists as the single install destination.
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
@@ -950,6 +954,7 @@ class ModZipInstaller {
                         // accumulés ainsi. Jamais la purge globale : elle
                         // demande une empreinte de tout le dossier.
                         backupManager.purgeRedundantBackups(limitedTo: existing.folderName)
+                        didBackUp = true
                     } catch ModInstallBackupManager.InstallBackupError.modNotFound {
                         // Existing mod's folder is missing on disk (corruption
                         // from a prior partial install) — nothing to back up.
@@ -1042,6 +1047,18 @@ class ModZipInstaller {
             // doesn't ship them (common case). Failures must surface, not be
             // swallowed — a silent failure here means data loss.
             try restoreUserConfigs(&preservedConfigs, into: destPath)
+        }
+
+        // La rétention par âge, **une fois** pour toute l'installation : elle
+        // balaie l'index entier et ne regarde aucun mod en particulier, la
+        // relancer à chaque mod referait le même travail.
+        //
+        // Elle ne tournait qu'à l'ouverture de la page des sauvegardes : qui
+        // n'y va jamais ne l'exécutait jamais, et l'historique grossissait
+        // sans limite. C'est ici que les sauvegardes naissent, c'est ici
+        // qu'on élague.
+        if didBackUp {
+            _ = backupManager.cleanupOldBackups()
         }
     }
 

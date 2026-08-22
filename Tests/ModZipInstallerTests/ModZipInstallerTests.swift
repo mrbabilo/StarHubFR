@@ -341,6 +341,61 @@ struct InstallerTestEnv {
         #expect(!FileManager.default.fileExists(atPath: disabledPath.path))
     }
 
+    /// La rétention tourne **à l'installation**, pas seulement quand on ouvre
+    /// la page des sauvegardes. Qui n'y allait jamais ne l'exécutait jamais,
+    /// et l'historique grossissait sans limite.
+    @Test func installingRunsTheRetentionSweep() throws {
+        let env = InstallerTestEnv()
+        defer { env.cleanup() }
+
+        // Huit vieilles sauvegardes du **même mois**, il y a cent jours : la
+        // politique en protège les cinq plus récentes et la première du mois,
+        // donc il y a bien de quoi élaguer. Un chemin inexistant suffit —
+        // la purge sait qu'un dossier disparu n'est plus à supprimer.
+        let old = Date().addingTimeInterval(-100 * 24 * 3600)
+        env.backupManager.seedIndexForTesting(with: (0..<8).map { index in
+            ModInstallBackup(
+                timestamp: old.addingTimeInterval(Double(index) * 3600),
+                originalFolderName: "AncientMod",
+                backupPath: "/nonexistent/AncientMod-\(index)",
+                modMetadata: ModMetadata(name: "Ancient", version: "1.0.0",
+                                         author: "Tester", uniqueId: "ancient.mod"),
+                reason: .beforeUpdate)
+        })
+        #expect(env.backupManager.loadBackups().count == 8)
+
+        try makeModFolder(base: env.modsDir, relativePath: "SimpleMod",
+                          uniqueId: "simple.mod", name: "Simple Mod",
+                          version: "1.0.0", extraContent: "old")
+        let existing = ModItem(
+            uniqueId: "simple.mod", name: "Simple Mod", folderName: "SimpleMod",
+            version: "1.0.0", author: "Tester", description: "", nexusUrl: "",
+            nexusModId: "", isEnabled: true, dependencies: [], children: nil,
+            isGroup: false, installedFileDate: nil)
+        try makeModFolder(base: env.tempExtractDir, relativePath: "SimpleMod",
+                          uniqueId: "simple.mod", name: "Simple Mod",
+                          version: "2.0.0", extraContent: "new")
+        let detected = DetectedMod(
+            folderName: "SimpleMod", relativePath: "SimpleMod",
+            manifest: parsedManifest(uniqueId: "simple.mod", name: "Simple Mod", version: "2.0.0"),
+            hasConfigFiles: false, dependencies: [], dependencyDetails: [],
+            existingVersion: existing)
+        let selection = InstallSelection(modId: detected.id, selected: true,
+                                         conflictResolution: .overwriteWithBackup,
+                                         configResolution: nil)
+
+        let installer = ModZipInstaller(backupManager: env.backupManager)
+        try installer.install(
+            from: env.tempExtractDir, to: env.modsDisabledDir.path,
+            selections: [selection], detectedMods: [detected],
+            gameDir: env.gameDir, existingMods: [existing])
+
+        let remaining = env.backupManager.loadBackups()
+        // La sauvegarde de cet écrasement est là, et de vieilles ont sauté.
+        #expect(remaining.contains { $0.originalFolderName == "SimpleMod" })
+        #expect(remaining.filter { $0.originalFolderName == "AncientMod" }.count < 8)
+    }
+
     @Test func newModInstallsDisabledUnderMods() throws {
         // A mod with no existing conflict installs fresh as a disabled mod
         // (Mods/.BrandNewMod) — the user toggles it on explicitly.
