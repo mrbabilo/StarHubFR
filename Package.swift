@@ -101,6 +101,7 @@ let package = Package(
                 "Models/DeepLDesktop.swift",
                 "Models/TranslationFragment.swift",
                 "Models/FolderDigest.swift",
+                "Models/BackupBrowser.swift",
                 "Extensions/ModConfigFiles.swift",
             ]
         ),
@@ -457,6 +458,11 @@ let package = Package(
             name: "TranslationLotImportTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/TranslationLotImportTests"
+        ),
+        .testTarget(
+            name: "BackupBrowserTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/BackupBrowserTests"
         ),
         .testTarget(
             name: "FolderDigestTests",

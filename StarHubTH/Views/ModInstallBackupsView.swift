@@ -14,6 +14,12 @@ struct ModInstallBackupsView: View {
     /// restore/delete operations on the same backup. Carries the id of the
     /// backup currently in flight so the matching row can show a spinner.
     @State private var busyBackupId: UUID? = nil
+    /// Recherche, tri et dépliage : ce que la page doit à un parc où l'on
+    /// mesure 1 494 sauvegardes pour 145 mods. La liste plate d'avant ne
+    /// permettait pas d'en retrouver une.
+    @State private var search = ""
+    @State private var sort: BackupBrowser.Sort = .mostRecent
+    @State private var expandedGroups: Set<String> = []
 
     private let backupManager = ModInstallBackupManager.shared
 
@@ -26,7 +32,8 @@ struct ModInstallBackupsView: View {
                         .font(.system(size: 18, weight: .semibold))
                     // Clé dédiée : mettre en minuscules le titre « Gérer les
                     // sauvegardes » donnait « 12 gérer les sauvegardes ».
-                    Text(String(format: vm.L(L10n.ModInstall.backupsCount), backups.count))
+                    Text(String(format: vm.L(L10n.ModInstall.backupsModsCount),
+                                Int64(groups.count), Int64(backups.count)))
                         .font(.system(size: 11))
                         .foregroundColor(.secondary)
                 }
@@ -45,6 +52,10 @@ struct ModInstallBackupsView: View {
 
             Divider()
 
+            searchAndSortBar
+
+            Divider()
+
             // Retention policy info banner
             retentionInfoBanner
 
@@ -53,6 +64,8 @@ struct ModInstallBackupsView: View {
             // Content
             if backups.isEmpty {
                 emptyState
+            } else if groups.isEmpty {
+                noMatchState
             } else {
                 backupList
             }
@@ -122,15 +135,162 @@ struct ModInstallBackupsView: View {
         .padding(40)
     }
 
+    /// Les groupes affichés, recalculés à chaque frappe. Le coût est un tri
+    /// sur quelques milliers d'entrées — négligeable devant la lecture disque
+    /// qui les a chargées.
+    private var groups: [BackupBrowser.ModGroup] {
+        BackupBrowser.groups(from: backups, search: search, sort: sort)
+    }
+
+    private var searchAndSortBar: some View {
+        HStack(spacing: 10) {
+            HStack(spacing: 6) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+                TextField(vm.L(L10n.ModInstall.backupsSearch), text: $search)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 12))
+                if !search.isEmpty {
+                    Button {
+                        search = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(RoundedRectangle(cornerRadius: 6)
+                .fill(Color(nsColor: .controlBackgroundColor)))
+
+            Picker(vm.L(L10n.ModInstall.backupsSort), selection: $sort) {
+                Text(vm.L(L10n.ModInstall.sortRecent)).tag(BackupBrowser.Sort.mostRecent)
+                Text(vm.L(L10n.ModInstall.sortNameAsc)).tag(BackupBrowser.Sort.nameAscending)
+                Text(vm.L(L10n.ModInstall.sortNameDesc)).tag(BackupBrowser.Sort.nameDescending)
+                Text(vm.L(L10n.ModInstall.sortCount)).tag(BackupBrowser.Sort.count)
+            }
+            .pickerStyle(.menu)
+            .fixedSize()
+            .font(.system(size: 12))
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 10)
+    }
+
+    private var noMatchState: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 26))
+                .foregroundColor(.secondary.opacity(0.6))
+            Text(String(format: vm.L(L10n.ModInstall.backupsNoMatch), search))
+                .font(.system(size: 12))
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(40)
+    }
+
     private var backupList: some View {
-        ScrollView {
-            VStack(spacing: 8) {
-                ForEach(backups) { backup in
-                    backupRow(backup)
+        // Calculés **une fois** par passe de rendu : lire la propriété dans
+        // chaque carte referait le regroupement complet à chaque ligne, soit
+        // 145 balayages de 1 494 sauvegardes pour un seul affichage.
+        let shown = groups
+        // Une recherche qui ne laisse qu'un mod le déplie d'office :
+        // chercher, c'est déjà avoir choisi. Sans recherche, non — sinon
+        // celui qui n'a qu'un mod se retrouve avec un chevron inerte.
+        let autoExpand = !search.trimmingCharacters(in: .whitespaces).isEmpty && shown.count == 1
+        return ScrollView {
+            // Paresseuse : tout déplier ferait construire des milliers de
+            // lignes d'un coup sur un parc réel.
+            LazyVStack(spacing: 8) {
+                ForEach(shown) { group in
+                    modGroupCard(group, autoExpand: autoExpand)
                 }
             }
             .padding(20)
         }
+    }
+
+    /// Un mod, replié par défaut.
+    private func modGroupCard(_ group: BackupBrowser.ModGroup,
+                              autoExpand: Bool) -> some View {
+        let isExpanded = expandedGroups.contains(group.id) || autoExpand
+        return VStack(alignment: .leading, spacing: 0) {
+            Button {
+                if expandedGroups.contains(group.id) {
+                    expandedGroups.remove(group.id)
+                } else {
+                    expandedGroups.insert(group.id)
+                }
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(.secondary)
+                        .frame(width: 12)
+                    ZStack {
+                        Circle().fill(Color.pink.opacity(0.12)).frame(width: 30, height: 30)
+                        Image(systemName: "shippingbox")
+                            .font(.system(size: 12))
+                            .foregroundColor(.pink)
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(group.displayName)
+                            .font(.system(size: 13, weight: .medium))
+                        Text(group.folderName)
+                            .font(.system(size: 10, design: .monospaced))
+                            .foregroundColor(.secondary.opacity(0.7))
+                    }
+                    Spacer()
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text(group.backups.count == 1
+                             ? vm.L(L10n.ModInstall.backupsGroupSingle)
+                             : String(format: vm.L(L10n.ModInstall.backupsGroupSummary),
+                                      Int64(group.backups.count), Int64(group.versions.count)))
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                        Text(group.backups.first?.formattedDate ?? "")
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary.opacity(0.8))
+                    }
+                }
+                .contentShape(Rectangle())
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+            }
+            .buttonStyle(.plain)
+            .pointingHandCursor()
+
+            if isExpanded {
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(group.versions) { version in
+                        // L'intitulé de version ne s'affiche que s'il y en a
+                        // plusieurs : sur ce parc, la moitié des mods n'a
+                        // qu'une sauvegarde, et le rappeler serait du bruit.
+                        if group.versions.count > 1 {
+                            Text("v\(version.version)")
+                                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                .foregroundColor(.secondary)
+                                .padding(.top, 2)
+                        }
+                        ForEach(version.backups) { backup in
+                            backupRow(backup)
+                        }
+                    }
+                }
+                .padding(.horizontal, 14)
+                .padding(.bottom, 12)
+            }
+        }
+        .background(RoundedRectangle(cornerRadius: 8)
+            .fill(Color(nsColor: .controlBackgroundColor)))
+        .overlay(RoundedRectangle(cornerRadius: 8)
+            .stroke(Color.secondary.opacity(0.12), lineWidth: 0.5))
     }
 
     private func backupRow(_ backup: ModInstallBackup) -> some View {
@@ -203,15 +363,14 @@ struct ModInstallBackupsView: View {
                 }
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        // Pas de cadre à elle : la ligne vit désormais **dans** la carte de
+        // son mod, et un encadré dans un encadré donnait une boîte par
+        // sauvegarde à l'intérieur de la boîte du mod.
         .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color(nsColor: .controlBackgroundColor))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(Color.secondary.opacity(0.12), lineWidth: 0.5)
+            RoundedRectangle(cornerRadius: 6)
+                .fill(Color.primary.opacity(0.035))
         )
         .opacity(busyBackupId == backup.id ? 0.6 : 1.0)
         .contextMenu {
