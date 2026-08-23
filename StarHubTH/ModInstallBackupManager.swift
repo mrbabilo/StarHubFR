@@ -208,14 +208,9 @@ public class ModInstallBackupManager {
             // fois la copie réussie — sans quoi un échec perdrait le mod
             // installé, et un succès jetterait la version remplacée sans
             // aucun moyen de défaire la restauration.
-            let formatter = DateFormatter()
-            formatter.dateFormat = "yyyyMMdd_HHmmss"
-            formatter.locale = Locale(identifier: "en_US_POSIX")
             var setAside: [(original: String, stale: String)] = []
             for path in occupied {
-                // Le suffixe UUID empêche deux restaurations du même mod dans
-                // la même seconde de se disputer un seul chemin.
-                let stale = path + ".stale_\(formatter.string(from: Date()))_\(UUID().uuidString)"
+                let stale = Self.setAsidePath(for: path, now: Date(), uuid: UUID().uuidString)
                 try fm.moveItem(atPath: path, toPath: stale)
                 setAside.append((path, stale))
             }
@@ -265,6 +260,36 @@ public class ModInstallBackupManager {
         } catch {
             throw InstallBackupError.restoreFailed(error.localizedDescription)
         }
+    }
+
+    /// Le chemin où un dossier installé est mis de côté le temps d'une
+    /// restauration, avant d'être archivé dans `Backups/`.
+    ///
+    /// Toujours **préfixé d'un point**, quel que soit l'état du mod remplacé :
+    /// entre la mise de côté et l'archivage, ce dossier vit encore dans
+    /// `Mods/`. Sans point, SMAPI le charge, et deux dossiers déclarant le
+    /// même `UniqueID` sont une erreur qu'il signale au démarrage. Si l'app
+    /// s'arrête entre les deux étapes, ce point est tout ce qui protège la
+    /// partie.
+    ///
+    /// Le point va sur le **dernier composant** : masquer un enfant de pack
+    /// en pointant le dossier du pack retirerait du jeu les mods voisins.
+    ///
+    /// - Parameters:
+    ///   - now: l'instant de la mise de côté, lisible dans le nom.
+    ///   - uuid: ce qui empêche deux restaurations du même mod dans la même
+    ///     seconde de se disputer un seul chemin.
+    static func setAsidePath(for path: String, now: Date, uuid: String) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyyMMdd_HHmmss"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        let parent = (path as NSString).deletingLastPathComponent
+        let leaf = (path as NSString).lastPathComponent
+        // Un mod en pause porte déjà son point : en ajouter un second donne
+        // `..Nom`, un chemin que le scanner ne retrouve pas.
+        let hidden = leaf.hasPrefix(".") ? leaf : "." + leaf
+        return (parent as NSString)
+            .appendingPathComponent(hidden + ".stale_\(formatter.string(from: now))_\(uuid)")
     }
 
     /// Best-effort metadata read from a mod folder's `manifest.json`,

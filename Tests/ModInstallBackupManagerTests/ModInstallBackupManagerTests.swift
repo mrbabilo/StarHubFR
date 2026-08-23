@@ -110,6 +110,13 @@ struct TestEnvironment {
     }
 }
 
+/// Les entrées de `Mods/` visibles après une opération, triées. Sert à
+/// prouver qu'une restauration ne laisse **rien** derrière elle : ni second
+/// dossier du même mod, ni résidu `.stale_*`.
+func modsFolderEntries(_ env: TestEnvironment) -> [String] {
+    ((try? FileManager.default.contentsOfDirectory(atPath: env.modsDir.path)) ?? []).sorted()
+}
+
 // MARK: - Tests
 
 @Suite struct ModInstallBackupManagerTests {
@@ -387,6 +394,7 @@ struct TestEnvironment {
                 "la restauration a déposé une seconde copie du mod à côté de l'installée")
         let restored = try String(contentsOf: liveDir.appendingPathComponent("data.txt"), encoding: .utf8)
         #expect(restored == "1.0.0")
+        #expect(modsFolderEntries(env) == ["ActiveMod"])
     }
 
     /// La version remplacée d'un mod actif devient elle-même une sauvegarde :
@@ -453,6 +461,47 @@ struct TestEnvironment {
                 "le doublon en pause a survécu à la restauration")
         let restored = try String(contentsOf: liveDir.appendingPathComponent("data.txt"), encoding: .utf8)
         #expect(restored == "1.0.0")
+        #expect(modsFolderEntries(env) == ["TwinMod"])
+    }
+
+    // MARK: - B4-T3 · le dossier mis de côté reste caché de SMAPI
+
+    /// Le temps d'une restauration, le dossier remplacé vit encore dans
+    /// `Mods/` sous un nom `.stale_*`, avant d'être archivé. Il doit porter
+    /// un **point** : sans lui, SMAPI le charge, et deux dossiers déclarant
+    /// le même `UniqueID` sont une erreur qu'il signale au démarrage. Un
+    /// arrêt de l'app entre les deux étapes laisse ce dossier en place —
+    /// c'est la seule chose qui protège le joueur ce jour-là.
+    @Test func aSetAsideFolderIsAlwaysHiddenFromSmapi() {
+        let path = ModInstallBackupManager.setAsidePath(for: "/Game/Mods/ActiveMod",
+                                                        now: Date(), uuid: "u")
+        #expect(path.hasPrefix("/Game/Mods/.ActiveMod.stale_"))
+    }
+
+    /// Un mod déjà en pause porte déjà son point : ne pas en ajouter un
+    /// second. `Mods/..Nom` est le chemin que le scanner ne retrouve pas.
+    @Test func aPausedModKeepsItsSingleDotWhenSetAside() {
+        let path = ModInstallBackupManager.setAsidePath(for: "/Game/Mods/.PausedMod",
+                                                        now: Date(), uuid: "u")
+        #expect(path.hasPrefix("/Game/Mods/.PausedMod.stale_"))
+    }
+
+    /// Un enfant de pack est masqué **chez lui**, pas en déplaçant le point
+    /// sur le dossier du pack — cacher le pack entier retirerait du jeu les
+    /// mods voisins qui n'ont rien à voir avec la restauration.
+    @Test func aPackChildIsSetAsideInsideItsPack() {
+        let path = ModInstallBackupManager.setAsidePath(for: "/Game/Mods/PackX/ChildMod",
+                                                        now: Date(), uuid: "u")
+        #expect(path.hasPrefix("/Game/Mods/PackX/.ChildMod.stale_"))
+    }
+
+    /// Deux restaurations du même mod dans la même seconde ne se disputent
+    /// pas un seul chemin.
+    @Test func twoSetAsidePathsInTheSameSecondDiffer() {
+        let now = Date()
+        let first = ModInstallBackupManager.setAsidePath(for: "/Game/Mods/Mod", now: now, uuid: UUID().uuidString)
+        let second = ModInstallBackupManager.setAsidePath(for: "/Game/Mods/Mod", now: now, uuid: UUID().uuidString)
+        #expect(first != second)
     }
 
     @Test func restoreBackupRollsBackOnCopyFailure() throws {
