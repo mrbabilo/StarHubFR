@@ -171,15 +171,30 @@ public class ModInstallBackupManager {
 
     // MARK: - Restore
 
-    /// Restores a backed-up mod to the game's Mods/ folder as a disabled
-    /// mod (Mods/.<originalFolderName>), mirroring the new-mod install
-    /// default. The user toggles it on explicitly after reviewing.
+    /// Restaure un mod sauvegardé dans le dossier `Mods/` du jeu.
+    ///
+    /// **Où il atterrit** : là où le mod se trouve déjà, actif (`Mods/Nom`)
+    /// ou en pause (`Mods/.Nom`). Restaurer, c'est revenir à une version
+    /// antérieure d'un mod qu'on a — pas en déposer une seconde copie à côté.
+    /// Deux dossiers pour un même `folderName` mettraient en double la clé du
+    /// registre d'installation, des profils et des sauvegardes (cf.
+    /// `ModItem.physicalFolderName`), et le scanner en tirerait deux `ModItem`
+    /// de même identité.
+    ///
+    /// Quand le mod n'est plus installé, il revient **en pause**, comme toute
+    /// nouvelle installation : l'utilisateur l'active après relecture.
     public func restoreBackup(_ backup: ModInstallBackup, gameDir: String) throws {
         guard !gameDir.isEmpty else { throw InstallBackupError.gameDirEmpty }
 
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
-        // Restored mods land disabled by default (dot prefix).
-        let destPath = (modsPath as NSString).appendingPathComponent("." + backup.originalFolderName)
+        let activePath = (modsPath as NSString).appendingPathComponent(backup.originalFolderName)
+        let pausedPath = (modsPath as NSString).appendingPathComponent("." + backup.originalFolderName)
+        // Les deux peuvent coexister : c'est précisément l'état que les
+        // restaurations d'avant ce correctif laissaient derrière elles. Tout
+        // ce qui est en place est mis de côté ; la destination est celle que
+        // SMAPI lit, donc l'active dès qu'elle existe.
+        let occupied = [activePath, pausedPath].filter { fm.fileExists(atPath: $0) }
+        let destPath = occupied.first ?? pausedPath
 
         guard fm.fileExists(atPath: backup.backupPath) else {
             throw InstallBackupError.restoreFailed("Backup folder not found")
@@ -188,21 +203,21 @@ public class ModInstallBackupManager {
         do {
             try fm.createDirectory(atPath: modsPath, withIntermediateDirectories: true, attributes: nil)
 
-            // Track the set-aside path so it can be rolled back if the
-            // restore copy below fails, or registered as its own backup once
-            // the copy succeeds — otherwise a failed copy loses the live mod
-            // entirely, and a successful one discards the replaced version
-            // with no way to undo the restore itself.
-            var stalePath: String?
-            if fm.fileExists(atPath: destPath) {
-                let formatter = DateFormatter()
-                formatter.dateFormat = "yyyyMMdd_HHmmss"
-                formatter.locale = Locale(identifier: "en_US_POSIX")
-                // A UUID suffix keeps two restores of the same mod within
-                // the same second from colliding on one set-aside path.
-                let path = destPath + ".stale_\(formatter.string(from: Date()))_\(UUID().uuidString)"
-                try fm.moveItem(atPath: destPath, toPath: path)
-                stalePath = path
+            // Chaque dossier mis de côté est suivi pour pouvoir être remis en
+            // place si la copie échoue, ou enregistré comme sauvegarde une
+            // fois la copie réussie — sans quoi un échec perdrait le mod
+            // installé, et un succès jetterait la version remplacée sans
+            // aucun moyen de défaire la restauration.
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyyMMdd_HHmmss"
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            var setAside: [(original: String, stale: String)] = []
+            for path in occupied {
+                // Le suffixe UUID empêche deux restaurations du même mod dans
+                // la même seconde de se disputer un seul chemin.
+                let stale = path + ".stale_\(formatter.string(from: Date()))_\(UUID().uuidString)"
+                try fm.moveItem(atPath: path, toPath: stale)
+                setAside.append((path, stale))
             }
 
             do {
@@ -213,13 +228,13 @@ public class ModInstallBackupManager {
                 try fm.createDirectory(atPath: destParent, withIntermediateDirectories: true)
                 try fm.copyItem(atPath: backup.backupPath, toPath: destPath)
             } catch {
-                // Roll the set-aside folder back so a failed restore doesn't
+                // Roll the set-aside folders back so a failed restore doesn't
                 // leave the mod missing.
-                if let stale = stalePath {
+                for entry in setAside {
                     do {
-                        try fm.moveItem(atPath: stale, toPath: destPath)
+                        try fm.moveItem(atPath: entry.stale, toPath: entry.original)
                     } catch {
-                        print("CRITICAL: restore rollback failed — mod still in \(stale) (could not move back to \(destPath): \(error))")
+                        print("CRITICAL: restore rollback failed — mod still in \(entry.stale) (could not move back to \(entry.original): \(error))")
                     }
                 }
                 throw error
@@ -231,8 +246,8 @@ public class ModInstallBackupManager {
             // done (e.g. no readable manifest.json) rather than leaving a
             // ".stale_*" folder the mod scanner could pick up as a
             // duplicate/corrupt entry.
-            if let stale = stalePath {
-                if registerSetAsideFolderAsBackup(atPath: stale, originalFolderName: backup.originalFolderName) == nil {
+            for entry in setAside {
+                if registerSetAsideFolderAsBackup(atPath: entry.stale, originalFolderName: backup.originalFolderName) == nil {
                     // Enregistrer comme backup a échoué (manifeste illisible) :
                     // on supprime le dossier mis de côté. La suppression robuste
                     // répare d'abord les perms en lecture seule (un mod installé
@@ -241,9 +256,9 @@ public class ModInstallBackupManager {
                     // `.stale_*` oublié, remonté chez le scanner comme un mod en
                     // pause.
                     do {
-                        try ModZipInstaller.removeItemGrantingWriteAccess(atPath: stale)
+                        try ModZipInstaller.removeItemGrantingWriteAccess(atPath: entry.stale)
                     } catch {
-                        print("Warning: could not remove leftover .stale folder \(stale) — it may resurface as a paused mod: \(error)")
+                        print("Warning: could not remove leftover .stale folder \(entry.stale) — it may resurface as a paused mod: \(error)")
                     }
                 }
             }

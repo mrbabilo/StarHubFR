@@ -110,8 +110,8 @@ liste du 2026-07-30 et n'existaient pas dans le document de veille.
 | §3 | Favoris de mods + import dans un profil | **À faire** | Les favoris n'existent que pour les sauvegardes de jeu → **B3-T2** |
 | §3 | Duplication d'un profil | **À faire** | Aucune fonction `duplicateProfile` → **B3-T3** |
 | §3 | Recherche automatique des NexusID manquants | **À faire** | Saisie manuelle sur la fiche mod → **A3-T1** |
-| §4 | Backups : feedback après restauration, tri, regroupement, recherche | **À faire** | `ModInstallBackupsView.swift` / `ModConfigBackupsView.swift` : liste brute → **B4** |
-| §4 | Un mod restauré met à jour le registre | **À vérifier** | `ModInstallBackupManager` restaure les fichiers ; la cohérence du registre n'est pas prouvée → **B4-T3** |
+| §4 | Backups : feedback après restauration, tri, regroupement, recherche | **Partiel** (2026-08-22) | Regroupement, tri et recherche livrés (`Models/BackupBrowser.swift`, `ModInstallBackupsView.swift`) → **B4-T1** ; le retour après restauration manque → **B4-T2** |
+| §4 | Un mod restauré met à jour le registre | **Corrigé ✅** (2026-08-23) | Vérifié : la restauration d'un mod **actif** en déposait une seconde copie en pause à côté, deux dossiers pour un `folderName` — la clé du registre. Elle remplace désormais le mod là où il est → **B4-T3** |
 | §4 | Sauvegarde / restauration de `config.json` et `fr.json` | **Fait** | `ModConfigBackupManager.swift` + `Extensions/ModConfigFiles.swift` |
 | §5 | Éditeur de config exploitant les clés de traduction | **À faire** | `ModConfigEditorView.swift` affiche les clés brutes → **C4-T1** |
 | §5 | Intégrer *Modern Config Menu* / GMCM (49382, 49437) | **À instruire** | Réintégré au périmètre à la demande de l'auteur → **C4-T3** (spike) |
@@ -644,12 +644,18 @@ pouvoir revenir en arrière à tout moment.
 
 #### B4 — Page de backups
 
-- [ ] **B4-T1** — Regroupement par mod puis par version, tri (dernier backup, A→Z, Z→A),
-      recherche. · **M**
+- [x] **B4-T1** — Regroupement par mod puis par version, tri (dernier backup, A→Z, Z→A),
+      recherche. · **M** · *livré le 2026-08-22 (`7c9efce`) — `Models/BackupBrowser.swift`.*
 - [ ] **B4-T2** — Retour utilisateur explicite après restauration (ce qui a été écrit, où). · **S**
-- [ ] **B4-T3** — Garantir qu'une restauration met à jour le registre : version, écrasement
-      du dossier existant, recréation s'il a disparu. · **M** · *comportement actuel non
-      prouvé — commencer par un test de caractérisation.*
+- [x] **B4-T3** — Garantir qu'une restauration met à jour le registre : version, écrasement
+      du dossier existant, recréation s'il a disparu. · **M** · *les tests de
+      caractérisation ont trouvé le défaut : restaurer un mod **actif** copiait la
+      sauvegarde dans `Mods/.Nom` sans toucher à `Mods/Nom`. Deux dossiers pour un même
+      `folderName` — la clé du registre, des profils et des sauvegardes — et le mod
+      restauré invisible du jeu. La restauration remplace désormais le mod où il se
+      trouve, actif ou en pause, et ne repart en pause que s'il n'est plus installé.
+      Le rafraîchissement du registre lui-même reste appelé depuis la vue
+      (`vm.refresh()`), hors de portée des tests Core.*
 - [ ] **B4-T4** — **Récupérer un fichier isolé depuis une sauvegarde**, sans restaurer le mod
       entier : `i18n/fr.json` et `config.json`. Une mise à jour de mod écrase le dossier et
       emporte ce que l'auteur ne redistribue pas — traduction communautaire, réglages.

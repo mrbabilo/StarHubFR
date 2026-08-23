@@ -16,6 +16,7 @@ where the exact log format was verified.
 - **The backups page can be browsed at last.** It listed every backup flat — 1 494 of them on a real library. Now one collapsible row per mod, its versions inside, plus search across name, folder, author and version, and four sort orders.
 
 ### Fixed
+- **Restoring a backup no longer leaves two copies of the mod.** Restoring over a mod you have enabled dropped the backup into a paused folder beside the live one — the same mod twice, the restored version invisible to the game. It now replaces the mod where it sits, and lands paused only when the mod is gone.
 - **Backups stop piling up.** Copies byte-identical to another backup of the same folder are dropped — 172 MB on a real library — and the retention sweep now runs after an install, not only when you happen to open the backups page.
 
 ## [1.17.0] - 2026-08-21

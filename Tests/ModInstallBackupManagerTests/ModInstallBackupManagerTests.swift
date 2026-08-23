@@ -281,9 +281,9 @@ struct TestEnvironment {
     }
 
     @Test func restoreBackupHandlesNestedPackChildFolderName() throws {
-        // Restoring a nested-folder-name backup must create the intermediate
-        // parent under Mods/ (as a dot-prefixed disabled entry) before
-        // copying, even when that parent does not yet exist there.
+        // Un enfant de pack encore installé est remplacé là où il vit, sous
+        // le dossier du pack — la restauration ne fabrique pas de second
+        // dossier de pack.
         let env = TestEnvironment()
         defer { env.cleanup() }
 
@@ -292,31 +292,33 @@ struct TestEnvironment {
 
         let mod = makeTestMod(folderName: "PackX/ChildMod", isEnabled: true)
         let backup = try env.manager.createBackup(for: mod, gameDir: env.gameDir, reason: .beforeInstall)
+        try writeTestFile(in: nestedModDir, filename: "data.txt", content: "nested edited")
 
         try env.manager.restoreBackup(backup, gameDir: env.gameDir)
 
-        // Restored mod lands disabled (dot prefix) under Mods/.
-        let restoredPath = env.modsDir.appendingPathComponent(".PackX/ChildMod/data.txt")
-        let restoredContent = try String(contentsOf: restoredPath, encoding: .utf8)
-        #expect(restoredContent == "nested original")
+        let restored = try String(contentsOf: nestedModDir.appendingPathComponent("data.txt"), encoding: .utf8)
+        #expect(restored == "nested original")
+        #expect(!FileManager.default.fileExists(atPath: env.modsDir.appendingPathComponent(".PackX").path))
     }
 
-    @Test func restoreBackupCopiesToEmptyDestination() throws {
+    @Test func restoreBackupRecreatesAMissingPackParentAsADisabledFolder() throws {
+        // Le pack entier a disparu de `Mods/` : la restauration recrée le
+        // dossier intermédiaire, en pause comme toute nouvelle installation.
         let env = TestEnvironment()
         defer { env.cleanup() }
 
-        let modDir = env.modsDir.appendingPathComponent("RestoreMod", isDirectory: true)
-        try writeTestFile(in: modDir, filename: "data.txt", content: "original")
+        let nestedModDir = env.modsDir.appendingPathComponent("PackX/ChildMod", isDirectory: true)
+        try writeTestFile(in: nestedModDir, filename: "data.txt", content: "nested original")
 
-        let mod = makeTestMod(folderName: "RestoreMod", isEnabled: true)
+        let mod = makeTestMod(folderName: "PackX/ChildMod", isEnabled: true)
         let backup = try env.manager.createBackup(for: mod, gameDir: env.gameDir, reason: .beforeInstall)
+        try FileManager.default.removeItem(at: env.modsDir.appendingPathComponent("PackX"))
 
-        // Destination (Mods/.RestoreMod) doesn't exist yet.
         try env.manager.restoreBackup(backup, gameDir: env.gameDir)
 
-        let restoredPath = env.modsDir.appendingPathComponent(".RestoreMod/data.txt")
+        let restoredPath = env.modsDir.appendingPathComponent(".PackX/ChildMod/data.txt")
         let restoredContent = try String(contentsOf: restoredPath, encoding: .utf8)
-        #expect(restoredContent == "original")
+        #expect(restoredContent == "nested original")
     }
 
     @Test func restoreBackupReplacesExistingFolderAndRegistersItAsNewBackup() throws {
@@ -328,11 +330,11 @@ struct TestEnvironment {
 
         let mod = makeTestMod(folderName: "RestoreMod", isEnabled: true)
         let backup = try env.manager.createBackup(for: mod, gameDir: env.gameDir, reason: .beforeInstall)
+        try FileManager.default.removeItem(at: modDir)
 
-        // A different version is already sitting at the live destination
-        // (now Mods/.RestoreMod — the dot prefix means disabled), with a
-        // real manifest.json so the replaced-version registration (which
-        // reads metadata off disk) can succeed.
+        // Le mod est installé **en pause** (Mods/.RestoreMod) dans une autre
+        // version, avec un vrai manifest.json pour que l'enregistrement de la
+        // version remplacée (qui lit les métadonnées sur le disque) aboutisse.
         let liveDestDir = env.modsDir.appendingPathComponent(".RestoreMod", isDirectory: true)
         try writeTestFile(in: liveDestDir, filename: "data.txt", content: "currently live")
         try writeManifest(in: liveDestDir, uniqueId: "restore.mod", name: "Restore Mod", version: "2.0.0")
@@ -351,6 +353,106 @@ struct TestEnvironment {
         #expect(registered?.reason == .beforeRestore)
         #expect(registered?.modMetadata.uniqueId == "restore.mod")
         #expect(registered?.modMetadata.version == "2.0.0")
+    }
+
+
+    // MARK: - B4-T3 · restaurer un mod déjà installé
+
+    /// Le cas courant : le mod est **actif** dans `Mods/Nom`, et on restaure une
+    /// sauvegarde antérieure. La restauration doit remplacer ce qui est en
+    /// place — pas déposer une seconde copie à côté.
+    ///
+    /// Deux dossiers pour un même mod, c'est un `folderName` en double : la clé
+    /// du registre d'installation, des profils et des sauvegardes (cf.
+    /// `ModItem.physicalFolderName`). Le scanner en tirerait deux `ModItem` de
+    /// même `id`.
+    @Test func restoringAModThatIsCurrentlyActiveReplacesItInPlace() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let liveDir = env.modsDir.appendingPathComponent("ActiveMod", isDirectory: true)
+        try writeTestFile(in: liveDir, filename: "data.txt", content: "1.0.0")
+        try writeManifest(in: liveDir, uniqueId: "active.mod", name: "Active Mod", version: "1.0.0")
+        let mod = makeTestMod(uniqueId: "active.mod", folderName: "ActiveMod", isEnabled: true)
+        let backup = try env.manager.createBackup(for: mod, gameDir: env.gameDir, reason: .beforeUpdate)
+
+        // Le mod est mis à jour sur place, puis l'utilisateur revient en arrière.
+        try writeTestFile(in: liveDir, filename: "data.txt", content: "2.0.0")
+        try writeManifest(in: liveDir, uniqueId: "active.mod", name: "Active Mod", version: "2.0.0")
+
+        try env.manager.restoreBackup(backup, gameDir: env.gameDir)
+
+        let paused = env.modsDir.appendingPathComponent(".ActiveMod")
+        #expect(!FileManager.default.fileExists(atPath: paused.path),
+                "la restauration a déposé une seconde copie du mod à côté de l'installée")
+        let restored = try String(contentsOf: liveDir.appendingPathComponent("data.txt"), encoding: .utf8)
+        #expect(restored == "1.0.0")
+    }
+
+    /// La version remplacée d'un mod actif devient elle-même une sauvegarde :
+    /// la restauration reste défaisable, quel que soit l'état du mod.
+    @Test func restoringAnActiveModRegistersTheReplacedVersionAsABackup() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let liveDir = env.modsDir.appendingPathComponent("ActiveMod", isDirectory: true)
+        try writeTestFile(in: liveDir, filename: "data.txt", content: "1.0.0")
+        try writeManifest(in: liveDir, uniqueId: "active.mod", name: "Active Mod", version: "1.0.0")
+        let mod = makeTestMod(uniqueId: "active.mod", folderName: "ActiveMod", isEnabled: true)
+        let backup = try env.manager.createBackup(for: mod, gameDir: env.gameDir, reason: .beforeUpdate)
+        try writeManifest(in: liveDir, uniqueId: "active.mod", name: "Active Mod", version: "2.0.0")
+
+        try env.manager.restoreBackup(backup, gameDir: env.gameDir)
+
+        let registered = env.manager.loadBackups().first { $0.id != backup.id }
+        #expect(registered?.reason == .beforeRestore)
+        #expect(registered?.modMetadata.version == "2.0.0")
+    }
+
+    /// Le mod a été supprimé du dossier `Mods/` : la restauration le recrée.
+    /// Absent du jeu, il revient **en pause** — c'est la règle des nouvelles
+    /// installations, l'utilisateur l'active après relecture.
+    @Test func restoringAModThatIsNoLongerInstalledRecreatesItPaused() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let liveDir = env.modsDir.appendingPathComponent("GoneMod", isDirectory: true)
+        try writeTestFile(in: liveDir, filename: "data.txt", content: "sauvegardé")
+        let mod = makeTestMod(uniqueId: "gone.mod", folderName: "GoneMod", isEnabled: true)
+        let backup = try env.manager.createBackup(for: mod, gameDir: env.gameDir, reason: .beforeUpdate)
+        try FileManager.default.removeItem(at: liveDir)
+
+        try env.manager.restoreBackup(backup, gameDir: env.gameDir)
+
+        let paused = env.modsDir.appendingPathComponent(".GoneMod")
+        #expect(FileManager.default.fileExists(atPath: paused.path))
+        #expect(!FileManager.default.fileExists(atPath: liveDir.path))
+        #expect(env.manager.loadBackups().count == 1, "rien n'a été remplacé : aucune sauvegarde de plus")
+    }
+
+    /// Le parc peut déjà porter les deux dossiers, séquelle des restaurations
+    /// faites avant ce correctif. La restauration doit sortir de cet état, pas
+    /// l'entretenir : un seul dossier subsiste, celui que SMAPI lit.
+    @Test func restoringHealsAModLeftInBothActiveAndPausedFolders() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let liveDir = env.modsDir.appendingPathComponent("TwinMod", isDirectory: true)
+        try writeTestFile(in: liveDir, filename: "data.txt", content: "1.0.0")
+        try writeManifest(in: liveDir, uniqueId: "twin.mod", name: "Twin Mod", version: "1.0.0")
+        let mod = makeTestMod(uniqueId: "twin.mod", folderName: "TwinMod", isEnabled: true)
+        let backup = try env.manager.createBackup(for: mod, gameDir: env.gameDir, reason: .beforeUpdate)
+
+        let pausedDir = env.modsDir.appendingPathComponent(".TwinMod", isDirectory: true)
+        try writeTestFile(in: pausedDir, filename: "data.txt", content: "doublon")
+        try writeManifest(in: pausedDir, uniqueId: "twin.mod", name: "Twin Mod", version: "2.0.0")
+
+        try env.manager.restoreBackup(backup, gameDir: env.gameDir)
+
+        #expect(!FileManager.default.fileExists(atPath: pausedDir.path),
+                "le doublon en pause a survécu à la restauration")
+        let restored = try String(contentsOf: liveDir.appendingPathComponent("data.txt"), encoding: .utf8)
+        #expect(restored == "1.0.0")
     }
 
     @Test func restoreBackupRollsBackOnCopyFailure() throws {
