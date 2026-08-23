@@ -15,6 +15,9 @@ where the exact log format was verified.
 ### Added
 - **The backups page can be browsed at last.** It listed every backup flat — 1 494 of them on a real library. Now one collapsible row per mod, its versions inside, plus search across name, folder, author and version, and four sort orders.
 
+### Changed
+- **Restoring a backup now tells you what it did.** Instead of "restored successfully": the mod and version written, how many files, the folder they went to, whether the mod is enabled or paused, and which replaced version was kept as a backup — with a button to open the folder in the Finder.
+
 ### Fixed
 - **Restoring a backup no longer leaves two copies of the mod.** Restoring over a mod you have enabled dropped the backup into a paused folder beside the live one — the same mod twice, the restored version invisible to the game. It now replaces the mod where it sits, and lands paused only when the mod is gone.
 - **Backups stop piling up.** Copies byte-identical to another backup of the same folder are dropped — 172 MB on a real library — and the retention sweep now runs after an install, not only when you happen to open the backups page.

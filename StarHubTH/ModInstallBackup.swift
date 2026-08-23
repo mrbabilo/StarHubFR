@@ -55,6 +55,49 @@ public struct ModInstallBackup: Identifiable, Codable, Equatable {
     }
 }
 
+/// Ce qu'une restauration a écrit, et où.
+///
+/// La page n'annonçait qu'un « Sauvegarde restaurée avec succès » : ni le
+/// dossier touché, ni l'état dans lequel le mod atterrit, ni le sort de la
+/// version remplacée. Restaurer écrit dans `Mods/` — l'utilisateur doit
+/// pouvoir vérifier ce qui a été fait sans ouvrir le Finder à l'aveugle.
+public struct ModInstallRestoreReport: Sendable, Equatable {
+    public let modName: String
+    public let version: String
+    /// Chemin absolu du dossier écrit — ce que le bouton « Afficher dans le
+    /// Finder » révèle.
+    public let destinationPath: String
+    /// Le même chemin, relatif au dossier du jeu (`Mods/.Nom`) : ce qui se lit
+    /// dans une phrase.
+    public let displayPath: String
+    /// Faux quand le mod atterrit en pause — SMAPI ne le chargera pas tant que
+    /// l'utilisateur ne l'aura pas activé.
+    public let landedEnabled: Bool
+    /// Nombre de fichiers écrits.
+    public let fileCount: Int
+    /// Les versions mises de côté **et conservées** comme sauvegardes. Vide
+    /// quand rien n'a été remplacé ; une version que l'archivage n'a pas pu
+    /// retenir n'y figure pas, sous peine de promettre une sauvegarde
+    /// inexistante.
+    public let replacedVersions: [String]
+
+    public init(modName: String,
+                version: String,
+                destinationPath: String,
+                displayPath: String,
+                landedEnabled: Bool,
+                fileCount: Int,
+                replacedVersions: [String]) {
+        self.modName = modName
+        self.version = version
+        self.destinationPath = destinationPath
+        self.displayPath = displayPath
+        self.landedEnabled = landedEnabled
+        self.fileCount = fileCount
+        self.replacedVersions = replacedVersions
+    }
+}
+
 /// On-disk index of every mod install backup, persisted as `install_metadata.json`
 struct ModInstallBackupsIndex: Codable {
     var backups: [ModInstallBackup] = []

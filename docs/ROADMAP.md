@@ -110,7 +110,7 @@ liste du 2026-07-30 et n'existaient pas dans le document de veille.
 | §3 | Favoris de mods + import dans un profil | **À faire** | Les favoris n'existent que pour les sauvegardes de jeu → **B3-T2** |
 | §3 | Duplication d'un profil | **À faire** | Aucune fonction `duplicateProfile` → **B3-T3** |
 | §3 | Recherche automatique des NexusID manquants | **À faire** | Saisie manuelle sur la fiche mod → **A3-T1** |
-| §4 | Backups : feedback après restauration, tri, regroupement, recherche | **Partiel** (2026-08-22) | Regroupement, tri et recherche livrés (`Models/BackupBrowser.swift`, `ModInstallBackupsView.swift`) → **B4-T1** ; le retour après restauration manque → **B4-T2** |
+| §4 | Backups : feedback après restauration, tri, regroupement, recherche | **Fait** (2026-08-23) | Regroupement, tri et recherche → **B4-T1** ; compte rendu de restauration (ce qui a été écrit, où, ce qu'est devenue la version remplacée) → **B4-T2** |
 | §4 | Un mod restauré met à jour le registre | **Corrigé ✅** (2026-08-23) | Vérifié : la restauration d'un mod **actif** en déposait une seconde copie en pause à côté, deux dossiers pour un `folderName` — la clé du registre. Elle remplace désormais le mod là où il est → **B4-T3** |
 | §4 | Sauvegarde / restauration de `config.json` et `fr.json` | **Fait** | `ModConfigBackupManager.swift` + `Extensions/ModConfigFiles.swift` |
 | §5 | Éditeur de config exploitant les clés de traduction | **À faire** | `ModConfigEditorView.swift` affiche les clés brutes → **C4-T1** |
@@ -646,7 +646,10 @@ pouvoir revenir en arrière à tout moment.
 
 - [x] **B4-T1** — Regroupement par mod puis par version, tri (dernier backup, A→Z, Z→A),
       recherche. · **M** · *livré le 2026-08-22 (`7c9efce`) — `Models/BackupBrowser.swift`.*
-- [ ] **B4-T2** — Retour utilisateur explicite après restauration (ce qui a été écrit, où). · **S**
+- [x] **B4-T2** — Retour utilisateur explicite après restauration (ce qui a été écrit, où). · **S** ·
+      *`ModInstallRestoreReport` (Core, testé) : mod, version, nombre de fichiers, chemin
+      lisible, actif ou en pause, versions remplacées et conservées. La page l'affiche avec
+      « Afficher dans le Finder » ; la même phrase part au journal.*
 - [x] **B4-T3** — Garantir qu'une restauration met à jour le registre : version, écrasement
       du dossier existant, recréation s'il a disparu. · **M** · *les tests de
       caractérisation ont trouvé le défaut : restaurer un mod **actif** copiait la

@@ -183,7 +183,13 @@ public class ModInstallBackupManager {
     ///
     /// Quand le mod n'est plus installé, il revient **en pause**, comme toute
     /// nouvelle installation : l'utilisateur l'active après relecture.
-    public func restoreBackup(_ backup: ModInstallBackup, gameDir: String) throws {
+    ///
+    /// - Returns: ce qui a été écrit et où, pour que la page le dise à
+    ///   l'utilisateur au lieu d'un « restaurée avec succès » qui ne se
+    ///   vérifie pas. `@discardableResult` : les appelants qui n'affichent
+    ///   rien (tests de comportement disque) n'ont pas à le consommer.
+    @discardableResult
+    public func restoreBackup(_ backup: ModInstallBackup, gameDir: String) throws -> ModInstallRestoreReport {
         guard !gameDir.isEmpty else { throw InstallBackupError.gameDirEmpty }
 
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
@@ -241,8 +247,11 @@ public class ModInstallBackupManager {
             // done (e.g. no readable manifest.json) rather than leaving a
             // ".stale_*" folder the mod scanner could pick up as a
             // duplicate/corrupt entry.
+            var replacedVersions: [String] = []
             for entry in setAside {
-                if registerSetAsideFolderAsBackup(atPath: entry.stale, originalFolderName: backup.originalFolderName) == nil {
+                if let registered = registerSetAsideFolderAsBackup(atPath: entry.stale, originalFolderName: backup.originalFolderName) {
+                    replacedVersions.append(registered.modMetadata.version)
+                } else {
                     // Enregistrer comme backup a échoué (manifeste illisible) :
                     // on supprime le dossier mis de côté. La suppression robuste
                     // répare d'abord les perms en lecture seule (un mod installé
@@ -257,9 +266,39 @@ public class ModInstallBackupManager {
                     }
                 }
             }
+
+            // Le chemin lisible se déduit du chemin du jeu, pas d'une
+            // reconstruction : `destPath` est celui où la copie a réellement
+            // eu lieu.
+            let displayPath = destPath.hasPrefix(gameDir + "/")
+                ? String(destPath.dropFirst(gameDir.count + 1))
+                : destPath
+            return ModInstallRestoreReport(
+                modName: backup.modMetadata.name,
+                version: backup.modMetadata.version,
+                destinationPath: destPath,
+                displayPath: displayPath,
+                landedEnabled: destPath == activePath,
+                fileCount: Self.fileCount(at: destPath),
+                replacedVersions: replacedVersions)
         } catch {
             throw InstallBackupError.restoreFailed(error.localizedDescription)
         }
+    }
+
+    /// Les fichiers réellement écrits — dossiers exclus. « 12 fichiers » se
+    /// vérifie dans le Finder ; « restaurée avec succès » ne se vérifie pas.
+    private static func fileCount(at path: String) -> Int {
+        let fm = FileManager.default
+        guard let walker = fm.enumerator(at: URL(fileURLWithPath: path),
+                                         includingPropertiesForKeys: [.isRegularFileKey])
+        else { return 0 }
+        var count = 0
+        for case let url as URL in walker
+        where (try? url.resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile == true {
+            count += 1
+        }
+        return count
     }
 
     /// Le chemin où un dossier installé est mis de côté le temps d'une

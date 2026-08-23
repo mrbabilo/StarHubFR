@@ -10,6 +10,11 @@ struct ModInstallBackupsView: View {
     @State private var backupToDelete: ModInstallBackup?
     @State private var showRestoreConfirm = false
     @State private var backupToRestore: ModInstallBackup?
+    /// Le compte rendu de la dernière restauration — ce qui a été écrit, où,
+    /// et ce qu'il est advenu de la version remplacée. La vue ne fait que le
+    /// rendre : tout y est calculé par `ModInstallBackupManager` (B4-T2).
+    @State private var restoreReport: ModInstallRestoreReport?
+    @State private var showRestoreReport = false
     /// Guards against a rapid double-click dispatching two concurrent
     /// restore/delete operations on the same backup. Carries the id of the
     /// backup currently in flight so the matching row can show a spinner.
@@ -86,6 +91,18 @@ struct ModInstallBackupsView: View {
         } message: {
             if let error = errorMessage {
                 Text(error)
+            }
+        }
+        .alert(vm.L(L10n.ModInstall.restoreReportTitle), isPresented: $showRestoreReport) {
+            Button(vm.L(L10n.ModInstall.revealInFinder)) {
+                if let path = restoreReport?.destinationPath {
+                    NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
+                }
+            }
+            Button(vm.L(L10n.Main.ok)) { }
+        } message: {
+            if let report = restoreReport {
+                Text(restoreReportMessage(report))
             }
         }
         .confirmationDialog(vm.L(L10n.ModInstall.restoreConfirm), isPresented: $showRestoreConfirm, titleVisibility: .visible) {
@@ -414,6 +431,27 @@ struct ModInstallBackupsView: View {
         backups = backupManager.loadBackups()
     }
 
+    /// Met le compte rendu en phrases. Une seule fonction pour l'alerte et
+    /// pour la ligne de journal : ce que l'utilisateur lit à l'écran est ce
+    /// qu'il retrouvera dans les logs s'il revient dessus plus tard.
+    private func restoreReportMessage(_ report: ModInstallRestoreReport) -> String {
+        var lines = [
+            String(format: vm.L(L10n.ModInstall.restoreReportWritten),
+                   report.modName, report.version, report.displayPath),
+            String(format: vm.L(L10n.ModInstall.restoreReportFiles), Int64(report.fileCount)),
+            vm.L(report.landedEnabled ? L10n.ModInstall.restoreReportActive
+                                      : L10n.ModInstall.restoreReportPaused)
+        ]
+        if !report.replacedVersions.isEmpty {
+            let key = report.replacedVersions.count == 1
+                ? L10n.ModInstall.restoreReportReplaced
+                : L10n.ModInstall.restoreReportReplacedMany
+            lines.append(String(format: vm.L(key),
+                                report.replacedVersions.joined(separator: ", ")))
+        }
+        return lines.joined(separator: "\n")
+    }
+
     private func performRestore(_ backup: ModInstallBackup) {
         guard busyBackupId == nil else { return }
         guard !vm.gameDir.isEmpty else {
@@ -426,10 +464,12 @@ struct ModInstallBackupsView: View {
         let gameDir = vm.gameDir
         DispatchQueue.global(qos: .userInitiated).async {
             do {
-                try backupManager.restoreBackup(backup, gameDir: gameDir)
+                let report = try backupManager.restoreBackup(backup, gameDir: gameDir)
                 DispatchQueue.main.async {
                     busyBackupId = nil
-                    vm.log(vm.L(L10n.ModInstall.backupRestored), level: .info)
+                    vm.log(restoreReportMessage(report), level: .info)
+                    restoreReport = report
+                    showRestoreReport = true
                     vm.refresh()
                     loadBackups()
                 }

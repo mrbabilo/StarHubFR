@@ -504,6 +504,96 @@ func modsFolderEntries(_ env: TestEnvironment) -> [String] {
         #expect(first != second)
     }
 
+    // MARK: - B4-T2 · compte rendu de restauration
+
+    /// Ce que la page annonce après une restauration : le mod, sa version, le
+    /// nombre de fichiers écrits, où, et ce qui a été remplacé. La vue ne fait
+    /// que rendre ce compte rendu — elle ne recalcule rien.
+    @Test func theRestoreReportSaysWhatWasWrittenAndWhere() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let liveDir = env.modsDir.appendingPathComponent("ActiveMod", isDirectory: true)
+        try writeTestFile(in: liveDir, filename: "data.txt", content: "1.0.0")
+        try writeManifest(in: liveDir, uniqueId: "active.mod", name: "Active Mod", version: "1.0.0")
+        let mod = makeTestMod(uniqueId: "active.mod", name: "Active Mod", folderName: "ActiveMod", version: "1.0.0")
+        let backup = try env.manager.createBackup(for: mod, gameDir: env.gameDir, reason: .beforeUpdate)
+        try writeManifest(in: liveDir, uniqueId: "active.mod", name: "Active Mod", version: "2.0.0")
+
+        let report = try env.manager.restoreBackup(backup, gameDir: env.gameDir)
+
+        #expect(report.modName == "Active Mod")
+        #expect(report.version == "1.0.0")
+        #expect(report.fileCount == 2)  // data.txt + manifest.json
+        #expect(report.displayPath == "Mods/ActiveMod")
+        #expect(report.destinationPath == liveDir.path)
+        #expect(report.landedEnabled)
+        #expect(report.replacedVersions == ["2.0.0"])
+    }
+
+    /// Un mod qui n'était plus installé revient en pause, et rien n'a été
+    /// remplacé : le compte rendu doit le dire, c'est ce qui explique à
+    /// l'utilisateur pourquoi le jeu ne le voit pas encore.
+    @Test func theRestoreReportSaysWhenTheModLandsPausedWithNothingReplaced() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let liveDir = env.modsDir.appendingPathComponent("GoneMod", isDirectory: true)
+        try writeTestFile(in: liveDir, filename: "data.txt", content: "sauvegardé")
+        let mod = makeTestMod(uniqueId: "gone.mod", name: "Gone Mod", folderName: "GoneMod")
+        let backup = try env.manager.createBackup(for: mod, gameDir: env.gameDir, reason: .beforeUpdate)
+        try FileManager.default.removeItem(at: liveDir)
+
+        let report = try env.manager.restoreBackup(backup, gameDir: env.gameDir)
+
+        #expect(report.displayPath == "Mods/.GoneMod")
+        #expect(!report.landedEnabled)
+        #expect(report.replacedVersions.isEmpty)
+        #expect(report.fileCount == 1)
+    }
+
+    /// Les deux dossiers du cas jumeau sont conservés comme sauvegardes : le
+    /// compte rendu nomme les deux versions, sans quoi l'utilisateur croirait
+    /// en avoir perdu une.
+    @Test func theRestoreReportNamesEveryVersionKeptAsABackup() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let liveDir = env.modsDir.appendingPathComponent("TwinMod", isDirectory: true)
+        try writeTestFile(in: liveDir, filename: "data.txt", content: "sauvegardée")
+        try writeManifest(in: liveDir, uniqueId: "twin.mod", name: "Twin Mod", version: "1.0.0")
+        let mod = makeTestMod(uniqueId: "twin.mod", name: "Twin Mod", folderName: "TwinMod")
+        let backup = try env.manager.createBackup(for: mod, gameDir: env.gameDir, reason: .beforeUpdate)
+        try writeManifest(in: liveDir, uniqueId: "twin.mod", name: "Twin Mod", version: "3.0.0")
+
+        let pausedDir = env.modsDir.appendingPathComponent(".TwinMod", isDirectory: true)
+        try writeTestFile(in: pausedDir, filename: "data.txt", content: "doublon")
+        try writeManifest(in: pausedDir, uniqueId: "twin.mod", name: "Twin Mod", version: "2.0.0")
+
+        let report = try env.manager.restoreBackup(backup, gameDir: env.gameDir)
+
+        #expect(report.replacedVersions == ["3.0.0", "2.0.0"])
+    }
+
+    /// Une version remplacée que l'app n'a pas pu archiver (manifeste
+    /// illisible) n'est **pas** annoncée comme conservée : le compte rendu
+    /// promettrait une sauvegarde qui n'existe pas.
+    @Test func theRestoreReportOmitsAVersionItCouldNotKeep() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let liveDir = env.modsDir.appendingPathComponent("NoManifestMod", isDirectory: true)
+        try writeTestFile(in: liveDir, filename: "data.txt", content: "sauvegardée")
+        let mod = makeTestMod(uniqueId: "nomanifest.mod", name: "No Manifest", folderName: "NoManifestMod")
+        let backup = try env.manager.createBackup(for: mod, gameDir: env.gameDir, reason: .beforeUpdate)
+        try writeTestFile(in: liveDir, filename: "data.txt", content: "en place, sans manifeste")
+
+        let report = try env.manager.restoreBackup(backup, gameDir: env.gameDir)
+
+        #expect(report.replacedVersions.isEmpty)
+        #expect(modsFolderEntries(env) == ["NoManifestMod"])
+    }
+
     @Test func restoreBackupRollsBackOnCopyFailure() throws {
         let env = TestEnvironment()
         defer { env.cleanup() }

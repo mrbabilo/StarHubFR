@@ -540,7 +540,14 @@
 "mod_install_drop_hint" = "or click to browse";
 "mod_install_analyzing" = "Analyzing archive…";
 "mod_install_validation_error" = "Invalid Mod File";
-"mod_install_backup_restored" = "Backup restored successfully";
+"mod_install_restore_report_title" = "Backup restored";
+"mod_install_restore_report_written" = "%1$@ %2$@ was written to %3$@.";
+"mod_install_restore_report_files" = "Files written: %lld";
+"mod_install_restore_report_paused" = "The mod is paused: enable it in the mods list for the game to load it.";
+"mod_install_restore_report_active" = "The mod stays enabled: the game will load this version.";
+"mod_install_restore_report_replaced" = "The version it replaced (%@) is kept as a backup.";
+"mod_install_restore_report_replaced_many" = "The versions it replaced (%@) are kept as backups.";
+"mod_install_reveal_in_finder" = "Show in Finder";
 "mod_install_success" = "Mod installed successfully";
 "mod_install_failed" = "Installation Failed";
 "mod_install_success_msg" = "%d mod(s) installed successfully:";
