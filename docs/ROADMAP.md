@@ -643,6 +643,7 @@ pouvoir revenir en arrière à tout moment.
       nom et identifiant Nexus de ses mods (`ProfileModMetadata`) : c'est la seule source
       qui couvre, mesuré sur le parc réel — sur les 16 mods manquants de ses deux profils,
       2 ont une sauvegarde, 1 un identifiant Nexus en cache, 2 sont livrés avec SMAPI.
+      Pastilles validées à l'écran le 2026-08-24.
       **Restent à faire** : les dépendances non satisfaites et la couverture FR.*
 - [ ] **B3-T5** — **Configurations par profil** : un même mod peut avoir des `config.json`
       différents selon le profil (ex. CJB Cheats configuré en solo, désactivé en multi).
