@@ -4986,6 +4986,18 @@ class StarHubTHViewModel: ObservableObject {
     /// baseline). Everything else about it behaves like a normal profile.
     func isDefaultProfile(_ id: UUID) -> Bool { defaultProfileId == id }
 
+    /// Les profils dont la dernière application n'a **pas** abouti : un
+    /// déplacement en échec, ou un mod référencé absent du disque.
+    ///
+    /// Tant qu'un profil y figure, son contenu ne doit pas être réécrit depuis
+    /// le disque — ce que le disque porte est l'accident, pas ce que
+    /// l'utilisateur a demandé. Un profil en sort dès qu'une application
+    /// aboutit, ou que l'utilisateur adopte délibérément l'état du disque
+    /// (bascule d'un mod, suppression) : il n'y a plus alors d'écart en
+    /// suspens. Non persisté : au prochain démarrage, le dossier tenu ouvert
+    /// ne l'est plus, et l'utilisateur réapplique.
+    private var incompletelyAppliedProfileIds: Set<UUID> = []
+
     /// One-time: on a fresh install, create a starter profile capturing the
     /// current mod setup so there's always an active profile to work from.
     /// Guarded by a persisted flag so deleting every profile later never
@@ -5124,9 +5136,21 @@ class StarHubTHViewModel: ObservableObject {
 
         // Activation is exclusive: setting activeProfileId below replaces any
         // previously-active profile (only one can be active at a time).
-        // If already active, just sync stored list from current filesystem (no file moves)
         if activeProfileId == id {
-            syncActiveProfileIds()
+            if incompletelyAppliedProfileIds.contains(id) {
+                // La dernière application s'est arrêtée en chemin. Re-cliquer
+                // le profil actif est le seul geste de reprise offert (le
+                // bouton « Activer » est masqué pour lui) : reprendre les
+                // déplacements, plutôt qu'enregistrer l'état où l'échec les a
+                // laissés — ce qui effacerait justement ce qu'il restait à
+                // faire.
+                applyingProfileId = id
+                applyProfileToFilesystem(profile: profile)
+            } else {
+                // Cas courant : le profil actif adopte les bascules faites à
+                // la main depuis la page des mods.
+                syncActiveProfileIds()
+            }
             return
         }
 
@@ -5276,6 +5300,7 @@ class StarHubTHViewModel: ObservableObject {
         // Always rescan so the list reflects the real on-disk state,
         // whatever it is after partial failures.
         let profileName = profile.name
+        let profileId = profile.id
         let failedNames = failures.map { $0.modName }
         DispatchQueue.global(qos: .userInitiated).async {
             self.scanMods()
@@ -5288,8 +5313,11 @@ class StarHubTHViewModel: ObservableObject {
                 // que le profil *demande*, et réessayer l'activation n'aurait
                 // plus rien à faire. On laisse le profil dire ce qui était
                 // voulu ; l'alerte ci-dessous dit, elle, ce qui s'est passé.
-                if failures.isEmpty {
+                if failures.isEmpty && missingIds.isEmpty {
+                    self.incompletelyAppliedProfileIds.remove(profileId)
                     self.syncActiveProfileIds()
+                } else {
+                    self.incompletelyAppliedProfileIds.insert(profileId)
                 }
                 self.isApplyingProfile = false
                 self.applyingProfileId = nil
@@ -5602,5 +5630,8 @@ class StarHubTHViewModel: ObservableObject {
 
         modProfiles[index].enabledModIds = actualEnabledIds
         saveProfiles()
+        // Le profil vient d'adopter l'état du disque : il n'y a plus d'écart
+        // en suspens à protéger.
+        incompletelyAppliedProfileIds.remove(id)
     }
 }
