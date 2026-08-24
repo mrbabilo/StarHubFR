@@ -5052,7 +5052,7 @@ class StarHubTHViewModel: ObservableObject {
     func createProfile(name: String, seed: ProfileSeed) {
         let made = ProfileFactory.make(name: name,
                                        seed: seed,
-                                       enabledUniqueIds: mods.enabledUniqueIds)
+                                       enabledMods: mods.flattenedMods.filter(\.isEnabled))
         modProfiles.append(made.profile)
         // Un instantané peut devenir actif sur-le-champ : il décrit déjà l'état
         // du disque, aucun dossier à déplacer. Un profil vide, non — voir
@@ -5062,6 +5062,51 @@ class StarHubTHViewModel: ObservableObject {
         }
         saveProfiles()
         log(String(format: L(L10n.VM.profileCreated), name, made.profile.enabledModIds.count))
+    }
+
+    /// Les mods qu'un profil réclame et qui ne sont plus installés, enrichis de
+    /// tout ce que l'app sait encore d'eux.
+    ///
+    /// Trois sources, dans cet ordre : ce que le profil a retenu (le seul qui
+    /// couvre vraiment, depuis le 2026-08-24), le cache des mises à jour Nexus,
+    /// et l'index des sauvegardes — qui donne un nom, et surtout la possibilité
+    /// de restaurer le mod sans réseau.
+    func missingMods(in profile: ModProfile) -> [MissingProfileMod] {
+        var backupNames: [String: String] = [:]
+        for backup in ModInstallBackupManager.shared.loadBackups() {
+            let key = backup.modMetadata.uniqueId.lowercased()
+            guard !key.isEmpty, backupNames[key] == nil else { continue }
+            backupNames[key] = backup.modMetadata.name
+        }
+        var hints: [String: ProfileModMetadata] = [:]
+        for update in nexusUpdates where !update.uniqueId.isEmpty {
+            hints[update.uniqueId.lowercased()] = ProfileModMetadata(name: update.name,
+                                                                     nexusModId: update.nexusModId)
+        }
+        return ProfileDiagnostics.missingMods(in: profile,
+                                              installedUniqueIds: mods.allUniqueIds,
+                                              backupNames: backupNames,
+                                              nexusHints: hints)
+    }
+
+    /// Restaure un mod absent depuis sa sauvegarde la plus récente, s'il en
+    /// existe une. Rend faux quand il n'y en a pas.
+    @discardableResult
+    func restoreMissingModFromBackup(uniqueId: String) -> Bool {
+        let manager = ModInstallBackupManager.shared
+        guard let backup = manager.loadBackups()
+            .filter({ $0.modMetadata.uniqueId.lowercased() == uniqueId.lowercased() })
+            .max(by: { $0.timestamp < $1.timestamp }) else { return false }
+        do {
+            let report = try manager.restoreBackup(backup, gameDir: gameDir)
+            log(String(format: L(L10n.ModInstall.restoreReportWritten),
+                       report.modName, report.version, report.displayPath))
+            refresh()
+            return true
+        } catch {
+            showModal(message: installErrorMessage(error))
+            return false
+        }
     }
 
     /// Copie un profil existant, sous le nom « <original> (copie) ».
@@ -5228,8 +5273,13 @@ class StarHubTHViewModel: ObservableObject {
         // their children's ids), so a pack mod isn't reported missing when
         // one of its children satisfies the id.
         let snapshotMods = mods
-        let installedUniqueIds = snapshotMods.allUniqueIds
-        let missingIds = profile.enabledModIds.filter { !installedUniqueIds.contains($0) }
+        // Même calcul que l'écran des mods manquants : une seule définition de
+        // « le profil réclame un mod qui n'est plus là », sinon l'alerte de fin
+        // d'application et l'écran finissent par ne plus dire la même chose.
+        let missingIds = ProfileDiagnostics.missingMods(in: profile,
+                                                        installedUniqueIds: snapshotMods.allUniqueIds,
+                                                        backupNames: [:],
+                                                        nexusHints: [:]).map(\.uniqueId)
 
         // Check whether a mod (or any of its children) is covered by the profile's enabled list
         func isCoveredByProfile(_ mod: ModItem) -> Bool {
@@ -5699,9 +5749,14 @@ class StarHubTHViewModel: ObservableObject {
         guard let id = activeProfileId,
               let index = modProfiles.firstIndex(where: { $0.id == id }) else { return }
 
-        let actualEnabledIds = mods.enabledUniqueIds
+        let enabledMods = mods.flattenedMods.filter(\.isEnabled).filter { !$0.uniqueId.isEmpty }
 
-        modProfiles[index].enabledModIds = actualEnabledIds
+        modProfiles[index].enabledModIds = enabledMods.map(\.uniqueId)
+        // Le nom et l'identifiant Nexus sont rafraîchis en même temps : ce sont
+        // les seules traces qui resteront le jour où l'un de ces mods aura été
+        // désinstallé. Ce qui était su des mods **sortis** du profil est
+        // abandonné avec eux — le profil ne les réclame plus.
+        modProfiles[index].modMetadata = ProfileFactory.metadata(of: enabledMods)
         saveProfiles()
         // Le profil vient d'adopter l'état du disque : il n'y a plus d'écart
         // en suspens à protéger.

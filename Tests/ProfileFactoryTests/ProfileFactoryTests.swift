@@ -2,6 +2,23 @@ import Foundation
 import Testing
 @testable import StarHubTHCore
 
+/// Un mod actif minimal, pour les instantanés.
+private func makeMod(_ uniqueId: String, name: String = "Un mod", nexusModId: String = "") -> ModItem {
+    ModItem(uniqueId: uniqueId,
+            name: name,
+            folderName: uniqueId,
+            version: "1.0.0",
+            author: "Auteur",
+            description: "",
+            nexusUrl: "",
+            nexusModId: nexusModId,
+            isEnabled: true,
+            dependencies: [],
+            children: nil,
+            isGroup: false,
+            installedFileDate: nil)
+}
+
 @Suite struct ProfileFactoryTests {
 
     // MARK: - B3-T1 · profil vide ou instantané
@@ -10,7 +27,8 @@ import Testing
     /// de ce qui tourne. La page l'annonçait déjà (« démarre sans mod actif »)
     /// alors que le code capturait les mods actifs.
     @Test func anEmptyProfileStartsWithNoMods() {
-        let made = ProfileFactory.make(name: "Multi", seed: .empty, enabledUniqueIds: ["a.mod", "b.mod"])
+        let made = ProfileFactory.make(name: "Multi", seed: .empty,
+                                       enabledMods: [makeMod("a.mod"), makeMod("b.mod")])
 
         #expect(made.profile.name == "Multi")
         #expect(made.profile.enabledModIds.isEmpty)
@@ -23,7 +41,7 @@ import Testing
     /// mods en cours quelques secondes plus tard, et « vide » n'aurait duré
     /// que le temps de l'alerte.
     @Test func anEmptyProfileIsNotActivatedOnCreation() {
-        let made = ProfileFactory.make(name: "Multi", seed: .empty, enabledUniqueIds: ["a.mod"])
+        let made = ProfileFactory.make(name: "Multi", seed: .empty, enabledMods: [makeMod("a.mod")])
 
         #expect(!made.activate)
     }
@@ -32,7 +50,7 @@ import Testing
     @Test func aSnapshotProfileKeepsTheModsCurrentlyEnabled() {
         let made = ProfileFactory.make(name: "Solo",
                                        seed: .currentlyEnabledMods,
-                                       enabledUniqueIds: ["a.mod", "b.mod"])
+                                       enabledMods: [makeMod("a.mod"), makeMod("b.mod")])
 
         #expect(made.profile.enabledModIds == ["a.mod", "b.mod"])
     }
@@ -42,9 +60,28 @@ import Testing
     @Test func aSnapshotProfileIsActivatedOnCreation() {
         let made = ProfileFactory.make(name: "Solo",
                                        seed: .currentlyEnabledMods,
-                                       enabledUniqueIds: ["a.mod"])
+                                       enabledMods: [makeMod("a.mod")])
 
         #expect(made.activate)
+    }
+
+    /// L'instantané retient le nom et l'identifiant Nexus de chaque mod.
+    /// Sans eux, un mod désinstallé plus tard n'est plus qu'un identifiant nu :
+    /// impossible de le nommer, encore moins de le retrouver.
+    @Test func aSnapshotRemembersWhatItKnowsOfEachMod() {
+        let made = ProfileFactory.make(name: "Solo",
+                                       seed: .currentlyEnabledMods,
+                                       enabledMods: [makeMod("a.mod", name: "A Mod", nexusModId: "42")])
+
+        #expect(made.profile.modMetadata["a.mod"] == ProfileModMetadata(name: "A Mod", nexusModId: "42"))
+    }
+
+    /// Un profil vide n'a rien à retenir.
+    @Test func anEmptyProfileRemembersNothing() {
+        let made = ProfileFactory.make(name: "Multi", seed: .empty,
+                                       enabledMods: [makeMod("a.mod", name: "A Mod")])
+
+        #expect(made.profile.modMetadata.isEmpty)
     }
 
     // MARK: - B3-T3 · duplication
@@ -60,6 +97,17 @@ import Testing
 
     /// Une copie est un **autre** profil : partager l'identifiant ferait
     /// renommer, supprimer ou activer les deux d'un seul geste.
+    /// La copie emporte aussi ce que le profil savait de ses mods — sinon
+    /// dupliquer un profil lui ferait perdre la mémoire de ses mods absents.
+    @Test func aDuplicateCarriesTheRememberedMetadata() {
+        var source = ModProfile(name: "Solo", enabledModIds: ["a.mod"])
+        source.modMetadata = ["a.mod": ProfileModMetadata(name: "A Mod", nexusModId: "42")]
+
+        let copy = ProfileFactory.duplicate(source, nameFormat: "%@ (copie)")
+
+        #expect(copy.modMetadata == source.modMetadata)
+    }
+
     @Test func aDuplicateHasItsOwnIdentity() {
         let source = ModProfile(name: "Solo", enabledModIds: ["a.mod"])
 

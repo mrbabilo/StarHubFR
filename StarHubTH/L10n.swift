@@ -757,6 +757,13 @@ enum L10n {
         static let createFromCurrent    = "profiles_create_from_current"
         static let duplicate            = "profiles_duplicate"
         static let copyNameFormat       = "profiles_copy_name_format"
+        static let missingBadge         = "profiles_missing_badge"
+        static let missingTitle         = "profiles_missing_title"
+        static let missingNote          = "profiles_missing_note"
+        static let missingRestore       = "profiles_missing_restore"
+        static let missingRestoreNote   = "profiles_missing_restore_note"
+        static let missingBundled       = "profiles_missing_bundled"
+        static let missingUnknown       = "profiles_missing_unknown"
         static let applyingMoving       = "profiles_applying_moving"
         static let applyingScanning     = "profiles_applying_scanning"
     }

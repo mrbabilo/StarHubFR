@@ -635,8 +635,15 @@ pouvoir revenir en arrière à tout moment.
       ce profil ». · **M**
 - [x] **B3-T3** — Duplication d'un profil. · **S** · *`ProfileFactory.duplicate`, la copie
       porte son propre identifiant et n'est pas activée.*
-- [ ] **B3-T4** — Diagnostic de profil au changement : mods manquants, dépendances non
-      satisfaites, couverture FR (réutilise **C1-T1**). · **M**
+- [~] **B3-T4** — Diagnostic de profil au changement : mods manquants, dépendances non
+      satisfaites, couverture FR (réutilise **C1-T1**). · **M** · *partiel (2026-08-24) :
+      les **mods manquants** sont livrés — `ProfileDiagnostics` (Core, 14 tests), pastille
+      sur la ligne du profil, écran nommant chaque mod, restauration depuis une sauvegarde
+      et téléchargement Nexus quand l'identifiant est connu. Le profil retient désormais
+      nom et identifiant Nexus de ses mods (`ProfileModMetadata`) : c'est la seule source
+      qui couvre, mesuré sur le parc réel — sur les 16 mods manquants de ses deux profils,
+      2 ont une sauvegarde, 1 un identifiant Nexus en cache, 2 sont livrés avec SMAPI.
+      **Restent à faire** : les dépendances non satisfaites et la couverture FR.*
 - [ ] **B3-T5** — **Configurations par profil** : un même mod peut avoir des `config.json`
       différents selon le profil (ex. CJB Cheats configuré en solo, désactivé en multi).
       Capture/restauration au changement de profil avec **merge JSON non-destructif**

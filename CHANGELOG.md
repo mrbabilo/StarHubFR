@@ -13,6 +13,8 @@ where the exact log format was verified.
 ## [Unreleased]
 
 ### Added
+- **A profile now shows the mods it asks for and no longer has.** An orange badge on the profile row opens the list: each mod by name where anything still knows it, its identifier otherwise, with a restore from backup when one exists and a Nexus download when the identifier is known. It matters most for frameworks — a missing SpaceCore or Json Assets breaks every mod that depends on it, and the game used to just start without them.
+- **Profiles now remember the name and Nexus id of each mod they hold.** Until now a profile stored bare identifiers, so a mod uninstalled later could not even be named. Profiles saved before this version keep working; they fill in as you change them.
 - **A profile can be duplicated.** From its ⋯ menu: the copy carries the same mods under its own name, and is not activated — duplicating is how you start from a working set and change a few things.
 - **The backups page can be browsed at last.** It listed every backup flat — 1 494 of them on a real library. Now one collapsible row per mod, its versions inside, plus search across name, folder, author and version, and four sort orders.
 

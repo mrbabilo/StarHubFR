@@ -10,6 +10,7 @@ struct ModProfilesView: View {
     @State private var renamingProfile: ModProfile?
     @State private var renameText = ""
     @State private var profileToDelete: ModProfile?
+    @State private var profileShowingMissing: ModProfile?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -35,11 +36,19 @@ struct ModProfilesView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 60)
                 } else {
+                    let installedIds = vm.mods.allUniqueIds
                     ForEach(Array(vm.modProfiles.enumerated()), id: \.element.id) { index, profile in
                         ProfileRow(
                             profile: profile,
                             isActive: vm.activeProfileId == profile.id,
                             modCount: profile.enabledModIds.count,
+                            // Compte brut : l'enrichissement (sauvegardes, cache
+                            // Nexus) lit le disque et n'a lieu qu'à l'ouverture
+                            // de la feuille.
+                            missingCount: ProfileDiagnostics.missingMods(in: profile,
+                                                                         installedUniqueIds: installedIds,
+                                                                         backupNames: [:],
+                                                                         nexusHints: [:]).count,
                             vm: vm,
                             onApply: { vm.applyProfile(id: profile.id) },
                             onManage: {
@@ -48,6 +57,7 @@ struct ModProfilesView: View {
                             },
                             onRename: { renamingProfile = profile; renameText = profile.name },
                             onDuplicate: { vm.duplicateProfile(id: profile.id) },
+                            onShowMissing: { profileShowingMissing = profile },
                             onDelete: { profileToDelete = profile }
                         )
                         if index < vm.modProfiles.count - 1 {
@@ -117,6 +127,13 @@ struct ModProfilesView: View {
         } message: {
             Text(vm.L(L10n.Profiles.deleteNote))
         }
+        .sheet(item: $profileShowingMissing) { profile in
+            ProfileMissingModsView(
+                vm: vm,
+                profile: profile,
+                isPresented: Binding(get: { profileShowingMissing != nil },
+                                     set: { if !$0 { profileShowingMissing = nil } }))
+        }
     }
 
     private func createProfile(seed: ProfileSeed) {
@@ -130,11 +147,14 @@ struct ProfileRow: View {
     let profile: ModProfile
     let isActive: Bool
     let modCount: Int
+    /// Les mods du profil qui ne sont plus installés. `0` la plupart du temps.
+    let missingCount: Int
     @ObservedObject var vm: StarHubTHViewModel
     let onApply: () -> Void
     let onManage: () -> Void
     let onRename: () -> Void
     let onDuplicate: () -> Void
+    let onShowMissing: () -> Void
     let onDelete: () -> Void
     @State private var isHovered = false
 
@@ -167,9 +187,23 @@ struct ProfileRow: View {
                             .clipShape(Capsule())
                     }
                 }
-                Text(String(format: vm.L(L10n.Profiles.modCount), modCount))
-                    .font(.system(size: 12))
-                    .foregroundColor(.secondary)
+                HStack(spacing: 8) {
+                    Text(String(format: vm.L(L10n.Profiles.modCount), modCount))
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                    if missingCount > 0 {
+                        Button(action: onShowMissing) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                Text(String(format: vm.L(L10n.Profiles.missingBadge), Int64(missingCount)))
+                            }
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.orange)
+                        }
+                        .buttonStyle(.plain)
+                        .pointingHandCursor()
+                    }
+                }
             }
 
             Spacer()

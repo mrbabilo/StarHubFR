@@ -25,15 +25,32 @@ enum ProfileFactory {
     ///   retrouverait rempli des mods en cours au scan suivant. L'utilisateur
     ///   l'active quand il le décide — et met alors ses mods en pause en
     ///   connaissance de cause.
+    /// - Parameter enabledMods: les mods actifs, packs dépliés. On en retient
+    ///   l'identifiant, mais aussi le **nom** et l'**identifiant Nexus** : ils
+    ///   sont connus ici et nulle part ailleurs le jour où le mod aura été
+    ///   désinstallé.
     static func make(name: String,
                      seed: ProfileSeed,
-                     enabledUniqueIds: [String]) -> (profile: ModProfile, activate: Bool) {
+                     enabledMods: [ModItem]) -> (profile: ModProfile, activate: Bool) {
         switch seed {
         case .empty:
             return (ModProfile(name: name, enabledModIds: []), false)
         case .currentlyEnabledMods:
-            return (ModProfile(name: name, enabledModIds: enabledUniqueIds), true)
+            let usable = enabledMods.filter { !$0.uniqueId.isEmpty }
+            return (ModProfile(name: name,
+                               enabledModIds: usable.map(\.uniqueId),
+                               modMetadata: metadata(of: usable)),
+                    true)
         }
+    }
+
+    /// Ce qu'on sait des mods retenus, indexé par identifiant.
+    static func metadata(of mods: [ModItem]) -> [String: ProfileModMetadata] {
+        var result: [String: ProfileModMetadata] = [:]
+        for mod in mods where !mod.uniqueId.isEmpty {
+            result[mod.uniqueId] = ProfileModMetadata(name: mod.name, nexusModId: mod.nexusModId)
+        }
+        return result
     }
 
     /// Copie un profil sous un nouveau nom.
@@ -47,6 +64,7 @@ enum ProfileFactory {
     ///   `%@` pour le nom d'origine.
     static func duplicate(_ profile: ModProfile, nameFormat: String) -> ModProfile {
         ModProfile(name: String(format: nameFormat, profile.name),
-                   enabledModIds: profile.enabledModIds)
+                   enabledModIds: profile.enabledModIds,
+                   modMetadata: profile.modMetadata)
     }
 }

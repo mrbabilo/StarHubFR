@@ -404,6 +404,13 @@
 "profiles_create_from_current" = "Copy the active mods";
 "profiles_duplicate" = "Duplicate";
 "profiles_copy_name_format" = "%@ (copy)";
+"profiles_missing_badge" = "%lld missing";
+"profiles_missing_title" = "Mods missing from “%@”";
+"profiles_missing_note" = "This profile asks for mods that are no longer installed. The game will start without them — and a missing framework breaks every mod that depends on it.";
+"profiles_missing_restore" = "Restore from backup";
+"profiles_missing_restore_note" = "A mod restored from a backup comes back paused: activate the profile again for the game to load it.";
+"profiles_missing_bundled" = "Comes with SMAPI";
+"profiles_missing_unknown" = "No known source";
 "profiles_applying_moving" = "Moving mod folders…";
 "profiles_applying_scanning" = "Reading the mods folder…";
 "vm_default_farmer_name" = "Farmer";
