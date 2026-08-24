@@ -522,6 +522,8 @@
   "mods_page_next": "Suivant",
   "mods_page_indicator": "Page %d sur %d",
   "mods_page_showing": "Affichage %d–%d sur %d",
+  "mods_sort_size": "Poids",
+  "mods_page_weight": "%@ dans ce cadrage",
   "mods_page_jump_label": "Aller à la page",
   "settings_nexus_mods": "Nexus Mods",
   "settings_nexus_api_key": "Clé API",

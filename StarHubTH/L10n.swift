@@ -208,6 +208,8 @@ enum L10n {
         static let nextPageHint         = "mods_next_page_hint"
         static let sortAuthor           = "mods_sort_author"
         static let sortVersion          = "mods_sort_version"
+        static let sortSize             = "mods_sort_size"
+        static let pageWeight           = "mods_page_weight"
         static let configFilterLabel    = "mods_config_filter_label"
         static let translationFilterLabel = "mods_translation_filter_label"
         static let frTranslationFilterLabel = "mods_fr_translation_filter_label"

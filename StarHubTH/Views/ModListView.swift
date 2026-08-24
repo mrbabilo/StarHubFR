@@ -39,7 +39,7 @@ enum CategoryScope: Equatable {
 /// sorts by `vm.modActivationTimestamps`, most recent first; `.installDate`
 /// sorts by `installedFileDate` (folder mod date), most recent first.
 enum ModSortOrder: String, CaseIterable, Identifiable {
-    case name, nameDescending, activationOrder, installDate, author, version
+    case name, nameDescending, activationOrder, installDate, author, version, size
     var id: String { rawValue }
 }
 
@@ -226,6 +226,23 @@ struct ModListView: View {
                     let versionOrder = NexusUpdateChecker.compare(lhs.version, rhs.version)
                     if versionOrder != .orderedSame { return versionOrder == .orderedDescending }
                     return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+                case .size:
+                    // Le plus lourd d'abord : c'est le sens dans lequel on
+                    // cherche. Les non mesurés ferment la marche, par nom —
+                    // et ils sont nombreux par construction : rien n'est
+                    // mesuré tant que la première passe n'a pas abouti, ni
+                    // pendant les secondes qui suivent une bascule.
+                    switch (vm.sizeOnDisk(of: lhs), vm.sizeOnDisk(of: rhs)) {
+                    case (let l?, let r?):
+                        if l != r { return l > r }
+                        return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+                    case (.some, nil):
+                        return true
+                    case (nil, .some):
+                        return false
+                    case (nil, nil):
+                        return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+                    }
                 }
             }
     }
@@ -428,6 +445,8 @@ struct ModListView: View {
                               : vm.L(L10n.Mods.categoryFilterHint))
 
                     Spacer()
+
+                    scopeWeightLabel(for: display)
 
                     if categories.isEmpty && uncatCount == 0 && tagBuckets.isEmpty {
                         Text(vm.L(L10n.Mods.categoryFilterEmptyHint))
@@ -699,6 +718,35 @@ struct ModListView: View {
     /// `installedFileDate` (folder mod date), most recent first.
     /// `sortItem` shows a checkmark on the currently active option so the
     /// user can see which sort is applied without scanning the chip label.
+    /// Ce que pèse le cadrage courant — « 12,7 Go dans ce cadrage ».
+    ///
+    /// C'est ce qui rend le tri par poids utilisable comme un outil : cadrer
+    /// sur les mods en pause et lire le total répond à « combien y a-t-il à
+    /// récupérer », sans additionner les lignes soi-même. Sur le parc réel,
+    /// ce cadrage-là annonce 12,71 Go.
+    ///
+    /// Placé dans la barre d'outils et non dans le pied de pagination : ce
+    /// dernier ne s'affiche qu'à partir de deux pages, et disparaîtrait donc
+    /// juste au moment où un filtre resserré rend le total le plus parlant.
+    ///
+    /// Somme le cadrage **entier**, pas la page affichée. `vm.mods` ne porte
+    /// que des mods de premier niveau et des en-têtes de pack, jamais de
+    /// composant : chaque ligne comptée a bien un poids à elle.
+    @ViewBuilder
+    private func scopeWeightLabel(for display: [ModItem]) -> some View {
+        let total = display.compactMap { vm.sizeOnDisk(of: $0) }.reduce(Int64(0), +)
+        if total > 0 {
+            HStack(spacing: 3) {
+                Image(systemName: "internaldrive")
+                    .font(.system(size: 9))
+                Text(String(format: vm.L(L10n.Mods.pageWeight),
+                            ByteCountFormatter.string(fromByteCount: total, countStyle: .file)))
+                    .font(AppDesign.Font.footnote)
+            }
+            .foregroundColor(.secondary.opacity(AppDesign.Opacity.secondary))
+        }
+    }
+
     @ViewBuilder
     private func sortItem(_ order: ModSortOrder, label: String, icon: String) -> some View {
         let active = filters.sort == order
@@ -721,6 +769,7 @@ struct ModListView: View {
             sortItem(.installDate, label: L10n.Mods.sortInstallDate, icon: "calendar")
             sortItem(.author, label: L10n.Mods.sortAuthor, icon: "person.fill")
             sortItem(.version, label: L10n.Mods.sortVersion, icon: "tag")
+            sortItem(.size, label: L10n.Mods.sortSize, icon: "internaldrive")
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: "arrow.up.arrow.down")
@@ -755,6 +804,7 @@ struct ModListView: View {
         case .installDate: return vm.L(L10n.Mods.sortInstallDate)
         case .author: return vm.L(L10n.Mods.sortAuthor)
         case .version: return vm.L(L10n.Mods.sortVersion)
+        case .size: return vm.L(L10n.Mods.sortSize)
         }
     }
 

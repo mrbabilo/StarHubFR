@@ -768,10 +768,14 @@ pouvoir revenir en arrière à tout moment.
       pas une mesure à zéro : elle laisse la précédente intacte. L'app n'interrogeant plus
       l'API Nexus qu'à la demande, l'état « jamais mesuré » est explicite.* · **S** ·
       *§audit-stardrop*
-- [ ] **B2-T9** — Trier et filtrer la liste des mods par poids. *L'affichage est livré :
-      chaque ligne porte sa taille, teintée au-delà de 100 Mo — 22 dossiers du parc réel,
-      qui portent 87 % des 16,8 Go. Reste le tri et le filtre, sans quoi repérer les
-      12,71 Go endormis demande encore de feuilleter les pages.* · **S**
+- [x] **B2-T9** — Trier la liste des mods par poids. *Livré : chaque ligne porte sa taille
+      (teintée au-delà de 100 Mo — 22 dossiers du parc réel, qui portent 87 % des 16,8 Go),
+      un tri « Poids » les remonte en tête, et la barre d'outils annonce ce que pèse le
+      cadrage courant. **Le filtre par seuil n'a pas été construit, délibérément** : cadrer
+      sur « en pause » et trier par poids répond déjà à « qu'est-ce que je peux récupérer »
+      — 12,71 Go sur le parc réel, lus directement dans la barre d'outils — et une pastille
+      de plus alourdirait une barre qui en porte déjà cinq. Ne pas le rebâtir sans un
+      besoin qui ne se satisfasse pas du couple existant.* · **S**
 - [ ] **B2-T8** — Cesser d'émettre quand le quota est à zéro. `NexusRateLimitGate` replafonne
       son back-off à 15 min (`maxBackoff`) : sur un quota journalier épuisé, l'app retente
       donc une requête tous les quarts d'heure pour rien, jusqu'à la remise à zéro. Depuis
@@ -1099,7 +1103,7 @@ traductions. Le tout est sorti en **v1.18.0**.
    peut s'aligner sur l'instant de remise à zéro, désormais connu) et **B2-T9**
    (trier la liste des mods par poids — sur le parc réel, 12,7 Go dorment dans
    des mods en pause, et rien ne dit encore lesquels sans ouvrir 863 fiches).
-   L'affichage de B2-T9 est livré avec B2-T2 ; son tri reste.
+   B2-T9 est livré à leur suite (poids par ligne, tri, total du cadrage).
 2. **B3-T2** — favoris de mods, avec « importer les favoris dans ce profil ».
    Le profil sait désormais retenir ses mods (`ProfileModMetadata`), ce qui
    rapproche le socle.

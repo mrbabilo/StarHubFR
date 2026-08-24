@@ -522,6 +522,8 @@
   "mods_page_next": "Next",
   "mods_page_indicator": "Page %d of %d",
   "mods_page_showing": "Showing %d–%d of %d",
+  "mods_sort_size": "Weight",
+  "mods_page_weight": "%@ in this selection",
   "mods_page_jump_label": "Go to page",
   "settings_nexus_mods": "Nexus Mods",
   "settings_nexus_api_key": "API Key",
