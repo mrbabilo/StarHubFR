@@ -404,6 +404,7 @@
 "profiles_create_from_current" = "Copier les mods actifs";
 "profiles_duplicate" = "Dupliquer";
 "profiles_copy_name_format" = "%@ (copie)";
+"profiles_applying" = "Application du profil…";
 "vm_default_farmer_name" = "Fermier";
 "vm_launching_vanilla" = "Lancement de Stardew Valley (Vanilla)…";
 "vm_launch_vanilla_success" = "Session de jeu vanilla lancée avec succès";

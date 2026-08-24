@@ -626,7 +626,8 @@ pouvoir revenir en arrière à tout moment.
 #### B3 — Profils
 
 - [x] **B3-T1** — Choix à la création : profil **vide** (défaut demandé) ou instantané des
-      mods actifs. · **S** · *annoncé au CHANGELOG (§Changed). La décision qui n'allait pas
+      mods actifs. · **S** · *validé à l'écran le 2026-08-24 : la touche Entrée crée bien
+      un profil vide. Annoncé au CHANGELOG (§Changed). La décision qui n'allait pas
       de soi : un profil vide ne peut pas devenir actif à sa création — `syncActiveProfileIds`
       réécrit le profil actif depuis le disque à chaque scan, et l'aurait rempli des mods en
       cours dans la foulée. `ProfileFactory` (Core) porte les deux règles, testées.*

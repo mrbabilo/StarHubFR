@@ -2657,6 +2657,14 @@ class StarHubTHViewModel: ObservableObject {
     /// `(done, total)`. `nil` when idle. Drives the progress overlay in
     /// `ModListView`. Published on the main thread after each individual move.
     @Published var bulkToggleProgress: (done: Int, total: Int)? = nil
+
+    /// L'avancement de l'application d'un profil, `nil` au repos.
+    ///
+    /// Distinct de `bulkToggleProgress`, qui sert aussi de verrou de réentrance
+    /// à `toggleAllMods` : les partager ferait qu'activer un profil bloquerait
+    /// « tout activer », un couplage que personne n'a demandé. L'application
+    /// d'un profil a son propre verrou, `isApplyingProfile`.
+    @Published private(set) var profileApplyProgress: (done: Int, total: Int)? = nil
     /// Direction of the in-flight bulk toggle: `true` = enabling all,
     /// `false` = disabling all. Meaningful only while
     /// `bulkToggleProgress` is non-nil.
@@ -5194,10 +5202,6 @@ class StarHubTHViewModel: ObservableObject {
             let direction: String   // "→ activé" / "→ désactivé"
             let error: Error
         }
-        var failures: [MoveFailure] = []
-        var attempted = 0
-        var anyEnabled = false
-
         // Detect profile entries that don't match any installed mod. These
         // are silently skipped by the move loops below, but the user must be
         // told the profile references mods that aren't there (e.g. uninstalled
@@ -5208,21 +5212,6 @@ class StarHubTHViewModel: ObservableObject {
         let snapshotMods = mods
         let installedUniqueIds = snapshotMods.allUniqueIds
         let missingIds = profile.enabledModIds.filter { !installedUniqueIds.contains($0) }
-
-        // Shared helper: rename a mod folder within Mods/ to flip its
-        // enabled/disabled state via the dot-prefix convention. `srcPhysical`
-        // is the current on-disk name (with dot if disabled), `dstPhysical`
-        // is the target name (with dot to disable, without to enable).
-        // Never throws so the loop can keep processing the remaining mods
-        // instead of aborting at the first error.
-        func renameModFolder(_ mod: ModItem, from srcPhysical: String, to dstPhysical: String, direction: String) {
-            attempted += 1
-            do {
-                try fm.moveItem(atPath: srcPhysical, toPath: dstPhysical)
-            } catch {
-                failures.append(MoveFailure(modName: mod.name, direction: direction, error: error))
-            }
-        }
 
         // Check whether a mod (or any of its children) is covered by the profile's enabled list
         func isCoveredByProfile(_ mod: ModItem) -> Bool {
@@ -5245,66 +5234,121 @@ class StarHubTHViewModel: ObservableObject {
             return !mod.uniqueId.isEmpty
         }
 
-        // Disable mods not in profile: rename Mods/X → Mods/.X
-        for mod in mods.filter({ $0.isEnabled }) {
-            guard isProfileManageable(mod) else { continue }
-            guard !isCoveredByProfile(mod) else { continue }
-            let src = (modsPath as NSString).appendingPathComponent(mod.physicalFolderName)
-            let dst = (modsPath as NSString).appendingPathComponent("." + mod.folderName)
-            renameModFolder(mod, from: src, to: dst, direction: "→ désactivé")
+        // Les deux listes de travail sont arrêtées **ici**, sur l'instantané,
+        // et pas relues dans la boucle : les déplacements tournent en tâche de
+        // fond, et `mods` est réécrit par `scanMods` — le parcourir de là
+        // serait lire un tableau en cours de mutation.
+        let toDisable = snapshotMods.filter {
+            $0.isEnabled && isProfileManageable($0) && !isCoveredByProfile($0)
         }
+        let toEnable = snapshotMods.filter { !$0.isEnabled && isCoveredByProfile($0) }
 
-        // Enable mods in profile: rename Mods/.X → Mods/X. Only stamp the
-        // activation timestamp for mods that were actually moved — stamping
-        // a mod that failed to rename would record a phantom "last
-        // activation" for a folder that is still sitting disabled.
-        for mod in mods.filter({ !$0.isEnabled }) {
-            guard isCoveredByProfile(mod) else { continue }
-            let src = (modsPath as NSString).appendingPathComponent(mod.physicalFolderName)
-            let dst = (modsPath as NSString).appendingPathComponent(mod.folderName)
-            let beforeCount = failures.count
-            renameModFolder(mod, from: src, to: dst, direction: "→ activé")
-            if failures.count == beforeCount {
-                self.modActivationTimestamps[mod.folderName] = Date()
-                anyEnabled = true
-            }
-        }
-        if anyEnabled {
-            Self.saveModActivationTimestamps(self.modActivationTimestamps)
-        }
-
-        // Log each move failure individually with a localized, structured
-        // message so the Logs tab (source = StarHubFR) shows exactly which
-        // mod(s) failed, in which direction, and why.
-        for failure in failures {
-            log(
-                String(format: L(L10n.VM.applyProfileMoveFail),
-                       failure.modName, failure.direction, failure.error.localizedDescription),
-                level: .error
-            )
-        }
-
-        // Log the profile entries that don't match any installed mod — these
-        // were silently ignored by the move loops, so without a log line the
-        // user would believe the profile is fully applied when expected mods
-        // are missing from disk.
-        if !missingIds.isEmpty {
-            let listing = missingIds.joined(separator: ", ")
-            log(
-                String(format: L(L10n.VM.applyProfileMissing),
-                       profile.name, missingIds.count, listing),
-                level: .warning
-            )
-        }
-
-        // Always rescan so the list reflects the real on-disk state,
-        // whatever it is after partial failures.
         let profileName = profile.name
         let profileId = profile.id
-        let failedNames = failures.map { $0.modName }
+        // Le total est connu d'avance : la barre est déterminée dès le premier
+        // dossier. Publié avant le dispatch pour que le voile soit là au
+        // premier rendu, sans clignotement.
+        let total = toDisable.count + toEnable.count
+        profileApplyProgress = (done: 0, total: total)
+
         DispatchQueue.global(qos: .userInitiated).async {
+            var failures: [MoveFailure] = []
+            var attempted = 0
+            var anyEnabled = false
+            var done = 0
+
+            // Rename a mod folder within Mods/ to flip its enabled/disabled
+            // state via the dot-prefix convention. `srcPhysical` is the current
+            // on-disk name (with dot if disabled), `dstPhysical` is the target
+            // name. Never throws, so the loop keeps processing the remaining
+            // mods instead of aborting at the first error.
+            func renameModFolder(_ mod: ModItem, from srcPhysical: String, to dstPhysical: String, direction: String) {
+                attempted += 1
+                do {
+                    try fm.moveItem(atPath: srcPhysical, toPath: dstPhysical)
+                } catch {
+                    failures.append(MoveFailure(modName: mod.name, direction: direction, error: error))
+                }
+            }
+
+            // Un pas sur 1 %, et le dernier dossier quoi qu'il arrive : publier
+            // à chaque dossier ferait redessiner toute la fenêtre près de mille
+            // fois pour une barre large de 280 points — le voile coûterait plus
+            // cher que les déplacements qu'il annonce.
+            let publishStep = max(1, total / 100)
+            func publishProgress() {
+                done += 1
+                let current = done
+                guard current == total || current % publishStep == 0 else { return }
+                DispatchQueue.main.async {
+                    self.profileApplyProgress = (done: current, total: total)
+                }
+            }
+
+            // Disable mods not in profile: rename Mods/X → Mods/.X
+            for mod in toDisable {
+                let src = (modsPath as NSString).appendingPathComponent(mod.physicalFolderName)
+                let dst = (modsPath as NSString).appendingPathComponent("." + mod.folderName)
+                renameModFolder(mod, from: src, to: dst, direction: "→ désactivé")
+                publishProgress()
+            }
+
+            // Enable mods in profile: rename Mods/.X → Mods/X. Only stamp the
+            // activation timestamp for mods that were actually moved — stamping
+            // a mod that failed to rename would record a phantom "last
+            // activation" for a folder that is still sitting disabled.
+            for mod in toEnable {
+                let src = (modsPath as NSString).appendingPathComponent(mod.physicalFolderName)
+                let dst = (modsPath as NSString).appendingPathComponent(mod.folderName)
+                let beforeCount = failures.count
+                renameModFolder(mod, from: src, to: dst, direction: "→ activé")
+                if failures.count == beforeCount {
+                    // `modActivationTimestamps` appartient au thread principal,
+                    // comme dans `toggleAllMods` : les écritures y arrivent dans
+                    // l'ordre, et l'enregistrement plus bas les voit toutes.
+                    DispatchQueue.main.async {
+                        self.modActivationTimestamps[mod.folderName] = Date()
+                    }
+                    anyEnabled = true
+                }
+                publishProgress()
+            }
+            if anyEnabled {
+                DispatchQueue.main.async {
+                    Self.saveModActivationTimestamps(self.modActivationTimestamps)
+                }
+            }
+
+            // Log each move failure individually with a localized, structured
+            // message so the Logs tab (source = StarHubFR) shows exactly which
+            // mod(s) failed, in which direction, and why.
+            for failure in failures {
+                self.log(
+                    String(format: self.L(L10n.VM.applyProfileMoveFail),
+                           failure.modName, failure.direction, failure.error.localizedDescription),
+                    level: .error
+                )
+            }
+
+            // Log the profile entries that don't match any installed mod — these
+            // were silently ignored by the move loops, so without a log line the
+            // user would believe the profile is fully applied when expected mods
+            // are missing from disk.
+            if !missingIds.isEmpty {
+                let listing = missingIds.joined(separator: ", ")
+                self.log(
+                    String(format: self.L(L10n.VM.applyProfileMissing),
+                           profileName, missingIds.count, listing),
+                    level: .warning
+                )
+            }
+
+            let failedNames = failures.map { $0.modName }
+            // Always rescan so the list reflects the real on-disk state,
+            // whatever it is after partial failures.
             self.scanMods()
             DispatchQueue.main.async {
+                self.profileApplyProgress = nil
                 // Le profil actif ne suit le disque que si l'application a
                 // abouti. Un déplacement en échec — dossier tenu ouvert,
                 // permissions — n'est pas une décision de l'utilisateur :

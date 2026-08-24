@@ -309,6 +309,15 @@ struct MainView: View {
             .toolbarBackground(.hidden, for: .windowToolbar)
         }
         
+            // Application d'un profil : le voile couvre toute la fenêtre, pas
+            // seulement la page des profils — « Gérer » applique le profil puis
+            // bascule sur la page des mods, et l'utilisateur y attendrait
+            // devant une liste figée sans savoir pourquoi.
+            if let progress = vm.profileApplyProgress {
+                ModalProgressOverlay(label: vm.L(L10n.Profiles.applying),
+                                     done: progress.done,
+                                     total: progress.total)
+            }
         } // End of outer ZStack
         // No launch overlay here any more: the splash is its own window
         // (`LaunchSplashController`) and this window stays hidden until the

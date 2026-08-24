@@ -875,33 +875,12 @@ struct ModListView: View {
     /// can't start a conflicting toggle mid-operation. Shows a determinate
     /// progress bar with the current/total count.
     private func bulkToggleOverlay(done: Int, total: Int) -> some View {
-        let fraction = total > 0 ? Double(done) / Double(total) : 0
-        return ZStack {
-            Color.black.opacity(AppDesign.Opacity.strong)
-                .ignoresSafeArea()
-            VStack(spacing: 14) {
-                ProgressView(value: fraction, total: 1.0)
-                    .progressViewStyle(.linear)
-                    .tint(.accentColor)
-                    .frame(width: 280)
-                    .animation(.easeInOut(duration: 0.2), value: fraction)
-                HStack(spacing: 6) {
-                    Text(vm.bulkToggleEnabling
-                         ? vm.L(L10n.Mods.enablingAllProgress)
-                         : vm.L(L10n.Mods.disablingAllProgress))
-                        .font(AppDesign.Font.caption(.medium))
-                    Text("\(done)/\(total)")
-                        .font(.system(size: 12, design: .monospaced))
-                        .foregroundColor(.secondary)
-                        .monospacedDigit()
-                }
-            }
-            .padding(28)
-            .background(.regularMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: AppDesign.Radius.lg))
-            .shadow(color: .black.opacity(AppDesign.Opacity.medium), radius: 12, y: 4)
-        }
-        .transition(.opacity)
+        ModalProgressOverlay(
+            label: vm.bulkToggleEnabling
+                ? vm.L(L10n.Mods.enablingAllProgress)
+                : vm.L(L10n.Mods.disablingAllProgress),
+            done: done,
+            total: total)
     }
 
     /// Menu offering to enable or disable every installed mod at once. Each

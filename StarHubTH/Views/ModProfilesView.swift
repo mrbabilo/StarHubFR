@@ -179,18 +179,20 @@ struct ProfileRow: View {
             // application is still moving files (activation is serialized).
             // While *this* profile is the one being applied, its Activate
             // button collapses to a spinner.
-            if !isActive {
-                if vm.applyingProfileId == profile.id {
-                    ProgressView()
-                        .controlSize(.small)
-                        .frame(width: 70, alignment: .center)
-                } else {
-                    Button(vm.L(L10n.Profiles.activate)) { onApply() }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                        .disabled(vm.isApplyingProfile)
-                        .pointingHandCursor()
-                }
+            // Le profil devient actif **avant** que ses dossiers ne bougent :
+            // tester `applyingProfileId` d'abord, sinon le témoin d'activité
+            // vivrait dans une branche `!isActive` que l'application ne
+            // traverse jamais.
+            if vm.applyingProfileId == profile.id {
+                ProgressView()
+                    .controlSize(.small)
+                    .frame(width: 70, alignment: .center)
+            } else if !isActive {
+                Button(vm.L(L10n.Profiles.activate)) { onApply() }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .disabled(vm.isApplyingProfile)
+                    .pointingHandCursor()
             }
 
             // Manage → apply this profile and jump to the Mods page to edit it.
