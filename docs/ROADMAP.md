@@ -141,10 +141,12 @@ de la liste de l'auteur. Analyse complète et exclusions motivées : `docs/audit
 | *audit* | `UpdateCautionMessage` (alerte auteur avant mise à jour) | **À faire** | → **B2-T7** |
 | *audit* | Panneau de downloads observable (%, vitesse, annulation) | **À faire** | Élargit **B2-T1** |
 
-**Bilan au 2026-08-24** — les **7 bugs** de la liste initiale sont corrigés, y compris le
-bloquant. Sur les 45 demandes : la **bissection** (axe A4) est sortie en v1.11.0, le **hub
-de traduction FR** (axe C) en v1.13.0 → v1.17.0, et l'**axe B** est ouvert depuis le
-2026-08-21 — page des sauvegardes, restauration, profils. Restent essentiellement
+**Bilan au 2026-08-24 (v1.18.0 publiée)** — les **7 bugs** de la liste initiale sont
+corrigés, y compris le bloquant. Sur les 45 demandes : la **bissection** (axe A4) est
+sortie en v1.11.0, le **hub de traduction FR** (axe C) en v1.13.0 → v1.17.0, et l'**axe
+B** en **v1.18.0** — page des sauvegardes navigable, restauration qui dit ce qu'elle
+écrit, récupération d'un fichier isolé puis clé à clé, diagnostic de profil, profil vide
+par défaut, duplication. Restent essentiellement
 **B2** (ergonomie transverse : quota Nexus, tailles, ETA de téléchargement), **B3-T2/T5/T6**
 (favoris, configs par profil, notes), **B4-T4** (récupérer un fichier isolé d'une
 sauvegarde), **A1/A2/A3** (registre, compatibilité smapi.io, NexusID automatiques) et la
@@ -446,7 +448,7 @@ partiellement traduits ou pas du tout, sans ouvrir un seul fichier.
 
 ---
 
-### Hub de traduction FR, phase 2 : *édition & assistance* — **Axe C** · livrée par morceaux (**v1.15.0**, puis `[Unreleased]`)
+### Hub de traduction FR, phase 2 : *édition & assistance* — **Axe C** · livrée par morceaux (**v1.15.0** → **v1.17.0**)
 
 C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 
@@ -625,7 +627,7 @@ pouvoir revenir en arrière à tout moment.
 
 ---
 
-### Profils, favoris & backups exploitables — **Axe B** · **en cours** (B4 livré, B3 aux trois quarts)
+### Profils, favoris & backups exploitables — **Axe B** · **B4 livré en v1.18.0**, B3 aux trois quarts
 
 #### B3 — Profils
 
@@ -670,7 +672,7 @@ pouvoir revenir en arrière à tout moment.
 #### B4 — Page de backups
 
 - [x] **B4-T1** — Regroupement par mod puis par version, tri (dernier backup, A→Z, Z→A),
-      recherche. · **M** · *livré le 2026-08-22 (`7c9efce`) — `Models/BackupBrowser.swift`.*
+      recherche. · **M** · *livré le 2026-08-22 (`7c9efce`), sorti en **v1.18.0** — `Models/BackupBrowser.swift`.*
 - [x] **B4-T2** — Retour utilisateur explicite après restauration (ce qui a été écrit, où). · **S** ·
       *validé à l'écran le 2026-08-24.*
       *`ModInstallRestoreReport` (Core, testé) : mod, version, nombre de fichiers, chemin
@@ -1065,17 +1067,26 @@ Trois défauts trouvés en chemin, tous corrigés : l'application d'un profil
 gelait l'interface, un échec d'application était écrit dans le profil comme s'il
 avait été voulu, et une restauration déposait un second dossier du même mod.
 
+**Ce qui a suivi, le même jour** : B3-T4 complété (dépendances non satisfaites,
+en réutilisant `ModDependencyStatus` sur l'état *futur* du parc) et **B4-T4**
+livré en entier — récupération d'un fichier isolé, puis clé à clé pour les
+traductions. Le tout est sorti en **v1.18.0**.
+
 **Ce que B garde de plus valeureux**, dans l'ordre où je le prendrais :
-1. **B3-T4 (suite)** — dépendances non satisfaites. Même écran que les mods
-   manquants, même mécanique : un mod présent dont il manque une dépendance
-   casse aussi silencieusement qu'un mod absent, et `DependencyTree` existe déjà.
-2. **B4-T4** — récupérer un `fr.json` ou un `config.json` d'une sauvegarde sans
-   restaurer le mod entier. C'est ce qui protège le travail de traduction, donc
-   le seul point où B croise l'axe C.
-3. **B2-T6** puis **B2-T2** — deux affichages dont la donnée est déjà là (quota
-   Nexus reçu à chaque réponse, tailles de dossiers).
+1. **B2-T6** puis **B2-T2** — deux affichages dont la donnée est déjà là (quota
+   Nexus reçu à chaque réponse, tailles de dossiers). Petits, visibles.
+2. **B3-T2** — favoris de mods, avec « importer les favoris dans ce profil ».
+   Le profil sait désormais retenir ses mods (`ProfileModMetadata`), ce qui
+   rapproche le socle.
+3. **B1-T3** — pastilles d'anomalie dans la liste des mods, alimentées par
+   `ModErrorHistory`. Même geste que les pastilles de profil, déjà éprouvé.
 4. **B3-T5** (configs par profil) reste le plus gros et le plus risqué : il
    écrit dans les configs des mods. À instruire avant d'engager.
+
+**Ce que B4-T4 laisse ouvert** : les sauvegardes de configs
+(`Backups/ModConfigs`) comme seconde source de récupération, et une porte
+d'entrée depuis l'onglet Traduction d'un mod — aujourd'hui la comparaison ne
+s'atteint que depuis la page des sauvegardes.
 
 ---
 
