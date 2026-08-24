@@ -5127,12 +5127,12 @@ class StarHubTHViewModel: ObservableObject {
                let mod = mods.flattenedMods.first(where: { $0.folderName == file.folderName }) {
                 _ = try ModConfigBackupManager.shared.createBackup(gameDir: gameDir, mods: [mod])
             }
-            let parent = (file.installedPath as NSString).deletingLastPathComponent
-            try fm.createDirectory(atPath: parent, withIntermediateDirectories: true)
-            if fm.fileExists(atPath: file.installedPath) {
-                try fm.removeItem(atPath: file.installedPath)
-            }
-            try fm.copyItem(atPath: file.backupPath, toPath: file.installedPath)
+            // L'écriture passe par `RecoveredFileWriter` : les dossiers de mods
+            // sont souvent en lecture seule (`unzip`/`unrar` restituent les
+            // modes de l'archive), et une copie directe échoue dessus.
+            try RecoveredFileWriter.write(from: file.backupPath,
+                                          to: file.installedPath,
+                                          modRoot: file.installedRoot)
             log(String(format: L(L10n.Recovery.recovered), file.relativePath, file.modName))
             recoverableFiles.removeAll { $0.id == file.id }
             return true

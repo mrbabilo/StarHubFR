@@ -173,3 +173,108 @@ import Testing
         #expect(found.first?.modName == "Un joli nom")
     }
 }
+
+@Suite struct RecoveredFileWriterTests {
+
+    /// Un dossier de mod en lecture seule. Le cas est **réel** : `unzip` et
+    /// `unrar` restituent les modes de l'archive, et une bonne part du parc a
+    /// ses dossiers en `0555`. Signalé par l'utilisateur le 2026-08-24 sur
+    /// `[CP] Toothless Pet`, dont `i18n/` était `dr-xr-xr-x` — la copie
+    /// échouait sur un refus d'autorisation.
+    @Test func aFileIsWrittenIntoAReadOnlyModFolder() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("Recovery-\(UUID().uuidString)", isDirectory: true)
+        defer { chmodRecursively(root, to: 0o755); try? FileManager.default.removeItem(at: root) }
+
+        let modRoot = root.appendingPathComponent("Mod", isDirectory: true)
+        let i18n = modRoot.appendingPathComponent("i18n", isDirectory: true)
+        try FileManager.default.createDirectory(at: i18n, withIntermediateDirectories: true)
+        let backup = root.appendingPathComponent("fr.json")
+        try #"{"clé":"valeur"}"#.write(to: backup, atomically: true, encoding: .utf8)
+        // Lecture seule, du plus profond au plus haut.
+        for dir in [i18n, modRoot] {
+            try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: dir.path)
+        }
+
+        try RecoveredFileWriter.write(from: backup.path,
+                                      to: i18n.appendingPathComponent("fr.json").path,
+                                      modRoot: modRoot.path)
+
+        let written = try String(contentsOf: i18n.appendingPathComponent("fr.json"), encoding: .utf8)
+        #expect(written == #"{"clé":"valeur"}"#)
+    }
+
+    /// Le dossier `i18n/` n'existe pas encore et la racine du mod est en
+    /// lecture seule : il faut ouvrir la racine pour pouvoir le créer.
+    @Test func aMissingFolderIsCreatedInsideAReadOnlyMod() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("Recovery-\(UUID().uuidString)", isDirectory: true)
+        defer { chmodRecursively(root, to: 0o755); try? FileManager.default.removeItem(at: root) }
+
+        let modRoot = root.appendingPathComponent("Mod", isDirectory: true)
+        try FileManager.default.createDirectory(at: modRoot, withIntermediateDirectories: true)
+        let backup = root.appendingPathComponent("fr.json")
+        try #"{"a":"b"}"#.write(to: backup, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: modRoot.path)
+
+        try RecoveredFileWriter.write(from: backup.path,
+                                      to: modRoot.appendingPathComponent("i18n/fr.json").path,
+                                      modRoot: modRoot.path)
+
+        #expect(FileManager.default.fileExists(atPath: modRoot.appendingPathComponent("i18n/fr.json").path))
+    }
+
+    /// Un fichier déjà en place est remplacé, même en lecture seule.
+    @Test func anExistingReadOnlyFileIsReplaced() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("Recovery-\(UUID().uuidString)", isDirectory: true)
+        defer { chmodRecursively(root, to: 0o755); try? FileManager.default.removeItem(at: root) }
+
+        let modRoot = root.appendingPathComponent("Mod", isDirectory: true)
+        try FileManager.default.createDirectory(at: modRoot, withIntermediateDirectories: true)
+        let target = modRoot.appendingPathComponent("config.json")
+        try #"{"vieux":true}"#.write(to: target, atomically: true, encoding: .utf8)
+        let backup = root.appendingPathComponent("config.json")
+        try #"{"neuf":true}"#.write(to: backup, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o444], ofItemAtPath: target.path)
+        try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: modRoot.path)
+
+        try RecoveredFileWriter.write(from: backup.path, to: target.path, modRoot: modRoot.path)
+
+        #expect(try String(contentsOf: target, encoding: .utf8) == #"{"neuf":true}"#)
+    }
+
+    /// Les autorisations sont rendues telles qu'on les a trouvées : le mod
+    /// reste comme son auteur l'a empaqueté, et une récupération ne laisse pas
+    /// derrière elle un dossier plus ouvert qu'avant.
+    @Test func theFoldersKeepTheirOriginalPermissions() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("Recovery-\(UUID().uuidString)", isDirectory: true)
+        defer { chmodRecursively(root, to: 0o755); try? FileManager.default.removeItem(at: root) }
+
+        let modRoot = root.appendingPathComponent("Mod", isDirectory: true)
+        let i18n = modRoot.appendingPathComponent("i18n", isDirectory: true)
+        try FileManager.default.createDirectory(at: i18n, withIntermediateDirectories: true)
+        let backup = root.appendingPathComponent("fr.json")
+        try #"{"a":"b"}"#.write(to: backup, atomically: true, encoding: .utf8)
+        for dir in [i18n, modRoot] {
+            try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: dir.path)
+        }
+
+        try RecoveredFileWriter.write(from: backup.path,
+                                      to: i18n.appendingPathComponent("fr.json").path,
+                                      modRoot: modRoot.path)
+
+        let mode = (try FileManager.default.attributesOfItem(atPath: i18n.path)[.posixPermissions] as? NSNumber)?.uint16Value
+        #expect(mode == 0o555)
+    }
+}
+
+/// Remet des droits ouverts pour que le nettoyage puisse effacer l'arbre.
+private func chmodRecursively(_ url: URL, to mode: Int) {
+    let process = Process()
+    process.executableURL = URL(fileURLWithPath: "/bin/chmod")
+    process.arguments = ["-R", String(format: "%o", mode), url.path]
+    try? process.run()
+    process.waitUntilExit()
+}
