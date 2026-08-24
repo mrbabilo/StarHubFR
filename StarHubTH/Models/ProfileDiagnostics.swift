@@ -23,6 +23,25 @@ struct MissingProfileMod: Identifiable, Equatable {
     }
 }
 
+/// Une dépendance requise que le profil laisse insatisfaite.
+struct ProfileDependencyGap: Identifiable, Equatable {
+    var id: String { uniqueId }
+    /// L'identifiant de la dépendance manquante.
+    let uniqueId: String
+    /// Son nom quand elle est installée ; `nil` quand elle est absente du jeu.
+    let name: String?
+    /// Installée mais laissée hors du profil — donc mise en pause à
+    /// l'application. À distinguer de l'absence : le geste de réparation n'est
+    /// pas le même (l'ajouter au profil, ou la télécharger).
+    let isInstalled: Bool
+    /// Les noms des mods du profil qui la réclament, triés.
+    let requiredBy: [String]
+
+    var displayName: String {
+        name ?? ProfileDiagnostics.readableName(from: uniqueId)
+    }
+}
+
 /// Ce qu'un profil peut dire de lui-même une fois confronté au disque.
 ///
 /// Le calcul vivait dans `applyProfileToFilesystem`, où il n'alimentait qu'une
@@ -60,6 +79,56 @@ enum ProfileDiagnostics {
                 nexusModId: nonEmpty(remembered?.nexusModId) ?? nonEmpty(hint?.nexusModId),
                 hasBackup: backupName != nil,
                 isBundledWithSmapi: isBundledWithSmapi(uniqueId))
+        }
+    }
+
+    /// Une dépendance requise qu'un profil ne satisfaira pas une fois appliqué.
+    ///
+    /// La question n'est pas « ce mod tourne-t-il aujourd'hui ? » — c'est celle
+    /// de `ModDependencyStatus` — mais « que se passera-t-il quand ce profil
+    /// sera appliqué ? ». Un mod peut tourner à l'instant et casser au
+    /// prochain changement de profil, parce que le profil ne retient pas son
+    /// cadre.
+    ///
+    /// - Parameter installedMods: les mods installés, packs dépliés.
+    static func dependencyGaps(in profile: ModProfile,
+                               installedMods: [ModItem]) -> [ProfileDependencyGap] {
+        let profileIds = Set(profile.enabledModIds.map { $0.lowercased() })
+        let installedIds = Set(installedMods.map { $0.uniqueId.lowercased() }.filter { !$0.isEmpty })
+        let byId = Dictionary(installedMods.map { ($0.uniqueId.lowercased(), $0) },
+                              uniquingKeysWith: { first, _ in first })
+        // L'état **futur** : le profil décide qui sera actif. C'est ce qui
+        // permet de réutiliser `ModDependencyStatus` tel quel, au lieu d'une
+        // seconde règle de « dépendance non satisfaite » qui en divergerait.
+        let statesAfterApply = Dictionary(uniqueKeysWithValues:
+            installedIds.map { ($0, profileIds.contains($0)) })
+
+        var demandedBy: [String: (uniqueId: String, dependents: [String])] = [:]
+        for uniqueId in profile.enabledModIds {
+            guard let mod = byId[uniqueId.lowercased()] else { continue }
+            let unsatisfied = ModDependencyStatus.missing(for: mod, installedIds: installedIds)
+                + ModDependencyStatus.disabled(for: mod, states: statesAfterApply)
+            for dependency in unsatisfied {
+                let key = dependency.lowercased()
+                var entry = demandedBy[key] ?? (uniqueId: dependency, dependents: [])
+                entry.dependents.append(mod.name)
+                demandedBy[key] = entry
+            }
+        }
+
+        return demandedBy.map { key, entry in
+            ProfileDependencyGap(uniqueId: entry.uniqueId,
+                                 name: byId[key]?.name,
+                                 isInstalled: installedIds.contains(key),
+                                 requiredBy: entry.dependents.sorted())
+        }
+        // La plus réclamée d'abord : c'est celle dont la réparation débloque le
+        // plus de mods. À égalité, l'ordre alphabétique, pour que deux affichages
+        // successifs ne se réordonnent pas sous les yeux de l'utilisateur.
+        .sorted {
+            $0.requiredBy.count != $1.requiredBy.count
+                ? $0.requiredBy.count > $1.requiredBy.count
+                : $0.uniqueId.lowercased() < $1.uniqueId.lowercased()
         }
     }
 

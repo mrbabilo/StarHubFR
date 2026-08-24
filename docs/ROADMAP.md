@@ -647,8 +647,16 @@ pouvoir revenir en arrière à tout moment.
       nom et identifiant Nexus de ses mods (`ProfileModMetadata`) : c'est la seule source
       qui couvre, mesuré sur le parc réel — sur les 16 mods manquants de ses deux profils,
       2 ont une sauvegarde, 1 un identifiant Nexus en cache, 2 sont livrés avec SMAPI.
-      Pastilles validées à l'écran le 2026-08-24.
-      **Restent à faire** : les dépendances non satisfaites et la couverture FR.*
+      Pastilles validées à l'écran le 2026-08-24. Les **dépendances non satisfaites**
+      ont suivi le même jour : `ProfileDiagnostics.dependencyGaps` réutilise
+      `ModDependencyStatus` en lui passant l'état **futur** du parc (celui qu'aura le
+      profil une fois appliqué), plutôt qu'une seconde règle qui en aurait divergé ;
+      la dépendance installée mais laissée hors du profil s'y ajoute d'un clic. Mesuré
+      avant d'écrire : ses trois profils sont **complets** (344, 628 et 73 dépendances
+      requises, aucune insatisfaite) — l'écran ne montrera rien sur eux, et c'est le
+      résultat attendu. Le cas visé est le profil **vide** qu'on remplit mod par mod
+      depuis B3-T1, où l'on oublie un cadre.
+      **Reste à faire** : la couverture FR du profil (réutiliserait **C1-T1**).*
 - [ ] **B3-T5** — **Configurations par profil** : un même mod peut avoir des `config.json`
       différents selon le profil (ex. CJB Cheats configuré en solo, désactivé en multi).
       Capture/restauration au changement de profil avec **merge JSON non-destructif**

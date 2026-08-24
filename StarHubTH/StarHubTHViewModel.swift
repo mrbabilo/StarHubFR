@@ -5109,6 +5109,29 @@ class StarHubTHViewModel: ObservableObject {
         }
     }
 
+    /// Ajoute un mod installé au profil — le geste de réparation d'une
+    /// dépendance requise que le profil laissait de côté.
+    ///
+    /// Passe par `updateProfile`, donc l'ajout est appliqué au disque
+    /// immédiatement si le profil est actif : c'est bien ce qu'on demande en
+    /// ajoutant une dépendance manquante, que le mod se remette à tourner.
+    func addModToProfile(id: UUID, uniqueId: String) {
+        guard let index = modProfiles.firstIndex(where: { $0.id == id }) else { return }
+        let key = uniqueId.lowercased()
+        guard !modProfiles[index].enabledModIds.contains(where: { $0.lowercased() == key }) else { return }
+
+        // Ce qu'on sait du mod entre dans le profil avec lui : c'est tout ce
+        // qui restera le jour où il aura été désinstallé.
+        if let mod = mods.flattenedMods.first(where: { $0.uniqueId.lowercased() == key }) {
+            modProfiles[index].modMetadata[mod.uniqueId] = ProfileModMetadata(name: mod.name,
+                                                                             nexusModId: mod.nexusModId)
+        }
+        var ids = modProfiles[index].enabledModIds
+        ids.append(uniqueId)
+        updateProfile(id: id, newName: modProfiles[index].name, enabledModIds: ids)
+        log(String(format: L(L10n.VM.profileCreated), modProfiles[index].name, ids.count))
+    }
+
     /// Copie un profil existant, sous le nom « <original> (copie) ».
     ///
     /// La copie n'est **pas** activée : dupliquer sert à partir d'une base pour

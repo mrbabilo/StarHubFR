@@ -36,6 +36,7 @@ struct ModProfilesView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 60)
                 } else {
+                    let flattened = vm.mods.flattenedMods
                     let installedIds = vm.mods.allUniqueIds
                     ForEach(Array(vm.modProfiles.enumerated()), id: \.element.id) { index, profile in
                         ProfileRow(
@@ -45,10 +46,12 @@ struct ModProfilesView: View {
                             // Compte brut : l'enrichissement (sauvegardes, cache
                             // Nexus) lit le disque et n'a lieu qu'à l'ouverture
                             // de la feuille.
-                            missingCount: ProfileDiagnostics.missingMods(in: profile,
-                                                                         installedUniqueIds: installedIds,
-                                                                         backupNames: [:],
-                                                                         nexusHints: [:]).count,
+                            issueCount: ProfileDiagnostics.missingMods(in: profile,
+                                                                       installedUniqueIds: installedIds,
+                                                                       backupNames: [:],
+                                                                       nexusHints: [:]).count
+                                + ProfileDiagnostics.dependencyGaps(in: profile,
+                                                                    installedMods: flattened).count,
                             vm: vm,
                             onApply: { vm.applyProfile(id: profile.id) },
                             onManage: {
@@ -128,7 +131,7 @@ struct ModProfilesView: View {
             Text(vm.L(L10n.Profiles.deleteNote))
         }
         .sheet(item: $profileShowingMissing) { profile in
-            ProfileMissingModsView(
+            ProfileDiagnosticsView(
                 vm: vm,
                 profile: profile,
                 isPresented: Binding(get: { profileShowingMissing != nil },
@@ -147,8 +150,9 @@ struct ProfileRow: View {
     let profile: ModProfile
     let isActive: Bool
     let modCount: Int
-    /// Les mods du profil qui ne sont plus installés. `0` la plupart du temps.
-    let missingCount: Int
+    /// Ce qui empêchera le profil de tourner tel quel : mods disparus et
+    /// dépendances requises laissées de côté. `0` la plupart du temps.
+    let issueCount: Int
     @ObservedObject var vm: StarHubTHViewModel
     let onApply: () -> Void
     let onManage: () -> Void
@@ -191,11 +195,11 @@ struct ProfileRow: View {
                     Text(String(format: vm.L(L10n.Profiles.modCount), modCount))
                         .font(.system(size: 12))
                         .foregroundColor(.secondary)
-                    if missingCount > 0 {
+                    if issueCount > 0 {
                         Button(action: onShowMissing) {
                             HStack(spacing: 4) {
                                 Image(systemName: "exclamationmark.triangle.fill")
-                                Text(String(format: vm.L(L10n.Profiles.missingBadge), Int64(missingCount)))
+                                Text(String(format: vm.L(L10n.Profiles.issuesBadge), Int64(issueCount)))
                             }
                             .font(.system(size: 11, weight: .medium))
                             .foregroundColor(.orange)

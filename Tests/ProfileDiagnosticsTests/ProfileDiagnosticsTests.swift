@@ -2,6 +2,27 @@ import Foundation
 import Testing
 @testable import StarHubTHCore
 
+/// Un mod installé avec ses dépendances déclarées.
+private func makeModWithDeps(_ uniqueId: String,
+                             name: String,
+                             requires: [String] = [],
+                             optional: [String] = []) -> ModItem {
+    ModItem(uniqueId: uniqueId,
+            name: name,
+            folderName: uniqueId,
+            version: "1.0.0",
+            author: "Auteur",
+            description: "",
+            nexusUrl: "",
+            nexusModId: "",
+            isEnabled: true,
+            dependencies: requires.map { ModDependency(uniqueId: $0, isRequired: true) }
+                + optional.map { ModDependency(uniqueId: $0, isRequired: false) },
+            children: nil,
+            isGroup: false,
+            installedFileDate: nil)
+}
+
 @Suite struct ProfileDiagnosticsTests {
 
     // MARK: - Ce qui manque
@@ -166,6 +187,104 @@ import Testing
             nexusHints: ["a.mod": ProfileModMetadata(name: "A", nexusModId: "9")])
 
         #expect(bare.map(\.uniqueId) == enriched.map(\.uniqueId))
+    }
+
+    // MARK: - B3-T4 · dépendances que le profil ne satisfait pas
+
+    /// Le cas que le profil **vide** rend courant : on ajoute un mod sans son
+    /// cadre. La dépendance est installée, mais le profil ne la retient pas —
+    /// l'appliquer la mettrait en pause, et le mod ne tournerait pas.
+    @Test func aDependencyInstalledButLeftOutOfTheProfileIsAGap() {
+        let dependent = makeModWithDeps("a.mod", name: "A Mod", requires: ["framework"])
+        let framework = makeModWithDeps("framework", name: "Le cadre")
+        let profile = ModProfile(name: "Solo", enabledModIds: ["a.mod"])
+
+        let gaps = ProfileDiagnostics.dependencyGaps(in: profile,
+                                                     installedMods: [dependent, framework])
+
+        #expect(gaps.count == 1)
+        #expect(gaps.first?.uniqueId == "framework")
+        #expect(gaps.first?.name == "Le cadre")
+        #expect(gaps.first?.isInstalled == true)
+        #expect(gaps.first?.requiredBy == ["A Mod"])
+    }
+
+    /// La dépendance n'est pas installée du tout : c'est la même panne pour le
+    /// joueur, mais pas le même geste pour la réparer.
+    @Test func aDependencyThatIsNotInstalledIsAGapToo() {
+        let dependent = makeModWithDeps("a.mod", name: "A Mod", requires: ["absent.framework"])
+        let profile = ModProfile(name: "Solo", enabledModIds: ["a.mod"])
+
+        let gaps = ProfileDiagnostics.dependencyGaps(in: profile, installedMods: [dependent])
+
+        #expect(gaps.first?.uniqueId == "absent.framework")
+        #expect(gaps.first?.isInstalled == false)
+        #expect(gaps.first?.name == nil)
+    }
+
+    /// Une dépendance que le profil retient ne manque pas. Mesuré le
+    /// 2026-08-24 : les trois profils du parc de référence sont complets —
+    /// 344, 628 et 73 dépendances requises, aucune insatisfaite.
+    @Test func aDependencyTheProfileKeepsIsNotAGap() {
+        let dependent = makeModWithDeps("a.mod", name: "A Mod", requires: ["framework"])
+        let framework = makeModWithDeps("framework", name: "Le cadre")
+        let profile = ModProfile(name: "Solo", enabledModIds: ["a.mod", "framework"])
+
+        let gaps = ProfileDiagnostics.dependencyGaps(in: profile,
+                                                     installedMods: [dependent, framework])
+
+        #expect(gaps.isEmpty)
+    }
+
+    /// Les dépendances **facultatives** ne sont pas des pannes : les signaler
+    /// noierait les vraies. C'est déjà la règle de `ModDependencyStatus`.
+    @Test func anOptionalDependencyIsNeverAGap() {
+        let dependent = makeModWithDeps("a.mod", name: "A Mod", optional: ["nice.to.have"])
+        let profile = ModProfile(name: "Solo", enabledModIds: ["a.mod"])
+
+        let gaps = ProfileDiagnostics.dependencyGaps(in: profile, installedMods: [dependent])
+
+        #expect(gaps.isEmpty)
+    }
+
+    /// Un mod que le profil réclame mais qui n'est pas installé n'a pas de
+    /// dépendances connues : il relève des mods manquants, et ne doit pas
+    /// produire en plus des trous fantômes.
+    @Test func aModMissingFromDiskContributesNoDependencyGap() {
+        let profile = ModProfile(name: "Solo", enabledModIds: ["ghost.mod"])
+
+        let gaps = ProfileDiagnostics.dependencyGaps(in: profile, installedMods: [])
+
+        #expect(gaps.isEmpty)
+    }
+
+    /// Une même dépendance réclamée par plusieurs mods fait **une** ligne, et
+    /// les plus réclamées viennent en tête : c'est l'ordre où l'on répare.
+    @Test func gapsAreGroupedAndTheMostDemandedComeFirst() {
+        let mods = [
+            makeModWithDeps("a.mod", name: "A", requires: ["rare"]),
+            makeModWithDeps("b.mod", name: "B", requires: ["common"]),
+            makeModWithDeps("c.mod", name: "C", requires: ["common"])
+        ]
+        let profile = ModProfile(name: "Solo", enabledModIds: ["a.mod", "b.mod", "c.mod"])
+
+        let gaps = ProfileDiagnostics.dependencyGaps(in: profile, installedMods: mods)
+
+        #expect(gaps.map(\.uniqueId) == ["common", "rare"])
+        #expect(gaps.first?.requiredBy == ["B", "C"])
+    }
+
+    /// La casse ne fait pas une panne : SMAPI compare les identifiants sans en
+    /// tenir compte.
+    @Test func aDependencyThatMatchesOnlyByCaseIsSatisfied() {
+        let dependent = makeModWithDeps("a.mod", name: "A Mod", requires: ["Framework"])
+        let framework = makeModWithDeps("framework", name: "Le cadre")
+        let profile = ModProfile(name: "Solo", enabledModIds: ["a.mod", "framework"])
+
+        let gaps = ProfileDiagnostics.dependencyGaps(in: profile,
+                                                     installedMods: [dependent, framework])
+
+        #expect(gaps.isEmpty)
     }
 
     // MARK: - Décodage des profils déjà enregistrés
