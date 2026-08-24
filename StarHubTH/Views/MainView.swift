@@ -1173,49 +1173,72 @@ struct QuarantineView: View {
 
 /// Ce que pèsent les mods, en pied de barre latérale.
 ///
-/// Mesuré sur le parc réel le 2026-08-24 : **16,8 Go de mods pour 23,8 Go
-/// libres**. Le chiffre qui décide, ce n'est donc pas le total seul mais le
-/// couple total / place restante — et le sous-total « en pause », parce que
-/// cinq des huit plus gros dossiers du parc étaient des mods désactivés :
-/// autant de gigaoctets immobilisés sans rien rendre.
+/// Mesuré sur le parc réel le 2026-08-24 : **16,84 Go de mods, dont 12,71 Go
+/// en pause** — 746 dossiers sur 863 — pour 30 Go libres. C'est ce rapport-là
+/// que la barre montre, et c'est pour lui qu'elle existe : le total seul ne
+/// dit pas que les trois quarts de la place sont immobilisés par des mods
+/// désactivés, alors qu'une barre coupée aux trois quarts le dit sans qu'on
+/// lise un chiffre.
+///
+/// **La barre ne compte que les mods** (100 % = le total mesuré), partagée
+/// entre actifs et en pause. La place libre reste du texte : `mods + libre`
+/// ne forme pas un tout — il y a ~450 Go d'autre chose sur ce volume — et un
+/// troisième segment énoncerait une proportion fausse.
+///
+/// Ses deux couleurs sont celles des barres d'accent de la liste des mods
+/// (vert pour un mod actif, gris pour un mod en pause) : le pied de barre
+/// résume la liste, il doit en parler la langue.
 ///
 /// Rien ne s'affiche tant qu'aucun jeu n'est désigné : « 0 octet » serait faux.
 struct ModsWeightFooter: View {
     @ObservedObject var vm: StarHubTHViewModel
 
+    /// Reprises telles quelles de `ModListRow` : la barre d'accent verte d'un
+    /// mod actif, le gris d'un mod en pause.
+    private static let activeColor = Color(red: 0.20, green: 0.65, blue: 0.35)
+    private static let pausedColor = Color.secondary.opacity(AppDesign.Opacity.strong)
+
     var body: some View {
         if let sizes = vm.modsFolderSizes {
-            VStack(alignment: .leading, spacing: 1) {
+            VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 4) {
                     Image(systemName: "internaldrive")
                         .font(.system(size: 9))
-                    Text(String(format: vm.L(L10n.Main.sidebarModsWeight), Self.bytes(sizes.totalBytes)))
-                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(.secondary)
+                    Text(String(format: vm.L(L10n.Main.sidebarModsWeight),
+                                Self.bytes(sizes.totalBytes)))
+                        .font(.system(size: 10, weight: .medium).monospacedDigit())
+                        .foregroundStyle(.secondary)
                     if vm.isMeasuringModsFolder {
                         ProgressView().controlSize(.mini).scaleEffect(0.6)
                     }
                 }
-                if sizes.pausedBytes > 0 {
-                    Text(String(format: vm.L(L10n.Main.sidebarModsWeightPaused),
-                                Self.bytes(sizes.pausedBytes)))
-                        .font(.system(size: 9))
+
+                // Un parc vide n'a pas de proportion à montrer — et le rapport
+                // vaudrait une division par zéro, qui donne une largeur `NaN`
+                // et non une barre plate.
+                if sizes.totalBytes > 0 {
+                    weightBar(sizes)
+                    legend(sizes)
                 }
+
                 if let free = sizes.availableBytes {
                     Text(String(format: vm.L(L10n.Main.sidebarDiskFree), Self.bytes(free)))
-                        .font(.system(size: 9))
+                        .font(.system(size: 9).monospacedDigit())
                         // Orange quand il reste moins que ce que pèsent déjà
                         // les mods : le prochain gros mod ne rentrera pas.
                         .foregroundStyle(free < sizes.totalBytes ? Color.orange : Color.secondary)
                 }
             }
-            .foregroundStyle(.secondary)
             .padding(.horizontal, 8)
-            .padding(.bottom, 6)
+            .padding(.bottom, 8)
             .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Self.a11yLabel(sizes, vm: vm))
         } else if vm.isMeasuringModsFolder {
             // Sans cet état, le pied reste vide plusieurs secondes au
-            // lancement — trois secondes de traversée sur 100 000 fichiers —
-            // et le vide se lit comme un défaut.
+            // lancement — de trois à six secondes de traversée sur 100 000
+            // fichiers — et le vide se lit comme un défaut.
             HStack(spacing: 4) {
                 ProgressView().controlSize(.mini).scaleEffect(0.6)
                 Text(vm.L(L10n.Main.sidebarModsWeightMeasuring))
@@ -1223,12 +1246,64 @@ struct ModsWeightFooter: View {
             }
             .foregroundStyle(.secondary)
             .padding(.horizontal, 8)
-            .padding(.bottom, 6)
+            .padding(.bottom, 8)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
+    /// La part active posée sur toute la largeur, qui porte la part en pause.
+    ///
+    /// `GeometryReader` sous une hauteur **explicite** : laissé libre dans la
+    /// pile de la barre latérale, il réclamerait toute la hauteur restante et
+    /// pousserait les boutons de thème et de langue hors de l'écran.
+    private func weightBar(_ sizes: ModsFolderSizes) -> some View {
+        let active = Double(sizes.totalBytes - sizes.pausedBytes) / Double(sizes.totalBytes)
+        return GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule().fill(Self.pausedColor)
+                Capsule()
+                    .fill(Self.activeColor)
+                    // Un filet minimal : une part active infime doit rester
+                    // visible, sinon la barre laisse croire qu'il n'y a rien
+                    // d'actif du tout.
+                    .frame(width: max(active > 0 ? 2 : 0, geo.size.width * active))
+            }
+        }
+        .frame(height: 5)
+    }
+
+    /// « 4,1 Go actifs · 12,7 Go en pause », chaque part sous sa couleur.
+    private func legend(_ sizes: ModsFolderSizes) -> some View {
+        HStack(spacing: 5) {
+            dot(Self.activeColor)
+            Text(String(format: vm.L(L10n.Main.sidebarModsWeightActive),
+                        Self.bytes(sizes.totalBytes - sizes.pausedBytes)))
+            if sizes.pausedBytes > 0 {
+                dot(Self.pausedColor)
+                Text(String(format: vm.L(L10n.Main.sidebarModsWeightAsleep),
+                            Self.bytes(sizes.pausedBytes)))
+            }
+        }
+        .font(.system(size: 9).monospacedDigit())
+        .foregroundStyle(.secondary)
+        .lineLimit(1)
+    }
+
+    private func dot(_ color: Color) -> some View {
+        Circle().fill(color).frame(width: 5, height: 5)
+    }
+
     static func bytes(_ value: Int64) -> String {
         ByteCountFormatter.string(fromByteCount: value, countStyle: .file)
+    }
+
+    /// Une barre ne se lit pas à voix haute : le lecteur d'écran reçoit les
+    /// mêmes chiffres que les lignes de texte.
+    static func a11yLabel(_ sizes: ModsFolderSizes, vm: StarHubTHViewModel) -> String {
+        String(format: vm.L(L10n.Main.sidebarModsWeightA11y),
+               bytes(sizes.totalBytes),
+               bytes(sizes.totalBytes - sizes.pausedBytes),
+               bytes(sizes.pausedBytes),
+               sizes.availableBytes.map { bytes($0) } ?? "—")
     }
 }

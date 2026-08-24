@@ -541,8 +541,10 @@
 "settings_nexus_quota_renewed" = "Renewed since the last measurement";
 "settings_nexus_quota_exhausted" = "Daily quota exhausted";
 "sidebar_mods_weight" = "Mods: %@";
-"sidebar_mods_weight_paused" = "of which %@ paused";
 "sidebar_disk_free" = "%@ free";
+"sidebar_mods_weight_active" = "%@ active";
+"sidebar_mods_weight_asleep" = "%@ paused";
+"sidebar_mods_weight_a11y" = "Mods: %1$@, of which %2$@ active and %3$@ paused. %4$@ free on disk.";
 "sidebar_mods_weight_measuring" = "Measuring…";
 "mods_detail_size" = "On disk";
 "mods_detail_size_pack" = "Pack, %d mods";

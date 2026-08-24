@@ -7,9 +7,11 @@ enum L10n {
     // MARK: - Main
     enum Main {
         static let sidebarModsWeight          = "sidebar_mods_weight"
-        static let sidebarModsWeightPaused    = "sidebar_mods_weight_paused"
         static let sidebarModsWeightMeasuring = "sidebar_mods_weight_measuring"
         static let sidebarDiskFree            = "sidebar_disk_free"
+        static let sidebarModsWeightActive    = "sidebar_mods_weight_active"
+        static let sidebarModsWeightAsleep    = "sidebar_mods_weight_asleep"
+        static let sidebarModsWeightA11y      = "sidebar_mods_weight_a11y"
         static let account              = "main_account"
         static let gameManagement       = "main_game_management"
         static let system               = "main_system"
