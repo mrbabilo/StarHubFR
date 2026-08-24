@@ -658,7 +658,14 @@ pouvoir revenir en arrière à tout moment.
       restauré invisible du jeu. La restauration remplace désormais le mod où il se
       trouve, actif ou en pause, et ne repart en pause que s'il n'est plus installé.
       Le rafraîchissement du registre lui-même reste appelé depuis la vue
-      (`vm.refresh()`), hors de portée des tests Core.*
+      (`vm.refresh()`), hors de portée des tests Core. La clause « version » a
+      découvert un second défaut : `ModVersionAnchorRules.afterDiskChange` refuse
+      de faire **descendre** une ancre — une version qui change sans rejoindre la
+      cible passe pour une mise à jour inachevée. Un retour arrière laissait donc
+      l'ancre sur la version remplacée, et `SmapiUpdateRequest` envoyait celle-ci
+      à smapi.io : le mod rétrogradé était annoncé « à jour ». La restauration
+      pose désormais une ancre `.install`, comme toute installation menée par
+      l'app.*
 - [ ] **B4-T4** — **Récupérer un fichier isolé depuis une sauvegarde**, sans restaurer le mod
       entier : `i18n/fr.json` et `config.json`. Une mise à jour de mod écrase le dossier et
       emporte ce que l'auteur ne redistribue pas — traduction communautaire, réglages.

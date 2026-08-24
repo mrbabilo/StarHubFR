@@ -470,6 +470,15 @@ struct ModInstallBackupsView: View {
                     vm.log(restoreReportMessage(report), level: .info)
                     restoreReport = report
                     showRestoreReport = true
+                    // Restaurer, c'est poser une version connue sur le
+                    // disque : la même chose qu'une installation, et le
+                    // même ancrage. Sans lui, l'ancre reste sur la version
+                    // remplacée — `afterDiskChange` refuse de la faire
+                    // descendre, tenant une régression pour une mise à jour
+                    // inachevée — et smapi.io continue de recevoir la
+                    // version d'avant : le retour arrière que l'utilisateur
+                    // vient de faire lui serait annoncé « à jour ».
+                    vm.anchorInstalledMods(installedFolderPaths: [report.destinationPath])
                     vm.refresh()
                     loadBackups()
                 }

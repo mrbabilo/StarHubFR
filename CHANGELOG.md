@@ -19,6 +19,7 @@ where the exact log format was verified.
 - **Restoring a backup now tells you what it did.** Instead of "restored successfully": the mod and version written, how many files, the folder they went to, whether the mod is enabled or paused, and which replaced version was kept as a backup — with a button to open the folder in the Finder.
 
 ### Fixed
+- **Rolling back to an older version is no longer reported as up to date.** The app kept claiming the version it had before the restore — the update check refuses to follow a version *down*, reading it as an unfinished update — so the newer release you deliberately stepped away from stopped being offered. A restore now anchors the version it actually wrote.
 - **Restoring a backup no longer leaves two copies of the mod.** Restoring over a mod you have enabled dropped the backup into a paused folder beside the live one — the same mod twice, the restored version invisible to the game. It now replaces the mod where it sits, and lands paused only when the mod is gone.
 - **Backups stop piling up.** Copies byte-identical to another backup of the same folder are dropped — 172 MB on a real library — and the retention sweep now runs after an install, not only when you happen to open the backups page.
 
