@@ -141,13 +141,17 @@ de la liste de l'auteur. Analyse complète et exclusions motivées : `docs/audit
 | *audit* | `UpdateCautionMessage` (alerte auteur avant mise à jour) | **À faire** | → **B2-T7** |
 | *audit* | Panneau de downloads observable (%, vitesse, annulation) | **À faire** | Élargit **B2-T1** |
 
-**Bilan** — 45 demandes de la liste initiale : **4 livrées**, **7 partielles**, **4 bugs à
-corriger** (dont **1 bloquant**), **2 à (re)vérifier**, **1 à instruire** (GMCM),
-**1 reformulée** (FPS), **1 neutralisée** (hub thaï), **2 précisions de cadrage**,
-**23 à faire**. S'y ajoutent **6 pistes issues de l'audit Stardop** (5 nouvelles tâches :
-B3-T5/T6, B2-T6/T7, et **A2 repositionné** autour de smapi.io), toutes marquées
-`§audit-stardrop`. L'axe diagnostic de log est derrière nous ; l'essentiel du reste tient
-dans A, B et C.
+**Bilan au 2026-08-24** — les **7 bugs** de la liste initiale sont corrigés, y compris le
+bloquant. Sur les 45 demandes : la **bissection** (axe A4) est sortie en v1.11.0, le **hub
+de traduction FR** (axe C) en v1.13.0 → v1.17.0, et l'**axe B** est ouvert depuis le
+2026-08-21 — page des sauvegardes, restauration, profils. Restent essentiellement
+**B2** (ergonomie transverse : quota Nexus, tailles, ETA de téléchargement), **B3-T2/T5/T6**
+(favoris, configs par profil, notes), **B4-T4** (récupérer un fichier isolé d'une
+sauvegarde), **A1/A2/A3** (registre, compatibilité smapi.io, NexusID automatiques) et la
+queue de C (C2-T4, C3-T2, C4, C5). L'axe diagnostic de log est derrière nous.
+
+> Ce paragraphe se refait à la main : le compte de tâches n'a de valeur que s'il est
+> juste, et il ne l'était plus. Se fier aux cases à cocher du §5, pas à un total figé.
 
 ---
 
@@ -621,7 +625,7 @@ pouvoir revenir en arrière à tout moment.
 
 ---
 
-### Profils, favoris & backups exploitables — **Axe B** · à faire
+### Profils, favoris & backups exploitables — **Axe B** · **en cours** (B4 livré, B3 aux trois quarts)
 
 #### B3 — Profils
 
@@ -1025,6 +1029,26 @@ promesse tenue à moitié mais des extensions : l'export ZIP, C4 la config
 lisible, C5 le hub agnostique de la langue. Le raisonnement du point 3 ci-dessus
 plaide pour **ouvrir B** (profils, backups, fiche mod — des dettes d'usage sur
 des fonctionnalités déjà payées) dès que C est *stable* : il l'est.
+
+**Où en est B (2026-08-24).** Ouvert le 2026-08-21, livré dans cet ordre :
+**B4** en entier sauf T4 (page des sauvegardes navigable, compte rendu de
+restauration, restauration qui remplace le mod là où il est), puis **B3-T1/T3**
+(profil vide par défaut, duplication) et **B3-T4 partiel** (mods manquants).
+Trois défauts trouvés en chemin, tous corrigés : l'application d'un profil
+gelait l'interface, un échec d'application était écrit dans le profil comme s'il
+avait été voulu, et une restauration déposait un second dossier du même mod.
+
+**Ce que B garde de plus valeureux**, dans l'ordre où je le prendrais :
+1. **B3-T4 (suite)** — dépendances non satisfaites. Même écran que les mods
+   manquants, même mécanique : un mod présent dont il manque une dépendance
+   casse aussi silencieusement qu'un mod absent, et `DependencyTree` existe déjà.
+2. **B4-T4** — récupérer un `fr.json` ou un `config.json` d'une sauvegarde sans
+   restaurer le mod entier. C'est ce qui protège le travail de traduction, donc
+   le seul point où B croise l'axe C.
+3. **B2-T6** puis **B2-T2** — deux affichages dont la donnée est déjà là (quota
+   Nexus reçu à chaque réponse, tailles de dossiers).
+4. **B3-T5** (configs par profil) reste le plus gros et le plus risqué : il
+   écrit dans les configs des mods. À instruire avant d'engager.
 
 ---
 
