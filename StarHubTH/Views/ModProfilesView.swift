@@ -47,6 +47,7 @@ struct ModProfilesView: View {
                                 currentTab = "Mods"
                             },
                             onRename: { renamingProfile = profile; renameText = profile.name },
+                            onDuplicate: { vm.duplicateProfile(id: profile.id) },
                             onDelete: { profileToDelete = profile }
                         )
                         if index < vm.modProfiles.count - 1 {
@@ -77,11 +78,11 @@ struct ModProfilesView: View {
         // Create
         .alert(vm.L(L10n.Profiles.createNewProfile), isPresented: $isShowingNewProfileAlert) {
             TextField(vm.L(L10n.Profiles.profileNamePlaceholder), text: $newProfileName)
-            Button(vm.L(L10n.Profiles.save)) {
-                let name = newProfileName.trimmingCharacters(in: .whitespacesAndNewlines)
-                if !name.isEmpty { vm.createProfile(name: name) }
-                newProfileName = ""
-            }
+            // Deux boutons plutôt qu'un : le contenu du profil se décide ici,
+            // et « vide » vient en premier — c'est le cas courant, préparer une
+            // autre configuration sans figer celle en cours.
+            Button(vm.L(L10n.Profiles.createEmpty)) { createProfile(seed: .empty) }
+            Button(vm.L(L10n.Profiles.createFromCurrent)) { createProfile(seed: .currentlyEnabledMods) }
             Button(vm.L(L10n.Profiles.cancel), role: .cancel) { newProfileName = "" }
         } message: {
             Text(vm.L(L10n.Profiles.newProfileNote))
@@ -117,6 +118,12 @@ struct ModProfilesView: View {
             Text(vm.L(L10n.Profiles.deleteNote))
         }
     }
+
+    private func createProfile(seed: ProfileSeed) {
+        let name = newProfileName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !name.isEmpty { vm.createProfile(name: name, seed: seed) }
+        newProfileName = ""
+    }
 }
 
 struct ProfileRow: View {
@@ -127,6 +134,7 @@ struct ProfileRow: View {
     let onApply: () -> Void
     let onManage: () -> Void
     let onRename: () -> Void
+    let onDuplicate: () -> Void
     let onDelete: () -> Void
     @State private var isHovered = false
 
@@ -196,6 +204,7 @@ struct ProfileRow: View {
             // so its menu only offers rename.
             Menu {
                 Button(vm.L(L10n.Profiles.rename)) { onRename() }
+                Button(vm.L(L10n.Profiles.duplicate)) { onDuplicate() }
                 if !vm.isDefaultProfile(profile.id) {
                     Divider()
                     Button(vm.L(L10n.Profiles.delete), role: .destructive) { onDelete() }
@@ -222,6 +231,7 @@ struct ProfileRow: View {
             Button(vm.L(L10n.Profiles.manageMods)) { onManage() }
                 .disabled(vm.isApplyingProfile)
             Button(vm.L(L10n.Profiles.rename)) { onRename() }
+            Button(vm.L(L10n.Profiles.duplicate)) { onDuplicate() }
             if !vm.isDefaultProfile(profile.id) {
                 Divider()
                 Button(vm.L(L10n.Profiles.delete), role: .destructive) { onDelete() }

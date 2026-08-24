@@ -753,6 +753,10 @@ enum L10n {
         static let defaultName          = "profiles_default_name"
         static let activate             = "profiles_activate"
         static let activeLabel          = "profiles_active_label"
+        static let createEmpty          = "profiles_create_empty"
+        static let createFromCurrent    = "profiles_create_from_current"
+        static let duplicate            = "profiles_duplicate"
+        static let copyNameFormat       = "profiles_copy_name_format"
     }
 
     // MARK: - VM

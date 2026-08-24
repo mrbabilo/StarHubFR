@@ -383,7 +383,7 @@
 "profiles_no_profiles" = "Aucun profil de mods pour le moment";
 "profiles_active" = "Actif";
 "profiles_delete_note" = "La suppression d'un profil ne supprime pas vos fichiers de mods.";
-"profiles_new_profile_note" = "Le nouveau profil démarre sans mod actif. Vous pourrez configurer les mods plus tard.";
+"profiles_new_profile_note" = "Un profil vide démarre sans aucun mod — vous les ajoutez ensuite. La copie reprend les mods actifs en ce moment.";
 "profiles_create_new_profile" = "Créer un nouveau profil de mods";
 "profiles_profile_name_placeholder" = "Nom du profil…";
 "profiles_delete" = "Supprimer…";
@@ -400,6 +400,10 @@
 "profiles_default_name" = "Par défaut";
 "profiles_activate" = "Activer";
 "profiles_active_label" = "Profil : %@";
+"profiles_create_empty" = "Créer vide";
+"profiles_create_from_current" = "Copier les mods actifs";
+"profiles_duplicate" = "Dupliquer";
+"profiles_copy_name_format" = "%@ (copie)";
 "vm_default_farmer_name" = "Fermier";
 "vm_launching_vanilla" = "Lancement de Stardew Valley (Vanilla)…";
 "vm_launch_vanilla_success" = "Session de jeu vanilla lancée avec succès";

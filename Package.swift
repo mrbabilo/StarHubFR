@@ -102,6 +102,8 @@ let package = Package(
                 "Models/TranslationFragment.swift",
                 "Models/FolderDigest.swift",
                 "Models/BackupBrowser.swift",
+                "Models/ModProfile.swift",
+                "Models/ProfileFactory.swift",
                 "Extensions/ModConfigFiles.swift",
             ]
         ),
@@ -463,6 +465,11 @@ let package = Package(
             name: "BackupBrowserTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/BackupBrowserTests"
+        ),
+        .testTarget(
+            name: "ProfileFactoryTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ProfileFactoryTests"
         ),
         .testTarget(
             name: "FolderDigestTests",

@@ -4996,7 +4996,10 @@ class StarHubTHViewModel: ObservableObject {
         guard !UserDefaults.standard.bool(forKey: key) else { return }
         guard !mods.isEmpty else { return }   // wait for a scan with mods; don't burn the flag yet
         if modProfiles.isEmpty {
-            createProfile(name: L(L10n.Profiles.defaultName))
+            // Amorçage : ce profil doit décrire l'installation telle qu'elle
+            // est trouvée — c'est la base de référence, et elle est protégée
+            // de la suppression. Vide, elle ne servirait à rien.
+            createProfile(name: L(L10n.Profiles.defaultName), seed: .currentlyEnabledMods)
             // Record the seeded profile as the (undeletable) default.
             if let seeded = modProfiles.last {
                 UserDefaults.standard.set(seeded.id.uuidString, forKey: defaultProfileKey)
@@ -5005,17 +5008,35 @@ class StarHubTHViewModel: ObservableObject {
         UserDefaults.standard.set(true, forKey: key)
     }
 
-    func createProfile(name: String) {
-        // Snapshot the currently enabled mods into the new profile
-        let currentEnabledIds = mods.enabledUniqueIds
-
-        let newProfile = ModProfile(name: name, enabledModIds: currentEnabledIds)
-        modProfiles.append(newProfile)
-        // Mark it active immediately (its snapshot already matches the current
-        // filesystem, so no file moves are needed — the user can edit it next).
-        activeProfileId = newProfile.id
+    /// - Parameter seed: vide, ou l'instantané des mods actifs. Sans valeur
+    ///   par défaut : le choix change ce que l'utilisateur obtient, et chaque
+    ///   appelant doit le trancher explicitement.
+    func createProfile(name: String, seed: ProfileSeed) {
+        let made = ProfileFactory.make(name: name,
+                                       seed: seed,
+                                       enabledUniqueIds: mods.enabledUniqueIds)
+        modProfiles.append(made.profile)
+        // Un instantané peut devenir actif sur-le-champ : il décrit déjà l'état
+        // du disque, aucun dossier à déplacer. Un profil vide, non — voir
+        // `ProfileFactory.make`.
+        if made.activate {
+            activeProfileId = made.profile.id
+        }
         saveProfiles()
-        log(String(format: L(L10n.VM.profileCreated), name, currentEnabledIds.count))
+        log(String(format: L(L10n.VM.profileCreated), name, made.profile.enabledModIds.count))
+    }
+
+    /// Copie un profil existant, sous le nom « <original> (copie) ».
+    ///
+    /// La copie n'est **pas** activée : dupliquer sert à partir d'une base pour
+    /// la modifier, et une activation déplacerait aussitôt des dossiers de mods
+    /// que personne n'a demandé de bouger.
+    func duplicateProfile(id: UUID) {
+        guard let source = modProfiles.first(where: { $0.id == id }) else { return }
+        let copy = ProfileFactory.duplicate(source, nameFormat: L(L10n.Profiles.copyNameFormat))
+        modProfiles.append(copy)
+        saveProfiles()
+        log(String(format: L(L10n.VM.profileCreated), copy.name, copy.enabledModIds.count))
     }
 
     func deleteProfile(id: UUID) {

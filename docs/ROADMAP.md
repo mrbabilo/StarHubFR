@@ -106,9 +106,9 @@ liste du 2026-07-30 et n'existaient pas dans le document de veille.
 | §2 | Vérifier le bouton d'activation de la page dépendances | **Bug présumé** | Le bouton existe (`DependencyTreeView.swift:124`) ; c'est son effet qui est douteux → **X3** |
 | §2 | Boutons de rafraîchissement (quarantaine, alertes système) | **À faire** | → **B2-T3** |
 | §3 | Reconnaître les mods de traduction (i18n seul) | **Partiel** | `ModItem.languages`, filtre `FrenchTranslationScope` et heuristique de nom (`ModItem.swift:99`) — mais **aucun test structurel** → **C1-T4** |
-| §3 | Nouveau profil créé **vide** | **À faire** | `createProfile()` capture au contraire les mods actifs → **B3-T1** |
+| §3 | Nouveau profil créé **vide** | **Fait** (2026-08-24) | L'alerte propose les deux voies, « vide » en premier ; `ProfileFactory` (Core, testé) → **B3-T1** |
 | §3 | Favoris de mods + import dans un profil | **À faire** | Les favoris n'existent que pour les sauvegardes de jeu → **B3-T2** |
-| §3 | Duplication d'un profil | **À faire** | Aucune fonction `duplicateProfile` → **B3-T3** |
+| §3 | Duplication d'un profil | **Fait** (2026-08-24) | `duplicateProfile(id:)`, depuis le menu ⋯ de la ligne → **B3-T3** |
 | §3 | Recherche automatique des NexusID manquants | **À faire** | Saisie manuelle sur la fiche mod → **A3-T1** |
 | §4 | Backups : feedback après restauration, tri, regroupement, recherche | **Fait** (2026-08-23) | Regroupement, tri et recherche → **B4-T1** ; compte rendu de restauration (ce qui a été écrit, où, ce qu'est devenue la version remplacée) → **B4-T2** |
 | §4 | Un mod restauré met à jour le registre | **Corrigé ✅** (2026-08-23) | Vérifié : la restauration d'un mod **actif** en déposait une seconde copie en pause à côté, deux dossiers pour un `folderName` — la clé du registre. Elle remplace désormais le mod là où il est → **B4-T3** |
@@ -625,11 +625,15 @@ pouvoir revenir en arrière à tout moment.
 
 #### B3 — Profils
 
-- [ ] **B3-T1** — Choix à la création : profil **vide** (défaut demandé) ou instantané des
-      mods actifs. · **S** · *change le comportement actuel — à annoncer au CHANGELOG.*
+- [x] **B3-T1** — Choix à la création : profil **vide** (défaut demandé) ou instantané des
+      mods actifs. · **S** · *annoncé au CHANGELOG (§Changed). La décision qui n'allait pas
+      de soi : un profil vide ne peut pas devenir actif à sa création — `syncActiveProfileIds`
+      réécrit le profil actif depuis le disque à chaque scan, et l'aurait rempli des mods en
+      cours dans la foulée. `ProfileFactory` (Core) porte les deux règles, testées.*
 - [ ] **B3-T2** — Favoris de mods (persistés au registre), avec « importer les favoris dans
       ce profil ». · **M**
-- [ ] **B3-T3** — Duplication d'un profil. · **S**
+- [x] **B3-T3** — Duplication d'un profil. · **S** · *`ProfileFactory.duplicate`, la copie
+      porte son propre identifiant et n'est pas activée.*
 - [ ] **B3-T4** — Diagnostic de profil au changement : mods manquants, dépendances non
       satisfaites, couverture FR (réutilise **C1-T1**). · **M**
 - [ ] **B3-T5** — **Configurations par profil** : un même mod peut avoir des `config.json`

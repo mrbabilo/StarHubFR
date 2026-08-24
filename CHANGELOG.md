@@ -13,9 +13,11 @@ where the exact log format was verified.
 ## [Unreleased]
 
 ### Added
+- **A profile can be duplicated.** From its ⋯ menu: the copy carries the same mods under its own name, and is not activated — duplicating is how you start from a working set and change a few things.
 - **The backups page can be browsed at last.** It listed every backup flat — 1 494 of them on a real library. Now one collapsible row per mod, its versions inside, plus search across name, folder, author and version, and four sort orders.
 
 ### Changed
+- **A new profile now starts empty.** Creating one silently captured whatever was enabled at that moment — while the dialog claimed the opposite. It now asks: an empty profile, to fill mod by mod, or a copy of the mods enabled right now.
 - **Restoring a backup now tells you what it did.** Instead of "restored successfully": the mod and version written, how many files, the folder they went to, whether the mod is enabled or paused, and which replaced version was kept as a backup — with a button to open the folder in the Finder.
 
 ### Fixed
