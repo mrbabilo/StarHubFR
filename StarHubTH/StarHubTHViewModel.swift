@@ -5274,16 +5274,23 @@ class StarHubTHViewModel: ObservableObject {
         }
 
         // Always rescan so the list reflects the real on-disk state,
-        // whatever it is after partial failures. syncActiveProfileIds
-        // runs after so the active profile's stored id list tracks the
-        // actual enabled set (possibly fewer than expected if moves
-        // failed).
+        // whatever it is after partial failures.
         let profileName = profile.name
         let failedNames = failures.map { $0.modName }
         DispatchQueue.global(qos: .userInitiated).async {
             self.scanMods()
             DispatchQueue.main.async {
-                self.syncActiveProfileIds()
+                // Le profil actif ne suit le disque que si l'application a
+                // abouti. Un déplacement en échec — dossier tenu ouvert,
+                // permissions — n'est pas une décision de l'utilisateur :
+                // adopter l'état du disque écrirait l'accident dans le profil.
+                // Le mod resté actif faute d'avoir pu bouger deviendrait un mod
+                // que le profil *demande*, et réessayer l'activation n'aurait
+                // plus rien à faire. On laisse le profil dire ce qui était
+                // voulu ; l'alerte ci-dessous dit, elle, ce qui s'est passé.
+                if failures.isEmpty {
+                    self.syncActiveProfileIds()
+                }
                 self.isApplyingProfile = false
                 self.applyingProfileId = nil
                 // Surface the outcome to the user. A partial application
