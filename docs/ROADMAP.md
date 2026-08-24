@@ -647,11 +647,13 @@ pouvoir revenir en arrière à tout moment.
 - [x] **B4-T1** — Regroupement par mod puis par version, tri (dernier backup, A→Z, Z→A),
       recherche. · **M** · *livré le 2026-08-22 (`7c9efce`) — `Models/BackupBrowser.swift`.*
 - [x] **B4-T2** — Retour utilisateur explicite après restauration (ce qui a été écrit, où). · **S** ·
+      *validé à l'écran le 2026-08-24.*
       *`ModInstallRestoreReport` (Core, testé) : mod, version, nombre de fichiers, chemin
       lisible, actif ou en pause, versions remplacées et conservées. La page l'affiche avec
       « Afficher dans le Finder » ; la même phrase part au journal.*
 - [x] **B4-T3** — Garantir qu'une restauration met à jour le registre : version, écrasement
-      du dossier existant, recréation s'il a disparu. · **M** · *les tests de
+      du dossier existant, recréation s'il a disparu. · **M** · *validé à l'écran le
+      2026-08-24 — l'alerte du compte rendu s'affiche bien après la confirmation.* *les tests de
       caractérisation ont trouvé le défaut : restaurer un mod **actif** copiait la
       sauvegarde dans `Mods/.Nom` sans toucher à `Mods/Nom`. Deux dossiers pour un même
       `folderName` — la clé du registre, des profils et des sauvegardes — et le mod
