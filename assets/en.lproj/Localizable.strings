@@ -548,6 +548,7 @@
 "sidebar_mods_weight_measuring" = "Measuring…";
 "mods_detail_size" = "On disk";
 "mods_detail_size_pack" = "Pack, %d mods";
+"mods_detail_size_pack_one" = "Pack, 1 mod";
 "smapi_download_http_error" = "Download failed: %@";
 "smapi_extract_failed" = "Extraction failed: %@";
 "updates_nexus_section" = "Nexus Mods Updates";

@@ -351,6 +351,10 @@ struct ModDetailView: View {
     private func sizeText(_ bytes: Int64) -> String {
         let formatted = ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
         guard live.isGroup, let count = live.children?.count else { return formatted }
+        // Un « pack » d'un seul mod existe : le scan prend la branche groupe
+        // dès que le manifeste ne siège pas à la racine du dossier de premier
+        // niveau. « Pack, 1 mods » se lirait comme un défaut.
+        guard count > 1 else { return formatted + " · " + vm.L(L10n.Mods.detailSizePackOne) }
         return formatted + " · " + String(format: vm.L(L10n.Mods.detailSizePack), count)
     }
 

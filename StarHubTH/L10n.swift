@@ -384,6 +384,7 @@ enum L10n {
         static let detailLanguages      = "mods_detail_languages"
         static let detailSize           = "mods_detail_size"
         static let detailSizePack       = "mods_detail_size_pack"
+        static let detailSizePackOne    = "mods_detail_size_pack_one"
         static let detailPackContents   = "mods_detail_pack_contents"
         static let detailBugs           = "mods_detail_bugs"
         // Dependency tree (DependencyTreeView)

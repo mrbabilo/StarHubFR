@@ -1214,10 +1214,15 @@ struct ModsWeightFooter: View {
                     }
                 }
 
-                // Un parc vide n'a pas de proportion à montrer — et le rapport
-                // vaudrait une division par zéro, qui donne une largeur `NaN`
-                // et non une barre plate.
-                if sizes.totalBytes > 0 {
+                // Sans mod en pause, il n'y a pas de partage à montrer : la
+                // barre serait d'une seule couleur et sa légende d'un seul
+                // point, soit une décoration. Le total et la place libre disent
+                // alors tout.
+                //
+                // Un parc vide, lui, n'a pas de proportion du tout — et le
+                // rapport vaudrait une division par zéro, qui donne une largeur
+                // `NaN` : une erreur d'exécution SwiftUI, pas une barre plate.
+                if sizes.totalBytes > 0, sizes.pausedBytes > 0 {
                     weightBar(sizes)
                     legend(sizes)
                 }
@@ -1278,11 +1283,9 @@ struct ModsWeightFooter: View {
             dot(Self.activeColor)
             Text(String(format: vm.L(L10n.Main.sidebarModsWeightActive),
                         Self.bytes(sizes.totalBytes - sizes.pausedBytes)))
-            if sizes.pausedBytes > 0 {
-                dot(Self.pausedColor)
-                Text(String(format: vm.L(L10n.Main.sidebarModsWeightAsleep),
-                            Self.bytes(sizes.pausedBytes)))
-            }
+            dot(Self.pausedColor)
+            Text(String(format: vm.L(L10n.Main.sidebarModsWeightAsleep),
+                        Self.bytes(sizes.pausedBytes)))
         }
         .font(.system(size: 9).monospacedDigit())
         .foregroundStyle(.secondary)
@@ -1300,10 +1303,16 @@ struct ModsWeightFooter: View {
     /// Une barre ne se lit pas à voix haute : le lecteur d'écran reçoit les
     /// mêmes chiffres que les lignes de texte.
     static func a11yLabel(_ sizes: ModsFolderSizes, vm: StarHubTHViewModel) -> String {
-        String(format: vm.L(L10n.Main.sidebarModsWeightA11y),
-               bytes(sizes.totalBytes),
-               bytes(sizes.totalBytes - sizes.pausedBytes),
-               bytes(sizes.pausedBytes),
-               sizes.availableBytes.map { bytes($0) } ?? "—")
+        let label = String(format: vm.L(L10n.Main.sidebarModsWeightA11y),
+                           bytes(sizes.totalBytes),
+                           bytes(sizes.totalBytes - sizes.pausedBytes),
+                           bytes(sizes.pausedBytes),
+                           sizes.availableBytes.map { bytes($0) } ?? "—")
+        // `children: .ignore` remplace tout ce que contient le pied de barre,
+        // y compris l'indicateur de mesure en cours. Sans cet ajout, un lecteur
+        // d'écran recevrait des chiffres périmés pendant les secondes qui
+        // suivent chaque bascule, sans rien pour le dire.
+        guard vm.isMeasuringModsFolder else { return label }
+        return label + " " + vm.L(L10n.Main.sidebarModsWeightMeasuring)
     }
 }
