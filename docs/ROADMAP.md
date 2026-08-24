@@ -768,10 +768,10 @@ pouvoir revenir en arrière à tout moment.
       pas une mesure à zéro : elle laisse la précédente intacte. L'app n'interrogeant plus
       l'API Nexus qu'à la demande, l'état « jamais mesuré » est explicite.* · **S** ·
       *§audit-stardrop*
-- [ ] **B2-T9** — Trier et filtrer la liste des mods par poids. B2-T2 mesure chaque dossier
-      mais n'expose le chiffre que sur la fiche : retrouver les gros dormeurs demande
-      d'ouvrir les fiches une à une. Sur le parc réel, 12,71 Go tiennent dans des mods en
-      pause — c'est précisément la liste qu'il faut pouvoir afficher. · **S**
+- [ ] **B2-T9** — Trier et filtrer la liste des mods par poids. *L'affichage est livré :
+      chaque ligne porte sa taille, teintée au-delà de 100 Mo — 22 dossiers du parc réel,
+      qui portent 87 % des 16,8 Go. Reste le tri et le filtre, sans quoi repérer les
+      12,71 Go endormis demande encore de feuilleter les pages.* · **S**
 - [ ] **B2-T8** — Cesser d'émettre quand le quota est à zéro. `NexusRateLimitGate` replafonne
       son back-off à 15 min (`maxBackoff`) : sur un quota journalier épuisé, l'app retente
       donc une requête tous les quarts d'heure pour rien, jusqu'à la remise à zéro. Depuis
@@ -1099,6 +1099,7 @@ traductions. Le tout est sorti en **v1.18.0**.
    peut s'aligner sur l'instant de remise à zéro, désormais connu) et **B2-T9**
    (trier la liste des mods par poids — sur le parc réel, 12,7 Go dorment dans
    des mods en pause, et rien ne dit encore lesquels sans ouvrir 863 fiches).
+   L'affichage de B2-T9 est livré avec B2-T2 ; son tri reste.
 2. **B3-T2** — favoris de mods, avec « importer les favoris dans ce profil ».
    Le profil sait désormais retenir ses mods (`ProfileModMetadata`), ce qui
    rapproche le socle.
