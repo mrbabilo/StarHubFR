@@ -835,6 +835,19 @@ enum L10n {
         static let noDependenciesFound      = "vm_no_dependencies_found"
     }
 
+    // MARK: - Recovery (B4-T4)
+    enum Recovery {
+        static let title            = "recovery_title"
+        static let note             = "recovery_note"
+        static let empty            = "recovery_empty"
+        static let preview          = "recovery_preview"
+        static let recover          = "recovery_recover"
+        static let recovered        = "recovery_recovered"
+        static let reasonAbsent     = "recovery_reason_absent"
+        static let reasonLostKeys   = "recovery_reason_lost_keys"
+        static let badge            = "recovery_badge"
+    }
+
     // MARK: - ModInstall
     enum ModInstall {
         static let title                = "mod_install_title"

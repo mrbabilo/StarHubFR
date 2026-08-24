@@ -927,5 +927,14 @@
   "mods_translation_lot_reason_missing_markers": "missing marker(s): %@",
   "mods_translation_lot_reason_extra_markers": "extra marker(s): %@",
   "mods_translation_lot_reason_unknown_key": "unknown key",
-  "mods_translation_lot_reason_source_altered": "source changed since export"
+  "mods_translation_lot_reason_source_altered": "source changed since export",
+  "recovery_title": "Files a backup can give back",
+  "recovery_note": "Updating a mod overwrites its whole folder, taking with it what the author does not ship: a French translation installed by hand, your settings. Listed here are only the files that are gone from the mod, or whose backup holds settings the installed file no longer has — a file you simply changed is not a loss.",
+  "recovery_empty": "Nothing to recover: no backup holds a file the installed mod has lost.",
+  "recovery_preview": "Preview",
+  "recovery_recover": "Recover",
+  "recovery_recovered": "%1$@ recovered for %2$@.",
+  "recovery_reason_absent": "gone from the mod",
+  "recovery_reason_lost_keys": "%lld setting(s) the installed file no longer has",
+  "recovery_badge": "%lld file(s) to recover"
 }

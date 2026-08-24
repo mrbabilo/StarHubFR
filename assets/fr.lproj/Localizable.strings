@@ -928,3 +928,12 @@
 "mods_translation_lot_reason_extra_markers" = "marque(s) en trop : %@";
 "mods_translation_lot_reason_unknown_key" = "clé inconnue";
 "mods_translation_lot_reason_source_altered" = "source modifiée depuis l'export";
+"recovery_title" = "Fichiers qu’une sauvegarde peut rendre";
+"recovery_note" = "Mettre à jour un mod écrase tout son dossier, et emporte ce que l'auteur ne redistribue pas : une traduction française installée à la main, vos réglages. Ne sont listés ici que les fichiers disparus du mod, ou dont la sauvegarde porte des réglages que l'installé n'a plus — un fichier que vous avez simplement modifié n'est pas une perte.";
+"recovery_empty" = "Rien à récupérer : aucune sauvegarde ne porte un fichier que le mod installé aurait perdu.";
+"recovery_preview" = "Aperçu";
+"recovery_recover" = "Récupérer";
+"recovery_recovered" = "%1$@ récupéré pour %2$@.";
+"recovery_reason_absent" = "disparu du mod";
+"recovery_reason_lost_keys" = "%lld réglage(s) que l'installé n'a plus";
+"recovery_badge" = "%lld fichier(s) à récupérer";

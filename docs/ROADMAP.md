@@ -693,7 +693,7 @@ pouvoir revenir en arrière à tout moment.
       à smapi.io : le mod rétrogradé était annoncé « à jour ». La restauration
       pose désormais une ancre `.install`, comme toute installation menée par
       l'app.*
-- [ ] **B4-T4** — **Récupérer un fichier isolé depuis une sauvegarde**, sans restaurer le mod
+- [x] **B4-T4** — **Récupérer un fichier isolé depuis une sauvegarde**, sans restaurer le mod
       entier : `i18n/fr.json` et `config.json`. Une mise à jour de mod écrase le dossier et
       emporte ce que l'auteur ne redistribue pas — traduction communautaire, réglages.
       Mesuré le 2026-08-01 sur le parc réel (951 mods installés, 74 présents en sauvegarde) :
@@ -714,6 +714,15 @@ pouvoir revenir en arrière à tout moment.
          « la sauvegarde porte des clés que l'installé n'a plus ».
       3. **Écriture explicite** — aperçu du contenu avant écrasement, action par fichier et
          par mod, jamais en lot silencieux. · **L**
+      ✅ **Livré le 2026-08-24.** `FileRecoveryRules` porte la règle des deux signaux sûrs,
+      `RecoverableFileScanner` croise les sauvegardes d'installation avec le parc (entrées
+      injectées, 13 tests). L'écran s'ouvre depuis la page des sauvegardes : aperçu du
+      contenu, récupération fichier par fichier, et sauvegarde préalable de ce qui est en
+      place. Remesuré le jour même : **10 `i18n/fr.json`** absents de l'installé et présents
+      en sauvegarde, **0 `config.json`** absent, **1** dont la sauvegarde porte 2 clés que
+      l'installé n'a plus. *Reste possible plus tard : les sauvegardes de configs
+      (`Backups/ModConfigs`) comme seconde source — 3 lots seulement sur le parc, contre 145
+      dossiers côté installations.*
 
 #### B2 — Ergonomie transverse
 

@@ -5064,6 +5064,84 @@ class StarHubTHViewModel: ObservableObject {
         log(String(format: L(L10n.VM.profileCreated), name, made.profile.enabledModIds.count))
     }
 
+    // MARK: - Récupérer un fichier isolé depuis une sauvegarde (B4-T4)
+
+    /// Ce qu'une mise à jour de mod a emporté et qu'une sauvegarde peut rendre.
+    /// Vide tant que `scanRecoverableFiles()` n'a pas tourné.
+    @Published private(set) var recoverableFiles: [RecoverableFile] = []
+    @Published private(set) var isScanningRecoverableFiles = false
+
+    /// Balaye les sauvegardes d'installation à la recherche des fichiers perdus.
+    ///
+    /// En tâche de fond, et jamais automatiquement au démarrage : le balayage
+    /// ouvre et décode plusieurs centaines de fichiers JSON.
+    func scanRecoverableFiles() {
+        guard !isScanningRecoverableFiles else { return }
+        isScanningRecoverableFiles = true
+        let backups = ModInstallBackupManager.shared.loadBackups()
+        let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
+        // Le chemin **physique** de chaque mod, résolu depuis le scan : un mod
+        // en pause vit sous `.Nom`, et un enfant de pack sous le dossier de son
+        // pack. `physicalFolderName` porte déjà cette règle.
+        let physicalPaths = Dictionary(
+            mods.flattenedMods.map {
+                ($0.folderName, (modsPath as NSString).appendingPathComponent($0.physicalFolderName))
+            },
+            uniquingKeysWith: { first, _ in first })
+
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let found = RecoverableFileScanner.scan(
+                backups: backups,
+                installedFolder: { physicalPaths[$0] },
+                jsonKeys: { Self.topLevelJSONKeys(atPath: $0) })
+            DispatchQueue.main.async {
+                self?.recoverableFiles = found
+                self?.isScanningRecoverableFiles = false
+            }
+        }
+    }
+
+    /// Les clés de premier niveau d'un fichier JSON, `nil` s'il n'existe pas ou
+    /// ne se décode pas.
+    ///
+    /// Le nettoyage passe par `ManifestJSON.sanitize` : les `config.json` et
+    /// les `i18n/*.json` du parc portent commentaires et virgules traînantes
+    /// comme les manifestes, et un décapage naïf couperait les URL en deux.
+    private static func topLevelJSONKeys(atPath path: String) -> [String]? {
+        guard let data = FileManager.default.contents(atPath: path),
+              let raw = String(data: data, encoding: .utf8) else { return nil }
+        guard let object = ManifestJSON.decode(raw) else { return nil }
+        return Array(object.keys)
+    }
+
+    /// Réécrit un fichier perdu depuis sa sauvegarde.
+    ///
+    /// Le fichier encore en place — cas des clés perdues — est **sauvegardé
+    /// d'abord** par le système de sauvegardes de configs : on n'écrase jamais
+    /// sans filet ce que l'utilisateur a réglé depuis.
+    @discardableResult
+    func recoverFile(_ file: RecoverableFile) -> Bool {
+        let fm = FileManager.default
+        do {
+            if fm.fileExists(atPath: file.installedPath),
+               let mod = mods.flattenedMods.first(where: { $0.folderName == file.folderName }) {
+                _ = try ModConfigBackupManager.shared.createBackup(gameDir: gameDir, mods: [mod])
+            }
+            let parent = (file.installedPath as NSString).deletingLastPathComponent
+            try fm.createDirectory(atPath: parent, withIntermediateDirectories: true)
+            if fm.fileExists(atPath: file.installedPath) {
+                try fm.removeItem(atPath: file.installedPath)
+            }
+            try fm.copyItem(atPath: file.backupPath, toPath: file.installedPath)
+            log(String(format: L(L10n.Recovery.recovered), file.relativePath, file.modName))
+            recoverableFiles.removeAll { $0.id == file.id }
+            return true
+        } catch {
+            showModal(message: installErrorMessage(error))
+            return false
+        }
+    }
+
     /// Les mods qu'un profil réclame et qui ne sont plus installés, enrichis de
     /// tout ce que l'app sait encore d'eux.
     ///

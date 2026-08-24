@@ -5,6 +5,7 @@ struct ModInstallBackupsView: View {
     @ObservedObject var vm: StarHubTHViewModel
     @State private var backups: [ModInstallBackup] = []
     @State private var showError = false
+    @State private var showRecoverable = false
     @State private var errorMessage: String?
     @State private var showDeleteConfirm = false
     @State private var backupToDelete: ModInstallBackup?
@@ -43,6 +44,12 @@ struct ModInstallBackupsView: View {
                         .foregroundColor(.secondary)
                 }
                 Spacer()
+                // Ce que les sauvegardes savent rendre **sans** restaurer un
+                // mod entier : une traduction, des réglages. C'est leur usage
+                // le plus fin, et il n'avait pas de porte d'entrée.
+                Button(vm.L(L10n.Recovery.title)) { showRecoverable = true }
+                    .buttonStyle(.bordered)
+                    .pointingHandCursor()
                 Button {
                     loadBackups()
                 } label: {
@@ -85,6 +92,9 @@ struct ModInstallBackupsView: View {
                     loadBackups()
                 }
             }
+        }
+        .sheet(isPresented: $showRecoverable) {
+            RecoverableFilesView(vm: vm, isPresented: $showRecoverable)
         }
         .alert(vm.L(L10n.ModInstall.operationFailed), isPresented: $showError) {
             Button(vm.L(L10n.Main.ok)) { }

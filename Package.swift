@@ -105,6 +105,7 @@ let package = Package(
                 "Models/ModProfile.swift",
                 "Models/ProfileFactory.swift",
                 "Models/ProfileDiagnostics.swift",
+                "Models/FileRecovery.swift",
                 "Extensions/ModConfigFiles.swift",
             ]
         ),
@@ -476,6 +477,11 @@ let package = Package(
             name: "ProfileDiagnosticsTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ProfileDiagnosticsTests"
+        ),
+        .testTarget(
+            name: "FileRecoveryTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/FileRecoveryTests"
         ),
         .testTarget(
             name: "FolderDigestTests",
