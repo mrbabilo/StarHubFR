@@ -723,6 +723,16 @@ pouvoir revenir en arrière à tout moment.
       l'installé n'a plus. *Reste possible plus tard : les sauvegardes de configs
       (`Backups/ModConfigs`) comme seconde source — 3 lots seulement sur le parc, contre 145
       dossiers côté installations.*
+      ✅ **Complété le 2026-08-24 à la demande de l'auteur** : récupération **clé à clé**
+      d'une traduction (`TranslationRecoveryDiff`, 10 tests) — une mise à jour rend le
+      fichier à l'anglais, le traducteur en refait une partie, et remplacer le fichier
+      entier lui coûterait ce qu'il vient d'écrire. Seules les clés que l'installé n'a
+      plus sont réinjectées, par `TranslationDocument` qui conserve l'ordre et la forme.
+      L'écran montre le diff complet : clés seulement en sauvegarde (récupérables), clés
+      ajoutées depuis, valeurs divergentes côte à côte. Les traductions qui **diffèrent**
+      sans rien avoir perdu sont listées pour comparaison seule — trois cas sur le parc
+      (92 valeurs changées, 27 et 39 clés ajoutées) — là où un `config.json` divergent
+      reste, lui, délibérément absent : c'est le cas normal.*
 
 #### B2 — Ergonomie transverse
 

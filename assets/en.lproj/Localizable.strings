@@ -937,3 +937,16 @@
 "recovery_reason_absent" = "gone from the mod";
 "recovery_reason_lost_keys" = "%lld setting(s) the installed file no longer has";
 "recovery_badge" = "%lld file(s) to recover";
+"recovery_compare_keys" = "Compare keys";
+"recovery_diff_title" = "%1$@ — %2$@";
+"recovery_diff_only_backup" = "ONLY IN THE BACKUP — CAN BE PUT BACK";
+"recovery_diff_value_differs" = "TRANSLATED SINCE — LEFT ALONE";
+"recovery_diff_only_installed" = "ONLY IN THE INSTALLED FILE";
+"recovery_diff_nothing" = "No difference between the backup and the installed file.";
+"recovery_select_all" = "Select all";
+"recovery_recover_keys" = "Put back %lld key(s)";
+"recovery_keys_recovered" = "%1$lld key(s) put back into %2$@.";
+"recovery_no_source" = "No default.json next to this file: the app cannot tell where a key it does not carry should go.";
+"recovery_in_backup" = "Backup";
+"recovery_installed" = "Installed";
+"recovery_reason_differs" = "differs from the backup — compare only";

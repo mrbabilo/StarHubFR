@@ -15,6 +15,7 @@ struct RecoverableFilesView: View {
     /// fait à l'ouverture, et il n'y a pas de raison d'en tenir dix en mémoire.
     @State private var previewing: RecoverableFile?
     @State private var previewText = ""
+    @State private var comparing: RecoverableFile?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -63,6 +64,13 @@ struct RecoverableFilesView: View {
         }
         .frame(width: 620, height: 500)
         .onAppear { if vm.recoverableFiles.isEmpty { vm.scanRecoverableFiles() } }
+        .sheet(item: $comparing) { file in
+            TranslationRecoveryDiffView(
+                vm: vm,
+                file: file,
+                isPresented: Binding(get: { comparing != nil },
+                                     set: { if !$0 { comparing = nil } }))
+        }
     }
 
     private func centered<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
@@ -87,16 +95,28 @@ struct RecoverableFilesView: View {
 
             Spacer()
 
+            // Un fichier de traduction se compare clé à clé : le remplacer en
+            // entier coûterait au traducteur ce qu'il a écrit depuis.
+            if file.relativePath.hasPrefix("i18n/") {
+                Button(vm.L(L10n.Recovery.compareKeys)) { comparing = file }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .pointingHandCursor()
+            }
             // L'aperçu avant l'écriture : on n'écrase pas un fichier du dossier
             // d'un mod sans avoir montré ce qu'on y met.
             Button(vm.L(L10n.Recovery.preview)) { togglePreview(file) }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
                 .pointingHandCursor()
-            Button(vm.L(L10n.Recovery.recover)) { vm.recoverFile(file) }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.small)
-                .pointingHandCursor()
+            // Rien à remplacer quand le fichier installé n'a rien perdu : le
+            // proposer inviterait à écraser le plus récent par le plus ancien.
+            if file.reason != .translationDiffers {
+                Button(vm.L(L10n.Recovery.recover)) { vm.recoverFile(file) }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+                    .pointingHandCursor()
+            }
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 10)
@@ -135,6 +155,8 @@ struct RecoverableFilesView: View {
             return vm.L(L10n.Recovery.reasonAbsent)
         case .keysLostSinceBackup(let keys):
             return String(format: vm.L(L10n.Recovery.reasonLostKeys), Int64(keys.count))
+        case .translationDiffers:
+            return vm.L(L10n.Recovery.reasonDiffers)
         }
     }
 }

@@ -7,6 +7,13 @@ enum RecoveryReason: Equatable {
     case absentFromInstall
     /// Le fichier est là, mais la sauvegarde porte des clés qu'il n'a plus.
     case keysLostSinceBackup([String])
+    /// Traductions seulement : les deux fichiers existent, rien n'est perdu,
+    /// mais ils ne disent pas la même chose. Rien à remplacer — le fichier
+    /// installé est le plus récent — mais il y a de quoi **comparer**, et
+    /// c'est là qu'on voit ce qu'une mise à jour a réécrit. Un `config.json`
+    /// dans ce cas n'est pas listé : y voir une anomalie serait un contresens,
+    /// l'utilisateur a simplement réglé son mod.
+    case translationDiffers
 }
 
 /// Un fichier qu'une sauvegarde peut rendre au mod installé.
@@ -85,9 +92,20 @@ enum RecoverableFileScanner {
     ///     complète, pas d'ici.
     ///   - jsonKeys: chemin d'un fichier → ses clés de premier niveau, `nil`
     ///     quand le fichier n'existe pas ou ne se décode pas.
+    /// Un fichier de traduction — le point où la comparaison clé à clé a un
+    /// sens, et où une divergence de valeurs se lit comme du travail réécrit.
+    static func isTranslation(_ relativePath: String) -> Bool {
+        relativePath.hasPrefix("i18n/")
+    }
+
+    /// - Parameter translationEntries: chemin → clés **et valeurs**, pour les
+    ///   seuls fichiers de traduction. `nil` quand le fichier n'existe pas ou
+    ///   ne se décode pas ; l'appelant peut ne rien fournir, la comparaison
+    ///   est alors simplement absente.
     static func scan(backups: [ModInstallBackup],
                      installedFolder: (String) -> String?,
                      jsonKeys: (String) -> [String]?,
+                     translationEntries: (String) -> [String: String]? = { _ in nil },
                      candidates: [String] = defaultCandidates) -> [RecoverableFile] {
         var latest: [String: ModInstallBackup] = [:]
         for backup in backups {
@@ -103,8 +121,15 @@ enum RecoverableFileScanner {
                 let backupPath = (backup.backupPath as NSString).appendingPathComponent(relativePath)
                 guard let backupKeys = jsonKeys(backupPath) else { continue }
                 let installedPath = (installedRoot as NSString).appendingPathComponent(relativePath)
-                guard let reason = FileRecoveryRules.reason(installedKeys: jsonKeys(installedPath),
-                                                            backupKeys: backupKeys) else { continue }
+                var resolved = FileRecoveryRules.reason(installedKeys: jsonKeys(installedPath),
+                                                        backupKeys: backupKeys)
+                if resolved == nil, isTranslation(relativePath),
+                   let backupEntries = translationEntries(backupPath),
+                   let installedEntries = translationEntries(installedPath),
+                   backupEntries != installedEntries {
+                    resolved = .translationDiffers
+                }
+                guard let reason = resolved else { continue }
                 found.append(RecoverableFile(folderName: folderName,
                                              modName: backup.modMetadata.name,
                                              relativePath: relativePath,
@@ -138,6 +163,24 @@ enum RecoveredFileWriter {
     ///   - modRoot: la racine du mod — la remontée des droits s'y arrête, on
     ///     ne touche jamais aux autorisations de `Mods/` ni au-dessus.
     static func write(from backupPath: String, to installedPath: String, modRoot: String) throws {
+        let fm = FileManager.default
+        try withWriteAccess(to: installedPath, modRoot: modRoot) {
+            let parent = (installedPath as NSString).deletingLastPathComponent
+            try fm.createDirectory(atPath: parent, withIntermediateDirectories: true)
+            if fm.fileExists(atPath: installedPath) {
+                try ModZipInstaller.removeItemGrantingWriteAccess(atPath: installedPath)
+            }
+            try fm.copyItem(atPath: backupPath, toPath: installedPath)
+        }
+    }
+
+    /// Ouvre les droits d'écriture le temps de `body`, puis les rend tels
+    /// qu'ils étaient. Partagé par la copie d'un fichier entier et par la
+    /// réinjection de clés de traduction : les deux écrivent dans le même
+    /// dossier de mod, souvent en lecture seule.
+    static func withWriteAccess<T>(to installedPath: String,
+                                   modRoot: String,
+                                   _ body: () throws -> T) throws -> T {
         let fm = FileManager.default
         // Du parent du fichier jusqu'à la racine du mod : ce sont les dossiers
         // qu'il faudra pouvoir écrire, soit pour créer `i18n/`, soit pour y
@@ -175,13 +218,8 @@ enum RecoveredFileWriter {
         }
 
         for path in chain.reversed() where fm.fileExists(atPath: path) { grantWrite(path) }
+        if fm.fileExists(atPath: installedPath) { grantWrite(installedPath) }
 
-        let parent = (installedPath as NSString).deletingLastPathComponent
-        try fm.createDirectory(atPath: parent, withIntermediateDirectories: true)
-        if fm.fileExists(atPath: installedPath) {
-            grantWrite(installedPath)
-            try fm.removeItem(atPath: installedPath)
-        }
-        try fm.copyItem(atPath: backupPath, toPath: installedPath)
+        return try body()
     }
 }

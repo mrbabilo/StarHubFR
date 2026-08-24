@@ -5093,7 +5093,8 @@ class StarHubTHViewModel: ObservableObject {
             let found = RecoverableFileScanner.scan(
                 backups: backups,
                 installedFolder: { physicalPaths[$0] },
-                jsonKeys: { Self.topLevelJSONKeys(atPath: $0) })
+                jsonKeys: { Self.topLevelJSONKeys(atPath: $0) },
+                translationEntries: { Self.parseTranslation(atPath: $0) })
             DispatchQueue.main.async {
                 self?.recoverableFiles = found
                 self?.isScanningRecoverableFiles = false
@@ -5138,6 +5139,79 @@ class StarHubTHViewModel: ObservableObject {
             return true
         } catch {
             showModal(message: installErrorMessage(error))
+            return false
+        }
+    }
+
+    /// Le détail clé à clé entre la traduction d'une sauvegarde et celle du mod
+    /// installé.
+    ///
+    /// C'est ce qui permet de récupérer une traduction **sans écraser** le
+    /// travail fait depuis : une mise à jour rend souvent le fichier à sa
+    /// version anglaise, le traducteur en refait une partie, et le reste dort
+    /// dans la sauvegarde.
+    func translationDiff(for file: RecoverableFile) -> [TranslationKeyDiff] {
+        let backup = Self.parseTranslation(atPath: file.backupPath) ?? [:]
+        let installed = Self.parseTranslation(atPath: file.installedPath) ?? [:]
+        return TranslationRecoveryDiff.compare(backup: backup, installed: installed)
+    }
+
+    /// Lit un fichier de traduction comme le fait l'éditeur : décodage tolérant
+    /// à l'encodage, puis analyse indulgente (commentaires, virgules
+    /// traînantes, clés en double).
+    private static func parseTranslation(atPath path: String) -> [String: String]? {
+        guard let data = FileManager.default.contents(atPath: path),
+              let text = I18nFileDecoder.decode(data)?.text,
+              let parsed = try? I18nLenientParser.parse(text) else { return nil }
+        return parsed
+    }
+
+    /// Réinjecte les clés choisies dans le fichier installé.
+    ///
+    /// Ne réécrit que les clés que l'installé **n'a plus** — `edits(for:)` le
+    /// garantit une dernière fois — et passe par `TranslationDocument`, qui
+    /// conserve l'ordre et la forme du fichier plutôt que de le réécrire à
+    /// plat. Le `.bak` de `TranslationFileStore` reste le filet.
+    @discardableResult
+    func recoverTranslationKeys(_ diffs: [TranslationKeyDiff], in file: RecoverableFile) -> Bool {
+        let edits = TranslationRecoveryDiff.edits(for: diffs)
+        guard !edits.isEmpty else { return false }
+
+        let target = URL(fileURLWithPath: file.installedPath)
+        // La source donne le rang des clés neuves. Elle vit dans le même
+        // dossier `i18n` que la cible ; sans elle, `TranslationDocument` ne
+        // sait pas où ranger une clé absente du fichier.
+        let i18nDirectory = target.deletingLastPathComponent()
+        let sourceFiles = I18nLocaleResolver.files(in: i18nDirectory, locale: "default")
+        let sourceFile = sourceFiles.first { $0.lastPathComponent == target.lastPathComponent }
+            ?? sourceFiles.first
+        guard let sourceFile,
+              let sourceData = FileManager.default.contents(atPath: sourceFile.path),
+              let sourceText = I18nFileDecoder.decode(sourceData)?.text else {
+            showModal(message: L(L10n.Recovery.noSource))
+            return false
+        }
+
+        do {
+            let text: String
+            if let data = FileManager.default.contents(atPath: file.installedPath),
+               let existing = I18nFileDecoder.decode(data)?.text {
+                text = try TranslationDocument.apply(edits: edits, toTarget: existing,
+                                                     sourceText: sourceText)
+            } else {
+                text = try TranslationDocument.create(fromSource: sourceText, translations: edits)
+            }
+            // Le dossier du mod est souvent en lecture seule : même remède que
+            // pour la copie d'un fichier entier.
+            try RecoveredFileWriter.withWriteAccess(to: file.installedPath,
+                                                    modRoot: file.installedRoot) {
+                try TranslationFileStore.write(text, to: target)
+            }
+            log(String(format: L(L10n.Recovery.keysRecovered), Int64(edits.count), file.modName))
+            scanRecoverableFiles()
+            return true
+        } catch {
+            showModal(message: error.localizedDescription)
             return false
         }
     }

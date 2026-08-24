@@ -936,5 +936,18 @@
   "recovery_recovered": "%1$@ récupéré pour %2$@.",
   "recovery_reason_absent": "disparu du mod",
   "recovery_reason_lost_keys": "%lld réglage(s) que l'installé n'a plus",
-  "recovery_badge": "%lld fichier(s) à récupérer"
+  "recovery_badge": "%lld fichier(s) à récupérer",
+  "recovery_compare_keys": "Comparer les clés",
+  "recovery_diff_title": "%1$@ — %2$@",
+  "recovery_diff_only_backup": "SEULEMENT DANS LA SAUVEGARDE — RÉCUPÉRABLES",
+  "recovery_diff_value_differs": "TRADUITES DEPUIS — LAISSÉES EN PLACE",
+  "recovery_diff_only_installed": "SEULEMENT DANS LE FICHIER INSTALLÉ",
+  "recovery_diff_nothing": "Aucune différence entre la sauvegarde et le fichier installé.",
+  "recovery_select_all": "Tout sélectionner",
+  "recovery_recover_keys": "Récupérer %lld clé(s)",
+  "recovery_keys_recovered": "%1$lld clé(s) récupérée(s) dans %2$@.",
+  "recovery_no_source": "Aucun default.json à côté de ce fichier : l'app ne peut pas savoir où ranger une clé qu'il ne porte pas.",
+  "recovery_in_backup": "Sauvegarde",
+  "recovery_installed": "Installé",
+  "recovery_reason_differs": "diffère de la sauvegarde — à comparer"
 }

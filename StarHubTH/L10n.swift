@@ -845,7 +845,20 @@ enum L10n {
         static let recovered        = "recovery_recovered"
         static let reasonAbsent     = "recovery_reason_absent"
         static let reasonLostKeys   = "recovery_reason_lost_keys"
+        static let reasonDiffers    = "recovery_reason_differs"
         static let badge            = "recovery_badge"
+        static let compareKeys      = "recovery_compare_keys"
+        static let diffTitle        = "recovery_diff_title"
+        static let diffOnlyInBackup = "recovery_diff_only_backup"
+        static let diffValueDiffers = "recovery_diff_value_differs"
+        static let diffOnlyInInstalled = "recovery_diff_only_installed"
+        static let diffNothing      = "recovery_diff_nothing"
+        static let selectAll        = "recovery_select_all"
+        static let recoverKeys      = "recovery_recover_keys"
+        static let keysRecovered    = "recovery_keys_recovered"
+        static let noSource         = "recovery_no_source"
+        static let inBackup         = "recovery_in_backup"
+        static let installed        = "recovery_installed"
     }
 
     // MARK: - ModInstall

@@ -155,6 +155,75 @@ import Testing
                 == ["A/config.json", "A/i18n/fr.json", "Z/i18n/fr.json"])
     }
 
+    /// Une traduction qui **diffère** de sa sauvegarde sans rien avoir perdu
+    /// est listée pour comparaison, jamais pour remplacement. Mesuré le
+    /// 2026-08-24 : sur le parc, trois mods sont dans ce cas — 92 valeurs
+    /// changées pour l'un, 27 et 39 clés ajoutées pour les deux autres.
+    @Test func aTranslationThatMerelyDiffersIsOfferedForComparison() {
+        let keys: [String: [String]] = ["/bk/Mod/i18n/fr.json": ["a"], "/mods/Mod/i18n/fr.json": ["a"]]
+        let entries: [String: [String: String]] = [
+            "/bk/Mod/i18n/fr.json": ["a": "ancienne"],
+            "/mods/Mod/i18n/fr.json": ["a": "nouvelle"]
+        ]
+
+        let found = RecoverableFileScanner.scan(
+            backups: [backup("Mod", at: "/bk/Mod")],
+            installedFolder: { _ in "/mods/Mod" },
+            jsonKeys: { keys[$0] },
+            translationEntries: { entries[$0] })
+
+        #expect(found.map(\.reason) == [.translationDiffers])
+    }
+
+    /// Un `config.json` différent n'est **pas** listé pour autant : c'est le
+    /// cas normal — l'utilisateur a réglé le mod depuis la sauvegarde.
+    @Test func aConfigThatMerelyDiffersIsNeverListed() {
+        let keys: [String: [String]] = ["/bk/Mod/config.json": ["a"], "/mods/Mod/config.json": ["a"]]
+        let entries: [String: [String: String]] = [
+            "/bk/Mod/config.json": ["a": "1"],
+            "/mods/Mod/config.json": ["a": "2"]
+        ]
+
+        let found = RecoverableFileScanner.scan(
+            backups: [backup("Mod", at: "/bk/Mod")],
+            installedFolder: { _ in "/mods/Mod" },
+            jsonKeys: { keys[$0] },
+            translationEntries: { entries[$0] })
+
+        #expect(found.isEmpty)
+    }
+
+    /// Une traduction identique à sa sauvegarde n'a rien à montrer.
+    @Test func anIdenticalTranslationIsNotListed() {
+        let keys: [String: [String]] = ["/bk/Mod/i18n/fr.json": ["a"], "/mods/Mod/i18n/fr.json": ["a"]]
+        let entries: [String: [String: String]] = [
+            "/bk/Mod/i18n/fr.json": ["a": "même"],
+            "/mods/Mod/i18n/fr.json": ["a": "même"]
+        ]
+
+        let found = RecoverableFileScanner.scan(
+            backups: [backup("Mod", at: "/bk/Mod")],
+            installedFolder: { _ in "/mods/Mod" },
+            jsonKeys: { keys[$0] },
+            translationEntries: { entries[$0] })
+
+        #expect(found.isEmpty)
+    }
+
+    /// Une traduction qui a **perdu** des clés reste une perte : elle n'est pas
+    /// rétrogradée en simple comparaison.
+    @Test func aTranslationThatLostKeysStaysALoss() {
+        let keys: [String: [String]] = ["/bk/Mod/i18n/fr.json": ["a", "b"], "/mods/Mod/i18n/fr.json": ["a"]]
+
+        let found = RecoverableFileScanner.scan(
+            backups: [backup("Mod", at: "/bk/Mod")],
+            installedFolder: { _ in "/mods/Mod" },
+            jsonKeys: { keys[$0] },
+            translationEntries: { _ in nil })
+
+        #expect(found.map(\.reason) == [.keysLostSinceBackup(["b"])])
+    }
+
     /// Le nom du mod voyage avec le fichier : « [CP] Aquatic Sea Fish » se lit,
     /// pas son dossier.
     @Test func theModNameTravelsWithTheFile() {
