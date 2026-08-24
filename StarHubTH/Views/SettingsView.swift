@@ -777,9 +777,13 @@ private struct NexusQuotaRow: View {
         }
     }
 
+    /// Chaque fenêtre est jugée pour elle-même : l'horaire se périme en une
+    /// heure, le compte journalier tient jusqu'à minuit. Les agréger ferait
+    /// disparaître le chiffre du jour une heure après le dernier appel — soit,
+    /// l'app n'interrogeant Nexus qu'à la demande, presque tout le temps.
     @ViewBuilder
     private func measured(_ quota: NexusQuota) -> some View {
-        if let daily = quota.daily {
+        if let daily = quota.dailyIfCurrent() {
             HStack(spacing: 6) {
                 Text(String(format: vm.L(L10n.Settings.nexusQuotaDaily), counts(daily)))
                     .font(.system(size: 12))
@@ -796,7 +800,7 @@ private struct NexusQuotaRow: View {
                     .foregroundColor(.secondary)
             }
         }
-        if let hourly = quota.hourly {
+        if let hourly = quota.hourlyIfCurrent() {
             Text(String(format: vm.L(L10n.Settings.nexusQuotaHourly), counts(hourly)))
                 .font(.system(size: 11))
                 .foregroundColor(.secondary)

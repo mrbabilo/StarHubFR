@@ -138,7 +138,15 @@ final class NexusUpdateChecker {
         guard apiKey()?.isEmpty == false else { return }
         guard let data = try? JSONEncoder().encode(quota) else { return }
         UserDefaults.standard.set(data, forKey: Self.cachedQuotaKey)
-        NotificationCenter.default.post(name: Self.quotaDidChange, object: nil)
+        // Sur le fil principal : `NotificationCenter.post` délivre de façon
+        // synchrone sur le fil qui poste, et `.onReceive` ne change pas de file.
+        // Or ce code tourne dans un rappel `URLSession` — poster ici écrirait
+        // un `@Published` depuis un fil de fond. C'est la première notification
+        // du dépôt postée depuis le réseau ; les autres partent de boutons,
+        // déjà sur le fil principal.
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(name: Self.quotaDidChange, object: nil)
+        }
     }
 
     /// Le dernier quota relevé, périmé ou non — c'est l'affichage qui décide

@@ -47,11 +47,13 @@ struct NexusDownloader {
     /// the premium-only download_link.json call (no key/expires - the account
     /// simply isn't Premium) from a 403 that really means "bad API key".
     ///
-    /// Sert aussi d'entonnoir au relevé du quota (B2-T6) : les trois réponses
-    /// du téléchargement passent par ici. Celle du CDN ne porte aucun en-tête
+    /// Relève **aussi** le quota Nexus au passage (B2-T6) — d'où le nom : la
+    /// fonction n'est pas une simple question. C'est le seul point où les trois
+    /// réponses du téléchargement convergent ; les dupliquer sur trois sites
+    /// serait l'occasion d'en oublier un. Celle du CDN ne porte aucun en-tête
     /// `x-rl-*` — `NexusQuota` la reconnaît comme muette et laisse la mesure
     /// précédente intacte.
-    private func statusError(for response: URLResponse?, treatForbiddenAsPremium: Bool) -> NexusDownloadError? {
+    private func noteQuotaAndStatusError(for response: URLResponse?, treatForbiddenAsPremium: Bool) -> NexusDownloadError? {
         guard let http = response as? HTTPURLResponse else { return nil }
         NexusUpdateChecker.shared.noteQuota(from: http)
         switch http.statusCode {
@@ -74,7 +76,7 @@ struct NexusDownloader {
         }
         URLSession.shared.dataTask(with: req) { data, response, error in
             if let error = error { completion(.failure(.requestFailed(error.localizedDescription))); return }
-            if let statusError = self.statusError(for: response, treatForbiddenAsPremium: false) { completion(.failure(statusError)); return }
+            if let statusError = self.noteQuotaAndStatusError(for: response, treatForbiddenAsPremium: false) { completion(.failure(statusError)); return }
             guard let data = data, let list = try? NexusDownloadAPI.decodeFileList(data) else {
                 completion(.failure(.noValidFile)); return
             }
@@ -125,7 +127,7 @@ struct NexusDownloader {
         }
         URLSession.shared.dataTask(with: req) { data, response, error in
             if let error = error { completion(.failure(.requestFailed(error.localizedDescription))); return }
-            if let statusError = statusError(for: response, treatForbiddenAsPremium: (key == nil && expires == nil)) { completion(.failure(statusError)); return }
+            if let statusError = noteQuotaAndStatusError(for: response, treatForbiddenAsPremium: (key == nil && expires == nil)) { completion(.failure(statusError)); return }
             guard let data = data else { completion(.failure(.noDownloadLink)); return }
             guard let links = try? NexusDownloadAPI.decodeLinks(data) else {
                 completion(.failure(.noDownloadLink)); return
@@ -140,7 +142,7 @@ struct NexusDownloader {
                 // était sauvée comme le fichier du mod. Même statut qu'en ligne
                 // 122, mais `treatForbiddenAsPremium: false` : un 403 sur le CDN
                 // n'annonce pas une clé premium, mais un lien périmé.
-                if let statusError = self.statusError(for: response, treatForbiddenAsPremium: false) {
+                if let statusError = self.noteQuotaAndStatusError(for: response, treatForbiddenAsPremium: false) {
                     completion(.failure(statusError)); return
                 }
                 guard let localURL = localURL else { completion(.failure(.noDownloadLink)); return }

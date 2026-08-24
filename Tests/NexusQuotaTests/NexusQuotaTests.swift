@@ -73,17 +73,30 @@ struct NexusQuotaTests {
         #expect(NexusQuota.parseDate("  ") == nil)
     }
 
-    @Test func aFreshMeasurementIsNotStale() throws {
+    @Test func aFreshMeasurementIsCurrentOnBothWindows() throws {
         let quota = try #require(NexusQuota(headers: liveHeaders, now: t0))
         #expect(quota.isStale(now: t0) == false)
-        #expect(quota.isStale(now: t0.addingTimeInterval(600)) == false)
+        #expect(quota.dailyIfCurrent(now: t0)?.remaining == 19983)
+        #expect(quota.hourlyIfCurrent(now: t0)?.remaining == 1997)
+    }
+
+    /// L'app n'appelle l'API Nexus qu'à la demande : une heure sans consulter
+    /// de fiche de mod est l'état normal. La fenêtre horaire périme donc seule,
+    /// sans emporter le compte journalier — encore exact jusqu'à minuit.
+    @Test func theHourlyWindowExpiresWithoutTakingTheDailyOneWithIt() throws {
+        let quota = try #require(NexusQuota(headers: liveHeaders, now: t0))
+        let sevenPM = Date(timeIntervalSince1970: 1_787_598_000) // 19:00:00 UTC
+        #expect(quota.hourlyIfCurrent(now: sevenPM) == nil)
+        #expect(quota.dailyIfCurrent(now: sevenPM)?.remaining == 19983)
+        #expect(quota.isStale(now: sevenPM) == false)
     }
 
     /// Une mesure d'hier annonçant « 2 appels restants » ment après minuit.
-    @Test func aMeasurementIsStaleOnceItsWindowHasReset() throws {
+    @Test func aMeasurementIsStaleOnceBothWindowsHaveReset() throws {
         let quota = try #require(NexusQuota(headers: liveHeaders, now: t0))
-        // 19:00:00 UTC : la fenêtre horaire s'est remise à zéro.
-        #expect(quota.isStale(now: Date(timeIntervalSince1970: 1_787_598_000)) == true)
+        let midnight = Date(timeIntervalSince1970: 1_787_616_000) // 2026-08-25 00:00 UTC
+        #expect(quota.dailyIfCurrent(now: midnight) == nil)
+        #expect(quota.isStale(now: midnight) == true)
     }
 
     @Test func withoutAResetTheNominalWindowDecidesStaleness() throws {

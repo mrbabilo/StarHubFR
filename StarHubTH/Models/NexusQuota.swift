@@ -65,30 +65,34 @@ public struct NexusQuota: Codable, Equatable, Sendable {
         self.init(hourly: hourly, daily: daily, measuredAt: now)
     }
 
-    /// `true` quand les chiffres ne veulent plus rien dire : la fenêtre s'est
-    /// remise à zéro depuis la mesure. Une mesure d'hier annonçant « 2 appels
-    /// restants » ment après minuit — mieux vaut ne rien affirmer.
-    ///
-    /// Sans instant de remise à zéro (en-tête absent ou illisible), on retombe
-    /// sur la durée nominale de la fenêtre depuis la mesure.
-    public func isStale(now: Date = Date()) -> Bool {
-        let hourlyStale = Self.isStale(hourly, measuredAt: measuredAt, span: 3600, now: now)
-        let dailyStale = Self.isStale(daily, measuredAt: measuredAt, span: 24 * 3600, now: now)
-        // Une seule fenêtre présente décide seule ; les deux présentes, c'est
-        // la plus courte (l'horaire) qui périme l'ensemble.
-        switch (hourly, daily) {
-        case (nil, nil):  return true
-        case (_, nil):    return hourlyStale
-        case (nil, _):    return dailyStale
-        default:          return hourlyStale || dailyStale
-        }
+    /// La fenêtre journalière **si elle vaut encore**, `nil` si elle s'est
+    /// remise à zéro depuis la mesure : « 2 appels restants » mesurés hier
+    /// ment après minuit, mieux vaut ne rien affirmer.
+    public func dailyIfCurrent(now: Date = Date()) -> Window? {
+        Self.ifCurrent(daily, measuredAt: measuredAt, span: 24 * 3600, now: now)
     }
 
-    private static func isStale(_ window: Window?, measuredAt: Date,
-                                span: TimeInterval, now: Date) -> Bool {
-        guard let window else { return false }
-        if let reset = window.reset { return now >= reset }
-        return now >= measuredAt.addingTimeInterval(span)
+    /// La fenêtre horaire si elle vaut encore. **Elle périme la première, et
+    /// seule** : l'app n'appelle l'API Nexus qu'à la demande, une heure sans
+    /// consulter de fiche de mod est l'état normal de ce réglage. Périmer le
+    /// compte journalier avec elle masquerait un chiffre encore exact jusqu'à
+    /// minuit — soit, en pratique, presque tout le temps.
+    public func hourlyIfCurrent(now: Date = Date()) -> Window? {
+        Self.ifCurrent(hourly, measuredAt: measuredAt, span: 3600, now: now)
+    }
+
+    /// `true` quand plus aucun chiffre ne veut dire quoi que ce soit.
+    public func isStale(now: Date = Date()) -> Bool {
+        dailyIfCurrent(now: now) == nil && hourlyIfCurrent(now: now) == nil
+    }
+
+    /// Sans instant de remise à zéro (en-tête absent ou illisible), on retombe
+    /// sur la durée nominale de la fenêtre depuis la mesure.
+    private static func ifCurrent(_ window: Window?, measuredAt: Date,
+                                  span: TimeInterval, now: Date) -> Window? {
+        guard let window else { return nil }
+        if let reset = window.reset { return now >= reset ? nil : window }
+        return now >= measuredAt.addingTimeInterval(span) ? nil : window
     }
 
     private static func parseInt(_ raw: String?) -> Int? {
