@@ -2658,13 +2658,31 @@ class StarHubTHViewModel: ObservableObject {
     /// `ModListView`. Published on the main thread after each individual move.
     @Published var bulkToggleProgress: (done: Int, total: Int)? = nil
 
+    /// Les deux temps d'une application de profil. Le second n'est pas de la
+    /// décoration : le rescane d'un parc de près de mille mods dure, et sans
+    /// lui la barre restait pleine, immobile, sans dire qu'il se passait encore
+    /// quelque chose.
+    enum ProfileApplyPhase: Equatable {
+        /// Déplacement des dossiers de mods — un compte connu d'avance.
+        case movingFolders
+        /// Relecture de `Mods/` une fois les dossiers en place. L'avancement
+        /// détaillé est celui que `scanMods` publie déjà dans `scanProgress`.
+        case rescanning
+    }
+
+    struct ProfileApplyProgress: Equatable {
+        let done: Int
+        let total: Int
+        let phase: ProfileApplyPhase
+    }
+
     /// L'avancement de l'application d'un profil, `nil` au repos.
     ///
     /// Distinct de `bulkToggleProgress`, qui sert aussi de verrou de réentrance
     /// à `toggleAllMods` : les partager ferait qu'activer un profil bloquerait
     /// « tout activer », un couplage que personne n'a demandé. L'application
     /// d'un profil a son propre verrou, `isApplyingProfile`.
-    @Published private(set) var profileApplyProgress: (done: Int, total: Int)? = nil
+    @Published private(set) var profileApplyProgress: ProfileApplyProgress? = nil
     /// Direction of the in-flight bulk toggle: `true` = enabling all,
     /// `false` = disabling all. Meaningful only while
     /// `bulkToggleProgress` is non-nil.
@@ -5249,7 +5267,7 @@ class StarHubTHViewModel: ObservableObject {
         // dossier. Publié avant le dispatch pour que le voile soit là au
         // premier rendu, sans clignotement.
         let total = toDisable.count + toEnable.count
-        profileApplyProgress = (done: 0, total: total)
+        profileApplyProgress = ProfileApplyProgress(done: 0, total: total, phase: .movingFolders)
 
         DispatchQueue.global(qos: .userInitiated).async {
             var failures: [MoveFailure] = []
@@ -5281,7 +5299,9 @@ class StarHubTHViewModel: ObservableObject {
                 let current = done
                 guard current == total || current % publishStep == 0 else { return }
                 DispatchQueue.main.async {
-                    self.profileApplyProgress = (done: current, total: total)
+                    self.profileApplyProgress = ProfileApplyProgress(done: current,
+                                                                     total: total,
+                                                                     phase: .movingFolders)
                 }
             }
 
@@ -5344,6 +5364,15 @@ class StarHubTHViewModel: ObservableObject {
             }
 
             let failedNames = failures.map { $0.modName }
+            // Les dossiers sont en place ; ce qui suit est la relecture du
+            // parc. Le voile le dit, sinon la barre reste pleine et figée
+            // pendant tout le rescane — c'est le moment où l'utilisateur croit
+            // que l'app a fini alors qu'elle travaille encore.
+            DispatchQueue.main.async {
+                self.profileApplyProgress = ProfileApplyProgress(done: total,
+                                                                 total: total,
+                                                                 phase: .rescanning)
+            }
             // Always rescan so the list reflects the real on-disk state,
             // whatever it is after partial failures.
             self.scanMods()

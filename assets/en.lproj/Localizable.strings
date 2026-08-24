@@ -404,7 +404,8 @@
 "profiles_create_from_current" = "Copy the active mods";
 "profiles_duplicate" = "Duplicate";
 "profiles_copy_name_format" = "%@ (copy)";
-"profiles_applying" = "Applying the profile…";
+"profiles_applying_moving" = "Moving mod folders…";
+"profiles_applying_scanning" = "Reading the mods folder…";
 "vm_default_farmer_name" = "Farmer";
 "vm_launching_vanilla" = "Launching Stardew Valley (Vanilla)…";
 "vm_launch_vanilla_success" = "Vanilla game session launched successfully";

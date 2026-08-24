@@ -757,7 +757,8 @@ enum L10n {
         static let createFromCurrent    = "profiles_create_from_current"
         static let duplicate            = "profiles_duplicate"
         static let copyNameFormat       = "profiles_copy_name_format"
-        static let applying             = "profiles_applying"
+        static let applyingMoving       = "profiles_applying_moving"
+        static let applyingScanning     = "profiles_applying_scanning"
     }
 
     // MARK: - VM

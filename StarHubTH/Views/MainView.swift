@@ -314,9 +314,19 @@ struct MainView: View {
             // bascule sur la page des mods, et l'utilisateur y attendrait
             // devant une liste figée sans savoir pourquoi.
             if let progress = vm.profileApplyProgress {
-                ModalProgressOverlay(label: vm.L(L10n.Profiles.applying),
-                                     done: progress.done,
-                                     total: progress.total)
+                switch progress.phase {
+                case .movingFolders:
+                    ModalProgressOverlay(label: vm.L(L10n.Profiles.applyingMoving),
+                                         done: progress.done,
+                                         total: progress.total)
+                case .rescanning:
+                    // Le rescane publie déjà son propre avancement pour le
+                    // voile de démarrage : on le montre plutôt que de laisser
+                    // la barre pleine du temps d'avant.
+                    ModalProgressOverlay(label: vm.L(L10n.Profiles.applyingScanning),
+                                         done: vm.scanProgress?.done ?? 0,
+                                         total: vm.scanProgress?.total ?? 0)
+                }
             }
         } // End of outer ZStack
         // No launch overlay here any more: the splash is its own window
