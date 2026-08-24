@@ -46,8 +46,14 @@ struct NexusDownloader {
     /// fetchLinkAndDownload). `treatForbiddenAsPremium` distinguishes a 403 on
     /// the premium-only download_link.json call (no key/expires - the account
     /// simply isn't Premium) from a 403 that really means "bad API key".
+    ///
+    /// Sert aussi d'entonnoir au relevé du quota (B2-T6) : les trois réponses
+    /// du téléchargement passent par ici. Celle du CDN ne porte aucun en-tête
+    /// `x-rl-*` — `NexusQuota` la reconnaît comme muette et laisse la mesure
+    /// précédente intacte.
     private func statusError(for response: URLResponse?, treatForbiddenAsPremium: Bool) -> NexusDownloadError? {
         guard let http = response as? HTTPURLResponse else { return nil }
+        NexusUpdateChecker.shared.noteQuota(from: http)
         switch http.statusCode {
         case 200..<300: return nil
         case 401:       return .authFailed

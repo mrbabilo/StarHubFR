@@ -58,6 +58,10 @@ struct SettingsView: View {
                                     Text(vm.L(L10n.Settings.nexusClearKey))
                                 }
                             }
+
+                            Divider()
+
+                            NexusQuotaRow(vm: vm)
                         } else {
                             // No key yet — secure field + save action.
                             VStack(alignment: .leading, spacing: 8) {
@@ -725,5 +729,95 @@ private struct LocalAISettingsSection: View {
             glossaryCount = await vm.rebuildGlossary(language: "fr")
             glossaryDate = vm.glossaryBuiltDate(language: "fr")
         }
+    }
+}
+
+
+/// Ce qu'il reste de quota Nexus, tel que l'API l'annonce à chaque réponse
+/// (B2-T6). Aucune requête n'est faite pour l'obtenir : les six en-têtes
+/// `x-rl-*` arrivent avec tout appel, l'app se contentait de les jeter.
+///
+/// ⚠️ L'app n'interroge plus l'API Nexus qu'à la demande (les mises à jour
+/// passent par smapi.io) : sur une installation neuve, le quota n'a **jamais**
+/// été mesuré, et c'est le cas normal, pas le cas limite. D'où l'état
+/// « jamais mesuré » explicite, avec ce qui le fera apparaître.
+private struct NexusQuotaRow: View {
+    @ObservedObject var vm: StarHubTHViewModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(vm.L(L10n.Settings.nexusQuota))
+                .font(.system(size: 13))
+
+            if let quota = vm.nexusQuota {
+                if quota.isStale() {
+                    // Les chiffres d'hier mentent après la remise à zéro : ne
+                    // rien affirmer plutôt qu'afficher un reste périmé.
+                    Text(vm.L(L10n.Settings.nexusQuotaRenewed))
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                } else {
+                    measured(quota)
+                }
+            } else {
+                Text(vm.L(L10n.Settings.nexusQuotaNever))
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+                Text(vm.L(L10n.Settings.nexusQuotaNeverHint))
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .onAppear { vm.refreshNexusQuota() }
+        .onReceive(NotificationCenter.default.publisher(
+            for: NexusUpdateChecker.quotaDidChange)) { _ in
+            vm.refreshNexusQuota()
+        }
+    }
+
+    @ViewBuilder
+    private func measured(_ quota: NexusQuota) -> some View {
+        if let daily = quota.daily {
+            HStack(spacing: 6) {
+                Text(String(format: vm.L(L10n.Settings.nexusQuotaDaily), counts(daily)))
+                    .font(.system(size: 12))
+                    .foregroundColor(daily.remaining == 0 ? .orange : .secondary)
+                if daily.remaining == 0 {
+                    Text(vm.L(L10n.Settings.nexusQuotaExhausted))
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.orange)
+                }
+            }
+            if let reset = daily.reset {
+                Text(String(format: vm.L(L10n.Settings.nexusQuotaReset), Self.time(reset)))
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+            }
+        }
+        if let hourly = quota.hourly {
+            Text(String(format: vm.L(L10n.Settings.nexusQuotaHourly), counts(hourly)))
+                .font(.system(size: 11))
+                .foregroundColor(.secondary)
+        }
+    }
+
+    /// « 19 983 sur 20 000 », ou le seul reste quand l'API tait le plafond.
+    private func counts(_ window: NexusQuota.Window) -> String {
+        let remaining = Self.number(window.remaining)
+        guard let limit = window.limit else { return remaining }
+        return String(format: vm.L(L10n.Settings.nexusQuotaOf), remaining, Self.number(limit))
+    }
+
+    private static func number(_ value: Int) -> String {
+        NumberFormatter.localizedString(from: NSNumber(value: value), number: .decimal)
+    }
+
+    private static func time(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .none
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
     }
 }

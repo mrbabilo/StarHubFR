@@ -64,6 +64,9 @@ class StarHubTHViewModel: ObservableObject {
     @Published var nexusCheckProgress: (done: Int, total: Int)? = nil
     /// Whether the user has provided a Nexus API key (kept in sync with Keychain).
     @Published var hasNexusApiKey: Bool = false
+    /// Dernier quota Nexus relevé, `nil` tant qu'aucune réponse de l'API n'a été
+    /// vue. Rafraîchi à l'ouverture des réglages et à chaque relevé (B2-T6).
+    @Published private(set) var nexusQuota: NexusQuota? = nil
     /// Set when a Nexus download finishes; MainView observes it to open the
     /// install sheet pre-loaded with the downloaded .zip.
     @Published var pendingDownloadedZip: URL?
@@ -1610,6 +1613,9 @@ class StarHubTHViewModel: ObservableObject {
         // c'est une petite liste, et sa consolidation doit lire `mods`.)
         let categories = NexusUpdateChecker.shared.cachedCategories()
         let extras = NexusUpdateChecker.shared.cachedExtras()
+        // Le quota du dernier appel à Nexus : persisté justement parce que
+        // l'app ne l'interroge plus qu'à la demande (B2-T6).
+        let quota = NexusUpdateChecker.shared.cachedQuota()
         // User-saved overrides (per-mod custom categories / Nexus id links /
         // activation timestamps). Small dicts, but still UserDefaults I/O.
         let customCats = Self.loadCustomCategories()
@@ -1618,6 +1624,7 @@ class StarHubTHViewModel: ObservableObject {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             self.hasNexusApiKey = hasKey
+            self.nexusQuota = quota
             // `republishUpdatesFromCache` et non une consolidation calculée en
             // amont : elle lit `mods`, qui est `@Published`, et la lire depuis
             // la file de fond était une lecture non synchronisée. Sur le fil
@@ -3313,10 +3320,18 @@ class StarHubTHViewModel: ObservableObject {
         }
     }
 
+    /// Relit le dernier quota Nexus relevé. Appelé à l'ouverture des réglages
+    /// et sur `NexusUpdateChecker.quotaDidChange` : l'app ne parle à l'API Nexus
+    /// qu'à la demande, la valeur ne bouge donc qu'après une action.
+    func refreshNexusQuota() {
+        nexusQuota = NexusUpdateChecker.shared.cachedQuota()
+    }
+
     /// Removes the stored Nexus Mods API key.
     func clearNexusApiKey() {
         NexusUpdateChecker.shared.clearApiKey()
         hasNexusApiKey = false
+        nexusQuota = nil
         // Les mises à jour restent : elles ne doivent rien à la clé, qui ne
         // sert plus qu'au téléchargement intégré et aux fiches.
         nexusCategories = [:]

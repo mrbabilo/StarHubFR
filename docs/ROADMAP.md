@@ -137,7 +137,7 @@ de la liste de l'auteur. Analyse complète et exclusions motivées : `docs/audit
 | *audit* | Compatibilité mods via l'**API live `smapi.io`** (plutôt que le dump statique `mods.jsonc`) | **À faire** | Plus riche : statut + mise à jour suggérée + URL unofficial. Repositionne **A2** |
 | *audit* | **Configs par profil** (un même mod, plusieurs `config.json`) | **À faire** | Manquante ; merge JSON non-destructif → **B3-T5** |
 | *audit* | Notes libres par mod | **À faire** | → **B3-T6** |
-| *audit* | Quota Nexus quotidien visible | **À faire** | Header déjà reçu, non affiché → **B2-T6** |
+| *audit* | Quota Nexus quotidien visible | **Fait** | Relevé sur toute réponse, affiché dans les réglages (**B2-T6**, pas encore publié) |
 | *audit* | `UpdateCautionMessage` (alerte auteur avant mise à jour) | **À faire** | → **B2-T7** |
 | *audit* | Panneau de downloads observable (%, vitesse, annulation) | **À faire** | Élargit **B2-T1** |
 
@@ -753,9 +753,19 @@ pouvoir revenir en arrière à tout moment.
 - [ ] **B2-T5** — Reprendre l'affichage des dates d'un mod : distinguer explicitement
       *date de création Nexus* et *date de mise à jour*, et vérifier laquelle est montrée
       où (liste, fiche, bandeau de mise à jour). · **S**
-- [ ] **B2-T6** — Quota Nexus quotidien visible (header `x-rl-daily-remaining`). StarHubFR
-      gère déjà le rate-limit réactif (`Retry-After`) mais n'affiche pas le quota restant —
-      trivial, deux headers déjà reçus à chaque réponse. · **S** · *§audit-stardrop*
+- [x] **B2-T6** — Quota Nexus quotidien visible (header `x-rl-daily-remaining`). *Livré :
+      les six en-têtes `x-rl-*` sont relevés sur **toute** réponse Nexus — succès comme 429,
+      car c'est le refus qui porte le « 0 restant » — par un `NexusQuota` pur
+      (`Models/NexusQuota.swift`), persisté et affiché dans les réglages avec l'heure de
+      remise à zéro. Une réponse sans ces en-têtes (la patte CDN d'un téléchargement) n'est
+      pas une mesure à zéro : elle laisse la précédente intacte. L'app n'interrogeant plus
+      l'API Nexus qu'à la demande, l'état « jamais mesuré » est explicite.* · **S** ·
+      *§audit-stardrop*
+- [ ] **B2-T8** — Cesser d'émettre quand le quota est à zéro. `NexusRateLimitGate` replafonne
+      son back-off à 15 min (`maxBackoff`) : sur un quota journalier épuisé, l'app retente
+      donc une requête tous les quarts d'heure pour rien, jusqu'à la remise à zéro. Depuis
+      B2-T6 l'instant exact de remise à zéro est connu — la porte peut s'y aligner au lieu
+      de deviner. · **S**
 - [ ] **B2-T7** — `UpdateCautionMessage` : si un manifest installé expose ce champ
       (extension SMAPI tolérée, absente = pas d'alerte), alerter l'utilisateur **avant**
       d'écraser la version existante (breaking change annoncé par l'auteur). · **S** ·
@@ -1073,8 +1083,11 @@ livré en entier — récupération d'un fichier isolé, puis clé à clé pour 
 traductions. Le tout est sorti en **v1.18.0**.
 
 **Ce que B garde de plus valeureux**, dans l'ordre où je le prendrais :
-1. **B2-T6** puis **B2-T2** — deux affichages dont la donnée est déjà là (quota
-   Nexus reçu à chaque réponse, tailles de dossiers). Petits, visibles.
+1. ~~**B2-T6**~~ *(livré)* puis **B2-T2** — deux affichages dont la donnée est
+   déjà là (quota Nexus reçu à chaque réponse, tailles de dossiers). Petits,
+   visibles. Le quota a ouvert une suite, **B2-T8** : maintenant que l'instant de
+   remise à zéro est connu, la porte de back-off peut s'y aligner au lieu de
+   retenter tous les quarts d'heure.
 2. **B3-T2** — favoris de mods, avec « importer les favoris dans ce profil ».
    Le profil sait désormais retenir ses mods (`ProfileModMetadata`), ce qui
    rapproche le socle.

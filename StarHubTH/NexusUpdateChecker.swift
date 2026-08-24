@@ -87,13 +87,65 @@ final class NexusUpdateChecker {
         return rateLimitGate.remaining() ?? 0
     }
 
-    /// Arme la porte quand une réponse est un 429. Pour les chemins qui rendent
-    /// `""` sur n'importe quel échec (`fetchRawDescription`, `fetchChangelogs`)
-    /// : ils ne distinguent pas le 429 du reste, mais leur 429 doit quand même
-    /// freiner tout le monde.
+    /// Arme la porte quand une réponse est un 429, et relève le quota que
+    /// **toute** réponse annonce. Pour les chemins qui rendent `""` sur
+    /// n'importe quel échec (`fetchRawDescription`, `fetchChangelogs`) : ils ne
+    /// distinguent pas le 429 du reste, mais leur 429 doit quand même freiner
+    /// tout le monde.
+    ///
+    /// Tous les `dataTask` de ce fichier passent par ici, sauf `fetchModInfo`
+    /// qui traite son 429 lui-même et appelle donc `noteQuota` directement :
+    /// une réponse qui échappe au relevé est un 429 non vu, qui aggrave le
+    /// bannissement au lieu de l'attendre.
     private func noteRateLimitIfThrottled(_ response: URLResponse?) {
-        guard let http = response as? HTTPURLResponse, http.statusCode == 429 else { return }
+        guard let http = response as? HTTPURLResponse else { return }
+        noteQuota(from: http)
+        guard http.statusCode == 429 else { return }
         noteRateLimit(retryAfter: Self.parseRetryAfter(http.value(forHTTPHeaderField: "Retry-After")))
+    }
+
+    // MARK: - Quota (B2-T6)
+
+    /// Clé UserDefaults du dernier quota relevé (JSON d'un `NexusQuota`).
+    /// Persisté parce que l'app ne parle plus à l'API Nexus qu'à la demande :
+    /// sans ça, les réglages n'afficheraient rien tant qu'aucune fiche de mod
+    /// n'a été ouverte dans la session.
+    private static let cachedQuotaKey = "nexusQuota"
+
+    /// Posté après chaque relevé, pour que les réglages ouverts se remettent
+    /// à jour sans être rouverts.
+    static let quotaDidChange = Notification.Name("StarHubFR.nexusQuotaDidChange")
+
+    /// Relève les en-têtes `x-rl-*` d'une réponse Nexus et retient la mesure.
+    ///
+    /// Une réponse sans ces en-têtes (la patte CDN d'un téléchargement, par
+    /// exemple) ne dit **rien** du quota : `NexusQuota.init?` rend `nil` et la
+    /// mesure précédente reste en place, plutôt que d'être écrasée par un zéro.
+    func noteQuota(from response: HTTPURLResponse) {
+        var headers: [String: String] = [:]
+        for (key, value) in response.allHeaderFields {
+            guard let key = key as? String else { continue }
+            headers[key] = String(describing: value)
+        }
+        guard let quota = NexusQuota(headers: headers) else { return }
+
+        // Le quota décrit un compte. Une réponse partie avant `clearApiKey()`
+        // et arrivée après ne doit pas ressusciter celui du compte retiré :
+        // plus de clé, plus de relevé. (La garde par génération des caches de
+        // métadonnées ne s'applique pas ici — elle suppose de connaître la
+        // génération au *départ* de la requête, que ce chemin générique, appelé
+        // depuis n'importe quelle réponse, n'a pas.)
+        guard apiKey()?.isEmpty == false else { return }
+        guard let data = try? JSONEncoder().encode(quota) else { return }
+        UserDefaults.standard.set(data, forKey: Self.cachedQuotaKey)
+        NotificationCenter.default.post(name: Self.quotaDidChange, object: nil)
+    }
+
+    /// Le dernier quota relevé, périmé ou non — c'est l'affichage qui décide
+    /// quoi en dire (`NexusQuota.isStale`).
+    func cachedQuota() -> NexusQuota? {
+        guard let data = UserDefaults.standard.data(forKey: Self.cachedQuotaKey) else { return nil }
+        return try? JSONDecoder().decode(NexusQuota.self, from: data)
     }
 
     private func withMetadataCacheLock<T>(_ body: () -> T) -> T {
@@ -132,7 +184,10 @@ final class NexusUpdateChecker {
         metadataGeneration += 1
         UserDefaults.standard.removeObject(forKey: cachedCategoriesKey)
         UserDefaults.standard.removeObject(forKey: cachedExtrasKey)
+        // Le quota est du même bois : il décrit le compte, pas les mods.
+        UserDefaults.standard.removeObject(forKey: Self.cachedQuotaKey)
         metadataCacheLock.unlock()
+        NotificationCenter.default.post(name: Self.quotaDidChange, object: nil)
     }
 
     // MARK: - Update check
@@ -397,6 +452,9 @@ final class NexusUpdateChecker {
                 completion(.failure("no_response"))
                 return
             }
+            // Relevé du quota avant tout aiguillage : c'est le 429 qui porte le
+            // « 0 restant », le chiffre qui compte le plus (B2-T6).
+            self.noteQuota(from: http)
             if http.statusCode == 429 {
                 let retry = Self.parseRetryAfter(http.value(forHTTPHeaderField: "Retry-After"))
                 self.noteRateLimit(retryAfter: retry)

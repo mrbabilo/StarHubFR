@@ -12,6 +12,9 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+- **The Nexus quota left is now visible in Settings.** Nexus announces on every single response how many calls you have left today and this hour — the app simply threw those numbers away. They now show under the Nexus section, with the reset time, and are read on failures too: a refused call is exactly when the remaining count reads zero. No extra request is made to obtain them. Since the app only talks to the Nexus API on demand, a fresh install says so plainly rather than showing a blank or a false zero.
+
 ## [1.18.0] - 2026-08-24
 
 ### Added

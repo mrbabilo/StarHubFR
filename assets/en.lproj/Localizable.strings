@@ -531,6 +531,15 @@
 "settings_nexus_clear_key" = "Remove Key";
 "settings_nexus_key_saved" = "Saved!";
 "settings_nexus_api_key_placeholder" = "Enter your Nexus API key";
+"settings_nexus_quota" = "Nexus quota";
+"settings_nexus_quota_daily" = "Today: %@";
+"settings_nexus_quota_hourly" = "This hour: %@";
+"settings_nexus_quota_of" = "%1$@ of %2$@";
+"settings_nexus_quota_reset" = "Resets at %@";
+"settings_nexus_quota_never" = "Never measured";
+"settings_nexus_quota_never_hint" = "The figure appears after the first call to the Nexus API — opening the page of a mod that has a Nexus ID, or downloading a file.";
+"settings_nexus_quota_renewed" = "Renewed since the last measurement";
+"settings_nexus_quota_exhausted" = "Daily quota exhausted";
 "smapi_download_http_error" = "Download failed: %@";
 "smapi_extract_failed" = "Extraction failed: %@";
 "updates_nexus_section" = "Nexus Mods Updates";
