@@ -1118,7 +1118,12 @@ struct ModListRow: View {
         let updated = vm.nexusLastUpdated(for: mod)
         let installed = mod.installedFileDate
         let langs = mod.languages
-        guard updated != nil || installed != nil || !langs.isEmpty else { return nil }
+        // `mod` vient de `vm.mods`, donc de la même analyse que la mesure : sa
+        // clé physique désigne le dossier tel qu'il était sur le disque quand
+        // le poids a été relevé. Un composant de pack n'en a pas — c'est
+        // l'en-tête du pack qui porte le poids du dossier entier.
+        let size = vm.sizeOnDisk(of: mod)
+        guard updated != nil || installed != nil || !langs.isEmpty || size != nil else { return nil }
         return AnyView(
             HStack(spacing: 6) {
                 // La couverture française ouvre la ligne : c'est l'information
@@ -1155,6 +1160,13 @@ struct ModListRow: View {
                     Image(systemName: "tray.and.arrow.down")
                         .font(.system(size: 9))
                     Text(installed.formatted(date: .abbreviated, time: .omitted))
+                }
+                if let size {
+                    if updated != nil || installed != nil || !langs.isEmpty {
+                        Text("•")
+                            .foregroundColor(.secondary.opacity(AppDesign.Opacity.disabled))
+                    }
+                    ModWeightLabel(bytes: size)
                 }
             }
         )
@@ -1686,5 +1698,37 @@ private struct VersionBadge: View {
                 RoundedRectangle(cornerRadius: 3)
                     .fill(Color.secondary.opacity(AppDesign.Opacity.light))
             )
+    }
+}
+
+
+/// Le poids d'un mod dans sa ligne de liste.
+///
+/// Affiché sur **toutes** les lignes, mais teinté au-delà de 100 Mo. Le parc
+/// réel explique les deux décisions : sa médiane est de 213 Ko et 650 dossiers
+/// sur 863 pèsent moins d'un mégaoctet — un chiffre neutre partout serait du
+/// bruit — tandis que **22 dossiers portent 87 % des 16,8 Go**. La teinte les
+/// désigne sans qu'il faille lire 863 lignes, et reste assez rare pour valoir
+/// signal.
+private struct ModWeightLabel: View {
+    let bytes: Int64
+
+    /// 22 mods du parc réel passent ce seuil, et ils portent 87 % du poids.
+    /// Plus bas (50 Mo : 31 mods) la teinte se banalise, plus haut (300 Mo :
+    /// 11 mods) elle laisse de côté des dossiers qui pèsent encore lourd.
+    private static let heavyThreshold: Int64 = 100_000_000
+
+    private var isHeavy: Bool { bytes >= Self.heavyThreshold }
+
+    var body: some View {
+        HStack(spacing: 3) {
+            Image(systemName: "internaldrive")
+                .font(.system(size: 9))
+            // Chiffres à chasse fixe, comme la pastille de couverture : d'une
+            // ligne à l'autre les tailles doivent s'aligner pour se comparer.
+            Text(ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file))
+                .font(.system(size: 10, weight: isHeavy ? .semibold : .regular).monospacedDigit())
+        }
+        .foregroundColor(isHeavy ? .orange : .secondary)
     }
 }
