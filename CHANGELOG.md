@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.18.0] - 2026-08-24
+
 ### Added
 - **A translation can be recovered key by key, not just as a whole file.** When a mod update resets its French file and you retranslate part of it, replacing the file would cost you what you just wrote. The keys the installed file no longer has are put back one by one, leaving everything else untouched — and the screen shows the full comparison with the backup: keys only in the backup, keys added since, and the ones whose text changed, side by side. Translations that merely differ from their backup are listed too, for comparison only: nothing to replace there, the installed file is the newer one.
 - **A backup can now give back a single file, without restoring the whole mod.** Updating a mod overwrites its entire folder, taking with it what the author does not ship — the French translation you installed by hand, your settings. The backups page lists what a backup can give back: files that are gone from the mod, or whose backup holds settings the installed file no longer has. A file you simply changed is never listed — that is not a loss. Preview before writing, one file at a time, and what is already in place is backed up first. On a real library: ten French translations that only exist in a backup.
