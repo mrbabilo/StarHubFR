@@ -68,7 +68,14 @@ public enum ModsFolderSizer {
         for entry in entries {
             // `.Spotlight-V100` et consorts sont des dossiers commençant par un
             // point : sans ce filtre, ils passeraient pour des mods en pause.
-            guard !OSJunk.isJunk(entry) else { continue }
+            //
+            // Les deux mêmes exclusions que `scanMods()` — le résidu système et
+            // la quarantaine d'une réparation. Un dossier `_Trash_*` naît
+            // aujourd'hui à côté de `Mods/` et non dedans, mais le scanner
+            // s'en protège quand même : trois classifications des entrées de
+            // `Mods/` qui divergeraient d'un cas finiraient par se contredire.
+            guard !OSJunk.isJunk(entry), !entry.hasPrefix(ModFolderRepairer.trashPrefix)
+            else { continue }
             let url = modsFolder.appendingPathComponent(entry)
             var entryIsDirectory: ObjCBool = false
             guard fm.fileExists(atPath: url.path, isDirectory: &entryIsDirectory),

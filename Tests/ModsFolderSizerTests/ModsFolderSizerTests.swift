@@ -123,6 +123,56 @@ struct ModsFolderSizerTests {
         #expect(sizes.byPhysicalFolder.isEmpty)
     }
 
+    /// La quarantaine d'une réparation n'est pas un mod. Elle naît aujourd'hui
+    /// à côté de `Mods/`, mais `scanMods()` s'en protège dans `Mods/` aussi :
+    /// trois classifications qui divergeraient d'un cas se contrediraient.
+    @Test func aRepairQuarantineFolderIsNotAMod() throws {
+        let root = try makeModsFolder([
+            "Active": ["a.dat": 100],
+            "\(ModFolderRepairer.trashPrefix)20260824": ["quarantined.dat": 9000],
+        ])
+        let sizes = try #require(ModsFolderSizer.measure(modsFolder: root))
+        #expect(sizes.byPhysicalFolder.keys.sorted() == ["Active"])
+    }
+
+    // MARK: - La jointure telle que l'interface la fait
+
+    /// Pas la clé du mesureur, mais **l'expression que la fiche évalue** :
+    /// `sizes.bytes(forPhysicalFolder: mod.physicalFolderName)`. C'est elle qui
+    /// romprait en silence si `physicalFolderName` changeait de forme.
+    @Test func aPausedModItemFindsItsOwnWeight() throws {
+        let root = try makeModsFolder([".SexyCombatIdols": ["big.png": 5000]])
+        let sizes = try #require(ModsFolderSizer.measure(modsFolder: root))
+        let paused = ModItem(uniqueId: "x", name: "Sexy Combat Idols",
+                             folderName: "SexyCombatIdols", version: "1.0",
+                             author: "", description: "", nexusUrl: "", nexusModId: "",
+                             isEnabled: false, dependencies: [], languages: [])
+        #expect(paused.physicalFolderName == ".SexyCombatIdols")
+        #expect(sizes.bytes(forPhysicalFolder: paused.physicalFolderName) != nil)
+    }
+
+    @Test func anEnabledModItemFindsItsOwnWeight() throws {
+        let root = try makeModsFolder(["SpaceCore": ["manifest.json": 400]])
+        let sizes = try #require(ModsFolderSizer.measure(modsFolder: root))
+        let active = ModItem(uniqueId: "x", name: "SpaceCore", folderName: "SpaceCore",
+                             version: "1.0", author: "", description: "", nexusUrl: "",
+                             nexusModId: "", isEnabled: true, dependencies: [], languages: [])
+        #expect(sizes.bytes(forPhysicalFolder: active.physicalFolderName) != nil)
+    }
+
+    /// Un composant de pack ne trouve rien, et c'est voulu : son
+    /// `physicalFolderName` porte un `/`. Lui donner le poids du pack le
+    /// compterait autant de fois qu'il y a de composants.
+    @Test func aPackChildFindsNothing() throws {
+        let root = try makeModsFolder(["SVE/SVE Core": ["manifest.json": 1000]])
+        let sizes = try #require(ModsFolderSizer.measure(modsFolder: root))
+        let child = ModItem(uniqueId: "x", name: "SVE Core", folderName: "SVE/SVE Core",
+                            version: "1.0", author: "", description: "", nexusUrl: "",
+                            nexusModId: "", isEnabled: true, dependencies: [], languages: [])
+        #expect(sizes.bytes(forPhysicalFolder: child.physicalFolderName) == nil)
+        #expect(sizes.bytes(forPhysicalFolder: "SVE") != nil)
+    }
+
     /// L'espace libre est celui du volume qui porte `Mods/`, pas celui de `/` :
     /// le jeu peut vivre sur un disque externe.
     @Test func freeSpaceIsReadFromTheVolumeHoldingTheFolder() throws {
