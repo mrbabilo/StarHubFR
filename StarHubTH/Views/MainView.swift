@@ -188,6 +188,8 @@ struct MainView: View {
 
                 Spacer()
 
+                ModsWeightFooter(vm: vm)
+
                 // Bottom bar: theme switcher (left) + language switcher (right).
                 HStack {
                     ThemeToggle(vm: vm, appColorScheme: $appColorScheme)
@@ -1163,5 +1165,70 @@ struct QuarantineView: View {
                 }
             }
         })
+    }
+}
+
+
+// MARK: - Poids du parc (B2-T2)
+
+/// Ce que pèsent les mods, en pied de barre latérale.
+///
+/// Mesuré sur le parc réel le 2026-08-24 : **16,8 Go de mods pour 23,8 Go
+/// libres**. Le chiffre qui décide, ce n'est donc pas le total seul mais le
+/// couple total / place restante — et le sous-total « en pause », parce que
+/// cinq des huit plus gros dossiers du parc étaient des mods désactivés :
+/// autant de gigaoctets immobilisés sans rien rendre.
+///
+/// Rien ne s'affiche tant qu'aucun jeu n'est désigné : « 0 octet » serait faux.
+struct ModsWeightFooter: View {
+    @ObservedObject var vm: StarHubTHViewModel
+
+    var body: some View {
+        if let sizes = vm.modsFolderSizes {
+            VStack(alignment: .leading, spacing: 1) {
+                HStack(spacing: 4) {
+                    Image(systemName: "internaldrive")
+                        .font(.system(size: 9))
+                    Text(String(format: vm.L(L10n.Main.sidebarModsWeight), Self.bytes(sizes.totalBytes)))
+                        .font(.system(size: 10, weight: .medium))
+                    if vm.isMeasuringModsFolder {
+                        ProgressView().controlSize(.mini).scaleEffect(0.6)
+                    }
+                }
+                if sizes.pausedBytes > 0 {
+                    Text(String(format: vm.L(L10n.Main.sidebarModsWeightPaused),
+                                Self.bytes(sizes.pausedBytes)))
+                        .font(.system(size: 9))
+                }
+                if let free = sizes.availableBytes {
+                    Text(String(format: vm.L(L10n.Main.sidebarDiskFree), Self.bytes(free)))
+                        .font(.system(size: 9))
+                        // Orange quand il reste moins que ce que pèsent déjà
+                        // les mods : le prochain gros mod ne rentrera pas.
+                        .foregroundStyle(free < sizes.totalBytes ? Color.orange : Color.secondary)
+                }
+            }
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 8)
+            .padding(.bottom, 6)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        } else if vm.isMeasuringModsFolder {
+            // Sans cet état, le pied reste vide plusieurs secondes au
+            // lancement — trois secondes de traversée sur 100 000 fichiers —
+            // et le vide se lit comme un défaut.
+            HStack(spacing: 4) {
+                ProgressView().controlSize(.mini).scaleEffect(0.6)
+                Text(vm.L(L10n.Main.sidebarModsWeightMeasuring))
+                    .font(.system(size: 10))
+            }
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 8)
+            .padding(.bottom, 6)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    static func bytes(_ value: Int64) -> String {
+        ByteCountFormatter.string(fromByteCount: value, countStyle: .file)
     }
 }

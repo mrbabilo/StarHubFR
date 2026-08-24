@@ -69,6 +69,7 @@ let package = Package(
                 "Models/ManifestVersionReader.swift",
                 "Models/SaveTree.swift",
                 "Models/OSJunk.swift",
+                "Models/ModsFolderSizer.swift",
                 "Models/ModDependencyStatus.swift",
                 "Models/CoreModSlot.swift",
                 "Models/XMLEntities.swift",
@@ -295,6 +296,11 @@ let package = Package(
             name: "ModDependencyStatusTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ModDependencyStatusTests"
+        ),
+        .testTarget(
+            name: "ModsFolderSizerTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ModsFolderSizerTests"
         ),
         .testTarget(
             name: "OSJunkTests",

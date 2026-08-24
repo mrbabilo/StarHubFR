@@ -309,8 +309,18 @@ struct ModDetailView: View {
         let updated = vm.nexusLastUpdated(for: mod)
         let installed = vm.installedDate(for: mod)
         let langs = mod.languages
-        if updated != nil || installed != nil || !langs.isEmpty {
+        // `live` et non `mod` : le poids est indexé sur le nom **physique** du
+        // dossier, qui porte un point quand le mod est en pause. La copie figée
+        // à l'ouverture de la fiche garde l'ancien `isEnabled` — mettre le mod
+        // en pause depuis cette fiche ferait alors chercher la mauvaise clé.
+        let size = vm.sizeOnDisk(of: live)
+        if updated != nil || installed != nil || !langs.isEmpty || size != nil {
             VStack(alignment: .trailing, spacing: 8) {
+                if let size {
+                    metaLine(icon: "internaldrive",
+                             label: vm.L(L10n.Mods.detailSize),
+                             text: sizeText(size))
+                }
                 if let updated {
                     metaLine(icon: "clock.arrow.circlepath",
                              label: vm.L(L10n.Mods.detailUpdated),
@@ -329,6 +339,19 @@ struct ModDetailView: View {
             }
             .frame(maxWidth: 210, alignment: .trailing)
         }
+    }
+
+    /// « 3,84 Go », et pour un pack « 3,84 Go · Pack, 12 mods ».
+    ///
+    /// Un pack est **un** dossier de premier niveau qui en contient plusieurs :
+    /// le poids mesuré est celui du dossier entier, pas d'un composant. Le dire
+    /// évite qu'on lise 3,84 Go comme le poids d'un seul de ses mods. Les
+    /// composants, eux, n'affichent rien : répéter le chiffre du pack sur
+    /// chacun compterait la même place autant de fois qu'il y a de composants.
+    private func sizeText(_ bytes: Int64) -> String {
+        let formatted = ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
+        guard live.isGroup, let count = live.children?.count else { return formatted }
+        return formatted + " · " + String(format: vm.L(L10n.Mods.detailSizePack), count)
     }
 
     private func metaLine(icon: String, label: String, text: String) -> some View {

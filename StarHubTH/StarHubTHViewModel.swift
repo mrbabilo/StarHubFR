@@ -2435,6 +2435,78 @@ class StarHubTHViewModel: ObservableObject {
             // and once mods have actually been scanned).
             self.ensureDefaultProfileIfNeeded()
         }
+
+        // Le poids du parc, après la publication de la liste : c'est une
+        // seconde traversée de `Mods/` (~3 s sur 100 000 fichiers), et elle ne
+        // doit retarder l'affichage d'aucun mod.
+        measureModsFolderSize()
+    }
+
+    // MARK: - Poids du parc (B2-T2)
+
+    /// Ce que pèsent les mods, `nil` tant qu'aucune mesure n'a abouti.
+    @Published private(set) var modsFolderSizes: ModsFolderSizes? = nil
+    /// `true` pendant la traversée. Le pied de barre l'annonce : sans ça, il
+    /// reste vide quelques secondes au lancement, ce qui se lit comme un bug.
+    @Published private(set) var isMeasuringModsFolder: Bool = false
+
+    /// Sérialise les mesures : `scanMods()` est appelé depuis 29 endroits
+    /// (installation, suppression, bascule, application de profil…) et deux
+    /// traversées simultanées de 100 000 fichiers ne serviraient à rien.
+    private let modsSizeLock = NSLock()
+    private var isModsSizeMeasureInFlight = false
+    /// Une demande arrivée pendant une mesure n'est pas perdue : elle relance
+    /// une passe à la fin, sinon le chiffre resterait celui d'avant l'action.
+    private var modsSizeMeasureRequestedAgain = false
+
+    /// Mesure le poids du parc en tâche de fond, en une passe à la fois.
+    ///
+    /// Accrochée à `scanMods()` plutôt qu'à un cache invalidé à la main : le
+    /// scan est déjà le point de passage de tout ce qui change `Mods/`, et un
+    /// schéma d'invalidation maison finirait par mentir sur un chemin oublié.
+    func measureModsFolderSize() {
+        // Sans jeu désigné, il n'y a rien à mesurer et rien à annoncer : même
+        // le « Mesure en cours… » du pied de barre serait un clignotement pour
+        // rien.
+        guard !gameDir.isEmpty else { return }
+        let alreadyRunning: Bool = modsSizeLock.withLock {
+            if isModsSizeMeasureInFlight {
+                modsSizeMeasureRequestedAgain = true
+                return true
+            }
+            isModsSizeMeasureInFlight = true
+            return false
+        }
+        guard !alreadyRunning else { return }
+
+        let dir = gameDir
+        DispatchQueue.main.async { self.isMeasuringModsFolder = true }
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            guard let self else { return }
+            let sizes = ModsFolderSizer.measure(
+                modsFolder: URL(fileURLWithPath: dir).appendingPathComponent("Mods"))
+            let again: Bool = self.modsSizeLock.withLock {
+                self.isModsSizeMeasureInFlight = false
+                defer { self.modsSizeMeasureRequestedAgain = false }
+                return self.modsSizeMeasureRequestedAgain
+            }
+            DispatchQueue.main.async {
+                // Une mesure ratée (dossier absent) n'efface pas la précédente
+                // pendant qu'une nouvelle passe est en route.
+                if sizes != nil || !again { self.modsFolderSizes = sizes }
+                self.isMeasuringModsFolder = again
+                if again { self.measureModsFolderSize() }
+            }
+        }
+    }
+
+    /// Le poids d'un mod, `nil` s'il n'a pas été mesuré.
+    ///
+    /// **Sur le nom physique** : un mod en pause vit dans un dossier préfixé
+    /// d'un point, et sur le parc réel cinq des huit plus gros mods sont en
+    /// pause. Joindre sur `folderName` les afficherait tous à 0 octet.
+    func sizeOnDisk(of mod: ModItem) -> Int64? {
+        modsFolderSizes?.bytes(forPhysicalFolder: mod.physicalFolderName)
     }
 
     /// Rebuilds the lowercased UniqueID → enabled-state / mod lookup indexes

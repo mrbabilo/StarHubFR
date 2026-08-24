@@ -6,6 +6,10 @@ enum L10n {
 
     // MARK: - Main
     enum Main {
+        static let sidebarModsWeight          = "sidebar_mods_weight"
+        static let sidebarModsWeightPaused    = "sidebar_mods_weight_paused"
+        static let sidebarModsWeightMeasuring = "sidebar_mods_weight_measuring"
+        static let sidebarDiskFree            = "sidebar_disk_free"
         static let account              = "main_account"
         static let gameManagement       = "main_game_management"
         static let system               = "main_system"
@@ -376,6 +380,8 @@ enum L10n {
         static let detailUpdated        = "mods_detail_updated"
         static let detailInstalled      = "mods_detail_installed"
         static let detailLanguages      = "mods_detail_languages"
+        static let detailSize           = "mods_detail_size"
+        static let detailSizePack       = "mods_detail_size_pack"
         static let detailPackContents   = "mods_detail_pack_contents"
         static let detailBugs           = "mods_detail_bugs"
         // Dependency tree (DependencyTreeView)

@@ -99,7 +99,7 @@ liste du 2026-07-30 et n'existaient pas dans le document de veille.
 | §1 | Mise en évidence des problèmes dans la liste des mods | **Partiel** | Historique d'erreurs visible sur la fiche mod ; rien dans la liste → **B1-T3** |
 | §2 | Dates Nexus (création / mise à jour) | **À revérifier** | `updated_timestamp` existe dans `NexusUpdateChecker.swift`, mais le champ présent ≠ affichage correct, et l'anomalie est re-signalée → **B2-T5** |
 | §2 | ETA pendant le téléchargement | **À faire** | Rien dans `Models/NexusDownloader.swift` → **B2-T1** |
-| §2 | Poids du mod, taille de `Mods/`, espace disque restant | **À faire** | Tailles calculées uniquement pour les backups → **B2-T2** |
+| §2 | Poids du mod, taille de `Mods/`, espace disque restant | **Fait** | Pied de barre latérale + fiche mod (**B2-T2**, pas encore publié) |
 | §2 | Splashscreen en fenêtre dédiée | **Fait** | `Views/LaunchSplashWindow.swift`, v1.10.0 |
 | §2 | Boutons **Activer** / **Supprimer** sur la fiche mod | **Livré** (2026-08-01) | `ModDetailView.actionRow` → **B1-T1** |
 | §2 | Le retour depuis la fiche conserve tri / filtres / scroll | **Partiel** (2026-08-01) | `ModListFilters` porté par le ViewModel ; **le scroll ne l'est pas** → **B1-T2** |
@@ -742,8 +742,15 @@ pouvoir revenir en arrière à tout moment.
       observable** : statut par téléchargement, %, vitesse, annulation, retry (inspiration :
       `DownloadPanel` de Stardop). Aujourd'hui StarHubFR ne fait que du
       `URLSession.downloadTask` fire-and-forget, sans progression live. · **M** · *§audit-stardrop*
-- [ ] **B2-T2** — Poids par mod, total de `Mods/`, espace disque restant (en pied de barre
-      latérale, près de l'indicateur d'état). · **M**
+- [x] **B2-T2** — Poids par mod, total de `Mods/`, espace disque restant (en pied de barre
+      latérale). *Livré : `Models/ModsFolderSizer.swift` pèse chaque dossier de premier
+      niveau (place **allouée**), la mesure tourne en fond après chaque `scanMods()`, une
+      passe à la fois. Deux pièges écartés : la jointure se fait sur le nom **physique**
+      (`physicalFolderName`), sans quoi tout mod en pause afficherait 0 octet ; et le
+      parcours n'utilise pas `.skipsHiddenFiles`, qui sauterait ces mêmes dossiers. Mesuré
+      sur le parc réel : 863 dossiers, 103 893 fichiers, 16,84 Go — **dont 12,71 Go de mods
+      en pause (746 sur 863)** — pour 24,9 Go libres, en 5,6 s. D'où le sous-total « en
+      pause » et la place restante en orange sous le seuil.* · **M**
 - [ ] **B2-T3** — Boutons de rafraîchissement sur la quarantaine et les alertes système ;
       sur la fiche mod, rafraîchissement **automatique** dès qu'un NexusID est saisi. · **S**
 - [ ] **B2-T4** — Guidage quand `unrar`/`unar`/`7z` manque. *Socle déjà en place* : l'accueil
@@ -761,6 +768,10 @@ pouvoir revenir en arrière à tout moment.
       pas une mesure à zéro : elle laisse la précédente intacte. L'app n'interrogeant plus
       l'API Nexus qu'à la demande, l'état « jamais mesuré » est explicite.* · **S** ·
       *§audit-stardrop*
+- [ ] **B2-T9** — Trier et filtrer la liste des mods par poids. B2-T2 mesure chaque dossier
+      mais n'expose le chiffre que sur la fiche : retrouver les gros dormeurs demande
+      d'ouvrir les fiches une à une. Sur le parc réel, 12,71 Go tiennent dans des mods en
+      pause — c'est précisément la liste qu'il faut pouvoir afficher. · **S**
 - [ ] **B2-T8** — Cesser d'émettre quand le quota est à zéro. `NexusRateLimitGate` replafonne
       son back-off à 15 min (`maxBackoff`) : sur un quota journalier épuisé, l'app retente
       donc une requête tous les quarts d'heure pour rien, jusqu'à la remise à zéro. Depuis
@@ -1083,11 +1094,11 @@ livré en entier — récupération d'un fichier isolé, puis clé à clé pour 
 traductions. Le tout est sorti en **v1.18.0**.
 
 **Ce que B garde de plus valeureux**, dans l'ordre où je le prendrais :
-1. ~~**B2-T6**~~ *(livré)* puis **B2-T2** — deux affichages dont la donnée est
-   déjà là (quota Nexus reçu à chaque réponse, tailles de dossiers). Petits,
-   visibles. Le quota a ouvert une suite, **B2-T8** : maintenant que l'instant de
-   remise à zéro est connu, la porte de back-off peut s'y aligner au lieu de
-   retenter tous les quarts d'heure.
+1. ~~**B2-T6**~~ et ~~**B2-T2**~~ *(livrés)* — deux affichages dont la donnée
+   était déjà là. Chacun a ouvert une suite : **B2-T8** (la porte de back-off
+   peut s'aligner sur l'instant de remise à zéro, désormais connu) et **B2-T9**
+   (trier la liste des mods par poids — sur le parc réel, 12,7 Go dorment dans
+   des mods en pause, et rien ne dit encore lesquels sans ouvrir 863 fiches).
 2. **B3-T2** — favoris de mods, avec « importer les favoris dans ce profil ».
    Le profil sait désormais retenir ses mods (`ProfileModMetadata`), ce qui
    rapproche le socle.

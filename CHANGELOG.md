@@ -13,6 +13,7 @@ where the exact log format was verified.
 ## [Unreleased]
 
 ### Added
+- **The sidebar now says what your mods weigh, and what is left on the disk.** On a real library: 16.8 GB of mods for 24.9 GB free — the total alone would not have said much, so the free space sits right under it and turns orange when there is less room left than the mods already take. Below it, the half that can be acted on: **how much is held by paused mods**. On that same library, 746 of 863 folders are paused and hold 12.7 GB — three quarters of the weight, returning nothing. A mod's own weight shows on its detail page; a pack states the weight of the whole folder rather than repeating it on each of its components. The measurement runs in the background after every scan of the mods folder, and says so while it works.
 - **The Nexus quota left is now visible in Settings.** Nexus announces on every single response how many calls you have left today and this hour — the app simply threw those numbers away. They now show under the Nexus section, with the reset time, and are read on failures too: a refused call is exactly when the remaining count reads zero. No extra request is made to obtain them. Since the app only talks to the Nexus API on demand, a fresh install says so plainly rather than showing a blank or a false zero.
 
 ## [1.18.0] - 2026-08-24
