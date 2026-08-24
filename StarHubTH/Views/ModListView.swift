@@ -732,6 +732,14 @@ struct ModListView: View {
     /// Somme le cadrage **entier**, pas la page affichée. `vm.mods` ne porte
     /// que des mods de premier niveau et des en-têtes de pack, jamais de
     /// composant : chaque ligne comptée a bien un poids à elle.
+    ///
+    /// Sans aucun filtre, ce total peut rester **légèrement sous** celui du
+    /// pied de barre latérale, et c'est correct : le pied pèse tout ce que
+    /// contient `Mods/`, la liste ne montre que les dossiers portant un
+    /// `manifest.json`. Sur le parc réel l'écart vaut 60 Mo sur 16,84 Go —
+    /// cinq dossiers d'outils déposés là, qui occupent bien la place sans
+    /// être des mods. Les deux chiffres répondent à deux questions : ce que
+    /// pèse le dossier, et ce que pèse ce qu'on regarde.
     @ViewBuilder
     private func scopeWeightLabel(for display: [ModItem]) -> some View {
         let total = display.compactMap { vm.sizeOnDisk(of: $0) }.reduce(Int64(0), +)

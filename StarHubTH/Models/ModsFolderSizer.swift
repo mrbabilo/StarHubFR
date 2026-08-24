@@ -14,9 +14,16 @@ public struct ModsFolderSizes: Equatable, Sendable {
     /// `ModItem.physicalFolderName` qui donne cette clé, jamais `folderName` :
     /// joindre sur le nom logique rendrait 0 octet pour tout mod en pause.
     public let byPhysicalFolder: [String: Int64]
-    /// Somme des dossiers de mods. Ce que pèsent les mods, pas ce que pèse le
-    /// dossier `Mods/` : un fichier isolé posé à sa racine n'est pas un mod et
-    /// n'est pas compté.
+    /// Somme des dossiers de premier niveau. Ce n'est **pas** tout à fait le
+    /// même ensemble que la liste des mods : celle-ci ne retient que les
+    /// dossiers portant un `manifest.json`, quand la mesure pèse tout dossier
+    /// qui n'est ni un résidu système ni une quarantaine. C'est voulu — un
+    /// dossier sans manifeste occupe la place comme un autre, et le pied de
+    /// barre répond à « que pèse mon dossier `Mods/` ». Sur le parc réel
+    /// l'écart vaut 60 Mo sur 16,84 Go : cinq dossiers d'outils déposés là.
+    ///
+    /// Un fichier isolé posé à la racine de `Mods/`, lui, n'est pas compté :
+    /// la mesure est par dossier.
     public let totalBytes: Int64
     /// Part de `totalBytes` occupée par les mods en pause.
     public let pausedBytes: Int64
