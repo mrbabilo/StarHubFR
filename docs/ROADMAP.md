@@ -107,7 +107,7 @@ liste du 2026-07-30 et n'existaient pas dans le document de veille.
 | §2 | Boutons de rafraîchissement (quarantaine, alertes système) | **À faire** | → **B2-T3** |
 | §3 | Reconnaître les mods de traduction (i18n seul) | **Partiel** | `ModItem.languages`, filtre `FrenchTranslationScope` et heuristique de nom (`ModItem.swift:99`) — mais **aucun test structurel** → **C1-T4** |
 | **§new** | Installer une archive sans manifeste (traduction d'un mod, greffe type `ItemBags`) | **À faire** | Signalé le 2026-08-25 ; jeu d'épreuve dans `mods tests/` → **A1-T3** |
-| **§new** | Chercher sur Nexus les traductions FR et les suppléments des mods installés | **À faire** | Voie vérifiée (GraphQL v2, la v1 n'a pas de recherche) → **A3-T2/T3/T4** |
+| **§new** | Chercher sur Nexus les traductions FR et les suppléments des mods installés | **Partiel** | Traductions livrées (**A3-T2/T3**) ; les suppléments restent à découvrir → **A3-T4** |
 | §3 | Nouveau profil créé **vide** | **Fait** (2026-08-24) | L'alerte propose les deux voies, « vide » en premier ; `ProfileFactory` (Core, testé) → **B3-T1** |
 | §3 | Favoris de mods + import dans un profil | **Fait** | Étoile, cadrage, import nommant les intraduisibles (**B3-T2**, pas encore publié) |
 | §3 | Duplication d'un profil | **Fait** (2026-08-24) | `duplicateProfile(id:)`, depuis le menu ⋯ de la ligne → **B3-T3** |
@@ -829,7 +829,7 @@ backup se retrouve en moins de dix secondes.
       sert de référence de comportement, et les messages d'erreur doivent être aussi
       explicites que les siens. · **M**
 
-- [ ] **A1-T3** — **Installer une archive sans `manifest.json`** : traduction d'un mod déjà
+- [x] **A1-T3** — **Installer une archive sans `manifest.json`** : traduction d'un mod déjà
       installé, ou fichiers greffés dans un mod existant (bagages `ItemBags`…). Aujourd'hui
       l'installateur ne classe une archive que par sa structure (`ZipStructure` :
       `singleMod` / `multiMod` / `flatRoot` / `unrecognized`) et cherche des
@@ -928,7 +928,7 @@ backup se retrouve en moins de dix secondes.
       risque : quota d'API Nexus, faux positifs. *La recherche par nom qu'elle suppose
       n'existe pas en API v1 : elle dépend d'**A3-T2** (GraphQL v2), vérifié le 2026-08-25.*
 
-- [ ] **A3-T2** — **Client de recherche Nexus (GraphQL v2)** — le socle qui manquait à tout
+- [x] **A3-T2** — **Client de recherche Nexus (GraphQL v2)** — le socle qui manquait à tout
       l'axe A3. *Faisabilité vérifiée le 2026-08-25, sur le compte réel* : l'API **v1 n'a
       aucune recherche texte** (`/mods/search.json` → **422**) et `latest_updated.json` ne
       rend que **10 entrées** couvrant une heure — inexploitable pour un balayage. En
@@ -946,10 +946,16 @@ backup se retrouve en moins de dix secondes.
          → **184**. Toute requête doit être dépliée en variantes non accentuées.
       3. **`op: WILDCARD` est la seule opération de nom** ; `MATCHES` est refusé par le
          schéma.
-      4. Le champ `first` n'est **pas** accepté sur `mods` : la pagination suit une autre
-         forme, à retrouver par introspection.
+      4. Le champ `first` n'est **pas** accepté sur `mods` : c'est `count` / `offset`, et le
+         tri passe par `sort:{updatedAt:{direction:DESC}}`.
 
-- [ ] **A3-T3** — **Trouver les traductions françaises des mods installés**, la plus récente
+      *Livré (`NexusModSearch`, Core, 27 tests + `NexusSearchClient`). Deux ajouts que la
+      mesure a imposés : **GraphQL rend 200 avec un tableau `errors`** — le prendre pour un
+      résultat vide changerait une panne de schéma en « rien trouvé » —, et **l'API v2 ne
+      renvoie aucun en-tête `x-rl-*`**, donc l'affichage de quota (B2-T6) ne dit rien des
+      recherches.*
+
+- [x] **A3-T3** — **Trouver les traductions françaises des mods installés**, la plus récente
       pour chacun, et proposer l'installation (qui relève d'**A1-T3** : ces archives n'ont
       pas de manifeste). · **M** · *dépend d'A3-T2*
       - Volumes mesurés sur Stardew : « Francais » **184** mods, « French » **68**,
@@ -976,6 +982,15 @@ backup se retrouve en moins de dix secondes.
            communautaire, se retrouverait sans français du tout si la désinstallation se
            contentait d'effacer. La sauvegarde de l'écrasé est donc une obligation de
            l'installation (**A1-T3**), pas une option.
+      - *Livré : section « Traduction française » sur la fiche du mod — chercher, installer,
+        voir qu'une version plus récente existe, retirer. **Le tri se fait sur le tag Nexus
+        `French`, pas sur la catégorie** : Stardew n'a aucune catégorie « Traduction » et ses
+        traductions se répartissent sur treize catégories, quand 77 traductions sur 80
+        portent le tag. Le titre ne sert que de filet pour les trois autres.
+        `InstalledTranslationRegistry` + `InstalledTranslationStore` retiennent ce qui est
+        posé ; sans eux, ni suivi ni retrait. Réserve : le téléchargement intégré demande un
+        compte **Nexus Premium** — sur un compte gratuit, `/download_link.json` rend un 403,
+        et c'est le bouton « Nexus » (onglet `?tab=files`) qui prend le relais.*
 
 - [ ] **A3-T4** — **Trouver les suppléments d'un mod installé** : greffes d'assets et
       modificateurs (bagages `ItemBags`, packs de recettes…). Même socle qu'A3-T3, autre
@@ -983,7 +998,15 @@ backup se retrouve en moins de dix secondes.
       (« ItemBags for All Cornucopia », « Sword and Sorcery Bags »). Six mods portent
       « ItemBags » dans leur nom sur Stardew ; le gisement est ailleurs, dans les titres qui
       citent le mod cible sans nommer l'hôte. · **M** · *dépend d'A3-T2 ; installation par
-      **A1-T3***
+      **A1-T3**, désormais livrée : déposer un supplément à la main fonctionne, et l'app
+      demande le mod cible quand elle ne sait pas. **Ne reste que la découverte** — chercher
+      les suppléments d'un mod installé sans quitter l'app.*
+      ⚠️ *Étendre `DroppedContentRecognizer` à d'autres hôtes qu'ItemBags a été **cherché et
+      écarté** le 2026-08-25 : sur le parc, les quatre candidats sont soit des content packs
+      avec manifeste, soit des dossiers attendus (thèmes BetterCrafting), soit des patchs
+      Content Patcher dont la seule signature serait `Changes` — la clé de tout
+      `content.json`, qui enverrait n'importe quel pack au mauvais endroit. A1-T3 rend la
+      table inutile : une archive inconnue demande son hôte au lieu d'être devinée.*
 
 **Critère de succès** : passer de « ce mod a planté » à « ce mod est cassé depuis
 SMAPI 3.0, voici son remplaçant ».
