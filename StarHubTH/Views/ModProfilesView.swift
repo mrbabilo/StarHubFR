@@ -306,7 +306,11 @@ struct ProfileRow: View {
             Menu {
                 Button(vm.L(L10n.Profiles.rename)) { onRename() }
                 Button(vm.L(L10n.Profiles.duplicate)) { onDuplicate() }
+                // Refusée pendant qu'un profil s'applique : le profil devient
+                // actif **avant** que ses dossiers ne bougent, un import lancé
+                // dans cette fenêtre courserait les déplacements en cours.
                 Button(vm.L(L10n.Profiles.importFavorites)) { onImportFavorites() }
+                    .disabled(vm.isApplyingProfile)
                 if !vm.isDefaultProfile(profile.id) {
                     Divider()
                     Button(vm.L(L10n.Profiles.delete), role: .destructive) { onDelete() }
@@ -335,6 +339,7 @@ struct ProfileRow: View {
             Button(vm.L(L10n.Profiles.rename)) { onRename() }
             Button(vm.L(L10n.Profiles.duplicate)) { onDuplicate() }
             Button(vm.L(L10n.Profiles.importFavorites)) { onImportFavorites() }
+                .disabled(vm.isApplyingProfile)
             if !vm.isDefaultProfile(profile.id) {
                 Divider()
                 Button(vm.L(L10n.Profiles.delete), role: .destructive) { onDelete() }

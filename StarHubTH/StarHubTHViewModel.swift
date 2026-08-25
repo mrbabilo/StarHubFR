@@ -5446,11 +5446,15 @@ class StarHubTHViewModel: ObservableObject {
             modProfiles[index].modMetadata[id] = ProfileModMetadata(name: mod.name,
                                                                     nexusModId: mod.nexusModId)
         }
-        updateProfile(id: profileId,
-                      newName: modProfiles[index].name,
-                      enabledModIds: modProfiles[index].enabledModIds + resolution.ids)
-        log(String(format: L(L10n.VM.profileCreated),
-                   modProfiles[index].name, modProfiles[index].enabledModIds.count))
+        // Capturés **avant** `updateProfile` : sur un profil actif, il
+        // réapplique le profil au disque, et le rescan qui suit fait passer
+        // `syncActiveProfileIds`, qui réécrit `enabledModIds` depuis les mods
+        // réellement activés. Relire la ligne après coup, c'est risquer de
+        // journaliser l'état du disque plutôt que le résultat de l'import.
+        let name = modProfiles[index].name
+        let newIds = modProfiles[index].enabledModIds + resolution.ids
+        updateProfile(id: profileId, newName: name, enabledModIds: newIds)
+        log(String(format: L(L10n.VM.profileCreated), name, newIds.count))
         return resolution
     }
 
@@ -6070,6 +6074,12 @@ class StarHubTHViewModel: ObservableObject {
             // race `d5deef5`/`8467e4a` closed for the index.
             MainActor.assumeIsolated {
                 invalidateFrenchCoverage(for: mod.folderName)
+            }
+            // Le favori part avec le mod : le garder gonflerait indéfiniment
+            // le compteur de la pastille de cadrage avec des dossiers qui
+            // n'existent plus.
+            if favoriteMods.remove(mod.folderName) != nil {
+                Self.saveFavoriteMods(favoriteMods)
             }
             log(String(format: L(L10n.Mods.deletedLog), mod.name))
             DispatchQueue.global(qos: .userInitiated).async {
