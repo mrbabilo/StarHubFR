@@ -1223,6 +1223,30 @@ struct ModListRow: View {
     /// when nothing is known so no empty row is rendered. Uses relative dates
     /// (short form) to keep the line scannable; full dates live in the detail
     /// pane.
+    /// Les largeurs des colonnes, à un seul endroit.
+    ///
+    /// **Fixes, et non minimales.** Un `minWidth` laisse la colonne grandir
+    /// avec son contenu : l'auteur, mesuré de 1 à 99 caractères sur le parc
+    /// réel, décalait donc le numéro de version d'une ligne à l'autre — c'est
+    /// justement ce qu'un alignement doit empêcher. Une valeur absente garde
+    /// sa place pour la même raison : ce qui suit ne doit pas remonter.
+    ///
+    /// Sans risque pour le nom du mod : il occupe sa propre ligne au-dessus, et
+    /// ne partage la largeur avec aucune de ces colonnes. Total des deux
+    /// bandes : 340 et 470 points environ, sous la largeur d'une fenêtre même
+    /// étroite.
+    enum Column {
+        static let category: CGFloat = 110
+        static let author: CGFloat = 150
+        static let version: CGFloat = 80
+
+        static let french: CGFloat = 48
+        static let updated: CGFloat = 110
+        static let installed: CGFloat = 105
+        static let weight: CGFloat = 82
+        static let languages: CGFloat = 120
+    }
+
     /// L'auteur, dans un créneau borné.
     ///
     /// Le parc réel va de 1 à **99 caractères** (« Brandon Marquis Markail
@@ -1313,7 +1337,7 @@ struct ModListRow: View {
                 )
             }
         }
-        .frame(minWidth: 46, alignment: .leading)
+        .frame(width: ModListRow.Column.french, alignment: .leading)
     }
 
     @ViewBuilder
@@ -1324,7 +1348,7 @@ struct ModListRow: View {
                           updated.formatted(.relative(presentation: .named)))
             }
         }
-        .frame(minWidth: 104, alignment: .leading)
+        .frame(width: ModListRow.Column.updated, alignment: .leading)
     }
 
     @ViewBuilder
@@ -1335,7 +1359,7 @@ struct ModListRow: View {
                           installed.formatted(date: .abbreviated, time: .omitted))
             }
         }
-        .frame(minWidth: 100, alignment: .leading)
+        .frame(width: ModListRow.Column.installed, alignment: .leading)
     }
 
     @ViewBuilder
@@ -1343,19 +1367,22 @@ struct ModListRow: View {
         Group {
             if let size { ModWeightLabel(bytes: size) }
         }
-        .frame(minWidth: 78, alignment: .leading)
+        .frame(width: ModListRow.Column.weight, alignment: .leading)
     }
 
     /// Jusqu'à 76 caractères de codes sur le parc réel : borné à ce que la
     /// place permet, avec la liste entière à l'infobulle.
     @ViewBuilder
     private func languagesLabel(_ langs: [String]) -> some View {
-        if !langs.isEmpty {
-            let codes = langs.map { $0.uppercased() }.joined(separator: " ")
-            metaValue("globe", codes)
-                .truncationMode(.tail)
-                .help(codes)
+        let codes = langs.map { $0.uppercased() }.joined(separator: " ")
+        Group {
+            if !langs.isEmpty {
+                metaValue("globe", codes)
+                    .truncationMode(.tail)
+                    .help(codes)
+            }
         }
+        .frame(width: ModListRow.Column.languages, alignment: .leading)
     }
 
     /// L'étoile de favori, sur les lignes de **premier niveau** seulement.
@@ -1461,13 +1488,13 @@ struct ModListRow: View {
                             InferredTagBadge(label: vm.L(L10n.ModTag.key(for: vm.inferredTagKey(for: mod))))
                         }
                     }
-                    .frame(minWidth: 104, alignment: .leading)
+                    .frame(width: ModListRow.Column.category, alignment: .leading)
 
                     authorLabel
-                        .frame(minWidth: 140, maxWidth: 190, alignment: .leading)
+                        .frame(width: ModListRow.Column.author, alignment: .leading)
 
                     VersionBadge(version: mod.isGroup ? vm.displayVersion(for: mod) : mod.version)
-                        .frame(minWidth: 78, alignment: .leading)
+                        .frame(width: ModListRow.Column.version, alignment: .leading)
 
                     if mod.isGroup {
                         // Le nombre de composants ferme la ligne : il varie, et
