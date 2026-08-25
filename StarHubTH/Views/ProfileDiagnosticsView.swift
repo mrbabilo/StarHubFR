@@ -174,7 +174,10 @@ struct ProfileDiagnosticsView: View {
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
-                    .disabled(vm.isDownloadingFromNexus)
+                    // L'API refuse tout lien direct à un compte non premium :
+                    // proposer le bouton reviendrait à promettre un échec.
+                    .disabled(vm.isDownloadingFromNexus || vm.nexusDirectDownloadUnavailable)
+                    .help(vm.nexusDirectDownloadUnavailable ? vm.L(L10n.Mods.premiumOnlyHint) : "")
                     .pointingHandCursor()
                 } else if !mod.hasBackup {
                     Text(vm.L(L10n.Profiles.missingUnknown))

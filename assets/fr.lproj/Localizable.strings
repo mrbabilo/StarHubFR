@@ -504,6 +504,7 @@
 "mods_row_last_updated" = "MàJ";
 "mods_row_installed_on" = "Installé";
 "mods_premium_update" = "MàJ Premium";
+"mods_premium_only_hint" = "Le téléchargement direct demande un compte Nexus Premium — passez par le bouton Nexus.";
 "mods_nexus_update" = "MàJ Nexus";
 "mods_category_filter" = "Catégorie";
 "mods_category_filter_all" = "Toutes les catégories";

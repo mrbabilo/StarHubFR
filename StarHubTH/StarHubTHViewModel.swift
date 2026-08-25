@@ -64,6 +64,17 @@ class StarHubTHViewModel: ObservableObject {
     @Published var nexusCheckProgress: (done: Int, total: Int)? = nil
     /// Whether the user has provided a Nexus API key (kept in sync with Keychain).
     @Published var hasNexusApiKey: Bool = false
+    /// Le compte Nexus, `nil` tant qu'on ne sait pas.
+    ///
+    /// Sert à ne pas proposer ce qui échouera : le téléchargement direct par
+    /// l'API est réservé aux comptes premium.
+    @Published private(set) var nexusAccount: NexusAccount? = nil
+
+    /// `true` seulement quand on **sait** que le compte n'est pas premium.
+    /// L'ignorance ne retire rien : mieux vaut un bouton qui échoue qu'un
+    /// bouton absent chez quelqu'un qui y avait droit.
+    var nexusDirectDownloadUnavailable: Bool { nexusAccount?.isPremium == false }
+
     /// Dernier quota Nexus relevé, `nil` tant qu'aucune réponse de l'API n'a été
     /// vue. Rafraîchi à l'ouverture des réglages et à chaque relevé (B2-T6).
     @Published private(set) var nexusQuota: NexusQuota? = nil
@@ -1620,6 +1631,7 @@ class StarHubTHViewModel: ObservableObject {
         // Le quota du dernier appel à Nexus : persisté justement parce que
         // l'app ne l'interroge plus qu'à la demande (B2-T6).
         let quota = NexusUpdateChecker.shared.cachedQuota()
+        let account = NexusUpdateChecker.shared.cachedAccount()
         // User-saved overrides (per-mod custom categories / Nexus id links /
         // activation timestamps). Small dicts, but still UserDefaults I/O.
         let customCats = Self.loadCustomCategories()
@@ -1631,6 +1643,11 @@ class StarHubTHViewModel: ObservableObject {
             guard let self else { return }
             self.hasNexusApiKey = hasKey
             self.nexusQuota = quota
+            self.nexusAccount = account
+            // Redemandé quand on ne sait pas, ou quand le renseignement a plus
+            // d'une semaine : un compte peut devenir premium, ou cesser de
+            // l'être.
+            if account == nil || account?.isStale() == true { self.refreshNexusAccount() }
             // `republishUpdatesFromCache` et non une consolidation calculée en
             // amont : elle lit `mods`, qui est `@Published`, et la lire depuis
             // la file de fond était une lecture non synchronisée. Sur le fil
@@ -3420,6 +3437,10 @@ class StarHubTHViewModel: ObservableObject {
         // (Keychain locked, quota, sandbox).
         if NexusUpdateChecker.shared.setApiKey(trimmed) {
             hasNexusApiKey = true
+            // Le statut appartient à la clé : une nouvelle clé, un nouveau
+            // compte, éventuellement d'un autre type.
+            nexusAccount = nil
+            refreshNexusAccount()
         }
     }
 
@@ -3430,11 +3451,21 @@ class StarHubTHViewModel: ObservableObject {
         nexusQuota = NexusUpdateChecker.shared.cachedQuota()
     }
 
+    /// Redemande à Nexus si ce compte est premium.
+    func refreshNexusAccount() {
+        guard hasNexusApiKey || NexusUpdateChecker.shared.apiKey()?.isEmpty == false else { return }
+        NexusUpdateChecker.shared.fetchAccount { [weak self] account in
+            guard let account else { return }
+            self?.nexusAccount = account
+        }
+    }
+
     /// Removes the stored Nexus Mods API key.
     func clearNexusApiKey() {
         NexusUpdateChecker.shared.clearApiKey()
         hasNexusApiKey = false
         nexusQuota = nil
+        nexusAccount = nil
         // Les mises à jour restent : elles ne doivent rien à la clé, qui ne
         // sert plus qu'au téléchargement intégré et aux fiches.
         nexusCategories = [:]

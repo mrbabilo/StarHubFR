@@ -815,7 +815,16 @@ struct UpdatesView: View {
                                             Label(vm.L(L10n.Mods.premiumUpdate), systemImage: "arrow.down.circle")
                                         }
                                         .buttonStyle(.bordered)
-                                        .disabled(vm.isDownloadingFromNexus)
+                                        // Désactivé quand on **sait** que le
+                                        // compte n'est pas premium : l'API
+                                        // refuse alors tout lien direct
+                                        // (`403 premium users only`), et
+                                        // proposer le bouton revient à promettre
+                                        // un échec. Le doute, lui, ne retire
+                                        // rien.
+                                        .disabled(vm.isDownloadingFromNexus || vm.nexusDirectDownloadUnavailable)
+                                        .help(vm.nexusDirectDownloadUnavailable
+                                              ? vm.L(L10n.Mods.premiumOnlyHint) : "")
                                     }
 
                                     Button {

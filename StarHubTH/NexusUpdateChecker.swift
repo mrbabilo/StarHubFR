@@ -149,6 +149,46 @@ final class NexusUpdateChecker {
         }
     }
 
+    // MARK: - Compte (premium ou non)
+
+    private static let cachedAccountKey = "nexusAccount"
+
+    /// Le compte tel qu'on l'a appris la dernière fois, périmé ou non.
+    func cachedAccount() -> NexusAccount? {
+        guard let data = UserDefaults.standard.data(forKey: Self.cachedAccountKey) else { return nil }
+        return try? JSONDecoder().decode(NexusAccount.self, from: data)
+    }
+
+    /// Demande à Nexus si ce compte est premium.
+    ///
+    /// La réponse décide d'un bouton : le téléchargement direct par l'API est
+    /// réservé aux comptes premium — `/download_link.json` répond sinon
+    /// `403 « this is for premium users only »`. Sans ce renseignement, l'app
+    /// propose une action qui échouera à coup sûr.
+    func fetchAccount(completion: @escaping (NexusAccount?) -> Void) {
+        guard let apiKey = apiKey(), !apiKey.isEmpty,
+              let request = NexusRequestBuilder.makeRequest(path: "/users/validate.json",
+                                                            apiKey: apiKey)
+        else { DispatchQueue.main.async { completion(nil) }; return }
+
+        URLSession.shared.dataTask(with: request) { data, response, _ in
+            if let http = response as? HTTPURLResponse { self.noteQuota(from: http) }
+            guard let data,
+                  let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
+                  let account = NexusAccount(json: json)
+            else { DispatchQueue.main.async { completion(nil) }; return }
+            // Comme le quota : une réponse arrivée après le retrait de la clé
+            // ne doit pas ressusciter le compte auquel elle appartenait.
+            guard self.apiKey()?.isEmpty == false else {
+                DispatchQueue.main.async { completion(nil) }; return
+            }
+            if let encoded = try? JSONEncoder().encode(account) {
+                UserDefaults.standard.set(encoded, forKey: Self.cachedAccountKey)
+            }
+            DispatchQueue.main.async { completion(account) }
+        }.resume()
+    }
+
     /// Le dernier quota relevé, périmé ou non — c'est l'affichage qui décide
     /// quoi en dire (`NexusQuota.isStale`).
     func cachedQuota() -> NexusQuota? {
@@ -194,6 +234,7 @@ final class NexusUpdateChecker {
         UserDefaults.standard.removeObject(forKey: cachedExtrasKey)
         // Le quota est du même bois : il décrit le compte, pas les mods.
         UserDefaults.standard.removeObject(forKey: Self.cachedQuotaKey)
+        UserDefaults.standard.removeObject(forKey: Self.cachedAccountKey)
         metadataCacheLock.unlock()
         NotificationCenter.default.post(name: Self.quotaDidChange, object: nil)
     }

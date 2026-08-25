@@ -345,6 +345,7 @@ enum L10n {
         static let rowLastUpdated       = "mods_row_last_updated"
         static let rowInstalledOn       = "mods_row_installed_on"
         static let premiumUpdate        = "mods_premium_update"
+        static let premiumOnlyHint      = "mods_premium_only_hint"
         static let nexusUpdate          = "mods_nexus_update"
         // Nexus category filter
         static let categoryFilter           = "mods_category_filter"

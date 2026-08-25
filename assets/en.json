@@ -504,6 +504,7 @@
   "mods_row_last_updated": "Updated",
   "mods_row_installed_on": "Installed",
   "mods_premium_update": "Premium update",
+  "mods_premium_only_hint": "Direct download needs a Nexus Premium account — use the Nexus button instead.",
   "mods_nexus_update": "Nexus update",
   "mods_category_filter": "Category",
   "mods_category_filter_all": "All Categories",

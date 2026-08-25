@@ -29,6 +29,7 @@ let package = Package(
                 "Models/NexusRequestBuilder.swift",
                 "Models/NexusRateLimitGate.swift",
                 "Models/NexusQuota.swift",
+                "Models/NexusAccount.swift",
                 "Models/NexusModSearch.swift",
                 "Models/InstalledTranslation.swift",
                 "Models/InstalledTranslationStore.swift",
@@ -228,6 +229,11 @@ let package = Package(
             name: "NexusModSearchTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/NexusModSearchTests"
+        ),
+        .testTarget(
+            name: "NexusAccountTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/NexusAccountTests"
         ),
         .testTarget(
             name: "NexusQuotaTests",

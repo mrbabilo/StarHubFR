@@ -1076,7 +1076,11 @@ private struct TranslationSection: View {
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
-            .disabled(isBusy)
+            // Même règle que la page des mises à jour : sans compte premium,
+            // l'API refuse le lien direct, et c'est le bouton Nexus qui prend
+            // le relais.
+            .disabled(isBusy || vm.nexusDirectDownloadUnavailable)
+            .help(vm.nexusDirectDownloadUnavailable ? vm.L(L10n.Mods.premiumOnlyHint) : "")
         }
         .padding(.vertical, 2)
     }
