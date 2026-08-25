@@ -821,6 +821,30 @@ pouvoir revenir en arrière à tout moment.
       *Mesuré le 2026-08-25 : **0 mod sur 863** expose ce champ dans le parc de référence.
       La fonctionnalité ne montrerait rien aujourd'hui ; elle ne vaudra que pour un mod
       installé plus tard qui l'annonce. À garder, pas à prioriser.*
+- [x] **B1-T4** — **Réunir les problèmes dans l'onglet qui porte ce nom.** *Livré le
+      2026-08-25, à sa demande. Le cadrage « Problèmes » ne connaissait qu'une chose —
+      un mod **actif** dont une dépendance requise manque ou dort — quand la pastille
+      d'anomalie en couvrait trois. Un mod pouvait donc porter une pastille et manquer
+      à l'onglet censé les réunir, alors que le commentaire du code affirmait
+      l'inverse. Les deux suivent désormais la même règle ; **mesuré avant de les
+      réunir** : sur les versions installées du parc, cela n'ajoute qu'**une erreur et
+      cinq avertissements** (9 dossiers seulement ont un historique).
+      Deux signaux rejoignent `ModAnomaly` :
+      - **le verdict smapi.io** (A2-T2) ;
+      - **les mods installés plusieurs fois** — mesuré : **7 identifiants sur 14
+        dossiers**, dont **trois avec leurs deux copies actives** (le mod Swim, à plat
+        et dans son dossier de téléchargement). SMAPI en charge une et ignore l'autre.
+        L'index est bâti **une fois par scan**, dans le parcours qui aplatit déjà les
+        identifiants — c'est le seul endroit où l'information existe encore, `states`
+        et `byId` en écrasant un sur deux. Les dossiers sont **nommés**, pas comptés :
+        « installé 2 fois » ne dit pas lequel supprimer parmi 863.
+
+      **L'état actif gradue, il ne filtre pas.** L'ancienne règle exigeait
+      `mod.isEnabled` ; les sept mods signalés du parc étant tous en pause, ils
+      n'auraient jamais paru. Un mod cassé activé, ou deux copies actives : erreur.
+      Sinon avertissement — listé quand même, un dossier à supprimer restant un
+      dossier à supprimer.* · **S**
+
 - [x] **B1-T3** — Pastilles d'anomalie dans la liste des mods. *Livré : une pastille orange
       près du nom réunit les trois signaux — erreurs et avertissements des journaux SMAPI,
       dépendance requise absente ou en pause, manifeste sans identifiant (SMAPI ne chargera

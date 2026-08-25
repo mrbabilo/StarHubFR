@@ -97,7 +97,13 @@ struct ModListView: View {
     /// `scopeCounts` so their notion of "has issues" can't drift apart.
     /// Délègue au ViewModel : la pastille d'anomalie s'appuie sur la même
     /// règle, et deux définitions de « ce mod a un problème » divergeraient.
-    private func hasIssues(_ mod: ModItem) -> Bool { vm.hasDependencyIssue(mod) }
+    /// **La même règle que la pastille, désormais.** Elle ne l'était pas : le
+    /// cadrage ne regardait que les dépendances quand la pastille couvrait
+    /// aussi les erreurs du journal et les manifestes sans identifiant — un mod
+    /// portant une pastille pouvait manquer à l'onglet censé les réunir.
+    /// Mesuré avant de les réunir : sur les versions installées du parc, cela
+    /// n'ajoute qu'une erreur et cinq avertissements.
+    private func hasIssues(_ mod: ModItem) -> Bool { vm.anomaly(for: mod) != nil }
 
     /// Scopes the list to the mod the user asked to jump to, clearing anything
     /// that could filter it out, then clears the request so it fires once.
@@ -2048,6 +2054,19 @@ private struct AnomalyBadge: View {
         var lines: [String] = []
         if anomaly.isUnloadable { lines.append(vm.L(L10n.Mods.anomalyUnloadable)) }
         if anomaly.hasDependencyIssue { lines.append(vm.L(L10n.Mods.anomalyDependency)) }
+        if let duplicate = anomaly.duplicate {
+            // Les dossiers **nommés** : un compte seul laisserait chercher
+            // lequel supprimer parmi 863.
+            lines.append(String(format: vm.L(duplicate.isActive
+                                             ? L10n.Mods.anomalyDuplicateActive
+                                             : L10n.Mods.anomalyDuplicateDormant),
+                                duplicate.copies,
+                                duplicate.folders.joined(separator: ", ")))
+        }
+        if let status = anomaly.compatibility {
+            lines.append(String(format: vm.L(L10n.Mods.anomalyCompat),
+                                CompatibilityWarning.label(status, vm)))
+        }
         if anomaly.errorCount > 0 {
             lines.append(String(format: vm.L(L10n.Mods.anomalyErrors), anomaly.errorCount))
         }

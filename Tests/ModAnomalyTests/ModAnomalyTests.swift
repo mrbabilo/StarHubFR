@@ -132,4 +132,127 @@ struct ModAnomalyTests {
         #expect(result.severity == .error)
         #expect(result.warningCount == 9)
     }
+
+    // MARK: - Doublons et compatibilité smapi.io
+
+    private func paused(_ item: ModItem) -> ModItem {
+        ModItem(uniqueId: item.uniqueId, name: item.name, folderName: item.folderName,
+                version: item.version, author: "", description: "", nexusUrl: "",
+                nexusModId: "", isEnabled: false, dependencies: [], languages: [])
+    }
+
+    /// **Le défaut réel du parc** : `FlyingTNT.Swim` installé deux fois, les
+    /// deux copies actives. SMAPI en charge une et laisse l'autre de côté, et
+    /// laquelle ne se devine pas.
+    @Test func twoActiveCopiesAreAnErrorToday() throws {
+        let index = ModDuplicateIndex.build(from: [
+            ("FlyingTNT.Swim", "Swim", true),
+            ("FlyingTNT.Swim", "Swim Mod-23169/Swim", true),
+            ("other.mod", "Other", true),
+        ])
+        let report = try #require(ModAnomalyReport.anomaly(
+            for: mod("Swim", id: "FlyingTNT.Swim"), history: ModErrorHistory(),
+            dependencyIssue: { _ in false }, duplicates: index))
+        #expect(report.severity == .error)
+        // **Nommés, pas comptés** : « installé 2 fois » ne dit pas lequel
+        // supprimer dans un parc de 863 dossiers.
+        #expect(report.duplicate == .active(folders: ["Swim", "Swim Mod-23169/Swim"]))
+    }
+
+    /// Une seule copie active : rien ne casse aujourd'hui, mais le dossier est
+    /// toujours là et se réactivera un jour.
+    @Test func aDormantDuplicateIsOnlyAWarning() throws {
+        let index = ModDuplicateIndex.build(from: [
+            ("pseudodiego.nudenpc", "[CP]Xtardew Portraits", false),
+            ("pseudodiego.nudenpc", "Xtardew Valley/[CP]Xtardew Portraits", false),
+        ])
+        let report = try #require(ModAnomalyReport.anomaly(
+            for: mod("X", id: "pseudodiego.nudenpc"), history: ModErrorHistory(),
+            dependencyIssue: { _ in false }, duplicates: index))
+        #expect(report.severity == .warning)
+        #expect(report.duplicate?.isDormant == true)
+        #expect(report.duplicate?.copies == 2)
+    }
+
+    /// **111 mods du parc n'ont aucun `UniqueID`.** Les compter ensemble ferait
+    /// de chacun le doublon de tous les autres.
+    @Test func modsWithoutAnIdAreNeverDuplicatesOfEachOther() {
+        let index = ModDuplicateIndex.build(from: [
+            ("", "A", true), ("", "B", true), ("", "C", false),
+        ])
+        #expect(index.folders.isEmpty)
+        #expect(index.duplicate(of: "") == nil)
+    }
+
+    /// **L'état actif gradue, il ne filtre pas.** Les sept mods que smapi.io
+    /// signale sur ce parc sont tous en pause : les masquer les ferait
+    /// disparaître de l'onglet Problèmes, où l'utilisateur les cherche.
+    @Test func aPausedBrokenModIsStillReported() throws {
+        let report = try #require(ModAnomalyReport.anomaly(
+            for: paused(mod("TrainTracks", id: "aedenthorn.TrainTracks")),
+            history: ModErrorHistory(), dependencyIssue: { _ in false },
+            compatibility: ["aedenthorn.TrainTracks": .workaround]))
+        #expect(report.severity == .warning)
+        #expect(report.compatibility == .workaround)
+    }
+
+    /// Le même mod, activé : ce n'est plus un dossier à ranger, c'est un défaut
+    /// du jour.
+    @Test func anEnabledBrokenModIsAnError() throws {
+        let report = try #require(ModAnomalyReport.anomaly(
+            for: mod("TrainTracks", id: "aedenthorn.TrainTracks"),
+            history: ModErrorHistory(), dependencyIssue: { _ in false },
+            compatibility: ["aedenthorn.TrainTracks": .workaround]))
+        #expect(report.severity == .error)
+    }
+
+    /// Un verdict `Ok` ne signale rien — sinon 281 mods du parc entreraient
+    /// dans l'onglet Problèmes pour avoir été déclarés sains.
+    @Test func aHealthyVerdictReportsNothing() {
+        #expect(ModAnomalyReport.anomaly(
+            for: mod("Fine", id: "fine.mod"), history: ModErrorHistory(),
+            dependencyIssue: { _ in false }, compatibility: ["fine.mod": .ok]) == nil)
+    }
+
+    /// Un pack porte le doublon de son composant : sans quoi il faudrait
+    /// déplier chaque pack pour le découvrir.
+    @Test func aPackCarriesItsComponentDuplicate() throws {
+        let child = mod("Swim", id: "FlyingTNT.Swim")
+        let index = ModDuplicateIndex.build(from: [
+            ("FlyingTNT.Swim", "Swim", true),
+            ("FlyingTNT.Swim", "Swim Mod-23169/Swim", true),
+        ])
+        let report = try #require(ModAnomalyReport.anomaly(
+            for: pack("Swim Mod-23169", children: [child]), history: ModErrorHistory(),
+            dependencyIssue: { _ in false }, duplicates: index))
+        #expect(report.duplicate?.isActive == true)
+    }
+
+    /// **Un pack à composants mixtes.** Le verdict qui l'emporte vient du
+    /// composant en pause, mais c'est l'autre — actif et cassé — qui décide de
+    /// la gravité : le mod tourne aujourd'hui.
+    @Test func aPackWithOneBrokenComponentEnabledIsAnError() throws {
+        let dormant = paused(mod("A", id: "broken.paused"))
+        let live = mod("B", id: "broken.live")
+        let report = try #require(ModAnomalyReport.anomaly(
+            for: pack("Pack", children: [dormant, live]), history: ModErrorHistory(),
+            dependencyIssue: { _ in false },
+            compatibility: ["broken.paused": .workaround, "broken.live": .workaround]))
+        #expect(report.severity == .error)
+    }
+
+    /// Deux composants dormants en double : les dossiers nommés ne doivent pas
+    /// dépendre de l'ordre dans lequel on les parcourt.
+    @Test func twoDormantDuplicatesDoNotOverwriteEachOther() throws {
+        let index = ModDuplicateIndex.build(from: [
+            ("a.mod", "A1", false), ("a.mod", "A2", false),
+            ("b.mod", "B1", false), ("b.mod", "B2", false),
+        ])
+        let report = try #require(ModAnomalyReport.anomaly(
+            for: pack("Pack", children: [paused(mod("A", id: "a.mod")),
+                                         paused(mod("B", id: "b.mod"))]),
+            history: ModErrorHistory(), dependencyIssue: { _ in false },
+            duplicates: index))
+        #expect(report.duplicate?.folders == ["A1", "A2"])
+    }
 }

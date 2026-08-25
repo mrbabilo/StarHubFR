@@ -44,6 +44,7 @@ let package = Package(
                 "Models/ModErrorHistory.swift",
                 "Models/ModAnomaly.swift",
                 "Models/ModCompatibility.swift",
+                "Models/ModDuplicateIndex.swift",
                 "Models/ManifestJSON.swift",
                 "Models/BisectionEvidence.swift",
                 "Models/BisectionSession.swift",

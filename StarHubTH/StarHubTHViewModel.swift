@@ -66,7 +66,14 @@ class StarHubTHViewModel: ObservableObject {
     /// Une absence n'est donc pas un satisfecit, et rien ne doit l'afficher
     /// comme tel.
     @Published private(set) var modCompatibility: [String: ModCompatibility] =
-        ModCompatibilityStore.load()
+        ModCompatibilityStore.load() {
+        didSet { compatibilityStatuses = modCompatibility.mapValues(\.status) }
+    }
+    /// Les mêmes verdicts réduits à leur statut, **tenus à jour plutôt que
+    /// recalculés** : `anomaly(for:)` tourne sur chaque ligne du parc, deux
+    /// fois — pour le compteur du cadrage et pour le filtrage. Reconstruire le
+    /// dictionnaire à chaque appel rendrait la liste quadratique.
+    private var compatibilityStatuses: [String: ModCompatibility.Status] = [:]
     /// True while a Nexus check is in flight.
     @Published var isCheckingNexusUpdates: Bool = false
     /// Last error message from a Nexus check (nil = none / not run yet).
@@ -1429,6 +1436,12 @@ class StarHubTHViewModel: ObservableObject {
     /// Rebuilt in `scanMods()` so that `getMissingDependencies(for:)` stays O(deps)
     /// instead of rebuilding the set on every row render.
     private var installedUniqueIds: Set<String> = []
+    /// Les mods installés plusieurs fois, reconstruit à chaque scan.
+    ///
+    /// Mesuré le 2026-08-25 : **7 identifiants sur 14 dossiers**, dont trois
+    /// avec leurs deux copies actives (le mod Swim, à plat et dans son dossier
+    /// de téléchargement). Rien ne le disait jusqu'ici.
+    @Published private(set) var duplicateIndex: ModDuplicateIndex = .empty
 
     /// Lowercased UniqueID → enabled state, rebuilt alongside `installedUniqueIds`.
     /// Used by `getDisabledDependencies(for:)` to flag required deps that are
@@ -1591,6 +1604,10 @@ class StarHubTHViewModel: ObservableObject {
     let smapiInstaller = SmapiInstaller()
     
     init() {
+        // `didSet` ne voit pas la valeur d'initialisation : sans cette ligne,
+        // les verdicts relus au lancement seraient là sans que rien ne les
+        // signale, jusqu'à la première vérification.
+        compatibilityStatuses = modCompatibility.mapValues(\.status)
         // Les avertissements de l'installateur SMAPI n'ont pas d'autre chemin
         // vers l'onglet Journaux : sa complétion ne porte qu'un succès ou un
         // échec, et une installation peut réussir en laissant un défaut.
@@ -2554,6 +2571,7 @@ class StarHubTHViewModel: ObservableObject {
         var ids = Set<String>()
         var states: [String: Bool] = [:]
         var byId: [String: ModItem] = [:]
+        var entries: [(uniqueId: String, folderName: String, isEnabled: Bool)] = []
         for m in mods {
             if m.isGroup, let children = m.children {
                 for c in children {
@@ -2561,17 +2579,29 @@ class StarHubTHViewModel: ObservableObject {
                     ids.insert(k)
                     states[k] = c.isEnabled
                     byId[k] = c
+                    // `folderName` d'un composant **porte déjà** le nom du
+                    // pack (`scanEntryForMods` construit
+                    // `{pack}/{sous-chemin}`) : c'est lui qui distingue
+                    // « Swim » de « Swim Mod-23169…/Swim ». Le préfixer une
+                    // seconde fois donnerait un chemin qui n'existe pas.
+                    entries.append((c.uniqueId, c.folderName, c.isEnabled))
                 }
             } else {
                 let k = m.uniqueId.lowercased()
                 ids.insert(k)
                 states[k] = m.isEnabled
                 byId[k] = m
+                entries.append((m.uniqueId, m.folderName, m.isEnabled))
             }
         }
         installedUniqueIds = ids
         installedModStates = states
         installedModsByUniqueId = byId
+        // Les doublons sortent du **même parcours** : `states` et `byId` en
+        // écrasent silencieusement un sur deux (le dernier gagne), si bien que
+        // le seul endroit où l'information existe encore est ici, avant
+        // l'aplatissement.
+        duplicateIndex = ModDuplicateIndex.build(from: entries)
     }
     
     // Parses the SMAPI-latest.txt log for updates and errors
@@ -2697,8 +2727,12 @@ class StarHubTHViewModel: ObservableObject {
     /// installée.
     func anomaly(for mod: ModItem) -> ModAnomaly? {
         ModAnomalyReport.anomaly(for: mod, history: modErrorHistory,
-                                 dependencyIssue: { self.hasDependencyIssue($0) })
+                                 dependencyIssue: { self.hasDependencyIssue($0) },
+                                 duplicates: duplicateIndex,
+                                 compatibility: compatibilityStatuses)
     }
+
+
 
     func getMissingDependencies(for mod: ModItem) -> [String] {
         // Uses the precomputed index built in scanMods() — O(deps) per call,
