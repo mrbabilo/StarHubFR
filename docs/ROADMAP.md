@@ -107,6 +107,7 @@ liste du 2026-07-30 et n'existaient pas dans le document de veille.
 | §2 | Boutons de rafraîchissement (quarantaine, alertes système) | **À faire** | → **B2-T3** |
 | §3 | Reconnaître les mods de traduction (i18n seul) | **Partiel** | `ModItem.languages`, filtre `FrenchTranslationScope` et heuristique de nom (`ModItem.swift:99`) — mais **aucun test structurel** → **C1-T4** |
 | **§new** | Installer une archive sans manifeste (traduction d'un mod, greffe type `ItemBags`) | **À faire** | Signalé le 2026-08-25 ; jeu d'épreuve dans `mods tests/` → **A1-T3** |
+| **§new** | Chercher sur Nexus les traductions FR et les suppléments des mods installés | **À faire** | Voie vérifiée (GraphQL v2, la v1 n'a pas de recherche) → **A3-T2/T3/T4** |
 | §3 | Nouveau profil créé **vide** | **Fait** (2026-08-24) | L'alerte propose les deux voies, « vide » en premier ; `ProfileFactory` (Core, testé) → **B3-T1** |
 | §3 | Favoris de mods + import dans un profil | **Fait** | Étoile, cadrage, import nommant les intraduisibles (**B3-T2**, pas encore publié) |
 | §3 | Duplication d'un profil | **Fait** (2026-08-24) | `duplicateProfile(id:)`, depuis le menu ⋯ de la ligne → **B3-T3** |
@@ -922,7 +923,51 @@ backup se retrouve en moins de dix secondes.
 
 - [ ] **A3-T1** — Recherche automatique des `NexusID` manquants (correspondance nom +
       auteur, proposition validée par l'utilisateur, jamais d'écriture aveugle). · **M** ·
-      risque : quota d'API Nexus, faux positifs.
+      risque : quota d'API Nexus, faux positifs. *La recherche par nom qu'elle suppose
+      n'existe pas en API v1 : elle dépend d'**A3-T2** (GraphQL v2), vérifié le 2026-08-25.*
+
+- [ ] **A3-T2** — **Client de recherche Nexus (GraphQL v2)** — le socle qui manquait à tout
+      l'axe A3. *Faisabilité vérifiée le 2026-08-25, sur le compte réel* : l'API **v1 n'a
+      aucune recherche texte** (`/mods/search.json` → **422**) et `latest_updated.json` ne
+      rend que **10 entrées** couvrant une heure — inexploitable pour un balayage. En
+      revanche `POST https://api.nexusmods.com/v2/graphql` répond, s'introspecte et cherche
+      par nom. Requête qui marche :
+      `mods(filter:{ name:{value:"…",op:WILDCARD}, gameId:{value:"1303",op:EQUALS} }){ totalCount nodes{ modId name uploader{name} modCategory{name} } }`.
+      · **M** · *non documentée officiellement : la traiter comme une dépendance qui peut
+      casser, et prévoir la dégradation propre.*
+
+      **Quatre pièges relevés à la mesure, tous coûteux à redécouvrir :**
+      1. **`gameId` numérique obligatoire** (1303 pour Stardew, lu sur
+         `/v1/games/stardewvalley.json`) — `gameDomainName` seul rend `totalCount: 0` sans
+         erreur, et filtrer par `modId` sans `gameId` échoue explicitement.
+      2. **L'index ne connaît pas les accents.** « Français » → **0 résultat**, « Francais »
+         → **184**. Toute requête doit être dépliée en variantes non accentuées.
+      3. **`op: WILDCARD` est la seule opération de nom** ; `MATCHES` est refusé par le
+         schéma.
+      4. Le champ `first` n'est **pas** accepté sur `mods` : la pagination suit une autre
+         forme, à retrouver par introspection.
+
+- [ ] **A3-T3** — **Trouver les traductions françaises des mods installés**, la plus récente
+      pour chacun, et proposer l'installation (qui relève d'**A1-T3** : ces archives n'ont
+      pas de manifeste). · **M** · *dépend d'A3-T2*
+      - Volumes mesurés sur Stardew : « Francais » **184** mods, « French » **68**,
+        « Traduction » **51** — « FR » en rend **1 559** et n'est donc pas un mot-clé mais
+        du bruit. La recherche part du **nom du mod installé**, pas du mot-clé de langue :
+        c'est ce qui distingue « la traduction de *ce* mod » de « les traductions ».
+      - Le rapprochement est le vrai risque, pas la requête : un nom de traduction ressemble
+        au nom du mod sans lui être égal (« Parchment - Fishing Log - Francais » pour le mod
+        « Parchment »). **Proposition validée par l'utilisateur, jamais d'installation
+        aveugle** — même règle qu'A3-T1.
+      - Croiser avec ce que l'app sait déjà : un mod dont `i18n/fr.json` est présent et à
+        jour n'a rien à chercher (voir la couverture FR, **C1-T1**).
+
+- [ ] **A3-T4** — **Trouver les suppléments d'un mod installé** : greffes d'assets et
+      modificateurs (bagages `ItemBags`, packs de recettes…). Même socle qu'A3-T3, autre
+      requête — le nom du mod installé apparaît dans le **titre du supplément**
+      (« ItemBags for All Cornucopia », « Sword and Sorcery Bags »). Six mods portent
+      « ItemBags » dans leur nom sur Stardew ; le gisement est ailleurs, dans les titres qui
+      citent le mod cible sans nommer l'hôte. · **M** · *dépend d'A3-T2 ; installation par
+      **A1-T3***
 
 **Critère de succès** : passer de « ce mod a planté » à « ce mod est cassé depuis
 SMAPI 3.0, voici son remplaçant ».
