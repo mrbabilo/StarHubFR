@@ -502,18 +502,36 @@ private struct LocalAISettingsSection: View {
             VStack(alignment: .leading, spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(vm.L(L10n.Settings.fallbackKey)).font(.system(size: 13))
-                    HStack(spacing: 8) {
-                        SecureField("", text: $fallbackKeyDraft)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .font(.system(size: 12, design: .monospaced))
-                        Button(vm.L(L10n.Settings.fallbackSave)) { saveFallbackKey() }
-                            .disabled(fallbackKeyDraft
-                                .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                        // La page que la documentation de DeepL nomme
-                        // elle-même ; sans session, elle mène à la connexion,
-                        // d'où l'offre gratuite est accessible.
-                        Button(vm.L(L10n.Settings.fallbackGetKey)) {
-                            NSWorkspace.shared.open(DeepLDesktop.apiKeyPageURL)
+                    // Même forme que la clé Nexus : une fois la clé enregistrée,
+                    // le champ cède la place à un masque. Il restait saisissable
+                    // ici, avec son bouton « Enregistrer » — on pouvait donc
+                    // écraser une clé en place sans l'avoir voulu, et rien ne
+                    // montrait qu'il y en avait déjà une, sinon la ligne verte
+                    // plus bas.
+                    if vm.hasDeepLKey {
+                        HStack(spacing: 8) {
+                            Text("••••••••••••")
+                                .font(.system(size: 12, design: .monospaced))
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Button(vm.L(L10n.Settings.fallbackGetKey)) {
+                                NSWorkspace.shared.open(DeepLDesktop.apiKeyPageURL)
+                            }
+                        }
+                    } else {
+                        HStack(spacing: 8) {
+                            SecureField("", text: $fallbackKeyDraft)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .font(.system(size: 12, design: .monospaced))
+                            Button(vm.L(L10n.Settings.fallbackSave)) { saveFallbackKey() }
+                                .disabled(fallbackKeyDraft
+                                    .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                            // La page que la documentation de DeepL nomme
+                            // elle-même ; sans session, elle mène à la connexion,
+                            // d'où l'offre gratuite est accessible.
+                            Button(vm.L(L10n.Settings.fallbackGetKey)) {
+                                NSWorkspace.shared.open(DeepLDesktop.apiKeyPageURL)
+                            }
                         }
                     }
                     // Dit seulement quand l'application est là. Une résolution
@@ -531,6 +549,10 @@ private struct LocalAISettingsSection: View {
                                 .foregroundColor(.green)
                             Button(vm.L(L10n.Settings.fallbackClear)) {
                                 vm.clearDeepLKey()
+                                // Le champ réapparaît : le laisser prérempli
+                                // de ce qu'on venait de saisir rendrait la
+                                // suppression douteuse.
+                                fallbackKeyDraft = ""
                                 // Une case cochée sans clé n'aurait plus de
                                 // sens : la décocher évite qu'elle se
                                 // rallume toute seule à la prochaine clé.

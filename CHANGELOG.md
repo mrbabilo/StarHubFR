@@ -12,6 +12,11 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Fixed
+- **Creating a profile without a name silently did nothing.** Both "Create empty profile" and "Take the mods currently enabled" closed the dialog without creating anything, indistinguishable from Cancel. The name field now arrives filled in, and the two buttons are disabled if you clear it.
+- **Deleting the active profile left the mods with no owner.** No profile was active any more, while the mods the deleted profile had enabled stayed on disk, and nothing said so. The delete dialog now also offers "Delete and activate <profile>", which picks up the default profile — next to plain deletion, since re-activating on its own would move hundreds of folders unasked.
+- **A saved DeepL key no longer leaves its field open for editing.** Like the Nexus key, it is replaced by a mask once saved, so an existing key cannot be overwritten by accident.
+
 ### Changed
 - **The "All" view no longer groups mods by enabled/disabled.** It split the page into two sections before anything else, which overrode the sort you picked: sorting by weight surfaced the heaviest *enabled* mod, never the heaviest mod, even though three quarters of the weight sits in paused ones. The list now follows its sort order straight through. A mod's state still reads at a glance from the green or grey accent bar and the dot beside its name.
 
