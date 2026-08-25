@@ -862,7 +862,9 @@ backup se retrouve en moins de dix secondes.
       **Ce que la tâche doit livrer, au-delà de la copie** : dire quel mod sera modifié
       **avant** d'écrire, refuser proprement quand le mod cible n'est pas installé (et le
       nommer), et laisser une trace récupérable — une greffe est invisible dans le registre,
-      qui ne connaît que des dossiers de premier niveau.
+      qui ne connaît que des dossiers de premier niveau. **Sauvegarder chaque fichier
+      écrasé** : sans ça, désinstaller une traduction laisserait le mod sans le `fr.json`
+      que son auteur livrait (voir **A3-T3**).
 
 #### A2 — Compatibilité SMAPI via l'API smapi.io
 
@@ -960,6 +962,20 @@ backup se retrouve en moins de dix secondes.
         aveugle** — même règle qu'A3-T1.
       - Croiser avec ce que l'app sait déjà : un mod dont `i18n/fr.json` est présent et à
         jour n'a rien à chercher (voir la couverture FR, **C1-T1**).
+      - **Suivre les mises à jour, et pouvoir désinstaller.** Une traduction installée doit
+        être retenue — quel mod elle traduit, quel `modId` Nexus, quelle version, quels
+        fichiers elle a déposés — sinon ni l'une ni l'autre n'est possible : une traduction
+        est invisible du registre des mods, qui ne connaît que des dossiers de premier
+        niveau. D'où `InstalledTranslationRegistry`. Deux conséquences qui ne vont pas de
+        soi :
+        1. *Suivre* = comparer la date Nexus de la version installée à la plus récente
+           trouvée, **pas** les numéros de version : les traducteurs ne les incrémentent pas
+           tous, et beaucoup reprennent celui du mod d'origine.
+        2. *Supprimer* = retirer les fichiers déposés **et rendre ce qu'ils ont écrasé**.
+           Un mod livré avec son propre `i18n/fr.json`, recouvert par une traduction
+           communautaire, se retrouverait sans français du tout si la désinstallation se
+           contentait d'effacer. La sauvegarde de l'écrasé est donc une obligation de
+           l'installation (**A1-T3**), pas une option.
 
 - [ ] **A3-T4** — **Trouver les suppléments d'un mod installé** : greffes d'assets et
       modificateurs (bagages `ItemBags`, packs de recettes…). Même socle qu'A3-T3, autre

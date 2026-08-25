@@ -30,6 +30,7 @@ let package = Package(
                 "Models/NexusRateLimitGate.swift",
                 "Models/NexusQuota.swift",
                 "Models/NexusModSearch.swift",
+                "Models/InstalledTranslation.swift",
                 "Models/ManifestVersionPatcher.swift",
                 "Models/DescriptionBlockParser.swift",
                 "Models/ModDependencyParser.swift",
@@ -204,6 +205,11 @@ let package = Package(
             name: "NexusRateLimitTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/NexusRateLimitTests"
+        ),
+        .testTarget(
+            name: "InstalledTranslationTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/InstalledTranslationTests"
         ),
         .testTarget(
             name: "NexusModSearchTests",
