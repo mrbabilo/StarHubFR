@@ -612,6 +612,13 @@
 "mod_install_button" = "Installer des mods";
 "mod_install_details_hint" = "Détails du mod";
 "mod_install_drop_zone" = "Déposez une archive de mod ici (.zip, .rar ou .7z)";
+"mod_install_deposit_title" = "Ajouter ces fichiers à un mod ?";
+"mod_install_deposit_message" = "Cette archive n'est pas un mod : elle contient %1$d fichier(s) destiné(s) à « %2$@ ». Ce qu'ils remplacent est sauvegardé d'abord, l'opération reste défaisable.";
+"mod_install_deposit_confirm" = "Ajouter à %@";
+"mod_install_deposit_choose" = "Cette archive contient %d fichier(s) destiné(s) à un mod, sans dire lequel. Choisissez le mod qui doit les recevoir.";
+"mod_install_deposit_choose_title" = "Quel mod doit recevoir ces fichiers ?";
+"mod_install_deposit_done" = "%1$d fichier(s) ajouté(s) à %2$@.";
+"mod_install_deposit_failed" = "Les fichiers n'ont pas pu être ajoutés.";
 "mod_install_drop_hint" = "ou cliquez pour parcourir";
 "mod_install_analyzing" = "Analyse de l'archive…";
 "mod_install_validation_error" = "Fichier de mod invalide";

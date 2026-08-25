@@ -36,6 +36,14 @@ struct ModInstallView: View {
     }
     @State private var droppedProposal: DroppedProposal?
     @State private var showDroppedProposal = false
+    /// Une archive sans manifeste que `ManifestlessArchive` a su situer, ou
+    /// dont il faut désigner l'hôte. Distinct de `droppedProposal`, qui ne
+    /// traite qu'un fichier nu reconnu à ses clés : ici c'est un dossier entier.
+    @State private var manifestlessPlan: ManifestlessArchive.Plan?
+    @State private var manifestlessCandidates: [String] = []
+    @State private var manifestlessEntries: [ManifestlessArchive.Entry] = []
+    @State private var showManifestlessPlan = false
+    @State private var showManifestlessChoice = false
 
     /// Binding controlled by the parent so the sheet can be dismissed from
     /// inside this view (close button / Done button).
@@ -128,6 +136,34 @@ struct ModInstallView: View {
                     Text(error)
                 }
             }
+        }
+        .alert(vm.L(L10n.ModInstall.depositTitle), isPresented: $showManifestlessPlan) {
+            if let plan = manifestlessPlan {
+                Button(String(format: vm.L(L10n.ModInstall.depositConfirm), plan.hostFolderName)) {
+                    deposit(plan)
+                }
+                Button(vm.L(L10n.ModInstall.cancel), role: .cancel) { manifestlessPlan = nil }
+            }
+        } message: {
+            if let plan = manifestlessPlan {
+                Text(String(format: vm.L(L10n.ModInstall.depositMessage),
+                            plan.entries.count, plan.hostFolderName))
+            }
+        }
+        .confirmationDialog(vm.L(L10n.ModInstall.depositChooseTitle),
+                            isPresented: $showManifestlessChoice, titleVisibility: .visible) {
+            // Un bouton par candidat : c'est l'utilisateur qui tranche, jamais
+            // l'heuristique — écrire dans le mauvais mod ne se rattrape pas.
+            ForEach(manifestlessCandidates, id: \.self) { candidate in
+                Button(candidate) {
+                    deposit(ManifestlessArchive.Plan(hostFolderName: candidate,
+                                                     kind: .addon,
+                                                     entries: manifestlessEntries))
+                }
+            }
+            Button(vm.L(L10n.ModInstall.cancel), role: .cancel) { manifestlessCandidates = [] }
+        } message: {
+            Text(String(format: vm.L(L10n.ModInstall.depositChoose), manifestlessEntries.count))
         }
         .alert(vm.L(L10n.ModInstall.droppedTitle), isPresented: $showDroppedProposal) {
             if let proposal = droppedProposal {
@@ -355,6 +391,18 @@ struct ModInstallView: View {
                             }
                         }
 
+                        // Le reconnaisseur ci-dessus ne traite qu'un fichier
+                        // nu identifié à ses clés. Une archive qui porte un
+                        // dossier — une traduction, un pack de greffes — relève
+                        // de `ManifestlessArchive`, qui la situe par sa
+                        // structure. Les deux se complètent ; aucun ne double
+                        // l'autre.
+                        if case .invalidStructure = info.validationStatus,
+                           self.considerManifestlessArchive() {
+                            self.zipModInfo = nil
+                            return
+                        }
+
                         switch info.validationStatus {
                         case .invalidStructure:
                             // Dire ce que l'archive contenait : sans cela
@@ -436,6 +484,63 @@ struct ModInstallView: View {
     /// Tente de reconnaître, dans le dossier extrait, un fichier destiné au
     /// dossier d'un autre mod. `nil` si rien n'est reconnu — l'archive suit
     /// alors le refus ordinaire.
+    /// Regarde si l'archive, faute de manifeste, vise un mod installé.
+    ///
+    /// - Returns: `true` quand une suite est proposée — plan à confirmer ou
+    ///   hôte à désigner —, `false` pour laisser le refus ordinaire suivre son
+    ///   cours.
+    private func considerManifestlessArchive() -> Bool {
+        guard let tempDir else { return false }
+        let paths = StarHubTHViewModel.archivePaths(under: tempDir)
+        let installed = vm.mods.map(\.folderName)
+        switch ManifestlessArchive.classify(paths: paths, installedFolderNames: installed) {
+        case .plan(let plan):
+            manifestlessPlan = plan
+            showManifestlessPlan = true
+            return true
+        case .needsHost(let candidates, _, let entries):
+            // Sans candidat, on n'a rien à proposer : le refus ordinaire dit au
+            // moins ce que l'archive contenait.
+            guard !candidates.isEmpty else { return false }
+            manifestlessCandidates = Array(candidates.prefix(4))
+            manifestlessEntries = entries
+            showManifestlessChoice = true
+            return true
+        case .unrecognised:
+            return false
+        }
+    }
+
+    /// Dépose les fichiers dans le mod désigné.
+    private func deposit(_ plan: ManifestlessArchive.Plan) {
+        guard let tempDir,
+              let host = vm.mods.first(where: { $0.folderName == plan.hostFolderName }),
+              let backupRoot = InstalledTranslationStore.backupRoot else {
+            errorMessage = vm.L(L10n.ModInstall.depositFailed)
+            showError = true
+            return
+        }
+        // Nom **physique** : un mod en pause vit dans un dossier préfixé d'un
+        // point, et le plan ne connaît que le nom logique.
+        let hostPath = URL(fileURLWithPath: vm.gameDir)
+            .appendingPathComponent("Mods")
+            .appendingPathComponent(host.physicalFolderName)
+        do {
+            let outcome = try ManifestlessInstaller.install(
+                plan: plan, extractedRoot: tempDir, hostPath: hostPath, backupRoot: backupRoot)
+            vm.log(String(format: vm.L(L10n.ModInstall.depositDone),
+                          outcome.written.count, host.name))
+            installer.cleanupTempDir(at: tempDir)
+            self.tempDir = nil
+            vm.refresh()
+            isPresented = false
+        } catch {
+            errorMessage = vm.L(L10n.ModInstall.depositFailed)
+            showError = true
+            vm.log("Dépôt d'archive sans manifeste : \(error)", level: .error)
+        }
+    }
+
     private func recognizeDroppedContent() -> DroppedOutcome? {
         guard let tempDir = tempDir,
               let found = DroppedContentRecognizer.recognize(inExtractedDirectory: tempDir)

@@ -920,6 +920,13 @@ enum L10n {
 
     // MARK: - ModInstall
     enum ModInstall {
+        static let depositTitle             = "mod_install_deposit_title"
+        static let depositMessage           = "mod_install_deposit_message"
+        static let depositConfirm           = "mod_install_deposit_confirm"
+        static let depositChoose            = "mod_install_deposit_choose"
+        static let depositChooseTitle       = "mod_install_deposit_choose_title"
+        static let depositDone              = "mod_install_deposit_done"
+        static let depositFailed            = "mod_install_deposit_failed"
         static let title                = "mod_install_title"
         static let installButton        = "mod_install_button"
         static let detailsHint          = "mod_install_details_hint"
