@@ -31,6 +31,7 @@ let package = Package(
                 "Models/NexusQuota.swift",
                 "Models/NexusModSearch.swift",
                 "Models/InstalledTranslation.swift",
+                "Models/InstalledTranslationStore.swift",
                 "Models/ManifestlessArchive.swift",
                 "Models/ManifestlessInstaller.swift",
                 "Models/ManifestVersionPatcher.swift",

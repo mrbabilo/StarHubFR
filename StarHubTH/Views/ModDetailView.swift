@@ -160,6 +160,7 @@ struct ModDetailView: View {
                     }
                 }
                 actionRow
+                if isTopLevel { TranslationSection(vm: vm, mod: live) }
             }
             Spacer(minLength: 8)
             metadataColumn
@@ -936,5 +937,129 @@ private struct TranslationProgressBar: View {
         .frame(height: 5)
         .accessibilityElement()
         .accessibilityLabel(Text("\(percent) %"))
+    }
+}
+
+
+// MARK: - Traduction française (A3-T3)
+
+/// Chercher, poser, suivre et retirer une traduction communautaire.
+///
+/// Une traduction n'est pas un mod : ce sont des fichiers déposés **dans** le
+/// mod traduit. Elle n'apparaît donc nulle part ailleurs dans l'app, et c'est
+/// ici — sur la fiche du mod concerné — qu'elle a un sens.
+///
+/// Absente des composants de pack : c'est le dossier de premier niveau qu'on
+/// traduit, comme c'est lui qu'on met en pause ou qu'on sauvegarde.
+private struct TranslationSection: View {
+    @ObservedObject var vm: StarHubTHViewModel
+    let mod: ModItem
+
+    private var installed: InstalledTranslation? { vm.translation(for: mod) }
+    private var hits: [NexusModSearch.Hit] { vm.translationHits[mod.folderName] ?? [] }
+    private var isSearching: Bool { vm.searchingTranslationFor == mod.folderName }
+    private var isBusy: Bool { vm.busyTranslationFor == mod.folderName }
+    private var update: NexusModSearch.Hit? { vm.translationUpdateAvailable(for: mod) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if let installed {
+                inPlace(installed)
+            }
+            searchRow
+            // Rien tant qu'on n'a pas cherché : une liste vide affichée
+            // d'emblée se lirait comme « aucune traduction n'existe », ce qu'on
+            // ne sait pas encore.
+            if !isSearching, vm.translationHits[mod.folderName] != nil {
+                if hits.isEmpty {
+                    Text(vm.L(L10n.Mods.translationNoneFound))
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                } else {
+                    ForEach(hits.prefix(4)) { hit in candidate(hit) }
+                }
+            }
+        }
+        .padding(.top, 4)
+    }
+
+    @ViewBuilder
+    private func inPlace(_ installed: InstalledTranslation) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: "checkmark.seal.fill")
+                .font(.system(size: 10))
+                .foregroundColor(.green)
+            Text(vm.L(L10n.Mods.translationInPlace))
+                .font(.system(size: 12, weight: .medium))
+            Text(installed.nexusName)
+                .font(.system(size: 11))
+                .foregroundColor(.secondary)
+                .lineLimit(1)
+                .truncationMode(.middle)
+            if update != nil {
+                Text(vm.L(L10n.Mods.translationUpdateAvailable))
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(.orange)
+            }
+            Spacer()
+            Button(vm.L(L10n.Mods.translationRemove)) { vm.removeTranslation(from: mod) }
+                .buttonStyle(.borderless)
+                .foregroundColor(.red)
+                .disabled(isBusy)
+                .font(.system(size: 11))
+        }
+    }
+
+    @ViewBuilder
+    private var searchRow: some View {
+        HStack(spacing: 8) {
+            Button {
+                vm.searchTranslations(for: mod)
+            } label: {
+                Label(vm.L(L10n.Mods.translationSearch), systemImage: "globe.badge.chevron.backward")
+                    .font(.system(size: 12))
+            }
+            .buttonStyle(.borderless)
+            .disabled(isSearching || isBusy || !vm.hasNexusApiKey)
+            .pointingHandCursor()
+            if isSearching {
+                ProgressView().controlSize(.small)
+                Text(vm.L(L10n.Mods.translationSearching))
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+            } else if isBusy {
+                ProgressView().controlSize(.small)
+            }
+        }
+    }
+
+    /// Une traduction proposée : son titre, son auteur, sa date, et le geste.
+    ///
+    /// La date est celle de Nexus, la même qui décide qu'une mise à jour
+    /// existe — les numéros de version ne servent à rien ici, beaucoup de
+    /// traducteurs reprennent celui du mod traduit.
+    @ViewBuilder
+    private func candidate(_ hit: NexusModSearch.Hit) -> some View {
+        HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 1) {
+                Text(hit.name)
+                    .font(.system(size: 11, weight: .medium))
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Text(String(format: vm.L(L10n.Mods.translationFromNexus), hit.uploader,
+                            hit.updatedAt.map { $0.formatted(date: .abbreviated, time: .omitted) } ?? "—"))
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+            }
+            Spacer()
+            Button(vm.L(installed?.nexusModId == hit.modId
+                        ? L10n.Mods.translationUpdate : L10n.Mods.translationInstall)) {
+                vm.installTranslation(hit, into: mod)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .disabled(isBusy)
+        }
+        .padding(.vertical, 2)
     }
 }

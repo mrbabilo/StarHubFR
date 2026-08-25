@@ -12,6 +12,9 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+- **A mod's page can find, install, follow and remove its French translation.** A translation is not a mod — it is files dropped *inside* the mod it translates — so it lives where it makes sense: on that mod's page. Nexus is searched by the mod's own name, narrowed by the `French` tag its authors use (77 of 80 translations carry it; the title is only a fallback). Installing puts every file it overwrites safely aside first, so removing gives back the `fr.json` the mod's own author shipped instead of leaving it with no French at all. A newer version is spotted by Nexus dates, not version numbers — translators routinely reuse the translated mod's number.
+
 ## [1.19.1] - 2026-08-25
 
 ### Added
