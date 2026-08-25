@@ -533,6 +533,10 @@
 "mods_page_indicator" = "Page %d of %d";
 "mods_page_showing" = "Showing %d–%d of %d";
 "mods_sort_size" = "Weight";
+"mods_anomaly_errors" = "%d recent error(s) on this version";
+"mods_anomaly_warnings" = "%d recent warning(s) on this version";
+"mods_anomaly_dependency" = "A required dependency is missing or paused";
+"mods_anomaly_unloadable" = "No identifier in the manifest — SMAPI will not load this mod";
 "mods_favorite_add" = "Add to favourites";
 "mods_favorite_remove" = "Remove from favourites";
 "mods_filter_favorites" = "Favourites";

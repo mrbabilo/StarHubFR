@@ -2647,6 +2647,29 @@ class StarHubTHViewModel: ObservableObject {
     }
     
     // Returns missing required unique IDs for a given mod
+    /// « Ce mod compte sur quelque chose qui n'est pas là » : une dépendance
+    /// requise absente, ou installée mais en pause.
+    ///
+    /// Portée par le ViewModel et non par la liste, parce que deux écrans s'en
+    /// servent désormais — le cadrage « Problèmes » et la pastille d'anomalie —
+    /// et que deux définitions de « ce mod a un problème » finiraient par ne
+    /// plus dire la même chose.
+    ///
+    /// Un mod en pause est écarté : il ne compte sur rien pour l'instant.
+    func hasDependencyIssue(_ mod: ModItem) -> Bool {
+        mod.isEnabled
+            && (!getMissingDependencies(for: mod).isEmpty
+                || !getDisabledDependencies(for: mod).isEmpty)
+    }
+
+    /// Ce qu'il faut signaler sur la ligne d'un mod, `nil` s'il n'y a rien.
+    /// Voir `ModAnomalyReport` — les compteurs ne portent que sur la version
+    /// installée.
+    func anomaly(for mod: ModItem) -> ModAnomaly? {
+        ModAnomalyReport.anomaly(for: mod, history: modErrorHistory,
+                                 dependencyIssue: { self.hasDependencyIssue($0) })
+    }
+
     func getMissingDependencies(for mod: ModItem) -> [String] {
         // Uses the precomputed index built in scanMods() — O(deps) per call,
         // safe to invoke from every ModListRow render.

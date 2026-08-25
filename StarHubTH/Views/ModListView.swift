@@ -95,11 +95,9 @@ struct ModListView: View {
     /// mod isn't currently relying on its dependencies, so it's excluded
     /// even if one is missing/disabled. Shared by `modsWithIssues` and
     /// `scopeCounts` so their notion of "has issues" can't drift apart.
-    private func hasIssues(_ mod: ModItem) -> Bool {
-        mod.isEnabled &&
-            (!vm.getMissingDependencies(for: mod).isEmpty
-                || !vm.getDisabledDependencies(for: mod).isEmpty)
-    }
+    /// Délègue au ViewModel : la pastille d'anomalie s'appuie sur la même
+    /// règle, et deux définitions de « ce mod a un problème » divergeraient.
+    private func hasIssues(_ mod: ModItem) -> Bool { vm.hasDependencyIssue(mod) }
 
     /// Scopes the list to the mod the user asked to jump to, clearing anything
     /// that could filter it out, then clears the request so it fires once.
@@ -1354,6 +1352,14 @@ struct ModListRow: View {
                             .fill(Color.secondary.opacity(0.35))
                             .frame(width: 5, height: 5)
                     }
+                    // À côté du nom, pas dans la bande de métadonnées : une
+                    // anomalie est un « regardez ici », pas un attribut de plus
+                    // à ranger entre les langues et les dates. Même forme que la
+                    // pastille de la page des profils, pour que les deux listes
+                    // parlent la même langue.
+                    if let anomaly = vm.anomaly(for: mod) {
+                        AnomalyBadge(anomaly: anomaly, vm: vm)
+                    }
                 }
                 
                 if mod.name != mod.folderName {
@@ -1868,5 +1874,58 @@ private struct ModWeightLabel: View {
                 .font(.system(size: 10, weight: isHeavy ? .semibold : .regular).monospacedDigit())
         }
         .foregroundColor(isHeavy ? .orange : .secondary)
+    }
+}
+
+
+// MARK: - Pastille d'anomalie (B1-T3)
+
+/// Ce qui empêche un mod de bien tourner, sur sa ligne.
+///
+/// Trois signaux sous une seule pastille : erreurs et avertissements relevés
+/// dans les journaux SMAPI **pour la version installée**, dépendance requise
+/// absente ou en pause, manifeste sans identifiant. Le détail passe par
+/// l'infobulle — la ligne porte déjà beaucoup.
+///
+/// Sur un parc réel, six mods sur 863 en portent une, dont un seul en rouge :
+/// c'est peu, et c'est le résultat attendu. Une pastille qui s'allumerait
+/// souvent ne dirait plus rien.
+private struct AnomalyBadge: View {
+    let anomaly: ModAnomaly
+    @ObservedObject var vm: StarHubTHViewModel
+
+    private var tint: Color { anomaly.severity == .error ? .orange : .yellow }
+
+    var body: some View {
+        HStack(spacing: 3) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 9))
+            if anomaly.badgeCount > 0 {
+                Text("\(anomaly.badgeCount)")
+                    .font(.system(size: 10, weight: .semibold).monospacedDigit())
+            }
+        }
+        .foregroundColor(tint)
+        .padding(.horizontal, 5)
+        .padding(.vertical, 1)
+        .background(Capsule().fill(tint.opacity(AppDesign.Opacity.medium)))
+        .help(reasons)
+        .accessibilityLabel(reasons)
+    }
+
+    /// Toutes les raisons, une par ligne : un mod peut cumuler une dépendance
+    /// manquante et des erreurs, et n'en montrer qu'une enverrait sur une
+    /// fausse piste.
+    private var reasons: String {
+        var lines: [String] = []
+        if anomaly.isUnloadable { lines.append(vm.L(L10n.Mods.anomalyUnloadable)) }
+        if anomaly.hasDependencyIssue { lines.append(vm.L(L10n.Mods.anomalyDependency)) }
+        if anomaly.errorCount > 0 {
+            lines.append(String(format: vm.L(L10n.Mods.anomalyErrors), anomaly.errorCount))
+        }
+        if anomaly.warningCount > 0 {
+            lines.append(String(format: vm.L(L10n.Mods.anomalyWarnings), anomaly.warningCount))
+        }
+        return lines.joined(separator: "\n")
     }
 }

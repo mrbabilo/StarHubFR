@@ -96,7 +96,7 @@ liste du 2026-07-30 et n'existaient pas dans le document de veille.
 | §1 | Signaler les mods incompatibles (`smapi.io/mods`) | **Partiel** | `brokenMods` extrait des avertissements *du log SMAPI* — aucune base externe → **A2** |
 | §1 | Activer automatiquement les dépendances | **Partiel** | `DependencyTreeView.swift:124` : bouton **Activer** par nœud. Manque l'action groupée → **A1-T1** |
 | §1 | Détecter un `manifest.json` corrompu, proposer une réinstallation | **Partiel** | `ModFolderRepairer.swift` répare des structures de dossiers, pas des manifests invalides → **A1-T2** |
-| §1 | Mise en évidence des problèmes dans la liste des mods | **Partiel** | Historique d'erreurs visible sur la fiche mod ; rien dans la liste → **B1-T3** |
+| §1 | Mise en évidence des problèmes dans la liste des mods | **Fait** | Pastille d'anomalie près du nom (**B1-T3**, pas encore publié) |
 | §2 | Dates Nexus (création / mise à jour) | **À revérifier** | `updated_timestamp` existe dans `NexusUpdateChecker.swift`, mais le champ présent ≠ affichage correct, et l'anomalie est re-signalée → **B2-T5** |
 | §2 | ETA pendant le téléchargement | **À faire** | Rien dans `Models/NexusDownloader.swift` → **B2-T1** |
 | §2 | Poids du mod, taille de `Mods/`, espace disque restant | **Fait** | Pied de barre latérale + fiche mod (**B2-T2**, pas encore publié) |
@@ -796,8 +796,18 @@ pouvoir revenir en arrière à tout moment.
       (extension SMAPI tolérée, absente = pas d'alerte), alerter l'utilisateur **avant**
       d'écraser la version existante (breaking change annoncé par l'auteur). · **S** ·
       *§audit-stardrop*
-- [ ] **B1-T3** — Pastilles d'anomalie dans la liste des mods (erreurs récentes, dépendance
-      manquante, manifest illisible) alimentées par `ModErrorHistory`. · **M**
+- [x] **B1-T3** — Pastilles d'anomalie dans la liste des mods. *Livré : une pastille orange
+      près du nom réunit les trois signaux — erreurs et avertissements des journaux SMAPI,
+      dépendance requise absente ou en pause, manifeste sans identifiant (SMAPI ne chargera
+      pas ce mod ; il apparaît bien dans la liste, avec `uniqueId` vide).
+      **Les compteurs ne portent que sur la version installée**, comme la fiche du mod :
+      mesuré avant d'écrire, un mod du parc totalisait 76 erreurs dont **une seule** sur sa
+      version courante, et trois autres n'avaient d'historique que sur une version remplacée
+      depuis. La règle de dépendance est celle du cadrage « Problèmes »
+      (`vm.hasDependencyIssue`, remontée de la vue au ViewModel), pas une seconde.
+      `ModAnomalyReport` (Core, 12 tests) agrège un pack sur son en-tête tout en laissant à
+      chaque composant la sienne — contrairement au poids, une erreur s'attribue.
+      **Empreinte sur le parc réel : 6 mods sur 863**, dont un seul en erreur.* · **M**
 
 **Critère de succès** : un profil se crée, se duplique et s'applique sans surprise ; un
 backup se retrouve en moins de dix secondes.
@@ -1119,8 +1129,9 @@ traductions. Le tout est sorti en **v1.18.0**.
    ce profil ». L'import renseigne `ProfileModMetadata` dans la même passe :
    sans quoi le diagnostic de profil n'aurait plus su nommer les mods entrés
    par ce chemin, des mois plus tard.
-3. **B1-T3** — pastilles d'anomalie dans la liste des mods, alimentées par
-   `ModErrorHistory`. Même geste que les pastilles de profil, déjà éprouvé.
+3. ~~**B1-T3**~~ *(livré)* — pastilles d'anomalie dans la liste des mods.
+   Ce que la mesure a tranché : compter toutes versions confondues aurait fait
+   crier la pastille pour des problèmes déjà réglés par une mise à jour.
 4. **B3-T5** (configs par profil) reste le plus gros et le plus risqué : il
    écrit dans les configs des mods. À instruire avant d'engager.
 

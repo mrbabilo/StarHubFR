@@ -12,6 +12,9 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+- **The mod list flags what is going wrong.** An orange badge next to a mod's name gathers three signals: errors and warnings SMAPI logged for it, a required dependency that is missing or paused, and a manifest with no identifier — which SMAPI will not load at all. Hover for the detail. The counts cover **the installed version only**, like the mod's own page: on a real library one mod had 76 errors on record but a single one on the version actually installed, and three others only had history against a version replaced since. A pack shows its components' trouble on its header, so nothing hides behind a collapsed row.
+
 ## [1.19.0] - 2026-08-25
 
 ### Added
