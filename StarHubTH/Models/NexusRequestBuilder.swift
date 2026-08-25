@@ -18,6 +18,18 @@ enum NexusRequestBuilder {
     /// Game domain used for every Nexus call in this app.
     static let gameDomain = "stardewvalley"
 
+    /// Identifiant **numérique** du jeu, tel que l'API GraphQL v2 l'exige.
+    ///
+    /// Lu sur `/v1/games/stardewvalley.json`. Il vit ici, à côté du domaine,
+    /// parce que la recherche v2 filtre sur lui et **pas** sur le domaine :
+    /// `gameDomainName` seul rend `totalCount: 0` sans la moindre erreur, ce
+    /// qui ferait passer une panne pour « aucun résultat ».
+    static let gameId = 1303
+
+    /// Point d'entrée de l'API GraphQL v2, la seule à savoir chercher un mod
+    /// par son nom (la v1 n'a pas de `search`). Non documentée publiquement.
+    static let graphQLURL = "https://api.nexusmods.com/v2/graphql"
+
     /// App version read from the bundle (e.g. "1.8.0"). Falls back to "1.0"
     /// when running outside a bundle (unit tests, swift run).
     static var appVersion: String {
@@ -55,6 +67,23 @@ enum NexusRequestBuilder {
         req.setValue(userAgent, forHTTPHeaderField: "User-Agent")
         req.setValue(appName, forHTTPHeaderField: "Application-Name")
         req.setValue(appVersion, forHTTPHeaderField: "Application-Version")
+        req.setValue("application/json", forHTTPHeaderField: "Accept")
+        return req
+    }
+
+    /// Construit la requête POST de l'API GraphQL v2, avec les mêmes en-têtes
+    /// d'identification que les appels v1 — c'est la raison d'être de ce
+    /// fichier : un second jeu d'en-têtes ferait voir deux clients à Nexus.
+    static func makeGraphQLRequest(body: Data, apiKey: String) -> URLRequest? {
+        guard let url = URL(string: graphQLURL) else { return nil }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.httpBody = body
+        req.setValue(apiKey, forHTTPHeaderField: "apikey")
+        req.setValue(userAgent, forHTTPHeaderField: "User-Agent")
+        req.setValue(appName, forHTTPHeaderField: "Application-Name")
+        req.setValue(appVersion, forHTTPHeaderField: "Application-Version")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.setValue("application/json", forHTTPHeaderField: "Accept")
         return req
     }
