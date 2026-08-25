@@ -1018,5 +1018,19 @@
   "mod_install_dropped_done_many": "%1$d files installed into %2$@",
   "mod_install_deposit_message_addon": "This archive is not a mod: it holds %1$d file(s) meant for “%2$@”. Anything they replace is saved to a backup first, but removing them afterwards is done by hand.",
   "mod_install_deposit_rollback_incomplete": "Nothing was installed, and undoing it did not fully succeed. These files were left as they are: %@",
-  "mods_translation_remove_not_tracked": "The files were removed, but the change could not be recorded: the translation may show up again on next launch."
+  "mods_translation_remove_not_tracked": "The files were removed, but the change could not be recorded: the translation may show up again on next launch.",
+  "mods_compat_status_broken": "Broken",
+  "mods_compat_status_abandoned": "Abandoned",
+  "mods_compat_status_obsolete": "Obsolete",
+  "mods_compat_status_unofficial": "Needs an unofficial fix",
+  "mods_compat_status_workaround": "A replacement exists",
+  "mods_compat_broke_in": "Broken since %@",
+  "mods_compat_source": "Reported by smapi.io",
+  "mods_compat_enable_title": "Turn on a mod reported as broken?",
+  "mods_compat_enable_confirm": "Turn on anyway",
+  "mods_compat_install_title": "This mod is reported as broken",
+  "mods_compat_install_confirm": "Install anyway",
+  "mods_compat_in_pack": "In this pack: %@",
+  "mods_compat_health_flagged": "%lld mod(s) reported broken by smapi.io",
+  "mods_compat_health_unknown": "%lld mod(s) unknown to smapi.io — no verdict either way"
 }

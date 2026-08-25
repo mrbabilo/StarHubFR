@@ -16,6 +16,9 @@ struct ModDetailView: View {
     @ObservedObject var vm: StarHubTHViewModel
     let mod: ModItem
     @State private var selectedTab = 0
+    /// Le mod dont l'activation attend une confirmation : smapi.io le signale
+    /// cassé. Voir `CompatibilityWarning`.
+    @State private var pendingActivation: ModItem?
 
     /// Draft text for the Nexus mod id field. Seeded once in `.onAppear` from
     /// the mod's effective id; safe to seed unconditionally (no "already
@@ -71,6 +74,9 @@ struct ModDetailView: View {
             }
         }
         .onAppear { seedDraft() }
+        .compatibilityGate(vm: vm, pending: $pendingActivation) { target in
+            vm.toggleMod(target)
+        }
         .task {
             translationStaleness = await vm.translationStaleness(for: mod)
             unloadableLocaleFiles = await vm.unloadableLocaleFiles(for: mod)
@@ -160,6 +166,7 @@ struct ModDetailView: View {
                     }
                 }
                 actionRow
+                CompatibilityBanner(vm: vm, mod: live)
                 if isTopLevel { TranslationSection(vm: vm, mod: live) }
             }
             Spacer(minLength: 8)
@@ -224,7 +231,14 @@ struct ModDetailView: View {
                         pendingToggle?.cancel()
                         let work = DispatchWorkItem {
                             if newValue != live.isEnabled {
-                                vm.toggleMod(live) { localIsOn = nil }
+                                // Activer un mod signalé cassé demande une
+                                // confirmation ; le mettre en pause, jamais.
+                                if vm.activationWarning(for: live) != nil {
+                                    localIsOn = nil
+                                    pendingActivation = live
+                                } else {
+                                    vm.toggleMod(live) { localIsOn = nil }
+                                }
                             } else {
                                 localIsOn = nil
                             }

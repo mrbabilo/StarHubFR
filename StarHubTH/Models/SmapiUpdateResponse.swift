@@ -21,6 +21,11 @@ public enum SmapiUpdateResponse {
         public let unofficial: Version?
         public let compatibilityStatus: String?
         public let compatibilitySummary: String?
+        /// La version du jeu qui a cassé le mod — « Stardew Valley 1.6 ».
+        /// Présente sur **les sept mods signalés** du parc réel, et jamais
+        /// décodée jusqu'ici : c'est elle qui distingue « ce mod a planté » de
+        /// « ce mod est cassé depuis la 1.6 ».
+        public let brokeIn: String?
     }
 
     public struct Mod: Decodable, Equatable {

@@ -29,6 +29,11 @@ struct SmapiHealthCard: View {
     private var hasDetails: Bool {
         !diagnostics.patchedMods.isEmpty || !diagnostics.saveSerializerMods.isEmpty
             || !diagnostics.consoleMods.isEmpty || !diagnostics.topErrorMods.isEmpty
+            // Un journal sans incident ne dit rien de la compatibilité : les
+            // sept mods signalés du parc n'ont **jamais** planté, ils sont en
+            // pause. Sans cette ligne, le bloc n'apparaîtrait que les jours où
+            // quelque chose d'autre a mal tourné.
+            || !vm.compatibilityFlaggedMods.isEmpty
     }
 
     /// Height of the window the card sits in, measured by `LogsView`. The card
@@ -207,6 +212,7 @@ struct SmapiHealthCard: View {
                 modSection(L10n.Logs.healthBroken, explanation: L10n.Logs.healthExpBroken,
                            mods: diagnostics.brokenMods, severity: .red, logHeader: "Broken mods")
             }
+            compatibilityBlock
             if !diagnostics.externalConflicts.isEmpty { conflictsBlock }
             if !diagnostics.saveSerializerMods.isEmpty {
                 modSection(L10n.Logs.healthSaveSerializer, explanation: L10n.Logs.healthExpSave,
@@ -334,6 +340,49 @@ struct SmapiHealthCard: View {
     }
 
     // MARK: - Section building blocks
+
+    /// Ce que smapi.io dit de la compatibilité du parc.
+    ///
+    /// **Les deux chiffres vont ensemble, et le second n'est pas décoratif** :
+    /// sur le parc de référence, sept mods sont signalés et **552 sur 840 sont
+    /// inconnus** de smapi.io. Montrer les sept sans dire les 552 laisserait
+    /// croire que le reste est vérifié sain, ce que personne n'a établi.
+    @ViewBuilder
+    private var compatibilityBlock: some View {
+        let flagged = vm.compatibilityFlaggedMods
+        let unknown = vm.compatibilityUnknownCount
+        if !flagged.isEmpty || unknown > 0 {
+            sectionCard(flagged.isEmpty ? .secondary : .red) {
+                sectionTitle(String(format: vm.L(L10n.Mods.compatHealthFlagged), flagged.count),
+                             icon: "exclamationmark.triangle.fill",
+                             color: flagged.isEmpty ? .secondary : .red)
+                ForEach(flagged.prefix(8), id: \.name) { entry in
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text(entry.name)
+                            .font(.system(size: 11, weight: .medium))
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                        Text(CompatibilityWarning.label(entry.verdict.status, vm))
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(CompatibilityWarning.tint(entry.verdict.status))
+                        if let brokeIn = entry.verdict.brokeIn {
+                            Text(String(format: vm.L(L10n.Mods.compatBrokeIn), brokeIn))
+                                .font(.system(size: 10))
+                                .foregroundColor(.secondary)
+                                .lineLimit(1)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                }
+                if unknown > 0 {
+                    Text(String(format: vm.L(L10n.Mods.compatHealthUnknown), unknown))
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+    }
 
     /// A section heading: a filled icon chip plus the title, sitting on the
     /// section's own tinted strip so each block announces itself.

@@ -56,6 +56,17 @@ class StarHubTHViewModel: ObservableObject {
     /// parc réel en portent un motif ; ils étaient jusqu'ici indistinguables
     /// à l'écran d'un mod vérifié et à jour.
     @Published private(set) var unverifiableMods: [String: SmapiUpdateResponse.Blocker] = [:]
+    /// Ce que smapi.io sait de la compatibilité de chaque mod, par `UniqueID`.
+    ///
+    /// Relu au lancement plutôt que reconstruit : l'avertissement le plus utile
+    /// se déclenche à l'**activation** d'un mod, geste qui n'attend pas qu'une
+    /// vérification ait abouti.
+    ///
+    /// Mesuré sur le parc : 281 mods `Ok`, 7 signalés, et **552 sans verdict**.
+    /// Une absence n'est donc pas un satisfecit, et rien ne doit l'afficher
+    /// comme tel.
+    @Published private(set) var modCompatibility: [String: ModCompatibility] =
+        ModCompatibilityStore.load()
     /// True while a Nexus check is in flight.
     @Published var isCheckingNexusUpdates: Bool = false
     /// Last error message from a Nexus check (nil = none / not run yet).
@@ -3533,6 +3544,68 @@ class StarHubTHViewModel: ObservableObject {
             })
     }
 
+    /// Le verdict de compatibilité qui **demande une décision** pour ce mod,
+    /// et le composant qui le porte.
+    ///
+    /// Un pack rend celui du plus grave de ses composants, avec le composant
+    /// lui-même : c'est le dossier de premier niveau qu'on active ou qu'on met
+    /// en pause, mais c'est l'enfant qu'il faut nommer pour que l'utilisateur
+    /// sache où regarder.
+    ///
+    /// `nil` couvre **deux cas très différents** — le mod est sain, ou
+    /// smapi.io ne le connaît pas (552 mods du parc sur 840). Aucun appelant ne
+    /// doit rendre l'un pour l'autre : ce qui s'affiche ici est un
+    /// avertissement, jamais un satisfecit.
+    func compatibilityWarning(for mod: ModItem) -> (component: ModItem,
+                                                    verdict: ModCompatibility)? {
+        let components = mod.isGroup ? (mod.children ?? []) : [mod]
+        return components
+            .compactMap { component -> (component: ModItem, verdict: ModCompatibility)? in
+                guard let verdict = modCompatibility[component.uniqueId],
+                      verdict.status.needsAttention else { return nil }
+                return (component, verdict)
+            }
+            .max { $0.verdict.status.severity < $1.verdict.status.severity }
+    }
+
+    /// Les mods installés que smapi.io signale, par nom, du plus grave au moins.
+    var compatibilityFlaggedMods: [(name: String, verdict: ModCompatibility)] {
+        allInstalledMods()
+            .compactMap { mod -> (name: String, verdict: ModCompatibility)? in
+                guard let verdict = modCompatibility[mod.uniqueId],
+                      verdict.status.needsAttention else { return nil }
+                return (mod.name, verdict)
+            }
+            .sorted {
+                $0.verdict.status.severity != $1.verdict.status.severity
+                    ? $0.verdict.status.severity > $1.verdict.status.severity
+                    : $0.name.lowercased() < $1.name.lowercased()
+            }
+    }
+
+    /// Combien de mods installés smapi.io ne sait **pas** juger.
+    ///
+    /// Le chiffre qui donne sa mesure à tout le reste : 552 sur 840 au relevé
+    /// du 2026-08-25. Une absence de signalement ne vaut pas quitus, et le dire
+    /// est la seule façon honnête de présenter les sept qui le sont.
+    var compatibilityUnknownCount: Int {
+        allInstalledMods().filter { !$0.uniqueId.isEmpty && modCompatibility[$0.uniqueId] == nil }
+            .count
+    }
+
+    /// L'avertissement à montrer **avant d'activer** ce mod, s'il y a lieu.
+    ///
+    /// `nil` quand le mod est déjà actif : mettre en pause un mod cassé est
+    /// précisément ce qu'il faut faire, et le confirmer serait une friction
+    /// pure. C'est aussi ce qui protège l'application d'un profil, qui bascule
+    /// des centaines de dossiers sans qu'aucune alerte n'ait à s'ouvrir — elle
+    /// passe par `toggleMod`, pas par cette porte.
+    func activationWarning(for mod: ModItem) -> (component: ModItem,
+                                                 verdict: ModCompatibility)? {
+        guard !mod.isEnabled else { return nil }
+        return compatibilityWarning(for: mod)
+    }
+
     /// Transforme les verdicts de smapi.io en lignes affichables, et retient
     /// les motifs de non-vérifiabilité.
     private func applySmapiResults(_ mods: [SmapiUpdateResponse.Mod],
@@ -3609,6 +3682,34 @@ class StarHubTHViewModel: ObservableObject {
         let merged = (updates + unanswered)
             .sorted { $0.name.lowercased() < $1.name.lowercased() }
         unverifiableMods = blockers
+
+        // Les verdicts de compatibilité, que la réponse portait déjà et que
+        // personne ne lisait. Fusionnés et non remplacés, pour la raison qui
+        // vaut pour les lignes de mise à jour : un lot en échec laisse des mods
+        // sans réponse, et les oublier effacerait un « cassé depuis la 1.6 »
+        // que rien ne contredit.
+        var verdicts = modCompatibility
+        for mod in mods {
+            guard let metadata = mod.metadata else { continue }
+            if let verdict = ModCompatibility.from(status: metadata.compatibilityStatus,
+                                                   brokeIn: metadata.brokeIn,
+                                                   summary: metadata.compatibilitySummary) {
+                verdicts[mod.id] = verdict
+            } else {
+                // smapi.io ne sait rien de ce mod : retirer un verdict devenu
+                // caduc vaut mieux que d'afficher celui d'avant.
+                verdicts.removeValue(forKey: mod.id)
+            }
+        }
+        // Un mod désinstallé n'a plus de verdict à porter.
+        verdicts = verdicts.filter { stillInstalled.contains($0.key) }
+        modCompatibility = verdicts
+        if !ModCompatibilityStore.save(verdicts) {
+            // Les verdicts valent pour cette session, mais l'avertissement à
+            // l'activation ne se rouvrira pas au prochain lancement.
+            log("Verdicts de compatibilité non enregistrés : l'avertissement à "
+                + "l'activation ne survivra pas à la fermeture", level: .warning)
+        }
 
         // Persister, sinon tout ceci meurt à la fermeture et le lancement
         // suivant réaffiche `cachedUpdates()` — la liste écrite par le code que

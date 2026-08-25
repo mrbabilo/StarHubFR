@@ -93,7 +93,7 @@ liste du 2026-07-30 et n'existaient pas dans le document de veille.
 | **§new** | `stardew-i18n-translator` comme référence de pipeline i18n | *(précision)* | Affine **C3** — voir la réserve de licence en §5 |
 | §1 | Refonte du log SMAPI façon *Log Doctor* | **Fait** | `Models/SmapiLogDiagnostics.swift`, `Views/Components/SmapiHealthCard.swift`, v1.9.x–1.10.0 |
 | §1 | Optimiser l'affichage des ~2000 lignes | **Fait** | `LazyVStack` + repliement par famille (`Models/LogNoise.swift`), v1.10.0 |
-| §1 | Signaler les mods incompatibles (`smapi.io/mods`) | **Partiel** | L'API live est branchée (`SmapiUpdateClient`, **A2-T1 livré**) et rapporte `compatibilityStatus` ; **rien ne l'affiche** → **A2-T2** |
+| §1 | Signaler les mods incompatibles (`smapi.io/mods`) | **Fait** | L'API live est branchée (**A2-T1**) et son verdict s'affiche — fiche, carte de santé, et confirmation avant activation ou installation (**A2-T2**) |
 | §1 | Activer automatiquement les dépendances | **Partiel** | `DependencyTreeView.swift:124` : bouton **Activer** par nœud. Manque l'action groupée → **A1-T1** |
 | §1 | Détecter un `manifest.json` corrompu, proposer une réinstallation | **Partiel** | `ModFolderRepairer.swift` répare des structures de dossiers, pas des manifests invalides → **A1-T2** |
 | §1 | Mise en évidence des problèmes dans la liste des mods | **Fait** | Pastille d'anomalie près du nom (**B1-T3**, pas encore publié) |
@@ -136,7 +136,7 @@ de la liste de l'auteur. Analyse complète et exclusions motivées : `docs/audit
 
 | Source | Demande | État | Preuve / renvoi |
 | :-- | :-- | :-- | :-- |
-| *audit* | Compatibilité mods via l'**API live `smapi.io`** (plutôt que le dump statique `mods.jsonc`) | **Partiel** | Plus riche : statut + mise à jour suggérée + URL unofficial. Repositionne **A2** |
+| *audit* | Compatibilité mods via l'**API live `smapi.io`** (plutôt que le dump statique `mods.jsonc`) | **Fait** | Plus riche : statut + mise à jour suggérée + URL unofficial. Repositionne **A2** |
 | *audit* | **Configs par profil** (un même mod, plusieurs `config.json`) | **À faire** | Manquante ; merge JSON non-destructif → **B3-T5** |
 | *audit* | Notes libres par mod | **À faire** | → **B3-T6** |
 | *audit* | Quota Nexus quotidien visible | **Fait** | Relevé sur toute réponse, affiché dans les réglages (**B2-T6**, pas encore publié) |
@@ -925,11 +925,37 @@ backup se retrouve en moins de dix secondes.
       (décodage, classement des erreurs), tous trois testés ; `checkNexusUpdates`
       les branche avec une progression par lot. **Les lots font 150, pas 10** :
       mesuré sûr sur un parc de 960 mods en 7 lots, ce qui périme la prescription
-      de throttle d'A2-T4. Reste ouvert : l'affichage du statut (**A2-T2**) —
-      `compatibilityStatus` et `unofficial` arrivent et ne sont montrés nulle part.*
-- [ ] **A2-T2** — Afficher le statut, `brokeIn` et le **lien de mise à jour non officielle /
+      de throttle d'A2-T4. L'affichage du statut a suivi le même jour (**A2-T2**).*
+- [x] **A2-T2** — Afficher le statut, `brokeIn` et le **lien de mise à jour non officielle /
       mod de remplacement** sur la fiche mod et dans la carte de santé. · **M**
-      ⚠️ **Constat du 2026-08-01, à traiter ici** : `NexusUpdateChecker.compare(_:_:)`
+      *Livré le 2026-08-25, sous une forme que la mesure a dictée. **Interrogé
+      smapi.io avec les 840 mods interrogeables du parc avant d'écrire une ligne** :
+      552 sans aucun statut (66 %), 281 `Ok`, 5 `Unofficial`, 2 `Workaround`, et
+      aucun `Broken`/`Abandoned`/`Obsolete`. Les sept signalés portent tous un
+      `brokeIn` et **aucun `suggestedUpdate`** — invisibles pour la liste des
+      mises à jour —, et **les sept étaient déjà en pause** : l'utilisateur les
+      avait diagnostiqués seul. D'où la forme retenue, les deux à la fois :
+      - **passive** — bandeau sur la fiche du mod, bloc dans la carte de santé.
+        Le bloc annonce **les deux chiffres** : montrer les sept sans dire les
+        552 inconnus laisserait croire le reste vérifié sain ;
+      - **au moment qui décide** — une confirmation avant d'**activer** un mod
+        signalé (liste, fiche, arbre de dépendances) et avant d'en **installer**
+        un. Jamais avant une mise en pause, qui est le bon geste ; et
+        l'application d'un profil n'en déclenche aucune, elle passe par
+        `toggleMod`.
+
+      Deux trouvailles ont façonné le code : **`brokeIn` était dans la réponse et
+      n'était pas décodé**, et **l'action vit dans `compatibilitySummary`, pas
+      dans `unofficial`** — ce dernier n'est rempli que 2 fois sur 7, et son URL
+      pointe vers `smapi.io` lui-même. Les liens utiles sont des liens Markdown
+      dans la phrase, mêlés à des `<small>` : d'où `ModCompatibility`
+      (Core, testé sur les sept phrases réelles) qui les en sort.
+
+      **La réserve sur `compare(_:_:)` est caduque** : depuis le passage à
+      smapi.io, ce n'est plus lui qui décide d'une mise à jour — il ne sert plus
+      qu'à la consolidation par pack et au tri de la liste. Le classement d'une
+      version `-unofficial` avant l'officielle n'a plus d'effet visible.
+      ⚠️ *(constat conservé pour mémoire, désamorcé — voir ci-dessus)* **2026-08-01** : `NexusUpdateChecker.compare(_:_:)`
       classe `1.0.0-unofficial.3-auteur` **avant** `1.0.0`, parce que le semver rétrograde
       toute version portant un tag de pré-version. Or la communauté Stardew publie ces
       correctifs **après** la version qu'ils réparent, et ils la remplacent. Conséquence :

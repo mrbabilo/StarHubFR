@@ -59,6 +59,9 @@ struct DependencyNodeTree: View {
 struct DependencyRowView: View {
     let node: DependencyNode
     @ObservedObject var vm: StarHubTHViewModel
+    /// La dépendance dont l'activation attend une confirmation : smapi.io la
+    /// signale cassée. Voir `CompatibilityWarning`.
+    @State private var pendingActivation: ModItem?
 
     var body: some View {
         HStack(spacing: 10) {
@@ -93,6 +96,9 @@ struct DependencyRowView: View {
         .overlay(RoundedRectangle(cornerRadius: 8).stroke(iconColor.opacity(0.25), lineWidth: 1))
         .contentShape(Rectangle())
         .modifier(NodeTapModifier(mod: node.resolved, vm: vm))
+        .compatibilityGate(vm: vm, pending: $pendingActivation) { target in
+            vm.toggleMod(target)
+        }
     }
 
     private var iconName: String {
@@ -121,7 +127,16 @@ struct DependencyRowView: View {
     private var actionButton: some View {
         switch node.status {
         case .disabled(let depMod):
-            Button(vm.L(L10n.Mods.depEnable)) { vm.toggleMod(depMod) }
+            Button(vm.L(L10n.Mods.depEnable)) {
+                // Même porte qu'ailleurs : activer un mod signalé cassé se
+                // confirme. Une dépendance cassée est justement le cas où
+                // l'utilisateur a le plus besoin de le savoir avant de cliquer.
+                if vm.activationWarning(for: depMod) != nil {
+                    pendingActivation = depMod
+                } else {
+                    vm.toggleMod(depMod)
+                }
+            }
                 .buttonStyle(.bordered).controlSize(.small).pointingHandCursor()
         case .active:
             let link = node.resolved.map { vm.nexusLink(for: $0) } ?? ""

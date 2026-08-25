@@ -43,6 +43,7 @@ let package = Package(
                 "Models/LogNoise.swift",
                 "Models/ModErrorHistory.swift",
                 "Models/ModAnomaly.swift",
+                "Models/ModCompatibility.swift",
                 "Models/ManifestJSON.swift",
                 "Models/BisectionEvidence.swift",
                 "Models/BisectionSession.swift",
@@ -334,6 +335,11 @@ let package = Package(
             name: "ModAnomalyTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ModAnomalyTests"
+        ),
+        .testTarget(
+            name: "ModCompatibilityTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ModCompatibilityTests"
         ),
         .testTarget(
             name: "FavoriteResolutionTests",

@@ -59,6 +59,9 @@ struct ModInstallView: View {
     /// remis à nil dès qu'une proposition de dépôt s'affiche, alors que c'est
     /// ce nom qui nommera la traduction sur la fiche du mod.
     @State private var analyzedArchiveName = ""
+    /// La sélection dont l'installation attend une confirmation : smapi.io
+    /// signale l'un de ses mods comme cassé. Voir `CompatibilityWarning`.
+    @State private var pendingBrokenInstall: [InstallSelection]?
     @State private var showManifestlessPlan = false
     @State private var showManifestlessChoice = false
 
@@ -152,6 +155,39 @@ struct ModInstallView: View {
                 } else {
                     Text(error)
                 }
+            }
+        }
+        .alert(vm.L(L10n.Mods.compatInstallTitle),
+               isPresented: Binding(get: { pendingBrokenInstall != nil },
+                                    set: { if !$0 { pendingBrokenInstall = nil } })) {
+            if let selections = pendingBrokenInstall {
+                let broken = brokenAmong(selections)
+                ForEach(broken.first?.verdict.links.prefix(2) ?? [], id: \.url) { link in
+                    Button(link.label) {
+                        if let url = URL(string: link.url) { NSWorkspace.shared.open(url) }
+                        pendingBrokenInstall = nil
+                    }
+                }
+                Button(vm.L(L10n.Mods.compatInstallConfirm)) {
+                    // **Directement `performInstall`, jamais `installSelected`.**
+                    // Repasser par la porte dépendrait de l'ordre dans lequel
+                    // SwiftUI exécute l'action et vide le binding : s'il le vide
+                    // d'abord, la question se reposerait — en boucle.
+                    pendingBrokenInstall = nil
+                    performInstall(selections: selections)
+                }
+                Button(vm.L(L10n.ModInstall.cancel), role: .cancel) { pendingBrokenInstall = nil }
+            }
+        } message: {
+            if let selections = pendingBrokenInstall {
+                Text(brokenAmong(selections).map { entry in
+                    var line = entry.name + " — " + CompatibilityWarning.label(entry.verdict.status, vm)
+                    if let brokeIn = entry.verdict.brokeIn {
+                        line += "\n" + String(format: vm.L(L10n.Mods.compatBrokeIn), brokeIn)
+                    }
+                    if !entry.verdict.summary.isEmpty { line += "\n" + entry.verdict.summary }
+                    return line
+                }.joined(separator: "\n\n"))
             }
         }
         .alert(vm.L(L10n.ModInstall.depositTitle), isPresented: $showManifestlessPlan) {
@@ -680,6 +716,32 @@ struct ModInstallView: View {
     }
 
     private func installSelected(selections: [InstallSelection]) {
+        // **Le moment qui décide.** Sept mods du parc sont signalés cassés, et
+        // les sept étaient déjà en pause : l'utilisateur les avait trouvés
+        // seul. Ce qu'il ne peut pas savoir, c'est qu'un mod qu'il vient de
+        // télécharger l'est aussi. On le dit ici, avant d'écrire.
+        guard brokenAmong(selections).isEmpty else {
+            pendingBrokenInstall = selections
+            return
+        }
+        performInstall(selections: selections)
+    }
+
+    /// Les mods de la sélection que smapi.io signale, avec leur verdict.
+    private func brokenAmong(_ selections: [InstallSelection])
+        -> [(name: String, verdict: ModCompatibility)] {
+        guard let info = zipModInfo else { return [] }
+        let selected = Set(selections.filter { $0.selected }.map { $0.modId })
+        return info.detectedMods
+            .filter { selected.contains($0.id) }
+            .compactMap { detected in
+                guard let verdict = vm.modCompatibility[detected.uniqueId],
+                      verdict.status.needsAttention else { return nil }
+                return (detected.name, verdict)
+            }
+    }
+
+    private func performInstall(selections: [InstallSelection]) {
         guard let tempDir = tempDir,
               let info = zipModInfo else { return }
 

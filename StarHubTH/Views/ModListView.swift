@@ -1203,6 +1203,9 @@ struct ModListRow: View {
     @State private var pendingToggle: DispatchWorkItem?
     /// Drives the confirmation dialog before deleting this row's mod.
     @State private var showDeleteConfirm = false
+    /// Le mod dont l'activation attend une confirmation : smapi.io le signale
+    /// cassé. Voir `CompatibilityWarning`.
+    @State private var pendingActivation: ModItem?
 
     private var modRowA11yLabel: String {
         String(
@@ -1709,6 +1712,17 @@ struct ModListRow: View {
                             pendingToggle?.cancel()
                             let work = DispatchWorkItem {
                                 if newValue != mod.isEnabled {
+                                    // Activer un mod que smapi.io signale cassé
+                                    // demande une confirmation ; le mettre en
+                                    // pause, jamais. La bascule optimiste est
+                                    // rendue tout de suite : l'interrupteur ne
+                                    // doit pas rester sur « actif » pendant que
+                                    // l'alerte attend une réponse.
+                                    if vm.activationWarning(for: mod) != nil {
+                                        localIsOn = nil
+                                        pendingActivation = mod
+                                        return
+                                    }
                                     // Keep the optimistic value until toggleMod's completion
                                     // confirms vm.mods has actually caught up — clearing it
                                     // eagerly here races the background scanMods() and made
@@ -1809,6 +1823,9 @@ struct ModListRow: View {
              Text(mod.isGroup
                  ? vm.L(L10n.Mods.deleteConfirmPack)
                  : vm.L(L10n.Mods.deleteConfirmMessage))
+        }
+        .compatibilityGate(vm: vm, pending: $pendingActivation) { target in
+            vm.toggleMod(target)
         }
     }
 
