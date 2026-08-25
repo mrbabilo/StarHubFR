@@ -1026,6 +1026,21 @@ backup se retrouve en moins de dix secondes.
       `content.json`, qui enverrait n'importe quel pack au mauvais endroit. A1-T3 rend la
       table inutile : une archive inconnue demande son hôte au lieu d'être devinée.*
 
+      ✅ **Faisabilité mesurée sur l'API réelle le 2026-08-25.** Deux inconnues levées :
+      1. *Trouver* — `op: WILDCARD` est bien une recherche **par sous-chaîne**, pas par
+         préfixe : chercher « Wildflour » rend « Item Bags for Wildflour's Atelier Goods »,
+         chercher « Cornucopia » rend « Whipped Cream for Cornucopia Artisan Machines ».
+         Le nom du mod installé suffit donc comme requête, sans traitement.
+      2. *Trier* — **c'est là qu'est le travail, pas dans la recherche.** Les résultats sont
+         noyés de traductions : sur « Sword and Sorcery », les 8 premiers sur 26 sont des
+         traductions (JP, CN, HU, PT-BR, ID, RU…). Le champ `tags { name }` **existe sur
+         chaque nœud** et tranche net : sur douze résultats « Wildflour », les six
+         traductions portent toutes le tag `Translation`, et les deux vrais suppléments
+         (« Item Bags for… », « Domed Pots compatibility for… ») n'en portent aucun.
+         La règle est donc : chercher par le nom du mod, **écarter le tag `Translation`**,
+         écarter le mod hôte lui-même par son `modId`. Reste à porter `tags` dans
+         `NexusModSearch.Hit`, qui ne le lit pas encore.*
+
 **Critère de succès** : passer de « ce mod a planté » à « ce mod est cassé depuis
 SMAPI 3.0, voici son remplaçant ».
 
