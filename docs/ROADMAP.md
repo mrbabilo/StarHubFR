@@ -106,7 +106,7 @@ liste du 2026-07-30 et n'existaient pas dans le document de veille.
 | §2 | Vérifier le bouton d'activation de la page dépendances | **Bug présumé** | Le bouton existe (`DependencyTreeView.swift:124`) ; c'est son effet qui est douteux → **X3** |
 | §2 | Boutons de rafraîchissement (quarantaine, alertes système) | **À faire** | → **B2-T3** |
 | §3 | Reconnaître les mods de traduction (i18n seul) | **Partiel** | `ModItem.languages`, filtre `FrenchTranslationScope` et heuristique de nom (`ModItem.swift:99`) — mais **aucun test structurel** → **C1-T4** |
-| **§new** | Installer une archive sans manifeste (traduction d'un mod, greffe type `ItemBags`) | **À faire** | Signalé le 2026-08-25 ; jeu d'épreuve dans `mods tests/` → **A1-T3** |
+| **§new** | Installer une archive sans manifeste (traduction d'un mod, greffe type `ItemBags`) | **Fait** | Livré le 2026-08-25 (**A1-T3**, pas encore publié) ; jeu d'épreuve dans `mods tests/` |
 | **§new** | Chercher sur Nexus les traductions FR et les suppléments des mods installés | **Partiel** | Traductions livrées (**A3-T2/T3**) ; les suppléments restent à découvrir → **A3-T4** |
 | §3 | Nouveau profil créé **vide** | **Fait** (2026-08-24) | L'alerte propose les deux voies, « vide » en premier ; `ProfileFactory` (Core, testé) → **B3-T1** |
 | §3 | Favoris de mods + import dans un profil | **Fait** | Étoile, cadrage, import nommant les intraduisibles (**B3-T2**, pas encore publié) |
@@ -773,6 +773,15 @@ pouvoir revenir en arrière à tout moment.
 - [ ] **B2-T5** — Reprendre l'affichage des dates d'un mod : distinguer explicitement
       *date de création Nexus* et *date de mise à jour*, et vérifier laquelle est montrée
       où (liste, fiche, bandeau de mise à jour). · **S**
+      *Revérifié le 2026-08-25 : **ce n'est pas un défaut d'affichage**. L'app ne capte
+      qu'une seule date Nexus — `updated_timestamp` → `NexusModExtra.uploadedTime` — et
+      les trois endroits qui la montrent la nomment juste : « MàJ » dans la liste
+      (`ModListView.swift:1305`), « Dernière mise à jour » sur la fiche
+      (`ModDetailView.swift:326`), la date du fichier dans le bandeau
+      (`MainView.swift:794`). La date d'installation à côté vient du `manifest.json`,
+      étiquetée « Installé ». `created_timestamp` n'est simplement **jamais demandé**.
+      Reste donc un ajout — montrer l'âge d'un mod —, pas une correction : le requalifier
+      avant de le prendre.*
 - [x] **B2-T6** — Quota Nexus quotidien visible (header `x-rl-daily-remaining`). *Livré :
       les six en-têtes `x-rl-*` sont relevés sur **toute** réponse Nexus — succès comme 429,
       car c'est le refus qui porte le « 0 restant » — par un `NexusQuota` pur
@@ -794,10 +803,19 @@ pouvoir revenir en arrière à tout moment.
       donc une requête tous les quarts d'heure pour rien, jusqu'à la remise à zéro. Depuis
       B2-T6 l'instant exact de remise à zéro est connu — la porte peut s'y aligner au lieu
       de deviner. · **S**
+      *Mesuré le 2026-08-25 sur le compte de référence : **20 000/jour et 2 000/heure**,
+      dont 19 969 et 1 999 restants. C'est donc la fenêtre **horaire** qui est atteignable,
+      pas la journalière — l'app n'appelant plus l'API qu'à la demande, il faudrait
+      2 000 fiches de mods ouvertes en une heure. Le correctif garde son sens, son urgence
+      non. Au passage : ce compte est **non premium** et annonce pourtant 20 000/jour —
+      le plafond ne dit rien du type de compte.*
 - [ ] **B2-T7** — `UpdateCautionMessage` : si un manifest installé expose ce champ
       (extension SMAPI tolérée, absente = pas d'alerte), alerter l'utilisateur **avant**
       d'écraser la version existante (breaking change annoncé par l'auteur). · **S** ·
       *§audit-stardrop*
+      *Mesuré le 2026-08-25 : **0 mod sur 863** expose ce champ dans le parc de référence.
+      La fonctionnalité ne montrerait rien aujourd'hui ; elle ne vaudra que pour un mod
+      installé plus tard qui l'annonce. À garder, pas à prioriser.*
 - [x] **B1-T3** — Pastilles d'anomalie dans la liste des mods. *Livré : une pastille orange
       près du nom réunit les trois signaux — erreurs et avertissements des journaux SMAPI,
       dépendance requise absente ou en pause, manifeste sans identifiant (SMAPI ne chargera

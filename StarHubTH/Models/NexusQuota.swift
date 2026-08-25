@@ -15,8 +15,14 @@ import Foundation
 public struct NexusQuota: Codable, Equatable, Sendable {
     /// Une fenêtre de comptage (horaire ou journalière).
     public struct Window: Codable, Equatable, Sendable {
-        /// Plafond annoncé (2 500/jour en compte gratuit, 20 000 en premium).
-        /// Optionnel : le reste seul suffit à afficher quelque chose.
+        /// Plafond annoncé. Optionnel : le reste seul suffit à afficher
+        /// quelque chose.
+        ///
+        /// ⚠️ **Il ne dit rien du type de compte.** Mesuré le 2026-08-25 sur le
+        /// compte de référence, que `NexusAccountValidator` déclare
+        /// `isPremium: false` : 20 000/jour et 2 000/heure. Déduire « premium »
+        /// d'un plafond élevé est l'erreur qui a déjà été commise une fois —
+        /// seul `/users/validate.json` répond à cette question.
         public let limit: Int?
         /// Ce qu'il reste d'appels dans la fenêtre.
         public let remaining: Int
