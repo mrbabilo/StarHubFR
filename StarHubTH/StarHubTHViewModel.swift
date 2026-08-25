@@ -4359,7 +4359,14 @@ class StarHubTHViewModel: ObservableObject {
                     self.depositTranslation(archive: archive, hit: hit, into: mod)
                 case .failure(let error):
                     self.busyTranslationFor = nil
-                    self.showModal(message: self.nexusDownloadMessage(error))
+                    // Sans lien direct, la voie manuelle reste ouverte : le
+                    // message nomme le bouton qui y mène plutôt que de laisser
+                    // l'utilisateur devant une impasse.
+                    var hint = ""
+                    if case .noDownloadLink = error {
+                        hint = "\n\n" + self.L(L10n.Mods.translationManualHint)
+                    }
+                    self.showModal(message: self.nexusDownloadMessage(error) + hint)
                 }
             }
         }

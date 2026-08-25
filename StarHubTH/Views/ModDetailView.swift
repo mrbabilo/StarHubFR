@@ -1052,6 +1052,24 @@ private struct TranslationSection: View {
                     .foregroundColor(.secondary)
             }
             Spacer()
+            // Même paire de boutons que les mises à jour de mods : le
+            // téléchargement direct, qui demande un compte Premium, et la
+            // sortie vers Nexus. Elle ouvre l'onglet **Files**, où vit le
+            // téléchargement gratuit par gestionnaire de mods — la page
+            // d'accueil du mod, elle, ne le porte pas.
+            Button {
+                if let url = URL(string:
+                    "https://www.nexusmods.com/stardewvalley/mods/\(hit.modId)?tab=files") {
+                    NSWorkspace.shared.open(url)
+                }
+            } label: {
+                Label(vm.L(L10n.Mods.translationOpenNexus), systemImage: "arrow.up.right.square")
+                    .font(.system(size: 11))
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .pointingHandCursor()
+
             Button(vm.L(installed?.nexusModId == hit.modId
                         ? L10n.Mods.translationUpdate : L10n.Mods.translationInstall)) {
                 vm.installTranslation(hit, into: mod)

@@ -541,6 +541,8 @@
   "mods_translation_installed": "“%1$@” installed on %2$@.",
   "mods_translation_install_failed": "The translation could not be installed.",
   "mods_translation_not_tracked": "The translation was installed, but could not be recorded: it will not be possible to remove it from here.",
+  "mods_translation_open_nexus": "Nexus",
+  "mods_translation_manual_hint": "Direct download needs a Nexus Premium account. Use the “Nexus” button next to the translation: it opens the mod's Files tab, where the free Mod Manager Download lives.",
   "mods_translation_unrecognised": "This archive does not look like a translation for this mod.",
   "mods_translation_remove": "Remove the translation",
   "mods_translation_remove_partial": "Some files could not be removed: %@",

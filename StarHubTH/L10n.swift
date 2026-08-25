@@ -217,6 +217,8 @@ enum L10n {
         static let translationInstalled         = "mods_translation_installed"
         static let translationInstallFailed     = "mods_translation_install_failed"
         static let translationNotTracked       = "mods_translation_not_tracked"
+        static let translationOpenNexus        = "mods_translation_open_nexus"
+        static let translationManualHint       = "mods_translation_manual_hint"
         static let translationUnrecognised      = "mods_translation_unrecognised"
         static let translationRemove            = "mods_translation_remove"
         static let translationRemovePartial     = "mods_translation_remove_partial"

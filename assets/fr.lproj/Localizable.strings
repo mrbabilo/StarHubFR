@@ -541,6 +541,8 @@
 "mods_translation_installed" = "« %1$@ » installée sur %2$@.";
 "mods_translation_install_failed" = "La traduction n'a pas pu être installée.";
 "mods_translation_not_tracked" = "La traduction est installée, mais n'a pas pu être enregistrée : il ne sera pas possible de la retirer depuis l'application.";
+"mods_translation_open_nexus" = "Nexus";
+"mods_translation_manual_hint" = "Le téléchargement direct demande un compte Nexus Premium. Utilisez le bouton « Nexus » à côté de la traduction : il ouvre l'onglet Files du mod, où se trouve le téléchargement gratuit par gestionnaire de mods.";
 "mods_translation_unrecognised" = "Cette archive ne ressemble pas à une traduction de ce mod.";
 "mods_translation_remove" = "Retirer la traduction";
 "mods_translation_remove_partial" = "Certains fichiers n'ont pas pu être retirés : %@";
