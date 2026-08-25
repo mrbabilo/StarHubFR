@@ -201,15 +201,37 @@ public enum NexusModSearch {
             .filter { !$0.isEmpty })
     }
 
-    /// Parmi des résultats de recherche, les seules traductions françaises,
-    /// la plus récemment mise à jour en tête.
+    /// Parmi des résultats de recherche **non filtrés par le serveur**, les
+    /// seules traductions françaises, la plus récemment mise à jour en tête.
     ///
-    /// Le mod hôte lui-même en est écarté : son titre ne porte aucun marqueur
-    /// — sauf s'il est lui-même français, auquel cas le proposer n'a rien
-    /// d'absurde.
-    public static func frenchTranslations(among hits: [Hit]) -> [Hit] {
-        hits.filter { announcesFrenchTranslation($0.name) }
+    /// Réservé à la recherche large, où rien d'autre que le titre ne distingue
+    /// une traduction. Sur un résultat déjà restreint au tag `French`, c'est
+    /// `ranked(_:excluding:)` qu'il faut : y rejouer le titre jetterait les
+    /// traductions correctement taguées dont le titre ne dit rien.
+    public static func frenchTranslations(among hits: [Hit],
+                                          excluding hostModId: Int? = nil) -> [Hit] {
+        hits.filter { announcesFrenchTranslation($0.name) && $0.modId != hostModId }
             .sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
+    }
+
+    /// Des résultats **déjà tagués `French` par le serveur**, les plus probables
+    /// d'abord.
+    ///
+    /// **Le titre classe, il ne filtre pas.** Sur 80 traductions relevées, 77
+    /// portent le tag : rejeter celles dont le titre ne dit pas « FR »
+    /// reviendrait à perdre celles-là mêmes que le tag rattrapait, et la fiche
+    /// annoncerait qu'aucune traduction n'existe.
+    ///
+    /// Le mod hôte est écarté : un mod qui porte le tag `French` parce qu'il
+    /// est lui-même français n'est pas sa propre traduction.
+    public static func ranked(_ hits: [Hit], excluding hostModId: Int? = nil) -> [Hit] {
+        hits.filter { $0.modId != hostModId }
+            .sorted {
+                let left = announcesFrenchTranslation($0.name)
+                let right = announcesFrenchTranslation($1.name)
+                if left != right { return left }
+                return ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast)
+            }
     }
 
     /// `2026-08-16T15:32:14Z`, avec ou sans fraction de seconde.

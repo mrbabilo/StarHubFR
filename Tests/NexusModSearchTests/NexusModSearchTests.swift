@@ -259,6 +259,41 @@ struct NexusModSearchTests {
         #expect(NexusModSearch.frenchTranslations(among: [undated, dated]).map(\.modId) == [1, 2])
     }
 
+    // MARK: - Résultats déjà tagués par le serveur
+
+    /// **Le tag suffit.** Une traduction correctement taguée `French` dont le
+    /// titre ne dit rien était jetée par le filtre de titre : la fiche
+    /// annonçait qu'aucune traduction n'existait alors que Nexus venait de la
+    /// rendre.
+    @Test func aTaggedTranslationSurvivesASilentTitle() {
+        func hit(_ id: Int, _ name: String, _ day: Int) -> NexusModSearch.Hit {
+            NexusModSearch.Hit(modId: id, name: name, version: "1",
+                               updatedAt: Date(timeIntervalSince1970: TimeInterval(day) * 86400),
+                               categoryName: "", uploader: "", adultContent: false)
+        }
+        let hits = [hit(1, "Parchment Traduction", 10), hit(2, "Parchment", 30)]
+        #expect(NexusModSearch.ranked(hits).map(\.modId) == [1, 2])
+    }
+
+    /// Le titre classe : à égalité de marqueur, la plus récente devant.
+    @Test func rankedFallsBackOnRecency() {
+        func hit(_ id: Int, _ day: Int) -> NexusModSearch.Hit {
+            NexusModSearch.Hit(modId: id, name: "Mod FR", version: "1",
+                               updatedAt: Date(timeIntervalSince1970: TimeInterval(day) * 86400),
+                               categoryName: "", uploader: "", adultContent: false)
+        }
+        #expect(NexusModSearch.ranked([hit(1, 10), hit(2, 30)]).map(\.modId) == [2, 1])
+    }
+
+    /// Un mod français n'est pas sa propre traduction.
+    @Test func theHostModIsNeverProposedAsItsOwnTranslation() {
+        let host = NexusModSearch.Hit(modId: 42, name: "Mod Francais", version: "1",
+                                      updatedAt: nil, categoryName: "", uploader: "",
+                                      adultContent: false)
+        #expect(NexusModSearch.ranked([host], excluding: 42).isEmpty)
+        #expect(NexusModSearch.frenchTranslations(among: [host], excluding: 42).isEmpty)
+    }
+
     @Test func fractionalSecondsAreAlsoParsed() {
         #expect(NexusModSearch.parseDate("2026-08-09T17:33:00.500Z") != nil)
         #expect(NexusModSearch.parseDate("pas une date") == nil)
