@@ -136,18 +136,31 @@ public enum DroppedContentRecognizer {
     }
 
     /// Le premier fichier JSON d'une archive extraite qu'une règle reconnaît.
+    public static func recognize(inExtractedDirectory directory: URL,
+                                 fileManager: FileManager = .default)
+        -> (rule: DroppedContentRule, fileURL: URL)? {
+        recognizeAll(inExtractedDirectory: directory, fileManager: fileManager).first
+    }
+
+    /// **Tous** les fichiers JSON de la racine qu'une règle reconnaît.
+    ///
+    /// Il y en a souvent plusieurs : sur les archives de référence,
+    /// `Utility Bags` en porte huit et `Sword and Sorcery Bags` cinq. N'en
+    /// installer qu'un laisserait les autres sur le carreau sans le dire, alors
+    /// que l'utilisateur a téléchargé le lot pour le lot.
     ///
     /// N'examine que la **racine** : ces fichiers se distribuent seuls ou à
     /// quelques-uns, jamais enfouis. Descendre plus bas ferait courir le risque
     /// d'attraper un fichier interne d'un mod légitime dont le manifeste n'a pas
     /// été détecté pour une autre raison.
-    public static func recognize(inExtractedDirectory directory: URL,
-                                 fileManager: FileManager = .default)
-        -> (rule: DroppedContentRule, fileURL: URL)? {
+    public static func recognizeAll(inExtractedDirectory directory: URL,
+                                    fileManager: FileManager = .default)
+        -> [(rule: DroppedContentRule, fileURL: URL)] {
         // `try?` délibéré : un dossier illisible n'a simplement rien à
         // reconnaître, et l'appelant ne pourrait qu'afficher le refus ordinaire.
         let entries = (try? fileManager.contentsOfDirectory(
             at: directory, includingPropertiesForKeys: nil)) ?? []
+        var found: [(rule: DroppedContentRule, fileURL: URL)] = []
         for url in entries.sorted(by: { $0.lastPathComponent < $1.lastPathComponent })
         where url.pathExtension.lowercased() == "json" {
             // Lecture **laxiste** : ces fichiers sont écrits à la main par les
@@ -161,9 +174,9 @@ public enum DroppedContentRecognizer {
                   let object = I18nLenientParser.lenientObject(decoded.text),
                   let match = rule(forJSONKeys: Set(object.keys))
             else { continue }
-            return (match, url)
+            found.append((match, url))
         }
-        return nil
+        return found
     }
 
     /// Les mods et les composants des packs : un framework hôte peut très bien

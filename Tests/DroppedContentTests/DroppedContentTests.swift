@@ -163,6 +163,19 @@ struct DroppedContentScanTests {
         #expect(found?.fileURL.lastPathComponent == "Cloth and Colors Bag.json")
     }
 
+    /// **Un lot est un lot.** `Utility Bags` en porte huit et
+    /// `Sword and Sorcery Bags` cinq : n'en installer qu'un laisserait les
+    /// autres sur le carreau, et l'écran annoncerait pourtant une réussite.
+    @Test func everyBagOfTheArchiveIsFound() throws {
+        let extracted = try Extracted(files: ["S&S Druid.json": bagJSON,
+                                              "S&S Food.json": bagJSON,
+                                              "notes.txt": "rien",
+                                              "config.json": #"{"a": 1}"#])
+        defer { extracted.cleanup() }
+        let found = DroppedContentRecognizer.recognizeAll(inExtractedDirectory: extracted.directory)
+        #expect(found.map(\.fileURL.lastPathComponent) == ["S&S Druid.json", "S&S Food.json"])
+    }
+
     @Test func anArchiveOfOrdinaryJsonIsNotRecognized() throws {
         let extracted = try Extracted(files: ["data.json": #"{"a": 1}"#])
         defer { extracted.cleanup() }
