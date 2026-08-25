@@ -1240,7 +1240,9 @@ struct ModListRow: View {
         static let author: CGFloat = 150
         static let version: CGFloat = 80
 
-        static let french: CGFloat = 48
+        /// « FR 100 % » en français, espace insécable compris : huit signes,
+        /// pas quatre.
+        static let french: CGFloat = 66
         static let updated: CGFloat = 110
         static let installed: CGFloat = 105
         static let weight: CGFloat = 82
@@ -1872,6 +1874,7 @@ private struct InferredTagBadge: View {
     let label: String
     var body: some View {
         Text(label)
+            .lineLimit(1)
             .font(.system(size: 10, weight: .medium))
             .padding(.horizontal, 6).padding(.vertical, 2)
             .background(Color.secondary.opacity(AppDesign.Opacity.medium))
@@ -1909,6 +1912,11 @@ private struct FrenchCoverageBadge: View {
             // doivent s'aligner verticalement pour se comparer d'un coup d'œil,
             // sinon chaque pastille danse d'une ligne à l'autre.
             .font(.system(size: 10, weight: .semibold).monospacedDigit())
+            // Sur une seule ligne, quoi qu'il arrive : dans une colonne de
+            // largeur fixe, « FR 100 % » se repliait et poussait le « % » sous
+            // le reste. `fixedSize` prime sur la contrainte de la colonne.
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
             .foregroundColor(tint)
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
@@ -1931,6 +1939,13 @@ private struct VersionBadge: View {
     var body: some View {
         Text("v\(version)")
             .font(.system(size: 10, weight: .medium, design: .monospaced))
+            // Le parc réel monte à 28 signes (« 0.6.3-unofficial-mushymato.1 »,
+            // « %ProjectVersion% ») : sans garde, la capsule se repliait sur
+            // deux lignes et faisait enfler la rangée. Coupée au milieu, le
+            // numéro majeur et le suffixe restent tous deux lisibles.
+            .lineLimit(1)
+            .truncationMode(.middle)
+            .help(version)
             .foregroundColor(.secondary)
             .padding(.horizontal, 5)
             .padding(.vertical, 1)
