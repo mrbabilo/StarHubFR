@@ -12,11 +12,11 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
-### Changed
-- **The mod list lines up.** Category, author, version, then coverage, dates and weight each sit in their own column, so the same value falls at the same place on every row — comparing two weights or two dates across 863 mods no longer means hunting for them. Columns give way rather than clip when the window narrows. A long author name is trimmed in the middle, keeping both the original author and whoever maintains it now, with the full name on hover. The language list closes the row, where its width costs nothing.
-
 ### Added
 - **The mod list flags what is going wrong.** An orange badge next to a mod's name gathers three signals: errors and warnings SMAPI logged for it, a required dependency that is missing or paused, and a manifest with no identifier — which SMAPI will not load at all. Hover for the detail. The counts cover **the installed version only**, like the mod's own page: on a real library one mod had 76 errors on record but a single one on the version actually installed, and three others only had history against a version replaced since. A pack shows its components' trouble on its header, so nothing hides behind a collapsed row.
+
+### Changed
+- **The mod list lines up.** Category, author and version, then dates, weight, languages and French coverage: each value sits in a column of its own, at the same place on every row — comparing two weights or two dates across 863 mods no longer means hunting for them. A field with nothing to show keeps its slot, so what follows never shifts up. A long author name is trimmed in the middle, keeping both the original author and whoever maintains it now, with the full name on hover; so is a long version number. The bullets that used to separate these fields are gone — columns need no separators.
 
 ## [1.19.0] - 2026-08-25
 
