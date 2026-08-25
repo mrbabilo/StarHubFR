@@ -1294,12 +1294,11 @@ struct ModListRow: View {
     /// reflue quand la fenêtre se resserre, plutôt que de rogner le nom du mod
     /// au-dessus.
     ///
-    /// Seules les valeurs **comparables** ont un créneau. La liste des langues
-    /// est un ensemble, pas une grandeur : rien ne s'y compare d'une ligne à
-    /// l'autre, et la moitié du parc n'en a aucune (445 dossiers sur 863). Lui
-    /// réserver une gouttière aurait creusé un vide une ligne sur deux ; elle
-    /// ferme donc la bande, où sa largeur variable ne décale plus rien — et les
-    /// puces « • » qui séparaient les champs n'ont plus lieu d'être.
+    /// Chaque valeur garde son créneau même absente : sans quoi ce qui la suit
+    /// remonte d'un cran et la colonne se défait — la moitié du parc n'ayant
+    /// aucune langue déclarée (445 dossiers sur 863), une ligne sur deux
+    /// décalait tout ce qui venait après. Les puces « • » qui séparaient les
+    /// champs n'ont plus lieu d'être : des colonnes n'ont pas de séparateurs.
     private var rowMetadataLine: AnyView? {
         let updated = vm.nexusLastUpdated(for: mod)
         let installed = mod.installedFileDate
@@ -1312,18 +1311,19 @@ struct ModListRow: View {
         guard updated != nil || installed != nil || !langs.isEmpty || size != nil else { return nil }
         return AnyView(
             HStack(spacing: 10) {
-                frenchSlot(langs: langs)
                 updatedSlot(updated)
                 installedSlot(installed)
                 weightSlot(size)
                 languagesLabel(langs)
+                frenchSlot(langs: langs)
             }
         )
     }
 
-    /// La couverture française ouvre la bande : c'est l'information que ce
-    /// produit existe pour donner, et elle se perdait au milieu des codes de
-    /// langue, de l'horloge et de la date.
+    /// La couverture française **ferme** la bande, juste après les codes de
+    /// langue dont elle précise l'un des membres : les deux se lisent ensemble,
+    /// et le bout de ligne en fait un point d'arrivée du regard plutôt qu'un
+    /// préambule à franchir avant les dates.
     @ViewBuilder
     private func frenchSlot(langs: [String]) -> some View {
         Group {
