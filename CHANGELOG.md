@@ -13,11 +13,14 @@ where the exact log format was verified.
 ## [Unreleased]
 
 ### Added
-- **An archive that is not a mod is no longer just refused.** Dropping a translation or a bag pack used to end on "manifest.json missing" and nothing else. The app now works out which installed mod the files are for and offers to add them — and when the archive's folder name matches no installed mod, it asks you which one rather than guessing. On a set of nine real archives, seven were placed on their own and two were handed back as a choice with the right mod first. Whatever is overwritten is backed up first.
+- **An archive that is not a mod is no longer just refused.** Dropping a translation or a bag pack used to end on "manifest.json missing" and nothing else. The app now works out which installed mod the files are for and offers to add them — and when the archive's folder name matches no installed mod, it asks you which one rather than guessing. On a set of nine real archives, seven were placed on their own and two were handed back as a choice with the right mod first. Whatever is overwritten is backed up first, and a translation dropped this way gets the same **Remove** button on the mod's page as one found on Nexus.
 - **A mod's page can find, install, follow and remove its French translation.** A translation is not a mod — it is files dropped *inside* the mod it translates — so it lives where it makes sense: on that mod's page. Nexus is searched by the mod's own name, narrowed by the `French` tag its authors use (77 of 80 translations carry it; the title is only a fallback). Installing puts every file it overwrites safely aside first, so removing gives back the `fr.json` the mod's own author shipped instead of leaving it with no French at all. A newer version is spotted by Nexus dates, not version numbers — translators routinely reuse the translated mod's number.
 
 ### Changed
 - **The app no longer offers a download your account cannot make.** Nexus reserves direct API downloads for Premium accounts; on a free one every such button ended in the same error, discovered only after clicking. The account's status is now read once and kept for a week, and the three places that offered a direct download — mod updates, profile diagnostics, translations — disable it and say why. A **Nexus** button sits next to it, opening the mod's Files tab where the free Mod Manager download lives. Nothing is hidden while the status is unknown: a button that might fail beats a missing button for someone entitled to it.
+
+### Fixed
+- **An archive of several bags now installs all of them.** A file recognised as content for another mod — an ItemBags bag, say — was installed one at a time: the first of the archive, silently, with the rest left behind. Two of the reference archives hold ten and five bags. Every recognised file now goes in, and the confirmation names the count and the folder that will receive them.
 
 ## [1.19.1] - 2026-08-25
 

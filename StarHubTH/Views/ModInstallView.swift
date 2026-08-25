@@ -26,13 +26,23 @@ struct ModInstallView: View {
     /// Le dossier temporaire reste vivant tant que cette proposition est à
     /// l'écran : c'est de là que le fichier sera copié.
     private struct DroppedProposal {
+        /// Un fichier reconnu et sa place chez l'hôte.
+        struct File {
+            let source: URL
+            let destination: URL
+        }
         let hostDisplayName: String
         /// Le mod hôte lui-même, pour pouvoir le sauvegarder avant écrasement
         /// sans avoir à le retrouver depuis le chemin de destination.
         let host: ModItem
-        let sourceURL: URL
-        let destinationURL: URL
+        /// **Tous** les fichiers reconnus, pas seulement le premier : les
+        /// archives de sacs se distribuent par lot — dix dans `Utility Bags`,
+        /// cinq dans `Sword and Sorcery Bags`.
+        let files: [File]
         let hostIsPaused: Bool
+
+        /// Le dossier qui les recevra, commun à tous.
+        var destinationFolder: URL { files[0].destination.deletingLastPathComponent() }
     }
     @State private var droppedProposal: DroppedProposal?
     @State private var showDroppedProposal = false
@@ -42,6 +52,13 @@ struct ModInstallView: View {
     @State private var manifestlessPlan: ManifestlessArchive.Plan?
     @State private var manifestlessCandidates: [String] = []
     @State private var manifestlessEntries: [ManifestlessArchive.Entry] = []
+    /// Ce que l'archive dépose. Une traduction s'inscrit au registre et se
+    /// retire depuis la fiche du mod ; une greffe, non — et le message le dit.
+    @State private var manifestlessKind: ManifestlessArchive.Kind = .addon
+    /// Le nom de l'archive en cours d'analyse. Retenu à part : `zipModInfo` est
+    /// remis à nil dès qu'une proposition de dépôt s'affiche, alors que c'est
+    /// ce nom qui nommera la traduction sur la fiche du mod.
+    @State private var analyzedArchiveName = ""
     @State private var showManifestlessPlan = false
     @State private var showManifestlessChoice = false
 
@@ -146,7 +163,11 @@ struct ModInstallView: View {
             }
         } message: {
             if let plan = manifestlessPlan {
-                Text(String(format: vm.L(L10n.ModInstall.depositMessage),
+                // Une greffe ne promet pas d'être défaisable depuis l'app : le
+                // registre ne retient que les traductions.
+                Text(String(format: vm.L(plan.kind == .translation
+                                         ? L10n.ModInstall.depositMessage
+                                         : L10n.ModInstall.depositMessageAddon),
                             plan.entries.count, plan.hostFolderName))
             }
         }
@@ -157,7 +178,7 @@ struct ModInstallView: View {
             ForEach(manifestlessCandidates, id: \.self) { candidate in
                 Button(candidate) {
                     deposit(ManifestlessArchive.Plan(hostFolderName: candidate,
-                                                     kind: .addon,
+                                                     kind: manifestlessKind,
                                                      entries: manifestlessEntries))
                 }
             }
@@ -320,6 +341,7 @@ struct ModInstallView: View {
     private func analyzeZip(_ url: URL) {
         isAnalyzing = true
         zipModInfo = nil
+        analyzedArchiveName = url.deletingPathExtension().lastPathComponent
 
         // Discard any previous temp dir before re-analyzing.
         if let oldTemp = tempDir {
@@ -466,8 +488,17 @@ struct ModInstallView: View {
     /// façon pour l'utilisateur de vérifier qu'on écrit là où il l'entend.
     private var droppedProposalMessage: String {
         guard let proposal = droppedProposal else { return "" }
-        var text = String(format: vm.L(L10n.ModInstall.droppedQuestion),
-                          proposal.hostDisplayName, proposal.destinationURL.path)
+        var text: String
+        if proposal.files.count == 1 {
+            text = String(format: vm.L(L10n.ModInstall.droppedQuestion),
+                          proposal.hostDisplayName, proposal.files[0].destination.path)
+        } else {
+            // Un lot : c'est le dossier qui compte, pas dix chemins qui ne
+            // tiendraient pas dans l'alerte.
+            text = String(format: vm.L(L10n.ModInstall.droppedQuestionMany),
+                          proposal.files.count, proposal.hostDisplayName,
+                          proposal.destinationFolder.path)
+        }
         if proposal.hostIsPaused {
             text += "\n\n" + String(format: vm.L(L10n.ModInstall.droppedHostPaused),
                                     proposal.hostDisplayName)
@@ -498,12 +529,13 @@ struct ModInstallView: View {
             manifestlessPlan = plan
             showManifestlessPlan = true
             return true
-        case .needsHost(let candidates, _, let entries):
+        case .needsHost(let candidates, let kind, let entries):
             // Sans candidat, on n'a rien à proposer : le refus ordinaire dit au
             // moins ce que l'archive contenait.
             guard !candidates.isEmpty else { return false }
             manifestlessCandidates = Array(candidates.prefix(4))
             manifestlessEntries = entries
+            manifestlessKind = kind
             showManifestlessChoice = true
             return true
         case .unrecognised:
@@ -512,62 +544,74 @@ struct ModInstallView: View {
     }
 
     /// Dépose les fichiers dans le mod désigné.
+    ///
+    /// Passe par le ViewModel : c'est lui qui tient le registre des traductions,
+    /// sans lequel le bouton « Retirer » de la fiche du mod n'existerait pas —
+    /// et le message de confirmation promet précisément que l'opération reste
+    /// défaisable.
     private func deposit(_ plan: ManifestlessArchive.Plan) {
         guard let tempDir,
-              let host = vm.mods.first(where: { $0.folderName == plan.hostFolderName }),
-              let backupRoot = InstalledTranslationStore.backupRoot else {
+              let host = vm.mods.first(where: { $0.folderName == plan.hostFolderName }) else {
             errorMessage = vm.L(L10n.ModInstall.depositFailed)
             showError = true
             return
         }
-        // Nom **physique** : un mod en pause vit dans un dossier préfixé d'un
-        // point, et le plan ne connaît que le nom logique.
-        let hostPath = URL(fileURLWithPath: vm.gameDir)
-            .appendingPathComponent("Mods")
-            .appendingPathComponent(host.physicalFolderName)
-        do {
-            let outcome = try ManifestlessInstaller.install(
-                plan: plan, extractedRoot: tempDir, hostPath: hostPath, backupRoot: backupRoot)
-            vm.log(String(format: vm.L(L10n.ModInstall.depositDone),
-                          outcome.written.count, host.name))
-            installer.cleanupTempDir(at: tempDir)
-            self.tempDir = nil
-            vm.refresh()
-            isPresented = false
-        } catch {
-            errorMessage = vm.L(L10n.ModInstall.depositFailed)
+        let result = vm.depositIntoMod(plan: plan, extractedRoot: tempDir, host: host,
+                                       sourceName: analyzedArchiveName, nexus: nil)
+        guard let outcome = result.outcome else {
+            errorMessage = result.message ?? vm.L(L10n.ModInstall.depositFailed)
             showError = true
-            vm.log("Dépôt d'archive sans manifeste : \(error)", level: .error)
+            return
         }
+        vm.log(String(format: vm.L(L10n.ModInstall.depositDone),
+                      outcome.written.count, host.name))
+        installer.cleanupTempDir(at: tempDir)
+        self.tempDir = nil
+        vm.refresh()
+        // Un dépôt réussi peut avoir quelque chose à dire — le registre non
+        // écrit, par exemple. Ce n'est pas une erreur de validation : le dire
+        // par la fenêtre modale de l'app, et fermer la feuille comme d'habitude.
+        if let message = result.message { vm.showModal(message: message) }
+        isPresented = false
     }
 
     private func recognizeDroppedContent() -> DroppedOutcome? {
-        guard let tempDir = tempDir,
-              let found = DroppedContentRecognizer.recognize(inExtractedDirectory: tempDir)
-        else { return nil }
+        guard let tempDir = tempDir else { return nil }
+        let found = DroppedContentRecognizer.recognizeAll(inExtractedDirectory: tempDir)
+        guard let first = found.first else { return nil }
 
-        switch DroppedContentRecognizer.destination(for: found.rule,
-                                                    fileName: found.fileURL.lastPathComponent,
-                                                    installedMods: vm.mods,
-                                                    gameDir: vm.gameDir) {
-        case .ready(let destination, let paused):
-            let wanted = found.rule.hostUniqueId.lowercased()
-            guard let host = vm.mods
-                .flatMap({ $0.isGroup ? ($0.children ?? []) : [$0] })
-                .first(where: { $0.uniqueId.lowercased() == wanted })
-            else { return .hostMissing(found.rule.hostDisplayName) }
-            return .proposal(DroppedProposal(hostDisplayName: found.rule.hostDisplayName,
-                                             host: host,
-                                             sourceURL: found.fileURL,
-                                             destinationURL: destination,
-                                             hostIsPaused: paused))
-        case .hostMissing(let name):
-            return .hostMissing(name)
-        case .unusableFileName:
-            // Nom de fichier refusé : ne rien proposer, l'archive repart sur le
-            // refus ordinaire plutôt que sur une destination approximative.
-            return nil
+        var files: [DroppedProposal.File] = []
+        var paused = false
+        // Une seule proposition, donc un seul hôte : si l'archive mêlait des
+        // fichiers relevant de deux règles, seule la première est traitée.
+        for match in found where match.rule == first.rule {
+            switch DroppedContentRecognizer.destination(for: match.rule,
+                                                        fileName: match.fileURL.lastPathComponent,
+                                                        installedMods: vm.mods,
+                                                        gameDir: vm.gameDir) {
+            case .ready(let destination, let hostIsPaused):
+                files.append(.init(source: match.fileURL, destination: destination))
+                paused = hostIsPaused
+            case .hostMissing(let name):
+                return .hostMissing(name)
+            case .unusableFileName:
+                // Nom de fichier refusé : celui-là seul est écarté. Refuser le
+                // lot entier pour un nom douteux priverait l'utilisateur des
+                // neuf autres sacs.
+                continue
+            }
         }
+        // Rien de retenu : l'archive repart sur le refus ordinaire plutôt que
+        // sur une destination approximative.
+        guard !files.isEmpty else { return nil }
+
+        let wanted = first.rule.hostUniqueId.lowercased()
+        guard let host = vm.mods
+            .flatMap({ $0.isGroup ? ($0.children ?? []) : [$0] })
+            .first(where: { $0.uniqueId.lowercased() == wanted })
+        else { return .hostMissing(first.rule.hostDisplayName) }
+        return .proposal(DroppedProposal(hostDisplayName: first.rule.hostDisplayName,
+                                         host: host, files: files, hostIsPaused: paused))
     }
 
     /// Copie le fichier reconnu chez son hôte, après avoir sauvegardé ce dernier
@@ -586,12 +630,17 @@ struct ModInstallView: View {
                 // écraser » n'a de sens que si l'échec de la sauvegarde arrête
                 // l'écrasement. L'avaler écraserait un fichier retouché sans
                 // filet et sans le dire.
-                if FileManager.default.fileExists(atPath: proposal.destinationURL.path) {
+                // Une seule sauvegarde pour le lot : elle porte le dossier du
+                // mod entier, la refaire à chaque fichier n'ajouterait rien.
+                if proposal.files.contains(where: {
+                    FileManager.default.fileExists(atPath: $0.destination.path)
+                }) {
                     _ = try ModInstallBackupManager.shared.createBackup(
                         for: proposal.host, gameDir: gameDir, reason: .beforeInstall)
                 }
-                try DroppedContentRecognizer.install(from: proposal.sourceURL,
-                                                     to: proposal.destinationURL)
+                for file in proposal.files {
+                    try DroppedContentRecognizer.install(from: file.source, to: file.destination)
+                }
             } catch {
                 failure = self.vm.installErrorMessage(error)
             }
@@ -610,8 +659,11 @@ struct ModInstallView: View {
                     // mod existant, aucun dossier de mod n'a bougé. Rescanner
                     // ne changerait rien à l'écran et laisserait croire le
                     // contraire.
-                    self.installedModNames = [String(
-                        format: self.vm.L(L10n.ModInstall.droppedDone), proposal.hostDisplayName)]
+                    self.installedModNames = [proposal.files.count == 1
+                        ? String(format: self.vm.L(L10n.ModInstall.droppedDone),
+                                 proposal.hostDisplayName)
+                        : String(format: self.vm.L(L10n.ModInstall.droppedDoneMany),
+                                 proposal.files.count, proposal.hostDisplayName)]
                     self.showSuccess = true
                 }
             }

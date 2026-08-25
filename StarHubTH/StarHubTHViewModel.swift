@@ -4301,10 +4301,14 @@ class StarHubTHViewModel: ObservableObject {
     /// Vidé à chaque nouvelle recherche : ce n'est pas un cache, c'est le
     /// résultat de la dernière question posée.
     @Published private(set) var translationHits: [String: [NexusModSearch.Hit]] = [:]
-    /// Le mod dont la recherche est en cours, `nil` quand rien ne tourne.
-    @Published private(set) var searchingTranslationFor: String?
-    /// Le mod dont une traduction s'installe ou se retire.
-    @Published private(set) var busyTranslationFor: String?
+    /// Les mods dont une recherche est en cours.
+    ///
+    /// Un ensemble, pas un seul nom : la fiche désactive ses boutons **mod par
+    /// mod**, si bien qu'un verrou unique rendait muet le clic sur un second
+    /// mod — le bouton restait actif et ne faisait rien.
+    @Published private(set) var searchingTranslations: Set<String> = []
+    /// Les mods dont une traduction s'installe ou se retire.
+    @Published private(set) var busyTranslations: Set<String> = []
 
     /// La traduction posée sur ce mod, s'il y en a une.
     func translation(for mod: ModItem) -> InstalledTranslation? {
@@ -4329,12 +4333,12 @@ class StarHubTHViewModel: ObservableObject {
     /// traductions relevées, 77 le portent, et le serveur fait alors le tri.
     /// Le titre ne sert que de filet pour les trois autres.
     func searchTranslations(for mod: ModItem) {
-        guard searchingTranslationFor == nil else { return }
-        searchingTranslationFor = mod.folderName
-        let name = mod.name
-        NexusSearchClient.search(name: name, tag: NexusModSearch.frenchTag) { [weak self] result in
+        guard !searchingTranslations.contains(mod.folderName) else { return }
+        searchingTranslations.insert(mod.folderName)
+        let host = Int(mod.nexusModId)
+        NexusSearchClient.search(name: mod.name, tag: NexusModSearch.frenchTag) { [weak self] result in
             guard let self else { return }
-            self.searchingTranslationFor = nil
+            self.searchingTranslations.remove(mod.folderName)
             switch result {
             case .success(let hits):
                 // Le filet : si le tag n'a rien rendu, on retente large et on
@@ -4343,10 +4347,16 @@ class StarHubTHViewModel: ObservableObject {
                 if hits.isEmpty {
                     self.searchTranslationsByTitle(for: mod)
                 } else {
-                    self.translationHits[mod.folderName] = NexusModSearch.frenchTranslations(among: hits)
+                    // **Le titre classe, il ne filtre pas.** Le serveur a déjà
+                    // trié sur le tag ; rejeter ici les titres muets perdrait
+                    // les traductions bien taguées que le tag venait de rendre.
+                    self.translationHits[mod.folderName] =
+                        NexusModSearch.ranked(hits, excluding: host)
                 }
             case .failure(let error):
-                self.translationHits[mod.folderName] = []
+                // Une panne n'est pas une absence : `[]` ferait afficher
+                // « aucune traduction trouvée » pour une recherche cassée.
+                self.translationHits[mod.folderName] = nil
                 self.log("Recherche de traduction : \(error)", level: .warning)
                 self.showModal(message: self.L(L10n.Mods.translationSearchFailed))
             }
@@ -4354,13 +4364,17 @@ class StarHubTHViewModel: ObservableObject {
     }
 
     private func searchTranslationsByTitle(for mod: ModItem) {
-        searchingTranslationFor = mod.folderName
+        searchingTranslations.insert(mod.folderName)
+        let host = Int(mod.nexusModId)
         NexusSearchClient.search(name: mod.name) { [weak self] result in
             guard let self else { return }
-            self.searchingTranslationFor = nil
+            self.searchingTranslations.remove(mod.folderName)
             switch result {
             case .success(let hits):
-                self.translationHits[mod.folderName] = NexusModSearch.frenchTranslations(among: hits)
+                // Recherche large : ici rien d'autre que le titre ne distingue
+                // une traduction, le filtre est à sa place.
+                self.translationHits[mod.folderName] =
+                    NexusModSearch.frenchTranslations(among: hits, excluding: host)
             case .failure(let error):
                 // Une panne n'est pas une absence : afficher « aucune traduction
                 // trouvée » ici ferait passer une recherche cassée pour un
@@ -4378,18 +4392,26 @@ class StarHubTHViewModel: ObservableObject {
     /// Le dépôt ne crée rien dans `Mods/` : il écrit **dans** un mod existant,
     /// après avoir mis à l'abri chaque fichier recouvert.
     func installTranslation(_ hit: NexusModSearch.Hit, into mod: ModItem) {
-        guard busyTranslationFor == nil else { return }
-        busyTranslationFor = mod.folderName
+        guard !busyTranslations.contains(mod.folderName) else { return }
+        // Un seul téléchargement Nexus à la fois, traductions comprises : elles
+        // passent par le même téléchargeur que les mods, et deux en vol se
+        // disputeraient `pendingDownloadedZip`.
+        if rejectNexusDownloadIfBusy() { return }
+        busyTranslations.insert(mod.folderName)
+        isDownloadingFromNexus = true
+        downloadingNexusModId = hit.modId
         nexusDownloader.download(modId: hit.modId, fileId: nil,
                                  game: NexusRequestBuilder.gameDomain,
                                  key: nil, expires: nil) { [weak self] result in
             DispatchQueue.main.async {
                 guard let self else { return }
+                self.isDownloadingFromNexus = false
+                self.downloadingNexusModId = nil
                 switch result {
                 case .success(let archive):
                     self.depositTranslation(archive: archive, hit: hit, into: mod)
                 case .failure(let error):
-                    self.busyTranslationFor = nil
+                    self.busyTranslations.remove(mod.folderName)
                     // Sans lien direct, la voie manuelle reste ouverte : le
                     // message nomme le bouton qui y mène plutôt que de laisser
                     // l'utilisateur devant une impasse.
@@ -4404,15 +4426,12 @@ class StarHubTHViewModel: ObservableObject {
     }
 
     private func depositTranslation(archive: URL, hit: NexusModSearch.Hit, into mod: ModItem) {
+        defer { busyTranslations.remove(mod.folderName) }
+        // L'archive téléchargée n'a plus d'usage passé ce point : la laisser
+        // derrière nous encombrerait le dossier temporaire d'un fichier dont
+        // plus personne ne connaît le chemin.
+        defer { try? FileManager.default.removeItem(at: archive) }
         let installer = ModZipInstaller()
-        let hostPath = URL(fileURLWithPath: gameDir)
-            .appendingPathComponent("Mods")
-            .appendingPathComponent(mod.physicalFolderName)
-        guard let backupRoot = InstalledTranslationStore.backupRoot else {
-            busyTranslationFor = nil
-            showModal(message: L(L10n.Mods.translationInstallFailed))
-            return
-        }
         do {
             let extracted = try installer.extractToTemp(zipUrl: archive)
             defer { try? FileManager.default.removeItem(at: extracted) }
@@ -4427,26 +4446,15 @@ class StarHubTHViewModel: ObservableObject {
             case .plan(let plan): entries = plan.entries
             case .needsHost(_, _, let found): entries = found
             case .unrecognised:
-                busyTranslationFor = nil
                 showModal(message: L(L10n.Mods.translationUnrecognised))
                 return
             }
             let plan = ManifestlessArchive.Plan(hostFolderName: mod.folderName,
                                                 kind: .translation, entries: entries)
-            let result = try ManifestlessInstaller.install(plan: plan, extractedRoot: extracted,
-                                                          hostPath: hostPath,
-                                                          backupRoot: backupRoot)
-            installedTranslations.record(InstalledTranslation(
-                hostFolderName: mod.folderName, nexusModId: hit.modId, nexusName: hit.name,
-                version: hit.version, updatedAt: hit.updatedAt, installedAt: Date(),
-                files: result.written, replacedFiles: result.replaced))
-            let recorded = InstalledTranslationStore.save(installedTranslations)
-            busyTranslationFor = nil
-            if !recorded {
-                // Les fichiers sont posés mais rien ne les retient : le dire,
-                // sinon la traduction ne pourra plus être retirée.
-                showModal(message: L(L10n.Mods.translationNotTracked))
-            }
+            let result = depositIntoMod(plan: plan, extractedRoot: extracted, host: mod,
+                                        sourceName: hit.name, nexus: hit)
+            if let message = result.message { showModal(message: message) }
+            guard result.outcome != nil else { return }
             log(String(format: L(L10n.Mods.translationInstalled), hit.name, mod.name))
             // `invalidateFrenchCoverage` est `@MainActor` ; ce chemin arrive du
             // `DispatchQueue.main.async` de la complétion de téléchargement,
@@ -4456,29 +4464,115 @@ class StarHubTHViewModel: ObservableObject {
             MainActor.assumeIsolated { invalidateFrenchCoverage(for: mod.folderName) }
             refresh()
         } catch {
-            busyTranslationFor = nil
             showModal(message: L(L10n.Mods.translationInstallFailed))
             log("Dépôt de traduction : \(error)", level: .error)
         }
     }
 
+    /// Dépose les fichiers d'un plan dans un mod, puis inscrit au registre ce
+    /// qui doit pouvoir être retiré ensuite.
+    ///
+    /// **L'ordre compte.** La traduction déjà en place n'est rendue qu'une fois
+    /// le plan établi : l'écarter plus tôt ferait perdre une traduction qui
+    /// marchait à la première archive illisible. Elle doit l'être quand même —
+    /// son entrée de registre est le seul pointeur vers les fichiers d'origine
+    /// du mod, et la remplacer sans la défaire les perdrait pour de bon.
+    ///
+    /// - Parameters:
+    ///   - sourceName: le nom sous lequel nommer ce qui est posé — le titre
+    ///     Nexus, ou le nom de l'archive pour un dépôt à la main.
+    ///   - nexus: la fiche Nexus quand il y en a une. Sans elle, la traduction
+    ///     est enregistrée sans identifiant : elle se retire, mais aucune mise
+    ///     à jour ne lui sera proposée.
+    /// - Returns: ce qui a été écrit (`nil` si rien ne l'a été), et le message
+    ///   à montrer le cas échéant — un dépôt peut réussir *et* avoir quelque
+    ///   chose à dire.
+    func depositIntoMod(plan: ManifestlessArchive.Plan, extractedRoot: URL, host: ModItem,
+                        sourceName: String, nexus: NexusModSearch.Hit?)
+        -> (outcome: ManifestlessInstaller.Outcome?, message: String?) {
+        // Le refus se dit dans les mots de ce qu'on déposait : « la traduction »
+        // n'a pas de sens quand l'utilisateur a glissé un lot de sacs.
+        let failed = plan.kind == .translation
+            ? L(L10n.Mods.translationInstallFailed) : L(L10n.ModInstall.depositFailed)
+        guard let backupRoot = InstalledTranslationStore.backupRoot else {
+            return (nil, failed)
+        }
+        // Nom **physique** : un mod en pause vit dans un dossier préfixé d'un
+        // point, et le plan ne connaît que le nom logique.
+        let hostPath = URL(fileURLWithPath: gameDir)
+            .appendingPathComponent("Mods")
+            .appendingPathComponent(host.physicalFolderName)
+
+        // Une greffe n'a rien à voir avec la traduction posée sur le même mod :
+        // seul le dépôt d'une traduction écarte celle qui est déjà là.
+        if plan.kind == .translation,
+           let incumbent = installedTranslations.translation(forHost: host.folderName) {
+            let failures = ManifestlessInstaller.uninstall(incumbent, hostPath: hostPath)
+            guard failures.isEmpty else {
+                return (nil, String(format: L(L10n.Mods.translationRemovePartial),
+                                    failures.joined(separator: ", ")))
+            }
+            installedTranslations.forget(host: host.folderName)
+        }
+
+        let written: ManifestlessInstaller.Outcome
+        do {
+            written = try ManifestlessInstaller.install(plan: plan, extractedRoot: extractedRoot,
+                                                        hostPath: hostPath, backupRoot: backupRoot)
+        } catch ManifestlessInstaller.InstallError
+                    .rollBackIncomplete(let reason, let leftBehind) {
+            // Nommer les fichiers restés en l'état est la seule raison d'être de
+            // cette erreur : les fondre dans « installation impossible »
+            // laisserait croire le mod intact alors qu'il ne l'est pas.
+            log("Dépôt sans manifeste, annulation incomplète : \(reason)", level: .error)
+            return (nil, String(format: L(L10n.ModInstall.depositRollbackIncomplete),
+                                leftBehind.joined(separator: ", ")))
+        } catch {
+            log("Dépôt sans manifeste : \(error)", level: .error)
+            return (nil, failed)
+        }
+
+        // Seule une traduction entre au registre : c'est lui qui porte le bouton
+        // « Retirer » de la fiche du mod, et une greffe n'en est pas une.
+        guard plan.kind == .translation else { return (written, nil) }
+        installedTranslations.record(InstalledTranslation(
+            hostFolderName: host.folderName, nexusModId: nexus?.modId ?? 0,
+            nexusName: sourceName, version: nexus?.version ?? "",
+            updatedAt: nexus?.updatedAt, installedAt: Date(),
+            files: written.written, replacedFiles: written.replaced))
+        guard InstalledTranslationStore.save(installedTranslations) else {
+            // Les fichiers sont posés mais rien ne les retient : le dire,
+            // sinon la traduction ne pourra plus être retirée.
+            return (written, L(L10n.Mods.translationNotTracked))
+        }
+        return (written, nil)
+    }
+
     /// Retire la traduction posée sur ce mod et **rend** ce qu'elle avait
     /// recouvert.
     func removeTranslation(from mod: ModItem) {
-        guard busyTranslationFor == nil,
+        guard !busyTranslations.contains(mod.folderName),
               let translation = translation(for: mod) else { return }
-        busyTranslationFor = mod.folderName
+        busyTranslations.insert(mod.folderName)
+        defer { busyTranslations.remove(mod.folderName) }
         let hostPath = URL(fileURLWithPath: gameDir)
             .appendingPathComponent("Mods")
             .appendingPathComponent(mod.physicalFolderName)
         let failures = ManifestlessInstaller.uninstall(translation, hostPath: hostPath)
-        installedTranslations.forget(host: mod.folderName)
-        InstalledTranslationStore.save(installedTranslations)
-        busyTranslationFor = nil
-        if !failures.isEmpty {
+        if failures.isEmpty {
+            installedTranslations.forget(host: mod.folderName)
+            if !InstalledTranslationStore.save(installedTranslations) {
+                showModal(message: L(L10n.Mods.translationRemoveNotTracked))
+            }
+        } else {
+            // **Un retrait à moitié fait garde son entrée.** Elle porte la liste
+            // des fichiers restants et l'endroit où dorment les originaux du
+            // mod : l'oublier ici rendrait la seconde tentative impossible.
             showModal(message: String(format: L(L10n.Mods.translationRemovePartial),
                                       failures.joined(separator: ", ")))
         }
+        // Des fichiers ont bougé même quand tout n'a pas été retiré : la
+        // couverture française doit être remesurée dans les deux cas.
         // Appelée depuis un bouton, donc sur le fil principal.
         MainActor.assumeIsolated { invalidateFrenchCoverage(for: mod.folderName) }
         refresh()

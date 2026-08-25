@@ -1014,3 +1014,8 @@
 "recovery_in_backup" = "Sauvegarde";
 "recovery_installed" = "Installé";
 "recovery_reason_differs" = "diffère de la sauvegarde — à comparer";
+"mod_install_dropped_question_many" = "Ces %1$d fichiers sont du contenu pour %2$@, pas des mods à eux seuls.\n\nLes installer dans :\n%3$@";
+"mod_install_dropped_done_many" = "%1$d fichiers installés dans %2$@";
+"mod_install_deposit_message_addon" = "Cette archive n'est pas un mod : elle contient %1$d fichier(s) destiné(s) à « %2$@ ». Ce qu'ils remplacent est mis en sauvegarde d'abord, mais leur retrait se fera à la main.";
+"mod_install_deposit_rollback_incomplete" = "Rien n'a été installé, et l'annulation n'a pas entièrement abouti. Ces fichiers sont restés en l'état : %@";
+"mods_translation_remove_not_tracked" = "Les fichiers ont été retirés, mais le changement n'a pas pu être enregistré : la traduction peut réapparaître au prochain lancement.";

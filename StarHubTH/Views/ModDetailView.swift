@@ -957,8 +957,8 @@ private struct TranslationSection: View {
 
     private var installed: InstalledTranslation? { vm.translation(for: mod) }
     private var hits: [NexusModSearch.Hit] { vm.translationHits[mod.folderName] ?? [] }
-    private var isSearching: Bool { vm.searchingTranslationFor == mod.folderName }
-    private var isBusy: Bool { vm.busyTranslationFor == mod.folderName }
+    private var isSearching: Bool { vm.searchingTranslations.contains(mod.folderName) }
+    private var isBusy: Bool { vm.busyTranslations.contains(mod.folderName) }
     private var update: NexusModSearch.Hit? { vm.translationUpdateAvailable(for: mod) }
 
     var body: some View {
