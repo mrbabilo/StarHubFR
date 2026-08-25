@@ -158,26 +158,44 @@ struct ManifestlessArchiveTests {
         #expect(entries.first?.destination == "zzz/x.json")
     }
 
-    // MARK: - Forme 4 : des fichiers nus, situés par leur contenu
+    // MARK: - Forme 4 : des chemins déjà relatifs à la racine du mod
 
-    @Test func bareBagDefinitionsGoToItemBags() throws {
-        let outcome = ManifestlessArchive.classify(
-            paths: ["Cloth and Colors Bag.json", "S&S Druid.json"],
-            installedFolderNames: parc, isBagDefinition: { _ in true })
-        guard case .plan(let plan) = outcome else { Issue.record("attendu un plan"); return }
-        #expect(plan.hostFolderName == "ItemBags")
-        #expect(plan.entries.map(\.destination)
-                == ["assets/Modded Bags/Cloth and Colors Bag.json",
-                    "assets/Modded Bags/S&S Druid.json"])
+    /// **Le décapage de trop.** `i18n` n'est pas le nom d'un mod : le retirer
+    /// poserait le `fr.json` à la racine du dossier, où le jeu ne le lira
+    /// jamais — et la fiche annoncerait pourtant une traduction en place.
+    @Test func anArchiveRootedOnI18nKeepsItsFolder() throws {
+        let outcome = ManifestlessArchive.classify(paths: ["i18n/fr.json"],
+                                                   installedFolderNames: parc)
+        guard case .needsHost(let candidates, let kind, let entries) = outcome else {
+            Issue.record("attendu une demande d'hôte"); return
+        }
+        #expect(candidates.isEmpty)
+        #expect(kind == .translation)
+        #expect(entries.map(\.destination) == ["i18n/fr.json"])
     }
 
-    /// Sans `ItemBags` installé, rien n'est déposé : la greffe irait dans le
-    /// vide. On le dit plutôt que d'écrire.
-    @Test func bagDefinitionsWithoutItemBagsAskFirst() throws {
+    /// Plusieurs dossiers de contenu à la tête : l'archive reste relative à la
+    /// racine du mod, elle n'a pas « plusieurs racines » au sens du refus.
+    @Test func severalContentFoldersStayRootRelative() throws {
         let outcome = ManifestlessArchive.classify(
-            paths: ["Cloth and Colors Bag.json"], installedFolderNames: ["Parchment"],
-            isBagDefinition: { _ in true })
-        guard case .needsHost = outcome else { Issue.record("attendu une demande d'hôte"); return }
+            paths: ["i18n/fr.json", "assets/portrait.png"], installedFolderNames: parc)
+        guard case .needsHost(_, let kind, let entries) = outcome else {
+            Issue.record("attendu une demande d'hôte"); return
+        }
+        // Un seul fichier hors `i18n/` suffit : ce n'est plus une traduction
+        // pure, et le registre des traductions ne doit pas s'en emparer.
+        #expect(kind == .addon)
+        #expect(entries.map(\.destination) == ["i18n/fr.json", "assets/portrait.png"])
+    }
+
+    /// Un mod réellement nommé comme un dossier de contenu garde la main : son
+    /// nom écrit dans l'archive dit où déposer.
+    @Test func anInstalledModNamedLikeAContentFolderWins() throws {
+        let outcome = ManifestlessArchive.classify(paths: ["Content/data.json"],
+                                                   installedFolderNames: ["Content"])
+        guard case .plan(let plan) = outcome else { Issue.record("attendu un plan"); return }
+        #expect(plan.hostFolderName == "Content")
+        #expect(plan.entries.map(\.destination) == ["data.json"])
     }
 
     /// Des fichiers nus que rien ne situe : refusés. Déposer au hasard dans un

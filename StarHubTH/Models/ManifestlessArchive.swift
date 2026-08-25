@@ -20,8 +20,14 @@ import Foundation
 ///    jamais en devinant : se tromper ici écrit dans le mauvais mod.
 /// 3. Un dossier racine nommé, chemin complet
 ///    (`ItemBags/assets/Modded Bags/*.json`).
-/// 4. Des fichiers nus à la racine, sans la moindre indication de destination
-///    (`Cloth and Colors Bag.json`). Seul leur **contenu** les situe.
+/// 4. Des chemins **déjà relatifs à la racine du mod** (`i18n/fr.json`) : rien
+///    dans l'archive ne nomme le mod, c'est le geste qui le désigne — la fiche
+///    sur laquelle on la dépose.
+///
+/// Une cinquième forme n'est pas traitée ici : des fichiers **nus** à la racine
+/// (`Cloth and Colors Bag.json`), que seul leur contenu situe. Elle appartient à
+/// `DroppedContentRecognizer`, qui désigne l'hôte par son `UniqueID` SMAPI — la
+/// bonne clé — là où ce classificateur ne connaît que des noms de dossier.
 public enum ManifestlessArchive {
     public enum Kind: Equatable, Sendable {
         /// Des fichiers de langue, à poser dans le mod traduit.
@@ -68,21 +74,29 @@ public enum ManifestlessArchive {
         case unrecognised
     }
 
-    /// Le dossier où `ItemBags` attend ses définitions de bagages.
-    static let itemBagsHost = "ItemBags"
-    static let itemBagsDestination = "assets/Modded Bags"
+    /// Les dossiers qu'un mod porte **à l'intérieur** de lui.
+    ///
+    /// Une archive dont tous les dossiers de tête en sont ne nomme aucun mod :
+    /// ses chemins sont déjà relatifs à la racine de celui qui la recevra.
+    /// Retirer `i18n` comme s'il s'agissait du nom d'un mod poserait le
+    /// `fr.json` à la racine du dossier, où SMAPI ne le lira jamais.
+    private static let modContentDirectories: Set<String> = ["i18n", "assets", "content"]
 
     /// - Parameters:
     ///   - paths: les chemins que porte l'archive, dossiers exclus.
     ///   - installedFolderNames: les `folderName` **logiques** des mods de
     ///     premier niveau installés.
-    ///   - isBagDefinition: dit si un fichier de l'archive est une définition
-    ///     de bagage. Injecté plutôt que lu ici : la classification reste pure.
     public static func classify(paths: [String],
-                                installedFolderNames: [String],
-                                isBagDefinition: (String) -> Bool = { _ in false }) -> Outcome {
+                                installedFolderNames: [String]) -> Outcome {
         let files = paths.filter { !$0.hasSuffix("/") && !$0.isEmpty }
         guard !files.isEmpty else { return .unrecognised }
+
+        // ── Des chemins déjà relatifs à la racine du mod : le cas 4. Testé
+        // **avant** la racine unique, sinon une archive faite du seul dossier
+        // `i18n/` se ferait décapiter de ce qui la rend lisible par le jeu.
+        if let entries = modRootRelativeEntries(of: files, installed: installedFolderNames) {
+            return .needsHost(candidates: [], kind: kind(of: entries), entries: entries)
+        }
 
         // ── Un dossier racine unique : le cas 1, 2, 3 ou 5.
         if let root = singleRoot(of: files) {
@@ -112,29 +126,44 @@ public enum ManifestlessArchive {
                 }
             }
 
-            let kind: Kind = entries.allSatisfy { $0.destination.hasPrefix("i18n/") }
-                ? .translation : .addon
-
             if installedFolderNames.contains(prefix) {
-                return .plan(Plan(hostFolderName: prefix, kind: kind, entries: entries))
+                return .plan(Plan(hostFolderName: prefix, kind: kind(of: entries),
+                                  entries: entries))
             }
             // Le nom ne désigne aucun mod installé : proposer, ne pas deviner.
             return .needsHost(candidates: candidates(for: prefix, among: installedFolderNames),
-                              kind: kind, entries: entries)
-        }
-
-        // ── Des fichiers nus : seul leur contenu peut les situer.
-        if files.allSatisfy({ !$0.contains("/") }), files.allSatisfy(isBagDefinition) {
-            let entries = files.map {
-                Entry(source: $0, destination: "\(itemBagsDestination)/\($0)")
-            }
-            guard installedFolderNames.contains(itemBagsHost) else {
-                return .needsHost(candidates: [], kind: .addon, entries: entries)
-            }
-            return .plan(Plan(hostFolderName: itemBagsHost, kind: .addon, entries: entries))
+                              kind: kind(of: entries), entries: entries)
         }
 
         return .unrecognised
+    }
+
+    /// Une archive faite des seuls dossiers qu'un mod porte en lui, laissée
+    /// telle quelle : chaque fichier garde son chemin, c'est déjà sa place.
+    /// `nil` quand ce n'en est pas une.
+    private static func modRootRelativeEntries(of files: [String],
+                                               installed: [String]) -> [Entry]? {
+        let heads = Set(files.compactMap { path -> String? in
+            guard let slash = path.firstIndex(of: "/") else { return nil }
+            return String(path[path.startIndex..<slash]).lowercased()
+        })
+        // Chaque fichier doit être dans l'un de ces dossiers : un fichier posé
+        // à côté ne serait relatif à rien.
+        guard !heads.isEmpty, heads.isSubset(of: modContentDirectories),
+              files.allSatisfy({ $0.contains("/") })
+        else { return nil }
+        // Un mod installé qui porterait l'un de ces noms garde la main : son
+        // nom écrit dans l'archive dit alors où déposer, ce qui vaut mieux que
+        // de laisser l'hôte à désigner.
+        let names = Set(installed.map { $0.lowercased() })
+        guard heads.isDisjoint(with: names) else { return nil }
+        return files.map { Entry(source: $0, destination: $0) }
+    }
+
+    /// Ce qu'une archive dépose : des fichiers de langue, ou autre chose.
+    private static func kind(of entries: [Entry]) -> Kind {
+        entries.allSatisfy { $0.destination.lowercased().hasPrefix("i18n/") }
+            ? .translation : .addon
     }
 
     /// Retire un préfixe de dossier des chemins, en laissant tomber ce qui
