@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.19.0] - 2026-08-25
+
 ### Added
 - **Mods can be starred, and a profile can import what you starred.** A star on every row of the mod list, a chip in the toolbar to scope to them, and an "Import favourites" entry in a profile's ⋯ menu. The import says what it did: how many entered the profile, and by name the ones that could not — a mod uninstalled since, or one whose manifest declares no identifier, which a profile cannot hold. On the active profile it asks first, since importing there enables the mods on disk right away. A pack is starred as a whole and brings in every component it holds.
 - **The mod list carries the weight of every mod, and can be sorted by it.** Finding what takes up the room used to mean opening mods one at a time. The figure sits in each row's metadata strip and turns orange past 100 MB — on a real library that marks 22 folders out of 863, holding 87% of the 16.8 GB. A new "Weight" sort brings them to the top, and the toolbar totals whatever the filters currently keep: scope to paused mods and it reads 12.7 GB, which is the answer to "how much can I get back".
@@ -730,7 +732,16 @@ where the exact log format was verified.
 - Added translation for **Wear More Rings** (v7.9) by bcmpinc.
 - Added translation for **World Navigator** (v1.4.2) by pneuma163.
 
-[Unreleased]: https://github.com/mrbabilo/StarHubFR/compare/v1.12.1...HEAD
+[Unreleased]: https://github.com/mrbabilo/StarHubFR/compare/v1.19.0...HEAD
+[1.19.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.18.0...v1.19.0
+[1.18.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.17.0...v1.18.0
+[1.17.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.16.0...v1.17.0
+[1.16.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.15.0...v1.16.0
+[1.15.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.14.1...v1.15.0
+[1.14.1]: https://github.com/mrbabilo/StarHubFR/compare/v1.14.0...v1.14.1
+[1.14.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.13.1...v1.14.0
+[1.13.1]: https://github.com/mrbabilo/StarHubFR/compare/v1.13.0...v1.13.1
+[1.13.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.12.1...v1.13.0
 [1.12.1]: https://github.com/mrbabilo/StarHubFR/compare/v1.12.0...v1.12.1
 [1.12.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.11.1...v1.12.0
 [1.11.1]: https://github.com/mrbabilo/StarHubFR/compare/v1.11.0...v1.11.1
