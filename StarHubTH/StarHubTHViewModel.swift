@@ -196,6 +196,10 @@ class StarHubTHViewModel: ObservableObject {
     /// the *last activation*, not the last state change. Drives the
     /// "Activation order" sort in the mods list. Persisted in UserDefaults.
     @Published var modActivationTimestamps: [String: Date] = [:]
+    /// Les mods marqués comme favoris, par leur `folderName` **logique** —
+    /// celui qui ne porte pas le point d'un dossier en pause, donc le marquage
+    /// survit à une mise en pause. Même clé que `modActivationTimestamps`.
+    @Published private(set) var favoriteMods: Set<String> = []
 
     @Published var smapiInstalledVersion: String? = nil   // nil = not installed
     /// True during the initial launch load (mod scan + save reload + profile
@@ -1621,6 +1625,7 @@ class StarHubTHViewModel: ObservableObject {
         let customCats = Self.loadCustomCategories()
         let customIds = Self.loadCustomModIds()
         let activationTs = Self.loadModActivationTimestamps()
+        let favorites = Self.loadFavoriteMods()
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             self.hasNexusApiKey = hasKey
@@ -1635,6 +1640,7 @@ class StarHubTHViewModel: ObservableObject {
             self.nexusCustomCategories = customCats
             self.nexusCustomModIds = customIds
             self.modActivationTimestamps = activationTs
+            self.favoriteMods = favorites
         }
     }
     
@@ -4229,6 +4235,20 @@ class StarHubTHViewModel: ObservableObject {
         UserDefaults.standard.set(data, forKey: customModIdsKey)
     }
 
+    // MARK: - Mods favoris (B3-T2)
+
+    private static let favoriteModsKey = "favoriteMods"
+
+    private static func loadFavoriteMods() -> Set<String> {
+        guard let data = UserDefaults.standard.data(forKey: favoriteModsKey) else { return [] }
+        return (try? JSONDecoder().decode(Set<String>.self, from: data)) ?? []
+    }
+
+    private static func saveFavoriteMods(_ names: Set<String>) {
+        guard let data = try? JSONEncoder().encode(names) else { return }
+        UserDefaults.standard.set(data, forKey: favoriteModsKey)
+    }
+
     private static let modActivationTimestampsKey = "modActivationTimestamps"
 
     private static func loadModActivationTimestamps() -> [String: Date] {
@@ -5369,6 +5389,69 @@ class StarHubTHViewModel: ObservableObject {
         ids.append(uniqueId)
         updateProfile(id: id, newName: modProfiles[index].name, enabledModIds: ids)
         log(String(format: L(L10n.VM.profileCreated), modProfiles[index].name, ids.count))
+    }
+
+    /// Marque ou démarque un mod comme favori. Persisté aussitôt : c'est un
+    /// geste isolé, il n'a pas d'enregistrement différé où se raccrocher.
+    func toggleFavorite(_ mod: ModItem) {
+        if favoriteMods.contains(mod.folderName) {
+            favoriteMods.remove(mod.folderName)
+        } else {
+            favoriteMods.insert(mod.folderName)
+        }
+        Self.saveFavoriteMods(favoriteMods)
+    }
+
+    func isFavorite(_ mod: ModItem) -> Bool { favoriteMods.contains(mod.folderName) }
+
+    /// Ce que donnerait un import des favoris dans ce profil, sans rien
+    /// écrire. Sert à l'écran : dire combien de mods entreraient, et lesquels
+    /// ne le peuvent pas, **avant** de toucher au disque.
+    func favoriteImportPreview(profileId: UUID) -> FavoriteResolution.Result {
+        guard let profile = modProfiles.first(where: { $0.id == profileId }) else {
+            return FavoriteResolution.Result(ids: [], unresolved: [])
+        }
+        return FavoriteResolution.profileIds(favorites: favoriteMods, in: mods,
+                                             existing: profile.enabledModIds)
+    }
+
+    /// Ajoute tous les favoris à un profil, **en une seule mutation**.
+    ///
+    /// Surtout pas une boucle sur `addModToProfile` : chacun de ses appels
+    /// passe par `updateProfile`, qui réapplique le profil au disque quand il
+    /// est actif. Importer trente favoris déclencherait trente passes de
+    /// renommage de dossiers sur un parc de 863 mods.
+    ///
+    /// `modMetadata` est renseigné dans la même passe : c'est la seule source
+    /// qui permette encore de **nommer** un mod du profil une fois qu'il aura
+    /// été désinstallé (voir le diagnostic de profil). L'omettre ici
+    /// dégraderait ce diagnostic pour les seuls mods entrés par cet import,
+    /// sans que rien ne le montre avant des mois.
+    ///
+    /// - Returns: ce qui a été fait, pour que l'appelant le dise.
+    @discardableResult
+    func importFavorites(into profileId: UUID) -> FavoriteResolution.Result {
+        guard let index = modProfiles.firstIndex(where: { $0.id == profileId }) else {
+            return FavoriteResolution.Result(ids: [], unresolved: [])
+        }
+        let resolution = FavoriteResolution.profileIds(
+            favorites: favoriteMods, in: mods,
+            existing: modProfiles[index].enabledModIds)
+        guard !resolution.ids.isEmpty else { return resolution }
+
+        let byId = Dictionary(mods.flattenedMods.map { ($0.uniqueId.lowercased(), $0) },
+                              uniquingKeysWith: { first, _ in first })
+        for id in resolution.ids {
+            guard let mod = byId[id.lowercased()] else { continue }
+            modProfiles[index].modMetadata[id] = ProfileModMetadata(name: mod.name,
+                                                                    nexusModId: mod.nexusModId)
+        }
+        updateProfile(id: profileId,
+                      newName: modProfiles[index].name,
+                      enabledModIds: modProfiles[index].enabledModIds + resolution.ids)
+        log(String(format: L(L10n.VM.profileCreated),
+                   modProfiles[index].name, modProfiles[index].enabledModIds.count))
+        return resolution
     }
 
     /// Copie un profil existant, sous le nom « <original> (copie) ».

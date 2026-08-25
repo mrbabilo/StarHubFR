@@ -403,6 +403,13 @@
 "profiles_create_empty" = "Créer vide";
 "profiles_create_from_current" = "Copier les mods actifs";
 "profiles_duplicate" = "Dupliquer";
+"profiles_import_favorites" = "Importer les favoris";
+"profiles_import_favorites_none" = "Aucun mod n'est marqué d'une étoile. Marquez-les depuis la liste des mods, puis importez-les ici.";
+"profiles_import_favorites_done" = "%1$d mod(s) ajouté(s) à « %2$@ ».";
+"profiles_import_favorites_nothing_new" = "Tous les mods marqués sont déjà dans « %@ ».";
+"profiles_import_favorites_unresolved" = "%d n'ont pas pu être ajoutés — sans identifiant dans leur manifeste, ou désinstallés depuis : %@";
+"profiles_import_favorites_confirm" = "« %@ » est le profil actif : l'import activera ces mods sur le disque immédiatement.";
+"profiles_import_favorites_confirm_action" = "Importer et activer";
 "profiles_copy_name_format" = "%@ (copie)";
 "profiles_diagnostic_title" = "Diagnostic de « %@ »";
 "profiles_section_missing" = "MODS QUI NE SONT PLUS INSTALLÉS";
@@ -523,6 +530,11 @@
 "mods_page_indicator" = "Page %d sur %d";
 "mods_page_showing" = "Affichage %d–%d sur %d";
 "mods_sort_size" = "Poids";
+"mods_favorite_add" = "Ajouter aux favoris";
+"mods_favorite_remove" = "Retirer des favoris";
+"mods_filter_favorites" = "Favoris";
+"mods_filter_favorites_hint" = "N'afficher que les mods marqués d'une étoile.";
+"mods_filter_favorites_empty_hint" = "Marquez un mod d'une étoile depuis sa ligne pour le retrouver ici, et pour l'importer dans un profil.";
 "mods_page_weight" = "%@ dans ce cadrage";
 "mods_page_jump_label" = "Aller à la page";
 "settings_nexus_mods" = "Nexus Mods";

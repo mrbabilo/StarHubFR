@@ -143,6 +143,12 @@ struct ModListView: View {
                 !filters.configOnly || matchesSelfOrAnyChild(mod) { $0.hasConfigFile }
             }
             .filter { mod in
+                // Le favori se marque sur la ligne de premier niveau, donc se
+                // teste sur elle : un pack est favori pour lui-même, pas par
+                // l'un de ses composants.
+                !filters.favoritesOnly || vm.isFavorite(mod)
+            }
+            .filter { mod in
                 switch filters.frenchTranslation {
                 case .off:
                     return true
@@ -432,6 +438,8 @@ struct ModListView: View {
                         .frame(height: 16)
 
                     configFilterToggle
+
+                    favoritesFilterToggle
 
                     Divider()
                         .frame(height: 16)
@@ -849,6 +857,52 @@ struct ModListView: View {
         .help(vm.L(L10n.Mods.configFilterLabel))
     }
 
+    // MARK: - Favourites filter toggle (B3-T2)
+
+    /// Cadre la liste sur les mods marqués d'une étoile. Même famille visuelle
+    /// que `configFilterToggle`.
+    ///
+    /// Une pastille de plus dans une barre qui en portait déjà cinq, et c'est
+    /// justifié ici alors que le poids s'en est passé (B2-T9) : le poids se
+    /// cadrait par « en pause » + tri, les favoris n'ont aucun équivalent. Sans
+    /// ce cadrage, un jeu de favoris se perdrait dans 36 pages de liste.
+    ///
+    /// Quand rien n'est marqué, la pastille dit **où** marquer plutôt que de
+    /// mener à une liste vide.
+    private var favoritesFilterToggle: some View {
+        let active = filters.favoritesOnly
+        let empty = vm.favoriteMods.isEmpty
+        return Button {
+            listState.filters.favoritesOnly.toggle()
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: active ? "star.fill" : "star")
+                    .font(AppDesign.Font.footnote)
+                Text(vm.L(L10n.Mods.filterFavorites))
+                    .font(AppDesign.Font.caption(.medium))
+                if !empty {
+                    Text("\(vm.favoriteMods.count)")
+                        .font(.system(size: 10, weight: .semibold).monospacedDigit())
+                        .foregroundColor(.secondary)
+                }
+            }
+            .foregroundColor(active ? Color.accentColor : .primary)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(
+                RoundedRectangle(cornerRadius: AppDesign.Radius.sm)
+                    .fill(active ? Color.accentColor.opacity(AppDesign.Opacity.medium) : Color.secondary.opacity(AppDesign.Opacity.light))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: AppDesign.Radius.sm)
+                    .stroke(active ? Color.accentColor.opacity(0.4) : Color.secondary.opacity(AppDesign.Opacity.medium), lineWidth: 0.5)
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
+        .disabled(empty && !active)
+        .help(vm.L(empty ? L10n.Mods.filterFavoritesEmptyHint : L10n.Mods.filterFavoritesHint))
+    }
+
     // MARK: - French-translation filter picker
 
     /// Three-state menu scoping the list to mods that ship (or don't ship) an
@@ -1230,6 +1284,31 @@ struct ModListRow: View {
         )
     }
 
+    /// L'étoile de favori, sur les lignes de **premier niveau** seulement.
+    ///
+    /// Un composant de pack n'en porte pas : il ne s'active pas seul — c'est le
+    /// pack qu'on met en pause, qu'on installe et qu'on met dans un profil. Le
+    /// marquer séparément laisserait croire l'inverse.
+    ///
+    /// Toujours visible, pleine ou vide, plutôt qu'au survol : une étoile qui
+    /// n'apparaît qu'au passage de la souris ne se découvre pas, et on ne peut
+    /// pas lire d'un coup d'œil ce qui est marqué.
+    @ViewBuilder
+    private var favoriteStar: some View {
+        let on = vm.isFavorite(mod)
+        Button {
+            vm.toggleFavorite(mod)
+        } label: {
+            Image(systemName: on ? "star.fill" : "star")
+                .font(.system(size: 11))
+                .foregroundColor(on ? .yellow : .secondary.opacity(isHovered ? 0.6 : 0.25))
+        }
+        .buttonStyle(PlainButtonStyle())
+        .pointingHandCursor()
+        .help(vm.L(on ? L10n.Mods.favoriteRemove : L10n.Mods.favoriteAdd))
+        .accessibilityLabel(vm.L(on ? L10n.Mods.favoriteRemove : L10n.Mods.favoriteAdd))
+    }
+
     var body: some View {
         HStack(spacing: 0) {
 
@@ -1254,6 +1333,8 @@ struct ModListRow: View {
                     }
                 }
                 .frame(width: 14, alignment: .center)
+
+                favoriteStar
             } else {
                 // Indent children
                 Spacer().frame(width: 32)

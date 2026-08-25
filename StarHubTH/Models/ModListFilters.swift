@@ -45,6 +45,10 @@ struct ModListFilters: Equatable {
     var configOnly: Bool = false {
         didSet { if configOnly != oldValue { page = 1 } }
     }
+    /// N'afficher que les mods marqués d'une étoile.
+    var favoritesOnly: Bool = false {
+        didSet { if favoritesOnly != oldValue { page = 1 } }
+    }
     var frenchTranslation: FrenchTranslationScope = .off {
         didSet { if frenchTranslation != oldValue { page = 1 } }
     }
@@ -63,6 +67,7 @@ struct ModListFilters: Equatable {
         scope = .all
         category = .all
         configOnly = false
+        favoritesOnly = false
         frenchTranslation = .off
         search = searchTerm
         // Pas redondant avec le `didSet` de `search` : sauter deux fois vers le

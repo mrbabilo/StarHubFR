@@ -11,6 +11,47 @@ struct ModProfilesView: View {
     @State private var renameText = ""
     @State private var profileToDelete: ModProfile?
     @State private var profileShowingMissing: ModProfile?
+    /// Profil pour lequel un import de favoris attend confirmation. Seulement
+    /// renseigné quand le profil est **actif** : y importer active les mods sur
+    /// le disque dans la foulée, ce qui n'est pas un simple changement de
+    /// données. Sur un profil inactif l'import part directement.
+    @State private var profileImportingFavorites: ModProfile?
+
+    /// Aiguille l'import : rien à importer, profil actif (confirmation), ou
+    /// simple changement de données.
+    private func importFavorites(into profile: ModProfile) {
+        guard !vm.favoriteMods.isEmpty else {
+            // Ne rien faire silencieusement laisserait croire à un bouton
+            // cassé : dire où l'on marque un favori.
+            vm.showModal(message: vm.L(L10n.Profiles.importFavoritesNone))
+            return
+        }
+        if vm.activeProfileId == profile.id {
+            profileImportingFavorites = profile
+        } else {
+            runFavoriteImport(into: profile)
+        }
+    }
+
+    /// Importe, puis **dit ce qui s'est passé** — combien sont entrés, et
+    /// nommément ceux qui n'ont pas pu. Un import muet laisserait croire qu'il
+    /// a tout pris.
+    private func runFavoriteImport(into profile: ModProfile) {
+        let result = vm.importFavorites(into: profile.id)
+        var lines: [String] = []
+        if result.ids.isEmpty {
+            lines.append(String(format: vm.L(L10n.Profiles.importFavoritesNothingNew), profile.name))
+        } else {
+            lines.append(String(format: vm.L(L10n.Profiles.importFavoritesDone),
+                                result.ids.count, profile.name))
+        }
+        if !result.unresolved.isEmpty {
+            lines.append(String(format: vm.L(L10n.Profiles.importFavoritesUnresolved),
+                                result.unresolved.count,
+                                result.unresolved.joined(separator: ", ")))
+        }
+        vm.showModal(message: lines.joined(separator: "\n\n"))
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -60,6 +101,7 @@ struct ModProfilesView: View {
                             },
                             onRename: { renamingProfile = profile; renameText = profile.name },
                             onDuplicate: { vm.duplicateProfile(id: profile.id) },
+                            onImportFavorites: { importFavorites(into: profile) },
                             onShowMissing: { profileShowingMissing = profile },
                             onDelete: { profileToDelete = profile }
                         )
@@ -130,6 +172,24 @@ struct ModProfilesView: View {
         } message: {
             Text(vm.L(L10n.Profiles.deleteNote))
         }
+        // Import des favoris dans le profil **actif** : les mods s'activeront
+        // sur le disque immédiatement, il faut le dire avant.
+        .confirmationDialog(
+            profileImportingFavorites.map {
+                String(format: vm.L(L10n.Profiles.importFavoritesConfirm), $0.name)
+            } ?? "",
+            isPresented: Binding(
+                get: { profileImportingFavorites != nil },
+                set: { if !$0 { profileImportingFavorites = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button(vm.L(L10n.Profiles.importFavoritesConfirmAction)) {
+                if let p = profileImportingFavorites { runFavoriteImport(into: p) }
+                profileImportingFavorites = nil
+            }
+            Button(vm.L(L10n.Profiles.cancel), role: .cancel) { profileImportingFavorites = nil }
+        }
         .sheet(item: $profileShowingMissing) { profile in
             ProfileDiagnosticsView(
                 vm: vm,
@@ -158,6 +218,7 @@ struct ProfileRow: View {
     let onManage: () -> Void
     let onRename: () -> Void
     let onDuplicate: () -> Void
+    let onImportFavorites: () -> Void
     let onShowMissing: () -> Void
     let onDelete: () -> Void
     @State private var isHovered = false
@@ -245,6 +306,7 @@ struct ProfileRow: View {
             Menu {
                 Button(vm.L(L10n.Profiles.rename)) { onRename() }
                 Button(vm.L(L10n.Profiles.duplicate)) { onDuplicate() }
+                Button(vm.L(L10n.Profiles.importFavorites)) { onImportFavorites() }
                 if !vm.isDefaultProfile(profile.id) {
                     Divider()
                     Button(vm.L(L10n.Profiles.delete), role: .destructive) { onDelete() }
@@ -272,6 +334,7 @@ struct ProfileRow: View {
                 .disabled(vm.isApplyingProfile)
             Button(vm.L(L10n.Profiles.rename)) { onRename() }
             Button(vm.L(L10n.Profiles.duplicate)) { onDuplicate() }
+            Button(vm.L(L10n.Profiles.importFavorites)) { onImportFavorites() }
             if !vm.isDefaultProfile(profile.id) {
                 Divider()
                 Button(vm.L(L10n.Profiles.delete), role: .destructive) { onDelete() }

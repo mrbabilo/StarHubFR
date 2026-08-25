@@ -240,6 +240,22 @@ struct ModDetailView: View {
                 .accessibilityLabel(String(format: vm.L(L10n.Mods.toggleA11yLabel), mod.name))
                 .accessibilityHint(vm.L(L10n.Mods.toggleA11yHint))
 
+                // Le favori, à côté de la bascule : même geste de tri du parc,
+                // et la fiche est l'écran où l'on décide du sort d'un mod.
+                // `live` et non `mod` — la clé est le `folderName` logique, que
+                // la bascule ne change pas, mais lire l'état courant garde la
+                // fiche d'accord avec la liste après un aller-retour.
+                Button {
+                    vm.toggleFavorite(live)
+                } label: {
+                    Label(vm.L(vm.isFavorite(live) ? L10n.Mods.favoriteRemove : L10n.Mods.favoriteAdd),
+                          systemImage: vm.isFavorite(live) ? "star.fill" : "star")
+                        .font(.system(size: 12))
+                }
+                .buttonStyle(.borderless)
+                .foregroundColor(vm.isFavorite(live) ? .yellow : .secondary)
+                .pointingHandCursor()
+
                 // Pas de pendant au spinner de suppression de la liste : la
                 // fiche se referme dès la confirmation, personne ne le verrait.
                 // La garde sur une suppression déjà en vol, elle, reste utile.

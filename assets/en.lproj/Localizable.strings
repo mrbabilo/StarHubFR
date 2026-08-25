@@ -403,6 +403,13 @@
 "profiles_create_empty" = "Create empty";
 "profiles_create_from_current" = "Copy the active mods";
 "profiles_duplicate" = "Duplicate";
+"profiles_import_favorites" = "Import favourites";
+"profiles_import_favorites_none" = "No mod is starred yet. Star them from the mod list, then import them here.";
+"profiles_import_favorites_done" = "%1$d mod(s) added to “%2$@”.";
+"profiles_import_favorites_nothing_new" = "Every starred mod is already in “%@”.";
+"profiles_import_favorites_unresolved" = "%d could not be added — no identifier in their manifest, or no longer installed: %@";
+"profiles_import_favorites_confirm" = "“%@” is the active profile: importing will enable these mods on disk right away.";
+"profiles_import_favorites_confirm_action" = "Import and enable";
 "profiles_copy_name_format" = "%@ (copy)";
 "profiles_diagnostic_title" = "Diagnostic of “%@”";
 "profiles_section_missing" = "MODS NO LONGER INSTALLED";
@@ -523,6 +530,11 @@
 "mods_page_indicator" = "Page %d of %d";
 "mods_page_showing" = "Showing %d–%d of %d";
 "mods_sort_size" = "Weight";
+"mods_favorite_add" = "Add to favourites";
+"mods_favorite_remove" = "Remove from favourites";
+"mods_filter_favorites" = "Favourites";
+"mods_filter_favorites_hint" = "Show only the mods you starred.";
+"mods_filter_favorites_empty_hint" = "Star a mod from its row to find it here, and to import it into a profile.";
 "mods_page_weight" = "%@ in this selection";
 "mods_page_jump_label" = "Go to page";
 "settings_nexus_mods" = "Nexus Mods";
