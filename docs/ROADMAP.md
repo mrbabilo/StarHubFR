@@ -107,7 +107,7 @@ liste du 2026-07-30 et n'existaient pas dans le document de veille.
 | §2 | Boutons de rafraîchissement (quarantaine, alertes système) | **À faire** | → **B2-T3** |
 | §3 | Reconnaître les mods de traduction (i18n seul) | **Partiel** | `ModItem.languages`, filtre `FrenchTranslationScope` et heuristique de nom (`ModItem.swift:99`) — mais **aucun test structurel** → **C1-T4** |
 | §3 | Nouveau profil créé **vide** | **Fait** (2026-08-24) | L'alerte propose les deux voies, « vide » en premier ; `ProfileFactory` (Core, testé) → **B3-T1** |
-| §3 | Favoris de mods + import dans un profil | **À faire** | Les favoris n'existent que pour les sauvegardes de jeu → **B3-T2** |
+| §3 | Favoris de mods + import dans un profil | **Fait** | Étoile, cadrage, import nommant les intraduisibles (**B3-T2**, pas encore publié) |
 | §3 | Duplication d'un profil | **Fait** (2026-08-24) | `duplicateProfile(id:)`, depuis le menu ⋯ de la ligne → **B3-T3** |
 | §3 | Recherche automatique des NexusID manquants | **À faire** | Saisie manuelle sur la fiche mod → **A3-T1** |
 | §4 | Backups : feedback après restauration, tri, regroupement, recherche | **Fait** (2026-08-23) | Regroupement, tri et recherche → **B4-T1** ; compte rendu de restauration (ce qui a été écrit, où, ce qu'est devenue la version remplacée) → **B4-T2** |
@@ -637,8 +637,19 @@ pouvoir revenir en arrière à tout moment.
       de soi : un profil vide ne peut pas devenir actif à sa création — `syncActiveProfileIds`
       réécrit le profil actif depuis le disque à chaque scan, et l'aurait rempli des mods en
       cours dans la foulée. `ProfileFactory` (Core) porte les deux règles, testées.*
-- [ ] **B3-T2** — Favoris de mods (persistés au registre), avec « importer les favoris dans
-      ce profil ». · **M**
+- [x] **B3-T2** — Favoris de mods, avec « importer les favoris dans ce profil ». *Livré :
+      étoile sur chaque ligne de premier niveau et sur la fiche, pastille de cadrage dans la
+      barre d'outils, entrée « Importer les favoris » au menu ⋯ d'un profil.
+      **L'asymétrie des clés est le cœur de la tâche** : un favori se marque sur une ligne,
+      donc se désigne par son `folderName` **logique** (qui survit à une mise en pause),
+      quand un profil ne connaît que des `UniqueID` — et entre les deux, les packs, dossiers
+      de premier niveau sans identifiant à eux. `FavoriteResolution` (Core, 12 tests) porte
+      cette traduction : un pack apporte tous ses composants, la déduplication ignore la
+      casse comme `addModToProfile`, et les favoris intraduisibles (désinstallés, ou sans
+      identifiant au manifeste) sont **nommés** au lieu d'être écartés en silence comme le
+      fait `applyEnabledFolders`. L'import est **une seule mutation** : boucler sur
+      `addModToProfile` aurait réappliqué le profil au disque à chaque mod. Sur le profil
+      actif il demande confirmation, puisqu'il active les mods immédiatement.* · **M**
 - [x] **B3-T3** — Duplication d'un profil. · **S** · *`ProfileFactory.duplicate`, la copie
       porte son propre identifiant et n'est pas activée.*
 - [~] **B3-T4** — Diagnostic de profil au changement : mods manquants, dépendances non
@@ -1104,9 +1115,10 @@ traductions. Le tout est sorti en **v1.18.0**.
    (trier la liste des mods par poids — sur le parc réel, 12,7 Go dorment dans
    des mods en pause, et rien ne dit encore lesquels sans ouvrir 863 fiches).
    B2-T9 est livré à leur suite (poids par ligne, tri, total du cadrage).
-2. **B3-T2** — favoris de mods, avec « importer les favoris dans ce profil ».
-   Le profil sait désormais retenir ses mods (`ProfileModMetadata`), ce qui
-   rapproche le socle.
+2. ~~**B3-T2**~~ *(livré)* — favoris de mods, avec « importer les favoris dans
+   ce profil ». L'import renseigne `ProfileModMetadata` dans la même passe :
+   sans quoi le diagnostic de profil n'aurait plus su nommer les mods entrés
+   par ce chemin, des mois plus tard.
 3. **B1-T3** — pastilles d'anomalie dans la liste des mods, alimentées par
    `ModErrorHistory`. Même geste que les pastilles de profil, déjà éprouvé.
 4. **B3-T5** (configs par profil) reste le plus gros et le plus risqué : il
