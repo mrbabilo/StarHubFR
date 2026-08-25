@@ -284,7 +284,13 @@ struct ModListView: View {
     /// pass again.
     private func displayMods(from filtered: [ModItem]) -> [ModItem] {
         switch filters.scope {
-        case .all:      return activeMods(from: filtered) + inactiveMods(from: filtered)
+        // **Pas** de partition actifs/en pause : le cadrage « Tous » rend
+        // l'ordre du tri tel quel. Grouper d'abord par état écrasait le tri
+        // choisi — trier par poids remontait le plus gros mod *actif*, jamais
+        // le plus gros du parc, alors que les trois quarts du poids dorment
+        // dans des mods en pause. L'état reste lisible ligne à ligne : barre
+        // d'accent verte ou grise, et le point à côté du nom.
+        case .all:      return filtered
         case .enabled:  return activeMods(from: filtered)
         case .disabled: return inactiveMods(from: filtered)
         case .issues:   return modsWithIssues(from: filtered)
@@ -514,19 +520,12 @@ struct ModListView: View {
                         // everything is enabled, or "Issues" with no problems).
                         if filters.scope == .issues { noIssuesMessage } else { emptyScopeMessage }
                     } else {
-                        // Render the current page only. For the "All" scope the
-                        // page is split into Enabled/Disabled sections so the
-                        // visual grouping is preserved.
+                        // Render the current page only. Une seule section sous
+                        // « Tous » : la couper en Activés / En pause imposait un
+                        // ordre que le tri choisi n'avait pas demandé.
                         switch filters.scope {
                         case .all:
-                            let pageActive = paged.filter { $0.isEnabled }
-                            let pageInactive = paged.filter { !$0.isEnabled }
-                            if !pageActive.isEmpty {
-                                ModSectionGroup(title: vm.L(L10n.Mods.enabled), mods: pageActive, vm: vm)
-                            }
-                            if !pageInactive.isEmpty {
-                                ModSectionGroup(title: vm.L(L10n.Mods.disabled), mods: pageInactive, vm: vm)
-                            }
+                            ModSectionGroup(title: vm.L(L10n.Mods.filterAll), mods: paged, vm: vm)
                         case .enabled:
                             ModSectionGroup(title: vm.L(L10n.Mods.enabled), mods: paged, vm: vm)
                         case .disabled:

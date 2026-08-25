@@ -12,6 +12,9 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Changed
+- **The "All" view no longer groups mods by enabled/disabled.** It split the page into two sections before anything else, which overrode the sort you picked: sorting by weight surfaced the heaviest *enabled* mod, never the heaviest mod, even though three quarters of the weight sits in paused ones. The list now follows its sort order straight through. A mod's state still reads at a glance from the green or grey accent bar and the dot beside its name.
+
 ### Added
 - **Mods can be starred, and a profile can import what you starred.** A star on every row of the mod list, a chip in the toolbar to scope to them, and an "Import favourites" entry in a profile's ⋯ menu. The import says what it did: how many entered the profile, and by name the ones that could not — a mod uninstalled since, or one whose manifest declares no identifier, which a profile cannot hold. On the active profile it asks first, since importing there enables the mods on disk right away. A pack is starred as a whole and brings in every component it holds.
 - **The mod list carries the weight of every mod, and can be sorted by it.** Finding what takes up the room used to mean opening mods one at a time. The figure sits in each row's metadata strip and turns orange past 100 MB — on a real library that marks 22 folders out of 863, holding 87% of the 16.8 GB. A new "Weight" sort brings them to the top, and the toolbar totals whatever the filters currently keep: scope to paused mods and it reads 12.7 GB, which is the answer to "how much can I get back".
