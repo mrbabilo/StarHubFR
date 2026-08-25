@@ -1223,6 +1223,59 @@ struct ModListRow: View {
     /// when nothing is known so no empty row is rendered. Uses relative dates
     /// (short form) to keep the line scannable; full dates live in the detail
     /// pane.
+    /// L'auteur, dans un créneau borné.
+    ///
+    /// Le parc réel va de 1 à **99 caractères** (« Brandon Marquis Markail
+    /// Green (Space Baby), 1.6 update by Nikki864, GMCM menu by MickeyMik »),
+    /// avec une médiane à 9 : sans borne, un seul auteur bavard poussait la
+    /// version et tout ce qui suit hors de leur colonne pour cette ligne-là.
+    ///
+    /// Troncature au **milieu** et non à la fin : ces noms à rallonge disent
+    /// « X, repris par Y », et couper la fin masquerait justement qui maintient
+    /// le mod aujourd'hui. L'infobulle porte la valeur entière.
+    ///
+    /// Vide plutôt que « Unknown » — le littéral que porte un manifeste sans
+    /// auteur, déjà écarté de la même façon sur la fiche du mod.
+    @ViewBuilder
+    private var authorLabel: some View {
+        let author = mod.isGroup ? vm.displayAuthor(for: mod) : mod.author
+        if !author.isEmpty, author != "Unknown" {
+            Text(author)
+                .font(AppDesign.Font.caption)
+                .foregroundColor(.secondary)
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .help(author)
+        } else {
+            // Un créneau tenu vide : la colonne suivante doit rester en place.
+            Color.clear.frame(height: 1)
+        }
+    }
+
+    /// Une valeur de la bande, précédée de son icône.
+    private func metaValue(_ icon: String, _ text: String) -> some View {
+        HStack(spacing: 3) {
+            Image(systemName: icon).font(.system(size: 9))
+            Text(text).lineLimit(1)
+        }
+    }
+
+    /// Bande compacte sous la ligne catégorie/auteur/version : couverture
+    /// française, dates, poids, puis les langues.
+    ///
+    /// Des créneaux de largeur **minimale**, pour que les mêmes valeurs se
+    /// retrouvent à la même abscisse d'une ligne à l'autre : sur 863 mods,
+    /// comparer deux poids ou deux dates demandait jusqu'ici de les chercher.
+    /// `minWidth` et non `width` — la colonne s'aligne quand la place est là et
+    /// reflue quand la fenêtre se resserre, plutôt que de rogner le nom du mod
+    /// au-dessus.
+    ///
+    /// Seules les valeurs **comparables** ont un créneau. La liste des langues
+    /// est un ensemble, pas une grandeur : rien ne s'y compare d'une ligne à
+    /// l'autre, et la moitié du parc n'en a aucune (445 dossiers sur 863). Lui
+    /// réserver une gouttière aurait creusé un vide une ligne sur deux ; elle
+    /// ferme donc la bande, où sa largeur variable ne décale plus rien — et les
+    /// puces « • » qui séparaient les champs n'ont plus lieu d'être.
     private var rowMetadataLine: AnyView? {
         let updated = vm.nexusLastUpdated(for: mod)
         let installed = mod.installedFileDate
@@ -1234,51 +1287,75 @@ struct ModListRow: View {
         let size = vm.sizeOnDisk(of: mod)
         guard updated != nil || installed != nil || !langs.isEmpty || size != nil else { return nil }
         return AnyView(
-            HStack(spacing: 6) {
-                // La couverture française ouvre la ligne : c'est l'information
-                // que ce produit existe pour donner, et elle se perdait au
-                // milieu des codes de langue, de l'horloge et de la date.
-                if langs.contains("fr") {
-                    FrenchCoverageBadge(
-                        percent: vm.frenchCoverage(for: mod),
-                        // Un code de langue, pas une phrase : il ne se traduit
-                        // pas, exactement comme la liste des langues à côté.
-                        unmeasuredLabel: "FR",
-                        percentFormat: vm.L(L10n.Mods.frCoveragePercent)
-                    )
-                }
-                if !langs.isEmpty {
-                    Image(systemName: "globe")
-                        .font(.system(size: 9))
-                    Text(langs.map { $0.uppercased() }.joined(separator: " "))
-                    if updated != nil || installed != nil {
-                        Text("•")
-                            .foregroundColor(.secondary.opacity(AppDesign.Opacity.disabled))
-                    }
-                }
-                if let updated {
-                    Image(systemName: "clock.arrow.circlepath")
-                        .font(.system(size: 9))
-                    Text(updated.formatted(.relative(presentation: .named)))
-                    if installed != nil {
-                        Text("•")
-                            .foregroundColor(.secondary.opacity(AppDesign.Opacity.disabled))
-                    }
-                }
-                if let installed {
-                    Image(systemName: "tray.and.arrow.down")
-                        .font(.system(size: 9))
-                    Text(installed.formatted(date: .abbreviated, time: .omitted))
-                }
-                if let size {
-                    if updated != nil || installed != nil || !langs.isEmpty {
-                        Text("•")
-                            .foregroundColor(.secondary.opacity(AppDesign.Opacity.disabled))
-                    }
-                    ModWeightLabel(bytes: size)
-                }
+            HStack(spacing: 10) {
+                frenchSlot(langs: langs)
+                updatedSlot(updated)
+                installedSlot(installed)
+                weightSlot(size)
+                languagesLabel(langs)
             }
         )
+    }
+
+    /// La couverture française ouvre la bande : c'est l'information que ce
+    /// produit existe pour donner, et elle se perdait au milieu des codes de
+    /// langue, de l'horloge et de la date.
+    @ViewBuilder
+    private func frenchSlot(langs: [String]) -> some View {
+        Group {
+            if langs.contains("fr") {
+                FrenchCoverageBadge(
+                    percent: vm.frenchCoverage(for: mod),
+                    // Un code de langue, pas une phrase : il ne se traduit pas,
+                    // exactement comme la liste des langues à côté.
+                    unmeasuredLabel: "FR",
+                    percentFormat: vm.L(L10n.Mods.frCoveragePercent)
+                )
+            }
+        }
+        .frame(minWidth: 46, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private func updatedSlot(_ updated: Date?) -> some View {
+        Group {
+            if let updated {
+                metaValue("clock.arrow.circlepath",
+                          updated.formatted(.relative(presentation: .named)))
+            }
+        }
+        .frame(minWidth: 104, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private func installedSlot(_ installed: Date?) -> some View {
+        Group {
+            if let installed {
+                metaValue("tray.and.arrow.down",
+                          installed.formatted(date: .abbreviated, time: .omitted))
+            }
+        }
+        .frame(minWidth: 100, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private func weightSlot(_ size: Int64?) -> some View {
+        Group {
+            if let size { ModWeightLabel(bytes: size) }
+        }
+        .frame(minWidth: 78, alignment: .leading)
+    }
+
+    /// Jusqu'à 76 caractères de codes sur le parc réel : borné à ce que la
+    /// place permet, avec la liste entière à l'infobulle.
+    @ViewBuilder
+    private func languagesLabel(_ langs: [String]) -> some View {
+        if !langs.isEmpty {
+            let codes = langs.map { $0.uppercased() }.joined(separator: " ")
+            metaValue("globe", codes)
+                .truncationMode(.tail)
+                .help(codes)
+        }
     }
 
     /// L'étoile de favori, sur les lignes de **premier niveau** seulement.
@@ -1369,44 +1446,36 @@ struct ModListRow: View {
                         .lineLimit(1)
                 }
                 
-                if !mod.isGroup {
-                    HStack(spacing: 6) {
-                        // Category badge — only for mods whose category was
-                        // fetched from Nexus or manually pinned. Otherwise
-                        // fall back to the offline-inferred type tag.
+                // Une seule forme pour les deux cas : un en-tête de pack rend
+                // les mêmes champs, agrégés de ses composants. Deux `HStack`
+                // jumeaux les auraient fait diverger dès la première retouche —
+                // et un pack mal aligné au milieu de la liste se voit.
+                HStack(spacing: 8) {
+                    // Category badge — only for mods whose category was
+                    // fetched from Nexus or manually pinned. Otherwise
+                    // fall back to the offline-inferred type tag.
+                    Group {
                         if let cat = vm.category(for: mod) {
                             CategoryBadge(category: cat, L: vm.L)
                         } else {
                             InferredTagBadge(label: vm.L(L10n.ModTag.key(for: vm.inferredTagKey(for: mod))))
                         }
-                        Text(mod.author)
-                            .font(AppDesign.Font.caption)
-                            .foregroundColor(.secondary)
-                        Text("•")
-                            .foregroundColor(.secondary.opacity(AppDesign.Opacity.disabled))
-                        VersionBadge(version: mod.version)
                     }
-                } else {
-                    // Pack header: show the same metadata (category, author,
-                    // version) aggregated from the children, plus the mod count
-                    // so the pack size stays visible at a glance.
-                    HStack(spacing: 6) {
-                        if let cat = vm.category(for: mod) {
-                            CategoryBadge(category: cat, L: vm.L)
-                        } else {
-                            InferredTagBadge(label: vm.L(L10n.ModTag.key(for: vm.inferredTagKey(for: mod))))
-                        }
-                        Text(vm.displayAuthor(for: mod))
-                            .font(AppDesign.Font.caption)
-                            .foregroundColor(.secondary)
-                        Text("•")
-                            .foregroundColor(.secondary.opacity(AppDesign.Opacity.disabled))
-                        VersionBadge(version: vm.displayVersion(for: mod))
-                        Text("•")
-                            .foregroundColor(.secondary.opacity(AppDesign.Opacity.disabled))
+                    .frame(minWidth: 104, alignment: .leading)
+
+                    authorLabel
+                        .frame(minWidth: 140, maxWidth: 190, alignment: .leading)
+
+                    VersionBadge(version: mod.isGroup ? vm.displayVersion(for: mod) : mod.version)
+                        .frame(minWidth: 78, alignment: .leading)
+
+                    if mod.isGroup {
+                        // Le nombre de composants ferme la ligne : il varie, et
+                        // plus rien ne le suit dont il pourrait décaler la place.
                         Text(mod.description)
                             .font(AppDesign.Font.footnote)
                             .foregroundColor(.secondary.opacity(0.85))
+                            .lineLimit(1)
                     }
                 }
                 // Compact metadata strip: languages + dates. Only shown when
