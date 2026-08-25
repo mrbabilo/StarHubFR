@@ -106,6 +106,7 @@ liste du 2026-07-30 et n'existaient pas dans le document de veille.
 | §2 | Vérifier le bouton d'activation de la page dépendances | **Bug présumé** | Le bouton existe (`DependencyTreeView.swift:124`) ; c'est son effet qui est douteux → **X3** |
 | §2 | Boutons de rafraîchissement (quarantaine, alertes système) | **À faire** | → **B2-T3** |
 | §3 | Reconnaître les mods de traduction (i18n seul) | **Partiel** | `ModItem.languages`, filtre `FrenchTranslationScope` et heuristique de nom (`ModItem.swift:99`) — mais **aucun test structurel** → **C1-T4** |
+| **§new** | Installer une archive sans manifeste (traduction d'un mod, greffe type `ItemBags`) | **À faire** | Signalé le 2026-08-25 ; jeu d'épreuve dans `mods tests/` → **A1-T3** |
 | §3 | Nouveau profil créé **vide** | **Fait** (2026-08-24) | L'alerte propose les deux voies, « vide » en premier ; `ProfileFactory` (Core, testé) → **B3-T1** |
 | §3 | Favoris de mods + import dans un profil | **Fait** | Étoile, cadrage, import nommant les intraduisibles (**B3-T2**, pas encore publié) |
 | §3 | Duplication d'un profil | **Fait** (2026-08-24) | `duplicateProfile(id:)`, depuis le menu ⋯ de la ligne → **B3-T3** |
@@ -826,6 +827,41 @@ backup se retrouve en moins de dix secondes.
       ce que SMAPI accepte (JSON5 : commentaires, virgules traînantes) — `smapi.io/json`
       sert de référence de comportement, et les messages d'erreur doivent être aussi
       explicites que les siens. · **M**
+
+- [ ] **A1-T3** — **Installer une archive sans `manifest.json`** : traduction d'un mod déjà
+      installé, ou fichiers greffés dans un mod existant (bagages `ItemBags`…). Aujourd'hui
+      l'installateur ne classe une archive que par sa structure (`ZipStructure` :
+      `singleMod` / `multiMod` / `flatRoot` / `unrecognized`) et cherche des
+      `manifest.json` : les sept archives du jeu d'épreuve tombent donc en
+      `invalidStructure`, « aucun mod trouvé ». Il faut reconnaître l'archive par son
+      **contenu**, désigner le dossier de destination, et écrire **dans** un mod existant —
+      donc sauvegarde préalable obligatoire (`ModInstallBackupManager`) et passage par
+      `RecoveredFileWriter.withWriteAccess`, le parc étant en `0555` par endroits.
+      · **M/L** · *à instruire avant d'engager*
+
+      **Quatre formes, toutes présentes dans `mods tests/`** — ce dossier est le jeu
+      d'épreuve, pas un exemple. ⚠️ Il est **gitignoré** : il vit sur la machine de
+      l'auteur et n'est pas dans le dépôt. Les noms d'archives ci-dessous suffisent à le
+      reconstituer depuis Nexus :
+      1. *Traduction, dossier cible nommé* — `FishingLogbook/i18n/fr.json`,
+         `The Queen of Sauce's Cookbook - Recipe Tracker/i18n/fr.json`. La destination est
+         dans l'archive : le cas facile.
+      2. *Traduction, dossier suffixé* — `MakeGuntherRealFR/*.json` (des dialogues, pas un
+         `i18n/`). Le dossier cible est vraisemblablement `MakeGuntherReal` : le « FR »
+         appartient au nom de la traduction, pas à celui du mod. **Ne jamais décapiter un
+         suffixe sans confirmation** — c'est le genre d'heuristique qui écrase le mauvais
+         dossier.
+      3. *Greffe, chemin cible nommé* — `ItemBags/assets/Modded Bags/*.json`.
+      4. *Greffe, fichiers nus à la racine* — `Sword and Sorcery Bags`, `Utility Bags`,
+         `Cloth And Colors Bag` : des `.json` à plat, **rien dans l'archive ne dit où les
+         déposer**. La prise est dans le contenu : ces fichiers portent `BagId` / `BagName`
+         (et parfois `ModUniqueId`, absent du cas 3 — ne pas s'y fier seul), ce qui les
+         range dans `ItemBags/assets/Modded Bags/`.
+
+      **Ce que la tâche doit livrer, au-delà de la copie** : dire quel mod sera modifié
+      **avant** d'écrire, refuser proprement quand le mod cible n'est pas installé (et le
+      nommer), et laisser une trace récupérable — une greffe est invisible dans le registre,
+      qui ne connaît que des dossiers de premier niveau.
 
 #### A2 — Compatibilité SMAPI via l'API smapi.io
 
