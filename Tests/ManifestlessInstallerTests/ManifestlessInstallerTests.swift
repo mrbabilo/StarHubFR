@@ -111,6 +111,32 @@ struct ManifestlessInstallerTests {
         #expect(read(g.hostPath.appendingPathComponent("i18n/fr.json")) == "avant")
     }
 
+    /// **L'échec au milieu d'une écriture, pas avant.** Écrire commence par
+    /// retirer la destination : quand la copie échoue ensuite, le fichier
+    /// d'origine du mod est déjà parti alors que l'entrée n'a jamais été
+    /// comptée comme déposée. Défaire doit quand même la rendre — sinon le mod
+    /// perd son fichier et sa sauvegarde n'est plus reliée à rien.
+    @Test func aFileLostMidWriteIsGivenBack() throws {
+        let g = try makeGround(archive: ["Parchment/i18n/fr.json": "communautaire",
+                                         "Parchment/i18n/de.json": "illisible"],
+                               host: ["i18n/de.json": "livré par l'auteur"])
+        // Source illisible : la copie échoue **après** que l'écriture a retiré
+        // la destination, ce que ni un fichier absent ni un hôte manquant ne
+        // reproduisent.
+        let unreadable = g.extracted.appendingPathComponent("Parchment/i18n/de.json")
+        try fm.setAttributes([.posixPermissions: 0o000], ofItemAtPath: unreadable.path)
+        defer { try? fm.setAttributes([.posixPermissions: 0o644], ofItemAtPath: unreadable.path) }
+
+        #expect(throws: (any Error).self) {
+            try ManifestlessInstaller.install(
+                plan: plan([("Parchment/i18n/fr.json", "i18n/fr.json"),
+                            ("Parchment/i18n/de.json", "i18n/de.json")]),
+                extractedRoot: g.extracted, hostPath: g.hostPath, backupRoot: g.backups)
+        }
+        #expect(read(g.hostPath.appendingPathComponent("i18n/de.json")) == "livré par l'auteur")
+        #expect(!fm.fileExists(atPath: g.hostPath.appendingPathComponent("i18n/fr.json").path))
+    }
+
     @Test func aMissingHostIsRefusedBeforeAnythingIsWritten() throws {
         let g = try makeGround(archive: ["x.json": "{}"])
         let absent = g.hostPath.deletingLastPathComponent().appendingPathComponent("Fantome")
@@ -151,6 +177,42 @@ struct ManifestlessInstallerTests {
             replacedFiles: outcome.replaced)
 
         #expect(ManifestlessInstaller.uninstall(translation, hostPath: g.hostPath).isEmpty)
+        #expect(read(g.hostPath.appendingPathComponent("i18n/fr.json")) == "livré par l'auteur")
+    }
+
+    /// **Le chemin complet, d'un bout à l'autre.** Chaque pièce est éprouvée
+    /// à part ; c'est leur enchaînement qui sert l'utilisateur : classer
+    /// l'archive, écrire, enregistrer, relire l'enregistrement au lancement
+    /// suivant, puis retirer et rendre au mod ce qui était à lui.
+    @Test func classifyInstallRecordReloadRemove() throws {
+        let g = try makeGround(archive: ["Parchment/i18n/fr.json": "communautaire"],
+                               host: ["i18n/fr.json": "livré par l'auteur"])
+
+        // 1. Classer : le dossier racine désigne un mod installé.
+        let outcome = ManifestlessArchive.classify(paths: ["Parchment/i18n/fr.json"],
+                                                   installedFolderNames: ["Parchment"])
+        guard case .plan(let plan) = outcome else { Issue.record("attendu un plan"); return }
+        #expect(plan.kind == .translation)
+
+        // 2. Écrire.
+        let written = try ManifestlessInstaller.install(
+            plan: plan, extractedRoot: g.extracted, hostPath: g.hostPath, backupRoot: g.backups)
+        #expect(read(g.hostPath.appendingPathComponent("i18n/fr.json")) == "communautaire")
+
+        // 3. Enregistrer, puis relire comme au lancement suivant : sans ce
+        //    passage par le disque, la liste des fichiers et l'endroit des
+        //    originaux seraient perdus et le retrait impossible.
+        var registry = InstalledTranslationRegistry()
+        registry.record(InstalledTranslation(
+            hostFolderName: plan.hostFolderName, nexusModId: 50233, nexusName: "Parchment FR",
+            version: "1.1.0", updatedAt: nil, installedAt: Date(),
+            files: written.written, replacedFiles: written.replaced))
+        let reloaded = try JSONDecoder().decode(
+            InstalledTranslationRegistry.self, from: JSONEncoder().encode(registry))
+        let tracked = try #require(reloaded.translation(forHost: "Parchment"))
+
+        // 4. Retirer : le fichier de l'auteur reprend sa place.
+        #expect(ManifestlessInstaller.uninstall(tracked, hostPath: g.hostPath).isEmpty)
         #expect(read(g.hostPath.appendingPathComponent("i18n/fr.json")) == "livré par l'auteur")
     }
 

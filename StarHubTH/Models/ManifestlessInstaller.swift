@@ -150,11 +150,19 @@ public enum ManifestlessInstaller {
     /// annulation muette laisserait croire le mod intact alors qu'il ne l'est
     /// pas.
     ///
+    /// Défait **plus large que ce qui a été écrit** : l'écriture commence par
+    /// retirer la destination, donc une entrée mise à l'abri puis échouée en
+    /// pleine copie a déjà perdu son fichier d'origine sans jamais entrer dans
+    /// `written`. S'en tenir à `written` laisserait ce fichier-là effacé et sa
+    /// sauvegarde orpheline — la perte que ce filet existe pour empêcher.
+    ///
     /// - Returns: les chemins relatifs restés dans un état intermédiaire.
     private static func rollBack(written: [String], replaced: [String: String],
                                  hostPath: URL) -> [String] {
         var leftBehind: [String] = []
-        for relative in written {
+        let deposited = Set(written)
+        let toUndo = written + replaced.keys.filter { !deposited.contains($0) }.sorted()
+        for relative in toUndo {
             let installed = hostPath.appendingPathComponent(relative)
             do {
                 if let saved = replaced[relative] {
