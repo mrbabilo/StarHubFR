@@ -76,6 +76,23 @@ journaux ; **elle ne réimplémente rien de sa logique de chargement.**
   du type « le jeu refusera ce fichier » doit être **mesurée** en exécutant sa
   propre `Newtonsoft.Json.dll`, jamais déduite d'un schéma.
 
+- **Le préfixe entre crochets d'un nom de mod nomme un *framework*, pas le mod.**
+  `[CP] Blue Eggs`, `[FTM] The Forgotten Caverns`, `[AT] Vanilla Forage Crops` :
+  un *content pack* n'est pas un mod autonome, c'est un jeu de fichiers (JSON,
+  images) chargé par un mod moteur — Content Patcher, Farm Type Manager,
+  Alternative Textures, Json Assets, Dynamic Game Assets, Fashion Sense, Mail
+  Framework Mod… Le préfixe dit lequel, et permet à l'auteur de ranger son
+  dossier ; retirer le framework casse tous les packs qui le portent.
+  C'est une **convention communautaire**, pas une règle SMAPI : la liste des
+  acronymes n'est close nulle part (le parc de référence porte `[SMI]`, `[NPC]`,
+  `[MFM]`, `[CP-SC]`, jusqu'à un `[🦉]`), et certains auteurs préfixent par
+  fonction plutôt que par framework.
+  ⚠️ **Il n'appartient pas au titre Nexus.** Chercher un mod sur Nexus avec son
+  préfixe rend **zéro** résultat, sans erreur : la recherche porte sur une
+  sous-chaîne du titre, où le préfixe ne figure pas. Mesuré le 2026-08-25 sur
+  six noms du parc — 0 avec, 1 à 12 sans. 148 manifestes sur 995 en portent un.
+  D'où `NexusModSearch.stripConventionPrefixes`.
+
 ### Mettre un mod en pause — nous divergeons de l'upstream
 
 **Un mod en pause est un dossier préfixé par un point, resté dans `Mods/`**

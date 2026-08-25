@@ -69,7 +69,10 @@ struct NexusModSearchTests {
     @Test func noTagMeansNoTagFilterAtAll() {
         let payload = body("Parchment")
         let query = payload["query"] as? String ?? ""
-        #expect(!query.contains("tag"))
+        // Le **filtre**, pas le mot : les nœuds demandent `tags { name }` en
+        // permanence — c'est ce champ qui sépare un supplément d'une traduction.
+        #expect(!query.contains("tag: {"))
+        #expect(!query.contains("$tag: String!"))
         #expect((payload["variables"] as? [String: Any])?["tag"] == nil)
     }
 
@@ -257,6 +260,43 @@ struct NexusModSearchTests {
         let undated = NexusModSearch.Hit(modId: 2, name: "Mod VF", version: "1", updatedAt: nil,
                                          categoryName: "", uploader: "", adultContent: false)
         #expect(NexusModSearch.frenchTranslations(among: [undated, dated]).map(\.modId) == [1, 2])
+    }
+
+    // MARK: - Préfixes de convention
+
+    /// **Le faux négatif muet.** La recherche porte sur une sous-chaîne : le
+    /// `[CP]` d'un manifeste, qui n'appartient à aucun titre Nexus, la faisait
+    /// échouer entièrement — mesuré, 0 résultat contre 9 sans lui — et la fiche
+    /// annonçait « aucune traduction trouvée ». 148 manifestes sur 995 en
+    /// portent un.
+    @Test func aConventionPrefixIsNotSearchedFor() {
+        #expect(NexusModSearch.searchTerm(for: "[CP] Make Gunther Real") == "Make Gunther Real")
+        #expect(NexusModSearch.searchTerm(for: "(TTG) Mapster - A Local Map Mod")
+                == "Mapster - A Local Map Mod")
+        #expect(NexusModSearch.searchTerm(for: "[FTM] Wildflour's Atelier Goods")
+                == "Wildflour's Atelier Goods")
+    }
+
+    /// Plusieurs cadres empilés, et les accents repliés dans la foulée.
+    @Test func severalPrefixesGoAndAccentsStillFold() {
+        #expect(NexusModSearch.searchTerm(for: "[CP] [FR] Forêt Enchantée")
+                == "Foret Enchantee")
+    }
+
+    /// Ce qui n'est pas un préfixe de cadre reste : une parenthèse de fin
+    /// appartient au titre, et un texte long entre crochets n'est pas un cadre.
+    @Test func whatIsNotAFrameworkPrefixStays() {
+        #expect(NexusModSearch.searchTerm(for: "Sword and Sorcery (Traduction francaise - FR)")
+                == "Sword and Sorcery (Traduction francaise - FR)")
+        #expect(NexusModSearch.searchTerm(for: "[A Very Long Bracket] Mod")
+                == "[A Very Long Bracket] Mod")
+    }
+
+    /// **Ne jamais rendre le vide** : un nom fait de son seul préfixe vaut
+    /// mieux cherché tel quel que pas cherché du tout.
+    @Test func aNameMadeOnlyOfItsPrefixIsKept() {
+        #expect(NexusModSearch.searchTerm(for: "[CP]") == "[CP]")
+        #expect(NexusModSearch.queryBody(name: "[CP]", gameId: 1303) != nil)
     }
 
     // MARK: - Résultats déjà tagués par le serveur

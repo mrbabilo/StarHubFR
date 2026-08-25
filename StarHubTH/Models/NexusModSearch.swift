@@ -22,9 +22,19 @@ public enum NexusModSearch {
         public let categoryName: String
         public let uploader: String
         public let adultContent: Bool
+        /// Les tags Nexus du mod.
+        ///
+        /// C'est ce qui sépare un supplément d'une traduction, et rien d'autre
+        /// ne le fait : mesuré sur douze résultats pour « Wildflour », les six
+        /// traductions portent toutes `Translation` et les deux vrais
+        /// suppléments n'en portent aucun. Le titre, lui, ne dit rien —
+        /// « (ES-LATAM) … » n'annonce pas plus une traduction que
+        /// « Item Bags for … » n'annonce une greffe.
+        public let tags: [String]
 
         public init(modId: Int, name: String, version: String, updatedAt: Date?,
-                    categoryName: String, uploader: String, adultContent: Bool) {
+                    categoryName: String, uploader: String, adultContent: Bool,
+                    tags: [String] = []) {
             self.modId = modId
             self.name = name
             self.version = version
@@ -32,6 +42,12 @@ public enum NexusModSearch {
             self.categoryName = categoryName
             self.uploader = uploader
             self.adultContent = adultContent
+            self.tags = tags
+        }
+
+        /// `true` quand Nexus range ce mod parmi les traductions.
+        public var isTranslation: Bool {
+            tags.contains { $0.caseInsensitiveCompare(NexusModSearch.translationTag) == .orderedSame }
         }
     }
 
@@ -74,6 +90,14 @@ public enum NexusModSearch {
     /// ne rendrait rien.
     public static let frenchTag = "French"
 
+    /// Le tag que Nexus pose sur **toute** traduction, quelle que soit la
+    /// langue. Sur 80 traductions françaises relevées, les 80 le portent — là
+    /// où 77 seulement portent `French`. C'est donc lui, et non le titre, qui
+    /// écarte les traductions d'une recherche de suppléments : sur
+    /// « Sword and Sorcery », les huit premiers résultats sur vingt-six sont
+    /// des traductions japonaises, chinoises, hongroises, brésiliennes…
+    public static let translationTag = "Translation"
+
     public static func queryBody(name: String, gameId: Int, tag: String? = nil,
                                  count: Int = 30, offset: Int = 0) -> Data? {
         let term = searchTerm(for: name)
@@ -94,7 +118,7 @@ public enum NexusModSearch {
           ) {
             totalCount
             nodes { modId name version updatedAt adultContent status
-                    modCategory { name } uploader { name } }
+                    modCategory { name } uploader { name } tags { name } }
           }
         }
         """
@@ -105,15 +129,57 @@ public enum NexusModSearch {
                                                             "variables": variables])
     }
 
-    /// Le terme réellement envoyé : sans accents, et débarrassé de ce qui ne
-    /// sert qu'à l'humain.
+    /// Le terme réellement envoyé : sans accents, sans préfixe de convention,
+    /// et débarrassé de ce qui ne sert qu'à l'humain.
     ///
     /// **L'index de Nexus ne connaît pas les accents.** Mesuré : « Français »
     /// rend 0 résultat là où « Francais » en rend 184. Un nom de mod accentué
     /// chercherait donc dans le vide sans qu'aucune erreur ne le signale.
+    ///
+    /// **Et il ne connaît pas non plus les préfixes de convention.** Le nom
+    /// déclaré par un manifeste commence souvent par l'acronyme du *framework*
+    /// qui charge le content pack — `[CP]` Content Patcher, `[FTM]` Farm Type
+    /// Manager, `[AT]` Alternative Textures, `[JA]` Json Assets… C'est une
+    /// convention communautaire pour ranger un dossier (cf. `docs/DOMAINE.md`),
+    /// **pas un morceau du titre Nexus**. La recherche portant sur une
+    /// **sous-chaîne** de ce titre, le préfixe la fait échouer entièrement, et
+    /// en silence. Mesuré sur l'API réelle le 2026-08-25, six noms du parc,
+    /// six fois le même écart :
+    ///
+    /// | nom déclaré | résultats | sans préfixe |
+    /// |---|---|---|
+    /// | `[CP] Make Gunther Real` | 0 | 9 |
+    /// | `[FTM] Wildflour's Atelier Goods` | 0 | 12 |
+    /// | `[AT] Vanilla Forage Crops and Bushes` | 0 | 6 |
+    ///
+    /// **148 manifestes sur 995** en portent un dans le parc de référence :
+    /// autant de fiches qui annonçaient « aucune traduction trouvée » sans
+    /// avoir rien cherché de trouvable.
     public static func searchTerm(for name: String) -> String {
-        name.folding(options: [.diacriticInsensitive], locale: Locale(identifier: "en_US_POSIX"))
+        let stripped = stripConventionPrefixes(name)
+        return stripped.folding(options: [.diacriticInsensitive],
+                                locale: Locale(identifier: "en_US_POSIX"))
             .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Retire les préfixes `[…]` et `(…)` de tête, tant qu'il en reste.
+    ///
+    /// Uniquement en tête, uniquement courts : un `(Traduction francaise - FR)`
+    /// en fin de titre appartient au titre, et `[Something Very Long]` n'est
+    /// pas une convention de cadre. **Ne rend jamais le vide** : un nom qui ne
+    /// serait fait que de crochets vaut mieux cherché tel quel que pas cherché
+    /// du tout.
+    static func stripConventionPrefixes(_ name: String) -> String {
+        var remainder = Substring(name).drop { $0.isWhitespace }
+        while let opening = remainder.first, opening == "[" || opening == "(",
+              let close = remainder.firstIndex(of: opening == "[" ? "]" : ")") {
+            let inside = remainder[remainder.index(after: remainder.startIndex)..<close]
+            guard !inside.isEmpty, inside.count <= 12 else { break }
+            let rest = remainder[remainder.index(after: close)...].drop { $0.isWhitespace }
+            guard !rest.isEmpty else { break }
+            remainder = rest
+        }
+        return String(remainder)
     }
 
     // MARK: - Réponse
@@ -151,13 +217,15 @@ public enum NexusModSearch {
 
         let category = (node["modCategory"] as? [String: Any])?["name"] as? String ?? ""
         let uploader = (node["uploader"] as? [String: Any])?["name"] as? String ?? ""
+        let tags = (node["tags"] as? [[String: Any]])?.compactMap { $0["name"] as? String } ?? []
         return Hit(modId: modId,
                    name: name,
                    version: node["version"] as? String ?? "",
                    updatedAt: (node["updatedAt"] as? String).flatMap(parseDate),
                    categoryName: category,
                    uploader: uploader,
-                   adultContent: node["adultContent"] as? Bool ?? false)
+                   adultContent: node["adultContent"] as? Bool ?? false,
+                   tags: tags)
     }
 
     // MARK: - Reconnaître une traduction française
