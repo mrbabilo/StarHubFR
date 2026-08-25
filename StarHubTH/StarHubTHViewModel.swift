@@ -4456,12 +4456,6 @@ class StarHubTHViewModel: ObservableObject {
             if let message = result.message { showModal(message: message) }
             guard result.outcome != nil else { return }
             log(String(format: L(L10n.Mods.translationInstalled), hit.name, mod.name))
-            // `invalidateFrenchCoverage` est `@MainActor` ; ce chemin arrive du
-            // `DispatchQueue.main.async` de la complétion de téléchargement,
-            // donc déjà sur le fil principal. Même geste que `deleteMod`, et
-            // pour la même raison : un `Task` rouvrirait une course entre la
-            // purge de l'index et le rescan qui suit.
-            MainActor.assumeIsolated { invalidateFrenchCoverage(for: mod.folderName) }
             refresh()
         } catch {
             showModal(message: L(L10n.Mods.translationInstallFailed))
@@ -4531,6 +4525,18 @@ class StarHubTHViewModel: ObservableObject {
             log("Dépôt sans manifeste : \(error)", level: .error)
             return (nil, failed)
         }
+
+        // Des fichiers de langue ont pu bouger — une greffe mixte en porte
+        // aussi : la couverture française mesurée est périmée dans tous les
+        // cas. Ici et non chez l'appelant, sinon le dépôt depuis la feuille
+        // d'installation laisserait la liste des mods dire « À traduire » sur
+        // un mod qui vient d'être traduit.
+        //
+        // `invalidateFrenchCoverage` est `@MainActor` ; les deux appelants
+        // écrivent depuis le fil principal. Même geste que `deleteMod`, et pour
+        // la même raison : un `Task` rouvrirait une course entre la purge de
+        // l'index et le rescan qui suit.
+        MainActor.assumeIsolated { invalidateFrenchCoverage(for: host.folderName) }
 
         // Seule une traduction entre au registre : c'est lui qui porte le bouton
         // « Retirer » de la fiche du mod, et une greffe n'en est pas une.

@@ -621,6 +621,7 @@ struct ModInstallView: View {
         let gameDir = vm.gameDir
         DispatchQueue.global(qos: .userInitiated).async {
             var failure: String?
+            var installed = 0
             do {
                 // Un sac peut avoir été retouché à la main (prix, capacités) :
                 // sauvegarder l'hôte avant d'écraser. Rien à préserver si le
@@ -640,9 +641,17 @@ struct ModInstallView: View {
                 }
                 for file in proposal.files {
                     try DroppedContentRecognizer.install(from: file.source, to: file.destination)
+                    installed += 1
                 }
             } catch {
+                // Un lot interrompu en cours de route a déjà posé des fichiers :
+                // dire « échec » sans le compte laisserait croire que rien n'a
+                // bougé, et l'utilisateur chercherait au mauvais endroit.
                 failure = self.vm.installErrorMessage(error)
+                if installed > 0 {
+                    failure! += "\n\n" + String(format: self.vm.L(L10n.ModInstall.droppedDoneMany),
+                                                 installed, proposal.hostDisplayName)
+                }
             }
             DispatchQueue.main.async {
                 self.isInstalling = false

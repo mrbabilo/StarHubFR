@@ -80,7 +80,10 @@ public enum ManifestlessArchive {
     /// ses chemins sont déjà relatifs à la racine de celui qui la recevra.
     /// Retirer `i18n` comme s'il s'agissait du nom d'un mod poserait le
     /// `fr.json` à la racine du dossier, où SMAPI ne le lira jamais.
-    private static let modContentDirectories: Set<String> = ["i18n", "assets", "content"]
+    /// `content` en est volontairement absent : c'est le nom du dossier du
+    /// **jeu**, et une archive de remplacement XNB qui en porterait un se
+    /// verrait déposée dans un mod. Aucun cas relevé n'en demande.
+    private static let modContentDirectories: Set<String> = ["i18n", "assets"]
 
     /// - Parameters:
     ///   - paths: les chemins que porte l'archive, dossiers exclus.

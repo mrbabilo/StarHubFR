@@ -191,11 +191,22 @@ struct ManifestlessArchiveTests {
     /// Un mod réellement nommé comme un dossier de contenu garde la main : son
     /// nom écrit dans l'archive dit où déposer.
     @Test func anInstalledModNamedLikeAContentFolderWins() throws {
-        let outcome = ManifestlessArchive.classify(paths: ["Content/data.json"],
-                                                   installedFolderNames: ["Content"])
+        let outcome = ManifestlessArchive.classify(paths: ["assets/data.json"],
+                                                   installedFolderNames: ["assets"])
         guard case .plan(let plan) = outcome else { Issue.record("attendu un plan"); return }
-        #expect(plan.hostFolderName == "Content")
+        #expect(plan.hostFolderName == "assets")
         #expect(plan.entries.map(\.destination) == ["data.json"])
+    }
+
+    /// `Content/` est le dossier du **jeu** : une archive qui en porte un n'est
+    /// pas relative à la racine d'un mod, et l'y déposer serait un contresens.
+    @Test func aContentRootedArchiveIsNotTakenAsModRelative() throws {
+        let outcome = ManifestlessArchive.classify(paths: ["Content/Maps/x.xnb"],
+                                                   installedFolderNames: parc)
+        guard case .needsHost(_, _, let entries) = outcome else {
+            Issue.record("attendu une demande d'hôte"); return
+        }
+        #expect(entries.map(\.destination) == ["Maps/x.xnb"])
     }
 
     /// Des fichiers nus que rien ne situe : refusés. Déposer au hasard dans un
