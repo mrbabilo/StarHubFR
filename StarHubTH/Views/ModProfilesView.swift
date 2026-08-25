@@ -70,7 +70,7 @@ struct ModProfilesView: View {
                         Text(vm.L(L10n.Profiles.noProfiles))
                             .font(.system(size: 13))
                             .foregroundColor(.secondary)
-                        Button(vm.L(L10n.Profiles.addProfile)) { isShowingNewProfileAlert = true }
+                        Button(vm.L(L10n.Profiles.addProfile)) { presentNewProfileAlert() }
                             .buttonStyle(.borderedProminent)
                             .pointingHandCursor()
                     }
@@ -121,7 +121,7 @@ struct ModProfilesView: View {
             if !vm.modProfiles.isEmpty {
                 HStack {
                     Spacer()
-                    Button(vm.L(L10n.Profiles.addProfile)) { isShowingNewProfileAlert = true }
+                    Button(vm.L(L10n.Profiles.addProfile)) { presentNewProfileAlert() }
                         .pointingHandCursor()
                 }
             }
@@ -136,8 +136,15 @@ struct ModProfilesView: View {
             // Deux boutons plutôt qu'un : le contenu du profil se décide ici,
             // et « vide » vient en premier — c'est le cas courant, préparer une
             // autre configuration sans figer celle en cours.
+            // Désactivés tant que le nom est vide. Avant, ils se contentaient
+            // de ne rien faire : les deux boutons de création agissaient donc
+            // exactement comme « Annuler », sans que rien ne le dise. Le champ
+            // arrive de toute façon pré-rempli (voir le bouton « Ajouter »),
+            // donc le cas ne se présente qu'à qui efface délibérément.
             Button(vm.L(L10n.Profiles.createEmpty)) { createProfile(seed: .empty) }
+                .disabled(trimmedNewProfileName.isEmpty)
             Button(vm.L(L10n.Profiles.createFromCurrent)) { createProfile(seed: .currentlyEnabledMods) }
+                .disabled(trimmedNewProfileName.isEmpty)
             Button(vm.L(L10n.Profiles.cancel), role: .cancel) { newProfileName = "" }
         } message: {
             Text(vm.L(L10n.Profiles.newProfileNote))
@@ -164,13 +171,31 @@ struct ModProfilesView: View {
             ),
             titleVisibility: .visible
         ) {
+            // Supprimer le profil actif laissait le parc dans un état sans
+            // propriétaire : plus aucun profil actif, et sur le disque les mods
+            // que le profil supprimé avait activés. Rien ne le disait, et rien
+            // ne proposait d'en sortir.
+            //
+            // Le choix se fait donc ici, au moment où l'on décide. Réactiver
+            // d'office aurait déplacé des centaines de dossiers sans qu'on l'ait
+            // demandé — sur ce parc, plusieurs secondes de renommage.
+            if let successor = deletionSuccessor {
+                Button(String(format: vm.L(L10n.Profiles.deleteActivateDefault), successor.name)) {
+                    if let p = profileToDelete {
+                        vm.deleteProfile(id: p.id)
+                        vm.applyProfile(id: successor.id)
+                    }
+                    profileToDelete = nil
+                }
+                .disabled(vm.isApplyingProfile)
+            }
             Button(vm.L(L10n.Profiles.delete), role: .destructive) {
                 if let p = profileToDelete { vm.deleteProfile(id: p.id) }
                 profileToDelete = nil
             }
             Button(vm.L(L10n.Profiles.cancel), role: .cancel) { profileToDelete = nil }
         } message: {
-            Text(vm.L(L10n.Profiles.deleteNote))
+            Text(vm.L(L10n.Profiles.deleteNote) + "\n" + vm.L(L10n.Profiles.deleteKeepsMods))
         }
         // Import des favoris dans le profil **actif** : les mods s'activeront
         // sur le disque immédiatement, il faut le dire avant.
@@ -199,9 +224,37 @@ struct ModProfilesView: View {
         }
     }
 
+    /// Le profil à proposer après la suppression : le profil par défaut, ou à
+    /// défaut le premier qui reste.
+    ///
+    /// `nil` — donc pas de bouton — quand le profil visé n'est **pas** actif
+    /// (le disque ne lui appartient pas, il n'y a rien à reprendre) ou qu'il ne
+    /// resterait aucun autre profil.
+    private var deletionSuccessor: ModProfile? {
+        guard let target = profileToDelete, vm.activeProfileId == target.id else { return nil }
+        let remaining = vm.modProfiles.filter { $0.id != target.id }
+        return remaining.first { vm.isDefaultProfile($0.id) } ?? remaining.first
+    }
+
+    private var trimmedNewProfileName: String {
+        newProfileName.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Ouvre la création avec un nom déjà là.
+    ///
+    /// Un champ vide était le chemin vers un bouton muet : « Créer un profil
+    /// vide » ne faisait rien et refermait l'alerte, indiscernable d'un clic
+    /// sur « Annuler ». Proposer un nom supprime le cas au lieu de le
+    /// signaler, et laisse le champ prêt à être réécrit.
+    private func presentNewProfileAlert() {
+        newProfileName = vm.L(L10n.Profiles.defaultNewName)
+        isShowingNewProfileAlert = true
+    }
+
     private func createProfile(seed: ProfileSeed) {
-        let name = newProfileName.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !name.isEmpty { vm.createProfile(name: name, seed: seed) }
+        let name = trimmedNewProfileName
+        guard !name.isEmpty else { return }
+        vm.createProfile(name: name, seed: seed)
         newProfileName = ""
     }
 }

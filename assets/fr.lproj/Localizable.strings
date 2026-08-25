@@ -386,6 +386,9 @@
 "profiles_new_profile_note" = "Un profil vide démarre sans aucun mod — vous les ajoutez ensuite. La copie reprend les mods actifs en ce moment.";
 "profiles_create_new_profile" = "Créer un nouveau profil de mods";
 "profiles_profile_name_placeholder" = "Nom du profil…";
+"profiles_default_new_name" = "Nouveau profil";
+"profiles_delete_activate_default" = "Activer « %@ » après la suppression";
+"profiles_delete_keeps_mods" = "Les mods qu'il avait activés restent en place.";
 "profiles_delete" = "Supprimer…";
 "profiles_save" = "Enregistrer";
 "profiles_cancel" = "Annuler";
