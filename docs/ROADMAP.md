@@ -84,7 +84,7 @@ liste du 2026-07-30 et n'existaient pas dans le document de veille.
 | :-- | :-- | :-- | :-- |
 | **§new** | Désactivation/activation **dichotomique** pour isoler un mod défectueux | **Fait ✅** | `Models/BisectionSession.swift` (Core, testé) + `BisectionRunner` + `Views/Components/BisectionCard.swift` |
 | **§new** | Mutualiser les diagnostics/mesures de perf entre utilisateurs (cf. `circinus.sh`) | **À faire** | Aucun backend → **D2** (décision produit, non chiffrée) |
-| **§new** | Refactoriser le God module | **À faire** | `StarHubTHViewModel.swift` = **4278 lignes** → **F1** |
+| **§new** | Refactoriser le God module | **À faire** | `StarHubTHViewModel.swift` = **6485 lignes** (4278 au relevé initial, +52 %) → **F1** |
 | **§new** | Vérifier optimisation (vitesse, mémoire) et sécurité du code | **À faire** | → **F2** |
 | **§new** | Copier/coller du NexusID impossible | **Non reproduit** | Fonctionne ; le menu Édition est présent → **X1** clos |
 | **§new** | BBCode/Markdown non rendu dans la description | **Corrigé ✅** | 6 défauts reproduits sur SVE (3753) puis corrigés (tokeniseur récursif) ; rendu typé ajouté (titres/listes/code/citations/centrage/couleur/souligné), vérifié sur 51 descriptions → **X2** |
@@ -93,19 +93,19 @@ liste du 2026-07-30 et n'existaient pas dans le document de veille.
 | **§new** | `stardew-i18n-translator` comme référence de pipeline i18n | *(précision)* | Affine **C3** — voir la réserve de licence en §5 |
 | §1 | Refonte du log SMAPI façon *Log Doctor* | **Fait** | `Models/SmapiLogDiagnostics.swift`, `Views/Components/SmapiHealthCard.swift`, v1.9.x–1.10.0 |
 | §1 | Optimiser l'affichage des ~2000 lignes | **Fait** | `LazyVStack` + repliement par famille (`Models/LogNoise.swift`), v1.10.0 |
-| §1 | Signaler les mods incompatibles (`smapi.io/mods`) | **Partiel** | `brokenMods` extrait des avertissements *du log SMAPI* — aucune base externe → **A2** |
+| §1 | Signaler les mods incompatibles (`smapi.io/mods`) | **Partiel** | L'API live est branchée (`SmapiUpdateClient`, **A2-T1 livré**) et rapporte `compatibilityStatus` ; **rien ne l'affiche** → **A2-T2** |
 | §1 | Activer automatiquement les dépendances | **Partiel** | `DependencyTreeView.swift:124` : bouton **Activer** par nœud. Manque l'action groupée → **A1-T1** |
 | §1 | Détecter un `manifest.json` corrompu, proposer une réinstallation | **Partiel** | `ModFolderRepairer.swift` répare des structures de dossiers, pas des manifests invalides → **A1-T2** |
 | §1 | Mise en évidence des problèmes dans la liste des mods | **Fait** | Pastille d'anomalie près du nom (**B1-T3**, pas encore publié) |
-| §2 | Dates Nexus (création / mise à jour) | **À revérifier** | `updated_timestamp` existe dans `NexusUpdateChecker.swift`, mais le champ présent ≠ affichage correct, et l'anomalie est re-signalée → **B2-T5** |
+| §2 | Dates Nexus (création / mise à jour) | **Fait, pour ce qui est capté** | Revérifié le 2026-08-25 : la seule date captée (`updated_timestamp`) est nommée juste aux trois endroits qui la montrent. `created_timestamp` n'est jamais demandé → **B2-T5** devient un ajout |
 | §2 | ETA pendant le téléchargement | **À faire** | Rien dans `Models/NexusDownloader.swift` → **B2-T1** |
 | §2 | Poids du mod, taille de `Mods/`, espace disque restant | **Fait** | Pied de barre latérale + fiche mod (**B2-T2**, pas encore publié) |
 | §2 | Splashscreen en fenêtre dédiée | **Fait** | `Views/LaunchSplashWindow.swift`, v1.10.0 |
 | §2 | Boutons **Activer** / **Supprimer** sur la fiche mod | **Livré** (2026-08-01) | `ModDetailView.actionRow` → **B1-T1** |
-| §2 | Le retour depuis la fiche conserve tri / filtres / scroll | **Partiel** (2026-08-01) | `ModListFilters` porté par le ViewModel ; **le scroll ne l'est pas** → **B1-T2** |
-| §2 | Vérifier le bouton d'activation de la page dépendances | **Bug présumé** | Le bouton existe (`DependencyTreeView.swift:124`) ; c'est son effet qui est douteux → **X3** |
+| §2 | Le retour depuis la fiche conserve tri / filtres / scroll | **Partiel** (2026-08-01) | `ModListFilters` porté par le ViewModel ; **le scroll ne l'est pas, et c'est assumé** (pagination à 15) → **B1-T2** |
+| §2 | Vérifier le bouton d'activation de la page dépendances | **Fait** | Corrigé le 2026-07-30 par `8f0a81e` (`seedFolder` remonte au pack) → **X3** |
 | §2 | Boutons de rafraîchissement (quarantaine, alertes système) | **À faire** | → **B2-T3** |
-| §3 | Reconnaître les mods de traduction (i18n seul) | **Partiel** | `ModItem.languages`, filtre `FrenchTranslationScope` et heuristique de nom (`ModItem.swift:99`) — mais **aucun test structurel** → **C1-T4** |
+| §3 | Reconnaître les mods de traduction (i18n seul) | **Partiel** | `ModItem.languages`, filtre `FrenchTranslationScope` et heuristique de nom (`ModItem.swift:99`) — **C1-T4 requalifiée et livrée** (`46ce633`) : le cas visé est à zéro mod sur le parc |
 | **§new** | Installer une archive sans manifeste (traduction d'un mod, greffe type `ItemBags`) | **Fait** | Livré le 2026-08-25 (**A1-T3**, pas encore publié) ; jeu d'épreuve dans `mods tests/` |
 | **§new** | Chercher sur Nexus les traductions FR et les suppléments des mods installés | **Partiel** | Traductions livrées (**A3-T2/T3**) ; les suppléments restent à découvrir → **A3-T4** |
 | §3 | Nouveau profil créé **vide** | **Fait** (2026-08-24) | L'alerte propose les deux voies, « vide » en premier ; `ProfileFactory` (Core, testé) → **B3-T1** |
@@ -136,7 +136,7 @@ de la liste de l'auteur. Analyse complète et exclusions motivées : `docs/audit
 
 | Source | Demande | État | Preuve / renvoi |
 | :-- | :-- | :-- | :-- |
-| *audit* | Compatibilité mods via l'**API live `smapi.io`** (plutôt que le dump statique `mods.jsonc`) | **À faire** | Plus riche : statut + mise à jour suggérée + URL unofficial. Repositionne **A2** |
+| *audit* | Compatibilité mods via l'**API live `smapi.io`** (plutôt que le dump statique `mods.jsonc`) | **Partiel** | Plus riche : statut + mise à jour suggérée + URL unofficial. Repositionne **A2** |
 | *audit* | **Configs par profil** (un même mod, plusieurs `config.json`) | **À faire** | Manquante ; merge JSON non-destructif → **B3-T5** |
 | *audit* | Notes libres par mod | **À faire** | → **B3-T6** |
 | *audit* | Quota Nexus quotidien visible | **Fait** | Relevé sur toute réponse, affiché dans les réglages (**B2-T6**, pas encore publié) |
@@ -770,6 +770,11 @@ pouvoir revenir en arrière à tout moment.
       affiche l'état d'installation de `unar` avec la commande Homebrew
       (`home_tool_unar_*`). Ce qui manque : au **moment de l'échec**, un message actionnable
       avec commande copiable — aujourd'hui une phrase anglaise codée en dur (cf. **X6**). · **S**
+      *Audit du 2026-08-25 : **la phrase anglaise codée en dur n'existe plus.** X6 a
+      livré le message localisé, et il s'affiche bien au moment de l'échec
+      (`installErrorMessage` → `rarToolMissing`), commande Homebrew incluse. Ne reste
+      que **copiable** : aucun `NSPasteboard` dans la feuille d'installation. La
+      tâche a fondu à un bouton.*
 - [ ] **B2-T5** — Reprendre l'affichage des dates d'un mod : distinguer explicitement
       *date de création Nexus* et *date de mise à jour*, et vérifier laquelle est montrée
       où (liste, fiche, bandeau de mise à jour). · **S**
@@ -905,7 +910,7 @@ backup se retrouve en moins de dix secondes.
 >   possible, pas de contournement `curl`**. La fenêtre de récupération du rate-limit est en
 >   revanche **longue** (> 60 s après saturation), ce qui renforce la nécessité de **A2-T4**.
 
-- [ ] **A2-T1** — Client de l'API `smapi.io/api/v3.0/mods` : POST `ModSearchData`
+- [x] **A2-T1** — Client de l'API `smapi.io/api/v3.0/mods` : POST `ModSearchData`
       (UniqueID + version installée + update keys + version SMAPI + version du jeu) pour
       chaque mod à version valide. Réponse typée par mod : `SuggestedUpdate`,
       `CompatibilityStatus` (`Ok`/`Broken`/`Abandoned`/`Obsolete`/`Unofficial`/`Workaround`),
@@ -914,6 +919,14 @@ backup se retrouve en moins de dix secondes.
       **Filtres obligatoires** (validés par le spike) : ne soumettre que les mods
       `HasValidVersion && HasUpdateKeys` (comme Stardop) et **normaliser les `UpdateKeys`**
       (strip espaces : `"Nexus: 20290"` → `"Nexus:20290"`, sinon le mod est invisible). · **M**
+      *Livré, constaté à l'audit du 2026-08-25 : la case était restée décochée.
+      `SmapiUpdateClient` (réseau seul) + `SmapiUpdateRequest` (candidats, filtres,
+      normalisation des clés, version du jeu assainie) + `SmapiUpdateResponse`
+      (décodage, classement des erreurs), tous trois testés ; `checkNexusUpdates`
+      les branche avec une progression par lot. **Les lots font 150, pas 10** :
+      mesuré sûr sur un parc de 960 mods en 7 lots, ce qui périme la prescription
+      de throttle d'A2-T4. Reste ouvert : l'affichage du statut (**A2-T2**) —
+      `compatibilityStatus` et `unofficial` arrivent et ne sont montrés nulle part.*
 - [ ] **A2-T2** — Afficher le statut, `brokeIn` et le **lien de mise à jour non officielle /
       mod de remplacement** sur la fiche mod et dans la carte de santé. · **M**
       ⚠️ **Constat du 2026-08-01, à traiter ici** : `NexusUpdateChecker.compare(_:_:)`
@@ -934,6 +947,14 @@ backup se retrouve en moins de dix secondes.
       interroger par **petits lots (~10) avec throttle** (5–8 s), jamais toute la modlist
       d'un coup ; servir l'affichage boot depuis le cache, rafraîchir en arrière-plan. · **M** ·
       *risque : sans cette tâche, A2 casse la modlist au boot — à poser en même temps que T1.*
+      ⚠️ *Audit du 2026-08-25 — **la moitié est livrée et l'autre moitié a changé de
+      sens.** Livré : l'affichage au lancement est servi par le cache
+      (`cachedUpdates`), et A2-T1 n'a pas cassé la modlist au boot. Périmé : les
+      « petits lots (~10) avec throttle 5–8 s » — le code envoie des lots de **150**,
+      mesurés sûrs sur 960 mods, et la crainte du spike ne s'est pas vérifiée.
+      **Reste vraiment à faire** : le TTL. `checkNexusUpdates()` part à chaque
+      lancement et réinterroge le parc entier, sans se demander si la réponse
+      précédente vaut encore.*
 
 > ⚠️ **Réserve conservée** : `smapi.io/mods` annonce lui-même ne plus être mis à jour
 > exhaustivement, et son avenir est incertain. À traiter comme **complément** au
