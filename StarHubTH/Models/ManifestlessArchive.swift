@@ -1,0 +1,238 @@
+import Foundation
+
+/// Ce qu'il faut faire d'une archive **sans `manifest.json`**.
+///
+/// Ce n'est pas un mod : c'est une traduction, ou des fichiers à greffer dans
+/// un mod déjà installé (bagages `ItemBags`, packs de recettes…). L'installateur
+/// ordinaire les refuse toutes — il classe par structure et cherche des
+/// manifestes —, alors qu'elles sont parfaitement légitimes.
+///
+/// Quatre formes, relevées sur des archives réelles. Elles ne se distinguent
+/// **pas** par leur structure mais par ce que leur contenu permet de déduire :
+///
+/// 1. Un dossier racine qui porte le nom d'un mod installé
+///    (`FishingLogbook/i18n/fr.json`) — la destination est écrite dans
+///    l'archive.
+/// 2. Un dossier racine dont le nom **ressemble** à un mod installé sans lui
+///    être égal (`MakeGuntherRealFR/` quand le mod s'appelle
+///    `[CP] Make Gunther Real`). Mesuré : ni l'égalité ni le simple retrait
+///    d'un suffixe de langue ne suffisent. **Ce cas se tranche en demandant**,
+///    jamais en devinant : se tromper ici écrit dans le mauvais mod.
+/// 3. Un dossier racine nommé, chemin complet
+///    (`ItemBags/assets/Modded Bags/*.json`).
+/// 4. Des fichiers nus à la racine, sans la moindre indication de destination
+///    (`Cloth and Colors Bag.json`). Seul leur **contenu** les situe.
+public enum ManifestlessArchive {
+    public enum Kind: Equatable, Sendable {
+        /// Des fichiers de langue, à poser dans le mod traduit.
+        case translation
+        /// Des fichiers ajoutés à un mod existant.
+        case addon
+    }
+
+    /// Un fichier de l'archive et sa place dans le mod hôte.
+    public struct Entry: Equatable, Sendable {
+        /// Chemin dans l'archive.
+        public let source: String
+        /// Chemin **relatif au dossier du mod hôte**.
+        public let destination: String
+
+        public init(source: String, destination: String) {
+            self.source = source
+            self.destination = destination
+        }
+    }
+
+    public struct Plan: Equatable, Sendable {
+        /// Le mod à modifier, par son `folderName` **logique**. C'est
+        /// l'appelant qui en tire le nom physique — un mod en pause vit dans un
+        /// dossier préfixé d'un point, et le parc réel en compte 746 sur 863.
+        public let hostFolderName: String
+        public let kind: Kind
+        public let entries: [Entry]
+
+        public init(hostFolderName: String, kind: Kind, entries: [Entry]) {
+            self.hostFolderName = hostFolderName
+            self.kind = kind
+            self.entries = entries
+        }
+    }
+
+    public enum Outcome: Equatable, Sendable {
+        /// La destination est certaine.
+        case plan(Plan)
+        /// L'archive est reconnue, mais le mod hôte reste à désigner. Les
+        /// candidats sont proposés du plus ressemblant au moins ressemblant.
+        case needsHost(candidates: [String], kind: Kind, entries: [Entry])
+        /// Rien ne permet de conclure. Mieux vaut refuser que déposer au hasard.
+        case unrecognised
+    }
+
+    /// Le dossier où `ItemBags` attend ses définitions de bagages.
+    static let itemBagsHost = "ItemBags"
+    static let itemBagsDestination = "assets/Modded Bags"
+
+    /// - Parameters:
+    ///   - paths: les chemins que porte l'archive, dossiers exclus.
+    ///   - installedFolderNames: les `folderName` **logiques** des mods de
+    ///     premier niveau installés.
+    ///   - isBagDefinition: dit si un fichier de l'archive est une définition
+    ///     de bagage. Injecté plutôt que lu ici : la classification reste pure.
+    public static func classify(paths: [String],
+                                installedFolderNames: [String],
+                                isBagDefinition: (String) -> Bool = { _ in false }) -> Outcome {
+        let files = paths.filter { !$0.hasSuffix("/") && !$0.isEmpty }
+        guard !files.isEmpty else { return .unrecognised }
+
+        // ── Un dossier racine unique : le cas 1, 2, 3 ou 5.
+        if let root = singleRoot(of: files) {
+            var prefix = root
+            var entries = strip(prefix: prefix, from: files)
+            guard !entries.isEmpty else { return .unrecognised }
+
+            // **Cinquième forme** : un dossier de présentation qui en emballe un
+            // autre. Relevé sur une archive réelle,
+            // `Nyapu Style Lilybrook/[CP] Lilybrook/Assets/…` : la racine ne
+            // désigne rien, mais le niveau en dessous vise bien un mod installé.
+            // Sans cette descente, l'archive partait en « à désigner » avec des
+            // candidats tirés du mauvais nom.
+            if !installedFolderNames.contains(prefix),
+               let inner = singleRoot(of: entries.map(\.destination)),
+               !strip(prefix: inner, from: entries.map(\.destination)).isEmpty {
+                let deeper = prefix + "/" + inner
+                let deeperEntries = strip(prefix: deeper, from: files)
+                // On ne descend que si le nom du dessous vaut mieux que celui du
+                // dessus : soit il désigne un mod installé, soit il ressemble à
+                // davantage de mods que la racine n'en évoquait.
+                let innerMatches = installedFolderNames.contains(inner)
+                    || !candidates(for: inner, among: installedFolderNames).isEmpty
+                if innerMatches, !deeperEntries.isEmpty {
+                    prefix = inner
+                    entries = deeperEntries
+                }
+            }
+
+            let kind: Kind = entries.allSatisfy { $0.destination.hasPrefix("i18n/") }
+                ? .translation : .addon
+
+            if installedFolderNames.contains(prefix) {
+                return .plan(Plan(hostFolderName: prefix, kind: kind, entries: entries))
+            }
+            // Le nom ne désigne aucun mod installé : proposer, ne pas deviner.
+            return .needsHost(candidates: candidates(for: prefix, among: installedFolderNames),
+                              kind: kind, entries: entries)
+        }
+
+        // ── Des fichiers nus : seul leur contenu peut les situer.
+        if files.allSatisfy({ !$0.contains("/") }), files.allSatisfy(isBagDefinition) {
+            let entries = files.map {
+                Entry(source: $0, destination: "\(itemBagsDestination)/\($0)")
+            }
+            guard installedFolderNames.contains(itemBagsHost) else {
+                return .needsHost(candidates: [], kind: .addon, entries: entries)
+            }
+            return .plan(Plan(hostFolderName: itemBagsHost, kind: .addon, entries: entries))
+        }
+
+        return .unrecognised
+    }
+
+    /// Retire un préfixe de dossier des chemins, en laissant tomber ce qui
+    /// n'en garderait rien.
+    private static func strip(prefix: String, from files: [String]) -> [Entry] {
+        files.compactMap { path in
+            guard path.hasPrefix(prefix + "/") else { return nil }
+            let relative = String(path.dropFirst(prefix.count + 1))
+            return relative.isEmpty ? nil : Entry(source: path, destination: relative)
+        }
+    }
+
+    /// Le dossier racine commun à tous les fichiers, `nil` s'il n'y en a pas un
+    /// seul — une archive à plat, ou qui porte plusieurs dossiers, ne dit pas
+    /// où elle va.
+    private static func singleRoot(of files: [String]) -> String? {
+        let roots = Set(files.compactMap { path -> String? in
+            guard let slash = path.firstIndex(of: "/") else { return nil }
+            return String(path[path.startIndex..<slash])
+        })
+        // Tous les fichiers doivent être dans ce dossier : un fichier laissé à
+        // la racine à côté d'un dossier est une archive qu'on ne comprend pas.
+        guard roots.count == 1, let root = roots.first,
+              files.allSatisfy({ $0.hasPrefix(root + "/") })
+        else { return nil }
+        return root
+    }
+
+    /// Ce qui ne dit rien de l'identité d'un mod : marqueurs de langue et
+    /// préfixes de convention. `[CP]` désigne un pack Content Patcher, pas un
+    /// mod en particulier, et le `FR` d'une traduction désigne la traduction,
+    /// pas le mod traduit.
+    private static let noiseWords: Set<String> = [
+        "fr", "fra", "vf", "francais", "francaise", "french", "traduction",
+        "cp", "smapi", "mod", "the", "a", "de", "du", "la", "le",
+    ]
+
+    /// Les mods installés dont le nom ressemble le plus à celui du dossier.
+    ///
+    /// **Par mots communs, pas par sous-chaîne.** Le parc réel oppose
+    /// `MakeGuntherRealFR` à `[CP] Make Gunther Real` : ni l'un ne contient
+    /// l'autre, puisque le premier porte un suffixe et le second un préfixe.
+    /// Découpés en mots — la casse chameau compte comme une césure — il leur
+    /// reste « make », « gunther » et « real » en partage.
+    ///
+    /// Les candidats sont **proposés**, jamais choisis : écrire dans le mauvais
+    /// mod ne se rattrape pas.
+    static func candidates(for folder: String, among installed: [String],
+                           limit: Int = 8) -> [String] {
+        let needle = significantWords(folder)
+        guard !needle.isEmpty else { return [] }
+        return installed
+            .map { name -> (name: String, shared: Int, gap: Int) in
+                let words = significantWords(name)
+                return (name, words.intersection(needle).count,
+                        abs(compact(name).count - compact(folder).count))
+            }
+            .filter { $0.shared > 0 }
+            // Le plus de mots en partage d'abord ; à égalité, le nom dont la
+            // longueur est la plus proche — entre `Parchment` et `[CP] Parchment
+            // Example Pack` pour un `ParchmentFR`, le premier gagne.
+            .sorted { ($0.shared, -$0.gap) > ($1.shared, -$1.gap) }
+            .prefix(limit)
+            .map(\.name)
+    }
+
+    /// Les mots porteurs d'identité d'un nom : sans accents ni casse, coupés
+    /// sur la ponctuation **et** sur la casse chameau (`MakeGuntherReal` donne
+    /// trois mots), débarrassés de ce qui ne distingue rien.
+    static func significantWords(_ name: String) -> Set<String> {
+        var words: [String] = []
+        var current = ""
+        for character in name {
+            if character.isUppercase, !current.isEmpty,
+               current.last?.isUppercase == false {
+                words.append(current)
+                current = ""
+            }
+            if character.isLetter || character.isNumber {
+                current.append(character)
+            } else if !current.isEmpty {
+                words.append(current)
+                current = ""
+            }
+        }
+        if !current.isEmpty { words.append(current) }
+
+        let folded = words.map {
+            $0.folding(options: [.diacriticInsensitive, .caseInsensitive],
+                       locale: Locale(identifier: "en_US_POSIX"))
+        }
+        return Set(folded.filter { !$0.isEmpty && !noiseWords.contains($0) })
+    }
+
+    /// Réduit un nom à ses lettres et chiffres, sans accents ni casse.
+    static func compact(_ name: String) -> String {
+        name.folding(options: [.diacriticInsensitive, .caseInsensitive],
+                     locale: Locale(identifier: "en_US_POSIX"))
+            .filter { $0.isLetter || $0.isNumber }
+    }
+}

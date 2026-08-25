@@ -1,0 +1,212 @@
+import Testing
+import Foundation
+@testable import StarHubTHCore
+
+/// Les quatre formes viennent d'archives réelles, téléchargées depuis Nexus.
+struct ManifestlessArchiveTests {
+    private let parc = ["FishingLogbook", "The Queen of Sauce's Cookbook - Recipe Tracker",
+                        "ItemBags", "[CP] Make Gunther Real", "Parchment",
+                        "[CP] Parchment Example Pack"]
+
+    // MARK: - Forme 1 : la destination est écrite dans l'archive
+
+    @Test func aTranslationNamingItsHostIsPlannedOutright() throws {
+        let outcome = ManifestlessArchive.classify(
+            paths: ["FishingLogbook/i18n/fr.json"], installedFolderNames: parc)
+        guard case .plan(let plan) = outcome else { Issue.record("attendu un plan"); return }
+        #expect(plan.hostFolderName == "FishingLogbook")
+        #expect(plan.kind == .translation)
+        #expect(plan.entries == [.init(source: "FishingLogbook/i18n/fr.json",
+                                       destination: "i18n/fr.json")])
+    }
+
+    /// Le mod hôte est **en pause** sur le parc réel : la classification rend
+    /// son nom logique, à charge de l'appelant d'en tirer le nom physique. Le
+    /// dossier pointé n'a rien à faire ici.
+    @Test func aPausedHostIsNamedLogically() throws {
+        let outcome = ManifestlessArchive.classify(
+            paths: ["The Queen of Sauce's Cookbook - Recipe Tracker/i18n/fr.json"],
+            installedFolderNames: parc)
+        guard case .plan(let plan) = outcome else { Issue.record("attendu un plan"); return }
+        #expect(plan.hostFolderName == "The Queen of Sauce's Cookbook - Recipe Tracker")
+    }
+
+    // MARK: - Forme 3 : greffe au chemin complet
+
+    @Test func anAddonNamingItsHostKeepsItsWholePath() throws {
+        let outcome = ManifestlessArchive.classify(
+            paths: ["ItemBags/assets/Modded Bags/Cornucopia All Crops.json"],
+            installedFolderNames: parc)
+        guard case .plan(let plan) = outcome else { Issue.record("attendu un plan"); return }
+        #expect(plan.hostFolderName == "ItemBags")
+        #expect(plan.kind == .addon)
+        #expect(plan.entries.first?.destination == "assets/Modded Bags/Cornucopia All Crops.json")
+    }
+
+    /// Un fichier hors du `i18n/` fait de l'archive une greffe, pas une
+    /// traduction — même si elle porte aussi des fichiers de langue.
+    @Test func aMixedArchiveIsAnAddon() throws {
+        let outcome = ManifestlessArchive.classify(
+            paths: ["ItemBags/i18n/fr.json", "ItemBags/assets/x.png"], installedFolderNames: parc)
+        guard case .plan(let plan) = outcome else { Issue.record("attendu un plan"); return }
+        #expect(plan.kind == .addon)
+    }
+
+    // MARK: - Forme 2 : le nom ne désigne aucun mod installé
+
+    /// **Le cas qu'il ne faut surtout pas deviner.** Sur le parc réel,
+    /// `MakeGuntherRealFR` vise un mod qui s'appelle `[CP] Make Gunther Real` :
+    /// ni l'égalité ni le retrait d'un suffixe de langue n'y mènent. On demande.
+    @Test func anUnmatchedFolderAsksRatherThanGuesses() throws {
+        let outcome = ManifestlessArchive.classify(
+            paths: ["MakeGuntherRealFR/dialogue.json"], installedFolderNames: parc)
+        guard case .needsHost(let candidates, let kind, let entries) = outcome else {
+            Issue.record("attendu une demande d'hôte"); return
+        }
+        #expect(kind == .addon)
+        #expect(entries.first?.destination == "dialogue.json")
+        #expect(candidates.contains("[CP] Make Gunther Real"))
+    }
+
+    /// Le plus proche en longueur d'abord : pour un « ParchmentFR », le mod
+    /// `Parchment` passe devant `[CP] Parchment Example Pack`.
+    @Test func candidatesComeClosestFirst() {
+        let found = ManifestlessArchive.candidates(for: "ParchmentFR", among: parc)
+        #expect(found.first == "Parchment")
+        #expect(found.contains("[CP] Parchment Example Pack"))
+    }
+
+    /// **Par mots communs, pas par sous-chaîne.** `MakeGuntherRealFR` et
+    /// `[CP] Make Gunther Real` ne se contiennent pas l'un l'autre — le premier
+    /// porte un suffixe, le second un préfixe. Il leur reste trois mots.
+    @Test func matchingWorksOnWordsNotSubstrings() {
+        #expect(ManifestlessArchive.significantWords("MakeGuntherRealFR")
+                == ["make", "gunther", "real"])
+        #expect(ManifestlessArchive.significantWords("[CP] Make Gunther Réal")
+                == ["make", "gunther", "real"])
+    }
+
+    /// Marqueurs de langue et préfixes de convention n'identifient rien : le
+    /// `FR` désigne la traduction, `[CP]` désigne Content Patcher.
+    @Test func languageMarkersAndConventionPrefixesAreIgnored() {
+        #expect(!ManifestlessArchive.significantWords("ModFR").contains("fr"))
+        #expect(!ManifestlessArchive.significantWords("[CP] Truc").contains("cp"))
+    }
+
+    /// Un nom qui ne serait fait que de bruit ne propose rien plutôt que tout.
+    @Test func aNameMadeOnlyOfNoiseProposesNothing() {
+        #expect(ManifestlessArchive.candidates(for: "[CP] FR", among: parc).isEmpty)
+    }
+
+    @Test func nothingResemblingItLeavesTheListEmpty() throws {
+        let outcome = ManifestlessArchive.classify(
+            paths: ["ZzzUnknownMod/x.json"], installedFolderNames: parc)
+        guard case .needsHost(let candidates, _, _) = outcome else {
+            Issue.record("attendu une demande d'hôte"); return
+        }
+        #expect(candidates.isEmpty)
+    }
+
+    // MARK: - Forme 5 : un dossier de présentation en emballe un autre
+
+    /// Archive réelle : `Nyapu Style Lilybrook/[CP] Lilybrook/Assets/…`. La
+    /// racine ne désigne rien ; le niveau en dessous vise le mod installé.
+    /// Sans la descente, l'archive partait en « à désigner » avec des candidats
+    /// tirés du mauvais nom.
+    @Test func aWrapperFolderIsSteppedThrough() throws {
+        let outcome = ManifestlessArchive.classify(
+            paths: ["Nyapu Style Lilybrook/[CP] Lilybrook/Assets/Portraits/Anya.png"],
+            installedFolderNames: ["Lilybrook", "Parchment"])
+        guard case .needsHost(let candidates, _, let entries) = outcome else {
+            Issue.record("attendu une demande d'hôte"); return
+        }
+        // Les chemins sont relatifs au dossier **intérieur**, pas à l'emballage.
+        #expect(entries.first?.destination == "Assets/Portraits/Anya.png")
+        #expect(candidates.first == "Lilybrook")
+    }
+
+    /// Quand le dossier intérieur porte exactement le nom d'un mod installé,
+    /// la descente donne un plan et non une question.
+    @Test func aWrapperAroundAKnownModIsPlannedOutright() throws {
+        let outcome = ManifestlessArchive.classify(
+            paths: ["Pack de portraits/Parchment/assets/x.png"],
+            installedFolderNames: ["Parchment"])
+        guard case .plan(let plan) = outcome else { Issue.record("attendu un plan"); return }
+        #expect(plan.hostFolderName == "Parchment")
+        #expect(plan.entries.first?.destination == "assets/x.png")
+    }
+
+    /// On ne descend pas quand la racine désigne déjà un mod : `ItemBags/assets/…`
+    /// ne doit pas devenir « assets », qui n'est le nom de rien.
+    @Test func aRecognisedRootIsNotSteppedThrough() throws {
+        let outcome = ManifestlessArchive.classify(
+            paths: ["ItemBags/assets/Modded Bags/x.json"], installedFolderNames: parc)
+        guard case .plan(let plan) = outcome else { Issue.record("attendu un plan"); return }
+        #expect(plan.hostFolderName == "ItemBags")
+        #expect(plan.entries.first?.destination == "assets/Modded Bags/x.json")
+    }
+
+    /// On ne descend pas non plus quand le niveau du dessous n'évoque rien :
+    /// mieux vaut demander sur le nom de la racine, qui a au moins un sens.
+    @Test func aWrapperAroundNothingKnownStaysOnItsRoot() throws {
+        let outcome = ManifestlessArchive.classify(
+            paths: ["MakeGuntherRealFR/zzz/x.json"], installedFolderNames: parc)
+        guard case .needsHost(let candidates, _, let entries) = outcome else {
+            Issue.record("attendu une demande d'hôte"); return
+        }
+        #expect(candidates.first == "[CP] Make Gunther Real")
+        #expect(entries.first?.destination == "zzz/x.json")
+    }
+
+    // MARK: - Forme 4 : des fichiers nus, situés par leur contenu
+
+    @Test func bareBagDefinitionsGoToItemBags() throws {
+        let outcome = ManifestlessArchive.classify(
+            paths: ["Cloth and Colors Bag.json", "S&S Druid.json"],
+            installedFolderNames: parc, isBagDefinition: { _ in true })
+        guard case .plan(let plan) = outcome else { Issue.record("attendu un plan"); return }
+        #expect(plan.hostFolderName == "ItemBags")
+        #expect(plan.entries.map(\.destination)
+                == ["assets/Modded Bags/Cloth and Colors Bag.json",
+                    "assets/Modded Bags/S&S Druid.json"])
+    }
+
+    /// Sans `ItemBags` installé, rien n'est déposé : la greffe irait dans le
+    /// vide. On le dit plutôt que d'écrire.
+    @Test func bagDefinitionsWithoutItemBagsAskFirst() throws {
+        let outcome = ManifestlessArchive.classify(
+            paths: ["Cloth and Colors Bag.json"], installedFolderNames: ["Parchment"],
+            isBagDefinition: { _ in true })
+        guard case .needsHost = outcome else { Issue.record("attendu une demande d'hôte"); return }
+    }
+
+    /// Des fichiers nus que rien ne situe : refusés. Déposer au hasard dans un
+    /// mod est pire que ne rien faire.
+    @Test func bareFilesThatNothingIdentifiesAreRefused() {
+        #expect(ManifestlessArchive.classify(paths: ["notes.txt", "readme.md"],
+                                             installedFolderNames: parc) == .unrecognised)
+    }
+
+    // MARK: - Refus
+
+    @Test func anEmptyArchiveIsRefused() {
+        #expect(ManifestlessArchive.classify(paths: [], installedFolderNames: parc) == .unrecognised)
+        #expect(ManifestlessArchive.classify(paths: ["Dossier/"], installedFolderNames: parc)
+                == .unrecognised)
+    }
+
+    /// Deux dossiers racine, ou un fichier posé à côté d'un dossier : l'archive
+    /// ne dit pas où elle va.
+    @Test func severalRootsAreRefused() {
+        #expect(ManifestlessArchive.classify(paths: ["A/x.json", "B/y.json"],
+                                             installedFolderNames: parc) == .unrecognised)
+        #expect(ManifestlessArchive.classify(paths: ["A/x.json", "lisezmoi.txt"],
+                                             installedFolderNames: parc) == .unrecognised)
+    }
+
+    /// Un dossier vide de tout fichier utile ne donne pas de plan.
+    @Test func aRootWithNothingUnderItIsRefused() {
+        #expect(ManifestlessArchive.classify(paths: ["FishingLogbook/"],
+                                             installedFolderNames: parc) == .unrecognised)
+    }
+}
