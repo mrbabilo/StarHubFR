@@ -32,6 +32,7 @@ let package = Package(
                 "Models/NexusModSearch.swift",
                 "Models/InstalledTranslation.swift",
                 "Models/ManifestlessArchive.swift",
+                "Models/ManifestlessInstaller.swift",
                 "Models/ManifestVersionPatcher.swift",
                 "Models/DescriptionBlockParser.swift",
                 "Models/ModDependencyParser.swift",
@@ -206,6 +207,11 @@ let package = Package(
             name: "NexusRateLimitTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/NexusRateLimitTests"
+        ),
+        .testTarget(
+            name: "ManifestlessInstallerTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ManifestlessInstallerTests"
         ),
         .testTarget(
             name: "ManifestlessArchiveTests",
