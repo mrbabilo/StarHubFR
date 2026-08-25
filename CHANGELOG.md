@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.19.1] - 2026-08-25
+
 ### Added
 - **The mod list flags what is going wrong.** An orange badge next to a mod's name gathers three signals: errors and warnings SMAPI logged for it, a required dependency that is missing or paused, and a manifest with no identifier — which SMAPI will not load at all. Hover for the detail. The counts cover **the installed version only**, like the mod's own page: on a real library one mod had 76 errors on record but a single one on the version actually installed, and three others only had history against a version replaced since. A pack shows its components' trouble on its header, so nothing hides behind a collapsed row.
 
@@ -738,7 +740,8 @@ where the exact log format was verified.
 - Added translation for **Wear More Rings** (v7.9) by bcmpinc.
 - Added translation for **World Navigator** (v1.4.2) by pneuma163.
 
-[Unreleased]: https://github.com/mrbabilo/StarHubFR/compare/v1.19.0...HEAD
+[Unreleased]: https://github.com/mrbabilo/StarHubFR/compare/v1.19.1...HEAD
+[1.19.1]: https://github.com/mrbabilo/StarHubFR/compare/v1.19.0...v1.19.1
 [1.19.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.18.0...v1.19.0
 [1.18.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.17.0...v1.18.0
 [1.17.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.16.0...v1.17.0
