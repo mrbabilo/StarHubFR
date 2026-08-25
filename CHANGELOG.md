@@ -12,19 +12,19 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
-### Fixed
-- **Creating a profile without a name silently did nothing.** Both "Create empty profile" and "Take the mods currently enabled" closed the dialog without creating anything, indistinguishable from Cancel. The name field now arrives filled in, and the two buttons are disabled if you clear it.
-- **Deleting the active profile left the mods with no owner.** No profile was active any more, while the mods the deleted profile had enabled stayed on disk, and nothing said so. The delete dialog now also offers "Delete and activate <profile>", which picks up the default profile — next to plain deletion, since re-activating on its own would move hundreds of folders unasked.
-- **A saved DeepL key no longer leaves its field open for editing.** Like the Nexus key, it is replaced by a mask once saved, so an existing key cannot be overwritten by accident.
-
-### Changed
-- **The "All" view no longer groups mods by enabled/disabled.** It split the page into two sections before anything else, which overrode the sort you picked: sorting by weight surfaced the heaviest *enabled* mod, never the heaviest mod, even though three quarters of the weight sits in paused ones. The list now follows its sort order straight through. A mod's state still reads at a glance from the green or grey accent bar and the dot beside its name.
-
 ### Added
 - **Mods can be starred, and a profile can import what you starred.** A star on every row of the mod list, a chip in the toolbar to scope to them, and an "Import favourites" entry in a profile's ⋯ menu. The import says what it did: how many entered the profile, and by name the ones that could not — a mod uninstalled since, or one whose manifest declares no identifier, which a profile cannot hold. On the active profile it asks first, since importing there enables the mods on disk right away. A pack is starred as a whole and brings in every component it holds.
 - **The mod list carries the weight of every mod, and can be sorted by it.** Finding what takes up the room used to mean opening mods one at a time. The figure sits in each row's metadata strip and turns orange past 100 MB — on a real library that marks 22 folders out of 863, holding 87% of the 16.8 GB. A new "Weight" sort brings them to the top, and the toolbar totals whatever the filters currently keep: scope to paused mods and it reads 12.7 GB, which is the answer to "how much can I get back".
 - **The sidebar now says what your mods weigh, and what is left on the disk.** A bar splits the total between active and paused mods, and on a real library it lands where it hurts: 16.8 GB of mods, of which **12.7 GB paused** — 746 folders out of 863, three quarters of the weight returning nothing. The bar counts mods only; free space stays a line of text below, turning orange when less room is left than the mods already take. A mod's own weight also shows on its detail page; a pack states the weight of its whole folder rather than repeating it on each component. The measurement runs in the background after every scan of the mods folder, and says so while it works.
 - **The Nexus quota left is now visible in Settings.** Nexus announces on every single response how many calls you have left today and this hour — the app simply threw those numbers away. They now show under the Nexus section, with the reset time, and are read on failures too: a refused call is exactly when the remaining count reads zero. No extra request is made to obtain them. Since the app only talks to the Nexus API on demand, a fresh install says so plainly rather than showing a blank or a false zero.
+
+### Changed
+- **The "All" view no longer groups mods by enabled/disabled.** It split the page into two sections before anything else, which overrode the sort you picked: sorting by weight surfaced the heaviest *enabled* mod, never the heaviest mod, even though three quarters of the weight sits in paused ones. The list now follows its sort order straight through. A mod's state still reads at a glance from the green or grey accent bar and the dot beside its name.
+
+### Fixed
+- **Creating a profile without a name silently did nothing.** Both "Create empty profile" and "Take the mods currently enabled" closed the dialog without creating anything, indistinguishable from Cancel. The name field now arrives filled in, and the two buttons are disabled if you clear it.
+- **Deleting the active profile left the mods with no owner.** No profile was active any more, while the mods the deleted profile had enabled stayed on disk, and nothing said so. The delete dialog now also offers "Delete and activate <profile>", which picks up the default profile — next to plain deletion, since re-activating on its own would move hundreds of folders unasked.
+- **A saved DeepL key no longer leaves its field open for editing.** Like the Nexus key, it is replaced by a mask once saved, so an existing key cannot be overwritten by accident.
 
 ## [1.18.0] - 2026-08-24
 
