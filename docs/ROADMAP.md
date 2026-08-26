@@ -1041,6 +1041,27 @@ backup se retrouve en moins de dix secondes.
       risque : quota d'API Nexus, faux positifs. *La recherche par nom qu'elle suppose
       n'existe pas en API v1 : elle dépend d'**A3-T2** (GraphQL v2), vérifié le 2026-08-25.*
 
+      **Première moitié livrée le 2026-08-26 — et elle ne cherche rien.** Mesuré avant
+      d'écrire : **148 mods du parc n'ont aucune clé Nexus dans leur manifeste**, et
+      **30 d'entre eux sont identifiés par smapi.io**, dont la réponse porte déjà
+      `metadata.nexusID`. L'app le recevait à chaque vérification et le jetait — sauf
+      sur les lignes de mise à jour, où il ne sert qu'au bouton de téléchargement.
+      La source est fiable là où elle répond : **dix de ces trente avaient été saisis
+      à la main par l'utilisateur, et les dix concordent exactement**. Restaient
+      **20 identifiants gratuits perdus**, désormais retenus (`NexusIdLearning`, Core,
+      11 tests). La règle d'écriture n'est pas dupliquée : c'est celle de
+      `NexusInstallIdRecording` — le manifeste fait foi, une saisie manuelle ne se fait
+      jamais écraser, rien n'est réécrit à l'identique.
+
+      **Ce qui reste — et c'est là qu'est le risque.** 118 mods restent inconnus de
+      smapi.io, dont **35 déjà renseignés à la main** : la recherche floue vise donc
+      **83 mods**, pas 148. Deux mesures pour la cadrer : le quota n'est pas le
+      problème (20 000/jour, 2 000/heure — cf. B2-T8), les faux positifs le sont. Le
+      seul signal disponible est le nom, et il est traître sur ce parc : **148
+      manifestes sur 995 portent un préfixe `[CP]`** qui n'appartient pas au titre
+      Nexus. Une ligne qui suit le mauvais mod est pire qu'une ligne qui ne suit rien
+      — d'où la validation par l'utilisateur, jamais d'écriture aveugle.
+
 - [x] **A3-T2** — **Client de recherche Nexus (GraphQL v2)** — le socle qui manquait à tout
       l'axe A3. *Faisabilité vérifiée le 2026-08-25, sur le compte réel* : l'API **v1 n'a
       aucune recherche texte** (`/mods/search.json` → **422**) et `latest_updated.json` ne

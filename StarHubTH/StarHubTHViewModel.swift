@@ -210,10 +210,16 @@ class StarHubTHViewModel: ObservableObject {
         didSet { categoryCache.removeAll() }
     }
 
-    /// User-assigned Nexus mod id overrides keyed by mod `folderName`. Used to
-    /// give a Nexus link to mods that don't declare a `nexus:<id>` UpdateKey in
-    /// their manifest. When present, it also feeds back into the update check so
-    /// the manually-linked mod can be checked for updates like any other.
+    /// Nexus mod id overrides keyed by mod `folderName`. Used to give a Nexus
+    /// link to mods that don't declare a `nexus:<id>` UpdateKey in their
+    /// manifest. When present, it also feeds back into the update check so the
+    /// linked mod can be checked for updates like any other.
+    ///
+    /// Trois sources l'alimentent, par ordre d'ancienneté : la saisie de
+    /// l'utilisateur, l'identifiant d'une installation venue de Nexus
+    /// (`recordNexusModId`), et le `metadata.nexusID` que smapi.io rend à
+    /// chaque vérification (`learnNexusIds`). Les deux dernières ne recouvrent
+    /// jamais la première.
     @Published var nexusCustomModIds: [String: String] = [:] {
         didSet { categoryCache.removeAll() }
     }
@@ -3745,6 +3751,11 @@ class StarHubTHViewModel: ObservableObject {
                 + "l'activation ne survivra pas à la fermeture", level: .warning)
         }
 
+        // Le `metadata.nexusID` de la réponse ne servait qu'aux lignes de mise
+        // à jour — pour leur bouton de téléchargement — et disparaissait pour
+        // tous les autres mods. Il est désormais retenu.
+        learnNexusIds(from: mods)
+
         // Persister, sinon tout ceci meurt à la fermeture et le lancement
         // suivant réaffiche `cachedUpdates()` — la liste écrite par le code que
         // cette branche remplace.
@@ -3766,6 +3777,47 @@ class StarHubTHViewModel: ObservableObject {
         }
         log("Mises à jour : \(updates.count) sur \(mods.count) mods interrogés, \(blockers.count) non vérifiables",
             level: .info)
+    }
+
+    /// Retient l'identifiant Nexus que smapi.io connaît, pour les mods dont le
+    /// manifeste n'en déclare aucun.
+    ///
+    /// Sans page Nexus, un mod n'a ni suivi de version, ni bouton vers sa page,
+    /// ni recherche de traduction — et rien ne le disait. Mesuré sur le parc
+    /// réel : **148 mods sans clé Nexus dans leur manifeste, dont 30 que
+    /// smapi.io identifie**. Dix avaient déjà été renseignés à la main, et les
+    /// dix concordent exactement ; restent **20 identifiants gratuits perdus**.
+    ///
+    /// La décision vit dans `NexusIdLearning` (Core, testé) : le manifeste fait
+    /// foi, une saisie manuelle ne se fait jamais écraser, et rien n'est
+    /// réécrit à l'identique — sinon chaque vérification toucherait les
+    /// préférences pour rien.
+    private func learnNexusIds(from responses: [SmapiUpdateResponse.Mod]) {
+        var knownIds: [String: Int] = [:]
+        for response in responses {
+            if let id = response.metadata?.nexusID { knownIds[response.id] = id }
+        }
+        guard !knownIds.isEmpty else { return }
+
+        let folders = allInstalledMods().map {
+            NexusIdLearning.Folder(folderName: $0.folderName,
+                                   uniqueId: $0.uniqueId,
+                                   updateKeys: $0.updateKeys)
+        }
+        let plan = NexusIdLearning.plan(knownIds: knownIds,
+                                        folders: folders,
+                                        existingOverrides: nexusCustomModIds)
+        guard !plan.isEmpty else { return }
+
+        // Une seule assignation : `nexusCustomModIds` vide le cache de
+        // catégories à chaque écriture, et le plan en porte parfois vingt.
+        var updated = nexusCustomModIds
+        for (folderName, id) in plan.sorted(by: { $0.key < $1.key }) {
+            updated[folderName] = id
+            log(String(format: L(L10n.VM.nexusIdLearned), folderName, id))
+        }
+        nexusCustomModIds = updated
+        Self.saveCustomModIds(updated)
     }
 
     /// « Je l'ai déjà » : l'utilisateur affirme avoir la version suggérée.
@@ -4176,7 +4228,7 @@ class StarHubTHViewModel: ObservableObject {
             .flatMap { $0.caseInsensitiveValue(forKey: "UpdateKeys") as? [String] }
 
         guard let id = NexusInstallIdRecording.idToRecord(
-            downloadedModId: modId,
+            sourceModId: modId,
             manifestUpdateKeys: updateKeys,
             existingOverride: nexusCustomModIds[folderName]
         ) else { return }

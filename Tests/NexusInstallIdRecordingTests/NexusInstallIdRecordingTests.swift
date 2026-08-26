@@ -15,7 +15,7 @@ struct NexusInstallIdRecordingTests {
 
     @Test func anIdIsRecordedWhenTheManifestDeclaresNone() {
         let recorded = NexusInstallIdRecording.idToRecord(
-            downloadedModId: 49133,
+            sourceModId: 49133,
             manifestUpdateKeys: nil,
             existingOverride: nil
         )
@@ -25,7 +25,7 @@ struct NexusInstallIdRecordingTests {
     @Test func anIdIsRecordedWhenUpdateKeysHoldNoNexusEntry() {
         // Cas réel : beaucoup de mods ne déclarent que GitHub ou ModDrop.
         let recorded = NexusInstallIdRecording.idToRecord(
-            downloadedModId: 49953,
+            sourceModId: 49953,
             manifestUpdateKeys: ["GitHub:author/repo", "ModDrop:1234"],
             existingOverride: nil
         )
@@ -36,7 +36,7 @@ struct NexusInstallIdRecordingTests {
         // Le manifeste est ce que SMAPI lui-même lit. Enregistrer un override
         // ici créerait une divergence silencieuse entre l'app et le jeu.
         let recorded = NexusInstallIdRecording.idToRecord(
-            downloadedModId: 49133,
+            sourceModId: 49133,
             manifestUpdateKeys: ["Nexus:2400"],
             existingOverride: nil
         )
@@ -46,7 +46,7 @@ struct NexusInstallIdRecordingTests {
     @Test func aVariantSuffixStillCountsAsADeclaredId() {
         // `Nexus:23169@SwimItems` : les packs multi-mods partagent un id.
         let recorded = NexusInstallIdRecording.idToRecord(
-            downloadedModId: 49133,
+            sourceModId: 49133,
             manifestUpdateKeys: ["Nexus:23169@SwimItems"],
             existingOverride: nil
         )
@@ -55,7 +55,7 @@ struct NexusInstallIdRecordingTests {
 
     @Test func aManualOverrideIsNeverClobbered() {
         let recorded = NexusInstallIdRecording.idToRecord(
-            downloadedModId: 49133,
+            sourceModId: 49133,
             manifestUpdateKeys: nil,
             existingOverride: "12345"
         )
@@ -65,7 +65,7 @@ struct NexusInstallIdRecordingTests {
     @Test func aBlankOverrideIsNotAnOverride() {
         // Un champ vidé puis laissé tel quel ne doit pas bloquer l'apprentissage.
         let recorded = NexusInstallIdRecording.idToRecord(
-            downloadedModId: 49133,
+            sourceModId: 49133,
             manifestUpdateKeys: nil,
             existingOverride: "   "
         )
@@ -77,7 +77,7 @@ struct NexusInstallIdRecordingTests {
         // l'app interrogerait ensuite une page qui n'existe pas.
         for bogus in [0, -1] {
             let recorded = NexusInstallIdRecording.idToRecord(
-                downloadedModId: bogus,
+                sourceModId: bogus,
                 manifestUpdateKeys: nil,
                 existingOverride: nil
             )
@@ -90,7 +90,7 @@ struct NexusInstallIdRecordingTests {
         // donc le mod n'est PAS interrogeable et l'identifiant téléchargé est
         // la seule chose exploitable.
         let recorded = NexusInstallIdRecording.idToRecord(
-            downloadedModId: 49133,
+            sourceModId: 49133,
             manifestUpdateKeys: ["Nexus:", "Nexus:0"],
             existingOverride: nil
         )
