@@ -126,7 +126,7 @@ liste du 2026-07-30 et n'existaient pas dans le document de veille.
 | §7 | Packs de mods et de configs distribuables | **À faire** | → **E1** |
 | §8 | Éditeur de sauvegardes enrichi | **Partiel** | `SaveManager.swift` : argent, stats de base, duplication → **E3** (arbitrage) |
 | §8 | Profiler / analyse FPS à l'activation d'un mod | **Reformulé** | Aucune mesure maison possible ; parsing du log Profiler → **D1** |
-| §9 | Support des archives **RAR** | **Fait ✅** | Glisser-déposer depuis v1.7.1 ; chemin téléchargement/mise à jour réparé en séance (**X5**). Reste le guidage au moment de l'échec → **B2-T4** |
+| §9 | Support des archives **RAR** | **Fait ✅** | Glisser-déposer depuis v1.7.1 ; chemin téléchargement/mise à jour réparé en séance (**X5**) ; commande copiable au moment de l'échec (**B2-T4**, 2026-08-26) |
 | **§new** | Une archive de mod légitime est refusée à l'installation | **Corrigé ✅** | Cause racine : `unzip` sort en code 1 (avertissement) sur les archives à antislashs, refusé par un `terminationStatus == 0`. Corrigé en séance → **X4** |
 | **§new** | La mise à jour d'un mod échoue si ses dossiers sont en lecture seule | **Corrigé ✅** | Cause racine : `unzip`/`unrar` restituent les modes de l'archive (dossiers en `0o555`) ; la suppression récursive exige l'écriture *sur* chaque dossier. Corrigé en séance, vérifié sur *Tilly - NPC* (38008) → **X7** |
 | §9 | Doc utilisateur, screenshots, publication Nexus, Sentinel | **À faire** | → **E2** |
@@ -793,7 +793,7 @@ pouvoir revenir en arrière à tout moment.
       au patron de « Mises à jour » voisin (toujours visible, pastille masquée
       à zéro — `SidebarBadgeItem` le fait déjà), et la quarantaine sans rapport
       affiche le même message que le rapport vide plutôt qu'un blanc.*
-- [ ] **B2-T4** — Guidage quand `unrar`/`unar`/`7z` manque. *Socle déjà en place* : l'accueil
+- [x] **B2-T4** — Guidage quand `unrar`/`unar`/`7z` manque. *Socle déjà en place* : l'accueil
       affiche l'état d'installation de `unar` avec la commande Homebrew
       (`home_tool_unar_*`). Ce qui manque : au **moment de l'échec**, un message actionnable
       avec commande copiable — aujourd'hui une phrase anglaise codée en dur (cf. **X6**). · **S**
@@ -802,6 +802,13 @@ pouvoir revenir en arrière à tout moment.
       (`installErrorMessage` → `rarToolMissing`), commande Homebrew incluse. Ne reste
       que **copiable** : aucun `NSPasteboard` dans la feuille d'installation. La
       tâche a fondu à un bouton.*
+      **Livré le 2026-08-26.** `InstallError.copyableCommand` (Core, 2 tests) porte
+      la commande — celle-là même que le message d'erreur et l'accueil recommandent
+      (`unar`, pas `unrar`) — et l'alerte de la feuille d'installation offre
+      « Copier la commande » quand l'erreur en porte une, jamais sinon. Le message
+      et la commande se posent ensemble par un helper unique (`showFailure`) : la
+      feuille ne remet jamais son erreur à zéro, et une commande héritée d'une
+      erreur précédente se serait affichée sur la suivante.
 - [ ] **B2-T5** — Reprendre l'affichage des dates d'un mod : distinguer explicitement
       *date de création Nexus* et *date de mise à jour*, et vérifier laquelle est montrée
       où (liste, fiche, bandeau de mise à jour). · **S**

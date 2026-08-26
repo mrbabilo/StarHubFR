@@ -9,6 +9,9 @@ struct ModInstallView: View {
     @State private var isAnalyzing = false
     @State private var isInstalling = false
     @State private var errorMessage: String?
+    /// B2-T4 : commande copiable attachée à l'erreur courante — posée avec
+    /// le message par `showFailure`, jamais l'une sans l'autre.
+    @State private var copyableInstallCommand: String?
     @State private var errorRecoveryHint: String?
     @State private var showError = false
     @State private var tempDir: URL?
@@ -147,6 +150,15 @@ struct ModInstallView: View {
             }
         }
         .alert(vm.L(L10n.ModInstall.validationError), isPresented: $showError) {
+            // B2-T4 : le bouton n'existe que si l'erreur courante porte une
+            // commande. Le clic la copie et referme l'alerte — le contenu est
+            // au presse-papiers, prêt à coller dans Terminal.
+            if let command = copyableInstallCommand {
+                Button(vm.L(L10n.ModInstall.copyCommand)) {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(command, forType: .string)
+                }
+            }
             Button(vm.L(L10n.Main.ok)) { }
         } message: {
             if let error = errorMessage {
@@ -341,7 +353,7 @@ struct ModInstallView: View {
                 // du statut, et il n'y a qu'un saut vers le fil principal.
                 let fail: (String, ValidationStatus) -> Void = { message, status in
                     DispatchQueue.main.async {
-                        self.errorMessage = message
+                        self.showFailure(message)
                         self.errorRecoveryHint = status.recoveryHintKey.map { self.vm.L($0) }
                         self.showError = true
                     }
@@ -436,8 +448,8 @@ struct ModInstallView: View {
                                 self.zipModInfo = nil
                                 return
                             case .hostMissing(let hostName):
-                                self.errorMessage = String(
-                                    format: self.vm.L(L10n.ModInstall.droppedHostMissing), hostName)
+                                self.showFailure(String(
+                                    format: self.vm.L(L10n.ModInstall.droppedHostMissing), hostName))
                                 self.errorRecoveryHint = nil
                                 self.showError = true
                                 self.zipModInfo = nil
@@ -471,15 +483,15 @@ struct ModInstallView: View {
                                 msg += "\n\n" + String(format: self.vm.L(L10n.ModInstall.archiveContains),
                                                        info.extractedTopLevel.joined(separator: ", "))
                             }
-                            self.errorMessage = msg
+                            self.showFailure(msg)
                         case .oversized:
-                            self.errorMessage = self.vm.L(L10n.ModInstall.zipOversized)
+                            self.showFailure(self.vm.L(L10n.ModInstall.zipOversized))
                         case .tooManyMods:
-                            self.errorMessage = self.vm.L(L10n.ModInstall.tooManyMods)
+                            self.showFailure(self.vm.L(L10n.ModInstall.tooManyMods))
                         case .corrupted:
-                            self.errorMessage = self.vm.L(L10n.ModInstall.zipCorrupted)
+                            self.showFailure(self.vm.L(L10n.ModInstall.zipCorrupted))
                         case .unsupportedFormat(let ext):
-                            self.errorMessage = String(format: self.vm.L(L10n.ModInstall.unsupportedFormat), ext)
+                            self.showFailure(String(format: self.vm.L(L10n.ModInstall.unsupportedFormat), ext))
                         case .valid:
                             break
                         }
@@ -497,7 +509,7 @@ struct ModInstallView: View {
                     }
 
                     if info.detectedMods.isEmpty {
-                        self.errorMessage = self.vm.L(L10n.ModInstall.noModsDetected)
+                        self.showFailure(self.vm.L(L10n.ModInstall.noModsDetected))
                         self.showError = true
                         self.zipModInfo = nil
                         if let tempDir = self.tempDir {
@@ -509,7 +521,8 @@ struct ModInstallView: View {
             } catch {
                 DispatchQueue.main.async {
                     self.isAnalyzing = false
-                    self.errorMessage = self.vm.installErrorMessage(error)
+                    self.showFailure(self.vm.installErrorMessage(error),
+                                     copyableCommand: (error as? InstallError)?.copyableCommand)
                     self.showError = true
                     if let tempDir = self.tempDir {
                         self.installer.cleanupTempDir(at: tempDir)
@@ -582,6 +595,16 @@ struct ModInstallView: View {
 
     /// Dépose les fichiers dans le mod désigné.
     ///
+    /// B2-T4 — un seul point d'entrée pour l'erreur que montre l'alerte : le
+    /// message et la commande copiable se posent ensemble. La feuille ne
+    /// remet jamais `errorMessage` à zéro, donc une commande posée séparément
+    /// traînerait jusqu'à une erreur qui n'est pas la sienne — l'alerte
+    /// offrirait « Copier la commande » sur une erreur sans commande.
+    private func showFailure(_ message: String, copyableCommand: String? = nil) {
+        errorMessage = message
+        copyableInstallCommand = copyableCommand
+    }
+
     /// Passe par le ViewModel : c'est lui qui tient le registre des traductions,
     /// sans lequel le bouton « Retirer » de la fiche du mod n'existerait pas —
     /// et le message de confirmation promet précisément que l'opération reste
@@ -589,14 +612,14 @@ struct ModInstallView: View {
     private func deposit(_ plan: ManifestlessArchive.Plan) {
         guard let tempDir,
               let host = vm.mods.first(where: { $0.folderName == plan.hostFolderName }) else {
-            errorMessage = vm.L(L10n.ModInstall.depositFailed)
+            showFailure(vm.L(L10n.ModInstall.depositFailed))
             showError = true
             return
         }
         let result = vm.depositIntoMod(plan: plan, extractedRoot: tempDir, host: host,
                                        sourceName: analyzedArchiveName, nexus: nil)
         guard let outcome = result.outcome else {
-            errorMessage = result.message ?? vm.L(L10n.ModInstall.depositFailed)
+            showFailure(result.message ?? vm.L(L10n.ModInstall.depositFailed))
             showError = true
             return
         }
@@ -658,6 +681,7 @@ struct ModInstallView: View {
         let gameDir = vm.gameDir
         DispatchQueue.global(qos: .userInitiated).async {
             var failure: String?
+            var failureCommand: String?
             var installed = 0
             do {
                 // Un sac peut avoir été retouché à la main (prix, capacités) :
@@ -685,6 +709,7 @@ struct ModInstallView: View {
                 // dire « échec » sans le compte laisserait croire que rien n'a
                 // bougé, et l'utilisateur chercherait au mauvais endroit.
                 failure = self.vm.installErrorMessage(error)
+                failureCommand = (error as? InstallError)?.copyableCommand
                 if installed > 0 {
                     failure! += "\n\n" + String(format: self.vm.L(L10n.ModInstall.droppedDoneMany),
                                                  installed, proposal.hostDisplayName)
@@ -697,7 +722,7 @@ struct ModInstallView: View {
                     self.tempDir = nil
                 }
                 if let failure = failure {
-                    self.errorMessage = failure
+                    self.showFailure(failure, copyableCommand: failureCommand)
                     self.errorRecoveryHint = nil
                     self.showError = true
                 } else {
@@ -830,7 +855,8 @@ struct ModInstallView: View {
             } catch {
                 DispatchQueue.main.async {
                     self.isInstalling = false
-                    self.errorMessage = self.vm.installErrorMessage(error)
+                    self.showFailure(self.vm.installErrorMessage(error),
+                                     copyableCommand: (error as? InstallError)?.copyableCommand)
                     self.showError = true
                     // Always clean up the temp extract dir, even on failure —
                     // otherwise a failed multi-mod install leaks the extracted

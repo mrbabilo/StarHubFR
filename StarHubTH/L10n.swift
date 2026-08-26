@@ -1052,6 +1052,9 @@ enum L10n {
         static let tooManyMods          = "mod_install_too_many_mods"
         static let zipCorrupted         = "mod_install_corrupted"
         static let rarToolMissing       = "mod_install_rar_tool_missing"
+        // B2-T4 : bouton de l'alerte d'erreur, présent seulement quand
+        // l'erreur porte une commande (`InstallError.copyableCommand`).
+        static let copyCommand          = "mod_install_copy_command"
         // Les erreurs d'installation, rendues ici plutôt que par
         // `errorDescription` : celui-ci passe par `NSLocalizedString`, qui ne
         // suit pas le changement de langue en cours de session — même raison

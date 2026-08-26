@@ -1165,4 +1165,16 @@ enum InstallError: LocalizedError {
         case .rarToolMissing: return "RAR extraction requires 'unrar', 'unar', or '7z' (install via Homebrew: brew install unrar)."
         }
     }
+
+    /// B2-T4 : la commande shell que l'erreur conseille, copiable d'un bouton
+    /// dans la feuille d'installation. Elle doit rester celle que le message
+    /// localisé (`mod_install_rar_tool_missing`) et l'accueil
+    /// (`home_tool_unar_*`) recommandent déjà : `unar`, pas `unrar` — même si
+    /// l'extracteur accepte aussi `unrar` et `7z`, un seul conseil à la fois.
+    var copyableCommand: String? {
+        switch self {
+        case .rarToolMissing: return "brew install unar"
+        default: return nil
+        }
+    }
 }

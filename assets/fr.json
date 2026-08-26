@@ -672,6 +672,7 @@
   "mod_install_corrupted": "Cette archive semble corrompue et n'a pas pu être lue.",
   "mod_install_unsupported_format": "Le format « .%@ » n'est pas pris en charge. Formats acceptés : .zip, .rar et .7z.",
   "mod_install_rar_tool_missing": "L'extraction d'une archive .rar nécessite un outil externe. Installez-le avec Homebrew : brew install unar",
+  "mod_install_copy_command": "Copier la commande",
   "mod_install_err_extraction": "L'archive n'a pas pu être extraite. Elle est peut-être endommagée, ou son contenu a été refusé.",
   "mod_install_err_unsafe": "Archive refusée : elle contient des liens symboliques, dont les mods n'ont jamais besoin et qui pourraient écrire hors du dossier des mods.",
   "mod_install_err_game_dir": "Le dossier du jeu n'est pas défini. Choisissez-le dans les Réglages.",
