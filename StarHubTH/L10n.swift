@@ -620,6 +620,7 @@ enum L10n {
         static let itemsQuarantined     = "quarantine_items_quarantined"
         static let duplicatesFound      = "quarantine_duplicates_found"
         static let noQuarantine         = "quarantine_no_quarantine"
+        static let rescan               = "quarantine_rescan"
     }
 
     // MARK: - Settings
@@ -765,6 +766,8 @@ enum L10n {
         static let errorsFound          = "updates_errors_found"
         static let viewLogs             = "updates_view_logs"
         static let errorDescription     = "updates_error_description"
+        static let noAlerts             = "updates_no_alerts"
+        static let recheckLog           = "updates_recheck_log"
         // Nexus Mods update check
         static let nexusSection         = "updates_nexus_section"
         static let nexusCheckButton     = "updates_nexus_check_button"
@@ -773,7 +776,6 @@ enum L10n {
         static let nexusGetKey          = "updates_nexus_get_key"
         static let nexusAlreadyHave     = "updates_nexus_already_have"
         static let nexusAlreadyHaveHelp = "updates_nexus_already_have_help"
-        static let nexusNoUpdates       = "updates_nexus_no_updates"
         static let nexusUpdatesCount    = "updates_nexus_updates_count"
         static let nexusError           = "updates_nexus_error"
         static let nexusRateLimited     = "updates_nexus_rate_limited"

@@ -896,18 +896,27 @@ struct SystemAlertsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 if vm.smapiErrors.isEmpty {
-                    HStack(spacing: 12) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
-                            .font(.system(size: 28))
-                        Text(vm.L(L10n.Updates.nexusNoUpdates))
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(.secondary)
+                    VStack(spacing: 12) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                                .font(.system(size: 28))
+                            // Cette page parle du journal SMAPI, pas des mises
+                            // à jour Nexus : l'ancienne clé disait « tous les
+                            // mods sont à jour », hors sujet ici.
+                            Text(vm.L(L10n.Updates.noAlerts))
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.secondary)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(40)
+                        .background(Color.green.opacity(0.06))
+                        .cornerRadius(12)
+                        // Vert ne veut pas dire véridique pour toujours : le
+                        // journal date de la dernière partie, et l'utilisateur
+                        // qui vient d'installer un mod veut pouvoir revoir.
+                        recheckLogButton
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(40)
-                    .background(Color.green.opacity(0.06))
-                    .cornerRadius(12)
                 } else {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
@@ -919,6 +928,7 @@ struct SystemAlertsView: View {
                                 .font(.system(size: 14, weight: .bold))
                                 .foregroundColor(.primary)
                             Spacer()
+                            recheckLogButton
                             Button(action: { currentTab = "Logs" }) {
                                 Text(vm.L(L10n.Updates.viewLogs))
                                     .font(.system(size: 12, weight: .medium))
@@ -958,6 +968,29 @@ struct SystemAlertsView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(nsColor: .windowBackgroundColor))
+    }
+
+    /// Relit le journal SMAPI sans rescaner le parc — la page ne montre que
+    /// ce que dit le journal, c'est lui seul qu'il faut relire.
+    @ViewBuilder
+    private var recheckLogButton: some View {
+        HStack(spacing: 6) {
+            Button(action: { vm.refreshSmapiLog() }) {
+                Label(vm.L(L10n.Updates.recheckLog), systemImage: "arrow.clockwise")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.primary)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 4)
+                    .background(Color.primary.opacity(0.1))
+                    .cornerRadius(6)
+            }
+            .buttonStyle(PlainButtonStyle())
+            .pointingHandCursor()
+            .disabled(vm.isRefreshingSmapiLog)
+            if vm.isRefreshingSmapiLog {
+                ProgressView().controlSize(.small)
+            }
+        }
     }
 }
 
@@ -1063,6 +1096,21 @@ struct QuarantineView: View {
 
                 // Actions
                 HStack(spacing: 12) {
+                    Button(action: { vm.refresh() }) {
+                        Label(vm.L(L10n.Quarantine.rescan), systemImage: "arrow.clockwise")
+                            .font(.system(size: 13, weight: .medium))
+                    }
+                    .buttonStyle(.bordered)
+                    // `refresh()` est le « rafraîchissement manuel » établi —
+                    // celui des installations et de l'accueil — et c'est le seul
+                    // chemin qui relance la réparation dont cette page publie
+                    // le rapport. Inactif pendant le scan : un second clic
+                    // lancerait une double traversée du parc.
+                    .disabled(vm.scanProgress != nil)
+                    if vm.scanProgress != nil {
+                        ProgressView().controlSize(.small)
+                    }
+
                     Button(action: openQuarantineFolder) {
                         Label(vm.L(L10n.Quarantine.openFolder), systemImage: "folder.fill")
                             .font(.system(size: 13, weight: .medium))

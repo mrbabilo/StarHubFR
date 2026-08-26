@@ -1777,6 +1777,31 @@ class StarHubTHViewModel: ObservableObject {
         self.checkSmapiVersion()
     }
 
+    /// `true` pendant qu'un `refreshSmapiLog()` tourne — piloter le bouton de
+    /// la page des alertes système (spinner, anti double-clic).
+    @Published private(set) var isRefreshingSmapiLog = false
+
+    /// Relit le journal SMAPI et recalcule ce qui en découle : alertes
+    /// système, diagnostics, mods signalés à jour. Sortie ciblée de
+    /// `refresh()` pour la page des alertes — elle ne montre que ce que dit
+    /// le journal, et rescanner le parc entier pour relire un fichier serait
+    /// un contresens.
+    ///
+    /// `parseSMAPILog` est pensée pour un thread d'arrière-plan (`scanMods`
+    /// l'appelle depuis le sien) : ses mutations `@Published` repartent sur
+    /// main en interne. Le drapeau s'abaisse après son retour, donc après les
+    /// mutations qu'elle a mises en file sur main — l'ordre est celui de la
+    /// file.
+    func refreshSmapiLog() {
+        guard !isRefreshingSmapiLog else { return }
+        isRefreshingSmapiLog = true
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self else { return }
+            self.parseSMAPILog()
+            DispatchQueue.main.async { self.isRefreshingSmapiLog = false }
+        }
+    }
+
     /// One-shot, idempotent migration from the legacy `Mods_disabled/`
     /// layout to the dot-prefix convention where disabled mods live as
     /// `Mods/.X` (SMAPI ignores dotted folders). Runs on the background

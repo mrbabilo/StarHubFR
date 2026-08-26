@@ -88,7 +88,7 @@ liste du 2026-07-30 et n'existaient pas dans le document de veille.
 | **§new** | Vérifier optimisation (vitesse, mémoire) et sécurité du code | **À faire** | → **F2** |
 | **§new** | Copier/coller du NexusID impossible | **Non reproduit** | Fonctionne ; le menu Édition est présent → **X1** clos |
 | **§new** | BBCode/Markdown non rendu dans la description | **Corrigé ✅** | 6 défauts reproduits sur SVE (3753) puis corrigés (tokeniseur récursif) ; rendu typé ajouté (titres/listes/code/citations/centrage/couleur/souligné), vérifié sur 51 descriptions → **X2** |
-| **§new** | Rafraîchissement automatique dès qu'on renseigne l'identifiant Nexus | **À faire** | → **B2-T3** |
+| **§new** | Rafraîchissement automatique dès qu'on renseigne l'identifiant Nexus | **Fait** | Livré le 2026-08-26 → **B2-T3** (saisie manuelle et adoption d'un candidat) |
 | **§new** | `smapi.io/json` comme analyseur de référence pour les JSON Stardew | *(précision)* | Affine la définition de « manifest valide » → **A1-T2** |
 | **§new** | `stardew-i18n-translator` comme référence de pipeline i18n | *(précision)* | Affine **C3** — voir la réserve de licence en §5 |
 | §1 | Refonte du log SMAPI façon *Log Doctor* | **Fait** | `Models/SmapiLogDiagnostics.swift`, `Views/Components/SmapiHealthCard.swift`, v1.9.x–1.10.0 |
@@ -104,7 +104,7 @@ liste du 2026-07-30 et n'existaient pas dans le document de veille.
 | §2 | Boutons **Activer** / **Supprimer** sur la fiche mod | **Livré** (2026-08-01) | `ModDetailView.actionRow` → **B1-T1** |
 | §2 | Le retour depuis la fiche conserve tri / filtres / scroll | **Partiel** (2026-08-01) | `ModListFilters` porté par le ViewModel ; **le scroll ne l'est pas, et c'est assumé** (pagination à 15) → **B1-T2** |
 | §2 | Vérifier le bouton d'activation de la page dépendances | **Fait** | Corrigé le 2026-07-30 par `8f0a81e` (`seedFolder` remonte au pack) → **X3** |
-| §2 | Boutons de rafraîchissement (quarantaine, alertes système) | **À faire** | → **B2-T3** |
+| §2 | Boutons de rafraîchissement (quarantaine, alertes système) | **Fait** | Livré le 2026-08-26 → **B2-T3** |
 | §3 | Reconnaître les mods de traduction (i18n seul) | **Partiel** | `ModItem.languages`, filtre `FrenchTranslationScope` et heuristique de nom (`ModItem.swift:99`) — **C1-T4 requalifiée et livrée** (`46ce633`) : le cas visé est à zéro mod sur le parc |
 | **§new** | Installer une archive sans manifeste (traduction d'un mod, greffe type `ItemBags`) | **Fait** | Livré le 2026-08-25 (**A1-T3**, pas encore publié) ; jeu d'épreuve dans `mods tests/` |
 | **§new** | Chercher sur Nexus les traductions FR et les suppléments des mods installés | **Fait** | Traductions (**A3-T2/T3**) et suppléments (**A3-T4**) livrés le 2026-08-25/26 |
@@ -764,8 +764,24 @@ pouvoir revenir en arrière à tout moment.
       sur le parc réel : 863 dossiers, 103 893 fichiers, 16,84 Go — **dont 12,71 Go de mods
       en pause (746 sur 863)** — pour 24,9 Go libres, en 5,6 s. D'où le sous-total « en
       pause » et la place restante en orange sous le seuil.* · **M**
-- [ ] **B2-T3** — Boutons de rafraîchissement sur la quarantaine et les alertes système ;
+- [x] **B2-T3** — Boutons de rafraîchissement sur la quarantaine et les alertes système ;
       sur la fiche mod, rafraîchissement **automatique** dès qu'un NexusID est saisi. · **S**
+      *Livré le 2026-08-26. Quarantaine : « Relancer l'analyse » rejoue `refresh()` —
+      le rafraîchissement manuel établi (accueil, installations), seul chemin qui
+      relance la réparation dont la page publie le rapport — inactif pendant le scan
+      (`scanProgress`). Alertes système : « Revérifier le journal » appelle un neuf
+      `refreshSmapiLog()`, qui relit **le seul journal SMAPI** sur un thread
+      d'arrière-plan — la page ne montre que ce que dit le journal, rescaner 863
+      dossiers pour relire un fichier serait un contresens ; bouton présent dans
+      l'état vert aussi, car un journal silencieux avant une installation ne dit
+      rien d'après. La part « fiche mod » était déjà couverte : la saisie manuelle
+      recharge (`commitDraft` → `loadModDetail` + `fetchMetadata`), et l'adoption
+      d'un candidat A3-T1 fait de même depuis le correctif du jour — sans
+      `loadModDetail`, la description restait celle du manifeste local jusqu'à la
+      prochaine navigation, le défaut même que documente `commitDraft`. Au passage :
+      l'état vide des alertes disait « Tous les mods sont à jour » — la clé des
+      mises à jour Nexus, mésusée ; clé propre « Aucune alerte système », et la
+      clé morte retirée des trois endroits.*
 - [ ] **B2-T4** — Guidage quand `unrar`/`unar`/`7z` manque. *Socle déjà en place* : l'accueil
       affiche l'état d'installation de `unar` avec la commande Homebrew
       (`home_tool_unar_*`). Ce qui manque : au **moment de l'échec**, un message actionnable

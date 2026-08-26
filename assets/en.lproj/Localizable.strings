@@ -290,6 +290,7 @@
 "quarantine_items_quarantined" = "%lld item(s) quarantined";
 "quarantine_duplicates_found" = "%lld duplicate UniqueID(s) found across enabled and disabled mods";
 "quarantine_no_quarantine" = "No quarantine folder exists yet.";
+"quarantine_rescan" = "Re-run Analysis";
 "settings_launch_options" = "Launch Options";
 "settings_backup" = "Backup";
 "settings_developer" = "Developer";
@@ -346,6 +347,8 @@
 "updates_errors_found" = "The game encountered errors (%lld items)";
 "updates_view_logs" = "View Logs";
 "updates_error_description" = "The game encountered errors during the last run. This might be caused by missing dependencies or outdated mods.";
+"updates_no_alerts" = "No system alerts.";
+"updates_recheck_log" = "Check the log again";
 "thaihub_title" = "Thai Translation Hub";
 "thaihub_hub_title" = "Thai Translation Hub";
 "thaihub_subtitle" = "Install supported Thai translation mods with a single click. Powered by AppleBoiy.";
@@ -597,7 +600,6 @@
 "updates_nexus_get_key" = "Get API Key";
 "updates_nexus_already_have" = "I already have it";
 "updates_nexus_already_have_help" = "You already have this version, but the author didn't record it in their manifest. The row goes away. On a pack, this only covers the component it stands for.";
-"updates_nexus_no_updates" = "All mods are up to date";
 "updates_nexus_updates_count" = "%lld update(s) available";
 "updates_nexus_error" = "An error occurred while checking for updates";
 "updates_nexus_rate_limited" = "Nexus Mods rate-limited this check — try again later";
