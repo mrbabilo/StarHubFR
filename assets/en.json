@@ -1050,5 +1050,6 @@
   "mods_link_to_nexus_hint": "Installed by hand, so no Nexus page is attached — which is why no update can be spotted. Pick the matching entry below to attach one.",
   "mods_addon_remove": "Remove",
   "mods_supplement_as_mod": "installed as a mod of its own",
-  "mods_no_update_check": "No update check: no Nexus page attached."
+  "mods_no_update_check": "No update check: no Nexus page attached.",
+  "mods_search_close": "Close results"
 }

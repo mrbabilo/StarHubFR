@@ -1050,5 +1050,6 @@
   "mods_link_to_nexus_hint": "Posé à la main, donc sans page Nexus rattachée — c'est pourquoi aucune mise à jour ne peut être repérée. Choisissez ci-dessous l'entrée correspondante pour en rattacher une.",
   "mods_addon_remove": "Retirer",
   "mods_supplement_as_mod": "installé comme mod à part entière",
-  "mods_no_update_check": "Pas de suivi des mises à jour : aucune page Nexus rattachée."
+  "mods_no_update_check": "Pas de suivi des mises à jour : aucune page Nexus rattachée.",
+  "mods_search_close": "Fermer les résultats"
 }

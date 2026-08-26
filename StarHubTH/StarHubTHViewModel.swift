@@ -4496,6 +4496,24 @@ class StarHubTHViewModel: ObservableObject {
     /// Les mods dont une recherche de suppléments est en cours.
     @Published private(set) var searchingSupplements: Set<String> = []
 
+    /// Referme les propositions de traduction d'un mod.
+    ///
+    /// **Ne jette que ce qui est affiché.** `translationInstalledHits` reste :
+    /// il ne se voit pas, mais c'est lui qui porte la pastille « une version
+    /// plus récente existe » sur la ligne en place. Refermer une liste veut
+    /// dire « j'ai fini de chercher », pas « oublie ce que tu as appris ».
+    func dismissTranslationResults(for mod: ModItem) {
+        translationHits[mod.folderName] = nil
+    }
+
+    /// Referme les propositions de suppléments d'un mod.
+    ///
+    /// Les greffes du registre continuent de s'afficher : elles ne viennent pas
+    /// de la recherche, elles viennent de ce qui est posé sur le disque.
+    func dismissSupplementResults(for mod: ModItem) {
+        supplementSearches[mod.folderName] = nil
+    }
+
     /// Les identifiants Nexus que le parc déclare, pour reconnaître un
     /// supplément **installé comme un mod à part entière**.
     ///

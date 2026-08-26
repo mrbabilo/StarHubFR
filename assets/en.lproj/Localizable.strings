@@ -1051,3 +1051,4 @@
 "mods_addon_remove" = "Remove";
 "mods_supplement_as_mod" = "installed as a mod of its own";
 "mods_no_update_check" = "No update check: no Nexus page attached.";
+"mods_search_close" = "Close results";

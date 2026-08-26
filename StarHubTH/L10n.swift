@@ -263,6 +263,7 @@ enum L10n {
         static let addonRemove            = "mods_addon_remove"
         static let supplementAsMod        = "mods_supplement_as_mod"
         static let noUpdateCheck          = "mods_no_update_check"
+        static let searchClose            = "mods_search_close"
         static let anomalyErrors        = "mods_anomaly_errors"
         static let anomalyWarnings      = "mods_anomaly_warnings"
         static let anomalyDependency    = "mods_anomaly_dependency"

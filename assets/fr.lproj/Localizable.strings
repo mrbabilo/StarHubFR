@@ -1051,3 +1051,4 @@
 "mods_addon_remove" = "Retirer";
 "mods_supplement_as_mod" = "installé comme mod à part entière";
 "mods_no_update_check" = "Pas de suivi des mises à jour : aucune page Nexus rattachée.";
+"mods_search_close" = "Fermer les résultats";

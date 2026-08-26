@@ -1004,6 +1004,17 @@ private struct SupplementSection: View {
                     Text(vm.L(L10n.Mods.supplementSearching))
                         .font(.system(size: 11))
                         .foregroundColor(.secondary)
+                } else if search != nil {
+                    Button {
+                        vm.dismissSupplementResults(for: mod)
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help(vm.L(L10n.Mods.searchClose))
+                    .pointingHandCursor()
                 } else if !vm.hasNexusApiKey {
                     Text(vm.L(L10n.Mods.nexusNoApiKey))
                         .font(.system(size: 10))
@@ -1298,6 +1309,19 @@ private struct TranslationSection: View {
                     .foregroundColor(.secondary)
             } else if isBusy {
                 ProgressView().controlSize(.small)
+            } else if vm.translationHits[mod.folderName] != nil {
+                // Une liste de propositions se referme : elle a fait son
+                // office, et la fiche a d'autres choses à montrer.
+                Button {
+                    vm.dismissTranslationResults(for: mod)
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help(vm.L(L10n.Mods.searchClose))
+                .pointingHandCursor()
             } else if !vm.hasNexusApiKey {
                 // Écrit, pas seulement en infobulle : AppKit ne garantit pas
                 // l'infobulle d'un contrôle désactivé, et c'est précisément
