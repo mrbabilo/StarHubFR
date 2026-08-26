@@ -1050,6 +1050,14 @@
   "mods_link_to_nexus_hint": "Posé à la main, donc sans page Nexus rattachée — c'est pourquoi aucune mise à jour ne peut être repérée. Choisissez ci-dessous l'entrée correspondante pour en rattacher une.",
   "mods_addon_remove": "Retirer",
   "mods_supplement_as_mod": "installé comme mod à part entière",
+  "mods_nexus_identity_search": "Trouver ce mod sur Nexus",
+  "mods_nexus_identity_short": "Trouver sur Nexus",
+  "mods_nexus_identity_none": "Aucun mod de ce nom sur Nexus. Il a pu être retiré, renommé, ou n'y avoir jamais été publié — deux mods sans identifiant sur trois sont dans ce cas.",
+  "mods_nexus_identity_component": "Ce mod est un composant du pack « %@ ». Le nom d'un composant est rarement un titre Nexus : cherchez plutôt depuis la fiche du pack.",
+  "mods_nexus_identity_found": "%lld fiche(s) pourraient être celle de ce mod — traductions écartées.",
+  "mods_nexus_identity_hint": "Rien n'est relié sans vous : désignez la fiche qui est vraiment celle de ce mod. Un mod relié à la mauvaise fiche suit les mauvaises mises à jour.",
+  "mods_nexus_identity_adopt": "C'est celui-ci",
+  "mods_nexus_identity_same_author": "même auteur",
   "mods_no_update_check": "Pas de suivi des mises à jour : aucune page Nexus rattachée.",
   "mods_search_close": "Fermer les résultats"
 }

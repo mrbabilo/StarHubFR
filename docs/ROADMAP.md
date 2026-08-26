@@ -111,7 +111,7 @@ liste du 2026-07-30 et n'existaient pas dans le document de veille.
 | §3 | Nouveau profil créé **vide** | **Fait** (2026-08-24) | L'alerte propose les deux voies, « vide » en premier ; `ProfileFactory` (Core, testé) → **B3-T1** |
 | §3 | Favoris de mods + import dans un profil | **Fait** | Étoile, cadrage, import nommant les intraduisibles (**B3-T2**, pas encore publié) |
 | §3 | Duplication d'un profil | **Fait** (2026-08-24) | `duplicateProfile(id:)`, depuis le menu ⋯ de la ligne → **B3-T3** |
-| §3 | Recherche automatique des NexusID manquants | **À faire** | Saisie manuelle sur la fiche mod → **A3-T1** |
+| §3 | Recherche automatique des NexusID manquants | **Fait** | Livré le 2026-08-26 (**A3-T1**) : smapi.io d'abord (20 identifiants gratuits), recherche par nom pour le reste — traductions écartées, auteur en indice, adoption sur clic |
 | §4 | Backups : feedback après restauration, tri, regroupement, recherche | **Fait** (2026-08-23) | Regroupement, tri et recherche → **B4-T1** ; compte rendu de restauration (ce qui a été écrit, où, ce qu'est devenue la version remplacée) → **B4-T2** |
 | §4 | Un mod restauré met à jour le registre | **Corrigé ✅** (2026-08-23) | Vérifié : la restauration d'un mod **actif** en déposait une seconde copie en pause à côté, deux dossiers pour un `folderName` — la clé du registre. Elle remplace désormais le mod là où il est → **B4-T3** |
 | §4 | Sauvegarde / restauration de `config.json` et `fr.json` | **Fait** | `ModConfigBackupManager.swift` + `Extensions/ModConfigFiles.swift` |
@@ -1036,7 +1036,7 @@ backup se retrouve en moins de dix secondes.
       annonce la mise à jour et celui vers lequel rattacher. La pastille de mise à
       jour, qui fonctionnait, ne pouvait plus s'afficher.* · **M**
 
-- [ ] **A3-T1** — Recherche automatique des `NexusID` manquants (correspondance nom +
+- [x] **A3-T1** — Recherche automatique des `NexusID` manquants (correspondance nom +
       auteur, proposition validée par l'utilisateur, jamais d'écriture aveugle). · **M** ·
       risque : quota d'API Nexus, faux positifs. *La recherche par nom qu'elle suppose
       n'existe pas en API v1 : elle dépend d'**A3-T2** (GraphQL v2), vérifié le 2026-08-25.*
@@ -1061,6 +1061,32 @@ backup se retrouve en moins de dix secondes.
       manifestes sur 995 portent un préfixe `[CP]`** qui n'appartient pas au titre
       Nexus. Une ligne qui suit le mauvais mod est pire qu'une ligne qui ne suit rien
       — d'où la validation par l'utilisateur, jamais d'écriture aveugle.
+
+      **Seconde moitié livrée le 2026-08-26 — mesurée avant d'être écrite.** La
+      requête GraphQL v2 a été réellement exécutée sur les 83 mods : **55 ne rendent
+      rien** (mod retiré, renommé, jamais publié — dont **20 composants de pack**
+      dont le nom n'a jamais été un titre Nexus), **23 rendent des candidats dont
+      61 % sont des traductions** (45 sur 74 : le titre d'une traduction commence
+      par celui du mod, la comparaison par préfixe les attrape toutes). Trois règles
+      en sortent, dans `NexusModSearch.identityCandidates` (Core, 10 tests) :
+
+      - le tag `Translation` écarte toutes les traductions — seul moyen, et il les
+        écarte toutes : **18 mods n'ont plus qu'un candidat** (contre 14 sans le
+        filtre) et les cinq listes restantes deviennent lisibles ;
+      - **l'auteur confirme, il ne trie pas** : sur ces 18, le pseudo Nexus
+        concorde 12 fois, parfois à une variante près (`skeleton` / `Skeleton0w0`),
+        et parfois pas alors que c'est le même mod (`Owljoy` / `OwlandJoy`) — en
+        faire un filtre perdrait des candidats justes, il n'ordonne que l'affichage
+        (préfixe, plancher quatre caractères, multi-auteurs essayés un à un) ;
+      - **rien n'est écrit d'autorité** : la fiche du mod propose, l'utilisateur
+        désigne (« C'est celui-ci »), et l'adoption passe par le même chemin qu'une
+        saisie manuelle (`setCustomNexusModId`) — deux des 18 candidats uniques
+        mesurés portaient un auteur sans rapport.
+
+      « Aucun résultat » reste la réponse la plus fréquente — deux mods sur trois —
+      et elle est écrite en toutes lettres, sans quoi le bouton passerait pour
+      cassé ; le composant d'un pack est orienté vers la fiche du pack, qui est là
+      où son nom a une chance d'exister.
 
 - [x] **A3-T2** — **Client de recherche Nexus (GraphQL v2)** — le socle qui manquait à tout
       l'axe A3. *Faisabilité vérifiée le 2026-08-25, sur le compte réel* : l'API **v1 n'a

@@ -1050,5 +1050,13 @@
 "mods_link_to_nexus_hint" = "Installed by hand, so no Nexus page is attached — which is why no update can be spotted. Pick the matching entry below to attach one.";
 "mods_addon_remove" = "Remove";
 "mods_supplement_as_mod" = "installed as a mod of its own";
+"mods_nexus_identity_search" = "Find this mod on Nexus";
+"mods_nexus_identity_short" = "Find on Nexus";
+"mods_nexus_identity_none" = "No mod of this name on Nexus. It may have been removed, renamed, or never published there — two mods out of three with no id are in this case.";
+"mods_nexus_identity_component" = "This mod is a component of the pack “%@”. A component's name is rarely a Nexus title: search from the pack's page instead.";
+"mods_nexus_identity_found" = "%lld page(s) could be this mod's — translations set aside.";
+"mods_nexus_identity_hint" = "Nothing is linked without you: pick the page that is really this mod's. A mod linked to the wrong page follows the wrong updates.";
+"mods_nexus_identity_adopt" = "It's this one";
+"mods_nexus_identity_same_author" = "same author";
 "mods_no_update_check" = "No update check: no Nexus page attached.";
 "mods_search_close" = "Close results";

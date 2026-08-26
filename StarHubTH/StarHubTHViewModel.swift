@@ -4556,6 +4556,76 @@ class StarHubTHViewModel: ObservableObject {
     /// Les mods dont une recherche de suppléments est en cours.
     @Published private(set) var searchingSupplements: Set<String> = []
 
+    /// Ce qu'une recherche d'identité a rendu — voir
+    /// `NexusModSearch.identityCandidates`.
+    ///
+    /// `received` et `serverTotal` sont là pour la même raison que dans
+    /// `SupplementSearch` : la liste est plafonnée par la requête, et taire le
+    /// total ferait passer une poignée pour une réponse complète.
+    struct IdentitySearch {
+        let candidates: [NexusModSearch.IdentityCandidate]
+        let received: Int
+        let serverTotal: Int
+
+        var isCapped: Bool { serverTotal > received }
+    }
+    /// Les fiches Nexus candidates pour un mod sans identifiant, par `folderName`.
+    @Published private(set) var identitySearches: [String: IdentitySearch] = [:]
+    /// Les mods dont une recherche d'identité est en cours.
+    @Published private(set) var searchingIdentity: Set<String> = []
+
+    /// Cherche sur Nexus la fiche d'un mod qui n'en déclare aucune.
+    ///
+    /// Sans tag : c'est le mod lui-même qu'on cherche, pas ce qui gravite
+    /// autour. Tout le tri est au retour — les traductions écartées, l'auteur
+    /// en indice, rien d'écrit d'autorité.
+    ///
+    /// ⚠️ **Deux mods sur trois ne rendront rien**, et c'est la réponse la plus
+    /// fréquente : mesuré sur les 83 mods du parc encore sans identifiant, 55
+    /// sont introuvables par leur nom. La vue doit le dire, sans quoi le bouton
+    /// passera pour cassé.
+    func searchNexusIdentity(for mod: ModItem) {
+        guard !searchingIdentity.contains(mod.folderName) else { return }
+        searchingIdentity.insert(mod.folderName)
+        NexusSearchClient.search(name: mod.name) { [weak self] result in
+            guard let self else { return }
+            self.searchingIdentity.remove(mod.folderName)
+            switch result {
+            case .success(let page):
+                self.identitySearches[mod.folderName] = IdentitySearch(
+                    candidates: NexusModSearch.identityCandidates(among: page.hits,
+                                                                  modName: mod.name,
+                                                                  modAuthor: mod.author),
+                    received: page.hits.count,
+                    serverTotal: page.totalCount)
+            case .failure(let error):
+                // Une panne n'est pas une absence : ne rien afficher vaut mieux
+                // qu'afficher « aucun résultat » pour une requête qui a échoué.
+                self.identitySearches[mod.folderName] = nil
+                self.log("Recherche de la fiche Nexus : \(error)", level: .warning)
+                self.showModal(message: self.L(L10n.Mods.translationSearchFailed))
+            }
+        }
+    }
+
+    /// Referme les propositions de fiche Nexus d'un mod.
+    func dismissIdentityResults(for mod: ModItem) {
+        identitySearches[mod.folderName] = nil
+    }
+
+    /// Retient la fiche que l'utilisateur a désignée, et va chercher ce qu'elle
+    /// dit du mod.
+    ///
+    /// Passe par `setCustomNexusModId`, le chemin d'une saisie manuelle : c'en
+    /// est une, faite d'un clic au lieu du clavier. La liste se referme, sans
+    /// quoi elle continuerait de proposer ce qui vient d'être choisi.
+    func adoptNexusIdentity(_ candidate: NexusModSearch.IdentityCandidate, for mod: ModItem) {
+        setCustomNexusModId(for: mod, modId: String(candidate.hit.modId))
+        dismissIdentityResults(for: mod)
+        fetchMetadata(forNexusModId: String(candidate.hit.modId)) { _ in }
+        log(String(format: L(L10n.VM.nexusIdLearned), mod.folderName, String(candidate.hit.modId)))
+    }
+
     /// Referme les propositions de traduction d'un mod.
     ///
     /// **Ne jette que ce qui est affiché.** `translationInstalledHits` reste :

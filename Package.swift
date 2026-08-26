@@ -389,6 +389,11 @@ let package = Package(
             path: "Tests/NexusInstallIdRecordingTests"
         ),
         .testTarget(
+            name: "NexusIdentityCandidatesTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/NexusIdentityCandidatesTests"
+        ),
+        .testTarget(
             name: "NexusIdLearningTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/NexusIdLearningTests"

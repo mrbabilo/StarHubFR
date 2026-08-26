@@ -14,6 +14,7 @@ where the exact log format was verified.
 
 ### Added
 - **Un mod sans page Nexus en retrouve une, quand smapi.io la connaît.** Chaque vérification de mises à jour reçoit déjà l'identifiant Nexus de tout mod que la base de compatibilité connaît — l'app le jetait, sauf sur les lignes de mise à jour. Sans identifiant, un mod n'a ni suivi de version, ni bouton vers sa page, ni recherche de traduction, et rien ne le disait. Sur un parc réel, **148 mods n'ont aucune clé Nexus dans leur manifeste et 30 sont pourtant identifiés** : dix avaient été renseignés à la main, et **les dix concordent exactement** avec ce que smapi.io répond. Les 20 autres sont désormais reliés tout seuls. Ce qui est saisi à la main n'est jamais écrasé, et le manifeste garde le dernier mot.
+- **Un mod que smapi.io ne connaît pas non plus peut être identifié à partir de son seul nom.** Sa fiche propose une recherche Nexus par nom, pour les 83 mods du parc réel restés sans identifiant. Les traductions sont écartées d'office — **61 % des candidats rendus**, mesuré, et le titre d'une traduction commence toujours par celui du mod, donc rien d'autre ne les sépare. La concordance d'auteur n'ordonne que la liste : le même mod publie parfois sous un autre pseudo, et filtrer dessus perdrait des candidats justes. Rien n'est relié sans un clic explicite — un mod lié à la mauvaise fiche suit les mauvaises mises à jour — et « aucun résultat », la réponse la plus fréquente (deux mods sur trois), est écrite en toutes lettres plutôt que laissée à deviner.
 
 ## [1.20.0] - 2026-08-26
 

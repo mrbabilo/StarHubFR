@@ -23,6 +23,16 @@ public struct ModItem: Identifiable, Equatable, Sendable {
     public var physicalFolderName: String {
         (isEnabled ? "" : ".") + folderName
     }
+    /// `true` quand ce mod est un **composant** d'un pack : son dossier vit
+    /// dans celui d'un autre, et `folderName` porte alors le chemin relatif
+    /// (`MonPack/SonComposant`).
+    ///
+    /// Ce que ça change : le nom d'un composant n'a le plus souvent jamais été
+    /// un titre Nexus. Mesuré sur le parc, **20 des 55 mods introuvables par
+    /// leur nom sont des composants** — « ARV- Maximum » ne peut pas aboutir,
+    /// c'est le pack « Always Raining in the Valley » qui a une page.
+    public var isPackComponent: Bool { folderName.contains("/") }
+
     public let version: String
     public let author: String
     public let description: String

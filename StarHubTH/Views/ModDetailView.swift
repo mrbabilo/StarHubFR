@@ -527,6 +527,11 @@ struct ModDetailView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
             fetchStatusRow
+            // Uniquement quand rien n'est connu : chercher la fiche d'un mod
+            // qui en déclare déjà une n'a pas d'objet.
+            if vm.resolvedNexusModId(for: mod).isEmpty {
+                NexusIdentitySection(vm: vm, mod: mod)
+            }
         }
     }
 
@@ -1383,6 +1388,164 @@ private struct TranslationSection: View {
             // le relais.
             .disabled(isBusy || vm.nexusDirectDownloadUnavailable)
             .help(vm.nexusDirectDownloadUnavailable ? vm.L(L10n.Mods.premiumOnlyHint) : "")
+        }
+        .padding(.vertical, 2)
+    }
+}
+
+
+/// Retrouver la fiche Nexus d'un mod qui n'en déclare aucune.
+///
+/// **Ce que la mesure impose à cet écran.** Sur les 83 mods du parc encore sans
+/// identifiant, la recherche par nom a été réellement exécutée le 2026-08-26 :
+/// 55 ne rendent rien, 23 rendent des candidats — dont 61 % de traductions,
+/// écartées en amont — et 18 n'en ont plus qu'un seul. Deux mods sur trois
+/// verront donc « aucun résultat », et c'est une réponse, pas une panne : elle
+/// est écrite en toutes lettres, sans quoi le bouton passerait pour cassé.
+///
+/// **Rien n'est relié d'autorité**, même quand un seul candidat subsiste et que
+/// l'auteur concorde : deux des 18 candidats uniques mesurés portaient un auteur
+/// sans rapport. Chaque ligne offre d'abord d'ouvrir la fiche — vérifier avant
+/// de désigner — et l'adoption reste un geste.
+private struct NexusIdentitySection: View {
+    @ObservedObject var vm: StarHubTHViewModel
+    let mod: ModItem
+
+    private var search: StarHubTHViewModel.IdentitySearch? {
+        vm.identitySearches[mod.folderName]
+    }
+    private var isSearching: Bool { vm.searchingIdentity.contains(mod.folderName) }
+    /// Le pack qui contient ce mod, quand il en est un composant.
+    private var packName: String {
+        String(mod.folderName.split(separator: "/").first ?? "")
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                Button {
+                    vm.searchNexusIdentity(for: mod)
+                } label: {
+                    Label(vm.L(L10n.Mods.nexusIdentityShort), systemImage: "magnifyingglass")
+                        .font(.system(size: 11))
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(isSearching || !vm.hasNexusApiKey)
+                .help(vm.hasNexusApiKey ? vm.L(L10n.Mods.nexusIdentitySearch)
+                                        : vm.L(L10n.Mods.nexusNoApiKey))
+                .pointingHandCursor()
+                if isSearching {
+                    ProgressView().controlSize(.small)
+                    Text(vm.L(L10n.Mods.supplementSearching))
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                } else if search != nil {
+                    Button {
+                        vm.dismissIdentityResults(for: mod)
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help(vm.L(L10n.Mods.searchClose))
+                    .pointingHandCursor()
+                } else if !vm.hasNexusApiKey {
+                    // Écrit, pas seulement en infobulle : AppKit ne garantit
+                    // pas l'infobulle d'un contrôle désactivé.
+                    Text(vm.L(L10n.Mods.nexusNoApiKey))
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            // Dit **avant** le clic, pas après : mesuré, les 20 composants de
+            // pack sans identifiant n'ont rendu aucun résultat. Le bouton reste
+            // ouvert — un composant peut avoir sa propre page — mais on annonce
+            // où chercher pour de bon.
+            if mod.isPackComponent, !packName.isEmpty {
+                Text(String(format: vm.L(L10n.Mods.nexusIdentityComponent), packName))
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if !isSearching, let search {
+                if search.candidates.isEmpty {
+                    Text(vm.L(L10n.Mods.nexusIdentityNone))
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    Text(String(format: vm.L(L10n.Mods.nexusIdentityFound),
+                                search.candidates.count))
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                    if search.isCapped {
+                        Text(String(format: vm.L(L10n.Mods.supplementCapped),
+                                    search.serverTotal, search.received))
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                    }
+                    ForEach(search.candidates.prefix(6)) { candidate in row(candidate) }
+                    Text(vm.L(L10n.Mods.nexusIdentityHint))
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .padding(.top, 4)
+    }
+
+    @ViewBuilder
+    private func row(_ candidate: NexusModSearch.IdentityCandidate) -> some View {
+        HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 1) {
+                HStack(spacing: 4) {
+                    Text(candidate.hit.name)
+                        .font(.system(size: 11, weight: .medium))
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    if candidate.authorMatches {
+                        Text(vm.L(L10n.Mods.nexusIdentitySameAuthor))
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundColor(.green)
+                            .lineLimit(1)
+                            .fixedSize()
+                    }
+                }
+                Text(String(format: vm.L(L10n.Mods.translationFromNexus), candidate.hit.uploader,
+                            candidate.hit.updatedAt.map {
+                                $0.formatted(date: .abbreviated, time: .omitted)
+                            } ?? "—"))
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 8)
+            // Vérifier d'abord : la fiche s'ouvre, et c'est elle qui tranche.
+            Button {
+                if let url = URL(string:
+                    "https://www.nexusmods.com/stardewvalley/mods/\(candidate.hit.modId)") {
+                    NSWorkspace.shared.open(url)
+                }
+            } label: {
+                Image(systemName: "arrow.up.right.square")
+                    .font(.system(size: 11))
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .help(vm.L(L10n.Mods.translationOpenNexus))
+            .pointingHandCursor()
+            Button(vm.L(L10n.Mods.nexusIdentityAdopt)) {
+                vm.adoptNexusIdentity(candidate, for: mod)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.small)
+            .fixedSize()
+            .pointingHandCursor()
         }
         .padding(.vertical, 2)
     }

@@ -369,6 +369,95 @@ public enum NexusModSearch {
             .sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
     }
 
+    /// Un candidat à l'identité d'un mod : la fiche Nexus qui pourrait être la
+    /// sienne, et si l'auteur le confirme.
+    public struct IdentityCandidate: Equatable, Identifiable, Sendable {
+        public var id: Int { hit.modId }
+        public let hit: Hit
+        /// L'auteur déclaré par le manifeste et le pseudo Nexus concordent.
+        /// **Un indice, jamais un filtre** — voir `identityCandidates`.
+        public let authorMatches: Bool
+
+        public init(hit: Hit, authorMatches: Bool) {
+            self.hit = hit
+            self.authorMatches = authorMatches
+        }
+    }
+
+    /// Les fiches Nexus qui pourraient être celle de ce mod, la plus probable
+    /// en tête.
+    ///
+    /// Un mod sans identifiant Nexus n'a ni suivi de version, ni page, ni
+    /// recherche de traduction. `NexusIdLearning` récupère ceux que smapi.io
+    /// connaît ; pour les autres, il ne reste que le nom — et le nom est
+    /// traître. Mesuré sur les **83 mods du parc qui restent sans identifiant**,
+    /// recherche réellement exécutée le 2026-08-26 :
+    ///
+    /// - **55 ne rendent rien.** Mod retiré, renommé, jamais publié sur Nexus.
+    ///   20 d'entre eux sont des **composants de pack** : « ARV- Maximum » n'a
+    ///   jamais été un titre Nexus, c'est le pack qui a une page.
+    /// - **23 rendent des candidats, dont 61 % sont des traductions** — 45 sur
+    ///   74. Le titre d'une traduction commence par celui du mod, donc la
+    ///   comparaison par préfixe les attrape toutes : « LewdDew Valley » rend
+    ///   neuf candidats, neuf traductions. Le tag `Translation` est le seul
+    ///   moyen de les écarter, et il les écarte toutes.
+    /// - Une fois écartées, **18 mods n'ont plus qu'un seul candidat** (contre
+    ///   14 sans le filtre) et les cinq listes restantes deviennent lisibles.
+    ///
+    /// **L'auteur confirme, il ne tranche pas.** Sur ces 18, le pseudo Nexus
+    /// concorde 12 fois, parfois à une variante près (`skeleton` /
+    /// `Skeleton0w0`), et parfois pas du tout alors que c'est bien le même mod
+    /// (`Owljoy` / `OwlandJoy`). En faire un filtre perdrait des candidats
+    /// justes ; il n'ordonne donc que l'affichage.
+    ///
+    /// Rien n'est écrit d'autorité : c'est une **proposition**, et l'utilisateur
+    /// désigne. Deux des 18 candidats uniques mesurés portent un auteur sans
+    /// rapport — une ligne qui suit le mauvais mod est pire qu'une ligne qui ne
+    /// suit rien.
+    public static func identityCandidates(among hits: [Hit],
+                                          modName: String,
+                                          modAuthor: String) -> [IdentityCandidate] {
+        let wanted = comparableTitle(modName)
+        return hits
+            .filter { !$0.isTranslation && namesMatch(modName, $0.name) }
+            .map { IdentityCandidate(hit: $0, authorMatches: authorsMatch(modAuthor, $0.uploader)) }
+            .sorted { lhs, rhs in
+                if lhs.authorMatches != rhs.authorMatches { return lhs.authorMatches }
+                let lhsExact = comparableTitle(lhs.hit.name) == wanted
+                let rhsExact = comparableTitle(rhs.hit.name) == wanted
+                if lhsExact != rhsExact { return lhsExact }
+                return (lhs.hit.updatedAt ?? .distantPast) > (rhs.hit.updatedAt ?? .distantPast)
+            }
+    }
+
+    /// L'auteur déclaré par un manifeste et un pseudo Nexus désignent-ils la
+    /// même personne ?
+    ///
+    /// Par préfixe, dans les deux sens, avec le même plancher de quatre
+    /// caractères que `namesMatch` : le pseudo Nexus prolonge souvent celui du
+    /// manifeste (`kurts` / `kurtsietz`). Et un manifeste nomme parfois
+    /// **plusieurs** auteurs — « StarAmy/Mila Stavetskaya », « Haze1nuts, 58
+    /// and Cara » — dont un seul a publié la page : chacun est essayé.
+    ///
+    /// Répond `false` sans hésiter quand rien ne concorde : ce n'est pas une
+    /// accusation, seulement l'absence d'un indice.
+    static func authorsMatch(_ declared: String, _ uploader: String) -> Bool {
+        let right = comparableTitle(uploader)
+        guard right.count >= 4 else { return false }
+        let parts = declared.split(whereSeparator: { ",/;&+".contains($0) })
+        for part in parts + [Substring(declared)] {
+            for word in part.split(separator: " ") where word.lowercased() != "and" {
+                let left = comparableTitle(String(word))
+                guard left.count >= 4 else { continue }
+                if left.hasPrefix(right) || right.hasPrefix(left) { return true }
+            }
+            let whole = comparableTitle(String(part))
+            guard whole.count >= 4 else { continue }
+            if whole.hasPrefix(right) || right.hasPrefix(whole) { return true }
+        }
+        return false
+    }
+
     /// Un titre réduit à ce qui l'identifie : préfixe de cadre retiré, accents
     /// repliés, ponctuation et casse écartées.
     static func comparableTitle(_ name: String) -> String {
