@@ -2505,12 +2505,11 @@ class StarHubTHViewModel: ObservableObject {
                 }
             }
 
-            self.mods = scannedMods.sorted {
-                if $0.isGroup != $1.isGroup {
-                    return $0.isGroup
-                }
-                return $0.name.lowercased() < $1.name.lowercased()
-            }
+            // Ordre alphabétique unique, packs et mods simples mêlés — le
+            // tri d'origine plaçait les packs en tête (retour du 2026-08-26).
+            // C'est aussi l'ordre que le tri « Nom » de la liste suppose
+            // déjà établi (voir le cas `.name` de ModListView).
+            self.mods = scannedMods.alphabeticalListOrder
             self.rebuildDependencyIndexes()
             if self.selectedMod == nil, let first = self.mods.first {
                 self.selectedMod = first

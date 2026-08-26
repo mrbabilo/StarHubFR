@@ -369,6 +369,11 @@ let package = Package(
             path: "Tests/SaveTreeTests"
         ),
         .testTarget(
+            name: "ModListOrderTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ModListOrderTests"
+        ),
+        .testTarget(
             name: "ModItemFlatteningTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ModItemFlatteningTests"

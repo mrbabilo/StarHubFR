@@ -155,6 +155,15 @@ extension Array where Element == ModItem {
         flatMap { $0.isGroup ? ($0.children ?? []) : [$0] }
     }
 
+    /// L'ordre de la liste des mods : alphabétique sur le nom, **packs et mods
+    /// simples mêlés**. Le tri d'origine faisait passer tous les packs en tête
+    /// (retour du 2026-08-26 : chercher un nom dans la liste ne doit pas
+    /// dépendre de la nature pack ou non du mod). Les enfants d'un pack vivent
+    /// dans sa ligne, l'imbrication ne peut donc rien orphaniser.
+    var alphabeticalListOrder: [ModItem] {
+        sorted { $0.name.lowercased() < $1.name.lowercased() }
+    }
+
     /// Les identifiants uniques des mods **activés**, ceux qu'un profil retient.
     /// Les identifiants vides sont écartés : un manifeste sans `UniqueID` ne
     /// peut être retrouvé par personne, et l'en-tête d'un pack n'en porte pas.
