@@ -3539,7 +3539,8 @@ class StarHubTHViewModel: ObservableObject {
         log("Vérification des mises à jour démarrée", level: .info)
 
         let anchors = anchorStore.all()
-        let candidates = allInstalledMods().map { mod in
+        let installed = allInstalledMods()
+        let candidates = installed.map { mod in
             SmapiUpdateRequest.Candidate(
                 uniqueId: mod.uniqueId,
                 manifestVersion: mod.version,
@@ -3548,6 +3549,15 @@ class StarHubTHViewModel: ObservableObject {
                 manualNexusId: nexusCustomModIds[mod.folderName])
         }
         let entries = SmapiUpdateRequest.entries(from: candidates, anchors: anchors)
+        // Le parc **tel qu'interrogé**, figé avec la requête. Un scan peut
+        // survenir entre l'envoi et la réponse (installation, activation,
+        // profil appliqué) : relire la liste vivante à l'arrivée ferait
+        // dépendre ce qu'on apprend d'un état que la réponse ne décrit pas.
+        let folders = installed.map {
+            NexusIdLearning.Folder(folderName: $0.folderName,
+                                   uniqueId: $0.uniqueId,
+                                   updateKeys: $0.updateKeys)
+        }
 
         SmapiUpdateClient.shared.fetch(
             entries: entries,
@@ -3565,7 +3575,7 @@ class StarHubTHViewModel: ObservableObject {
                 self.nexusCheckProgress = nil
                 switch result {
                 case .success(let mods):
-                    self.applySmapiResults(mods, entries: entries)
+                    self.applySmapiResults(mods, entries: entries, folders: folders)
                 case .failure(let failure):
                     // On ne vide pas la liste : une panne réseau n'est pas une
                     // preuve que les mises à jour connues ont disparu.
@@ -3649,7 +3659,8 @@ class StarHubTHViewModel: ObservableObject {
     /// Transforme les verdicts de smapi.io en lignes affichables, et retient
     /// les motifs de non-vérifiabilité.
     private func applySmapiResults(_ mods: [SmapiUpdateResponse.Mod],
-                                   entries: [SmapiUpdateRequest.Entry]) {
+                                   entries: [SmapiUpdateRequest.Entry],
+                                   folders: [NexusIdLearning.Folder]) {
         let assertedVersion = Dictionary(entries.map { ($0.id, $0.installedVersion) },
                                          uniquingKeysWith: { first, _ in first })
         // Les `UpdateKeys` telles qu'envoyées — donc y compris la clé
@@ -3754,7 +3765,7 @@ class StarHubTHViewModel: ObservableObject {
         // Le `metadata.nexusID` de la réponse ne servait qu'aux lignes de mise
         // à jour — pour leur bouton de téléchargement — et disparaissait pour
         // tous les autres mods. Il est désormais retenu.
-        learnNexusIds(from: mods)
+        learnNexusIds(from: mods, folders: folders)
 
         // Persister, sinon tout ceci meurt à la fermeture et le lancement
         // suivant réaffiche `cachedUpdates()` — la liste écrite par le code que
@@ -3792,18 +3803,15 @@ class StarHubTHViewModel: ObservableObject {
     /// foi, une saisie manuelle ne se fait jamais écraser, et rien n'est
     /// réécrit à l'identique — sinon chaque vérification toucherait les
     /// préférences pour rien.
-    private func learnNexusIds(from responses: [SmapiUpdateResponse.Mod]) {
+    /// - Parameter folders: le parc **tel qu'interrogé**, figé avec la requête.
+    private func learnNexusIds(from responses: [SmapiUpdateResponse.Mod],
+                               folders: [NexusIdLearning.Folder]) {
         var knownIds: [String: Int] = [:]
         for response in responses {
             if let id = response.metadata?.nexusID { knownIds[response.id] = id }
         }
         guard !knownIds.isEmpty else { return }
 
-        let folders = allInstalledMods().map {
-            NexusIdLearning.Folder(folderName: $0.folderName,
-                                   uniqueId: $0.uniqueId,
-                                   updateKeys: $0.updateKeys)
-        }
         let plan = NexusIdLearning.plan(knownIds: knownIds,
                                         folders: folders,
                                         existingOverrides: nexusCustomModIds)
