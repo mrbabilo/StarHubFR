@@ -354,9 +354,15 @@ struct ModDetailView: View {
                              text: sizeText(size))
                 }
                 if let updated {
+                    // B2-T5 : l'âge rejoint la date à partir d'un an révolu —
+                    // la règle vit en Core (`LastUpdateAge`) avec ses tests,
+                    // la vue ne fait que composer. « · » : le patron du dépôt
+                    // pour deux valeurs sur une même ligne.
                     metaLine(icon: "clock.arrow.circlepath",
                              label: vm.L(L10n.Mods.detailUpdated),
-                             text: updated.formatted(date: .abbreviated, time: .omitted))
+                             text: [updated.formatted(date: .abbreviated, time: .omitted),
+                                    LastUpdateAge.ageText(for: updated)].compactMap { $0 }
+                                 .joined(separator: " · "))
                 }
                 if let installed {
                     metaLine(icon: "tray.and.arrow.down",

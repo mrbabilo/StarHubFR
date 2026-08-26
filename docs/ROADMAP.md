@@ -97,7 +97,7 @@ liste du 2026-07-30 et n'existaient pas dans le document de veille.
 | §1 | Activer automatiquement les dépendances | **Partiel** | `DependencyTreeView.swift:124` : bouton **Activer** par nœud. Manque l'action groupée → **A1-T1** |
 | §1 | Détecter un `manifest.json` corrompu, proposer une réinstallation | **Partiel** | `ModFolderRepairer.swift` répare des structures de dossiers, pas des manifests invalides → **A1-T2** |
 | §1 | Mise en évidence des problèmes dans la liste des mods | **Fait** | Pastille d'anomalie près du nom (**B1-T3**, pas encore publié) |
-| §2 | Dates Nexus (création / mise à jour) | **Fait, pour ce qui est capté** | Revérifié le 2026-08-25 : la seule date captée (`updated_timestamp`) est nommée juste aux trois endroits qui la montrent. `created_timestamp` n'est jamais demandé → **B2-T5** devient un ajout |
+| §2 | Dates Nexus (création / mise à jour) | **Fait, pour ce qui est capté** | Revérifié le 2026-08-25 : la seule date captée (`updated_timestamp`) est nommée juste aux trois endroits qui la montrent. `created_timestamp` n'est jamais demandé — par décision. L'âge de la dernière MàJ s'affiche sur la fiche à partir d'un an révolu (**B2-T5** livré, 2026-08-27) |
 | §2 | ETA pendant le téléchargement | **À faire** | Rien dans `Models/NexusDownloader.swift` → **B2-T1** |
 | §2 | Poids du mod, taille de `Mods/`, espace disque restant | **Fait** | Pied de barre latérale + fiche mod (**B2-T2**, pas encore publié) |
 | §2 | Splashscreen en fenêtre dédiée | **Fait** | `Views/LaunchSplashWindow.swift`, v1.10.0 |
@@ -809,18 +809,28 @@ pouvoir revenir en arrière à tout moment.
       et la commande se posent ensemble par un helper unique (`showFailure`) : la
       feuille ne remet jamais son erreur à zéro, et une commande héritée d'une
       erreur précédente se serait affichée sur la suivante.
-- [ ] **B2-T5** — Reprendre l'affichage des dates d'un mod : distinguer explicitement
-      *date de création Nexus* et *date de mise à jour*, et vérifier laquelle est montrée
-      où (liste, fiche, bandeau de mise à jour). · **S**
-      *Revérifié le 2026-08-25 : **ce n'est pas un défaut d'affichage**. L'app ne capte
+- [x] **B2-T5** — ~~Reprendre l'affichage des dates d'un mod~~ → **requalifié en
+      ajout, puis livré.** · **S**
+      *Revérifié le 2026-08-25 : **ce n'était pas un défaut d'affichage**. L'app ne capte
       qu'une seule date Nexus — `updated_timestamp` → `NexusModExtra.uploadedTime` — et
       les trois endroits qui la montrent la nomment juste : « MàJ » dans la liste
       (`ModListView.swift:1305`), « Dernière mise à jour » sur la fiche
       (`ModDetailView.swift:326`), la date du fichier dans le bandeau
       (`MainView.swift:794`). La date d'installation à côté vient du `manifest.json`,
       étiquetée « Installé ». `created_timestamp` n'est simplement **jamais demandé**.
-      Reste donc un ajout — montrer l'âge d'un mod —, pas une correction : le requalifier
-      avant de le prendre.*
+      Restait donc un ajout — montrer l'âge d'un mod —, pas une correction.*
+      **Requalifié en séance le 2026-08-27**, sur deux arbitrages de l'auteur :
+      ce qu'il veut apprendre n'est pas la date de création (anecdotique) mais
+      **l'âge depuis la dernière mise à jour** — le signal « ce mod dort » — et
+      cet âge n'apparaît qu'**à partir d'un an révolu**, une mise à jour récente
+      se lisant fraîche d'elle-même. `LastUpdateAge` (Core, 3 tests) porte le
+      seuil ; le texte vient de `RelativeDateTimeFormatter` (rendu vérifié :
+      « il y a 5 ans », « 5 years ago »), donc aucune clé L10n à tenir et la
+      localisation suit le système. Affiché sur la **fiche seule**, à côté de la
+      date : la liste porte déjà quatre badges par ligne, et le bandeau des
+      mises à jour est redondant par construction — une ligne qui s'y trouve
+      décrit un fichier *plus récent* que l'installé. `created_timestamp`
+      reste non demandé, par décision.*
 - [x] **B2-T6** — Quota Nexus quotidien visible (header `x-rl-daily-remaining`). *Livré :
       les six en-têtes `x-rl-*` sont relevés sur **toute** réponse Nexus — succès comme 429,
       car c'est le refus qui porte le « 0 restant » — par un `NexusQuota` pur

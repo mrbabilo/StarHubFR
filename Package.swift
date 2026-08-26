@@ -80,6 +80,7 @@ let package = Package(
                 "Models/SaveTree.swift",
                 "Models/OSJunk.swift",
                 "Models/ModsFolderSizer.swift",
+                "Models/LastUpdateAge.swift",
                 "Models/FavoriteResolution.swift",
                 "Models/ModDependencyStatus.swift",
                 "Models/CoreModSlot.swift",
@@ -167,6 +168,11 @@ let package = Package(
             name: "ModZipInstallerTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ModZipInstallerTests"
+        ),
+        .testTarget(
+            name: "LastUpdateAgeTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/LastUpdateAgeTests"
         ),
         .testTarget(
             name: "I18nOutlineTests",
