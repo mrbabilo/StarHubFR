@@ -560,7 +560,8 @@ struct ModInstallView: View {
         guard let tempDir else { return false }
         let paths = StarHubTHViewModel.archivePaths(under: tempDir)
         let installed = vm.mods.map(\.folderName)
-        switch ManifestlessArchive.classify(paths: paths, installedFolderNames: installed) {
+        switch ManifestlessArchive.classify(paths: paths, installedFolderNames: installed,
+                                            rootFileOwners: vm.rootFileOwners()) {
         case .plan(let plan):
             manifestlessPlan = plan
             showManifestlessPlan = true

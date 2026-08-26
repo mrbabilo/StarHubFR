@@ -238,4 +238,67 @@ struct ManifestlessArchiveTests {
         #expect(ManifestlessArchive.classify(paths: ["FishingLogbook/"],
                                              installedFolderNames: parc) == .unrecognised)
     }
+
+    // MARK: - Forme 5 : un fichier nu qui remplace un fichier déjà là
+
+    /// **Le cas réel qui a fait naître cette forme.** `bagconfig.json`, seul
+    /// dans son archive, est un remplacement de configuration pour `ItemBags` —
+    /// un genre entier sur Nexus. Les deux reconnaisseurs le refusaient : il
+    /// n'a pas de dossier, et ses clés ne sont pas celles d'un sac.
+    @Test func aBareConfigFileGoesToTheModThatAlreadyHasOne() throws {
+        let outcome = ManifestlessArchive.classify(
+            paths: ["bagconfig.json"], installedFolderNames: parc,
+            rootFileOwners: ["bagconfig.json": ["ItemBags"]])
+        guard case .plan(let plan) = outcome else { Issue.record("attendu un plan"); return }
+        #expect(plan.hostFolderName == "ItemBags")
+        #expect(plan.entries.map(\.destination) == ["bagconfig.json"])
+    }
+
+    /// **Là où il faut s'abstenir.** `config.json` est porté par 544 mods du
+    /// parc, `content.json` par 522 : deviner écrirait dans le mauvais dossier.
+    @Test func aFileNameCarriedByManyModsAsksInstead() throws {
+        let outcome = ManifestlessArchive.classify(
+            paths: ["config.json"], installedFolderNames: parc,
+            rootFileOwners: ["config.json": ["Parchment", "ItemBags", "Automate"]])
+        guard case .needsHost(let candidates, _, _) = outcome else {
+            Issue.record("attendu une demande d'hôte"); return
+        }
+        #expect(candidates == ["Automate", "ItemBags", "Parchment"])
+    }
+
+    /// Un nom qu'aucun mod ne porte ne conclut rien : c'est le cas des
+    /// définitions de sacs, que leur contenu situe ailleurs.
+    @Test func anUnknownBareFileNameConcludesNothing() {
+        #expect(ManifestlessArchive.classify(
+            paths: ["Cloth and Colors Bag.json"], installedFolderNames: parc,
+            rootFileOwners: ["bagconfig.json": ["ItemBags"]]) == .unrecognised)
+    }
+
+    /// **Un `manifest.json` nu n'est jamais un remplacement.** 989 mods en
+    /// portent un ; le reconnaître ferait proposer d'écraser le manifeste d'un
+    /// mod au hasard.
+    @Test func aBareManifestIsNeverAReplacement() {
+        #expect(ManifestlessArchive.classify(
+            paths: ["manifest.json"], installedFolderNames: parc,
+            rootFileOwners: ["manifest.json": ["Parchment"]]) == .unrecognised)
+    }
+
+    /// Deux fichiers qui viseraient deux mods différents : on demande plutôt
+    /// que d'en écraser un au hasard.
+    @Test func filesAimingAtDifferentModsAskFirst() throws {
+        let outcome = ManifestlessArchive.classify(
+            paths: ["bagconfig.json", "other.json"], installedFolderNames: parc,
+            rootFileOwners: ["bagconfig.json": ["ItemBags"], "other.json": ["Parchment"]])
+        guard case .needsHost(let candidates, _, _) = outcome else {
+            Issue.record("attendu une demande d'hôte"); return
+        }
+        #expect(candidates == ["ItemBags", "Parchment"])
+    }
+
+    /// Sans index des fichiers du parc, la forme ne se déclenche pas : les
+    /// appelants qui ne le fournissent pas gardent le comportement d'avant.
+    @Test func withoutTheIndexNothingChanges() {
+        #expect(ManifestlessArchive.classify(paths: ["bagconfig.json"],
+                                             installedFolderNames: parc) == .unrecognised)
+    }
 }

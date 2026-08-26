@@ -7,7 +7,7 @@ import Foundation
 /// ordinaire les refuse toutes — il classe par structure et cherche des
 /// manifestes —, alors qu'elles sont parfaitement légitimes.
 ///
-/// Quatre formes, relevées sur des archives réelles. Elles ne se distinguent
+/// Cinq formes, relevées sur des archives réelles. Elles ne se distinguent
 /// **pas** par leur structure mais par ce que leur contenu permet de déduire :
 ///
 /// 1. Un dossier racine qui porte le nom d'un mod installé
@@ -24,7 +24,12 @@ import Foundation
 ///    dans l'archive ne nomme le mod, c'est le geste qui le désigne — la fiche
 ///    sur laquelle on la dépose.
 ///
-/// Une cinquième forme n'est pas traitée ici : des fichiers **nus** à la racine
+/// 5. Un fichier **nu** qui porte le nom d'un fichier déjà présent à la racine
+///    d'un mod installé (`bagconfig.json` pour `ItemBags`) : un remplacement de
+///    configuration, genre entier sur Nexus. C'est le **nom** qui désigne
+///    l'hôte, et il ne vaut que s'il ne désigne qu'un seul mod.
+///
+/// Une sixième forme n'est pas traitée ici : des fichiers **nus** à la racine
 /// (`Cloth and Colors Bag.json`), que seul leur contenu situe. Elle appartient à
 /// `DroppedContentRecognizer`, qui désigne l'hôte par son `UniqueID` SMAPI — la
 /// bonne clé — là où ce classificateur ne connaît que des noms de dossier.
@@ -89,10 +94,20 @@ public enum ManifestlessArchive {
     ///   - paths: les chemins que porte l'archive, dossiers exclus.
     ///   - installedFolderNames: les `folderName` **logiques** des mods de
     ///     premier niveau installés.
+    /// - Parameter rootFileOwners: pour chaque nom de fichier présent **à la
+    ///   racine** d'un mod installé, les mods qui le portent. C'est ce qui
+    ///   permet de reconnaître un remplacement de configuration.
     public static func classify(paths: [String],
-                                installedFolderNames: [String]) -> Outcome {
+                                installedFolderNames: [String],
+                                rootFileOwners: [String: [String]] = [:]) -> Outcome {
         let files = paths.filter { !$0.hasSuffix("/") && !$0.isEmpty }
         guard !files.isEmpty else { return .unrecognised }
+
+        // ── Un fichier nu qui porte le nom d'un fichier déjà là : le cas 5.
+        // Testé **avant** la racine unique, ces archives n'ayant pas de dossier.
+        if let outcome = replacementOutcome(for: files, owners: rootFileOwners) {
+            return outcome
+        }
 
         // ── Des chemins déjà relatifs à la racine du mod : le cas 4. Testé
         // **avant** la racine unique, sinon une archive faite du seul dossier
@@ -101,14 +116,14 @@ public enum ManifestlessArchive {
             return .needsHost(candidates: [], kind: kind(of: entries), entries: entries)
         }
 
-        // ── Un dossier racine unique : le cas 1, 2, 3 ou 5.
+        // ── Un dossier racine unique : le cas 1, 2 ou 3.
         if let root = singleRoot(of: files) {
             var prefix = root
             var entries = strip(prefix: prefix, from: files)
             guard !entries.isEmpty else { return .unrecognised }
 
-            // **Cinquième forme** : un dossier de présentation qui en emballe un
-            // autre. Relevé sur une archive réelle,
+            // **Un dossier de présentation qui en emballe un autre** — variante
+            // du cas 2. Relevé sur une archive réelle,
             // `Nyapu Style Lilybrook/[CP] Lilybrook/Assets/…` : la racine ne
             // désigne rien, mais le niveau en dessous vise bien un mod installé.
             // Sans cette descente, l'archive partait en « à désigner » avec des
@@ -139,6 +154,47 @@ public enum ManifestlessArchive {
         }
 
         return .unrecognised
+    }
+
+    /// Les noms qu'un fichier nu ne doit **jamais** faire reconnaître.
+    ///
+    /// `manifest.json` d'abord : une archive qui en porte un n'est pas sans
+    /// manifeste, et ce classificateur ne tournerait pas. Le nommer quand même
+    /// ferme la porte à l'archive qui n'en contiendrait qu'un, orpheline.
+    private static let neverAReplacement: Set<String> = ["manifest.json"]
+
+    /// Un remplacement de fichier : l'archive ne porte que des fichiers nus, et
+    /// leur nom désigne un fichier déjà présent à la racine d'un mod.
+    ///
+    /// **Mesuré sur le parc le 2026-08-26** : 76 des 91 noms de fichiers JSON
+    /// de premier niveau n'appartiennent qu'à **un seul** mod — `bagconfig.json`
+    /// et `modded_items.json` en sont. Mais `config.json` est porté par **544**
+    /// mods et `content.json` par **522** : sur ceux-là, deviner écrirait dans
+    /// le mauvais dossier une fois sur cinq cents. D'où la règle : un seul
+    /// propriétaire donne un plan, plusieurs font demander, aucun ne conclut
+    /// rien.
+    private static func replacementOutcome(for files: [String],
+                                           owners: [String: [String]]) -> Outcome? {
+        guard !owners.isEmpty, files.allSatisfy({ !$0.contains("/") }) else { return nil }
+        var hosts: Set<String> = []
+        var candidates: [String] = []
+        for file in files {
+            let key = file.lowercased()
+            guard !neverAReplacement.contains(key),
+                  let owning = owners[key], !owning.isEmpty else { return nil }
+            hosts.formUnion(owning)
+            candidates.append(contentsOf: owning)
+        }
+        // Tous les fichiers doivent viser le **même** mod : une archive qui
+        // remplacerait des fichiers de deux mods à la fois n'a pas de sens, et
+        // la déposer dans l'un écraserait au hasard.
+        let entries = files.map { Entry(source: $0, destination: $0) }
+        if hosts.count == 1, let host = hosts.first {
+            return .plan(Plan(hostFolderName: host, kind: .addon, entries: entries))
+        }
+        // Plusieurs mods portent ce nom : proposer, ne pas deviner.
+        return .needsHost(candidates: Array(Set(candidates)).sorted(),
+                          kind: .addon, entries: entries)
     }
 
     /// Une archive faite des seuls dossiers qu'un mod porte en lui, laissée

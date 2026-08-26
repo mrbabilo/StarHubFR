@@ -93,6 +93,17 @@ journaux ; **elle ne réimplémente rien de sa logique de chargement.**
   six noms du parc — 0 avec, 1 à 12 sans. 148 manifestes sur 995 en portent un.
   D'où `NexusModSearch.stripConventionPrefixes`.
 
+- **Un fichier nu peut désigner son mod par son seul nom.** Tout un genre de
+  téléchargements Nexus est un fichier unique qui en remplace un que le mod
+  livre déjà — un `bagconfig.json` de rechange pour ItemBags. Ni la structure
+  (il n'a pas de dossier) ni les clés JSON (ce sont celles d'une config) ne le
+  situent ; **son nom, si**. Mesuré le 2026-08-26 sur le parc de référence :
+  **76 des 91 noms de fichiers JSON de premier niveau n'appartiennent qu'à un
+  seul mod**, ce qui rend la conclusion certaine. Mais `config.json` est porté
+  par **544** mods et `content.json` par **522** : sur ceux-là il faut demander,
+  pas deviner. Et `manifest.json` (989) ne doit jamais être traité comme un
+  remplacement. C'est l'**unicité** qui autorise à conclure, jamais le nom seul.
+
 ### Mettre un mod en pause — nous divergeons de l'upstream
 
 **Un mod en pause est un dossier préfixé par un point, resté dans `Mods/`**

@@ -4989,6 +4989,46 @@ class StarHubTHViewModel: ObservableObject {
         refresh()
     }
 
+    /// Pour chaque nom de fichier présent **à la racine** d'un mod installé,
+    /// les mods qui le portent.
+    ///
+    /// Sert à reconnaître un remplacement de configuration — `bagconfig.json`
+    /// déposé seul appartient à `ItemBags`, et à lui seul. **Mesuré sur le
+    /// parc : 76 des 91 noms de fichiers JSON de premier niveau n'ont qu'un
+    /// propriétaire**, quand `config.json` en a 544 et `content.json` 522 :
+    /// c'est l'unicité qui autorise à conclure, jamais le nom seul.
+    ///
+    /// Calculé à la demande, au moment d'analyser une archive : c'est un
+    /// parcours du disque, et il n'a rien à faire dans un rendu de liste.
+    func rootFileOwners() -> [String: [String]] {
+        let root = URL(fileURLWithPath: gameDir).appendingPathComponent("Mods")
+        var owners: [String: [String]] = [:]
+        var unreadable = 0
+        for mod in allInstalledMods() {
+            let folder = root.appendingPathComponent(mod.physicalFolderName)
+            // `contentsOfDirectory` et non un parcours récursif : la forme ne
+            // vaut que pour la **racine** du mod. Un `config.json` enfoui trois
+            // niveaux plus bas n'est pas ce qu'on remplace.
+            do {
+                for name in try FileManager.default.contentsOfDirectory(atPath: folder.path)
+                where !name.hasPrefix(".") {
+                    owners[name.lowercased(), default: []].append(mod.folderName)
+                }
+            } catch {
+                // Un dossier qu'on ne sait pas lire ne portera aucun candidat :
+                // une archive de remplacement qui le visait sera refusée sans
+                // qu'on sache pourquoi. Compté et dit une fois, plutôt que 863
+                // lignes ou aucune.
+                unreadable += 1
+            }
+        }
+        if unreadable > 0 {
+            log("Reconnaissance des remplacements : \(unreadable) dossier(s) de mod illisible(s), "
+                + "un fichier qui les visait ne sera pas reconnu", level: .warning)
+        }
+        return owners.mapValues { Array(Set($0)).sorted() }
+    }
+
     /// Les chemins d'une archive dépliée, relatifs à sa racine.
     static func archivePaths(under root: URL) -> [String] {
         guard let walker = FileManager.default.enumerator(

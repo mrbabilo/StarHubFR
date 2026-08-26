@@ -1141,6 +1141,15 @@ backup se retrouve en moins de dix secondes.
       `NexusModSearch.decode` rend désormais une **page** (résultats + `totalCount`) :
       le total était demandé à l'API depuis le début et jeté au décodage.*
 
+      ✅ **Cinquième forme ajoutée le 2026-08-26**, sur un cas qu'il a rencontré :
+      `bagconfig.json` seul dans son archive (Nexus 48157, un remplacement de
+      configuration pour `ItemBags`). Ni la structure ni les clés JSON ne le situaient.
+      La règle est le **nom du fichier confronté à ce que les mods portent à leur
+      racine**, et elle ne tient que par l'unicité — mesuré : 76 des 91 noms de
+      fichiers JSON de premier niveau n'ont qu'un propriétaire, mais `config.json`
+      en a 544 et `content.json` 522. Un seul propriétaire donne un plan, plusieurs
+      font demander, `manifest.json` ne compte jamais.
+
       ✅ **Faisabilité mesurée sur l'API réelle le 2026-08-25.** Deux inconnues levées :
       1. *Trouver* — `op: WILDCARD` est bien une recherche **par sous-chaîne**, pas par
          préfixe : chercher « Wildflour » rend « Item Bags for Wildflour's Atelier Goods »,
