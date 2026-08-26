@@ -51,6 +51,22 @@ public enum NexusModSearch {
         }
     }
 
+    /// Une page de résultats : ce qu'on a reçu, et **combien il y en a en tout**.
+    ///
+    /// Le total n'est pas décoratif. La requête plafonne à `count`, et l'écran
+    /// en montre moins encore ; sur un nom générique — « Content Patcher » rend
+    /// **428** résultats — taire le total laisserait croire que la poignée
+    /// affichée est tout ce qui existe.
+    public struct Page: Equatable {
+        public let hits: [Hit]
+        public let totalCount: Int
+
+        public init(hits: [Hit], totalCount: Int) {
+            self.hits = hits
+            self.totalCount = totalCount
+        }
+    }
+
     public enum Failure: Error, Equatable {
         /// Le service a répondu, mais avec des erreurs GraphQL — schéma changé,
         /// filtre refusé, droits. **Un 200 ne suffit pas à conclure au succès :**
@@ -186,7 +202,7 @@ public enum NexusModSearch {
 
     /// Lit une réponse GraphQL. Le tableau `errors` l'emporte sur les données :
     /// une réponse partielle est une panne, pas un résultat.
-    public static func decode(_ data: Data) -> Result<[Hit], Failure> {
+    public static func decode(_ data: Data) -> Result<Page, Failure> {
         guard let root = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else {
             return .failure(.malformed)
         }
@@ -199,7 +215,10 @@ public enum NexusModSearch {
               let nodes = mods["nodes"] as? [[String: Any]]
         else { return .failure(.malformed) }
 
-        return .success(nodes.compactMap(hit(from:)))
+        // Un `totalCount` absent n'est pas zéro : mieux vaut retomber sur ce
+        // qu'on a reçu que d'annoncer « aucun résultat » en en affichant douze.
+        let total = (mods["totalCount"] as? Int) ?? nodes.count
+        return .success(Page(hits: nodes.compactMap(hit(from:)), totalCount: total))
     }
 
     private static func hit(from node: [String: Any]) -> Hit? {
@@ -300,6 +319,63 @@ public enum NexusModSearch {
                 if left != right { return left }
                 return ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast)
             }
+    }
+
+    // MARK: - Reconnaître un supplément
+
+    /// Les **suppléments** d'un mod parmi des résultats de recherche : greffes
+    /// d'assets, compatibilités, packs qui citent ce mod dans leur titre.
+    ///
+    /// **Chercher n'est pas le problème, trier l'est.** Mesuré sur l'API réelle
+    /// le 2026-08-25 : `op: WILDCARD` cherche une **sous-chaîne** du titre, si
+    /// bien que le nom du mod installé suffit à faire remonter ses suppléments
+    /// — « Wildflour » rend « Item Bags for Wildflour's Atelier Goods ». Mais
+    /// les résultats sont **noyés de traductions** : sur « Sword and Sorcery »,
+    /// les huit premiers sur vingt-six sont japonais, chinois, hongrois,
+    /// brésiliens… ; sur « Automate », 21 des 43.
+    ///
+    /// Deux retraits, et rien d'autre :
+    /// - **le tag `Translation`**, que Nexus pose sur toute traduction quelle
+    ///   que soit la langue. C'est le seul signal qui les sépare : sur douze
+    ///   résultats « Wildflour », les six traductions le portent toutes et les
+    ///   deux vrais suppléments n'en portent aucun. Le titre, lui, ne dit rien ;
+    /// - **le mod hôte lui-même**, qui n'est pas son propre supplément.
+    ///
+    /// Ce qui reste n'est **pas certain** d'être un supplément : c'est un mod
+    /// dont le titre cite celui-ci. Sur un nom générique — « Content Patcher »
+    /// rend 428 résultats dont 45 sur 50 ne sont pas des traductions — la liste
+    /// est surtout du bruit. L'appelant doit donc plafonner **et dire le
+    /// total**, jamais faire comme s'il savait.
+    /// - Parameters:
+    ///   - hostModId: l'identifiant Nexus du mod, quand il en déclare un.
+    ///   - hostName: son nom. **Le repli qui compte** : 111 mods du parc ne
+    ///     déclarent aucun identifiant, et sans ce second filet le mod
+    ///     figurerait en tête de ses propres suppléments — vu en simulant la
+    ///     recherche sur « Wildflour's Atelier Goods », qui se rendait
+    ///     lui-même.
+    public static func supplements(among hits: [Hit], excluding hostModId: Int? = nil,
+                                   hostName: String = "") -> [Hit] {
+        let host = comparableTitle(hostName)
+        return hits
+            .filter { hit in
+                guard !hit.isTranslation, hit.modId != hostModId else { return false }
+                // Sur le titre **réduit**, jamais sur l'égalité brute : le
+                // manifeste dit « [FTM] Wildflour's Atelier Goods » là où Nexus
+                // titre « Wildflour's Atelier Goods - An Artisan Goods
+                // Expansion ». C'est le titre qui *commence* par le nom du mod
+                // sans rien y ajouter d'autre qu'un sous-titre qui est l'hôte.
+                return !host.isEmpty ? comparableTitle(hit.name) != host : true
+            }
+            .sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
+    }
+
+    /// Un titre réduit à ce qui l'identifie : préfixe de cadre retiré, accents
+    /// repliés, ponctuation et casse écartées.
+    static func comparableTitle(_ name: String) -> String {
+        stripConventionPrefixes(name)
+            .folding(options: [.diacriticInsensitive, .caseInsensitive],
+                     locale: Locale(identifier: "en_US_POSIX"))
+            .filter { $0.isLetter || $0.isNumber }
     }
 
     /// `2026-08-16T15:32:14Z`, avec ou sans fraction de seconde.

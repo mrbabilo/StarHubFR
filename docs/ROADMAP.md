@@ -107,7 +107,7 @@ liste du 2026-07-30 et n'existaient pas dans le document de veille.
 | §2 | Boutons de rafraîchissement (quarantaine, alertes système) | **À faire** | → **B2-T3** |
 | §3 | Reconnaître les mods de traduction (i18n seul) | **Partiel** | `ModItem.languages`, filtre `FrenchTranslationScope` et heuristique de nom (`ModItem.swift:99`) — **C1-T4 requalifiée et livrée** (`46ce633`) : le cas visé est à zéro mod sur le parc |
 | **§new** | Installer une archive sans manifeste (traduction d'un mod, greffe type `ItemBags`) | **Fait** | Livré le 2026-08-25 (**A1-T3**, pas encore publié) ; jeu d'épreuve dans `mods tests/` |
-| **§new** | Chercher sur Nexus les traductions FR et les suppléments des mods installés | **Partiel** | Traductions livrées (**A3-T2/T3**) ; les suppléments restent à découvrir → **A3-T4** |
+| **§new** | Chercher sur Nexus les traductions FR et les suppléments des mods installés | **Fait** | Traductions (**A3-T2/T3**) et suppléments (**A3-T4**) livrés le 2026-08-25/26 |
 | §3 | Nouveau profil créé **vide** | **Fait** (2026-08-24) | L'alerte propose les deux voies, « vide » en premier ; `ProfileFactory` (Core, testé) → **B3-T1** |
 | §3 | Favoris de mods + import dans un profil | **Fait** | Étoile, cadrage, import nommant les intraduisibles (**B3-T2**, pas encore publié) |
 | §3 | Duplication d'un profil | **Fait** (2026-08-24) | `duplicateProfile(id:)`, depuis le menu ⋯ de la ligne → **B3-T3** |
@@ -1081,7 +1081,7 @@ backup se retrouve en moins de dix secondes.
         compte **Nexus Premium** — sur un compte gratuit, `/download_link.json` rend un 403,
         et c'est le bouton « Nexus » (onglet `?tab=files`) qui prend le relais.*
 
-- [ ] **A3-T4** — **Trouver les suppléments d'un mod installé** : greffes d'assets et
+- [x] **A3-T4** — **Trouver les suppléments d'un mod installé** : greffes d'assets et
       modificateurs (bagages `ItemBags`, packs de recettes…). Même socle qu'A3-T3, autre
       requête — le nom du mod installé apparaît dans le **titre du supplément**
       (« ItemBags for All Cornucopia », « Sword and Sorcery Bags »). Six mods portent
@@ -1096,6 +1096,26 @@ backup se retrouve en moins de dix secondes.
       Content Patcher dont la seule signature serait `Changes` — la clé de tout
       `content.json`, qui enverrait n'importe quel pack au mauvais endroit. A1-T3 rend la
       table inutile : une archive inconnue demande son hôte au lieu d'être devinée.*
+
+      *Livré le 2026-08-26. Section « Suppléments et correctifs » sur la fiche du mod :
+      chercher, lire, ouvrir la page Nexus. **Aucun bouton d'installation** — le dépôt
+      d'une archive sans manifeste (A1-T3) s'en charge, et un compte gratuit ne peut de
+      toute façon pas télécharger par l'API.
+      **Ce que la section dit d'elle-même, parce que la mesure l'impose** : Nexus n'a
+      aucune notion de « supplément ». La recherche répond à la seule question
+      possible — quels mods citent celui-ci dans leur titre — et une phrase le dit à
+      l'écran plutôt que de laisser croire à une certitude. Deux garde-fous mesurés :
+      - les traductions sont écartées par leur **tag** `Translation`, seul signal qui
+        les sépare (8 des 26 premiers résultats sur « Sword and Sorcery ») ;
+      - la liste est plafonnée **et le total annoncé** : « Wildflour's Atelier Goods »
+        rend 3 candidats sur 12, « Content Patcher » en compte **428**. Une poignée
+        affichée sans ce chiffre passerait pour la réponse entière.
+      Le mod hôte est écarté par son identifiant Nexus **et par son titre** : 111 mods
+      du parc n'en déclarent aucun, et sans ce second filet le mod figurait en tête de
+      ses propres suppléments — défaut vu en simulant la recherche sur le parc réel
+      avant toute exécution de l'app.
+      `NexusModSearch.decode` rend désormais une **page** (résultats + `totalCount`) :
+      le total était demandé à l'API depuis le début et jeté au décodage.*
 
       ✅ **Faisabilité mesurée sur l'API réelle le 2026-08-25.** Deux inconnues levées :
       1. *Trouver* — `op: WILDCARD` est bien une recherche **par sous-chaîne**, pas par

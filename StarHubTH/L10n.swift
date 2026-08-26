@@ -246,6 +246,15 @@ enum L10n {
         static let anomalyDuplicateActive   = "mods_anomaly_duplicate_active"
         static let anomalyDuplicateDormant  = "mods_anomaly_duplicate_dormant"
         static let anomalyCompat            = "mods_anomaly_compat"
+
+        // MARK: Suppléments d'un mod (A3-T4)
+        static let supplementSection    = "mods_supplement_section"
+        static let supplementSearch     = "mods_supplement_search"
+        static let supplementSearching  = "mods_supplement_searching"
+        static let supplementNone       = "mods_supplement_none"
+        static let supplementFound      = "mods_supplement_found"
+        static let supplementCapped     = "mods_supplement_capped"
+        static let supplementHint       = "mods_supplement_hint"
         static let anomalyErrors        = "mods_anomaly_errors"
         static let anomalyWarnings      = "mods_anomaly_warnings"
         static let anomalyDependency    = "mods_anomaly_dependency"

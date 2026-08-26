@@ -1035,5 +1035,12 @@
   "mods_compat_health_unknown": "%lld mod(s) unknown to smapi.io — no verdict either way",
   "mods_anomaly_duplicate_active": "Installed %1$lld times, more than one of them on — SMAPI loads one and ignores the rest: %2$@",
   "mods_anomaly_duplicate_dormant": "Installed %1$lld times; only one copy is on: %2$@",
-  "mods_anomaly_compat": "Reported broken by smapi.io: %@"
+  "mods_anomaly_compat": "Reported broken by smapi.io: %@",
+  "mods_supplement_section": "Add-ons and patches",
+  "mods_supplement_search": "Find add-ons for this mod",
+  "mods_supplement_searching": "Searching on Nexus…",
+  "mods_supplement_none": "Nothing found on Nexus whose title mentions this mod.",
+  "mods_supplement_found": "%lld mod(s) whose title mentions this one — translations set aside.",
+  "mods_supplement_capped": "Nexus holds %1$lld results for this name; only the %2$lld most recent were read.",
+  "mods_supplement_hint": "These are not confirmed add-ons: they are mods that name this one. Check before installing."
 }

@@ -1035,5 +1035,12 @@
   "mods_compat_health_unknown": "%lld mod(s) inconnu(s) de smapi.io — aucun verdict, ni dans un sens ni dans l'autre",
   "mods_anomaly_duplicate_active": "Installé %1$lld fois, dont plusieurs copies actives — SMAPI en charge une et ignore les autres : %2$@",
   "mods_anomaly_duplicate_dormant": "Installé %1$lld fois ; une seule copie est active : %2$@",
-  "mods_anomaly_compat": "Signalé cassé par smapi.io : %@"
+  "mods_anomaly_compat": "Signalé cassé par smapi.io : %@",
+  "mods_supplement_section": "Suppléments et correctifs",
+  "mods_supplement_search": "Chercher des suppléments pour ce mod",
+  "mods_supplement_searching": "Recherche sur Nexus…",
+  "mods_supplement_none": "Rien trouvé sur Nexus dont le titre mentionne ce mod.",
+  "mods_supplement_found": "%lld mod(s) dont le titre mentionne celui-ci — traductions écartées.",
+  "mods_supplement_capped": "Nexus compte %1$lld résultats pour ce nom ; seuls les %2$lld plus récents ont été lus.",
+  "mods_supplement_hint": "Ce ne sont pas des suppléments confirmés : ce sont des mods qui nomment celui-ci. Vérifiez avant d'installer."
 }

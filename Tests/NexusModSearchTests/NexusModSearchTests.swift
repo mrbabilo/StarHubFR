@@ -91,7 +91,7 @@ struct NexusModSearchTests {
     """.data(using: .utf8)!
 
     @Test func aLiveResponseIsRead() throws {
-        let hits = try NexusModSearch.decode(liveResponse).get()
+        let hits = try NexusModSearch.decode(liveResponse).get().hits
         #expect(hits.count == 2)
         #expect(hits[0].modId == 50233)
         #expect(hits[0].name == "Parchment - Fishing Log - Francais")
@@ -131,7 +131,7 @@ struct NexusModSearchTests {
 
     @Test func noResultIsAnEmptySuccessNotAFailure() throws {
         let payload = Data("{\"data\":{\"mods\":{\"totalCount\":0,\"nodes\":[]}}}".utf8)
-        #expect(try NexusModSearch.decode(payload).get().isEmpty)
+        #expect(try NexusModSearch.decode(payload).get().hits.isEmpty)
     }
 
     /// Un mod retiré ou en brouillon ne se télécharge pas : le proposer
@@ -144,7 +144,7 @@ struct NexusModSearchTests {
           {"modId":3,"name":"Sans statut"}
         ]}}}
         """.data(using: .utf8)!
-        let hits = try NexusModSearch.decode(payload).get()
+        let hits = try NexusModSearch.decode(payload).get().hits
         #expect(hits.map(\.modId) == [1, 3])
     }
 
@@ -155,23 +155,38 @@ struct NexusModSearchTests {
           {"modId":7,"name":"Bon"}
         ]}}}
         """.data(using: .utf8)!
-        #expect(try NexusModSearch.decode(payload).get().map(\.modId) == [7])
+        #expect(try NexusModSearch.decode(payload).get().hits.map(\.modId) == [7])
     }
 
     /// Le champ arrive en nombre aujourd'hui ; une chaîne ne doit pas faire
     /// disparaître le résultat en silence.
     @Test func aStringIdentifierIsAccepted() throws {
         let payload = Data("{\"data\":{\"mods\":{\"nodes\":[{\"modId\":\"42\",\"name\":\"X\"}]}}}".utf8)
-        #expect(try NexusModSearch.decode(payload).get().first?.modId == 42)
+        #expect(try NexusModSearch.decode(payload).get().hits.first?.modId == 42)
     }
 
     @Test func anUnreadableDateLeavesTheRestOfTheRowIntact() throws {
         let payload = """
         {"data":{"mods":{"nodes":[{"modId":9,"name":"X","updatedAt":"hier"}]}}}
         """.data(using: .utf8)!
-        let hit = try #require(try NexusModSearch.decode(payload).get().first)
+        let hit = try #require(try NexusModSearch.decode(payload).get().hits.first)
         #expect(hit.updatedAt == nil)
         #expect(hit.name == "X")
+    }
+
+    /// **Le total, pas seulement la page.** La requête plafonne à 30 résultats
+    /// et l'écran en montre moins ; sans ce chiffre, une recherche qui rend 428
+    /// mods paraîtrait en rendre six.
+    @Test func theTotalIsKeptNotJustThePage() throws {
+        let page = try NexusModSearch.decode(liveResponse).get()
+        #expect(page.totalCount == 12)
+    }
+
+    /// Un `totalCount` absent ne vaut pas zéro : sinon la fiche annoncerait
+    /// « aucun résultat » en en affichant un.
+    @Test func aMissingTotalFallsBackOnWhatArrived() throws {
+        let payload = Data("{\"data\":{\"mods\":{\"nodes\":[{\"modId\":1,\"name\":\"X\"}]}}}".utf8)
+        #expect(try NexusModSearch.decode(payload).get().totalCount == 1)
     }
 
     // MARK: - Reconnaître une traduction française
@@ -332,6 +347,69 @@ struct NexusModSearchTests {
                                       adultContent: false)
         #expect(NexusModSearch.ranked([host], excluding: 42).isEmpty)
         #expect(NexusModSearch.frenchTranslations(among: [host], excluding: 42).isEmpty)
+    }
+
+    // MARK: - Suppléments
+
+    private func hit(_ id: Int, _ name: String, tags: [String] = [],
+                     day: Int = 0) -> NexusModSearch.Hit {
+        NexusModSearch.Hit(modId: id, name: name, version: "1",
+                           updatedAt: Date(timeIntervalSince1970: TimeInterval(day) * 86400),
+                           categoryName: "", uploader: "", adultContent: false, tags: tags)
+    }
+
+    /// **Le tag `Translation` est le seul signal qui les sépare.** Mesuré sur
+    /// douze résultats « Wildflour » : les six traductions le portent toutes,
+    /// les deux vrais suppléments aucun. Le titre ne dit rien — « (ES-LATAM) … »
+    /// n'annonce pas plus une traduction que « Item Bags for … » une greffe.
+    @Test func translationsAreTheNoiseToRemove() {
+        let hits = [
+            hit(1, "Chinese translation-Wildflour's Atelier Goods", tags: ["Translation"], day: 5),
+            hit(2, "Item Bags for Wildflour's Atelier Goods", day: 3),
+            hit(3, "(ES-LATAM) Wildflour's Atelier Goods", tags: ["Translation", "SMAPI"], day: 4),
+            hit(4, "Domed Pots compatibility for Wildflour's Mod's", day: 1),
+        ]
+        #expect(NexusModSearch.supplements(among: hits).map(\.modId) == [2, 4])
+    }
+
+    /// Un mod n'est pas son propre supplément.
+    @Test func theHostIsNotItsOwnSupplement() {
+        let hits = [hit(42, "Wildflour's Atelier Goods"), hit(7, "Item Bags for Wildflour's")]
+        #expect(NexusModSearch.supplements(among: hits, excluding: 42).map(\.modId) == [7])
+    }
+
+    /// **Le filet qui compte** : 111 mods du parc ne déclarent aucun
+    /// identifiant Nexus. Sans exclusion par le titre, le mod figurerait en
+    /// tête de ses propres suppléments — vu en simulant la recherche sur
+    /// « Wildflour's Atelier Goods ».
+    @Test func theHostIsExcludedByTitleWhenItHasNoNexusId() {
+        let hits = [hit(1, "Wildflour's Atelier Goods"),
+                    hit(2, "Item Bags for Wildflour's Atelier Goods")]
+        #expect(NexusModSearch.supplements(among: hits,
+                                           hostName: "[FTM] Wildflour's Atelier Goods")
+                .map(\.modId) == [2])
+    }
+
+    /// Un titre qui **ajoute** quelque chose reste : c'est justement la forme
+    /// d'un supplément.
+    @Test func aTitleThatAddsSomethingIsKept() {
+        let hits = [hit(1, "Wildflour's Atelier Goods - An Artisan Goods Expansion")]
+        #expect(NexusModSearch.supplements(among: hits, hostName: "Wildflour's Atelier Goods")
+                .count == 1)
+    }
+
+    /// Le tag est comparé sans égard à la casse : les auteurs l'écrivent comme
+    /// ils veulent, et un `translation` minuscule laisserait passer le bruit.
+    @Test func theTranslationTagIsMatchedIgnoringCase() {
+        #expect(NexusModSearch.supplements(among: [hit(1, "X", tags: ["translation"])]).isEmpty)
+        #expect(NexusModSearch.supplements(among: [hit(1, "X", tags: ["TRANSLATION"])]).isEmpty)
+    }
+
+    /// Sans tag, rien n'est écarté : un mod que Nexus ne tague pas reste un
+    /// candidat, c'est à l'utilisateur de juger sur le titre.
+    @Test func anUntaggedHitSurvives() {
+        #expect(NexusModSearch.supplements(among: [hit(1, "Whipped Cream for Cornucopia")])
+                .map(\.modId) == [1])
     }
 
     @Test func fractionalSecondsAreAlsoParsed() {

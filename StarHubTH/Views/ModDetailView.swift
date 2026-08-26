@@ -168,6 +168,7 @@ struct ModDetailView: View {
                 actionRow
                 CompatibilityBanner(vm: vm, mod: live)
                 if isTopLevel { TranslationSection(vm: vm, mod: live) }
+                if isTopLevel { SupplementSection(vm: vm, mod: live) }
             }
             Spacer(minLength: 8)
             metadataColumn
@@ -954,6 +955,113 @@ private struct TranslationProgressBar: View {
     }
 }
 
+
+// MARK: - Suppléments d'un mod (A3-T4)
+
+/// Ce qui se greffe sur un mod installé : bagages `ItemBags`, correctifs de
+/// compatibilité, packs de contenu qui le citent.
+///
+/// **Ce que cette section ne peut pas faire, et le dit.** Nexus n'a pas de
+/// notion de « supplément » : la recherche rend les mods dont le **titre**
+/// contient celui-ci, et rien de plus. Deux mesures cadrent l'affichage :
+/// - les résultats sont noyés de traductions — 8 des 26 premiers sur
+///   « Sword and Sorcery » —, écartées par leur tag `Translation` ;
+/// - un nom générique ramasse tout : « Content Patcher » rend **428**
+///   résultats, dont 45 sur 50 ne sont pas des traductions. La liste est
+///   plafonnée et le total annoncé, faute de quoi une poignée passerait pour
+///   une exhaustivité.
+///
+/// Aucun bouton d'installation : le dépôt d'une archive sans manifeste
+/// (**A1-T3**) s'en charge, et un compte gratuit ne peut de toute façon pas
+/// télécharger depuis l'API. Le bouton mène à la page Nexus.
+private struct SupplementSection: View {
+    @ObservedObject var vm: StarHubTHViewModel
+    let mod: ModItem
+
+    private var search: StarHubTHViewModel.SupplementSearch? {
+        vm.supplementSearches[mod.folderName]
+    }
+    private var isSearching: Bool { vm.searchingSupplements.contains(mod.folderName) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                Button {
+                    vm.searchSupplements(for: mod)
+                } label: {
+                    Label(vm.L(L10n.Mods.supplementSearch), systemImage: "puzzlepiece.extension")
+                        .font(.system(size: 12))
+                }
+                .buttonStyle(.borderless)
+                .disabled(isSearching || !vm.hasNexusApiKey)
+                .pointingHandCursor()
+                if isSearching {
+                    ProgressView().controlSize(.small)
+                    Text(vm.L(L10n.Mods.supplementSearching))
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                }
+            }
+            // Rien tant qu'on n'a pas cherché : une liste vide affichée d'emblée
+            // se lirait comme « aucun supplément n'existe », ce qu'on ne sait pas.
+            if !isSearching, let search {
+                if search.hits.isEmpty {
+                    Text(vm.L(L10n.Mods.supplementNone))
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                } else {
+                    Text(String(format: vm.L(L10n.Mods.supplementFound), search.hits.count))
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                    if search.isCapped {
+                        Text(String(format: vm.L(L10n.Mods.supplementCapped),
+                                    search.serverTotal, search.received))
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                    }
+                    ForEach(search.hits.prefix(6)) { hit in candidate(hit) }
+                    // La réserve reste sous les yeux : ce sont des titres qui
+                    // citent ce mod, pas des suppléments établis.
+                    Text(vm.L(L10n.Mods.supplementHint))
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .padding(.top, 4)
+    }
+
+    @ViewBuilder
+    private func candidate(_ hit: NexusModSearch.Hit) -> some View {
+        HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 1) {
+                Text(hit.name)
+                    .font(.system(size: 11, weight: .medium))
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Text(String(format: vm.L(L10n.Mods.translationFromNexus), hit.uploader,
+                            hit.updatedAt.map { $0.formatted(date: .abbreviated, time: .omitted) } ?? "—"))
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+            }
+            Spacer()
+            Button {
+                if let url = URL(string:
+                    "https://www.nexusmods.com/stardewvalley/mods/\(hit.modId)?tab=files") {
+                    NSWorkspace.shared.open(url)
+                }
+            } label: {
+                Label(vm.L(L10n.Mods.translationOpenNexus), systemImage: "arrow.up.right.square")
+                    .font(.system(size: 11))
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .pointingHandCursor()
+        }
+        .padding(.vertical, 2)
+    }
+}
 
 // MARK: - Traduction française (A3-T3)
 

@@ -4462,6 +4462,59 @@ class StarHubTHViewModel: ObservableObject {
         }
     }
 
+    /// Ce qu'une recherche de suppléments a rendu — **et ce qu'elle n'a pas vu**.
+    ///
+    /// Trois nombres, parce qu'aucun ne suffit seul à dire la vérité :
+    /// - `hits` sont les candidats retenus après avoir écarté les traductions ;
+    /// - `received` est ce que la page portait, plafonné par la requête ;
+    /// - `serverTotal` est ce que Nexus annonce pour ce nom, traductions
+    ///   comprises — 428 pour « Content Patcher ».
+    ///
+    /// Annoncer `hits.count` seul ferait passer une poignée pour une
+    /// exhaustivité ; annoncer `serverTotal` seul promettrait des suppléments
+    /// là où il n'y a que des traductions. Il faut les deux.
+    struct SupplementSearch {
+        let hits: [NexusModSearch.Hit]
+        let received: Int
+        let serverTotal: Int
+
+        /// `true` quand Nexus en avait plus que la page n'en a rapporté.
+        var isCapped: Bool { serverTotal > received }
+    }
+    /// Les suppléments trouvés pour un mod, par `folderName`.
+    @Published private(set) var supplementSearches: [String: SupplementSearch] = [:]
+    /// Les mods dont une recherche de suppléments est en cours.
+    @Published private(set) var searchingSupplements: Set<String> = []
+
+    /// Cherche sur Nexus ce qui se greffe sur ce mod : bagages, compatibilités,
+    /// packs de contenu qui le citent.
+    ///
+    /// Même requête que les traductions, sans le tag : le nom du mod suffit,
+    /// `WILDCARD` cherchant une sous-chaîne du titre. Tout le travail est au
+    /// retour — voir `NexusModSearch.supplements(among:excluding:)`.
+    func searchSupplements(for mod: ModItem) {
+        guard !searchingSupplements.contains(mod.folderName) else { return }
+        searchingSupplements.insert(mod.folderName)
+        let host = Int(mod.nexusModId)
+        NexusSearchClient.search(name: mod.name) { [weak self] result in
+            guard let self else { return }
+            self.searchingSupplements.remove(mod.folderName)
+            switch result {
+            case .success(let page):
+                self.supplementSearches[mod.folderName] = SupplementSearch(
+                    hits: NexusModSearch.supplements(among: page.hits, excluding: host,
+                                                     hostName: mod.name),
+                    received: page.hits.count,
+                    serverTotal: page.totalCount)
+            case .failure(let error):
+                // Une panne n'est pas une absence, comme pour les traductions.
+                self.supplementSearches[mod.folderName] = nil
+                self.log("Recherche de suppléments : \(error)", level: .warning)
+                self.showModal(message: self.L(L10n.Mods.translationSearchFailed))
+            }
+        }
+    }
+
     /// Cherche sur Nexus les traductions françaises de ce mod.
     ///
     /// Le filtre est le **tag** `French` de Nexus, pas le titre : sur 80
@@ -4475,18 +4528,18 @@ class StarHubTHViewModel: ObservableObject {
             guard let self else { return }
             self.searchingTranslations.remove(mod.folderName)
             switch result {
-            case .success(let hits):
+            case .success(let page):
                 // Le filet : si le tag n'a rien rendu, on retente large et on
                 // lit les titres. Trois traductions sur quatre-vingts ne
                 // portent pas le tag.
-                if hits.isEmpty {
+                if page.hits.isEmpty {
                     self.searchTranslationsByTitle(for: mod)
                 } else {
                     // **Le titre classe, il ne filtre pas.** Le serveur a déjà
                     // trié sur le tag ; rejeter ici les titres muets perdrait
                     // les traductions bien taguées que le tag venait de rendre.
                     self.translationHits[mod.folderName] =
-                        NexusModSearch.ranked(hits, excluding: host)
+                        NexusModSearch.ranked(page.hits, excluding: host)
                 }
             case .failure(let error):
                 // Une panne n'est pas une absence : `[]` ferait afficher
@@ -4505,11 +4558,11 @@ class StarHubTHViewModel: ObservableObject {
             guard let self else { return }
             self.searchingTranslations.remove(mod.folderName)
             switch result {
-            case .success(let hits):
+            case .success(let page):
                 // Recherche large : ici rien d'autre que le titre ne distingue
                 // une traduction, le filtre est à sa place.
                 self.translationHits[mod.folderName] =
-                    NexusModSearch.frenchTranslations(among: hits, excluding: host)
+                    NexusModSearch.frenchTranslations(among: page.hits, excluding: host)
             case .failure(let error):
                 // Une panne n'est pas une absence : afficher « aucune traduction
                 // trouvée » ici ferait passer une recherche cassée pour un

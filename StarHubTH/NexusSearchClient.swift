@@ -26,8 +26,8 @@ enum NexusSearchClient {
     /// - Parameter tag: restreint au tag Nexus donné — `NexusModSearch.frenchTag`
     ///   pour ne rendre que les traductions françaises. `nil` cherche large.
     static func search(name: String, tag: String? = nil,
-                       completion: @escaping (Result<[NexusModSearch.Hit], SearchError>) -> Void) {
-        func finish(_ result: Result<[NexusModSearch.Hit], SearchError>) {
+                       completion: @escaping (Result<NexusModSearch.Page, SearchError>) -> Void) {
+        func finish(_ result: Result<NexusModSearch.Page, SearchError>) {
             DispatchQueue.main.async { completion(result) }
         }
 
@@ -65,7 +65,7 @@ enum NexusSearchClient {
             // tableau `errors`, et le prendre pour un résultat vide changerait
             // une panne de schéma en « aucune traduction trouvée ».
             switch NexusModSearch.decode(data) {
-            case .success(let hits): finish(.success(hits))
+            case .success(let page): finish(.success(page))
             case .failure(let failure): finish(.failure(.read(failure)))
             }
         }.resume()
