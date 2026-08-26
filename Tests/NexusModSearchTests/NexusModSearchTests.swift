@@ -412,6 +412,139 @@ struct NexusModSearchTests {
                 .map(\.modId) == [1])
     }
 
+    // MARK: - Ce qui est déjà en place
+
+    /// **Un supplément déjà installé comme mod à part entière.** Mesuré : 2 des
+    /// 10 suppléments de Cornucopia, 1 des 12 de Ridgeside Village. Il se
+    /// reconnaît à son identifiant Nexus, que le parc déclare déjà.
+    @Test func aSupplementInstalledAsARealModIsRecognised() {
+        let hits = [hit(50779, "Flexible Cooking Ingredients"), hit(31000, "Item Bags for WAG")]
+        let part = NexusModSearch.partition(hits, installedNexusIds: [31000],
+                                            installedTitles: [])
+        #expect(part.installed.map(\.modId) == [31000])
+        #expect(part.available.map(\.modId) == [50779])
+    }
+
+    /// **Une greffe sans manifeste n'a aucun identifiant** : seul son nom, tel
+    /// que le registre l'a retenu, permet de la reconnaître.
+    @Test func aManifestlessAddonIsRecognisedByItsName() {
+        let hits = [hit(1, "Utility Bags"), hit(2, "Sword and Sorcery Bags")]
+        let part = NexusModSearch.partition(hits, installedNexusIds: [],
+                                            installedTitles: ["utility bags"])
+        #expect(part.installed.map(\.modId) == [1])
+        #expect(part.available.map(\.modId) == [2])
+    }
+
+    /// **Le nom d'un dépôt est celui du fichier téléchargé.** Les trois noms
+    /// réels du jeu d'épreuve : l'égalité stricte échoue sur les trois, le
+    /// préfixe réussit sur les trois. Nexus suffixe ses fichiers d'identifiant,
+    /// version, date et jeton, sans toucher au début.
+    @Test func aDownloadedFileNameStillMatchesItsNexusTitle() {
+        let cases = [
+            ("FishingLogbook - FR 50233 1.1.0 2026-08-05T17-33Z 2hI4jbUR4", "FishingLogbook - FR"),
+            ("ItemBags for Wildflour's Atelier Goods-31000-2-0-2-1762148429",
+             "Item Bags for Wildflour's Atelier Goods"),
+            ("Utility Bags-37381-1-0-0-1757199288", "Utility Bags"),
+        ]
+        for (deposited, nexusTitle) in cases {
+            let part = NexusModSearch.partition([hit(1, nexusTitle)], installedNexusIds: [],
+                                                installedTitles: [deposited])
+            #expect(part.installed.count == 1, "« \(nexusTitle) » non reconnu")
+            #expect(part.available.isEmpty, "« \(nexusTitle) » resté dans les propositions")
+        }
+    }
+
+    /// **Un préfixe trop court reconnaîtrait n'importe quoi** : « FR » ferait
+    /// passer pour installé tout titre commençant par ces deux lettres.
+    @Test func aVeryShortNameMatchesNothing() {
+        let part = NexusModSearch.partition([hit(1, "French Village Overhaul")],
+                                            installedNexusIds: [], installedTitles: ["FR"])
+        #expect(part.installed.isEmpty)
+    }
+
+    /// Un préfixe de cadre ne fait pas échouer la reconnaissance.
+    @Test func titlesAreComparedReduced() {
+        let hits = [hit(1, "Utility Bags")]
+        let part = NexusModSearch.partition(hits, installedNexusIds: [],
+                                            installedTitles: ["[CP] Utility-Bags"])
+        #expect(part.installed.count == 1)
+    }
+
+    /// Un nom vide ne reconnaît rien : sinon tout résultat au titre réduit vide
+    /// passerait pour installé.
+    @Test func anEmptyInstalledTitleMatchesNothing() {
+        let part = NexusModSearch.partition([hit(1, "Utility Bags")],
+                                            installedNexusIds: [], installedTitles: ["", "   "])
+        #expect(part.installed.isEmpty)
+        #expect(part.available.count == 1)
+    }
+
+    // MARK: - L'identifiant caché dans le nom du fichier
+
+    /// **14 des 15 archives du jeu d'épreuve portent leur identifiant Nexus
+    /// dans leur nom de fichier.** Les deux formes que Nexus emploie, plus la
+    /// seule exception : une archive renommée à la main.
+    @Test func realDownloadNamesCarryTheirNexusId() {
+        let cases: [(String, Int?)] = [
+            ("FishingLogbook - FR 50233 1.1.0 2026-08-05T17-33Z 2hI4jbUR4", 50233),
+            ("Utility Bags-37381-1-0-0-1757199288", 37381),
+            ("ItemBags for Wildflour's Atelier Goods-31000-2-0-2-1762148429", 31000),
+            ("Sword and Sorcery Bags-37294-1-0-1757008072", 37294),
+            ("NpcDialogueLog 1.7.1", nil),
+        ]
+        for (name, expected) in cases {
+            let found = NexusModSearch.nexusIdCandidates(inFileName: name)
+            if let expected {
+                #expect(found.contains(expected), "« \(name) » : \(expected) non trouvé")
+            } else {
+                #expect(found.isEmpty, "« \(name) » : rien n'aurait dû être trouvé")
+            }
+        }
+    }
+
+    /// **Rattacher sans rien demander, mais seulement quand deux signaux
+    /// indépendants concordent** : le titre par préfixe, et l'identifiant lu
+    /// dans le nom du fichier.
+    @Test func aDepositIsLinkedWhenBothSignalsAgree() throws {
+        let hits = [hit(50233, "FishingLogbook - FR"), hit(9999, "FishingLogbook - DE")]
+        let linked = try #require(NexusModSearch.confirmedNexusId(
+            forDeposit: "FishingLogbook - FR 50233 1.1.0 2026-08-05T17-33Z 2hI4jbUR4",
+            among: hits))
+        #expect(linked.modId == 50233)
+    }
+
+    /// Le titre seul ne suffit pas : sans identifiant concordant, on ne
+    /// rattache rien. Mieux vaut une ligne sans suivi qu'une ligne qui suit le
+    /// mauvais mod.
+    @Test func aMatchingTitleAloneLinksNothing() {
+        #expect(NexusModSearch.confirmedNexusId(
+            forDeposit: "FishingLogbook - FR", among: [hit(50233, "FishingLogbook - FR")]) == nil)
+    }
+
+    /// L'identifiant seul ne suffit pas non plus : un nombre à cinq chiffres
+    /// dans un nom peut être une année, un compteur, n'importe quoi.
+    @Test func aMatchingIdAloneLinksNothing() {
+        #expect(NexusModSearch.confirmedNexusId(
+            forDeposit: "Something Else 50233 1.0", among: [hit(50233, "FishingLogbook - FR")])
+            == nil)
+    }
+
+    /// Deux résultats également plausibles — même titre, deux identifiants tous
+    /// deux présents dans le nom : on s'abstient plutôt que de choisir.
+    @Test func anAmbiguousDepositLinksNothing() {
+        let hits = [hit(37381, "Utility Bags"), hit(31000, "Utility Bags")]
+        #expect(NexusModSearch.confirmedNexusId(
+            forDeposit: "Utility Bags-37381-31000-1-0", among: hits) == nil)
+    }
+
+    /// **Le plancher vaut des deux côtés.** Le garder d'un seul laisserait un
+    /// titre court reconnaître n'importe quoi.
+    @Test func theFloorGuardsBothSides() {
+        #expect(!NexusModSearch.namesMatch("RSV Item Bags", "R.S.V."))
+        #expect(!NexusModSearch.namesMatch("R.S.V.", "RSV Item Bags"))
+        #expect(NexusModSearch.namesMatch("Utility Bags-37381-1-0-0", "Utility Bags"))
+    }
+
     @Test func fractionalSecondsAreAlsoParsed() {
         #expect(NexusModSearch.parseDate("2026-08-09T17:33:00.500Z") != nil)
         #expect(NexusModSearch.parseDate("pas une date") == nil)

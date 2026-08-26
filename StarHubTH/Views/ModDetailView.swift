@@ -989,23 +989,54 @@ private struct SupplementSection: View {
                 Button {
                     vm.searchSupplements(for: mod)
                 } label: {
-                    Label(vm.L(L10n.Mods.supplementSearch), systemImage: "puzzlepiece.extension")
-                        .font(.system(size: 12))
+                    Label(vm.L(L10n.Mods.searchShortSupplement),
+                          systemImage: "puzzlepiece.extension")
+                        .font(.system(size: 11))
                 }
-                .buttonStyle(.borderless)
+                .buttonStyle(.bordered)
+                .controlSize(.small)
                 .disabled(isSearching || !vm.hasNexusApiKey)
+                .help(vm.hasNexusApiKey ? vm.L(L10n.Mods.supplementSearch)
+                                        : vm.L(L10n.Mods.nexusNoApiKey))
                 .pointingHandCursor()
                 if isSearching {
                     ProgressView().controlSize(.small)
                     Text(vm.L(L10n.Mods.supplementSearching))
                         .font(.system(size: 11))
                         .foregroundColor(.secondary)
+                } else if !vm.hasNexusApiKey {
+                    Text(vm.L(L10n.Mods.nexusNoApiKey))
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
+            }
+            // Ce que le mod porte déjà, avant toute recherche : le registre le
+            // sait sans avoir à interroger Nexus.
+            let installed = vm.addons(for: mod)
+            if !installed.isEmpty || !(search?.alreadyInstalled.isEmpty ?? true) {
+                Text(vm.L(L10n.Mods.installedSection))
+                    .font(.system(size: 11, weight: .semibold))
+                ForEach(installed, id: \.nexusName) { addon in installedRow(addon) }
+                // Reconnus dans les résultats **et absents du registre** :
+                // ceux-là seuls sont installés comme mods à part entière. Sans
+                // ce tri, une greffe posée à la main s'affichait deux fois,
+                // dont une sous une étiquette fausse.
+                ForEach((search?.alreadyInstalled ?? []).filter { hit in
+                    !installed.contains { known in
+                        known.nexusModId == hit.modId
+                            || NexusModSearch.namesMatch(known.nexusName, hit.name)
+                    }
+                }) { hit in asModRow(hit) }
             }
             // Rien tant qu'on n'a pas cherché : une liste vide affichée d'emblée
             // se lirait comme « aucun supplément n'existe », ce qu'on ne sait pas.
             if !isSearching, let search {
-                if search.hits.isEmpty {
+                // Les deux moitiés vides, pas seulement les propositions : sinon
+                // « rien trouvé » s'affichait juste sous la liste de ce qui
+                // venait d'être trouvé, et reconnu comme déjà installé.
+                if search.hits.isEmpty, search.alreadyInstalled.isEmpty {
                     Text(vm.L(L10n.Mods.supplementNone))
                         .font(.system(size: 11))
                         .foregroundColor(.secondary)
@@ -1030,6 +1061,76 @@ private struct SupplementSection: View {
             }
         }
         .padding(.top, 4)
+    }
+
+    /// Une greffe posée par la feuille d'installation : le registre la connaît,
+    /// donc elle se retire — et se rattache à Nexus pour être suivie.
+    @ViewBuilder
+    private func installedRow(_ addon: InstalledTranslation) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "checkmark.seal.fill")
+                .font(.system(size: 10))
+                .foregroundColor(.green)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(addon.nexusName)
+                    .font(.system(size: 11, weight: .medium))
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                if addon.nexusModId == 0 {
+                    Text(vm.L(L10n.Mods.noUpdateCheck))
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                }
+            }
+            Spacer()
+            if vm.addonUpdateAvailable(addon, for: mod) != nil {
+                Text(vm.L(L10n.Mods.translationUpdateAvailable))
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(.orange)
+            }
+            let linkable = (search.map { $0.alreadyInstalled + $0.hits }) ?? []
+            if addon.nexusModId == 0, !linkable.isEmpty {
+                Menu(vm.L(L10n.Mods.linkToNexus)) {
+                    ForEach(linkable.prefix(6)) { hit in
+                        Button(hit.name) {
+                            vm.linkToNexus(addon, hit: hit, isTranslation: false, for: mod)
+                        }
+                    }
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+                .font(.system(size: 10))
+                .help(vm.L(L10n.Mods.linkToNexusHint))
+            }
+            Button(vm.L(L10n.Mods.addonRemove)) { vm.removeAddon(addon, from: mod) }
+                .buttonStyle(.borderless)
+                .foregroundColor(.red)
+                .font(.system(size: 11))
+        }
+        .padding(.vertical, 2)
+    }
+
+    /// Un supplément installé **comme un mod à part entière** : il vit dans
+    /// `Mods/` avec son manifeste, se met à jour comme les autres, et n'a rien
+    /// à faire dans le registre des greffes.
+    @ViewBuilder
+    private func asModRow(_ hit: NexusModSearch.Hit) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "checkmark.seal.fill")
+                .font(.system(size: 10))
+                .foregroundColor(.green)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(hit.name)
+                    .font(.system(size: 11, weight: .medium))
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Text(vm.L(L10n.Mods.supplementAsMod))
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+            }
+            Spacer()
+        }
+        .padding(.vertical, 2)
     }
 
     @ViewBuilder
@@ -1124,11 +1225,48 @@ private struct TranslationSection: View {
                     .foregroundColor(.orange)
             }
             Spacer()
+            if let newer = update {
+                Button(vm.L(L10n.Mods.translationUpdate)) {
+                    vm.installTranslation(newer, into: mod)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(isBusy || vm.nexusDirectDownloadUnavailable)
+                .help(vm.nexusDirectDownloadUnavailable ? vm.L(L10n.Mods.premiumOnlyHint) : "")
+            }
             Button(vm.L(L10n.Mods.translationRemove)) { vm.removeTranslation(from: mod) }
                 .buttonStyle(.borderless)
                 .foregroundColor(.red)
                 .disabled(isBusy)
                 .font(.system(size: 11))
+        }
+        // **Sans page Nexus rattachée, aucune mise à jour ne peut être vue.**
+        // C'est le cas courant : sur un compte gratuit tout s'installe à la
+        // main, donc sans identifiant. Le rattachement se fait donc ici, après
+        // coup, en désignant l'entrée correspondante parmi les résultats.
+        if installed.nexusModId == 0 {
+            HStack(spacing: 6) {
+                Text(vm.L(L10n.Mods.noUpdateCheck))
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+                // Les deux moitiés : le bon candidat est celui que le filtre a
+                // retiré des propositions, et le menu serait vide sans lui.
+                let candidates = (vm.translationInstalledHits[mod.folderName] ?? []) + hits
+                if !candidates.isEmpty {
+                    Menu(vm.L(L10n.Mods.linkToNexus)) {
+                        ForEach(candidates.prefix(6)) { hit in
+                            Button(hit.name) {
+                                vm.linkToNexus(installed, hit: hit,
+                                               isTranslation: true, for: mod)
+                            }
+                        }
+                    }
+                    .menuStyle(.borderlessButton)
+                    .fixedSize()
+                    .font(.system(size: 10))
+                    .help(vm.L(L10n.Mods.linkToNexusHint))
+                }
+            }
         }
     }
 
@@ -1138,11 +1276,20 @@ private struct TranslationSection: View {
             Button {
                 vm.searchTranslations(for: mod)
             } label: {
-                Label(vm.L(L10n.Mods.translationSearch), systemImage: "globe.badge.chevron.backward")
-                    .font(.system(size: 12))
+                Label(vm.L(L10n.Mods.searchShortTranslation),
+                      systemImage: "globe.badge.chevron.backward")
+                    .font(.system(size: 11))
             }
-            .buttonStyle(.borderless)
+            // `.bordered` et non `.borderless` : les résultats en dessous
+            // portent des boutons encadrés, et l'action qui les fait
+            // apparaître ne doit pas ressembler à du texte.
+            .buttonStyle(.bordered)
+            .controlSize(.small)
             .disabled(isSearching || isBusy || !vm.hasNexusApiKey)
+            // **Dire pourquoi il est gris.** Un bouton désactivé et muet laisse
+            // chercher la panne du mauvais côté.
+            .help(vm.hasNexusApiKey ? vm.L(L10n.Mods.translationSearch)
+                                    : vm.L(L10n.Mods.nexusNoApiKey))
             .pointingHandCursor()
             if isSearching {
                 ProgressView().controlSize(.small)
@@ -1151,6 +1298,15 @@ private struct TranslationSection: View {
                     .foregroundColor(.secondary)
             } else if isBusy {
                 ProgressView().controlSize(.small)
+            } else if !vm.hasNexusApiKey {
+                // Écrit, pas seulement en infobulle : AppKit ne garantit pas
+                // l'infobulle d'un contrôle désactivé, et c'est précisément
+                // quand il est gris qu'il faut dire pourquoi.
+                Text(vm.L(L10n.Mods.nexusNoApiKey))
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }

@@ -4436,6 +4436,10 @@ class StarHubTHViewModel: ObservableObject {
     /// Vidé à chaque nouvelle recherche : ce n'est pas un cache, c'est le
     /// résultat de la dernière question posée.
     @Published private(set) var translationHits: [String: [NexusModSearch.Hit]] = [:]
+    /// Les résultats **correspondant à ce qui est déjà posé**, retirés des
+    /// propositions mais gardés : c'est là que se lit une version plus récente,
+    /// et c'est vers eux que rattache le menu.
+    @Published private(set) var translationInstalledHits: [String: [NexusModSearch.Hit]] = [:]
     /// Les mods dont une recherche est en cours.
     ///
     /// Un ensemble, pas un seul nom : la fiche désactive ses boutons **mod par
@@ -4456,7 +4460,11 @@ class StarHubTHViewModel: ObservableObject {
     /// traducteurs reprennent le numéro du mod traduit, ou ne le bougent pas.
     func translationUpdateAvailable(for mod: ModItem) -> NexusModSearch.Hit? {
         guard let installed = translation(for: mod) else { return nil }
-        return (translationHits[mod.folderName] ?? []).first {
+        // L'union des deux moitiés : le résultat qui porte la mise à jour est
+        // par nature celui qu'on a retiré des propositions.
+        let seen = (translationHits[mod.folderName] ?? [])
+            + (translationInstalledHits[mod.folderName] ?? [])
+        return seen.first {
             $0.modId == installed.nexusModId
                 && InstalledTranslationRegistry.isNewer($0.updatedAt, than: installed.updatedAt)
         }
@@ -4475,6 +4483,8 @@ class StarHubTHViewModel: ObservableObject {
     /// là où il n'y a que des traductions. Il faut les deux.
     struct SupplementSearch {
         let hits: [NexusModSearch.Hit]
+        /// Ceux que le parc porte déjà — montrés à part plutôt que proposés.
+        let alreadyInstalled: [NexusModSearch.Hit]
         let received: Int
         let serverTotal: Int
 
@@ -4485,6 +4495,176 @@ class StarHubTHViewModel: ObservableObject {
     @Published private(set) var supplementSearches: [String: SupplementSearch] = [:]
     /// Les mods dont une recherche de suppléments est en cours.
     @Published private(set) var searchingSupplements: Set<String> = []
+
+    /// Les identifiants Nexus que le parc déclare, pour reconnaître un
+    /// supplément **installé comme un mod à part entière**.
+    ///
+    /// Calculé à la demande : une recherche part sur un clic, pas sur un rendu
+    /// de liste. En faire un index permanent coûterait à chaque scan pour un
+    /// usage rare.
+    private func installedNexusIds() -> Set<Int> {
+        Set(allInstalledMods().compactMap { Int(resolvedNexusModId(for: $0)) })
+    }
+
+    /// Retire des propositions la traduction déjà en place.
+    ///
+    /// Sur son identifiant Nexus quand il est connu, sur son nom sinon — et le
+    /// nom est le cas courant : sur un compte gratuit tout s'installe à la
+    /// main, donc sans identifiant.
+    private func withoutInstalledTranslation(_ hits: [NexusModSearch.Hit],
+                                             for mod: ModItem) -> [NexusModSearch.Hit] {
+        guard let installed = translation(for: mod) else {
+            translationInstalledHits[mod.folderName] = []
+            return hits
+        }
+        // **Retirée des propositions, pas jetée.** C'est dans cette moitié que
+        // vit le résultat correspondant à la traduction posée — celui qui dit
+        // qu'une version plus récente existe, et celui vers lequel rattacher.
+        // La jeter faisait disparaître la pastille de mise à jour, qui
+        // fonctionnait avant, et vidait le menu de rattachement de son seul
+        // bon choix.
+        let split = NexusModSearch.partition(
+            hits,
+            installedNexusIds: installed.nexusModId > 0 ? [installed.nexusModId] : [],
+            installedTitles: [installed.nexusName])
+        translationInstalledHits[mod.folderName] = split.installed
+        // Rattacher sans rien demander quand deux signaux concordent : le titre
+        // et l'identifiant lu dans le nom du fichier téléchargé.
+        adoptConfirmedNexusId(for: installed, among: split.installed,
+                              isTranslation: true, host: mod)
+        return split.available
+    }
+
+    /// Rattache un dépôt à sa fiche Nexus **quand il n'y a pas de doute**.
+    ///
+    /// Sur un compte gratuit tout s'installe à la main, donc sans identifiant —
+    /// et sans identifiant aucune mise à jour ne peut être vue. Plutôt que de
+    /// demander à l'utilisateur de désigner la fiche, on la reconnaît : le nom
+    /// du fichier téléchargé porte l'identifiant Nexus dans 14 cas sur 15, et
+    /// le titre le confirme. Deux signaux qui concordent, ou rien.
+    ///
+    /// La date retenue reste celle du dépôt : c'est ce qu'on sait vraiment, et
+    /// prendre celle du résultat déclarerait la ligne à jour par construction.
+    private func adoptConfirmedNexusId(for entry: InstalledTranslation,
+                                       among hits: [NexusModSearch.Hit],
+                                       isTranslation: Bool, host: ModItem) {
+        guard entry.nexusModId == 0,
+              let confirmed = NexusModSearch.confirmedNexusId(forDeposit: entry.nexusName,
+                                                              among: hits)
+        else { return }
+        let linked = InstalledTranslation(
+            hostFolderName: entry.hostFolderName, nexusModId: confirmed.modId,
+            nexusName: confirmed.name, version: confirmed.version,
+            updatedAt: entry.installedAt, installedAt: entry.installedAt,
+            files: entry.files, replacedFiles: entry.replacedFiles)
+        if isTranslation {
+            installedTranslations.record(linked)
+        } else {
+            installedTranslations.forgetAddon(entry)
+            installedTranslations.recordAddon(linked)
+        }
+        if !InstalledTranslationStore.save(installedTranslations) {
+            log("Rattachement Nexus non enregistré : le suivi ne survivra pas à la fermeture",
+                level: .warning)
+        }
+    }
+
+    /// Les greffes posées sur ce mod.
+    func addons(for mod: ModItem) -> [InstalledTranslation] {
+        installedTranslations.addons(forHost: mod.folderName)
+    }
+
+    /// Une version plus récente de cette greffe a-t-elle été trouvée ?
+    ///
+    /// Même règle que pour les traductions : sur les **dates Nexus**, et
+    /// seulement quand la greffe porte un identifiant. Une greffe déposée à la
+    /// main n'en a pas — c'est ce que `linkToNexus` répare.
+    func addonUpdateAvailable(_ addon: InstalledTranslation,
+                              for mod: ModItem) -> NexusModSearch.Hit? {
+        guard addon.nexusModId > 0 else { return nil }
+        let seen = (supplementSearches[mod.folderName].map { $0.hits + $0.alreadyInstalled }) ?? []
+        return seen.first {
+            $0.modId == addon.nexusModId
+                && InstalledTranslationRegistry.isNewer($0.updatedAt, than: addon.updatedAt)
+        }
+    }
+
+    /// Rattache une traduction ou une greffe déposée à la main à sa page Nexus.
+    ///
+    /// **Sans cela, le suivi des mises à jour ne peut jamais se déclencher.**
+    /// Le téléchargement intégré demande un compte premium ; sur un compte
+    /// gratuit, tout passe par la feuille d'installation, donc sans identifiant
+    /// Nexus — et c'est l'identifiant qui dit qu'une version plus récente
+    /// existe. Le lien se fait donc après coup, sur la ligne installée.
+    func linkToNexus(_ entry: InstalledTranslation, hit: NexusModSearch.Hit,
+                     isTranslation: Bool, for mod: ModItem) {
+        // **La date retenue est celle du dépôt, pas celle du résultat.** Copier
+        // `hit.updatedAt` ferait déclarer la ligne à jour par construction : on
+        // comparerait la date Nexus à elle-même, et aucune mise à jour ne
+        // pourrait jamais apparaître — le défaut qu'on est en train de réparer,
+        // sous une autre forme. Ce qu'on sait vraiment, c'est **quand il l'a
+        // posée** ; tout ce que Nexus a publié depuis est plus récent.
+        let linked = InstalledTranslation(
+            hostFolderName: entry.hostFolderName, nexusModId: hit.modId, nexusName: hit.name,
+            version: hit.version, updatedAt: entry.installedAt, installedAt: entry.installedAt,
+            files: entry.files, replacedFiles: entry.replacedFiles)
+        if isTranslation {
+            installedTranslations.record(linked)
+        } else {
+            installedTranslations.forgetAddon(entry)
+            installedTranslations.recordAddon(linked)
+        }
+        if !InstalledTranslationStore.save(installedTranslations) {
+            showModal(message: L(L10n.Mods.translationNotTracked))
+        }
+        // La liste des propositions perd ce qui vient d'être reconnu — **sans
+        // repartir sur le réseau** : on sait déjà lequel des résultats c'était,
+        // et relancer la recherche ferait tourner un compteur d'API pour
+        // retirer une ligne qu'on tient sous la main.
+        // Le résultat **change de moitié** : il quitte les propositions et
+        // rejoint ce qui est en place. L'y oublier ferait disparaître la mise à
+        // jour qu'il annonce jusqu'à la recherche suivante.
+        if isTranslation {
+            translationHits[mod.folderName] =
+                (translationHits[mod.folderName] ?? []).filter { $0.modId != hit.modId }
+            translationInstalledHits[mod.folderName] =
+                (translationInstalledHits[mod.folderName] ?? []) + [hit]
+        } else if let previous = supplementSearches[mod.folderName] {
+            supplementSearches[mod.folderName] = SupplementSearch(
+                hits: previous.hits.filter { $0.modId != hit.modId },
+                alreadyInstalled: previous.alreadyInstalled + [hit],
+                received: previous.received,
+                serverTotal: previous.serverTotal)
+        }
+    }
+
+    /// Retire une greffe posée sur ce mod, et **rend** ce qu'elle avait recouvert.
+    func removeAddon(_ addon: InstalledTranslation, from mod: ModItem) {
+        guard !busyTranslations.contains(mod.folderName) else { return }
+        busyTranslations.insert(mod.folderName)
+        defer { busyTranslations.remove(mod.folderName) }
+        let hostPath = URL(fileURLWithPath: gameDir)
+            .appendingPathComponent("Mods")
+            .appendingPathComponent(mod.physicalFolderName)
+        let failures = ManifestlessInstaller.uninstall(addon, hostPath: hostPath)
+        if failures.isEmpty {
+            installedTranslations.forgetAddon(addon)
+            if !InstalledTranslationStore.save(installedTranslations) {
+                showModal(message: L(L10n.Mods.translationRemoveNotTracked))
+            }
+        } else {
+            // Même règle que pour une traduction : un retrait à moitié fait
+            // garde sa ligne, seule à porter la liste des fichiers restants.
+            showModal(message: String(format: L(L10n.Mods.translationRemovePartial),
+                                      failures.joined(separator: ", ")))
+        }
+        // Une greffe mixte emporte des fichiers de langue : la couverture
+        // française mesurée est périmée, exactement comme après un dépôt ou le
+        // retrait d'une traduction. Appelée depuis un bouton, donc sur le fil
+        // principal.
+        MainActor.assumeIsolated { invalidateFrenchCoverage(for: mod.folderName) }
+        refresh()
+    }
 
     /// Cherche sur Nexus ce qui se greffe sur ce mod : bagages, compatibilités,
     /// packs de contenu qui le citent.
@@ -4501,9 +4681,23 @@ class StarHubTHViewModel: ObservableObject {
             self.searchingSupplements.remove(mod.folderName)
             switch result {
             case .success(let page):
+                let found = NexusModSearch.supplements(among: page.hits, excluding: host,
+                                                       hostName: mod.name)
+                // Ce qui est déjà là ne se propose pas : il se **montre**, à
+                // part, avec ce qu'on peut en faire.
+                let split = NexusModSearch.partition(
+                    found,
+                    installedNexusIds: self.installedNexusIds(),
+                    installedTitles: Set(self.installedTranslations
+                        .addons(forHost: mod.folderName).map(\.nexusName)))
+                // Rattacher les greffes reconnues, sans rien demander.
+                for addon in self.installedTranslations.addons(forHost: mod.folderName) {
+                    self.adoptConfirmedNexusId(for: addon, among: split.installed,
+                                               isTranslation: false, host: mod)
+                }
                 self.supplementSearches[mod.folderName] = SupplementSearch(
-                    hits: NexusModSearch.supplements(among: page.hits, excluding: host,
-                                                     hostName: mod.name),
+                    hits: split.available,
+                    alreadyInstalled: split.installed,
                     received: page.hits.count,
                     serverTotal: page.totalCount)
             case .failure(let error):
@@ -4538,8 +4732,11 @@ class StarHubTHViewModel: ObservableObject {
                     // **Le titre classe, il ne filtre pas.** Le serveur a déjà
                     // trié sur le tag ; rejeter ici les titres muets perdrait
                     // les traductions bien taguées que le tag venait de rendre.
-                    self.translationHits[mod.folderName] =
-                        NexusModSearch.ranked(page.hits, excluding: host)
+                    // La traduction déjà posée n'a rien à faire dans la liste
+                    // des propositions : elle a sa propre ligne, qui porte son
+                    // retrait et sa mise à jour.
+                    self.translationHits[mod.folderName] = self.withoutInstalledTranslation(
+                        NexusModSearch.ranked(page.hits, excluding: host), for: mod)
                 }
             case .failure(let error):
                 // Une panne n'est pas une absence : `[]` ferait afficher
@@ -4561,8 +4758,9 @@ class StarHubTHViewModel: ObservableObject {
             case .success(let page):
                 // Recherche large : ici rien d'autre que le titre ne distingue
                 // une traduction, le filtre est à sa place.
-                self.translationHits[mod.folderName] =
-                    NexusModSearch.frenchTranslations(among: page.hits, excluding: host)
+                self.translationHits[mod.folderName] = self.withoutInstalledTranslation(
+                    NexusModSearch.frenchTranslations(among: page.hits, excluding: host),
+                    for: mod)
             case .failure(let error):
                 // Une panne n'est pas une absence : afficher « aucune traduction
                 // trouvée » ici ferait passer une recherche cassée pour un
@@ -4685,16 +4883,29 @@ class StarHubTHViewModel: ObservableObject {
             .appendingPathComponent("Mods")
             .appendingPathComponent(host.physicalFolderName)
 
-        // Une greffe n'a rien à voir avec la traduction posée sur le même mod :
-        // seul le dépôt d'une traduction écarte celle qui est déjà là.
-        if plan.kind == .translation,
-           let incumbent = installedTranslations.translation(forHost: host.folderName) {
+        // Ce qu'on remplace, on le rend d'abord. Une greffe n'écarte pas la
+        // traduction du même mod — elles ne déposent pas les mêmes fichiers —
+        // mais elle écarte **la greffe de même identité**, sans quoi redéposer
+        // un lot laisserait derrière lui les fichiers de l'ancienne version.
+        let entry = InstalledTranslation(
+            hostFolderName: host.folderName, nexusModId: nexus?.modId ?? 0,
+            nexusName: sourceName, version: nexus?.version ?? "",
+            updatedAt: nexus?.updatedAt, installedAt: Date(), files: [], replacedFiles: [:])
+        let incumbent: InstalledTranslation? = plan.kind == .translation
+            ? installedTranslations.translation(forHost: host.folderName)
+            : installedTranslations.addons(forHost: host.folderName)
+                .first { InstalledTranslationRegistry.sameAddon($0, entry) }
+        if let incumbent {
             let failures = ManifestlessInstaller.uninstall(incumbent, hostPath: hostPath)
             guard failures.isEmpty else {
                 return (nil, String(format: L(L10n.Mods.translationRemovePartial),
                                     failures.joined(separator: ", ")))
             }
-            installedTranslations.forget(host: host.folderName)
+            if plan.kind == .translation {
+                installedTranslations.forget(host: host.folderName)
+            } else {
+                installedTranslations.forgetAddon(incumbent)
+            }
         }
 
         let written: ManifestlessInstaller.Outcome
@@ -4726,14 +4937,20 @@ class StarHubTHViewModel: ObservableObject {
         // l'index et le rescan qui suit.
         MainActor.assumeIsolated { invalidateFrenchCoverage(for: host.folderName) }
 
-        // Seule une traduction entre au registre : c'est lui qui porte le bouton
-        // « Retirer » de la fiche du mod, et une greffe n'en est pas une.
-        guard plan.kind == .translation else { return (written, nil) }
-        installedTranslations.record(InstalledTranslation(
+        // **Les greffes entrent au registre elles aussi.** Elles n'y entraient
+        // pas : le message de dépôt devait donc prévenir que leur retrait se
+        // ferait à la main. Elles se retirent maintenant comme une traduction,
+        // depuis la fiche du mod.
+        let recorded = InstalledTranslation(
             hostFolderName: host.folderName, nexusModId: nexus?.modId ?? 0,
             nexusName: sourceName, version: nexus?.version ?? "",
             updatedAt: nexus?.updatedAt, installedAt: Date(),
-            files: written.written, replacedFiles: written.replaced))
+            files: written.written, replacedFiles: written.replaced)
+        if plan.kind == .translation {
+            installedTranslations.record(recorded)
+        } else {
+            installedTranslations.recordAddon(recorded)
+        }
         guard InstalledTranslationStore.save(installedTranslations) else {
             // Les fichiers sont posés mais rien ne les retient : le dire,
             // sinon la traduction ne pourra plus être retirée.

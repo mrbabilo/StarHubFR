@@ -378,6 +378,121 @@ public enum NexusModSearch {
             .filter { $0.isLetter || $0.isNumber }
     }
 
+    /// Des résultats séparés en deux : ce qui est déjà en place, et ce qui
+    /// reste à découvrir.
+    public struct Partition: Equatable {
+        /// Ce que le parc porte déjà.
+        public let installed: [Hit]
+        /// Ce qui n'y est pas.
+        public let available: [Hit]
+
+        public init(installed: [Hit], available: [Hit]) {
+            self.installed = installed
+            self.available = available
+        }
+    }
+
+    /// Sépare des résultats selon ce qui est déjà installé.
+    ///
+    /// **Deux formes, mesurées sur le parc le 2026-08-26.** Un supplément peut
+    /// être installé de deux façons très différentes :
+    /// - **comme un mod à part entière**, avec son manifeste — 2 des 10
+    ///   suppléments de Cornucopia, 1 des 12 de Ridgeside Village. Il se
+    ///   reconnaît à son identifiant Nexus, déjà déclaré par le parc ;
+    /// - **comme une greffe sans manifeste**, un lot de sacs `ItemBags` déposé
+    ///   à la main. Aucun identifiant : c'est le registre qui le retient, et le
+    ///   nom du dépôt est parfois tout ce dont on dispose.
+    ///
+    /// D'où deux clés, et non une.
+    ///
+    /// ⚠️ **Le nom retenu d'un dépôt manuel est celui du fichier téléchargé, pas
+    /// le titre Nexus.** Mesuré sur les archives réelles : « FishingLogbook -
+    /// FR 50233 1.1.0 2026-08-05T17-33Z 2hI4jbUR4 » pour un mod que Nexus
+    /// titre « FishingLogbook - FR ». L'égalité échoue donc sur **les trois**
+    /// archives éprouvées, et le **préfixe** réussit sur les trois : Nexus
+    /// suffixe ses noms de fichier d'identifiant, version, date et jeton, sans
+    /// jamais toucher au début. La comparaison se fait donc par préfixe, dans
+    /// les deux sens — l'archive peut être plus longue que le titre, et
+    /// l'inverse arrive quand l'auteur allonge son titre après coup.
+    public static func partition(_ hits: [Hit], installedNexusIds: Set<Int>,
+                                 installedTitles: Set<String>) -> Partition {
+        var installed: [Hit] = []
+        var available: [Hit] = []
+        for hit in hits {
+            let matchesName = installedTitles.contains { namesMatch($0, hit.name) }
+            if installedNexusIds.contains(hit.modId) || matchesName {
+                installed.append(hit)
+            } else {
+                available.append(hit)
+            }
+        }
+        return Partition(installed: installed, available: available)
+    }
+
+    /// Deux noms désignent-ils la même chose ?
+    ///
+    /// **Par préfixe, dans les deux sens**, sur les titres réduits — parce que
+    /// le nom d'un dépôt est celui du fichier téléchargé et que Nexus le
+    /// suffixe d'identifiant, version, date et jeton sans jamais toucher au
+    /// début (mesuré : l'égalité échoue sur les trois archives éprouvées, le
+    /// préfixe réussit sur les trois).
+    ///
+    /// **Le plancher de quatre caractères vaut des deux côtés.** Le garder d'un
+    /// seul laisserait un titre court reconnaître n'importe quoi : « R.S.V. »
+    /// se réduit à `rsv` et préfixe « RSV Item Bags ».
+    public static func namesMatch(_ lhs: String, _ rhs: String) -> Bool {
+        let left = comparableTitle(lhs)
+        let right = comparableTitle(rhs)
+        guard left.count >= 4, right.count >= 4 else { return false }
+        return left.hasPrefix(right) || right.hasPrefix(left)
+    }
+
+    /// Les identifiants Nexus que porte un nom de fichier téléchargé.
+    ///
+    /// **Mesuré : 14 des 15 archives du jeu d'épreuve en portent un.** Nexus
+    /// nomme ses téléchargements de deux façons, et l'identifiant suit le nom
+    /// dans les deux :
+    /// `FishingLogbook - FR 50233 1.1.0 2026-08-05T17-33Z 2hI4jbUR4`
+    /// `Utility Bags-37381-1-0-0-1757199288`
+    /// La seule exception est une archive renommée à la main.
+    ///
+    /// Plusieurs candidats sont rendus, jamais un seul « deviné » : une année
+    /// dans un titre en est un aussi. C'est `confirmedNexusId` qui tranche, en
+    /// exigeant qu'un second signal concorde.
+    public static func nexusIdCandidates(inFileName name: String) -> Set<Int> {
+        var candidates: Set<Int> = []
+        var digits = ""
+        for character in name + " " {
+            if character.isASCII, character.isNumber {
+                digits.append(character)
+            } else {
+                if (4...6).contains(digits.count), let value = Int(digits) {
+                    candidates.insert(value)
+                }
+                digits = ""
+            }
+        }
+        return candidates
+    }
+
+    /// La fiche Nexus qu'on peut attribuer **avec certitude** à un dépôt manuel.
+    ///
+    /// Deux signaux indépendants doivent concorder : le titre, comparé par
+    /// préfixe, **et** l'identifiant lu dans le nom du fichier. Chacun seul se
+    /// tromperait — un titre proche n'est pas le même mod, et un nombre à cinq
+    /// chiffres dans un nom peut être une année. Ensemble, ils ne laissent pas
+    /// de place au doute, et c'est ce qui permet de rattacher sans rien
+    /// demander à l'utilisateur.
+    ///
+    /// `nil` dès qu'il y a la moindre ambiguïté : mieux vaut une ligne sans
+    /// suivi qu'une ligne qui suit le mauvais mod.
+    public static func confirmedNexusId(forDeposit name: String, among hits: [Hit]) -> Hit? {
+        let candidates = nexusIdCandidates(inFileName: name)
+        guard !candidates.isEmpty else { return nil }
+        let matches = hits.filter { candidates.contains($0.modId) && namesMatch(name, $0.name) }
+        return matches.count == 1 ? matches[0] : nil
+    }
+
     /// `2026-08-16T15:32:14Z`, avec ou sans fraction de seconde.
     static func parseDate(_ raw: String) -> Date? {
         let iso = ISO8601DateFormatter()

@@ -1012,6 +1012,30 @@ backup se retrouve en moins de dix secondes.
 
 #### A3 — Métadonnées Nexus
 
+- [x] **A3-T5** — **Ce qui est posé se voit, se suit et ne se propose plus.** *Livré le
+      2026-08-26, à sa demande, après que la recherche a été éprouvée.
+      Quatre demandes, une même racine : le registre ne retenait que les traductions,
+      et rien de ce qui était en place n'était distingué de ce qui restait à trouver.
+      - **Le registre porte les greffes**, plusieurs par mod — la traduction reste
+        unique. L'ancien format se relit (test dédié) : un échec de décodage aurait
+        fait perdre le seul moyen de retirer les traductions déjà posées.
+      - **Deux formes d'« installé »**, mesurées : un supplément peut être un mod à
+        part entière (2 des 10 de Cornucopia, 1 des 12 de Ridgeside) ou une greffe
+        sans manifeste. La première se reconnaît à son identifiant Nexus, la seconde
+        au registre.
+      - **Le rattachement Nexus n'est pas manuel.** Sur un compte gratuit tout
+        s'installe à la main, donc sans identifiant — et sans identifiant aucune mise
+        à jour ne peut être vue : le suivi livré en A3-T3 ne pouvait **jamais** se
+        déclencher. Le nom du fichier téléchargé porte l'identifiant dans **14 cas sur
+        15**, et le titre le confirme ; deux signaux indépendants qui concordent, ou
+        rien. Quatre tests encadrent l'abstention.
+      - **La date retenue est celle du dépôt**, jamais celle du résultat : la seconde
+        déclarerait la ligne à jour par construction.
+      ⚠️ *Relecture : huit défauts, dont **deux régressions** — la moitié « déjà
+      installé » de la partition était jetée, et elle porte à la fois le résultat qui
+      annonce la mise à jour et celui vers lequel rattacher. La pastille de mise à
+      jour, qui fonctionnait, ne pouvait plus s'afficher.* · **M**
+
 - [ ] **A3-T1** — Recherche automatique des `NexusID` manquants (correspondance nom +
       auteur, proposition validée par l'utilisateur, jamais d'écriture aveugle). · **M** ·
       risque : quota d'API Nexus, faux positifs. *La recherche par nom qu'elle suppose

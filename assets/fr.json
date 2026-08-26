@@ -1016,7 +1016,7 @@
   "recovery_reason_differs": "diffère de la sauvegarde — à comparer",
   "mod_install_dropped_question_many": "Ces %1$d fichiers sont du contenu pour %2$@, pas des mods à eux seuls.\n\nLes installer dans :\n%3$@",
   "mod_install_dropped_done_many": "%1$d fichiers installés dans %2$@",
-  "mod_install_deposit_message_addon": "Cette archive n'est pas un mod : elle contient %1$d fichier(s) destiné(s) à « %2$@ ». Ce qu'ils remplacent est mis en sauvegarde d'abord, mais leur retrait se fera à la main.",
+  "mod_install_deposit_message_addon": "Cette archive n'est pas un mod : elle contient %1$d fichier(s) destiné(s) à « %2$@ ». Ce qu'ils remplacent est sauvegardé d'abord, et vous pourrez les retirer depuis la fiche de ce mod.",
   "mod_install_deposit_rollback_incomplete": "Rien n'a été installé, et l'annulation n'a pas entièrement abouti. Ces fichiers sont restés en l'état : %@",
   "mods_translation_remove_not_tracked": "Les fichiers ont été retirés, mais le changement n'a pas pu être enregistré : la traduction peut réapparaître au prochain lancement.",
   "mods_compat_status_broken": "Cassé",
@@ -1042,5 +1042,13 @@
   "mods_supplement_none": "Rien trouvé sur Nexus dont le titre mentionne ce mod.",
   "mods_supplement_found": "%lld mod(s) dont le titre mentionne celui-ci — traductions écartées.",
   "mods_supplement_capped": "Nexus compte %1$lld résultats pour ce nom ; seuls les %2$lld plus récents ont été lus.",
-  "mods_supplement_hint": "Ce ne sont pas des suppléments confirmés : ce sont des mods qui nomment celui-ci. Vérifiez avant d'installer."
+  "mods_supplement_hint": "Ce ne sont pas des suppléments confirmés : ce sont des mods qui nomment celui-ci. Vérifiez avant d'installer.",
+  "mods_search_short_translation": "Traduction FR",
+  "mods_search_short_supplement": "Suppléments",
+  "mods_installed_section": "Déjà en place",
+  "mods_link_to_nexus": "Lier à Nexus",
+  "mods_link_to_nexus_hint": "Posé à la main, donc sans page Nexus rattachée — c'est pourquoi aucune mise à jour ne peut être repérée. Choisissez ci-dessous l'entrée correspondante pour en rattacher une.",
+  "mods_addon_remove": "Retirer",
+  "mods_supplement_as_mod": "installé comme mod à part entière",
+  "mods_no_update_check": "Pas de suivi des mises à jour : aucune page Nexus rattachée."
 }

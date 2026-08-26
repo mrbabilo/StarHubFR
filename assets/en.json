@@ -1016,7 +1016,7 @@
   "recovery_reason_differs": "differs from the backup — compare only",
   "mod_install_dropped_question_many": "These %1$d files are content for %2$@, not mods of their own.\n\nInstall them into:\n%3$@",
   "mod_install_dropped_done_many": "%1$d files installed into %2$@",
-  "mod_install_deposit_message_addon": "This archive is not a mod: it holds %1$d file(s) meant for “%2$@”. Anything they replace is saved to a backup first, but removing them afterwards is done by hand.",
+  "mod_install_deposit_message_addon": "This archive is not a mod: it holds %1$d file(s) meant for “%2$@”. Anything they replace is backed up first, and you can remove them from that mod's page afterwards.",
   "mod_install_deposit_rollback_incomplete": "Nothing was installed, and undoing it did not fully succeed. These files were left as they are: %@",
   "mods_translation_remove_not_tracked": "The files were removed, but the change could not be recorded: the translation may show up again on next launch.",
   "mods_compat_status_broken": "Broken",
@@ -1042,5 +1042,13 @@
   "mods_supplement_none": "Nothing found on Nexus whose title mentions this mod.",
   "mods_supplement_found": "%lld mod(s) whose title mentions this one — translations set aside.",
   "mods_supplement_capped": "Nexus holds %1$lld results for this name; only the %2$lld most recent were read.",
-  "mods_supplement_hint": "These are not confirmed add-ons: they are mods that name this one. Check before installing."
+  "mods_supplement_hint": "These are not confirmed add-ons: they are mods that name this one. Check before installing.",
+  "mods_search_short_translation": "French translation",
+  "mods_search_short_supplement": "Add-ons",
+  "mods_installed_section": "Already in place",
+  "mods_link_to_nexus": "Link to Nexus",
+  "mods_link_to_nexus_hint": "Installed by hand, so no Nexus page is attached — which is why no update can be spotted. Pick the matching entry below to attach one.",
+  "mods_addon_remove": "Remove",
+  "mods_supplement_as_mod": "installed as a mod of its own",
+  "mods_no_update_check": "No update check: no Nexus page attached."
 }
