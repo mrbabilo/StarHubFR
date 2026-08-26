@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.20.0] - 2026-08-26
+
 ### Added
 - **An archive that is not a mod is no longer just refused.** Dropping a translation or a bag pack used to end on "manifest.json missing" and nothing else. The app now works out which installed mod the files are for and offers to add them — and when the archive's folder name matches no installed mod, it asks you which one rather than guessing. On a set of nine real archives, seven were placed on their own and two were handed back as a choice with the right mod first. Whatever is overwritten is backed up first, and a translation dropped this way gets the same **Remove** button on the mod's page as one found on Nexus.
 - **A mod's page can find, install, follow and remove its French translation.** A translation is not a mod — it is files dropped *inside* the mod it translates — so it lives where it makes sense: on that mod's page. Nexus is searched by the mod's own name, narrowed by the `French` tag its authors use (77 of 80 translations carry it; the title is only a fallback). Installing puts every file it overwrites safely aside first, so removing gives back the `fr.json` the mod's own author shipped instead of leaving it with no French at all. A newer version is spotted by Nexus dates, not version numbers — translators routinely reuse the translated mod's number.
@@ -762,7 +764,8 @@ where the exact log format was verified.
 - Added translation for **Wear More Rings** (v7.9) by bcmpinc.
 - Added translation for **World Navigator** (v1.4.2) by pneuma163.
 
-[Unreleased]: https://github.com/mrbabilo/StarHubFR/compare/v1.19.1...HEAD
+[Unreleased]: https://github.com/mrbabilo/StarHubFR/compare/v1.20.0...HEAD
+[1.20.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.19.1...v1.20.0
 [1.19.1]: https://github.com/mrbabilo/StarHubFR/compare/v1.19.0...v1.19.1
 [1.19.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.18.0...v1.19.0
 [1.18.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.17.0...v1.18.0
