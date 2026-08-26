@@ -782,6 +782,16 @@ pouvoir revenir en arrière à tout moment.
       l'état vide des alertes disait « Tous les mods sont à jour » — la clé des
       mises à jour Nexus, mésusée ; clé propre « Aucune alerte système », et la
       clé morte retirée des trois endroits.*
+      *Corrigé dans la foulée du premier retour réel (2026-08-26) : les deux
+      pages étaient **conditionnelles** dans la barre latérale — Quarantaine
+      n'apparaissait que si le dernier rapport avait mis quelque chose en
+      quarantaine, les Alertes que si des erreurs existaient. Les boutons de
+      relance vivaient donc sur des pages **inaccessibles dans le cas commun**
+      (parc sain, journal sans erreur) : la vérification était justement ce
+      qu'on ne pouvait pas faire. Les deux entrées sont désormais permanentes,
+      au patron de « Mises à jour » voisin (toujours visible, pastille masquée
+      à zéro — `SidebarBadgeItem` le fait déjà), et la quarantaine sans rapport
+      affiche le même message que le rapport vide plutôt qu'un blanc.*
 - [ ] **B2-T4** — Guidage quand `unrar`/`unar`/`7z` manque. *Socle déjà en place* : l'accueil
       affiche l'état d'installation de `unar` avec la commande Homebrew
       (`home_tool_unar_*`). Ce qui manque : au **moment de l'échec**, un message actionnable

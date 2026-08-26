@@ -72,28 +72,32 @@ struct MainView: View {
 
                 // System Alerts: SMAPI errors. These are also logged to the
                 // Journaux tab so they remain consultable after the banner
-                // is dismissed.
-                if !vm.smapiErrors.isEmpty {
-                    SidebarBadgeItem(
-                        label: vm.L(L10n.Main.systemAlerts),
-                        tab: "SystemAlerts",
-                        count: vm.smapiErrors.count,
-                        accentColor: .orange,
-                        currentTab: $currentTab
-                    )
-                }
+                // is dismissed. Always visible for the same reason as Mod
+                // Updates above: the page carries « Revérifier le journal »
+                // (B2-T3), and a journal silent before an install says
+                // nothing about after — the tab must be reachable when green.
+                // The badge is hidden when count == 0 (see `SidebarBadgeItem`).
+                SidebarBadgeItem(
+                    label: vm.L(L10n.Main.systemAlerts),
+                    tab: "SystemAlerts",
+                    count: vm.smapiErrors.count,
+                    accentColor: .orange,
+                    currentTab: $currentTab
+                )
 
-                // Quarantine badge: shown only when items have actually been
-                // quarantined, so the sidebar doesn't show an empty indicator.
-                if let report = vm.lastRepairReport, !report.quarantined.isEmpty {
-                    SidebarBadgeItem(
-                        label: vm.L(L10n.Main.quarantine),
-                        tab: "Quarantine",
-                        count: report.quarantined.count,
-                        accentColor: .purple,
-                        currentTab: $currentTab
-                    )
-                }
+                // Quarantine: folder-repair report + « Relancer l'analyse »
+                // (B2-T3). Always visible — the entry used to appear only
+                // when items were quarantined, which hid the page on a
+                // healthy library: precisely the case where the user wants
+                // to run the analysis and see it find nothing. The badge is
+                // hidden when count == 0 (see `SidebarBadgeItem`).
+                SidebarBadgeItem(
+                    label: vm.L(L10n.Main.quarantine),
+                    tab: "Quarantine",
+                    count: vm.lastRepairReport?.quarantined.count ?? 0,
+                    accentColor: .purple,
+                    currentTab: $currentTab
+                )
                 
                 // Game Section
                 VStack(alignment: .leading, spacing: 2) {
@@ -140,10 +144,9 @@ struct MainView: View {
                     )
                 }
                 
-                // System & Settings Section — Quarantine is intentionally NOT
-                // here: it appears as a badge item at the top of the sidebar
-                // when items are quarantined, so a second static entry would
-                // be redundant (and confusing when nothing is quarantined).
+                // System & Settings Section. Quarantine lives in the status
+                // zone above — always reachable, badge only when it holds
+                // something (see its comment there).
                 VStack(alignment: .leading, spacing: 2) {
                     SidebarSectionHeader(title: vm.L(L10n.Main.system), icon: "gearshape")
                     
@@ -1092,6 +1095,15 @@ struct QuarantineView: View {
                     .padding(20)
                     .background(Color.primary.opacity(0.04))
                     .cornerRadius(12)
+                } else {
+                    // Atteignable depuis que l'entrée est permanente (B2-T3) :
+                    // aucune analyse n'a encore tourné (jeu non configuré, ou
+                    // rapport jamais produit). Même message que le rapport
+                    // vide, plutôt qu'un blanc entre le sous-titre et les
+                    // boutons.
+                    Text(vm.L(L10n.Quarantine.noQuarantine))
+                        .font(.system(size: 13))
+                        .foregroundColor(.secondary)
                 }
 
                 // Actions
