@@ -4619,10 +4619,17 @@ class StarHubTHViewModel: ObservableObject {
     /// Passe par `setCustomNexusModId`, le chemin d'une saisie manuelle : c'en
     /// est une, faite d'un clic au lieu du clavier. La liste se referme, sans
     /// quoi elle continuerait de proposer ce qui vient d'être choisi.
+    ///
+    /// `loadModDetail`, pour la même raison que dans `commitDraft` : la
+    /// description et le changelog n'ont été chargés qu'en ouvrant le volet,
+    /// sous l'ancien identifiant (vide — donc texte du manifeste local, sans
+    /// chargement distant). Sans ce rechargement, la fiche nouvellement liée
+    /// resterait muette jusqu'à la prochaine navigation.
     func adoptNexusIdentity(_ candidate: NexusModSearch.IdentityCandidate, for mod: ModItem) {
         setCustomNexusModId(for: mod, modId: String(candidate.hit.modId))
         dismissIdentityResults(for: mod)
         fetchMetadata(forNexusModId: String(candidate.hit.modId)) { _ in }
+        loadModDetail(for: mod)
         log(String(format: L(L10n.VM.nexusIdLearned), mod.folderName, String(candidate.hit.modId)))
     }
 
