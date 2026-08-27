@@ -904,6 +904,8 @@ enum L10n {
         static let importFavoritesConfirmAction = "profiles_import_favorites_confirm_action"
         static let copyNameFormat       = "profiles_copy_name_format"
         static let issuesBadge          = "profiles_issues_badge"
+        static let configStored         = "profiles_config_stored"
+        static let configOrphans        = "profiles_config_orphans"
         static let diagnosticTitle      = "profiles_diagnostic_title"
         static let sectionMissing       = "profiles_section_missing"
         static let sectionDependencies  = "profiles_section_dependencies"

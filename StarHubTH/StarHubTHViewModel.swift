@@ -6858,6 +6858,29 @@ class StarHubTHViewModel: ObservableObject {
         return ProfileConfigStore.load(from: url)[mod.folderName]?.text
     }
 
+    /// Ce qu'un profil retient, et ce qui n'a plus de dossier installé.
+    ///
+    /// Les orphelins sont **gardés, pas purgés** (spec §6.5) : réinstaller
+    /// le mod doit lui rendre ses réglages. Cette fonction est la seule à
+    /// les nommer — la fiche d'un mod part d'un `ModItem`, qu'un mod
+    /// désinstallé n'a pas.
+    func profileConfigSummary(for profile: ModProfile) -> (total: Int, orphans: [String]) {
+        guard let url = ProfileConfigStore.fileURL(profileId: profile.id) else {
+            return (0, [])
+        }
+        let entries = ProfileConfigStore.load(from: url)
+        // `folderName` reste logique : un mod en pause porte un point sur le
+        // disque, pas dans son identité — sans quoi mettre un mod en pause
+        // le ferait passer pour désinstallé.
+        let installed = Set(mods
+            .flatMap { $0.isGroup ? ($0.children ?? []) : [$0] }
+            .map(\.folderName))
+        let orphans = entries.keys
+            .filter { !installed.contains($0) }
+            .sorted()
+        return (entries.count, orphans)
+    }
+
     /// Les écarts entre ce que deux profils retiennent de ce mod. `nil` :
     /// un des deux textes ne se parse pas — l'écran affiche l'explication,
     /// jamais un diff inventé.

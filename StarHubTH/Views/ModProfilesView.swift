@@ -291,6 +291,9 @@ struct ProfileRow: View {
     let onShowMissing: () -> Void
     let onDelete: () -> Void
     @State private var isHovered = false
+    /// Ce que ce profil retient des `config.json`, rempli à l'apparition et
+    /// jamais recalculé au rendu : la mesure ouvre et décode un fichier.
+    @State private var configSummary: (total: Int, orphans: [String]) = (0, [])
 
     var body: some View {
         // A plain row (NOT a tappable button) so switching profiles — which
@@ -344,6 +347,7 @@ struct ProfileRow: View {
                 // la colonne n'en tient à la largeur minimale de la fenêtre
                 // (820 pt, dont 240 de barre latérale et ~230 de boutons).
                 translationBadge
+                configBadge
             }
 
             Spacer()
@@ -404,6 +408,7 @@ struct ProfileRow: View {
         .contentShape(Rectangle())
         .background(isHovered ? Color.primary.opacity(0.03) : Color.clear)
         .onHover { isHovered = $0 }
+        .onAppear { configSummary = vm.profileConfigSummary(for: profile) }
         .contextMenu {
             if !isActive {
                 Button(vm.L(L10n.Profiles.activate)) { onApply() }
@@ -418,6 +423,35 @@ struct ProfileRow: View {
             if !vm.isDefaultProfile(profile.id) {
                 Divider()
                 Button(vm.L(L10n.Profiles.delete), role: .destructive) { onDelete() }
+            }
+        }
+    }
+
+    /// Les `config.json` que ce profil retient, et ceux dont le mod n'est
+    /// plus installé.
+    ///
+    /// Sa propre ligne, comme `translationBadge` : la rangée ne tient pas
+    /// un compteur de plus à la largeur minimale de la fenêtre. Les noms
+    /// d'orphelins sont tronqués à cinq — un profil peut en porter des
+    /// dizaines.
+    @ViewBuilder
+    private var configBadge: some View {
+        if configSummary.total > 0 {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(String(format: vm.L(L10n.Profiles.configStored),
+                            Int64(configSummary.total)))
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+                if !configSummary.orphans.isEmpty {
+                    let names = configSummary.orphans.prefix(5).joined(separator: ", ")
+                    let more = configSummary.orphans.count - 5
+                    Text(String(format: vm.L(L10n.Profiles.configOrphans),
+                                Int64(configSummary.orphans.count),
+                                more > 0 ? "\(names) +\(more)" : names))
+                        .font(.system(size: 11))
+                        .foregroundColor(.orange)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
         }
     }
