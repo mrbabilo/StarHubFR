@@ -45,4 +45,7 @@ public enum UDKey {
     /// n'y en a aucune. Décoché par défaut : rien ne sort de la machine sans
     /// ce geste. La clé, elle, vit au trousseau (`KeychainSecret`).
     public static let deepLFallbackEnabled = "deepLFallbackEnabled"
+    /// Les mods dont le `config.json` suit le profil actif (B3-T5), par nom
+    /// **logique** de dossier. Encodé en JSON comme `favoriteMods`.
+    public static let profileManagedConfigMods = "profileManagedConfigMods"
 }

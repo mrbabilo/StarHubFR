@@ -253,6 +253,9 @@ class StarHubTHViewModel: ObservableObject {
     /// celui qui ne porte pas le point d'un dossier en pause, donc le marquage
     /// survit à une mise en pause. Même clé que `modActivationTimestamps`.
     @Published private(set) var favoriteMods: Set<String> = []
+    /// Les mods dont le `config.json` suit le profil actif (B3-T5), par nom
+    /// **logique** de dossier — même clé que `favoriteMods`.
+    @Published private(set) var profileManagedConfigMods: Set<String> = []
 
     @Published var smapiInstalledVersion: String? = nil   // nil = not installed
     /// True during the initial launch load (mod scan + save reload + profile
@@ -1885,6 +1888,7 @@ class StarHubTHViewModel: ObservableObject {
         let customIds = Self.loadCustomModIds()
         let activationTs = Self.loadModActivationTimestamps()
         let favorites = Self.loadFavoriteMods()
+        let managedConfigs = Self.loadProfileManagedConfigMods()
         let translations = InstalledTranslationStore.load()
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
@@ -1906,6 +1910,7 @@ class StarHubTHViewModel: ObservableObject {
             self.nexusCustomModIds = customIds
             self.modActivationTimestamps = activationTs
             self.favoriteMods = favorites
+            self.profileManagedConfigMods = managedConfigs
             self.installedTranslations = translations
         }
     }
@@ -5608,6 +5613,19 @@ class StarHubTHViewModel: ObservableObject {
         UserDefaults.standard.set(data, forKey: favoriteModsKey)
     }
 
+    // MARK: - Configs par profil (B3-T5)
+
+    private static func loadProfileManagedConfigMods() -> Set<String> {
+        guard let data = UserDefaults.standard.data(forKey: UDKey.profileManagedConfigMods)
+        else { return [] }
+        return (try? JSONDecoder().decode(Set<String>.self, from: data)) ?? []
+    }
+
+    private static func saveProfileManagedConfigMods(_ names: Set<String>) {
+        guard let data = try? JSONEncoder().encode(names) else { return }
+        UserDefaults.standard.set(data, forKey: UDKey.profileManagedConfigMods)
+    }
+
     private static let modActivationTimestampsKey = "modActivationTimestamps"
 
     private static func loadModActivationTimestamps() -> [String: Date] {
@@ -6762,6 +6780,42 @@ class StarHubTHViewModel: ObservableObject {
     }
 
     func isFavorite(_ mod: ModItem) -> Bool { favoriteMods.contains(mod.folderName) }
+
+    /// Un mod peut-il porter des configs par profil ?
+    ///
+    /// Un **en-tête de pack** ne le peut pas : il n'a pas de réglages propres,
+    /// ses composants en ont chacun les leurs et se marquent eux-mêmes. Même
+    /// arbitrage que les notes (F4), pour une raison différente — là c'était
+    /// l'absence d'identité, ici l'absence de config.
+    ///
+    /// L'absence d'`UniqueID` n'exclut rien, contrairement aux profils : le
+    /// magasin est indexé par dossier. Un tel mod reste actif dans tous les
+    /// profils, et son config peut légitimement y changer.
+    func canManageProfileConfig(_ mod: ModItem) -> Bool { !mod.isGroup }
+
+    func isProfileConfigManaged(_ mod: ModItem) -> Bool {
+        profileManagedConfigMods.contains(mod.folderName)
+    }
+
+    /// Pose ou retire la marque. Persisté aussitôt, comme les favoris : c'est
+    /// un geste isolé, il n'a pas d'enregistrement différé où se raccrocher.
+    ///
+    /// **Prend la valeur voulue, ne bascule pas.** Un `Toggle` SwiftUI appelle
+    /// le `set` de sa liaison avec la valeur affichée lors d'un re-rendu ou
+    /// d'une animation ; un setter qui ignorerait son argument pour basculer
+    /// démarquerait alors le mod tout seul, en silence. Même forme que
+    /// `setCustomCategory`, le patron du dépôt pour ce cas.
+    ///
+    /// Retirer la marque **ne détruit rien** : les textes mémorisés restent
+    /// dans les magasins des profils, et remarquer le mod les reprend.
+    func setProfileConfigManaged(_ mod: ModItem, _ on: Bool) {
+        guard canManageProfileConfig(mod) else { return }
+        let changed = on
+            ? profileManagedConfigMods.insert(mod.folderName).inserted
+            : (profileManagedConfigMods.remove(mod.folderName) != nil)
+        guard changed else { return }
+        Self.saveProfileManagedConfigMods(profileManagedConfigMods)
+    }
 
     /// Ce que donnerait un import des favoris dans ce profil, sans rien
     /// écrire. Sert à l'écran : dire combien de mods entreraient, et lesquels
