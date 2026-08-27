@@ -252,4 +252,99 @@ public enum ConfigJSONTree {
               literal.contains(where: { ("0"..."9").contains($0) }) else { return nil }
         return .number(literal)
     }
+
+    // MARK: - Écriture
+
+    /// Sérialise au format de SMAPI : 2 espaces, LF, **pas de saut de ligne
+    /// final** (spec §5.2 — `Formatting.Indented` de Newtonsoft, qui termine
+    /// par `}` sans `\n`).
+    ///
+    /// **Se relit avant de rendre** : une échappée manquée écrirait un
+    /// fichier que le jeu refuserait, et l'app n'aurait aucun moyen de le
+    /// savoir. C'est la garde reprise d'`OrderedJSONWriter` — la seule partie
+    /// de cet écrivain qui se transplantait telle quelle.
+    public static func write(_ value: Value) -> String? {
+        var out = ""
+        writeIndented(value, indent: 0, into: &out)
+        guard let reparsed = parse(out), reparsed == value else { return nil }
+        return out
+    }
+
+    /// Rendu compact sur une ligne, sans espaces — pour **afficher** une
+    /// valeur composée dans l'écran de comparaison, jamais pour écrire.
+    public static func inline(_ value: Value) -> String {
+        var out = ""
+        switch value {
+        case .object(let obj):
+            out += "{"
+            for (rank, key) in obj.keys.enumerated() {
+                if rank > 0 { out += "," }
+                out += "\(escape(key)):\(inline(obj.members[key] ?? .null))"
+            }
+            out += "}"
+        case .array(let items):
+            out += "[" + items.map(inline).joined(separator: ",") + "]"
+        case .string(let s): out += escape(s)
+        case .number(let n): out += n
+        case .bool(let b):   out += b ? "true" : "false"
+        case .null:          out += "null"
+        }
+        return out
+    }
+
+    private static func writeIndented(_ value: Value, indent: Int, into out: inout String) {
+        let pad = String(repeating: "  ", count: indent)
+        switch value {
+        case .object(let obj):
+            if obj.keys.isEmpty { out += "{}"; return }
+            out += "{\n"
+            for (rank, key) in obj.keys.enumerated() {
+                out += pad + "  " + escape(key) + ": "
+                writeIndented(obj.members[key] ?? .null, indent: indent + 1, into: &out)
+                out += rank == obj.keys.count - 1 ? "\n" : ",\n"
+            }
+            out += pad + "}"
+        case .array(let items):
+            if items.isEmpty { out += "[]"; return }
+            out += "[\n"
+            for (rank, item) in items.enumerated() {
+                out += pad + "  "
+                writeIndented(item, indent: indent + 1, into: &out)
+                out += rank == items.count - 1 ? "\n" : ",\n"
+            }
+            out += pad + "]"
+        case .string(let s):
+            out += escape(s)
+        case .number(let n):
+            out += n
+        case .bool(let b):
+            out += b ? "true" : "false"
+        case .null:
+            out += "null"
+        }
+    }
+
+    /// Échappement JSON d'une chaîne, guillemets compris. À la main plutôt
+    /// que par `JSONSerialization` : elle n'encode pas une chaîne nue sans
+    /// conteneur, et son passage par `Any` a déjà coûté à ce dépôt.
+    /// (Repris d'`OrderedJSONWriter.escape`, inchangé.)
+    private static func escape(_ s: String) -> String {
+        var out = "\""
+        for c in s.unicodeScalars {
+            switch c {
+            case "\"":  out += "\\\""
+            case "\\":  out += "\\\\"
+            case "\n":  out += "\\n"
+            case "\r":  out += "\\r"
+            case "\t":  out += "\\t"
+            default:
+                if c.value < 0x20 {
+                    out += String(format: "\\u%04x", c.value)
+                } else {
+                    out.unicodeScalars.append(c)
+                }
+            }
+        }
+        return out + "\""
+    }
 }

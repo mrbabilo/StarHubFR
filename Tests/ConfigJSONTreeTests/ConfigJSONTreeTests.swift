@@ -198,4 +198,68 @@ struct ConfigJSONTreeTests {
         #expect(obj.members["Path"] == .string(#"C:\Mods\"quoted""#))
         #expect(obj.members["Newline"] == .string("a\nb"))
     }
+
+    // MARK: - Écriture (format SMAPI, spec §5.2)
+
+    @Test func writesSmapiFormatExactly() throws {
+        // Le format de SMAPI : 2 espaces, LF, pas de saut de ligne final.
+        // Comparé caractère à caractère — l'octet près, pas « à peu près ».
+        let tree = try #require(ConfigJSONTree.parse(#"{"Zoom": 1, "Alpha": false}"#))
+        let text = try #require(ConfigJSONTree.write(tree))
+        #expect(text == "{\n  \"Zoom\": 1,\n  \"Alpha\": false\n}")
+        #expect(!text.hasSuffix("\n"))
+    }
+
+    @Test func writeRoundTripsARealConfig() throws {
+        let real = """
+        {
+          "TVSceneDuration": 1000.0,
+          "PigChance": 0.1,
+          "ShrineStyle": "Default",
+          "IncludeObjects": ["", "PassableCrops.Crop"]
+        }
+        """
+        let tree = try #require(ConfigJSONTree.parse(real))
+        let written = try #require(ConfigJSONTree.write(tree))
+        #expect(ConfigJSONTree.parse(written) == tree)
+        // Le littéral décimal d'origine, tel quel : jamais 0.1 → 0.100…
+        #expect(written.contains("\"PigChance\": 0.1"))
+        #expect(written.contains("\"TVSceneDuration\": 1000.0"))
+    }
+
+    @Test func writeKeepsKeyOrderUnsorted() {
+        // 1 fichier du parc sur 79 seulement est en ordre alphabétique :
+        // écrire trié rendrait le fichier méconnaissable pour l'auteur.
+        let tree = ConfigJSONTree.parse(#"{"Zoom": 1, "Alpha": false}"#)!
+        let text = ConfigJSONTree.write(tree)!
+        #expect(text.range(of: "\"Zoom\"")!.lowerBound < text.range(of: "\"Alpha\"")!.lowerBound)
+    }
+
+    @Test func writeEmptyContainers() throws {
+        let tree = try #require(ConfigJSONTree.parse(#"{"Empty": {}, "List": []}"#))
+        let text = try #require(ConfigJSONTree.write(tree))
+        #expect(text == "{\n  \"Empty\": {},\n  \"List\": []\n}")
+    }
+
+    @Test func writeNestsWithTwoSpaces() throws {
+        let tree = try #require(ConfigJSONTree.parse(#"{"A": {"B": 1}}"#))
+        let text = try #require(ConfigJSONTree.write(tree))
+        #expect(text == "{\n  \"A\": {\n    \"B\": 1\n  }\n}")
+    }
+
+    @Test func writeCrlfSourceBecomesLf() throws {
+        // Le merge réécrit au format de SMAPI : un config source en CRLF
+        // (9 dans le parc) ressort en LF. Le verbatim, lui, ne passe jamais
+        // par ici — c'est la différence assumée entre restaurer octets pour
+        // octets et reconstruire le seul résultat d'un merge.
+        let tree = try #require(ConfigJSONTree.parse("{\r\n  \"A\": 1\r\n}"))
+        let text = try #require(ConfigJSONTree.write(tree))
+        #expect(!text.contains("\r"))
+    }
+
+    @Test func inlineRendersCompactly() {
+        let tree = ConfigJSONTree.parse(#"{"A": 1, "B": [1, 2], "C": {"D": true}}"#)!
+        let text = ConfigJSONTree.inline(tree)
+        #expect(text == #"{"A":1,"B":[1,2],"C":{"D":true}}"#)
+    }
 }
