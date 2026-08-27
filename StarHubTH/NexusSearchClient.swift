@@ -1,10 +1,10 @@
 import Foundation
 
-/// Cherche un mod sur Nexus par son nom, via l'API GraphQL v2.
+/// Le réseau de la vitrine et des recherches : GraphQL v2.
 ///
-/// Le réseau seulement : la construction de la requête et la lecture de la
-/// réponse vivent dans `NexusModSearch` (Core, testé). Ce fichier ne fait que
-/// poster et rapporter.
+/// Le réseau seulement : la construction des requêtes et la lecture des
+/// réponses vivent dans `NexusModSearch` (Core, testé). Ce fichier ne fait
+/// que poster et rapporter.
 ///
 /// ⚠️ **L'API v2 ne renvoie aucun en-tête `x-rl-*`** — vérifié le 2026-08-25 :
 /// le quota affiché dans les réglages (B2-T6) ne dit donc rien des recherches.
@@ -27,21 +27,50 @@ enum NexusSearchClient {
     ///   pour ne rendre que les traductions françaises. `nil` cherche large.
     static func search(name: String, tag: String? = nil,
                        completion: @escaping (Result<NexusModSearch.Page, SearchError>) -> Void) {
-        func finish(_ result: Result<NexusModSearch.Page, SearchError>) {
+        send(body: NexusModSearch.queryBody(name: name,
+                                            gameId: NexusRequestBuilder.gameId,
+                                            tag: tag),
+             decode: NexusModSearch.decode,
+             completion: completion)
+    }
+
+    /// Les mods du jeu par tri — la vitrine « Découvrir » (spec §5.1).
+    ///
+    /// - Parameter tag: restreint au tag Nexus donné — la sélection FR.
+    static func listing(sort: NexusModSearch.ListingSort, tag: String? = nil,
+                        completion: @escaping (Result<NexusModSearch.Page, SearchError>) -> Void) {
+        send(body: NexusModSearch.listingBody(sort: sort, tag: tag,
+                                              gameId: NexusRequestBuilder.gameId),
+             decode: NexusModSearch.decode,
+             completion: completion)
+    }
+
+    /// La fiche d'un mod (spec §5.2).
+    static func detail(modId: Int,
+                       completion: @escaping (Result<NexusModSearch.Detail, SearchError>) -> Void) {
+        send(body: NexusModSearch.detailBody(modId: modId,
+                                             gameId: NexusRequestBuilder.gameId),
+             decode: NexusModSearch.decodeDetail,
+             completion: completion)
+    }
+
+    /// L'entonnoir commun : clé, requête, quota, 429, 200-avec-`errors`.
+    /// Une seule copie pour la recherche, le listing et la fiche — pas de
+    /// variantes qui divergent.
+    private static func send<T>(body: Data?,
+                                decode: @escaping (Data) -> Result<T, NexusModSearch.Failure>,
+                                completion: @escaping (Result<T, SearchError>) -> Void) {
+        func finish(_ result: Result<T, SearchError>) {
             DispatchQueue.main.async { completion(result) }
         }
-
         guard let apiKey = NexusUpdateChecker.shared.apiKey(), !apiKey.isEmpty else {
             finish(.failure(.noApiKey)); return
         }
-        guard let body = NexusModSearch.queryBody(name: name,
-                                                  gameId: NexusRequestBuilder.gameId,
-                                                  tag: tag),
+        guard let body,
               let request = NexusRequestBuilder.makeGraphQLRequest(body: body, apiKey: apiKey)
         else {
             finish(.failure(.transport("invalid_request"))); return
         }
-
         URLSession.shared.dataTask(with: request) { data, response, error in
             if let error {
                 finish(.failure(.transport(error.localizedDescription))); return
@@ -64,8 +93,8 @@ enum NexusSearchClient {
             // Un 200 ne suffit pas à conclure : GraphQL rend 200 avec un
             // tableau `errors`, et le prendre pour un résultat vide changerait
             // une panne de schéma en « aucune traduction trouvée ».
-            switch NexusModSearch.decode(data) {
-            case .success(let page): finish(.success(page))
+            switch decode(data) {
+            case .success(let value): finish(.success(value))
             case .failure(let failure): finish(.failure(.read(failure)))
             }
         }.resume()
