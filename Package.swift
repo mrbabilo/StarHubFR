@@ -124,6 +124,7 @@ let package = Package(
                 "Models/DownloadProgress.swift",
                 "Models/FileRecovery.swift",
                 "Models/TranslationRecoveryDiff.swift",
+                "Models/ProfileConfigStore.swift",
                 "Extensions/ModConfigFiles.swift",
             ]
         ),
@@ -640,6 +641,11 @@ let package = Package(
             name: "TokenShieldTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/TokenShieldTests"
+        ),
+        .testTarget(
+            name: "ProfileConfigStoreTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ProfileConfigStoreTests"
         ),
     ]
 )
