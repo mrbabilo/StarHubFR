@@ -1024,6 +1024,12 @@ pouvoir revenir en arrière à tout moment.
       Sans clé d'API la reprise ne fait rien et ne signale rien ; un 429 l'arrête sur place
       et ce qui a abouti reste acquis ; le journal rend un décompte honnête (pages
       interrogées / trouvées / confirmées à jour / échecs).
+      **Vérifié à l'écran le 2026-08-27 à 22:06**, sur son parc entier (1 016 mods, plus
+      aucun lot perdu) : 123 invérifiables, **52 mods repris sur 42 pages, 10 mises à jour
+      trouvées, 42 confirmés à jour, 0 échec** — quand smapi.io seule n'en trouvait que
+      **3**. La reprise rapporte donc plus du triple de ce que la source principale voit.
+      *(Les comptes détaillés ci-dessus viennent du relevé d'atelier sur 1 010 `UniqueID` ;
+      l'écart de un tient aux six entrées que ma mesure ne voyait pas.)*
       *Stardrop ne résout pas ce problème* — il décode `ModEntry.Errors[]` et **ne le lit
       nulle part**, et son `HasUpdateKeys()`/`HasValidVersion()` retire silencieusement de
       la requête smapi.io tout mod dont une clé est vide ou la version inanalysable. Ses
