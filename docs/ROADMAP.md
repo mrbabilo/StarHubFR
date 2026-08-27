@@ -739,6 +739,15 @@ pouvoir revenir en arrière à tout moment.
       vérification en jeu (retirer une clé d'un `config.json`, lancer le jeu,
       voir si SMAPI la recomble). Tant qu'elle n'est pas accrochée, la
       restauration réécrit le texte mémorisé tel quel, comme depuis l'étape 2.
+- [ ] **B3-T7** — Supprimer un profil laisse son magasin de configs derrière lui.
+      `deleteProfile` (`StarHubTHViewModel.swift:7002`) retire le profil des préférences
+      sans toucher à `Application Support/StarHubTH/ProfileConfigs/<uuid>.json` : le
+      fichier n'est plus jamais lu — aucune surface ne le nomme, `profileConfigSummary`
+      ne parcourt que les profils existants — et n'est jamais effacé. · **S**
+      *Constaté le 2026-08-27 sur le parc réel : le dossier porte deux magasins, dont un
+      (`D44530B0…`, 3,1 Ko, 5 configs, écrit à 16:39:53) qui n'appartient à aucun des
+      trois profils. Effacer un magasin est un chemin de suppression neuf, donc à
+      instruire — l'alternative honnête étant de le laisser et de le dire quelque part.*
 - [x] **B3-T6** — Notes libres par mod, persistées au profil (annotations contextuelles :
       « désactivé en multi car désync », « à mettre à jour »). · **S** · *§audit-stardrop*
       **Livré le 2026-08-27.** Deux arbitrages de l'auteur en séance : la note
