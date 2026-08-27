@@ -98,7 +98,7 @@ liste du 2026-07-30 et n'existaient pas dans le document de veille.
 | §1 | Détecter un `manifest.json` corrompu, proposer une réinstallation | **Partiel** | `ModFolderRepairer.swift` répare des structures de dossiers, pas des manifests invalides → **A1-T2** |
 | §1 | Mise en évidence des problèmes dans la liste des mods | **Fait** | Pastille d'anomalie près du nom (**B1-T3**, pas encore publié) |
 | §2 | Dates Nexus (création / mise à jour) | **Fait, pour ce qui est capté** | Revérifié le 2026-08-25 : la seule date captée (`updated_timestamp`) est nommée juste aux trois endroits qui la montrent. `created_timestamp` n'est jamais demandé — par décision. L'âge de la dernière MàJ s'affiche sur la fiche à partir d'un an révolu (**B2-T5** livré, 2026-08-27) |
-| §2 | ETA pendant le téléchargement | **À faire** | Rien dans `Models/NexusDownloader.swift` → **B2-T1** |
+| §2 | ETA pendant le téléchargement | **Fait** | Pourcentage, volume, débit, temps restant et annulation, en pied de barre latérale (**B2-T1**, 2026-08-27) |
 | §2 | Poids du mod, taille de `Mods/`, espace disque restant | **Fait** | Pied de barre latérale + fiche mod (**B2-T2**, pas encore publié) |
 | §2 | Splashscreen en fenêtre dédiée | **Fait** | `Views/LaunchSplashWindow.swift`, v1.10.0 |
 | §2 | Boutons **Activer** / **Supprimer** sur la fiche mod | **Livré** (2026-08-01) | `ModDetailView.actionRow` → **B1-T1** |
@@ -142,7 +142,7 @@ de la liste de l'auteur. Analyse complète et exclusions motivées : `docs/audit
 | *audit* | Notes libres par mod | **Fait** | Note par mod rangée au profil actif, signalée dans la liste (**B3-T6**, v1.21.0) |
 | *audit* | Quota Nexus quotidien visible | **Fait** | Relevé sur toute réponse, affiché dans les réglages (**B2-T6**, pas encore publié) |
 | *audit* | `UpdateCautionMessage` (alerte auteur avant mise à jour) | **À faire** | → **B2-T7** |
-| *audit* | Panneau de downloads observable (%, vitesse, annulation) | **À faire** | Élargit **B2-T1** |
+| *audit* | Panneau de downloads observable (%, vitesse, annulation) | **Fait autrement** | Un seul téléchargement à la fois, par conception : un panneau de transferts concurrents n'aurait rien à lister. Le transfert en cours est rendu observable et annulable (**B2-T1**) |
 
 **Bilan au 2026-08-24 (v1.18.0 publiée)** — les **7 bugs** de la liste initiale sont
 corrigés, y compris le bloquant. Sur les 45 demandes : la **bissection** (axe A4) est
@@ -797,10 +797,39 @@ pouvoir revenir en arrière à tout moment.
 
 #### B2 — Ergonomie transverse
 
-- [ ] **B2-T1** — ETA et débit pendant les téléchargements Nexus, et **panneau de downloads
+- [x] **B2-T1** — ETA et débit pendant les téléchargements Nexus, et **panneau de downloads
       observable** : statut par téléchargement, %, vitesse, annulation, retry (inspiration :
       `DownloadPanel` de Stardop). Aujourd'hui StarHubFR ne fait que du
       `URLSession.downloadTask` fire-and-forget, sans progression live. · **M** · *§audit-stardrop*
+      **Livré le 2026-08-27, sans le panneau — et c'est le point.** L'app
+      **sérialise** les téléchargements à dessein (`rejectNexusDownloadIfBusy`) :
+      deux en vol se disputeraient `pendingDownloadedZip`. Un panneau de
+      transferts concurrents n'aurait donc rien à lister. Ce qui manquait
+      n'était pas une liste mais **un téléchargement rendu observable** :
+      pourcentage, volume, débit, temps restant et **annulation**, en pied de
+      barre latérale — un lien `nxm://` peut arriver du navigateur quel que
+      soit l'onglet ouvert — et repris sur la ligne des mises à jour.
+      **Le risque était le passage au délégué.** `URLSession.downloadTask(with:
+      completionHandler:)` garantissait une complétion unique, et tout en
+      dépend : `isDownloadingFromNexus` n'est remis à `false` que là, et sans
+      cela le bouton reste condamné pour la session. Le délégué, lui, sépare
+      cela en `didFinishDownloadingTo` **puis** `didCompleteWithError(nil)`, qui
+      se produisent tous deux sur un téléchargement normal. `NexusFileDownload`
+      porte donc la garantie lui-même — un drapeau relevé sous verrou par le
+      premier qui parle — et **toutes** les sorties y passent, échecs d'API
+      compris. Trois autres pièges traités : le fichier temporaire est supprimé
+      au retour de `didFinishDownloadingTo` (déplacement synchrone) ; la
+      session retient fortement son délégué jusqu'à `finishTasksAndInvalidate` ;
+      et `didWriteData` tire des centaines de fois par seconde, d'où un rapport
+      limité à dix par seconde — la faute qui avait rendu la vue des journaux
+      inutilisable. Annuler n'est **pas** une erreur : `NSURLErrorCancelled`
+      devient `.cancelled`, que les trois appelants taisent au lieu d'ouvrir une
+      alerte sur un geste volontaire. Le débit est lissé sur trois secondes
+      (`DownloadRateEstimator`, Core, 8 tests) : instantané il sauterait d'un
+      facteur dix, cumulé il masquerait un effondrement de connexion. Et
+      **sans taille annoncée** — `expectedContentLength` vaut `-1` plus souvent
+      qu'on ne croit sur un CDN — ni barre, ni pourcentage, ni ETA : seulement
+      le volume et le débit, qui sont vrais.*
 - [x] **B2-T2** — Poids par mod, total de `Mods/`, espace disque restant (en pied de barre
       latérale). *Livré : `Models/ModsFolderSizer.swift` pèse chaque dossier de premier
       niveau (place **allouée**), la mesure tourne en fond après chaque `scanMods()`, une

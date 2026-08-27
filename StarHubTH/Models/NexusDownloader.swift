@@ -7,6 +7,9 @@ enum NexusDownloadError: Error, LocalizedError {
     case authFailed
     case rateLimited
     case serverError(Int)
+    /// L'utilisateur a annulé. Ce n'est pas une panne : l'appelant doit s'en
+    /// taire plutôt que d'ouvrir une alerte sur un geste volontaire.
+    case cancelled
     /// Reserved for genuine OS/URLSession failures; `%@` is the OS-localized
     /// `error.localizedDescription`, never a hand-written English string.
     case requestFailed(String)
@@ -18,6 +21,7 @@ enum NexusDownloadError: Error, LocalizedError {
         case .noDownloadLink:      return L10nKey("vm_nexus_dl_no_link")
         case .authFailed:          return L10nKey("vm_nexus_dl_auth_failed")
         case .rateLimited:         return L10nKey("vm_nexus_dl_rate_limited")
+        case .cancelled:           return L10nKey("vm_nexus_dl_cancelled_error")
         case .serverError(let c):  return String(format: L10nKey("vm_nexus_dl_server_error"), c)
         case .requestFailed(let m): return String(format: L10nKey("vm_nexus_dl_request_failed"), m)
         }
@@ -85,23 +89,50 @@ struct NexusDownloader {
     }
 
     /// If `fileId` is nil, first resolves the main file id via the files list.
+    ///
+    /// Rend l'objet du téléchargement : c'est **le** point d'annulation, et il
+    /// existe dès maintenant — donc avant même que le lien ne soit résolu, ce
+    /// qui prend deux appels d'API. Annuler pendant cette résolution doit
+    /// marcher aussi.
+    ///
+    /// Toutes les sorties passent par lui, y compris les échecs d'API : c'est
+    /// ce qui rend « la complétion est appelée une fois exactement » vrai du
+    /// flux entier, et pas seulement du transfert (voir `NexusFileDownload`).
+    @discardableResult
     func download(modId: Int, fileId: Int?, game: String, key: String?, expires: Int?,
-                  completion: @escaping (Result<URL, NexusDownloadError>) -> Void) {
+                  onProgress: NexusFileDownload.ProgressHandler? = nil,
+                  completion: @escaping (Result<URL, NexusDownloadError>) -> Void)
+        -> NexusFileDownload {
+        let download = NexusFileDownload(
+            validate: { response in
+                // Le CDN peut renvoyer une page HTML (403 lien expiré, 429
+                // limite de débit) au lieu de l'archive : sans ce contrôle,
+                // elle était sauvée comme le fichier du mod.
+                // `treatForbiddenAsPremium: false` : un 403 sur le CDN
+                // n'annonce pas une clé premium, mais un lien périmé.
+                self.noteQuotaAndStatusError(for: response, treatForbiddenAsPremium: false)
+            },
+            onProgress: onProgress,
+            completion: completion)
+
         guard let apiKey = NexusUpdateChecker.shared.apiKey(), !apiKey.isEmpty else {
-            completion(.failure(.noApiKey)); return
+            download.complete(.failure(.noApiKey)); return download
         }
         if let fileId = fileId {
-            fetchLinkAndDownload(game: game, modId: modId, fileId: fileId, key: key, expires: expires, apiKey: apiKey, completion: completion)
+            fetchLinkAndDownload(game: game, modId: modId, fileId: fileId, key: key,
+                                 expires: expires, apiKey: apiKey, download: download)
         } else {
             resolveFileId(modId: modId) { result in
                 switch result {
                 case .success(let fid):
-                    fetchLinkAndDownload(game: game, modId: modId, fileId: fid, key: key, expires: expires, apiKey: apiKey, completion: completion)
+                    fetchLinkAndDownload(game: game, modId: modId, fileId: fid, key: key,
+                                         expires: expires, apiKey: apiKey, download: download)
                 case .failure(let e):
-                    completion(.failure(e))
+                    download.complete(.failure(e))
                 }
             }
         }
+        return download
     }
 
     private func resolveFileId(modId: Int,
@@ -119,53 +150,32 @@ struct NexusDownloader {
         }
     }
 
-    private func fetchLinkAndDownload(game: String, modId: Int, fileId: Int, key: String?, expires: Int?, apiKey: String,
-                                      completion: @escaping (Result<URL, NexusDownloadError>) -> Void) {
+    private func fetchLinkAndDownload(game: String, modId: Int, fileId: Int, key: String?,
+                                      expires: Int?, apiKey: String,
+                                      download: NexusFileDownload) {
         let path = NexusDownloadAPI.downloadLinkEndpoint(game: game, modId: modId, fileId: fileId, key: key, expires: expires)
         guard let req = request(path: path, apiKey: apiKey) else {
-            completion(.failure(.noDownloadLink)); return
+            download.complete(.failure(.noDownloadLink)); return
         }
         URLSession.shared.dataTask(with: req) { data, response, error in
-            if let error = error { completion(.failure(.requestFailed(error.localizedDescription))); return }
-            if let statusError = noteQuotaAndStatusError(for: response, treatForbiddenAsPremium: (key == nil && expires == nil)) { completion(.failure(statusError)); return }
-            guard let data = data else { completion(.failure(.noDownloadLink)); return }
+            if let error = error {
+                download.complete(.failure(.requestFailed(error.localizedDescription))); return
+            }
+            if let statusError = noteQuotaAndStatusError(for: response,
+                                                         treatForbiddenAsPremium: (key == nil && expires == nil)) {
+                download.complete(.failure(statusError)); return
+            }
+            guard let data = data else { download.complete(.failure(.noDownloadLink)); return }
             guard let links = try? NexusDownloadAPI.decodeLinks(data) else {
-                completion(.failure(.noDownloadLink)); return
+                download.complete(.failure(.noDownloadLink)); return
             }
             guard let uri = links.first?.URI, let url = URL(string: uri) else {
-                completion(.failure(.noDownloadLink)); return
+                download.complete(.failure(.noDownloadLink)); return
             }
-            URLSession.shared.downloadTask(with: url) { localURL, response, dlError in
-                if let dlError = dlError { completion(.failure(.requestFailed(dlError.localizedDescription))); return }
-                // Le CDN peut renvoyer une page HTML (403 lien expiré, 429
-                // limite de débit) au lieu de l'archive : sans ce contrôle, elle
-                // était sauvée comme le fichier du mod. Même statut qu'en ligne
-                // 122, mais `treatForbiddenAsPremium: false` : un 403 sur le CDN
-                // n'annonce pas une clé premium, mais un lien périmé.
-                if let statusError = self.noteQuotaAndStatusError(for: response, treatForbiddenAsPremium: false) {
-                    completion(.failure(statusError)); return
-                }
-                guard let localURL = localURL else { completion(.failure(.noDownloadLink)); return }
-                // Le format est lu dans les octets du fichier téléchargé, pas
-                // deviné d'après l'URL. `extractArchive` s'aiguille sur
-                // l'extension : nommer tout téléchargement « .zip » envoyait un
-                // mod RAR ou 7z droit vers `unzip`. Or l'URL ne suffit pas —
-                // celle du téléchargement gratuit ne porte pas toujours
-                // d'extension exploitable. La signature, elle, ne ment pas ;
-                // l'URL ne sert plus que de repli.
-                let ext = ModZipInstaller.detectedArchiveExtension(at: localURL)
-                    ?? (ModZipInstaller.supportedExtensions.contains(url.pathExtension.lowercased())
-                        ? url.pathExtension.lowercased()
-                        : "zip")
-                let temp = FileManager.default.temporaryDirectory
-                    .appendingPathComponent(UUID().uuidString + "." + ext)
-                do {
-                    try FileManager.default.moveItem(at: localURL, to: temp)
-                    completion(.success(temp))
-                } catch {
-                    completion(.failure(.requestFailed(error.localizedDescription)))
-                }
-            }.resume()
+            // Le transfert lui-même vit dans `NexusFileDownload` : c'est lui
+            // qui rapporte la progression, accepte l'annulation, et déplace le
+            // fichier avant qu'`URLSession` ne le supprime.
+            download.start(url: url)
         }.resume()
     }
 }

@@ -110,6 +110,24 @@ class StarHubTHViewModel: ObservableObject {
     @Published var downloadingNexusModId: Int? = nil
     private let nexusDownloader = NexusDownloader()
 
+    /// Où en est le téléchargement Nexus en cours (B2-T1). `nil` au repos, et
+    /// aussi pendant les deux appels d'API qui résolvent le lien : il n'y a
+    /// alors rien à mesurer, seulement une attente — `isDownloadingFromNexus`
+    /// la porte déjà.
+    ///
+    /// Un seul, jamais une liste : `rejectNexusDownloadIfBusy` sérialise les
+    /// téléchargements à dessein (deux en vol se disputeraient
+    /// `pendingDownloadedZip`). Un panneau de transferts concurrents n'aurait
+    /// rien à lister.
+    @Published private(set) var nexusDownloadProgress: DownloadProgress?
+
+    /// Le téléchargement en vol, seul point d'annulation. Existe dès la
+    /// demande, donc avant que le lien ne soit résolu.
+    private var nexusDownloadInFlight: NexusFileDownload?
+    /// Le débit, lissé sur trois secondes. Vit ici et non dans la vue : le
+    /// téléchargement continue quand l'onglet change.
+    private var nexusDownloadRate = DownloadRateEstimator()
+
     /// Rich detail state for the mod currently shown in the detail pane
     /// (Task 3 data layer; nav wiring lands in a later task).
     struct ModDetailState {
@@ -4525,8 +4543,13 @@ class StarHubTHViewModel: ObservableObject {
         isDownloadingFromNexus = true
         downloadingNexusModId = link.modId
         log(String(format: L(L10n.VM.nexusDlStarting), link.modId))
-        nexusDownloader.download(modId: link.modId, fileId: link.fileId, game: link.gameDomain,
-                                 key: link.key, expires: link.expires) { [weak self] result in
+        nexusDownloadInFlight = nexusDownloader.download(
+            modId: link.modId, fileId: link.fileId, game: link.gameDomain,
+            key: link.key, expires: link.expires,
+            onProgress: { [weak self] received, expected in
+                self?.noteNexusDownloadProgress(received: received, expected: expected,
+                                                modId: link.modId)
+            }) { [weak self] result in
             self?.handleNexusDownloadResult(result, modId: link.modId)
         }
     }
@@ -4538,8 +4561,12 @@ class StarHubTHViewModel: ObservableObject {
         isDownloadingFromNexus = true
         downloadingNexusModId = nexusId
         log(String(format: L(L10n.VM.nexusDlStarting), nexusId))
-        nexusDownloader.download(modId: nexusId, fileId: nil, game: "stardewvalley",
-                                 key: nil, expires: nil) { [weak self] result in
+        nexusDownloadInFlight = nexusDownloader.download(
+            modId: nexusId, fileId: nil, game: "stardewvalley", key: nil, expires: nil,
+            onProgress: { [weak self] received, expected in
+                self?.noteNexusDownloadProgress(received: received, expected: expected,
+                                                modId: nexusId)
+            }) { [weak self] result in
             self?.handleNexusDownloadResult(result, modId: nexusId)
         }
     }
@@ -4550,19 +4577,71 @@ class StarHubTHViewModel: ObservableObject {
     private func handleNexusDownloadResult(_ result: Result<URL, NexusDownloadError>, modId: Int) {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
-            self.isDownloadingFromNexus = false
-            self.downloadingNexusModId = nil
+            self.clearNexusDownloadState()
             switch result {
             case .success(let zipURL):
                 self.pendingDownloadedZip = zipURL
                 self.pendingNexusSource = NexusInstallSource(modId: modId)
                 self.log(String(format: self.L(L10n.VM.nexusDlCompleted), modId))
+            case .failure(.cancelled):
+                // Annuler son propre téléchargement n'est pas une panne : une
+                // alerte sur un geste volontaire serait du bruit. La ligne de
+                // journal, elle, garde la trace de ce qui n'a pas été installé.
+                self.log(String(format: self.L(L10n.VM.nexusDlCancelled), modId))
             case .failure(let error):
                 let message = self.nexusDownloadMessage(error)
                 self.showModal(message: message)
                 self.log(message, level: .warning)
             }
         }
+    }
+
+    /// Relève la progression du téléchargement en cours.
+    ///
+    /// Appelée depuis la file de délégué d'`URLSession`, donc **hors du fil
+    /// principal** : le saut est explicite, sans quoi trois `@Published`
+    /// seraient mutés depuis un autre fil.
+    ///
+    /// `expected` vaut `-1` quand le serveur n'annonce pas la taille — le cas
+    /// est fréquent sur un CDN. `DownloadProgress` le traduit en « taille
+    /// inconnue » : ni pourcentage, ni temps restant, seulement le volume et
+    /// le débit, qui sont vrais.
+    nonisolated private func noteNexusDownloadProgress(received: Int64, expected: Int64,
+                                                       modId: Int) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.nexusDownloadRate.record(totalBytes: received, at: Date())
+            self.nexusDownloadProgress = DownloadProgress(
+                bytesReceived: received,
+                totalBytes: expected,
+                bytesPerSecond: self.nexusDownloadRate.bytesPerSecond,
+                nexusModId: modId)
+        }
+    }
+
+    /// Remet les quatre témoins du téléchargement au repos.
+    ///
+    /// Une seule fonction pour les quatre : ils étaient déjà remis à zéro à
+    /// trois endroits différents, et le jour où l'un d'eux serait oublié,
+    /// `rejectNexusDownloadIfBusy` condamnerait le bouton pour la session.
+    @MainActor
+    private func clearNexusDownloadState() {
+        isDownloadingFromNexus = false
+        downloadingNexusModId = nil
+        nexusDownloadProgress = nil
+        nexusDownloadInFlight = nil
+        nexusDownloadRate.reset()
+    }
+
+    /// Annule le téléchargement en cours. Sans effet s'il n'y en a pas.
+    ///
+    /// Ne remet rien à zéro ici : `URLSession` rapportera l'annulation par le
+    /// chemin d'échec habituel, et c'est lui qui doit conclure. Le faire des
+    /// deux côtés rouvrirait la porte à un état remis au repos pendant qu'un
+    /// transfert continue.
+    @MainActor
+    func cancelNexusDownload() {
+        nexusDownloadInFlight?.cancel()
     }
 
     /// Renders a `NexusDownloadError` through the app's live per-language bundle
@@ -4577,6 +4656,12 @@ class StarHubTHViewModel: ObservableObject {
         case .rateLimited:         return L(L10n.VM.nexusDlRateLimited)
         case .serverError(let code): return String(format: L(L10n.VM.nexusDlServerError), code)
         case .requestFailed(let msg): return String(format: L(L10n.VM.nexusDlRequestFailed), msg)
+        // Ne devrait jamais s'afficher : les appelants traitent `.cancelled`
+        // avant d'en arriver là, une alerte sur un geste volontaire étant du
+        // bruit. Le cas est là pour que le switch reste exhaustif — c'est lui
+        // qui a fait échouer la compilation quand ce cas est apparu, plutôt
+        // que de laisser passer une chaîne anglaise en silence.
+        case .cancelled:           return L(L10n.VM.nexusDlCancelledError)
         }
     }
 
@@ -5167,16 +5252,22 @@ class StarHubTHViewModel: ObservableObject {
         busyTranslations.insert(mod.folderName)
         isDownloadingFromNexus = true
         downloadingNexusModId = hit.modId
-        nexusDownloader.download(modId: hit.modId, fileId: nil,
-                                 game: NexusRequestBuilder.gameDomain,
-                                 key: nil, expires: nil) { [weak self] result in
+        nexusDownloadInFlight = nexusDownloader.download(
+            modId: hit.modId, fileId: nil, game: NexusRequestBuilder.gameDomain,
+            key: nil, expires: nil,
+            onProgress: { [weak self] received, expected in
+                self?.noteNexusDownloadProgress(received: received, expected: expected,
+                                                modId: hit.modId)
+            }) { [weak self] result in
             DispatchQueue.main.async {
                 guard let self else { return }
-                self.isDownloadingFromNexus = false
-                self.downloadingNexusModId = nil
+                self.clearNexusDownloadState()
                 switch result {
                 case .success(let archive):
                     self.depositTranslation(archive: archive, hit: hit, into: mod)
+                case .failure(.cancelled):
+                    // Geste volontaire : rien à annoncer.
+                    self.busyTranslations.remove(mod.folderName)
                 case .failure(let error):
                     self.busyTranslations.remove(mod.folderName)
                     // Sans lien direct, la voie manuelle reste ouverte : le

@@ -1077,3 +1077,12 @@
 "profiles_translation_open" = "Traduire";
 "profiles_translation_all_done" = "Tous les mods traduisibles de ce profil sont entièrement traduits.";
 "profiles_translation_measuring" = "Mesure de la traduction…";
+"vm_nexus_dl_cancelled" = "Téléchargement du mod %lld annulé.";
+"vm_nexus_dl_cancelled_error" = "Téléchargement annulé.";
+"downloads_cancel" = "Annuler";
+"downloads_downloading" = "Téléchargement du mod %lld";
+"downloads_progress" = "%1$@ sur %2$@";
+"downloads_progress_unknown_total" = "%@ reçus";
+"downloads_rate" = "%@/s";
+"downloads_eta" = "~%@ restantes";
+"downloads_connecting" = "Connexion à Nexus…";

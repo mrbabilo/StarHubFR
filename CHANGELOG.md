@@ -13,6 +13,7 @@ where the exact log format was verified.
 ## [Unreleased]
 
 ### Added
+- **Un téléchargement Nexus ne se fait plus en aveugle.** Un mod de 500 Mo n'avait pour tout témoin qu'un rond qui tourne : ni progression, ni temps restant, ni moyen d'arrêter. Le pied de la barre latérale montre désormais le mod téléchargé, le volume reçu, le débit, le temps restant, et porte un bouton d'annulation — visible quel que soit l'onglet, puisqu'un lien `nxm://` peut arriver du navigateur à tout moment. Le pourcentage et l'annulation sont repris sur la ligne des mises à jour. Quand le serveur n'annonce pas la taille du fichier — fréquent sur un CDN —, ni barre ni pourcentage ni estimation : seulement le volume et le débit, qui eux sont vrais. Annuler son propre téléchargement n'ouvre plus d'alerte d'erreur.
 - **Un profil dit ce qu'il affichera en français.** La ligne du profil porte désormais une pastille « FR 94 % · 23 à traduire », et l'écran de diagnostic nomme les mods concernés, du plus gros reste au plus petit, avec un bouton qui ouvre directement l'onglet Traduction du mod. Mesuré sur trois profils réels : 94 %, 86 % et 93 % des clés, pour 23, 50 et 21 mods à traduire. Une clé sans traduction s'affiche en anglais — rien n'est cassé, et l'écran le dit. Les mods qui n'ont rien à traduire et ceux qui ne sont plus installés ne comptent pas. La mesure est **gardée d'une session à l'autre**, validée par l'empreinte des fichiers de traduction de chaque mod : 14,8 s la première fois, 2,7 s ensuite — et un mod retraduit est remesuré tout seul.
 
 ## [1.21.0] - 2026-08-27

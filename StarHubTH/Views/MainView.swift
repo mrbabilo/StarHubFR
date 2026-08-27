@@ -191,6 +191,12 @@ struct MainView: View {
 
                 Spacer()
 
+                // Au-dessus du poids de `Mods/` : un lien `nxm://` peut
+                // arriver du navigateur quel que soit l'onglet ouvert, et le
+                // téléchargement n'avait jusqu'ici pour tout témoin qu'un
+                // spinner sur la page des mises à jour.
+                NexusDownloadFooter(vm: vm)
+
                 ModsWeightFooter(vm: vm)
 
                 // Bottom bar: theme switcher (left) + language switcher (right).
@@ -817,9 +823,29 @@ struct UpdatesView: View {
 
                                 if let nexusId = Int(update.nexusModId),
                                    vm.downloadingNexusModId == nexusId {
-                                    ProgressView()
-                                        .controlSize(.small)
-                                        .help(vm.L(L10n.VM.nexusDlStarting).replacingOccurrences(of: "%lld", with: String(nexusId)))
+                                    // Le pourcentage à côté du témoin quand
+                                    // la taille est connue : la ligne est le
+                                    // seul endroit où l'on regarde après avoir
+                                    // cliqué, et le pied de barre latérale
+                                    // n'est pas toujours dans le champ.
+                                    HStack(spacing: 6) {
+                                        ProgressView()
+                                            .controlSize(.small)
+                                        if let percent = vm.nexusDownloadProgress?.displayPercent {
+                                            Text("\(percent) %")
+                                                .font(.system(size: 11).monospacedDigit())
+                                                .foregroundStyle(.secondary)
+                                        }
+                                        Button(action: { vm.cancelNexusDownload() }) {
+                                            Image(systemName: "xmark.circle.fill")
+                                                .font(.system(size: 12))
+                                        }
+                                        .buttonStyle(.plain)
+                                        .foregroundStyle(.secondary)
+                                        .pointingHandCursor()
+                                        .help(vm.L(L10n.Downloads.cancel))
+                                    }
+                                    .help(vm.L(L10n.VM.nexusDlStarting).replacingOccurrences(of: "%lld", with: String(nexusId)))
                                 } else {
                                     if let nexusId = Int(update.nexusModId) {
                                         Button {
@@ -1269,6 +1295,110 @@ struct QuarantineView: View {
 /// résume la liste, il doit en parler la langue.
 ///
 /// Rien ne s'affiche tant qu'aucun jeu n'est désigné : « 0 octet » serait faux.
+/// Le téléchargement Nexus en cours, en pied de barre latérale (B2-T1).
+///
+/// Ce qu'il remplace : un `ProgressView()` indéterminé sur une seule ligne de
+/// la page des mises à jour. Un mod de 500 Mo se téléchargeait donc en
+/// silence, sans qu'on sache s'il avançait, ni combien de temps il restait, ni
+/// comment l'arrêter — et le lien `nxm://` d'un compte gratuit peut arriver
+/// alors que n'importe quel onglet est ouvert.
+///
+/// **Sans taille annoncée, il ne ment pas.** Le CDN de Nexus n'annonce pas
+/// toujours `Content-Length` : la barre disparaît alors, et il ne reste que le
+/// volume reçu et le débit. Une barre figée à 0 % ferait croire à un blocage.
+struct NexusDownloadFooter: View {
+    @ObservedObject var vm: StarHubTHViewModel
+
+    var body: some View {
+        if vm.isDownloadingFromNexus {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 4) {
+                    Image(systemName: "arrow.down.circle")
+                        .font(.system(size: 9))
+                    Text(headline)
+                        .font(.system(size: 10, weight: .medium))
+                        .lineLimit(1)
+                    Spacer(minLength: 4)
+                    // Le bouton existe **dès** la demande, avant même que le
+                    // lien ne soit résolu : c'est le moment où l'on se rend
+                    // compte qu'on s'est trompé de mod.
+                    Button(action: { vm.cancelNexusDownload() }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 11))
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
+                    .pointingHandCursor()
+                    .help(vm.L(L10n.Downloads.cancel))
+                }
+                .foregroundStyle(.secondary)
+
+                if let fraction = vm.nexusDownloadProgress?.fractionCompleted {
+                    ProgressView(value: fraction)
+                        .progressViewStyle(.linear)
+                        .controlSize(.small)
+                }
+
+                Text(detail)
+                    .font(.system(size: 9).monospacedDigit())
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, 8)
+            .padding(.bottom, 6)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .combine)
+        }
+    }
+
+    /// Le mod visé, dès qu'on le connaît.
+    private var headline: String {
+        guard let modId = vm.downloadingNexusModId else {
+            return vm.L(L10n.Downloads.connecting)
+        }
+        return String(format: vm.L(L10n.Downloads.downloading), Int64(modId))
+    }
+
+    /// Volume, débit et temps restant — chacun seulement s'il est mesuré.
+    /// Aucune valeur inventée : pas de « 0 o/s » au démarrage, pas d'ETA sans
+    /// débit.
+    private var detail: String {
+        guard let progress = vm.nexusDownloadProgress else {
+            return vm.L(L10n.Downloads.connecting)
+        }
+        var parts: [String] = []
+        if let total = progress.totalBytes {
+            parts.append(String(format: vm.L(L10n.Downloads.progress),
+                                Self.bytes(progress.bytesReceived), Self.bytes(total)))
+        } else {
+            parts.append(String(format: vm.L(L10n.Downloads.progressUnknownTotal),
+                                Self.bytes(progress.bytesReceived)))
+        }
+        if let rate = progress.bytesPerSecond {
+            parts.append(String(format: vm.L(L10n.Downloads.rate), Self.bytes(Int64(rate))))
+        }
+        if let remaining = progress.estimatedTimeRemaining, remaining > 0 {
+            parts.append(String(format: vm.L(L10n.Downloads.eta), Self.duration(remaining)))
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    private static func bytes(_ value: Int64) -> String {
+        ByteCountFormatter.string(fromByteCount: value, countStyle: .file)
+    }
+
+    /// Une durée courte et lisible : « 45 s », « 2 min ». Le formateur du
+    /// système localise les unités, ce qu'une concaténation à la main ne ferait
+    /// pas.
+    private static func duration(_ seconds: TimeInterval) -> String {
+        let formatter = DateComponentsFormatter()
+        formatter.allowedUnits = seconds < 60 ? [.second] : [.minute, .second]
+        formatter.unitsStyle = .abbreviated
+        formatter.maximumUnitCount = 2
+        return formatter.string(from: seconds) ?? ""
+    }
+}
+
 struct ModsWeightFooter: View {
     @ObservedObject var vm: StarHubTHViewModel
 

@@ -893,9 +893,22 @@ enum L10n {
         static let translationMeasuring = "profiles_translation_measuring"
     }
 
+    /// La bannière du téléchargement en cours (B2-T1).
+    enum Downloads {
+        static let cancel               = "downloads_cancel"
+        static let downloading          = "downloads_downloading"
+        static let progress             = "downloads_progress"
+        static let progressUnknownTotal = "downloads_progress_unknown_total"
+        static let rate                 = "downloads_rate"
+        static let eta                  = "downloads_eta"
+        static let connecting           = "downloads_connecting"
+    }
+
     // MARK: - VM
     enum VM {
         static let defaultFarmerName    = "vm_default_farmer_name"
+        static let nexusDlCancelled     = "vm_nexus_dl_cancelled"
+        static let nexusDlCancelledError = "vm_nexus_dl_cancelled_error"
         static let launchingVanilla     = "vm_launching_vanilla"
         static let launchVanillaSuccess = "vm_launch_vanilla_success"
         static let launchVanillaError   = "vm_launch_vanilla_error"

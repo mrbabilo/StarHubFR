@@ -1076,5 +1076,14 @@
   "profiles_translation_row_counts": "%1$lld of %2$lld keys — %3$lld to translate",
   "profiles_translation_open": "Translate",
   "profiles_translation_all_done": "Every translatable mod in this profile is fully translated.",
-  "profiles_translation_measuring": "Measuring translation…"
+  "profiles_translation_measuring": "Measuring translation…",
+  "vm_nexus_dl_cancelled": "Download of mod %lld cancelled.",
+  "vm_nexus_dl_cancelled_error": "Download cancelled.",
+  "downloads_cancel": "Cancel",
+  "downloads_downloading": "Downloading mod %lld",
+  "downloads_progress": "%1$@ of %2$@",
+  "downloads_progress_unknown_total": "%@ received",
+  "downloads_rate": "%@/s",
+  "downloads_eta": "~%@ left",
+  "downloads_connecting": "Connecting to Nexus…"
 }
