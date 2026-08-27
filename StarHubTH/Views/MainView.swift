@@ -973,11 +973,12 @@ struct UpdatesView: View {
                     if !vm.unverifiableMods.isEmpty {
                         DisclosureGroup {
                             VStack(alignment: .leading, spacing: 3) {
-                                // Indexé par rang : un tuple n'est pas
-                                // identifiable, et deux mods peuvent porter le
-                                // même nom.
-                                ForEach(Array(vm.unverifiableMods.enumerated()),
-                                        id: \.offset) { _, row in
+                                // Indexé par `UniqueID` : deux mods peuvent
+                                // porter le même nom, mais la réponse de
+                                // smapi.io n'a qu'une entrée par identifiant.
+                                // Indexer par rang ferait glisser les lignes
+                                // quand la reprise Nexus en retire une.
+                                ForEach(vm.unverifiableMods, id: \.uniqueId) { row in
                                     HStack(spacing: 6) {
                                         Text(row.name)
                                             .font(.system(size: 11, weight: .medium))

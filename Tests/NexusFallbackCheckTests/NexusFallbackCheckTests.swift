@@ -1,0 +1,212 @@
+import Testing
+import Foundation
+@testable import StarHubTHCore
+
+/// La détection de mises à jour est déléguée à smapi.io ; quand celle-ci
+/// refuse de juger un mod, il reste sans verdict de **toute** source et la
+/// fenêtre le tait. Preuve levée le 2026-08-27 : *Powered Automation* installé
+/// en 1.0.0, publié en 1.025 sur Nexus, « has no valid versions » côté
+/// smapi.io — et « tous à jour » à l'écran.
+///
+/// Les cas de ces tests sont **relevés sur le parc réel** (1 010 `UniqueID`,
+/// 122 mods bloqués) : messages d'erreur, identifiants et versions sont ceux
+/// mesurés, pas des exemples inventés.
+struct NexusFallbackCheckTests {
+
+    private func blocked(_ uniqueId: String,
+                         version: String = "1.0.0",
+                         keys: [String] = [],
+                         meta: Int? = nil,
+                         errors: [String]) -> NexusFallbackCheck.Blocked {
+        NexusFallbackCheck.Blocked(uniqueId: uniqueId, name: uniqueId,
+                                   installedVersion: version, declaredKeys: keys,
+                                   metadataNexusId: meta, errors: errors)
+    }
+
+    // MARK: - Qui mérite une reprise
+
+    @Test func laPageEstReprisQuandNexusLuiMemeAEchoue() {
+        // Le cas fondateur : luisMint.PoweredAutomation, Nexus:50165.
+        let plan = NexusFallbackCheck.plan([
+            blocked("luisMint.PoweredAutomation", keys: ["Nexus:50165"],
+                    errors: ["The Nexus mod with ID '50165' has no valid versions."])
+        ])
+        #expect(plan.count == 1)
+        #expect(plan.first?.nexusId == "50165")
+    }
+
+    @Test func uneErreurSurUnAutreSiteNEstPasUneRaisonDeRejouerNexus() {
+        // 18 mods du parc sont dans ce cas : leur clé Nexus a été consultée
+        // avec succès, seule celle de CurseForge a échoué. Les reprendre
+        // rejouerait un verdict déjà rendu, pour 18 requêtes.
+        let plan = NexusFallbackCheck.plan([
+            blocked("aedenthorn.AllChestsMenu", version: "0.4.2",
+                    keys: ["Nexus:14494", "CurseForge:868705"], meta: 14494,
+                    errors: ["The CurseForge mod with ID '868705' has no valid versions."]),
+            blocked("Achtuur.StardewTravelSkill", version: "1.4.0",
+                    keys: ["Nexus:16820", "GitHub:Achtuur/StardewTravelSkill"], meta: 16820,
+                    errors: ["Found no GitHub release for this ID."])
+        ])
+        #expect(plan.isEmpty)
+    }
+
+    @Test func unModSansCleNexusEstReprisSurLIdentifiantQueSmapiConnait() {
+        // 20 mods du parc n'ont d'identifiant que par `metadata.nexusID` —
+        // dont Stardew Valley Expanded, **actif**, dont la clé vaut « ??? ».
+        // smapi.io n'a donc jamais regardé Nexus pour eux.
+        let plan = NexusFallbackCheck.plan([
+            blocked("FlashShifter.SVECode", version: "1.15.11",
+                    keys: ["Nexus:???"], meta: 3753,
+                    errors: ["The value '???' isn't a valid Nexus mod ID, must be an integer ID."]),
+            blocked("Airyn.KentGetsTherapy", version: "1.2.2",
+                    keys: ["ModDrop:99999"], meta: 14535,
+                    errors: ["Found no ModDrop mod with this ID."])
+        ])
+        #expect(plan.map(\.nexusId) == ["14535", "3753"])
+    }
+
+    @Test func sansAucunIdentifiantIlNYARienAInterroger() {
+        // 51 mods du parc : ni clé exploitable, ni identifiant chez smapi.io.
+        let plan = NexusFallbackCheck.plan([
+            blocked("Aelinore.FievelPortrait", keys: ["Nexus:00000"],
+                    errors: ["The value 'Nexus:00000' isn't a valid Nexus mod ID, must be an integer ID."]),
+            blocked("nugmods.nyapuripley", keys: ["Nexus:null"],
+                    errors: ["The value 'null' isn't a valid Nexus mod ID, must be an integer ID."]),
+            blocked("yourdorkbrainsuhm", keys: ["Nexus:"],
+                    errors: ["The update key 'Nexus:' isn't in a valid format."]),
+            blocked("moonslime.ManaBarApi.CP", keys: ["-1"],
+                    errors: ["The update key '-1' isn't in a valid format."])
+        ])
+        #expect(plan.isEmpty)
+    }
+
+    @Test func leManifesteLEmporteSurCeQueSmapiCroitSavoir() {
+        // Même règle que `NexusIdLearning` : le manifeste est ce que SMAPI lit.
+        let plan = NexusFallbackCheck.plan([
+            blocked("a.b", keys: ["Nexus:47216"], meta: 99999,
+                    errors: ["Found no Nexus mod with this ID."])
+        ])
+        #expect(plan.first?.nexusId == "47216")
+    }
+
+    @Test func laVarianteApresArrobaseDesigneLaMemePage() {
+        // SMAPI tolère `Nexus:1234@variante` ; la page reste la 1234.
+        let plan = NexusFallbackCheck.plan([
+            blocked("a.b", keys: ["Nexus:47216@Cinder"],
+                    errors: ["Found no Nexus mod with this ID."])
+        ])
+        #expect(plan.first?.nexusId == "47216")
+    }
+
+    // MARK: - Une page, plusieurs mods
+
+    @Test func lesComposantsDUnPackNeFontQuUneRequete() {
+        // Les sept composants des Forgotten Caverns déclarent tous Nexus:47216
+        // et la même version : une requête suffit à les juger tous. 53 mods du
+        // parc se ramènent ainsi à 41 pages.
+        let composants = ["Azathii.TheForgottenCaverns",
+                          "Azathii.TheForgottenCaverns.FTM",
+                          "Azathii.TheForgottenCaverns.FTM.Cinder",
+                          "Azathii.TheForgottenCaverns.dll"]
+            .map { blocked($0, version: "1.0.10", keys: ["Nexus:47216"],
+                           errors: ["Found no Nexus mod with this ID."]) }
+        let plan = NexusFallbackCheck.plan(composants)
+        #expect(plan.count == 1)
+        #expect(plan.first?.mods.count == 4)
+    }
+
+    @Test func unePageRevendiqueeParDesVersionsDifferentesNeJugePersonne() {
+        // Nexus:50165 est déclaré par Powered Automation (1.0.0) *et* par
+        // Automate (2.6.1), dont le manifeste porte une clé fausse. La page ne
+        // peut pas décrire les deux ; la comparer à Automate proposerait un
+        // jour une mise à jour dont le bouton installerait un autre mod.
+        let plan = NexusFallbackCheck.plan([
+            blocked("luisMint.PoweredAutomation", version: "1.0.0", keys: ["Nexus:50165"],
+                    errors: ["The Nexus mod with ID '50165' has no valid versions."]),
+            blocked("Pathoschild.Automate", version: "2.6.1", keys: ["Nexus:50165"],
+                    errors: ["The Nexus mod with ID '50165' has no valid versions."])
+        ])
+        #expect(plan.isEmpty)
+    }
+
+    @Test func lesModulesDUnMemeEnsembleRestentJugeables() {
+        // Les quatre modules de Starblue UI vivent dans quatre dossiers
+        // distincts mais partagent page et version : aucune ambiguïté.
+        let plan = NexusFallbackCheck.plan(
+            ["DylanJames.StarblueUIDeluxeJournal", "DylanJames.StarblueUILoveOfCooking",
+             "DylanJames.StarblueUISpacecore", "DylanJames.StarblueUIUnlockableBundles"]
+                .map { blocked($0, version: "0.0.1", keys: ["Nexus:31451"],
+                               errors: ["Found no Nexus mod with this ID."]) })
+        #expect(plan.count == 1)
+        #expect(plan.first?.mods.count == 4)
+    }
+
+    // MARK: - Ce que la réponse permet d'affirmer
+
+    private func target(_ mods: [NexusFallbackCheck.Blocked],
+                        id: String = "50165") -> NexusFallbackCheck.Target {
+        NexusFallbackCheck.Target(nexusId: id, mods: mods)
+    }
+
+    @Test func laPreuveFondatriceDonneBienUneLigne() {
+        // Powered Automation : 1.0.0 posé, 1.025 publié. Les versions exotiques
+        // du mod sont précisément ce que smapi.io refuse d'indexer.
+        let rows = NexusFallbackCheck.rows(
+            for: target([blocked("luisMint.PoweredAutomation", version: "1.0.0",
+                                 keys: ["Nexus:50165"], errors: ["x"])]),
+            pageVersion: "1.025", uploadedTime: Date(timeIntervalSince1970: 1_755_000_000))
+        #expect(rows.count == 1)
+        #expect(rows.first?.latestVersion == "1.025")
+        #expect(rows.first?.nexusModId == "50165")
+        #expect(rows.first?.url == "https://www.nexusmods.com/stardewvalley/mods/50165")
+        // À la différence de la voie smapi.io, qui la laisse toujours nulle.
+        #expect(rows.first?.uploadedTime != nil)
+    }
+
+    @Test func unePageALaMemeVersionNeProduitRien() {
+        let rows = NexusFallbackCheck.rows(
+            for: target([blocked("a.b", version: "1.0.10", errors: ["x"])], id: "47216"),
+            pageVersion: "1.0.10", uploadedTime: nil)
+        #expect(rows.isEmpty)
+    }
+
+    @Test func unePageSansVersionNAffirmeRien() {
+        // L'API Nexus peut rendre une chaîne vide ; ce n'est pas un verdict.
+        let rows = NexusFallbackCheck.rows(
+            for: target([blocked("a.b", version: "1.0.0", errors: ["x"])]),
+            pageVersion: "   ", uploadedTime: nil)
+        #expect(rows.isEmpty)
+    }
+
+    @Test func unCorrectifNonOfficielNEstPasRemplaceParLOfficiel() {
+        // ZeroMeters.SAAT.Mod, parc réel : « 1.1.3-unofficial.1-p1xel8ted ».
+        // Par la lettre du semver, 1.1.3 l'emporte — mais chez SMAPI cette
+        // forme désigne un correctif **postérieur**. Proposer la page
+        // conseillerait une régression.
+        let rows = NexusFallbackCheck.rows(
+            for: target([blocked("ZeroMeters.SAAT.Mod",
+                                 version: "1.1.3-unofficial.1-p1xel8ted", errors: ["x"])],
+                        id: "10747"),
+            pageVersion: "1.1.3", uploadedTime: nil)
+        #expect(rows.isEmpty)
+    }
+
+    @Test func unCorrectifNonOfficielCedeQuandLaPageFranchitSonNumero() {
+        let rows = NexusFallbackCheck.rows(
+            for: target([blocked("ZeroMeters.SAAT.Mod",
+                                 version: "1.1.3-unofficial.1-p1xel8ted", errors: ["x"])],
+                        id: "10747"),
+            pageVersion: "1.2.0", uploadedTime: nil)
+        #expect(rows.count == 1)
+    }
+
+    @Test func chaqueModDeLaPageRecoitSaPropreLigne() {
+        let mods = ["Azathii.TheForgottenCaverns", "Azathii.TheForgottenCaverns.FTM"]
+            .map { blocked($0, version: "1.0.10", errors: ["x"]) }
+        let rows = NexusFallbackCheck.rows(for: target(mods, id: "47216"),
+                                           pageVersion: "1.1.0", uploadedTime: nil)
+        #expect(rows.map(\.uniqueId).sorted()
+                == ["Azathii.TheForgottenCaverns", "Azathii.TheForgottenCaverns.FTM"])
+        #expect(rows.allSatisfy { $0.installedVersion == "1.0.10" })
+    }
+}

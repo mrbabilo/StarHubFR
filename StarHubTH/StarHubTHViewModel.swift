@@ -57,7 +57,12 @@ class StarHubTHViewModel: ObservableObject {
     /// les taire laissait la fenêtre dire « tous à jour » alors qu'ils
     /// n'avaient de verdict d'aucune source — Powered Automation et sa mise à
     /// jour réelle invisible en sont la preuve levée le 2026-08-27.
-    @Published private(set) var unverifiableMods: [(name: String,
+    ///
+    /// L'`UniqueID` accompagne le nom depuis B2-T10 : une ligne sur laquelle on
+    /// veut agir — ici la retirer quand Nexus a fini par la trancher — doit
+    /// pouvoir être désignée, et deux mods peuvent porter le même nom.
+    @Published private(set) var unverifiableMods: [(uniqueId: String,
+                                                    name: String,
                                                     blocker: SmapiUpdateResponse.Blocker)] = []
     /// Ce que smapi.io sait de la compatibilité de chaque mod, par `UniqueID`.
     ///
@@ -3934,17 +3939,35 @@ class StarHubTHViewModel: ObservableObject {
             allInstalledMods().filter { !$0.uniqueId.isEmpty }.map { ($0.uniqueId, $0.name) },
             uniquingKeysWith: { first, _ in first })
         var updates: [NexusUpdateChecker.ModUpdate] = []
-        var unverifiable: [(name: String, blocker: SmapiUpdateResponse.Blocker)] = []
+        var unverifiable: [(uniqueId: String, name: String,
+                            blocker: SmapiUpdateResponse.Blocker)] = []
+        // Le matériau de la reprise Nexus (B2-T10). Seuls les mods **sans
+        // suggestion** y entrent : une mise à jour trouvée est un verdict,
+        // quoi qu'ait dit l'une des autres clés du mod.
+        var blocked: [NexusFallbackCheck.Blocked] = []
 
         for mod in mods {
             if let first = mod.errors.first {
                 // Même résolution de nom que les lignes de mise à jour : un
                 // mod ne doit pas changer de nom d'un écran à l'autre.
-                unverifiable.append((name: ModManifest.resolveDisplayName(
-                                            installedName: installedName[mod.id],
-                                            metadataName: mod.metadata?.name,
-                                            uniqueId: mod.id),
-                                      blocker: SmapiUpdateResponse.blocker(for: first)))
+                let name = ModManifest.resolveDisplayName(
+                    installedName: installedName[mod.id],
+                    metadataName: mod.metadata?.name,
+                    uniqueId: mod.id)
+                unverifiable.append((uniqueId: mod.id, name: name,
+                                     blocker: SmapiUpdateResponse.blocker(for: first)))
+                if mod.suggestedUpdate == nil {
+                    blocked.append(NexusFallbackCheck.Blocked(
+                        uniqueId: mod.id,
+                        name: name,
+                        // La version **affirmée**, celle qu'on a envoyée : d'ancre
+                        // s'il y en a une. Comparer une autre valeur ferait
+                        // reparaître une ligne que l'utilisateur a éteinte.
+                        installedVersion: assertedVersion[mod.id] ?? "",
+                        declaredKeys: declaredKeys[mod.id] ?? [],
+                        metadataNexusId: mod.metadata?.nexusID,
+                        errors: mod.errors))
+                }
             }
             guard let suggested = mod.suggestedUpdate else { continue }
             updates.append(NexusUpdateChecker.ModUpdate(
@@ -3999,9 +4022,13 @@ class StarHubTHViewModel: ObservableObject {
             .sorted { $0.name.lowercased() < $1.name.lowercased() }
         // Même ordre que les mises à jour, et pour la même raison : la
         // réponse smapi.io suit l'ordre d'envoi, pas un ordre lisible.
-        unverifiableMods = unverifiable
-            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
-            .sorted { $0.name.lowercased() < $1.name.lowercased() }
+        // Un seul tri, départagé par l'`UniqueID` : deux mods peuvent porter le
+        // même nom, et `sorted` n'est pas stable en Swift — l'ordre de deux
+        // homonymes changerait alors d'une vérification à l'autre.
+        unverifiableMods = unverifiable.sorted {
+            let byName = $0.name.localizedCaseInsensitiveCompare($1.name)
+            return byName == .orderedSame ? $0.uniqueId < $1.uniqueId : byName == .orderedAscending
+        }
 
         // Les verdicts de compatibilité, que la réponse portait déjà et que
         // personne ne lisait. Fusionnés et non remplacés, pour la raison qui
@@ -4057,6 +4084,124 @@ class StarHubTHViewModel: ObservableObject {
         }
         log("Mises à jour : \(updates.count) sur \(mods.count) mods interrogés, \(unverifiable.count) non vérifiables",
             level: .info)
+
+        recheckBlockedViaNexus(blocked)
+    }
+
+    /// B2-T10 — reprend par Nexus les mods que smapi.io n'a pas su juger.
+    ///
+    /// Le verdict de mise à jour est délégué à smapi.io ; quand elle répond une
+    /// erreur, le mod reste sans verdict de **toute** source, et la fenêtre le
+    /// taisait. Preuve levée le 2026-08-27 : *Powered Automation*, installé en
+    /// 1.0.0, publié en 1.025, refusé par smapi.io faute de version indexable.
+    ///
+    /// Ce que la reprise coûte, mesuré sur le parc réel : sur 122 mods bloqués,
+    /// **53 sont sans verdict Nexus**, et ils se ramènent à **39 pages** —
+    /// autant de requêtes, une fois par vérification manuelle. Le quota mesuré
+    /// est de 2 000 requêtes par heure : la dépense est marginale, et elle
+    /// reste **à la demande** — rien ici ne part sans que l'utilisateur ait
+    /// lancé une vérification.
+    ///
+    /// Sans clé d'API, la reprise ne fait rien et ne signale aucune erreur : la
+    /// clé ne sert qu'au téléchargement intégré et aux fiches, et un bandeau
+    /// rouge sur une fonction d'appoint dirait le contraire.
+    ///
+    /// Les requêtes partent **en série**, pour la raison qui vaut déjà pour les
+    /// lots smapi.io : une rafale de 39 requêtes parallèles ne gagnerait que le
+    /// risque d'un 429. Un 429 arrête la reprise sur place — `fetchModInfo`
+    /// refuse localement les suivantes de toute façon, mais les compter comme
+    /// des échecs salirait le journal.
+    private func recheckBlockedViaNexus(_ blocked: [NexusFallbackCheck.Blocked]) {
+        let targets = NexusFallbackCheck.plan(blocked)
+        guard !targets.isEmpty else { return }
+        guard NexusUpdateChecker.shared.apiKey()?.isEmpty == false else {
+            log("Reprise Nexus non tentée (aucune clé d'API) : \(blocked.count) mods "
+                + "restent sans verdict", level: .info)
+            return
+        }
+        let modCount = targets.reduce(0) { $0 + $1.mods.count }
+        log("Reprise Nexus : \(modCount) mods sans verdict, \(targets.count) pages à interroger",
+            level: .info)
+        isCheckingNexusUpdates = true
+        nexusCheckProgress = (0, targets.count)
+        fetchNexusFallback(targets, index: 0, found: [], settled: [], failures: 0)
+    }
+
+    /// Une page après l'autre. `settled` retient les mods dont Nexus a bien
+    /// rendu un verdict — mise à jour trouvée **ou** confirmation qu'il n'y en
+    /// a pas : dans les deux cas le mod n'est plus « non vérifiable ».
+    private func fetchNexusFallback(_ targets: [NexusFallbackCheck.Target],
+                                    index: Int,
+                                    found: [NexusUpdateChecker.ModUpdate],
+                                    settled: Set<String>,
+                                    failures: Int) {
+        guard index < targets.count else {
+            finishNexusFallback(found: found, settled: settled,
+                                failures: failures, attempted: targets.count)
+            return
+        }
+        let target = targets[index]
+        NexusUpdateChecker.shared.fetchSingleMod(modId: target.nexusId) { [weak self] result in
+            guard let self else { return }
+            var found = found
+            var settled = settled
+            var failures = failures
+            switch result {
+            case .success(let version, _, let extra):
+                found += NexusFallbackCheck.rows(for: target,
+                                                 pageVersion: version,
+                                                 uploadedTime: extra.uploadedTime)
+                settled.formUnion(target.mods.map(\.uniqueId))
+            case .rateLimited(let retryAfter):
+                // Inutile d'insister : les suivantes seraient refusées
+                // localement, et ce qui a abouti reste acquis.
+                self.log("Reprise Nexus interrompue par la limitation de débit "
+                         + "(\(Int(retryAfter)) s) après \(index) page(s)", level: .warning)
+                self.finishNexusFallback(found: found, settled: settled,
+                                         failures: failures, attempted: index)
+                return
+            case .noApiKey, .error:
+                failures += 1
+            }
+            self.nexusCheckProgress = (index + 1, targets.count)
+            self.fetchNexusFallback(targets, index: index + 1,
+                                    found: found, settled: settled, failures: failures)
+        }
+    }
+
+    /// Publie ce que la reprise a trouvé, et retire de la liste des « non
+    /// vérifiables » les mods qu'elle a tranchés.
+    private func finishNexusFallback(found: [NexusUpdateChecker.ModUpdate],
+                                     settled: Set<String>,
+                                     failures: Int,
+                                     attempted: Int) {
+        isCheckingNexusUpdates = false
+        nexusCheckProgress = nil
+
+        if !found.isEmpty {
+            // Les lignes Nexus se **substituent** aux lignes précédentes des
+            // mêmes mods plutôt que de s'y ajouter : le cache est indexé par
+            // `UniqueID`, et deux lignes de même identité donneraient des
+            // doublons à un `ForEach`.
+            let replaced = Set(found.map(\.uniqueId))
+            let kept = NexusUpdateChecker.shared.cachedUpdates()
+                .filter { !replaced.contains($0.uniqueId) }
+            NexusUpdateChecker.shared.replaceCachedUpdates(
+                (kept + found).sorted { $0.name.lowercased() < $1.name.lowercased() })
+            republishUpdatesFromCache()
+        }
+        if !settled.isEmpty {
+            unverifiableMods = unverifiableMods.filter { !settled.contains($0.uniqueId) }
+        }
+
+        // Un décompte honnête : ce qui a été tenté, ce qui a été trouvé, ce qui
+        // a été confirmé à jour, ce qui a échoué. Une reprise silencieuse
+        // laisserait croire qu'elle n'a rien trouvé alors qu'elle n'a pas
+        // abouti.
+        log("Reprise Nexus : \(attempted) page(s) interrogée(s), "
+            + "\(found.count) mise(s) à jour trouvée(s), "
+            + "\(settled.count - found.count) mod(s) confirmé(s) à jour, "
+            + "\(failures) échec(s)", level: failures > 0 ? .warning : .info)
     }
 
     /// Retient l'identifiant Nexus que smapi.io connaît, pour les mods dont le

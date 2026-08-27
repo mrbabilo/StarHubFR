@@ -12,6 +12,9 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+- **Les mods que smapi.io refuse de juger sont repris auprès de Nexus.** Un mod dont smapi.io ne sait rien dire — page introuvable, aucune version indexable, clé de mise à jour malformée — restait sans verdict d'aucune source, et la fenêtre passait dessus en silence. Après chaque vérification, l'app interroge Nexus pour ceux-là, sans clé d'API elle s'abstient, et un mod tranché quitte la liste des invérifiables. Sur le parc de référence : 53 mods concernés, 39 pages interrogées. Deux comparaisons sont refusées volontairement — une page revendiquée par des mods de versions différentes, et un correctif `-unofficial` face à l'officiel de même numéro.
+
 ### Fixed
 - **Un profil supprimé n'abandonne plus ses configs mémorisés sur le disque.** Le magasin d'un profil vivait dans `Application Support`, indexé sur son identifiant ; le supprimer laissait le fichier derrière, que plus rien ne lisait, ne nommait ni n'effaçait. Il part maintenant avec le profil, et la confirmation prévient de ce qui va disparaître quand il y a quelque chose à perdre. Les magasins laissés par des suppressions antérieures sont retirés au démarrage — jamais quand la liste des profils est vide, une préférence illisible ne devant pas passer pour « plus aucun profil ».
 

@@ -975,18 +975,60 @@ pouvoir revenir en arrière à tout moment.
       pas une mesure à zéro : elle laisse la précédente intacte. L'app n'interrogeant plus
       l'API Nexus qu'à la demande, l'état « jamais mesuré » est explicite.* · **S** ·
       *§audit-stardrop*
-- [ ] **B2-T10** — Re-vérifier par Nexus les mods que smapi.io n'a pas pu juger. La
+- [x] **B2-T10** — Re-vérifier par Nexus les mods que smapi.io n'a pas pu juger. La
       détection des mises à jour est intégralement déléguée à smapi.io ; quand celui-ci
       répond une erreur (`Blocker` : page introuvable, aucune version exploitable…), le mod
-      reste sans verdict de **toute** source. Après le passage smapi.io, reprendre les seuls
-      mods en erreur qui déclarent une `UpdateKeys: Nexus:…` — un lot minuscule — via l'API
-      Nexus et comparer avec `isNewer`. · **M**
+      reste sans verdict de **toute** source. · **M**
       *Preuve levée le 2026-08-27 : Powered Automation (50165) installé en 1.0.0, Nexus
       publie 1.025, smapi.io répond « has no valid versions » — les versions exotiques du
       mod (`1`, `1.01`, `1.02`, `1.025`), créé le 17 août, n'ont jamais été indexées. La
       fenêtre disait « tous à jour » (115 blockers mesurés sur le parc, tacitement
       confondus avec des mods à jour). C'est le 3,5 % de désaccord smapi.io/Nexus mesuré
       à l'intégration.*
+      **Livré le 2026-08-27.** `NexusFallbackCheck` (Core, 15 tests) décide qui reprendre ;
+      la reprise part en série derrière la vérification manuelle, une page à la fois.
+      **La règle prévue ici était fausse, et la mesure l'a montrée.** Reprendre « les mods
+      en erreur qui déclarent une `UpdateKeys: Nexus:…` » ramasse exactement ce qu'il faut
+      écarter et laisse de côté un tiers de ce qu'il faut prendre. Relevé du jour sur le
+      parc — **1 010 `UniqueID`, 122 mods bloqués** :
+      - **53 sont sans verdict Nexus** — le lot réel. **33** tiennent leur identifiant de
+        leur manifeste, **20** de `metadata.nexusID`, que smapi.io rend *même pour les mods
+        qu'elle ne sait pas juger* : ceux-là ne déclarent aucune clé Nexus et la règle
+        prévue les aurait tous manqués, **dont Stardew Valley Expanded**, actif, dont la
+        clé vaut littéralement `Nexus:???` ;
+      - **18 doivent être écartés** : leur clé Nexus a bien été consultée, seule celle de
+        CurseForge, GitHub ou ModDrop a échoué (« The CurseForge mod with ID '868705' has
+        no valid versions »). La règle prévue les aurait tous repris — 18 requêtes pour
+        rejouer un verdict déjà rendu ;
+      - **51 n'ont aucun identifiant Nexus** (`Nexus:???`, `Nexus:`, `Nexus:null`) : rien
+        à interroger.
+      Le critère retenu est donc « smapi.io n'a pas rendu de verdict **Nexus** » : soit le
+      mod ne déclare pas de clé Nexus exploitable (Nexus n'a jamais été consulté, et
+      `metadata.nexusID` en fournit une), soit c'est cette clé-là qui a échoué.
+      **Deux garde-fous que la mesure a rendus nécessaires :**
+      - *une page revendiquée par des versions différentes ne juge personne*. `Nexus:50165`
+        est déclaré par Powered Automation (1.0.0) **et** par Automate (2.6.1), dont le
+        manifeste porte une clé fausse ; `Nexus:38134` par deux mods en 10.0.0 et 7.0.0.
+        Sans cette règle, la page proposerait un jour à Automate une mise à jour dont le
+        bouton installerait un autre mod. À versions égales il n'y a pas d'ambiguïté : les
+        sept composants des *Forgotten Caverns* et les quatre modules de *Starblue UI* sont
+        bien la même publication — d'où **53 mods pour 39 pages**, donc 39 requêtes ;
+      - *un `-unofficial` n'est pas remplacé par l'officiel de même numéro*. Par la lettre
+        du semver « 1.1.3 » l'emporte sur « 1.1.3-unofficial.1-p1xel8ted » ; chez SMAPI
+        cette forme désigne un correctif **postérieur**, et la proposer conseillerait une
+        régression (`ZeroMeters.SAAT.Mod`, parc réel).
+      `isNewer` a été éprouvé sur les formes réelles du lot avant d'écrire la moindre
+      requête — c'est justement parce que leurs versions sont exotiques que smapi.io les
+      refuse : `1.025` > `1.02` > `1.01`, `1.0` = `1.0.0`, `v1.5` = `1.5.0`. Aucun faux
+      positif.
+      Sans clé d'API la reprise ne fait rien et ne signale rien ; un 429 l'arrête sur place
+      et ce qui a abouti reste acquis ; le journal rend un décompte honnête (pages
+      interrogées / trouvées / confirmées à jour / échecs).
+      *Stardrop ne résout pas ce problème* — il décode `ModEntry.Errors[]` et **ne le lit
+      nulle part**, et son `HasUpdateKeys()`/`HasValidVersion()` retire silencieusement de
+      la requête smapi.io tout mod dont une clé est vide ou la version inanalysable. Ses
+      tickets #134 (« Some Mods that SMAPI has an update for, Stardrop does not ») et #121
+      sont ouverts depuis 2023, et son historique ne porte aucun commit sur le sujet.
 - [x] **B2-T9** — Trier la liste des mods par poids. *Livré : chaque ligne porte sa taille
       (teintée au-delà de 100 Mo — 22 dossiers du parc réel, qui portent 87 % des 16,8 Go),
       un tri « Poids » les remonte en tête, et la barre d'outils annonce ce que pèse le
