@@ -420,7 +420,15 @@ struct ModInstallView: View {
                 }
 
                 let finalTempDir = capturedTempDir
+                // Ce que l'extraction a eu à dire alors même qu'elle a réussi :
+                // un repli sur un autre outil, typiquement. Le succès seul ne
+                // se raconte pas, et c'est pourtant le moment où l'on veut
+                // savoir que l'archive n'était pas ordinaire.
+                let extractionNotes = self.installer.lastExtractionNotes
                 DispatchQueue.main.async {
+                    for note in extractionNotes {
+                        self.vm.log("Installation: \(note)", level: .warning)
+                    }
                     guard self.isViewActive else {
                         // Dismissed while this analysis was running —
                         // `onDisappear` already ran with `tempDir == nil`,

@@ -82,3 +82,87 @@ private final class Mutex<Value>: @unchecked Sendable {
     func set(_ newValue: Value) { lock.lock(); value = newValue; lock.unlock() }
     func get() -> Value { lock.lock(); defer { lock.unlock() }; return value }
 }
+
+/// Un zip dont les noms d'entrées ne sont pas de l'UTF-8 valide.
+///
+/// Les vieux zips encodent leurs noms à la mode DOS. `/usr/bin/unzip` refuse
+/// alors de les créer sur APFS — « Illegal byte sequence », statut 2 — **après
+/// avoir extrait le reste** : le dossier restait à moitié rempli et
+/// l'installation échouait sans rien dire.
+///
+/// Mesuré sur « Kalash's More Fruit Trees » (Nexus 41318), dont un dossier
+/// s'appelle `X ↓Unnecessary` : `unzip` rend 315 fichiers sur 320, `7zz` et
+/// `unar` les 320 en transcodant le nom.
+@Suite struct NonUTF8ArchiveTests {
+
+    /// Construit un zip dont une entrée porte trois octets illégaux en UTF-8.
+    ///
+    /// On ne peut pas créer un tel nom sur APFS — le système le refuse aussi.
+    /// L'archive est donc forgée : `zip` l'écrit avec un nom ASCII de même
+    /// longueur, puis les octets sont remplacés sur place. La longueur étant
+    /// identique, tous les décalages internes du zip restent valides.
+    private func makeArchiveWithNonUTF8Name() throws -> URL {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("nonutf8-\(UUID().uuidString)", isDirectory: true)
+        let odd = root.appendingPathComponent("MonMod/assets/X ABCUnnecessary", isDirectory: true)
+        try FileManager.default.createDirectory(at: odd, withIntermediateDirectories: true)
+        try Data("x".utf8).write(to: odd.appendingPathComponent("extra.png"))
+        try Data(#"{"Name":"Mon Mod","UniqueID":"kalash.test","Version":"1.0.0"}"#.utf8)
+            .write(to: root.appendingPathComponent("MonMod/manifest.json"))
+
+        let archive = root.appendingPathComponent("mod.zip")
+        let zip = Process()
+        zip.executableURL = URL(fileURLWithPath: "/usr/bin/zip")
+        zip.arguments = ["-qr", archive.path, "MonMod"]
+        zip.currentDirectoryURL = root
+        try zip.run()
+        zip.waitUntilExit()
+
+        // `ABC` → `D4 E5 F4`, la séquence même qui fait trébucher `unzip`.
+        var bytes = try Data(contentsOf: archive)
+        let needle = Data("X ABCUnnecessary".utf8)
+        let replacement = Data([0x58, 0x20, 0xD4, 0xE5, 0xF4]) + Data("Unnecessary".utf8)
+        #expect(replacement.count == needle.count)
+        var searchFrom = bytes.startIndex
+        var patched = 0
+        while let found = bytes[searchFrom...].range(of: needle) {
+            bytes.replaceSubrange(found, with: replacement)
+            searchFrom = found.upperBound
+            patched += 1
+        }
+        // En-tête local **et** répertoire central portent le nom : les deux
+        // doivent être corrigés, sinon `unzip` signale une archive incohérente
+        // et le test mesurerait la mauvaise panne.
+        #expect(patched >= 2)
+        try bytes.write(to: archive)
+        return archive
+    }
+
+    @Test func anArchiveWithNonUTF8NamesStillExtractsWhole() throws {
+        let archive = try makeArchiveWithNonUTF8Name()
+        let root = archive.deletingLastPathComponent()
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let destination = root.appendingPathComponent("out", isDirectory: true)
+        try FileManager.default.createDirectory(at: destination, withIntermediateDirectories: true)
+
+        // Sans le repli, `unzip` rend 2 et l'extraction lève : le manifeste
+        // manquerait, et l'installation refuserait une archive pourtant saine.
+        let notes = try ModZipInstaller.extractArchive(zipUrl: archive, to: destination)
+
+        let manifest = destination.appendingPathComponent("MonMod/manifest.json")
+        #expect(FileManager.default.fileExists(atPath: manifest.path))
+
+        let files = FileManager.default.enumerator(at: destination,
+                                                   includingPropertiesForKeys: nil)?
+            .compactMap { $0 as? URL }
+            .filter { (try? $0.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true }
+        // Le fichier au nom illisible pour `unzip` fait partie du lot.
+        #expect(files?.count == 2)
+
+        // Et le journal en garde la trace : une extraction qui s'y reprend à
+        // deux fois ne doit pas être silencieuse.
+        #expect(notes.contains { $0.contains("unzip a rendu le statut") })
+        #expect(notes.contains { $0.contains("extraction reprise") })
+    }
+}

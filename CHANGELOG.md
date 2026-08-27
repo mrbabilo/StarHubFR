@@ -13,6 +13,8 @@ where the exact log format was verified.
 ## [Unreleased]
 
 ### Fixed
+- **Une archive aux noms de fichiers à l'ancienne s'installe désormais.** `/usr/bin/unzip` refuse de créer un nom qui n'est pas de l'UTF-8 valide — les vieux zips encodent les leurs à la mode DOS — et il s'arrête en cours de route, après avoir extrait le reste. L'installation échouait alors sans rien dire. Elle se reprend maintenant avec `7zz` ou `unar`, qui transcrivent ces noms correctement. Mesuré sur « Kalash's More Fruit Trees » : `unzip` s'arrêtait à 315 fichiers sur 320, le repli les installe tous.
+- **Le journal reçoit les erreurs d'installation.** Une extraction qui échouait ne laissait aucune trace consultable : il fallait relancer l'app depuis un terminal pour lire ce que l'outil avait dit. Le journal porte désormais le statut de l'extracteur et son message, ainsi qu'une note quand l'extraction a dû s'y reprendre avec un autre outil.
 - **L'installation d'un gros mod ne se fige plus sur « Analyse de l'archive… ».** Le contrôle anti-zip-slip attendait la fin de `unzip` avant de lire ce que celui-ci écrivait. Passé la capacité d'un tube — 64 Ko, soit environ 1 500 fichiers —, les deux se bloquaient l'un l'autre : l'app restait sur l'analyse, et le processus `unzip` survivait, immobile. Un mod à 3 000 entrées produit 411 Ko de listing. Au passage, une archive qui contient deux fois le même chemin ne peut plus poser de question à laquelle personne ne répondra.
 
 ### Added

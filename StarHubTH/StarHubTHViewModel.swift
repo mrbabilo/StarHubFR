@@ -4679,6 +4679,16 @@ class StarHubTHViewModel: ObservableObject {
     /// in English inside `ModZipInstaller`: the frame gets translated, the
     /// embedded technical detail doesn't.
     func installErrorMessage(_ error: Error) -> String {
+        // **Le détail technique part au journal**, que la modale ne montre pas :
+        // le statut de l'extracteur, son « Illegal byte sequence », le chemin
+        // qu'il n'a pas su créer. Sans cela, un échec d'installation ne laissait
+        // aucune trace consultable — il fallait relancer l'app depuis un
+        // terminal pour voir ce que l'outil avait dit.
+        //
+        // Ici, et non chez les sept appelants : un seul aurait fini par
+        // l'oublier. Cette fonction est appelée une fois par erreur affichée.
+        log(Self.technicalInstallDetail(error), level: .error)
+
         if let error = error as? InstallError {
             switch error {
             case .extractionFailed:       return L(L10n.ModInstall.errExtraction)
@@ -4698,6 +4708,16 @@ class StarHubTHViewModel: ObservableObject {
             }
         }
         return error.localizedDescription
+    }
+
+    /// Ce qu'on écrit au journal pour une erreur d'installation : la
+    /// description **technique**, en anglais, celle que porte l'erreur
+    /// elle-même. Le message localisé, lui, va à l'utilisateur ; le journal
+    /// sert à comprendre, et à être recopié dans un rapport.
+    private static func technicalInstallDetail(_ error: Error) -> String {
+        let detail = (error as? LocalizedError)?.errorDescription
+            ?? error.localizedDescription
+        return "Installation: \(detail)"
     }
 
     /// Éteint les lignes de mise à jour des mods que l'installation vient de

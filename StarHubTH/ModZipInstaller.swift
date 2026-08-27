@@ -598,7 +598,8 @@ class ModZipInstaller {
     /// - RAR: uses the first available of `unrar`, `unar`, or `7z`
     ///   (not bundled — checked at runtime). Throws `rarToolMissing` if none
     ///   is found.
-    static func extractArchive(zipUrl: URL, to destDir: URL) throws {
+    @discardableResult
+    static func extractArchive(zipUrl: URL, to destDir: URL) throws -> [String] {
         // Le format vient de la signature, comme dans `validateZip` et le
         // téléchargement Nexus : un `.zip` mal nommé en `.7z` doit partir vers
         // le bon outil d'extraction. L'extension n'est qu'un repli, atteint
@@ -608,28 +609,56 @@ class ModZipInstaller {
         // Garde zip-slip : refuser toute entry en path-traversal avant d'extraire
         // (unzip extrait les `../` hors de destDir). Audit 2026-08-05.
         if Self.hasTraversalEntry(zipUrl: zipUrl, ext: ext) {
-            throw InstallError.extractionFailed
+            throw InstallError.extractionFailed(
+                "archive rejetée : une entrée sort du dossier de destination")
         }
 
+        var notes: [String] = []
+
         if ext == "zip" {
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
-            // `-o` : écraser sans demander. Sans lui, une archive qui
-            // contient deux fois le même chemin — cela arrive dans des mods
-            // mal empaquetés — fait poser à `unzip` une question sur une
-            // entrée standard qui n'existe pas dans une app à interface. Le
-            // dossier de destination est neuf et nous appartient : il n'y a
-            // rien d'autre à écraser. Même intention que le `-aoa` déjà passé
-            // à 7z.
-            process.arguments = ["-q", "-o", zipUrl.path, "-d", destDir.path]
-            // Force the C locale so error/diagnostic output stays parseable
-            // (the summary line is what we read in `uncompressedSize`; keeping
-            // extraction under the same locale makes the two consistent).
-            process.environment = Self.cLocaleEnvironment
-            try process.run()
-            process.waitUntilExit()
-            guard Self.isTolerableExitStatus(process.terminationStatus) else {
-                throw InstallError.extractionFailed
+            let unzip = Self.runExtractor(tool: "/usr/bin/unzip",
+                                          arguments: ["-q", "-o", zipUrl.path, "-d", destDir.path])
+            if !Self.isTolerableExitStatus(unzip.status) {
+                // **`/usr/bin/unzip` n'est pas le dernier mot sur un zip.** Il
+                // refuse de créer un fichier dont le nom n'est pas de l'UTF-8
+                // valide — les vieux zips encodent leurs noms à la mode DOS, et
+                // APFS n'accepte que l'UTF-8. Il s'arrête alors sur `Illegal
+                // byte sequence`, statut 2, **après avoir extrait le reste** :
+                // le dossier restait à moitié rempli et l'installation
+                // échouait sans rien dire.
+                //
+                // Mesuré sur « Kalash's More Fruit Trees » (Nexus 41318), dont
+                // un dossier s'appelle `X ↓Unnecessary` : `unzip` rend 2 et 315
+                // fichiers sur 320, quand `7zz` et `unar` rendent 0 et les 320,
+                // en transcodant le nom. D'où ce repli — les mêmes outils que
+                // pour le `.rar` et le `.7z`, pas une seconde liste qui
+                // divergerait.
+                notes.append(Self.diagnostic(tool: "/usr/bin/unzip", result: unzip))
+                guard let fallback = Self.find7zTool() else {
+                    // Sans outil de repli, dire lequel manque : le journal est
+                    // le seul endroit où l'utilisateur pourra l'apprendre, et
+                    // « échec de l'extraction » seul n'indique aucune sortie.
+                    notes.append("aucun outil de repli installé (7zz, 7z, 7za ou unar)"
+                                 + " — `brew install sevenzip` ou `brew install unar`")
+                    throw InstallError.extractionFailed(notes.joined(separator: "\n"))
+                }
+
+                // Repartir d'un dossier vide : mélanger une extraction
+                // partielle et une seconde passe laisserait des fichiers
+                // d'origine incertaine.
+                try? FileManager.default.removeItem(at: destDir)
+                try FileManager.default.createDirectory(at: destDir,
+                                                        withIntermediateDirectories: true)
+
+                let retry = Self.runExtractor(tool: fallback.path,
+                                              arguments: fallback.arguments(zipUrl.path,
+                                                                            destDir.path))
+                guard Self.isTolerableExitStatus(retry.status) else {
+                    notes.append(Self.diagnostic(tool: fallback.path, result: retry))
+                    throw InstallError.extractionFailed(notes.joined(separator: "\n"))
+                }
+                let name = (fallback.path as NSString).lastPathComponent
+                notes.append("extraction reprise avec \(name) : réussie")
             }
         } else {
             // .rar et .7z passent par un outil externe. `unrar` ne lit pas le
@@ -637,14 +666,11 @@ class ModZipInstaller {
             guard let tool = ext == "rar" ? Self.findRarTool() : Self.find7zTool() else {
                 throw InstallError.rarToolMissing
             }
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: tool.path)
-            process.arguments = tool.arguments(zipUrl.path, destDir.path)
-            process.environment = Self.cLocaleEnvironment
-            try process.run()
-            process.waitUntilExit()
-            guard Self.isTolerableExitStatus(process.terminationStatus) else {
-                throw InstallError.extractionFailed
+            let result = Self.runExtractor(tool: tool.path,
+                                           arguments: tool.arguments(zipUrl.path, destDir.path))
+            guard Self.isTolerableExitStatus(result.status) else {
+                throw InstallError.extractionFailed(Self.diagnostic(tool: tool.path,
+                                                                    result: result))
             }
         }
 
@@ -655,8 +681,52 @@ class ModZipInstaller {
         // "no valid mod structure" the scan would report on an empty directory.
         let produced = (try? FileManager.default.contentsOfDirectory(atPath: destDir.path)) ?? []
         guard !produced.isEmpty else {
-            throw InstallError.extractionFailed
+            throw InstallError.extractionFailed("l'archive n'a produit aucun fichier")
         }
+        return notes
+    }
+
+    /// Lance un extracteur et rend son verdict avec ce qu'il a dit.
+    ///
+    /// **Sortie d'erreur dirigée vers le même tube que la sortie standard**, et
+    /// **lue avant l'attente** : deux tubes lus l'un après l'autre
+    /// s'interbloquent dès que le second se remplit, et attendre avant de lire
+    /// interbloque tout court (voir `hasTraversalEntry`).
+    private static func runExtractor(tool: String, arguments: [String])
+        -> (status: Int32, output: String) {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: tool)
+        process.arguments = arguments
+        // Locale C : les diagnostics des outils restent en anglais, donc
+        // comparables d'un rapport à l'autre — c'est ce qu'on recopie dans le
+        // journal, et ce que l'utilisateur nous transmettra.
+        process.environment = Self.cLocaleEnvironment
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = pipe
+        do {
+            try process.run()
+        } catch {
+            return (-1, error.localizedDescription)
+        }
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+        let output = String(decoding: data, as: UTF8.self)
+        return (process.terminationStatus,
+                output.trimmingCharacters(in: .whitespacesAndNewlines))
+    }
+
+    /// Une ligne de journal lisible : l'outil, son statut, et ce qu'il a dit.
+    /// La sortie est tronquée — `unzip` répète son erreur pour chaque fichier
+    /// qu'il n'a pas su créer, et six lignes suffisent à comprendre.
+    private static func diagnostic(tool: String,
+                                   result: (status: Int32, output: String)) -> String {
+        let name = (tool as NSString).lastPathComponent
+        let lines = result.output.split(separator: "\n", omittingEmptySubsequences: true)
+        let shown = lines.prefix(6).joined(separator: " / ")
+        let suffix = lines.count > 6 ? " (+\(lines.count - 6) lignes)" : ""
+        return "\(name) a rendu le statut \(result.status)"
+            + (shown.isEmpty ? "" : " : \(shown)\(suffix)")
     }
 
     /// Grants the owner write access across a freshly extracted tree.
@@ -812,7 +882,13 @@ class ModZipInstaller {
 
     /// Extracts a zip file to a temporary directory using `/usr/bin/unzip`
     /// (mirrors `SmapiInstaller`'s approach — no external Swift dependency).
+    /// Ce que la dernière extraction a eu à dire : outil de repli employé,
+    /// avertissements. Vide quand tout s'est passé simplement. Lu par le
+    /// ViewModel, qui seul sait journaliser.
+    private(set) var lastExtractionNotes: [String] = []
+
     func extractToTemp(zipUrl: URL) throws -> URL {
+        lastExtractionNotes = []
         let timestamp = String(Int(Date().timeIntervalSince1970))
         // A UUID suffix keeps two analyses started within the same second
         // (e.g. dropping a second zip while the first is still analyzing)
@@ -824,7 +900,11 @@ class ModZipInstaller {
         try fm.createDirectory(at: tempDir, withIntermediateDirectories: true, attributes: nil)
 
         do {
-            try Self.extractArchive(zipUrl: zipUrl, to: tempDir)
+            // Ce que l'extraction a eu à dire — un repli sur un autre outil,
+            // par exemple. Gardé pour le journal : sans cela, la seule trace
+            // d'une extraction qui a dû s'y reprendre à deux fois serait son
+            // silence.
+            lastExtractionNotes = try Self.extractArchive(zipUrl: zipUrl, to: tempDir)
         } catch {
             try? fm.removeItem(at: tempDir)
             throw error
@@ -1167,7 +1247,7 @@ enum ZipStructure {
 }
 
 enum InstallError: LocalizedError {
-    case extractionFailed
+    case extractionFailed(String)
     case unsafeContent
     case gameDirEmpty
     case backupFailed(String)
@@ -1176,7 +1256,7 @@ enum InstallError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .extractionFailed: return "Failed to extract archive file"
+        case .extractionFailed(let detail): return "Failed to extract archive file: \(detail)"
         case .unsafeContent: return "This archive contains unsafe content (symbolic links) and was rejected."
         case .gameDirEmpty: return "Game directory is not set."
         case .backupFailed(let reason): return "Backup of the existing mod failed, installation aborted: \(reason)"

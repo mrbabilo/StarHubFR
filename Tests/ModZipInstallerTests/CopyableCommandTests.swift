@@ -16,7 +16,7 @@ import Testing
 
     @Test("Aucune autre erreur d'installation ne porte de commande")
     func otherErrorsCarryNothing() {
-        #expect(InstallError.extractionFailed.copyableCommand == nil)
+        #expect(InstallError.extractionFailed("").copyableCommand == nil)
         #expect(InstallError.unsafeContent.copyableCommand == nil)
         #expect(InstallError.gameDirEmpty.copyableCommand == nil)
         #expect(InstallError.backupFailed("x").copyableCommand == nil)
