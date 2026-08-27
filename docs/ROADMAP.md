@@ -623,6 +623,28 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 - [ ] **C5-T2** — Aligner README/CHANGELOG (la mention du hub thaï quitte le discours
       produit). · **S**
 
+#### C6 — Signaux de demande de traduction (`needs:fr`)
+
+Origine : panorama des canaux de traduction FR (2026-08-27). Sur les canaux listés, un
+seul était inconnu du dépôt — les autres sont couverts (Nexus + tag `French` = **A3-T3**,
+livré ; pages « What do you want VF » = mods Nexus ordinaires) ou sans API
+(stardewvalley.fr, Discord FR — rien à câbler). Le dépôt GitHub
+`Pathoschild/SMAPI-ModTranslationClassifier` tient des **issues taguées `needs:fr`** :
+les mods sans traduction française dont l'auteur en demande une, maintenues par
+l'auteur de SMAPI. C'est l'inverse exact du hub actuel, qui trouve ce qui **existe**.
+
+- [ ] **C6-T1** — Croiser le parc avec les issues `needs:fr` : sur la fiche d'un mod
+      sans traduction FR (C1 le sait déjà), dire si une traduction est **activement
+      demandée** — issue ouverte, âge, lien. API GitHub publique, sans clé : mesurable
+      sans passer par l'utilisateur. · **M** · *à mesurer avant d'engager :*
+      - **la clé de croisement** — les issues du classifier référencent-elles les mods
+        par `UniqueID` (alors le parc croise directement — contrairement à Nexus, qui
+        ne rend pas l'identifiant d'un mod non installé) ou par nom de mod ?
+      - **la couverture** — sur les mods du parc sans traduction FR, combien figurent
+        dans le classifier (Pathoschild scanne les mods SMAPI qu'il connaît, pas tout
+        Nexus). Repli si la couverture est dérisoire : ne pas livrer une pastille qui
+        ne s'allume jamais.
+
 **Risques** : c'est la version la plus exposée à la perte de données utilisateur (écriture
 dans les fichiers des mods). Aucune écriture sans backup préalable ni diff affiché.
 **Critère de succès** : traduire un mod moyen de bout en bout sans quitter StarHubFR, et
