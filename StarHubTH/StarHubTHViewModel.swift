@@ -2926,7 +2926,14 @@ class StarHubTHViewModel: ObservableObject {
         )
         
         DispatchQueue.main.async {
-            self.outOfDateMods = updates
+            // Par ordre alphabétique, et non dans celui du journal : SMAPI les
+            // liste dans son ordre de chargement, qui n'a pas de sens pour qui
+            // cherche un mod précis — et qui change d'un lancement à l'autre.
+            // L'ordre des mises à jour Nexus, lui, reste celui de leur mise en
+            // ligne : la page l'annonce désormais.
+            self.outOfDateMods = updates.sorted {
+                $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+            }
             self.smapiErrors = uniqueErrors
             self.smapiDiagnostics = smapiDiag
             self.smapiLogDate = smapiDate
@@ -4356,6 +4363,50 @@ class StarHubTHViewModel: ObservableObject {
     /// principe coïncider avec l'identifiant Nexus d'un AUTRE mod, et la
     /// correspondance par identifiant Nexus — celle que smapi.io a réellement
     /// vérifiée — doit l'emporter chaque fois qu'elle s'applique.
+    /// Le nom du mod derrière un identifiant Nexus, quand l'app le connaît.
+    ///
+    /// Un journal qui ne dit que « mod 41318 » oblige à ouvrir Nexus pour
+    /// savoir de quoi il parle — or l'app a le nom sous la main, par trois
+    /// chemins. Ils sont essayés du plus sûr au plus lointain :
+    ///
+    /// 1. **un mod installé** qui porte cet identifiant — c'est le nom que
+    ///    l'utilisateur voit dans sa liste, donc celui qu'il reconnaîtra ;
+    /// 2. **la liste des mises à jour**, qui porte le nom Nexus.
+    ///
+    /// Pas de troisième chemin par le cache sur disque : `nexusUpdates` en est
+    /// justement rempli au lancement, et le relire ici n'aurait fait qu'ajouter
+    /// un accès au singleton pour la même réponse.
+    ///
+    /// `nil` quand aucun ne répond : un `nxm://` pour un mod qu'on n'a jamais
+    /// vu ne peut pas être nommé avant son téléchargement, et inventer un nom
+    /// serait pire que l'identifiant nu.
+    func nexusModDisplayName(for modId: Int) -> String? {
+        let wanted = String(modId)
+        // Les mods de premier niveau d'abord : pour un composant de pack, le
+        // nom du pack est celui qui parle — c'est lui qui a une page Nexus.
+        for mod in mods where effectiveNexusModId(for: mod) == wanted {
+            return mod.name
+        }
+        for mod in mods.flattenedMods where effectiveNexusModId(for: mod) == wanted {
+            return mod.name
+        }
+        if let update = nexusUpdates.first(where: { $0.nexusModId == wanted }), !update.name.isEmpty {
+            return update.name
+        }
+        return nil
+    }
+
+    /// Un message de journal qui nomme le mod quand c'est possible, et se
+    /// rabat sur l'identifiant seul sinon. Les deux formats sont fournis par
+    /// l'appelant : seule une vue résout `L(…)`, et les deux phrases n'ont pas
+    /// le même nombre de substitutions.
+    private func nexusDownloadLogMessage(named: String, plain: String, modId: Int) -> String {
+        guard let name = nexusModDisplayName(for: modId) else {
+            return String(format: L(plain), Int64(modId))
+        }
+        return String(format: L(named), name, Int64(modId))
+    }
+
     func modForNexusUpdate(_ update: NexusUpdateChecker.ModUpdate) -> ModItem? {
         guard !update.nexusModId.isEmpty else { return nil }
 
@@ -4542,7 +4593,8 @@ class StarHubTHViewModel: ObservableObject {
         if rejectNexusDownloadIfBusy() { return }
         isDownloadingFromNexus = true
         downloadingNexusModId = link.modId
-        log(String(format: L(L10n.VM.nexusDlStarting), link.modId))
+        log(nexusDownloadLogMessage(named: L10n.VM.nexusDlStartingNamed,
+                                    plain: L10n.VM.nexusDlStarting, modId: link.modId))
         nexusDownloadInFlight = nexusDownloader.download(
             modId: link.modId, fileId: link.fileId, game: link.gameDomain,
             key: link.key, expires: link.expires,
@@ -4560,7 +4612,8 @@ class StarHubTHViewModel: ObservableObject {
         if rejectNexusDownloadIfBusy() { return }
         isDownloadingFromNexus = true
         downloadingNexusModId = nexusId
-        log(String(format: L(L10n.VM.nexusDlStarting), nexusId))
+        log(nexusDownloadLogMessage(named: L10n.VM.nexusDlStartingNamed,
+                                    plain: L10n.VM.nexusDlStarting, modId: nexusId))
         nexusDownloadInFlight = nexusDownloader.download(
             modId: nexusId, fileId: nil, game: "stardewvalley", key: nil, expires: nil,
             onProgress: { [weak self] received, expected in
@@ -4582,12 +4635,16 @@ class StarHubTHViewModel: ObservableObject {
             case .success(let zipURL):
                 self.pendingDownloadedZip = zipURL
                 self.pendingNexusSource = NexusInstallSource(modId: modId)
-                self.log(String(format: self.L(L10n.VM.nexusDlCompleted), modId))
+                self.log(self.nexusDownloadLogMessage(named: L10n.VM.nexusDlCompletedNamed,
+                                                      plain: L10n.VM.nexusDlCompleted,
+                                                      modId: modId))
             case .failure(.cancelled):
                 // Annuler son propre téléchargement n'est pas une panne : une
                 // alerte sur un geste volontaire serait du bruit. La ligne de
                 // journal, elle, garde la trace de ce qui n'a pas été installé.
-                self.log(String(format: self.L(L10n.VM.nexusDlCancelled), modId))
+                self.log(self.nexusDownloadLogMessage(named: L10n.VM.nexusDlCancelledNamed,
+                                                      plain: L10n.VM.nexusDlCancelled,
+                                                      modId: modId))
             case .failure(let error):
                 let message = self.nexusDownloadMessage(error)
                 self.showModal(message: message)

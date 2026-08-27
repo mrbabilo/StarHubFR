@@ -1085,5 +1085,17 @@
   "downloads_progress_unknown_total": "%@ received",
   "downloads_rate": "%@/s",
   "downloads_eta": "~%@ left",
-  "downloads_connecting": "Connecting to Nexus…"
+  "downloads_connecting": "Connecting to Nexus…",
+  "updates_all_up_to_date": "All mods are up to date",
+  "updates_smapi_section": "Reported by SMAPI",
+  "updates_smapi_note": "Seen at the game's last launch, in SMAPI's compatibility list — independently of Nexus.",
+  "updates_available_version": "Available version: %@",
+  "updates_smapi_description": "SMAPI has seen a newer version. What it changes isn't in the log: the mod's page says.",
+  "updates_open_smapi_page": "View entry",
+  "updates_nexus_order_note": "Most recently uploaded first.",
+  "vm_nexus_dl_starting_named": "Downloading “%1$@” (mod %2$lld) from Nexus…",
+  "vm_nexus_dl_completed_named": "Download finished: “%1$@” (mod %2$lld)",
+  "vm_nexus_dl_cancelled_named": "Download of “%1$@” (mod %2$lld) cancelled.",
+  "downloads_downloading_named": "Downloading: %@",
+  "updates_update_available": "Update available"
 }

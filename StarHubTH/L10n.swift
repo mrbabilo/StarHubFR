@@ -765,6 +765,14 @@ enum L10n {
     // MARK: - Updates
     enum Updates {
         static let newUpdate            = "updates_new_update"
+        static let allUpToDate          = "updates_all_up_to_date"
+        static let updateAvailable      = "updates_update_available"
+        static let smapiSection         = "updates_smapi_section"
+        static let smapiNote            = "updates_smapi_note"
+        static let availableVersion     = "updates_available_version"
+        static let smapiDescription     = "updates_smapi_description"
+        static let openSmapiPage        = "updates_open_smapi_page"
+        static let nexusOrderNote       = "updates_nexus_order_note"
         static let download             = "updates_download"
         static let updateDescription    = "updates_update_description"
         static let visitWebsite         = "updates_visit_website"
@@ -902,12 +910,16 @@ enum L10n {
         static let rate                 = "downloads_rate"
         static let eta                  = "downloads_eta"
         static let connecting           = "downloads_connecting"
+        static let downloadingNamed     = "downloads_downloading_named"
     }
 
     // MARK: - VM
     enum VM {
         static let defaultFarmerName    = "vm_default_farmer_name"
         static let nexusDlCancelled     = "vm_nexus_dl_cancelled"
+        static let nexusDlStartingNamed  = "vm_nexus_dl_starting_named"
+        static let nexusDlCompletedNamed = "vm_nexus_dl_completed_named"
+        static let nexusDlCancelledNamed = "vm_nexus_dl_cancelled_named"
         static let nexusDlCancelledError = "vm_nexus_dl_cancelled_error"
         static let launchingVanilla     = "vm_launching_vanilla"
         static let launchVanillaSuccess = "vm_launch_vanilla_success"

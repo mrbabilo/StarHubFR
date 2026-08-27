@@ -598,6 +598,24 @@ struct UpdatesView: View {
                 
                 // Out of date mods (Software Update style)
                 if !vm.outOfDateMods.isEmpty {
+                    // Ces cartes n'avaient aucun en-tête, quand celles de Nexus
+                    // en ont un : rien ne disait d'où venait l'information, ni
+                    // pourquoi ces mods-là étaient là et pas d'autres.
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle")
+                                .foregroundColor(.orange)
+                                .font(.system(size: 16))
+                            Text(vm.L(L10n.Updates.smapiSection))
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(.primary)
+                        }
+                        Text(vm.L(L10n.Updates.smapiNote))
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
                     ForEach(vm.outOfDateMods) { mod in
                         VStack(alignment: .leading, spacing: 12) {
                             HStack(alignment: .top, spacing: 16) {
@@ -615,13 +633,24 @@ struct UpdatesView: View {
                                     Text(mod.name)
                                         .font(.system(size: 16, weight: .bold))
                                         .foregroundColor(.primary)
-                                    Text(mod.version)
+                                    // `ModUpdateInfo.version` est la version
+                                    // **disponible** — celle que SMAPI annonce
+                                    // dans « You can update N mods ». Nue sous
+                                    // le nom du mod, elle se lisait comme la
+                                    // version installée, c'est-à-dire l'inverse.
+                                    Text(String(format: vm.L(L10n.Updates.availableVersion),
+                                                mod.version))
                                         .font(.system(size: 12))
                                         .foregroundColor(.secondary)
                                     
-                    Text(vm.L(L10n.Updates.newUpdate))
+                                    // Pas « disponible sur Nexus Mods » :
+                                    // ces lignes viennent du journal SMAPI, et
+                                    // leur lien pointe vers smapi.io. Le mod
+                                    // peut n'avoir aucune page Nexus. Le
+                                    // pourquoi est dit une fois, plus bas.
+                                    Text(vm.L(L10n.Updates.updateAvailable))
                                         .font(.system(size: 12))
-                                        .foregroundColor(.red.opacity(0.8))
+                                        .foregroundColor(.orange)
                                         .padding(.top, 2)
                                 }
                                 
@@ -631,7 +660,10 @@ struct UpdatesView: View {
                                     Button(action: {
                                         if let url = URL(string: mod.url) { NSWorkspace.shared.open(url) }
                                     }) {
-                                        Text(vm.L(L10n.Updates.download))
+                                        // Il ouvre `smapi.io/mods#…`, où rien
+                                        // ne se télécharge : promettre un
+                                        // téléchargement était un faux départ.
+                                        Text(vm.L(L10n.Updates.openSmapiPage))
                                             .font(.system(size: 12, weight: .medium))
                                             .foregroundColor(.primary)
                                             .padding(.horizontal, 16)
@@ -645,9 +677,15 @@ struct UpdatesView: View {
                             }
 
                             VStack(alignment: .leading, spacing: 16) {
-                                Text(vm.L(L10n.Updates.updateDescription))
+                                // Le texte d'avant — « apporte de nouvelles
+                                // fonctionnalités et des corrections de bugs »
+                                // — était inventé : l'app ne sait rien du
+                                // contenu de la mise à jour. La phrase le dit
+                                // maintenant, au lieu de le supposer.
+                                Text(vm.L(L10n.Updates.smapiDescription))
                                     .font(.system(size: 13))
                                     .foregroundColor(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
 
                                 HStack(spacing: 4) {
                                     Text(vm.L(L10n.Updates.visitWebsite))
@@ -764,14 +802,23 @@ struct UpdatesView: View {
                         HStack(spacing: 6) {
                             Image(systemName: "checkmark.circle.fill")
                                 .foregroundColor(.green)
-                        Text(vm.L(L10n.Logs.systemAlertsSection))
+                        // C'était `logs_system_alerts_section` — « Aucune
+                        // alerte système » — sur la page des **mises à jour** :
+                        // le libellé d'une autre page, qui répondait à côté de
+                        // la question posée. Jumeau du défaut corrigé en
+                        // v1.21.0 dans l'autre sens.
+                        Text(vm.L(L10n.Updates.allUpToDate))
                         }
                         .font(.system(size: 12))
                         .foregroundColor(.secondary)
                     } else {
                         // Summary line + list of available updates.
+                        // L'ordre est une donnée, pas un détail : sans le
+                        // dire, une liste triée par date de mise en ligne se
+                        // lit comme une liste en désordre.
                         Text(String(format: vm.L(L10n.Updates.nexusUpdatesCount),
-                                    Int64(vm.nexusUpdates.count)))
+                                    Int64(vm.nexusUpdates.count))
+                             + " · " + vm.L(L10n.Updates.nexusOrderNote))
                             .font(.system(size: 12))
                             .foregroundColor(.secondary)
                             .padding(.top, 4)
@@ -1351,10 +1398,14 @@ struct NexusDownloadFooter: View {
         }
     }
 
-    /// Le mod visé, dès qu'on le connaît.
+    /// Le mod visé, dès qu'on le connaît — **par son nom** quand l'app le
+    /// connaît, faute de quoi la barre latérale n'annonçait qu'un numéro.
     private var headline: String {
         guard let modId = vm.downloadingNexusModId else {
             return vm.L(L10n.Downloads.connecting)
+        }
+        if let name = vm.nexusModDisplayName(for: modId) {
+            return String(format: vm.L(L10n.Downloads.downloadingNamed), name)
         }
         return String(format: vm.L(L10n.Downloads.downloading), Int64(modId))
     }
