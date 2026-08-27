@@ -5929,6 +5929,12 @@ class StarHubTHViewModel: ObservableObject {
         }
     }
 
+    /// Quitte les résultats : les sections reprennent la place. Sans cette
+    /// porte de sortie, une recherche remplacerait définitivement la vitrine.
+    func clearDiscoverySearch() {
+        discoverySearch = nil
+    }
+
     /// Fiche : le cache 24 h d'abord, le réseau ensuite (spec §5.3).
     func loadDiscoveryDetail(modId: Int) {
         discoveryDetailState = .loading

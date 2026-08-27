@@ -1257,6 +1257,7 @@ enum L10n {
         static let installedBadge    = "discovery_installed_badge"
         static let shownOfTotal      = "discovery_shown_of_total"
         static let searchPlaceholder = "discovery_search_placeholder"
+        static let clearSearch        = "discovery_clear_search"
         static let refresh           = "discovery_refresh"
         static let neverLoaded       = "discovery_never_loaded"
         static let noKey             = "discovery_no_key"

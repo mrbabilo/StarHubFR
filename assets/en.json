@@ -1144,6 +1144,7 @@
   "discovery_installed_badge": "Installed",
   "discovery_shown_of_total": "%1$d shown of %2$d",
   "discovery_search_placeholder": "Search mods by name…",
+  "discovery_clear_search": "Clear search",
   "discovery_refresh": "Refresh",
   "discovery_never_loaded": "Nothing loaded yet.",
   "discovery_no_key": "Add your Nexus API key in Settings to discover mods.",

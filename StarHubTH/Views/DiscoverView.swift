@@ -46,6 +46,15 @@ struct DiscoverView: View {
             }
             .help(vm.L(L10n.Main.search))
             .disabled(searchText.trimmingCharacters(in: .whitespaces).isEmpty)
+            if !searchText.isEmpty || vm.discoverySearch != nil {
+                Button {
+                    searchText = ""
+                    vm.clearDiscoverySearch()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                }
+                .help(vm.L(L10n.Discovery.clearSearch))
+            }
         }
     }
 
