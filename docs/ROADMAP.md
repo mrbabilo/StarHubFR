@@ -696,8 +696,41 @@ pouvoir revenir en arrière à tout moment.
       Capture/restauration au changement de profil avec **merge JSON non-destructif**
       (`JsonTools.Merge` côté Stardop) pour ne pas écraser les réglages existants. Opt-in,
       aucun swap sans backup préalable (réutilise `ModConfigBackupManager`). · **L** ·
-      *§audit-stardrop · le chantier le plus volumineux issu de l'audit ; à instruire avant
-      engagement (écriture dans les configs des mods = surface de perte de données).*
+      *§audit-stardrop · le chantier le plus volumineux issu de l'audit.*
+      **Instruit le 2026-08-27** — design dans
+      `docs/superpowers/specs/2026-08-27-configs-par-profil-design.md` (dossier
+      gitignoré : la spec vit en local). Quatre choses que la mesure du parc a
+      tranchées, et qui changent la forme de la tâche :
+      - **La population existe** : 3 profils (COMPLET 329, OK 529, TEST 125), et
+        **169 mods portant un `config.json` sont actifs à la fois dans COMPLET et
+        OK**, 51 dans les trois. Sur 1015 dossiers de mods, 547 portent un config
+        — mais **92 seulement parmi les 125 actifs**, l'écart étant les mods en
+        pause qui n'ont jamais tourné : le `config.json` est **généré, pas livré**,
+        et « le fichier n'existe pas encore » est un cas normal.
+      - **SMAPI réécrit tous les configs à chaque lancement** (90 sur 92 au même
+        horodatage à la minute près). La fidélité textuelle parfaite est donc
+        inutile — mais **l'ordre des clés ne doit jamais être trié** : SMAPI écrit
+        dans l'ordre des champs de la classe C# (1 fichier sur 79 est en ordre
+        alphabétique), et `JSONSerialization` rend un dictionnaire **non ordonné**.
+        L'aller-retour par `JSONSerialization` est interdit sur un config — ce que
+        fait pourtant `ModConfigEditorView.swift:349` aujourd'hui.
+      - **Deux chemins de perte fermés dans le design.** La capture ne doit avoir
+        lieu que sur une transition réelle A→B : à la **reprise d'une application
+        incomplète**, le disque porte déjà les réglages du profil *entrant*, et les
+        capturer au crédit du sortant écraserait son config dans le geste censé
+        rattraper l'erreur. Et le point d'accroche est **`applyProfile`**, jamais
+        `applyProfileToFilesystem` — que la **bissection** emprunte avec un profil
+        éphémère et `activeProfileId` à `nil`, des dizaines de fois d'affilée.
+      - **Le merge n'est plus le premier morceau.** Mémoriser le config en **texte
+        brut** préserve l'ordre gratuitement et avale les 2 configs illisibles du
+        parc sans parseur ; le parseur JSON ordonné, seul vrai morceau neuf, arrive
+        **après** que la fonctionnalité marche. Livrable dès l'étape 3 sur 7.
+      Limite assumée : l'app **ne peut pas dire quels mods marquer** — aucun
+      historique par profil, et les 4 sauvegardes de configs existantes ne portent
+      aucune attribution de profil. Outil tourné vers l'avant.
+      **Étapes 1 à 4 livrées le 2026-08-27** : magasin, capture/restauration,
+      fiche et icône. Restent les étapes 5 à 7 — `ConfigJSONTree`, le merge, et
+      l'écran de comparaison — qui feront l'objet de leur propre plan.
 - [x] **B3-T6** — Notes libres par mod, persistées au profil (annotations contextuelles :
       « désactivé en multi car désync », « à mettre à jour »). · **S** · *§audit-stardrop*
       **Livré le 2026-08-27.** Deux arbitrages de l'auteur en séance : la note

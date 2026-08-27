@@ -12,6 +12,9 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+- **Configurations par profil** — un mod peut désormais garder un `config.json` différent selon le profil. Le réglage se prend sur sa fiche ; le fichier est mémorisé quand on quitte un profil et restauré quand on y revient. Rien n'est écrit tant que le profil d'arrivée n'a rien mémorisé. Basculer de profil pendant que le jeu est ouvert ne mémorise rien : SMAPI garde les configs en mémoire et les réécrit à sa fermeture, donc l'app refuse volontairement d'y toucher et le journal le dit — les réglages changés depuis le dernier changement de profil « propre » ne sont pas mémorisés, et le prochain changement les écrase.
+
 ## [1.22.0] - 2026-08-27
 
 ### Added

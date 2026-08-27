@@ -56,3 +56,6 @@ mods/*/README.md
 # Generated SourceKit-LSP compile database
 compile_commands.json
 mods tests/
+
+# Espace de travail des exécutions de plan (superpowers SDD) — scratch, jamais versionné
+.superpowers/

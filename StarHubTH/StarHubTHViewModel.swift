@@ -6842,10 +6842,13 @@ class StarHubTHViewModel: ObservableObject {
         }
     }
 
-    /// Supprime le `config.json` du mod. SMAPI le réécrit au prochain
-    /// lancement, avec les valeurs par défaut de sa classe C# — que l'app ne
-    /// connaît pas : c'est pourquoi le geste **supprime** au lieu de
-    /// « réinitialiser ».
+    /// Supprime le `config.json` du mod — pas de « réinitialisation » possible,
+    /// l'app ne connaît pas les valeurs par défaut : elles vivent dans la classe
+    /// C# du mod. SMAPI n'en réécrit un fichier neuf au prochain lancement que
+    /// pour les mods qui appellent `helper.ReadConfig<T>()` ; un mod qui n'en lit
+    /// jamais un n'en récrira jamais un non plus — mesuré sur le parc réel :
+    /// seuls 547 dossiers de mods sur 1015 portent un `config.json`, soit
+    /// environ 46 %.
     ///
     /// - Returns: `true` si un fichier a bien été supprimé.
     @discardableResult
