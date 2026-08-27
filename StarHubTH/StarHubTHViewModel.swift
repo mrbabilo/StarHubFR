@@ -6852,6 +6852,24 @@ class StarHubTHViewModel: ObservableObject {
         }
     }
 
+    /// Le texte qu'un profil a mémorisé pour ce mod, ou `nil`.
+    func profileConfigText(mod: ModItem, profile: ModProfile) -> String? {
+        guard let url = ProfileConfigStore.fileURL(profileId: profile.id) else { return nil }
+        return ProfileConfigStore.load(from: url)[mod.folderName]?.text
+    }
+
+    /// Les écarts entre ce que deux profils retiennent de ce mod. `nil` :
+    /// un des deux textes ne se parse pas — l'écran affiche l'explication,
+    /// jamais un diff inventé.
+    func profileConfigDiffs(mod: ModItem, other: ModProfile) -> [ConfigKeyDiff]? {
+        guard let active = modProfiles.first(where: { $0.id == activeProfileId }),
+              let textA = profileConfigText(mod: mod, profile: active),
+              let textB = profileConfigText(mod: mod, profile: other),
+              let treeA = ConfigJSONTree.parse(textA),
+              let treeB = ConfigJSONTree.parse(textB) else { return nil }
+        return ConfigJSONDiff.compare(treeA, treeB)
+    }
+
     /// Supprime le `config.json` du mod — pas de « réinitialisation » possible,
     /// l'app ne connaît pas les valeurs par défaut : elles vivent dans la classe
     /// C# du mod. SMAPI n'en réécrit un fichier neuf au prochain lancement que

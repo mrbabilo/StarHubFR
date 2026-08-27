@@ -191,6 +191,15 @@
 "mods_profile_config_group" = "A pack header has no settings of its own — its components each have theirs.";
 "mods_profile_config_reset" = "Start from default settings";
 "mods_profile_config_reset_hint" = "Deletes config.json. SMAPI writes it again, with the mod's own defaults, at the next launch — StarHubFR does not know those values.";
+"mods_profile_config_compare" = "Compare with…";
+"mods_profile_config_diff_title" = "%1$@ — %2$@ vs %3$@";
+"mods_profile_config_diff_note" = "Read-only: what each profile remembers for this mod, key by key, in the file's order.";
+"mods_profile_config_diff_only_a" = "Only in %@";
+"mods_profile_config_diff_only_b" = "Only in %@";
+"mods_profile_config_diff_differs" = "Values differ";
+"mods_profile_config_diff_none" = "Both profiles remember identical settings for this mod.";
+"mods_profile_config_diff_unparseable" = "One of the two remembered configs can't be parsed — comparison impossible.";
+"mods_profile_config_diff_missing" = "Nothing remembered yet for this mod in one of the profiles.";
 "mods_detail_pack_contents" = "Pack contents (%lld)";
 "mods_detail_bugs" = "Reported bugs";
 "mods_dep_active" = "Enabled";

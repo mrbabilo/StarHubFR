@@ -62,6 +62,10 @@ struct ModDetailView: View {
     @State private var configHolders: [(profileName: String, capturedAt: Date,
                                         bytes: Int, matchesDisk: Bool)] = []
 
+    /// Le profil B de la comparaison des configs, quand la sheet est
+    /// ouverte (le profil A est toujours l'actif).
+    @State private var compareProfile: ModProfile?
+
     enum FetchStatus: Equatable {
         case idle
         case loading
@@ -87,6 +91,12 @@ struct ModDetailView: View {
             seedDraft()
             noteDraft = vm.modNote(for: mod) ?? ""
             refreshConfigHolders()
+        }
+        .sheet(item: $compareProfile) { profile in
+            ProfileConfigCompareView(vm: vm, mod: live, other: profile,
+                                     isPresented: Binding(
+                                        get: { compareProfile != nil },
+                                        set: { if !$0 { compareProfile = nil } }))
         }
         // Pause/reprise renomme le dossier physique du mod (`live`, pas
         // `mod` — voir `profileConfigSection`), ce qui change le chemin où
@@ -599,6 +609,20 @@ struct ModDetailView: View {
 
                 if vm.isProfileConfigManaged(live) {
                     profileConfigHoldersView
+
+                    // Comparer ce que deux profils retiennent de ce mod —
+                    // l'écran qui rend la divergence lisible (spec §7). Le
+                    // profil actif y est toujours le côté A.
+                    Menu {
+                        ForEach(vm.modProfiles.filter { $0.id != vm.activeProfileId }) { profile in
+                            Button(profile.name) { compareProfile = profile }
+                        }
+                    } label: {
+                        Label(vm.L(L10n.Mods.profileConfigCompare),
+                              systemImage: "rectangle.split.2x1")
+                            .font(.system(size: 12))
+                    }
+                    .disabled(vm.modProfiles.filter { $0.id != vm.activeProfileId }.isEmpty)
                 }
 
                 Button(vm.L(L10n.Mods.profileConfigReset)) {
