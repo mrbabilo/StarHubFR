@@ -182,6 +182,15 @@
 "mods_note_title_profile" = "Note — profile %@";
 "mods_note_hint" = "Free annotation kept in the active profile — it changes with it. Saved when you click elsewhere.";
 "mods_note_needs_profile" = "Apply a profile to annotate this mod — the note belongs to the profile.";
+"mods_profile_config_title" = "Per-profile configuration";
+"mods_profile_config_hint" = "This mod's config.json is remembered when you leave a profile and restored when you return to it.";
+"mods_profile_config_enable" = "Keep a separate config.json per profile";
+"mods_profile_config_none" = "No profile has remembered this mod's settings yet. Switch profiles once to record them.";
+"mods_profile_config_same" = "same as on disk";
+"mods_profile_config_differs" = "differs from disk";
+"mods_profile_config_group" = "A pack header has no settings of its own — its components each have theirs.";
+"mods_profile_config_reset" = "Start from default settings";
+"mods_profile_config_reset_hint" = "Deletes config.json. SMAPI writes it again, with the mod's own defaults, at the next launch — StarHubFR does not know those values.";
 "mods_detail_pack_contents" = "Pack contents (%lld)";
 "mods_detail_bugs" = "Reported bugs";
 "mods_dep_active" = "Enabled";

@@ -57,6 +57,11 @@ struct ModDetailView: View {
     /// fiche, hors du fil principal.
     @State private var unloadableLocaleFiles: [I18nLocaleResolver.UnloadableLocaleFile] = []
 
+    /// Ce que les profils ont mémorisé pour ce mod. Rempli à l'apparition et
+    /// après chaque geste qui le change — jamais recalculé au rendu.
+    @State private var configHolders: [(profileName: String, capturedAt: Date,
+                                        bytes: Int, matchesDisk: Bool)] = []
+
     enum FetchStatus: Equatable {
         case idle
         case loading
@@ -81,6 +86,7 @@ struct ModDetailView: View {
         .onAppear {
             seedDraft()
             noteDraft = vm.modNote(for: mod) ?? ""
+            refreshConfigHolders()
         }
         // B3-T6 — la note se sauvegarde à la perte du focus : une annotation
         // n'est pas un formulaire, pas de bouton Enregistrer.
@@ -500,6 +506,8 @@ struct ModDetailView: View {
                 nexusSection
                 Divider()
                 noteSection
+                Divider()
+                profileConfigSection
             }
             .padding(.vertical, 4)
         }
@@ -535,6 +543,110 @@ struct ModDetailView: View {
                         .foregroundStyle(.secondary)
                 }
             }
+        }
+    }
+
+    /// B3-T5 — le `config.json` du mod suit le profil actif : mémorisé quand
+    /// on quitte un profil, réécrit quand on y revient.
+    ///
+    /// L'en-tête d'un pack n'a pas de réglages propres — ses composants ont
+    /// chacun les leurs. La section reste **visible** et l'explique, au patron
+    /// de `noteSection` sans profil actif : disparaître sans dire pourquoi
+    /// laisserait croire à un oubli.
+    @ViewBuilder
+    private var profileConfigSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(vm.L(L10n.Mods.profileConfigTitle))
+                .font(.headline)
+
+            if !vm.canManageProfileConfig(mod) {
+                Text(vm.L(L10n.Mods.profileConfigGroup))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                // Le `set` prend sa valeur — il ne bascule pas. SwiftUI
+                // réécrit la valeur affichée au re-rendu, et un setter qui
+                // basculerait démarquerait le mod tout seul.
+                Toggle(vm.L(L10n.Mods.profileConfigEnable), isOn: Binding(
+                    get: { vm.isProfileConfigManaged(mod) },
+                    set: { on in
+                        vm.setProfileConfigManaged(mod, on)
+                        refreshConfigHolders()
+                    }
+                ))
+                .toggleStyle(.checkbox)
+                .font(.system(size: 12))
+
+                Text(vm.L(L10n.Mods.profileConfigHint))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if vm.isProfileConfigManaged(mod) {
+                    profileConfigHoldersView
+                }
+
+                Button(vm.L(L10n.Mods.profileConfigReset)) {
+                    vm.resetModConfigToDefaults(mod)
+                    refreshConfigHolders()
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .padding(.top, 2)
+
+                Text(vm.L(L10n.Mods.profileConfigResetHint))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    /// Ce que chaque profil a mémorisé, et surtout **si cela diffère encore du
+    /// disque**. Après un aller-retour entre deux profils, les deux mémorisent
+    /// le même texte : sans ce renseignement, l'absence d'effet se lirait
+    /// comme une panne.
+    ///
+    /// Lu **une fois** dans `configHolders`, jamais à chaque rendu : chaque
+    /// appel ouvre et décode le fichier de magasin de chaque profil, plus le
+    /// `config.json` du mod. Une propriété calculée le referait à chaque
+    /// redessin — la forme exacte qui a figé la page des journaux et coûté
+    /// 14,8 s au balayage de couverture.
+    @ViewBuilder
+    private var profileConfigHoldersView: some View {
+        if configHolders.isEmpty {
+            Text(vm.L(L10n.Mods.profileConfigNone))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        } else {
+            VStack(alignment: .leading, spacing: 3) {
+                // Indexé par rang : rien n'empêche deux profils de porter
+                // le même nom, et un id dupliqué fait taire des lignes.
+                ForEach(Array(configHolders.enumerated()), id: \.offset) { _, holder in
+                    HStack(spacing: 6) {
+                        Text(holder.profileName)
+                            .font(.system(size: 11, weight: .medium))
+                        Text(ByteCountFormatter.string(fromByteCount: Int64(holder.bytes),
+                                                       countStyle: .file))
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                        Text(holder.capturedAt.formatted(date: .abbreviated, time: .shortened))
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                        Spacer(minLength: 8)
+                        Text(vm.L(holder.matchesDisk ? L10n.Mods.profileConfigSame
+                                                     : L10n.Mods.profileConfigDiffers))
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .padding(8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.primary.opacity(0.04))
+            .clipShape(RoundedRectangle(cornerRadius: 6))
         }
     }
 
@@ -711,6 +823,10 @@ struct ModDetailView: View {
                 fetchStatus = .failed(msg)
             }
         }
+    }
+
+    private func refreshConfigHolders() {
+        configHolders = vm.profileConfigHolders(for: mod)
     }
 
     private func resetDraft() {

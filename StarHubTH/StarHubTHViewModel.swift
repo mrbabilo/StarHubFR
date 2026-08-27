@@ -6817,6 +6817,54 @@ class StarHubTHViewModel: ObservableObject {
         Self.saveProfileManagedConfigMods(profileManagedConfigMods)
     }
 
+    /// Ce que chaque profil a mémorisé pour ce mod, et si cela correspond
+    /// encore au fichier sur disque.
+    ///
+    /// `matchesDisk` est le renseignement qui empêche de croire à une panne :
+    /// après un aller-retour entre deux profils, les deux mémorisent le même
+    /// texte et rien ne diffère tant que le mod n'a pas été réglé dans l'un des
+    /// deux. Comparaison d'octets — le décompte des clés viendra avec l'écran
+    /// de comparaison.
+    func profileConfigHolders(for mod: ModItem)
+        -> [(profileName: String, capturedAt: Date, bytes: Int, matchesDisk: Bool)] {
+        let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
+        let url = ProfileConfigStore.configURL(modsPath: modsPath,
+                                               physicalFolderName: mod.physicalFolderName)
+        let onDisk = try? String(contentsOf: url, encoding: .utf8)
+        return modProfiles.compactMap { profile in
+            guard let storeURL = ProfileConfigStore.fileURL(profileId: profile.id),
+                  let entry = ProfileConfigStore.load(from: storeURL)[mod.folderName]
+            else { return nil }
+            return (profileName: profile.name,
+                    capturedAt: entry.capturedAt,
+                    bytes: entry.text.utf8.count,
+                    matchesDisk: entry.text == onDisk)
+        }
+    }
+
+    /// Supprime le `config.json` du mod. SMAPI le réécrit au prochain
+    /// lancement, avec les valeurs par défaut de sa classe C# — que l'app ne
+    /// connaît pas : c'est pourquoi le geste **supprime** au lieu de
+    /// « réinitialiser ».
+    ///
+    /// - Returns: `true` si un fichier a bien été supprimé.
+    @discardableResult
+    func resetModConfigToDefaults(_ mod: ModItem) -> Bool {
+        let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
+        let url = ProfileConfigStore.configURL(modsPath: modsPath,
+                                               physicalFolderName: mod.physicalFolderName)
+        guard FileManager.default.fileExists(atPath: url.path) else { return false }
+        do {
+            try FileManager.default.removeItem(at: url)
+            log(String(format: "config.json supprimé : %@", mod.folderName))
+            return true
+        } catch {
+            log(String(format: "config.json: %@ — %@", mod.folderName,
+                       error.localizedDescription), level: .error)
+            return false
+        }
+    }
+
     /// Ce que donnerait un import des favoris dans ce profil, sans rien
     /// écrire. Sert à l'écran : dire combien de mods entreraient, et lesquels
     /// ne le peuvent pas, **avant** de toucher au disque.
