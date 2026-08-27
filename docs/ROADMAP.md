@@ -737,7 +737,9 @@ pouvoir revenir en arrière à tout moment.
       les orphelins nommés sur la fiche du profil, et la fusion accrochée à la
       restauration. Le préalable a été vérifié en jeu le 2026-08-27 : SMAPI
       recomble bien une clé retirée d'un `config.json`, l'affirmation de la
-      spec §5.3 tient. B3-T5 est complet.
+      spec §5.3 tient. B3-T5 est complet, **validé à l'écran le 2026-08-27**
+      (fusion à la restauration et choix du profil successeur à la
+      suppression).
 - [ ] **B3-T7** — Supprimer un profil laisse son magasin de configs derrière lui.
       `deleteProfile` (`StarHubTHViewModel.swift:7002`) retire le profil des préférences
       sans toucher à `Application Support/StarHubTH/ProfileConfigs/<uuid>.json` : le
