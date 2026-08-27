@@ -991,8 +991,8 @@ pouvoir revenir en arrière à tout moment.
       en erreur qui déclarent une `UpdateKeys: Nexus:…` » ramasse exactement ce qu'il faut
       écarter et laisse de côté un tiers de ce qu'il faut prendre. Relevé du jour sur le
       parc — **1 010 `UniqueID`, 122 mods bloqués** :
-      - **53 sont sans verdict Nexus** — le lot réel. **33** tiennent leur identifiant de
-        leur manifeste, **20** de `metadata.nexusID`, que smapi.io rend *même pour les mods
+      - **51 sont repris**, sur 41 pages. La plupart tiennent leur identifiant de leur
+        manifeste ; **20** de `metadata.nexusID`, que smapi.io rend *même pour les mods
         qu'elle ne sait pas juger* : ceux-là ne déclarent aucune clé Nexus et la règle
         prévue les aurait tous manqués, **dont Stardew Valley Expanded**, actif, dont la
         clé vaut littéralement `Nexus:???` ;
@@ -1012,7 +1012,7 @@ pouvoir revenir en arrière à tout moment.
         Sans cette règle, la page proposerait un jour à Automate une mise à jour dont le
         bouton installerait un autre mod. À versions égales il n'y a pas d'ambiguïté : les
         sept composants des *Forgotten Caverns* et les quatre modules de *Starblue UI* sont
-        bien la même publication — d'où **53 mods pour 39 pages**, donc 39 requêtes ;
+        bien la même publication — d'où **51 mods pour 41 pages**, donc 41 requêtes ;
       - *un `-unofficial` n'est pas remplacé par l'officiel de même numéro*. Par la lettre
         du semver « 1.1.3 » l'emporte sur « 1.1.3-unofficial.1-p1xel8ted » ; chez SMAPI
         cette forme désigne un correctif **postérieur**, et la proposer conseillerait une

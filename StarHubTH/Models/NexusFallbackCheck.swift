@@ -11,8 +11,11 @@ import Foundation
 ///
 /// Mesuré sur le parc réel le 2026-08-27, sur 1 010 `UniqueID` : **122 mods
 /// bloqués**, dont
-/// - **53 sans verdict Nexus** — le lot que ce fichier retient, ramené à
-///   **41 pages** distinctes puis **39** après la règle d'ambiguïté ;
+/// - **51 sans verdict Nexus** — le lot que ce fichier retient, sur **41
+///   pages** distinctes (les composants d'un pack partagent la leur). Deux
+///   mods de plus sont candidats et s'annulent : ils revendiquent la même
+///   page en versions différentes, et smapi.io ne connaît ni l'un ni
+///   l'autre ;
 /// - **18 dont l'erreur ne concerne pas Nexus** : leur clé `Nexus:…` a bien
 ///   été consultée, seule celle de CurseForge, GitHub ou ModDrop a échoué.
 ///   Les reprendre coûterait 18 requêtes pour rien, et rejouerait un verdict
@@ -58,7 +61,7 @@ enum NexusFallbackCheck {
     ///
     /// Plusieurs mods par page : sur le parc réel, les sept composants des
     /// *Forgotten Caverns* déclarent tous `Nexus:47216`. Une seule requête
-    /// suffit à les juger tous — 53 mods pour 41 pages.
+    /// suffit à les juger tous — 51 mods pour 41 pages.
     struct Target: Equatable {
         let nexusId: String
         let mods: [Blocked]

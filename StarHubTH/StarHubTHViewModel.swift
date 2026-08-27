@@ -4096,8 +4096,8 @@ class StarHubTHViewModel: ObservableObject {
     /// 1.0.0, publié en 1.025, refusé par smapi.io faute de version indexable.
     ///
     /// Ce que la reprise coûte, mesuré sur le parc réel : sur 122 mods bloqués,
-    /// **53 sont sans verdict Nexus**, et ils se ramènent à **39 pages** —
-    /// autant de requêtes, une fois par vérification manuelle. Le quota mesuré
+    /// **51 sont repris**, et ils se ramènent à **41 pages** — autant de
+    /// requêtes, une fois par vérification manuelle. Le quota mesuré
     /// est de 2 000 requêtes par heure : la dépense est marginale, et elle
     /// reste **à la demande** — rien ici ne part sans que l'utilisateur ait
     /// lancé une vérification.
