@@ -1129,6 +1129,7 @@
   "updates_blocker_source_not_found": "Mod page not found (removed or hidden)",
   "updates_blocker_malformed_nexus_id": "Invalid Nexus link in the manifest",
   "updates_blocker_malformed_update_key": "Malformed UpdateKeys entry",
+  "updates_blocker_unreadable_entry": "Entry rejected by smapi.io (it answers nothing for this mod)",
   "updates_blocker_other": "smapi.io returned an error",
   "vm_nexus_dl_starting_named": "Downloading “%1$@” (mod %2$lld) from Nexus…",
   "vm_nexus_dl_completed_named": "Download finished: “%1$@” (mod %2$lld)",

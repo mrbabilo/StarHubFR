@@ -799,6 +799,9 @@ enum L10n {
         static let blockerSourceNotFound   = "updates_blocker_source_not_found"
         static let blockerMalformedNexusId = "updates_blocker_malformed_nexus_id"
         static let blockerMalformedUpdateKey = "updates_blocker_malformed_update_key"
+        /// L'app fabrique elle-même ce motif : voir
+        /// `SmapiUpdateResponse.rejectedEntryError`.
+        static let blockerUnreadableEntry  = "updates_blocker_unreadable_entry"
         static let blockerOther            = "updates_blocker_other"
         static let download             = "updates_download"
         static let updateDescription    = "updates_update_description"

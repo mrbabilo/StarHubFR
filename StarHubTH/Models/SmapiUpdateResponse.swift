@@ -38,6 +38,19 @@ public enum SmapiUpdateResponse {
             case id, suggestedUpdate, metadata, errors
         }
 
+        /// Pour fabriquer une réponse que smapi.io n'a **pas** rendue — voir
+        /// `rejectedEntryError`. Aucun autre appelant : tout le reste vient du
+        /// décodeur.
+        public init(id: String,
+                    suggestedUpdate: Version? = nil,
+                    metadata: Metadata? = nil,
+                    errors: [String] = []) {
+            self.id = id
+            self.suggestedUpdate = suggestedUpdate
+            self.metadata = metadata
+            self.errors = errors
+        }
+
         public init(from decoder: any Decoder) throws {
             let c = try decoder.container(keyedBy: CodingKeys.self)
             id = try c.decode(String.self, forKey: .id)
@@ -59,6 +72,11 @@ public enum SmapiUpdateResponse {
         case noValidVersion
         /// La clé n'a pas la forme `Site:identifiant`. 13 cas.
         case malformedUpdateKey
+        /// smapi.io ne rend **rien** pour cette entrée, et son seul fait de
+        /// figurer dans un lot suffit à vider la réponse de tous ses voisins.
+        /// Ce motif-là n'est pas une phrase de smapi.io : c'est un constat que
+        /// l'app établit en re-découpant le lot. Voir `rejectedEntryError`.
+        case rejectedEntry
         /// Famille inconnue : le texte d'origine reste affichable.
         case other
 
@@ -72,6 +90,7 @@ public enum SmapiUpdateResponse {
             case .sourceNotFound:     L10n.Updates.blockerSourceNotFound
             case .noValidVersion:     L10n.Updates.blockerNoValidVersion
             case .malformedUpdateKey: L10n.Updates.blockerMalformedUpdateKey
+            case .rejectedEntry:      L10n.Updates.blockerUnreadableEntry
             case .other:              L10n.Updates.blockerOther
             }
         }
@@ -84,7 +103,21 @@ public enum SmapiUpdateResponse {
     /// Les messages de smapi.io sont des phrases anglaises libres, sans code.
     /// On les classe sur des fragments stables — l'ordre des tests compte, la
     /// clé mal formée mentionnant elle aussi « update key ».
+    /// Le motif que l'app se pose à elle-même sur une entrée qui vide son lot.
+    ///
+    /// **Ce n'est pas une phrase de smapi.io** — d'où le préfixe, qui rend la
+    /// chose évidente à la lecture d'un journal et met la valeur hors de portée
+    /// d'une collision avec les phrases anglaises libres du serveur.
+    ///
+    /// Mesuré sur le parc réel le 2026-08-27 : `Wesley.ArtisanQualityInOut`
+    /// déclare `Version: "%ProjectVersion%"` — un jeton MSBuild que son auteur
+    /// n'a pas substitué — et smapi.io répond `200` avec une **liste vide**
+    /// pour les 150 mods du lot. Un mod en pause, que le jeu ne charge même
+    /// pas, privait ainsi 149 voisins de tout verdict, sans un mot.
+    public static let rejectedEntryError = "starhub:rejected-entry"
+
     public static func blocker(for message: String) -> Blocker {
+        if message == rejectedEntryError { return .rejectedEntry }
         let m = message.lowercased()
         if m.contains("isn't a valid nexus mod id") { return .malformedNexusId }
         if m.contains("has no valid versions") { return .noValidVersion }

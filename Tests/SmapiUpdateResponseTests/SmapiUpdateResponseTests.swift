@@ -119,4 +119,41 @@ struct SmapiUpdateResponseTests {
         }
         #expect(Set(keys.values).count == keys.count)
     }
+
+    // MARK: - L'entrée qui vide son lot
+
+    /// smapi.io répond `200` et une **liste vide** quand une seule entrée du
+    /// lot lui déplaît. Mesuré le 2026-08-27 sur le parc réel :
+    /// `Wesley.ArtisanQualityInOut` déclare `Version: "%ProjectVersion%"` — un
+    /// jeton MSBuild non substitué — et les 149 autres mods du lot repartent
+    /// sans verdict. Le client re-découpe désormais le lot et remonte l'entrée
+    /// fautive sous ce motif, qui n'est **pas** une phrase de smapi.io.
+    @Test func leMotifFabriqueParLAppSeClasseSousSonPropreNom() {
+        #expect(SmapiUpdateResponse.blocker(for: SmapiUpdateResponse.rejectedEntryError)
+                == .rejectedEntry)
+    }
+
+    @Test func ceMotifNeCollisionnePasAvecLesPhrasesDeSmapi() {
+        // Le préfixe `starhub:` le met hors de portée des phrases anglaises
+        // libres du serveur — et le classement le teste avant elles.
+        #expect(SmapiUpdateResponse.rejectedEntryError.hasPrefix("starhub:"))
+        for phrase in ["The Nexus mod with ID '50165' has no valid versions.",
+                       "Found no Nexus mod with this ID.",
+                       "The value '???' isn't a valid Nexus mod ID, must be an integer ID.",
+                       "The update key 'Nexus:' isn't in a valid format."] {
+            #expect(SmapiUpdateResponse.blocker(for: phrase) != .rejectedEntry)
+        }
+    }
+
+    @Test func uneEntreeFabriqueeSeComporteCommeUneReponse() {
+        // Elle doit traverser le pipeline comme les autres : un mod sans
+        // réponse n'apparaît nulle part, c'est tout le défaut.
+        let mod = SmapiUpdateResponse.Mod(
+            id: "Wesley.ArtisanQualityInOut",
+            errors: [SmapiUpdateResponse.rejectedEntryError])
+        #expect(mod.suggestedUpdate == nil)
+        #expect(mod.metadata == nil)
+        #expect(mod.errors.count == 1)
+        #expect(SmapiUpdateResponse.blocker(for: mod.errors[0]) == .rejectedEntry)
+    }
 }
