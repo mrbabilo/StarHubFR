@@ -35,6 +35,7 @@ enum L10n {
         static let home                 = "main_home"
         static let search               = "main_search"
         static let systemAlerts         = "main_system_alerts"
+        static let discover             = "main_discover"
         static let modUpdates           = "main_mod_updates"
         static let systemStatusA11y     = "main_system_status_a11y"
         static let alertsNavA11y        = "main_alerts_nav_a11y"
@@ -1245,5 +1246,25 @@ enum L10n {
         /// Nom donné à l'ensemble de mods appliqué pendant une recherche : il
         /// apparaît dans l'alerte si un dossier ne peut pas être déplacé.
         static let profileName        = "bisect_profile_name"
+    }
+
+    /// Onglet « Découvrir » (axe G).
+    enum Discovery {
+        static let trending          = "discovery_trending"
+        static let recent            = "discovery_recent"
+        static let french            = "discovery_french"
+        static let hideInstalled     = "discovery_hide_installed"
+        static let installedBadge    = "discovery_installed_badge"
+        static let shownOfTotal      = "discovery_shown_of_total"
+        static let searchPlaceholder = "discovery_search_placeholder"
+        static let refresh           = "discovery_refresh"
+        static let neverLoaded       = "discovery_never_loaded"
+        static let noKey             = "discovery_no_key"
+        static let rateLimited       = "discovery_rate_limited"
+        static let error             = "discovery_error"
+        static let retry             = "discovery_retry"
+        static let openNexus         = "discovery_open_nexus"
+        static let detailFailed      = "discovery_detail_failed"
+        static let endorsements      = "discovery_endorsements"
     }
 }

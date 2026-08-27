@@ -1135,5 +1135,22 @@
   "vm_nexus_dl_completed_named": "Download finished: “%1$@” (mod %2$lld)",
   "vm_nexus_dl_cancelled_named": "Download of “%1$@” (mod %2$lld) cancelled.",
   "downloads_downloading_named": "Downloading: %@",
-  "updates_update_available": "Update available"
+  "updates_update_available": "Update available",
+  "main_discover": "Discover",
+  "discovery_trending": "Trending",
+  "discovery_recent": "Recently updated",
+  "discovery_french": "French selection",
+  "discovery_hide_installed": "Hide installed",
+  "discovery_installed_badge": "Installed",
+  "discovery_shown_of_total": "%1$d shown of %2$d",
+  "discovery_search_placeholder": "Search mods by name…",
+  "discovery_refresh": "Refresh",
+  "discovery_never_loaded": "Nothing loaded yet.",
+  "discovery_no_key": "Add your Nexus API key in Settings to discover mods.",
+  "discovery_rate_limited": "Nexus quota reached — retry in a minute.",
+  "discovery_error": "Couldn't reach Nexus.",
+  "discovery_retry": "Retry",
+  "discovery_open_nexus": "Open on Nexus",
+  "discovery_detail_failed": "Couldn't load this page.",
+  "discovery_endorsements": "%d endorsements"
 }

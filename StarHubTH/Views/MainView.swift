@@ -29,6 +29,7 @@ struct MainView: View {
         if currentTab == "Profiles" { return vm.L(L10n.Profiles.title) }
         if currentTab == "Updates" { return vm.L(L10n.Main.modUpdates) }
         if currentTab == "SystemAlerts" { return vm.L(L10n.Main.systemAlerts) }
+        if currentTab == "Discover" { return vm.L(L10n.Main.discover) }
         if currentTab == "Quarantine" { return vm.L(L10n.Main.quarantine) }
         if currentTab == "ThaiHub" { return vm.L(L10n.ThaiHub.title) }
         if currentTab == "Saves" { return vm.L(L10n.Saves.saves) }
@@ -116,6 +117,14 @@ struct MainView: View {
                         iconColor: .purple,
                         label: vm.L(L10n.Mods.mods),
                         tab: "Mods",
+                        currentTab: $currentTab
+                    )
+
+                    SidebarNavItem(
+                        icon: "safari.fill",
+                        iconColor: .teal,
+                        label: vm.L(L10n.Main.discover),
+                        tab: "Discover",
                         currentTab: $currentTab
                     )
 
@@ -244,6 +253,8 @@ struct MainView: View {
                     SystemAlertsView(vm: vm, currentTab: $currentTab)
                 } else if currentTab == "Quarantine" {
                     QuarantineView(vm: vm)
+                } else if currentTab == "Discover" {
+                    DiscoverView(vm: vm)
                 } else if currentTab == "ThaiHub" {
                     ThaiTranslationHubView(vm: vm)
                 } else if currentTab == "Settings" {
