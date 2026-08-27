@@ -125,6 +125,7 @@ let package = Package(
                 "Models/FileRecovery.swift",
                 "Models/TranslationRecoveryDiff.swift",
                 "Models/ProfileConfigStore.swift",
+                "Models/ConfigJSONTree.swift",
                 "Extensions/ModConfigFiles.swift",
             ]
         ),
@@ -452,6 +453,11 @@ let package = Package(
             name: "SmapiUpdateResponseTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/SmapiUpdateResponseTests"
+        ),
+        .testTarget(
+            name: "ConfigJSONTreeTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ConfigJSONTreeTests"
         ),
         .testTarget(
             name: "ThaiTranslationTableTests",
