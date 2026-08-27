@@ -729,8 +729,16 @@ pouvoir revenir en arrière à tout moment.
       historique par profil, et les 4 sauvegardes de configs existantes ne portent
       aucune attribution de profil. Outil tourné vers l'avant.
       **Étapes 1 à 4 livrées le 2026-08-27** : magasin, capture/restauration,
-      fiche et icône. Restent les étapes 5 à 7 — `ConfigJSONTree`, le merge, et
-      l'écran de comparaison — qui feront l'objet de leur propre plan.
+      fiche et icône.
+      **Étapes 5 à 7, livrées le 2026-08-27 sauf une** : parseur JSON à l'ordre
+      des clés préservé (`ConfigJSONTree`) et son écrivain au format SMAPI, la
+      fonction de fusion (`ConfigJSONMerge`, disque par-dessus mémorisé), la
+      comparaison clé à clé (`ConfigJSONDiff`) et son écran « Comparer avec… »,
+      les orphelins nommés sur la fiche du profil. **Reste à accrocher** : la
+      fusion n'est pas encore branchée sur la restauration — elle attend une
+      vérification en jeu (retirer une clé d'un `config.json`, lancer le jeu,
+      voir si SMAPI la recomble). Tant qu'elle n'est pas accrochée, la
+      restauration réécrit le texte mémorisé tel quel, comme depuis l'étape 2.
 - [x] **B3-T6** — Notes libres par mod, persistées au profil (annotations contextuelles :
       « désactivé en multi car désync », « à mettre à jour »). · **S** · *§audit-stardrop*
       **Livré le 2026-08-27.** Deux arbitrages de l'auteur en séance : la note

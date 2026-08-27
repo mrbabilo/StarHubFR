@@ -14,6 +14,8 @@ where the exact log format was verified.
 
 ### Added
 - **Configurations par profil** — un mod peut désormais garder un `config.json` différent selon le profil. Le réglage se prend sur sa fiche ; le fichier est mémorisé quand on quitte un profil et restauré quand on y revient. Rien n'est écrit tant que le profil d'arrivée n'a rien mémorisé. Basculer de profil pendant que le jeu est ouvert ne mémorise rien : SMAPI garde les configs en mémoire et les réécrit à sa fermeture, donc l'app refuse volontairement d'y toucher et le journal le dit — les réglages changés depuis le dernier changement de profil « propre » ne sont pas mémorisés, et le prochain changement les écrase.
+- **Comparer ce que deux profils retiennent d'un mod** — « Comparer avec… » sur la fiche d'un mod dont les configs sont gérés par profil montre, clé à clé et dans l'ordre du fichier, ce que le profil actif et un autre profil ont mémorisé de son `config.json` : les clés propres à l'un, celles propres à l'autre, et les valeurs qui divergent côte à côte. Lecture seule. Un config mémorisé qui ne se parse pas le dit, plutôt que d'afficher une comparaison inventée.
+- **La fiche d'un profil compte ses configs mémorisés** — et nomme ceux dont le mod n'est plus installé. Ces configs-là sont **gardés, pas purgés** : réinstaller le mod lui rend ses réglages.
 
 ### Fixed
 - **La fenêtre des mises à jour taisait les mods invérifiables** — quand smapi.io répond une erreur pour un mod (page retirée, aucune version exploitable…), la fenêtre concluait « Tous les mods sont à jour » alors qu'il n'avait de verdict d'aucune source. Ces mods sont désormais comptés et nommés avec leur motif, et le satisfecit ne parle plus que des mods vérifiables.
