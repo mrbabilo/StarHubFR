@@ -6973,6 +6973,92 @@ class StarHubTHViewModel: ObservableObject {
         }
     }
 
+    // MARK: - Configs par profil : capture et restauration (B3-T5)
+
+    /// Les mods marqués, présents dans le parc courant, avec leur chemin de
+    /// config sur disque. Le nom **physique** est employé pour le chemin (un
+    /// mod en pause vit dans un dossier préfixé par un point) et le nom
+    /// **logique** comme clé du magasin.
+    private func managedConfigTargets() -> [(key: String, url: URL)] {
+        let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
+        return mods
+            .flatMap { $0.isGroup ? ($0.children ?? []) : [$0] }
+            .filter { profileManagedConfigMods.contains($0.folderName) }
+            .map { (key: $0.folderName,
+                    url: ProfileConfigStore.configURL(modsPath: modsPath,
+                                                      physicalFolderName: $0.physicalFolderName)) }
+    }
+
+    /// Mémorise le `config.json` de chaque mod marqué au crédit de ce profil.
+    ///
+    /// **N'appeler que sur une transition réelle de profil** (§6.3 de la
+    /// spec) : jamais à la reprise d'une application incomplète, jamais dans
+    /// `syncActiveProfileIds`. À la reprise, le disque porte déjà les réglages
+    /// du profil *entrant* ; les capturer au crédit du sortant écraserait son
+    /// config dans le geste même censé rattraper une erreur.
+    func captureProfileConfigs(for profileId: UUID) {
+        guard !isGameRunning() else {
+            log(L(L10n.VM.profileConfigsSkippedGame), level: .warning)
+            return
+        }
+        guard let url = ProfileConfigStore.fileURL(profileId: profileId) else { return }
+        var entries = ProfileConfigStore.load(from: url)
+        let before = entries
+        let now = Date()
+        for target in managedConfigTargets() {
+            // Le texte, lu depuis le disque et non depuis un cache de scan :
+            // c'est l'état réel du fichier au moment de la bascule qui compte.
+            let text = try? String(contentsOf: target.url, encoding: .utf8)
+            entries = ProfileConfigStore.captured(entries, folderName: target.key,
+                                                  diskText: text, now: now)
+        }
+        guard entries != before else { return }
+        ProfileConfigStore.save(entries, to: url)
+        // Ce que cette passe a changé, pas le total du magasin : « 12 configs
+        // mémorisés » quand un seul a bougé donnerait une fausse idée de ce
+        // que la bascule vient de faire. Symétrique du compte de restauration.
+        let touched = Set(entries.keys).symmetricDifference(before.keys).count
+            + entries.filter { before[$0.key]?.text != nil && before[$0.key]?.text != $0.value.text }.count
+        let name = modProfiles.first(where: { $0.id == profileId })?.name ?? ""
+        log(String(format: L(L10n.VM.profileConfigsCaptured), name, touched))
+    }
+
+    /// Réécrit dans chaque mod marqué le `config.json` que ce profil avait
+    /// mémorisé. Un mod sans texte mémorisé n'est **pas touché** — c'est la
+    /// règle du premier passage : le profil entrant adoptera le fichier tel
+    /// quel à la capture suivante.
+    ///
+    /// Rejouable sans dommage à la reprise d'une application incomplète :
+    /// réécrire le même texte est idempotent, contrairement à la capture.
+    func restoreProfileConfigs(for profileId: UUID) {
+        guard !isGameRunning() else {
+            log(L(L10n.VM.profileConfigsSkippedGame), level: .warning)
+            return
+        }
+        guard let url = ProfileConfigStore.fileURL(profileId: profileId) else { return }
+        let entries = ProfileConfigStore.load(from: url)
+        guard !entries.isEmpty else { return }
+        var written = 0
+        for target in managedConfigTargets() {
+            guard let entry = entries[target.key] else { continue }
+            // Le dossier a pu disparaître entre-temps : ne rien écrire, et
+            // garder l'entrée — réinstaller le mod doit lui rendre ses
+            // réglages.
+            guard FileManager.default.fileExists(
+                atPath: target.url.deletingLastPathComponent().path) else { continue }
+            do {
+                try entry.text.write(to: target.url, atomically: true, encoding: .utf8)
+                written += 1
+            } catch {
+                log(String(format: "config.json: %@ — %@",
+                           target.key, error.localizedDescription), level: .error)
+            }
+        }
+        guard written > 0 else { return }
+        let name = modProfiles.first(where: { $0.id == profileId })?.name ?? ""
+        log(String(format: L(L10n.VM.profileConfigsRestored), name, written))
+    }
+
     func applyProfile(id: UUID?) {
         // Serialize activations: refuse to start a new one while a previous
         // profile is still being applied (mod folders being renamed /
@@ -6980,6 +7066,10 @@ class StarHubTHViewModel: ObservableObject {
         guard !isApplyingProfile else { return }
 
         guard let id = id, let profile = modProfiles.first(where: { $0.id == id }) else {
+            // Quitter un profil sans en prendre un autre est une transition
+            // réelle : le config est capturé au crédit du profil qu'on quitte,
+            // même si aucun dossier ne bouge.
+            if let leaving = activeProfileId { captureProfileConfigs(for: leaving) }
             activeProfileId = nil
             saveProfiles()
             return
@@ -7005,10 +7095,17 @@ class StarHubTHViewModel: ObservableObject {
             return
         }
 
+        // Capture AVANT tout : le disque porte encore les réglages du profil
+        // sortant. C'est la seule fenêtre où ils existent.
+        if let leaving = activeProfileId { captureProfileConfigs(for: leaving) }
         activeProfileId = id
         saveProfiles()
         applyingProfileId = id
-        applyProfileToFilesystem(profile: profile)
+        // Restauration dans le completion : après les déplacements de dossiers
+        // et après le rescane, quand les chemins sont ceux du profil entrant.
+        applyProfileToFilesystem(profile: profile) { [weak self] _ in
+            self?.restoreProfileConfigs(for: id)
+        }
         self.log(String(format: L(L10n.VM.switchProfile), profile.name))
     }
 
