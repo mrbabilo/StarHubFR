@@ -6869,7 +6869,7 @@ class StarHubTHViewModel: ObservableObject {
             try RecoveredFileWriter.withWriteAccess(to: url.path, modRoot: modRoot) {
                 try ModZipInstaller.removeItemGrantingWriteAccess(atPath: url.path)
             }
-            log(String(format: "config.json supprimé : %@", mod.folderName))
+            log(String(format: L(L10n.VM.profileConfigResetDone), mod.folderName))
             return true
         } catch {
             log(String(format: "config.json: %@ — %@", mod.folderName,

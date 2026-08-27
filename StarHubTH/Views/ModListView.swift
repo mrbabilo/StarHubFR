@@ -1494,6 +1494,23 @@ struct ModListRow: View {
                             .contentShape(.rect)
                             .help(note)
                     }
+                    // B3-T5 — le mod garde un config.json par profil. Se
+                    // signale ici pour la même raison que la note : c'est en
+                    // parcourant la liste qu'on veut savoir lesquels bougent
+                    // avec le profil, pas en ouvrant 900 fiches.
+                    if vm.isProfileConfigManaged(mod) {
+                        // Même zone de hit à 18×18 que la note, et pour la
+                        // même raison : un glyph de 10 pt est plus petit que
+                        // le curseur immobile qu'exige macOS (~2 s
+                        // tout-à-l'intérieur), le timer se réinitialise sans
+                        // arrêt et l'infobulle ne vient jamais.
+                        Image(systemName: "slider.horizontal.3")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 18, height: 18)
+                            .contentShape(.rect)
+                            .help(vm.L(L10n.Mods.profileConfigBadge))
+                    }
                 }
                 
                 if mod.name != mod.folderName {

@@ -220,6 +220,7 @@
 "mods_deleted_log" = "Deleted: %@";
 "mods_delete_failed" = "Failed to delete mod: %@";
 "mods_delete_not_found" = "The mod folder could not be found. It may have already been deleted.";
+"mods_profile_config_badge" = "Keeps a separate config.json per profile";
 "logs_system_logs" = "System Logs";
 "logs_no_logs" = "No logs for this session";
 "logs_mac_o_s_tips" = "macOS Troubleshooting Tips";
@@ -475,7 +476,8 @@
 "vm_profile_configs_restored" = "Configs restored from profile \"%@\": %lld mod(s)";
 "vm_profile_configs_skipped_game" = "Configs left untouched: the game is running (SMAPI would overwrite them on exit)";
 "vm_profile_configs_desynced" = "Configs not remembered for profile \"%@\": the last switch happened while the game was running, so the files on disk are not this profile's";
-"vm_profile_config_reset_absent" = "No config.json to delete for \"%@\" — SMAPI writes one at the next launch";
+"vm_profile_config_reset_absent" = "No config.json to delete for \"%@\" — this mod may not have any settings";
+"vm_profile_config_reset_done" = "config.json deleted for \"%@\"";
 "vm_backup_mods_success" = "Backed up Mods folder to Desktop successfully\n(%@)";
 "vm_zip_mods_error" = "An error occurred while zipping mods";
 "vm_clean_mods_success" = "Disabled mods removed successfully";

@@ -507,6 +507,7 @@ enum L10n {
         static let deletedLog           = "mods_deleted_log"
         static let deleteFailed         = "mods_delete_failed"
         static let deleteNotFound       = "mods_delete_not_found"
+        static let profileConfigBadge   = "mods_profile_config_badge"
     }
 
     // MARK: - ModConfigBackups
@@ -977,6 +978,7 @@ enum L10n {
         static let profileConfigsSkippedGame = "vm_profile_configs_skipped_game"
         static let profileConfigsDesynced   = "vm_profile_configs_desynced"
         static let profileConfigResetAbsent = "vm_profile_config_reset_absent"
+        static let profileConfigResetDone   = "vm_profile_config_reset_done"
         static let nexusDlNoApiKey      = "vm_nexus_dl_no_api_key"
         static let nexusDlNoValidFile   = "vm_nexus_dl_no_valid_file"
         static let nexusDlNoLink        = "vm_nexus_dl_no_link"
