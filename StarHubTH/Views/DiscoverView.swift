@@ -56,7 +56,12 @@ struct DiscoverView: View {
             Text(String(format: vm.L(L10n.Discovery.shownOfTotal),
                         search.rows.count, search.totalCount))
                 .font(.caption).foregroundStyle(.secondary)
-            ForEach(search.rows) { row in card(row) }
+            // Grille adaptative — comme les sections, en cartes, pas une pile
+            // verticale de bandes.
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 240), spacing: 12)],
+                      spacing: 12) {
+                ForEach(search.rows) { row in card(row) }
+            }
         }
     }
 
@@ -215,22 +220,15 @@ struct DiscoveryDetailSheet: View {
                         Label(vm.L(L10n.Discovery.openNexus), systemImage: "safari")
                     }
                 }
-                ForEach(detail.pictureUrls, id: \.self) { url in
-                    // Taille contrainte : la pire image ne dicte pas la sheet.
-                    AsyncImage(url: URL(string: url)) { image in
-                        image.resizable().scaledToFit()
-                    } placeholder: {
-                        Color.clear.frame(height: 120)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                }
                 if let summary = detail.summary {
                     Text(summary).font(.callout).italic()
                 }
-                if let text = detail.descriptionText {
-                    Text(text).font(.callout).lineLimit(30)
-                }
+                // La description Nexus est du **BBCode** (`[b]`, `[img]`, `<br />`…)
+                // — le même rendu que la fiche mod : blocs parsés, images à taille
+                // native via cache, liens cliquables. Les captures y sont déjà des
+                // `[img]` : l'image d'en-tête du schéma serait un doublon.
+                DescriptionBlocksView(blocks: DescriptionBlockParser.parse(
+                    detail.descriptionText ?? ""), vm: vm)
             }
         }
     }
