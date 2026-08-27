@@ -691,7 +691,7 @@ pouvoir revenir en arrière à tout moment.
       3 avec un `i18n`. Mesuré avec le code livré : **94,4 %, 86,3 % et 93,8 %**
       des clés. Chaque rangée ouvre l'onglet Traduction du mod : sans geste, la
       section n'aurait fait que constater.*
-- [ ] **B3-T5** — **Configurations par profil** : un même mod peut avoir des `config.json`
+- [x] **B3-T5** — **Configurations par profil** : un même mod peut avoir des `config.json`
       différents selon le profil (ex. CJB Cheats configuré en solo, désactivé en multi).
       Capture/restauration au changement de profil avec **merge JSON non-destructif**
       (`JsonTools.Merge` côté Stardop) pour ne pas écraser les réglages existants. Opt-in,
@@ -734,11 +734,10 @@ pouvoir revenir en arrière à tout moment.
       des clés préservé (`ConfigJSONTree`) et son écrivain au format SMAPI, la
       fonction de fusion (`ConfigJSONMerge`, disque par-dessus mémorisé), la
       comparaison clé à clé (`ConfigJSONDiff`) et son écran « Comparer avec… »,
-      les orphelins nommés sur la fiche du profil. **Reste à accrocher** : la
-      fusion n'est pas encore branchée sur la restauration — elle attend une
-      vérification en jeu (retirer une clé d'un `config.json`, lancer le jeu,
-      voir si SMAPI la recomble). Tant qu'elle n'est pas accrochée, la
-      restauration réécrit le texte mémorisé tel quel, comme depuis l'étape 2.
+      les orphelins nommés sur la fiche du profil, et la fusion accrochée à la
+      restauration. Le préalable a été vérifié en jeu le 2026-08-27 : SMAPI
+      recomble bien une clé retirée d'un `config.json`, l'affirmation de la
+      spec §5.3 tient. B3-T5 est complet.
 - [ ] **B3-T7** — Supprimer un profil laisse son magasin de configs derrière lui.
       `deleteProfile` (`StarHubTHViewModel.swift:7002`) retire le profil des préférences
       sans toucher à `Application Support/StarHubTH/ProfileConfigs/<uuid>.json` : le

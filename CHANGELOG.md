@@ -18,6 +18,8 @@ where the exact log format was verified.
 - **La fiche d'un profil compte ses configs mémorisés** — et nomme ceux dont le mod n'est plus installé. Ces configs-là sont **gardés, pas purgés** : réinstaller le mod lui rend ses réglages.
 
 ### Changed
+- **La restauration d'un config fusionne au lieu d'écraser.** Un mod mis à jour depuis la dernière mémorisation a souvent gagné des clés dans son `config.json` ; les réécrire tels que le profil les avait retenus les effaçait. Le fichier sur disque sert désormais de base, les réglages du profil se réappliquent par-dessus, et le journal distingue ce qui a été fusionné de ce qui a été restauré tel quel — un texte illisible retombe sur l'ancien comportement plutôt que d'être abandonné.
+- **Supprimer un profil actif laisse choisir lequel activer ensuite.** L'app ne proposait que le profil par défaut ; elle propose maintenant chacun des profils restants, dans l'ordre de la liste. Supprimer sans en activer aucun reste possible et le bouton le dit — rien ne déplace de dossiers sans un clic explicite.
 - **Les mises à jour se lisent par ordre alphabétique.** La liste annonçait « les plus récemment mises en ligne d'abord » — une promesse devenue fausse au passage à smapi.io, qui ne renvoie aucune date de mise en ligne : le tri portait donc sur des valeurs toutes égales, et pouvait rendre un ordre différent d'une vérification à l'autre sans que rien n'ait bougé. Les mods sont désormais triés par nom, casse et accents ignorés, comme la liste des alertes SMAPI juste au-dessus ; les mods invérifiables aussi. La mention d'ordre disparaît de l'en-tête : une liste alphabétique se voit.
 
 ### Fixed

@@ -7214,7 +7214,9 @@ class StarHubTHViewModel: ObservableObject {
         guard let url = ProfileConfigStore.fileURL(profileId: profileId) else { return }
         let entries = ProfileConfigStore.load(from: url)
         guard !entries.isEmpty else { return }
-        var written = 0
+        var verbatim = 0
+        var merged = 0
+        var reintroducedKeys = 0
         for target in managedConfigTargets() {
             guard let entry = entries[target.key] else { continue }
             // Le dossier a pu disparaître entre-temps : ne rien écrire, et
@@ -7222,23 +7224,46 @@ class StarHubTHViewModel: ObservableObject {
             // réglages.
             let modRoot = target.url.deletingLastPathComponent().path
             guard FileManager.default.fileExists(atPath: modRoot) else { continue }
+            // Le merge d'abord (spec §5.3) : le fichier sur disque peut avoir
+            // gagné des clés depuis la mémorisation — le mod a été mis à jour.
+            // Le verbatim les écrasait ; le merge les garde et réapplique les
+            // réglages du profil par-dessus. Tout ce qui ne se parse pas
+            // retombe sur le verbatim, qui reste le comportement de base.
+            let diskText = try? String(contentsOf: target.url, encoding: .utf8)
+            let result = diskText.flatMap {
+                ConfigJSONMerge.mergedText(disk: $0, memorized: entry.text)
+            }
             do {
                 // Le dossier du mod est souvent en lecture seule — même remède
                 // que `recoverFile` : cette écriture rejoue à chaque bascule de
                 // profil, pour chaque mod marqué, bien plus souvent que le
                 // bouton « Repartir des réglages par défaut ».
                 try RecoveredFileWriter.withWriteAccess(to: target.url.path, modRoot: modRoot) {
-                    try entry.text.write(to: target.url, atomically: true, encoding: .utf8)
+                    try (result?.text ?? entry.text)
+                        .write(to: target.url, atomically: true, encoding: .utf8)
                 }
-                written += 1
+                if let result {
+                    merged += 1
+                    reintroducedKeys += result.addedKeyPaths
+                } else {
+                    verbatim += 1
+                }
             } catch {
                 log(String(format: "config.json: %@ — %@",
                            target.key, error.localizedDescription), level: .error)
             }
         }
-        guard written > 0 else { return }
+        guard verbatim + merged > 0 else { return }
         let name = modProfiles.first(where: { $0.id == profileId })?.name ?? ""
-        log(String(format: L(L10n.VM.profileConfigsRestored), name, written))
+        // Deux comptes plutôt qu'un : « restaurés » masquerait qu'une partie
+        // l'a été sans merge, faute d'un texte lisible — la seule information
+        // qui distingue une restauration fidèle d'un repli.
+        if merged > 0 {
+            log(String(format: L(L10n.VM.profileConfigsMerged), name,
+                       Int64(verbatim), Int64(merged), Int64(reintroducedKeys)))
+        } else {
+            log(String(format: L(L10n.VM.profileConfigsRestored), name, verbatim))
+        }
     }
 
     func applyProfile(id: UUID?) {

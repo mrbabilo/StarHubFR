@@ -178,11 +178,17 @@ struct ModProfilesView: View {
             // que le profil supprimé avait activés. Rien ne le disait, et rien
             // ne proposait d'en sortir.
             //
-            // Le choix se fait donc ici, au moment où l'on décide. Réactiver
-            // d'office aurait déplacé des centaines de dossiers sans qu'on l'ait
-            // demandé — sur ce parc, plusieurs secondes de renommage.
-            if let successor = deletionSuccessor {
-                Button(String(format: vm.L(L10n.Profiles.deleteActivateDefault), successor.name)) {
+            // Le choix se fait donc ici, au moment où l'on décide — et il porte
+            // sur **tous** les profils restants, pas sur un successeur désigné
+            // d'office : le profil par défaut n'est pas forcément celui vers
+            // lequel on veut revenir. Ils sont proposés dans l'ordre de la
+            // liste au-dessus, celui que l'œil vient de parcourir.
+            //
+            // Réactiver sans demander aurait déplacé des centaines de dossiers
+            // sans qu'on l'ait voulu — sur ce parc, plusieurs secondes de
+            // renommage. D'où le bouton qui supprime sans rien activer, gardé.
+            ForEach(deletionSuccessors) { successor in
+                Button(String(format: vm.L(L10n.Profiles.deleteActivateNamed), successor.name)) {
                     if let p = profileToDelete {
                         vm.deleteProfile(id: p.id)
                         vm.applyProfile(id: successor.id)
@@ -191,7 +197,13 @@ struct ModProfilesView: View {
                 }
                 .disabled(vm.isApplyingProfile)
             }
-            Button(vm.L(L10n.Profiles.delete), role: .destructive) {
+            // Le libellé change avec la situation : « Supprimer » seul, quand
+            // un successeur est proposé juste au-dessus, laisserait croire
+            // qu'il en active un.
+            Button(deletionSuccessors.isEmpty
+                   ? vm.L(L10n.Profiles.delete)
+                   : vm.L(L10n.Profiles.deleteWithoutActivating),
+                   role: .destructive) {
                 if let p = profileToDelete { vm.deleteProfile(id: p.id) }
                 profileToDelete = nil
             }
@@ -240,10 +252,14 @@ struct ModProfilesView: View {
     /// `nil` — donc pas de bouton — quand le profil visé n'est **pas** actif
     /// (le disque ne lui appartient pas, il n'y a rien à reprendre) ou qu'il ne
     /// resterait aucun autre profil.
-    private var deletionSuccessor: ModProfile? {
-        guard let target = profileToDelete, vm.activeProfileId == target.id else { return nil }
-        let remaining = vm.modProfiles.filter { $0.id != target.id }
-        return remaining.first { vm.isDefaultProfile($0.id) } ?? remaining.first
+    /// Les profils qu'on peut activer à la place de celui qu'on supprime.
+    ///
+    /// Vide quand le profil supprimé n'est pas l'actif : rien ne change de
+    /// propriétaire, il n'y a rien à réactiver. Vide aussi s'il ne reste
+    /// aucun profil.
+    private var deletionSuccessors: [ModProfile] {
+        guard let target = profileToDelete, vm.activeProfileId == target.id else { return [] }
+        return vm.modProfiles.filter { $0.id != target.id }
     }
 
     private var trimmedNewProfileName: String {
