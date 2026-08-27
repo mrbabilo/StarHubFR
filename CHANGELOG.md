@@ -12,6 +12,9 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+- **Un profil dit ce qu'il affichera en français.** La ligne du profil porte désormais une pastille « FR 94 % · 23 à traduire », et l'écran de diagnostic nomme les mods concernés, du plus gros reste au plus petit, avec un bouton qui ouvre directement l'onglet Traduction du mod. Mesuré sur trois profils réels : 94 %, 86 % et 93 % des clés, pour 23, 50 et 21 mods à traduire. Une clé sans traduction s'affiche en anglais — rien n'est cassé, et l'écran le dit. Les mods qui n'ont rien à traduire et ceux qui ne sont plus installés ne comptent pas.
+
 ## [1.21.0] - 2026-08-27
 
 ### Added

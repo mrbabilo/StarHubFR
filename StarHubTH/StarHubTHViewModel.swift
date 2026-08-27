@@ -1423,6 +1423,142 @@ class StarHubTHViewModel: ObservableObject {
         frenchCoverageByMod.removeValue(forKey: folderName)
         staleTranslationMods.remove(folderName)
         outdatedKeysByMod.removeValue(forKey: folderName)
+        // Le store des profils est indexé par identifiant, pas par dossier :
+        // sans cette traduction, traduire un mod ne changerait plus jamais le
+        // pourcentage des profils qui le contiennent.
+        if let uniqueId = mods.flattenedMods.first(where: { $0.folderName == folderName })?.uniqueId,
+           !uniqueId.isEmpty {
+            profileTranslationCoverage.removeValue(forKey: uniqueId.lowercased())
+        }
+    }
+
+    // MARK: - Couverture française d'un profil (B3-T4)
+
+    /// Ce que chaque profil affichera en français une fois appliqué.
+    ///
+    /// **Store séparé de `frenchCoverageByMod`, délibérément.** Ce dernier ne
+    /// contient que les mods qui livrent *déjà* du français, et l'absence
+    /// d'entrée y signifie « pas encore mesuré » — c'est le troisième état de
+    /// la pastille de la liste (C1-T2). Or les mods qui font tout l'intérêt de
+    /// cet écran sont ceux qui ont un `default.json` et **aucun** `fr.json` :
+    /// 8, 28 et 15 sur ses trois profils. Les verser dans le cache commun
+    /// ferait surgir une pastille « 0 % » sur autant de lignes de la liste des
+    /// mods, dans un affichage déjà livré.
+    ///
+    /// Le grain diffère aussi : la pastille de la liste mesure un dossier de
+    /// premier niveau **entier**, quand un profil raisonne par composant.
+    @Published private(set) var profileTranslationSummaries: [UUID: ProfileTranslationSummary] = [:]
+
+    /// `UniqueID` en minuscules → couverture propre au mod (mods imbriqués
+    /// exclus, voir `ownDirectoriesOnly`). Mesuré une fois par mod : la passe
+    /// lit tous les `default.json` et `fr.json` des mods concernés.
+    private var profileTranslationCoverage: [String: TranslationCoverage.Coverage] = [:]
+    private var profileTranslationTask: Task<Void, Never>?
+
+    /// Vrai pendant la passe de mesure : la page des profils montre un témoin
+    /// plutôt qu'un pourcentage faux.
+    @Published private(set) var isMeasuringProfileTranslation = false
+
+    /// Mesure ce qui manque, puis republie les résumés.
+    ///
+    /// Appelée à l'affichage de la page des profils, pas au scan : lire les
+    /// fichiers de traduction de 300 à 500 mods n'a pas sa place au lancement,
+    /// et cette page n'est pas celle qu'on ouvre en premier.
+    ///
+    /// Seuls les mods qui **livrent une source** sont ouverts — `languages`
+    /// contient `en` dès qu'un `default.json` existe, et il est déjà connu
+    /// depuis le scan. C'est ce qui rend la passe abordable : sur son parc,
+    /// plus de la moitié des mods n'ont aucun dossier `i18n`.
+    @MainActor
+    func refreshProfileTranslationCoverage() {
+        guard !modProfiles.isEmpty, !gameDir.isEmpty else { return }
+        // Une passe à la fois : la page peut réapparaître pendant la mesure.
+        guard profileTranslationTask == nil else { return }
+
+        let installed = mods.flattenedMods
+        let profiles = modProfiles
+        let byId = Dictionary(installed.map { ($0.uniqueId.lowercased(), $0) },
+                              uniquingKeysWith: { first, _ in first })
+
+        let modsPath = URL(fileURLWithPath: (gameDir as NSString).appendingPathComponent("Mods"))
+        var targets: [(id: String, directory: URL)] = []
+        var queued = Set<String>()
+        for profile in profiles {
+            for uniqueId in profile.enabledModIds {
+                let key = uniqueId.lowercased()
+                guard !key.isEmpty, profileTranslationCoverage[key] == nil,
+                      queued.insert(key).inserted, let mod = byId[key],
+                      mod.languages.contains("en") || mod.languages.contains("fr")
+                else { continue }
+                targets.append((key, modsPath.appendingPathComponent(mod.physicalFolderName)))
+            }
+        }
+
+        guard !targets.isEmpty else {
+            publishProfileTranslationSummaries(profiles: profiles, installed: installed)
+            return
+        }
+
+        isMeasuringProfileTranslation = true
+        profileTranslationTask = Task.detached(priority: .utility) { [weak self] in
+            var measured: [String: TranslationCoverage.Coverage] = [:]
+            for target in targets {
+                if Task.isCancelled { break }
+                // `ownDirectoriesOnly` : un mod imbriqué dans un autre est
+                // mesuré pour son propre compte, et ses clés compteraient
+                // deux fois si son hôte les reprenait.
+                guard let coverage = TranslationCoverage.coverage(forModAt: target.directory,
+                                                                  locale: "fr",
+                                                                  ownDirectoriesOnly: true)
+                else { continue }
+                measured[target.id] = coverage
+            }
+            await self?.finishProfileTranslationCoverage(measured,
+                                                         profiles: profiles,
+                                                         installed: installed)
+        }
+    }
+
+    @MainActor
+    private func finishProfileTranslationCoverage(_ measured: [String: TranslationCoverage.Coverage],
+                                                  profiles: [ModProfile],
+                                                  installed: [ModItem]) {
+        profileTranslationCoverage.merge(measured) { _, new in new }
+        profileTranslationTask = nil
+        isMeasuringProfileTranslation = false
+        // Les profils actuels, pas ceux capturés au départ : la page a pu en
+        // voir renommer, dupliquer ou supprimer un pendant la mesure.
+        publishProfileTranslationSummaries(profiles: modProfiles,
+                                           installed: mods.flattenedMods)
+    }
+
+    /// Recalcule les résumés depuis le store — pur, sans disque.
+    @MainActor
+    private func publishProfileTranslationSummaries(profiles: [ModProfile],
+                                                    installed: [ModItem]) {
+        var summaries: [UUID: ProfileTranslationSummary] = [:]
+        for profile in profiles {
+            summaries[profile.id] = ProfileTranslationCoverage.summarize(
+                profile: profile, installedMods: installed,
+                coverageByUniqueId: profileTranslationCoverage)
+        }
+        profileTranslationSummaries = summaries
+    }
+
+    /// Le résumé d'un profil, quand il a été mesuré.
+    func translationSummary(for profile: ModProfile) -> ProfileTranslationSummary? {
+        profileTranslationSummaries[profile.id]
+    }
+
+    /// Ouvre la fiche d'un mod **sur son onglet Traduction**, par dossier
+    /// logique. Cherche dans les mods dépliés : un composant de pack se traduit
+    /// comme un autre, et c'est lui que le profil désigne.
+    @MainActor
+    func openTranslation(forFolder folderName: String) {
+        guard let mod = mods.flattenedMods.first(where: { $0.folderName == folderName })
+        else { return }
+        pendingTranslationFocus = folderName
+        viewingModDetail = mod
     }
     /// Cache for `category(for:)`, invalidated whenever `mods`,
     /// `nexusCategories`, `nexusCustomCategories`, or `nexusCustomModIds`
@@ -3177,6 +3313,13 @@ class StarHubTHViewModel: ObservableObject {
     /// Logs tab `ModListView` doesn't exist yet and can't observe a
     /// notification. It reads and clears this on appear instead.
     @Published var pendingModFocus: String? = nil
+
+    /// Le mod dont la fiche doit s'ouvrir **sur son onglet Traduction**, par
+    /// dossier logique. Posé par la couverture française d'un profil (B3-T4),
+    /// où le geste attendu n'est pas « regarde ce mod » mais « traduis-le ».
+    /// La fiche le consomme à son apparition ; il ne survit pas au passage
+    /// d'un mod à l'autre.
+    @Published var pendingTranslationFocus: String? = nil
 
     /// Cadrage de la liste des mods : recherche, filtres, tri, page courante.
     ///

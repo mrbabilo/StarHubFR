@@ -130,8 +130,19 @@ enum I18nLocaleResolver {
     /// Rendus **séparément**, à dessein : pour la couverture, chaque dossier est
     /// une unité avec son propre `default.json` au dénominateur. Les fusionner
     /// calculerait un pourcentage qui ne correspond à aucun fichier réel.
+    ///
+    /// - Parameter stoppingAtNestedMods: n'entre pas dans un sous-dossier qui
+    ///   porte son propre `manifest.json`. À `false` — le défaut — un pack rend
+    ///   les `i18n` de tous ses composants, ce que veut la pastille de la liste,
+    ///   qui mesure un dossier de premier niveau **entier**. À `true`, chaque
+    ///   mod ne rend que ce qui lui appartient : c'est ce qu'il faut dès qu'on
+    ///   additionne des mods entre eux, sans quoi un mod imbriqué serait compté
+    ///   deux fois — dans son propre total et dans celui de son hôte. Le parc
+    ///   de référence en tient 6, dont **3 avec un `i18n`** (`[CP] Aquatic Sea
+    ///   Fish`, `MakeLove`).
     public static func i18nDirectories(inModDirectory modDirectory: URL,
                                        maxDepth: Int = maxModDepth,
+                                       stoppingAtNestedMods: Bool = false,
                                        fileManager: FileManager = .default) -> [URL] {
         var found: [URL] = []
         var frontier = [modDirectory]
@@ -141,6 +152,12 @@ enum I18nLocaleResolver {
                 for child in subdirectories(of: directory, fileManager: fileManager) {
                     if child.lastPathComponent.lowercased() == "i18n" {
                         found.append(child)
+                    } else if stoppingAtNestedMods
+                                && isModDirectory(child, fileManager: fileManager) {
+                        // Ce sous-dossier est un mod à lui seul : ses
+                        // traductions lui appartiennent, et il est scanné pour
+                        // son propre compte.
+                        continue
                     } else {
                         next.append(child)
                     }
@@ -150,6 +167,14 @@ enum I18nLocaleResolver {
             frontier = next
         }
         return found
+    }
+
+    /// Un dossier qui porte un `manifest.json` : SMAPI y voit un mod.
+    private static func isModDirectory(_ directory: URL,
+                                       fileManager: FileManager) -> Bool {
+        contents(of: directory, fileManager: fileManager).contains {
+            $0.lastPathComponent.lowercased() == "manifest.json"
+        }
     }
 
     /// Les langues qu'un mod fournit, **tous ses dossiers `i18n` confondus**.

@@ -1066,5 +1066,15 @@
   "mods_nexus_identity_adopt": "C'est celui-ci",
   "mods_nexus_identity_same_author": "même auteur",
   "mods_no_update_check": "Pas de suivi des mises à jour : aucune page Nexus rattachée.",
-  "mods_search_close": "Fermer les résultats"
+  "mods_search_close": "Fermer les résultats",
+  "profiles_fr_badge": "FR %1$d %% · %2$lld à traduire",
+  "profiles_fr_badge_done": "FR %d %%",
+  "profiles_fr_badge_hint": "%1$lld mods traduisibles dans ce profil, %2$lld entièrement traduits. Cliquez pour voir ce qu'il reste.",
+  "profiles_section_translation": "TRADUCTION FRANÇAISE",
+  "profiles_translation_note": "Une clé sans traduction s'affiche en anglais : rien n'est cassé. Seuls les mods de ce profil encore installés sont comptés.",
+  "profiles_translation_summary": "%1$lld clés sur %2$lld en français (%3$d %%) — %4$lld mods traduisibles, %5$lld entièrement traduits.",
+  "profiles_translation_row_counts": "%1$lld clés sur %2$lld — %3$lld à traduire",
+  "profiles_translation_open": "Traduire",
+  "profiles_translation_all_done": "Tous les mods traduisibles de ce profil sont entièrement traduits.",
+  "profiles_translation_measuring": "Mesure de la traduction…"
 }

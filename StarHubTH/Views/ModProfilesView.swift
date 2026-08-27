@@ -93,6 +93,8 @@ struct ModProfilesView: View {
                                                                        nexusHints: [:]).count
                                 + ProfileDiagnostics.dependencyGaps(in: profile,
                                                                     installedMods: flattened).count,
+                            translation: vm.translationSummary(for: profile),
+                            isMeasuringTranslation: vm.isMeasuringProfileTranslation,
                             vm: vm,
                             onApply: { vm.applyProfile(id: profile.id) },
                             onManage: {
@@ -215,12 +217,20 @@ struct ModProfilesView: View {
             }
             Button(vm.L(L10n.Profiles.cancel), role: .cancel) { profileImportingFavorites = nil }
         }
+        // La couverture française lit les fichiers de traduction de tous les
+        // mods des profils : elle se mesure ici, à l'ouverture de la page, et
+        // jamais au scan — le lancement est déjà le moment le plus chargé.
+        .task { vm.refreshProfileTranslationCoverage() }
         .sheet(item: $profileShowingMissing) { profile in
             ProfileDiagnosticsView(
                 vm: vm,
                 profile: profile,
                 isPresented: Binding(get: { profileShowingMissing != nil },
-                                     set: { if !$0 { profileShowingMissing = nil } }))
+                                     set: { if !$0 { profileShowingMissing = nil } }),
+                onOpenTranslation: { folderName in
+                    vm.openTranslation(forFolder: folderName)
+                    currentTab = "Mods"
+                })
         }
     }
 
@@ -266,6 +276,12 @@ struct ProfileRow: View {
     /// Ce qui empêchera le profil de tourner tel quel : mods disparus et
     /// dépendances requises laissées de côté. `0` la plupart du temps.
     let issueCount: Int
+    /// La part de français du profil (B3-T4). `nil` tant que la mesure n'a pas
+    /// eu lieu — elle lit le disque et n'a lieu qu'à l'ouverture de cette page.
+    let translation: ProfileTranslationSummary?
+    /// La mesure est en cours : un témoin, plutôt qu'un chiffre qui monterait
+    /// sous les yeux de l'utilisateur.
+    let isMeasuringTranslation: Bool
     @ObservedObject var vm: StarHubTHViewModel
     let onApply: () -> Void
     let onManage: () -> Void
@@ -322,6 +338,12 @@ struct ProfileRow: View {
                         .pointingHandCursor()
                     }
                 }
+                // Sur sa propre ligne, et non à la suite des compteurs : sur le
+                // profil « OK » la rangée porterait « 529 mods », « 6 anomalies »
+                // et « FR 86 % · 50 à traduire » — trois fois plus de texte que
+                // la colonne n'en tient à la largeur minimale de la fenêtre
+                // (820 pt, dont 240 de barre latérale et ~230 de boutons).
+                translationBadge
             }
 
             Spacer()
@@ -397,6 +419,52 @@ struct ProfileRow: View {
                 Divider()
                 Button(vm.L(L10n.Profiles.delete), role: .destructive) { onDelete() }
             }
+        }
+    }
+
+    /// La part de français du profil, et ce qu'il reste à traduire.
+    ///
+    /// Elle n'informe pas seulement : c'est **la seule porte** vers l'écran de
+    /// diagnostic quand le profil n'a ni mod manquant ni dépendance en
+    /// souffrance — la pastille orange ne s'affiche alors pas. Sur ses trois
+    /// profils c'est le cas de « TEST », qui compte pourtant 15 mods sans une
+    /// ligne de français.
+    ///
+    /// Rien pour un profil qui n'a aucun mod traduisible : annoncer « 0 % »
+    /// ferait croire à un travail qui n'existe pas.
+    @ViewBuilder
+    private var translationBadge: some View {
+        if let summary = translation, !summary.isEmpty {
+            Button(action: onShowMissing) {
+                HStack(spacing: 4) {
+                    Image(systemName: "globe")
+                    Text(summary.pending.isEmpty
+                         ? String(format: vm.L(L10n.Profiles.frBadgeDone), summary.displayPercent)
+                         : String(format: vm.L(L10n.Profiles.frBadge),
+                                  summary.displayPercent, Int64(summary.pending.count)))
+                }
+                .font(.system(size: 11, weight: .medium))
+                .foregroundColor(summary.pending.isEmpty ? .secondary : .accentColor)
+                // Le libellé le plus long — « FR 100 % · 999 à traduire » —
+                // reste sur une ligne : la colonne le tient, mais rien ne doit
+                // pouvoir le replier en deux si un profil grossit encore.
+                .lineLimit(1)
+                .fixedSize()
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .pointingHandCursor()
+            .help(String(format: vm.L(L10n.Profiles.frBadgeHint),
+                         Int64(summary.translatableCount),
+                         Int64(summary.fullyTranslatedCount)))
+        } else if isMeasuringTranslation {
+            // Sans texte : trois lignes de profil afficheraient sinon trois
+            // fois la même phrase. L'infobulle la porte pour qui s'interroge.
+            ProgressView()
+                .controlSize(.small)
+                .scaleEffect(0.6)
+                .frame(width: 14, height: 14)
+                .help(vm.L(L10n.Profiles.translationMeasuring))
         }
     }
 }

@@ -98,6 +98,16 @@ struct ModDetailView: View {
             vm.toggleMod(target)
         }
         .task {
+            // Venu de la couverture française d'un profil : la demande n'était
+            // pas « montre-moi ce mod » mais « traduis-le ». Consommée ici,
+            // avant tout travail asynchrone, et effacée aussitôt pour que le
+            // mod suivant ne s'ouvre pas sur le même onglet.
+            if vm.pendingTranslationFocus == mod.folderName {
+                vm.pendingTranslationFocus = nil
+                if mod.languages.contains("fr") || mod.languages.contains("en") {
+                    selectedTab = 3
+                }
+            }
             translationStaleness = await vm.translationStaleness(for: mod)
             unloadableLocaleFiles = await vm.unloadableLocaleFiles(for: mod)
             // Seulement quand il y a quelque chose à retrouver : un mod déjà

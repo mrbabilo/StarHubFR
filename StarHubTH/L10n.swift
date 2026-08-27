@@ -881,6 +881,16 @@ enum L10n {
         static let missingUnknown       = "profiles_missing_unknown"
         static let applyingMoving       = "profiles_applying_moving"
         static let applyingScanning     = "profiles_applying_scanning"
+        static let frBadge              = "profiles_fr_badge"
+        static let frBadgeDone          = "profiles_fr_badge_done"
+        static let frBadgeHint          = "profiles_fr_badge_hint"
+        static let sectionTranslation   = "profiles_section_translation"
+        static let translationNote      = "profiles_translation_note"
+        static let translationSummary   = "profiles_translation_summary"
+        static let translationRowCounts = "profiles_translation_row_counts"
+        static let translationOpen      = "profiles_translation_open"
+        static let translationAllDone   = "profiles_translation_all_done"
+        static let translationMeasuring = "profiles_translation_measuring"
     }
 
     // MARK: - VM

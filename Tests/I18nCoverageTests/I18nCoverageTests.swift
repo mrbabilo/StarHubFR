@@ -854,6 +854,64 @@ struct ModCoverageTests {
         #expect(c.total == 2)
         #expect(c.translated == 1)
     }
+
+    // MARK: - Un mod imbriqué dans un autre
+
+    /// Par défaut, un dossier de premier niveau est mesuré **entier** :
+    /// c'est ce que veut la pastille de la liste, qui parle du dossier qu'on
+    /// voit, composants compris.
+    @Test func aNestedModCountsTowardItsHostByDefault() throws {
+        let host = try fixture([
+            "manifest.json": #"{"UniqueID": "hote"}"#,
+            "i18n/default.json": #"{"a": "1"}"#,
+            "Imbrique/manifest.json": #"{"UniqueID": "imbrique"}"#,
+            "Imbrique/i18n/default.json": #"{"b": "2", "c": "3"}"#,
+        ])
+        defer { try? FileManager.default.removeItem(at: host) }
+        let c = try #require(TranslationCoverage.coverage(forModAt: host, locale: "fr"))
+        #expect(c.total == 3)
+    }
+
+    /// Mais dès qu'on **additionne** des mods entre eux — la couverture d'un
+    /// profil —, l'hôte ne doit compter que ses propres clés : le mod imbriqué
+    /// est mesuré pour son propre compte, et serait sinon compté deux fois.
+    /// Le parc de référence en tient 6, dont 3 avec un `i18n`.
+    @Test func aNestedModIsExcludedFromItsHostOwnCoverage() throws {
+        let host = try fixture([
+            "manifest.json": #"{"UniqueID": "hote"}"#,
+            "i18n/default.json": #"{"a": "1"}"#,
+            "i18n/fr.json": #"{"a": "un"}"#,
+            "Imbrique/manifest.json": #"{"UniqueID": "imbrique"}"#,
+            "Imbrique/i18n/default.json": #"{"b": "2", "c": "3"}"#,
+        ])
+        defer { try? FileManager.default.removeItem(at: host) }
+
+        let own = try #require(TranslationCoverage.coverage(forModAt: host, locale: "fr",
+                                                            ownDirectoriesOnly: true))
+        #expect(own.total == 1)
+        #expect(own.translated == 1)
+
+        // Et le mod imbriqué reste mesurable de son côté, entièrement.
+        let nested = try #require(
+            TranslationCoverage.coverage(forModAt: host.appendingPathComponent("Imbrique"),
+                                         locale: "fr", ownDirectoriesOnly: true))
+        #expect(nested.total == 2)
+    }
+
+    /// Un pack ordinaire — des composants **sans** manifeste à eux — reste
+    /// mesuré d'un bloc, même en mode « propre » : ses `i18n` lui appartiennent
+    /// bel et bien, personne d'autre ne les compte.
+    @Test func componentsWithoutTheirOwnManifestStillCount() throws {
+        let pack = try fixture([
+            "manifest.json": #"{"UniqueID": "pack"}"#,
+            "[CP] A/i18n/default.json": #"{"a": "1"}"#,
+            "[CP] B/i18n/default.json": #"{"b": "2"}"#,
+        ])
+        defer { try? FileManager.default.removeItem(at: pack) }
+        let c = try #require(TranslationCoverage.coverage(forModAt: pack, locale: "fr",
+                                                          ownDirectoriesOnly: true))
+        #expect(c.total == 2)
+    }
 }
 
 /// Le nombre affiché sur le badge.

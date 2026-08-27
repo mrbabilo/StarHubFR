@@ -1067,3 +1067,13 @@
 "mods_nexus_identity_same_author" = "same author";
 "mods_no_update_check" = "No update check: no Nexus page attached.";
 "mods_search_close" = "Close results";
+"profiles_fr_badge" = "FR %1$d%% · %2$lld to translate";
+"profiles_fr_badge_done" = "FR %d%%";
+"profiles_fr_badge_hint" = "%1$lld translatable mods in this profile, %2$lld fully translated. Click to see what's left.";
+"profiles_section_translation" = "FRENCH TRANSLATION";
+"profiles_translation_note" = "An untranslated key shows in English: nothing is broken. Only this profile's still-installed mods are counted.";
+"profiles_translation_summary" = "%1$lld of %2$lld keys in French (%3$d%%) — %4$lld translatable mods, %5$lld fully translated.";
+"profiles_translation_row_counts" = "%1$lld of %2$lld keys — %3$lld to translate";
+"profiles_translation_open" = "Translate";
+"profiles_translation_all_done" = "Every translatable mod in this profile is fully translated.";
+"profiles_translation_measuring" = "Measuring translation…";

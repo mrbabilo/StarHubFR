@@ -246,7 +246,15 @@ public enum TranslationCoverage {
     /// `default.json`. Un pack de traduction pur (un `fr.json` sans source) n'a
     /// pas de dénominateur : il ne doit ni compter pour 0 %, ni fausser le
     /// total du mod.
+    ///
+    /// - Parameter ownDirectoriesOnly: n'inclut pas les `i18n` d'un mod
+    ///   **imbriqué** — un sous-dossier qui porte son propre `manifest.json`.
+    ///   À laisser à `false` pour la pastille de la liste, qui mesure un
+    ///   dossier de premier niveau entier ; à passer à `true` dès qu'on
+    ///   additionne des mods entre eux (couverture d'un profil), où l'hôte et
+    ///   son mod imbriqué compteraient sinon les mêmes clés deux fois.
     public static func coverage(forModAt modDirectory: URL, locale: String,
+                                ownDirectoriesOnly: Bool = false,
                                 fileManager: FileManager = .default) -> Coverage? {
         var total = 0, translated = 0
         var missing: [String] = [], empty: [String] = []
@@ -254,6 +262,7 @@ public enum TranslationCoverage {
         var measuredAny = false
 
         for directory in I18nLocaleResolver.i18nDirectories(inModDirectory: modDirectory,
+                                                            stoppingAtNestedMods: ownDirectoriesOnly,
                                                             fileManager: fileManager) {
             guard let source = entries(of: "default", in: directory, fileManager: fileManager)
             else { continue }

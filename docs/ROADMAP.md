@@ -139,7 +139,7 @@ de la liste de l'auteur. Analyse complète et exclusions motivées : `docs/audit
 | :-- | :-- | :-- | :-- |
 | *audit* | Compatibilité mods via l'**API live `smapi.io`** (plutôt que le dump statique `mods.jsonc`) | **Fait** | Plus riche : statut + mise à jour suggérée + URL unofficial. Repositionne **A2** |
 | *audit* | **Configs par profil** (un même mod, plusieurs `config.json`) | **À faire** | Manquante ; merge JSON non-destructif → **B3-T5** |
-| *audit* | Notes libres par mod | **À faire** | → **B3-T6** |
+| *audit* | Notes libres par mod | **Fait** | Note par mod rangée au profil actif, signalée dans la liste (**B3-T6**, v1.21.0) |
 | *audit* | Quota Nexus quotidien visible | **Fait** | Relevé sur toute réponse, affiché dans les réglages (**B2-T6**, pas encore publié) |
 | *audit* | `UpdateCautionMessage` (alerte auteur avant mise à jour) | **À faire** | → **B2-T7** |
 | *audit* | Panneau de downloads observable (%, vitesse, annulation) | **À faire** | Élargit **B2-T1** |
@@ -655,7 +655,7 @@ pouvoir revenir en arrière à tout moment.
       actif il demande confirmation, puisqu'il active les mods immédiatement.* · **M**
 - [x] **B3-T3** — Duplication d'un profil. · **S** · *`ProfileFactory.duplicate`, la copie
       porte son propre identifiant et n'est pas activée.*
-- [~] **B3-T4** — Diagnostic de profil au changement : mods manquants, dépendances non
+- [x] **B3-T4** — Diagnostic de profil au changement : mods manquants, dépendances non
       satisfaites, couverture FR (réutilise **C1-T1**). · **M** · *partiel (2026-08-24) :
       les **mods manquants** sont livrés — `ProfileDiagnostics` (Core, 14 tests), pastille
       sur la ligne du profil, écran nommant chaque mod, restauration depuis une sauvegarde
@@ -672,7 +672,25 @@ pouvoir revenir en arrière à tout moment.
       requises, aucune insatisfaite) — l'écran ne montrera rien sur eux, et c'est le
       résultat attendu. Le cas visé est le profil **vide** qu'on remplit mod par mod
       depuis B3-T1, où l'on oublie un cadre.
-      **Reste à faire** : la couverture FR du profil (réutiliserait **C1-T1**).*
+      **Complété le 2026-08-27** par la **couverture FR du profil**. Deux
+      décisions ont façonné la tâche.
+      **Un store séparé.** `frenchCoverageByMod` ne contient que les mods qui
+      livrent déjà du français, et son absence d'entrée *est* le troisième état
+      de la pastille de la liste (« pas encore mesuré », C1-T2). Or les mods qui
+      font tout l'intérêt de cet écran sont ceux qui ont un `default.json` et
+      aucun `fr.json` — 23, 50 et 21 sur ses trois profils. Les y verser aurait
+      fait surgir autant de pastilles « 0 % » dans une liste déjà livrée.
+      **Une porte à soi.** L'écran de diagnostic ne s'ouvrait que par la
+      pastille orange, laquelle n'existe qu'en cas de défaut : sur « TEST »
+      (aucun mod manquant, aucune dépendance en souffrance) il était
+      inatteignable, alors que c'est le profil le moins traduit. La pastille
+      « FR 94 % · 23 à traduire » est donc cliquable et ouvre le même écran.
+      L'agrégation porte sur les **clés**, pas sur une moyenne de pourcentages
+      (`East Scarp: NPCs` pèse 11 021 clés à lui seul), et `ownDirectoriesOnly`
+      empêche un mod imbriqué d'être compté deux fois — 6 cas sur le parc, dont
+      3 avec un `i18n`. Mesuré avec le code livré : **94,4 %, 86,3 % et 93,8 %**
+      des clés. Chaque rangée ouvre l'onglet Traduction du mod : sans geste, la
+      section n'aurait fait que constater.*
 - [ ] **B3-T5** — **Configurations par profil** : un même mod peut avoir des `config.json`
       différents selon le profil (ex. CJB Cheats configuré en solo, désactivé en multi).
       Capture/restauration au changement de profil avec **merge JSON non-destructif**
