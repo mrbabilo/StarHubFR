@@ -258,6 +258,16 @@ struct MainView: View {
                 vm.editingModConfig = nil
                 vm.viewingModDetail = nil
 
+                // …sauf une demande de traduction, qui est précisément **ce
+                // qui** amène sur cet onglet (B3-T4, depuis la couverture
+                // française d'un profil). La poser avant de changer d'onglet
+                // ne servait à rien : la remise à zéro ci-dessus l'effaçait
+                // aussitôt, et le bouton n'ouvrait que la liste des mods.
+                if currentTab == "Mods", let folderName = vm.pendingTranslationFocus {
+                    vm.viewingModDetail = vm.mods.flattenedMods
+                        .first { $0.folderName == folderName }
+                }
+
                 if !isNavigatingBackOrForward {
                     if tabHistory.last != currentTab {
                         tabHistory.append(currentTab)

@@ -1455,6 +1455,14 @@ class StarHubTHViewModel: ObservableObject {
     private var profileTranslationCoverage: [String: TranslationCoverage.Coverage] = [:]
     private var profileTranslationTask: Task<Void, Never>?
 
+    /// Le même travail, gardé **d'une session à l'autre** : sans lui, ouvrir
+    /// la page des profils coûtait 15,7 s d'analyse à chaque lancement, mesuré
+    /// sur le parc réel. Chaque entrée porte l'empreinte des fichiers de
+    /// traduction du mod ; elle n'est réutilisée que si cette empreinte n'a pas
+    /// bougé, et une entrée corrompue ne fait perdre que la mesure.
+    private var profileTranslationCacheEntries: [String: TranslationCoverageCache.Entry] = [:]
+    private var profileTranslationCacheLoaded = false
+
     /// Vrai pendant la passe de mesure : la page des profils montre un témoin
     /// plutôt qu'un pourcentage faux.
     @Published private(set) var isMeasuringProfileTranslation = false
@@ -1469,6 +1477,10 @@ class StarHubTHViewModel: ObservableObject {
     /// contient `en` dès qu'un `default.json` existe, et il est déjà connu
     /// depuis le scan. C'est ce qui rend la passe abordable : sur son parc,
     /// plus de la moitié des mods n'ont aucun dossier `i18n`.
+    ///
+    /// Et ce qui reste est **mis en cache d'une session à l'autre**, validé par
+    /// l'empreinte des fichiers de traduction : 15,7 s la première fois, 2,6 s
+    /// ensuite — le prix du seul parcours des dossiers.
     @MainActor
     func refreshProfileTranslationCoverage() {
         guard !modProfiles.isEmpty, !gameDir.isEmpty else { return }
@@ -1479,6 +1491,11 @@ class StarHubTHViewModel: ObservableObject {
         let profiles = modProfiles
         let byId = Dictionary(installed.map { ($0.uniqueId.lowercased(), $0) },
                               uniquingKeysWith: { first, _ in first })
+
+        if !profileTranslationCacheLoaded, let url = TranslationCoverageCache.defaultFileURL() {
+            profileTranslationCacheEntries = TranslationCoverageCache.load(from: url)
+            profileTranslationCacheLoaded = true
+        }
 
         let modsPath = URL(fileURLWithPath: (gameDir as NSString).appendingPathComponent("Mods"))
         var targets: [(id: String, directory: URL)] = []
@@ -1500,20 +1517,44 @@ class StarHubTHViewModel: ObservableObject {
         }
 
         isMeasuringProfileTranslation = true
+        let cached = profileTranslationCacheEntries
         profileTranslationTask = Task.detached(priority: .utility) { [weak self] in
             var measured: [String: TranslationCoverage.Coverage] = [:]
+            var freshEntries: [String: TranslationCoverageCache.Entry] = [:]
             for target in targets {
                 if Task.isCancelled { break }
-                // `ownDirectoriesOnly` : un mod imbriqué dans un autre est
-                // mesuré pour son propre compte, et ses clés compteraient
-                // deux fois si son hôte les reprenait.
-                guard let coverage = TranslationCoverage.coverage(forModAt: target.directory,
-                                                                  locale: "fr",
-                                                                  ownDirectoriesOnly: true)
+                // Les dossiers sont repérés **une seule fois** : ils servent à
+                // l'empreinte comme à la mesure, et le parcours coûte à lui
+                // seul 2,5 s sur le parc réel.
+                //
+                // `stoppingAtNestedMods` : un mod imbriqué dans un autre est
+                // mesuré pour son propre compte, et ses clés compteraient deux
+                // fois si son hôte les reprenait.
+                let directories = I18nLocaleResolver.i18nDirectories(
+                    inModDirectory: target.directory, stoppingAtNestedMods: true)
+                let stamp = TranslationStamp.of(directories: directories)
+
+                if let entry = TranslationCoverageCache.valid(cached[target.id], against: stamp) {
+                    // Rien n'a bougé depuis la dernière mesure : on ne rouvre
+                    // pas les fichiers. C'est tout l'intérêt du cache.
+                    measured[target.id] = TranslationCoverage.Coverage(
+                        total: entry.total, translated: entry.translated,
+                        missing: [], empty: [], orphan: [], identicalToSource: [])
+                    freshEntries[target.id] = entry
+                    continue
+                }
+
+                guard let coverage = TranslationCoverage.coverage(inDirectories: directories,
+                                                                  locale: "fr")
                 else { continue }
                 measured[target.id] = coverage
+                if let stamp {
+                    freshEntries[target.id] = TranslationCoverageCache.Entry(
+                        stamp: stamp, total: coverage.total, translated: coverage.translated)
+                }
             }
             await self?.finishProfileTranslationCoverage(measured,
+                                                         entries: freshEntries,
                                                          profiles: profiles,
                                                          installed: installed)
         }
@@ -1521,11 +1562,14 @@ class StarHubTHViewModel: ObservableObject {
 
     @MainActor
     private func finishProfileTranslationCoverage(_ measured: [String: TranslationCoverage.Coverage],
+                                                  entries: [String: TranslationCoverageCache.Entry],
                                                   profiles: [ModProfile],
                                                   installed: [ModItem]) {
         profileTranslationCoverage.merge(measured) { _, new in new }
+        profileTranslationCacheEntries.merge(entries) { _, new in new }
         profileTranslationTask = nil
         isMeasuringProfileTranslation = false
+        persistProfileTranslationCache()
         // Les profils actuels, pas ceux capturés au départ : la page a pu en
         // voir renommer, dupliquer ou supprimer un pendant la mesure.
         publishProfileTranslationSummaries(profiles: modProfiles,
@@ -1543,6 +1587,21 @@ class StarHubTHViewModel: ObservableObject {
                 coverageByUniqueId: profileTranslationCoverage)
         }
         profileTranslationSummaries = summaries
+    }
+
+    /// Écrit le cache sur disque, débarrassé des mods désinstallés — sans quoi
+    /// le fichier ne ferait que grossir. Hors du fil principal : l'encodage et
+    /// l'écriture n'ont pas à retenir l'interface.
+    @MainActor
+    private func persistProfileTranslationCache() {
+        guard let url = TranslationCoverageCache.defaultFileURL() else { return }
+        let installedIds = Set(mods.flattenedMods.map { $0.uniqueId }.filter { !$0.isEmpty })
+        let entries = TranslationCoverageCache.pruned(profileTranslationCacheEntries,
+                                                      keeping: installedIds)
+        profileTranslationCacheEntries = entries
+        Task.detached(priority: .utility) {
+            TranslationCoverageCache.save(entries, to: url)
+        }
     }
 
     /// Le résumé d'un profil, quand il a été mesuré.

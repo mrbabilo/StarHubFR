@@ -256,14 +256,26 @@ public enum TranslationCoverage {
     public static func coverage(forModAt modDirectory: URL, locale: String,
                                 ownDirectoriesOnly: Bool = false,
                                 fileManager: FileManager = .default) -> Coverage? {
+        coverage(inDirectories: I18nLocaleResolver.i18nDirectories(
+                    inModDirectory: modDirectory,
+                    stoppingAtNestedMods: ownDirectoriesOnly,
+                    fileManager: fileManager),
+                 locale: locale, fileManager: fileManager)
+    }
+
+    /// La même mesure, sur des dossiers `i18n` **déjà repérés**.
+    ///
+    /// L'appelant qui a besoin de ces dossiers pour autre chose — l'empreinte
+    /// du cache, par exemple — ne doit pas repayer le parcours : il coûte 2,5 s
+    /// sur le parc réel, contre 0,11 s pour lire les attributs qui en découlent.
+    public static func coverage(inDirectories directories: [URL], locale: String,
+                                fileManager: FileManager = .default) -> Coverage? {
         var total = 0, translated = 0
         var missing: [String] = [], empty: [String] = []
         var orphan: [String] = [], identical: [String] = []
         var measuredAny = false
 
-        for directory in I18nLocaleResolver.i18nDirectories(inModDirectory: modDirectory,
-                                                            stoppingAtNestedMods: ownDirectoriesOnly,
-                                                            fileManager: fileManager) {
+        for directory in directories {
             guard let source = entries(of: "default", in: directory, fileManager: fileManager)
             else { continue }
             let target = entries(of: locale, in: directory, fileManager: fileManager) ?? [:]

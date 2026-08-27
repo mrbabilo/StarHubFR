@@ -120,6 +120,7 @@ let package = Package(
                 "Models/ProfileFactory.swift",
                 "Models/ProfileDiagnostics.swift",
                 "Models/ProfileTranslationCoverage.swift",
+                "Models/TranslationCoverageCache.swift",
                 "Models/FileRecovery.swift",
                 "Models/TranslationRecoveryDiff.swift",
                 "Extensions/ModConfigFiles.swift",
@@ -563,6 +564,11 @@ let package = Package(
             name: "ProfileFactoryTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ProfileFactoryTests"
+        ),
+        .testTarget(
+            name: "TranslationCoverageCacheTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/TranslationCoverageCacheTests"
         ),
         .testTarget(
             name: "ProfileTranslationCoverageTests",
