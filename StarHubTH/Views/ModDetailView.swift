@@ -88,6 +88,14 @@ struct ModDetailView: View {
             noteDraft = vm.modNote(for: mod) ?? ""
             refreshConfigHolders()
         }
+        // Pause/reprise renomme le dossier physique du mod (`live`, pas
+        // `mod` — voir `profileConfigSection`), ce qui change le chemin où
+        // `profileConfigHolders(for:)` lit le config.json. `mod.isEnabled`
+        // ne bougerait jamais : c'est une copie figée, elle ne déclencherait
+        // jamais cet `onChange`.
+        .onChange(of: live.isEnabled) { _, _ in
+            refreshConfigHolders()
+        }
         // B3-T6 — la note se sauvegarde à la perte du focus : une annotation
         // n'est pas un formulaire, pas de bouton Enregistrer.
         .onChange(of: noteFocused) { _, focused in
@@ -559,7 +567,7 @@ struct ModDetailView: View {
             Text(vm.L(L10n.Mods.profileConfigTitle))
                 .font(.headline)
 
-            if !vm.canManageProfileConfig(mod) {
+            if !vm.canManageProfileConfig(live) {
                 Text(vm.L(L10n.Mods.profileConfigGroup))
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -568,10 +576,16 @@ struct ModDetailView: View {
                 // Le `set` prend sa valeur — il ne bascule pas. SwiftUI
                 // réécrit la valeur affichée au re-rendu, et un setter qui
                 // basculerait démarquerait le mod tout seul.
+                //
+                // `live`, pas `mod` : mettre le mod en pause renomme son
+                // dossier physique (X7 dans `actionRow`), et `resetModConfigToDefaults`
+                // comme `profileConfigHolders(for:)` calculent leur chemin à
+                // partir de `physicalFolderName` — la copie figée viserait un
+                // dossier qui n'existe plus.
                 Toggle(vm.L(L10n.Mods.profileConfigEnable), isOn: Binding(
-                    get: { vm.isProfileConfigManaged(mod) },
+                    get: { vm.isProfileConfigManaged(live) },
                     set: { on in
-                        vm.setProfileConfigManaged(mod, on)
+                        vm.setProfileConfigManaged(live, on)
                         refreshConfigHolders()
                     }
                 ))
@@ -583,12 +597,12 @@ struct ModDetailView: View {
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
 
-                if vm.isProfileConfigManaged(mod) {
+                if vm.isProfileConfigManaged(live) {
                     profileConfigHoldersView
                 }
 
                 Button(vm.L(L10n.Mods.profileConfigReset)) {
-                    vm.resetModConfigToDefaults(mod)
+                    vm.resetModConfigToDefaults(live)
                     refreshConfigHolders()
                 }
                 .buttonStyle(.bordered)
@@ -826,7 +840,7 @@ struct ModDetailView: View {
     }
 
     private func refreshConfigHolders() {
-        configHolders = vm.profileConfigHolders(for: mod)
+        configHolders = vm.profileConfigHolders(for: live)
     }
 
     private func resetDraft() {

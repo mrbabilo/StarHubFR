@@ -6853,9 +6853,22 @@ class StarHubTHViewModel: ObservableObject {
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
         let url = ProfileConfigStore.configURL(modsPath: modsPath,
                                                physicalFolderName: mod.physicalFolderName)
-        guard FileManager.default.fileExists(atPath: url.path) else { return false }
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            // Seulement 169 mods sur ~900 portent un config.json, et le bouton
+            // reste actif pour tous les mods non-groupes : sans ce log, un clic
+            // sur un mod qui n'en a pas ne laisse aucune trace nulle part.
+            log(String(format: L(L10n.VM.profileConfigResetAbsent), mod.folderName), level: .info)
+            return false
+        }
+        // Le dossier du mod est souvent en lecture seule (`unzip`/`unrar`
+        // restituent les modes de l'archive — X7). Même remède que
+        // `recoverFile` : ouvrir les droits d'écriture jusqu'à la racine du
+        // mod, jamais au-delà, puis les rendre tels qu'on les a trouvés.
+        let modRoot = url.deletingLastPathComponent().path
         do {
-            try FileManager.default.removeItem(at: url)
+            try RecoveredFileWriter.withWriteAccess(to: url.path, modRoot: modRoot) {
+                try ModZipInstaller.removeItemGrantingWriteAccess(atPath: url.path)
+            }
             log(String(format: "config.json supprimé : %@", mod.folderName))
             return true
         } catch {
@@ -7148,10 +7161,16 @@ class StarHubTHViewModel: ObservableObject {
             // Le dossier a pu disparaître entre-temps : ne rien écrire, et
             // garder l'entrée — réinstaller le mod doit lui rendre ses
             // réglages.
-            guard FileManager.default.fileExists(
-                atPath: target.url.deletingLastPathComponent().path) else { continue }
+            let modRoot = target.url.deletingLastPathComponent().path
+            guard FileManager.default.fileExists(atPath: modRoot) else { continue }
             do {
-                try entry.text.write(to: target.url, atomically: true, encoding: .utf8)
+                // Le dossier du mod est souvent en lecture seule — même remède
+                // que `recoverFile` : cette écriture rejoue à chaque bascule de
+                // profil, pour chaque mod marqué, bien plus souvent que le
+                // bouton « Repartir des réglages par défaut ».
+                try RecoveredFileWriter.withWriteAccess(to: target.url.path, modRoot: modRoot) {
+                    try entry.text.write(to: target.url, atomically: true, encoding: .utf8)
+                }
                 written += 1
             } catch {
                 log(String(format: "config.json: %@ — %@",
