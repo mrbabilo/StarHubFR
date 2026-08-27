@@ -255,7 +255,12 @@ class SmapiInstaller: ObservableObject {
 
                 let unzipProcess = Process()
                 unzipProcess.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
-                unzipProcess.arguments = ["-q", zipDest.path, "-d", extractDir.path]
+                // `-o` : écraser sans demander. Le dossier vient d'être
+                // recréé vide, il n'y a rien d'autre à écraser — mais une
+                // archive à chemins dupliqués ferait sinon poser une question
+                // sur une entrée standard qui n'existe pas ici. Même ceinture
+                // que sur l'extraction des mods.
+                unzipProcess.arguments = ["-q", "-o", zipDest.path, "-d", extractDir.path]
                 try unzipProcess.run()
                 unzipProcess.waitUntilExit()
 
