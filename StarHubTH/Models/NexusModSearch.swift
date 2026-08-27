@@ -31,10 +31,18 @@ public enum NexusModSearch {
         /// « (ES-LATAM) … » n'annonce pas plus une traduction que
         /// « Item Bags for … » n'annonce une greffe.
         public let tags: [String]
+        /// Endossements Nexus, quand la réponse les porte. Le champ est
+        /// scalaire et NON_NULL côté schéma (introspection 2026-08-27), mais
+        /// l'API n'est pas documentée : absent ≠ zéro, la carte affiche sans.
+        public let endorsements: Int?
+        /// Le résumé d'une ligne — servi par les listings eux-mêmes, sans
+        /// requête de fiche (mesuré 2026-08-27).
+        public let summary: String?
 
         public init(modId: Int, name: String, version: String, updatedAt: Date?,
                     categoryName: String, uploader: String, adultContent: Bool,
-                    tags: [String] = []) {
+                    tags: [String] = [], endorsements: Int? = nil,
+                    summary: String? = nil) {
             self.modId = modId
             self.name = name
             self.version = version
@@ -43,6 +51,8 @@ public enum NexusModSearch {
             self.uploader = uploader
             self.adultContent = adultContent
             self.tags = tags
+            self.endorsements = endorsements
+            self.summary = summary
         }
 
         /// `true` quand Nexus range ce mod parmi les traductions.
@@ -198,6 +208,57 @@ public enum NexusModSearch {
         return String(remainder)
     }
 
+    // MARK: - Listing (vitrine « Découvrir », axe G)
+
+    /// Les tris demandables pour un listing de vitrine.
+    ///
+    /// Les noms viennent du type `ModsSort`, lu en introspection le
+    /// 2026-08-27 : `createdAt, downloads, endorsements, lastComment, name,
+    /// random, relevance, size, uniqueDownloads, updatedAt`. Pas de
+    /// `endorsed` ni d'`endorsementCount` — les deux premiers candidats du
+    /// plan étaient faux, l'introspection les a départagés.
+    public enum ListingSort: String, CaseIterable, Sendable {
+        case endorsed, recentlyUpdated, newest
+
+        public var graphQLField: String {
+            switch self {
+            case .endorsed: return "endorsements"
+            case .recentlyUpdated: return "updatedAt"
+            case .newest: return "createdAt"
+            }
+        }
+    }
+
+    /// Corps JSON d'un **listing** — les mods du jeu par tri, sans nom cherché.
+    ///
+    /// Même forme que `queryBody(name:)`, le filtre `name` en moins : la
+    /// vitrine ne cherche rien, elle montre. Mesuré sur l'API réelle le
+    /// 2026-08-27 : le jeu entier rend 33 199 mods, le seul tag `French`
+    /// en rend 747.
+    public static func listingBody(sort: ListingSort, tag: String? = nil,
+                                   gameId: Int, count: Int = 20) -> Data? {
+        let tagFilter = tag.map { _ in ", tag: { value: $tag, op: EQUALS }" } ?? ""
+        let tagParam = tag.map { _ in ", $tag: String!" } ?? ""
+        let query = """
+        query ModListing($game: String!, $count: Int!, $offset: Int!\(tagParam)) {
+          mods(
+            filter: { gameId: { value: $game, op: EQUALS }\(tagFilter) }
+            sort: { \(sort.graphQLField): { direction: DESC } }
+            count: $count
+            offset: $offset
+          ) {
+            totalCount
+            nodes { modId name version updatedAt adultContent status endorsements
+                    summary modCategory { name } uploader { name } tags { name } }
+          }
+        }
+        """
+        var variables: [String: Any] = ["game": String(gameId), "count": count, "offset": 0]
+        if let tag { variables["tag"] = tag }
+        return try? JSONSerialization.data(withJSONObject: ["query": query,
+                                                            "variables": variables])
+    }
+
     // MARK: - Réponse
 
     /// Lit une réponse GraphQL. Le tableau `errors` l'emporte sur les données :
@@ -244,7 +305,9 @@ public enum NexusModSearch {
                    categoryName: category,
                    uploader: uploader,
                    adultContent: node["adultContent"] as? Bool ?? false,
-                   tags: tags)
+                   tags: tags,
+                   endorsements: node["endorsements"] as? Int,
+                   summary: node["summary"] as? String)
     }
 
     // MARK: - Reconnaître une traduction française

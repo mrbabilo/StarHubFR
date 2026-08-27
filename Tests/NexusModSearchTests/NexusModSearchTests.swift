@@ -549,4 +549,86 @@ struct NexusModSearchTests {
         #expect(NexusModSearch.parseDate("2026-08-09T17:33:00.500Z") != nil)
         #expect(NexusModSearch.parseDate("pas une date") == nil)
     }
+
+    // MARK: - Listing (vitrine « Découvrir », axe G)
+
+    private func listingBody(_ sort: NexusModSearch.ListingSort,
+                             tag: String? = nil) -> [String: Any] {
+        let data = NexusModSearch.listingBody(sort: sort, tag: tag, gameId: 1303)!
+        return (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] ?? [:]
+    }
+
+    /// Un listing ne cherche rien par nom : sans `name` dans les variables, le
+    /// filtre ne porte que le jeu (et le tag s'il est demandé). Mesuré sur
+    /// l'API réelle le 2026-08-27 (spike G-T1) : 747 mods rendus sur le seul
+    /// tag `French`, 33 199 sur le jeu entier.
+    @Test func listingCarriesGameAndCountButNoName() {
+        let body = listingBody(.recentlyUpdated)
+        let vars = body["variables"] as? [String: Any] ?? [:]
+        #expect(vars["game"] as? String == "1303")
+        #expect(vars["count"] as? Int == 20)
+        #expect(vars["name"] == nil)
+        #expect((body["query"] as? String ?? "").contains(
+            "sort: { updatedAt: { direction: DESC } }"))
+    }
+
+    /// Les noms de tri viennent du type `ModsSort`, lu en introspection le
+    /// 2026-08-27 : `endorsements` — pas `endorsed`, pas `endorsementCount`,
+    /// les deux premiers candidats du plan.
+    @Test func eachSortMapsToItsGraphQLField() {
+        #expect((listingBody(.endorsed)["query"] as? String ?? "").contains(
+            "sort: { endorsements: { direction: DESC } }"))
+        #expect((listingBody(.newest)["query"] as? String ?? "").contains(
+            "sort: { createdAt: { direction: DESC } }"))
+    }
+
+    @Test func listingTagEntersTheFilterOnlyWhenAsked() {
+        let withTag = listingBody(.recentlyUpdated, tag: "French")
+        #expect((withTag["variables"] as? [String: Any])?["tag"] as? String == "French")
+        #expect((withTag["query"] as? String ?? "").contains(
+            "tag: { value: $tag, op: EQUALS }"))
+        #expect((listingBody(.recentlyUpdated)["variables"] as? [String: Any])?["tag"] == nil)
+    }
+
+    /// Fixture : deux nodes du listing réel trié par endossements (2026-08-27)
+    /// — Content Patcher en tête — plus un node fabriqué sans endossements :
+    /// le champ est NON_NULL côté schéma, mais un schéma qui change sans
+    /// préavis ne doit pas casser le décodage.
+    @Test func decodingReadsEndorsementsAndSummary() {
+        let json = """
+        {"data":{"mods":{"totalCount":33199,"nodes":[
+          {"modId":1915,"name":"Content Patcher","version":"2.9.1",
+           "updatedAt":"2026-04-16T11:18:42Z","adultContent":false,
+           "status":"published","endorsements":481910,
+           "summary":"Loads content packs that change the game's data.",
+           "modCategory":{"name":"Modding Tools"},
+           "uploader":{"name":"Pathoschild"},
+           "tags":[{"name":"Fair and balanced"}]},
+          {"modId":29452,"name":"Better Crafting - Francais","version":"2.18.0",
+           "status":"published","tags":[{"name":"French"},{"name":"Translation"}]}]}}}
+        """
+        guard case .success(let page) = NexusModSearch.decode(Data(json.utf8)) else {
+            Issue.record("attendu un succès"); return
+        }
+        #expect(page.totalCount == 33199)
+        let cp = page.hits[0]
+        #expect(cp.endorsements == 481910)
+        #expect(cp.summary == "Loads content packs that change the game's data.")
+        #expect(cp.uploader == "Pathoschild")
+        let bc = page.hits[1]
+        #expect(bc.endorsements == nil)   // absent ≠ zéro
+        #expect(bc.summary == nil)
+        #expect(bc.isTranslation)          // le tag, pas le titre (A3-T3)
+    }
+
+    /// Leçon du 2026-08-25 : "\r\n" compte pour UN caractère en Swift — une
+    /// réponse transportée en CRLF doit se décoder pareil.
+    @Test func aCRLFPayloadIsStillJSON() {
+        let json = "{\"data\":{\"mods\":{\"totalCount\":1,\"nodes\":"
+            + "[{\"modId\":1,\"name\":\"A\",\"version\":\"1\",\"status\":\"published\"}]}}}\r\n"
+        guard case .success(let page) = NexusModSearch.decode(Data(json.utf8)) else {
+            Issue.record("CRLF ne doit pas casser le décodage"); return
+        }
+        #expect(page.hits.count == 1)
+    }
 }
