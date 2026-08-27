@@ -83,10 +83,16 @@ struct ModDetailView: View {
             noteDraft = vm.modNote(for: mod) ?? ""
         }
         // B3-T6 — la note se sauvegarde à la perte du focus : une annotation
-        // n'est pas un formulaire, pas de bouton Enregistrer. Le clic hors du
-        // champ (y compris vers un autre mod, qui recrée la vue) écrit d'abord.
+        // n'est pas un formulaire, pas de bouton Enregistrer.
         .onChange(of: noteFocused) { _, focused in
             if !focused { vm.setModNote(noteDraft, for: mod) }
+        }
+        // …et aussi à la sortie de la fiche : cliquer un autre mod dans la
+        // liste remplace la vue (`.id(mod.folderName)`) avant que le blur ne
+        // tire — sans ce filet, une note vidée juste avant de partir n'était
+        // jamais committée. Idempotent avec le blur : même valeur, deux fois.
+        .onDisappear {
+            vm.setModNote(noteDraft, for: mod)
         }
         .compatibilityGate(vm: vm, pending: $pendingActivation) { target in
             vm.toggleMod(target)

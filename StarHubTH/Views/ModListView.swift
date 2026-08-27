@@ -1481,9 +1481,17 @@ struct ModListRow: View {
                     // tooltip — la lecture courte sans ouvrir la fiche. Les
                     // packs n'en portent jamais (pas d'identité, F4).
                     if let note = vm.modNote(for: mod) {
+                        // Zone de hit élargie avant le tooltip : un glyph de
+                        // 10 pt est plus petit que le curseur immobile que
+                        // macOS exige (~2 s tout-à-l'intérieur), et le timer
+                        // se réinitialisait sans arrêt — l'infobulle ne
+                        // venait jamais. L'auteur voisin (`authorLabel`) n'a
+                        // pas ce problème : son `Text` est sa propre cible.
                         Image(systemName: "note.text")
                             .font(.system(size: 10))
                             .foregroundStyle(.secondary)
+                            .frame(width: 18, height: 18)
+                            .contentShape(.rect)
                             .help(note)
                     }
                 }

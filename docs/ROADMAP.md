@@ -698,6 +698,17 @@ pouvoir revenir en arrière à tout moment.
       Sauvegarde à la perte du focus, au patron du draft Nexus — la vue est
       recréée par mod (`.id(mod.folderName)`), un brouillon ne peut pas fuir
       sur le mod voisin.
+      *Corrigé dans la foulée du premier retour réel (2026-08-27)* : deux
+      défauts. **L'infobulle ne venait jamais** — la cause n'était pas le
+      tooltip mais sa cible : un glyph de 10 pt est plus petit que le curseur
+      immobile qu'exige macOS (~2 s entièrement dans la zone), et le
+      mécanisme, lui, marche dans cette liste (`authorLabel` pose un `.help`
+      passif sur un `Text` de la même ligne depuis des versions). Zone de hit
+      portée à 18×18 (`contentShape`), dessin inchangé. **Vider la note puis
+      cliquer un autre mod ne vidait rien** — cliquer un autre mod remplace
+      la vue (`.id`) avant que la perte de focus ne tire, et le vidage n'était
+      jamais committé ; la fiche commette désormais aussi à `onDisappear`,
+      idempotent avec le blur.*
 
 #### B4 — Page de backups
 
