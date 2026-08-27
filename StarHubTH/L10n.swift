@@ -965,6 +965,7 @@ enum L10n {
         static let profileConfigsCaptured   = "vm_profile_configs_captured"
         static let profileConfigsRestored   = "vm_profile_configs_restored"
         static let profileConfigsSkippedGame = "vm_profile_configs_skipped_game"
+        static let profileConfigsDesynced   = "vm_profile_configs_desynced"
         static let nexusDlNoApiKey      = "vm_nexus_dl_no_api_key"
         static let nexusDlNoValidFile   = "vm_nexus_dl_no_valid_file"
         static let nexusDlNoLink        = "vm_nexus_dl_no_link"

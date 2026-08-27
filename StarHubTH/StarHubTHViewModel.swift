@@ -6975,6 +6975,52 @@ class StarHubTHViewModel: ObservableObject {
 
     // MARK: - Configs par profil : capture et restauration (B3-T5)
 
+    /// Le profil actif dont le disque ne porte **pas** les configs (§6.3) :
+    /// une bascule antérieure faite jeu ouvert a sauté capture et/ou
+    /// restauration, et le disque tient encore les réglages d'un autre
+    /// profil que celui qui est actif. `nil` si aucun profil n'est dans ce
+    /// cas. Persisté dans `UserDefaults` : quitter l'application entre les
+    /// deux bascules incriminées ne doit pas effacer le trou.
+    private static var profileConfigsDesyncedProfileId: UUID? {
+        get {
+            UserDefaults.standard.string(forKey: UDKey.profileConfigsDesyncedProfileId)
+                .flatMap(UUID.init(uuidString:))
+        }
+        set {
+            if let newValue {
+                UserDefaults.standard.set(newValue.uuidString,
+                                          forKey: UDKey.profileConfigsDesyncedProfileId)
+            } else {
+                UserDefaults.standard.removeObject(forKey: UDKey.profileConfigsDesyncedProfileId)
+            }
+        }
+    }
+
+    /// Pose ou lève la marque de désynchronisation. `entering` est
+    /// l'identifiant du profil qui devient actif — `nil` quand on ne fait que
+    /// quitter le profil courant, sans en prendre un autre.
+    ///
+    /// Jeu ouvert : la capture du sortant (et, pour une vraie bascule, la
+    /// restauration de l'entrant, plus tard dans le completion) sont
+    /// sautées, chacune se gardant elle-même. Un `entering` connu est marqué
+    /// désynchronisé, pour que la prochaine capture le concernant refuse
+    /// d'attribuer à son magasin un disque qui n'est pas le sien. Sans
+    /// `entering` (on ne fait que quitter), il n'y a personne à marquer — la
+    /// marque existante, si elle porte sur un autre profil, n'a pas à
+    /// bouger.
+    ///
+    /// Jeu fermé : la bascule tient sa promesse normalement, la marque n'a
+    /// plus lieu d'être.
+    private func syncProfileConfigsDesyncMarker(entering: UUID?) {
+        guard isGameRunning() else {
+            Self.profileConfigsDesyncedProfileId = nil
+            return
+        }
+        if let entering {
+            Self.profileConfigsDesyncedProfileId = entering
+        }
+    }
+
     /// Les mods marqués, présents dans le parc courant, avec leur chemin de
     /// config sur disque. Le nom **physique** est employé pour le chemin (un
     /// mod en pause vit dans un dossier préfixé par un point) et le nom
@@ -6999,6 +7045,16 @@ class StarHubTHViewModel: ObservableObject {
     func captureProfileConfigs(for profileId: UUID) {
         guard !isGameRunning() else {
             log(L(L10n.VM.profileConfigsSkippedGame), level: .warning)
+            return
+        }
+        // Une bascule antérieure, faite jeu ouvert, a laissé ce profil actif
+        // sans que son disque en porte les réglages (§6.3) — il tient encore
+        // ceux d'un autre profil. Capturer ici attribuerait ce contenu
+        // étranger au magasin de ce profil ; mieux vaut laisser le trou
+        // visible que le maquiller en donnée fausse.
+        guard Self.profileConfigsDesyncedProfileId != profileId else {
+            let name = modProfiles.first(where: { $0.id == profileId })?.name ?? ""
+            log(String(format: L(L10n.VM.profileConfigsDesynced), name), level: .warning)
             return
         }
         guard let url = ProfileConfigStore.fileURL(profileId: profileId) else { return }
@@ -7070,6 +7126,7 @@ class StarHubTHViewModel: ObservableObject {
             // réelle : le config est capturé au crédit du profil qu'on quitte,
             // même si aucun dossier ne bouge.
             if let leaving = activeProfileId { captureProfileConfigs(for: leaving) }
+            syncProfileConfigsDesyncMarker(entering: nil)
             activeProfileId = nil
             saveProfiles()
             return
@@ -7098,6 +7155,7 @@ class StarHubTHViewModel: ObservableObject {
         // Capture AVANT tout : le disque porte encore les réglages du profil
         // sortant. C'est la seule fenêtre où ils existent.
         if let leaving = activeProfileId { captureProfileConfigs(for: leaving) }
+        syncProfileConfigsDesyncMarker(entering: id)
         activeProfileId = id
         saveProfiles()
         applyingProfileId = id

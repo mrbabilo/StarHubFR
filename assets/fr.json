@@ -465,6 +465,7 @@
   "vm_profile_configs_captured": "Configs mémorisés pour le profil « %@ » : %lld mod(s)",
   "vm_profile_configs_restored": "Configs restaurés depuis le profil « %@ » : %lld mod(s)",
   "vm_profile_configs_skipped_game": "Configs non touchés : le jeu est ouvert (SMAPI les réécrirait en sortant)",
+  "vm_profile_configs_desynced": "Configs non mémorisés pour le profil « %@ » : la dernière bascule s'est faite jeu ouvert, les fichiers sur disque ne sont pas ceux de ce profil",
   "vm_backup_mods_success": "Dossier des mods sauvegardé sur le Bureau avec succès\n(%@)",
   "vm_zip_mods_error": "Une erreur s'est produite lors de la compression des mods",
   "vm_clean_mods_success": "Mods désactivés supprimés avec succès",

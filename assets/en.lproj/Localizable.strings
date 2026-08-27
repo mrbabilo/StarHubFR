@@ -465,6 +465,7 @@
 "vm_profile_configs_captured" = "Configs remembered for profile \"%@\": %lld mod(s)";
 "vm_profile_configs_restored" = "Configs restored from profile \"%@\": %lld mod(s)";
 "vm_profile_configs_skipped_game" = "Configs left untouched: the game is running (SMAPI would overwrite them on exit)";
+"vm_profile_configs_desynced" = "Configs not remembered for profile \"%@\": the last switch happened while the game was running, so the files on disk are not this profile's";
 "vm_backup_mods_success" = "Backed up Mods folder to Desktop successfully\n(%@)";
 "vm_zip_mods_error" = "An error occurred while zipping mods";
 "vm_clean_mods_success" = "Disabled mods removed successfully";

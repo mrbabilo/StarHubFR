@@ -48,4 +48,8 @@ public enum UDKey {
     /// Les mods dont le `config.json` suit le profil actif (B3-T5), par nom
     /// **logique** de dossier. Encodé en JSON comme `favoriteMods`.
     public static let profileManagedConfigMods = "profileManagedConfigMods"
+    /// Le profil actif dont le disque ne porte **pas** les configs (B3-T5) :
+    /// une bascule faite jeu ouvert a sauté la moitié configs. Vide sinon.
+    /// Persisté : quitter l'app entre les deux bascules ramènerait le trou.
+    public static let profileConfigsDesyncedProfileId = "profileConfigsDesyncedProfileId"
 }
