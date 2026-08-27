@@ -12,8 +12,11 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.24.0] - 2026-08-27
+
 ### Added
 - **Les mods que smapi.io refuse de juger sont repris auprès de Nexus.** Un mod dont smapi.io ne sait rien dire — page introuvable, aucune version indexable, clé de mise à jour malformée — restait sans verdict d'aucune source, et la fenêtre passait dessus en silence. Après chaque vérification, l'app interroge Nexus pour ceux-là, sans clé d'API elle s'abstient, et un mod tranché quitte la liste des invérifiables. Sur le parc de référence : 52 mods repris sur 42 pages, et **10 mises à jour trouvées là où smapi.io seule n'en voyait que 3**. Deux comparaisons sont refusées volontairement — une page revendiquée par des mods de versions différentes, et un correctif `-unofficial` face à l'officiel de même numéro.
+- **Le journal nomme chaque mod que la reprise Nexus tranche**, avec la version installée et celle de la page dans les deux cas. Une mise à jour trouvée finit dans la fenêtre, mais un mod *confirmé à jour* n'apparaissait nulle part — alors que c'est précisément le verdict qu'on vient de gagner sur un mod qui n'en avait d'aucune source. Une page qui ne publie aucune version le dit aussi, en comptant les mods qu'elle laisse sans réponse.
 
 ### Fixed
 - **Un lot de 150 mods ne disparaît plus parce qu'un seul déplaît à smapi.io.** Le service répond « tout va bien » et une liste vide quand une entrée du lot lui est indigeste — 150 mods repartaient alors sans verdict, sans erreur, et sans que rien ne le dise. Un lot vide est désormais re-découpé jusqu'à isoler le mod fautif, qui rejoint la liste des invérifiables au lieu d'emporter ses voisins. Sur le parc de référence, un mod en pause dont l'auteur a livré un numéro de version non substitué privait 149 autres mods de toute vérification.
@@ -814,7 +817,11 @@ where the exact log format was verified.
 - Added translation for **Wear More Rings** (v7.9) by bcmpinc.
 - Added translation for **World Navigator** (v1.4.2) by pneuma163.
 
-[Unreleased]: https://github.com/mrbabilo/StarHubFR/compare/v1.20.0...HEAD
+[Unreleased]: https://github.com/mrbabilo/StarHubFR/compare/v1.24.0...HEAD
+[1.24.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.23.0...v1.24.0
+[1.23.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.22.0...v1.23.0
+[1.22.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.21.0...v1.22.0
+[1.21.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.20.0...v1.21.0
 [1.20.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.19.1...v1.20.0
 [1.19.1]: https://github.com/mrbabilo/StarHubFR/compare/v1.19.0...v1.19.1
 [1.19.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.18.0...v1.19.0
