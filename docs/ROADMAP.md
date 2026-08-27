@@ -946,6 +946,18 @@ pouvoir revenir en arrière à tout moment.
       pas une mesure à zéro : elle laisse la précédente intacte. L'app n'interrogeant plus
       l'API Nexus qu'à la demande, l'état « jamais mesuré » est explicite.* · **S** ·
       *§audit-stardrop*
+- [ ] **B2-T10** — Re-vérifier par Nexus les mods que smapi.io n'a pas pu juger. La
+      détection des mises à jour est intégralement déléguée à smapi.io ; quand celui-ci
+      répond une erreur (`Blocker` : page introuvable, aucune version exploitable…), le mod
+      reste sans verdict de **toute** source. Après le passage smapi.io, reprendre les seuls
+      mods en erreur qui déclarent une `UpdateKeys: Nexus:…` — un lot minuscule — via l'API
+      Nexus et comparer avec `isNewer`. · **M**
+      *Preuve levée le 2026-08-27 : Powered Automation (50165) installé en 1.0.0, Nexus
+      publie 1.025, smapi.io répond « has no valid versions » — les versions exotiques du
+      mod (`1`, `1.01`, `1.02`, `1.025`), créé le 17 août, n'ont jamais été indexées. La
+      fenêtre disait « tous à jour » (115 blockers mesurés sur le parc, tacitement
+      confondus avec des mods à jour). C'est le 3,5 % de désaccord smapi.io/Nexus mesuré
+      à l'intégration.*
 - [x] **B2-T9** — Trier la liste des mods par poids. *Livré : chaque ligne porte sa taille
       (teintée au-delà de 100 Mo — 22 dossiers du parc réel, qui portent 87 % des 16,8 Go),
       un tri « Poids » les remonte en tête, et la barre d'outils annonce ce que pèse le
