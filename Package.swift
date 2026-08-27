@@ -31,6 +31,7 @@ let package = Package(
                 "Models/NexusQuota.swift",
                 "Models/NexusAccount.swift",
                 "Models/NexusModSearch.swift",
+                "Models/ModCatalog.swift",
                 "Models/InstalledTranslation.swift",
                 "Models/InstalledTranslationStore.swift",
                 "Models/ManifestlessArchive.swift",
@@ -136,6 +137,11 @@ let package = Package(
             name: "TranslationWaiverTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/TranslationWaiverTests"
+        ),
+        .testTarget(
+            name: "ModCatalogTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ModCatalogTests"
         ),
         .testTarget(
             name: "TranslationFileStoreTests",

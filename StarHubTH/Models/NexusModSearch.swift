@@ -13,7 +13,7 @@ import Foundation
 /// Type pur : construction de la requête et lecture de la réponse, sans réseau.
 public enum NexusModSearch {
     /// Ce que rend une recherche.
-    public struct Hit: Equatable, Identifiable, Sendable {
+    public struct Hit: Equatable, Identifiable, Sendable, Codable {
         public var id: Int { modId }
         public let modId: Int
         public let name: String
@@ -67,7 +67,7 @@ public enum NexusModSearch {
     /// en montre moins encore ; sur un nom générique — « Content Patcher » rend
     /// **428** résultats — taire le total laisserait croire que la poignée
     /// affichée est tout ce qui existe.
-    public struct Page: Equatable {
+    public struct Page: Equatable, Codable {
         public let hits: [Hit]
         public let totalCount: Int
 
@@ -262,7 +262,7 @@ public enum NexusModSearch {
     // MARK: - Fiche (Detail, vitrine « Découvrir »)
 
     /// La fiche d'un mod pour la vitrine : ce que la carte ne dit pas.
-    public struct Detail: Equatable, Sendable {
+    public struct Detail: Equatable, Sendable, Codable {
         public let modId: Int
         public let name: String
         public let summary: String?
