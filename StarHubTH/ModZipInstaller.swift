@@ -262,7 +262,7 @@ class ModZipInstaller {
     /// hors de destDir ; 7zz/unrar modernes les sanitizent, mais on garde pour
     /// les deux par défense en profondeur. Fail-open si le listing échoue
     /// (l'extraction échouerait aussi). Audit 2026-08-05.
-    private static func hasTraversalEntry(zipUrl: URL, ext: String) -> Bool {
+    static func hasTraversalEntry(zipUrl: URL, ext: String) -> Bool {
         let process = Process()
         let pipe = Pipe()
         process.standardOutput = pipe
@@ -279,9 +279,21 @@ class ModZipInstaller {
             process.arguments = ["l", "-slt", zipUrl.path]
         }
         guard (try? process.run()) != nil else { return false }
+        // **Lire d'abord, attendre ensuite.** Un tube a une capacité bornée
+        // (64 Ko sur macOS) : attendre la fin d'un processus qui écrit
+        // davantage l'interbloque — il reste figé sur son écriture, et le
+        // parent sur son attente. Un mod à 3 000 entrées produit 411 Ko de
+        // listing, et l'app se figeait sur « Analyse de l'archive… », deux
+        // `unzip -Z1` vivants et immobiles. Constaté le 2026-08-27 en
+        // installant un mod Nexus, reproduit à l'identique.
+        //
+        // Les deux fonctions voisines (`uncompressedSize`,
+        // `uncompressedSizeViaSevenZip`) avaient déjà le bon ordre : c'est
+        // celle-ci, ajoutée plus tard contre le zip-slip, qui l'a inversé.
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
         process.waitUntilExit()
         guard process.terminationStatus == 0,
-              let output = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) else {
+              let output = String(data: data, encoding: .utf8) else {
             return false
         }
         let names = ext == "zip"
@@ -602,7 +614,14 @@ class ModZipInstaller {
         if ext == "zip" {
             let process = Process()
             process.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
-            process.arguments = ["-q", zipUrl.path, "-d", destDir.path]
+            // `-o` : écraser sans demander. Sans lui, une archive qui
+            // contient deux fois le même chemin — cela arrive dans des mods
+            // mal empaquetés — fait poser à `unzip` une question sur une
+            // entrée standard qui n'existe pas dans une app à interface. Le
+            // dossier de destination est neuf et nous appartient : il n'y a
+            // rien d'autre à écraser. Même intention que le `-aoa` déjà passé
+            // à 7z.
+            process.arguments = ["-q", "-o", zipUrl.path, "-d", destDir.path]
             // Force the C locale so error/diagnostic output stays parseable
             // (the summary line is what we read in `uncompressedSize`; keeping
             // extraction under the same locale makes the two consistent).

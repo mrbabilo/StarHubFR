@@ -567,6 +567,11 @@ let package = Package(
             path: "Tests/ProfileFactoryTests"
         ),
         .testTarget(
+            name: "ArchiveListingTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ArchiveListingTests"
+        ),
+        .testTarget(
             name: "DownloadProgressTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/DownloadProgressTests"
