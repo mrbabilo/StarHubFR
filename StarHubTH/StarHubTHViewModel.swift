@@ -4153,13 +4153,19 @@ class StarHubTHViewModel: ObservableObject {
                 // décode sans broncher : la tenir pour « à jour » retirerait le
                 // mod des invérifiables sur un quitus inventé — le défaut même
                 // que cette reprise existe pour supprimer.
-                guard !version.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                let page = version.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !page.isEmpty else {
                     failures += 1
+                    self.log("Reprise Nexus : la page \(target.nexusId) ne publie aucune "
+                             + "version — \(target.mods.count) mod(s) toujours sans verdict",
+                             level: .warning)
                     break
                 }
-                found += NexusFallbackCheck.rows(for: target,
-                                                 pageVersion: version,
-                                                 uploadedTime: extra.uploadedTime)
+                let rows = NexusFallbackCheck.rows(for: target,
+                                                   pageVersion: page,
+                                                   uploadedTime: extra.uploadedTime)
+                self.logNexusFallbackVerdicts(target, pageVersion: page, updates: rows)
+                found += rows
                 settled.formUnion(target.mods.map(\.uniqueId))
             case .rateLimited(let retryAfter):
                 // Inutile d'insister : les suivantes seraient refusées
@@ -4175,6 +4181,38 @@ class StarHubTHViewModel: ObservableObject {
             self.nexusCheckProgress = (index + 1, targets.count)
             self.fetchNexusFallback(targets, index: index + 1,
                                     found: found, settled: settled, failures: failures)
+        }
+    }
+
+    /// Nomme, mod par mod, ce que la page vient de trancher.
+    ///
+    /// Les compteurs seuls ne répondaient pas à la seule question qui se pose
+    /// devant eux : *lequel ?* Une mise à jour se retrouve dans la fenêtre,
+    /// mais un mod **confirmé à jour** n'apparaît nulle part ailleurs — et
+    /// c'est précisément le verdict qu'on venait de gagner, sur des mods qui
+    /// n'en avaient d'aucune source. Le taire refaisait, en plus petit, le
+    /// défaut que toute cette reprise corrige.
+    ///
+    /// Une ligne par mod plutôt qu'une liste sur une seule : le journal en
+    /// tient 2 000 et sait chercher, si bien qu'un nom se retrouve à coup sûr
+    /// — ce qu'une ligne de cinquante noms rendrait illisible. Les deux
+    /// versions figurent dans les deux cas, pour que la comparaison soit
+    /// vérifiable plutôt que crue sur parole.
+    private func logNexusFallbackVerdicts(_ target: NexusFallbackCheck.Target,
+                                          pageVersion: String,
+                                          updates: [NexusUpdateChecker.ModUpdate]) {
+        let outdated = Set(updates.map(\.uniqueId))
+        for mod in target.mods {
+            // Un manifeste sans champ `Version` existe : ne pas afficher un
+            // blanc là où le lecteur attend un numéro.
+            let installed = mod.installedVersion.isEmpty ? "version inconnue" : mod.installedVersion
+            if outdated.contains(mod.uniqueId) {
+                log("Reprise Nexus : \(mod.name) — \(installed) → \(pageVersion) "
+                    + "(page \(target.nexusId))")
+            } else {
+                log("Reprise Nexus : \(mod.name) à jour (installé \(installed), "
+                    + "page \(pageVersion))")
+            }
         }
     }
 
