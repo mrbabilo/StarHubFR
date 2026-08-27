@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.21.0] - 2026-08-27
+
 ### Added
 - **Un mod peut porter une note, et la liste s'en souvient.** « Désactivé en multi car désync », « à mettre à jour » : des choses qu'on sait un jour et qu'on cherche six mois plus tard. La note s'écrit sur la fiche, se sauvegarde d'un clic ailleurs (pas de bouton), et vit **dans le profil actif** — elle documente l'usage de ce mod dans ce profil et change avec lui. L'icône près du nom la signale dans la liste, note entière en infobulle. Les profils existants se relisent sans rien perdre ; une note vidée est retirée plutôt que rangée vide.
 - **La fiche d'un mod dit son âge quand il dort.** « Dernière mise à jour : 12/03/2021 » demandait une soustraction mentale ; la ligne dit désormais « 12/03/2021 · il y a 5 ans » — mais seulement à partir d'un an révolu, une mise à jour récente se lisant fraîche d'elle-même. La date de création Nexus reste non demandée : l'ancienneté de la dernière mise à jour est le signal qui décide.
