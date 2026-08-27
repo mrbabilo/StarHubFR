@@ -103,16 +103,32 @@ enum NexusFallbackCheck {
         return mod.errors.contains { $0.range(of: "nexus", options: .caseInsensitive) != nil }
     }
 
-    /// L'identifiant à interroger : le manifeste d'abord, `metadata.nexusID`
-    /// en repli.
+    /// L'identifiant à interroger : le manifeste, sauf quand smapi.io le
+    /// contredit.
     ///
-    /// Le manifeste fait foi — c'est ce que SMAPI lui-même lit —, et la même
-    /// règle vaut déjà pour l'apprentissage des identifiants
-    /// (`NexusIdLearning`).
+    /// Le manifeste fait foi tant qu'il n'est pas réfuté — c'est ce que SMAPI
+    /// lui-même lit, et la même règle vaut pour l'apprentissage des
+    /// identifiants (`NexusIdLearning`). Mais ici la clé déclarée **vient
+    /// d'échouer** : on n'entre dans cette fonction que pour des mods dont
+    /// smapi.io n'a tiré aucun verdict Nexus. Quand elle échoue *et* que
+    /// smapi.io connaît le mod sous un autre identifiant, la déclaration est
+    /// démentie par l'expérience, l'autre ne l'est pas. L'asymétrie est un
+    /// fait, pas une préférence de source — et c'est ce qui distingue ce cas
+    /// de `NexusIdLearning`, qui écrit une préférence durable sans preuve
+    /// d'échec.
+    ///
+    /// Cas réel, celui qui a fait taire la preuve fondatrice : *Automate*
+    /// déclare `Nexus:50165` — la page de *Powered Automation*, une clé
+    /// copiée par erreur — et smapi.io le connaît sous **1063**, en rendant sa
+    /// version. Sans cette règle, les deux mods revendiquaient 50165 avec des
+    /// versions différentes et la règle d'ambiguïté les écartait tous les
+    /// deux, *Powered Automation* compris. Six mods du parc sont dans ce cas,
+    /// dont deux bloqués.
     private static func resolvedNexusId(_ mod: Blocked) -> String? {
-        if let declared = declaredNexusId(mod) { return declared }
-        guard let meta = mod.metadataNexusId, meta > 0 else { return nil }
-        return String(meta)
+        let known = (mod.metadataNexusId ?? 0) > 0 ? String(mod.metadataNexusId!) : nil
+        guard let declared = declaredNexusId(mod) else { return known }
+        guard let known, known != declared else { return declared }
+        return known
     }
 
     private static func declaresUsableNexusKey(_ mod: Blocked) -> Bool {
@@ -144,15 +160,16 @@ enum NexusFallbackCheck {
     /// Une page revendiquée par des mods qui **ne s'accordent pas** sur leur
     /// version installée ne peut pas les décrire tous.
     ///
-    /// Deux cas sur le parc réel, et le premier est nuisible :
-    /// - `Nexus:50165` est déclaré par *Powered Automation* (1.0.0) **et** par
-    ///   *Automate* (2.6.1), dont le manifeste porte une clé fausse. La page
-    ///   est celle de Powered Automation ; comparée à Automate, elle
-    ///   proposerait un jour une mise à jour dont le bouton installerait un
-    ///   autre mod ;
-    /// - `Nexus:38134` est déclaré par *Pretty Anime Portraits* (10.0.0) et
-    ///   *Pretty Anime Genderbends* (7.0.0) : une seule version de page, deux
-    ///   verdicts inconciliables.
+    /// Cas réel : `Nexus:38134` est déclaré par *Pretty Anime Portraits*
+    /// (10.0.0) et *Pretty Anime Genderbends* (7.0.0) — une seule version de
+    /// page, deux verdicts inconciliables. smapi.io ne connaît **ni l'un ni
+    /// l'autre** (`metadata.id` vide des deux côtés) : rien ne permet de dire
+    /// lequel revendique la page à raison, et ce dernier filet est le seul.
+    ///
+    /// La collision `Nexus:50165` (*Powered Automation* 1.0.0 contre
+    /// *Automate* 2.6.1) se résout **en amont**, dans `resolvedNexusId` : là,
+    /// smapi.io tranche. Ce filet-ci ne la voit plus — et c'est bien ainsi,
+    /// car il écartait *Powered Automation* avec l'intrus.
     ///
     /// À versions **égales**, il n'y a pas d'ambiguïté : les sept composants
     /// des *Forgotten Caverns* et les quatre modules de *Starblue UI* sont

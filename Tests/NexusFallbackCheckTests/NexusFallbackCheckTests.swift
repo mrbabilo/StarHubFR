@@ -80,13 +80,41 @@ struct NexusFallbackCheckTests {
         #expect(plan.isEmpty)
     }
 
-    @Test func leManifesteLEmporteSurCeQueSmapiCroitSavoir() {
+    @Test func leManifesteLEmporteQuandSmapiNeLeContreditPas() {
         // Même règle que `NexusIdLearning` : le manifeste est ce que SMAPI lit.
-        let plan = NexusFallbackCheck.plan([
-            blocked("a.b", keys: ["Nexus:47216"], meta: 99999,
+        // smapi.io muette, ou d'accord, ne change rien.
+        let muet = NexusFallbackCheck.plan([
+            blocked("a.b", keys: ["Nexus:47216"], meta: nil,
                     errors: ["Found no Nexus mod with this ID."])
         ])
-        #expect(plan.first?.nexusId == "47216")
+        #expect(muet.first?.nexusId == "47216")
+        let accord = NexusFallbackCheck.plan([
+            blocked("a.b", keys: ["Nexus:47216"], meta: 47216,
+                    errors: ["Found no Nexus mod with this ID."])
+        ])
+        #expect(accord.first?.nexusId == "47216")
+    }
+
+    @Test func uneCleDementieParSmapiCedeLaPlace() {
+        // *Automate* déclare `Nexus:50165` — la page de *Powered Automation*,
+        // une clé copiée par erreur — et smapi.io le connaît sous 1063 en
+        // rendant sa version. La clé déclarée vient d'échouer ; l'autre non.
+        //
+        // Sans cette règle les deux mods revendiquaient 50165 avec des
+        // versions différentes, et la règle d'ambiguïté les écartait tous les
+        // deux — la preuve fondatrice de B2-T10 comprise. C'est le défaut
+        // relevé à sa première passe réelle, le 2026-08-27.
+        let plan = NexusFallbackCheck.plan([
+            blocked("Pathoschild.Automate", version: "2.6.1", keys: ["Nexus:50165"],
+                    meta: 1063,
+                    errors: ["The Nexus mod with ID '50165' has no valid versions."]),
+            blocked("luisMint.PoweredAutomation", version: "1.0.0", keys: ["Nexus:50165"],
+                    meta: nil,
+                    errors: ["The Nexus mod with ID '50165' has no valid versions."])
+        ])
+        #expect(plan.map(\.nexusId) == ["1063", "50165"])
+        #expect(plan.first(where: { $0.nexusId == "50165" })?.mods.map(\.uniqueId)
+                == ["luisMint.PoweredAutomation"])
     }
 
     @Test func laVarianteApresArrobaseDesigneLaMemePage() {
@@ -116,15 +144,16 @@ struct NexusFallbackCheckTests {
     }
 
     @Test func unePageRevendiqueeParDesVersionsDifferentesNeJugePersonne() {
-        // Nexus:50165 est déclaré par Powered Automation (1.0.0) *et* par
-        // Automate (2.6.1), dont le manifeste porte une clé fausse. La page ne
-        // peut pas décrire les deux ; la comparer à Automate proposerait un
-        // jour une mise à jour dont le bouton installerait un autre mod.
+        // Nexus:38134 est déclaré par Pretty Anime Portraits (10.0.0) et Pretty
+        // Anime Genderbends (7.0.0). smapi.io ne connaît **ni l'un ni l'autre**
+        // (`metadata.id` vide des deux côtés) : rien ne dit lequel revendique la
+        // page à raison, et une seule version de page ne peut pas les juger
+        // tous les deux. Dernier filet — le cas 50165, lui, se résout en amont.
         let plan = NexusFallbackCheck.plan([
-            blocked("luisMint.PoweredAutomation", version: "1.0.0", keys: ["Nexus:50165"],
-                    errors: ["The Nexus mod with ID '50165' has no valid versions."]),
-            blocked("Pathoschild.Automate", version: "2.6.1", keys: ["Nexus:50165"],
-                    errors: ["The Nexus mod with ID '50165' has no valid versions."])
+            blocked("dakota.prettyanimeportraits", version: "10.0.0", keys: ["Nexus:38134"],
+                    errors: ["The Nexus mod with ID '38134' has no valid versions."]),
+            blocked("dakota.prettyanimegenderbents", version: "7.0.0", keys: ["Nexus:38134"],
+                    errors: ["The Nexus mod with ID '38134' has no valid versions."])
         ])
         #expect(plan.isEmpty)
     }
