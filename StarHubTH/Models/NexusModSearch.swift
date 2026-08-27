@@ -259,6 +259,86 @@ public enum NexusModSearch {
                                                             "variables": variables])
     }
 
+    // MARK: - Fiche (Detail, vitrine « Découvrir »)
+
+    /// La fiche d'un mod pour la vitrine : ce que la carte ne dit pas.
+    public struct Detail: Equatable, Sendable {
+        public let modId: Int
+        public let name: String
+        public let summary: String?
+        /// Le corps descriptif, brut — le rendu (liens, BBCodes) est à la vue.
+        public let descriptionText: String?
+        public let endorsements: Int?
+        public let version: String
+        public let updatedAt: Date?
+        public let tags: [String]
+        /// URL de l'image principale, seule que le schéma garantit
+        /// (`pictureUrl`, introspection 2026-08-27). Peut être vide : la fiche
+        /// sans image reste une fiche.
+        public let pictureUrls: [String]
+        /// L'auteur Nexus, quand la réponse le porte.
+        public let uploaderName: String?
+
+        public init(modId: Int, name: String, summary: String?, descriptionText: String?,
+                    endorsements: Int?, version: String, updatedAt: Date?,
+                    tags: [String], pictureUrls: [String], uploaderName: String?) {
+            self.modId = modId; self.name = name; self.summary = summary
+            self.descriptionText = descriptionText; self.endorsements = endorsements
+            self.version = version; self.updatedAt = updatedAt
+            self.tags = tags; self.pictureUrls = pictureUrls
+            self.uploaderName = uploaderName
+        }
+    }
+
+    /// La fiche d'un mod, par son identifiant — même racine `mods` éprouvée,
+    /// un filtre de plus. Champs optionnels partout : une fiche dégradée vaut
+    /// mieux qu'une erreur habillée en fiche introuvable.
+    public static func detailBody(modId: Int, gameId: Int) -> Data? {
+        let query = """
+        query ModDetail($game: String!, $id: String!) {
+          mods(filter: { gameId: { value: $game, op: EQUALS },
+                         modId: { value: $id, op: EQUALS } }, count: 1) {
+            nodes { modId name version updatedAt status endorsements
+                    description summary pictureUrl
+                    modCategory { name } uploader { name } tags { name } }
+          }
+        }
+        """
+        let variables: [String: Any] = ["game": String(gameId), "id": String(modId)]
+        return try? JSONSerialization.data(withJSONObject: ["query": query,
+                                                            "variables": variables])
+    }
+
+    /// Lit une réponse de fiche. Mêmes règles que `decode` : `errors` l'emporte,
+    /// et une image ou une description absente ne fait pas échouer la fiche.
+    public static func decodeDetail(_ data: Data) -> Result<Detail, Failure> {
+        guard let root = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else {
+            return .failure(.malformed)
+        }
+        if let errors = root["errors"] as? [[String: Any]], !errors.isEmpty {
+            let message = errors.compactMap { $0["message"] as? String }.joined(separator: " · ")
+            return .failure(.service(message.isEmpty ? "unknown" : message))
+        }
+        guard let node = ((root["data"] as? [String: Any])?["mods"] as? [String: Any])?["nodes"]
+                as? [[String: Any]], let first = node.first,
+              let modId: Int = (first["modId"] as? Int) ?? (first["modId"] as? String).flatMap(Int.init),
+              let name = first["name"] as? String
+        else { return .failure(.malformed) }
+        var pictures: [String] = []
+        if let url = first["pictureUrl"] as? String, !url.isEmpty { pictures.append(url) }
+        return .success(Detail(
+            modId: modId,
+            name: name,
+            summary: first["summary"] as? String,
+            descriptionText: first["description"] as? String,
+            endorsements: first["endorsements"] as? Int,
+            version: first["version"] as? String ?? "",
+            updatedAt: (first["updatedAt"] as? String).flatMap(parseDate),
+            tags: (first["tags"] as? [[String: Any]])?.compactMap { $0["name"] as? String } ?? [],
+            pictureUrls: pictures,
+            uploaderName: (first["uploader"] as? [String: Any])?["name"] as? String))
+    }
+
     // MARK: - Réponse
 
     /// Lit une réponse GraphQL. Le tableau `errors` l'emporte sur les données :

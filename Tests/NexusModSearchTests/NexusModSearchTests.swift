@@ -631,4 +631,58 @@ struct NexusModSearchTests {
         }
         #expect(page.hits.count == 1)
     }
+
+    // MARK: - Fiche (Detail, vitrine « Découvrir »)
+
+    @Test func detailQueryTargetsOneModById() {
+        let body = NexusModSearch.detailBody(modId: 1063, gameId: 1303).map {
+            (try? JSONSerialization.jsonObject(with: $0)) as? [String: Any] ?? [:]
+        } ?? [:]
+        #expect((body["variables"] as? [String: Any])?["id"] as? String == "1063")
+        #expect((body["query"] as? String ?? "").contains(
+            "modId: { value: $id, op: EQUALS }"))
+    }
+
+    /// Fixture : la fiche **réelle** d'Automate (1063), capturée le
+    /// 2026-08-27 — `pictureUrl` est un scalaire, pas un objet (introspection
+    /// et capture ont départagé les deux formes candidates du plan).
+    @Test func decodeDetailReadsTheRealAutomateSheet() {
+        let json = """
+        {"data":{"mods":{"nodes":[{"modId":1063,"name":"Automate",
+          "version":"2.6.1","updatedAt":"2026-03-15T16:16:41Z","status":"published",
+          "endorsements":137288,
+          "summary":"Place a chest next to a machine (like a furnace or crystalarium), and the machine will automatically pull raw items from the chest.",
+          "description":"Put a chest next to any number of machines, and they'll take raw items from it.",
+          "pictureUrl":"https://staticdelivery.nexusmods.com/mods/1303/images/1063-0-1491361908.png",
+          "modCategory":{"name":"Gameplay Mechanics"},
+          "uploader":{"name":"Pathoschild"},
+          "tags":[{"name":"Gameplay"},{"name":"Fair and balanced"},{"name":"SMAPI"}]}]}}}
+        """
+        guard case .success(let detail) = NexusModSearch.decodeDetail(Data(json.utf8)) else {
+            Issue.record("attendu un succès"); return
+        }
+        #expect(detail.modId == 1063)
+        #expect(detail.endorsements == 137288)
+        #expect(detail.uploaderName == "Pathoschild")
+        #expect(detail.pictureUrls == ["https://staticdelivery.nexusmods.com/mods/1303/images/1063-0-1491361908.png"])
+        #expect(detail.tags.contains("SMAPI"))
+        #expect(detail.updatedAt != nil)
+    }
+
+    @Test func detailWithNoPictureIsStillASuccess() {
+        let json = """
+        {"data":{"mods":{"nodes":[{"modId":7,"name":"X","version":"1","status":"published"}]}}}
+        """
+        guard case .success(let detail) = NexusModSearch.decodeDetail(Data(json.utf8)) else {
+            Issue.record("sans image ni description, la fiche vaut quand même"); return
+        }
+        #expect(detail.pictureUrls.isEmpty && detail.descriptionText == nil)
+    }
+
+    @Test func detailErrorsAreFailuresNotEmptyResults() {
+        let json = #"{"errors":[{"message":"Field 'picture' not found"}]}"#
+        guard case .failure = NexusModSearch.decodeDetail(Data(json.utf8)) else {
+            Issue.record("200 avec errors = panne, pas fiche vide"); return
+        }
+    }
 }
