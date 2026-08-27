@@ -52,10 +52,13 @@ class StarHubTHViewModel: ObservableObject {
 
     /// Mods with an available update on Nexus Mods (from last user-triggered check).
     @Published var nexusUpdates: [NexusUpdateChecker.ModUpdate] = []
-    /// Pourquoi un mod n'a pas pu être vérifié, par `UniqueID`. 115 mods du
-    /// parc réel en portent un motif ; ils étaient jusqu'ici indistinguables
-    /// à l'écran d'un mod vérifié et à jour.
-    @Published private(set) var unverifiableMods: [String: SmapiUpdateResponse.Blocker] = [:]
+    /// Les mods que smapi.io n'a pas pu vérifier, avec le nom affiché partout
+    /// ailleurs et le motif classé. 115 mods du parc réel sont dans ce cas :
+    /// les taire laissait la fenêtre dire « tous à jour » alors qu'ils
+    /// n'avaient de verdict d'aucune source — Powered Automation et sa mise à
+    /// jour réelle invisible en sont la preuve levée le 2026-08-27.
+    @Published private(set) var unverifiableMods: [(name: String,
+                                                    blocker: SmapiUpdateResponse.Blocker)] = []
     /// Ce que smapi.io sait de la compatibilité de chaque mod, par `UniqueID`.
     ///
     /// Relu au lancement plutôt que reconstruit : l'avertissement le plus utile
@@ -3931,11 +3934,17 @@ class StarHubTHViewModel: ObservableObject {
             allInstalledMods().filter { !$0.uniqueId.isEmpty }.map { ($0.uniqueId, $0.name) },
             uniquingKeysWith: { first, _ in first })
         var updates: [NexusUpdateChecker.ModUpdate] = []
-        var blockers: [String: SmapiUpdateResponse.Blocker] = [:]
+        var unverifiable: [(name: String, blocker: SmapiUpdateResponse.Blocker)] = []
 
         for mod in mods {
             if let first = mod.errors.first {
-                blockers[mod.id] = SmapiUpdateResponse.blocker(for: first)
+                // Même résolution de nom que les lignes de mise à jour : un
+                // mod ne doit pas changer de nom d'un écran à l'autre.
+                unverifiable.append((name: ModManifest.resolveDisplayName(
+                                            installedName: installedName[mod.id],
+                                            metadataName: mod.metadata?.name,
+                                            uniqueId: mod.id),
+                                      blocker: SmapiUpdateResponse.blocker(for: first)))
             }
             guard let suggested = mod.suggestedUpdate else { continue }
             updates.append(NexusUpdateChecker.ModUpdate(
@@ -3988,7 +3997,8 @@ class StarHubTHViewModel: ObservableObject {
 
         let merged = (updates + unanswered)
             .sorted { $0.name.lowercased() < $1.name.lowercased() }
-        unverifiableMods = blockers
+        unverifiableMods = unverifiable
+            .sorted { $0.name.lowercased() < $1.name.lowercased() }
 
         // Les verdicts de compatibilité, que la réponse portait déjà et que
         // personne ne lisait. Fusionnés et non remplacés, pour la raison qui
@@ -4042,7 +4052,7 @@ class StarHubTHViewModel: ObservableObject {
         if dropped > 0 {
             log("\(dropped) lignes retirées : leur mod n'est plus installé", level: .info)
         }
-        log("Mises à jour : \(updates.count) sur \(mods.count) mods interrogés, \(blockers.count) non vérifiables",
+        log("Mises à jour : \(updates.count) sur \(mods.count) mods interrogés, \(unverifiable.count) non vérifiables",
             level: .info)
     }
 

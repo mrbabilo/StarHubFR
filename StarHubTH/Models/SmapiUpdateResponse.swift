@@ -61,6 +61,20 @@ public enum SmapiUpdateResponse {
         case malformedUpdateKey
         /// Famille inconnue : le texte d'origine reste affichable.
         case other
+
+        /// La clé de libellé localisé qui nomme ce motif dans la fenêtre des
+        /// mises à jour. Le mappage vit ici — côté Core, testé — pour que la
+        /// vue ne porte qu'un rendu, jamais un `switch` à maintir en deux
+        /// langues.
+        public var labelKey: String {
+            switch self {
+            case .malformedNexusId:   L10n.Updates.blockerMalformedNexusId
+            case .sourceNotFound:     L10n.Updates.blockerSourceNotFound
+            case .noValidVersion:     L10n.Updates.blockerNoValidVersion
+            case .malformedUpdateKey: L10n.Updates.blockerMalformedUpdateKey
+            case .other:              L10n.Updates.blockerOther
+            }
+        }
     }
 
     public static func decode(_ data: Data) throws -> [Mod] {

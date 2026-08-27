@@ -807,7 +807,14 @@ struct UpdatesView: View {
                         // le libellé d'une autre page, qui répondait à côté de
                         // la question posée. Jumeau du défaut corrigé en
                         // v1.21.0 dans l'autre sens.
-                        Text(vm.L(L10n.Updates.allUpToDate))
+                        //
+                        // Avec des invérifiables en suspens, « tous à jour »
+                        // serait un quitus pour des mods sans verdict : le
+                        // texte ne le dit plus, et le bloc sous la liste
+                        // nomme les concernés.
+                        Text(vm.L(vm.unverifiableMods.isEmpty
+                                  ? L10n.Updates.allUpToDate
+                                  : L10n.Updates.allVerifiedUpToDate))
                         }
                         .font(.system(size: 12))
                         .foregroundColor(.secondary)
@@ -954,6 +961,39 @@ struct UpdatesView: View {
                             .padding(.horizontal, 12)
                             .background(isEnabled ? Color.primary.opacity(0.04) : Color.orange.opacity(0.06))
                             .cornerRadius(10)
+                        }
+                    }
+
+                    // Le silence sur ces mods est ce qui a rendu la fenêtre
+                    // mensongère : « tous à jour » alors que certains n'avaient
+                    // de verdict d'aucune source. Jusqu'à 115 mods du parc réel
+                    // sont dans ce cas — d'où le repli : à plat, la liste
+                    // noierait les mises à jour réelles au-dessus d'elle.
+                    if !vm.unverifiableMods.isEmpty {
+                        DisclosureGroup {
+                            VStack(alignment: .leading, spacing: 3) {
+                                // Indexé par rang : un tuple n'est pas
+                                // identifiable, et deux mods peuvent porter le
+                                // même nom.
+                                ForEach(Array(vm.unverifiableMods.enumerated()),
+                                        id: \.offset) { _, row in
+                                    HStack(spacing: 6) {
+                                        Text(row.name)
+                                            .font(.system(size: 11, weight: .medium))
+                                        Text(vm.L(row.blocker.labelKey))
+                                            .font(.system(size: 11))
+                                            .foregroundStyle(.secondary)
+                                        Spacer(minLength: 8)
+                                    }
+                                }
+                            }
+                            .padding(.vertical, 4)
+                        } label: {
+                            Label(String(format: vm.L(L10n.Updates.unverifiableTitle),
+                                         Int64(vm.unverifiableMods.count)),
+                                  systemImage: "exclamationmark.triangle.fill")
+                                .font(.system(size: 12))
+                                .foregroundColor(.orange)
                         }
                     }
                 }

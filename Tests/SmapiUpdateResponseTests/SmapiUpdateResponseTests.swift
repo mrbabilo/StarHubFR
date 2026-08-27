@@ -100,4 +100,23 @@ struct SmapiUpdateResponseTests {
         // avec son texte d'origine.
         #expect(SmapiUpdateResponse.blocker(for: "Quelque chose d'inédit") == .other)
     }
+
+    @Test func blockerLabelKeysAreDistinctAndWired() {
+        // La fenêtre des mises à jour affiche le motif de chaque mod
+        // invérifiable. Deux familles qui se reflèteraient feraient taire une
+        // distinction que smapi.io a prise la peine de marquer — et un mappage
+        // vers une clé sans libellé dans les deux langues casserait la
+        // parité au build.
+        let keys: [SmapiUpdateResponse.Blocker: String] = [
+            .malformedNexusId: L10n.Updates.blockerMalformedNexusId,
+            .sourceNotFound: L10n.Updates.blockerSourceNotFound,
+            .noValidVersion: L10n.Updates.blockerNoValidVersion,
+            .malformedUpdateKey: L10n.Updates.blockerMalformedUpdateKey,
+            .other: L10n.Updates.blockerOther,
+        ]
+        for (blocker, key) in keys {
+            #expect(blocker.labelKey == key)
+        }
+        #expect(Set(keys.values).count == keys.count)
+    }
 }

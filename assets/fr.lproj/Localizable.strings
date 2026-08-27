@@ -1109,6 +1109,13 @@
 "updates_smapi_description" = "SMAPI a vu passer une version plus récente. Ce qu'elle change n'est pas dans le journal : la page du mod le dit.";
 "updates_open_smapi_page" = "Voir la fiche";
 "updates_nexus_order_note" = "Les plus récemment mises en ligne d'abord.";
+"updates_all_verified_up_to_date" = "Tous les mods vérifiables sont à jour";
+"updates_unverifiable_title" = "%lld mod(s) n'ont pas pu être vérifiés auprès de smapi.io";
+"updates_blocker_no_valid_version" = "Aucune version exploitable publiée sur la page";
+"updates_blocker_source_not_found" = "Page du mod introuvable (retirée ou masquée)";
+"updates_blocker_malformed_nexus_id" = "Lien Nexus invalide dans le manifest";
+"updates_blocker_malformed_update_key" = "Entrée UpdateKeys mal formée";
+"updates_blocker_other" = "smapi.io a renvoyé une erreur";
 "vm_nexus_dl_starting_named" = "Téléchargement de « %1$@ » (mod %2$lld) depuis Nexus…";
 "vm_nexus_dl_completed_named" = "Téléchargement terminé : « %1$@ » (mod %2$lld)";
 "vm_nexus_dl_cancelled_named" = "Téléchargement de « %1$@ » (mod %2$lld) annulé.";
