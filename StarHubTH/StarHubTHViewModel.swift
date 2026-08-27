@@ -4148,6 +4148,15 @@ class StarHubTHViewModel: ObservableObject {
             var failures = failures
             switch result {
             case .success(let version, _, let extra):
+                // Une page **sans version** n'est pas un verdict. L'API Nexus
+                // exige seulement que le champ existe, et une chaîne vide s'y
+                // décode sans broncher : la tenir pour « à jour » retirerait le
+                // mod des invérifiables sur un quitus inventé — le défaut même
+                // que cette reprise existe pour supprimer.
+                guard !version.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                    failures += 1
+                    break
+                }
                 found += NexusFallbackCheck.rows(for: target,
                                                  pageVersion: version,
                                                  uploadedTime: extra.uploadedTime)
