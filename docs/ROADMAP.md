@@ -1481,6 +1481,41 @@ sans lire une ligne de log.
 
 ---
 
+### Découverte de nouveaux mods — **Axe G** · à faire
+
+L'app sait tout faire **à partir d'un mod installé** — traductions (**A3-T3**),
+suppléments (**A3-T4**) — et rien **sans point de départ**. La vitrine
+« Découvrir » comble ce trou : tendances, récents, sélection FR, recherche
+libre. Nexus seul (GraphQL v2) : le panorama des sources a été passé au crible
+et les autres n'apportent rien de mesurable — CurseForge/ModDrop sont déjà
+couverts pour les mises à jour via smapi.io, forums/Discord/Naver n'ont pas
+d'API. Spec : `docs/superpowers/specs/2026-08-27-decouverte-mods-design.md`
+(local, gitignoré comme les autres specs SDD).
+
+- [ ] **G-T1** — Spike de validation API : mods triés (endossements, mise à
+      jour, création), filtre par tag `French`, champ endossements, requête de
+      fiche. Introspection du schéma d'abord ; si elle est désactivée, sondage
+      à la main comme le 2026-08-25. Passe par l'utilisateur — la clé du
+      Trousseau est inaccessible aux agents. Repli si tri/filtre infaisable :
+      v1 = recherche + croisement parc, tendances reportées. · **S**
+- [ ] **G-T2** — Onglet « Découvrir » : trois sections (une requête chacune,
+      cache 24 h, rafraîchissement manuel seul), recherche par nom en vitrine,
+      badge « installé » + filtre « masquer installés » **avec compte affiché**
+      (sur 966 mods installés, les tendances seront largement filtrées — le
+      filtre ne doit pas masquer qu'il a filtré), fiche éclair + « Ouvrir sur
+      Nexus » (`nxm://` existant ramène le fichier dans l'app). · **M**
+- [ ] **G-T3** — Install direct depuis la fiche : pipeline des mises à jour
+      appliqué à un mod non installé. API réservée **Premium** — 403 mesuré
+      sur compte gratuit (**A3-T3**) ; site + `nxm://` reste la voie gratuite
+      en toutes versions. · **M**
+
+**Risques** : l'API GraphQL v2 n'est pas documentée (peut changer sans préavis
+→ parsing tolérant, échec propre) ; les recommandations « selon mon parc »
+n'ont aucune donnée source — la v1 ne sert que des filtres (tendance × FR ×
+non installé), jamais des prédictions.
+
+---
+
 ### Horizon 2.0 — Packs, distribution & pédagogie — **Axe E**
 
 #### E1 — Packs
@@ -1703,6 +1738,13 @@ traductions. Le tout est sorti en **v1.18.0**.
 (`Backups/ModConfigs`) comme seconde source de récupération, et une porte
 d'entrée depuis l'onglet Traduction d'un mod — aujourd'hui la comparaison ne
 s'atteint que depuis la page des sauvegardes.
+
+**G — Découverte (2026-08-27).** Spec rédigé, puis relu sceptiquement et
+corrigé (deux erreurs de fait : « sixième onglet » alors que MainView en gère
+une dizaine ; « compatibilité SMAPI » affichable en vitrine alors qu'elle est
+keyée `UniqueID`, invisible avant installation). Rien d'engagé. À prendre
+après les restes de B et avant l'axe E : **G-T1** est court et dit vite si
+« Tendances » est faisable sur l'API réelle.
 
 ---
 
