@@ -6486,6 +6486,24 @@ class StarHubTHViewModel: ObservableObject {
         }
     }
 
+    // MARK: - Mod notes (B3-T6)
+
+    /// La note du mod dans le **profil actif** — la note vit au profil, elle
+    /// change avec lui. Nil sans note comme sans profil actif.
+    func modNote(for mod: ModItem) -> String? {
+        activeProfile?.note(forModId: mod.uniqueId)
+    }
+
+    /// Écrit la note du mod sur le profil actif (sauvegarde immédiate). La
+    /// règle — note vidée retirée, identifiant vide ignoré — vit dans
+    /// `ModProfile.setNote` (Core, testée) ; le VM ne fait que router.
+    func setModNote(_ text: String?, for mod: ModItem) {
+        guard let activeId = activeProfileId,
+              let index = modProfiles.firstIndex(where: { $0.id == activeId }) else { return }
+        modProfiles[index].setNote(text, forModId: mod.uniqueId)
+        saveProfiles()
+    }
+
     /// Renames a profile in place (its enabled-mod set is untouched).
     func renameProfile(id: UUID, newName: String) {
         guard let index = modProfiles.firstIndex(where: { $0.id == id }) else { return }

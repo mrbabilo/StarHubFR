@@ -175,6 +175,11 @@ let package = Package(
             path: "Tests/LastUpdateAgeTests"
         ),
         .testTarget(
+            name: "ProfileNotesTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ProfileNotesTests"
+        ),
+        .testTarget(
             name: "I18nOutlineTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/I18nOutlineTests"

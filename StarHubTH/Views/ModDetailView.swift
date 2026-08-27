@@ -26,6 +26,11 @@ struct ModDetailView: View {
     /// site gives this view a fresh instance — and therefore a fresh
     /// `@State` — per mod.
     @State private var nexusIdDraft: String = ""
+    /// B3-T6 — brouillon de la note libre, au patron du draft Nexus : la vue
+    /// est recréée par mod (`.id(mod.folderName)` côté MainView), un brouillon
+    /// ne peut donc jamais fuir sur le mod voisin.
+    @State private var noteDraft: String = ""
+    @FocusState private var noteFocused: Bool
 
     /// On-demand metadata fetch status (triggered after the user saves a new
     /// Nexus mod id). `.idle` hides the status row; `.loading` shows a spinner.
@@ -73,7 +78,16 @@ struct ModDetailView: View {
                     .frame(maxWidth: .infinity)
             }
         }
-        .onAppear { seedDraft() }
+        .onAppear {
+            seedDraft()
+            noteDraft = vm.modNote(for: mod) ?? ""
+        }
+        // B3-T6 — la note se sauvegarde à la perte du focus : une annotation
+        // n'est pas un formulaire, pas de bouton Enregistrer. Le clic hors du
+        // champ (y compris vers un autre mod, qui recrée la vue) écrit d'abord.
+        .onChange(of: noteFocused) { _, focused in
+            if !focused { vm.setModNote(noteDraft, for: mod) }
+        }
         .compatibilityGate(vm: vm, pending: $pendingActivation) { target in
             vm.toggleMod(target)
         }
@@ -468,8 +482,43 @@ struct ModDetailView: View {
                 categorySection
                 Divider()
                 nexusSection
+                Divider()
+                noteSection
             }
             .padding(.vertical, 4)
+        }
+    }
+
+    /// B3-T6 — note libre attachée au mod **dans le profil actif** : elle dit
+    /// *pourquoi* (« désactivé en multi car désync ») et change avec le
+    /// profil. L'en-tête d'un pack n'a pas d'identité (F4) — ses composants
+    /// se notent eux-mêmes ; sans profil actif la section reste visible et
+    /// l'explique, plutôt que de disparaître sans dire pourquoi.
+    @ViewBuilder
+    private var noteSection: some View {
+        if !mod.isGroup {
+            VStack(alignment: .leading, spacing: 6) {
+                if let profile = vm.activeProfile {
+                    Text(String(format: vm.L(L10n.Mods.noteTitleProfile), profile.name))
+                        .font(.headline)
+                    TextEditor(text: $noteDraft)
+                        .font(.system(size: 12))
+                        .frame(height: 52)
+                        .scrollContentBackground(.hidden)
+                        .background(Color.secondary.opacity(0.12))
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                        .focused($noteFocused)
+                    Text(vm.L(L10n.Mods.noteHint))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text(vm.L(L10n.Mods.noteTitle))
+                        .font(.headline)
+                    Text(vm.L(L10n.Mods.noteNeedsProfile))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
         }
     }
 

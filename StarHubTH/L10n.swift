@@ -457,6 +457,11 @@ enum L10n {
         static let detailUpdated        = "mods_detail_updated"
         static let detailInstalled      = "mods_detail_installed"
         static let detailLanguages      = "mods_detail_languages"
+        // B3-T6 — note libre du mod, rangée dans le profil actif.
+        static let noteTitle            = "mods_note_title"
+        static let noteTitleProfile     = "mods_note_title_profile"
+        static let noteHint             = "mods_note_hint"
+        static let noteNeedsProfile     = "mods_note_needs_profile"
         static let detailSize           = "mods_detail_size"
         static let detailSizePack       = "mods_detail_size_pack"
         static let detailSizePackOne    = "mods_detail_size_pack_one"

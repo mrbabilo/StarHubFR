@@ -680,8 +680,24 @@ pouvoir revenir en arrière à tout moment.
       aucun swap sans backup préalable (réutilise `ModConfigBackupManager`). · **L** ·
       *§audit-stardrop · le chantier le plus volumineux issu de l'audit ; à instruire avant
       engagement (écriture dans les configs des mods = surface de perte de données).*
-- [ ] **B3-T6** — Notes libres par mod, persistées au profil (annotations contextuelles :
+- [x] **B3-T6** — Notes libres par mod, persistées au profil (annotations contextuelles :
       « désactivé en multi car désync », « à mettre à jour »). · **S** · *§audit-stardrop*
+      **Livré le 2026-08-27.** Deux arbitrages de l'auteur en séance : la note
+      appartient au **profil actif** (elle documente l'usage du mod dans ce
+      profil — sans profil actif, la section reste visible et l'explique au
+      lieu de disparaître) ; et elle se **signale dans la liste** (icône près
+      du nom, note en infobulle), car on note justement pour s'en souvenir en
+      parcourant la liste — sans indicateur, la note ne se retrouverait qu'en
+      ouvrant les fiches une à une.
+      `ModProfile.modNotes` (Core, 4 tests) suit l'**identité** du mod
+      (`UniqueID`), pas son dossier : la note survit à une mise en pause.
+      Décodeur tolérant au patron de `modMetadata` — les profils enregistrés
+      avant les notes se relisent sans rien perdre, test dédié. Une note vidée
+      est **retirée**, jamais rangée vide. L'en-tête d'un pack ne porte pas de
+      note (pas d'identité, **F4**) ; ses composants se notent eux-mêmes.
+      Sauvegarde à la perte du focus, au patron du draft Nexus — la vue est
+      recréée par mod (`.id(mod.folderName)`), un brouillon ne peut pas fuir
+      sur le mod voisin.
 
 #### B4 — Page de backups
 

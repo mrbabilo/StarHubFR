@@ -1475,6 +1475,17 @@ struct ModListRow: View {
                     if let anomaly = vm.anomaly(for: mod) {
                         AnomalyBadge(anomaly: anomaly, vm: vm)
                     }
+                    // B3-T6 — la note se signale à côté du nom, comme
+                    // l'anomalie : on note un mod pour s'en souvenir plus
+                    // tard, en parcourant la liste. L'icône porte la note en
+                    // tooltip — la lecture courte sans ouvrir la fiche. Les
+                    // packs n'en portent jamais (pas d'identité, F4).
+                    if let note = vm.modNote(for: mod) {
+                        Image(systemName: "note.text")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.secondary)
+                            .help(note)
+                    }
                 }
                 
                 if mod.name != mod.folderName {
