@@ -5806,6 +5806,156 @@ class StarHubTHViewModel: ObservableObject {
         return paths
     }
 
+    // MARK: - Découverte (axe G)
+
+    /// Une carte de la vitrine : le hit Nexus, et s'il est déjà dans le parc.
+    struct DiscoveryRow: Identifiable {
+        let hit: NexusModSearch.Hit
+        let installed: Bool
+        var id: Int { hit.modId }
+    }
+
+    /// Le résultat d'une recherche par nom dans la vitrine : les cartes et le
+    /// total serveur — la poignée affichée n'est jamais tout ce qui existe.
+    struct DiscoverySearchResult {
+        let rows: [DiscoveryRow]
+        let totalCount: Int
+    }
+
+    /// Où en est une fiche demandée depuis la vitrine.
+    enum DiscoveryDetailState { case idle, loading, loaded, failed }
+
+    @Published private(set) var discovery: [ModCatalog.SectionKind: ModCatalog.SectionState] = [:]
+    @Published private(set) var discoveryLoading = false
+    @Published private(set) var discoverySearch: DiscoverySearchResult?
+    @Published private(set) var discoveryDetail: NexusModSearch.Detail?
+    @Published private(set) var discoveryDetailState: DiscoveryDetailState = .idle
+    /// La dernière panne réseau des sections — un seul message en haut de
+    /// l'onglet, chaque section n'a pas à répéter (spec §8).
+    @Published private(set) var lastDiscoveryError: NexusSearchClient.SearchError?
+
+    private var pendingSectionFetches = 0
+
+    /// Cache sur disque : `~/Library/Caches/StarHubFR/discovery/` (spec §6).
+    private let discoveryCatalog: ModCatalog = {
+        let dir = URL.cachesDirectory.appendingPathComponent("StarHubFR/discovery",
+                                                             isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return ModCatalog(
+            load: { key in try? Data(contentsOf: dir.appendingPathComponent("\(key).json")) },
+            save: { key, data in try? data.write(to: dir.appendingPathComponent("\(key).json")) })
+    }()
+
+    /// Charge les trois sections : le cache d'abord, une requête par section
+    /// périmée ou absente (spec §5.3). `force` re-demande tout — le bouton
+    /// de rafraîchissement, seule chose qui déclenche une requête hors
+    /// ouverture périmée.
+    func loadDiscovery(force: Bool = false) {
+        for kind in ModCatalog.SectionKind.allCases {
+            let state = discoveryCatalog.state(kind)
+            discovery[kind] = state
+            switch state {
+            case .fresh where !force: continue
+            default: fetchDiscoverySection(kind)
+            }
+        }
+    }
+
+    private func fetchDiscoverySection(_ kind: ModCatalog.SectionKind) {
+        pendingSectionFetches += 1
+        discoveryLoading = true
+        NexusSearchClient.listing(sort: kind.defaultSort, tag: kind.defaultTag) { [weak self] result in
+            guard let self else { return }
+            self.pendingSectionFetches = max(0, self.pendingSectionFetches - 1)
+            if self.pendingSectionFetches == 0 { self.discoveryLoading = false }
+            switch result {
+            case .success(let page):
+                self.discoveryCatalog.record(kind, page: page)
+                // Relu depuis le cache : c'est la page dédoublonnée qui
+                // s'affiche.
+                self.discovery[kind] = self.discoveryCatalog.state(kind)
+            case .failure(let error):
+                // Le stale reste affiché pendant la panne (spec §6) ; sinon
+                // la section porte son échec — jamais muette (spec §8).
+                if case .stale = self.discovery[kind] ?? .empty(.neverLoaded) { return }
+                self.discovery[kind] = .empty(.failed)
+                self.lastDiscoveryError = error
+            }
+        }
+    }
+
+    /// Les cartes d'une liste de hits : adulte exclu (spec §8), « installé »
+    /// calculé par identifiant **et** par titre — les deux clés du
+    /// partitionnement des traductions (A3-T5).
+    private func discoveryRows(in hits: [NexusModSearch.Hit],
+                               hidingInstalled: Bool) -> [DiscoveryRow] {
+        let installedIds = installedNexusIds()
+        let installedTitles = Set(mods.map(\.name))
+        return hits.filter { !$0.adultContent }.map { hit in
+            let installed = installedIds.contains(hit.modId)
+                || installedTitles.contains { NexusModSearch.namesMatch($0, hit.name) }
+            return DiscoveryRow(hit: hit, installed: installed)
+        }
+        .filter { !(hidingInstalled && $0.installed) }
+    }
+
+    /// Les cartes visibles d'une section, et le compte toujours rendu : un
+    /// filtre ne doit pas masquer qu'il a filtré (spec §7.1).
+    func discoveryRows(for kind: ModCatalog.SectionKind,
+                       hidingInstalled: Bool) -> (rows: [DiscoveryRow], shown: Int, total: Int) {
+        guard let page = discovery[kind]?.page else { return ([], 0, 0) }
+        let rows = discoveryRows(in: page.hits, hidingInstalled: hidingInstalled)
+        return (rows, rows.count, page.totalCount)
+    }
+
+    /// Recherche par nom dans la vitrine : même client que la liaison
+    /// d'identité, présentation propre à l'onglet (spec §7.1). Elle montre
+    /// tout, badge « installé » compris — on cherche un mod précis, installé
+    /// ou non.
+    func searchDiscovery(name: String) {
+        let term = NexusModSearch.searchTerm(for: name)
+        guard !term.isEmpty else { discoverySearch = nil; return }
+        NexusSearchClient.search(name: name) { [weak self] result in
+            guard let self else { return }
+            switch result {
+            case .success(let page):
+                self.discoverySearch = DiscoverySearchResult(
+                    rows: self.discoveryRows(in: page.hits, hidingInstalled: false),
+                    totalCount: page.totalCount)
+            case .failure(let error):
+                self.lastDiscoveryError = error
+                self.discoverySearch = nil
+            }
+        }
+    }
+
+    /// Fiche : le cache 24 h d'abord, le réseau ensuite (spec §5.3).
+    func loadDiscoveryDetail(modId: Int) {
+        discoveryDetailState = .loading
+        if let cached = discoveryCatalog.detail(for: modId) {
+            discoveryDetail = cached
+            discoveryDetailState = .loaded
+            return
+        }
+        NexusSearchClient.detail(modId: modId) { [weak self] result in
+            guard let self else { return }
+            switch result {
+            case .success(let detail):
+                self.discoveryCatalog.recordDetail(detail)
+                self.discoveryDetail = detail
+                self.discoveryDetailState = .loaded
+            case .failure:
+                self.discoveryDetail = nil
+                self.discoveryDetailState = .failed
+            }
+        }
+    }
+
+    func closeDiscoveryDetail() {
+        discoveryDetail = nil
+        discoveryDetailState = .idle
+    }
+
     // MARK: - Mods favoris (B3-T2)
 
     private static let favoriteModsKey = "favoriteMods"
