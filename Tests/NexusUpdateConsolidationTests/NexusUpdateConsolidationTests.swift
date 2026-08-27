@@ -70,18 +70,35 @@ struct NexusUpdateConsolidationTests {
         #expect(Set(out.map(\.name)) == ["Pack", "Automate"])
     }
 
-    @Test func theMostRecentlyUploadedComesFirst() {
-        let updates = [update("1", name: "vieux", latest: "1.0", uploaded: date(1)),
-                       update("2", name: "récent", latest: "1.0", uploaded: date(30))]
+    @Test func rowsComeOutInAlphabeticalOrder() {
+        let updates = [update("1", name: "Wallet Tools", latest: "1.0"),
+                       update("2", name: "Automate", latest: "1.0"),
+                       update("3", name: "Mapster", latest: "1.0")]
         let out = NexusUpdateConsolidation.consolidate(updates, parentPackName: [:])
-        #expect(out.map(\.name) == ["récent", "vieux"])
+        #expect(out.map(\.name) == ["Automate", "Mapster", "Wallet Tools"])
     }
 
-    @Test func anUnknownUploadDateSortsLast() {
-        let updates = [update("1", name: "sans date", latest: "1.0"),
-                       update("2", name: "datée", latest: "1.0", uploaded: date(5))]
+    /// Le cas réel, et la raison du changement : la voie smapi.io construit
+    /// chaque ligne avec `uploadedTime: nil`. Un tri par date les rendait
+    /// toutes égales, et `sorted` n'est pas stable en Swift — l'ordre
+    /// affiché n'était donc pas seulement dénué de sens, il pouvait changer
+    /// d'une vérification à l'autre sans que rien ne bouge.
+    @Test func rowsWithoutAnUploadDateAreStillOrdered() {
+        let updates = [update("1", name: "Zoom", latest: "1.0"),
+                       update("2", name: "Alpha", latest: "1.0")]
         let out = NexusUpdateConsolidation.consolidate(updates, parentPackName: [:])
-        #expect(out.map(\.name) == ["datée", "sans date"])
+        #expect(out.map(\.name) == ["Alpha", "Zoom"])
+    }
+
+    /// « automate » ne doit pas se ranger après « Zoom » : le tri ASCII met
+    /// toutes les minuscules après toutes les majuscules, ce qu'aucun
+    /// lecteur n'attend d'une liste de noms de mods.
+    @Test func theOrderIgnoresCaseAndAccents() {
+        let updates = [update("1", name: "Zoom", latest: "1.0"),
+                       update("2", name: "automate", latest: "1.0"),
+                       update("3", name: "Éclairage", latest: "1.0")]
+        let out = NexusUpdateConsolidation.consolidate(updates, parentPackName: [:])
+        #expect(out.map(\.name) == ["automate", "Éclairage", "Zoom"])
     }
 
     @Test func anEmptyInputYieldsNothing() {

@@ -1119,7 +1119,6 @@
   "updates_available_version": "Available version: %@",
   "updates_smapi_description": "SMAPI has seen a newer version. What it changes isn't in the log: the mod's page says.",
   "updates_open_smapi_page": "View entry",
-  "updates_nexus_order_note": "Most recently uploaded first.",
   "updates_all_verified_up_to_date": "All verifiable mods are up to date",
   "updates_unverifiable_title": "%lld mod(s) could not be checked via smapi.io",
   "updates_blocker_no_valid_version": "No usable version published on the page",

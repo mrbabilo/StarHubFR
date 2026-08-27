@@ -792,7 +792,6 @@ enum L10n {
         static let availableVersion     = "updates_available_version"
         static let smapiDescription     = "updates_smapi_description"
         static let openSmapiPage        = "updates_open_smapi_page"
-        static let nexusOrderNote       = "updates_nexus_order_note"
         // Mods que smapi.io n'a pas pu vérifier — motif classé par Blocker.
         static let allVerifiedUpToDate     = "updates_all_verified_up_to_date"
         static let unverifiableTitle       = "updates_unverifiable_title"

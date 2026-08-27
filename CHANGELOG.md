@@ -17,6 +17,9 @@ where the exact log format was verified.
 - **Comparer ce que deux profils retiennent d'un mod** — « Comparer avec… » sur la fiche d'un mod dont les configs sont gérés par profil montre, clé à clé et dans l'ordre du fichier, ce que le profil actif et un autre profil ont mémorisé de son `config.json` : les clés propres à l'un, celles propres à l'autre, et les valeurs qui divergent côte à côte. Lecture seule. Un config mémorisé qui ne se parse pas le dit, plutôt que d'afficher une comparaison inventée.
 - **La fiche d'un profil compte ses configs mémorisés** — et nomme ceux dont le mod n'est plus installé. Ces configs-là sont **gardés, pas purgés** : réinstaller le mod lui rend ses réglages.
 
+### Changed
+- **Les mises à jour se lisent par ordre alphabétique.** La liste annonçait « les plus récemment mises en ligne d'abord » — une promesse devenue fausse au passage à smapi.io, qui ne renvoie aucune date de mise en ligne : le tri portait donc sur des valeurs toutes égales, et pouvait rendre un ordre différent d'une vérification à l'autre sans que rien n'ait bougé. Les mods sont désormais triés par nom, casse et accents ignorés, comme la liste des alertes SMAPI juste au-dessus ; les mods invérifiables aussi. La mention d'ordre disparaît de l'en-tête : une liste alphabétique se voit.
+
 ### Fixed
 - **La fenêtre des mises à jour taisait les mods invérifiables** — quand smapi.io répond une erreur pour un mod (page retirée, aucune version exploitable…), la fenêtre concluait « Tous les mods sont à jour » alors qu'il n'avait de verdict d'aucune source. Ces mods sont désormais comptés et nommés avec leur motif, et le satisfecit ne parle plus que des mods vérifiables.
 

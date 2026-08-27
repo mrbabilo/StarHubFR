@@ -820,12 +820,13 @@ struct UpdatesView: View {
                         .foregroundColor(.secondary)
                     } else {
                         // Summary line + list of available updates.
-                        // L'ordre est une donnée, pas un détail : sans le
-                        // dire, une liste triée par date de mise en ligne se
-                        // lit comme une liste en désordre.
+                        // Plus de note d'ordre : la liste est alphabétique,
+                        // ce qui se voit. La note existait pour un tri par
+                        // date de mise en ligne, qui lui ne se voyait pas —
+                        // et que le passage à smapi.io avait de toute façon
+                        // fait disparaître sans que la phrase suive.
                         Text(String(format: vm.L(L10n.Updates.nexusUpdatesCount),
-                                    Int64(vm.nexusUpdates.count))
-                             + " · " + vm.L(L10n.Updates.nexusOrderNote))
+                                    Int64(vm.nexusUpdates.count)))
                             .font(.system(size: 12))
                             .foregroundColor(.secondary)
                             .padding(.top, 4)

@@ -2937,8 +2937,8 @@ class StarHubTHViewModel: ObservableObject {
             // Par ordre alphabétique, et non dans celui du journal : SMAPI les
             // liste dans son ordre de chargement, qui n'a pas de sens pour qui
             // cherche un mod précis — et qui change d'un lancement à l'autre.
-            // L'ordre des mises à jour Nexus, lui, reste celui de leur mise en
-            // ligne : la page l'annonce désormais.
+            // La liste des mises à jour Nexus est triée de même, dans
+            // `republishUpdatesFromCache`.
             self.outOfDateMods = updates.sorted {
                 $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
             }
@@ -3997,7 +3997,10 @@ class StarHubTHViewModel: ObservableObject {
 
         let merged = (updates + unanswered)
             .sorted { $0.name.lowercased() < $1.name.lowercased() }
+        // Même ordre que les mises à jour, et pour la même raison : la
+        // réponse smapi.io suit l'ordre d'envoi, pas un ordre lisible.
         unverifiableMods = unverifiable
+            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
             .sorted { $0.name.lowercased() < $1.name.lowercased() }
 
         // Les verdicts de compatibilité, que la réponse portait déjà et que
@@ -4180,6 +4183,8 @@ class StarHubTHViewModel: ObservableObject {
     /// À appeler sur le fil principal (`nexusUpdates` est `@Published`), et
     /// après le scan : la table des packs se lit dans `mods`.
     private func republishUpdatesFromCache() {
+        // L'ordre alphabétique vient de `NexusUpdateConsolidation`, où il
+        // est testé — pas d'un second tri ici, qui divergerait un jour.
         nexusUpdates = consolidateUpdatesByPack(NexusUpdateChecker.shared.cachedUpdates())
     }
 

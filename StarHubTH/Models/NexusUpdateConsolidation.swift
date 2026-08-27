@@ -16,8 +16,8 @@ import Foundation
 enum NexusUpdateConsolidation {
     /// - Parameter parentPackName: identifiant Nexus effectif → nom du pack qui
     ///   le contient. Un mod autonome n'y figure pas.
-    /// - Returns: une entrée par mod autonome et une par pack, les plus
-    ///   récemment mises en ligne d'abord.
+    /// - Returns: une entrée par mod autonome et une par pack, par ordre
+    ///   alphabétique.
     static func consolidate(_ updates: [NexusUpdateChecker.ModUpdate],
                                    parentPackName: [String: String]) -> [NexusUpdateChecker.ModUpdate] {
         var byPack: [String: [NexusUpdateChecker.ModUpdate]] = [:]
@@ -53,9 +53,17 @@ enum NexusUpdateConsolidation {
             )
         }
 
-        // Les plus récemment mises en ligne d'abord ; date inconnue en dernier.
+        // Par ordre alphabétique, insensible à la casse et aux accents.
+        //
+        // Le tri précédent — les plus récemment mises en ligne d'abord —
+        // portait sur `uploadedTime`, que la voie smapi.io laisse **toujours**
+        // à `nil` : toutes les lignes étaient égales, et `sorted` n'est pas
+        // stable en Swift. L'ordre affiché ne voulait donc rien dire et
+        // pouvait changer d'une vérification à l'autre. `uploadedTime` garde
+        // son rôle là où il est renseigné : départager les composants d'un
+        // pack à versions égales, plus haut dans cette fonction.
         return consolidated.sorted {
-            ($0.uploadedTime ?? .distantPast) > ($1.uploadedTime ?? .distantPast)
+            $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
         }
     }
 
