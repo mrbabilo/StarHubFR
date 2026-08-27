@@ -740,7 +740,7 @@ pouvoir revenir en arrière à tout moment.
       spec §5.3 tient. B3-T5 est complet, **validé à l'écran le 2026-08-27**
       (fusion à la restauration et choix du profil successeur à la
       suppression).
-- [ ] **B3-T7** — Supprimer un profil laisse son magasin de configs derrière lui.
+- [x] **B3-T7** — Supprimer un profil laisse son magasin de configs derrière lui.
       `deleteProfile` (`StarHubTHViewModel.swift:7002`) retire le profil des préférences
       sans toucher à `Application Support/StarHubTH/ProfileConfigs/<uuid>.json` : le
       fichier n'est plus jamais lu — aucune surface ne le nomme, `profileConfigSummary`
@@ -749,6 +749,17 @@ pouvoir revenir en arrière à tout moment.
       (`D44530B0…`, 3,1 Ko, 5 configs, écrit à 16:39:53) qui n'appartient à aucun des
       trois profils. Effacer un magasin est un chemin de suppression neuf, donc à
       instruire — l'alternative honnête étant de le laisser et de le dire quelque part.*
+      **Livré le 2026-08-27.** Arbitrage de l'auteur : effacer, et balayer les
+      magasins déjà orphelins au démarrage. La décision se prend au dialogue de
+      suppression, qui nomme le nombre de configs perdus — seulement s'il y en
+      a. La logique est pure et en Core (`orphanFileNames`, 4 tests) : une
+      liste de profils **vide** ne rend jamais d'orphelin (des préférences
+      illisibles donnent exactement cette liste, et le balayage viderait le
+      dossier), seuls les noms `<UUID>.json` sont candidats, et la comparaison
+      ignore la casse — le nom vient du disque, pas de `UUID.uuidString`.
+      Un effacement qui échoue ne remonte nulle part, à dessein : le profil
+      ayant disparu, le fichier est devenu orphelin et le balayage suivant le
+      reprend.
 - [x] **B3-T6** — Notes libres par mod, persistées au profil (annotations contextuelles :
       « désactivé en multi car désync », « à mettre à jour »). · **S** · *§audit-stardrop*
       **Livré le 2026-08-27.** Deux arbitrages de l'auteur en séance : la note

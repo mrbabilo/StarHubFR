@@ -416,6 +416,7 @@
 "profiles_delete_activate_named" = "Supprimer, puis activer « %@ »";
 "profiles_delete_without_activating" = "Supprimer sans activer de profil";
 "profiles_delete_keeps_mods" = "Les mods qu'il avait activés restent en place.";
+"profiles_delete_drops_configs" = "Ses configs mémorisés (%lld mod(s)) partent avec lui — rien d'autre n'en garde une copie.";
 "profiles_delete" = "Supprimer…";
 "profiles_save" = "Enregistrer";
 "profiles_cancel" = "Annuler";
@@ -486,6 +487,7 @@
 "vm_apply_profile_missing" = "Le profil « %@ » référence %lld mod(s) non installé(s) : %@";
 "vm_profile_configs_captured" = "Configs mémorisés pour le profil « %@ » : %lld mod(s)";
 "vm_profile_configs_restored" = "Configs restaurés depuis le profil « %@ » : %lld mod(s)";
+"vm_profile_configs_swept" = "%lld magasin(s) de configs retiré(s) : leur profil n'existe plus";
 "vm_profile_configs_merged" = "Configs restaurés depuis le profil « %1$@ » : %2$lld tels quels, %3$lld fusionnés (%4$lld clé(s) mémorisée(s) que le fichier n'avait plus)";
 "vm_profile_configs_skipped_game" = "Configs non touchés : le jeu est ouvert (SMAPI les réécrirait en sortant)";
 "vm_profile_configs_desynced" = "Configs non mémorisés pour le profil « %@ » : la dernière bascule s'est faite jeu ouvert, les fichiers sur disque ne sont pas ceux de ce profil";

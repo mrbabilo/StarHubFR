@@ -104,4 +104,48 @@ struct ProfileConfigStoreTests {
                                                physicalFolderName: "Pack/Child")
         #expect(url.path == "/Games/Mods/Pack/Child/config.json")
     }
+
+    // MARK: - Les magasins sans propriétaire (B3-T7)
+
+    private func uuid(_ n: Int) -> UUID {
+        UUID(uuidString: String(format: "%08X-0000-0000-0000-000000000000", n))!
+    }
+
+    @Test func aStoreWhoseProfileIsGoneIsAnOrphan() {
+        let kept = uuid(1), gone = uuid(2)
+        let out = ProfileConfigStore.orphanFileNames(
+            in: ["\(kept.uuidString).json", "\(gone.uuidString).json"],
+            knownProfileIds: [kept])
+        #expect(out == ["\(gone.uuidString).json"])
+    }
+
+    /// Le garde-fou du balayage. Des préférences illisibles rendent une liste
+    /// de profils vide ; sans cette règle, le balayage y verrait « aucun
+    /// propriétaire » et effacerait **tous** les magasins.
+    @Test func noProfileAtAllMeansNoSweep() {
+        let out = ProfileConfigStore.orphanFileNames(
+            in: ["\(uuid(1).uuidString).json"], knownProfileIds: [])
+        #expect(out.isEmpty)
+    }
+
+    /// On n'efface que ce qu'on reconnaît. Un fichier posé là par autre chose
+    /// — ou par une version future — n'est pas à nous.
+    @Test func aFileThatIsNotAUUIDStoreIsNeverTouched() {
+        let kept = uuid(1)
+        let out = ProfileConfigStore.orphanFileNames(
+            in: ["notes.json", "README.txt", ".DS_Store",
+                 "\(kept.uuidString).json", "\(kept.uuidString).json.bak"],
+            knownProfileIds: [kept])
+        #expect(out.isEmpty)
+    }
+
+    /// Le nom d'un fichier vient du disque : la casse peut différer de celle
+    /// que `UUID.uuidString` produit. La comparer telle quelle laisserait un
+    /// magasin bien vivant passer pour orphelin.
+    @Test func theUUIDComparisonIgnoresCase() {
+        let kept = uuid(1)
+        let out = ProfileConfigStore.orphanFileNames(
+            in: ["\(kept.uuidString.lowercased()).json"], knownProfileIds: [kept])
+        #expect(out.isEmpty)
+    }
 }

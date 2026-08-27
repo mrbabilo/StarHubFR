@@ -209,7 +209,15 @@ struct ModProfilesView: View {
             }
             Button(vm.L(L10n.Profiles.cancel), role: .cancel) { profileToDelete = nil }
         } message: {
-            Text(vm.L(L10n.Profiles.deleteNote) + "\n" + vm.L(L10n.Profiles.deleteKeepsMods))
+            // La phrase sur les configs n'apparaît que s'il y a quelque chose
+            // à perdre : l'annoncer à vide apprendrait au lecteur à ne plus
+            // la lire, le jour où elle compte.
+            Text(vm.L(L10n.Profiles.deleteNote) + "\n"
+                 + vm.L(L10n.Profiles.deleteKeepsMods)
+                 + (deletionConfigCount > 0
+                    ? "\n" + String(format: vm.L(L10n.Profiles.deleteDropsConfigs),
+                                     Int64(deletionConfigCount))
+                    : ""))
         }
         // Import des favoris dans le profil **actif** : les mods s'activeront
         // sur le disque immédiatement, il faut le dire avant.
@@ -252,6 +260,13 @@ struct ModProfilesView: View {
     /// `nil` — donc pas de bouton — quand le profil visé n'est **pas** actif
     /// (le disque ne lui appartient pas, il n'y a rien à reprendre) ou qu'il ne
     /// resterait aucun autre profil.
+    /// Combien de configs le profil qu'on s'apprête à supprimer retient.
+    /// `0` quand il n'y a rien à perdre — la confirmation se tait alors.
+    private var deletionConfigCount: Int {
+        guard let target = profileToDelete else { return 0 }
+        return vm.profileConfigSummary(for: target).total
+    }
+
     /// Les profils qu'on peut activer à la place de celui qu'on supprime.
     ///
     /// Vide quand le profil supprimé n'est pas l'actif : rien ne change de

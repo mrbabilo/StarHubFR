@@ -12,6 +12,9 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Fixed
+- **Un profil supprimé n'abandonne plus ses configs mémorisés sur le disque.** Le magasin d'un profil vivait dans `Application Support`, indexé sur son identifiant ; le supprimer laissait le fichier derrière, que plus rien ne lisait, ne nommait ni n'effaçait. Il part maintenant avec le profil, et la confirmation prévient de ce qui va disparaître quand il y a quelque chose à perdre. Les magasins laissés par des suppressions antérieures sont retirés au démarrage — jamais quand la liste des profils est vide, une préférence illisible ne devant pas passer pour « plus aucun profil ».
+
 ## [1.23.0] - 2026-08-27
 
 ### Added

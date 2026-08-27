@@ -6481,6 +6481,34 @@ class StarHubTHViewModel: ObservableObject {
            let activeId = UUID(uuidString: activeIdStr) {
             self.activeProfileId = activeId
         }
+
+        sweepOrphanProfileConfigStores()
+    }
+
+    /// Retire les magasins de configs dont plus aucun profil ne réclame la
+    /// propriété (B3-T7).
+    ///
+    /// `deleteProfile` s'en charge désormais au moment du geste ; ce balayage
+    /// est là pour les profils supprimés **avant** cette version, dont le
+    /// magasin serait resté sur le disque à jamais — plus rien ne le lit, rien
+    /// ne le nomme, rien ne l'effaçait.
+    ///
+    /// Le garde-fou vit dans `orphanFileNames` : une liste de profils vide ne
+    /// rend jamais d'orphelin. Des préférences illisibles donnent exactement
+    /// cette liste, et le balayage viderait alors tout le dossier.
+    private func sweepOrphanProfileConfigStores() {
+        guard let dir = ProfileConfigStore.directoryURL(),
+              let names = try? FileManager.default.contentsOfDirectory(atPath: dir.path)
+        else { return }
+        let orphans = ProfileConfigStore.orphanFileNames(
+            in: names, knownProfileIds: Set(modProfiles.map(\.id)))
+        var removed = 0
+        for name in orphans
+        where (try? FileManager.default.removeItem(at: dir.appendingPathComponent(name))) != nil {
+            removed += 1
+        }
+        guard removed > 0 else { return }
+        log(String(format: L(L10n.VM.profileConfigsSwept), Int64(removed)))
     }
     
     func saveProfiles() {
@@ -7011,6 +7039,11 @@ class StarHubTHViewModel: ObservableObject {
             log(String(format: L(L10n.VM.profileDeleted), name))
         }
         modProfiles.removeAll { $0.id == id }
+        // Le magasin de configs part avec le profil (B3-T7) : plus aucun
+        // écran ne pourrait le nommer, et rien ne le relirait jamais. Le
+        // dialogue de confirmation prévient quand il y a quelque chose à
+        // perdre — c'est là que la décision se prend, pas ici.
+        ProfileConfigStore.delete(profileId: id)
         if activeProfileId == id {
             activeProfileId = nil
         }
