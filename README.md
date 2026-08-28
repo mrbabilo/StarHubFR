@@ -25,6 +25,7 @@ Installez, organisez et dépannez votre collection de mods sans jamais toucher a
 *   🩺 **Il vous explique ce qui ne va pas** — StarHubFR lit le journal SMAPI à votre place et vous dit quoi faire, en langage clair, au lieu de vous laisser face à un mur de texte technique.
 *   🍎 **Vraiment natif macOS** — Swift et SwiftUI, sans Electron ni couche web, accessible à VoiceOver.
 *   🧩 **Calibré pour les grosses collections** — pensé et testé sur des installations de plusieurs centaines de mods (SVE et compagnie).
+*   🧭 **Trouver de nouveaux mods sans quitter l'app** — tendances, mises à jour récentes et sélection française, croisées en permanence avec ce que vous avez déjà.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/features_banner.png" alt="Fonctionnalités principales" width="300">
@@ -57,6 +58,18 @@ Quand le jeu plante ou qu'un mod refuse de se charger, StarHubFR transforme le j
 *   **« Je l'ai déjà »** — certains auteurs publient une nouvelle version sans incrémenter celle de leur manifeste : le contrôle voit un écart qui n'existe pas et le réaffiche à chaque passage. La ligne porte un bouton qui enregistre la version réellement installée, puis s'efface.
 *   **Téléchargement dans l'application** — bouton *MàJ Premium* pour les comptes Premium, ou *MàJ Nexus* via le lien `nxm://` pour les comptes gratuits. La clé API Nexus, stockée dans le trousseau macOS, ne sert qu'à télécharger.
 *   **Réconciliation automatique du `manifest.json`** après installation, pour qu'un mod mis à jour ne réapparaisse pas indéfiniment comme « à mettre à jour ».
+
+### 🧭 Découvrir de nouveaux mods
+
+L'app savait tout faire **à partir d'un mod installé** — traductions, suppléments — et rien **sans point de départ**. L'onglet *Découvrir* comble ce trou.
+
+*   **Trois vitrines servies par Nexus** — tendances (les plus endossés), mises à jour récentes, et **sélection française**. Une requête par section, mise en cache 24 h : seul le bouton de rafraîchissement redemande au réseau, jamais l'ouverture de l'onglet.
+*   **Vous voyez tout de suite ce que vous avez déjà** — chaque carte porte une pastille « Installé », croisée avec votre parc par identifiant Nexus **et** par titre, et un filtre masque les mods installés en affichant toujours combien il en a masqué. Sur plusieurs centaines de mods, l'essentiel des tendances vous est déjà connu.
+*   **Filtre par catégorie** — les 26 catégories du jeu, appliquées **au serveur** : « Portraits » redemande des portraits à Nexus plutôt que de trier les vingt mods déjà reçus. Chaque catégorie garde son propre cache.
+*   **Recherche par nom** dans la même vitrine, avec le total réel annoncé — une poignée de résultats n'est jamais tout ce qui existe.
+*   **La vitrine est francophone** — une traduction n'y figure que si elle est française ; les japonaises, chinoises ou brésiliennes n'ont rien à y faire. La recherche par nom, elle, rend ce que vous lui demandez, sans filtre de langue.
+*   **Fiche éclair** — bandeau illustré, endossements, version, âge de la mise à jour, catégorie, et la description rendue comme sur la page du mod. De là : **Installer** (compte Nexus Premium requis par l'API de téléchargement) ou **Ouvrir sur Nexus**, qui vise directement l'onglet des fichiers — le lien `nxm://` ramène ensuite l'archive dans l'app, sur compte gratuit comme Premium.
+*   **Jamais muette** — sans clé d'API, quota atteint, panne réseau, ou filtres qui ne laissent rien passer : chaque état dit ce qui se passe **et porte l'action qui le lève**.
 
 ### 📖 Fiche détaillée de mod
 
@@ -167,6 +180,11 @@ Le **diagnostic SMAPI** de StarHubFR doit beaucoup aux travaux suivants :
 *   [**SMAPILogDoctor.py**](https://github.com/ZeroXPatch/Projects-for-Nexus-Mod/blob/main/SMAPILogDoctor.py) par **ZeroXPatch** — l'idée d'un diagnostiqueur de journal SMAPI orienté joueur (mods ignorés avec leur raison, dépendances manquantes, catégories de risque, suggestions de correction) a servi de point de départ à notre analyseur.
 *   [**smapi.io/log**](https://smapi.io/log/) — l'analyseur de journaux officiel de SMAPI, référence pour les informations à extraire d'un journal.
 *   [**SMAPI**](https://github.com/pathoschild/SMAPI) par **Pathoschild** — le format exact des journaux (sections d'avertissement, niveaux, en-têtes) a été vérifié directement dans les sources, notamment `LogManager.cs`.
+
+La **découverte de mods et la vérification des mises à jour** reposent sur deux services publics :
+
+*   [**Nexus Mods**](https://www.nexusmods.com/stardewvalley) — l'onglet *Découvrir* et la recherche interrogent son API GraphQL v2. Elle n'est **pas documentée publiquement** : sa forme a été relevée par introspection du schéma, et le client de l'app est écrit pour encaisser un changement sans préavis — analyse tolérante, échec propre, jamais une panne déguisée en « aucun résultat ». Merci à Nexus de la laisser ouverte.
+*   [**smapi.io**](https://smapi.io/) — l'API de mise à jour de SMAPI, qui répond pour Nexus, CurseForge, ModDrop et GitHub à partir du seul manifeste, **sans clé ni compte**. C'est elle qui permet à StarHubFR de vérifier vos mods sans rien vous demander.
 
 La **traduction assistée** (glossaire des termes du jeu, pré-traduction IA) doit beaucoup aux travaux suivants :
 
