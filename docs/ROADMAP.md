@@ -1950,6 +1950,12 @@ par lot, une release par lot. Périmètre : visuel + navigation —
 > 7. **Réglages** : dossier du jeu, désinstallation de SMAPI et extensions cœur
 >    y sont, et la version de l'app n'y apparaît **qu'une fois**.
 > 8. **Fenêtre minimale** : la bande de quatre compteurs ne déborde pas.
+>
+> **Vérifié à l'écran le 2026-08-28 : rien à signaler.** Les huit points sont
+> passés — sélection unifiée qui ne surprend pas, badges et compteurs menant
+> chacun à sa page, états empêchés de la carte de lancement portant l'action
+> qui les lève, Réglages complets sans doublon de version. **La phase 1 tient
+> ses revendications** — H-T4 est débloqué.
 - [ ] **H-T4** — **Mods, pilote du reskin** : toolbar unifiée au motif
       Découvrir (un seul geste par intention), rangée à hauteur réservée avec
       état codé glyph + couleur + barre d'accent (jamais la couleur seule),
