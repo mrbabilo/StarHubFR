@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.26.0] - 2026-08-28
+
 ### Added
 - **Les réglages d'un mod sont enfin décrits, quand le mod les décrit.** Les content packs publient un schéma à côté de leur contenu : l'éditeur en tire les **sections** à la place de la liste à plat, une **explication sous chaque nom** — 1926 réglages du parc en gagnent une —, et une **liste déroulante** là où il fallait deviner la valeur à taper (954 réglages). Les libellés sont pris dans les traductions du pack lui-même, en français quand il en a : 1889 réglages y gagnent un nom lisible à la place de leur clé. Un réglage qui s'écarte de ce que l'auteur avait prévu porte une pastille « modifié » et un bouton pour y revenir. Les mods qui ne décrivent rien s'affichent comme avant.
 - **Un auteur peut annoncer ce que sa mise à jour casse : l'app le montre avant d'écraser.** `UpdateCautionMessage` (extension Stardrop, ignorée par SMAPI) s'affiche en avertissement dans la préview d'installation, pour chaque mod déjà installé concerné. Le message paraît tel que l'auteur l'a écrit — en anglais le plus souvent ; seul l'habillage de la bannière est traduit. Aucun mod du parc ne l'expose encore.
@@ -857,7 +859,9 @@ where the exact log format was verified.
 - Added translation for **Wear More Rings** (v7.9) by bcmpinc.
 - Added translation for **World Navigator** (v1.4.2) by pneuma163.
 
-[Unreleased]: https://github.com/mrbabilo/StarHubFR/compare/v1.24.0...HEAD
+[Unreleased]: https://github.com/mrbabilo/StarHubFR/compare/v1.26.0...HEAD
+[1.26.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.25.0...v1.26.0
+[1.25.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.24.0...v1.25.0
 [1.24.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.23.0...v1.24.0
 [1.23.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.22.0...v1.23.0
 [1.22.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.21.0...v1.22.0
