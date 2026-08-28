@@ -1618,9 +1618,10 @@ par lot, une release par lot. Périmètre : visuel + navigation —
 **aucune fonctionnalité nouvelle**, aucun parcours interne refondu.
 
 - [ ] **H-T1** — **Châssis** : tokens manquants (`Grid`, `Metrics`, `Shadow`,
-      `Icon`), extraction des 7 composants de `DiscoverView` vers
-      `Views/Components/` (`ModCard`, `StateCard`, `ErrorBanner`, `StatStrip`,
-      `HeroHeader`, `SectionHeader`, `CategoryBadge`), Découvrir bascule dessus
+      `Icon`), extraction vers `Views/Components/` des 6 composants de
+      `DiscoverView` (`ModCard`, `StateCard`, `ErrorBanner`, `StatStrip`,
+      `HeroHeader`, `SectionHeader`) et de `CategoryBadge` — défini dans
+      `ModListView.swift`, déjà consommé par les deux vues —, Découvrir bascule dessus
       **sans changement visuel** (l'extraction sans bascule créerait des copies
       divergentes), bibliothèque `/design` créée (Foundations + Components),
       `UX_UI_Specifications.md` retiré avec bandeau de renvoi. · **M**
@@ -1638,7 +1639,8 @@ par lot, une release par lot. Périmètre : visuel + navigation —
 - [ ] **H-T4** — **Mods, pilote du reskin** : toolbar unifiée au motif
       Découvrir (un seul geste par intention), rangée à hauteur réservée avec
       état codé glyph + couleur + barre d'accent (jamais la couleur seule),
-      grille optionnelle réutilisant `ModCard` telle quelle, fiche
+      grille optionnelle réutilisant `ModCard` via un adaptateur de valeurs
+      (un `ModItem` n'a ni endossements ni catégorie Nexus servis), fiche
       `HeroHeader` + `StatStrip` où l'action praticable est la proéminente. · **L**
 - [ ] **H-T5** — **Lot Parties** : profils en cartes à chiffres clés (jamais
       un formulaire nu), sauvegardes au même motif. · **M**
@@ -1647,7 +1649,7 @@ par lot, une release par lot. Périmètre : visuel + navigation —
       lisibles. · **M**
 - [ ] **H-T7** — **Lots Journaux & Réglages** : reskin léger des journaux
       (la perf est déjà faite), Réglages absorbe les déménagés de l'accueil
-      en sections unifiées. · **S**
+      en sections unifiées. Deux releases — phases 5 et 6 de la spec. · **S**
 - [ ] **H-T8** — **Hub de traduction** : reskin de continuité seulement —
       monde à part, déjà structuré. · **M**
 - [ ] **H-T9** — **Closage** : audit de fidélité (Découvrir visuellement
