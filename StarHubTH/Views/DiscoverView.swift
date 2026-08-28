@@ -17,9 +17,13 @@ struct DiscoverView: View {
     /// deux sections du bas sous la première.
     @State private var shownLimits: [ModCatalog.SectionKind: Int] = [:]
 
-    /// Le premier palier, et le pas de chaque « voir plus ».
+    /// Le premier palier, et le pas de chaque « voir plus » : la vitrine
+    /// grandit de quatre en quatre — quatre, huit, douze — pour que chaque
+    /// clic ajoute une rangée lisible plutôt qu'un bloc à retrouver. Le
+    /// réseau, lui, continue de livrer par vingt : cinq clics avant une
+    /// nouvelle requête.
     private static let firstGlance = 4
-    private static let moreStep = 20
+    private static let moreStep = 4
 
     var body: some View {
         ScrollViewReader { scroller in

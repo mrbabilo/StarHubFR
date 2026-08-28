@@ -1514,7 +1514,7 @@ couverts pour les mises à jour via smapi.io, forums/Discord/Naver n'ont pas
 d'API. Spec : `docs/superpowers/specs/2026-08-27-decouverte-mods-design.md`
 (local, gitignoré comme les autres specs SDD).
 
-- [ ] **G-T1** — Spike de validation API : mods triés (endossements, mise à
+- [x] **G-T1** — Spike de validation API : mods triés (endossements, mise à
       jour, création), filtre par tag `French`, champ endossements, requête de
       fiche. Introspection du schéma d'abord ; si elle est désactivée, sondage
       à la main comme le 2026-08-25. Passe par l'utilisateur — la clé du
@@ -1526,7 +1526,7 @@ d'API. Spec : `docs/superpowers/specs/2026-08-27-decouverte-mods-design.md`
       (sur 966 mods installés, les tendances seront largement filtrées — le
       filtre ne doit pas masquer qu'il a filtré), fiche éclair + « Ouvrir sur
       Nexus » (`nxm://` existant ramène le fichier dans l'app). · **M**
-- [ ] **G-T3** — Install direct depuis la fiche : pipeline des mises à jour
+- [x] **G-T3** — Install direct depuis la fiche : pipeline des mises à jour
       appliqué à un mod non installé. API réservée **Premium** — 403 mesuré
       sur compte gratuit (**A3-T3**) ; site + `nxm://` reste la voie gratuite
       en toutes versions. · **M**
