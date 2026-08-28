@@ -100,4 +100,52 @@ struct DesignTokensTests {
             #expect(op <= 1, "Opacity must be <= 1")
         }
     }
+
+    // MARK: - Grid
+
+    @Test func gridTokensFollowExpectedValues() {
+        #expect(AppDesignCore.Grid.minCardWidth == 240,
+                "minCardWidth must be 240 (GridItem.adaptive de DiscoverView)")
+        #expect(AppDesignCore.Grid.gutter == 12,
+                "gutter must be 12 (colonnes et rangées de la grille)")
+    }
+
+    // MARK: - Metrics
+
+    @Test func metricsFollowExpectedValues() {
+        // Un rapport dérivé ne se compare pas à l'identique : la macro
+        // `#expect` a rendu `false` sur deux valeurs qui s'impriment pourtant
+        // toutes deux 1.7777777777777777. Une tolérance dit ce qu'on veut
+        // vraiment savoir — que le token vaut bien seize neuvièmes.
+        let expectedRatio: CGFloat = 16.0 / 9.0
+        #expect(abs(AppDesignCore.Metrics.thumbRatio - expectedRatio) < 1e-9,
+                "thumbRatio must be 16/9 (vignette de ModCard)")
+        #expect(AppDesignCore.Metrics.heroHeight == 150,
+                "heroHeight must be 150 (bandeau de la fiche)")
+        #expect(AppDesignCore.Metrics.sheetDetailSize == CGSize(width: 560, height: 640),
+                "sheetDetailSize must be 560×640 (feuille de détail)")
+        #expect(AppDesignCore.Metrics.metaRowHeight == 18,
+                "metaRowHeight must be 18 (hauteur réservée de la ligne de méta)")
+    }
+
+    // MARK: - Shadow
+
+    @Test func shadowBadgeFollowsExpectedValues() {
+        #expect(AppDesignCore.Shadow.badge.radius == 3,
+                "badge shadow radius must be 3")
+        #expect(AppDesignCore.Shadow.badge.y == 1,
+                "badge shadow y offset must be 1")
+    }
+
+    // MARK: - Icon
+
+    @Test func iconSizesFollowExpectedValues() {
+        #expect(AppDesignCore.Icon.sm == 16, "Icon.sm must be 16 (glyphe compact)")
+        #expect(AppDesignCore.Icon.md == 20, "Icon.md must be 20 (icône d'état)")
+    }
+
+    @Test func iconSizesAreIncreasing() {
+        #expect(AppDesignCore.Icon.sm < AppDesignCore.Icon.md,
+                "Icon tokens must form an increasing scale")
+    }
 }

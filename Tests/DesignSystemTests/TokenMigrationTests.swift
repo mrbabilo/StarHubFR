@@ -19,12 +19,19 @@ struct TokenMigrationTests {
     /// doit appartenir à cet ensemble (ou être explicitement justifiée).
     private static let knownGoodValues: Set<CGFloat> = [
         // Spacings observés (spacing: N et .padding(N))
-        2, 3, 4, 5, 6, 8, 10, 12, 14, 16, 20, 24, 28, 30, 32, 40,
+        1, 2, 3, 4, 5, 6, 8, 10, 12, 14, 16, 20, 24, 28, 30, 32, 40,
         // Corner radii observés (6, 8, 10, 12 déjà ci-dessus)
         // Font sizes observées
         9, 10, 11, 12, 13, 14, 15, 16, 18, 20, 22, 24,
         // Grandes icônes empty-state
         40, 44, 48, 56,
+        // Châssis (spec refonte §3.1), relevées dans DiscoverView.swift avant
+        // migration :
+        //   1   = décalage vertical de l'ombre de pastille (ligne 385)
+        //   150 = hauteur du bandeau de fiche (ligne 511)
+        //   240 = largeur minimale d'une carte en grille (lignes 159, 234)
+        //   560, 640 = feuille de détail (ligne 501)
+        150, 240, 560, 640,
     ]
 
     @Test func allSpacingTokensArePreviouslyUsedValues() {
@@ -74,6 +81,28 @@ struct TokenMigrationTests {
         for value in tokenOpacities {
             #expect(knownOpacities.contains(value),
                     "Opacity token \(value) n'est pas une valeur éprouvée — vérifier visuellement")
+        }
+    }
+
+    /// Les longueurs des tokens ajoutés au châssis (spec refonte §3.1).
+    /// `thumbRatio` n'y figure pas : c'est un rapport, pas une longueur, et
+    /// `sheetDetailSize` est couvert par ses deux composantes.
+    @Test func allChassisLengthTokensArePreviouslyUsedValues() {
+        let tokenLengths: [CGFloat] = [
+            AppDesignCore.Grid.minCardWidth,
+            AppDesignCore.Grid.gutter,
+            AppDesignCore.Metrics.heroHeight,
+            AppDesignCore.Metrics.metaRowHeight,
+            AppDesignCore.Metrics.sheetDetailSize.width,
+            AppDesignCore.Metrics.sheetDetailSize.height,
+            AppDesignCore.Shadow.badge.radius,
+            AppDesignCore.Shadow.badge.y,
+            AppDesignCore.Icon.sm,
+            AppDesignCore.Icon.md,
+        ]
+        for value in tokenLengths {
+            #expect(Self.knownGoodValues.contains(value),
+                    "Token \(value) n'est pas une valeur éprouvée — vérifier visuellement")
         }
     }
 }
