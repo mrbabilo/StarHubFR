@@ -17,6 +17,9 @@ where the exact log format was verified.
 - **Modifier un réglage ne réécrit plus tout le fichier.** Seule la valeur touchée change ; le reste garde la forme exacte que l'auteur lui a donnée, `1.50` compris. Un fichier de configuration écrit avec des commentaires ou une virgule traînante s'ouvre désormais au lieu d'afficher « Format JSON invalide » : c'est ce que le jeu accepte lui-même.
 - **L'enregistrement met la configuration précédente dans les sauvegardes de configurations** — datée et visible depuis leur écran — au lieu de déposer un `config.json.bak` dans le dossier du mod ; y compris quand le mod est en pause. « Restaurer la configuration » charge la version sauvegardée dans l'éditeur : c'est « Enregistrer » qui l'applique, après avoir mis l'actuelle à l'abri.
 
+### Fixed
+- **Un réglage à virgule s'affichait arrondi** — `0,5` apparaissait `0`, `1,25` apparaissait `1` — et le champ refusait ensuite la valeur qu'il venait d'afficher. 758 des 11 891 réglages du parc sont concernés.
+
 ## [1.25.0] - 2026-08-28
 
 ### Added
