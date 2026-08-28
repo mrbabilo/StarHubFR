@@ -5887,11 +5887,21 @@ class StarHubTHViewModel: ObservableObject {
     /// Les cartes d'une liste de hits : adulte exclu (spec §8), « installé »
     /// calculé par identifiant **et** par titre — les deux clés du
     /// partitionnement des traductions (A3-T5).
+    /// `francophoneOnly` ne vaut que pour les **sections** : la vitrine est
+    /// une sélection, on y écarte les traductions d'autres langues. Une
+    /// recherche par nom, elle, rend ce qu'on lui a demandé — filtrer ce que
+    /// l'utilisateur vient de taper serait un résultat vide inexplicable.
     private func discoveryRows(in hits: [NexusModSearch.Hit],
-                               hidingInstalled: Bool) -> [DiscoveryRow] {
+                               hidingInstalled: Bool,
+                               francophoneOnly: Bool) -> [DiscoveryRow] {
         let installedIds = installedNexusIds()
         let installedTitles = Set(mods.map(\.name))
-        return hits.filter { !$0.adultContent }.map { hit in
+        // Trois écarts, une seule passe : contenu adulte (spec §8),
+        // traductions non françaises en vitrine, et « masquer installés ».
+        return hits.filter {
+            !$0.adultContent && (!francophoneOnly || NexusModSearch.vitrineEligible($0))
+        }
+            .map { hit in
             let installed = installedIds.contains(hit.modId)
                 || installedTitles.contains { NexusModSearch.namesMatch($0, hit.name) }
             return DiscoveryRow(hit: hit, installed: installed)
@@ -5904,7 +5914,8 @@ class StarHubTHViewModel: ObservableObject {
     func discoveryRows(for kind: ModCatalog.SectionKind,
                        hidingInstalled: Bool) -> (rows: [DiscoveryRow], shown: Int, total: Int) {
         guard let page = discovery[kind]?.page else { return ([], 0, 0) }
-        let rows = discoveryRows(in: page.hits, hidingInstalled: hidingInstalled)
+        let rows = discoveryRows(in: page.hits, hidingInstalled: hidingInstalled,
+                                 francophoneOnly: true)
         return (rows, rows.count, page.totalCount)
     }
 
@@ -5920,7 +5931,8 @@ class StarHubTHViewModel: ObservableObject {
             switch result {
             case .success(let page):
                 self.discoverySearch = DiscoverySearchResult(
-                    rows: self.discoveryRows(in: page.hits, hidingInstalled: false),
+                    rows: self.discoveryRows(in: page.hits, hidingInstalled: false,
+                                             francophoneOnly: false),
                     totalCount: page.totalCount)
             case .failure(let error):
                 self.lastDiscoveryError = error

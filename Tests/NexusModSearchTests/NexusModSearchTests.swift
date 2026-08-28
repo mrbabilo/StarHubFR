@@ -685,4 +685,46 @@ struct NexusModSearchTests {
             Issue.record("200 avec errors = panne, pas fiche vide"); return
         }
     }
+
+    /// Vignettes : `thumbnailUrl`, servi par les listings **et** la recherche
+    /// par nom — les deux alimentent des cartes. Capture réelle du
+    /// 2026-08-27 : 4 mods sur 4 en tête de tendances le portaient.
+    @Test func listingsAndSearchAskForThumbnailsAndDecodingReadsThem() {
+        #expect((listingBody(.endorsed)["query"] as? String ?? "").contains("thumbnailUrl"))
+        #expect((body("Parchment")["query"] as? String ?? "").contains("thumbnailUrl"))
+        let json = """
+        {"data":{"mods":{"totalCount":2,"nodes":[
+          {"modId":1915,"name":"Content Patcher","version":"2.9.1","status":"published",
+           "thumbnailUrl":"https://staticdelivery.nexusmods.com/mods/1303/images/thumbnails/1915/1915-1519967846-411398257.png"},
+          {"modId":2400,"name":"SMAPI","version":"4.0","status":"published"}]}}}
+        """
+        guard case .success(let page) = NexusModSearch.decode(Data(json.utf8)) else {
+            Issue.record("attendu un succès"); return
+        }
+        #expect(page.hits[0].thumbnailUrl?.contains("1915-1519967846") == true)
+        #expect(page.hits[1].thumbnailUrl == nil)   // absent : carte sans vignette
+    }
+
+    /// La vitrine est francophone : une traduction n'y figure que si elle est
+    /// française. Ailleurs (japonais, chinois, brésilien…), elle n'a rien à y
+    /// faire — A3-T4 l'avait mesuré : 8 des 26 premiers résultats d'un mod
+    /// étaient des traductions toutes langues confondues.
+    @Test func onlyFrenchTranslationsBelongInTheVitrine() {
+        func hit(_ name: String, _ tags: [String]) -> NexusModSearch.Hit {
+            NexusModSearch.Hit(modId: 1, name: name, version: "1", updatedAt: nil,
+                               categoryName: "c", uploader: "u", adultContent: false,
+                               tags: tags)
+        }
+        // Un mod qui n'est pas une traduction : visible, fût-il français.
+        #expect(NexusModSearch.vitrineEligible(hit("Automate", [])))
+        #expect(NexusModSearch.vitrineEligible(hit("Un mod français", ["French"])))
+        // Une traduction française : visible — c'est le public de l'app.
+        #expect(NexusModSearch.vitrineEligible(
+            hit("Better Crafting - Francais", ["French", "Translation"])))
+        // Une traduction d'une autre langue : écartée.
+        #expect(!NexusModSearch.vitrineEligible(
+            hit("Sword and Sorcery -日本語", ["Japanese", "Translation"])))
+        #expect(!NexusModSearch.vitrineEligible(
+            hit("SVE - PT-BR", ["Translation"])))
+    }
 }

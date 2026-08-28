@@ -135,11 +135,31 @@ struct DiscoverView: View {
         }
     }
 
-    /// Carte compacte **textuelle** : v1 sans vignettes (spec §7.1) —
-    /// `thumbnailUrl` existe au schéma, il restera pour une itération.
+    /// Carte avec vignette quand la réponse en porte une (4/4 en tête de
+    /// tendances, capture 2026-08-27) — sans elle, la carte reste textuelle.
     private func card(_ row: StarHubTHViewModel.DiscoveryRow) -> some View {
         Button { detailRow = row } label: {
             VStack(alignment: .leading, spacing: 6) {
+                // La place de la vignette est **toujours** réservée : sur la
+                // sélection FR, où beaucoup de traductions n'ont pas d'image,
+                // une carte plus courte que sa voisine décalerait toute la
+                // rangée. Le rectangle gris couvre aussi l'attente et l'échec
+                // de chargement.
+                Group {
+                    if let thumbnail = row.hit.thumbnailUrl,
+                       let url = URL(string: thumbnail) {
+                        AsyncImage(url: url) { image in
+                            image.resizable().scaledToFill()
+                        } placeholder: {
+                            Rectangle().fill(.quaternary)
+                        }
+                    } else {
+                        Rectangle().fill(.quaternary)
+                    }
+                }
+                .frame(width: 200, height: 90)
+                .clipped()
+                .clipShape(RoundedRectangle(cornerRadius: 6))
                 Text(row.hit.name).font(.headline).lineLimit(2, reservesSpace: true)
                 Text(row.hit.uploader).font(.caption).foregroundStyle(.secondary)
                     .lineLimit(1)

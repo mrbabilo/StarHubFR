@@ -38,11 +38,15 @@ public enum NexusModSearch {
         /// Le résumé d'une ligne — servi par les listings eux-mêmes, sans
         /// requête de fiche (mesuré 2026-08-27).
         public let summary: String?
+        /// La vignette du mod, servie par les listings et la recherche
+        /// (4 mods sur 4 en tête de tendances, capture 2026-08-27). Une carte
+        /// sans vignette reste une carte.
+        public let thumbnailUrl: String?
 
         public init(modId: Int, name: String, version: String, updatedAt: Date?,
                     categoryName: String, uploader: String, adultContent: Bool,
                     tags: [String] = [], endorsements: Int? = nil,
-                    summary: String? = nil) {
+                    summary: String? = nil, thumbnailUrl: String? = nil) {
             self.modId = modId
             self.name = name
             self.version = version
@@ -53,6 +57,7 @@ public enum NexusModSearch {
             self.tags = tags
             self.endorsements = endorsements
             self.summary = summary
+            self.thumbnailUrl = thumbnailUrl
         }
 
         /// `true` quand Nexus range ce mod parmi les traductions.
@@ -143,7 +148,7 @@ public enum NexusModSearch {
             offset: $offset
           ) {
             totalCount
-            nodes { modId name version updatedAt adultContent status
+            nodes { modId name version updatedAt adultContent status thumbnailUrl
                     modCategory { name } uploader { name } tags { name } }
           }
         }
@@ -249,7 +254,7 @@ public enum NexusModSearch {
           ) {
             totalCount
             nodes { modId name version updatedAt adultContent status endorsements
-                    summary modCategory { name } uploader { name } tags { name } }
+                    summary thumbnailUrl modCategory { name } uploader { name } tags { name } }
           }
         }
         """
@@ -387,7 +392,8 @@ public enum NexusModSearch {
                    adultContent: node["adultContent"] as? Bool ?? false,
                    tags: tags,
                    endorsements: node["endorsements"] as? Int,
-                   summary: node["summary"] as? String)
+                   summary: node["summary"] as? String,
+                   thumbnailUrl: node["thumbnailUrl"] as? String)
     }
 
     // MARK: - Reconnaître une traduction française
@@ -462,6 +468,24 @@ public enum NexusModSearch {
                 if left != right { return left }
                 return ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast)
             }
+    }
+
+    /// La vitrine « Découvrir » est francophone : un mod non-traduction y
+    /// est toujours bienvenu, une traduction n'y figure que si elle est
+    /// **française**. Les autres — japonaises, chinoises, brésiliennes… —
+    /// n'ont rien à y faire.
+    ///
+    /// La règle se paie : le tag `French` porte **77 traductions sur 80**
+    /// (mesuré en A3-T3/T4, repris à la spec §3) — environ une traduction
+    /// française sur vingt est donc écartée à tort. Le compte « x affichés
+    /// sur y » de la section dit au moins qu'un filtre est passé.
+    /// À n'appliquer qu'en vitrine : une recherche par nom doit rendre ce
+    /// qu'on lui a demandé.
+    public static func vitrineEligible(_ hit: Hit) -> Bool {
+        guard hit.isTranslation else { return true }
+        return hit.tags.contains {
+            $0.caseInsensitiveCompare(frenchTag) == .orderedSame
+        }
     }
 
     // MARK: - Reconnaître un supplément
