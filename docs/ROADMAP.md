@@ -1503,7 +1503,7 @@ sans lire une ligne de log.
 
 ---
 
-### Découverte de nouveaux mods — **Axe G** · livré, publication en attente
+### Découverte de nouveaux mods — **Axe G** · livré en **v1.25.0**
 
 L'app sait tout faire **à partir d'un mod installé** — traductions (**A3-T3**),
 suppléments (**A3-T4**) — et rien **sans point de départ**. La vitrine
