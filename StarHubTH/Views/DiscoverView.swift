@@ -156,8 +156,9 @@ struct DiscoverView: View {
                 .font(.caption).foregroundStyle(.secondary)
             // Grille adaptative — comme les sections, en cartes, pas une pile
             // verticale de bandes.
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 240), spacing: 12)],
-                      spacing: 12) {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: AppDesignCore.Grid.minCardWidth),
+                                                 spacing: AppDesignCore.Grid.gutter)],
+                      spacing: AppDesignCore.Grid.gutter) {
                 ForEach(search.rows) { row in card(row) }
             }
             if search.loaded < search.totalCount {
@@ -193,30 +194,25 @@ struct DiscoverView: View {
         // repliées, soit une tranche que le serveur a encore.
         let hasMore = rows.count > visible.count || loaded < total
         return VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(title(for: kind)).font(.title3.bold())
-                Spacer()
+            SectionHeader(
+                title: title(for: kind),
                 // Ce qui est montré comparé à ce qui a été **reçu** : un
                 // filtre ne doit pas masquer qu'il a filtré (spec §7.1). Le
                 // comparer au catalogue entier — « 20 affichés sur 33 204 »
                 // — ne comparait rien à rien.
-                Text(String(format: vm.L(L10n.Discovery.shownOfLoaded),
-                            visible.count, loaded))
-                    .font(.caption).foregroundStyle(.secondary)
-                if hasMore {
-                    // Un seul bouton pour deux gestes : déplier ce qui est
-                    // déjà reçu, et demander la suite au serveur quand le
-                    // palier dépasse ce qu'on a. Deux boutons auraient obligé
-                    // l'utilisateur à savoir lequel des deux il lui faut.
-                    Button(vm.L(L10n.Discovery.loadMore)) {
-                        let next = limit + Self.moreStep
-                        shownLimits[kind] = next
-                        if next > rows.count && loaded < total {
-                            vm.loadMoreDiscovery(kind)
-                        }
-                    }
-                    .buttonStyle(.link)
-                    .disabled(vm.discoveryLoading)
+                countText: String(format: vm.L(L10n.Discovery.shownOfLoaded),
+                                  visible.count, loaded),
+                // Un seul bouton pour deux gestes : déplier ce qui est déjà
+                // reçu, et demander la suite au serveur quand le palier
+                // dépasse ce qu'on a. Deux boutons auraient obligé
+                // l'utilisateur à savoir lequel des deux il lui faut.
+                moreTitle: hasMore ? vm.L(L10n.Discovery.loadMore) : nil,
+                moreDisabled: vm.discoveryLoading
+            ) {
+                let next = limit + Self.moreStep
+                shownLimits[kind] = next
+                if next > rows.count && loaded < total {
+                    vm.loadMoreDiscovery(kind)
                 }
             }
             switch vm.discovery[kind] ?? .empty(.neverLoaded) {
@@ -231,8 +227,9 @@ struct DiscoverView: View {
                     // 5 mods sur 20, sans ascenseur pour dire qu'il y en
                     // avait d'autres — et les vingt suivants demandés par
                     // « voir plus » atterrissaient hors de vue.
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 240), spacing: 12)],
-                              spacing: 12) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: AppDesignCore.Grid.minCardWidth),
+                                                 spacing: AppDesignCore.Grid.gutter)],
+                              spacing: AppDesignCore.Grid.gutter) {
                         ForEach(visible) { card($0) }
                     }
                 }
@@ -292,108 +289,20 @@ struct DiscoverView: View {
         }
     }
 
-    /// La carte : vignette **pleine largeur en 16/9**, « installé » posé
-    /// dessus, puis titre, auteur, et une seule ligne de métadonnées.
-    ///
-    /// Elle mesurait 220 pt pour une vignette de 200×90 : deux marges grises
-    /// autour de l'image, et une largeur figée qui laissait des gouttières
-    /// inégales dans une grille adaptative. Elle occupe maintenant sa case.
+    /// Adapte une ligne de la vitrine aux valeurs qu'attend `ModCard`.
     private func card(_ row: StarHubTHViewModel.DiscoveryRow) -> some View {
-        Button { detailRow = row } label: {
-            VStack(alignment: .leading, spacing: 0) {
-                thumbnail(row)
-                VStack(alignment: .leading, spacing: AppDesign.Spacing.xs) {
-                    Text(row.hit.name)
-                        .font(AppDesign.Font.body(.semibold))
-                        .lineLimit(2, reservesSpace: true)
-                        .multilineTextAlignment(.leading)
-                    Text(row.hit.uploader)
-                        .font(AppDesign.Font.footnote)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                    metaRow(row)
-                }
-                .padding(.horizontal, AppDesign.Spacing.md)
-                .padding(.top, 10)
-                .padding(.bottom, AppDesign.Spacing.md)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.background.secondary)
-            .clipShape(RoundedRectangle(cornerRadius: AppDesign.Radius.section))
-            .overlay(
-                RoundedRectangle(cornerRadius: AppDesign.Radius.section)
-                    .stroke(Color.primary.opacity(AppDesign.Opacity.light), lineWidth: 1))
+        ModCard(
+            title: row.hit.name,
+            subtitle: row.hit.uploader,
+            thumbnailURL: row.hit.thumbnailUrl.flatMap { URL(string: $0) },
+            installedLabel: row.installed ? vm.L(L10n.Discovery.installedBadge) : nil,
+            category: row.hit.categoryId.flatMap(NexusCategory.from(id:)),
+            neutralBadge: row.hit.tags.contains(NexusModSearch.frenchTag) ? "FR" : nil,
+            endorsements: row.hit.endorsements,
+            L: vm.L
+        ) {
+            detailRow = row
         }
-        .buttonStyle(.plain)
-    }
-
-    /// La place de la vignette est **toujours** réservée : sur la sélection
-    /// FR, où beaucoup de traductions n'ont pas d'image, une carte plus
-    /// courte que sa voisine décalerait toute la rangée. Le rectangle gris
-    /// couvre aussi l'attente et l'échec de chargement.
-    private func thumbnail(_ row: StarHubTHViewModel.DiscoveryRow) -> some View {
-        Rectangle().fill(.quaternary)
-            .aspectRatio(16.0 / 9.0, contentMode: .fit)
-            .overlay {
-                // `CachedAsyncImage` garde les images en mémoire : dérouler
-                // la vitrine redemanderait sinon les mêmes vignettes au
-                // réseau à chaque passage.
-                if let thumbnail = row.hit.thumbnailUrl,
-                   let url = URL(string: thumbnail) {
-                    CachedAsyncImage(url: url)
-                }
-            }
-            .clipped()
-            // « Installé » sur l'image, pas en bas de pile : c'est ce qu'on
-            // cherche en balayant une grille.
-            .overlay(alignment: .topTrailing) {
-                if row.installed {
-                    // Pastille **pleine**, pas translucide : posée sur un
-                    // matériau, elle se noyait dans les vignettes claires. Du
-                    // blanc sur vert tient sur n'importe quelle image, et
-                    // l'ombre la décolle du fond.
-                    Label(vm.L(L10n.Discovery.installedBadge),
-                          systemImage: "checkmark.circle.fill")
-                        .font(AppDesign.Font.caption(.semibold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, AppDesign.Spacing.sm)
-                        .padding(.vertical, AppDesign.Spacing.xs)
-                        .background(Color.green, in: Capsule())
-                        .shadow(color: .black.opacity(AppDesign.Opacity.strong),
-                                radius: 3, y: 1)
-                        .padding(AppDesign.Spacing.sm)
-                }
-            }
-    }
-
-    /// Une seule ligne : la catégorie à gauche, les endossements à droite.
-    /// Sa hauteur est réservée — sans catégorie servie, une carte plus courte
-    /// décalerait ses voisines.
-    private func metaRow(_ row: StarHubTHViewModel.DiscoveryRow) -> some View {
-        HStack(spacing: AppDesign.Spacing.xs + 2) {
-            if let category = row.hit.categoryId.flatMap(NexusCategory.from(id:)) {
-                CategoryBadge(category: category, L: vm.L)
-            }
-            if row.hit.tags.contains(NexusModSearch.frenchTag) {
-                badge("FR")
-            }
-            Spacer(minLength: 0)
-            if let endorsements = row.hit.endorsements {
-                Label("\(endorsements)", systemImage: "hand.thumbsup")
-                    .font(AppDesign.Font.footnote)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-        }
-        .frame(height: 18)
-        .padding(.top, 2)
-    }
-
-    private func badge(_ label: String) -> some View {
-        Text(label)
-            .font(.caption2.weight(.semibold))
-            .padding(.horizontal, 6).padding(.vertical, 2)
-            .background(.fill.tertiary, in: Capsule())
     }
 
     /// Une seule panne, un seul message : les sections ne répètent pas. La vue
@@ -473,79 +382,39 @@ struct DiscoveryDetailSheet: View {
             }
             Spacer(minLength: 0)
         }
-        .frame(width: 560, height: 640)
+        .frame(width: AppDesignCore.Metrics.sheetDetailSize.width,
+               height: AppDesignCore.Metrics.sheetDetailSize.height)
         .onAppear { vm.loadDiscoveryDetail(modId: row.hit.modId) }
         .onDisappear { vm.closeDiscoveryDetail() }
     }
 
-    /// Le bandeau : la vignette du mod, son nom et son auteur par-dessus. Le
-    /// titre nu sur fond blanc ne disait pas de quel mod on parlait tant que
-    /// la description n'était pas chargée.
+    /// Le bandeau : la vignette du mod, son nom et son auteur par-dessus.
     private var hero: some View {
-        Rectangle().fill(.quaternary)
-            .frame(height: 150)
-            .overlay {
-                if let thumbnail = row.hit.thumbnailUrl, let url = URL(string: thumbnail) {
-                    CachedAsyncImage(url: url)
-                }
-            }
-            .clipped()
-            .overlay {
-                // Le texte se lit sur n'importe quelle image : le dégradé est
-                // la seule garantie de contraste qu'on maîtrise.
-                LinearGradient(colors: [.clear, .black.opacity(0.65)],
-                               startPoint: .center, endPoint: .bottom)
-            }
-            .overlay(alignment: .bottomLeading) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(row.hit.name)
-                        .font(AppDesign.Font.viewTitle)
-                        .foregroundStyle(.white)
-                        .lineLimit(2)
-                    Text(row.hit.uploader)
-                        .font(AppDesign.Font.caption)
-                        .foregroundStyle(.white.opacity(AppDesign.Opacity.secondary))
-                }
-                .padding(AppDesign.Spacing.lg)
-            }
-            .overlay(alignment: .topTrailing) {
-                Button { dismiss() } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 16))
-                        .foregroundStyle(.white.opacity(AppDesign.Opacity.secondary))
-                }
-                .buttonStyle(.plain)
-                .padding(AppDesign.Spacing.sm)
-            }
+        HeroHeader(title: row.hit.name,
+                   subtitle: row.hit.uploader,
+                   imageURL: row.hit.thumbnailUrl.flatMap { URL(string: $0) }) {
+            dismiss()
+        }
     }
 
     /// Ce que la carte ne disait pas, en une bande : endossements, version,
     /// âge de la mise à jour, catégorie. Ces quatre chiffres décident de
     /// l'installation plus sûrement qu'un paragraphe de description.
     private var statStrip: some View {
-        HStack(alignment: .top, spacing: 0) {
-            stat(vm.L(L10n.Discovery.statEndorsements),
-                 (vm.discoveryDetail?.endorsements ?? row.hit.endorsements)
-                     .map { "\($0)" } ?? "—")
-            stat(vm.L(L10n.ModInstall.labelVersion),
-                 vm.discoveryDetail?.version.isEmpty == false
-                     ? vm.discoveryDetail!.version
-                     : (row.hit.version.isEmpty ? "—" : row.hit.version))
-            stat(vm.L(L10n.Discovery.statUpdated), updatedText)
-            stat(vm.L(L10n.Mods.categoryFilter),
-                 row.hit.categoryId.flatMap(NexusCategory.from(id:))?.localizedName(vm.L)
-                     ?? (row.hit.categoryName.isEmpty ? "—" : row.hit.categoryName))
-        }
-        .padding(.horizontal, AppDesign.Spacing.lg)
-        .padding(.vertical, AppDesign.Spacing.md)
-    }
-
-    private func stat(_ label: String, _ value: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(label).font(AppDesign.Font.footnote).foregroundStyle(.secondary)
-            Text(value).font(AppDesign.Font.body(.semibold)).lineLimit(1)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        StatStrip(items: [
+            .init(label: vm.L(L10n.Discovery.statEndorsements),
+                  value: (vm.discoveryDetail?.endorsements ?? row.hit.endorsements)
+                      .map { "\($0)" } ?? "—"),
+            .init(label: vm.L(L10n.ModInstall.labelVersion),
+                  value: vm.discoveryDetail?.version.isEmpty == false
+                      ? vm.discoveryDetail!.version
+                      : (row.hit.version.isEmpty ? "—" : row.hit.version)),
+            .init(label: vm.L(L10n.Discovery.statUpdated), value: updatedText),
+            .init(label: vm.L(L10n.Mods.categoryFilter),
+                  value: row.hit.categoryId.flatMap(NexusCategory.from(id:))?
+                      .localizedName(vm.L)
+                      ?? (row.hit.categoryName.isEmpty ? "—" : row.hit.categoryName)),
+        ])
     }
 
     private var updatedText: String {
