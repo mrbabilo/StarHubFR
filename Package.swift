@@ -131,6 +131,7 @@ let package = Package(
                 "Models/ConfigJSONMerge.swift",
                 "Models/ConfigJSONDiff.swift",
                 "Models/ContentPackConfigSchema.swift",
+                "Models/ContentPackI18n.swift",
                 "Models/ConfigEditorModel.swift",
                 "Extensions/ModConfigFiles.swift",
             ]

@@ -284,7 +284,39 @@ struct ModConfigEditorView: View {
             schemaReading = nil
             return
         }
-        schemaReading = ContentPackConfigSchema.read(content)
+        let reading = ContentPackConfigSchema.read(content)
+        guard case .options(let options) = reading else {
+            schemaReading = reading
+            return
+        }
+        // Les libellés d'un schéma sont rarement du texte : ils portent des
+        // jetons `{{i18n: …}}`, et surtout le pack traduit son menu par la
+        // convention `config.<clé>.name`, sans qu'aucun jeton ne le demande.
+        schemaReading = .options(ContentPackI18n.localized(options, with: packTranslations()))
+    }
+
+    /// La table de traduction du pack, dans la langue de l'app si elle existe,
+    /// sinon `default.json` puis `en.json`.
+    ///
+    /// Passe par `I18nLenientParser`, le lecteur que le dépôt a déjà pour ces
+    /// fichiers — éprouvé sur les 2357 `i18n/*.json` du parc, commentaires,
+    /// virgules traînantes et CRLF compris.
+    private func packTranslations() -> [String: String] {
+        let basePath = (vm.gameDir as NSString).appendingPathComponent("Mods")
+        let modPath = (basePath as NSString).appendingPathComponent(mod.physicalFolderName)
+        let i18nPath = (modPath as NSString).appendingPathComponent("i18n")
+
+        for locale in ContentPackI18n.localeCandidates(for: vm.currentLanguage) {
+            let path = (i18nPath as NSString).appendingPathComponent("\(locale).json")
+            guard let data = FileManager.default.contents(atPath: path),
+                  let text = String(data: data, encoding: .utf8),
+                  // Un fichier illisible fait passer au suivant : c'est la
+                  // raison d'être de la liste de replis.
+                  let table = try? I18nLenientParser.parse(text),
+                  !table.isEmpty else { continue }
+            return table
+        }
+        return [:]
     }
 
     /// L'état courant de l'option, relu par son chemin.
@@ -551,25 +583,38 @@ struct ModConfigEditorView: View {
             }
             Spacer(minLength: 12)
 
+            // Tous les contrôles dans une colonne de même largeur, alignée à
+            // droite : sans elle, un interrupteur, une liste déroulante et un
+            // incrémenteur finissent à trois abscisses différentes, et la
+            // colonne se déchire d'une rangée à l'autre.
             control(for: row)
+                .frame(width: Self.controlColumnWidth, alignment: .trailing)
 
-            if let defaultControl = row.defaultControl {
-                Button {
-                    update(row, to: defaultControl)
-                } label: {
-                    Image(systemName: "arrow.uturn.backward")
-                        .font(.system(size: 11))
-                        .foregroundColor(.secondary)
-                        // 18×18 : un `.help` posé sur un glyphe plus petit
-                        // reste muet, la cible ne recevant pas le survol.
-                        .frame(width: 18, height: 18)
+            // La place du bouton est **toujours** réservée : ne la prendre que
+            // sur les rangées modifiées décalerait leur contrôle de 26 points
+            // par rapport aux autres.
+            Group {
+                if let defaultControl = row.defaultControl {
+                    Button {
+                        update(row, to: defaultControl)
+                    } label: {
+                        Image(systemName: "arrow.uturn.backward")
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                            // 18×18 : un `.help` posé sur un glyphe plus petit
+                            // reste muet, la cible ne recevant pas le survol.
+                            .frame(width: 18, height: 18)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .help(String(format: vm.L(L10n.Settings.configResetToDefault),
+                                 defaultLabel(of: defaultControl)))
+                    .accessibilityLabel(String(format: vm.L(L10n.Settings.configResetToDefault),
+                                               defaultLabel(of: defaultControl)))
+                } else {
+                    Color.clear
                 }
-                .buttonStyle(PlainButtonStyle())
-                .help(String(format: vm.L(L10n.Settings.configResetToDefault),
-                             defaultLabel(of: defaultControl)))
-                .accessibilityLabel(String(format: vm.L(L10n.Settings.configResetToDefault),
-                                           defaultLabel(of: defaultControl)))
             }
+            .frame(width: 18, height: 18)
         }
         .padding(.vertical, 8)
     }
@@ -624,6 +669,7 @@ struct ModConfigEditorView: View {
             ))
             .textFieldStyle(RoundedBorderTextFieldStyle())
             .controlSize(.small)
+            .frame(maxWidth: .infinity)
 
         case .choice(let selected, let among):
             Picker("", selection: Binding(
@@ -638,7 +684,7 @@ struct ModConfigEditorView: View {
                 }
             }
             .labelsHidden()
-            .frame(maxWidth: 220)
+            .frame(maxWidth: .infinity)
         }
     }
 
@@ -663,6 +709,12 @@ struct ModConfigEditorView: View {
         case .choice(let value, _): return value.isEmpty ? vm.L(L10n.Settings.configEmptyValue) : value
         }
     }
+
+    /// La largeur de la colonne des contrôles. Assez pour la plus longue des
+    /// valeurs admises rencontrées sans que le menu ne se tronque, et assez
+    /// courte pour laisser respirer les libellés, dont le plus long du parc
+    /// tient sur deux lignes.
+    private static let controlColumnWidth: CGFloat = 240
 
     private static let integerFormatter = NumberFormatter()
 

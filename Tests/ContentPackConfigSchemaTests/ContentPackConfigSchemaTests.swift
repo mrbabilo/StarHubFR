@@ -154,3 +154,111 @@ struct ConfigSchemaReadingTests {
         #expect(ContentPackConfigSchema.read(#"{ "Format": "2.7.0" }"#).options.isEmpty)
     }
 }
+
+
+/// La traduction d'un schéma de content pack par le `i18n/` du pack.
+///
+/// Découvert à l'écran, pas par les tests : sur `[CP] More Upgrades`, les
+/// `Name` et `Description` du schéma valent `{{i18n: config.Appearance.Name}}`
+/// — un jeton que Content Patcher résout à l'exécution et que l'app affichait
+/// tel quel. **9 des 210 packs à schéma du parc** posent des jetons (285 en
+/// tout, tous dans `Name` et `Description`, aucun dans `Section` ni
+/// `AllowValues`), et les 9 ont un `i18n/` avec `fr.json`.
+///
+/// La mesure a rapporté plus large : Content Patcher cherche aussi
+/// `config.<clé>.name` **sans jeton**, par convention. Sur les 116 packs à
+/// table de traduction, **1888 clés sur 2061 y ont un libellé** et 1581 une
+/// description — là où le schéma seul n'en donnait presque aucune (173 `Name`
+/// sur tout le parc).
+struct ContentPackI18nTests {
+
+    private func option(_ token: String, name: String? = nil,
+                        description: String? = nil, section: String? = nil) -> ConfigSchemaOption {
+        ConfigSchemaOption(token: token, name: name, description: description, section: section,
+                           allowValues: [], defaultLiteral: nil, allowBlank: nil, allowMultiple: nil)
+    }
+
+    @Test func resolvesAnI18nToken() {
+        let localized = ContentPackI18n.localized(
+            [option("Appearance", name: "{{i18n: config.Appearance.Name}}")],
+            with: ["config.Appearance.Name": "Apparence"])
+        #expect(localized[0].name == "Apparence")
+    }
+
+    @Test func theKeyLookupIgnoresCase() {
+        // SMAPI compare les clés de traduction sans regard pour la casse, et
+        // les paquets du parc écrivent `.Name` dans le jeton pour `.name` dans
+        // la table aussi souvent que l'inverse.
+        let localized = ContentPackI18n.localized(
+            [option("Appearance", name: "{{i18n: config.Appearance.Name}}")],
+            with: ["config.appearance.name": "Apparence"])
+        #expect(localized[0].name == "Apparence")
+    }
+
+    @Test func toleratesASpacelessTokenAndSurroundingText() {
+        let localized = ContentPackI18n.localized(
+            [option("A", name: "→ {{i18n:k}} ←")],
+            with: ["k": "valeur"])
+        #expect(localized[0].name == "→ valeur ←")
+    }
+
+    @Test func theImplicitConventionLabelsAnOptionTheSchemaLeftBare() {
+        // Le cas le plus fréquent : le schéma ne porte **aucun** `Name`, mais
+        // la table du pack a `config.<clé>.name`.
+        let localized = ContentPackI18n.localized(
+            [option("SuperBarn")],
+            with: ["config.superbarn.name": "Super grange",
+                   "config.superbarn.description": "Agrandit la grange."])
+        #expect(localized[0].name == "Super grange")
+        #expect(localized[0].description == "Agrandit la grange.")
+    }
+
+    @Test func sectionsAreTranslatedByTheirOwnConvention() {
+        let localized = ContentPackI18n.localized(
+            [option("A", section: "General")],
+            with: ["config.section.general.name": "Options générales"])
+        #expect(localized[0].section == "Options générales")
+    }
+
+    @Test func anUnresolvedTokenFallsBackToTheConventionThenToNothing() {
+        // Jamais le jeton brut à l'écran : `ConfigEditorModel.Row` retombe sur
+        // la clé, qui est au moins lisible.
+        let withConvention = ContentPackI18n.localized(
+            [option("A", name: "{{i18n: absente}}")],
+            with: ["config.a.name": "Rattrapé"])
+        #expect(withConvention[0].name == "Rattrapé")
+
+        let withNothing = ContentPackI18n.localized([option("A", name: "{{i18n: absente}}")], with: [:])
+        #expect(withNothing[0].name == nil)
+    }
+
+    @Test func aTokenThatIsNotAnI18nLookupIsNotShownEither() {
+        // Relevé sur le parc : `{{config.OMEGAlinc_….name}}`, qui désigne la
+        // valeur d'une autre option, pas une traduction. 4 cas.
+        let localized = ContentPackI18n.localized(
+            [option("A", name: "{{config.Autre.name}}")], with: [:])
+        #expect(localized[0].name == nil)
+    }
+
+    @Test func aPlainLabelIsLeftAlone() {
+        let localized = ContentPackI18n.localized(
+            [option("A", name: "Mon réglage", description: "Ce qu'il fait.", section: "Divers")],
+            with: [:])
+        #expect(localized[0].name == "Mon réglage")
+        #expect(localized[0].description == "Ce qu'il fait.")
+        #expect(localized[0].section == "Divers")
+    }
+
+    @Test func theSchemaWinsOverTheConvention() {
+        // Un `Name` explicite et sans jeton est ce que l'auteur a écrit là
+        // pour cette option : il passe avant la table.
+        let localized = ContentPackI18n.localized(
+            [option("A", name: "Explicite")], with: ["config.a.name": "Par convention"])
+        #expect(localized[0].name == "Explicite")
+    }
+
+    @Test func theLocaleIsTriedThenDefaultThenEnglish() {
+        #expect(ContentPackI18n.localeCandidates(for: "fr") == ["fr", "default", "en"])
+        #expect(ContentPackI18n.localeCandidates(for: "en") == ["en", "default"])
+    }
+}
