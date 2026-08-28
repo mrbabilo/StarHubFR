@@ -67,7 +67,7 @@ L'app savait tout faire **à partir d'un mod installé** — traductions, suppl�
 *   **Vous voyez tout de suite ce que vous avez déjà** — chaque carte porte une pastille « Installé », croisée avec votre parc par identifiant Nexus **et** par titre, et un filtre masque les mods installés en affichant toujours combien il en a masqué. Sur plusieurs centaines de mods, l'essentiel des tendances vous est déjà connu.
 *   **Filtre par catégorie** — les 26 catégories du jeu, appliquées **au serveur** : « Portraits » redemande des portraits à Nexus plutôt que de trier les vingt mods déjà reçus. Chaque catégorie garde son propre cache.
 *   **Recherche par nom** dans la même vitrine, avec le total réel annoncé — une poignée de résultats n'est jamais tout ce qui existe.
-*   **La vitrine est francophone** — une traduction n'y figure que si elle est française ; les japonaises, chinoises ou brésiliennes n'ont rien à y faire. La recherche par nom, elle, rend ce que vous lui demandez, sans filtre de langue.
+*   **La vitrine est francophone** — une traduction n'y figure que si elle est française. La recherche par nom, elle, rend ce que vous lui demandez, sans filtre de langue.
 *   **Fiche éclair** — bandeau illustré, endossements, version, âge de la mise à jour, catégorie, et la description rendue comme sur la page du mod. De là : **Installer** (compte Nexus Premium requis par l'API de téléchargement) ou **Ouvrir sur Nexus**, qui vise directement l'onglet des fichiers — le lien `nxm://` ramène ensuite l'archive dans l'app, sur compte gratuit comme Premium.
 *   **Jamais muette** — sans clé d'API, quota atteint, panne réseau, ou filtres qui ne laissent rien passer : chaque état dit ce qui se passe **et porte l'action qui le lève**.
 
