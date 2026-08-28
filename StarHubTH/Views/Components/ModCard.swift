@@ -59,7 +59,7 @@ struct ModCard: View {
     /// chargement — trois cas qui, sans lui, donneraient trois hauteurs.
     private var thumbnail: some View {
         Rectangle().fill(.quaternary)
-            .aspectRatio(AppDesignCore.Metrics.thumbRatio, contentMode: .fit)
+            .aspectRatio(AppDesign.Metrics.thumbRatio, contentMode: .fit)
             .overlay {
                 // `CachedAsyncImage` garde les images en mémoire : dérouler
                 // la vitrine redemanderait sinon les mêmes vignettes au
@@ -84,8 +84,8 @@ struct ModCard: View {
                         .padding(.vertical, AppDesign.Spacing.xs)
                         .background(Color.green, in: Capsule())
                         .shadow(color: .black.opacity(AppDesign.Opacity.strong),
-                                radius: AppDesignCore.Shadow.badge.radius,
-                                y: AppDesignCore.Shadow.badge.y)
+                                radius: AppDesign.Shadow.badge.radius,
+                                y: AppDesign.Shadow.badge.y)
                         .padding(AppDesign.Spacing.sm)
                 }
             }
@@ -110,7 +110,7 @@ struct ModCard: View {
                     .lineLimit(1)
             }
         }
-        .frame(height: AppDesignCore.Metrics.metaRowHeight)
+        .frame(height: AppDesign.Metrics.metaRowHeight)
         .padding(.top, 2)
     }
 }

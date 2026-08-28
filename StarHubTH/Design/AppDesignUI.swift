@@ -21,6 +21,13 @@ enum AppDesign {
     typealias Spacing = AppDesignCore.Spacing
     typealias Radius = AppDesignCore.Radius
     typealias Opacity = AppDesignCore.Opacity
+    // Ajoutés par le châssis (H-T1). Sans eux, une vue devait écrire
+    // `AppDesignCore.Metrics.…` à côté d'`AppDesign.Spacing.…` : deux
+    // vocabulaires dans le même fichier, que les lots suivants auraient copiés.
+    typealias Grid = AppDesignCore.Grid
+    typealias Metrics = AppDesignCore.Metrics
+    typealias Shadow = AppDesignCore.Shadow
+    typealias Icon = AppDesignCore.Icon
 
     // MARK: - Typography (SwiftUI.Font)
     // Déduit des tailles réellement utilisées (inventaire spec §1.2) :

@@ -15,7 +15,7 @@ struct StateCard: View {
     var body: some View {
         HStack(spacing: AppDesign.Spacing.md) {
             Image(systemName: icon)
-                .font(.system(size: AppDesignCore.Icon.md))
+                .font(.system(size: AppDesign.Icon.md))
                 .foregroundStyle(.tertiary)
             Text(text).font(AppDesign.Font.body).foregroundStyle(.secondary)
             Spacer(minLength: AppDesign.Spacing.sm)

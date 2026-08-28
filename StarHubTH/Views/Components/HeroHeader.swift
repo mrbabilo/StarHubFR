@@ -19,7 +19,7 @@ struct HeroHeader: View {
 
     var body: some View {
         Rectangle().fill(.quaternary)
-            .frame(height: AppDesignCore.Metrics.heroHeight)
+            .frame(height: AppDesign.Metrics.heroHeight)
             .overlay {
                 if let imageURL {
                     CachedAsyncImage(url: imageURL)
@@ -47,7 +47,7 @@ struct HeroHeader: View {
             .overlay(alignment: .topTrailing) {
                 Button(action: onClose) {
                     Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: AppDesignCore.Icon.sm))
+                        .font(.system(size: AppDesign.Icon.sm))
                         .foregroundStyle(.white.opacity(AppDesign.Opacity.secondary))
                 }
                 .buttonStyle(.plain)

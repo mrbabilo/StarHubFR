@@ -156,9 +156,9 @@ struct DiscoverView: View {
                 .font(.caption).foregroundStyle(.secondary)
             // Grille adaptative — comme les sections, en cartes, pas une pile
             // verticale de bandes.
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: AppDesignCore.Grid.minCardWidth),
-                                                 spacing: AppDesignCore.Grid.gutter)],
-                      spacing: AppDesignCore.Grid.gutter) {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: AppDesign.Grid.minCardWidth),
+                                                 spacing: AppDesign.Grid.gutter)],
+                      spacing: AppDesign.Grid.gutter) {
                 ForEach(search.rows) { row in card(row) }
             }
             if search.loaded < search.totalCount {
@@ -227,9 +227,9 @@ struct DiscoverView: View {
                     // 5 mods sur 20, sans ascenseur pour dire qu'il y en
                     // avait d'autres — et les vingt suivants demandés par
                     // « voir plus » atterrissaient hors de vue.
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: AppDesignCore.Grid.minCardWidth),
-                                                 spacing: AppDesignCore.Grid.gutter)],
-                              spacing: AppDesignCore.Grid.gutter) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: AppDesign.Grid.minCardWidth),
+                                                 spacing: AppDesign.Grid.gutter)],
+                              spacing: AppDesign.Grid.gutter) {
                         ForEach(visible) { card($0) }
                     }
                 }
@@ -382,8 +382,8 @@ struct DiscoveryDetailSheet: View {
             }
             Spacer(minLength: 0)
         }
-        .frame(width: AppDesignCore.Metrics.sheetDetailSize.width,
-               height: AppDesignCore.Metrics.sheetDetailSize.height)
+        .frame(width: AppDesign.Metrics.sheetDetailSize.width,
+               height: AppDesign.Metrics.sheetDetailSize.height)
         .onAppear { vm.loadDiscoveryDetail(modId: row.hit.modId) }
         .onDisappear { vm.closeDiscoveryDetail() }
     }
