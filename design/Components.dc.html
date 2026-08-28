@@ -53,11 +53,19 @@
         </div>
         <div style="display: flex; gap: 8px; align-items: center">
           <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 4px; background: rgba(179,140,89,.12); border: .5px solid rgba(179,140,89,.30)"><span style="width: 7px; height: 7px; border-radius: 999px; background: #B38C59"></span><span style="font-size: 10px; font-weight: 500; color: #B38C59">Animaux de compagnie / Chevaux</span></span>
-          <span style="font-size: 11px; color: rgba(255,255,255,.45)">le brun clair perd du contraste sur fond sombre</span>
+          <span style="font-size: 11px; color: rgba(255,255,255,.45)">la même pastille gagne en contraste ici, et en perd sur fond clair</span>
         </div>
       </div>
     </div>
-    <div style="font-size: 11px; color: rgba(0,0,0,.45)">Source : <code style="font-family: ui-monospace, monospace">StarHubTH/Views/Components/CategoryBadge.swift</code> · teintes tirées de <code style="font-family: ui-monospace, monospace">NexusCategory.all</code></div>
+    <div style="font-size: 11px; color: rgba(0,0,0,.45); text-wrap: pretty">
+      Source : <code style="font-family: ui-monospace, monospace">StarHubTH/Views/Components/CategoryBadge.swift</code> · teintes tirées de <code style="font-family: ui-monospace, monospace">NexusCategory.all</code>
+    </div>
+    <div style="font-size: 12px; padding: 10px 12px; border-radius: 8px; background: rgba(255,149,0,.1); border: 1px solid rgba(255,149,0,.3); text-wrap: pretty">
+      <b style="font-weight: 600">Mesuré, et pas bon :</b> aucune des 26 teintes n'atteint 4,5:1 sur les <b style="font-weight: 600">deux</b> thèmes — le seuil AA pour du texte de 10 pt.
+      Sur les cinq montrées ici : « Bétail et animaux » 4,56 en clair mais 2,18 en sombre, « Cultures » 2,43 en clair et 3,95 en sombre,
+      « Animaux de compagnie / Chevaux » 2,53 / 3,77. Une teinte lisible sur un thème l'est mal sur l'autre, par construction : la couleur est la même des deux côtés.
+      Le sens ne s'y perd pas — le nom est toujours écrit à côté du point —, mais la lecture, si. À reprendre avec l'accessibilité (I-T3), pas en phase 0.
+    </div>
   </section>
 
   <!-- NeutralBadge -->
