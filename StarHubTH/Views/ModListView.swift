@@ -1661,9 +1661,9 @@ struct ModListRow: View {
                             .foregroundColor(.secondary)
                     }
                     .buttonStyle(PlainButtonStyle())
-                    .help(vm.L(L10n.Settings.configCodeEditor))
-                    .accessibilityLabel(vm.L(L10n.Settings.configCodeEditor))
-                    .accessibilityHint(vm.L(L10n.Settings.configCodeEditorA11yHint))
+                    .help(vm.L(L10n.Settings.configModSettings))
+                    .accessibilityLabel(vm.L(L10n.Settings.configModSettings))
+                    .accessibilityHint(vm.L(L10n.Settings.configModSettingsA11yHint))
                     .pointingHandCursor()
                 }
 
@@ -1836,7 +1836,7 @@ struct ModListRow: View {
                     .appendingPathComponent(mod.physicalFolderName)
                 NSWorkspace.shared.open(url)
             }
-            Button(vm.L(L10n.Settings.configCodeEditor)) {
+            Button(vm.L(L10n.Settings.configModSettings)) {
                 vm.editingModConfig = mod
             }
             let effectiveLink = vm.nexusLink(for: mod)

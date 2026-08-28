@@ -226,7 +226,10 @@ struct MainView: View {
             Group {
                 if currentTab == "Mods" {
                     if let mod = vm.editingModConfig {
-                        ModConfigEditorView(vm: vm, mod: mod, initialTab: 1)
+                        // L'onglet visuel par défaut : c'est celui qui montre
+                        // les réglages du mod, l'onglet de code étant le repli
+                        // pour ce que l'écran ne sait pas rendre.
+                        ModConfigEditorView(vm: vm, mod: mod)
                     } else if let mod = vm.viewingModDetail {
                         ModDetailView(vm: vm, mod: mod)
                             .id(mod.folderName)
