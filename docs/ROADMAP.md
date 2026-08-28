@@ -1884,6 +1884,14 @@ par lot, une release par lot. Périmètre : visuel + navigation —
 >    colonnes égales.
 > 6. **Liste des mods** — la pastille de catégorie y est inchangée
 >    (`CategoryBadge` a déménagé, pas changé).
+>
+> **Vérifié à l'écran le 2026-08-28 : rien à signaler.** Les six points sont
+> passés — places réservées tenues sur la sélection française, pastille
+> « installé » inchangée, états et bandeau de panne rendus avec leur action,
+> le plus long libellé de catégorie logé dans une carte à 240 px, fiche et
+> liste des mods identiques. **La phase 0 tient sa revendication : aucun
+> changement visuel.** L'audit de fidélité du closage (H-T9) part donc d'une
+> base constatée, pas supposée.
 - [ ] **H-T2** — **Navigation** : un seul style d'item de sidebar, badge
       capsule sur l'item (motif Mail) — fin de la zone de statut séparée ;
       4 groupes : Bibliothèque / Parties / Santé & secours / Application.
