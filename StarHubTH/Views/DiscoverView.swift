@@ -71,33 +71,30 @@ struct DiscoverView: View {
     /// de leur nom traduit. Il part au serveur — chaque choix redemande les
     /// trois sections, et chaque catégorie a son propre cache de 24 h.
     private var categoryPicker: some View {
-        Menu {
-            Button {
-                vm.setDiscoveryCategory(nil)
-            } label: {
-                Label(vm.L(L10n.Mods.categoryFilterAll), systemImage: "square.grid.2x2")
-            }
+        // Un `Picker` lié à une valeur, et non un `Menu` de `Button` : chaque
+        // choix remplace la vitrine **et** la recherche affichée, donc
+        // reconstruit la hiérarchie sous le menu ouvert — un second choix ne
+        // partait plus. Un `Picker` porte sa sélection, il survit à la
+        // reconstruction.
+        Picker(vm.L(L10n.Mods.categoryFilter), selection: categorySelection) {
+            Text(vm.L(L10n.Mods.categoryFilterAll)).tag(0)
             Divider()
             ForEach(sortedCategories, id: \.id) { category in
-                Button {
-                    vm.setDiscoveryCategory(category)
-                } label: {
-                    // Un menu SwiftUI rend le label en texte simple : le glyphe
-                    // doit tenir dans le `Text`, un `Label` le perdrait.
-                    Text(category.emoji + " " + category.localizedName(vm.L))
-                }
-            }
-        } label: {
-            HStack(spacing: 6) {
-                Image(systemName: "tag")
-                Text(vm.discoveryCategory?.localizedName(vm.L)
-                     ?? vm.L(L10n.Mods.categoryFilter))
-                    .lineLimit(1)
+                // Un menu SwiftUI rend l'item en texte simple : le glyphe doit
+                // tenir dans le `Text`, un `Label` le perdrait.
+                Text(category.emoji + " " + category.localizedName(vm.L)).tag(category.id)
             }
         }
-        .menuStyle(.borderlessButton)
-        .fixedSize()
+        .pickerStyle(.menu)
+        .frame(maxWidth: 260)
         .help(vm.L(L10n.Mods.categoryFilter))
+    }
+
+    /// `0` = toutes les catégories : `NexusCategory` n'utilise pas cet
+    /// identifiant (la racine `1` non plus n'est jamais assignée).
+    private var categorySelection: Binding<Int> {
+        Binding(get: { vm.discoveryCategory?.id ?? 0 },
+                set: { vm.setDiscoveryCategory($0 == 0 ? nil : NexusCategory.from(id: $0)) })
     }
 
     private var sortedCategories: [NexusCategory] {
@@ -172,10 +169,14 @@ struct DiscoverView: View {
                     Text(vm.L(L10n.Discovery.noMatch))
                         .font(.caption).foregroundStyle(.secondary)
                 } else {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 12) {
-                            ForEach(rows) { card($0) }
-                        }
+                    // En grille, pas en bande qui défile : sur la largeur
+                    // d'un écran, une bande horizontale ne montrait que 4 ou
+                    // 5 mods sur 20, sans ascenseur pour dire qu'il y en
+                    // avait d'autres — et les vingt suivants demandés par
+                    // « voir plus » atterrissaient hors de vue.
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 240), spacing: 12)],
+                              spacing: 12) {
+                        ForEach(rows) { card($0) }
                     }
                 }
             }
