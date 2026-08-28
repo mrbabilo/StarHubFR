@@ -457,7 +457,7 @@ struct ModConfigEditorView: View {
                         return live
                     },
                     set: { update(item, to: .integer($0)) }
-                ), step: 1)
+                ), step: 1, formatter: Self.integerFormatter)
 
             case .decimal(let value):
                 numberField(value: Binding(
@@ -466,7 +466,7 @@ struct ModConfigEditorView: View {
                         return live
                     },
                     set: { update(item, to: .decimal($0)) }
-                ), step: 0.5)
+                ), step: 0.5, formatter: Self.decimalFormatter)
 
             case .text(let value):
                 TextField("", text: Binding(
@@ -483,13 +483,32 @@ struct ModConfigEditorView: View {
         .padding(.vertical, 8)
     }
 
-    /// Le champ numérique, entier ou décimal — la seule différence est le pas.
+    private static let integerFormatter = NumberFormatter()
+
+    /// Un `NumberFormatter` nu a `numberStyle = .none`, donc **zéro décimale** :
+    /// le champ décimal affichait `0` pour `0,5` et `1` pour `1,25`, et
+    /// refusait la saisie qu'il venait d'afficher. Le défaut précède C4-T5 —
+    /// l'ancien champ `Double` avait le même formateur nu — et touche
+    /// **758 des 11 891 options du parc**.
+    ///
+    /// Le séparateur reste celui de la langue de l'utilisateur (une virgule en
+    /// français) ; le fichier, lui, est toujours écrit avec un point.
+    private static let decimalFormatter: NumberFormatter = {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.maximumFractionDigits = 15
+        formatter.usesGroupingSeparator = false
+        return formatter
+    }()
+
+    /// Le champ numérique, entier ou décimal — pas et formateur près.
     /// Les deux versions étaient copiées l'une sur l'autre à 4 lignes près.
     @ViewBuilder
     private func numberField<Number: Numeric & Comparable>(value: Binding<Number>,
-                                                           step: Number) -> some View {
+                                                           step: Number,
+                                                           formatter: NumberFormatter) -> some View {
         HStack(spacing: 6) {
-            TextField("", value: value, formatter: NumberFormatter())
+            TextField("", value: value, formatter: formatter)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .multilineTextAlignment(.trailing)
                 .frame(width: 70)
