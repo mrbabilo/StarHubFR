@@ -134,6 +134,7 @@ let package = Package(
                 "Models/ContentPackI18n.swift",
                 "Models/ConfigEditorModel.swift",
                 "Extensions/ModConfigFiles.swift",
+                "Models/HomeAttention.swift",
             ]
         ),
         .testTarget(
@@ -689,6 +690,11 @@ let package = Package(
             name: "ProfileConfigStoreTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ProfileConfigStoreTests"
+        ),
+        .testTarget(
+            name: "HomeAttentionTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/HomeAttentionTests"
         ),
     ]
 )
