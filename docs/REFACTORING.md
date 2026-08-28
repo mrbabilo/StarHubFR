@@ -12,6 +12,12 @@ sauvegardes et bissection. Il est passé de 4390 à 4153 lignes le 2026-08-01, c
 ne change pas sa nature : c'est un module fourre-tout dont **aucune ligne n'est
 testable**.
 
+⚠️ **Mesure du 2026-08-28 : 8389 lignes.** Le gain de 237 lignes d'août 2026 a été
+effacé et doublé — le module a **doublé** depuis le relevé initial de 4278. Chaque axe
+livré depuis (traduction, profils, découverte) y a déposé sa part, ce que **F1-T2** était
+censé empêcher. Le chiffre ci-dessus reste écrit tel qu'il était : il montre que la
+seule extraction menée n'a pas tenu la pente.
+
 Le coût est déjà constaté, pas théorique : le 2026-07-31 a produit trois listes de
 chemins d'outils divergentes et quatre nettoyeurs de manifeste incompatibles, faute
 d'un endroit unique où chaque chose vit.

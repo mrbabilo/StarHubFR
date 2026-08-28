@@ -84,7 +84,7 @@ liste du 2026-07-30 et n'existaient pas dans le document de veille.
 | :-- | :-- | :-- | :-- |
 | **§new** | Désactivation/activation **dichotomique** pour isoler un mod défectueux | **Fait ✅** | `Models/BisectionSession.swift` (Core, testé) + `BisectionRunner` + `Views/Components/BisectionCard.swift` |
 | **§new** | Mutualiser les diagnostics/mesures de perf entre utilisateurs (cf. `circinus.sh`) | **À faire** | Aucun backend → **D2** (décision produit, non chiffrée) |
-| **§new** | Refactoriser le God module | **À faire** | `StarHubTHViewModel.swift` = **6485 lignes** (4278 au relevé initial, +52 %) → **F1** |
+| **§new** | Refactoriser le God module | **À faire** | `StarHubTHViewModel.swift` = **8389 lignes** (mesuré le 2026-08-28 ; 4278 au relevé initial, +96 %) → **F1** |
 | **§new** | Vérifier optimisation (vitesse, mémoire) et sécurité du code | **À faire** | → **F2** |
 | **§new** | Copier/coller du NexusID impossible | **Non reproduit** | Fonctionne ; le menu Édition est présent → **X1** clos |
 | **§new** | BBCode/Markdown non rendu dans la description | **Corrigé ✅** | 6 défauts reproduits sur SVE (3753) puis corrigés (tokeniseur récursif) ; rendu typé ajouté (titres/listes/code/citations/centrage/couleur/souligné), vérifié sur 51 descriptions → **X2** |
@@ -322,7 +322,7 @@ plus **B1-T1** et **B1-T2**.
 **Risques** : manipulation massive de dossiers ; un abandon en cours de session ne doit
 jamais laisser la modlist dans un état intermédiaire.
 ⚠️ **Dépendance croisée avec F1** : A4-T2 s'appuie sur la machinerie de profils, qui vit
-dans le VM de 4278 lignes que **F1-T1** désigne justement comme premier candidat à
+dans le VM — 8389 lignes au 2026-08-28 — que **F1-T1** désigne justement comme premier candidat à
 l'extraction. Deux issues acceptables — soit l'état de session de bissection naît d'emblée
 dans son propre type, soit **F1-T1** passe avant. À trancher au démarrage de la version,
 pas à mi-parcours.
@@ -1658,8 +1658,10 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
 > **Méthode, ordre des extractions et état d'avancement : [`REFACTORING.md`](REFACTORING.md).**
 > Ce document-ci ne garde que les tâches ; le comment vit là-bas.
 
-- [ ] **F1** — **Découper le God module.** `StarHubTHViewModel.swift` fait **4278 lignes**
-      et concentre profils, scan, Nexus, logs, configs et sauvegardes.
+- [ ] **F1** — **Découper le God module.** `StarHubTHViewModel.swift` fait **8389 lignes**
+      (mesuré le 2026-08-28 ; **4278** au relevé initial du 2026-07-30, soit **+96 %** —
+      le module grossit plus vite qu'on ne l'allège) et concentre profils, scan, Nexus,
+      logs, configs et sauvegardes.
       **Méthode imposée par l'environnement** : `swift test` est inutilisable ici, donc un
       refactor n'a pour filet que la **compilation** (`python3 build_app.py`) — ce qui
       exclut tout big-bang. Deux règles :
@@ -1725,7 +1727,7 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
       scan (~900 mods), concurrence (`scanMods()` parallèle, verrous du registre), et
       surface de sécurité : extraction d'archives (traversée de chemin, zip-bomb — déjà
       partiellement couverte), stockage de la clé Nexus, gestion du protocole `nxm://`,
-      écritures dans `Mods/`. · **M** · *à faire après F1-T1 : auditer 4278 lignes de VM
+      écritures dans `Mods/`. · **M** · *à faire après F1-T1 : auditer 8389 lignes de VM
       monolithique coûte plus cher que d'auditer des types séparés.*
       ⚠️ **Une partie de l'inventaire existe déjà** :
       [`audit-swift-2026-08-05.md`](audit-swift-2026-08-05.md) — 309 lignes, ~72 findings
@@ -1733,6 +1735,9 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
       part de la performance. Il porte son propre avertissement de péremption (il a listé
       comme ouverts pendant cinq jours trois findings corrigés entre-temps) : `git log -S`
       sur le symbole avant d'attaquer une ligne. **F2 le complète, il ne le refait pas.**
+      À y joindre le candidat **#4 de `§audit-gestionnaires`** : la liste explicite de
+      garde-fous d'écriture de Vortex (`policy.ts`), à reprendre **comme grille de revue
+      de nos chemins d'écriture**, pas comme code à porter.
 - [ ] **F5** — **StarHubFR et StarHubTH écrivent dans les mêmes données.** Le fork a changé
       le nom du produit, pas son identité : le bundle reste `com.appleboiy.StarHubTH` et
       les fichiers vivent sous `~/Library/Application Support/StarHubTH/`. Deux
