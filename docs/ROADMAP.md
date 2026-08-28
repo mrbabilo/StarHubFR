@@ -672,9 +672,23 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       fichier avec `.prettyPrinted`, dont **l'ordre des clés est celui du dictionnaire**,
       pas celui du fichier. Il dépose en outre un `.bak` à côté du fichier au lieu de
       passer par `ModConfigBackupManager`. · **M**
+      **Les quatre points, repérés** — `ModConfigEditorView.swift` : validation et
+      lecture par `JSONSerialization` (`:242`, `:252`, `:295`), tri alphabétique à
+      l'affichage (`:295`, `dict.keys.sorted()`), réécriture `.prettyPrinted` dont
+      l'ordre est celui du dictionnaire (`:349`, d'où le rattrapage `\\/` → `/` juste
+      après), et sauvegarde en `.bak` voisin (`:359`) au lieu de
+      `ModConfigBackupManager`. `ConfigJSONTree.parse` / `.write` couvrent déjà les
+      trois premiers besoins ; c'est un remplacement, pas une écriture.
+      **Cas de démonstration, sur son parc** : `[CP] More Upgrades`, actif, **87 clés
+      que l'auteur a réparties en 15 sections avec 75 descriptions** — l'écran les
+      affiche aujourd'hui à plat et par ordre alphabétique, ce qui met
+      `BigSilo_BuildCost` à côté de `BigSilo` et très loin de `SuperBarn`.
       ⚠️ **À passer avant le reskin de cet écran par l'axe H** : re-styler une liste
       triée alphabétiquement et incapable d'ouvrir un JSON5 fige le défaut sous une
       nouvelle peau.
+      ⚠️ **Vérification humaine obligatoire** : c'est du code de vue, hors de portée de
+      `swift test` ; le seul gate automatique est la compilation, et tout l'enjeu est un
+      comportement d'écran. Ne pas livrer sur « ça compile ».
 - [ ] **C4-T2** — Champs de raccourcis clavier : validation des noms `SButton`, détection
       des collisions entre mods. · **M**
       `§audit-config-menus` : la tâche est confirmée par l'existence de
