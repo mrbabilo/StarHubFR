@@ -20,7 +20,11 @@ where the exact log format was verified.
 
 - **Installer un mod directement depuis sa fiche Découvrir.** Le bouton emprunte le pipeline des mises à jour — le fichier principal est résolu, téléchargé, et la feuille d'installation habituelle prend le relais. Il demande un compte Nexus Premium, faute de quoi l'API de lien refuse la demande ; sur un compte gratuit le bouton est grisé et le dit, « Ouvrir sur Nexus » restant la voie de toujours. Un mod déjà installé n'est pas réinstallé depuis la vitrine : sa mise à jour se fait depuis la liste des mods.
 
+- **Voir plus de mods dans une section, et dans les résultats de recherche.** Chaque bande s'arrêtait à vingt mods sur des sections qui en comptent des milliers ; un bouton en demande la suite et l'ajoute à ce qui est déjà là, sans doublon. Il disparaît quand tout est chargé.
+
 ### Fixed
+- **« 20 affichés sur 33 204 » ne comparait rien à rien.** Le second nombre était le catalogue entier du jeu, sans rapport avec la bande. Les sections annoncent maintenant ce qui est montré par rapport à ce qui a été **reçu** — ce que la mention voulait dire depuis le début : signaler qu'un filtre a écarté des mods. Les résultats de recherche gardent leur total serveur, qui lui dit bien que la liste est plafonnée.
+- **« Ouvrir sur Nexus » ouvre l'onglet des fichiers** et referme la fiche derrière lui, au lieu de laisser la modale ouverte sur la description qu'on vient de quitter.
 - **Une panne réseau ne laisse plus son bandeau d'erreur en haut de l'onglet Découvrir.** Le message n'était effacé nulle part : une fois affiché, il survivait à tous les chargements réussis qui suivaient. Il disparaît maintenant dès la tentative suivante.
 - **Une section vide ne dit plus « Rien n'est encore chargé ».** Elle avait pourtant répondu — ce sont les filtres qui ne laissaient rien passer, et le message envoyait rafraîchir pour rien.
 

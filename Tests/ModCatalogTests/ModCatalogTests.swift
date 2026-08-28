@@ -114,4 +114,31 @@ struct ModCatalogTests {
         // Une catégorie jamais chargée ne récupère pas celui d'une autre.
         #expect(catalog.state(.trending, category: 21) == .empty(.neverLoaded))
     }
+
+    /// « Voir plus » **ajoute** à ce qui est déjà là, sans doublon et sans
+    /// perdre le total serveur : recharger la page suivante ne doit ni
+    /// remplacer la bande, ni la faire repartir de zéro.
+    @Test func loadingMoreAppendsWithoutDuplicates() {
+        let (catalog, _) = makeCatalog()
+        catalog.record(.trending, page: NexusModSearch.Page(hits: page(1, 2).hits,
+                                                            totalCount: 900))
+        catalog.append(.trending, page: NexusModSearch.Page(hits: page(2, 3).hits,
+                                                            totalCount: 900))
+        guard case .fresh(let merged) = catalog.state(.trending) else {
+            Issue.record("la section reste fraîche après un ajout"); return
+        }
+        // Le 2 arrivait dans les deux pages : une seule carte, à sa place.
+        #expect(merged.hits.map(\.modId) == [1, 2, 3])
+        #expect(merged.totalCount == 900)
+    }
+
+    /// Ajouter sur une section jamais chargée écrit la page telle quelle —
+    /// personne ne doit avoir à séquencer un `record` avant un `append`.
+    @Test func appendingToAnEmptySectionJustRecordsIt() {
+        let (catalog, _) = makeCatalog()
+        catalog.append(.recent, page: page(4, 5))
+        if case .fresh(let p) = catalog.state(.recent) {
+            #expect(p.hits.map(\.modId) == [4, 5])
+        } else { Issue.record("la page ajoutée devient la section") }
+    }
 }

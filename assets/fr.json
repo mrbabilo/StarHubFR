@@ -1156,5 +1156,7 @@
   "discovery_endorsements": "%d endossements",
   "discovery_no_match": "Aucun mod ici avec ces filtres.",
   "discovery_install": "Installer",
-  "discovery_already_installed": "Ce mod est déjà installé — sa mise à jour se fait depuis la liste des mods."
+  "discovery_already_installed": "Ce mod est déjà installé — sa mise à jour se fait depuis la liste des mods.",
+  "discovery_shown_of_loaded": "%1$d affichés sur %2$d chargés",
+  "discovery_load_more": "Voir plus"
 }

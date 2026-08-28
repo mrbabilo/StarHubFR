@@ -25,11 +25,13 @@ enum NexusSearchClient {
     /// - Parameter completion: appelé **sur le fil principal**.
     /// - Parameter tag: restreint au tag Nexus donné — `NexusModSearch.frenchTag`
     ///   pour ne rendre que les traductions françaises. `nil` cherche large.
-    static func search(name: String, tag: String? = nil,
+    /// - Parameter offset: le rang du premier résultat voulu — « voir plus »
+    ///   sur une recherche qui en rend plus que la page.
+    static func search(name: String, tag: String? = nil, offset: Int = 0,
                        completion: @escaping (Result<NexusModSearch.Page, SearchError>) -> Void) {
         send(body: NexusModSearch.queryBody(name: name,
                                             gameId: NexusRequestBuilder.gameId,
-                                            tag: tag),
+                                            tag: tag, offset: offset),
              decode: NexusModSearch.decode,
              completion: completion)
     }
@@ -41,10 +43,11 @@ enum NexusSearchClient {
     ///   anglais** (`NexusCategory.englishName`) : c'est ce que le filtre
     ///   `categoryName` attend, et le seul que l'API connaisse.
     static func listing(sort: NexusModSearch.ListingSort, tag: String? = nil,
-                        category: String? = nil,
+                        category: String? = nil, offset: Int = 0,
                         completion: @escaping (Result<NexusModSearch.Page, SearchError>) -> Void) {
         send(body: NexusModSearch.listingBody(sort: sort, tag: tag, category: category,
-                                              gameId: NexusRequestBuilder.gameId),
+                                              gameId: NexusRequestBuilder.gameId,
+                                              offset: offset),
              decode: NexusModSearch.decode,
              completion: completion)
     }

@@ -119,18 +119,29 @@ struct DiscoverView: View {
                       spacing: 12) {
                 ForEach(search.rows) { row in card(row) }
             }
+            if search.loaded < search.totalCount {
+                Button {
+                    vm.loadMoreDiscoverySearch()
+                } label: {
+                    Label(vm.L(L10n.Discovery.loadMore), systemImage: "ellipsis.circle")
+                }
+                .disabled(vm.discoveryLoading)
+            }
         }
     }
 
     private func section(_ kind: ModCatalog.SectionKind) -> some View {
-        let (rows, shown, total) = vm.discoveryRows(for: kind, hidingInstalled: hideInstalled)
+        let (rows, shown, loaded, total) = vm.discoveryRows(for: kind,
+                                                            hidingInstalled: hideInstalled)
         return VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text(title(for: kind)).font(.title3.bold())
                 Spacer()
-                // Un filtre ne doit pas masquer qu'il a filtré (spec §7.1) —
-                // « 3 affichés sur 20 ».
-                Text(String(format: vm.L(L10n.Discovery.shownOfTotal), shown, total))
+                // Ce qui est montré comparé à ce qui a été **reçu** : un
+                // filtre ne doit pas masquer qu'il a filtré (spec §7.1). Le
+                // comparer au catalogue entier — « 20 affichés sur 33 204 »
+                // — ne comparait rien à rien.
+                Text(String(format: vm.L(L10n.Discovery.shownOfLoaded), shown, loaded))
                     .font(.caption).foregroundStyle(.secondary)
                 Button {
                     vm.loadDiscovery(force: true)
@@ -151,7 +162,23 @@ struct DiscoverView: View {
                         .font(.caption).foregroundStyle(.secondary)
                 } else {
                     ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 12) { ForEach(rows) { card($0) } }
+                        HStack(spacing: 12) {
+                            ForEach(rows) { card($0) }
+                            // La bande s'arrêtait à vingt mods sur des
+                            // sections qui en comptent des milliers : la
+                            // suite se demande ici, à la fin de la bande.
+                            if loaded < total {
+                                Button {
+                                    vm.loadMoreDiscovery(kind)
+                                } label: {
+                                    Label(vm.L(L10n.Discovery.loadMore),
+                                          systemImage: "ellipsis.circle")
+                                        .frame(width: 120, height: 120)
+                                }
+                                .buttonStyle(.plain)
+                                .disabled(vm.discoveryLoading)
+                            }
+                        }
                     }
                 }
             }
@@ -265,8 +292,10 @@ struct DiscoveryDetailSheet: View {
     let row: StarHubTHViewModel.DiscoveryRow
     @Environment(\.dismiss) private var dismiss
 
+    /// L'onglet **Files** directement : c'est là qu'on va quand on ouvre la
+    /// page depuis la vitrine — la description, on vient de la lire ici.
     private var nexusURL: URL? {
-        URL(string: "https://www.nexusmods.com/stardewvalley/mods/\(row.hit.modId)")
+        URL(string: "https://www.nexusmods.com/stardewvalley/mods/\(row.hit.modId)?tab=files")
     }
 
     var body: some View {
@@ -283,7 +312,13 @@ struct DiscoveryDetailSheet: View {
             // retiré la porte de sortie au moment précis où elle sert.
             HStack(spacing: 12) {
                 if let url = nexusURL {
-                    Link(destination: url) {
+                    // Un `Button` et non un `Link` : la fiche doit se fermer
+                    // en même temps que la page s'ouvre, et un `Link` ne
+                    // laisse pas la main pour `dismiss()`.
+                    Button {
+                        NSWorkspace.shared.open(url)
+                        dismiss()
+                    } label: {
                         Label(vm.L(L10n.Discovery.openNexus), systemImage: "safari")
                     }
                 }

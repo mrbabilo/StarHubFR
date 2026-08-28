@@ -5820,6 +5820,13 @@ class StarHubTHViewModel: ObservableObject {
     struct DiscoverySearchResult {
         let rows: [DiscoveryRow]
         let totalCount: Int
+        /// Le terme qui a produit ces lignes — « voir plus » redemande la
+        /// tranche suivante du **même** terme, pas de ce que le champ de
+        /// recherche contient au moment du clic.
+        let term: String
+        /// Les résultats reçus, doublons compris — ce sur quoi se calcule la
+        /// tranche suivante.
+        let loaded: Int
     }
 
     /// Où en est une fiche demandée depuis la vitrine.
@@ -5943,14 +5950,52 @@ class StarHubTHViewModel: ObservableObject {
         .filter { !(hidingInstalled && $0.installed) }
     }
 
-    /// Les cartes visibles d'une section, et le compte toujours rendu : un
-    /// filtre ne doit pas masquer qu'il a filtré (spec §7.1).
+    /// Les cartes visibles d'une section, ce qui a été **reçu** pour elle, et
+    /// ce que le serveur dit avoir en tout.
+    ///
+    /// Le compte se lit « x affichés sur y chargés » : un filtre ne doit pas
+    /// masquer qu'il a filtré (spec §7.1), mais l'annoncer sur le total du
+    /// catalogue — « 20 affichés sur 33 204 » — ne comparait rien à rien. Le
+    /// total serveur ne sert plus qu'à savoir s'il reste une tranche à
+    /// demander.
     func discoveryRows(for kind: ModCatalog.SectionKind,
-                       hidingInstalled: Bool) -> (rows: [DiscoveryRow], shown: Int, total: Int) {
-        guard let page = discovery[kind]?.page else { return ([], 0, 0) }
+                       hidingInstalled: Bool)
+    -> (rows: [DiscoveryRow], shown: Int, loaded: Int, total: Int) {
+        guard let page = discovery[kind]?.page else { return ([], 0, 0, 0) }
         let rows = discoveryRows(in: page.hits, hidingInstalled: hidingInstalled,
                                  francophoneOnly: true)
-        return (rows, rows.count, page.totalCount)
+        return (rows, rows.count, page.hits.count, page.totalCount)
+    }
+
+    /// Demande la tranche suivante d'une section — « voir plus ».
+    ///
+    /// L'offset est le nombre de mods **déjà reçus**, pas le nombre affiché :
+    /// compter les cartes visibles ferait redemander sans fin ce que les
+    /// filtres viennent d'écarter.
+    func loadMoreDiscovery(_ kind: ModCatalog.SectionKind) {
+        guard let page = discovery[kind]?.page,
+              page.hits.count < page.totalCount else { return }
+        let category = discoveryCategory
+        pendingSectionFetches += 1
+        discoveryLoading = true
+        NexusSearchClient.listing(sort: kind.defaultSort, tag: kind.defaultTag,
+                                  category: category?.englishName,
+                                  offset: page.hits.count) { [weak self] result in
+            guard let self else { return }
+            self.pendingSectionFetches = max(0, self.pendingSectionFetches - 1)
+            if self.pendingSectionFetches == 0 { self.discoveryLoading = false }
+            guard self.discoveryCategory?.id == category?.id else { return }
+            switch result {
+            case .success(let next):
+                self.discoveryCatalog.append(kind, category: category?.id, page: next)
+                self.discovery[kind] = self.discoveryCatalog.state(kind,
+                                                                   category: category?.id)
+            case .failure(let error):
+                // La bande déjà là ne bouge pas : seule la suite manque, et
+                // le bandeau dit pourquoi.
+                self.lastDiscoveryError = error
+            }
+        }
     }
 
     /// Recherche par nom dans la vitrine : même client que la liaison
@@ -5968,10 +6013,42 @@ class StarHubTHViewModel: ObservableObject {
                 self.discoverySearch = DiscoverySearchResult(
                     rows: self.discoveryRows(in: page.hits, hidingInstalled: false,
                                              francophoneOnly: false),
-                    totalCount: page.totalCount)
+                    totalCount: page.totalCount,
+                    term: name,
+                    loaded: page.hits.count)
             case .failure(let error):
                 self.lastDiscoveryError = error
                 self.discoverySearch = nil
+            }
+        }
+    }
+
+    /// La tranche suivante des résultats de recherche.
+    ///
+    /// Le terme redemandé est celui qui a produit la liste, retenu au
+    /// résultat : reprendre le champ de saisie servirait la suite d'une autre
+    /// recherche à qui aurait retapé entre-temps.
+    func loadMoreDiscoverySearch() {
+        guard let current = discoverySearch, current.loaded < current.totalCount else { return }
+        NexusSearchClient.search(name: current.term, offset: current.loaded) { [weak self] result in
+            guard let self else { return }
+            // La recherche a pu être quittée ou relancée pendant la requête.
+            guard let now = self.discoverySearch, now.term == current.term,
+                  now.loaded == current.loaded else { return }
+            switch result {
+            case .success(let page):
+                var seen = Set(now.rows.map(\.hit.modId))
+                let fresh = page.hits.filter { seen.insert($0.modId).inserted }
+                self.lastDiscoveryError = nil
+                self.discoverySearch = DiscoverySearchResult(
+                    rows: now.rows + self.discoveryRows(in: fresh, hidingInstalled: false,
+                                                        francophoneOnly: false),
+                    totalCount: page.totalCount,
+                    term: current.term,
+                    loaded: now.loaded + page.hits.count)
+            case .failure(let error):
+                // Les résultats déjà là restent : seule la suite manque.
+                self.lastDiscoveryError = error
             }
         }
     }

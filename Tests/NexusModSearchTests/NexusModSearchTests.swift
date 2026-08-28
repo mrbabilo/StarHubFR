@@ -554,9 +554,10 @@ struct NexusModSearchTests {
 
     private func listingBody(_ sort: NexusModSearch.ListingSort,
                              tag: String? = nil,
-                             category: String? = nil) -> [String: Any] {
+                             category: String? = nil,
+                             offset: Int = 0) -> [String: Any] {
         let data = NexusModSearch.listingBody(sort: sort, tag: tag, category: category,
-                                              gameId: 1303)!
+                                              gameId: 1303, offset: offset)!
         return (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] ?? [:]
     }
 
@@ -785,5 +786,13 @@ struct NexusModSearchTests {
                     .contains("modCategory { categoryId name }"))
         #expect((body("Parchment")["query"] as? String ?? "")
                     .contains("modCategory { categoryId name }"))
+    }
+
+    /// Voir la suite d'une section : `offset` était figé à 0 — vingt mods et
+    /// puis plus rien, sur des sections qui en comptent des milliers.
+    @Test func aListingCanAskForTheNextPage() {
+        #expect((listingBody(.endorsed)["variables"] as? [String: Any])?["offset"] as? Int == 0)
+        let next = listingBody(.endorsed, offset: 40)
+        #expect((next["variables"] as? [String: Any])?["offset"] as? Int == 40)
     }
 }

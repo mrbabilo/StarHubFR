@@ -116,6 +116,24 @@ public struct ModCatalog {
         save(sectionKey(kind, category), data)
     }
 
+    /// Ajoute une page à la suite de ce qui est déjà en cache — « voir plus ».
+    ///
+    /// L'ordre d'arrivée est conservé et les doublons écartés : une tranche
+    /// suivante peut rendre un mod déjà vu si le classement a bougé entre les
+    /// deux requêtes. Le total serveur est celui de la dernière réponse. Sur
+    /// une section jamais chargée, ajouter revient à enregistrer.
+    ///
+    /// La date de sauvegarde est **remise à l'heure de l'ajout** : la bande
+    /// entière vient d'être confirmée par le serveur, la vieillir à sa
+    /// première moitié périmerait un contenu tout juste rendu.
+    public func append(_ kind: SectionKind, category: Int? = nil,
+                       page: NexusModSearch.Page) {
+        let existing = state(kind, category: category).page?.hits ?? []
+        record(kind, category: category,
+               page: NexusModSearch.Page(hits: existing + page.hits,
+                                         totalCount: page.totalCount))
+    }
+
     /// La fiche cachée, tant qu'elle a moins de 24 h.
     public func detail(for modId: Int) -> NexusModSearch.Detail? {
         guard let data = load(detailKey(modId)),

@@ -249,9 +249,14 @@ public enum NexusModSearch {
     /// vitrine ne cherche rien, elle montre. Mesuré sur l'API réelle le
     /// 2026-08-27 : le jeu entier rend 33 199 mods, le seul tag `French`
     /// en rend 747.
+    /// - Parameter offset: le rang du premier mod voulu — « voir plus » sur
+    ///   une section demande la tranche suivante plutôt que de recharger la
+    ///   même. Une section de tendances compte des milliers de mods : en
+    ///   figer vingt était une limite d'affichage, pas une limite de l'API.
     public static func listingBody(sort: ListingSort, tag: String? = nil,
                                    category: String? = nil,
-                                   gameId: Int, count: Int = 20) -> Data? {
+                                   gameId: Int, count: Int = 20,
+                                   offset: Int = 0) -> Data? {
         let tagFilter = tag.map { _ in ", tag: { value: $tag, op: EQUALS }" } ?? ""
         let tagParam = tag.map { _ in ", $tag: String!" } ?? ""
         // `categoryName` est un champ de `ModsFilter` (introspection
@@ -277,7 +282,8 @@ public enum NexusModSearch {
           }
         }
         """
-        var variables: [String: Any] = ["game": String(gameId), "count": count, "offset": 0]
+        var variables: [String: Any] = ["game": String(gameId), "count": count,
+                                        "offset": offset]
         if let tag { variables["tag"] = tag }
         if let category { variables["category"] = category }
         return try? JSONSerialization.data(withJSONObject: ["query": query,

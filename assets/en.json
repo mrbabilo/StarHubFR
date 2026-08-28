@@ -1156,5 +1156,7 @@
   "discovery_endorsements": "%d endorsements",
   "discovery_no_match": "No mod here with these filters.",
   "discovery_install": "Install",
-  "discovery_already_installed": "This mod is already installed — update it from the mods list."
+  "discovery_already_installed": "This mod is already installed — update it from the mods list.",
+  "discovery_shown_of_loaded": "%1$d shown of %2$d loaded",
+  "discovery_load_more": "Show more"
 }
