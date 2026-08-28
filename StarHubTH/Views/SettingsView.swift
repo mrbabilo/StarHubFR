@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var smapiInstaller: SmapiInstaller
 
     @AppStorage("launchProfile") private var launchProfile: String = "SMAPI"
     @AppStorage("closeAfterLaunch") private var closeAfterLaunch: Bool = false
@@ -12,7 +13,12 @@ struct SettingsView: View {
     @State private var nexusApiKeyInput: String = ""
     @State private var nexusKeySavedFlash: Bool = false
     @State private var showClearDisabledConfirm = false
-    
+
+    init(vm: StarHubTHViewModel) {
+        self.vm = vm
+        self.smapiInstaller = vm.smapiInstaller
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 32) {
@@ -252,6 +258,119 @@ struct SettingsView: View {
                         }
                     }
                 }
+
+                // Regroupées dans un seul `Group` : le VStack parent dépasserait
+                // sinon dix enfants directs (limite de `ViewBuilder.buildBlock`)
+                // avec ces quatre sections en plus des huit déjà présentes.
+                // `Group` est transparent pour la mise en page — l'espacement
+                // de 32pt entre sections n'en est pas affecté.
+                Group {
+                // ── App ──
+                StandardSection(title: vm.L(L10n.Home.appInfo)) {
+                    StandardRow(title: LocalizedStringKey(vm.L(L10n.Home.developer)), detail: "AppleBoiy (original) · mrbabilo (fork)", showDivider: false)
+                }
+
+                // Folder Settings
+                StandardSection(title: vm.L(L10n.Home.gameFolder)) {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(vm.L(L10n.Home.gamePath))
+                                .font(.system(size: 13))
+                            if vm.gameDir.isEmpty {
+                                Text(vm.L(L10n.Home.notSet))
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.secondary)
+                            } else {
+                                Text(vm.gameDir)
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.secondary)
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
+                            }
+                        }
+                        Spacer()
+                        Button(vm.L(L10n.Home.selectFolder)) { vm.selectGameDir() }
+                    }
+                }
+
+                // SMAPI Settings
+                StandardSection(title: vm.L(L10n.Home.smapiManager)) {
+                    VStack(spacing: 0) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(vm.L(L10n.Home.smapiStatus))
+                                    .font(.system(size: 13))
+                                if let version = vm.smapiInstalledVersion {
+                                    Text(String(format: vm.L(L10n.Home.smapiInstalled), version))
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.secondary)
+                                } else {
+                                    Text(vm.L(L10n.Home.smapiNotInstalled))
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            Spacer()
+                            if smapiInstaller.isInstalling {
+                                ProgressView()
+                                    .controlSize(.small)
+                                    .padding(.trailing, 4)
+                            } else if vm.smapiInstalledVersion == nil {
+                                Button(vm.L(L10n.Home.installSmapi)) { vm.installSmapi() }
+                            } else {
+                                Button(vm.L(L10n.Home.uninstall)) { vm.uninstallSmapi() }
+                            }
+                        }
+
+                        if smapiInstaller.isInstalling {
+                            VStack(alignment: .leading, spacing: 4) {
+                                ProgressView(value: smapiInstaller.progress, total: 1.0)
+                                    .progressViewStyle(.linear)
+                                    .tint(.blue)
+                                    .animation(.easeInOut, value: smapiInstaller.progress)
+                                Text(vm.L(smapiInstaller.statusMessage))
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.top, 12)
+                        }
+                    }
+                }
+
+                // ── CORE EXTENSIONS SECTION ──
+                StandardSection(title: vm.L(L10n.Home.coreExtensions)) {
+                    VStack(spacing: 0) {
+                        let core = vm.coreExtensionsSnapshot
+                        CoreModRow(vm: vm, title: "Content Patcher", status: core.contentPatcher.status, mod: core.contentPatcher.mod)
+                        Rectangle().fill(Color.primary.opacity(0.05)).frame(height: 1).padding(.leading, 12).padding(.vertical, 2)
+
+                        CoreModRow(vm: vm, title: "SpaceCore", status: core.spacecore.status, mod: core.spacecore.mod)
+                        Rectangle().fill(Color.primary.opacity(0.05)).frame(height: 1).padding(.leading, 12).padding(.vertical, 2)
+
+                        CoreModRow(vm: vm, title: "Stardew Valley Thai", status: core.thai.status, mod: core.thai.mod)
+                        Rectangle().fill(Color.primary.opacity(0.05)).frame(height: 1).padding(.leading, 12).padding(.vertical, 2)
+
+                        CoreModRow(vm: vm, title: "Stardew Valley Expanded", status: core.sve.status, mod: core.sve.mod)
+                        Rectangle().fill(Color.primary.opacity(0.05)).frame(height: 1).padding(.leading, 12).padding(.vertical, 2)
+
+                        CoreToolRow(
+                            title: vm.L(L10n.Home.toolUnar),
+                            status: core.unarTool.installed ? .enabledAndInstalled : .notInstalled,
+                            tooltip: vm.L(L10n.Home.toolUnarTooltip),
+                            installCommand: "brew install unar"
+                        )
+                        Rectangle().fill(Color.primary.opacity(0.05)).frame(height: 1).padding(.leading, 12).padding(.vertical, 2)
+
+                        CoreToolRow(
+                            title: vm.L(L10n.Home.toolSevenZip),
+                            status: core.sevenZipTool.installed ? .enabledAndInstalled : .notInstalled,
+                            tooltip: vm.L(L10n.Home.toolSevenZipTooltip),
+                            installCommand: "brew install sevenzip"
+                        )
+                    }
+                    .padding(.vertical, -8)
+                }
+                } // Group
 
                 // La version de l'app, en pied de la dernière section — lue dans
                 // le bundle comme sur l'accueil, pour rester juste après chaque
