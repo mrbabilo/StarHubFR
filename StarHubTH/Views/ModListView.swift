@@ -1893,39 +1893,6 @@ struct ModListRow: View {
     }
 }
 
-// MARK: - Category Badge
-
-/// Compact colored pill shown next to a mod's author/version. The dot uses the
-/// category's curated color and the text uses the localized name, so the row
-/// is scannable by hue even at a glance.
-struct CategoryBadge: View {
-    let category: NexusCategory
-    let L: (String) -> String
-
-    var body: some View {
-        HStack(spacing: AppDesign.Spacing.xs) {
-            Circle()
-                .fill(category.color)
-                .frame(width: 7, height: 7)
-            Text(category.localizedName(L))
-                .font(.system(size: 10, weight: .medium))
-                .foregroundColor(category.color)
-                .lineLimit(1)
-        }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 2)
-        .background(
-            RoundedRectangle(cornerRadius: 4)
-                .fill(category.color.opacity(0.12))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 4)
-                .stroke(category.color.opacity(0.30), lineWidth: 0.5)
-        )
-        .help(category.englishName)
-    }
-}
-
 /// Neutral badge shown in place of `CategoryBadge` when a mod has no Nexus
 /// category: displays its offline-inferred type tag (see `ModItem.inferTag`)
 /// instead, so uncategorized mods still carry some at-a-glance grouping info.
