@@ -48,7 +48,7 @@ struct DiscoverView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: AppDesign.Spacing.lg) {
                 toolbar
-                if let error = vm.lastDiscoveryError { errorBanner(error) }
+                if let error = vm.lastDiscoveryError { discoveryErrorBanner(error) }
                 if let search = vm.discoverySearch {
                     searchResults(search)
                 } else {
@@ -254,22 +254,22 @@ struct DiscoverView: View {
     @ViewBuilder private func emptySection(_ reason: ModCatalog.EmptyReason) -> some View {
         switch reason {
         case .neverLoaded:
-            stateCard(icon: "square.grid.2x2", text: vm.L(L10n.Discovery.neverLoaded),
+            StateCard(icon: "square.grid.2x2", text: vm.L(L10n.Discovery.neverLoaded),
                       actionTitle: vm.L(L10n.Discovery.retry)) { vm.loadDiscovery(force: true) }
         case .failed:
             switch vm.lastDiscoveryError {
             case .noApiKey:
                 // La clé sert déjà aux mises à jour : le chemin, pas seulement
                 // le diagnostic.
-                stateCard(icon: "key", text: vm.L(L10n.Discovery.noKey),
+                StateCard(icon: "key", text: vm.L(L10n.Discovery.noKey),
                           actionTitle: vm.L(L10n.Discovery.openSettings)) {
                     currentTab = "Settings"
                 }
             case .rateLimited:
-                stateCard(icon: "hourglass", text: vm.L(L10n.Discovery.rateLimited),
+                StateCard(icon: "hourglass", text: vm.L(L10n.Discovery.rateLimited),
                           actionTitle: vm.L(L10n.Discovery.retry)) { vm.loadDiscovery(force: true) }
             default:
-                stateCard(icon: "wifi.exclamationmark", text: vm.L(L10n.Discovery.error),
+                StateCard(icon: "wifi.exclamationmark", text: vm.L(L10n.Discovery.error),
                           actionTitle: vm.L(L10n.Discovery.retry)) { vm.loadDiscovery(force: true) }
             }
         }
@@ -280,36 +280,16 @@ struct DiscoverView: View {
     /// rapporterait les mêmes mods, écartés par les mêmes règles.
     @ViewBuilder private var noMatchState: some View {
         if vm.discoveryCategory != nil || hideInstalled {
-            stateCard(icon: "line.3.horizontal.decrease.circle",
+            StateCard(icon: "line.3.horizontal.decrease.circle",
                       text: vm.L(L10n.Discovery.noMatch),
                       actionTitle: vm.L(L10n.Discovery.clearFilters)) {
                 hideInstalled = false
                 vm.setDiscoveryCategory(nil)
             }
         } else {
-            stateCard(icon: "line.3.horizontal.decrease.circle",
+            StateCard(icon: "line.3.horizontal.decrease.circle",
                       text: vm.L(L10n.Discovery.noMatch), actionTitle: nil, action: {})
         }
-    }
-
-    private func stateCard(icon: String, text: String, actionTitle: String?,
-                           action: @escaping () -> Void) -> some View {
-        HStack(spacing: AppDesign.Spacing.md) {
-            Image(systemName: icon)
-                .font(.system(size: 20))
-                .foregroundStyle(.tertiary)
-            Text(text).font(AppDesign.Font.body).foregroundStyle(.secondary)
-            Spacer(minLength: AppDesign.Spacing.sm)
-            if let actionTitle {
-                Button(actionTitle, action: action).buttonStyle(.link)
-            }
-        }
-        .padding(AppDesign.Spacing.md)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.background.secondary,
-                    in: RoundedRectangle(cornerRadius: AppDesign.Radius.section))
-        .overlay(RoundedRectangle(cornerRadius: AppDesign.Radius.section)
-            .stroke(Color.primary.opacity(AppDesign.Opacity.light), lineWidth: 1))
     }
 
     /// La carte : vignette **pleine largeur en 16/9**, « installé » posé
@@ -416,36 +396,31 @@ struct DiscoverView: View {
             .background(.fill.tertiary, in: Capsule())
     }
 
-    /// Une seule panne, un seul message : les sections ne répètent pas. En
-    /// bandeau teinté plutôt qu'en ligne de texte nue — une panne qui se lit
-    /// comme une légende passe inaperçue.
-    private func errorBanner(_ error: NexusSearchClient.SearchError) -> some View {
+    /// Une seule panne, un seul message : les sections ne répètent pas. La vue
+    /// résout le texte et l'action, le bandeau se contente de les rendre.
+    ///
+    /// Trois messages mais **deux** issues seulement : hors « pas de clé », la
+    /// panne se réessaie. Les séparer en trois branches dupliquait l'action
+    /// sans rien clarifier.
+    private func discoveryErrorBanner(_ error: NexusSearchClient.SearchError) -> some View {
         let text: String
         switch error {
         case .noApiKey: text = vm.L(L10n.Discovery.noKey)
         case .rateLimited: text = vm.L(L10n.Discovery.rateLimited)
         default: text = vm.L(L10n.Discovery.error)
         }
-        return HStack(spacing: AppDesign.Spacing.sm) {
-            Image(systemName: "exclamationmark.triangle")
-                .foregroundStyle(Color.orange)
-            Text(text).font(AppDesign.Font.caption)
-            Spacer(minLength: AppDesign.Spacing.sm)
-            if case .noApiKey = error {
-                Button(vm.L(L10n.Discovery.openSettings)) { currentTab = "Settings" }
-                    .buttonStyle(.link)
-            } else {
-                Button(vm.L(L10n.Discovery.retry)) { vm.loadDiscovery(force: true) }
-                    .buttonStyle(.link)
+        if case .noApiKey = error {
+            // La clé sert déjà aux mises à jour : le chemin, pas seulement le
+            // diagnostic.
+            return ErrorBanner(text: text,
+                               actionTitle: vm.L(L10n.Discovery.openSettings)) {
+                currentTab = "Settings"
             }
         }
-        .padding(.horizontal, AppDesign.Spacing.md)
-        .padding(.vertical, AppDesign.Spacing.sm)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.orange.opacity(AppDesign.Opacity.light),
-                    in: RoundedRectangle(cornerRadius: AppDesign.Radius.md))
-        .overlay(RoundedRectangle(cornerRadius: AppDesign.Radius.md)
-            .stroke(Color.orange.opacity(AppDesign.Opacity.medium * 2), lineWidth: 1))
+        return ErrorBanner(text: text,
+                           actionTitle: vm.L(L10n.Discovery.retry)) {
+            vm.loadDiscovery(force: true)
+        }
     }
 }
 
