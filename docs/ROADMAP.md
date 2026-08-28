@@ -121,8 +121,8 @@ liste du 2026-07-30 et n'existaient pas dans le document de veille.
 | §4 | Backups : feedback après restauration, tri, regroupement, recherche | **Fait** (2026-08-23) | Regroupement, tri et recherche → **B4-T1** ; compte rendu de restauration (ce qui a été écrit, où, ce qu'est devenue la version remplacée) → **B4-T2** |
 | §4 | Un mod restauré met à jour le registre | **Corrigé ✅** (2026-08-23) | Vérifié : la restauration d'un mod **actif** en déposait une seconde copie en pause à côté, deux dossiers pour un `folderName` — la clé du registre. Elle remplace désormais le mod là où il est → **B4-T3** |
 | §4 | Sauvegarde / restauration de `config.json` et `fr.json` | **Fait** | `ModConfigBackupManager.swift` + `Extensions/ModConfigFiles.swift` |
-| §5 | Éditeur de config exploitant les clés de traduction | **À faire** | `ModConfigEditorView.swift` affiche les clés brutes → **C4-T1** |
-| §5 | Intégrer *Modern Config Menu* / GMCM (49382, 49437) | **À instruire** | Réintégré au périmètre à la demande de l'auteur → **C4-T3** (spike) |
+| §5 | Éditeur de config exploitant les clés de traduction | **À faire** | `ModConfigEditorView.swift` affiche les clés brutes → **C4-T4** (schéma Content Patcher, 100 % des clés) puis **C4-T1** (i18n des mods C#, 39 % côté actifs) |
+| §5 | Intégrer *Modern Config Menu* / GMCM (49382, 49437) | **Instruit, écarté ✅** | Spike du 2026-08-28 (**C4-T3**) : ni l'un ni l'autre n'écrit de schéma hors du jeu. La source utilisable est le `ConfigSchema` de Content Patcher → **C4-T4**. Voir `audit-config-menus.md` |
 | §5 | Aide à la configuration des raccourcis clavier | **À faire** | → **C4-T2** |
 | §6 | Éditeur `fr.json` avec diagnostic des clés | **À faire** | → **C2**, **C3** |
 | §6 | Chaînes anglaises non traduites hors i18n (`events.json`, `dialogues.json`…) | **À faire** | → **C3-T2** |
@@ -605,36 +605,84 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 
 #### C4 — Éditeur de config lisible
 
-- [ ] **C4-T1** — *(voie sûre)* Étiqueter les champs de `config.json` avec les libellés
-      `config.*` que le mod publie dans son `i18n/` (en FR si disponible), au lieu des clés
-      brutes. Faisable sans dépendance externe. · **M**
-      ✅ **Hypothèse validée le 2026-08-28, sur le parc réel** — pas sur un échantillon.
-      Sur les **1017 mods** installés, **547 ont un `config.json`** et **267 d'entre eux
-      publient des clés `config.*`** dans leur `i18n/`, dont **229 déjà traduites en
-      français** par les auteurs des mods.
-      ⚠️ **Le chiffre qui compte pour ce que l'utilisateur voit aujourd'hui est plus
-      petit** : le parc de référence est en pause à 88 %. Ventilé —
-      **actifs : 125 mods, 92 configurables, 47 dans la cible dont 40 en FR** ;
-      **en pause : 892 mods, 455 configurables, 220 dans la cible dont 189 en FR**.
-      Le rapport est le même dans les deux populations (**51 %** contre **48 %**) : la
-      règle tient, elle n'est pas un artefact de la masse en pause. Le gain visible
-      immédiatement porte donc sur **47 mods**, et grandit à chaque réactivation.
-      *(À la marge : 285 mods publient des clés `config.*` mais 18 n'ont pas encore de
-      `config.json` — SMAPI ne l'écrit qu'au premier lancement. La cible croît.)*
+> **Deux populations, deux sources — c'est la distinction qui manquait ici.**
+> Un **content pack** décrit ses options dans un schéma posé sur le disque ; un **mod
+> C#** ne décrit rien nulle part, et ses libellés ne s'attrapent que par son `i18n/`.
+> Établi le 2026-08-28 par décompilation et mesure → `§audit-config-menus`,
+> [`audit-config-menus.md`](audit-config-menus.md). **Prendre C4-T4 avant C4-T1.**
+
+- [ ] **C4-T4** — `§audit-config-menus` — **Lire le `ConfigSchema` de `content.json`**
+      (Content Patcher) : type, valeur par défaut, valeurs admises, section, description.
+      C'est un **schéma complet, déjà sur le disque**, sans décompilation ni heuristique —
+      et il donne d'un coup la liste déroulante à la place du champ libre, le regroupement
+      par section, l'infobulle, et le repérage des valeurs modifiées par rapport au défaut.
+      **Mesuré sur le parc** : côté **actifs**, 30 content packs, **20 publient un
+      `ConfigSchema`**, **1041 tokens**, et **100 % des clés de leur `config.json` sont
+      décrites** (c'est Content Patcher qui génère le fichier depuis le schéma) ; parc
+      entier, 256 packs de plus et 5335 tokens, même couverture.
+      Champs par fréquence : `Default` 6372, `AllowValues` 5053, **`Section` 4831**,
+      `Description` 3378, `AllowBlank` 871, `AllowMultiple` 408, `Name` 173.
+      ⚠️ **Tolérances mesurées, pas supposées** : `Allow Multiple` avec une espace (40),
+      `section` en minuscules (35), `description` (1), et deux coquilles uniques
+      (`HostowValues`, `HostowBlank`). Lecture **insensible à la casse et à l'espace**,
+      champ inconnu ignoré sans bruit. **14 `content.json` restent illisibles** même en
+      JSON5 : le repli est l'éditeur brut, jamais une erreur. · **M**
+- [ ] **C4-T1** — *(voie secondaire — pour les mods C#, qui n'ont pas de schéma)*
+      Étiqueter les champs de `config.json` avec les libellés `config.*` que le mod publie
+      dans son `i18n/` (en FR si disponible), au lieu des clés brutes. · **M**
+      ⚠️ **Mesure du 2026-08-28, qui remplace celle du matin** — la première comptait les
+      mods *ayant des clés `config.*`*, pas ceux dont les clés **retombent** sur le
+      `config.json`. Règle appliquée : comparer la **tige** (clé i18n privée du préfixe
+      `config.` et du suffixe `name|description|tooltip|desc|label|title`) à la clé de
+      configuration, insensible à la casse. Résultat —
+      **actifs : 47 mods candidats, 782 clés dont 304 étiquetées (39 %) ; 25 mods en
+      tirent au moins un libellé, 13 la totalité.** Parc entier : 258 candidats,
+      4468/6118 clés (73 %), 192 partiels, 140 complets.
+      **Le plafond est structurel** : une option GMCM porte un `FieldId` choisi par
+      l'auteur, sans lien avec la clé du `config.json`, et rien sur le disque ne les
+      relie — 6172 clés `config.*` du parc ne retombent sur aucune clé de configuration.
+      *(L'écart 39 % / 73 % n'est pas expliqué ; 47 mods actifs, échantillon trop petit
+      pour en tirer une règle.)*
       Aujourd'hui `ModConfigEditorView.swift:6` affiche `keyPath.joined(separator: " > ")` :
-      la clé brute, pour tous. La mesure a dû lire du **JSON5** (commentaires en fin de
-      ligne, CRLF, virgules traînantes) — 28 fichiers sur 2506 restent illisibles même
-      ainsi, 1 % : l'implémentation doit se replier sur la clé brute, jamais échouer.
+      la clé brute, pour tous.
+- [ ] **C4-T5** — `§audit-config-menus` — **Sortir l'éditeur de `JSONSerialization`.**
+      Défaut indépendant des menus de config, trouvé en instruisant C4-T3, et le plus
+      coûteux des trois : `ModConfigEditorView` lit et réécrit le `config.json` avec
+      `JSONSerialization` alors que **`ConfigJSONTree` existe dans Core, testé, et
+      préserve l'ordre des clés** (livré par B3-T5). Trois conséquences mesurables —
+      l'éditeur **refuse** tout `config.json` en JSON5 (commentaire, virgule traînante)
+      et affiche « JSON invalide » ; il liste les options **par ordre alphabétique**
+      (`dict.keys.sorted()`) au lieu de l'ordre voulu par l'auteur ; et il réécrit le
+      fichier avec `.prettyPrinted`, dont **l'ordre des clés est celui du dictionnaire**,
+      pas celui du fichier. Il dépose en outre un `.bak` à côté du fichier au lieu de
+      passer par `ModConfigBackupManager`. · **M**
+      ⚠️ **À passer avant le reskin de cet écran par l'axe H** : re-styler une liste
+      triée alphabétiquement et incapable d'ouvrir un JSON5 fige le défaut sous une
+      nouvelle peau.
 - [ ] **C4-T2** — Champs de raccourcis clavier : validation des noms `SButton`, détection
       des collisions entre mods. · **M**
-- [ ] **C4-T3** — *(spike, 1 session, décision go/no-go)* **GMCM / Modern Config Menu.**
-      Question à trancher : les mods **49382** et **49437** écrivent-ils quoi que ce soit
-      de lisible hors du jeu (export de schéma, fichier JSON, API locale) ? Nexus renvoie
-      HTTP 403 aux requêtes automatiques : à vérifier manuellement.
-      ▸ Si **oui** → StarHubFR lit ce fichier : chantier ordinaire.
-      ▸ Si **non** → il reste la décompilation des DLL (Mono.Cecil/ILSpy) pour retrouver
-      les appels d'enregistrement GMCM : **coûteux, fragile, à recasser à chaque mise à
-      jour de mod**. À n'ouvrir que si l'échantillon montre un vrai gain sur C4-T1. · **S**
+      `§audit-config-menus` : la tâche est confirmée par l'existence de
+      `Overlays.KeybindOverlay` / `KeybindEdit` dans GMCM — c'est la référence
+      d'ergonomie à regarder, pas un code à porter (aucune donnée n'en sort).
+- [x] **C4-T3** — ✅ **Spike mené le 2026-08-28. Verdict : non-go sur les menus de
+      config — et une meilleure source trouvée à côté.** `§audit-config-menus`, détail
+      dans [`audit-config-menus.md`](audit-config-menus.md). Décompilation IL (`ikdasm`)
+      des deux DLL, archives fournies par l'auteur.
+      ▸ **GMCM 1.16.0 n'écrit rien** : aucun `File::Write*`, aucun `JsonConvert` dans
+      31 325 lignes d'IL. Il n'écrit pas même le `config.json` — son
+      `Register(manifest, reset, save)` reçoit une **fermeture** que le mod exécute
+      lui-même. `Name` et `Tooltip` sont des `Func<string>` évalués au rendu : il n'y a
+      rien de statique à lire.
+      ▸ **Modern Config Menu 1.7.4 écrit un fichier**, `config_exports/<UniqueID>.json`,
+      mais c'est un `Dictionary<string,string>` **libellé affiché → valeur** : des
+      *valeurs*, pas un schéma. Ni type, ni bornes, ni valeurs admises, ni clé de
+      `config.json`. Son `GenericModConfigMenuCompat`, malgré son nom, ne fait
+      qu'inscrire MCM **lui-même** dans GMCM — ce n'est pas un pont vers les données des
+      autres mods.
+      ▸ **La décompilation des DLL de chaque mod reste écartée**, comme prévu : rien dans
+      ce spike ne la réhabilite.
+      ▸ **Ce que le spike a rapporté** : la vraie source est ailleurs — le `ConfigSchema`
+      de Content Patcher, sur le disque et complet → **C4-T4**, désormais devant C4-T1.
 
 > **Le socle de C4 est déjà découpé, et dormant.** Un plan local de 67 étapes
 > (`docs/superpowers/plans/2026-08-03-c4-socle-core.md`, marqué « Plan 1/3 ») détaille les
@@ -644,6 +692,16 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 > **B3-T5**, et les plans 2/3 et 3/3 n'ont jamais été écrits. Sa tâche 1 est une
 > mesure-échantillon avec décision go/no-go — précisément l'hypothèse que C4-T1 dit devoir
 > valider avant engagement.
+>
+> ⚠️ **Le plan a vieilli, et deux de ses dix types sont à abandonner** (2026-08-28) :
+> `ConfigValue` fait doublon avec **`ConfigJSONTree.Value`**, livré depuis par B3-T5 et
+> supérieur (ordre des clés retenu, littéral numérique gardé en `String`, tolérance
+> calquée sur Newtonsoft) — le reprendre créerait une quatrième copie divergente.
+> `ModConfigInferrer` n'a **pas de matière** : sur 547 `config.json`, **4 portent un
+> commentaire** et aucun ne décrit de borne ni de valeur admise. Ce que le plan a vu
+> juste en revanche : `ConfigJSONTree` **jette les commentaires** et son `write()`
+> reconstruit le fichier — d'où les `ValueSpan`. Mais cela ne concerne que ces 4
+> fichiers, donc correction, pas socle.
 
 #### C5 — Hub de traduction agnostique de la langue
 
@@ -1772,8 +1830,10 @@ produit. Trois verrous à lever *avant* d'écrire la moindre ligne :
 | *audit* **Auto-update in-app façon Stardop** (move + restart) | **Écarté (pour l'instant)** | Fragile sur macOS. Si on l'ouvre un jour → **Sparkle**, pas ce bricolage. |
 | Collections Nexus (complétude d'un modpack) | **Reporté** | Fort couplage à des collections mouvantes ; à reconsidérer après **E1**. |
 
-*(La piste GMCM/Modern Config Menu a quitté cette section : elle est réintégrée au
-périmètre en **C4-T3**, sous forme de spike avec décision go/no-go.)*
+*(La piste GMCM/Modern Config Menu a quitté cette section, a été instruite en **C4-T3**
+le 2026-08-28, et y revient : **aucun des deux n'écrit de schéma hors du jeu**. Le spike
+a en revanche trouvé la source qui manquait — le `ConfigSchema` de Content Patcher, en
+**C4-T4**. Détail : `docs/audit-config-menus.md`.)*
 
 ---
 
