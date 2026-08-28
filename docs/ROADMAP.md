@@ -71,6 +71,8 @@ comme produit distinct de StarHubTH et de Stardrop.
 - **Axe H — Cohérence UI** *(transverse)* : généraliser à toute l'app le langage
   visuel établi par l'onglet Découvrir (axe G) — navigation regroupée, accueil
   tableau de bord, reskin écran par écran, bibliothèque de composants vivante.
+- **Axe I — Expérience utilisateur** *(après H)* : navigation optimisée et
+  accessibilité en **capacités** — clavier, palette de commandes, VoiceOver.
 
 **Règle de discipline reprise du document de veille** :
 > *Chaque release ne sert qu'un seul axe principal, plus quelques correctifs gratuits.*
@@ -1660,6 +1662,41 @@ de détail à `nil` au changement d'onglet — tout nouvel écran suit le motif
 **Critère de succès** : plus aucun écran ne parle sa langue propre — mesurable :
 zéro valeur de style hors tokens dans les vues migrées, un seul style d'item
 de sidebar, Découvrir inchangé au closage.
+
+---
+
+### Expérience utilisateur : navigation & accessibilité — **Axe I** · à faire, **après H**
+
+Ce que H pose en **règles** (cibles ≥ 18×18, jamais la couleur seule, contraste
+vérifié), I le transforme en **capacités** : naviguer au clavier, piloter à la
+voix, aller partout sans souris. L'ordre n'est pas négociable pour une raison
+d'économie : la bibliothèque de composants issue de H est le point d'entrée
+unique — chaque trait d'accessibilité s'y pose **une fois par composant**,
+au lieu d'une fois par écran sur une UI bientôt remplacée.
+
+Cadrage volontairement léger ici : la spec SDD complète se fera à son tour,
+sur les composants réels. Les tâches ci-dessous sont des hypothèses de
+travail, pas des engagements.
+
+- [ ] **I-T1** — Raccourcis clavier d'onglets (⌘1…⌘9) et de vues, focus
+      visible et géré (entrer/sortir des fiches, des feuilles, de la liste). · **S**
+- [ ] **I-T2** — Palette de commandes ⌘K : mods, profils, onglets et actions
+      (installer, mettre à jour, restaurer) appelables depuis partout. · **M**
+- [ ] **I-T3** — VoiceOver : labels, traits et ordre de lecture sur chaque
+      composant de la bibliothèque, écrans majeurs vérifiés à l'oreille. · **M**
+- [ ] **I-T4** — Réglages d'accessibilité système respectés (réduire les
+      animations, réduire la transparence, augmenter le contraste) et taille
+      de texte réglable dans l'app. · **M**
+- [ ] **I-T5** — Audit de navigation : chemins cliqués mesurés avant/après sur
+      des tâches représentatives (mettre à jour un mod, restaurer un backup,
+      changer de profil). · **S**
+
+**Risques** : démarrer I avant H imposerait de refaire l'accessibilité sur
+des écrans voués au remplacement ; la palette de commandes touche au routage
+de `MainView` — le piège des états de détail remis à `nil` au changement
+d'onglet s'applique à chaque saut.
+**Critère de succès** : les tâches représentatives s'exécutent au clavier
+seul, et VoiceOver restitue chaque écran majeur sans piège.
 
 ---
 
