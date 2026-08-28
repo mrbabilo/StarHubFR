@@ -13,7 +13,7 @@ where the exact log format was verified.
 ## [Unreleased]
 
 ### Added
-- **Les réglages d'un mod sont enfin décrits, quand le mod les décrit.** Les content packs publient un schéma à côté de leur contenu : l'éditeur en tire les **sections** à la place de la liste à plat, une **explication sous chaque nom** — 1759 réglages du parc en gagnent une —, et une **liste déroulante** là où il fallait deviner la valeur à taper (954 réglages). Un réglage qui s'écarte de ce que l'auteur avait prévu porte une pastille « modifié » et un bouton pour y revenir. Les mods qui ne décrivent rien s'affichent comme avant.
+- **Les réglages d'un mod sont enfin décrits, quand le mod les décrit.** Les content packs publient un schéma à côté de leur contenu : l'éditeur en tire les **sections** à la place de la liste à plat, une **explication sous chaque nom** — 1926 réglages du parc en gagnent une —, et une **liste déroulante** là où il fallait deviner la valeur à taper (954 réglages). Les libellés sont pris dans les traductions du pack lui-même, en français quand il en a : 1889 réglages y gagnent un nom lisible à la place de leur clé. Un réglage qui s'écarte de ce que l'auteur avait prévu porte une pastille « modifié » et un bouton pour y revenir. Les mods qui ne décrivent rien s'affichent comme avant.
 
 ### Changed
 - **Les réglages d'un mod s'affichent dans l'ordre où son auteur les a écrits**, plus par ordre alphabétique — qui séparait des options faites pour aller ensemble (`BigSilo_BuildCost` atterrissait à côté de `BigSilo`, loin du groupe où l'auteur l'avait rangé). 363 des 462 configurations du parc étaient réordonnées.
@@ -21,6 +21,7 @@ where the exact log format was verified.
 - **L'enregistrement met la configuration précédente dans les sauvegardes de configurations** — datée et visible depuis leur écran — au lieu de déposer un `config.json.bak` dans le dossier du mod ; une par mod et par jour — c'est la première du jour qui fait filet, celle d'avant la première modification. Y compris quand le mod est en pause. « Restaurer la configuration » charge la version sauvegardée dans l'éditeur : c'est « Enregistrer » qui l'applique, après avoir mis l'actuelle à l'abri.
 
 ### Fixed
+- **L'éditeur de configuration s'ouvre sur les réglages**, plus sur le JSON brut, et ses contrôles s'alignent en colonne au lieu de tomber à trois abscisses différentes.
 - **Un réglage à virgule s'affichait arrondi** — `0,5` apparaissait `0`, `1,25` apparaissait `1` — et le champ refusait ensuite la valeur qu'il venait d'afficher. 758 des 11 891 réglages du parc sont concernés.
 
 ## [1.25.0] - 2026-08-28

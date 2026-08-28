@@ -658,8 +658,26 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       diffère de celle du schéma que par la **casse** (`spring` contre `Spring`, 3 clés),
       rendre l'orthographe du schéma faisait réécrire le fichier au premier passage dans
       le menu. C'est celle du fichier qui est retenue.
-      ⚠️ **Vérification humaine attendue** : code de vue, hors de portée de `swift test`.
-      Cas de démonstration : `[CP] More Upgrades` (87 clés, 15 sections, 75 descriptions).
+      ▸ **Ce que la vérification à l'écran a trouvé, et que les tests ne pouvaient pas
+      voir** (2026-08-28) : les `Name` et `Description` d'un schéma **ne sont pas
+      toujours du texte**. Content Patcher y accepte le jeton
+      `{{i18n: config.Appearance.Name}}`, résolu à l'exécution contre le `i18n/` du pack.
+      L'écran les affichait bruts — **moins lisible que la clé** qu'il montrait avant le
+      branchement. 9 packs, 285 jetons, dont le cas de démonstration lui-même.
+      **Et la mesure a rapporté dix fois plus que le correctif** : Content Patcher cherche
+      aussi `config.<clé>.name` **sans jeton**, par convention — 1888 des 2061 clés des
+      116 packs à table y trouvent un libellé, contre 173 `Name` explicites sur tout le
+      parc. `Models/ContentPackI18n.swift`, 10 tests, table lue par `I18nLenientParser`.
+      Sur les 462 fichiers : **148 → 1889 libellés** autres que la clé, 1926 descriptions,
+      268 sections traduites sur 414, **0 jeton brut à l'écran**.
+      ▸ **Trois retours d'écran corrigés dans la foulée** : l'onglet **visuel** par défaut
+      (`MainView` ouvrait sur le JSON brut), les deux points d'entrée renommés
+      « Réglages du mod » puisque c'est ce qu'ils ouvrent, et une **colonne de contrôles
+      alignée** — interrupteurs, listes et incrémenteurs tombaient à trois abscisses
+      différentes, la place du bouton de retour au défaut étant désormais toujours
+      réservée.
+      ⚠️ **Leçon à retenir** : la confrontation au parc comptait 1759 descriptions sans
+      jamais regarder **ce qu'elles contenaient**. Compter n'est pas lire.
 - [ ] **C4-T1** — *(voie secondaire — pour les mods C#, qui n'ont pas de schéma)*
       Étiqueter les champs de `config.json` avec les libellés `config.*` que le mod publie
       dans son `i18n/` (en FR si disponible), au lieu des clés brutes. · **M**
