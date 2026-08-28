@@ -670,12 +670,13 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       parc. `Models/ContentPackI18n.swift`, 10 tests, table lue par `I18nLenientParser`.
       Sur les 462 fichiers : **148 → 1889 libellés** autres que la clé, 1926 descriptions,
       268 sections traduites sur 414, **0 jeton brut à l'écran**.
-      ▸ **Trois retours d'écran corrigés dans la foulée** : l'onglet **visuel** par défaut
+      ▸ **Quatre retours d'écran corrigés dans la foulée** : l'onglet **visuel** par défaut
       (`MainView` ouvrait sur le JSON brut), les deux points d'entrée renommés
-      « Réglages du mod » puisque c'est ce qu'ils ouvrent, et une **colonne de contrôles
+      « Réglages du mod » puisque c'est ce qu'ils ouvrent, une **colonne de contrôles
       alignée** — interrupteurs, listes et incrémenteurs tombaient à trois abscisses
       différentes, la place du bouton de retour au défaut étant désormais toujours
-      réservée.
+      réservée —, et la **description d'un réglage entière** au lieu de tronquée à
+      deux lignes : 158 des 1926 du parc dépassent deux lignes, une seule cinq.
       ⚠️ **Leçon à retenir** : la confrontation au parc comptait 1759 descriptions sans
       jamais regarder **ce qu'elles contenaient**. Compter n'est pas lire.
 - [ ] **C4-T1** — *(voie secondaire — pour les mods C#, qui n'ont pas de schéma)*

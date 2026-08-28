@@ -570,14 +570,17 @@ struct ModConfigEditorView: View {
                             .cornerRadius(3)
                     }
                 }
-                // La description que le schéma du pack donne — 1759 clés du
-                // parc en ont une. Deux lignes : c'est ce qui rend « ShirtSpring »
-                // compréhensible sans faire tripler la hauteur de la rangée.
+                // La description que le pack donne — 1926 rangées du parc en
+                // ont une. **Entière**, jamais tronquée : elle est souvent la
+                // seule chose qui explique à quoi sert le réglage.
+                // Mesuré sur le parc : 66 caractères de médiane, 172 au 90e
+                // centile, 554 au pire (`[CP] Dino Expanded`) ; 158 dépassent
+                // deux lignes, une seule dépasse cinq. Les 32 descriptions qui
+                // portent un retour à la ligne le gardent.
                 if let description = row.description {
                     Text(description)
                         .font(.system(size: 11))
                         .foregroundColor(.secondary)
-                        .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }

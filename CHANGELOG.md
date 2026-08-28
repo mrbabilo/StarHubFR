@@ -22,6 +22,7 @@ where the exact log format was verified.
 
 ### Fixed
 - **L'éditeur de configuration s'ouvre sur les réglages**, plus sur le JSON brut, et ses contrôles s'alignent en colonne au lieu de tomber à trois abscisses différentes.
+- **La description d'un réglage n'est plus tronquée à deux lignes** — elle s'affiche entière ; c'est souvent la seule chose qui explique à quoi sert le réglage. 158 des 1926 descriptions du parc dépassaient deux lignes, jusqu'à cinq pour la plus longue.
 - **Un réglage à virgule s'affichait arrondi** — `0,5` apparaissait `0`, `1,25` apparaissait `1` — et le champ refusait ensuite la valeur qu'il venait d'afficher. 758 des 11 891 réglages du parc sont concernés.
 
 ## [1.25.0] - 2026-08-28
