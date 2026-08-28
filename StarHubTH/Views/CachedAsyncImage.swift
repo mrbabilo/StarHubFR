@@ -1,14 +1,27 @@
 import SwiftUI
 
 private final class AsyncImageCache {
-    private static let cache = NSCache<NSURL, NSImage>()
+    /// Borné : la vitrine « Découvrir » peut demander des centaines de
+    /// vignettes en déroulant trois sections, et un `NSCache` sans limite ne
+    /// rend la mémoire que sous pression du système. Le coût est le poids réel
+    /// des pixels, pas le nombre d'images — une capture de fiche pèse cent
+    /// fois une vignette.
+    private static let cache: NSCache<NSURL, NSImage> = {
+        let cache = NSCache<NSURL, NSImage>()
+        cache.countLimit = 400
+        cache.totalCostLimit = 128 * 1024 * 1024
+        return cache
+    }()
 
     static func nsImage(for url: URL) -> NSImage? {
         cache.object(forKey: url as NSURL)
     }
 
     static func setNSImage(_ image: NSImage, for url: URL) {
-        cache.setObject(image, forKey: url as NSURL)
+        // 4 octets par pixel : l'ordre de grandeur suffit à faire le tri entre
+        // une vignette et une capture pleine page.
+        let pixels = Int(image.size.width * image.size.height)
+        cache.setObject(image, forKey: url as NSURL, cost: max(1, pixels * 4))
     }
 }
 

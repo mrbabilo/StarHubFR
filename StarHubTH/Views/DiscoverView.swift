@@ -11,8 +11,32 @@ struct DiscoverView: View {
     @AppStorage("discoveryHideInstalled") private var hideInstalled = false
     @State private var searchText = ""
     @State private var detailRow: StarHubTHViewModel.DiscoveryRow?
+    /// Combien de cartes chaque section montre. Une vitrine s'aperçoit d'un
+    /// coup d'œil : quatre par section tiennent sur un écran avec les trois
+    /// sections, « voir plus » déplie la suite. Vingt d'emblée noyaient les
+    /// deux sections du bas sous la première.
+    @State private var shownLimits: [ModCatalog.SectionKind: Int] = [:]
+
+    /// Le premier palier, et le pas de chaque « voir plus ».
+    private static let firstGlance = 4
+    private static let moreStep = 20
 
     var body: some View {
+        ScrollViewReader { scroller in
+            content.onChange(of: jumpTarget) { _, target in
+                guard let target else { return }
+                withAnimation { scroller.scrollTo(target, anchor: .top) }
+                jumpTarget = nil
+            }
+        }
+    }
+
+    /// La section vers laquelle sauter. Passer par un état plutôt que
+    /// d'appeler `scrollTo` depuis le bouton garde le `ScrollViewReader` en
+    /// dehors de chaque en-tête de section.
+    @State private var jumpTarget: ModCatalog.SectionKind?
+
+    private var content: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 searchField
@@ -30,8 +54,9 @@ struct DiscoverView: View {
                 if let search = vm.discoverySearch {
                     searchResults(search)
                 } else {
+                    sectionJumpBar
                     ForEach(ModCatalog.SectionKind.allCases, id: \.self) { kind in
-                        section(kind)
+                        section(kind).id(kind)
                     }
                 }
             }
@@ -128,9 +153,27 @@ struct DiscoverView: View {
         }
     }
 
+    /// Aller droit à une section. Une fois « voir plus » déplié sur les
+    /// tendances, la sélection française est à des dizaines de cartes plus
+    /// bas : sans ce raccourci, il faut la chercher à la molette.
+    private var sectionJumpBar: some View {
+        HStack(spacing: 8) {
+            ForEach(ModCatalog.SectionKind.allCases, id: \.self) { kind in
+                Button(title(for: kind)) { jumpTarget = kind }
+                    .buttonStyle(.link)
+                    .font(.caption)
+            }
+        }
+    }
+
     private func section(_ kind: ModCatalog.SectionKind) -> some View {
-        let (rows, shown, loaded, total) = vm.discoveryRows(for: kind,
-                                                            hidingInstalled: hideInstalled)
+        let (rows, _, loaded, total) = vm.discoveryRows(for: kind,
+                                                        hidingInstalled: hideInstalled)
+        let limit = shownLimits[kind] ?? Self.firstGlance
+        let visible = Array(rows.prefix(limit))
+        // Reste-t-il quelque chose à montrer ? Soit des cartes déjà reçues et
+        // repliées, soit une tranche que le serveur a encore.
+        let hasMore = rows.count > visible.count || loaded < total
         return VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text(title(for: kind)).font(.title3.bold())
@@ -139,14 +182,20 @@ struct DiscoverView: View {
                 // filtre ne doit pas masquer qu'il a filtré (spec §7.1). Le
                 // comparer au catalogue entier — « 20 affichés sur 33 204 »
                 // — ne comparait rien à rien.
-                Text(String(format: vm.L(L10n.Discovery.shownOfLoaded), shown, loaded))
+                Text(String(format: vm.L(L10n.Discovery.shownOfLoaded),
+                            visible.count, loaded))
                     .font(.caption).foregroundStyle(.secondary)
-                // Dans l'en-tête, pas au bout de la bande : à la fin de vingt
-                // cartes qui défilent horizontalement, un bouton est un
-                // bouton que personne ne trouve.
-                if loaded < total {
+                if hasMore {
+                    // Un seul bouton pour deux gestes : déplier ce qui est
+                    // déjà reçu, et demander la suite au serveur quand le
+                    // palier dépasse ce qu'on a. Deux boutons auraient obligé
+                    // l'utilisateur à savoir lequel des deux il lui faut.
                     Button(vm.L(L10n.Discovery.loadMore)) {
-                        vm.loadMoreDiscovery(kind)
+                        let next = limit + Self.moreStep
+                        shownLimits[kind] = next
+                        if next > rows.count && loaded < total {
+                            vm.loadMoreDiscovery(kind)
+                        }
                     }
                     .buttonStyle(.link)
                     .disabled(vm.discoveryLoading)
@@ -176,7 +225,7 @@ struct DiscoverView: View {
                     // « voir plus » atterrissaient hors de vue.
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 240), spacing: 12)],
                               spacing: 12) {
-                        ForEach(rows) { card($0) }
+                        ForEach(visible) { card($0) }
                     }
                 }
             }
