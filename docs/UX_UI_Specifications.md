@@ -13,6 +13,13 @@
 > irréalistes. Toutes les valeurs chiffrées proviennent d'une analyse du code
 > au commit `a3937f6`.
 
+> ⚠️ **Document périmé — ne pas s'en servir comme source (constaté le 2026-08-28).**
+> Il s'épingle au commit `a3937f6` (v1.6.0) et le dépôt en est à la **v1.25.0** : dix-neuf
+> releases ont passé, dont l'onglet Découvrir, le hub de traduction, les profils, la
+> bissection et la carte de santé SMAPI — rien de tout cela n'est décrit ici. Aucun autre
+> document du dépôt ne le cite. À réécrire contre le code, ou à retirer ; en attendant,
+> l'état réel se lit dans `docs/ROADMAP.md` (§3, table de réconciliation) et dans le code.
+
 ---
 
 ## 1. État des lieux (inventaire du code existant)

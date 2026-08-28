@@ -615,6 +615,15 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       les appels d'enregistrement GMCM : **coûteux, fragile, à recasser à chaque mise à
       jour de mod**. À n'ouvrir que si l'échantillon montre un vrai gain sur C4-T1. · **S**
 
+> **Le socle de C4 est déjà découpé, et dormant.** Un plan local de 67 étapes
+> (`docs/superpowers/plans/2026-08-03-c4-socle-core.md`, marqué « Plan 1/3 ») détaille les
+> dix types Core que C4-T1 suppose — `ConfigValue`, `ConfigDoc`, `ConfigOption`,
+> `ModConfigInferrer`, `ConfigLabelResolver`, `ConfigEdit`, `ConfigValidator`,
+> `ConfigWriter`. **Aucun n'existe** : les `Config*.swift` du dépôt viennent tous de
+> **B3-T5**, et les plans 2/3 et 3/3 n'ont jamais été écrits. Sa tâche 1 est une
+> mesure-échantillon avec décision go/no-go — précisément l'hypothèse que C4-T1 dit devoir
+> valider avant engagement.
+
 #### C5 — Hub de traduction agnostique de la langue
 
 - [ ] **C5-T1** — Rendre `ThaiTranslationHubView` générique (langue en paramètre) et
@@ -1267,10 +1276,29 @@ backup se retrouve en moins de dix secondes.
       **Reste vraiment à faire** : le TTL. `checkNexusUpdates()` part à chaque
       lancement et réinterroge le parc entier, sans se demander si la réponse
       précédente vaut encore.*
+- [ ] **A2-T5** — `§audit-gestionnaires` · *(faible priorité)* — Lire la base de
+      compatibilité **locale** de SMAPI (`smapi-internal/metadata.json`, livrée avec
+      l'installation) comme troisième source hors ligne, derrière l'API live et
+      `mods.jsonc`. ⚠️ **La comparaison de bornes de version est obligatoire** : chaque
+      motif y est assorti d'une clause de version, et l'apparier sans la lire signalerait
+      **14 mods à tort** sur le parc de référence — pour **1 seul** réellement concerné.
+      C'est ce rapport, pas la difficulté, qui fixe la priorité. · **S**
 
 > ⚠️ **Réserve conservée** : `smapi.io/mods` annonce lui-même ne plus être mis à jour
 > exhaustivement, et son avenir est incertain. À traiter comme **complément** au
 > diagnostic de log, jamais comme source unique de vérité — d'où le fallback `mods.jsonc`.
+
+> **`§audit-gestionnaires` — sort des cinq candidats.** L'audit du 2026-08-27
+> ([`audit-gestionnaires.md`](audit-gestionnaires.md), versionné) annonçait en en-tête que
+> ses décisions seraient marquées ici. Elles ne l'étaient pas ; elles le sont :
+>
+> | # | Trouvaille | Source | Sort |
+> | :-- | :-- | :-- | :-- |
+> | 1 | Base locale `smapi-internal/metadata.json` | NexusMods.App | **La seule encore ouverte** → **A2-T5** |
+> | 2 | `MinimumApiVersion` / `MinimumGameVersion` non lus | NexusMods.App | Préventif — **0 mod** sur le parc mesuré ; à rouvrir si le compte bouge |
+> | 3 | Dépendance installée sous sa `MinimumVersion` | NexusMods.App | Préventif — **0 mod**, même règle |
+> | 4 | Garde-fous d'écriture (`policy.ts`) | Vortex | À reprendre **comme revue**, pas comme code → à joindre à **F2** |
+> | 5 | Constantes de durée relisibles + audit des TTL | Vortex | C'est le TTL manquant de **A2-T4** |
 
 #### A3 — Métadonnées Nexus
 
@@ -1699,6 +1727,30 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
       partiellement couverte), stockage de la clé Nexus, gestion du protocole `nxm://`,
       écritures dans `Mods/`. · **M** · *à faire après F1-T1 : auditer 4278 lignes de VM
       monolithique coûte plus cher que d'auditer des types séparés.*
+      ⚠️ **Une partie de l'inventaire existe déjà** :
+      [`audit-swift-2026-08-05.md`](audit-swift-2026-08-05.md) — 309 lignes, ~72 findings
+      recensés, les 9 hauts corrigés au 2026-08-11 — couvre la surface de sécurité et une
+      part de la performance. Il porte son propre avertissement de péremption (il a listé
+      comme ouverts pendant cinq jours trois findings corrigés entre-temps) : `git log -S`
+      sur le symbole avant d'attaquer une ligne. **F2 le complète, il ne le refait pas.**
+- [ ] **F5** — **StarHubFR et StarHubTH écrivent dans les mêmes données.** Le fork a changé
+      le nom du produit, pas son identité : le bundle reste `com.appleboiy.StarHubTH` et
+      les fichiers vivent sous `~/Library/Application Support/StarHubTH/`. Deux
+      installations sur la même machine partagent donc **31 clés de préférences**,
+      l'entrée de Trousseau qui porte la clé Nexus, et l'enregistrement du protocole
+      `nxm://` — qui revient à la dernière application enregistrée. Mesuré le 2026-08-26,
+      revérifié dans le code le 2026-08-28 : rien n'a bougé.
+      *Provenance : `docs/superpowers/plans/2026-08-26-migration-identite-starhubfr.md`
+      (local, gitignoré). Les faits qui décident sont recopiés ci-dessus ; le plan ne garde
+      que le détail des 41 étapes.*
+  - [ ] **F5-T1** — *(phase 1, livrable seule)* Déplacer les données de fichiers vers
+        `~/Library/Application Support/StarHubFR/` derrière un **accesseur unique** qui
+        migre à la première lecture — **pas au lancement** : il n'existe aucun point de
+        lancement assez tôt pour garantir que rien n'a encore lu l'ancien chemin. · **M**
+  - [ ] **F5-T2** — *(phase 2, livrable seule)* Changer l'identifiant de bundle, ce qui
+        sépare préférences, Trousseau et `nxm://`, puis recopier l'ancien domaine vers le
+        nouveau. Seule, T2 laisse les fichiers en commun ; seule, T1 laisse les préférences
+        et le Trousseau en commun. · **M**
 
 ---
 
@@ -1792,3 +1844,15 @@ FR sans passer par le tag.
   (`feat(i18n): couverture de traduction par mod (C1-T1)`).
 - Réviser la table de réconciliation (§3) à chaque release majeure : elle perd toute
   valeur dès qu'elle ment sur l'état réel du code.
+- **Un plan ou une spec de `docs/superpowers/` ne vaut pas suivi.** Ce dossier est
+  gitignoré : il n'existe que sur le poste qui l'a écrit. Toute décision qu'il porte et
+  qui engage la suite doit être recopiée **ici, avec ses faits** — un renvoi seul
+  disparaît au premier clone. Contrôle du 2026-08-28 : sur 29 plans et 27 specs,
+  4 fichiers étaient cités depuis ce document, et le plan de migration d'identité
+  (41 étapes, deux phases) n'y figurait nulle part → repris en **F5**.
+- **Les cases des plans de `docs/superpowers/` ne sont jamais cochées.** Aucune, sur
+  aucun plan — y compris celui de la découverte, sortie en v1.25.0. Leur état `- [ ]`
+  ne dit rien de ce qui est fait ; seuls ce fichier et le code font foi.
+- **`UX_UI_Specifications.md` est périmé et orphelin.** Il s'épingle au commit `a3937f6`
+  (v1.6.0), soit 19 releases de retard, et aucun document du dépôt ne le cite. À ne pas
+  utiliser comme source : à réécrire contre le code, ou à retirer.
