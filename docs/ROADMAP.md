@@ -1892,17 +1892,64 @@ par lot, une release par lot. Périmètre : visuel + navigation —
 > liste des mods identiques. **La phase 0 tient sa revendication : aucun
 > changement visuel.** L'audit de fidélité du closage (H-T9) part donc d'une
 > base constatée, pas supposée.
-- [ ] **H-T2** — **Navigation** : un seul style d'item de sidebar, badge
+- [x] **H-T2** — **Navigation** : un seul style d'item de sidebar, badge
       capsule sur l'item (motif Mail) — fin de la zone de statut séparée ;
       4 groupes : Bibliothèque / Parties / Santé & secours / Application.
       Aucune destination supprimée ni enterrée, identifiants d'onglet
       inchangés (pas de migration d'état). · **S**
-- [ ] **H-T3** — **Accueil tableau de bord** : bande des 4 compteurs
+- [x] **H-T3** — **Accueil tableau de bord** : bande des 4 compteurs
       cliquables (mises à jour, alertes SMAPI, quarantaine, parc — un zéro
       affiché est une information), carte de lancement (mode + profil + dossier
       suivis d'un coup d'œil), parc et socle en version constat ; identité et
       réglages déménagent (version, crédits, dossier, SMAPI détaillé →
       Réglages ; « Installer SMAPI » reste sur l'accueil quand SMAPI manque). · **M**
+
+> **H-T2 et H-T3 livrés (2026-08-28, phase 1 du chantier).**
+>
+> **H-T2** : un seul `SidebarItem` pour les 13 destinations, quatre en-têtes
+> (`main_group_*`), badge capsule sur l'item — la zone de statut séparée
+> n'existe plus. Identifiants d'onglet inchangés : aucune migration d'état.
+> Le cliquet monte de +1/+1, le coût exact du quatrième en-tête, relevé avec
+> le commit. Les trois items badgés gagnent au passage un survol et le trait
+> VoiceOver `.isSelected` que l'ancien style ne leur donnait pas — dans le
+> scénario ci-dessous.
+>
+> **H-T3** : les Réglages absorbent dossier du jeu, gestion SMAPI, extensions
+> cœur et crédits (la version de l'app y vivait déjà depuis la v1.26.0).
+> L'accueil devient tableau de bord : bande des 4 compteurs toujours rendus,
+> zéros compris, chacun menant à son onglet ; carte de lancement à trois
+> états, dont les deux empêchés portent l'action qui les lève. Bannière,
+> avatar et nom d'utilisateur partent ; « Installer SMAPI » reste sur
+> l'accueil, avec sa progression. `HomeView` 408→391 lignes et **plus aucun
+> littéral `.system(size:)`** (8 avant) — le critère n°1 tenu sur cette vue.
+> Le cliquet monte de +35/+15, relevé avec le commit : c'est le coût du
+> tableau de bord neuf et des sections constat (accueil) / commandes
+> (Réglages) que la spec veut présentes deux fois — pas une duplication
+> oubliée ; les clés `main_game_management`, `main_system`, `main_online` et
+> `home_version_string` sont retirées des deux locales.
+>
+> **Reste ouvert, repris par le scénario puis H-T9** : le `Group { }` de
+> `SettingsView` (plafond ViewBuilder atteint à 12 enfants) et son
+> commentaire ; les exceptions assumées de H-T1 (`InferredTagBadge`, en-tête
+> de recherche, cible 18×18 de `HeroHeader`) restent candidats H-T4/I-T3.
+>
+> **À vérifier à l'écran, avant d'ouvrir H-T4 :**
+> 1. **Les 13 destinations sont là**, dans quatre groupes, et chacune ouvre bien
+>    sa page — Changelog et Hub thaï compris.
+> 2. **Le fond de sélection est le même partout** (accent système) : Mises à
+>    jour, Alertes et Quarantaine ne se peignent plus en bleu/orange/violet.
+>    *C'est le changement voulu par H-T2* — vérifier qu'il ne surprend pas.
+> 3. **Les badges** apparaissent sur l'item, disparaissent à zéro, et l'item
+>    reste cliquable à zéro.
+> 4. **L'accueil rend les quatre compteurs sans défiler**, y compris à zéro
+>    partout, et chacun mène à son onglet.
+> 5. **Dossier du jeu non défini** → l'accueil propose « Choisir le dossier », et
+>    le choisir depuis là fonctionne.
+> 6. **SMAPI absent** → « Installer SMAPI » est sur l'accueil, et **la barre de
+>    progression s'affiche pendant l'installation**.
+> 7. **Réglages** : dossier du jeu, désinstallation de SMAPI et extensions cœur
+>    y sont, et la version de l'app n'y apparaît **qu'une fois**.
+> 8. **Fenêtre minimale** : la bande de quatre compteurs ne déborde pas.
 - [ ] **H-T4** — **Mods, pilote du reskin** : toolbar unifiée au motif
       Découvrir (un seul geste par intention), rangée à hauteur réservée avec
       état codé glyph + couleur + barre d'accent (jamais la couleur seule),

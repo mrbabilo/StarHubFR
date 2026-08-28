@@ -13,9 +13,6 @@ enum L10n {
         static let sidebarModsWeightAsleep    = "sidebar_mods_weight_asleep"
         static let sidebarModsWeightA11y      = "sidebar_mods_weight_a11y"
         static let account              = "main_account"
-        static let gameManagement       = "main_game_management"
-        static let system               = "main_system"
-        static let online               = "main_online"
         static let groupLibrary = "main_group_library"
         static let groupSaves   = "main_group_saves"
         static let groupHealth  = "main_group_health"
@@ -80,7 +77,6 @@ enum L10n {
         static let notInstalledOrDisabled = "home_not_installed_or_disabled"
         static let installedButDisabled = "home_installed_but_disabled"
         static let itemCount            = "home_item_count"
-        static let versionString        = "home_version_string"
         static let smapiNotInstalled    = "home_smapi_not_installed"
     }
 
