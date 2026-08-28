@@ -808,6 +808,12 @@
 "config_restored_from_backup" = "Configuration chargée depuis la sauvegarde du %@ — cliquez sur Enregistrer les modifications pour l'appliquer.";
 "config_backup_failed" = "Impossible de sauvegarder « %@ » avant l'enregistrement : %@";
 "config_edit_not_applied" = "La modification de « %@ » n'a pas pu être écrite ; le fichier est inchangé.";
+"config_other_settings" = "Autres";
+"config_empty_value" = "(vide)";
+"config_modified" = "modifié";
+"config_reset_to_default" = "Revenir au défaut du mod (%@)";
+"config_value_outside_list" = "hors de la liste du mod";
+"config_schema_unreadable" = "Ce pack décrit ses réglages, mais son content.json n'a pas pu être lu — les clés brutes sont affichées ci-dessous.";
 "vm_nexus_dl_no_api_key" = "Aucune clé API Nexus définie. Ajoutez-en une dans les Réglages.";
 "vm_nexus_dl_no_valid_file" = "Aucun fichier téléchargeable trouvé pour ce mod.";
 "vm_nexus_dl_no_link" = "Impossible d'obtenir un lien de téléchargement (Nexus Premium peut être requis pour le téléchargement direct in-app).";

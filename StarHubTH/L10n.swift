@@ -766,6 +766,12 @@ enum L10n {
         static let configRestoredFromBackup = "config_restored_from_backup"
         static let configBackupFailed      = "config_backup_failed"
         static let configEditNotApplied    = "config_edit_not_applied"
+        static let configOtherSettings     = "config_other_settings"
+        static let configEmptyValue        = "config_empty_value"
+        static let configModified          = "config_modified"
+        static let configResetToDefault    = "config_reset_to_default"
+        static let configValueOutsideList  = "config_value_outside_list"
+        static let configSchemaUnreadable  = "config_schema_unreadable"
     }
 
     // MARK: - Smapi

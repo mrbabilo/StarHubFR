@@ -122,6 +122,11 @@ public enum ConfigEditorModel {
         case integer(Int)
         case decimal(Double)
         case text(String)
+        /// Une valeur prise dans la liste que le schéma du pack déclare
+        /// (`AllowValues`). `among` porte déjà l'entrée vide quand le schéma
+        /// l'autorise, et la valeur courante en tête quand elle n'est pas
+        /// dans la liste.
+        case choice(selected: String, among: [String])
     }
 
     public static func control(for value: ConfigJSONTree.Value) -> Control? {
@@ -156,7 +161,203 @@ public enum ConfigEditorModel {
             return .number(literal)
         case .text(let text):
             return .string(text)
+        case .choice(let selected, _):
+            // Les 3900 clés décrites du parc sont des chaînes JSON : c'est
+            // Content Patcher qui engendre le fichier, et il n'écrit que ça.
+            return .string(selected)
         }
+    }
+
+    /// Le texte d'une valeur scalaire — de quoi la comparer aux littéraux d'un
+    /// schéma, qui sont tous des chaînes.
+    public static func literalText(of value: ConfigJSONTree.Value) -> String? {
+        switch value {
+        case .string(let text): return text
+        case .bool(let flag):   return flag ? "true" : "false"
+        case .number(let text): return text
+        case .object, .array, .null: return nil
+        }
+    }
+
+    /// Une valeur écrite depuis un littéral de schéma, **dans le type que le
+    /// fichier emploie déjà** : remettre un défaut ne doit pas changer un
+    /// booléen en chaîne au passage.
+    public static func value(ofLiteral literal: String,
+                             matchingTypeOf current: ConfigJSONTree.Value) -> ConfigJSONTree.Value? {
+        switch current {
+        case .string:
+            return .string(literal)
+        case .bool:
+            switch literal.lowercased() {
+            case "true":  return .bool(true)
+            case "false": return .bool(false)
+            default:      return nil
+            }
+        case .number:
+            guard Double(literal) != nil else { return nil }
+            return .number(literal)
+        case .object, .array, .null:
+            return nil
+        }
+    }
+
+    // MARK: - Fusion avec le schéma d'un content pack
+
+    /// Une rangée de l'écran : la valeur, plus ce que le schéma du pack en dit.
+    ///
+    /// Sans schéma — les 246 mods C# du parc, qui n'en publient aucun — les
+    /// champs venus du schéma sont nuls et la rangée vaut exactement ce que
+    /// l'écran affichait avant.
+    public struct Row: Equatable, Sendable, Identifiable {
+        public let keyPath: [String]
+        /// `Name` du schéma quand il existe (rare : 173 tokens sur tout le
+        /// parc), sinon la clé elle-même.
+        public let label: String
+        public let description: String?
+        public let control: Control
+        /// Le contrôle qui remettrait le défaut du schéma — **non nul
+        /// seulement quand la valeur s'en écarte**, ce qui en fait aussi le
+        /// marqueur « modifié ». 161 clés du parc sont dans ce cas.
+        public let defaultControl: Control?
+        /// La valeur courante n'est pas dans la liste que le schéma admet.
+        /// 6 cas relevés sur le parc (`ShirtSpring = WarmWeather` quand le
+        /// schéma dit `Cold | Vanilla | Warm`).
+        public let isOutsideAllowedValues: Bool
+
+        public var id: String { keyPath.joined(separator: "\u{1}") }
+
+        public init(keyPath: [String], label: String, description: String?,
+                    control: Control, defaultControl: Control?,
+                    isOutsideAllowedValues: Bool) {
+            self.keyPath = keyPath
+            self.label = label
+            self.description = description
+            self.control = control
+            self.defaultControl = defaultControl
+            self.isOutsideAllowedValues = isOutsideAllowedValues
+        }
+    }
+
+    /// Les rangées d'une section. `section` nulle = celles que le schéma n'a
+    /// pas rangées, ou l'intégralité du fichier quand il n'y a pas de schéma.
+    public struct Group: Equatable, Sendable {
+        public let section: String?
+        public let rows: [Row]
+
+        public init(section: String?, rows: [Row]) {
+            self.section = section
+            self.rows = rows
+        }
+    }
+
+    /// Les options du fichier, groupées par section du schéma.
+    ///
+    /// Les sections sortent **dans leur ordre d'apparition** dans le fichier —
+    /// mesuré sur le parc : cet ordre est celui du schéma dans les 210 packs,
+    /// Content Patcher engendrant l'un depuis l'autre. Le groupe sans section
+    /// vient en dernier (11 packs mêlent les deux).
+    public static func groups(of tree: ConfigJSONTree.Value,
+                              describedBy options: [ConfigSchemaOption]) -> [Group] {
+        var index: [String: ConfigSchemaOption] = [:]
+        for option in options where index[option.token.lowercased()] == nil {
+            index[option.token.lowercased()] = option
+        }
+
+        var sectionOrder: [String] = []
+        var bySection: [String: [Row]] = [:]
+        var unsectioned: [Row] = []
+
+        for leaf in leaves(of: tree) {
+            let option = leaf.keyPath.last.flatMap { index[$0.lowercased()] }
+            guard let row = row(for: leaf, describedBy: option) else { continue }
+            guard let section = option?.section else { unsectioned.append(row); continue }
+            if bySection[section] == nil { sectionOrder.append(section) }
+            bySection[section, default: []].append(row)
+        }
+
+        var groups = sectionOrder.map { Group(section: $0, rows: bySection[$0] ?? []) }
+        if !unsectioned.isEmpty || groups.isEmpty {
+            groups.append(Group(section: nil, rows: unsectioned))
+        }
+        return groups
+    }
+
+    private static func row(for leaf: Leaf, describedBy option: ConfigSchemaOption?) -> Row? {
+        guard var control = control(for: leaf.value) else { return nil }
+        var isOutside = false
+        if let option, let choice = choiceControl(for: leaf.value, option: option) {
+            control = choice.control
+            isOutside = choice.isOutside
+        }
+        return Row(keyPath: leaf.keyPath,
+                   label: option?.name ?? leaf.keyPath.last ?? "",
+                   description: option?.description,
+                   control: control,
+                   defaultControl: defaultControl(of: leaf.value, shownAs: control, option: option),
+                   isOutsideAllowedValues: isOutside)
+    }
+
+    /// La liste déroulante que le schéma justifie, ou `nil` pour garder le
+    /// contrôle d'origine.
+    ///
+    /// Deux refus mesurés sur le parc : `true`/`false` reste un interrupteur
+    /// (2801 des 3777 clés à valeurs admises — un menu à deux entrées serait
+    /// une régression), et un choix multiple reste un champ texte (22 clés :
+    /// la valeur y est une liste à virgules qu'un menu à choix unique
+    /// réduirait à une seule entrée).
+    private static func choiceControl(for value: ConfigJSONTree.Value,
+                                      option: ConfigSchemaOption) -> (control: Control, isOutside: Bool)? {
+        guard !option.allowValues.isEmpty, option.allowMultiple != true else { return nil }
+        guard Set(option.allowValues.map { $0.lowercased() }) != ["true", "false"] else { return nil }
+        guard let current = literalText(of: value) else { return nil }
+
+        var among = option.allowValues
+        if option.allowBlank == true, !among.contains("") { among.append("") }
+
+        if let position = among.firstIndex(where: { $0.lowercased() == current.lowercased() }) {
+            // ⚠️ C'est **l'orthographe du fichier** qui est retenue, pas celle
+            // du schéma. Rendre celle du schéma ferait réécrire le fichier au
+            // premier passage dans le menu là où les deux ne diffèrent que par
+            // la casse — 3 clés du parc (`spring` contre `Spring`). Les autres
+            // entrées gardent l'orthographe du schéma.
+            among[position] = current
+            return (.choice(selected: current, among: among), false)
+        }
+        // Jamais remplacée en silence : elle prend la tête de la liste et
+        // l'appelant la signale.
+        among.insert(current, at: 0)
+        return (.choice(selected: current, among: among), true)
+    }
+
+    private static func defaultControl(of value: ConfigJSONTree.Value,
+                                       shownAs control: Control,
+                                       option: ConfigSchemaOption?) -> Control? {
+        guard let option, let literal = option.defaultLiteral,
+              let current = literalText(of: value),
+              !isSameValue(current, literal, multiple: option.allowMultiple == true) else { return nil }
+
+        if case .choice(_, let among) = control {
+            let spelling = among.first { $0.lowercased() == literal.lowercased() } ?? literal
+            return .choice(selected: spelling, among: among)
+        }
+        guard let defaultValue = self.value(ofLiteral: literal, matchingTypeOf: value) else { return nil }
+        return self.control(for: defaultValue)
+    }
+
+    /// ⚠️ Quand plusieurs valeurs sont admises, le défaut porte lui-même des
+    /// virgules (24 cas relevés) : comparer les deux chaînes telles quelles
+    /// annoncerait « modifié » dès que l'ordre diffère.
+    private static func isSameValue(_ current: String, _ literal: String, multiple: Bool) -> Bool {
+        if multiple { return commaList(current) == commaList(literal) }
+        return normalized(current) == normalized(literal)
+    }
+
+    private static func commaList(_ text: String) -> Set<String> {
+        Set(text.split(separator: ",").map { normalized(String($0)) }.filter { !$0.isEmpty })
+    }
+
+    private static func normalized(_ text: String) -> String {
+        text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     }
 
     // MARK: - Littéraux numériques

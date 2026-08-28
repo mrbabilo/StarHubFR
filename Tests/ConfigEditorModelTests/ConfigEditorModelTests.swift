@@ -184,4 +184,163 @@ struct ConfigEditorModelTests {
     @Test func aDecimalThatCannotBeWrittenYieldsNoValue() {
         #expect(ConfigEditorModel.value(of: .decimal(.infinity)) == nil)
     }
+
+    // MARK: - Fusion avec le schéma d'un content pack (C4-T4)
+
+    private func tree(_ text: String) -> ConfigJSONTree.Value {
+        ConfigJSONTree.parse(text)!
+    }
+
+    private func option(_ token: String,
+                        name: String? = nil,
+                        description: String? = nil,
+                        section: String? = nil,
+                        allowValues: [String] = [],
+                        defaultLiteral: String? = nil,
+                        allowBlank: Bool? = nil,
+                        allowMultiple: Bool? = nil) -> ConfigSchemaOption {
+        ConfigSchemaOption(token: token, name: name, description: description,
+                           section: section, allowValues: allowValues,
+                           defaultLiteral: defaultLiteral, allowBlank: allowBlank,
+                           allowMultiple: allowMultiple)
+    }
+
+    @Test func withoutASchemaEverythingLandsInOneUnnamedGroup() {
+        // Le cas des 246 mods C# du parc : aucun schéma sur le disque. L'écran
+        // doit rendre exactement ce qu'il rendait avant.
+        let groups = ConfigEditorModel.groups(of: tree(#"{ "Zoom": true, "Name": "Bob" }"#),
+                                              describedBy: [])
+        #expect(groups.count == 1)
+        #expect(groups[0].section == nil)
+        #expect(groups[0].rows.map(\.label) == ["Zoom", "Name"])
+        #expect(groups[0].rows.allSatisfy { $0.description == nil })
+    }
+
+    @Test func sectionsComeInOrderOfAppearanceAndTheUnsectionedGoLast() {
+        // 11 packs du parc mêlent des clés avec et sans section.
+        let groups = ConfigEditorModel.groups(
+            of: tree(#"{ "A": "1", "B": "2", "C": "3", "D": "4" }"#),
+            describedBy: [option("A", section: "Sons"), option("B"),
+                          option("C", section: "Images"), option("D", section: "Sons")])
+        #expect(groups.map(\.section) == ["Sons", "Images", nil])
+        #expect(groups[0].rows.map(\.label) == ["A", "D"])
+        #expect(groups[2].rows.map(\.label) == ["B"])
+    }
+
+    @Test func theSchemaSuppliesLabelAndDescription() {
+        let groups = ConfigEditorModel.groups(
+            of: tree(#"{ "ShirtSpring": "Warm", "Bare": "x" }"#),
+            describedBy: [option("ShirtSpring", name: "Chemise (printemps)",
+                                 description: "Ce que Penny porte au printemps.")])
+        let rows = groups[0].rows
+        #expect(rows[0].label == "Chemise (printemps)")
+        #expect(rows[0].description == "Ce que Penny porte au printemps.")
+        // Une clé qu'un pack à schéma n'a pas décrite (4 cas dans le parc)
+        // reste affichable, nue.
+        #expect(rows[1].label == "Bare")
+        #expect(rows[1].description == nil)
+    }
+
+    @Test func theKeyIsMatchedWithoutRegardToCase() {
+        let groups = ConfigEditorModel.groups(of: tree(#"{ "shirtspring": "Warm" }"#),
+                                              describedBy: [option("ShirtSpring", name: "Chemise")])
+        #expect(groups[0].rows[0].label == "Chemise")
+    }
+
+    @Test func trueFalseValuesStayASwitchInsteadOfADropdown() {
+        // 2801 des 3777 clés à valeurs admises n'admettent que `true`/`false` :
+        // un menu à deux entrées y serait une régression.
+        let groups = ConfigEditorModel.groups(of: tree(#"{ "Enabled": "true" }"#),
+                                              describedBy: [option("Enabled", allowValues: ["true", "false"])])
+        #expect(groups[0].rows[0].control == .toggle(true, asString: true))
+    }
+
+    @Test func realChoicesBecomeADropdown() {
+        let groups = ConfigEditorModel.groups(
+            of: tree(#"{ "Theme": "Vanilla" }"#),
+            describedBy: [option("Theme", allowValues: ["Cold", "Vanilla", "Warm"])])
+        #expect(groups[0].rows[0].control == .choice(selected: "Vanilla", among: ["Cold", "Vanilla", "Warm"]))
+        #expect(groups[0].rows[0].isOutsideAllowedValues == false)
+    }
+
+    @Test func aValueOutsideItsOwnAllowedListIsKeptAndFlagged() {
+        // Relevé sur le parc : `ShirtSpring = WarmWeather` quand le schéma dit
+        // `Cold | Vanilla | Warm` (6 cas). Un menu qui la remplacerait en
+        // silence changerait le fichier sans que personne ne l'ait demandé.
+        let groups = ConfigEditorModel.groups(
+            of: tree(#"{ "ShirtSpring": "WarmWeather" }"#),
+            describedBy: [option("ShirtSpring", allowValues: ["Cold", "Vanilla", "Warm"])])
+        #expect(groups[0].rows[0].control == .choice(selected: "WarmWeather",
+                                                     among: ["WarmWeather", "Cold", "Vanilla", "Warm"]))
+        #expect(groups[0].rows[0].isOutsideAllowedValues)
+    }
+
+    @Test func anEmptyChoiceIsOfferedWhenTheSchemaAllowsIt() {
+        let groups = ConfigEditorModel.groups(
+            of: tree(#"{ "Hat": "Cap" }"#),
+            describedBy: [option("Hat", allowValues: ["Cap", "None"], allowBlank: true)])
+        #expect(groups[0].rows[0].control == .choice(selected: "Cap", among: ["Cap", "None", ""]))
+    }
+
+    @Test func multipleChoiceKeepsTheFreeTextField() {
+        // 22 clés du parc : la valeur est une liste à virgules. Un menu à choix
+        // unique la réduirait à une seule entrée.
+        let groups = ConfigEditorModel.groups(
+            of: tree(#"{ "Seasons": "spring, fall" }"#),
+            describedBy: [option("Seasons", allowValues: ["spring", "summer", "fall", "winter"],
+                                 allowMultiple: true)])
+        #expect(groups[0].rows[0].control == .text("spring, fall"))
+    }
+
+    @Test func aValueEqualToItsDefaultIsNotMarkedAsModified() {
+        let groups = ConfigEditorModel.groups(
+            of: tree(#"{ "Theme": "Vanilla" }"#),
+            describedBy: [option("Theme", allowValues: ["Cold", "Vanilla"], defaultLiteral: "Vanilla")])
+        #expect(groups[0].rows[0].defaultControl == nil)
+    }
+
+    @Test func aValueAwayFromItsDefaultCarriesTheWayBack() {
+        let groups = ConfigEditorModel.groups(
+            of: tree(#"{ "Theme": "Cold" }"#),
+            describedBy: [option("Theme", allowValues: ["Cold", "Vanilla"], defaultLiteral: "Vanilla")])
+        #expect(groups[0].rows[0].defaultControl == .choice(selected: "Vanilla", among: ["Cold", "Vanilla"]))
+    }
+
+    @Test func aCommaSeparatedDefaultIsComparedAsASet() {
+        // Le piège documenté par C4-T4 : quand plusieurs valeurs sont admises,
+        // le défaut porte lui-même des virgules (24 cas). Comparer les deux
+        // chaînes telles quelles annoncerait « modifié » à tort.
+        let groups = ConfigEditorModel.groups(
+            of: tree(#"{ "Seasons": "fall, spring" }"#),
+            describedBy: [option("Seasons", allowValues: ["spring", "fall"],
+                                 defaultLiteral: "spring, fall", allowMultiple: true)])
+        #expect(groups[0].rows[0].defaultControl == nil)
+    }
+
+    @Test func aChoiceIsWrittenBackAsAString() {
+        // Mesuré : les 3900 clés décrites du parc sont des chaînes JSON — c'est
+        // Content Patcher qui engendre le fichier, et il n'écrit que ça.
+        #expect(ConfigEditorModel.value(of: .choice(selected: "Warm", among: ["Cold", "Warm"]))
+                == .string("Warm"))
+    }
+
+    @Test func nestedKeysKeepTheirFullPath() {
+        let groups = ConfigEditorModel.groups(of: tree(#"{ "G": { "Inner": 1 } }"#), describedBy: [])
+        #expect(groups[0].rows[0].keyPath == ["G", "Inner"])
+        #expect(groups[0].rows[0].label == "Inner")
+    }
+
+    @Test func theFileSpellingWinsWhenOnlyTheCaseDiffers() {
+        // Relevé sur le parc en confrontant la fusion aux 462 fichiers : trois
+        // clés portent leur valeur dans une casse différente de celle du
+        // schéma (`spring` contre `Spring`). Rendre l'orthographe du schéma
+        // ferait réécrire le fichier au premier passage dans le menu — un
+        // changement que personne n'a demandé. C'est le fichier qui fait foi
+        // pour la valeur courante ; le schéma, pour les autres entrées.
+        let groups = ConfigEditorModel.groups(
+            of: tree(#"{ "Outfit": "spring" }"#),
+            describedBy: [option("Outfit", allowValues: ["Spring", "Summer"])])
+        #expect(groups[0].rows[0].control == .choice(selected: "spring", among: ["spring", "Summer"]))
+        #expect(groups[0].rows[0].isOutsideAllowedValues == false)
+    }
 }
