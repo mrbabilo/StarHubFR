@@ -611,7 +611,7 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 > Établi le 2026-08-28 par décompilation et mesure → `§audit-config-menus`,
 > [`audit-config-menus.md`](audit-config-menus.md). **Prendre C4-T4 avant C4-T1.**
 
-- [ ] **C4-T4** — `§audit-config-menus` — **Lire le `ConfigSchema` de `content.json`**
+- [x] **C4-T4** — `§audit-config-menus` — **Lire le `ConfigSchema` de `content.json`**
       (Content Patcher) : type, valeur par défaut, valeurs admises, section, description.
       C'est un **schéma complet, déjà sur le disque**, sans décompilation ni heuristique —
       et il donne d'un coup la liste déroulante à la place du champ libre, le regroupement
@@ -641,11 +641,25 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       schéma, 301 n'en ont pas, 14 sont illisibles** (compté en Swift, pas déduit du
       relevé Python — l'arbre a sa propre tolérance). Les confondre afficherait des clés
       brutes sans explication aux 14, et un avertissement injustifié aux 301.
-      **Reste à faire** : brancher le schéma sur `ModConfigEditorView`. Le préalable
-      **C4-T5 est levé** (livré le 2026-08-28) : l'écran lit désormais le fichier par
-      `ConfigJSONTree`, dans l'ordre de l'auteur, et ses options passent par
-      `ConfigEditorModel.Control` — le schéma vient s'y greffer (libellé, section,
-      description, liste de valeurs admises) sans retoucher la lecture.
+      ✅ **Branché sur l'écran le 2026-08-28** — `ConfigEditorModel.groups(of:describedBy:)`
+      (Core, 15 tests de plus). Ce que l'utilisateur voit change : **414 sections** à la
+      place de la liste à plat, **1759 descriptions** sous les libellés (2 lignes au
+      plus), **954 listes déroulantes**, et une pastille « modifié » avec retour au
+      défaut sur **161 réglages**. Un bandeau pour les **5** packs au `content.json`
+      illisible ; rien pour les 246 mods C#, qui gardent l'arborescence de leur JSON.
+      **Trois refus délibérés, tous mesurés** : pas de menu pour les **2801** clés qui
+      n'admettent que `true`/`false` (l'interrupteur reste), pas de menu pour les **22**
+      à choix multiple (leur valeur est une liste à virgules), et une valeur absente de
+      la liste que son propre schéma admet (**8** clés) est gardée, mise en tête du menu
+      et signalée — jamais remplacée.
+      **Confronté au parc** : 462 fichiers fusionnés, **11 891 feuilles → 11 891
+      rangées, 0 perdue**, 0 retour au défaut inécrivable. C'est cette confrontation —
+      pas les tests — qui a trouvé le dernier défaut : quand la valeur du fichier ne
+      diffère de celle du schéma que par la **casse** (`spring` contre `Spring`, 3 clés),
+      rendre l'orthographe du schéma faisait réécrire le fichier au premier passage dans
+      le menu. C'est celle du fichier qui est retenue.
+      ⚠️ **Vérification humaine attendue** : code de vue, hors de portée de `swift test`.
+      Cas de démonstration : `[CP] More Upgrades` (87 clés, 15 sections, 75 descriptions).
 - [ ] **C4-T1** — *(voie secondaire — pour les mods C#, qui n'ont pas de schéma)*
       Étiqueter les champs de `config.json` avec les libellés `config.*` que le mod publie
       dans son `i18n/` (en FR si disponible), au lieu des clés brutes. · **M**
