@@ -602,8 +602,24 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 
 - [ ] **C4-T1** — *(voie sûre)* Étiqueter les champs de `config.json` avec les libellés
       `config.*` que le mod publie dans son `i18n/` (en FR si disponible), au lieu des clés
-      brutes. Faisable sans dépendance externe. · **M** · *hypothèse à valider sur un
-      échantillon de mods réels avant engagement.*
+      brutes. Faisable sans dépendance externe. · **M**
+      ✅ **Hypothèse validée le 2026-08-28, sur le parc réel** — pas sur un échantillon.
+      Sur les **1017 mods** installés, **547 ont un `config.json`** et **267 d'entre eux
+      publient des clés `config.*`** dans leur `i18n/`, dont **229 déjà traduites en
+      français** par les auteurs des mods.
+      ⚠️ **Le chiffre qui compte pour ce que l'utilisateur voit aujourd'hui est plus
+      petit** : le parc de référence est en pause à 88 %. Ventilé —
+      **actifs : 125 mods, 92 configurables, 47 dans la cible dont 40 en FR** ;
+      **en pause : 892 mods, 455 configurables, 220 dans la cible dont 189 en FR**.
+      Le rapport est le même dans les deux populations (**51 %** contre **48 %**) : la
+      règle tient, elle n'est pas un artefact de la masse en pause. Le gain visible
+      immédiatement porte donc sur **47 mods**, et grandit à chaque réactivation.
+      *(À la marge : 285 mods publient des clés `config.*` mais 18 n'ont pas encore de
+      `config.json` — SMAPI ne l'écrit qu'au premier lancement. La cible croît.)*
+      Aujourd'hui `ModConfigEditorView.swift:6` affiche `keyPath.joined(separator: " > ")` :
+      la clé brute, pour tous. La mesure a dû lire du **JSON5** (commentaires en fin de
+      ligne, CRLF, virgules traînantes) — 28 fichiers sur 2506 restent illisibles même
+      ainsi, 1 % : l'implémentation doit se replier sur la clé brute, jamais échouer.
 - [ ] **C4-T2** — Champs de raccourcis clavier : validation des noms `SButton`, détection
       des collisions entre mods. · **M**
 - [ ] **C4-T3** — *(spike, 1 session, décision go/no-go)* **GMCM / Modern Config Menu.**
