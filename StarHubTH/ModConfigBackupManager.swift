@@ -337,6 +337,30 @@ public class ModConfigBackupManager {
         return nil
     }
 
+    /// La sauvegarde **du jour** qui protège déjà ce fichier, s'il y en a une.
+    ///
+    /// Ce qu'elle sert : replier les sauvegardes de l'éditeur de config **par
+    /// mod et par jour**. Sans elle, dix réglages modifiés dans l'après-midi
+    /// déposent dix entrées d'un seul mod en tête de l'écran des sauvegardes,
+    /// devant les sauvegardes complètes.
+    ///
+    /// C'est la **première** du jour qui vaut filet, et elle n'est jamais
+    /// remplacée : elle porte l'état avec lequel le jeu a tourné avant qu'on y
+    /// touche. L'écraser à chaque enregistrement laisserait une mauvaise
+    /// modification manger le filet en deux enregistrements — le défaut connu
+    /// du `.bak` roulant qu'on vient de retirer.
+    ///
+    /// Une sauvegarde générale prise le même jour compte aussi : elle contient
+    /// le fichier, donc elle protège.
+    public func backupFromToday(protecting relativePath: String,
+                                forMod modFolderName: String,
+                                now: Date = Date(),
+                                calendar: Calendar = .current) -> ModConfigBackup? {
+        guard let found = mostRecentBackedUpFile(named: relativePath, forMod: modFolderName),
+              calendar.isDate(found.backup.timestamp, inSameDayAs: now) else { return nil }
+        return found.backup
+    }
+
     // MARK: - Cleanup
 
     /// Deletes backups older than 30 days, but always keeps at least the 5

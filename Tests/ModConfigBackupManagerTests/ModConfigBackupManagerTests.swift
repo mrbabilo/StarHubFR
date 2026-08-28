@@ -521,4 +521,48 @@ struct TestEnvironment {
         let text = try String(contentsOf: #require(found).url, encoding: .utf8)
         #expect(text == "{\"volume\": 1}")
     }
+
+    @Test func backupFromTodayFindsTheOneThatAlreadyProtectsTheFile() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let modDir = env.modsDir.appendingPathComponent("StandaloneMod", isDirectory: true)
+        try writeTestFile(in: modDir, filename: "config.json", content: "{\"volume\": 1}")
+        let backup = try env.manager.createBackup(gameDir: env.gameDir,
+                                                  mods: [makeTestMod(folderName: "StandaloneMod")])
+
+        let found = env.manager.backupFromToday(protecting: "config.json", forMod: "StandaloneMod")
+        #expect(found?.folderName == backup.folderName)
+    }
+
+    @Test func backupFromTodayIgnoresYesterdays() throws {
+        // Le repli vaut pour la journée : le lendemain, le premier
+        // enregistrement reprend une sauvegarde neuve.
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let modDir = env.modsDir.appendingPathComponent("StandaloneMod", isDirectory: true)
+        try writeTestFile(in: modDir, filename: "config.json", content: "{\"volume\": 1}")
+        _ = try env.manager.createBackup(gameDir: env.gameDir,
+                                         mods: [makeTestMod(folderName: "StandaloneMod")])
+
+        let tomorrow = Date().addingTimeInterval(24 * 60 * 60)
+        #expect(env.manager.backupFromToday(protecting: "config.json",
+                                            forMod: "StandaloneMod",
+                                            now: tomorrow) == nil)
+    }
+
+    @Test func backupFromTodayIgnoresABackupThatDoesNotHoldThatFile() throws {
+        // Une sauvegarde qui n'a pris que la traduction du mod ne protège pas
+        // sa configuration : la confondre avec un filet la laisserait sans.
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let modDir = env.modsDir.appendingPathComponent("StandaloneMod", isDirectory: true)
+        try writeTestFile(in: modDir, filename: "fr.json", content: "{}")
+        _ = try env.manager.createBackup(gameDir: env.gameDir,
+                                         mods: [makeTestMod(folderName: "StandaloneMod")])
+
+        #expect(env.manager.backupFromToday(protecting: "config.json", forMod: "StandaloneMod") == nil)
+    }
 }

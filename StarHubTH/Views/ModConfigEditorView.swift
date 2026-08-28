@@ -324,8 +324,17 @@ struct ModConfigEditorView: View {
     /// Un échec n'empêche pas d'enregistrer : bloquer l'édition d'un fichier
     /// parce que son filet a raté serait un blocage dur pour une raison molle.
     /// Il est journalisé, pas avalé.
+    ///
+    /// **Une sauvegarde par mod et par jour** : dix réglages modifiés dans
+    /// l'après-midi déposeraient sinon dix entrées d'un seul mod en tête de
+    /// l'écran des sauvegardes, devant les sauvegardes complètes. C'est la
+    /// première du jour qui reste — l'état avec lequel le jeu a tourné avant
+    /// qu'on y touche — et une sauvegarde générale du même jour compte aussi.
     private func backUpCurrentConfig() {
         guard FileManager.default.fileExists(atPath: configPath) else { return }
+        guard ModConfigBackupManager.shared.backupFromToday(protecting: "config.json",
+                                                            forMod: mod.folderName) == nil
+        else { return }
         do {
             _ = try ModConfigBackupManager.shared.createBackup(gameDir: vm.gameDir,
                                                               mods: [mod],

@@ -725,11 +725,15 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       clés **en ordre d'auteur mais toujours à plat**. Les 15 sections et les 75
       descriptions viennent du `ConfigSchema` — c'est **C4-T4**, dont le socle est livré
       et le branchement reste à faire.
-      ▸ **À trancher** : chaque « Enregistrer » dépose une sauvegarde de plus, et le
-      ménage automatique ne supprime qu'au-delà de 30 jours. Dix réglages modifiés dans
-      l'après-midi, ce sont dix lignes d'un seul mod en tête de l'écran des sauvegardes,
-      devant ses sauvegardes complètes. À garder tel quel ou à replier par mod et par
-      jour — son appel.
+      ▸ **Tranché le 2026-08-28 : une sauvegarde par mod et par jour.** Chaque
+      « Enregistrer » en déposait une, et le ménage automatique ne supprime qu'au-delà de
+      30 jours — dix réglages modifiés dans l'après-midi mettaient dix lignes d'un seul
+      mod devant les sauvegardes complètes. C'est la **première du jour** qui reste,
+      jamais remplacée : elle porte l'état avec lequel le jeu a tourné avant qu'on y
+      touche, quand l'écraser à chaque enregistrement laisserait une mauvaise
+      modification manger le filet en deux saves — le défaut du `.bak` roulant qu'on
+      vient justement de retirer. Une sauvegarde générale du même jour compte aussi :
+      elle contient le fichier, donc elle protège. `backupFromToday`, 3 tests.
       ▸ **Angle mort connu, hors parc** : `physicalFolderName` préfixe le point au
       **chemin entier** (`.Pack/Composant`), donc un *composant* de pack mis en pause
       serait cherché au mauvais endroit — par l'éditeur comme par la sauvegarde, qui
