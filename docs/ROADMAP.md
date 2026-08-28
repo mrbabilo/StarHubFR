@@ -697,9 +697,15 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       c'est le seul filet automatique possible ici. `ModConfigBackupManager` gagne
       `onlyEnabled:` et `mostRecentBackedUpFile` (5 tests). 1598 tests, gate `EXIT=0`.
       **Confronté au parc, pas aux seules fixtures** : les **462** `config.json` de
-      premier niveau sont lus, leurs **11 891 valeurs réappliquées telles quelles**,
-      **0 écriture refusée, 0 aller-retour cassé**, et **0 fichier** dont l'ordre affiché
-      diffère de l'ordre du fichier.
+      premier niveau sont lus, **0 fichier** dont l'ordre affiché diffère de l'ordre du
+      fichier, et les **11 891 options** rejouées **une par une** sur l'arbre d'origine —
+      l'opération réelle d'une édition — rendent **un arbre identique dans tous les cas**
+      (0 chemin perdu, 0 littéral réécrit, 0 valeur changée).
+      *(La première version de ce relevé ne prouvait rien : elle comparait la sortie de
+      `ConfigJSONTree.write` à ce que `write` vérifie déjà lui-même avant de rendre.)*
+      **Répartition des 11 891 options** : 5834 interrupteurs, 2718 textes, 2581 entiers,
+      **758 décimaux** — ces derniers s'affichaient `0` au lieu de `0,5`, un
+      `NumberFormatter` nu n'ayant aucune décimale. Défaut antérieur à T5, corrigé ici.
       ⚠️ **Deux des quatre points sont des durcissements, pas des correctifs de son
       vécu** — mesuré avant d'écrire : **0** `config.json` de premier niveau du parc est
       en JSON5, et **0** dossier n'est en lecture seule (rien à faire côté X7 ici). Le
@@ -719,6 +725,11 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       clés **en ordre d'auteur mais toujours à plat**. Les 15 sections et les 75
       descriptions viennent du `ConfigSchema` — c'est **C4-T4**, dont le socle est livré
       et le branchement reste à faire.
+      ▸ **À trancher** : chaque « Enregistrer » dépose une sauvegarde de plus, et le
+      ménage automatique ne supprime qu'au-delà de 30 jours. Dix réglages modifiés dans
+      l'après-midi, ce sont dix lignes d'un seul mod en tête de l'écran des sauvegardes,
+      devant ses sauvegardes complètes. À garder tel quel ou à replier par mod et par
+      jour — son appel.
       ▸ **Angle mort connu, hors parc** : `physicalFolderName` préfixe le point au
       **chemin entier** (`.Pack/Composant`), donc un *composant* de pack mis en pause
       serait cherché au mauvais endroit — par l'éditeur comme par la sauvegarde, qui
