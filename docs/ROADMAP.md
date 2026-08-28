@@ -759,9 +759,14 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       ▸ **Modern Config Menu 1.7.4 écrit un fichier**, `config_exports/<UniqueID>.json`,
       mais c'est un `Dictionary<string,string>` **libellé affiché → valeur** : des
       *valeurs*, pas un schéma. Ni type, ni bornes, ni valeurs admises, ni clé de
-      `config.json`. Son `GenericModConfigMenuCompat`, malgré son nom, ne fait
-      qu'inscrire MCM **lui-même** dans GMCM — ce n'est pas un pont vers les données des
-      autres mods.
+      `config.json`.
+      ⚠️ **Corrigé le 2026-08-28** : le spike avait conclu de la seule classe
+      `GenericModConfigMenuCompat` que MCM n'accédait pas aux données de GMCM. **Il y
+      accède** — par un chemin `[MCM GMCM-Import]` qui **réfléchit dans la mémoire vive**
+      de GMCM (`GenericModConfigMenu.Mod` → `instance` → `ConfigManager` → `configs`).
+      C'est ce qui lui permet d'annoncer que tous les mods GMCM sont stylés
+      automatiquement. **Sans conséquence sur le verdict** : ce chemin n'écrit rien
+      (0 `WriteJsonFile`), et il ne marche que **dans le processus du jeu**.
       ▸ **La décompilation des DLL de chaque mod reste écartée**, comme prévu : rien dans
       ce spike ne la réhabilite.
       ▸ **Ce que le spike a rapporté** : la vraie source est ailleurs — le `ConfigSchema`

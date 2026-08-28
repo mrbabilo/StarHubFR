@@ -95,12 +95,33 @@ bornes, ni valeurs admises, ni clé de `config.json`. Un chemin d'**import**
 symétrique existe (« No export file found at … »), ce qui en fait une fonction de
 sauvegarde/transfert de réglages, pas une source de description.
 
-**`GenericModConfigMenuCompat` n'est pas un pont.** Malgré son nom, la classe
-appelle `Register(ModManifest, …)`, `AddParagraph`, `AddKeybindList` avec **son
-propre** manifeste : c'est MCM qui s'inscrit dans GMCM pour y exposer son raccourci.
-Il ne lit pas les enregistrements des autres mods. La « GMCM-compatible migration
-path » du manifeste désigne la **forme de son API** pour les auteurs, pas un accès
-aux données de GMCM.
+**`GenericModConfigMenuCompat` n'est pas le pont** — mais un pont existe ailleurs.
+Cette classe-là appelle bien `Register(ModManifest, …)`, `AddParagraph`,
+`AddKeybindList` avec **son propre** manifeste : c'est MCM qui s'inscrit dans GMCM
+pour y exposer son raccourci.
+
+⚠️ **Correction du 2026-08-28** (relecture de la DLL **installée**, 1.7.3, à partir
+de la page Nexus qui annonce « All GMCM-registered mods are automatically
+styled ») : le premier passage avait conclu de cette seule classe que MCM n'accédait
+pas aux données de GMCM. **C'est faux.** Son IL porte un chemin
+`[MCM GMCM-Import]` qui **réfléchit dans la mémoire vive de GMCM** :
+
+```
+type « GenericModConfigMenu.Mod »
+  → champ « instance » / « Instance »
+  → champ « ConfigManager » / « configManager »
+  → champ « configs » / « Configs », casté en IDictionary
+```
+
+puis reconstruit chaque enregistrement dans son propre `ModConfigRegistry` /
+`RegisteredMod`. Les messages d'échec sont explicites (« ConfigManager field not
+found », « configs dictionary cast to IDict… », « Skip entry '…' »).
+
+**Ce que cette correction ne change pas** : l'import ne fait **aucune écriture** —
+0 `WriteJsonFile`, 0 `File::Write` sur tout le chemin. Il marche parce que MCM
+s'exécute **dans le processus du jeu**, à côté de GMCM, après que les mods s'y sont
+enregistrés. Hors du jeu, il n'y a toujours rien à lire : le verdict de non-go tient,
+et la seule source hors-jeu reste le `ConfigSchema` de Content Patcher.
 
 ---
 
