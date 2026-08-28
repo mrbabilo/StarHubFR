@@ -1819,7 +1819,7 @@ dossier `design/` versionné), puis navigation + accueil, puis reskin écran
 par lot, une release par lot. Périmètre : visuel + navigation —
 **aucune fonctionnalité nouvelle**, aucun parcours interne refondu.
 
-- [ ] **H-T1** — **Châssis** : tokens manquants (`Grid`, `Metrics`, `Shadow`,
+- [x] **H-T1** — **Châssis** : tokens manquants (`Grid`, `Metrics`, `Shadow`,
       `Icon`), extraction vers `Views/Components/` des 6 composants de
       `DiscoverView` (`ModCard`, `StateCard`, `ErrorBanner`, `StatStrip`,
       `HeroHeader`, `SectionHeader`) et de `CategoryBadge` — défini dans
@@ -1827,6 +1827,63 @@ par lot, une release par lot. Périmètre : visuel + navigation —
       **sans changement visuel** (l'extraction sans bascule créerait des copies
       divergentes), bibliothèque `/design` créée (Foundations + Components),
       `UX_UI_Specifications.md` retiré avec bandeau de renvoi. · **M**
+
+> **H-T1 livré (2026-08-28).** Huit composants dans `Views/Components/` —
+> `CategoryBadge` déménagé de `ModListView`, plus `StateCard`, `ErrorBanner`,
+> `SectionHeader`, `NeutralBadge`, `ModCard`, `HeroHeader`, `StatStrip` (le
+> cadrage en annonçait 6 + 1 : le badge neutre « FR » de la vitrine s'est
+> révélé être un composant à part entière). Quatre groupes de tokens
+> (`Grid`, `Metrics`, `Shadow`, `Icon`) sous test SPM — 1647 tests verts,
+> contre 1641. `DiscoverView` bascule dessus sans changement visuel et passe
+> de 675 à 519 lignes ; **plus aucune taille de police littérale** n'y
+> subsiste (2 avant, 0 après) — le critère de succès n°1, atteint pour cette
+> vue. Cliquet des conventions rendu **à sa valeur exacte d'avant le lot**,
+> sans `--update`. Bibliothèque visuelle versionnée dans `design/`
+> (artboards `.dc.html` + canevas) ; `UX_UI_Specifications.md` retiré au
+> profit d'un renvoi (1318 lignes → 21).
+>
+> **Quatre choses apprises en chemin, qui coûteraient à qui les réapprendrait :**
+> 1. Le token d'ombre **doit être typé** `(radius: CGFloat, y: CGFloat)` :
+>    sans annotation Swift en infère des `Int` que `.shadow()` refuse.
+> 2. `thumbRatio` ne se teste **pas** à l'identique — `#expect` a rendu
+>    `false` sur deux valeurs s'imprimant toutes deux `1.7777777777777777`.
+>    Une tolérance dit ce qu'on veut savoir. (Même famille de piège que le
+>    `#expect` de B2-T8.)
+> 3. Éclater le `switch` d'`ErrorBanner` en trois branches rendant chacune
+>    son bandeau **a arrêté le gate** : deux des trois cas portent la même
+>    action, la duplication a fait monter le cliquet de 3. L'original
+>    repliait déjà ces deux cas.
+> 4. Aucune des 26 teintes de catégorie n'atteint 4,5:1 sur les **deux**
+>    thèmes (mesuré : « Bétail et animaux » 4,56 en clair / 2,18 en sombre,
+>    « Cultures » 2,43 / 3,95). La couleur étant la même des deux côtés,
+>    c'est structurel. Le sens tient — le nom est toujours écrit —, la
+>    lecture non. → **I-T3**.
+>
+> **Trois exceptions assumées**, à reprendre plus tard :
+> `InferredTagBadge` (`ModListView`) ne rend pas comme `NeutralBadge` —
+> police, fond et couleur de texte diffèrent : les fusionner serait un
+> changement visuel, c'est au lot **H-T4** de le faire. L'en-tête de
+> `searchResults` garde sa forme propre pour la même raison. Et le bouton de
+> fermeture de `HeroHeader` reste sous la cible de 18×18 pt exigée par la
+> spec §7, sans `help()` : l'agrandir déplacerait le glyphe et le libeller
+> demanderait une chaîne nouvelle, deux choses interdites en phase 0 →
+> **I-T3**.
+>
+> **À vérifier à l'écran (onglet Découvrir), avant d'ouvrir H-T2 :**
+> 1. **Sélection française** — les cartes sans vignette gardent la même
+>    hauteur que leurs voisines, la rangée ne décale pas (place réservée).
+> 2. **Pastille « installé »** sur une vignette claire — toujours vert plein,
+>    texte blanc, ombre visible ; elle ne doit pas s'être éclaircie.
+> 3. **Sans clé d'API** — le bandeau orange s'affiche avec « Ouvrir les
+>    réglages », et les sections montrent leur carte d'état avec son action.
+> 4. **Un libellé de catégorie long** — « Animaux de compagnie / Chevaux »,
+>    le plus long des 26 — dans une carte à la largeur minimale : la pastille
+>    ne doit pas pousser les endossements hors de la ligne.
+> 5. **La fiche d'un mod** — bandeau à la même hauteur, dégradé identique, la
+>    croix de fermeture au même endroit, et les quatre chiffres alignés en
+>    colonnes égales.
+> 6. **Liste des mods** — la pastille de catégorie y est inchangée
+>    (`CategoryBadge` a déménagé, pas changé).
 - [ ] **H-T2** — **Navigation** : un seul style d'item de sidebar, badge
       capsule sur l'item (motif Mail) — fin de la zone de statut séparée ;
       4 groupes : Bibliothèque / Parties / Santé & secours / Application.
@@ -2188,6 +2245,8 @@ FR sans passer par le tag.
 - **Les cases des plans de `docs/superpowers/` ne sont jamais cochées.** Aucune, sur
   aucun plan — y compris celui de la découverte, sortie en v1.25.0. Leur état `- [ ]`
   ne dit rien de ce qui est fait ; seuls ce fichier et le code font foi.
-- **`UX_UI_Specifications.md` est périmé et orphelin.** Il s'épingle au commit `a3937f6`
-  (v1.6.0), soit 19 releases de retard, et aucun document du dépôt ne le cite. À ne pas
-  utiliser comme source : à réécrire contre le code, ou à retirer.
+- ~~**`UX_UI_Specifications.md` est périmé et orphelin.**~~ *(traité le 2026-08-28,
+  H-T1)* Il s'épinglait au commit `a3937f6` (v1.6.0), soit 19 releases de retard, et
+  aucun document du dépôt ne le citait. Ses 1318 lignes sont remplacées par un bandeau
+  de renvoi vers la ROADMAP, le code, les tests et `design/` ; le contenu reste dans
+  l'historique.
