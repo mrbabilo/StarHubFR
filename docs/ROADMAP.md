@@ -627,6 +627,22 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       (`HostowValues`, `HostowBlank`). Lecture **insensible à la casse et à l'espace**,
       champ inconnu ignoré sans bruit. **14 `content.json` restent illisibles** même en
       JSON5 : le repli est l'éditeur brut, jamais une erreur. · **M**
+      ✅ **Socle livré le 2026-08-28** — `Models/ContentPackConfigSchema.swift` (Core),
+      9 tests, bâti sur `ConfigJSONTree` plutôt que sur un cinquième analyseur JSON.
+      **Confronté au parc, pas seulement aux fixtures** : 591 `content.json` parcourus,
+      **276 schémas et 6376 tokens — les mêmes comptes que le relevé Python**. Les
+      quatre écarts sont ceux que les tolérances rattrapent, et le vérifient :
+      `Section` 4866 contre 4831 (+35 `section` en minuscules), `AllowMultiple` 448
+      contre 408 (+40 `Allow Multiple` avec espace), `Description` +1, et `AllowValues`
+      5047 contre 5053 (−6 champs ne contenant que des virgules, écartés à raison).
+      L'API **distingue les trois issues** — `unreadable`, `noSchema`, `options` — parce
+      qu'elles se ressemblent toutes les trois à l'écran (aucune option à montrer) mais
+      qu'**une seule mérite d'être signalée** : sur 591 `content.json`, **276 ont un
+      schéma, 301 n'en ont pas, 14 sont illisibles** (compté en Swift, pas déduit du
+      relevé Python — l'arbre a sa propre tolérance). Les confondre afficherait des clés
+      brutes sans explication aux 14, et un avertissement injustifié aux 301.
+      **Reste à faire** : brancher le schéma sur `ModConfigEditorView` — ce qui suppose
+      **C4-T5** d'abord, l'écran étant encore sur `JSONSerialization`.
 - [ ] **C4-T1** — *(voie secondaire — pour les mods C#, qui n'ont pas de schéma)*
       Étiqueter les champs de `config.json` avec les libellés `config.*` que le mod publie
       dans son `i18n/` (en FR si disponible), au lieu des clés brutes. · **M**
