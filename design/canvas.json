@@ -1,0 +1,11 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 960, "h": 1560, "title": "Foundations — tokens" },
+    { "file": "Components.dc.html", "x": 1080, "y": 0, "w": 960, "h": 1420, "title": "Composants — pastilles, en-têtes, états" },
+    { "file": "Cards.dc.html", "x": 2160, "y": 0, "w": 1000, "h": 1560, "title": "Composants — carte, bandeau, chiffres" }
+  ],
+  "annotations": [
+    { "id": "brief", "x": 0, "y": -180, "w": 480, "text": "Châssis H-T1 — bibliothèque visuelle du design system.\n\nLe code Swift est la source de vérité : AppDesignCore.swift, AppDesignUI.swift et Views/Components/. Ces artboards sont la référence partagée pour discuter et comparer, pas un rendu pixel-perfect de SwiftUI.\n\nLes matériaux macOS (.background.secondary, .fill.tertiary, .quaternary) et les couleurs système sont approchés — à vérifier à l'écran." }
+  ],
+  "launch": { "view": "canvas" }
+}

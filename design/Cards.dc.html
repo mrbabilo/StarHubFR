@@ -1,0 +1,227 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; }
+    a { color: rgb(0,122,255); } a:hover { color: rgb(0,90,200); }
+  </style>
+</helmet>
+
+<div style="background: #ffffff; color: rgba(0,0,0,.85); padding: 32px; display: flex; flex-direction: column; gap: 28px">
+
+  <div style="display: flex; flex-direction: column; gap: 6px">
+    <div style="font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: rgba(0,0,0,.45)">StarHubFR · design system · groupe Components</div>
+    <div style="font-size: 26px; font-weight: 700; letter-spacing: -.02em">Carte, bandeau, chiffres clés</div>
+    <div style="font-size: 13px; color: rgba(0,0,0,.55); max-width: 66ch; text-wrap: pretty">
+      Les trois composants dont l'enjeu est la <b style="font-weight: 600">place réservée</b> : une donnée qui manque ne doit jamais raccourcir
+      le bloc, sans quoi toute la rangée se décale. Chaque carte est rendue à 240 px — la largeur minimale de la grille, donc son pire cas.
+    </div>
+  </div>
+
+  <!-- ModCard -->
+  <section style="display: flex; flex-direction: column; gap: 10px">
+    <div style="display: flex; align-items: baseline; gap: 10px">
+      <h2 style="margin: 0; font-size: 17px; font-weight: 600">ModCard</h2>
+      <span style="font-size: 12px; color: rgba(0,0,0,.5)">vignette 16/9, titre à deux lignes réservées, une seule ligne de méta à hauteur fixe</span>
+    </div>
+
+    <div style="background: #ececec; border-radius: 10px; padding: 20px">
+      <div style="font-size: 11px; color: rgba(0,0,0,.45); margin-bottom: 12px">Clair — tout servi · rien servi · libellé le plus long. Les trois font la même hauteur.</div>
+      <div style="display: grid; grid-template-columns: repeat(3, 240px); gap: 12px; align-items: start">
+
+        <div style="background: #f5f5f7; border: 1px solid rgba(0,0,0,.1); border-radius: 10px; overflow: hidden">
+          <div style="position: relative; aspect-ratio: 16 / 9; background: linear-gradient(140deg, #cfd8c5, #8fa77e)">
+            <span style="position: absolute; top: 8px; right: 8px; display: inline-flex; align-items: center; gap: 4px; background: rgb(40,205,65); color: #fff; font-size: 12px; font-weight: 600; padding: 4px 8px; border-radius: 999px; box-shadow: 0 1px 3px rgba(0,0,0,.25)">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="#fff"/><path d="M4.8 8.2l2.1 2.1 4.3-4.5" stroke="rgb(40,205,65)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Installé
+            </span>
+          </div>
+          <div style="padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 4px">
+            <div style="font-size: 13px; font-weight: 600; line-height: 1.25; min-height: calc(2 * 1.25em)">Stardew Valley Expanded</div>
+            <div style="font-size: 11px; color: rgba(0,0,0,.5); white-space: nowrap; overflow: hidden; text-overflow: ellipsis">FlashShifter</div>
+            <div style="display: flex; align-items: center; gap: 6px; height: 18px; padding-top: 2px">
+              <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 4px; background: rgba(204,77,77,.12); border: .5px solid rgba(204,77,77,.30)"><span style="width: 7px; height: 7px; border-radius: 999px; background: #CC4D4D"></span><span style="font-size: 10px; font-weight: 500; color: #CC4D4D">Mécaniques de jeu</span></span>
+              <span style="flex-grow: 1"></span>
+              <span style="display: inline-flex; align-items: center; gap: 3px; font-size: 11px; color: rgba(0,0,0,.5)">
+                <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4.5 7.2h-2v6h2m0-6l2.6-4.4a1 1 0 011.8.7l-.5 2.5h3.4a1.2 1.2 0 011.2 1.5l-1 4.4a1.2 1.2 0 01-1.2 1h-6.3" stroke="rgba(0,0,0,.5)" stroke-width="1.2" stroke-linejoin="round"/></svg>
+                4211
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div style="background: #f5f5f7; border: 1px solid rgba(0,0,0,.1); border-radius: 10px; overflow: hidden">
+          <div style="aspect-ratio: 16 / 9; background: rgba(0,0,0,.1)"></div>
+          <div style="padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 4px">
+            <div style="font-size: 13px; font-weight: 600; line-height: 1.25; min-height: calc(2 * 1.25em)">Traduction française</div>
+            <div style="font-size: 11px; color: rgba(0,0,0,.5); white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Anonyme</div>
+            <div style="display: flex; align-items: center; gap: 6px; height: 18px; padding-top: 2px">
+              <span style="display: inline-flex; padding: 2px 6px; border-radius: 999px; background: rgba(0,0,0,.05); font-size: 10px; font-weight: 600">FR</span>
+              <span style="flex-grow: 1"></span>
+            </div>
+          </div>
+        </div>
+
+        <div style="background: #f5f5f7; border: 1px solid rgba(0,0,0,.1); border-radius: 10px; overflow: hidden">
+          <div style="aspect-ratio: 16 / 9; background: linear-gradient(140deg, #d8c9b2, #a8895e)"></div>
+          <div style="padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 4px">
+            <div style="font-size: 13px; font-weight: 600; line-height: 1.25; min-height: calc(2 * 1.25em)">Un nom de mod assez long pour occuper les deux lignes réservées</div>
+            <div style="font-size: 11px; color: rgba(0,0,0,.5); white-space: nowrap; overflow: hidden; text-overflow: ellipsis">UnAuteurAuNomInterminable</div>
+            <div style="display: flex; align-items: center; gap: 6px; height: 18px; padding-top: 2px; overflow: hidden">
+              <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 4px; background: rgba(140,89,51,.12); border: .5px solid rgba(140,89,51,.30); white-space: nowrap"><span style="width: 7px; height: 7px; border-radius: 999px; background: #8C5933"></span><span style="font-size: 10px; font-weight: 500; color: #8C5933">Bétail et animaux</span></span>
+              <span style="flex-grow: 1"></span>
+              <span style="display: inline-flex; align-items: center; gap: 3px; font-size: 11px; color: rgba(0,0,0,.5); white-space: nowrap">
+                <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4.5 7.2h-2v6h2m0-6l2.6-4.4a1 1 0 011.8.7l-.5 2.5h3.4a1.2 1.2 0 011.2 1.5l-1 4.4a1.2 1.2 0 01-1.2 1h-6.3" stroke="rgba(0,0,0,.5)" stroke-width="1.2" stroke-linejoin="round"/></svg>
+                12
+              </span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div style="background: #1e1e1e; border-radius: 10px; padding: 20px">
+      <div style="font-size: 11px; color: rgba(255,255,255,.45); margin-bottom: 12px">Sombre — la pastille reste vert plein et blanche : c'est le seul codage qui tient sur n'importe quelle vignette</div>
+      <div style="display: grid; grid-template-columns: repeat(3, 240px); gap: 12px; align-items: start">
+
+        <div style="background: #2c2c2e; border: 1px solid rgba(255,255,255,.12); border-radius: 10px; overflow: hidden">
+          <div style="position: relative; aspect-ratio: 16 / 9; background: linear-gradient(140deg, #f2ede0, #d9cdb0)">
+            <span style="position: absolute; top: 8px; right: 8px; display: inline-flex; align-items: center; gap: 4px; background: rgb(50,215,75); color: #fff; font-size: 12px; font-weight: 600; padding: 4px 8px; border-radius: 999px; box-shadow: 0 1px 3px rgba(0,0,0,.25)">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="#fff"/><path d="M4.8 8.2l2.1 2.1 4.3-4.5" stroke="rgb(50,215,75)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Installé
+            </span>
+          </div>
+          <div style="padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 4px">
+            <div style="font-size: 13px; font-weight: 600; line-height: 1.25; min-height: calc(2 * 1.25em); color: rgba(255,255,255,.85)">Content Patcher</div>
+            <div style="font-size: 11px; color: rgba(255,255,255,.55); white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Pathoschild</div>
+            <div style="display: flex; align-items: center; gap: 6px; height: 18px; padding-top: 2px">
+              <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 4px; background: rgba(64,115,204,.12); border: .5px solid rgba(64,115,204,.30)"><span style="width: 7px; height: 7px; border-radius: 999px; background: #4073CC"></span><span style="font-size: 10px; font-weight: 500; color: #4073CC">Outils de moddage</span></span>
+              <span style="flex-grow: 1"></span>
+              <span style="display: inline-flex; align-items: center; gap: 3px; font-size: 11px; color: rgba(255,255,255,.55)">
+                <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4.5 7.2h-2v6h2m0-6l2.6-4.4a1 1 0 011.8.7l-.5 2.5h3.4a1.2 1.2 0 011.2 1.5l-1 4.4a1.2 1.2 0 01-1.2 1h-6.3" stroke="rgba(255,255,255,.55)" stroke-width="1.2" stroke-linejoin="round"/></svg>
+                9508
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div style="background: #2c2c2e; border: 1px solid rgba(255,255,255,.12); border-radius: 10px; overflow: hidden">
+          <div style="aspect-ratio: 16 / 9; background: rgba(255,255,255,.1)"></div>
+          <div style="padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 4px">
+            <div style="font-size: 13px; font-weight: 600; line-height: 1.25; min-height: calc(2 * 1.25em); color: rgba(255,255,255,.85)">Traduction française</div>
+            <div style="font-size: 11px; color: rgba(255,255,255,.55); white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Anonyme</div>
+            <div style="display: flex; align-items: center; gap: 6px; height: 18px; padding-top: 2px">
+              <span style="display: inline-flex; padding: 2px 6px; border-radius: 999px; background: rgba(255,255,255,.08); font-size: 10px; font-weight: 600; color: rgba(255,255,255,.85)">FR</span>
+              <span style="flex-grow: 1"></span>
+            </div>
+          </div>
+        </div>
+
+        <div style="background: #2c2c2e; border: 1px solid rgba(255,255,255,.12); border-radius: 10px; overflow: hidden">
+          <div style="aspect-ratio: 16 / 9; background: linear-gradient(140deg, #3a4a5e, #22303f)"></div>
+          <div style="padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 4px">
+            <div style="font-size: 13px; font-weight: 600; line-height: 1.25; min-height: calc(2 * 1.25em); color: rgba(255,255,255,.85)">Un nom de mod assez long pour occuper les deux lignes réservées</div>
+            <div style="font-size: 11px; color: rgba(255,255,255,.55); white-space: nowrap; overflow: hidden; text-overflow: ellipsis">UnAuteurAuNomInterminable</div>
+            <div style="display: flex; align-items: center; gap: 6px; height: 18px; padding-top: 2px; overflow: hidden">
+              <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 4px; background: rgba(140,89,51,.12); border: .5px solid rgba(140,89,51,.30); white-space: nowrap"><span style="width: 7px; height: 7px; border-radius: 999px; background: #8C5933"></span><span style="font-size: 10px; font-weight: 500; color: #8C5933">Bétail et animaux</span></span>
+              <span style="flex-grow: 1"></span>
+              <span style="display: inline-flex; align-items: center; gap: 3px; font-size: 11px; color: rgba(255,255,255,.55); white-space: nowrap">
+                <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4.5 7.2h-2v6h2m0-6l2.6-4.4a1 1 0 011.8.7l-.5 2.5h3.4a1.2 1.2 0 011.2 1.5l-1 4.4a1.2 1.2 0 01-1.2 1h-6.3" stroke="rgba(255,255,255,.55)" stroke-width="1.2" stroke-linejoin="round"/></svg>
+                12
+              </span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <div style="font-size: 11px; color: rgba(0,0,0,.45); text-wrap: pretty">
+      Source : <code style="font-family: ui-monospace, monospace">StarHubTH/Views/Components/ModCard.swift</code> ·
+      paramétré par des valeurs, pas par un type du domaine : le lot Mods l'alimentera depuis un <code style="font-family: ui-monospace, monospace">ModItem</code>, qui n'a ni endossements ni catégorie Nexus servis.
+    </div>
+  </section>
+
+  <!-- HeroHeader -->
+  <section style="display: flex; flex-direction: column; gap: 10px">
+    <div style="display: flex; align-items: baseline; gap: 10px">
+      <h2 style="margin: 0; font-size: 17px; font-weight: 600">HeroHeader</h2>
+      <span style="font-size: 12px; color: rgba(0,0,0,.5)">le dégradé est la seule garantie de contraste qu'on maîtrise sur une image inconnue</span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+
+      <div style="border-radius: 10px; overflow: hidden; border: 1px solid rgba(0,0,0,.1)">
+        <div style="position: relative; height: 150px; background: linear-gradient(140deg, #e8dcc0, #c9b98f)">
+          <div style="position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,0) 50%, rgba(0,0,0,.65) 100%)"></div>
+          <div style="position: absolute; top: 8px; right: 8px">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="7.2" fill="rgba(255,255,255,.8)"/><path d="M5.6 5.6l4.8 4.8M10.4 5.6l-4.8 4.8" stroke="rgba(0,0,0,.45)" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </div>
+          <div style="position: absolute; left: 0; bottom: 0; padding: 16px; display: flex; flex-direction: column; gap: 2px">
+            <div style="font-size: 20px; font-weight: 600; color: #fff; line-height: 1.2">Stardew Valley Expanded</div>
+            <div style="font-size: 12px; color: rgba(255,255,255,.8)">FlashShifter</div>
+          </div>
+        </div>
+        <div style="padding: 10px 16px; font-size: 11px; color: rgba(0,0,0,.45); background: #f5f5f7">Vignette claire, titre sur une ligne</div>
+      </div>
+
+      <div style="border-radius: 10px; overflow: hidden; border: 1px solid rgba(0,0,0,.1)">
+        <div style="position: relative; height: 150px; background: rgba(0,0,0,.1)">
+          <div style="position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,0) 50%, rgba(0,0,0,.65) 100%)"></div>
+          <div style="position: absolute; top: 8px; right: 8px">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="7.2" fill="rgba(255,255,255,.8)"/><path d="M5.6 5.6l4.8 4.8M10.4 5.6l-4.8 4.8" stroke="rgba(0,0,0,.45)" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </div>
+          <div style="position: absolute; left: 0; bottom: 0; padding: 16px; display: flex; flex-direction: column; gap: 2px">
+            <div style="font-size: 20px; font-weight: 600; color: #fff; line-height: 1.2">Un titre de mod assez long pour tenir sur les deux lignes permises</div>
+            <div style="font-size: 12px; color: rgba(255,255,255,.8)">UnAuteurAuNomInterminable</div>
+          </div>
+        </div>
+        <div style="padding: 10px 16px; font-size: 11px; color: rgba(0,0,0,.45); background: #f5f5f7">Sans vignette, titre sur deux lignes — la hauteur ne bouge pas</div>
+      </div>
+
+    </div>
+    <div style="font-size: 11px; color: rgba(0,0,0,.45); text-wrap: pretty">
+      Source : <code style="font-family: ui-monospace, monospace">StarHubTH/Views/Components/HeroHeader.swift</code> ·
+      la croix de fermeture mesure 16 pt, sous la cible de 18×18 que la spec exige et sans <code style="font-family: ui-monospace, monospace">help()</code> —
+      exception assumée de la phase 0, à reprendre en I-T3.
+    </div>
+  </section>
+
+  <!-- StatStrip -->
+  <section style="display: flex; flex-direction: column; gap: 10px">
+    <div style="display: flex; align-items: baseline; gap: 10px">
+      <h2 style="margin: 0; font-size: 17px; font-weight: 600">StatStrip</h2>
+      <span style="font-size: 12px; color: rgba(0,0,0,.5)">ce qui décide avant la prose — colonnes à parts égales, quel qu'en soit le nombre</span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+      <div style="background: #f5f5f7; border: 1px solid rgba(0,0,0,.1); border-radius: 10px">
+        <div style="display: flex; align-items: flex-start; padding: 12px 16px">
+          <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: rgba(0,0,0,.5)">Endossements</span><span style="font-size: 13px; font-weight: 600">4211</span></div>
+          <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: rgba(0,0,0,.5)">Version</span><span style="font-size: 13px; font-weight: 600">1.15.4</span></div>
+          <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: rgba(0,0,0,.5)">Mis à jour</span><span style="font-size: 13px; font-weight: 600">il y a 3 sem.</span></div>
+          <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: rgba(0,0,0,.5)">Catégorie</span><span style="font-size: 13px; font-weight: 600">Mécaniques de jeu</span></div>
+        </div>
+        <div style="padding: 0 16px 12px; font-size: 11px; color: rgba(0,0,0,.45)">Clair — quatre chiffres servis</div>
+      </div>
+      <div style="background: #2c2c2e; border: 1px solid rgba(255,255,255,.12); border-radius: 10px">
+        <div style="display: flex; align-items: flex-start; padding: 12px 16px">
+          <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: rgba(255,255,255,.55)">Endossements</span><span style="font-size: 13px; font-weight: 600; color: rgba(255,255,255,.85)">—</span></div>
+          <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: rgba(255,255,255,.55)">Version</span><span style="font-size: 13px; font-weight: 600; color: rgba(255,255,255,.85)">1.0.0</span></div>
+          <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: rgba(255,255,255,.55)">Mis à jour</span><span style="font-size: 13px; font-weight: 600; color: rgba(255,255,255,.85)">—</span></div>
+          <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: rgba(255,255,255,.55)">Catégorie</span><span style="font-size: 13px; font-weight: 600; color: rgba(255,255,255,.85)">Traductions</span></div>
+        </div>
+        <div style="padding: 0 16px 12px; font-size: 11px; color: rgba(255,255,255,.45)">Sombre — deux chiffres manquants, rendus « — » plutôt qu'absents</div>
+      </div>
+    </div>
+    <div style="font-size: 11px; color: rgba(0,0,0,.45)">Source : <code style="font-family: ui-monospace, monospace">StarHubTH/Views/Components/StatStrip.swift</code></div>
+  </section>
+
+</div>
+</x-dc>
+</body>
+</html>

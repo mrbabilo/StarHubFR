@@ -1,0 +1,284 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; }
+    a { color: #0a5ec4; } a:hover { color: #073f85; }
+    .sheet { --fg: rgba(0,0,0,.85); --fg2: rgba(0,0,0,.5); --fg3: rgba(0,0,0,.26);
+             --quat: rgba(0,0,0,.1); --surface: #f5f5f7; --window: #ececec;
+             --stroke: rgba(0,0,0,.1); --fill3: rgba(0,0,0,.05);
+             --green: rgb(40,205,65); --orange: rgb(255,149,0); }
+    .sheet.dark { --fg: rgba(255,255,255,.85); --fg2: rgba(255,255,255,.55); --fg3: rgba(255,255,255,.25);
+                  --quat: rgba(255,255,255,.1); --surface: #2c2c2e; --window: #1e1e1e;
+                  --stroke: rgba(255,255,255,.12); --fill3: rgba(255,255,255,.08);
+                  --green: rgb(50,215,75); --orange: rgb(255,159,10); }
+  </style>
+</helmet>
+
+<div style="background: #ffffff; color: rgba(0,0,0,.85); padding: 32px; display: flex; flex-direction: column; gap: 32px">
+
+  <div style="display: flex; flex-direction: column; gap: 6px">
+    <div style="font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: rgba(0,0,0,.45)">StarHubFR · design system · groupe Foundations</div>
+    <div style="font-size: 26px; font-weight: 700; letter-spacing: -.02em">Tokens</div>
+    <div style="font-size: 13px; color: rgba(0,0,0,.55); max-width: 62ch; text-wrap: pretty">
+      Recopiés de <code style="font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12px">StarHubTH/AppDesignCore.swift</code> et
+      <code style="font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12px">StarHubTH/Design/AppDesignUI.swift</code>.
+      Le code Swift est la source de vérité : quand un token change là-bas, cette carte change ici, sans quoi la bibliothèque ment.
+    </div>
+  </div>
+
+  <!-- SPACING -->
+  <section style="display: flex; flex-direction: column; gap: 12px">
+    <div style="display: flex; align-items: baseline; gap: 10px">
+      <h2 style="margin: 0; font-size: 17px; font-weight: 600">Spacing</h2>
+      <span style="font-size: 12px; color: rgba(0,0,0,.5)">espacements de pile et marges internes</span>
+    </div>
+    <div style="display: grid; grid-template-columns: 92px 64px 1fr 240px; gap: 0; border: 1px solid rgba(0,0,0,.1); border-radius: 10px; overflow: hidden; font-size: 13px">
+      <div style="padding: 8px 12px; background: rgba(0,0,0,.03); font-size: 11px; color: rgba(0,0,0,.5)">Token</div>
+      <div style="padding: 8px 12px; background: rgba(0,0,0,.03); font-size: 11px; color: rgba(0,0,0,.5)">Valeur</div>
+      <div style="padding: 8px 12px; background: rgba(0,0,0,.03); font-size: 11px; color: rgba(0,0,0,.5)">Usage relevé dans le code</div>
+      <div style="padding: 8px 12px; background: rgba(0,0,0,.03); font-size: 11px; color: rgba(0,0,0,.5)">Échelle</div>
+
+      <div style="padding: 7px 12px; font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12px; border-top: 1px solid rgba(0,0,0,.06)">xs</div>
+      <div style="padding: 7px 12px; border-top: 1px solid rgba(0,0,0,.06)">4</div>
+      <div style="padding: 7px 12px; color: rgba(0,0,0,.6); border-top: 1px solid rgba(0,0,0,.06)">badge + texte · pastille « installé »</div>
+      <div style="padding: 7px 12px; border-top: 1px solid rgba(0,0,0,.06)"><span style="display: block; height: 10px; width: 4px; background: #0a5ec4"></span></div>
+
+      <div style="padding: 7px 12px; font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12px; border-top: 1px solid rgba(0,0,0,.06)">sm</div>
+      <div style="padding: 7px 12px; border-top: 1px solid rgba(0,0,0,.06)">8</div>
+      <div style="padding: 7px 12px; color: rgba(0,0,0,.6); border-top: 1px solid rgba(0,0,0,.06)">standard interne · la valeur dominante</div>
+      <div style="padding: 7px 12px; border-top: 1px solid rgba(0,0,0,.06)"><span style="display: block; height: 10px; width: 8px; background: #0a5ec4"></span></div>
+
+      <div style="padding: 7px 12px; font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12px; border-top: 1px solid rgba(0,0,0,.06)">md</div>
+      <div style="padding: 7px 12px; border-top: 1px solid rgba(0,0,0,.06)">12</div>
+      <div style="padding: 7px 12px; color: rgba(0,0,0,.6); border-top: 1px solid rgba(0,0,0,.06)">entre éléments apparentés · marge de StateCard</div>
+      <div style="padding: 7px 12px; border-top: 1px solid rgba(0,0,0,.06)"><span style="display: block; height: 10px; width: 12px; background: #0a5ec4"></span></div>
+
+      <div style="padding: 7px 12px; font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12px; border-top: 1px solid rgba(0,0,0,.06)">lg</div>
+      <div style="padding: 7px 12px; border-top: 1px solid rgba(0,0,0,.06)">16</div>
+      <div style="padding: 7px 12px; color: rgba(0,0,0,.6); border-top: 1px solid rgba(0,0,0,.06)">entre sections · marge du titre de HeroHeader</div>
+      <div style="padding: 7px 12px; border-top: 1px solid rgba(0,0,0,.06)"><span style="display: block; height: 10px; width: 16px; background: #0a5ec4"></span></div>
+
+      <div style="padding: 7px 12px; font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12px; border-top: 1px solid rgba(0,0,0,.06)">xl</div>
+      <div style="padding: 7px 12px; border-top: 1px solid rgba(0,0,0,.06)">24</div>
+      <div style="padding: 7px 12px; color: rgba(0,0,0,.6); border-top: 1px solid rgba(0,0,0,.06)">grosse séparation</div>
+      <div style="padding: 7px 12px; border-top: 1px solid rgba(0,0,0,.06)"><span style="display: block; height: 10px; width: 24px; background: #0a5ec4"></span></div>
+
+      <div style="padding: 7px 12px; font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12px; border-top: 1px solid rgba(0,0,0,.06)">xxl</div>
+      <div style="padding: 7px 12px; border-top: 1px solid rgba(0,0,0,.06)">32</div>
+      <div style="padding: 7px 12px; color: rgba(0,0,0,.6); border-top: 1px solid rgba(0,0,0,.06)">séparation maximale</div>
+      <div style="padding: 7px 12px; border-top: 1px solid rgba(0,0,0,.06)"><span style="display: block; height: 10px; width: 32px; background: #0a5ec4"></span></div>
+    </div>
+  </section>
+
+  <!-- RADIUS -->
+  <section style="display: flex; flex-direction: column; gap: 12px">
+    <div style="display: flex; align-items: baseline; gap: 10px">
+      <h2 style="margin: 0; font-size: 17px; font-weight: 600">Radius</h2>
+      <span style="font-size: 12px; color: rgba(0,0,0,.5)">rayons d'angle</span>
+    </div>
+    <div style="display: flex; gap: 16px; flex-wrap: wrap">
+      <div style="display: flex; flex-direction: column; gap: 6px; align-items: center">
+        <div style="width: 96px; height: 60px; background: #f5f5f7; border: 1px solid rgba(0,0,0,.1); border-radius: 6px"></div>
+        <div style="font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12px">sm · 6</div>
+        <div style="font-size: 11px; color: rgba(0,0,0,.5)">items de barre latérale</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px; align-items: center">
+        <div style="width: 96px; height: 60px; background: #f5f5f7; border: 1px solid rgba(0,0,0,.1); border-radius: 8px"></div>
+        <div style="font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12px">md · 8</div>
+        <div style="font-size: 11px; color: rgba(0,0,0,.5)">ErrorBanner</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px; align-items: center">
+        <div style="width: 96px; height: 60px; background: #f5f5f7; border: 1px solid rgba(0,0,0,.1); border-radius: 10px"></div>
+        <div style="font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12px">section · 10</div>
+        <div style="font-size: 11px; color: rgba(0,0,0,.5)">StateCard, ModCard</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px; align-items: center">
+        <div style="width: 96px; height: 60px; background: #f5f5f7; border: 1px solid rgba(0,0,0,.1); border-radius: 12px"></div>
+        <div style="font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12px">lg · 12</div>
+        <div style="font-size: 11px; color: rgba(0,0,0,.5)">zones de dépôt</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- OPACITY -->
+  <section style="display: flex; flex-direction: column; gap: 12px">
+    <div style="display: flex; align-items: baseline; gap: 10px">
+      <h2 style="margin: 0; font-size: 17px; font-weight: 600">Opacity</h2>
+      <span style="font-size: 12px; color: rgba(0,0,0,.5)">appliquée à une couleur, pas à une vue entière</span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px">
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <div style="height: 48px; border-radius: 8px; background: rgba(0,0,0,.05); border: 1px solid rgba(0,0,0,.08)"></div>
+        <div style="font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12px">subtle · .05</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <div style="height: 48px; border-radius: 8px; background: rgba(0,0,0,.1); border: 1px solid rgba(0,0,0,.08)"></div>
+        <div style="font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12px">light · .1</div>
+        <div style="font-size: 11px; color: rgba(0,0,0,.5)">bordure des cartes</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <div style="height: 48px; border-radius: 8px; background: rgba(0,0,0,.15); border: 1px solid rgba(0,0,0,.08)"></div>
+        <div style="font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12px">medium · .15</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <div style="height: 48px; border-radius: 8px; background: rgba(0,0,0,.25); border: 1px solid rgba(0,0,0,.08)"></div>
+        <div style="font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12px">strong · .25</div>
+        <div style="font-size: 11px; color: rgba(0,0,0,.5)">ombre de pastille</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <div style="height: 48px; border-radius: 8px; background: rgba(0,0,0,.5); border: 1px solid rgba(0,0,0,.08)"></div>
+        <div style="font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12px">disabled · .5</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <div style="height: 48px; border-radius: 8px; background: rgba(0,0,0,.8); border: 1px solid rgba(0,0,0,.08)"></div>
+        <div style="font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12px">secondary · .8</div>
+        <div style="font-size: 11px; color: rgba(0,0,0,.5)">texte blanc sur image</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- GRID + METRICS + SHADOW + ICON -->
+  <section style="display: flex; flex-direction: column; gap: 12px">
+    <div style="display: flex; align-items: baseline; gap: 10px">
+      <h2 style="margin: 0; font-size: 17px; font-weight: 600">Grid, Metrics, Shadow, Icon</h2>
+      <span style="font-size: 12px; color: rgba(0,0,0,.5)">ajoutés par le châssis H-T1 — les valeurs que Découvrir codait en dur</span>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+
+      <div style="border: 1px solid rgba(0,0,0,.1); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+        <div style="font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12px; color: rgba(0,0,0,.5)">Grid</div>
+        <div style="display: flex; gap: 12px">
+          <div style="width: 120px; height: 56px; background: #f5f5f7; border: 1px solid rgba(0,0,0,.1); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: rgba(0,0,0,.5)">240 min.</div>
+          <div style="width: 120px; height: 56px; background: #f5f5f7; border: 1px solid rgba(0,0,0,.1); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: rgba(0,0,0,.5)">240 min.</div>
+        </div>
+        <div style="font-size: 12px; color: rgba(0,0,0,.6); text-wrap: pretty">
+          <b style="font-weight: 600">minCardWidth 240</b> — largeur minimale d'une carte, <code style="font-family: ui-monospace, monospace; font-size: 11px">GridItem(.adaptive(minimum:))</code>.
+          <b style="font-weight: 600">gutter 12</b> — la gouttière entre colonnes comme entre rangées (l'écart montré ci-dessus).
+        </div>
+      </div>
+
+      <div style="border: 1px solid rgba(0,0,0,.1); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+        <div style="font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12px; color: rgba(0,0,0,.5)">Metrics</div>
+        <div style="display: flex; gap: 12px; align-items: flex-end">
+          <div style="width: 128px; height: 72px; background: rgba(0,0,0,.1); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: rgba(0,0,0,.5)">16 / 9</div>
+          <div style="width: 60px; height: 18px; background: rgba(0,0,0,.06); border: 1px dashed rgba(0,0,0,.25); display: flex; align-items: center; justify-content: center; font-size: 10px; color: rgba(0,0,0,.5)">18</div>
+        </div>
+        <div style="font-size: 12px; color: rgba(0,0,0,.6); text-wrap: pretty">
+          <b style="font-weight: 600">thumbRatio 16/9</b>, <b style="font-weight: 600">heroHeight 150</b>,
+          <b style="font-weight: 600">sheetDetailSize 560×640</b>, <b style="font-weight: 600">metaRowHeight 18</b> —
+          les places réservées : sans elles, une donnée manquante raccourcit la carte et décale toute sa rangée.
+        </div>
+      </div>
+
+      <div style="border: 1px solid rgba(0,0,0,.1); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+        <div style="font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12px; color: rgba(0,0,0,.5)">Shadow.badge</div>
+        <div style="display: flex; gap: 16px; align-items: center">
+          <div style="width: 148px; height: 64px; background: #e8e4d8; border-radius: 6px; display: flex; align-items: center; justify-content: center">
+            <span style="display: inline-flex; align-items: center; gap: 4px; background: rgb(40,205,65); color: #fff; font-size: 12px; font-weight: 600; padding: 4px 8px; border-radius: 999px; box-shadow: 0 1px 3px rgba(0,0,0,.25)">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="#fff"/><path d="M4.8 8.2l2.1 2.1 4.3-4.5" stroke="rgb(40,205,65)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Installé
+            </span>
+          </div>
+          <div style="width: 148px; height: 64px; background: #e8e4d8; border-radius: 6px; display: flex; align-items: center; justify-content: center">
+            <span style="display: inline-flex; align-items: center; gap: 4px; background: rgb(40,205,65); color: #fff; font-size: 12px; font-weight: 600; padding: 4px 8px; border-radius: 999px">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="#fff"/><path d="M4.8 8.2l2.1 2.1 4.3-4.5" stroke="rgb(40,205,65)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Installé
+            </span>
+          </div>
+        </div>
+        <div style="font-size: 12px; color: rgba(0,0,0,.6); text-wrap: pretty">
+          <b style="font-weight: 600">radius 3, y 1</b>, en noir à <code style="font-family: ui-monospace, monospace; font-size: 11px">Opacity.strong</code>.
+          À gauche avec, à droite sans : sur une vignette claire, c'est l'ombre qui décolle la pastille du fond.
+          Typé <code style="font-family: ui-monospace, monospace; font-size: 11px">CGFloat</code> — sans annotation, Swift en ferait des <code style="font-family: ui-monospace, monospace; font-size: 11px">Int</code> que <code style="font-family: ui-monospace, monospace; font-size: 11px">.shadow()</code> refuse.
+        </div>
+      </div>
+
+      <div style="border: 1px solid rgba(0,0,0,.1); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+        <div style="font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12px; color: rgba(0,0,0,.5)">Icon</div>
+        <div style="display: flex; gap: 24px; align-items: flex-end">
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 6px">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="7" stroke="rgba(0,0,0,.45)" stroke-width="1.4"/><path d="M5.6 5.6l4.8 4.8M10.4 5.6l-4.8 4.8" stroke="rgba(0,0,0,.45)" stroke-width="1.4" stroke-linecap="round"/></svg>
+            <span style="font-family: ui-monospace, monospace; font-size: 12px">sm · 16</span>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 6px">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="2.5" y="2.5" width="6" height="6" rx="1.2" stroke="rgba(0,0,0,.35)" stroke-width="1.4"/><rect x="11.5" y="2.5" width="6" height="6" rx="1.2" stroke="rgba(0,0,0,.35)" stroke-width="1.4"/><rect x="2.5" y="11.5" width="6" height="6" rx="1.2" stroke="rgba(0,0,0,.35)" stroke-width="1.4"/><rect x="11.5" y="11.5" width="6" height="6" rx="1.2" stroke="rgba(0,0,0,.35)" stroke-width="1.4"/></svg>
+            <span style="font-family: ui-monospace, monospace; font-size: 12px">md · 20</span>
+          </div>
+        </div>
+        <div style="font-size: 12px; color: rgba(0,0,0,.6); text-wrap: pretty">
+          <b style="font-weight: 600">sm 16</b> — glyphe compact, fermeture d'une fiche.
+          <b style="font-weight: 600">md 20</b> — l'icône d'un état, dans StateCard.
+          Les glyphes réels sont des SF Symbols ; ceux-ci sont des équivalents dessinés.
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- TYPOGRAPHY -->
+  <section style="display: flex; flex-direction: column; gap: 12px">
+    <div style="display: flex; align-items: baseline; gap: 10px">
+      <h2 style="margin: 0; font-size: 17px; font-weight: 600">Typography</h2>
+      <span style="font-size: 12px; color: rgba(0,0,0,.5)">AppDesign.Font — tailles relevées dans le code, police système</span>
+    </div>
+    <div style="border: 1px solid rgba(0,0,0,.1); border-radius: 10px; overflow: hidden">
+      <div style="display: grid; grid-template-columns: 120px 56px 1fr; gap: 0; font-size: 13px">
+        <div style="padding: 8px 12px; background: rgba(0,0,0,.03); font-size: 11px; color: rgba(0,0,0,.5)">Token</div>
+        <div style="padding: 8px 12px; background: rgba(0,0,0,.03); font-size: 11px; color: rgba(0,0,0,.5)">pt</div>
+        <div style="padding: 8px 12px; background: rgba(0,0,0,.03); font-size: 11px; color: rgba(0,0,0,.5)">Rendu</div>
+
+        <div style="padding: 8px 12px; font-family: ui-monospace, monospace; font-size: 12px; border-top: 1px solid rgba(0,0,0,.06)">iconXS</div>
+        <div style="padding: 8px 12px; border-top: 1px solid rgba(0,0,0,.06)">10</div>
+        <div style="padding: 8px 12px; font-size: 10px; border-top: 1px solid rgba(0,0,0,.06)">Portraits — le nom d'une catégorie</div>
+
+        <div style="padding: 8px 12px; font-family: ui-monospace, monospace; font-size: 12px; border-top: 1px solid rgba(0,0,0,.06)">footnote</div>
+        <div style="padding: 8px 12px; border-top: 1px solid rgba(0,0,0,.06)">11</div>
+        <div style="padding: 8px 12px; font-size: 11px; border-top: 1px solid rgba(0,0,0,.06)">L'auteur d'un mod, le libellé d'un chiffre clé</div>
+
+        <div style="padding: 8px 12px; font-family: ui-monospace, monospace; font-size: 12px; border-top: 1px solid rgba(0,0,0,.06)">caption</div>
+        <div style="padding: 8px 12px; border-top: 1px solid rgba(0,0,0,.06)">12</div>
+        <div style="padding: 8px 12px; font-size: 12px; border-top: 1px solid rgba(0,0,0,.06)">Le texte d'un bandeau de panne — la taille la plus utilisée</div>
+
+        <div style="padding: 8px 12px; font-family: ui-monospace, monospace; font-size: 12px; border-top: 1px solid rgba(0,0,0,.06)">body</div>
+        <div style="padding: 8px 12px; border-top: 1px solid rgba(0,0,0,.06)">13</div>
+        <div style="padding: 8px 12px; font-size: 13px; border-top: 1px solid rgba(0,0,0,.06)">Le corps, le titre d'une carte en semibold</div>
+
+        <div style="padding: 8px 12px; font-family: ui-monospace, monospace; font-size: 12px; border-top: 1px solid rgba(0,0,0,.06)">rowTitle</div>
+        <div style="padding: 8px 12px; border-top: 1px solid rgba(0,0,0,.06)">14</div>
+        <div style="padding: 8px 12px; font-size: 14px; border-top: 1px solid rgba(0,0,0,.06)">Le titre d'une ligne, un item de barre latérale</div>
+
+        <div style="padding: 8px 12px; font-family: ui-monospace, monospace; font-size: 12px; border-top: 1px solid rgba(0,0,0,.06)">headline</div>
+        <div style="padding: 8px 12px; border-top: 1px solid rgba(0,0,0,.06)">16</div>
+        <div style="padding: 8px 12px; font-size: 16px; border-top: 1px solid rgba(0,0,0,.06)">Un sous-titre</div>
+
+        <div style="padding: 8px 12px; font-family: ui-monospace, monospace; font-size: 12px; border-top: 1px solid rgba(0,0,0,.06)">viewTitle</div>
+        <div style="padding: 8px 12px; border-top: 1px solid rgba(0,0,0,.06)">20</div>
+        <div style="padding: 8px 12px; font-size: 20px; font-weight: 600; border-top: 1px solid rgba(0,0,0,.06)">Le titre d'une vue</div>
+      </div>
+    </div>
+    <div style="font-size: 12px; color: rgba(0,0,0,.5); text-wrap: pretty">
+      Les polices sémantiques que le code emploie encore — <code style="font-family: ui-monospace, monospace; font-size: 11px">.title3.bold()</code>,
+      <code style="font-family: ui-monospace, monospace; font-size: 11px">.caption</code>, <code style="font-family: ui-monospace, monospace; font-size: 11px">.caption2</code> —
+      ne sont pas des tokens : leur taille est celle que macOS leur donne, indicative ici.
+    </div>
+  </section>
+
+  <div style="border-top: 1px solid rgba(0,0,0,.1); padding-top: 16px; font-size: 11px; color: rgba(0,0,0,.45); text-wrap: pretty">
+    Source : <code style="font-family: ui-monospace, monospace">StarHubTH/AppDesignCore.swift</code>,
+    <code style="font-family: ui-monospace, monospace">StarHubTH/Design/AppDesignUI.swift</code> · valeurs sous test dans
+    <code style="font-family: ui-monospace, monospace">Tests/DesignSystemTests/</code>.
+    Les couleurs système et les matériaux macOS sont <b style="font-weight: 600">approchés</b> ici — à vérifier à l'écran.
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

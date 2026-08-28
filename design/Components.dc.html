@@ -1,0 +1,212 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; }
+    a { color: rgb(0,122,255); } a:hover { color: rgb(0,90,200); }
+  </style>
+</helmet>
+
+<div style="background: #ffffff; color: rgba(0,0,0,.85); padding: 32px; display: flex; flex-direction: column; gap: 28px">
+
+  <div style="display: flex; flex-direction: column; gap: 6px">
+    <div style="font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: rgba(0,0,0,.45)">StarHubFR · design system · groupe Components</div>
+    <div style="font-size: 26px; font-weight: 700; letter-spacing: -.02em">Pastilles, en-têtes et états</div>
+    <div style="font-size: 13px; color: rgba(0,0,0,.55); max-width: 66ch; text-wrap: pretty">
+      Chaque composant est rendu sur les deux thèmes, en état nominal <b style="font-weight: 600">et</b> dégradé — c'est le
+      dégradé qui décide si un composant tient. Les matériaux macOS (<code style="font-family: ui-monospace, monospace; font-size: 12px">.background.secondary</code>,
+      <code style="font-family: ui-monospace, monospace; font-size: 12px">.fill.tertiary</code>) sont approchés : à vérifier à l'écran.
+    </div>
+  </div>
+
+  <!-- CategoryBadge -->
+  <section style="display: flex; flex-direction: column; gap: 10px">
+    <div style="display: flex; align-items: baseline; gap: 10px">
+      <h2 style="margin: 0; font-size: 17px; font-weight: 600">CategoryBadge</h2>
+      <span style="font-size: 12px; color: rgba(0,0,0,.5)">la teinte <b style="font-weight: 600">est</b> l'information — mais jamais seule : le nom est toujours écrit</span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+      <div style="background: #f5f5f7; border: 1px solid rgba(0,0,0,.1); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+        <div style="font-size: 11px; color: rgba(0,0,0,.45)">Clair</div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center">
+          <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 4px; background: rgba(204,77,77,.12); border: .5px solid rgba(204,77,77,.30)"><span style="width: 7px; height: 7px; border-radius: 999px; background: #CC4D4D"></span><span style="font-size: 10px; font-weight: 500; color: #CC4D4D">Mécaniques de jeu</span></span>
+          <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 4px; background: rgba(64,115,204,.12); border: .5px solid rgba(64,115,204,.30)"><span style="width: 7px; height: 7px; border-radius: 999px; background: #4073CC"></span><span style="font-size: 10px; font-weight: 500; color: #4073CC">Outils de moddage</span></span>
+          <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 4px; background: rgba(102,166,89,.12); border: .5px solid rgba(102,166,89,.30)"><span style="width: 7px; height: 7px; border-radius: 999px; background: #66A659"></span><span style="font-size: 10px; font-weight: 500; color: #66A659">Cultures</span></span>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center">
+          <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 4px; background: rgba(140,89,51,.12); border: .5px solid rgba(140,89,51,.30)"><span style="width: 7px; height: 7px; border-radius: 999px; background: #8C5933"></span><span style="font-size: 10px; font-weight: 500; color: #8C5933">Bétail et animaux</span></span>
+          <span style="font-size: 11px; color: rgba(0,0,0,.45)">← le libellé FR le plus long du jeu de catégories</span>
+        </div>
+      </div>
+      <div style="background: #2c2c2e; border: 1px solid rgba(255,255,255,.12); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+        <div style="font-size: 11px; color: rgba(255,255,255,.45)">Sombre</div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center">
+          <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 4px; background: rgba(204,77,77,.12); border: .5px solid rgba(204,77,77,.30)"><span style="width: 7px; height: 7px; border-radius: 999px; background: #CC4D4D"></span><span style="font-size: 10px; font-weight: 500; color: #CC4D4D">Mécaniques de jeu</span></span>
+          <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 4px; background: rgba(64,115,204,.12); border: .5px solid rgba(64,115,204,.30)"><span style="width: 7px; height: 7px; border-radius: 999px; background: #4073CC"></span><span style="font-size: 10px; font-weight: 500; color: #4073CC">Outils de moddage</span></span>
+          <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 4px; background: rgba(102,166,89,.12); border: .5px solid rgba(102,166,89,.30)"><span style="width: 7px; height: 7px; border-radius: 999px; background: #66A659"></span><span style="font-size: 10px; font-weight: 500; color: #66A659">Cultures</span></span>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center">
+          <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 4px; background: rgba(140,89,51,.12); border: .5px solid rgba(140,89,51,.30)"><span style="width: 7px; height: 7px; border-radius: 999px; background: #8C5933"></span><span style="font-size: 10px; font-weight: 500; color: #8C5933">Bétail et animaux</span></span>
+          <span style="font-size: 11px; color: rgba(255,255,255,.45)">le brun perd du contraste sur fond sombre</span>
+        </div>
+      </div>
+    </div>
+    <div style="font-size: 11px; color: rgba(0,0,0,.45)">Source : <code style="font-family: ui-monospace, monospace">StarHubTH/Views/Components/CategoryBadge.swift</code> · teintes tirées de <code style="font-family: ui-monospace, monospace">NexusCategory.all</code></div>
+  </section>
+
+  <!-- NeutralBadge -->
+  <section style="display: flex; flex-direction: column; gap: 10px">
+    <div style="display: flex; align-items: baseline; gap: 10px">
+      <h2 style="margin: 0; font-size: 17px; font-weight: 600">NeutralBadge</h2>
+      <span style="font-size: 12px; color: rgba(0,0,0,.5)">un mot posé sur un matériau, sans couleur porteuse de sens</span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+      <div style="background: #f5f5f7; border: 1px solid rgba(0,0,0,.1); border-radius: 10px; padding: 16px; display: flex; gap: 12px; align-items: center">
+        <div style="font-size: 11px; color: rgba(0,0,0,.45); width: 48px">Clair</div>
+        <span style="display: inline-flex; padding: 2px 6px; border-radius: 999px; background: rgba(0,0,0,.05); font-size: 10px; font-weight: 600; color: rgba(0,0,0,.85)">FR</span>
+      </div>
+      <div style="background: #2c2c2e; border: 1px solid rgba(255,255,255,.12); border-radius: 10px; padding: 16px; display: flex; gap: 12px; align-items: center">
+        <div style="font-size: 11px; color: rgba(255,255,255,.45); width: 48px">Sombre</div>
+        <span style="display: inline-flex; padding: 2px 6px; border-radius: 999px; background: rgba(255,255,255,.08); font-size: 10px; font-weight: 600; color: rgba(255,255,255,.85)">FR</span>
+      </div>
+    </div>
+    <div style="font-size: 11px; color: rgba(0,0,0,.45); text-wrap: pretty">
+      Source : <code style="font-family: ui-monospace, monospace">StarHubTH/Views/Components/NeutralBadge.swift</code> ·
+      distinct d'<code style="font-family: ui-monospace, monospace">InferredTagBadge</code> (liste des mods), qui ne rend pas pareil — police, fond et couleur de texte diffèrent. Les fusionner serait un changement visuel : c'est au lot Mods (H-T4) de le faire.
+    </div>
+  </section>
+
+  <!-- SectionHeader -->
+  <section style="display: flex; flex-direction: column; gap: 10px">
+    <div style="display: flex; align-items: baseline; gap: 10px">
+      <h2 style="margin: 0; font-size: 17px; font-weight: 600">SectionHeader</h2>
+      <span style="font-size: 12px; color: rgba(0,0,0,.5)">compte honnête, et un seul bouton pour déplier <b style="font-weight: 600">et</b> demander la suite</span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+      <div style="background: #f5f5f7; border: 1px solid rgba(0,0,0,.1); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 20px">
+        <div style="font-size: 11px; color: rgba(0,0,0,.45)">Clair — avec suite, puis tout chargé</div>
+        <div style="display: flex; align-items: center; gap: 8px">
+          <span style="font-size: 15px; font-weight: 700">Tendances</span>
+          <span style="flex-grow: 1"></span>
+          <span style="font-size: 12px; color: rgba(0,0,0,.5)">4 affichés sur 20 reçus</span>
+          <span style="font-size: 13px; color: rgb(0,122,255)">Voir plus</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px">
+          <span style="font-size: 15px; font-weight: 700">Sélection française</span>
+          <span style="flex-grow: 1"></span>
+          <span style="font-size: 12px; color: rgba(0,0,0,.5)">12 affichés sur 12 reçus</span>
+        </div>
+      </div>
+      <div style="background: #2c2c2e; border: 1px solid rgba(255,255,255,.12); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 20px">
+        <div style="font-size: 11px; color: rgba(255,255,255,.45)">Sombre — et le bouton désactivé pendant un chargement</div>
+        <div style="display: flex; align-items: center; gap: 8px">
+          <span style="font-size: 15px; font-weight: 700; color: rgba(255,255,255,.85)">Tendances</span>
+          <span style="flex-grow: 1"></span>
+          <span style="font-size: 12px; color: rgba(255,255,255,.55)">4 affichés sur 20 reçus</span>
+          <span style="font-size: 13px; color: rgb(10,132,255)">Voir plus</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px">
+          <span style="font-size: 15px; font-weight: 700; color: rgba(255,255,255,.85)">Mises à jour récentes</span>
+          <span style="flex-grow: 1"></span>
+          <span style="font-size: 12px; color: rgba(255,255,255,.55)">8 affichés sur 20 reçus</span>
+          <span style="font-size: 13px; color: rgba(10,132,255,.4)">Voir plus</span>
+        </div>
+      </div>
+    </div>
+    <div style="font-size: 11px; color: rgba(0,0,0,.45)">Source : <code style="font-family: ui-monospace, monospace">StarHubTH/Views/Components/SectionHeader.swift</code></div>
+  </section>
+
+  <!-- StateCard -->
+  <section style="display: flex; flex-direction: column; gap: 10px">
+    <div style="display: flex; align-items: baseline; gap: 10px">
+      <h2 style="margin: 0; font-size: 17px; font-weight: 600">StateCard</h2>
+      <span style="font-size: 12px; color: rgba(0,0,0,.5)">un état ne reste jamais muet : icône, texte, et l'action qui le lève</span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+      <div style="background: #ececec; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+        <div style="font-size: 11px; color: rgba(0,0,0,.45)">Clair — avec action, puis sans issue</div>
+        <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: #f5f5f7; border: 1px solid rgba(0,0,0,.1); border-radius: 10px">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M6 3.5h8M4 7h12M6.5 7v7.5a2 2 0 002 2h3a2 2 0 002-2V7" stroke="rgba(0,0,0,.26)" stroke-width="1.4" stroke-linecap="round"/></svg>
+          <span style="font-size: 13px; color: rgba(0,0,0,.5)">Aucun résultat avec ces filtres</span>
+          <span style="flex-grow: 1; min-width: 8px"></span>
+          <span style="font-size: 13px; color: rgb(0,122,255)">Retirer les filtres</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: #f5f5f7; border: 1px solid rgba(0,0,0,.1); border-radius: 10px">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M6 3.5h8M4 7h12M6.5 7v7.5a2 2 0 002 2h3a2 2 0 002-2V7" stroke="rgba(0,0,0,.26)" stroke-width="1.4" stroke-linecap="round"/></svg>
+          <span style="font-size: 13px; color: rgba(0,0,0,.5)">Aucun résultat</span>
+          <span style="flex-grow: 1; min-width: 8px"></span>
+        </div>
+      </div>
+      <div style="background: #1e1e1e; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+        <div style="font-size: 11px; color: rgba(255,255,255,.45)">Sombre — pas de clé d'API, puis quota atteint</div>
+        <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: #2c2c2e; border: 1px solid rgba(255,255,255,.12); border-radius: 10px">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="3.5" stroke="rgba(255,255,255,.25)" stroke-width="1.4"/><path d="M9.4 9.4l6 6M13.2 12.6l1.6 1.6M11.6 11l1.6 1.6" stroke="rgba(255,255,255,.25)" stroke-width="1.4" stroke-linecap="round"/></svg>
+          <span style="font-size: 13px; color: rgba(255,255,255,.55)">Aucune clé d'API Nexus</span>
+          <span style="flex-grow: 1; min-width: 8px"></span>
+          <span style="font-size: 13px; color: rgb(10,132,255)">Ouvrir les réglages</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: #2c2c2e; border: 1px solid rgba(255,255,255,.12); border-radius: 10px">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M6 3h8M6 17h8M6.5 3v3.2a3 3 0 001 2.2l1.6 1.4a1.5 1.5 0 010 2.4l-1.6 1.4a3 3 0 00-1 2.2V17M13.5 3v3.2a3 3 0 01-1 2.2l-1.6 1.4a1.5 1.5 0 000 2.4l1.6 1.4a3 3 0 011 2.2V17" stroke="rgba(255,255,255,.25)" stroke-width="1.4" stroke-linecap="round"/></svg>
+          <span style="font-size: 13px; color: rgba(255,255,255,.55)">Quota Nexus atteint</span>
+          <span style="flex-grow: 1; min-width: 8px"></span>
+          <span style="font-size: 13px; color: rgb(10,132,255)">Réessayer</span>
+        </div>
+      </div>
+    </div>
+    <div style="font-size: 11px; color: rgba(0,0,0,.45)">Source : <code style="font-family: ui-monospace, monospace">StarHubTH/Views/Components/StateCard.swift</code> · matériau approché — à vérifier à l'écran</div>
+  </section>
+
+  <!-- ErrorBanner -->
+  <section style="display: flex; flex-direction: column; gap: 10px">
+    <div style="display: flex; align-items: baseline; gap: 10px">
+      <h2 style="margin: 0; font-size: 17px; font-weight: 600">ErrorBanner</h2>
+      <span style="font-size: 12px; color: rgba(0,0,0,.5)">une panne se voit — bandeau teinté avec action, pas une légende grise</span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+      <div style="background: #ececec; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+        <div style="font-size: 11px; color: rgba(0,0,0,.45)">Clair</div>
+        <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 8px; background: rgba(255,149,0,.1); border: 1px solid rgba(255,149,0,.3)">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 2.2l6 11.3H2L8 2.2z" stroke="rgb(255,149,0)" stroke-width="1.4" stroke-linejoin="round"/><path d="M8 6.4v3.2" stroke="rgb(255,149,0)" stroke-width="1.4" stroke-linecap="round"/><circle cx="8" cy="11.6" r=".8" fill="rgb(255,149,0)"/></svg>
+          <span style="font-size: 12px">Aucune clé d'API Nexus — la vitrine ne peut rien montrer</span>
+          <span style="flex-grow: 1; min-width: 8px"></span>
+          <span style="font-size: 13px; color: rgb(0,122,255); white-space: nowrap">Ouvrir les réglages</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 8px; background: rgba(255,149,0,.1); border: 1px solid rgba(255,149,0,.3)">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 2.2l6 11.3H2L8 2.2z" stroke="rgb(255,149,0)" stroke-width="1.4" stroke-linejoin="round"/><path d="M8 6.4v3.2" stroke="rgb(255,149,0)" stroke-width="1.4" stroke-linecap="round"/><circle cx="8" cy="11.6" r=".8" fill="rgb(255,149,0)"/></svg>
+          <span style="font-size: 12px">Nexus est injoignable</span>
+          <span style="flex-grow: 1; min-width: 8px"></span>
+          <span style="font-size: 13px; color: rgb(0,122,255); white-space: nowrap">Réessayer</span>
+        </div>
+      </div>
+      <div style="background: #1e1e1e; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+        <div style="font-size: 11px; color: rgba(255,255,255,.45)">Sombre</div>
+        <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 8px; background: rgba(255,159,10,.1); border: 1px solid rgba(255,159,10,.3)">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 2.2l6 11.3H2L8 2.2z" stroke="rgb(255,159,10)" stroke-width="1.4" stroke-linejoin="round"/><path d="M8 6.4v3.2" stroke="rgb(255,159,10)" stroke-width="1.4" stroke-linecap="round"/><circle cx="8" cy="11.6" r=".8" fill="rgb(255,159,10)"/></svg>
+          <span style="font-size: 12px; color: rgba(255,255,255,.85)">Aucune clé d'API Nexus — la vitrine ne peut rien montrer</span>
+          <span style="flex-grow: 1; min-width: 8px"></span>
+          <span style="font-size: 13px; color: rgb(10,132,255); white-space: nowrap">Ouvrir les réglages</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 8px; background: rgba(255,159,10,.1); border: 1px solid rgba(255,159,10,.3)">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 2.2l6 11.3H2L8 2.2z" stroke="rgb(255,159,10)" stroke-width="1.4" stroke-linejoin="round"/><path d="M8 6.4v3.2" stroke="rgb(255,159,10)" stroke-width="1.4" stroke-linecap="round"/><circle cx="8" cy="11.6" r=".8" fill="rgb(255,159,10)"/></svg>
+          <span style="font-size: 12px; color: rgba(255,255,255,.85)">Quota Nexus atteint</span>
+          <span style="flex-grow: 1; min-width: 8px"></span>
+          <span style="font-size: 13px; color: rgb(10,132,255); white-space: nowrap">Réessayer</span>
+        </div>
+      </div>
+    </div>
+    <div style="font-size: 11px; color: rgba(0,0,0,.45); text-wrap: pretty">
+      Source : <code style="font-family: ui-monospace, monospace">StarHubTH/Views/Components/ErrorBanner.swift</code> ·
+      la bordure vaut <code style="font-family: ui-monospace, monospace">Opacity.medium × 2</code> = 0,3 — le composant ignore le type d'erreur, c'est la vue qui résout message et action.
+    </div>
+  </section>
+
+</div>
+</x-dc>
+</body>
+</html>

@@ -59,3 +59,7 @@ mods tests/
 
 # Espace de travail des exécutions de plan (superpowers SDD) — scratch, jamais versionné
 .superpowers/
+
+# Canevas Claude Design assemblé (généré par seed-canvas.mjs) — les sources
+# versionnées sont les .dc.html et canvas.json
+design/starhubfr-design-system.html
