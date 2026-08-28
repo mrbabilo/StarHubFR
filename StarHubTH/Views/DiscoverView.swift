@@ -277,6 +277,18 @@ struct DiscoveryDetailSheet: View {
                 Button { dismiss() } label: { Image(systemName: "xmark.circle.fill") }
                     .buttonStyle(.plain)
             }
+            // Les deux actions ne dépendent que du `modId` de la carte, pas
+            // de la fiche : elles restent offertes quand Nexus ne rend pas la
+            // fiche (quota, panne). Les enfermer dans le corps chargé aurait
+            // retiré la porte de sortie au moment précis où elle sert.
+            HStack(spacing: 12) {
+                if let url = nexusURL {
+                    Link(destination: url) {
+                        Label(vm.L(L10n.Discovery.openNexus), systemImage: "safari")
+                    }
+                }
+                installButton
+            }
             switch vm.discoveryDetailState {
             case .loading:
                 ProgressView().frame(maxWidth: .infinity)
@@ -296,17 +308,43 @@ struct DiscoveryDetailSheet: View {
         .onDisappear { vm.closeDiscoveryDetail() }
     }
 
+    /// Installer sans passer par le site (G-T3) : le mod non installé emprunte
+    /// le **pipeline des mises à jour** — `downloadModFromNexus` résout le
+    /// fichier principal, télécharge, et la feuille d'installation prend le
+    /// relais. Aucune voie parallèle : c'est le même chemin, éprouvé, que le
+    /// bouton des mises à jour et que `nxm://`.
+    ///
+    /// Trois raisons de le refuser, chacune avec son explication au survol :
+    /// un téléchargement déjà en cours, un compte non premium (l'API de lien
+    /// répond 403 — le site et `nxm://` restent la voie gratuite), et un mod
+    /// déjà installé, qui se met à jour depuis la liste des mods.
+    @ViewBuilder private var installButton: some View {
+        Button {
+            // La fiche se ferme **avant** de lancer : la feuille
+            // d'installation est présentée par MainView quelques secondes
+            // plus tard, et deux feuilles empilées ne s'affichent pas.
+            dismiss()
+            vm.downloadModFromNexus(nexusId: row.hit.modId)
+        } label: {
+            Label(vm.L(L10n.Discovery.install), systemImage: "arrow.down.circle")
+        }
+        .disabled(vm.isDownloadingFromNexus || vm.nexusDirectDownloadUnavailable
+                  || row.installed)
+        .help(installHint)
+    }
+
+    private var installHint: String {
+        if row.installed { return vm.L(L10n.Discovery.alreadyInstalled) }
+        if vm.nexusDirectDownloadUnavailable { return vm.L(L10n.Mods.premiumOnlyHint) }
+        return vm.L(L10n.Discovery.install)
+    }
+
     @ViewBuilder private func detailBody(_ detail: NexusModSearch.Detail) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
                 if let endorsements = detail.endorsements {
                     Text(String(format: vm.L(L10n.Discovery.endorsements), endorsements))
                         .font(.caption).foregroundStyle(.secondary)
-                }
-                if let url = nexusURL {
-                    Link(destination: url) {
-                        Label(vm.L(L10n.Discovery.openNexus), systemImage: "safari")
-                    }
                 }
                 if let summary = detail.summary {
                     Text(summary).font(.callout).italic()

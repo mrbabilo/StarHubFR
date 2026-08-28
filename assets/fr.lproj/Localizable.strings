@@ -1155,3 +1155,5 @@
 "discovery_detail_failed" = "Impossible de charger cette fiche.";
 "discovery_endorsements" = "%d endossements";
 "discovery_no_match" = "Aucun mod ici avec ces filtres.";
+"discovery_install" = "Installer";
+"discovery_already_installed" = "Ce mod est déjà installé — sa mise à jour se fait depuis la liste des mods.";

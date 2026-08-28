@@ -1154,5 +1154,7 @@
   "discovery_open_nexus": "Open on Nexus",
   "discovery_detail_failed": "Couldn't load this page.",
   "discovery_endorsements": "%d endorsements",
-  "discovery_no_match": "No mod here with these filters."
+  "discovery_no_match": "No mod here with these filters.",
+  "discovery_install": "Install",
+  "discovery_already_installed": "This mod is already installed — update it from the mods list."
 }

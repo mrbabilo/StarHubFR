@@ -1268,5 +1268,7 @@ enum L10n {
         static let detailFailed      = "discovery_detail_failed"
         static let endorsements      = "discovery_endorsements"
         static let noMatch           = "discovery_no_match"
+        static let install           = "discovery_install"
+        static let alreadyInstalled  = "discovery_already_installed"
     }
 }
