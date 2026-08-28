@@ -37,9 +37,13 @@ enum NexusSearchClient {
     /// Les mods du jeu par tri — la vitrine « Découvrir » (spec §5.1).
     ///
     /// - Parameter tag: restreint au tag Nexus donné — la sélection FR.
+    /// - Parameter category: restreint à une catégorie Nexus, par son **nom
+    ///   anglais** (`NexusCategory.englishName`) : c'est ce que le filtre
+    ///   `categoryName` attend, et le seul que l'API connaisse.
     static func listing(sort: NexusModSearch.ListingSort, tag: String? = nil,
+                        category: String? = nil,
                         completion: @escaping (Result<NexusModSearch.Page, SearchError>) -> Void) {
-        send(body: NexusModSearch.listingBody(sort: sort, tag: tag,
+        send(body: NexusModSearch.listingBody(sort: sort, tag: tag, category: category,
                                               gameId: NexusRequestBuilder.gameId),
              decode: NexusModSearch.decode,
              completion: completion)

@@ -1153,5 +1153,6 @@
   "discovery_retry": "Réessayer",
   "discovery_open_nexus": "Ouvrir sur Nexus",
   "discovery_detail_failed": "Impossible de charger cette fiche.",
-  "discovery_endorsements": "%d endossements"
+  "discovery_endorsements": "%d endossements",
+  "discovery_no_match": "Aucun mod ici avec ces filtres."
 }

@@ -5833,6 +5833,10 @@ class StarHubTHViewModel: ObservableObject {
     /// La dernière panne réseau des sections — un seul message en haut de
     /// l'onglet, chaque section n'a pas à répéter (spec §8).
     @Published private(set) var lastDiscoveryError: NexusSearchClient.SearchError?
+    /// La catégorie à laquelle les trois sections sont restreintes, `nil`
+    /// pour toutes. Le filtre part au **serveur** : sur 50 mods de tendances
+    /// on compte déjà 15 catégories, trier la page reçue n'aurait rien rendu.
+    @Published private(set) var discoveryCategory: NexusCategory?
 
     private var pendingSectionFetches = 0
 
@@ -5850,9 +5854,26 @@ class StarHubTHViewModel: ObservableObject {
     /// périmée ou absente (spec §5.3). `force` re-demande tout — le bouton
     /// de rafraîchissement, seule chose qui déclenche une requête hors
     /// ouverture périmée.
+    /// Restreint la vitrine à une catégorie — ou la rouvre en grand. Chaque
+    /// catégorie a son propre cache : rebasculer sur « toutes » ne relance
+    /// aucune requête si la liste complète est encore fraîche.
+    ///
+    /// Le filtre ne touche **pas** la recherche par nom : on y cherche un mod
+    /// précis, le lui cacher parce qu'il est rangé ailleurs rendrait un vide
+    /// inexplicable.
+    func setDiscoveryCategory(_ category: NexusCategory?) {
+        guard category?.id != discoveryCategory?.id else { return }
+        discoveryCategory = category
+        loadDiscovery()
+    }
+
     func loadDiscovery(force: Bool = false) {
+        // La panne d'avant ne parle pas de la tentative qui commence : sans
+        // cette remise à zéro, un bandeau d'erreur restait en haut de
+        // l'onglet pour toujours, y compris après un chargement réussi.
+        lastDiscoveryError = nil
         for kind in ModCatalog.SectionKind.allCases {
-            let state = discoveryCatalog.state(kind)
+            let state = discoveryCatalog.state(kind, category: discoveryCategory?.id)
             discovery[kind] = state
             switch state {
             case .fresh where !force: continue
@@ -5864,22 +5885,35 @@ class StarHubTHViewModel: ObservableObject {
     private func fetchDiscoverySection(_ kind: ModCatalog.SectionKind) {
         pendingSectionFetches += 1
         discoveryLoading = true
-        NexusSearchClient.listing(sort: kind.defaultSort, tag: kind.defaultTag) { [weak self] result in
+        // La catégorie demandée est retenue ici : la réponse peut arriver
+        // après que l'utilisateur en a choisi une autre. Elle est alors
+        // rangée dans **son** cache mais n'est pas affichée — sinon la
+        // vitrine montrerait des mods d'une catégorie qu'on vient de quitter.
+        let category = discoveryCategory
+        NexusSearchClient.listing(sort: kind.defaultSort, tag: kind.defaultTag,
+                                  category: category?.englishName) { [weak self] result in
             guard let self else { return }
             self.pendingSectionFetches = max(0, self.pendingSectionFetches - 1)
             if self.pendingSectionFetches == 0 { self.discoveryLoading = false }
+            let stillWanted = self.discoveryCategory?.id == category?.id
             switch result {
             case .success(let page):
-                self.discoveryCatalog.record(kind, page: page)
+                self.discoveryCatalog.record(kind, category: category?.id, page: page)
                 // Relu depuis le cache : c'est la page dédoublonnée qui
                 // s'affiche.
-                self.discovery[kind] = self.discoveryCatalog.state(kind)
+                guard stillWanted else { return }
+                self.discovery[kind] = self.discoveryCatalog.state(kind,
+                                                                   category: category?.id)
             case .failure(let error):
-                // Le stale reste affiché pendant la panne (spec §6) ; sinon
-                // la section porte son échec — jamais muette (spec §8).
+                guard stillWanted else { return }
+                // La panne est dite dans tous les cas (spec §8) : garder des
+                // lignes de la veille sans prévenir qu'elles n'ont pas pu
+                // être rafraîchies, c'est mentir en silence.
+                self.lastDiscoveryError = error
+                // Le stale reste affiché pendant la panne (spec §6) — le
+                // bandeau suffit, on ne blanchit pas la section.
                 if case .stale = self.discovery[kind] ?? .empty(.neverLoaded) { return }
                 self.discovery[kind] = .empty(.failed)
-                self.lastDiscoveryError = error
             }
         }
     }
@@ -5930,6 +5964,7 @@ class StarHubTHViewModel: ObservableObject {
             guard let self else { return }
             switch result {
             case .success(let page):
+                self.lastDiscoveryError = nil
                 self.discoverySearch = DiscoverySearchResult(
                     rows: self.discoveryRows(in: page.hits, hidingInstalled: false,
                                              francophoneOnly: false),

@@ -1267,5 +1267,6 @@ enum L10n {
         static let openNexus         = "discovery_open_nexus"
         static let detailFailed      = "discovery_detail_failed"
         static let endorsements      = "discovery_endorsements"
+        static let noMatch           = "discovery_no_match"
     }
 }

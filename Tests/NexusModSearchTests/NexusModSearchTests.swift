@@ -553,8 +553,10 @@ struct NexusModSearchTests {
     // MARK: - Listing (vitrine « Découvrir », axe G)
 
     private func listingBody(_ sort: NexusModSearch.ListingSort,
-                             tag: String? = nil) -> [String: Any] {
-        let data = NexusModSearch.listingBody(sort: sort, tag: tag, gameId: 1303)!
+                             tag: String? = nil,
+                             category: String? = nil) -> [String: Any] {
+        let data = NexusModSearch.listingBody(sort: sort, tag: tag, category: category,
+                                              gameId: 1303)!
         return (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] ?? [:]
     }
 
@@ -726,5 +728,62 @@ struct NexusModSearchTests {
             hit("Sword and Sorcery -日本語", ["Japanese", "Translation"])))
         #expect(!NexusModSearch.vitrineEligible(
             hit("SVE - PT-BR", ["Translation"])))
+    }
+
+    /// Le filtre par catégorie se fait **au serveur** : `categoryName` est un
+    /// champ de `ModsFilter` (introspection 2026-08-28 — le relevé du spike
+    /// G-T1 l'avait manqué). Filtrer au client n'aurait rien valu : 50 mods
+    /// des tendances se répartissent déjà sur 15 catégories.
+    @Test func aListingCanBeScopedToOneCategoryServerSide() {
+        let plain = listingBody(.endorsed)["query"] as? String ?? ""
+        #expect(!plain.contains("categoryName"))
+
+        let scoped = listingBody(.endorsed, category: "Gameplay Mechanics")
+        let query = scoped["query"] as? String ?? ""
+        #expect(query.contains("categoryName: { value: $category, op: EQUALS }"))
+        #expect(query.contains("$category: String!"))
+        #expect((scoped["variables"] as? [String: Any])?["category"] as? String
+                == "Gameplay Mechanics")
+    }
+
+    /// Tag **et** catégorie ensemble — c'est la sélection française réduite à
+    /// une catégorie. Les trois filtres tiennent : mesuré le 2026-08-28,
+    /// `French` + `Portraits` rend 8 mods, `French` + `Gameplay Mechanics`
+    /// en rend 147. Aucune catégorie mesurée ne rend zéro.
+    @Test func tagAndCategoryFilterTogether() {
+        let query = listingBody(.recentlyUpdated, tag: "French",
+                                category: "Portraits")["query"] as? String ?? ""
+        #expect(query.contains("tag: { value: $tag, op: EQUALS }"))
+        #expect(query.contains("categoryName: { value: $category, op: EQUALS }"))
+    }
+
+    /// L'identifiant de catégorie, pas seulement son nom : il rebranche la
+    /// carte sur `NexusCategory` (nom traduit, couleur, glyphe) déjà utilisée
+    /// par la liste des mods installés. Vérifié sur données réelles le
+    /// 2026-08-28 : `categoryId` 3 = Gameplay Mechanics, 25 = Visuals and
+    /// Graphics — la table de l'app s'aligne sur ces identifiants.
+    @Test func decodingReadsTheCategoryIdWhenTheResponseCarriesIt() {
+        let json = """
+        {"data":{"mods":{"totalCount":2,"nodes":[
+          {"modId":1063,"name":"Automate","version":"2.3.1","status":"published",
+           "modCategory":{"categoryId":3,"name":"Gameplay Mechanics"}},
+          {"modId":2400,"name":"Sans catégorie","version":"1.0","status":"published"}]}}}
+        """
+        guard case .success(let page) = NexusModSearch.decode(Data(json.utf8)) else {
+            Issue.record("attendu un succès"); return
+        }
+        #expect(page.hits[0].categoryId == 3)
+        #expect(page.hits[0].categoryName == "Gameplay Mechanics")
+        // Aucune catégorie servie : pas de badge inventé.
+        #expect(page.hits[1].categoryId == nil)
+    }
+
+    /// Le listing demande bien l'identifiant : sans lui au `nodes`, le
+    /// décodage ci-dessus ne verrait jamais rien en production.
+    @Test func listingsAskForTheCategoryId() {
+        #expect((listingBody(.endorsed)["query"] as? String ?? "")
+                    .contains("modCategory { categoryId name }"))
+        #expect((body("Parchment")["query"] as? String ?? "")
+                    .contains("modCategory { categoryId name }"))
     }
 }

@@ -42,11 +42,19 @@ public enum NexusModSearch {
         /// (4 mods sur 4 en tête de tendances, capture 2026-08-27). Une carte
         /// sans vignette reste une carte.
         public let thumbnailUrl: String?
+        /// L'identifiant Nexus de la catégorie — celui de `NexusCategory`,
+        /// vérifié sur données réelles le 2026-08-28 (3 = Gameplay Mechanics,
+        /// 25 = Visuals and Graphics). Il rebranche la carte sur la table
+        /// déjà traduite et colorée de la liste des mods installés, là où le
+        /// seul `categoryName` resterait un mot anglais. Optionnel : une page
+        /// cachée avant cette version n'en porte pas.
+        public let categoryId: Int?
 
         public init(modId: Int, name: String, version: String, updatedAt: Date?,
                     categoryName: String, uploader: String, adultContent: Bool,
                     tags: [String] = [], endorsements: Int? = nil,
-                    summary: String? = nil, thumbnailUrl: String? = nil) {
+                    summary: String? = nil, thumbnailUrl: String? = nil,
+                    categoryId: Int? = nil) {
             self.modId = modId
             self.name = name
             self.version = version
@@ -58,6 +66,7 @@ public enum NexusModSearch {
             self.endorsements = endorsements
             self.summary = summary
             self.thumbnailUrl = thumbnailUrl
+            self.categoryId = categoryId
         }
 
         /// `true` quand Nexus range ce mod parmi les traductions.
@@ -149,7 +158,7 @@ public enum NexusModSearch {
           ) {
             totalCount
             nodes { modId name version updatedAt adultContent status thumbnailUrl
-                    modCategory { name } uploader { name } tags { name } }
+                    modCategory { categoryId name } uploader { name } tags { name } }
           }
         }
         """
@@ -241,25 +250,36 @@ public enum NexusModSearch {
     /// 2026-08-27 : le jeu entier rend 33 199 mods, le seul tag `French`
     /// en rend 747.
     public static func listingBody(sort: ListingSort, tag: String? = nil,
+                                   category: String? = nil,
                                    gameId: Int, count: Int = 20) -> Data? {
         let tagFilter = tag.map { _ in ", tag: { value: $tag, op: EQUALS }" } ?? ""
         let tagParam = tag.map { _ in ", $tag: String!" } ?? ""
+        // `categoryName` est un champ de `ModsFilter` (introspection
+        // 2026-08-28) : la catégorie se filtre **au serveur**, comme le tag.
+        // Trier les 20 mods déjà reçus n'aurait rien donné — 50 mods des
+        // tendances se répartissent sur 15 catégories.
+        let catFilter = category.map { _ in
+            ", categoryName: { value: $category, op: EQUALS }"
+        } ?? ""
+        let catParam = category.map { _ in ", $category: String!" } ?? ""
         let query = """
-        query ModListing($game: String!, $count: Int!, $offset: Int!\(tagParam)) {
+        query ModListing($game: String!, $count: Int!, $offset: Int!\(tagParam)\(catParam)) {
           mods(
-            filter: { gameId: { value: $game, op: EQUALS }\(tagFilter) }
+            filter: { gameId: { value: $game, op: EQUALS }\(tagFilter)\(catFilter) }
             sort: { \(sort.graphQLField): { direction: DESC } }
             count: $count
             offset: $offset
           ) {
             totalCount
             nodes { modId name version updatedAt adultContent status endorsements
-                    summary thumbnailUrl modCategory { name } uploader { name } tags { name } }
+                    summary thumbnailUrl modCategory { categoryId name }
+                    uploader { name } tags { name } }
           }
         }
         """
         var variables: [String: Any] = ["game": String(gameId), "count": count, "offset": 0]
         if let tag { variables["tag"] = tag }
+        if let category { variables["category"] = category }
         return try? JSONSerialization.data(withJSONObject: ["query": query,
                                                             "variables": variables])
     }
@@ -380,7 +400,8 @@ public enum NexusModSearch {
         // retiré ne se télécharge pas.
         if let status = node["status"] as? String, status != "published" { return nil }
 
-        let category = (node["modCategory"] as? [String: Any])?["name"] as? String ?? ""
+        let categoryNode = node["modCategory"] as? [String: Any]
+        let category = categoryNode?["name"] as? String ?? ""
         let uploader = (node["uploader"] as? [String: Any])?["name"] as? String ?? ""
         let tags = (node["tags"] as? [[String: Any]])?.compactMap { $0["name"] as? String } ?? []
         return Hit(modId: modId,
@@ -393,7 +414,8 @@ public enum NexusModSearch {
                    tags: tags,
                    endorsements: node["endorsements"] as? Int,
                    summary: node["summary"] as? String,
-                   thumbnailUrl: node["thumbnailUrl"] as? String)
+                   thumbnailUrl: node["thumbnailUrl"] as? String,
+                   categoryId: categoryNode?["categoryId"] as? Int)
     }
 
     // MARK: - Reconnaître une traduction française

@@ -17,7 +17,15 @@ struct DiscoverView: View {
             VStack(alignment: .leading, spacing: 16) {
                 searchField
                 if let error = vm.lastDiscoveryError { errorBanner(error) }
-                Toggle(vm.L(L10n.Discovery.hideInstalled), isOn: $hideInstalled)
+                // Les deux filtres ne valent que pour les sections : pendant
+                // une recherche ils n'ont rien à filtrer, et un réglage sans
+                // effet visible se lit comme une panne.
+                if vm.discoverySearch == nil {
+                    HStack(spacing: 12) {
+                        Toggle(vm.L(L10n.Discovery.hideInstalled), isOn: $hideInstalled)
+                        categoryPicker
+                    }
+                }
                 if let search = vm.discoverySearch {
                     searchResults(search)
                 } else {
@@ -55,6 +63,46 @@ struct DiscoverView: View {
                 }
                 .help(vm.L(L10n.Discovery.clearSearch))
             }
+        }
+    }
+
+    /// Le filtre de catégorie : les 26 catégories Nexus du jeu, dans l'ordre
+    /// de leur nom traduit. Il part au serveur — chaque choix redemande les
+    /// trois sections, et chaque catégorie a son propre cache de 24 h.
+    private var categoryPicker: some View {
+        Menu {
+            Button {
+                vm.setDiscoveryCategory(nil)
+            } label: {
+                Label(vm.L(L10n.Mods.categoryFilterAll), systemImage: "square.grid.2x2")
+            }
+            Divider()
+            ForEach(sortedCategories, id: \.id) { category in
+                Button {
+                    vm.setDiscoveryCategory(category)
+                } label: {
+                    // Un menu SwiftUI rend le label en texte simple : le glyphe
+                    // doit tenir dans le `Text`, un `Label` le perdrait.
+                    Text(category.emoji + " " + category.localizedName(vm.L))
+                }
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "tag")
+                Text(vm.discoveryCategory?.localizedName(vm.L)
+                     ?? vm.L(L10n.Mods.categoryFilter))
+                    .lineLimit(1)
+            }
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+        .help(vm.L(L10n.Mods.categoryFilter))
+    }
+
+    private var sortedCategories: [NexusCategory] {
+        NexusCategory.all.sorted {
+            $0.localizedName(vm.L)
+                .localizedCaseInsensitiveCompare($1.localizedName(vm.L)) == .orderedAscending
         }
     }
 
@@ -96,7 +144,10 @@ struct DiscoverView: View {
                 emptySection(reason)
             default:
                 if rows.isEmpty {
-                    Text(vm.L(L10n.Discovery.neverLoaded))
+                    // La section a bien répondu : ce sont les filtres qui ne
+                    // laissent rien passer. Dire « rien n'est encore chargé »
+                    // ici serait faux, et enverrait rafraîchir pour rien.
+                    Text(vm.L(L10n.Discovery.noMatch))
                         .font(.caption).foregroundStyle(.secondary)
                 } else {
                     ScrollView(.horizontal, showsIndicators: false) {
@@ -145,24 +196,32 @@ struct DiscoverView: View {
                 // une carte plus courte que sa voisine décalerait toute la
                 // rangée. Le rectangle gris couvre aussi l'attente et l'échec
                 // de chargement.
-                Group {
-                    if let thumbnail = row.hit.thumbnailUrl,
-                       let url = URL(string: thumbnail) {
-                        AsyncImage(url: url) { image in
-                            image.resizable().scaledToFill()
-                        } placeholder: {
-                            Rectangle().fill(.quaternary)
+                Rectangle().fill(.quaternary)
+                    .overlay {
+                        // `CachedAsyncImage` garde les images en mémoire :
+                        // trois bandes qui défilent redemanderaient sinon les
+                        // mêmes vignettes au réseau à chaque passage.
+                        if let thumbnail = row.hit.thumbnailUrl,
+                           let url = URL(string: thumbnail) {
+                            CachedAsyncImage(url: url)
                         }
-                    } else {
-                        Rectangle().fill(.quaternary)
                     }
-                }
-                .frame(width: 200, height: 90)
-                .clipped()
-                .clipShape(RoundedRectangle(cornerRadius: 6))
+                    .frame(width: 200, height: 90)
+                    .clipped()
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
                 Text(row.hit.name).font(.headline).lineLimit(2, reservesSpace: true)
                 Text(row.hit.uploader).font(.caption).foregroundStyle(.secondary)
                     .lineLimit(1)
+                // La catégorie, avec la couleur et le nom traduit de la liste
+                // des mods installés — la même pastille des deux côtés de
+                // l'app. Sa place est réservée : sans elle, une carte sans
+                // catégorie serait plus courte que ses voisines.
+                Group {
+                    if let category = row.hit.categoryId.flatMap(NexusCategory.from(id:)) {
+                        CategoryBadge(category: category, L: vm.L)
+                    }
+                }
+                .frame(height: 18, alignment: .leading)
                 HStack(spacing: 6) {
                     if let endorsements = row.hit.endorsements {
                         Label(String(format: vm.L(L10n.Discovery.endorsements), endorsements),

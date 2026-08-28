@@ -94,4 +94,24 @@ struct ModCatalogTests {
                                        store: store)
         #expect(nextDay.detail(for: 9) == nil)  // périmée : la fiche se re-demande
     }
+
+    /// Une catégorie a son propre fichier de cache : filtrer sur « Portraits »
+    /// ne doit pas écraser les tendances sans filtre, ni les servir à sa
+    /// place. Sans cette clé distincte, revenir à « toutes les catégories »
+    /// rendrait la liste filtrée pendant 24 h.
+    @Test func eachCategoryCachesUnderItsOwnKey() {
+        let (catalog, store) = makeCatalog()
+        catalog.record(.trending, category: nil, page: page(1, 2))
+        catalog.record(.trending, category: 6, page: page(7))
+
+        #expect(store.files.count == 2)
+        if case .fresh(let all) = catalog.state(.trending, category: nil) {
+            #expect(all.hits.map(\.modId) == [1, 2])
+        } else { Issue.record("les tendances sans filtre restent en cache") }
+        if case .fresh(let portraits) = catalog.state(.trending, category: 6) {
+            #expect(portraits.hits.map(\.modId) == [7])
+        } else { Issue.record("la catégorie a son propre cache") }
+        // Une catégorie jamais chargée ne récupère pas celui d'une autre.
+        #expect(catalog.state(.trending, category: 21) == .empty(.neverLoaded))
+    }
 }

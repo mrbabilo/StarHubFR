@@ -15,7 +15,12 @@ where the exact log format was verified.
 ### Added
 - **Onglet « Découvrir » : trouver un mod sans en avoir un pour point de départ.** Trois sections servies par Nexus — tendances, mises à jour récentes, sélection française — plus une recherche par nom. Chaque carte dit si le mod est déjà dans le parc, et « masquer les installés » affiche toujours combien il a masqué. Les listes sont mises en cache 24 h ; seul le bouton de rafraîchissement redemande au réseau.
 - **Fiche éclair depuis une carte** — description rendue comme sur la page du mod, catégorie, auteur, endossements, et « Ouvrir sur Nexus » pour ramener le fichier dans l'app par `nxm://`. Sans clé d'API, l'onglet le dit au lieu de rester vide ; un quota atteint et une panne réseau ont chacun leur message.
-- **Les cartes portent la vignette du mod** quand Nexus en sert une, sa place étant réservée dans tous les cas — beaucoup de traductions n'ont pas d'image, et une carte plus courte décalerait toute la rangée. Les sections écartent les traductions d'autres langues que le français ; la recherche par nom, elle, rend ce qu'on lui a demandé.
+- **La catégorie sur chaque carte, et un filtre par catégorie.** La pastille est celle de la liste des mods installés — même couleur, même nom traduit. Le filtre part au serveur Nexus : choisir « Portraits » redemande les trois sections dans cette catégorie plutôt que de trier les vingt mods déjà reçus, qui se répartissent sur une quinzaine de catégories. Chaque catégorie garde son propre cache de 24 h ; la recherche par nom, elle, n'est pas filtrée.
+- **Les cartes portent la vignette du mod** quand Nexus en sert une, sa place étant réservée dans tous les cas — beaucoup de traductions n'ont pas d'image, et une carte plus courte décalerait toute la rangée. Les images sont gardées en mémoire d'un défilement à l'autre. Les sections écartent les traductions d'autres langues que le français ; la recherche par nom, elle, rend ce qu'on lui a demandé.
+
+### Fixed
+- **Une panne réseau ne laisse plus son bandeau d'erreur en haut de l'onglet Découvrir.** Le message n'était effacé nulle part : une fois affiché, il survivait à tous les chargements réussis qui suivaient. Il disparaît maintenant dès la tentative suivante.
+- **Une section vide ne dit plus « Rien n'est encore chargé ».** Elle avait pourtant répondu — ce sont les filtres qui ne laissaient rien passer, et le message envoyait rafraîchir pour rien.
 
 ## [1.24.0] - 2026-08-27
 

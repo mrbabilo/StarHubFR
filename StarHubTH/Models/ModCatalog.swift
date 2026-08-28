@@ -81,12 +81,20 @@ public struct ModCatalog {
         return decoder
     }()
 
-    private func sectionKey(_ kind: SectionKind) -> String { "section.\(kind.rawValue)" }
+    /// La clé de cache d'une section **et de son filtre de catégorie** : les
+    /// tendances de « Portraits » ne sont pas les tendances tout court. Sans
+    /// cette distinction, revenir à « toutes les catégories » resservirait la
+    /// liste filtrée pendant 24 h. Le cas sans filtre garde sa clé d'origine —
+    /// les fichiers déjà écrits restent lisibles.
+    private func sectionKey(_ kind: SectionKind, _ category: Int?) -> String {
+        guard let category else { return "section.\(kind.rawValue)" }
+        return "section.\(kind.rawValue).cat\(category)"
+    }
     private func detailKey(_ modId: Int) -> String { "detail.\(modId)" }
 
     /// L'état d'une section : ce qu'on a, et s'il vaut encore.
-    public func state(_ kind: SectionKind) -> SectionState {
-        guard let data = load(sectionKey(kind)),
+    public func state(_ kind: SectionKind, category: Int? = nil) -> SectionState {
+        guard let data = load(sectionKey(kind, category)),
               let entry = try? Self.decoder.decode(Entry.self, from: data)
         else { return .empty(.neverLoaded) }
         let age = now().timeIntervalSince(entry.savedAt)
@@ -97,14 +105,15 @@ public struct ModCatalog {
     /// jamais rendre deux fois le même mod dans une même bande (spec §6).
     /// Réapparaître dans une **autre** section est normal : elles ne lisent
     /// pas les mêmes fichiers.
-    public func record(_ kind: SectionKind, page: NexusModSearch.Page) {
+    public func record(_ kind: SectionKind, category: Int? = nil,
+                       page: NexusModSearch.Page) {
         var seen = Set<Int>()
         let deduped = NexusModSearch.Page(
             hits: page.hits.filter { seen.insert($0.modId).inserted },
             totalCount: page.totalCount)
         guard let data = try? Self.encoder.encode(Entry(savedAt: now(), page: deduped))
         else { return }
-        save(sectionKey(kind), data)
+        save(sectionKey(kind, category), data)
     }
 
     /// La fiche cachée, tant qu'elle a moins de 24 h.
