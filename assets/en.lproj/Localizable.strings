@@ -3,6 +3,10 @@
 "main_game_management" = "Game Management";
 "main_system" = "System Settings";
 "main_online" = "Online Services";
+"main_group_library" = "Library";
+"main_group_saves" = "Games";
+"main_group_health" = "Health & recovery";
+"main_group_app" = "Application";
 "main_ready_to_play" = "Ready to play!";
 "main_launching_game" = "Launching game…";
 "main_launch_game" = "Launch Game";

@@ -56,145 +56,93 @@ struct MainView: View {
                 )
                 .onHover { isProfileHovered = $0 }
                 
-                // Mod Updates: Nexus updates + out-of-date mods (a single
-                // badge). Separate from System Alerts so update notifications
-                // don't get hidden behind SMAPI error counts. Always visible
-                // — even when there are 0 updates, the user must be able to
-                // reach the tab to manually trigger a Nexus check. The badge
-                // is hidden when count == 0 (see `SidebarBadgeItem`).
-                let modUpdateCount = vm.outOfDateMods.count + vm.nexusUpdates.count
-                SidebarBadgeItem(
-                    label: vm.L(L10n.Main.modUpdates),
-                    tab: "Updates",
-                    count: modUpdateCount,
-                    accentColor: .blue,
-                    currentTab: $currentTab
-                )
-
-                // System Alerts: SMAPI errors. These are also logged to the
-                // Journaux tab so they remain consultable after the banner
-                // is dismissed. Always visible for the same reason as Mod
-                // Updates above: the page carries « Revérifier le journal »
-                // (B2-T3), and a journal silent before an install says
-                // nothing about after — the tab must be reachable when green.
-                // The badge is hidden when count == 0 (see `SidebarBadgeItem`).
-                SidebarBadgeItem(
-                    label: vm.L(L10n.Main.systemAlerts),
-                    tab: "SystemAlerts",
-                    count: vm.smapiErrors.count,
-                    accentColor: .orange,
-                    currentTab: $currentTab
-                )
-
-                // Quarantine: folder-repair report + « Relancer l'analyse »
-                // (B2-T3). Always visible — the entry used to appear only
-                // when items were quarantined, which hid the page on a
-                // healthy library: precisely the case where the user wants
-                // to run the analysis and see it find nothing. The badge is
-                // hidden when count == 0 (see `SidebarBadgeItem`).
-                SidebarBadgeItem(
-                    label: vm.L(L10n.Main.quarantine),
-                    tab: "Quarantine",
-                    count: vm.lastRepairReport?.quarantined.count ?? 0,
-                    accentColor: .purple,
-                    currentTab: $currentTab
-                )
-                
-                // Game Section
+                // BIBLIOTHÈQUE — l'usage quotidien.
                 VStack(alignment: .leading, spacing: 2) {
-                    SidebarSectionHeader(title: vm.L(L10n.Main.gameManagement), icon: "gamecontroller")
-                    
-                    SidebarNavItem(
-                        icon: "person.2.fill",
-                        iconColor: .orange,
-                        label: vm.L(L10n.Profiles.title),
-                        tab: "Profiles",
-                        currentTab: $currentTab
-                    )
-                    
-                    SidebarNavItem(
-                        icon: "puzzlepiece.extension.fill",
-                        iconColor: .purple,
-                        label: vm.L(L10n.Mods.mods),
-                        tab: "Mods",
-                        currentTab: $currentTab
-                    )
+                    SidebarSectionHeader(title: vm.L(L10n.Main.groupLibrary),
+                                         icon: "square.grid.2x2")
 
-                    SidebarNavItem(
-                        icon: "safari.fill",
-                        iconColor: .teal,
-                        label: vm.L(L10n.Main.discover),
-                        tab: "Discover",
-                        currentTab: $currentTab
-                    )
+                    SidebarItem(icon: "puzzlepiece.extension.fill",
+                                label: vm.L(L10n.Mods.mods), tab: "Mods",
+                                currentTab: $currentTab)
 
-                    SidebarNavItem(
-                        icon: "arrow.uturn.backward.circle.fill",
-                        iconColor: .pink,
-                        label: vm.L(L10n.ModInstall.manageBackups),
-                        tab: "InstallBackups",
-                        currentTab: $currentTab
-                    )
+                    SidebarItem(icon: "safari.fill",
+                                label: vm.L(L10n.Main.discover), tab: "Discover",
+                                currentTab: $currentTab)
 
-                    SidebarNavItem(
-                        icon: "archivebox.fill",
-                        iconColor: .green,
-                        label: vm.L(L10n.ModConfigBackups.tabTitle),
-                        tab: "ConfigBackups",
-                        currentTab: $currentTab
-                    )
-
-                    SidebarNavItem(
-                        icon: "folder.fill",
-                        iconColor: .blue,
-                        label: vm.L(L10n.Saves.saves),
-                        tab: "Saves",
-                        currentTab: $currentTab
-                    )
+                    // Toujours visible, même à zéro : sans l'entrée, plus
+                    // moyen de déclencher une vérification Nexus à la main.
+                    SidebarItem(icon: "arrow.triangle.2.circlepath",
+                                label: vm.L(L10n.Main.modUpdates), tab: "Updates",
+                                badge: vm.outOfDateMods.count + vm.nexusUpdates.count,
+                                badgeColor: .blue, currentTab: $currentTab)
                 }
-                
-                // System & Settings Section. Quarantine lives in the status
-                // zone above — always reachable, badge only when it holds
-                // something (see its comment there).
+
+                // PARTIES.
                 VStack(alignment: .leading, spacing: 2) {
-                    SidebarSectionHeader(title: vm.L(L10n.Main.system), icon: "gearshape")
-                    
-                    SidebarNavItem(
-                        icon: "gearshape.fill",
-                        iconColor: .gray,
-                        label: vm.L(L10n.Settings.settings),
-                        tab: "Settings",
-                        currentTab: $currentTab
-                    )
+                    SidebarSectionHeader(title: vm.L(L10n.Main.groupSaves),
+                                         icon: "gamecontroller")
 
-                    SidebarNavItem(
-                        icon: "terminal.fill",
-                        iconColor: .black,
-                        label: vm.L(L10n.Logs.logs),
-                        tab: "Logs",
-                        currentTab: $currentTab
-                    )
+                    SidebarItem(icon: "person.2.fill",
+                                label: vm.L(L10n.Profiles.title), tab: "Profiles",
+                                currentTab: $currentTab)
 
-                    SidebarNavItem(
-                        icon: "doc.text.fill",
-                        iconColor: .indigo,
-                        label: vm.L(L10n.Main.appChangelog),
-                        tab: "AppChangelog",
-                        currentTab: $currentTab
-                    )
+                    SidebarItem(icon: "folder.fill",
+                                label: vm.L(L10n.Saves.saves), tab: "Saves",
+                                currentTab: $currentTab)
                 }
-                
-                if showThaiTranslationHub {
-                    // Thai Hub Section
-                    VStack(alignment: .leading, spacing: 2) {
-                        SidebarSectionHeader(title: vm.L(L10n.Main.online), icon: "globe.asia.australia")
-                        SidebarNavItem(
-                            icon: "globe.asia.australia.fill",
-                            iconColor: .blue,
-                            label: vm.L(L10n.ThaiHub.title),
-                            tab: "ThaiHub",
-                            currentTab: $currentTab
-                        )
+
+                // SANTÉ & SECOURS — ce qui répare et ce qui prévient.
+                VStack(alignment: .leading, spacing: 2) {
+                    SidebarSectionHeader(title: vm.L(L10n.Main.groupHealth),
+                                         icon: "cross.case")
+
+                    // Atteignable au vert aussi : la page porte
+                    // « Revérifier le journal », et un journal muet avant une
+                    // installation ne dit rien de l'après.
+                    SidebarItem(icon: "exclamationmark.triangle.fill",
+                                label: vm.L(L10n.Main.systemAlerts), tab: "SystemAlerts",
+                                badge: vm.smapiErrors.count, badgeColor: .orange,
+                                currentTab: $currentTab)
+
+                    // Idem : l'entrée n'apparaissait autrefois qu'avec des
+                    // éléments en quarantaine — cachant la page précisément
+                    // quand on veut lancer l'analyse et la voir ne rien
+                    // trouver.
+                    SidebarItem(icon: "tray.full.fill",
+                                label: vm.L(L10n.Main.quarantine), tab: "Quarantine",
+                                badge: vm.lastRepairReport?.quarantined.count ?? 0,
+                                badgeColor: .purple, currentTab: $currentTab)
+
+                    SidebarItem(icon: "arrow.uturn.backward.circle.fill",
+                                label: vm.L(L10n.ModInstall.manageBackups),
+                                tab: "InstallBackups", currentTab: $currentTab)
+
+                    SidebarItem(icon: "archivebox.fill",
+                                label: vm.L(L10n.ModConfigBackups.tabTitle),
+                                tab: "ConfigBackups", currentTab: $currentTab)
+                }
+
+                // APPLICATION.
+                VStack(alignment: .leading, spacing: 2) {
+                    SidebarSectionHeader(title: vm.L(L10n.Main.groupApp),
+                                         icon: "gearshape")
+
+                    SidebarItem(icon: "terminal.fill",
+                                label: vm.L(L10n.Logs.logs), tab: "Logs",
+                                currentTab: $currentTab)
+
+                    SidebarItem(icon: "gearshape.fill",
+                                label: vm.L(L10n.Settings.settings), tab: "Settings",
+                                currentTab: $currentTab)
+
+                    SidebarItem(icon: "doc.text.fill",
+                                label: vm.L(L10n.Main.appChangelog), tab: "AppChangelog",
+                                currentTab: $currentTab)
+
+                    if showThaiTranslationHub {
+                        SidebarItem(icon: "globe.asia.australia.fill",
+                                    label: vm.L(L10n.ThaiHub.title), tab: "ThaiHub",
+                                    currentTab: $currentTab)
                     }
                 }
 
@@ -508,95 +456,6 @@ struct SidebarSectionHeader: View {
         .padding(.top, AppDesign.Spacing.sm)
         .padding(.bottom, 0)
         .accessibilityAddTraits(.isHeader)
-    }
-}
-
-// MARK: - Sidebar Badge Item (alert-style nav with count capsule)
-struct SidebarBadgeItem: View {
-    let label: String
-    let tab: String
-    let count: Int
-    let accentColor: Color
-    @Binding var currentTab: String
-
-    private var isSelected: Bool { currentTab == tab }
-
-    var body: some View {
-        Button(action: { currentTab = tab }) {
-            HStack {
-                Text(label)
-                    .font(.system(size: 14, weight: .regular))
-                    .foregroundColor(isSelected ? .white : .primary)
-                Spacer()
-                // Badge hidden when count == 0 so a "no updates / no alerts"
-                // item still appears in the sidebar but doesn't show a
-                // misleading empty bubble.
-                if count > 0 {
-                    Text("\(count)")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(isSelected ? accentColor : .white)
-                        .frame(minWidth: 18, minHeight: 18)
-                        .padding(.horizontal, 4)
-                        .background(isSelected ? Color.white : accentColor)
-                        .clipShape(Capsule())
-                }
-            }
-            .contentShape(Rectangle())
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
-            .background(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .fill(isSelected ? accentColor : Color.clear)
-            )
-        }
-        .buttonStyle(PlainButtonStyle())
-        .pointingHandCursor()
-        .accessibilityLabel(
-            String(format: NSLocalizedString("main_alerts_nav_a11y", comment: ""),
-                   label, Int64(count))
-        )
-    }
-}
-
-// MARK: - Sidebar Nav Item (macOS System Settings style)
-struct SidebarNavItem: View {
-    let icon: String
-    let iconColor: Color
-    let label: String
-    let tab: String
-    @Binding var currentTab: String
-    @State private var isHovered = false
-
-    var isSelected: Bool { currentTab == tab }
-
-    var body: some View {
-        Button(action: { currentTab = tab }) {
-            HStack(spacing: 12) {
-                Image(systemName: icon)
-                    .font(AppDesign.Font.rowTitle)
-                    .foregroundColor(isSelected ? .white : .primary)
-                    .frame(width: 20, alignment: .center)
-
-                Text(label)
-                    .font(AppDesign.Font.rowTitle)
-                    .foregroundColor(isSelected ? .white : .primary)
-                Spacer()
-            }
-            .contentShape(Rectangle())
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(
-                RoundedRectangle(cornerRadius: AppDesign.Radius.sm, style: .continuous)
-                    .fill(isSelected
-                          ? Color.accentColor
-                          : (isHovered ? Color.primary.opacity(AppDesign.Opacity.subtle) : Color.clear))
-            )
-        }
-        .buttonStyle(PlainButtonStyle())
-        .onHover { isHovered = $0 }
-        .pointingHandCursor()
-        .accessibilityLabel(label)
-        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 }
 

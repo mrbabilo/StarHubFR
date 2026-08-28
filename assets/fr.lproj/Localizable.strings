@@ -3,6 +3,10 @@
 "main_game_management" = "Gestion du jeu";
 "main_system" = "Paramètres système";
 "main_online" = "Services en ligne";
+"main_group_library" = "Bibliothèque";
+"main_group_saves" = "Parties";
+"main_group_health" = "Santé & secours";
+"main_group_app" = "Application";
 "main_ready_to_play" = "Prêt à jouer !";
 "main_launching_game" = "Lancement du jeu…";
 "main_launch_game" = "Lancer le jeu";
