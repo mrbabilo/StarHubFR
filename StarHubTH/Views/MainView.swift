@@ -215,7 +215,7 @@ struct MainView: View {
                 } else if currentTab == "AppChangelog" {
                     AppChangelogView(vm: vm)
                 } else {
-                    HomeView(vm: vm)
+                    HomeView(vm: vm, currentTab: $currentTab)
                 }
             }
             .navigationTitle(navigationTitleText)

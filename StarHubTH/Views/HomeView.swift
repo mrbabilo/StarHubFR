@@ -4,14 +4,19 @@ struct HomeView: View {
     @ObservedObject var vm: StarHubTHViewModel
     @ObservedObject var smapiInstaller: SmapiInstaller
     @ObservedObject private var bisection: BisectionRunner
+    /// L'onglet courant de `MainView` : les compteurs de la bande mènent
+    /// chacun à sa page, et un accueil qui les affiche sans y conduire ne
+    /// ferait que constater.
+    @Binding var currentTab: String
 
     // Mirrors the key launchGame() reads, so the subtitle reflects the mode that fires.
     @AppStorage("launchProfile") private var launchProfile: String = "SMAPI"
 
-    init(vm: StarHubTHViewModel) {
+    init(vm: StarHubTHViewModel, currentTab: Binding<String>) {
         self.vm = vm
         self.smapiInstaller = vm.smapiInstaller
         self.bisection = vm.bisection
+        self._currentTab = currentTab
     }
 
     /// Une recherche laissée en plan a laissé des mods en pause. C'est détecté
@@ -31,7 +36,7 @@ struct HomeView: View {
                                     DateFormatter.localizedString(from: snapshot.startedAt,
                                                                   dateStyle: .short,
                                                                   timeStyle: .short)))
-                            .font(.system(size: 12))
+                            .font(AppDesign.Font.caption)
                             .foregroundColor(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -46,56 +51,131 @@ struct HomeView: View {
         }
     }
 
-    private var bannerWithAvatarOverlay: some View {
-        ZStack(alignment: .bottom) {
-            // Nexus banner
-            if let url = Bundle.main.url(forResource: "nexus_banner_final", withExtension: "png"),
-               let nsImage = NSImage(contentsOf: url) {
-                Image(nsImage: nsImage)
-                    .resizable()
-                    .scaledToFit()
-                    .cornerRadius(12)
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.primary.opacity(0.08), lineWidth: 1))
-                    .shadow(color: Color.black.opacity(0.12), radius: 8, x: 0, y: 4)
-            }
-            
-            // Steam avatar overlay - floats on banner
-            VStack(spacing: 0) {
-                Spacer()
-                avatarCircle
-                    .offset(y: 40)
+    /// Les quatre chiffres qui décident de la suite. Toujours les quatre,
+    /// zéros compris : un « 0 alerte » se lit, une absence ne se lit pas.
+    private var attentionStrip: some View {
+        let counters = HomeAttention.counters(
+            updates: vm.outOfDateMods.count + vm.nexusUpdates.count,
+            alerts: vm.smapiErrors.count,
+            quarantined: vm.lastRepairReport?.quarantined.count ?? 0,
+            mods: vm.mods.count)
+        return HStack(spacing: AppDesign.Spacing.md) {
+            ForEach(counters) { counter in
+                Button { currentTab = counter.tab } label: {
+                    VStack(spacing: AppDesign.Spacing.xs) {
+                        Image(systemName: glyph(for: counter.kind))
+                            .font(.system(size: AppDesign.Icon.md))
+                            .foregroundStyle(counter.level == .attention
+                                             ? tint(for: counter.kind) : Color.secondary)
+                        Text("\(counter.count)")
+                            .font(AppDesign.Font.viewTitle)
+                        Text(label(for: counter.kind))
+                            .font(AppDesign.Font.footnote)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, AppDesign.Spacing.md)
+                    .background(.background.secondary,
+                                in: RoundedRectangle(cornerRadius: AppDesign.Radius.section))
+                    .overlay(RoundedRectangle(cornerRadius: AppDesign.Radius.section)
+                        .stroke(Color.primary.opacity(AppDesign.Opacity.light), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
             }
         }
-        .padding(.bottom, 40)
     }
-    
-    private var avatarCircle: some View {
-        ZStack {
-            Circle()
-                .fill(Color(nsColor: .windowBackgroundColor))
-                .frame(width: 100, height: 100)
-                .shadow(color: Color.black.opacity(0.25), radius: 12, x: 0, y: 6)
-            
-            if let avatarPath = vm.steamAvatarPath, let nsImage = NSImage(contentsOfFile: avatarPath) {
-                Image(nsImage: nsImage)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 92, height: 92)
-                    .clipShape(Circle())
-            } else {
-                Image(systemName: "person.fill")
-                    .font(.system(size: 44))
-                    .foregroundColor(.secondary)
-            }
-            
-            // Stardew badge
-            Image(systemName: "leaf.fill")
-                .font(.system(size: 22))
-                .foregroundColor(.green)
-                .background(Circle().fill(Color(nsColor: .windowBackgroundColor)).frame(width: 28, height: 28))
-                .offset(x: 32, y: 32)
+
+    /// Le symbole de l'item de barre latérale (tâche 2) : même glyphe aux
+    /// deux endroits pour la même destination.
+    private func glyph(for kind: HomeAttention.Kind) -> String {
+        switch kind {
+        case .updates: return "arrow.triangle.2.circlepath"
+        case .alerts: return "exclamationmark.triangle.fill"
+        case .quarantine: return "tray.full.fill"
+        case .library: return "puzzlepiece.extension.fill"
         }
-        .frame(width: 100, height: 100)
+    }
+
+    /// La `badgeColor` de l'item de barre latérale (tâche 2). `.library` n'en
+    /// a pas — ce n'est pas un item badgé — mais sa teinte n'est de toute
+    /// façon jamais lue : `counter.level` du parc n'atteint jamais `.attention`.
+    private func tint(for kind: HomeAttention.Kind) -> Color {
+        switch kind {
+        case .updates: return .blue
+        case .alerts: return .orange
+        case .quarantine: return .purple
+        case .library: return .secondary
+        }
+    }
+
+    private func label(for kind: HomeAttention.Kind) -> String {
+        switch kind {
+        case .updates: return vm.L(L10n.Main.modUpdates)
+        case .alerts: return vm.L(L10n.Main.systemAlerts)
+        case .quarantine: return vm.L(L10n.Main.quarantine)
+        case .library: return vm.L(L10n.Mods.mods)
+        }
+    }
+
+    /// La carte de lancement — ou l'état qui l'empêche, avec l'action qui le
+    /// lève plutôt qu'un bouton grisé et muet (spec refonte §2, P1).
+    @ViewBuilder private var launchCard: some View {
+        switch HomeLaunchState.resolve(gameDirIsEmpty: vm.gameDir.isEmpty,
+                                       smapiInstalled: vm.smapiInstalledVersion != nil,
+                                       profileIsVanilla: launchProfile == "Vanilla") {
+        case .needsGameFolder:
+            // Un bouton « Jouer » grisé ne dit pas quoi faire ; la carte
+            // d'état porte l'action qui lève l'empêchement.
+            StateCard(icon: "folder.badge.questionmark",
+                      text: vm.L(L10n.Home.notSet),
+                      actionTitle: vm.L(L10n.Home.selectFolder)) { vm.selectGameDir() }
+        case .needsSmapi:
+            // SMAPI reste installable **d'ici** : c'est le prérequis de tout
+            // le reste. La progression l'accompagne, sinon l'installation se
+            // fait sans témoin.
+            VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
+                StateCard(icon: "shippingbox",
+                          text: vm.L(L10n.Home.smapiNotInstalled),
+                          actionTitle: smapiInstaller.isInstalling
+                              ? nil : vm.L(L10n.Home.installSmapi)) { vm.installSmapi() }
+                if smapiInstaller.isInstalling {
+                    ProgressView(value: smapiInstaller.progress, total: 1.0)
+                        .progressViewStyle(.linear)
+                        .tint(.blue)
+                        .animation(.easeInOut, value: smapiInstaller.progress)
+                    Text(vm.L(smapiInstaller.statusMessage))
+                        .font(AppDesign.Font.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        case .ready(let mode):
+            readyCard(mode)
+        }
+    }
+
+    /// Le bouton de lancement existant, avec le profil actif et le dossier du
+    /// jeu en une ligne de méta — d'un coup d'œil (spec refonte §5).
+    private func readyCard(_ mode: HomeLaunchMode) -> some View {
+        VStack(spacing: AppDesign.Spacing.sm) {
+            Button(action: { vm.launchGame() }) {
+                Label(vm.L(L10n.Main.launchGame), systemImage: "play.fill")
+                    .frame(maxWidth: 240)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .tint(.green)
+
+            HStack(spacing: AppDesign.Spacing.xs) {
+                Text(mode == .vanilla ? vm.L(L10n.Settings.vanillaGame) : vm.L(L10n.Settings.playSMAPI))
+                Text("•").foregroundStyle(.secondary.opacity(0.5))
+                Text(vm.gameDir)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+            .font(AppDesign.Font.footnote)
+            .foregroundStyle(.secondary)
+        }
     }
 
     var body: some View {
@@ -108,39 +188,14 @@ struct HomeView: View {
                 // blanc en haut de l'accueil quand il n'y a rien à signaler.)
                 interruptedSearchNotice
 
-                // ── BANNER WITH AVATAR OVERLAY ──
-                bannerWithAvatarOverlay
-                    .frame(maxWidth: .infinity)
+                // ── ATTENTION STRIP ──
+                attentionStrip
                     .padding(.horizontal, 40)
                     .padding(.top, 28)
-                // ── USER INFO ──
-                VStack(spacing: 4) {
-                    Text(vm.steamUsername)
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(.primary)
-                    let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
-                    Text(String(format: vm.L(L10n.Home.versionString), appVersion))
-                        .font(.system(size: 14))
-                        .foregroundColor(.secondary)
-                }
 
-                // ── LAUNCH BUTTON ──
-                VStack(spacing: 6) {
-                    Button(action: { vm.launchGame() }) {
-                        Label(vm.L(L10n.Main.launchGame), systemImage: "play.fill")
-                            .frame(maxWidth: 240)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
-                    .tint(.green)
-                    .disabled(vm.gameDir.isEmpty)
-
-                    Text(launchProfile == "Vanilla"
-                        ? vm.L(L10n.Settings.vanillaGame)
-                        : vm.L(L10n.Settings.playSMAPI))
-                        .font(.system(size: 11))
-                        .foregroundColor(.secondary)
-                }
+                // ── LAUNCH CARD ──
+                launchCard
+                    .padding(.horizontal, 40)
 
                 // ── GAME INFO BLOCK ──
                 StandardSection(title: vm.L(L10n.Home.appInfo)) {
@@ -159,79 +214,7 @@ struct HomeView: View {
                     )
                 }
                 .padding(.horizontal, 40)
-                
-                // ── SYSTEM SETTINGS SECTIONS ──
-                VStack(alignment: .leading, spacing: 24) {
-                    
-                    // Folder Settings
-                    StandardSection(title: vm.L(L10n.Home.gameFolder)) {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(vm.L(L10n.Home.gamePath))
-                                    .font(.system(size: 13))
-                                if vm.gameDir.isEmpty {
-                                    Text(vm.L(L10n.Home.notSet))
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.secondary)
-                                } else {
-                                    Text(vm.gameDir)
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.secondary)
-                                        .lineLimit(1)
-                                        .truncationMode(.middle)
-                                }
-                            }
-                            Spacer()
-                            Button(vm.L(L10n.Home.selectFolder)) { vm.selectGameDir() }
-                        }
-                    }
-                    
-                    // SMAPI Settings
-                    StandardSection(title: vm.L(L10n.Home.smapiManager)) {
-                        VStack(spacing: 0) {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(vm.L(L10n.Home.smapiStatus))
-                                        .font(.system(size: 13))
-                                    if let version = vm.smapiInstalledVersion {
-                                        Text(String(format: vm.L(L10n.Home.smapiInstalled), version))
-                                            .font(.system(size: 12))
-                                            .foregroundColor(.secondary)
-                                    } else {
-                                        Text(vm.L(L10n.Home.smapiNotInstalled))
-                                            .font(.system(size: 12))
-                                            .foregroundColor(.secondary)
-                                    }
-                                }
-                                Spacer()
-                                if smapiInstaller.isInstalling {
-                                    ProgressView()
-                                        .controlSize(.small)
-                                        .padding(.trailing, 4)
-                                } else if vm.smapiInstalledVersion == nil {
-                                    Button(vm.L(L10n.Home.installSmapi)) { vm.installSmapi() }
-                                } else {
-                                    Button(vm.L(L10n.Home.uninstall)) { vm.uninstallSmapi() }
-                                }
-                            }
-                            
-                            if smapiInstaller.isInstalling {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    ProgressView(value: smapiInstaller.progress, total: 1.0)
-                                        .progressViewStyle(.linear)
-                                        .tint(.blue)
-                                        .animation(.easeInOut, value: smapiInstaller.progress)
-                                    Text(vm.L(smapiInstaller.statusMessage))
-                                        .font(.system(size: 11))
-                                        .foregroundColor(.secondary)
-                                }
-                                .padding(.top, 12)
-                            }
-                        }
-                    }
-                }
-                .padding(.horizontal, 40)
-                
+
                 // ── CORE EXTENSIONS SECTION ──
                 StandardSection(title: vm.L(L10n.Home.coreExtensions)) {
                     VStack(spacing: 0) {
@@ -302,7 +285,7 @@ struct CoreModRow: View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.system(size: 13))
+                    .font(AppDesign.Font.body)
 
                 // Author + version when installed, otherwise status text
                 if let mod = mod {
@@ -320,7 +303,7 @@ struct CoreModRow: View {
                                 .fontDesign(.monospaced)
                         }
                     }
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
 
                     // Status label below author/version
                     Group {
@@ -335,10 +318,10 @@ struct CoreModRow: View {
                             EmptyView()
                         }
                     }
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
                 } else {
                     Text(vm.L(L10n.Home.notInstalledOrDisabled))
-                        .font(.system(size: 12))
+                        .font(AppDesign.Font.caption)
                         .foregroundColor(.red)
                 }
             }
@@ -373,7 +356,7 @@ struct CoreToolRow: View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.system(size: 13))
+                    .font(AppDesign.Font.body)
                 Group {
                     switch status {
                     case .enabledAndInstalled:
@@ -382,11 +365,11 @@ struct CoreToolRow: View {
                         Text("")
                     case .notInstalled:
                         Text(installCommand)
-                            .font(.system(size: 10))
+                            .font(AppDesign.Font.iconXS)
                             .foregroundColor(.secondary)
                     }
                 }
-                .font(.system(size: 11))
+                .font(AppDesign.Font.footnote)
             }
             Spacer()
             switch status {
