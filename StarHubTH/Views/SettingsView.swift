@@ -252,6 +252,15 @@ struct SettingsView: View {
                         }
                     }
                 }
+
+                // La version de l'app, en pied de la dernière section — lue dans
+                // le bundle comme sur l'accueil, pour rester juste après chaque
+                // bump de release.
+                Text(String(format: vm.L(L10n.Settings.appVersion),
+                            Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"))
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity)
             }
             .padding(40)
         }

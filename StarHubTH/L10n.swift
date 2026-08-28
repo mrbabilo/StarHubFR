@@ -685,6 +685,7 @@ enum L10n {
         static let footerBackup         = "settings_footer_backup"
         static let footerAppearance     = "settings_footer_appearance"
         static let footerManagement     = "settings_footer_management"
+        static let appVersion           = "settings_app_version"
         // Nexus Mods integration
         static let nexusMods            = "settings_nexus_mods"
         static let localAITitle         = "settings_localai_title"

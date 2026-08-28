@@ -351,6 +351,7 @@
   "settings_footer_backup": "Crée un fichier Zip des données importantes sur votre Bureau. Les sauvegardes évitent la corruption des fichiers lors des mises à jour.",
   "settings_footer_appearance": "La fenêtre des journaux développeur permet d'inspecter SMAPI. Si un mod plante, vous pouvez copier le texte pour le transmettre au développeur.",
   "settings_footer_management": "Supprime tous les mods désactivés (dossiers Mods/.X) pour libérer de l'espace si vous n'en avez plus besoin.",
+  "settings_app_version": "StarHubFR v%@",
   "smapi_downloading": "Téléchargement de SMAPI…",
   "smapi_download_failed": "Échec du téléchargement : %@",
   "smapi_downloaded_file_not_found": "Fichier téléchargé introuvable",

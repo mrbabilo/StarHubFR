@@ -351,6 +351,7 @@
   "settings_footer_backup": "Create a Zip file of important data on your Desktop. Backups prevent file corruption during updates.",
   "settings_footer_appearance": "The Developer Logs window is for inspecting SMAPI. When a mod crashes, you can copy the text to ask the developer.",
   "settings_footer_management": "Remove all disabled mods (Mods/.X folders) to free up storage if you no longer need them.",
+  "settings_app_version": "StarHubFR v%@",
   "smapi_downloading": "Downloading SMAPI…",
   "smapi_download_failed": "Download failed: %@",
   "smapi_downloaded_file_not_found": "Downloaded file not found",
