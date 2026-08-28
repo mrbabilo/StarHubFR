@@ -27,11 +27,14 @@ enum NexusSearchClient {
     ///   pour ne rendre que les traductions françaises. `nil` cherche large.
     /// - Parameter offset: le rang du premier résultat voulu — « voir plus »
     ///   sur une recherche qui en rend plus que la page.
-    static func search(name: String, tag: String? = nil, offset: Int = 0,
+    /// - Parameter category: restreint à une catégorie Nexus, par son nom
+    ///   anglais — le filtre de la vitrine s'applique aussi aux résultats.
+    static func search(name: String, tag: String? = nil, category: String? = nil,
+                       offset: Int = 0,
                        completion: @escaping (Result<NexusModSearch.Page, SearchError>) -> Void) {
         send(body: NexusModSearch.queryBody(name: name,
                                             gameId: NexusRequestBuilder.gameId,
-                                            tag: tag, offset: offset),
+                                            tag: tag, category: category, offset: offset),
              decode: NexusModSearch.decode,
              completion: completion)
     }

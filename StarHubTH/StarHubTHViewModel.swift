@@ -4728,6 +4728,12 @@ class StarHubTHViewModel: ObservableObject {
     /// une seule page Nexus — les relier tous au même identifiant ferait de
     /// chaque composant un faux candidat, avec sa propre version.
     func recordNexusModId(_ modId: Int, installedFolderPaths: [String]) {
+        // **Avant** les deux refus qui suivent — pack multi-dossiers,
+        // manifeste qui fait foi. Aucun des deux ne change le fait qui
+        // intéresse la vitrine : ce mod vient d'être installé depuis cette
+        // page, et sa pastille ne doit pas attendre le prochain scan.
+        recentNexusInstalls.insert(modId)
+
         guard installedFolderPaths.count == 1,
               let folderPath = installedFolderPaths.first else { return }
 
@@ -5259,6 +5265,7 @@ class StarHubTHViewModel: ObservableObject {
     /// usage rare.
     private func installedNexusIds() -> Set<Int> {
         Set(allInstalledMods().compactMap { Int(resolvedNexusModId(for: $0)) })
+            .union(recentNexusInstalls)
     }
 
     /// Retire des propositions la traduction déjà en place.
@@ -5847,6 +5854,19 @@ class StarHubTHViewModel: ObservableObject {
 
     private var pendingSectionFetches = 0
 
+    /// Les mods installés depuis Nexus **pendant cette session**, par leur
+    /// identifiant de page.
+    ///
+    /// Une installation ne devient visible dans `mods` qu'au terme d'un scan
+    /// du parc — passe de réparation comprise, deux parcours récursifs de
+    /// 104 000 fichiers, plusieurs secondes. La pastille « installé » de la
+    /// vitrine attendait donc tout ce temps, et l'utilisateur concluait
+    /// qu'elle ne s'allumait qu'après un rafraîchissement manuel. Ce que
+    /// l'app vient d'installer, elle le sait tout de suite : elle le dit tout
+    /// de suite. Rien à persister — au prochain lancement, le scan porte
+    /// l'identifiant.
+    @Published private(set) var recentNexusInstalls: Set<Int> = []
+
     /// Cache sur disque : `~/Library/Caches/StarHubFR/discovery/` (spec §6).
     private let discoveryCatalog: ModCatalog = {
         let dir = URL.cachesDirectory.appendingPathComponent("StarHubFR/discovery",
@@ -5872,6 +5892,10 @@ class StarHubTHViewModel: ObservableObject {
         guard category?.id != discoveryCategory?.id else { return }
         discoveryCategory = category
         loadDiscovery()
+        // Une recherche affichée se refait sous la nouvelle catégorie : la
+        // laisser telle quelle montrerait des résultats que le filtre visible
+        // dit avoir écartés.
+        if let search = discoverySearch { searchDiscovery(name: search.term) }
     }
 
     func loadDiscovery(force: Bool = false) {
@@ -6005,7 +6029,8 @@ class StarHubTHViewModel: ObservableObject {
     func searchDiscovery(name: String) {
         let term = NexusModSearch.searchTerm(for: name)
         guard !term.isEmpty else { discoverySearch = nil; return }
-        NexusSearchClient.search(name: name) { [weak self] result in
+        NexusSearchClient.search(name: name,
+                                 category: discoveryCategory?.englishName) { [weak self] result in
             guard let self else { return }
             switch result {
             case .success(let page):
@@ -6030,7 +6055,9 @@ class StarHubTHViewModel: ObservableObject {
     /// recherche à qui aurait retapé entre-temps.
     func loadMoreDiscoverySearch() {
         guard let current = discoverySearch, current.loaded < current.totalCount else { return }
-        NexusSearchClient.search(name: current.term, offset: current.loaded) { [weak self] result in
+        NexusSearchClient.search(name: current.term,
+                                 category: discoveryCategory?.englishName,
+                                 offset: current.loaded) { [weak self] result in
             guard let self else { return }
             // La recherche a pu être quittée ou relancée pendant la requête.
             guard let now = self.discoverySearch, now.term == current.term,

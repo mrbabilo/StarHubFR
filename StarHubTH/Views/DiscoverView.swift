@@ -17,14 +17,15 @@ struct DiscoverView: View {
             VStack(alignment: .leading, spacing: 16) {
                 searchField
                 if let error = vm.lastDiscoveryError { errorBanner(error) }
-                // Les deux filtres ne valent que pour les sections : pendant
-                // une recherche ils n'ont rien à filtrer, et un réglage sans
-                // effet visible se lit comme une panne.
-                if vm.discoverySearch == nil {
-                    HStack(spacing: 12) {
+                HStack(spacing: 12) {
+                    // « Masquer les installés » ne vaut que pour les sections :
+                    // une recherche par nom rend ce qu'on lui a demandé,
+                    // installé ou non. La catégorie, elle, s'applique aux deux
+                    // — et la recherche se refait quand elle change.
+                    if vm.discoverySearch == nil {
                         Toggle(vm.L(L10n.Discovery.hideInstalled), isOn: $hideInstalled)
-                        categoryPicker
                     }
+                    categoryPicker
                 }
                 if let search = vm.discoverySearch {
                     searchResults(search)
@@ -143,6 +144,16 @@ struct DiscoverView: View {
                 // — ne comparait rien à rien.
                 Text(String(format: vm.L(L10n.Discovery.shownOfLoaded), shown, loaded))
                     .font(.caption).foregroundStyle(.secondary)
+                // Dans l'en-tête, pas au bout de la bande : à la fin de vingt
+                // cartes qui défilent horizontalement, un bouton est un
+                // bouton que personne ne trouve.
+                if loaded < total {
+                    Button(vm.L(L10n.Discovery.loadMore)) {
+                        vm.loadMoreDiscovery(kind)
+                    }
+                    .buttonStyle(.link)
+                    .disabled(vm.discoveryLoading)
+                }
                 Button {
                     vm.loadDiscovery(force: true)
                 } label: {
@@ -164,20 +175,6 @@ struct DiscoverView: View {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 12) {
                             ForEach(rows) { card($0) }
-                            // La bande s'arrêtait à vingt mods sur des
-                            // sections qui en comptent des milliers : la
-                            // suite se demande ici, à la fin de la bande.
-                            if loaded < total {
-                                Button {
-                                    vm.loadMoreDiscovery(kind)
-                                } label: {
-                                    Label(vm.L(L10n.Discovery.loadMore),
-                                          systemImage: "ellipsis.circle")
-                                        .frame(width: 120, height: 120)
-                                }
-                                .buttonStyle(.plain)
-                                .disabled(vm.discoveryLoading)
-                            }
                         }
                     }
                 }

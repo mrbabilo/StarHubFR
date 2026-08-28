@@ -139,6 +139,7 @@ public enum NexusModSearch {
     public static let translationTag = "Translation"
 
     public static func queryBody(name: String, gameId: Int, tag: String? = nil,
+                                 category: String? = nil,
                                  count: Int = 30, offset: Int = 0) -> Data? {
         let term = searchTerm(for: name)
         guard !term.isEmpty else { return nil }
@@ -147,11 +148,19 @@ public enum NexusModSearch {
         // domaine du jeu à la place de son identifiant.
         let tagFilter = tag.map { _ in ", tag: { value: $tag, op: EQUALS }" } ?? ""
         let tagParam = tag.map { _ in ", $tag: String!" } ?? ""
+        // Restreindre à une catégorie se fait au serveur, comme pour les
+        // sections : le total annoncé et la tranche suivante doivent parler
+        // du même ensemble que les cartes affichées.
+        let catFilter = category.map { _ in
+            ", categoryName: { value: $category, op: EQUALS }"
+        } ?? ""
+        let catParam = category.map { _ in ", $category: String!" } ?? ""
         let query = """
-        query ModsByName($name: String!, $game: String!, $count: Int!, $offset: Int!\(tagParam)) {
+        query ModsByName($name: String!, $game: String!, $count: Int!, \
+        $offset: Int!\(tagParam)\(catParam)) {
           mods(
             filter: { name: { value: $name, op: WILDCARD },
-                      gameId: { value: $game, op: EQUALS }\(tagFilter) }
+                      gameId: { value: $game, op: EQUALS }\(tagFilter)\(catFilter) }
             sort: { updatedAt: { direction: DESC } }
             count: $count
             offset: $offset
@@ -165,6 +174,7 @@ public enum NexusModSearch {
         var variables: [String: Any] = ["name": term, "game": String(gameId),
                                         "count": count, "offset": offset]
         if let tag { variables["tag"] = tag }
+        if let category { variables["category"] = category }
         return try? JSONSerialization.data(withJSONObject: ["query": query,
                                                             "variables": variables])
     }

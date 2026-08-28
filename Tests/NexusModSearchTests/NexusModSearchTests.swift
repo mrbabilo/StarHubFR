@@ -4,8 +4,9 @@ import Foundation
 
 struct NexusModSearchTests {
     private func body(_ name: String, gameId: Int = 1303, tag: String? = nil,
-                      count: Int = 30) -> [String: Any] {
-        let data = NexusModSearch.queryBody(name: name, gameId: gameId, tag: tag, count: count)!
+                      category: String? = nil, count: Int = 30) -> [String: Any] {
+        let data = NexusModSearch.queryBody(name: name, gameId: gameId, tag: tag,
+                                            category: category, count: count)!
         return (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] ?? [:]
     }
 
@@ -794,5 +795,17 @@ struct NexusModSearchTests {
         #expect((listingBody(.endorsed)["variables"] as? [String: Any])?["offset"] as? Int == 0)
         let next = listingBody(.endorsed, offset: 40)
         #expect((next["variables"] as? [String: Any])?["offset"] as? Int == 40)
+    }
+
+    /// La recherche par nom se restreint aussi à une catégorie — au serveur,
+    /// pour que le total annoncé et la tranche suivante parlent du même
+    /// ensemble. Sans catégorie demandée, la requête n'en porte pas trace :
+    /// une recherche non filtrée rend tout ce qui porte le nom.
+    @Test func aNameSearchCanBeScopedToOneCategory() {
+        #expect(!((body("Portrait")["query"] as? String ?? "").contains("categoryName")))
+        let scoped = body("Portrait", category: "Portraits")
+        #expect((scoped["query"] as? String ?? "")
+                    .contains("categoryName: { value: $category, op: EQUALS }"))
+        #expect((scoped["variables"] as? [String: Any])?["category"] as? String == "Portraits")
     }
 }
