@@ -172,13 +172,20 @@ pour en tirer une règle.)*
 ## 6. Les commentaires du `config.json` ne portent rien
 
 Le plan C4 supposait qu'on pourrait **inférer** types et valeurs admises depuis les
-commentaires du `config.json`. Mesure : sur les **547 `config.json` du parc**,
-**4 seulement portent un commentaire**, et ce sont des titres de section
-(`//Config`, `//Locations`, `//Critters`) — aucun ne décrit une valeur admise ni
-une borne. **L'inférence par commentaires n'a pas de matière.**
+commentaires du `config.json`. Mesure définitive, commentaires détectés **hors
+chaîne** (un `//` dans une URL ne compte pas) : sur les **547 `config.json` voisins
+d'un `manifest.json`** — les vrais fichiers de configuration de mod — **zéro** porte
+un commentaire. **L'inférence par commentaires n'a aucune matière.**
 
-Conséquence de second ordre : préserver les commentaires à l'écriture reste une
-question de correction, mais elle porte sur 4 fichiers, pas sur le parc.
+*(Une recherche plus large trouve 569 fichiers nommés `config.json` dans l'arbre,
+dont 2 commentés — mais ces deux-là vivent dans un dossier `i18n/` : ce sont des
+fichiers de traduction qui partagent le nom, pas des configurations. Le premier
+relevé de la journée annonçait « 4 » parce qu'il comptait des `//` situés à
+l'intérieur de chaînes.)*
+
+Conséquence de second ordre : préserver les commentaires à l'écriture **ne protège
+rien** sur ce parc. Ce qui reste à protéger, c'est l'**ordre des clés** — et
+`ConfigJSONTree` sait déjà le faire (§7, #6).
 
 ❓ **Question ouverte, non tranchée** : SMAPI réécrit-il le `config.json` à chaque
 lancement (ce qui effacerait commentaires et ordre des clés de toute façon), ou

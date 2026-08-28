@@ -697,11 +697,11 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 > `ConfigValue` fait doublon avec **`ConfigJSONTree.Value`**, livré depuis par B3-T5 et
 > supérieur (ordre des clés retenu, littéral numérique gardé en `String`, tolérance
 > calquée sur Newtonsoft) — le reprendre créerait une quatrième copie divergente.
-> `ModConfigInferrer` n'a **pas de matière** : sur 547 `config.json`, **4 portent un
-> commentaire** et aucun ne décrit de borne ni de valeur admise. Ce que le plan a vu
-> juste en revanche : `ConfigJSONTree` **jette les commentaires** et son `write()`
-> reconstruit le fichier — d'où les `ValueSpan`. Mais cela ne concerne que ces 4
-> fichiers, donc correction, pas socle.
+> `ModConfigInferrer` n'a **aucune matière** : sur les 547 `config.json` voisins d'un
+> `manifest.json`, **zéro** porte un commentaire hors chaîne. Les `ValueSpan` que le
+> plan prévoyait pour préserver ces commentaires ne protègent donc rien ici ; ce qui
+> mérite d'être préservé, c'est l'**ordre des clés**, et `ConfigJSONTree` le fait déjà
+> — voir **C4-T5**.
 
 #### C5 — Hub de traduction agnostique de la langue
 
