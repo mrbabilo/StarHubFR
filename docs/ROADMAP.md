@@ -1503,7 +1503,7 @@ sans lire une ligne de log.
 
 ---
 
-### Découverte de nouveaux mods — **Axe G** · à faire
+### Découverte de nouveaux mods — **Axe G** · livré, publication en attente
 
 L'app sait tout faire **à partir d'un mod installé** — traductions (**A3-T3**),
 suppléments (**A3-T4**) — et rien **sans point de départ**. La vitrine
@@ -1530,6 +1530,16 @@ d'API. Spec : `docs/superpowers/specs/2026-08-27-decouverte-mods-design.md`
       appliqué à un mod non installé. API réservée **Premium** — 403 mesuré
       sur compte gratuit (**A3-T3**) ; site + `nxm://` reste la voie gratuite
       en toutes versions. · **M**
+
+**Livré au-delà des trois tâches** (2026-08-28, retours d'écran successifs) :
+filtre par **catégorie** appliqué au serveur — `categoryName` est un champ de
+`ModsFilter` que le relevé du spike avait manqué, et filtrer les 20 mods reçus
+n'aurait rien valu (50 mods de tendances = 15 catégories) ; **pagination**
+(`offset`, « voir plus » par paliers de 4, le réseau livrant par 20) ; vitrine
+**francophone** (une traduction n'y figure que taguée `French` — au prix
+mesuré de 3 traductions françaises sur 80 écartées à tort) ; et une **refonte
+UI** : barre d'outils unique, cartes en 16/9 pleine largeur, états dégradés
+porteurs de l'action qui les lève, fiche à bandeau et bande de chiffres.
 
 **Risques** : l'API GraphQL v2 n'est pas documentée (peut changer sans préavis
 → parsing tolérant, échec propre) ; les recommandations « selon mon parc »
@@ -1761,12 +1771,17 @@ traductions. Le tout est sorti en **v1.18.0**.
 d'entrée depuis l'onglet Traduction d'un mod — aujourd'hui la comparaison ne
 s'atteint que depuis la page des sauvegardes.
 
-**G — Découverte (2026-08-27).** Spec rédigé, puis relu sceptiquement et
-corrigé (deux erreurs de fait : « sixième onglet » alors que MainView en gère
-une dizaine ; « compatibilité SMAPI » affichable en vitrine alors qu'elle est
-keyée `UniqueID`, invisible avant installation). Rien d'engagé. À prendre
-après les restes de B et avant l'axe E : **G-T1** est court et dit vite si
-« Tendances » est faisable sur l'API réelle.
+**G — Découverte (2026-08-27 → 2026-08-28).** Spec rédigé puis relu
+sceptiquement (deux erreurs de fait corrigées), spike mené sans clé — l'API
+GraphQL v2 répond non authentifiée — puis les trois tâches livrées d'affilée.
+Ce que le spike a coûté de ne pas avoir vu : son relevé de `ModsFilter` ne
+listait que 4 champs sur 27, et il a fallu réinterroger l'introspection le
+lendemain pour trouver `categoryName`. **Réinterroger `__type` en entier avant
+de conclure qu'un filtre n'existe pas** — en curl, jamais en python
+(Cloudflare, code 1010). Reste ouvert : les vignettes en cache d'une version
+antérieure ne portent pas `categoryId` (pastille absente jusqu'au premier
+rafraîchissement), et `languageName` existe au filtre — piste pour la sélection
+FR sans passer par le tag.
 
 ---
 
