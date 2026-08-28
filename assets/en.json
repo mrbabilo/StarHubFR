@@ -685,6 +685,7 @@
   "mod_install_existing_version": "Installed: v%@",
   "mod_install_new_version": "New: v%@",
   "mod_install_backup_overwrite": "Back up existing, then overwrite",
+  "mod_install_update_caution_title": "Read before updating",
   "mod_install_rename": "Install alongside as a new folder",
   "mod_install_skip": "Skip this mod",
   "mod_install_manage_backups": "Mod Backups",

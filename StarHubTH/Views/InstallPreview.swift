@@ -69,6 +69,12 @@ struct InstallPreview: View {
             // it scrolls internally instead of growing the sheet unboundedly.
             ScrollView {
                 VStack(spacing: 12) {
+                    // B2-T7 — le manifest de la nouvelle version peut annoncer
+                    // ce que la mise à jour casse : à lire avant « Installer ».
+                    if !updateCautions.isEmpty {
+                        updateCautionsSection
+                    }
+
                     ForEach(zipModInfo.detectedMods) { mod in
                         DetectedModRow(
                             mod: mod,
@@ -255,6 +261,43 @@ struct InstallPreview: View {
                 }
             }
         }
+    }
+
+    /// B2-T7 — messages de prudence portés par les manifests de l'archive pour
+    /// des mods **déjà installés** qu'elle remplace (extension Stardrop
+    /// `UpdateCautionMessage`, ignorée par SMAPI). Aucun mod du parc de
+    /// référence ne l'expose : la bannière ne vivra que par un mod à venir.
+    private var updateCautions: [UpdateCaution.Warning] {
+        UpdateCaution.warnings(in: zipModInfo.detectedMods,
+                               installedUniqueIds: Set(vm.mods.map(\.uniqueId)))
+    }
+
+    private var updateCautionsSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label(vm.L(L10n.ModInstall.updateCautionTitle),
+                  systemImage: "exclamation.triangle.fill")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(.orange)
+
+            VStack(alignment: .leading, spacing: 6) {
+                ForEach(updateCautions, id: \.self) { caution in
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(caution.modName)
+                            .font(.system(size: 12, weight: .semibold))
+                        // Le message de l'auteur, souvent long : entier, jamais
+                        // tronqué — c'est la seule chose qui explique l'alerte.
+                        Text(caution.message)
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.orange.opacity(0.12))
+        .cornerRadius(8)
     }
 
     private var actionButtons: some View {

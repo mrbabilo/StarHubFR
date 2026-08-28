@@ -10,6 +10,10 @@ struct ModManifest {
     let nexusModId: String
     let nexusUrl: String
     let dependencies: [ModDependency]
+    /// `UpdateCautionMessage` — extension **Stardrop** du manifest, ignorée par
+    /// SMAPI : l'auteur y annonce, dans la version qu'il publie, ce que la mise
+    /// à jour casse. `nil` quand le champ est absent ou vide : rien à annoncer.
+    let updateCautionMessage: String?
 
     /// Parses the first valid Nexus mod id from a manifest's `UpdateKeys`
     /// array. Centralized here (and exposed publicly) so every call site
@@ -129,6 +133,15 @@ struct ModManifest {
 
         self.description = dict.caseInsensitiveValue(forKey: "Description") as? String ?? ""
 
+        // Trim et vide → nil : un message d'espaces n'alerte pas plus qu'un
+        // champ absent (Stardrop : `IsNullOrEmpty`).
+        if let caution = dict.caseInsensitiveValue(forKey: "UpdateCautionMessage") as? String,
+           !caution.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            self.updateCautionMessage = caution
+        } else {
+            self.updateCautionMessage = nil
+        }
+
         // Parse Nexus mod id from UpdateKeys via the shared helper so the
         // scanning logic stays in one place (also used by
         // `StarHubTHViewModel.parseModFolder`).
@@ -237,6 +250,35 @@ struct DetectedMod: Identifiable {
     var nexusModId: String { manifest.nexusModId }
     var nexusUrl: String { manifest.nexusUrl }
     var modDescription: String { manifest.description }
+}
+
+/// B2-T7 — les messages de prudence qu'une archive porte pour les mods
+/// **déjà installés** qu'elle remplace.
+///
+/// `UpdateCautionMessage` est une extension Stardrop du manifest (SMAPI
+/// l'ignore) : l'auteur l'écrit dans la version publiée, et elle ne concerne
+/// que la mise à jour d'un mod déjà présent. Un mod nouveau, même bavard,
+/// n'alerte pas — il ne remplace rien.
+enum UpdateCaution {
+    struct Warning: Hashable {
+        let modName: String
+        let message: String
+    }
+
+    /// Filtre les mods détectés d'une archive sur ceux qui portent un message
+    /// **et** dont l'identité est déjà installée (comparaison sans casse, comme
+    /// Stardrop : un auteur peut changer la casse de son `UniqueID` entre deux
+    /// versions). L'ordre de l'archive est conservé.
+    static func warnings(in mods: [DetectedMod],
+                         installedUniqueIds: Set<String>) -> [Warning] {
+        var installed: Set<String> = []
+        for id in installedUniqueIds { installed.insert(id.lowercased()) }
+        return mods.compactMap { mod in
+            guard let caution = mod.manifest.updateCautionMessage,
+                  installed.contains(mod.manifest.uniqueId.lowercased()) else { return nil }
+            return Warning(modName: mod.manifest.name, message: caution)
+        }
+    }
 }
 
 /// Information extracted from a zip file before installation

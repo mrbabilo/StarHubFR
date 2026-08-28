@@ -1101,6 +1101,7 @@ enum L10n {
         static let existingVersion      = "mod_install_existing_version"
         static let newVersion           = "mod_install_new_version"
         static let backupBeforeOverwrite = "mod_install_backup_overwrite"
+        static let updateCautionTitle    = "mod_install_update_caution_title"
         static let renameMod            = "mod_install_rename"
         static let skipMod              = "mod_install_skip"
         static let manageBackups        = "mod_install_manage_backups"

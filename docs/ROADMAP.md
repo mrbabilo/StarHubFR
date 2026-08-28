@@ -1274,7 +1274,7 @@ pouvoir revenir en arrière à tout moment.
       — 12,71 Go sur le parc réel, lus directement dans la barre d'outils — et une pastille
       de plus alourdirait une barre qui en porte déjà cinq. Ne pas le rebâtir sans un
       besoin qui ne se satisfasse pas du couple existant.* · **S**
-- [ ] **B2-T8** — Cesser d'émettre quand le quota est à zéro. `NexusRateLimitGate` replafonne
+- [x] **B2-T8** — Cesser d'émettre quand le quota est à zéro. `NexusRateLimitGate` replafonne
       son back-off à 15 min (`maxBackoff`) : sur un quota journalier épuisé, l'app retente
       donc une requête tous les quarts d'heure pour rien, jusqu'à la remise à zéro. Depuis
       B2-T6 l'instant exact de remise à zéro est connu — la porte peut s'y aligner au lieu
@@ -1285,13 +1285,30 @@ pouvoir revenir en arrière à tout moment.
       2 000 fiches de mods ouvertes en une heure. Le correctif garde son sens, son urgence
       non. Au passage : ce compte est **non premium** et annonce pourtant 20 000/jour —
       le plafond ne dit rien du type de compte.*
-- [ ] **B2-T7** — `UpdateCautionMessage` : si un manifest installé expose ce champ
+      ▸ **Livré le 2026-08-28** : `NexusRateLimitGate.note(retryAfter:quota:)` — une fenêtre
+      mesurée à zéro **avec** sa remise à zéro arme la porte jusqu'à cette échéance, plafond
+      dérogé (c'est lui qui faisait réessayer pour rien) ; sans échéance, ou avec du quota
+      restant, le comportement ne change pas. `noteQuota` rend désormais la mesure, et les
+      deux sites 429 (`noteRateLimitIfThrottled`, `fetchModInfo`) la passent à la porte.
+      6 tests.*
+- [x] **B2-T7** — `UpdateCautionMessage` : si un manifest installé expose ce champ
       (extension SMAPI tolérée, absente = pas d'alerte), alerter l'utilisateur **avant**
       d'écraser la version existante (breaking change annoncé par l'auteur). · **S** ·
       *§audit-stardrop*
       *Mesuré le 2026-08-25 : **0 mod sur 863** expose ce champ dans le parc de référence.
       La fonctionnalité ne montrerait rien aujourd'hui ; elle ne vaudra que pour un mod
       installé plus tard qui l'annonce. À garder, pas à prioriser.*
+      ▸ **Livré le 2026-08-28 — et la sémantique ci-dessus était inversée.** Le champ n'est
+      pas une extension SMAPI (0 résultat dans les sources `Pathoschild/SMAPI`) mais une
+      extension **Stardrop**, et il vit dans le manifest de **l'archive** — de la version
+      publiée — pas dans celui du mod installé : c'est l'auteur de la *nouvelle* version qui
+      annonce la casse. Vérifié dans les sources (`Floogen/Stardrop`, `MainWindow.axaml.cs`
+      ≈ l. 2907 : manifests de l'archive filtrés sur `HasModInstalled(UniqueID)`, comparaison
+      `OrdinalIgnoreCase`). Livraison : `ModManifest.updateCautionMessage` (lu sans casse,
+      blanc → rien), `UpdateCaution.warnings` dans `ZipModInfo.swift` (9 tests, Core), et une
+      **bannière orange en tête de la préview d'installation** — bannière, pas dialogue :
+      la préview demande déjà confirmation, un second blocage ne ferait que répéter la
+      question. La mesure tient : la bannière ne vivra que par un mod à venir.*
 - [x] **B1-T4** — **Réunir les problèmes dans l'onglet qui porte ce nom.** *Livré le
       2026-08-25, à sa demande. Le cadrage « Problèmes » ne connaissait qu'une chose —
       un mod **actif** dont une dépendance requise manque ou dort — quand la pastille

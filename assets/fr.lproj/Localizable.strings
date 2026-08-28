@@ -685,6 +685,7 @@
 "mod_install_existing_version" = "Installée : v%@";
 "mod_install_new_version" = "Nouvelle : v%@";
 "mod_install_backup_overwrite" = "Sauvegarder l'existant, puis écraser";
+"mod_install_update_caution_title" = "À lire avant la mise à jour";
 "mod_install_rename" = "Installer à côté dans un nouveau dossier";
 "mod_install_skip" = "Ignorer ce mod";
 "mod_install_manage_backups" = "Sauvegardes des mods";
