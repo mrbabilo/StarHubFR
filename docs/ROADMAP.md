@@ -1520,7 +1520,7 @@ d'API. Spec : `docs/superpowers/specs/2026-08-27-decouverte-mods-design.md`
       à la main comme le 2026-08-25. Passe par l'utilisateur — la clé du
       Trousseau est inaccessible aux agents. Repli si tri/filtre infaisable :
       v1 = recherche + croisement parc, tendances reportées. · **S**
-- [ ] **G-T2** — Onglet « Découvrir » : trois sections (une requête chacune,
+- [x] **G-T2** — Onglet « Découvrir » : trois sections (une requête chacune,
       cache 24 h, rafraîchissement manuel seul), recherche par nom en vitrine,
       badge « installé » + filtre « masquer installés » **avec compte affiché**
       (sur 966 mods installés, les tendances seront largement filtrées — le
