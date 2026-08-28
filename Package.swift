@@ -131,6 +131,7 @@ let package = Package(
                 "Models/ConfigJSONMerge.swift",
                 "Models/ConfigJSONDiff.swift",
                 "Models/ContentPackConfigSchema.swift",
+                "Models/ConfigEditorModel.swift",
                 "Extensions/ModConfigFiles.swift",
             ]
         ),
@@ -483,6 +484,11 @@ let package = Package(
             name: "ConfigJSONDiffTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ConfigJSONDiffTests"
+        ),
+        .testTarget(
+            name: "ConfigEditorModelTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ConfigEditorModelTests"
         ),
         .testTarget(
             name: "ContentPackConfigSchemaTests",

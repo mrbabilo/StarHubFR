@@ -104,10 +104,16 @@ public class ModConfigBackupManager {
     /// Backs up every enabled mod's config files (including enabled children
     /// of group packs) into a new timestamped folder, and records it in the
     /// index.
-    public func createBackup(gameDir: String, mods: [ModItem]) throws -> ModConfigBackup {
+    ///
+    /// `onlyEnabled: false` prend le mod **tel qu'il est**, en pause comprise :
+    /// c'est ce dont l'éditeur de config a besoin avant d'écrire (C4-T5), où
+    /// **379 des 462 mods à `config.json` du parc de référence sont en pause**.
+    /// La voie par défaut ne bouge pas — une sauvegarde générale reste celle
+    /// des mods actifs.
+    public func createBackup(gameDir: String, mods: [ModItem], onlyEnabled: Bool = true) throws -> ModConfigBackup {
         guard !gameDir.isEmpty else { throw BackupError.gameDirEmpty }
-        let enabledMods = mods.filter { $0.isEnabled }
-        guard !enabledMods.isEmpty else { throw BackupError.noEnabledMods }
+        let selectedMods = onlyEnabled ? mods.filter { $0.isEnabled } : mods
+        guard !selectedMods.isEmpty else { throw BackupError.noEnabledMods }
 
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
         let timestamp = Date()
@@ -118,8 +124,8 @@ public class ModConfigBackupManager {
         var items: [ModConfigBackupItem] = []
         var totalSize = 0
 
-        for mod in enabledMods {
-            for (leaf, parentFolderName) in Self.leafMods(of: mod) {
+        for mod in selectedMods {
+            for (leaf, parentFolderName) in Self.leafMods(of: mod, onlyEnabled: onlyEnabled) {
                 // `leaf.folderName` is already the full path relative to
                 // `Mods/` (e.g. "GroupFolder/ChildFolder" for a group's
                 // child, or "PackFolder/ModX" for a standalone mod nested in
@@ -127,7 +133,12 @@ public class ModConfigBackupManager {
                 // It's used as-is below (never reduced to its last path
                 // component) so the backup/restore folder mirrors the real
                 // on-disk location instead of a flattened one.
-                let leafPath = (modsPath as NSString).appendingPathComponent(leaf.folderName)
+                // Le **chemin** passe par `physicalFolderName` (un mod en
+                // pause porte un point) alors que la **clé** enregistrée reste
+                // `folderName`, la forme logique que profils et restaurations
+                // emploient. Pour un mod actif les deux coïncident : rien ne
+                // change pour la sauvegarde générale.
+                let leafPath = (modsPath as NSString).appendingPathComponent(leaf.physicalFolderName)
                 let found = ModConfigFiles.preservableFiles(under: leafPath)
                 guard !found.isEmpty else { continue }
 
@@ -192,9 +203,10 @@ public class ModConfigBackupManager {
     /// the group's folder name as `parentFolderName`. The group header
     /// itself has no files of its own (see `scanFolderForMods`) and is
     /// never scanned directly.
-    private static func leafMods(of mod: ModItem) -> [(leaf: ModItem, parentFolderName: String?)] {
+    private static func leafMods(of mod: ModItem, onlyEnabled: Bool = true) -> [(leaf: ModItem, parentFolderName: String?)] {
         if mod.isGroup, let children = mod.children {
-            return children.filter { $0.isEnabled }.map { ($0, mod.folderName) }
+            let selected = onlyEnabled ? children.filter { $0.isEnabled } : children
+            return selected.map { ($0, mod.folderName) }
         }
         return [(mod, nil)]
     }
@@ -295,6 +307,34 @@ public class ModConfigBackupManager {
         if fm.fileExists(atPath: dir.path) {
             try fm.removeItem(at: dir)
         }
+    }
+
+    // MARK: - Relecture d'un fichier sauvegardé
+
+    /// La copie la plus récente d'un fichier de config, sans passer par une
+    /// restauration.
+    ///
+    /// Ce que l'éditeur de config en fait : proposer un retour arrière en
+    /// **chargeant** le fichier dans l'écran, l'utilisateur gardant la main
+    /// sur l'écriture. C'est ce qui remplace le `config.json.bak` qu'il
+    /// déposait à côté du fichier — invisible depuis l'écran des sauvegardes,
+    /// et emporté par la prochaine sauvegarde générale.
+    ///
+    /// Une entrée d'index dont le fichier n'est plus sur le disque est
+    /// **sautée**, pas rendue : le dossier de sauvegardes se supprime à la
+    /// main, et un chemin mort ferait annoncer une restauration qui n'a pas eu
+    /// lieu.
+    public func mostRecentBackedUpFile(named relativePath: String,
+                                       forMod modFolderName: String) -> (backup: ModConfigBackup, url: URL)? {
+        for backup in loadBackups() {
+            guard let item = backup.items.first(where: { $0.modFolderName == modFolderName }),
+                  item.files.contains(relativePath) else { continue }
+            let url = destinationDir(in: backupDirURL(named: backup.folderName),
+                                     leafFolderName: item.modFolderName)
+                .appendingPathComponent(relativePath)
+            if fm.fileExists(atPath: url.path) { return (backup, url) }
+        }
+        return nil
     }
 
     // MARK: - Cleanup

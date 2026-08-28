@@ -434,4 +434,91 @@ struct TestEnvironment {
 
         #expect(loaded.map(\.folderName) == ["newest", "middle", "oldest"])
     }
+
+    // MARK: - Le filet de l'éditeur de config (C4-T5)
+
+    @Test func createBackupCanIncludeAPausedMod() throws {
+        // L'éditeur de config s'ouvre aussi sur un mod en pause — et c'est le
+        // cas majoritaire : sur le parc de référence, **379 des 462 mods
+        // portant un `config.json` de premier niveau sont en pause**. Sans
+        // cette voie, sauvegarder depuis l'éditeur lèverait `noEnabledMods`
+        // huit fois sur dix et laisserait la modification sans filet.
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        // Sur le disque, un mod en pause porte un point : `.PausedMod`.
+        let modDir = env.modsDir.appendingPathComponent(".PausedMod", isDirectory: true)
+        try writeTestFile(in: modDir, filename: "config.json", content: "{\"volume\": 5}")
+
+        let mod = makeTestMod(folderName: "PausedMod", isEnabled: false)
+        let backup = try env.manager.createBackup(gameDir: env.gameDir, mods: [mod], onlyEnabled: false)
+
+        #expect(backup.items.count == 1)
+        // La clé reste **logique** (sans point) : c'est celle des profils, du
+        // registre et des restaurations.
+        #expect(backup.items[0].modFolderName == "PausedMod")
+        #expect(backup.items[0].files == ["config.json"])
+    }
+
+    @Test func createBackupStillIgnoresPausedModsByDefault() {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let mod = makeTestMod(folderName: "PausedMod", isEnabled: false)
+        #expect(throws: ModConfigBackupManager.BackupError.self) {
+            _ = try env.manager.createBackup(gameDir: env.gameDir, mods: [mod])
+        }
+    }
+
+    @Test func mostRecentBackedUpFileReturnsTheLatestCopy() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let modDir = env.modsDir.appendingPathComponent("StandaloneMod", isDirectory: true)
+        let mod = makeTestMod(folderName: "StandaloneMod")
+
+        try writeTestFile(in: modDir, filename: "config.json", content: "{\"volume\": 1}")
+        _ = try env.manager.createBackup(gameDir: env.gameDir, mods: [mod])
+        try writeTestFile(in: modDir, filename: "config.json", content: "{\"volume\": 2}")
+        _ = try env.manager.createBackup(gameDir: env.gameDir, mods: [mod])
+
+        let found = env.manager.mostRecentBackedUpFile(named: "config.json", forMod: "StandaloneMod")
+        #expect(found != nil)
+        let text = try String(contentsOf: #require(found).url, encoding: .utf8)
+        #expect(text == "{\"volume\": 2}")
+    }
+
+    @Test func mostRecentBackedUpFileIgnoresAModThatWasNeverBackedUp() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let modDir = env.modsDir.appendingPathComponent("StandaloneMod", isDirectory: true)
+        try writeTestFile(in: modDir, filename: "config.json")
+        _ = try env.manager.createBackup(gameDir: env.gameDir, mods: [makeTestMod(folderName: "StandaloneMod")])
+
+        #expect(env.manager.mostRecentBackedUpFile(named: "config.json", forMod: "OtherMod") == nil)
+        #expect(env.manager.mostRecentBackedUpFile(named: "fr.json", forMod: "StandaloneMod") == nil)
+    }
+
+    @Test func mostRecentBackedUpFileSkipsAnEntryWhoseFileIsGone() throws {
+        // L'index survit à une suppression manuelle du dossier de
+        // sauvegardes : rendre un chemin qui n'existe plus ferait afficher
+        // « restauré » sans rien restaurer.
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let modDir = env.modsDir.appendingPathComponent("StandaloneMod", isDirectory: true)
+        let mod = makeTestMod(folderName: "StandaloneMod")
+        try writeTestFile(in: modDir, filename: "config.json", content: "{\"volume\": 1}")
+        _ = try env.manager.createBackup(gameDir: env.gameDir, mods: [mod])
+        try writeTestFile(in: modDir, filename: "config.json", content: "{\"volume\": 2}")
+        let newest = try env.manager.createBackup(gameDir: env.gameDir, mods: [mod])
+
+        try FileManager.default.removeItem(at: #require(env.manager.mostRecentBackedUpFile(named: "config.json", forMod: "StandaloneMod")).url)
+
+        let found = env.manager.mostRecentBackedUpFile(named: "config.json", forMod: "StandaloneMod")
+        #expect(found?.backup.folderName != newest.folderName)
+        let text = try String(contentsOf: #require(found).url, encoding: .utf8)
+        #expect(text == "{\"volume\": 1}")
+    }
 }
