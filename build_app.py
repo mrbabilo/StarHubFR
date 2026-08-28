@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 import os
 import platform
 import shutil
@@ -45,6 +46,19 @@ def generate_localizable_strings() -> None:
             if extra:
                 print(f"[ERROR] {locale}.json has extra keys: {', '.join(extra)}")
             raise SystemExit(1)
+
+    # Toute constante de `L10n.swift` doit exister dans les assets. La parité
+    # ci-dessus ne dit rien de ce cas : une clé déclarée en Swift mais absente
+    # des JSON compile, se copie dans le bundle, et **s'affiche telle quelle à
+    # l'écran** — `localizedString(for:)` rend la clé quand la table ne la
+    # porte pas. C'est un défaut que seul un œil sur l'écran attrapait.
+    declared = re.findall(r'static let \w+\s*=\s*"([^"]+)"',
+                          open(os.path.join("StarHubTH", "L10n.swift"), "r", encoding="utf-8").read())
+    undeclared = sorted({key for key in declared if key not in reference_keys})
+    if undeclared:
+        print(f"[ERROR] L10n.swift declares keys absent from assets/{reference_locale}.json: "
+              f"{', '.join(undeclared)}")
+        raise SystemExit(1)
 
     for locale, values in locale_data.items():
         lproj_dir = os.path.join("assets", f"{locale}.lproj")

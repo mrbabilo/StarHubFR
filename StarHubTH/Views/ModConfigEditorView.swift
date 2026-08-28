@@ -117,7 +117,11 @@ struct ModConfigEditorView: View {
                                 // remplacent l'imbrication du JSON, qu'un
                                 // content pack n'a de toute façon pas (0 clé
                                 // imbriquée sur les 3900 décrites du parc).
-                                ForEach(Array(filtered.enumerated()), id: \.offset) { _, group in
+                                // Identité par section, jamais par rang : la
+                                // recherche fait varier le nombre de groupes,
+                                // et un rang réutiliserait la vue d'une
+                                // section pour une autre.
+                                ForEach(filtered, id: \.section) { group in
                                     StandardSection(title: sectionTitle(of: group, among: filtered)) {
                                         rowList(group.rows)
                                     }
