@@ -1,19 +1,17 @@
 import SwiftUI
 
+/// Une option du `config.json` telle que l'écran la manipule.
+///
+/// L'identité est le **chemin**, pas un `UUID` tiré à chaque analyse : le
+/// texte est ré-analysé à chaque frappe dans l'onglet JSON, et une identité
+/// neuve à chaque tour ferait remonter toutes les vues — le champ en cours
+/// d'édition perdrait le focus.
 struct ConfigItem: Identifiable {
-    let id = UUID()
     let keyPath: [String]
+    var control: ConfigEditorModel.Control
+
+    var id: String { keyPath.joined(separator: "\u{1}") }
     var key: String { keyPath.joined(separator: " > ") }
-    var boolValue: Bool = false
-    var stringValue: String = ""
-    var numberValue: Double = 0
-    var isInt: Bool = false
-    
-    enum ItemType {
-        case boolean, string, number, other
-    }
-    var type: ItemType
-    var originalValue: Any? // Keep nested arrays/objects unmodified
 }
 
 class ConfigTreeNode: Identifiable {
@@ -67,7 +65,7 @@ struct ModConfigEditorView: View {
                 let isLast = index == item.keyPath.count - 1
                 
                 if isLast {
-                    let leaf = ConfigTreeNode(id: item.id.uuidString, title: segment, item: item)
+                    let leaf = ConfigTreeNode(id: item.id, title: segment, item: item)
                     currentNode.children.append(leaf)
                 } else {
                     if let existing = currentNode.children.first(where: { $0.title == segment }) {
@@ -237,134 +235,72 @@ struct ModConfigEditorView: View {
             isInvalidJson = true
             return
         }
-        if let data = text.data(using: .utf8) {
-            do {
-                _ = try JSONSerialization.jsonObject(with: data, options: [])
-                isInvalidJson = false
-            } catch {
-                isInvalidJson = true
-            }
+        // `ConfigJSONTree` plutôt que `JSONSerialization` : c'est la
+        // tolérance de Newtonsoft, donc celle de SMAPI — commentaires et
+        // virgules traînantes comprises. L'écran refusait des fichiers que le
+        // jeu charge sans broncher.
+        isInvalidJson = ConfigJSONTree.parse(text) == nil
+    }
+    
+    /// Les options, **dans l'ordre où l'auteur les a écrites**.
+    ///
+    /// C'est le tri alphabétique qui partait ici : sur le parc de référence,
+    /// **363 des 462 `config.json` de premier niveau** ont un ordre d'auteur
+    /// différent de l'ordre alphabétique, et celui-ci sépare des réglages qui
+    /// vont ensemble (`BigSilo_BuildCost` atterrissait à côté de `BigSilo`,
+    /// très loin de la section où l'auteur l'avait rangé).
+    private func parseToVisual() {
+        guard let tree = ConfigJSONTree.parse(configText) else { return }
+        configItems = ConfigEditorModel.leaves(of: tree).compactMap { leaf in
+            ConfigEditorModel.control(for: leaf.value)
+                .map { ConfigItem(keyPath: leaf.keyPath, control: $0) }
         }
     }
     
-    private func parseToVisual() {
-        guard let data = configText.data(using: .utf8),
-              let json = try? JSONSerialization.jsonObject(with: data, options: []) else {
+    /// Réécrit **la seule valeur touchée** dans le texte.
+    ///
+    /// L'ancienne version reconstruisait tout le fichier à chaque clic, par
+    /// `JSONSerialization` : l'ordre des clés devenait celui d'un
+    /// dictionnaire, et chaque nombre repassait par un `Double` (`1.50`
+    /// ressortait `1.5`, un entier hors plage piégeait). Ici, ce que
+    /// l'utilisateur n'a pas ouvert garde le littéral exact de son fichier.
+    ///
+    /// Le fichier est reformaté par `ConfigJSONTree.write` — indentation à
+    /// deux espaces, commentaires perdus s'il y en avait. Aucun `config.json`
+    /// de premier niveau du parc n'en porte, et ce n'est de toute façon vrai
+    /// qu'à partir de la première modification.
+    /// L'état courant de l'option, retrouvé par son chemin.
+    private func current(_ item: ConfigItem) -> ConfigEditorModel.Control {
+        configItems.first(where: { $0.id == item.id })?.control ?? item.control
+    }
+
+    private func update(_ item: ConfigItem, to control: ConfigEditorModel.Control) {
+        guard let index = configItems.firstIndex(where: { $0.id == item.id }) else { return }
+        configItems[index].control = control
+        applyEdit(configItems[index])
+    }
+
+    private func applyEdit(_ item: ConfigItem) {
+        guard let current = ConfigJSONTree.parse(configText) else { return }
+        guard let value = ConfigEditorModel.value(of: item.control),
+              let updated = ConfigEditorModel.apply(value, at: item.keyPath, to: current),
+              let text = ConfigJSONTree.write(updated) else {
+            // Une valeur qui ne s'écrit pas (nombre non fini, chemin qui ne
+            // retombe plus sur l'arbre) laisserait sinon le contrôle bouger à
+            // l'écran sans que rien ne change dans le fichier.
+            vm.log(String(format: vm.L(L10n.Settings.configEditNotApplied), item.key), level: .warning)
             return
         }
-        
-        var newItems: [ConfigItem] = []
-        
-        func extractItems(from value: Any, parentPath: [String]) {
-            if let dict = value as? [String: Any] {
-                for key in dict.keys.sorted() {
-                    if let val = dict[key] {
-                        extractItems(from: val, parentPath: parentPath + [key])
-                    }
-                }
-            } else if let arr = value as? [Any] {
-                for (index, elem) in arr.enumerated() {
-                    extractItems(from: elem, parentPath: parentPath + ["[\(index)]"])
-                }
-            } else if let num = value as? NSNumber {
-                if CFGetTypeID(num) == CFBooleanGetTypeID() {
-                    newItems.append(ConfigItem(keyPath: parentPath, boolValue: num.boolValue, type: .boolean, originalValue: value))
-                } else {
-                    let isInt = CFNumberIsFloatType(num) == false
-                    newItems.append(ConfigItem(keyPath: parentPath, numberValue: num.doubleValue, isInt: isInt, type: .number, originalValue: value))
-                }
-            } else if let s = value as? String {
-                if s.lowercased() == "true" {
-                    newItems.append(ConfigItem(keyPath: parentPath, boolValue: true, stringValue: "true_as_string", type: .boolean, originalValue: value))
-                } else if s.lowercased() == "false" {
-                    newItems.append(ConfigItem(keyPath: parentPath, boolValue: false, stringValue: "false_as_string", type: .boolean, originalValue: value))
-                } else {
-                    // Les vraies chaînes (noms, chemins…) étaient ignorées : le
-                    // case .string était mort. Désormais modélisées et éditables.
-                    newItems.append(ConfigItem(keyPath: parentPath, stringValue: s, type: .string, originalValue: value))
-                }
-            }
-        }
-        
-        extractItems(from: json, parentPath: [])
-        configItems = newItems
+        // Rien n'a bougé dans l'arbre : ne pas réécrire le texte, sinon un
+        // simple aller-retour reformaterait le fichier et activerait
+        // « Enregistrer » pour rien.
+        guard updated != current else { return }
+        configText = text
     }
-    
-    private func syncToText() {
-        guard let data = configText.data(using: .utf8),
-              var json = try? JSONSerialization.jsonObject(with: data, options: []) else { return }
-        
-        func setValue(in container: inout Any, path: [String], value: Any) {
-            guard let first = path.first else { return }
-            
-            if path.count == 1 {
-                if first.hasPrefix("[") && first.hasSuffix("]"),
-                   let idxStr = String(first.dropFirst().dropLast()) as String?,
-                   let idx = Int(idxStr), var arr = container as? [Any], idx < arr.count {
-                    arr[idx] = value
-                    container = arr
-                } else if var dict = container as? [String: Any] {
-                    dict[first] = value
-                    container = dict
-                }
-            } else {
-                let remaining = Array(path.dropFirst())
-                if first.hasPrefix("[") && first.hasSuffix("]"),
-                   let idxStr = String(first.dropFirst().dropLast()) as String?,
-                   let idx = Int(idxStr), var arr = container as? [Any], idx < arr.count {
-                    var child = arr[idx]
-                    setValue(in: &child, path: remaining, value: value)
-                    arr[idx] = child
-                    container = arr
-                } else if var dict = container as? [String: Any] {
-                    var child = dict[first] ?? [String: Any]()
-                    setValue(in: &child, path: remaining, value: value)
-                    dict[first] = child
-                    container = dict
-                }
-            }
-        }
-        
-        for item in configItems {
-            let valToSet: Any
-            switch item.type {
-            case .boolean:
-                if item.stringValue == "true_as_string" || item.stringValue == "false_as_string" {
-                    valToSet = item.boolValue ? "true" : "false"
-                } else {
-                    valToSet = item.boolValue
-                }
-            case .number:
-                valToSet = item.isInt ? Int(item.numberValue) : item.numberValue
-            case .string:
-                valToSet = item.stringValue
-            case .other:
-                // Type non reconnu : ne pas réécrire, on risquerait de corrompre
-                // la valeur d'origine qu'on ne sait pas interpréter.
-                continue
-            }
-            setValue(in: &json, path: item.keyPath, value: valToSet)
-        }
-        
-        if let newJsonData = try? JSONSerialization.data(withJSONObject: json, options: [.prettyPrinted]),
-           let str = String(data: newJsonData, encoding: .utf8) {
-            let cleanedCurrent = configText.replacingOccurrences(of: " ", with: "").replacingOccurrences(of: "\n", with: "")
-            let cleanedNew = str.replacingOccurrences(of: " ", with: "").replacingOccurrences(of: "\n", with: "")
-            if cleanedCurrent != cleanedNew {
-                configText = str.replacingOccurrences(of: "\\/", with: "/")
-            }
-        }
-    }
-    
+
     private func saveConfig() -> Bool {
         do {
-            let backupPath = configPath + ".bak"
-            if FileManager.default.fileExists(atPath: configPath) {
-                if FileManager.default.fileExists(atPath: backupPath) {
-                    try FileManager.default.removeItem(atPath: backupPath)
-                }
-                try FileManager.default.copyItem(atPath: configPath, toPath: backupPath)
-            }
+            backUpCurrentConfig()
             try configText.write(toFile: configPath, atomically: true, encoding: .utf8)
             originalText = configText
             vm.showModal(message: vm.L(L10n.Settings.configSaved))
@@ -375,16 +311,61 @@ struct ModConfigEditorView: View {
         }
     }
     
+    /// Met la version actuelle à l'abri **avant** de l'écraser.
+    ///
+    /// Passe par `ModConfigBackupManager` au lieu du `config.json.bak` qui
+    /// était déposé dans le dossier du mod : la sauvegarde devient visible
+    /// depuis l'écran des sauvegardes, datée, et ne survit plus seule à côté
+    /// du fichier qu'elle double.
+    ///
+    /// `onlyEnabled: false` parce que l'éditeur s'ouvre aussi sur un mod en
+    /// pause — **379 des 462 mods à `config.json` du parc de référence**.
+    ///
+    /// Un échec n'empêche pas d'enregistrer : bloquer l'édition d'un fichier
+    /// parce que son filet a raté serait un blocage dur pour une raison molle.
+    /// Il est journalisé, pas avalé.
+    private func backUpCurrentConfig() {
+        guard FileManager.default.fileExists(atPath: configPath) else { return }
+        do {
+            _ = try ModConfigBackupManager.shared.createBackup(gameDir: vm.gameDir,
+                                                              mods: [mod],
+                                                              onlyEnabled: false)
+            _ = ModConfigBackupManager.shared.cleanupOldBackups()
+        } catch {
+            vm.log(String(format: vm.L(L10n.Settings.configBackupFailed),
+                          mod.name, error.localizedDescription), level: .warning)
+        }
+    }
+
+    /// Recharge une version sauvegardée **dans l'écran**, sans l'écrire.
+    ///
+    /// L'utilisateur voit ce qu'il s'apprête à remettre et garde la main :
+    /// c'est « Enregistrer » qui écrit, et qui met au passage la version
+    /// actuelle à l'abri. La version précédente écrasait le fichier sur-le-champ.
+    private func loadIntoEditor(_ content: String) {
+        configText = content
+        validateJson(configText)
+        parseToVisual()
+    }
+
     private func restoreConfigBackup() {
+        // 1. La sauvegarde la plus récente qui contient ce `config.json`.
+        if let found = ModConfigBackupManager.shared.mostRecentBackedUpFile(named: "config.json",
+                                                                           forMod: mod.folderName),
+           let content = try? String(contentsOf: found.url, encoding: .utf8) {
+            loadIntoEditor(content)
+            vm.showModal(message: String(format: vm.L(L10n.Settings.configRestoredFromBackup),
+                                         found.backup.formattedDate))
+            return
+        }
+
+        // 2. Le `config.json.bak` voisin : plus personne n'en dépose, mais
+        //    ceux laissés par les versions précédentes restent lisibles.
         let backupPath = configPath + ".bak"
         if FileManager.default.fileExists(atPath: backupPath) {
             do {
                 let content = try String(contentsOfFile: backupPath, encoding: .utf8)
-                try content.write(toFile: configPath, atomically: true, encoding: .utf8)
-                configText = content
-                originalText = content
-                validateJson(configText)
-                parseToVisual()
+                loadIntoEditor(content)
                 vm.showModal(message: vm.L(L10n.Settings.configRestoredBak))
                 return
             } catch {
@@ -396,6 +377,7 @@ struct ModConfigEditorView: View {
             }
         }
         
+        // 3. Un fichier choisi à la main.
         let panel = NSOpenPanel()
         panel.title = vm.L(L10n.Settings.configBackupPanelTitle)
         panel.allowedContentTypes = [.json]
@@ -403,11 +385,7 @@ struct ModConfigEditorView: View {
         if panel.runModal() == .OK, let url = panel.url {
             do {
                 let content = try String(contentsOf: url, encoding: .utf8)
-                try content.write(toFile: configPath, atomically: true, encoding: .utf8)
-                configText = content
-                originalText = content
-                validateJson(configText)
-                parseToVisual()
+                loadIntoEditor(content)
                 vm.showModal(message: String(format: vm.L(L10n.Settings.configLoadedFrom), url.lastPathComponent))
             } catch {
                 vm.showModal(message: String(format: vm.L(L10n.Settings.configLoadFailed), error.localizedDescription))
@@ -451,96 +429,74 @@ struct ModConfigEditorView: View {
                 .font(.system(size: 13))
                 .foregroundColor(.primary)
             Spacer()
-            
-            switch item.type {
-            case .boolean:
+
+            // Chaque `get` **relit** l'état plutôt que de rendre la valeur
+            // capturée au rendu : un incrémenteur maintenu enfoncé émet
+            // plusieurs pas avant que la vue ne se redessine, et une valeur
+            // figée les ferait tous repartir du même nombre.
+            switch item.control {
+            case .toggle(let isOn, let asString):
                 Toggle("", isOn: Binding(
-                    get: { item.boolValue },
-                    set: { newValue in
-                        if let i = configItems.firstIndex(where: { $0.id == item.id }) {
-                            configItems[i].boolValue = newValue
-                            syncToText()
-                        }
-                    }
+                    get: {
+                        guard case .toggle(let live, _) = current(item) else { return isOn }
+                        return live
+                    },
+                    // `asString` est reconduit tel quel : une option écrite
+                    // `"true"` par son auteur doit se réécrire `"false"`, pas
+                    // `false` — le mod lit une chaîne.
+                    set: { update(item, to: .toggle($0, asString: asString)) }
                 ))
                 .toggleStyle(SwitchToggleStyle(tint: .blue))
                 .controlSize(.small)
                 .labelsHidden()
-                
-            case .number:
-                if item.isInt {
-                    HStack(spacing: 6) {
-                        TextField("", value: Binding(
-                            get: { Int(item.numberValue) },
-                            set: { newValue in
-                                if let i = configItems.firstIndex(where: { $0.id == item.id }) {
-                                    configItems[i].numberValue = Double(newValue)
-                                    syncToText()
-                                }
-                            }
-                        ), formatter: NumberFormatter())
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 70)
-                        
-                        Stepper("", onIncrement: {
-                            if let i = configItems.firstIndex(where: { $0.id == item.id }) {
-                                configItems[i].numberValue += 1
-                                syncToText()
-                            }
-                        }, onDecrement: {
-                            if let i = configItems.firstIndex(where: { $0.id == item.id }) {
-                                configItems[i].numberValue -= 1
-                                syncToText()
-                            }
-                        })
-                        .labelsHidden()
-                    }
-                } else {
-                    HStack(spacing: 6) {
-                        TextField("", value: Binding(
-                            get: { item.numberValue },
-                            set: { newValue in
-                                if let i = configItems.firstIndex(where: { $0.id == item.id }) {
-                                    configItems[i].numberValue = newValue
-                                    syncToText()
-                                }
-                            }
-                        ), formatter: NumberFormatter())
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 70)
-                        
-                        Stepper("", onIncrement: {
-                            if let i = configItems.firstIndex(where: { $0.id == item.id }) {
-                                configItems[i].numberValue += 0.5
-                                syncToText()
-                            }
-                        }, onDecrement: {
-                            if let i = configItems.firstIndex(where: { $0.id == item.id }) {
-                                configItems[i].numberValue -= 0.5
-                                syncToText()
-                            }
-                        })
-                        .labelsHidden()
-                    }
-                }
-            case .string:
+
+            case .integer(let value):
+                numberField(value: Binding(
+                    get: {
+                        guard case .integer(let live) = current(item) else { return value }
+                        return live
+                    },
+                    set: { update(item, to: .integer($0)) }
+                ), step: 1)
+
+            case .decimal(let value):
+                numberField(value: Binding(
+                    get: {
+                        guard case .decimal(let live) = current(item) else { return value }
+                        return live
+                    },
+                    set: { update(item, to: .decimal($0)) }
+                ), step: 0.5)
+
+            case .text(let value):
                 TextField("", text: Binding(
-                    get: { item.stringValue },
-                    set: { newValue in
-                        if let i = configItems.firstIndex(where: { $0.id == item.id }) {
-                            configItems[i].stringValue = newValue
-                            syncToText()
-                        }
-                    }
+                    get: {
+                        guard case .text(let live) = current(item) else { return value }
+                        return live
+                    },
+                    set: { update(item, to: .text($0)) }
                 ))
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .controlSize(.small)
-            default:
-                EmptyView()
             }
         }
         .padding(.vertical, 8)
+    }
+
+    /// Le champ numérique, entier ou décimal — la seule différence est le pas.
+    /// Les deux versions étaient copiées l'une sur l'autre à 4 lignes près.
+    @ViewBuilder
+    private func numberField<Number: Numeric & Comparable>(value: Binding<Number>,
+                                                           step: Number) -> some View {
+        HStack(spacing: 6) {
+            TextField("", value: value, formatter: NumberFormatter())
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .multilineTextAlignment(.trailing)
+                .frame(width: 70)
+
+            Stepper("", onIncrement: { value.wrappedValue += step },
+                    onDecrement: { value.wrappedValue -= step })
+                .labelsHidden()
+        }
     }
 }

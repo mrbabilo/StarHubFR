@@ -763,6 +763,9 @@ enum L10n {
         static let configLoadFailed        = "config_load_failed"
         static let configSearchPlaceholder = "config_search_placeholder"
         static let configInvalidJson       = "config_invalid_json"
+        static let configRestoredFromBackup = "config_restored_from_backup"
+        static let configBackupFailed      = "config_backup_failed"
+        static let configEditNotApplied    = "config_edit_not_applied"
     }
 
     // MARK: - Smapi
