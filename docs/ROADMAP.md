@@ -1309,6 +1309,12 @@ pouvoir revenir en arrière à tout moment.
       **bannière orange en tête de la préview d'installation** — bannière, pas dialogue :
       la préview demande déjà confirmation, un second blocage ne ferait que répéter la
       question. La mesure tient : la bannière ne vivra que par un mod à venir.*
+      ▸ **Vérifié à l'écran le 2026-08-28** : la bannière s'affiche, et le message de
+      l'auteur y paraît **tel qu'il l'a écrit — en anglais, en pratique**. C'est voulu,
+      et Stardrop l'affiche brut aussi : c'est un texte de sécurité, le traduire
+      automatiquement (l'IA locale saurait) risquerait d'en déformer précisément le
+      sens. Seul l'habillage est localisé — titre « À lire avant la mise à jour » ;
+      `vm.L` ne peut d'ailleurs pas retomber sur l'anglais, sa chute est la clé brute.
 - [x] **B1-T4** — **Réunir les problèmes dans l'onglet qui porte ce nom.** *Livré le
       2026-08-25, à sa demande. Le cadrage « Problèmes » ne connaissait qu'une chose —
       un mod **actif** dont une dépendance requise manque ou dort — quand la pastille
