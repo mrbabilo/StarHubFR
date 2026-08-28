@@ -8,6 +8,10 @@ import SwiftUI
 /// en dépendre (spec §7.1).
 struct DiscoverView: View {
     @ObservedObject var vm: StarHubTHViewModel
+    /// L'onglet courant de `MainView` : sans clé d'API la vitrine ne peut
+    /// rien montrer, et le dire sans offrir le chemin des réglages laisse
+    /// l'utilisateur le chercher.
+    @Binding var currentTab: String
     @AppStorage("discoveryHideInstalled") private var hideInstalled = false
     @State private var searchText = ""
     @State private var detailRow: StarHubTHViewModel.DiscoveryRow?
@@ -42,19 +46,9 @@ struct DiscoverView: View {
 
     private var content: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                searchField
+            VStack(alignment: .leading, spacing: AppDesign.Spacing.lg) {
+                toolbar
                 if let error = vm.lastDiscoveryError { errorBanner(error) }
-                HStack(spacing: 12) {
-                    // « Masquer les installés » ne vaut que pour les sections :
-                    // une recherche par nom rend ce qu'on lui a demandé,
-                    // installé ou non. La catégorie, elle, s'applique aux deux
-                    // — et la recherche se refait quand elle change.
-                    if vm.discoverySearch == nil {
-                        Toggle(vm.L(L10n.Discovery.hideInstalled), isOn: $hideInstalled)
-                    }
-                    categoryPicker
-                }
                 if let search = vm.discoverySearch {
                     searchResults(search)
                 } else {
@@ -72,8 +66,12 @@ struct DiscoverView: View {
         }
     }
 
-    private var searchField: some View {
-        HStack {
+    /// Une seule rangée de commandes au lieu de trois : recherche, catégorie,
+    /// « masquer les installés », et **un** rafraîchissement. Les trois ⟳ des
+    /// en-têtes de section appelaient tous le même rechargement global — trois
+    /// boutons pour un geste.
+    private var toolbar: some View {
+        HStack(spacing: AppDesign.Spacing.sm) {
             TextField(vm.L(L10n.Discovery.searchPlaceholder), text: $searchText)
                 .textFieldStyle(.roundedBorder)
                 .onSubmit { vm.searchDiscovery(name: searchText) }
@@ -91,8 +89,24 @@ struct DiscoverView: View {
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                 }
+                .buttonStyle(.borderless)
                 .help(vm.L(L10n.Discovery.clearSearch))
             }
+            categoryPicker
+            // « Masquer les installés » ne vaut que pour les sections : une
+            // recherche par nom rend ce qu'on lui a demandé, installé ou non.
+            if vm.discoverySearch == nil {
+                Toggle(vm.L(L10n.Discovery.hideInstalled), isOn: $hideInstalled)
+                    .font(AppDesign.Font.body)
+                    .fixedSize()
+            }
+            Button {
+                vm.loadDiscovery(force: true)
+            } label: {
+                Image(systemName: "arrow.clockwise")
+            }
+            .help(vm.L(L10n.Discovery.refresh))
+            .disabled(vm.discoveryLoading)
         }
     }
 
@@ -204,23 +218,13 @@ struct DiscoverView: View {
                     .buttonStyle(.link)
                     .disabled(vm.discoveryLoading)
                 }
-                Button {
-                    vm.loadDiscovery(force: true)
-                } label: {
-                    Image(systemName: "arrow.clockwise")
-                }
-                .help(vm.L(L10n.Discovery.refresh))
             }
             switch vm.discovery[kind] ?? .empty(.neverLoaded) {
             case .empty(let reason):
                 emptySection(reason)
             default:
                 if rows.isEmpty {
-                    // La section a bien répondu : ce sont les filtres qui ne
-                    // laissent rien passer. Dire « rien n'est encore chargé »
-                    // ici serait faux, et enverrait rafraîchir pour rien.
-                    Text(vm.L(L10n.Discovery.noMatch))
-                        .font(.caption).foregroundStyle(.secondary)
+                    noMatchState
                 } else {
                     // En grille, pas en bande qui défile : sur la largeur
                     // d'un écran, une bande horizontale ne montrait que 4 ou
@@ -244,80 +248,158 @@ struct DiscoverView: View {
         }
     }
 
-    /// Jamais de section muette (spec §8) : chaque raison a son texte.
-    private func emptySection(_ reason: ModCatalog.EmptyReason) -> some View {
-        let text: String
+    /// Jamais de section muette (spec §8) : chaque raison a son texte, son
+    /// icône **et l'action qui la lève** — un état sans issue n'est qu'un
+    /// constat d'échec.
+    @ViewBuilder private func emptySection(_ reason: ModCatalog.EmptyReason) -> some View {
         switch reason {
         case .neverLoaded:
-            text = vm.L(L10n.Discovery.neverLoaded)
+            stateCard(icon: "square.grid.2x2", text: vm.L(L10n.Discovery.neverLoaded),
+                      actionTitle: vm.L(L10n.Discovery.retry)) { vm.loadDiscovery(force: true) }
         case .failed:
             switch vm.lastDiscoveryError {
-            case .noApiKey: text = vm.L(L10n.Discovery.noKey)
-            case .rateLimited: text = vm.L(L10n.Discovery.rateLimited)
-            default: text = vm.L(L10n.Discovery.error)
+            case .noApiKey:
+                // La clé sert déjà aux mises à jour : le chemin, pas seulement
+                // le diagnostic.
+                stateCard(icon: "key", text: vm.L(L10n.Discovery.noKey),
+                          actionTitle: vm.L(L10n.Discovery.openSettings)) {
+                    currentTab = "Settings"
+                }
+            case .rateLimited:
+                stateCard(icon: "hourglass", text: vm.L(L10n.Discovery.rateLimited),
+                          actionTitle: vm.L(L10n.Discovery.retry)) { vm.loadDiscovery(force: true) }
+            default:
+                stateCard(icon: "wifi.exclamationmark", text: vm.L(L10n.Discovery.error),
+                          actionTitle: vm.L(L10n.Discovery.retry)) { vm.loadDiscovery(force: true) }
             }
-        }
-        return HStack {
-            Text(text).font(.callout).foregroundStyle(.secondary)
-            Button(vm.L(L10n.Discovery.retry)) { vm.loadDiscovery(force: true) }
-                .buttonStyle(.borderless)
         }
     }
 
-    /// Carte avec vignette quand la réponse en porte une (4/4 en tête de
-    /// tendances, capture 2026-08-27) — sans elle, la carte reste textuelle.
+    /// La section a répondu, les filtres n'ont rien laissé passer. L'action
+    /// est de **retirer les filtres**, pas de rafraîchir : rafraîchir
+    /// rapporterait les mêmes mods, écartés par les mêmes règles.
+    @ViewBuilder private var noMatchState: some View {
+        if vm.discoveryCategory != nil || hideInstalled {
+            stateCard(icon: "line.3.horizontal.decrease.circle",
+                      text: vm.L(L10n.Discovery.noMatch),
+                      actionTitle: vm.L(L10n.Discovery.clearFilters)) {
+                hideInstalled = false
+                vm.setDiscoveryCategory(nil)
+            }
+        } else {
+            stateCard(icon: "line.3.horizontal.decrease.circle",
+                      text: vm.L(L10n.Discovery.noMatch), actionTitle: nil, action: {})
+        }
+    }
+
+    private func stateCard(icon: String, text: String, actionTitle: String?,
+                           action: @escaping () -> Void) -> some View {
+        HStack(spacing: AppDesign.Spacing.md) {
+            Image(systemName: icon)
+                .font(.system(size: 20))
+                .foregroundStyle(.tertiary)
+            Text(text).font(AppDesign.Font.body).foregroundStyle(.secondary)
+            Spacer(minLength: AppDesign.Spacing.sm)
+            if let actionTitle {
+                Button(actionTitle, action: action).buttonStyle(.link)
+            }
+        }
+        .padding(AppDesign.Spacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.background.secondary,
+                    in: RoundedRectangle(cornerRadius: AppDesign.Radius.section))
+        .overlay(RoundedRectangle(cornerRadius: AppDesign.Radius.section)
+            .stroke(Color.primary.opacity(AppDesign.Opacity.light), lineWidth: 1))
+    }
+
+    /// La carte : vignette **pleine largeur en 16/9**, « installé » posé
+    /// dessus, puis titre, auteur, et une seule ligne de métadonnées.
+    ///
+    /// Elle mesurait 220 pt pour une vignette de 200×90 : deux marges grises
+    /// autour de l'image, et une largeur figée qui laissait des gouttières
+    /// inégales dans une grille adaptative. Elle occupe maintenant sa case.
     private func card(_ row: StarHubTHViewModel.DiscoveryRow) -> some View {
         Button { detailRow = row } label: {
-            VStack(alignment: .leading, spacing: 6) {
-                // La place de la vignette est **toujours** réservée : sur la
-                // sélection FR, où beaucoup de traductions n'ont pas d'image,
-                // une carte plus courte que sa voisine décalerait toute la
-                // rangée. Le rectangle gris couvre aussi l'attente et l'échec
-                // de chargement.
-                Rectangle().fill(.quaternary)
-                    .overlay {
-                        // `CachedAsyncImage` garde les images en mémoire :
-                        // trois bandes qui défilent redemanderaient sinon les
-                        // mêmes vignettes au réseau à chaque passage.
-                        if let thumbnail = row.hit.thumbnailUrl,
-                           let url = URL(string: thumbnail) {
-                            CachedAsyncImage(url: url)
-                        }
-                    }
-                    .frame(width: 200, height: 90)
-                    .clipped()
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
-                Text(row.hit.name).font(.headline).lineLimit(2, reservesSpace: true)
-                Text(row.hit.uploader).font(.caption).foregroundStyle(.secondary)
-                    .lineLimit(1)
-                // La catégorie, avec la couleur et le nom traduit de la liste
-                // des mods installés — la même pastille des deux côtés de
-                // l'app. Sa place est réservée : sans elle, une carte sans
-                // catégorie serait plus courte que ses voisines.
-                Group {
-                    if let category = row.hit.categoryId.flatMap(NexusCategory.from(id:)) {
-                        CategoryBadge(category: category, L: vm.L)
-                    }
+            VStack(alignment: .leading, spacing: 0) {
+                thumbnail(row)
+                VStack(alignment: .leading, spacing: AppDesign.Spacing.xs) {
+                    Text(row.hit.name)
+                        .font(AppDesign.Font.body(.semibold))
+                        .lineLimit(2, reservesSpace: true)
+                        .multilineTextAlignment(.leading)
+                    Text(row.hit.uploader)
+                        .font(AppDesign.Font.footnote)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                    metaRow(row)
                 }
-                .frame(height: 18, alignment: .leading)
-                HStack(spacing: 6) {
-                    if let endorsements = row.hit.endorsements {
-                        Label(String(format: vm.L(L10n.Discovery.endorsements), endorsements),
-                              systemImage: "hand.thumbsup")
-                            .font(.caption2)
-                    }
-                    if row.hit.tags.contains(NexusModSearch.frenchTag) {
-                        badge("FR")
-                    }
-                    if row.installed { badge(vm.L(L10n.Discovery.installedBadge)) }
-                }
+                .padding(.horizontal, AppDesign.Spacing.md)
+                .padding(.top, 10)
+                .padding(.bottom, AppDesign.Spacing.md)
             }
-            .padding(10)
-            .frame(width: 220, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .background(.background.secondary)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .clipShape(RoundedRectangle(cornerRadius: AppDesign.Radius.section))
+            .overlay(
+                RoundedRectangle(cornerRadius: AppDesign.Radius.section)
+                    .stroke(Color.primary.opacity(AppDesign.Opacity.light), lineWidth: 1))
         }
         .buttonStyle(.plain)
+    }
+
+    /// La place de la vignette est **toujours** réservée : sur la sélection
+    /// FR, où beaucoup de traductions n'ont pas d'image, une carte plus
+    /// courte que sa voisine décalerait toute la rangée. Le rectangle gris
+    /// couvre aussi l'attente et l'échec de chargement.
+    private func thumbnail(_ row: StarHubTHViewModel.DiscoveryRow) -> some View {
+        Rectangle().fill(.quaternary)
+            .aspectRatio(16.0 / 9.0, contentMode: .fit)
+            .overlay {
+                // `CachedAsyncImage` garde les images en mémoire : dérouler
+                // la vitrine redemanderait sinon les mêmes vignettes au
+                // réseau à chaque passage.
+                if let thumbnail = row.hit.thumbnailUrl,
+                   let url = URL(string: thumbnail) {
+                    CachedAsyncImage(url: url)
+                }
+            }
+            .clipped()
+            // « Installé » sur l'image, pas en bas de pile : c'est ce qu'on
+            // cherche en balayant une grille.
+            .overlay(alignment: .topTrailing) {
+                if row.installed {
+                    Label(vm.L(L10n.Discovery.installedBadge), systemImage: "checkmark")
+                        .font(AppDesign.Font.footnote(.medium))
+                        .foregroundStyle(Color.green)
+                        .padding(.horizontal, AppDesign.Spacing.xs + 2)
+                        .padding(.vertical, 2)
+                        .background(.regularMaterial, in: Capsule())
+                        .padding(AppDesign.Spacing.sm)
+                }
+            }
+    }
+
+    /// Une seule ligne : la catégorie à gauche, les endossements à droite.
+    /// Sa hauteur est réservée — sans catégorie servie, une carte plus courte
+    /// décalerait ses voisines.
+    private func metaRow(_ row: StarHubTHViewModel.DiscoveryRow) -> some View {
+        HStack(spacing: AppDesign.Spacing.xs + 2) {
+            if let category = row.hit.categoryId.flatMap(NexusCategory.from(id:)) {
+                CategoryBadge(category: category, L: vm.L)
+            }
+            if row.hit.tags.contains(NexusModSearch.frenchTag) {
+                badge("FR")
+            }
+            Spacer(minLength: 0)
+            if let endorsements = row.hit.endorsements {
+                Label("\(endorsements)", systemImage: "hand.thumbsup")
+                    .font(AppDesign.Font.footnote)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+        }
+        .frame(height: 18)
+        .padding(.top, 2)
     }
 
     private func badge(_ label: String) -> some View {
@@ -327,12 +409,50 @@ struct DiscoverView: View {
             .background(.fill.tertiary, in: Capsule())
     }
 
-    /// Une seule panne, un seul message : les sections ne répètent pas.
-    @ViewBuilder private func errorBanner(_ error: NexusSearchClient.SearchError) -> some View {
+    /// Une seule panne, un seul message : les sections ne répètent pas. En
+    /// bandeau teinté plutôt qu'en ligne de texte nue — une panne qui se lit
+    /// comme une légende passe inaperçue.
+    private func errorBanner(_ error: NexusSearchClient.SearchError) -> some View {
+        let text: String
         switch error {
-        case .noApiKey: Text(vm.L(L10n.Discovery.noKey))
-        case .rateLimited: Text(vm.L(L10n.Discovery.rateLimited))
-        default: Text(vm.L(L10n.Discovery.error))
+        case .noApiKey: text = vm.L(L10n.Discovery.noKey)
+        case .rateLimited: text = vm.L(L10n.Discovery.rateLimited)
+        default: text = vm.L(L10n.Discovery.error)
+        }
+        return HStack(spacing: AppDesign.Spacing.sm) {
+            Image(systemName: "exclamationmark.triangle")
+                .foregroundStyle(Color.orange)
+            Text(text).font(AppDesign.Font.caption)
+            Spacer(minLength: AppDesign.Spacing.sm)
+            if case .noApiKey = error {
+                Button(vm.L(L10n.Discovery.openSettings)) { currentTab = "Settings" }
+                    .buttonStyle(.link)
+            } else {
+                Button(vm.L(L10n.Discovery.retry)) { vm.loadDiscovery(force: true) }
+                    .buttonStyle(.link)
+            }
+        }
+        .padding(.horizontal, AppDesign.Spacing.md)
+        .padding(.vertical, AppDesign.Spacing.sm)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.orange.opacity(AppDesign.Opacity.light),
+                    in: RoundedRectangle(cornerRadius: AppDesign.Radius.md))
+        .overlay(RoundedRectangle(cornerRadius: AppDesign.Radius.md)
+            .stroke(Color.orange.opacity(AppDesign.Opacity.medium * 2), lineWidth: 1))
+    }
+}
+
+/// Met en avant celui des deux boutons qui **fonctionne**. SwiftUI n'a pas
+/// de `ButtonStyle` effaçable en type : la branche vit ici plutôt que dans un
+/// ternaire impossible à écrire.
+private struct ProminentButton: ViewModifier {
+    let prominent: Bool
+
+    @ViewBuilder func body(content: Content) -> some View {
+        if prominent {
+            content.buttonStyle(.borderedProminent)
+        } else {
+            content.buttonStyle(.bordered)
         }
     }
 }
@@ -350,48 +470,146 @@ struct DiscoveryDetailSheet: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text(row.hit.name).font(.title2.bold()).lineLimit(2)
-                Spacer()
-                Button { dismiss() } label: { Image(systemName: "xmark.circle.fill") }
-                    .buttonStyle(.plain)
-            }
-            // Les deux actions ne dépendent que du `modId` de la carte, pas
-            // de la fiche : elles restent offertes quand Nexus ne rend pas la
-            // fiche (quota, panne). Les enfermer dans le corps chargé aurait
-            // retiré la porte de sortie au moment précis où elle sert.
-            HStack(spacing: 12) {
-                if let url = nexusURL {
-                    // Un `Button` et non un `Link` : la fiche doit se fermer
-                    // en même temps que la page s'ouvre, et un `Link` ne
-                    // laisse pas la main pour `dismiss()`.
-                    Button {
-                        NSWorkspace.shared.open(url)
-                        dismiss()
-                    } label: {
-                        Label(vm.L(L10n.Discovery.openNexus), systemImage: "safari")
-                    }
-                }
-                installButton
-            }
+        VStack(alignment: .leading, spacing: 0) {
+            hero
+            statStrip
+            Divider()
+            actions
             switch vm.discoveryDetailState {
             case .loading:
-                ProgressView().frame(maxWidth: .infinity)
+                ProgressView().frame(maxWidth: .infinity).padding()
             case .failed:
-                Text(vm.L(L10n.Discovery.detailFailed)).foregroundStyle(.secondary)
+                Text(vm.L(L10n.Discovery.detailFailed))
+                    .font(AppDesign.Font.body).foregroundStyle(.secondary).padding()
             case .idle, .loaded:
                 if let detail = vm.discoveryDetail {
                     detailBody(detail)
                 } else {
-                    Text(vm.L(L10n.Discovery.neverLoaded)).foregroundStyle(.secondary)
+                    Text(vm.L(L10n.Discovery.neverLoaded))
+                        .font(AppDesign.Font.body).foregroundStyle(.secondary).padding()
                 }
             }
+            Spacer(minLength: 0)
         }
-        .padding()
-        .frame(width: 520, height: 460)
+        .frame(width: 560, height: 640)
         .onAppear { vm.loadDiscoveryDetail(modId: row.hit.modId) }
         .onDisappear { vm.closeDiscoveryDetail() }
+    }
+
+    /// Le bandeau : la vignette du mod, son nom et son auteur par-dessus. Le
+    /// titre nu sur fond blanc ne disait pas de quel mod on parlait tant que
+    /// la description n'était pas chargée.
+    private var hero: some View {
+        Rectangle().fill(.quaternary)
+            .frame(height: 150)
+            .overlay {
+                if let thumbnail = row.hit.thumbnailUrl, let url = URL(string: thumbnail) {
+                    CachedAsyncImage(url: url)
+                }
+            }
+            .clipped()
+            .overlay {
+                // Le texte se lit sur n'importe quelle image : le dégradé est
+                // la seule garantie de contraste qu'on maîtrise.
+                LinearGradient(colors: [.clear, .black.opacity(0.65)],
+                               startPoint: .center, endPoint: .bottom)
+            }
+            .overlay(alignment: .bottomLeading) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(row.hit.name)
+                        .font(AppDesign.Font.viewTitle)
+                        .foregroundStyle(.white)
+                        .lineLimit(2)
+                    Text(row.hit.uploader)
+                        .font(AppDesign.Font.caption)
+                        .foregroundStyle(.white.opacity(AppDesign.Opacity.secondary))
+                }
+                .padding(AppDesign.Spacing.lg)
+            }
+            .overlay(alignment: .topTrailing) {
+                Button { dismiss() } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 16))
+                        .foregroundStyle(.white.opacity(AppDesign.Opacity.secondary))
+                }
+                .buttonStyle(.plain)
+                .padding(AppDesign.Spacing.sm)
+            }
+    }
+
+    /// Ce que la carte ne disait pas, en une bande : endossements, version,
+    /// âge de la mise à jour, catégorie. Ces quatre chiffres décident de
+    /// l'installation plus sûrement qu'un paragraphe de description.
+    private var statStrip: some View {
+        HStack(alignment: .top, spacing: 0) {
+            stat(vm.L(L10n.Discovery.statEndorsements),
+                 (vm.discoveryDetail?.endorsements ?? row.hit.endorsements)
+                     .map { "\($0)" } ?? "—")
+            stat(vm.L(L10n.ModInstall.labelVersion),
+                 vm.discoveryDetail?.version.isEmpty == false
+                     ? vm.discoveryDetail!.version
+                     : (row.hit.version.isEmpty ? "—" : row.hit.version))
+            stat(vm.L(L10n.Discovery.statUpdated), updatedText)
+            stat(vm.L(L10n.Mods.categoryFilter),
+                 row.hit.categoryId.flatMap(NexusCategory.from(id:))?.localizedName(vm.L)
+                     ?? (row.hit.categoryName.isEmpty ? "—" : row.hit.categoryName))
+        }
+        .padding(.horizontal, AppDesign.Spacing.lg)
+        .padding(.vertical, AppDesign.Spacing.md)
+    }
+
+    private func stat(_ label: String, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label).font(AppDesign.Font.footnote).foregroundStyle(.secondary)
+            Text(value).font(AppDesign.Font.body(.semibold)).lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var updatedText: String {
+        guard let date = vm.discoveryDetail?.updatedAt ?? row.hit.updatedAt else { return "—" }
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .abbreviated
+        return formatter.localizedString(for: date, relativeTo: Date())
+    }
+
+    /// Les deux actions ne dépendent que du `modId` de la carte, pas de la
+    /// fiche : elles restent offertes quand Nexus ne rend pas la fiche (quota,
+    /// panne). Les enfermer dans le corps chargé aurait retiré la porte de
+    /// sortie au moment précis où elle sert.
+    ///
+    /// **Celle qui marche est la proéminente** : sur un compte gratuit
+    /// l'installation directe est refusée par l'API, alors le site prend le
+    /// bouton bleu.
+    private var actions: some View {
+        HStack(spacing: AppDesign.Spacing.sm) {
+            installButton
+            if let url = nexusURL {
+                // Un `Button` et non un `Link` : la fiche doit se fermer en
+                // même temps que la page s'ouvre, et un `Link` ne laisse pas
+                // la main pour `dismiss()`.
+                Button {
+                    NSWorkspace.shared.open(url)
+                    dismiss()
+                } label: {
+                    Label(vm.L(L10n.Discovery.openNexus), systemImage: "arrow.up.forward.square")
+                }
+                .modifier(ProminentButton(prominent: !installOffered))
+            }
+            Spacer(minLength: 0)
+            if row.installed {
+                Label(vm.L(L10n.Discovery.installedBadge), systemImage: "checkmark.circle.fill")
+                    .font(AppDesign.Font.footnote)
+                    .foregroundStyle(Color.green)
+            }
+        }
+        .padding(.horizontal, AppDesign.Spacing.lg)
+        .padding(.vertical, AppDesign.Spacing.md)
+    }
+
+    /// L'installation directe est-elle réellement praticable ici ?
+    private var installOffered: Bool {
+        !vm.nexusDirectDownloadUnavailable && !row.installed
     }
 
     /// Installer sans passer par le site (G-T3) : le mod non installé emprunte
@@ -414,6 +632,7 @@ struct DiscoveryDetailSheet: View {
         } label: {
             Label(vm.L(L10n.Discovery.install), systemImage: "arrow.down.circle")
         }
+        .modifier(ProminentButton(prominent: installOffered))
         .disabled(vm.isDownloadingFromNexus || vm.nexusDirectDownloadUnavailable
                   || row.installed)
         .help(installHint)
@@ -427,13 +646,12 @@ struct DiscoveryDetailSheet: View {
 
     @ViewBuilder private func detailBody(_ detail: NexusModSearch.Detail) -> some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 10) {
-                if let endorsements = detail.endorsements {
-                    Text(String(format: vm.L(L10n.Discovery.endorsements), endorsements))
-                        .font(.caption).foregroundStyle(.secondary)
-                }
+            VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
+                // Les endossements sont montés dans la bande de chiffres : les
+                // répéter ici doublonnait.
                 if let summary = detail.summary {
-                    Text(summary).font(.callout).italic()
+                    Text(summary).font(AppDesign.Font.body).italic()
+                        .foregroundStyle(.secondary)
                 }
                 // La description Nexus est du **BBCode** (`[b]`, `[img]`, `<br />`…)
                 // — le même rendu que la fiche mod : blocs parsés, images à taille
@@ -442,6 +660,9 @@ struct DiscoveryDetailSheet: View {
                 DescriptionBlocksView(blocks: DescriptionBlockParser.parse(
                     detail.descriptionText ?? ""), vm: vm)
             }
+            .padding(.horizontal, AppDesign.Spacing.lg)
+            .padding(.bottom, AppDesign.Spacing.lg)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }

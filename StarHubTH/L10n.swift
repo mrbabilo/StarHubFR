@@ -1272,5 +1272,9 @@ enum L10n {
         static let alreadyInstalled  = "discovery_already_installed"
         static let shownOfLoaded     = "discovery_shown_of_loaded"
         static let loadMore          = "discovery_load_more"
+        static let clearFilters      = "discovery_clear_filters"
+        static let openSettings      = "discovery_open_settings"
+        static let statUpdated       = "discovery_stat_updated"
+        static let statEndorsements  = "discovery_stat_endorsements"
     }
 }

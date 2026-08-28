@@ -1158,5 +1158,9 @@
   "discovery_install": "Installer",
   "discovery_already_installed": "Ce mod est déjà installé — sa mise à jour se fait depuis la liste des mods.",
   "discovery_shown_of_loaded": "%1$d affichés sur %2$d chargés",
-  "discovery_load_more": "Voir plus"
+  "discovery_load_more": "Voir plus",
+  "discovery_clear_filters": "Retirer les filtres",
+  "discovery_open_settings": "Ouvrir les réglages",
+  "discovery_stat_updated": "Mise à jour",
+  "discovery_stat_endorsements": "Endossements"
 }

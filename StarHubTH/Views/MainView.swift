@@ -254,7 +254,7 @@ struct MainView: View {
                 } else if currentTab == "Quarantine" {
                     QuarantineView(vm: vm)
                 } else if currentTab == "Discover" {
-                    DiscoverView(vm: vm)
+                    DiscoverView(vm: vm, currentTab: $currentTab)
                 } else if currentTab == "ThaiHub" {
                     ThaiTranslationHubView(vm: vm)
                 } else if currentTab == "Settings" {
