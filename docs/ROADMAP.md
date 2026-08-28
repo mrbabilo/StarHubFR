@@ -121,7 +121,7 @@ liste du 2026-07-30 et n'existaient pas dans le document de veille.
 | §4 | Backups : feedback après restauration, tri, regroupement, recherche | **Fait** (2026-08-23) | Regroupement, tri et recherche → **B4-T1** ; compte rendu de restauration (ce qui a été écrit, où, ce qu'est devenue la version remplacée) → **B4-T2** |
 | §4 | Un mod restauré met à jour le registre | **Corrigé ✅** (2026-08-23) | Vérifié : la restauration d'un mod **actif** en déposait une seconde copie en pause à côté, deux dossiers pour un `folderName` — la clé du registre. Elle remplace désormais le mod là où il est → **B4-T3** |
 | §4 | Sauvegarde / restauration de `config.json` et `fr.json` | **Fait** | `ModConfigBackupManager.swift` + `Extensions/ModConfigFiles.swift` |
-| §5 | Éditeur de config exploitant les clés de traduction | **À faire** | `ModConfigEditorView.swift` affiche les clés brutes → **C4-T4** (schéma Content Patcher, 100 % des clés) puis **C4-T1** (i18n des mods C#, 39 % côté actifs) |
+| §5 | Éditeur de config exploitant les clés de traduction | **Fait** (v1.26.0) | **C4-T4** livré : sections, descriptions et listes déroulantes tirées du `ConfigSchema` du pack, libellés lus dans son i18n — 1889 réglages du parc y gagnent un nom lisible. Reste **C4-T1** (i18n des mods C#, 39 % côté actifs) |
 | §5 | Intégrer *Modern Config Menu* / GMCM (49382, 49437) | **Instruit, écarté ✅** | Spike du 2026-08-28 (**C4-T3**) : ni l'un ni l'autre n'écrit de schéma hors du jeu. La source utilisable est le `ConfigSchema` de Content Patcher → **C4-T4**. Voir `audit-config-menus.md` |
 | §5 | Aide à la configuration des raccourcis clavier | **À faire** | → **C4-T2** |
 | §6 | Éditeur `fr.json` avec diagnostic des clés | **À faire** | → **C2**, **C3** |
@@ -145,8 +145,8 @@ de la liste de l'auteur. Analyse complète et exclusions motivées : `docs/audit
 | *audit* | Compatibilité mods via l'**API live `smapi.io`** (plutôt que le dump statique `mods.jsonc`) | **Fait** | Plus riche : statut + mise à jour suggérée + URL unofficial. Repositionne **A2** |
 | *audit* | **Configs par profil** (un même mod, plusieurs `config.json`) | **À faire** | Manquante ; merge JSON non-destructif → **B3-T5** |
 | *audit* | Notes libres par mod | **Fait** | Note par mod rangée au profil actif, signalée dans la liste (**B3-T6**, v1.21.0) |
-| *audit* | Quota Nexus quotidien visible | **Fait** | Relevé sur toute réponse, affiché dans les réglages (**B2-T6**, pas encore publié) |
-| *audit* | `UpdateCautionMessage` (alerte auteur avant mise à jour) | **À faire** | → **B2-T7** |
+| *audit* | Quota Nexus quotidien visible | **Fait** | Relevé sur toute réponse, affiché dans les réglages (**B2-T6**, v1.19.0) |
+| *audit* | `UpdateCautionMessage` (alerte auteur avant mise à jour) | **Fait** (v1.26.0) | **B2-T7** : bannière dans la préview d'installation, message rendu tel que l'auteur l'a écrit. Aucun mod du parc ne l'expose encore |
 | *audit* | Panneau de downloads observable (%, vitesse, annulation) | **Fait autrement** | Un seul téléchargement à la fois, par conception : un panneau de transferts concurrents n'aurait rien à lister. Le transfert en cours est rendu observable et annulable (**B2-T1**) |
 
 **Bilan au 2026-08-24 (v1.18.0 publiée)** — les **7 bugs** de la liste initiale sont
