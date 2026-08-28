@@ -692,7 +692,10 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       ⚠️ **Vérification humaine obligatoire** : c'est du code de vue, hors de portée de
       `swift test` ; le seul gate automatique est la compilation, et tout l'enjeu est un
       comportement d'écran. Ne pas livrer sur « ça compile ».
-      ✅ **Livré le 2026-08-28** — la logique est sortie de l'écran vers
+      ✅ **Livré le 2026-08-28, et vérifié à l'écran par lui le même jour** — la
+      vérification humaine que cette tâche exigeait est faite ; le comportement d'écran
+      (ordre des options, champ décimal, bouton de restauration) est confirmé.
+      La logique est sortie de l'écran vers
       `Models/ConfigEditorModel.swift` (Core, 24 tests) plutôt que réécrite dans la vue :
       c'est le seul filet automatique possible ici. `ModConfigBackupManager` gagne
       `onlyEnabled:` et `mostRecentBackedUpFile` (5 tests). 1598 tests, gate `EXIT=0`.
