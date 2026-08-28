@@ -12,6 +12,11 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+- **Onglet « Découvrir » : trouver un mod sans en avoir un pour point de départ.** Trois sections servies par Nexus — tendances, mises à jour récentes, sélection française — plus une recherche par nom. Chaque carte dit si le mod est déjà dans le parc, et « masquer les installés » affiche toujours combien il a masqué. Les listes sont mises en cache 24 h ; seul le bouton de rafraîchissement redemande au réseau.
+- **Fiche éclair depuis une carte** — description rendue comme sur la page du mod, catégorie, auteur, endossements, et « Ouvrir sur Nexus » pour ramener le fichier dans l'app par `nxm://`. Sans clé d'API, l'onglet le dit au lieu de rester vide ; un quota atteint et une panne réseau ont chacun leur message.
+- **Les cartes portent la vignette du mod** quand Nexus en sert une, sa place étant réservée dans tous les cas — beaucoup de traductions n'ont pas d'image, et une carte plus courte décalerait toute la rangée. Les sections écartent les traductions d'autres langues que le français ; la recherche par nom, elle, rend ce qu'on lui a demandé.
+
 ## [1.24.0] - 2026-08-27
 
 ### Added
