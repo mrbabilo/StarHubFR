@@ -68,6 +68,9 @@ comme produit distinct de StarHubTH et de Stardrop.
 - **Axe E — Packs, distribution & pédagogie** : packaging, rapport de modlist, doc, Nexus.
 - **Axe F — Dette technique** *(transverse)* : découpage du God module, audit perf/sécurité,
   réactivité de la liste des mods (**F3**).
+- **Axe H — Cohérence UI** *(transverse)* : généraliser à toute l'app le langage
+  visuel établi par l'onglet Découvrir (axe G) — navigation regroupée, accueil
+  tableau de bord, reskin écran par écran, bibliothèque de composants vivante.
 
 **Règle de discipline reprise du document de veille** :
 > *Chaque release ne sert qu'un seul axe principal, plus quelques correctifs gratuits.*
@@ -1589,6 +1592,74 @@ porteurs de l'action qui les lève, fiche à bandeau et bande de chiffres.
 → parsing tolérant, échec propre) ; les recommandations « selon mon parc »
 n'ont aucune donnée source — la v1 ne sert que des filtres (tendance × FR ×
 non installé), jamais des prédictions.
+
+---
+
+### Cohérence UI : un seul langage pour toute l'app — **Axe H** · à faire
+
+L'onglet Découvrir (axe G) a établi de fait un langage — cartes en grille
+adaptative, états qui portent l'action qui les lève, comptes honnêtes, un
+geste par intention. Le reste de l'UI date de plusieurs époques : tokens
+rétrofités en v1.7.0, styles ad hoc par vue, zone de statut séparée au-dessus
+des groupes de la barre latérale, accueil « identité + réglages » qui ne
+montre pas ce qui demande attention. Quatre douleurs confirmées au cadrage
+(2026-08-28) : incohérence entre onglets, navigation encombrée (14 entrées),
+liste des mods à 966 mods, accueil peu utile. Spec complète — huit principes
+P1–P8, lots, critères mesurables — :
+`docs/superpowers/specs/2026-08-28-refonte-ui-design.md` (local, gitignoré
+comme les autres specs SDD).
+
+Approche validée : **le châssis d'abord** — design system extrait de
+Découvrir et bibliothèque de composants vivante (projet claude.ai/design,
+dossier `design/` versionné), puis navigation + accueil, puis reskin écran
+par lot, une release par lot. Périmètre : visuel + navigation —
+**aucune fonctionnalité nouvelle**, aucun parcours interne refondu.
+
+- [ ] **H-T1** — **Châssis** : tokens manquants (`Grid`, `Metrics`, `Shadow`,
+      `Icon`), extraction des 7 composants de `DiscoverView` vers
+      `Views/Components/` (`ModCard`, `StateCard`, `ErrorBanner`, `StatStrip`,
+      `HeroHeader`, `SectionHeader`, `CategoryBadge`), Découvrir bascule dessus
+      **sans changement visuel** (l'extraction sans bascule créerait des copies
+      divergentes), bibliothèque `/design` créée (Foundations + Components),
+      `UX_UI_Specifications.md` retiré avec bandeau de renvoi. · **M**
+- [ ] **H-T2** — **Navigation** : un seul style d'item de sidebar, badge
+      capsule sur l'item (motif Mail) — fin de la zone de statut séparée ;
+      4 groupes : Bibliothèque / Parties / Santé & secours / Application.
+      Aucune destination supprimée ni enterrée, identifiants d'onglet
+      inchangés (pas de migration d'état). · **S**
+- [ ] **H-T3** — **Accueil tableau de bord** : bande des 4 compteurs
+      cliquables (mises à jour, alertes SMAPI, quarantaine, parc — un zéro
+      affiché est une information), carte de lancement (mode + profil + dossier
+      suivis d'un coup d'œil), parc et socle en version constat ; identité et
+      réglages déménagent (version, crédits, dossier, SMAPI détaillé →
+      Réglages ; « Installer SMAPI » reste sur l'accueil quand SMAPI manque). · **M**
+- [ ] **H-T4** — **Mods, pilote du reskin** : toolbar unifiée au motif
+      Découvrir (un seul geste par intention), rangée à hauteur réservée avec
+      état codé glyph + couleur + barre d'accent (jamais la couleur seule),
+      grille optionnelle réutilisant `ModCard` telle quelle, fiche
+      `HeroHeader` + `StatStrip` où l'action praticable est la proéminente. · **L**
+- [ ] **H-T5** — **Lot Parties** : profils en cartes à chiffres clés (jamais
+      un formulaire nu), sauvegardes au même motif. · **M**
+- [ ] **H-T6** — **Lot Santé & secours** : alertes système, quarantaine,
+      backups ×2 — gravité toujours glyph + couleur, rapports en tableaux
+      lisibles. · **M**
+- [ ] **H-T7** — **Lots Journaux & Réglages** : reskin léger des journaux
+      (la perf est déjà faite), Réglages absorbe les déménagés de l'accueil
+      en sections unifiées. · **S**
+- [ ] **H-T8** — **Hub de traduction** : reskin de continuité seulement —
+      monde à part, déjà structuré. · **M**
+- [ ] **H-T9** — **Closage** : audit de fidélité (Découvrir visuellement
+      identique à la v1.25.0 malgré les évolutions du système), bibliothèque
+      `/design` complétée (Screens), nettoyage des vestiges. · **S**
+
+**Risques** : cohabitation ancien/nouveau style pendant le chantier (bornée :
+chaque lot livré est cohérent avec le système) ; `MainView` remet ses états
+de détail à `nil` au changement d'onglet — tout nouvel écran suit le motif
+« sheet interne à la vue » de Découvrir ; l'accueil puise dans le God module
+(8389 lignes) → touches minimales, logique pure côté `Models/`.
+**Critère de succès** : plus aucun écran ne parle sa langue propre — mesurable :
+zéro valeur de style hors tokens dans les vues migrées, un seul style d'item
+de sidebar, Découvrir inchangé au closage.
 
 ---
 
