@@ -368,12 +368,19 @@ struct DiscoverView: View {
             // cherche en balayant une grille.
             .overlay(alignment: .topTrailing) {
                 if row.installed {
-                    Label(vm.L(L10n.Discovery.installedBadge), systemImage: "checkmark")
-                        .font(AppDesign.Font.footnote(.medium))
-                        .foregroundStyle(Color.green)
-                        .padding(.horizontal, AppDesign.Spacing.xs + 2)
-                        .padding(.vertical, 2)
-                        .background(.regularMaterial, in: Capsule())
+                    // Pastille **pleine**, pas translucide : posée sur un
+                    // matériau, elle se noyait dans les vignettes claires. Du
+                    // blanc sur vert tient sur n'importe quelle image, et
+                    // l'ombre la décolle du fond.
+                    Label(vm.L(L10n.Discovery.installedBadge),
+                          systemImage: "checkmark.circle.fill")
+                        .font(AppDesign.Font.caption(.semibold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, AppDesign.Spacing.sm)
+                        .padding(.vertical, AppDesign.Spacing.xs)
+                        .background(Color.green, in: Capsule())
+                        .shadow(color: .black.opacity(AppDesign.Opacity.strong),
+                                radius: 3, y: 1)
                         .padding(AppDesign.Spacing.sm)
                 }
             }
