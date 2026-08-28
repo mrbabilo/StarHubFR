@@ -16,7 +16,9 @@ public struct NexusRateLimitGate {
     /// comme sur un quota journalier — couperait sinon les fonctions Nexus pour
     /// toute la session. Plafonner ne contourne rien : la requête d'après
     /// reprend un 429 et réarme la porte, soit au pire une requête par quart
-    /// d'heure.
+    /// d'heure. Ce plafond ne s'applique **pas** à un quota épuisé dont la
+    /// remise à zéro est mesurée : cette échéance-là est certaine, la deviner
+    /// n'a plus de sens.
     public static let maxBackoff: TimeInterval = 15 * 60
 
     /// Instant avant lequel toute requête est refusée. `nil` = rien en cours.
@@ -26,13 +28,29 @@ public struct NexusRateLimitGate {
 
     /// Arme la porte après un 429. Un `retryAfter` négatif ou nul n'arme rien —
     /// il n'y a pas d'attente à respecter.
-    public mutating func note(retryAfter: TimeInterval, now: Date = Date()) {
-        guard retryAfter > 0 else { return }
-        let until = now.addingTimeInterval(min(retryAfter, Self.maxBackoff))
+    ///
+    /// Si le quota mesuré sur la même réponse annonce une fenêtre **épuisée**
+    /// avec son instant de remise à zéro, la porte s'aligne dessus : jusqu'à
+    /// cette échéance, toute requête ne peut que repartir en 429, et le plafond
+    /// de 15 minutes ne ferait que réessayer pour rien. Une fenêtre épuisée
+    /// **sans** échéance mesurée ne dit rien de plus qu'avant : le plafond
+    /// garde alors son rôle.
+    public mutating func note(retryAfter: TimeInterval, quota: NexusQuota? = nil,
+                              now: Date = Date()) {
+        var until: Date?
+        if retryAfter > 0 {
+            until = now.addingTimeInterval(min(retryAfter, Self.maxBackoff))
+        }
+        for window in [quota?.hourly, quota?.daily].compactMap({ $0 }) {
+            guard window.remaining == 0, let reset = window.reset, reset > now else { continue }
+            if let current = until, current >= reset { continue }
+            until = reset
+        }
+        guard let target = until else { return }
         // Deux 429 concurrents : garder la plus lointaine des deux échéances,
         // sinon la réponse la plus courte raccourcit l'attente de l'autre.
-        if let current = blockedUntil, current > until { return }
-        blockedUntil = until
+        if let current = blockedUntil, current > target { return }
+        blockedUntil = target
     }
 
     /// Temps d'attente restant, ou `nil` quand la voie est libre.

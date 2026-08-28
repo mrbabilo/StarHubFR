@@ -72,10 +72,12 @@ final class NexusUpdateChecker {
         return rateLimitGate.isBlocked()
     }
 
-    /// Enregistre un 429 pour tous les chemins réseau à la fois.
-    private func noteRateLimit(retryAfter: TimeInterval) {
+    /// Enregistre un 429 pour tous les chemins réseau à la fois. Le quota
+    /// relevé sur la même réponse accompagne : une fenêtre épuisée avec sa
+    /// remise à zéro y vaut plus que le `Retry-After` plafonné (B2-T8).
+    private func noteRateLimit(retryAfter: TimeInterval, quota: NexusQuota?) {
         rateLimitLock.lock()
-        rateLimitGate.note(retryAfter: retryAfter)
+        rateLimitGate.note(retryAfter: retryAfter, quota: quota)
         rateLimitLock.unlock()
     }
 
@@ -99,9 +101,10 @@ final class NexusUpdateChecker {
     /// bannissement au lieu de l'attendre.
     private func noteRateLimitIfThrottled(_ response: URLResponse?) {
         guard let http = response as? HTTPURLResponse else { return }
-        noteQuota(from: http)
+        let quota = noteQuota(from: http)
         guard http.statusCode == 429 else { return }
-        noteRateLimit(retryAfter: Self.parseRetryAfter(http.value(forHTTPHeaderField: "Retry-After")))
+        noteRateLimit(retryAfter: Self.parseRetryAfter(http.value(forHTTPHeaderField: "Retry-After")),
+                      quota: quota)
     }
 
     // MARK: - Quota (B2-T6)
@@ -121,13 +124,14 @@ final class NexusUpdateChecker {
     /// Une réponse sans ces en-têtes (la patte CDN d'un téléchargement, par
     /// exemple) ne dit **rien** du quota : `NexusQuota.init?` rend `nil` et la
     /// mesure précédente reste en place, plutôt que d'être écrasée par un zéro.
-    func noteQuota(from response: HTTPURLResponse) {
+    @discardableResult
+    func noteQuota(from response: HTTPURLResponse) -> NexusQuota? {
         var headers: [String: String] = [:]
         for (key, value) in response.allHeaderFields {
             guard let key = key as? String else { continue }
             headers[key] = String(describing: value)
         }
-        guard let quota = NexusQuota(headers: headers) else { return }
+        guard let quota = NexusQuota(headers: headers) else { return nil }
 
         // Le quota décrit un compte. Une réponse partie avant `clearApiKey()`
         // et arrivée après ne doit pas ressusciter celui du compte retiré :
@@ -135,8 +139,8 @@ final class NexusUpdateChecker {
         // métadonnées ne s'applique pas ici — elle suppose de connaître la
         // génération au *départ* de la requête, que ce chemin générique, appelé
         // depuis n'importe quelle réponse, n'a pas.)
-        guard apiKey()?.isEmpty == false else { return }
-        guard let data = try? JSONEncoder().encode(quota) else { return }
+        guard apiKey()?.isEmpty == false else { return nil }
+        guard let data = try? JSONEncoder().encode(quota) else { return nil }
         UserDefaults.standard.set(data, forKey: Self.cachedQuotaKey)
         // Sur le fil principal : `NotificationCenter.post` délivre de façon
         // synchrone sur le fil qui poste, et `.onReceive` ne change pas de file.
@@ -147,6 +151,7 @@ final class NexusUpdateChecker {
         DispatchQueue.main.async {
             NotificationCenter.default.post(name: Self.quotaDidChange, object: nil)
         }
+        return quota
     }
 
     // MARK: - Compte (premium ou non)
@@ -503,10 +508,10 @@ final class NexusUpdateChecker {
             }
             // Relevé du quota avant tout aiguillage : c'est le 429 qui porte le
             // « 0 restant », le chiffre qui compte le plus (B2-T6).
-            self.noteQuota(from: http)
+            let quota = self.noteQuota(from: http)
             if http.statusCode == 429 {
                 let retry = Self.parseRetryAfter(http.value(forHTTPHeaderField: "Retry-After"))
-                self.noteRateLimit(retryAfter: retry)
+                self.noteRateLimit(retryAfter: retry, quota: quota)
                 completion(.rateLimited(retryAfter: retry))
                 return
             }
