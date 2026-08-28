@@ -12,6 +12,11 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Changed
+- **Les réglages d'un mod s'affichent dans l'ordre où son auteur les a écrits**, plus par ordre alphabétique — qui séparait des options faites pour aller ensemble (`BigSilo_BuildCost` atterrissait à côté de `BigSilo`, loin du groupe où l'auteur l'avait rangé). 363 des 462 configurations du parc étaient réordonnées.
+- **Modifier un réglage ne réécrit plus tout le fichier.** Seule la valeur touchée change ; le reste garde la forme exacte que l'auteur lui a donnée, `1.50` compris. Un fichier de configuration écrit avec des commentaires ou une virgule traînante s'ouvre désormais au lieu d'afficher « Format JSON invalide » : c'est ce que le jeu accepte lui-même.
+- **L'enregistrement met la configuration précédente dans les sauvegardes de configurations** — datée et visible depuis leur écran — au lieu de déposer un `config.json.bak` dans le dossier du mod ; y compris quand le mod est en pause. « Restaurer la configuration » charge la version sauvegardée dans l'éditeur : c'est « Enregistrer » qui l'applique, après avoir mis l'actuelle à l'abri.
+
 ## [1.25.0] - 2026-08-28
 
 ### Added

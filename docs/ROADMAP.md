@@ -641,8 +641,11 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       schéma, 301 n'en ont pas, 14 sont illisibles** (compté en Swift, pas déduit du
       relevé Python — l'arbre a sa propre tolérance). Les confondre afficherait des clés
       brutes sans explication aux 14, et un avertissement injustifié aux 301.
-      **Reste à faire** : brancher le schéma sur `ModConfigEditorView` — ce qui suppose
-      **C4-T5** d'abord, l'écran étant encore sur `JSONSerialization`.
+      **Reste à faire** : brancher le schéma sur `ModConfigEditorView`. Le préalable
+      **C4-T5 est levé** (livré le 2026-08-28) : l'écran lit désormais le fichier par
+      `ConfigJSONTree`, dans l'ordre de l'auteur, et ses options passent par
+      `ConfigEditorModel.Control` — le schéma vient s'y greffer (libellé, section,
+      description, liste de valeurs admises) sans retoucher la lecture.
 - [ ] **C4-T1** — *(voie secondaire — pour les mods C#, qui n'ont pas de schéma)*
       Étiqueter les champs de `config.json` avec les libellés `config.*` que le mod publie
       dans son `i18n/` (en FR si disponible), au lieu des clés brutes. · **M**
@@ -661,7 +664,7 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       pour en tirer une règle.)*
       Aujourd'hui `ModConfigEditorView.swift:6` affiche `keyPath.joined(separator: " > ")` :
       la clé brute, pour tous.
-- [ ] **C4-T5** — `§audit-config-menus` — **Sortir l'éditeur de `JSONSerialization`.**
+- [x] **C4-T5** — `§audit-config-menus` — **Sortir l'éditeur de `JSONSerialization`.**
       Défaut indépendant des menus de config, trouvé en instruisant C4-T3, et le plus
       coûteux des trois : `ModConfigEditorView` lit et réécrit le `config.json` avec
       `JSONSerialization` alors que **`ConfigJSONTree` existe dans Core, testé, et
@@ -689,6 +692,38 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       ⚠️ **Vérification humaine obligatoire** : c'est du code de vue, hors de portée de
       `swift test` ; le seul gate automatique est la compilation, et tout l'enjeu est un
       comportement d'écran. Ne pas livrer sur « ça compile ».
+      ✅ **Livré le 2026-08-28** — la logique est sortie de l'écran vers
+      `Models/ConfigEditorModel.swift` (Core, 24 tests) plutôt que réécrite dans la vue :
+      c'est le seul filet automatique possible ici. `ModConfigBackupManager` gagne
+      `onlyEnabled:` et `mostRecentBackedUpFile` (5 tests). 1598 tests, gate `EXIT=0`.
+      **Confronté au parc, pas aux seules fixtures** : les **462** `config.json` de
+      premier niveau sont lus, leurs **11 891 valeurs réappliquées telles quelles**,
+      **0 écriture refusée, 0 aller-retour cassé**, et **0 fichier** dont l'ordre affiché
+      diffère de l'ordre du fichier.
+      ⚠️ **Deux des quatre points sont des durcissements, pas des correctifs de son
+      vécu** — mesuré avant d'écrire : **0** `config.json` de premier niveau du parc est
+      en JSON5, et **0** dossier n'est en lecture seule (rien à faire côté X7 ici). Le
+      gain chiffré est ailleurs : **363 des 462** fichiers ont un ordre d'auteur
+      différent de l'alphabet.
+      ▸ **Ce que la migration a révélé et qui n'était pas au repérage** : l'éditeur
+      s'ouvre aussi sur un mod **en pause**, et c'est le cas **majoritaire** — **379 des
+      462** mods à `config.json` sont en pause. `createBackup` filtrait `isEnabled` et
+      aurait levé `noEnabledMods` huit fois sur dix, laissant l'enregistrement sans
+      filet ; d'où `onlyEnabled:`, et la lecture par `physicalFolderName`.
+      ▸ **Un changement de comportement à valider à l'écran** : « Restaurer la
+      configuration » **charge** la sauvegarde dans l'éditeur au lieu d'écraser le
+      fichier sur-le-champ — c'est « Enregistrer » qui écrit, après avoir mis la version
+      actuelle à l'abri. Les `config.json.bak` déjà déposés restent lisibles en second
+      recours.
+      ▸ **Ce que T5 seul ne donne pas** : sur `[CP] More Upgrades`, l'écran montre 87
+      clés **en ordre d'auteur mais toujours à plat**. Les 15 sections et les 75
+      descriptions viennent du `ConfigSchema` — c'est **C4-T4**, dont le socle est livré
+      et le branchement reste à faire.
+      ▸ **Angle mort connu, hors parc** : `physicalFolderName` préfixe le point au
+      **chemin entier** (`.Pack/Composant`), donc un *composant* de pack mis en pause
+      serait cherché au mauvais endroit — par l'éditeur comme par la sauvegarde, qui
+      restent au moins cohérents. Zéro cas sur le parc (un seul dossier pointé imbriqué,
+      et c'est un `.config`).
 - [ ] **C4-T2** — Champs de raccourcis clavier : validation des noms `SButton`, détection
       des collisions entre mods. · **M**
       `§audit-config-menus` : la tâche est confirmée par l'existence de
