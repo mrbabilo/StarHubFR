@@ -137,4 +137,16 @@ struct CompatibilityNoteTests {
         let note = CompatibilityNote.find(in: blocks)
         #expect(note?.blocks == [.text("foo"), .text("more conflict detail")])
     }
+
+    /// **La condition de débordement, attestée.** Quand un gras isolé ferme la
+    /// section **à l'intérieur** du bloc ouvreur, les blocs suivants ne lui
+    /// appartiennent pas : ils viennent après une autre section. Sans ce test,
+    /// remplacer la condition par `true` ne ferait échouer personne.
+    @Test func aSectionClosedInsideItsBlockDoesNotSpillOver() throws {
+        let blocks: [DescriptionBlock] = [
+            .text("**Compatibility:**\na\n**Credits:**\nb"),
+            .list(items: ["ne doit pas être repris"], ordered: false),
+        ]
+        #expect(CompatibilityNote.find(in: blocks)?.blocks == [.text("a")])
+    }
 }
