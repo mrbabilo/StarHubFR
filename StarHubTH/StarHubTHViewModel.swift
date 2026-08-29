@@ -300,7 +300,34 @@ class StarHubTHViewModel: ObservableObject {
         didSet {
             categoryCache.removeAll()
             recomputeFrenchCoverage()
+            // Le parc est connu ici, avant même qu'on ouvre l'onglet Alertes
+            // système — c'est ce qui rend le compte de la pastille (tâche 7)
+            // vrai sans avoir ouvert la section. `scanIfNeeded` est sûr à
+            // appeler souvent : il compare une signature du parc à celle de
+            // son dernier scan et ne relance que si elle a changé, ou s'il
+            // n'y a pas encore de rapport (il refuse déjà de scanner sans
+            // `gameDir` — pas de deuxième garde ici). `Task { @MainActor … }`,
+            // comme `recomputeFrenchCoverage()` juste au-dessus pour
+            // `reloadOutdatedKeyIndex()` : cette classe n'est pas elle-même
+            // `@MainActor`, et `KeybindScanService` l'est.
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.keybindScanService.scanIfNeeded(mods: self.mods, gameDir: self.gameDir)
+            }
         }
+    }
+
+    /// Compte les problèmes de raccourcis (collisions + conflits jeu) pour
+    /// les pastilles de la barre latérale et de l'accueil (tâche 7) — les
+    /// « non reconnus » n'y entrent pas, ce sont des valeurs illisibles, pas
+    /// des problèmes avérés. Zéro tant qu'aucun rapport n'existe : une
+    /// pastille qui n'a pas encore la réponse n'invente pas de chiffre.
+    /// `@MainActor` explicite comme `reloadOutdatedKeyIndex()` juste en
+    /// dessous : `keybindScanService` est isolé à l'acteur principal, cette
+    /// classe ne l'est pas.
+    @MainActor
+    var keybindProblemCount: Int {
+        keybindScanService.report?.problemCount ?? 0
     }
 
     /// Couverture française par mod, indexée par `folderName`. Absente tant

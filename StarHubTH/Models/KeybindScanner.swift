@@ -120,6 +120,12 @@ public enum KeybindScanner {
         /// muette est un mensonge par omission — la vue doit pouvoir le
         /// dire.
         public var catalogModsIgnored: [String]
+
+        /// Problèmes avérés : collisions entre mods plus conflits avec un
+        /// contrôle du jeu. Les « non reconnus » n'y entrent pas — ce sont
+        /// des valeurs illisibles, pas des problèmes avérés (tâche 7, pour
+        /// la pastille de la barre latérale et de l'accueil).
+        public var problemCount: Int { collisions.count + gameConflicts.count }
     }
 
     /// R1/R2/R3 — la règle gelée par la mesure (spec §6 + son constat) :

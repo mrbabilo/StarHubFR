@@ -4,6 +4,11 @@ struct HomeView: View {
     @ObservedObject var vm: StarHubTHViewModel
     @ObservedObject var smapiInstaller: SmapiInstaller
     @ObservedObject private var bisection: BisectionRunner
+    // Observé séparément, comme `smapiInstaller`/`bisection` juste au-dessus :
+    // `report` est publié par `KeybindScanService`, un `ObservableObject`
+    // distinct de `vm` — sans cet abonnement, la bande d'attention ne se
+    // redessinerait jamais quand le scan de raccourcis termine (tâche 7).
+    @ObservedObject private var keybindScanService: KeybindScanService
     /// L'onglet courant de `MainView` : les compteurs de la bande mènent
     /// chacun à sa page, et un accueil qui les affiche sans y conduire ne
     /// ferait que constater.
@@ -16,6 +21,7 @@ struct HomeView: View {
         self.vm = vm
         self.smapiInstaller = vm.smapiInstaller
         self.bisection = vm.bisection
+        self.keybindScanService = vm.keybindScanService
         self._currentTab = currentTab
     }
 
@@ -54,9 +60,14 @@ struct HomeView: View {
     /// Les quatre chiffres qui décident de la suite. Toujours les quatre,
     /// zéros compris : un « 0 alerte » se lit, une absence ne se lit pas.
     private var attentionStrip: some View {
+        // Les conflits de raccourcis se fondent dans ce compteur existant
+        // plutôt que d'en créer un cinquième (brief tâche 7) : `HomeAttention`
+        // résout un niveau à partir d'un compte qu'on lui donne, il ne décide
+        // pas de ce qui compose « alertes » — c'est déjà le rôle de cet
+        // appelant pour `vm.smapiErrors.count` seul.
         let counters = HomeAttention.counters(
             updates: vm.outOfDateMods.count + vm.nexusUpdates.count,
-            alerts: vm.smapiErrors.count,
+            alerts: vm.smapiErrors.count + vm.keybindProblemCount,
             quarantined: vm.lastRepairReport?.quarantined.count ?? 0,
             mods: vm.mods.count)
         return HStack(spacing: AppDesign.Spacing.md) {

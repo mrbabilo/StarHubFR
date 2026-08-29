@@ -110,6 +110,26 @@ struct KeybindScannerTests {
         #expect(r1.keybindCount == 1)
     }
 
+    @Test func problemCountSumsCollisionsAndGameConflictsButNotUnrecognized() {
+        // Une collision entre deux mods…
+        let a = mod1
+        let b = KeybindScanner.ModScan(id: "b.Mod2", name: "Mod 2", isActive: true,
+                                       tree: tree(["Shortcut": .string("F8 + LeftControl")]))
+        // …un conflit avec un contrôle du jeu (W = moveUp, bouton unique)…
+        let w = KeybindScanner.ModScan(id: "w.Mod", name: "W Mod", isActive: true,
+                                       tree: tree(["Hotkey": .string("W")]))
+        // …et un raccourci non reconnu, qui ne doit pas gonfler le compte
+        // (tâche 7 : ce sont des valeurs illisibles, pas des problèmes avérés).
+        let garbage = KeybindScanner.ModScan(id: "g.Mod", name: "Garbage", isActive: true,
+                                             tree: tree(["openKey": .string("ctrl+H")]))
+        let r = KeybindScanner.report(mods: [a, b, w, garbage])
+        #expect(r.collisions.count == 1)
+        #expect(r.gameConflicts.count == 1)
+        #expect(r.unrecognized.isEmpty == false)
+        #expect(r.problemCount == r.collisions.count + r.gameConflicts.count)
+        #expect(r.problemCount == 2)
+    }
+
     // — Heuristique durcie (règle gelée, constat 2026-08-28)
     @Test func numericOriginIsNeverR2() {
         // Entier JSON, chaîne numérique, tableau d'entiers : jamais sans nom.

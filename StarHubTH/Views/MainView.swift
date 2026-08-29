@@ -2,8 +2,18 @@ import SwiftUI
 
 struct MainView: View {
     @ObservedObject var vm: StarHubTHViewModel
+    // Observé séparément (même patron que `smapiInstaller`/`bisection` dans
+    // HomeView) : `report` est publié par `KeybindScanService`, un
+    // `ObservableObject` distinct — sans cet abonnement, la pastille ne se
+    // redessinerait jamais quand le scan termine (tâche 7).
+    @ObservedObject private var keybindScanService: KeybindScanService
     @State private var currentTab: String = "Home"
-    
+
+    init(vm: StarHubTHViewModel) {
+        self.vm = vm
+        self.keybindScanService = vm.keybindScanService
+    }
+
     // History Management
     @State private var tabHistory: [String] = ["Home"]
     @State private var forwardHistory: [String] = []
@@ -101,7 +111,7 @@ struct MainView: View {
                     // installation ne dit rien de l'après.
                     SidebarItem(icon: "exclamationmark.triangle.fill",
                                 label: vm.L(L10n.Main.systemAlerts), tab: "SystemAlerts",
-                                badge: vm.smapiErrors.count, badgeColor: .orange,
+                                badge: vm.smapiErrors.count + vm.keybindProblemCount, badgeColor: .orange,
                                 currentTab: $currentTab)
 
                     // Idem : l'entrée n'apparaissait autrefois qu'avec des
