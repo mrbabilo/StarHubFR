@@ -101,7 +101,7 @@ portée dans la colonne de droite.
 | §1 | Refonte du log SMAPI façon *Log Doctor* | **Fait** | `Models/SmapiLogDiagnostics.swift`, `Views/Components/SmapiHealthCard.swift`, v1.9.x–1.10.0 |
 | §1 | Optimiser l'affichage des ~2000 lignes | **Fait** | `LazyVStack` + repliement par famille (`Models/LogNoise.swift`), v1.10.0 |
 | §1 | Signaler les mods incompatibles (`smapi.io/mods`) | **Fait** | L'API live est branchée (**A2-T1**) et son verdict s'affiche — fiche, carte de santé, et confirmation avant activation ou installation (**A2-T2**) |
-| **§ajout** | Signaler les incompatibilités **entre mods** | **À faire** | Demandé le 2026-08-29. Autre axe que la ligne ci-dessus, qui ne couvre que mod ↔ SMAPI. Mesuré : 83 cibles `Load` disputées, 18 paires → **A5** |
+| **§ajout** | Signaler les incompatibilités **entre mods** | **À faire** | Demandé le 2026-08-29. Autre axe que la ligne ci-dessus, qui ne couvre que mod ↔ SMAPI. Mesuré après décompilation de Content Patcher : **3** paires certaines, toutes dormantes ; le journal de CP et le signalement utilisateur passent devant → **A5** |
 | **§ajout** | Déclarer une traduction posée hors de l'app | **À faire** | Demandé le 2026-08-29. Mesuré : 310 des 313 traductions posées à la main sont inconnues du registre → **A3-T6** |
 | §1 | Activer automatiquement les dépendances | **Partiel** | `DependencyTreeView.swift:124` : bouton **Activer** par nœud. Manque l'action groupée → **A1-T1** |
 | §1 | Détecter un `manifest.json` corrompu, proposer une réinstallation | **Partiel** | `ModFolderRepairer.swift` répare des structures de dossiers, pas des manifests invalides → **A1-T2** |
@@ -1789,36 +1789,82 @@ backup se retrouve en moins de dix secondes.
 Trois choses existent déjà et ne sont **pas** à refaire : les collisions de raccourcis
 (**C4-T2**), les doublons d'`UniqueID` (`ModDuplicateIndex`), et le verdict de
 compatibilité **mod ↔ SMAPI** (**A2**). Ce qui manque est l'autre axe : **deux mods qui
-réclament la même ressource**, ce que ni SMAPI ni Nexus ne disent.
+réclament la même ressource**, ce que ni SMAPI ni le manifeste ne disent.
 
-> 🧪 **Mesuré sur le parc le 2026-08-29** — 1030 mods (125 actifs, 905 en pause),
-> 536 `content.json`, dont **477 lus** et **59 illisibles même en tolérant commentaires
-> et virgules traînantes** (angle mort à traiter, pas à taire). Sur 1358 cibles `Load`
-> lisibles : **83 cibles réclamées par au moins deux mods, 18 paires de mods**. Trois
-> retextures de chien se disputent `animals/dog`, quatre mods se disputent
-> `data/events/adventureguild`. **258 cibles portent un jeton `{{…}}`** et sont hors de
-> portée d'une lecture statique — 16 % d'angle mort assumé.
+> 🧪 **Deux spikes, 2026-08-29 — et ils ont retourné l'ordre des tâches.**
 >
-> 🔴 **Le chiffre qui décide de la forme : sur le profil actif, zéro.** Les 18 paires
-> vivent entre mods en pause. Une pastille permanente n'afficherait donc **rien** et
-> passerait pour cassée. La fonctionnalité n'a de sens qu'**au moment de composer** :
-> à l'activation d'un mod, et à la lecture d'un profil.
+> **Ce que Content Patcher fait vraiment** (décompilation IL `ikdasm` de
+> `ContentPatcher.dll`, méthode d'`audit-config-menus.md`). Sa propre phrase :
+> *« Two content packs want to load the 'X' asset with the `Exclusive` priority
+> (A and B). **Neither will be applied.** »* Trois enseignements :
+> 1. **aucun des deux ne s'applique** — l'asset reste vanilla ; ce n'est pas
+>    « le second perd » ;
+> 2. le conflit ne vaut que pour la priorité `Exclusive`. Vérifié des deux côtés :
+>    `AssetLoadPriority.Exclusive = 0x7FFFFFFF` dans SMAPI, et
+>    `PatchLoader::TryParsePriority` reçoit exactement ce défaut — **un `Load` sans
+>    `Priority` est exclusif**, un `Load` qui en déclare une ne l'est plus ;
+> 3. **Content Patcher journalise cette phrase**, mot pour mot.
+>
+> **Ce que l'analyse statique donne vraiment.** L'estimation est passée par
+> **18 → 6 → 12 → 3** au fil des vérifications, chacune la corrigeant à la baisse :
+>
+> | | cibles `Load` lisibles | paires |
+> | :-- | --: | --: |
+> | `content.json` seuls, sans les conditions | 1 358 | 18 |
+> | en écartant les revendications conditionnelles | 1 358 | 6 |
+> | en suivant les `Include` (**273 des 536 packs en usent**) | **8 207** | 12 |
+> | en tenant compte de `Priority` (**812 patches en déclarent une**) | 8 207 | **3** |
+>
+> Les trois paires réelles ont toutes au moins un côté en pause : sur le profil
+> actif, **zéro**. Angles morts comptés : 31 `Include` vers un fichier absent
+> (3 mods), 339 fichiers illisibles, 1 280 cibles à jetons `{{…}}`.
+>
+> **Ce que les auteurs déclarent** (200 descriptions Nexus tirées au sort) :
+> 30 mentionnent la compatibilité, **6 nomment un mod précis**, 2 à 3 de ces mods
+> sont installés → extrapolé, 8 à 11 paires sur le parc. Un cas vivant :
+> « Make Gunther Real » écrit *« inherently NOT compatible with SVE »*, et
+> `[CP] Stardew Valley Expanded` est actif. Mais un regex naïf a **20 % de
+> précision** (24 des 30 mentions désignent une catégorie, ou sont des négations),
+> et l'ancrage par lien Nexus échoue : les liens voisins d'une mention sont
+> surtout la liste des mods **compatibles**.
+>
+> 🔴 **Conséquence sur l'ordre.** L'analyse statique est la seule qui *prévient*,
+> mais elle coûte le plus cher (récursion des `Include`, sémantique des priorités,
+> 13 Mo de JSON) pour **trois paires dormantes**. Elle passe donc en dernier.
 
-- [ ] **A5-T1** — **Lire les cibles réclamées** : `Action: Load` et sa `Target` dans les
-      `content.json` des packs Content Patcher, deux `Load` sur la même cible étant le
-      seul conflit **certain** (Content Patcher refuse lui-même le second). Pur calcul,
-      donc en Core avec ses tests, comme `KeybindScanner`. Les cibles à jetons sont
-      **comptées et annoncées**, jamais devinées. · **M**
-- [ ] **A5-T2** — **Le dire au moment utile** : avertissement avant d'activer un mod qui
-      dispute une cible à un mod déjà actif, et rapport par profil — même forme que le
-      rapport de raccourcis, dont il partage la question (« qu'est-ce qui se marche
-      dessus dans ce profil ? »). · **M** · *dépend d'A5-T1*
-- [ ] **A5-T3** — **Élargir le signal**, une source à la fois et chacune mesurée avant
-      d'être codée : les 59 `content.json` illisibles, les cibles à jetons, et les
+- [ ] **A5-T1** — **Lire les conflits que Content Patcher journalise.** Il écrit la
+      phrase exacte quand deux packs se disputent un asset exclusif ; `SmapiLogParser`
+      lit déjà le journal. Zéro faux positif — c'est Content Patcher qui a raison, pas
+      une déduction — et ça couvre tous les conflits, pas seulement les `Load`.
+      Limite à dire à l'écran : **ça constate, ça ne prévient pas** ; il faut avoir
+      joué avec les deux mods actifs. · **S**
+- [ ] **A5-T2** — **Signaler soi-même une incompatibilité, ou en écarter une.** La
+      prévention que le journal ne donne pas. Magasin de verdicts sur des paires **non
+      ordonnées**, clé `folderName` logique (111 mods du parc n'ont pas d'`UniqueID`,
+      et le nom logique survit à la mise en pause), chaque verdict portant
+      `déclarée` ou `écartée`, une note et une date. Persisté comme le registre des
+      traductions. Alimente le rapport **et** l'avertissement à l'activation, greffé
+      sur `vm.activationWarning(for:)` — le crochet qui existe déjà pour les mods que
+      smapi.io signale cassés. Un verdict orphelin (mod désinstallé) se dit, ne se
+      jette pas. · **M**
+- [ ] **A5-T3** — **Le paragraphe de compatibilité de l'auteur, sur la fiche.** 15 %
+      des mods en écrivent un ; l'app cache déjà les descriptions et sait rendre le
+      BBCode. **Aucune extraction de paires** : on remonte la phrase, l'utilisateur
+      juge. C'est le seul usage honnête d'un signal à 20 % de précision, et il capte
+      aussi les mentions « catégorie » qu'une extraction jetterait. · **S**
+- [ ] **A5-T4** — **L'analyse statique des cibles disputées** — repoussée, et cadrée
+      par le spike : suivre les `Include` récursivement (garde anti-boucle, fichiers
+      absents comptés), lire `Priority`, ne tenir pour **certain** que deux `Load`
+      inconditionnels et exclusifs sur la même cible. Réutiliser `ConfigJSONTree.parse`
+      (analyseur tolérant déjà écrit pour C4) plutôt qu'un second lecteur JSON. La
+      signature de scan doit inclure la **date de modification** des `content.json` :
+      une mise à jour de mod les réécrit sans changer ni le nom du dossier ni son
+      état. · **L**
+- [ ] **A5-T5** — **Élargir le signal**, une source à la fois et chacune mesurée avant
+      d'être codée : les 339 fichiers illisibles, les 1 280 cibles à jetons, et les
       `EditData`/`EditImage` sur une même entrée. · **L** ·
       ⚠️ *Deux `EditImage` sur la même cible **se composent** le plus souvent : crier au
-      conflit là où Content Patcher compose ferait plus de bruit que de service. Ne
-      remonter que ce qui est certain tant qu'une mesure ne dit pas le contraire.*
+      conflit là où Content Patcher compose ferait plus de bruit que de service.*
 
 **Critère de succès** : passer de « ce mod a planté » à « ce mod est cassé depuis
 SMAPI 3.0, voici son remplaçant » — et, avant d'activer un mod, savoir ce qu'il va
