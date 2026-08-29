@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.27.0] - 2026-08-29
+
 ### Added
 - **Les raccourcis clavier qui se marchent dessus se voient.** Un rapport lit les touches que déclarent les mods installés — 141 liaisons sur les 92 mods actifs — et signale les **18 collisions** entre mods et les **11 conflits avec les touches du jeu**. La pastille « Alertes système » les compte.
 - **La fiche d'un mod montre ses propres conflits de touches**, et un bouton mène droit à la configuration à corriger — depuis la fiche comme depuis le rapport.
