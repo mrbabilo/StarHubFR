@@ -1675,6 +1675,23 @@ class StarHubTHViewModel: ObservableObject {
         pendingTranslationFocus = folderName
         viewingModDetail = mod
     }
+
+    /// Ouvre l'éditeur de configuration d'un mod **depuis un autre onglet**
+    /// (le rapport de raccourcis, sur les Alertes système), par dossier
+    /// logique. La bascule vers « Mods » remet `editingModConfig` à nil
+    /// (piège documenté dans `MainView`) : la demande passe donc par
+    /// `pendingConfigFocus`, reconstitué dans le `onChange` **après** la
+    /// remise à zéro — même patron que `pendingTranslationFocus`. Rend
+    /// `false` sans rien poser quand le mod n'est plus dans le parc : le
+    /// rapport peut être périmé (mod désinstallé depuis le scan), et
+    /// l'appelant n'a alors pas de raison de changer d'onglet.
+    @MainActor
+    func openModConfig(forFolder folderName: String) -> Bool {
+        guard mods.flattenedMods.contains(where: { $0.folderName == folderName })
+        else { return false }
+        pendingConfigFocus = folderName
+        return true
+    }
     /// Cache for `category(for:)`, invalidated whenever `mods`,
     /// `nexusCategories`, `nexusCustomCategories`, or `nexusCustomModIds`
     /// change. Without it, a group's dominant-category scan over its
@@ -3455,6 +3472,14 @@ class StarHubTHViewModel: ObservableObject {
     /// La fiche le consomme à son apparition ; il ne survit pas au passage
     /// d'un mod à l'autre.
     @Published var pendingTranslationFocus: String? = nil
+
+    /// Le mod dont l'**éditeur de configuration** doit s'ouvrir après un
+    /// changement d'onglet, par dossier logique. Posé par le rapport de
+    /// raccourcis (Alertes système, T8) ; consommé et effacé par le
+    /// `onChange` de `MainView` après sa remise à zéro des états de détail —
+    /// poser `editingModConfig` avant la bascule ne sert à rien, la remise à
+    /// zéro l'efface aussitôt (même piège que `pendingTranslationFocus`).
+    @Published var pendingConfigFocus: String? = nil
 
     /// Cadrage de la liste des mods : recherche, filtres, tri, page courante.
     ///

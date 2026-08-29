@@ -1,8 +1,9 @@
 import SwiftUI
 
 /// Le rapport de raccourcis, en section de l'onglet Alertes système
-/// (spec §8). MVP lecture seule : aucun lien vers l'éditeur — le
-/// changement d'onglet remet les états de détail à nil (piège connu).
+/// (spec §8). Chaque ligne de mod cité mène à son éditeur de configuration
+/// (`configButton`) : signaler un conflit sans permettre d'y remédier
+/// laissait l'utilisateur retrouver le mod à la main dans la liste.
 ///
 /// Écarts au canevas du brief (mesure de la tâche 0) :
 /// - Groupes repliés (`DisclosureGroup`) au lieu d'une liste plate : le parc
@@ -33,10 +34,14 @@ import SwiftUI
 struct KeybindReportSection: View {
     @ObservedObject var vm: StarHubTHViewModel
     @ObservedObject var service: KeybindScanService
+    /// La bascule d'onglet fait partie du geste « ouvrir la config » : le
+    /// bouton d'une ligne vit sur les Alertes système, l'éditeur sur Mods.
+    @Binding var currentTab: String
 
-    init(vm: StarHubTHViewModel) {
+    init(vm: StarHubTHViewModel, currentTab: Binding<String>) {
         self.vm = vm
         self.service = vm.keybindScanService
+        self._currentTab = currentTab
     }
 
     /// Sous ce compte, un groupe s'ouvre par défaut ; au-dessus, il reste
@@ -186,9 +191,46 @@ struct KeybindReportSection: View {
     /// `KeybindScanner`, sous `swift test` — cette vue ne fait que
     /// formater le résultat.
     private func groupedUseLine(_ use: KeybindScanner.GroupedUse) -> some View {
-        Text("· \(use.modName) (\(use.keyPaths.map { $0.joined(separator: ".") }.joined(separator: ", ")))")
-            .font(.system(size: 12)).foregroundColor(.secondary)
-            .lineLimit(1).truncationMode(.middle)
+        HStack(spacing: AppDesign.Spacing.xs) {
+            Text("· \(use.modName) (\(use.keyPaths.map { $0.joined(separator: ".") }.joined(separator: ", ")))")
+                .font(.system(size: 12)).foregroundColor(.secondary)
+                .lineLimit(1).truncationMode(.middle)
+            configButton(modID: use.modID)
+        }
+    }
+
+    /// Le chemin vers la config du mod cité par une ligne du rapport. La
+    /// demande doit traverser le changement d'onglet, qui remet
+    /// `editingModConfig` à nil (piège documenté dans `MainView`) : elle
+    /// passe par `vm.pendingConfigFocus`, consommé dans le `onChange`
+    /// **après** la remise à zéro — même patron que
+    /// `pendingTranslationFocus`. Glyphe seul, donc cible de 18×18 avec
+    /// `contentShape` : un glyph de 11 pt est plus petit que le curseur
+    /// immobile qu'exige macOS pour une infobulle, défaut déjà payé dans
+    /// la liste (note du glyph `note.text` dans `ModListView`).
+    ///
+    /// `.fixedSize` + `.layoutPriority(1)` : en fenêtre étroite c'est le
+    /// texte de la ligne qui tronque (son `lineLimit` + `truncationMode`
+    /// restent maîtres), jamais le bouton qui rétrécit.
+    private func configButton(modID: String) -> some View {
+        Button {
+            if vm.openModConfig(forFolder: modID) {
+                currentTab = "Mods"
+            }
+        } label: {
+            Image(systemName: "gearshape")
+                .font(.system(size: 11))
+                .foregroundColor(.secondary)
+                .frame(width: 18, height: 18)
+                .contentShape(.rect)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .pointingHandCursor()
+        .help(vm.L(L10n.Settings.configModSettings))
+        .accessibilityLabel(vm.L(L10n.Settings.configModSettings))
+        .accessibilityHint(vm.L(L10n.Settings.configModSettingsA11yHint))
+        .fixedSize()
+        .layoutPriority(1)
     }
 
     private func collisionsGroup(_ collisions: [KeybindScanner.KeybindCollision]) -> some View {
@@ -258,9 +300,12 @@ struct KeybindReportSection: View {
                                                defaultOpen: items.count <= Self.autoExpandThreshold)) {
             VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
                 ForEach(items, id: \.self) { u in
-                    Text("· \(u.modName) · \(u.keyPath.joined(separator: ".")) = \(u.raw)")
-                        .font(.system(size: 12)).foregroundColor(.secondary)
-                        .lineLimit(1).truncationMode(.middle)
+                    HStack(spacing: AppDesign.Spacing.xs) {
+                        Text("· \(u.modName) · \(u.keyPath.joined(separator: ".")) = \(u.raw)")
+                            .font(.system(size: 12)).foregroundColor(.secondary)
+                            .lineLimit(1).truncationMode(.middle)
+                        configButton(modID: u.modID)
+                    }
                 }
             }
             .padding(.top, AppDesign.Spacing.xs)

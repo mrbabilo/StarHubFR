@@ -246,6 +246,18 @@ struct MainView: View {
                         .first { $0.folderName == folderName }
                 }
 
+                // T8 — même piège, même cure pour l'éditeur de config,
+                // demandé depuis le rapport de raccourcis (Alertes système).
+                // Contrairement à la traduction, rien ne se consomme plus
+                // tard dans la vue : l'éditeur n'a pas d'onglet à présélectionner,
+                // on l'ouvre donc ici et on efface la demande aussitôt — sans
+                // quoi chaque retour sur l'onglet la rejouerait.
+                if currentTab == "Mods", let folderName = vm.pendingConfigFocus {
+                    vm.pendingConfigFocus = nil
+                    vm.editingModConfig = vm.mods.flattenedMods
+                        .first { $0.folderName == folderName }
+                }
+
                 if !isNavigatingBackOrForward {
                     if tabHistory.last != currentTab {
                         tabHistory.append(currentTab)
@@ -975,7 +987,7 @@ struct SystemAlertsView: View {
                     .cornerRadius(12)
                 }
 
-                KeybindReportSection(vm: vm)
+                KeybindReportSection(vm: vm, currentTab: $currentTab)
             }
             .padding(30)
         }

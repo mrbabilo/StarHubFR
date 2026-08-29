@@ -326,6 +326,28 @@ struct ModDetailView: View {
                 .foregroundColor(vm.isFavorite(live) ? .yellow : .secondary)
                 .pointingHandCursor()
 
+                // La config du mod, entre le favori et la suppression : la
+                // fiche est l'écran où l'on décide du sort d'un mod, ses
+                // réglages en font partie — jusqu'ici il fallait repasser
+                // par la liste pour l'engrenage. Même prédicat que la liste
+                // (`!isGroup && hasConfigFile`) : un en-tête de pack n'a pas
+                // de config à lui. `live`, pas `mod` : l'éditeur construit
+                // ses chemins depuis `physicalFolderName`, que la mise en
+                // pause renomme — la copie figée viserait un dossier qui
+                // n'existe plus.
+                if !live.isGroup && live.hasConfigFile {
+                    Button {
+                        vm.editingModConfig = live
+                    } label: {
+                        Label(vm.L(L10n.Settings.configModSettings),
+                              systemImage: "gearshape")
+                            .font(.system(size: 12))
+                    }
+                    .buttonStyle(.borderless)
+                    .foregroundColor(.secondary)
+                    .pointingHandCursor()
+                }
+
                 // Pas de pendant au spinner de suppression de la liste : la
                 // fiche se referme dès la confirmation, personne ne le verrait.
                 // La garde sur une suppression déjà en vol, elle, reste utile.
