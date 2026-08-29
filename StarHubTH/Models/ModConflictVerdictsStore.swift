@@ -8,20 +8,16 @@ import Foundation
 /// l'utilisateur ne referait pas — une incompatibilité qu'il connaît
 /// disparaîtrait du rapport, et un faux positif qu'il a écarté y réapparaîtrait
 /// comme s'il ne l'avait jamais vu.
+///
+/// L'emplacement est **partagé** avec `InstalledTranslationStore` — on réutilise
+/// son `directory` plutôt que d'en recalculer un identique ici. Un seul dossier
+/// de données utilisateur, pas deux copies du même calcul qui pourraient un
+/// jour diverger : le dépôt a déjà payé ce prix ailleurs, avec quatre copies
+/// d'un même filtre de fichiers système dont une amputée laissait un dossier
+/// `.Spotlight-V100` s'afficher comme un mod.
 public enum ModConflictVerdictsStore {
-    /// Le même dossier `Application Support/StarHubTH/` que
-    /// `InstalledTranslationStore` — un seul emplacement pour tous les
-    /// registres de l'utilisateur, pas un second par magasin.
-    static var directory: URL? {
-        guard let base = FileManager.default.urls(for: .applicationSupportDirectory,
-                                                  in: .userDomainMask).first else { return nil }
-        let dir = base.appendingPathComponent("StarHubTH", isDirectory: true)
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir
-    }
-
     static var fileURL: URL? {
-        directory?.appendingPathComponent("mod_conflicts.json")
+        InstalledTranslationStore.directory?.appendingPathComponent("mod_conflicts.json")
     }
 
     /// Rend un magasin **vide** plutôt qu'une erreur : premier lancement,
