@@ -25,6 +25,7 @@ struct ContentPatcherConflictsTests {
     @Test func threePacksOrMore() throws {
         let found = ContentPatcherConflicts.read(from: [entry(
             "Multiple content packs want to load the 'Animals/Dog' asset with the 'Exclusive' priority ([CP] FOTP, [CP] Pet Facelift, Pets Enhanced). None will be applied. You should remove some of them.")])
+        #expect(found.count == 1)
         #expect(found.first?.packs == ["[CP] FOTP", "[CP] Pet Facelift", "Pets Enhanced"])
         #expect(found.first?.kind == .betweenPacks)
     }
@@ -64,5 +65,16 @@ struct ContentPatcherConflictsTests {
     @Test func theSameConflictIsNotReportedTwice() throws {
         let line = entry("Two content packs want to load the 'Maps/Town' asset with the 'Exclusive' priority (A and B). Neither will be applied.")
         #expect(ContentPatcherConflicts.read(from: [line, line]).count == 1)
+    }
+
+    /// **Un nom de pack qui contient « and » rend le découpage impossible.**
+    /// `(Bed and Breakfast and [CP] Simple)` se fend en trois morceaux dont deux
+    /// sont des fragments d'un même nom. Le message annonce **deux** packs : si
+    /// on n'en obtient pas deux, on ne sait pas où est la frontière, et une paire
+    /// fausse désignerait les mauvais mods. On s'abstient.
+    @Test func anAmbiguousSeparatorYieldsNothingRatherThanAWrongPair() throws {
+        let found = ContentPatcherConflicts.read(from: [entry(
+            "Two content packs want to load the 'Maps/Town' asset with the 'Exclusive' priority (Bed and Breakfast and [CP] Simple). Neither will be applied.")])
+        #expect(found.isEmpty)
     }
 }

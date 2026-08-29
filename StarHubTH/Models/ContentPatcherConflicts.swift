@@ -13,6 +13,11 @@ import Foundation
 /// applied »* — **aucun des deux**, l'asset reste vanilla. La priorité
 /// `Exclusive` est le défaut : `AssetLoadPriority.Exclusive = 0x7FFFFFFF` et
 /// `PatchLoader::TryParsePriority` reçoit exactement cette valeur.
+///
+/// **Limite connue** : un nom de mod contenant le séparateur (« and » ou « , »)
+/// rend le découpage impossible. La forme « Multiple » hérite de cette fragilité
+/// si un pack se nomme avec une virgule, mais rien n'y remédie sans amener du
+/// faux positif.
 struct LoadConflict: Equatable, Hashable {
     enum Kind: Equatable, Hashable {
         /// Deux content packs ou plus se disputent la cible.
@@ -34,7 +39,7 @@ enum ContentPatcherConflicts {
     /// ⚠️ **`LogSource` ne connaît que `.app` et `.smapi`** : il n'y a pas de
     /// source par mod. C'est `LogEntry.modName` qui porte le nom, extrait du
     /// contexte entre crochets (`[15:55:04 ERROR Content Patcher]`).
-    static let source = "Content Patcher"
+    private static let source = "Content Patcher"
 
     /// Les conflits que le journal rapporte, sans doublon et dans l'ordre de
     /// lecture.
@@ -55,7 +60,7 @@ enum ContentPatcherConflicts {
     static func parse(_ message: String) -> LoadConflict? {
         if let c = between(message,
                            after: "Two content packs want to load the '",
-                           separator: " and ") { return c }
+                           separator: " and ", exactly: 2) { return c }
         if let c = between(message,
                            after: "Multiple content packs want to load the '",
                            separator: ", ") { return c }
@@ -64,7 +69,7 @@ enum ContentPatcherConflicts {
 
     /// `… want to load the '<asset>' asset with the 'Exclusive' priority (<packs>)…`
     private static func between(_ message: String, after prefix: String,
-                                separator: String) -> LoadConflict? {
+                                separator: String, exactly: Int? = nil) -> LoadConflict? {
         guard message.hasPrefix(prefix) else { return nil }
         let rest = message.dropFirst(prefix.count)
         guard let assetEnd = rest.range(of: "' asset with the 'Exclusive' priority (")
@@ -76,6 +81,13 @@ enum ContentPatcherConflicts {
             .components(separatedBy: separator)
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
+        /// Si une arité exacte est attendue, on s'abstient si le découpage n'y correspond pas.
+        /// Un nom de pack contenant le séparateur rend impossible de savoir où se fait la
+        /// frontière : une paire fausse qui désigne les mauvais mods est pire qu'une paire
+        /// tue. Par exemple, le message « Two content packs » dit littéralement deux, et
+        /// si `components(separatedBy:)` en rend trois, on ne peut pas savoir duquel
+        /// assembler ; on rend `nil` plutôt qu'une fausse attribution.
+        if let expected = exactly, packs.count != expected { return nil }
         guard packs.count > 1, !asset.isEmpty else { return nil }
         return LoadConflict(asset: asset, packs: packs, kind: .betweenPacks)
     }
