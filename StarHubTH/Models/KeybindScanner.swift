@@ -64,6 +64,39 @@ public enum KeybindScanner {
         public let modName: String
         public let keyPath: [String]
     }
+
+    /// Défaut 2 (tâche 6) : un mod qui lie la même touche dans deux réglages
+    /// différents produit deux `ModUse` distincts côté données — légitime,
+    /// les `keyPath` diffèrent — mais l'écran ne doit le montrer qu'une fois
+    /// par ligne, ses chemins réunis. Le regroupement est une logique pure,
+    /// elle vit ici pour rester sous `swift test`, pas dans la vue.
+    public struct GroupedUse: Identifiable, Equatable, Sendable {
+        public let modID: String
+        public let modName: String
+        public let keyPaths: [[String]]
+        public var id: String { modID }
+    }
+
+    /// Fusionne les usages d'un même `modID` en une entrée, ses `keyPath`
+    /// réunis dans l'ordre de première rencontre. Deux mods distincts
+    /// restent deux entrées, dans l'ordre où `uses` les présente (déjà
+    /// alphabétique par nom depuis `report`).
+    public static func groupedUses(_ uses: [ModUse]) -> [GroupedUse] {
+        var order: [String] = []
+        var namesByID: [String: String] = [:]
+        var pathsByID: [String: [[String]]] = [:]
+        for use in uses {
+            if pathsByID[use.modID] == nil {
+                order.append(use.modID)
+                pathsByID[use.modID] = []
+            }
+            pathsByID[use.modID]?.append(use.keyPath)
+            namesByID[use.modID] = use.modName
+        }
+        return order.map { id in
+            GroupedUse(modID: id, modName: namesByID[id] ?? "", keyPaths: pathsByID[id] ?? [])
+        }
+    }
     public struct KeybindCollision: Equatable, Sendable {
         public let combo: KeybindCombo
         public let uses: [ModUse]
@@ -82,6 +115,11 @@ public enum KeybindScanner {
         public var scannedMods: Int
         public var keybindCount: Int
         public var pausedIgnored: Int
+        /// R4 : noms des mods dont au moins une forme de chemin a été
+        /// écartée comme catalogue (§ `catalogThreshold`). Une exclusion
+        /// muette est un mensonge par omission — la vue doit pouvoir le
+        /// dire.
+        public var catalogModsIgnored: [String]
     }
 
     /// R1/R2/R3 — la règle gelée par la mesure (spec §6 + son constat) :
@@ -141,12 +179,36 @@ public enum KeybindScanner {
         return "?"
     }
 
+    /// R4 — le catalogue (constat utilisateur, tâche 6, mesuré sur
+    /// `ModShortcutReferenceHub`, ZeroXPatch) : ce mod *documente* les
+    /// raccourcis des autres, il n'en lie aucun. Rien ne distingue son
+    /// tableau `Shortcuts` d'un vrai raccourci à `classify(leaf:)` — le
+    /// chemin porte « key » et « shortcut », chaque lettre parse — donc la
+    /// règle ne peut pas vivre dans `classify`, feuille par feuille : il
+    /// faut voir combien de combos *distincts* une même forme de chemin
+    /// porte, à l'intérieur d'un même mod.
+    ///
+    /// Mesure sur les 92 mods actifs du parc réel (142 formes) : le maximum
+    /// légitime observé est 2 (une alternative dans un seul champ, ex.
+    /// `"A, MouseLeft"`) ; le catalogue est à 42. Seuil retenu : 8 — 4× le
+    /// maximum légitime, 5× sous le catalogue. Aucun `UniqueID` en dur.
+    static let catalogThreshold = 8
+
+    /// La forme d'un `keyPath` : chaque indice de tableau réduit à `[]`
+    /// (`["Shortcuts", "[7]", "KeyCombo"]` → `"Shortcuts.[].KeyCombo"`).
+    static func pathShape(_ keyPath: [String]) -> String {
+        keyPath.map { segment in
+            segment.range(of: #"^\[\d+\]$"#, options: .regularExpression) != nil ? "[]" : segment
+        }.joined(separator: ".")
+    }
+
     public static func report(mods: [ModScan]) -> KeybindReport {
         var index: [KeybindCombo: [ModUse]] = [:]
         var gameIndex: [String: [ModUse]] = [:]      // nom de contrôle → usages
         var unrecognized: [UnrecognizedKeybind] = []
         var keybindCount = 0
         var pausedIgnored = 0
+        var catalogModNames: Set<String> = []
         // Un même littéral peut rendre deux fois la même combinaison
         // (« F8, F8 ») : le même usage n'entre qu'une fois dans son seau,
         // sinon la vue reçoit deux lignes de même identité.
@@ -156,26 +218,53 @@ public enum KeybindScanner {
         }
 
         for mod in mods where mod.isActive {
+            // Passe 1 : classer les feuilles du mod, sans encore les indexer
+            // — la règle du catalogue (R4) a besoin de voir le mod entier
+            // avant de savoir quelles feuilles compteront.
+            var keybindLeaves: [(keyPath: [String], combos: [KeybindCombo])] = []
             for leaf in ConfigEditorModel.leaves(of: mod.tree) {
                 switch classify(leaf: leaf) {
                 case .keybind(let combos):
-                    keybindCount += 1
-                    for combo in combos where !combo.isEmpty {
-                        let use = ModUse(modID: mod.id, modName: mod.name, keyPath: leaf.keyPath)
-                        add(use, to: &index[combo, default: []])
-                        // Conflit jeu : combinaison à bouton unique uniquement.
-                        if combo.buttons.count == 1, let button = combo.buttons.first {
-                            for control in GameControlDefaults.controls
-                            where control.buttons.contains(button) {
-                                add(use, to: &gameIndex[control.name, default: []])
-                            }
-                        }
-                    }
+                    keybindLeaves.append((leaf.keyPath, combos))
                 case .unrecognized(let raw):
                     unrecognized.append(.init(modID: mod.id, modName: mod.name,
                                               keyPath: leaf.keyPath, raw: raw))
                 case .notKeybind:
                     break
+                }
+            }
+
+            // Passe 2 : par forme de chemin, compter les combos distincts —
+            // au-delà du seuil, la forme est un catalogue (R4), elle ne
+            // produit aucune liaison. Compté par mod, jamais cumulé entre
+            // mods : deux mods qui déclarent chacun peu de touches sous une
+            // forme de même nom ne s'additionnent pas.
+            var combosByShape: [String: Set<KeybindCombo>] = [:]
+            for (keyPath, combos) in keybindLeaves {
+                let shape = pathShape(keyPath)
+                for combo in combos where !combo.isEmpty {
+                    combosByShape[shape, default: []].insert(combo)
+                }
+            }
+            let catalogShapes = Set(
+                combosByShape.filter { $0.value.count > catalogThreshold }.map(\.key))
+            if !catalogShapes.isEmpty {
+                catalogModNames.insert(mod.name)
+            }
+
+            for (keyPath, combos) in keybindLeaves {
+                guard !catalogShapes.contains(pathShape(keyPath)) else { continue }
+                keybindCount += 1
+                for combo in combos where !combo.isEmpty {
+                    let use = ModUse(modID: mod.id, modName: mod.name, keyPath: keyPath)
+                    add(use, to: &index[combo, default: []])
+                    // Conflit jeu : combinaison à bouton unique uniquement.
+                    if combo.buttons.count == 1, let button = combo.buttons.first {
+                        for control in GameControlDefaults.controls
+                        where control.buttons.contains(button) {
+                            add(use, to: &gameIndex[control.name, default: []])
+                        }
+                    }
                 }
             }
         }
@@ -197,6 +286,7 @@ public enum KeybindScanner {
         return KeybindReport(collisions: collisions, gameConflicts: gameConflicts,
                              unrecognized: unrecognized,
                              scannedMods: mods.filter(\.isActive).count,
-                             keybindCount: keybindCount, pausedIgnored: pausedIgnored)
+                             keybindCount: keybindCount, pausedIgnored: pausedIgnored,
+                             catalogModsIgnored: catalogModNames.sorted())
     }
 }

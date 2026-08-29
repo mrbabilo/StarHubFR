@@ -91,6 +91,7 @@ enum L10n {
         static let gameCaveat         = "keybinds_game_caveat"
         static let unrecognizedHeader = "keybinds_unrecognized_header"
         static let pausedNote         = "keybinds_paused_note"
+        static let catalogNote        = "keybinds_catalog_note"
         static let counters           = "keybinds_counters"
         static let noGameDir          = "keybinds_no_game_dir"
         static let noModsScanned      = "keybinds_no_mods_scanned"

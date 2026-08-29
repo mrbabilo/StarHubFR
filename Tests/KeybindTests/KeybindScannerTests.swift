@@ -153,4 +153,81 @@ struct KeybindScannerTests {
             .first { $0.control.name == "moveUpButton" }
         #expect(up?.uses.count == 1)
     }
+
+    // — R4 : le catalogue (constat utilisateur, tâche 6, ModShortcutReferenceHub)
+    private let letterTokens = (0..<26).map { String(UnicodeScalar(65 + $0)!) }
+    private let digitTokens = (0..<10).map { "D\($0)" }
+    private let fnTokens = (1...12).map { "F\($0)" }
+    private var catalogTokens: [String] { letterTokens + digitTokens + fnTokens }
+
+    private func shortcutsCatalog(_ tokens: some Collection<String>) -> ConfigJSONTree.Value {
+        .array(tokens.map { .object(ConfigJSONTree.Object([("KeyCombo", .string($0))])) })
+    }
+
+    @Test func catalogFormIsExcludedButNeighborFieldSurvives() {
+        // 42 KeyCombo distincts sous Shortcuts.[].KeyCombo (mesure réelle) +
+        // un OpenMenuKey isolé, forme distincte à 1 combo : il reste une
+        // liaison et doit collisionner avec Swim.
+        let hub = KeybindScanner.ModScan(
+            id: "z.Hub", name: "ModShortcutReferenceHub", isActive: true,
+            tree: tree(["Shortcuts": shortcutsCatalog(catalogTokens.prefix(42)),
+                        "OpenMenuKey": .string("K")]))
+        let swim = KeybindScanner.ModScan(id: "s.Swim", name: "Swim", isActive: true,
+                                          tree: tree(["DiveKey": .string("K")]))
+        let r = KeybindScanner.report(mods: [hub, swim])
+        #expect(r.collisions.count == 1)
+        #expect(r.collisions.first?.combo.buttons == ["K"])
+        #expect(r.collisions.first?.uses.map(\.modID).sorted() == ["s.Swim", "z.Hub"])
+        #expect(r.catalogModsIgnored == ["ModShortcutReferenceHub"])
+    }
+
+    @Test func catalogThresholdIsEightStaysNineFalls() {
+        let eight = KeybindScanner.ModScan(
+            id: "e.Mod", name: "Eight", isActive: true,
+            tree: tree(["Shortcuts": shortcutsCatalog(catalogTokens.prefix(8))]))
+        let nine = KeybindScanner.ModScan(
+            id: "n.Mod", name: "Nine", isActive: true,
+            tree: tree(["Shortcuts": shortcutsCatalog(catalogTokens.prefix(9))]))
+        let other = KeybindScanner.ModScan(id: "o.Mod", name: "Other", isActive: true,
+                                           tree: tree(["Hotkey": .string("A")]))
+        let atEight = KeybindScanner.report(mods: [eight, other])
+        #expect(atEight.collisions.contains { $0.combo.buttons == ["A"] })
+        #expect(atEight.catalogModsIgnored.isEmpty)
+
+        let atNine = KeybindScanner.report(mods: [nine, other])
+        #expect(!atNine.collisions.contains { $0.combo.buttons == ["A"] })
+        #expect(atNine.catalogModsIgnored == ["Nine"])
+    }
+
+    @Test func twoModsWithFewDistinctKeysEachNeverTriggerTheCatalogRule() {
+        // La règle compte par mod, pas en cumulant deux mods sous la même
+        // forme de chemin : 5 + 5 ne doit jamais valoir 10 > 8.
+        let modX = KeybindScanner.ModScan(
+            id: "x.Mod", name: "ModX", isActive: true,
+            tree: tree(["Shortcuts": shortcutsCatalog(Array(catalogTokens.prefix(5)))]))
+        let modY = KeybindScanner.ModScan(
+            id: "y.Mod", name: "ModY", isActive: true,
+            tree: tree(["Shortcuts": shortcutsCatalog(Array(catalogTokens[5..<10]))]))
+        let other = KeybindScanner.ModScan(id: "o.Mod", name: "Other", isActive: true,
+                                           tree: tree(["Hotkey": .string(catalogTokens[0])]))
+        let r = KeybindScanner.report(mods: [modX, modY, other])
+        #expect(r.catalogModsIgnored.isEmpty)
+        #expect(r.collisions.contains { $0.combo.buttons == [catalogTokens[0]] })
+    }
+
+    // — Défaut 2 : un mod par ligne, chemins réunis (regroupement, en Core)
+    @Test func groupedUsesMergesSameModDistinctPathsButKeepsDistinctModsSeparate() {
+        let uses = [
+            KeybindScanner.ModUse(modID: "a.Hub", modName: "Hub",
+                                  keyPath: ["Shortcuts", "[7]", "KeyCombo"]),
+            KeybindScanner.ModUse(modID: "b.Swim", modName: "Swim", keyPath: ["DiveKey"]),
+            KeybindScanner.ModUse(modID: "a.Hub", modName: "Hub", keyPath: ["OpenMenuKey"]),
+        ]
+        let grouped = KeybindScanner.groupedUses(uses)
+        #expect(grouped.count == 2)
+        #expect(grouped[0].modID == "a.Hub")
+        #expect(grouped[0].keyPaths == [["Shortcuts", "[7]", "KeyCombo"], ["OpenMenuKey"]])
+        #expect(grouped[1].modID == "b.Swim")
+        #expect(grouped[1].keyPaths == [["DiveKey"]])
+    }
 }

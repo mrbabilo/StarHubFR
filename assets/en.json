@@ -53,6 +53,7 @@
   "keybinds_game_caveat": "Compared against default controls — remapped controls are not readable here.",
   "keybinds_unrecognized_header": "Unrecognized shortcuts (%lld)",
   "keybinds_paused_note": "%lld paused mods ignored",
+  "keybinds_catalog_note": "Excluded as shortcut catalogs, not real bindings: %@",
   "keybinds_counters": "%1$lld mods scanned · %2$lld shortcuts",
   "keybinds_no_game_dir": "Set the game folder to scan for keybind conflicts.",
   "keybinds_no_mods_scanned": "No active mod exposes a config.json to scan.",

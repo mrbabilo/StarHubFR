@@ -153,6 +153,31 @@ struct KeybindReportSection: View {
             Text(String(format: vm.L(L10n.Keybinds.pausedNote), report.pausedIgnored))
                 .font(.system(size: 11)).foregroundColor(.secondary)
         }
+        if !report.catalogModsIgnored.isEmpty {
+            // Défaut 1 (tâche 6) : une exclusion muette est un mensonge par
+            // omission — ModShortcutReferenceHub pesait 12 des 29
+            // collisions et 9 des 20 conflits jeu avant cette règle.
+            Text(String(format: vm.L(L10n.Keybinds.catalogNote),
+                        report.catalogModsIgnored.joined(separator: ", ")))
+                .font(.system(size: 11)).foregroundColor(.secondary)
+                .lineLimit(1).truncationMode(.middle)
+        }
+    }
+
+    /// Défaut 2 (tâche 6) : un mod qui lie la même touche dans deux
+    /// réglages différents produit deux `ModUse` distincts côté données
+    /// (légitime — les `keyPath` diffèrent, la déduplication par
+    /// `(modID, keyPath)` est correcte), mais l'écran ne doit le montrer
+    /// qu'une fois par ligne, chemins réunis, sinon ça se lit comme un
+    /// doublon d'affichage. Le critère de collision lui-même ne change
+    /// pas : il reste `Set(uses.map(\.modID)).count >= 2`. Le regroupement
+    /// lui-même (`groupedUses`) est une logique pure : elle vit dans
+    /// `KeybindScanner`, sous `swift test` — cette vue ne fait que
+    /// formater le résultat.
+    private func groupedUseLine(_ use: KeybindScanner.GroupedUse) -> some View {
+        Text("· \(use.modName) (\(use.keyPaths.map { $0.joined(separator: ".") }.joined(separator: ", ")))")
+            .font(.system(size: 12)).foregroundColor(.secondary)
+            .lineLimit(1).truncationMode(.middle)
     }
 
     private func collisionsGroup(_ collisions: [KeybindScanner.KeybindCollision]) -> some View {
@@ -162,10 +187,8 @@ struct KeybindReportSection: View {
                 ForEach(collisions, id: \.combo) { collision in
                     VStack(alignment: .leading, spacing: 2) {
                         Text(collision.combo.display).font(.system(size: 13, weight: .medium))
-                        ForEach(collision.uses, id: \.self) { use in
-                            Text("· \(use.modName) (\(use.keyPath.joined(separator: ".")))")
-                                .font(.system(size: 12)).foregroundColor(.secondary)
-                                .lineLimit(1).truncationMode(.middle)
+                        ForEach(KeybindScanner.groupedUses(collision.uses)) { use in
+                            groupedUseLine(use)
                         }
                     }
                 }
@@ -206,10 +229,8 @@ struct KeybindReportSection: View {
                                 .font(.system(size: 11))
                                 .foregroundColor(.secondary)
                         }
-                        ForEach(conflict.uses, id: \.self) { use in
-                            Text("· \(use.modName) (\(use.keyPath.joined(separator: ".")))")
-                                .font(.system(size: 12)).foregroundColor(.secondary)
-                                .lineLimit(1).truncationMode(.middle)
+                        ForEach(KeybindScanner.groupedUses(conflict.uses)) { use in
+                            groupedUseLine(use)
                         }
                     }
                 }
