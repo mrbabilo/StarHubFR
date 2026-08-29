@@ -1991,6 +1991,9 @@ class StarHubTHViewModel: ObservableObject {
         let favorites = Self.loadFavoriteMods()
         let managedConfigs = Self.loadProfileManagedConfigMods()
         let translations = InstalledTranslationStore.load()
+        // Les verdicts d'incompatibilité (A5-T2) : même lot que les autres
+        // registres utilisateur, lus ici hors fil principal.
+        let conflictVerdicts = ModConflictVerdictsStore.load()
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             self.hasNexusApiKey = hasKey
@@ -2013,6 +2016,7 @@ class StarHubTHViewModel: ObservableObject {
             self.favoriteMods = favorites
             self.profileManagedConfigMods = managedConfigs
             self.installedTranslations = translations
+            self.modConflictVerdicts = conflictVerdicts
         }
     }
     
@@ -7745,6 +7749,23 @@ class StarHubTHViewModel: ObservableObject {
         guard let index = modProfiles.firstIndex(where: { $0.id == id }) else { return }
         modProfiles[index].name = newName
         saveProfiles()
+    }
+
+    // MARK: - Incompatibilités entre mods (A5-T2)
+
+    /// Les incompatibilités que l'utilisateur a déclarées ou écartées.
+    /// Chargé au démarrage (dans `seedNexusAndUserData`, avec les autres
+    /// registres utilisateur), réécrit à chaque décision. Fichier :
+    /// `Application Support/StarHubTH/mod_conflicts.json`.
+    @Published private(set) var modConflictVerdicts = ModConflictVerdicts()
+
+    /// Écrit le magasin, et **le dit quand il n'a pas pu** — même patron que
+    /// `InstalledTranslationStore` : un verdict qui ne survit pas à la
+    /// fermeture doit se voir, pas se taire.
+    func saveConflictVerdicts() {
+        if !ModConflictVerdictsStore.save(modConflictVerdicts) {
+            log("Verdict non enregistré : il ne survivra pas à la fermeture", level: .warning)
+        }
     }
 
     // MARK: - Bissection (recherche du mod responsable)
