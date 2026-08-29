@@ -31,12 +31,18 @@ import SwiftUI
 ///   cas d'auto-conflit — sans ce repli, un conflit `withinOnePack` écarté
 ///   une fois reviendrait à chaque relecture du journal.
 /// - **Un conflit `betweenPacks` à plus de deux packs (`Multiple content
-///   packs…`) n'est pas filtré par les verdicts** : `ModConflictPair` ne
-///   modélise qu'une paire de deux. Étendre le filtre à toutes les paires
-///   internes d'un groupe de 3+ aurait supposé une sémantique que le
-///   magasin des verdicts ne porte pas (task 9, qui écrit les verdicts,
-///   n'a pas non plus ce cas). Cas rare en pratique — jamais rencontré sur
-///   le parc de 966 mods qui a servi de repère à cet axe.
+///   packs…`) n'est jamais filtré par les verdicts, dans les deux sens** :
+///   `pair(_:)` rend `nil` pour ce cas — `ModConflictPair` ne modélise
+///   qu'une paire de deux, et choisir laquelle des C(n,2) paires internes
+///   représenterait le groupe serait une décision de modélisation que rien
+///   n'impose ici. Concrètement : un tel conflit ne peut **ni** être écarté
+///   **ni** revenir après l'avoir été — `liveConflicts` ne le retire jamais
+///   de la liste affichée. Si la tâche 9 lui donne un bouton « Écarter »
+///   quand même, un clic dessus produira un verdict que ce fichier ne sait
+///   pas lire : le repli « N écarté(s) » compterait sans que la ligne
+///   correspondante ne disparaisse jamais — une contradiction visible, pas
+///   un simple oubli. Cas rare en pratique — jamais rencontré sur le parc
+///   de 966 mods qui a servi de repère à cet axe.
 /// - **`%lld` plutôt que le `%d` du canevas brief** pour les deux compteurs
 ///   (`conflicts_dismissed_count`, `conflicts_orphans`) : convention du
 ///   dépôt déjà posée par `KeybindReportSection` (`keybinds_collisions_header`
@@ -51,10 +57,9 @@ import SwiftUI
 /// - **Le vert « aucun conflit » ne couvre que les points 2 à 4** (les
 ///   éléments qui appellent une action ou une lecture) : le compteur des
 ///   paires écartées et la ligne des verdicts orphelins restent des
-///   post-scripta inconditionnels, montrés même sous le vert — même patron
-///   que `pausedIgnored`/`catalogModsIgnored` sous le vert de
-///   `KeybindReportSection`. Sans ça, un utilisateur qui a écarté 3 paires
-///   verrait soit un vert qui tait ce fait, soit jamais de vert du tout.
+///   post-scripta inconditionnels, montrés même sous le vert. Voir aussi
+///   « Ronde de correction 1 » plus bas : le test de vacuité lui-même a dû
+///   changer une fois cette idée poussée jusqu'au bout.
 /// - **Un état de plus que le canevas** (`conflicts_no_log`), sur le même
 ///   principe que les deux états ajoutés par `KeybindReportSection`
 ///   (`noGameDir`, `noModsScanned`) : le vert « aucun conflit dans le
@@ -65,6 +70,42 @@ import SwiftUI
 ///   de refuser (brief, point 7 : « surtout pas un silence »). Les paires
 ///   déclarées restent visibles dans les deux cas : elles ne dépendent pas
 ///   du journal.
+///
+/// **Ronde de correction 1** (relecture du 2026-08-30) — deux constats
+/// « Important », les deux sur le même thème : une affirmation qui ne
+/// tenait plus une fois un cas limite poussé au bout.
+/// - **Constat 1, le vert mensonger était encore possible.** Le test de
+///   vacuité portait sur les listes **après** filtrage des paires écartées
+///   (`betweenPacksConflicts`/`withinOnePackConflicts`/`declaredPairs`), pas
+///   sur `vm.contentPatcherConflicts` brut. Scénario réel : le journal
+///   rapporte deux conflits, l'utilisateur les écarte tous les deux (tâche
+///   9), les trois listes filtrées se vident, `smapiLogDate` existe toujours
+///   — et l'ancien code affichait « Aucun conflit dans le journal de la
+///   dernière partie » à côté de « 2 écarté(s) » juste en dessous. La phrase
+///   affirme un fait sur le journal, et ce fait était faux : le journal en
+///   contenait deux. La défense initiale (« même patron que
+///   `pausedIgnored`/`catalogModsIgnored` ») ne tenait pas : ces compteurs-là
+///   comptent des entrées **jamais scannées**, donc leur vert reste vrai ;
+///   une paire écartée est un conflit **détecté puis masqué par choix**, pas
+///   la même garantie. Correctif : le vert n'affirme plus rien sauf si
+///   **rien n'a été filtré**, c'est-à-dire si `vm.contentPatcherConflicts`
+///   (non filtré) est vide — sinon une ligne neutre dédiée
+///   (`conflicts_all_dismissed`) dit ce qui est vrai : tout ce que le
+///   journal rapportait a été écarté. Voir `content`.
+/// - **Constat 2, « Les deux sont actifs » était faux au pluriel.** Un
+///   conflit `betweenPacks` peut citer trois packs ou plus (forme
+///   « Multiple content packs » que `ContentPatcherConflicts.parse` gère).
+///   L'ancien `bothActive(_:)` testait correctement **tous** les noms, mais
+///   le badge affichait littéralement « Les deux sont actifs » même à
+///   quatre. Correctif : `activeBadgeLabel(for:)` choisit entre
+///   `conflicts_both_active` (exactement deux packs) et le nouveau
+///   `conflicts_all_active` (trois ou plus).
+/// - **Mineur, au passage** : le glyphe d'en-tête était figé sur
+///   `exclamationmark.triangle.fill` orange, y compris quand le corps
+///   affichait le vert. `KeybindReportSection.header` garde un glyphe
+///   neutre (`keyboard`, couleur par défaut) et réserve la couleur
+///   sémantique à la ligne de statut du corps — repris ici avec
+///   `arrow.triangle.merge`.
 struct ModConflictSection: View {
     @ObservedObject var vm: StarHubTHViewModel
 
@@ -80,8 +121,12 @@ struct ModConflictSection: View {
 
     private var header: some View {
         HStack {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundColor(.orange)
+            // Glyphe neutre, couleur par défaut : la couleur sémantique
+            // (vert/orange/gris) vit sur la ligne de statut du corps, pas
+            // ici — même patron que `KeybindReportSection.header`, dont le
+            // glyphe `keyboard` ne préjuge pas non plus du contenu
+            // (ronde de correction 1, mineur).
+            Image(systemName: "arrow.triangle.merge")
             Text(vm.L(L10n.Conflicts.title))
                 .font(.system(size: 14, weight: .bold))
                 .lineLimit(1)
@@ -149,11 +194,18 @@ struct ModConflictSection: View {
     private var withinOnePackConflicts: [LoadConflict] { liveConflicts(kind: .withinOnePack) }
     private var declaredPairs: [ModConflictPair] { vm.modConflictVerdicts.declared }
 
-    private func bothActive(_ conflict: LoadConflict) -> Bool {
+    /// Le libellé du badge « actifs », ou `nil` si au moins un pack cité
+    /// n'est pas installé et activé aujourd'hui. Deux libellés distincts
+    /// (ronde de correction 1, constat 2) : un `betweenPacks` peut citer
+    /// trois packs ou plus (forme « Multiple content packs » que
+    /// `ContentPatcherConflicts.parse` gère) — « Les deux sont actifs »
+    /// serait faux par construction au-delà de deux.
+    private func activeBadgeLabel(for conflict: LoadConflict) -> String? {
         let names = folders(conflict)
-        guard !names.isEmpty else { return false }
+        guard !names.isEmpty else { return nil }
         let enabledFolders = Set(installedMods.filter(\.isEnabled).map(\.folderName))
-        return Set(names).isSubset(of: enabledFolders)
+        guard Set(names).isSubset(of: enabledFolders) else { return nil }
+        return names.count == 2 ? vm.L(L10n.Conflicts.bothActive) : vm.L(L10n.Conflicts.allActive)
     }
 
     // MARK: - Corps
@@ -168,13 +220,26 @@ struct ModConflictSection: View {
         // ~2972) — sans cette distinction, une installation qui n'a jamais
         // lancé le jeu via SMAPI lirait « aucun conflit », un vert mensonger
         // puisque rien n'a été regardé pour cet axe.
+        //
+        // Ronde de correction 1, constat 1 : le vert doit aussi rester vrai
+        // une fois des paires écartées. `betweenPacksConflicts`/
+        // `withinOnePackConflicts` sont déjà filtrées par verdict — les
+        // trouver vides ne dit donc pas « le journal n'a rien rapporté »,
+        // seulement « rien de non-écarté ne reste ». D'où le test sur
+        // `vm.contentPatcherConflicts`, **non filtré** : s'il est vide, le
+        // journal était réellement silencieux (vert légitime) ; s'il ne
+        // l'est pas, tout ce qu'il contenait a été écarté par choix — un
+        // fait différent, avec son propre libellé neutre.
         if betweenPacksConflicts.isEmpty && withinOnePackConflicts.isEmpty && declaredPairs.isEmpty {
             if vm.smapiLogDate == nil {
                 statusRow(icon: "info.circle", color: .secondary,
                           text: vm.L(L10n.Conflicts.noLogRead))
-            } else {
+            } else if vm.contentPatcherConflicts.isEmpty {
                 statusRow(icon: "checkmark.circle.fill", color: .green,
                           text: vm.L(L10n.Conflicts.noneObserved))
+            } else {
+                statusRow(icon: "info.circle", color: .secondary,
+                          text: vm.L(L10n.Conflicts.allDismissed))
             }
         } else {
             VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
@@ -227,8 +292,8 @@ struct ModConflictSection: View {
                 Text("· \(names.joined(separator: " × "))")
                     .font(.system(size: 13, weight: .medium))
                     .lineLimit(1).truncationMode(.middle)
-                if bothActive(conflict) {
-                    badge(vm.L(L10n.Conflicts.bothActive))
+                if let label = activeBadgeLabel(for: conflict) {
+                    badge(label)
                 }
             }
             Text(String(format: vm.L(L10n.Conflicts.asset), conflict.asset))

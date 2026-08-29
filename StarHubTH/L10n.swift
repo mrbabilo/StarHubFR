@@ -211,6 +211,9 @@ enum L10n {
         static let title          = "conflicts_title"
         static let noneObserved   = "conflicts_none_observed"
         static let noLogRead      = "conflicts_no_log"
+        /// Ronde de correction 1 : tout ce que le journal rapportait a été
+        /// écarté par l'utilisateur — distinct de « rien n'a été rapporté ».
+        static let allDismissed   = "conflicts_all_dismissed"
         static let observedAt     = "conflicts_observed_at"
         static let asset          = "conflicts_asset"
         static let withinOne      = "conflicts_within_one"
@@ -218,6 +221,9 @@ enum L10n {
         static let dismissedCount = "conflicts_dismissed_count"
         static let orphans        = "conflicts_orphans"
         static let bothActive     = "conflicts_both_active"
+        /// Ronde de correction 1 : `bothActive` suppose deux packs — faux
+        /// pour un `betweenPacks` « Multiple » à trois ou plus.
+        static let allActive      = "conflicts_all_active"
     }
 
     // MARK: - Mods
