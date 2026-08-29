@@ -53,4 +53,16 @@ struct ModConflictVerdictsTests {
         let back = try JSONDecoder().decode(ModConflictVerdicts.self, from: data)
         #expect(back == store)
     }
+
+    /// **L'ordre d'encodage doit être total.** Trois paires partageant leur
+    /// premier nom : trier sur lui seul laissait leur ordre relatif au hasard du
+    /// hachage, et le fichier JSON changerait à chaque sauvegarde sans qu'aucune
+    /// donnée n'ait bougé.
+    @Test func theEncodedOrderIsStableAcrossPairsSharingTheirFirstName() throws {
+        var store = ModConflictVerdicts()
+        for other in ["D", "B", "C"] {
+            store.declare(ModConflictPair("A", other), note: "", at: t0)
+        }
+        #expect(store.declared.map(\.second) == ["B", "C", "D"])
+    }
 }

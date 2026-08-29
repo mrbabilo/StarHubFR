@@ -22,8 +22,6 @@ public struct ModConflictPair: Codable, Hashable, Sendable {
     public func contains(_ folderName: String) -> Bool {
         first == folderName || second == folderName
     }
-
-    public var both: [String] { [first, second] }
 }
 
 /// Ce que l'utilisateur a décidé d'une paire.
@@ -58,21 +56,34 @@ public struct ModConflictVerdicts: Codable, Equatable, Sendable {
         verdicts[pair] = ModConflictVerdict(isDeclared: false, note: note, decidedAt: date)
     }
 
+    /// Trie les paires dans un ordre **total** — sur le couple `(first, second)`,
+    /// pas le seul `first`. Trier sur lui seul laisserait l'ordre des paires qui
+    /// le partagent au hasard du hachage, et le fichier JSON changerait à chaque
+    /// sauvegarde sans qu'aucune donnée n'ait bougé.
+    private func sortPairs(_ pairs: [ModConflictPair]) -> [ModConflictPair] {
+        pairs.sorted { ($0.first, $0.second) < ($1.first, $1.second) }
+    }
+
+    /// Les paires portant un verdict d'un sens donné.
+    private func pairs(declared wanted: Bool) -> [ModConflictPair] {
+        let filtered = verdicts.filter { $0.value.isDeclared == wanted }.keys
+        return sortPairs(Array(filtered))
+    }
+
     public var declared: [ModConflictPair] {
-        verdicts.filter { $0.value.isDeclared }.keys.sorted { $0.first < $1.first }
+        pairs(declared: true)
     }
 
     public var dismissed: [ModConflictPair] {
-        verdicts.filter { !$0.value.isDeclared }.keys.sorted { $0.first < $1.first }
+        pairs(declared: false)
     }
 
     /// Les paires dont au moins un mod n'est plus installé. **On les rend, on ne
     /// les efface pas** : l'utilisateur a appris quelque chose en les posant.
     public func orphans(among installed: [String]) -> [ModConflictPair] {
         let known = Set(installed)
-        return verdicts.keys
-            .filter { !known.contains($0.first) || !known.contains($0.second) }
-            .sorted { $0.first < $1.first }
+        let orphaned = verdicts.keys.filter { !known.contains($0.first) || !known.contains($0.second) }
+        return sortPairs(Array(orphaned))
     }
 
     // Un dictionnaire à clé non-`String` ne se code pas en JSON d'objet : on
@@ -88,9 +99,9 @@ public struct ModConflictVerdicts: Codable, Equatable, Sendable {
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        let entries = verdicts
-            .map { Entry(pair: $0.key, verdict: $0.value) }
-            .sorted { $0.pair.first < $1.pair.first }
+        let entries = sortPairs(Array(verdicts.keys)).map { pair in
+            Entry(pair: pair, verdict: verdicts[pair]!)
+        }
         try container.encode(entries, forKey: .entries)
     }
 }
