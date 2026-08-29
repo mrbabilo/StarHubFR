@@ -1754,6 +1754,72 @@ backup se retrouve en moins de dix secondes.
          écarter le mod hôte lui-même par son `modId`. Reste à porter `tags` dans
          `NexusModSearch.Hit`, qui ne le lit pas encore.*
 
+- [ ] **A3-T6** — **Déclarer une traduction que l'app n'a pas posée.** L'app sait
+      rattacher une ligne **déjà au registre** — menu « Rattacher à Nexus », plus le
+      rattachement muet d'**A3-T5** quand une recherche a tourné. Ce qui manque, c'est
+      tout ce qui a été posé **hors de l'app** : ces traductions-là n'ont aucune ligne,
+      donc rien à rattacher.
+
+      **Mesuré sur le parc le 2026-08-29.** 488 mods portent un `i18n/fr.json` ; **313**
+      l'ont vu naître sur cette machine plus de 24 h après le mod lui-même, et **310 de
+      ces 313 étaient inconnues du registre** — qui n'en comptait que 7 lignes, dont 4
+      greffes. Deux signaux indépendants concordent (`mtime` côté auteur en donne 357,
+      `birthtime` local 313) et le seul cas connu-vrai, `UIInfoSuite2Alt`, tombe bien
+      dans le lot. L'éditeur du hub ne gonfle pas le chiffre : il n'a touché que **3**
+      mods. Ce qu'elles coûtent : ni provenance, ni retrait, ni suivi de version — et
+      **129 des 313 échappent même à la couverture** du hub, faute d'`UniqueID`
+      lisible ; 14 des 184 suivies sont incomplètes (`[CP] Mineral Town` 3968/4369).
+
+      Le geste : sur la fiche, une ligne « traduction présente, origine inconnue », et
+      un bouton pour la déclarer — recherche Nexus, ou saisie de l'identifiant. **Rien
+      ne s'inscrit d'office** : `birthtime` ment sur un dossier copié ou restauré, et
+      une provenance devinée dans un registre qui sert justement à ne pas deviner vaut
+      moins que pas de provenance du tout. · **M**
+      *Réserve : 310 gestes. C'est pourquoi les deux chemins automatiques comptent —
+      la lecture du nom de fichier au dépôt (`NexusArchiveName`, livrée le 2026-08-29,
+      9 noms lus sur 13 étiquetés) couvre les poses futures, `confirmedNexusId` couvre
+      celles pour lesquelles une recherche a tourné. A3-T6 est le filet du reste.*
+
+#### A5 — Incompatibilités entre mods
+
+Trois choses existent déjà et ne sont **pas** à refaire : les collisions de raccourcis
+(**C4-T2**), les doublons d'`UniqueID` (`ModDuplicateIndex`), et le verdict de
+compatibilité **mod ↔ SMAPI** (**A2**). Ce qui manque est l'autre axe : **deux mods qui
+réclament la même ressource**, ce que ni SMAPI ni Nexus ne disent.
+
+> 🧪 **Mesuré sur le parc le 2026-08-29** — 1030 mods (125 actifs, 905 en pause),
+> 536 `content.json`, dont **477 lus** et **59 illisibles même en tolérant commentaires
+> et virgules traînantes** (angle mort à traiter, pas à taire). Sur 1358 cibles `Load`
+> lisibles : **83 cibles réclamées par au moins deux mods, 18 paires de mods**. Trois
+> retextures de chien se disputent `animals/dog`, quatre mods se disputent
+> `data/events/adventureguild`. **258 cibles portent un jeton `{{…}}`** et sont hors de
+> portée d'une lecture statique — 16 % d'angle mort assumé.
+>
+> 🔴 **Le chiffre qui décide de la forme : sur le profil actif, zéro.** Les 18 paires
+> vivent entre mods en pause. Une pastille permanente n'afficherait donc **rien** et
+> passerait pour cassée. La fonctionnalité n'a de sens qu'**au moment de composer** :
+> à l'activation d'un mod, et à la lecture d'un profil.
+
+- [ ] **A5-T1** — **Lire les cibles réclamées** : `Action: Load` et sa `Target` dans les
+      `content.json` des packs Content Patcher, deux `Load` sur la même cible étant le
+      seul conflit **certain** (Content Patcher refuse lui-même le second). Pur calcul,
+      donc en Core avec ses tests, comme `KeybindScanner`. Les cibles à jetons sont
+      **comptées et annoncées**, jamais devinées. · **M**
+- [ ] **A5-T2** — **Le dire au moment utile** : avertissement avant d'activer un mod qui
+      dispute une cible à un mod déjà actif, et rapport par profil — même forme que le
+      rapport de raccourcis, dont il partage la question (« qu'est-ce qui se marche
+      dessus dans ce profil ? »). · **M** · *dépend d'A5-T1*
+- [ ] **A5-T3** — **Élargir le signal**, une source à la fois et chacune mesurée avant
+      d'être codée : les 59 `content.json` illisibles, les cibles à jetons, et les
+      `EditData`/`EditImage` sur une même entrée. · **L** ·
+      ⚠️ *Deux `EditImage` sur la même cible **se composent** le plus souvent : crier au
+      conflit là où Content Patcher compose ferait plus de bruit que de service. Ne
+      remonter que ce qui est certain tant qu'une mesure ne dit pas le contraire.*
+
+**Critère de succès** : avant d'activer un mod, savoir ce qu'il va écraser.
+
+---
+
 **Critère de succès** : passer de « ce mod a planté » à « ce mod est cassé depuis
 SMAPI 3.0, voici son remplaçant ».
 
