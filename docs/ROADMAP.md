@@ -1838,7 +1838,7 @@ réclament la même ressource**, ce que ni SMAPI ni le manifeste ne disent.
       une déduction — et ça couvre tous les conflits, pas seulement les `Load`.
       Limite à dire à l'écran : **ça constate, ça ne prévient pas** ; il faut avoir
       joué avec les deux mods actifs. · **S**
-- [x] **A5-T2** ✅ *(livré le 2026-08-30, vérification à l'écran en attente)* — **Signaler soi-même une incompatibilité, ou en écarter une.** La
+- [x] **A5-T2** ✅ *(livré le 2026-08-30, vérifié à l'écran)* — **Signaler soi-même une incompatibilité, ou en écarter une.** La
       prévention que le journal ne donne pas. Magasin de verdicts sur des paires **non
       ordonnées**, clé `folderName` logique (111 mods du parc n'ont pas d'`UniqueID`,
       et le nom logique survit à la mise en pause), chaque verdict portant
@@ -1847,7 +1847,7 @@ réclament la même ressource**, ce que ni SMAPI ni le manifeste ne disent.
       sur `vm.activationWarning(for:)` — le crochet qui existe déjà pour les mods que
       smapi.io signale cassés. Un verdict orphelin (mod désinstallé) se dit, ne se
       jette pas. · **M**
-- [x] **A5-T3** ✅ *(livré le 2026-08-29, vérification à l'écran en attente)* — **Le paragraphe de compatibilité de l'auteur, sur la fiche.** 15 %
+- [x] **A5-T3** ✅ *(livré le 2026-08-29, vérifié à l'écran)* — **Le paragraphe de compatibilité de l'auteur, sur la fiche.** 15 %
       des mods en écrivent un ; l'app cache déjà les descriptions et sait rendre le
       BBCode. **Aucune extraction de paires** : on remonte la phrase, l'utilisateur
       juge. C'est le seul usage honnête d'un signal à 20 % de précision, et il capte
