@@ -62,6 +62,9 @@ struct DependencyRowView: View {
     /// La dépendance dont l'activation attend une confirmation : smapi.io la
     /// signale cassée. Voir `CompatibilityWarning`.
     @State private var pendingActivation: ModItem?
+    /// Même rôle, source différente : un conflit déclaré ou observé dans le
+    /// journal avec un mod déjà actif (tâche 9). Voir `ConflictActivationGate`.
+    @State private var pendingConflict: ConflictActivation?
 
     var body: some View {
         HStack(spacing: 10) {
@@ -99,6 +102,9 @@ struct DependencyRowView: View {
         .compatibilityGate(vm: vm, pending: $pendingActivation) { target in
             vm.toggleMod(target)
         }
+        .conflictActivationGate(vm: vm, pending: $pendingConflict) { target in
+            vm.toggleMod(target)
+        }
     }
 
     private var iconName: String {
@@ -133,6 +139,8 @@ struct DependencyRowView: View {
                 // l'utilisateur a le plus besoin de le savoir avant de cliquer.
                 if vm.activationWarning(for: depMod) != nil {
                     pendingActivation = depMod
+                } else if let other = vm.conflictWarning(for: depMod) {
+                    pendingConflict = ConflictActivation(mod: depMod, other: other)
                 } else {
                     vm.toggleMod(depMod)
                 }

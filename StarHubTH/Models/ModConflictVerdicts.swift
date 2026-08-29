@@ -86,6 +86,40 @@ public struct ModConflictVerdicts: Codable, Equatable, Sendable {
         return sortPairs(Array(orphaned))
     }
 
+    /// Parmi `candidates` (paires déclarées **ou** observées dans le journal,
+    /// non filtrées), le membre — actif aujourd'hui — d'une paire qui
+    /// implique le mod qu'on active, si elle n'a pas été écartée. `nil`
+    /// sinon, y compris si aucune paire ne cite `activating`.
+    ///
+    /// `activating` est un **ensemble**, pas un seul nom : le mod qu'on
+    /// active peut être un pack, dont `folderName` (l'en-tête, ex. « SVE »)
+    /// ne matche jamais un conflit du journal, qui cite ses composants
+    /// (« SVE/Farm », le chemin logique complet). Sans cet ensemble, la
+    /// moitié « observée dans le journal » de la règle ne se déclencherait
+    /// jamais pour aucun pack. Il rend aussi gratuit le cas d'un
+    /// `withinOnePack` (paire `(X, X)`) ou de deux composants du **même**
+    /// pack qu'on active ensemble : si les deux membres de la paire sont
+    /// dans `activating`, ni l'un ni l'autre n'est « déjà actif » au sens où
+    /// on l'entend ici — ce n'est pas un mod tiers qui bloque le geste.
+    ///
+    /// Pure — ne connaît ni `ModItem` ni le journal SMAPI. C'est la seule
+    /// partie de la décision d'avertissement à l'activation qui se teste
+    /// sans le ViewModel (tâche 9).
+    public func activationConflict(activating: Set<String>,
+                                    candidates: [ModConflictPair],
+                                    activeFolders: Set<String>) -> String? {
+        for pair in candidates {
+            guard activating.contains(pair.first) || activating.contains(pair.second) else { continue }
+            // Écartée : silence, pas seulement retirée du rapport — c'est
+            // précisément ce que « écarter » doit obtenir.
+            if verdict(for: pair)?.isDeclared == false { continue }
+            let other = activating.contains(pair.first) ? pair.second : pair.first
+            guard !activating.contains(other) else { continue }
+            if activeFolders.contains(other) { return other }
+        }
+        return nil
+    }
+
     // Un dictionnaire à clé non-`String` ne se code pas en JSON d'objet : on
     // passe par un tableau de couples, ce qui garde le fichier lisible à l'œil.
     private enum CodingKeys: String, CodingKey { case entries }

@@ -33,6 +33,17 @@ struct ModDetailView: View {
     /// Le mod dont l'activation attend une confirmation : smapi.io le signale
     /// cassé. Voir `CompatibilityWarning`.
     @State private var pendingActivation: ModItem?
+    /// Même rôle, source différente : un conflit déclaré ou observé dans le
+    /// journal avec un mod déjà actif (tâche 9). Voir `ConflictActivationGate`.
+    @State private var pendingConflict: ConflictActivation?
+    /// L'état du sélecteur « Signaler une incompatibilité… » (tâche 9).
+    /// La cible se porte sur son `folderName`, pas sur le `ModItem` lui-même
+    /// — `Picker(selection:)` demande `Hashable`, qu'`ModItem` ne porte pas
+    /// (seulement `Equatable` : l'ajouter pour ce seul sélecteur aurait
+    /// touché tout ce qui manipule `ModItem` ailleurs dans le dépôt).
+    @State private var showReportConflict = false
+    @State private var reportConflictTargetFolder: String?
+    @State private var reportConflictNote: String = ""
 
     /// Draft text for the Nexus mod id field. Seeded once in `.onAppear` from
     /// the mod's effective id; safe to seed unconditionally (no "already
@@ -134,6 +145,12 @@ struct ModDetailView: View {
         }
         .compatibilityGate(vm: vm, pending: $pendingActivation) { target in
             vm.toggleMod(target)
+        }
+        .conflictActivationGate(vm: vm, pending: $pendingConflict) { target in
+            vm.toggleMod(target)
+        }
+        .sheet(isPresented: $showReportConflict) {
+            reportConflictSheet
         }
         .task {
             // Venu de la couverture française d'un profil : la demande n'était
@@ -305,6 +322,12 @@ struct ModDetailView: View {
                                 if vm.activationWarning(for: live) != nil {
                                     localIsOn = nil
                                     pendingActivation = live
+                                } else if let other = vm.conflictWarning(for: live) {
+                                    // Même porte, source différente : un
+                                    // conflit déclaré ou observé dans le
+                                    // journal avec un mod déjà actif (tâche 9).
+                                    localIsOn = nil
+                                    pendingConflict = ConflictActivation(mod: live, other: other)
                                 } else {
                                     vm.toggleMod(live) { localIsOn = nil }
                                 }
@@ -361,6 +384,28 @@ struct ModDetailView: View {
                     .foregroundColor(.secondary)
                     .pointingHandCursor()
                 }
+
+                // « Signaler une incompatibilité… » (tâche 9) : ouvre le
+                // sélecteur parmi les mods installés. Réservé aux mods de
+                // premier niveau, comme les autres actions de cette rangée —
+                // un composant de pack ne se signale pas seul, c'est le pack
+                // entier qui est en cause.
+                Button {
+                    reportConflictTargetFolder = nil
+                    reportConflictNote = ""
+                    showReportConflict = true
+                } label: {
+                    // `exclamationmark.triangle`, sans `.fill` : déjà utilisé
+                    // (non filled) ailleurs dans ce dépôt — un nom de
+                    // symbole erroné compile sans avertissement et se rend
+                    // comme un rectangle vide, indétectable au build (voir
+                    // la mise en garde de la tâche 8 sur `arrow.triangle.merge`).
+                    Label(vm.L(L10n.Conflicts.reportButton), systemImage: "exclamationmark.triangle")
+                        .font(.system(size: 12))
+                }
+                .buttonStyle(.borderless)
+                .foregroundColor(.secondary)
+                .pointingHandCursor()
 
                 // Pas de pendant au spinner de suppression de la liste : la
                 // fiche se referme dès la confirmation, personne ne le verrait.
@@ -1191,6 +1236,96 @@ struct ModDetailView: View {
         }
     }
 
+    // MARK: Incompatibilités (tâche 9)
+
+    /// Les incompatibilités que l'utilisateur a **déclarées** entre ce mod et
+    /// un autre, avec de quoi les écarter sans changer d'écran.
+    ///
+    /// Pendant fiche du rapport global (`ModConflictSection`, tâche 8) —
+    /// même principe que `keybindConflictsSection` juste au-dessus : donner
+    /// un retour visible **ici**, sur l'écran où « Signaler » vient d'être
+    /// cliqué. Sans lui, la seule confirmation serait de naviguer vers
+    /// Alertes système — l'erreur qu'une fonctionnalité qui ne montre rien à
+    /// l'endroit où on vient d'agir a déjà coûté deux fois dans ce dépôt.
+    ///
+    /// Ne montre que les paires **déclarées** : les conflits observés dans
+    /// le journal ont leur propre écran d'écarte (`ModConflictSection`), et
+    /// les dupliquer ici referait diverger la même correspondance conflit ↔
+    /// paire que `vm.conflictPair(for:)` centralise déjà.
+    @ViewBuilder
+    private var declaredConflictsSection: some View {
+        let pairs = vm.modConflictVerdicts.declared.filter { $0.contains(mod.folderName) }
+        if !pairs.isEmpty {
+            VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
+                Text(vm.L(L10n.Conflicts.title))
+                    .font(.system(size: 13, weight: .semibold))
+                ForEach(pairs, id: \.self) { pair in
+                    let otherFolder = pair.first == mod.folderName ? pair.second : pair.first
+                    let otherName = vm.mods.flattenedMods.first(where: { $0.folderName == otherFolder })?.name
+                        ?? otherFolder
+                    HStack(spacing: AppDesign.Spacing.xs) {
+                        Text("· \(otherName)")
+                            .font(.system(size: 13, weight: .medium))
+                            .lineLimit(1).truncationMode(.middle)
+                        Spacer()
+                        Button(vm.L(L10n.Conflicts.dismissButton)) {
+                            vm.dismissConflict(pair)
+                        }
+                        .buttonStyle(.borderless)
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                        .pointingHandCursor()
+                    }
+                }
+            }
+        }
+    }
+
+    /// Les mods candidats du sélecteur « Signaler » : le parc, aplati (un
+    /// composant de pack a sa propre entrée, comme dans `ModConflictSection`
+    /// et `conflictFolderNames`), moins ce mod lui-même — se signaler soi-même
+    /// produirait une paire `(X, X)`, la même clé qu'un `withinOnePack` du
+    /// journal, ce qui collision­nerait avec un cas déjà modélisé.
+    private var reportConflictCandidates: [ModItem] {
+        vm.mods.flattenedMods
+            .filter { $0.folderName != mod.folderName }
+            .alphabeticalListOrder
+    }
+
+    /// Le sélecteur « Signaler une incompatibilité… » : un mod installé, une
+    /// note facultative. `reportConflictTarget` est réinitialisé à
+    /// l'ouverture (voir le bouton) — jamais de brouillon fuyant d'un mod à
+    /// l'autre, même patron que `nexusIdDraft`/`noteDraft`.
+    private var reportConflictSheet: some View {
+        VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
+            Text(vm.L(L10n.Conflicts.reportButton))
+                .font(.system(size: 15, weight: .bold))
+            Picker(vm.L(L10n.Conflicts.pickMod), selection: $reportConflictTargetFolder) {
+                Text("").tag(String?.none)
+                ForEach(reportConflictCandidates, id: \.folderName) { candidate in
+                    Text(candidate.name).tag(String?.some(candidate.folderName))
+                }
+            }
+            TextField(vm.L(L10n.Conflicts.notePlaceholder), text: $reportConflictNote)
+                .textFieldStyle(.roundedBorder)
+            HStack {
+                Spacer()
+                Button(vm.L(L10n.Saves.cancel)) { showReportConflict = false }
+                Button(vm.L(L10n.Conflicts.reportConfirm)) {
+                    if let targetFolder = reportConflictTargetFolder {
+                        vm.declareConflict(ModConflictPair(mod.folderName, targetFolder),
+                                           note: reportConflictNote)
+                    }
+                    showReportConflict = false
+                }
+                .keyboardShortcut(.defaultAction)
+                .disabled(reportConflictTargetFolder == nil)
+            }
+        }
+        .padding(20)
+        .frame(width: 380)
+    }
+
     // MARK: Tab content
 
     @ViewBuilder
@@ -1211,6 +1346,7 @@ struct ModDetailView: View {
                 translationSection
                 errorHistorySection
                 keybindConflictsSection
+                declaredConflictsSection
                 blocksView(isChangelog: false)
             }
         }

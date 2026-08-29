@@ -65,4 +65,63 @@ struct ModConflictVerdictsTests {
         }
         #expect(store.declared.map(\.second) == ["B", "C", "D"])
     }
+
+    // MARK: - activationConflict (tâche 9 : avertissement à l'activation)
+
+    /// Le cas simple : une paire déclarée, l'autre membre déjà actif.
+    @Test func aDeclaredPairWithTheOtherModActiveTriggers() throws {
+        var store = ModConflictVerdicts()
+        let pair = ModConflictPair("A", "B")
+        store.declare(pair, note: "", at: t0)
+        let other = store.activationConflict(activating: ["A"], candidates: [pair], activeFolders: ["B"])
+        #expect(other == "B")
+    }
+
+    /// Écartée, silence — pas seulement retirée du rapport.
+    @Test func aDismissedPairNeverTriggers() throws {
+        var store = ModConflictVerdicts()
+        let pair = ModConflictPair("A", "B")
+        store.dismiss(pair, note: "faux positif", at: t0)
+        let other = store.activationConflict(activating: ["A"], candidates: [pair], activeFolders: ["B"])
+        #expect(other == nil)
+    }
+
+    /// L'autre membre n'est pas actif aujourd'hui : rien à interrompre.
+    @Test func aPairWhereTheOtherModIsNotActiveDoesNotTrigger() throws {
+        let store = ModConflictVerdicts()
+        let pair = ModConflictPair("A", "B")
+        let other = store.activationConflict(activating: ["A"], candidates: [pair], activeFolders: [])
+        #expect(other == nil)
+    }
+
+    /// Aucune paire ne cite le mod qu'on active.
+    @Test func aPairNotInvolvingTheActivatingModDoesNotTrigger() throws {
+        let store = ModConflictVerdicts()
+        let pair = ModConflictPair("X", "Y")
+        let other = store.activationConflict(activating: ["A"], candidates: [pair], activeFolders: ["X", "Y"])
+        #expect(other == nil)
+    }
+
+    /// **Le cas pack.** `activating` porte l'en-tête et ses composants : un
+    /// conflit du journal citant « SVE/Farm » (composant) doit déclencher
+    /// même si on active « SVE » (l'en-tête). Sans l'ensemble, cette paire
+    /// ne matcherait jamais.
+    @Test func aJournalPairCitingAPackComponentTriggersWhenTheHeaderActivates() throws {
+        let store = ModConflictVerdicts()
+        let pair = ModConflictPair("SVE/Farm", "Autre Pack")
+        let other = store.activationConflict(activating: ["SVE", "SVE/Farm"],
+                                              candidates: [pair], activeFolders: ["Autre Pack"])
+        #expect(other == "Autre Pack")
+    }
+
+    /// Les deux membres de la paire sont dans `activating` (deux composants
+    /// du **même** pack qu'on active ensemble, ou un `withinOnePack` (X, X)) :
+    /// aucun mod tiers n'est en cause, donc pas d'avertissement.
+    @Test func aPairWhoseTwoMembersAreBothActivatingDoesNotTrigger() throws {
+        let store = ModConflictVerdicts()
+        let pair = ModConflictPair("SVE/Farm", "SVE/Town")
+        let other = store.activationConflict(activating: ["SVE", "SVE/Farm", "SVE/Town"],
+                                              candidates: [pair], activeFolders: ["SVE/Farm", "SVE/Town"])
+        #expect(other == nil)
+    }
 }

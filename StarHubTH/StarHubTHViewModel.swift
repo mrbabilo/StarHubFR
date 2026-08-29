@@ -3840,6 +3840,32 @@ class StarHubTHViewModel: ObservableObject {
         conflict.packs.map { resolveModFolder(forLoggedName: $0)?.folderName ?? $0 }
     }
 
+    /// La paire canonique d'un conflit du journal, quand il en représente
+    /// une. `nil` pour un `betweenPacks` à plus de deux packs (forme
+    /// « Multiple content packs want to load… ») : `ModConflictPair` ne
+    /// modélise qu'une paire de deux, et choisir laquelle des C(n,2) paires
+    /// internes représenterait le groupe serait une décision de
+    /// modélisation que rien n'impose. Un tel conflit n'est donc jamais
+    /// filtré par un verdict, dans aucun des deux sens (voir le commentaire
+    /// de tête de `ModConflictSection`, qui documente ce cas limite).
+    ///
+    /// Extrait ici (tâche 9, ex-`ModConflictSection.pair(_:)`) : `Signaler`/
+    /// `Écarter` sur la fiche d'un mod et `conflictWarning(for:)` en ont
+    /// aussi besoin — deux copies de cette correspondance auraient fini par
+    /// diverger (le dépôt en a déjà payé le prix ailleurs, voir la fiche
+    /// mémoire sur les copies d'`isOsJunk`).
+    func conflictPair(for conflict: LoadConflict) -> ModConflictPair? {
+        let names = conflictFolderNames(conflict)
+        switch conflict.kind {
+        case .withinOnePack:
+            guard let only = names.first else { return nil }
+            return ModConflictPair(only, only)
+        case .betweenPacks:
+            guard names.count == 2 else { return nil }
+            return ModConflictPair(names[0], names[1])
+        }
+    }
+
     /// Applies the memory cap to parsed SMAPI entries, dropping TRACE noise
     /// rather than the head of the log (see `LogNoise.trimIndices`).
     static func trimPreservingSignal(_ entries: [LogEntry], cap: Int) -> [LogEntry] {
@@ -4061,6 +4087,38 @@ class StarHubTHViewModel: ObservableObject {
                                                  verdict: ModCompatibility)? {
         guard !mod.isEnabled else { return nil }
         return compatibilityWarning(for: mod)
+    }
+
+    /// Le mod **déjà actif** avec lequel activer `mod` formerait un conflit
+    /// connu, s'il y a lieu d'avertir. `nil` sinon.
+    ///
+    /// Fonction **séparée** d'`activationWarning` (décision du contrôleur,
+    /// tâche 9), pas une extension de celle-ci : `activationWarning` rend un
+    /// tuple `(component, verdict: ModCompatibility)` taillé pour le verdict
+    /// de smapi.io et déjà consommé par `compatibilityGate`, un dialogue en
+    /// production. Changer son type de retour ferait rippler cet écran pour
+    /// aucun gain — les vues interrogent donc les deux séparément, et
+    /// peuvent montrer l'une puis l'autre pour un même geste.
+    ///
+    /// Ne teste que l'état **actuel** du parc (`mods`), jamais le journal :
+    /// un conflit du journal dit ce qui s'est passé à une partie précédente,
+    /// pas si l'autre mod est encore actif aujourd'hui. Se déclenche sur une
+    /// paire déclarée par l'utilisateur comme sur un conflit observé dans le
+    /// journal, jamais sur une paire écartée — la décision elle-même vit
+    /// dans `ModConflictVerdicts.activationConflict`, pure et testée.
+    func conflictWarning(for mod: ModItem) -> ModItem? {
+        guard !mod.isEnabled else { return nil }
+        // Un pack s'active par son en-tête, mais un conflit du journal cite
+        // ses composants (`SVE/Farm`, pas `SVE`) — sans les deux dans
+        // `activating`, la moitié « journal » de la règle ne se
+        // déclencherait jamais pour aucun pack.
+        let activating = Set([mod.folderName] + (mod.children ?? []).map(\.folderName))
+        let activeFolders = Set(mods.flattenedMods.filter(\.isEnabled).map(\.folderName))
+        let candidates = modConflictVerdicts.declared + contentPatcherConflicts.compactMap(conflictPair)
+        guard let otherFolder = modConflictVerdicts.activationConflict(
+            activating: activating, candidates: candidates, activeFolders: activeFolders
+        ) else { return nil }
+        return mods.flattenedMods.first(where: { $0.folderName == otherFolder })
     }
 
     /// Transforme les verdicts de smapi.io en lignes affichables, et retient
@@ -7766,6 +7824,24 @@ class StarHubTHViewModel: ObservableObject {
         if !ModConflictVerdictsStore.save(modConflictVerdicts) {
             log("Verdict non enregistré : il ne survivra pas à la fermeture", level: .warning)
         }
+    }
+
+    /// Déclare une incompatibilité entre deux mods, saisie par l'utilisateur
+    /// depuis la fiche (tâche 9). `modConflictVerdicts` est `@Published
+    /// private(set)` : ce mutateur vit ici, dans le corps de la classe — pas
+    /// dans une extension ni dans la vue — pour garder l'écriture au même
+    /// endroit que la lecture.
+    func declareConflict(_ pair: ModConflictPair, note: String) {
+        modConflictVerdicts.declare(pair, note: note, at: Date())
+        saveConflictVerdicts()
+    }
+
+    /// Écarte une paire — un constat du journal jugé faux, ou un signalement
+    /// que l'utilisateur reprend. Même mutateur pour les deux usages : le
+    /// magasin ne distingue pas la source, seulement le verdict courant.
+    func dismissConflict(_ pair: ModConflictPair, note: String = "") {
+        modConflictVerdicts.dismiss(pair, note: note, at: Date())
+        saveConflictVerdicts()
     }
 
     // MARK: - Bissection (recherche du mod responsable)

@@ -224,6 +224,19 @@ enum L10n {
         /// Ronde de correction 1 : `bothActive` suppose deux packs — faux
         /// pour un `betweenPacks` « Multiple » à trois ou plus.
         static let allActive      = "conflicts_all_active"
+
+        // MARK: Signaler / écarter (tâche 9)
+        /// Ouvre le sélecteur — l'ellipse signale qu'il reste une étape,
+        /// distinct de `reportConfirm` (le bouton **dans** cette étape).
+        static let reportButton       = "conflicts_report_button"
+        static let dismissButton      = "conflicts_dismiss_button"
+        static let pickMod            = "conflicts_pick_mod"
+        static let notePlaceholder    = "conflicts_note_placeholder"
+        /// Le bouton qui valide le sélecteur, une fois un mod choisi — texte
+        /// court, sans ellipse : contrairement à `reportButton`, il n'ouvre
+        /// plus rien, il déclare.
+        static let reportConfirm      = "conflicts_report_confirm"
+        static let activationWarning  = "conflicts_activation_warning"
     }
 
     // MARK: - Mods

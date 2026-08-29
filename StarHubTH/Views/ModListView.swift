@@ -1212,6 +1212,9 @@ struct ModListRow: View {
     /// Le mod dont l'activation attend une confirmation : smapi.io le signale
     /// cassé. Voir `CompatibilityWarning`.
     @State private var pendingActivation: ModItem?
+    /// Même rôle, source différente : un conflit déclaré ou observé dans le
+    /// journal avec un mod déjà actif (tâche 9). Voir `ConflictActivationGate`.
+    @State private var pendingConflict: ConflictActivation?
 
     private var modRowA11yLabel: String {
         String(
@@ -1765,6 +1768,14 @@ struct ModListRow: View {
                                         pendingActivation = mod
                                         return
                                     }
+                                    // Même porte, source différente : un conflit
+                                    // déclaré ou observé dans le journal avec un
+                                    // mod déjà actif (tâche 9).
+                                    if let other = vm.conflictWarning(for: mod) {
+                                        localIsOn = nil
+                                        pendingConflict = ConflictActivation(mod: mod, other: other)
+                                        return
+                                    }
                                     // Keep the optimistic value until toggleMod's completion
                                     // confirms vm.mods has actually caught up — clearing it
                                     // eagerly here races the background scanMods() and made
@@ -1867,6 +1878,9 @@ struct ModListRow: View {
                  : vm.L(L10n.Mods.deleteConfirmMessage))
         }
         .compatibilityGate(vm: vm, pending: $pendingActivation) { target in
+            vm.toggleMod(target)
+        }
+        .conflictActivationGate(vm: vm, pending: $pendingConflict) { target in
             vm.toggleMod(target)
         }
     }

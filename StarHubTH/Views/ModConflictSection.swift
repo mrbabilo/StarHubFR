@@ -106,6 +106,13 @@ import SwiftUI
 ///   neutre (`keyboard`, couleur par défaut) et réserve la couleur
 ///   sémantique à la ligne de statut du corps — repris ici avec
 ///   `arrow.triangle.merge`.
+///
+/// **Tâche 9** — les boutons « Écarter » : un par ligne, jamais sur un
+/// `betweenPacks` à 3 packs ou plus (`pair(_:)` y rend `nil`, voir le
+/// paragraphe qui suit). `pair(_:)` délègue désormais à
+/// `vm.conflictPair(for:)` — la fiche d'un mod (« Signaler »/« Écarter ») et
+/// `vm.conflictWarning(for:)` en ont besoin aussi, une seule correspondance
+/// partagée plutôt que trois copies qui auraient fini par diverger.
 struct ModConflictSection: View {
     @ObservedObject var vm: StarHubTHViewModel
 
@@ -164,16 +171,13 @@ struct ModConflictSection: View {
     /// La paire canonique d'un conflit, quand elle est représentable. `nil`
     /// pour un `betweenPacks` à plus de deux packs (voir le commentaire de
     /// tête) : ce conflit n'est alors jamais filtré par un verdict.
+    ///
+    /// Déléguée au ViewModel (tâche 9, `vm.conflictPair(for:)`) : la fiche
+    /// d'un mod (« Signaler »/« Écarter ») et `conflictWarning(for:)` en ont
+    /// besoin aussi — une seule correspondance conflit ↔ paire, pas une
+    /// copie par écran qui aurait fini par diverger.
     private func pair(_ conflict: LoadConflict) -> ModConflictPair? {
-        let names = folders(conflict)
-        switch conflict.kind {
-        case .withinOnePack:
-            guard let only = names.first else { return nil }
-            return ModConflictPair(only, only)
-        case .betweenPacks:
-            guard names.count == 2 else { return nil }
-            return ModConflictPair(names[0], names[1])
-        }
+        vm.conflictPair(for: conflict)
     }
 
     private var dismissedPairs: Set<ModConflictPair> {
@@ -275,6 +279,20 @@ struct ModConflictSection: View {
         }
     }
 
+    /// Le bouton « Écarter » d'une ligne de conflit (tâche 9). Jamais posé
+    /// sur un `betweenPacks` à plus de deux packs : `pair` y est `nil` — un
+    /// clic écrirait un verdict que ce fichier ne sait pas lire (la
+    /// contradiction que le commentaire de tête met en garde).
+    private func dismissButton(for pair: ModConflictPair) -> some View {
+        Button(vm.L(L10n.Conflicts.dismissButton)) {
+            vm.dismissConflict(pair)
+        }
+        .buttonStyle(.borderless)
+        .font(.system(size: 10))
+        .foregroundColor(.secondary)
+        .pointingHandCursor()
+    }
+
     private func badge(_ text: String) -> some View {
         Text(text)
             .font(.system(size: 10, weight: .semibold))
@@ -295,6 +313,12 @@ struct ModConflictSection: View {
                 if let label = activeBadgeLabel(for: conflict) {
                     badge(label)
                 }
+                Spacer(minLength: AppDesign.Spacing.sm)
+                // `nil` pour un `betweenPacks` à 3 packs ou plus : pas de
+                // bouton, voir le commentaire de tête de `pair(_:)`.
+                if let p = pair(conflict) {
+                    dismissButton(for: p)
+                }
             }
             Text(String(format: vm.L(L10n.Conflicts.asset), conflict.asset))
                 .font(.system(size: 12)).foregroundColor(.secondary)
@@ -304,9 +328,15 @@ struct ModConflictSection: View {
 
     private func withinOnePackRow(_ conflict: LoadConflict) -> some View {
         let name = displayName(folders(conflict).first ?? "")
-        return Text(String(format: vm.L(L10n.Conflicts.withinOne), name))
-            .font(.system(size: 13, weight: .medium))
-            .lineLimit(1).truncationMode(.middle)
+        return HStack(spacing: AppDesign.Spacing.xs) {
+            Text(String(format: vm.L(L10n.Conflicts.withinOne), name))
+                .font(.system(size: 13, weight: .medium))
+                .lineLimit(1).truncationMode(.middle)
+            Spacer(minLength: AppDesign.Spacing.sm)
+            if let p = pair(conflict) {
+                dismissButton(for: p)
+            }
+        }
     }
 
     private func declaredRow(_ pair: ModConflictPair) -> some View {
@@ -315,6 +345,8 @@ struct ModConflictSection: View {
                 .font(.system(size: 13, weight: .medium))
                 .lineLimit(1).truncationMode(.middle)
             badge(vm.L(L10n.Conflicts.declaredByYou))
+            Spacer(minLength: AppDesign.Spacing.sm)
+            dismissButton(for: pair)
         }
     }
 }
