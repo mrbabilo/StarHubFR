@@ -39,6 +39,7 @@ let package = Package(
                 "Models/ManifestlessInstaller.swift",
                 "Models/ManifestVersionPatcher.swift",
                 "Models/DescriptionBlockParser.swift",
+                "Models/CompatibilityNote.swift",
                 "Models/ModDependencyParser.swift",
                 "Models/DependencyTree.swift",
                 "Models/SmapiLogDiagnostics.swift",
@@ -304,6 +305,11 @@ let package = Package(
             name: "DescriptionBlockTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/DescriptionBlockTests"
+        ),
+        .testTarget(
+            name: "CompatibilityNoteTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/CompatibilityNoteTests"
         ),
         .testTarget(
             name: "ModDependencyParserTests",
