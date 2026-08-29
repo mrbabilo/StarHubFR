@@ -1,5 +1,4 @@
 import Testing
-import Foundation
 @testable import StarHubTHCore
 
 /// Les cas viennent de descriptions Nexus réelles, passées dans le vrai
@@ -95,6 +94,7 @@ struct CompatibilityNoteTests {
         let note = CompatibilityNote.find(in: blocks)
         #expect(note?.heading == "Compatibility:")
         #expect(note?.blocks.first == .text("This mod may conflict with other mods that change interactions with NPCs."))
+        #expect(note?.blocks[1] == .list(items: ["SMAPI 4.0"], ordered: false))
         #expect(note?.blocks.count == 2)   // le reste du bloc, puis la liste
     }
 
@@ -124,5 +124,17 @@ struct CompatibilityNoteTests {
             .text("**Compatibility:**\nà lire\n**Credits:**\nà ne pas lire"),
         ]
         #expect(CompatibilityNote.find(in: blocks)?.blocks == [.text("à lire")])
+    }
+
+    /// Un bloc `.text` suivant qui contient un gras isolé doit être tronqué à
+    /// cette ligne — on garde les lignes d'avant sous forme de `.text`, puis on
+    /// s'arrête. La même règle s'applique au bloc ouvreur et aux blocs suivants.
+    @Test func aFollowingBlockWithBoldLineInTheMiddleIsTruncated() throws {
+        let blocks: [DescriptionBlock] = [
+            .text("**Compatibility:**\nfoo"),
+            .text("more conflict detail\n**Installation:**\nx"),
+        ]
+        let note = CompatibilityNote.find(in: blocks)
+        #expect(note?.blocks == [.text("foo"), .text("more conflict detail")])
     }
 }

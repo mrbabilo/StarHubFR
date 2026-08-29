@@ -89,9 +89,20 @@ struct CompatibilityNote: Equatable {
             if tail.count == lines.count - opener - 1 {
                 for next in blocks[(index + 1)...] {
                     if case .heading = next { break }
-                    if case .text(let md) = next,
-                       md.components(separatedBy: "\n").contains(where: isBoldAlone) { break }
-                    body.append(next)
+                    if case .text(let md) = next {
+                        let followingLines = md.components(separatedBy: "\n")
+                        if let boldIdx = followingLines.firstIndex(where: isBoldAlone) {
+                            // Il y a un gras isolé : on prend le texte d'avant et on s'arrête
+                            let beforeBold = followingLines[..<boldIdx].joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+                            if !beforeBold.isEmpty {
+                                body.append(.text(beforeBold))
+                            }
+                            break
+                        }
+                        body.append(next)
+                    } else {
+                        body.append(next)
+                    }
                 }
             }
             guard !body.isEmpty else { continue }
@@ -102,7 +113,7 @@ struct CompatibilityNote: Equatable {
 
     /// Une ligne faite d'un seul passage en gras, et de rien d'autre.
     /// `**Compatibility:**` oui ; `il **inclut** ceci` non.
-    static func isBoldAlone(_ line: String) -> Bool {
+    private static func isBoldAlone(_ line: String) -> Bool {
         let trimmed = line.trimmingCharacters(in: .whitespaces)
         guard trimmed.hasPrefix("**"), trimmed.hasSuffix("**"), trimmed.count > 4
         else { return false }
