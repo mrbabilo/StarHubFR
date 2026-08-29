@@ -988,6 +988,8 @@ struct SystemAlertsView: View {
                 }
 
                 KeybindReportSection(vm: vm, currentTab: $currentTab)
+
+                ModConflictSection(vm: vm)
             }
             .padding(30)
         }

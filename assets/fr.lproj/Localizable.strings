@@ -57,6 +57,16 @@
 "keybinds_counters" = "%1$lld mods scannés · %2$lld raccourcis";
 "keybinds_no_game_dir" = "Définissez le dossier du jeu pour analyser les conflits de raccourcis.";
 "keybinds_no_mods_scanned" = "Aucun mod actif ne propose de config.json à analyser.";
+"conflicts_title" = "Conflits entre mods";
+"conflicts_none_observed" = "Aucun conflit dans le journal de la dernière partie.";
+"conflicts_no_log" = "Aucun journal SMAPI n'a encore été lu — cette section se remplira après une partie.";
+"conflicts_observed_at" = "Observé le %@";
+"conflicts_asset" = "se disputent %@";
+"conflicts_within_one" = "%@ se marche dessus tout seul — à signaler à son auteur.";
+"conflicts_declared_by_you" = "Signalé par vous";
+"conflicts_dismissed_count" = "%lld écarté(s)";
+"conflicts_orphans" = "%lld signalement(s) portent sur des mods absents";
+"conflicts_both_active" = "Les deux sont actifs";
 "saves_no_saves" = "Aucun fichier de sauvegarde local trouvé\nEssayez de lancer le jeu une première fois.";
 "saves_all_saves" = "Toutes les sauvegardes (%lld)";
 "saves_auto_fetch" = "Les sauvegardes sont automatiquement récupérées depuis votre dossier de jeu.";

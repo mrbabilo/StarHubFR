@@ -57,6 +57,16 @@
 "keybinds_counters" = "%1$lld mods scanned · %2$lld shortcuts";
 "keybinds_no_game_dir" = "Set the game folder to scan for keybind conflicts.";
 "keybinds_no_mods_scanned" = "No active mod exposes a config.json to scan.";
+"conflicts_title" = "Mod conflicts";
+"conflicts_none_observed" = "No conflicts in the last session's log.";
+"conflicts_no_log" = "No SMAPI log has been read yet — this section fills in after a play session.";
+"conflicts_observed_at" = "Observed on %@";
+"conflicts_asset" = "fight over %@";
+"conflicts_within_one" = "%@ conflicts with itself — worth reporting to its author.";
+"conflicts_declared_by_you" = "Reported by you";
+"conflicts_dismissed_count" = "%lld dismissed";
+"conflicts_orphans" = "%lld report(s) point to mods no longer installed";
+"conflicts_both_active" = "Both are active";
 "saves_no_saves" = "No local save files found\nTry starting the game once first.";
 "saves_all_saves" = "All Saves (%lld)";
 "saves_auto_fetch" = "Save games are automatically fetched from your game folder.";

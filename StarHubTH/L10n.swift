@@ -205,6 +205,21 @@ enum L10n {
         static let inventoryError       = "saves_inventory_error"
     }
 
+    // MARK: - Conflicts
+    /// Section « Conflits entre mods » (Alertes système, tâche 8 de A5-T2).
+    enum Conflicts {
+        static let title          = "conflicts_title"
+        static let noneObserved   = "conflicts_none_observed"
+        static let noLogRead      = "conflicts_no_log"
+        static let observedAt     = "conflicts_observed_at"
+        static let asset          = "conflicts_asset"
+        static let withinOne      = "conflicts_within_one"
+        static let declaredByYou  = "conflicts_declared_by_you"
+        static let dismissedCount = "conflicts_dismissed_count"
+        static let orphans        = "conflicts_orphans"
+        static let bothActive     = "conflicts_both_active"
+    }
+
     // MARK: - Mods
     enum Mods {
         static let apiOffline           = "mods_api_offline"
