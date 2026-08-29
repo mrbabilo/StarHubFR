@@ -84,6 +84,8 @@ comme produit distinct de StarHubTH et de Stardrop.
 Marquage : **Fait** = preuve dans le code ou le CHANGELOG. **Partiel** = socle présent,
 promesse non tenue. **À faire** = rien dans le code. Les lignes **§new** viennent de la
 liste du 2026-07-30 et n'existaient pas dans le document de veille.
+Les lignes **§ajout** sont des demandes formulées **après** cette liste ; leur date est
+portée dans la colonne de droite.
 
 | Source | Demande | État | Preuve / renvoi |
 | :-- | :-- | :-- | :-- |
@@ -99,6 +101,8 @@ liste du 2026-07-30 et n'existaient pas dans le document de veille.
 | §1 | Refonte du log SMAPI façon *Log Doctor* | **Fait** | `Models/SmapiLogDiagnostics.swift`, `Views/Components/SmapiHealthCard.swift`, v1.9.x–1.10.0 |
 | §1 | Optimiser l'affichage des ~2000 lignes | **Fait** | `LazyVStack` + repliement par famille (`Models/LogNoise.swift`), v1.10.0 |
 | §1 | Signaler les mods incompatibles (`smapi.io/mods`) | **Fait** | L'API live est branchée (**A2-T1**) et son verdict s'affiche — fiche, carte de santé, et confirmation avant activation ou installation (**A2-T2**) |
+| **§ajout** | Signaler les incompatibilités **entre mods** | **À faire** | Demandé le 2026-08-29. Autre axe que la ligne ci-dessus, qui ne couvre que mod ↔ SMAPI. Mesuré : 83 cibles `Load` disputées, 18 paires → **A5** |
+| **§ajout** | Déclarer une traduction posée hors de l'app | **À faire** | Demandé le 2026-08-29. Mesuré : 310 des 313 traductions posées à la main sont inconnues du registre → **A3-T6** |
 | §1 | Activer automatiquement les dépendances | **Partiel** | `DependencyTreeView.swift:124` : bouton **Activer** par nœud. Manque l'action groupée → **A1-T1** |
 | §1 | Détecter un `manifest.json` corrompu, proposer une réinstallation | **Partiel** | `ModFolderRepairer.swift` répare des structures de dossiers, pas des manifests invalides → **A1-T2** |
 | §1 | Mise en évidence des problèmes dans la liste des mods | **Fait** | Pastille d'anomalie près du nom (**B1-T3**, pas encore publié) |
@@ -1816,12 +1820,9 @@ réclament la même ressource**, ce que ni SMAPI ni Nexus ne disent.
       conflit là où Content Patcher compose ferait plus de bruit que de service. Ne
       remonter que ce qui est certain tant qu'une mesure ne dit pas le contraire.*
 
-**Critère de succès** : avant d'activer un mod, savoir ce qu'il va écraser.
-
----
-
 **Critère de succès** : passer de « ce mod a planté » à « ce mod est cassé depuis
-SMAPI 3.0, voici son remplaçant ».
+SMAPI 3.0, voici son remplaçant » — et, avant d'activer un mod, savoir ce qu'il va
+écraser.
 
 ---
 

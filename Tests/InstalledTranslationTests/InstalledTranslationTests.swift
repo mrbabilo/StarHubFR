@@ -198,4 +198,31 @@ struct InstalledTranslationTests {
         registry.recordAddon(addon("ItemBags for Wildflour-31000-2-0-2-1762148429", at: 2))
         #expect(registry.addons(forHost: "ItemBags").count == 2)
     }
+
+    /// **La ligne d'avant et la ligne d'après doivent se reconnaître.** Depuis
+    /// que le dépôt lit l'identifiant dans le nom du fichier
+    /// (`NexusArchiveName`), une greffe redéposée en porte un — alors que celle
+    /// déjà au registre a été posée sans. La comparaison stricte par
+    /// identifiant ne s'applique que si **les deux** en ont un ; ici c'est le
+    /// nom qui doit encore trancher, sinon les fichiers de l'ancienne resteraient
+    /// sur le disque et une seconde ligne s'ajouterait.
+    @Test func anAddonRecordedBeforeIdsWereLearnedIsStillRecognised() {
+        var registry = InstalledTranslationRegistry()
+        registry.recordAddon(addon("Utility Bags-37381-1-0-0-1757199288", nexusId: 0, at: 1))
+        registry.recordAddon(addon("Utility Bags-37381-1-1-0-1799999999", nexusId: 37381, at: 2))
+        let addons = registry.addons(forHost: "ItemBags")
+        #expect(addons.count == 1)
+        #expect(addons.first?.nexusModId == 37381)
+    }
+
+    /// L'identifiant appris ne rapproche pas deux greffes qui n'ont rien à voir :
+    /// une seule des deux en porte un, et leurs noms diffèrent.
+    @Test func aLearnedIdDoesNotMergeTwoUnrelatedAddons() {
+        var registry = InstalledTranslationRegistry()
+        registry.recordAddon(addon("ItemBags for All Cornucopia-33439-1-0-0-1745271524",
+                                   nexusId: 0, at: 1))
+        registry.recordAddon(addon("ItemBags for Wildflour-31000-2-0-2-1762148429",
+                                   nexusId: 31000, at: 2))
+        #expect(registry.addons(forHost: "ItemBags").count == 2)
+    }
 }

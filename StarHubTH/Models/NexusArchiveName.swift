@@ -29,6 +29,13 @@ import Foundation
 /// Quand le nom ne dit rien, cette lecture ne dit rien : quatre noms du corpus
 /// (`New Item Bags for Sunberry Village`…) tiennent leur identifiant du
 /// navigateur intégré, et rien ne doit être inventé à leur place.
+///
+/// **Deuxième lecture des mêmes noms**, et elle est volontaire :
+/// `NexusModSearch.nexusIdCandidates` en tire un **ensemble** de candidats à
+/// 4–6 chiffres, que `confirmedNexusId` confronte ensuite au titre d'un
+/// résultat de recherche. Les deux ne répondent pas à la même question — ici,
+/// « que dit ce nom, seul, hors ligne » ; là-bas, « lequel de ces résultats
+/// est-ce ». Toucher à l'une sans regarder l'autre les ferait diverger.
 public enum NexusArchiveName {
 
     /// Ce que le nom d'une archive apprend sur sa provenance.

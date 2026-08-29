@@ -753,6 +753,12 @@ public enum NexusModSearch {
     /// Plusieurs candidats sont rendus, jamais un seul « deviné » : une année
     /// dans un titre en est un aussi. C'est `confirmedNexusId` qui tranche, en
     /// exigeant qu'un second signal concorde.
+    ///
+    /// **À ne pas confondre avec `NexusArchiveName.parse`**, qui lit les mêmes
+    /// noms mais rend **un seul** identifiant, ancré sur l'horodatage, et sans
+    /// rien à confronter — c'est ce qu'il faut au moment du dépôt, hors ligne.
+    /// Ici on rend un ensemble large, précisément parce qu'un résultat de
+    /// recherche viendra le confirmer.
     public static func nexusIdCandidates(inFileName name: String) -> Set<Int> {
         var candidates: Set<Int> = []
         var digits = ""
