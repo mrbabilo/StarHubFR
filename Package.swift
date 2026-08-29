@@ -136,6 +136,7 @@ let package = Package(
                 "Extensions/ModConfigFiles.swift",
                 "Models/HomeAttention.swift",
                 "Models/KeybindGrammar.swift",
+                "Models/KeybindScanner.swift",
             ]
         ),
         .testTarget(
