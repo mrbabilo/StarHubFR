@@ -323,6 +323,17 @@ struct ModConflictSection: View {
             Text(String(format: vm.L(L10n.Conflicts.asset), conflict.asset))
                 .font(.system(size: 12)).foregroundColor(.secondary)
                 .lineLimit(1).truncationMode(.middle)
+            // La TRACE « Affected patches » de Content Patcher : quel patch
+            // de chaque mod réclame l'asset. Absente quand la TRACE a été
+            // jetée par le cap mémoire du journal ou n'a jamais été écrite
+            // (`withinOnePack` n'en émet pas) — vide veut dire inconnu, la
+            // ligne s'abstient plutôt que d'inventer.
+            if !conflict.affectedPatches.isEmpty {
+                Text(String(format: vm.L(L10n.Conflicts.affectedPatches),
+                            conflict.affectedPatches.joined(separator: ", ")))
+                    .font(.system(size: 11)).foregroundColor(.secondary)
+                    .lineLimit(1).truncationMode(.middle)
+            }
         }
     }
 

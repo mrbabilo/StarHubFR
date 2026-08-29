@@ -77,4 +77,47 @@ struct ContentPatcherConflictsTests {
             "Two content packs want to load the 'Maps/Town' asset with the 'Exclusive' priority (Bed and Breakfast and [CP] Simple). Neither will be applied.")])
         #expect(found.isEmpty)
     }
+
+    // MARK: - La TRACE « Affected patches » (spéc. A5, reprise différée)
+
+    /// Content Patcher journalise la ligne d'erreur en `ERROR`, puis
+    /// **immédiatement** en `TRACE` les patches qui se disputent l'asset
+    /// (`"Affected patches: " + Join(", ", patch.Path.ToString())`, IL
+    /// `PatchManager::ApplyPatchesToAsset`). `LogPathBuilder.ToString()` joint
+    /// ses segments par `" > "` : chaque élément se lit « Pack > Patch ». C'est
+    /// ce qui dit **quel** patch de chaque mod se dispute l'asset — le
+    /// rattachement à l'entrée ERROR est l'adjacence, rien d'autre.
+    @Test func theTraceLineRightAfterGivesThePatches() throws {
+        let found = ContentPatcherConflicts.read(from: [
+            entry("Two content packs want to load the 'Portraits/Haley' asset with the 'Exclusive' priority ([CP] Aelinore and [CP] Miihaus). Neither will be applied."),
+            entry("Affected patches: [CP] Aelinore > Enable Haley, [CP] Miihaus > Edit Haley",
+                  level: .trace),
+        ])
+        #expect(found.first?.affectedPatches ==
+                ["[CP] Aelinore > Enable Haley", "[CP] Miihaus > Edit Haley"])
+    }
+
+    /// **La TRACE peut manquer** : le cap mémoire du journal jette les lignes
+    /// `TRACE` avant les autres (`trimPreservingSignal`), la branche
+    /// `withinOnePack` n'en émet pas, et une version future de Content Patcher
+    /// peut changer la forme. Le champ reste vide et l'affichage s'abstient —
+    /// jamais de patches inventés.
+    @Test func aMissingTraceLineLeavesThePatchesUnknown() throws {
+        let found = ContentPatcherConflicts.read(from: [
+            entry("Two content packs want to load the 'Portraits/Haley' asset with the 'Exclusive' priority (A and B). Neither will be applied."),
+        ])
+        #expect(found.first?.affectedPatches.isEmpty == true)
+    }
+
+    /// **L'adjacence est la règle de rattachement** : une TRACE détachée de
+    /// son ERROR (une ligne d'un autre niveau intercalée) ne se rattache pas —
+    /// on ne saurait pas à quel conflit elle appartient.
+    @Test func aDetachedTraceLineIsNotAttached() throws {
+        let found = ContentPatcherConflicts.read(from: [
+            entry("Two content packs want to load the 'Portraits/Haley' asset with the 'Exclusive' priority (A and B). Neither will be applied."),
+            entry("One or more handlers took over this asset.", level: .warning),
+            entry("Affected patches: A > Load, B > Load", level: .trace),
+        ])
+        #expect(found.first?.affectedPatches.isEmpty == true)
+    }
 }

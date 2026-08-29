@@ -69,6 +69,7 @@
   "conflicts_orphans": "%lld signalement(s) portent sur des mods absents",
   "conflicts_both_active": "Les deux sont actifs",
   "conflicts_all_active": "Tous sont actifs",
+  "conflicts_affected_patches": "Patches en cause : %@",
   "conflicts_report_button": "Signaler une incompatibilité…",
   "conflicts_dismiss_button": "Écarter",
   "conflicts_pick_mod": "Avec quel mod ?",

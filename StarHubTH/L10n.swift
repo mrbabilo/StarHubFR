@@ -224,6 +224,10 @@ enum L10n {
         /// Ronde de correction 1 : `bothActive` suppose deux packs — faux
         /// pour un `betweenPacks` « Multiple » à trois ou plus.
         static let allActive      = "conflicts_all_active"
+        /// Les patches exacts qui se disputent l'asset, lus dans la `TRACE`
+        /// adjacente — absent quand la TRACE manque (cap mémoire, branche
+        /// `withinOnePack`).
+        static let affectedPatches = "conflicts_affected_patches"
 
         // MARK: Signaler / écarter (tâche 9)
         /// Ouvre le sélecteur — l'ellipse signale qu'il reste une étape,

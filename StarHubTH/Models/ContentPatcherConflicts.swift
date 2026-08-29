@@ -30,6 +30,17 @@ struct LoadConflict: Equatable, Hashable {
     /// Les **noms d'affichage** des packs, tels que Content Patcher les imprime.
     let packs: [String]
     let kind: Kind
+    /// Les chemins des patches qui se disputent l'asset, lus dans la ligne
+    /// `TRACE` qui suit immédiatement l'erreur (`Affected patches: Pack >
+    /// Patch, …`, IL `PatchManager::ApplyPatchesToAsset`). Chaque élément se
+    /// lit « Pack > Patch » — c'est ce qui dit **quel** patch de chaque mod
+    /// réclame l'asset.
+    ///
+    /// Vide quand la TRACE manque : le cap mémoire du journal jette les lignes
+    /// `TRACE` avant les autres, la branche `withinOnePack` n'en émet pas, et
+    /// une version future peut changer la forme. Vide veut dire « inconnu »,
+    /// et l'affichage s'abstient.
+    var affectedPatches: [String] = []
 }
 
 enum ContentPatcherConflicts {
@@ -41,17 +52,46 @@ enum ContentPatcherConflicts {
     /// contexte entre crochets (`[15:55:04 ERROR Content Patcher]`).
     private static let source = "Content Patcher"
 
+    /// Le préfixe de la ligne `TRACE` qui suit une erreur de conflit, et par
+    /// quoi ses éléments sont joints — tous deux littéraux dans l'IL
+    /// (`"Affected patches: "` puis `Join(", ", …)`).
+    private static let affectedPatchesPrefix = "Affected patches: "
+
     /// Les conflits que le journal rapporte, sans doublon et dans l'ordre de
     /// lecture.
+    ///
+    /// Les patches en cause se lisent dans la `TRACE` **adjacente** à l'erreur
+    /// — Content Patcher écrit les deux lignes d'affilée, c'est cette
+    /// adjacence qui les relie, et une TRACE détachée de son erreur ne se
+    /// rattache à rien.
     static func read(from entries: [LogEntry]) -> [LoadConflict] {
         var seen: Set<LoadConflict> = []
         var found: [LoadConflict] = []
-        for entry in entries where entry.level == .error && entry.modName == source {
-            guard let conflict = parse(entry.message), !seen.contains(conflict) else { continue }
+        for (index, entry) in entries.enumerated() {
+            guard entry.level == .error, entry.modName == source,
+                  var conflict = parse(entry.message), !seen.contains(conflict)
+            else { continue }
             seen.insert(conflict)
+            conflict.affectedPatches = affectedPatches(adjacentTo: index, in: entries)
             found.append(conflict)
         }
         return found
+    }
+
+    /// Découpe la ligne `TRACE` qui suit immédiatement l'entrée d'indice
+    /// donné. Rend `[]` si l'entrée suivante n'est pas cette TRACE-là —
+    /// absente (cap mémoire, branche `withinOnePack`), d'un autre niveau ou
+    /// d'un autre mod : vide veut dire inconnu, jamais inventé.
+    private static func affectedPatches(adjacentTo index: Int, in entries: [LogEntry]) -> [String] {
+        guard index + 1 < entries.count else { return [] }
+        let next = entries[index + 1]
+        guard next.level == .trace, next.modName == source,
+              next.message.hasPrefix(affectedPatchesPrefix)
+        else { return [] }
+        return next.message.dropFirst(affectedPatchesPrefix.count)
+            .components(separatedBy: ", ")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
     }
 
     /// **L'ancrage porte sur le préfixe, jamais sur le conseil final**

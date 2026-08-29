@@ -12,6 +12,9 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+- **La ligne de conflit dit quels patches se disputent l'asset** quand Content Patcher les a journalisés juste après l'erreur (« Affected patches : Pack > Patch »). La ligne s'abstient si le journal a jeté ces `TRACE`.
+
 ## [1.28.0] - 2026-08-30
 
 ### Added
