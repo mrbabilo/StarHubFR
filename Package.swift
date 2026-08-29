@@ -40,6 +40,7 @@ let package = Package(
                 "Models/ManifestVersionPatcher.swift",
                 "Models/DescriptionBlockParser.swift",
                 "Models/CompatibilityNote.swift",
+                "Models/ContentPatcherConflicts.swift",
                 "Models/ModDependencyParser.swift",
                 "Models/DependencyTree.swift",
                 "Models/SmapiLogDiagnostics.swift",
@@ -310,6 +311,11 @@ let package = Package(
             name: "CompatibilityNoteTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/CompatibilityNoteTests"
+        ),
+        .testTarget(
+            name: "ContentPatcherConflictsTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ContentPatcherConflictsTests"
         ),
         .testTarget(
             name: "ModDependencyParserTests",
