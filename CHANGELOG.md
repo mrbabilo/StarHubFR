@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.28.0] - 2026-08-30
+
 ### Added
 - **Les incompatibilités entre mods se voient.** « Alertes système » reprend les paires que Content Patcher journalise quand deux packs veulent le même asset exclusif (« Neither will be applied ») — sans rien déduire. Depuis la fiche, on signale une incompatibilité à la main ou on écarte un faux positif ; activer un mod dont le pair signalé ou observé est actif demande confirmation, une paire dormante n'interrompt rien ; la pastille « Alertes système » compte les paires aux deux côtés actifs.
 - **La fiche d'un mod montre le paragraphe de compatibilité de son auteur** quand la description Nexus en écrit un (15 % des mods) : la phrase remonte telle quelle, c'est l'utilisateur qui juge.
