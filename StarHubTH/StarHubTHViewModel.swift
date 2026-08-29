@@ -1837,11 +1837,6 @@ class StarHubTHViewModel: ObservableObject {
     // if/else if de `MainView`, pas dans un `Group` à identité stable, donc
     // un `@StateObject` posé sur la section serait détruit et recréé à
     // chaque retour sur l'onglet (constat de revue C4-T2, ronde 1).
-    // Rangé sur le ViewModel — pas sur la vue — pour que le rapport survive
-    // au changement d'onglet : `SystemAlertsView` vit dans une chaîne
-    // if/else if de `MainView`, pas dans un `Group` à identité stable, donc
-    // un `@StateObject` posé sur la section serait détruit et recréé à
-    // chaque retour sur l'onglet (constat de revue C4-T2, ronde 1).
     // `KeybindScanService` porte désormais un `init()` explicite
     // `nonisolated` (même patron que `BisectionRunner.init(vm:)` juste en
     // dessous) : sans lui, l'init implicite d'une classe `@MainActor` est

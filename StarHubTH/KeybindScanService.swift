@@ -9,6 +9,15 @@ final class KeybindScanService: ObservableObject {
     @Published private(set) var report: KeybindScanner.KeybindReport?
     @Published private(set) var isScanning = false
 
+    /// Signature du dernier scan **effectivement lancé** (pas seulement
+    /// demandé) : `gameDir` plus l'identité et l'état actif de chaque
+    /// candidat. `scanIfNeeded` s'en sert pour savoir si le parc a bougé
+    /// depuis ; elle n'est mise à jour que dans `scan`, au moment où il
+    /// franchit ses propres gardes — un appel refusé (déjà en cours,
+    /// dossier de jeu vide) ne doit pas figer la signature sur un scan qui
+    /// n'a jamais eu lieu (ronde de revue 2, constat 3).
+    private var lastScannedSignature: Int?
+
     // `nonisolated`, comme `BisectionRunner.init(vm:)` : la propriété qui
     // porte ce service sur `StarHubTHViewModel` (`keybindScanService`) est
     // instanciée depuis une classe qui n'est elle-même pas `@MainActor`.
@@ -18,6 +27,21 @@ final class KeybindScanService: ObservableObject {
     // défaut déjà posées ci-dessus.
     nonisolated init() {}
 
+    /// Appelé au `onAppear` de la section, à la place d'une garde
+    /// `report == nil` : cette garde-là ne rescannait plus jamais après le
+    /// tout premier scan de la vie de l'app, donc un mod activé entre deux
+    /// visites de l'onglet restait absent du rapport sans que rien ne le
+    /// signale (ronde de revue 2, constat 3). Ici, un rescan implicite n'a
+    /// lieu que si le parc (ou `gameDir`) a changé depuis le dernier scan
+    /// lancé ; le bouton « Relancer l'analyse » reste, lui, inconditionnel
+    /// — il appelle `scan` directement.
+    func scanIfNeeded(mods: [ModItem], gameDir: String) {
+        guard !isScanning, !gameDir.isEmpty else { return }
+        let signature = signature(of: candidates(in: mods), gameDir: gameDir)
+        guard report == nil || signature != lastScannedSignature else { return }
+        scan(mods: mods, gameDir: gameDir)
+    }
+
     func scan(mods: [ModItem], gameDir: String) {
         guard !isScanning else { return }
         // Sans dossier de jeu, tous les chemins seraient construits sur « » :
@@ -25,13 +49,8 @@ final class KeybindScanService: ObservableObject {
         // vert mensonger. On ne scanne pas, la vue le dit.
         guard !gameDir.isEmpty else { return }
         isScanning = true
-        // Aplatir les packs : un composant a son propre config.json.
-        // `flattenedMods` plutôt qu'un dépliage réécrit ici : ce dépliage
-        // existait en 22 copies divergentes dans 10 fichiers avant d'être
-        // unifié (voir son doc comment). Le filtre garde `!isGroup` parce que
-        // l'unification ne déplie qu'un niveau — un pack imbriqué dans un
-        // pack arrive encore ici comme une ligne de groupe.
-        let candidates = mods.flattenedMods.filter { !$0.isGroup && $0.hasConfigFile }
+        let candidates = candidates(in: mods)
+        lastScannedSignature = signature(of: candidates, gameDir: gameDir)
 
         Task {
             let inputs: [KeybindScanner.ModScan] = await Task.detached(priority: .userInitiated) {
@@ -65,5 +84,30 @@ final class KeybindScanService: ObservableObject {
             self.report = KeybindScanner.report(mods: inputs)
             self.isScanning = false
         }
+    }
+
+    /// Aplatir les packs : un composant a son propre config.json.
+    /// `flattenedMods` plutôt qu'un dépliage réécrit ici : ce dépliage
+    /// existait en 22 copies divergentes dans 10 fichiers avant d'être
+    /// unifié (voir son doc comment). Le filtre garde `!isGroup` parce que
+    /// l'unification ne déplie qu'un niveau — un pack imbriqué dans un pack
+    /// arrive encore ici comme une ligne de groupe. Partagé entre `scan` et
+    /// `scanIfNeeded` : les deux doivent juger le même lot.
+    private func candidates(in mods: [ModItem]) -> [ModItem] {
+        mods.flattenedMods.filter { !$0.isGroup && $0.hasConfigFile }
+    }
+
+    /// Signature bon marché de ce qu'un scan verrait : `gameDir` plus
+    /// `folderName`/`isEnabled` de chaque candidat, combinés dans un `Int`
+    /// via `Hasher` plutôt qu'une grande chaîne concaténée — le parc fait
+    /// environ 900 entrées.
+    private func signature(of candidates: [ModItem], gameDir: String) -> Int {
+        var hasher = Hasher()
+        hasher.combine(gameDir)
+        for mod in candidates {
+            hasher.combine(mod.folderName)
+            hasher.combine(mod.isEnabled)
+        }
+        return hasher.finalize()
     }
 }

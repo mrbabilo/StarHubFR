@@ -16,17 +16,20 @@ import SwiftUI
 ///   effectivement été scanné **et** entièrement compris (voir `content`
 ///   plus bas — un lot avec des raccourcis non reconnus n'est pas un lot
 ///   sans conflit), sinon c'est un vert mensonger.
-/// - `.onAppear` ne relance le scan que si aucun rapport n'est encore
-///   publié. Ce n'est pas cette garde qui protège du re-scan au changement
-///   d'onglet : `SystemAlertsView` vit dans une chaîne if/else if de
-///   `MainView`, pas dans un `Group` à identité stable, donc revenir sur
-///   l'onglet la détruit et la recrée — un `@StateObject` posé ici serait
-///   toujours reparti de zéro. C'est pourquoi le service vit sur
-///   `StarHubTHViewModel.keybindScanService` (même patron que
-///   `smapiInstaller`) et cette vue l'observe via `@ObservedObject` : le
-///   rapport publié survit au changement d'onglet, et cette garde ne
-///   protège plus alors que d'un double `onAppear` sur la même instance
-///   vivante (ronde de revue 1, constat 1).
+/// - Le service vit sur `StarHubTHViewModel.keybindScanService` (même
+///   patron que `smapiInstaller`), pas dans un `@StateObject` de cette vue :
+///   `SystemAlertsView` vit dans une chaîne if/else if de `MainView`, pas
+///   dans un `Group` à identité stable, donc revenir sur l'onglet la
+///   détruirait et la recréerait à chaque fois — un `@StateObject` posé ici
+///   repartirait toujours de zéro (ronde de revue 1, constat 1). Le rapport
+///   publié survit ainsi au changement d'onglet.
+/// - `.onAppear` appelle `KeybindScanService.scanIfNeeded`, pas `scan`
+///   directement : le service compare une signature du parc courant à
+///   celle de son dernier scan lancé, et ne relance que si elle diffère —
+///   sinon un rapport calculé une fois resterait affiché pour toujours,
+///   périmé dès qu'un mod change d'état entre deux visites de l'onglet
+///   (ronde de revue 2, constat 3). Le bouton « Relancer l'analyse » reste
+///   inconditionnel, lui : voir `header`.
 struct KeybindReportSection: View {
     @ObservedObject var vm: StarHubTHViewModel
     @ObservedObject var service: KeybindScanService
@@ -67,10 +70,14 @@ struct KeybindReportSection: View {
         .cornerRadius(10)
         .onAppear {
             // Le rapport publié survit au changement d'onglet (le service
-            // vit sur le ViewModel) : cette garde n'évite plus qu'un
-            // double scan sur un `onAppear` répété de la même instance.
-            guard service.report == nil else { return }
-            service.scan(mods: vm.mods, gameDir: vm.gameDir)
+            // vit sur le ViewModel), mais un rapport qui ne bougerait plus
+            // jamais après le tout premier scan serait périmé dès qu'un mod
+            // change d'état ailleurs dans l'app : `scanIfNeeded` compare une
+            // signature du parc courant à celle du dernier scan lancé, et
+            // ne relance que si elle diffère (ronde de revue 2, constat 3).
+            // Le bouton « Relancer l'analyse » reste inconditionnel : voir
+            // `header`.
+            service.scanIfNeeded(mods: vm.mods, gameDir: vm.gameDir)
         }
     }
 
@@ -181,8 +188,19 @@ struct KeybindReportSection: View {
                         // second plan (ronde de revue 1, constat 4). Les 27
                         // noms de contrôles restent non traduits : chantier
                         // à part, porté ailleurs.
+                        //
+                        // Séparateur " / ", pas " + " : `control.buttons`
+                        // liste des touches *alternatives* pour un même
+                        // contrôle (ex. actionButton = X ou clic droit), pas
+                        // une combinaison à presser ensemble — alors que
+                        // " + " signifie déjà « ensemble » quarante pixels
+                        // plus haut dans le groupe des collisions
+                        // (`KeybindCombo.display`). Le scan n'a matché
+                        // qu'une seule de ces touches, mais laquelle n'est
+                        // pas portée par `GameControlConflict` (ronde de
+                        // revue 2, constat 1).
                         HStack(spacing: AppDesign.Spacing.xs) {
-                            Text(conflict.control.buttons.joined(separator: " + "))
+                            Text(conflict.control.buttons.joined(separator: " / "))
                                 .font(.system(size: 13, weight: .medium))
                             Text(conflict.control.name)
                                 .font(.system(size: 11))
