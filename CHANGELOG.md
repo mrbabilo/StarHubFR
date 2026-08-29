@@ -12,6 +12,9 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Fixed
+- **Une traduction emballée deux fois trouve enfin son mod.** Certaines archives répètent leur nom avant le dossier visé (`… FR - v2.9.0/… FR - v2.9.0/UIInfoSuite2Alt/i18n/fr.json`) : l'app s'arrêtait au premier emballage et proposait quatre destinations dont aucune n'était la bonne. Elle descend maintenant jusqu'au mod installé et dépose le fichier sans rien demander.
+
 ## [1.26.0] - 2026-08-28
 
 ### Added

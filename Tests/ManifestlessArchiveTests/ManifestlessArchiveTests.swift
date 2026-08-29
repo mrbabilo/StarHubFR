@@ -158,6 +158,38 @@ struct ManifestlessArchiveTests {
         #expect(entries.first?.destination == "zzz/x.json")
     }
 
+    /// **Deux emballages, pas un.** Archive réelle : la traduction française
+    /// de UI Info Suite 2 Alternative (Nexus 46333) répète son propre nom
+    /// avant le dossier du mod — `… FR - v2.9.0/… FR - v2.9.0/UIInfoSuite2Alt/
+    /// i18n/fr.json`. Une seule descente s'arrêtait sur l'emballage, et la
+    /// liste des destinations proposées ne contenait même pas le mod visé :
+    /// les huit candidats ne partageaient avec lui que des numéros de version.
+    @Test func nestedWrappersAreSteppedThroughToTheKnownMod() throws {
+        let root = "UI Info Suite 2 Alternative FR - v2.9.0"
+        let outcome = ManifestlessArchive.classify(
+            paths: ["\(root)/\(root)/UIInfoSuite2Alt/i18n/fr.json"],
+            installedFolderNames: parc + ["UIInfoSuite2Alt"])
+        guard case .plan(let plan) = outcome else { Issue.record("attendu un plan"); return }
+        #expect(plan.hostFolderName == "UIInfoSuite2Alt")
+        #expect(plan.kind == .translation)
+        #expect(plan.entries.first?.destination == "i18n/fr.json")
+    }
+
+    /// La descente ne franchit jamais un dossier qu'un mod porte **en lui**.
+    /// Un mod du parc dont le nom contient « i18n » suffirait sinon à faire
+    /// passer `i18n` pour un emballage : le `fr.json` finirait à la racine du
+    /// mod, hors de portée du jeu.
+    @Test func theDescentNeverStepsIntoAModContentDirectory() throws {
+        let outcome = ManifestlessArchive.classify(
+            paths: ["Traduction FR/i18n/fr.json"],
+            installedFolderNames: parc + ["i18n Loader"])
+        guard case .needsHost(_, let kind, let entries) = outcome else {
+            Issue.record("attendu une demande d'hôte"); return
+        }
+        #expect(kind == .translation)
+        #expect(entries.map(\.destination) == ["i18n/fr.json"])
+    }
+
     // MARK: - Forme 4 : des chemins déjà relatifs à la racine du mod
 
     /// **Le décapage de trop.** `i18n` n'est pas le nom d'un mod : le retirer

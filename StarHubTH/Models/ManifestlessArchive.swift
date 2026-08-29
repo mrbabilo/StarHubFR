@@ -118,6 +118,19 @@ public enum ManifestlessArchive {
 
         // ── Un dossier racine unique : le cas 1, 2 ou 3.
         if let root = singleRoot(of: files) {
+            // Le mod visé est peut-être plus bas que le premier emballage :
+            // la traduction française de UI Info Suite 2 Alternative répète
+            // son propre nom deux fois avant `UIInfoSuite2Alt/i18n/fr.json`.
+            // C'est toujours le cas 1 — la destination est écrite dans
+            // l'archive —, simplement plus profond.
+            if let known = firstInstalledLevel(of: files, installed: installedFolderNames) {
+                let entries = strip(prefix: known, from: files)
+                if !entries.isEmpty {
+                    let name = known.components(separatedBy: "/").last ?? known
+                    return .plan(Plan(hostFolderName: name, kind: kind(of: entries),
+                                      entries: entries))
+                }
+            }
             var prefix = root
             var entries = strip(prefix: prefix, from: files)
             guard !entries.isEmpty else { return .unrecognised }
@@ -130,6 +143,7 @@ public enum ManifestlessArchive {
             // candidats tirés du mauvais nom.
             if !installedFolderNames.contains(prefix),
                let inner = singleRoot(of: entries.map(\.destination)),
+               !modContentDirectories.contains(inner.lowercased()),
                !strip(prefix: inner, from: entries.map(\.destination)).isEmpty {
                 let deeper = prefix + "/" + inner
                 let deeperEntries = strip(prefix: deeper, from: files)
@@ -223,6 +237,34 @@ public enum ManifestlessArchive {
     private static func kind(of entries: [Entry]) -> Kind {
         entries.allSatisfy { $0.destination.lowercased().hasPrefix("i18n/") }
             ? .translation : .addon
+    }
+
+    /// Le chemin complet du premier dossier **emboîté** qui porte le nom d'un
+    /// mod installé, `nil` si la chaîne n'en rencontre aucun.
+    ///
+    /// Une archive n'emballe pas toujours son mod une seule fois : celle de la
+    /// traduction FR de UI Info Suite 2 Alternative le fait deux fois, du même
+    /// nom, avant `UIInfoSuite2Alt/`. Descendre d'un seul cran laissait le mod
+    /// cible **hors** des candidats proposés — il ne partageait avec
+    /// l'emballage que des numéros de version.
+    ///
+    /// La descente s'arrête au premier niveau reconnu, jamais au plus profond :
+    /// `ItemBags/assets/…` doit donner `ItemBags`. Et elle ne franchit jamais
+    /// un dossier qu'un mod porte en lui — `i18n` n'emballe rien, c'est déjà
+    /// la place du fichier.
+    private static func firstInstalledLevel(of files: [String],
+                                            installed: [String]) -> String? {
+        var remaining = files
+        var walked = ""
+        while let root = singleRoot(of: remaining) {
+            guard !modContentDirectories.contains(root.lowercased()) else { return nil }
+            let entries = strip(prefix: root, from: remaining)
+            guard !entries.isEmpty else { return nil }
+            walked = walked.isEmpty ? root : walked + "/" + root
+            if installed.contains(root) { return walked }
+            remaining = entries.map(\.destination)
+        }
+        return nil
     }
 
     /// Retire un préfixe de dossier des chemins, en laissant tomber ce qui
