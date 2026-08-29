@@ -9,6 +9,15 @@ final class KeybindScanService: ObservableObject {
     @Published private(set) var report: KeybindScanner.KeybindReport?
     @Published private(set) var isScanning = false
 
+    // `nonisolated`, comme `BisectionRunner.init(vm:)` : la propriété qui
+    // porte ce service sur `StarHubTHViewModel` (`keybindScanService`) est
+    // instanciée depuis une classe qui n'est elle-même pas `@MainActor`.
+    // L'init implicite d'une classe `@MainActor` serait isolée et
+    // échouerait à la compilation depuis ce contexte (ronde de revue 1,
+    // constat 1) ; ce corps vide ne fait qu'accepter les valeurs par
+    // défaut déjà posées ci-dessus.
+    nonisolated init() {}
+
     func scan(mods: [ModItem], gameDir: String) {
         guard !isScanning else { return }
         // Sans dossier de jeu, tous les chemins seraient construits sur « » :

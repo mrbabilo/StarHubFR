@@ -13,14 +13,28 @@ import SwiftUI
 ///   lui à la création de la vue.
 /// - Deux états de plus que le canevas (`noGameDir`, `noModsScanned`) : le
 ///   vert « aucun conflit » ne doit sortir que si quelque chose a
-///   effectivement été scanné, sinon c'est un vert mensonger.
+///   effectivement été scanné **et** entièrement compris (voir `content`
+///   plus bas — un lot avec des raccourcis non reconnus n'est pas un lot
+///   sans conflit), sinon c'est un vert mensonger.
 /// - `.onAppear` ne relance le scan que si aucun rapport n'est encore
-///   publié : changer d'onglet détruit et recrée ce `@StateObject`, sans
-///   cette garde les ~545 `config.json` du parc seraient relus à chaque
-///   retour sur l'onglet.
+///   publié. Ce n'est pas cette garde qui protège du re-scan au changement
+///   d'onglet : `SystemAlertsView` vit dans une chaîne if/else if de
+///   `MainView`, pas dans un `Group` à identité stable, donc revenir sur
+///   l'onglet la détruit et la recrée — un `@StateObject` posé ici serait
+///   toujours reparti de zéro. C'est pourquoi le service vit sur
+///   `StarHubTHViewModel.keybindScanService` (même patron que
+///   `smapiInstaller`) et cette vue l'observe via `@ObservedObject` : le
+///   rapport publié survit au changement d'onglet, et cette garde ne
+///   protège plus alors que d'un double `onAppear` sur la même instance
+///   vivante (ronde de revue 1, constat 1).
 struct KeybindReportSection: View {
     @ObservedObject var vm: StarHubTHViewModel
-    @StateObject private var service = KeybindScanService()
+    @ObservedObject var service: KeybindScanService
+
+    init(vm: StarHubTHViewModel) {
+        self.vm = vm
+        self.service = vm.keybindScanService
+    }
 
     /// Sous ce compte, un groupe s'ouvre par défaut ; au-dessus, il reste
     /// replié (décision de la tâche 0 : le parc réactivé dépasse le seuil
@@ -52,8 +66,9 @@ struct KeybindReportSection: View {
         .background(Color.primary.opacity(0.03))
         .cornerRadius(10)
         .onAppear {
-            // Garde : sans elle, revenir sur l'onglet Alertes système relit
-            // tout le parc à chaque fois (le @StateObject est recréé).
+            // Le rapport publié survit au changement d'onglet (le service
+            // vit sur le ViewModel) : cette garde n'évite plus qu'un
+            // double scan sur un `onAppear` répété de la même instance.
             guard service.report == nil else { return }
             service.scan(mods: vm.mods, gameDir: vm.gameDir)
         }
@@ -62,12 +77,15 @@ struct KeybindReportSection: View {
     private var header: some View {
         HStack {
             Image(systemName: "keyboard")
-            Text(vm.L(L10n.Keybinds.title)).font(.system(size: 14, weight: .bold))
-            Spacer()
+            Text(vm.L(L10n.Keybinds.title))
+                .font(.system(size: 14, weight: .bold))
+                .lineLimit(1)
+            Spacer(minLength: AppDesign.Spacing.sm)
             Button(action: { service.scan(mods: vm.mods, gameDir: vm.gameDir) }) {
                 Label(vm.L(L10n.Keybinds.rescan), systemImage: "arrow.clockwise")
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(.primary)
+                    .lineLimit(1)
                     .padding(.horizontal, AppDesign.Spacing.md)
                     .padding(.vertical, AppDesign.Spacing.xs)
                     .background(Color.primary.opacity(0.1))
@@ -76,6 +94,7 @@ struct KeybindReportSection: View {
             .buttonStyle(PlainButtonStyle())
             .pointingHandCursor()
             .disabled(service.isScanning || vm.gameDir.isEmpty)
+            .layoutPriority(1)
         }
     }
 
@@ -99,7 +118,11 @@ struct KeybindReportSection: View {
             Text(String(format: vm.L(L10n.Keybinds.counters),
                         report.scannedMods, report.keybindCount))
                 .font(.system(size: 12)).foregroundColor(.secondary)
-            if report.collisions.isEmpty && report.gameConflicts.isEmpty {
+            // Le vert n'affirme l'absence de conflit que si le lot a aussi
+            // été entièrement compris : des raccourcis non reconnus sont
+            // eux aussi un signal, pas un simple à-côté du vert (ronde de
+            // revue 1, constat 2).
+            if report.collisions.isEmpty && report.gameConflicts.isEmpty && report.unrecognized.isEmpty {
                 statusRow(icon: "checkmark.circle.fill", color: .green,
                           text: vm.L(L10n.Keybinds.empty))
             } else {
@@ -107,12 +130,17 @@ struct KeybindReportSection: View {
                     collisionsGroup(report.collisions)
                 }
                 if !report.gameConflicts.isEmpty {
+                    // La réserve reste visible même groupe replié : c'est
+                    // elle qui évite la fausse alerte chez qui a remappé
+                    // ses touches (ronde de revue 1, constat 3).
+                    Text(vm.L(L10n.Keybinds.gameCaveat))
+                        .font(.system(size: 11)).foregroundColor(.secondary)
                     gameConflictsGroup(report.gameConflicts)
                 }
+                if !report.unrecognized.isEmpty {
+                    unrecognizedGroup(report.unrecognized)
+                }
             }
-        }
-        if !report.unrecognized.isEmpty {
-            unrecognizedGroup(report.unrecognized)
         }
         if report.pausedIgnored > 0 {
             Text(String(format: vm.L(L10n.Keybinds.pausedNote), report.pausedIgnored))
@@ -146,11 +174,20 @@ struct KeybindReportSection: View {
         DisclosureGroup(isExpanded: expansion("game",
                                                defaultOpen: conflicts.count <= Self.autoExpandThreshold)) {
             VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
-                Text(vm.L(L10n.Keybinds.gameCaveat))
-                    .font(.system(size: 11)).foregroundColor(.secondary)
                 ForEach(conflicts, id: \.control.name) { conflict in
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(conflict.control.name).font(.system(size: 13, weight: .medium))
+                        // La touche en cause d'abord — c'est elle qui est
+                        // actionnable ; le nom de champ C# ensuite, en
+                        // second plan (ronde de revue 1, constat 4). Les 27
+                        // noms de contrôles restent non traduits : chantier
+                        // à part, porté ailleurs.
+                        HStack(spacing: AppDesign.Spacing.xs) {
+                            Text(conflict.control.buttons.joined(separator: " + "))
+                                .font(.system(size: 13, weight: .medium))
+                            Text(conflict.control.name)
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                        }
                         ForEach(conflict.uses, id: \.self) { use in
                             Text("· \(use.modName) (\(use.keyPath.joined(separator: ".")))")
                                 .font(.system(size: 12)).foregroundColor(.secondary)
