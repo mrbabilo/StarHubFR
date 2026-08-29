@@ -34,6 +34,12 @@ class StarHubTHViewModel: ObservableObject {
     /// True when the log's mtime predates this app session (= no game launch
     /// logged since StarHubFR was opened).
     @Published var smapiLogStale: Bool = false
+    /// Les conflits de chargement que Content Patcher a constatés lors de la
+    /// **dernière partie** journalisée. La date de ce constat est `smapiLogDate`
+    /// (mtime de `SMAPI-latest.txt`), pas maintenant : ce n'est pas l'état du
+    /// parc aujourd'hui, un conflit rapporté peut concerner deux mods qui sont
+    /// en pause à l'instant où on le lit.
+    @Published private(set) var contentPatcherConflicts: [LoadConflict] = []
     /// App-session start captured once at init (= app launch for the single
     /// @StateObject VM). Reference for SMAPI-log staleness.
     private let sessionStart = Date()
@@ -3722,6 +3728,13 @@ class StarHubTHViewModel: ObservableObject {
             // (the full parse), not the capped list: the display cap must not
             // cost us recorded errors.
             self.recordErrorHistory(from: entries, logDate: smapiDate)
+            // Même raisonnement pour les conflits Content Patcher : `entries`
+            // (non écrêté), pas `trimmedEntries`. Le cap sacrifie les TRACE en
+            // premier donc les ERROR de conflit survivraient sans doute, mais
+            // lire la liste complète retire la question — elle est déjà sous
+            // la main ici. `smapiLogDate` (publié juste au-dessus) porte déjà
+            // la date de ce journal, pas besoin d'un second champ.
+            self.contentPatcherConflicts = ContentPatcherConflicts.read(from: entries)
             completion?()
         }
     }
@@ -3790,6 +3803,17 @@ class StarHubTHViewModel: ObservableObject {
         // probablement un autre mod, que le premier-venu renvoyait à tort.
         let containing = all.filter { $0.name.localizedCaseInsensitiveContains(name) }
         return containing.min(by: { $0.name.count < $1.name.count })
+    }
+
+    /// Les `folderName` logiques des packs d'un conflit, dans l'ordre du message.
+    ///
+    /// Content Patcher imprime des **noms d'affichage** (« Unlockable Bundles »),
+    /// pas des `folderName` — sans ce pont, un conflit ne peut pas être comparé
+    /// à `mods`. **Un nom non résolu est conservé tel quel**, pas jeté : mieux
+    /// vaut un conflit approximativement nommé qu'un conflit tu. L'appelant
+    /// distingue les deux en testant l'appartenance à `mods`.
+    func conflictFolderNames(_ conflict: LoadConflict) -> [String] {
+        conflict.packs.map { resolveModFolder(forLoggedName: $0)?.folderName ?? $0 }
     }
 
     /// Applies the memory cap to parsed SMAPI entries, dropping TRACE noise
