@@ -80,6 +80,22 @@ enum L10n {
         static let smapiNotInstalled    = "home_smapi_not_installed"
     }
 
+    // MARK: - Keybinds
+    enum Keybinds {
+        static let title              = "keybinds_title"
+        static let scanning           = "keybinds_scanning"
+        static let empty              = "keybinds_empty"
+        static let rescan             = "keybinds_rescan"
+        static let collisionsHeader   = "keybinds_collisions_header"
+        static let gameHeader         = "keybinds_game_header"
+        static let gameCaveat         = "keybinds_game_caveat"
+        static let unrecognizedHeader = "keybinds_unrecognized_header"
+        static let pausedNote         = "keybinds_paused_note"
+        static let counters           = "keybinds_counters"
+        static let noGameDir          = "keybinds_no_game_dir"
+        static let noModsScanned      = "keybinds_no_mods_scanned"
+    }
+
     // MARK: - Saves
     enum Saves {
         static let noSaves              = "saves_no_saves"

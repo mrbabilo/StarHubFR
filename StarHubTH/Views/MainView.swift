@@ -964,6 +964,8 @@ struct SystemAlertsView: View {
                     .background(Color.primary.opacity(0.04))
                     .cornerRadius(12)
                 }
+
+                KeybindReportSection(vm: vm)
             }
             .padding(30)
         }
