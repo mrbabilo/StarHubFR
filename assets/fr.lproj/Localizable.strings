@@ -188,6 +188,7 @@
 "mods_detail_no_description" = "Aucune description disponible";
 "mods_detail_no_changelog" = "Aucun journal des modifications disponible";
 "mods_detail_cached" = "En cache";
+"mods_compatibility_note" = "Ce que l'auteur dit de la compatibilité";
 "mods_detail_updated" = "Dernière mise à jour";
 "mods_detail_installed" = "Installé le";
 "mods_detail_languages" = "Langues";

@@ -1243,6 +1243,29 @@ struct ModDetailView: View {
                         stalenessHint
                     }
                     DescriptionBlocksView(blocks: blocks, vm: vm)
+
+                    // **Ce que l'auteur dit de la compatibilité.** Mesuré sur 200
+                    // fiches : 30 % en ouvrent une section, longue de 359
+                    // caractères en médiane et 614 au maximum — d'où l'absence de
+                    // repli, qui serait une cérémonie pour un paragraphe court.
+                    // On affiche sa phrase, on n'en déduit aucune paire.
+                    //
+                    // Réservé à l'onglet Description : `blocks` porte le
+                    // changelog quand `isChangelog` est vrai, et un titre
+                    // « Compatibility » y désignerait une note de version, pas
+                    // la déclaration de l'auteur sur la fiche.
+                    if !isChangelog, let note = CompatibilityNote.find(in: blocks) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(vm.L(L10n.Mods.compatibilityNote))
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(.secondary)
+                            DescriptionBlocksView(blocks: note.blocks, vm: vm)
+                        }
+                        .padding(12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(RoundedRectangle(cornerRadius: 8)
+                            .fill(Color.secondary.opacity(0.08)))
+                    }
                 }
             }
         } else {

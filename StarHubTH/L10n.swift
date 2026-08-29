@@ -472,6 +472,8 @@ enum L10n {
         static let detailNoDescription  = "mods_detail_no_description"
         static let detailNoChangelog    = "mods_detail_no_changelog"
         static let detailCached         = "mods_detail_cached"
+        // A5-T3 — carte « ce que l'auteur dit de la compatibilité ».
+        static let compatibilityNote    = "mods_compatibility_note"
         static let detailUpdated        = "mods_detail_updated"
         static let detailInstalled      = "mods_detail_installed"
         static let detailLanguages      = "mods_detail_languages"
