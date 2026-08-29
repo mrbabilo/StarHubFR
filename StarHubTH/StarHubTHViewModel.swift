@@ -2967,14 +2967,30 @@ class StarHubTHViewModel: ObservableObject {
                 self.smapiDiagnostics = nil
                 self.smapiLogDate = nil
                 self.smapiLogStale = false
+                // Même trou que `smapiLogDate` : sans ce reset, un journal
+                // disparu laisserait les conflits de la lecture précédente
+                // affichés à côté d'une date à `nil` — la même désynchronisation
+                // que celle évitée plus bas entre date et liste.
+                self.contentPatcherConflicts = []
             }
             return
         }
-        
+
         let (smapiDiag, smapiDate, smapiStale) = computeSmapiDiagnostics(logContent: logContent, atPath: logPath)
 
         // Bloc « You can update N mods » — voir SmapiLogParser.updates(in:).
         let updates = SmapiLogParser.updates(in: logContent)
+        // Ce scan (rafraîchissement ordinaire du parc, déclenché à chaque
+        // `scanMods()`) alimente aussi `contentPatcherConflicts`, en plus de
+        // `parseAndAppendSmapiLog` (onglet Journaux / veilleur) : la section
+        // « Conflits » vit dans Alertes système, qui n'ouvre ni l'un ni
+        // l'autre chemin explicitement. Sans ce second câblage, elle
+        // afficherait une liste vide à côté d'une `smapiLogDate` fraîche —
+        // « vérifié, aucun conflit » alors que rien n'a été lu pour cet axe.
+        // Réutilise le même analyseur que l'autre chemin (`SmapiLogParser.parse`)
+        // plutôt que d'écrire un second parseur de conflits.
+        let conflictEntries = SmapiLogParser.parse(logContent)
+        let conflicts = ContentPatcherConflicts.read(from: conflictEntries)
         var errors: [String] = []
         
         let lines = logContent.components(separatedBy: .newlines)
@@ -3044,6 +3060,10 @@ class StarHubTHViewModel: ObservableObject {
             self.smapiDiagnostics = smapiDiag
             self.smapiLogDate = smapiDate
             self.smapiLogStale = smapiStale
+            // Publié dans le même bloc `main.async` que `smapiLogDate` :
+            // date et liste doivent changer ensemble, jamais l'une sans
+            // l'autre — voir le commentaire au-dessus de `conflictEntries`.
+            self.contentPatcherConflicts = conflicts
             // Log only genuinely new SMAPI alerts (not seen in the previous
             // parse) so the Journaux tab stays clean across re-parses. Diff
             // by content — not count — to catch both added and replaced errors.
