@@ -339,12 +339,26 @@ class StarHubTHViewModel: ObservableObject {
     /// La définition d'une « alerte » (pastille de la barre latérale et
     /// bande de l'accueil, tâche 7) : erreurs SMAPI plus problèmes de
     /// raccourcis — collisions et conflits jeu, les « non reconnus » exclus
-    /// (illisibles, pas avérés ; voir `keybindProblemCount`). Un seul
-    /// endroit pour cette somme : barre latérale et accueil ne peuvent plus
-    /// diverger.
+    /// (illisibles, pas avérés ; voir `keybindProblemCount`) — plus conflits
+    /// entre mods aux deux côtés actifs (voir `activeConflictCount`). Un
+    /// seul endroit pour cette somme : barre latérale et accueil ne peuvent
+    /// plus diverger.
     @MainActor
     var systemAlertCount: Int {
-        smapiErrors.count + keybindProblemCount
+        smapiErrors.count + keybindProblemCount + activeConflictCount
+    }
+
+    /// Combien d'incompatibilités entre mods réclament une attention
+    /// aujourd'hui (spec A5-T2, « Pastille ») : une par paire déclarée ou
+    /// observée dans le journal, non écartée, dont les deux côtés sont actifs
+    /// — une paire dormante ne compte pas, même règle que les raccourcis. La
+    /// règle elle-même vit dans `ModConflictVerdicts.liveConflictCount`,
+    /// pure et testée, comme `activationConflict` avant elle.
+    @MainActor
+    var activeConflictCount: Int {
+        let activeFolders = Set(mods.flattenedMods.filter(\.isEnabled).map(\.folderName))
+        let candidates = modConflictVerdicts.declared + contentPatcherConflicts.compactMap(conflictPair)
+        return modConflictVerdicts.liveConflictCount(candidates: candidates, activeFolders: activeFolders)
     }
 
     /// Couverture française par mod, indexée par `folderName`. Absente tant

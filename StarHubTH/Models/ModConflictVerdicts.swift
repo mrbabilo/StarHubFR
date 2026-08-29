@@ -120,6 +120,27 @@ public struct ModConflictVerdicts: Codable, Equatable, Sendable {
         return nil
     }
 
+    /// Combien de paires réclament une attention **aujourd'hui** — la pastille
+    /// « Alertes système » (spec A5-T2). Une par paire non écartée — déclarée
+    /// ou observée dans le journal — dont **les deux côtés sont actifs
+    /// maintenant** : une paire dormante (un côté en pause, désinstallé, ou
+    /// nom du journal non résolu à un dossier) ne demande rien, même règle
+    /// que le rapport de raccourcis. La spécification est catégorique : la
+    /// pastille se fonde sur l'état actuel du parc, jamais sur celui qu'avait
+    /// le journal à la dernière partie.
+    ///
+    /// `candidates` peut répéter une paire (déclarée **et** observée) : elle
+    /// ne compte qu'une fois. Pure, comme `activationConflict` — c'est la
+    /// partie de la règle de la pastille qui se teste sans le ViewModel.
+    public func liveConflictCount(candidates: [ModConflictPair],
+                                  activeFolders: Set<String>) -> Int {
+        Set(candidates).filter { pair in
+            verdict(for: pair)?.isDeclared != false
+                && activeFolders.contains(pair.first)
+                && activeFolders.contains(pair.second)
+        }.count
+    }
+
     // Un dictionnaire à clé non-`String` ne se code pas en JSON d'objet : on
     // passe par un tableau de couples, ce qui garde le fichier lisible à l'œil.
     private enum CodingKeys: String, CodingKey { case entries }

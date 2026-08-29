@@ -144,4 +144,56 @@ struct ModConflictVerdictsTests {
                                               candidates: [pair], activeFolders: ["SVE/Farm", "SVE/Town"])
         #expect(other == nil)
     }
+
+    // MARK: - liveConflictCount (pastille « Alertes système », spec A5-T2)
+
+    /// **Une paire déclarée, les deux côtés actifs aujourd'hui → 1.** La
+    /// pastille ne se fonde que sur l'état actuel du parc, jamais sur celui
+    /// qu'avait le journal : une paire dormante ne demande pas d'attention.
+    @Test func aDeclaredPairWithBothSidesActiveCountsOne() throws {
+        var store = ModConflictVerdicts()
+        let pair = ModConflictPair("A", "B")
+        store.declare(pair, note: "", at: t0)
+        let count = store.liveConflictCount(candidates: store.declared, activeFolders: ["A", "B"])
+        #expect(count == 1)
+    }
+
+    /// **Une paire observée, jamais jugée, les deux côtés actifs → 1** : le
+    /// journal a vu le conflit, l'utilisateur ne l'a pas écarté.
+    @Test func anObservedPairWithBothSidesActiveCountsOne() throws {
+        let store = ModConflictVerdicts()
+        let pair = ModConflictPair("A", "B")
+        let count = store.liveConflictCount(candidates: [pair], activeFolders: ["A", "B"])
+        #expect(count == 1)
+    }
+
+    /// **Déclarée et observée, la même paire ne compte qu'une fois** — les
+    /// candidates fusionnent avant de compter.
+    @Test func aPairBothDeclaredAndObservedCountsOnce() throws {
+        var store = ModConflictVerdicts()
+        let pair = ModConflictPair("A", "B")
+        store.declare(pair, note: "", at: t0)
+        let count = store.liveConflictCount(candidates: [pair] + store.declared, activeFolders: ["A", "B"])
+        #expect(count == 1)
+    }
+
+    /// **Écartée → 0**, même observée dans le journal : « écarter » doit
+    /// obtenir le silence partout, pas seulement dans le rapport.
+    @Test func aDismissedPairNeverCounts() throws {
+        var store = ModConflictVerdicts()
+        let pair = ModConflictPair("A", "B")
+        store.dismiss(pair, note: "faux positif", at: t0)
+        let count = store.liveConflictCount(candidates: [pair], activeFolders: ["A", "B"])
+        #expect(count == 0)
+    }
+
+    /// **Dormante → 0** : un côté en pause ou désinstallé (absent des actifs)
+    /// ne réclame rien aujourd'hui — c'est aussi le cas d'un nom du journal
+    /// non résolu à un dossier, qui ne matche jamais un actif.
+    @Test func aDormantPairDoesNotCount() throws {
+        let store = ModConflictVerdicts()
+        let pair = ModConflictPair("A", "B")
+        #expect(store.liveConflictCount(candidates: [pair], activeFolders: ["A"]) == 0)
+        #expect(store.liveConflictCount(candidates: [pair], activeFolders: []) == 0)
+    }
 }
