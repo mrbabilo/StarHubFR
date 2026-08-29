@@ -324,13 +324,17 @@ public enum KeybindScanner {
 
         let collisions = index
             .filter { Set($0.value.map(\.modID)).count >= 2 }
-            .map { KeybindCollision(combo: $0.key, uses: $0.value.sorted { $0.modName < $1.modName }) }
+            // Départage par `modID` (ronde finale) : le sort de Swift n'est
+            // pas garanti stable, et ce parc a de vrais homonymes (Swim
+            // installé deux fois) — le nom seul ne définit pas un ordre
+            // total, deux rapports du même lot pouvaient différer.
+            .map { KeybindCollision(combo: $0.key, uses: $0.value.sorted { ($0.modName, $0.modID) < ($1.modName, $1.modID) }) }
             .sorted { $0.combo < $1.combo }
         let gameConflicts = gameIndex
             .map { name, uses in
                 GameControlConflict(
                     control: GameControlDefaults.controls.first { $0.name == name }!,
-                    uses: uses.sorted { $0.modName < $1.modName })
+                    uses: uses.sorted { ($0.modName, $0.modID) < ($1.modName, $1.modID) })
             }
             .sorted { $0.control.name < $1.control.name }
         unrecognized.sort { ($0.modName, $0.keyPath.joined()) < ($1.modName, $1.keyPath.joined()) }

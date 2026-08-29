@@ -1173,12 +1173,17 @@ struct ModDetailView: View {
                                 conflicts.gameConflicts.count))
                         .font(.system(size: 12, weight: .semibold))
                     ForEach(conflicts.gameConflicts, id: \.control.name) { conflict in
+                        // Même règle que chaque ligne de la zone : bornée à
+                        // une ligne, tronquée au milieu — la fenêtre peut
+                        // être étroite (ronde finale de revue).
                         HStack(spacing: AppDesign.Spacing.xs) {
                             Text(conflict.control.buttons.joined(separator: " / "))
                                 .font(.system(size: 13, weight: .medium))
+                                .lineLimit(1).truncationMode(.middle)
                             Text(conflict.control.name)
                                 .font(.system(size: 11))
                                 .foregroundColor(.secondary)
+                                .lineLimit(1).truncationMode(.middle)
                         }
                     }
                 }

@@ -330,6 +330,17 @@ class StarHubTHViewModel: ObservableObject {
         keybindScanService.report?.problemCount ?? 0
     }
 
+    /// La définition d'une « alerte » (pastille de la barre latérale et
+    /// bande de l'accueil, tâche 7) : erreurs SMAPI plus problèmes de
+    /// raccourcis — collisions et conflits jeu, les « non reconnus » exclus
+    /// (illisibles, pas avérés ; voir `keybindProblemCount`). Un seul
+    /// endroit pour cette somme : barre latérale et accueil ne peuvent plus
+    /// diverger.
+    @MainActor
+    var systemAlertCount: Int {
+        smapiErrors.count + keybindProblemCount
+    }
+
     /// Couverture française par mod, indexée par `folderName`. Absente tant
     /// qu'elle n'est pas calculée — c'est un badge qui apparaît, pas une valeur
     /// qu'on attend.
@@ -1750,7 +1761,28 @@ class StarHubTHViewModel: ObservableObject {
     /// indistinguishable from "still loading".
     @Published var thaiTranslationsError: String? = nil
     @Published var viewingThaiMod: ThaiTranslationMod? = nil
-    @Published var editingModConfig: ModItem? = nil
+    @Published var editingModConfig: ModItem? = nil {
+        didSet {
+            // Fermeture de l'éditeur ⇒ rescan du rapport de raccourcis
+            // (ronde finale de revue). `saveConfig()` écrit le `config.json`
+            // sans toucher `mods`, et la signature du scan ne couvre que
+            // `folderName`/`isEnabled` : `scanIfNeeded` ne verrait rien, et
+            // le rapport comme la pastille resteraient sur l'état d'avant —
+            // le conflit que l'utilisateur vient de corriger encore affiché.
+            // On force donc par `scan` (l'entrée sans condition de signature,
+            // celle du bouton « Relancer l'analyse »). Transition vers nil
+            // seulement : ouvrir l'éditeur n'a rien à rescanner, et un rescan
+            // de trop après une annulation est sans coût (gardes
+            // `isScanning`/`gameDir` dans `scan`, lecture détachée hors du
+            // fil principal). `Task { @MainActor … }` comme le `didSet` de
+            // `mods` : cette classe n'est pas `@MainActor`, le service l'est.
+            guard oldValue != nil, editingModConfig == nil else { return }
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.keybindScanService.scan(mods: self.mods, gameDir: self.gameDir)
+            }
+        }
+    }
 
     /// Result of the last automatic mod-folder repair run. Non-nil when the
     /// repairer quarantined corrupt items or found duplicates; the UI surfaces

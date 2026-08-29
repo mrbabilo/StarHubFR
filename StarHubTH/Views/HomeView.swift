@@ -64,35 +64,21 @@ struct HomeView: View {
         // plutôt que d'en créer un cinquième (brief tâche 7) : `HomeAttention`
         // résout un niveau à partir d'un compte qu'on lui donne, il ne décide
         // pas de ce qui compose « alertes » — c'est déjà le rôle de cet
-        // appelant pour `vm.smapiErrors.count` seul.
+        // appelant, par `vm.systemAlertCount`.
         let counters = HomeAttention.counters(
             updates: vm.outOfDateMods.count + vm.nexusUpdates.count,
-            alerts: vm.smapiErrors.count + vm.keybindProblemCount,
+            alerts: vm.systemAlertCount,
             quarantined: vm.lastRepairReport?.quarantined.count ?? 0,
             mods: vm.mods.count)
         return HStack(spacing: AppDesign.Spacing.md) {
             ForEach(counters) { counter in
-                Button { currentTab = counter.tab } label: {
-                    VStack(spacing: AppDesign.Spacing.xs) {
-                        Image(systemName: glyph(for: counter.kind))
-                            .font(.system(size: AppDesign.Icon.md))
-                            .foregroundStyle(counter.level == .attention
-                                             ? tint(for: counter.kind) : Color.secondary)
-                        Text("\(counter.count)")
-                            .font(AppDesign.Font.viewTitle)
-                        Text(label(for: counter.kind))
-                            .font(AppDesign.Font.footnote)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, AppDesign.Spacing.md)
-                    .background(.background.secondary,
-                                in: RoundedRectangle(cornerRadius: AppDesign.Radius.section))
-                    .overlay(RoundedRectangle(cornerRadius: AppDesign.Radius.section)
-                        .stroke(Color.primary.opacity(AppDesign.Opacity.light), lineWidth: 1))
-                }
-                .buttonStyle(.plain)
+                AttentionCounterTile(
+                    glyph: glyph(for: counter.kind),
+                    value: counter.count,
+                    label: label(for: counter.kind),
+                    tint: counter.level == .attention ? tint(for: counter.kind) : nil,
+                    tab: counter.tab,
+                    currentTab: $currentTab)
             }
         }
     }
@@ -266,6 +252,48 @@ struct HomeView: View {
         }
         .background(Color(nsColor: .controlBackgroundColor))
         .onAppear { vm.refresh() }
+    }
+}
+
+// MARK: - Bande d'attention
+
+/// Un carré de la bande d'attention : son glyphe, son chiffre, son libellé,
+/// sa destination. Sorti du `ForEach` de `attentionStrip` (ronde finale de
+/// revue) : le corps en une seule expression — un `Button` enveloppant un
+/// `VStack` de deux `Text` et d'un `Image`, cinq modificateurs, une
+/// condition dans le `foregroundStyle` — finissait par faire trébucher le
+/// vérificateur de types (« unable to type-check this expression in
+/// reasonable time »). `tint` à `nil` pour le carré neutre : le glyphe
+/// repasse en `Color.secondary`.
+private struct AttentionCounterTile: View {
+    let glyph: String
+    let value: Int
+    let label: String
+    let tint: Color?
+    let tab: String
+    @Binding var currentTab: String
+
+    var body: some View {
+        Button { currentTab = tab } label: {
+            VStack(spacing: AppDesign.Spacing.xs) {
+                Image(systemName: glyph)
+                    .font(.system(size: AppDesign.Icon.md))
+                    .foregroundStyle(tint ?? Color.secondary)
+                Text("\(value)")
+                    .font(AppDesign.Font.viewTitle)
+                Text(label)
+                    .font(AppDesign.Font.footnote)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, AppDesign.Spacing.md)
+            .background(.background.secondary,
+                        in: RoundedRectangle(cornerRadius: AppDesign.Radius.section))
+            .overlay(RoundedRectangle(cornerRadius: AppDesign.Radius.section)
+                .stroke(Color.primary.opacity(AppDesign.Opacity.light), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
     }
 }
 

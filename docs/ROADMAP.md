@@ -775,11 +775,40 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       serait cherché au mauvais endroit — par l'éditeur comme par la sauvegarde, qui
       restent au moins cohérents. Zéro cas sur le parc (un seul dossier pointé imbriqué,
       et c'est un `.config`).
-- [ ] **C4-T2** — Champs de raccourcis clavier : validation des noms `SButton`, détection
+- [x] **C4-T2** — Champs de raccourcis clavier : validation des noms `SButton`, détection
       des collisions entre mods. · **M**
       `§audit-config-menus` : la tâche est confirmée par l'existence de
       `Overlays.KeybindOverlay` / `KeybindEdit` dans GMCM — c'est la référence
       d'ergonomie à regarder, pas un code à porter (aucune donnée n'en sort).
+      ✅ **Livré le 2026-08-29, sur son parc réel** (92 mods actifs) :
+      **141 liaisons lues, 18 collisions, 11 conflits jeu** — chiffres
+      d'écran après la règle du catalogue, pas ceux de la mesure Python de
+      la tâche 0. Le rapport vit dans les Alertes système (groupes repliés
+      au-delà de 10, « Relancer l'analyse » inconditionnel), les mêmes
+      lignes sur la fiche du mod, un bouton « Réglages du mod » par ligne
+      citée, et la pastille Alertes système compte collisions et conflits
+      jeu — jamais les « non reconnus », valeurs illisibles plutôt que
+      problèmes avérés. La logique est en Core (`SButtonTable` figée du
+      relevé IL, `KeybindParser`, `KeybindScanner`) : **1656 → 1692
+      tests** sur le plan. Depuis la ronde finale de revue, enregistrer une
+      config depuis l'éditeur relance le scan — le rapport ne reste plus
+      sur l'état d'avant la correction.
+      ▸ **Sémantique exact-combo** : une collision, ce sont des mods qui
+      partagent **la même combinaison exacte** (`LeftControl + F8`), pas
+      des combinaisons qui se chevauchent — un modificateur seul partagé
+      n'alarme personne (contre-exemple MCM, non-régression testée).
+      ▸ **Règle du catalogue (R4)** : plus de **8** combinaisons distinctes
+      sous une même forme de chemin **dans un même mod** ⇒ documentation,
+      pas des liaisons — écartée du scan, et le mod écarté reste nommé à
+      l'écran. Marge mesurée : 42 combinaisons distinctes pour le catalogue
+      réel (`ModShortcutReferenceHub`), 2 au maximum légitime observé.
+      ⚠️ **Angles morts restants** : les chevauchements sous-ensemble ne
+      sont pas détectés (A = `K`, B = `K`+Shift co-déclenchent sur le
+      geste long — spec §12, consigné) ; composants de pack et mods en
+      pause héritent de l'angle mort `physicalFolderName` de C4-T5 (zéro
+      cas mesuré) ; les 27 noms de contrôles du jeu restent en anglais
+      (champs C# bruts, chantier à part) ; un `config.json` illisible
+      compte silencieusement comme scanné-vide (un cas réel, en pause).
 - [x] **C4-T3** — ✅ **Spike mené le 2026-08-28. Verdict : non-go sur les menus de
       config — et une meilleure source trouvée à côté.** `§audit-config-menus`, détail
       dans [`audit-config-menus.md`](audit-config-menus.md). Décompilation IL (`ikdasm`)

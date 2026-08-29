@@ -209,11 +209,14 @@ struct KeybindReportSection: View {
     /// immobile qu'exige macOS pour une infobulle, défaut déjà payé dans
     /// la liste (note du glyph `note.text` dans `ModListView`).
     ///
-    /// `.fixedSize` + `.layoutPriority(1)` : en fenêtre étroite c'est le
-    /// texte de la ligne qui tronque (son `lineLimit` + `truncationMode`
-    /// restent maîtres), jamais le bouton qui rétrécit.
+    /// `.layoutPriority(1)` sur un cadre déjà fixe à 18×18 : en fenêtre
+    /// étroite c'est le texte de la ligne qui tronque (son `lineLimit` +
+    /// `truncationMode` restent maîtres), jamais le bouton qui rétrécit.
     private func configButton(modID: String) -> some View {
-        Button {
+        // Évaluée une fois par ligne (ronde finale) : elle servait à la
+        // fois à `.help` et à `.accessibilityLabel`.
+        let settingsLabel = vm.L(L10n.Settings.configModSettings)
+        return Button {
             if vm.openModConfig(forFolder: modID) {
                 currentTab = "Mods"
             }
@@ -226,10 +229,9 @@ struct KeybindReportSection: View {
         }
         .buttonStyle(PlainButtonStyle())
         .pointingHandCursor()
-        .help(vm.L(L10n.Settings.configModSettings))
-        .accessibilityLabel(vm.L(L10n.Settings.configModSettings))
+        .help(settingsLabel)
+        .accessibilityLabel(settingsLabel)
         .accessibilityHint(vm.L(L10n.Settings.configModSettingsA11yHint))
-        .fixedSize()
         .layoutPriority(1)
     }
 

@@ -363,4 +363,39 @@ struct KeybindScannerTests {
         // Et mod1, pourtant scanné, ne subit rien.
         #expect(r.conflicts(affecting: "a.Mod1").isEmpty)
     }
+
+    // — Ronde finale : l'ordre des usages homonymes est départagé par l'id
+    @Test func sameNameCollisionUsesAreOrderedByModID() {
+        // Swim est installé deux fois sur le parc réel : même nom, dossiers
+        // distincts. Trier les usages par `modName` seul laisse les ex æquo
+        // au sort de Swift — non garanti stable — donc deux rapports du même
+        // lot peuvent citer les deux Swim dans un ordre différent, et la
+        // fiche (T9) rend ce désordre visible. L'ordre total voulu est
+        // (nom, id) : l'entrée en ordre inverse le prouve.
+        let late = KeybindScanner.ModScan(id: "z.Swim", name: "Swim", isActive: true,
+                                          tree: tree(["Hotkey": .string("LeftControl + F8")]))
+        let early = KeybindScanner.ModScan(id: "a.Swim", name: "Swim", isActive: true,
+                                           tree: tree(["Hotkey": .string("F8 + LeftControl")]))
+        let r1 = KeybindScanner.report(mods: [late, early])
+        let r2 = KeybindScanner.report(mods: [late, early])
+        #expect(r1.collisions.count == 1)
+        // Deux rapports du même lot : le même ordre (promesse du rapport)…
+        #expect(r1.collisions[0].uses.map(\.modID)
+                == r2.collisions[0].uses.map(\.modID))
+        // …et cet ordre départage l'ex æquo sur le nom par l'id, pas par
+        // l'ordre d'insertion.
+        #expect(r1.collisions[0].uses.map(\.modID) == ["a.Swim", "z.Swim"])
+    }
+
+    @Test func sameNameGameConflictUsesAreOrderedByModID() {
+        // Même départage au second site de tri : les usages d'un conflit
+        // jeu (W = moveUp par défaut, à bouton unique).
+        let late = KeybindScanner.ModScan(id: "z.Swim", name: "Swim", isActive: true,
+                                          tree: tree(["Hotkey": .string("W")]))
+        let early = KeybindScanner.ModScan(id: "a.Swim", name: "Swim", isActive: true,
+                                           tree: tree(["Hotkey": .string("W")]))
+        let r = KeybindScanner.report(mods: [late, early])
+        #expect(r.gameConflicts.count == 1)
+        #expect(r.gameConflicts[0].uses.map(\.modID) == ["a.Swim", "z.Swim"])
+    }
 }

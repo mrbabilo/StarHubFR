@@ -111,7 +111,7 @@ struct MainView: View {
                     // installation ne dit rien de l'après.
                     SidebarItem(icon: "exclamationmark.triangle.fill",
                                 label: vm.L(L10n.Main.systemAlerts), tab: "SystemAlerts",
-                                badge: vm.smapiErrors.count + vm.keybindProblemCount, badgeColor: .orange,
+                                badge: vm.systemAlertCount, badgeColor: .orange,
                                 currentTab: $currentTab)
 
                     // Idem : l'entrée n'apparaissait autrefois qu'avec des
