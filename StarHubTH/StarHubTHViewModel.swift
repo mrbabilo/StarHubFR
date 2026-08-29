@@ -5750,10 +5750,26 @@ class StarHubTHViewModel: ObservableObject {
         // traduction du même mod — elles ne déposent pas les mêmes fichiers —
         // mais elle écarte **la greffe de même identité**, sans quoi redéposer
         // un lot laisserait derrière lui les fichiers de l'ancienne version.
+
+        // **Ce que le nom du fichier sait de sa provenance.** Un dépôt venu du
+        // glisser-déposer n'a pas de fiche Nexus derrière lui : sans
+        // identifiant, la ligne affiche « aucune vérification de mise à jour »
+        // et attend un rattachement à la main. Or le nom porte l'identifiant
+        // six fois sur dix sur le parc réel. Le navigateur intégré, lui, garde
+        // la main entière : ce qu'il sait vient de Nexus, pas d'une lecture.
+        let now = Date()
+        let learned = nexus == nil ? NexusArchiveName.parse(sourceName) : nil
+        // La date retenue est celle du dépôt, jamais celle que porte le nom :
+        // c'est la règle de `linkToNexus`, et pour la même raison — on sait
+        // quand il l'a posée, tout ce que Nexus a publié depuis est plus récent.
+        // Sans elle, `isNewer` refuse de conclure et l'identifiant appris ne
+        // servirait à rien.
         let entry = InstalledTranslation(
-            hostFolderName: host.folderName, nexusModId: nexus?.modId ?? 0,
-            nexusName: sourceName, version: nexus?.version ?? "",
-            updatedAt: nexus?.updatedAt, installedAt: Date(), files: [], replacedFiles: [:])
+            hostFolderName: host.folderName,
+            nexusModId: nexus?.modId ?? learned?.modId ?? 0,
+            nexusName: sourceName, version: nexus?.version ?? learned?.version ?? "",
+            updatedAt: nexus?.updatedAt ?? (learned == nil ? nil : now),
+            installedAt: now, files: [], replacedFiles: [:])
         let incumbent: InstalledTranslation? = plan.kind == .translation
             ? installedTranslations.translation(forHost: host.folderName)
             : installedTranslations.addons(forHost: host.folderName)
@@ -5804,10 +5820,15 @@ class StarHubTHViewModel: ObservableObject {
         // pas : le message de dépôt devait donc prévenir que leur retrait se
         // ferait à la main. Elles se retirent maintenant comme une traduction,
         // depuis la fiche du mod.
+        // Même provenance que la sonde `entry` ci-dessus — c'est **cette
+        // ligne-ci** qui entre au registre, et deux lectures du même nom qui
+        // divergeraient donneraient une identité au comparateur et une autre à
+        // ce qui est gardé.
         let recorded = InstalledTranslation(
-            hostFolderName: host.folderName, nexusModId: nexus?.modId ?? 0,
-            nexusName: sourceName, version: nexus?.version ?? "",
-            updatedAt: nexus?.updatedAt, installedAt: Date(),
+            hostFolderName: host.folderName,
+            nexusModId: nexus?.modId ?? learned?.modId ?? 0,
+            nexusName: sourceName, version: nexus?.version ?? learned?.version ?? "",
+            updatedAt: nexus?.updatedAt ?? (learned == nil ? nil : now), installedAt: now,
             files: written.written, replacedFiles: written.replaced)
         if plan.kind == .translation {
             installedTranslations.record(recorded)

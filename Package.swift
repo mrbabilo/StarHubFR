@@ -35,6 +35,7 @@ let package = Package(
                 "Models/InstalledTranslation.swift",
                 "Models/InstalledTranslationStore.swift",
                 "Models/ManifestlessArchive.swift",
+                "Models/NexusArchiveName.swift",
                 "Models/ManifestlessInstaller.swift",
                 "Models/ManifestVersionPatcher.swift",
                 "Models/DescriptionBlockParser.swift",
@@ -253,6 +254,11 @@ let package = Package(
             name: "ManifestlessInstallerTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ManifestlessInstallerTests"
+        ),
+        .testTarget(
+            name: "NexusArchiveNameTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/NexusArchiveNameTests"
         ),
         .testTarget(
             name: "ManifestlessArchiveTests",

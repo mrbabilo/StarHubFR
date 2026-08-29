@@ -12,6 +12,9 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+- **Une traduction déposée à la main retrouve sa page Nexus toute seule.** Le nom du fichier téléchargé porte l'identifiant et la version (`… FR 46333 2.9.0 2026-08-10T13-50Z …`, ou `…-34339-1-0-1748539543`) : l'app les lit au dépôt au lieu d'afficher « aucune vérification de mise à jour » et d'attendre un rattachement à la main. Un nom qui ne dit rien ne fait rien inventer.
+
 ### Fixed
 - **Une traduction emballée deux fois trouve enfin son mod.** Certaines archives répètent leur nom avant le dossier visé (`… FR - v2.9.0/… FR - v2.9.0/UIInfoSuite2Alt/i18n/fr.json`) : l'app s'arrêtait au premier emballage et proposait quatre destinations dont aucune n'était la bonne. Elle descend maintenant jusqu'au mod installé et dépose le fichier sans rien demander.
 
