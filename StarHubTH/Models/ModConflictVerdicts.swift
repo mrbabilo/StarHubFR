@@ -128,7 +128,12 @@ public struct ModConflictVerdicts: Codable, Equatable, Sendable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let entries = try container.decode([Entry].self, forKey: .entries)
-        verdicts = Dictionary(uniqueKeysWithValues: entries.map { ($0.pair, $0.verdict) })
+        // Un fichier qui répète une paire (édition manuelle, fusion) ne doit
+        // pas tuer l'app : `uniqueKeysWithValues` lève un fatal error qu'aucun
+        // `try?` de `load` n'attrape. Le **dernier** verdict du fichier
+        // gagne, comme un verdict re-posé.
+        verdicts = Dictionary(entries.map { ($0.pair, $0.verdict) },
+                              uniquingKeysWith: { _, latest in latest })
     }
 
     public func encode(to encoder: Encoder) throws {

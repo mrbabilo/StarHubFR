@@ -54,6 +54,26 @@ struct ModConflictVerdictsTests {
         #expect(back == store)
     }
 
+    /// **Un fichier qui répète une paire ne doit pas tuer l'app.** Notre
+    /// encodeur ne peut pas produire ce fichier (il part d'un dictionnaire),
+    /// mais une édition manuelle ou une fusion de fichiers le peut — et le
+    /// contrat de `load` est « fichier illisible → magasin vide », pas un
+    /// crash au lancement : `Dictionary(uniqueKeysWithValues:)` lève un
+    /// fatal error qu'aucun `try?` n'attrape. En cas de doublon, le
+    /// **dernier** verdict du fichier gagne, comme un verdict re-posé.
+    @Test func aFileRepeatingAPairDecodesInsteadOfCrashing() throws {
+        let json = """
+        {"entries":[
+          {"pair":{"first":"A","second":"B"},"verdict":{"isDeclared":true,"note":"ancien","decidedAt":0}},
+          {"pair":{"first":"A","second":"B"},"verdict":{"isDeclared":false,"note":"révisé","decidedAt":99}}
+        ]}
+        """
+        let store = try JSONDecoder().decode(ModConflictVerdicts.self, from: Data(json.utf8))
+        let pair = ModConflictPair("A", "B")
+        #expect(store.verdict(for: pair)?.isDeclared == false)
+        #expect(store.verdict(for: pair)?.note == "révisé")
+    }
+
     /// **L'ordre d'encodage doit être total.** Trois paires partageant leur
     /// premier nom : trier sur lui seul laissait leur ordre relatif au hasard du
     /// hachage, et le fichier JSON changerait à chaque sauvegarde sans qu'aucune
