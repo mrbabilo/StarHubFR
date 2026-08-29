@@ -13,6 +13,8 @@ where the exact log format was verified.
 ## [Unreleased]
 
 ### Added
+- **Les raccourcis clavier qui se marchent dessus se voient.** Un rapport lit les touches que déclarent les mods installés — 141 liaisons sur les 92 mods actifs — et signale les **18 collisions** entre mods et les **11 conflits avec les touches du jeu**. La pastille « Alertes système » les compte.
+- **La fiche d'un mod montre ses propres conflits de touches**, et un bouton mène droit à la configuration à corriger — depuis la fiche comme depuis le rapport.
 - **Une traduction déposée à la main retrouve sa page Nexus toute seule.** Le nom du fichier téléchargé porte l'identifiant et la version (`… FR 46333 2.9.0 2026-08-10T13-50Z …`, ou `…-34339-1-0-1748539543`) : l'app les lit au dépôt au lieu d'afficher « aucune vérification de mise à jour » et d'attendre un rattachement à la main. Un nom qui ne dit rien ne fait rien inventer.
 
 ### Fixed
