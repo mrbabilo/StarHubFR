@@ -17,6 +17,11 @@ where the exact log format was verified.
 - **La fiche d'un mod montre ses propres conflits de touches**, et un bouton mène droit à la configuration à corriger — depuis la fiche comme depuis le rapport.
 - **Une traduction déposée à la main retrouve sa page Nexus toute seule.** Le nom du fichier téléchargé porte l'identifiant et la version (`… FR 46333 2.9.0 2026-08-10T13-50Z …`, ou `…-34339-1-0-1748539543`) : l'app les lit au dépôt au lieu d'afficher « aucune vérification de mise à jour » et d'attendre un rattachement à la main. Un nom qui ne dit rien ne fait rien inventer.
 
+### Changed
+- **La navigation est refaite** : un seul style d'item pour les 13 destinations, rangées en quatre familles (Bibliothèque, Parties, Santé & secours, Application), et les badges passent en capsule sur l'item — la zone de statut séparée disparaît. Aucune destination retirée ni enterrée.
+- **L'accueil devient un tableau de bord** : quatre compteurs cliquables — mises à jour, alertes SMAPI, quarantaine, parc — toujours affichés, zéros compris, et une carte de lancement qui dit d'un coup d'œil si on peut jouer, avec l'action qui lève l'empêchement quand il y en a un.
+- **Les Réglages absorbent l'identité de l'installation** : dossier du jeu, gestion SMAPI, extensions cœur et crédits quittent l'accueil. « Installer SMAPI » y reste tant que SMAPI manque.
+
 ### Fixed
 - **Une traduction emballée deux fois trouve enfin son mod.** Certaines archives répètent leur nom avant le dossier visé (`… FR - v2.9.0/… FR - v2.9.0/UIInfoSuite2Alt/i18n/fr.json`) : l'app s'arrêtait au premier emballage et proposait quatre destinations dont aucune n'était la bonne. Elle descend maintenant jusqu'au mod installé et dépose le fichier sans rien demander.
 
