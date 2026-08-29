@@ -135,6 +135,7 @@ let package = Package(
                 "Models/ConfigEditorModel.swift",
                 "Extensions/ModConfigFiles.swift",
                 "Models/HomeAttention.swift",
+                "Models/KeybindGrammar.swift",
             ]
         ),
         .testTarget(
@@ -171,6 +172,11 @@ let package = Package(
             name: "OrderedJSONWriterTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/OrderedJSONWriterTests"
+        ),
+        .testTarget(
+            name: "KeybindTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/KeybindTests"
         ),
         .testTarget(
             name: "ModConfigBackupManagerTests",
