@@ -78,4 +78,51 @@ struct CompatibilityNoteTests {
         ]
         #expect(CompatibilityNote.find(in: blocks) == nil)
     }
+
+    // MARK: - Rang 2 : le gras seul sur sa ligne
+
+    /// « Custom Kissing Mod », relevé sur le vrai analyseur : un bloc `.text` de
+    /// **neuf lignes** dont `**Compatibility:**`, puis la section continue dans
+    /// le bloc `.list` suivant. Un bloc `.text` n'est pas un paragraphe : c'est
+    /// tout le texte entre deux éléments structurels, d'où le découpage à la
+    /// ligne.
+    @Test func aBoldLineAloneOpensTheSection() throws {
+        let blocks: [DescriptionBlock] = [
+            .text("Adds kissing.\n\n**Compatibility:**\nThis mod may conflict with other mods that change interactions with NPCs."),
+            .list(items: ["SMAPI 4.0"], ordered: false),
+            .text("**Installation:**\nInstall SMAPI."),
+        ]
+        let note = CompatibilityNote.find(in: blocks)
+        #expect(note?.heading == "Compatibility:")
+        #expect(note?.blocks.first == .text("This mod may conflict with other mods that change interactions with NPCs."))
+        #expect(note?.blocks.count == 2)   // le reste du bloc, puis la liste
+    }
+
+    /// **Ce que « seul sur sa ligne » retire.** Mesuré : 19 cas sur 22 sont
+    /// isolés, 3 sont noyés dans un paragraphe — et ceux-là ouvriraient une
+    /// section au milieu d'une phrase.
+    @Test func aBoldRunInsideASentenceOpensNothing() throws {
+        let blocks: [DescriptionBlock] = [
+            .text("This pack **includes compatibility with** the other one, see below."),
+        ]
+        #expect(CompatibilityNote.find(in: blocks) == nil)
+    }
+
+    /// Le titre l'emporte sur le gras : les deux rangs ne se disputent pas.
+    @Test func aHeadingWinsOverABoldLine() throws {
+        let blocks: [DescriptionBlock] = [
+            .text("**Compatibility:**\npar le gras"),
+            .heading("Compatibility", level: 3),
+            .text("par le titre"),
+        ]
+        #expect(CompatibilityNote.find(in: blocks)?.blocks == [.text("par le titre")])
+    }
+
+    /// Un gras isolé qui ne dit rien de la compatibilité referme la section.
+    @Test func theNextBoldLineClosesTheSection() throws {
+        let blocks: [DescriptionBlock] = [
+            .text("**Compatibility:**\nà lire\n**Credits:**\nà ne pas lire"),
+        ]
+        #expect(CompatibilityNote.find(in: blocks)?.blocks == [.text("à lire")])
+    }
 }

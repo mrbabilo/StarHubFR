@@ -36,7 +36,7 @@ struct CompatibilityNote: Equatable {
             guard !body.isEmpty else { continue }
             return CompatibilityNote(heading: clean(raw), blocks: body)
         }
-        return nil
+        return findBoldOpener(in: blocks)
     }
 
     /// Sans accents ni casse — un titre français dit « Compatibilité ».
@@ -56,5 +56,57 @@ struct CompatibilityNote: Equatable {
             .replacingOccurrences(of: "**", with: "")
             .replacingOccurrences(of: "__", with: "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// **Rang 2 : un passage en gras seul sur sa ligne**, à défaut de titre.
+    ///
+    /// Mesuré : 19 fiches de plus sur 200, et 3 écartées parce que le gras y est
+    /// noyé dans une phrase. Beaucoup des 19 sont des questions de FAQ
+    /// (« Is this compatible with SVE? ») qui ouvrent bel et bien une section.
+    ///
+    /// Le découpage se fait **à la ligne, dans le Markdown d'un bloc `.text`** :
+    /// un tel bloc porte tout le texte entre deux éléments structurels — neuf
+    /// lignes sur la fiche qui a servi de modèle.
+    private static func findBoldOpener(in blocks: [DescriptionBlock]) -> CompatibilityNote? {
+        for (index, block) in blocks.enumerated() {
+            guard case .text(let markdown) = block else { continue }
+            let lines = markdown.components(separatedBy: "\n")
+            guard let opener = lines.firstIndex(where: {
+                isBoldAlone($0) && mentionsCompatibility($0)
+            }) else { continue }
+
+            // Le reste du bloc, jusqu'au prochain gras isolé.
+            var tail: [String] = []
+            for line in lines[(opener + 1)...] {
+                if isBoldAlone(line) { break }
+                tail.append(line)
+            }
+            var body: [DescriptionBlock] = []
+            let rest = tail.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+            if !rest.isEmpty { body.append(.text(rest)) }
+
+            // Puis les blocs suivants, jusqu'à un titre ou un nouveau gras isolé.
+            if tail.count == lines.count - opener - 1 {
+                for next in blocks[(index + 1)...] {
+                    if case .heading = next { break }
+                    if case .text(let md) = next,
+                       md.components(separatedBy: "\n").contains(where: isBoldAlone) { break }
+                    body.append(next)
+                }
+            }
+            guard !body.isEmpty else { continue }
+            return CompatibilityNote(heading: clean(lines[opener]), blocks: body)
+        }
+        return nil
+    }
+
+    /// Une ligne faite d'un seul passage en gras, et de rien d'autre.
+    /// `**Compatibility:**` oui ; `il **inclut** ceci` non.
+    static func isBoldAlone(_ line: String) -> Bool {
+        let trimmed = line.trimmingCharacters(in: .whitespaces)
+        guard trimmed.hasPrefix("**"), trimmed.hasSuffix("**"), trimmed.count > 4
+        else { return false }
+        let inner = trimmed.dropFirst(2).dropLast(2)
+        return !inner.contains("**")
     }
 }
