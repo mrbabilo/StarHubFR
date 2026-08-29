@@ -208,7 +208,11 @@ public enum KeybindScanner {
         var unrecognized: [UnrecognizedKeybind] = []
         var keybindCount = 0
         var pausedIgnored = 0
-        var catalogModNames: Set<String> = []
+        // Ronde de correction 1 : un `(id, name)` par mod écarté, jamais un
+        // `Set<String>` de noms — ce parc a de vrais homonymes (Swim
+        // installé deux fois) ; dédupliquer sur le nom effacerait un des
+        // deux mods du constat alors qu'ils sont deux dossiers distincts.
+        var catalogMods: [(id: String, name: String)] = []
         // Un même littéral peut rendre deux fois la même combinaison
         // (« F8, F8 ») : le même usage n'entre qu'une fois dans son seau,
         // sinon la vue reçoit deux lignes de même identité.
@@ -222,13 +226,18 @@ public enum KeybindScanner {
             // — la règle du catalogue (R4) a besoin de voir le mod entier
             // avant de savoir quelles feuilles compteront.
             var keybindLeaves: [(keyPath: [String], combos: [KeybindCombo])] = []
+            // Rangées à part, pas encore dans le seau global `unrecognized` :
+            // une feuille qui ne parse pas sous une forme qui se révèle être
+            // un catalogue (passe 2) n'a pas plus sa place dans « non
+            // reconnus » qu'une feuille qui parse — le mod entier, sous cette
+            // forme, est déjà déclaré écarté (ronde de correction 1).
+            var unrecognizedLeaves: [(keyPath: [String], raw: String)] = []
             for leaf in ConfigEditorModel.leaves(of: mod.tree) {
                 switch classify(leaf: leaf) {
                 case .keybind(let combos):
                     keybindLeaves.append((leaf.keyPath, combos))
                 case .unrecognized(let raw):
-                    unrecognized.append(.init(modID: mod.id, modName: mod.name,
-                                              keyPath: leaf.keyPath, raw: raw))
+                    unrecognizedLeaves.append((leaf.keyPath, raw))
                 case .notKeybind:
                     break
                 }
@@ -249,7 +258,7 @@ public enum KeybindScanner {
             let catalogShapes = Set(
                 combosByShape.filter { $0.value.count > catalogThreshold }.map(\.key))
             if !catalogShapes.isEmpty {
-                catalogModNames.insert(mod.name)
+                catalogMods.append((mod.id, mod.name))
             }
 
             for (keyPath, combos) in keybindLeaves {
@@ -267,6 +276,12 @@ public enum KeybindScanner {
                     }
                 }
             }
+
+            for (keyPath, raw) in unrecognizedLeaves {
+                guard !catalogShapes.contains(pathShape(keyPath)) else { continue }
+                unrecognized.append(.init(modID: mod.id, modName: mod.name,
+                                          keyPath: keyPath, raw: raw))
+            }
         }
         pausedIgnored = mods.filter { !$0.isActive }.count
 
@@ -283,10 +298,14 @@ public enum KeybindScanner {
             .sorted { $0.control.name < $1.control.name }
         unrecognized.sort { ($0.modName, $0.keyPath.joined()) < ($1.modName, $1.keyPath.joined()) }
 
+        let catalogModsIgnored = catalogMods
+            .sorted { ($0.name, $0.id) < ($1.name, $1.id) }
+            .map(\.name)
+
         return KeybindReport(collisions: collisions, gameConflicts: gameConflicts,
                              unrecognized: unrecognized,
                              scannedMods: mods.filter(\.isActive).count,
                              keybindCount: keybindCount, pausedIgnored: pausedIgnored,
-                             catalogModsIgnored: catalogModNames.sorted())
+                             catalogModsIgnored: catalogModsIgnored)
     }
 }

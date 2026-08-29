@@ -215,6 +215,72 @@ struct KeybindScannerTests {
         #expect(r.collisions.contains { $0.combo.buttons == [catalogTokens[0]] })
     }
 
+    // — Ronde de correction 1 sur R4
+
+    @Test func repeatedIdenticalComboUnderAShapeNeverTriggersTheCatalogRule() {
+        // Constat 4a : occurrences ≠ valeurs distinctes. 12 fois la même
+        // lettre sous une forme ne vaut qu'un seul combo distinct, loin du
+        // seuil.
+        let items = (0..<12).map { _ in
+            ConfigJSONTree.Value.object(ConfigJSONTree.Object([("KeyCombo", .string("A"))]))
+        }
+        let mod = KeybindScanner.ModScan(id: "m.Mod", name: "Mod", isActive: true,
+                                         tree: tree(["Shortcuts": .array(items)]))
+        let other = KeybindScanner.ModScan(id: "o.Mod", name: "Other", isActive: true,
+                                           tree: tree(["Hotkey": .string("A")]))
+        let r = KeybindScanner.report(mods: [mod, other])
+        #expect(r.catalogModsIgnored.isEmpty)
+        #expect(r.collisions.contains { $0.combo.buttons == ["A"] })
+    }
+
+    @Test func differentTrailingFieldsUnderTheSameArrayNeverCumulate() {
+        // Constat 4b : Shortcuts.[].KeyCombo et Shortcuts.[].AltCombo sont
+        // deux formes distinctes — leurs combos ne se cumulent jamais dans
+        // un même compte.
+        let items = (0..<5).map { i in
+            ConfigJSONTree.Value.object(ConfigJSONTree.Object([
+                ("KeyCombo", .string(catalogTokens[i])),
+                ("AltCombo", .string(catalogTokens[i + 5])),
+            ]))
+        }
+        let mod = KeybindScanner.ModScan(id: "m.Mod", name: "Mod", isActive: true,
+                                         tree: tree(["Shortcuts": .array(items)]))
+        let other = KeybindScanner.ModScan(id: "o.Mod", name: "Other", isActive: true,
+                                           tree: tree(["Hotkey": .string(catalogTokens[0])]))
+        let r = KeybindScanner.report(mods: [mod, other])
+        #expect(r.catalogModsIgnored.isEmpty)
+        #expect(r.collisions.contains { $0.combo.buttons == [catalogTokens[0]] })
+    }
+
+    @Test func unrecognizedLeavesUnderACatalogShapeAreExcludedToo() {
+        // Constat 3 : une entrée du catalogue qui ne parse pas ne doit pas
+        // polluer « non reconnus » — le mod est déjà déclaré écarté sous
+        // cette forme.
+        var items: [ConfigJSONTree.Value] = catalogTokens.prefix(9).map {
+            .object(ConfigJSONTree.Object([("KeyCombo", .string($0))]))
+        }
+        items.append(.object(ConfigJSONTree.Object([("KeyCombo", .string("ctrl+H"))])))
+        let mod = KeybindScanner.ModScan(id: "m.Mod", name: "Mod", isActive: true,
+                                         tree: tree(["Shortcuts": .array(items)]))
+        let r = KeybindScanner.report(mods: [mod])
+        #expect(r.unrecognized.isEmpty)
+        #expect(r.catalogModsIgnored == ["Mod"])
+    }
+
+    @Test func catalogModsIgnoredKeepsBothHomonymsSeparate() {
+        // Constat 2 : deux mods de même nom (le parc réel a Swim installé
+        // deux fois), tous deux catalogues sous leur propre id, doivent
+        // apparaître deux fois — dédupliquer sur le nom en effacerait un.
+        let a = KeybindScanner.ModScan(
+            id: "a.Swim", name: "Swim", isActive: true,
+            tree: tree(["Shortcuts": shortcutsCatalog(catalogTokens.prefix(9))]))
+        let b = KeybindScanner.ModScan(
+            id: "b.Swim", name: "Swim", isActive: true,
+            tree: tree(["Shortcuts": shortcutsCatalog(catalogTokens[9..<18])]))
+        let r = KeybindScanner.report(mods: [a, b])
+        #expect(r.catalogModsIgnored == ["Swim", "Swim"])
+    }
+
     // — Défaut 2 : un mod par ligne, chemins réunis (regroupement, en Core)
     @Test func groupedUsesMergesSameModDistinctPathsButKeepsDistinctModsSeparate() {
         let uses = [

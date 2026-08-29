@@ -53,7 +53,7 @@
 "keybinds_game_caveat" = "Comparés aux contrôles par défaut — les contrôles remappés ne sont pas lisibles ici.";
 "keybinds_unrecognized_header" = "Raccourcis non reconnus (%lld)";
 "keybinds_paused_note" = "%lld mods en pause ignorés";
-"keybinds_catalog_note" = "Écartés comme catalogues de raccourcis, pas de vraies liaisons : %@";
+"keybinds_catalog_note" = "Documentation de raccourcis écartée du scan (%1$lld) : %2$@";
 "keybinds_counters" = "%1$lld mods scannés · %2$lld raccourcis";
 "keybinds_no_game_dir" = "Définissez le dossier du jeu pour analyser les conflits de raccourcis.";
 "keybinds_no_mods_scanned" = "Aucun mod actif ne propose de config.json à analyser.";

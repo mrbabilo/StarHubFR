@@ -157,7 +157,18 @@ struct KeybindReportSection: View {
             // Défaut 1 (tâche 6) : une exclusion muette est un mensonge par
             // omission — ModShortcutReferenceHub pesait 12 des 29
             // collisions et 9 des 20 conflits jeu avant cette règle.
+            //
+            // Ronde de correction 1 : la chaîne parle du champ (« documentation
+            // de raccourcis »), pas du mod — un mod dont une forme de chemin
+            // est écartée peut très bien garder une vraie collision ailleurs
+            // (le cas réel : `K` entre le Hub et Swim, affiché juste au-dessus
+            // dans le groupe des collisions). Le compte est posé **avant** les
+            // noms : `.truncationMode(.middle)` peut couper les noms si la
+            // liste est longue, mais jamais le nombre en tête de phrase — le
+            // plancher d'information que le brief demandait survit donc à la
+            // troncature.
             Text(String(format: vm.L(L10n.Keybinds.catalogNote),
+                        report.catalogModsIgnored.count,
                         report.catalogModsIgnored.joined(separator: ", ")))
                 .font(.system(size: 11)).foregroundColor(.secondary)
                 .lineLimit(1).truncationMode(.middle)
