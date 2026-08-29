@@ -11,6 +11,10 @@ final class KeybindScanService: ObservableObject {
 
     func scan(mods: [ModItem], gameDir: String) {
         guard !isScanning else { return }
+        // Sans dossier de jeu, tous les chemins seraient construits sur « » :
+        // le scan ne lirait rien et rendrait un rapport à zéro conflit — un
+        // vert mensonger. On ne scanne pas, la vue le dit.
+        guard !gameDir.isEmpty else { return }
         isScanning = true
         // Aplatir les packs : un composant a son propre config.json.
         // `flattenedMods` plutôt qu'un dépliage réécrit ici : ce dépliage

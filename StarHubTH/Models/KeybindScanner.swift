@@ -147,6 +147,13 @@ public enum KeybindScanner {
         var unrecognized: [UnrecognizedKeybind] = []
         var keybindCount = 0
         var pausedIgnored = 0
+        // Un même littéral peut rendre deux fois la même combinaison
+        // (« F8, F8 ») : le même usage n'entre qu'une fois dans son seau,
+        // sinon la vue reçoit deux lignes de même identité.
+        func add(_ use: ModUse, to bucket: inout [ModUse]) {
+            guard !bucket.contains(use) else { return }
+            bucket.append(use)
+        }
 
         for mod in mods where mod.isActive {
             for leaf in ConfigEditorModel.leaves(of: mod.tree) {
@@ -154,14 +161,13 @@ public enum KeybindScanner {
                 case .keybind(let combos):
                     keybindCount += 1
                     for combo in combos where !combo.isEmpty {
-                        index[combo, default: []].append(
-                            .init(modID: mod.id, modName: mod.name, keyPath: leaf.keyPath))
+                        let use = ModUse(modID: mod.id, modName: mod.name, keyPath: leaf.keyPath)
+                        add(use, to: &index[combo, default: []])
                         // Conflit jeu : combinaison à bouton unique uniquement.
                         if combo.buttons.count == 1, let button = combo.buttons.first {
                             for control in GameControlDefaults.controls
                             where control.buttons.contains(button) {
-                                gameIndex[control.name, default: []].append(
-                                    .init(modID: mod.id, modName: mod.name, keyPath: leaf.keyPath))
+                                add(use, to: &gameIndex[control.name, default: []])
                             }
                         }
                     }

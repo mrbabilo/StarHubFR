@@ -134,4 +134,23 @@ struct KeybindScannerTests {
             Issue.record("sans jeton reconnaissable, pas de unrecognized (90 % FP mesurés)")
         }
     }
+
+    @Test func repeatedComboInOneValueYieldsOneUse() {
+        // « F8, F8 » : le parseur rend deux combos identiques. Sans
+        // déduplication, le même usage entre deux fois dans le seau et la
+        // vue reçoit deux lignes de même identité (ForEach id: \.self).
+        let a = KeybindScanner.ModScan(id: "a.Mod1", name: "Mod 1", isActive: true,
+                                       tree: tree(["Hotkey": .string("F8, F8")]))
+        let b = KeybindScanner.ModScan(id: "b.Mod2", name: "Mod 2", isActive: true,
+                                       tree: tree(["Hotkey": .string("F8")]))
+        let report = KeybindScanner.report(mods: [a, b])
+        #expect(report.collisions.count == 1)
+        #expect(report.collisions.first?.uses.count == 2)
+        // Même dédup côté contrôles du jeu (F8 n'y est pas : on prend W).
+        let w = KeybindScanner.ModScan(id: "c.Mod3", name: "Mod 3", isActive: true,
+                                       tree: tree(["Hotkey": .string("W, W")]))
+        let up = KeybindScanner.report(mods: [w]).gameConflicts
+            .first { $0.control.name == "moveUpButton" }
+        #expect(up?.uses.count == 1)
+    }
 }
