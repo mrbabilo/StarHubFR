@@ -108,6 +108,20 @@ public enum KeybindScanner {
     public struct UnrecognizedKeybind: Hashable, Sendable {
         public let modID: String, modName: String, keyPath: [String], raw: String
     }
+    /// Tâche 9 — ce qu'un mod précis subit d'un rapport déjà calculé :
+    /// les mêmes lignes que le rapport global, **moins lui-même**. La
+    /// sélection est une logique pure, elle vit ici pour rester sous
+    /// `swift test` — la fiche qui l'affiche n'a aucune couverture.
+    public struct ModKeybindConflicts: Equatable, Sendable {
+        /// Collisions où ce mod est partie prenante ; `uses` ne retient
+        /// que les **autres** mods — la fiche parle de CE mod, il ne se
+        /// cite pas dans sa propre liste.
+        public let collisions: [KeybindCollision]
+        /// Conflits avec un contrôle par défaut du jeu qui le touchent ;
+        /// `uses` réduit pareillement aux autres.
+        public let gameConflicts: [GameControlConflict]
+        public var isEmpty: Bool { collisions.isEmpty && gameConflicts.isEmpty }
+    }
     public struct KeybindReport: Equatable, Sendable {
         public var collisions: [KeybindCollision]
         public var gameConflicts: [GameControlConflict]
@@ -126,6 +140,23 @@ public enum KeybindScanner {
         /// des valeurs illisibles, pas des problèmes avérés (tâche 7, pour
         /// la pastille de la barre latérale et de l'accueil).
         public var problemCount: Int { collisions.count + gameConflicts.count }
+
+        /// Tâche 9 — « ce que ce modID subit » : les collisions et
+        /// conflits jeu où le mod apparaît, ses propres usages retirés de
+        /// chaque liste. Un mod étranger à tout conflit rend `isEmpty` ;
+        /// un mod absent du rapport (jamais scanné) pareil — les deux cas
+        /// se valent pour la fiche, qui reste muette.
+        public func conflicts(affecting modID: String) -> ModKeybindConflicts {
+            ModKeybindConflicts(
+                collisions: collisions
+                    .filter { $0.uses.contains { $0.modID == modID } }
+                    .map { KeybindCollision(combo: $0.combo,
+                                            uses: $0.uses.filter { $0.modID != modID }) },
+                gameConflicts: gameConflicts
+                    .filter { $0.uses.contains { $0.modID == modID } }
+                    .map { GameControlConflict(control: $0.control,
+                                               uses: $0.uses.filter { $0.modID != modID }) })
+        }
     }
 
     /// R1/R2/R3 — la règle gelée par la mesure (spec §6 + son constat) :

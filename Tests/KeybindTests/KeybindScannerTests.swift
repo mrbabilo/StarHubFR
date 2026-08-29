@@ -316,4 +316,51 @@ struct KeybindScannerTests {
         #expect(grouped[1].modID == "b.Swim")
         #expect(grouped[1].keyPaths == [["DiveKey"]])
     }
+
+    // — Tâche 9 : la sélection d'un mod dans le rapport (sa fiche)
+    @Test func conflictsAffectingModWithNothingIsEmpty() {
+        // Un mod scanné, raccourci hors des contrôles par défaut et pas
+        // partagé : sa fiche n'a rien à dire — le vide, pas un vert.
+        let clean = KeybindScanner.ModScan(id: "c.Clean", name: "Clean", isActive: true,
+                                           tree: tree(["Hotkey": .string("F9")]))
+        let r = KeybindScanner.report(mods: [mod1, clean])
+        #expect(r.conflicts(affecting: "c.Clean").isEmpty)
+        // Un mod absent du scan (jamais scanné, désinstallé) : vide aussi.
+        #expect(r.conflicts(affecting: "zzz.Absent").isEmpty)
+    }
+
+    @Test func conflictsAffectingNamesTheOthersNeverTheModItself() {
+        // mod1 (LeftControl + F8) contre deux autres sur le même accord :
+        // sa sélection cite les deux autres, jamais lui dans sa propre
+        // liste.
+        let b = KeybindScanner.ModScan(id: "b.Mod2", name: "Mod 2", isActive: true,
+                                       tree: tree(["Hotkey": .string("LeftControl + F8")]))
+        let d = KeybindScanner.ModScan(id: "d.Mod3", name: "Mod 3", isActive: true,
+                                       tree: tree(["Hotkey": .string("F8 + LeftControl")]))
+        let r = KeybindScanner.report(mods: [mod1, b, d])
+        #expect(r.collisions.count == 1)
+        let sel = r.conflicts(affecting: "a.Mod1")
+        #expect(sel.collisions.count == 1)
+        #expect(sel.collisions[0].combo.buttons == ["F8", "LeftControl"])
+        #expect(sel.collisions[0].uses.map(\.modID).sorted() == ["b.Mod2", "d.Mod3"])
+        // Vu de Mod 2, ce sont les deux autres qu'il cite : la sélection
+        // marche dans les deux sens.
+        #expect(r.conflicts(affecting: "b.Mod2").collisions[0].uses.map(\.modID).sorted()
+                == ["a.Mod1", "d.Mod3"])
+    }
+
+    @Test func conflictsAffectingSelectsGameConflictsWithoutTheModItself() {
+        // W = moveUp par défaut, à bouton unique : conflit jeu. Seul
+        // tenant de la touche, sa propre ligne d'usages disparaît.
+        let w = KeybindScanner.ModScan(id: "w.Mod", name: "W Mod", isActive: true,
+                                       tree: tree(["Hotkey": .string("W")]))
+        let r = KeybindScanner.report(mods: [w, mod1])
+        let sel = r.conflicts(affecting: "w.Mod")
+        #expect(sel.collisions.isEmpty)
+        #expect(sel.gameConflicts.map(\.control.name) == ["moveUpButton"])
+        #expect(sel.gameConflicts[0].uses.isEmpty)
+        #expect(!sel.isEmpty)
+        // Et mod1, pourtant scanné, ne subit rien.
+        #expect(r.conflicts(affecting: "a.Mod1").isEmpty)
+    }
 }

@@ -15,6 +15,20 @@ import SwiftUI
 struct ModDetailView: View {
     @ObservedObject var vm: StarHubTHViewModel
     let mod: ModItem
+    /// Le rapport de raccourcis vit sur ce service (tâche 9) : il est
+    /// publié de façon asynchrone — le scan part quand le parc est connu
+    /// (tâche 7) — et `keybindScanService` est un `let` du ViewModel, pas
+    /// un `@Published` : sans observation ici, une fiche ouverte avant la
+    /// fin du premier scan resterait muette sur ses conflits pour de bon.
+    /// Même patron que `HomeView` et `MainView`.
+    @ObservedObject private var keybindScanService: KeybindScanService
+
+    init(vm: StarHubTHViewModel, mod: ModItem) {
+        self.vm = vm
+        self.mod = mod
+        self.keybindScanService = vm.keybindScanService
+    }
+
     @State private var selectedTab = 0
     /// Le mod dont l'activation attend une confirmation : smapi.io le signale
     /// cassé. Voir `CompatibilityWarning`.
@@ -1104,6 +1118,74 @@ struct ModDetailView: View {
         }
     }
 
+    // MARK: Raccourcis (C4-T2/T9)
+
+    /// Ce que **ce** mod subit en raccourcis, lu dans le rapport global du
+    /// service de scan — le pendant fiche du rapport des Alertes système.
+    ///
+    /// Muette deux fois, par décision du brief : pas de rapport ⇒ rien
+    /// (affirmer « aucun conflit » sans mesure serait mensonger ; le scan
+    /// part quand le parc est connu, le cas est rare), et mod sans conflit
+    /// ⇒ rien non plus (une ligne verte sur 900 fiches est du bruit —
+    /// l'inverse du rapport global, où le vert répond à une question
+    /// posée).
+    ///
+    /// En lecture seule : agir sur un conflit passe par le bouton
+    /// « Réglages du mod » de `actionRow` (le chemin ouvert en tâche 8,
+    /// même onglet) — la zone n'en ouvre pas un deuxième.
+    @ViewBuilder
+    private var keybindConflictsSection: some View {
+        if let conflicts = keybindScanService.report?.conflicts(affecting: mod.folderName),
+           !conflicts.isEmpty {
+            VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
+                Text(vm.L(L10n.Keybinds.title))
+                    .font(.system(size: 13, weight: .semibold))
+
+                if !conflicts.collisions.isEmpty {
+                    Text(String(format: vm.L(L10n.Keybinds.collisionsHeader),
+                                conflicts.collisions.count))
+                        .font(.system(size: 12, weight: .semibold))
+                    ForEach(conflicts.collisions, id: \.combo) { collision in
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(collision.combo.display)
+                                .font(.system(size: 13, weight: .medium))
+                            ForEach(KeybindScanner.groupedUses(collision.uses)) { use in
+                                // Hors de l'interpolation : une fermeture
+                                // multiligne dans `\(...)` ne compile pas.
+                                let paths = use.keyPaths
+                                    .map { $0.joined(separator: ".") }
+                                    .joined(separator: ", ")
+                                Text("· \(use.modName) (\(paths))")
+                                    .font(.system(size: 12)).foregroundColor(.secondary)
+                                    .lineLimit(1).truncationMode(.middle)
+                            }
+                        }
+                    }
+                }
+
+                if !conflicts.gameConflicts.isEmpty {
+                    // La réserve reste visible : c'est elle qui évite la
+                    // fausse alerte chez qui a remappé ses touches (même
+                    // raison que dans le rapport global).
+                    Text(vm.L(L10n.Keybinds.gameCaveat))
+                        .font(.system(size: 11)).foregroundColor(.secondary)
+                    Text(String(format: vm.L(L10n.Keybinds.gameHeader),
+                                conflicts.gameConflicts.count))
+                        .font(.system(size: 12, weight: .semibold))
+                    ForEach(conflicts.gameConflicts, id: \.control.name) { conflict in
+                        HStack(spacing: AppDesign.Spacing.xs) {
+                            Text(conflict.control.buttons.joined(separator: " / "))
+                                .font(.system(size: 13, weight: .medium))
+                            Text(conflict.control.name)
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     // MARK: Tab content
 
     @ViewBuilder
@@ -1123,6 +1205,7 @@ struct ModDetailView: View {
                 settingsSection
                 translationSection
                 errorHistorySection
+                keybindConflictsSection
                 blocksView(isChangelog: false)
             }
         }
