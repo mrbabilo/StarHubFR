@@ -12,6 +12,15 @@ import SwiftUI
 /// Paramétré par des valeurs et non par un type de domaine : le lot Mods
 /// l'alimentera depuis un `ModItem`, qui n'a ni endossements ni catégorie
 /// Nexus servis.
+/// Un attribut porté par une carte : le glyph, sa teinte s'il en demande une,
+/// et ce que dit son infobulle.
+struct CardAttribute: Identifiable {
+    let id: String
+    let systemImage: String
+    var tint: Color?
+    let help: String
+}
+
 struct ModCard: View {
     let title: String
     let subtitle: String
@@ -36,6 +45,14 @@ struct ModCard: View {
     /// entière de rectangles gris se lisait comme un écran qui n'a pas fini
     /// de charger.
     var usesDefaultArtwork: Bool = false
+    /// Les attributs du mod — anomalie, note, config gardée par le profil.
+    /// La grille des mods installés les montre comme la liste ; Découvrir
+    /// n'en a aucun (un mod de la vitrine n'est pas encore chez soi).
+    ///
+    /// Ils ne portent qu'une infobulle : la carte entière est déjà un bouton,
+    /// et un bouton dans un bouton ne se clique pas sur macOS. Le détail se
+    /// lit dans la fiche, qu'ouvre le clic.
+    var attributes: [CardAttribute] = []
     /// Passé tel quel à `CategoryBadge`, qui résout le nom localisé.
     let L: (String) -> String
     let action: () -> Void
@@ -138,6 +155,16 @@ struct ModCard: View {
             }
             if let neutralBadge {
                 NeutralBadge(label: neutralBadge)
+            }
+            ForEach(attributes) { attribute in
+                Image(systemName: attribute.systemImage)
+                    .font(AppDesign.Font.iconXS)
+                    .foregroundStyle(attribute.tint ?? .secondary)
+                    // La cible qu'exige une infobulle vivante sur macOS.
+                    .frame(width: 18, height: 18)
+                    .contentShape(.rect)
+                    .help(attribute.help)
+                    .accessibilityLabel(attribute.help)
             }
             Spacer(minLength: 0)
             if let endorsements {

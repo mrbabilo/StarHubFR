@@ -22,6 +22,7 @@ where the exact log format was verified.
 - **Les menus de filtre disent ce que la vue contient** : catégories, types déduits et états de traduction se comptent désormais sur le cadrage affiché (« Tous », « Activés », « En pause », « Problèmes ») et non sur le parc entier.
 - **Une carte sans capture Nexus montre l'illustration de l'app** plutôt qu'un rectangle gris — 148 des 887 dossiers n'ont aucune image à servir.
 - **Le profil actif de la toolbar mène à la page des profils.**
+- **Anomalie, note et config de profil s'alignent dans la bande de métadonnées**, en colonnes fixes d'une ligne à l'autre au lieu de suivre la longueur du nom. L'anomalie et la note s'ouvrent aussi au clic, en popover ; la carte de grille porte les mêmes attributs que la rangée.
 
 ### Fixed
 - **Trois icônes manquaient dans les menus de filtre** : deux symboles n'existent pas sur macOS 26 (« Nom (Z-A) », « À traduire »), et le tri actif remplaçait la sienne par une coche redondante — le bouton du menu nomme déjà le tri en cours.

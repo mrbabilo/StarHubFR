@@ -435,6 +435,29 @@ struct ModListView: View {
         }
     }
 
+    /// Les attributs que la carte porte — les mêmes que la rangée de la
+    /// liste, dans le même ordre : anomalie, note, config gardée par le
+    /// profil. Sur la carte ils ne s'ouvrent pas au clic (celui-ci mène à la
+    /// fiche, qui les détaille) ; leur infobulle porte le texte entier.
+    private func gridAttributes(for mod: ModItem) -> [CardAttribute] {
+        var attributes: [CardAttribute] = []
+        if let anomaly = vm.anomaly(for: mod) {
+            attributes.append(CardAttribute(id: "anomaly",
+                                            systemImage: "exclamationmark.triangle.fill",
+                                            tint: anomaly.severity == .error ? .orange : .yellow,
+                                            help: anomalyReasons(anomaly, vm: vm)))
+        }
+        if let note = vm.modNote(for: mod) {
+            attributes.append(CardAttribute(id: "note", systemImage: "note.text", help: note))
+        }
+        if vm.isProfileConfigManaged(mod) {
+            attributes.append(CardAttribute(id: "profileConfig",
+                                            systemImage: "slider.horizontal.3",
+                                            help: vm.L(L10n.Mods.profileConfigBadge)))
+        }
+        return attributes
+    }
+
     /// L'adresse de la capture Nexus déjà en cache pour ce mod — celle que la
     /// fiche affiche (`nexusCachedExtras`, persisté : 769 de ses 791 entrées
     /// en portent une). Aucun réseau de plus n'est demandé ici : seules les
@@ -706,6 +729,7 @@ struct ModListView: View {
                                                 neutralBadge: values.neutralBadge,
                                                 endorsements: values.endorsements,
                                                 usesDefaultArtwork: true,
+                                                attributes: gridAttributes(for: mod),
                                                 L: vm.L,
                                                 action: { vm.viewingModDetail = mod })
                                     }
@@ -1422,6 +1446,11 @@ struct ModListRow: View {
     @State private var pendingToggle: DispatchWorkItem?
     /// Drives the confirmation dialog before deleting this row's mod.
     @State private var showDeleteConfirm = false
+    /// L'infobulle demande deux secondes de curseur immobile, et ne se lit
+    /// pas au clavier : la note et l'anomalie s'ouvrent aussi **au clic**,
+    /// dans un popover qui les montre en entier.
+    @State private var showingNote = false
+    @State private var showingAnomaly = false
     /// Le mod dont l'activation attend une confirmation : smapi.io le signale
     /// cassé. Voir `CompatibilityWarning`.
     @State private var pendingActivation: ModItem?
@@ -1539,7 +1568,14 @@ struct ModListRow: View {
         // le poids a été relevé. Un composant de pack n'en a pas — c'est
         // l'en-tête du pack qui porte le poids du dossier entier.
         let size = vm.sizeOnDisk(of: mod)
-        guard updated != nil || installed != nil || !langs.isEmpty || size != nil else { return nil }
+        // Les attributs comptent aussi : un mod qui n'a qu'une note doit
+        // montrer sa bande, sinon la note disparaîtrait avec elle.
+        let hasAttribute = vm.anomaly(for: mod) != nil
+            || vm.modNote(for: mod) != nil
+            || vm.isProfileConfigManaged(mod)
+        guard updated != nil || installed != nil || !langs.isEmpty || size != nil || hasAttribute else {
+            return nil
+        }
         return AnyView(
             HStack(spacing: 10) {
                 updatedSlot(updated)
@@ -1547,8 +1583,97 @@ struct ModListRow: View {
                 weightSlot(size)
                 languagesLabel(langs)
                 frenchSlot(langs: langs)
+                anomalySlot
+                noteSlot
+                profileConfigSlot
             }
         )
+    }
+
+    /// La largeur d'un créneau d'attribut : la cible de 18 pt qu'exige une
+    /// infobulle vivante sur macOS, plus l'air qui la sépare de sa voisine.
+    private static let attributeSlot: CGFloat = 22
+
+    /// L'anomalie du mod, dans un créneau tenu. Elle vivait à côté du nom, où
+    /// son abscisse suivait la longueur de celui-ci : d'une ligne à l'autre,
+    /// rien ne tombait au même endroit. Elle ferme désormais la bande de
+    /// métadonnées, comme le reste, en colonnes.
+    @ViewBuilder
+    private var anomalySlot: some View {
+        Group {
+            if let anomaly = vm.anomaly(for: mod) {
+                Button { showingAnomaly = true } label: {
+                    AnomalyBadge(anomaly: anomaly, vm: vm)
+                }
+                .buttonStyle(PlainButtonStyle())
+                .pointingHandCursor()
+                .popover(isPresented: $showingAnomaly, arrowEdge: .bottom) {
+                    attributePopover(title: vm.L(L10n.Mods.filterIssues),
+                                     systemImage: "exclamationmark.triangle.fill",
+                                     text: anomalyReasons(anomaly, vm: vm))
+                }
+            }
+        }
+        .frame(width: Self.attributeSlot, alignment: .leading)
+    }
+
+    /// La note du mod, même traitement — et le clic la donne en entier : une
+    /// note de plusieurs lignes ne tient pas dans une infobulle.
+    @ViewBuilder
+    private var noteSlot: some View {
+        Group {
+            if let note = vm.modNote(for: mod) {
+                Button { showingNote = true } label: {
+                    Image(systemName: "note.text")
+                        .font(AppDesign.Font.iconXS)
+                        .foregroundStyle(.secondary)
+                        .frame(width: 18, height: 18)
+                        .contentShape(.rect)
+                }
+                .buttonStyle(PlainButtonStyle())
+                .pointingHandCursor()
+                .help(note)
+                .popover(isPresented: $showingNote, arrowEdge: .bottom) {
+                    attributePopover(title: vm.L(L10n.Mods.noteTitle),
+                                     systemImage: "note.text",
+                                     text: note)
+                }
+            }
+        }
+        .frame(width: Self.attributeSlot, alignment: .leading)
+    }
+
+    /// Le mod garde un `config.json` par profil. Elle suit ses deux voisines
+    /// dans la bande : restée près du nom, elle y serait seule de son espèce.
+    @ViewBuilder
+    private var profileConfigSlot: some View {
+        Group {
+            if vm.isProfileConfigManaged(mod) {
+                Image(systemName: "slider.horizontal.3")
+                    .font(AppDesign.Font.iconXS)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 18, height: 18)
+                    .contentShape(.rect)
+                    .help(vm.L(L10n.Mods.profileConfigBadge))
+            }
+        }
+        .frame(width: Self.attributeSlot, alignment: .leading)
+    }
+
+    /// Ce qu'un clic sur un attribut montre : le texte en entier, borné en
+    /// largeur pour qu'une note longue s'enroule au lieu de fuir hors écran.
+    private func attributePopover(title: String, systemImage: String, text: String) -> some View {
+        VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
+            Label(title, systemImage: systemImage)
+                .font(AppDesign.Font.caption(.semibold))
+                .foregroundStyle(.secondary)
+            Text(text)
+                .font(AppDesign.Font.footnote)
+                .textSelection(.enabled)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(AppDesign.Spacing.md)
+        .frame(width: 320, alignment: .leading)
     }
 
     /// La couverture française **ferme** la bande, juste après les codes de
@@ -1695,50 +1820,11 @@ struct ModListRow: View {
                             .font(AppDesign.Font.iconXS)
                             .foregroundColor(.secondary)
                     }
-                    // À côté du nom, pas dans la bande de métadonnées : une
-                    // anomalie est un « regardez ici », pas un attribut de plus
-                    // à ranger entre les langues et les dates. Même forme que la
-                    // pastille de la page des profils, pour que les deux listes
-                    // parlent la même langue.
-                    if let anomaly = vm.anomaly(for: mod) {
-                        AnomalyBadge(anomaly: anomaly, vm: vm)
-                    }
-                    // B3-T6 — la note se signale à côté du nom, comme
-                    // l'anomalie : on note un mod pour s'en souvenir plus
-                    // tard, en parcourant la liste. L'icône porte la note en
-                    // tooltip — la lecture courte sans ouvrir la fiche. Les
-                    // packs n'en portent jamais (pas d'identité, F4).
-                    if let note = vm.modNote(for: mod) {
-                        // Zone de hit élargie avant le tooltip : un glyph de
-                        // 10 pt est plus petit que le curseur immobile que
-                        // macOS exige (~2 s tout-à-l'intérieur), et le timer
-                        // se réinitialisait sans arrêt — l'infobulle ne
-                        // venait jamais. L'auteur voisin (`authorLabel`) n'a
-                        // pas ce problème : son `Text` est sa propre cible.
-                        Image(systemName: "note.text")
-                            .font(AppDesign.Font.iconXS)
-                            .foregroundStyle(.secondary)
-                            .frame(width: 18, height: 18)
-                            .contentShape(.rect)
-                            .help(note)
-                    }
-                    // B3-T5 — le mod garde un config.json par profil. Se
-                    // signale ici pour la même raison que la note : c'est en
-                    // parcourant la liste qu'on veut savoir lesquels bougent
-                    // avec le profil, pas en ouvrant 900 fiches.
-                    if vm.isProfileConfigManaged(mod) {
-                        // Même zone de hit à 18×18 que la note, et pour la
-                        // même raison : un glyph de 10 pt est plus petit que
-                        // le curseur immobile qu'exige macOS (~2 s
-                        // tout-à-l'intérieur), le timer se réinitialise sans
-                        // arrêt et l'infobulle ne vient jamais.
-                        Image(systemName: "slider.horizontal.3")
-                            .font(AppDesign.Font.iconXS)
-                            .foregroundStyle(.secondary)
-                            .frame(width: 18, height: 18)
-                            .contentShape(.rect)
-                            .help(vm.L(L10n.Mods.profileConfigBadge))
-                    }
+                    // L'anomalie, la note et la config de profil sont parties
+                    // dans la bande de métadonnées : à côté du nom, leur
+                    // abscisse suivait la longueur de celui-ci et rien ne
+                    // tombait au même endroit d'une ligne à l'autre. Reste
+                    // ici ce qui parle du **nom** : son état.
                 }
                 
                 if mod.name != mod.folderName {
@@ -2296,32 +2382,38 @@ private struct AnomalyBadge: View {
         .accessibilityLabel(reasons)
     }
 
-    /// Toutes les raisons, une par ligne : un mod peut cumuler une dépendance
-    /// manquante et des erreurs, et n'en montrer qu'une enverrait sur une
-    /// fausse piste.
-    private var reasons: String {
-        var lines: [String] = []
-        if anomaly.isUnloadable { lines.append(vm.L(L10n.Mods.anomalyUnloadable)) }
-        if anomaly.hasDependencyIssue { lines.append(vm.L(L10n.Mods.anomalyDependency)) }
-        if let duplicate = anomaly.duplicate {
-            // Les dossiers **nommés** : un compte seul laisserait chercher
-            // lequel supprimer parmi 863.
-            lines.append(String(format: vm.L(duplicate.isActive
-                                             ? L10n.Mods.anomalyDuplicateActive
-                                             : L10n.Mods.anomalyDuplicateDormant),
-                                duplicate.copies,
-                                duplicate.folders.joined(separator: ", ")))
-        }
-        if let status = anomaly.compatibility {
-            lines.append(String(format: vm.L(L10n.Mods.anomalyCompat),
-                                CompatibilityWarning.label(status, vm)))
-        }
-        if anomaly.errorCount > 0 {
-            lines.append(String(format: vm.L(L10n.Mods.anomalyErrors), anomaly.errorCount))
-        }
-        if anomaly.warningCount > 0 {
-            lines.append(String(format: vm.L(L10n.Mods.anomalyWarnings), anomaly.warningCount))
-        }
-        return lines.joined(separator: "\n")
+    private var reasons: String { anomalyReasons(anomaly, vm: vm) }
+}
+
+/// Toutes les raisons d'une anomalie, une par ligne : un mod peut cumuler une
+/// dépendance manquante et des erreurs, et n'en montrer qu'une enverrait sur
+/// une fausse piste.
+///
+/// Une fonction et non une propriété de la pastille : la rangée en a besoin
+/// pour son popover, et fabriquer une pastille jetable pour lire son texte
+/// aurait été un détour.
+private func anomalyReasons(_ anomaly: ModAnomaly, vm: StarHubTHViewModel) -> String {
+    var lines: [String] = []
+    if anomaly.isUnloadable { lines.append(vm.L(L10n.Mods.anomalyUnloadable)) }
+    if anomaly.hasDependencyIssue { lines.append(vm.L(L10n.Mods.anomalyDependency)) }
+    if let duplicate = anomaly.duplicate {
+        // Les dossiers **nommés** : un compte seul laisserait chercher
+        // lequel supprimer parmi 863.
+        lines.append(String(format: vm.L(duplicate.isActive
+                                         ? L10n.Mods.anomalyDuplicateActive
+                                         : L10n.Mods.anomalyDuplicateDormant),
+                            duplicate.copies,
+                            duplicate.folders.joined(separator: ", ")))
     }
+    if let status = anomaly.compatibility {
+        lines.append(String(format: vm.L(L10n.Mods.anomalyCompat),
+                            CompatibilityWarning.label(status, vm)))
+    }
+    if anomaly.errorCount > 0 {
+        lines.append(String(format: vm.L(L10n.Mods.anomalyErrors), anomaly.errorCount))
+    }
+    if anomaly.warningCount > 0 {
+        lines.append(String(format: vm.L(L10n.Mods.anomalyWarnings), anomaly.warningCount))
+    }
+    return lines.joined(separator: "\n")
 }
