@@ -33,6 +33,9 @@ enum AppDesign {
     // Déduit des tailles réellement utilisées (inventaire spec §1.2) :
     // 74× size 12, 64× size 11, 45× size 13, 30× size 14, etc.
     enum Font {
+        // Icônes de bande de métadonnées (9 pt) : plus petites que `iconXS`,
+        // elles accompagnent une valeur, pas un geste.
+        static let iconXXS   = SwiftUI.Font.system(size: 9)
         // Micro (icônes, chevrons, labels minuscules — 36 occ. pour size 10)
         static let iconXS    = SwiftUI.Font.system(size: 10)
         // Captions / footnotes (64 occ. pour size 11)
@@ -48,7 +51,19 @@ enum AppDesign {
         // Titres de vue (utilise déjà .title2/.title3 système)
         static let viewTitle = SwiftUI.Font.system(size: 20, weight: .semibold)
 
+        // Glyphe décoratif des états vides de recherche (48 pt) — pas un texte.
+        static let emptyStateGlyph = SwiftUI.Font.system(size: 48)
+        // Glyphe des scopes vides / « aucun problème » (40 pt) — distinct du
+        // précédent : fusionner serait un changement visuel.
+        static let emptyScopeGlyph = SwiftUI.Font.system(size: 40)
+
         // Helpers avec weight — évite de répéter .system(size:weight:)
+        static func iconXXS(_ w: SwiftUI.Font.Weight) -> SwiftUI.Font {
+            .system(size: 9, weight: w)
+        }
+        static func iconXS(_ w: SwiftUI.Font.Weight) -> SwiftUI.Font {
+            .system(size: 10, weight: w)
+        }
         static func footnote(_ w: SwiftUI.Font.Weight) -> SwiftUI.Font {
             .system(size: 11, weight: w)
         }
@@ -83,5 +98,15 @@ enum AppDesign {
         static let warning    = SwiftUI.Color.orange
         static let error      = SwiftUI.Color.red
         static let info       = SwiftUI.Color.blue
+
+        /// Le vert « installé / actif », celui de la barre d'accent de la
+        /// rangée de mod et du toggle d'activation. Historiquement littéral
+        /// `Color(red: 0.20, green: 0.65, blue: 0.35)` dans `ModListRow` —
+        /// entré aux tokens (lot Mods, H-T4) pour que la grille et les lots
+        /// suivants parlent la même teinte. Éprouvé sur les deux thèmes
+        /// (spec §7). Distinct de `success` (`.green` système), jamais
+        /// confondus : l'un signale une réussite d'action, l'autre un état
+        /// installé.
+        static let installed  = SwiftUI.Color(red: 0.20, green: 0.65, blue: 0.35)
     }
 }

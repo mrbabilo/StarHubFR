@@ -509,7 +509,7 @@ struct ModListView: View {
                             // Recherche sans résultat
                             VStack(spacing: AppDesign.Spacing.lg) {
                                 Image(systemName: "puzzlepiece.extension")
-                                    .font(.system(size: 48))
+                                    .font(AppDesign.Font.emptyStateGlyph)
                                     .foregroundColor(.secondary.opacity(AppDesign.Opacity.disabled))
                                 Text(String(format: vm.L(L10n.Mods.noModFound), filters.search))
                                     .multilineTextAlignment(.center)
@@ -612,7 +612,7 @@ struct ModListView: View {
     private var emptyScopeMessage: some View {
         VStack(spacing: AppDesign.Spacing.md) {
             Image(systemName: "checkmark.seal")
-                .font(.system(size: 40))
+                .font(AppDesign.Font.emptyScopeGlyph)
                 .foregroundColor(.secondary.opacity(AppDesign.Opacity.disabled))
             Text(vm.L(filters.scope == .enabled
                       ? L10n.Mods.disabled
@@ -628,7 +628,7 @@ struct ModListView: View {
     private var noIssuesMessage: some View {
         VStack(spacing: AppDesign.Spacing.md) {
             Image(systemName: "checkmark.seal.fill")
-                .font(.system(size: 40))
+                .font(AppDesign.Font.emptyScopeGlyph)
                 .foregroundColor(.green.opacity(0.6))
             Text(vm.L(L10n.Mods.filterIssues))
                 .font(AppDesign.Font.rowTitle)
@@ -653,7 +653,7 @@ struct ModListView: View {
                     if filters.page > 1 { listState.filters.page -= 1 }
                 } label: {
                     Image(systemName: "chevron.left")
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(AppDesign.Font.iconXS(.semibold))
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
@@ -673,7 +673,7 @@ struct ModListView: View {
                             listState.filters.page = n
                         } label: {
                             Text("\(n)")
-                                .font(.system(size: 12, weight: n == page ? .semibold : .regular))
+                                .font(AppDesign.Font.caption(n == page ? .semibold : .regular))
                                 .foregroundColor(n == page ? .white : .primary)
                                 .frame(width: 24, height: 22)
                                 .background(
@@ -690,7 +690,7 @@ struct ModListView: View {
                     if filters.page < totalPages { listState.filters.page += 1 }
                 } label: {
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(AppDesign.Font.iconXS(.semibold))
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
@@ -699,7 +699,7 @@ struct ModListView: View {
             }
 
             Text(String(format: vm.L(L10n.Mods.pageShowing), rangeStart, rangeEnd, total))
-                .font(.system(size: 10))
+                .font(AppDesign.Font.iconXS)
                 .foregroundColor(.secondary.opacity(AppDesign.Opacity.secondary))
         }
         .padding(.top, 4)
@@ -757,7 +757,7 @@ struct ModListView: View {
         if total > 0 {
             HStack(spacing: 3) {
                 Image(systemName: "internaldrive")
-                    .font(.system(size: 9))
+                    .font(AppDesign.Font.iconXXS)
                 Text(String(format: vm.L(L10n.Mods.pageWeight),
                             ByteCountFormatter.string(fromByteCount: total, countStyle: .file)))
                     .font(AppDesign.Font.footnote)
@@ -796,7 +796,7 @@ struct ModListView: View {
                 Text(sortLabel)
                     .font(AppDesign.Font.caption(.medium))
                 Image(systemName: "chevron.down")
-                    .font(.system(size: 9, weight: .bold))
+                    .font(AppDesign.Font.iconXXS(.bold))
                     .foregroundColor(.secondary)
             }
             .foregroundColor(.primary)
@@ -885,7 +885,7 @@ struct ModListView: View {
                     .font(AppDesign.Font.caption(.medium))
                 if !empty {
                     Text("\(vm.favoriteMods.count)")
-                        .font(.system(size: 10, weight: .semibold).monospacedDigit())
+                        .font(AppDesign.Font.iconXS(.semibold).monospacedDigit())
                         .foregroundColor(.secondary)
                 }
             }
@@ -965,7 +965,7 @@ struct ModListView: View {
                 Text(label)
                     .font(AppDesign.Font.caption(.medium))
                 Image(systemName: "chevron.down")
-                    .font(.system(size: 9, weight: .bold))
+                    .font(AppDesign.Font.iconXXS(.bold))
                     .foregroundColor(.secondary)
             }
             .foregroundColor(isActive ? Color.accentColor : .primary)
@@ -1108,7 +1108,7 @@ struct ModListView: View {
                         .font(AppDesign.Font.caption(.medium))
                 }
                 Image(systemName: "chevron.down")
-                    .font(.system(size: 9, weight: .bold))
+                    .font(AppDesign.Font.iconXXS(.bold))
                     .foregroundColor(.secondary)
             }
             .foregroundColor(.primary)
@@ -1293,7 +1293,7 @@ struct ModListRow: View {
     /// Une valeur de la bande, précédée de son icône.
     private func metaValue(_ icon: String, _ text: String) -> some View {
         HStack(spacing: 3) {
-            Image(systemName: icon).font(.system(size: 9))
+            Image(systemName: icon).font(AppDesign.Font.iconXXS)
             Text(text).lineLimit(1)
         }
     }
@@ -1415,7 +1415,7 @@ struct ModListRow: View {
             vm.toggleFavorite(mod)
         } label: {
             Image(systemName: on ? "star.fill" : "star")
-                .font(.system(size: 11))
+                .font(AppDesign.Font.footnote)
                 .foregroundColor(on ? .yellow : .secondary.opacity(isHovered ? 0.6 : 0.25))
         }
         .buttonStyle(PlainButtonStyle())
@@ -1432,7 +1432,7 @@ struct ModListRow: View {
             // top-level rows, slimmer for pack children.
             RoundedRectangle(cornerRadius: 2)
                 .fill(effectiveEnabled
-                      ? Color(red: 0.20, green: 0.65, blue: 0.35)
+                      ? AppDesign.Color.installed
                       : Color.secondary.opacity(AppDesign.Opacity.strong))
                 .frame(width: isChild ? 2.5 : 3.5)
 
@@ -1443,7 +1443,7 @@ struct ModListRow: View {
                 ZStack {
                     if isGroupHeader {
                         Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                            .font(.system(size: 10, weight: .bold))
+                            .font(AppDesign.Font.iconXS(.bold))
                             .foregroundColor(.secondary)
                     }
                 }
@@ -1462,13 +1462,13 @@ struct ModListRow: View {
                         .font(AppDesign.Font.body(.medium))
                         .foregroundColor(effectiveEnabled ? .primary : .secondary)
                         .lineLimit(1)
-                    // Inline status dot — helps the name row itself read as
-                    // active/inactive, redundant with the accent bar but
-                    // reinforces the state for quick scanning.
+                    // Le glyph de l'état « en pause » (P6 : glyph + couleur
+                    // + barre d'accent — jamais la couleur seule). Redondant
+                    // avec la barre d'accent : chaque signal seul suffit.
                     if !effectiveEnabled && !isChild {
-                        Circle()
-                            .fill(Color.secondary.opacity(0.35))
-                            .frame(width: 5, height: 5)
+                        Image(systemName: "pause.circle")
+                            .font(AppDesign.Font.iconXS)
+                            .foregroundColor(.secondary)
                     }
                     // À côté du nom, pas dans la bande de métadonnées : une
                     // anomalie est un « regardez ici », pas un attribut de plus
@@ -1491,7 +1491,7 @@ struct ModListRow: View {
                         // venait jamais. L'auteur voisin (`authorLabel`) n'a
                         // pas ce problème : son `Text` est sa propre cible.
                         Image(systemName: "note.text")
-                            .font(.system(size: 10))
+                            .font(AppDesign.Font.iconXS)
                             .foregroundStyle(.secondary)
                             .frame(width: 18, height: 18)
                             .contentShape(.rect)
@@ -1508,7 +1508,7 @@ struct ModListRow: View {
                         // tout-à-l'intérieur), le timer se réinitialise sans
                         // arrêt et l'infobulle ne vient jamais.
                         Image(systemName: "slider.horizontal.3")
-                            .font(.system(size: 10))
+                            .font(AppDesign.Font.iconXS)
                             .foregroundStyle(.secondary)
                             .frame(width: 18, height: 18)
                             .contentShape(.rect)
@@ -1791,7 +1791,7 @@ struct ModListRow: View {
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: work)
                         }
                     ))
-                        .toggleStyle(SwitchToggleStyle(tint: Color(red: 0.20, green: 0.65, blue: 0.35)))
+                        .toggleStyle(SwitchToggleStyle(tint: AppDesign.Color.installed))
                         .controlSize(.small)
                         // Annuler un toggle en attente quand la rangée disparaît
                         // (virtualisation, navigation) : sinon le debounce 300 ms
@@ -1915,7 +1915,7 @@ private struct InferredTagBadge: View {
     var body: some View {
         Text(label)
             .lineLimit(1)
-            .font(.system(size: 10, weight: .medium))
+            .font(AppDesign.Font.iconXS(.medium))
             .padding(.horizontal, 6).padding(.vertical, 2)
             .background(Color.secondary.opacity(AppDesign.Opacity.medium))
             .foregroundColor(.secondary)
@@ -1951,7 +1951,7 @@ private struct FrenchCoverageBadge: View {
             // Chiffres à chasse fixe : dans une liste, « 8 % » et « 72 % »
             // doivent s'aligner verticalement pour se comparer d'un coup d'œil,
             // sinon chaque pastille danse d'une ligne à l'autre.
-            .font(.system(size: 10, weight: .semibold).monospacedDigit())
+            .font(AppDesign.Font.iconXS(.semibold).monospacedDigit())
             // Sur une seule ligne, quoi qu'il arrive : dans une colonne de
             // largeur fixe, « FR 100 % » se repliait et poussait le « % » sous
             // le reste. `fixedSize` prime sur la contrainte de la colonne.
@@ -1978,7 +1978,7 @@ private struct VersionBadge: View {
     let version: String
     var body: some View {
         Text("v\(version)")
-            .font(.system(size: 10, weight: .medium, design: .monospaced))
+            .font(AppDesign.Font.iconXS(.medium).monospaced())
             // Le parc réel monte à 28 signes (« 0.6.3-unofficial-mushymato.1 »,
             // « %ProjectVersion% ») : sans garde, la capsule se repliait sur
             // deux lignes et faisait enfler la rangée. Coupée au milieu, le
@@ -2018,11 +2018,11 @@ private struct ModWeightLabel: View {
     var body: some View {
         HStack(spacing: 3) {
             Image(systemName: "internaldrive")
-                .font(.system(size: 9))
+                .font(AppDesign.Font.iconXXS)
             // Chiffres à chasse fixe, comme la pastille de couverture : d'une
             // ligne à l'autre les tailles doivent s'aligner pour se comparer.
             Text(ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file))
-                .font(.system(size: 10, weight: isHeavy ? .semibold : .regular).monospacedDigit())
+                .font(AppDesign.Font.iconXS(isHeavy ? .semibold : .regular).monospacedDigit())
         }
         .foregroundColor(isHeavy ? .orange : .secondary)
     }
@@ -2050,10 +2050,10 @@ private struct AnomalyBadge: View {
     var body: some View {
         HStack(spacing: 3) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 9))
+                .font(AppDesign.Font.iconXXS)
             if anomaly.badgeCount > 0 {
                 Text("\(anomaly.badgeCount)")
-                    .font(.system(size: 10, weight: .semibold).monospacedDigit())
+                    .font(AppDesign.Font.iconXS(.semibold).monospacedDigit())
             }
         }
         .foregroundColor(tint)
