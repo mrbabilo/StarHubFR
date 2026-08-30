@@ -3452,6 +3452,13 @@ class StarHubTHViewModel: ObservableObject {
                 }
 
                 anyMoved = true
+                // Le poids mesuré suit le renommement : la clé physique
+                // change, le contenu non. `m` est encore à son ancien état —
+                // sa clé physique est l'ancienne, `dstName` la nouvelle.
+                // Sans ce déplacement, fiche et rangées perdraient le poids
+                // jusqu'au prochain scan complet.
+                self.modsFolderSizes = self.modsFolderSizes?
+                    .renamingFolder(from: m.physicalFolderName, to: dstName)
                 if targetState {
                     self.modActivationTimestamps[folderName] = Date()
                 }

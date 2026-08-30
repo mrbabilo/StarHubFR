@@ -182,3 +182,29 @@ struct ModsFolderSizerTests {
         #expect(sizes.availableBytes == ModsFolderSizer.availableBytes(on: root))
     }
 }
+
+    /// La bascule d'un mod est un renommement dans `Mods/`, pas un changement
+    /// de contenu : le poids mesuré reste exact, seule sa clé bouge — et le
+    /// sous-total de pause suit le préfixe (H-T4b : l'activation vidait le
+    /// poids de la fiche jusqu'au prochain scan complet).
+    @Test func unRenommementDeBasculeDeplaceLaCleEtLeSousTotalDePause() {
+        let sizes = ModsFolderSizes(byPhysicalFolder: ["Foo": 500, ".Bar": 300],
+                                    totalBytes: 800, pausedBytes: 300,
+                                    availableBytes: nil, measuredAt: Date())
+
+        // Mise en pause : Foo → .Foo
+        let paused = sizes.renamingFolder(from: "Foo", to: ".Foo")
+        #expect(paused.bytes(forPhysicalFolder: "Foo") == nil)
+        #expect(paused.bytes(forPhysicalFolder: ".Foo") == 500)
+        #expect(paused.totalBytes == 800)
+        #expect(paused.pausedBytes == 800)   // 300 + 500
+
+        // Réactivation : .Foo → Foo — retour à l'état d'origine
+        let active = paused.renamingFolder(from: ".Foo", to: "Foo")
+        #expect(active.bytes(forPhysicalFolder: ".Foo") == nil)
+        #expect(active.bytes(forPhysicalFolder: "Foo") == 500)
+        #expect(active.pausedBytes == 300)
+
+        // Clé inconnue : rien ne bouge
+        #expect(sizes.renamingFolder(from: "Inconnu", to: ".Inconnu") == sizes)
+    }

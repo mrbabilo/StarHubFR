@@ -50,6 +50,30 @@ public struct ModsFolderSizes: Equatable, Sendable {
     public func bytes(forPhysicalFolder folder: String) -> Int64? {
         byPhysicalFolder[folder]
     }
+
+    /// Déplace la mesure d'un dossier qui vient d'être renommé dans `Mods/`.
+    ///
+    /// La bascule d'un mod **est** ce renommement (`Foo` ↔ `.Foo`) : le
+    /// contenu ne change pas, le poids mesuré reste exact — seule sa clé
+    /// bouge. Sans ce déplacement, la recherche sous le nouveau nom échoue
+    /// et le poids disparaît jusqu'au prochain scan complet (vu à l'écran
+    /// sur la fiche, H-T4b). Le sous-total `pausedBytes` suit le préfixe ;
+    /// `totalBytes`, lui, ne bouge pas — renommer ne libère rien.
+    public func renamingFolder(from oldKey: String, to newKey: String) -> ModsFolderSizes {
+        guard let bytes = byPhysicalFolder[oldKey], oldKey != newKey else { return self }
+        var byFolder = byPhysicalFolder
+        byFolder.removeValue(forKey: oldKey)
+        byFolder[newKey] = bytes
+        var paused = pausedBytes
+        let wasPaused = oldKey.hasPrefix(".")
+        let isPaused = newKey.hasPrefix(".")
+        if isPaused != wasPaused {
+            paused += isPaused ? bytes : -bytes
+        }
+        return ModsFolderSizes(byPhysicalFolder: byFolder, totalBytes: totalBytes,
+                               pausedBytes: paused, availableBytes: availableBytes,
+                               measuredAt: measuredAt)
+    }
 }
 
 public enum ModsFolderSizer {
