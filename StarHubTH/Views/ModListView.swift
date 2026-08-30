@@ -54,13 +54,18 @@ private enum PageSlot {
 
 struct ModListView: View {
     @ObservedObject var vm: StarHubTHViewModel
+    /// L'onglet affiché, pour les rares endroits d'où la liste **mène
+    /// ailleurs** (le badge de profil actif). Même patron que
+    /// `ModProfilesView`, `UpdatesView` et `SystemAlertsView`.
+    @Binding var currentTab: String
     /// Le cadrage de la liste, observé **à part** du ViewModel pour que taper
     /// dans la recherche ne redessine pas toute la fenêtre — voir `ModListState`.
     @ObservedObject private var listState: ModListState
 
-    init(vm: StarHubTHViewModel) {
+    init(vm: StarHubTHViewModel, currentTab: Binding<String>) {
         self.vm = vm
         self.listState = vm.modList
+        self._currentTab = currentTab
     }
 
     /// Lecture seule du cadrage courant (recherche, filtres, tri, page). Les
@@ -124,79 +129,97 @@ struct ModListView: View {
         vm.pendingModFocus = nil
     }
 
+    // MARK: - Les prédicats de cadrage
+    //
+    // Un filtre, une fonction. `filteredMods` les compose pour la liste ; les
+    // menus les recomposent **en laissant tomber le leur** pour compter ce que
+    // la vue active contient. Deux pipelines jumeaux auraient divergé à la
+    // première retouche — le dépôt l'a déjà payé ailleurs.
+
+    private func matchesSearch(_ mod: ModItem) -> Bool {
+        filters.search.isEmpty || matchesSelfOrAnyChild(mod) {
+            $0.name.localizedCaseInsensitiveContains(filters.search) || $0.uniqueId.localizedCaseInsensitiveContains(filters.search)
+        }
+    }
+
+    private func matchesCategory(_ mod: ModItem) -> Bool {
+        switch filters.category {
+        case .all:
+            return true
+        case .category(let cat):
+            // `vm.category(for:)` already resolves a group to its
+            // dominant child category, so this agrees with the badge
+            // shown on the group's own row by construction.
+            return vm.category(for: mod)?.id == cat.id
+        case .inferredTag(let tag):
+            return vm.category(for: mod) == nil && vm.inferredTagKey(for: mod) == tag
+        case .uncategorized:
+            // Same reasoning: `vm.category(for:)` returns nil for a
+            // group exactly when none of its children have a known
+            // category, matching what its badge (absence) shows.
+            return vm.category(for: mod) == nil && vm.inferredTagKey(for: mod) == "Other"
+        }
+    }
+
+    private func matchesConfig(_ mod: ModItem) -> Bool {
+        !filters.configOnly || matchesSelfOrAnyChild(mod) { $0.hasConfigFile }
+    }
+
+    /// Le favori se marque sur la ligne de premier niveau, donc se teste sur
+    /// elle : un pack est favori pour lui-même, pas par l'un de ses composants.
+    private func matchesFavorites(_ mod: ModItem) -> Bool {
+        !filters.favoritesOnly || vm.isFavorite(mod)
+    }
+
+    private func matchesTranslation(_ mod: ModItem, _ scope: FrenchTranslationScope) -> Bool {
+        switch scope {
+        case .off:
+            return true
+        case .available:
+            // A group matches if any child ships an fr translation.
+            return matchesSelfOrAnyChild(mod) { $0.languages.contains("fr") }
+        case .partial:
+            // Ne montre que les mods **déjà mesurés** : la couverture
+            // se calcule en tâche de fond, et annoncer « complet » sur
+            // un mod qu'on n'a pas encore lu serait faux. La liste se
+            // complète donc à mesure que le calcul avance.
+            return matchesSelfOrAnyChild(mod) { child in
+                guard let coverage = vm.frenchCoverage(for: child) else { return false }
+                return coverage < 100
+            }
+        case .missing:
+            // « Pas de français » ne veut rien dire d'un mod qui n'a
+            // aucun `i18n` : il n'a pas de texte à traduire, et l'y
+            // faire figurer noyait le filtre. Mesuré sur le parc : 397
+            // mods sans français, dont **310 sans le moindre fichier de
+            // traduction**. Le filtre servait à trouver ce qu'on
+            // pourrait traduire ; il rendait 8 fois plus de bruit que de
+            // signal.
+            //
+            // `languages` porte `en` dès qu'un `default.json` existe :
+            // un mod traduisible en a donc au moins un.
+            let translatable = matchesSelfOrAnyChild(mod) { !$0.languages.isEmpty }
+            return translatable
+                && !matchesSelfOrAnyChild(mod) { $0.languages.contains("fr") }
+        case .stale:
+            // Les deux signaux réunis : la date, connue de tous les
+            // mods dès le scan, et les clés, connues des seuls mods
+            // dont on a déjà ouvert le diff.
+            return matchesSelfOrAnyChild(mod) { child in
+                vm.staleTranslationMods.contains(child.folderName)
+                    || vm.outdatedKeyCount(for: child) > 0
+            }
+        }
+    }
+
     var filteredMods: [ModItem] {
         vm.mods
             .filter { mod in
-                filters.search.isEmpty || matchesSelfOrAnyChild(mod) {
-                    $0.name.localizedCaseInsensitiveContains(filters.search) || $0.uniqueId.localizedCaseInsensitiveContains(filters.search)
-                }
-            }
-            .filter { mod in
-                switch filters.category {
-                case .all:
-                    return true
-                case .category(let cat):
-                    // `vm.category(for:)` already resolves a group to its
-                    // dominant child category, so this agrees with the badge
-                    // shown on the group's own row by construction.
-                    return vm.category(for: mod)?.id == cat.id
-                case .inferredTag(let tag):
-                    return vm.category(for: mod) == nil && vm.inferredTagKey(for: mod) == tag
-                case .uncategorized:
-                    // Same reasoning: `vm.category(for:)` returns nil for a
-                    // group exactly when none of its children have a known
-                    // category, matching what its badge (absence) shows.
-                    return vm.category(for: mod) == nil && vm.inferredTagKey(for: mod) == "Other"
-                }
-            }
-            .filter { mod in
-                !filters.configOnly || matchesSelfOrAnyChild(mod) { $0.hasConfigFile }
-            }
-            .filter { mod in
-                // Le favori se marque sur la ligne de premier niveau, donc se
-                // teste sur elle : un pack est favori pour lui-même, pas par
-                // l'un de ses composants.
-                !filters.favoritesOnly || vm.isFavorite(mod)
-            }
-            .filter { mod in
-                switch filters.frenchTranslation {
-                case .off:
-                    return true
-                case .available:
-                    // A group matches if any child ships an fr translation.
-                    return matchesSelfOrAnyChild(mod) { $0.languages.contains("fr") }
-                case .partial:
-                    // Ne montre que les mods **déjà mesurés** : la couverture
-                    // se calcule en tâche de fond, et annoncer « complet » sur
-                    // un mod qu'on n'a pas encore lu serait faux. La liste se
-                    // complète donc à mesure que le calcul avance.
-                    return matchesSelfOrAnyChild(mod) { child in
-                        guard let coverage = vm.frenchCoverage(for: child) else { return false }
-                        return coverage < 100
-                    }
-                case .missing:
-                    // « Pas de français » ne veut rien dire d'un mod qui n'a
-                    // aucun `i18n` : il n'a pas de texte à traduire, et l'y
-                    // faire figurer noyait le filtre. Mesuré sur le parc : 397
-                    // mods sans français, dont **310 sans le moindre fichier de
-                    // traduction**. Le filtre servait à trouver ce qu'on
-                    // pourrait traduire ; il rendait 8 fois plus de bruit que de
-                    // signal.
-                    //
-                    // `languages` porte `en` dès qu'un `default.json` existe :
-                    // un mod traduisible en a donc au moins un.
-                    let translatable = matchesSelfOrAnyChild(mod) { !$0.languages.isEmpty }
-                    return translatable
-                        && !matchesSelfOrAnyChild(mod) { $0.languages.contains("fr") }
-                case .stale:
-                    // Les deux signaux réunis : la date, connue de tous les
-                    // mods dès le scan, et les clés, connues des seuls mods
-                    // dont on a déjà ouvert le diff.
-                    return matchesSelfOrAnyChild(mod) { child in
-                        vm.staleTranslationMods.contains(child.folderName)
-                            || vm.outdatedKeyCount(for: child) > 0
-                    }
-                }
+                matchesSearch(mod)
+                    && matchesCategory(mod)
+                    && matchesConfig(mod)
+                    && matchesFavorites(mod)
+                    && matchesTranslation(mod, filters.frenchTranslation)
             }
             .sorted { lhs, rhs in
                 switch filters.sort {
@@ -330,12 +353,33 @@ struct ModListView: View {
         return Array(mods[start..<end])
     }
 
+    /// Le filtre qu'une facette **laisse tomber** pour se compter elle-même.
+    private enum Facet { case category, translation }
+
+    /// Les mods sur lesquels un menu compte ses options : ceux que la vue
+    /// active contient — cadrage compris (« Tous », « Activés », « En pause »,
+    /// « Problèmes ») — **moins le filtre du menu lui-même**. Sans cette
+    /// exception, choisir une catégorie réduirait le menu à cette seule
+    /// catégorie et on ne pourrait plus en changer.
+    ///
+    /// Le tri n'entre pas ici : il ne change pas quels mods sont là.
+    private func facetMods(for facet: Facet) -> [ModItem] {
+        let matching = vm.mods.filter { mod in
+            matchesSearch(mod)
+                && (facet == .category || matchesCategory(mod))
+                && matchesConfig(mod)
+                && matchesFavorites(mod)
+                && (facet == .translation || matchesTranslation(mod, filters.frenchTranslation))
+        }
+        return displayMods(from: matching)
+    }
+
     /// Categories actually present among the currently installed mods, sorted
     /// alphabetically by localized name. Drives the category-picker menu so the
     /// user never sees an empty scope. Computed from the *effective* category
     /// of every mod (manual override wins over the API-fetched category), so
     /// user-categorized mods appear in the picker as soon as they're pinned.
-    private var availableCategories: [(category: NexusCategory, count: Int)] {
+    private func availableCategories(from base: [ModItem]) -> [(category: NexusCategory, count: Int)] {
         var counts: [Int: Int] = [:]
         // Counts must be derived the exact same way the `.category` filter
         // branch resolves a mod (`vm.category(for: mod)` on the top-level
@@ -344,7 +388,7 @@ struct ModListView: View {
         // this used to) could show a non-zero count for a category that,
         // once selected, filters nothing in because it's a group's minority
         // category rather than its dominant one.
-        for mod in vm.mods {
+        for mod in base {
             if let cid = vm.category(for: mod)?.id { counts[cid, default: 0] += 1 }
         }
         return NexusCategory.all
@@ -356,9 +400,9 @@ struct ModListView: View {
 
     /// (tag key, localized label, count) for top-level mods with no Nexus
     /// category and a non-"Other" inferred tag — the offline fallback buckets.
-    private var inferredTagBuckets: [(tag: String, label: String, count: Int)] {
+    private func inferredTagBuckets(from base: [ModItem]) -> [(tag: String, label: String, count: Int)] {
         var counts: [String: Int] = [:]
-        for mod in vm.mods where vm.category(for: mod) == nil {
+        for mod in base where vm.category(for: mod) == nil {
             let tag = vm.inferredTagKey(for: mod)
             if tag != "Other" { counts[tag, default: 0] += 1 }
         }
@@ -371,8 +415,8 @@ struct ModListView: View {
     /// `.uncategorized` filter case above (mods with a more specific inferred
     /// tag are counted in `inferredTagBuckets` instead). Drives the
     /// "No Category (N)" menu entry and its visibility.
-    private var uncategorizedCount: Int {
-        vm.mods.filter { vm.category(for: $0) == nil && vm.inferredTagKey(for: $0) == "Other" }.count
+    private func uncategorizedCount(from base: [ModItem]) -> Int {
+        base.filter { vm.category(for: $0) == nil && vm.inferredTagKey(for: $0) == "Other" }.count
     }
 
     /// Precomputed counts for all four scope filters, derived in a single pass
@@ -421,9 +465,13 @@ struct ModListView: View {
         // downstream of it) on every Picker label and list access.
         let filtered = filteredMods
         let counts = scopeCounts(for: filtered)
-        let categories = availableCategories
-        let uncatCount = uncategorizedCount
-        let tagBuckets = inferredTagBuckets
+        // Une seule passe de cadrage pour les trois facettes de catégorie :
+        // chacune la refaisait, soit trois parcours du parc par rendu — et le
+        // rendu suit la frappe dans la recherche.
+        let categoryBase = facetMods(for: .category)
+        let categories = availableCategories(from: categoryBase)
+        let uncatCount = uncategorizedCount(from: categoryBase)
+        let tagBuckets = inferredTagBuckets(from: categoryBase)
         let display = displayMods(from: filtered)
         let pages = totalPages(for: display)
         let page = effectivePage(totalPages: pages)
@@ -557,21 +605,30 @@ struct ModListView: View {
                             .foregroundColor(.secondary.opacity(AppDesign.Opacity.secondary))
                     }
 
-                    // Which mod profile is currently applied (read-only hint).
+                    // Le profil appliqué — et le chemin vers la page qui le
+                    // gère : c'est là qu'on va quand on le lit ici.
                     if let profile = vm.activeProfile {
-                        HStack(spacing: 5) {
-                            Image(systemName: "person.crop.circle")
-                                .font(AppDesign.Font.footnote)
-                            Text(String(format: vm.L(L10n.Profiles.activeLabel), profile.name))
-                                .font(AppDesign.Font.footnote(.medium))
-                                .lineLimit(1)
+                        Button {
+                            currentTab = "Profiles"
+                        } label: {
+                            HStack(spacing: 5) {
+                                Image(systemName: "person.crop.circle")
+                                    .font(AppDesign.Font.footnote)
+                                Text(String(format: vm.L(L10n.Profiles.activeLabel), profile.name))
+                                    .font(AppDesign.Font.footnote(.medium))
+                                    .lineLimit(1)
+                            }
+                            .foregroundColor(.accentColor)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(Color.accentColor.opacity(0.12))
+                            .clipShape(Capsule())
                         }
-                        .foregroundColor(.accentColor)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(Color.accentColor.opacity(0.12))
-                        .clipShape(Capsule())
-                        .help(String(format: vm.L(L10n.Profiles.activeLabel), profile.name))
+                        .buttonStyle(PlainButtonStyle())
+                        .pointingHandCursor()
+                        .help(vm.L(L10n.Profiles.title))
+                        .accessibilityLabel(String(format: vm.L(L10n.Profiles.activeLabel), profile.name))
+                        .accessibilityHint(vm.L(L10n.Profiles.title))
                     }
                 }
             }
@@ -657,6 +714,7 @@ struct ModListView: View {
                                                 category: vm.category(for: mod),
                                                 neutralBadge: values.neutralBadge,
                                                 endorsements: values.endorsements,
+                                                usesDefaultArtwork: true,
                                                 L: vm.L,
                                                 action: { vm.viewingModDetail = mod })
                                     }
@@ -892,23 +950,43 @@ struct ModListView: View {
     }
 
     @ViewBuilder
+    /// Un tri du menu. L'icône **ne se remplace pas** par une coche quand le
+    /// tri est actif : le bouton du menu affiche déjà le libellé du tri en
+    /// cours (`sortLabel`), donc la coche ne disait rien de plus — elle
+    /// effaçait juste l'icône, et l'entrée par défaut (« Nom (A-Z) ») en
+    /// paraissait dépourvue.
     private func sortItem(_ order: ModSortOrder, label: String, icon: String) -> some View {
-        let active = filters.sort == order
         Button {
             listState.filters.sort = order
         } label: {
-            if active {
-                Label(vm.L(label), systemImage: "checkmark")
-            } else {
-                Label(vm.L(label), systemImage: icon)
-            }
+            Label(vm.L(label), systemImage: icon)
         }
+    }
+
+    /// Une option du menu traduction : son compte dans la vue active, et
+    /// l'entrée éteinte quand ce compte est nul — cliquer n'y menait qu'à une
+    /// liste vide.
+    private func translationItem(_ scope: FrenchTranslationScope,
+                                 label: String,
+                                 icon: String,
+                                 count: Int) -> some View {
+        Button {
+            listState.filters.frenchTranslation = scope
+        } label: {
+            Label("\(vm.L(label)) (\(count))", systemImage: icon)
+        }
+        .disabled(count == 0 && filters.frenchTranslation != scope)
     }
 
     private var sortPicker: some View {
         Menu {
-            sortItem(.name, label: L10n.Mods.sortName, icon: "arrow.up.arrow.down")
-            sortItem(.nameDescending, label: L10n.Mods.sortNameDescending, icon: "arrow.down.arrow.up")
+            // `arrow.up`/`arrow.down` et non la paire
+            // `arrow.up.arrow.down`/`arrow.down.arrow.up` : la seconde
+            // **n'existe pas** sur macOS 26 (vérifié par
+            // `NSImage(systemSymbolName:)`), et un symbole absent ne dessine
+            // rien — l'entrée paraissait sans icône.
+            sortItem(.name, label: L10n.Mods.sortName, icon: "arrow.up")
+            sortItem(.nameDescending, label: L10n.Mods.sortNameDescending, icon: "arrow.down")
             sortItem(.activationOrder, label: L10n.Mods.sortActivationOrder, icon: "clock.arrow.circlepath")
             sortItem(.installDate, label: L10n.Mods.sortInstallDate, icon: "calendar")
             sortItem(.author, label: L10n.Mods.sortAuthor, icon: "person.fill")
@@ -1051,6 +1129,19 @@ struct ModListView: View {
     /// Three-state menu scoping the list to mods that ship (or don't ship) an
     /// `i18n/fr.json` translation file. Same chip visual family as the
     /// config-only toggle and the category picker.
+    /// Combien de mods la vue active contient pour chaque état de traduction.
+    /// Les options qui n'y mènent nulle part se **désactivent** — elles ne
+    /// disparaissent pas : un menu dont les entrées vont et viennent ne se
+    /// mémorise pas.
+    private func frenchTranslationCounts() -> [FrenchTranslationScope: Int] {
+        let base = facetMods(for: .translation)
+        var counts: [FrenchTranslationScope: Int] = [:]
+        for scope in [FrenchTranslationScope.available, .partial, .missing, .stale] {
+            counts[scope] = base.filter { matchesTranslation($0, scope) }.count
+        }
+        return counts
+    }
+
     private var frenchTranslationPicker: some View {
         let isActive = filters.frenchTranslation != .off
         let label: String = {
@@ -1067,37 +1158,27 @@ struct ModListView: View {
             case .off:       return "character.bubble"
             case .available: return "checkmark.bubble"
             case .partial:   return "ellipsis.bubble"
-            case .missing:   return "xmark.bubble"
+            // Le symbole `xmark` sur bulle n'existe pas sur macOS 26
+            // (mesuré) : l'entrée « À traduire » n'affichait rien.
+            case .missing:   return "exclamationmark.bubble"
             case .stale:     return "clock.badge.exclamationmark"
             }
         }()
+        let counts = frenchTranslationCounts()
         return Menu {
             Button {
                 listState.filters.frenchTranslation = .off
             } label: {
                 Label(vm.L(L10n.Mods.frTranslationFilterLabel), systemImage: "character.bubble")
             }
-            Button {
-                listState.filters.frenchTranslation = .available
-            } label: {
-                Label(vm.L(L10n.Mods.frTranslationAvailable), systemImage: "checkmark.bubble")
-            }
-            Button {
-                listState.filters.frenchTranslation = .partial
-            } label: {
-                Label(vm.L(L10n.Mods.frTranslationPartial), systemImage: "ellipsis.bubble")
-            }
-            Button {
-                listState.filters.frenchTranslation = .missing
-            } label: {
-                Label(vm.L(L10n.Mods.frTranslationMissing), systemImage: "xmark.bubble")
-            }
-            Button {
-                listState.filters.frenchTranslation = .stale
-            } label: {
-                Label(vm.L(L10n.Mods.frTranslationStale),
-                      systemImage: "clock.badge.exclamationmark")
-            }
+            translationItem(.available, label: L10n.Mods.frTranslationAvailable,
+                            icon: "checkmark.bubble", count: counts[.available] ?? 0)
+            translationItem(.partial, label: L10n.Mods.frTranslationPartial,
+                            icon: "ellipsis.bubble", count: counts[.partial] ?? 0)
+            translationItem(.missing, label: L10n.Mods.frTranslationMissing,
+                            icon: "exclamationmark.bubble", count: counts[.missing] ?? 0)
+            translationItem(.stale, label: L10n.Mods.frTranslationStale,
+                            icon: "clock.badge.exclamationmark", count: counts[.stale] ?? 0)
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: icon)
@@ -1590,9 +1671,17 @@ struct ModListRow: View {
                 .frame(width: 14, alignment: .center)
 
                 favoriteStar
+                    // Largeur fixe : sans elle, l'étoile mesure ce que son
+                    // glyph veut, et l'indentation des composants ci-dessous
+                    // ne pouvait pas s'y accorder.
+                    .frame(width: 16, alignment: .center)
             } else {
-                // Indent children
-                Spacer().frame(width: 32)
+                // L'indentation d'un composant se **calcule** sur ce qui la
+                // précède chez son pack — chevron (14) + espace (12) + étoile
+                // (16) — plus un cran. Le 32 forfaitaire d'avant tombait en
+                // deçà : le nom d'un composant commençait à *gauche* de celui
+                // de son pack, et toute sa bande de métadonnées avec.
+                Spacer().frame(width: 14 + AppDesign.Spacing.md + 16 + AppDesign.Spacing.md)
             }
 
             // Info
@@ -2200,6 +2289,13 @@ private struct AnomalyBadge: View {
         .padding(.horizontal, 5)
         .padding(.vertical, 1)
         .background(Capsule().fill(tint.opacity(AppDesign.Opacity.medium)))
+        // La capsule mesurait ~13 pt de haut : trop court pour que macOS
+        // accepte de garder son curseur « tout à l'intérieur » les ~2 s
+        // qu'exige une infobulle — le timer se réinitialisait et l'aide ne
+        // venait jamais. Même correction que la note et la config voisines :
+        // une cible d'au moins 18×18, et une forme qui la porte.
+        .frame(minWidth: 18, minHeight: 18)
+        .contentShape(.rect)
         .help(reasons)
         .accessibilityLabel(reasons)
     }

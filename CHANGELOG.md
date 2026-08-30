@@ -19,6 +19,14 @@ where the exact log format was verified.
 ### Changed
 - **La liste des mods parle le langage de l'app.** La recherche vit dans la toolbar, au motif des journaux, et les couleurs et tailles de la rangée passent aux tokens du système de design — un mod en pause se lit désormais d'un glyph, jamais de la couleur seule.
 - **Les pastilles de filtre « configuration » et « favoris » se réduisent à leur glyphe**, leur libellé passant à l'infobulle : la seconde rangée de la toolbar respire, le compte des favoris reste affiché.
+- **Les menus de filtre disent ce que la vue contient** : catégories, types déduits et états de traduction se comptent désormais sur le cadrage affiché (« Tous », « Activés », « En pause », « Problèmes ») et non sur le parc entier ; une option qui ne mènerait nulle part s'éteint.
+- **Une carte sans capture Nexus montre l'illustration de l'app** plutôt qu'un rectangle gris — 148 des 887 dossiers n'ont aucune image à servir.
+- **Le profil actif de la toolbar mène à la page des profils.**
+
+### Fixed
+- **Trois icônes manquaient dans les menus de filtre** : deux symboles n'existent pas sur macOS 26 (« Nom (Z-A) », « À traduire »), et le tri actif remplaçait la sienne par une coche redondante — le bouton du menu nomme déjà le tri en cours.
+- **L'infobulle de la pastille d'anomalie ne s'ouvrait jamais** : sa cible était trop courte pour le survol immobile qu'exige macOS.
+- **Un composant de pack commençait à gauche du nom de son pack** : son retrait était forfaitaire au lieu de se calculer sur le chevron et l'étoile qui le précèdent.
 
 ## [1.28.0] - 2026-08-30
 

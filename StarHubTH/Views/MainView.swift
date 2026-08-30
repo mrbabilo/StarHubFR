@@ -192,7 +192,7 @@ struct MainView: View {
                         ModDetailView(vm: vm, mod: mod)
                             .id(mod.folderName)
                     } else {
-                        ModListView(vm: vm)
+                        ModListView(vm: vm, currentTab: $currentTab)
                     }
                 } else if currentTab == "ConfigBackups" {
                     ModConfigBackupsView(vm: vm)

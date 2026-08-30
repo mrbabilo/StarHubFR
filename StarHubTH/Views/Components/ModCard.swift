@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// La carte d'un mod : vignette **pleine largeur en 16/9**, pastille d'état
@@ -28,6 +29,13 @@ struct ModCard: View {
     /// Une pastille neutre supplémentaire (« FR »), ou `nil`.
     let neutralBadge: String?
     let endorsements: Int?
+    /// Ce qui tient la place d'une vignette absente. Découvrir garde le
+    /// rectangle gris (`false`) — sa vitrine sert des captures Nexus et
+    /// l'absence y est l'exception. La grille des mods installés l'allume :
+    /// 148 de ses 887 dossiers n'ont aucune image à servir, et une page
+    /// entière de rectangles gris se lisait comme un écran qui n'a pas fini
+    /// de charger.
+    var usesDefaultArtwork: Bool = false
     /// Passé tel quel à `CategoryBadge`, qui résout le nom localisé.
     let L: (String) -> String
     let action: () -> Void
@@ -66,6 +74,19 @@ struct ModCard: View {
     private var thumbnail: some View {
         Rectangle().fill(.quaternary)
             .aspectRatio(AppDesign.Metrics.thumbRatio, contentMode: .fit)
+            // L'illustration de l'app (celle de l'écran de lancement), sous
+            // la vignette et **voilée** : elle occupe la place, elle ne se
+            // fait pas passer pour la capture du mod. Elle n'est dessinée
+            // que faute de mieux, et seulement là où l'écran la demande.
+            .overlay {
+                if usesDefaultArtwork, thumbnailURL == nil, let art = Self.defaultArtwork {
+                    Image(nsImage: art)
+                        .resizable()
+                        .scaledToFill()
+                        .opacity(AppDesign.Opacity.strong)
+                        .accessibilityHidden(true)
+                }
+            }
             .overlay {
                 // `CachedAsyncImage` garde les images en mémoire : dérouler
                 // la vitrine redemanderait sinon les mêmes vignettes au
@@ -96,6 +117,16 @@ struct ModCard: View {
                 }
             }
     }
+
+    /// L'illustration de l'app, chargée une fois pour toutes les cartes —
+    /// c'est la même image que l'écran de lancement (`LaunchSplashWindow`),
+    /// déjà copiée dans les ressources du bundle par `build_app.py`.
+    private static let defaultArtwork: NSImage? = {
+        guard let url = Bundle.main.url(forResource: "nexus_cover_final", withExtension: "png") else {
+            return nil
+        }
+        return NSImage(contentsOf: url)
+    }()
 
     /// Une seule ligne : la catégorie à gauche, les endossements à droite.
     /// Sa hauteur est réservée — sans catégorie servie, une carte plus courte
