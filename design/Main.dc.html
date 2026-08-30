@@ -235,9 +235,13 @@
         <div style="padding: 8px 12px; background: rgba(0,0,0,.03); font-size: 11px; color: rgba(0,0,0,.5)">pt</div>
         <div style="padding: 8px 12px; background: rgba(0,0,0,.03); font-size: 11px; color: rgba(0,0,0,.5)">Rendu</div>
 
+        <div style="padding: 8px 12px; font-family: ui-monospace, monospace; font-size: 12px; border-top: 1px solid rgba(0,0,0,.06)">iconXXS</div>
+        <div style="padding: 8px 12px; border-top: 1px solid rgba(0,0,0,.06)">9</div>
+        <div style="padding: 8px 12px; font-size: 9px; border-top: 1px solid rgba(0,0,0,.06)">L'icône qui accompagne une valeur — bande de métadonnées d'une rangée de mod</div>
+
         <div style="padding: 8px 12px; font-family: ui-monospace, monospace; font-size: 12px; border-top: 1px solid rgba(0,0,0,.06)">iconXS</div>
         <div style="padding: 8px 12px; border-top: 1px solid rgba(0,0,0,.06)">10</div>
-        <div style="padding: 8px 12px; font-size: 10px; border-top: 1px solid rgba(0,0,0,.06)">Portraits — le nom d'une catégorie</div>
+        <div style="padding: 8px 12px; font-size: 10px; border-top: 1px solid rgba(0,0,0,.06)">Portraits — le nom d'une catégorie, le glyph d'état « en pause »</div>
 
         <div style="padding: 8px 12px; font-family: ui-monospace, monospace; font-size: 12px; border-top: 1px solid rgba(0,0,0,.06)">footnote</div>
         <div style="padding: 8px 12px; border-top: 1px solid rgba(0,0,0,.06)">11</div>
@@ -262,12 +266,44 @@
         <div style="padding: 8px 12px; font-family: ui-monospace, monospace; font-size: 12px; border-top: 1px solid rgba(0,0,0,.06)">viewTitle</div>
         <div style="padding: 8px 12px; border-top: 1px solid rgba(0,0,0,.06)">20</div>
         <div style="padding: 8px 12px; font-size: 20px; font-weight: 600; border-top: 1px solid rgba(0,0,0,.06)">Le titre d'une vue</div>
+
+        <div style="padding: 8px 12px; font-family: ui-monospace, monospace; font-size: 12px; border-top: 1px solid rgba(0,0,0,.06)">emptyScopeGlyph</div>
+        <div style="padding: 8px 12px; border-top: 1px solid rgba(0,0,0,.06)">40</div>
+        <div style="padding: 8px 12px; font-size: 12px; color: rgba(0,0,0,.5); border-top: 1px solid rgba(0,0,0,.06)">Le glyphe d'un scope vide — « aucun problème »</div>
+
+        <div style="padding: 8px 12px; font-family: ui-monospace, monospace; font-size: 12px; border-top: 1px solid rgba(0,0,0,.06)">emptyStateGlyph</div>
+        <div style="padding: 8px 12px; border-top: 1px solid rgba(0,0,0,.06)">48</div>
+        <div style="padding: 8px 12px; font-size: 12px; color: rgba(0,0,0,.5); border-top: 1px solid rgba(0,0,0,.06)">Le glyphe décoratif d'un état vide de recherche</div>
       </div>
     </div>
     <div style="font-size: 12px; color: rgba(0,0,0,.5); text-wrap: pretty">
       Les polices sémantiques que le code emploie encore — <code style="font-family: ui-monospace, monospace; font-size: 11px">.title3.bold()</code>,
       <code style="font-family: ui-monospace, monospace; font-size: 11px">.caption</code>, <code style="font-family: ui-monospace, monospace; font-size: 11px">.caption2</code> —
       ne sont pas des tokens : leur taille est celle que macOS leur donne, indicative ici.
+    </div>
+  </section>
+
+  <!-- COLOR -->
+  <section style="display: flex; flex-direction: column; gap: 12px">
+    <div style="display: flex; align-items: baseline; gap: 10px">
+      <h2 style="margin: 0; font-size: 17px; font-weight: 600">Color</h2>
+      <span style="font-size: 12px; color: rgba(0,0,0,.5)">couleurs sémantiques posées — pas système, éprouvées sur les deux thèmes</span>
+    </div>
+    <div style="border: 1px solid rgba(0,0,0,.1); border-radius: 10px; padding: 16px; display: flex; gap: 24px; align-items: center">
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <div style="display: flex; gap: 3px">
+          <span style="display: block; width: 4px; height: 44px; border-radius: 2px; background: rgb(51,166,89)"></span>
+          <span style="display: block; width: 4px; height: 44px; border-radius: 2px; background: rgba(0,0,0,.25)"></span>
+        </div>
+        <span style="font-family: ui-monospace, monospace; font-size: 12px">installed</span>
+      </div>
+      <div style="font-size: 12px; color: rgba(0,0,0,.6); text-wrap: pretty; max-width: 60ch">
+        <b style="font-weight: 600">rgb(51, 166, 89)</b> — <code style="font-family: ui-monospace, monospace; font-size: 11px">Color(red: 0.20, green: 0.65, blue: 0.35)</code>,
+        la même valeur sur les deux thèmes (ce n'est pas une couleur adaptative). Le vert « installé / actif » : barre d'accent d'une
+        rangée de mod (à gauche, contre la barre « en pause » grise) et teinte du toggle d'activation. Distinct de
+        <code style="font-family: ui-monospace, monospace; font-size: 11px">Color.success</code> (<code style="font-family: ui-monospace, monospace; font-size: 11px">.green</code>
+        système) : l'un signale une réussite d'action, l'autre un état installé. Entré aux tokens par le lot Mods (H-T4).
+      </div>
     </div>
   </section>
 
