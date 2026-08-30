@@ -43,6 +43,7 @@ let package = Package(
                 "Models/ContentPatcherConflicts.swift",
                 "Models/ModConflictVerdicts.swift",
                 "Models/ModConflictVerdictsStore.swift",
+                "Models/ModGridCardValues.swift",
                 "Models/ModDependencyParser.swift",
                 "Models/DependencyTree.swift",
                 "Models/SmapiLogDiagnostics.swift",
@@ -323,6 +324,11 @@ let package = Package(
             name: "ModConflictVerdictsTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ModConflictVerdictsTests"
+        ),
+        .testTarget(
+            name: "ModGridCardValuesTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ModGridCardValuesTests"
         ),
         .testTarget(
             name: "ModConflictVerdictsStoreTests",
