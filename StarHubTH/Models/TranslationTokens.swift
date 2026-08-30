@@ -1,5 +1,6 @@
 import Foundation
 
+
 /// Sépare, dans une valeur de traduction, ce qui se traduit de ce qui doit être
 /// repris tel quel.
 ///
@@ -20,11 +21,13 @@ public enum TranslationTokens {
         public let text: String
         public let isCode: Bool
 
+
         public init(text: String, isCode: Bool) {
             self.text = text
             self.isCode = isCode
         }
     }
+
 
     /// Découpe une valeur en segments. Concaténés, ils rendent exactement la
     /// chaîne d'origine — c'est ce qui garantit qu'aucun caractère ne se perd à
@@ -35,11 +38,13 @@ public enum TranslationTokens {
         var plain = ""
         var index = 0
 
+
         func flushPlain() {
             guard !plain.isEmpty else { return }
             segments.append(Segment(text: plain, isCode: false))
             plain = ""
         }
+
 
         while index < characters.count {
             guard let match = token(in: characters, at: index) else {
@@ -55,6 +60,7 @@ public enum TranslationTokens {
         return segments
     }
 
+
     /// Y a-t-il une marque à `start` ? Rend l'index juste après, ou `nil`.
     ///
     /// L'ordre compte : `#$b#` contient `$b`, et le reconnaître d'abord évite
@@ -64,16 +70,22 @@ public enum TranslationTokens {
         // commande `$x`, `%… %%` avant la substitution `%mot`. Autrement, la
         // forme longue se ferait entamer par la courte et le reste passerait
         // pour du texte à traduire.
-        genderSelector(characters, start)
-            ?? mailCommand(characters, start)
-            ?? dialogueSeparator(characters, start)
-            ?? contentPatcherToken(characters, start)
-            ?? positionalPlaceholder(characters, start)
-            ?? portraitCommand(characters, start)
-            ?? substitution(characters, start)
-            ?? itemIndex(characters, start)
-            ?? singleCharacterMark(characters, start)
+        //
+        // Découpé en `if let` successifs plutôt qu'une longue chaîne `??` :
+        // au-delà de 5-6 termes, le solveur de contraintes du compilateur
+        // Swift explose en temps de type-checking, même quand tous les
+        // termes ont le même type de retour.
+        if let match = genderSelector(characters, start) { return match }
+        if let match = mailCommand(characters, start) { return match }
+        if let match = dialogueSeparator(characters, start) { return match }
+        if let match = contentPatcherToken(characters, start) { return match }
+        if let match = positionalPlaceholder(characters, start) { return match }
+        if let match = portraitCommand(characters, start) { return match }
+        if let match = substitution(characters, start) { return match }
+        if let match = itemIndex(characters, start) { return match }
+        return singleCharacterMark(characters, start)
     }
+
 
     /// `${him^her^them}$` — sélection selon le genre du joueur.
     ///
@@ -87,6 +99,7 @@ public enum TranslationTokens {
         guard j + 1 < c.count, c[j] == "}", c[j + 1] == "$" else { return nil }
         return j + 2
     }
+
 
     /// `%item … %%`, `%action … %%` — commandes de courrier.
     ///
@@ -111,6 +124,7 @@ public enum TranslationTokens {
         return nil
     }
 
+
     /// `#$b#`, `#$e#` — pause et fin de page dans un dialogue.
     /// Les commandes de plus d'une lettre attestées après `#$`.
     ///
@@ -120,6 +134,7 @@ public enum TranslationTokens {
     /// `#$b` puis « What ». D'où une liste close plutôt qu'un mot gourmand :
     /// tout avaler soustrairait ce texte à la traduction.
     private static let multiLetterSeparators: Set<String> = ["action"]
+
 
     private static func dialogueSeparator(_ c: [Character], _ i: Int) -> Int? {
         guard i + 2 < c.count, c[i] == "#", c[i + 1] == "$",
@@ -139,6 +154,7 @@ public enum TranslationTokens {
         }
         return j
     }
+
 
     /// `{{…}}`, **imbrication comprise**.
     ///
@@ -161,10 +177,11 @@ public enum TranslationTokens {
                 j += 1
             }
         }
-        // Jamais refermé : c'est du texte abîmé, pas une marque. Le signaler
+        // Jamais refermé : c'est du texte abîmé, pas une marque. Le signaler
         // comme du code laisserait croire qu'il ne faut pas y toucher.
         return nil
     }
+
 
     /// `{0}`, `{12}` — emplacement positionnel de SMAPI.
     private static func positionalPlaceholder(_ c: [Character], _ i: Int) -> Int? {
@@ -174,6 +191,7 @@ public enum TranslationTokens {
         guard j > i + 1, j < c.count, c[j] == "}" else { return nil }
         return j + 1
     }
+
 
     /// `$2`, `$h` — expression du portrait. Numérique autant que littérale.
     private static func portraitCommand(_ c: [Character], _ i: Int) -> Int? {
@@ -189,6 +207,7 @@ public enum TranslationTokens {
         return j
     }
 
+
     /// `%item`, `%farm` — substitution du jeu.
     private static func substitution(_ c: [Character], _ i: Int) -> Int? {
         guard c[i] == "%", i + 1 < c.count, c[i + 1].isLetter else { return nil }
@@ -201,6 +220,7 @@ public enum TranslationTokens {
         return j
     }
 
+
     /// `[#]`, `[128]` — index d'objet dans une description de quête.
     private static func itemIndex(_ c: [Character], _ i: Int) -> Int? {
         guard c[i] == "[" else { return nil }
@@ -210,6 +230,7 @@ public enum TranslationTokens {
         guard j > i + 1, j < c.count, c[j] == "]" else { return nil }
         return j + 1
     }
+
 
     /// `^` saut de ligne, `@` nom du joueur. Une seule lettre, mais qui compte :
     /// un `@` perdu et le personnage n'appelle plus le joueur par son nom.
