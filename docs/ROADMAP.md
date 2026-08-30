@@ -2104,6 +2104,19 @@ par lot, une release par lot. Périmètre : visuel + navigation —
       grille optionnelle réutilisant `ModCard` via un adaptateur de valeurs
       (un `ModItem` n'a ni endossements ni catégorie Nexus servis), fiche
       `HeroHeader` + `StatStrip` où l'action praticable est la proéminente. · **L**
+>
+> **H-T4a (la liste) est livré et vérifié à l'écran le 2026-08-30.** Toolbar
+> unifiée (recherche inline, bascule liste/grille persistée), rangée
+> délittéralisée au glyph `pause.circle`, grille de cartes servie par
+> `ModGridCardValues`. Trois défauts relevés à la vérification, corrigés dans
+> la foulée : cartes nues (les captures Nexus dorment déjà dans
+> `nexusCachedExtras` — **739 des 887 dossiers** en obtiennent une, et la
+> carte dit désormais l'état, la catégorie et « FR »), glyph de bascule
+> illisible, pastilles de filtre trop bavardes.
+>
+> **Reste H-T4b** — la fiche (`HeroHeader` + `StatStrip`, action praticable
+> proéminente), décidée au cadrage du 2026-08-30 comme lot séparé : la case
+> ci-dessus ne se coche qu'avec elle.
 - [ ] **H-T5** — **Lot Parties** : profils en cartes à chiffres clés (jamais
       un formulaire nu), sauvegardes au même motif. · **M**
 - [ ] **H-T6** — **Lot Santé & secours** : alertes système, quarantaine,
