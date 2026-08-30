@@ -353,25 +353,25 @@ struct ModListView: View {
         return Array(mods[start..<end])
     }
 
-    /// Le filtre qu'une facette **laisse tomber** pour se compter elle-même.
-    private enum Facet { case category, translation }
-
     /// Les mods sur lesquels un menu compte ses options : ceux que la vue
     /// active contient — cadrage compris (« Tous », « Activés », « En pause »,
     /// « Problèmes ») — **moins le filtre du menu lui-même**. Sans cette
     /// exception, choisir une catégorie réduirait le menu à cette seule
     /// catégorie et on ne pourrait plus en changer.
     ///
+    /// Les deux bases sortent d'un **seul** cadrage : `displayMods` fait, sous
+    /// « Problèmes », un scan de dépendances par mod — c'est précisément ce que
+    /// `scopeCounts` avait été écrit pour ne pas refaire à chaque évaluation.
+    /// Les filtres commutant entre eux, retrancher le sien après le cadrage
+    /// donne le même ensemble pour un parcours de moins.
+    ///
     /// Le tri n'entre pas ici : il ne change pas quels mods sont là.
-    private func facetMods(for facet: Facet) -> [ModItem] {
-        let matching = vm.mods.filter { mod in
-            matchesSearch(mod)
-                && (facet == .category || matchesCategory(mod))
-                && matchesConfig(mod)
-                && matchesFavorites(mod)
-                && (facet == .translation || matchesTranslation(mod, filters.frenchTranslation))
-        }
-        return displayMods(from: matching)
+    private func facetBases() -> (category: [ModItem], translation: [ModItem]) {
+        let scoped = displayMods(from: vm.mods.filter { mod in
+            matchesSearch(mod) && matchesConfig(mod) && matchesFavorites(mod)
+        })
+        return (category: scoped.filter { matchesTranslation($0, filters.frenchTranslation) },
+                translation: scoped.filter { matchesCategory($0) })
     }
 
     /// Categories actually present among the currently installed mods, sorted
@@ -465,13 +465,13 @@ struct ModListView: View {
         // downstream of it) on every Picker label and list access.
         let filtered = filteredMods
         let counts = scopeCounts(for: filtered)
-        // Une seule passe de cadrage pour les trois facettes de catégorie :
-        // chacune la refaisait, soit trois parcours du parc par rendu — et le
-        // rendu suit la frappe dans la recherche.
-        let categoryBase = facetMods(for: .category)
-        let categories = availableCategories(from: categoryBase)
-        let uncatCount = uncategorizedCount(from: categoryBase)
-        let tagBuckets = inferredTagBuckets(from: categoryBase)
+        // Un seul cadrage par rendu pour les quatre facettes : chacune le
+        // refaisait, et le rendu suit la frappe dans la recherche.
+        let facets = facetBases()
+        let categories = availableCategories(from: facets.category)
+        let uncatCount = uncategorizedCount(from: facets.category)
+        let tagBuckets = inferredTagBuckets(from: facets.category)
+        let translationCounts = frenchTranslationCounts(from: facets.translation)
         let display = displayMods(from: filtered)
         let pages = totalPages(for: display)
         let page = effectivePage(totalPages: pages)
@@ -587,7 +587,7 @@ struct ModListView: View {
                     Divider()
                         .frame(height: 16)
 
-                    frenchTranslationPicker
+                    frenchTranslationPicker(counts: translationCounts)
 
                     categoryPicker(categories: categories, uncatCount: uncatCount, tagBuckets: tagBuckets)
                         .disabled(categories.isEmpty && uncatCount == 0 && tagBuckets.isEmpty)
@@ -963,9 +963,13 @@ struct ModListView: View {
         }
     }
 
-    /// Une option du menu traduction : son compte dans la vue active, et
-    /// l'entrée éteinte quand ce compte est nul — cliquer n'y menait qu'à une
-    /// liste vide.
+    /// Une option du menu traduction, avec son compte dans la vue active.
+    ///
+    /// Le compte, et rien d'autre : l'entrée ne s'éteint pas à zéro. « À
+    /// revoir » et « Partiellement traduits » se lisent dans des mesures qui
+    /// se font en tâche de fond — au lancement elles valent zéro pour un
+    /// moment, et une entrée grisée aurait dit « il n'y en a pas » là où il
+    /// fallait lire « pas encore compté ».
     private func translationItem(_ scope: FrenchTranslationScope,
                                  label: String,
                                  icon: String,
@@ -975,7 +979,6 @@ struct ModListView: View {
         } label: {
             Label("\(vm.L(label)) (\(count))", systemImage: icon)
         }
-        .disabled(count == 0 && filters.frenchTranslation != scope)
     }
 
     private var sortPicker: some View {
@@ -1133,8 +1136,7 @@ struct ModListView: View {
     /// Les options qui n'y mènent nulle part se **désactivent** — elles ne
     /// disparaissent pas : un menu dont les entrées vont et viennent ne se
     /// mémorise pas.
-    private func frenchTranslationCounts() -> [FrenchTranslationScope: Int] {
-        let base = facetMods(for: .translation)
+    private func frenchTranslationCounts(from base: [ModItem]) -> [FrenchTranslationScope: Int] {
         var counts: [FrenchTranslationScope: Int] = [:]
         for scope in [FrenchTranslationScope.available, .partial, .missing, .stale] {
             counts[scope] = base.filter { matchesTranslation($0, scope) }.count
@@ -1142,7 +1144,7 @@ struct ModListView: View {
         return counts
     }
 
-    private var frenchTranslationPicker: some View {
+    private func frenchTranslationPicker(counts: [FrenchTranslationScope: Int]) -> some View {
         let isActive = filters.frenchTranslation != .off
         let label: String = {
             switch filters.frenchTranslation {
@@ -1164,7 +1166,6 @@ struct ModListView: View {
             case .stale:     return "clock.badge.exclamationmark"
             }
         }()
-        let counts = frenchTranslationCounts()
         return Menu {
             Button {
                 listState.filters.frenchTranslation = .off

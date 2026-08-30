@@ -19,7 +19,7 @@ where the exact log format was verified.
 ### Changed
 - **La liste des mods parle le langage de l'app.** La recherche vit dans la toolbar, au motif des journaux, et les couleurs et tailles de la rangée passent aux tokens du système de design — un mod en pause se lit désormais d'un glyph, jamais de la couleur seule.
 - **Les pastilles de filtre « configuration » et « favoris » se réduisent à leur glyphe**, leur libellé passant à l'infobulle : la seconde rangée de la toolbar respire, le compte des favoris reste affiché.
-- **Les menus de filtre disent ce que la vue contient** : catégories, types déduits et états de traduction se comptent désormais sur le cadrage affiché (« Tous », « Activés », « En pause », « Problèmes ») et non sur le parc entier ; une option qui ne mènerait nulle part s'éteint.
+- **Les menus de filtre disent ce que la vue contient** : catégories, types déduits et états de traduction se comptent désormais sur le cadrage affiché (« Tous », « Activés », « En pause », « Problèmes ») et non sur le parc entier.
 - **Une carte sans capture Nexus montre l'illustration de l'app** plutôt qu'un rectangle gris — 148 des 887 dossiers n'ont aucune image à servir.
 - **Le profil actif de la toolbar mène à la page des profils.**
 
