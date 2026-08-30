@@ -26,6 +26,7 @@ where the exact log format was verified.
 - **Anomalie, note et config de profil s'alignent dans la bande de métadonnées**, en colonnes fixes d'une ligne à l'autre au lieu de suivre la longueur du nom. L'anomalie et la note s'ouvrent aussi au clic, en popover ; la carte de grille porte les mêmes attributs que la rangée.
 
 ### Fixed
+- **Le poids d'un mod disparaissait à l'activation** : la bascule renomme son dossier (le point de la pause), et la mesure des poids restait indexée sous l'ancien nom jusqu'au prochain scan complet — fiche et rangées montraient « — ». La mesure suit maintenant le renommement, et le sous-total « poids en pause » avec elle.
 - **Trois icônes manquaient dans les menus de filtre** : deux symboles n'existent pas sur macOS 26 (« Nom (Z-A) », « À traduire »), et le tri actif remplaçait la sienne par une coche redondante — le bouton du menu nomme déjà le tri en cours.
 - **L'infobulle de la pastille d'anomalie ne s'ouvrait jamais** : sa cible était trop courte pour le survol immobile qu'exige macOS.
 - **Un composant de pack commençait à gauche du nom de son pack** : son retrait était forfaitaire au lieu de se calculer sur le chevron et l'étoile qui le précèdent.

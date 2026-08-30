@@ -2098,7 +2098,7 @@ par lot, une release par lot. Périmètre : visuel + navigation —
 > chacun à sa page, états empêchés de la carte de lancement portant l'action
 > qui les lève, Réglages complets sans doublon de version. **La phase 1 tient
 > ses revendications** — H-T4 est débloqué.
-- [ ] **H-T4** — **Mods, pilote du reskin** : toolbar unifiée au motif
+- [x] **H-T4** — **Mods, pilote du reskin** : toolbar unifiée au motif
       Découvrir (un seul geste par intention), rangée à hauteur réservée avec
       état codé glyph + couleur + barre d'accent (jamais la couleur seule),
       grille optionnelle réutilisant `ModCard` via un adaptateur de valeurs
@@ -2124,9 +2124,17 @@ par lot, une release par lot. Périmètre : visuel + navigation —
 > en colonnes tenues, l'anomalie et la note s'ouvrant aussi au clic en
 > popover, et la carte de grille portant les mêmes attributs que la rangée.
 >
-> **Reste H-T4b** — la fiche (`HeroHeader` + `StatStrip`, action praticable
-> proéminente), décidée au cadrage du 2026-08-30 comme lot séparé : la case
-> ci-dessus ne se coche qu'avec elle.
+> **H-T4b (la fiche) livré et vérifié à l'écran le 2026-08-30.** Hero +
+> bande fine + `StatStrip`, onglet « État » regroupant le diagnostic, pager
+> ‹ › dans la barre d'outils de la fenêtre sur le cadrage courant,
+> composants de pack cliquables, dossier du mod dans le Finder. Trois
+> retours d'écran pris dans la foulée : chevrons montés hors du hero
+> (blanc mort sur capture claire), interrupteur vert rétabli — le bouton
+> bleu essayé se lisait moins bien —, bouton Finder ajouté. Deux bugs
+> honorés au passage : `renamingFolder` fait survivre le poids mesuré à la
+> bascule (Core, TDD), et l'enum d'onglets ferme le deep-link « traduis ce
+> mod » aux réordonnancements. **La case est cochée : le pilote Mods est
+> complet.**
 - [ ] **H-T5** — **Lot Parties** : profils en cartes à chiffres clés (jamais
       un formulaire nu), sauvegardes au même motif. · **M**
 - [ ] **H-T6** — **Lot Santé & secours** : alertes système, quarantaine,
