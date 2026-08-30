@@ -1,1 +1,68 @@
-REPLACE_SMAPI
+name: Bug SMAPI / installation
+description: Signaler une erreur d'installation de mod ou un problème lié à SMAPI
+title: "[Bug SMAPI/Installation] "
+labels: ["bug", "installation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Merci de signaler ce bug. Plus votre rapport est précis, plus vite il pourra être corrigé.
+  - type: textarea
+    id: description
+    attributes:
+      label: Description du problème
+      description: Que s'est-il passé lors de l'installation ou du lancement via SMAPI ?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Étapes de reproduction
+      description: Comment reproduire le problème étape par étape ?
+      placeholder: |
+        1. Ouvrir StarHubFR
+        2. Installer le mod X
+        3. Lancer SMAPI
+        4. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Comportement attendu
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs SMAPI / StarHubFR
+      description: Collez ici les logs pertinents (SMAPI log, console StarHubFR, etc.)
+      render: shell
+  - type: input
+    id: starhubfr-version
+    attributes:
+      label: Version de StarHubFR
+      placeholder: "Ex: v1.28.0"
+    validations:
+      required: true
+  - type: input
+    id: smapi-version
+    attributes:
+      label: Version de SMAPI
+      placeholder: "Ex: 4.1.0"
+  - type: dropdown
+    id: os
+    attributes:
+      label: Système d'exploitation
+      options:
+        - macOS
+        - Windows
+        - Linux
+        - Autre
+    validations:
+      required: true
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Contexte additionnel
+      description: Archives concernées (.zip, .7z, .rar), autres mods installés, etc.

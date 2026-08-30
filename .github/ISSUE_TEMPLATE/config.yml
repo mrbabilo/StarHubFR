@@ -1,1 +1,5 @@
-REPLACE_CONFIG
+blank_issues_enabled: true
+contact_links:
+  - name: Question générale
+    url: https://github.com/mrbabilo/StarHubFR/discussions
+    about: Pour toute question qui n'est pas un bug ou une demande de fonctionnalité
