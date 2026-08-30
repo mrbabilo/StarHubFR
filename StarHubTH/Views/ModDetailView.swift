@@ -12,6 +12,13 @@ import SwiftUI
 /// fresh instance is created whenever the user switches to a different mod:
 /// that resets `selectedTab` and, more importantly, the Nexus-id draft below
 /// so an in-progress edit can never leak onto the wrong mod's folder.
+/// Les onglets de la fiche, **nommés** : le parcours « traduis ce mod »
+/// (`pendingTranslationFocus`) pointait un index entier — chaque
+/// réordonnancement d'onglets le recassait en silence.
+enum DetailTab: Hashable {
+    case description, changelog, dependencies, state, translation
+}
+
 struct ModDetailView: View {
     @ObservedObject var vm: StarHubTHViewModel
     let mod: ModItem
@@ -29,7 +36,7 @@ struct ModDetailView: View {
         self.keybindScanService = vm.keybindScanService
     }
 
-    @State private var selectedTab = 0
+    @State private var selectedTab: DetailTab = .description
     /// Le mod dont l'activation attend une confirmation : smapi.io le signale
     /// cassé. Voir `CompatibilityWarning`.
     @State private var pendingActivation: ModItem?
@@ -160,7 +167,7 @@ struct ModDetailView: View {
             if vm.pendingTranslationFocus == mod.folderName {
                 vm.pendingTranslationFocus = nil
                 if mod.languages.contains("fr") || mod.languages.contains("en") {
-                    selectedTab = 3
+                    selectedTab = .translation
                 }
             }
             translationStaleness = await vm.translationStaleness(for: mod)
@@ -176,11 +183,15 @@ struct ModDetailView: View {
     /// hero (outside the ScrollView) so it stays visible while scrolling.
     private var tabBar: some View {
         Picker("", selection: $selectedTab) {
-            Text(vm.L(L10n.Mods.detailDescription)).tag(0)
-            Text(vm.L(L10n.Mods.detailChangelog)).tag(1)
-            Text(vm.L(L10n.Profiles.dependencies)).tag(2)
-            // Quatrième onglet plutôt qu'une feuille : la barre est déjà
-            // épinglée sous la bannière, et le diff est une lecture du mod
+            Text(vm.L(L10n.Mods.detailDescription)).tag(DetailTab.description)
+            Text(vm.L(L10n.Mods.detailChangelog)).tag(DetailTab.changelog)
+            Text(vm.L(L10n.Profiles.dependencies)).tag(DetailTab.dependencies)
+            // L'état du mod — compatibilité, traduction, erreurs, raccourcis,
+            // conflits — se lit groupé dans son onglet, pas empilé au-dessus
+            // de la prose.
+            Text(vm.L(L10n.Mods.tabState)).tag(DetailTab.state)
+            // Dernier onglet plutôt qu'une feuille : la barre est déjà
+            // épinglée sous le bandeau, et le diff est une lecture du mod
             // comme les autres — pas une action modale.
             // `en` autant que `fr` : un mod qui n'a qu'un `default.json` est
             // précisément celui qu'il reste à traduire, et c'est lui qui a le
@@ -189,7 +200,7 @@ struct ModDetailView: View {
             // (`I18nLocaleResolver.languageCodes` rend `default` sous la forme
             // `en` : la présence de `en` signifie donc « il y a une source ».)
             if mod.languages.contains("fr") || mod.languages.contains("en") {
-                Text(vm.L(L10n.Mods.diffTab)).tag(3)
+                Text(vm.L(L10n.Mods.diffTab)).tag(DetailTab.translation)
             }
         }
         .pickerStyle(.segmented)
@@ -1331,13 +1342,16 @@ struct ModDetailView: View {
     @ViewBuilder
     private var content: some View {
         switch selectedTab {
-        case 3:
+        case .translation:
             TranslationDiffView(vm: vm, mod: mod)
-        case 2:
+        case .dependencies:
             dependenciesSection
-        case 1:
+        case .changelog:
             blocksView(isChangelog: true)
-        default:
+        case .state:
+            // Rendu provisoire — les sept sections y déménagent en T7.
+            Text(vm.L(L10n.Mods.tabState))
+        case .description:
             // Description tab: pack contents (for a pack) + the category /
             // Nexus-id editors + the rendered description.
             VStack(alignment: .leading, spacing: 16) {

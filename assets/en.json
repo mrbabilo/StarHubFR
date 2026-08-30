@@ -1211,5 +1211,12 @@
   "discovery_clear_filters": "Clear filters",
   "discovery_open_settings": "Open settings",
   "discovery_stat_updated": "Updated",
-  "discovery_stat_endorsements": "Endorsements"
+  "discovery_stat_endorsements": "Endorsements",
+  "mods_tab_state": "State",
+  "mods_detail_activate": "Enable",
+  "mods_detail_pause": "Pause",
+  "mods_pager_previous": "Previous mod in view",
+  "mods_pager_next": "Next mod in view",
+  "mods_pager_unavailable": "This mod is not in the current view",
+  "mods_back_to_pack": "Back to pack %@"
 }
