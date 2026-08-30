@@ -213,68 +213,123 @@ struct ModDetailView: View {
         .overlay(alignment: .bottom) { Divider() }
     }
 
-    // MARK: Hero banner (full-width illustration + full-width metadata band)
+    // MARK: Hero (bandeau image) + bande fine + chiffres clés — le motif
+    // Découvrir, tenu par les composants partagés.
 
     private var heroBanner: some View {
         VStack(spacing: 0) {
-            bannerImage
-            headerBand
-        }
-    }
-
-    /// Compact edge-to-edge illustration (shorter than a full hero image) so the
-    /// pinned banner doesn't eat the pane. Omitted when there's no picture.
-    @ViewBuilder
-    private var bannerImage: some View {
-        if let extra = vm.modExtra(for: mod), !extra.pictureUrl.isEmpty, let url = URL(string: extra.pictureUrl) {
-            CachedAsyncImage(url: url)
-                .frame(maxWidth: .infinity)
-                .frame(height: 120)
-                .clipped()
-        }
-    }
-
-    /// Compact metadata band under the image: name + category + links on the
-    /// left, the metadata (updated / installed / languages) stacked on the
-    /// right. The name sits on a solid tinted band so it stays readable.
-    private var headerBand: some View {
-        HStack(alignment: .top, spacing: 16) {
-            VStack(alignment: .leading, spacing: 6) {
-                categoryTag
-                Text(mod.name)
-                    .font(.title2.weight(.bold))
-                    .textSelection(.enabled)
-                    .fixedSize(horizontal: false, vertical: true)   // wrap long names
-                HStack(spacing: 6) {
-                    Text(String(format: vm.L(L10n.Mods.versionPrefix), vm.displayVersion(for: mod)))
-                    if !mod.isGroup, !mod.author.isEmpty, mod.author != "Unknown" {
-                        Text("•")
-                        Text(mod.author)
-                    }
-                }
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                let link = vm.nexusLink(for: mod)
-                if !link.isEmpty {
-                    HStack(spacing: 16) {
-                        linkButton(icon: "link", label: vm.L(L10n.Mods.nexusOpenPage), url: link)
-                        linkButton(icon: "ladybug", label: vm.L(L10n.Mods.detailBugs), url: link + "?tab=bugs")
-                    }
-                }
-                actionRow
-                CompatibilityBanner(vm: vm, mod: live)
-                if isTopLevel { TranslationSection(vm: vm, mod: live) }
-                if isTopLevel { SupplementSection(vm: vm, mod: live) }
+            HeroHeader(title: mod.name,
+                       subtitle: heroSubtitle,
+                       imageURL: heroPictureURL) {
+                vm.viewingModDetail = nil
             }
-            Spacer(minLength: 8)
-            metadataColumn
+            fineBand
+            statStrip
+            // Provisoire (T6) : la barre d'actions extraite prendra cette
+            // place ; l'ancienne rangée reste montée entre-temps pour que
+            // chaque commit du lot garde une fiche opérable.
+            if isTopLevel {
+                actionRow
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 10)
+            }
         }
-        .frame(maxWidth: 700, alignment: .leading)
+    }
+
+    /// « version · auteur » — l'auteur disparaît s'il est vide ou « Unknown »,
+    /// comme l'ancienne bande d'en-tête.
+    private var heroSubtitle: String {
+        let version = String(format: vm.L(L10n.Mods.versionPrefix), vm.displayVersion(for: mod))
+        if !mod.isGroup, !mod.author.isEmpty, mod.author != "Unknown" {
+            return "\(version) · \(mod.author)"
+        }
+        return version
+    }
+
+    private var heroPictureURL: URL? {
+        guard let extra = vm.modExtra(for: mod), !extra.pictureUrl.isEmpty else { return nil }
+        return URL(string: extra.pictureUrl)
+    }
+
+    /// Les trois exclus du strip : catégorie, liens Nexus, date
+    /// d'installation (celle du manifeste du composant pour un composant —
+    /// sa rangée de liste la montre, la fiche aussi). Un composant y mène
+    /// avec le retour au pack : sans lui, sa fiche est un cul-de-sac.
+    @ViewBuilder
+    private var fineBand: some View {
+        HStack(spacing: 16) {
+            if let pack = parentPack {
+                Button {
+                    vm.viewingModDetail = pack
+                } label: {
+                    Label(String(format: vm.L(L10n.Mods.backToPack), pack.name),
+                          systemImage: "chevron.backward")
+                        .font(AppDesign.Font.footnote)
+                }
+                .buttonStyle(.plain)
+                .pointingHandCursor()
+            }
+            categoryTag
+            let link = vm.nexusLink(for: mod)
+            if !link.isEmpty {
+                HStack(spacing: 16) {
+                    linkButton(icon: "link", label: vm.L(L10n.Mods.nexusOpenPage), url: link)
+                    linkButton(icon: "ladybug", label: vm.L(L10n.Mods.detailBugs), url: link + "?tab=bugs")
+                }
+            }
+            Spacer()
+            if let installed = vm.installedDate(for: mod) {
+                Text(installed.formatted(date: .abbreviated, time: .omitted))
+                    .font(AppDesign.Font.footnote)
+                    .foregroundStyle(.secondary)
+                    .accessibilityLabel(vm.L(L10n.Mods.detailInstalled))
+            }
+        }
         .padding(.horizontal, 24)
-        .padding(.vertical, 14)
+        .padding(.vertical, 10)
+        .frame(maxWidth: 700, alignment: .leading)
         .frame(maxWidth: .infinity)
-        .background(Color.accentColor.opacity(0.06))
         .overlay(alignment: .bottom) { Divider() }
+    }
+
+    /// Le pack dont `mod` est un composant, s'il en est un.
+    private var parentPack: ModItem? {
+        guard !isTopLevel else { return nil }
+        return vm.mods.first { pack in
+            pack.children?.contains { $0.folderName == mod.folderName } ?? false
+        }
+    }
+
+    /// Ce qui décide avant la prose : version, fraîcheur, poids, langues.
+    /// Rien ne dépend du réseau — les quatre se servent localement.
+    private var statStrip: some View {
+        StatStrip(items: [
+            .init(label: vm.L(L10n.ModInstall.labelVersion),
+                  value: vm.displayVersion(for: mod)),
+            .init(label: vm.L(L10n.Mods.detailUpdated), value: updatedLine),
+            .init(label: vm.L(L10n.Mods.detailSize),
+                  value: vm.sizeOnDisk(of: live).map(sizeText) ?? "—"),
+            .init(label: vm.L(L10n.Mods.detailLanguages),
+                  value: mod.languages.isEmpty
+                      ? "—"
+                      : mod.languages.map { $0.uppercased() }.joined(separator: " "),
+                  help: mod.languages.isEmpty ? nil : mod.languages.joined(separator: " ")),
+        ])
+        // Même cadrage que la bande au-dessus : la fiche tient en 700 pt,
+        // les colonnes ne s'étalent pas sur la fenêtre entière (Découvrir
+        // n'a pas le cas — sa feuille a largeur fixe).
+        .padding(.horizontal, 24)
+        .frame(maxWidth: 700, alignment: .leading)
+        .frame(maxWidth: .infinity)
+    }
+
+    /// Date courte + âge à partir d'un an révolu — le patron de l'ancienne
+    /// colonne, la règle vit en Core (`LastUpdateAge`).
+    private var updatedLine: String {
+        guard let updated = vm.nexusLastUpdated(for: mod) else { return "—" }
+        return [updated.formatted(date: .abbreviated, time: .omitted),
+                LastUpdateAge.ageText(for: updated)].compactMap { $0 }
+            .joined(separator: " · ")
     }
 
     /// Whether this mod is a top-level folder rather than one component of a
@@ -480,51 +535,6 @@ struct ModDetailView: View {
         }
     }
 
-    /// Metadata stacked vertically on the right of the header band (last update,
-    /// install date, languages) — one under another. Empty when nothing's known.
-    @ViewBuilder
-    private var metadataColumn: some View {
-        let updated = vm.nexusLastUpdated(for: mod)
-        let installed = vm.installedDate(for: mod)
-        let langs = mod.languages
-        // `live` et non `mod` : le poids est indexé sur le nom **physique** du
-        // dossier, qui porte un point quand le mod est en pause. La copie figée
-        // à l'ouverture de la fiche garde l'ancien `isEnabled` — mettre le mod
-        // en pause depuis cette fiche ferait alors chercher la mauvaise clé.
-        let size = vm.sizeOnDisk(of: live)
-        if updated != nil || installed != nil || !langs.isEmpty || size != nil {
-            VStack(alignment: .trailing, spacing: 8) {
-                if let size {
-                    metaLine(icon: "internaldrive",
-                             label: vm.L(L10n.Mods.detailSize),
-                             text: sizeText(size))
-                }
-                if let updated {
-                    // B2-T5 : l'âge rejoint la date à partir d'un an révolu —
-                    // la règle vit en Core (`LastUpdateAge`) avec ses tests,
-                    // la vue ne fait que composer. « · » : le patron du dépôt
-                    // pour deux valeurs sur une même ligne.
-                    metaLine(icon: "clock.arrow.circlepath",
-                             label: vm.L(L10n.Mods.detailUpdated),
-                             text: [updated.formatted(date: .abbreviated, time: .omitted),
-                                    LastUpdateAge.ageText(for: updated)].compactMap { $0 }
-                                 .joined(separator: " · "))
-                }
-                if let installed {
-                    metaLine(icon: "tray.and.arrow.down",
-                             label: vm.L(L10n.Mods.detailInstalled),
-                             text: installed.formatted(date: .abbreviated, time: .omitted))
-                }
-                if !langs.isEmpty {
-                    metaLine(icon: "globe",
-                             label: vm.L(L10n.Mods.detailLanguages),
-                             text: langs.map { $0.uppercased() }.joined(separator: " "))
-                }
-            }
-            .frame(maxWidth: 210, alignment: .trailing)
-        }
-    }
-
     /// « 3,84 Go », et pour un pack « 3,84 Go · Pack, 12 mods ».
     ///
     /// Un pack est **un** dossier de premier niveau qui en contient plusieurs :
@@ -540,17 +550,6 @@ struct ModDetailView: View {
         // niveau. « Pack, 1 mods » se lirait comme un défaut.
         guard count > 1 else { return formatted + " · " + vm.L(L10n.Mods.detailSizePackOne) }
         return formatted + " · " + String(format: vm.L(L10n.Mods.detailSizePack), count)
-    }
-
-    private func metaLine(icon: String, label: String, text: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 5) {
-            Image(systemName: icon).font(.system(size: 10)).foregroundStyle(.secondary)
-            VStack(alignment: .trailing, spacing: 1) {
-                Text(label).font(.system(size: 9)).foregroundStyle(.secondary.opacity(0.75))
-                Text(text).font(.system(size: 11, weight: .medium)).foregroundStyle(.secondary)
-                    .lineLimit(1).truncationMode(.tail)
-            }
-        }
     }
 
     private func linkButton(icon: String, label: String, url: String) -> some View {
