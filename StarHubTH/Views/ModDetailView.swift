@@ -238,6 +238,11 @@ struct ModDetailView: View {
                        imageURL: heroPictureURL) {
                 vm.viewingModDetail = nil
             }
+            // Overlay au call-site, pas dans HeroHeader : le composant est
+            // partagé avec Découvrir, qui n'a pas de pager.
+            .overlay(alignment: .topLeading) {
+                pagerControls.padding(AppDesign.Spacing.sm)
+            }
             fineBand
             statStrip
             if isTopLevel {
@@ -318,6 +323,45 @@ struct ModDetailView: View {
         return vm.mods.first { pack in
             pack.children?.contains { $0.folderName == mod.folderName } ?? false
         }
+    }
+
+    /// ‹ › sur le cadrage courant — filtres, tri et recherche respectés,
+    /// l'ordre complet, pas la tranche de page. Éteints quand le mod n'y
+    /// figure pas : composant de pack, mod exclu par le cadrage.
+    @ViewBuilder
+    private var pagerControls: some View {
+        let neighbors = ModDetailPager.neighbors(of: mod.folderName,
+                                                 in: vm.modList.displayOrder)
+        HStack(spacing: 4) {
+            chevron(icon: "chevron.left", target: neighbors.previous,
+                    help: vm.L(L10n.Mods.pagerPrevious))
+            chevron(icon: "chevron.right", target: neighbors.next,
+                    help: vm.L(L10n.Mods.pagerNext))
+        }
+    }
+
+    private func chevron(icon: String, target: String?, help: String) -> some View {
+        Group {
+            if let target, let destination = vm.mods.first(where: { $0.folderName == target }) {
+                Button {
+                    vm.viewingModDetail = destination
+                } label: {
+                    Image(systemName: icon)
+                        // Même taille que la croix du hero (HeroHeader.swift).
+                        .font(.system(size: AppDesign.Icon.sm))
+                        .foregroundStyle(.white.opacity(AppDesign.Opacity.secondary))
+                }
+                .buttonStyle(.plain)
+                .help(help)
+            } else {
+                Image(systemName: icon)
+                    .font(.system(size: AppDesign.Icon.sm))
+                    .foregroundStyle(.white.opacity(0.25))
+                    .help(vm.L(L10n.Mods.pagerUnavailable))
+            }
+        }
+        .frame(width: 18, height: 18)   // cible de survol vivante
+        .contentShape(.rect)
     }
 
     /// Ce qui décide avant la prose : version, fraîcheur, poids, langues.
@@ -445,19 +489,29 @@ struct ModDetailView: View {
                     .font(.headline)
                 VStack(spacing: 6) {
                     ForEach(children) { child in
-                        HStack(spacing: 10) {
-                            Circle()
-                                .fill(child.isEnabled ? Color.green : Color.secondary.opacity(0.35))
-                                .frame(width: 7, height: 7)
-                            Text(child.name).font(.system(size: 13))
-                            Spacer()
-                            if !child.version.isEmpty, child.version != "Unknown" {
-                                Text("v\(child.version)")
-                                    .font(.system(size: 11, design: .monospaced))
-                                    .foregroundStyle(.secondary)
+                        // Chaque composant ouvre sa fiche : la liste muette
+                        // faisait de la fiche du pack un couloir sans portes.
+                        Button {
+                            vm.viewingModDetail = child
+                        } label: {
+                            HStack(spacing: 10) {
+                                Circle()
+                                    .fill(child.isEnabled ? Color.green : Color.secondary.opacity(0.35))
+                                    .frame(width: 7, height: 7)
+                                Text(child.name).font(.system(size: 13))
+                                Spacer()
+                                if !child.version.isEmpty, child.version != "Unknown" {
+                                    Text("v\(child.version)")
+                                        .font(.system(size: 11, design: .monospaced))
+                                        .foregroundStyle(.secondary)
+                                }
                             }
+                            .padding(.vertical, 3)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(.rect)
                         }
-                        .padding(.vertical, 3)
+                        .buttonStyle(.plain)
+                        .pointingHandCursor()
                     }
                 }
                 .padding(12)
