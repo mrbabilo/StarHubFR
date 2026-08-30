@@ -388,6 +388,18 @@ struct ModListView: View {
         return (filtered.count, enabled, disabled, issues)
     }
 
+    /// Le titre de la section courante — les quatre scopes ne diffèrent que
+    /// par lui. La liste et la grille le partagent : le scope actif se lit
+    /// de la même façon dans les deux denses (P2).
+    private var scopeSectionTitle: String {
+        switch filters.scope {
+        case .all: return vm.L(L10n.Mods.filterAll)
+        case .enabled: return vm.L(L10n.Mods.enabled)
+        case .disabled: return vm.L(L10n.Mods.disabled)
+        case .issues: return vm.L(L10n.Mods.filterIssues)
+        }
+    }
+
     var body: some View {
         // Compute the expensive derived data once per render instead of
         // re-evaluating the search/category/sort pass (and everything
@@ -582,15 +594,40 @@ struct ModListView: View {
                         // Render the current page only. Une seule section sous
                         // « Tous » : la couper en Activés / En pause imposait un
                         // ordre que le tri choisi n'avait pas demandé.
-                        switch filters.scope {
-                        case .all:
-                            ModSectionGroup(title: vm.L(L10n.Mods.filterAll), mods: paged, vm: vm)
-                        case .enabled:
-                            ModSectionGroup(title: vm.L(L10n.Mods.enabled), mods: paged, vm: vm)
-                        case .disabled:
-                            ModSectionGroup(title: vm.L(L10n.Mods.disabled), mods: paged, vm: vm)
-                        case .issues:
-                            ModSectionGroup(title: vm.L(L10n.Mods.filterIssues), mods: paged, vm: vm)
+                        switch listLayout {
+                        case .list:
+                            ModSectionGroup(title: scopeSectionTitle, mods: paged, vm: vm)
+                        case .grid:
+                            // Même section, même titre, même page que la liste
+                            // (P2 : le compte honnête ne change pas avec la
+                            // densité) — seule la manière de rendre change.
+                            // L'expansion des packs n'existe pas ici : une
+                            // carte par pack, ses composants s'ouvrent depuis
+                            // la fiche (voir « Ce que ce plan ne fait pas »).
+                            StandardSection(title: scopeSectionTitle) {
+                                LazyVGrid(columns: [GridItem(.adaptive(minimum: AppDesign.Grid.minCardWidth),
+                                                            spacing: AppDesign.Grid.gutter)],
+                                          spacing: AppDesign.Grid.gutter) {
+                                    ForEach(paged) { mod in
+                                        let values = ModGridCardValues.card(
+                                            mod: mod,
+                                            versionPrefix: vm.L(L10n.Mods.versionPrefix))
+                                        ModCard(title: values.title,
+                                                subtitle: values.subtitle,
+                                                thumbnailURL: values.thumbnailURL,
+                                                installedLabel: values.installedLabel,
+                                                // Un mod installé n'a pas de
+                                                // catégorie Nexus servie — nil
+                                                // par design, pas par oubli
+                                                // (voir l'adaptateur).
+                                                category: nil,
+                                                neutralBadge: values.neutralBadge,
+                                                endorsements: values.endorsements,
+                                                L: vm.L,
+                                                action: { vm.viewingModDetail = mod })
+                                    }
+                                }
+                            }
                         }
                     }
                 }
