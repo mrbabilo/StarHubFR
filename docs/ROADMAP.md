@@ -2114,6 +2114,16 @@ par lot, une release par lot. Périmètre : visuel + navigation —
 > carte dit désormais l'état, la catégorie et « FR »), glyph de bascule
 > illisible, pastilles de filtre trop bavardes.
 >
+> Trois lots de polish ont suivi (`96ba974`→`0711fda`, poussés) : les six
+> retours d'écran pris ce jour-là (vignette par défaut quand Nexus n'a rien
+> servi, infobulle du problème, badge de profil, alignement pack/composant,
+> icônes des menus de filtre, facettes comptées sur le cadrage affiché —
+> « Tous », « Activés », « En pause », « Problèmes »), la date d'installation
+> qu'un pack montre enfin, puis les attributs — anomalie, note, config de
+> profil — qui quittent le flanc du nom pour fermer la bande de métadonnées
+> en colonnes tenues, l'anomalie et la note s'ouvrant aussi au clic en
+> popover, et la carte de grille portant les mêmes attributs que la rangée.
+>
 > **Reste H-T4b** — la fiche (`HeroHeader` + `StatStrip`, action praticable
 > proéminente), décidée au cadrage du 2026-08-30 comme lot séparé : la case
 > ci-dessus ne se coche qu'avec elle.
