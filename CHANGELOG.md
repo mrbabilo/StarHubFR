@@ -15,6 +15,7 @@ where the exact log format was verified.
 ### Added
 - **La ligne de conflit dit quels patches se disputent l'asset** quand Content Patcher les a journalisés juste après l'erreur (« Affected patches : Pack > Patch »). La ligne s'abstient si le journal a jeté ces `TRACE`.
 - **Un mode grille rejoint la liste des mods** : cartes au motif de Découvrir, une par pack ou par mod, ouverture de la fiche au clic. Chaque carte porte la capture Nexus déjà en cache, sa catégorie, et dit d'un coup d'œil si le mod est actif ou en pause. Un pack à plat n'emprunte pas l'image de son premier composant. Le choix liste dense / grille se retient d'une session à l'autre.
+- **La fiche d'un mod se refait sur le motif de Découvrir** : bandeau image pleine largeur, bande de chiffres — version, fraîcheur, poids, langues — et l'action qui importe, activer ou mettre en pause, en seul bouton proéminant. L'état du mod (compatibilité, traduction, erreurs, raccourcis, conflits) gagne son onglet « État » ; les chevrons parcourent le cadrage courant sans retourner à la liste, et la fiche d'un composant de pack rouvre celle de son pack.
 
 ### Changed
 - **La liste des mods parle le langage de l'app.** La recherche vit dans la toolbar, au motif des journaux, et les couleurs et tailles de la rangée passent aux tokens du système de design — un mod en pause se lit désormais d'un glyph, jamais de la couleur seule.
