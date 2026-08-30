@@ -199,7 +199,8 @@ struct ModDetailView: View {
         Picker("", selection: $selectedTab) {
             Text(vm.L(L10n.Mods.detailDescription)).tag(DetailTab.description)
             Text(vm.L(L10n.Mods.detailChangelog)).tag(DetailTab.changelog)
-            Text(vm.L(L10n.Profiles.dependencies)).tag(DetailTab.dependencies)
+            Text("\(vm.L(L10n.Profiles.dependencies)) (\(dependencyCount))")
+                .tag(DetailTab.dependencies)
             // L'état du mod — compatibilité, traduction, erreurs, raccourcis,
             // conflits — se lit groupé dans son onglet, pas empilé au-dessus
             // de la prose.
@@ -368,6 +369,13 @@ struct ModDetailView: View {
     /// contredisait le disque.
     private var live: ModItem {
         vm.mods.first { $0.folderName == mod.folderName } ?? mod
+    }
+
+    /// Les racines de l'arbre des dépendances rendu par l'onglet — fusionnées
+    /// pour un pack. Jamais `mod.dependencies.count` : vide pour un en-tête
+    /// de pack alors que l'onglet liste. Calculé une fois par rendu.
+    private var dependencyCount: Int {
+        vm.dependencyTree(for: mod).count
     }
 
     /// The mod's category as a colored chip — the Nexus category when known,
@@ -1208,18 +1216,27 @@ struct ModDetailView: View {
         case .changelog:
             blocksView(isChangelog: true)
         case .state:
-            // Rendu provisoire — les sept sections y déménagent en T7.
-            Text(vm.L(L10n.Mods.tabState))
-        case .description:
-            // Description tab: pack contents (for a pack) + the category /
-            // Nexus-id editors + the rendered description.
+            // L'état du mod se lit groupé : ce qui dit si le mod va bien,
+            // pas ce que l'auteur en raconte. Les sections déménagent
+            // telles quelles — leurs gates et conditions internes suivent.
             VStack(alignment: .leading, spacing: 16) {
-                if mod.isGroup { packContentsSection }
-                settingsSection
+                CompatibilityBanner(vm: vm, mod: live)
+                // Le hub de traduction — chercher, poser, mettre à jour,
+                // retirer — reste réservé au premier niveau : c'est ici,
+                // sur la fiche du mod concerné, qu'il a sens.
+                if isTopLevel { TranslationSection(vm: vm, mod: live) }
                 translationSection
+                if isTopLevel { SupplementSection(vm: vm, mod: live) }
                 errorHistorySection
                 keybindConflictsSection
                 declaredConflictsSection
+            }
+        case .description:
+            // Description tab: pack contents (for a pack) + the settings
+            // (which holds the Nexus-id editor) + the rendered description.
+            VStack(alignment: .leading, spacing: 16) {
+                if mod.isGroup { packContentsSection }
+                settingsSection
                 blocksView(isChangelog: false)
             }
         }
