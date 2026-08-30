@@ -451,8 +451,10 @@ struct ModListView: View {
             attributes.append(CardAttribute(id: "note", systemImage: "note.text", help: note))
         }
         if vm.isProfileConfigManaged(mod) {
+            // Même glyphe que la rangée (voir `profileConfigSlot`) : des
+            // curseurs à 10 pt s'y lisaient comme une note.
             attributes.append(CardAttribute(id: "profileConfig",
-                                            systemImage: "slider.horizontal.3",
+                                            systemImage: "gearshape",
                                             help: vm.L(L10n.Mods.profileConfigBadge)))
         }
         return attributes
@@ -1645,11 +1647,17 @@ struct ModListRow: View {
 
     /// Le mod garde un `config.json` par profil. Elle suit ses deux voisines
     /// dans la bande : restée près du nom, elle y serait seule de son espèce.
+    ///
+    /// L'engrenage, pas des curseurs : `slider.horizontal.3` à 10 pt se lit
+    /// comme des lignes de texte — à côté de la note, un utilisateur y a vu
+    /// une note vide et a cliqué. L'engrenage est le glyphe « config » de
+    /// l'app (le bouton d'édition de la rangée en porte un), et un état sans
+    /// geste n'usurpe pas l'allure d'un bouton.
     @ViewBuilder
     private var profileConfigSlot: some View {
         Group {
             if vm.isProfileConfigManaged(mod) {
-                Image(systemName: "slider.horizontal.3")
+                Image(systemName: "gearshape")
                     .font(AppDesign.Font.iconXS)
                     .foregroundStyle(.secondary)
                     .frame(width: 18, height: 18)
