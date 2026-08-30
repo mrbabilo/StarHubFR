@@ -494,6 +494,10 @@ enum L10n {
         static let searchNexusByAuthor      = "mods_search_nexus_by_author"
         static let viewOnNexus          = "mods_view_on_nexus"
         static let viewDetailsOnNexus   = "mods_view_details_on_nexus"
+        /// La bascule liste/grille du lot Mods (H-T4) — help et a11y du
+        /// Picker segmenté.
+        static let layoutList = "mods_layout_list"
+        static let layoutGrid = "mods_layout_grid"
         // Pagination
         static let pagePrevious         = "mods_page_previous"
         static let pageNext             = "mods_page_next"

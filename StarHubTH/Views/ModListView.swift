@@ -71,6 +71,12 @@ struct ModListView: View {
     /// even with several hundred installed mods.
     private let pageSize: Int = 15
     @State private var showInstallSheet = false
+    /// La grille optionnelle du lot Mods (H-T4). Liste par défaut : 966 mods
+    /// se parcourent en rangées denses. `@AppStorage` suit le patron de
+    /// `discoveryHideInstalled` (`DiscoverView.swift:15`) — c'est une
+    /// habitude de parcours, pas un état de session.
+    enum ModsListLayout: String { case list, grid }
+    @AppStorage("modsListLayout") private var listLayout: ModsListLayout = .list
     /// Drives the confirmation dialog when the user picks "Enable All" or
     /// "Disable All" from the bulk-actions menu. `true` = enabling, `false`
     /// = disabling — kept as a single optional so the dialog binds cleanly.
@@ -420,7 +426,56 @@ struct ModListView: View {
                     .labelsHidden()
                     .frame(maxWidth: 480)
 
+                    // La recherche vit ici, au motif des journaux
+                    // (`LogsView.swift:182`) — la barre système `.searchable`
+                    // disparaît : un geste, une place (P3). Filtrage à la
+                    // frappe, comme `.searchable` le donnait ; le motif
+                    // Découvrir est submit-only et l'aurait régressé.
+                    HStack(spacing: 4) {
+                        Image(systemName: "magnifyingglass")
+                            .font(AppDesign.Font.iconXS)
+                            .foregroundColor(.secondary)
+                        TextField(vm.L(L10n.Mods.searchMods),
+                                  text: $listState.filters.search)
+                            .textFieldStyle(.plain)
+                        if !listState.filters.search.isEmpty {
+                            Button {
+                                listState.filters.search = ""
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                            }
+                            .buttonStyle(.plain)
+                            // Cible 18×18 + contentShape : un glyphe nu de
+                            // ~12 pt rend `.help` muet (contrainte a11y du
+                            // lot ; patron `ModListView` ligne ~1500).
+                            .frame(width: 18, height: 18)
+                            .contentShape(.rect)
+                            .help(vm.L(L10n.Discovery.clearSearch))
+                        }
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 4)
+                    .background(Color.primary.opacity(AppDesign.Opacity.light))
+                    .cornerRadius(6)
+                    .frame(maxWidth: 220)
+
                     Spacer()
+
+                    // La grille optionnelle (H-T4) : liste dense par défaut,
+                    // cartes au-dessus. Choix persisté — c'est une habitude
+                    // de parcours, pas un état de session.
+                    Picker(vm.L(L10n.Mods.layoutList), selection: $listLayout) {
+                        Image(systemName: "square.split.bottomleftquarter")
+                            .tag(ModsListLayout.list)
+                        Image(systemName: "square.grid.2x2")
+                            .tag(ModsListLayout.grid)
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .frame(width: 64)
+                    .help(listLayout == .list
+                          ? vm.L(L10n.Mods.layoutList)
+                          : vm.L(L10n.Mods.layoutGrid))
 
                     // Bulk enable/disable all mods at once. Disabled when
                     // there is nothing to act on (empty list, or every mod
@@ -560,7 +615,6 @@ struct ModListView: View {
                 bulkToggleOverlay(done: prog.done, total: prog.total)
             }
         }
-        .searchable(text: $listState.filters.search, prompt: Text(vm.L(L10n.Mods.searchMods)))
         // Les cinq `.onChange` par critère sont partis dans `ModListFilters` :
         // la règle y est portée par le type, donc un filtre ajouté plus tard ne
         // peut plus oublier sa remise à la page 1. Reste celui-ci, qui ne

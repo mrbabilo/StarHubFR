@@ -569,6 +569,8 @@
 "mods_config_filter_label" = "With Config";
 "mods_translation_filter_label" = "Translation";
 "mods_fr_translation_filter_label" = "FR Translation";
+"mods_layout_list" = "List";
+"mods_layout_grid" = "Grid";
 "mods_fr_translation_available" = "FR available";
 "mods_fr_coverage_percent" = "FR %d%%";
 "mods_fr_translation_missing" = "To translate";
