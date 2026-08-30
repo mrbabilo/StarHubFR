@@ -68,12 +68,6 @@ struct ModDetailView: View {
     /// Nexus mod id). `.idle` hides the status row; `.loading` shows a spinner.
     @State private var fetchStatus: FetchStatus = .idle
 
-    /// Position optimiste de l'interrupteur pendant que le dossier est renommé,
-    /// `nil` dès que `vm.mods` a rattrapé — même mécanique que la liste.
-    @State private var localIsOn: Bool? = nil
-    /// Debounce du toggle : annule un toggle en attente si l'utilisateur
-    /// rebascule avant le délai (sinon le 1er clic d'un double-clic gagnait).
-    @State private var pendingToggle: DispatchWorkItem? = nil
     @State private var showDeleteConfirm = false
 
     /// Une traduction française retrouvée dans une sauvegarde, pour un mod qui
@@ -156,6 +150,26 @@ struct ModDetailView: View {
         .conflictActivationGate(vm: vm, pending: $pendingConflict) { target in
             vm.toggleMod(target)
         }
+        // La confirmation de suppression vivait dans l'ancienne rangée
+        // d'actions ; le geste est dans la barre, la porte reste ici.
+        .confirmationDialog(
+            String(format: vm.L(L10n.Mods.deleteConfirmTitle), mod.name),
+            isPresented: $showDeleteConfirm,
+            titleVisibility: .visible
+        ) {
+            Button(vm.L(L10n.Mods.deleteMod), role: .destructive) {
+                vm.deleteMod(mod)
+                // Refermer la fiche : le mod qu'elle décrit n'existe plus.
+                // La laisser ouverte afficherait une version, des
+                // dépendances et une description d'un dossier supprimé.
+                vm.viewingModDetail = nil
+            }
+            Button(vm.L(L10n.Saves.cancel), role: .cancel) { }
+        } message: {
+            Text(mod.isGroup
+                 ? vm.L(L10n.Mods.deleteConfirmPack)
+                 : vm.L(L10n.Mods.deleteConfirmMessage))
+        }
         .sheet(isPresented: $showReportConflict) {
             reportConflictSheet
         }
@@ -225,13 +239,18 @@ struct ModDetailView: View {
             }
             fineBand
             statStrip
-            // Provisoire (T6) : la barre d'actions extraite prendra cette
-            // place ; l'ancienne rangée reste montée entre-temps pour que
-            // chaque commit du lot garde une fiche opérable.
             if isTopLevel {
-                actionRow
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 10)
+                ModDetailActionBar(
+                    vm: vm,
+                    mod: mod,
+                    pendingActivation: $pendingActivation,
+                    pendingConflict: $pendingConflict,
+                    onReportConflict: {
+                        reportConflictTargetFolder = nil
+                        reportConflictNote = ""
+                        showReportConflict = true
+                    },
+                    onDelete: { showDeleteConfirm = true })
             }
         }
     }
@@ -349,165 +368,6 @@ struct ModDetailView: View {
     /// contredisait le disque.
     private var live: ModItem {
         vm.mods.first { $0.folderName == mod.folderName } ?? mod
-    }
-
-    /// Mettre en pause et supprimer, depuis la fiche. Jusqu'ici il fallait
-    /// revenir à la liste pour les deux — alors que la fiche est justement
-    /// l'écran où l'on décide du sort d'un mod, après avoir lu sa description,
-    /// ses dépendances et son historique d'erreurs.
-    ///
-    /// Absent pour un composant de pack, comme dans la liste : c'est l'en-tête
-    /// du pack qui porte ces actions pour tous ses composants, et mettre en
-    /// pause un seul composant n'a pas de sens — SMAPI écarterait les autres.
-    @ViewBuilder
-    private var actionRow: some View {
-        if isTopLevel {
-            HStack(spacing: 12) {
-                // La place du témoin est réservée en permanence : le faire
-                // apparaître et disparaître décalait tout le reste de la rangée
-                // à chaque bascule, et l'interrupteur semblait sauter.
-                ProgressView()
-                    .controlSize(.small)
-                    .frame(width: 14, height: 14)
-                    .opacity(vm.pendingToggleFolder == mod.folderName ? 1 : 0)
-                Toggle(vm.L(L10n.Mods.detailEnabled), isOn: Binding(
-                    get: { localIsOn ?? live.isEnabled },
-                    set: { newValue in
-                        // Même temporisation optimiste que la liste : la valeur
-                        // locale tient jusqu'à ce que la complétion confirme
-                        // que `vm.mods` a rattrapé, sinon l'interrupteur revient
-                        // visiblement en arrière le temps du rescan.
-                        localIsOn = newValue
-                        // Annule un toggle en attente : sans cela, un double-clic
-                        // laissait deux timers tirer et le 1er clic gagnait.
-                        pendingToggle?.cancel()
-                        let work = DispatchWorkItem {
-                            if newValue != live.isEnabled {
-                                // Activer un mod signalé cassé demande une
-                                // confirmation ; le mettre en pause, jamais.
-                                if vm.activationWarning(for: live) != nil {
-                                    localIsOn = nil
-                                    pendingActivation = live
-                                } else if let other = vm.conflictWarning(for: live) {
-                                    // Même porte, source différente : un
-                                    // conflit déclaré ou observé dans le
-                                    // journal avec un mod déjà actif (tâche 9).
-                                    localIsOn = nil
-                                    pendingConflict = ConflictActivation(mod: live, other: other)
-                                } else {
-                                    vm.toggleMod(live) { localIsOn = nil }
-                                }
-                            } else {
-                                localIsOn = nil
-                            }
-                        }
-                        pendingToggle = work
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: work)
-                    }
-                ))
-                .toggleStyle(SwitchToggleStyle(tint: Color(red: 0.20, green: 0.65, blue: 0.35)))
-                .controlSize(.small)
-                // Annuler un toggle en attente quand la vue disparaît : sinon le
-                // timer (debounce 300 ms) tirait pour un mod désaffiché.
-                .onDisappear { pendingToggle?.cancel() }
-                .accessibilityLabel(String(format: vm.L(L10n.Mods.toggleA11yLabel), mod.name))
-                .accessibilityHint(vm.L(L10n.Mods.toggleA11yHint))
-
-                // Le favori, à côté de la bascule : même geste de tri du parc,
-                // et la fiche est l'écran où l'on décide du sort d'un mod.
-                // `live` et non `mod` — la clé est le `folderName` logique, que
-                // la bascule ne change pas, mais lire l'état courant garde la
-                // fiche d'accord avec la liste après un aller-retour.
-                Button {
-                    vm.toggleFavorite(live)
-                } label: {
-                    Label(vm.L(vm.isFavorite(live) ? L10n.Mods.favoriteRemove : L10n.Mods.favoriteAdd),
-                          systemImage: vm.isFavorite(live) ? "star.fill" : "star")
-                        .font(.system(size: 12))
-                }
-                .buttonStyle(.borderless)
-                .foregroundColor(vm.isFavorite(live) ? .yellow : .secondary)
-                .pointingHandCursor()
-
-                // La config du mod, entre le favori et la suppression : la
-                // fiche est l'écran où l'on décide du sort d'un mod, ses
-                // réglages en font partie — jusqu'ici il fallait repasser
-                // par la liste pour l'engrenage. Même prédicat que la liste
-                // (`!isGroup && hasConfigFile`) : un en-tête de pack n'a pas
-                // de config à lui. `live`, pas `mod` : l'éditeur construit
-                // ses chemins depuis `physicalFolderName`, que la mise en
-                // pause renomme — la copie figée viserait un dossier qui
-                // n'existe plus.
-                if !live.isGroup && live.hasConfigFile {
-                    Button {
-                        vm.editingModConfig = live
-                    } label: {
-                        Label(vm.L(L10n.Settings.configModSettings),
-                              systemImage: "gearshape")
-                            .font(.system(size: 12))
-                    }
-                    .buttonStyle(.borderless)
-                    .foregroundColor(.secondary)
-                    .pointingHandCursor()
-                }
-
-                // « Signaler une incompatibilité… » (tâche 9) : ouvre le
-                // sélecteur parmi les mods installés. Réservé aux mods de
-                // premier niveau, comme les autres actions de cette rangée —
-                // un composant de pack ne se signale pas seul, c'est le pack
-                // entier qui est en cause.
-                Button {
-                    reportConflictTargetFolder = nil
-                    reportConflictNote = ""
-                    showReportConflict = true
-                } label: {
-                    // `exclamationmark.triangle`, sans `.fill` : déjà utilisé
-                    // (non filled) ailleurs dans ce dépôt — un nom de
-                    // symbole erroné compile sans avertissement et se rend
-                    // comme un rectangle vide, indétectable au build (voir
-                    // la mise en garde de la tâche 8 sur `arrow.triangle.merge`).
-                    Label(vm.L(L10n.Conflicts.reportButton), systemImage: "exclamationmark.triangle")
-                        .font(.system(size: 12))
-                }
-                .buttonStyle(.borderless)
-                .foregroundColor(.secondary)
-                .pointingHandCursor()
-
-                // Pas de pendant au spinner de suppression de la liste : la
-                // fiche se referme dès la confirmation, personne ne le verrait.
-                // La garde sur une suppression déjà en vol, elle, reste utile.
-                Button(role: .destructive) {
-                    showDeleteConfirm = true
-                } label: {
-                    Label(vm.L(L10n.Mods.deleteMod), systemImage: "trash")
-                        .font(.system(size: 12))
-                }
-                .buttonStyle(.borderless)
-                .foregroundColor(.red)
-                .disabled(vm.pendingDeleteFolder != nil)
-                .accessibilityHint(vm.L(L10n.Mods.deleteModA11yHint))
-                .pointingHandCursor()
-            }
-            .padding(.top, 2)
-            .confirmationDialog(
-                String(format: vm.L(L10n.Mods.deleteConfirmTitle), mod.name),
-                isPresented: $showDeleteConfirm,
-                titleVisibility: .visible
-            ) {
-                Button(vm.L(L10n.Mods.deleteMod), role: .destructive) {
-                    vm.deleteMod(mod)
-                    // Refermer la fiche : le mod qu'elle décrit n'existe plus.
-                    // La laisser ouverte afficherait une version, des
-                    // dépendances et une description d'un dossier supprimé.
-                    vm.viewingModDetail = nil
-                }
-                Button(vm.L(L10n.Saves.cancel), role: .cancel) { }
-            } message: {
-                Text(mod.isGroup
-                     ? vm.L(L10n.Mods.deleteConfirmPack)
-                     : vm.L(L10n.Mods.deleteConfirmMessage))
-            }
-        }
     }
 
     /// The mod's category as a colored chip — the Nexus category when known,

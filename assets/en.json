@@ -884,7 +884,6 @@
   "mods_open_details": "View details",
   "mods_open_details_hint": "Opens the detailed mod sheet",
   "mods_row_a11y_label": "%@, %@, %@",
-  "mods_detail_enabled": "Enabled",
   "mods_toggle_a11y_label": "Mod %@",
   "mods_toggle_a11y_hint": "Turn this mod on or off",
   "mods_open_folder_a11y_hint": "Opens this mod's folder in Finder",
