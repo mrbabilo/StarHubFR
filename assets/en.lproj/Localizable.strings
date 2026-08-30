@@ -69,6 +69,7 @@
 "conflicts_orphans" = "%lld report(s) point to mods no longer installed";
 "conflicts_both_active" = "Both are active";
 "conflicts_all_active" = "All are enabled";
+"conflicts_affected_patches" = "Affected patches: %@";
 "conflicts_report_button" = "Report an incompatibility…";
 "conflicts_dismiss_button" = "Dismiss";
 "conflicts_pick_mod" = "With which mod?";
