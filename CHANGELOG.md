@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.29.0] - 2026-08-30
+
 ### Added
 - **La ligne de conflit dit quels patches se disputent l'asset** quand Content Patcher les a journalisés juste après l'erreur (« Affected patches : Pack > Patch »). La ligne s'abstient si le journal a jeté ces `TRACE`.
 - **Un mode grille rejoint la liste des mods** : cartes au motif de Découvrir, une par pack ou par mod, ouverture de la fiche au clic. Chaque carte porte la capture Nexus déjà en cache, sa catégorie, et dit d'un coup d'œil si le mod est actif ou en pause. Un pack à plat n'emprunte pas l'image de son premier composant. Le choix liste dense / grille se retient d'une session à l'autre.
