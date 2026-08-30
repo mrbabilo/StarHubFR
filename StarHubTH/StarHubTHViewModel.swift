@@ -4907,12 +4907,7 @@ class StarHubTHViewModel: ObservableObject {
 
     /// The mod's install date (its `manifest.json` mtime). For a pack, the most
     /// recent child's date (packs have no manifest of their own).
-    func installedDate(for mod: ModItem) -> Date? {
-        if mod.isGroup, let children = mod.children {
-            return children.compactMap { $0.installedFileDate }.max()
-        }
-        return mod.installedFileDate
-    }
+    func installedDate(for mod: ModItem) -> Date? { mod.effectiveInstallDate }
 
     /// Sets a user-defined Nexus mod id for a mod (generates its link and lets
     /// it participate in update checks). Pass `nil`/empty to clear the override

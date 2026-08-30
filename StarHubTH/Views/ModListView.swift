@@ -243,8 +243,8 @@ struct ModListView: View {
                         return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
                     }
                 case .installDate:
-                    let lhsDate = effectiveInstallDate(for: lhs)
-                    let rhsDate = effectiveInstallDate(for: rhs)
+                    let lhsDate = lhs.effectiveInstallDate
+                    let rhsDate = rhs.effectiveInstallDate
                     switch (lhsDate, rhsDate) {
                     case (let l?, let r?):
                         return l > r
@@ -288,15 +288,6 @@ struct ModListView: View {
 
     func activeMods(from filtered: [ModItem]) -> [ModItem] { filtered.filter { $0.isEnabled } }
     func inactiveMods(from filtered: [ModItem]) -> [ModItem] { filtered.filter { !$0.isEnabled } }
-
-    /// Returns the mod's own `installedFileDate`, or — for a pack header
-    /// whose own date is nil — the most recent child's date. Used by the
-    /// `.installDate` sort so packs sort by their newest member.
-    private func effectiveInstallDate(for mod: ModItem) -> Date? {
-        if let date = mod.installedFileDate { return date }
-        guard mod.isGroup, let children = mod.children, !children.isEmpty else { return nil }
-        return children.compactMap { $0.installedFileDate }.max()
-    }
 
     /// Enabled mods (or packs containing an enabled child) with at least one
     /// problematic required dependency — either completely missing or
@@ -1537,7 +1528,11 @@ struct ModListRow: View {
     /// champs n'ont plus lieu d'être : des colonnes n'ont pas de séparateurs.
     private var rowMetadataLine: AnyView? {
         let updated = vm.nexusLastUpdated(for: mod)
-        let installed = mod.installedFileDate
+        // La date **effective** : un en-tête de pack n'a pas de
+        // `manifest.json`, donc pas de date propre — il hérite de la plus
+        // récente de ses composants (`ModItem.effectiveInstallDate`). Lue
+        // brute, la colonne restait vide sur toutes les lignes de pack.
+        let installed = mod.effectiveInstallDate
         let langs = mod.languages
         // `mod` vient de `vm.mods`, donc de la même analyse que la mesure : sa
         // clé physique désigne le dossier tel qu'il était sur le disque quand

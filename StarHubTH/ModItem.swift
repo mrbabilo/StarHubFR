@@ -33,6 +33,20 @@ public struct ModItem: Identifiable, Equatable, Sendable {
     /// c'est le pack « Always Raining in the Valley » qui a une page.
     public var isPackComponent: Bool { folderName.contains("/") }
 
+    /// La date d'installation à **montrer et à trier** : la sienne, ou — pour
+    /// un en-tête de pack, fabriqué sans date propre — la plus récente de ses
+    /// composants.
+    ///
+    /// La règle vivait en deux exemplaires (le tri de `ModListView`, le
+    /// ViewModel) et la rangée n'en utilisait aucun : elle lisait
+    /// `installedFileDate` brut, si bien qu'un pack laissait son créneau de
+    /// date vide au milieu de voisins qui en montraient une.
+    public var effectiveInstallDate: Date? {
+        if let installedFileDate { return installedFileDate }
+        guard isGroup, let children, !children.isEmpty else { return nil }
+        return children.compactMap { $0.installedFileDate }.max()
+    }
+
     public let version: String
     public let author: String
     public let description: String
