@@ -492,6 +492,9 @@ struct ModListView: View {
         let pages = totalPages(for: display)
         let page = effectivePage(totalPages: pages)
         let paged = pageMods(from: display, page: page)
+        // L'instantané que le pager de la fiche lira (H-T4b) : le cadrage
+        // ordonné **complet**, pas la tranche de page courante.
+        let displayIds = display.map(\.folderName)
         VStack(spacing: 0) {
 
             // ── Sticky header ────────────────────────────────────────────
@@ -775,6 +778,11 @@ struct ModListView: View {
         // so it's read on appear as well as while already on screen.
         .onAppear { consumePendingModFocus() }
         .onChange(of: vm.pendingModFocus) { _, _ in consumePendingModFocus() }
+        // Publier l'instantané du cadrage au patrimoine commun : la fiche
+        // (qui s'exclut de la liste dans MainView) y lira l'ordre de son
+        // pager. Non publié sur ModListState — voir là-bas le pourquoi.
+        .onAppear { vm.modList.displayOrder = displayIds }
+        .onChange(of: displayIds) { _, order in vm.modList.displayOrder = order }
         .sheet(isPresented: $showInstallSheet) {
             ModInstallView(vm: vm, isPresented: $showInstallSheet)
         }

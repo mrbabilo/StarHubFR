@@ -14,6 +14,17 @@ import Combine
 /// Même motif que `vm.bisection`, pour la même raison.
 final class ModListState: ObservableObject {
     @Published var filters = ModListFilters()
+
+    /// Le cadrage ordonné courant (noms de dossier, premier niveau), tel que
+    /// la liste vient de le rendre — liste **et** grille partagent ce flux.
+    ///
+    /// Volontairement **non publié** : la fiche et la liste s'excluent dans
+    /// `MainView`, le cadrage ne peut pas bouger sous une fiche ouverte (et
+    /// supprimer un mod ferme sa fiche). La fiche le lit à l'ouverture ; un
+    /// `@Published` de plus ici redessinerait pour rien — et sur le
+    /// ViewModel, il rouvrirait la régression de frappe que ce type a
+    /// fermée (le pager de fiche s'en sert, H-T4b).
+    var displayOrder: [String] = []
 }
 
 /// Le cadrage courant de la liste des mods : ce qu'on cherche, ce qu'on filtre,
