@@ -11,19 +11,22 @@ struct ModGridCardValuesTests {
     private func mod(name: String = "Space Core",
                      author: String = "Lita",
                      version: String = "1.4.2",
-                     languages: [String] = ["en"]) -> ModItem {
+                     languages: [String] = ["en"],
+                     isEnabled: Bool = true,
+                     nexusModId: String = "") -> ModItem {
         ModItem(uniqueId: "id.\(name)", name: name, folderName: name,
                 version: version, author: author, description: "",
-                nexusUrl: "", nexusModId: "", isEnabled: true, dependencies: [],
-                languages: languages)
+                nexusUrl: "", nexusModId: nexusModId, isEnabled: isEnabled,
+                dependencies: [], languages: languages)
     }
 
     /// Un pack : `version: ""`, `author: "Group"` (ViewModel:2738) — la
     /// carte doit agréger depuis les enfants, jamais montrer « v · Group ».
-    private func pack(children: [ModItem]) -> ModItem {
+    private func pack(children: [ModItem], isEnabled: Bool = true) -> ModItem {
         ModItem(uniqueId: "id.pack", name: "Mon Pack", folderName: "Mon Pack",
                 version: "", author: "Group", description: "",
-                nexusUrl: "", nexusModId: "", isEnabled: true, dependencies: [],
+                nexusUrl: "", nexusModId: "", isEnabled: isEnabled,
+                dependencies: [],
                 children: children, isGroup: true,
                 languages: Set(children.flatMap { $0.languages }).sorted())
     }
@@ -82,16 +85,73 @@ struct ModGridCardValuesTests {
         #expect(ModGridCardValues.card(mod: pack, versionPrefix: "v%@").neutralBadge == "FR")
     }
 
-    /// Les nil documentés : un mod installé n'a **pas** de vignette servie
-    /// (le `ModDetailCache` n'est pas déroulé pour une grille de 966), pas de
-    /// pastille « installé » (tout l'est), pas d'endorsements. Ces champs
-    /// sont `nil` **par construction**, pas par oubli de l'appelant. (Pas de
-    /// champ `category` : `NexusCategory` vit côté app, hors target Core —
-    /// c'est la vue qui passe `category: nil`, avec le même commentaire.)
+    /// L'état **se lit sur la carte** : actif ou en pause, jamais déduit de
+    /// l'absence d'un ornement (P6 — un état ne se code pas par une
+    /// présence). C'est la vue qui pose le libellé localisé et la teinte ;
+    /// l'adaptateur ne dit que lequel des deux.
+    @Test func stateIsAlwaysServed() {
+        #expect(ModGridCardValues.card(mod: mod(), versionPrefix: "v%@").state == .active)
+        #expect(ModGridCardValues.card(mod: mod(isEnabled: false),
+                                       versionPrefix: "v%@").state == .paused)
+        #expect(ModGridCardValues.card(mod: pack(children: [mod()], isEnabled: false),
+                                       versionPrefix: "v%@").state == .paused)
+    }
+
+    /// La vignette vient du cache Nexus déjà sur le disque (769 des 791
+    /// entrées en portent une, mesuré sur le parc réel) : la carte la sert
+    /// telle quelle. Une URL absente, vide ou illisible laisse le rectangle
+    /// gris — la hauteur est réservée, rien ne bouge.
+    @Test func thumbnailComesFromTheGivenURL() {
+        let served = ModGridCardValues.card(mod: mod(), versionPrefix: "v%@",
+                                            pictureURL: "https://x.test/a.png")
+        #expect(served.thumbnailURL?.absoluteString == "https://x.test/a.png")
+        #expect(ModGridCardValues.card(mod: mod(), versionPrefix: "v%@",
+                                       pictureURL: "").thumbnailURL == nil)
+        #expect(ModGridCardValues.card(mod: mod(), versionPrefix: "v%@").thumbnailURL == nil)
+    }
+
+    /// **L'identifiant qui a droit à une image.** Un pack n'en porte pas :
+    /// son en-tête est fabriqué avec `nexusModId: ""` (ViewModel:2738). Le
+    /// prendre au premier enfant qui en a un — ce que fait
+    /// `resolvedNexusModId` pour la fiche — donnerait à un pack **à plat**
+    /// (19 dans le parc réel : des mods sans rapport dans un même dossier)
+    /// la capture d'écran de son premier composant. La carte n'accepte donc
+    /// que l'identifiant que **tous** les enfants partagent, comme
+    /// `sharedValue` pour l'auteur et la version.
+    @Test func onlyASharedNexusIdEarnsAPicture() {
+        let effective: (ModItem) -> String = { $0.nexusModId }
+        // Un mod ordinaire : son propre identifiant.
+        #expect(ModGridCardValues.sharedNexusId(of: mod(nexusModId: "1234"),
+                                                effectiveId: effective) == "1234")
+        // Un vrai pack : un seul mod Nexus, plusieurs dossiers.
+        let real = pack(children: [mod(nexusModId: "42"),
+                                   mod(name: "Composant", nexusModId: "42")])
+        #expect(ModGridCardValues.sharedNexusId(of: real, effectiveId: effective) == "42")
+        // Un pack à plat : des mods sans rapport, aucune image légitime.
+        let flat = pack(children: [mod(nexusModId: "42"),
+                                   mod(name: "Composant", nexusModId: "77")])
+        #expect(ModGridCardValues.sharedNexusId(of: flat, effectiveId: effective) == nil)
+        // Rien de déclaré : rien à servir.
+        #expect(ModGridCardValues.sharedNexusId(of: mod(), effectiveId: effective) == nil)
+        #expect(ModGridCardValues.sharedNexusId(of: pack(children: [mod()]),
+                                                effectiveId: effective) == nil)
+    }
+
+    /// L'identifiant **propre** d'un en-tête l'emporte : c'est celui que
+    /// l'utilisateur a saisi à la main pour ce pack (`nexusCustomModIds`,
+    /// clé `folderName`), et il vaut mieux que n'importe quelle déduction.
+    @Test func anOwnIdWinsOverTheChildren() {
+        let flat = pack(children: [mod(nexusModId: "42"),
+                                   mod(name: "Composant", nexusModId: "77")])
+        let effective: (ModItem) -> String = { $0.isGroup ? "999" : $0.nexusModId }
+        #expect(ModGridCardValues.sharedNexusId(of: flat, effectiveId: effective) == "999")
+    }
+
+    /// Les nil documentés : un mod installé n'a pas d'endossements servis,
+    /// et sa catégorie ne passe pas par ici (`NexusCategory` vit côté app,
+    /// hors target Core — c'est la vue qui la résout par `vm.category(for:)`).
     @Test func theUnservableFieldsAreNilByConstruction() {
         let card = ModGridCardValues.card(mod: mod(), versionPrefix: "v%@")
-        #expect(card.thumbnailURL == nil)
-        #expect(card.installedLabel == nil)
         #expect(card.endorsements == nil)
     }
 }

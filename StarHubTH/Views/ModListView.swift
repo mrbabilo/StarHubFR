@@ -400,6 +400,21 @@ struct ModListView: View {
         }
     }
 
+    /// L'adresse de la capture Nexus déjà en cache pour ce mod — celle que la
+    /// fiche affiche (`nexusCachedExtras`, persisté : 769 de ses 791 entrées
+    /// en portent une). Aucun réseau de plus n'est demandé ici : seules les
+    /// cartes visibles chargent leur image, et `CachedAsyncImage` la garde
+    /// (`NSCache` borné à 400 images / 128 Mo).
+    ///
+    /// L'identifiant passe par `sharedNexusId` : un pack **à plat** n'hérite
+    /// pas de la capture de son premier composant.
+    private func gridPictureURL(for mod: ModItem) -> String? {
+        guard let id = ModGridCardValues.sharedNexusId(of: mod, effectiveId: {
+            vm.effectiveNexusModId(for: $0)
+        }) else { return nil }
+        return vm.nexusModExtras[id]?.pictureUrl
+    }
+
     var body: some View {
         // Compute the expensive derived data once per render instead of
         // re-evaluating the search/category/sort pass (and everything
@@ -477,7 +492,10 @@ struct ModListView: View {
                     // cartes au-dessus. Choix persisté — c'est une habitude
                     // de parcours, pas un état de session.
                     Picker(vm.L(L10n.Mods.layoutList), selection: $listLayout) {
-                        Image(systemName: "square.split.bottomleftquarter")
+                        // `list.bullet` et non un glyph de disposition : à
+                        // 32 pt de demi-segment, tout ce qui dessine des
+                        // quartiers devient illisible.
+                        Image(systemName: "list.bullet")
                             .tag(ModsListLayout.list)
                         Image(systemName: "square.grid.2x2")
                             .tag(ModsListLayout.grid)
@@ -611,16 +629,32 @@ struct ModListView: View {
                                     ForEach(paged) { mod in
                                         let values = ModGridCardValues.card(
                                             mod: mod,
-                                            versionPrefix: vm.L(L10n.Mods.versionPrefix))
+                                            versionPrefix: vm.L(L10n.Mods.versionPrefix),
+                                            pictureURL: gridPictureURL(for: mod))
+                                        let active = values.state == .active
                                         ModCard(title: values.title,
                                                 subtitle: values.subtitle,
                                                 thumbnailURL: values.thumbnailURL,
-                                                installedLabel: values.installedLabel,
-                                                // Un mod installé n'a pas de
-                                                // catégorie Nexus servie — nil
-                                                // par design, pas par oubli
-                                                // (voir l'adaptateur).
-                                                category: nil,
+                                                // La pastille dit l'**état**,
+                                                // pas « installé » : tout l'est
+                                                // ici. Les deux états se posent,
+                                                // jamais l'un par l'absence de
+                                                // l'autre (P6).
+                                                installedLabel: vm.L(active
+                                                    ? L10n.Mods.cardActive
+                                                    : L10n.Mods.cardPaused),
+                                                badgeTint: active
+                                                    ? AppDesign.Color.installed
+                                                    : Color.secondary,
+                                                badgeSystemImage: active
+                                                    ? "checkmark.circle.fill"
+                                                    : "pause.circle.fill",
+                                                // La catégorie que la liste
+                                                // connaît déjà : celle que
+                                                // l'utilisateur a assignée, celle
+                                                // de Nexus, ou la dominante d'un
+                                                // pack (`category(for:)`).
+                                                category: vm.category(for: mod),
                                                 neutralBadge: values.neutralBadge,
                                                 endorsements: values.endorsements,
                                                 L: vm.L,
@@ -929,26 +963,28 @@ struct ModListView: View {
         Button {
             listState.filters.configOnly.toggle()
         } label: {
-            HStack(spacing: 6) {
-                Image(systemName: "gearshape")
-                    .font(AppDesign.Font.footnote)
-                Text(vm.L(L10n.Mods.configFilterLabel))
-                    .font(AppDesign.Font.caption(.medium))
-            }
-            .foregroundColor(filters.configOnly ? Color.accentColor : .primary)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
-            .background(
-                RoundedRectangle(cornerRadius: AppDesign.Radius.sm)
-                    .fill(filters.configOnly ? Color.accentColor.opacity(AppDesign.Opacity.medium) : Color.secondary.opacity(AppDesign.Opacity.light))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: AppDesign.Radius.sm)
-                    .stroke(filters.configOnly ? Color.accentColor.opacity(0.4) : Color.secondary.opacity(AppDesign.Opacity.medium), lineWidth: 0.5)
-            )
+            // Le glyph seul : le libellé vit à l'infobulle. La cible reste
+            // large (10/5 de marge autour d'un glyph de 11 pt), bien au-delà
+            // du 18×18 qu'exige une infobulle vivante.
+            Image(systemName: "gearshape")
+                .font(AppDesign.Font.footnote)
+                .foregroundColor(filters.configOnly ? Color.accentColor : .primary)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(
+                    RoundedRectangle(cornerRadius: AppDesign.Radius.sm)
+                        .fill(filters.configOnly ? Color.accentColor.opacity(AppDesign.Opacity.medium) : Color.secondary.opacity(AppDesign.Opacity.light))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppDesign.Radius.sm)
+                        .stroke(filters.configOnly ? Color.accentColor.opacity(0.4) : Color.secondary.opacity(AppDesign.Opacity.medium), lineWidth: 0.5)
+                )
         }
         .buttonStyle(PlainButtonStyle())
         .help(vm.L(L10n.Mods.configFilterLabel))
+        // Sans texte visible, l'infobulle ne suffit pas : VoiceOver n'a plus
+        // que ce libellé.
+        .accessibilityLabel(vm.L(L10n.Mods.configFilterLabel))
     }
 
     // MARK: - Favourites filter toggle (B3-T2)
@@ -969,11 +1005,11 @@ struct ModListView: View {
         return Button {
             listState.filters.favoritesOnly.toggle()
         } label: {
-            HStack(spacing: 6) {
+            // Le libellé passe à l'infobulle ; le **compte** reste, lui : il
+            // ne se lit nulle part ailleurs dans la barre.
+            HStack(spacing: 4) {
                 Image(systemName: active ? "star.fill" : "star")
                     .font(AppDesign.Font.footnote)
-                Text(vm.L(L10n.Mods.filterFavorites))
-                    .font(AppDesign.Font.caption(.medium))
                 if !empty {
                     Text("\(vm.favoriteMods.count)")
                         .font(AppDesign.Font.iconXS(.semibold).monospacedDigit())
@@ -995,6 +1031,10 @@ struct ModListView: View {
         .buttonStyle(PlainButtonStyle())
         .disabled(empty && !active)
         .help(vm.L(empty ? L10n.Mods.filterFavoritesEmptyHint : L10n.Mods.filterFavoritesHint))
+        .accessibilityLabel(vm.L(L10n.Mods.filterFavorites))
+        // Le compte est à l'écran : sans cette valeur, VoiceOver le perdrait
+        // avec le libellé.
+        .accessibilityValue(empty ? "" : "\(vm.favoriteMods.count)")
     }
 
     // MARK: - French-translation filter picker

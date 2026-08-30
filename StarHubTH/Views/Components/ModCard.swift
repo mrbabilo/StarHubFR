@@ -18,6 +18,12 @@ struct ModCard: View {
     /// Le libellé de la pastille posée sur la vignette, ou `nil` quand il n'y
     /// a rien à y poser.
     let installedLabel: String?
+    /// La teinte et le glyph de cette pastille. Découvrir garde les valeurs
+    /// par défaut — vert plein, coche : elle y dit « déjà installé ». La
+    /// grille des mods installés s'en sert pour dire l'**état** (actif / en
+    /// pause), où le vert seul mentirait sur la moitié des cartes.
+    var badgeTint: Color = .green
+    var badgeSystemImage: String = "checkmark.circle.fill"
     let category: NexusCategory?
     /// Une pastille neutre supplémentaire (« FR »), ou `nil`.
     let neutralBadge: String?
@@ -77,12 +83,12 @@ struct ModCard: View {
                     // matériau, elle se noyait dans les vignettes claires. Du
                     // blanc sur vert tient sur n'importe quelle image, et
                     // l'ombre la décolle du fond.
-                    Label(installedLabel, systemImage: "checkmark.circle.fill")
+                    Label(installedLabel, systemImage: badgeSystemImage)
                         .font(AppDesign.Font.caption(.semibold))
                         .foregroundStyle(.white)
                         .padding(.horizontal, AppDesign.Spacing.sm)
                         .padding(.vertical, AppDesign.Spacing.xs)
-                        .background(Color.green, in: Capsule())
+                        .background(badgeTint, in: Capsule())
                         .shadow(color: .black.opacity(AppDesign.Opacity.strong),
                                 radius: AppDesign.Shadow.badge.radius,
                                 y: AppDesign.Shadow.badge.y)

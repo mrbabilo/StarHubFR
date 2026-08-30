@@ -498,6 +498,11 @@ enum L10n {
         /// Picker segmenté.
         static let layoutList = "mods_layout_list"
         static let layoutGrid = "mods_layout_grid"
+        /// L'état porté par la pastille d'une carte de grille. Singuliers :
+        /// `enabled`/`disabled` sont les libellés **pluriels** du sélecteur
+        /// de portée (« Activés »/« Désactivés »), qui comptent une liste.
+        static let cardActive = "mods_card_active"
+        static let cardPaused = "mods_card_paused"
         // Pagination
         static let pagePrevious         = "mods_page_previous"
         static let pageNext             = "mods_page_next"
