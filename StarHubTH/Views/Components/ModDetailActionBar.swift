@@ -24,9 +24,14 @@ struct ModDetailActionBar: View {
         vm.mods.first { $0.folderName == mod.folderName } ?? mod
     }
 
+    /// Position optimiste du toggle pendant que le dossier est renommé,
+    /// `nil` dès que `vm.mods` a rattrapé — sinon l'interrupteur revient
+    /// visiblement en arrière le temps du rescan.
+    @State private var localIsOn: Bool? = nil
+
     var body: some View {
         HStack(spacing: 12) {
-            stateButton
+            stateToggle
 
             // Le favori : même geste de tri du parc, et la fiche est l'écran
             // où l'on décide du sort d'un mod. `live` pour rester d'accord
@@ -68,6 +73,17 @@ struct ModDetailActionBar: View {
             .foregroundColor(.secondary)
             .pointingHandCursor()
 
+            // Les fichiers du mod, dans le Finder : à 900 mods, la question
+            // « qu'y a-t-il donc dans ce dossier » se pose plus souvent
+            // qu'on ne l'admet. Le dossier **physique** — le point de la
+            // pause compris.
+            Button(action: revealInFinder) {
+                Label(vm.L(L10n.Mods.revealInFinder), systemImage: "folder")
+            }
+            .buttonStyle(.bordered)
+            .foregroundColor(.secondary)
+            .pointingHandCursor()
+
             Spacer()
 
             // La suppression, à l'écart : icône seule, rôle destructif —
@@ -87,42 +103,53 @@ struct ModDetailActionBar: View {
         .padding(.vertical, 10)
     }
 
-    /// Activer / Mettre en pause — glyph + libellé + couleur (P6 : jamais la
-    /// couleur seule). Filet tant que la bascule est en vol : `toggleMod`
-    /// met les bascules en file FIFO sans dédupliquer, le double-clic doit
-    /// trouver la porte fermée.
-    private var stateButton: some View {
+    /// Activer / Mettre en pause — l'interrupteur vert de la rangée de
+    /// liste, au token près (P6 : l'état se lit de la même teinte des deux
+    /// écrans ; le bouton bleu essayé en premier se lisait moins bien).
+    /// Filet tant que la bascule est en vol : `toggleMod` met les bascules
+    /// en file FIFO sans dédupliquer, le double-clic doit trouver la porte
+    /// fermée — le débordement du debounce que tenait l'ancienne rangée.
+    private var stateToggle: some View {
         let busy = vm.pendingToggleFolder == mod.folderName
-        return Button(action: activate) {
-            HStack(spacing: 6) {
-                if busy {
-                    ProgressView().controlSize(.small)
-                } else {
-                    Image(systemName: live.isEnabled ? "pause.circle.fill" : "play.circle.fill")
+        return HStack(spacing: 8) {
+            // La place du témoin est réservée en permanence : le faire
+            // apparaître et disparaître décalerait le reste de la rangée.
+            ProgressView()
+                .controlSize(.small)
+                .frame(width: 14, height: 14)
+                .opacity(busy ? 1 : 0)
+            Toggle(vm.L(L10n.Mods.detailEnabled), isOn: Binding(
+                get: { localIsOn ?? live.isEnabled },
+                set: { newValue in
+                    localIsOn = newValue
+                    guard newValue != live.isEnabled else { localIsOn = nil; return }
+                    // Activer un mod signalé cassé demande une confirmation ;
+                    // le mettre en pause, jamais.
+                    if vm.activationWarning(for: live) != nil {
+                        localIsOn = nil
+                        pendingActivation = live
+                    } else if let other = vm.conflictWarning(for: live) {
+                        localIsOn = nil
+                        pendingConflict = ConflictActivation(mod: live, other: other)
+                    } else {
+                        vm.toggleMod(live) { localIsOn = nil }
+                    }
                 }
-                Text(vm.L(live.isEnabled ? L10n.Mods.detailPause : L10n.Mods.detailActivate))
-            }
+            ))
+            .toggleStyle(SwitchToggleStyle(tint: AppDesign.Color.installed))
+            .controlSize(.small)
+            .disabled(busy)
         }
-        .buttonStyle(.borderedProminent)
-        .disabled(busy)
+        .accessibilityElement(children: .contain)
         .accessibilityLabel(String(format: vm.L(L10n.Mods.toggleA11yLabel), mod.name))
+        .accessibilityHint(vm.L(L10n.Mods.toggleA11yHint))
     }
 
-    /// Activer un mod signalé cassé demande une confirmation ; le mettre en
-    /// pause, jamais. Mêmes portes que l'ancien interrupteur, sans son
-    /// debounce : un clic de bouton est déjà discret, le filet `busy` tient
-    /// le double-clic.
-    private func activate() {
-        guard !live.isEnabled else {
-            vm.toggleMod(live)
-            return
-        }
-        if vm.activationWarning(for: live) != nil {
-            pendingActivation = live
-        } else if let other = vm.conflictWarning(for: live) {
-            pendingConflict = ConflictActivation(mod: live, other: other)
-        } else {
-            vm.toggleMod(live)
-        }
+    /// Ouvre le dossier du mod dans le Finder — le **physique**, point de
+    /// pause compris ; un composant y mène par son chemin relatif.
+    private func revealInFinder() {
+        let folder = URL(fileURLWithPath: (vm.gameDir as NSString).appendingPathComponent("Mods"))
+            .appendingPathComponent(live.physicalFolderName)
+        NSWorkspace.shared.open(folder)
     }
 }

@@ -170,6 +170,14 @@ struct ModDetailView: View {
                  ? vm.L(L10n.Mods.deleteConfirmPack)
                  : vm.L(L10n.Mods.deleteConfirmMessage))
         }
+        // Les chevrons de parcourt, dans la zone de navigation de la fenêtre :
+        // SwiftUI fusionne les ToolbarItems de la hiérarchie — celui du
+        // bouton retour (MainView) et ceux-ci voisinent.
+        .toolbar {
+            ToolbarItem(placement: .navigation) {
+                pagerControls
+            }
+        }
         .sheet(isPresented: $showReportConflict) {
             reportConflictSheet
         }
@@ -237,11 +245,6 @@ struct ModDetailView: View {
                        subtitle: heroSubtitle,
                        imageURL: heroPictureURL) {
                 vm.viewingModDetail = nil
-            }
-            // Overlay au call-site, pas dans HeroHeader : le composant est
-            // partagé avec Découvrir, qui n'a pas de pager.
-            .overlay(alignment: .topLeading) {
-                pagerControls.padding(AppDesign.Spacing.sm)
             }
             fineBand
             statStrip
@@ -328,11 +331,14 @@ struct ModDetailView: View {
     /// ‹ › sur le cadrage courant — filtres, tri et recherche respectés,
     /// l'ordre complet, pas la tranche de page. Éteints quand le mod n'y
     /// figure pas : composant de pack, mod exclu par le cadrage.
-    @ViewBuilder
+    ///
+    /// Dans la **barre d'outils de la fenêtre**, à la suite du bouton
+    /// retour : sur le hero, leur blanc mourait sur les captures claires —
+    /// la zone de navigation de la fenêtre est visible sur toute vignette.
     private var pagerControls: some View {
         let neighbors = ModDetailPager.neighbors(of: mod.folderName,
                                                  in: vm.modList.displayOrder)
-        HStack(spacing: 4) {
+        return HStack(spacing: 4) {
             chevron(icon: "chevron.left", target: neighbors.previous,
                     help: vm.L(L10n.Mods.pagerPrevious))
             chevron(icon: "chevron.right", target: neighbors.next,
@@ -347,16 +353,15 @@ struct ModDetailView: View {
                     vm.viewingModDetail = destination
                 } label: {
                     Image(systemName: icon)
-                        // Même taille que la croix du hero (HeroHeader.swift).
                         .font(.system(size: AppDesign.Icon.sm))
-                        .foregroundStyle(.white.opacity(AppDesign.Opacity.secondary))
+                        .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
                 .help(help)
             } else {
                 Image(systemName: icon)
                     .font(.system(size: AppDesign.Icon.sm))
-                    .foregroundStyle(.white.opacity(0.25))
+                    .foregroundStyle(.tertiary)
                     .help(vm.L(L10n.Mods.pagerUnavailable))
             }
         }

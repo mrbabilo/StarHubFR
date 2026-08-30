@@ -262,10 +262,10 @@ enum L10n {
         static let sortInstallDate      = "mods_sort_install_date"
         static let prevPageHint         = "mods_prev_page_hint"
         static let nextPageHint         = "mods_next_page_hint"
-        // Le lot H-T4b — la fiche refondue : onglets, bouton d'état, pager.
+        // Le lot H-T4b — la fiche refondue : onglets, toggle d'état, pager.
         static let tabState             = "mods_tab_state"
-        static let detailActivate       = "mods_detail_activate"
-        static let detailPause          = "mods_detail_pause"
+        static let detailEnabled        = "mods_detail_enabled"
+        static let revealInFinder       = "mods_reveal_in_finder"
         static let pagerPrevious        = "mods_pager_previous"
         static let pagerNext            = "mods_pager_next"
         static let pagerUnavailable     = "mods_pager_unavailable"

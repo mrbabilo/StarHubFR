@@ -1212,9 +1212,9 @@
 "discovery_stat_updated" = "Mise à jour";
 "discovery_stat_endorsements" = "Endossements";
 "mods_tab_state" = "État";
-"mods_detail_activate" = "Activer";
-"mods_detail_pause" = "Mettre en pause";
 "mods_pager_previous" = "Mod précédent du cadrage";
 "mods_pager_next" = "Mod suivant du cadrage";
 "mods_pager_unavailable" = "Ce mod n'est pas dans le cadrage courant";
 "mods_back_to_pack" = "Retour au pack %@";
+"mods_detail_enabled" = "Activé";
+"mods_reveal_in_finder" = "Afficher dans le Finder";
