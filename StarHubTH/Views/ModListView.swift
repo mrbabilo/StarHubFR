@@ -645,7 +645,7 @@ struct ModListView: View {
                                                     : L10n.Mods.cardPaused),
                                                 badgeTint: active
                                                     ? AppDesign.Color.installed
-                                                    : Color.secondary,
+                                                    : AppDesign.Color.paused,
                                                 badgeSystemImage: active
                                                     ? "checkmark.circle.fill"
                                                     : "pause.circle.fill",
@@ -1007,10 +1007,19 @@ struct ModListView: View {
         } label: {
             // Le libellé passe à l'infobulle ; le **compte** reste, lui : il
             // ne se lit nulle part ailleurs dans la barre.
+            //
+            // Sauf quand rien n'est marqué : la pastille est alors *désactivée*,
+            // et l'infobulle d'un contrôle désactivé ne se montre pas toujours
+            // sur macOS. Réduite à une étoile grise, elle ne dirait plus rien —
+            // elle garde donc son libellé dans ce seul état, celui où elle a
+            // justement quelque chose à expliquer.
             HStack(spacing: 4) {
                 Image(systemName: active ? "star.fill" : "star")
                     .font(AppDesign.Font.footnote)
-                if !empty {
+                if empty {
+                    Text(vm.L(L10n.Mods.filterFavorites))
+                        .font(AppDesign.Font.caption(.medium))
+                } else {
                     Text("\(vm.favoriteMods.count)")
                         .font(AppDesign.Font.iconXS(.semibold).monospacedDigit())
                         .foregroundColor(.secondary)

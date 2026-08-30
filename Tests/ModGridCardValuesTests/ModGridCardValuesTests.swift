@@ -137,6 +137,23 @@ struct ModGridCardValuesTests {
                                                 effectiveId: effective) == nil)
     }
 
+    /// **Un enfant muet ne disqualifie pas le pack.** Mesuré sur le parc
+    /// réel (101 packs, dossier `Mods` lu le 2026-08-30) : 49 packs voient
+    /// tous leurs composants déclarer le même identifiant, **35** n'en ont
+    /// qu'un seul distinct parce que les autres composants n'en déclarent
+    /// aucun (« Desert Expansion » : un `[CP]` porteur, deux annexes muettes)
+    /// — ce sont de vrais packs — et **2** en mêlent plusieurs, les seuls que
+    /// la règle doit écarter. Exiger un identifiant de *chaque* enfant
+    /// coûterait donc 35 vignettes légitimes pour n'en éviter aucune fausse
+    /// de plus.
+    @Test func aSilentChildDoesNotDisqualifyThePack() {
+        let effective: (ModItem) -> String = { $0.nexusModId }
+        let real = pack(children: [mod(nexusModId: "42"),
+                                   mod(name: "Annexe"),
+                                   mod(name: "Autre annexe")])
+        #expect(ModGridCardValues.sharedNexusId(of: real, effectiveId: effective) == "42")
+    }
+
     /// L'identifiant **propre** d'un en-tête l'emporte : c'est celui que
     /// l'utilisateur a saisi à la main pour ce pack (`nexusCustomModIds`,
     /// clé `folderName`), et il vaut mieux que n'importe quelle déduction.

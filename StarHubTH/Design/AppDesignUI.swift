@@ -108,5 +108,12 @@ enum AppDesign {
         /// confondus : l'un signale une réussite d'action, l'autre un état
         /// installé.
         static let installed  = SwiftUI.Color(red: 0.20, green: 0.65, blue: 0.35)
+
+        /// Le pendant « en pause » de `installed`, pour les pastilles posées
+        /// **sur une image**. Opaque, et non `.secondary` : une pastille
+        /// translucide se noie dans une vignette claire — c'est déjà la
+        /// raison pour laquelle celle de `ModCard` est pleine. Du blanc tient
+        /// dessus sur les deux thèmes.
+        static let paused     = SwiftUI.Color(white: 0.38)
     }
 }

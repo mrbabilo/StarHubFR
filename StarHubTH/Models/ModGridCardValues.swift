@@ -78,7 +78,15 @@ public enum ModGridCardValues {
     /// mods sans rapport rangés dans un même dossier, 19 dans le parc réel)
     /// la capture d'écran de son premier composant, présentée comme la
     /// sienne. D'où la même règle que l'auteur et la version : seul compte ce
-    /// que **tous** les enfants partagent.
+    /// que les enfants partagent.
+    ///
+    /// Un enfant **muet** ne disqualifie pas le pack, lui : mesuré sur le parc
+    /// réel (101 packs, 2026-08-30), 49 packs voient tous leurs composants
+    /// déclarer le même identifiant, 35 n'en ont qu'un seul distinct parce que
+    /// les autres composants n'en déclarent aucun — des annexes de vrais packs
+    /// — et 2 seulement en mêlent plusieurs. Exiger un identifiant de *chaque*
+    /// enfant coûterait 35 vignettes légitimes sans en écarter une seule
+    /// fausse de plus.
     ///
     /// - Parameter effectiveId: l'identifiant propre d'un mod, saisi par
     ///   l'utilisateur ou lu du manifeste (`vm.effectiveNexusModId(for:)`),
