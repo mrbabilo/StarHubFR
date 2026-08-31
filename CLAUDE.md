@@ -130,6 +130,12 @@ corrections ponctuelles (avec leur commit) vivent dans la mémoire Kilo
   passé ~1 500 fichiers). Et tout `unzip` vers un dossier neuf passe `-o` :
   sans lui, une archive à chemins dupliqués pose une question sur un stdin
   qui n'existe pas dans une app GUI.
+- **Un script lancé en tâche de fond ne doit jamais lire l'entrée standard** :
+  son stdin est un tube qui ne se ferme jamais — une substitution de liste de
+  boucle qui tourne en `cat` nu y bloque à l'infini (0 % CPU, zéro itération,
+  pile bloquée dans `loop`, sonde Nexus 2026-08-31). Invoquer avec
+  `< /dev/null` et lire les données d'un fichier explicite
+  (`while IFS= read -r … < fichier`).
 
 ### Concurrence
 
