@@ -14,6 +14,7 @@ where the exact log format was verified.
 
 ### Added
 - **Update checks no longer hit smapi.io on every launch**: a check that returned a response keeps the next automatic one away for 12 hours — the list still opens on the cached results. The manual "Check" button on the Updates page always refreshes.
+- **Pathoschild list as a fallback when smapi.io is silent** (A2-T3): if the live check fails or times out, the app fetches `Pathoschild/SmapiCompatibilityList`'s `data/mods.jsonc` dump, joins it on `UniqueID`, and fills in the verdicts that smapi.io didn't return. The compatibility health card now carries a small badge naming the source — smapi.io (live), the Pathoschild dump, or the cached dump with its date — so a fallback isn't mistaken for fresh data. The dump is cached on disk for 6 hours and re-used when the network is down.
 
 ## [1.29.0] - 2026-08-30
 

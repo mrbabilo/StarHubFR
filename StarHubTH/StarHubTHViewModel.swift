@@ -88,6 +88,20 @@ class StarHubTHViewModel: ObservableObject {
     /// fois — pour le compteur du cadrage et pour le filtrage. Reconstruire le
     /// dictionnaire à chaque appel rendrait la liste quadratique.
     private var compatibilityStatuses: [String: ModCompatibility.Status] = [:]
+    /// D'où viennent **en dernier** les verdicts de compatibilité affichés.
+    /// La valeur porte une date : un verdict ramené du cache disque d'il y a
+    /// huit heures n'a pas la même fraîcheur qu'un verdict tout juste sorti
+    /// de smapi.io, et le bandeau de la fiche doit le dire (A2-T3).
+    public enum CompatibilitySource: Equatable {
+        case live
+        case pathoschildDump
+        case diskCache
+        case none
+    }
+    @Published private(set) var compatibilitySource: CompatibilitySource = .none
+    /// La date du dump Pathoschild effectivement utilisé (`fetchedAt` du
+    /// décodeur, ou `nil` quand aucun dump n'a jamais été posé).
+    @Published private(set) var pathoschildDumpDate: Date? = nil
     /// True while a Nexus check is in flight.
     @Published var isCheckingNexusUpdates: Bool = false
     /// Last error message from a Nexus check (nil = none / not run yet).
@@ -1945,6 +1959,13 @@ class StarHubTHViewModel: ObservableObject {
         // les verdicts relus au lancement seraient là sans que rien ne les
         // signale, jusqu'à la première vérification.
         compatibilityStatuses = modCompatibility.mapValues(\.status)
+        // A2-T3 : un dump Pathoschild déjà en cache vaut « source disque »
+        // jusqu'à ce qu'une vérification smapi.io confirme ou révoque. On ne
+        // va pas le chercher ici : la date suffit à faire parler le bandeau.
+        if let cached = PathoschildCompatibilityList.dumpFetchedAt() {
+            pathoschildDumpDate = cached
+            compatibilitySource = .diskCache
+        }
         // Les avertissements de l'installateur SMAPI n'ont pas d'autre chemin
         // vers l'onglet Journaux : sa complétion ne porte qu'un succès ou un
         // échec, et une installation peut réussir en laissant un défaut.
@@ -4041,6 +4062,7 @@ class StarHubTHViewModel: ObservableObject {
                 switch result {
                 case .success(let mods):
                     self.applySmapiResults(mods, entries: entries, folders: folders)
+                    self.compatibilitySource = .live
                     // A2-T4 : le passage a rendu une réponse — le TTL du
                     // prochain lancement part d'ici. Un échec réseau
                     // n'écrit rien : le lancement suivant réessaiera.
@@ -4059,6 +4081,11 @@ class StarHubTHViewModel: ObservableObject {
                         self.nexusCheckError = "\(failure)"
                     }
                     self.log("Vérification des mises à jour en échec : \(failure)", level: .warning)
+                    // A2-T3 : smapi.io s'est tu — on tente le filet
+                    // Pathoschild. C'est ici qu'il s'exécute : pas en tâche
+                    // de fond planifiée, parce qu'il n'a de sens que quand
+                    // smapi.io manque.
+                    self.applyPathoschildFallback(entries: entries)
                 }
             })
     }
@@ -4294,6 +4321,12 @@ class StarHubTHViewModel: ObservableObject {
             log("Verdicts de compatibilité non enregistrés : l'avertissement à "
                 + "l'activation ne survivra pas à la fermeture", level: .warning)
         }
+        // A2-T3 : smapi.io a parlé, c'est la source à utiliser. Le dump
+        // Pathoschild reste en cache pour la prochaine panne, mais il ne
+        // dicte plus l'affichage tant qu'une nouvelle vérification n'a pas
+        // échoué.
+        compatibilitySource = .live
+        pathoschildDumpDate = PathoschildCompatibilityList.dumpFetchedAt()
 
         // Le `metadata.nexusID` de la réponse ne servait qu'aux lignes de mise
         // à jour — pour leur bouton de téléchargement — et disparaissait pour
@@ -4323,6 +4356,69 @@ class StarHubTHViewModel: ObservableObject {
             level: .info)
 
         recheckBlockedViaNexus(blocked)
+    }
+
+    /// A2-T3 — quand smapi.io est muet, on tente le dump Pathoschild.
+    ///
+    /// Le filet est **silencieux** quand il n'a rien à dire : un mod absent
+    /// du dump n'est pas plus promu « cassé » qu'il ne l'était avant. La
+    /// jointure porte uniquement sur les `UniqueID` envoyés à smapi.io, et
+    /// n'écrit que les verdicts **non déjà connus** : un verdict smapi.io
+    /// précédent (cache disque, dernière vérification partielle) reste
+    /// prioritaire, parce qu'il a le rang temporel le plus frais.
+    ///
+    /// Le dump est mis en cache avec un TTL de 6 h ; passé ce délai, la
+    /// requête repart. Une panne réseau prolongée utilise le cache périmé :
+    /// on n'est pas en ligne, on dit ce qu'on a.
+    private func applyPathoschildFallback(entries: [SmapiUpdateRequest.Entry]) {
+        let uniqueIds = entries.map(\.id).filter { !$0.isEmpty }
+        guard !uniqueIds.isEmpty else { return }
+        PathoschildCompatibilityList.fetch { [weak self] result in
+            guard let self else { return }
+            let entries = (try? result.get()) ?? []
+            guard !entries.isEmpty else {
+                self.log("Filet Pathoschild : aucun dump récupérable (réseau + cache)", level: .info)
+                return
+            }
+            let verdicts = PathoschildCompatibilityList.verdicts(for: uniqueIds, from: entries)
+            guard !verdicts.isEmpty else {
+                self.log("Filet Pathoschild : 0 verdict applicable sur \(uniqueIds.count) mods", level: .info)
+                self.compatibilitySource = .diskCache
+                self.pathoschildDumpDate = PathoschildCompatibilityList.dumpFetchedAt()
+                return
+            }
+            // Le verdict Pathoschild est **secondaire** : on ne remplace un
+            // verdict smapi.io existant que s'il n'y en a pas. La fusion
+            // passe par `modCompatibility` pour respecter la règle de
+            // priorité temporelle déjà appliquée par `applySmapiResults`.
+            var merged = self.modCompatibility
+            var added = 0
+            for (uniqueId, verdict) in verdicts where merged[uniqueId] == nil {
+                merged[uniqueId] = verdict
+                added += 1
+            }
+            if added == 0 {
+                self.log("Filet Pathoschild : aucun verdict à ajouter (les \(verdicts.count) "
+                         + "troués sont déjà couverts)", level: .info)
+                return
+            }
+            // Purge des mods désinstallés (règle partagée avec `applySmapiResults`).
+            // `stillInstalled` = les `UniqueID` envoyés à smapi.io, c'est-à-dire
+            // le parc figé au moment de l'envoi. Un verdict hors de ce parc est
+            // un mod qui n'est plus là.
+            let stillInstalled = Set(uniqueIds)
+            merged = merged.filter { stillInstalled.contains($0.key) }
+            self.modCompatibility = merged
+            if ModCompatibilityStore.save(merged) {
+                self.log("Filet Pathoschild : \(added) verdicts ajoutés sur "
+                         + "\(uniqueIds.count) mods interrogés", level: .info)
+            } else {
+                self.log("Filet Pathoschild : verdicts non enregistrés (\(added) ajoutés en mémoire)",
+                         level: .warning)
+            }
+            self.compatibilitySource = .pathoschildDump
+            self.pathoschildDumpDate = PathoschildCompatibilityList.dumpFetchedAt()
+        }
     }
 
     /// B2-T10 — reprend par Nexus les mods que smapi.io n'a pas su juger.

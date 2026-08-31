@@ -11,6 +11,19 @@ import SwiftUI
 /// Auto-collapses when healthy (`problemCount == 0`); the chevron toggles a
 /// manual override. Shown only when the ViewModel has parsed a meaningful log
 /// (gating lives in `LogsView`).
+/// Format court et localisé de la date du dump Pathoschild (« 2026-08-30 »),
+/// mis à part quand la date manque. Volontairement minimal : c'est l'âge qui
+/// compte, pas l'horloge.
+enum PathoschildDateLabel {
+    static func string(from date: Date?) -> String {
+        guard let date else { return "—" }
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd"
+        return f.string(from: date)
+    }
+}
+
 struct SmapiHealthCard: View {
 
     @ObservedObject var vm: StarHubTHViewModel
@@ -341,6 +354,42 @@ struct SmapiHealthCard: View {
 
     // MARK: - Section building blocks
 
+    /// D'où viennent les verdicts affichés (A2-T3) : permet au bandeau de
+    /// signaler la fraîcheur de la source. Une lecture depuis le cache disque
+    /// d'il y a huit heures n'a pas le même poids qu'un verdict tout juste
+    /// sorti de smapi.io, et l'utilisateur a le droit de savoir.
+    @ViewBuilder
+    private var compatibilitySourceBadge: some View {
+        switch vm.compatibilitySource {
+        case .live:
+            pill(text: vm.L(L10n.Mods.compatSourceLive), color: .green)
+        case .pathoschildDump:
+            pill(text: String(format: vm.L(L10n.Mods.compatSourcePathoschild),
+                              PathoschildDateLabel.string(from: vm.pathoschildDumpDate)),
+                 color: .orange)
+        case .diskCache:
+            pill(text: String(format: vm.L(L10n.Mods.compatSourceCache),
+                              PathoschildDateLabel.string(from: vm.pathoschildDumpDate)),
+                 color: .secondary)
+        case .none:
+            EmptyView()
+        }
+    }
+
+    private func pill(text: String, color: Color) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: "tray.and.arrow.down.fill")
+                .font(.system(size: 9))
+            Text(text)
+                .font(.system(size: 10, weight: .medium))
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 2)
+        .background(color.opacity(AppDesignCore.Opacity.medium))
+        .foregroundColor(color)
+        .cornerRadius(AppDesignCore.Radius.sm)
+    }
+
     /// Ce que smapi.io dit de la compatibilité du parc.
     ///
     /// **Les deux chiffres vont ensemble, et le second n'est pas décoratif** :
@@ -355,7 +404,8 @@ struct SmapiHealthCard: View {
             sectionCard(flagged.isEmpty ? .secondary : .red) {
                 sectionTitle(String(format: vm.L(L10n.Mods.compatHealthFlagged), flagged.count),
                              icon: "exclamationmark.triangle.fill",
-                             color: flagged.isEmpty ? .secondary : .red)
+                             color: flagged.isEmpty ? .secondary : .red,
+                             trailing: { AnyView(compatibilitySourceBadge) })
                 ForEach(flagged.prefix(8), id: \.name) { entry in
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
                         Text(entry.name)

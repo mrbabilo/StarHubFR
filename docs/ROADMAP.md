@@ -1515,9 +1515,24 @@ backup se retrouve en moins de dix secondes.
       La correction appartient à cette tâche, pas au comparateur seul : `compare` sert
       aussi au tri de la liste et à la détection des mises à jour, et la changer sans
       distinguer les deux usages déplacerait le problème.
-- [ ] **A2-T3** — Fallback sur `Pathoschild/SmapiCompatibilityList` (`mods.jsonc`,
+- [x] **A2-T3** — Fallback sur `Pathoschild/SmapiCompatibilityList` (`mods.jsonc`,
       jointure sur `UniqueID`) quand smapi.io est injoignable, et bandeau signalant la
       fraîcheur de la source effectivement utilisée (live vs cache statique). · **M**
+      *Livré le 2026-08-31. `PathoschildCompatibilityList` (Core) : récupère
+      `data/mods.jsonc` (URL canonique Pathoschild, sans clé ni quota), strip les
+      commentaires JSONC de façon *string-aware* (un `//` dans une URL de résumé
+      ne fait plus disparaître la ligne), joint sur `UniqueID` et rend des
+      `ModCompatibility` — même type que smapi.io, mêmes verdicts
+      (`broken`/`abandoned`/`obsolete`/`workaround`/`unofficial`). Le dump est mis
+      en cache disque (Application Support, TTL 6 h, aligné A2-T4) ; un échec
+      réseau utilise le cache, même périmé. Le filet ne s'exécute **que** quand
+      smapi.io échoue — il n'est pas un crawler parallèle. La carte de santé
+      porte un badge « Source : … » qui dit si ce qui s'affiche vient de smapi.io
+      (vert), du dump Pathoschild (orange) ou du cache disque (gris), avec la date
+      du dump le cas échéant. Verdicts Pathoschild **secondaires** : ils ne
+      écrasent jamais un verdict smapi.io déjà présent ; ils ne remplissent que
+      les `UniqueID` sans verdict. 13 tests, dont le strip JSONC (commentaires
+      ligne/bloc, URL préservée, `\"` non-fermant).*
 - [ ] **A2-T4** — **Cache persistant + update check incrémental** (découlant du spike) :
       persister la dernière réponse par mod (équivalent `Versions.json`), avec un **vrai
       TTL 6–24 h** (Stardop appelle à chaque boot = son bug — le rate-limit l'interdit ici) ;
