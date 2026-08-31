@@ -15,23 +15,23 @@ where the exact log format was verified.
 ## [1.29.0] - 2026-08-30
 
 ### Added
-- **La ligne de conflit dit quels patches se disputent l'asset** quand Content Patcher les a journalisés juste après l'erreur (« Affected patches : Pack > Patch »). La ligne s'abstient si le journal a jeté ces `TRACE`.
-- **Un mode grille rejoint la liste des mods** : cartes au motif de Découvrir, une par pack ou par mod, ouverture de la fiche au clic. Chaque carte porte la capture Nexus déjà en cache, sa catégorie, et dit d'un coup d'œil si le mod est actif ou en pause. Un pack à plat n'emprunte pas l'image de son premier composant. Le choix liste dense / grille se retient d'une session à l'autre.
-- **La fiche d'un mod se refait sur le motif de Découvrir** : bandeau image pleine largeur, bande de chiffres — version, fraîcheur, poids, langues — et l'action qui importe, activer ou mettre en pause, en seul bouton proéminant. L'état du mod (compatibilité, traduction, erreurs, raccourcis, conflits) gagne son onglet « État » ; les chevrons parcourent le cadrage courant sans retourner à la liste, et la fiche d'un composant de pack rouvre celle de son pack.
+- **Conflict rows now name the patches fighting over the asset** when Content Patcher logged them right after the error ("Affected patches: Pack > Patch"). The row stays silent if the log dropped those `TRACE` entries.
+- **A grid mode joins the mod list**: cards in the Discover style, one per pack or mod, opening the detail page on click. Each card carries the cached Nexus screenshot, its category, and tells at a glance whether the mod is active or paused. A flat pack doesn't borrow its first component's picture. The dense-list / grid choice persists across sessions.
+- **The mod detail page is rebuilt on the Discover pattern**: full-width image banner, a strip of key figures — version, freshness, size, languages — and the action that matters, enable or pause, as a single switch, alongside favorites, config, conflict reporting, delete, and a button that reveals the mod's folder in the Finder. The mod's state (compatibility, translation, errors, keybinds, conflicts) gets its own "State" tab; toolbar chevrons walk the current scope without returning to the list, and a pack component's page leads back to its pack's.
 
 ### Changed
-- **La liste des mods parle le langage de l'app.** La recherche vit dans la toolbar, au motif des journaux, et les couleurs et tailles de la rangée passent aux tokens du système de design — un mod en pause se lit désormais d'un glyph, jamais de la couleur seule.
-- **Les pastilles de filtre « configuration » et « favoris » se réduisent à leur glyphe**, leur libellé passant à l'infobulle : la seconde rangée de la toolbar respire, le compte des favoris reste affiché.
-- **Les menus de filtre disent ce que la vue contient** : catégories, types déduits et états de traduction se comptent désormais sur le cadrage affiché (« Tous », « Activés », « En pause », « Problèmes ») et non sur le parc entier.
-- **Une carte sans capture Nexus montre l'illustration de l'app** plutôt qu'un rectangle gris — 148 des 887 dossiers n'ont aucune image à servir.
-- **Le profil actif de la toolbar mène à la page des profils.**
-- **Anomalie, note et config de profil s'alignent dans la bande de métadonnées**, en colonnes fixes d'une ligne à l'autre au lieu de suivre la longueur du nom. L'anomalie et la note s'ouvrent aussi au clic, en popover ; la carte de grille porte les mêmes attributs que la rangée.
+- **The mod list speaks the app's language.** Search lives in the toolbar, journal-style, and row colors and sizes move to design-system tokens — a paused mod reads as a glyph, never color alone.
+- **The "config" and "favorites" filter pills shrink to their glyph**, the label moving to the tooltip: the toolbar's second row breathes, the favorites count stays visible.
+- **Filter menus report what the view contains**: categories, inferred types, and translation states are now counted on the displayed scope ("All", "Enabled", "Paused", "Issues") rather than the whole library.
+- **A card with no Nexus screenshot shows the app illustration** instead of a gray rectangle — 148 of the 887 folders have no picture to serve.
+- **The toolbar's active profile leads to the profiles page.**
+- **Anomaly, note, and per-profile config align in the metadata band**, in fixed columns from one row to the next instead of trailing the name's length. Anomaly and note also open on click, as a popover; the grid card carries the same attributes as the row.
 
 ### Fixed
-- **Le poids d'un mod disparaissait à l'activation** : la bascule renomme son dossier (le point de la pause), et la mesure des poids restait indexée sous l'ancien nom jusqu'au prochain scan complet — fiche et rangées montraient « — ». La mesure suit maintenant le renommement, et le sous-total « poids en pause » avec elle.
-- **Trois icônes manquaient dans les menus de filtre** : deux symboles n'existent pas sur macOS 26 (« Nom (Z-A) », « À traduire »), et le tri actif remplaçait la sienne par une coche redondante — le bouton du menu nomme déjà le tri en cours.
-- **L'infobulle de la pastille d'anomalie ne s'ouvrait jamais** : sa cible était trop courte pour le survol immobile qu'exige macOS.
-- **Un composant de pack commençait à gauche du nom de son pack** : son retrait était forfaitaire au lieu de se calculer sur le chevron et l'étoile qui le précèdent.
+- **A mod's size vanished on activation**: the toggle renames its folder (the pause dot), and the size measurement stayed indexed under the old name until the next full scan — the detail page and the rows showed "—". The measurement now follows the rename, and the "paused size" subtotal with it.
+- **Three icons were missing from filter menus**: two symbols don't exist on macOS 26 ("Name (Z-A)", "To translate"), and the active sort replaced its own icon with a redundant checkmark — the menu button already names the current sort.
+- **The anomaly badge's tooltip never opened**: its hover target was too small for the stationary hover macOS requires.
+- **A pack component started left of its pack's name**: its indent was a flat constant instead of being computed from the chevron and star preceding it.
 
 ## [1.28.0] - 2026-08-30
 
