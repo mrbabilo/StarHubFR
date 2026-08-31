@@ -252,6 +252,24 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       ▸ **Correctif** : normaliser les droits à l'extraction (`grantOwnerWriteAccess`) et retenter
       la suppression après réparation pour les dossiers installés avant le correctif
       (`removeItemGrantingWriteAccess`, site `ModZipInstaller.swift:714`). · **S**
+- [ ] **X8** 📝 *(spécifié le 2026-08-31, à livrer)* — **Le MAIN pris pour référence sur
+      `files.json` peut être obsolète.** `NexusDownloadAPI.pickPrimaryFile(_:)`
+      (`Models/NexusDownloadAPI.swift:58`) prend `list.files.first` — c'est-à-dire le
+      premier renvoyé par l'API, sans garantie d'ordre temporel. Pour un mod à plusieurs
+      fichiers MAIN (cas réel : auteur qui publie v1.0.0, v1.5.0, v2.0.0), la version
+      retenue peut être une version passée. Le cache `ModUpdate.latestVersion` la
+      propage ensuite jusqu'à la prochaine vérification réussie.
+      ▸ **Cause** : aucun tri par `uploaded_timestamp` côté client ; l'ordre de
+      l'API n'est pas contractualisé.
+      ▸ **Correctif** : étendre `NexusModFile` avec `uploaded_timestamp`, ajouter
+      `pickLatestMainFile(_:)` (filtre `categoryId == 1`, puis `max(uploaded_timestamp)`,
+      avec repli sur l'ensemble si aucun MAIN), brancher dans
+      `NexusUpdateChecker.fetchModInfo:608`. Cinq tests unitaires, ~55 min.
+      ▸ **Référence retenue** (rejetée comme code à importer, conservée comme
+      inspiration conceptuelle) : `jathych/Stardew-Valley-Mod-Updater/check_mods.py:81-93`.
+      ▸ **Audit complet** : [`docs/spec-nexus-files-picker.md`](spec-nexus-files-picker.md).
+      ▸ **Origine** : veille concurrentielle 2026-08-31. · **S** · *à traiter avant
+      B2-T5 (dates affichées) — même surface, risque de pollution du cache identique.*
 - [x] **X3** ✅ *(corrigé le 2026-07-30 par `8f0a81e`, sans être mentionné)* — **Bouton
       « Activer » de la page dépendances sans effet.** La piste consignée était la bonne :
       quand la dépendance est l'**enfant d'un pack**, `mod.folderName` désigne le dossier
