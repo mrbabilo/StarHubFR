@@ -54,84 +54,86 @@ struct ModProfilesView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            Text(vm.L(L10n.Profiles.titleFull))
-                .font(.title2)
-                .fontWeight(.semibold)
-                .padding(.top, 10)
+        // Patron page de liste du dépôt (CLAUDE.md « UI »), calé sur le
+        // pilote Mods : toolbar fixe au-dessus d'une liste qui scrolle,
+        // fond `controlBackgroundColor` — plus de conteneur à bordure ni de
+        // titre de page, l'identité de la page vient de la sidebar.
+        VStack(spacing: 0) {
+            // ── Toolbar fixe ────────────────────────────────────────────
+            // Rien à filtrer sur cette page (un seul segment) : l'action
+            // primaire « Ajouter » occupe seule la rangée, à droite.
+            HStack {
+                Spacer()
+                Button(vm.L(L10n.Profiles.addProfile)) { presentNewProfileAlert() }
+                    .buttonStyle(.borderedProminent)
+                    .pointingHandCursor()
+            }
+            .padding(.horizontal, 24)
+            .padding(.top, 24)
+            .padding(.bottom, 12)
+            .background(Color(nsColor: .controlBackgroundColor))
 
-            // List Container
-            VStack(spacing: 0) {
+            Divider()
+
+            // ── Liste ────────────────────────────────────────────────────
+            ScrollView(showsIndicators: false) {
                 if vm.modProfiles.isEmpty {
-                    VStack(spacing: 16) {
+                    VStack(spacing: AppDesign.Spacing.lg) {
                         Image(systemName: "person.2.slash")
-                            .font(.system(size: 40))
-                            .foregroundColor(.secondary.opacity(0.5))
+                            .font(AppDesign.Font.emptyScopeGlyph)
+                            .foregroundColor(.secondary.opacity(AppDesign.Opacity.disabled))
                         Text(vm.L(L10n.Profiles.noProfiles))
-                            .font(.system(size: 13))
+                            .font(AppDesign.Font.body)
                             .foregroundColor(.secondary)
                         Button(vm.L(L10n.Profiles.addProfile)) { presentNewProfileAlert() }
                             .buttonStyle(.borderedProminent)
                             .pointingHandCursor()
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 60)
+                    .padding(.top, 40)
                 } else {
                     let flattened = vm.mods.flattenedMods
                     let installedIds = vm.mods.allUniqueIds
-                    ForEach(Array(vm.modProfiles.enumerated()), id: \.element.id) { index, profile in
-                        ProfileRow(
-                            profile: profile,
-                            isActive: vm.activeProfileId == profile.id,
-                            modCount: profile.enabledModIds.count,
-                            // Compte brut : l'enrichissement (sauvegardes, cache
-                            // Nexus) lit le disque et n'a lieu qu'à l'ouverture
-                            // de la feuille.
-                            issueCount: ProfileDiagnostics.missingMods(in: profile,
-                                                                       installedUniqueIds: installedIds,
-                                                                       backupNames: [:],
-                                                                       nexusHints: [:]).count
-                                + ProfileDiagnostics.dependencyGaps(in: profile,
-                                                                    installedMods: flattened).count,
-                            translation: vm.translationSummary(for: profile),
-                            isMeasuringTranslation: vm.isMeasuringProfileTranslation,
-                            vm: vm,
-                            onApply: { vm.applyProfile(id: profile.id) },
-                            onManage: {
-                                vm.applyProfile(id: profile.id)
-                                currentTab = "Mods"
-                            },
-                            onRename: { renamingProfile = profile; renameText = profile.name },
-                            onDuplicate: { vm.duplicateProfile(id: profile.id) },
-                            onImportFavorites: { importFavorites(into: profile) },
-                            onShowMissing: { profileShowingMissing = profile },
-                            onDelete: { profileToDelete = profile }
-                        )
-                        if index < vm.modProfiles.count - 1 {
-                            Divider().padding(.leading, 64)
+                    LazyVStack(spacing: 0) {
+                        ForEach(Array(vm.modProfiles.enumerated()), id: \.element.id) { index, profile in
+                            ProfileRow(
+                                profile: profile,
+                                isActive: vm.activeProfileId == profile.id,
+                                modCount: profile.enabledModIds.count,
+                                // Compte brut : l'enrichissement (sauvegardes, cache
+                                // Nexus) lit le disque et n'a lieu qu'à l'ouverture
+                                // de la feuille.
+                                issueCount: ProfileDiagnostics.missingMods(in: profile,
+                                                                           installedUniqueIds: installedIds,
+                                                                           backupNames: [:],
+                                                                           nexusHints: [:]).count
+                                    + ProfileDiagnostics.dependencyGaps(in: profile,
+                                                                        installedMods: flattened).count,
+                                translation: vm.translationSummary(for: profile),
+                                isMeasuringTranslation: vm.isMeasuringProfileTranslation,
+                                vm: vm,
+                                onApply: { vm.applyProfile(id: profile.id) },
+                                onManage: {
+                                    vm.applyProfile(id: profile.id)
+                                    currentTab = "Mods"
+                                },
+                                onRename: { renamingProfile = profile; renameText = profile.name },
+                                onDuplicate: { vm.duplicateProfile(id: profile.id) },
+                                onImportFavorites: { importFavorites(into: profile) },
+                                onShowMissing: { profileShowingMissing = profile },
+                                onDelete: { profileToDelete = profile }
+                            )
+                            if index < vm.modProfiles.count - 1 {
+                                Divider().padding(.leading, 64)
+                            }
                         }
                     }
+                    .padding(.horizontal, 24)
+                    .padding(.top, AppDesign.Spacing.lg)
                 }
             }
-            .background(Color(nsColor: .textBackgroundColor))
-            .cornerRadius(10)
-            .overlay(
-                RoundedRectangle(cornerRadius: 10)
-                    .stroke(Color(nsColor: .separatorColor), lineWidth: 1)
-            )
-
-            if !vm.modProfiles.isEmpty {
-                HStack {
-                    Spacer()
-                    Button(vm.L(L10n.Profiles.addProfile)) { presentNewProfileAlert() }
-                        .pointingHandCursor()
-                }
-            }
-
-            Spacer()
         }
-        .padding(30)
-        .background(Color(nsColor: .windowBackgroundColor))
+        .background(Color(nsColor: .controlBackgroundColor))
         // Create
         .alert(vm.L(L10n.Profiles.createNewProfile), isPresented: $isShowingNewProfileAlert) {
             TextField(vm.L(L10n.Profiles.profileNamePlaceholder), text: $newProfileName)
@@ -340,14 +342,14 @@ struct ProfileRow: View {
                 fontWeight: .medium
             )
 
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
+                HStack(spacing: AppDesign.Spacing.sm) {
                     Text(profile.name)
-                        .font(.system(size: 14))
+                        .font(AppDesign.Font.rowTitle)
                         .foregroundColor(.primary)
                     if isActive {
                         Text(vm.L(L10n.Profiles.active))
-                            .font(.system(size: 10, weight: .bold))
+                            .font(AppDesign.Font.iconXS(.bold))
                             .foregroundColor(.white)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
@@ -355,28 +357,17 @@ struct ProfileRow: View {
                             .clipShape(Capsule())
                     }
                 }
-                HStack(spacing: 8) {
-                    Text(String(format: vm.L(L10n.Profiles.modCount), modCount))
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
-                    if issueCount > 0 {
-                        Button(action: onShowMissing) {
-                            HStack(spacing: 4) {
-                                Image(systemName: "exclamationmark.triangle.fill")
-                                Text(String(format: vm.L(L10n.Profiles.issuesBadge), Int64(issueCount)))
-                            }
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(.orange)
-                        }
-                        .buttonStyle(.plain)
-                        .pointingHandCursor()
-                    }
-                }
-                // Sur sa propre ligne, et non à la suite des compteurs : sur le
-                // profil « OK » la rangée porterait « 529 mods », « 6 anomalies »
-                // et « FR 86 % · 50 à traduire » — trois fois plus de texte que
-                // la colonne n'en tient à la largeur minimale de la fenêtre
-                // (820 pt, dont 240 de barre latérale et ~230 de boutons).
+                // La carte à chiffres clés de la spec refonte (§6) : ce qui
+                // décide si on active ce profil se lit en colonnes tenues,
+                // pas en phrases empilées — trois colonnes de ~85 pt tiennent
+                // dans les ~280 pt que la fenêtre minimale (820 pt) laisse
+                // à côté de l'avatar et des boutons.
+                statColumns
+                // Pastilles d'attention sur leur propre ligne, sous les
+                // colonnes : la pastille FR reste la seule porte vers le
+                // diagnostic sur un profil sans le moindre défaut, et son
+                // libellé (« FR 86 % · 50 à traduire ») ne se replie pas en
+                // colonne.
                 translationBadge
                 configBadge
             }
@@ -434,10 +425,10 @@ struct ProfileRow: View {
             .fixedSize()
             .help(vm.L(L10n.Profiles.rename))
         }
-        .padding(.vertical, 12)
-        .padding(.horizontal, 16)
+        .padding(.vertical, AppDesign.Spacing.md)
+        .padding(.horizontal, AppDesign.Spacing.lg)
         .contentShape(Rectangle())
-        .background(isHovered ? Color.primary.opacity(0.03) : Color.clear)
+        .background(isHovered ? Color.primary.opacity(AppDesign.Opacity.subtle) : Color.clear)
         .onHover { isHovered = $0 }
         .onAppear { configSummary = vm.profileConfigSummary(for: profile) }
         .contextMenu {
@@ -456,6 +447,60 @@ struct ProfileRow: View {
                 Button(vm.L(L10n.Profiles.delete), role: .destructive) { onDelete() }
             }
         }
+    }
+
+    /// Les trois chiffres qui résument le profil (spec refonte §6, « carte à
+    /// chiffres clés »). Chaque colonne : libellé `footnote` au-dessus,
+    /// valeur `body` semibold en dessous — le motif `StatStrip` en
+    /// miniature, à hauteur réservée : une colonne sans données affiche
+    /// « — », la rangée ne saute pas.
+    ///
+    /// Seule « Anomalies » est un bouton : c'est la donnée qui mène au
+    /// diagnostic, la cible de clic est donc la colonne entière, pas un
+    /// glyph de 12 pt (a11y §7). « 0 » s'affiche neutre — un zéro est une
+    /// information ; « > 0 » porte glyph **et** couleur, jamais la couleur
+    /// seule (P6).
+    private var statColumns: some View {
+        HStack(alignment: .top, spacing: AppDesign.Spacing.xl) {
+            statColumn(label: vm.L(L10n.Profiles.colMods),
+                       value: "\(modCount)",
+                       help: String(format: vm.L(L10n.Profiles.modCount), modCount))
+            Button(action: onShowMissing) {
+                statColumn(label: vm.L(L10n.Profiles.colIssues),
+                           value: "\(issueCount)",
+                           attention: issueCount > 0,
+                           help: String(format: vm.L(L10n.Profiles.issuesBadge),
+                                        Int64(issueCount)))
+            }
+            .buttonStyle(.plain)
+            .pointingHandCursor()
+            statColumn(label: vm.L(L10n.Profiles.colConfigs),
+                       value: configSummary.total > 0 ? "\(configSummary.total)" : "—")
+        }
+        .fixedSize()
+    }
+
+    /// Une colonne de la bande : libellé, valeur, et le glyph d'attention
+    /// quand la donnée en demande.
+    private func statColumn(label: String, value: String,
+                            attention: Bool = false, help: String = "") -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label)
+                .font(AppDesign.Font.footnote)
+                .foregroundColor(.secondary)
+            HStack(spacing: AppDesign.Spacing.xs) {
+                if attention {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(AppDesign.Font.iconXXS)
+                        .foregroundColor(AppDesign.Color.warning)
+                }
+                Text(value)
+                    .font(AppDesign.Font.body(.semibold))
+                    .foregroundColor(attention ? AppDesign.Color.warning : .primary)
+                    .lineLimit(1)
+            }
+        }
+        .help(help)
     }
 
     /// Les `config.json` que ce profil retient, et ceux dont le mod n'est
