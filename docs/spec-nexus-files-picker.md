@@ -201,8 +201,12 @@ valide, le nouveau champ est juste un décodage de plus).
       prélevé sur un mod de la modlist de test (au moins un mod avec 3+ fichiers MAIN).
       *Sonde live 2026-08-31 : 4 mods à 3+ MAIN (8828, 33851, 49993, 45809),
       tous vérifiés — l'ancien picker se trompait sur chacun.*
-- [ ] `fetchModInfo` ne lève plus d'avertissement, et le cache `latestVersion` d'un
+- [x] `fetchModInfo` ne lève plus d'avertissement, et le cache `latestVersion` d'un
       mod testé correspond bien à la version du MAIN le plus récent sur Nexus.
-      *Reste la vérif à l'écran : au prochain « Vérifier », Content Patcher
-      (1915) doit afficher 2.9.1 comme dernière version.*
+      *Vérifié en app le 2026-08-31 (16:42) : le « Vérifier » de l'utilisateur a
+      écrit `ModCollectionAlbum` (50802) `latestVersion: "5"` — la réponse du
+      nouveau picker ; l'ancien aurait dit `"1"`. Content Patcher (1915) était
+      un mauvais sonde : déjà à jour en 2.9.1, son absence de la liste est le
+      comportement correct. Anomalie concomitante notée : l'en-tête Nexus de
+      50802 porte un `uploadedTime` aberrant (≈ 1996).*
 - [x] Entrée `[Unreleased]` du `CHANGELOG.md` ajoutée sous `### Fixed`.
