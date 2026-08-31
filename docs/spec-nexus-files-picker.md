@@ -1,6 +1,9 @@
 # SPEC — Sélection du fichier principal sur `files.json`
 
-> **Statut** : à implémenter · **Effort** : S · **Risque** : bas
+> **Statut** : implémenté le 2026-08-31 (sauf critère 3 : validé par tests
+> synthétiques + raisonnement — aucun parc ne rend le nouveau picker *pire* :
+> sans timestamp il retombe sur le premier, comportement d'avant ; sonde live
+> à la main si souhaitée) · **Effort** : S · **Risque** : bas
 > **Origine** : audit de `jathych/Stardew-Valley-Mod-Updater` (2026-08-31), §« Audit 2 ».
 > **Documents liés** : [`ROADMAP.md`](ROADMAP.md) (X8), [`DOMAINE.md`](DOMAINE.md) §3.2.
 

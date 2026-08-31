@@ -11,14 +11,24 @@ import Foundation
 struct NexusModFile: Decodable {
     let fileId: Int
     let categoryId: Int
+    /// Nom lisible de la catégorie côté Nexus (« MAIN », « OLD VERSION »,
+    /// « MISC »). Décodé pour observabilité ; le tri se fait sur
+    /// `categoryId`/`uploadedTimestamp`.
+    let categoryName: String?
     let version: String?
     let modVersion: String?
+    /// Timestamp Unix (secondes) de la mise en ligne de **ce fichier**. Source
+    /// unique de vérité pour « le plus récent » : `updated_timestamp` du mod
+    /// entier peut appartenir à un OPTIONAL plus récent que le MAIN.
+    let uploadedTimestamp: Int?
 
     enum CodingKeys: String, CodingKey {
         case fileId = "file_id"
         case categoryId = "category_id"
+        case categoryName = "category_name"
         case version
         case modVersion = "mod_version"
+        case uploadedTimestamp = "uploaded_timestamp"
     }
 }
 
@@ -57,6 +67,21 @@ enum NexusDownloadAPI {
     /// first file in the list.
     static func pickPrimaryFile(_ list: NexusModFileList) -> NexusModFile? {
         list.files.first { $0.categoryId == 1 } ?? list.files.first
+    }
+
+    /// Le MAIN le plus récent (par `uploaded_timestamp` décroissant) — X8 :
+    /// l'ordre de la réponse n'est pas contractualisé par Nexus, et un mod à
+    /// plusieurs MAIN verra son premier renvoyé être une version passée.
+    /// Repli sur le plus récent toutes catégories s'il n'y a aucun MAIN.
+    /// Un timestamp absent compte comme très ancien : il n'est jamais élu
+    /// « plus récent » face à un fichier daté. `pickPrimaryFile` reste pour
+    /// la résolution d'ID de téléchargement (`NexusDownloader.resolveFileId`).
+    static func pickLatestMainFile(_ list: NexusModFileList) -> NexusModFile? {
+        let main = list.files.filter { $0.categoryId == 1 }
+        let pool = main.isEmpty ? list.files : main
+        return pool.max { (lhs, rhs) in
+            (lhs.uploadedTimestamp ?? 0) < (rhs.uploadedTimestamp ?? 0)
+        }
     }
 
     static func pickPrimaryFileId(_ list: NexusModFileList) -> Int? {

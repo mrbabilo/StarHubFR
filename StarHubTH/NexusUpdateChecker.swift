@@ -605,7 +605,10 @@ final class NexusUpdateChecker {
                 self.noteRateLimitIfThrottled(response)
                 if let filesData = filesData,
                    let fileList = try? NexusDownloadAPI.decodeFileList(filesData),
-                   let primaryFile = NexusDownloadAPI.pickPrimaryFile(fileList),
+                   // X8 : le MAIN le plus récent, pas le premier renvoyé — un
+                   // mod à plusieurs MAIN comparerait sinon sa version à une
+                   // version passée.
+                   let primaryFile = NexusDownloadAPI.pickLatestMainFile(fileList),
                    let fileVer = (primaryFile.version ?? primaryFile.modVersion)?.trimmingCharacters(in: .whitespacesAndNewlines),
                    !fileVer.isEmpty {
                     if Self.compare(fileVer, finalVersion) == .orderedDescending {

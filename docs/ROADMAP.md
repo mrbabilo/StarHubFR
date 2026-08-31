@@ -252,13 +252,21 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       ▸ **Correctif** : normaliser les droits à l'extraction (`grantOwnerWriteAccess`) et retenter
       la suppression après réparation pour les dossiers installés avant le correctif
       (`removeItemGrantingWriteAccess`, site `ModZipInstaller.swift:714`). · **S**
-- [ ] **X8** 📝 *(spécifié le 2026-08-31, à livrer)* — **Le MAIN pris pour référence sur
+- [x] **X8** 📝 *(spécifié le 2026-08-31, à livrer)* — **Le MAIN pris pour référence sur
       `files.json` peut être obsolète.** `NexusDownloadAPI.pickPrimaryFile(_:)`
       (`Models/NexusDownloadAPI.swift:58`) prend `list.files.first` — c'est-à-dire le
       premier renvoyé par l'API, sans garantie d'ordre temporel. Pour un mod à plusieurs
       fichiers MAIN (cas réel : auteur qui publie v1.0.0, v1.5.0, v2.0.0), la version
       retenue peut être une version passée. Le cache `ModUpdate.latestVersion` la
       propage ensuite jusqu'à la prochaine vérification réussie.
+      *Livré le 2026-08-31 : `pickLatestMainFile` (filtre MAIN puis
+      `max(uploaded_timestamp ?? 0)`, repli toutes catégories) branché dans
+      `fetchModInfo` ; 5 tests, RED comportemental prouvé contre un stub avant
+      l'implémentation. `pickPrimaryFile` reste pour `NexusDownloader.resolveFileId`.
+      **Constat frère relevé, non traité** : `resolveFileId` alimente aussi les
+      téléchargements à `fileId: nil` (`downloadModFromNexus` VM:5157,
+      `installTranslation` VM:5953) et prend le premier MAIN — même défaut,
+      à l'installation cette fois. Deux lignes à changer le jour où c'est décidé.*
       ▸ **Cause** : aucun tri par `uploaded_timestamp` côté client ; l'ordre de
       l'API n'est pas contractualisé.
       ▸ **Correctif** : étendre `NexusModFile` avec `uploaded_timestamp`, ajouter
