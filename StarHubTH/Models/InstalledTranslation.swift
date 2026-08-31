@@ -49,6 +49,43 @@ public struct InstalledTranslation: Codable, Equatable, Sendable {
     }
 }
 
+/// Déclaration manuelle d'une traduction posée hors de l'app (A3-T6).
+///
+/// Le registre des `InstalledTranslation` est rempli quand l'app **pose** la
+/// traduction — elle sait alors quels fichiers déposer et lesquels remettre.
+/// Une traduction mise à la main avant que l'app n'existe, ou copiée d'un
+/// autre profil, n'y figure pas : aucun install ne l'a écrite. Sans trace
+/// nulle part, le suivi de version reste muet.
+///
+/// Cette structure porte le strict nécessaire pour le suivi et le retrait
+/// « propre » depuis l'UI : l'identité Nexus (`modId`, `name`), la version
+/// connue, et la date Nexus si elle a pu être relevée. **Pas de `files`,
+/// pas de `replacedFiles`** : on ne sait pas ce que la traduction a
+/// recouvert, et prétendre le savoir pour défaire quelque chose qu'on n'a
+/// pas fait serait le défaut exact qu'on vient de citer (cf. le commentaire
+/// de `replacedFiles` sur `InstalledTranslation`).
+///
+/// Conséquence pratique : un clic sur « Retirer la déclaration » sur une
+/// **déclaration** n'efface rien du disque — il retire juste la ligne du
+/// registre. C'est l'utilisateur qui a posé les fichiers, c'est lui qui les
+/// enlèvera. L'UI le dit.
+public struct DeclaredTranslation: Codable, Equatable, Sendable {
+    public let nexusModId: Int
+    public let nexusName: String
+    public let version: String?
+    public let updatedAt: Date?
+    public let declaredAt: Date
+
+    public init(nexusModId: Int, nexusName: String, version: String?,
+                updatedAt: Date?, declaredAt: Date) {
+        self.nexusModId = nexusModId
+        self.nexusName = nexusName
+        self.version = version
+        self.updatedAt = updatedAt
+        self.declaredAt = declaredAt
+    }
+}
+
 /// Ce que l'app retient des traductions posées sur ses mods.
 ///
 /// Type pur : la persistance vit ailleurs, comme pour `ModErrorHistory`.
@@ -71,25 +108,60 @@ public struct InstalledTranslationRegistry: Codable, Equatable, Sendable {
     /// héritage, pas par nature.
     public private(set) var addonsByHost: [String: [InstalledTranslation]]
 
+    /// `folderName` du mod hôte → la **déclaration** d'une traduction posée à
+    /// la main (A3-T6). Une par mod : comme `byHost`, deux déclarations sur le
+    /// même mod signifieraient qu'on ne sait plus laquelle l'utilisateur a
+    /// voulu dire. La déclaration ne remplace pas une `InstalledTranslation`
+    /// existante — elle coexiste avec, jusqu'à ce que l'utilisateur fasse
+    /// quelque chose.
+    public private(set) var declaredTranslations: [String: DeclaredTranslation]
+
     public init(byHost: [String: InstalledTranslation] = [:],
-                addonsByHost: [String: [InstalledTranslation]] = [:]) {
+                addonsByHost: [String: [InstalledTranslation]] = [:],
+                declaredTranslations: [String: DeclaredTranslation] = [:]) {
         self.byHost = byHost
         self.addonsByHost = addonsByHost
+        self.declaredTranslations = declaredTranslations
     }
 
-    /// **Relit l'ancien format.** Les registres écrits avant que les greffes
-    /// existent ne portent que `byHost` ; exiger `addonsByHost` ferait échouer
-    /// tout le décodage, et l'utilisateur perdrait le seul moyen de retirer les
-    /// traductions déjà posées.
+    /// **Relit les anciens formats.** Les registres écrits avant les greffes
+    /// ne portent que `byHost` ; ceux écrits avant A3-T6 ne portent ni greffes
+    /// ni déclarations. Exiger les nouveaux champs ferait perdre la seule
+    /// trace qu'on ait des fichiers déjà posés.
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         byHost = try container.decode([String: InstalledTranslation].self, forKey: .byHost)
         addonsByHost = try container.decodeIfPresent(
             [String: [InstalledTranslation]].self, forKey: .addonsByHost) ?? [:]
+        declaredTranslations = try container.decodeIfPresent(
+            [String: DeclaredTranslation].self, forKey: .declaredTranslations) ?? [:]
     }
 
     public func translation(forHost host: String) -> InstalledTranslation? {
         byHost[host]
+    }
+
+    /// La déclaration manuelle d'une traduction sur ce mod, ou `nil`. Une
+    /// déclaration ne s'invente pas : elle n'existe que si l'utilisateur l'a
+    /// posée. Cf. `hasUndeclaredFrenchTranslation` pour le cas inverse.
+    public func declaredTranslation(forHost host: String) -> DeclaredTranslation? {
+        declaredTranslations[host]
+    }
+
+    /// Une seule déclaration par hôte : en écrire une seconde remplace la
+    /// précédente. C'est volontaire — l'utilisateur a peut-être trouvé le
+    /// bon identifiant Nexus après coup, et garderait l'ancien comme une
+    /// « proposition écartée » ne servirait qu'à afficher deux lignes
+    /// concurrentes pour la même traduction.
+    public mutating func declare(_ decl: DeclaredTranslation, forHost host: String) {
+        declaredTranslations[host] = decl
+    }
+
+    /// Oublie une déclaration. Renvoie `true` quand il y avait effectivement
+    /// quelque chose à oublier — utile pour le journal.
+    @discardableResult
+    public mutating func undeclare(forHost host: String) -> Bool {
+        declaredTranslations.removeValue(forKey: host) != nil
     }
 
     /// Les greffes posées sur ce mod, de la plus récente à la plus ancienne.

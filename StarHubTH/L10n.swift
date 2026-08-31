@@ -292,6 +292,20 @@ enum L10n {
         static let translationUpdate            = "mods_translation_update"
         static let translationFromNexus         = "mods_translation_from_nexus"
 
+        // MARK: A3-T6 — déclaration manuelle d'une traduction posée hors de l'app
+        static let translationUndeclared       = "mods_translation_undeclared"
+        static let translationUndeclaredHint   = "mods_translation_undeclared_hint"
+        static let translationDeclared         = "mods_translation_declared"
+        static let translationDeclare          = "mods_translation_declare"
+        static let translationDeclareTitle     = "mods_translation_declare_title"
+        static let translationDeclareExplainer = "mods_translation_declare_explainer"
+        static let translationDeclareNexusId   = "mods_translation_declare_nexus_id"
+        static let translationDeclareName      = "mods_translation_declare_name"
+        static let translationDeclareVersion   = "mods_translation_declare_version"
+        static let translationDeclareConfirm   = "mods_translation_declare_confirm"
+        static let translationUndeclare        = "mods_translation_undeclare"
+        static let translationUndeclareHint    = "mods_translation_undeclare_hint"
+
         // MARK: Compatibilité smapi.io (A2-T2)
         static let compatStatusBroken       = "mods_compat_status_broken"
         static let compatStatusAbandoned    = "mods_compat_status_abandoned"

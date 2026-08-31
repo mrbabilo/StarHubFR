@@ -1773,7 +1773,7 @@ backup se retrouve en moins de dix secondes.
          écarter le mod hôte lui-même par son `modId`. Reste à porter `tags` dans
          `NexusModSearch.Hit`, qui ne le lit pas encore.*
 
-- [ ] **A3-T6** — **Déclarer une traduction que l'app n'a pas posée.** L'app sait
+- [x] **A3-T6** — **Déclarer une traduction que l'app n'a pas posée.** L'app sait
       rattacher une ligne **déjà au registre** — menu « Rattacher à Nexus », plus le
       rattachement muet d'**A3-T5** quand une recherche a tourné. Ce qui manque, c'est
       tout ce qui a été posé **hors de l'app** : ces traductions-là n'ont aucune ligne,
@@ -1794,6 +1794,20 @@ backup se retrouve en moins de dix secondes.
       ne s'inscrit d'office** : `birthtime` ment sur un dossier copié ou restauré, et
       une provenance devinée dans un registre qui sert justement à ne pas deviner vaut
       moins que pas de provenance du tout. · **M**
+      *Livré le 2026-08-31. Nouveau type `DeclaredTranslation` (Core) — strict
+      nécessaire à l'identité et au suivi (modId, nom, version, dates), **pas** de
+      liste de fichiers déposés ni de fichiers recouverts : on ne sait pas ce que
+      l'utilisateur a posé, et prétendre le savoir pour défaire quelque chose qu'on
+      n'a pas écrit serait le défaut exact qu'on vient de citer. Champ
+      `declaredTranslations: [String: DeclaredTranslation]` ajouté à
+      `InstalledTranslationRegistry` avec **décodage rétro-compatible** : les
+      registres écrits avant A3-T6 (sans le champ) restent lisibles. Une
+      déclaration coexiste avec une installation existante, et `undeclare` ne
+      touche pas le disque. UI : bannière « traduction présente, origine inconnue »
+      sur la fiche quand `i18n/fr.json` est sur disque **et** qu'aucune ligne
+      (installée ni déclarée) n'existe, avec deux sorties : recherche Nexus ou
+      déclaration manuelle (sheet). 6 tests sur le registre, dont le back-compat
+      et la coexistence install + déclaration.*
       *Réserve : 310 gestes. C'est pourquoi les deux chemins automatiques comptent —
       la lecture du nom de fichier au dépôt (`NexusArchiveName`, livrée le 2026-08-29,
       9 noms lus sur 13 étiquetés) couvre les poses futures, `confirmedNexusId` couvre

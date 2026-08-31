@@ -15,6 +15,7 @@ where the exact log format was verified.
 ### Added
 - **Update checks no longer hit smapi.io on every launch**: a check that returned a response keeps the next automatic one away for 12 hours — the list still opens on the cached results. The manual "Check" button on the Updates page always refreshes.
 - **Pathoschild list as a fallback when smapi.io is silent** (A2-T3): if the live check fails or times out, the app fetches `Pathoschild/SmapiCompatibilityList`'s `data/mods.jsonc` dump, joins it on `UniqueID`, and fills in the verdicts that smapi.io didn't return. The compatibility health card now carries a small badge naming the source — smapi.io (live), the Pathoschild dump, or the cached dump with its date — so a fallback isn't mistaken for fresh data. The dump is cached on disk for 6 hours and re-used when the network is down.
+- **A mod with a hand-installed French translation can now be declared** (A3-T6): when the registry has no entry for a mod but its folder ships an `i18n/fr.json` (or `i18n/fr/*.json`), the translation tab on the mod page now shows a "Translation present, origin unknown" banner with two actions — search Nexus, or declare manually (Nexus mod id + name + optional version). The declaration is stored alongside installed translations, back-compatibly, and undeclaring only touches the registry — files on disk are not modified, since the app never installed them.
 
 ## [1.29.0] - 2026-08-30
 

@@ -225,4 +225,86 @@ struct InstalledTranslationTests {
                                    nexusId: 31000, at: 2))
         #expect(registry.addons(forHost: "ItemBags").count == 2)
     }
+
+    // MARK: - A3-T6 — déclaration manuelle d'une traduction posée hors de l'app
+
+    private func decl(modId: Int = 50233, name: String = "Parchment - FR") -> DeclaredTranslation {
+        DeclaredTranslation(nexusModId: modId, nexusName: name,
+                           version: "1.1.0", updatedAt: t0, declaredAt: t0)
+    }
+
+    /// La déclaration est retrouvée par son hôte, comme une traduction
+    /// installée — mais par le canal séparé `declaredTranslation(forHost:)`.
+    /// Une installation et une déclaration peuvent cohabiter sur le même mod.
+    @Test func aDeclaredTranslationIsFoundByItsHost() {
+        var registry = InstalledTranslationRegistry()
+        registry.declare(decl(), forHost: "Parchment")
+        #expect(registry.declaredTranslation(forHost: "Parchment")?.nexusModId == 50233)
+        #expect(registry.declaredTranslation(forHost: "Other") == nil)
+        #expect(registry.translation(forHost: "Parchment") == nil)
+    }
+
+    /// Une seule déclaration par mod : une seconde écrase la première. C'est
+    /// volontaire — l'utilisateur peut avoir trouvé le bon identifiant après
+    /// coup, et l'ancien ne resterait qu'à embrouiller.
+    @Test func aSecondDeclarationReplacesTheFirst() {
+        var registry = InstalledTranslationRegistry()
+        registry.declare(decl(modId: 1), forHost: "Parchment")
+        registry.declare(decl(modId: 2, name: "Parchment - FR v2"), forHost: "Parchment")
+        #expect(registry.declaredTranslation(forHost: "Parchment")?.nexusModId == 2)
+    }
+
+    /// Oublier une déclaration rend `true` quand il y avait quelque chose, et
+    /// `false` sinon — utile au journal pour distinguer un oubli d'une
+    /// absence.
+    @Test func undeclaringReturnsWhetherSomethingWasForgotten() {
+        var registry = InstalledTranslationRegistry()
+        registry.declare(decl(), forHost: "Parchment")
+        let first = registry.undeclare(forHost: "Parchment")
+        #expect(first)
+        let second = registry.undeclare(forHost: "Parchment")
+        #expect(!second)
+        let third = registry.undeclare(forHost: "Jamais vu")
+        #expect(!third)
+    }
+
+    /// Une installation et une déclaration coexistent sur le même hôte sans
+    /// s'écraser — elles répondent à deux questions différentes
+    /// (l'app a-t-elle posé ? l'utilisateur a-t-il déclaré ?).
+    @Test func aDeclarationCoexistsWithAnInstall() {
+        var registry = InstalledTranslationRegistry()
+        registry.record(translation(host: "Parchment"))
+        registry.declare(decl(modId: 99999), forHost: "Parchment")
+        #expect(registry.translation(forHost: "Parchment")?.nexusModId == 50233)
+        #expect(registry.declaredTranslation(forHost: "Parchment")?.nexusModId == 99999)
+    }
+
+    /// **Les anciens registres (avant A3-T6) doivent toujours se décoder.**
+    /// Exiger `declaredTranslations` ferait échouer le décodage, et
+    /// l'utilisateur perdrait le seul moyen de désinstaller ses anciennes
+    /// traductions posées par l'app.
+    @Test func aRegistryWrittenBeforeDeclarationsStillDecodes() throws {
+        let old = """
+        {"byHost":{"FishingLogbook":{"hostFolderName":"FishingLogbook","nexusModId":50233,
+        "nexusName":"FishingLogbook - FR","version":"1.1.0","installedAt":770000000,
+        "files":["i18n/fr.json"],"replacedFiles":{}}},
+        "addonsByHost":{}}
+        """
+        let registry = try JSONDecoder().decode(InstalledTranslationRegistry.self,
+                                                from: Data(old.utf8))
+        #expect(registry.translation(forHost: "FishingLogbook")?.nexusModId == 50233)
+        #expect(registry.declaredTranslations.isEmpty)
+    }
+
+    /// Le registre complet (installation + greffes + déclaration) survit à un
+    /// aller-retour JSON.
+    @Test func theRegistryWithDeclarationsSurvivesARoundTrip() throws {
+        var registry = InstalledTranslationRegistry()
+        registry.record(translation())
+        registry.recordAddon(addon("Utility Bags"))
+        registry.declare(decl(modId: 99999), forHost: "Other")
+        let data = try JSONEncoder().encode(registry)
+        let back = try JSONDecoder().decode(InstalledTranslationRegistry.self, from: data)
+        #expect(back == registry)
+    }
 }

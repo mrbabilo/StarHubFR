@@ -1636,17 +1636,29 @@ private struct SupplementSection: View {
 private struct TranslationSection: View {
     @ObservedObject var vm: StarHubTHViewModel
     let mod: ModItem
+    @State private var showDeclareSheet = false
 
     private var installed: InstalledTranslation? { vm.translation(for: mod) }
     private var hits: [NexusModSearch.Hit] { vm.translationHits[mod.folderName] ?? [] }
     private var isSearching: Bool { vm.searchingTranslations.contains(mod.folderName) }
     private var isBusy: Bool { vm.busyTranslations.contains(mod.folderName) }
     private var update: NexusModSearch.Hit? { vm.translationUpdateAvailable(for: mod) }
+    /// A3-T6 — traduction sur disque mais inconnue du registre. Le bandeau
+    /// n'apparaît **que** quand `installed` est `nil` : une traduction déjà
+    /// suivie par l'app n'a rien à déclarer.
+    private var showUndeclaredBanner: Bool {
+        installed == nil && vm.hasUndeclaredFrenchTranslation(for: mod)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             if let installed {
                 inPlace(installed)
+            } else if let declared = vm.declaredTranslation(for: mod) {
+                declaredInPlace(declared)
+            }
+            if showUndeclaredBanner {
+                undeclaredBanner
             }
             searchRow
             // Rien tant qu'on n'a pas cherché : une liste vide affichée
@@ -1663,6 +1675,125 @@ private struct TranslationSection: View {
             }
         }
         .padding(.top, 4)
+        .sheet(isPresented: $showDeclareSheet) {
+            declareSheet
+        }
+    }
+
+    /// Variante « déclarée à la main ». Pas d'install, pas de fichiers
+    /// connus : un clic sur « Retirer » n'enlève rien du disque, il retire
+    /// juste la ligne du registre (et le bandeau « origine inconnue »
+    /// réapparaît). L'UI le dit.
+    @ViewBuilder
+    private func declaredInPlace(_ declared: DeclaredTranslation) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: "person.crop.rectangle.badge.checkmark")
+                .font(.system(size: 10))
+                .foregroundColor(.blue)
+            Text(vm.L(L10n.Mods.translationDeclared))
+                .font(.system(size: 12, weight: .medium))
+            Text(declared.nexusName)
+                .font(.system(size: 11))
+                .foregroundColor(.secondary)
+                .lineLimit(1)
+                .truncationMode(.middle)
+            Spacer()
+            Button(vm.L(L10n.Mods.translationUndeclare)) {
+                vm.undeclareTranslation(for: mod)
+            }
+            .buttonStyle(.borderless)
+            .foregroundColor(.red)
+            .font(.system(size: 11))
+            .help(vm.L(L10n.Mods.translationUndeclareHint))
+        }
+    }
+
+    /// Bandeau « traduction présente, origine inconnue ». Deux sorties :
+    /// **recherche Nexus** (bouton à gauche, qui remplit la même barre que
+    /// `searchRow`), et **déclaration manuelle** (à droite, qui ouvre la
+    /// sheet). Aucune ne s'inscrit d'office — `birthtime` et `mtime` mentent
+    /// sur un dossier copié ou restauré, et deviner une provenance dans un
+    /// registre qui sert justement à ne pas deviner vaudrait moins que pas
+    /// de provenance du tout.
+    @ViewBuilder
+    private var undeclaredBanner: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "questionmark.circle")
+                .foregroundColor(.orange)
+                .font(.system(size: 12))
+                .padding(.top, 2)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(vm.L(L10n.Mods.translationUndeclared))
+                    .font(.system(size: 12, weight: .medium))
+                Text(vm.L(L10n.Mods.translationUndeclaredHint))
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 6) {
+                    Button(vm.L(L10n.Mods.translationDeclare)) {
+                        showDeclareSheet = true
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    Button(vm.L(L10n.Mods.translationOpenNexus)) {
+                        vm.searchTranslations(for: mod)
+                    }
+                    .buttonStyle(.borderless)
+                    .controlSize(.small)
+                    .disabled(isBusy)
+                }
+            }
+        }
+        .padding(8)
+        .background(Color.orange.opacity(0.08))
+        .cornerRadius(AppDesignCore.Radius.sm)
+    }
+
+    /// Sheet de déclaration manuelle : `nexusModId` + nom + version (option).
+    /// La date Nexus reste à `nil` : on ne la demande pas à l'utilisateur, et
+    /// une recherche dédiée peut la remplir après coup.
+    @State private var declareModId: String = ""
+    @State private var declareName: String = ""
+    @State private var declareVersion: String = ""
+
+    @ViewBuilder
+    private var declareSheet: some View {
+        VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
+            Text(vm.L(L10n.Mods.translationDeclareTitle))
+                .font(.system(size: 15, weight: .bold))
+            Text(vm.L(L10n.Mods.translationDeclareExplainer))
+                .font(.system(size: 11))
+                .foregroundColor(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            TextField(vm.L(L10n.Mods.translationDeclareNexusId), text: $declareModId)
+                .textFieldStyle(.roundedBorder)
+            TextField(vm.L(L10n.Mods.translationDeclareName), text: $declareName)
+                .textFieldStyle(.roundedBorder)
+            TextField(vm.L(L10n.Mods.translationDeclareVersion), text: $declareVersion)
+                .textFieldStyle(.roundedBorder)
+            HStack {
+                Spacer()
+                Button(vm.L(L10n.Saves.cancel)) { showDeclareSheet = false }
+                Button(vm.L(L10n.Mods.translationDeclareConfirm)) {
+                    if let modId = Int(declareModId.trimmingCharacters(in: .whitespaces)),
+                       modId > 0 {
+                        let version = declareVersion.trimmingCharacters(in: .whitespaces)
+                        vm.declareTranslation(
+                            modId: modId,
+                            name: declareName.trimmingCharacters(in: .whitespaces),
+                            version: version.isEmpty ? nil : version,
+                            updatedAt: nil,
+                            for: mod)
+                    }
+                    showDeclareSheet = false
+                }
+                .keyboardShortcut(.defaultAction)
+                .disabled(Int(declareModId.trimmingCharacters(in: .whitespaces)) ?? 0 <= 0
+                          || declareName.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+        }
+        .padding(20)
+        .frame(width: 420)
     }
 
     @ViewBuilder

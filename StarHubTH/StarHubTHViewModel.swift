@@ -5448,6 +5448,89 @@ class StarHubTHViewModel: ObservableObject {
         installedTranslations.translation(forHost: mod.folderName)
     }
 
+    /// La déclaration manuelle d'une traduction sur ce mod (A3-T6).
+    /// Distincte de `translation(for:)` : une déclaration ne porte pas la
+    /// liste des fichiers déposés, juste l'identité Nexus.
+    func declaredTranslation(for mod: ModItem) -> DeclaredTranslation? {
+        installedTranslations.declaredTranslation(forHost: mod.folderName)
+    }
+
+    /// `true` quand un fichier `i18n/fr.json` (ou layout B équivalent) est
+    /// présent sur le disque **sans** qu'aucune trace n'en soit gardée —
+    /// ni `InstalledTranslation` (l'app ne l'a pas posé), ni
+    /// `DeclaredTranslation` (l'utilisateur ne l'a pas déclaré).
+    ///
+    /// C'est le signal qui fait apparaître le bandeau « traduction présente,
+    /// origine inconnue » sur la fiche. **Disque seul** : un `i18n/fr.json`
+    /// copié manuellement ne fait pas la différence.
+    ///
+    /// Coût : un `FileManager.fileExists` par appel. Pas de cache : la fiche
+    /// n'est pas un écran appelé en boucle, et un fichier qui apparaît ou
+    /// disparaît veut être vu tout de suite.
+    func hasUndeclaredFrenchTranslation(for mod: ModItem) -> Bool {
+        guard installedTranslations.translation(forHost: mod.folderName) == nil,
+              installedTranslations.declaredTranslation(forHost: mod.folderName) == nil
+        else { return false }
+        return Self.modFolderHasFrenchTranslation(mod: mod, basePath: gameDir)
+    }
+
+    /// Le test disque, isolé pour pouvoir être réutilisé (et testé) sans
+    /// trainer le VM. `mod` est résolu via son `physicalFolderName` pour
+    /// respecter le toggle point (un mod en pause vit dans `Mods/.X`).
+    /// `basePath` est le `gameDir` côté UI, ou un dossier jetable côté test.
+    static func modFolderHasFrenchTranslation(mod: ModItem, basePath: String) -> Bool {
+        guard !basePath.isEmpty else { return false }
+        let hostURL = URL(fileURLWithPath: basePath, isDirectory: true)
+            .appendingPathComponent("Mods", isDirectory: true)
+            .appendingPathComponent(mod.physicalFolderName, isDirectory: true)
+        // Layout A — `i18n/fr.json` direct. Layout B — `i18n/fr/*.json`.
+        // On accepte l'un ou l'autre : la déclaration manuelle n'a pas à
+        // trancher ce que le traducteur a rangé où.
+        let i18n = hostURL.appendingPathComponent("i18n", isDirectory: true)
+        let frJson = i18n.appendingPathComponent("fr.json")
+        if FileManager.default.fileExists(atPath: frJson.path) { return true }
+        let frDir = i18n.appendingPathComponent("fr", isDirectory: true)
+        if let entries = try? FileManager.default.contentsOfDirectory(atPath: frDir.path),
+           entries.contains(where: { $0.hasSuffix(".json") && !$0.hasPrefix(".") }) {
+            return true
+        }
+        return false
+    }
+
+    /// Enregistre une déclaration manuelle pour ce mod (A3-T6). Le geste
+    /// suffit à faire basculer la fiche du bandeau « origine inconnue » à la
+    /// ligne « traduction présente, déclarée », avec le suivi de version.
+    ///
+    /// `nexusModId <= 0` est rejeté en silence : sans identifiant Nexus,
+    /// la déclaration ne sert qu'à l'utilisateur, pas à l'app — l'avertissement
+    /// resterait juste, mais aucune mise à jour ne pourrait être détectée.
+    func declareTranslation(modId: Int, name: String, version: String?,
+                            updatedAt: Date?, for mod: ModItem) {
+        guard modId > 0, !name.isEmpty else { return }
+        let decl = DeclaredTranslation(nexusModId: modId, nexusName: name,
+                                       version: version, updatedAt: updatedAt,
+                                       declaredAt: Date())
+        installedTranslations.declare(decl, forHost: mod.folderName)
+        if InstalledTranslationStore.save(installedTranslations) {
+            log("Traduction déclarée sur \(mod.folderName) : \(name) (#\(modId))", level: .info)
+        } else {
+            log("Déclaration non enregistrée : la fiche affichera encore « origine inconnue »",
+                level: .warning)
+        }
+    }
+
+    /// Retire une déclaration manuelle. **N'altère pas le disque** : les
+    /// fichiers posés par l'utilisateur restent en place, seul le registre
+    /// perd la ligne. C'est l'utilisateur qui a écrit, c'est lui qui enlève.
+    func undeclareTranslation(for mod: ModItem) {
+        guard installedTranslations.undeclare(forHost: mod.folderName) else { return }
+        if InstalledTranslationStore.save(installedTranslations) {
+            log("Déclaration de traduction retirée pour \(mod.folderName)", level: .info)
+        } else {
+            log("Retrait de la déclaration non enregistré", level: .warning)
+        }
+    }
+
     /// `true` quand une version plus récente que celle en place a été trouvée.
     ///
     /// Sur les **dates Nexus**, jamais sur les numéros de version : beaucoup de
