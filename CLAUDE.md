@@ -99,6 +99,15 @@ corrections ponctuelles (avec leur commit) vivent dans la mémoire Kilo
   fenêtre fermée » (exiger `applicationShouldTerminateAfterLastWindowClosed`
   → `false`), et la masquer depuis `.onAppear` est trop tard (l'intercepter
   dans `applicationWillFinishLaunching`, observateur retiré dans `finish()`).
+- **Un commit au blur (`onChange(of: focusState)`) meurt si la vue est
+  remplacée par `.id(...)`** : le démontage arrive avant le blur — doubler
+  d'un `onDisappear` committant le même draft, idempotent.
+- **Changer d'onglet remet à `nil` les états de détail** (`MainView.swift:232`
+  : `editingSave`, `viewingThaiMod`, `viewingSaveTimeline`,
+  `editingModConfig`, `viewingModDetail`) — poser l'un d'eux puis changer
+  `currentTab` est effacé avant le rendu. Faire porter l'intention par un
+  `@Published` (`pending…Focus`), reconsommé **dans** le
+  `.onChange(of: currentTab)` lui-même (patron B3-T4).
 
 ### Système de fichiers & Process
 
@@ -115,6 +124,12 @@ corrections ponctuelles (avec leur commit) vivent dans la mémoire Kilo
 - **Pas de timeout sur `process.waitUntilExit()`** pour `unrar/unar/7z` —
   voir TODO `process_timeout_pending_todo` (reporte le fix, à ne pas dupliquer
   ailleurs).
+- **Un `Pipe` se lit avant `waitUntilExit()`** : un tube est borné (64 Ko sur
+  macOS) — au-delà, l'enfant bloque sur son écriture et le parent sur son
+  attente, sans crash ni journal (`hasTraversalEntry` figeait l'installation
+  passé ~1 500 fichiers). Et tout `unzip` vers un dossier neuf passe `-o` :
+  sans lui, une archive à chemins dupliqués pose une question sur un stdin
+  qui n'existe pas dans une app GUI.
 
 ### Concurrence
 
@@ -216,6 +231,10 @@ corrections ponctuelles (avec leur commit) vivent dans la mémoire Kilo
   `physicalFolderName`. Le renommement invalide tout cache indexé par nom de
   dossier : déplacer la clé au toggle (`ModsFolderSizer` — le poids sinon
   disparaît à la bascule).
+- **`.help()` sur un petit glyph ne s'affiche jamais** : macOS exige un survol
+  d'environ 2 s entièrement dans la zone, et un glyph de 10 pt est plus petit
+  que ce que le curseur peut tenir immobile — porter la cible à ~18×18
+  (`frame` + `contentShape(.rect)`) avant le `.help`.
 
 ### Docs & roadmap
 
