@@ -61,6 +61,16 @@ struct SaveAvatarView: View {
 }
 
 // MARK: - SavesView
+extension SaveGameInfo {
+    /// « Ferme · An 3 Printemps 14 » — le sous-titre commun à la rangée de
+    /// liste et au hero de la fiche : une seule écriture, pas deux qui
+    /// divergent. Le format et la saison localisée viennent de l'appelant,
+    /// qui seul connaît la langue.
+    fileprivate func farmDayLine(format: String, localizedSeason: String) -> String {
+        "\(farmName) · \(String(format: format, year, localizedSeason, day))"
+    }
+}
+
 struct SavesView: View {
     @ObservedObject var vm: StarHubTHViewModel
     @State private var searchText = ""
@@ -488,9 +498,8 @@ struct SaveRow: View {
                         .font(AppDesign.Font.rowTitle(.medium))
                         .foregroundColor(.primary)
                 }
-                Text("\(save.farmName) · "
-                     + String(format: vm.L(L10n.Saves.yearDayFormat),
-                              save.year, vm.L(save.seasonName), save.day))
+                Text(save.farmDayLine(format: vm.L(L10n.Saves.yearDayFormat),
+                                      localizedSeason: vm.L(save.seasonName)))
                     .font(AppDesign.Font.caption)
                     .foregroundColor(.secondary)
                     .lineLimit(1)
@@ -550,8 +559,60 @@ struct SaveRow: View {
     }
 
     /// Format monétaire localisé, comme l'ancienne phrase le faisait.
-    private static func moneyText(_ value: Int) -> String {
+    /// Interne : la fiche l'utilise pour son `StatStrip`.
+    static func moneyText(_ value: Int) -> String {
         NumberFormatter.localizedString(from: NSNumber(value: value), number: .decimal)
+    }
+}
+
+// MARK: - Hero band (fiche de sauvegarde)
+
+/// Le bandeau d'une fiche de sauvegarde : l'avatar du fermier, son nom et
+/// sa ferme sur fond neutre — le pendant **local** du `HeroHeader` de la
+/// fiche mod, qui vit sur une capture Nexus que cette fiche n'a pas. Le
+/// composant partagé n'est donc pas touché.
+///
+/// Texte `primary` sur fond quad, pas le dégradé du hero-image : il n'y a
+/// pas d'image à lire en dessous, et le dégradé n'y garantirait rien.
+private struct SaveHeroBand: View {
+    let title: String
+    let subtitle: String
+    let avatarPath: String
+    let closeHelp: String
+    let onClose: () -> Void
+
+    var body: some View {
+        Rectangle()
+            .fill(.quaternary)
+            .frame(height: AppDesign.Metrics.heroHeight)
+            .overlay(alignment: .bottomLeading) {
+                HStack(spacing: AppDesign.Spacing.md) {
+                    SaveAvatarViewLocal(iconPath: avatarPath, size: 56)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(title)
+                            .font(AppDesign.Font.viewTitle)
+                            .foregroundColor(.primary)
+                            .lineLimit(1)
+                        Text(subtitle)
+                            .font(AppDesign.Font.caption)
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+                .padding(AppDesign.Spacing.lg)
+            }
+            .overlay(alignment: .topTrailing) {
+                Button(action: onClose) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: AppDesign.Icon.sm))
+                        .foregroundColor(.secondary.opacity(AppDesign.Opacity.secondary))
+                }
+                .buttonStyle(.plain)
+                // Cible 18×18 : le glyphe nu rendrait `.help` muet (a11y §7).
+                .frame(width: 18, height: 18)
+                .contentShape(.rect)
+                .help(closeHelp)
+            }
     }
 }
 
@@ -624,32 +685,43 @@ struct SaveEditorView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Header
+            SaveHeroBand(title: save.playerName,
+                         subtitle: save.farmDayLine(format: vm.L(L10n.Saves.yearDayFormat),
+                                                     localizedSeason: vm.L(save.seasonName)),
+                         avatarPath: iconPath,
+                         closeHelp: vm.L(L10n.Saves.cancel),
+                         onClose: { vm.editingSave = nil })
+
+            // Ce qui décide avant d'ouvrir le formulaire : où l'on en est,
+            // ce que l'on a. Tout se sert dans la sauvegarde elle-même.
+            StatStrip(items: [
+                .init(label: vm.L(L10n.Saves.colDay),
+                      value: String(format: vm.L(L10n.Saves.yearDayFormat),
+                                    save.year, vm.L(save.seasonName), save.day)),
+                .init(label: vm.L(L10n.Saves.money),
+                      value: SaveRow.moneyText(save.money)),
+                .init(label: vm.L(L10n.Saves.totalMoneyEarned),
+                      value: SaveRow.moneyText(save.totalMoneyEarned)),
+            ])
+            .padding(.horizontal, 24)
+            .frame(maxWidth: 700, alignment: .leading)
+            .frame(maxWidth: .infinity)
+
+            // La bande fine reçoit l'exclu du strip : l'historique des
+            // sauvegardes, qui déménage de l'ancien en-tête.
             HStack {
-                Text(save.playerName)
-                    .font(.headline)
-                Spacer()
                 Button(action: { vm.viewingSaveTimeline = save }) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "clock.arrow.circlepath")
-                        Text(vm.L(L10n.Saves.timeline))
-                    }
-                    .font(.system(size: 12, weight: .medium))
+                    Label(vm.L(L10n.Saves.timeline), systemImage: "clock.arrow.circlepath")
+                        .font(AppDesign.Font.footnote(.medium))
                 }
                 .buttonStyle(.plain)
+                .pointingHandCursor()
                 .foregroundColor(.accentColor)
-                .padding(.trailing, 8)
-                
-                Button(action: { vm.editingSave = nil }) {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.secondary)
-                        .font(.title3)
-                }
-                .buttonStyle(.plain)
-                .help(vm.L(L10n.Saves.cancel))
+                Spacer()
             }
-            .padding(20)
-            
+            .padding(.horizontal, 24)
+            .padding(.vertical, AppDesign.Spacing.sm)
+
             Divider()
 
             // Form
