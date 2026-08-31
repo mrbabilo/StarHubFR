@@ -97,6 +97,7 @@ let package = Package(
                 "Models/CoreModSlot.swift",
                 "Models/XMLEntities.swift",
                 "L10n.swift",
+                "L10nResolver.swift",
                 "AppDesignCore.swift",
                 "ContrastChecker.swift",
                 "Models/OrderedJSONWriter.swift",
@@ -148,6 +149,7 @@ let package = Package(
                 "Models/KeybindScanner.swift",
                 "SaveFarmerPalette.swift",
                 "SaveFarmPalette.swift",
+                "SaveFarmNameResolver.swift",
             ]
         ),
         .testTarget(
@@ -763,6 +765,11 @@ let package = Package(
             name: "SaveFarmerPaletteTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/SaveFarmerPaletteTests"
+        ),
+        .testTarget(
+            name: "SaveFarmNameResolverTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/SaveFarmNameResolverTests"
         ),
     ]
 )
