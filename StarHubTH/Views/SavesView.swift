@@ -73,139 +73,84 @@ struct SavesView: View {
     }
 
     var body: some View {
+        // Patron page de liste du dépôt, calé sur le pilote Mods : toolbar
+        // fixe en deux rangées (primaire : recherche + disposition ;
+        // secondaire : tri et filtre en chips), contenu qui scrolle, footer
+        // fixe portant le compte honnête.
         VStack(spacing: 0) {
-            // MARK: Finder-like Toolbar
-            HStack(spacing: 8) {
-                // View mode toggle
-                HStack(spacing: 2) {
-                    Button(action: { withAnimation { vm.saveViewMode = .list } }) {
-                        Image(systemName: "list.bullet")
-                            .font(.system(size: 12, weight: .medium))
-                            .padding(5)
-                            .background(vm.saveViewMode == .list ? Color.accentColor.opacity(0.15) : Color.clear)
-                            .cornerRadius(5)
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundColor(vm.saveViewMode == .list ? .accentColor : .secondary)
-                    .help(vm.L(L10n.Saves.listViewHint))
+            // ── Toolbar fixe ────────────────────────────────────────────
+            VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
+                // Rangée primaire : recherche à la frappe + disposition +
+                // rechargement. La barre système `.searchable` est partie :
+                // un geste, une place (P3).
+                HStack {
+                    searchField
 
-                    Button(action: { withAnimation { vm.saveViewMode = .grid } }) {
+                    Spacer()
+
+                    Picker(vm.L(L10n.Saves.listViewHint), selection: $vm.saveViewMode) {
+                        Image(systemName: "list.bullet")
+                            .tag(SaveViewMode.list)
                         Image(systemName: "square.grid.2x2")
-                            .font(.system(size: 12, weight: .medium))
-                            .padding(5)
-                            .background(vm.saveViewMode == .grid ? Color.accentColor.opacity(0.15) : Color.clear)
-                            .cornerRadius(5)
+                            .tag(SaveViewMode.grid)
                     }
-                    .buttonStyle(.plain)
-                    .foregroundColor(vm.saveViewMode == .grid ? .accentColor : .secondary)
-                    .help(vm.L(L10n.Saves.gridViewHint))
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .frame(width: 64)
+                    .help(vm.saveViewMode == .list
+                          ? vm.L(L10n.Saves.listViewHint)
+                          : vm.L(L10n.Saves.gridViewHint))
+
+                    Button(action: { vm.reloadSaves() }) {
+                        Image(systemName: "arrow.clockwise")
+                            .font(AppDesign.Font.caption)
+                    }
+                    .buttonStyle(.bordered)
+                    .help(vm.L(L10n.Saves.reloadHint))
                 }
-                .padding(2)
-                .background(Color(nsColor: .controlBackgroundColor))
-                .cornerRadius(7)
-                
-                Divider().frame(height: 20)
-                
-                // Sort
-                Menu {
-                    Button(action: { vm.saveSortOption = .lastPlayed }) {
-                        HStack { Image(systemName: "clock"); Text(vm.L(L10n.Saves.sortLastPlayed)) }
-                        if vm.saveSortOption == .lastPlayed { Image(systemName: "checkmark") }
-                    }
-                    Button(action: { vm.saveSortOption = .name }) {
-                        HStack {
-                            if vm.currentLanguage == "th" {
-                                Image(systemName: "character.textbox.th") // Icon ก ในช่องสี่เหลี่ยม
-                            } else {
-                                Image(systemName: "a.square")
-                            }
-                            Text(vm.L(L10n.Saves.sortName))
-                        }
-                        if vm.saveSortOption == .name { Image(systemName: "checkmark") }
-                    }
-                    Button(action: { vm.saveSortOption = .money }) {
-                        HStack { Image(systemName: "dollarsign"); Text(vm.L(L10n.Saves.sortMoney)) }
-                        if vm.saveSortOption == .money { Image(systemName: "checkmark") }
-                    }
-                } label: {
-                    HStack(spacing: 3) {
-                        Image(systemName: "arrow.up.arrow.down")
-                            .font(.system(size: 11))
-                        Text(sortLabel)
-                            .font(.system(size: 12))
-                    }
-                    .foregroundColor(.secondary)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 4)
-                    .background(Color(nsColor: .controlBackgroundColor))
-                    .cornerRadius(6)
-                }
-                .menuStyle(.borderlessButton)
-                .fixedSize()
-                
-                // Tag Filter
-                Menu {
-                    Button(action: { vm.saveFilterTag = "" }) {
-                        HStack { Image(systemName: "tray.2"); Text(vm.L(L10n.Saves.filterAll)) }
-                        if vm.saveFilterTag.isEmpty { Image(systemName: "checkmark") }
-                    }
+
+                // Rangée secondaire : tri et filtre par tag, en chips au
+                // motif Mods — un bloc « affiner la liste ».
+                HStack(spacing: AppDesign.Spacing.sm) {
+                    sortMenu
+
                     Divider()
-                    ForEach(vm.availableFilterTags, id: \.self) { tag in
-                        Button(action: { vm.saveFilterTag = (vm.saveFilterTag == tag ? "" : tag) }) {
-                            Text(tag)
-                            if vm.saveFilterTag == tag { Image(systemName: "checkmark") }
-                        }
-                    }
-                } label: {
-                    HStack(spacing: 3) {
-                        Image(systemName: vm.saveFilterTag.isEmpty ? "tag" : "tag.fill")
-                            .font(.system(size: 11))
-                        Text(vm.saveFilterTag.isEmpty ? vm.L(L10n.Saves.filterTag) : vm.saveFilterTag)
-                            .font(.system(size: 12))
-                    }
-                    .foregroundColor(vm.saveFilterTag.isEmpty ? .secondary : .accentColor)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 4)
-                    .background(vm.saveFilterTag.isEmpty ? Color(nsColor: .controlBackgroundColor) : Color.accentColor.opacity(0.12))
-                    .cornerRadius(6)
+                        .frame(height: 16)
+
+                    tagMenu
+
+                    Spacer()
                 }
-                .menuStyle(.borderlessButton)
-                .fixedSize()
-                
-                Spacer()
-                
-                Button(action: { vm.reloadSaves() }) {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 12))
-                }
-                .buttonStyle(.plain)
-                .foregroundColor(.secondary)
-                .help(vm.L(L10n.Saves.reloadHint))
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
-            .background(Color(nsColor: .windowBackgroundColor))
-            
+            .padding(.horizontal, 24)
+            .padding(.top, 24)
+            .padding(.bottom, 12)
+            .background(Color(nsColor: .controlBackgroundColor))
+
             Divider()
-            
-            // MARK: Content
+
+            // ── Contenu ─────────────────────────────────────────────────
             if vm.saves.isEmpty {
-                VStack(spacing: 16) {
+                VStack(spacing: AppDesign.Spacing.lg) {
                     Spacer()
                     Image(systemName: "cloud.bolt")
-                        .font(.system(size: 40))
-                        .foregroundColor(.secondary.opacity(0.5))
+                        .font(AppDesign.Font.emptyScopeGlyph)
+                        .foregroundColor(.secondary.opacity(AppDesign.Opacity.disabled))
                     Text(vm.L(L10n.Saves.noSaves))
                         .multilineTextAlignment(.center)
-                        .font(.system(size: 13))
+                        .font(AppDesign.Font.body)
                         .foregroundColor(.secondary)
                     Spacer()
                 }
+                .frame(maxWidth: .infinity)
             } else if vm.saveViewMode == .grid {
                 SavesGridView(vm: vm, saves: searchText.isEmpty ? vm.savesHierarchy.map(\.info) : filteredSaves)
             } else {
-                Form {
-                    Section {
+                // La liste, sortie du `Form` : le compte et la note de
+                // récupération vivent dans le footer fixe ci-dessous, plus
+                // dans un header/footer de Section.
+                ScrollView(showsIndicators: false) {
+                    LazyVStack(spacing: 0) {
                         if searchText.isEmpty {
                             SaveTreeListView(vm: vm, nodes: vm.savesHierarchy, depth: 0)
                         } else {
@@ -216,21 +161,149 @@ struct SavesView: View {
                                 .buttonStyle(.plain)
                             }
                         }
-                    } header: {
-                        Text(String(format: vm.L(L10n.Saves.allSaves), Int64(searchText.isEmpty ? vm.savesHierarchy.count : filteredSaves.count)))
-                    } footer: {
-                        Text(vm.L(L10n.Saves.autoFetch))
                     }
+                    .padding(.horizontal, 24)
+                    .padding(.top, AppDesign.Spacing.lg)
                 }
-                .formStyle(.grouped)
-                .scrollContentBackground(.hidden)
+            }
+
+            // ── Footer fixe ─────────────────────────────────────────────
+            // Le compte honnête (P2) : ce qui est montré sur ce qui existe,
+            // liste comme grille — l'ancien header de Section ne le portait
+            // qu'en liste.
+            if !vm.saves.isEmpty {
+                Divider()
+                HStack {
+                    Text(String(format: vm.L(L10n.Saves.allSaves), Int64(displayedCount)))
+                        .font(AppDesign.Font.footnote)
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    Text(vm.L(L10n.Saves.autoFetch))
+                        .font(AppDesign.Font.footnote)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.horizontal, 24)
+                .padding(.vertical, 10)
+                .background(Color(nsColor: .controlBackgroundColor))
             }
         }
         .background(Color(nsColor: .controlBackgroundColor))
-        .searchable(text: $searchText, prompt: Text(vm.L(L10n.Main.search)))
         .sheet(item: $vm.saveToDuplicate) { save in
             DuplicateSaveSheet(vm: vm, save: save)
         }
+    }
+
+    /// L'effectif affiché par le mode courant : la hiérarchie complète, ou
+    /// le filtré quand la recherche est à l'œuvre. Liste et grille montrent
+    /// le même compte — la densité ne change pas ce qui existe.
+    private var displayedCount: Int {
+        searchText.isEmpty ? vm.savesHierarchy.count : filteredSaves.count
+    }
+
+    /// La recherche en toolbar, au motif des journaux et de Mods : loupe,
+    /// champ plein texte, effacement 18×18 (un glyph nu rendrait `.help`
+    /// muet — a11y §7). Filtrage à la frappe, comme `.searchable` le
+    /// donnait ; le même prédicat qu'avant (joueur ∪ ferme).
+    private var searchField: some View {
+        HStack(spacing: AppDesign.Spacing.xs) {
+            Image(systemName: "magnifyingglass")
+                .font(AppDesign.Font.iconXS)
+                .foregroundColor(.secondary)
+            TextField(vm.L(L10n.Saves.searchPlaceholder), text: $searchText)
+                .textFieldStyle(.plain)
+            if !searchText.isEmpty {
+                Button {
+                    searchText = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                }
+                .buttonStyle(.plain)
+                .frame(width: 18, height: 18)
+                .contentShape(.rect)
+                .help(vm.L(L10n.Discovery.clearSearch))
+            }
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 4)
+        .background(Color.primary.opacity(AppDesign.Opacity.light))
+        .cornerRadius(AppDesign.Radius.sm)
+        .frame(maxWidth: 220)
+    }
+
+    /// Le tri, en chip au motif Mods. Items et coches inchangés.
+    private var sortMenu: some View {
+        Menu {
+            Button(action: { vm.saveSortOption = .lastPlayed }) {
+                HStack { Image(systemName: "clock"); Text(vm.L(L10n.Saves.sortLastPlayed)) }
+                if vm.saveSortOption == .lastPlayed { Image(systemName: "checkmark") }
+            }
+            Button(action: { vm.saveSortOption = .name }) {
+                HStack {
+                    Image(systemName: "a.square")
+                    Text(vm.L(L10n.Saves.sortName))
+                }
+                if vm.saveSortOption == .name { Image(systemName: "checkmark") }
+            }
+            Button(action: { vm.saveSortOption = .money }) {
+                HStack { Image(systemName: "dollarsign"); Text(vm.L(L10n.Saves.sortMoney)) }
+                if vm.saveSortOption == .money { Image(systemName: "checkmark") }
+            }
+        } label: {
+            chipLabel(icon: "arrow.up.arrow.down",
+                      text: sortLabel,
+                      prominent: false)
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+    }
+
+    /// Le filtre par tag, en chip. Le chip s'allume quand un tag retient
+    /// la liste — l'état du filtre se voit avant d'ouvrir le menu.
+    private var tagMenu: some View {
+        Menu {
+            Button(action: { vm.saveFilterTag = "" }) {
+                HStack { Image(systemName: "tray.2"); Text(vm.L(L10n.Saves.filterAll)) }
+                if vm.saveFilterTag.isEmpty { Image(systemName: "checkmark") }
+            }
+            Divider()
+            ForEach(vm.availableFilterTags, id: \.self) { tag in
+                Button(action: { vm.saveFilterTag = (vm.saveFilterTag == tag ? "" : tag) }) {
+                    Text(tag)
+                    if vm.saveFilterTag == tag { Image(systemName: "checkmark") }
+                }
+            }
+        } label: {
+            chipLabel(icon: vm.saveFilterTag.isEmpty ? "tag" : "tag.fill",
+                      text: vm.saveFilterTag.isEmpty ? vm.L(L10n.Saves.filterTag) : vm.saveFilterTag,
+                      prominent: !vm.saveFilterTag.isEmpty)
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+    }
+
+    /// L'habillage commun des chips de la rangée secondaire.
+    private func chipLabel(icon: String, text: String, prominent: Bool) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(AppDesign.Font.footnote)
+            Text(text)
+                .font(AppDesign.Font.caption(.medium))
+                .lineLimit(1)
+            Image(systemName: "chevron.down")
+                .font(AppDesign.Font.iconXXS(.bold))
+                .foregroundColor(.secondary)
+        }
+        .foregroundColor(prominent ? .accentColor : .primary)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(
+            RoundedRectangle(cornerRadius: AppDesign.Radius.sm)
+                .fill(Color.secondary.opacity(AppDesign.Opacity.light))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: AppDesign.Radius.sm)
+                .stroke(Color.secondary.opacity(AppDesign.Opacity.medium), lineWidth: 0.5)
+        )
     }
     
     var sortLabel: String {
@@ -267,40 +340,43 @@ struct SaveCardView: View {
     
     var body: some View {
         Button(action: { vm.editingSave = save }) {
-            VStack(spacing: 10) {
+            VStack(spacing: AppDesign.Spacing.md) {
                 SaveAvatarView(folderName: save.folderName, size: 64, vm: vm)
-                
+
                 VStack(spacing: 2) {
                     let note = vm.getNote(for: save.folderName)
-                    HStack(spacing: 4) {
+                    HStack(spacing: AppDesign.Spacing.xs) {
                         if !note.tag.isEmpty {
-                            Text(note.tag).font(.system(size: 13))
+                            Text(note.tag).font(AppDesign.Font.body)
                         }
                         Text(save.playerName)
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(AppDesign.Font.caption(.semibold))
                             .lineLimit(1)
                     }
                     Text(save.farmName)
-                        .font(.system(size: 11))
+                        .font(AppDesign.Font.footnote)
                         .foregroundColor(.secondary)
                         .lineLimit(1)
                     Text(String(format: vm.L(L10n.Saves.yearDayFormat), save.year, vm.L(save.seasonName), save.day))
-                        .font(.system(size: 10))
+                        .font(AppDesign.Font.iconXS)
                         .foregroundColor(.secondary)
                 }
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
             .padding(.horizontal, 8)
-            .background(isHovered ? Color.accentColor.opacity(0.08) : Color(nsColor: .controlBackgroundColor))
-            .cornerRadius(12)
+            .background(isHovered ? Color.accentColor.opacity(AppDesign.Opacity.light)
+                                  : Color(nsColor: .controlBackgroundColor))
+            .cornerRadius(AppDesign.Radius.lg)
             .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(isHovered ? Color.accentColor.opacity(0.3) : Color.secondary.opacity(0.12), lineWidth: 1)
+                RoundedRectangle(cornerRadius: AppDesign.Radius.lg)
+                    .stroke(isHovered ? Color.accentColor.opacity(AppDesign.Opacity.medium)
+                                      : Color.secondary.opacity(AppDesign.Opacity.light),
+                            lineWidth: 1)
             )
-            .shadow(color: .black.opacity(0.06), radius: 3, x: 0, y: 1)
-            .scaleEffect(isHovered ? 1.02 : 1.0)
-            .animation(.easeInOut(duration: 0.15), value: isHovered)
+            // Pas de `scaleEffect` de survol : un mouvement que « réduire les
+            // animations » ne coupe pas proprement — cohérent avec les cartes
+            // Mods du pilote.
         }
         .buttonStyle(.plain)
         .onHover { isHovered = $0 }
@@ -371,21 +447,21 @@ struct SaveRow: View {
     @State private var isHovered = false
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: AppDesign.Spacing.sm) {
             if depth > 0 {
-                HStack(spacing: 4) {
+                HStack(spacing: AppDesign.Spacing.xs) {
                     Spacer().frame(width: CGFloat(depth) * 16 - 8)
                     Image(systemName: "arrow.turn.down.right")
-                        .foregroundColor(.secondary.opacity(0.5))
-                        .font(.system(size: 10))
+                        .foregroundColor(.secondary.opacity(AppDesign.Opacity.disabled))
+                        .font(AppDesign.Font.iconXS)
                 }
             }
-            
+
             // Expand/Collapse Chevron
             if hasChildren {
                 Button(action: { onToggleExpand?() }) {
                     Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                        .font(.system(size: 10, weight: .bold))
+                        .font(AppDesign.Font.iconXS(.bold))
                         .foregroundColor(.secondary)
                         .frame(width: 32, height: 32)
                         .contentShape(Rectangle())
@@ -395,34 +471,36 @@ struct SaveRow: View {
             } else {
                 Spacer().frame(width: 32)
             }
-            
+
             SaveAvatarView(folderName: save.folderName, size: 36, vm: vm)
-            
+
+            // Hiérarchie nom › attributs : le fermier, puis ferme et date
+            // de jeu — l'argent vit en colonnes tenues à droite, il ne
+            // rallonge plus la phrase.
             VStack(alignment: .leading, spacing: 2) {
                 let note = vm.getNote(for: save.folderName)
                 HStack(spacing: 6) {
                     if !note.tag.isEmpty {
                         Text(note.tag)
-                            .font(.system(size: 14))
+                            .font(AppDesign.Font.rowTitle)
                     }
                     Text(save.playerName)
-                        .font(.system(size: 14, weight: .medium))
+                        .font(AppDesign.Font.rowTitle(.medium))
                         .foregroundColor(.primary)
                 }
-                let format = vm.L(L10n.Saves.farmFormat)
-                let moneyStr = NumberFormatter.localizedString(from: NSNumber(value: save.money), number: .decimal)
-                let formattedStr = String(format: format, save.farmName, save.year, vm.L(save.seasonName), save.day, moneyStr)
-                Text(formattedStr)
-                    .font(.system(size: 12))
+                Text("\(save.farmName) · "
+                     + String(format: vm.L(L10n.Saves.yearDayFormat),
+                              save.year, vm.L(save.seasonName), save.day))
+                    .font(AppDesign.Font.caption)
                     .foregroundColor(.secondary)
-                let earnedStr = NumberFormatter.localizedString(from: NSNumber(value: save.totalMoneyEarned), number: .decimal)
-                Text("\(vm.L(L10n.Saves.totalMoneyEarned)): \(earnedStr)")
-                    .font(.system(size: 11))
-                    .foregroundColor(.secondary.opacity(0.8))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
             }
-            
+
             Spacer()
-            
+
+            moneyColumns
+
             Menu {
                 Button(action: { vm.editingSave = save }) {
                     Label(vm.L(L10n.Saves.saveManagement), systemImage: "pencil")
@@ -445,15 +523,35 @@ struct SaveRow: View {
             } label: {
                 Image(systemName: "info.circle")
                     .foregroundColor(.secondary)
-                    .font(.system(size: 16))
+                    .font(AppDesign.Font.rowTitle)
+                    .frame(width: 18, height: 18)
+                    .contentShape(.rect)
                     .padding(.trailing, 4)
             }
             .menuStyle(BorderlessButtonMenuStyle())
+            .help(vm.L(L10n.Saves.saveManagement))
             .frame(width: 30)
         }
         .padding(.vertical, 6)
         .padding(.horizontal, 4)
         .contentShape(Rectangle())
+    }
+
+    /// Argent et total gagné, en colonnes tenues : ce qui se compare d'une
+    /// sauvegarde à l'autre se lit aligné, pas noyé dans une phrase.
+    private var moneyColumns: some View {
+        HStack(alignment: .top, spacing: AppDesign.Spacing.xl) {
+            StatColumn(label: vm.L(L10n.Saves.money),
+                       value: Self.moneyText(save.money))
+            StatColumn(label: vm.L(L10n.Saves.totalMoneyEarned),
+                       value: Self.moneyText(save.totalMoneyEarned))
+        }
+        .fixedSize()
+    }
+
+    /// Format monétaire localisé, comme l'ancienne phrase le faisait.
+    private static func moneyText(_ value: Int) -> String {
+        NumberFormatter.localizedString(from: NSNumber(value: value), number: .decimal)
     }
 }
 

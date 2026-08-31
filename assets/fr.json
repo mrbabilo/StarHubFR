@@ -139,6 +139,7 @@
   "saves_cancel": "Annuler",
   "saves_list_view_hint": "Vue en liste",
   "saves_grid_view_hint": "Vue en grille",
+  "saves_search_placeholder": "Rechercher une sauvegarde",
   "saves_reload_hint": "Recharger les sauvegardes",
   "saves_expand_hint": "Déplier / Replier",
   "saves_clear_slot_hint": "Vider cet emplacement",

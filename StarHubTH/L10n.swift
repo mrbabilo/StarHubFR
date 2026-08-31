@@ -175,6 +175,7 @@ enum L10n {
         static let cancel               = "saves_cancel"
         static let listViewHint         = "saves_list_view_hint"
         static let gridViewHint         = "saves_grid_view_hint"
+        static let searchPlaceholder    = "saves_search_placeholder"
         static let reloadHint           = "saves_reload_hint"
         static let expandHint           = "saves_expand_hint"
         static let clearSlotHint        = "saves_clear_slot_hint"

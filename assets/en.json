@@ -139,6 +139,7 @@
   "saves_cancel": "Cancel",
   "saves_list_view_hint": "View as list",
   "saves_grid_view_hint": "View as grid",
+  "saves_search_placeholder": "Search saves",
   "saves_reload_hint": "Reload saves",
   "saves_expand_hint": "Expand / Collapse",
   "saves_clear_slot_hint": "Clear this slot",

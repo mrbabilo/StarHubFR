@@ -462,11 +462,11 @@ struct ProfileRow: View {
     /// seule (P6).
     private var statColumns: some View {
         HStack(alignment: .top, spacing: AppDesign.Spacing.xl) {
-            statColumn(label: vm.L(L10n.Profiles.colMods),
+            StatColumn(label: vm.L(L10n.Profiles.colMods),
                        value: "\(modCount)",
                        help: String(format: vm.L(L10n.Profiles.modCount), modCount))
             Button(action: onShowMissing) {
-                statColumn(label: vm.L(L10n.Profiles.colIssues),
+                StatColumn(label: vm.L(L10n.Profiles.colIssues),
                            value: "\(issueCount)",
                            attention: issueCount > 0,
                            help: String(format: vm.L(L10n.Profiles.issuesBadge),
@@ -474,33 +474,10 @@ struct ProfileRow: View {
             }
             .buttonStyle(.plain)
             .pointingHandCursor()
-            statColumn(label: vm.L(L10n.Profiles.colConfigs),
+            StatColumn(label: vm.L(L10n.Profiles.colConfigs),
                        value: configSummary.total > 0 ? "\(configSummary.total)" : "—")
         }
         .fixedSize()
-    }
-
-    /// Une colonne de la bande : libellé, valeur, et le glyph d'attention
-    /// quand la donnée en demande.
-    private func statColumn(label: String, value: String,
-                            attention: Bool = false, help: String = "") -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(label)
-                .font(AppDesign.Font.footnote)
-                .foregroundColor(.secondary)
-            HStack(spacing: AppDesign.Spacing.xs) {
-                if attention {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(AppDesign.Font.iconXXS)
-                        .foregroundColor(AppDesign.Color.warning)
-                }
-                Text(value)
-                    .font(AppDesign.Font.body(.semibold))
-                    .foregroundColor(attention ? AppDesign.Color.warning : .primary)
-                    .lineLimit(1)
-            }
-        }
-        .help(help)
     }
 
     /// Les `config.json` que ce profil retient, et ceux dont le mod n'est
