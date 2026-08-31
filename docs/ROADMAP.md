@@ -101,8 +101,8 @@ portée dans la colonne de droite.
 | §1 | Refonte du log SMAPI façon *Log Doctor* | **Fait** | `Models/SmapiLogDiagnostics.swift`, `Views/Components/SmapiHealthCard.swift`, v1.9.x–1.10.0 |
 | §1 | Optimiser l'affichage des ~2000 lignes | **Fait** | `LazyVStack` + repliement par famille (`Models/LogNoise.swift`), v1.10.0 |
 | §1 | Signaler les mods incompatibles (`smapi.io/mods`) | **Fait** | L'API live est branchée (**A2-T1**) et son verdict s'affiche — fiche, carte de santé, et confirmation avant activation ou installation (**A2-T2**) |
-| **§ajout** | Signaler les incompatibilités **entre mods** | **À faire** | Demandé le 2026-08-29. Autre axe que la ligne ci-dessus, qui ne couvre que mod ↔ SMAPI. Mesuré après décompilation de Content Patcher : **3** paires certaines, toutes dormantes ; le journal de CP et le signalement utilisateur passent devant → **A5** |
-| **§ajout** | Déclarer une traduction posée hors de l'app | **À faire** | Demandé le 2026-08-29. Mesuré : 310 des 313 traductions posées à la main sont inconnues du registre → **A3-T6** |
+| **§ajout** | Signaler les incompatibilités **entre mods** | **Partiel** | Demandé le 2026-08-29. Autre axe que la ligne ci-dessus, qui ne couvre que mod ↔ SMAPI. Mesuré après décompilation de Content Patcher : **3** paires certaines, toutes dormantes ; le journal de CP et le signalement utilisateur passent devant → **A5** (T1–T3 livrés le 2026-08-29/30 ; restent T4/T5) |
+| **§ajout** | Déclarer une traduction posée hors de l'app | **Fait** (2026-08-31) | Demandé le 2026-08-29. Mesuré : 310 des 313 traductions posées à la main étaient inconnues du registre → **A3-T6** |
 | §1 | Activer automatiquement les dépendances | **Partiel** | `DependencyTreeView.swift:124` : bouton **Activer** par nœud. Manque l'action groupée → **A1-T1** |
 | §1 | Détecter un `manifest.json` corrompu, proposer une réinstallation | **Partiel** | `ModFolderRepairer.swift` répare des structures de dossiers, pas des manifests invalides → **A1-T2** |
 | §1 | Mise en évidence des problèmes dans la liste des mods | **Fait** | Pastille d'anomalie près du nom (**B1-T3**, pas encore publié) |
@@ -1551,7 +1551,7 @@ backup se retrouve en moins de dix secondes.
       écrasent jamais un verdict smapi.io déjà présent ; ils ne remplissent que
       les `UniqueID` sans verdict. 13 tests, dont le strip JSONC (commentaires
       ligne/bloc, URL préservée, `\"` non-fermant).*
-- [ ] **A2-T4** — **Cache persistant + update check incrémental** (découlant du spike) :
+- [x] **A2-T4** — **Cache persistant + update check incrémental** (découlant du spike) :
       persister la dernière réponse par mod (équivalent `Versions.json`), avec un **vrai
       TTL 6–24 h** (Stardop appelle à chaque boot = son bug — le rate-limit l'interdit ici) ;
       interroger par **petits lots (~10) avec throttle** (5–8 s), jamais toute la modlist
@@ -1565,6 +1565,15 @@ backup se retrouve en moins de dix secondes.
       **Reste vraiment à faire** : le TTL. `checkNexusUpdates()` part à chaque
       lancement et réinterroge le parc entier, sans se demander si la réponse
       précédente vaut encore.*
+      *Livré le 2026-08-31. Le « reste vraiment à faire » de l'audit — le TTL — est
+      fermé : `UpdateCheckPolicy` (Core, pur) décide si le passage automatique part
+      (jamais effectué, ou dernier succès ≥ TTL) ; l'horloge `nexusUpdatesLastCheckedAt`
+      (UserDefaults) n'est remontée que par un passage **ayant répondu** — un échec
+      n'écrit rien, le lancement suivant réessaie. TTL retenu : **12 h** (dans la
+      fourchette 6–24 h du cadrage) ; un passage encore frais sert le cache tel quel.
+      La garde ne porte que le passage automatique du lancement — le bouton
+      « Vérifier » de la page Mises à jour passe toujours outre. 3 tests : jamais
+      vérifié / frais / périmé, frontière exacte posée sur le TTL.*
 - [ ] **A2-T5** — `§audit-gestionnaires` · *(faible priorité)* — Lire la base de
       compatibilité **locale** de SMAPI (`smapi-internal/metadata.json`, livrée avec
       l'installation) comme troisième source hors ligne, derrière l'API live et
@@ -1587,7 +1596,7 @@ backup se retrouve en moins de dix secondes.
 > | 2 | `MinimumApiVersion` / `MinimumGameVersion` non lus | NexusMods.App | Préventif — **0 mod** sur le parc mesuré ; à rouvrir si le compte bouge |
 > | 3 | Dépendance installée sous sa `MinimumVersion` | NexusMods.App | Préventif — **0 mod**, même règle |
 > | 4 | Garde-fous d'écriture (`policy.ts`) | Vortex | À reprendre **comme revue**, pas comme code → à joindre à **F2** |
-> | 5 | Constantes de durée relisibles + audit des TTL | Vortex | C'est le TTL manquant de **A2-T4** |
+> | 5 | Constantes de durée relisibles + audit des TTL | Vortex | C'était le TTL manquant de **A2-T4** — livré le 2026-08-31 |
 
 #### A3 — Métadonnées Nexus
 
