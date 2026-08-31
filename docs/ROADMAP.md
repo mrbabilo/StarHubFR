@@ -286,6 +286,28 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       ▸ **Audit complet** : [`docs/spec-nexus-files-picker.md`](spec-nexus-files-picker.md).
       ▸ **Origine** : veille concurrentielle 2026-08-31. · **S** · *à traiter avant
       B2-T5 (dates affichées) — même surface, risque de pollution du cache identique.*
+- [ ] **X9** 📝 *(reporté à l'écran le 2026-08-31)* — **Le check compare le
+      manifeste installé au libellé Nexus posé par l'auteur — deux
+      vocabulaires différents.** Cas réel : ModCollectionAlbum (50802) —
+      l'auteur a monté les libellés **1→5 en deux jours** (16–18 août, noms de
+      zips sans version), en-tête du mod `version: "1"`, et le manifeste
+      *dans* l'archive est resté **1.2.0** (constaté à l'installation par
+      l'utilisateur). Résultat : « mise à jour vers 5 » **fantôme**, reproposée
+      après chaque installation puisque le manifeste ne change pas — invisible
+      chez SMAPI, qui compare manifeste à manifeste. Antérieur à X8 : le
+      picker prend désormais le bon *fichier*, mais `fetchModInfo` compare
+      toujours `max(en-tête, libellé du MAIN)` au manifeste installé.
+      ▸ **Pistes** : (a) signal « un fichier plus récent que celui qu'on
+      tient » (timestamp du fichier posé, connu au téléchargement) plutôt que
+      « un libellé plus grand » ; (b) apprentissage post-install — manifeste
+      inchangé ⇒ cesser de proposer tant qu'aucun fichier plus récent que le
+      dernier posé n'apparaît ; (c) R3 (snooze des mises à jour) comme soupape
+      utilisateur. `NexusArchiveName` n'y suffit pas : le nom du zip de 50802
+      ne porte aucune version. · **M**
+      ▸ **Contraste sain** : les 4 autres lignes du check du 2026-08-31
+      vérifiées réelles sur `files.json` (DaLion Core 2.2.5, Farmer's
+      Notebook 3.8, Walk of Life 1.5.0-Beta3 — trois posées dans la journée —
+      et Mastery Extended 2.3.0).
 - [x] **X3** ✅ *(corrigé le 2026-07-30 par `8f0a81e`, sans être mentionné)* — **Bouton
       « Activer » de la page dépendances sans effet.** La piste consignée était la bonne :
       quand la dépendance est l'**enfant d'un pack**, `mod.folderName` désigne le dossier
