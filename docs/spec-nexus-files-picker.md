@@ -1,9 +1,9 @@
 # SPEC — Sélection du fichier principal sur `files.json`
 
-> **Statut** : implémenté le 2026-08-31 (sauf critère 3 : validé par tests
-> synthétiques + raisonnement — aucun parc ne rend le nouveau picker *pire* :
-> sans timestamp il retombe sur le premier, comportement d'avant ; sonde live
-> à la main si souhaitée) · **Effort** : S · **Risque** : bas
+> **Statut** : implémenté le 2026-08-31, sonde live du parc passée (810 mods :
+> 33 multi-MAIN tous mal pris par l'ancien picker, 19 avec version différente,
+> 0 sans timestamp — détail dans la ROADMAP, entrée X8) · **Effort** : S ·
+> **Risque** : bas
 > **Origine** : audit de `jathych/Stardew-Valley-Mod-Updater` (2026-08-31), §« Audit 2 ».
 > **Documents liés** : [`ROADMAP.md`](ROADMAP.md) (X8), [`DOMAINE.md`](DOMAINE.md) §3.2.
 
@@ -195,10 +195,14 @@ valide, le nouveau champ est juste un décodage de plus).
 
 ## 6. Critères d'acceptation
 
-- [ ] `python3 build_app.py` passe (parité L10n + compile).
-- [ ] `swift test` passe (5 nouveaux tests + 139 existants).
-- [ ] `pickLatestMainFile` renvoie le MAIN le plus récent sur un échantillon réel
+- [x] `python3 build_app.py` passe (parité L10n + compile).
+- [x] `swift test` passe (5 tests picker + 2 tests id ; suite 1799 verte).
+- [x] `pickLatestMainFile` renvoie le MAIN le plus récent sur un échantillon réel
       prélevé sur un mod de la modlist de test (au moins un mod avec 3+ fichiers MAIN).
+      *Sonde live 2026-08-31 : 4 mods à 3+ MAIN (8828, 33851, 49993, 45809),
+      tous vérifiés — l'ancien picker se trompait sur chacun.*
 - [ ] `fetchModInfo` ne lève plus d'avertissement, et le cache `latestVersion` d'un
       mod testé correspond bien à la version du MAIN le plus récent sur Nexus.
-- [ ] Entrée `[Unreleased]` du `CHANGELOG.md` ajoutée sous `### Fixed`.
+      *Reste la vérif à l'écran : au prochain « Vérifier », Content Patcher
+      (1915) doit afficher 2.9.1 comme dernière version.*
+- [x] Entrée `[Unreleased]` du `CHANGELOG.md` ajoutée sous `### Fixed`.

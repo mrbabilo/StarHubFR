@@ -267,6 +267,14 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       `fileId: nil` (install direct `downloadModFromNexus` VM:5157,
       `installTranslation` VM:5953) prennent eux aussi le MAIN le plus récent
       (2 tests).*
+      *Sonde live du parc le même jour (810 mods avec `files.json` exploitable,
+      0 erreur d'API) : **33 mods à plusieurs MAIN** (29×2, 3×3, 1×4) —
+      **tous** voyaient l'ancien picker se tromper, dont **19 avec un numéro
+      de version différent** (Content Patcher 1915 comparé à 2.8.1 au lieu de
+      2.9.1 ; le mod 2072 avait 1 233 jours d'écart ; le 50802 présentait
+      v1 pour v5). Aucun mod sans timestamp : le tri a toujours de quoi
+      s'appuyer. Deux « plus récents » sont des betas (2072, 8616) — l'auteur
+      les a publiées en dernier, le picker suit.*
       ▸ **Cause** : aucun tri par `uploaded_timestamp` côté client ; l'ordre de
       l'API n'est pas contractualisé.
       ▸ **Correctif** : étendre `NexusModFile` avec `uploaded_timestamp`, ajouter
