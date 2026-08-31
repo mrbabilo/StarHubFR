@@ -344,7 +344,9 @@ final class NexusUpdateChecker {
     /// Outcome of an on-demand single-mod metadata fetch (used when the user
     /// enters a Nexus mod id in the per-mod editor popover).
     enum SingleFetchResult {
-        case success(version: String, categoryId: Int?, extra: NexusModExtra)
+        /// `pageFile` : le MAIN le plus récent de la page, quand `files.json`
+        /// a répondu — c'est lui qui juge un mod installé par l'app (X9).
+        case success(version: String, categoryId: Int?, extra: NexusModExtra, pageFile: NexusModFile?)
         case noApiKey
         case rateLimited(retryAfter: TimeInterval)
         case error(String)
@@ -365,7 +367,7 @@ final class NexusUpdateChecker {
         metadataCacheLock.unlock()
         fetchModInfo(modId: modId, apiKey: apiKey) { [weak self] result in
             switch result {
-            case .success(let version, let catId, let extra, _):
+            case .success(let version, let catId, let extra, _, let pageFile):
                 guard let self = self else { return }
                 // Persist the category + extra in the shared cache so they
                 // survive relaunches and the mods-list badge / popover preview
@@ -389,7 +391,8 @@ final class NexusUpdateChecker {
                     if staleGeneration {
                         completion(.noApiKey)
                     } else {
-                        completion(.success(version: version, categoryId: catId, extra: extra))
+                        completion(.success(version: version, categoryId: catId,
+                                            extra: extra, pageFile: pageFile))
                     }
                 }
             case .rateLimited(let retry):
@@ -486,7 +489,7 @@ final class NexusUpdateChecker {
     // MARK: - Networking
 
     private enum FetchResult {
-        case success(version: String, categoryId: Int?, extra: NexusModExtra, uploadedTime: Date?)
+        case success(version: String, categoryId: Int?, extra: NexusModExtra, uploadedTime: Date?, pageFile: NexusModFile?)
         case rateLimited(retryAfter: TimeInterval)
         case failure(String)
     }
@@ -583,10 +586,17 @@ final class NexusUpdateChecker {
             // overview header version (e.g. "1") while uploading version "2.0.0"
             // under Main Files. Querying files.json resolves the true main file version.
             var finalVersion = version
+            // X9 : le MAIN choisi remonte avec le verdict. C'est lui, et non
+            // le libellé, qui juge un mod que l'app a installé elle-même —
+            // un libellé posé par l'auteur peut vivre sa vie indépendante du
+            // manifeste de l'archive. Var capturée par `finalize`, lue à son
+            // appel (le fichier n'est connu qu'au retour de files.json).
+            var finalPageFile: NexusModFile?
             let finalize = { (ver: String) in
                 let extra = NexusModExtra(summary: summary, pictureUrl: pictureUrl,
                                           version: ver, uploadedTime: uploadedDate)
-                completion(.success(version: ver, categoryId: categoryId, extra: extra, uploadedTime: uploadedDate))
+                completion(.success(version: ver, categoryId: categoryId, extra: extra,
+                                    uploadedTime: uploadedDate, pageFile: finalPageFile))
             }
 
             guard let filesRequest = NexusRequestBuilder.makeRequest(
@@ -608,12 +618,13 @@ final class NexusUpdateChecker {
                    // X8 : le MAIN le plus récent, pas le premier renvoyé — un
                    // mod à plusieurs MAIN comparerait sinon sa version à une
                    // version passée.
-                   let primaryFile = NexusDownloadAPI.pickLatestMainFile(fileList),
-                   let fileVer = (primaryFile.version ?? primaryFile.modVersion)?.trimmingCharacters(in: .whitespacesAndNewlines),
-                   !fileVer.isEmpty {
-                    if Self.compare(fileVer, finalVersion) == .orderedDescending {
+                   let primaryFile = NexusDownloadAPI.pickLatestMainFile(fileList) {
+                    if let fileVer = (primaryFile.version ?? primaryFile.modVersion)?
+                        .trimmingCharacters(in: .whitespacesAndNewlines), !fileVer.isEmpty,
+                       Self.compare(fileVer, finalVersion) == .orderedDescending {
                         finalVersion = fileVer
                     }
+                    finalPageFile = primaryFile
                 }
                 finalize(finalVersion)
             }.resume()

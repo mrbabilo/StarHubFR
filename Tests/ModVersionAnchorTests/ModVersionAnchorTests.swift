@@ -61,4 +61,28 @@ struct ModVersionAnchorTests {
             try JSONDecoder().decode(ModVersionAnchor.self, from: json)
         }
     }
+
+    // MARK: - X9 : du fichier résolu au téléchargement aux faits d'installation
+
+    @Test func unFichierResoluAvecDateDevientDesFaits() {
+        // Le downloader a choisi le MAIN le plus récent d'une page et le
+        // connaît intégralement : ces faits nourriront l'ancre de
+        // l'installation qui suit.
+        let file = NexusModFile(fileId: 5555, categoryId: 1, categoryName: "MAIN",
+                                version: "5", modVersion: nil, uploadedTimestamp: 1_787_000_000)
+        let facts = NexusInstallFacts(resolvedFile: file, modId: "50802")
+        #expect(facts == NexusInstallFacts(modId: "50802",
+                                           fileId: 5555,
+                                           fileUploadedAt: Date(timeIntervalSince1970: 1_787_000_000)))
+    }
+
+    @Test func unFichierResoluSansDateNeFaitAucunFait() {
+        // Sans `uploaded_timestamp`, la règle X9 ne peut pas arbitrer
+        // « plus récent que celui qu'on tient » : un fait à moitié dressé
+        // ferait croire à une certitude. La sonde du 2026-08-31 n'a vu aucun
+        // tel fichier sur 810 pages, mais le format ne l'exige pas.
+        let file = NexusModFile(fileId: 5555, categoryId: 1, categoryName: "MAIN",
+                                version: "5", modVersion: nil, uploadedTimestamp: nil)
+        #expect(NexusInstallFacts(resolvedFile: file, modId: "50802") == nil)
+    }
 }

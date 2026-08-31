@@ -17,10 +17,25 @@ struct NexusFallbackCheckTests {
                          version: String = "1.0.0",
                          keys: [String] = [],
                          meta: Int? = nil,
-                         errors: [String]) -> NexusFallbackCheck.Blocked {
+                         errors: [String],
+                         held: NexusInstallFacts? = nil) -> NexusFallbackCheck.Blocked {
         NexusFallbackCheck.Blocked(uniqueId: uniqueId, name: uniqueId,
                                    installedVersion: version, declaredKeys: keys,
-                                   metadataNexusId: meta, errors: errors)
+                                   metadataNexusId: meta, errors: errors,
+                                   heldFacts: held)
+    }
+
+    /// Facts d'un fichier posé par l'app : page, identifiant de fichier,
+    /// date de mise en ligne (secondes Unix, comme `uploaded_timestamp`).
+    private func facts(_ modId: String, fileId: Int, ts: Int) -> NexusInstallFacts {
+        NexusInstallFacts(modId: modId, fileId: fileId,
+                          fileUploadedAt: Date(timeIntervalSince1970: TimeInterval(ts)))
+    }
+
+    /// Un fichier publié par la page, tel que `files.json` le rend.
+    private func pageFile(_ fileId: Int, ts: Int, label: String) -> NexusModFile {
+        NexusModFile(fileId: fileId, categoryId: 1, categoryName: "MAIN",
+                     version: label, modVersion: nil, uploadedTimestamp: ts)
     }
 
     // MARK: - Qui mérite une reprise
@@ -237,5 +252,80 @@ struct NexusFallbackCheckTests {
         #expect(rows.map(\.uniqueId).sorted()
                 == ["Azathii.TheForgottenCaverns", "Azathii.TheForgottenCaverns.FTM"])
         #expect(rows.allSatisfy { $0.installedVersion == "1.0.10" })
+    }
+
+    // MARK: - X9 : le fichier tenu, pas le libellé publié
+
+    @Test func onTientLeMainLePlusRecentDoncPasDeLigne() {
+        // ModCollectionAlbum (50802), constaté le 2026-08-31 : l'auteur a
+        // monté les libellés 1→5 en deux jours, le manifeste de l'archive est
+        // resté 1.2.0 — la ligne « vers 5 » renaissait après chaque
+        // installation. On tient précisément le fichier que la page publie
+        // encore comme MAIN le plus récent : aucune mise à jour n'existe.
+        let rows = NexusFallbackCheck.rows(
+            for: target([blocked("Clmny.ModCollectionAlbum", version: "1.2.0",
+                                 keys: ["Nexus:50802"], errors: ["x"],
+                                 held: facts("50802", fileId: 5555, ts: 1_787_000_000))],
+                        id: "50802"),
+            pageVersion: "5",
+            uploadedTime: Date(timeIntervalSince1970: 1_787_000_000),
+            pageFile: pageFile(5555, ts: 1_787_000_000, label: "5"))
+        #expect(rows.isEmpty)
+    }
+
+    @Test func unFichierRepubliePlusRecentDonneUneLigneMemeLibelle() {
+        // La re-publication à numéro constant : aucun libellé ne bouge, mais
+        // un nouveau fichier (nouvel id) est plus récent que celui qu'on
+        // tient. C'est la « règle de re-publication du lot C », enfin
+        // branchée — la comparaison de chaînes y est aveugle.
+        let rows = NexusFallbackCheck.rows(
+            for: target([blocked("a.b", version: "1.2.0", errors: ["x"],
+                                 held: facts("50165", fileId: 111, ts: 1_000))],
+                        id: "50165"),
+            pageVersion: "1.2.0", uploadedTime: nil,
+            pageFile: pageFile(222, ts: 2_000, label: "1.2.0"))
+        #expect(rows.count == 1)
+        #expect(rows.first?.latestVersion == "1.2.0")
+    }
+
+    @Test func unFichierRetireParLAuteurNEstPasRemplaceParUnAncien() {
+        // L'auteur supprime le fichier qu'on tient ; le MAIN le plus récent
+        // de la page est un fichier plus **ancien**. Son libellé peut être
+        // plus grand que le nôtre — proposer la page conseillerait un retour
+        // arrière.
+        let rows = NexusFallbackCheck.rows(
+            for: target([blocked("a.b", version: "1.2.0", errors: ["x"],
+                                 held: facts("50165", fileId: 222, ts: 2_000))],
+                        id: "50165"),
+            pageVersion: "9", uploadedTime: nil,
+            pageFile: pageFile(111, ts: 1_000, label: "9"))
+        #expect(rows.isEmpty)
+    }
+
+    @Test func desFaitsDuneAutrePageNeDecidentPas() {
+        // L'ancre décrit une autre page — l'identifiant Nexus du mod a changé
+        // entre-temps, ou l'ancre survit à un déplacement. Elle ne dit rien
+        // de celle-ci : la règle retombe sur les libellés, même si par
+        // hasard les deux pages partagent un numéro de fichier.
+        let rows = NexusFallbackCheck.rows(
+            for: target([blocked("a.b", version: "1.2.0", errors: ["x"],
+                                 held: facts("99999", fileId: 111, ts: 1_000))],
+                        id: "50165"),
+            pageVersion: "5", uploadedTime: nil,
+            pageFile: pageFile(111, ts: 1_000, label: "5"))
+        #expect(rows.count == 1)
+        #expect(rows.first?.latestVersion == "5")
+    }
+
+    @Test func sansListeDeFichiersLaRegleResteAuxLibelles() {
+        // `files.json` illisible (réseau, quota) : on ne sait pas quel fichier
+        // la page publie. Les faits qu'on tient ne peuvent pas trancher contre
+        // le seul signal disponible, les libellés — on garde le verdict d'avant.
+        let rows = NexusFallbackCheck.rows(
+            for: target([blocked("a.b", version: "1.2.0", errors: ["x"],
+                                 held: facts("50165", fileId: 111, ts: 1_000))],
+                        id: "50165"),
+            pageVersion: "5", uploadedTime: nil, pageFile: nil)
+        #expect(rows.count == 1)
     }
 }

@@ -12,6 +12,9 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Fixed
+- **Phantom updates on mods whose author doesn't bump the manifest** (X9): the Nexus label an author sets on a file and the version inside the archive's manifest are two different vocabularies — when they diverge (real case: labels moved 1→5 in two days, manifest stuck at 1.2.0), the update row came back after every install. When the app itself downloaded the file, it now remembers which Nexus file it laid down, and the check judges by that: an update exists only when the page publishes a **newer** main file than the one held — labels no longer decide. This also catches re-uploads at the same version number (a new file id means a re-upload). Manual installs keep the label-based rule; `nxm://` links and pack installs are left out for now.
+
 ## [1.30.0] - 2026-08-31
 
 ### Added

@@ -67,4 +67,19 @@ public struct NexusInstallFacts: Codable, Equatable {
         self.fileUploadedAt = fileUploadedAt
         self.pageCreatedAt = pageCreatedAt
     }
+
+    /// X9 : les faits du fichier que le téléchargement vient de résoudre.
+    ///
+    /// `nil` quand le fichier ne porte pas de `uploaded_timestamp` : la règle
+    /// de verdict qui compara deux fichiers a besoin de leur ordre, et un fait
+    /// amputé de sa date ferait croire à une certitude qu'on n'a pas.
+    ///
+    /// Non `public` : `NexusModFile` est interne au module, et l'app compile
+    /// ces sources dans un module unique.
+    init?(resolvedFile: NexusModFile, modId: String) {
+        guard let ts = resolvedFile.uploadedTimestamp else { return nil }
+        self.init(modId: modId,
+                  fileId: resolvedFile.fileId,
+                  fileUploadedAt: Date(timeIntervalSince1970: TimeInterval(ts)))
+    }
 }

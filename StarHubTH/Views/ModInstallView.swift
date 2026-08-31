@@ -846,8 +846,13 @@ struct ModInstallView: View {
                         // certitude ce qui est posé. `isReferenceFile: true` :
                         // le téléchargement intégré et les liens `nxm://` ne
                         // servent aujourd'hui que le fichier principal.
+                        // X9 : les faits du fichier résolu (identifiant + date)
+                        // partent avec — l'ancre saura dire, au prochain check,
+                        // si la page publie plus récent que ce qu'on vient de
+                        // poser, libellés ou pas.
                         let anchoredIds = self.vm.anchorInstalledMods(
-                            installedFolderPaths: installedFolderPaths)
+                            installedFolderPaths: installedFolderPaths,
+                            nexusFacts: source.facts)
                         // Reconcile FIRST — it reads this mod's update entry to
                         // learn the version the checker flags on — then drop the
                         // entry from the list so it no longer appears.

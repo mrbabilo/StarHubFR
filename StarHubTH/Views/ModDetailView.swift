@@ -867,7 +867,7 @@ struct ModDetailView: View {
         fetchStatus = .loading
         vm.fetchMetadata(forNexusModId: effectiveId) { result in
             switch result {
-            case .success(let version, let catId, _):
+            case .success(let version, let catId, _, _):
                 let catName: String? = catId.flatMap { NexusCategory.from(id: $0) }
                     .map { $0.localizedName(vm.L) }
                 fetchStatus = .success(categoryName: catName, latestVersion: version)

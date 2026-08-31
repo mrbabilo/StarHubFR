@@ -75,7 +75,7 @@ enum NexusDownloadAPI {
     /// Repli sur le plus récent toutes catégories s'il n'y a aucun MAIN.
     /// Un timestamp absent compte comme très ancien : il n'est jamais élu
     /// « plus récent » face à un fichier daté. `pickPrimaryFile` reste pour
-    /// la résolution d'ID de téléchargement (`NexusDownloader.resolveFileId`).
+    /// la résolution d'ID de téléchargement (`NexusDownloader.resolveFile`).
     static func pickLatestMainFile(_ list: NexusModFileList) -> NexusModFile? {
         let main = list.files.filter { $0.categoryId == 1 }
         let pool = main.isEmpty ? list.files : main

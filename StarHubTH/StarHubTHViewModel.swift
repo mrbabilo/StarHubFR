@@ -127,7 +127,20 @@ class StarHubTHViewModel: ObservableObject {
     /// Set when a Nexus download finishes; MainView observes it to open the
     /// install sheet pre-loaded with the downloaded .zip.
     @Published var pendingDownloadedZip: URL?
-    struct NexusInstallSource: Equatable { let modId: Int }
+    /// Ce que l'app sait du téléchargement Nexus qui attend sa feuille
+    /// d'installation. `facts` n'est renseigné que quand l'app a **choisi**
+    /// le fichier elle-même (résolution du MAIN le plus récent) — l'ancre de
+    /// l'installation s'en servira pour juger « plus récent que ce qu'on
+    /// tient » plutôt que « libellé plus grand » (X9).
+    struct NexusInstallSource: Equatable {
+        let modId: Int
+        let facts: NexusInstallFacts?
+
+        init(modId: Int, facts: NexusInstallFacts? = nil) {
+            self.modId = modId
+            self.facts = facts
+        }
+    }
     /// Set alongside pendingDownloadedZip when the zip came from a Nexus download,
     /// so the post-install step can reconcile the manifest version.
     @Published var pendingNexusSource: NexusInstallSource?
@@ -4230,7 +4243,12 @@ class StarHubTHViewModel: ObservableObject {
                         installedVersion: assertedVersion[mod.id] ?? "",
                         declaredKeys: declaredKeys[mod.id] ?? [],
                         metadataNexusId: mod.metadata?.nexusID,
-                        errors: mod.errors))
+                        errors: mod.errors,
+                        // X9 : le fichier que l'app a elle-même posé sur la
+                        // page de ce mod, s'il y en a un — la reprise Nexus en
+                        // fera son verdict (« plus récent que celui qu'on
+                        // tient ») au lieu du libellé.
+                        heldFacts: anchorStore.anchor(for: mod.id)?.nexusFacts))
                 }
             }
             guard let suggested = mod.suggestedUpdate else { continue }
@@ -4480,7 +4498,7 @@ class StarHubTHViewModel: ObservableObject {
             var settled = settled
             var failures = failures
             switch result {
-            case .success(let version, _, let extra):
+            case .success(let version, _, let extra, let pageFile):
                 // Une page **sans version** n'est pas un verdict. L'API Nexus
                 // exige seulement que le champ existe, et une chaîne vide s'y
                 // décode sans broncher : la tenir pour « à jour » retirerait le
@@ -4496,7 +4514,8 @@ class StarHubTHViewModel: ObservableObject {
                 }
                 let rows = NexusFallbackCheck.rows(for: target,
                                                    pageVersion: page,
-                                                   uploadedTime: extra.uploadedTime)
+                                                   uploadedTime: extra.uploadedTime,
+                                                   pageFile: pageFile)
                 self.logNexusFallbackVerdicts(target, pageVersion: page, updates: rows)
                 found += rows
                 settled.formUnion(target.mods.map(\.uniqueId))
@@ -4645,6 +4664,12 @@ class StarHubTHViewModel: ObservableObject {
     /// poser. C'est le seul moment où l'app sait avec certitude ce qui est sur
     /// le disque.
     ///
+    /// - Parameter nexusFacts: X9 — ce que le téléchargement savait du fichier
+    ///   posé (identifiant + date de mise en ligne). Renseigné seulement pour
+    ///   une installation **mono-dossier** : un pack pose plusieurs mods d'une
+    ///   seule archive et v1 s'abstient pour lui, au même périmètre que
+    ///   `reconcileManifestVersion`. Une restauration de backup n'en a pas —
+    ///   l'archive vient du disque local, pas de Nexus.
     /// - Returns: les `UniqueID` **constatés sur disque** — ceux dont le
     ///   manifest a pu être lu. Pas « ceux qui ont reçu une ancre » : c'est le
     ///   constat qui autorise à éteindre une ligne, pas le verdict de la règle
@@ -4652,8 +4677,13 @@ class StarHubTHViewModel: ObservableObject {
     ///   n'éteindre que les lignes des mods qu'il vient de poser — une lecture
     ///   de manifest, une seule source d'identité.
     @discardableResult
-    func anchorInstalledMods(installedFolderPaths: [String]) -> [String] {
+    func anchorInstalledMods(installedFolderPaths: [String],
+                             nexusFacts: NexusInstallFacts? = nil) -> [String] {
         let now = Date()
+        // Des faits qui décriraient plusieurs dossiers n'en décriraient aucun :
+        // une seule archive de pack ne dit rien de la version d'un enfant pris
+        // isolément. On s'abstient, comme partout où l'app ne sait pas.
+        let usableFacts = installedFolderPaths.count == 1 ? nexusFacts : nil
         var anchored: [String] = []
         for path in installedFolderPaths {
             let manifestPath = (path as NSString).appendingPathComponent("manifest.json")
@@ -4672,17 +4702,17 @@ class StarHubTHViewModel: ObservableObject {
                   // certitude ce qu'elle vient d'écrire.
                   let version = ManifestVersionReader.version(from: manifest)
             else { continue }
-            // `facts: nil` — le lot A ne va pas chercher `files.json`, donc il
-            // ne connaît ni le `file_id` posé ni sa date de mise en ligne.
+            // Sans téléchargement intégré, pas de `files.json` : ni le
+            // `file_id` posé ni sa date de mise en ligne ne sont connus.
             // Inventer ces valeurs ferait déclencher à tort la règle de
-            // re-publication du lot C sur toute page mise à jour après
-            // l'installation. La spec §5.4 le dit : « ailleurs, on ne peut
-            // rien dire, et on ne dit rien. »
+            // re-publication sur toute page mise à jour après l'installation.
+            // La spec §5.4 le dit : « ailleurs, on ne peut rien dire, et on ne
+            // dit rien. »
             if let anchor = ModVersionAnchorRules.afterInstall(
                 existing: anchorStore.anchor(for: uniqueId),
                 uniqueId: uniqueId,
                 installedVersion: version,
-                facts: nil,
+                facts: usableFacts,
                 isReferenceFile: true,
                 now: now) {
                 anchorStore.put(anchor)
@@ -5097,7 +5127,7 @@ class StarHubTHViewModel: ObservableObject {
                        completion: @escaping (NexusUpdateChecker.SingleFetchResult) -> Void) {
         NexusUpdateChecker.shared.fetchSingleMod(modId: modId) { [weak self] result in
             guard let self = self else { return }
-            if case .success(_, let catId, let extra) = result {
+            if case .success(_, let catId, let extra, _) = result {
                 if let cid = catId, cid > 0 {
                     self.nexusCategories[modId] = cid
                 }
@@ -5173,14 +5203,19 @@ class StarHubTHViewModel: ObservableObject {
     /// Shared completion for both Nexus download entry points: hops to main,
     /// clears the progress flag, and on success stashes the downloaded zip +
     /// its Nexus source for the install sheet, or surfaces a localized error.
-    private func handleNexusDownloadResult(_ result: Result<URL, NexusDownloadError>, modId: Int) {
+    private func handleNexusDownloadResult(_ result: Result<NexusDownloadOutcome, NexusDownloadError>,
+                                           modId: Int) {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             self.clearNexusDownloadState()
             switch result {
-            case .success(let zipURL):
-                self.pendingDownloadedZip = zipURL
-                self.pendingNexusSource = NexusInstallSource(modId: modId)
+            case .success(let outcome):
+                self.pendingDownloadedZip = outcome.zip
+                self.pendingNexusSource = NexusInstallSource(
+                    modId: modId,
+                    facts: outcome.resolvedFile.flatMap {
+                        NexusInstallFacts(resolvedFile: $0, modId: String(modId))
+                    })
                 self.log(self.nexusDownloadLogMessage(named: L10n.VM.nexusDlCompletedNamed,
                                                       plain: L10n.VM.nexusDlCompleted,
                                                       modId: modId))
@@ -5970,8 +6005,11 @@ class StarHubTHViewModel: ObservableObject {
                 guard let self else { return }
                 self.clearNexusDownloadState()
                 switch result {
-                case .success(let archive):
-                    self.depositTranslation(archive: archive, hit: hit, into: mod)
+                case .success(let outcome):
+                    // Le dépôt d'une traduction n'installe pas de mod : les
+                    // faits du fichier résolu (X9) ne le concernent pas, seule
+                    // l'archive compte.
+                    self.depositTranslation(archive: outcome.zip, hit: hit, into: mod)
                 case .failure(.cancelled):
                     // Geste volontaire : rien à annoncer.
                     self.busyTranslations.remove(mod.folderName)

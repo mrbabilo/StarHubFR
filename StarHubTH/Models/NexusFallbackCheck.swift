@@ -45,15 +45,21 @@ enum NexusFallbackCheck {
         let metadataNexusId: Int?
         /// Les messages d'erreur bruts de smapi.io.
         let errors: [String]
+        /// X9 : ce que l'app sait du fichier qu'elle a **elle-même posé** sur
+        /// cette page, s'il y en a un. Présent seulement pour une installation
+        /// mono-dossier menée par l'app.
+        let heldFacts: NexusInstallFacts?
 
         init(uniqueId: String, name: String, installedVersion: String,
-             declaredKeys: [String], metadataNexusId: Int?, errors: [String]) {
+             declaredKeys: [String], metadataNexusId: Int?, errors: [String],
+             heldFacts: NexusInstallFacts? = nil) {
             self.uniqueId = uniqueId
             self.name = name
             self.installedVersion = installedVersion
             self.declaredKeys = declaredKeys
             self.metadataNexusId = metadataNexusId
             self.errors = errors
+            self.heldFacts = heldFacts
         }
     }
 
@@ -193,13 +199,18 @@ enum NexusFallbackCheck {
     ///   - uploadedTime: la date de mise en ligne, quand Nexus la donne. À la
     ///     différence de la voie smapi.io, qui la laisse toujours à `nil`,
     ///     cette voie la renseigne.
+    ///   - pageFile: le MAIN le plus récent de la page, tel que `files.json`
+    ///     le rend. C'est lui, et non le libellé, qui juge un mod dont l'app
+    ///     a elle-même posé le fichier.
     static func rows(for target: Target,
                      pageVersion: String,
-                     uploadedTime: Date?) -> [NexusUpdateChecker.ModUpdate] {
+                     uploadedTime: Date?,
+                     pageFile: NexusModFile? = nil) -> [NexusUpdateChecker.ModUpdate] {
         let version = pageVersion.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !version.isEmpty else { return [] }
         return target.mods.compactMap { mod in
-            guard isUpgrade(from: mod.installedVersion, to: version) else { return nil }
+            guard isUpgrade(mod: mod, pageVersion: version,
+                            pageFile: pageFile, nexusId: target.nexusId) else { return nil }
             return NexusUpdateChecker.ModUpdate(
                 uniqueId: mod.uniqueId,
                 name: mod.name,
@@ -214,6 +225,35 @@ enum NexusFallbackCheck {
     /// L'adresse de la page, celle qu'ouvre déjà le reste de l'app.
     static func pageURL(_ nexusId: String) -> String {
         "https://www.nexusmods.com/stardewvalley/mods/\(nexusId)"
+    }
+
+    /// `true` si la page publie strictement plus récent que ce qui est posé.
+    ///
+    /// X9 : deux vocabulaires s'affrontent sur Nexus — le libellé que l'auteur
+    /// pose sur la page, et la version du manifeste **dans** l'archive. Cas
+    /// réel, ModCollectionAlbum (50802) : libellés montés 1→5 en deux jours,
+    /// manifeste resté 1.2.0 — la ligne « vers 5 » renaissait après chaque
+    /// installation. Quand l'app a elle-même posé le fichier (`heldFacts`),
+    /// le libellé ne décide plus : une mise à jour existe si et seulement si
+    /// la page publie un MAIN **plus récent** que celui qu'on tient. Un
+    /// fichier re-publié reçoit un nouvel id chez Nexus — l'égalité couvre
+    /// donc aussi la re-publication à numéro constant, sans horloge à comparer.
+    private static func isUpgrade(mod: Blocked,
+                                  pageVersion: String,
+                                  pageFile: NexusModFile?,
+                                  nexusId: String) -> Bool {
+        if let held = mod.heldFacts, held.modId == nexusId, let pageFile {
+            if pageFile.fileId == held.fileId { return false }  // on tient le plus récent
+            if let pageTs = pageFile.uploadedTimestamp {
+                // Plus récent que le nôtre : mise à jour, libellés ou pas.
+                // Pas plus récent : l'auteur a retiré le fichier qu'on tient,
+                // et la page ne propose rien de neuf — pas de retour arrière.
+                return TimeInterval(pageTs) > held.fileUploadedAt.timeIntervalSince1970
+            }
+        }
+        // Sans faits (installation manuelle), sans liste de fichiers, ou pour
+        // une autre page : le libellé reste le seul signal disponible.
+        return isUpgrade(from: mod.installedVersion, to: pageVersion)
     }
 
     /// `true` si la page publie strictement plus récent que ce qui est posé.

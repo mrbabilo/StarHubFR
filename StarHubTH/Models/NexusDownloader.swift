@@ -31,6 +31,16 @@ enum NexusDownloadError: Error, LocalizedError {
     private func L10nKey(_ k: String) -> String { NSLocalizedString(k, comment: "") }
 }
 
+/// Le fruit d'un téléchargement abouti : l'archive posée, et le fichier Nexus
+/// qu'elle matérialise quand l'app l'a **choisi** elle-même (MAIN le plus
+/// récent, résolu via files.json). Un lien `nxm://` désigne son fichier
+/// explicitement : X9 n'interroge pas la liste en plus pour le dater, donc
+/// `resolvedFile` y reste nil.
+struct NexusDownloadOutcome {
+    let zip: URL
+    let resolvedFile: NexusModFile?
+}
+
 /// Downloads a Nexus mod file to a temp `.zip`, then hands the URL back to the
 /// caller (which feeds it into ModZipInstaller). Two paths converge here:
 ///  - premium: key/expires nil → API key alone authorizes the link.
@@ -46,7 +56,7 @@ struct NexusDownloader {
     }
 
     /// HTTP status codes Nexus uses to signal auth/rate-limit/premium problems
-    /// that must not be misreported as "no file"/"no link" (see resolveFileId /
+    /// that must not be misreported as "no file"/"no link" (see resolveFile /
     /// fetchLinkAndDownload). `treatForbiddenAsPremium` distinguishes a 403 on
     /// the premium-only download_link.json call (no key/expires - the account
     /// simply isn't Premium) from a 403 that really means "bad API key".
@@ -88,7 +98,7 @@ struct NexusDownloader {
         }.resume()
     }
 
-    /// If `fileId` is nil, first resolves the main file id via the files list.
+    /// If `fileId` is nil, first resolves the main file via the files list.
     ///
     /// Rend l'objet du téléchargement : c'est **le** point d'annulation, et il
     /// existe dès maintenant — donc avant même que le lien ne soit résolu, ce
@@ -101,8 +111,13 @@ struct NexusDownloader {
     @discardableResult
     func download(modId: Int, fileId: Int?, game: String, key: String?, expires: Int?,
                   onProgress: NexusFileDownload.ProgressHandler? = nil,
-                  completion: @escaping (Result<URL, NexusDownloadError>) -> Void)
+                  completion: @escaping (Result<NexusDownloadOutcome, NexusDownloadError>) -> Void)
         -> NexusFileDownload {
+        // X9 : le fichier résolu n'est connu qu'au retour de files.json —
+        // après la création du téléchargement. La complétion le lit au moment
+        // où elle rend la main, jamais avant.
+        final class ResolvedBox { var file: NexusModFile? }
+        let resolved = ResolvedBox()
         let download = NexusFileDownload(
             validate: { response in
                 // Le CDN peut renvoyer une page HTML (403 lien expiré, 429
@@ -113,7 +128,9 @@ struct NexusDownloader {
                 self.noteQuotaAndStatusError(for: response, treatForbiddenAsPremium: false)
             },
             onProgress: onProgress,
-            completion: completion)
+            completion: { result in
+                completion(result.map { NexusDownloadOutcome(zip: $0, resolvedFile: resolved.file) })
+            })
 
         guard let apiKey = NexusUpdateChecker.shared.apiKey(), !apiKey.isEmpty else {
             download.complete(.failure(.noApiKey)); return download
@@ -122,10 +139,11 @@ struct NexusDownloader {
             fetchLinkAndDownload(game: game, modId: modId, fileId: fileId, key: key,
                                  expires: expires, apiKey: apiKey, download: download)
         } else {
-            resolveFileId(modId: modId) { result in
+            resolveFile(modId: modId) { result in
                 switch result {
-                case .success(let fid):
-                    fetchLinkAndDownload(game: game, modId: modId, fileId: fid, key: key,
+                case .success(let file):
+                    resolved.file = file
+                    fetchLinkAndDownload(game: game, modId: modId, fileId: file.fileId, key: key,
                                          expires: expires, apiKey: apiKey, download: download)
                 case .failure(let e):
                     download.complete(.failure(e))
@@ -135,18 +153,20 @@ struct NexusDownloader {
         return download
     }
 
-    private func resolveFileId(modId: Int,
-                               completion: @escaping (Result<Int, NexusDownloadError>) -> Void) {
+    private func resolveFile(modId: Int,
+                             completion: @escaping (Result<NexusModFile, NexusDownloadError>) -> Void) {
         getModFiles(modId: modId) { result in
             switch result {
             case .success(let list):
                 // X8 — le plus récent MAIN, pas le premier renvoyé : pour un
                 // mod à plusieurs MAIN, « installer ce mod » désigne la
-                // dernière version publiée, pas une version passée.
-                guard let fid = NexusDownloadAPI.pickLatestMainFileId(list) else {
+                // dernière version publiée, pas une version passée. X9 : le
+                // fichier **entier** remonte — l'ancre d'installation en fait
+                // ses faits (identifiant + date de mise en ligne).
+                guard let file = NexusDownloadAPI.pickLatestMainFile(list) else {
                     completion(.failure(.noValidFile)); return
                 }
-                completion(.success(fid))
+                completion(.success(file))
             case .failure(let e):
                 completion(.failure(e))
             }

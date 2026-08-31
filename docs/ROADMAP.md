@@ -286,7 +286,7 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       ▸ **Audit complet** : [`docs/spec-nexus-files-picker.md`](spec-nexus-files-picker.md).
       ▸ **Origine** : veille concurrentielle 2026-08-31. · **S** · *à traiter avant
       B2-T5 (dates affichées) — même surface, risque de pollution du cache identique.*
-- [ ] **X9** 📝 *(reporté à l'écran le 2026-08-31)* — **Le check compare le
+- [x] **X9** ✅ *(livré le 2026-08-31)* — **Le check compare le
       manifeste installé au libellé Nexus posé par l'auteur — deux
       vocabulaires différents.** Cas réel : ModCollectionAlbum (50802) —
       l'auteur a monté les libellés **1→5 en deux jours** (16–18 août, noms de
@@ -294,16 +294,29 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       *dans* l'archive est resté **1.2.0** (constaté à l'installation par
       l'utilisateur). Résultat : « mise à jour vers 5 » **fantôme**, reproposée
       après chaque installation puisque le manifeste ne change pas — invisible
-      chez SMAPI, qui compare manifeste à manifeste. Antérieur à X8 : le
-      picker prend désormais le bon *fichier*, mais `fetchModInfo` compare
-      toujours `max(en-tête, libellé du MAIN)` au manifeste installé.
-      ▸ **Pistes** : (a) signal « un fichier plus récent que celui qu'on
-      tient » (timestamp du fichier posé, connu au téléchargement) plutôt que
-      « un libellé plus grand » ; (b) apprentissage post-install — manifeste
-      inchangé ⇒ cesser de proposer tant qu'aucun fichier plus récent que le
-      dernier posé n'apparaît ; (c) R3 (snooze des mises à jour) comme soupape
-      utilisateur. `NexusArchiveName` n'y suffit pas : le nom du zip de 50802
-      ne porte aucune version. · **M**
+      chez SMAPI, qui compare manifeste à manifeste.
+      ▸ **Correctif** (piste (a), raffinée en **égalité de fileId**) : quand
+      l'app a téléchargé elle-même le fichier, l'ancre d'installation
+      `ModVersionAnchor.nexusFacts` — champ présent depuis le lot C mais
+      jamais renseigné — reçoit enfin l'identifiant et la date du fichier posé
+      (remontés par `NexusDownloader.resolveFile` → `NexusDownloadOutcome`).
+      La reprise Nexus (`NexusFallbackCheck.rows`) juge alors par le fichier :
+      MAIN le plus récent == celui qu'on tient ⇒ rien à proposer, quel que
+      soit le libellé ; MAIN **différent et plus récent** ⇒ ligne, même à
+      libellé égal (re-publication à numéro constant — chaque fichier
+      re-publié reçoit un nouvel id, l'égalité suffit, pas d'horloge) ; MAIN
+      différent mais **pas plus récent** (l'auteur a retiré le nôtre) ⇒
+      abstention. Sans faits (install manuelle), sans `files.json`, ou pour
+      une autre page : la règle aux libellés d'avant. La piste (b) seule
+      (ancrer le libellé auto) aurait réintroduit le défaut que les ancres
+      remplacent ; la (c) existait déjà (« Je l'ai déjà »).
+      ▸ **Périmètre v1** : la ligne fantôme 50802 transitait par la reprise
+      Nexus (preuve : son `uploadedTime` renseigné — la voie smapi.io le
+      laisse à `nil`), c'est elle qui est corrigée ; les liens `nxm://` et les
+      installs multi-dossiers (packs) restent sans faits, et la voie smapi.io
+      principale reste au libellé — elle lit l'en-tête de page et se tait
+      déjà sur ce cas. `NexusArchiveName` n'y suffisait pas : le nom du zip de
+      50802 ne porte aucune version. · **M**
       ▸ **Contraste sain** : les 4 autres lignes du check du 2026-08-31
       vérifiées réelles sur `files.json` (DaLion Core 2.2.5, Farmer's
       Notebook 3.8, Walk of Life 1.5.0-Beta3 — trois posées dans la journée —
