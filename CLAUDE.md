@@ -83,6 +83,22 @@ corrections ponctuelles (avec leur commit) vivent dans la mémoire Kilo
 - **Éviter `textSelection(.enabled)` sur des zones non éditables** quand un
   contrôle interactif cohabite (lien, bouton dans le texte) : la sélection
   parasite le geste.
+- **`ForEach` avec `id: \.self` ou un index fait fuiter l'`@State`** d'une
+  ligne vers une autre quand les données changent — identifier par une donnée
+  stable (`Identifiable`), jamais par position.
+- **Un `body` trop dense sature le type-checker** (compile en minutes,
+  diagnostics absurdes) — découper en sous-vues / propriétés calculées.
+- **~2 000 lignes de log : `List` a beach-ballé 8–10 s**, `LazyVStack` fixe ;
+  une seule passe construit `logViews` — plusieurs propriétés calculées
+  re-parcourent tout à chaque rendu.
+- **Pas de surcharge `help(_:)` optionnelle dans ce SDK macOS** : passer par
+  `helpIfPresent` (`StatStrip.swift`) — vérifier qu'une surcharge existe
+  avant de l'invoquer.
+- **Cycle de vie des fenêtres au lancement (splash `NSPanel`)** — deux pièges
+  qui ont cassé l'app : `orderOut` sur la fenêtre principale vaut « dernière
+  fenêtre fermée » (exiger `applicationShouldTerminateAfterLastWindowClosed`
+  → `false`), et la masquer depuis `.onAppear` est trop tard (l'intercepter
+  dans `applicationWillFinishLaunching`, observateur retiré dans `finish()`).
 
 ### Système de fichiers & Process
 
@@ -121,6 +137,18 @@ corrections ponctuelles (avec leur commit) vivent dans la mémoire Kilo
 - **Encodage du manifest** : UTF-8 suffit, mais le BOM en tête (`EF BB BF`)
   fait échouer `String(data:encoding:.utf8)` silencieusement. Si un mod
   apparaît sans nom ou avec un nom bizarre, vérifier le BOM avant tout.
+- **Les i18n du parc ne sont pas toutes en UTF-8** : UTF-16 et UTF-32, LE et
+  BE, existent réellement — passer par `I18nFileDecoder`, jamais
+  `String(data:encoding:.utf8)` direct.
+- **CRLF compte pour un seul `Character`** (`"a\r\nb"` = 3 caractères, pas 4) :
+  découper par `Unicode.Scalar` ou tester `isNewline`, et garder une fixture
+  CRLF dans les tests.
+- **Clé écrite deux fois dans un i18n : le jeu retient la dernière** — le
+  parseur déduplique en gardant la dernière (`I18nLenientParser`) ; garder la
+  première diverge silencieusement du jeu.
+- **Identifier un format binaire par ses octets, jamais par le nom ou
+  l'extension** : 372 `.xnb` traités comme LZ4 étaient du LZX (marqueur
+  `0x81`) — un nom d'archive ne dit rien de son contenu.
 - **Nexus mod id depuis `UpdateKeys`** : `Nexus:191`, `Nexus: 191 ` (espaces),
   `Nexus:23169@SwimItems` (suffixe `@variant`) → tous parsables. Helper
   unique : `ModManifest.parseNexusId(fromUpdateKeys:)` (static, public, dans
@@ -131,6 +159,18 @@ corrections ponctuelles (avec leur commit) vivent dans la mémoire Kilo
   `apiBase`, `gameDomain`, headers `User-Agent`/`Application-Name`/
   `Application-Version`. Deux jeux d'en-têtes feraient voir deux clients
   distincts à Nexus.
+- **Le Nexus mod id n'est pas une clé d'identité** : des mods distincts le
+  partagent (58 id partagés sur le parc ; l'id 8828 couvre 3 mods — indexer
+  dessus a effacé les mises à jour de 3 mods). Toute clé par mod passe par
+  l'`UniqueID`.
+- **Une passe Nexus partielle (429, 503) fusionne avec le cache, elle ne le
+  remplace pas** : un mod absent de la réponse n'est pas « à jour » — on
+  conserve sa ligne précédente, seulement s'il est encore installé. Et le
+  cache reste **à plat** : la liste affichée, consolidée par pack, ne doit
+  jamais y être réécrite.
+- **Requête smapi.io : `apiVersion` (et `gameVersion`) obligatoires.** Sans
+  `apiVersion`, zéro suggestion revient ; une version mal formée vide le lot
+  entier en silence.
 - **Serialisation du registre** (`installedModRegistry` en UserDefaults) :
   backup auto avant écriture, restauration auto si corruption détectée, plus
   la reconstruction depuis le disque déjà existante. Les trois sont
@@ -153,6 +193,15 @@ corrections ponctuelles (avec leur commit) vivent dans la mémoire Kilo
 - **`check_standards.py` n'échoue qu'à l'**augmentation** d'un compteur**
   par rapport à `.standards-baseline.json`. Un `--update` explicite est
   requis pour assumer une nouvelle violation, visible dans le diff.
+- **Lire l'exit code du gate directement** : `python3 build_app.py | tail`
+  rend le code de `tail` (vert même bloqué) ; et les diagnostics SourceKit
+  juste après un build sont de la ré-indexation, pas des erreurs du code.
+- **Ne pas éditer les sources pendant un gate** (8–12 min) : le build
+  embarque des fichiers à moitié édités et le gate est perdu — attendre sa
+  fin.
+- **Les tests n'écrivent jamais dans le vrai Application Support** : 582
+  exécutions ont pollué de vrais backups avant que les managers ne soient
+  injectés — tout nouveau test d'un manager reçoit un dossier temporaire.
 
 ### UI
 
@@ -164,11 +213,21 @@ corrections ponctuelles (avec leur commit) vivent dans la mémoire Kilo
 - **Toggle de mod = rename atomique préfixe point** : `Mods/X` ↔ `Mods/.X`.
   `ModItem.folderName` est **logique** (jamais de point). `physicalFolderName`
   est la version disque. Toute construction de chemin disque doit utiliser
-  `physicalFolderName`.
+  `physicalFolderName`. Le renommement invalide tout cache indexé par nom de
+  dossier : déplacer la clé au toggle (`ModsFolderSizer` — le poids sinon
+  disparaît à la bascule).
+
+### Docs & roadmap
+
+- **Les cases ROADMAP traînent derrière le code livré** : vérifier `git log`
+  et le code avant de traiter une tâche « à faire » — des tâches livrées sont
+  restées ouvertes plusieurs jours, deux fois en une semaine.
 
 ## Git
 
 Travailler sur `main`. **Pousser uniquement quand l'utilisateur le demande.**
+**Fetcher et rebaser avant de pousser** : d'autres sessions poussent aussi sur
+`main`, et la CI GitHub juge chaque poussée.
 
 Terminer les messages de commit par un trailer nommant le **modèle qui a
 réellement écrit le commit** — jamais un nom figé :
