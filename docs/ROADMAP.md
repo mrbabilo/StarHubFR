@@ -2242,8 +2242,27 @@ par lot, une release par lot. Périmètre : visuel + navigation —
 > bascule (Core, TDD), et l'enum d'onglets ferme le deep-link « traduis ce
 > mod » aux réordonnancements. **La case est cochée : le pilote Mods est
 > complet.**
-- [ ] **H-T5** — **Lot Parties** : profils en cartes à chiffres clés (jamais
+- [x] **H-T5** — **Lot Parties** : profils en cartes à chiffres clés (jamais
       un formulaire nu), sauvegardes au même motif. · **M**
+      ✅ (livré le 2026-08-31)
+> **H-T5 livré le 2026-08-31, en quatre tâches sur autant de gates.** Les
+> profils perdent titre de page et conteneur à bordure : « Ajouter » monte
+> en toolbar fixe et la rangée mène par ses chiffres en colonnes tenues —
+> Mods · Anomalies · Configs (`StatColumn`, composant partagé avec les
+> rangées de sauvegardes) — la pastille FR et les orphelins de configs
+> restant la ligne d'attention. Les sauvegardes suivent le patron Mods de
+> bout en bout : recherche inline à la frappe (fin de `.searchable`), tri
+> et filtre tag en chips, liste sortie du `Form` vers header fixe +
+> défilement + footer à compte honnête, rangée fermier › ferme · date avec
+> argent et total en colonnes, grille sans zoom de survol. La fiche
+> s'ouvre sur un hero local (avatar du fermier — `HeroHeader` partagé
+> intact) + `StatStrip` (date de jeu · argent · total) + bande fine
+> portant l'historique ; le formulaire d'édition demeure verbatim. Les
+> sheets annexes passent aux tokens : « Not installed » gagne son glyph
+> (P6), « Branch » prend la teinte `installed`, crayon et corbeille à
+> cible 18×18. Périmètre retenu au cadrage : tout, sheets comprises. La
+> vérification écran reste à l'humain — scénario remis avec le lot ; cinq
+> clés L10n nouvelles, cliquet relevé à chaque tâche (+1/+2, +4, +7/+7).
 - [ ] **H-T6** — **Lot Santé & secours** : alertes système, quarantaine,
       backups ×2 — gravité toujours glyph + couleur, rapports en tableaux
       lisibles. · **M**
