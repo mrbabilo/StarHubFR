@@ -64,6 +64,10 @@ struct SaveNode: Identifiable, Equatable {
     var children: [SaveNode]
 }
 
+/// `SaveGameInfo` reste non-`Sendable` ; les lectures sont sérialisées via
+/// `SaveManager.shared.fetchSaves()` / `reloadSaves()`. L'ajout de 4 champs
+/// n'aggrave pas la situation. Parsing `<whichModFarm>` ne traverse pas de
+/// frontière de thread supplémentaire.
 public struct SaveGameInfo: Identifiable, Equatable, Hashable {
     public var id: String { folderName }
     public let folderName: String
@@ -88,6 +92,10 @@ public struct SaveGameInfo: Identifiable, Equatable, Hashable {
     public var season: Int
     public var day: Int
     public var whichFarm: Int
+    public var hairStyle: Int = 0
+    public var hairColor: Int = 0
+    public var skinIndex: Int = 0
+    public var modFarmName: String? = nil
 
     public init(
         folderName: String,
@@ -107,7 +115,11 @@ public struct SaveGameInfo: Identifiable, Equatable, Hashable {
         year: Int,
         season: Int,
         day: Int,
-        whichFarm: Int
+        whichFarm: Int,
+        hairStyle: Int = 0,
+        hairColor: Int = 0,
+        skinIndex: Int = 0,
+        modFarmName: String? = nil
     ) {
         self.folderName = folderName
         self.fileURL = fileURL
@@ -127,23 +139,27 @@ public struct SaveGameInfo: Identifiable, Equatable, Hashable {
         self.season = season
         self.day = day
         self.whichFarm = whichFarm
+        self.hairStyle = hairStyle
+        self.hairColor = hairColor
+        self.skinIndex = skinIndex
+        self.modFarmName = modFarmName
     }
 
     var farmTypeName: String {
         switch whichFarm {
-        case 0: return "ฟาร์มมาตรฐาน" // Standard Farm
-        case 1: return "ฟาร์มริมน้ำ" // Riverland Farm
-        case 2: return "ฟาร์มในป่า" // Forest Farm
-        case 3: return "ฟาร์มบนเขา" // Hill-top Farm
-        case 4: return "ฟาร์มสัตว์ประหลาด" // Wilderness Farm
-        case 5: return "ฟาร์มสี่มุม" // Four Corners Farm
-        case 6: return "ฟาร์มริมหาด" // Beach Farm
-        case 7: return "ฟาร์มทุ่งหญ้า" // Meadowlands Farm
-        default: return "ฟาร์มลึกลับ"
+        case 0: return L10n.Saves.farmTypeStandard
+        case 1: return L10n.Saves.farmTypeRiverland
+        case 2: return L10n.Saves.farmTypeForest
+        case 3: return L10n.Saves.farmTypeHilltop
+        case 4: return L10n.Saves.farmTypeWilderness
+        case 5: return L10n.Saves.farmTypeFourCorners
+        case 6: return L10n.Saves.farmTypeBeach
+        case 7: return L10n.Saves.farmTypeMeadowlands
+        default: return L10n.Saves.farmTypeMod
         }
     }
-    
-    var farmIcon: String {
+
+    static func farmIcon(for whichFarm: Int) -> String {
         switch whichFarm {
         case 0: return "leaf.fill"
         case 1: return "water.waves"
@@ -223,20 +239,24 @@ public class SaveManager {
         return saves.sorted { $0.playerName < $1.playerName }
     }
     
-    private func parseSaveFile(url: URL, folderName: String) -> SaveGameInfo? {
+    func parseSaveFile(url: URL, folderName: String) -> SaveGameInfo? {
         guard let content = try? String(contentsOf: url, encoding: .utf8) else { return nil }
-        
+
         let playerName = extractTag(tag: "name", from: content) ?? "Unknown"
         let farmName = extractTag(tag: "farmName", from: content) ?? "Unknown"
         let favoriteThing = extractTag(tag: "favoriteThing", from: content) ?? "Unknown"
         let money = Int(extractTag(tag: "money", from: content) ?? "0") ?? 0
         let spouse = extractSpouseFromPlayer(from: content) ?? ""
-        
+
         let year = Int(extractTag(tag: "yearForSaveGame", from: content) ?? "1") ?? 1
         let season = Int(extractTag(tag: "seasonForSaveGame", from: content) ?? "0") ?? 0
         let day = Int(extractTag(tag: "dayOfMonthForSaveGame", from: content) ?? "1") ?? 1
         let whichFarm = Int(extractTag(tag: "whichFarm", from: content) ?? "0") ?? 0
-        
+        let hairStyle = Int(extractTag(tag: "hairStyle", from: content) ?? "0") ?? 0
+        let hairColor = Int(extractTag(tag: "hairColor", from: content) ?? "0") ?? 0
+        let skinIndex = Int(extractTag(tag: "skin", from: content) ?? "0") ?? 0
+        let modFarmName = extractModFarmName(from: content)
+
         // Advanced
         let maxHealth = Int(extractTag(tag: "maxHealth", from: content) ?? "100") ?? 100
         let maxStamina = Int(extractTag(tag: "maxStamina", from: content) ?? "270") ?? 270
@@ -244,10 +264,10 @@ public class SaveManager {
         let qiGems = Int(extractTag(tag: "qiGems", from: content) ?? "0") ?? 0
         let clubCoins = Int(extractTag(tag: "clubCoins", from: content) ?? "0") ?? 0
         let totalMoneyEarned = Int(extractTag(tag: "totalMoneyEarned", from: content) ?? "0") ?? 0
-        
+
         let attr = try? FileManager.default.attributesOfItem(atPath: url.path)
         let lastModified = attr?[.modificationDate] as? Date ?? Date()
-        
+
         return SaveGameInfo(
             folderName: folderName,
             fileURL: url,
@@ -266,8 +286,26 @@ public class SaveManager {
             year: year,
             season: season,
             day: day,
-            whichFarm: whichFarm
+            whichFarm: whichFarm,
+            hairStyle: hairStyle,
+            hairColor: hairColor,
+            skinIndex: skinIndex,
+            modFarmName: modFarmName
         )
+    }
+
+    /// Tolère les deux formes rencontrées dans la nature :
+    /// - vanilla : `<whichModFarm><name>Ridgeside</name></whichModFarm>`
+    /// - mod mal codé : `<whichModFarm>Ridgeside</whichModFarm>`
+    /// Retourne `nil` si absent, vide, ou sans `<name>`.
+    private func extractModFarmName(from xml: String) -> String? {
+        let pattern = "<whichModFarm>(?:\\s*<name>)?([^<]+)(?:</name>)?\\s*</whichModFarm>"
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else { return nil }
+        let range = NSRange(xml.startIndex..<xml.endIndex, in: xml)
+        guard let match = regex.firstMatch(in: xml, options: [], range: range),
+              let swiftRange = Range(match.range(at: 1), in: xml) else { return nil }
+        let value = String(xml[swiftRange]).trimmingCharacters(in: .whitespacesAndNewlines)
+        return value.isEmpty ? nil : value
     }
     
     private func extractTag(tag: String, from xml: String) -> String? {

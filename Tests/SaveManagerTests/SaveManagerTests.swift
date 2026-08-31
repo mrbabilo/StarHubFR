@@ -25,7 +25,11 @@ func makeTestSave(
     year: Int = 1,
     season: Int = 0,
     day: Int = 1,
-    whichFarm: Int = 0
+    whichFarm: Int = 0,
+    hairStyle: Int = 0,
+    hairColor: Int = 0,
+    skinIndex: Int = 0,
+    modFarmName: String? = nil
 ) -> SaveGameInfo {
     SaveGameInfo(
         folderName: folderName,
@@ -45,7 +49,11 @@ func makeTestSave(
         year: year,
         season: season,
         day: day,
-        whichFarm: whichFarm
+        whichFarm: whichFarm,
+        hairStyle: hairStyle,
+        hairColor: hairColor,
+        skinIndex: skinIndex,
+        modFarmName: modFarmName
     )
 }
 
@@ -189,6 +197,114 @@ struct TestEnvironment {
         // L'objet d'inventaire reste intact, vide comme il l'était.
         #expect(written.contains("<Item><name></name></Item>"))
         #expect(written.contains("<Item><name>Houe</name></Item>"))
+    }
+
+    // MARK: - H-T5b T2 : SaveGameInfo étendu + parsing <whichModFarm>
+
+    /// XML ne contenant que `<player>` : les 4 nouveaux champs reçoivent leurs
+    /// defaults (0/0/0/nil) plutôt que de crasher ou d'inventer des valeurs.
+    @Test func saveGameInfoDefaultsWhenFieldsAbsent() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+        let xml = "<SaveGame><player><name>Alice</name></player></SaveGame>"
+        let fileURL = env.savesDir.appendingPathComponent("Defaults").appendingPathComponent("Defaults")
+        try writeTestSaveFile(at: fileURL, content: xml)
+        let info = SaveManager.shared.parseSaveFile(url: fileURL, folderName: "Defaults")
+        try #require(info != nil)
+        #expect(info?.hairStyle == 0)
+        #expect(info?.hairColor == 0)
+        #expect(info?.skinIndex == 0)
+        #expect(info?.modFarmName == nil)
+    }
+
+    /// Forme vanilla : `<whichModFarm><name>X</name></whichModFarm>`.
+    @Test func modFarmNameNestedForm() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+        let xml = "<SaveGame><player><name>Alice</name></player><whichModFarm><name>Ridgeside</name></whichModFarm></SaveGame>"
+        let fileURL = env.savesDir.appendingPathComponent("ModNested").appendingPathComponent("ModNested")
+        try writeTestSaveFile(at: fileURL, content: xml)
+        let info = SaveManager.shared.parseSaveFile(url: fileURL, folderName: "ModNested")
+        try #require(info != nil)
+        #expect(info?.modFarmName == "Ridgeside")
+    }
+
+    /// Forme « mod mal codé » : texte brut directement dans `<whichModFarm>`.
+    /// La regex tolérante accepte les deux formes.
+    @Test func modFarmNameFlatForm() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+        let xml = "<SaveGame><player><name>Alice</name></player><whichModFarm>Ridgeside</whichModFarm></SaveGame>"
+        let fileURL = env.savesDir.appendingPathComponent("ModFlat").appendingPathComponent("ModFlat")
+        try writeTestSaveFile(at: fileURL, content: xml)
+        let info = SaveManager.shared.parseSaveFile(url: fileURL, folderName: "ModFlat")
+        try #require(info != nil)
+        #expect(info?.modFarmName == "Ridgeside")
+    }
+
+    /// `<whichModFarm>` totalement absent → `nil`.
+    @Test func modFarmNameAbsent() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+        let xml = "<SaveGame><player><name>Alice</name></player></SaveGame>"
+        let fileURL = env.savesDir.appendingPathComponent("NoModFarm").appendingPathComponent("NoModFarm")
+        try writeTestSaveFile(at: fileURL, content: xml)
+        let info = SaveManager.shared.parseSaveFile(url: fileURL, folderName: "NoModFarm")
+        try #require(info != nil)
+        #expect(info?.modFarmName == nil)
+    }
+
+    /// `<whichModFarm></whichModFarm>` vide → `nil` (pas de chaîne vide).
+    @Test func modFarmNameEmpty() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+        let xml = "<SaveGame><player><name>Alice</name></player><whichModFarm></whichModFarm></SaveGame>"
+        let fileURL = env.savesDir.appendingPathComponent("ModEmpty").appendingPathComponent("ModEmpty")
+        try writeTestSaveFile(at: fileURL, content: xml)
+        let info = SaveManager.shared.parseSaveFile(url: fileURL, folderName: "ModEmpty")
+        try #require(info != nil)
+        #expect(info?.modFarmName == nil)
+    }
+
+    /// `<whichModFarm><id>X</id></whichModFarm>` : pas de `<name>` → `nil`.
+    /// La regex tolère uniquement le contenu direct ou un `<name>` ; une
+    /// autre sous-balise ne matche pas et l'absence de fallback laisse `nil`.
+    @Test func modFarmNameWithoutName() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+        let xml = "<SaveGame><player><name>Alice</name></player><whichModFarm><id>X</id></whichModFarm></SaveGame>"
+        let fileURL = env.savesDir.appendingPathComponent("ModNoName").appendingPathComponent("ModNoName")
+        try writeTestSaveFile(at: fileURL, content: xml)
+        let info = SaveManager.shared.parseSaveFile(url: fileURL, folderName: "ModNoName")
+        try #require(info != nil)
+        #expect(info?.modFarmName == nil)
+    }
+
+    /// `<whichFarm>abc</whichFarm>` (corrompu) → `Int(...) ?? 0` retombe sur 0,
+    /// comme le code l'a toujours fait pour les autres tags numériques.
+    @Test func whichFarmNonInt() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+        let xml = "<SaveGame><player><name>Alice</name></player><whichFarm>abc</whichFarm></SaveGame>"
+        let fileURL = env.savesDir.appendingPathComponent("BadWhichFarm").appendingPathComponent("BadWhichFarm")
+        try writeTestSaveFile(at: fileURL, content: xml)
+        let info = SaveManager.shared.parseSaveFile(url: fileURL, folderName: "BadWhichFarm")
+        try #require(info != nil)
+        #expect(info?.whichFarm == 0)
+    }
+
+    /// `whichFarm` hors plage vanilla → `farmTypeName` retourne la **clé** L10n
+    /// du fallback (pas le texte thaï historique, plus le texte résolu) :
+    /// c'est le consommateur (`SaveFarmNameResolver`) qui résoudra la clé.
+    @Test func farmTypeNameOutOfRangeReturnsFarmTypeModKey() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+        let xml = "<SaveGame><player><name>Alice</name></player><whichFarm>999999</whichFarm></SaveGame>"
+        let fileURL = env.savesDir.appendingPathComponent("ModFarmBig").appendingPathComponent("ModFarmBig")
+        try writeTestSaveFile(at: fileURL, content: xml)
+        let info = SaveManager.shared.parseSaveFile(url: fileURL, folderName: "ModFarmBig")
+        try #require(info != nil)
+        #expect(info?.farmTypeName == "saves_farm_type_mod")
     }
 
     /// Le pendant : une balise déjà remplie garde le comportement d'avant.
