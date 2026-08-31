@@ -59,6 +59,113 @@ vérification GUI est déléguée à l'humain ; les agents valident par succès 
 `CHANGELOG.md` suit le format **Keep a Changelog** ; incrémenté à chaque release
 via `release.py`. → skill `release`.
 
+## Traps — pièges techniques du projet
+
+Synthèse des pièges qui **coûtent cher à retrouver** si on ne les a pas déjà
+rencontrés. Pour les conventions plus larges, voir `AGENTS.md` §4. Les
+corrections ponctuelles (avec leur commit) vivent dans la mémoire Kilo
+(`corrections.md`).
+
+### SwiftUI / AppKit
+
+- **`CodeEditorView` : pas de force-unwrap.** `scrollView.documentView as! NSTextView`
+  (makeNSView L.20, updateNSView L.35) remplacé par `guard let … as? NSTextView`.
+  Un crash silencieux sur du contenu mal typé est inacceptable dans un éditeur
+  de config.
+- **Curseur main sur Markdown avec `textSelection(.enabled)`.** NSTextView
+  réassertit le curseur I-beam en continu via ses `cursorRects`. Utiliser
+  `onContinuousHover` (pas `onHover`) pour réassertir
+  `NSCursor.pointingHand.set()` sur les liens.
+- **macOS ne remplace pas une app ouverte lors de `open …`.** Une release locale
+  ne prend effet qu'après fermeture complète (Cmd+Q) puis réouverture. Tester
+  sur le bundle fraîchement compilé exige un kill préalable, sinon l'ancienne
+  version reste en mémoire.
+- **Éviter `textSelection(.enabled)` sur des zones non éditables** quand un
+  contrôle interactif cohabite (lien, bouton dans le texte) : la sélection
+  parasite le geste.
+
+### Système de fichiers & Process
+
+- **Symlink `/var/folders` → `/private/var/folders` sur macOS.**
+  `FileManager.enumerator` retourne des URLs **résolues** (`/private/var/...`)
+  même si la racine était `/var/...`. Toujours passer par
+  `resolvingSymlinksInPath()` avant tout `replacingOccurrences(of: resolvedRoot)`
+  sur un chemin calculé.
+- **`Process()` doit forcer la locale `en_US_POSIX`.** Tout `Process` qui
+  invoque `/usr/bin/unzip`, `unrar`, `unar`, `7z` et parse la sortie texte
+  (notamment `uncompressedSize` dans `ModZipInstaller`) doit définir
+  `process.environment = Self.cLocaleEnvironment`. Sinon, dates et tailles
+  sont localisées et la regex casse sur les utilisateurs non-EN.
+- **Pas de timeout sur `process.waitUntilExit()`** pour `unrar/unar/7z` —
+  voir TODO `process_timeout_pending_todo` (reporte le fix, à ne pas dupliquer
+  ailleurs).
+
+### Concurrence
+
+- **`scanMods()` peut tourner concurrentiellement avec lui-même** (refresh
+  manuel + initial load, activation de profil en parallèle). Toute structure
+  mutable partagée (cache `manifestCache`, registre installé) doit être
+  protégée par un `NSLock` dédié. Le subscript setter d'un `Dictionary` Swift
+  sans verrou cause un `EXC_BAD_ACCESS` (crash confirmé juillet 2026 sur
+  `manifestCache`).
+- **`weak self` obligatoire** dans toute closure passée à
+  `DispatchQueue.global().async`. Toute mutation `@Published` doit rester sur
+  le main thread.
+
+### Modèles & parsing
+
+- **Manifest JSON : pas de `.allowFragments` sans strip des commentaires
+  bloc `/* … */` d'abord.** Un manifest DOIT être un objet ; accepter un
+  scalaire masquerait un fichier corrompu. Stripper
+  `/\*[\s\S]*?\*/` en `.regularExpression` avant parsing.
+- **Encodage du manifest** : UTF-8 suffit, mais le BOM en tête (`EF BB BF`)
+  fait échouer `String(data:encoding:.utf8)` silencieusement. Si un mod
+  apparaît sans nom ou avec un nom bizarre, vérifier le BOM avant tout.
+- **Nexus mod id depuis `UpdateKeys`** : `Nexus:191`, `Nexus: 191 ` (espaces),
+  `Nexus:23169@SwimItems` (suffixe `@variant`) → tous parsables. Helper
+  unique : `ModManifest.parseNexusId(fromUpdateKeys:)` (static, public, dans
+  `StarHubTH/ZipModInfo.swift`). **Ne pas dupliquer** la logique dans le
+  ViewModel ou ailleurs.
+- **Nexus requests : un seul constructeur** via
+  `NexusRequestBuilder.makeRequest(path:apiKey:)`. Source unique pour
+  `apiBase`, `gameDomain`, headers `User-Agent`/`Application-Name`/
+  `Application-Version`. Deux jeux d'en-têtes feraient voir deux clients
+  distincts à Nexus.
+- **Serialisation du registre** (`installedModRegistry` en UserDefaults) :
+  backup auto avant écriture, restauration auto si corruption détectée, plus
+  la reconstruction depuis le disque déjà existante. Les trois sont
+  indépendants, tous requis.
+- **Mise à jour d'un mod déjà activé** : préserver l'état activé après
+  l'écrasement. Ne **jamais** écraser `config.json` ou `fr.json` d'un mod
+  existant (drag-drop inclus).
+
+### Build & release
+
+- **`python3` uniquement**, jamais `python` (absent du PATH sur la machine
+  de référence).
+- **`DEVELOPER_DIR` obligatoire** pour `./run_tests.sh` : le framework
+  Swift Testing (`import Testing`) requiert Xcode.app complet, pas les
+  Command Line Tools. Sans `DEVELOPER_DIR` : `no such module 'Testing'` — c'est
+  une **limite d'environnement**, pas une régression.
+- **Parité des clés L10n obligatoire** : `en.json` et `fr.json` doivent
+  contenir exactement les mêmes clés. `build_app.py` valide ça — un ajout
+  dans un seul fichier fait échouer le build.
+- **`check_standards.py` n'échoue qu'à l'**augmentation** d'un compteur**
+  par rapport à `.standards-baseline.json`. Un `--update` explicite est
+  requis pour assumer une nouvelle violation, visible dans le diff.
+
+### UI
+
+- **Sidebar : pas de barre de recherche**, et l'entrée "Mod Updates" doit
+  rester visible en permanence (badge caché si 0 updates).
+- **Pages de liste (`ModListView`, `LogsView`)** : patron `VStack(spacing: 0)`
+  avec header fixe + `Divider` + `ScrollView` + footer/pagination fixe. Pas
+  de `ScrollView` unique qui ferait tout défiler ensemble.
+- **Toggle de mod = rename atomique préfixe point** : `Mods/X` ↔ `Mods/.X`.
+  `ModItem.folderName` est **logique** (jamais de point). `physicalFolderName`
+  est la version disque. Toute construction de chemin disque doit utiliser
+  `physicalFolderName`.
+
 ## Git
 
 Travailler sur `main`. **Pousser uniquement quand l'utilisateur le demande.**
