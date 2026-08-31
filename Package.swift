@@ -146,6 +146,8 @@ let package = Package(
                 "Models/HomeAttention.swift",
                 "Models/KeybindGrammar.swift",
                 "Models/KeybindScanner.swift",
+                "SaveFarmerPalette.swift",
+                "SaveFarmPalette.swift",
             ]
         ),
         .testTarget(
@@ -756,6 +758,11 @@ let package = Package(
             name: "HomeAttentionTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/HomeAttentionTests"
+        ),
+        .testTarget(
+            name: "SaveFarmerPaletteTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/SaveFarmerPaletteTests"
         ),
     ]
 )
