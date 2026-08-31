@@ -22,7 +22,7 @@ struct SaveFarmGlyph: View, Equatable {
             case 5: FourCornersFarmGlyph(size: size)
             case 6: BeachFarmGlyph(size: size)
             case 7: MeadowlandsFarmGlyph(size: size)
-            default: ModFarmGlyph(sfSymbol: Self.farmIcon(for: whichFarm), size: size)
+            default: ModFarmGlyph(sfSymbol: SaveGameInfo.farmIcon(for: whichFarm), size: size)
             }
         }
         .frame(width: size.width, height: size.height)
@@ -32,20 +32,6 @@ struct SaveFarmGlyph: View, Equatable {
         lhs.whichFarm == rhs.whichFarm
             && lhs.modFarmName == rhs.modFarmName
             && lhs.size == rhs.size
-    }
-
-    private static func farmIcon(for whichFarm: Int) -> String {
-        switch whichFarm {
-        case 0: return "leaf.fill"
-        case 1: return "water.waves"
-        case 2: return "tree.fill"
-        case 3: return "mountain.2.fill"
-        case 4: return "moon.stars.fill"
-        case 5: return "square.grid.2x2.fill"
-        case 6: return "sun.max.fill"
-        case 7: return "pawprint.fill"
-        default: return "questionmark.square.fill"
-        }
     }
 }
 

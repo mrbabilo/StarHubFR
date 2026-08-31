@@ -8892,3 +8892,14 @@ class StarHubTHViewModel: ObservableObject {
         incompletelyAppliedProfileIds.remove(id)
     }
 }
+
+// MARK: - L10nResolver
+//
+// Conformité ajoutée par H-T5b T7 : `SaveFarmNameResolver` est du Core pur
+// qui ne dépend pas du VM. Il consomme un `L10nResolver` (protocole Core)
+// pour rester testable sans VM. Le VM implémente `localized(_:)` en
+// déléguant à sa propre méthode d'instance `L(_:)`. Cette extension vit
+// hors du corps du VM (god-object §5.1) pour ne pas aggraver le diff.
+extension StarHubTHViewModel: L10nResolver {
+    public func localized(_ key: String) -> String { L(key) }
+}

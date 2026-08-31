@@ -577,29 +577,52 @@ struct SaveRow: View {
 private struct SaveHeroBand: View {
     let title: String
     let subtitle: String
-    let avatarPath: String
     let closeHelp: String
     let onClose: () -> Void
+    let whichFarm: Int
+    let hairStyle: Int
+    let hairColor: Int
+    let skinIndex: Int
+    let farmHelp: String
 
     var body: some View {
         Rectangle()
             .fill(.quaternary)
             .frame(height: AppDesign.Metrics.heroHeight)
             .overlay(alignment: .bottomLeading) {
-                HStack(spacing: AppDesign.Spacing.md) {
-                    SaveAvatarViewLocal(iconPath: avatarPath, size: 56)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(title)
-                            .font(AppDesign.Font.viewTitle)
-                            .foregroundColor(.primary)
-                            .lineLimit(1)
-                        Text(subtitle)
-                            .font(AppDesign.Font.caption)
-                            .foregroundColor(.secondary)
-                            .lineLimit(1)
+                VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
+                    HStack(alignment: .center, spacing: AppDesign.Spacing.md) {
+                        EquatableView(content: SaveFarmerAvatar(
+                            hairStyle: hairStyle,
+                            hairColor: hairColor,
+                            skinIndex: skinIndex,
+                            size: 40
+                        ))
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(title)
+                                .font(AppDesign.Font.viewTitle)
+                                .foregroundColor(.primary)
+                                .lineLimit(1)
+                            Text(subtitle)
+                                .font(AppDesign.Font.caption)
+                                .foregroundColor(.secondary)
+                                .lineLimit(1)
+                        }
+                        Spacer(minLength: AppDesign.Spacing.sm)
                     }
+                    .padding(.horizontal, AppDesign.Spacing.lg)
+
+                    HStack {
+                        Spacer()
+                        EquatableView(content: SaveFarmGlyph(
+                            whichFarm: whichFarm,
+                            modFarmName: nil
+                        ))
+                        .help(farmHelp)
+                    }
+                    .padding(.horizontal, AppDesign.Spacing.lg)
+                    .padding(.bottom, AppDesign.Spacing.md)
                 }
-                .padding(AppDesign.Spacing.lg)
             }
             .overlay(alignment: .topTrailing) {
                 Button(action: onClose) {
@@ -645,6 +668,15 @@ struct SaveEditorView: View {
     @State private var iconPath: String
     @State private var showStaleWarning = false
     @State private var pendingSaveAction: (() -> Void)?
+
+    /// Sous-titre enrichi du hero (H-T5b D2) : la date de jeu concaténée au
+    /// nom de ferme résolu (vanille ou mod). Calculé une fois dans `init` car
+    /// `SaveFarmNameResolver.resolve` n'a aucune raison d'être ré-évalué à
+    /// chaque re-render : ses entrées ne bougent pas pendant la session.
+    private let heroSubtitle: String
+    /// Tooltip affiché sur la vignette de ferme du hero. Calculé en amont
+    /// pour respecter la même règle « Core pur » que `SaveFarmNameResolver`.
+    private let farmHelp: String
     
     let availableTags = ["", "⭐", "🏆", "🧪", "❤️", "💎", "📅"]
     
@@ -681,16 +713,25 @@ struct SaveEditorView: View {
         _noteTag = State(initialValue: note.tag)
         _noteText = State(initialValue: note.note)
         _iconPath = State(initialValue: note.customIconPath ?? "")
+
+        let displayName = SaveFarmNameResolver.resolve(save, resolver: vm)
+        let dayLine = save.farmDayLine(format: vm.L(L10n.Saves.yearDayFormat),
+                                       localizedSeason: vm.L(save.seasonName))
+        self.heroSubtitle = "\(dayLine) — \(displayName)"
+        self.farmHelp = SaveFarmNameResolver.heroHelp(for: save, resolver: vm)
     }
     
     var body: some View {
         VStack(spacing: 0) {
             SaveHeroBand(title: save.playerName,
-                         subtitle: save.farmDayLine(format: vm.L(L10n.Saves.yearDayFormat),
-                                                     localizedSeason: vm.L(save.seasonName)),
-                         avatarPath: iconPath,
+                         subtitle: heroSubtitle,
                          closeHelp: vm.L(L10n.Saves.cancel),
-                         onClose: { vm.editingSave = nil })
+                         onClose: { vm.editingSave = nil },
+                         whichFarm: save.whichFarm,
+                         hairStyle: save.hairStyle,
+                         hairColor: save.hairColor,
+                         skinIndex: save.skinIndex,
+                         farmHelp: farmHelp)
 
             // Ce qui décide avant d'ouvrir le formulaire : où l'on en est,
             // ce que l'on a. Tout se sert dans la sauvegarde elle-même.
