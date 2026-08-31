@@ -18,7 +18,7 @@ struct DuplicateSaveSheet: View {
     var body: some View {
         VStack(spacing: 20) {
             Text(vm.L(L10n.Saves.duplicateTitle))
-                .font(.headline)
+                .font(AppDesign.Font.headline)
             
             Form {
                 TextField(vm.L(L10n.Saves.newCharacterName), text: $newName)
@@ -88,7 +88,7 @@ struct BranchBackupSheet: View {
     var body: some View {
         VStack(spacing: 20) {
             Text(vm.L(L10n.Saves.branchTitle))
-                .font(.headline)
+                .font(AppDesign.Font.headline)
             
             Form {
                 TextField(vm.L(L10n.Saves.newCharacterName), text: $newName)

@@ -15,26 +15,26 @@ struct SaveTimelineView: View {
             // Header
             HStack {
                 Button(action: { vm.viewingSaveTimeline = nil }) {
-                    HStack(spacing: 4) {
+                    HStack(spacing: AppDesign.Spacing.xs) {
                         Image(systemName: "chevron.left")
-                            .font(.system(size: 14, weight: .bold))
+                            .font(AppDesign.Font.rowTitle(.bold))
                         Text(vm.L(L10n.Saves.saves))
                     }
-                    .foregroundColor(isHoveredReturn ? .accentColor : .secondary)
+                    .foregroundColor(isHoveredReturn ? AppDesign.Color.accent : .secondary)
                     .padding(.vertical, 8)
                     .padding(.horizontal, 12)
-                    .background(isHoveredReturn ? Color.accentColor.opacity(0.1) : Color.clear)
-                    .cornerRadius(8)
+                    .background(isHoveredReturn ? Color.accentColor.opacity(AppDesign.Opacity.light) : Color.clear)
+                    .cornerRadius(AppDesign.Radius.md)
                 }
                 .buttonStyle(PlainButtonStyle())
                 .onHover { isHoveredReturn = $0 }
-                
+
                 Spacer()
-                
+
                 Text(save.playerName)
-                    .font(.headline)
+                    .font(AppDesign.Font.headline)
                     .foregroundColor(.primary)
-                
+
                 Spacer()
                 // Backup Button
                 Button(action: {
@@ -44,7 +44,7 @@ struct SaveTimelineView: View {
                         }
                     }
                 }) {
-                    HStack(spacing: 4) {
+                    HStack(spacing: AppDesign.Spacing.xs) {
                         if vm.isSaveOperationRunning {
                             ProgressView()
                                 .controlSize(.small)
@@ -53,10 +53,11 @@ struct SaveTimelineView: View {
                         }
                         Text(vm.L(L10n.Saves.backupLabel))
                     }
-                    .font(.system(size: 12, weight: .medium))
+                    .font(AppDesign.Font.caption(.medium))
                 }
                 .buttonStyle(.plain)
-                .foregroundColor(.accentColor)
+                .pointingHandCursor()
+                .foregroundColor(AppDesign.Color.accent)
                 .padding(.trailing, 8)
                 .disabled(vm.isSaveOperationRunning)
             }
@@ -179,38 +180,38 @@ struct BackupRow: View {
     }
     
     var body: some View {
-        HStack(alignment: .top, spacing: 16) {
+        HStack(alignment: .top, spacing: AppDesign.Spacing.lg) {
             // Timeline line & dot
             VStack(spacing: 0) {
                 Circle()
-                    .fill(Color.accentColor)
+                    .fill(AppDesign.Color.accent)
                     .frame(width: 12, height: 12)
-                    .shadow(color: Color.accentColor.opacity(0.3), radius: 3)
+                    .shadow(color: Color.accentColor.opacity(AppDesign.Opacity.strong), radius: AppDesign.Shadow.badge.radius)
                     .padding(.top, 4)
-                
+
                 if !isLast {
                     Rectangle()
-                        .fill(Color.secondary.opacity(0.2))
+                        .fill(Color.secondary.opacity(AppDesign.Opacity.medium))
                         .frame(width: 2)
                 }
             }
             .frame(width: 20)
-            
+
             // Content Card
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
                 HStack {
                     if !noteTag.isEmpty && !isEditingNote {
                         Text(noteTag)
-                            .font(.system(size: 14))
+                            .font(AppDesign.Font.rowTitle)
                     }
                     Text(relativeLabel)
-                        .font(.system(size: 14, weight: .bold))
+                        .font(AppDesign.Font.rowTitle(.bold))
                     Spacer()
                     Text(formattedDate)
-                        .font(.system(size: 12))
+                        .font(AppDesign.Font.caption)
                         .foregroundColor(.secondary)
                 }
-                
+
                 if isEditingNote {
                     HStack {
                         Picker("", selection: $noteTag) {
@@ -219,10 +220,10 @@ struct BackupRow: View {
                             }
                         }
                         .frame(width: 60)
-                        
+
                         TextField(vm.L(L10n.Saves.saveNote), text: $noteText)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
-                        
+
                         Button(vm.L(L10n.Profiles.save)) {
                             vm.setNote(for: backup.folderPath.lastPathComponent, tag: noteTag, note: noteText)
                             isEditingNote = false
@@ -232,72 +233,84 @@ struct BackupRow: View {
                     }
                 } else if !noteText.isEmpty {
                     Text(noteText)
-                        .font(.system(size: 12))
+                        .font(AppDesign.Font.caption)
                         .foregroundColor(.secondary)
                         .padding(.vertical, 2)
                 }
-                
+
                 HStack {
                     Text(vm.L(L10n.Saves.backupLabel))
-                        .font(.system(size: 12))
+                        .font(AppDesign.Font.caption)
                         .foregroundColor(.secondary)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
-                        .background(Color.secondary.opacity(0.1))
-                        .cornerRadius(4)
-                    
+                        .background(Color.secondary.opacity(AppDesign.Opacity.light))
+                        .cornerRadius(AppDesign.Radius.sm)
+
                     Spacer()
-                    
-                    // Actions
+
+                    // Actions. Crayon et corbeille : cible 18×18 — un glyph
+                    // nu de 12 pt rend `.help` muet (a11y §7).
                     Button(action: { isEditingNote.toggle() }) {
                         Image(systemName: "pencil")
+                            .font(AppDesign.Font.caption)
+                            .frame(width: 18, height: 18)
+                            .contentShape(.rect)
                     }
                     .buttonStyle(.plain)
                     .foregroundColor(.secondary)
-                    .padding(.trailing, 4)
+                    .padding(.trailing, AppDesign.Spacing.xs)
                     .help(vm.L(L10n.Saves.editNoteHint))
-                    
+
                     Button(action: {
                         vm.backupToBranch = backup
                     }) {
-                        HStack(spacing: 4) {
+                        HStack(spacing: AppDesign.Spacing.xs) {
                             Image(systemName: "arrow.triangle.branch")
                             Text(vm.L(L10n.Saves.branch))
                         }
-                        .font(.system(size: 12, weight: .medium))
+                        .font(AppDesign.Font.caption(.medium))
                     }
                     .buttonStyle(.plain)
-                    .foregroundColor(.green)
-                    .padding(.trailing, 4)
-                    
+                    .pointingHandCursor()
+                    // La teinte « installé/actif » du dépôt, pas le vert
+                    // système : la branche crée quelque chose de vivant,
+                    // la même sémantique que l'installé (éprouvée deux
+                    // thèmes).
+                    .foregroundColor(AppDesign.Color.installed)
+                    .padding(.trailing, AppDesign.Spacing.xs)
+
                     Button(action: onRestore) {
-                        HStack(spacing: 4) {
+                        HStack(spacing: AppDesign.Spacing.xs) {
                             Image(systemName: "arrow.uturn.backward.circle.fill")
                             Text(vm.L(L10n.Saves.restore))
                         }
-                        .font(.system(size: 12, weight: .medium))
+                        .font(AppDesign.Font.caption(.medium))
                     }
                     .buttonStyle(.plain)
-                    .foregroundColor(.accentColor)
-                    
+                    .pointingHandCursor()
+                    .foregroundColor(AppDesign.Color.accent)
+
                     Button(action: onDelete) {
                         Image(systemName: "trash")
-                            .font(.system(size: 12))
+                            .font(AppDesign.Font.caption)
+                            .frame(width: 18, height: 18)
+                            .contentShape(.rect)
                     }
                     .buttonStyle(.plain)
-                    .foregroundColor(.red.opacity(0.7))
-                    .padding(.leading, 8)
+                    .foregroundColor(AppDesign.Color.error.opacity(AppDesign.Opacity.secondary))
+                    .padding(.leading, AppDesign.Spacing.sm)
                     .help(vm.L(L10n.Saves.deleteBackupHint))
                 }
             }
-            .padding(12)
+            .padding(AppDesign.Spacing.md)
             .background(Color(nsColor: .controlBackgroundColor))
-            .cornerRadius(10)
+            .cornerRadius(AppDesign.Radius.section)
             .overlay(
-                RoundedRectangle(cornerRadius: 10)
-                    .stroke(Color.secondary.opacity(0.1), lineWidth: 1)
+                RoundedRectangle(cornerRadius: AppDesign.Radius.section)
+                    .stroke(Color.secondary.opacity(AppDesign.Opacity.light), lineWidth: 1)
             )
-            .padding(.bottom, isLast ? 20 : 16)
+            .padding(.bottom, isLast ? 20 : AppDesign.Spacing.lg)
         }
     }
     

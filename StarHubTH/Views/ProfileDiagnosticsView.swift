@@ -36,14 +36,14 @@ struct ProfileDiagnosticsView: View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 6) {
                 Text(String(format: vm.L(L10n.Profiles.diagnosticTitle), profile.name))
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(AppDesign.Font.headline(.semibold))
                 // Seulement quand des mods manquent vraiment : cette feuille
                 // s'ouvre aussi depuis la couverture française d'un profil
                 // sans le moindre défaut, et l'accueillir par « ce profil
                 // réclame des mods qui ne sont plus installés » serait faux.
                 if !missing.isEmpty {
                     Text(vm.L(L10n.Profiles.missingNote) + " " + vm.L(L10n.Profiles.missingRestoreNote))
-                        .font(.system(size: 11))
+                        .font(AppDesign.Font.footnote)
                         .foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -122,7 +122,7 @@ struct ProfileDiagnosticsView: View {
             HStack(spacing: 8) {
                 ProgressView().controlSize(.small)
                 Text(vm.L(L10n.Profiles.translationMeasuring))
-                    .font(.system(size: 12))
+                    .font(AppDesign.Font.caption)
                     .foregroundColor(.secondary)
             }
             .padding(.horizontal, 20)
@@ -135,9 +135,9 @@ struct ProfileDiagnosticsView: View {
                             summary.displayPercent,
                             Int64(summary.translatableCount),
                             Int64(summary.fullyTranslatedCount)))
-                    .font(.system(size: 12))
+                    .font(AppDesign.Font.caption)
                 Text(vm.L(L10n.Profiles.translationNote))
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -146,7 +146,7 @@ struct ProfileDiagnosticsView: View {
 
             if summary.pending.isEmpty {
                 Text(vm.L(L10n.Profiles.translationAllDone))
-                    .font(.system(size: 12))
+                    .font(AppDesign.Font.caption)
                     .foregroundColor(.secondary)
                     .padding(.horizontal, 20)
                     .padding(.bottom, 12)
@@ -166,11 +166,11 @@ struct ProfileDiagnosticsView: View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(mod.name)
-                    .font(.system(size: 13))
+                    .font(AppDesign.Font.body)
                 Text(String(format: vm.L(L10n.Profiles.translationRowCounts),
                             Int64(mod.translated), Int64(mod.total),
                             Int64(mod.missingCount)))
-                    .font(.system(size: 10))
+                    .font(AppDesign.Font.iconXS)
                     .foregroundColor(.secondary)
             }
 
@@ -180,7 +180,7 @@ struct ProfileDiagnosticsView: View {
             // mods : deux rangées voisines ne doivent pas décaler leur nombre.
             Text("\(mod.displayPercent) %")
                 .font(.system(size: 11, weight: .medium, design: .monospaced))
-                .foregroundColor(mod.translated == 0 ? .secondary : .accentColor)
+                .foregroundColor(mod.translated == 0 ? .secondary : AppDesign.Color.accent)
 
             Button(vm.L(L10n.Profiles.translationOpen)) {
                 // Ouvre la fiche du mod sur son onglet Traduction. Passer par
@@ -201,7 +201,7 @@ struct ProfileDiagnosticsView: View {
     private func sectionHeader(_ title: String) -> some View {
         HStack {
             Text(title)
-                .font(.system(size: 11, weight: .semibold))
+                .font(AppDesign.Font.footnote(.semibold))
                 .foregroundColor(.secondary)
             Spacer()
         }
@@ -217,11 +217,11 @@ struct ProfileDiagnosticsView: View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(gap.displayName)
-                    .font(.system(size: 13))
+                    .font(AppDesign.Font.body)
                 Text(String(format: vm.L(L10n.Profiles.requiredByCount),
                             Int64(gap.requiredBy.count),
                             gap.requiredBy.prefix(3).joined(separator: ", ")))
-                    .font(.system(size: 10))
+                    .font(AppDesign.Font.iconXS)
                     .foregroundColor(.secondary)
                     .lineLimit(2)
             }
@@ -245,9 +245,15 @@ struct ProfileDiagnosticsView: View {
                     .pointingHandCursor()
                 }
             } else {
-                Text(vm.L(L10n.Profiles.dependencyNotInstalled))
-                    .font(.system(size: 11))
-                    .foregroundColor(.orange)
+                // Gravité = glyph **et** couleur (P6) : l'orange seul ne dit
+                // pas « manque », surtout à côté d'un libellé neutre.
+                HStack(spacing: AppDesign.Spacing.xs) {
+                    Image(systemName: "exclamationmark.circle")
+                        .font(AppDesign.Font.iconXS)
+                    Text(vm.L(L10n.Profiles.dependencyNotInstalled))
+                        .font(AppDesign.Font.footnote)
+                }
+                .foregroundColor(AppDesign.Color.warning)
             }
         }
         .padding(.horizontal, 20)
@@ -258,7 +264,7 @@ struct ProfileDiagnosticsView: View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(mod.displayName)
-                    .font(.system(size: 13))
+                    .font(AppDesign.Font.body)
                 // L'identifiant reste visible : c'est ce que l'utilisateur
                 // retrouvera dans un manifeste ou dans un journal SMAPI, et
                 // pour les profils d'avant c'est parfois tout ce qu'on a.
@@ -274,7 +280,7 @@ struct ProfileDiagnosticsView: View {
                 // Proposer Nexus ici serait un mauvais conseil : ce mod revient
                 // avec une réinstallation de SMAPI, et n'a pas de page à lui.
                 Text(vm.L(L10n.Profiles.missingBundled))
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
                     .foregroundColor(.secondary)
             } else {
                 if mod.hasBackup {
@@ -298,7 +304,7 @@ struct ProfileDiagnosticsView: View {
                     .pointingHandCursor()
                 } else if !mod.hasBackup {
                     Text(vm.L(L10n.Profiles.missingUnknown))
-                        .font(.system(size: 11))
+                        .font(AppDesign.Font.footnote)
                         .foregroundColor(.secondary)
                 }
             }
