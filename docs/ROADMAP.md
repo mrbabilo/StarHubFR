@@ -2540,3 +2540,89 @@ FR sans passer par le tag.
   aucun document du dépôt ne le citait. Ses 1318 lignes sont remplacées par un bandeau
   de renvoi vers la ROADMAP, le code, les tests et `design/` ; le contenu reste dans
   l'historique.
+
+---
+
+## 10. Veille concurrentielle — `SalehBusbait/RimManager` (2026-08-31)
+
+Gestionnaire de mods **RimWorld** (.NET 10 + Avalonia 12, MIT, `1.0.0-beta.3`, 1 488 tests,
+usage quotidien sur 565 mods). Domaine différent (RimWorld, Mono, XML) mais architecture
+soignée et features originales exportables.
+
+**Fait foi** : [`CLAUDE.md`](https://github.com/SalehBusbait/RimManager/blob/main/CLAUDE.md)
+du dépôt, `docs/{sorting,conflicts,modlists-and-history,updates-and-workshop,sharing,rwlist-v1}.md`.
+**Limite** : 0 ⭐, 0 fork, pré-release — observer, ne pas importer aveuglément.
+
+### 10.1 Architecture de référence (à observer, pas à copier)
+
+Séparation `Core` (pur, zéro I/O) → `Storage` (seul I/O disque) → `Integrations` (réseau
++ process) → `App` (UI). Règle absolue : *« Anything testable lives below the shell, not
+in it. »* C'est la **cible** de notre **F1** mais le mapping avec notre monolithe
+`StarHubTHViewModel` (8 389 lignes au 2026-08-28, dernier mesuré — voir **F1** pour la
+tendance) demandera plusieurs itérations.
+
+### 10.2 Traps documentés (anti-pattern book gratuit)
+
+Le `CLAUDE.md` liste 9 pièges Avalonia trouvés en production. Le plus transposable tel
+quel : *« A number on screen is a claim and has to be measured against a real install. »*
+— c'est la même règle que **F2** (audit perf) énonce chez nous en creux. Leçon : un
+audit outillé sans mesure sur la modlist de l'auteur ne vaut rien.
+
+### 10.3 Six actions à pousser en roadmap
+
+Périmètre : ce qui est **conceptuellement réutilisable** et **techniquement faisable**
+sur macOS / SwiftUI. Les features trop spécifiques à RimWorld (Cecil analyzer,
+`ModsConfig.xml` byte-exact, Steamworks bindings) sont écartées.
+
+- [ ] **R1** — **Indexer les couleurs catégories en palette, pas en hex.** Les 26 entrées
+      de `NexusCategory.swift` (`Color(red: 0.80, …)`) sont des hex codés en dur. Le mode
+      dark est géré par un asset 1:1 qui ne survivra pas à un thème custom. Pattern
+      RimManager : stocker un `paletteIndex: Int` (0–5), interpréter via le thème
+      courant au rendu. Bénéfice futur : un thème custom n'a pas à migrer les données.
+      · **M** · *à pousser dans l'axe H (cohérence UI), après H-T1.*
+- [ ] **R2** — **Écriture atomique + apply guard pour `applyProfileToFilesystem`.**
+      Pattern RimManager : `guard !isGameRunning` → backup timestamped → write
+      atomique (tmp + rename) → validation post-write. Un crash en cours d'activation
+      de profil peut aujourd'hui laisser l'état partiel (pas de backup de l'état
+      pré-apply au niveau profil — seulement au niveau mod). Réutilise
+      `ModInstallBackupManager` côté backup, ajoute l'atomique.
+      · **M** · *cible F2 (audit sécurité) ou §4 (correctifs X9).*
+- [ ] **R3** — **Snooze d'updates Nexus.** Granularité : 1 semaine / jusqu'à prochaine
+      version du mod / jusqu'à prochaine version de Stardew. Persiste en UserDefaults,
+      expire tout seul, retire le mod de la liste « updates » sans le masquer dans
+      l'inventaire. Répond à un vrai UX gap : aujourd'hui, ignorer un update = l'avoir
+      en permanence sous les yeux.
+      · **S** · *axe B.*
+- [ ] **R4** — **Profils = modlist + configs isolées.** Chaque profil capture ses propres
+      `config.json` / `fr.json` au switch (toggle par profil, off par défaut). Le scan
+      actuel distingue déjà la config par mod ; il manque l'association config↔profil
+      et le snapshot au moment du switch. Faisable en s'appuyant sur
+      `ModConfigBackupManager` déjà livré.
+      · **L** · *B3-T1 → successeur direct.*
+- [ ] **R5** — **Historique append-only des actions.** Modèle RimManager : chaque
+      `apply`, `sort`, `install`, `delete` crée un snapshot, restaurable sans
+      réécrire l'historique. Pinning (étoile) protège du pruning auto à 30 j. Remplace
+      l'actuel *« annuler la dernière action »* (s'il existe) par un vrai timeline.
+      · **M** · *B3-T1+ : à concevoir avec R4 pour partager le store.*
+- [ ] **R6** — **Property-test « idempotent » sur `applyProfileToFilesystem`.**
+      Appliquer deux fois un même profil = appliquer une fois (état final stable).
+      Mesure RimManager : 100+ cas générés automatiquement, propriété tenue. Notre code
+      a probablement des cas où un double-apply renomme deux fois (toggle
+      X→.X→X) — à property-tester pour **caractériser** avant de **corriger**.
+      · **S** · *F2 (audit perf & sécurité).*
+
+### 10.4 Ce qu'on **n'importe PAS**
+
+- **Conflict detection binaire (Cecil)** : trop spécifique à .NET. SMAPI détecte déjà
+  ses propres conflits Harmony au runtime, et `SmapiLogParser` les parse. Notre
+  valeur ajoutée reste dans le diagnostic, pas dans l'analyse statique.
+- **Drift detection ModsConfig.xml** : on n'écrit pas dans un fichier que l'utilisateur
+  peut modifier. Notre `installedModRegistry` (UserDefaults) est sous notre seul
+  contrôle.
+- **Rule editor 3-sources (auteur / communauté / utilisateur)** : pas de DB
+  communautaire équivalente pour Stardew, et la granularité des deps est plus faible
+  que sur RimWorld.
+- **Workshop = externalisation totale** : RimManager délègue à Steam ; nous téléchargeons
+  depuis Nexus, c'est correct (Stardew n'a pas de Steam Workshop). Mais le **principe**
+  est confirmé : l'autorité, c'est **notre scan du disque**, pas Nexus — ce qu'on fait
+  déjà.
