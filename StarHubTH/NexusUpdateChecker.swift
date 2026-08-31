@@ -30,6 +30,10 @@ final class NexusUpdateChecker {
     /// plat : ce qui s'affiche en est la consolidation par pack, jamais
     /// l'inverse (voir `StarHubTHViewModel.republishUpdatesFromCache`).
     private let cachedUpdatesKey = "nexusCachedUpdates"
+    /// UserDefaults key holding the epoch of the last update check that
+    /// returned a response — A2-T4's TTL gate reads it at launch. A failed
+    /// pass writes nothing, so the next launch retries.
+    private let lastCheckedKey = "nexusUpdatesLastCheckedAt"
     /// UserDefaults key caching the Nexus category id for every mod we've ever
     /// queried (`{ "modId": categoryId }`). Persisted independently from
     /// `cachedUpdates` because categories apply to *all* mods, not just those
@@ -290,6 +294,20 @@ final class NexusUpdateChecker {
     /// Useful for seeding the UI on launch before any check runs.
     func cachedUpdates() -> [ModUpdate] {
         withMetadataCacheLock { loadCachedUpdates() }
+    }
+
+    /// The last update check that returned a response, `nil` if none ever
+    /// completed. Read by the launch gate (A2-T4); the manual check button
+    /// on the Updates page bypasses the gate — asking outranks freshness.
+    var lastSuccessfulCheck: Date? {
+        let epoch = UserDefaults.standard.double(forKey: lastCheckedKey)
+        return epoch > 0 ? Date(timeIntervalSince1970: epoch) : nil
+    }
+
+    /// Marks a pass as completed. Called when the smapi.io fetch returned —
+    /// per-mod states (broken, abandoned) are data, not failures.
+    func recordSuccessfulCheck(at date: Date = Date()) {
+        UserDefaults.standard.set(date.timeIntervalSince1970, forKey: lastCheckedKey)
     }
 
     /// Remplace entièrement le cache des mises à jour.

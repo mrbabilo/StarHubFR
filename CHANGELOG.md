@@ -12,6 +12,9 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+- **Update checks no longer hit smapi.io on every launch**: a check that returned a response keeps the next automatic one away for 12 hours — the list still opens on the cached results. The manual "Check" button on the Updates page always refreshes.
+
 ## [1.29.0] - 2026-08-30
 
 ### Added

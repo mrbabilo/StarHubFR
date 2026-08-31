@@ -2365,7 +2365,18 @@ class StarHubTHViewModel: ObservableObject {
                 // téléchargement intégré et aux métadonnées de la fiche. La
                 // garde qui était ici privait de toute détection de mise à
                 // jour quiconque n'avait pas de compte Nexus.
-                self.checkNexusUpdates()
+                //
+                // A2-T4 — TTL 12 h : un passage encore frais sert le cache
+                // tel quel, le lancement ne réinterroge pas smapi.io. Le
+                // bouton « Vérifier » de la page Mises à jour, lui, passe
+                // toujours outre — demander outrage la fraîcheur.
+                if UpdateCheckPolicy.shouldAutoCheck(
+                    lastSuccess: NexusUpdateChecker.shared.lastSuccessfulCheck,
+                    now: Date(), ttl: 12 * 3600) {
+                    self.checkNexusUpdates()
+                } else {
+                    self.log("Vérification des mises à jour sautée : dernière réussie il y a moins de 12 h", level: .info)
+                }
             }
         }
         // SMAPI version probe runs in parallel — it doesn't block the launch
@@ -4030,6 +4041,10 @@ class StarHubTHViewModel: ObservableObject {
                 switch result {
                 case .success(let mods):
                     self.applySmapiResults(mods, entries: entries, folders: folders)
+                    // A2-T4 : le passage a rendu une réponse — le TTL du
+                    // prochain lancement part d'ici. Un échec réseau
+                    // n'écrit rien : le lancement suivant réessaiera.
+                    NexusUpdateChecker.shared.recordSuccessfulCheck()
                 case .failure(let failure):
                     // On ne vide pas la liste : une panne réseau n'est pas une
                     // preuve que les mises à jour connues ont disparu.
