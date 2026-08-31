@@ -262,11 +262,11 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       *Livré le 2026-08-31 : `pickLatestMainFile` (filtre MAIN puis
       `max(uploaded_timestamp ?? 0)`, repli toutes catégories) branché dans
       `fetchModInfo` ; 5 tests, RED comportemental prouvé contre un stub avant
-      l'implémentation. `pickPrimaryFile` reste pour `NexusDownloader.resolveFileId`.
-      **Constat frère relevé, non traité** : `resolveFileId` alimente aussi les
-      téléchargements à `fileId: nil` (`downloadModFromNexus` VM:5157,
-      `installTranslation` VM:5953) et prend le premier MAIN — même défaut,
-      à l'installation cette fois. Deux lignes à changer le jour où c'est décidé.*
+      l'implémentation. **Constat frère traité le même jour, à sa demande** :
+      `resolveFileId` passe à `pickLatestMainFileId` — les téléchargements à
+      `fileId: nil` (install direct `downloadModFromNexus` VM:5157,
+      `installTranslation` VM:5953) prennent eux aussi le MAIN le plus récent
+      (2 tests).*
       ▸ **Cause** : aucun tri par `uploaded_timestamp` côté client ; l'ordre de
       l'API n'est pas contractualisé.
       ▸ **Correctif** : étendre `NexusModFile` avec `uploaded_timestamp`, ajouter

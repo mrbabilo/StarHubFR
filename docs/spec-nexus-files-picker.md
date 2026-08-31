@@ -164,6 +164,9 @@ JSON déjà présentes dans le module Core.
 - **Changement de la logique `pickPrimaryFile` (utilisée par `NexusDownloader`)** : là,
   c'est l'ID qui compte, pas la version. Le tri par date y serait sans effet et
   augmenterait la complexité sans bénéfice.
+  *(Révision du 2026-08-31, sur demande : la rationale ci-dessus était fausse pour les
+  deux appels réels à `fileId: nil` — install direct et traductions — où l'utilisateur
+  veut la dernière version. `resolveFileId` passe à `pickLatestMainFileId`.)*
 - **Détection de mod « beta only » / « abandoned »** : autre sujet, à traiter
   séparément si le besoin émerge.
 - **Fallback `category_name == "MAIN"`** : la spec Nexus v1 confirme `category_id == 1`,

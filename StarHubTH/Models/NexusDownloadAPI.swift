@@ -87,4 +87,11 @@ enum NexusDownloadAPI {
     static func pickPrimaryFileId(_ list: NexusModFileList) -> Int? {
         pickPrimaryFile(list)?.fileId
     }
+
+    /// L'id du MAIN le plus récent — ce que « télécharger ce mod » veut dire
+    /// quand l'appelant ne désigne pas de fichier précis (install direct,
+    /// traductions). Voir `pickLatestMainFile` pour la règle de tri.
+    static func pickLatestMainFileId(_ list: NexusModFileList) -> Int? {
+        pickLatestMainFile(list)?.fileId
+    }
 }

@@ -20,6 +20,7 @@ where the exact log format was verified.
 ### Fixed
 
 - **The update check compared against an outdated main file** (X8): with several MAIN files listed on Nexus, the check took the first one returned instead of the most recent (`uploaded_timestamp`) — a mod could read up to date while a newer MAIN exists, or report an older version than the real one. The comparison now takes the newest MAIN.
+- **"Download mod" no longer resolves to an outdated main file**: when no specific file is designated (direct install, translations), the downloader took the first MAIN returned; it now takes the most recent one — the same rule as the update check.
 
 ## [1.29.0] - 2026-08-30
 

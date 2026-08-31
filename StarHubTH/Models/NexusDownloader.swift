@@ -140,7 +140,10 @@ struct NexusDownloader {
         getModFiles(modId: modId) { result in
             switch result {
             case .success(let list):
-                guard let fid = NexusDownloadAPI.pickPrimaryFileId(list) else {
+                // X8 — le plus récent MAIN, pas le premier renvoyé : pour un
+                // mod à plusieurs MAIN, « installer ce mod » désigne la
+                // dernière version publiée, pas une version passée.
+                guard let fid = NexusDownloadAPI.pickLatestMainFileId(list) else {
                     completion(.failure(.noValidFile)); return
                 }
                 completion(.success(fid))

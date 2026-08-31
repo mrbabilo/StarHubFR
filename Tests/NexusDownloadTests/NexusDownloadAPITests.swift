@@ -79,4 +79,19 @@ struct NexusDownloadAPITests {
         #expect(file.categoryName == "MAIN")
         #expect(file.version == "2.4.1")
     }
+
+    // Le téléchargement à fileId nil (install direct, traductions) doit lui
+    // aussi prendre le MAIN le plus récent — pas le premier renvoyé.
+
+    @Test func pickLatestMainFileIdPrefersNewestMain() throws {
+        let json = #"{"files":[{"file_id":11,"category_id":1,"uploaded_timestamp":100,"version":"1.0.0"},{"file_id":12,"category_id":1,"uploaded_timestamp":300,"version":"2.0.0"},{"file_id":13,"category_id":1,"uploaded_timestamp":200,"version":"1.5.0"}]}"#.data(using: .utf8)!
+        let list = try NexusDownloadAPI.decodeFileList(json)
+        #expect(NexusDownloadAPI.pickLatestMainFileId(list) == 12)
+    }
+
+    @Test func pickLatestMainFileIdIsNilForEmptyList() throws {
+        let json = #"{"files":[]}"#.data(using: .utf8)!
+        let list = try NexusDownloadAPI.decodeFileList(json)
+        #expect(NexusDownloadAPI.pickLatestMainFileId(list) == nil)
+    }
 }
