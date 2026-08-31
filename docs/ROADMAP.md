@@ -2263,26 +2263,8 @@ par lot, une release par lot. Périmètre : visuel + navigation —
 > cible 18×18. Périmètre retenu au cadrage : tout, sheets comprises. La
 > vérification écran reste à l'humain — scénario remis avec le lot ; cinq
 > clés L10n nouvelles, cliquet relevé à chaque tâche (+1/+2, +4, +7/+7).
-- [ ] **H-T5b** — **Hero de sauvegarde illustré** : la fiche porte
-      aujourd'hui un fond `.quaternary` plat — la vignette de ferme et
-      l'avatar du fermier entrent dans le hero, dessinés à la volée en
-      SwiftUI vectoriel (8 fermes vanilla + peau/cheveux lus dans la
-      save, fallback SF Symbol pour les fermes de mods). Le sprite
-      vanilla n'est pas embarqué (licence wiki incompatible CC BY-NC-SA,
-      redistribution publique bloquée) et aucune dépendance réseau :
-      tout vit dans le bundle. Une opportunité pour fermer en passant
-      un bug latent — `farmTypeName` retournait du thaï codé en dur
-      depuis l'origine — qui devient localisé via `L10n.Saves.farmType*`
-      (8 clés + 2 tooltips hero + 1 clé mod-farm = 11 nouvelles clés,
-      parité en/fr). · **S**
-> **Spec :** `docs/superpowers/specs/2026-08-31-hero-sauvegarde-h-t5b-design.md`
-> **Relecture critique :** 5 critiques + 10 importants à intégrer avant
-> l'implémentation (init `SaveGameInfo` à defaults, mini-extracteur
-> `<whichModFarm>`, mémoïsation `Equatable` du glyphe, file
-> `fetchSaves` confirmée main-thread, hors-scope ferme custom dans la
-> grille). Estimation révisée : 8-10 h. À planifier via la skill
-> `writing-plans` après levée des contradictions (notamment :
-> `modFarmName` exposé dans le hero ou non — décision binaire).
+- [x] **H-T5b** — **Hero de sauvegarde illustré**. ✅ (livré le 2026-08-31)
+> **H-T5b livré le 2026-08-31, en huit tâches sur autant de gates.** Le hero de la fiche de sauvegarde porte désormais une vignette de ferme (8 vanilla en SwiftUI vectoriel + fallback SF Symbol pour les fermes de mods, palette extraite dans `SaveFarmPalette`) et un avatar du fermier (40×40, recomposé depuis `<hairStyle>`/`<hairColor>`/`<skin>`, palette SDV isolée dans `SaveFarmerPalette`). Le tooltip résolu affiche « Type de ferme : <nom> ». Ferme en passant un bug latent : `SaveManager.farmTypeName` retournait du thaï codé en dur depuis l'origine — désormais localisé via 10 nouvelles clés `L10n.Saves.farmType*` + `heroFarmHelpFormat`. Layout VStack empilé (avatar+titre en haut, vignette en dessous, label modFarmName dans le sous-titre), mémoïsation via `EquatableView`. Architecture : `L10nResolver` protocole Core + `SaveFarmNameResolver` injecté (VM pas god-object-ifié). 16 nouveaux tests (parsing <whichModFarm> deux formes, palettes SDV, résolution localisée).
 - [ ] **H-T6** — **Lot Santé & secours** : alertes système, quarantaine,
       backups ×2 — gravité toujours glyph + couleur, rapports en tableaux
       lisibles. · **M**
