@@ -556,6 +556,16 @@
 "saves_non_object" = "(Cannot edit this item)";
 "saves_inventory_success" = "Inventory saved successfully!";
 "saves_inventory_error" = "Error saving inventory";
+"saves_farm_type_standard" = "Standard Farm";
+"saves_farm_type_riverland" = "Riverland Farm";
+"saves_farm_type_forest" = "Forest Farm";
+"saves_farm_type_hilltop" = "Hill-top Farm";
+"saves_farm_type_wilderness" = "Wilderness Farm";
+"saves_farm_type_four_corners" = "Four Corners Farm";
+"saves_farm_type_beach" = "Beach Farm";
+"saves_farm_type_meadowlands" = "Meadowlands Farm";
+"saves_farm_type_mod" = "Custom farm";
+"saves_hero_farm_help_format" = "Farm type: %@";
 "saves_confirm_restore_msg_game_running" = "Stardew Valley is currently running. Restoring now may conflict with the game's own autosave.\nThe current save will be backed up before restoring.";
 "saves_confirm_stale_edit" = "Save Changed Since Opening";
 "saves_confirm_stale_edit_msg" = "This save has been modified on disk since you opened the editor (the game may have been played in the meantime). Overwriting now could discard that progress.";

@@ -205,6 +205,16 @@ enum L10n {
         static let nonObject            = "saves_non_object"
         static let inventorySuccess     = "saves_inventory_success"
         static let inventoryError       = "saves_inventory_error"
+        static let farmTypeBeach             = "saves_farm_type_beach"
+        static let farmTypeForest            = "saves_farm_type_forest"
+        static let farmTypeFourCorners       = "saves_farm_type_four_corners"
+        static let farmTypeHilltop           = "saves_farm_type_hilltop"
+        static let farmTypeMeadowlands       = "saves_farm_type_meadowlands"
+        static let farmTypeMod               = "saves_farm_type_mod"
+        static let farmTypeRiverland         = "saves_farm_type_riverland"
+        static let farmTypeStandard          = "saves_farm_type_standard"
+        static let farmTypeWilderness        = "saves_farm_type_wilderness"
+        static let heroFarmHelpFormat        = "saves_hero_farm_help_format"
     }
 
     // MARK: - Conflicts
