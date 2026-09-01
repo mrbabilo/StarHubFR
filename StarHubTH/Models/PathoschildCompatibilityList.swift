@@ -120,8 +120,15 @@ public enum PathoschildCompatibilityList {
 
     /// Récupère le dump Pathoschild (réseau avec repli cache).
     /// `completion` est invoquée sur le **fil principal**.
+    ///
+    /// `onEvent` est invoquée à chaque étape significative (début, fin, échec)
+    /// pour permettre à l'appelant de journaliser — la couche Core n'a pas
+    /// accès au journal de l'app, et inliner un `print()` perdrait le
+    /// `LogEntry` typé. La callback est **fire-and-forget** : une exception
+    /// ou un retour lent ne doit pas casser le fetch.
     public static func fetch(session: URLSession = .shared,
                              now: Date = Date(),
+                             onEvent: ((String) -> Void)? = nil,
                              completion: @escaping (Result<[Entry], Failure>) -> Void) {
         // Le cache, même périmé, vaut un fallback : un lancement hors-ligne
         // doit montrer ce qu'on a plutôt que rien. La fraîcheur est portée
@@ -131,10 +138,13 @@ public enum PathoschildCompatibilityList {
         request.setValue(NexusRequestBuilder.userAgent, forHTTPHeaderField: "User-Agent")
         request.timeoutInterval = 30
 
+        onEvent?("Récupération du dump Pathoschild en cours…")
         let task = session.dataTask(with: request) { data, response, error in
-            if let error = error {
+            if let error {
+                onEvent?("Dump Pathoschild : échec réseau (\(error.localizedDescription)) — repli cache")
                 if let cached = loadFreshCache(now: now) ?? cachedAnyAge(),
                    let entries = decode(cached) {
+                    onEvent?("Dump Pathoschild : \(entries.count) mod(s) servis depuis le cache")
                     DispatchQueue.main.async { completion(.success(entries)) }
                 } else {
                     DispatchQueue.main.async {
@@ -144,12 +154,15 @@ public enum PathoschildCompatibilityList {
                 return
             }
             guard let http = response as? HTTPURLResponse else {
+                onEvent?("Dump Pathoschild : réponse invalide (pas de HTTPURLResponse)")
                 DispatchQueue.main.async { completion(.failure(.transport("no_response"))) }
                 return
             }
-            guard http.statusCode == 200, let data = data else {
+            guard http.statusCode == 200, let data else {
+                onEvent?("Dump Pathoschild : HTTP \(http.statusCode) — repli cache")
                 if let cached = loadFreshCache(now: now) ?? cachedAnyAge(),
                    let entries = decode(cached) {
+                    onEvent?("Dump Pathoschild : \(entries.count) mod(s) servis depuis le cache")
                     DispatchQueue.main.async { completion(.success(entries)) }
                 } else {
                     DispatchQueue.main.async { completion(.failure(.http(http.statusCode))) }
@@ -158,8 +171,9 @@ public enum PathoschildCompatibilityList {
             }
             // On a un 200 et un payload : on garde le cache à jour.
             writeCache(data)
-            let entries = decode(data) ?? []
-            DispatchQueue.main.async { completion(.success(entries)) }
+            let count = decode(data)?.count ?? 0
+            onEvent?("Dump Pathoschild : \(count) mod(s) récupérés, cache mis à jour")
+            DispatchQueue.main.async { completion(.success(decode(data) ?? [])) }
         }
         task.resume()
     }

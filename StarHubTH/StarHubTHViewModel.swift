@@ -2065,6 +2065,31 @@ class StarHubTHViewModel: ObservableObject {
             self.profileManagedConfigMods = managedConfigs
             self.installedTranslations = translations
             self.modConflictVerdicts = conflictVerdicts
+
+            // Pré-charger le dump Pathoschild pendant que le splash est encore
+            // visible — le label "Loading Nexus data…" est juste au-dessus, et
+            // les logs `Récupération du dump Pathoschild en cours…` /
+            // `Dump Pathoschild : N mod(s) récupérés…` tomberont dans le
+            // journal **avant** que `isLaunching` ne tombe à false, donc
+            // l'utilisateur les verra pendant que le splash est encore là.
+            // Fire-and-forget : le fetch peut prendre 1-2 s au premier
+            // lancement, mais on ne bloque pas le splash dessus (le `cacheTTL`
+            // de 6 h garantit que les lancements suivants sont
+            // quasi-instantanés).
+            PathoschildCompatibilityList.fetch(
+                onEvent: { [weak self] message in
+                    // Filtrage défensif : un `onEvent` qui crashe ne doit pas
+                    // faire échouer le fetch sous-jacent. `log` lui-même
+                    // n'est pas marqué `@Sendable`, mais `PathoschildCompatibilityList`
+                    // promet déjà d'invoquer sur le fil principal.
+                    self?.log(message, level: .info)
+                },
+                completion: { _ in
+                    // Pas de branche : `checkNexusUpdates` lira le cache
+                    // disque quand l'utilisateur cliquera le bouton, et c'est
+                    // déjà l'information dont il a besoin.
+                }
+            )
         }
     }
     
@@ -4475,8 +4500,8 @@ for mod in mods {
         if dropped > 0 {
             log("\(dropped) lignes retirées : leur mod n'est plus installé", level: .info)
         }
-        log("Mises à jour : \(updates.count) sur \(mods.count) mods interrogés, \(unverifiable.count) non vérifiables",
-            level: .info)
+        log("[MAJ] Mises à jour : \(updates.count) trouvée(s) sur \(mods.count) mods interrogés, \(unverifiable.count) non vérifiables",
+            level: updates.isEmpty ? .info : .warning)
 
         recheckBlockedViaNexus(blocked)
     }
@@ -4664,8 +4689,12 @@ for mod in mods {
             // blanc là où le lecteur attend un numéro.
             let installed = mod.installedVersion.isEmpty ? "version inconnue" : mod.installedVersion
             if outdated.contains(mod.uniqueId) {
-                log("Reprise Nexus : \(mod.name) — \(installed) → \(pageVersion) "
-                    + "(page \(target.nexusId))")
+                // Préfixe `[MAJ]` pour repérer les mises à jour d'un coup d'œil
+                // dans le journal, et niveau `.warning` pour qu'elles soient
+                // visuellement distinctes des lignes d'info ordinaires (le
+                // rendu SwiftUI applique un glyphe et une couleur dédiés).
+                log("[MAJ] Reprise Nexus : \(mod.name) — \(installed) → \(pageVersion) "
+                    + "(page \(target.nexusId))", level: .warning)
             } else {
                 log("Reprise Nexus : \(mod.name) à jour (installé \(installed), "
                     + "page \(pageVersion))")
@@ -4702,10 +4731,16 @@ for mod in mods {
         // a été confirmé à jour, ce qui a échoué. Une reprise silencieuse
         // laisserait croire qu'elle n'a rien trouvé alors qu'elle n'a pas
         // abouti.
-        log("Reprise Nexus : \(attempted) page(s) interrogée(s), "
+        // Préfixe `[MAJ]` quand la reprise a effectivement trouvé quelque chose, et
+        // `.warning` au décompte final pour qu'il attire l'œil dans le journal
+        // — un simple `[INFO] Mises à jour : 2 sur 478 …` se perdait dans le
+        // flux des `[INFO] Reprise Nexus déclenchée…`. Le niveau d'origine
+        // (`.warning` si échec) est conservé.
+        let level: LogLevel = (found.isEmpty ? .info : .warning)
+        log("[MAJ] Reprise Nexus : \(attempted) page(s) interrogée(s), "
             + "\(found.count) mise(s) à jour trouvée(s), "
             + "\(settled.count - found.count) mod(s) confirmé(s) à jour, "
-            + "\(failures) échec(s)", level: failures > 0 ? .warning : .info)
+            + "\(failures) échec(s)", level: level)
     }
 
     /// Retient l'identifiant Nexus que smapi.io connaît, pour les mods dont le
