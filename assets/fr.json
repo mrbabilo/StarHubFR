@@ -736,6 +736,7 @@
   "mod_install_failed": "Échec de l'installation",
   "mod_install_success_msg": "%d mod(s) installé(s) avec succès :",
   "mod_install_done": "Terminé",
+  "mod_install_queued_drops": "%d autre(s) archive(s) en attente dans ce dépôt — « Terminé » ouvre la suivante.",
   "mod_install_dep_installed": "Installé et activé",
   "mod_install_dep_disabled": "Installé mais désactivé",
   "mod_install_dep_in_pack": "Inclus dans cette archive",

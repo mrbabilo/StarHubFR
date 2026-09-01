@@ -1196,6 +1196,7 @@ enum L10n {
         static let emptyTitle           = "mod_install_empty_title"
         static let emptyHint            = "mod_install_empty_hint"
         static let done                 = "mod_install_done"
+        static let queuedDrops          = "mod_install_queued_drops"
         static let depInstalled         = "mod_install_dep_installed"
         static let depDisabled          = "mod_install_dep_disabled"
         static let depInPack            = "mod_install_dep_in_pack"

@@ -51,7 +51,15 @@ class ModZipInstaller {
     // bounds the compressed archive on disk — a crafted zip well under that
     // cap can still compress at ~1000:1 and fill the disk once extracted.
     private let maxExtractedSize: Int64 = 2 * 1024 * 1024 * 1024 // 2GB
-    private let maxModsPerZip = 10
+    // Plafond d'components par archive. Les packs Stardew réels sont bien
+    // plus gros que l'ancienne limite de 10 : « Hidden Pelican Village »
+    // (Nexus 50631) en porte 13, « MultiverseArchive Full » (50618) 15 —
+    // tous deux refusés à l'installation pour « trop de mods » (constaté le
+    // 2026-09-01 sur les archives de l'utilisateur). La garde ne vise pas
+    // un risque (les vraies gardes sécurité sont la taille, le zip-slip et
+    // les symlinks) mais l'archive absurde, générée par machine : 50 couvre
+    // les packs légitimes avec de la marge.
+    private let maxModsPerZip = 50
 
     /// Format réel d'une archive, déduit de sa signature — la seule source
     /// fiable. Le nom d'un fichier peut mentir ou ne rien dire : l'URL de
@@ -145,6 +153,26 @@ class ModZipInstaller {
     /// « archive corrompue », ce qui envoyait l'utilisateur chercher un problème
     /// qui n'existait pas.
     static let supportedExtensions: Set<String> = ["zip", "rar", "7z"]
+
+    /// Partitionne les fichiers d'un dépôt multiple : ceux que l'app sait
+    /// ouvrir (signature reconnue, extension gérée en repli), dans l'ordre
+    /// du dépôt, et le reste. Le drop multiple n'analyse qu'une archive à
+    /// la fois — les suivantes attendent leur tour dans la vue ; ce filtre
+    /// décide lesquelles. Un fichier étranger glissé dans le lot ne doit
+    /// pas bloquer les archives : il est écarté, pas subi.
+    static func partitionDroppedFiles(_ urls: [URL]) -> (archives: [URL], rejected: [URL]) {
+        var archives: [URL] = []
+        var rejected: [URL] = []
+        for url in urls {
+            let declared = url.pathExtension.lowercased()
+            if detectedArchiveExtension(at: url) != nil || supportedExtensions.contains(declared) {
+                archives.append(url)
+            } else {
+                rejected.append(url)
+            }
+        }
+        return (archives, rejected)
+    }
 
     // MARK: - Validation
     /// Validates an archive file against size, format, and structure requirements.

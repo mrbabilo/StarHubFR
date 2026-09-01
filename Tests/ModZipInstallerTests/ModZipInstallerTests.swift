@@ -494,6 +494,79 @@ struct InstallerTestEnv {
         #expect(Set(info.detectedMods.map { $0.folderName }) == ["[C1]", "[C2]"])
     }
 
+    @Test func largePacksAreAcceptedUpToFiftyMods() throws {
+        // Regression: real Stardew packs ship more components than an old
+        // limit of 10 allowed — measured on user archives: "Hidden Pelican
+        // Village" (Nexus 50631) carries 13 manifests, "MultiverseArchive
+        // Full" (50618) carries 15. Both were refused with "too many mods
+        // to install at once". The ceiling only guards against absurd
+        // machine-generated archives; the real security guards (max sizes,
+        // zip-slip, symlinks) are elsewhere and unaffected.
+        let dir = try makeTempDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        for i in 1...50 {
+            try makeModFolder(base: dir, relativePath: String(format: "Component%02d", i),
+                              uniqueId: "pack.mod.\(i)", name: "Component \(i)")
+        }
+
+        let info = ModZipInstaller().analyzeExtractedDir(at: dir, zipName: "BigPack.zip", existingMods: [])
+
+        #expect(info.isValid)
+        #expect(info.detectedMods.count == 50,
+                "A legitimate 50-component pack must install, not be refused as 'too many mods'")
+    }
+
+    @Test func absurdModCountsAreStillRefused() throws {
+        // The other side of the raised ceiling: 50 is a limit, not a
+        // removal. Beyond it the archive is almost certainly not a mod pack
+        // a human curated — keep refusing it.
+        let dir = try makeTempDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        for i in 1...51 {
+            try makeModFolder(base: dir, relativePath: String(format: "Component%02d", i),
+                              uniqueId: "pack.mod.\(i)", name: "Component \(i)")
+        }
+
+        let info = ModZipInstaller().analyzeExtractedDir(at: dir, zipName: "Absurd.zip", existingMods: [])
+
+        guard case .tooManyMods = info.validationStatus else {
+            Issue.record("51 mods must still be refused, got \(info.validationStatus)")
+            return
+        }
+        #expect(info.detectedMods.isEmpty)
+    }
+
+    @Test func multiDropKeepsOnlyOpenableArchivesInOrder() throws {
+        // Regression: a multi-file drop was reduced to its first provider —
+        // every other archive was silently ignored (reported 2026-09-01:
+        // four zips dropped together, one analyzed). The partition decides
+        // which dropped files are openable archives (signature first,
+        // extension as fallback) and keeps the drop's order so the queue
+        // processes them one at a time, while non-archives (an image
+        // dragged along) are set aside without blocking the rest.
+        let dir = try makeTempDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        func file(_ name: String, _ bytes: [UInt8]) throws -> URL {
+            let url = dir.appendingPathComponent(name)
+            try Data(bytes).write(to: url)
+            return url
+        }
+        let zip1 = try file("first.zip", [0x50, 0x4B, 0x03, 0x04, 0x00, 0x00])
+        let pic = try file("readme.png", [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A])
+        let zip2 = try file("second.zip", [0x50, 0x4B, 0x03, 0x04, 0x00, 0x00])
+        let sevenZ = try file("bundle.7z", [0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C])
+
+        let (archives, rejected) = ModZipInstaller.partitionDroppedFiles([zip1, pic, zip2, sevenZ])
+
+        #expect(archives.map { $0.lastPathComponent } ==
+               ["first.zip", "second.zip", "bundle.7z"],
+               "Openable archives must be kept in drop order for the queue")
+        #expect(rejected.map { $0.lastPathComponent } == ["readme.png"],
+                "A non-archive dragged along must not block the openable ones")
+    }
+
     @Test func bundledLibraryIsNotSplitOut() throws {
         // A mod that bundles a dependency in a nested folder (its own
         // manifest) must NOT have that dependency yanked to a separate

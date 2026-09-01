@@ -62,6 +62,12 @@ struct ModInstallView: View {
     /// remis à nil dès qu'une proposition de dépôt s'affiche, alors que c'est
     /// ce nom qui nommera la traduction sur la fiche du mod.
     @State private var analyzedArchiveName = ""
+    /// Les archives restant à traiter d'un dépôt multiple : une seule fiche à
+    /// la fois, les suivantes attendent la fermeture de la courante (bouton
+    /// Terminé, annulation, alerte refermée). Déposer N zips d'un coup
+    /// n'analysait que le premier, les autres étaient ignorés en silence
+    /// (constaté le 2026-09-01 sur un dépôt de quatre).
+    @State private var pendingDropURLs: [URL] = []
     /// La sélection dont l'installation attend une confirmation : smapi.io
     /// signale l'un de ses mods comme cassé. Voir `CompatibilityWarning`.
     @State private var pendingBrokenInstall: [InstallSelection]?
@@ -159,7 +165,10 @@ struct ModInstallView: View {
                     NSPasteboard.general.setString(command, forType: .string)
                 }
             }
-            Button(vm.L(L10n.Main.ok)) { }
+            Button(vm.L(L10n.Main.ok)) {
+                // L'archive refusée ne doit pas arrêter le reste du dépôt.
+                analyzeNextQueuedArchive()
+            }
         } message: {
             if let error = errorMessage {
                 if let hint = errorRecoveryHint {
@@ -207,7 +216,11 @@ struct ModInstallView: View {
                 Button(String(format: vm.L(L10n.ModInstall.depositConfirm), plan.hostFolderName)) {
                     deposit(plan)
                 }
-                Button(vm.L(L10n.ModInstall.cancel), role: .cancel) { manifestlessPlan = nil }
+                Button(vm.L(L10n.ModInstall.cancel), role: .cancel) {
+                    manifestlessPlan = nil
+                    // Dépôt annulé : le reste du dépôt multiple continue.
+                    analyzeNextQueuedArchive()
+                }
             }
         } message: {
             if let plan = manifestlessPlan {
@@ -230,7 +243,11 @@ struct ModInstallView: View {
                                                      entries: manifestlessEntries))
                 }
             }
-            Button(vm.L(L10n.ModInstall.cancel), role: .cancel) { manifestlessCandidates = [] }
+            Button(vm.L(L10n.ModInstall.cancel), role: .cancel) {
+                manifestlessCandidates = []
+                // Choix annulé : le reste du dépôt multiple continue.
+                analyzeNextQueuedArchive()
+            }
         } message: {
             Text(String(format: vm.L(L10n.ModInstall.depositChoose), manifestlessEntries.count))
         }
@@ -246,6 +263,8 @@ struct ModInstallView: View {
                     installer.cleanupTempDir(at: tempDir)
                     self.tempDir = nil
                 }
+                // Proposition refusée : le reste du dépôt continue.
+                analyzeNextQueuedArchive()
             }
         } message: {
             Text(droppedProposalMessage)
@@ -275,28 +294,50 @@ struct ModInstallView: View {
                 .font(.system(size: 18, weight: .semibold))
                 .multilineTextAlignment(.center)
 
-            VStack(spacing: 6) {
-                ForEach(installedModNames, id: \.self) { name in
-                    HStack(spacing: 6) {
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundColor(.green)
-                        Text(name)
-                            .font(.system(size: 13))
-                            .foregroundColor(.primary)
-                        Spacer()
+            // Un pack peut poser jusqu'à 50 mods (limite `maxModsPerZip`) :
+            // la liste défile, bornée, pour que le titre et le bouton
+            // restent visibles quel que soit le compte — sinon la feuille
+            // coupe le texte et le bouton sort du cadre.
+            ScrollView {
+                VStack(spacing: 6) {
+                    ForEach(installedModNames, id: \.self) { name in
+                        HStack(spacing: 6) {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundColor(.green)
+                            Text(name)
+                                .font(.system(size: 13))
+                                .foregroundColor(.primary)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                            Spacer()
+                        }
                     }
                 }
+                .padding(.horizontal, 20)
+                .frame(maxWidth: 400)
             }
-            .padding(.horizontal, 20)
-            .frame(maxWidth: 400)
+            .frame(maxHeight: 220)
 
             Spacer()
+
+            // Un dépôt multiple garde des archives en file : le dire, sinon
+            // « Terminé » qui rouvre une fiche au lieu de fermer surprend.
+            if !pendingDropURLs.isEmpty {
+                Text(String(format: vm.L(L10n.ModInstall.queuedDrops), pendingDropURLs.count))
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+            }
 
             Button(vm.L(L10n.ModInstall.done)) {
                 showSuccess = false
                 installedModNames = []
-                isPresented = false
+                if pendingDropURLs.isEmpty {
+                    isPresented = false
+                } else {
+                    // Le dépôt n'est pas épuisé : la fiche suivante attend.
+                    analyzeNextQueuedArchive()
+                }
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
@@ -346,44 +387,87 @@ struct ModInstallView: View {
     }
 
     private func handleDrop(_ providers: [NSItemProvider]) {
-        guard let provider = providers.first else { return }
-
-            provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, error in
-                // Un seul chemin d'échec : le message change, le conseil découle
-                // du statut, et il n'y a qu'un saut vers le fil principal.
-                let fail: (String, ValidationStatus) -> Void = { message, status in
-                    DispatchQueue.main.async {
-                        self.showFailure(message)
-                        self.errorRecoveryHint = status.recoveryHintKey.map { self.vm.L($0) }
-                        self.showError = true
-                    }
-                }
-
-                guard let data = item as? Data,
-                      let url = URL(dataRepresentation: data, relativeTo: nil) else {
-                fail(vm.L(L10n.ModInstall.invalidZipStructure), .invalidStructure)
-                return
-            }
-
-            // Le format se juge sur la signature, pas sur l'extension : un
-            // dépôt sans extension exploitable mais à la signature reconnue
-            // reste une archive installable. L'extension ne sert qu'au message
-            // quand rien ne colle.
-            let declared = url.pathExtension.lowercased()
-            let recognised = ModZipInstaller.detectedArchiveExtension(at: url) != nil
-            guard recognised || ModZipInstaller.supportedExtensions.contains(declared) else {
-                fail(String(format: vm.L(L10n.ModInstall.unsupportedFormat), url.pathExtension),
-                     .unsupportedFormat(url.pathExtension))
-                return
-            }
-
+        loadDroppedFileURLs(from: providers) { urls in
             DispatchQueue.main.async {
                 // A manually dropped zip is not the Nexus download that opened
                 // this sheet — drop any pending source so it can't misapply.
                 self.vm.pendingNexusSource = nil
-                self.analyzeZip(url)
+
+                // Un seul chemin d'échec : le message change, le conseil
+                // découle du statut, et il n'y a qu'un saut de plus vers le fil
+                // principal.
+                guard !urls.isEmpty else {
+                    self.showFailure(self.vm.L(L10n.ModInstall.invalidZipStructure))
+                    self.errorRecoveryHint = ValidationStatus.invalidStructure.recoveryHintKey
+                        .map { self.vm.L($0) }
+                    self.showError = true
+                    return
+                }
+
+                // Le format se juge sur la signature, pas sur l'extension : un
+                // dépôt sans extension exploitable mais à la signature reconnue
+                // reste une archive installable. Un fichier étranger glissé
+                // dans le lot est écarté, pas subi.
+                let (archives, _) = ModZipInstaller.partitionDroppedFiles(urls)
+                guard let first = archives.first else {
+                    if let url = urls.first {
+                        self.showFailure(String(format: self.vm.L(L10n.ModInstall.unsupportedFormat),
+                                                url.pathExtension))
+                        self.errorRecoveryHint = ValidationStatus
+                            .unsupportedFormat(url.pathExtension).recoveryHintKey
+                            .map { self.vm.L($0) }
+                        self.showError = true
+                    }
+                    return
+                }
+
+                if self.isSheetShowingAnArchive {
+                    // Une fiche est déjà ouverte : ne pas la balayer sous le
+                    // dépôt — les nouvelles archives attendent leur tour.
+                    self.pendingDropURLs.append(contentsOf: archives)
+                } else {
+                    // La première part tout de suite ; les suivantes en file.
+                    self.pendingDropURLs.append(contentsOf: Array(archives.dropFirst()))
+                    self.analyzeZip(first)
+                }
             }
         }
+    }
+
+    /// Charge l'URL de fichier portée par chaque provider du dépôt, dans
+    /// l'ordre du dépôt. Un dépôt multiple n'est plus réduit à son premier
+    /// élément : chaque archive déposée a droit à sa fiche.
+    private func loadDroppedFileURLs(from providers: [NSItemProvider],
+                                     accumulated: [URL] = [],
+                                     completion: @escaping ([URL]) -> Void) {
+        guard let provider = providers.first else { completion(accumulated); return }
+        provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
+            var urls = accumulated
+            if let data = item as? Data,
+               let url = URL(dataRepresentation: data, relativeTo: nil) {
+                urls.append(url)
+            }
+            self.loadDroppedFileURLs(from: Array(providers.dropFirst()),
+                                     accumulated: urls,
+                                     completion: completion)
+        }
+    }
+
+    /// Vrai quand la feuille montre déjà quelque chose à ne pas balayer :
+    /// une fiche d'installation, un succès, ou une proposition de dépôt.
+    private var isSheetShowingAnArchive: Bool {
+        zipModInfo != nil || showSuccess || droppedProposal != nil
+            || manifestlessPlan != nil || !manifestlessCandidates.isEmpty
+    }
+
+    /// Referme le cycle de l'archive courante et ouvre la fiche de la
+    /// suivante du dépôt, s'il en reste une en file. Appelé de chaque point
+    /// qui ramène à la zone de dépôt : bouton Terminé, annulation, alertes
+    /// refermées. Une feuille fermée par l'utilisateur n'y passe pas : la
+    /// file meurt avec elle, c'est l'arrêt volontaire du lot.
+    private func analyzeNextQueuedArchive() {
+        guard !pendingDropURLs.isEmpty else { return }
+        analyzeZip(pendingDropURLs.removeFirst())
     }
 
     private func analyzeZip(_ url: URL) {
@@ -978,5 +1062,7 @@ struct ModInstallView: View {
             installer.cleanupTempDir(at: tempDir)
             self.tempDir = nil
         }
+        // Le dépôt multiple continue : l'archive suivante attend sa fiche.
+        analyzeNextQueuedArchive()
     }
 }

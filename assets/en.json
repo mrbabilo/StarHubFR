@@ -736,6 +736,7 @@
   "mod_install_failed": "Installation Failed",
   "mod_install_success_msg": "%d mod(s) installed successfully:",
   "mod_install_done": "Done",
+  "mod_install_queued_drops": "%d more archive(s) waiting in this drop — Done opens the next one.",
   "mod_install_dep_installed": "Installed & enabled",
   "mod_install_dep_disabled": "Installed but disabled",
   "mod_install_dep_in_pack": "Included in this archive",
