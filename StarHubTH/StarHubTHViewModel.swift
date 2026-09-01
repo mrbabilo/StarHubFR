@@ -3360,6 +3360,12 @@ class StarHubTHViewModel: ObservableObject {
     // the second call could think a folder still needs moving after the
     // first call already moved it, tripping the "destination already
     // exists" path on a folder that no longer has a source. See performToggle.
+    //
+    // `@MainActor` enforces that `pendingToggles` and `isToggling` are
+    // only ever touched on the main thread (UI-driven callers), closing
+    // the theoretical data race on these unprotected mutable fields and
+    // silencing `@Published` mutations from background threads.
+    @MainActor
     func toggleMod(_ mod: ModItem, completion: (() -> Void)? = nil) {
         // Refuse individual toggles while a bulk enable/disable-all is in
         // flight — concurrent moves on the same folders could lose a mod.
@@ -3371,6 +3377,7 @@ class StarHubTHViewModel: ObservableObject {
         processNextToggleIfNeeded()
     }
 
+    @MainActor
     private func processNextToggleIfNeeded() {
         guard !isToggling, !pendingToggles.isEmpty else { return }
         isToggling = true
@@ -3384,6 +3391,7 @@ class StarHubTHViewModel: ObservableObject {
         }
     }
 
+    @MainActor
     private func performToggle(_ mod: ModItem, completion: (() -> Void)? = nil) {
         // Helper to find the top-level folder that contains a given uniqueId
         func getTopLevelFolder(for uniqueId: String) -> String? {
@@ -3498,6 +3506,16 @@ class StarHubTHViewModel: ObservableObject {
             guard let m = self.mods.first(where: { $0.folderName == folderName }) else { continue }
             if m.isEnabled == targetState { continue }
 
+            // Defensive: a missing folderName would yield dstName == ".",
+            // which `moveItem` rejects (the path is a directory, not a
+            // file — macOS refuses to rename to a single dot). The scan
+            // (§J parseModFolder) should never produce such an entry, but
+            // a custom override or a corrupted manifest could.
+            guard !m.folderName.isEmpty else {
+                log("Skipping toggle: empty folderName for \(m.name)", level: .error)
+                continue
+            }
+
             // Dot-prefix toggle: a rename WITHIN Mods/ flips enabled↔disabled.
             // `physicalFolderName` carries the current state's prefix; the
             // destination uses the opposite prefix. Both paths share the same
@@ -3580,7 +3598,14 @@ class StarHubTHViewModel: ObservableObject {
             // over self.mods, cheaper than the UI refresh it triggers.
             let toggledFolders = foldersToToggle
             let target = targetState
-            DispatchQueue.main.async {
+            DispatchQueue.main.async { [weak self] in
+                guard let self else {
+                    // Self is gone — the queue runner is dead anyway. Try to
+                    // honour the completion so callers don't hang waiting on
+                    // a toggle that will never finish.
+                    completion?()
+                    return
+                }
                 self.mods = self.mods.map { mod in
                     guard toggledFolders.contains(mod.folderName) else { return mod }
                     var m = mod
