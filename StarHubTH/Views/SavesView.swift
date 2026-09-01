@@ -580,32 +580,61 @@ private struct SaveHeroBand: View {
     let closeHelp: String
     let onClose: () -> Void
     let whichFarm: Int
+    let isFemale: Bool
     let hairStyle: Int
-    let hairColor: Int
+    let hairColor: Color
     let skinIndex: Int
     let farmHelp: String
 
+    /// Le bandeau du splash, embarqué dans les resources (dossier
+    /// `custom_ui`). absent → repli neutre.
+    private static let bandImage: NSImage? = {
+        guard let url = Bundle.main.url(forResource: "nexus_banner_final",
+                                        withExtension: "png") else { return nil }
+        return NSImage(contentsOf: url)
+    }()
+
     var body: some View {
-        Rectangle()
-            .fill(.quaternary)
-            .frame(height: AppDesign.Metrics.heroHeight)
-            .overlay(alignment: .bottomLeading) {
+        Group {
+            if let img = Self.bandImage {
+                Image(nsImage: img)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } else {
+                Rectangle().fill(.quaternary)
+            }
+        }
+        .frame(height: AppDesign.Metrics.heroHeight)
+        .clipped()
+        // Le texte du fermier se pose en pied de bandeau : un voile sombre
+        // dégradé y garantit la lisibilité, quelle que soit la zone de
+        // l'illustration qu'il recouvre.
+        .overlay(alignment: .bottom) {
+            LinearGradient(colors: [.clear, .black.opacity(0.6)],
+                           startPoint: .top, endPoint: .bottom)
+                .frame(height: AppDesign.Metrics.heroHeight * 0.62)
+                .allowsHitTesting(false)
+        }
+        .overlay(alignment: .bottomLeading) {
                 VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
                     HStack(alignment: .center, spacing: AppDesign.Spacing.md) {
                         EquatableView(content: SaveFarmerAvatar(
+                            isFemale: isFemale,
                             hairStyle: hairStyle,
                             hairColor: hairColor,
                             skinIndex: skinIndex,
-                            size: 40
+                            size: 44
                         ))
                         VStack(alignment: .leading, spacing: 2) {
                             Text(title)
                                 .font(AppDesign.Font.viewTitle)
-                                .foregroundColor(.primary)
+                                .foregroundColor(.white)
+                                .shadow(color: .black.opacity(0.6), radius: 2)
                                 .lineLimit(1)
                             Text(subtitle)
                                 .font(AppDesign.Font.caption)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(.white.opacity(0.9))
+                                .shadow(color: .black.opacity(0.6), radius: 2)
                                 .lineLimit(1)
                         }
                         Spacer(minLength: AppDesign.Spacing.sm)
@@ -614,10 +643,19 @@ private struct SaveHeroBand: View {
 
                     HStack {
                         Spacer()
+                        // 80×78 : la tuile illustrée est quasi carrée
+                        // (422×441) — plus basse, le toit partait au crop.
                         EquatableView(content: SaveFarmGlyph(
                             whichFarm: whichFarm,
-                            modFarmName: nil
+                            size: CGSize(width: 80, height: 78)
                         ))
+                        // Liseré + ombre : la vignette se détache de
+                        // l'illustration du bandeau.
+                        .overlay(
+                            RoundedRectangle(cornerRadius: AppDesign.Radius.sm)
+                                .stroke(Color.white.opacity(0.85), lineWidth: 1.5)
+                        )
+                        .shadow(color: .black.opacity(0.35), radius: 3, y: 1)
                         .help(farmHelp)
                     }
                     .padding(.horizontal, AppDesign.Spacing.lg)
@@ -628,7 +666,10 @@ private struct SaveHeroBand: View {
                 Button(action: onClose) {
                     Image(systemName: "xmark.circle.fill")
                         .font(.system(size: AppDesign.Icon.sm))
-                        .foregroundColor(.secondary.opacity(AppDesign.Opacity.secondary))
+                        // Blanc ombré : sur l'illustration du bandeau, le
+                        // glyphe secondaire se perdait.
+                        .foregroundColor(.white.opacity(0.9))
+                        .shadow(color: .black.opacity(0.6), radius: 2)
                 }
                 .buttonStyle(.plain)
                 // Cible 18×18 : le glyphe nu rendrait `.help` muet (a11y §7).
@@ -728,8 +769,9 @@ struct SaveEditorView: View {
                          closeHelp: vm.L(L10n.Saves.cancel),
                          onClose: { vm.editingSave = nil },
                          whichFarm: save.whichFarm,
+                         isFemale: save.isFemale,
                          hairStyle: save.hairStyle,
-                         hairColor: save.hairColor,
+                         hairColor: SaveFarmerPalette.hairColor(from: save.hairColor),
                          skinIndex: save.skinIndex,
                          farmHelp: farmHelp)
 

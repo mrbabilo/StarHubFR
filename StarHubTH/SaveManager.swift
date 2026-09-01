@@ -64,6 +64,30 @@ struct SaveNode: Identifiable, Equatable {
     var children: [SaveNode]
 }
 
+/// Couleur de cheveux d'un fermier, lue depuis `<hairstyleColor>`.
+///
+/// Le jeu y sérialise un `Color` XNA **libre** (composantes R/G/B 0-255,
+/// dans le désordre alphabétique B,G,R,A puis PackedValue) — pas un index
+/// dans une palette : le créateur de personnage propose des préréglages,
+/// mais la save porte la couleur effective, modifiable par mod. Les
+/// composantes sont bornées à 0-255 à la construction.
+public struct SaveHairColor: Hashable {
+    public var r: Int
+    public var g: Int
+    public var b: Int
+
+    public init(r: Int, g: Int, b: Int) {
+        func clamp255(_ v: Int) -> Int { min(max(v, 0), 255) }
+        self.r = clamp255(r)
+        self.g = clamp255(g)
+        self.b = clamp255(b)
+    }
+
+    /// Le brun sombre du préréglage SDV n° 0 (≈ 90, 73, 38), quand la save
+    /// ne porte pas de couleur lisible.
+    public static let `default` = SaveHairColor(r: 90, g: 73, b: 38)
+}
+
 /// `SaveGameInfo` reste non-`Sendable` ; les lectures sont sérialisées via
 /// `SaveManager.shared.fetchSaves()` / `reloadSaves()`. L'ajout de 4 champs
 /// n'aggrave pas la situation. Parsing `<whichModFarm>` ne traverse pas de
@@ -93,9 +117,13 @@ public struct SaveGameInfo: Identifiable, Equatable, Hashable {
     public var day: Int
     public var whichFarm: Int
     public var hairStyle: Int = 0
-    public var hairColor: Int = 0
+    public var hairColor: SaveHairColor = .default
     public var skinIndex: Int = 0
     public var modFarmName: String? = nil
+    /// Sexe du fermier (`<gender>` textuel : Male/Female/Undefined). La
+    /// première occurrence du fichier est celle du joueur — les ~70 autres
+    /// (PNJ, bébés) suivent. `Undefined` et l'absence lisent comme fermier.
+    public var isFemale: Bool = false
 
     public init(
         folderName: String,
@@ -117,9 +145,10 @@ public struct SaveGameInfo: Identifiable, Equatable, Hashable {
         day: Int,
         whichFarm: Int,
         hairStyle: Int = 0,
-        hairColor: Int = 0,
+        hairColor: SaveHairColor = .default,
         skinIndex: Int = 0,
-        modFarmName: String? = nil
+        modFarmName: String? = nil,
+        isFemale: Bool = false
     ) {
         self.folderName = folderName
         self.fileURL = fileURL
@@ -143,6 +172,7 @@ public struct SaveGameInfo: Identifiable, Equatable, Hashable {
         self.hairColor = hairColor
         self.skinIndex = skinIndex
         self.modFarmName = modFarmName
+        self.isFemale = isFemale
     }
 
     var farmTypeName: String {
@@ -252,10 +282,16 @@ public class SaveManager {
         let season = Int(extractTag(tag: "seasonForSaveGame", from: content) ?? "0") ?? 0
         let day = Int(extractTag(tag: "dayOfMonthForSaveGame", from: content) ?? "1") ?? 1
         let whichFarm = Int(extractTag(tag: "whichFarm", from: content) ?? "0") ?? 0
-        let hairStyle = Int(extractTag(tag: "hairStyle", from: content) ?? "0") ?? 0
-        let hairColor = Int(extractTag(tag: "hairColor", from: content) ?? "0") ?? 0
+        // Les vrais tags du jeu : `<hair>` (int) et `<hairstyleColor>` (Color
+        // XNA composé) — pas `<hairStyle>`/`<hairColor>` (audit H-T5b : ces
+        // tags-là n'existent pas dans le XML, l'avatar restait chauve-couleur-0).
+        let hairStyle = Int(extractTag(tag: "hair", from: content) ?? "0") ?? 0
+        let hairColor = extractHairColor(from: content) ?? .default
         let skinIndex = Int(extractTag(tag: "skin", from: content) ?? "0") ?? 0
         let modFarmName = extractModFarmName(from: content)
+        // Textuel (Male/Female/Undefined) ; première occurrence = joueur
+        // (les ~70 suivantes sont des PNJ). Tout sauf « Female » lit fermier.
+        let isFemale = extractTag(tag: "gender", from: content) == "Female"
 
         // Advanced
         let maxHealth = Int(extractTag(tag: "maxHealth", from: content) ?? "100") ?? 100
@@ -290,8 +326,36 @@ public class SaveManager {
             hairStyle: hairStyle,
             hairColor: hairColor,
             skinIndex: skinIndex,
-            modFarmName: modFarmName
+            modFarmName: modFarmName,
+            isFemale: isFemale
         )
+    }
+
+    /// `<hairstyleColor>` est un bloc composé — `extractTag` (à valeur
+    /// simple, `[^<]+`) ne le voit pas. Extrait le bloc puis y lit `<R>`,
+    /// `<G>` et `<B>` par nom : XNA sérialise les composantes en ordre
+    /// alphabétique (B,G,R,A,PackedValue), aucun ordre n'est supposé.
+    /// Retourne `nil` si le bloc, ou une composante, manque — l'appelant
+    /// retombe sur la couleur par défaut plutôt que d'inventer une teinte.
+    private func extractHairColor(from xml: String) -> SaveHairColor? {
+        guard let block = extractBlock(tag: "hairstyleColor", from: xml) else { return nil }
+        guard let r = Int(extractTag(tag: "R", from: block) ?? ""),
+              let g = Int(extractTag(tag: "G", from: block) ?? ""),
+              let b = Int(extractTag(tag: "B", from: block) ?? "") else { return nil }
+        return SaveHairColor(r: r, g: g, b: b)
+    }
+
+    /// Premier bloc `<tag>…</tag>` avec son contenu entier (sous-balises
+    /// comprises). Un élément auto-fermé ou à attributs (`<tag />`,
+    /// `<tag xsi:nil="true" />`) ne matche pas le littéral `<tag>` — voulu :
+    /// une couleur nulle n'a rien à lire.
+    private func extractBlock(tag: String, from xml: String) -> String? {
+        let pattern = "<\(tag)>([\\s\\S]*?)</\(tag)>"
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else { return nil }
+        let range = NSRange(xml.startIndex..<xml.endIndex, in: xml)
+        guard let match = regex.firstMatch(in: xml, options: [], range: range),
+              let swiftRange = Range(match.range(at: 1), in: xml) else { return nil }
+        return String(xml[swiftRange])
     }
 
     /// Tolère les deux formes rencontrées dans la nature :
