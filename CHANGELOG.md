@@ -24,6 +24,7 @@ where the exact log format was verified.
 
 ### Fixed
 - **`AppDelegate` isolé sur le main thread** : annotation `@MainActor` ajoutée sur la classe pour verrouiller au niveau du type la garantie que `pendingURLs`/`isReady` ne sont jamais mutés hors main thread (AppKit le faisait déjà, mais la convention était implicite).
+- **Deux warnings triviaux retirés** : `await` superflu sur `log(...)` (VM:1356, `log` est synchrone) et `??` sur non-optional autour de `L(L10n.VM.defaultFarmerName)` (VM:2499, `L(_:)` retourne `String` non-optionnel). Aucun changement de comportement ; les 6 warnings Sendable restants sont hors périmètre.
 - **Clé `AppleLanguages` centralisée dans `UDKey.swift`** : la string littérale écrite au lancement (`forKey: "AppleLanguages"`) passe par la constante `UDKey.appleLanguagesOverride`, conformément à §4.3 d'AGENTS.md.
 - **Les vignettes de ferme du hero de sauvegarde deviennent des illustrations** : les glyphes vectoriels dessinés à la main étaient illisibles à 80×56 — les 8 fermes vanilla s'affichent désormais en vignettes illustrées embarquées (ordre du wiki), et une ferme de mod retombe sur un pictogramme proportionnel. L'avatar du fermier est corrigé du même coup.
 - **Le bandeau du hero de sauvegarde porte l'illustration du splash**, avec un voile dégradé en pied pour que le nom du fermier reste lisible par-dessus.

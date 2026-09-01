@@ -1353,7 +1353,7 @@ class StarHubTHViewModel: ObservableObject {
                     // le défaut que ce chemin ferme — carte de couverture vide
                     // jusqu'à la fin de la session — mais sans rien laisser
                     // pour le diagnostiquer.
-                    await self?.log("Couverture non recalculée pour \(folderName) : "
+                    self?.log("Couverture non recalculée pour \(folderName) : "
                                     + "\(directory.path) illisible", level: .warning)
                     return
                 }
@@ -2496,7 +2496,7 @@ class StarHubTHViewModel: ObservableObject {
             // s'exécutait avant cette fermeture main et voyait toujours "" → le
             // fallback écrasait le vrai nom (main FIFO). Audit 2026-08-05.
             self.steamUsername = resolvedUsername.isEmpty
-                ? (self.L(L10n.VM.defaultFarmerName) ?? "Farmer")
+                ? self.L(L10n.VM.defaultFarmerName)
                 : resolvedUsername
             if let resolvedAvatarPath = resolvedAvatarPath {
                 self.steamAvatarPath = resolvedAvatarPath
