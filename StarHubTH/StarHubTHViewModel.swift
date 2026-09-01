@@ -4058,6 +4058,33 @@ class StarHubTHViewModel: ObservableObject {
                                    updateKeys: $0.updateKeys)
         }
 
+        // Les deux requêtes partent en parallèle, mais `applySmapiResults` n'est
+        // appelée qu'une fois les deux résolues : `PathoschildNexusIndex` lit
+        // le cache disque, qui n'est posé qu'au retour de `fetch`. Un
+        // `DispatchGroup` synchronise l'arrivée — sinon smapi.io peut
+        // répondre avant le dump et `applySmapiResults` lirait un index vide.
+        let group = DispatchGroup()
+        var pathoschildFetchFailed = false
+
+        // Filet Pathoschild déclenché **systématiquement**, en parallèle de
+        // smapi.io — pas seulement sur échec. Justification : smapi.io répond
+        // souvent `success([])` avec un sous-ensemble seulement du parc (478
+        // entrées sur 1080 envoyées, mesuré sur le parc réel 2026-09-01), et
+        // omet silencieusement les `UniqueID` qu'elle ne connaît pas. Pour ces
+        // mods, on a besoin d'un `nexusID` local pour amorcer le recheck
+        // Nexus direct — c'est exactement ce que le dump Pathoschild porte.
+        //
+        // Le cache est posé sur disque (TTL 6 h) ; les lancements suivants ne
+        // paient rien. Le coût d'une seule requête au premier lancement est
+        // négligeable face au bénéfice (couverture offline sur ~4 000 mods).
+        group.enter()
+        PathoschildCompatibilityList.fetch { [weak self] result in
+            if case .failure = result { pathoschildFetchFailed = true }
+            _ = self
+            group.leave()
+        }
+
+        group.enter()
         SmapiUpdateClient.shared.fetch(
             entries: entries,
             // Passe par `sanitizedGameVersion` : la version vient d'une regex
@@ -4069,39 +4096,66 @@ class StarHubTHViewModel: ObservableObject {
                 self?.nexusCheckProgress = (done, total)
             },
             completion: { [weak self] result in
-                guard let self else { return }
-                self.isCheckingNexusUpdates = false
-                self.nexusCheckProgress = nil
-                switch result {
-                case .success(let mods):
-                    self.applySmapiResults(mods, entries: entries, folders: folders)
-                    self.compatibilitySource = .live
-                    // A2-T4 : le passage a rendu une réponse — le TTL du
-                    // prochain lancement part d'ici. Un échec réseau
-                    // n'écrit rien : le lancement suivant réessaiera.
-                    NexusUpdateChecker.shared.recordSuccessfulCheck()
-                case .failure(let failure):
-                    // On ne vide pas la liste : une panne réseau n'est pas une
-                    // preuve que les mises à jour connues ont disparu.
-                    //
-                    // `"rate_limited"` est le seul code que `MainView` traduit
-                    // en message dédié (les autres tombent sur le message
-                    // générique) : un 429 mérite ce traitement particulier,
-                    // les autres échecs gardent leur description brute.
-                    if case .http(429) = failure {
-                        self.nexusCheckError = "rate_limited"
-                    } else {
-                        self.nexusCheckError = "\(failure)"
-                    }
-                    self.log("Vérification des mises à jour en échec : \(failure)", level: .warning)
-                    // A2-T3 : smapi.io s'est tu — on tente le filet
-                    // Pathoschild. C'est ici qu'il s'exécute : pas en tâche
-                    // de fond planifiée, parce qu'il n'a de sens que quand
-                    // smapi.io manque.
-                    self.applyPathoschildFallback(entries: entries)
+                guard let self else {
+                    group.leave()
+                    return
                 }
+                // Ne touche pas à `isCheckingNexusUpdates` ici : on attend
+                // aussi le retour de Pathoschild avant de signaler la fin,
+                // pour que l'UI ne se relâche pas entre les deux requêtes.
+                self.nexusCheckProgress = nil
+                // Le résultat smapi.io est mémorisé via une variable capturée ;
+                // le branchement final se fait dans `group.notify`.
+                self.pendingSmapiResult = result
+                self.pendingSmapiEntries = entries
+                self.pendingSmapiFolders = folders
+                group.leave()
             })
+
+        group.notify(queue: .main) { [weak self] in
+            guard let self else { return }
+            self.isCheckingNexusUpdates = false
+            self.nexusCheckProgress = nil
+            let result = self.pendingSmapiResult
+            let entries = self.pendingSmapiEntries ?? []
+            let folders = self.pendingSmapiFolders ?? []
+            // Nettoyage des buffers — libère les références.
+            self.pendingSmapiResult = nil
+            self.pendingSmapiEntries = nil
+            self.pendingSmapiFolders = nil
+            if pathoschildFetchFailed {
+                self.log("Dump Pathoschild indisponible (réseau + cache vide) : filet limité à smapi.io",
+                         level: .info)
+            }
+            switch result {
+            case .success(let mods)?:
+                self.applySmapiResults(mods, entries: entries, folders: folders)
+                self.compatibilitySource = .live
+                NexusUpdateChecker.shared.recordSuccessfulCheck()
+            case .failure(let failure)?:
+                if case .http(429) = failure {
+                    self.nexusCheckError = "rate_limited"
+                } else {
+                    self.nexusCheckError = "\(failure)"
+                }
+                self.log("Vérification des mises à jour en échec : \(failure)", level: .warning)
+                self.applyPathoschildFallback(entries: entries)
+            case .none:
+                // Cas dégradé : ni smapi.io ni la complétion n'ont été appelées.
+                self.log("Vérification terminée sans résultat smapi.io", level: .warning)
+            }
+        }
     }
+
+    // MARK: - Buffers temporaires pour la synchronisation checkNexusUpdates
+
+    /// Tampon du résultat smapi.io en attendant que `PathoschildCompatibilityList.fetch`
+    /// ait posé son cache. `nil` tant que la complétion smapi.io n'a pas eu lieu.
+    private var pendingSmapiResult: Result<[SmapiUpdateResponse.Mod], SmapiUpdateClient.Failure>?
+    /// Tampon des `entries` envoyées, pour la même raison.
+    private var pendingSmapiEntries: [SmapiUpdateRequest.Entry]?
+    /// Tampon des `folders` (NexusIdLearning), pour la même raison.
+    private var pendingSmapiFolders: [NexusIdLearning.Folder]?
 
     /// Le verdict de compatibilité qui **demande une décision** pour ce mod,
     /// et le composant qui le porte.
@@ -4223,7 +4277,7 @@ class StarHubTHViewModel: ObservableObject {
         // quoi qu'ait dit l'une des autres clés du mod.
         var blocked: [NexusFallbackCheck.Blocked] = []
 
-        for mod in mods {
+for mod in mods {
             if let first = mod.errors.first {
                 // Même résolution de nom que les lignes de mise à jour : un
                 // mod ne doit pas changer de nom d'un écran à l'autre.
@@ -4238,7 +4292,7 @@ class StarHubTHViewModel: ObservableObject {
                         uniqueId: mod.id,
                         name: name,
                         // La version **affirmée**, celle qu'on a envoyée : d'ancre
-                        // s'il y en a une. Comparer une autre valeur ferait
+                        // s'il y en a une, de manifest sinon. Comparer une autre valeur ferait
                         // reparaître une ligne que l'utilisateur a éteinte.
                         installedVersion: assertedVersion[mod.id] ?? "",
                         declaredKeys: declaredKeys[mod.id] ?? [],
@@ -4279,6 +4333,57 @@ class StarHubTHViewModel: ObservableObject {
         // réponse et `Entry.id` de la requête : une seule forme d'identité de
         // bout en bout, plus de correspondance croisée à tenir.
         let answered = Set(mods.map(\.id))
+
+        // Mods ENVOYÉS mais SANS réponse smapi.io : un mod absent de la
+        // réponse ne peut pas recevoir de verdict de cette source. smapi.io
+        // omet silencieusement les `UniqueID` qu'elle ne connaît pas, et c'est
+        // précisément le défaut qu'on a vu sur UltraSmooth / 50971 : le champ
+        // `metadata` revient `nil`, sans erreur, et la reprise Nexus n'est
+        // jamais déclenchée parce qu'`applySmapiResults` ne peuple `blocked`
+        // que sur `errors.first`.
+        //
+        // Filet : l'index Pathoschild (`PathoschildNexusIndex`) associe
+        // `UniqueID → nexusID` offline, depuis le dump mis en cache par
+        // `applyPathoschildFallback`. On l'utilise comme `metadataNexusId`
+        // factice, et on pousse le mod vers `blocked` — la reprise Nexus
+        // directe reprend alors le relais avec sa clé d'API.
+        //
+        // Sans entrée dans le dump (mod hors base Pathoschild, ex. UltraSmooth
+        // mesuré) ET sans override manuel, le mod reste muet — c'est le
+        // comportement historique, et l'utilisateur a dans ce cas le champ
+        // "Nexus Mod ID" dans la fiche détail pour saisir l'identifiant.
+        let pathoschildIndex = PathoschildNexusIndex.loadFromCache()
+        let answeredIds = answered
+        for entry in entries where !answeredIds.contains(entry.id) {
+            guard !entry.id.isEmpty else { continue }
+            // L'override manuel d'abord — c'est lui que l'utilisateur a posé,
+            // et c'est lui qui prime sur tout (cf. `SmapiUpdateRequest.resolvedUpdateKeys`).
+            let manualId = ModManifest.parseNexusId(fromUpdateKeys: entry.updateKeys)?.id
+            let pathoschildId = pathoschildIndex[entry.id].map(String.init)
+            let resolvedId = manualId ?? pathoschildId
+            guard let id = resolvedId else { continue }
+            let name = installedName[entry.id] ?? entry.id
+            blocked.append(NexusFallbackCheck.Blocked(
+                uniqueId: entry.id,
+                name: name,
+                // On **n'envoie pas** la version installée affirmée ici :
+                // l'entry a été construite à partir de smapi.io sans réponse,
+                // donc on retombe sur le manifest (le `assertedVersion[id]`
+                // est vide puisque smapi.io n'a rien renvoyé). La reprise
+                // Nexus lira alors le manifest côté caller.
+                installedVersion: assertedVersion[entry.id] ?? "",
+                declaredKeys: entry.updateKeys,
+                metadataNexusId: Int(id),
+                // Préfixe `nexus:` volontaire : `NexusFallbackCheck.needsNexusVerdict`
+                // matche sur ce fragment pour décider de la reprise. Un mod
+                // sans réponse smapi.io ET avec un identifiant Nexus connu
+                // (manuel ou Pathoschild) est par définition un candidat à la
+                // reprise Nexus directe.
+                errors: ["nexus: no smapi.io answer; resolved via \(manualId != nil ? "manual override" : "Pathoschild dump")"],
+                heldFacts: anchorStore.anchor(for: entry.id)?.nexusFacts))
+            log("Reprise Nexus déclenchée sans verdict smapi.io : \(entry.id) → \(id)",
+                level: .info)
+        }
 
         // …mais une ligne n'est conservée que si son mod est **encore
         // installé**. `NexusUpdateMerge` purgeait les mods disparus ; c'est la

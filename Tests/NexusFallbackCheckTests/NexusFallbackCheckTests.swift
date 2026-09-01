@@ -328,4 +328,49 @@ struct NexusFallbackCheckTests {
             pageVersion: "5", uploadedTime: nil, pageFile: nil)
         #expect(rows.count == 1)
     }
+
+    // MARK: - Mod absent de la réponse smapi.io mais résolu via Pathoschild
+
+    @Test func unModAbsentDeSmapiIoEtResoluParPathoschildEstRepris() {
+        // Cas vécu sur UltraSmooth (palmhacker13.UltraSmooth) : smapi.io omet
+        // l'entrée (pas de `metadata`, pas d'`errors`), Pathoschild donne le
+        // `nexusID` via son dump local. `applySmapiResults` construit un
+        // `Blocked` avec un `errors` portant le préfixe `nexus:` (cf.
+        // `StarHubTHViewModel.applySmapiResults`).
+        let plan = NexusFallbackCheck.plan([
+            blocked("palmhacker13.UltraSmooth", version: "1.0.0", keys: [],
+                    meta: 50971,
+                    errors: ["nexus: no smapi.io answer; resolved via Pathoschild dump"])
+        ])
+        #expect(plan.count == 1)
+        #expect(plan.first?.nexusId == "50971")
+    }
+
+    @Test func unModAbsentAvecOverrideManuelEstRepris() {
+        // Cas vécu : l'utilisateur a saisi un identifiant dans la fiche détail
+        // (champ "Nexus Mod ID"). `SmapiUpdateRequest.resolvedUpdateKeys`
+        // injecte une clé synthétique `Nexus:<id>` dans les `updateKeys`,
+        // mais l'override est aussi reporté comme `metadataNexusId` par
+        // `applySmapiResults`. Les deux pathways convergent ici.
+        let plan = NexusFallbackCheck.plan([
+            blocked("palmhacker13.UltraSmooth", version: "1.0.0",
+                    keys: ["Nexus:50971"], meta: 50971,
+                    errors: ["nexus: no smapi.io answer; resolved via manual override"])
+        ])
+        #expect(plan.count == 1)
+        #expect(plan.first?.nexusId == "50971")
+    }
+
+    @Test func unModAbsentSansNexusIdNestPasRepris() {
+        // smapi.io omet l'entrée, **et** ni le manifeste ni Pathoschild ne
+        // portent de `nexusID`. Le `Blocked` n'est pas créé en amont
+        // (`applySmapiResults` ne pousse rien sans `resolvedId`), mais on
+        // vérifie quand même que `plan` ne tente rien d'impossible.
+        let plan = NexusFallbackCheck.plan([
+            blocked("Some.Mod", version: "1.0.0", keys: [],
+                    meta: nil,
+                    errors: ["nexus: no smapi.io answer; resolved via manual override"])
+        ])
+        #expect(plan.isEmpty)
+    }
 }

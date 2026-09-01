@@ -54,6 +54,7 @@ let package = Package(
                 "Models/ModAnomaly.swift",
                 "Models/ModCompatibility.swift",
                 "Models/PathoschildCompatibilityList.swift",
+                "Models/PathoschildNexusIndex.swift",
                 "Models/ModDuplicateIndex.swift",
                 "Models/ManifestJSON.swift",
                 "Models/BisectionEvidence.swift",
@@ -430,6 +431,11 @@ let package = Package(
             name: "PathoschildCompatibilityListTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/PathoschildCompatibilityListTests"
+        ),
+        .testTarget(
+            name: "PathoschildNexusIndexTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/PathoschildNexusIndexTests"
         ),
         .testTarget(
             name: "ModCompatibilityTests",

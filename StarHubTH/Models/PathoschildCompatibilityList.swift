@@ -47,14 +47,23 @@ public enum PathoschildCompatibilityList {
     public static let cacheTTL: TimeInterval = 6 * 60 * 60
 
     /// Une entrée brute du dump, réduite aux champs que l'app utilise.
-    /// Les autres (`name`, `author`, `nexus`, `github`, `abandonedReason`,
-    /// `source`…) sont ignorées : on les laisse tomber côté décodeur, jamais
-    /// on ne les propage.
+    /// Les autres (`name`, `author`, `github`, `curse`, `chucklefish`,
+    /// `abandonedReason`, `source`, `unofficialUpdate`, …) sont ignorées :
+    /// on les laisse tomber côté décodeur, jamais on ne les propage.
     public struct Entry: Decodable, Equatable, Sendable {
         public let id: String
         public let status: String?
         public let brokeIn: String?
         public let summary: String?
+        /// L'identifiant Nexus tel que Pathoschild le porte — `null` quand le
+        /// mod n'est pas listé chez Nexus (ex. mods GitHub/ModDrop/CurseForge
+        /// exclusifs, mods très récents, mods retirés). Lu depuis le champ
+        /// `nexus` du JSONC. C'est la source locale privilégiée pour associer
+        /// un `UniqueID` à un `nexusID` quand smapi.io ne le rend pas —
+        /// meilleure couverture que smapi.io sur le parc (Pathoschild tient
+        /// ~4 000 mods là où smapi.io est plus étroit), et **offline** : on
+        /// évite une requête Nexus par mod que smapi.io a ignoré.
+        public let nexusID: Int?
     }
 
     public enum Failure: Error, Equatable {
@@ -69,7 +78,11 @@ public enum PathoschildCompatibilityList {
     /// On stocke le **texte brut** (pas un re-dump JSON) : un re-encodage
     /// perdrait les commentaires JSONC que la prochaine lecture doit re-stripper,
     /// et le décodeur est suffisamment rapide pour ne pas mériter ce détour.
-    private static func cacheURL() -> URL? {
+    /// Visibilité `internal` (et non `private`) parce que `PathoschildNexusIndex`
+    /// y accède depuis un fichier frère pour servir un dump potentiellement
+    /// périmé quand le réseau est absent — le filet doit lire **aussi** un
+    /// cache d'il y a trois jours, pas seulement un cache frais.
+    static func cacheURL() -> URL? {
         guard let base = FileManager.default.urls(for: .applicationSupportDirectory,
                                                   in: .userDomainMask).first else { return nil }
         let dir = base.appendingPathComponent("StarHubTH", isDirectory: true)
@@ -262,17 +275,21 @@ public enum PathoschildCompatibilityList {
         return out
     }
 
-    /// Décode une entrée. Les champs inconnus (`name`, `author`, `nexus`,
-    /// `github`, `abandonedReason`, `source`, `unofficialUpdate`, …) sont
-    /// ignorés — on ne les a pas déclarés sur `Entry`, `JSONSerialization`
-    /// ne s'en plaint pas.
+    /// Décode une entrée. Les champs inconnus (`name`, `author`, `github`,
+    /// `abandonedReason`, `source`, `unofficialUpdate`, …) sont ignorés — on ne
+    /// les a pas déclarés sur `Entry`, `JSONSerialization` ne s'en plaint pas.
     private static func decodeEntry(_ dict: [String: Any]) -> Entry? {
         guard let id = dict["id"] as? String, !id.isEmpty else { return nil }
         return Entry(
             id: id,
             status: dict["status"] as? String,
             brokeIn: dict["brokeIn"] as? String,
-            summary: dict["summary"] as? String
+            summary: dict["summary"] as? String,
+            // `nexus` est un entier positif, `null` quand le mod n'a pas de page
+            // Nexus. Le `as? Int` accepte aussi un nombre négatif ou nul — on
+            // le filtre au site d'usage (`PathoschildNexusIndex.resolveNexusID`)
+            // pour n'avoir qu'une règle de validation, pas plusieurs.
+            nexusID: dict["nexus"] as? Int
         )
     }
 }

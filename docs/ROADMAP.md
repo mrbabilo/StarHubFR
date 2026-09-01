@@ -1602,6 +1602,37 @@ backup se retrouve en moins de dix secondes.
       écrasent jamais un verdict smapi.io déjà présent ; ils ne remplissent que
       les `UniqueID` sans verdict. 13 tests, dont le strip JSONC (commentaires
       ligne/bloc, URL préservée, `\"` non-fermant).*
+
+      ⚠️ *Audit du 2026-09-01 — la première livraison ne couvrait que le pire cas
+      (smapi.io HS). Le cas vécu (smapi.io répond **partiellement** : 478/1080
+      sur le parc mesuré) n'était pas armé, et le cache `pathoschild_mods.jsonc`
+      n'était jamais posé sur un parc où smapi.io ne plante pas. Conséquence :
+      tous les mods que smapi.io omet **silencieusement** (entrée rendue avec
+      `metadata: nil, errors: []`) restaient sans verdict — donc sans reprise
+      Nexus, donc invisibles à Mod Updates. Cas vécu : UltraSmooth / 50971, et
+      ~515 mods du parc.*
+
+      *Élargi le 2026-09-01. (1) `PathoschildCompatibilityList.Entry` expose le
+      champ `nexus` du JSONC (était ignoré) ; (2) `PathoschildNexusIndex` (Core)
+      construit un index `UniqueID → nexusID` offline depuis le cache disque ;
+      (3) `checkNexusUpdates` déclenche `PathoschildCompatibilityList.fetch`
+      systématiquement, synchronisé avec smapi.io par un `DispatchGroup` (le
+      cache est posé avant `applySmapiResults` ne le lise) ; (4)
+      `applySmapiResults` pousse un `Blocked` pour tout mod envoyé mais sans
+      réponse smapi.io — `metadataNexusId` vient de l'override manuel (champ
+      « Nexus Mod ID » de la fiche détail) en priorité, du dump Pathoschild en
+      repli. Le préfixe `nexus:` ajouté au `errors` du `Blocked` fait passer
+      `NexusFallbackCheck.needsNexusVerdict` (le filtre historique cherchait
+      déjà « nexus » pour les erreurs Nexus, le nouveau cas l'écrit dans le
+      même vocabulaire). Mesure sur le parc : 26 → 515 mods repris, 2 → 15 MAJ
+      détectées par vérification. 3 tests ajoutés dans `NexusFallbackCheckTests`
+      (mod absent résolu par Pathoschild, mod absent avec override manuel, mod
+      absent sans identifiant Nexus — sanity check), 5 dans une nouvelle suite
+      `PathoschildNexusIndexTests` (cache absent, mod connu, identifiant CSV,
+      identifiant non positif, décodeur `nexus`). Le verdict Pathoschild
+      reste **secondaire** quand il passe (règle A2-T3 inchangée) ; la
+      nouveauté est qu'il passe **aussi** quand le verdict smapi.io est
+      simplement absent — pas seulement quand il contredit.*
 - [x] **A2-T4** — **Cache persistant + update check incrémental** (découlant du spike) :
       persister la dernière réponse par mod (équivalent `Versions.json`), avec un **vrai
       TTL 6–24 h** (Stardop appelle à chaque boot = son bug — le rate-limit l'interdit ici) ;

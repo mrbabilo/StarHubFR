@@ -124,12 +124,14 @@ struct PathoschildCompatibilityListTests {
                 id: "aedenthorn.TrainTracks",
                 status: "Workaround",
                 brokeIn: "Stardew Valley 1.6",
-                summary: "⚠ use [Train Tracks - Continued](https://www.nexusmods.com/stardewvalley/mods/28049) instead."),
+                summary: "⚠ use [Train Tracks - Continued](https://www.nexusmods.com/stardewvalley/mods/28049) instead.",
+                nexusID: nil),
             PathoschildCompatibilityList.Entry(
                 id: "ZeroMeters.SAAT.Mod",
                 status: "Unofficial",
                 brokeIn: "Stardew Valley 1.6",
-                summary: nil)
+                summary: nil,
+                nexusID: nil)
         ]
         let verdicts = PathoschildCompatibilityList.verdicts(
             for: ["aedenthorn.TrainTracks", "ZeroMeters.SAAT.Mod", "unknown.mod"],
@@ -145,8 +147,8 @@ struct PathoschildCompatibilityListTests {
 
     @Test func joinIgnoresEmptyUniqueIdsAndEntriesWithoutStatus() {
         let entries = [
-            PathoschildCompatibilityList.Entry(id: "x.y", status: nil, brokeIn: nil, summary: nil),
-            PathoschildCompatibilityList.Entry(id: "a.b", status: "Ok", brokeIn: nil, summary: nil)
+            PathoschildCompatibilityList.Entry(id: "x.y", status: nil, brokeIn: nil, summary: nil, nexusID: nil),
+            PathoschildCompatibilityList.Entry(id: "a.b", status: "Ok", brokeIn: nil, summary: nil, nexusID: nil)
         ]
         let verdicts = PathoschildCompatibilityList.verdicts(
             for: ["", "x.y", "a.b"], from: entries)
@@ -157,7 +159,7 @@ struct PathoschildCompatibilityListTests {
 
     @Test func joinReturnsEmptyWhenNoOverlap() {
         let entries = [PathoschildCompatibilityList.Entry(
-            id: "x.y", status: "broken", brokeIn: nil, summary: nil)]
+            id: "x.y", status: "broken", brokeIn: nil, summary: nil, nexusID: nil)]
         #expect(PathoschildCompatibilityList.verdicts(for: ["other"], from: entries).isEmpty)
         #expect(PathoschildCompatibilityList.verdicts(for: [], from: entries).isEmpty)
     }
@@ -166,7 +168,7 @@ struct PathoschildCompatibilityListTests {
         // Cohérent avec `ModCompatibility.from` : un statut que le code ne
         // connaît pas ne devient pas « sain » par défaut.
         let entries = [PathoschildCompatibilityList.Entry(
-            id: "x.y", status: "Sideways", brokeIn: nil, summary: nil)]
+            id: "x.y", status: "Sideways", brokeIn: nil, summary: nil, nexusID: nil)]
         let verdicts = PathoschildCompatibilityList.verdicts(for: ["x.y"], from: entries)
         #expect(verdicts.isEmpty)
     }
