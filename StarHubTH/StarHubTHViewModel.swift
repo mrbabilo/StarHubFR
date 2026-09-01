@@ -4154,9 +4154,8 @@ class StarHubTHViewModel: ObservableObject {
         // paient rien. Le coût d'une seule requête au premier lancement est
         // négligeable face au bénéfice (couverture offline sur ~4 000 mods).
         group.enter()
-        PathoschildCompatibilityList.fetch { [weak self] result in
+        PathoschildCompatibilityList.fetch { result in
             if case .failure = result { pathoschildFetchFailed = true }
-            _ = self
             group.leave()
         }
 
@@ -4190,8 +4189,6 @@ class StarHubTHViewModel: ObservableObject {
 
         group.notify(queue: .main) { [weak self] in
             guard let self else { return }
-            self.isCheckingNexusUpdates = false
-            self.nexusCheckProgress = nil
             let result = self.pendingSmapiResult
             let entries = self.pendingSmapiEntries ?? []
             let folders = self.pendingSmapiFolders ?? []
@@ -4201,7 +4198,7 @@ class StarHubTHViewModel: ObservableObject {
             self.pendingSmapiFolders = nil
             if pathoschildFetchFailed {
                 self.log("Dump Pathoschild indisponible (réseau + cache vide) : filet limité à smapi.io",
-                         level: .info)
+                         level: .warning)
             }
             switch result {
             case .success(let mods)?:
@@ -4220,6 +4217,12 @@ class StarHubTHViewModel: ObservableObject {
                 // Cas dégradé : ni smapi.io ni la complétion n'ont été appelées.
                 self.log("Vérification terminée sans résultat smapi.io", level: .warning)
             }
+            // Reset AFTER the heavy work (applySmapiResults /
+            // applyPathoschildFallback can take seconds on large parks).
+            // Setting it before would let a fast user re-trigger a 2nd
+            // check before the 1st has finished processing.
+            self.isCheckingNexusUpdates = false
+            self.nexusCheckProgress = nil
         }
     }
 
