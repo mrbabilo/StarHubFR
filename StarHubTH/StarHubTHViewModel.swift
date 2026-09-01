@@ -6801,7 +6801,7 @@ for mod in mods {
         UserDefaults.standard.set(data, forKey: UDKey.profileManagedConfigMods)
     }
 
-    private static let modActivationTimestampsKey = "modActivationTimestamps"
+    private static let modActivationTimestampsKey = UDKey.modActivationTimestamps
 
     private static func loadModActivationTimestamps() -> [String: Date] {
         guard let data = UserDefaults.standard.data(forKey: modActivationTimestampsKey) else { return [:] }
@@ -6826,7 +6826,7 @@ for mod in mods {
     /// par la migration, consommée et effacée par la synchronisation suivante :
     /// elle empêche que le changement de *lecture* de la version passe pour un
     /// changement sur le disque et écrase leur date d'installation.
-    private static let installDateGraceKey = "installDateGraceFolders"
+    private static let installDateGraceKey = UDKey.installDateGrace
     private static let installedModRegistryBackupKey = UDKey.installedModRegistryBackup
 
     private var installedModRegistryCache: [String: InstalledModRecord]?
@@ -6941,7 +6941,15 @@ for mod in mods {
     /// Returns the recorded install date for a mod folder, or nil if the mod
     /// was never registered (e.g. installed before this feature existed).
     func installedModDate(for folderName: String) -> Date? {
-        loadInstalledModRegistry()[folderName]?.installedAt
+        // Fast path: cache hit under lock (one lock/unlock, no double
+        // lookup). Slow path: cold cache (first call after launch) reads
+        // from UserDefaults via the static helper, which is safe to call
+        // outside the lock because it only runs once per session.
+        installedModRegistryLock.lock()
+        let cached = installedModRegistryCache
+        installedModRegistryLock.unlock()
+        if let cached { return cached[folderName]?.installedAt }
+        return Self.loadInstalledModRegistryFromDisk()[folderName]?.installedAt
     }
 
     /// Reconciles the persistent install registry with the mods found on disk
@@ -6959,7 +6967,7 @@ for mod in mods {
     /// feature, or an upgrade from a version that used stale folder mtimes),
     /// the registry is wiped and rebuilt from scratch so every entry gets a
     /// clean `Date()` instead of the unreliable archive packaging date.
-    private static let registryMigrationV2Key = "registryMigrationV2Done"
+    private static let registryMigrationV2Key = UDKey.registryMigrationV2Done
 
     /// Tous les mods, packs aplatis en leurs composants. Réutilise
     /// `flattenedMods` (module Core testé) plutôt que de réécrire le
@@ -7004,6 +7012,15 @@ for mod in mods {
         }
     }
 
+    /// Mutable box used to ferry a `var`-captured value out of an
+    /// `inout`-body closure (`mutateInstalledModRegistry`). Necessary because
+    /// Swift closures capture outer `var`s by value, so a simple
+    /// `var wasEmpty = false` mutated inside the closure would never be
+    /// visible outside.
+    private final class WasEmptyBox {
+        var value: Bool = false
+    }
+
     private func syncInstalledModRegistry(scannedMods: [ModItem]) {
         // Flatten groups into individual mods so pack children are tracked too.
         let allMods = scannedMods.flatMap { mod -> [ModItem] in
@@ -7013,11 +7030,10 @@ for mod in mods {
         let now = Date()
 
         // One-shot migration: wipe any pre-existing registry built with stale
-        // folder mtimes. Runs exactly once.
+        // folder mtimes. The flag is set INSIDE the `mutate` closure below,
+        // only after the wipe has been written, so a crash mid-wipe leaves
+        // the flag at `false` and the wipe re-runs on the next scan.
         let migrationDone = UserDefaults.standard.bool(forKey: Self.registryMigrationV2Key)
-        if !migrationDone {
-            UserDefaults.standard.set(true, forKey: Self.registryMigrationV2Key)
-        }
 
         let seen = allMods.map {
             InstalledModRegistry.Seen(folder: $0.folderName, version: $0.version)
@@ -7044,17 +7060,27 @@ for mod in mods {
         let previousVersions = loadInstalledModRegistry().mapValues(\.version)
 
         var rebuiltCount = 0
-        var wasEmpty = false
+        // `wasEmpty` needs to escape the `mutateInstalledModRegistry` closure
+        // (the post-block log at the end of this method reads it). The
+        // closure parameter `body: (inout) -> Void` does not give us access
+        // to outer `var`s directly, so we use a 1-element box.
+        let wasEmptyBox = WasEmptyBox()
         mutateInstalledModRegistry { registry in
-            if !migrationDone { registry = [:] }
-            wasEmpty = registry.isEmpty
+            if !migrationDone {
+                registry = [:]
+                wasEmptyBox.value = true
+                // Set the flag AFTER the wipe so a crash mid-wipe re-runs it.
+                UserDefaults.standard.set(true, forKey: Self.registryMigrationV2Key)
+            }
+            let preSyncEmpty = wasEmptyBox.value && registry.isEmpty
             let (synced, _) = InstalledModRegistry.sync(registry: registry,
                                                         seen: seen,
                                                         now: now,
                                                         installDateGrace: graceFolders)
             registry = synced
-            if wasEmpty && !registry.isEmpty { rebuiltCount = registry.count }
+            if preSyncEmpty && !registry.isEmpty { rebuiltCount = registry.count }
         }
+        let wasEmpty = wasEmptyBox.value
 
         anchorModsUpdatedOnDisk(allMods,
                                 previousVersions: previousVersions,

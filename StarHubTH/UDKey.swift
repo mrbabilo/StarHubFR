@@ -57,4 +57,16 @@ public enum UDKey {
     /// SwiftUI dans la bonne locale avant la première vue. Centralisée ici pour
     /// rester en accord avec §4.3 d'AGENTS.md malgré son origine système.
     public static let appleLanguagesOverride = "AppleLanguages"
+    /// JSON-encoded `[String: Date]` of mod folder name → last activation
+    /// timestamp on this machine. Drives the `Date activated` sort in
+    /// `ModListView`.
+    public static let modActivationTimestamps = "modActivationTimestamps"
+    /// Folders whose `nexusVersion` was just removed by a migration; their
+    /// version "changes" because reading changed, not the disk. Listed once
+    /// per migration, consumed and cleared by the next sync.
+    public static let installDateGrace = "installDateGraceFolders"
+    /// One-shot flag: `true` once the registry wipe from archive-mtimes to
+    /// `Date()` has run. Removed in the release after the one that introduces
+    /// this wipe (N+1) — see AGENTS §4.3 "key removed at version N+1".
+    public static let registryMigrationV2Done = "registryMigrationV2Done"
 }
