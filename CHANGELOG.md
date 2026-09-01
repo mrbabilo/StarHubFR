@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.31.0] - 2026-09-01
+
 ### Added
 - **`PathoschildNexusIndex` lit le dump Pathoschild pour récupérer le `nexusID`** : `PathoschildCompatibilityList.Entry` expose désormais le champ `nexus` du JSONC, et `PathoschildNexusIndex.loadFromCache()` construit un index `UniqueID → nexusID` offline. Combiné au téléchargement systématique du dump (cf. `Changed`), cela permet à `applySmapiResults` de résoudre les mods que smapi.io omet silencieusement (cas vécu : UltraSmooth / 50971), et de les pousser vers la reprise Nexus directe (`recheckBlockedViaNexus`).
 
