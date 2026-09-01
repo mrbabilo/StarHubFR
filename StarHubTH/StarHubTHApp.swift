@@ -41,6 +41,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// window's creation so it can be hidden the instant it exists.
     func applicationWillFinishLaunching(_ notification: Notification) {
         LaunchSplashController.shared.claimMainWindowBeforeItAppears()
+        // Nouveau cycle de lancement : on efface l'état deep-link d'une
+        // éventuelle session précédente pour éviter qu'un `nxm://` livré
+        // tôt ne trouve `isReady == true` ou une queue résiduelle.
+        isReady = false
+        pendingURLs.removeAll()
     }
 
     func application(_ application: NSApplication, open urls: [URL]) {
@@ -72,9 +77,9 @@ struct StarHubTHApp: App {
     @StateObject private var vm = StarHubTHViewModel()
 
     init() {
-        if let currentLang = UserDefaults.standard.string(forKey: UDKey.currentLanguage) {
-            UserDefaults.standard.set([currentLang], forKey: UDKey.appleLanguagesOverride)
-        }
+        // No-op : StarHubTHViewModel.currentLanguage est l'unique source de
+        // vérité. Il resynchronise `AppleLanguages` à partir de
+        // `UDKey.currentLanguage` lors de son init (cf. L.1919-1926).
     }
 
     var body: some Scene {

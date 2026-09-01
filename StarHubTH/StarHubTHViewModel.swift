@@ -1918,12 +1918,18 @@ class StarHubTHViewModel: ObservableObject {
     
     @Published var currentLanguage: String = StarHubTHViewModel.normalizedLanguage(UserDefaults.standard.string(forKey: UDKey.currentLanguage)) {
         didSet {
-            if !Self.supportedLanguages.contains(currentLanguage) {
-                currentLanguage = "en"
+            // Normalize first: a non-supported value is rewritten in-place,
+            // which re-enters `didSet` once with a supported value — at which
+            // point we fall through to the persistence write. This avoids the
+            // previous "write then reassign" cascade where the rejection path
+            // left the in-memory and on-disk values out of sync.
+            let normalized = Self.normalizedLanguage(currentLanguage)
+            if normalized != currentLanguage {
+                currentLanguage = normalized
                 return
             }
-            UserDefaults.standard.set(currentLanguage, forKey: UDKey.currentLanguage)
-            UserDefaults.standard.set([currentLanguage], forKey: "AppleLanguages")
+            UserDefaults.standard.set(normalized, forKey: UDKey.currentLanguage)
+            UserDefaults.standard.set([normalized], forKey: UDKey.appleLanguagesOverride)
         }
     }
     
@@ -1985,10 +1991,11 @@ class StarHubTHViewModel: ObservableObject {
         smapiInstaller.onWarning = { [weak self] message in
             self?.log(message, level: .warning)
         }
-        // Force sync AppleLanguages with currentLanguage at startup
-        let savedLang = Self.normalizedLanguage(UserDefaults.standard.string(forKey: UDKey.currentLanguage))
-        currentLanguage = savedLang
-        UserDefaults.standard.set([savedLang], forKey: "AppleLanguages")
+        // `AppleLanguages` is resynced from `currentLanguage.didSet`; no
+        // manual write needed here. The previous 3-line block caused a triple
+        // write on first launch (initializer → didSet, init reassignment →
+        // didSet, explicit set below) and risked a desync if any of the three
+        // branches diverged.
         
         // Automatically retrieve saved game path, or attempt to find the default Steam path on Mac
         let savedPath = UserDefaults.standard.string(forKey: UDKey.gameDir) ?? ""
@@ -2094,17 +2101,23 @@ class StarHubTHViewModel: ObservableObject {
     }
     
     func detectDefaultGameDir() -> String {
+        // AGENTS §4.9 : macOS résout certains chemins via des symlinks
+        // (`/tmp` → `/private/tmp`, `Application Support` peut varier selon
+        // l'OS). On résout avant `fileExists` ET avant tout usage ultérieur
+        // pour que les comparaisons avec `physicalRoot` (cf. §J scanMods)
+        // restent cohérentes.
+        let resolve: (String) -> String = { ($0 as NSString).resolvingSymlinksInPath }
         let home = NSHomeDirectory()
-        let steamPath = "\(home)/Library/Application Support/Steam/steamapps/common/Stardew Valley/Contents/MacOS"
+        let steamPath = resolve("\(home)/Library/Application Support/Steam/steamapps/common/Stardew Valley/Contents/MacOS")
         if FileManager.default.fileExists(atPath: steamPath) {
             return steamPath
         }
-        
-        let gogPath = "/Applications/Stardew Valley.app/Contents/MacOS"
+
+        let gogPath = resolve("/Applications/Stardew Valley.app/Contents/MacOS")
         if FileManager.default.fileExists(atPath: gogPath) {
             return gogPath
         }
-        
+
         return ""
     }
     
@@ -2517,7 +2530,12 @@ class StarHubTHViewModel: ObservableObject {
             // scanMods est appelé depuis background (refresh, initialLoad…).
             // Muter @Published mods sur ce thread déclenche un warning SwiftUI —
             // dispatcher sur main, comme l'affectation principale plus bas.
-            DispatchQueue.main.async { self.mods = [] }
+            DispatchQueue.main.async { [weak self] in
+                self?.mods = []
+                // Reset selection so the detail pane doesn't reference a mod
+                // that just disappeared from the list.
+                self?.selectedMod = nil
+            }
             return
         }
 
@@ -2548,15 +2566,10 @@ class StarHubTHViewModel: ObservableObject {
             }
         }
 
-        var repairReport = ModFolderRepairer.Report()
-        // detectDuplicates=false: the repairer's disk-walking duplicate pass
-        // re-decodes every manifest, which is redundant since we scan them just
-        // below. Duplicates are recomputed from `scannedMods` (O(N), in-memory)
-        // after the scan. This removes the bulk of the old launch repair cost.
-        if includeRepair {
-            let repairer = ModFolderRepairer()
-            repairReport = repairer.repairIfNeeded(gameDir: gameDir, detectDuplicates: false)
-        }
+        let repairer = ModFolderRepairer()
+        var repairReport = includeRepair
+ ? repairer.repairIfNeeded(gameDir: gameDir, detectDuplicates: false)
+            : ModFolderRepairer.Report()
 
         // Permanent safety net: if a legacy `Mods_disabled/` folder still
         // exists (recréé par un autre outil, ou un retardataire qui passe
@@ -2696,8 +2709,13 @@ class StarHubTHViewModel: ObservableObject {
                     options.insert(.json5Allowed)
                 }
 
-                if let data = cleanString.data(using: .utf8),
-                   let json = try? JSONSerialization.jsonObject(with: data, options: options) as? [String: Any] {
+                if let data = cleanString.data(using: .utf8) {
+                    do {
+                        guard let json = try JSONSerialization.jsonObject(with: data, options: options) as? [String: Any] else {
+                            throw NSError(domain: "StarHubFR.Manifest", code: -1,
+                                userInfo: [NSLocalizedDescriptionKey:
+                                    "Manifeste \(manifestPath) : racine non objet JSON"])
+                        }
 
                     if let mName = json.caseInsensitiveValue(forKey: "Name") as? String { name = mName }
                 if let mUniqueId = json.caseInsensitiveValue(forKey: "UniqueID") as? String { uniqueId = mUniqueId }
@@ -2737,6 +2755,14 @@ class StarHubTHViewModel: ObservableObject {
                     manifestCache[manifestPath] = (mtime: mtime, manifest: json)
                     manifestCacheLock.unlock()
                 }
+                    } catch {
+                        // Manifest mal formé : on garde les valeurs par défaut
+                        // (nom = dossier logique) mais on le signale pour que
+                        // l'utilisateur comprenne pourquoi les métadonnées
+                        // sont vides plutôt que de voir un mod "Unknown".
+                        log("Manifest invalide pour \(relativePath.isEmpty ? logicalLeaf : relativePath): \(error.localizedDescription)",
+                            level: .warning)
+                    }
             }
         }
 
@@ -2860,8 +2886,8 @@ class StarHubTHViewModel: ObservableObject {
                     lastProgressPublish = now
                     let d = scanDone, t = scanTotal
                     let nm = topLevelLogicalFolder
-                    DispatchQueue.main.async {
-                        self.scanProgress = ScanProgress(done: d, total: t, currentName: nm)
+                    DispatchQueue.main.async { [weak self] in
+                        self?.scanProgress = ScanProgress(done: d, total: t, currentName: nm)
                     }
                 }
 
@@ -2883,7 +2909,7 @@ class StarHubTHViewModel: ObservableObject {
         // Detect X/.X duplicates from the just-scanned mods instead of the
         // repairer's separate disk walk — same result, no extra I/O or decode.
         if includeRepair {
-            let duplicates = ModFolderRepairer().detectDuplicates(from: scannedMods)
+            let duplicates = repairer.detectDuplicates(from: scannedMods)
             repairReport = ModFolderRepairer.Report(
                 quarantined: repairReport.quarantined,
                 duplicates: duplicates,
