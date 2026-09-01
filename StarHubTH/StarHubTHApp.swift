@@ -6,6 +6,7 @@ import SwiftUI
 /// `.onOpenURL`, so no SwiftUI URL activation fires. Combined with a single
 /// `Window` scene (not `WindowGroup`), clicking "Mod Manager Download"
 /// repeatedly routes into the one existing window instead of stacking new ones.
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     /// URLs delivered before l'app est prête — typiquement un lancement à froid
     /// déclenché par un clic `nxm://` — sont mises en attente, puis délivrées
@@ -72,7 +73,7 @@ struct StarHubTHApp: App {
 
     init() {
         if let currentLang = UserDefaults.standard.string(forKey: UDKey.currentLanguage) {
-            UserDefaults.standard.set([currentLang], forKey: "AppleLanguages")
+            UserDefaults.standard.set([currentLang], forKey: UDKey.appleLanguagesOverride)
         }
     }
 

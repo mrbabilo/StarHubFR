@@ -23,6 +23,8 @@ where the exact log format was verified.
 - **The Parties sheets move to design tokens** (H-T5, part 4): the profile diagnostics sheet, the backup timeline and the duplicate/branch sheets drop their last hardcoded fonts and colors. "Not installed" in the dependency gaps now carries a warning glyph (never colour alone), the timeline's "Branch" action uses the app's installed tint, and the timeline's pencil/trash buttons meet the 18×18 hover target so their tooltips can actually show.
 
 ### Fixed
+- **`AppDelegate` isolé sur le main thread** : annotation `@MainActor` ajoutée sur la classe pour verrouiller au niveau du type la garantie que `pendingURLs`/`isReady` ne sont jamais mutés hors main thread (AppKit le faisait déjà, mais la convention était implicite).
+- **Clé `AppleLanguages` centralisée dans `UDKey.swift`** : la string littérale écrite au lancement (`forKey: "AppleLanguages"`) passe par la constante `UDKey.appleLanguagesOverride`, conformément à §4.3 d'AGENTS.md.
 - **Les vignettes de ferme du hero de sauvegarde deviennent des illustrations** : les glyphes vectoriels dessinés à la main étaient illisibles à 80×56 — les 8 fermes vanilla s'affichent désormais en vignettes illustrées embarquées (ordre du wiki), et une ferme de mod retombe sur un pictogramme proportionnel. L'avatar du fermier est corrigé du même coup.
 - **Le bandeau du hero de sauvegarde porte l'illustration du splash**, avec un voile dégradé en pied pour que le nom du fermier reste lisible par-dessus.
 - **L'avatar du fermier devient une vignette circulaire sur le visage du personnage** — fermier ou fermière selon le sexe lu dans la sauvegarde (`<gender>`), avec liseré et ombre pour se détacher du bandeau ; la vignette de ferme, quasi carrée, garde son toit entier.

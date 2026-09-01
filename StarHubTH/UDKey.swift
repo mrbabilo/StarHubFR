@@ -52,4 +52,9 @@ public enum UDKey {
     /// une bascule faite jeu ouvert a sauté la moitié configs. Vide sinon.
     /// Persisté : quitter l'app entre les deux bascules ramènerait le trou.
     public static let profileConfigsDesyncedProfileId = "profileConfigsDesyncedProfileId"
+    /// Clé système `AppleLanguages` (`UserDefaults` d'Apple, pas une clé métier).
+    /// On y écrit la langue UI courante au lancement pour forcer le démarrage
+    /// SwiftUI dans la bonne locale avant la première vue. Centralisée ici pour
+    /// rester en accord avec §4.3 d'AGENTS.md malgré son origine système.
+    public static let appleLanguagesOverride = "AppleLanguages"
 }
