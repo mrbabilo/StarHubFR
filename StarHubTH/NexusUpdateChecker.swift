@@ -740,7 +740,8 @@ final class NexusUpdateChecker {
     /// Parses a `Retry-After` header value, which per RFC 7231 can be either
     /// a delay in seconds ("120") or an HTTP-date ("Wed, 21 Oct 2026
     /// 07:28:00 GMT"). Falls back to 60s (logged) if neither form parses.
-    private static func parseRetryAfter(_ header: String?) -> TimeInterval {        guard let header = header else { return 60 }
+    private static func parseRetryAfter(_ header: String?) -> TimeInterval {
+        guard let header = header else { return 60 }
         if let seconds = TimeInterval(header) {
             return seconds
         }
@@ -751,7 +752,7 @@ final class NexusUpdateChecker {
         if let date = formatter.date(from: header) {
             return max(0, date.timeIntervalSinceNow)
         }
-        print("Retry-After header could not be parsed (\(header)) — falling back to 60s")
+        NSLog("[StarHubFR] Retry-After header could not be parsed (%@) — falling back to 60s", header)
         return 60
     }
 
