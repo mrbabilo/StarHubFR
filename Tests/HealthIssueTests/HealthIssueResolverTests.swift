@@ -185,4 +185,69 @@ struct HealthIssueResolverAggregateTests {
         // conflit (ordre de `conflicts`) — jamais entrelacées.
         #expect(issues.map(\.title) == ["Z-Mod", "A-Mod", "X · Y", "B · C"])
     }
+
+    /// Ronde de correction 1 — `report.collisions` est indexé PAR combo :
+    /// les deux mêmes mods peuvent se disputer deux touches différentes
+    /// (banal sur ~900 mods). Sans le combo dans l'id, ces deux lignes
+    /// distinctes partageraient la même identité — le piège `ForEach`
+    /// documenté dans CLAUDE.md (une identité dupliquée fait fuiter l'état
+    /// d'une ligne vers une autre).
+    @Test func collisionIdentityDiffersOnDifferentKeyBetweenSameMods() {
+        let a = KeybindScanner.ModScan(
+            id: "a.Mod1", name: "Mod 1", isActive: true,
+            tree: tree(["HotkeyOne": .string("F8 + LeftControl"),
+                        "HotkeyTwo": .string("F9 + LeftControl")]))
+        let b = KeybindScanner.ModScan(
+            id: "b.Mod2", name: "Mod 2", isActive: true,
+            tree: tree(["HotkeyOne": .string("F8 + LeftControl"),
+                        "HotkeyTwo": .string("F9 + LeftControl")]))
+        let report = KeybindScanner.report(mods: [a, b])
+        // Les deux mêmes mods, sur deux combos distincts : deux collisions
+        // réelles, sinon le test ne prouve rien.
+        #expect(report.collisions.count == 2)
+
+        let issues = HealthIssueResolver.keybindIssues(report)
+        #expect(issues.count == 2)
+        #expect(Set(issues.map(\.id)).count == 2)
+    }
+
+    /// Ronde de correction 1 — `gameConflicts` n'était exercée par aucun
+    /// test : toute fixture à deux boutons (les collisions ci-dessus) ne
+    /// peut structurellement pas y entrer, `report(mods:)` n'indexant les
+    /// contrôles du jeu que pour un combo à bouton unique. Bouton "W" choisi
+    /// dans `GameControlDefaults.controls` (`moveUpButton`).
+    @Test func gameControlConflictProducesAWarningRow() {
+        let a = KeybindScanner.ModScan(id: "a.Mod1", name: "Mod 1", isActive: true,
+                                       tree: tree(["Hotkey": .string("W")]))
+        let report = KeybindScanner.report(mods: [a])
+        // Sinon le test serait creux, exactement le défaut corrigé ici.
+        #expect(!report.gameConflicts.isEmpty)
+
+        let issues = HealthIssueResolver.keybindIssues(report)
+        #expect(issues.contains {
+            $0.source == .keybind && $0.severity == .warning
+                && $0.detail == "moveUpButton"
+        })
+    }
+
+    /// Étend l'invariant `problemCount` (déjà prouvé ci-dessus sur les
+    /// seules collisions) aux DEUX familles à la fois : une fixture qui
+    /// produit à la fois une collision entre mods et un conflit avec un
+    /// contrôle par défaut du jeu.
+    @Test func keybindRowCountMatchesProblemCountAcrossBothFamilies() {
+        let a = KeybindScanner.ModScan(
+            id: "a.Mod1", name: "Mod 1", isActive: true,
+            tree: tree(["Shortcut": .string("F8 + LeftControl"),
+                        "Hotkey": .string("W")]))
+        let b = KeybindScanner.ModScan(
+            id: "b.Mod2", name: "Mod 2", isActive: true,
+            tree: tree(["Shortcut": .string("F8 + LeftControl")]))
+        let report = KeybindScanner.report(mods: [a, b])
+        #expect(!report.collisions.isEmpty)
+        #expect(!report.gameConflicts.isEmpty)
+
+        let issues = HealthIssueResolver.resolve(
+            diagnostics: nil, keybindReport: report, conflicts: [])
+        #expect(issues.filter { $0.source == .keybind }.count == report.problemCount)
+    }
 }

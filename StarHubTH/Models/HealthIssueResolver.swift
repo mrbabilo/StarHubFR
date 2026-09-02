@@ -79,7 +79,15 @@ public enum HealthIssueResolver {
         var issues: [HealthIssue] = []
         for collision in report.collisions {
             let mods = collision.uses.map(\.modName).sorted().joined(separator: ", ")
-            issues.append(HealthIssue(id: "keybind-collision-\(mods)",
+            // `report.collisions` est indexé PAR combo : les deux mêmes mods
+            // peuvent se disputer deux touches différentes (banal sur ~900
+            // mods) — sans le combo dans l'id, ces deux lignes distinctes
+            // partageraient la même identité (piège `ForEach`, CLAUDE.md).
+            // `KeybindCombo.buttons` est déjà dédupliqué et trié
+            // (`KeybindCombo.init?`), donc cette représentation est stable
+            // entre deux résolutions.
+            let comboKey = collision.combo.buttons.joined(separator: "+")
+            issues.append(HealthIssue(id: "keybind-collision-\(comboKey)-\(mods)",
                                       severity: .warning, source: .keybind,
                                       title: mods, detail: nil,
                                       action: .openTab("Mods")))
