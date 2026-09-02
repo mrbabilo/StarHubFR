@@ -12,9 +12,32 @@ import SwiftUI
 /// `exclamationmark.octagon.fill` est déjà utilisé ailleurs dans le dépôt
 /// (`ModListView.swift`) sur cette même cible macOS 14 : le symbole existe,
 /// pas de repli triangle nécessaire pour la gravité critique.
+///
+/// Deux initialiseurs :
+/// - `init(severity:L:)` — le cas courant, sur le patron exact de
+///   `CategoryBadge` (`category:` + `L: (String) -> String`) : le libellé
+///   est résolu ici même via `severity.l10nKey`, la divergence entre
+///   gravité et texte devient impossible par construction.
+/// - `init(severity:label:)` — pour le cas délibérément différent où le
+///   libellé n'est PAS celui de la gravité (ex. tâche 9 : « Activé »/
+///   « En pause » affiché *sur* une gravité). Ne pas le prendre pour le
+///   cas courant.
 struct SeverityBadge: View {
     let severity: HealthIssue.Severity
     let label: String
+
+    /// Cas courant : libellé résolu depuis la gravité elle-même.
+    init(severity: HealthIssue.Severity, L: (String) -> String) {
+        self.severity = severity
+        self.label = L(severity.l10nKey)
+    }
+
+    /// Cas délibérément différent : le libellé n'est pas celui de la
+    /// gravité (voir doc de tête).
+    init(severity: HealthIssue.Severity, label: String) {
+        self.severity = severity
+        self.label = label
+    }
 
     private var glyph: String {
         switch severity {
