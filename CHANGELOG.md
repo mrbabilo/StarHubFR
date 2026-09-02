@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.33.0] - 2026-09-02
+
 ### Changed
 
 - **Alertes système en liste unifiée triée par gravité** (critique, avertissement, information) : diagnostics SMAPI, raccourcis en collision et conflits entre mods sont désormais fusionnés et triés dans un seul écran, avec un pied « N problèmes · M critiques ». Un badge partagé (glyphe + couleur + libellé) affiche la gravité partout, jamais la couleur seule.
