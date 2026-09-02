@@ -27,10 +27,10 @@ where the exact log format was verified.
 - **Un mod à la fois « failed » et « skipped » aurait produit deux lignes critiques** sous deux titres différents (l'un avec la version, l'autre sans), indétectables à l'œil. Garde ajoutée par symétrie avec celle qui protège déjà les dépendances manquantes.
 - **Le bouton d'action d'une alerte annonçait toujours « Voir les journaux »**, y compris pour les raccourcis en collision et les conflits de mods, qui ouvrent en réalité l'onglet Mods. Le libellé dépend maintenant de la destination.
 - **Les conflits de mods affichaient des noms de dossiers** (`ModConflictPair.folderName`) au lieu de noms de mods, seule ligne de l'écran d'alertes à le faire.
-
-### Removed
-
-- **Le rapport de raccourcis global et la vue d'ensemble des conflits ont disparu de l'app** en sortant `SystemAlertsView`/`QuarantineView` de `MainView.swift` : `KeybindReportSection` (mods scannés, raccourcis comptés, non reconnus, bouton « Rescanner ») et `ModConflictSection` (dont le bouton « Écarter » d'un conflit) n'ont plus aucun appelant. Un conflit désormais affiché comme critique dans la liste d'alertes ne peut donc plus être écarté depuis l'écran qui le montre. Les fichiers sont conservés, non recâblés — voir l'entrée H-T6 de `docs/ROADMAP.md`.
+- **Le bouton d'une alerte n'emmenait nulle part de précis** : il ouvrait la liste des mods entière, jamais le mod fautif, et « Voir les journaux » ouvrait la vue générale, jamais l'erreur en cause. Chaque ligne désigne maintenant sa cible — la fiche du mod concerné, ou les journaux filtrés sur le message.
+- **Le rapport de raccourcis et le panorama des conflits étaient devenus inatteignables** en sortant `SystemAlertsView` de `MainView.swift`. Les deux reviennent en feuilles, depuis la barre d'outils de l'écran d'alertes ; le bouton « Écarter » d'un conflit redevient accessible.
+- **Une ligne d'alerte s'intitulait « apiIntegration »** — un nom de symbole, en anglais. SMAPI décrivant ses propres sections (« … you can ignore this warning. ») était pris pour un mod relativisant son erreur. Les notices sans mod portent désormais un titre traduit ; la carte de santé en comptait une de trop.
+- **Le bouton d'un conflit ne trouvait pas un mod installé sous un pack.** Seuls les dossiers de premier niveau étaient comparés, alors qu'un conflit peut nommer un composant.
 
 ## [1.32.0] - 2026-09-02
 

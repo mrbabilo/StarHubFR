@@ -2389,14 +2389,19 @@ par lot, une release par lot. Périmètre : visuel + navigation —
 > **Écarts assumés** : la quarantaine ne fusionne pas dans la liste des
 > alertes — deux questions différentes, deux onglets ; aucun changement de
 > logique de détection, le lot présente ce que l'app sait déjà ; pas de
-> filtre par source sur les alertes. **`KeybindReportSection` et
-> `ModConflictSection` n'ont plus aucun appelant** depuis que `SystemAlertsView`
-> les a remplacés : le rapport de raccourcis global (mods scannés, raccourcis
-> comptés, non reconnus, bouton « Rescanner ») et la vue d'ensemble des
-> conflits ont disparu de l'app, y compris le bouton « Écarter » d'un
-> conflit — un conflit désormais critique dans la liste d'alertes ne se
-> referme donc plus depuis l'écran qui le montre. Fichiers conservés
-> (319 + 363 lignes), non recâblés : à trier par l'auteur.
+> filtre par source sur les alertes.
+> **Suites après vérification à l'écran (H-T6b/H-T6c, 2026-09-02)** : l'auteur
+> a constaté que l'écran signalait sans conduire — le bouton d'une ligne
+> ouvrait la liste des mods entière, jamais le mod fautif, et « Voir les
+> journaux » la vue générale. `HealthIssue.Action` porte désormais une cible
+> (`.openMod(query:)` / `.openLogs(searchText:)`), transportée par
+> `pendingModDetailFocus` et `pendingLogFocus`. `KeybindReportSection` et
+> `ModConflictSection`, restées sans appelant, reviennent en feuilles depuis
+> la barre d'outils de l'écran — le bouton « Écarter » d'un conflit est de
+> nouveau atteignable. Mesuré ensuite sur le journal réel : une ligne
+> intitulée « apiIntegration » (encart de SMAPI pris pour un mod) supprimée,
+> les notices sans mod dotées d'un titre traduit, et le dossier d'un
+> composant de pack redevenu résolvable.
 > **Revue globale de branche (2026-09-02)** : 7 bloquants corrigés en une
 > vague — la pastille comptait les notices SMAPI bénignes (`.info`) comme des
 > problèmes (7 sur un parc sans le moindre échec ni conflit), pas de garde
