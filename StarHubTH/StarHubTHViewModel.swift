@@ -2210,7 +2210,9 @@ class StarHubTHViewModel: ObservableObject {
             self.reloadSaves()
             self.fetchSteamUser()
         }
-        // Lightweight synchronous check (just reads a file/launches SMAPI -fast).
+        // Lightweight synchronous check: reads the install marker, or the
+        // first 256 bytes of SMAPI-latest.txt — no process is ever launched
+        // (SmapiInstaller.getInstalledVersion).
         self.checkSmapiVersion()
     }
 
@@ -2479,8 +2481,10 @@ class StarHubTHViewModel: ObservableObject {
                 }
             }
         }
-        // SMAPI version probe runs in parallel — it doesn't block the launch
-        // overlay because it doesn't gate anything the user sees first.
+        // SMAPI version probe — synchronous here, on the caller's thread,
+        // après le dispatch background ci-dessus. Deux petits fichiers lus
+        // (marqueur, ou 256 octets de journal) : sub-milliseconde, rien sur
+        // quoi l'overlay de lancement doive attendre.
         self.checkSmapiVersion()
     }
     
@@ -7101,8 +7105,16 @@ for mod in mods {
         // le manifest doit rejoindre pour qu'on tienne l'installation pour
         // accomplie. Sans suggestion connue, la règle compare à la version du
         // manifest elle-même, donc l'atteint d'office.
-        let suggested = Dictionary(nexusUpdates.map { ($0.uniqueId, $0.latestVersion) },
-                                   uniquingKeysWith: { first, _ in first })
+        //
+        // Source : le cache plat sous son lock, pas `nexusUpdates`. La
+        // propriété @Published ne s'écrit que sur le fil principal
+        // (`republishUpdatesFromCache`) — la lire ici, sur le fil du scan,
+        // est une course. Et la liste consolidée par pack ne garde que
+        // l'enfant gagnant de chaque pack : un enfant perdant avec mise à
+        // jour y perd sa suggestion. Le cache plat, lui, a une ligne par mod.
+        let suggested = Dictionary(
+            NexusUpdateChecker.shared.cachedUpdates().map { ($0.uniqueId, $0.latestVersion) },
+            uniquingKeysWith: { first, _ in first })
         for mod in allMods where !mod.uniqueId.isEmpty && !graceFolders.contains(mod.folderName) {
             guard let previous = previousVersions[mod.folderName] else { continue }
             guard let anchor = ModVersionAnchorRules.afterDiskChange(
@@ -8983,10 +8995,15 @@ for mod in mods {
     /// and restored if the main move fails, so no mod can ever end up in
     /// neither location. Progress is published after every move. Activation
     /// timestamps are stamped only for mods that were actually moved.
+    @MainActor
     func toggleAllMods(enable: Bool) {
         // Guard against re-entry: a second tap while the first run is still
         // moving folders would race on the same source/destination paths.
-        guard bulkToggleProgress == nil else { return }
+        // Et contre la file des toggles unitaires : un performToggle en vol
+        // croiserait les moves bulk sur les mêmes dossiers (l'unitaire renomme
+        // sur main, la masse en background) — les gardes disque contiennent
+        // la collision, ce garde l'empêche d'exister.
+        guard bulkToggleProgress == nil, !isToggling, pendingToggles.isEmpty else { return }
 
         let modsToMove = mods.filter { $0.isEnabled != enable }
         guard !modsToMove.isEmpty else {
@@ -9001,7 +9018,12 @@ for mod in mods {
         let gameDir = self.gameDir
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
 
-        DispatchQueue.global(qos: .userInitiated).async {
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            // Règle du dépôt : `weak self` obligatoire dans toute closure
+            // passée à DispatchQueue.global().async (CLAUDE.md, Concurrence).
+            // La VM vit autant que l'app aujourd'hui, mais refresh() pose déjà
+            // ce weak pour le futur refactor non-singleton documenté.
+            guard let self else { return }
             let fm = FileManager.default
 
             struct MoveFailure {

@@ -19,6 +19,8 @@ where the exact log format was verified.
 ### Fixed
 
 - **Les traductions de secours étaient cherchées par un chemin reconstruit à la main** — trois copies du même chemin à travers la VM et les managers ; un changement de layout des managers aurait fait chercher le finder dans le vide, en silence. Les managers exposent désormais `backupsDirectory`, source unique.
+- **La passe d'ancrage des versions lisait `nexusUpdates` depuis le fil du scan** — propriété publiée sur le fil principal, donc en course, et consolidée par pack : un enfant de pack perdant la consolidation n'y figure pas et perd sa suggestion de version. Elle lit désormais le cache plat sous son verrou, qui a une ligne par mod.
+- **« Tout activer / tout désactiver » pouvait croiser la file des bascules unitaires** — un renommage unitaire en vol rencontrait les renommages en masse sur les mêmes dossiers ; les gardes disque contenaient la collision, un garde sur la file l'empêche désormais d'exister.
 
 ## [1.33.0] - 2026-09-02
 
