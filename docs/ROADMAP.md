@@ -2616,32 +2616,50 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
           SPM existant n'a rien à gagner côté script sans le refactor de F1.
         ▸ **Net sur le build complet** : gain marginal mesuré (~1 s sur
           2m22s), le bottleneck `swiftc` ne bouge pas — c'est le propos de F2-T2.
-  - [ ] **F2-T2** — **Vrai bottleneck : `swiftc` whole-module recompile tout, à chaque
-        build.** Constat au 2026-09-01 : `swift build` (SPM) sait cacher les objets par
-        fichier parce qu'il compile chaque cible en `-c` séparé puis lie ; `swiftc`
-        invoqué sur les 211 fichiers en un seul module produit un binaire monolithique,
-        et **n'a rien à réutiliser** — d'où l'égalité froid/chaud mesurée. `-incremental`
-        ne s'applique qu'au mode `-c` + link, pas au whole-module : la première version
-        du commentaire de `build_swiftc_command` en faisait la promesse — retirée avant
-        commit pour éviter une fausse bonne idée.
-        Trois pistes, par gain décroissant et coût croissant :
-        ▸ **(P1)** Compiler chaque fichier Swift en `.o` individuel dans
-          `.build/objects/`, garder l'existant si son empreinte ne change pas,
-          puis `ld` pour lier. Sans modification de `Package.swift`. Gain estimé
-          ×5-×10 sur les builds incrémentaux. · **M**
-        ▸ **(P2)** Basculer en SPM à deux cibles : `StarHubTHCore` (déjà
-          définie, ~140 fichiers) compilée par `swift build` avec cache objet,
-          et `StarHubTHUI` (~70 fichiers ViewModel/Vues) liée statiquement
-          contre `StarHubTHCore.a`. Le cache objet SPM fonctionne nativement.
-          Toucherait `Package.swift`, les `import` éventuels inter-cibles, et
-          les tests SPM (déjà dépendants de `StarHubTHCore`). · **L**
-        ▸ **(P3)** Module distribué / prebuilt cache partagé entre postes
-          (CI + devs). Hors périmètre raisonnable pour un dépôt mono-dev.
-        **Hors périmètre ici** : la passe de perf groupée en fin de projet citée
-        sous **F3** ne concerne que l'**UX** (latence de frappe, rendu de la liste).
-        Le build est de la perf **de développement**, et son arbitrage se fait
-        indépendamment. Critère de succès : un build chaud sous 30 s (contre
-        2m22s aujourd'hui) ; à mesurer après P1 ou P2, selon l'effort consenti.
+  - [x] **F2-T2** — **Compilation incrémentale de l'app.** ✅ *(livré le
+        2026-09-02, **opt-in** — voir la réserve plus bas)*
+        Constat de départ : `swiftc` invoqué sur les 211 fichiers en un seul
+        module produit un binaire monolithique et **n'a rien à réutiliser** au
+        build suivant, d'où l'égalité froid/chaud. `-incremental` ne s'applique
+        qu'au mode `-c` + link.
+        **Livré (piste P1)** : `build_app.py --incremental` écrit une table de
+        sorties par fichier (`.build/output-file-map.json`), compile en `.o`
+        individuels dans `.build/objects/` avec les `.swiftdeps` que swiftc
+        tient lui-même, puis lie. Le chemin whole-module reste le **défaut**.
+        **Mesures** (8 cœurs), sur de vraies modifications de contenu et non de
+        simples `touch` — les deux ont été comparés, mêmes chiffres :
+
+        | cas | whole-module | incrémental | rapport |
+        |---|---|---|---|
+        | build complet à froid | 141,7 s | 59,4 s | ×2,4 |
+        | à chaud, rien touché | 141,7 s | 2,2 s | ×64 |
+        | un fichier feuille modifié | 141,7 s | 2,4 s | ×59 |
+        | corps du ViewModel modifié | 141,7 s | 5,4 s | ×26 |
+        | signature publique du ViewModel | 141,7 s | 30,1 s | ×4,7 |
+
+        Les 141,7 s reproduisent exactement les 2m22s mesurées en F2-T1 par une
+        autre session : les deux relevés se confirment.
+        **Critère de succès (build chaud sous 30 s) : tenu dans tous les cas**,
+        y compris le pire.
+        **Équivalence du binaire vérifiée** : même architecture, **70 791
+        symboles définis des deux côtés**, 5,9 Ko d'écart sur 30 Mo (+0,02 %),
+        signature valide.
+        ⚠️ **Pourquoi ça reste opt-in** : un binaire qui se lie n'est pas un
+        binaire qui démarre, et aucun agent ne lance l'app dans ce dépôt. Pour
+        basculer le défaut, lancer une fois `python3 build_app.py --incremental`
+        puis l'app ; si elle démarre, le changement tient en une ligne.
+        ⚠️ **Piège rencontré, à ne pas refaire** : swiftc compare les chemins de
+        l'`output-file-map` **comme des chaînes**. Clés absolues + arguments
+        relatifs = aucune correspondance, incrémental désactivé en silence
+        (« has no swiftDeps file »), objets écrits dans le répertoire courant —
+        214 `.o` et 214 `.swiftdeps` semés à la racine du dépôt, **et code de
+        retour 0**. Seul le décompte des objets attendus avant l'édition de
+        liens a transformé cet échec muet en erreur.
+        Le pire cas (30 s) est celui d'un changement de signature dans le
+        god-object de 8 389 lignes : le découper (**F1**) ferait baisser ce pire
+        cas, pas seulement le cas moyen.
+        ▸ **(P2)** SPM à deux cibles et **(P3)** cache partagé restent sans
+        objet tant que P1 tient le critère.
 - [ ] **F5** — **StarHubFR et StarHubTH écrivent dans les mêmes données.** Le fork a changé
       le nom du produit, pas son identité : le bundle reste `com.appleboiy.StarHubTH` et
       les fichiers vivent sous `~/Library/Application Support/StarHubTH/`. Deux

@@ -116,6 +116,95 @@ def build_swiftc_command(swift_files: list[str], app_executable: str, module_cac
         "-module-cache-path", module_cache_dir,
     ]
 
+OBJECTS_DIR = os.path.join(".build", "objects")
+OUTPUT_FILE_MAP = os.path.join(".build", "output-file-map.json")
+MODULE_NAME = APP_NAME
+
+
+def object_stem(swift_file: str) -> str:
+    """Nom d'objet unique et stable pour un chemin source.
+
+    `Models/X.swift` et `Views/X.swift` coexistent dans l'arbre : aplatir sur
+    le seul nom de fichier les ferait s'écraser l'un l'autre, et le build
+    produirait un binaire amputé sans rien signaler.
+    """
+    return os.path.splitext(swift_file)[0].replace(os.sep, "_")
+
+
+def write_output_file_map(swift_files: list[str]) -> None:
+    """Table des sorties par fichier, exigée par le mode incrémental.
+
+    L'entrée `""` porte les dépendances au niveau module ; sans elle, swiftc
+    refuse `-incremental`. Les `.swiftdeps` sont ce qui lui permet de savoir
+    quels fichiers retoucher quand une déclaration change.
+    """
+    os.makedirs(OBJECTS_DIR, exist_ok=True)
+    entries: dict[str, dict[str, str]] = {
+        "": {"swift-dependencies": os.path.join(OBJECTS_DIR, "master.swiftdeps")}
+    }
+    for swift_file in swift_files:
+        stem = os.path.join(OBJECTS_DIR, object_stem(swift_file))
+        entries[os.path.abspath(swift_file)] = {
+            "object": f"{stem}.o",
+            "swift-dependencies": f"{stem}.swiftdeps",
+            "dependencies": f"{stem}.d",
+        }
+    with open(OUTPUT_FILE_MAP, "w", encoding="utf-8") as file:
+        json.dump(entries, file, indent=2)
+
+
+def build_incremental(swift_files: list[str], app_executable: str,
+                      module_cache_dir: str) -> bool:
+    """Compile en objets par fichier puis lie — le mode incrémental de swiftc.
+
+    Le chemin par défaut (`build_swiftc_command`) compile les 211 fichiers en
+    **whole-module** : un seul binaire produit d'un coup, rien à réutiliser au
+    build suivant, d'où l'égalité froid/chaud mesurée en F2-T1. Ici swiftc
+    émet un `.o` par fichier et tient ses propres `.swiftdeps`, donc une
+    modification isolée ne recompile que ce qu'elle touche.
+
+    ⚠️ Opt-in (`--incremental`) tant que personne n'a lancé l'app produite par
+    ce chemin : un binaire qui se lie n'est pas un binaire qui démarre. Le
+    chemin whole-module reste le défaut.
+    """
+    arch = platform.machine()
+    target = f"{arch}-apple-macosx14.0"
+    # ⚠️ Les chemins passés à swiftc doivent être **littéralement** les clés
+    # du fichier de sortie : il compare les chaînes, pas les fichiers. Avec des
+    # clés absolues et des arguments relatifs, il ne trouve aucune entrée,
+    # désactive l'incrémental (« has no swiftDeps file ») et écrit ses objets
+    # dans le répertoire courant — 214 `.o` et 214 `.swiftdeps` semés à la
+    # racine du dépôt, sans le moindre code d'erreur.
+    write_output_file_map(swift_files)
+
+    compile_cmd = ["swiftc", "-c", "-incremental", "-enable-batch-mode",
+                   "-output-file-map", OUTPUT_FILE_MAP,
+                   "-module-name", MODULE_NAME,
+                   "-target", target,
+                   "-parse-as-library",
+                   "-module-cache-path", module_cache_dir,
+                   "-j", str(os.cpu_count() or 4)] + [os.path.abspath(f) for f in swift_files]
+    print(f"[INFO] Compiling incrementally ({len(swift_files)} files)...")
+    if subprocess.run(["xcrun"] + compile_cmd, check=False).returncode != 0:
+        print("[ERROR] Incremental compilation failed.")
+        return False
+
+    objects = [os.path.join(OBJECTS_DIR, object_stem(f) + ".o") for f in swift_files]
+    missing = [o for o in objects if not os.path.exists(o)]
+    if missing:
+        # Lier une liste amputée produirait un exécutable qui manque des
+        # symboles sans que l'édition de liens le dise toujours.
+        print(f"[ERROR] {len(missing)} object file(s) missing, e.g. {missing[0]}")
+        return False
+
+    print("[INFO] Linking...")
+    link_cmd = ["swiftc", "-o", app_executable, "-target", target] + objects
+    if subprocess.run(["xcrun"] + link_cmd, check=False).returncode != 0:
+        print("[ERROR] Link failed.")
+        return False
+    return True
+
+
 def write_compile_commands(swift_files: list[str], app_executable: str, module_cache_dir: str) -> None:
     """Write a compile database so SourceKit-LSP indexes ALL files (Core + UI).
 
@@ -230,17 +319,26 @@ def create_app_bundle():
     # Keep the LSP compile database in sync with what we actually compile
     write_compile_commands(swift_files, app_executable, module_cache_dir)
 
-    print(f"[INFO] Compiling Swift code ({len(swift_files)} files)...")
-    swiftc_cmd = build_swiftc_command(swift_files, app_executable, module_cache_dir)
+    # `--incremental` : compilation en objets par fichier avec cache (F2-T2).
+    # Opt-in tant que l'app produite par ce chemin n'a pas été lancée — un
+    # binaire qui se lie n'est pas un binaire qui démarre. Le whole-module
+    # reste le défaut.
+    if "--incremental" in sys.argv:
+        if not build_incremental(swift_files, app_executable, module_cache_dir):
+            sys.exit(1)
+    else:
+        print(f"[INFO] Compiling Swift code ({len(swift_files)} files)...")
+        swiftc_cmd = build_swiftc_command(swift_files, app_executable, module_cache_dir)
 
-    # Run compiler. `xcrun` resolves the active Xcode toolchain and exports the
-    # SDKROOT/DEVELOPER_DIR that the swiftc driver needs to locate the standard
-    # library. Invoking `swiftc` directly fails with "unable to load standard
-    # library for target ..." on a clean shell where the toolchain env is unset.
-    result = subprocess.run(["xcrun"] + swiftc_cmd, check=False)
-    if result.returncode != 0:
-        print("[ERROR] Swift compilation failed.")
-        sys.exit(1)
+        # Run compiler. `xcrun` resolves the active Xcode toolchain and exports
+        # the SDKROOT/DEVELOPER_DIR that the swiftc driver needs to locate the
+        # standard library. Invoking `swiftc` directly fails with "unable to
+        # load standard library for target ..." on a clean shell where the
+        # toolchain env is unset.
+        result = subprocess.run(["xcrun"] + swiftc_cmd, check=False)
+        if result.returncode != 0:
+            print("[ERROR] Swift compilation failed.")
+            sys.exit(1)
         
     # 5. Ad-hoc codesign to make it run locally without Gatekeeper blocking
     print("[INFO] Signing application (Codesign)...")
