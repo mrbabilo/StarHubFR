@@ -2749,11 +2749,11 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
         sépare préférences, Trousseau et `nxm://`, puis recopier l'ancien domaine vers le
         nouveau. Seule, T2 laisse les fichiers en commun ; seule, T1 laisse les préférences
         et le Trousseau en commun. · **M**
-- [ ] **F6** — **Constats laissés ouverts par l'audit du 2026-09-02.** *(audit
-      fichier-par-fichier : `StarHubTHApp.swift` et tranche ① du ViewModel passés ce
-      jour-là — aucun bug bloquant, deux corrections livrées au commit `7e0896a`. Les deux
-      items ci-dessous sont les constats volontairement non traités ; le constat de perf
-      de la même audit est allé grossir **F3**, son seau désigné.)*
+- [ ] **F6** — **Constats laissés ouverts par l'audit des 2026-09-02/03.** *(audit
+      fichier-par-fichier : `StarHubTHApp.swift` et tranches ①-④ du ViewModel —
+      aucun bug bloquant, deux corrections livrées au commit `7e0896a`. Les items
+      ci-dessous sont les constats volontairement non traités ; le constat de perf
+      du même audit est allé grossir **F3**, son seau désigné.)*
   - [ ] **F6-T1** — **Course à l'annulation dans `recomputeFrenchCoverage`.** · **S**
         (`StarHubTHViewModel.swift:473`) Le `cancel()` d'un recalcul n'interrompt pas un
         `await mergeFrenchCoverage(…)` déjà engagé : un lot de ≤ 25 mesures de la
@@ -2779,6 +2779,18 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
         Seule échappatoire théorique : `fetchSingleMod` rend sans complétion si
         `self` a disparu en vol — singleton éternel, indéallocable. L'hypothèse
         tient ; rien à blinder.
+  - [ ] **F6-T3** — **Deux parseurs du même journal SMAPI.** *(tranche ④,
+        2026-09-03)* `smapiErrors` est extrait par un scanner inline du
+        ViewModel (~L.3142 : chirurgie de chaînes sur « ERROR SMAPI] », drapeau
+        `isParsingErrors`), pendant que `SmapiLogParser` (Core, testé) parse le
+        même fichier pour les entrées de l'onglet Journaux, les conflits
+        Content Patcher et l'historique d'erreurs par mod. Le patron « copies
+        divergentes » — cf. `isOsJunk`, 4 copies dont une amputée : chaque
+        évolution du format SMAPI se corrige deux fois, et rien ne signale la
+        divergence le jour où l'un des deux seul est adapté. Fix = mapper les
+        consommateurs de `smapiErrors` sur `SmapiLogParser` et retirer le
+        scanner inline. Pas au fil de l'eau : ça touche l'affichage du volet
+        erreurs, à faire avec un vrai journal SMAPI sous la main. · **M**
 
 ---
 
