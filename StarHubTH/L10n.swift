@@ -741,6 +741,9 @@ enum L10n {
         static let severityCritical     = "health_severity_critical"
         static let severityWarning      = "health_severity_warning"
         static let severityInfo         = "health_severity_info"
+        /// Pied de l'écran d'alertes (tâche 7) : « N problèmes · M critiques »
+        /// — le total est `healthIssues.count`, jamais un autre calcul.
+        static let problemCount         = "health_problem_count"
     }
 
     // MARK: - Quarantine

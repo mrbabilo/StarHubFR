@@ -342,6 +342,7 @@
   "health_severity_critical": "Critique",
   "health_severity_warning": "Avertissement",
   "health_severity_info": "Information",
+  "health_problem_count": "%1$lld problème(s) · %2$lld critique(s)",
   "quarantine_title": "Quarantaine",
   "quarantine_subtitle": "Les dossiers corrompus ou indésirables sont déplacés ici automatiquement lors des analyses. Rien n'est supprimé — vous pouvez consulter ou restaurer à tout moment.",
   "quarantine_open_folder": "Ouvrir le dossier de quarantaine",
