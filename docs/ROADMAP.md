@@ -2361,9 +2361,35 @@ par lot, une release par lot. Périmètre : visuel + navigation —
       et `<skin>` sont lues et correctes mais ne pilotent aucun pixel. Recomposer
       la tête (base + calques coiffure/peau) plutôt que teinter un crop.
       Prérequis : des calques séparés, que l'affiche du jeu ne fournit pas. · **M**
-- [ ] **H-T6** — **Lot Santé & secours** : alertes système, quarantaine,
+- [x] **H-T6** — **Lot Santé & secours** : alertes système, quarantaine,
       backups ×2 — gravité toujours glyph + couleur, rapports en tableaux
       lisibles. · **M**
+      ✅ (livré le 2026-09-02)
+> **Ce qui tourne aujourd'hui** : un modèle de gravité pur et testé —
+> `HealthIssue` (critique / avertissement / information) et
+> `HealthIssueResolver`, qui agrège trois sources (diagnostics SMAPI,
+> collisions de raccourcis, conflits entre mods) et trie par gravité
+> décroissante, de façon stable. Le ViewModel expose `healthIssues` ;
+> `systemAlertCount` en dérive, donc l'accueil, le badge de la barre
+> latérale et l'écran d'alertes lisent tous la même résolution. Composant
+> partagé `SeverityBadge` : glyphe **et** couleur **et** libellé, jamais la
+> couleur seule. `SystemAlertsView` et `QuarantineView` sortent de
+> `MainView.swift` (1519 → 1163 lignes) ; l'écran d'alertes devient une
+> liste unifiée triée, avec un pied « N problèmes · M critiques ». Côté
+> quarantaine : identités de ligne stables, couleurs aux tokens, troncature
+> annoncée. Le rapport de restauration d'un backup d'installation quitte
+> l'alerte pour un panneau à sept champs étiquetés ; `ModInstallBackupsView`
+> et `ModConfigBackupsView` reviennent à un seul modificateur de
+> présentation chacune (4→1 et 3→1).
+> **Bug réel trouvé et corrigé en passant** : dans `ModConfigBackupsView`,
+> le bouton « Restaurer » relisait la sauvegarde ciblée depuis un état déjà
+> remis à `nil` par la fermeture de l'alerte — le bouton s'affichait, la
+> confirmation s'ouvrait, rien n'était restauré. La suppression portait la
+> même faille. Corrigé (commit `727d7e0`).
+> **Écarts assumés** : la quarantaine ne fusionne pas dans la liste des
+> alertes — deux questions différentes, deux onglets ; aucun changement de
+> logique de détection, le lot présente ce que l'app sait déjà ; pas de
+> filtre par source sur les alertes.
 - [ ] **H-T7** — **Lots Journaux & Réglages** : reskin léger des journaux
       (la perf est déjà faite), Réglages absorbe les déménagés de l'accueil
       en sections unifiées. Deux releases — phases 5 et 6 de la spec. · **S**

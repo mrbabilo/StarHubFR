@@ -12,6 +12,17 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Changed
+
+- **Alertes système en liste unifiée triée par gravité** (critique, avertissement, information) : diagnostics SMAPI, raccourcis en collision et conflits entre mods sont désormais fusionnés et triés dans un seul écran, avec un pied « N problèmes · M critiques ». Un badge partagé (glyphe + couleur + libellé) affiche la gravité partout, jamais la couleur seule.
+- **Quarantaine (doublons, dossiers isolés) plus lisible** : identités de ligne stables, couleurs aux tokens de l'app, troncature d'un chemin long désormais annoncée.
+- **Le rapport de restauration d'un backup d'installation** quitte l'alerte texte pour un panneau à sept champs étiquetés.
+- **`SystemAlertsView` et `QuarantineView` sortent de `MainView.swift`** (1519 → 1163 lignes), sans changement de comportement.
+
+### Fixed
+
+- **Le bouton « Restaurer » d'une sauvegarde de config de mod ne restaurait rien.** Il relisait la sauvegarde ciblée depuis un état déjà remis à `nil` par la fermeture de l'alerte de confirmation — le bouton s'affichait, la confirmation s'ouvrait, mais rien n'était restauré. Le bouton « Supprimer » portait la même faille. Les deux sont corrigés.
+
 ## [1.32.0] - 2026-09-02
 
 ### Changed
