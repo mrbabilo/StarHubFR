@@ -191,8 +191,14 @@ struct SystemAlertsView: View {
                 }
             }
             Spacer(minLength: AppDesign.Spacing.sm)
+            // Une information en offre DEUX (fiche + journal) : les libellés
+            // gardent leur largeur, c'est le titre qui cède. « Voir dans les
+            // journaux » est le plus long des deux en français ; le voir
+            // tronqué ou replié dirait moins que le titre tronqué à côté.
             ForEach(issue.actions) { action in
                 Button(actionLabel(for: action)) { perform(action) }
+                    .lineLimit(1)
+                    .fixedSize()
                     .buttonStyle(.plain)
                     .foregroundColor(AppDesign.Color.accent)
                     .pointingHandCursor()
