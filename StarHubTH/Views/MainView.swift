@@ -258,6 +258,15 @@ struct MainView: View {
                         .first { $0.folderName == folderName }
                 }
 
+                // H-T6b — même piège, même cure pour la fiche mod, demandée
+                // depuis l'écran d'alertes système : une ligne SMAPI porte un
+                // nom affiché, une ligne de conflit un `folderName` —
+                // `ModFocusResolver` accepte les deux.
+                if currentTab == "Mods", let query = vm.pendingModDetailFocus {
+                    vm.pendingModDetailFocus = nil
+                    vm.viewingModDetail = ModFocusResolver.resolve(query, in: vm.mods)
+                }
+
                 if !isNavigatingBackOrForward {
                     if tabHistory.last != currentTab {
                         tabHistory.append(currentTab)

@@ -387,6 +387,13 @@ struct LogsView: View {
             selectedLevel = nil
             searchText = mod
         }
+        // `vm.pendingLogFocus` (H-T6b, posé par `SystemAlertsView`) may arrive
+        // before this view exists — the tab switch that carries it creates
+        // this view fresh. Same fix, same reason as
+        // `pendingModFocus`/`consumePendingModFocus()` in `ModListView`: read
+        // on appear as well as while already on screen.
+        .onAppear { consumePendingLogFocus() }
+        .onChange(of: vm.pendingLogFocus) { _, _ in consumePendingLogFocus() }
         .onReceive(NotificationCenter.default.publisher(for: .showLogSection)) { note in
             guard let header = note.object as? String else { return }
             searchText = ""
@@ -397,6 +404,19 @@ struct LogsView: View {
     }
 
     // MARK: - Helpers
+
+    /// Scopes the search to the log line/mod the user asked to jump to (from
+    /// `SystemAlertsView`), then clears the request so it fires once. Same
+    /// reset as `.filterLogsToMod` above — every level, every source — so the
+    /// target line can't be hidden by whatever filter was active before.
+    private func consumePendingLogFocus() {
+        guard let focus = vm.pendingLogFocus else { return }
+        sectionHeader = nil
+        selectedSource = nil
+        selectedLevel = nil
+        searchText = focus
+        vm.pendingLogFocus = nil
+    }
 
     /// The chronological stream: single entries plus folded families.
     @ViewBuilder

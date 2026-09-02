@@ -22,6 +22,121 @@ struct HealthIssueResolverSmapiTests {
         #expect(critical.contains { $0.title == "Automate" })
     }
 
+    /// H-T6b : une ligne SMAPI « failed »/« skipped » nomme un vrai mod du
+    /// parc — l'action doit ouvrir SA fiche, pas la liste ni un onglet
+    /// générique.
+    @Test func failedAndSkippedModsOpenTheirModFiche() {
+        let issues = HealthIssueResolver.smapiIssues(Self.diagnostics())
+        #expect(issues.first { $0.title == "SVE" }?.action == .openMod(query: "SVE"))
+        #expect(issues.first { $0.title == "Automate" }?.action == .openMod(query: "Automate"))
+    }
+
+    /// Le VRAI parseur (`SmapiDiagnostics.parse`, pas une fixture à la main)
+    /// nomme un mod `skipped` « <nom> <version> » — le titre le garde, mais
+    /// la cible de l'action doit désigner le mod NU, celui que connaît
+    /// `ModFocusResolver` : sans le nettoyage de version, cette ligne
+    /// n'ouvrait jamais sa fiche (trouvé en revue — aucune fixture posée à la
+    /// main dans les autres tests ne porte de nom versionné, donc aucune
+    /// n'aurait pu l'exercer).
+    @Test func skippedModActionTargetsTheBareNameNotTheVersionedTitle() {
+        let log = """
+        [00:00:02 ERROR SMAPI]    Skipped mods
+        [00:00:02 ERROR SMAPI]       - AnotherMod 1.0 because it requires mods which aren't installed (Some.Library)
+        """
+        let d = SmapiDiagnostics.parse(logContent: log)
+        #expect(d.skipped.contains { $0.name == "AnotherMod 1.0" })
+
+        let issues = HealthIssueResolver.smapiIssues(d)
+        let row = issues.first { $0.title == "AnotherMod 1.0" }
+        #expect(row?.action == .openMod(query: "AnotherMod"))
+    }
+
+    /// Contre-épreuve : un mod dont le nom se termine par un mot ordinaire
+    /// (pas une version) ne doit pas perdre ce mot — seul un dernier segment
+    /// qui COMMENCE par un chiffre est retiré.
+    @Test func skippedModNameEndingInAWordKeepsItsFullName() {
+        let log = """
+        [00:00:02 ERROR SMAPI]    Skipped mods
+        [00:00:02 ERROR SMAPI]       - Content Patcher Animations 1.2 because it requires mods which aren't installed (Some.Lib)
+        """
+        let d = SmapiDiagnostics.parse(logContent: log)
+        let issues = HealthIssueResolver.smapiIssues(d)
+        let row = issues.first { $0.title == "Content Patcher Animations 1.2" }
+        #expect(row?.action == .openMod(query: "Content Patcher Animations"))
+    }
+
+    /// La dépendance manquante défensive nomme aussi un vrai mod : même
+    /// cible que failed/skipped.
+    @Test func missingDependencyDefensiveCaseOpensTheModFiche() {
+        let issues = HealthIssueResolver.smapiIssues(Self.diagnostics())
+        #expect(issues.first { $0.title == "RSV" }?.action == .openMod(query: "RSV"))
+    }
+
+    /// `externalConflicts` nomme un outil externe (RivaTuner…), jamais un mod
+    /// du parc : `ModFocusResolver` n'y trouverait rien, la fiche n'a pas de
+    /// sens — la seule cible utile reste le journal.
+    @Test func externalConflictOpensLogsNotAModFiche() {
+        var d = Self.diagnostics()
+        d.externalConflicts = ["RivaTuner Statistics Server"]
+        let issues = HealthIssueResolver.smapiIssues(d)
+        #expect(issues.first { $0.title == "RivaTuner Statistics Server" }?.action
+                == .openLogs(searchText: "RivaTuner Statistics Server"))
+    }
+
+    /// `brokenMods`, lui, nomme un vrai mod marqué cassé par SMAPI : la fiche
+    /// a un sens, contrairement à `externalConflicts` ci-dessus.
+    @Test func brokenModOpensItsModFiche() {
+        var d = Self.diagnostics()
+        d.brokenMods = ["Old Broken Mod"]
+        let issues = HealthIssueResolver.smapiIssues(d)
+        #expect(issues.first { $0.title == "Old Broken Mod" }?.action
+                == .openMod(query: "Old Broken Mod"))
+    }
+
+    /// Une notice bénigne qui NOMME un mod (`notice.mod` non nil) ouvre sa
+    /// fiche, comme n'importe quelle autre ligne SMAPI qui désigne un mod
+    /// réel.
+    @Test func benignNoticeWithAModOpensItsFiche() {
+        let issues = HealthIssueResolver.smapiIssues(Self.diagnostics())
+        #expect(issues.first { $0.title == "CJB" }?.action == .openMod(query: "CJB"))
+    }
+
+    /// Une notice bénigne SANS mod (Galaxy…) ne peut viser aucune fiche :
+    /// repli sur les journaux, recherche sur l'exemple brut conservé par le
+    /// parseur.
+    @Test func benignNoticeWithoutAModOpensLogsOnItsSample() {
+        var d = Self.diagnostics()
+        d.benignNotices = [.init(kind: .galaxyAuth, mod: nil, count: 1,
+                                 sample: "GOG Galaxy 64 couldn't be initialized")]
+        let issues = HealthIssueResolver.smapiIssues(d)
+        #expect(issues.first { $0.severity == .info }?.action
+                == .openLogs(searchText: "GOG Galaxy 64 couldn't be initialized"))
+    }
+
+    /// Repli au repli : sans mod ET sans exemple, la recherche porte au moins
+    /// sur le genre de notice — jamais une action vide.
+    @Test func benignNoticeWithoutAModOrSampleFallsBackToItsKind() {
+        var d = Self.diagnostics()
+        d.benignNotices = [.init(kind: .galaxyAuth, mod: nil, count: 1, sample: "")]
+        let issues = HealthIssueResolver.smapiIssues(d)
+        let notice = issues.first { $0.severity == .info }
+        #expect(notice?.title == "galaxyAuth")
+        #expect(notice?.action == .openLogs(searchText: "galaxyAuth"))
+    }
+
+    /// `SmapiLogDiagnostics.evidence(from:)` tronque au-delà de 160
+    /// caractères et ajoute un « … » — absent de la ligne réelle du journal.
+    /// `LogsView` filtre par sous-chaîne exacte : chercher le texte AVEC son
+    /// ellipse ne trouverait donc jamais rien. La cible doit le retirer.
+    @Test func benignNoticeSampleTruncationMarkerIsStrippedFromTheSearch() {
+        var d = Self.diagnostics()
+        d.benignNotices = [.init(kind: .apiIntegration, mod: nil, count: 1,
+                                 sample: "Some very long evidence line…")]
+        let issues = HealthIssueResolver.smapiIssues(d)
+        let notice = issues.first { $0.title == "apiIntegration" }
+        #expect(notice?.action == .openLogs(searchText: "Some very long evidence line"))
+    }
+
     /// Le parseur range déjà les dépendances *optionnelles* en notice bénigne :
     /// ce qui reste dans `missingDeps` est dur, donc critique.
     @Test func missingHardDependencyIsCritical() {
@@ -209,6 +324,18 @@ struct HealthIssueResolverAggregateTests {
         #expect(issues.first?.title == "Content Patcher · Stardew Valley Expanded")
     }
 
+    /// H-T6b : le bouton d'une ligne de conflit doit ouvrir la fiche d'un des
+    /// deux mods en cause, pas la liste entière (`Mods`). `ModConflictPair`
+    /// n'indexe que des `folderName` — l'action doit en porter un, jamais un
+    /// nom résolu (le résolveur de fiche attend un dossier ou un nom, jamais
+    /// un libellé composé « A · B »).
+    @Test func conflictActionOpensOneOfTheTwoModsByFolderName() {
+        // `ModConflictPair` trie ses deux dossiers à la construction :
+        // "cp.folder" < "sve.folder", donc `.first == "cp.folder"`.
+        let issues = HealthIssueResolver.conflictIssues([ModConflictPair("sve.folder", "cp.folder")])
+        #expect(issues.first?.action == .openMod(query: "cp.folder"))
+    }
+
     /// Sans résolveur (défaut), le comportement d'avant est conservé —
     /// aucun appelant existant ne doit changer de sortie.
     @Test func conflictTitleFallsBackToFolderNameWithoutResolver() {
@@ -303,6 +430,30 @@ struct HealthIssueResolverAggregateTests {
             $0.source == .keybind && $0.severity == .warning
                 && $0.detail == "moveUpButton"
         })
+    }
+
+    /// H-T6b : une collision oppose au moins deux mods — le bouton ne peut en
+    /// désigner qu'UN, le premier par ordre alphabétique (même tri que le
+    /// titre affiché), jamais l'onglet Mods générique.
+    @Test func collisionActionOpensTheFirstModAlphabetically() {
+        let a = KeybindScanner.ModScan(id: "a.Mod1", name: "Zebra Mod", isActive: true,
+                                       tree: tree(["HotkeyOne": .string("F8 + LeftControl")]))
+        let b = KeybindScanner.ModScan(id: "b.Mod2", name: "Alpha Mod", isActive: true,
+                                       tree: tree(["HotkeyOne": .string("F8 + LeftControl")]))
+        let report = KeybindScanner.report(mods: [a, b])
+        let issues = HealthIssueResolver.keybindIssues(report)
+        let collision = issues.first { $0.detail == nil }
+        #expect(collision?.action == .openMod(query: "Alpha Mod"))
+    }
+
+    /// Même règle pour un conflit avec un contrôle par défaut du jeu.
+    @Test func gameConflictActionOpensTheOffendingMod() {
+        let a = KeybindScanner.ModScan(id: "a.Mod1", name: "Mod 1", isActive: true,
+                                       tree: tree(["Hotkey": .string("W")]))
+        let report = KeybindScanner.report(mods: [a])
+        let issues = HealthIssueResolver.keybindIssues(report)
+        #expect(issues.first { $0.detail == "moveUpButton" }?.action
+                == .openMod(query: "Mod 1"))
     }
 
     /// Étend l'invariant `problemCount` (déjà prouvé ci-dessus sur les

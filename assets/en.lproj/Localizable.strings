@@ -343,6 +343,8 @@
 "health_severity_warning" = "Warning";
 "health_severity_info" = "Information";
 "health_problem_count" = "%1$lld problem(s) · %2$lld critical";
+"health_action_open_mod" = "View mod";
+"health_action_open_logs" = "View in logs";
 "quarantine_title" = "Quarantine";
 "quarantine_subtitle" = "Corrupt or junk folders moved here automatically during scans. Nothing is deleted — you can review or restore anytime.";
 "quarantine_open_folder" = "Open Quarantine Folder";

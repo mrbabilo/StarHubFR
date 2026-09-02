@@ -11,9 +11,35 @@ import SwiftUI
 ///
 /// Les erreurs SMAPI restent aussi consultables dans l'onglet Journaux (voir
 /// `StarHubTHViewModel.parseSMAPILog`) : ce panneau n'en est qu'un résumé.
+/// Les deux panoramas (raccourcis, conflits) passent par **un seul**
+/// modificateur `.sheet(item:)`, porté par cette valeur — même contrainte que
+/// `SaveEditorConfirmation`/`SaveTimelineConfirmation` (`SavesView.swift`,
+/// `SaveTimelineView.swift`) : deux `.sheet` empilés sur la même vue ne se
+/// présentent pas tous les deux.
+private enum SystemAlertsSheet: Identifiable {
+    case keybindReport
+    case modConflicts
+
+    var id: String {
+        switch self {
+        case .keybindReport: return "keybindReport"
+        case .modConflicts: return "modConflicts"
+        }
+    }
+}
+
 struct SystemAlertsView: View {
     @ObservedObject var vm: StarHubTHViewModel
     @Binding var currentTab: String
+
+    /// H-T6b — `KeybindReportSection` et `ModConflictSection` n'avaient plus
+    /// aucun appelant depuis que tâche 7 a remplacé leurs trois sections par
+    /// une liste unifiée : le rapport complet des raccourcis (mods scannés,
+    /// non reconnus, « Rescanner ») et le panorama des conflits avaient donc
+    /// disparu de l'app. Ils reviennent en feuilles : la liste triée garde
+    /// son rôle (« qu'est-ce qui casse, emmène-moi là »), les panoramas
+    /// répondent à l'autre question (« montre-moi tout »).
+    @State private var sheet: SystemAlertsSheet?
 
     var body: some View {
         // Capturée UNE fois par rendu (revue globale, bloquant 7) :
@@ -46,20 +72,71 @@ struct SystemAlertsView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(AppDesign.Color.windowBg)
+        // Un seul `.sheet` pour les deux panoramas (voir `SystemAlertsSheet`).
+        .sheet(item: $sheet) { which in
+            sheetContent(which)
+        }
     }
 
     // MARK: - Header
 
     private var header: some View {
-        HStack {
+        HStack(spacing: AppDesign.Spacing.sm) {
             Text(vm.L(L10n.Main.systemAlerts))
                 .font(AppDesign.Font.viewTitle)
             Spacer()
+            panoramaButton(vm.L(L10n.Keybinds.title), icon: "keyboard") { sheet = .keybindReport }
+            panoramaButton(vm.L(L10n.Conflicts.title), icon: "arrow.triangle.merge") { sheet = .modConflicts }
             recheckLogButton
         }
         .padding(.horizontal, AppDesign.Spacing.lg)
         .padding(.vertical, AppDesign.Spacing.md)
         .background(AppDesign.Color.windowBg)
+    }
+
+    /// Bouton de barre d'outils ouvrant l'un des deux panoramas — même style
+    /// que `recheckLogButton`, pour que les trois lisent comme un seul groupe
+    /// d'actions plutôt que deux styles différents côte à côte.
+    private func panoramaButton(_ label: String, icon: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(label, systemImage: icon)
+                .font(AppDesign.Font.caption(.medium))
+                .foregroundColor(AppDesign.Color.primary)
+                .padding(.horizontal, AppDesign.Spacing.md)
+                .padding(.vertical, AppDesign.Spacing.xs)
+                .background(AppDesign.Color.primary.opacity(AppDesign.Opacity.light))
+                .cornerRadius(AppDesign.Radius.sm)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .pointingHandCursor()
+    }
+
+    /// Le panorama demandé, en feuille : les deux sections ne portent aucun
+    /// contrôle de fermeture propre (elles vivaient nues dans l'ancien écran
+    /// à trois sections) — celle-ci leur ajoute un pied « OK », même patron
+    /// que `ProfileDiagnosticsView`.
+    @ViewBuilder
+    private func sheetContent(_ which: SystemAlertsSheet) -> some View {
+        VStack(spacing: 0) {
+            ScrollView {
+                switch which {
+                case .keybindReport:
+                    KeybindReportSection(vm: vm, currentTab: $currentTab)
+                        .padding(AppDesign.Spacing.lg)
+                case .modConflicts:
+                    ModConflictSection(vm: vm)
+                        .padding(AppDesign.Spacing.lg)
+                }
+            }
+            Divider()
+            HStack {
+                Spacer()
+                Button(vm.L(L10n.Main.ok)) { sheet = nil }
+                    .keyboardShortcut(.defaultAction)
+            }
+            .padding(AppDesign.Spacing.md)
+        }
+        .frame(minWidth: 560, idealWidth: 640, minHeight: 440, idealHeight: 580)
     }
 
     // MARK: - Rows
@@ -85,8 +162,8 @@ struct SystemAlertsView: View {
                 }
             }
             Spacer(minLength: AppDesign.Spacing.sm)
-            if case .openTab(let tab) = issue.action {
-                Button(vm.L(actionLabelKey(forTab: tab))) { currentTab = tab }
+            if let action = issue.action {
+                Button(actionLabel(for: action)) { perform(action) }
                     .buttonStyle(.plain)
                     .foregroundColor(AppDesign.Color.accent)
                     .pointingHandCursor()
@@ -95,13 +172,32 @@ struct SystemAlertsView: View {
         .padding(.vertical, AppDesign.Spacing.sm)
     }
 
-    /// Le libellé doit dire OÙ le bouton mène : « Voir les journaux » pour
-    /// une ligne SMAPI ouvrait déjà le bon onglet, mais les lignes raccourci
-    /// et conflit portent aussi ce libellé alors qu'elles ouvrent l'onglet
-    /// Mods — l'utilisateur clique « Voir les journaux » et atterrit dans la
-    /// liste des mods (revue globale de branche, bloquant 3).
-    private func actionLabelKey(forTab tab: String) -> String {
-        tab == "Logs" ? L10n.Updates.viewLogs : L10n.Updates.viewMods
+    /// Le libellé doit dire OÙ le bouton mène : l'ancien `openTab(String)`
+    /// menait au mieux à un onglet générique (« Voir les journaux » ouvrait
+    /// la vue générale, « Voir les mods » la liste entière) — jamais l'erreur
+    /// ni le mod fautif eux-mêmes (H-T6b).
+    private func actionLabel(for action: HealthIssue.Action) -> String {
+        switch action {
+        case .openMod: return vm.L(L10n.Health.actionOpenMod)
+        case .openLogs: return vm.L(L10n.Health.actionOpenLogs)
+        }
+    }
+
+    /// Pose la cible sur le ViewModel puis bascule d'onglet — jamais
+    /// l'inverse : `MainView` remet à `nil` les états de détail dans son
+    /// `onChange(of: currentTab)`, donc poser `viewingModDetail` avant de
+    /// changer d'onglet serait effacé aussitôt (piège documenté dans
+    /// `CLAUDE.md`, patron B3-T4). `pendingModDetailFocus` traverse ce
+    /// changement et se reconsomme DANS le même `onChange`.
+    private func perform(_ action: HealthIssue.Action) {
+        switch action {
+        case .openMod(let query):
+            vm.pendingModDetailFocus = query
+            currentTab = "Mods"
+        case .openLogs(let searchText):
+            vm.pendingLogFocus = searchText
+            currentTab = "Logs"
+        }
     }
 
     // MARK: - Footer

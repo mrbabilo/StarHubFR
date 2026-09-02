@@ -14,12 +14,31 @@ struct HealthIssueTests {
     @Test func identityComesFromContent() {
         let a = HealthIssue(id: "smapi-failed-SVE", severity: .critical,
                             source: .smapi, title: "SVE", detail: "raison",
-                            action: .openTab("Logs"))
+                            action: .openMod(query: "SVE"))
         let b = HealthIssue(id: "smapi-failed-SVE", severity: .critical,
                             source: .smapi, title: "SVE", detail: "raison",
-                            action: .openTab("Logs"))
+                            action: .openMod(query: "SVE"))
         #expect(a == b)
         #expect(a.id == b.id)
+    }
+
+    /// L'ancien `openTab(String)` ne portait qu'un onglet, jamais de quoi
+    /// désigner le mod ou la ligne de journal en cause — le manque exact que
+    /// H-T6b comble. `Action` doit porter une cible utilisable.
+    @Test func actionOpenModCarriesTheResolvableQuery() {
+        let action = HealthIssue.Action.openMod(query: "Stardew Valley Expanded")
+        #expect(action == .openMod(query: "Stardew Valley Expanded"))
+        #expect(action != .openMod(query: "Autre mod"))
+    }
+
+    @Test func actionOpenLogsCarriesTheSearchText() {
+        let action = HealthIssue.Action.openLogs(searchText: "RivaTuner Statistics Server")
+        #expect(action == .openLogs(searchText: "RivaTuner Statistics Server"))
+        #expect(action != .openLogs(searchText: "autre chose"))
+    }
+
+    @Test func openModAndOpenLogsAreNeverEqualEvenWithTheSameString() {
+        #expect(HealthIssue.Action.openMod(query: "X") != .openLogs(searchText: "X"))
     }
 
     private static func issue(_ severity: HealthIssue.Severity, _ title: String) -> HealthIssue {

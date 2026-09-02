@@ -28,7 +28,24 @@ public struct HealthIssue: Identifiable, Equatable {
 
     public enum Source: String, Equatable { case smapi, keybind, modConflict }
 
-    public enum Action: Equatable { case openTab(String) }
+    /// Une cible, pas seulement un onglet — c'est tout le manque de l'ancien
+    /// `openTab(String)` (H-T6b) : « Voir les journaux » ouvrait la vue
+    /// générale, « Voir les mods » la liste entière, jamais l'erreur ni le
+    /// mod fautif eux-mêmes.
+    public enum Action: Equatable {
+        /// Ouvre la fiche du mod visé. `query` est ce qu'attend
+        /// `ModFocusResolver.resolve(_:in:)` : un nom de dossier pour un
+        /// conflit (`ModConflictPair` n'indexe que des `folderName`), un nom
+        /// affiché pour une erreur SMAPI ou une collision de raccourcis (ces
+        /// deux sources ne connaissent le mod que par le nom sous lequel il
+        /// a été chargé).
+        case openMod(query: String)
+        /// Ouvre les journaux, recherche pré-remplie sur `searchText` — pour
+        /// les lignes qui ne désignent aucun mod résolvable (un outil externe
+        /// comme RivaTuner, une notice bénigne sans mod nommé) : la fiche
+        /// n'existerait pas, le journal reste la seule trace exploitable.
+        case openLogs(searchText: String)
+    }
 
     /// Dérivé du **contenu**. Les modèles sources (`SmapiDiagnostics.Issue`,
     /// `MissingDep`, `BenignNotice`) portent un `id = UUID()` régénéré à

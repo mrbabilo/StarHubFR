@@ -744,6 +744,11 @@ enum L10n {
         /// Pied de l'écran d'alertes (tâche 7) : « N problèmes · M critiques »
         /// — le total est `healthIssues.count`, jamais un autre calcul.
         static let problemCount         = "health_problem_count"
+        /// Libellés du bouton d'action d'une ligne (H-T6b) : `HealthIssue.
+        /// Action` porte désormais une cible (fiche mod, ou journal filtré),
+        /// jamais un onglet générique — le libellé doit dire laquelle.
+        static let actionOpenMod        = "health_action_open_mod"
+        static let actionOpenLogs       = "health_action_open_logs"
     }
 
     // MARK: - Quarantine

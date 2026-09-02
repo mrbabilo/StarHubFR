@@ -3708,6 +3708,30 @@ class StarHubTHViewModel: ObservableObject {
     /// zéro l'efface aussitôt (même piège que `pendingTranslationFocus`).
     @Published var pendingConfigFocus: String? = nil
 
+    /// Le mod dont la **fiche** doit s'ouvrir après un changement d'onglet —
+    /// une requête libre (dossier OU nom affiché), résolue via
+    /// `ModFocusResolver` au moment de la consommation. Posé par
+    /// `SystemAlertsView` (H-T6b) pour ses lignes SMAPI/raccourcis/conflit :
+    /// contrairement à `pendingModFocus` (qui ne fait que CADRER la liste,
+    /// voir sa doc), celui-ci ouvre la fiche elle-même — même piège, même
+    /// cure que `pendingConfigFocus` : consommé dans le `onChange` de
+    /// `MainView`, après la remise à zéro des états de détail.
+    @Published var pendingModDetailFocus: String? = nil
+
+    /// Le texte à préremplir dans la recherche des Journaux après un
+    /// changement d'onglet. Posé par `SystemAlertsView` (H-T6b) pour ses
+    /// lignes sans mod résolvable (outil externe, notice bénigne sans mod).
+    ///
+    /// Contrairement à `pendingConfigFocus`/`pendingModDetailFocus`, la
+    /// cible n'est pas un `@Published` que `MainView` lit pour choisir quelle
+    /// sous-vue rendre : `searchText` est un `@State` PRIVÉ de `LogsView`,
+    /// que `MainView` ne peut pas atteindre depuis son propre `onChange`.
+    /// `LogsView` le consomme donc lui-même, à son apparition — même patron
+    /// que `pendingModFocus`/`consumePendingModFocus()` dans `ModListView`
+    /// (« une requête peut arriver avant que la vue n'existe »), pas celui de
+    /// `pendingConfigFocus`.
+    @Published var pendingLogFocus: String? = nil
+
     /// Cadrage de la liste des mods : recherche, filtres, tri, page courante.
     ///
     /// Ici et non en `@State` de `ModListView` pour la même raison que

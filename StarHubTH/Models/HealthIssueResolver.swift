@@ -30,7 +30,7 @@ public enum HealthIssueResolver {
                                       detail: enrichedDetail(reason: issue.reason,
                                                              mod: issue.name,
                                                              missingDeps: d.missingDeps),
-                                      action: .openTab("Logs")))
+                                      action: .openMod(query: issue.name)))
         }
         // Garde par SYMÉTRIE avec celle de `missingDeps` juste en dessous :
         // jamais vérifié sur un vrai journal (aucun n'en montre le cas), donc
@@ -54,7 +54,16 @@ public enum HealthIssueResolver {
                                       detail: enrichedDetail(reason: issue.reason,
                                                              mod: issue.name,
                                                              missingDeps: d.missingDeps),
-                                      action: .openTab("Logs")))
+                                      // `issue.name` porte la version SUIVIE
+                                      // du nom (« NEU Mod 1.0 ») — le titre la
+                                      // garde (elle identifie la ligne), mais
+                                      // `ModFocusResolver` ne fait ni préfixe
+                                      // ni version : sans ce nettoyage, une
+                                      // ligne skipped n'ouvrait JAMAIS sa
+                                      // fiche (aucune fixture à la main
+                                      // n'exerçait un nom versionné, d'où le
+                                      // bogue passé inaperçu des tests).
+                                      action: .openMod(query: Self.skippedModQuery(issue.name))))
         }
         // Cas défensif seulement : un mod dont la dépendance manquante n'a
         // été promue dans aucune des deux listes ci-dessus.
@@ -62,29 +71,40 @@ public enum HealthIssueResolver {
             issues.append(HealthIssue(id: "smapi-dep-\(dep.mod)-\(dep.missing)",
                                       severity: .critical, source: .smapi,
                                       title: dep.mod, detail: dep.missing,
-                                      action: .openTab("Logs")))
+                                      action: .openMod(query: dep.mod)))
         }
         // Conflits externes et mods marqués « broken » par SMAPI : des
         // problèmes de chargement avérés au sens de `problemCount`
         // (SmapiLogDiagnostics.swift), donc au même titre que failed/skipped.
+        // `externalConflicts` nomme un OUTIL (RivaTuner…), jamais un mod du
+        // parc : `ModFocusResolver` n'y trouverait rien, la fiche n'a pas de
+        // sens — le journal reste la seule trace utile.
         for name in d.externalConflicts {
             issues.append(HealthIssue(id: "smapi-conflict-\(name)",
                                       severity: .critical, source: .smapi,
                                       title: name, detail: nil,
-                                      action: .openTab("Logs")))
+                                      action: .openLogs(searchText: name)))
         }
         for name in d.brokenMods {
             issues.append(HealthIssue(id: "smapi-broken-\(name)",
                                       severity: .critical, source: .smapi,
                                       title: name, detail: nil,
-                                      action: .openTab("Logs")))
+                                      action: .openMod(query: name)))
         }
         for notice in d.benignNotices {
             issues.append(HealthIssue(id: "smapi-benign-\(notice.kind.rawValue)-\(notice.mod ?? "-")",
                                       severity: .info, source: .smapi,
                                       title: notice.mod ?? notice.kind.rawValue,
                                       detail: notice.sample.isEmpty ? nil : notice.sample,
-                                      action: .openTab("Logs")))
+                                      // `notice.mod` est `nil` pour les notices
+                                      // qui ne nomment aucun mod (Galaxy…) :
+                                      // pas de fiche possible, on retombe sur
+                                      // le journal — recherche sur l'exemple
+                                      // brut si le parseur en a gardé un,
+                                      // sinon sur le genre de notice lui-même.
+                                      action: notice.mod.map { .openMod(query: $0) }
+                                          ?? .openLogs(searchText: Self.logSearchText(fromSample: notice.sample,
+                                                                                      fallback: notice.kind.rawValue))))
         }
         return issues
     }
@@ -93,7 +113,8 @@ public enum HealthIssueResolver {
         guard let report else { return [] }
         var issues: [HealthIssue] = []
         for collision in report.collisions {
-            let mods = collision.uses.map(\.modName).sorted().joined(separator: ", ")
+            let modNames = collision.uses.map(\.modName).sorted()
+            let mods = modNames.joined(separator: ", ")
             // `report.collisions` est indexé PAR combo : les deux mêmes mods
             // peuvent se disputer deux touches différentes (banal sur ~900
             // mods) — sans le combo dans l'id, ces deux lignes distinctes
@@ -105,14 +126,19 @@ public enum HealthIssueResolver {
             issues.append(HealthIssue(id: "keybind-collision-\(comboKey)-\(mods)",
                                       severity: .warning, source: .keybind,
                                       title: mods, detail: nil,
-                                      action: .openTab("Mods")))
+                                      // Une collision oppose au moins deux
+                                      // mods — un seul bouton ne peut désigner
+                                      // qu'UN fautif : le premier par ordre
+                                      // alphabétique, le même tri que `title`.
+                                      action: .openMod(query: modNames.first ?? mods)))
         }
         for conflict in report.gameConflicts {
-            let mods = conflict.uses.map(\.modName).sorted().joined(separator: ", ")
+            let modNames = conflict.uses.map(\.modName).sorted()
+            let mods = modNames.joined(separator: ", ")
             issues.append(HealthIssue(id: "keybind-game-\(conflict.control.name)-\(mods)",
                                       severity: .warning, source: .keybind,
                                       title: mods, detail: conflict.control.name,
-                                      action: .openTab("Mods")))
+                                      action: .openMod(query: modNames.first ?? mods)))
         }
         return issues
     }
@@ -134,7 +160,11 @@ public enum HealthIssueResolver {
                         severity: .critical, source: .modConflict,
                         title: "\(displayName(pair.first)) · \(displayName(pair.second))",
                         detail: nil,
-                        action: .openTab("Mods"))
+                        // Un conflit oppose deux mods ; `pair.first` en
+                        // désigne un — c'est un `folderName`, ce qu'attend
+                        // `ModFocusResolver` pour un conflit (voir la
+                        // documentation de `Action.openMod`).
+                        action: .openMod(query: pair.first))
         }
     }
 
@@ -165,6 +195,35 @@ public enum HealthIssueResolver {
         if failedName == skippedName { return true }
         guard let lastSpace = skippedName.lastIndex(of: " ") else { return false }
         return skippedName[skippedName.startIndex..<lastSpace] == failedName
+    }
+
+    /// Le nom NU d'un mod `skipped`, sans le suffixe de version que le
+    /// parseur y accole (« NEU Mod 1.0 » → « NEU Mod ») — c'est ce nom que
+    /// `ModFocusResolver.resolve` doit retrouver dans `[ModItem]`, qui ne
+    /// connaît le mod que sous son nom nu. Même règle que `isSameMod`
+    /// ci-dessus (le DERNIER segment est la version, jamais un préfixe), mais
+    /// gardée : on ne retire ce segment que s'il commence par un chiffre,
+    /// sinon un mod dont le nom se termine simplement par un mot
+    /// (« Content Patcher Animations ») perdrait ce mot à tort.
+    private static func skippedModQuery(_ name: String) -> String {
+        guard let lastSpace = name.lastIndex(of: " ") else { return name }
+        let suffix = name[name.index(after: lastSpace)...]
+        guard let first = suffix.first, first.isNumber else { return name }
+        return String(name[name.startIndex..<lastSpace])
+    }
+
+    /// La recherche des Journaux pour une notice bénigne sans mod nommé.
+    ///
+    /// `notice.sample` vient de `SmapiLogDiagnostics.evidence(from:)`, qui
+    /// tronque à 160 caractères et ajoute un « … » — un caractère ABSENT de
+    /// la ligne réelle du journal. `LogsView` filtre par
+    /// `message.contains(search)` : chercher le texte tronqué AVEC son
+    /// ellipse ne matcherait jamais rien, un bouton qui ouvre un journal
+    /// vide. Le retirer restaure un préfixe exact de la ligne d'origine.
+    private static func logSearchText(fromSample sample: String, fallback: String) -> String {
+        guard !sample.isEmpty else { return fallback }
+        guard sample.hasSuffix("…") else { return sample }
+        return String(sample.dropLast()).trimmingCharacters(in: .whitespaces)
     }
 
     /// Ajoute le nom de la dépendance manquante au détail, sauf s'il y
