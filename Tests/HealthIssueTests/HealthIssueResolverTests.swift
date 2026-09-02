@@ -105,3 +105,84 @@ struct HealthIssueResolverSmapiTests {
         #expect(critical.count == 2)
     }
 }
+
+@Suite("HealthIssueResolver — agrégation")
+struct HealthIssueResolverAggregateTests {
+
+    /// Reprend exactement le patron de `Tests/KeybindTests/KeybindScannerTests.swift`
+    /// (`ConfigJSONTree.Object` n'a pas de littéral de dictionnaire — un
+    /// `.object([...])` direct ne compile pas) plutôt que de le réécrire.
+    private func tree(_ pairs: [String: ConfigJSONTree.Value]) -> ConfigJSONTree.Value {
+        .object(ConfigJSONTree.Object(pairs.map { ($0.key, $0.value) }))
+    }
+
+    /// Le tri EST la fonctionnalité : sans lui, l'écran ne dit pas par où
+    /// commencer, ce qui était le défaut d'origine.
+    @Test func criticalIssuesComeFirst() {
+        var d = SmapiDiagnostics()
+        d.benignNotices = [.init(kind: .galaxyAuth, mod: nil, count: 1, sample: "")]
+        d.failed = [.init(name: "SVE", reason: "r")]
+        let issues = HealthIssueResolver.resolve(
+            diagnostics: d, keybindReport: nil,
+            conflicts: [ModConflictPair("A", "B")])
+        #expect(issues.first?.severity == .critical)
+        #expect(issues.last?.severity == .info)
+        // Décroissant, sans exception.
+        #expect(zip(issues, issues.dropFirst()).allSatisfy { $0.severity >= $1.severity })
+    }
+
+    /// Une paire de mods en conflit actif empêche le jeu de charger
+    /// correctement : critique, et une ligne par paire.
+    @Test func eachConflictPairIsItsOwnCriticalRow() {
+        let issues = HealthIssueResolver.resolve(
+            diagnostics: nil, keybindReport: nil,
+            conflicts: [ModConflictPair("A", "B"), ModConflictPair("C", "D")])
+        #expect(issues.count == 2)
+        #expect(issues.allSatisfy { $0.severity == .critical && $0.source == .modConflict })
+    }
+
+    /// Invariant : le nombre de lignes « raccourci » vaut exactement
+    /// `problemCount`, que la barre latérale affiche déjà.
+    ///
+    /// Le rapport est produit par un **vrai scan**, comme dans
+    /// `Tests/KeybindTests/KeybindScannerTests.swift` — assembler un
+    /// `KeybindReport` à la main demanderait de connaître ses onze champs et
+    /// se périmerait au premier ajout.
+    @Test func keybindRowsMatchTheReportProblemCount() {
+        let a = KeybindScanner.ModScan(id: "a.Mod1", name: "Mod 1", isActive: true,
+                                       tree: tree(["Shortcut": .string("F8 + LeftControl")]))
+        let b = KeybindScanner.ModScan(id: "b.Mod2", name: "Mod 2", isActive: true,
+                                       tree: tree(["Shortcut": .string("F8 + LeftControl")]))
+        let report = KeybindScanner.report(mods: [a, b])
+        #expect(report.problemCount > 0)   // sinon le test ne prouve rien
+
+        let issues = HealthIssueResolver.resolve(
+            diagnostics: nil, keybindReport: report, conflicts: [])
+        #expect(issues.filter { $0.source == .keybind }.count == report.problemCount)
+        #expect(issues.filter { $0.source == .keybind }.allSatisfy { $0.severity == .warning })
+    }
+
+    @Test func everythingEmptyYieldsNoIssues() {
+        #expect(HealthIssueResolver.resolve(diagnostics: nil, keybindReport: nil,
+                                            conflicts: []).isEmpty)
+    }
+
+    /// `allSatisfy { severity >= severity }` (ci-dessus) passerait même si le
+    /// tri mélangeait les deux groupes critiques entre eux — SMAPI et
+    /// conflits ont la même gravité. Ce test prouve la STABILITÉ réelle :
+    /// à gravité égale, l'ordre de sortie est EXACTEMENT l'ordre de
+    /// production (`smapiIssues` puis `keybindIssues` puis `conflictIssues`,
+    /// chacun dans son propre ordre d'entrée), pas seulement globalement
+    /// décroissant.
+    @Test func tiesPreserveExactProductionOrderAcrossSources() {
+        var d = SmapiDiagnostics()
+        d.failed = [.init(name: "Z-Mod", reason: "r1"), .init(name: "A-Mod", reason: "r2")]
+        let issues = HealthIssueResolver.resolve(
+            diagnostics: d, keybindReport: nil,
+            conflicts: [ModConflictPair("Y", "X"), ModConflictPair("B", "C")])
+        // Quatre lignes, toutes critiques, dans l'ordre de production :
+        // les deux SMAPI (ordre de `d.failed`), puis les deux paires de
+        // conflit (ordre de `conflicts`) — jamais entrelacées.
+        #expect(issues.map(\.title) == ["Z-Mod", "A-Mod", "X · Y", "B · C"])
+    }
+}

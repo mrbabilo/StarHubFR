@@ -74,6 +74,52 @@ public enum HealthIssueResolver {
         return issues
     }
 
+    public static func keybindIssues(_ report: KeybindScanner.KeybindReport?) -> [HealthIssue] {
+        guard let report else { return [] }
+        var issues: [HealthIssue] = []
+        for collision in report.collisions {
+            let mods = collision.uses.map(\.modName).sorted().joined(separator: ", ")
+            issues.append(HealthIssue(id: "keybind-collision-\(mods)",
+                                      severity: .warning, source: .keybind,
+                                      title: mods, detail: nil,
+                                      action: .openTab("Mods")))
+        }
+        for conflict in report.gameConflicts {
+            let mods = conflict.uses.map(\.modName).sorted().joined(separator: ", ")
+            issues.append(HealthIssue(id: "keybind-game-\(conflict.control.name)-\(mods)",
+                                      severity: .warning, source: .keybind,
+                                      title: mods, detail: conflict.control.name,
+                                      action: .openTab("Mods")))
+        }
+        return issues
+    }
+
+    public static func conflictIssues(_ conflicts: [ModConflictPair]) -> [HealthIssue] {
+        conflicts.map { pair in
+            HealthIssue(id: "conflict-\(pair.first)-\(pair.second)",
+                        severity: .critical, source: .modConflict,
+                        title: "\(pair.first) · \(pair.second)", detail: nil,
+                        action: .openTab("Mods"))
+        }
+    }
+
+    /// Tri **stable** par gravité décroissante : à gravité égale, l'ordre de
+    /// production (`smapiIssues` puis `keybindIssues` puis `conflictIssues`)
+    /// est conservé, sinon les lignes sauteraient d'un rafraîchissement à
+    /// l'autre. La clé secondaire `-offset` encode cette préservation
+    /// explicitement — elle ne dépend pas de la stabilité, non garantie par
+    /// la doc, de `Array.sorted`.
+    public static func resolve(diagnostics: SmapiDiagnostics?,
+                               keybindReport: KeybindScanner.KeybindReport?,
+                               conflicts: [ModConflictPair]) -> [HealthIssue] {
+        let all = smapiIssues(diagnostics)
+            + keybindIssues(keybindReport)
+            + conflictIssues(conflicts)
+        return all.enumerated()
+            .sorted { ($0.element.severity, -$0.offset) > ($1.element.severity, -$1.offset) }
+            .map(\.element)
+    }
+
     /// Ajoute le nom de la dépendance manquante au détail, sauf s'il y
     /// figure déjà — le parseur reformule souvent la raison d'un `failed`
     /// pour l'y inclure (`"requires X (not installed)"`), et un ajout
