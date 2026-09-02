@@ -40,7 +40,7 @@ public struct SmapiDiagnostics {
     /// player instead of alarming them. These never count as problems, and are
     /// excluded from `topErrorMods` so a healthy mod isn't blamed for them.
     public struct BenignNotice: Identifiable {
-        public enum Kind: String {
+        public enum Kind: String, CaseIterable {
             /// GOG Galaxy isn't signed in — affects the Galaxy overlay only.
             case galaxyAuth
             /// A mod's optional integration with another mod (typically its
@@ -52,6 +52,23 @@ public struct SmapiDiagnostics {
             /// A mod couldn't read part of its own content/config data. It's a
             /// mod-side bug: nothing for the player to fix.
             case modContentParse
+
+            /// Le TITRE court d'une notice qui ne nomme aucun mod — un groupe
+            /// nominal, pas une phrase. Les `L10n.Logs.healthBenign*` voisines
+            /// sont, elles, des phrases de réassurance que `SmapiHealthCard`
+            /// pose SOUS le nom du mod : deux registres pour deux surfaces,
+            /// pas deux copies d'un même libellé.
+            ///
+            /// La clé vit sur le type (comme `HealthIssue.Severity.l10nKey`) :
+            /// une table de correspondance par vue finirait par diverger.
+            public var l10nKey: String {
+                switch self {
+                case .galaxyAuth:        return L10n.Health.benignTitleGalaxy
+                case .apiIntegration:    return L10n.Health.benignTitleApi
+                case .optionalModMissing: return L10n.Health.benignTitleOptionalMod
+                case .modContentParse:   return L10n.Health.benignTitleParse
+                }
+            }
         }
         public let id = UUID()
         public let kind: Kind
@@ -385,11 +402,22 @@ public struct SmapiDiagnostics {
 
         // A mod that says its own warning is ignorable is taken at its word —
         // this generalizes to any mod using that phrasing, not a hardcoded list.
-        if low.contains("you can ignore this warning")
+        //
+        // Il faut un mod NOMMÉ : la justification même de cette heuristique
+        // (« un mod relativise sa propre erreur ») présuppose un mod. Sans ce
+        // garde, les encarts que SMAPI écrit sur SES sections tombent dedans
+        // — « … Otherwise you can ignore this warning. » sous « Patched game
+        // code », mesuré sur le journal réel de l'auteur — et produisaient une
+        // notice sans mod, affichée par l'écran d'alertes comme une ligne
+        // intitulée « apiIntegration » menant à une phrase générique.
+        // Les notices de plateforme sans mod (`galaxyAuth`) ne passent pas
+        // par ici : elles sont déclarées `namesMod: false` dans la table.
+        if let mod = noticeMod(body: body, line: line),
+           low.contains("you can ignore this warning")
             || low.contains("you can safely ignore")
             || low.contains("this is not an error") {
             return BenignNotice(kind: .apiIntegration,
-                                mod: noticeMod(body: body, line: line),
+                                mod: mod,
                                 sample: evidence(from: body))
         }
 

@@ -95,6 +95,13 @@ public enum HealthIssueResolver {
             issues.append(HealthIssue(id: "smapi-benign-\(notice.kind.rawValue)-\(notice.mod ?? "-")",
                                       severity: .info, source: .smapi,
                                       title: notice.mod ?? notice.kind.rawValue,
+                                      // Sans mod, le titre était le rawValue de
+                                      // l'enum — « galaxyAuth » affiché tel quel
+                                      // au milieu d'une UI traduite (H-T6c,
+                                      // constaté sur le journal de l'auteur).
+                                      // La vue traduit la clé ; `title` reste le
+                                      // repli.
+                                      titleKey: notice.mod == nil ? notice.kind.l10nKey : nil,
                                       detail: notice.sample.isEmpty ? nil : notice.sample,
                                       // `notice.mod` est `nil` pour les notices
                                       // qui ne nomment aucun mod (Galaxy…) :

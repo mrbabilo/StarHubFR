@@ -477,3 +477,34 @@ struct HealthIssueResolverAggregateTests {
         #expect(issues.filter { $0.source == .keybind }.count == report.problemCount)
     }
 }
+
+// MARK: - H-T6c — une notice sans mod porte un titre lisible
+
+@Test func aModlessBenignNoticeCarriesATranslatableTitleKey() {
+    // Vraie ligne du journal de l'auteur : la seule notice bénigne sans mod
+    // qui subsiste. Sans clé, l'écran affichait le rawValue de l'enum
+    // (« galaxyAuth ») comme titre de ligne — un nom de symbole, en anglais,
+    // au milieu d'une UI traduite.
+    let log = "[17:40:41 ERROR game] Galaxy auth failure: FAILURE_REASON_GALAXY_SERVICE_NOT_SIGNED_IN"
+    let d = SmapiDiagnostics.parse(logContent: log)
+    let issues = HealthIssueResolver.smapiIssues(d)
+    #expect(issues.count == 1)
+    #expect(issues.first?.titleKey == L10n.Health.benignTitleGalaxy)
+}
+
+@Test func aBenignNoticeNamingItsModHasNoTitleKey() {
+    // Contre-épreuve : quand la notice nomme un mod, le titre EST ce nom —
+    // une donnée, jamais une clé à traduire.
+    let log = "[17:40:22 TRACE Farm Type Manager (FTM)] API not found: Expanded Preconditions Utility (EPU)."
+    let d = SmapiDiagnostics.parse(logContent: log)
+    let issues = HealthIssueResolver.smapiIssues(d)
+    #expect(issues.first?.title == "Farm Type Manager (FTM)")
+    #expect(issues.first?.titleKey == nil)
+}
+
+@Test func everyBenignKindHasItsOwnTitleKey() {
+    // Un `switch` exhaustif dériverait en silence si un genre était ajouté
+    // sans clé : ce test verrouille l'unicité, donc l'exhaustivité.
+    let keys = SmapiDiagnostics.BenignNotice.Kind.allCases.map(\.l10nKey)
+    #expect(Set(keys).count == keys.count)
+}

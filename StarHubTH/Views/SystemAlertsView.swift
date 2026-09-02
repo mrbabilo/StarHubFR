@@ -149,7 +149,11 @@ struct SystemAlertsView: View {
             SeverityBadge(severity: issue.severity, L: vm.L)
                 .frame(width: 130, alignment: .leading)
             VStack(alignment: .leading, spacing: 2) {
-                Text(issue.title).font(AppDesign.Font.body)
+                // `titleKey` n'est posé que quand le titre est un libellé
+                // d'interface et non une donnée (notice bénigne sans mod) —
+                // voir `HealthIssue.titleKey`.
+                Text(issue.titleKey.map { vm.L($0) } ?? issue.title)
+                    .font(AppDesign.Font.body)
                 // `detail` est un diagnostic brut venu du journal SMAPI —
                 // de la DONNÉE, pas de la copie d'interface : il ne passe
                 // jamais par L10n. Bridé à 2 lignes, ces raisons peuvent

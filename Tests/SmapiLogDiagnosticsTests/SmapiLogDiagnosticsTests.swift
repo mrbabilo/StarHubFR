@@ -254,3 +254,29 @@ import Testing
         #expect(d.topErrorMods.contains { $0.name == "Bad Mod" })
     }
 }
+
+// MARK: - H-T6c — la phrase « ignorez cet avertissement » exige un mod
+
+@Test func smapiOwnSectionBlurbIsNotABenignModNotice() {
+    // Vraie ligne du journal de l'auteur (bloc « Patched game code ») : c'est
+    // SMAPI qui parle de SES sections, pas un mod qui relativise sa propre
+    // erreur. Classée `apiIntegration` sans mod, elle produisait une ligne
+    // d'alerte intitulée « apiIntegration » pointant sur une phrase générique.
+    let log = """
+    [17:40:00 INFO  SMAPI]    Patched game code
+    [17:40:00 INFO  SMAPI]       These mods directly change the game code. They're more likely to cause errors or bugs in-game; if
+    [17:40:00 INFO  SMAPI]       your game has issues, try removing these first. Otherwise you can ignore this warning.
+    """
+    let d = SmapiDiagnostics.parse(logContent: log)
+    #expect(d.benignNotices.isEmpty)
+}
+
+@Test func aModTakingItsOwnWarningAtItsWordIsStillBenign() {
+    // Contre-épreuve OBLIGATOIRE du garde ci-dessus : la vraie ligne 1881 du
+    // même journal. Un mod nommé qui dit « you can ignore this warning » doit
+    // rester une notice bénigne — sinon le garde perd plus que le bogue.
+    let log = "[17:40:25 WARN  Global Config Settings Rewrite] Couldn't get the StarControl API, If you don't have StarControl installed, you can ignore this warning."
+    let d = SmapiDiagnostics.parse(logContent: log)
+    #expect(d.benignNotices.count == 1)
+    #expect(d.benignNotices.first?.mod == "Global Config Settings Rewrite")
+}

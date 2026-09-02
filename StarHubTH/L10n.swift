@@ -749,6 +749,14 @@ enum L10n {
         /// jamais un onglet générique — le libellé doit dire laquelle.
         static let actionOpenMod        = "health_action_open_mod"
         static let actionOpenLogs       = "health_action_open_logs"
+        /// Titre d'une ligne d'alerte pour une notice bénigne qui ne nomme
+        /// aucun mod (H-T6c) : un groupe nominal court. À ne pas confondre
+        /// avec les `Logs.healthBenign*`, qui sont les phrases de réassurance
+        /// affichées SOUS le nom du mod par la carte de santé.
+        static let benignTitleGalaxy      = "health_benign_title_galaxy"
+        static let benignTitleApi         = "health_benign_title_api"
+        static let benignTitleOptionalMod = "health_benign_title_optional_mod"
+        static let benignTitleParse       = "health_benign_title_parse"
     }
 
     // MARK: - Quarantine

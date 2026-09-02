@@ -55,15 +55,25 @@ public struct HealthIssue: Identifiable, Equatable {
     public let severity: Severity
     public let source: Source
     public let title: String
+    /// Quand le titre n'est pas une DONNÉE mais un libellé d'interface — une
+    /// notice bénigne qui ne nomme aucun mod (H-T6c) —, la clé à traduire.
+    /// `nil` partout ailleurs : un nom de mod se traduit pas.
+    ///
+    /// Deux champs plutôt qu'un titre déjà résolu parce que le modèle vit
+    /// dans Core, sans accès à la locale courante : la vue résout,
+    /// `title` reste le repli si la clé venait à manquer.
+    public let titleKey: String?
     public let detail: String?
     public let action: Action?
 
     public init(id: String, severity: Severity, source: Source,
-                title: String, detail: String?, action: Action?) {
+                title: String, titleKey: String? = nil,
+                detail: String?, action: Action?) {
         self.id = id
         self.severity = severity
         self.source = source
         self.title = title
+        self.titleKey = titleKey
         self.detail = detail
         self.action = action
     }
