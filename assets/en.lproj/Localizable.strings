@@ -801,6 +801,11 @@
 "mod_install_label_version" = "Version";
 "mod_install_label_author" = "Author";
 "mod_install_label_unique_id" = "Unique ID";
+"mod_install_label_folder" = "Folder";
+"mod_install_label_files_written" = "Files written";
+"mod_install_label_kept_versions" = "Kept versions";
+"mod_install_landed_active_badge" = "Enabled";
+"mod_install_landed_paused_badge" = "Paused";
 "mod_install_dep_count" = "%d dependencies";
 "mod_install_restore_confirm" = "Restore Backup?";
 "mod_install_restore_confirm_msg" = "This will overwrite the currently installed version with the backed-up one. The version being replaced is kept as its own backup.";

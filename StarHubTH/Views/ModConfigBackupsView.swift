@@ -1,5 +1,15 @@
 import SwiftUI
 
+/// Les trois confirmations de la vue passent par **un seul** modificateur
+/// `.alert` — patron `SaveEditorConfirmation` (`SavesView.swift`) : deux
+/// présentateurs sur la même vue ne se présentent pas tous les deux
+/// (mesuré le 2026-09-02, dans les deux sens).
+private enum ModConfigBackupsConfirmation {
+    case restore(ModConfigBackup)
+    case delete(ModConfigBackup)
+    case cleanup(String)
+}
+
 struct ModConfigBackupsView: View {
     @ObservedObject var vm: StarHubTHViewModel
 
@@ -8,9 +18,7 @@ struct ModConfigBackupsView: View {
     @State private var selectedItemIds: Set<UUID> = []
     @State private var isBusy = false
 
-    @State private var backupToRestore: ModConfigBackup?
-    @State private var backupToDelete: ModConfigBackup?
-    @State private var cleanupMessage: String?
+    @State private var confirmation: ModConfigBackupsConfirmation?
 
     /// `nil` when a backup can be created; otherwise the localized reason
     /// shown as a tooltip on the disabled button.
@@ -32,35 +40,43 @@ struct ModConfigBackupsView: View {
         }
         .background(Color(nsColor: .textBackgroundColor))
         .onAppear { reload() }
-        .alert(vm.L(L10n.ModConfigBackups.restoreWarning), isPresented: Binding(
-            get: { backupToRestore != nil },
-            set: { if !$0 { backupToRestore = nil } }
-        )) {
-            Button(vm.L(L10n.ModConfigBackups.restoreBackup), role: .destructive) {
-                if let backup = backupToRestore { performRestore(backup) }
-                backupToRestore = nil
+        // Un seul présentateur pour les trois confirmations — voir
+        // `ModConfigBackupsConfirmation`. `presenting:` porte la valeur ;
+        // les actions lisent `pending`, jamais `confirmation` (déjà remis à
+        // `nil` au moment où l'action s'exécute, après la fermeture).
+        .alert(confirmationTitle,
+               isPresented: Binding(get: { confirmation != nil },
+                                    set: { if !$0 { confirmation = nil } }),
+               presenting: confirmation) { pending in
+            switch pending {
+            case .restore(let backup):
+                Button(vm.L(L10n.ModConfigBackups.restoreBackup), role: .destructive) {
+                    performRestore(backup)
+                }
+                Button(vm.L(L10n.ModConfigBackups.cancel), role: .cancel) { }
+            case .delete(let backup):
+                Button(vm.L(L10n.ModConfigBackups.deleteBackup), role: .destructive) {
+                    performDelete(backup)
+                }
+                Button(vm.L(L10n.ModConfigBackups.cancel), role: .cancel) { }
+            case .cleanup:
+                Button(vm.L(L10n.Main.ok)) { }
             }
-            Button(vm.L(L10n.ModConfigBackups.cancel), role: .cancel) { backupToRestore = nil }
-        } message: {
-            Text(vm.L(L10n.ModConfigBackups.restoreWarningCreateBackup))
-        }
-        .alert(vm.L(L10n.ModConfigBackups.deleteConfirm), isPresented: Binding(
-            get: { backupToDelete != nil },
-            set: { if !$0 { backupToDelete = nil } }
-        )) {
-            Button(vm.L(L10n.ModConfigBackups.deleteBackup), role: .destructive) {
-                if let backup = backupToDelete { performDelete(backup) }
-                backupToDelete = nil
+        } message: { pending in
+            switch pending {
+            case .restore: Text(vm.L(L10n.ModConfigBackups.restoreWarningCreateBackup))
+            case .delete: EmptyView()
+            case .cleanup(let message): Text(message)
             }
-            Button(vm.L(L10n.ModConfigBackups.cancel), role: .cancel) { backupToDelete = nil }
         }
-        .alert(vm.L(L10n.ModConfigBackups.title), isPresented: Binding(
-            get: { cleanupMessage != nil },
-            set: { if !$0 { cleanupMessage = nil } }
-        )) {
-            Button(vm.L(L10n.Main.ok)) { cleanupMessage = nil }
-        } message: {
-            Text(cleanupMessage ?? "")
+    }
+
+    private var confirmationTitle: String {
+        switch confirmation {
+        case .restore: return vm.L(L10n.ModConfigBackups.restoreWarning)
+        case .delete: return vm.L(L10n.ModConfigBackups.deleteConfirm)
+        case .cleanup: return vm.L(L10n.ModConfigBackups.title)
+        case nil: return ""
         }
     }
 
@@ -123,8 +139,8 @@ struct ModConfigBackupsView: View {
                         isExpanded: expandedBackupId == backup.id,
                         selectedItemIds: expandedBackupId == backup.id ? $selectedItemIds : .constant([]),
                         onToggleExpand: { toggleExpand(backup) },
-                        onRestoreSelected: { backupToRestore = backup },
-                        onDelete: { backupToDelete = backup }
+                        onRestoreSelected: { confirmation = .restore(backup) },
+                        onDelete: { confirmation = .delete(backup) }
                     )
                 }
             }
@@ -167,7 +183,7 @@ struct ModConfigBackupsView: View {
                     self.backups = fetched
                     self.isBusy = false
                     if deletedCount > 0 {
-                        self.cleanupMessage = String(format: self.vm.L(L10n.ModConfigBackups.cleanupComplete), deletedCount)
+                        self.confirmation = .cleanup(String(format: self.vm.L(L10n.ModConfigBackups.cleanupComplete), deletedCount))
                     }
                 }
             } catch {

@@ -1,21 +1,29 @@
 import SwiftUI
 
+/// Les trois confirmations de la vue passent par **un seul** modificateur
+/// `.alert`, porté par cette valeur — patron `SaveEditorConfirmation`
+/// (`SavesView.swift`) : deux présentateurs sur la même vue ne se
+/// présentent pas tous les deux (mesuré le 2026-09-02, dans les deux sens).
+/// Le compte rendu de restauration n'y figure plus : c'est désormais un
+/// panneau sous la liste (`restoreReport`), pas une alerte — une alerte ne
+/// peut pas porter un tableau.
+private enum ModInstallBackupsConfirmation {
+    case error(String)
+    case restore(ModInstallBackup)
+    case delete(ModInstallBackup)
+}
+
 /// View for managing mod installation backups (complete mod folders).
 struct ModInstallBackupsView: View {
     @ObservedObject var vm: StarHubTHViewModel
     @State private var backups: [ModInstallBackup] = []
-    @State private var showError = false
     @State private var showRecoverable = false
-    @State private var errorMessage: String?
-    @State private var showDeleteConfirm = false
-    @State private var backupToDelete: ModInstallBackup?
-    @State private var showRestoreConfirm = false
-    @State private var backupToRestore: ModInstallBackup?
+    @State private var confirmation: ModInstallBackupsConfirmation?
     /// Le compte rendu de la dernière restauration — ce qui a été écrit, où,
     /// et ce qu'il est advenu de la version remplacée. La vue ne fait que le
     /// rendre : tout y est calculé par `ModInstallBackupManager` (B4-T2).
+    /// Rendu en panneau sous la liste (T9 H-T6), pas dans une alerte.
     @State private var restoreReport: ModInstallRestoreReport?
-    @State private var showRestoreReport = false
     /// Guards against a rapid double-click dispatching two concurrent
     /// restore/delete operations on the same backup. Carries the id of the
     /// backup currently in flight so the matching row can show a spinner.
@@ -81,6 +89,14 @@ struct ModInstallBackupsView: View {
             } else {
                 backupList
             }
+
+            // Le compte rendu de la dernière restauration : un panneau fixe
+            // sous la liste, pas une alerte — sept champs ne tiennent pas
+            // dans un paragraphe (T9 H-T6).
+            if let report = restoreReport {
+                Divider()
+                restoreReportPanel(report)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
@@ -96,45 +112,87 @@ struct ModInstallBackupsView: View {
         .sheet(isPresented: $showRecoverable) {
             RecoverableFilesView(vm: vm, isPresented: $showRecoverable)
         }
-        .alert(vm.L(L10n.ModInstall.operationFailed), isPresented: $showError) {
-            Button(vm.L(L10n.Main.ok)) { }
-        } message: {
-            if let error = errorMessage {
-                Text(error)
-            }
-        }
-        .alert(vm.L(L10n.ModInstall.restoreReportTitle), isPresented: $showRestoreReport) {
-            Button(vm.L(L10n.ModInstall.revealInFinder)) {
-                if let path = restoreReport?.destinationPath {
-                    NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
-                }
-            }
-            Button(vm.L(L10n.Main.ok)) { }
-        } message: {
-            if let report = restoreReport {
-                Text(restoreReportMessage(report))
-            }
-        }
-        .confirmationDialog(vm.L(L10n.ModInstall.restoreConfirm), isPresented: $showRestoreConfirm, titleVisibility: .visible) {
-            Button(vm.L(L10n.ModInstall.restoreBackup), role: .destructive) {
-                if let backup = backupToRestore {
+        // Un seul présentateur pour les trois confirmations restantes — voir
+        // `ModInstallBackupsConfirmation`. `presenting:` porte la valeur ;
+        // les actions lisent `pending`, jamais `confirmation` (déjà remis à
+        // `nil` au moment où l'action s'exécute, après la fermeture).
+        .alert(confirmationTitle,
+               isPresented: Binding(get: { confirmation != nil },
+                                    set: { if !$0 { confirmation = nil } }),
+               presenting: confirmation) { pending in
+            switch pending {
+            case .error:
+                Button(vm.L(L10n.Main.ok)) { }
+            case .restore(let backup):
+                Button(vm.L(L10n.ModInstall.restoreBackup), role: .destructive) {
                     performRestore(backup)
                 }
-            }
-            Button(vm.L(L10n.ModInstall.cancel), role: .cancel) { }
-        } message: {
-            Text(vm.L(L10n.ModInstall.restoreConfirmMessage))
-        }
-        .confirmationDialog(vm.L(L10n.ModInstall.deleteConfirm), isPresented: $showDeleteConfirm, titleVisibility: .visible) {
-            Button(vm.L(L10n.ModInstall.deleteBackup), role: .destructive) {
-                if let backup = backupToDelete {
+                Button(vm.L(L10n.ModInstall.cancel), role: .cancel) { }
+            case .delete(let backup):
+                Button(vm.L(L10n.ModInstall.deleteBackup), role: .destructive) {
                     performDelete(backup)
                 }
+                Button(vm.L(L10n.ModInstall.cancel), role: .cancel) { }
             }
-            Button(vm.L(L10n.ModInstall.cancel), role: .cancel) { }
-        } message: {
-            Text(vm.L(L10n.ModInstall.deleteConfirmMessage))
+        } message: { pending in
+            switch pending {
+            case .error(let message): Text(message)
+            case .restore: Text(vm.L(L10n.ModInstall.restoreConfirmMessage))
+            case .delete: Text(vm.L(L10n.ModInstall.deleteConfirmMessage))
+            }
         }
+    }
+
+    private var confirmationTitle: String {
+        switch confirmation {
+        case .error: return vm.L(L10n.ModInstall.operationFailed)
+        case .restore: return vm.L(L10n.ModInstall.restoreConfirm)
+        case .delete: return vm.L(L10n.ModInstall.deleteConfirm)
+        case nil: return ""
+        }
+    }
+
+    /// Les sept champs de `ModInstallRestoreReport` en lignes étiquetées.
+    /// `landedEnabled` porte son propre badge (`SeverityBadge`) : un mod qui
+    /// atterrit en pause n'est pas chargé par SMAPI, et rien d'autre à
+    /// l'écran ne le dit.
+    private func restoreReportPanel(_ report: ModInstallRestoreReport) -> some View {
+        VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
+            HStack {
+                Text(vm.L(L10n.ModInstall.restoreReportTitle))
+                    .font(AppDesign.Font.headline)
+                Spacer()
+                Button {
+                    restoreReport = nil
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(AppDesign.Font.caption)
+                        .foregroundColor(AppDesign.Color.secondary)
+                }
+                .buttonStyle(.plain)
+                .pointingHandCursor()
+            }
+            StatColumn(label: vm.L(L10n.ModInstall.labelName), value: report.modName)
+            StatColumn(label: vm.L(L10n.ModInstall.labelVersion), value: report.version)
+            StatColumn(label: vm.L(L10n.ModInstall.labelFolder), value: report.displayPath)
+            StatColumn(label: vm.L(L10n.ModInstall.labelFilesWritten), value: "\(report.fileCount)")
+            SeverityBadge(severity: report.landedEnabled ? .info : .warning,
+                          label: vm.L(report.landedEnabled ? L10n.ModInstall.landedActiveBadge
+                                                            : L10n.ModInstall.landedPausedBadge))
+            if !report.replacedVersions.isEmpty {
+                StatColumn(label: vm.L(L10n.ModInstall.labelKeptVersions),
+                           value: report.replacedVersions.joined(separator: ", "))
+            }
+            Button(vm.L(L10n.ModInstall.revealInFinder)) {
+                NSWorkspace.shared.activateFileViewerSelecting(
+                    [URL(fileURLWithPath: report.destinationPath)])
+            }
+            .buttonStyle(.bordered)
+            .pointingHandCursor()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(AppDesign.Spacing.lg)
+        .background(AppDesign.Color.controlBg)
     }
 
     private func reasonText(for reason: BackupReason) -> String {
@@ -365,8 +423,7 @@ struct ModInstallBackupsView: View {
             } else {
                 HStack(spacing: 6) {
                     Button {
-                        backupToRestore = backup
-                        showRestoreConfirm = true
+                        confirmation = .restore(backup)
                     } label: {
                         Image(systemName: "arrow.uturn.backward")
                             .font(.system(size: 12))
@@ -377,8 +434,7 @@ struct ModInstallBackupsView: View {
                     .help(vm.L(L10n.ModInstall.restoreBackup))
 
                     Button {
-                        backupToDelete = backup
-                        showDeleteConfirm = true
+                        confirmation = .delete(backup)
                     } label: {
                         Image(systemName: "trash")
                             .font(.system(size: 12))
@@ -402,13 +458,11 @@ struct ModInstallBackupsView: View {
         .opacity(busyBackupId == backup.id ? 0.6 : 1.0)
         .contextMenu {
             Button(vm.L(L10n.ModInstall.restoreBackup)) {
-                backupToRestore = backup
-                showRestoreConfirm = true
+                confirmation = .restore(backup)
             }
             Divider()
             Button(vm.L(L10n.ModInstall.deleteBackup), role: .destructive) {
-                backupToDelete = backup
-                showDeleteConfirm = true
+                confirmation = .delete(backup)
             }
         }
         .disabled(busyBackupId != nil)
@@ -441,9 +495,10 @@ struct ModInstallBackupsView: View {
         backups = backupManager.loadBackups()
     }
 
-    /// Met le compte rendu en phrases. Une seule fonction pour l'alerte et
-    /// pour la ligne de journal : ce que l'utilisateur lit à l'écran est ce
-    /// qu'il retrouvera dans les logs s'il revient dessus plus tard.
+    /// Met le compte rendu en phrases, pour la ligne de journal. Le panneau
+    /// affiché sous la liste (`restoreReportPanel`) rend les mêmes sept
+    /// champs en lignes étiquetées ; cette fonction ne sert plus qu'au log
+    /// (elle a servi au message de l'alerte avant T9 H-T6).
     private func restoreReportMessage(_ report: ModInstallRestoreReport) -> String {
         var lines = [
             String(format: vm.L(L10n.ModInstall.restoreReportWritten),
@@ -465,8 +520,15 @@ struct ModInstallBackupsView: View {
     private func performRestore(_ backup: ModInstallBackup) {
         guard busyBackupId == nil else { return }
         guard !vm.gameDir.isEmpty else {
-            errorMessage = vm.L(L10n.Settings.gameDirNotSet)
-            showError = true
+            // Ce garde s'exécute dans le même battement que la fermeture de
+            // l'alerte qui a déclenché `performRestore` (le bouton « Restaurer »)
+            // — `confirmation` vient d'être remis à `nil` par le binding.
+            // Différer d'un tick évite d'écrire la nouvelle valeur dans la
+            // même transaction que cette remise à zéro (patron des autres
+            // sites d'erreur de ce fichier, tous en `DispatchQueue.main.async`).
+            DispatchQueue.main.async {
+                confirmation = .error(vm.L(L10n.Settings.gameDirNotSet))
+            }
             return
         }
 
@@ -479,7 +541,6 @@ struct ModInstallBackupsView: View {
                     busyBackupId = nil
                     vm.log(restoreReportMessage(report), level: .info)
                     restoreReport = report
-                    showRestoreReport = true
                     // Restaurer, c'est poser une version connue sur le
                     // disque : la même chose qu'une installation, et le
                     // même ancrage. Sans lui, l'ancre reste sur la version
@@ -495,8 +556,7 @@ struct ModInstallBackupsView: View {
             } catch {
                 DispatchQueue.main.async {
                     busyBackupId = nil
-                    errorMessage = vm.installErrorMessage(error)
-                    showError = true
+                    confirmation = .error(vm.installErrorMessage(error))
                 }
             }
         }
@@ -515,8 +575,7 @@ struct ModInstallBackupsView: View {
             } catch {
                 DispatchQueue.main.async {
                     busyBackupId = nil
-                    errorMessage = vm.installErrorMessage(error)
-                    showError = true
+                    confirmation = .error(vm.installErrorMessage(error))
                 }
             }
         }

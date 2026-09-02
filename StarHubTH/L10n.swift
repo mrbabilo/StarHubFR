@@ -1296,6 +1296,17 @@ enum L10n {
         static let labelVersion         = "mod_install_label_version"
         static let labelAuthor          = "mod_install_label_author"
         static let labelUniqueId        = "mod_install_label_unique_id"
+        // Le panneau de compte rendu de restauration (T9 H-T6) : rendu en
+        // lignes étiquetées, hors de l'alerte qui ne pouvait porter qu'un
+        // paragraphe.
+        static let labelFolder          = "mod_install_label_folder"
+        static let labelFilesWritten    = "mod_install_label_files_written"
+        static let labelKeptVersions    = "mod_install_label_kept_versions"
+        /// Libellés courts du badge d'atterrissage — distincts des phrases
+        /// complètes `restoreReportActive`/`restoreReportPaused` ci-dessus,
+        /// qui restent utilisées pour la ligne de journal.
+        static let landedActiveBadge    = "mod_install_landed_active_badge"
+        static let landedPausedBadge    = "mod_install_landed_paused_badge"
         static let depCount             = "mod_install_dep_count"
 
         static let recoverZip           = "mod_install_recover_zip"
