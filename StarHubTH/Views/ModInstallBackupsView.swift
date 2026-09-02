@@ -174,14 +174,21 @@ struct ModInstallBackupsView: View {
             }
             StatColumn(label: vm.L(L10n.ModInstall.labelName), value: report.modName)
             StatColumn(label: vm.L(L10n.ModInstall.labelVersion), value: report.version)
-            StatColumn(label: vm.L(L10n.ModInstall.labelFolder), value: report.displayPath)
+            // `help:` porte le texte entier — le chemin et la liste de
+            // versions sont précisément les deux champs qui justifiaient un
+            // panneau plutôt qu'un paragraphe ; sans lui, un chemin long ou
+            // plusieurs versions remplacées se coupent sans recours (revue
+            // 2026-09-02).
+            StatColumn(label: vm.L(L10n.ModInstall.labelFolder), value: report.displayPath,
+                       help: report.displayPath)
             StatColumn(label: vm.L(L10n.ModInstall.labelFilesWritten), value: "\(report.fileCount)")
             SeverityBadge(severity: report.landedEnabled ? .info : .warning,
                           label: vm.L(report.landedEnabled ? L10n.ModInstall.landedActiveBadge
                                                             : L10n.ModInstall.landedPausedBadge))
             if !report.replacedVersions.isEmpty {
+                let replacedText = report.replacedVersions.joined(separator: ", ")
                 StatColumn(label: vm.L(L10n.ModInstall.labelKeptVersions),
-                           value: report.replacedVersions.joined(separator: ", "))
+                           value: replacedText, help: replacedText)
             }
             Button(vm.L(L10n.ModInstall.revealInFinder)) {
                 NSWorkspace.shared.activateFileViewerSelecting(

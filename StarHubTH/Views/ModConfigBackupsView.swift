@@ -182,7 +182,15 @@ struct ModConfigBackupsView: View {
                 DispatchQueue.main.async {
                     self.backups = fetched
                     self.isBusy = false
-                    if deletedCount > 0 {
+                    // Pose spontanée (fin de tâche de fond, pas un geste de
+                    // l'utilisateur) : `isBusy` ne verrouille que le bouton
+                    // de création, pas la liste — restaurer/supprimer une
+                    // ligne pendant la création reste possible et ouvre déjà
+                    // une confirmation. Sur un bouton destructeur, écraser
+                    // cette confirmation ferait valider autre chose que ce
+                    // que l'utilisateur croit voir. On préfère perdre le
+                    // message de fin de purge que détourner son clic.
+                    if deletedCount > 0 && self.confirmation == nil {
                         self.confirmation = .cleanup(String(format: self.vm.L(L10n.ModConfigBackups.cleanupComplete), deletedCount))
                     }
                 }
