@@ -113,34 +113,45 @@ struct SaveTimelineView: View {
         .onAppear {
             loadBackups()
         }
-        .alert(isPresented: $showRestoreConfirm) {
-            Alert(
-                title: Text(vm.L(L10n.Saves.confirmRestore)),
-                message: Text(vm.L(vm.isGameRunning() ? L10n.Saves.confirmRestoreMsgGameRunning : L10n.Saves.confirmRestoreMsg)),
-                primaryButton: .destructive(Text(vm.L(L10n.Saves.restore))) {
-                    if let b = backupToRestore {
-                        Task { await vm.restoreBackup(backup: b, info: save) }
-                    }
-                },
-                secondaryButton: .cancel(Text(vm.L(L10n.Saves.cancel)))
-            )
+        // ⚠️ Deux alertes sur la même vue : il **faut** l'API moderne
+        // (`alert(_:isPresented:actions:message:)`). Avec l'API héritée qui
+        // rend un `Alert`, une seule des deux se présente — c'est celle de
+        // l'extérieur qui gagne, donc « Restaurer » n'affichait rien du tout
+        // pendant que « Supprimer » fonctionnait. Toutes les autres vues du
+        // dépôt utilisent déjà l'API moderne ; celle-ci était la dernière.
+        //
+        // `presenting:` plutôt qu'une capture du `@State` : les actions
+        // s'exécutent après la fermeture, quand le binding a déjà remis la
+        // valeur à `nil` — la sauvegarde à restaurer serait perdue au moment
+        // de l'utiliser.
+        .alert(vm.L(L10n.Saves.confirmRestore),
+               isPresented: $showRestoreConfirm,
+               presenting: backupToRestore) { backup in
+            Button(vm.L(L10n.Saves.restore), role: .destructive) {
+                Task { await vm.restoreBackup(backup: backup, info: save) }
+            }
+            Button(vm.L(L10n.Saves.cancel), role: .cancel) {}
+        } message: { _ in
+            Text(vm.L(vm.isGameRunning() ? L10n.Saves.confirmRestoreMsgGameRunning
+                                         : L10n.Saves.confirmRestoreMsg))
         }
-        .alert(item: $backupToDelete) { backup in
-            // La restauration (destructive) confirmait, pas la suppression.
-            // Celle-ci va à la corbeille (récupérable), mais le clic « trash »
-            // mérite quand même une garde (audit 2026-08-05).
-            Alert(
-                title: Text(vm.L(L10n.Saves.confirmDeleteBackup)),
-                message: Text(vm.L(L10n.Saves.confirmDeleteBackupMsg)),
-                primaryButton: .destructive(Text(vm.L(L10n.Saves.deleteBackup))) {
-                    Task {
-                        if await vm.deleteBackup(backup) {
-                            loadBackups()
-                        }
+        // La restauration (destructive) confirmait, pas la suppression.
+        // Celle-ci va à la corbeille (récupérable), mais le clic « trash »
+        // mérite quand même une garde (audit 2026-08-05).
+        .alert(vm.L(L10n.Saves.confirmDeleteBackup),
+               isPresented: Binding(get: { backupToDelete != nil },
+                                    set: { if !$0 { backupToDelete = nil } }),
+               presenting: backupToDelete) { backup in
+            Button(vm.L(L10n.Saves.deleteBackup), role: .destructive) {
+                Task {
+                    if await vm.deleteBackup(backup) {
+                        loadBackups()
                     }
-                },
-                secondaryButton: .cancel(Text(vm.L(L10n.Saves.cancel)))
-            )
+                }
+            }
+            Button(vm.L(L10n.Saves.cancel), role: .cancel) {}
+        } message: { _ in
+            Text(vm.L(L10n.Saves.confirmDeleteBackupMsg))
         }
         .sheet(item: $vm.backupToBranch) { backup in
             BranchBackupSheet(vm: vm, backup: backup)
