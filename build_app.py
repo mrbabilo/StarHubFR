@@ -93,7 +93,10 @@ def gather_swift_files() -> list[str]:
     return sorted(swift_files)
 
 def build_swiftc_command(swift_files: list[str], app_executable: str, module_cache_dir: str) -> list[str]:
-    """The exact swiftc invocation used to compile the app (single module).
+    """Compilation whole-module — chemin de repli (`--whole-module`) et base de
+    la table `compile_commands.json` servie à SourceKit-LSP.
+
+    Ce n'est plus le chemin par défaut depuis F2-T2 : voir `build_incremental`.
 
     Whole-module: one swiftc invocation produces the executable. There is no
     object file the driver can reuse on the next build — `-incremental` only
@@ -163,9 +166,10 @@ def build_incremental(swift_files: list[str], app_executable: str,
     émet un `.o` par fichier et tient ses propres `.swiftdeps`, donc une
     modification isolée ne recompile que ce qu'elle touche.
 
-    ⚠️ Opt-in (`--incremental`) tant que personne n'a lancé l'app produite par
-    ce chemin : un binaire qui se lie n'est pas un binaire qui démarre. Le
-    chemin whole-module reste le défaut.
+    Défaut depuis le 2026-09-02, après lancement réel de l'app produite par ce
+    chemin — l'équivalence des symboles (70 791 des deux côtés) ne prouve pas
+    qu'un binaire démarre, seul un lancement le fait. `--whole-module` rend
+    l'ancien chemin, comme filet et comme référence de mesure.
     """
     arch = platform.machine()
     target = f"{arch}-apple-macosx14.0"
@@ -319,11 +323,15 @@ def create_app_bundle():
     # Keep the LSP compile database in sync with what we actually compile
     write_compile_commands(swift_files, app_executable, module_cache_dir)
 
-    # `--incremental` : compilation en objets par fichier avec cache (F2-T2).
-    # Opt-in tant que l'app produite par ce chemin n'a pas été lancée — un
-    # binaire qui se lie n'est pas un binaire qui démarre. Le whole-module
-    # reste le défaut.
-    if "--incremental" in sys.argv:
+    # Compilation incrémentale par défaut depuis le 2026-09-02 (F2-T2) :
+    # 141,7 s → 2,4 s pour une modification isolée, 30,1 s au pire. Le
+    # basculement n'a eu lieu qu'après lancement réel de l'app produite par ce
+    # chemin — l'équivalence des symboles ne prouve pas qu'un binaire démarre.
+    #
+    # `--whole-module` garde l'ancien chemin accessible : c'est le filet si
+    # l'incrémental venait à produire un binaire douteux, et la référence
+    # contre laquelle re-mesurer.
+    if "--whole-module" not in sys.argv:
         if not build_incremental(swift_files, app_executable, module_cache_dir):
             sys.exit(1)
     else:

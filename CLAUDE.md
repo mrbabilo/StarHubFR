@@ -44,10 +44,14 @@ Ce dépôt est travaillé par plusieurs IA, et le contexte n'est pas tout dans
 
 Le build est **scindé en deux systèmes** ; vérifier lequel couvre le fichier touché.
 
-- **Build réel de l'app** : `python3 build_app.py` — `swiftc` brut sur *tous* les
+- **Build réel de l'app** : `python3 build_app.py` — `swiftc` sur *tous* les
   `.swift` sous `StarHubTH/` (un seul module). C'est le **vrai gate** pour tout ce
   qui touche l'UI, le ViewModel, `SmapiInstaller`, `NexusUpdateChecker`, etc.
   `python` n'est **pas** dans le PATH → toujours `python3`.
+  Depuis F2-T2, la compilation est **incrémentale** : ~2,4 s pour une
+  modification isolée, ~30 s si la signature change dans le ViewModel, contre
+  141,7 s auparavant. Le premier build après un `rm -rf .build` reprend 59 s.
+  `--whole-module` rend l'ancien chemin, filet en cas de binaire douteux.
 - **`swift build`** ne valide que le sous-ensemble Core du `Package.swift`
   (`ModItem`, les managers de backup, `SaveManager`, `L10n`, …) + ses tests.
 - **Tests** : `./run_tests.sh` (lance `swift test` avec `DEVELOPER_DIR` sur Xcode).

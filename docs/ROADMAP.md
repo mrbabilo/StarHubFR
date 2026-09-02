@@ -2617,7 +2617,7 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
         ▸ **Net sur le build complet** : gain marginal mesuré (~1 s sur
           2m22s), le bottleneck `swiftc` ne bouge pas — c'est le propos de F2-T2.
   - [x] **F2-T2** — **Compilation incrémentale de l'app.** ✅ *(livré le
-        2026-09-02, **opt-in** — voir la réserve plus bas)*
+        2026-09-02, **défaut** depuis vérification au lancement)*
         Constat de départ : `swiftc` invoqué sur les 211 fichiers en un seul
         module produit un binaire monolithique et **n'a rien à réutiliser** au
         build suivant, d'où l'égalité froid/chaud. `-incremental` ne s'applique
@@ -2625,7 +2625,8 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
         **Livré (piste P1)** : `build_app.py --incremental` écrit une table de
         sorties par fichier (`.build/output-file-map.json`), compile en `.o`
         individuels dans `.build/objects/` avec les `.swiftdeps` que swiftc
-        tient lui-même, puis lie. Le chemin whole-module reste le **défaut**.
+        tient lui-même, puis lie. C'est le **chemin par défaut** ;
+        `--whole-module` rend l'ancien, comme filet et comme référence.
         **Mesures** (8 cœurs), sur de vraies modifications de contenu et non de
         simples `touch` — les deux ont été comparés, mêmes chiffres :
 
@@ -2644,10 +2645,11 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
         **Équivalence du binaire vérifiée** : même architecture, **70 791
         symboles définis des deux côtés**, 5,9 Ko d'écart sur 30 Mo (+0,02 %),
         signature valide.
-        ⚠️ **Pourquoi ça reste opt-in** : un binaire qui se lie n'est pas un
-        binaire qui démarre, et aucun agent ne lance l'app dans ce dépôt. Pour
-        basculer le défaut, lancer une fois `python3 build_app.py --incremental`
-        puis l'app ; si elle démarre, le changement tient en une ligne.
+        **Pourquoi le basculement a attendu** : un binaire qui se lie n'est pas
+        un binaire qui démarre, et aucun agent ne lance l'app dans ce dépôt.
+        L'équivalence des symboles ne prouvait rien de plus qu'une équivalence
+        de symboles. Le défaut n'a bougé qu'après un lancement réel par
+        l'auteur, le 2026-09-02.
         ⚠️ **Piège rencontré, à ne pas refaire** : swiftc compare les chemins de
         l'`output-file-map` **comme des chaînes**. Clés absolues + arguments
         relatifs = aucune correspondance, incrémental désactivé en silence
