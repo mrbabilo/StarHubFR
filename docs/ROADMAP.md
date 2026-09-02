@@ -2361,11 +2361,6 @@ par lot, une release par lot. Périmètre : visuel + navigation —
       et `<skin>` sont lues et correctes mais ne pilotent aucun pixel. Recomposer
       la tête (base + calques coiffure/peau) plutôt que teinter un crop.
       Prérequis : des calques séparés, que l'affiche du jeu ne fournit pas. · **M**
-- [ ] **H-T5c** — **Portrait du fermier fidèle à la sauvegarde.** L'avatar du hero
-      est aujourd'hui une illustration fixe par sexe ; `<hair>`, `<hairstyleColor>`
-      et `<skin>` sont lues et correctes mais ne pilotent aucun pixel. Recomposer
-      la tête (base + calques coiffure/peau) plutôt que teinter un crop.
-      Prérequis : des calques séparés, que l'affiche du jeu ne fournit pas. · **M**
 - [ ] **H-T6** — **Lot Santé & secours** : alertes système, quarantaine,
       backups ×2 — gravité toujours glyph + couleur, rapports en tableaux
       lisibles. · **M**
