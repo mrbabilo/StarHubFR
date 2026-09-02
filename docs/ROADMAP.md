@@ -2316,6 +2316,25 @@ par lot, une release par lot. Périmètre : visuel + navigation —
       plus lent que la regex (1108 ms), `.literal` aussi (391 ms), et
       `utf8.firstRange(of:)` est catastrophique (15,7 s). · **S**
 
+- [ ] **H-T5e** — **Vignette illustrée pour une ferme de mod.** ⏸️ *En attente
+      d'une image de l'auteur — rien à faire côté code d'ici là.*
+      Depuis que `SaveFarmType` reconnaît une ferme de mod (`whichFarm = -1`,
+      cas `FrontierFarm`), sa vignette sort de la plage 0-7 des illustrations
+      et affiche un glyphe `house.fill` sur fond neutre. C'est honnête — on
+      n'a pas l'illustration — mais à côté des sept tuiles illustrées, la case
+      se lit comme « celle qui manque ».
+      Une neuvième image générique « ferme personnalisée », découpée au même
+      format que les autres (190×200, `assets/custom_ui/farm_glyph_mod.png`),
+      la ferait rentrer dans le rang. `SaveFarmGlyph` la chargerait avant de
+      retomber sur le SF Symbol, qui reste le filet.
+      Vérifié à l'écran le 2026-09-02 : le repli actuel est acceptable, ce
+      n'est pas un défaut à corriger en urgence. · **XS**
+
+- [ ] **H-T5c** — **Portrait du fermier fidèle à la sauvegarde.** L'avatar du hero
+      est aujourd'hui une illustration fixe par sexe ; `<hair>`, `<hairstyleColor>`
+      et `<skin>` sont lues et correctes mais ne pilotent aucun pixel. Recomposer
+      la tête (base + calques coiffure/peau) plutôt que teinter un crop.
+      Prérequis : des calques séparés, que l'affiche du jeu ne fournit pas. · **M**
 - [ ] **H-T5c** — **Portrait du fermier fidèle à la sauvegarde.** L'avatar du hero
       est aujourd'hui une illustration fixe par sexe ; `<hair>`, `<hairstyleColor>`
       et `<skin>` sont lues et correctes mais ne pilotent aucun pixel. Recomposer
