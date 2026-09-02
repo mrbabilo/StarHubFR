@@ -622,12 +622,14 @@ class StarHubTHViewModel: ObservableObject {
     ///
     /// Phase 1 se limite à le dire. La récupération relève de B4-T4.
     func backupTranslation(for mod: ModItem) async -> TranslationBackupFinder.Found? {
-        let base = FileManager.default
-            .urls(for: .applicationSupportDirectory, in: .userDomainMask).first?
-            .appendingPathComponent("StarHubTH/Backups", isDirectory: true)
-        guard let base else { return nil }
-        let roots = ["ModInstalls/backups", "ModConfigs/backups"]
-            .map { base.appendingPathComponent($0, isDirectory: true) }
+        // Racines portées par les managers eux-mêmes : reconstruire
+        // « ModInstalls/backups » par littéraux ici divergerait en silence
+        // le jour où un manager change de layout, et le finder chercherait
+        // dans le vide. Les managers partent sur le dossier temporaire si
+        // Application Support est introuvable — chercher là où ils
+        // écrivent réellement, pas retourner nil.
+        let roots = [ModInstallBackupManager.shared.backupsDirectory,
+                     ModConfigBackupManager.shared.backupsDirectory]
         let folderName = mod.folderName
         return await Task.detached(priority: .utility) {
             TranslationBackupFinder.mostRecentFrenchFile(forModFolder: folderName,
@@ -666,10 +668,6 @@ class StarHubTHViewModel: ObservableObject {
     }
 
     // MARK: - Pré-traduction assistée
-
-    /// Posé quand une pré-traduction échoue faute de serveur configuré :
-    /// l'appelant en fait l'invitation à ouvrir les réglages au lieu d'un
-    /// message d'erreur générique.
 
     /// Le glossaire en mémoire — une langue à la fois : le hub FR n'en charge
     /// qu'une, et recharger le JSON à chaque clé traduite serait payer le

@@ -52,6 +52,13 @@ public class ModInstallBackupManager {
         try? fm.createDirectory(at: backupsDirPath, withIntermediateDirectories: true, attributes: nil)
     }
 
+    /// Où les archives vivent réellement — la seule source de ce chemin.
+    /// `StarHubTHViewModel.backupTranslation` y cherche les traductions
+    /// perdues : avant cet accesseur, la VM reconstruisait le chemin par
+    /// littéraux, et un changement de layout ici l'aurait fait chercher
+    /// dans le vide, en silence.
+    public var backupsDirectory: URL { backupsDirPath }
+
     // MARK: - Index
 
     private func withIndexLock<T>(_ body: () -> T) -> T {

@@ -16,6 +16,10 @@ where the exact log format was verified.
 
 - **Les liens `nxm://` et téléchargements lancés pendant qu'un autre tourne — ou pendant que la feuille d'installation est ouverte — ne sont plus refusés** : ils attendent dans une file (un clic répété sur le même fichier ne duplique pas l'entrée) et démarrent tour à tour quand le créneau se libère. Les dépôts de traduction gardent l'ancien comportement.
 
+### Fixed
+
+- **Les traductions de secours étaient cherchées par un chemin reconstruit à la main** — trois copies du même chemin à travers la VM et les managers ; un changement de layout des managers aurait fait chercher le finder dans le vide, en silence. Les managers exposent désormais `backupsDirectory`, source unique.
+
 ## [1.33.0] - 2026-09-02
 
 ### Changed
