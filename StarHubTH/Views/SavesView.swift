@@ -567,19 +567,28 @@ struct SaveRow: View {
 
 // MARK: - Hero band (fiche de sauvegarde)
 
-/// Le bandeau d'une fiche de sauvegarde : l'avatar du fermier, son nom et
-/// sa ferme sur fond neutre — le pendant **local** du `HeroHeader` de la
-/// fiche mod, qui vit sur une capture Nexus que cette fiche n'a pas. Le
+/// Le bandeau d'une fiche de sauvegarde : l'avatar du fermier, son nom et sa
+/// ferme sur l'illustration du splash — le pendant **local** du `HeroHeader`
+/// de la fiche mod, qui vit sur une capture Nexus que cette fiche n'a pas. Le
 /// composant partagé n'est donc pas touché.
 ///
-/// Texte `primary` sur fond quad, pas le dégradé du hero-image : il n'y a
-/// pas d'image à lire en dessous, et le dégradé n'y garantirait rien.
+/// Texte blanc ombré sur voile dégradé, comme le hero-image : depuis que le
+/// bandeau porte `nexus_banner_final`, il y a bien une illustration à lire en
+/// dessous et le texte `primary` s'y perdait.
+///
+/// L'avatar suit la même règle que les lignes de la liste : l'icône choisie
+/// par l'utilisateur prime sur l'illustration générique par sexe.
 private struct SaveHeroBand: View {
     let title: String
-    let subtitle: String
+    /// Le sous-titre en deux morceaux plutôt qu'une chaîne : le point de
+    /// séparation est un glyphe dessiné, pas un tiret, et la ferme est la
+    /// seule des deux à pouvoir être tronquée quand la place manque.
+    let dayLine: String
+    let farmName: String
     let closeHelp: String
     let onClose: () -> Void
     let whichFarm: Int
+    let iconPath: String
     let isFemale: Bool
     let hairStyle: Int
     let hairColor: Color
@@ -606,77 +615,101 @@ private struct SaveHeroBand: View {
         }
         .frame(height: AppDesign.Metrics.heroHeight)
         .clipped()
-        // Le texte du fermier se pose en pied de bandeau : un voile sombre
-        // dégradé y garantit la lisibilité, quelle que soit la zone de
-        // l'illustration qu'il recouvre.
+        // Deux voiles, pas un. Le voile de pied seul ne couvrait pas la
+        // hauteur où le titre se pose — il se lisait donc « parfois »,
+        // selon la zone d'illustration qu'il recouvrait. Celui-ci part de
+        // la gauche, là où le texte vit, et s'efface avant la vignette.
+        .overlay {
+            LinearGradient(stops: [
+                .init(color: .black.opacity(0.62), location: 0),
+                .init(color: .black.opacity(0.42), location: 0.46),
+                .init(color: .clear, location: 0.78),
+            ], startPoint: .leading, endPoint: .trailing)
+            .allowsHitTesting(false)
+        }
         .overlay(alignment: .bottom) {
-            LinearGradient(colors: [.clear, .black.opacity(0.6)],
+            LinearGradient(colors: [.clear, .black.opacity(0.45)],
                            startPoint: .top, endPoint: .bottom)
-                .frame(height: AppDesign.Metrics.heroHeight * 0.62)
+                .frame(height: AppDesign.Metrics.heroHeight * 0.53)
                 .allowsHitTesting(false)
         }
-        .overlay(alignment: .bottomLeading) {
-                VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
-                    HStack(alignment: .center, spacing: AppDesign.Spacing.md) {
-                        EquatableView(content: SaveFarmerAvatar(
-                            isFemale: isFemale,
-                            hairStyle: hairStyle,
-                            hairColor: hairColor,
-                            skinIndex: skinIndex,
-                            size: 44
-                        ))
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(title)
-                                .font(AppDesign.Font.viewTitle)
-                                .foregroundColor(.white)
-                                .shadow(color: .black.opacity(0.6), radius: 2)
-                                .lineLimit(1)
-                            Text(subtitle)
-                                .font(AppDesign.Font.caption)
-                                .foregroundColor(.white.opacity(0.9))
-                                .shadow(color: .black.opacity(0.6), radius: 2)
-                                .lineLimit(1)
-                        }
-                        Spacer(minLength: AppDesign.Spacing.sm)
-                    }
-                    .padding(.horizontal, AppDesign.Spacing.lg)
+        // Une seule rangée centrée. Empilé en deux rangées, le bandeau
+        // laissait ses 150 pt à moitié vides et bridait le titre à 20 pt ;
+        // à plat, la hauteur existante paie 26 pt de titre et un avatar
+        // de 76 — sans toucher au token `heroHeight`.
+        .overlay {
+            HStack(alignment: .center, spacing: AppDesign.Spacing.lg) {
+                // L'icône posée sur la sauvegarde gagne : elle est le
+                // seul portrait fidèle dont l'app dispose (le visage
+                // illustré est fixe par sexe). Sans icône, l'illustration.
+                if iconPath.isEmpty {
+                    EquatableView(content: SaveFarmerAvatar(
+                        isFemale: isFemale,
+                        hairStyle: hairStyle,
+                        hairColor: hairColor,
+                        skinIndex: skinIndex,
+                        size: 76
+                    ))
+                } else {
+                    SaveAvatarViewLocal(iconPath: iconPath, size: 76)
+                }
 
-                    HStack {
-                        Spacer()
-                        // 80×78 : la tuile illustrée est quasi carrée
-                        // (422×441) — plus basse, le toit partait au crop.
-                        EquatableView(content: SaveFarmGlyph(
-                            whichFarm: whichFarm,
-                            size: CGSize(width: 80, height: 78)
-                        ))
-                        // Liseré + ombre : la vignette se détache de
-                        // l'illustration du bandeau.
-                        .overlay(
-                            RoundedRectangle(cornerRadius: AppDesign.Radius.sm)
-                                .stroke(Color.white.opacity(0.85), lineWidth: 1.5)
-                        )
-                        .shadow(color: .black.opacity(0.35), radius: 3, y: 1)
-                        .help(farmHelp)
+                VStack(alignment: .leading, spacing: AppDesign.Spacing.xs) {
+                    Text(title)
+                        .font(AppDesign.Font.heroTitle)
+                        .foregroundColor(.white)
+                        .shadow(color: .black.opacity(0.75), radius: 2, y: 1)
+                        .lineLimit(1)
+                    HStack(spacing: AppDesign.Spacing.sm) {
+                        Text(dayLine)
+                            .foregroundColor(.white)
+                            .fixedSize(horizontal: true, vertical: false)
+                        Circle()
+                            .fill(Color.white.opacity(0.6))
+                            .frame(width: 3, height: 3)
+                        Text(farmName)
+                            .foregroundColor(.white.opacity(0.94))
+                            .lineLimit(1)
+                            .truncationMode(.tail)
                     }
-                    .padding(.horizontal, AppDesign.Spacing.lg)
-                    .padding(.bottom, AppDesign.Spacing.md)
+                    .font(AppDesign.Font.heroSubtitle)
+                    .shadow(color: .black.opacity(0.75), radius: 2, y: 1)
                 }
+
+                Spacer(minLength: AppDesign.Spacing.sm)
+
+                // 96×92 : la tuile illustrée est quasi carrée (248×260) —
+                // plus basse, le toit partait au crop.
+                EquatableView(content: SaveFarmGlyph(
+                    whichFarm: whichFarm,
+                    size: CGSize(width: 96, height: 92)
+                ))
+                // Liseré + ombre : la vignette se détache de
+                // l'illustration du bandeau.
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppDesign.Radius.md)
+                        .stroke(Color.white.opacity(0.92), lineWidth: 2)
+                )
+                .shadow(color: .black.opacity(0.45), radius: 3, y: 2)
+                .help(farmHelp)
             }
-            .overlay(alignment: .topTrailing) {
-                Button(action: onClose) {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: AppDesign.Icon.sm))
-                        // Blanc ombré : sur l'illustration du bandeau, le
-                        // glyphe secondaire se perdait.
-                        .foregroundColor(.white.opacity(0.9))
-                        .shadow(color: .black.opacity(0.6), radius: 2)
-                }
-                .buttonStyle(.plain)
-                // Cible 18×18 : le glyphe nu rendrait `.help` muet (a11y §7).
-                .frame(width: 18, height: 18)
-                .contentShape(.rect)
-                .help(closeHelp)
+            .padding(.horizontal, AppDesign.Spacing.lg)
+        }
+        .overlay(alignment: .topTrailing) {
+            Button(action: onClose) {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: AppDesign.Icon.sm))
+                    // Blanc ombré : sur l'illustration du bandeau, le
+                    // glyphe secondaire se perdait.
+                    .foregroundColor(.white.opacity(0.9))
+                    .shadow(color: .black.opacity(0.6), radius: 2)
             }
+            .buttonStyle(.plain)
+            // Cible 18×18 : le glyphe nu rendrait `.help` muet (a11y §7).
+            .frame(width: 18, height: 18)
+            .contentShape(.rect)
+            .help(closeHelp)
+        }
     }
 }
 
@@ -714,7 +747,8 @@ struct SaveEditorView: View {
     /// nom de ferme résolu (vanille ou mod). Calculé une fois dans `init` car
     /// `SaveFarmNameResolver.resolve` n'a aucune raison d'être ré-évalué à
     /// chaque re-render : ses entrées ne bougent pas pendant la session.
-    private let heroSubtitle: String
+    private let heroDayLine: String
+    private let heroFarmName: String
     /// Tooltip affiché sur la vignette de ferme du hero. Calculé en amont
     /// pour respecter la même règle « Core pur » que `SaveFarmNameResolver`.
     private let farmHelp: String
@@ -758,17 +792,20 @@ struct SaveEditorView: View {
         let displayName = SaveFarmNameResolver.resolve(save, resolver: vm)
         let dayLine = save.farmDayLine(format: vm.L(L10n.Saves.yearDayFormat),
                                        localizedSeason: vm.L(save.seasonName))
-        self.heroSubtitle = "\(dayLine) — \(displayName)"
+        self.heroDayLine = dayLine
+        self.heroFarmName = displayName
         self.farmHelp = SaveFarmNameResolver.heroHelp(for: save, resolver: vm)
     }
     
     var body: some View {
         VStack(spacing: 0) {
             SaveHeroBand(title: save.playerName,
-                         subtitle: heroSubtitle,
+                         dayLine: heroDayLine,
+                         farmName: heroFarmName,
                          closeHelp: vm.L(L10n.Saves.cancel),
                          onClose: { vm.editingSave = nil },
                          whichFarm: save.whichFarm,
+                         iconPath: iconPath,
                          isFemale: save.isFemale,
                          hairStyle: save.hairStyle,
                          hairColor: SaveFarmerPalette.hairColor(from: save.hairColor),

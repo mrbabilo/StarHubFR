@@ -2295,7 +2295,32 @@ par lot, une release par lot. Périmètre : visuel + navigation —
 > vérification écran reste à l'humain — scénario remis avec le lot ; cinq
 > clés L10n nouvelles, cliquet relevé à chaque tâche (+1/+2, +4, +7/+7).
 - [x] **H-T5b** — **Hero de sauvegarde illustré**. ✅ (livré le 2026-08-31)
-> **H-T5b livré le 2026-08-31, en huit tâches sur autant de gates.** Le hero de la fiche de sauvegarde porte désormais une vignette de ferme (8 vanilla en SwiftUI vectoriel + fallback SF Symbol pour les fermes de mods, palette extraite dans `SaveFarmPalette`) et un avatar du fermier (40×40, recomposé depuis `<hairStyle>`/`<hairColor>`/`<skin>`, palette SDV isolée dans `SaveFarmerPalette`). Le tooltip résolu affiche « Type de ferme : <nom> ». Ferme en passant un bug latent : `SaveManager.farmTypeName` retournait du thaï codé en dur depuis l'origine — désormais localisé via 10 nouvelles clés `L10n.Saves.farmType*` + `heroFarmHelpFormat`. Layout VStack empilé (avatar+titre en haut, vignette en dessous, label modFarmName dans le sous-titre), mémoïsation via `EquatableView`. Architecture : `L10nResolver` protocole Core + `SaveFarmNameResolver` injecté (VM pas god-object-ifié). 16 nouveaux tests (parsing <whichModFarm> deux formes, palettes SDV, résolution localisée).
+> **H-T5b livré le 2026-08-31 en huit tâches, refondu le 2026-09-01, revu et corrigé le 2026-09-02.**
+> **Ce qui tourne aujourd'hui** : le hero de la fiche de sauvegarde porte le bandeau du splash (`nexus_banner_final`) voilé d'un dégradé, une vignette de ferme illustrée (8 PNG embarqués 190×200 découpés de `fermes.png`, ordre du wiki ; pictogramme SF Symbol pour une ferme de mod) et un avatar 44 pt — l'icône personnalisée de la sauvegarde si elle existe, sinon l'illustration du visage **fixe par sexe**. Le tooltip résolu affiche « Type de ferme : <nom> ».
+> **Écart assumé** : coiffure, couleur de cheveux et peau sont lues dans la save mais **ne sont rendues que par le repli vectoriel**. Les teinter sur l'illustration est impraticable — ce sont des crops de l'affiche du jeu, où le brun des cheveux est celui du bois de la ferme derrière le personnage : aucun masque colorimétrique ne les sépare. Un portrait fidèle demanderait de recomposer la tête, pas de la teinter. → voir **H-T5c**.
+> **Abandonné en route** (2026-09-01) : les glyphes vectoriels dessinés à la main, illisibles à cette taille, et `SaveFarmPalette` avec eux.
+> **Corrigé à la revue** (2026-09-02) : lecture et écriture des champs du fermier par **enfant direct** de `<player>` (`SavePlayerFields`) — la première occurrence attrapait un monstre de quête imbriqué, ce qui affichait une fermière en homme et écrivait la santé du fermier dans le monstre ; `<whichFarm>` non entier reconnu comme ferme de mod (`SaveFarmType`) — `FrontierFarm` s'affichait « Ferme standard » ; icône personnalisée rendue au hero ; chevelure du repli replacée sur le crâne ; caches d'images sous `NSLock`.
+> Ferme en passant un bug latent : `SaveManager.farmTypeName` retournait du thaï codé en dur depuis l'origine — désormais localisé via 10 clés `L10n.Saves.farmType*` + `heroFarmHelpFormat`. Architecture : `L10nResolver` protocole Core + `SaveFarmNameResolver` injecté (VM pas god-object-ifié).
+
+- [ ] **H-T5d** — **Lecture d'une sauvegarde : une passe au lieu de cinq.**
+      Mesuré le 2026-09-02 sur `Zofia_443716371` (37 Mo) : chaque balise de
+      niveau `SaveGame` lue par `extractTag` coûte ~313 ms, parce que sa cible
+      est en fin de fichier — `whichFarm`, `goldenWalnuts`, `yearForSaveGame`,
+      `seasonForSaveGame`, `dayOfMonthForSaveGame`, plus le `whichModFarm` qui
+      échoue (353 ms). Soit ~1,6 s par sauvegarde, multiplié par le nombre de
+      dossiers (sauvegardes de secours comprises) à **chaque** rafraîchissement
+      de la page Parties. Les regrouper en une seule passe, comme
+      `SavePlayerFields` l'a fait pour le bloc `<player>` (37 ms pour 12
+      champs), doit ramener le tout à un seul parcours.
+      ⚠️ Ne pas « optimiser » par un pré-filtre `range(of:)` : mesuré, il est
+      plus lent que la regex (1108 ms), `.literal` aussi (391 ms), et
+      `utf8.firstRange(of:)` est catastrophique (15,7 s). · **S**
+
+- [ ] **H-T5c** — **Portrait du fermier fidèle à la sauvegarde.** L'avatar du hero
+      est aujourd'hui une illustration fixe par sexe ; `<hair>`, `<hairstyleColor>`
+      et `<skin>` sont lues et correctes mais ne pilotent aucun pixel. Recomposer
+      la tête (base + calques coiffure/peau) plutôt que teinter un crop.
+      Prérequis : des calques séparés, que l'affiche du jeu ne fournit pas. · **M**
 - [ ] **H-T6** — **Lot Santé & secours** : alertes système, quarantaine,
       backups ×2 — gravité toujours glyph + couleur, rapports en tableaux
       lisibles. · **M**

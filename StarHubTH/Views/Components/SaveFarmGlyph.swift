@@ -3,8 +3,8 @@ import SwiftUI
 /// Vignette de ferme du hero de sauvegarde : les 8 fermes vanilla en
 /// illustrations embarquées (`farm_glyph_0…7.png` dans les resources,
 /// ordre du wiki = `whichFarm`), remplissage couvrant et coins arrondis.
-/// Les fermes de mods (`whichFarm` hors 0-7) retombent sur un SF Symbol
-/// proportionnel à la vignette.
+/// Les fermes de mods (`whichFarm` hors 0-7, dont la sentinelle `-1` posée
+/// par `SaveFarmType`) retombent sur un SF Symbol proportionnel.
 ///
 /// Ce composant remplace les glyphes vectoriels dessinés à la main (H-T5b) :
 /// jugés illisibles à 80×56 à l'écran, ils ont cédé la place aux vignettes
@@ -19,23 +19,32 @@ struct SaveFarmGlyph: View, Equatable {
         self.size = size
     }
 
-    /// Les vues s'évaluent sur le fil principal : ce cache simple évite de
-    /// relire le PNG à chaque apparition de fiche, sans verrou.
-    private static var imageCache: [Int: NSImage] = [:]
+    /// Cache des illustrations, sous verrou dédié — la convention du dépôt
+    /// pour tout état statique mutable (CLAUDE.md §Concurrence : un `Dictionary`
+    /// statique sans verrou a déjà coûté un `EXC_BAD_ACCESS` sur `manifestCache`).
+    /// La valeur est optionnelle pour mémoïser aussi les **échecs** : sans cela,
+    /// une resource absente relit le disque à chaque évaluation de `body`.
+    private static var imageCache: [Int: NSImage?] = [:]
+    private static let imageCacheLock = NSLock()
 
-    private func farmImage() -> NSImage? {
+    private static func farmImage(_ whichFarm: Int) -> NSImage? {
         guard (0...7).contains(whichFarm) else { return nil }
-        if let cached = Self.imageCache[whichFarm] { return cached }
-        guard let url = Bundle.main.url(forResource: "farm_glyph_\(whichFarm)",
-                                        withExtension: "png"),
-              let img = NSImage(contentsOf: url) else { return nil }
-        Self.imageCache[whichFarm] = img
-        return img
+        imageCacheLock.lock()
+        let cached = imageCache[whichFarm]
+        imageCacheLock.unlock()
+        if let cached = cached { return cached }
+
+        let loaded = Bundle.main.url(forResource: "farm_glyph_\(whichFarm)", withExtension: "png")
+            .flatMap { NSImage(contentsOf: $0) }
+        imageCacheLock.lock()
+        imageCache[whichFarm] = loaded
+        imageCacheLock.unlock()
+        return loaded
     }
 
     var body: some View {
         Group {
-            if let img = farmImage() {
+            if let img = Self.farmImage(whichFarm) {
                 Image(nsImage: img)
                     .resizable()
                     .aspectRatio(contentMode: .fill)

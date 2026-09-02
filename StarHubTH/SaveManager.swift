@@ -120,9 +120,10 @@ public struct SaveGameInfo: Identifiable, Equatable, Hashable {
     public var hairColor: SaveHairColor = .default
     public var skinIndex: Int = 0
     public var modFarmName: String? = nil
-    /// Sexe du fermier (`<gender>` textuel : Male/Female/Undefined). La
-    /// première occurrence du fichier est celle du joueur — les ~70 autres
-    /// (PNJ, bébés) suivent. `Undefined` et l'absence lisent comme fermier.
+    /// Sexe du fermier (`<gender>`/`<Gender>` textuel : Male/Female/Undefined),
+    /// lu sur l'enfant **direct** de `<player>` : la première occurrence du
+    /// fichier appartient à un objet ou à un monstre de quête (mesuré : 41 à
+    /// 294 occurrences par save). `Undefined` et l'absence lisent comme fermier.
     public var isFemale: Bool = false
 
     public init(
@@ -272,34 +273,49 @@ public class SaveManager {
     func parseSaveFile(url: URL, folderName: String) -> SaveGameInfo? {
         guard let content = try? String(contentsOf: url, encoding: .utf8) else { return nil }
 
-        let playerName = extractTag(tag: "name", from: content) ?? "Unknown"
-        let farmName = extractTag(tag: "farmName", from: content) ?? "Unknown"
-        let favoriteThing = extractTag(tag: "favoriteThing", from: content) ?? "Unknown"
-        let money = Int(extractTag(tag: "money", from: content) ?? "0") ?? 0
+        // Une seule passe sur `<player>` donne tous les champs du fermier, par
+        // enfant direct. Lire la première occurrence du fichier — ou même du
+        // bloc — attrapait celle d'un monstre de quête imbriqué : voir
+        // `SavePlayerFields`, mesuré sur la save du parc.
+        let player = SavePlayerFields.directChildren(in: content)
+        func playerInt(_ tag: String, default fallback: Int) -> Int {
+            player[tag].flatMap(Int.init) ?? fallback
+        }
+
+        let playerName = player["name"] ?? "Unknown"
+        let farmName = player["farmName"] ?? "Unknown"
+        let favoriteThing = player["favoriteThing"] ?? "Unknown"
+        let money = playerInt("money", default: 0)
         let spouse = extractSpouseFromPlayer(from: content) ?? ""
 
         let year = Int(extractTag(tag: "yearForSaveGame", from: content) ?? "1") ?? 1
         let season = Int(extractTag(tag: "seasonForSaveGame", from: content) ?? "0") ?? 0
         let day = Int(extractTag(tag: "dayOfMonthForSaveGame", from: content) ?? "1") ?? 1
-        let whichFarm = Int(extractTag(tag: "whichFarm", from: content) ?? "0") ?? 0
+        // `<whichFarm>` vit au niveau `SaveGame`, et n'est **pas** toujours un
+        // entier : une ferme de mod y écrit son identifiant (`FrontierFarm`).
+        let farmType = SaveFarmType.parse(rawWhichFarm: extractTag(tag: "whichFarm", from: content))
+        let whichFarm = farmType.whichFarm
         // Les vrais tags du jeu : `<hair>` (int) et `<hairstyleColor>` (Color
         // XNA composé) — pas `<hairStyle>`/`<hairColor>` (audit H-T5b : ces
         // tags-là n'existent pas dans le XML, l'avatar restait chauve-couleur-0).
-        let hairStyle = Int(extractTag(tag: "hair", from: content) ?? "0") ?? 0
+        let hairStyle = playerInt("hair", default: 0)
         let hairColor = extractHairColor(from: content) ?? .default
-        let skinIndex = Int(extractTag(tag: "skin", from: content) ?? "0") ?? 0
-        let modFarmName = extractModFarmName(from: content)
-        // Textuel (Male/Female/Undefined) ; première occurrence = joueur
-        // (les ~70 suivantes sont des PNJ). Tout sauf « Female » lit fermier.
-        let isFemale = extractTag(tag: "gender", from: content) == "Female"
+        let skinIndex = playerInt("skin", default: 0)
+        // `<whichModFarm>` n'existe dans aucune save du parc ; quand il manque,
+        // l'identifiant de `<whichFarm>` est le seul nom que la ferme porte.
+        // Sa présence reste toutefois le signal qui prime — un mod peut la
+        // poser avec un `<whichFarm>` entier — donc on la cherche toujours.
+        let modFarmName = extractModFarmName(from: content) ?? farmType.modFarmId
+        // Textuel (Male/Female/Undefined). Tout sauf « Female » lit fermier.
+        let isFemale = player["gender"] == "Female" || player["Gender"] == "Female"
 
-        // Advanced
-        let maxHealth = Int(extractTag(tag: "maxHealth", from: content) ?? "100") ?? 100
-        let maxStamina = Int(extractTag(tag: "maxStamina", from: content) ?? "270") ?? 270
+        // Advanced. `goldenWalnuts` est à l'échelle de la ferme, hors `<player>`.
+        let maxHealth = playerInt("maxHealth", default: 100)
+        let maxStamina = playerInt("maxStamina", default: 270)
         let goldenWalnuts = Int(extractTag(tag: "goldenWalnuts", from: content) ?? "0") ?? 0
-        let qiGems = Int(extractTag(tag: "qiGems", from: content) ?? "0") ?? 0
-        let clubCoins = Int(extractTag(tag: "clubCoins", from: content) ?? "0") ?? 0
-        let totalMoneyEarned = Int(extractTag(tag: "totalMoneyEarned", from: content) ?? "0") ?? 0
+        let qiGems = playerInt("qiGems", default: 0)
+        let clubCoins = playerInt("clubCoins", default: 0)
+        let totalMoneyEarned = playerInt("totalMoneyEarned", default: 0)
 
         let attr = try? FileManager.default.attributesOfItem(atPath: url.path)
         let lastModified = attr?[.modificationDate] as? Date ?? Date()
@@ -338,7 +354,10 @@ public class SaveManager {
     /// Retourne `nil` si le bloc, ou une composante, manque — l'appelant
     /// retombe sur la couleur par défaut plutôt que d'inventer une teinte.
     private func extractHairColor(from xml: String) -> SaveHairColor? {
-        guard let block = extractBlock(tag: "hairstyleColor", from: xml) else { return nil }
+        // Scopé au bloc `<player>` : le fichier entier n'a aucune raison de
+        // n'en porter qu'un seul, et un mod peut en poser ailleurs.
+        let scope = SavePlayerFields.playerBlock(in: xml).map(String.init) ?? xml
+        guard let block = extractBlock(tag: "hairstyleColor", from: scope) else { return nil }
         guard let r = Int(extractTag(tag: "R", from: block) ?? ""),
               let g = Int(extractTag(tag: "G", from: block) ?? ""),
               let b = Int(extractTag(tag: "B", from: block) ?? "") else { return nil }
@@ -363,6 +382,10 @@ public class SaveManager {
     /// - mod mal codé : `<whichModFarm>Ridgeside</whichModFarm>`
     /// Retourne `nil` si absent, vide, ou sans `<name>`.
     private func extractModFarmName(from xml: String) -> String? {
+        // ⚠️ Ne PAS pré-filtrer par `range(of:)` : mesuré sur la save de 37 Mo
+        // du parc, la regex qui échoue coûte 353 ms, `range(of:)` 1108 ms,
+        // `range(of:, .literal)` 391 ms et `utf8.firstRange(of:)` 15,7 s.
+        // La regex est déjà la recherche la plus rapide disponible ici.
         let pattern = "<whichModFarm>(?:\\s*<name>)?([^<]+)(?:</name>)?\\s*</whichModFarm>"
         guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else { return nil }
         let range = NSRange(xml.startIndex..<xml.endIndex, in: xml)
@@ -620,6 +643,14 @@ public class SaveManager {
         let beforePlayer = String(xml[..<playerStartRange.lowerBound])
         let playerBlock  = String(xml[playerStartRange.lowerBound..<playerEndRange.upperBound])
         let afterPlayer  = String(xml[playerEndRange.upperBound...])
+
+        // Viser l'enfant **direct** de `<player>`. La première occurrence du
+        // bloc peut appartenir à un monstre de quête imbriqué : sur la save du
+        // parc, `<maxHealth>` la première vaut 24 (le monstre) et non 150 (le
+        // fermier) — écrire là laissait la vraie valeur inchangée.
+        if let updated = SavePlayerFields.replacingDirectChild(tag, with: value, in: xml) {
+            return updated
+        }
 
         guard playerBlock.contains("<\(tag)>") else {
             return replaceFirstTag(tag: tag, with: value, in: xml)

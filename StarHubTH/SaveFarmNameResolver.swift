@@ -5,7 +5,7 @@ import Foundation
 /// testable sans dépendance au god-object.
 public enum SaveFarmNameResolver {
     /// Retourne le nom localisé de la ferme (résolu via le resolver).
-    /// - whichFarm 0..<7 vanilla : clé L10n résolue.
+    /// - whichFarm 0...7 vanilla : clé L10n résolue.
     /// - whichFarm >= 8 ou < 0 (mod farm) : `modFarmName` ou fallback localisé.
     public static func resolve(_ info: SaveGameInfo, resolver: L10nResolver) -> String {
         if info.whichFarm < 0 || info.whichFarm >= 8 {

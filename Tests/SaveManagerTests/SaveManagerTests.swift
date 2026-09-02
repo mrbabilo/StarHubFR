@@ -280,8 +280,10 @@ struct TestEnvironment {
         #expect(info?.modFarmName == nil)
     }
 
-    /// `<whichFarm>abc</whichFarm>` (corrompu) → `Int(...) ?? 0` retombe sur 0,
-    /// comme le code l'a toujours fait pour les autres tags numériques.
+    /// `<whichFarm>abc</whichFarm>` n'est **pas** un fichier corrompu : c'est la
+    /// forme qu'une ferme de mod prend réellement (3 saves du parc sur 5 portent
+    /// `FrontierFarm`). Retomber sur 0 la faisait passer pour la ferme standard,
+    /// vignette illustrée et libellé compris — ce test verrouillait le défaut.
     @Test func whichFarmNonInt() throws {
         let env = TestEnvironment()
         defer { env.cleanup() }
@@ -290,7 +292,8 @@ struct TestEnvironment {
         try writeTestSaveFile(at: fileURL, content: xml)
         let info = SaveManager.shared.parseSaveFile(url: fileURL, folderName: "BadWhichFarm")
         try #require(info != nil)
-        #expect(info?.whichFarm == 0)
+        #expect(info?.whichFarm == -1)
+        #expect(info?.modFarmName == "abc")
     }
 
     /// `whichFarm` hors plage vanilla → `farmTypeName` retourne la **clé** L10n
@@ -377,10 +380,11 @@ struct TestEnvironment {
 
     // MARK: - Sexe du fermier (avatar illustré)
 
-    /// `<gender>` est textuel (Male/Female/Undefined) et la première
-    /// occurrence du fichier est le fermier — mesuré sur une vraie save :
-    /// la sienne porte ~70 occurrences (PNJ, bébés), celle du joueur vient
-    /// en tête, juste après `difficultyModifier`.
+    /// `<gender>` est textuel (Male/Female/Undefined). ⚠️ Le commentaire
+    /// d'origine affirmait que la première occurrence du fichier est le
+    /// fermier : c'est faux, et cette fixture-là (le PNJ **hors** `<player>`)
+    /// ne pouvait pas le montrer. La forme réelle est couverte par
+    /// `SaveManagerRealShapeTests` — monstre de quête **dans** `<player>`.
     @Test func genderParsesTheFarmerNotAnNPC() throws {
         let env = TestEnvironment()
         defer { env.cleanup() }
@@ -437,5 +441,212 @@ struct TestEnvironment {
         let written = try String(contentsOf: info.fileURL, encoding: .utf8)
         #expect(written.contains("<favoriteThing>Nouveau</favoriteThing>"))
         #expect(written.contains("<money>700</money>"))
+    }
+}
+
+// MARK: - Scoping profondeur-2 du bloc <player> (H-T5b, revue 2026-09-02)
+
+/// Mesuré sur les vraies sauvegardes du parc : dans `Zofia_443716371`, un
+/// monstre de `<questLog>` — **imbriqué dans `<player>`** — porte un
+/// `<gender>Male</gender>` 270 000 caractères avant celui du fermier. Ni la
+/// première occurrence du fichier ni la première du bloc `<player>` ne
+/// désignent le fermier : seul le niveau compte.
+@Suite("SavePlayerFields")
+struct SavePlayerFieldsTests {
+
+    @Test func directChildrenIgnoreATagNestedDeeperInThePlayerBlock() {
+        let xml = """
+        <SaveGame><player><name>Jemila</name>\
+        <questLog><Quest><monster><gender>Male</gender></monster></Quest></questLog>\
+        <gender>Female</gender></player></SaveGame>
+        """
+        let fields = SavePlayerFields.directChildren(in: xml)
+        #expect(fields["gender"] == "Female")
+        #expect(fields["name"] == "Jemila")
+    }
+
+    @Test func directChildrenIgnoreTagsOutsideThePlayerBlock() {
+        let xml = """
+        <SaveGame><player><name>Jemila</name></player>\
+        <locations><NPC><name>Sandy</name><gender>Female</gender></NPC></locations></SaveGame>
+        """
+        let fields = SavePlayerFields.directChildren(in: xml)
+        #expect(fields["name"] == "Jemila")
+        #expect(fields["gender"] == nil)
+    }
+
+    /// `<basicShipped />` et `<Item xsi:type="Object">` existent tels quels dans
+    /// les saves : une balise auto-fermée qui compterait pour une ouverture
+    /// décalerait tous les niveaux suivants.
+    @Test func directChildrenSurviveSelfClosingAndAttributedTags() {
+        let xml = """
+        <SaveGame><player><basicShipped /><items xsi:type="Inventory">\
+        <Item xsi:nil="true" /><Item><name>Scythe</name></Item></items>\
+        <hair>34</hair></player></SaveGame>
+        """
+        let fields = SavePlayerFields.directChildren(in: xml)
+        #expect(fields["hair"] == "34")
+        #expect(fields["name"] == nil)
+    }
+
+    @Test func directChildrenDecodeXMLEntities() {
+        let xml = "<SaveGame><player><name>D&amp;D</name></player></SaveGame>"
+        #expect(SavePlayerFields.directChildren(in: xml)["name"] == "D&D")
+    }
+
+    @Test func directChildrenAreEmptyWhenThePlayerBlockIsMissing() {
+        #expect(SavePlayerFields.directChildren(in: "<SaveGame><farm/></SaveGame>").isEmpty)
+    }
+
+    /// Une balise composée (`<hairstyleColor><B>…`) n'a pas de valeur scalaire :
+    /// elle ne doit pas entrer dans la table avec une chaîne vide, sans quoi
+    /// l'appelant croit avoir lu quelque chose.
+    @Test func directChildrenSkipCompositeTags() {
+        let xml = """
+        <SaveGame><player><hairstyleColor><B>174</B></hairstyleColor>\
+        <skin>2</skin></player></SaveGame>
+        """
+        let fields = SavePlayerFields.directChildren(in: xml)
+        #expect(fields["hairstyleColor"] == nil)
+        #expect(fields["skin"] == "2")
+    }
+}
+
+/// `<whichFarm>` n'est pas un entier quand une ferme de mod est active : les
+/// saves du parc portent `<whichFarm>FrontierFarm</whichFarm>` (3 fichiers sur
+/// 5), et aucune ne porte `<whichModFarm>`.
+@Suite("SaveFarmTypeParsing")
+struct SaveFarmTypeParsingTests {
+
+    @Test func vanillaFarmKeepsItsIndex() {
+        let parsed = SaveFarmType.parse(rawWhichFarm: "6")
+        #expect(parsed.whichFarm == 6)
+        #expect(parsed.modFarmId == nil)
+    }
+
+    @Test func aNonNumericWhichFarmIsAModFarm() {
+        let parsed = SaveFarmType.parse(rawWhichFarm: "FrontierFarm")
+        #expect(parsed.whichFarm == -1)
+        #expect(parsed.modFarmId == "FrontierFarm")
+    }
+
+    @Test func anAbsentWhichFarmFallsBackToStandard() {
+        let parsed = SaveFarmType.parse(rawWhichFarm: nil)
+        #expect(parsed.whichFarm == 0)
+        #expect(parsed.modFarmId == nil)
+    }
+
+    /// Un entier hors 0-7 reste un entier : c'est une ferme de mod sans nom
+    /// lisible, pas la ferme standard.
+    @Test func anOutOfRangeIntegerStaysOutOfRange() {
+        #expect(SaveFarmType.parse(rawWhichFarm: "12").whichFarm == 12)
+        #expect(SaveFarmType.parse(rawWhichFarm: "12").modFarmId == nil)
+    }
+}
+
+// MARK: - parseSaveFile / updateSave sur la forme réelle des saves
+
+/// Ces cas reproduisent la forme mesurée sur `Zofia_443716371` : un monstre de
+/// quête imbriqué **dans** `<player>` porte ses propres `<gender>`/`<name>`
+/// avant ceux du fermier, et `<whichFarm>` porte l'identifiant d'une ferme de
+/// mod au lieu d'un entier.
+@Suite("SaveManager — forme réelle")
+struct SaveManagerRealShapeTests {
+
+    /// XML minimal ayant la même topologie que la save du parc.
+    static func realShapeXML(gender: String = "Female",
+                             whichFarm: String = "FrontierFarm",
+                             money: String = "52380") -> String {
+        """
+        <SaveGame><player><name>Jemila</name>\
+        <questLog><Quest><monster><name>Haunted Skull</name>\
+        <gender>Male</gender><hair>99</hair><money>1</money>\
+        <maxHealth>7</maxHealth></monster></Quest></questLog>\
+        <farmName>Zofia</farmName><favoriteThing>glaces</favoriteThing>\
+        <money>\(money)</money><totalMoneyEarned>511148</totalMoneyEarned>\
+        <maxHealth>150</maxHealth><maxStamina>304</maxStamina>\
+        <qiGems>0</qiGems><clubCoins>0</clubCoins>\
+        <hair>34</hair><skin>2</skin>\
+        <hairstyleColor><B>174</B><G>163</G><R>209</R><A>255</A></hairstyleColor>\
+        <gender>\(gender)</gender><basicShipped /></player>\
+        <whichFarm>\(whichFarm)</whichFarm>\
+        <goldenWalnuts>3</goldenWalnuts>\
+        <yearForSaveGame>4</yearForSaveGame><seasonForSaveGame>2</seasonForSaveGame>\
+        <dayOfMonthForSaveGame>17</dayOfMonthForSaveGame></SaveGame>
+        """
+    }
+
+    static func parse(_ xml: String, _ env: TestEnvironment, _ name: String) throws -> SaveGameInfo {
+        let fileURL = env.savesDir.appendingPathComponent(name).appendingPathComponent(name)
+        try writeTestSaveFile(at: fileURL, content: xml)
+        let info = SaveManager.shared.parseSaveFile(url: fileURL, folderName: name)
+        return try #require(info)
+    }
+
+    @Test func genderComesFromTheFarmerNotAQuestMonsterNestedInPlayer() throws {
+        let env = TestEnvironment(); defer { env.cleanup() }
+        let info = try Self.parse(Self.realShapeXML(), env, "RealShapeF")
+        #expect(info.isFemale == true)
+    }
+
+    @Test func hairAndSkinComeFromTheFarmerNotANestedItem() throws {
+        let env = TestEnvironment(); defer { env.cleanup() }
+        let info = try Self.parse(Self.realShapeXML(), env, "RealShapeHair")
+        #expect(info.hairStyle == 34)
+        #expect(info.skinIndex == 2)
+        #expect(info.hairColor == SaveHairColor(r: 209, g: 163, b: 174))
+    }
+
+    @Test func moneyAndStatsComeFromTheFarmerNotANestedMonster() throws {
+        let env = TestEnvironment(); defer { env.cleanup() }
+        let info = try Self.parse(Self.realShapeXML(), env, "RealShapeMoney")
+        #expect(info.playerName == "Jemila")
+        #expect(info.money == 52380)
+        #expect(info.maxHealth == 150)
+    }
+
+    /// La ferme de mod ne doit plus passer pour la ferme standard : son
+    /// identifiant est le seul nom que la sauvegarde porte.
+    @Test func aModFarmIdentifierIsSurfacedInsteadOfStandardFarm() throws {
+        let env = TestEnvironment(); defer { env.cleanup() }
+        let info = try Self.parse(Self.realShapeXML(), env, "RealShapeFarm")
+        #expect(info.whichFarm == -1)
+        #expect(info.modFarmName == "FrontierFarm")
+    }
+
+    @Test func aVanillaFarmIndexIsUnchanged() throws {
+        let env = TestEnvironment(); defer { env.cleanup() }
+        let info = try Self.parse(Self.realShapeXML(whichFarm: "6"), env, "RealShapeVanilla")
+        #expect(info.whichFarm == 6)
+        #expect(info.modFarmName == nil)
+    }
+
+    /// `<goldenWalnuts>` vit au niveau `SaveGame`, pas dans `<player>` (mesuré
+    /// sur les 5 saves du parc) : il doit rester lu hors du bloc joueur.
+    @Test func goldenWalnutsAreStillReadOutsideThePlayerBlock() throws {
+        let env = TestEnvironment(); defer { env.cleanup() }
+        let info = try Self.parse(Self.realShapeXML(), env, "RealShapeWalnuts")
+        #expect(info.goldenWalnuts == 3)
+        #expect(info.year == 4)
+        #expect(info.day == 17)
+    }
+
+    /// Écriture : `replaceFirstTagInPlayer` visait la première occurrence *du
+    /// bloc*, donc celle du monstre. Le même scoping par niveau doit valoir
+    /// des deux côtés, sans quoi éditer l'argent réécrirait celui d'une quête.
+    @Test func updateSaveWritesTheFarmerTagNotANestedOne() throws {
+        let env = TestEnvironment(); defer { env.cleanup() }
+        let name = "RealShapeWrite"
+        let fileURL = env.savesDir.appendingPathComponent(name).appendingPathComponent(name)
+        try writeTestSaveFile(at: fileURL, content: Self.realShapeXML())
+        let info = try #require(SaveManager.shared.parseSaveFile(url: fileURL, folderName: name))
+        _ = SaveManager.shared.updateSave(info: info, newName: "Jemila", newFarm: "Zofia",
+                                          newFav: "glaces", newMoney: 999, newTotalMoneyEarned: 511148,
+                                          newMaxHealth: 150, newMaxStamina: 304,
+                                          newGoldenWalnuts: 3, newQiGems: 0, newClubCoins: 0,
+                                          newSpouse: "")
+        let written = try String(contentsOf: fileURL, encoding: .utf8)
+        #expect(written.contains("<money>1</money>"))   // celui du monstre, intact
+        #expect(written.contains("<money>999</money>")) // celui du fermier, écrit
     }
 }

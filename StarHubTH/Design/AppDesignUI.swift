@@ -50,6 +50,13 @@ enum AppDesign {
         static let headline  = SwiftUI.Font.system(size: 16)
         // Titres de vue (utilise déjà .title2/.title3 système)
         static let viewTitle = SwiftUI.Font.system(size: 20, weight: .semibold)
+        // Titre posé sur un bandeau illustré (26 pt). Distinct de `viewTitle` :
+        // un titre lu par-dessus une image demande plus de corps qu'un titre
+        // sur fond uni, et `viewTitle` sert ailleurs sur fond neutre — les
+        // fusionner grossirait des titres qui n'en ont pas besoin.
+        static let heroTitle = SwiftUI.Font.system(size: 26, weight: .semibold)
+        // Sous-titre du même bandeau (15 pt medium) : `caption` (12) s'y perd.
+        static let heroSubtitle = SwiftUI.Font.system(size: 15, weight: .medium)
 
         // Glyphe décoratif des états vides de recherche (48 pt) — pas un texte.
         static let emptyStateGlyph = SwiftUI.Font.system(size: 48)
