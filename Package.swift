@@ -153,6 +153,7 @@ let package = Package(
                 "Models/SaveGameFields.swift",
                 "SaveFarmerPalette.swift",
                 "SaveFarmNameResolver.swift",
+                "Models/HealthIssue.swift",
             ]
         ),
         .testTarget(
@@ -778,6 +779,11 @@ let package = Package(
             name: "SaveFarmNameResolverTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/SaveFarmNameResolverTests"
+        ),
+        .testTarget(
+            name: "HealthIssueTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/HealthIssueTests"
         ),
     ]
 )

@@ -734,6 +734,15 @@ enum L10n {
         static let healthSgErrorMod       = "logs_health_sg_error_mod"
     }
 
+    // MARK: - Health
+    /// Vocabulaire de gravité partagé par les quatre écrans de « santé »
+    /// (H-T6). `HealthIssue.Severity.l10nKey` s'appuie sur ces trois clés.
+    enum Health {
+        static let severityCritical     = "health_severity_critical"
+        static let severityWarning      = "health_severity_warning"
+        static let severityInfo         = "health_severity_info"
+    }
+
     // MARK: - Quarantine
     enum Quarantine {
         static let title                = "quarantine_title"
