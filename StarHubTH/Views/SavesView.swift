@@ -344,6 +344,7 @@ struct SavesGridView: View {
 }
 
 struct SaveCardView: View {
+    @State private var confirmingDelete = false
     @ObservedObject var vm: StarHubTHViewModel
     let save: SaveGameInfo
     @State private var isHovered = false
@@ -398,9 +399,22 @@ struct SaveCardView: View {
             Button(vm.L(L10n.Saves.openFolder)) { vm.openSaveInFinder(info: save) }
             Divider()
             Button(vm.L(L10n.Saves.deleteSave), role: .destructive) {
-                Task { await vm.deleteSave(info: save) }
+                confirmingDelete = true
             }
             .disabled(vm.isSaveOperationRunning)
+        }
+        // Supprimer une partie envoie tout son dossier à la corbeille. La
+        // suppression d'une **sauvegarde de secours** confirmait déjà (audit
+        // 2026-08-05) ; celle de la partie elle-même ne confirmait pas, ce qui
+        // était l'inverse du risque.
+        .confirmationDialog(vm.L(L10n.Saves.confirmDeleteSave),
+                            isPresented: $confirmingDelete, titleVisibility: .visible) {
+            Button(vm.L(L10n.Saves.deleteSave), role: .destructive) {
+                Task { await vm.deleteSave(info: save) }
+            }
+            Button(vm.L(L10n.Saves.cancel), role: .cancel) {}
+        } message: {
+            Text(vm.L(L10n.Saves.confirmDeleteSaveMsg))
         }
     }
 }
@@ -446,6 +460,7 @@ struct SaveTreeListView: View {
 
 // MARK: - Save Row (List)
 struct SaveRow: View {
+    @State private var confirmingDelete = false
     @ObservedObject var vm: StarHubTHViewModel
     let save: SaveGameInfo
     let depth: Int
@@ -525,7 +540,7 @@ struct SaveRow: View {
                     Label(vm.L(L10n.Saves.duplicate), systemImage: "doc.on.doc")
                 }
                 Divider()
-                Button(role: .destructive, action: { Task { await vm.deleteSave(info: save) } }) {
+                Button(role: .destructive, action: { confirmingDelete = true }) {
                     Label(vm.L(L10n.Saves.deleteSave), systemImage: "trash")
                 }
                 .disabled(vm.isSaveOperationRunning)
@@ -544,6 +559,18 @@ struct SaveRow: View {
         .padding(.vertical, 6)
         .padding(.horizontal, 4)
         .contentShape(Rectangle())
+        // Même garde que sur la carte : la partie part à la corbeille avec
+        // tout son dossier. Un seul modificateur de présentation sur cette
+        // vue — deux ne se présenteraient pas tous les deux.
+        .confirmationDialog(vm.L(L10n.Saves.confirmDeleteSave),
+                            isPresented: $confirmingDelete, titleVisibility: .visible) {
+            Button(vm.L(L10n.Saves.deleteSave), role: .destructive) {
+                Task { await vm.deleteSave(info: save) }
+            }
+            Button(vm.L(L10n.Saves.cancel), role: .cancel) {}
+        } message: {
+            Text(vm.L(L10n.Saves.confirmDeleteSaveMsg))
+        }
     }
 
     /// Argent et total gagné, en colonnes tenues : ce qui se compare d'une
@@ -716,6 +743,16 @@ private struct SaveHeroBand: View {
 }
 
 // MARK: - Editor View
+/// Les confirmations de l'éditeur passent par **un seul** modificateur
+/// `.alert`. Deux alertes sur la même vue ne se présentent pas toutes les deux
+/// — leçon payée sur `SaveTimelineView` le 2026-09-02, dans les deux sens.
+private enum SaveEditorConfirmation {
+    /// Écriture sur une partie modifiée sur disque, ou pendant que le jeu tourne.
+    case staleEdit
+    /// Envoi du dossier de la partie à la corbeille.
+    case deleteSave
+}
+
 struct SaveEditorView: View {
     @ObservedObject var vm: StarHubTHViewModel
     let save: SaveGameInfo
@@ -742,7 +779,7 @@ struct SaveEditorView: View {
     @State private var noteTag: String
     @State private var noteText: String
     @State private var iconPath: String
-    @State private var showStaleWarning = false
+    @State private var confirmation: SaveEditorConfirmation?
     @State private var pendingSaveAction: (() -> Void)?
 
     /// Sous-titre enrichi du hero (H-T5b D2) : la date de jeu concaténée au
@@ -1020,7 +1057,7 @@ struct SaveEditorView: View {
                         // La fermeture de l'éditeur est faite par `deleteSave`
                         // lui-même, sur succès seulement (voir le ViewModel).
                         Button(vm.L(L10n.Saves.deleteSave)) {
-                            Task { await vm.deleteSave(info: save) }
+                            confirmation = .deleteSave
                         }
                             .foregroundColor(.red)
                             .disabled(vm.isSaveOperationRunning)
@@ -1048,18 +1085,35 @@ struct SaveEditorView: View {
             .padding(20)
         }
         .background(Color(nsColor: .controlBackgroundColor))
-        .alert(isPresented: $showStaleWarning) {
-            Alert(
-                title: Text(vm.L(L10n.Saves.confirmStaleEdit)),
-                message: Text(vm.L(L10n.Saves.confirmStaleEditMsg)),
-                primaryButton: .destructive(Text(vm.L(L10n.Saves.overwriteAnyway))) {
+        .alert(editorConfirmationTitle,
+               isPresented: Binding(get: { confirmation != nil },
+                                    set: { if !$0 { confirmation = nil; pendingSaveAction = nil } }),
+               presenting: confirmation) { pending in
+            switch pending {
+            case .staleEdit:
+                Button(vm.L(L10n.Saves.overwriteAnyway), role: .destructive) {
                     pendingSaveAction?()
                     pendingSaveAction = nil
-                },
-                secondaryButton: .cancel(Text(vm.L(L10n.Saves.cancel))) {
-                    pendingSaveAction = nil
                 }
-            )
+            case .deleteSave:
+                Button(vm.L(L10n.Saves.deleteSave), role: .destructive) {
+                    Task { await vm.deleteSave(info: save) }
+                }
+            }
+            Button(vm.L(L10n.Saves.cancel), role: .cancel) { pendingSaveAction = nil }
+        } message: { pending in
+            switch pending {
+            case .staleEdit: Text(vm.L(L10n.Saves.confirmStaleEditMsg))
+            case .deleteSave: Text(vm.L(L10n.Saves.confirmDeleteSaveMsg))
+            }
+        }
+    }
+
+    private var editorConfirmationTitle: String {
+        switch confirmation {
+        case .staleEdit: return vm.L(L10n.Saves.confirmStaleEdit)
+        case .deleteSave: return vm.L(L10n.Saves.confirmDeleteSave)
+        case nil: return ""
         }
     }
 
@@ -1071,7 +1125,7 @@ struct SaveEditorView: View {
     private func confirmedOrWarn(_ action: @escaping () -> Void) {
         if vm.isSaveStale(save) || vm.isGameRunning() {
             pendingSaveAction = action
-            showStaleWarning = true
+            confirmation = .staleEdit
         } else {
             action()
         }

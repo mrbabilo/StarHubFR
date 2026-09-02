@@ -139,6 +139,8 @@ enum L10n {
         static let confirmRestoreMsg    = "saves_confirm_restore_msg"
         static let confirmRestoreMsgGameRunning = "saves_confirm_restore_msg_game_running"
         static let confirmDeleteBackup     = "saves_confirm_delete_backup"
+        static let confirmDeleteSave    = "saves_confirm_delete_save"
+        static let confirmDeleteSaveMsg = "saves_confirm_delete_save_msg"
         static let confirmDeleteBackupMsg  = "saves_confirm_delete_backup_msg"
         static let deleteBackup            = "saves_delete_backup"
         static let confirmStaleEdit     = "saves_confirm_stale_edit"

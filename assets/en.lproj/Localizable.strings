@@ -110,6 +110,8 @@
 "saves_delete_backup" = "Delete";
 "saves_confirm_delete_backup" = "Delete this backup?";
 "saves_confirm_delete_backup_msg" = "It will be moved to the Trash and can be restored from there.";
+"saves_confirm_delete_save" = "Delete this save?";
+"saves_confirm_delete_save_msg" = "The whole save folder will be moved to the Trash and can be restored from there.";
 "saves_backup_label" = "Backup";
 "saves_no_backups" = "No backups found for this save";
 "saves_notes" = "Notes";

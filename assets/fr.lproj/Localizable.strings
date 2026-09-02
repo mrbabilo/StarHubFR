@@ -110,6 +110,8 @@
 "saves_delete_backup" = "Supprimer";
 "saves_confirm_delete_backup" = "Supprimer cette sauvegarde ?";
 "saves_confirm_delete_backup_msg" = "Elle sera déplacée vers la corbeille et pourra être restaurée depuis là.";
+"saves_confirm_delete_save" = "Supprimer cette partie ?";
+"saves_confirm_delete_save_msg" = "Tout le dossier de la partie sera déplacé vers la corbeille et pourra être restauré depuis là.";
 "saves_backup_label" = "Sauvegarde";
 "saves_no_backups" = "Aucune sauvegarde trouvée pour cette partie";
 "saves_notes" = "Notes";
