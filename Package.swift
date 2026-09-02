@@ -149,6 +149,7 @@ let package = Package(
                 "Models/KeybindGrammar.swift",
                 "Models/KeybindScanner.swift",
                 "Models/SavePlayerFields.swift",
+                "Models/SaveHeroPortrait.swift",
                 "SaveFarmerPalette.swift",
                 "SaveFarmNameResolver.swift",
             ]

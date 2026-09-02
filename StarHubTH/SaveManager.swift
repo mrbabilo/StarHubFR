@@ -200,7 +200,10 @@ public struct SaveGameInfo: Identifiable, Equatable, Hashable {
         case 5: return "square.grid.2x2.fill"
         case 6: return "sun.max.fill"
         case 7: return "pawprint.fill"
-        default: return "questionmark.square.fill"
+        // Une ferme de mod, pas une ferme inconnue : depuis que `SaveFarmType`
+        // la reconnaît, le point d'interrogation mentait — et se lisait comme
+        // une vignette cassée là où l'illustration manque simplement.
+        default: return "house.fill"
         }
     }
     

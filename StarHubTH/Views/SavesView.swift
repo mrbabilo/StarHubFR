@@ -639,10 +639,12 @@ private struct SaveHeroBand: View {
         // de 76 — sans toucher au token `heroHeight`.
         .overlay {
             HStack(alignment: .center, spacing: AppDesign.Spacing.lg) {
-                // L'icône posée sur la sauvegarde gagne : elle est le
-                // seul portrait fidèle dont l'app dispose (le visage
-                // illustré est fixe par sexe). Sans icône, l'illustration.
-                if iconPath.isEmpty {
+                // Une **vraie image** posée sur la sauvegarde gagne : elle est
+                // le seul portrait fidèle dont l'app dispose (le visage
+                // illustré est fixe par sexe). Un préréglage, lui, est un
+                // pictogramme générique et ne prend pas la place du portrait
+                // — voir `SaveHeroPortrait`.
+                if !SaveHeroPortrait.prefersCustomIcon(iconPath) {
                     EquatableView(content: SaveFarmerAvatar(
                         isFemale: isFemale,
                         hairStyle: hairStyle,

@@ -650,3 +650,47 @@ struct SaveManagerRealShapeTests {
         #expect(written.contains("<money>999</money>")) // celui du fermier, écrit
     }
 }
+
+// MARK: - Vignettes du hero (retour d'écran du 2026-09-02)
+
+/// Sur la sauvegarde `Zofia_443716371`, les deux vignettes du hero s'étaient
+/// éteintes alors qu'elles s'affichaient pour les autres. Deux causes
+/// distinctes, toutes deux introduites par la revue H-T5b.
+@Suite("Vignettes du hero")
+struct SaveHeroThumbnailTests {
+
+    /// Cause 1 — l'icône personnalisée prenait le pas sur le portrait illustré
+    /// **quelle qu'elle soit**. Or `preset:person` n'est pas un portrait :
+    /// c'est un pictogramme générique, strictement moins informatif que
+    /// l'illustration qu'il remplaçait. Seule une vraie image doit primer.
+    @Test func aPresetGlyphDoesNotPreemptTheIllustratedPortrait() {
+        #expect(SaveHeroPortrait.prefersCustomIcon("preset:person") == false)
+        #expect(SaveHeroPortrait.prefersCustomIcon("preset:leaf") == false)
+    }
+
+    @Test func noIconAtAllLeavesTheIllustration() {
+        #expect(SaveHeroPortrait.prefersCustomIcon("") == false)
+        #expect(SaveHeroPortrait.prefersCustomIcon("   ") == false)
+    }
+
+    /// Une vraie image choisie par l'utilisateur reste le portrait le plus
+    /// fidèle dont l'app dispose : elle, et elle seule, passe devant.
+    @Test func aRealImageWins() {
+        #expect(SaveHeroPortrait.prefersCustomIcon("/Users/x/Pictures/jemila.png") == true)
+    }
+
+    /// Cause 2 — une ferme de mod tombait sur `questionmark.square.fill`, le
+    /// pictogramme du « je ne sais pas ce que c'est ». Depuis que
+    /// `SaveFarmType` la reconnaît, on sait exactement ce que c'est : une
+    /// ferme dont on n'a pas l'illustration. Le point d'interrogation se
+    /// lisait comme une vignette cassée.
+    @Test func aModFarmGetsAFarmGlyphNotAQuestionMark() {
+        #expect(SaveGameInfo.farmIcon(for: -1) == "house.fill")
+        #expect(SaveGameInfo.farmIcon(for: 42) == "house.fill")
+    }
+
+    @Test func vanillaFarmIconsAreUnchanged() {
+        #expect(SaveGameInfo.farmIcon(for: 0) == "leaf.fill")
+        #expect(SaveGameInfo.farmIcon(for: 7) == "pawprint.fill")
+    }
+}
