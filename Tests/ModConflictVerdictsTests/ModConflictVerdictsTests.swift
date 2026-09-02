@@ -197,14 +197,31 @@ struct ModConflictVerdictsTests {
         #expect(store.liveConflictCount(candidates: [pair], activeFolders: []) == 0)
     }
 
-    /// Le compte doit être exactement la taille de la liste : deux règles de
-    /// filtrage finiraient par diverger, et la pastille annoncerait un nombre
-    /// que l'écran ne montre pas.
-    @Test func liveConflictCountDerivesFromTheList() {
-        let verdicts = ModConflictVerdicts()
-        let candidates = [ModConflictPair("A", "B"), ModConflictPair("C", "D")]
-        let active: Set<String> = ["A", "B"]
-        #expect(verdicts.liveConflicts(candidates: candidates, activeFolders: active).count
-                == verdicts.liveConflictCount(candidates: candidates, activeFolders: active))
+    /// **L'ordre du tableau est déterministe, quel que soit l'ordre des
+    /// candidats** — pas seulement le compte. Le filtre interne passe par un
+    /// `Set` (itération non ordonnée) ; sans `sortPairs` en sortie, l'ordre
+    /// affiché varierait d'un lancement à l'autre pour les mêmes données.
+    /// Candidats volontairement mélangés (pas alphabétiques), bruités d'une
+    /// paire dormante (un côté absent des actifs) et d'une paire écartée —
+    /// toutes deux doivent disparaître du résultat, pas seulement être mal
+    /// classées. Le compte, lui, doit rester exactement la taille de la
+    /// liste : deux règles de filtrage finiraient par diverger, et la
+    /// pastille annoncerait un nombre que l'écran ne montre pas — mais cette
+    /// seule égalité resterait vraie même pour un tableau vide, donc elle ne
+    /// remplace pas l'assertion de contenu ci-dessous.
+    @Test func liveConflictsIsSortedFilteredAndDerivesTheCount() {
+        var store = ModConflictVerdicts()
+        let pairAB = ModConflictPair("A", "B")
+        let pairCD = ModConflictPair("D", "C")
+        let pairEF = ModConflictPair("F", "E")
+        let pairGH = ModConflictPair("H", "G")
+        let dormant = ModConflictPair("K", "L")
+        let dismissed = ModConflictPair("M", "N")
+        store.dismiss(dismissed, note: "faux positif", at: t0)
+        let candidates = [pairGH, dismissed, pairAB, dormant, pairEF, pairCD]
+        let active: Set<String> = ["A", "B", "C", "D", "E", "F", "G", "H", "M", "N"]
+        let result = store.liveConflicts(candidates: candidates, activeFolders: active)
+        #expect(result == [pairAB, pairCD, pairEF, pairGH])
+        #expect(result.count == store.liveConflictCount(candidates: candidates, activeFolders: active))
     }
 }
