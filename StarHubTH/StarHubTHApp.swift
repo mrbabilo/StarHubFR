@@ -23,7 +23,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// fenêtre principale restait inatteignable. On attend donc la révélation.
     private var isReady = false
 
-    var onURL: ((URL) -> Void)?
+    var onURL: ((URL) -> Void)? {
+        didSet {
+            // Un handler qui arrive après `deliverPendingURLs()` (isReady
+            // déjà levé, handler encore absent à ce moment-là) ne doit pas
+            // laisser mourir la queue. On ne flushe QUE si prêt : livrer
+            // avant la révélation de la fenêtre principale rouvrirait le
+            // bug de la feuille orpheline documenté sur `isReady`.
+            guard isReady else { return }
+            flushPendingURLs()
+        }
+    }
 
     /// Keeps the app alive while the main window is hidden behind the launch
     /// splash. Hiding it (`orderOut`) otherwise reads as "the last window
@@ -41,9 +51,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// window's creation so it can be hidden the instant it exists.
     func applicationWillFinishLaunching(_ notification: Notification) {
         LaunchSplashController.shared.claimMainWindowBeforeItAppears()
-        // Nouveau cycle de lancement : on efface l'état deep-link d'une
-        // éventuelle session précédente pour éviter qu'un `nxm://` livré
-        // tôt ne trouve `isReady == true` ou une queue résiduelle.
+        // Ceinture et bretelles : l'instance est vierge à ce point (un
+        // `application(_:open:)` ne peut pas précéder ce callback dans un
+        // même processus), mais rendre l'invariant explicite garantit qu'un
+        // `nxm://` livré très tôt ne trouve jamais `isReady == true` ni une
+        // queue résiduelle, même si l'ordre d'appel changeait un jour.
         isReady = false
         pendingURLs.removeAll()
     }
@@ -64,6 +76,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// déjà terminé), et sans effet quand rien n'attend.
     func deliverPendingURLs() {
         isReady = true
+        flushPendingURLs()
+    }
+
+    /// Vide la queue vers le handler présent, sans toucher à `isReady`.
+    private func flushPendingURLs() {
         guard let handler = onURL, !pendingURLs.isEmpty else { return }
         let buffered = pendingURLs
         pendingURLs.removeAll()
@@ -78,8 +95,8 @@ struct StarHubTHApp: App {
 
     init() {
         // No-op : StarHubTHViewModel.currentLanguage est l'unique source de
-        // vérité. Il resynchronise `AppleLanguages` à partir de
-        // `UDKey.currentLanguage` lors de son init (cf. L.1919-1926).
+        // vérité. Son didSet resynchronise `AppleLanguages` (via
+        // UDKey.appleLanguagesOverride) — aucune écriture à faire ici.
     }
 
     var body: some Scene {
