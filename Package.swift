@@ -25,6 +25,7 @@ let package = Package(
                 "SaveManager.swift",
                 "Models/InventoryItem.swift",
                 "Models/NxmLink.swift",
+                "Models/NexusDownloadQueue.swift",
                 "Models/NexusDownloadAPI.swift",
                 "Models/NexusRequestBuilder.swift",
                 "Models/NexusRateLimitGate.swift",
@@ -261,6 +262,11 @@ let package = Package(
             name: "NexusDownloadTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/NexusDownloadTests"
+        ),
+        .testTarget(
+            name: "NexusDownloadQueueTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/NexusDownloadQueueTests"
         ),
         .testTarget(
             name: "NexusRateLimitTests",

@@ -156,15 +156,22 @@ class StarHubTHViewModel: ObservableObject {
     /// alors rien à mesurer, seulement une attente — `isDownloadingFromNexus`
     /// la porte déjà.
     ///
-    /// Un seul, jamais une liste : `rejectNexusDownloadIfBusy` sérialise les
-    /// téléchargements à dessein (deux en vol se disputeraient
-    /// `pendingDownloadedZip`). Un panneau de transferts concurrents n'aurait
-    /// rien à lister.
+    /// Un seul téléchargement en vol à la fois, à dessein : deux se
+    /// disputeraient `pendingDownloadedZip`. Les demandes surnuméraires ne
+    /// sont plus refusées pour autant — elles attendent dans
+    /// `nexusDownloadQueue` et reprennent tour à tour à chaque bascule de
+    /// repos.
     @Published private(set) var nexusDownloadProgress: DownloadProgress?
 
     /// Le téléchargement en vol, seul point d'annulation. Existe dès la
     /// demande, donc avant que le lien ne soit résolu.
     private var nexusDownloadInFlight: NexusFileDownload?
+    /// Téléchargements Nexus mis en file au lieu d'être refusés pendant
+    /// qu'un autre tourne ou que la feuille d'installation est ouverte.
+    /// Vidée par `drainQueuedNexusDownloads()`, appelé aux bascules de
+    /// repos : fin d'un téléchargement sans feuille (échec, annulation,
+    /// traduction) et fermeture de la feuille d'installation.
+    private var nexusDownloadQueue = NexusDownloadQueue()
     /// Le débit, lissé sur trois secondes. Vit ici et non dans la vue : le
     /// téléchargement continue quand l'onglet change.
     private var nexusDownloadRate = DownloadRateEstimator()
@@ -5392,8 +5399,11 @@ for mod in mods {
         }
     }
 
-    /// Refuse un second téléchargement tant qu'un premier tourne, ou que son
-    /// archive attend encore dans la feuille d'installation.
+    /// Refuse un téléchargement concurrent tant qu'un premier tourne, ou que
+    /// son archive attend encore dans la feuille d'installation. Ne garde
+    /// plus que le dépôt de traduction : les téléchargements de mods
+    /// passent par la file (`enqueueOrStartNexusDownload`) au lieu d'être
+    /// refusés.
     ///
     /// Sans ce garde-fou, un second lien `nxm://` — livré par AppKit, donc
     /// insensible à la feuille ouverte — écrasait `pendingDownloadedZip` : la
@@ -5420,38 +5430,63 @@ for mod in mods {
             showModal(message: L(L10n.VM.nexusDlBadLink))
             return
         }
-        if rejectNexusDownloadIfBusy() { return }
-        isDownloadingFromNexus = true
-        downloadingNexusModId = link.modId
-        log(nexusDownloadLogMessage(named: L10n.VM.nexusDlStartingNamed,
-                                    plain: L10n.VM.nexusDlStarting, modId: link.modId))
-        nexusDownloadInFlight = nexusDownloader.download(
-            modId: link.modId, fileId: link.fileId, game: link.gameDomain,
-            key: link.key, expires: link.expires,
-            onProgress: { [weak self] received, expected in
-                self?.noteNexusDownloadProgress(received: received, expected: expected,
-                                                modId: link.modId)
-            }) { [weak self] result in
-            self?.handleNexusDownloadResult(result, modId: link.modId)
-        }
+        enqueueOrStartNexusDownload(.init(modId: link.modId, fileId: link.fileId,
+                                          game: link.gameDomain, key: link.key,
+                                          expires: link.expires))
     }
 
     /// In-app download for the current game via the API key alone (Nexus
     /// Premium required for a direct link). fileId nil → main file resolved.
     func downloadModFromNexus(nexusId: Int) {
-        if rejectNexusDownloadIfBusy() { return }
+        enqueueOrStartNexusDownload(.init(modId: nexusId, fileId: nil,
+                                          game: "stardewvalley", key: nil, expires: nil))
+    }
+
+    /// Point de passage unique des demandes de téléchargement de mods :
+    /// démarre si le couple (`isDownloadingFromNexus`,
+    /// `pendingDownloadedZip`) est au repos, met en file sinon. Un clic
+    /// répété sur un fichier déjà en attente ne duplique pas l'entrée
+    /// (dédupliquée par `NexusDownloadQueue`) et ne rejournalise pas.
+    private func enqueueOrStartNexusDownload(_ entry: NexusDownloadQueue.Entry) {
+        if isDownloadingFromNexus || pendingDownloadedZip != nil {
+            if nexusDownloadQueue.enqueue(entry) {
+                log(nexusDownloadLogMessage(named: L10n.VM.nexusDlQueuedNamed,
+                                            plain: L10n.VM.nexusDlQueued, modId: entry.modId))
+            }
+            return
+        }
+        startNexusDownload(entry)
+    }
+
+    /// Lance effectivement le téléchargement — appelé sur un état de repos
+    /// garanti par l'appelant (entrée directe ou drainage de la file).
+    private func startNexusDownload(_ entry: NexusDownloadQueue.Entry) {
         isDownloadingFromNexus = true
-        downloadingNexusModId = nexusId
+        downloadingNexusModId = entry.modId
         log(nexusDownloadLogMessage(named: L10n.VM.nexusDlStartingNamed,
-                                    plain: L10n.VM.nexusDlStarting, modId: nexusId))
+                                    plain: L10n.VM.nexusDlStarting, modId: entry.modId))
         nexusDownloadInFlight = nexusDownloader.download(
-            modId: nexusId, fileId: nil, game: "stardewvalley", key: nil, expires: nil,
+            modId: entry.modId, fileId: entry.fileId, game: entry.game,
+            key: entry.key, expires: entry.expires,
             onProgress: { [weak self] received, expected in
                 self?.noteNexusDownloadProgress(received: received, expected: expected,
-                                                modId: nexusId)
+                                                modId: entry.modId)
             }) { [weak self] result in
-            self?.handleNexusDownloadResult(result, modId: nexusId)
+            self?.handleNexusDownloadResult(result, modId: entry.modId)
         }
+    }
+
+    /// Démarre le téléchargement suivant de la file, si le couple
+    /// (`isDownloadingFromNexus`, `pendingDownloadedZip`) est au repos.
+    /// Appelé aux trois bascules : fin d'un téléchargement de mod sans
+    /// feuille (échec, annulation), fin d'un téléchargement de traduction,
+    /// et fermeture de la feuille d'installation (`MainView`). Sur succès
+    /// d'un téléchargement de mod, la feuille est ouverte : le garde tient
+    /// le suivant jusqu'à sa fermeture.
+    func drainQueuedNexusDownloads() {
+        guard !isDownloadingFromNexus, pendingDownloadedZip == nil,
+              let next = nexusDownloadQueue.dequeue() else { return }
+        startNexusDownload(next)
     }
 
     /// Shared completion for both Nexus download entry points: hops to main,
@@ -5485,6 +5520,11 @@ for mod in mods {
                 self.showModal(message: message)
                 self.log(message, level: .warning)
             }
+            // Fin d'un téléchargement sans feuille ouverte (échec,
+            // annulation) : le créneau est libre, la file peut reprendre.
+            // Sur succès, `pendingDownloadedZip` est déjà posé et le garde
+            // retient le suivant jusqu'à la fermeture de la feuille.
+            self.drainQueuedNexusDownloads()
         }
     }
 
@@ -6278,6 +6318,9 @@ for mod in mods {
                     }
                     self.showModal(message: self.nexusDownloadMessage(error) + hint)
                 }
+                // Une traduction occupait l'unique créneau de téléchargement
+                // : les mods mis en file derrière elle peuvent reprendre.
+                self.drainQueuedNexusDownloads()
             }
         }
     }

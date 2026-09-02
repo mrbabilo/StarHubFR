@@ -380,6 +380,9 @@ struct MainView: View {
             }
             vm.pendingDownloadedZip = nil
             vm.pendingNexusSource = nil
+            // La feuille fermée, le créneau de téléchargement est libre :
+            // la file nxm:// peut dérouler le lien suivant, s'il y en a.
+            vm.drainQueuedNexusDownloads()
         }) {
             ModInstallView(vm: vm, isPresented: $showDownloadedInstall, preloadedZip: vm.pendingDownloadedZip)
         }

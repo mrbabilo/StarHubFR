@@ -5,10 +5,10 @@ import Foundation
 ///
 /// Il remplace un `URLSession.downloadTask(with:completionHandler:)`, dont la
 /// complétion unique était la garantie sur laquelle repose tout le reste :
-/// `isDownloadingFromNexus` n'est remis à `false` que là, et
-/// `rejectNexusDownloadIfBusy` refuse tout nouveau téléchargement tant qu'il
-/// est vrai. Deux appels rejouaient l'installation ; zéro appel condamnait le
-/// bouton pour la session entière.
+/// `isDownloadingFromNexus` n'est remis à `false` que là, et tout nouvel
+/// entrant attend son tour (file des mods) ou est refusé (traductions)
+/// tant qu'il est vrai. Deux appels rejouaient l'installation ; zéro appel
+/// condamnait le bouton pour la session entière.
 ///
 /// Or le délégué, lui, sépare ce qui était une closure en **deux** rappels qui
 /// se produisent tous deux sur un téléchargement normal :

@@ -909,6 +909,7 @@
 "vm_nexus_dl_bad_link" = "Lien de téléchargement Nexus invalide.";
 "vm_nexus_dl_busy" = "Un téléchargement Nexus est déjà en attente. Terminez l'installation en cours avant d'en lancer un autre.";
 "vm_nexus_dl_starting" = "Téléchargement du mod %lld depuis Nexus…";
+"vm_nexus_dl_queued" = "Mod %lld mis en file — il démarrera quand le téléchargement et l'installation en cours seront terminés.";
 "vm_nexus_dl_auth_failed" = "Échec de l'authentification Nexus — vérifiez votre clé API dans les Réglages.";
 "vm_nexus_dl_rate_limited" = "Trop de requêtes vers Nexus — patientez un instant puis réessayez.";
 "vm_nexus_dl_server_error" = "Nexus a renvoyé une réponse inattendue (%lld).";
@@ -1230,6 +1231,7 @@
 "updates_blocker_unreadable_entry" = "Fiche rejetée par smapi.io (elle ne répond rien pour ce mod)";
 "updates_blocker_other" = "smapi.io a renvoyé une erreur";
 "vm_nexus_dl_starting_named" = "Téléchargement de « %1$@ » (mod %2$lld) depuis Nexus…";
+"vm_nexus_dl_queued_named" = "« %1$@ » (mod %2$lld) mis en file — il démarrera quand le téléchargement et l'installation en cours seront terminés.";
 "vm_nexus_dl_completed_named" = "Téléchargement terminé : « %1$@ » (mod %2$lld)";
 "vm_nexus_dl_cancelled_named" = "Téléchargement de « %1$@ » (mod %2$lld) annulé.";
 "downloads_downloading_named" = "Téléchargement : %@";
