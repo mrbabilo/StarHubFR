@@ -2402,6 +2402,16 @@ par lot, une release par lot. Périmètre : visuel + navigation —
 > intitulée « apiIntegration » (encart de SMAPI pris pour un mod) supprimée,
 > les notices sans mod dotées d'un titre traduit, et le dossier d'un
 > composant de pack redevenu résolvable.
+> **Second tour d'écran (H-T6d, 2026-09-02, vérifié)** : pastille de compte sur
+> chacun des deux panoramas (masquée à zéro), leur feuille élargie de 640×580
+> à 980×720 — les deux alignent des noms tronqués à une ligne, un conflit en
+> montre deux côte à côte. `HealthIssue.action` devient `actions: [Action]` :
+> une information qui nomme un mod mène aux DEUX endroits (sa fiche et la
+> ligne du journal), une ligne critique garde son chemin unique. Et
+> `pendingDetailTab` ouvre la fiche sur l'onglet « État », pas sur la prose :
+> c'est de l'état du mod que l'alerte parle. Sur le parc de l'auteur la
+> pastille clavier affiche 78 (58 collisions + 20 conflits jeu), celle des
+> conflits reste masquée.
 > **Revue globale de branche (2026-09-02)** : 7 bloquants corrigés en une
 > vague — la pastille comptait les notices SMAPI bénignes (`.info`) comme des
 > problèmes (7 sur un parc sans le moindre échec ni conflit), pas de garde
