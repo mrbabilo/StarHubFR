@@ -35,11 +35,6 @@ final class BisectionRunner: ObservableObject {
     /// désigner que l'un des deux.
     @Published private(set) var logEvidence: [BisectionEvidence.LogSuspect] = []
 
-    /// Un mod que le journal a mis en cause, avec la fréquence à laquelle il
-    /// apparaît selon que la panne était là ou non.
-
-    /// Un relevé par étape : ce que le journal imputait, et si la panne était
-    /// encore là.
     /// Un relevé par étape : les dossiers actifs, les mods incriminés avec un
     /// extrait de leur erreur, et si la panne était encore là. Les dossiers
     /// actifs sont indispensables au croisement : sans eux on saurait *quand*
