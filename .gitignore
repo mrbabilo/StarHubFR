@@ -31,8 +31,11 @@ unpack_batch.py
 # Claude Code — local config/skills, not versioned
 .claude/
 
-# Kilo — local config/skills, not versioned
-.kilo/
+# Kilo — config/outillage local non versionné, SAUF les plans : ils portent
+# le raisonnement derrière des choix encore en place, et une IA travaillant
+# sur un clone frais ne les verrait pas s'ils restaient ignorés.
+.kilo/*
+!.kilo/plans/
 
 # Superpowers working docs (specs/plans/audits) — local, not versioned
 docs/superpowers/

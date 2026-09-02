@@ -2,7 +2,11 @@
 
 > **LIRE OBLIGATOIREMENT avant toute modification de ce projet.**
 > Ce fichier consolide les conventions, pièges techniques et commandes validées.
-> Complémentaire à `CLAUDE.md` (qui pointe vers les skills) et à la mémoire Kilo.
+> Complémentaire à `CLAUDE.md` (qui pointe vers les skills et liste les sources
+> à consulter), à `docs/DOMAINE.md` (le vocabulaire métier) et à `.kilo/plans/`
+> — les plans de l'époque Kilo, qui portent le raisonnement derrière des choix
+> encore en place. Ces plans sont des **archives** : à lire pour le « pourquoi »,
+> jamais comme une spécification courante.
 
 ---
 

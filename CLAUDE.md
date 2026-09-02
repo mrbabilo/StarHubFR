@@ -19,6 +19,27 @@ pas — notamment que « pack », « profil » et « sauvegarde » désignent ic
 chose que chez l'upstream, et qu'un mod en pause est un dossier **préfixé par un
 point** dans `Mods/`, pas un dossier déplacé.
 
+## Sources à consulter — au-delà de ce fichier
+
+Ce dépôt est travaillé par plusieurs IA, et le contexte n'est pas tout dans
+`CLAUDE.md`. Dans l'ordre où ça sert :
+
+- **`AGENTS.md`** — conventions et pièges consolidés (§4 surtout). Complémentaire
+  de ce fichier, pas redondant.
+- **`docs/DOMAINE.md`** — le vocabulaire métier. Obligatoire avant de toucher aux
+  mods, à SMAPI, à Nexus, aux profils, aux sauvegardes ou aux traductions.
+- **`docs/ROADMAP.md`** — l'état des tâches. ⚠️ Ses cases traînent derrière le
+  code livré : vérifier `git log` avant de traiter une tâche « à faire ».
+- **`.kilo/plans/`** — les plans écrits du temps de Kilo (installation par
+  glisser-déposer, sauvegarde de config, bascule par préfixe point, comparaison
+  StarHubFR/StarHubTH…). Ils portent le **raisonnement** derrière des choix
+  encore en place, ce que le code ne dit pas. ⚠️ Ce sont des **archives**, pas
+  des spécifications courantes : leurs cases ne valent rien et une partie a été
+  livrée autrement. À lire pour le « pourquoi », jamais comme une consigne.
+  Le reste de `.kilo/` (outillage, `node_modules`) reste ignoré.
+- **`docs/superpowers/`** — specs et plans de travail récents. Locaux, gitignorés :
+  absents d'un clone frais.
+
 ## Build & test — LIRE avant de valider un changement
 
 Le build est **scindé en deux systèmes** ; vérifier lequel couvre le fichier touché.
@@ -62,9 +83,8 @@ via `release.py`. → skill `release`.
 ## Traps — pièges techniques du projet
 
 Synthèse des pièges qui **coûtent cher à retrouver** si on ne les a pas déjà
-rencontrés. Pour les conventions plus larges, voir `AGENTS.md` §4. Les
-corrections ponctuelles (avec leur commit) vivent dans la mémoire Kilo
-(`corrections.md`).
+rencontrés. Pour les conventions plus larges, voir `AGENTS.md` §4 ; pour le
+raisonnement derrière les choix anciens, `.kilo/plans/`.
 
 ### SwiftUI / AppKit
 
