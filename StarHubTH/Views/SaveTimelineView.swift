@@ -1,13 +1,31 @@
 import SwiftUI
 
+/// Les deux confirmations de la timeline passent par **un seul** modificateur
+/// `.alert`, porté par cette valeur.
+///
+/// Mesuré dans les deux sens : avec deux `.alert` sur la même vue, exactement
+/// une des deux se présente. En API héritée c'était celle de l'extérieur (la
+/// suppression confirmait, la restauration non) ; en API moderne l'autre (la
+/// restauration confirmait, la suppression non). Changer d'API ne fait que
+/// déplacer le perdant — seul un modificateur unique ferme la question.
+private enum SaveTimelineConfirmation: Identifiable {
+    case restore(SaveBackup)
+    case delete(SaveBackup)
+
+    var id: String {
+        switch self {
+        case .restore(let backup): return "restore-\(backup.id)"
+        case .delete(let backup): return "delete-\(backup.id)"
+        }
+    }
+}
+
 struct SaveTimelineView: View {
     @ObservedObject var vm: StarHubTHViewModel
     let save: SaveGameInfo
     
     @State private var backups: [SaveBackup] = []
-    @State private var backupToRestore: SaveBackup?
-    @State private var showRestoreConfirm = false
-    @State private var backupToDelete: SaveBackup?
+    @State private var confirmation: SaveTimelineConfirmation?
     @State private var isHoveredReturn = false
     
     var body: some View {
@@ -95,13 +113,8 @@ struct SaveTimelineView: View {
                                 vm: vm,
                                 backup: backup,
                                 isLast: isLast,
-                                onRestore: {
-                                    backupToRestore = backup
-                                    showRestoreConfirm = true
-                                },
-                                onDelete: {
-                                    backupToDelete = backup
-                                }
+                                onRestore: { confirmation = .restore(backup) },
+                                onDelete: { confirmation = .delete(backup) }
                             )
                         }
                     }
@@ -113,51 +126,56 @@ struct SaveTimelineView: View {
         .onAppear {
             loadBackups()
         }
-        // ⚠️ Deux alertes sur la même vue : il **faut** l'API moderne
-        // (`alert(_:isPresented:actions:message:)`). Avec l'API héritée qui
-        // rend un `Alert`, une seule des deux se présente — c'est celle de
-        // l'extérieur qui gagne, donc « Restaurer » n'affichait rien du tout
-        // pendant que « Supprimer » fonctionnait. Toutes les autres vues du
-        // dépôt utilisent déjà l'API moderne ; celle-ci était la dernière.
-        //
-        // `presenting:` plutôt qu'une capture du `@State` : les actions
-        // s'exécutent après la fermeture, quand le binding a déjà remis la
-        // valeur à `nil` — la sauvegarde à restaurer serait perdue au moment
-        // de l'utiliser.
-        .alert(vm.L(L10n.Saves.confirmRestore),
-               isPresented: $showRestoreConfirm,
-               presenting: backupToRestore) { backup in
-            Button(vm.L(L10n.Saves.restore), role: .destructive) {
-                Task { await vm.restoreBackup(backup: backup, info: save) }
-            }
-            Button(vm.L(L10n.Saves.cancel), role: .cancel) {}
-        } message: { _ in
-            Text(vm.L(vm.isGameRunning() ? L10n.Saves.confirmRestoreMsgGameRunning
-                                         : L10n.Saves.confirmRestoreMsg))
-        }
-        // La restauration (destructive) confirmait, pas la suppression.
-        // Celle-ci va à la corbeille (récupérable), mais le clic « trash »
-        // mérite quand même une garde (audit 2026-08-05).
-        .alert(vm.L(L10n.Saves.confirmDeleteBackup),
-               isPresented: Binding(get: { backupToDelete != nil },
-                                    set: { if !$0 { backupToDelete = nil } }),
-               presenting: backupToDelete) { backup in
-            Button(vm.L(L10n.Saves.deleteBackup), role: .destructive) {
-                Task {
-                    if await vm.deleteBackup(backup) {
-                        loadBackups()
+        // Un seul `.alert` : voir `SaveTimelineConfirmation`. `presenting:`
+        // plutôt qu'une relecture du `@State` dans l'action — celle-ci
+        // s'exécute après la fermeture, quand le binding a déjà remis la
+        // valeur à `nil`, et l'alerte s'ouvrirait pour ne rien faire.
+        .alert(confirmationTitle,
+               isPresented: Binding(get: { confirmation != nil },
+                                    set: { if !$0 { confirmation = nil } }),
+               presenting: confirmation) { pending in
+            switch pending {
+            case .restore(let backup):
+                Button(vm.L(L10n.Saves.restore), role: .destructive) {
+                    Task { await vm.restoreBackup(backup: backup, info: save) }
+                }
+            case .delete(let backup):
+                // La restauration est destructive et confirmait déjà ; la
+                // suppression va à la corbeille, donc récupérable, mais le
+                // clic « trash » mérite la même garde (audit 2026-08-05).
+                Button(vm.L(L10n.Saves.deleteBackup), role: .destructive) {
+                    Task {
+                        if await vm.deleteBackup(backup) {
+                            loadBackups()
+                        }
                     }
                 }
             }
             Button(vm.L(L10n.Saves.cancel), role: .cancel) {}
-        } message: { _ in
-            Text(vm.L(L10n.Saves.confirmDeleteBackupMsg))
+        } message: { pending in
+            switch pending {
+            case .restore:
+                Text(vm.L(vm.isGameRunning() ? L10n.Saves.confirmRestoreMsgGameRunning
+                                             : L10n.Saves.confirmRestoreMsg))
+            case .delete:
+                Text(vm.L(L10n.Saves.confirmDeleteBackupMsg))
+            }
         }
         .sheet(item: $vm.backupToBranch) { backup in
             BranchBackupSheet(vm: vm, backup: backup)
         }
     }
     
+    /// Le titre est hors des closures de `.alert` : il s'évalue au moment du
+    /// rendu de la vue, pas de la présentation.
+    private var confirmationTitle: String {
+        switch confirmation {
+        case .restore: return vm.L(L10n.Saves.confirmRestore)
+        case .delete: return vm.L(L10n.Saves.confirmDeleteBackup)
+        case nil: return ""
+        }
+    }
+
     private func loadBackups() {
         vm.listBackups(for: save) { fetched in
             backups = fetched
