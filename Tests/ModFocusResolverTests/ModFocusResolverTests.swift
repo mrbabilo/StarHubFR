@@ -79,4 +79,25 @@ struct ModFocusResolverTests {
     @Test func anUnknownModResolvesToNothing() {
         #expect(ModFocusResolver.resolve("Jamais installé", in: [mod("Automate")]) == nil)
     }
+
+    @Test func aChildFolderNameResolvesToItsComponent() {
+        // H-T6c : un conflit du journal porte un `folderName` produit par
+        // `conflictFolderNames`, qui cherche dans `flattenedMods` — donc
+        // parfois le dossier d'un ENFANT de pack. Le chercher uniquement parmi
+        // les dossiers de premier niveau ne le trouvait jamais, et le bouton
+        // « Ouvrir la fiche du mod » d'une ligne de conflit ne faisait rien.
+        let pack = mod("RSV", folder: "RidgesideVillage",
+                       children: [mod("RSV Core", folder: "[CP] RSV Core")])
+        #expect(ModFocusResolver.resolve("[CP] RSV Core", in: [pack])?.name == "RSV Core")
+    }
+
+    @Test func aTopLevelFolderStillWinsOverAChildFolderOfTheSameName() {
+        // Contre-épreuve du passage ci-dessus : la priorité au premier niveau
+        // ne bouge pas. Un pack mis en pause par la recherche guidée doit
+        // rester le pack, jamais son composant homonyme.
+        let target = mod("Le bon", folder: "Ambigu")
+        let pack = mod("Pack", folder: "Emballage",
+                       children: [mod("Le mauvais", folder: "Ambigu")])
+        #expect(ModFocusResolver.resolve("Ambigu", in: [target, pack])?.name == "Le bon")
+    }
 }

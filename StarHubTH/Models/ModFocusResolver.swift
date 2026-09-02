@@ -34,6 +34,13 @@ public enum ModFocusResolver {
 
         let all = mods.flattenedMods + mods
         return all.first { $0.name == needle }
+            // Puis le dossier d'un ENFANT de pack (H-T6c). Un conflit du
+            // journal porte un `folderName` issu de `conflictFolderNames`,
+            // qui cherche dans `flattenedMods` : ce dossier peut être celui
+            // d'un composant. Passé APRÈS le nom exact, ce recours n'enlève
+            // rien à personne — il ne fait que remplacer un échec, ou une
+            // correspondance partielle floue, par un dossier exact.
+            ?? all.first { $0.folderName == needle }
             ?? all.first { $0.name.localizedCaseInsensitiveContains(needle) }
     }
 }
