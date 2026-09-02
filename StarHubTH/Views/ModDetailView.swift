@@ -186,6 +186,14 @@ struct ModDetailView: View {
             // pas « montre-moi ce mod » mais « traduis-le ». Consommée ici,
             // avant tout travail asynchrone, et effacée aussitôt pour que le
             // mod suivant ne s'ouvre pas sur le même onglet.
+            // Demandé par l'appelant qui a ouvert cette fiche (écran
+            // d'alertes) : consommé sans condition de mod — il vient d'être
+            // posé pour CETTE navigation — et effacé aussitôt, pour que la
+            // fiche suivante s'ouvre normalement.
+            if let tab = vm.pendingDetailTab {
+                vm.pendingDetailTab = nil
+                selectedTab = tab
+            }
             if vm.pendingTranslationFocus == mod.folderName {
                 vm.pendingTranslationFocus = nil
                 if mod.languages.contains("fr") || mod.languages.contains("en") {

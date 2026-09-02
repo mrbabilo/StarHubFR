@@ -32,7 +32,7 @@ public struct HealthIssue: Identifiable, Equatable {
     /// `openTab(String)` (H-T6b) : « Voir les journaux » ouvrait la vue
     /// générale, « Voir les mods » la liste entière, jamais l'erreur ni le
     /// mod fautif eux-mêmes.
-    public enum Action: Equatable {
+    public enum Action: Equatable, Identifiable {
         /// Ouvre la fiche du mod visé. `query` est ce qu'attend
         /// `ModFocusResolver.resolve(_:in:)` : un nom de dossier pour un
         /// conflit (`ModConflictPair` n'indexe que des `folderName`), un nom
@@ -45,6 +45,17 @@ public struct HealthIssue: Identifiable, Equatable {
         /// comme RivaTuner, une notice bénigne sans mod nommé) : la fiche
         /// n'existerait pas, le journal reste la seule trace exploitable.
         case openLogs(searchText: String)
+
+        /// Identité dérivée du contenu, comme celle de `HealthIssue` : une
+        /// ligne peut offrir deux chemins (voir `actions`), et `ForEach` les
+        /// distingue par ceci — jamais par leur position, qui changerait la
+        /// vue sous les doigts dès qu'une ligne gagne ou perd une action.
+        public var id: String {
+            switch self {
+            case .openMod(let q):   return "mod:\(q)"
+            case .openLogs(let s):  return "logs:\(s)"
+            }
+        }
     }
 
     /// Dérivé du **contenu**. Les modèles sources (`SmapiDiagnostics.Issue`,
@@ -64,18 +75,24 @@ public struct HealthIssue: Identifiable, Equatable {
     /// `title` reste le repli si la clé venait à manquer.
     public let titleKey: String?
     public let detail: String?
-    public let action: Action?
+    /// Les chemins qu'offre la ligne, dans l'ordre d'affichage — zéro, un, ou
+    /// deux. Une information qui nomme un mod en propose deux (sa fiche ET la
+    /// ligne du journal) : les deux répondent à des questions différentes, et
+    /// n'en donner qu'une revenait à choisir pour le lecteur. Une ligne
+    /// critique garde un chemin unique : deux boutons sur une urgence diluent
+    /// le geste à faire.
+    public let actions: [Action]
 
     public init(id: String, severity: Severity, source: Source,
                 title: String, titleKey: String? = nil,
-                detail: String?, action: Action?) {
+                detail: String?, actions: [Action]) {
         self.id = id
         self.severity = severity
         self.source = source
         self.title = title
         self.titleKey = titleKey
         self.detail = detail
-        self.action = action
+        self.actions = actions
     }
 }
 

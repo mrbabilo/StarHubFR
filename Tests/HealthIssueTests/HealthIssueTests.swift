@@ -14,10 +14,10 @@ struct HealthIssueTests {
     @Test func identityComesFromContent() {
         let a = HealthIssue(id: "smapi-failed-SVE", severity: .critical,
                             source: .smapi, title: "SVE", detail: "raison",
-                            action: .openMod(query: "SVE"))
+                            actions: [.openMod(query: "SVE")])
         let b = HealthIssue(id: "smapi-failed-SVE", severity: .critical,
                             source: .smapi, title: "SVE", detail: "raison",
-                            action: .openMod(query: "SVE"))
+                            actions: [.openMod(query: "SVE")])
         #expect(a == b)
         #expect(a.id == b.id)
     }
@@ -43,7 +43,7 @@ struct HealthIssueTests {
 
     private static func issue(_ severity: HealthIssue.Severity, _ title: String) -> HealthIssue {
         HealthIssue(id: "\(severity)-\(title)", severity: severity, source: .smapi,
-                    title: title, detail: nil, action: nil)
+                    title: title, detail: nil, actions: [])
     }
 
     /// Revue globale de branche, bloquant 1 : une notice `.info` reste

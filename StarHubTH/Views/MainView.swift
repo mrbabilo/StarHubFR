@@ -265,6 +265,11 @@ struct MainView: View {
                 if currentTab == "Mods", let query = vm.pendingModDetailFocus {
                     vm.pendingModDetailFocus = nil
                     vm.viewingModDetail = ModFocusResolver.resolve(query, in: vm.mods)
+                    // Résolution vide : aucune fiche ne s'ouvrira, donc
+                    // personne ne consommera l'onglet demandé — il faut
+                    // l'effacer ici, sinon la prochaine fiche ouverte à la
+                    // main s'ouvrirait sur « État » sans raison.
+                    if vm.viewingModDetail == nil { vm.pendingDetailTab = nil }
                 }
 
                 if !isNavigatingBackOrForward {

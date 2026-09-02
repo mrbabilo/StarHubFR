@@ -19,6 +19,8 @@ where the exact log format was verified.
 - **Le rapport de restauration d'un backup d'installation** quitte l'alerte texte pour un panneau à sept champs étiquetés.
 - **`SystemAlertsView` et `QuarantineView` sortent de `MainView.swift`** (1519 → 1163 lignes), sans changement de comportement.
 - **`activeConflictCount` dérive maintenant de `healthIssues`**, comme `systemAlertCount` — l'ancien recalcul séparé (reconstruction de `activeFolders`/`candidates` puis rappel de `liveConflictCount`) est retiré.
+- **Les deux panoramas de l'écran d'alertes portent leur compte** : le rapport de raccourcis et la vue des conflits affichent le nombre de lignes détectées sur leur bouton, capsule masquée à zéro. Leur fenêtre passe de 640×580 à 980×720 — les deux alignent des noms de mods tronqués à une ligne, et un conflit en montre deux côte à côte.
+- **Une ligne d'information mène désormais aux deux endroits** : la fiche du mod concerné *et* la ligne du journal. La fiche dit ce qu'est le mod, le journal ce qui s'est passé. Les lignes critiques gardent un chemin unique.
 
 ### Fixed
 
@@ -30,6 +32,7 @@ where the exact log format was verified.
 - **Le rapport de raccourcis et le panorama des conflits étaient devenus inatteignables** en sortant `SystemAlertsView` de `MainView.swift`. Les deux reviennent en feuilles, depuis la barre d'outils de l'écran d'alertes ; le bouton « Écarter » d'un conflit redevient accessible.
 - **Une ligne d'alerte s'intitulait « apiIntegration »** — un nom de symbole, en anglais. SMAPI décrivant ses propres sections (« … you can ignore this warning. ») était pris pour un mod relativisant son erreur. Les notices sans mod portent désormais un titre traduit ; la carte de santé en comptait une de trop.
 - **Le bouton d'un conflit ne trouvait pas un mod installé sous un pack.** Seuls les dossiers de premier niveau étaient comparés, alors qu'un conflit peut nommer un composant.
+- **Ouvrir un mod depuis une alerte tombait sur sa description**, alors que l'alerte parle de son état. La fiche s'ouvre maintenant directement sur l'onglet « État » — compatibilité, erreurs, raccourcis, conflits.
 
 ## [1.32.0] - 2026-09-02
 

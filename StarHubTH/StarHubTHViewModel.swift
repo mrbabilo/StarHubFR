@@ -3718,6 +3718,19 @@ class StarHubTHViewModel: ObservableObject {
     /// `MainView`, après la remise à zéro des états de détail.
     @Published var pendingModDetailFocus: String? = nil
 
+    /// L'onglet sur lequel la prochaine fiche de mod doit s'ouvrir, quand
+    /// l'appelant ne veut pas la description par défaut. Posé avec
+    /// `pendingModDetailFocus` par `SystemAlertsView` : une alerte parle de
+    /// l'ÉTAT du mod (compatibilité, erreurs, raccourcis, conflits), pas de
+    /// sa prose — l'ouvrir sur la description obligeait à un clic de plus
+    /// pour lire ce qui motivait l'alerte.
+    ///
+    /// Consommé par `ModDetailView` elle-même, comme `pendingTranslationFocus`
+    /// : `selectedTab` est un `@State` privé de cette vue. Remis à `nil` par
+    /// `MainView` quand la résolution échoue, sinon la demande survivrait
+    /// jusqu'à la prochaine fiche ouverte à la main.
+    @Published var pendingDetailTab: DetailTab? = nil
+
     /// Le texte à préremplir dans la recherche des Journaux après un
     /// changement d'onglet. Posé par `SystemAlertsView` (H-T6b) pour ses
     /// lignes sans mod résolvable (outil externe, notice bénigne sans mod).

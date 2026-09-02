@@ -27,8 +27,8 @@ struct HealthIssueResolverSmapiTests {
     /// générique.
     @Test func failedAndSkippedModsOpenTheirModFiche() {
         let issues = HealthIssueResolver.smapiIssues(Self.diagnostics())
-        #expect(issues.first { $0.title == "SVE" }?.action == .openMod(query: "SVE"))
-        #expect(issues.first { $0.title == "Automate" }?.action == .openMod(query: "Automate"))
+        #expect(issues.first { $0.title == "SVE" }?.actions == [.openMod(query: "SVE")])
+        #expect(issues.first { $0.title == "Automate" }?.actions == [.openMod(query: "Automate")])
     }
 
     /// Le VRAI parseur (`SmapiDiagnostics.parse`, pas une fixture à la main)
@@ -48,7 +48,7 @@ struct HealthIssueResolverSmapiTests {
 
         let issues = HealthIssueResolver.smapiIssues(d)
         let row = issues.first { $0.title == "AnotherMod 1.0" }
-        #expect(row?.action == .openMod(query: "AnotherMod"))
+        #expect(row?.actions == [.openMod(query: "AnotherMod")])
     }
 
     /// Contre-épreuve : un mod dont le nom se termine par un mot ordinaire
@@ -62,14 +62,14 @@ struct HealthIssueResolverSmapiTests {
         let d = SmapiDiagnostics.parse(logContent: log)
         let issues = HealthIssueResolver.smapiIssues(d)
         let row = issues.first { $0.title == "Content Patcher Animations 1.2" }
-        #expect(row?.action == .openMod(query: "Content Patcher Animations"))
+        #expect(row?.actions == [.openMod(query: "Content Patcher Animations")])
     }
 
     /// La dépendance manquante défensive nomme aussi un vrai mod : même
     /// cible que failed/skipped.
     @Test func missingDependencyDefensiveCaseOpensTheModFiche() {
         let issues = HealthIssueResolver.smapiIssues(Self.diagnostics())
-        #expect(issues.first { $0.title == "RSV" }?.action == .openMod(query: "RSV"))
+        #expect(issues.first { $0.title == "RSV" }?.actions == [.openMod(query: "RSV")])
     }
 
     /// `externalConflicts` nomme un outil externe (RivaTuner…), jamais un mod
@@ -79,8 +79,8 @@ struct HealthIssueResolverSmapiTests {
         var d = Self.diagnostics()
         d.externalConflicts = ["RivaTuner Statistics Server"]
         let issues = HealthIssueResolver.smapiIssues(d)
-        #expect(issues.first { $0.title == "RivaTuner Statistics Server" }?.action
-                == .openLogs(searchText: "RivaTuner Statistics Server"))
+        #expect(issues.first { $0.title == "RivaTuner Statistics Server" }?.actions
+                == [.openLogs(searchText: "RivaTuner Statistics Server")])
     }
 
     /// `brokenMods`, lui, nomme un vrai mod marqué cassé par SMAPI : la fiche
@@ -89,16 +89,18 @@ struct HealthIssueResolverSmapiTests {
         var d = Self.diagnostics()
         d.brokenMods = ["Old Broken Mod"]
         let issues = HealthIssueResolver.smapiIssues(d)
-        #expect(issues.first { $0.title == "Old Broken Mod" }?.action
-                == .openMod(query: "Old Broken Mod"))
+        #expect(issues.first { $0.title == "Old Broken Mod" }?.actions
+                == [.openMod(query: "Old Broken Mod")])
     }
 
     /// Une notice bénigne qui NOMME un mod (`notice.mod` non nil) ouvre sa
     /// fiche, comme n'importe quelle autre ligne SMAPI qui désigne un mod
-    /// réel.
+    /// réel. Ici SANS second bouton : l'exemple de la fixture se réduit à son
+    /// ellipse de troncature, donc il n'y a rien à chercher dans le journal —
+    /// un bouton de plus n'y mènerait nulle part (voir `benignActions`).
     @Test func benignNoticeWithAModOpensItsFiche() {
         let issues = HealthIssueResolver.smapiIssues(Self.diagnostics())
-        #expect(issues.first { $0.title == "CJB" }?.action == .openMod(query: "CJB"))
+        #expect(issues.first { $0.title == "CJB" }?.actions == [.openMod(query: "CJB")])
     }
 
     /// Une notice bénigne SANS mod (Galaxy…) ne peut viser aucune fiche :
@@ -109,8 +111,8 @@ struct HealthIssueResolverSmapiTests {
         d.benignNotices = [.init(kind: .galaxyAuth, mod: nil, count: 1,
                                  sample: "GOG Galaxy 64 couldn't be initialized")]
         let issues = HealthIssueResolver.smapiIssues(d)
-        #expect(issues.first { $0.severity == .info }?.action
-                == .openLogs(searchText: "GOG Galaxy 64 couldn't be initialized"))
+        #expect(issues.first { $0.severity == .info }?.actions
+                == [.openLogs(searchText: "GOG Galaxy 64 couldn't be initialized")])
     }
 
     /// Repli au repli : sans mod ET sans exemple, la recherche porte au moins
@@ -121,7 +123,7 @@ struct HealthIssueResolverSmapiTests {
         let issues = HealthIssueResolver.smapiIssues(d)
         let notice = issues.first { $0.severity == .info }
         #expect(notice?.title == "galaxyAuth")
-        #expect(notice?.action == .openLogs(searchText: "galaxyAuth"))
+        #expect(notice?.actions == [.openLogs(searchText: "galaxyAuth")])
     }
 
     /// `SmapiLogDiagnostics.evidence(from:)` tronque au-delà de 160
@@ -134,7 +136,7 @@ struct HealthIssueResolverSmapiTests {
                                  sample: "Some very long evidence line…")]
         let issues = HealthIssueResolver.smapiIssues(d)
         let notice = issues.first { $0.title == "apiIntegration" }
-        #expect(notice?.action == .openLogs(searchText: "Some very long evidence line"))
+        #expect(notice?.actions == [.openLogs(searchText: "Some very long evidence line")])
     }
 
     /// Le parseur range déjà les dépendances *optionnelles* en notice bénigne :
@@ -333,7 +335,7 @@ struct HealthIssueResolverAggregateTests {
         // `ModConflictPair` trie ses deux dossiers à la construction :
         // "cp.folder" < "sve.folder", donc `.first == "cp.folder"`.
         let issues = HealthIssueResolver.conflictIssues([ModConflictPair("sve.folder", "cp.folder")])
-        #expect(issues.first?.action == .openMod(query: "cp.folder"))
+        #expect(issues.first?.actions == [.openMod(query: "cp.folder")])
     }
 
     /// Sans résolveur (défaut), le comportement d'avant est conservé —
@@ -443,7 +445,7 @@ struct HealthIssueResolverAggregateTests {
         let report = KeybindScanner.report(mods: [a, b])
         let issues = HealthIssueResolver.keybindIssues(report)
         let collision = issues.first { $0.detail == nil }
-        #expect(collision?.action == .openMod(query: "Alpha Mod"))
+        #expect(collision?.actions == [.openMod(query: "Alpha Mod")])
     }
 
     /// Même règle pour un conflit avec un contrôle par défaut du jeu.
@@ -452,8 +454,8 @@ struct HealthIssueResolverAggregateTests {
                                        tree: tree(["Hotkey": .string("W")]))
         let report = KeybindScanner.report(mods: [a])
         let issues = HealthIssueResolver.keybindIssues(report)
-        #expect(issues.first { $0.detail == "moveUpButton" }?.action
-                == .openMod(query: "Mod 1"))
+        #expect(issues.first { $0.detail == "moveUpButton" }?.actions
+                == [.openMod(query: "Mod 1")])
     }
 
     /// Étend l'invariant `problemCount` (déjà prouvé ci-dessus sur les
@@ -507,4 +509,39 @@ struct HealthIssueResolverAggregateTests {
     // sans clé : ce test verrouille l'unicité, donc l'exhaustivité.
     let keys = SmapiDiagnostics.BenignNotice.Kind.allCases.map(\.l10nKey)
     #expect(Set(keys).count == keys.count)
+}
+
+// MARK: - Une ligne peut offrir DEUX chemins
+
+@Test func aBenignNoticeNamingAModOffersBothItsFicheAndTheLog() {
+    // Demande de l'auteur : sur une information, l'accès au journal s'ajoute
+    // à l'accès au mod — la fiche dit ce qu'est le mod, le journal dit ce
+    // qui s'est passé. Les deux répondent à des questions différentes.
+    let log = "[17:40:22 TRACE Farm Type Manager (FTM)] API not found: Expanded Preconditions Utility (EPU)."
+    let d = SmapiDiagnostics.parse(logContent: log)
+    let issues = HealthIssueResolver.smapiIssues(d)
+    #expect(issues.first?.actions == [
+        .openMod(query: "Farm Type Manager (FTM)"),
+        .openLogs(searchText: "API not found: Expanded Preconditions Utility (EPU).")
+    ])
+}
+
+@Test func aBenignNoticeWithoutAModStillOffersOnlyTheLog() {
+    // Contre-épreuve : sans mod il n'y a pas de fiche à ouvrir — une seule
+    // action, pas un bouton mort à côté.
+    let log = "[17:40:41 ERROR game] Galaxy auth failure: FAILURE_REASON_GALAXY_SERVICE_NOT_SIGNED_IN"
+    let d = SmapiDiagnostics.parse(logContent: log)
+    #expect(HealthIssueResolver.smapiIssues(d).first?.actions.count == 1)
+}
+
+@Test func aCriticalRowKeepsASingleAction() {
+    // Le doublement vise les INFORMATIONS. Une ligne critique garde son
+    // chemin unique : deux boutons sur une urgence diluent le geste à faire.
+    let log = """
+    [17:39:53 TRACE SMAPI]    Automate (from Mods/Automate/Automate.dll)...
+    [17:39:53 ERROR SMAPI]    Failed: something broke
+    """
+    let d = SmapiDiagnostics.parse(logContent: log)
+    let critical = HealthIssueResolver.smapiIssues(d).filter { $0.severity == .critical }
+    #expect(critical.allSatisfy { $0.actions.count == 1 })
 }

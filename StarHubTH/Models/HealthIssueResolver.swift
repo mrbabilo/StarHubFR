@@ -30,7 +30,7 @@ public enum HealthIssueResolver {
                                       detail: enrichedDetail(reason: issue.reason,
                                                              mod: issue.name,
                                                              missingDeps: d.missingDeps),
-                                      action: .openMod(query: issue.name)))
+                                      actions: [.openMod(query: issue.name)]))
         }
         // Garde par SYMÉTRIE avec celle de `missingDeps` juste en dessous :
         // jamais vérifié sur un vrai journal (aucun n'en montre le cas), donc
@@ -63,7 +63,7 @@ public enum HealthIssueResolver {
                                       // fiche (aucune fixture à la main
                                       // n'exerçait un nom versionné, d'où le
                                       // bogue passé inaperçu des tests).
-                                      action: .openMod(query: Self.skippedModQuery(issue.name))))
+                                      actions: [.openMod(query: Self.skippedModQuery(issue.name))]))
         }
         // Cas défensif seulement : un mod dont la dépendance manquante n'a
         // été promue dans aucune des deux listes ci-dessus.
@@ -71,7 +71,7 @@ public enum HealthIssueResolver {
             issues.append(HealthIssue(id: "smapi-dep-\(dep.mod)-\(dep.missing)",
                                       severity: .critical, source: .smapi,
                                       title: dep.mod, detail: dep.missing,
-                                      action: .openMod(query: dep.mod)))
+                                      actions: [.openMod(query: dep.mod)]))
         }
         // Conflits externes et mods marqués « broken » par SMAPI : des
         // problèmes de chargement avérés au sens de `problemCount`
@@ -83,13 +83,13 @@ public enum HealthIssueResolver {
             issues.append(HealthIssue(id: "smapi-conflict-\(name)",
                                       severity: .critical, source: .smapi,
                                       title: name, detail: nil,
-                                      action: .openLogs(searchText: name)))
+                                      actions: [.openLogs(searchText: name)]))
         }
         for name in d.brokenMods {
             issues.append(HealthIssue(id: "smapi-broken-\(name)",
                                       severity: .critical, source: .smapi,
                                       title: name, detail: nil,
-                                      action: .openMod(query: name)))
+                                      actions: [.openMod(query: name)]))
         }
         for notice in d.benignNotices {
             issues.append(HealthIssue(id: "smapi-benign-\(notice.kind.rawValue)-\(notice.mod ?? "-")",
@@ -109,9 +109,12 @@ public enum HealthIssueResolver {
                                       // le journal — recherche sur l'exemple
                                       // brut si le parseur en a gardé un,
                                       // sinon sur le genre de notice lui-même.
-                                      action: notice.mod.map { .openMod(query: $0) }
-                                          ?? .openLogs(searchText: Self.logSearchText(fromSample: notice.sample,
-                                                                                      fallback: notice.kind.rawValue))))
+                                      // Une information qui nomme un mod offre
+                                      // les DEUX chemins : sa fiche dit ce
+                                      // qu'est le mod, le journal ce qui s'est
+                                      // passé. Sans mod, seul le journal
+                                      // existe — pas de bouton mort à côté.
+                                      actions: Self.benignActions(notice)))
         }
         return issues
     }
@@ -137,7 +140,7 @@ public enum HealthIssueResolver {
                                       // mods — un seul bouton ne peut désigner
                                       // qu'UN fautif : le premier par ordre
                                       // alphabétique, le même tri que `title`.
-                                      action: .openMod(query: modNames.first ?? mods)))
+                                      actions: [.openMod(query: modNames.first ?? mods)]))
         }
         for conflict in report.gameConflicts {
             let modNames = conflict.uses.map(\.modName).sorted()
@@ -145,7 +148,7 @@ public enum HealthIssueResolver {
             issues.append(HealthIssue(id: "keybind-game-\(conflict.control.name)-\(mods)",
                                       severity: .warning, source: .keybind,
                                       title: mods, detail: conflict.control.name,
-                                      action: .openMod(query: modNames.first ?? mods)))
+                                      actions: [.openMod(query: modNames.first ?? mods)]))
         }
         return issues
     }
@@ -171,7 +174,7 @@ public enum HealthIssueResolver {
                         // désigne un — c'est un `folderName`, ce qu'attend
                         // `ModFocusResolver` pour un conflit (voir la
                         // documentation de `Action.openMod`).
-                        action: .openMod(query: pair.first))
+                        actions: [.openMod(query: pair.first)])
         }
     }
 
@@ -219,6 +222,22 @@ public enum HealthIssueResolver {
         return String(name[name.startIndex..<lastSpace])
     }
 
+    /// Les chemins d'une notice bénigne : sa fiche quand elle nomme un mod,
+    /// et TOUJOURS la ligne du journal — c'est là que le message brut se lit.
+    private static func benignActions(_ notice: SmapiDiagnostics.BenignNotice) -> [HealthIssue.Action] {
+        let searchable = logSearchText(fromSample: notice.sample)
+        guard let mod = notice.mod else {
+            // Sans mod, le repli sur le genre de notice tient : mieux vaut un
+            // journal mal cadré qu'une ligne sans aucune issue.
+            return [.openLogs(searchText: searchable ?? notice.kind.rawValue)]
+        }
+        // Avec un mod, ce repli n'a plus lieu d'être : le genre de notice
+        // n'existe pas dans le journal, le bouton ouvrirait une recherche
+        // vide À CÔTÉ d'un bouton qui, lui, mène quelque part.
+        guard let searchable else { return [.openMod(query: mod)] }
+        return [.openMod(query: mod), .openLogs(searchText: searchable)]
+    }
+
     /// La recherche des Journaux pour une notice bénigne sans mod nommé.
     ///
     /// `notice.sample` vient de `SmapiLogDiagnostics.evidence(from:)`, qui
@@ -227,10 +246,14 @@ public enum HealthIssueResolver {
     /// `message.contains(search)` : chercher le texte tronqué AVEC son
     /// ellipse ne matcherait jamais rien, un bouton qui ouvre un journal
     /// vide. Le retirer restaure un préfixe exact de la ligne d'origine.
-    private static func logSearchText(fromSample sample: String, fallback: String) -> String {
-        guard !sample.isEmpty else { return fallback }
+    /// `nil` quand il ne reste rien à chercher : un exemple vide, ou réduit à
+    /// sa seule ellipse de troncature. Rendre `""` posait un bouton qui vide
+    /// simplement le filtre des Journaux au lieu d'y mener.
+    private static func logSearchText(fromSample sample: String) -> String? {
+        guard !sample.isEmpty else { return nil }
         guard sample.hasSuffix("…") else { return sample }
-        return String(sample.dropLast()).trimmingCharacters(in: .whitespaces)
+        let stripped = String(sample.dropLast()).trimmingCharacters(in: .whitespaces)
+        return stripped.isEmpty ? nil : stripped
     }
 
     /// Ajoute le nom de la dépendance manquante au détail, sauf s'il y

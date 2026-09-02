@@ -49,7 +49,7 @@ struct SystemAlertsView: View {
         // referait ce travail 4 fois par rendu SwiftUI, fréquent.
         let issues = vm.healthIssues
         VStack(alignment: .leading, spacing: 0) {
-            header
+            header(issues)
             Divider()
 
             if issues.isEmpty {
@@ -80,13 +80,18 @@ struct SystemAlertsView: View {
 
     // MARK: - Header
 
-    private var header: some View {
+    private func header(_ issues: [HealthIssue]) -> some View {
         HStack(spacing: AppDesign.Spacing.sm) {
             Text(vm.L(L10n.Main.systemAlerts))
                 .font(AppDesign.Font.viewTitle)
             Spacer()
-            panoramaButton(vm.L(L10n.Keybinds.title), icon: "keyboard") { sheet = .keybindReport }
-            panoramaButton(vm.L(L10n.Conflicts.title), icon: "arrow.triangle.merge") { sheet = .modConflicts }
+            // Comptes dérivés de la liste DÉJÀ capturée, jamais de
+            // `vm.activeConflictCount` : celui-ci relit `vm.healthIssues`,
+            // propriété calculée qui retrie le parc entier (~966 mods).
+            panoramaButton(vm.L(L10n.Keybinds.title), icon: "keyboard",
+                           count: issues.count { $0.source == .keybind }) { sheet = .keybindReport }
+            panoramaButton(vm.L(L10n.Conflicts.title), icon: "arrow.triangle.merge",
+                           count: issues.count { $0.source == .modConflict }) { sheet = .modConflicts }
             recheckLogButton
         }
         .padding(.horizontal, AppDesign.Spacing.lg)
@@ -97,15 +102,30 @@ struct SystemAlertsView: View {
     /// Bouton de barre d'outils ouvrant l'un des deux panoramas — même style
     /// que `recheckLogButton`, pour que les trois lisent comme un seul groupe
     /// d'actions plutôt que deux styles différents côte à côte.
-    private func panoramaButton(_ label: String, icon: String, action: @escaping () -> Void) -> some View {
+    private func panoramaButton(_ label: String, icon: String, count: Int,
+                                action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Label(label, systemImage: icon)
-                .font(AppDesign.Font.caption(.medium))
-                .foregroundColor(AppDesign.Color.primary)
-                .padding(.horizontal, AppDesign.Spacing.md)
-                .padding(.vertical, AppDesign.Spacing.xs)
-                .background(AppDesign.Color.primary.opacity(AppDesign.Opacity.light))
-                .cornerRadius(AppDesign.Radius.sm)
+            HStack(spacing: AppDesign.Spacing.xs) {
+                Label(label, systemImage: icon)
+                // Capsule cachée à zéro, bouton toujours visible — même règle
+                // que `SidebarItem` : la destination existe même quand elle
+                // ne compte rien, et un panorama vide reste consultable.
+                if count > 0 {
+                    Text("\(count)")
+                        .font(AppDesign.Font.footnote(.bold))
+                        .foregroundColor(.white)
+                        .frame(minWidth: 16, minHeight: 16)
+                        .padding(.horizontal, 4)
+                        .background(AppDesign.Color.primary)
+                        .clipShape(Capsule())
+                }
+            }
+            .font(AppDesign.Font.caption(.medium))
+            .foregroundColor(AppDesign.Color.primary)
+            .padding(.horizontal, AppDesign.Spacing.md)
+            .padding(.vertical, AppDesign.Spacing.xs)
+            .background(AppDesign.Color.primary.opacity(AppDesign.Opacity.light))
+            .cornerRadius(AppDesign.Radius.sm)
         }
         .buttonStyle(PlainButtonStyle())
         .pointingHandCursor()
@@ -136,7 +156,12 @@ struct SystemAlertsView: View {
             }
             .padding(AppDesign.Spacing.md)
         }
-        .frame(minWidth: 560, idealWidth: 640, minHeight: 440, idealHeight: 580)
+        // Les deux panoramas alignent des noms de mods tronqués à une ligne
+        // (`lineLimit(1)` + `truncationMode(.middle)`), et une ligne de conflit
+        // en montre DEUX côte à côte : la largeur décide de ce qui se lit.
+        // Le parc de l'auteur porte des noms de 30+ caractères
+        // (« Valley Bonds: One Piece Framework »).
+        .frame(minWidth: 760, idealWidth: 980, minHeight: 560, idealHeight: 720)
     }
 
     // MARK: - Rows
@@ -166,7 +191,7 @@ struct SystemAlertsView: View {
                 }
             }
             Spacer(minLength: AppDesign.Spacing.sm)
-            if let action = issue.action {
+            ForEach(issue.actions) { action in
                 Button(actionLabel(for: action)) { perform(action) }
                     .buttonStyle(.plain)
                     .foregroundColor(AppDesign.Color.accent)
@@ -197,6 +222,8 @@ struct SystemAlertsView: View {
         switch action {
         case .openMod(let query):
             vm.pendingModDetailFocus = query
+            // Une alerte parle de l'état du mod, pas de sa description.
+            vm.pendingDetailTab = .state
             currentTab = "Mods"
         case .openLogs(let searchText):
             vm.pendingLogFocus = searchText
