@@ -22,7 +22,7 @@ struct QuarantineView: View {
                         .font(.system(size: 20, weight: .bold))
                     Text(vm.L(L10n.Quarantine.subtitle))
                         .font(.system(size: 13))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(AppDesign.Color.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
@@ -31,40 +31,56 @@ struct QuarantineView: View {
                     VStack(alignment: .leading, spacing: 10) {
                         Text(vm.L(L10n.Quarantine.lastRepair))
                             .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(.primary)
+                            .foregroundColor(AppDesign.Color.primary)
 
                         if report.quarantined.isEmpty && report.duplicates.isEmpty {
                             Text(vm.L(L10n.Quarantine.noQuarantine))
                                 .font(.system(size: 13))
-                                .foregroundColor(.secondary)
+                                .foregroundColor(AppDesign.Color.secondary)
                         } else {
                             Label(
                                 String(format: vm.L(L10n.Quarantine.itemsQuarantined), Int64(report.quarantined.count)),
                                 systemImage: "tray.and.arrow.down.fill"
                             )
                             .font(.system(size: 13))
-                            .foregroundColor(.purple)
+                            // Constat, pas panne : les éléments listés ici sont déjà
+                            // déplacés en lieu sûr. `.purple` distinguait visuellement
+                            // ce bloc du bloc doublons (`.orange`) qui, lui, réclame une
+                            // action ; `secondary` garde cette distinction sans réutiliser
+                            // `warning` (= `.orange`, cf. AppDesignUI) qui ferait « jurer »
+                            // les deux blocs en un seul signal.
+                            .foregroundColor(AppDesign.Color.secondary)
 
-                            ForEach(Array(report.quarantined.prefix(20).enumerated()), id: \.offset) { _, item in
+                            // Identité par la valeur seule : `relativePath` est un chemin
+                            // disque réel, unique par construction dans un même rapport
+                            // (repairFolder + sweepJunkInsideMods ne peuvent pas produire
+                            // deux Item pour le même fichier physique — cf. rapport de
+                            // tâche). `id: \.offset` ferait fuiter l'@State d'une ligne
+                            // vers une autre au prochain scan (piège CLAUDE.md §SwiftUI).
+                            ForEach(Array(report.quarantined.prefix(20).enumerated()), id: \.element.relativePath) { _, item in
                                 HStack(alignment: .top, spacing: 8) {
                                     Image(systemName: "archivebox.fill")
-                                        .foregroundColor(.purple.opacity(0.7))
+                                        // Pas de `.opacity(0.7)` supplémentaire ici :
+                                        // `secondary` est déjà une couleur hiérarchique
+                                        // atténuée (~0.5 alpha) — la multiplier aurait
+                                        // rendu ce glyphe de 10pt quasi invisible.
+                                        .foregroundColor(AppDesign.Color.secondary)
                                         .font(.system(size: 10))
                                         .padding(.top, 2)
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(item.relativePath)
                                             .font(.system(size: 12, design: .monospaced))
-                                            .foregroundColor(.primary)
+                                            .foregroundColor(AppDesign.Color.primary)
                                         Text(item.reason)
                                             .font(.system(size: 11))
-                                            .foregroundColor(.secondary)
+                                            .foregroundColor(AppDesign.Color.secondary)
                                     }
                                 }
                             }
                             if report.quarantined.count > 20 {
-                                Text("+ \(report.quarantined.count - 20) more…")
+                                Text(String(format: vm.L(L10n.Quarantine.andNMore), Int64(report.quarantined.count - 20)))
                                     .font(.system(size: 11))
-                                    .foregroundColor(.secondary)
+                                    .foregroundColor(AppDesign.Color.secondary)
                                     .italic()
                             }
                         }
@@ -75,28 +91,45 @@ struct QuarantineView: View {
                                 systemImage: "exclamationmark.triangle.fill"
                             )
                             .font(.system(size: 13))
-                            .foregroundColor(.orange)
+                            // Vrai avertissement, à la différence du bloc quarantine
+                            // ci-dessus : un doublon d'UniqueID n'est pas auto-résolu,
+                            // il attend une décision de l'utilisateur.
+                            .foregroundColor(AppDesign.Color.warning)
 
-                            ForEach(Array(report.duplicates.prefix(20).enumerated()), id: \.offset) { _, dup in
+                            // `Duplicate` n'est pas garanti unique par la valeur : un
+                            // pack livrant deux manifest.json sous le même UniqueID et
+                            // le même dossier désactivé produit deux `Duplicate`
+                            // identiques (uniqueId + enabledFolder + disabledFolder).
+                            // Contrairement à `quarantined` (chemin disque réel, donc
+                            // unique), la valeur seule collisionnerait ici — d'où le
+                            // rang ajouté au contenu (`DuplicateRow`), jamais le rang
+                            // seul (id: \.offset fuiterait l'@State au prochain scan).
+                            ForEach(duplicateRows(from: report.duplicates)) { row in
                                 HStack(alignment: .top, spacing: 8) {
                                     Image(systemName: "doc.on.doc.fill")
-                                        .foregroundColor(.orange.opacity(0.7))
+                                        .foregroundColor(AppDesign.Color.warning.opacity(0.7))
                                         .font(.system(size: 10))
                                         .padding(.top, 2)
                                     VStack(alignment: .leading, spacing: 2) {
-                                        Text(dup.uniqueId)
+                                        Text(row.duplicate.uniqueId)
                                             .font(.system(size: 12, design: .monospaced))
-                                            .foregroundColor(.primary)
-                                        Text("\(dup.enabledFolder)  ⇄  \(dup.disabledFolder)")
+                                            .foregroundColor(AppDesign.Color.primary)
+                                        Text("\(row.duplicate.enabledFolder)  ⇄  \(row.duplicate.disabledFolder)")
                                             .font(.system(size: 11))
-                                            .foregroundColor(.secondary)
+                                            .foregroundColor(AppDesign.Color.secondary)
                                     }
                                 }
+                            }
+                            if report.duplicates.count > 20 {
+                                Text(String(format: vm.L(L10n.Quarantine.andNMore), Int64(report.duplicates.count - 20)))
+                                    .font(.system(size: 11))
+                                    .foregroundColor(AppDesign.Color.secondary)
+                                    .italic()
                             }
                         }
                     }
                     .padding(20)
-                    .background(Color.primary.opacity(0.04))
+                    .background(AppDesign.Color.primary.opacity(0.04))
                     .cornerRadius(12)
                 } else {
                     // Atteignable depuis que l'entrée est permanente (B2-T3) :
@@ -106,7 +139,7 @@ struct QuarantineView: View {
                     // boutons.
                     Text(vm.L(L10n.Quarantine.noQuarantine))
                         .font(.system(size: 13))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(AppDesign.Color.secondary)
                 }
 
                 // Actions
@@ -131,7 +164,7 @@ struct QuarantineView: View {
                             .font(.system(size: 13, weight: .medium))
                     }
                     .buttonStyle(.borderedProminent)
-                    .tint(.blue)
+                    .tint(AppDesign.Color.info)
                     .disabled(quarantineDir == nil)
 
                     Button(role: .destructive, action: { showEmptyConfirmation = true }) {
@@ -145,9 +178,9 @@ struct QuarantineView: View {
                 if let result = vm.quarantineActionMessage {
                     Label(result.text, systemImage: result.isError ? "xmark.octagon.fill" : "checkmark.circle.fill")
                         .font(.system(size: 13))
-                        .foregroundColor(result.isError ? .red : .green)
+                        .foregroundColor(result.isError ? AppDesign.Color.error : AppDesign.Color.success)
                         .padding(12)
-                        .background((result.isError ? Color.red : Color.green).opacity(0.08))
+                        .background((result.isError ? AppDesign.Color.error : AppDesign.Color.success).opacity(0.08))
                         .cornerRadius(8)
                 }
 
@@ -156,7 +189,7 @@ struct QuarantineView: View {
             .padding(30)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(nsColor: .windowBackgroundColor))
+        .background(AppDesign.Color.windowBg)
         .confirmationDialog(
             vm.L(L10n.Quarantine.emptyConfirmTitle),
             isPresented: $showEmptyConfirmation,
@@ -168,6 +201,28 @@ struct QuarantineView: View {
             Button(vm.L(L10n.Main.ok), role: .cancel) {}
         } message: {
             Text(vm.L(L10n.Quarantine.emptyConfirmMessage))
+        }
+    }
+
+    // MARK: - Duplicate rows (composite identity)
+
+    /// Row wrapper giving each `ModFolderRepairer.Duplicate` a stable,
+    /// collision-free `ForEach` identity. `Duplicate` is a plain value type:
+    /// two entries can legitimately carry the same
+    /// uniqueId/enabledFolder/disabledFolder triple (a pack shipping two
+    /// `manifest.json` under the same UniqueID inside the same disabled
+    /// folder), so content alone is not a safe id. Rank alone is unsafe too
+    /// (the `id: \.offset` leak documented in CLAUDE.md). Combining both
+    /// keeps the id unique without losing content-based identity across
+    /// rescans.
+    private struct DuplicateRow: Identifiable {
+        let id: String
+        let duplicate: ModFolderRepairer.Duplicate
+    }
+
+    private func duplicateRows(from duplicates: [ModFolderRepairer.Duplicate]) -> [DuplicateRow] {
+        Array(duplicates.prefix(20).enumerated()).map { offset, dup in
+            DuplicateRow(id: "\(offset)-\(dup.uniqueId)-\(dup.enabledFolder)-\(dup.disabledFolder)", duplicate: dup)
         }
     }
 

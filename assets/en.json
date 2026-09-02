@@ -355,6 +355,7 @@
   "quarantine_duplicates_found": "%lld duplicate UniqueID(s) found across enabled and disabled mods",
   "quarantine_no_quarantine": "No quarantine folder exists yet.",
   "quarantine_rescan": "Re-run Analysis",
+  "quarantine_and_n_more": "and %lld more",
   "settings_launch_options": "Launch Options",
   "settings_backup": "Backup",
   "settings_developer": "Developer",

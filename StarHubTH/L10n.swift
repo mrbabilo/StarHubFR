@@ -760,6 +760,7 @@ enum L10n {
         static let duplicatesFound      = "quarantine_duplicates_found"
         static let noQuarantine         = "quarantine_no_quarantine"
         static let rescan               = "quarantine_rescan"
+        static let andNMore             = "quarantine_and_n_more"
     }
 
     // MARK: - Settings

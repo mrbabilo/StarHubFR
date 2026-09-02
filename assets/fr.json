@@ -355,6 +355,7 @@
   "quarantine_duplicates_found": "%lld UniqueID(s) en double détecté(s) entre mods activés et désactivés",
   "quarantine_no_quarantine": "Aucun dossier de quarantaine n'existe encore.",
   "quarantine_rescan": "Relancer l'analyse",
+  "quarantine_and_n_more": "et %lld autre(s)",
   "settings_launch_options": "Options de lancement",
   "settings_backup": "Sauvegarde",
   "settings_developer": "Développeur",
