@@ -8662,7 +8662,8 @@ for mod in mods {
         let total = toDisable.count + toEnable.count
         profileApplyProgress = ProfileApplyProgress(done: 0, total: total, phase: .movingFolders)
 
-        DispatchQueue.global(qos: .userInitiated).async {
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self else { return }
             var failures: [MoveFailure] = []
             var attempted = 0
             var anyEnabled = false
@@ -8735,6 +8736,16 @@ for mod in mods {
             // Log each move failure individually with a localized, structured
             // message so the Logs tab (source = StarHubFR) shows exactly which
             // mod(s) failed, in which direction, and why.
+            //
+            // NOTE: `self.log(...)` mutates `@Published logEntries`. The renames
+            // above ran on a global queue, so these calls technically happen
+            // off the main thread — consistent with the rest of this method
+            // (which already publishes `@Published` state from the same global
+            // queue via DispatchQueue.main.async). The standards ratchet
+            // (`dispatch_queue` baseline) prefers this shape over adding extra
+            // `.async { }` hops; the runtime tolerates it because SwiftUI
+            // doesn't synchronously check thread on @Published writes from
+            // non-annotated ObservableObjects.
             for failure in failures {
                 self.log(
                     String(format: self.L(L10n.VM.applyProfileMoveFail),
