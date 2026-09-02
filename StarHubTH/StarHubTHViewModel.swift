@@ -375,29 +375,40 @@ class StarHubTHViewModel: ObservableObject {
             + contentPatcherConflicts.compactMap(conflictPair)
         let live = modConflictVerdicts.liveConflicts(candidates: candidates,
                                                     activeFolders: activeFolders)
+        // Résolution dossier → nom de mod (revue globale, bloquant 4) : seul
+        // le ViewModel connaît `[ModItem]`, la RÈGLE (repli sur le dossier si
+        // le mod est introuvable) reste dans `HealthIssueResolver`.
+        let installedMods = mods.flattenedMods
         return HealthIssueResolver.resolve(diagnostics: smapiDiagnostics,
                                            keybindReport: keybindScanService.report,
-                                           conflicts: live)
+                                           conflicts: live,
+                                           displayName: { folderName in
+            installedMods.first(where: { $0.folderName == folderName })?.name ?? folderName
+        })
     }
 
     /// La définition d'une « alerte » (pastille de la barre latérale et
     /// bande de l'accueil, tâche 7) : dérive de `healthIssues`, la même
     /// liste que l'écran d'alertes — barre latérale et accueil ne peuvent
     /// plus diverger.
+    ///
+    /// Compte **actionnable** (revue globale, bloquant 1) : `.info` reste
+    /// affiché dans la liste mais n'entre pas ici — sinon une pastille sonne
+    /// sur un parc sain (mesuré : 7 notices bénignes, 0 échec, 0 conflit).
+    /// `[HealthIssue].actionableCount` est la même règle que lit le pied de
+    /// `SystemAlertsView`, jamais un second filtre écrit à part.
     @MainActor
-    var systemAlertCount: Int { healthIssues.count }
+    var systemAlertCount: Int { healthIssues.actionableCount }
 
     /// Combien d'incompatibilités entre mods réclament une attention
-    /// aujourd'hui (spec A5-T2, « Pastille ») : une par paire déclarée ou
-    /// observée dans le journal, non écartée, dont les deux côtés sont actifs
-    /// — une paire dormante ne compte pas, même règle que les raccourcis. La
-    /// règle elle-même vit dans `ModConflictVerdicts.liveConflictCount`,
-    /// pure et testée, comme `activationConflict` avant elle.
+    /// aujourd'hui (spec A5-T2, « Pastille » ; spec §6 bis, H-T6) : dérive de
+    /// `healthIssues`, comme `systemAlertCount` — un second chemin de calcul
+    /// (reconstruire `activeFolders`/`candidates` et rappeler
+    /// `liveConflictCount`) redivergerait de l'écran d'alertes, qui lit déjà
+    /// ces mêmes lignes sous `source == .modConflict`.
     @MainActor
     var activeConflictCount: Int {
-        let activeFolders = Set(mods.flattenedMods.filter(\.isEnabled).map(\.folderName))
-        let candidates = modConflictVerdicts.declared + contentPatcherConflicts.compactMap(conflictPair)
-        return modConflictVerdicts.liveConflictCount(candidates: candidates, activeFolders: activeFolders)
+        healthIssues.filter { $0.source == .modConflict }.count
     }
 
     /// Couverture française par mod, indexée par `folderName`. Absente tant

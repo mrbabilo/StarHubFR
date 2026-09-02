@@ -21,4 +21,30 @@ struct HealthIssueTests {
         #expect(a == b)
         #expect(a.id == b.id)
     }
+
+    private static func issue(_ severity: HealthIssue.Severity, _ title: String) -> HealthIssue {
+        HealthIssue(id: "\(severity)-\(title)", severity: severity, source: .smapi,
+                    title: title, detail: nil, action: nil)
+    }
+
+    /// Revue globale de branche, bloquant 1 : une notice `.info` reste
+    /// affichée dans la liste (voir `SystemAlertsView`) mais n'est PAS un
+    /// « problème actionnable » — `SmapiLogDiagnostics.problemCount` l'exclut
+    /// déjà pour cette même raison. Sans ce compte séparé, une pastille sonne
+    /// sur un parc sain (mesuré : 7 notices bénignes, 0 échec, 0 conflit).
+    @Test func actionableCountExcludesInfoButKeepsCriticalAndWarning() {
+        let issues = [Self.issue(.info, "bénin 1"), Self.issue(.info, "bénin 2"),
+                      Self.issue(.warning, "avertissement"), Self.issue(.critical, "critique")]
+        #expect(issues.actionableCount == 2)
+    }
+
+    @Test func actionableCountIsZeroWhenOnlyInfo() {
+        let issues = [Self.issue(.info, "a"), Self.issue(.info, "b")]
+        #expect(issues.actionableCount == 0)
+    }
+
+    @Test func actionableCountOfEmptyListIsZero() {
+        let issues: [HealthIssue] = []
+        #expect(issues.actionableCount == 0)
+    }
 }

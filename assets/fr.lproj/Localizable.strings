@@ -412,6 +412,7 @@
 "updates_visit_website" = "Pour en savoir plus sur le contenu de cette mise à jour, veuillez consulter ce site :";
 "updates_errors_found" = "Le jeu a rencontré des erreurs (%lld éléments)";
 "updates_view_logs" = "Voir les journaux";
+"updates_view_mods" = "Voir les mods";
 "updates_error_description" = "Le jeu a rencontré des erreurs lors de la dernière exécution. Cela peut être dû à des dépendances manquantes ou des mods obsolètes.";
 "updates_no_alerts" = "Aucune alerte système.";
 "updates_recheck_log" = "Revérifier le journal";

@@ -934,6 +934,11 @@ enum L10n {
         static let visitWebsite         = "updates_visit_website"
         static let errorsFound          = "updates_errors_found"
         static let viewLogs             = "updates_view_logs"
+        /// Bouton d'action d'une ligne `HealthIssue` dont la destination est
+        /// l'onglet Mods (raccourcis, conflits) — jamais « Voir les journaux »
+        /// pour une action qui n'ouvre pas les journaux (revue globale de
+        /// branche H-T6, bloquant 3).
+        static let viewMods             = "updates_view_mods"
         static let errorDescription     = "updates_error_description"
         static let noAlerts             = "updates_no_alerts"
         static let recheckLog           = "updates_recheck_log"

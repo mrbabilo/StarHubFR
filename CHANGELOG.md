@@ -18,10 +18,19 @@ where the exact log format was verified.
 - **Quarantaine (doublons, dossiers isolés) plus lisible** : identités de ligne stables, couleurs aux tokens de l'app, troncature d'un chemin long désormais annoncée.
 - **Le rapport de restauration d'un backup d'installation** quitte l'alerte texte pour un panneau à sept champs étiquetés.
 - **`SystemAlertsView` et `QuarantineView` sortent de `MainView.swift`** (1519 → 1163 lignes), sans changement de comportement.
+- **`activeConflictCount` dérive maintenant de `healthIssues`**, comme `systemAlertCount` — l'ancien recalcul séparé (reconstruction de `activeFolders`/`candidates` puis rappel de `liveConflictCount`) est retiré.
 
 ### Fixed
 
 - **Le bouton « Restaurer » d'une sauvegarde de config de mod ne restaurait rien.** Il relisait la sauvegarde ciblée depuis un état déjà remis à `nil` par la fermeture de l'alerte de confirmation — le bouton s'affichait, la confirmation s'ouvrait, mais rien n'était restauré. Le bouton « Supprimer » portait la même faille. Les deux sont corrigés.
+- **La pastille d'alertes sonnait sur un parc sain.** Les notices SMAPI bénignes (`.info`) étaient comptées comme des problèmes dans la pastille de la barre latérale, la tuile d'accueil et le pied de l'écran d'alertes — mesuré : 7 notices bénignes, 0 échec, 0 conflit affichaient « 7 problèmes ». Elles restent visibles dans la liste, mais seules les lignes critique/avertissement comptent désormais.
+- **Un mod à la fois « failed » et « skipped » aurait produit deux lignes critiques** sous deux titres différents (l'un avec la version, l'autre sans), indétectables à l'œil. Garde ajoutée par symétrie avec celle qui protège déjà les dépendances manquantes.
+- **Le bouton d'action d'une alerte annonçait toujours « Voir les journaux »**, y compris pour les raccourcis en collision et les conflits de mods, qui ouvrent en réalité l'onglet Mods. Le libellé dépend maintenant de la destination.
+- **Les conflits de mods affichaient des noms de dossiers** (`ModConflictPair.folderName`) au lieu de noms de mods, seule ligne de l'écran d'alertes à le faire.
+
+### Removed
+
+- **Le rapport de raccourcis global et la vue d'ensemble des conflits ont disparu de l'app** en sortant `SystemAlertsView`/`QuarantineView` de `MainView.swift` : `KeybindReportSection` (mods scannés, raccourcis comptés, non reconnus, bouton « Rescanner ») et `ModConflictSection` (dont le bouton « Écarter » d'un conflit) n'ont plus aucun appelant. Un conflit désormais affiché comme critique dans la liste d'alertes ne peut donc plus être écarté depuis l'écran qui le montre. Les fichiers sont conservés, non recâblés — voir l'entrée H-T6 de `docs/ROADMAP.md`.
 
 ## [1.32.0] - 2026-09-02
 

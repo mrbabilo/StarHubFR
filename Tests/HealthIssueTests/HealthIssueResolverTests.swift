@@ -104,6 +104,60 @@ struct HealthIssueResolverSmapiTests {
         // Deux mods en échec, deux lignes — jamais quatre.
         #expect(critical.count == 2)
     }
+
+    /// Revue globale de branche, bloquant 2 : personne n'avait vérifié si un
+    /// même mod peut apparaître à la fois dans `failed` ET `skipped`. Garde
+    /// posée par SYMÉTRIE avec celle de `missingDeps` ci-dessus, sans
+    /// attendre un journal qui le prouve. `skipped` porte le nom SUIVI de sa
+    /// version (« NEU Mod 1.0 »), `failed` ne porte que le nom du mod
+    /// (« NEU Mod ») — un match exact entre les deux ensembles de noms ne
+    /// suffit pas, d'où le préfixe. Construit par le VRAI parseur, comme
+    /// `failedModWithMissingDependencyProducesOneCriticalLine` ci-dessus.
+    @Test func modInBothFailedAndSkippedProducesOneCriticalLine() {
+        let log = """
+        [00:00:00 TRACE SMAPI]    NEU Mod (from Mods/NEU/NEU.dll, ID: neu.mod)...
+        [00:00:01 ERROR NEU Mod] Failed: requires mods which aren't installed (Some.Framework)
+        [00:00:02 ERROR SMAPI]    Skipped mods
+        [00:00:02 ERROR SMAPI]       - NEU Mod 1.0 because it requires mods which aren't installed (Some.Framework)
+        """
+        let d = SmapiDiagnostics.parse(logContent: log)
+        // Le journal confirme bien l'hypothèse : le même mod est promu dans
+        // failed ET skipped, sous deux noms différents.
+        #expect(d.failed.contains { $0.name == "NEU Mod" })
+        #expect(d.skipped.contains { $0.name == "NEU Mod 1.0" })
+
+        let issues = HealthIssueResolver.smapiIssues(d)
+        let neu = issues.filter { $0.title == "NEU Mod" || $0.title == "NEU Mod 1.0" }
+        // Une seule ligne critique pour ce mod, jamais deux sous deux titres.
+        #expect(neu.count == 1)
+    }
+
+    /// Contre-épreuve de la garde ci-dessus : un `hasPrefix` NU (sans
+    /// reconnaître que seul le DERNIER segment de `skipped` est la version)
+    /// sur-matche et supprime silencieusement un mod `skipped` légitime dont
+    /// le nom commence par celui d'un mod `failed` différent — un sous-
+    /// comptage, pire que le double-comptage que la garde corrige, parce que
+    /// rien à l'écran ne signale la ligne manquante. Cas réel plausible sur
+    /// le parc de l'auteur (« Content Patcher » / « Content Patcher
+    /// Animations »).
+    @Test func differentModsSharingANamePrefixBothProduceCriticalLines() {
+        let log = """
+        [00:00:00 TRACE SMAPI]    Content Patcher (from Mods/CP/CP.dll, ID: pathoschild.contentpatcher)...
+        [00:00:01 ERROR Content Patcher] Failed: something broke
+        [00:00:02 ERROR SMAPI]    Skipped mods
+        [00:00:02 ERROR SMAPI]       - Content Patcher Animations 1.2 because it requires mods which aren't installed (Some.Lib)
+        """
+        let d = SmapiDiagnostics.parse(logContent: log)
+        #expect(d.failed.contains { $0.name == "Content Patcher" })
+        #expect(d.skipped.contains { $0.name == "Content Patcher Animations 1.2" })
+
+        let issues = HealthIssueResolver.smapiIssues(d)
+        let critical = issues.filter { $0.severity == .critical }
+        // Deux mods DISTINCTS en échec : deux lignes, jamais une seule.
+        #expect(critical.contains { $0.title == "Content Patcher" })
+        #expect(critical.contains { $0.title == "Content Patcher Animations 1.2" })
+        #expect(critical.count == 2)
+    }
 }
 
 @Suite("HealthIssueResolver — agrégation")
@@ -139,6 +193,27 @@ struct HealthIssueResolverAggregateTests {
             conflicts: [ModConflictPair("A", "B"), ModConflictPair("C", "D")])
         #expect(issues.count == 2)
         #expect(issues.allSatisfy { $0.severity == .critical && $0.source == .modConflict })
+    }
+
+    /// Revue globale de branche, bloquant 4 : les lignes de raccourcis
+    /// affichent des noms de mods, les lignes de conflit affichaient des
+    /// `folderName` bruts (`ModConflictPair`) — deux vocabulaires dans la
+    /// même liste. `displayName` doit résoudre dossier → nom de mod, avec
+    /// repli sur le dossier si le mod est introuvable (mod désinstallé entre
+    /// la détection et l'affichage).
+    @Test func conflictTitleUsesResolvedModNamesNotFolderNames() {
+        let names = ["sve.folder": "Stardew Valley Expanded", "cp.folder": "Content Patcher"]
+        let issues = HealthIssueResolver.conflictIssues(
+            [ModConflictPair("sve.folder", "cp.folder")],
+            displayName: { names[$0] ?? $0 })
+        #expect(issues.first?.title == "Content Patcher · Stardew Valley Expanded")
+    }
+
+    /// Sans résolveur (défaut), le comportement d'avant est conservé —
+    /// aucun appelant existant ne doit changer de sortie.
+    @Test func conflictTitleFallsBackToFolderNameWithoutResolver() {
+        let issues = HealthIssueResolver.conflictIssues([ModConflictPair("A", "B")])
+        #expect(issues.first?.title == "A · B")
     }
 
     /// Invariant : le nombre de lignes « raccourci » vaut exactement

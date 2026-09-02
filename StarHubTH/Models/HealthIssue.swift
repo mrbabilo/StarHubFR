@@ -51,3 +51,18 @@ public struct HealthIssue: Identifiable, Equatable {
         self.action = action
     }
 }
+
+public extension Array where Element == HealthIssue {
+    /// Combien de lignes réclament un GESTE de la part du joueur — ni plus ni
+    /// moins que `.critical` + `.warning`. Une notice `.info` reste dans la
+    /// liste (l'écran d'alertes l'affiche toujours) mais ne compte pas ici :
+    /// `SmapiLogDiagnostics.problemCount` exclut déjà ces mêmes notices
+    /// « bénignes » pour la raison exacte que ce compte sert — mesuré sur le
+    /// journal réel de l'auteur, 7 notices bénignes et 0 échec/conflit
+    /// faisaient sonner la pastille sur un parc sain. La pastille de la barre
+    /// latérale ET le pied de `SystemAlertsView` lisent CE compte, jamais
+    /// `.count` brut, pour ne jamais diverger.
+    var actionableCount: Int {
+        filter { $0.severity != .info }.count
+    }
+}

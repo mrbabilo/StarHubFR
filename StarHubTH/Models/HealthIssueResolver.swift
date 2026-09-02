@@ -32,7 +32,22 @@ public enum HealthIssueResolver {
                                                              missingDeps: d.missingDeps),
                                       action: .openTab("Logs")))
         }
-        for issue in d.skipped {
+        // Garde par SYMÉTRIE avec celle de `missingDeps` juste en dessous :
+        // jamais vérifié sur un vrai journal (aucun n'en montre le cas), donc
+        // posé par précaution plutôt qu'après coup. `skipped` porte le nom
+        // SUIVI de sa version (« NEU Mod 1.0 ») alors que `failed` ne porte
+        // que le nom du mod (« NEU Mod ») — un match exact entre les deux
+        // ensembles de noms ne suffit pas, il faut reconnaître le suffixe de
+        // version. Un `hasPrefix` NU sur-matcherait et supprimerait en
+        // silence un mod `skipped` DIFFÉRENT dont le nom commence par celui
+        // d'un mod `failed` (« Content Patcher » / « Content Patcher
+        // Animations ») — un sous-comptage pire que le double-comptage visé
+        // ici, parce que rien à l'écran ne signale la ligne manquante.
+        // `isSameMod` ne retire donc que le DERNIER segment (la version) de
+        // `skipped` avant de comparer.
+        for issue in d.skipped where !failedNames.contains(where: {
+            Self.isSameMod(failedName: $0, skippedName: issue.name)
+        }) {
             issues.append(HealthIssue(id: "smapi-skipped-\(issue.name)",
                                       severity: .critical, source: .smapi,
                                       title: issue.name,
@@ -102,11 +117,23 @@ public enum HealthIssueResolver {
         return issues
     }
 
-    public static func conflictIssues(_ conflicts: [ModConflictPair]) -> [HealthIssue] {
+    /// `ModConflictPair.first`/`.second` sont des `folderName` — pas des noms
+    /// de mods. Les lignes voisines (raccourcis, SMAPI) affichent déjà des
+    /// noms de mods : sans résolution, un conflit nommerait ses mods d'une
+    /// troisième façon dans la même liste. `displayName` porte cette
+    /// résolution — le ViewModel est seul à connaître `[ModItem]`, mais la
+    /// RÈGLE (dossier → nom, repli sur le dossier si le mod est introuvable)
+    /// reste ici, en un seul endroit, comme l'ancien `ModConflictSection.
+    /// displayName(_:)` qu'elle remplace. Identité (`id`) construite sur les
+    /// `folderName` bruts, jamais sur le nom résolu : elle doit rester stable
+    /// même si un nom affiché change.
+    public static func conflictIssues(_ conflicts: [ModConflictPair],
+                                      displayName: (String) -> String = { $0 }) -> [HealthIssue] {
         conflicts.map { pair in
             HealthIssue(id: "conflict-\(pair.first)-\(pair.second)",
                         severity: .critical, source: .modConflict,
-                        title: "\(pair.first) · \(pair.second)", detail: nil,
+                        title: "\(displayName(pair.first)) · \(displayName(pair.second))",
+                        detail: nil,
                         action: .openTab("Mods"))
         }
     }
@@ -119,13 +146,25 @@ public enum HealthIssueResolver {
     /// la doc, de `Array.sorted`.
     public static func resolve(diagnostics: SmapiDiagnostics?,
                                keybindReport: KeybindScanner.KeybindReport?,
-                               conflicts: [ModConflictPair]) -> [HealthIssue] {
+                               conflicts: [ModConflictPair],
+                               displayName: (String) -> String = { $0 }) -> [HealthIssue] {
         let all = smapiIssues(diagnostics)
             + keybindIssues(keybindReport)
-            + conflictIssues(conflicts)
+            + conflictIssues(conflicts, displayName: displayName)
         return all.enumerated()
             .sorted { ($0.element.severity, -$0.offset) > ($1.element.severity, -$1.offset) }
             .map(\.element)
+    }
+
+    /// `skippedIssue(fromLine:)` (SmapiLogDiagnostics.swift) construit son
+    /// nom comme `<nom du mod> <version> because …` : tout avant le DERNIER
+    /// espace est le nom, jamais plus. Retirer un préfixe suffirait à faire
+    /// disparaître un mod dont le nom en contient un autre en entier
+    /// (« Content Patcher Animations » contient « Content Patcher »).
+    private static func isSameMod(failedName: String, skippedName: String) -> Bool {
+        if failedName == skippedName { return true }
+        guard let lastSpace = skippedName.lastIndex(of: " ") else { return false }
+        return skippedName[skippedName.startIndex..<lastSpace] == failedName
     }
 
     /// Ajoute le nom de la dépendance manquante au détail, sauf s'il y

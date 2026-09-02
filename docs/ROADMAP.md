@@ -2389,7 +2389,24 @@ par lot, une release par lot. Périmètre : visuel + navigation —
 > **Écarts assumés** : la quarantaine ne fusionne pas dans la liste des
 > alertes — deux questions différentes, deux onglets ; aucun changement de
 > logique de détection, le lot présente ce que l'app sait déjà ; pas de
-> filtre par source sur les alertes.
+> filtre par source sur les alertes. **`KeybindReportSection` et
+> `ModConflictSection` n'ont plus aucun appelant** depuis que `SystemAlertsView`
+> les a remplacés : le rapport de raccourcis global (mods scannés, raccourcis
+> comptés, non reconnus, bouton « Rescanner ») et la vue d'ensemble des
+> conflits ont disparu de l'app, y compris le bouton « Écarter » d'un
+> conflit — un conflit désormais critique dans la liste d'alertes ne se
+> referme donc plus depuis l'écran qui le montre. Fichiers conservés
+> (319 + 363 lignes), non recâblés : à trier par l'auteur.
+> **Revue globale de branche (2026-09-02)** : 7 bloquants corrigés en une
+> vague — la pastille comptait les notices SMAPI bénignes (`.info`) comme des
+> problèmes (7 sur un parc sans le moindre échec ni conflit), pas de garde
+> contre un mod à la fois `failed` et `skipped`, le bouton d'action annonçait
+> toujours « Voir les journaux » même vers l'onglet Mods, les conflits
+> affichaient des noms de dossiers au lieu de noms de mods, et
+> `activeConflictCount` recalculait à part plutôt que de dériver de
+> `healthIssues` comme le prévoyait la spec §6 bis. `[HealthIssue].actionableCount`
+> (critique + avertissement, `.info` exclu) est la règle unique désormais lue
+> par la pastille et le pied de liste.
 - [ ] **H-T7** — **Lots Journaux & Réglages** : reskin léger des journaux
       (la perf est déjà faite), Réglages absorbe les déménagés de l'accueil
       en sections unifiées. Deux releases — phases 5 et 6 de la spec. · **S**

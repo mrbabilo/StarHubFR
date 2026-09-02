@@ -412,6 +412,7 @@
   "updates_visit_website": "For information on the content of this mod update, please visit this website:",
   "updates_errors_found": "The game encountered errors (%lld items)",
   "updates_view_logs": "View Logs",
+  "updates_view_mods": "View Mods",
   "updates_error_description": "The game encountered errors during the last run. This might be caused by missing dependencies or outdated mods.",
   "updates_no_alerts": "No system alerts.",
   "updates_recheck_log": "Check the log again",
