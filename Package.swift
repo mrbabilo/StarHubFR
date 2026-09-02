@@ -154,6 +154,7 @@ let package = Package(
                 "SaveFarmerPalette.swift",
                 "SaveFarmNameResolver.swift",
                 "Models/HealthIssue.swift",
+                "Models/HealthIssueResolver.swift",
             ]
         ),
         .testTarget(
