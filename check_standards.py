@@ -30,6 +30,10 @@ from typing import Callable, Iterator
 
 SOURCE_DIR = "StarHubTH"
 BASELINE_PATH = ".standards-baseline.json"
+# Per-file mtime sum, used to skip the 211-file scan when nothing has changed
+# since the last run. Lives next to the baseline so a `rm .standards-*` cleans
+# both. Recomputed every time the hash drifts.
+SOURCE_FRESHNESS_PATH = ".standards-source-freshness"
 
 # Ces `.shared` sont ceux d'Apple, pas les nôtres : les compter mêlerait une
 # dette qu'on peut rembourser à une convention de framework qu'on ne changera
@@ -114,12 +118,70 @@ INFORMATIONAL: dict[str, Callable[[str], int]] = {
 }
 
 
-def measure() -> tuple[dict[str, int], dict[str, int]]:
+def measure(force: bool = False) -> tuple[dict[str, int], dict[str, int]]:
+    """Run every ratchet rule over the source tree.
+
+    Cached by an aggregate source-tree fingerprint (newest mtime + per-file
+    size). Saves the full ~211-file regex sweep on quiet builds where the user
+    touched only assets, Info.plist or Xcode project files. `force=True`
+    bypasses the cache (used by `--update` / `--report`).
+    """
+    cache_path = SOURCE_FRESHNESS_PATH
+    counts_path = SOURCE_FRESHNESS_PATH + ".counts"
+    info_path = SOURCE_FRESHNESS_PATH + ".info"
+    if not force:
+        try:
+            current_newest, current_sizes = source_fingerprint()
+            with open(cache_path, encoding="utf-8") as f:
+                cached_newest, cached_sizes_json = f.read().split("\n", 1)
+            cached_sizes: dict[str, int] = json.loads(cached_sizes_json)
+            if cached_newest == current_newest and cached_sizes == current_sizes:
+                # Same source since the last run → same counts and same
+                # informationals. Re-read both from the cache instead of
+                # re-sweeping 211 files.
+                with open(counts_path, encoding="utf-8") as f:
+                    cached_counts: dict[str, int] = json.loads(f.read())
+                with open(info_path, encoding="utf-8") as f:
+                    cached_info: dict[str, int] = json.loads(f.read())
+                return cached_counts, cached_info
+        except (OSError, ValueError):
+            pass  # missing cache, malformed cache → fall through to full measure
+
     text = "\n".join(strip_comments(open(p, encoding="utf-8").read())
                      for p in swift_sources())
     counts = {name: rule(text) for name, rule in RULES.items()}
     info = {name: rule(text) for name, rule in INFORMATIONAL.items()}
+
+    # Persist the verdict for next time. Errors here are non-fatal — a failed
+    # cache write just means the next run re-measures.
+    try:
+        current_newest, current_sizes = source_fingerprint()
+        with open(cache_path, "w", encoding="utf-8") as f:
+            f.write(f"{current_newest}\n{json.dumps(current_sizes, sort_keys=True)}")
+        with open(counts_path, "w", encoding="utf-8") as f:
+            json.dump(counts, f, sort_keys=True)
+        with open(info_path, "w", encoding="utf-8") as f:
+            json.dump(info, f, sort_keys=True)
+    except OSError:
+        pass
+
     return counts, info
+
+
+def source_fingerprint() -> tuple[str, dict[str, int]]:
+    """Aggregate (newest_mtime, per-file size) over the Swift source tree.
+
+    Cheap: one `os.stat` per file, no reads. Drift between two builds means
+    at least one file changed (mtime) or one file was rewritten with the same
+    mtime but different content (size) — both invalidate the cache.
+    """
+    newest: float = 0.0
+    sizes: dict[str, int] = {}
+    for path in swift_sources():
+        st = os.stat(path)
+        newest = max(newest, st.st_mtime)
+        sizes[path] = st.st_size
+    return str(newest), sizes
 
 
 def load_baseline() -> dict[str, int] | None:
@@ -138,7 +200,11 @@ def save_baseline(counts: dict[str, int]) -> None:
 
 def main() -> int:
     args = set(sys.argv[1:])
-    counts, info = measure()
+    # `--report` and `--update` want live numbers (the user is asking "what's
+    # the state right now?"). The default mode (used by `build_app.py`)
+    # benefits from the cache: a no-op build shouldn't re-run 10 regex sweeps.
+    force = bool({"--report", "--update"} & args)
+    counts, info = measure(force=force)
 
     if "--report" in args:
         width = max(len(k) for k in list(counts) + list(info))

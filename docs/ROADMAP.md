@@ -2568,12 +2568,13 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
       **Arbitrage de l'auteur (2026-08-01) : traiter dans une passe de performance
       groupée, en fin de projet** — pas au fil de l'eau. Ne pas rouvrir isolément ; y
       joindre les autres constats de perf accumulés d'ici là. · **M**
-- [ ] **F2** — **Audit optimisation & sécurité.** Vitesse et mémoire au démarrage et au
-      scan (~900 mods), concurrence (`scanMods()` parallèle, verrous du registre), et
-      surface de sécurité : extraction d'archives (traversée de chemin, zip-bomb — déjà
-      partiellement couverte), stockage de la clé Nexus, gestion du protocole `nxm://`,
-      écritures dans `Mods/`. · **M** · *à faire après F1-T1 : auditer 8389 lignes de VM
-      monolithique coûte plus cher que d'auditer des types séparés.*
+- [ ] **F2** — **Audit optimisation & sécurité.** Vitesse et mémoire au démarrage, au scan
+      (~900 mods) et **au build** (`python3 build_app.py`, `run_tests.sh`), concurrence
+      (`scanMods()` parallèle, verrous du registre), et surface de sécurité : extraction
+      d'archives (traversée de chemin, zip-bomb — déjà partiellement couverte), stockage
+      de la clé Nexus, gestion du protocole `nxm://`, écritures dans `Mods/`. · **M** ·
+      *à faire après F1-T1 : auditer 8389 lignes de VM monolithique coûte plus cher que
+      d'auditer des types séparés.*
       ⚠️ **Une partie de l'inventaire existe déjà** :
       [`audit-swift-2026-08-05.md`](audit-swift-2026-08-05.md) — 309 lignes, ~72 findings
       recensés, les 9 hauts corrigés au 2026-08-11 — couvre la surface de sécurité et une
@@ -2583,6 +2584,64 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
       À y joindre le candidat **#4 de `§audit-gestionnaires`** : la liste explicite de
       garde-fous d'écriture de Vortex (`policy.ts`), à reprendre **comme grille de revue
       de nos chemins d'écriture**, pas comme code à porter.
+      Le périmètre « build » a son propre découpage — voir **F2-T1** (gains rapides déjà
+      identifiés) et **F2-T2** (le bottleneck réel, qui relève d'un choix d'architecture
+      et non d'un script Python).
+  - [x] **F2-T1** — **Quick wins sur la chaîne de build.** Mesure au 2026-09-01
+        (`python3 build_app.py` à froid puis à chaud) : `swiftc` whole-module consomme
+        **~99 %** du temps (2m22s sur les deux passes — il n'a pas de cache objet
+        utilisable quand tout le module est recompilé d'un coup). Les étapes
+        périphériques (`compile_commands.json`, `check_standards.py`, copie d'assets,
+        codesign) ne pèsent que ~1 s au total — mais c'est précisément la part que
+        des quick wins Python peuvent bouger sans toucher au compilateur. · **S**
+        **Livré** (2026-09-01) :
+        ▸ `build_app.py` saute la réécriture de `compile_commands.json` quand
+          l'ensemble des fichiers Swift (avec leur chemin absolu) est inchangé
+          depuis la dernière passe — fingerprint dans
+          `.build/compile_commands.fingerprint`. Évite ~200 ms + un réindex
+          SourceKit-LSP inutile à chaque build, et supprime le bruit dans la sortie.
+        ▸ `check_standards.py` cache le verdict par empreinte (mtime agrégé +
+          tailles par fichier) dans `.standards-source-freshness{.counts,.info}` :
+          un build chaud où rien n'a bougé passe de **860 ms à 49 ms (×17)** —
+          les 10 regex sur 211 fichiers sont skippés. `--report` et `--update`
+          court-circuitent le cache, qui n'a de sens que pour la vérification
+          silencieuse de `build_app.py`.
+        ▸ Lecture de `L10n.swift` passée sous `with open(...)` (correction
+          d'une fuite de FD), et strip des commentaires `//` avant le regex
+          `static let \w+ = "..."` — sans cela, un commentaire évoquant une clé
+          déjà connue la faisait ressembler à une déclaration, ce qui aurait
+          pu la déclarer « undeclared » sur certaines branches de doc.
+        ▸ `run_tests.sh` et `Package.swift` non touchés : `swift test` est déjà
+          incrémental (5 s chaud sur le parc de tests actuel), et le découpage
+          SPM existant n'a rien à gagner côté script sans le refactor de F1.
+        ▸ **Net sur le build complet** : gain marginal mesuré (~1 s sur
+          2m22s), le bottleneck `swiftc` ne bouge pas — c'est le propos de F2-T2.
+  - [ ] **F2-T2** — **Vrai bottleneck : `swiftc` whole-module recompile tout, à chaque
+        build.** Constat au 2026-09-01 : `swift build` (SPM) sait cacher les objets par
+        fichier parce qu'il compile chaque cible en `-c` séparé puis lie ; `swiftc`
+        invoqué sur les 211 fichiers en un seul module produit un binaire monolithique,
+        et **n'a rien à réutiliser** — d'où l'égalité froid/chaud mesurée. `-incremental`
+        ne s'applique qu'au mode `-c` + link, pas au whole-module : la première version
+        du commentaire de `build_swiftc_command` en faisait la promesse — retirée avant
+        commit pour éviter une fausse bonne idée.
+        Trois pistes, par gain décroissant et coût croissant :
+        ▸ **(P1)** Compiler chaque fichier Swift en `.o` individuel dans
+          `.build/objects/`, garder l'existant si son empreinte ne change pas,
+          puis `ld` pour lier. Sans modification de `Package.swift`. Gain estimé
+          ×5-×10 sur les builds incrémentaux. · **M**
+        ▸ **(P2)** Basculer en SPM à deux cibles : `StarHubTHCore` (déjà
+          définie, ~140 fichiers) compilée par `swift build` avec cache objet,
+          et `StarHubTHUI` (~70 fichiers ViewModel/Vues) liée statiquement
+          contre `StarHubTHCore.a`. Le cache objet SPM fonctionne nativement.
+          Toucherait `Package.swift`, les `import` éventuels inter-cibles, et
+          les tests SPM (déjà dépendants de `StarHubTHCore`). · **L**
+        ▸ **(P3)** Module distribué / prebuilt cache partagé entre postes
+          (CI + devs). Hors périmètre raisonnable pour un dépôt mono-dev.
+        **Hors périmètre ici** : la passe de perf groupée en fin de projet citée
+        sous **F3** ne concerne que l'**UX** (latence de frappe, rendu de la liste).
+        Le build est de la perf **de développement**, et son arbitrage se fait
+        indépendamment. Critère de succès : un build chaud sous 30 s (contre
+        2m22s aujourd'hui) ; à mesurer après P1 ou P2, selon l'effort consenti.
 - [ ] **F5** — **StarHubFR et StarHubTH écrivent dans les mêmes données.** Le fork a changé
       le nom du produit, pas son identité : le bundle reste `com.appleboiy.StarHubTH` et
       les fichiers vivent sous `~/Library/Application Support/StarHubTH/`. Deux

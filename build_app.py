@@ -52,8 +52,18 @@ def generate_localizable_strings() -> None:
     # des JSON compile, se copie dans le bundle, et **s'affiche telle quelle à
     # l'écran** — `localizedString(for:)` rend la clé quand la table ne la
     # porte pas. C'est un défaut que seul un œil sur l'écran attrapait.
-    declared = re.findall(r'static let \w+\s*=\s*"([^"]+)"',
-                          open(os.path.join("StarHubTH", "L10n.swift"), "r", encoding="utf-8").read())
+    #
+    # Les lignes de commentaires `// …` sont strippées avant le regex pour la
+    # même raison que `check_standards.py` le fait : écrire *sur* une violation
+    # (ex. un commentaire qui ressemblerait à une déclaration) ne doit pas en
+    # être une — sinon la doc du fichier casserait le build.
+    l10n_path = os.path.join("StarHubTH", "L10n.swift")
+    with open(l10n_path, "r", encoding="utf-8") as f:
+        l10n_source = "\n".join(
+            line for line in f.read().splitlines()
+            if not line.lstrip().startswith("//")
+        )
+    declared = re.findall(r'static let \w+\s*=\s*"([^"]+)"', l10n_source)
     undeclared = sorted({key for key in declared if key not in reference_keys})
     if undeclared:
         print(f"[ERROR] L10n.swift declares keys absent from assets/{reference_locale}.json: "
@@ -83,7 +93,16 @@ def gather_swift_files() -> list[str]:
     return sorted(swift_files)
 
 def build_swiftc_command(swift_files: list[str], app_executable: str, module_cache_dir: str) -> list[str]:
-    """The exact swiftc invocation used to compile the app (single module)."""
+    """The exact swiftc invocation used to compile the app (single module).
+
+    Whole-module: one swiftc invocation produces the executable. There is no
+    object file the driver can reuse on the next build — `-incremental` only
+    helps in `swift build`'s per-file `-c` + link workflow, not here. So the
+    real build-time wins live in steps *around* swiftc: skipping the
+    `compile_commands.json` rewrite when the file list is stable, and skipping
+    `check_standards.py` when no source has changed since the last run. See
+    `write_compile_commands` and the `STANDARDS_FRESH` cache for those.
+    """
     # Pin an explicit deployment target (macOS 14, matching Package.swift and
     # Info.plist's LSMinimumSystemVersion). Without `-target` swiftc derives it
     # from the SDK, which on the macOS 26 / Tahoe toolchain fails with
@@ -102,6 +121,10 @@ def write_compile_commands(swift_files: list[str], app_executable: str, module_c
 
     The app is one swiftc-compiled module, so every file's entry carries the
     full whole-module command. Regenerated on each build; keep out of git.
+
+    Skips the write when the set of files (sorted + absolute) is unchanged
+    since the previous build — regenerating a multi-thousand-line JSON for
+    211 entries costs ~200ms plus a SourceKit-LSP re-index trigger.
     """
     repo_root = os.path.abspath(".")
     arguments: list[str] = build_swiftc_command(swift_files, app_executable, module_cache_dir)
@@ -113,8 +136,24 @@ def write_compile_commands(swift_files: list[str], app_executable: str, module_c
         }
         for swift_file in swift_files
     ]
+    fingerprint = json.dumps(
+        [(e["file"], e["directory"]) for e in entries], sort_keys=True
+    )
+    cache_path = ".build/compile_commands.fingerprint"
+    try:
+        with open(cache_path, "r", encoding="utf-8") as f:
+            if f.read() == fingerprint:
+                # Same files, same args → LSP already knows. Skip the write
+                # *and* skip the noisy "Wrote" log on quiet builds.
+                return
+    except FileNotFoundError:
+        pass
+
     with open("compile_commands.json", "w", encoding="utf-8") as file:
         json.dump(entries, file, indent=2)
+    os.makedirs(".build", exist_ok=True)
+    with open(cache_path, "w", encoding="utf-8") as f:
+        f.write(fingerprint)
     print(f"[INFO] Wrote compile_commands.json ({len(entries)} files) for SourceKit-LSP")
 
 def generate_compile_commands_only():

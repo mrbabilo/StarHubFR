@@ -37,6 +37,13 @@ unpack_batch.py
 .kilo/*
 !.kilo/plans/
 
+# Cache de fraîcheur du cliquet des conventions (F2-T1) : empreinte mtime
+# locale, régénérée à chaque build. À ne pas confondre avec
+# `.standards-baseline.json`, qui est la base de référence et se commite.
+.standards-source-freshness
+.standards-source-freshness.counts
+.standards-source-freshness.info
+
 # Superpowers working docs (specs/plans/audits) — local, not versioned
 docs/superpowers/
 
