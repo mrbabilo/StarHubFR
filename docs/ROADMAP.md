@@ -2623,6 +2623,17 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
       est la version d'avant B1-T2 et sert de témoin pour un A/B — première étape de la
       passe, avant d'écrire quoi que ce soit : les deux réponses mènent à des travaux
       opposés.
+      **Constat accumulé (audit du 2026-09-02), à joindre à la passe groupée** — autre
+      sujet, même seau : `healthIssues` (`StarHubTHViewModel.swift:379`, `@MainActor`
+      computed) est recalculé à chaque accès — aplatissement des ~966 mods, `Set`,
+      résolution complète — et lu plusieurs fois par rendu (`systemAlertCount`,
+      `activeConflictCount`, écran d'alertes, accueil). Chaque tick de `scanProgress`
+      (publié **par mod** pendant un scan) fait réévaluer les corps observateurs : ~un
+      recalcul complet par mod scanné, soit ~966 par passe. Coût unitaire faible
+      (microsecondes), mais c'est le patron exact qui a beach-ballé les journaux (voir
+      Traps, `List` → `LazyVStack`). **Mesurer avant d'agir** ; une mémoïsation sur
+      signature d'entrées (`mods`, verdicts de conflits, conflits Content Patcher,
+      diagnostics SMAPI) garderait la source unique intacte.
       **Arbitrage de l'auteur (2026-08-01) : traiter dans une passe de performance
       groupée, en fin de projet** — pas au fil de l'eau. Ne pas rouvrir isolément ; y
       joindre les autres constats de perf accumulés d'ici là. · **M**
@@ -2738,6 +2749,29 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
         sépare préférences, Trousseau et `nxm://`, puis recopier l'ancien domaine vers le
         nouveau. Seule, T2 laisse les fichiers en commun ; seule, T1 laisse les préférences
         et le Trousseau en commun. · **M**
+- [ ] **F6** — **Constats laissés ouverts par l'audit du 2026-09-02.** *(audit
+      fichier-par-fichier : `StarHubTHApp.swift` et tranche ① du ViewModel passés ce
+      jour-là — aucun bug bloquant, deux corrections livrées au commit `7e0896a`. Les deux
+      items ci-dessous sont les constats volontairement non traités ; le constat de perf
+      de la même audit est allé grossir **F3**, son seau désigné.)*
+  - [ ] **F6-T1** — **Course à l'annulation dans `recomputeFrenchCoverage`.** · **S**
+        (`StarHubTHViewModel.swift:473`) Le `cancel()` d'un recalcul n'interrompt pas un
+        `await mergeFrenchCoverage(…)` déjà engagé : un lot de ≤ 25 mesures de la
+        génération précédente peut atterrir après le recalcul de la génération suivante.
+        Bénin tant que le contenu des fichiers ne change pas entre les deux (mesures
+        identiques — c'est le cas aujourd'hui) ; devient réel le jour de la re-mesure
+        ciblée d'un seul mod, cas que le commentaire du code (~L.530) anticipe déjà.
+        **Ne pas corriger isolément maintenant** — aucun observable aujourd'hui. Quand la
+        re-mesure ciblée arrivera : poser une garde de génération (compteur incrémenté à
+        chaque recalcul, merge ignoré si sa génération est dépassée).
+  - [ ] **F6-T2** — **`fetchModDetailRemote` suppose une complétion exactement une fois.**
+        (`StarHubTHViewModel.swift:245`) Les deux appels imbriqués
+        (`NexusUpdateChecker.fetchRawDescription` puis `fetchChangelogs`) ne posent
+        aucune garde : si l'un appelle sa complétion zéro fois (erreur avalée, réessai
+        interne) la fiche reste `isLoading` à vie ; deux fois, la complétion se rejoue.
+        **À instruire à la Phase 2 de l'audit** (fichier `NexusUpdateChecker`) : lire
+        l'implémentation réelle avant de conclure — c'est une hypothèse à vérifier, pas
+        un bug constaté. Puis soit clore, soit blinder les deux complétions. · **S**
 
 ---
 
