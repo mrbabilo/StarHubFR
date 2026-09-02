@@ -132,13 +132,26 @@ public struct ModConflictVerdicts: Codable, Equatable, Sendable {
     /// `candidates` peut répéter une paire (déclarée **et** observée) : elle
     /// ne compte qu'une fois. Pure, comme `activationConflict` — c'est la
     /// partie de la règle de la pastille qui se teste sans le ViewModel.
-    public func liveConflictCount(candidates: [ModConflictPair],
-                                  activeFolders: Set<String>) -> Int {
-        Set(candidates).filter { pair in
+    ///
+    /// Triée (`sortPairs`) : sans cela l'ordre viendrait de l'itération d'un
+    /// `Set`, non déterministe d'un lancement à l'autre — et cette liste
+    /// alimente maintenant un affichage (`HealthIssueResolver.resolve`), pas
+    /// seulement un compte.
+    public func liveConflicts(candidates: [ModConflictPair],
+                              activeFolders: Set<String>) -> [ModConflictPair] {
+        let filtered = Set(candidates).filter { pair in
             verdict(for: pair)?.isDeclared != false
                 && activeFolders.contains(pair.first)
                 && activeFolders.contains(pair.second)
-        }.count
+        }
+        return sortPairs(Array(filtered))
+    }
+
+    /// Le compte **dérive** de la liste : une seule règle de filtrage, pas
+    /// deux qui finiraient par diverger.
+    public func liveConflictCount(candidates: [ModConflictPair],
+                                  activeFolders: Set<String>) -> Int {
+        liveConflicts(candidates: candidates, activeFolders: activeFolders).count
     }
 
     // Un dictionnaire à clé non-`String` ne se code pas en JSON d'objet : on

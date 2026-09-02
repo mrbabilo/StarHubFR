@@ -363,17 +363,29 @@ class StarHubTHViewModel: ObservableObject {
         keybindScanService.report?.problemCount ?? 0
     }
 
+    /// Les problèmes de santé du parc, résolus une seule fois.
+    ///
+    /// L'accueil, le badge de la barre latérale et l'écran d'alertes lisent
+    /// **cette** liste. Deux chemins de calcul finiraient par diverger, et
+    /// l'accueil annoncerait un nombre que l'écran ne montre pas.
+    @MainActor
+    var healthIssues: [HealthIssue] {
+        let activeFolders = Set(mods.flattenedMods.filter(\.isEnabled).map(\.folderName))
+        let candidates = modConflictVerdicts.declared
+            + contentPatcherConflicts.compactMap(conflictPair)
+        let live = modConflictVerdicts.liveConflicts(candidates: candidates,
+                                                    activeFolders: activeFolders)
+        return HealthIssueResolver.resolve(diagnostics: smapiDiagnostics,
+                                           keybindReport: keybindScanService.report,
+                                           conflicts: live)
+    }
+
     /// La définition d'une « alerte » (pastille de la barre latérale et
-    /// bande de l'accueil, tâche 7) : erreurs SMAPI plus problèmes de
-    /// raccourcis — collisions et conflits jeu, les « non reconnus » exclus
-    /// (illisibles, pas avérés ; voir `keybindProblemCount`) — plus conflits
-    /// entre mods aux deux côtés actifs (voir `activeConflictCount`). Un
-    /// seul endroit pour cette somme : barre latérale et accueil ne peuvent
+    /// bande de l'accueil, tâche 7) : dérive de `healthIssues`, la même
+    /// liste que l'écran d'alertes — barre latérale et accueil ne peuvent
     /// plus diverger.
     @MainActor
-    var systemAlertCount: Int {
-        smapiErrors.count + keybindProblemCount + activeConflictCount
-    }
+    var systemAlertCount: Int { healthIssues.count }
 
     /// Combien d'incompatibilités entre mods réclament une attention
     /// aujourd'hui (spec A5-T2, « Pastille ») : une par paire déclarée ou

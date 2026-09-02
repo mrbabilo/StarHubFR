@@ -196,4 +196,15 @@ struct ModConflictVerdictsTests {
         #expect(store.liveConflictCount(candidates: [pair], activeFolders: ["A"]) == 0)
         #expect(store.liveConflictCount(candidates: [pair], activeFolders: []) == 0)
     }
+
+    /// Le compte doit être exactement la taille de la liste : deux règles de
+    /// filtrage finiraient par diverger, et la pastille annoncerait un nombre
+    /// que l'écran ne montre pas.
+    @Test func liveConflictCountDerivesFromTheList() {
+        let verdicts = ModConflictVerdicts()
+        let candidates = [ModConflictPair("A", "B"), ModConflictPair("C", "D")]
+        let active: Set<String> = ["A", "B"]
+        #expect(verdicts.liveConflicts(candidates: candidates, activeFolders: active).count
+                == verdicts.liveConflictCount(candidates: candidates, activeFolders: active))
+    }
 }
