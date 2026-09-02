@@ -2764,14 +2764,21 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
         **Ne pas corriger isolément maintenant** — aucun observable aujourd'hui. Quand la
         re-mesure ciblée arrivera : poser une garde de génération (compteur incrémenté à
         chaque recalcul, merge ignoré si sa génération est dépassée).
-  - [ ] **F6-T2** — **`fetchModDetailRemote` suppose une complétion exactement une fois.**
+  - [x] **F6-T2** — **`fetchModDetailRemote` suppose une complétion exactement une fois.**
         (`StarHubTHViewModel.swift:245`) Les deux appels imbriqués
         (`NexusUpdateChecker.fetchRawDescription` puis `fetchChangelogs`) ne posent
         aucune garde : si l'un appelle sa complétion zéro fois (erreur avalée, réessai
         interne) la fiche reste `isLoading` à vie ; deux fois, la complétion se rejoue.
-        **À instruire à la Phase 2 de l'audit** (fichier `NexusUpdateChecker`) : lire
-        l'implémentation réelle avant de conclure — c'est une hypothèse à vérifier, pas
-        un bug constaté. Puis soit clore, soit blinder les deux complétions. · **S**
+        **Clos le 2026-09-03, vérifié à la lecture** (audit tranche ③) : chaque
+        complétion de `NexusUpdateChecker` est appelée **exactement une fois** sur
+        tous les chemins — un `dataTask` URLSession ne rend son rappel qu'une fois
+        (annulation comprise, traduite en échec), `fetchRawDescription` et
+        `fetchChangelogs` n'ont qu'une sortie par branche, et le cas le plus subtil
+        (`fetchModInfo`, requête secondaire `files.json` imbriquée) passe par un
+        `finalize` appelé exactement une fois sur chacune de ses deux sorties.
+        Seule échappatoire théorique : `fetchSingleMod` rend sans complétion si
+        `self` a disparu en vol — singleton éternel, indéallocable. L'hypothèse
+        tient ; rien à blinder.
 
 ---
 
