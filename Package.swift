@@ -150,6 +150,7 @@ let package = Package(
                 "Models/KeybindScanner.swift",
                 "Models/SavePlayerFields.swift",
                 "Models/SaveHeroPortrait.swift",
+                "Models/SaveGameFields.swift",
                 "SaveFarmerPalette.swift",
                 "SaveFarmNameResolver.swift",
             ]

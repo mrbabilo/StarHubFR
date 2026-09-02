@@ -243,6 +243,64 @@ public class SaveManager {
         return regex
     }
 
+    /// Une lecture mémorisée, avec l'empreinte du fichier qui l'a produite.
+    private struct ParsedSave {
+        let modified: Date
+        let size: Int64
+        let folderName: String
+        let info: SaveGameInfo
+    }
+
+    /// `fetchSaves()` reparse chaque dossier à **chaque** rafraîchissement de
+    /// la page Parties, dossiers de secours compris — soit ~230 ms par fichier
+    /// de 37 Mo pour un contenu qui n'a pas bougé.
+    ///
+    /// L'empreinte croise la **date de modification et la taille** : la date
+    /// seule ne suffit pas (une restauration de sauvegarde recopie un fichier
+    /// en la préservant), la taille seule non plus (éditer 500 en 600 ne la
+    /// change pas). Les deux ensemble laissent encore un angle mort, fermé par
+    /// l'invalidation explicite de tout chemin d'écriture de ce type.
+    ///
+    /// Verrou dédié : `fetchSaves()` peut être appelé hors du fil principal,
+    /// et le subscript d'un `Dictionary` Swift sans verrou a déjà coûté un
+    /// `EXC_BAD_ACCESS` à ce dépôt (CLAUDE.md §Concurrence).
+    private static var parseCache: [String: ParsedSave] = [:]
+    private static let parseCacheLock = NSLock()
+
+    /// Vide le cache. Appelé par tout chemin qui écrit dans une sauvegarde —
+    /// vider entièrement plutôt que par entrée : une invalidation partielle
+    /// oubliée resservirait du contenu périmé, et un reparse complet ne coûte
+    /// qu'une fois ce que la mémoïsation économise ensuite.
+    public func invalidateParseCache() {
+        Self.parseCacheLock.lock()
+        Self.parseCache.removeAll()
+        Self.parseCacheLock.unlock()
+    }
+
+    private static func stamp(of url: URL) -> (modified: Date, size: Int64)? {
+        guard let attrs = try? FileManager.default.attributesOfItem(atPath: url.path),
+              let modified = attrs[.modificationDate] as? Date,
+              let size = (attrs[.size] as? NSNumber)?.int64Value else { return nil }
+        return (modified, size)
+    }
+
+    private static func cached(path: String, folderName: String,
+                               modified: Date, size: Int64) -> SaveGameInfo? {
+        parseCacheLock.lock()
+        defer { parseCacheLock.unlock() }
+        guard let hit = parseCache[path], hit.folderName == folderName,
+              hit.modified == modified, hit.size == size else { return nil }
+        return hit.info
+    }
+
+    private static func remember(_ info: SaveGameInfo, path: String, folderName: String,
+                                 modified: Date, size: Int64) {
+        parseCacheLock.lock()
+        parseCache[path] = ParsedSave(modified: modified, size: size,
+                                      folderName: folderName, info: info)
+        parseCacheLock.unlock()
+    }
+
     public init() {
         let homeDir = FileManager.default.homeDirectoryForCurrentUser
         self.savesDir = homeDir.appendingPathComponent(".config/StardewValley/Saves")
@@ -274,6 +332,12 @@ public class SaveManager {
     }
     
     func parseSaveFile(url: URL, folderName: String) -> SaveGameInfo? {
+        let stamp = Self.stamp(of: url)
+        if let stamp,
+           let hit = Self.cached(path: url.path, folderName: folderName,
+                                 modified: stamp.modified, size: stamp.size) {
+            return hit
+        }
         guard let content = try? String(contentsOf: url, encoding: .utf8) else { return nil }
 
         // Une seule passe sur `<player>` donne tous les champs du fermier, par
@@ -291,12 +355,25 @@ public class SaveManager {
         let money = playerInt("money", default: 0)
         let spouse = extractSpouseFromPlayer(from: content) ?? ""
 
-        let year = Int(extractTag(tag: "yearForSaveGame", from: content) ?? "1") ?? 1
-        let season = Int(extractTag(tag: "seasonForSaveGame", from: content) ?? "0") ?? 0
-        let day = Int(extractTag(tag: "dayOfMonthForSaveGame", from: content) ?? "1") ?? 1
-        // `<whichFarm>` vit au niveau `SaveGame`, et n'est **pas** toujours un
-        // entier : une ferme de mod y écrit son identifiant (`FrontierFarm`).
-        let farmType = SaveFarmType.parse(rawWhichFarm: extractTag(tag: "whichFarm", from: content))
+        // La date est un champ du **fermier** (mesuré : enfant direct de
+        // `<player>` sur les 10 fichiers de save du disque). Repli hors du bloc
+        // pour les sauvegardes qui ne la porteraient pas là.
+        func dateInt(_ tag: String, default fallback: Int) -> Int {
+            if let value = player[tag].flatMap(Int.init) { return value }
+            return Int(extractTag(tag: tag, from: content) ?? "") ?? fallback
+        }
+        let year = dateInt("yearForSaveGame", default: 1)
+        let season = dateInt("seasonForSaveGame", default: 0)
+        let day = dateInt("dayOfMonthForSaveGame", default: 1)
+
+        // Les scalaires de `<SaveGame>` sont écrits après ses grandes
+        // collections : les chercher dans la queue du fichier coûte ~90 ms au
+        // lieu de ~980 ms sur la save de 37 Mo du parc. L'ancre `whichFarm`
+        // prouve qu'on a la bonne zone ; sinon on repart du fichier entier.
+        let saveScope = SaveGameFields.trailingScope(of: content, anchor: "whichFarm") ?? content
+        // `<whichFarm>` n'est **pas** toujours un entier : une ferme de mod y
+        // écrit son identifiant (`FrontierFarm`).
+        let farmType = SaveFarmType.parse(rawWhichFarm: extractTag(tag: "whichFarm", from: saveScope))
         let whichFarm = farmType.whichFarm
         // Les vrais tags du jeu : `<hair>` (int) et `<hairstyleColor>` (Color
         // XNA composé) — pas `<hairStyle>`/`<hairColor>` (audit H-T5b : ces
@@ -308,22 +385,21 @@ public class SaveManager {
         // l'identifiant de `<whichFarm>` est le seul nom que la ferme porte.
         // Sa présence reste toutefois le signal qui prime — un mod peut la
         // poser avec un `<whichFarm>` entier — donc on la cherche toujours.
-        let modFarmName = extractModFarmName(from: content) ?? farmType.modFarmId
+        let modFarmName = extractModFarmName(from: saveScope) ?? farmType.modFarmId
         // Textuel (Male/Female/Undefined). Tout sauf « Female » lit fermier.
         let isFemale = player["gender"] == "Female" || player["Gender"] == "Female"
 
         // Advanced. `goldenWalnuts` est à l'échelle de la ferme, hors `<player>`.
         let maxHealth = playerInt("maxHealth", default: 100)
         let maxStamina = playerInt("maxStamina", default: 270)
-        let goldenWalnuts = Int(extractTag(tag: "goldenWalnuts", from: content) ?? "0") ?? 0
+        let goldenWalnuts = Int(extractTag(tag: "goldenWalnuts", from: saveScope) ?? "0") ?? 0
         let qiGems = playerInt("qiGems", default: 0)
         let clubCoins = playerInt("clubCoins", default: 0)
         let totalMoneyEarned = playerInt("totalMoneyEarned", default: 0)
 
-        let attr = try? FileManager.default.attributesOfItem(atPath: url.path)
-        let lastModified = attr?[.modificationDate] as? Date ?? Date()
+        let lastModified = stamp?.modified ?? Date()
 
-        return SaveGameInfo(
+        let parsed = SaveGameInfo(
             folderName: folderName,
             fileURL: url,
             lastModified: lastModified,
@@ -348,6 +424,11 @@ public class SaveManager {
             modFarmName: modFarmName,
             isFemale: isFemale
         )
+        if let stamp {
+            Self.remember(parsed, path: url.path, folderName: folderName,
+                          modified: stamp.modified, size: stamp.size)
+        }
+        return parsed
     }
 
     /// `<hairstyleColor>` est un bloc composé — `extractTag` (à valeur
@@ -502,6 +583,10 @@ public class SaveManager {
     }
     
     func updateSave(info: SaveGameInfo, newName: String, newFarm: String, newFav: String, newMoney: Int, newTotalMoneyEarned: Int, newMaxHealth: Int, newMaxStamina: Int, newGoldenWalnuts: Int, newQiGems: Int, newClubCoins: Int, newSpouse: String) -> Bool {
+        // Toute écriture invalide la lecture mémorisée. En tête plutôt qu'en
+        // fin : un échec partiel a pu toucher le disque, et resservir une
+        // lecture d'avant serait pire que reparser pour rien.
+        invalidateParseCache()
         guard backupSave(info: info) else { return false }
         
         guard var content = try? String(contentsOf: info.fileURL, encoding: .utf8) else { return false }
@@ -702,6 +787,10 @@ public class SaveManager {
     }
     
     public func deleteSave(info: SaveGameInfo) -> Bool {
+        // Toute écriture invalide la lecture mémorisée. En tête plutôt qu'en
+        // fin : un échec partiel a pu toucher le disque, et resservir une
+        // lecture d'avant serait pire que reparser pour rien.
+        invalidateParseCache()
         let folderPath = info.fileURL.deletingLastPathComponent()
         do {
             try FileManager.default.trashItem(at: folderPath, resultingItemURL: nil)
@@ -781,6 +870,10 @@ public class SaveManager {
     }
 
     public func duplicateSave(info: SaveGameInfo, newName: String, newFarm: String) -> Bool {
+        // Toute écriture invalide la lecture mémorisée. En tête plutôt qu'en
+        // fin : un échec partiel a pu toucher le disque, et resservir une
+        // lecture d'avant serait pire que reparser pour rien.
+        invalidateParseCache()
         let folderPath = info.fileURL.deletingLastPathComponent()
         let saveName = folderPath.lastPathComponent
         return cloneSaveFolder(sourceFolder: folderPath, baseName: saveName, suffix: "copy", newPlayerName: newName, newFarmName: newFarm, context: "duplicate save")
@@ -832,6 +925,10 @@ public class SaveManager {
 
     /// Restore a backup: backup current save first, then swap
     public func restoreBackup(backup: SaveBackup, info: SaveGameInfo) -> Bool {
+        // Toute écriture invalide la lecture mémorisée. En tête plutôt qu'en
+        // fin : un échec partiel a pu toucher le disque, et resservir une
+        // lecture d'avant serait pire que reparser pour rien.
+        invalidateParseCache()
         let fm = FileManager.default
         let saveFolder = info.fileURL.deletingLastPathComponent()
 
@@ -960,6 +1057,10 @@ public class SaveManager {
     }
     
     func updateInventory(info: SaveGameInfo, items: [InventoryItem]) -> Bool {
+        // Toute écriture invalide la lecture mémorisée. En tête plutôt qu'en
+        // fin : un échec partiel a pu toucher le disque, et resservir une
+        // lecture d'avant serait pire que reparser pour rien.
+        invalidateParseCache()
         // Backup first
         guard backupSave(info: info) else { return false }
         

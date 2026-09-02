@@ -568,11 +568,12 @@ struct SaveManagerRealShapeTests {
         <qiGems>0</qiGems><clubCoins>0</clubCoins>\
         <hair>34</hair><skin>2</skin>\
         <hairstyleColor><B>174</B><G>163</G><R>209</R><A>255</A></hairstyleColor>\
-        <gender>\(gender)</gender><basicShipped /></player>\
-        <whichFarm>\(whichFarm)</whichFarm>\
-        <goldenWalnuts>3</goldenWalnuts>\
+        <gender>\(gender)</gender>\
         <yearForSaveGame>4</yearForSaveGame><seasonForSaveGame>2</seasonForSaveGame>\
-        <dayOfMonthForSaveGame>17</dayOfMonthForSaveGame></SaveGame>
+        <dayOfMonthForSaveGame>17</dayOfMonthForSaveGame>\
+        <basicShipped /></player>\
+        <whichFarm>\(whichFarm)</whichFarm>\
+        <goldenWalnuts>3</goldenWalnuts></SaveGame>
         """
     }
 
@@ -621,8 +622,10 @@ struct SaveManagerRealShapeTests {
         #expect(info.modFarmName == nil)
     }
 
-    /// `<goldenWalnuts>` vit au niveau `SaveGame`, pas dans `<player>` (mesuré
-    /// sur les 5 saves du parc) : il doit rester lu hors du bloc joueur.
+    /// `<goldenWalnuts>` vit au niveau `SaveGame` ; la date, elle, est un champ
+    /// du fermier (mesuré : `yearForSaveGame`/`seasonForSaveGame`/
+    /// `dayOfMonthForSaveGame` sont enfants directs de `<player>` sur les 10
+    /// fichiers de save du disque). Les deux doivent sortir justes.
     @Test func goldenWalnutsAreStillReadOutsideThePlayerBlock() throws {
         let env = TestEnvironment(); defer { env.cleanup() }
         let info = try Self.parse(Self.realShapeXML(), env, "RealShapeWalnuts")
@@ -692,5 +695,215 @@ struct SaveHeroThumbnailTests {
     @Test func vanillaFarmIconsAreUnchanged() {
         #expect(SaveGameInfo.farmIcon(for: 0) == "leaf.fill")
         #expect(SaveGameInfo.farmIcon(for: 7) == "pawprint.fill")
+    }
+}
+
+// MARK: - Champs de niveau <SaveGame> : chercher en queue (H-T5d)
+
+/// Mesuré sur les 6 fichiers de save du disque (2 à 39 Mo) : `<whichFarm>` et
+/// `<goldenWalnuts>` sont **uniques** et vivent dans le dernier 1,2 % du
+/// fichier (98,8 % au pire) — le sérialiseur écrit les scalaires de
+/// `<SaveGame>` après ses grandes collections. Les chercher sur le fichier
+/// entier coûtait ~313 ms chacun.
+///
+/// L'ancre est ce qui rend le raccourci sûr : si la queue ne contient pas
+/// `<whichFarm>`, c'est qu'on n'a pas attrapé la bonne zone, et l'appelant
+/// retombe sur le fichier entier. Une balise absente d'une queue **qui porte
+/// l'ancre** est absente de `<SaveGame>`, puisqu'elle en serait la voisine.
+@Suite("SaveGameFields")
+struct SaveGameFieldsTests {
+
+    @Test func theTailIsReturnedWhenItCarriesTheAnchor() {
+        let xml = String(repeating: "<junk>x</junk>", count: 5000)
+            + "<goldenWalnuts>3</goldenWalnuts><whichFarm>6</whichFarm></SaveGame>"
+        let scope = SaveGameFields.trailingScope(of: xml, anchor: "whichFarm",
+                                                 minimumWindow: 1_000)
+        #expect(scope != nil)
+        #expect(scope?.contains("<whichFarm>6</whichFarm>") == true)
+        #expect(scope?.contains("<goldenWalnuts>3</goldenWalnuts>") == true)
+        // Le raccourci ne sert à rien s'il rend tout le fichier.
+        #expect((scope?.count ?? 0) < xml.count)
+    }
+
+    /// Ancre absente de la queue → `nil`, et l'appelant repart du fichier
+    /// entier. Sans ce repli, un format qui déplacerait ces champs les rendrait
+    /// silencieusement introuvables.
+    @Test func noAnchorInTheTailFallsBackToTheWholeFile() {
+        let xml = "<SaveGame><whichFarm>6</whichFarm>"
+            + String(repeating: "<junk>x</junk>", count: 200_000) + "</SaveGame>"
+        #expect(SaveGameFields.trailingScope(of: xml, anchor: "whichFarm",
+                                             minimumWindow: 1_000) == nil)
+    }
+
+    /// Un petit fichier n'a pas de queue distincte : le rendre entier est
+    /// correct et évite un cas particulier chez l'appelant.
+    @Test func aSmallFileIsItsOwnTail() {
+        let xml = "<SaveGame><whichFarm>0</whichFarm></SaveGame>"
+        #expect(SaveGameFields.trailingScope(of: xml, anchor: "whichFarm") == xml)
+    }
+
+    @Test func anAbsentAnchorAnywhereReturnsNil() {
+        #expect(SaveGameFields.trailingScope(of: "<SaveGame></SaveGame>", anchor: "whichFarm") == nil)
+    }
+}
+
+// MARK: - Date de la sauvegarde (H-T5d)
+
+@Suite("Date de la sauvegarde")
+struct SaveDateTests {
+
+    /// La date est un champ du **fermier** (mesuré : enfant direct de
+    /// `<player>` sur les 10 fichiers de save du disque). La lire sur le
+    /// fichier entier rejouait la faute du sexe : un monstre imbriqué peut
+    /// porter la même balise avant lui.
+    @Test func dateComesFromTheFarmerNotANestedDecoy() throws {
+        let env = TestEnvironment(); defer { env.cleanup() }
+        let xml = """
+        <SaveGame><player><name>Jemila</name>\
+        <questLog><Quest><monster><yearForSaveGame>9</yearForSaveGame>\
+        <seasonForSaveGame>3</seasonForSaveGame>\
+        <dayOfMonthForSaveGame>28</dayOfMonthForSaveGame></monster></Quest></questLog>\
+        <yearForSaveGame>4</yearForSaveGame><seasonForSaveGame>2</seasonForSaveGame>\
+        <dayOfMonthForSaveGame>17</dayOfMonthForSaveGame></player>\
+        <whichFarm>0</whichFarm></SaveGame>
+        """
+        let url = env.savesDir.appendingPathComponent("DateDecoy").appendingPathComponent("DateDecoy")
+        try writeTestSaveFile(at: url, content: xml)
+        let info = try #require(SaveManager.shared.parseSaveFile(url: url, folderName: "DateDecoy"))
+        #expect(info.year == 4)
+        #expect(info.season == 2)
+        #expect(info.day == 17)
+    }
+
+    /// Repli : une sauvegarde dont le fermier ne porte pas la date la fait
+    /// encore lire hors du bloc joueur, comme avant.
+    @Test func dateFallsBackOutsideThePlayerBlock() throws {
+        let env = TestEnvironment(); defer { env.cleanup() }
+        let xml = """
+        <SaveGame><player><name>Alice</name></player>\
+        <yearForSaveGame>7</yearForSaveGame><seasonForSaveGame>1</seasonForSaveGame>\
+        <dayOfMonthForSaveGame>3</dayOfMonthForSaveGame><whichFarm>0</whichFarm></SaveGame>
+        """
+        let url = env.savesDir.appendingPathComponent("DateOutside").appendingPathComponent("DateOutside")
+        try writeTestSaveFile(at: url, content: xml)
+        let info = try #require(SaveManager.shared.parseSaveFile(url: url, folderName: "DateOutside"))
+        #expect(info.year == 7)
+        #expect(info.day == 3)
+    }
+}
+
+// MARK: - Mémoïsation de la lecture d'une sauvegarde (H-T5d, suite)
+
+/// `fetchSaves()` reparse chaque dossier à **chaque** rafraîchissement de la
+/// page Parties, dossiers de secours compris. Sur le parc, c'est ~230 ms par
+/// fichier de 37 Mo pour un contenu qui n'a pas bougé.
+/// ⚠️ Sérialisée : le cache et son invalidation sont **globaux** — c'est voulu
+/// en production (toute écriture vide tout, un lecteur concurrent ne fait que
+/// reparser), mais en parallèle un test qui invalide efface l'entrée qu'un
+/// autre vient de poser entre ses deux lectures.
+@Suite("Cache de lecture des sauvegardes", .serialized)
+struct SaveParseCacheTests {
+
+    /// Date figée, posée à chaque écriture. ⚠️ Ne **pas** capturer la date du
+    /// fichier puis la restaurer : `setAttributes` la relit différente de
+    /// l'originale au bit près (les deux `Date` s'impriment pareil et leur
+    /// écart mesure 0,0, mais `==` est faux). Le code de production ne fait
+    /// jamais cet aller-retour — il compare deux lectures de la même source —
+    /// donc l'égalité stricte y est correcte ; c'est la fixture qui doit
+    /// écrire une date stable pour exercer le cache.
+    static let fixedDate = Date(timeIntervalSince1970: 1_700_000_000)
+
+    static func write(_ xml: String, at url: URL) throws {
+        try writeTestSaveFile(at: url, content: xml)
+        try FileManager.default.setAttributes([.modificationDate: fixedDate],
+                                              ofItemAtPath: url.path)
+    }
+
+    /// Réécrit le fichier en lui rendant la même empreinte (date figée, et une
+    /// valeur de même longueur) : le seul moyen honnête de prouver qu'une
+    /// seconde lecture n'a pas retouché le disque, sans instrumenter le code
+    /// de production d'un compteur de test.
+    static func rewritePreservingStamp(_ xml: String, at url: URL) throws {
+        try xml.write(to: url, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.modificationDate: fixedDate],
+                                              ofItemAtPath: url.path)
+    }
+
+    static func xml(money: Int) -> String {
+        "<SaveGame><player><name>Alice</name><money>\(money)</money></player>"
+            + "<whichFarm>0</whichFarm></SaveGame>"
+    }
+
+    @Test func aSecondReadOfAnUntouchedFileComesFromTheCache() throws {
+        let env = TestEnvironment(); defer { env.cleanup() }
+        SaveManager.shared.invalidateParseCache()
+        let url = env.savesDir.appendingPathComponent("Cached").appendingPathComponent("Cached")
+        try Self.write(Self.xml(money: 100), at: url)
+        _ = SaveManager.shared.parseSaveFile(url: url, folderName: "Cached")
+        // Même taille (3 chiffres), même date : le cache doit encore répondre 100.
+        try Self.rewritePreservingStamp(Self.xml(money: 999), at: url)
+        let again = SaveManager.shared.parseSaveFile(url: url, folderName: "Cached")
+        #expect(again?.money == 100)
+    }
+
+    @Test func aFileWhoseSizeChangedIsReparsed() throws {
+        let env = TestEnvironment(); defer { env.cleanup() }
+        SaveManager.shared.invalidateParseCache()
+        let url = env.savesDir.appendingPathComponent("Resized").appendingPathComponent("Resized")
+        try Self.write(Self.xml(money: 100), at: url)
+        _ = SaveManager.shared.parseSaveFile(url: url, folderName: "Resized")
+        try Self.rewritePreservingStamp(Self.xml(money: 1234567), at: url)  // taille différente
+        #expect(SaveManager.shared.parseSaveFile(url: url, folderName: "Resized")?.money == 1234567)
+    }
+
+    /// Une restauration de sauvegarde recopie un fichier en **préservant sa
+    /// date** : sans invalidation explicite, le cache resservirait l'ancien
+    /// contenu. Toute écriture de `SaveManager` doit donc vider le cache.
+    @Test func invalidatingForcesAReparse() throws {
+        let env = TestEnvironment(); defer { env.cleanup() }
+        SaveManager.shared.invalidateParseCache()
+        let url = env.savesDir.appendingPathComponent("Invalidated").appendingPathComponent("Invalidated")
+        try Self.write(Self.xml(money: 100), at: url)
+        _ = SaveManager.shared.parseSaveFile(url: url, folderName: "Invalidated")
+        try Self.rewritePreservingStamp(Self.xml(money: 999), at: url)
+        SaveManager.shared.invalidateParseCache()
+        #expect(SaveManager.shared.parseSaveFile(url: url, folderName: "Invalidated")?.money == 999)
+    }
+
+    /// `restoreBackup` recopie un dossier avec `copyItem`, qui **préserve la
+    /// date et la taille** : l'empreinte seule ne voit rien passer. C'est le
+    /// trou que l'invalidation explicite existe pour fermer — sans elle, la
+    /// fiche continuerait d'afficher la sauvegarde d'avant la restauration.
+    @Test func restoringABackupInvalidatesTheCache() throws {
+        let env = TestEnvironment(); defer { env.cleanup() }
+        SaveManager.shared.invalidateParseCache()
+
+        let saveFolder = env.savesDir.appendingPathComponent("Restored")
+        let saveURL = saveFolder.appendingPathComponent("Restored")
+        try Self.write(Self.xml(money: 100), at: saveURL)
+        let info = try #require(SaveManager.shared.parseSaveFile(url: saveURL, folderName: "Restored"))
+        #expect(info.money == 100)
+
+        // Une sauvegarde de secours au **même** gabarit : même date, même taille.
+        let backupFolder = env.savesDir.appendingPathComponent("Restored.backup_20260101_000000")
+        try Self.write(Self.xml(money: 999), at: backupFolder.appendingPathComponent("Restored"))
+
+        let backup = SaveBackup(folderPath: backupFolder, timestamp: Self.fixedDate,
+                                saveFolder: "Restored")
+        #expect(SaveManager.shared.restoreBackup(backup: backup, info: info) == true)
+        #expect(SaveManager.shared.parseSaveFile(url: saveURL, folderName: "Restored")?.money == 999)
+    }
+
+    @Test func updateSaveInvalidatesTheCacheItself() throws {
+        let env = TestEnvironment(); defer { env.cleanup() }
+        SaveManager.shared.invalidateParseCache()
+        let url = env.savesDir.appendingPathComponent("Edited").appendingPathComponent("Edited")
+        try Self.write(Self.xml(money: 100), at: url)
+        let info = try #require(SaveManager.shared.parseSaveFile(url: url, folderName: "Edited"))
+        _ = SaveManager.shared.updateSave(info: info, newName: "Alice", newFarm: "F", newFav: "",
+                                          newMoney: 777, newTotalMoneyEarned: 0, newMaxHealth: 100,
+                                          newMaxStamina: 270, newGoldenWalnuts: 0, newQiGems: 0,
+                                          newClubCoins: 0, newSpouse: "")
+        #expect(SaveManager.shared.parseSaveFile(url: url, folderName: "Edited")?.money == 777)
     }
 }

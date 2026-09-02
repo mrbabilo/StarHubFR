@@ -2302,19 +2302,45 @@ par lot, une release par lot. Périmètre : visuel + navigation —
 > **Corrigé à la revue** (2026-09-02) : lecture et écriture des champs du fermier par **enfant direct** de `<player>` (`SavePlayerFields`) — la première occurrence attrapait un monstre de quête imbriqué, ce qui affichait une fermière en homme et écrivait la santé du fermier dans le monstre ; `<whichFarm>` non entier reconnu comme ferme de mod (`SaveFarmType`) — `FrontierFarm` s'affichait « Ferme standard » ; icône personnalisée rendue au hero ; chevelure du repli replacée sur le crâne ; caches d'images sous `NSLock`.
 > Ferme en passant un bug latent : `SaveManager.farmTypeName` retournait du thaï codé en dur depuis l'origine — désormais localisé via 10 clés `L10n.Saves.farmType*` + `heroFarmHelpFormat`. Architecture : `L10nResolver` protocole Core + `SaveFarmNameResolver` injecté (VM pas god-object-ifié).
 
-- [ ] **H-T5d** — **Lecture d'une sauvegarde : une passe au lieu de cinq.**
-      Mesuré le 2026-09-02 sur `Zofia_443716371` (37 Mo) : chaque balise de
-      niveau `SaveGame` lue par `extractTag` coûte ~313 ms, parce que sa cible
-      est en fin de fichier — `whichFarm`, `goldenWalnuts`, `yearForSaveGame`,
-      `seasonForSaveGame`, `dayOfMonthForSaveGame`, plus le `whichModFarm` qui
-      échoue (353 ms). Soit ~1,6 s par sauvegarde, multiplié par le nombre de
-      dossiers (sauvegardes de secours comprises) à **chaque** rafraîchissement
-      de la page Parties. Les regrouper en une seule passe, comme
-      `SavePlayerFields` l'a fait pour le bloc `<player>` (37 ms pour 12
-      champs), doit ramener le tout à un seul parcours.
-      ⚠️ Ne pas « optimiser » par un pré-filtre `range(of:)` : mesuré, il est
-      plus lent que la regex (1108 ms), `.literal` aussi (391 ms), et
-      `utf8.firstRange(of:)` est catastrophique (15,7 s). · **S**
+- [x] **H-T5d** — **Lecture d'une sauvegarde : la queue au lieu du fichier
+      entier.** ✅ (livré le 2026-09-02)
+      Mesuré sur les 6 fichiers de save du disque (2 à 39 Mo) : les scalaires de
+      niveau `<SaveGame>` — `whichFarm`, `goldenWalnuts`, `whichModFarm` — sont
+      écrits **après** les grandes collections et vivent dans le dernier 1,2 %
+      du fichier (98,8 % au pire). Les chercher sur le fichier entier coûtait
+      ~313 ms chacun.
+      `SaveGameFields.trailingScope` restreint la recherche au dernier
+      vingtième (plancher 1 Mo, quatre fois la marge du pire cas), avec une
+      **ancre** : si la queue ne porte pas `<whichFarm>`, on n'a pas la bonne
+      zone et l'appelant repart du fichier entier — le résultat ne peut donc
+      pas être pire qu'avant. À l'inverse, une balise absente d'une queue qui
+      porte l'ancre est absente de `<SaveGame>`, puisqu'elle en serait la
+      voisine.
+      La date (`yearForSaveGame`/`seasonForSaveGame`/`dayOfMonthForSaveGame`)
+      est un champ du **fermier** — enfant direct de `<player>` sur les 10
+      fichiers mesurés : elle sort de la passe unique de `SavePlayerFields` au
+      lieu de trois balayages de plus. Ferme au passage la même faute que pour
+      le sexe : un monstre de quête imbriqué portait sa propre date.
+      **Mesure : 1028 ms → 228 ms** sur la save de 37 Mo ; 1191 → 287 ms sur
+      l'ensemble des parties listées (×4,2).
+      ⚠️ Ne pas « optimiser » l'ancre par un pré-filtre `range(of:)` : mesuré,
+      il est plus lent que la regex (1108 ms contre 353 sur 37 Mo), `.literal`
+      aussi (391 ms), et `utf8.firstRange(of:)` est catastrophique (15,7 s).
+      **Mémoïsation livrée avec.** `fetchSaves()` reparsait chaque dossier à
+      chaque rafraîchissement, dossiers de secours compris ; la lecture est
+      désormais mémorisée par chemin. L'empreinte croise **date et taille** —
+      la date seule ne suffit pas (`restoreBackup` recopie avec `copyItem`,
+      qui la préserve), la taille seule non plus (500 → 600). Le trou restant
+      est fermé par une invalidation explicite en tête de chaque chemin
+      d'écriture ; un test le prouve (sans elle, restaurer une sauvegarde
+      laissait la fiche sur le contenu d'avant).
+      ⚠️ Cache et invalidation sont **globaux** : correct en production, mais
+      la suite de tests qui les exerce doit être `.serialized`, sinon un test
+      qui invalide efface l'entrée qu'un autre vient de poser.
+      ⚠️ Ne pas comparer deux `Date` qui ont fait un aller-retour par
+      `setAttributes` : elles s'impriment identiques, leur écart mesure 0,0 et
+      `==` est pourtant faux. Le code de production compare deux lectures de
+      la même source, où l'égalité stricte est correcte.
 
 - [ ] **H-T5e** — **Vignette illustrée pour une ferme de mod.** ⏸️ *En attente
       d'une image de l'auteur — rien à faire côté code d'ici là.*
