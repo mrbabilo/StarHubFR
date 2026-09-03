@@ -355,7 +355,7 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       sur 1 073**, **1 mise à jour annoncée au lieu de 7**. Le champ est désormais
       traduit vers la grammaire que le serveur sait lire, relevée requête par requête
       contre l'API réelle ; vérifié de bout en bout, 1 073 réponses sur 1 073.
-- [ ] **X12** ⬜ *(à arbitrer — signalé le 2026-09-03)* — **« Je l'ai déjà » est un
+- [x] **X12** ✅ *(livré le 2026-09-03 par `b9653dc`)* — **« Je l'ai déjà » était un
       aller sans retour, et invisible.** Un clic, sans confirmation, éteint la ligne de
       mise à jour d'un mod **pour toujours** : rien à l'écran ne dit quels mods sont
       dans cet état, et `ModVersionAnchorStore.remove(uniqueId:)` — la fonction qui
@@ -363,10 +363,16 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       mod (`pruneAnchors` nettoie alors l'ancre). Sur l'installation de l'auteur, **34
       mods** sont éteints, dont plusieurs ont l'air accidentels : `Florian.TacticalEchoMines`
       affirmé en 1.3.0 quand le disque porte 0.1.0, `Cargvis.PathfinderValley` affirmé
-      « 4 » pour un disque en 1.0.4. Correctif pressenti : une section « mises à jour
-      masquées » avec un bouton *Réafficher* qui câble le `remove` existant. · **S** ·
-      *décision de périmètre à l'auteur : ce n'est pas un défaut, c'est un geste dont on
-      n'a pas prévu l'annulation.*
+      « 4 » pour un disque en 1.0.4.
+      **Livré** : bloc repliable sur la page Mises à jour, **hors de la chaîne des
+      états** — c'est quand la page annonce « tous à jour » que ces mods doivent se
+      voir. Chaque ligne porte le numéro affirmé **et** celui du manifest, l'écart en
+      orange, plus un bouton *Réafficher* qui câble enfin le `remove`. Une explication
+      en tête du bloc dit ce que le geste a fait et ce que le bouton défait.
+      `AffirmedUpdates` est en Core, testé.
+      Écart assumé : *Réafficher* ne relance pas la vérification — le cache ne porte
+      plus la ligne, et huit lots réseau sur un clic isolé seraient disproportionnés.
+      La ligne revient à la prochaine passe, ce que dit le libellé d'aide. · **S**
 - [x] **B1-T1** ✅ *(livré le 2026-08-01)* — Boutons **Activer/Désactiver** et
       **Supprimer** sur la fiche mod (parité avec la liste, mêmes confirmations).
       Absents pour un composant de pack, comme dans la liste. La fiche se referme
