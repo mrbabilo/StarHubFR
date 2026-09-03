@@ -137,6 +137,49 @@ public struct InstalledTranslationRegistry: Codable, Equatable, Sendable {
             [String: DeclaredTranslation].self, forKey: .declaredTranslations) ?? [:]
     }
 
+    /// **Relit les noms des lignes restées sans identifiant.**
+    ///
+    /// Le dépôt à la main n'apprend l'identifiant depuis le nom de l'archive
+    /// que depuis le 2026-08-29 : les lignes écrites avant portent un nom
+    /// parfaitement lisible et un identifiant à 0, donc aucun suivi de mise à
+    /// jour. Relevé sur le registre réel : 4 lignes sur 13, dont
+    /// `MakeGuntherRealFR-34339-1-0-1748539543`.
+    ///
+    /// Trois règles, et rien d'autre :
+    /// - une ligne **déjà identifiée** n'est jamais relue — son identifiant
+    ///   vient de Nexus, le nom n'est qu'un nom ;
+    /// - une version déjà connue est conservée : elle vient d'une lecture plus
+    ///   sûre que celle du nom ;
+    /// - la date retenue est celle du **dépôt**, comme au dépôt lui-même —
+    ///   sans elle `isNewer` refuse de conclure, et l'identifiant appris ne
+    ///   servirait à rien.
+    ///
+    /// Idempotent : appelé à chaque chargement, il ne trouve plus rien à
+    /// apprendre au second passage.
+    public func learningNexusIdsFromNames() -> InstalledTranslationRegistry {
+        InstalledTranslationRegistry(
+            byHost: byHost.mapValues(Self.learningId(in:)),
+            addonsByHost: addonsByHost.mapValues { $0.map(Self.learningId(in:)) },
+            declaredTranslations: declaredTranslations)
+    }
+
+    /// Une ligne, relue si — et seulement si — elle n'a pas d'identifiant et
+    /// que son nom en porte un.
+    private static func learningId(in entry: InstalledTranslation) -> InstalledTranslation {
+        guard entry.nexusModId == 0,
+              let origin = NexusArchiveName.parse(entry.nexusName)
+        else { return entry }
+        return InstalledTranslation(
+            hostFolderName: entry.hostFolderName,
+            nexusModId: origin.modId,
+            nexusName: entry.nexusName,
+            version: entry.version.isEmpty ? origin.version : entry.version,
+            updatedAt: entry.updatedAt ?? entry.installedAt,
+            installedAt: entry.installedAt,
+            files: entry.files,
+            replacedFiles: entry.replacedFiles)
+    }
+
     public func translation(forHost host: String) -> InstalledTranslation? {
         byHost[host]
     }

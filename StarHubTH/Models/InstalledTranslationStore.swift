@@ -39,7 +39,7 @@ public enum InstalledTranslationStore {
             return InstalledTranslationRegistry()   // premier lancement : pas un événement
         }
         if let registry = try? JSONDecoder().decode(InstalledTranslationRegistry.self, from: data) {
-            return registry
+            return registry.learningNexusIdsFromNames()
         }
         // Présent mais illisible : c'est une corruption, et elle se dit.
         let backup = target.appendingPathExtension("bak")
@@ -54,7 +54,7 @@ public enum InstalledTranslationStore {
             }
             NSLog("[StarHubFR] Registre des traductions corrompu — restauré "
                   + "depuis le backup (%lu hôte(s)).", registry.byHost.count)
-            return registry
+            return registry.learningNexusIdsFromNames()
         }
         NSLog("[StarHubFR] Registre des traductions illisible et sans backup "
               + "lisible — repars vide.")

@@ -321,6 +321,31 @@ struct InstalledTranslationTests {
     /// même blob aux deux emplacements). Le backup de la génération courante
     /// restaure tout ; celui de la génération précédente ne rendrait que
     /// l'avant-dernier état.
+    /// Le chargement applique la réparation : c'est là qu'elle doit vivre,
+    /// puisque l'app ne relit jamais ce fichier ailleurs.
+    @Test func loadLearnsIdsFromNames() throws {
+        let file = FileManager.default.temporaryDirectory
+            .appendingPathComponent("InstalledTranslationLearnTests-\(UUID().uuidString)")
+            .appendingPathComponent("installed_translations.json")
+        defer { try? FileManager.default.removeItem(at: file.deletingLastPathComponent()) }
+
+        let posé = Date(timeIntervalSince1970: 1_700_000_000)
+        var registry = InstalledTranslationRegistry()
+        registry.recordAddon(InstalledTranslation(
+            hostFolderName: "MakeGuntherReal", nexusModId: 0,
+            nexusName: "MakeGuntherRealFR-34339-1-0-1748539543", version: "",
+            updatedAt: nil, installedAt: posé, files: ["i18n/fr.json"]))
+        #expect(InstalledTranslationStore.save(registry, to: file))
+
+        let reloaded = InstalledTranslationStore.load(from: file)
+        let addon = reloaded.addons(forHost: "MakeGuntherReal").first
+        #expect(addon?.nexusModId == 34339)
+        #expect(addon?.version == "1.0")
+        #expect(addon?.updatedAt == posé)
+        // Idempotent : un second passage ne trouve plus rien à apprendre.
+        #expect(reloaded.learningNexusIdsFromNames() == reloaded)
+    }
+
     @Test func storeSaveKeepsABackupCopyOfTheSameGeneration() throws {
         let file = storeFile
         defer { try? FileManager.default.removeItem(at: file.deletingLastPathComponent()) }
@@ -360,5 +385,135 @@ struct InstalledTranslationTests {
     @Test func storeLoadWithoutAnyFileIsEmpty() {
         let file = storeFile
         #expect(InstalledTranslationStore.load(from: file) == InstalledTranslationRegistry())
+    }
+}
+
+/// **Réparation des lignes écrites avant l'apprentissage du nom.**
+///
+/// Le dépôt à la main n'a appris à lire l'identifiant dans le nom de l'archive
+/// que le 2026-08-29 (`7e9ba2b`). Relevé sur le registre réel : 4 lignes
+/// antérieures portent un nom parfaitement lisible — `MakeGuntherRealFR-34339
+/// -1-0-1748539543`, `Cloths and Colors 1.2.8-43258-1-0-1772792211`,
+/// `FishingLogbook - FR 50233 …`, `Nyapu Style Lilybrook 50646 …` — et un
+/// identifiant à 0, donc aucun suivi de mise à jour. Le nom est toujours là :
+/// il suffit de le relire au chargement.
+@Suite("Registre — apprentissage au chargement")
+struct InstalledTranslationLearningTests {
+
+    private func entry(_ name: String, id: Int = 0, version: String = "",
+                       updatedAt: Date? = nil,
+                       installedAt: Date = Date(timeIntervalSince1970: 1_700_000_000))
+        -> InstalledTranslation {
+        InstalledTranslation(hostFolderName: "Host", nexusModId: id, nexusName: name,
+                             version: version, updatedAt: updatedAt,
+                             installedAt: installedAt, files: ["i18n/fr.json"])
+    }
+
+    /// Les quatre noms réels du registre, tels quels.
+    @Test func learnsTheIdFromARealArchiveName() {
+        let names: [(String, Int, String)] = [
+            ("MakeGuntherRealFR-34339-1-0-1748539543", 34339, "1.0"),
+            ("Cloths and Colors 1.2.8-43258-1-0-1772792211", 43258, "1.0"),
+            ("FishingLogbook - FR 50233 1.1.0 2026-08-05T17-33Z 2hI4jbUR4", 50233, "1.1.0"),
+            ("Nyapu Style Lilybrook 50646 1 2026-08-13T03-28Z Ukcm5deID", 50646, "1"),
+        ]
+        for (name, expectedId, expectedVersion) in names {
+            let registry = InstalledTranslationRegistry(byHost: ["Host": entry(name)])
+                .learningNexusIdsFromNames()
+            let learned = registry.translation(forHost: "Host")
+            #expect(learned?.nexusModId == expectedId, "sur \(name)")
+            #expect(learned?.version == expectedVersion, "sur \(name)")
+            // La date retenue est celle du dépôt : sans elle, `isNewer` refuse
+            // de conclure et l'identifiant appris ne servirait à rien.
+            #expect(learned?.updatedAt == learned?.installedAt, "sur \(name)")
+        }
+    }
+
+    /// Un nom qui n'est pas un nom d'archive Nexus ne s'invente pas un
+    /// identifiant — les quatre UUID du registre réel, et les titres de greffes.
+    @Test func leavesANameThatSaysNothingAlone() {
+        for name in ["78388FD4-DBBA-4FCD-B747-29425800BBDB",
+                     "Item Bags for All Cornucopia",
+                     "New Item Bags for Sunberry Village"] {
+            let registry = InstalledTranslationRegistry(byHost: ["Host": entry(name)])
+                .learningNexusIdsFromNames()
+            #expect(registry.translation(forHost: "Host")?.nexusModId == 0, "sur \(name)")
+            #expect(registry.translation(forHost: "Host")?.updatedAt == nil, "sur \(name)")
+        }
+    }
+
+    /// Une ligne déjà identifiée ne se relit pas : son identifiant vient de
+    /// Nexus, le nom n'est qu'un nom.
+    @Test func neverOverridesAnIdentifiedLine() {
+        let kept = entry("MakeGuntherRealFR-34339-1-0-1748539543", id: 99, version: "2.0")
+        let registry = InstalledTranslationRegistry(byHost: ["Host": kept])
+            .learningNexusIdsFromNames()
+        #expect(registry.translation(forHost: "Host") == kept)
+    }
+
+    /// Les greffes aussi : trois des quatre lignes réparables en sont.
+    @Test func repairsAddonsToo() {
+        let registry = InstalledTranslationRegistry(
+            addonsByHost: ["Host": [entry("MakeGuntherRealFR-34339-1-0-1748539543"),
+                                    entry("Item Bags for All Cornucopia")]])
+            .learningNexusIdsFromNames()
+        let addons = registry.addons(forHost: "Host")
+        #expect(addons.count == 2)
+        #expect(addons.first(where: { $0.nexusName.hasPrefix("MakeGunther") })?.nexusModId == 34339)
+        #expect(addons.first(where: { $0.nexusName.hasPrefix("Item Bags") })?.nexusModId == 0)
+    }
+
+    /// Une version déjà connue ne se fait pas écraser par celle du nom : elle
+    /// vient d'une lecture plus sûre.
+    @Test func keepsAVersionAlreadyKnown() {
+        let registry = InstalledTranslationRegistry(
+            byHost: ["Host": entry("MakeGuntherRealFR-34339-1-0-1748539543", version: "1.4.2")])
+            .learningNexusIdsFromNames()
+        #expect(registry.translation(forHost: "Host")?.nexusModId == 34339)
+        #expect(registry.translation(forHost: "Host")?.version == "1.4.2")
+    }
+}
+
+/// **Oracle opt-in sur un vrai registre.** Le patron du dépôt pour vérifier
+/// sur des données réelles sans les embarquer : `DeepLLiveTests` (clé par
+/// `DEEPL_API_KEY`), `XnbOracleTests` (`STARDEW_GAME_DIR`). Ici,
+/// `STARHUB_TRANSLATION_REGISTRY` pointe un `installed_translations.json` —
+/// **une copie**, le test n'écrit jamais.
+///
+/// Il n'affirme pas de valeurs, il affirme des **invariants** : la réparation
+/// est idempotente, ne touche jamais une ligne déjà identifiée, et n'invente
+/// pas d'identifiant pour un nom qui n'en porte pas. Sans la variable, il se
+/// skippe proprement.
+@Suite("Registre — oracle sur données réelles")
+struct InstalledTranslationRealRegistryTests {
+
+    @Test func repairingARealRegistryHoldsItsInvariants() throws {
+        guard let path = ProcessInfo.processInfo.environment["STARHUB_TRANSLATION_REGISTRY"]
+        else { return }   // sans la variable : rien à éprouver
+        let data = try Data(contentsOf: URL(fileURLWithPath: path))
+        let avant = try JSONDecoder().decode(InstalledTranslationRegistry.self, from: data)
+        let après = avant.learningNexusIdsFromNames()
+
+        func lignes(_ r: InstalledTranslationRegistry) -> [InstalledTranslation] {
+            Array(r.byHost.values) + r.addonsByHost.values.flatMap { $0 }
+        }
+        let indexAvant = Dictionary(lignes(avant).map { ($0.nexusName, $0) },
+                                    uniquingKeysWith: { first, _ in first })
+        var réparées = 0
+        for ligne in lignes(après) {
+            guard let ancienne = indexAvant[ligne.nexusName] else { continue }
+            if ancienne.nexusModId != 0 {
+                #expect(ligne == ancienne, "une ligne identifiée a été retouchée")
+            } else if ligne.nexusModId != 0 {
+                réparées += 1
+                // Un identifiant ne s'invente pas : il vient du nom.
+                #expect(NexusArchiveName.parse(ligne.nexusName)?.modId == ligne.nexusModId)
+                #expect(ligne.updatedAt == ligne.installedAt)
+            }
+        }
+        // Idempotence : le second passage ne trouve plus rien.
+        #expect(après.learningNexusIdsFromNames() == après)
+        print("[oracle] registre réel : \(lignes(avant).count) ligne(s), "
+              + "\(réparées) identifiant(s) retrouvé(s)")
     }
 }

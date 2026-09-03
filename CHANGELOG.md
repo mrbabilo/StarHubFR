@@ -18,6 +18,7 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **Les dépôts déjà enregistrés sans identifiant se réparent au chargement** : leur nom d'archive porte l'identifiant de la page et la version, que l'app n'apprenait à relire que depuis le 29 août. Sur les 13 dépôts enregistrés, **4 retrouvent ainsi leur page et leur suivi de mise à jour** — un identifiant déjà connu, lui, n'est jamais retouché.
 - **Une archive téléchargée par l'app garde le nom que Nexus lui donne** : elle était posée sous un nom en UUID, ce qui jetait l'identifiant de la page et la version que ce nom porte. Un lot de sacs ou une traduction déposés depuis un lien `nxm://` s'affichaient donc dans la fiche du mod sous un nom comme `78388FD4-DBBA-4FCD-B747-29425800BBDB`, sans suivi de mise à jour — 4 des 13 dépôts enregistrés étaient dans ce cas. Et l'identifiant de la page est retenu même si Nexus n'avait pas nommé le fichier.
 - **Le nom d'une archive sans extension reconnue n'est plus tronqué** au dernier point : `FishingLogbook - FR 50233 1.1.0 …` perdait tout ce qui suivait `1.1`.
 - **Une description Nexus au balisage pathologique ne peut plus tuer l'app** : `[center]` est la seule balise qui fasse récurser le lecteur de blocs, et 10 000 niveaux imbriqués débordaient la pile. La récursion s'arrête au huitième niveau — le centrage se perd au-delà, le texte et les images restent — et une description à 2 000 niveaux se lit désormais en 50 ms au lieu de 2,9 s.
