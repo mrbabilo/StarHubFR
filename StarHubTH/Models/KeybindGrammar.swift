@@ -239,6 +239,12 @@ public struct KeybindCombo: Equatable, Hashable, Sendable, Comparable {
 public enum KeybindParser {
     /// `nil` = la valeur n'est pas un raccourci lisible. Une combinaison
     /// vide (`None`) est valide et inerte.
+    ///
+    /// Le cas `.array` ne vient **jamais** du scanner : `ConfigEditorModel
+    /// .leaves` aplatit les tableaux, chaque élément arrive comme sa propre
+    /// feuille (`Keys.[0]`). Il reste ici parce qu'il est le contrat du type
+    /// et qu'il est couvert par les tests — pas parce qu'un chemin de
+    /// production l'emprunte.
     public static func parse(_ value: ConfigJSONTree.Value) -> [KeybindCombo]? {
         let tokens: [String]
         switch value {

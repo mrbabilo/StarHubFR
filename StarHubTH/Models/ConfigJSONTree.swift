@@ -79,6 +79,11 @@ public enum ConfigJSONTree {
     /// dire valide pour un fichier que SMAPI refuse serait le mensonge
     /// inverse.
     ///
+    /// La leniance ne touche pas le chemin d'écriture : le texte *mémorisé*
+    /// que relit `ConfigJSONMerge` sort de `write`, donc de ce parseur — il ne
+    /// peut porter aucune des formes tolérées ici. La question se pose à la
+    /// lecture de ce fichier et sa réponse n'y est pas : d'où cette phrase.
+    ///
     /// `nil` sur texte cassé : le repli verbatim de la restauration dépend
     /// de ce `nil` — un arbre partiel rendu « tolerant » ferait écrire une
     /// reconstruction au lieu du texte mémorisé.
