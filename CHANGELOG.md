@@ -14,6 +14,8 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **Préparer un lot de traduction ne fige plus l'app pendant deux minutes** : chaque phrase du lot était confrontée aux 1 126 termes du glossaire, un par un — 9 ms par phrase, sur le fil principal, sans rien afficher. Sur le plus gros mod à traduire du parc (16 482 clés sans français), « Exporter un lot » demandait **149 secondes** ; l'import, qui reconstruit le même lot, autant. Les termes sont désormais rangés par premier mot : **3 secondes**, et exactement les mêmes termes trouvés (vérifié sur 20 762 phrases du parc).
+
 - **L'accord en genre ne bloque plus la traduction** : `${fermier^fermière}$` — la forme que le jeu emploie pour accorder selon le genre du personnage joué — était traitée comme une marque à recopier telle quelle. Son contenu, pourtant du texte affiché, était voilé au traducteur et rendu en anglais par la traduction par lot ; et le français en ajoute là où l'anglais reste neutre, si bien que **1 227 des 4 331 lignes** signalées « marque perdue » sur le parc étaient des traductions justes, refusées à l'enregistrement. Les bornes restent protégées, l'intérieur se traduit. La localisation française du jeu fait de même dans 10 cas sur 10.
 
 ## [1.34.1] - 2026-09-03
