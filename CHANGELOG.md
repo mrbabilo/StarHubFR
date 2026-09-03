@@ -18,6 +18,7 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **Une description Nexus au balisage pathologique ne peut plus tuer l'app** : `[center]` est la seule balise qui fasse récurser le lecteur de blocs, et 10 000 niveaux imbriqués débordaient la pile. La récursion s'arrête au huitième niveau — le centrage se perd au-delà, le texte et les images restent — et une description à 2 000 niveaux se lit désormais en 50 ms au lieu de 2,9 s.
 - **Un exemple de config replié dans un spoiler ne s'ouvre plus sur du vide** : le bloc `[code]` était extrait avant conversion et remplacé par un marqueur, que la relecture du spoiler résolvait contre rien. C'est la forme la plus courante d'un spoiler de page de mod.
 - **Les descriptions Nexus ne mangent plus les `<…>` qu'un auteur voulait montrer** : les entités HTML étaient décodées *avant* le retrait des balises, si bien que `&lt;ContentPackMainFolder&gt;` devenait une balise puis disparaissait. Mesuré sur 39 descriptions réelles : 3 en portaient, dont une consigne d'installation et une signature d'API C#.
 - **Une balise BBCode suivie d'une parenthèse ne s'affiche plus en clair** : `[font=Tahoma](assets > …)` survivait au nettoyage final, qui épargnait toute balise suivie d'une parenthèse pour protéger les liens déjà produits. Le garde ne protège plus que les liens et les couleurs que l'app émet elle-même.

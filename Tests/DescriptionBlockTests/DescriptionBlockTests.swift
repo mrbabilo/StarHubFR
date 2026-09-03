@@ -570,4 +570,47 @@ struct DescriptionBlockTests {
             #expect(DescriptionBlockParser.isAllowedURL(target), "refusé : \(target)")
         }
     }
+
+    /// **La récursion de `tokenize` a un plafond.** `[center]` est la seule
+    /// balise qui fasse récurser le tokeniseur, et une description vient d'un
+    /// auteur externe : mesuré, 2 000 niveaux tenaient en 2,9 s et 10 000
+    /// débordaient la pile — l'app mourait sur une description de 170 Ko. Au
+    /// delà du huitième niveau le contenu redevient du texte : le centrage se
+    /// perd, rien d'autre. Profondeur réelle maximale sur les 39 descriptions
+    /// du cache : 1.
+    @Test func deeplyNestedCentersAreCappedInsteadOfCrashing() {
+        let levels = 2_000
+        let bomb = String(repeating: "[center]", count: levels) + "x"
+            + String(repeating: "[/center]", count: levels)
+        func depth(of blocks: [DescriptionBlock], _ seen: Int = 0) -> Int {
+            var deepest = seen
+            for block in blocks {
+                if case let .centered(inner) = block {
+                    deepest = max(deepest, depth(of: inner, seen + 1))
+                }
+            }
+            return deepest
+        }
+        func texts(in blocks: [DescriptionBlock]) -> [String] {
+            blocks.flatMap { block -> [String] in
+                switch block {
+                case .text(let s):     return [s]
+                case .centered(let i): return texts(in: i)
+                default:               return []
+                }
+            }
+        }
+        let out = DescriptionBlockParser.parse(bomb)
+        #expect(depth(of: out) <= 8)
+        #expect(texts(in: out) == ["x"])   // le contenu survit au plafond
+    }
+
+    /// En deçà du plafond, l'imbrication est rendue telle quelle.
+    @Test func nestedCentersBelowTheCapKeepTheirStructure() {
+        let out = DescriptionBlockParser.parse("[center][center]x[/center][/center]")
+        guard case let .centered(inner)? = out.first else {
+            Issue.record("attendu un bloc centré"); return
+        }
+        #expect(inner == [.centered([.text("x")])])
+    }
 }

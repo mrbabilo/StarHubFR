@@ -40,6 +40,17 @@ enum DescriptionBlockParser {
     /// sized run turned whole pages bold and made real headings invisible.
     private static let headingSizeThreshold = 4
 
+    /// Profondeur maximale d'imbrication d'un `[center]`, seule balise qui
+    /// fasse récurser le tokeniseur.
+    ///
+    /// Une description vient d'un auteur externe, et ce fichier promet de ne
+    /// jamais crasher sur du balisage malformé : mesuré, la récursion tenait
+    /// 2 000 niveaux et débordait la pile à 10 000 — un `[center]` répété dans
+    /// une description de 170 Ko suffisait à tuer l'app. La profondeur réelle
+    /// maximale sur les 39 descriptions du cache est **1**. Même borne que les
+    /// huit passes de `convertColors`, pour la même raison.
+    private static let maxCenterNesting = 8
+
     static func parse(_ str: String) -> [DescriptionBlock] {
         let (withoutCode, codeBlocks) = extractCode(from: str)
         return tokenize(normalize(withoutCode), codeBlocks: codeBlocks)
@@ -592,7 +603,13 @@ enum DescriptionBlockParser {
     /// left on screen as literal text, and the images sitting in the inner
     /// spoilers never reached `SpoilerView` (which re-parses its content and
     /// would have rendered them).
-    private static func tokenize(_ text: String, codeBlocks: [String] = []) -> [DescriptionBlock] {
+    /// - Parameter nesting: profondeur d'imbrication des `[center]` déjà
+    ///   traversés. ⚠️ **Ne pas la nommer `depth`** : la boucle d'appariement
+    ///   ci-dessous a déjà un `var depth` (le compteur ouvrants/fermants), qui
+    ///   masquait le paramètre et faisait passer 0 à chaque appel — le plafond
+    ///   ne s'armait jamais, et la pile débordait toujours à 10 000 niveaux.
+    private static func tokenize(_ text: String, codeBlocks: [String] = [],
+                                 nesting: Int = 0) -> [DescriptionBlock] {
         // Marqueurs internes transportés depuis `normalize` :
         //  • `\u{0}C<i>\u{0}`                    → bloc `.code` (contenu verbatim)
         //  • `\u{0}H<n>\u{0}body\u{0}/H\u{0}`    → titre `.heading` de niveau n
@@ -695,7 +712,7 @@ enum DescriptionBlockParser {
             let inner = ns.substring(with: NSRange(location: tokEnd,
                                                     length: closingTag.range.location - tokEnd))
             emitBlock(name: name, attribute: attribute, inner: inner,
-                      codeBlocks: codeBlocks, into: &blocks)
+                      codeBlocks: codeBlocks, nesting: nesting, into: &blocks)
             cursor = closingTag.range.location + closingTag.range.length
             // Reprend après le fermant apparié — tout l'intérieur a été consommé.
             i = tokens.firstIndex(where: { $0.range.location >= cursor }) ?? tokens.count
@@ -707,7 +724,8 @@ enum DescriptionBlockParser {
 
     /// Émet le bloc correspondant à une balise appariée, selon son nom.
     private static func emitBlock(name: String, attribute: String, inner: String,
-                                  codeBlocks: [String], into blocks: inout [DescriptionBlock]) {
+                                  codeBlocks: [String], nesting: Int,
+                                  into blocks: inout [DescriptionBlock]) {
         let trimmed = inner.trimmingCharacters(in: .whitespacesAndNewlines)
         switch name {
         case "img":
@@ -730,8 +748,20 @@ enum DescriptionBlockParser {
             let q = balancedText(flattenInline(trimmed, codeBlocks: codeBlocks))
             if !q.isEmpty { blocks.append(.quote(q)) }
         case "center":
-            if !trimmed.isEmpty {
-                blocks.append(.centered(tokenize(inner, codeBlocks: codeBlocks)))
+            guard !trimmed.isEmpty else { break }
+            if nesting >= maxCenterNesting {
+                // Plafond atteint : on arrête de récurser, mais **sans rien
+                // perdre** — le contenu redevient du texte (les balises bloc
+                // résiduelles sont aplaties) et ses images sont émises à part,
+                // comme pour un item de liste. Un centrage manquant au huitième
+                // niveau d'imbrication est indolore ; une pile débordée non.
+                let (withoutImages, hoisted) = extractImageURLs(from: inner)
+                let flat = balancedText(flattenInline(withoutImages, codeBlocks: codeBlocks))
+                if !flat.isEmpty { blocks.append(.text(flat)) }
+                blocks.append(contentsOf: hoisted.map { .image($0) })
+            } else {
+                blocks.append(.centered(tokenize(inner, codeBlocks: codeBlocks,
+                                                 nesting: nesting + 1)))
             }
         case "list":
             let ordered = attribute.hasPrefix("=")
