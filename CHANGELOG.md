@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+
+- **Une alerte quand deux mods se disputent un dossier** : mettre un mod en pause le renomme en le préfixant d'un point, et l'app traite les deux formes comme un seul nom. Quand deux mods différents les occupent — c'est le cas chez vous — l'un des deux **disparaît de la liste** sans que rien ne le dise, et les deux partagent identifiant Nexus, catégorie, favori, note et configuration de profil. L'écran Alertes système le nomme désormais, avec les deux identités et un bouton **Montrer dans le Finder** qui sélectionne les deux dossiers côte à côte — de quoi voir lequel porte le point, et renommer celui qu'on veut.
+
 ### Fixed
 
 - **Activer un mod ne peut plus déplacer le dossier d'un autre** : mettre un mod en pause le renomme en le préfixant d'un point, et l'app considère les deux formes comme un seul nom. Deux mods différents peuvent pourtant les occuper — sur votre parc, `[CP] Seaside Sounds` (actif, de witchtopia) et son homonyme en pause (de Liana) sont deux mods de deux auteurs. Réactiver celui en pause aurait écarté l'autre sous un nom de sauvegarde, lui faisant perdre favori, note, configuration de profil et identifiant Nexus — sans un mot. L'app vérifie désormais à qui appartient le dossier avant d'y toucher, et refuse en le disant. Le dossier écarté, lui, est enfin masqué au jeu.

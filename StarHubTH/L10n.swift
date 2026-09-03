@@ -749,6 +749,10 @@ enum L10n {
         /// jamais un onglet générique — le libellé doit dire laquelle.
         static let actionOpenMod        = "health_action_open_mod"
         static let actionOpenLogs       = "health_action_open_logs"
+        // X13 — deux mods qui réclament le même nom logique de dossier.
+        static let actionRevealInFinder = "health_action_reveal_in_finder"
+        static let folderCollisionTitle  = "health_folder_collision_title"
+        static let folderCollisionDetail = "health_folder_collision_detail"
         /// Titre d'une ligne d'alerte pour une notice bénigne qui ne nomme
         /// aucun mod (H-T6c) : un groupe nominal court. À ne pas confondre
         /// avec les `Logs.healthBenign*`, qui sont les phrases de réassurance

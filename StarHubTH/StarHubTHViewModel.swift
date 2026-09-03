@@ -396,9 +396,24 @@ class StarHubTHViewModel: ObservableObject {
         // le ViewModel connaît `[ModItem]`, la RÈGLE (repli sur le dossier si
         // le mod est introuvable) reste dans `HealthIssueResolver`.
         let installedMods = mods.flattenedMods
+        // X13 — deux mods peuvent réclamer le même nom logique de dossier
+        // (`X` actif et `.X` en pause). `ModItem.id` étant `folderName`, l'un
+        // des deux disparaît de la liste sans que rien ne le dise : cette
+        // ligne est la seule chose qui l'explique.
+        let collisions = ModFolderCollision.collisions(installedMods.map {
+            ModFolderCollision.Claim(folderName: $0.folderName, uniqueId: $0.uniqueId,
+                                     physicalFolderName: $0.physicalFolderName)
+        })
+        let collisionIssues = HealthIssueResolver.folderCollisionIssues(
+            collisions,
+            modsPath: (gameDir as NSString).appendingPathComponent("Mods"),
+            title: { String(format: self.L(L10n.Health.folderCollisionTitle), $0.folderName) },
+            detail: { String(format: self.L(L10n.Health.folderCollisionDetail),
+                             $0.uniqueIds.joined(separator: " · ")) })
         return HealthIssueResolver.resolve(diagnostics: smapiDiagnostics,
                                            keybindReport: keybindScanService.report,
                                            conflicts: live,
+                                           folderCollisions: collisionIssues,
                                            displayName: { folderName in
             installedMods.first(where: { $0.folderName == folderName })?.name ?? folderName
         })

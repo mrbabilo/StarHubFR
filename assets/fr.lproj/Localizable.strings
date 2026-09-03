@@ -344,6 +344,9 @@
 "health_severity_info" = "Information";
 "health_problem_count" = "%1$lld problème(s) · %2$lld critique(s)";
 "health_action_open_mod" = "Voir le mod";
+"health_folder_collision_title" = "Deux mods réclament le dossier « %@ »";
+"health_folder_collision_detail" = "%@ — l’un des deux est absent de la liste des mods, et ils partagent identifiant Nexus, catégorie, favori, note et configuration de profil. Renommez l’un des deux dossiers pour les distinguer.";
+"health_action_reveal_in_finder" = "Montrer dans le Finder";
 "health_action_open_logs" = "Voir dans les journaux";
 "health_benign_title_galaxy" = "Connexion GOG Galaxy";
 "health_benign_title_api" = "Intégration optionnelle";

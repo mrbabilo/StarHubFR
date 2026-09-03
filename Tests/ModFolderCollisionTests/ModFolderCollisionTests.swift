@@ -60,20 +60,26 @@ struct ModFolderCollisionTests {
 
     // MARK: - Le relevé des collisions
 
-    private func claim(_ folder: String, _ uid: String) -> ModFolderCollision.Claim {
-        .init(folderName: folder, uniqueId: uid)
+    private func claim(_ folder: String, _ uid: String,
+                       physical: String? = nil) -> ModFolderCollision.Claim {
+        .init(folderName: folder, uniqueId: uid, physicalFolderName: physical ?? folder)
     }
 
     @Test func collisionsNameTheFolderAndItsClaimants() {
         let found = ModFolderCollision.collisions([
             claim("[CP] Seaside Sounds", "witchtopia.SeasideSounds"),
-            claim("[CP] Seaside Sounds", "Liana.SeasideSounds"),
+            claim("[CP] Seaside Sounds", "Liana.SeasideSounds",
+                  physical: ".[CP] Seaside Sounds"),
             claim("Automate", "Pathoschild.Automate"),
         ])
         #expect(found.count == 1)
         #expect(found.first?.folderName == "[CP] Seaside Sounds")
         // Triés : deux affichages successifs ne doivent pas permuter la liste.
         #expect(found.first?.uniqueIds == ["Liana.SeasideSounds", "witchtopia.SeasideSounds"])
+        // Les deux dossiers réels, triés : c'est ce qu'on montrera dans le
+        // Finder, côte à côte.
+        #expect(found.first?.physicalFolderNames
+                == [".[CP] Seaside Sounds", "[CP] Seaside Sounds"])
     }
 
     @Test func oneModListedTwiceIsNotACollision() {
@@ -91,5 +97,63 @@ struct ModFolderCollisionTests {
         #expect(ModFolderCollision.collisions([
             claim("Truc", ""), claim("Truc", ""),
         ]).isEmpty)
+    }
+}
+
+/// La ligne d'alerte que la collision produit (X13).
+struct FolderCollisionIssueTests {
+    private let collision = ModFolderCollision.Collision(
+        folderName: "[CP] Seaside Sounds",
+        uniqueIds: ["Liana.SeasideSounds", "witchtopia.SeasideSounds"],
+        physicalFolderNames: [".[CP] Seaside Sounds", "[CP] Seaside Sounds"])
+
+    private func issues(_ collisions: [ModFolderCollision.Collision])
+        -> [HealthIssue] {
+        HealthIssueResolver.folderCollisionIssues(
+            collisions, modsPath: "/Jeu/Mods",
+            title: { "Deux mods réclament le dossier « \($0.folderName) »" },
+            detail: { $0.uniqueIds.joined(separator: " · ") })
+    }
+
+    @Test func aCollisionBecomesAWarningNamingBothMods() {
+        let found = issues([collision])
+        #expect(found.count == 1)
+        // Le jeu tourne — l'un des deux est en pause : ce n'est pas critique.
+        // Mais ça cache un mod, donc pas une simple information non plus.
+        #expect(found.first?.severity == .warning)
+        #expect(found.first?.source == .folderCollision)
+        #expect(found.first?.title.contains("[CP] Seaside Sounds") == true)
+        #expect(found.first?.detail == "Liana.SeasideSounds · witchtopia.SeasideSounds")
+    }
+
+    @Test func theOnlyActionShowsBothFoldersSideBySide() {
+        // Un seul bouton, et il désigne les DEUX dossiers : « Voir la fiche »
+        // prendrait le nom logique, c'est-à-dire la clé ambiguë elle-même.
+        #expect(issues([collision]).first?.actions
+                == [.revealInFinder(paths: ["/Jeu/Mods/.[CP] Seaside Sounds",
+                                            "/Jeu/Mods/[CP] Seaside Sounds"])])
+    }
+
+    @Test func theIdentityFollowsTheDisputedFolderNotTheDisplayedNames() {
+        // Elle doit survivre à un manifeste renommé entre deux scans, sinon la
+        // ligne saute sous les doigts.
+        let renamed = ModFolderCollision.Collision(
+            folderName: "[CP] Seaside Sounds",
+            uniqueIds: ["Liana.SeasideSounds", "autre.identite"],
+            physicalFolderNames: collision.physicalFolderNames)
+        #expect(issues([collision]).first?.id == issues([renamed]).first?.id)
+    }
+
+    @Test func aCollisionWithoutKnownFoldersOffersNoButton() {
+        // Rien à montrer : mieux vaut pas de bouton qu'un bouton qui ouvre le
+        // dossier des mods au hasard.
+        let unknown = ModFolderCollision.Collision(folderName: "X",
+                                                   uniqueIds: ["a", "b"],
+                                                   physicalFolderNames: [])
+        #expect(issues([unknown]).first?.actions.isEmpty == true)
+    }
+
+    @Test func noCollisionYieldsNoLine() {
+        #expect(issues([]).isEmpty)
     }
 }

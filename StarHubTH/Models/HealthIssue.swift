@@ -26,7 +26,13 @@ public struct HealthIssue: Identifiable, Equatable {
         }
     }
 
-    public enum Source: String, Equatable { case smapi, keybind, modConflict }
+    public enum Source: String, Equatable {
+        case smapi, keybind, modConflict
+        /// Deux mods qui réclament le même nom logique de dossier — voir
+        /// `ModFolderCollision`. Sans bouton de panorama : il n'y a pas de
+        /// feuille à ouvrir, la ligne se suffit.
+        case folderCollision
+    }
 
     /// Une cible, pas seulement un onglet — c'est tout le manque de l'ancien
     /// `openTab(String)` (H-T6b) : « Voir les journaux » ouvrait la vue
@@ -45,6 +51,15 @@ public struct HealthIssue: Identifiable, Equatable {
         /// comme RivaTuner, une notice bénigne sans mod nommé) : la fiche
         /// n'existerait pas, le journal reste la seule trace exploitable.
         case openLogs(searchText: String)
+        /// Montre des dossiers dans le Finder, **tous sélectionnés ensemble**.
+        ///
+        /// Pour une collision de dossier, c'est la seule désignation honnête :
+        /// « Voir la fiche » prend un nom de dossier, or c'est justement la clé
+        /// ambiguë — `ModFocusResolver` ouvrirait l'un des deux prétendants au
+        /// hasard, ce que la ligne dénonce. Les montrer côte à côte laisse
+        /// l'utilisateur voir lui-même lequel porte le point de tête, et
+        /// renommer celui qu'il veut.
+        case revealInFinder(paths: [String])
 
         /// Identité dérivée du contenu, comme celle de `HealthIssue` : une
         /// ligne peut offrir deux chemins (voir `actions`), et `ForEach` les
@@ -54,6 +69,7 @@ public struct HealthIssue: Identifiable, Equatable {
             switch self {
             case .openMod(let q):   return "mod:\(q)"
             case .openLogs(let s):  return "logs:\(s)"
+            case .revealInFinder(let p): return "finder:\(p.joined(separator: "|"))"
             }
         }
     }

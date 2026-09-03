@@ -64,10 +64,15 @@ public enum ModFolderCollision {
     public struct Claim: Equatable, Sendable {
         public let folderName: String
         public let uniqueId: String
+        /// Le nom **sur le disque** — celui-là porte le point de tête d'un mod
+        /// en pause, et c'est justement lui qui distingue les deux prétendants.
+        /// Sans lui, on saurait nommer la collision sans savoir où la montrer.
+        public let physicalFolderName: String
 
-        public init(folderName: String, uniqueId: String) {
+        public init(folderName: String, uniqueId: String, physicalFolderName: String) {
             self.folderName = folderName
             self.uniqueId = uniqueId
+            self.physicalFolderName = physicalFolderName
         }
     }
 
@@ -77,10 +82,17 @@ public enum ModFolderCollision {
         /// Les identités en présence, triées : deux affichages successifs ne
         /// doivent pas permuter la liste.
         public let uniqueIds: [String]
+        /// Les dossiers **réels** des prétendants, triés eux aussi. C'est ce
+        /// qu'on donne au Finder : montrer les deux côte à côte est la seule
+        /// façon honnête de désigner une collision — ouvrir « le » dossier
+        /// choisirait au hasard entre les deux, ce que la ligne dénonce.
+        public let physicalFolderNames: [String]
 
-        public init(folderName: String, uniqueIds: [String]) {
+        public init(folderName: String, uniqueIds: [String],
+                    physicalFolderNames: [String]) {
             self.folderName = folderName
             self.uniqueIds = uniqueIds
+            self.physicalFolderNames = physicalFolderNames
         }
     }
 
@@ -92,11 +104,15 @@ public enum ModFolderCollision {
     /// collision d'identité.
     public static func collisions(_ claims: [Claim]) -> [Collision] {
         var identitiesByFolder: [String: Set<String>] = [:]
+        var pathsByFolder: [String: Set<String>] = [:]
         var displayByLowercased: [String: String] = [:]
         for claim in claims where !claim.uniqueId.trimmingCharacters(in: .whitespacesAndNewlines)
             .isEmpty && !claim.folderName.isEmpty {
             let folded = claim.uniqueId.lowercased()
             identitiesByFolder[claim.folderName, default: []].insert(folded)
+            if !claim.physicalFolderName.isEmpty {
+                pathsByFolder[claim.folderName, default: []].insert(claim.physicalFolderName)
+            }
             // La première orthographe rencontrée fait foi pour l'affichage :
             // c'est un nom montré à l'utilisateur, pas une clé.
             if displayByLowercased[folded] == nil { displayByLowercased[folded] = claim.uniqueId }
@@ -105,7 +121,8 @@ public enum ModFolderCollision {
             .filter { $0.value.count > 1 }
             .map { folder, identities in
                 Collision(folderName: folder,
-                          uniqueIds: identities.map { displayByLowercased[$0] ?? $0 }.sorted())
+                          uniqueIds: identities.map { displayByLowercased[$0] ?? $0 }.sorted(),
+                          physicalFolderNames: (pathsByFolder[folder] ?? []).sorted())
             }
             .sorted { $0.folderName < $1.folderName }
     }

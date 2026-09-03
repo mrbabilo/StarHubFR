@@ -178,6 +178,41 @@ public enum HealthIssueResolver {
         }
     }
 
+    /// Les dossiers réclamés par deux mods différents (X13).
+    ///
+    /// Sans cette ligne, la collision est **indétectable** : `ModItem.id` étant
+    /// `folderName`, les deux mods partagent une identité `Identifiable` et un
+    /// `ForEach` n'en rend qu'un — l'un disparaît de la liste sans que rien ne
+    /// le dise, ni l'app, ni le jeu. On ne peut la découvrir qu'en comptant ses
+    /// dossiers dans le Finder.
+    ///
+    /// `warning` et non `critical` : le jeu tourne — l'un des deux dossiers
+    /// porte un point de tête, SMAPI ne charge que l'autre. Le dégât est dans
+    /// l'app. Mais pas `info` non plus : ça cache un mod sans le dire.
+    ///
+    /// Le titre et le détail sont **injectés** : ce modèle vit dans Core, sans
+    /// accès à la locale — même patron que `displayName` pour les conflits.
+    /// L'unique action montre les deux dossiers dans le Finder ; voir
+    /// `Action.revealInFinder` pour la raison qu'il n'y en a pas d'autre.
+    public static func folderCollisionIssues(
+        _ collisions: [ModFolderCollision.Collision],
+        modsPath: String,
+        title: (ModFolderCollision.Collision) -> String,
+        detail: (ModFolderCollision.Collision) -> String) -> [HealthIssue] {
+        collisions.map { collision in
+            // Identité construite sur le dossier disputé, pas sur les noms
+            // affichés : elle doit rester stable même si un manifeste change
+            // de nom entre deux scans.
+            HealthIssue(id: "folder-collision-\(collision.folderName)",
+                        severity: .warning, source: .folderCollision,
+                        title: title(collision), detail: detail(collision),
+                        actions: collision.physicalFolderNames.isEmpty ? [] :
+                            [.revealInFinder(paths: collision.physicalFolderNames.map {
+                                (modsPath as NSString).appendingPathComponent($0)
+                            })])
+        }
+    }
+
     /// Tri **stable** par gravité décroissante : à gravité égale, l'ordre de
     /// production (`smapiIssues` puis `keybindIssues` puis `conflictIssues`)
     /// est conservé, sinon les lignes sauteraient d'un rafraîchissement à
@@ -187,10 +222,12 @@ public enum HealthIssueResolver {
     public static func resolve(diagnostics: SmapiDiagnostics?,
                                keybindReport: KeybindScanner.KeybindReport?,
                                conflicts: [ModConflictPair],
+                               folderCollisions: [HealthIssue] = [],
                                displayName: (String) -> String = { $0 }) -> [HealthIssue] {
         let all = smapiIssues(diagnostics)
             + keybindIssues(keybindReport)
             + conflictIssues(conflicts, displayName: displayName)
+            + folderCollisions
         return all.enumerated()
             .sorted { ($0.element.severity, -$0.offset) > ($1.element.severity, -$1.offset) }
             .map(\.element)

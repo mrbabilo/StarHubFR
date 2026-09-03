@@ -215,6 +215,7 @@ struct SystemAlertsView: View {
         switch action {
         case .openMod: return vm.L(L10n.Health.actionOpenMod)
         case .openLogs: return vm.L(L10n.Health.actionOpenLogs)
+        case .revealInFinder: return vm.L(L10n.Health.actionRevealInFinder)
         }
     }
 
@@ -234,6 +235,12 @@ struct SystemAlertsView: View {
         case .openLogs(let searchText):
             vm.pendingLogFocus = searchText
             currentTab = "Logs"
+        case .revealInFinder(let paths):
+            // Les deux dossiers sélectionnés **ensemble** : c'est ce qui montre
+            // lequel porte le point de tête, donc lequel est en pause. Ouvrir
+            // « le » dossier choisirait au hasard entre les deux prétendants.
+            NSWorkspace.shared.activateFileViewerSelecting(
+                paths.map { URL(fileURLWithPath: $0) })
         }
     }
 
