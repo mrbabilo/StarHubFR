@@ -397,6 +397,54 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       `critical` : le jeu tourne, l'un des deux porte un point de tête.
       ⚠️ **Ne pas « corriger » en changeant `ModItem.id`** : ce champ est la clé de tous
       les magasins persistés, ce serait une migration. · **S**
+- [x] **X14** ✅ *(corrigé le 2026-09-03 par `078b692`)* — 🔴 **Deux sauvegardes
+      différentes rendaient la même empreinte, et l'une était supprimée.**
+      `FolderDigest` calculait le chemin relatif d'un fichier par un test de préfixe
+      contre la racine **telle que donnée**, alors que `FileManager.enumerator` rend des
+      chemins **résolus** : sur une racine passant par `/var` (lien vers `/private/var`),
+      le préfixe échouait pour *tous* les fichiers et le repli ne gardait que le
+      `lastPathComponent`. Deux arbres ne différant que par **quel** sous-dossier porte
+      chaque fichier de même nom étaient donc jugés identiques — et l'empreinte décide
+      de supprimer une sauvegarde jugée redondante.
+      Résolu par `realpath(3)`, **pas** `resolvingSymlinksInPath()` : mesuré sur
+      `temporaryDirectory`, celle-ci laisse `/var` non résolu et n'aurait rien changé
+      (voir Traps, symlink `/var/folders`). · **S**
+- [x] **X15** ✅ *(corrigé le 2026-09-03 par `800509e`)* — **Un champ composé de balises
+      auto-fermées se lisait comme un scalaire — et l'écriture détruisait sa structure.**
+      `SavePlayerFields.forEachDirectChild` vidait le nom en attente quand une sous-balise
+      **s'ouvrait**, jamais quand elle était **auto-fermée** : la profondeur n'ayant pas
+      bougé, un enfant de `<player>` composé de seules balises `<x/>` redevenait éligible
+      à sa propre fermeture et entrait dans la table avec son markup entier pour valeur.
+      `replacingDirectChild` acceptait alors d'écraser le composé par un scalaire, dans
+      la sauvegarde écrite.
+      **Mesuré sur la sauvegarde réelle `Zofia_443716371`** : 5 enfants directs de
+      `<player>` sont composés uniquement d'auto-fermés — `shieldSlot`
+      (`<Item xsi:nil="true" />`), `adventureBar` (16 sous-balises),
+      `lastGotPrizeFromGil`, `lastDesertFestivalFishingQuest`,
+      `SpaceCore_PersonalCurrencies`. Les champs consommés aujourd'hui (`gender`,
+      `health`, `hair`…) sont tous scalaires : aucun changement sur les lectures
+      existantes. · **S**
+- [x] **X16** ✅ *(corrigé le 2026-09-03 par `c007ff3`)* — **Un `403` de lien expiré
+      accusait la clé API.** Tout `403` de Nexus — sur `download_link.json` interrogé
+      avec une clé `nxm://` comme sur le CDN du transfert — était rendu `authFailed`
+      (« vérifiez votre clé API dans les Réglages »). Une clé `nxm` ne sert qu'une fois
+      et se périme vite : le message envoyait réparer ce qui n'était pas cassé.
+      Le même statut couvre trois pannes selon l'appel : `Forbidden403Meaning`
+      (`premiumRequired` / `expiredLink` / `authProblem`) remplace le booléen
+      `treatForbiddenAsPremium`, et le mapping statut → erreur est passé pur dans
+      `NexusDownloadAPI.statusError` (cœur testable). · **S**
+- [x] **X17** ✅ *(corrigé le 2026-09-03 par `7d4dfee`)* — **Déposer un contenu reconnu
+      dans un hôte en 0555 échouait sans recours.** `DroppedContentRecognizer.install`
+      écrivait par `createDirectory`/`removeItem`/`copyItem` nus, sans passer par
+      `RecoveredFileWriter` — seul chemin de dépôt du dépôt à ne pas le faire, alors que
+      `ManifestlessInstaller` le fait systématiquement. `unzip` restitue les modes des
+      archives : un hôte revenu de mise à jour avec ses dossiers en 0555 refusait le
+      dépôt (`EACCES`), panneau d'erreur sans issue.
+      Mesuré : le mécanisme est vivant (`.[CP] Toothless Pet` porte 6 dossiers en 0555),
+      mais l'hôte de l'unique règle actuelle (`ItemBags`) est inscriptible — défaut
+      latent, pas ouvert. L'écriture est désormais enroulée dans
+      `RecoveredFileWriter.withWriteAccess` (droits rendus tels quels, remontée bornée à
+      l'hôte), et `destination(for:)` passe par `physicalFolderName`. · **S**
 - [x] **B1-T1** ✅ *(livré le 2026-08-01)* — Boutons **Activer/Désactiver** et
       **Supprimer** sur la fiche mod (parité avec la liste, mêmes confirmations).
       Absents pour un composant de pack, comme dans la liste. La fiche se referme
@@ -2718,6 +2766,13 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
       Traps, `List` → `LazyVStack`). **Mesurer avant d'agir** ; une mémoïsation sur
       signature d'entrées (`mods`, verdicts de conflits, conflits Content Patcher,
       diagnostics SMAPI) garderait la source unique intacte.
+      **Second constat accumulé (audit `Models/` du 2026-09-03), même seau** :
+      `exportTranslationLot` et `importTranslationLot` restent `@MainActor` sans tâche
+      détachée ni progression. L'appariement du glossaire, qui coûtait 149 s, est corrigé
+      (`dc052a6`) ; il reste **3,2 s de fil principal nu** sur le plus gros mod à traduire
+      du parc (16 482 clés sans français), l'import autant puisqu'il reconstruit le même
+      lot. Une barre de progression suppose de sortir le calcul du fil principal : même
+      geste que le reste du seau, à faire d'un bloc.
       **Constat accumulé (audit du 2026-09-03), à joindre à la passe groupée** —
       `exportTranslationLot` et `importTranslationLot`
       (`StarHubTHViewModel.swift`) sont `@MainActor` et appellent
@@ -2848,6 +2903,13 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
       aucun bug bloquant, deux corrections livrées au commit `7e0896a`. Les items
       ci-dessous sont les constats volontairement non traités ; le constat de perf
       du même audit est allé grossir **F3**, son seau désigné.)*
+      **Étendu le 2026-09-03** : l'audit fichier-par-fichier de `StarHubTH/Models/` est
+      **achevé** — 119 fichiers, tranches A→M, aucun bug bloquant. Les correctifs qui en
+      sont sortis sont inscrits en §4 (**X10**–**X17**), auxquels s'ajoutent les
+      corrections de la chaîne de traduction et du chemin des mises à jour livrées en
+      v1.35.0/v1.35.1 ; tous prouvés sur le parc réel. Reste de l'audit global : `Views/`,
+      `Extensions/`, `AppDesignCore`, puis les phases 2-5 du brief (clients réseau
+      restants, persistance, `Tests/`, configuration de build).
   - [ ] **F6-T1** — **Course à l'annulation dans `recomputeFrenchCoverage`.** · **S**
         (`StarHubTHViewModel.swift:473`) Le `cancel()` d'un recalcul n'interrompt pas un
         `await mergeFrenchCoverage(…)` déjà engagé : un lot de ≤ 25 mesures de la
@@ -2873,6 +2935,15 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
         Seule échappatoire théorique : `fetchSingleMod` rend sans complétion si
         `self` a disparu en vol — singleton éternel, indéallocable. L'hypothèse
         tient ; rien à blinder.
+  - [ ] **F6-T4** — **`AffirmedUpdates.rows` apparie l'`UniqueID` en respectant la
+        casse.** · **S** Seul appariement d'`UniqueID` du dépôt à le faire — partout
+        ailleurs la comparaison est insensible à la casse. Mais **tout le sous-système
+        d'ancres** (écriture, `remove`, `all`, l'écran X12) est casse-exact de bout en
+        bout : un mod affirmé sous une casse et relu sous une autre est déjà traité
+        comme deux entrées à l'écriture. Corriger la seule lecture créerait la
+        divergence — une ancre trouvée à l'affichage, introuvable à la suppression.
+        **À traiter d'un bloc ou pas du tout** : normaliser la clé à l'écriture, avec
+        une migration des ancres déjà posées. Aucun observable sur le parc actuel.
   - [ ] **F6-T3** — **Deux parseurs du même journal SMAPI.** *(tranche ④,
         2026-09-03)* `smapiErrors` est extrait par un scanner inline du
         ViewModel (~L.3142 : chirurgie de chaînes sur « ERROR SMAPI] », drapeau

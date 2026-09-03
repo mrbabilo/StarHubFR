@@ -12,6 +12,16 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Deux sauvegardes différentes ne sont plus prises pour la même** : l'empreinte qui décide si une sauvegarde est redondante — et donc supprimable — comparait les fichiers par leur seul nom, sans le sous-dossier qui les porte. macOS y est pour quelque chose : le dossier des sauvegardes passe par `/var`, un lien vers `/private/var`, et le calcul du chemin relatif échouait sur ce décalage puis se rabattait sur le nom de fichier nu. Deux arbres ne différant que par **quel** sous-dossier contient chaque fichier rendaient la même empreinte : la seconde sauvegarde était jugée en double et effacée. Le chemin est désormais résolu par `realpath(3)` — la fonction Foundation habituelle, mesurée, ne résout justement pas `/var`.
+
+- **Écrire dans une sauvegarde ne détruit plus la structure d'un champ** : le lecteur de fiche joueur ne refermait pas correctement une balise auto-fermée. Un champ composé uniquement de telles balises était rendu comme une **valeur** portant son propre markup — et l'écriture acceptait de l'écraser par un nombre, emportant la structure dans le fichier enregistré. Sur votre sauvegarde *Zofia*, **cinq champs** sont dans ce cas : `shieldSlot` (`<Item xsi:nil="true" />`), `adventureBar` (16 sous-balises), `lastGotPrizeFromGil`, `lastDesertFestivalFishingQuest` et `SpaceCore_PersonalCurrencies`. Les champs réellement lus par l'app (genre, santé, cheveux…) sont tous scalaires : leur lecture est inchangée.
+
+- **Un lien de téléchargement expiré n'accuse plus votre clé API** : un `403` de Nexus était toujours rendu « échec de l'authentification — vérifiez votre clé API dans les Réglages ». Or un lien `nxm://` ne sert qu'une fois et se périme vite : c'est le lien qui est mort, pas la clé. Le message envoyait réparer ce qui n'était pas cassé. Le même statut couvre en fait trois pannes distinctes selon l'appel — abonnement requis, lien expiré, clé en cause — et l'app les distingue désormais : pour un lien expiré, elle dit de relancer le téléchargement depuis la page du mod.
+
+- **Déposer un fichier dans un mod hôte protégé n'échoue plus sans recours** : le dépôt d'un contenu reconnu (un sac d'objets dans son mod hôte, par exemple) écrivait sans ouvrir les droits du dossier visé — le seul chemin d'installation du dépôt à ne pas le faire. Les archives restituent leurs modes à l'extraction : un hôte revenu d'une mise à jour avec ses dossiers en lecture seule refusait le dépôt, panneau d'erreur à l'appui. Le mécanisme est vivant sur votre parc — `.[CP] Toothless Pet` porte encore six dossiers dans ce cas ; l'hôte de la seule règle actuelle est inscriptible aujourd'hui, d'où un défaut latent plutôt qu'ouvert. Les droits sont maintenant ouverts puis rendus tels quels, sans jamais remonter au-delà du mod hôte.
+
 ## [1.35.1] - 2026-09-03
 
 ### Fixed
