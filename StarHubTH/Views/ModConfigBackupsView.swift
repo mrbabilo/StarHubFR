@@ -224,7 +224,10 @@ struct ModConfigBackupsView: View {
         guard !selected.isEmpty else { return }
         isBusy = true
         let gameDir = vm.gameDir
-        let currentMods = vm.enabledMods
+        // Tous les mods, pas seulement les actifs : le filet pris avant
+        // d'écraser doit couvrir les mods **en pause**, où vivent presque
+        // toutes les configurations du parc.
+        let currentMods = vm.mods
         DispatchQueue.global(qos: .userInitiated).async {
             do {
                 try ModConfigBackupManager.shared.restoreBackup(

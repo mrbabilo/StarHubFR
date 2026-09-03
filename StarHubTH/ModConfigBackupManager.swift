@@ -257,25 +257,44 @@ public class ModConfigBackupManager {
     public func restoreBackup(gameDir: String, backup: ModConfigBackup, selectedItems: [ModConfigBackupItem], currentMods: [ModItem]) throws {
         guard !gameDir.isEmpty else { throw BackupError.gameDirEmpty }
 
-        _ = try? createBackup(gameDir: gameDir, mods: currentMods)
-
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
+
+        // Le filet ne porte que sur ce qu'on s'apprête à écraser, et il prend
+        // les mods **en pause** : c'est là que vivent presque toutes les
+        // configurations (527 des 593 `config.json` du parc de référence). Le
+        // prendre sur tout le parc coûterait un parcours complet de `Mods/` —
+        // 93 784 entrées — pour sauvegarder des mods qu'on ne touche pas.
+        let restoredNames = Set(selectedItems.map(\.modFolderName))
+        let atRisk = currentMods.filter { mod in
+            restoredNames.contains(mod.folderName)
+                || (mod.children ?? []).contains { restoredNames.contains($0.folderName) }
+        }
+        if !atRisk.isEmpty {
+            _ = try? createBackup(gameDir: gameDir, mods: atRisk, onlyEnabled: false)
+        }
+
         let backupDir = backupDirURL(named: backup.folderName)
 
         for item in selectedItems {
             let sourceDir = destinationDir(in: backupDir, leafFolderName: item.modFolderName)
-            let targetDir = destinationDir(in: URL(fileURLWithPath: modsPath), leafFolderName: item.modFolderName)
 
             guard fm.fileExists(atPath: sourceDir.path) else {
                 print("ModConfigBackup restore: source folder missing for \(item.modFolderName), skipping")
                 continue
             }
-
-            // Propagate a real failure here instead of swallowing it — a
-            // silently-failed mkdir would otherwise surface as a confusing
-            // "file not found" from the `copyItem` calls below instead of
-            // the actual cause.
-            try fm.createDirectory(at: targetDir, withIntermediateDirectories: true)
+            // Le dossier **réel** du mod, point compris. Sans cette résolution,
+            // un mod en pause voyait sa configuration écrite dans un
+            // `Mods/Nom` fabriqué à côté du `Mods/.Nom` bien réel : dossier
+            // sans manifeste, donc invisible du scan comme du jeu, et
+            // configuration jamais restaurée alors que l'app annonçait
+            // « sauvegarde restaurée ».
+            guard let targetDir = installedFolder(named: item.modFolderName, modsPath: modsPath) else {
+                print("ModConfigBackup restore: mod folder missing for \(item.modFolderName), skipping")
+                continue
+            }
+            // La racine du mod borne l'ouverture des droits ci-dessous : un
+            // `i18n/` en lecture seule existe pour de bon sur le parc.
+            let modRoot = Self.topLevelRoot(of: targetDir.path, under: modsPath)
 
             for relativePath in item.files {
                 let source = sourceDir.appendingPathComponent(relativePath)
@@ -283,19 +302,52 @@ public class ModConfigBackupManager {
                     print("ModConfigBackup restore: file missing \(relativePath) for \(item.modFolderName), skipping")
                     continue
                 }
-                let target = targetDir.appendingPathComponent(relativePath)
-                // Recrée le sous-dossier i18n/ si l'état live ne l'a plus
-                // (traduction disparue entre le backup et maintenant).
-                try fm.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
-                // copyItem throws if the destination already exists — which
-                // it always does on a restore (the live config being
-                // overwritten) — so the existing file must be removed first.
-                if fm.fileExists(atPath: target.path) {
-                    try? fm.removeItem(at: target)
+                // Même écriture que la récupération de fichiers : elle recrée
+                // le sous-dossier `i18n/` disparu, retire l'existant et ouvre
+                // les droits le temps de la copie. Une seule règle pour
+                // « écrire un fichier dans un mod installé ».
+                //
+                // L'échec d'**un** fichier n'emporte pas les suivants : c'est
+                // le contrat annoncé plus haut, et il n'était pas tenu — un
+                // seul fichier impossible à écrire (verrouillé, appartenant à
+                // un autre compte) abandonnait tous les mods restant à
+                // restaurer, y compris ceux qui n'avaient aucun problème.
+                do {
+                    try RecoveredFileWriter.write(from: source.path,
+                                                  to: targetDir.appendingPathComponent(relativePath).path,
+                                                  modRoot: modRoot)
+                } catch {
+                    print("ModConfigBackup restore: could not write \(relativePath) for \(item.modFolderName): \(error)")
                 }
-                try fm.copyItem(at: source, to: target)
             }
         }
+    }
+
+    /// Le dossier réel d'un mod sous `Mods/`, en pause compris — ou `nil` s'il
+    /// n'est plus installé.
+    ///
+    /// Le point ne vit que sur l'entrée de premier niveau
+    /// (`ModItem.physicalFolderName`), y compris pour un composant de pack :
+    /// `Pack/Composant` en pause est `.Pack/Composant`, jamais
+    /// `Pack/.Composant`.
+    private func installedFolder(named logicalFolderName: String, modsPath: String) -> URL? {
+        let direct = (modsPath as NSString).appendingPathComponent(logicalFolderName)
+        if fm.fileExists(atPath: direct) { return URL(fileURLWithPath: direct) }
+
+        var components = logicalFolderName.split(separator: "/").map(String.init)
+        guard !components.isEmpty else { return nil }
+        components[0] = "." + components[0]
+        let paused = (modsPath as NSString).appendingPathComponent(components.joined(separator: "/"))
+        return fm.fileExists(atPath: paused) ? URL(fileURLWithPath: paused) : nil
+    }
+
+    /// Le dossier de tête sous `Mods/` dont dépend un chemin — la limite
+    /// au-delà de laquelle on ne touche jamais aux droits.
+    private static func topLevelRoot(of path: String, under modsPath: String) -> String {
+        guard path.hasPrefix(modsPath + "/") else { return path }
+        let relative = String(path.dropFirst(modsPath.count + 1))
+        guard let head = relative.split(separator: "/").first.map(String.init) else { return path }
+        return (modsPath as NSString).appendingPathComponent(head)
     }
 
     // MARK: - Delete

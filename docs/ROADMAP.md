@@ -627,6 +627,52 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       la question du jeu de couleurs (mesuré : elle est posée quand même), mais ils
       retireraient le chemin et l'action de la file d'attente. À faire avec une vraie
       installation de contrôle, impossible depuis un agent. · **M**
+- [x] **X33** ✅ *(corrigé le 2026-09-04)* — 🔴 **Le filet de la récupération de
+      fichiers bloquait la récupération d'un mod en pause.** `recoverFile` prend un
+      instantané de config avant d'écrire, par
+      `createBackup(gameDir:mods:[mod])` — dont le défaut `onlyEnabled: true`
+      filtre le mod nommément désigné. Pour un mod en pause : `.noEnabledMods`
+      levée, capturée par le `catch` de `recoverFile`, modale « aucun mod actif à
+      sauvegarder », **et le fichier jamais réécrit**. Mesuré : **527 des 593
+      `config.json` du parc** sont dans un dossier en pause. `onlyEnabled: false`
+      — le filtre n'avait rien à trancher sur une liste d'un seul mod choisi. · **S**
+- [x] **X34** ✅ *(corrigé le 2026-09-04)* — 🔴 **La restauration d'une config
+      écrivait au nom logique, la sauvegarde lisait le nom physique.** C4-T5 avait
+      appris `createBackup` à lire `physicalFolderName` (point compris) ;
+      `restoreBackup` est resté sur `folderName`. Pour un mod en pause, la
+      configuration atterrissait dans un `Mods/Nom` **fabriqué** par
+      `createDirectory(withIntermediateDirectories:)` à côté du `Mods/.Nom` réel :
+      dossier sans manifeste, invisible du scan comme du jeu, configuration jamais
+      restaurée — sous un message « sauvegarde restaurée ». Résolution physique
+      partagée avec X22 (le point ne vit que sur l'entrée de tête, `.Pack/Composant`),
+      et un mod absent est **sauté et journalisé** au lieu d'être fabriqué. L'écriture
+      passe par `RecoveredFileWriter.write` : une seule règle pour « écrire un fichier
+      dans un mod installé », droits compris (un `i18n/` en lecture seule existe sur
+      le parc). · **M**
+- [x] **X35** ✅ *(corrigé le 2026-09-04)* — **Le filet d'avant restauration ne
+      couvrait pas ce qu'il écrasait.** `restoreBackup` prenait son instantané avec
+      `onlyEnabled: true`, et `ModConfigBackupsView` lui passait `vm.enabledMods` :
+      un mod en pause restauré était donc écrasé **sans aucune copie de secours**,
+      silencieusement (l'appel est en `try?`). Les deux moitiés corrigées ; et
+      l'instantané se limite aux mods réellement restaurés, ce qui lui évite un
+      parcours complet de `Mods/` (93 784 entrées) pour des mods qu'on ne touche
+      pas. · **S**
+- [x] **X36** ✅ *(corrigé le 2026-09-04)* — **Un fichier impossible à écrire
+      abandonnait toute la restauration de configs.** La documentation de
+      `restoreBackup` promet qu'un fichier manquant est sauté sans interrompre le
+      reste ; la promesse ne valait que pour les fichiers **absents**. Un fichier
+      présent mais impossible à écrire (verrouillé `uchg`, propriétaire différent)
+      faisait remonter l'erreur et abandonnait tous les `selectedItems` suivants.
+      Antérieur à X34 — l'ancien `copyItem` levait pareil. Chaque fichier est
+      maintenant tenté pour lui-même, échec journalisé. Cliquet `print_calls`
+      20 → 21, même justification. · **S**
+- [ ] **X37** — **Une restauration de configs annonce « restaurée » même quand
+      elle a tout sauté.** Les trois cas ignorés (source absente, mod plus installé,
+      fichier non écrit) ne sont que journalisés : l'écran dit « Sauvegarde
+      restaurée » sans distinguer 12 fichiers écrits de 0. Modèle à suivre :
+      `ModInstallRestoreReport` (X22), qui rend ce qui a été écrit et où. Demande de
+      toucher `ModConfigBackupsView` et la signature de `restoreBackup` — à faire
+      d'un bloc, en cherchant d'abord ce que les appelants tiennent pour acquis. · **S**
 - [x] **B1-T1** ✅ *(livré le 2026-08-01)* — Boutons **Activer/Désactiver** et
       **Supprimer** sur la fiche mod (parité avec la liste, mêmes confirmations).
       Absents pour un composant de pack, comme dans la liste. La fiche se referme

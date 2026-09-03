@@ -8145,7 +8145,14 @@ for mod in mods {
         do {
             if fm.fileExists(atPath: file.installedPath),
                let mod = mods.flattenedMods.first(where: { $0.folderName == file.folderName }) {
-                _ = try ModConfigBackupManager.shared.createBackup(gameDir: gameDir, mods: [mod])
+                // `onlyEnabled: false` : le mod est nommément désigné, le
+                // filtre n'a rien à trancher ici — et sans ça, un mod en pause
+                // faisait **échouer la récupération elle-même** (le filet
+                // levait « aucun mod actif à sauvegarder », capté plus bas, et
+                // le fichier n'était jamais réécrit). 527 des 593 mods à
+                // `config.json` du parc sont en pause.
+                _ = try ModConfigBackupManager.shared.createBackup(gameDir: gameDir, mods: [mod],
+                                                                   onlyEnabled: false)
             }
             // L'écriture passe par `RecoveredFileWriter` : les dossiers de mods
             // sont souvent en lecture seule (`unzip`/`unrar` restituent les
