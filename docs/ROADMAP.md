@@ -346,6 +346,27 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       traduit l'intérieur dans 10 cas sur 10, et fait passer un sélecteur à trois
       (`Abigail/summer_Tue4`). La levée s'arrête aux bornes et à leur `^` : l'exempter plus
       largement masquait 135 vraies pertes.
+- [x] **X11** ✅ *(corrigé le 2026-09-03 par `a22d936`)* — 🔴 **Une version affirmée
+      illisible vidait un lot de 150 mods.** « Je l'ai déjà » enregistre le numéro
+      **affiché**, souvent l'étiquette libre d'une page Nexus (« 5 », « 1.01 »,
+      « 1.0.4.1 »). Envoyée telle quelle à smapi.io comme `installedVersion`, elle fait
+      rendre **HTTP 200 et une liste vide** pour tout le lot — sans erreur ni message.
+      Mesuré sur l'installation de l'auteur : 15 ancres dans ce cas, **173 mods rendus
+      sur 1 073**, **1 mise à jour annoncée au lieu de 7**. Le champ est désormais
+      traduit vers la grammaire que le serveur sait lire, relevée requête par requête
+      contre l'API réelle ; vérifié de bout en bout, 1 073 réponses sur 1 073.
+- [ ] **X12** ⬜ *(à arbitrer — signalé le 2026-09-03)* — **« Je l'ai déjà » est un
+      aller sans retour, et invisible.** Un clic, sans confirmation, éteint la ligne de
+      mise à jour d'un mod **pour toujours** : rien à l'écran ne dit quels mods sont
+      dans cet état, et `ModVersionAnchorStore.remove(uniqueId:)` — la fonction qui
+      défait le geste — **n'a aucun appelant**. La seule sortie est de désinstaller le
+      mod (`pruneAnchors` nettoie alors l'ancre). Sur l'installation de l'auteur, **34
+      mods** sont éteints, dont plusieurs ont l'air accidentels : `Florian.TacticalEchoMines`
+      affirmé en 1.3.0 quand le disque porte 0.1.0, `Cargvis.PathfinderValley` affirmé
+      « 4 » pour un disque en 1.0.4. Correctif pressenti : une section « mises à jour
+      masquées » avec un bouton *Réafficher* qui câble le `remove` existant. · **S** ·
+      *décision de périmètre à l'auteur : ce n'est pas un défaut, c'est un geste dont on
+      n'a pas prévu l'annulation.*
 - [x] **B1-T1** ✅ *(livré le 2026-08-01)* — Boutons **Activer/Désactiver** et
       **Supprimer** sur la fiche mod (parité avec la liste, mêmes confirmations).
       Absents pour un composant de pack, comme dans la liste. La fiche se referme
