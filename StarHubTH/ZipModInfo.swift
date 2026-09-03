@@ -154,16 +154,13 @@ struct ModManifest {
             self.nexusUrl = ""
         }
         
-        var deps: [ModDependency] = []
-        if let depArray = dict.caseInsensitiveValue(forKey: "Dependencies") as? [[String: Any]] {
-            for dep in depArray {
-                if let depId = dep.caseInsensitiveValue(forKey: "UniqueID") as? String {
-                    let isReq = dep.caseInsensitiveValue(forKey: "IsRequired") as? Bool ?? true
-                    deps.append(ModDependency(uniqueId: depId, isRequired: isReq))
-                }
-            }
-        }
-        self.dependencies = deps
+        // Une seule lecture des dépendances pour tout le dépôt. Cette boucle
+        // était écrite ici à la main, en plus de `ModDependencyParser` (qui
+        // sert au scan des mods installés) : elle ignorait `ContentPackFor` —
+        // la façon dont la plupart des content packs déclarent leur seule
+        // exigence — et ne dédupliquait pas. 625 des 1 085 manifests du parc
+        // déclarent un `ContentPackFor`, dont 254 sans aucune autre dépendance.
+        self.dependencies = ModDependencyParser.parse(manifest: dict)
     }
 }
 
