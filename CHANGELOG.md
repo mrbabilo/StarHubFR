@@ -18,6 +18,7 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **Une ligne vide referme désormais un groupe d'avertissements SMAPI** : `"".allSatisfy` rendant `true` par vacuité, la ligne vide était prise pour un séparateur de tirets et le groupe restait ouvert — la puce d'un message de mod qui suivait se faisait compter parmi les mods cassés, patchés ou à accès console direct.
 - **Un registre des traductions corrompu ne se perd plus en silence** : chaque écriture pose désormais un backup à côté du fichier, et un fichier illisible se restaure tout seul au chargement — sans lui, la désinstallation des traductions déjà posées devenait impossible, sans qu'aucun message le dise.
 - **Un échec d'écriture de l'historique d'erreurs se signale désormais** : cette histoire ne se rebâtit pas (chaque journal SMAPI écrase le précédent) ; une panne disque passait jusque-là pour une sauvegarde réussie.
 - **Les traductions de secours étaient cherchées par un chemin reconstruit à la main** — trois copies du même chemin à travers la VM et les managers ; un changement de layout des managers aurait fait chercher le finder dans le vide, en silence. Les managers exposent désormais `backupsDirectory`, source unique.

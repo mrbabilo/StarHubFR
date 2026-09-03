@@ -247,11 +247,14 @@ public struct SmapiDiagnostics {
                 case "Direct console access":   group = .console;  groupEntriesStarted = false
                 default: break
                 }
-            } else if groupBody.allSatisfy({ $0 == "-" }) {
-                continue // separator line — never capture as a mod
             } else if groupBody.isEmpty {
+                // ⚠️ Doit être testé AVANT `allSatisfy` : `"".allSatisfy` rend
+                // true par vacuité et avalait la ligne vide, laissant le groupe
+                // ouvert après ses entrées.
                 if groupEntriesStarted { group = nil; groupEntriesStarted = false }
                 // else: blank between blurb and entries — ignore
+            } else if groupBody.allSatisfy({ $0 == "-" }) {
+                continue // separator line — never capture as a mod
             } else if groupBody.hasPrefix("- ") {
                 let name = groupBody.dropFirst(2).trimmingCharacters(in: .whitespaces)
                 if !name.isEmpty {

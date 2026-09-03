@@ -116,6 +116,28 @@ import Testing
         #expect(d.brokenMods == ["Broken Mod One", "Broken Mod Two"])
     }
 
+    /// **Une ligne vide referme le groupe après ses entrées.** `"".allSatisfy`
+    /// rend `true` par vacuité : la ligne vide prenait la branche « séparateur »
+    /// avant la branche `isEmpty`, qui ne s'exécutait jamais — le groupe
+    /// restait ouvert. Une continuation de message de mod dont le corps
+    /// commence par « - » (une puce de liste) se faisait alors capturer comme
+    /// mod du groupe. L'intrus suit ici **directement** la ligne vide : la
+    /// branche « texte après entrées » ne peut pas masquer le défaut.
+    @Test func aBlankLineAfterEntriesClosesTheGroup() {
+        let log = """
+        [22:30:00 ERROR SMAPI]    Broken mods
+        [22:30:00 ERROR SMAPI]    --------------------------------------------------
+        [22:30:00 ERROR SMAPI]       These mods have broken code.
+
+        [22:30:00 ERROR SMAPI]       - Broken Mod One
+
+        - item one
+        - item two
+        """
+        let d = SmapiDiagnostics.parse(logContent: log)
+        #expect(d.brokenMods == ["Broken Mod One"])
+    }
+
     @Test func promotesMissingDependenciesFromFailedAndSkipped() {
         let log = """
         [00:00:00 TRACE SMAPI]    NEU Mod (from Mods/NEU/NEU.dll, ID: neu.mod)...
