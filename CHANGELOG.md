@@ -12,6 +12,12 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.35.3] - 2026-09-04
+
+### Changed
+
+- **Le lancement ne paie plus une seconde de vérifications inutiles** : avant d'afficher vos mods, l'app parcourt tout le dossier `Mods/` à la recherche des résidus que macOS y sème (`.DS_Store`, fourches de ressources `._*`). Pour chaque entrée rencontrée elle interrogeait le disque — est-ce un lien ? un dossier ? — **avant** de regarder si le nom en était seulement un candidat. Sur votre parc, cet arbre compte **93 784 entrées** et aucune ne porte un de ces noms : c'était **1,1 seconde** de questions au disque à chaque lancement, pour un tri qui ne retenait rien. Le nom est désormais examiné en premier ; le reste est inchangé, y compris le cas du fichier `Icon` que macOS nomme avec un retour chariot.
+
 ### Fixed
 
 - **Récupérer une traduction perdue ne bute plus sur un mod en pause** : l'écran de récupération de fichiers sauvegarde d'abord ce qui est en place — on n'écrase jamais sans filet ce que vous avez réglé depuis. Ce filet ne savait sauvegarder que les mods **actifs** : pour un mod en pause il refusait, et son refus emportait la récupération elle-même. Le bouton répondait « aucun mod actif à sauvegarder » et ne réécrivait rien. Sur votre parc, **527 des 593 mods à `config.json` sont en pause** — c'est-à-dire presque tous. Le filet prend désormais le mod tel qu'il est.
@@ -23,8 +29,6 @@ where the exact log format was verified.
 - **Le filet pris avant une restauration de configurations couvre ce qu'il écrase** : il ne prenait que les mods actifs — donc pas ceux qu'on restaurait le plus souvent — et l'écran ne lui présentait même pas les autres. Il porte maintenant sur les mods réellement concernés par la restauration, en pause compris ; s'y limiter lui évite au passage de parcourir tout le dossier `Mods/` pour sauvegarder des mods auxquels on ne touche pas.
 
 - **Installer SMAPI ne peut plus figer l'app en dévorant la mémoire** : l'app pilote l'installateur officiel de SMAPI en lui envoyant ses quatre réponses d'un coup, puis ferme le canal. Si une réponse ne lui convient pas — un dossier de jeu qu'il refuse, une question de plus dans une version à venir — il repose sa question à un canal fermé, et recommence **sans fin**. Mesuré sur l'installateur 4.5.2 : **119 827 838 octets en 20 secondes**, près de 6 Mo par seconde, tous conservés en mémoire par l'app — barre figée à 80 %, aucune issue sinon forcer la fermeture. La lecture est désormais bornée : passé 1 Mo (mille fois ce qu'écrit une installation normale) ou dix minutes, l'installateur est coupé et l'app dit ce qui s'est passé, en pointant le chemin du jeu — la cause de très loin la plus probable.
-
-- **Le lancement ne paie plus une seconde de vérifications inutiles** : avant d'afficher vos mods, l'app parcourt tout le dossier `Mods/` à la recherche des résidus que macOS y sème (`.DS_Store`, fourches de ressources `._*`). Pour chaque entrée rencontrée elle interrogeait le disque — est-ce un lien ? un dossier ? — **avant** de regarder si le nom en était seulement un candidat. Sur votre parc, cet arbre compte **93 784 entrées** et aucune ne porte un de ces noms : c'était **1,1 seconde** de questions au disque à chaque lancement, pour un tri qui ne retenait rien. Le nom est désormais examiné en premier ; le reste est inchangé, y compris le cas du fichier `Icon` que macOS nomme avec un retour chariot.
 
 - **Restaurer un composant de pack le rend à son pack, pas à un pack fantôme** : un composant n'a pas d'état à lui — le point qui met un mod en pause ne se pose que sur le dossier de tête, et chaque composant hérite de l'état de son pack. La restauration l'ignorait : quand le composant n'était plus là (le cas normal — on restaure ce qu'on a perdu), elle le rendait toujours dans un `.MonPack` qu'elle créait au besoin, à côté du `MonPack` bien vivant. Le pack se retrouvait en deux dossiers de même nom, et le mod restauré invisible du jeu comme de l'app. Il revient désormais dans le pack tel qu'il est sur le disque ; si plus rien du pack n'y est, il revient en pause comme toute nouvelle installation.
 
