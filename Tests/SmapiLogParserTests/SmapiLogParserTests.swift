@@ -149,4 +149,65 @@ struct SmapiUpdateBlockTests {
         #expect(updates.first?.url == "https://smapi.io/mods#Pathoschild.ContentPatcher")
     }
 
+
+    // MARK: - Imputations devinées
+
+    @Test func aNameFromTheBracketIsNotInferred() throws {
+        let entries = SmapiLogParser.parse(
+            "[12:00:00 ERROR Content Patcher] Something broke: badly")
+        let entry = try #require(entries.first)
+        #expect(entry.modName == "Content Patcher")
+        #expect(entry.modNameIsInferred == false)
+    }
+
+    @Test func aNameFromTheMessagePrefixIsInferred() throws {
+        // Le cas pour lequel l'heuristique existe : SMAPI journalise l'erreur
+        // d'un mod sous son propre crochet, le nom n'est qu'en tête du message.
+        let entries = SmapiLogParser.parse(
+            "[12:00:00 ERROR SMAPI] Gunther's Guide: Tried to map a null entry")
+        let entry = try #require(entries.first)
+        #expect(entry.modName == "Gunther's Guide")
+        #expect(entry.modNameIsInferred == true)
+    }
+
+    @Test func anInferredNameThatIsNoModIsDropped() throws {
+        // Les trois faux coupables du journal réel de l'auteur (2026-09-01).
+        let log = """
+        [17:40:11 ALERT SMAPI] You can update 1 mod:
+        [17:40:12 ERROR SMAPI] Galaxy auth failure: FAILURE_REASON_GALAXY_SERVICE_NOT_SIGNED_IN
+        [17:40:13 ERROR SMAPI] Gunther's Guide: Tried to map a null entry
+        """
+        let parsed = SmapiLogParser.parse(log)
+        #expect(parsed.compactMap(\.modName).count == 3)
+        let cleaned = SmapiLogParser.dismissingUnknownInferredMods(parsed) {
+            $0 == "Gunther's Guide"
+        }
+        #expect(cleaned.compactMap(\.modName) == ["Gunther's Guide"])
+        // Le drapeau tombe avec le nom : une ligne sans imputation n'en a plus
+        // de devinée non plus.
+        #expect(cleaned.filter(\.modNameIsInferred).count == 1)
+    }
+
+    @Test func aBracketNameSurvivesAnUnknownMod() throws {
+        // Un mod désinstallé depuis le dernier lancement du jeu reste nommé :
+        // SMAPI l'affirme, ce n'est pas une devinette.
+        let parsed = SmapiLogParser.parse("[12:00:00 ERROR Retired Mod] boom: here")
+        let cleaned = SmapiLogParser.dismissingUnknownInferredMods(parsed) { _ in false }
+        #expect(cleaned.first?.modName == "Retired Mod")
+    }
+
+    @Test func theSameInferredNameIsJudgedOnce() {
+        // La résolution parcourt tout le parc : le verdict est mémorisé.
+        let log = (1...5).map { i in
+            "[12:00:0\(i) ERROR SMAPI] Phantom Thing: boom \(i)"
+        }.joined(separator: "\n")
+        var calls = 0
+        let cleaned = SmapiLogParser.dismissingUnknownInferredMods(SmapiLogParser.parse(log)) { _ in
+            calls += 1
+            return false
+        }
+        #expect(cleaned.compactMap(\.modName).isEmpty)
+        #expect(calls == 1)
+    }
+
 }

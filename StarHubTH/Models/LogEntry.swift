@@ -29,14 +29,26 @@ public struct LogEntry: Identifiable, Sendable {
     /// par le crochet de source, soit par le préfixe du message (voir
     /// `LogNoise.modNamePrefix(in:)`).
     public var modName: String? = nil
+    /// Vrai quand `modName` a été **deviné** dans le préfixe du message, faux
+    /// quand SMAPI l'a écrit lui-même dans le crochet de source.
+    ///
+    /// La distinction n'est pas cosmétique : le crochet est une affirmation de
+    /// SMAPI, le préfixe une heuristique sur du texte libre qui invente de
+    /// faux coupables (« You can update 1 mod » —
+    /// cf. `LogNoise.modNamePrefix`). Seules les imputations devinées ont à
+    /// être confrontées au parc installé, et sans ce drapeau on ne saurait pas
+    /// lesquelles.
+    public let modNameIsInferred: Bool
 
     public init(timestamp: String, message: String, level: LogLevel,
-                source: LogSource, modName: String? = nil) {
+                source: LogSource, modName: String? = nil,
+                modNameIsInferred: Bool = false) {
         self.timestamp = timestamp
         self.message = message
         self.level = level
         self.source = source
         self.modName = modName
+        self.modNameIsInferred = modNameIsInferred
     }
 
     /// The plain-text line used by both "copy all" and "copy line" in

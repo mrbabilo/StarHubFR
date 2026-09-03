@@ -25,7 +25,10 @@ public enum SmapiLogParser {
                 let combined = last.message.isEmpty ? trimmed : last.message + "\n" + trimmed
                 entries.append(LogEntry(timestamp: last.timestamp, message: combined,
                                         level: last.level, source: .smapi,
-                                        modName: last.modName))
+                                        modName: last.modName,
+                                        // Une continuation hérite de l'origine
+                                        // de l'imputation, pas seulement du nom.
+                                        modNameIsInferred: last.modNameIsInferred))
                 continue
             }
             // Crochet ouvrant jamais refermé : ligne tronquée ou corrompue.
@@ -57,14 +60,59 @@ public enum SmapiLogParser {
             // crochet porte « SMAPI » et le nom du mod n'apparaît qu'en préfixe
             // du message — « [SMAPI] [ERROR] Gunther's Guide: Tried to map… ».
             // Sans cette lecture, ces erreurs n'étaient imputées à personne.
-            let modName = context
-                ?? ((level == .error || level == .warning)
-                    ? LogNoise.modNamePrefix(in: message) : nil)
+            let inferred = context == nil && (level == .error || level == .warning)
+                ? LogNoise.modNamePrefix(in: message) : nil
+            let modName = context ?? inferred
 
             entries.append(LogEntry(timestamp: timestamp, message: message,
-                                    level: level, source: .smapi, modName: modName))
+                                    level: level, source: .smapi, modName: modName,
+                                    modNameIsInferred: inferred != nil))
         }
         return entries
+    }
+
+    /// Retire les imputations **devinées** qui ne désignent aucun mod installé.
+    ///
+    /// `LogNoise.modNamePrefix` devine un nom de mod dans le préfixe d'un
+    /// message, et n'a aucun moyen textuel de distinguer « Gunther's Guide: … »
+    /// — une vraie erreur que SMAPI journalise pour le compte d'un mod — de
+    /// « You can update 1 mod: … », qui est sa propre alerte. Sur le journal de
+    /// l'auteur, les trois imputations devinées étaient toutes fausses, et
+    /// l'écran des Journaux en faisait trois pastilles cliquables qui ne
+    /// menaient nulle part et trois groupes « par mod » qui n'étaient pas des
+    /// mods. `recordErrorHistory` validait déjà de son côté ; l'affichage, non.
+    ///
+    /// Le seul critère fiable est **le parc installé**, et il n'est pas lisible
+    /// depuis le parseur (`loadSmapiLog` tourne sur `DispatchQueue.global`,
+    /// `mods` est isolé sur le fil principal) : d'où cette fonction, appelée
+    /// depuis le fil principal une fois par chargement.
+    ///
+    /// Les noms venus du **crochet** de SMAPI ne sont jamais touchés : SMAPI
+    /// les affirme, et un mod désinstallé depuis le dernier lancement du jeu
+    /// doit rester nommé dans son journal.
+    ///
+    /// ⚠️ L'appelant ne doit pas invoquer cette fonction avec un parc vide —
+    /// dossier de jeu non défini, scan pas encore terminé : tout serait
+    /// « inconnu » et l'imputation disparaîtrait des lignes qui la méritent.
+    public static func dismissingUnknownInferredMods(
+        _ entries: [LogEntry],
+        isKnownMod: (String) -> Bool
+    ) -> [LogEntry] {
+        // Un même nom revient sur plusieurs lignes : la réponse est mémorisée,
+        // la résolution parcourant tout le parc à chaque appel.
+        var verdicts: [String: Bool] = [:]
+        return entries.map { entry in
+            guard entry.modNameIsInferred, let name = entry.modName else { return entry }
+            let known = verdicts[name] ?? {
+                let answer = isKnownMod(name)
+                verdicts[name] = answer
+                return answer
+            }()
+            guard !known else { return entry }
+            return LogEntry(timestamp: entry.timestamp, message: entry.message,
+                            level: entry.level, source: entry.source,
+                            modName: nil, modNameIsInferred: false)
+        }
     }
 
     private static func level(from raw: String) -> LogLevel {

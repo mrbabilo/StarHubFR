@@ -3955,7 +3955,24 @@ class StarHubTHViewModel: ObservableObject {
             // Same rule as above: shed TRACE noise, never the startup
             // diagnostic at the head of the log.
             let cappedSmapi = Self.trimPreservingSignal(trimmedEntries, cap: smapiBudget)
-            self.logEntries.append(contentsOf: cappedSmapi)
+            // Les imputations **devinées** dans le préfixe d'un message sont
+            // confrontées au parc, ici et pas dans le parseur : celui-ci tourne
+            // sur `DispatchQueue.global`, où `mods` n'est pas lisible. Sans
+            // cette passe, « You can update 1 mod » et « Galaxy auth failure »
+            // s'affichaient en pastille cliquable menant nulle part, et en
+            // groupe « par mod » qui n'était pas un mod (3 cas sur le journal
+            // de l'auteur, tous faux). Le crochet de SMAPI, lui, n'est jamais
+            // remis en cause.
+            //
+            // Parc vide (dossier de jeu non défini, scan pas encore fini) : on
+            // ne juge rien plutôt que de tout déclarer inconnu — sinon
+            // l'imputation disparaîtrait aussi des lignes qui la méritent.
+            let displayed = self.mods.isEmpty
+                ? cappedSmapi
+                : SmapiLogParser.dismissingUnknownInferredMods(cappedSmapi) { name in
+                    self.resolveModFolder(forLoggedName: name) != nil
+                }
+            self.logEntries.append(contentsOf: displayed)
             self.smapiDiagnostics = smapiDiag
             self.smapiLogDate = smapiDate
             self.smapiLogStale = smapiStale
