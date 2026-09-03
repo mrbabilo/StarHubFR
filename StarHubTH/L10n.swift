@@ -972,6 +972,8 @@ enum L10n {
         static let affirmedOnDisk       = "updates_affirmed_on_disk"
         static let affirmedReveal       = "updates_affirmed_reveal"
         static let affirmedRevealHelp   = "updates_affirmed_reveal_help"
+        static let affirmedOpenMod      = "updates_affirmed_open_mod"
+        static let affirmedOpenModHelp  = "updates_affirmed_open_mod_help"
         static let nexusUpdatesCount    = "updates_nexus_updates_count"
         static let nexusError           = "updates_nexus_error"
         static let nexusRateLimited     = "updates_nexus_rate_limited"

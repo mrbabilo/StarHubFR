@@ -14,7 +14,7 @@ where the exact log format was verified.
 
 ### Added
 
-- **« Je l'ai déjà » n'est plus un aller sans retour** : la page Mises à jour porte désormais un bloc repliable « *N* mods marqués “Je l'ai déjà” », visible **même quand tout est annoncé à jour** — c'est justement là qu'il manquait. Chaque ligne montre le numéro que vous avez affirmé **et** celui que le dossier déclare, l'écart en couleur, avec un bouton **Réafficher**. Une explication dit ce que le geste a fait et ce que le bouton défait. Sur une installation de référence, 34 mods étaient éteints sans que rien ne le dise, dont plusieurs par mégarde — l'un affirmé en 1.3.0 pour un dossier en 0.1.0.
+- **« Je l'ai déjà » n'est plus un aller sans retour** : la page Mises à jour porte désormais un bloc repliable « *N* mods marqués “Je l'ai déjà” », visible **même quand tout est annoncé à jour** — c'est justement là qu'il manquait. Chaque ligne montre le numéro que vous avez affirmé **et** celui que le dossier déclare, l'écart en couleur, avec deux boutons : **Voir la fiche** — qui ouvre le mod sur son onglet État, de quoi juger avant de décider — et **Réafficher**. Une explication dit ce que le geste a fait et ce que le bouton défait. Sur une installation de référence, 34 mods étaient éteints sans que rien ne le dise, dont plusieurs par mégarde — l'un affirmé en 1.3.0 pour un dossier en 0.1.0.
 
 ### Fixed
 

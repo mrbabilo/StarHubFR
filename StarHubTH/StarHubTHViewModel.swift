@@ -5009,7 +5009,8 @@ for mod in mods {
             anchors: anchorStore.all(),
             installed: allInstalledMods().map {
                 AffirmedUpdates.InstalledMod(uniqueId: $0.uniqueId, name: $0.name,
-                                             version: $0.version)
+                                             version: $0.version,
+                                             folderName: $0.folderName)
             })
     }
 

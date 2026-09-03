@@ -720,6 +720,8 @@
 "updates_affirmed_on_disk" = "on disk: %@";
 "updates_affirmed_reveal" = "Show again";
 "updates_affirmed_reveal_help" = "Drops the statement for this mod. The row comes back at the next check — it is not restored on the spot, because nothing here knows what the page says today.";
+"updates_affirmed_open_mod" = "Open mod";
+"updates_affirmed_open_mod_help" = "Opens this mod's page on its State tab — installed version, compatibility and recorded errors, so you can judge before dropping the statement.";
 "updates_nexus_updates_count" = "%lld update(s) available";
 "updates_nexus_error" = "An error occurred while checking for updates";
 "updates_nexus_rate_limited" = "Nexus Mods rate-limited this check — try again later";

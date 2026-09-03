@@ -720,6 +720,8 @@
   "updates_affirmed_on_disk": "sur le disque : %@",
   "updates_affirmed_reveal": "Réafficher",
   "updates_affirmed_reveal_help": "Retire l’affirmation pour ce mod. La ligne revient à la prochaine vérification — elle n’est pas rétablie sur-le-champ, car rien ici ne sait ce que la page annonce aujourd’hui.",
+  "updates_affirmed_open_mod": "Voir la fiche",
+  "updates_affirmed_open_mod_help": "Ouvre la fiche de ce mod sur son onglet État — version installée, compatibilité et erreurs relevées, de quoi juger avant de retirer l’affirmation.",
   "updates_nexus_updates_count": "%lld mise(s) à jour disponible(s)",
   "updates_nexus_error": "Une erreur s'est produite lors de la vérification des mises à jour",
   "updates_nexus_rate_limited": "Nexus Mods a limité cette vérification — réessayez plus tard",

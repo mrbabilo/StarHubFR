@@ -18,9 +18,10 @@ struct AffirmedUpdatesTests {
                          anchoredAt: Date())
     }
 
-    private func mod(_ uid: String, _ name: String, _ version: String)
-        -> AffirmedUpdates.InstalledMod {
-        .init(uniqueId: uid, name: name, version: version)
+    private func mod(_ uid: String, _ name: String, _ version: String,
+                     folder: String = "") -> AffirmedUpdates.InstalledMod {
+        .init(uniqueId: uid, name: name, version: version,
+              folderName: folder.isEmpty ? name : folder)
     }
 
     @Test func onlyUserAffirmedAnchorsAreListed() {
@@ -72,6 +73,16 @@ struct AffirmedUpdatesTests {
             installed: [mod("z", "alpha", "1.0"), mod("a", "Beta", "1.0"),
                         mod("m", "alpha", "1.0")])
         #expect(rows.map(\.uniqueId) == ["m", "z", "a"])
+    }
+
+    @Test func theFolderNameTravelsSoTheDetailPageCanBeOpened() {
+        // `ModFocusResolver` cherche le dossier **avant** le nom : c'est la
+        // seule clé sûre, deux mods homonymes existent et le nom ouvrirait la
+        // fiche du premier venu.
+        let rows = AffirmedUpdates.rows(
+            anchors: ["a": anchor("a", "4")],
+            installed: [mod("a", "Pathfinder Valley", "1.0.4", folder: "PathfinderValley")])
+        #expect(rows.first?.folderName == "PathfinderValley")
     }
 
     @Test func aModWithoutAUniqueIdCannotBeAffirmed() {

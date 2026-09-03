@@ -22,11 +22,17 @@ public enum AffirmedUpdates {
         public let uniqueId: String
         public let name: String
         public let version: String
+        /// Le dossier **logique** (jamais préfixé d'un point) : c'est par lui
+        /// que `ModFocusResolver` retrouve le mod à coup sûr. Le nom affiché
+        /// ne suffit pas — deux mods homonymes existent, et le résolveur
+        /// tomberait sur le premier venu.
+        public let folderName: String
 
-        public init(uniqueId: String, name: String, version: String) {
+        public init(uniqueId: String, name: String, version: String, folderName: String) {
             self.uniqueId = uniqueId
             self.name = name
             self.version = version
+            self.folderName = folderName
         }
     }
 
@@ -41,6 +47,8 @@ public enum AffirmedUpdates {
         public let affirmedVersion: String
         /// Ce que le `manifest.json` déclare aujourd'hui.
         public let manifestVersion: String
+        /// Ce qu'il faut passer à `ModFocusResolver` pour ouvrir la fiche.
+        public let folderName: String
 
         /// L'affirmation dit-elle encore autre chose que le disque ?
         ///
@@ -49,11 +57,13 @@ public enum AffirmedUpdates {
         public var disagreesWithDisk: Bool { affirmedVersion != manifestVersion }
 
         public init(uniqueId: String, name: String,
-                    affirmedVersion: String, manifestVersion: String) {
+                    affirmedVersion: String, manifestVersion: String,
+                    folderName: String) {
             self.uniqueId = uniqueId
             self.name = name
             self.affirmedVersion = affirmedVersion
             self.manifestVersion = manifestVersion
+            self.folderName = folderName
         }
     }
 
@@ -79,7 +89,8 @@ public enum AffirmedUpdates {
                 guard let mod = byId[anchor.uniqueId] else { return nil }
                 return Row(uniqueId: anchor.uniqueId, name: mod.name,
                            affirmedVersion: anchor.anchoredVersion,
-                           manifestVersion: mod.version)
+                           manifestVersion: mod.version,
+                           folderName: mod.folderName)
             }
             .sorted {
                 $0.name.lowercased() != $1.name.lowercased()

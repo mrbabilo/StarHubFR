@@ -951,6 +951,31 @@ struct UpdatesView: View {
                                             .foregroundColor(row.disagreesWithDisk
                                                              ? .orange : .secondary)
                                         Spacer(minLength: 8)
+                                        // Voir la fiche avant de décider :
+                                        // c'est là que se lisent la version,
+                                        // la compatibilité et l'historique du
+                                        // mod. On pose la cible PUIS on
+                                        // bascule — `MainView` remet à `nil`
+                                        // les états de détail dans son
+                                        // `onChange(of: currentTab)`, et
+                                        // `pendingModDetailFocus` est ce qui
+                                        // traverse (patron B3-T4).
+                                        //
+                                        // Le **dossier**, pas le nom : le
+                                        // résolveur le cherche en premier, et
+                                        // deux mods homonymes ouvriraient la
+                                        // fiche du premier venu.
+                                        Button {
+                                            vm.pendingModDetailFocus = row.folderName
+                                            vm.pendingDetailTab = .state
+                                            currentTab = "Mods"
+                                        } label: {
+                                            Text(vm.L(L10n.Updates.affirmedOpenMod))
+                                                .font(.system(size: 11))
+                                        }
+                                        .buttonStyle(PlainButtonStyle())
+                                        .pointingHandCursor()
+                                        .help(vm.L(L10n.Updates.affirmedOpenModHelp))
                                         Button {
                                             vm.revealAffirmedUpdate(uniqueId: row.uniqueId)
                                         } label: {
