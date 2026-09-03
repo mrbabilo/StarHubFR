@@ -806,8 +806,12 @@ struct ModInstallView: View {
                     _ = try ModInstallBackupManager.shared.createBackup(
                         for: proposal.host, gameDir: gameDir, reason: .beforeInstall)
                 }
+                let hostRoot = URL(fileURLWithPath: gameDir)
+                    .appendingPathComponent("Mods")
+                    .appendingPathComponent(proposal.host.physicalFolderName, isDirectory: true)
                 for file in proposal.files {
-                    try DroppedContentRecognizer.install(from: file.source, to: file.destination)
+                    try DroppedContentRecognizer.install(from: file.source, to: file.destination,
+                                                         hostRoot: hostRoot)
                     installed += 1
                 }
             } catch {

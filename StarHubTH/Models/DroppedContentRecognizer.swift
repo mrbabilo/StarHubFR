@@ -100,7 +100,9 @@ public enum DroppedContentRecognizer {
             return .hostMissing(hostDisplayName: rule.hostDisplayName)
         }
 
-        let physicalFolder = host.isEnabled ? host.folderName : "." + host.folderName
+        // `physicalFolderName` porte la convention du point de pause : toute
+        // construction de chemin disque passe par lui.
+        let physicalFolder = host.physicalFolderName
         let hostRoot = URL(fileURLWithPath: gameDir)
             .appendingPathComponent("Mods")
             .appendingPathComponent(physicalFolder)
@@ -122,17 +124,26 @@ public enum DroppedContentRecognizer {
     /// manquants — un hôte fraîchement installé peut ne pas avoir encore son
     /// sous-dossier de contenu.
     ///
+    /// Passe par `RecoveredFileWriter.withWriteAccess` : `unzip` restitue les
+    /// modes de l'archive, et un hôte mis à jour peut revenir avec ses dossiers
+    /// en `0555` (cas `[CP] Toothless Pet`, mesuré encore présent sur le parc).
+    /// Les droits sont rendus tels qu'on les a trouvés — même contrat que
+    /// `ManifestlessInstaller`.
+    ///
     /// La sauvegarde de l'hôte avant écrasement appartient à l'appelant : c'est
     /// une décision d'orchestration, et `ModInstallBackupManager` la porte déjà
     /// pour toute installation par-dessus un mod existant.
     public static func install(from source: URL, to destination: URL,
+                               hostRoot: URL,
                                fileManager: FileManager = .default) throws {
-        try fileManager.createDirectory(at: destination.deletingLastPathComponent(),
-                                        withIntermediateDirectories: true)
-        if fileManager.fileExists(atPath: destination.path) {
-            try fileManager.removeItem(at: destination)
+        try RecoveredFileWriter.withWriteAccess(to: destination.path, modRoot: hostRoot.path) {
+            try fileManager.createDirectory(at: destination.deletingLastPathComponent(),
+                                            withIntermediateDirectories: true)
+            if fileManager.fileExists(atPath: destination.path) {
+                try fileManager.removeItem(at: destination)
+            }
+            try fileManager.copyItem(at: source, to: destination)
         }
-        try fileManager.copyItem(at: source, to: destination)
     }
 
     /// Le premier fichier JSON d'une archive extraite qu'une règle reconnaît.

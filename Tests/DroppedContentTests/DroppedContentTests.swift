@@ -213,7 +213,8 @@ struct DroppedContentInstallTests {
         // installé peut ne pas avoir le sous-dossier.
         let destination = sandbox.appendingPathComponent("Host/assets/Modded Bags/Bag.json")
 
-        try DroppedContentRecognizer.install(from: source, to: destination)
+        try DroppedContentRecognizer.install(from: source, to: destination,
+                                             hostRoot: sandbox.appendingPathComponent("Host"))
 
         #expect(FileManager.default.fileExists(atPath: destination.path))
         #expect(try String(contentsOf: destination, encoding: .utf8) == #"{"BagName": "x"}"#)
@@ -229,9 +230,48 @@ struct DroppedContentInstallTests {
                                                 withIntermediateDirectories: true)
         try Data("ancien".utf8).write(to: destination)
 
-        try DroppedContentRecognizer.install(from: source, to: destination)
+        try DroppedContentRecognizer.install(from: source, to: destination,
+                                             hostRoot: sandbox.appendingPathComponent("Host"))
 
         #expect(try String(contentsOf: destination, encoding: .utf8) == "neuf")
+    }
+
+    /// Le cas `[CP] Toothless Pet` : `unzip` restitue les modes de l'archive,
+    /// et un hôte fraîchement mis à jour peut revenir avec ses dossiers en
+    /// `0555`. Le dépôt d'un sac doit les ouvrir le temps d'écrire, puis les
+    /// rendre tels quels — même contrat que `ManifestlessInstaller` et
+    /// `RecoverableFileWriter` (X7).
+    @Test func writingIntoAReadOnlyHostSucceedsAndRestoresItsMode() throws {
+        let sandbox = try makeSandbox()
+        // Rouvrir d'abord : un dossier en 0555 ne peut pas être retiré, le
+        // nettoyage ne passerait pas.
+        defer {
+            for dir in [sandbox.appendingPathComponent("Host"),
+                        sandbox.appendingPathComponent("Host/assets/Modded Bags")] {
+                try? FileManager.default.setAttributes(
+                    [.posixPermissions: 0o755], ofItemAtPath: dir.path)
+            }
+            try? FileManager.default.removeItem(at: sandbox)
+        }
+        let source = sandbox.appendingPathComponent("Bag.json")
+        try Data(#"{"BagName": "x"}"#.utf8).write(to: source)
+        let hostRoot = sandbox.appendingPathComponent("Host")
+        let bagsDir = hostRoot.appendingPathComponent("assets/Modded Bags")
+        try FileManager.default.createDirectory(at: bagsDir, withIntermediateDirectories: true)
+        for dir in [hostRoot, bagsDir] {
+            try FileManager.default.setAttributes([.posixPermissions: 0o555],
+                                                  ofItemAtPath: dir.path)
+        }
+        let destination = bagsDir.appendingPathComponent("Bag.json")
+
+        try DroppedContentRecognizer.install(from: source, to: destination, hostRoot: hostRoot)
+
+        #expect(FileManager.default.fileExists(atPath: destination.path))
+        let mode = { (path: String) -> Int? in
+            try? FileManager.default.attributesOfItem(atPath: path)[.posixPermissions] as? Int
+        }
+        #expect(mode(hostRoot.path) == 0o555)
+        #expect(mode(bagsDir.path) == 0o555)
     }
 }
 
@@ -290,7 +330,8 @@ struct DroppedContentEndToEndTests {
             return
         }
         #expect(paused)
-        try DroppedContentRecognizer.install(from: found.fileURL, to: url)
+        try DroppedContentRecognizer.install(from: found.fileURL, to: url,
+                                             hostRoot: gameDir.appendingPathComponent("Mods/.ItemBags"))
 
         let written = hostFolder.appendingPathComponent("assets/Modded Bags/Cloth and Colors Bag.json")
         #expect(FileManager.default.fileExists(atPath: written.path))
