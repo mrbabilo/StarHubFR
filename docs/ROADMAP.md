@@ -351,8 +351,12 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       **affiché**, souvent l'étiquette libre d'une page Nexus (« 5 », « 1.01 »,
       « 1.0.4.1 »). Envoyée telle quelle à smapi.io comme `installedVersion`, elle fait
       rendre **HTTP 200 et une liste vide** pour tout le lot — sans erreur ni message.
-      Mesuré sur l'installation de l'auteur : 15 ancres dans ce cas, **173 mods rendus
-      sur 1 073**, **1 mise à jour annoncée au lieu de 7**. Le champ est désormais
+      Le re-découpage de `SmapiUpdateClient` rattrape une entrée fautive isolée, mais
+      son budget est de 32 requêtes pour toute la vérification : les 15 ancres de
+      l'installation de l'auteur l'épuisent d'emblée. Rejoué avec son algorithme :
+      **471 mods rendus sur 1 073**, **4 mises à jour visibles sur 7** (trois perdues
+      avec leur lot), 40 requêtes au lieu de 8, et 2 entrées fautives nommées sur 15.
+      Le champ est désormais
       traduit vers la grammaire que le serveur sait lire, relevée requête par requête
       contre l'API réelle ; vérifié de bout en bout, 1 073 réponses sur 1 073.
 - [x] **X12** ✅ *(livré le 2026-09-03 par `b9653dc`)* — **« Je l'ai déjà » était un

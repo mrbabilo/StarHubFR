@@ -264,8 +264,10 @@ struct SmapiUpdateRequestTests {
 /// **15 ancres** portent une version que smapi.io ne sait pas analyser, toutes
 /// posées par « Je l'ai déjà » — qui enregistre l'étiquette **Nexus** de la
 /// mise à jour (« 5 », « 1.01 »), pas une version SMAPI. Une seule entrée
-/// fautive fait rendre **HTTP 200 et une liste vide** pour son lot entier :
-/// 173 mods rendus sur 1 073, une mise à jour annoncée au lieu de quatorze.
+/// fautive fait rendre **HTTP 200 et une liste vide** pour son lot entier ; le
+/// re-découpage de `SmapiUpdateClient` en rattrape une poignée, puis son budget
+/// de 32 requêtes s'épuise. Rejoué avec son algorithme : **471 mods rendus sur
+/// 1 073**, 4 mises à jour visibles sur 7, 40 requêtes au lieu de 8.
 ///
 /// ⚠️ **L'asymétrie décide de la sévérité du filtre** : un faux négatif coûte
 /// le bénéfice d'une ancre sur un mod ; un faux positif emporte les 150 mods

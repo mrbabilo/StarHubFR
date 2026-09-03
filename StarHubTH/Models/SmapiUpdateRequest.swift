@@ -65,9 +65,15 @@ public enum SmapiUpdateRequest {
     /// et `gameVersion` — et le seul qui l'ait fait pour de vrai. Mesuré sur le
     /// parc de l'auteur le 2026-09-03 : **15 ancres** portent une version que
     /// le serveur ne sait pas analyser, et une seule entrée fautive fait rendre
-    /// **HTTP 200 avec une liste vide** pour son lot de 150. Résultat mesuré,
-    /// avant correctif : 173 mods rendus sur 1 073, **une** mise à jour
-    /// annoncée au lieu de quatorze.
+    /// **HTTP 200 avec une liste vide** pour son lot de 150.
+    ///
+    /// `SmapiUpdateClient` sait re-découper un lot vide pour isoler l'entrée
+    /// fautive, mais son budget est de **32 requêtes pour toute la
+    /// vérification** : quinze entrées toxiques l'épuisent d'emblée. Rejoué
+    /// avec son algorithme : **471 mods rendus sur 1 073**, **4 mises à jour
+    /// visibles sur 7**, 40 requêtes au lieu de 8, et deux entrées fautives
+    /// nommées sur quinze. Le filet n'est pas un substitut à ne pas envoyer
+    /// l'entrée ; il est là pour le manifeste tiers qu'on ne contrôle pas.
     ///
     /// Elles viennent toutes de « Je l'ai déjà », qui enregistre l'étiquette
     /// **Nexus** de la mise à jour — « 5 », « 1.01 », « 1.0.4.1 » — et non une
