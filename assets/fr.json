@@ -411,6 +411,7 @@
   "smapi_payload_not_found": "Fichier de charge utile introuvable dans l'archive SMAPI",
   "smapi_install_success": "SMAPI installé avec succès !",
   "smapi_install_error": "Erreur d'installation : %@",
+  "smapi_installer_aborted": "L'installateur de SMAPI a cessé de répondre correctement et a été interrompu — il refusait très probablement le dossier du jeu. Vérifiez le chemin du jeu dans les Réglages, puis réessayez. (%@)",
   "smapi_not_found": "Installation de SMAPI introuvable dans ce dossier",
   "smapi_uninstall_success": "SMAPI désinstallé ! Le jeu vanilla a été restauré.",
   "smapi_uninstall_failed": "Échec de la désinstallation : %@",

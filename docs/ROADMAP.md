@@ -592,6 +592,41 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       tolère la marque. Deux tests de parité épinglent le comportement ; unifier
       serait un changement de comportement sur un chemin sans appelant, donc à ne
       faire qu'en même temps qu'on lui en donne un (ou qu'on le retire). · **S**
+- [x] **X30** ✅ *(corrigé le 2026-09-04)* — 🔴 **Une réponse refusée par
+      l'installateur SMAPI figeait l'app en avalant la mémoire.**
+      `runOfficialInstaller` écrit ses quatre réponses puis ferme l'entrée
+      standard, et lisait la sortie par `readDataToEndOfFile()`. **Vérifié en
+      exécutant le vrai binaire 4.5.2** (téléchargé, lancé hors du jeu) : une
+      réponse refusée le fait reboucler sur sa question à une entrée close —
+      **119 827 838 octets en 20 s**, ~6 Mo/s, tous accumulés en mémoire, barre à
+      80 %, sortie impossible sans tuer l'app. Lecture désormais bornée par
+      `SmapiInstallerLimits` (1 Mo, 10 min), puis coupure : SIGTERM, attente
+      **sans lecture** (une horloge consultée entre deux lectures bloquantes
+      n'avance jamais tant que l'enfant parle — la première version du correctif
+      rejouait ainsi la panne), `SIGKILL` après une seconde, et vidange une fois
+      l'écrivain mort. Mesuré : SIGTERM tue l'installateur en plein flot en
+      0,02 s. Message dédié qui pointe le chemin du jeu. `lastMeaningfulLine` déplacée en Core au passage : elle
+      porte **tout** ce que l'utilisateur apprend d'un échec et n'était couverte
+      par aucun test. ⚠️ Reste hors de portée : un installateur qui se tairait en
+      restant bloqué — la lecture d'un tube ne rend la main qu'aux octets ou à sa
+      fermeture. Non mesuré, inchangé. · **M**
+- [ ] **X31** — **Le marqueur de version SMAPI peut mentir indéfiniment.**
+      `getInstalledVersion` lit d'abord `smapi-internal/.starhubth-installed-version`,
+      écrit par l'app seule. Une mise à jour de SMAPI faite autrement (son propre
+      installateur) ne le réécrit pas : l'app annonce alors éternellement l'ancienne
+      version et propose une mise à jour déjà faite. Le repli — la première ligne de
+      `SMAPI-latest.txt` — dirait vrai mais n'est jamais consulté. Piste : comparer
+      les dates des deux sources et croire la plus récente (le journal peut être en
+      retard sur une installation dont le jeu n'a pas encore été lancé). **Non
+      mesuré** : sur le parc, marqueur et journal disent tous deux `4.5.2`. · **S**
+- [ ] **X32** — **L'installateur SMAPI accepte `--install` / `--uninstall` /
+      `--game-path`.** Vérifié dans le binaire 4.5.2 (`"You can't specify both
+      --install and --uninstall command-line flags."`, `'You specified --game-path "'`).
+      L'app, elle, répond à l'aveugle à une séquence de questions dont l'ordre est
+      supposé stable — c'est ce qui rend X30 possible. Les drapeaux ne suppriment pas
+      la question du jeu de couleurs (mesuré : elle est posée quand même), mais ils
+      retireraient le chemin et l'action de la file d'attente. À faire avec une vraie
+      installation de contrôle, impossible depuis un agent. · **M**
 - [x] **B1-T1** ✅ *(livré le 2026-08-01)* — Boutons **Activer/Désactiver** et
       **Supprimer** sur la fiche mod (parité avec la liste, mêmes confirmations).
       Absents pour un composant de pack, comme dans la liste. La fiche se referme

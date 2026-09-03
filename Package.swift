@@ -28,6 +28,7 @@ let package = Package(
                 "Models/NexusDownloadQueue.swift",
                 "Models/NexusDownloadAPI.swift",
                 "Models/NexusRequestBuilder.swift",
+                "Models/SmapiInstallerLimits.swift",
                 "Models/NexusRateLimitGate.swift",
                 "Models/NexusQuota.swift",
                 "Models/NexusAccount.swift",
@@ -260,6 +261,11 @@ let package = Package(
             name: "DroppedContentTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/DroppedContentTests"
+        ),
+        .testTarget(
+            name: "SmapiInstallerLimitsTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/SmapiInstallerLimitsTests"
         ),
         .testTarget(
             name: "ModFolderRepairerTests",

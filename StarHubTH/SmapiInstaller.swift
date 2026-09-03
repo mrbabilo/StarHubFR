@@ -387,9 +387,51 @@ class SmapiInstaller: ObservableObject {
         stdinPipe.fileHandleForWriting.write(answers.data(using: .utf8) ?? Data())
         try? stdinPipe.fileHandleForWriting.close()
 
-        let outputData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
+        // Lecture **bornée**, pas `readDataToEndOfFile()` : une réponse que
+        // l'installateur refuse le fait reposer sa question à une entrée déjà
+        // close, indéfiniment — mesuré à 6 Mo par seconde, tous accumulés en
+        // mémoire (voir `SmapiInstallerLimits`).
+        let handle = stdoutPipe.fileHandleForReading
+        let limits = SmapiInstallerLimits.standard
+        let start = Date()
+        var outputData = Data()
+        var aborted: SmapiInstallerLimits.Abort?
+        while true {
+            let chunk = handle.availableData
+            if chunk.isEmpty { break }  // fin du tube
+            outputData.append(chunk)
+            if let verdict = limits.abort(bytesRead: outputData.count,
+                                          elapsed: Date().timeIntervalSince(start)) {
+                aborted = verdict
+                // On s'assure **d'abord** que plus personne n'écrit, et sans
+                // jamais lire pour l'attendre : une horloge consultée entre
+                // deux lectures bloquantes n'avance pas tant que l'enfant
+                // parle, et on rejouerait la panne qu'on répare. Mesuré sur
+                // l'installateur 4.5.2 en plein flot : SIGTERM le tue en
+                // 0,02 s — la borne d'une seconde est cinquante fois large,
+                // et `SIGKILL` ferme le cas d'un enfant qui l'ignorerait.
+                process.terminate()
+                let deadline = Date().addingTimeInterval(1)
+                while process.isRunning, Date() < deadline {
+                    Thread.sleep(forTimeInterval: 0.02)
+                }
+                if process.isRunning { kill(process.processIdentifier, SIGKILL) }
+                // Vidange : l'écrivain est mort, la fin du tube est donc
+                // certaine. Sans elle, un tube plein retiendrait l'enfant.
+                while !handle.availableData.isEmpty {}
+                break
+            }
+        }
         process.waitUntilExit()
         let output = String(data: outputData, encoding: .utf8) ?? ""
+
+        if let aborted {
+            // Message à part : « erreur d'installation » n'aiderait personne
+            // ici. Ce qui a coupé, c'est presque toujours un dossier de jeu
+            // que l'installateur refuse — et c'est réparable.
+            completion(false, L10n.Smapi.installerAborted, aborted.rawValue)
+            return
+        }
 
         let fm = FileManager.default
         let smapiInternalPath = (gameDir as NSString).appendingPathComponent("smapi-internal")
@@ -422,15 +464,12 @@ class SmapiInstaller: ObservableObject {
     }
 
     /// Picks a short, useful line from the installer's captured output for
-    /// the error detail shown to the user. Its crash output ends in a C#
-    /// stack trace, which isn't useful verbatim — the actual error message
-    /// is the line announcing the exception, so surface that instead of the
-    /// trace beneath it.
+    /// the error detail shown to the user.
+    ///
+    /// La règle vit dans `SmapiInstallerOutput` (Core) : ce fichier n'est pas
+    /// dans le paquet testable, et c'est pourtant tout ce que l'utilisateur
+    /// apprend d'un échec.
     private static func lastMeaningfulLine(of output: String) -> String {
-        let lines = output.components(separatedBy: .newlines).map { $0.trimmingCharacters(in: .whitespaces) }
-        if let idx = lines.firstIndex(where: { $0.contains("unexpected exception") || $0.contains("failed") }) {
-            return lines[idx]
-        }
-        return lines.last(where: { !$0.isEmpty }) ?? "unknown error"
+        SmapiInstallerOutput.lastMeaningfulLine(of: output)
     }
 }

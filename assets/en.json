@@ -411,6 +411,7 @@
   "smapi_payload_not_found": "Payload file not found in SMAPI zip",
   "smapi_install_success": "SMAPI installed successfully!",
   "smapi_install_error": "Installation error: %@",
+  "smapi_installer_aborted": "SMAPI's installer stopped responding sensibly and was interrupted — it was most likely refusing the game folder. Check the game path in Settings, then try again. (%@)",
   "smapi_not_found": "SMAPI installation not found in this folder",
   "smapi_uninstall_success": "SMAPI uninstalled! Vanilla game restored.",
   "smapi_uninstall_failed": "Uninstall failed: %@",
