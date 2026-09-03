@@ -72,11 +72,14 @@ enum DescriptionBlockParser {
     private static func normalize(_ str: String) -> String {
         var formatted = str
 
-        // 1. HTML entities
+        // 1. Entités HTML qui ne peuvent pas se confondre avec du balisage.
+        // ⚠️ `&lt;` / `&gt;` / `&amp;` sont décodées **après** le retrait du
+        // HTML (étape 3a) : ici, `&lt;ContentPackMainFolder&gt;` deviendrait
+        // une balise `<…>` que l'étape 3 effacerait. Mesuré sur 39
+        // descriptions réelles : 3 en portaient, dont une consigne
+        // d'installation (« place it in `<ContentPackMainFolder>` ») et une
+        // signature d'API — toutes trois disparaissaient de l'écran.
         formatted = formatted.replacingOccurrences(of: "&nbsp;", with: " ")
-                             .replacingOccurrences(of: "&amp;", with: "&")
-                             .replacingOccurrences(of: "&lt;", with: "<")
-                             .replacingOccurrences(of: "&gt;", with: ">")
                              .replacingOccurrences(of: "&quot;", with: "\"")
         // 1b. Zero-width junk. Nexus' editor sprinkles BOMs (U+FEFF) through
         // pasted text; they are invisible but not whitespace, so `\s*` never
@@ -91,6 +94,13 @@ enum DescriptionBlockParser {
         formatted = formatted.replacingOccurrences(of: "(?i)</?(?:p|div|h[1-6]|li|tr|blockquote)\\b[^>]*>", with: "\n", options: .regularExpression)
         // 3. strip other HTML
         formatted = formatted.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
+        // 3a. Les entités qui *ressemblent* à du balisage, une fois le vrai
+        // HTML parti. `&amp;` en dernier : sinon `&amp;lt;` — un `&lt;` que
+        // l'auteur veut montrer — se décoderait deux fois et finirait en `<`,
+        // effacé comme une balise.
+        formatted = formatted.replacingOccurrences(of: "&lt;", with: "<")
+                             .replacingOccurrences(of: "&gt;", with: ">")
+                             .replacingOccurrences(of: "&amp;", with: "&")
         // 3b. Drop tag pairs whose content is empty *before* converting, so they
         // never become delimiters with nothing between them. `[b][/b]` used to
         // reach Markdown as `****`, and `[url=X][/url]` as `[](X)` — which the
@@ -131,15 +141,21 @@ enum DescriptionBlockParser {
         // approach — leaves any unlisted or malformed tag, e.g. `[/]`, `[/*]`,
         // `[quote=x]`, or a stray unbalanced `[b]`, rendered raw on screen).
         // Excludes `[img …]` / `[spoiler …]` (the tokenizer below needs them),
-        // and won't touch a Markdown link `[text](url)` produced just above
-        // (the `(?!\()` guard), so only genuine leftover tags are removed.
+        // and won't touch what the pipeline has *itself* just emitted — a
+        // Markdown link `[texte](https://…)` ou un span d'attribut
+        // `^[texte](shcolor: '#hex')` — dont le libellé peut porter un nom de
+        // balise. Le garde nomme donc ces deux formes, au lieu d'épargner
+        // toute balise suivie d'une parenthèse : `[font=Tahoma](assets > …)`
+        // existe dans la vraie vie (2 descriptions sur 39, dont une consigne
+        // d'installation) et s'affichait en clair.
         // The negative lookahead sits *before* the optional slash so it rejects
         // both `[img …]` and `[/img]` (and spoiler) — otherwise `/?` backtracks
         // and the body swallows `/img`, stripping the closing tag and breaking
         // image tokenization below.
         let tagAlternation = knownInlineTags.joined(separator: "|")
+        let ownEmissions = "\\((?:https?://|nxm://|shcolor:|shunderline:)"
         formatted = formatted.replacingOccurrences(
-            of: "(?i)\\[/?(?:\(tagAlternation))(?:=[^\\]]*)?\\](?!\\()",
+            of: "(?i)\\[/?(?:\(tagAlternation))(?:=[^\\]]*)?\\](?!\(ownEmissions))",
             with: "", options: .regularExpression)
         // Bare generic close tag (`[/]`), which no whitelist entry covers.
         formatted = formatted.replacingOccurrences(of: "\\[/\\]", with: "", options: .regularExpression)
@@ -335,9 +351,16 @@ enum DescriptionBlockParser {
     /// `true` si `string` est un lien sûr à rendre (http/https/nxm). Tout autre
     /// scheme (`javascript:`, `file:`, `data:`, `vbscript:`…) est rejeté, ainsi
     /// que les chaînes sans scheme (« //host », « host.com »).
+    ///
+    /// **Et un hôte est exigé.** Les auteurs laissent des destinations
+    /// tronquées : « Happy Birthday » écrit `[url=http:]` et `[url=http://]`
+    /// autour d'une URL lisible. Le scheme seul les validait, produisant un
+    /// lien mort dont le crochet fermant s'affichait (`](http:)`) ; sans
+    /// hôte, on garde le libellé et on abandonne la destination.
     static func isAllowedURL(_ string: String) -> Bool {
-        guard let scheme = URL(string: string)?.scheme?.lowercased() else { return false }
-        return allowedSchemes.contains(scheme)
+        guard let url = URL(string: string), let scheme = url.scheme?.lowercased(),
+              allowedSchemes.contains(scheme) else { return false }
+        return !(url.host ?? "").isEmpty
     }
 
     /// `[url=X]Y[/url]` → `[Y](X)`. Quand le libellé ne peut pas en être un
@@ -402,7 +425,11 @@ enum DescriptionBlockParser {
             }
             out += images
             let remaining = rest.trimmingCharacters(in: .whitespacesAndNewlines)
-            let target = m.range(at: 1).location != NSNotFound ? ns.substring(with: m.range(at: 1)) : remaining
+            // Décapée comme dans `convertLinks` : une espace autour de l'URL
+            // ferait échouer `isAllowedURL`, et le lien serait perdu.
+            let target = m.range(at: 1).location != NSNotFound
+                ? ns.substring(with: m.range(at: 1)).trimmingCharacters(in: .whitespacesAndNewlines)
+                : remaining
             if !remaining.isEmpty && !target.isEmpty && canBeLinkLabel(remaining), Self.isAllowedURL(target) {
                 out += "[\(remaining)](\(target))"
             } else if !remaining.isEmpty {

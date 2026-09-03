@@ -430,4 +430,112 @@ struct DescriptionBlockTests {
             }
         }
     }
+
+    // MARK: - Relevés sur 39 descriptions Nexus réelles (cache de la vitrine)
+
+    /// **Un `&lt;X&gt;` disparaissait de l'écran.** Les entités étaient
+    /// décodées *avant* le retrait du HTML : `&lt;ContentPackMainFolder&gt;`
+    /// devenait `<ContentPackMainFolder>`, que `<[^>]+>` effaçait ensuite.
+    /// Mesuré sur le cache réel : 3 descriptions sur 39, dont « Happy
+    /// Birthday » qui perdait le dossier où déposer le pack, et « Vanilla
+    /// Tips » sa signature d'API.
+    @Test func encodedAngleBracketsSurviveTheHTMLStrip() {
+        let out = DescriptionBlockParser.parse(
+            "Put it in &lt;ContentPackMainFolder&gt; then restart")
+        guard case let .text(t)? = out.first else {
+            Issue.record("attendu du texte"); return
+        }
+        #expect(t.contains("<ContentPackMainFolder>"))
+    }
+
+    /// Le vrai HTML, lui, part toujours : c'est du balisage, pas du texte.
+    @Test func realHTMLTagsAreStillStripped() {
+        let out = DescriptionBlockParser.parse("<b>bold</b> text")
+        guard case let .text(t)? = out.first else {
+            Issue.record("attendu du texte"); return
+        }
+        #expect(t == "bold text")
+    }
+
+    /// `&amp;lt;` est un `&lt;` que l'auteur veut **montrer** : décoder
+    /// `&amp;` en dernier évite de le décoder deux fois.
+    @Test func aDoublyEncodedEntityIsDecodedOnce() {
+        let out = DescriptionBlockParser.parse("écrire &amp;lt;tag&amp;gt; ainsi")
+        guard case let .text(t)? = out.first else {
+            Issue.record("attendu du texte"); return
+        }
+        #expect(t.contains("&lt;tag&gt;"))
+    }
+
+    /// **`[font=Tahoma](…)` s'affichait en clair.** Le garde `(?!\()` du
+    /// retrait final protégeait *toute* balise suivie d'une parenthèse, pour
+    /// épargner les liens Markdown déjà produits — mais une balise BBCode
+    /// suivie d'une parenthèse ouvrante est fréquente. Mesuré : 2 descriptions
+    /// sur 39, dont « (CP) Ghostly Gunther » en pleine consigne d'installation
+    /// (« … into their corresponding folder [font=Tahoma](assets > … »).
+    @Test func aTagFollowedByAParenthesisIsStillStripped() {
+        let out = DescriptionBlockParser.parse(
+            "Copy into [font=Tahoma](assets > CharacterFiles) and restart")
+        guard case let .text(t)? = out.first else {
+            Issue.record("attendu du texte"); return
+        }
+        #expect(!t.contains("[font"))
+        #expect(t.contains("(assets > CharacterFiles)"))
+    }
+
+    /// Le garde resserré doit continuer d'épargner ce que le pipeline émet
+    /// lui-même : un lien Markdown dont le libellé porte un nom de balise.
+    @Test func aMarkdownLinkLabelledLikeATagSurvives() {
+        let out = DescriptionBlockParser.parse("[url=https://x.com]b[/url]")
+        guard case let .text(t)? = out.first else {
+            Issue.record("attendu du texte"); return
+        }
+        #expect(t.contains("[b](https://x.com)"))
+    }
+
+    /// Et le span d'attribut, dont la parenthèse ne porte pas d'URL.
+    @Test func anAttributeSpanLabelledLikeATagSurvives() {
+        let out = DescriptionBlockParser.parse("[color=#FF0000]b[/color]")
+        guard case let .text(t)? = out.first else {
+            Issue.record("attendu du texte"); return
+        }
+        #expect(t.contains("^[b](shcolor: '#FF0000')"))
+    }
+
+    /// La bannière cliquable décapait sa destination dans `convertLinks` mais
+    /// pas dans `hoistImagesOutOfLinkLabels` : une espace autour de l'URL y
+    /// perdait le lien, et le garde resserré ci-dessus l'aurait vu comme une
+    /// parenthèse ordinaire.
+    @Test func aSpacedTargetIsTrimmedWhenAnImageIsHoisted() {
+        let out = DescriptionBlockParser.parse(
+            "[url= https://x.com ][img]https://x/y.png[/img] Reddit[/url]")
+        #expect(out.contains(.image(URL(string: "https://x/y.png")!)))
+        guard case let .text(t)? = out.last else {
+            Issue.record("attendu du texte"); return
+        }
+        #expect(t.contains("[Reddit](https://x.com)"))
+    }
+
+    /// **Une destination sans hôte n'est pas un lien.** « Happy Birthday »
+    /// écrit `[url=http:]https://…/11148[/url]` et `[url=http://]…[/url]` :
+    /// le scheme suffisait à valider, si bien qu'un lien mort était produit
+    /// et que son crochet fermant s'affichait (`](http:)`). Le libellé —
+    /// ici l'URL complète, lisible — vaut mieux que ça.
+    @Test func aSchemeWithoutAHostIsNotALink() {
+        for target in ["http:", "http://", "https://"] {
+            let out = DescriptionBlockParser.parse(
+                "voir [url=\(target)]https://www.nexusmods.com/stardewvalley/mods/11148[/url] ici")
+            guard case let .text(text)? = out.first else {
+                Issue.record("attendu du texte pour \(target)"); return
+            }
+            #expect(!text.contains("](\(target))"))
+            #expect(text.contains("https://www.nexusmods.com/stardewvalley/mods/11148"))
+        }
+    }
+
+    /// Et une image sans hôte n'est pas une image : mieux vaut aucun bloc
+    /// qu'une vignette qui ne chargera jamais.
+    @Test func anImageWithoutAHostIsDropped() {
+        #expect(DescriptionBlockParser.parse("[img]https://[/img]").isEmpty)
+    }
 }

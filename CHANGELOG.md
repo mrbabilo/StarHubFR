@@ -18,6 +18,9 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **Les descriptions Nexus ne mangent plus les `<…>` qu'un auteur voulait montrer** : les entités HTML étaient décodées *avant* le retrait des balises, si bien que `&lt;ContentPackMainFolder&gt;` devenait une balise puis disparaissait. Mesuré sur 39 descriptions réelles : 3 en portaient, dont une consigne d'installation et une signature d'API C#.
+- **Une balise BBCode suivie d'une parenthèse ne s'affiche plus en clair** : `[font=Tahoma](assets > …)` survivait au nettoyage final, qui épargnait toute balise suivie d'une parenthèse pour protéger les liens déjà produits. Le garde ne protège plus que les liens et les couleurs que l'app émet elle-même.
+- **Une destination de lien sans hôte n'est plus rendue comme un lien** : `[url=http:]` ou `[url=http://]` autour d'une URL lisible — vu chez « Happy Birthday » — produisait un lien mort dont le crochet fermant s'affichait. Le libellé reste, la destination est abandonnée ; une image sans hôte n'est plus proposée non plus.
 - **Une ligne vide referme désormais un groupe d'avertissements SMAPI** : `"".allSatisfy` rendant `true` par vacuité, la ligne vide était prise pour un séparateur de tirets et le groupe restait ouvert — la puce d'un message de mod qui suivait se faisait compter parmi les mods cassés, patchés ou à accès console direct.
 - **Un registre des traductions corrompu ne se perd plus en silence** : chaque écriture pose désormais un backup à côté du fichier, et un fichier illisible se restaure tout seul au chargement — sans lui, la désinstallation des traductions déjà posées devenait impossible, sans qu'aucun message le dise.
 - **Un échec d'écriture de l'historique d'erreurs se signale désormais** : cette histoire ne se rebâtit pas (chaque journal SMAPI écrase le précédent) ; une panne disque passait jusque-là pour une sauvegarde réussie.
