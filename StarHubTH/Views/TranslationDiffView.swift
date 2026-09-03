@@ -938,9 +938,21 @@ private struct DiffRowView: View {
                 if needsReview {
                     // Discret : un glyphe orange collé à la clé, nommé au
                     // survol — le glyphe ET la teinte, comme pour les états.
+                    //
+                    // Cible 18×18 : à 8 pt, le glyphe est plus petit que ce
+                    // que le curseur peut tenir immobile deux secondes, et
+                    // `.help` ne s'affichait jamais — or c'est le seul moyen,
+                    // à la souris, d'apprendre ce que ce drapeau signale
+                    // (patron `ModListView.profileConfigSlot`).
+                    // `alignment: .bottom` : dans un HStack aligné sur la
+                    // ligne de base, c'est le bas de la zone qui fait
+                    // baseline — sans lui, le glyphe remonterait au-dessus
+                    // de la clé qu'il annote.
                     Image(systemName: "text.magnifyingglass")
                         .font(.system(size: 8))
                         .foregroundColor(.orange)
+                        .frame(width: 18, height: 18, alignment: .bottom)
+                        .contentShape(.rect)
                         .help(reviewLabel)
                         .accessibilityLabel(reviewLabel)
                 }
