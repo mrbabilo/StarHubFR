@@ -894,7 +894,11 @@ struct ModInstallView: View {
                 // Mods/ directly), but we still pass the legacy path for
                 // source compatibility.
                 let modsDisabledPath = (gameDir as NSString).appendingPathComponent("Mods_disabled")
-                try self.installer.install(
+                // Les chemins viennent de l'installateur : lui seul sait où
+                // il a écrit — un composant reste dans son pack, un mod
+                // activé garde sa place, un `.rename` porte un horodatage
+                // fabriqué au moment de l'écriture.
+                let installedFolderPaths = try self.installer.install(
                     from: tempDir,
                     to: modsDisabledPath,
                     selections: selections,
@@ -931,12 +935,6 @@ struct ModInstallView: View {
                     // Version — reconcile it against the Nexus file's own
                     // version/date now that the mod is on disk.
                     if let source = self.vm.pendingNexusSource {
-                        let installedFolderPaths = self.installedFolderPaths(
-                            selections: selections,
-                            detectedMods: info.detectedMods,
-                            existingMods: existingMods,
-                            gameDir: gameDir
-                        )
                         // Retenir l'identifiant AVANT tout le reste : c'est la
                         // seule occasion où l'app le connaît, et
                         // `reconcileManifestVersion` consomme
@@ -986,58 +984,6 @@ struct ModInstallView: View {
                 }
             }
         }
-    }
-
-    /// Mirrors `ModZipInstaller.install`'s destination logic (final folder
-    /// name + enabled/disabled prefix under Mods/) so the post-install
-    /// reconciler can find the manifest that was actually written, without
-    /// the installer having to expose its write paths.
-    ///
-    /// `.rename`-resolved mods are excluded: the installer appends an
-    /// internally-generated timestamp suffix (`stampedFolderSuffix()`) that
-    /// isn't surfaced anywhere, so the real folder name can't be reproduced
-    /// here — abstaining is safer than guessing wrong and mutating (or
-    /// misreading) an unrelated manifest.
-    private func installedFolderPaths(selections: [InstallSelection], detectedMods: [DetectedMod], existingMods: [ModItem], gameDir: String) -> [String] {
-        // Note: unlike ModZipInstaller.install, this doesn't skip sources that
-        // failed the existence check — a path to a not-actually-written folder
-        // is harmless because reconcileManifestVersion fails safe (its
-        // `try? String(contentsOfFile:)` returns nil → no-op).
-        let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
-
-        var paths: [String] = []
-        for selection in selections {
-            guard selection.selected else { continue }
-            guard let detectedMod = detectedMods.first(where: { $0.id == selection.modId }) else { continue }
-
-            let existingMod = existingMods.first { $0.uniqueId.caseInsensitiveCompare(detectedMod.uniqueId) == .orderedSame }
-
-            let finalDestFolderName: String
-            if existingMod != nil, let resolution = selection.conflictResolution {
-                switch resolution {
-                case .skip:
-                    continue
-                case .rename:
-                    continue  // unreproducible timestamp suffix → abstain
-                case .overwriteWithBackup, .keepExisting, .useNew:
-                    finalDestFolderName = detectedMod.folderName
-                }
-            } else {
-                finalDestFolderName = detectedMod.folderName
-            }
-
-            // Enabled-update lands at Mods/X, everything else at Mods/.X
-            // (disabled by default). Mirrors the installer's destFolderPrefix.
-            let prefix: String
-            if let existing = existingMod, existing.isEnabled, selection.conflictResolution == .overwriteWithBackup {
-                prefix = ""
-            } else {
-                prefix = "."
-            }
-
-            paths.append((modsPath as NSString).appendingPathComponent(prefix + finalDestFolderName))
-        }
-        return paths
     }
 
     /// Fetches Nexus metadata for installed mods that declare a Nexus mod id

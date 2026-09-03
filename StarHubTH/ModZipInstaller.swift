@@ -989,8 +989,23 @@ class ModZipInstaller {
     /// be resolved to actual mod metadata + source paths. The `modsDisabledPath`
     /// parameter is retained for source compatibility but is no longer used —
     /// disabled mods now live inside Mods/ as `.X`.
-    func install(from tempDir: URL, to modsDisabledPath: String, selections: [InstallSelection], detectedMods: [DetectedMod], gameDir: String, existingMods: [ModItem]) throws {
+    ///
+    /// - Returns: les chemins des dossiers **réellement écrits**, dans l'ordre
+    ///   des sélections. C'est la seule façon honnête de les connaître : la
+    ///   destination dépend de l'endroit où vivait le mod remplacé (un
+    ///   composant reste dans son pack), de son état d'activation, et — pour
+    ///   une résolution `.rename` — d'un horodatage fabriqué ici. La feuille
+    ///   d'installation les recalculait de son côté pour ancrer la version
+    ///   posée : elle cherchait le mod existant dans les seules lignes de
+    ///   premier niveau (jamais un composant de pack — **239 des 1 095 mods
+    ///   du parc**) et reprenait le nom de dossier de l'archive. Les trois
+    ///   mécanismes nourris par ces chemins lisent un `manifest.json` et
+    ///   s'abstiennent en silence s'il n'y a rien : la mise à jour d'un
+    ///   composant restait donc annoncée après avoir été installée.
+    @discardableResult
+    func install(from tempDir: URL, to modsDisabledPath: String, selections: [InstallSelection], detectedMods: [DetectedMod], gameDir: String, existingMods: [ModItem]) throws -> [String] {
         guard !gameDir.isEmpty else { throw InstallError.gameDirEmpty }
+        var installedPaths: [String] = []
         // Est-ce que cette installation a produit une sauvegarde ? Sinon il
         // n'y a rien de neuf à élaguer, et balayer l'index serait payé pour
         // rien.
@@ -1164,6 +1179,9 @@ class ModZipInstaller {
             // doesn't ship them (common case). Failures must surface, not be
             // swallowed — a silent failure here means data loss.
             try restoreUserConfigs(&preservedConfigs, into: destPath)
+
+            // Le mod est entièrement posé : son chemin peut être annoncé.
+            installedPaths.append(destPath)
         }
 
         // La rétention par âge, **une fois** pour toute l'installation : elle
@@ -1177,6 +1195,8 @@ class ModZipInstaller {
         if didBackUp {
             _ = backupManager.cleanupOldBackups()
         }
+
+        return installedPaths
     }
 
     /// Copies `config.json` and all SMAPI language files (`i18n/*.json`) from
