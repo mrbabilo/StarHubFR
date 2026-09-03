@@ -566,9 +566,22 @@ public enum NexusModSearch {
                 guard !hit.isTranslation, hit.modId != hostModId else { return false }
                 // Sur le titre **réduit**, jamais sur l'égalité brute : le
                 // manifeste dit « [FTM] Wildflour's Atelier Goods » là où Nexus
-                // titre « Wildflour's Atelier Goods - An Artisan Goods
-                // Expansion ». C'est le titre qui *commence* par le nom du mod
-                // sans rien y ajouter d'autre qu'un sous-titre qui est l'hôte.
+                // titre « Wildflour's Atelier Goods » — préfixe de cadre,
+                // ponctuation et casse écartés, les deux se rejoignent.
+                //
+                // **Égalité, pas préfixe** : un titre qui *ajoute* un
+                // sous-titre reste, parce que c'est aussi la forme d'un vrai
+                // supplément. Mesuré sur le parc le 2026-09-03 : 59 mods
+                // installés sur 1 075 s'appellent « Hôte – Ajout » ou
+                // « Hôte: Ajout » avec l'hôte installé lui aussi (les neuf
+                // « Seeds N' Saplings - … », les onze « Hidden Pelican
+                // Village - … », « Chests Anywhere - Category Dropdown
+                // Patch »…). Exclure par préfixe les effacerait en silence,
+                // ce qui coûte plus que la ligne en trop qu'on éviterait.
+                //
+                // Reste connu : un hôte sans identifiant Nexus dont la fiche
+                // porte un sous-titre figure dans ses propres suppléments.
+                // L'appelant plafonne et dit le total.
                 return !host.isEmpty ? comparableTitle(hit.name) != host : true
             }
             .sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
