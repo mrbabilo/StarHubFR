@@ -425,10 +425,16 @@ public enum TranslationCoverage {
     /// qu'elle ne se chargera jamais. Le `.Trim()` qu'on trouve dans SMAPI porte
     /// sur la **locale**, pas sur les clés.
     ///
-    /// C'est une approximation ASCII d'`OrdinalIgnoreCase` : `lowercased()` est
-    /// Unicode et dépend de la locale, là où la comparaison C# est ordinale.
-    /// Sans portée pour des clés i18n, mais autant ne pas prétendre à
-    /// l'équivalence.
+    /// C'est une approximation d'`OrdinalIgnoreCase`, mais **pas** pour la
+    /// raison qu'on croirait : `lowercased()` ne dépend pas de la locale (c'est
+    /// le pliage Unicode par défaut ; seule la variante `lowercased(with:)`
+    /// est localisée, et on ne l'emploie pas). L'écart est ailleurs — le
+    /// pliage Unicode traite des caractères qu'une comparaison ordinale
+    /// laisserait distincts (`İ` rend deux scalaires, `ẛ` se replie sur `ṡ`).
+    /// Sans portée pour des clés i18n : mesuré sur le parc le 2026-09-03,
+    /// **aucun** des 2 757 fichiers ne porte deux clés qui ne diffèrent que
+    /// par la casse, donc aucun total mesuré ne s'écarte de ce que SMAPI
+    /// compterait. Autant ne pas prétendre à l'équivalence pour autant.
     public static func fold(_ key: String) -> String {
         key.lowercased()
     }

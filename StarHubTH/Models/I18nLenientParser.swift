@@ -29,6 +29,20 @@ import Foundation
 /// - avant la correction, ce parseur en lisait **1866** et en refusait **487** ;
 /// - il en lit désormais **2351** et n'en refuse plus que **2**, sans aucune
 ///   régression (aucun fichier lisible en JSON strict n'est refusé).
+///
+/// **Rejoué le 2026-09-03** sur le parc tel qu'il est devenu — 2 757 fichiers,
+/// 400 de plus : `I18nFileDecoder` les décode **tous** (0 refus), le parseur en
+/// lit **2 749**, dont 1 543 en CRLF, là où JSON strict n'en accepte que
+/// **1 755**. Soit près de mille fichiers que la tolérance sauve. Aucun
+/// caractère de contrôle brut hors `\n`, `\r`, `\t` dans tout le parc.
+/// Les 8 refus se rangent en deux familles :
+/// - les **2 tolérances de guillemets Newtonsoft** déjà nommées ci-dessous
+///   (`SpecialPowerUtilities/i18n/ko.json`, `DestroyableBushes/i18n/zh.json`) ;
+/// - **6 fichiers à valeurs imbriquées** (`Ivo Bracken`, `Mara Vellum`,
+///   `Pella Rowan`, deux fichiers chacun) : du JSON strictement valide, mais
+///   pas un i18n — le chargeur du jeu, qui veut un
+///   `Dictionary<string, string>`, ne les lit pas non plus. `notFlatObject`
+///   est ici le bon verdict, pas un faux négatif.
 /// **Ce que le jeu charge a été mesuré, pas déduit.** Le même parc a été passé
 /// dans un oracle qui rejoue le chemin exact de SMAPI — `File.ReadAllText` puis
 /// `JsonConvert.DeserializeObject<Dictionary<string, string>>` — avec la
@@ -74,10 +88,6 @@ enum I18nLenientParser {
         case notFlatObject
     }
 
-    /// Les entrées du fichier. `$schema`, quand il est présent, est écarté :
-    /// c'est une annotation d'éditeur, pas une traduction. **Divergence assumée
-    /// avec SMAPI**, qui la traite comme une clé ordinaire — sans quoi nos
-    /// totaux différeraient des siens de un.
     /// Les entrées d'un fichier i18n **depuis ses octets**.
     ///
     /// C'est la porte d'entrée à préférer : décoder d'abord en `String` avec
@@ -89,6 +99,19 @@ enum I18nLenientParser {
         return try parse(decoded.text)
     }
 
+    /// Les entrées d'un fichier i18n déjà décodé en texte.
+    ///
+    /// `$schema`, quand il est présent, est écarté : c'est une annotation
+    /// d'éditeur, pas une traduction. **Divergence assumée avec SMAPI**, qui la
+    /// traite comme une clé ordinaire — sans quoi nos totaux différeraient des
+    /// siens de un.
+    ///
+    /// Une valeur qui n'est pas une chaîne fait échouer le **fichier entier**
+    /// (`notFlatObject`), et c'est voulu : un i18n à valeurs imbriquées n'est
+    /// pas un i18n, et n'en garder que les clés plates présenterait une
+    /// traduction quasi vide comme saine. Mesuré sur le parc — 6 fichiers de
+    /// trois mods en sont là, tous à objets imbriqués (`gift.love`,
+    /// `dialogue.spring`), une forme que le chargeur du jeu refuse aussi.
     static func parse(_ text: String) throws -> [String: String] {
         guard let object = lenientObject(text) else { throw ParseError.malformed }
         var out: [String: String] = [:]
