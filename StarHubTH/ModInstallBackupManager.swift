@@ -137,7 +137,12 @@ public class ModInstallBackupManager {
             try fm.createDirectory(at: destPath.deletingLastPathComponent(), withIntermediateDirectories: true)
             try fm.copyItem(atPath: sourcePath, toPath: destPath.path)
         } catch {
-            try? fm.removeItem(at: backupDir)
+            // La copie a pu poser une partie de l'arbre avant d'échouer, avec
+            // les droits du mod source — souvent en lecture seule. Un
+            // `removeItem` nu abandonnait alors le dossier horodaté sur le
+            // disque : 19 coquilles du magasin réel portent cette signature
+            // (même mod, même jour, plusieurs tentatives).
+            try? ModZipInstaller.removeItemGrantingWriteAccess(atPath: backupDir.path)
             throw InstallBackupError.backupCreationFailed(error.localizedDescription)
         }
 
@@ -173,8 +178,14 @@ public class ModInstallBackupManager {
         // when several are created within the same second (e.g. a multi-mod
         // overwrite install). Without it, sibling backups would share one
         // timestamped folder and a single delete would wipe them all.
-        return backupsDirPath.appendingPathComponent("\(formatter.string(from: timestamp))_\(UUID().uuidString)_install_backup", isDirectory: true)
+        return backupsDirPath.appendingPathComponent(
+            "\(formatter.string(from: timestamp))_\(UUID().uuidString)\(Self.backupDirectorySuffix)",
+            isDirectory: true)
     }
+
+    /// Ce qui termine le nom d'un dossier horodaté — écrit ici, reconnu par
+    /// `backupDirectory(of:)`, nulle part ailleurs.
+    private static let backupDirectorySuffix = "_install_backup"
 
     // MARK: - Restore
 
@@ -189,7 +200,10 @@ public class ModInstallBackupManager {
     /// de même identité.
     ///
     /// Quand le mod n'est plus installé, il revient **en pause**, comme toute
-    /// nouvelle installation : l'utilisateur l'active après relecture.
+    /// nouvelle installation : l'utilisateur l'active après relecture. Une
+    /// exception, et une seule : un **composant de pack** n'a pas d'état à lui
+    /// — il revient dans le pack tel qu'il est sur le disque, donc actif si le
+    /// pack l'est (voir `freshDestination`). Le compte rendu le dit.
     ///
     /// - Returns: ce qui a été écrit et où, pour que la page le dise à
     ///   l'utilisateur au lieu d'un « restaurée avec succès » qui ne se
@@ -207,7 +221,9 @@ public class ModInstallBackupManager {
         // ce qui est en place est mis de côté ; la destination est celle que
         // SMAPI lit, donc l'active dès qu'elle existe.
         let occupied = [activePath, pausedPath].filter { fm.fileExists(atPath: $0) }
-        let destPath = occupied.first ?? pausedPath
+        let destPath = occupied.first
+            ?? freshDestination(activePath: activePath, pausedPath: pausedPath,
+                                folderName: backup.originalFolderName, modsPath: modsPath)
 
         guard fm.fileExists(atPath: backup.backupPath) else {
             throw InstallBackupError.restoreFailed("Backup folder not found")
@@ -216,81 +232,130 @@ public class ModInstallBackupManager {
         do {
             try fm.createDirectory(atPath: modsPath, withIntermediateDirectories: true, attributes: nil)
 
-            // Chaque dossier mis de côté est suivi pour pouvoir être remis en
-            // place si la copie échoue, ou enregistré comme sauvegarde une
-            // fois la copie réussie — sans quoi un échec perdrait le mod
-            // installé, et un succès jetterait la version remplacée sans
-            // aucun moyen de défaire la restauration.
-            var setAside: [(original: String, stale: String)] = []
-            for path in occupied {
-                let stale = Self.setAsidePath(for: path, now: Date(), uuid: UUID().uuidString)
-                try fm.moveItem(atPath: path, toPath: stale)
-                setAside.append((path, stale))
-            }
+            // Un composant se restaure **dans** son pack : tout ce qui suit —
+            // mise de côté, copie, archivage du dossier remplacé — écrit dans
+            // le dossier de tête, et une bonne part du parc l'a en lecture
+            // seule (`.[CP] Toothless Pet`, le seul dans ce cas aujourd'hui,
+            // est justement un pack). Même mécanisme que la récupération de
+            // fichiers : les droits sont ouverts le temps du geste puis rendus
+            // tels quels, sans jamais remonter au-delà du dossier de tête.
+            // Pour un mod ordinaire, la racine est le dossier à créer :
+            // l'ouverture ne trouve rien et ne touche donc pas à `Mods/`.
+            return try RecoveredFileWriter.withWriteAccess(
+                to: destPath, modRoot: Self.topLevelRoot(of: destPath, under: modsPath)
+            ) {
+                // Chaque dossier mis de côté est suivi pour pouvoir être remis en
+                // place si la copie échoue, ou enregistré comme sauvegarde une
+                // fois la copie réussie — sans quoi un échec perdrait le mod
+                // installé, et un succès jetterait la version remplacée sans
+                // aucun moyen de défaire la restauration.
+                var setAside: [(original: String, stale: String)] = []
+                for path in occupied {
+                    let stale = Self.setAsidePath(for: path, now: Date(), uuid: UUID().uuidString)
+                    try fm.moveItem(atPath: path, toPath: stale)
+                    setAside.append((path, stale))
+                }
 
-            do {
-                // `originalFolderName` may be a nested path for a pack/group
-                // child (e.g. "PackName/ChildMod"); ensure the intermediate
-                // parent exists under Mods/ before copying.
-                let destParent = (destPath as NSString).deletingLastPathComponent
-                try fm.createDirectory(atPath: destParent, withIntermediateDirectories: true)
-                try fm.copyItem(atPath: backup.backupPath, toPath: destPath)
-            } catch {
-                // Roll the set-aside folders back so a failed restore doesn't
-                // leave the mod missing.
+                do {
+                    // `originalFolderName` may be a nested path for a pack/group
+                    // child (e.g. "PackName/ChildMod"); ensure the intermediate
+                    // parent exists under Mods/ before copying.
+                    let destParent = (destPath as NSString).deletingLastPathComponent
+                    try fm.createDirectory(atPath: destParent, withIntermediateDirectories: true)
+                    try fm.copyItem(atPath: backup.backupPath, toPath: destPath)
+                } catch {
+                    // Roll the set-aside folders back so a failed restore doesn't
+                    // leave the mod missing.
+                    for entry in setAside {
+                        do {
+                            try fm.moveItem(atPath: entry.stale, toPath: entry.original)
+                        } catch {
+                            print("CRITICAL: restore rollback failed — mod still in \(entry.stale) (could not move back to \(entry.original): \(error))")
+                        }
+                    }
+                    throw error
+                }
+
+                // Restore succeeded — register the version it replaced as its
+                // own backup rather than discarding it, so this restore is
+                // itself undoable. Falls back to deleting it if that can't be
+                // done (e.g. no readable manifest.json) rather than leaving a
+                // ".stale_*" folder the mod scanner could pick up as a
+                // duplicate/corrupt entry.
+                var replacedVersions: [String] = []
                 for entry in setAside {
-                    do {
-                        try fm.moveItem(atPath: entry.stale, toPath: entry.original)
-                    } catch {
-                        print("CRITICAL: restore rollback failed — mod still in \(entry.stale) (could not move back to \(entry.original): \(error))")
+                    if let registered = registerSetAsideFolderAsBackup(atPath: entry.stale, originalFolderName: backup.originalFolderName) {
+                        replacedVersions.append(registered.modMetadata.version)
+                    } else {
+                        // Enregistrer comme backup a échoué (manifeste illisible) :
+                        // on supprime le dossier mis de côté. La suppression robuste
+                        // répare d'abord les perms en lecture seule (un mod installé
+                        // avant `grantOwnerWriteAccess` peut encore en porter) — un
+                        // simple `removeItem` échouait dessus et laissait un
+                        // `.stale_*` oublié, remonté chez le scanner comme un mod en
+                        // pause.
+                        do {
+                            try ModZipInstaller.removeItemGrantingWriteAccess(atPath: entry.stale)
+                        } catch {
+                            print("Warning: could not remove leftover .stale folder \(entry.stale) — it may resurface as a paused mod: \(error)")
+                        }
                     }
                 }
-                throw error
-            }
 
-            // Restore succeeded — register the version it replaced as its
-            // own backup rather than discarding it, so this restore is
-            // itself undoable. Falls back to deleting it if that can't be
-            // done (e.g. no readable manifest.json) rather than leaving a
-            // ".stale_*" folder the mod scanner could pick up as a
-            // duplicate/corrupt entry.
-            var replacedVersions: [String] = []
-            for entry in setAside {
-                if let registered = registerSetAsideFolderAsBackup(atPath: entry.stale, originalFolderName: backup.originalFolderName) {
-                    replacedVersions.append(registered.modMetadata.version)
-                } else {
-                    // Enregistrer comme backup a échoué (manifeste illisible) :
-                    // on supprime le dossier mis de côté. La suppression robuste
-                    // répare d'abord les perms en lecture seule (un mod installé
-                    // avant `grantOwnerWriteAccess` peut encore en porter) — un
-                    // simple `removeItem` échouait dessus et laissait un
-                    // `.stale_*` oublié, remonté chez le scanner comme un mod en
-                    // pause.
-                    do {
-                        try ModZipInstaller.removeItemGrantingWriteAccess(atPath: entry.stale)
-                    } catch {
-                        print("Warning: could not remove leftover .stale folder \(entry.stale) — it may resurface as a paused mod: \(error)")
-                    }
-                }
+                // Le chemin lisible se déduit du chemin du jeu, pas d'une
+                // reconstruction : `destPath` est celui où la copie a réellement
+                // eu lieu.
+                let displayPath = destPath.hasPrefix(gameDir + "/")
+                    ? String(destPath.dropFirst(gameDir.count + 1))
+                    : destPath
+                return ModInstallRestoreReport(
+                    modName: backup.modMetadata.name,
+                    version: backup.modMetadata.version,
+                    destinationPath: destPath,
+                    displayPath: displayPath,
+                    landedEnabled: destPath == activePath,
+                    fileCount: Self.fileCount(at: destPath),
+                    replacedVersions: replacedVersions)
             }
-
-            // Le chemin lisible se déduit du chemin du jeu, pas d'une
-            // reconstruction : `destPath` est celui où la copie a réellement
-            // eu lieu.
-            let displayPath = destPath.hasPrefix(gameDir + "/")
-                ? String(destPath.dropFirst(gameDir.count + 1))
-                : destPath
-            return ModInstallRestoreReport(
-                modName: backup.modMetadata.name,
-                version: backup.modMetadata.version,
-                destinationPath: destPath,
-                displayPath: displayPath,
-                landedEnabled: destPath == activePath,
-                fileCount: Self.fileCount(at: destPath),
-                replacedVersions: replacedVersions)
         } catch {
             throw InstallBackupError.restoreFailed(error.localizedDescription)
         }
+    }
+
+    /// Le dossier de tête sous `Mods/` dont dépend un chemin — la limite au-delà
+    /// de laquelle on ne touche jamais aux droits. Pour `Mods/.Pack/Composant`,
+    /// c'est `Mods/.Pack` ; pour `Mods/.Mod`, c'est le dossier lui-même, et
+    /// l'ouverture des droits n'y trouve alors rien à faire.
+    private static func topLevelRoot(of path: String, under modsPath: String) -> String {
+        guard path.hasPrefix(modsPath + "/") else { return path }
+        let relative = String(path.dropFirst(modsPath.count + 1))
+        guard let head = relative.split(separator: "/").first.map(String.init) else { return path }
+        return (modsPath as NSString).appendingPathComponent(head)
+    }
+
+    /// Où atterrit un mod dont **plus aucun** dossier n'est en place — le cas
+    /// normal d'une restauration, puisqu'on restaure ce qu'on a perdu.
+    ///
+    /// Un mod ordinaire revient **en pause**, comme toute nouvelle
+    /// installation. Un composant de pack, lui, n'a pas d'état à lui : le
+    /// point ne vit que sur l'entrée de premier niveau (`physicalFolderName`
+    /// vaut `(isEnabled ? "" : ".") + folderName`), et le scan fait hériter à
+    /// chaque composant l'état du dossier de tête. Sa place est donc dans le
+    /// pack **tel qu'il est sur le disque** : rendre `Pack/Composant` dans un
+    /// `.Pack` fabriqué alors que `Pack` est là poserait un second dossier de
+    /// même nom logique — exactement ce que cette méthode s'interdit — et
+    /// laisserait le composant invisible au jeu comme à l'app (le
+    /// sous-parcours du scan passe `.skipsHiddenFiles`).
+    ///
+    /// Conséquence assumée : dans un pack actif, le composant revient actif.
+    /// C'est la seule forme qu'il puisse prendre là, et le compte rendu le
+    /// dit (`landedEnabled`).
+    private func freshDestination(activePath: String, pausedPath: String,
+                                  folderName: String, modsPath: String) -> String {
+        guard let packRoot = folderName.split(separator: "/").first.map(String.init),
+              packRoot != folderName else { return pausedPath }
+        let activeRoot = (modsPath as NSString).appendingPathComponent(packRoot)
+        return fm.fileExists(atPath: activeRoot) ? activePath : pausedPath
     }
 
     /// Les fichiers réellement écrits — dossiers exclus. « 12 fichiers » se
@@ -368,7 +433,9 @@ public class ModInstallBackupManager {
             try fm.createDirectory(at: destPath.deletingLastPathComponent(), withIntermediateDirectories: true)
             try fm.moveItem(atPath: stalePath, toPath: destPath.path)
         } catch {
-            try? fm.removeItem(at: backupDir)
+            // Même raison qu'à la création : ce qui vient d'un dossier de mod
+            // porte ses droits, et un `removeItem` nu laisse la coquille.
+            try? ModZipInstaller.removeItemGrantingWriteAccess(atPath: backupDir.path)
             return nil
         }
 
@@ -389,12 +456,37 @@ public class ModInstallBackupManager {
 
     // MARK: - Delete
 
+    /// Le dossier horodaté d'une sauvegarde — celui qu'il faut supprimer pour
+    /// n'en rien laisser.
+    ///
+    /// Ce n'est **pas** le parent de `backupPath` : pour un composant de pack,
+    /// `backupPath` vaut `<horodaté>/Pack/Composant`, et son parent n'est que
+    /// la coquille du pack. Supprimer celle-ci emportait bien les fichiers,
+    /// mais laissait le dossier horodaté vide, absent de l'index donc
+    /// invisible dans l'app et hors d'atteinte de tout ménage. Mesuré sur le
+    /// magasin réel le 2026-09-03 : **1 262 dossiers pour 922 entrées**, soit
+    /// 340 coquilles ; 373 des entrées restantes en produiraient une de plus.
+    ///
+    /// La règle est donc la position, pas la profondeur : le premier composant
+    /// sous `backups/`. Un chemin qui ne s'y trouve pas, ou dont le premier
+    /// composant ne porte pas le suffixe de nommage, retombe sur l'ancien
+    /// calcul — une entrée d'index d'une version antérieure ou fabriquée à la
+    /// main ne doit jamais faire remonter la suppression jusqu'à `backups/`.
+    /// Le suffixe UUID garantit par ailleurs qu'un dossier horodaté n'abrite
+    /// qu'une sauvegarde : y remonter ne peut pas emporter celle d'à côté.
+    private func backupDirectory(of backup: ModInstallBackup) -> URL {
+        let stored = URL(fileURLWithPath: backup.backupPath).standardizedFileURL
+        let fallback = stored.deletingLastPathComponent()
+        let base = backupsDirPath.standardizedFileURL.path
+        guard stored.path.hasPrefix(base + "/") else { return fallback }
+        let relative = String(stored.path.dropFirst(base.count + 1))
+        guard let head = relative.split(separator: "/").first.map(String.init),
+              head.hasSuffix(Self.backupDirectorySuffix) else { return fallback }
+        return backupsDirPath.appendingPathComponent(head, isDirectory: true)
+    }
+
     public func deleteBackup(_ backup: ModInstallBackup) throws {
-        // `backupPath` points at the mod folder inside the timestamped
-        // backup directory; its parent is the directory to remove. Using the
-        // stored path is more robust than reconstructing it from the
-        // timestamp format.
-        let backupDir = URL(fileURLWithPath: backup.backupPath).deletingLastPathComponent()
+        let backupDir = backupDirectory(of: backup)
         if fm.fileExists(atPath: backupDir.path) {
             // removeItemGrantingWriteAccess (pas removeItem) : les backups
             // héritent des perms read-only POSIX du mod source, et un removeItem
@@ -522,10 +614,16 @@ public class ModInstallBackupManager {
             // let the index silently diverge from what's really on disk.
             var removedIds = Set<UUID>()
             for backup in toDelete {
-                let backupDir = URL(fileURLWithPath: backup.backupPath).deletingLastPathComponent()
+                let backupDir = backupDirectory(of: backup)
                 do {
                     if fm.fileExists(atPath: backupDir.path) {
-                        try fm.removeItem(at: backupDir)
+                        // Même suppression que `deleteBackup` : une sauvegarde
+                        // hérite des permissions du mod copié, et le parc en
+                        // compte en lecture seule. Un `removeItem` nu échouait
+                        // dessus — le ménage automatique gardait alors l'entrée
+                        // d'index (à raison) et repoussait ces sauvegardes
+                        // indéfiniment, sans jamais rien reprendre.
+                        try ModZipInstaller.removeItemGrantingWriteAccess(atPath: backupDir.path)
                     }
                     removedIds.insert(backup.id)
                 } catch {

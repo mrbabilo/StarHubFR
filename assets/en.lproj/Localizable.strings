@@ -509,7 +509,7 @@
 "profiles_config_orphans" = "%lld of them for mods no longer installed: %@";
 "profiles_missing_note" = "This profile asks for mods that are no longer installed. The game will start without them — and a missing framework breaks every mod that depends on it.";
 "profiles_missing_restore" = "Restore from backup";
-"profiles_missing_restore_note" = "A mod restored from a backup comes back paused: activate the profile again for the game to load it.";
+"profiles_missing_restore_note" = "A mod restored from a backup usually comes back paused: activate the profile again for the game to load it.";
 "profiles_missing_bundled" = "Comes with SMAPI";
 "profiles_missing_unknown" = "No known source";
 "profiles_applying_moving" = "Moving mod folders…";

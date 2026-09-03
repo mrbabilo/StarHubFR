@@ -509,7 +509,7 @@
   "profiles_config_orphans": "%lld pour des mods désinstallés : %@",
   "profiles_missing_note": "Ce profil réclame des mods qui ne sont plus installés. Le jeu démarrera sans eux — et un cadre absent casse tous les mods qui en dépendent.",
   "profiles_missing_restore": "Restaurer depuis une sauvegarde",
-  "profiles_missing_restore_note": "Un mod restauré depuis une sauvegarde revient en pause : réactivez le profil pour que le jeu le charge.",
+  "profiles_missing_restore_note": "Un mod restauré depuis une sauvegarde revient le plus souvent en pause : réactivez le profil pour que le jeu le charge.",
   "profiles_missing_bundled": "Livré avec SMAPI",
   "profiles_missing_unknown": "Aucune source connue",
   "profiles_applying_moving": "Déplacement des dossiers de mods…",

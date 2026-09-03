@@ -506,6 +506,56 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       .NET lit l'UTF-8 sans marque : rien n'était cassé, et c'est pourquoi personne
       ne l'avait vu. Rendue symétriquement — un fichier qui n'en portait pas n'en
       gagne pas. · **S**
+- [x] **X22** ✅ *(corrigé le 2026-09-03)* — **La restauration d'un composant de pack
+      fabriquait un pack jumeau.** Un composant n'a pas d'état propre :
+      `physicalFolderName` vaut `(isEnabled ? "" : ".") + folderName`, le scan classe
+      la seule entrée de premier niveau et fait hériter cet état à chaque composant,
+      et son sous-parcours passe `.skipsHiddenFiles`. Mesuré sur le parc : **869
+      dossiers pointés au premier niveau, aucun composant pointé au second**.
+      `restoreBackup` rendait pourtant un composant absent dans `.MonPack/Composant`,
+      créant `.MonPack` à côté du `MonPack` actif — deux dossiers de même nom logique,
+      ce que sa propre documentation interdit, et un mod restauré invisible du jeu
+      comme de l'app. Sur les 38 noms de composants sauvegardés, 37 ont leur dossier
+      en place (le cas déjà correct) ; le 38e, `Parchment/[CP] Parchment Example
+      Pack`, est exactement celui-là. La destination suit désormais l'état du **pack
+      sur le disque** ; sans pack, retour en pause comme avant. · **S**
+- [x] **X23** ✅ *(corrigé le 2026-09-03)* — **Supprimer une sauvegarde de composant
+      laissait son dossier horodaté vide.** `deleteBackup` et `cleanupOldBackups`
+      prenaient le **parent** de `backupPath` ; pour `<horodaté>/Pack/Composant`, ce
+      parent n'est que la coquille du pack. Mesuré sur le magasin réel : **1 262
+      dossiers pour 922 entrées d'index**, soit 340 coquilles orphelines — dont **321
+      vides**, la signature exacte de ce défaut (les 19 autres viennent des marches
+      arrière traitées en X24) ; **373 des 922 entrées** en auraient produit une de
+      plus. Le
+      dossier est maintenant identifié par sa **position** (premier composant sous
+      `backups/`, suffixe de nommage vérifié), avec repli sur l'ancien calcul pour une
+      entrée qui ne s'y trouverait pas. Le suffixe UUID garantit qu'un dossier
+      horodaté n'abrite qu'une sauvegarde : y remonter ne peut emporter la voisine.
+      · **S**
+- [x] **X24** ✅ *(corrigé le 2026-09-03)* — **Le ménage automatique ne réparait pas
+      les droits avant de supprimer.** `deleteBackup` passe par
+      `removeItemGrantingWriteAccess` — une sauvegarde hérite des permissions du mod
+      copié, et le parc en compte en lecture seule ; `cleanupOldBackups` faisait la
+      même suppression avec un `removeItem` nu. Copie amputée de la même règle :
+      l'échec laissait (à raison) l'entrée d'index, donc ces sauvegardes revenaient à
+      chaque passage sans jamais être reprises. **2 sauvegardes** du magasin réel sont
+      dans ce cas. Deux autres sites partageaient le manque — les marches arrière de
+      `createBackup` et de `registerSetAsideFolderAsBackup`, qui suppriment un dossier
+      que `copyItem`/`moveItem` vient de remplir **depuis un dossier de mod**, donc
+      avec ses modes. C'est l'origine des **19 coquilles non vides** du magasin, que
+      X23 n'explique pas : nom plat (jamais un pack), quatre fois le même mod le même
+      jour — la signature de tentatives répétées dont la marche arrière n'a rien pu
+      effacer. · **S**
+- [ ] **X25** — **340 dossiers de sauvegarde orphelins restent sur le disque**, séquelle
+      de X23 (321) et de X24 (19) : vides ou ne portant qu'un dossier vide, ~0 octet, invisibles dans
+      l'app. Un ménage automatique fondé sur « non référencé par l'index » est
+      **dangereux tel quel** : `loadIndex()` rend un index **vide** dès que le fichier
+      est illisible ou mal décodé — et ce magasin porte les traces d'écritures
+      difficiles (un `install_metadata.json.sb-*` traîne à côté). Tout le parc
+      passerait alors pour orphelin. Il inverserait aussi la règle que ce fichier
+      énonce lui-même : *une suppression ne se décide jamais sur une absence.* Gain
+      ≈ 0 octet : à traiter comme un nettoyage explicite, jamais comme un automatisme
+      silencieux. · **S**
 - [x] **B1-T1** ✅ *(livré le 2026-08-01)* — Boutons **Activer/Désactiver** et
       **Supprimer** sur la fiche mod (parité avec la liste, mêmes confirmations).
       Absents pour un composant de pack, comme dans la liste. La fiche se referme
