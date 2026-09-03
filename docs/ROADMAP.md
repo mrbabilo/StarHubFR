@@ -492,6 +492,20 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       le même `UniqueID`, et une ancre est unique par identifiant. La première
       version du correctif (`bb0674b`) l'avait changé sans le mesurer ;
       `4196b12` rétablit l'abstention, cette fois sciemment. · **S**
+- [x] **X21** ✅ *(corrigé le 2026-09-03)* — **L'app rendait la sauvegarde sans la
+      marque d'octets que le jeu y met.** Stardew écrit ses fichiers en UTF-8 **avec**
+      marque (`EF BB BF`) : mesuré, les 38 fichiers produits par le jeu sur le disque
+      de l'auteur en portent une, et les seuls sans sont **trois copies réécrites par
+      cette app** — 37 492 144 octets contre 37 492 147, à l'octet près.
+      `String(contentsOf:encoding:)` la consomme au décodage,
+      `write(to:atomically:encoding:)` ne la remet pas. Les **trois** chemins
+      d'écriture étaient touchés : `updateSave`, `updateInventory`
+      (`XMLDocument.xmlData`) et `modifyInternalSaveNames` — ce dernier servant la
+      duplication et le branchement depuis une sauvegarde, sur le fichier **et** son
+      `SaveGameInfo`.
+      .NET lit l'UTF-8 sans marque : rien n'était cassé, et c'est pourquoi personne
+      ne l'avait vu. Rendue symétriquement — un fichier qui n'en portait pas n'en
+      gagne pas. · **S**
 - [x] **B1-T1** ✅ *(livré le 2026-08-01)* — Boutons **Activer/Désactiver** et
       **Supprimer** sur la fiche mod (parité avec la liste, mêmes confirmations).
       Absents pour un composant de pack, comme dans la liste. La fiche se referme

@@ -571,6 +571,40 @@ public class SaveManager {
         }
     }
     
+    /// La marque d'ordre des octets UTF-8 (`EF BB BF`).
+    ///
+    /// **Stardew écrit ses sauvegardes avec.** Mesuré sur le disque de
+    /// l'auteur : les 38 fichiers produits par le jeu en portent une, et les
+    /// seuls fichiers sans sont trois copies réécrites par cette app — trois
+    /// octets de moins, à l'octet près. `String(contentsOf:encoding:)` la
+    /// consomme au décodage et `write(to:atomically:encoding:)` ne la remet
+    /// pas : sans ces deux helpers, éditer une fiche de joueur ou un
+    /// inventaire rendait le fichier dans un encodage que le jeu n'emploie
+    /// pas. .NET lit l'UTF-8 sans marque, donc rien n'était cassé — mais une
+    /// sauvegarde vaut des centaines d'heures, et on la rend comme on l'a
+    /// prise.
+    static let utf8BOM = Data([0xEF, 0xBB, 0xBF])
+
+    /// Les trois premiers octets du fichier valent-ils la marque ? Lu par
+    /// poignée : la sauvegarde du parc fait 36 Mo.
+    /// `FileHandle(forReadingAtPath:)` et `readData(ofLength:)` plutôt que
+    /// leurs variantes lançantes : trois `try?` de plus pour lire trois octets
+    /// feraient reculer le cliquet des conventions pour rien, et le repli est
+    /// le même (fichier illisible → pas de marque). Même patron que
+    /// `ModZipInstaller.detectedArchiveExtension(at:)`.
+    static func fileStartsWithBOM(at url: URL) -> Bool {
+        guard let handle = FileHandle(forReadingAtPath: url.path) else { return false }
+        defer { handle.closeFile() }
+        return handle.readData(ofLength: 3) == utf8BOM
+    }
+
+    /// Le contenu à écrire, précédé de la marque si le fichier d'origine en
+    /// portait une. Fonction pure : c'est la règle, pas l'écriture.
+    static func bytes(_ payload: Data, preservingBOM: Bool) -> Data {
+        guard preservingBOM, !payload.starts(with: utf8BOM) else { return payload }
+        return utf8BOM + payload
+    }
+
     public func backupSave(info: SaveGameInfo) -> Bool {
         let fm = FileManager.default
         let formatter = DateFormatter()
@@ -596,7 +630,10 @@ public class SaveManager {
         // lecture d'avant serait pire que reparser pour rien.
         invalidateParseCache()
         guard backupSave(info: info) else { return false }
-        
+
+        // Relevé **avant** la lecture : `String(contentsOf:encoding:)` consomme
+        // la marque, elle n'est plus visible dans `content`.
+        let hadBOM = Self.fileStartsWithBOM(at: info.fileURL)
         guard var content = try? String(contentsOf: info.fileURL, encoding: .utf8) else { return false }
         
         // Replace values using regex
@@ -624,7 +661,9 @@ public class SaveManager {
         }
         
         do {
-            try content.write(to: info.fileURL, atomically: true, encoding: .utf8)
+            guard let payload = content.data(using: .utf8) else { return false }
+            try Self.bytes(payload, preservingBOM: hadBOM)
+                .write(to: info.fileURL, options: .atomic)
             return true
         } catch {
             print("Failed to write updated save: \(error)")
@@ -819,10 +858,16 @@ public class SaveManager {
             // patcher, on l'ignore. En revanche l'échec en écriture est une
             // perte de données silencieuse — la sauvegarde clonée porterait
             // l'ancien nom interne, invisible pour Stardew — donc on propage.
+            //
+            // Troisième chemin d'écriture du fichier, après `updateSave` et
+            // `updateInventory` : la marque d'octets se relève avant la
+            // lecture, qui la consomme, et se rend à l'écriture.
+            let hadBOM = Self.fileStartsWithBOM(at: url)
             guard let content = try? String(contentsOf: url, encoding: .utf8) else { return }
             var modified = replaceFirstTag(tag: "name", with: newPlayerName, in: content)
             modified = replaceFirstTag(tag: "farmName", with: newFarmName, in: modified)
-            try modified.write(to: url, atomically: true, encoding: .utf8)
+            guard let payload = modified.data(using: .utf8) else { return }
+            try Self.bytes(payload, preservingBOM: hadBOM).write(to: url, options: .atomic)
         }
 
         if fm.fileExists(atPath: saveGameInfoURL.path) {
@@ -840,6 +885,12 @@ public class SaveManager {
     /// branchFromBackup, which differ only in where sourceFolder/baseName
     /// come from.
     private func cloneSaveFolder(sourceFolder: URL, baseName: String, suffix: String, newPlayerName: String, newFarmName: String, context: String) -> Bool {
+        // Toute écriture invalide la lecture mémorisée — ici plutôt que chez
+        // les appelants : `duplicateSave` le faisait, `branchFromBackup` non.
+        // Sans conséquence (les deux écrivent dans un dossier neuf, absent du
+        // cache), mais une règle qui ne vaut que pour un appelant sur deux
+        // finit par être oubliée du bon côté.
+        invalidateParseCache()
         let fm = FileManager.default
         let parentDir = sourceFolder.deletingLastPathComponent()
 
@@ -878,10 +929,6 @@ public class SaveManager {
     }
 
     public func duplicateSave(info: SaveGameInfo, newName: String, newFarm: String) -> Bool {
-        // Toute écriture invalide la lecture mémorisée. En tête plutôt qu'en
-        // fin : un échec partiel a pu toucher le disque, et resservir une
-        // lecture d'avant serait pire que reparser pour rien.
-        invalidateParseCache()
         let folderPath = info.fileURL.deletingLastPathComponent()
         let saveName = folderPath.lastPathComponent
         return cloneSaveFolder(sourceFolder: folderPath, baseName: saveName, suffix: "copy", newPlayerName: newName, newFarmName: newFarm, context: "duplicate save")
@@ -1072,6 +1119,7 @@ public class SaveManager {
         // Backup first
         guard backupSave(info: info) else { return false }
         
+        let hadBOM = Self.fileStartsWithBOM(at: info.fileURL)
         guard let data = try? Data(contentsOf: info.fileURL),
               let document = try? XMLDocument(data: data, options: .documentTidyXML),
               let root = document.rootElement() else {
@@ -1115,7 +1163,8 @@ public class SaveManager {
         
         do {
             let updatedXMLData = document.xmlData(options: .nodePrettyPrint)
-            try updatedXMLData.write(to: info.fileURL, options: .atomic)
+            try Self.bytes(updatedXMLData, preservingBOM: hadBOM)
+                .write(to: info.fileURL, options: .atomic)
             return true
         } catch {
             print("Failed to save updated inventory XML: \(error)")
