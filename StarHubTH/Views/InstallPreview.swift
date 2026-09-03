@@ -271,8 +271,13 @@ struct InstallPreview: View {
     /// `UpdateCautionMessage`, ignorée par SMAPI). Aucun mod du parc de
     /// référence ne l'expose : la bannière ne vivra que par un mod à venir.
     private var updateCautions: [UpdateCaution.Warning] {
+        // `allUniqueIds`, pas `mods.map` : les composants de packs comptent
+        // comme installés (même raison qu'aux dépendances), et les
+        // identifiants vides — l'en-tête d'un pack en porte un — n'entrent
+        // pas dans l'ensemble, où ils apparieraient les archives dont le
+        // manifest n'en déclare aucun.
         UpdateCaution.warnings(in: zipModInfo.detectedMods,
-                               installedUniqueIds: Set(vm.mods.map(\.uniqueId)))
+                               installedUniqueIds: vm.mods.allUniqueIds)
     }
 
     private var updateCautionsSection: some View {

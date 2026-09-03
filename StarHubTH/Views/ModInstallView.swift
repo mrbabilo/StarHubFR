@@ -771,10 +771,9 @@ struct ModInstallView: View {
         // sur une destination approximative.
         guard !files.isEmpty else { return nil }
 
-        let wanted = first.rule.hostUniqueId.lowercased()
-        guard let host = vm.mods
-            .flatMap({ $0.isGroup ? ($0.children ?? []) : [$0] })
-            .first(where: { $0.uniqueId.lowercased() == wanted })
+        // Le dépliage était réécrit ici à la main — la 23e copie de
+        // `flattenedMods`, dont le commentaire raconte les 22 premières.
+        guard let host = vm.mods.mod(withUniqueId: first.rule.hostUniqueId)
         else { return .hostMissing(first.rule.hostDisplayName) }
         return .proposal(DroppedProposal(hostDisplayName: first.rule.hostDisplayName,
                                          host: host, files: files, hostIsPaused: paused))
