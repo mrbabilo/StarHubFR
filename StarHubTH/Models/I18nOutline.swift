@@ -27,11 +27,24 @@ public enum I18nOutline {
         ///
         /// Une clé lue deux fois dans le fichier — du JSON à clés dupliquées,
         /// que le jeu accepte — garde la section de sa **première**
-        /// occurrence, jamais la dernière : l'ordre et la section doivent
-        /// désigner l'occurrence dont on montre la valeur, et c'est la
-        /// première que retient notre parseur JSON (`I18nLenientParser`,
-        /// premier-gagne). Mesuré sur `[CP] Tea` : `spring_23` y est défini
-        /// deux fois, sous deux sections différentes.
+        /// occurrence, jamais la dernière : c'est là que la clé se trouve dans
+        /// le fichier, et c'est cette position que suit `orderedSourceKeys`.
+        /// Prendre la section de la dernière tout en gardant la position de la
+        /// première ferait porter à la rangée le rang d'une autre section que
+        /// celle où elle est rangée, et `diffGroups` couperait en deux le bloc
+        /// qui l'entoure.
+        ///
+        /// ⚠️ **Écart connu, assumé** : la *valeur* affichée, elle, est celle
+        /// de la **dernière** occurrence — `I18nLenientParser` déduplique comme
+        /// le jeu, dernier-gagne (voir `neutralizeDuplicateKeys`). Une clé
+        /// dupliquée sous deux titres différents s'affiche donc sous le
+        /// premier des deux. Mesuré sur le parc (2 749 fichiers lisibles) :
+        /// 60 fichiers portent 139 clés dupliquées, dont **17** changent de
+        /// section entre la première et la dernière occurrence et **21** de
+        /// rang — `[CP] Tea` en tête, où `spring_23` est défini sous
+        /// « Seasonal + Day-Specific Dialogue » puis sous « Marriage
+        /// Dialogue ». Tout aligner sur la dernière occurrence demanderait de
+        /// déplacer aussi la position, donc de réordonner le fichier affiché.
         public let sectionByKey: [String: String]
         /// Le **rang** de cette section dans l'ordre de lecture du fichier.
         ///

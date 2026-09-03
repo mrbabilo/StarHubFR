@@ -207,17 +207,18 @@ public enum TranslationCoverage {
     /// `[CP] Tea` : `spring_23` y est défini sous « Seasonal + Day-Specific
     /// Dialogue » puis sous « Marriage Dialogue ».
     ///
-    /// **L'ordre et la section doivent désigner l'occurrence dont on montre
-    /// la valeur.** La rangée affiche `source[clé]` — une seule valeur — donc
-    /// sa position et sa section ne peuvent pas venir d'une autre occurrence
-    /// que celle-là, sous peine d'un intitulé qui ne correspond pas au texte
-    /// affiché en dessous. `I18nOutline` retient donc la **première**
-    /// occurrence pour `section(of:)`/`sectionIndex(of:)` (voir sa note), et
-    /// cette liste doit choisir la même clé de tri.
+    /// **La position et la section doivent désigner la même occurrence.**
+    /// `I18nOutline` retient la **première** pour
+    /// `section(of:)`/`sectionIndex(of:)` (voir sa note), et cette liste trie
+    /// sur la même — sans quoi une rangée porterait le rang d'une section
+    /// autre que celle où elle est rangée, et `diffGroups` couperait en deux
+    /// le bloc qui l'entoure.
     ///
-    /// « Première gagne » suit ici notre parseur JSON (`I18nLenientParser`,
-    /// premier-gagne via `JSONSerialization`) et non Newtonsoft/le jeu
-    /// (dernier-gagne) — un écart réel mais distinct, hors périmètre ici.
+    /// ⚠️ La **valeur**, elle, est celle de la dernière occurrence :
+    /// `I18nLenientParser` déduplique comme le jeu (dernier-gagne), et non
+    /// comme `JSONSerialization` seul. L'écart est mesuré et assumé — 17 clés
+    /// sur tout le parc changent de section entre les deux occurrences ; voir
+    /// la note de `I18nOutline.Outline.sectionByKey`.
     private static func orderedSourceKeys(_ source: [String: String],
                                           following outline: I18nOutline.Outline?)
         -> [String] {
