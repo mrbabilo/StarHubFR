@@ -173,6 +173,38 @@ struct PathoschildCompatibilityListTests {
         #expect(verdicts.isEmpty)
     }
 
+    // MARK: - Fins de ligne
+
+    @Test func lineCommentsStopAtACarriageReturnToo() throws {
+        // Le dump réel (919 Ko, 4 720 entrées) est en LF aujourd'hui — 0 CR.
+        // Converti en CRLF, il ne se décodait **plus du tout** : en Swift
+        // `\r\n` est un seul `Character`, jamais égal à `"\n"`, donc le
+        // premier `//` du fichier (5e ligne) emportait tout jusqu'à la fin.
+        // Zéro verdict et zéro identifiant Nexus, en silence.
+        let lf = """
+        {
+          "mods": [
+            { "id": "a.b", // Nexus, manifest
+              "status": "Broken" }
+          ]
+        }
+        """
+        let crlf = lf.replacingOccurrences(of: "\n", with: "\r\n")
+        let fromLF = try #require(PathoschildCompatibilityList.decode(Data(lf.utf8)))
+        let fromCRLF = try #require(PathoschildCompatibilityList.decode(Data(crlf.utf8)))
+        #expect(fromLF.count == 1)
+        #expect(fromCRLF == fromLF)
+        #expect(fromCRLF.first?.status == "Broken")
+    }
+
+    @Test func aLineCommentDoesNotEatTheRestOfACrlfFile() throws {
+        // La forme exacte du dump : un commentaire en fin de ligne, suivi de
+        // 4 719 autres entrées. Sur deux, on voit déjà si la suite survit.
+        let text = "{\r\n\"mods\": [\r\n{ \"id\": \"a.b\" }, // note\r\n{ \"id\": \"c.d\" }\r\n]\r\n}"
+        let entries = try #require(PathoschildCompatibilityList.decode(Data(text.utf8)))
+        #expect(entries.map(\.id) == ["a.b", "c.d"])
+    }
+
     // MARK: - TTL
 
     @Test func cacheTTLIsInTheDocumentedRange() {

@@ -277,9 +277,19 @@ public enum PathoschildCompatibilityList {
                 i = (j + 1 < n) ? j + 2 : n
                 continue
             }
-            // Ligne // …\n — le saut de ligne est conservé.
+            // Ligne // …⏎ — le saut de ligne est conservé.
+            //
+            // ⚠️ `isNewline`, **jamais** `!= "\n"` : `chars` est un tableau de
+            // `Character`, et en Swift `\r\n` en est **un seul**. Sur un dump
+            // en CRLF, aucun `Character` n'est jamais égal à `"\n"` — le
+            // premier `//` du fichier (il y en a un dès la 5e ligne) emportait
+            // donc tout jusqu'à la fin, et `decode` rendait `nil` : zéro
+            // verdict, zéro identifiant Nexus, en silence. Vérifié en
+            // convertissant le dump réel (919 Ko, 4 720 entrées, **0 CR
+            // aujourd'hui**) en CRLF : décodage refusé. Le piège est le même
+            // que celui qui avait coupé 1 474 `i18n` du parc.
             if i + 1 < n, c == "/", chars[i + 1] == "/" {
-                while i < n, chars[i] != "\n" { i += 1 }
+                while i < n, !chars[i].isNewline { i += 1 }
                 continue
             }
             if c == "\"" { inString = true }
