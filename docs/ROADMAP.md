@@ -331,6 +331,21 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       parlant que du rendu BBCode, le correctif est passé inaperçu et n'a pas de ligne au
       CHANGELOG. Vérifié en conditions réelles par l'auteur le 2026-08-01 : les trois
       boutons de la page (Activer, Page Nexus, Rechercher) répondent.
+- [x] **X10** ✅ *(corrigé le 2026-09-03 par `83328af` et `715c964`)* — 🔴 **L'accord en
+      genre était traité comme une marque intouchable.** `${fermier^fermière}$` sélectionne
+      un texte selon le genre du personnage joué : seules ses **bornes** sont des marques,
+      son contenu est du texte affiché. Le découpage voilait le tout, avec deux
+      conséquences mesurées sur le parc — la pré-traduction par lot enveloppait 45 052
+      caractères (1 713 blocs de prose, 59 fichiers, 40 mods) dans une balise « à ignorer »
+      et rendait la phrase anglaise telle quelle ; et le contrôle de marques comparait ces
+      blocs au nombre, alors que le français en **ajoute** là où l'anglais reste neutre
+      (211 sélecteurs côté source, 1 528 côté français). **1 092 des 4 331 lignes**
+      signalées « marque perdue » étaient des traductions justes, refusées par
+      `saveTranslation`, rejetées par le moteur DeepL et écartées par l'import de lot.
+      **Oracle** : la localisation française du jeu (`Content/Characters/Dialogue/*.fr-FR.xnb`)
+      traduit l'intérieur dans 10 cas sur 10, et fait passer un sélecteur à trois
+      (`Abigail/summer_Tue4`). La levée s'arrête aux bornes et à leur `^` : l'exempter plus
+      largement masquait 135 vraies pertes.
 - [x] **B1-T1** ✅ *(livré le 2026-08-01)* — Boutons **Activer/Désactiver** et
       **Supprimer** sur la fiche mod (parité avec la liste, mêmes confirmations).
       Absents pour un composant de pack, comme dans la liste. La fiche se referme
@@ -588,8 +603,19 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       Écart assumé : la gate de qualité exige `en != fr`, donc les noms propres
       identiques dans les deux langues (« Abigail ») **sortent** du glossaire —
       voulu, un nom identique n'a pas besoin d'être imposé.
+      **Vérifié sur le jeu réel le 2026-09-03** (audit tranche E) : les 9 tables sont
+      présentes et appariées, et **aucune description ne fuit** dans le glossaire —
+      les 85 valeurs retenues portées par une clé qui n'est pas un `_Name` ont été
+      relues une à une, toutes de vrais noms d'objet. Ne pas refaire cette mesure.
+      **Son appariement, lui, était lent** : `matchEntries` cherchait les 1 126 termes
+      dans chaque valeur (9,04 ms), désormais indexés par premier mot (`dc052a6`) —
+      voir le constat joint à **F3** pour ce qui reste.
 - [ ] **C3-T5** — **Partiel ✅** — Export/import d'un lot de travail (`.json`) pour
       traduire à plusieurs, puis fusion contrôlée. · **M**
+      ⚠️ **Corrigé en séance le 2026-09-03** : préparer un lot figeait le fil principal
+      **149 s** sur le plus gros mod à traduire du parc, l'import autant (il reconstruit
+      le même lot). Cause : l'appariement du glossaire, corrigé sous **C3-T4**. Il reste
+      3,2 s de fil principal nu, sans progression — porté en **F3**, pas ici.
       **Reste à livrer** : la fusion entre humains (deux traducteurs sur le même mod,
       arbitrage des divergences) et l'export ZIP. La case reste décochée pour cela ;
       l'usage « faire traduire le lot par son propre chat » est, lui, livré (ci-dessous).
@@ -626,6 +652,13 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       première occurrence** — c'est elle que le parseur applique désormais, plutôt
       que de « garder la première ». Chiffres recalés sur le parc du jour :
       58 fichiers i18n sur 2487, dont 39 aux valeurs divergentes.
+      **Remesuré le 2026-09-03** (audit tranche E, 2 749 fichiers lisibles) :
+      60 fichiers portent 139 clés dupliquées, dont **17 changent de section** entre la
+      première et la dernière occurrence et 21 de rang. L'écart qui subsiste est
+      documenté et assumé — la valeur affichée vient de la dernière occurrence, la
+      section et la position de la première, faute de quoi `diffGroups` couperait en
+      deux le bloc qui entoure la rangée (`cd54f05`, qui corrige au passage trois
+      commentaires qui justifiaient la règle par une raison fausse).
 
 - [x] **C3-T7** — **Secours de traduction en ligne (DeepL)** : quand l'IA locale
       échoue — serveur injoignable, ou refus faute de marques dures après retry —,
@@ -2634,6 +2667,16 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
       Traps, `List` → `LazyVStack`). **Mesurer avant d'agir** ; une mémoïsation sur
       signature d'entrées (`mods`, verdicts de conflits, conflits Content Patcher,
       diagnostics SMAPI) garderait la source unique intacte.
+      **Constat accumulé (audit du 2026-09-03), à joindre à la passe groupée** —
+      `exportTranslationLot` et `importTranslationLot`
+      (`StarHubTHViewModel.swift`) sont `@MainActor` et appellent
+      `TranslationLot.build` **sans tâche détachée ni progression**. L'appariement
+      du glossaire, lui, est corrigé (index par premier mot, 9,04 ms → 0,195 ms par
+      valeur, `dc052a6`) : le gel du pire mod du parc — 16 482 clés sans français —
+      tombe de **149 s à 3,2 s**. Ces 3,2 s restants sont du fil principal nu, sans
+      un mot à l'écran. Le correctif tient en une `Task.detached` plus un état de
+      progression ; il n'a pas été fait au fil de l'eau, conformément à l'arbitrage
+      ci-dessous.
       **Arbitrage de l'auteur (2026-08-01) : traiter dans une passe de performance
       groupée, en fin de projet** — pas au fil de l'eau. Ne pas rouvrir isolément ; y
       joindre les autres constats de perf accumulés d'ici là. · **M**
