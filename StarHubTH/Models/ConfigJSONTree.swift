@@ -57,7 +57,27 @@ public enum ConfigJSONTree {
 
     /// Parse un `config.json` avec la tolérance de Newtonsoft — le chargeur
     /// réel de SMAPI (mesuré par l'oracle du dépôt, pas déduit du schéma) :
-    /// commentaires `//` et `/* */`, virgules traînantes avant `}` et `]`.
+    /// marque d'ordre des octets en tête, commentaires `//` et `/* */`,
+    /// virgules traînantes avant `}` et `]`, clés nues, guillemets simples et
+    /// retours à la ligne bruts dans une chaîne.
+    ///
+    /// **Les cinq dernières tolérances viennent d'une mesure sur le parc, pas
+    /// d'un principe** : ce parseur sert aussi à lire le `content.json` d'un
+    /// content pack (`ContentPackConfigSchema`), et il en **refusait 14 sur
+    /// 606** — dont 7 qui portent un `ConfigSchema`, et 6 de ces 7 ont un
+    /// `config.json` que l'éditeur ouvre. Aucun `config.json` du parc (0 sur
+    /// 593) n'en a besoin : la leniance est là pour les `content.json`, que
+    /// personne ne réécrit. Les causes relevées, toutes acceptées par
+    /// Newtonsoft : clés nues (`32:`, `winter_2:`), chaînes à guillemets
+    /// simples et chaînes qui courent sur plusieurs lignes.
+    ///
+    /// Le jeu de caractères d'une clé nue est celui **que Newtonsoft accepte**
+    /// — lettres, chiffres, `_`, `$` — jamais celui, plus large, qu'un
+    /// nettoyeur tolère pour *lire* (`I18nLenientParser.isKeyBody` ajoute `.`
+    /// et `-`, et c'est précisément ce qui fait refuser le fichier par le
+    /// jeu). `parse` alimente le témoin « JSON invalide » de l'éditeur : le
+    /// dire valide pour un fichier que SMAPI refuse serait le mensonge
+    /// inverse.
     ///
     /// `nil` sur texte cassé : le repli verbatim de la restauration dépend
     /// de ce `nil` — un arbre partiel rendu « tolerant » ferait écrire une
@@ -68,7 +88,11 @@ public enum ConfigJSONTree {
     /// coupait les commentaires de ligne jusqu'à la fin de chacun des 1474
     /// fichiers CRLF du parc pour cette raison exacte.
     public static func parse(_ text: String) -> Value? {
-        var scanner = Cursor(text: text)
+        // La marque d'ordre des octets fait échouer la lecture d'un fichier
+        // parfaitement valide ; SMAPI la retire aussi (cf. `I18nLenientParser`).
+        var body = text
+        if body.hasPrefix("\u{FEFF}") { body.removeFirst() }
+        var scanner = Cursor(text: body)
         scanner.skipTrivia()
         guard let value = parseValue(&scanner) else { return nil }
         scanner.skipTrivia()
@@ -135,7 +159,7 @@ public enum ConfigJSONTree {
         switch c {
         case "{": return parseObject(&s)
         case "[": return parseArray(&s)
-        case "\"": return parseString(&s).map(Value.string)
+        case "\"", "'": return parseString(&s).map(Value.string)
         case "t": return literal(&s, "true", .bool(true))
         case "f": return literal(&s, "false", .bool(false))
         case "n": return literal(&s, "null", .null)
@@ -166,7 +190,7 @@ public enum ConfigJSONTree {
                 lastWasValue = false
                 s.advance(); continue
             }
-            guard c == "\"" , let key = parseString(&s) else { return nil }
+            guard let key = parseKey(&s) else { return nil }
             s.skipTrivia()
             guard s.current == ":" else { return nil }
             s.advance()
@@ -197,16 +221,43 @@ public enum ConfigJSONTree {
         return .array(items)
     }
 
+    /// La clé d'un membre : quotée — double ou simple — ou **nue**.
+    ///
+    /// Une clé nue n'est jamais désambiguïsée par un `:` de contrôle ici : la
+    /// grammaire l'exige déjà juste après, `parseObject` refuse sinon. Le jeu
+    /// de caractères est le strict jeu de Newtonsoft (voir `parse`).
+    private static func parseKey(_ s: inout Cursor) -> String? {
+        if s.current == "\"" || s.current == "'" { return parseString(&s) }
+        var out = String.UnicodeScalarView()
+        while let c = s.current, isBareKeyScalar(c) {
+            out.append(c)
+            s.advance()
+        }
+        return out.isEmpty ? nil : String(out)
+    }
+
+    /// Lettres (Unicode comprises), chiffres, `_` et `$` — mesuré sur la DLL
+    /// de Newtonsoft pour `I18nLenientParser`, repris tel quel. Ni `.` ni `-`,
+    /// que le jeu refuse dans une clé nue.
+    private static func isBareKeyScalar(_ c: Unicode.Scalar) -> Bool {
+        c.properties.isAlphabetic || ("0"..."9").contains(c) || c == "_" || c == "$"
+    }
+
+    /// La chaîne qui commence au curseur. Le **guillemet ouvrant** fait
+    /// terminateur : dans une chaîne à guillemets simples, un `"` est un
+    /// caractère ordinaire, et l'inverse aussi.
     private static func parseString(_ s: inout Cursor) -> String? {
-        s.advance()                                   // '"'
+        guard let quote = s.current else { return nil }
+        s.advance()                                   // '"' ou '\''
         var out = String.UnicodeScalarView()
         while let c = s.current {
-            if c == "\"" { s.advance(); return String(out) }
+            if c == quote { s.advance(); return String(out) }
             if c == "\\" {
                 s.advance()
                 guard let e = s.current else { return nil }
                 switch e {
                 case "\"": out.append("\"")
+                case "'":  out.append("'")
                 case "\\": out.append("\\")
                 case "/":  out.append("/")
                 case "b":  out.append("\u{08}")
@@ -215,26 +266,56 @@ public enum ConfigJSONTree {
                 case "r":  out.append("\r")
                 case "t":  out.append("\t")
                 case "u":
-                    var hex = ""
-                    for _ in 0..<4 {
+                    guard let code = readHexQuad(&s) else { return nil }
+                    if let scalar = Unicode.Scalar(code) {
+                        out.append(scalar)
+                    } else if code >= 0xD800, code <= 0xDBFF {
+                        // Un caractère hors du plan de base s'écrit en JSON
+                        // par une **paire de substitution** (`\uD83D\uDE00`
+                        // pour 😀) : c'est la forme que .NET produit dès
+                        // qu'il échappe. Lire le demi-mot seul rendait `nil`,
+                        // donc perdait le fichier entier.
                         s.advance()
-                        guard let h = s.current, isHex(h) else { return nil }
-                        hex.unicodeScalars.append(h)
+                        guard s.current == "\\" else { return nil }
+                        s.advance()
+                        guard s.current == "u", let low = readHexQuad(&s),
+                              low >= 0xDC00, low <= 0xDFFF else { return nil }
+                        let combined = 0x10000 + (code - 0xD800) << 10 + (low - 0xDC00)
+                        guard let scalar = Unicode.Scalar(combined) else { return nil }
+                        out.append(scalar)
+                    } else {
+                        // Un demi-mot orphelin fait échouer la lecture, et ne
+                        // devient **jamais** U+FFFD : cet arbre repart en
+                        // écriture, et substituer en silence corromprait une
+                        // valeur que l'éditeur réécrit.
+                        return nil
                     }
-                    guard let code = UInt32(hex, radix: 16),
-                          let scalar = Unicode.Scalar(code) else { return nil }
-                    out.append(scalar)
                 default: return nil
                 }
                 s.advance()
                 continue
             }
-            // Un guillemet non fermé avant la fin : texte cassé.
-            if c == "\n" || c == "\r" { return nil }
+            // Un retour à la ligne brut **appartient** à la chaîne : quatre
+            // `content.json` du parc font courir une valeur sur plusieurs
+            // lignes, et Newtonsoft les lit. Une chaîne jamais fermée reste
+            // refusée — la boucle sort en fin de texte sur `nil`.
             out.append(c)
             s.advance()
         }
         return nil
+    }
+
+    /// Les quatre chiffres d'une échappée `\uXXXX`. Entre avec le curseur sur
+    /// le `u`, sort sur le **dernier chiffre** — la convention des autres
+    /// échappées, dont l'avance finale appartient à l'appelant.
+    private static func readHexQuad(_ s: inout Cursor) -> UInt32? {
+        var hex = ""
+        for _ in 0..<4 {
+            s.advance()
+            guard let h = s.current, isHex(h) else { return nil }
+            hex.unicodeScalars.append(h)
+        }
+        return UInt32(hex, radix: 16)
     }
 
     private static func isHex(_ c: Unicode.Scalar) -> Bool {

@@ -257,6 +257,152 @@ struct ConfigJSONTreeTests {
         #expect(!text.contains("\r"))
     }
 
+    // MARK: - Ce que Newtonsoft accepte et que nous refusions
+
+    // Ces cas viennent des 14 `content.json` (sur 606) que ce parseur
+    // refusait sur le parc réel — 7 d'entre eux portent un `ConfigSchema`,
+    // 6 ont un `config.json` que l'éditeur ouvre. Le fichier de chaque cas
+    // est nommé : ce ne sont pas des formes imaginées.
+
+    @Test func aBareNumericKeyIsRead() throws {
+        // Réel : `.HB/content.json` L.2829 — la clé interne est le numéro de
+        // la ligne de dialogue, écrite nue. Newtonsoft l'accepte.
+        let tree = try #require(ConfigJSONTree.parse(
+            #"{ "AnimalShop.6": {0: "un texte"} }"#))
+        guard case .object(let root) = tree,
+              case .object(let inner)? = root.members["AnimalShop.6"] else {
+            Issue.record("attendu un objet imbriqué"); return
+        }
+        #expect(inner.keys == ["0"])
+        #expect(inner.members["0"] == .string("un texte"))
+    }
+
+    @Test func aBareWordKeyIsRead() throws {
+        // Réel : `[CP] Krobus Dialogue Mod - SVE/content.json` L.83.
+        let tree = try #require(ConfigJSONTree.parse(#"{ winter_2: "une réplique" }"#))
+        guard case .object(let root) = tree else { Issue.record("attendu un objet"); return }
+        #expect(root.keys == ["winter_2"])
+        #expect(root.members["winter_2"] == .string("une réplique"))
+    }
+
+    @Test func aBareKeyOutsideNewtonsoftsSetStaysRefused() {
+        // La borne du cas précédent : `.` et `-` sont **hors** du jeu de
+        // caractères d'une clé nue chez Newtonsoft. Un nettoyeur les tolère
+        // pour lire ; nous, non — `parse` alimente le témoin « JSON
+        // invalide » de l'éditeur, et le dire valide pour un fichier que le
+        // jeu refuse serait le mensonge inverse.
+        #expect(ConfigJSONTree.parse(#"{ config.name: 1 }"#) == nil)
+        #expect(ConfigJSONTree.parse(#"{ mon-reglage: 1 }"#) == nil)
+    }
+
+    @Test func aSingleQuotedStringIsRead() throws {
+        // Réel : `[CP] WTDR/content.json` L.2249 — une action entière entre
+        // guillemets simples, avec des guillemets **doubles** à l'intérieur.
+        // Le guillemet ouvrant fait terminateur : les doubles sont du texte.
+        let tree = try #require(ConfigJSONTree.parse(
+            #"{ "Actions": ['MigrateIds Items "JsonAssets:objects:Eerie Seeds" (O)Seeds'] }"#))
+        guard case .object(let root) = tree,
+              case .array(let items)? = root.members["Actions"] else {
+            Issue.record("attendu un tableau"); return
+        }
+        #expect(items == [.string(#"MigrateIds Items "JsonAssets:objects:Eerie Seeds" (O)Seeds"#)])
+    }
+
+    @Test func aSingleQuotedKeyIsRead() throws {
+        let tree = try #require(ConfigJSONTree.parse("{ 'A': 1 }"))
+        guard case .object(let root) = tree else { Issue.record("attendu un objet"); return }
+        #expect(root.keys == ["A"])
+    }
+
+    @Test func aStringMayRunAcrossLines() throws {
+        // Réel : `[CP] Friendable Mr Qi/content.json` L.105-109 — la cible
+        // du patch est une liste écrite sur cinq lignes, dans une seule
+        // chaîne. Newtonsoft lit les retours à la ligne bruts (mesuré sur sa
+        // DLL pour `I18nLenientParser`) ; nous les refusions.
+        let tree = try #require(ConfigJSONTree.parse("""
+        {
+        \t"Target":\u{0020}
+        \t"Mods/AngelOfStars.Mrqifriendable/QiObjects,
+        \tMods/AngelOfStars.Mrqifriendable/QiCrops"
+        }
+        """))
+        guard case .object(let root) = tree,
+              case .string(let target)? = root.members["Target"] else {
+            Issue.record("attendu une chaîne"); return
+        }
+        #expect(target.contains("\n"))
+        #expect(target.contains("QiObjects"))
+        #expect(target.contains("QiCrops"))
+    }
+
+    @Test func aMultilineStringSurvivesARoundTrip() throws {
+        // La leniance ne doit rien perdre : le retour à la ligne brut
+        // ressort **échappé**, et `write` se relit — sans quoi il rendrait
+        // `nil` au lieu d'un fichier.
+        let tree = try #require(ConfigJSONTree.parse("{\"A\": \"deux\nlignes\"}"))
+        let text = try #require(ConfigJSONTree.write(tree))
+        #expect(text == "{\n  \"A\": \"deux\\nlignes\"\n}")
+        #expect(ConfigJSONTree.parse(text) == tree)
+    }
+
+    @Test func aByteOrderMarkDoesNotHideTheFile() throws {
+        // Le piège documenté du dépôt : `EF BB BF` en tête fait échouer une
+        // lecture sur un fichier par ailleurs parfaitement valide. SMAPI
+        // retire la marque ; `I18nLenientParser` aussi.
+        let tree = try #require(ConfigJSONTree.parse("\u{FEFF}{ \"A\": 1 }"))
+        guard case .object(let root) = tree else { Issue.record("attendu un objet"); return }
+        #expect(root.keys == ["A"])
+    }
+
+    @Test func brokenTextIsStillRefused() {
+        // La contrepartie : la leniance n'est pas un « accepte tout ». Le
+        // repli verbatim de la restauration dépend de ce `nil`.
+        #expect(ConfigJSONTree.parse(#"{ "A": "jamais fermée"#) == nil)
+        #expect(ConfigJSONTree.parse(#"{ "A" 1 }"#) == nil)
+        #expect(ConfigJSONTree.parse(#"{ "A": 1,, "B": 2 }"#) == nil)
+        // Réel : `.BushBloomMod/content.json` — un tableau en racine. Un
+        // `config.json` est un objet ; ce fichier reste illisible, et c'est
+        // juste (il ne porte aucun `ConfigSchema`).
+        #expect(ConfigJSONTree.parse(#"[{ "StartSeason": "fall" }]"#) == nil)
+    }
+
+    @Test func anEscapedEmojiIsRead() throws {
+        // Une paire de substitution est la forme **normale** d'un caractère
+        // hors du plan de base en JSON, et celle que .NET produit dès qu'il
+        // échappe. Le parc en porte : trois `i18n` de `.SexyMarketIdols`
+        // écrivent leurs libellés comme ça. Aucun `config.json` (0 sur 593)
+        // ni `content.json` (0 sur 606) pour l'instant — d'où un
+        // durcissement sans cas observé côté configs.
+        let json = ##"{ "A": "\ud83d\ude00 ok" }"##
+        let tree = try #require(ConfigJSONTree.parse(json))
+        guard case .object(let root) = tree else { Issue.record("attendu un objet"); return }
+        #expect(root.members["A"] == .string("\u{1F600} ok"))
+    }
+
+    @Test func aBasicPlaneEscapeStillWorks() throws {
+        let json = ##"{ "A": "caf\u00e9" }"##
+        let tree = try #require(ConfigJSONTree.parse(json))
+        guard case .object(let root) = tree else { Issue.record("attendu un objet"); return }
+        #expect(root.members["A"] == .string("café"))
+    }
+
+    @Test func anOrphanSurrogateIsRefusedRatherThanSubstituted() {
+        // Jamais U+FFFD : cet arbre repart en écriture, et une substitution
+        // silencieuse corromprait la valeur que l'éditeur réécrit.
+        #expect(ConfigJSONTree.parse(#"{ "A": "\ud83d" }"#) == nil)
+        #expect(ConfigJSONTree.parse(#"{ "A": "\ude00" }"#) == nil)
+        #expect(ConfigJSONTree.parse(#"{ "A": "\ud83dA" }"#) == nil)
+    }
+
+    @Test func anEmojiSurvivesARoundTrip() throws {
+        let tree = try #require(ConfigJSONTree.parse(##"{ "A": "\ud83d\ude00" }"##))
+        let text = try #require(ConfigJSONTree.write(tree))
+        // `escape` rend le caractère tel quel — JSON valide — et la relecture
+        // que `write` s'impose le confirme.
+        #expect(text.contains("\u{1F600}"))
+        #expect(ConfigJSONTree.parse(text) == tree)
+    }
+
     @Test func inlineRendersCompactly() {
         let tree = ConfigJSONTree.parse(#"{"A": 1, "B": [1, 2], "C": {"D": true}}"#)!
         let text = ConfigJSONTree.inline(tree)

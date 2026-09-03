@@ -12,6 +12,11 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Six mods retrouvent la description de leurs options** : leur `content.json` était déclaré illisible et l'éditeur de configuration n'affichait plus que des clés brutes. Sur les 606 `content.json` du parc, **14 étaient refusés pour des formes que le jeu, lui, accepte** — une clé écrite sans guillemets, une chaîne entre apostrophes, une valeur qui court sur plusieurs lignes, une marque d'ordre des octets en tête. Douze se lisent désormais, dont sept qui décrivent des options : 126 options reviennent (95 pour `[CP] Friendable Mr Qi`, 12 pour `.HB`). Les 1 187 autres fichiers se lisent exactement comme avant.
+- **Un caractère hors du plan de base ne rend plus un fichier illisible** : un emoji écrit en paire de substitution (`\uD83D\uDE00`), la forme que produit .NET, faisait échouer la lecture du `config.json` ou du `content.json` entier. Aucun cas sur le parc actuel — trois fichiers de traduction en portent, eux, et passaient déjà par un autre lecteur.
+
 ## [1.34.0] - 2026-09-03
 
 ### Changed
