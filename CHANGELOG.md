@@ -18,6 +18,8 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **Une archive téléchargée par l'app garde le nom que Nexus lui donne** : elle était posée sous un nom en UUID, ce qui jetait l'identifiant de la page et la version que ce nom porte. Un lot de sacs ou une traduction déposés depuis un lien `nxm://` s'affichaient donc dans la fiche du mod sous un nom comme `78388FD4-DBBA-4FCD-B747-29425800BBDB`, sans suivi de mise à jour — 4 des 13 dépôts enregistrés étaient dans ce cas. Et l'identifiant de la page est retenu même si Nexus n'avait pas nommé le fichier.
+- **Le nom d'une archive sans extension reconnue n'est plus tronqué** au dernier point : `FishingLogbook - FR 50233 1.1.0 …` perdait tout ce qui suivait `1.1`.
 - **Une description Nexus au balisage pathologique ne peut plus tuer l'app** : `[center]` est la seule balise qui fasse récurser le lecteur de blocs, et 10 000 niveaux imbriqués débordaient la pile. La récursion s'arrête au huitième niveau — le centrage se perd au-delà, le texte et les images restent — et une description à 2 000 niveaux se lit désormais en 50 ms au lieu de 2,9 s.
 - **Un exemple de config replié dans un spoiler ne s'ouvre plus sur du vide** : le bloc `[code]` était extrait avant conversion et remplacé par un marqueur, que la relecture du spoiler résolvait contre rien. C'est la forme la plus courante d'un spoiler de page de mod.
 - **Les descriptions Nexus ne mangent plus les `<…>` qu'un auteur voulait montrer** : les entités HTML étaient décodées *avant* le retrait des balises, si bien que `&lt;ContentPackMainFolder&gt;` devenait une balise puis disparaissait. Mesuré sur 39 descriptions réelles : 3 en portaient, dont une consigne d'installation et une signature d'API C#.

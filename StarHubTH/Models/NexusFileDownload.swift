@@ -108,6 +108,26 @@ final class NexusFileDownload: NSObject, URLSessionDownloadDelegate, @unchecked 
 
     // MARK: - URLSessionDownloadDelegate
 
+    /// Préfixe des dossiers temporaires que ce téléchargeur crée, un par
+    /// fichier reçu. Il rend le ménage reconnaissable : `discardDownloaded`
+    /// n'efface un dossier que s'il porte ce préfixe.
+    static let downloadFolderPrefix = "StarHubFR-download-"
+
+    /// Jette un fichier téléchargé **et le dossier qui l'isolait**.
+    ///
+    /// Sans ça, chaque téléchargement refermé laisserait un dossier vide
+    /// derrière lui. N'efface le dossier que s'il porte
+    /// `downloadFolderPrefix` : le même appel sert pour un fichier venu
+    /// d'ailleurs, qu'il faut alors effacer seul.
+    static func discardDownloaded(at url: URL) {
+        let folder = url.deletingLastPathComponent()
+        if folder.lastPathComponent.hasPrefix(downloadFolderPrefix) {
+            try? FileManager.default.removeItem(at: folder)
+        } else {
+            try? FileManager.default.removeItem(at: url)
+        }
+    }
+
     func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,
                     didWriteData bytesWritten: Int64, totalBytesWritten: Int64,
                     totalBytesExpectedToWrite: Int64) {
@@ -146,9 +166,28 @@ final class NexusFileDownload: NSObject, URLSessionDownloadDelegate, @unchecked 
                 return ModZipInstaller.supportedExtensions.contains(candidate) ? candidate : "zip"
             } ?? "zip"
 
-        let destination = FileManager.default.temporaryDirectory
-            .appendingPathComponent(UUID().uuidString + "." + ext)
+        // **Sous le nom que Nexus a donné**, dans un dossier à lui.
+        //
+        // Le fichier était posé sous `<UUID>.zip`, ce qui jetait la seule
+        // chose que son nom savait dire : l'identifiant de la page et la
+        // version, que `NexusArchiveName.parse` relit au dépôt et que la
+        // fiche du mod affiche. Relevé sur le registre réel, 4 dépôts sur 13
+        // portaient un UUID comme nom — sans identifiant, sans suivi de
+        // version, et impossibles à rattacher ensuite.
+        //
+        // Le dossier propre, lui, remplace ce que l'UUID garantissait :
+        // deux téléchargements du **même** fichier ne peuvent pas se marcher
+        // dessus, alors qu'un nom réel se répète.
+        let base = NexusDownloadAPI.archiveBaseName(
+            suggested: downloadTask.response?.suggestedFilename, url: sourceURL)
+            ?? UUID().uuidString
+        let folder = FileManager.default.temporaryDirectory
+            .appendingPathComponent(Self.downloadFolderPrefix + UUID().uuidString,
+                                    isDirectory: true)
         do {
+            try FileManager.default.createDirectory(at: folder,
+                                                    withIntermediateDirectories: true)
+            let destination = folder.appendingPathComponent(base + "." + ext)
             try FileManager.default.moveItem(at: location, to: destination)
             complete(.success(destination))
         } catch {

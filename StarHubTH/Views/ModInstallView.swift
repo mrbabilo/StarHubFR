@@ -62,6 +62,11 @@ struct ModInstallView: View {
     /// remis à nil dès qu'une proposition de dépôt s'affiche, alors que c'est
     /// ce nom qui nommera la traduction sur la fiche du mod.
     @State private var analyzedArchiveName = ""
+    /// L'archive effectivement analysée. Sert à ne créditer un dépôt de
+    /// l'identifiant Nexus du téléchargement **que** s'il s'agit bien de
+    /// l'archive téléchargée : la même feuille accepte aussi un glisser-déposer,
+    /// et `vm.pendingNexusSource` vaudrait alors pour un autre fichier.
+    @State private var analyzedURL: URL?
     /// Les archives restant à traiter d'un dépôt multiple : une seule fiche à
     /// la fois, les suivantes attendent la fermeture de la courante (bouton
     /// Terminé, annulation, alerte refermée). Déposer N zips d'un coup
@@ -473,7 +478,9 @@ struct ModInstallView: View {
     private func analyzeZip(_ url: URL) {
         isAnalyzing = true
         zipModInfo = nil
-        analyzedArchiveName = url.deletingPathExtension().lastPathComponent
+        analyzedArchiveName = ModZipInstaller.strippingArchiveExtension(
+            from: url.lastPathComponent)
+        analyzedURL = url
 
         // Discard any previous temp dir before re-analyzing.
         if let oldTemp = tempDir {
@@ -708,8 +715,15 @@ struct ModInstallView: View {
             showError = true
             return
         }
+        // L'identifiant de la page ne se retient que pour l'archive
+        // téléchargée : la branche d'installation d'un mod le fait depuis
+        // toujours (« la seule occasion où l'app le connaît »), celle du dépôt
+        // le jetait — un lot de sacs venu d'un lien `nxm://` entrait au
+        // registre sans identifiant, donc sans suivi de version.
+        let downloadedModId = analyzedURL == preloadedZip ? vm.pendingNexusSource?.modId : nil
         let result = vm.depositIntoMod(plan: plan, extractedRoot: tempDir, host: host,
-                                       sourceName: analyzedArchiveName, nexus: nil)
+                                       sourceName: analyzedArchiveName, nexus: nil,
+                                       downloadedModId: downloadedModId)
         guard let outcome = result.outcome else {
             showFailure(result.message ?? vm.L(L10n.ModInstall.depositFailed))
             showError = true

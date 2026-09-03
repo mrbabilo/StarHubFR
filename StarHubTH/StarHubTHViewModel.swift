@@ -6392,11 +6392,19 @@ for mod in mods {
     ///   - nexus: la fiche Nexus quand il y en a une. Sans elle, la traduction
     ///     est enregistrée sans identifiant : elle se retire, mais aucune mise
     ///     à jour ne lui sera proposée.
+    ///   - downloadedModId: l'identifiant de la page dont l'archive vient,
+    ///     quand elle vient d'un téléchargement de l'app (lien `nxm://` ou
+    ///     téléchargement intégré). **Ceinture et bretelles** : le nom du
+    ///     fichier le porte déjà, mais si Nexus ne l'avait pas nommé, ce
+    ///     serait la seule occasion où l'app le connaît — la branche
+    ///     d'installation d'un mod le retient depuis toujours
+    ///     (`ModInstallView`, `recordNexusModId`), celle du dépôt le jetait.
     /// - Returns: ce qui a été écrit (`nil` si rien ne l'a été), et le message
     ///   à montrer le cas échéant — un dépôt peut réussir *et* avoir quelque
     ///   chose à dire.
     func depositIntoMod(plan: ManifestlessArchive.Plan, extractedRoot: URL, host: ModItem,
-                        sourceName: String, nexus: NexusModSearch.Hit?)
+                        sourceName: String, nexus: NexusModSearch.Hit?,
+                        downloadedModId: Int? = nil)
         -> (outcome: ManifestlessInstaller.Outcome?, message: String?) {
         // Le refus se dit dans les mots de ce qu'on déposait : « la traduction »
         // n'a pas de sens quand l'utilisateur a glissé un lot de sacs.
@@ -6424,16 +6432,26 @@ for mod in mods {
         // la main entière : ce qu'il sait vient de Nexus, pas d'une lecture.
         let now = Date()
         let learned = nexus == nil ? NexusArchiveName.parse(sourceName) : nil
+        // **Une seule lecture de l'identité**, pour la sonde de doublon
+        // ci-dessous comme pour la ligne qui entrera au registre : deux
+        // lectures qui divergeraient donneraient une identité au comparateur
+        // et une autre à ce qui est gardé.
+        //
         // La date retenue est celle du dépôt, jamais celle que porte le nom :
         // c'est la règle de `linkToNexus`, et pour la même raison — on sait
         // quand il l'a posée, tout ce que Nexus a publié depuis est plus récent.
         // Sans elle, `isNewer` refuse de conclure et l'identifiant appris ne
-        // servirait à rien.
+        // servirait à rien. Un identifiant venu du téléchargement compte
+        // autant qu'un identifiant lu dans le nom : dans les deux cas on sait
+        // de quelle page l'archive vient.
+        let identifiedModId = nexus?.modId ?? learned?.modId ?? downloadedModId ?? 0
+        let identifiedVersion = nexus?.version ?? learned?.version ?? ""
+        let identifiedDate = nexus?.updatedAt ?? (identifiedModId == 0 ? nil : now)
         let entry = InstalledTranslation(
             hostFolderName: host.folderName,
-            nexusModId: nexus?.modId ?? learned?.modId ?? 0,
-            nexusName: sourceName, version: nexus?.version ?? learned?.version ?? "",
-            updatedAt: nexus?.updatedAt ?? (learned == nil ? nil : now),
+            nexusModId: identifiedModId,
+            nexusName: sourceName, version: identifiedVersion,
+            updatedAt: identifiedDate,
             installedAt: now, files: [], replacedFiles: [:])
         let incumbent: InstalledTranslation? = plan.kind == .translation
             ? installedTranslations.translation(forHost: host.folderName)
@@ -6491,9 +6509,9 @@ for mod in mods {
         // ce qui est gardé.
         let recorded = InstalledTranslation(
             hostFolderName: host.folderName,
-            nexusModId: nexus?.modId ?? learned?.modId ?? 0,
-            nexusName: sourceName, version: nexus?.version ?? learned?.version ?? "",
-            updatedAt: nexus?.updatedAt ?? (learned == nil ? nil : now), installedAt: now,
+            nexusModId: identifiedModId,
+            nexusName: sourceName, version: identifiedVersion,
+            updatedAt: identifiedDate, installedAt: now,
             files: written.written, replacedFiles: written.replaced)
         if plan.kind == .translation {
             installedTranslations.record(recorded)

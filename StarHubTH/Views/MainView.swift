@@ -376,7 +376,10 @@ struct MainView: View {
         }
         .sheet(isPresented: $showDownloadedInstall, onDismiss: {
             if let url = vm.pendingDownloadedZip {
-                try? FileManager.default.removeItem(at: url)
+                // Le fichier **et** le dossier qui l'isolait : le
+                // téléchargement le pose sous son vrai nom, dans un dossier à
+                // lui, pour que deux fichiers homonymes ne se croisent pas.
+                NexusFileDownload.discardDownloaded(at: url)
             }
             vm.pendingDownloadedZip = nil
             vm.pendingNexusSource = nil
