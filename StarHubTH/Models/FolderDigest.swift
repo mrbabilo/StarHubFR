@@ -25,12 +25,23 @@ public enum FolderDigest {
               let walker = fm.enumerator(at: folder, includingPropertiesForKeys: [.isRegularFileKey])
         else { return nil }
 
+        // Le préfixe se compare à des chemins **résolus** : `enumerator` rend
+        // des URLs résolues (`/private/var/…`) même quand la racine était
+        // symlinkée (`/var/…`, le temporaryDirectory des tests). Comparer au
+        // chemin brut faisait échouer le préfixe partout, et le repli
+        // `lastPathComponent` confondait alors deux sous-dossiers portant des
+        // fichiers de même nom. `realpath(3)` et non
+        // `resolvingSymlinksInPath()` : celle-ci laisse `/var` tel quel
+        // (mesuré), seul realpath rejoint ce que l'énumérateur rend.
+        let root = folder.path.withCString { buffer -> String in
+            realpath(buffer, nil).map { String(cString: $0) } ?? folder.path
+        }
         var files: [(relative: String, url: URL)] = []
         for case let url as URL in walker {
             guard (try? url.resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile == true
             else { continue }
-            let relative = url.path.hasPrefix(folder.path)
-                ? String(url.path.dropFirst(folder.path.count))
+            let relative = url.path.hasPrefix(root)
+                ? String(url.path.dropFirst(root.count))
                 : url.lastPathComponent
             files.append((relative, url))
         }

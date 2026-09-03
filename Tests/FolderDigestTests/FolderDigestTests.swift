@@ -55,6 +55,18 @@ struct FolderDigestTests {
         #expect(FolderDigest.of(a) != FolderDigest.of(b))
     }
 
+    /// La part **sous-dossier** du chemin compte même entre fichiers de même
+    /// nom : `x/f+A, y/g+B` et `x/g+B, y/f+A` sont deux états distincts. C'est
+    /// la signature du repli `lastPathComponent` — actif quand l'énumérateur
+    /// rend des chemins résolus (`/private/var/…`) que le préfixe de la racine
+    /// non résolue (`/var/…`, le temporaryDirectory des tests) ne matche pas.
+    @Test func theSubfolderPartOfThePathCountsEvenForSameNamedFiles() {
+        let a = makeTree(["x/f.txt": "A", "y/g.txt": "B"])
+        let b = makeTree(["x/g.txt": "B", "y/f.txt": "A"])
+        defer { try? FileManager.default.removeItem(at: a); try? FileManager.default.removeItem(at: b) }
+        #expect(FolderDigest.of(a) != FolderDigest.of(b))
+    }
+
     @Test func anAbsentFolderHasNoDigest() {
         #expect(FolderDigest.of(URL(fileURLWithPath: "/nowhere/at/all")) == nil)
     }
