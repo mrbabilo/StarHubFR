@@ -307,4 +307,58 @@ struct InstalledTranslationTests {
         let back = try JSONDecoder().decode(InstalledTranslationRegistry.self, from: data)
         #expect(back == registry)
     }
+
+    // MARK: - Store (persistance)
+
+    private var storeFile: URL {
+        FileManager.default.temporaryDirectory
+            .appendingPathComponent("InstalledTranslationStoreTests-\(UUID().uuidString)")
+            .appendingPathComponent("installed_translations.json")
+    }
+
+    /// Chaque écriture pose la **même** génération au fichier et à son
+    /// `.bak` — le motif du registre d'install UserDefaults (primary + backup,
+    /// même blob aux deux emplacements). Le backup de la génération courante
+    /// restaure tout ; celui de la génération précédente ne rendrait que
+    /// l'avant-dernier état.
+    @Test func storeSaveKeepsABackupCopyOfTheSameGeneration() throws {
+        let file = storeFile
+        defer { try? FileManager.default.removeItem(at: file.deletingLastPathComponent()) }
+
+        var registry = InstalledTranslationRegistry()
+        registry.record(translation())
+        #expect(InstalledTranslationStore.save(registry, to: file))
+
+        let backup = file.appendingPathExtension("bak")
+        #expect(FileManager.default.fileExists(atPath: backup.path))
+        #expect(InstalledTranslationStore.load(from: backup) == registry)
+    }
+
+    /// Un registre corrompu ne rend plus un magasin **vide** en silence :
+    /// c'est la seule trace de ce qui a été déposé, et sa perte rend toute
+    /// désinstallation impossible. Le `.bak` reprend la main, et se **promeut**
+    /// au fichier principal pour que le chargement suivant soit sain.
+    @Test func storeLoadRestoresTheBackupWhenThePrimaryIsCorrupt() throws {
+        let file = storeFile
+        defer { try? FileManager.default.removeItem(at: file.deletingLastPathComponent()) }
+
+        var registry = InstalledTranslationRegistry()
+        registry.record(translation())
+        #expect(InstalledTranslationStore.save(registry, to: file))
+
+        try Data("pas du json".utf8).write(to: file)
+        #expect(InstalledTranslationStore.load(from: file) == registry)
+        // Promotion prouvée par le fichier lui-même : le principal redevient
+        // lisible, le prochain chargement ne repassera plus par le backup.
+        let promoted = try JSONDecoder().decode(InstalledTranslationRegistry.self,
+                                                from: Data(contentsOf: file))
+        #expect(promoted == registry)
+    }
+
+    /// Sans fichier du tout, le magasin reste vide — premier lancement, jamais
+    /// une erreur.
+    @Test func storeLoadWithoutAnyFileIsEmpty() {
+        let file = storeFile
+        #expect(InstalledTranslationStore.load(from: file) == InstalledTranslationRegistry())
+    }
 }

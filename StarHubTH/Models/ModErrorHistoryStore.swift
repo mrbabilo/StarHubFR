@@ -23,18 +23,36 @@ enum ModErrorHistoryStore {
         var lastLogDate: Date?
     }
 
-    static func load() -> (history: ModErrorHistory, lastLogDate: Date?) {
-        guard let url = fileURL,
-              let data = try? Data(contentsOf: url),
+    /// - Parameter url: surcharge du fichier réel. `nil` (par défaut) lit
+    ///   `fileURL` ; les tests passent un dossier temporaire pour ne jamais
+    ///   toucher à l'historique de l'utilisateur.
+    static func load(from url: URL? = nil) -> (history: ModErrorHistory, lastLogDate: Date?) {
+        guard let target = url ?? fileURL,
+              let data = try? Data(contentsOf: target),
               let payload = try? JSONDecoder().decode(Payload.self, from: data)
         else { return (ModErrorHistory(), nil) }
         return (payload.history, payload.lastLogDate)
     }
 
-    static func save(_ history: ModErrorHistory, lastLogDate: Date?) {
-        guard let url = fileURL else { return }
+    /// Écrit l'historique. **Rend `false` en cas d'échec**, et l'appelant doit
+    /// le dire : cette donnée est accumulée et ne se rebâtit pas (le journal
+    /// SMAPI suivant écrase le précédent). Une écriture perdue en silence ne se
+    /// verrait qu'au lancement suivant. Même convention que
+    /// `ModCompatibilityStore` et `InstalledTranslationStore`.
+    ///
+    /// - Parameter url: surcharge du fichier réel, même rôle que dans `load`.
+    @discardableResult
+    static func save(_ history: ModErrorHistory, lastLogDate: Date?, to url: URL? = nil) -> Bool {
+        guard let target = url ?? fileURL else { return false }
         let payload = Payload(history: history, lastLogDate: lastLogDate)
-        guard let data = try? JSONEncoder().encode(payload) else { return }
-        try? data.write(to: url, options: .atomic)
+        guard let data = try? JSONEncoder().encode(payload) else { return false }
+        do {
+            try FileManager.default.createDirectory(at: target.deletingLastPathComponent(),
+                                                    withIntermediateDirectories: true)
+            try data.write(to: target, options: .atomic)
+            return true
+        } catch {
+            return false
+        }
     }
 }

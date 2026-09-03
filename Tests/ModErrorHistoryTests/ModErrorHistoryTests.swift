@@ -117,4 +117,43 @@ import Testing
         let decoded = try JSONDecoder().decode(ModErrorHistory.self, from: data)
         #expect(decoded == h)
     }
+
+    // MARK: - Store (persistance)
+
+    private var storeDir: URL {
+        FileManager.default.temporaryDirectory
+            .appendingPathComponent("ModErrorHistoryStoreTests-\(UUID().uuidString)")
+    }
+
+    /// Le store rend compte de ses écritures : cette histoire est accumulée et
+    /// ne se rebâtit pas (le journal SMAPI suivant écrase le précédent). Un
+    /// appelant qui ignore une panne disque croit l'historique sauvegardé — il
+    /// découvrira au lancement suivant qu'il ne l'est pas.
+    @Test func storeSaveRoundTripsThroughAFile() throws {
+        let file = storeDir.appendingPathComponent("mod_error_history.json")
+        defer { try? FileManager.default.removeItem(at: storeDir) }
+
+        var history = ModErrorHistory()
+        history.merge([obs("Mod", "1.0", "boom")], at: day1)
+        #expect(ModErrorHistoryStore.save(history, lastLogDate: day1, to: file))
+
+        let loaded = ModErrorHistoryStore.load(from: file)
+        #expect(loaded.history == history)
+        #expect(loaded.lastLogDate == day1)
+    }
+
+    /// Une écriture impossible rend `false` — la même convention que les
+    /// stores voisins (`ModCompatibilityStore`, `InstalledTranslationStore`).
+    @Test func storeSaveReportsAFailureWhenItCannotWrite() throws {
+        // Un fichier là où le dossier devrait naître : la création échoue,
+        // l'écriture avec lui.
+        let blocker = storeDir
+        defer { try? FileManager.default.removeItem(at: blocker) }
+        try Data("pas un dossier".utf8).write(to: blocker)
+        let beneath = blocker.appendingPathComponent("mod_error_history.json")
+
+        var history = ModErrorHistory()
+        history.merge([obs("Mod", "1.0", "boom")], at: day1)
+        #expect(!ModErrorHistoryStore.save(history, lastLogDate: day1, to: beneath))
+    }
 }

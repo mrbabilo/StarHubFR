@@ -18,6 +18,8 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **Un registre des traductions corrompu ne se perd plus en silence** : chaque écriture pose désormais un backup à côté du fichier, et un fichier illisible se restaure tout seul au chargement — sans lui, la désinstallation des traductions déjà posées devenait impossible, sans qu'aucun message le dise.
+- **Un échec d'écriture de l'historique d'erreurs se signale désormais** : cette histoire ne se rebâtit pas (chaque journal SMAPI écrase le précédent) ; une panne disque passait jusque-là pour une sauvegarde réussie.
 - **Les traductions de secours étaient cherchées par un chemin reconstruit à la main** — trois copies du même chemin à travers la VM et les managers ; un changement de layout des managers aurait fait chercher le finder dans le vide, en silence. Les managers exposent désormais `backupsDirectory`, source unique.
 - **La passe d'ancrage des versions lisait `nexusUpdates` depuis le fil du scan** — propriété publiée sur le fil principal, donc en course, et consolidée par pack : un enfant de pack perdant la consolidation n'y figure pas et perd sa suggestion de version. Elle lit désormais le cache plat sous son verrou, qui a une ligne par mod.
 - **« Tout activer / tout désactiver » pouvait croiser la file des bascules unitaires** — un renommage unitaire en vol rencontrait les renommages en masse sur les mêmes dossiers ; les gardes disque contenaient la collision, un garde sur la file l'empêche désormais d'exister.

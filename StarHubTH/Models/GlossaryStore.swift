@@ -144,15 +144,13 @@ public enum GlossaryStore {
     }
 
     /// Le glossaire en cache, `nil` s'il n'existe pas encore.
-    public static func load(language: String, appSupport: URL,
-                            fileManager: FileManager = .default) -> Glossary? {
+    public static func load(language: String, appSupport: URL) -> Glossary? {
         guard let cache = cache(language: language, appSupport: appSupport) else { return nil }
         return Glossary(entries: cache.entries)
     }
 
     /// La date de construction du cache — l'entrée d'`needsRebuild`.
-    public static func builtDate(language: String, appSupport: URL,
-                                 fileManager: FileManager = .default) -> Date? {
+    public static func builtDate(language: String, appSupport: URL) -> Date? {
         cache(language: language, appSupport: appSupport)?.builtAt
     }
 
@@ -167,11 +165,13 @@ public enum GlossaryStore {
     }
 
     /// Écrit le cache de façon atomique (`.tmp` → rename via `Data.write`).
-    public static func save(_ glossary: Glossary, language: String, appSupport: URL,
-                            fileManager: FileManager = .default) throws {
+    /// Pas de `FileManager` injecté — contrairement à `GlossarySource` où il
+    /// dirige les lectures, ici il ne pourrait que créer le dossier : le
+    /// paramètre décoratif trompait sur ce que l'écriture honore.
+    public static func save(_ glossary: Glossary, language: String, appSupport: URL) throws {
         let file = fileURL(language: language, appSupport: appSupport)
-        try fileManager.createDirectory(at: file.deletingLastPathComponent(),
-                                        withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: file.deletingLastPathComponent(),
+                                                withIntermediateDirectories: true)
         let cache = Cache(formatVersion: formatVersion, builtAt: Date(), entries: glossary.entries)
         let data = try JSONEncoder().encode(cache)
         try data.write(to: file, options: .atomic)

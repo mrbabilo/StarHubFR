@@ -52,6 +52,7 @@ let package = Package(
                 "Models/SmapiLogDiagnostics.swift",
                 "Models/LogNoise.swift",
                 "Models/ModErrorHistory.swift",
+                "Models/ModErrorHistoryStore.swift",
                 "Models/ModAnomaly.swift",
                 "Models/ModCompatibility.swift",
                 "Models/PathoschildCompatibilityList.swift",

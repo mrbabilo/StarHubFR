@@ -4010,13 +4010,25 @@ class StarHubTHViewModel: ObservableObject {
         }
         guard !observations.isEmpty else {
             lastErrorHistoryLogDate = logDate
-            ModErrorHistoryStore.save(modErrorHistory, lastLogDate: logDate)
+            persistErrorHistory()
             return
         }
 
         modErrorHistory.merge(observations, at: logDate)
         lastErrorHistoryLogDate = logDate
-        ModErrorHistoryStore.save(modErrorHistory, lastLogDate: logDate)
+        persistErrorHistory()
+    }
+
+    /// Écrit l'historique d'erreurs et dit quand l'écriture échoue : cette
+    /// donnée est accumulée et ne se rebâtit pas (le journal SMAPI suivant
+    /// écrase le précédent). Une panne silencieuse ne se verrait qu'au
+    /// lancement suivant — convention des stores voisins, l'appelant doit
+    /// le dire.
+    private func persistErrorHistory() {
+        if !ModErrorHistoryStore.save(modErrorHistory, lastLogDate: lastErrorHistoryLogDate) {
+            log("Historique d'erreurs non enregistré : il ne survivra pas à la fermeture",
+                level: .warning)
+        }
     }
 
     /// Maps a name as SMAPI logged it to an installed mod. SMAPI logs the
@@ -9185,7 +9197,7 @@ for mod in mods {
             // growing with mods that are no longer installed.
             if errorHistoryLoaded {
                 modErrorHistory.remove(mod: mod.folderName)
-                ModErrorHistoryStore.save(modErrorHistory, lastLogDate: lastErrorHistoryLogDate)
+                persistErrorHistory()
             }
             // TranslationBaseline picked up every convention
             // ModErrorHistoryStore follows except the one that bounds its
