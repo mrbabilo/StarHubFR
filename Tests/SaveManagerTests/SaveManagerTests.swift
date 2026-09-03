@@ -510,6 +510,23 @@ struct SavePlayerFieldsTests {
         #expect(fields["hairstyleColor"] == nil)
         #expect(fields["skin"] == "2")
     }
+
+    /// Le même cas avec des enfants **auto-fermés seulement** : une self-closed
+    /// n'incrémente pas la profondeur, donc le parent redevenait « scalaire » à
+    /// sa fermeture et entrait dans la table avec son markup entier pour valeur
+    /// — pire que la clé absente, c'est une valeur qui se lit comme une donnée.
+    @Test func directChildrenSkipCompositeTagsOfSelfClosingChildren() {
+        let xml = """
+        <SaveGame><player><textures><Item xsi:nil="true" /></textures>\
+        <skin>2</skin></player></SaveGame>
+        """
+        let fields = SavePlayerFields.directChildren(in: xml)
+        #expect(fields["textures"] == nil)
+        #expect(fields["skin"] == "2")
+        // Et l'écriture s'abstient pareillement : « remplacer » un champ
+        // composé n'a pas de sens, la valeur attendue n'est pas un scalaire.
+        #expect(SavePlayerFields.replacingDirectChild("textures", with: "x", in: xml) == nil)
+    }
 }
 
 /// `<whichFarm>` n'est pas un entier quand une ferme de mod est active : les

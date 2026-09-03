@@ -101,7 +101,18 @@ public enum SavePlayerFields {
                 depth -= 1
                 continue
             }
-            if tag.hasSuffix("/") { continue }  // <basicShipped />, <Item xsi:nil="true" />
+            if tag.hasSuffix("/") {
+                // <basicShipped />, <Item xsi:nil="true" />. Une auto-fermée
+                // est un enfant, pas une valeur : le parent en cours cesse
+                // d'être scalaire. Sans cela, un composé d'auto-fermées
+                // seulement — la profondeur n'a pas bougé depuis son ouverture
+                // — redevenait éligible à sa fermeture et entrait dans la
+                // table avec son markup pour valeur, remplaçable ensuite comme
+                // un scalaire.
+                pendingName = nil
+                pendingValueStart = nil
+                continue
+            }
 
             depth += 1
             // Le nom s'arrête au premier espace : `<Item xsi:type="Object">`.
