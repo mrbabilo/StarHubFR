@@ -471,6 +471,22 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       absentes. `ModZipInstaller.findExistingMod` cherchait déjà correctement : sa
       règle est devenue `Array<ModItem>.mod(withUniqueId:)`, testée, et ses trois
       appelants la partagent. · **S**
+- [x] **X20** ✅ *(corrigé le 2026-09-03 par `bb0674b`)* — 🔴 **L'ancrage d'après-
+      installation visait un dossier qui n'existe pas, pour un composant de pack.**
+      `ModInstallView.installedFolderPaths` refaisait le calcul de destination de
+      `ModZipInstaller.install` — troisième copie de cette règle — et divergeait deux
+      fois : elle cherchait le mod déjà installé dans les seules lignes de premier
+      niveau (jamais un composant de pack : **239 des 1 095 mods du parc**, 21 %), et
+      reprenait le nom de dossier de l'archive au lieu de celui du mod installé.
+      Les trois consommateurs de ces chemins (`recordNexusModId`,
+      `anchorInstalledMods`, `reconcileManifestVersion`) lisent un `manifest.json` au
+      chemin donné et **s'abstiennent en silence** s'il n'y a rien : mettre à jour un
+      composant depuis `nxm://` ou le téléchargement intégré ne posait donc aucune
+      ancre — la mise à jour restait annoncée après installation, et l'identifiant
+      Nexus, connu à ce seul instant, était perdu.
+      `install` rend désormais les chemins **réellement écrits** ; la copie de la vue
+      a disparu, et le cas `.rename` (dont l'horodatage n'était visible nulle part)
+      cesse d'être un angle mort. · **S**
 - [x] **B1-T1** ✅ *(livré le 2026-08-01)* — Boutons **Activer/Désactiver** et
       **Supprimer** sur la fiche mod (parité avec la liste, mêmes confirmations).
       Absents pour un composant de pack, comme dans la liste. La fiche se referme
