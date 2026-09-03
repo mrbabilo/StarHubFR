@@ -256,6 +256,19 @@ public enum ConfigEditorModel {
     /// mesuré sur le parc : cet ordre est celui du schéma dans les 210 packs,
     /// Content Patcher engendrant l'un depuis l'autre. Le groupe sans section
     /// vient en dernier (11 packs mêlent les deux).
+    ///
+    /// ⚠️ **Le schéma est apparié sur le dernier segment du chemin**, jamais
+    /// sur le chemin entier : un token décrirait sinon deux clés imbriquées
+    /// homonymes avec la même description, le même défaut et la même liste de
+    /// valeurs admises. Mesuré sur le parc le 2026-09-03, ce risque est
+    /// **vide** : sur 592 mods à `config.json` dont 213 publient un
+    /// `ConfigSchema`, **aucun** token de schéma ne désigne une clé imbriquée
+    /// (les 213 ne décrivent que des clés de premier niveau), et les 34 mods
+    /// qui portent deux feuilles de même nom à des chemins différents
+    /// (`Automate` avec `Enabled` et `ChestOverrides/(BC)130/Enabled`,
+    /// `CaveWeather` avec trois `Enabled`) n'ont, tous, aucun schéma. Si un
+    /// pack venait à décrire une clé imbriquée, c'est ici qu'il faudrait
+    /// apparier sur le chemin.
     public static func groups(of tree: ConfigJSONTree.Value,
                               describedBy options: [ConfigSchemaOption]) -> [Group] {
         var index: [String: ConfigSchemaOption] = [:]
