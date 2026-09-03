@@ -554,4 +554,20 @@ struct DescriptionBlockTests {
         #expect(title == "Config")
         #expect(DescriptionBlockParser.parse(content) == [.code("{ \"Toggle\": \"F5\" }")])
     }
+
+    /// L'exigence d'un hôte ne doit pas se retourner contre des hôtes
+    /// **valides mais tordus**, qu'un parc de mods sert vraiment : tiret bas
+    /// dans le nom, userinfo, IDN, adresse IP, port. Vérifié sur la
+    /// Foundation de cette machine — le jour où `URL.host` se resserre, ce
+    /// test tombe avant que des images ne disparaissent en silence.
+    @Test func awkwardButRealHostsAreStillAllowed() {
+        for target in ["https://my_host.example/a.png",
+                       "https://user@host.example/a.png",
+                       "https://例え.jp/a.png",
+                       "https://192.168.1.1/a.png",
+                       "https://host.example:8080/a.png",
+                       "nxm://stardewvalley/mods/191/files/1"] {
+            #expect(DescriptionBlockParser.isAllowedURL(target), "refusé : \(target)")
+        }
+    }
 }
