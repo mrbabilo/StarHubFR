@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Fixed
+
+- **L'accord en genre ne bloque plus la traduction** : `${fermier^fermière}$` — la forme que le jeu emploie pour accorder selon le genre du personnage joué — était traitée comme une marque à recopier telle quelle. Son contenu, pourtant du texte affiché, était voilé au traducteur et rendu en anglais par la traduction par lot ; et le français en ajoute là où l'anglais reste neutre, si bien que **1 227 des 4 331 lignes** signalées « marque perdue » sur le parc étaient des traductions justes, refusées à l'enregistrement. Les bornes restent protégées, l'intérieur se traduit. La localisation française du jeu fait de même dans 10 cas sur 10.
+
 ## [1.34.1] - 2026-09-03
 
 ### Fixed

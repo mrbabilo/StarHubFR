@@ -47,6 +47,18 @@ public enum TranslationTokens {
 
 
         while index < characters.count {
+            // Le sélecteur de genre est la seule marque qui **entoure du
+            // texte** : ses bornes se reprennent telles quelles, son contenu
+            // se traduit. Il se découpe donc en trois, le milieu récursivement
+            // — il y porte ses propres marques (`$7`, `#$b#`).
+            if let end = genderSelector(characters, index) {
+                flushPlain()
+                segments.append(Segment(text: "${", isCode: true))
+                segments.append(contentsOf: split(String(characters[(index + 2)..<(end - 2)])))
+                segments.append(Segment(text: "}$", isCode: true))
+                index = end
+                continue
+            }
             guard let match = token(in: characters, at: index) else {
                 plain.append(characters[index])
                 index += 1
@@ -75,7 +87,9 @@ public enum TranslationTokens {
         // au-delà de 5-6 termes, le solveur de contraintes du compilateur
         // Swift explose en temps de type-checking, même quand tous les
         // termes ont le même type de retour.
-        if let match = genderSelector(characters, start) { return match }
+        // `genderSelector` n'est pas dans cette liste : `split` le traite avant
+        // d'arriver ici, parce qu'il ne rend pas *une* marque mais trois
+        // segments dont le milieu se traduit.
         if let match = mailCommand(characters, start) { return match }
         if let match = dialogueSeparator(characters, start) { return match }
         if let match = contentPatcherToken(characters, start) { return match }
@@ -87,11 +101,15 @@ public enum TranslationTokens {
     }
 
 
-    /// `${him^her^them}$` — sélection selon le genre du joueur.
+    /// `${him^her^them}$` — sélection selon le genre du joueur. Rend l'index
+    /// juste après le `}$` fermant ; c'est `split` qui en tire trois segments.
     ///
-    /// 1520 occurrences dans le parc. Sans reconnaissance dédiée, le `^` interne
-    /// passait pour un saut de ligne et les mots pour du texte : traduire
-    /// « him » en « lui » ici casse la sélection.
+    /// **Seules les bornes sont des marques.** `him`, `her`, `them` sont des
+    /// mots affichés, et ils se traduisent : la localisation française du jeu
+    /// écrit `${mon fils^ma fille}$` là où l'anglais dit `${my son^daughter}$`
+    /// (10 cas sur 10 dans ses fichiers de dialogue). Voiler le sélecteur
+    /// entier — ce que faisait ce code — laissait le traducteur devant un bloc
+    /// intouchable et faisait rendre au lot la phrase anglaise telle quelle.
     private static func genderSelector(_ c: [Character], _ i: Int) -> Int? {
         guard i + 1 < c.count, c[i] == "$", c[i + 1] == "{" else { return nil }
         var j = i + 2

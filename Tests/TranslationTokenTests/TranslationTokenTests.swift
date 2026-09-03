@@ -109,11 +109,32 @@ struct TranslationTokenComposedFormsTests {
         TranslationTokens.split(text).filter(\.isCode).map(\.text)
     }
 
-    @Test func aGenderSelectorIsOneToken() {
-        // 1520 occurrences dans le parc. Sans reconnaissance dédiée, le `^`
-        // interne passait pour un saut de ligne et les mots pour du texte à
-        // traduire — or traduire « him » en « lui » ici casse la sélection.
-        #expect(codeParts("Dis-lui ${him^her^them}$ bonjour") == ["${him^her^them}$"])
+    @Test func aGenderSelectorEnclosesTextToTranslate() {
+        // Seules les bornes sont des marques : `him`, `her`, `them` sont des
+        // **mots affichés**, et ils se traduisent. La localisation française du
+        // jeu le prouve — `${my son^daughter}$` y devient
+        // `${mon fils^ma fille}$` (10 cas sur 10 dans ses dialogues).
+        // Voiler le tout laissait le traducteur devant un bloc intouchable, et
+        // le lot rendait la phrase anglaise telle quelle.
+        #expect(codeParts("Dis-lui ${him^her^them}$ bonjour") == ["${", "^", "^", "}$"])
+        let segments = TranslationTokens.split("Dis-lui ${him^her^them}$ bonjour")
+        #expect(segments.filter { !$0.isCode }.map(\.text)
+                == ["Dis-lui ", "him", "her", "them", " bonjour"])
+    }
+
+    @Test func theMarksInsideASelectorAreStillRecognised() {
+        // Le contenu est découpé comme n'importe quel texte : la commande de
+        // portrait et le séparateur qu'il porte restent des marques.
+        #expect(codeParts("${Salut $7#$b#toi^Salut $7#$b#toi}$")
+                == ["${", "$7", "#$b#", "^", "$7", "#$b#", "}$"])
+    }
+
+    @Test func anUnclosedSelectorStaysText() {
+        // Rien à refermer : c'est du texte abîmé, pas une marque. Le voiler
+        // ferait croire qu'il ne faut pas y toucher.
+        let source = "Dis-lui ${him^her bonjour"
+        #expect(codeParts(source) == ["^"])
+        #expect(TranslationTokens.split(source).map(\.text).joined() == source)
     }
 
     @Test func aMailItemCommandIsOneToken() {
@@ -138,7 +159,7 @@ struct TranslationTokenComposedFormsTests {
         let segments = TranslationTokens.split(source)
         #expect(segments.map(\.text).joined() == source)
         #expect(segments.filter(\.isCode).map(\.text)
-                == ["${him^her}$", "%item object 349 %%", "@", "^"])
+                == ["${", "^", "}$", "%item object 349 %%", "@", "^"])
     }
 
     // MARK: bornes mesurées sur le parc (2026-08-15)
