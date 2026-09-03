@@ -110,6 +110,31 @@ struct KeybindScannerTests {
         #expect(r1.keybindCount == 1)
     }
 
+    @Test func aDisabledKeybindIsNotCountedAsOne() {
+        // Réel : 18 des 76 feuilles que le compteur retenait sur le parc sont
+        // à `None` — CJBCheatsMenu en a 5 (`OpenMenuKey`, `FreezeTimeKey`…),
+        // UIInfoSuite2Alt 7. Elles n'entrent dans aucun index ; l'écran
+        // annonçait pourtant 76 raccourcis pour 58 liaisons.
+        let off = KeybindScanner.ModScan(id: "cjb.Cheats", name: "CJB Cheats Menu",
+                                         isActive: true,
+                                         tree: tree(["OpenMenuKey": .string("None"),
+                                                     "FreezeTimeKey": .string("None")]))
+        let report = KeybindScanner.report(mods: [off])
+        #expect(report.scannedMods == 1)
+        #expect(report.keybindCount == 0)
+        #expect(report.collisions.isEmpty)
+        #expect(report.gameConflicts.isEmpty)
+        #expect(report.unrecognized.isEmpty)
+    }
+
+    @Test func aLeafThatBindsSomethingBesidesNoneStillCounts() {
+        // La borne : « None, F8 » lie F8. Une seule alternative inerte ne
+        // doit pas faire disparaître la feuille du compte.
+        let mixed = KeybindScanner.ModScan(id: "m.Mod", name: "Mixed", isActive: true,
+                                           tree: tree(["ToggleKey": .string("None, F8")]))
+        #expect(KeybindScanner.report(mods: [mixed]).keybindCount == 1)
+    }
+
     @Test func problemCountSumsCollisionsAndGameConflictsButNotUnrecognized() {
         // Une collision entre deux mods…
         let a = mod1

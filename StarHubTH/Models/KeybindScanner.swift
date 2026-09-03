@@ -127,6 +127,12 @@ public enum KeybindScanner {
         public var gameConflicts: [GameControlConflict]
         public var unrecognized: [UnrecognizedKeybind]
         public var scannedMods: Int
+        /// Les feuilles qui **lient** au moins une combinaison. Une feuille à
+        /// `None` n'en est pas une : elle n'entre dans aucun index — ni
+        /// collision, ni conflit jeu — et l'annoncer comme un raccourci
+        /// gonflait le seul chiffre que l'écran donne. Mesuré sur le parc :
+        /// 18 des 76 feuilles comptées ne liaient rien (CJBCheatsMenu en a 5,
+        /// UIInfoSuite2Alt 7), soit 76 annoncés pour 58 liaisons.
         public var keybindCount: Int
         public var pausedIgnored: Int
         /// R4 : noms des mods dont au moins une forme de chemin a été
@@ -300,7 +306,11 @@ public enum KeybindScanner {
 
             for (keyPath, combos) in keybindLeaves {
                 guard !catalogShapes.contains(pathShape(keyPath)) else { continue }
-                keybindCount += 1
+                // Compté **si ça lie** : voir le doc de `keybindCount`. La
+                // boucle qui suit saute déjà les combinaisons vides, ce
+                // compteur était la seule ligne à les prendre pour des
+                // raccourcis.
+                if combos.contains(where: { !$0.isEmpty }) { keybindCount += 1 }
                 for combo in combos where !combo.isEmpty {
                     let use = ModUse(modID: mod.id, modName: mod.name, keyPath: keyPath)
                     add(use, to: &index[combo, default: []])
