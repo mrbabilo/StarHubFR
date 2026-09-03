@@ -377,6 +377,21 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       Écart assumé : *Réafficher* ne relance pas la vérification — le cache ne porte
       plus la ligne, et huit lots réseau sur un clic isolé seraient disproportionnés.
       La ligne revient à la prochaine passe, ce que dit le libellé d'aide. · **S**
+- [ ] **X13** ⬜ *(à arbitrer — signalé le 2026-09-03)* — **Rien ne dit qu'un dossier
+      est disputé par deux mods.** `ModItem.folderName` est logique (le point de tête
+      d'un mod en pause en est retiré) : `X` actif et `.X` en pause portent donc la même
+      clé, et rien ne garantit que ce soit le même mod. Mesuré sur le parc : **1 075
+      dossiers pour 1 074 noms logiques** — `[CP] Seaside Sounds` (witchtopia, actif) et
+      son homonyme en pause (Liana) sont deux mods de deux auteurs.
+      Le dégât irréversible est corrigé (`33bf00e` : la bascule refuse de déplacer le
+      dossier d'autrui). **Reste ce que la collision fait en silence** : `ModItem.id`
+      **est** `folderName`, donc les deux mods partagent une identité `Identifiable` et
+      un `ForEach` n'en rend qu'un — l'un des deux est invisible dans la liste ; et
+      identifiant Nexus, catégorie, favori, note, config de profil et poids sont
+      partagés. `ModFolderCollision.collisions` relève déjà les noms disputés : il ne
+      manque qu'une ligne d'alerte qui les nomme.
+      ⚠️ **Ne pas « corriger » en changeant `ModItem.id`** : ce champ est la clé de tous
+      les magasins persistés, ce serait une migration. · **S**
 - [x] **B1-T1** ✅ *(livré le 2026-08-01)* — Boutons **Activer/Désactiver** et
       **Supprimer** sur la fiche mod (parité avec la liste, mêmes confirmations).
       Absents pour un composant de pack, comme dans la liste. La fiche se referme
