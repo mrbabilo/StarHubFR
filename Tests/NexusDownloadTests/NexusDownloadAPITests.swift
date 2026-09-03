@@ -94,4 +94,20 @@ struct NexusDownloadAPITests {
         let list = try NexusDownloadAPI.decodeFileList(json)
         #expect(NexusDownloadAPI.pickLatestMainFileId(list) == nil)
     }
+
+    /// Le sens d'un 403 dépend de l'appel qui le reçoit. Sur un lien
+    /// `nxm://` (ou le CDN), il annonce un lien périmé : envoyer
+    /// l'utilisateur vérifier sa clé d'API dans les Réglages l'occuperait à
+    /// réparer ce qui n'est pas cassé — le remède est de relancer le
+    /// téléchargement depuis la page du mod.
+    @Test func a403MeansDifferentThingsDependingOnTheCall() {
+        #expect(NexusDownloadAPI.statusError(403, forbiddenMeaning: .expiredLink) == .linkExpired)
+        #expect(NexusDownloadAPI.statusError(403, forbiddenMeaning: .premiumRequired) == .noDownloadLink)
+        #expect(NexusDownloadAPI.statusError(403, forbiddenMeaning: .authProblem) == .authFailed)
+        // Les autres statuts ne dépendent pas du sens du 403.
+        #expect(NexusDownloadAPI.statusError(401, forbiddenMeaning: .expiredLink) == .authFailed)
+        #expect(NexusDownloadAPI.statusError(429, forbiddenMeaning: .authProblem) == .rateLimited)
+        #expect(NexusDownloadAPI.statusError(204, forbiddenMeaning: .expiredLink) == nil)
+        #expect(NexusDownloadAPI.statusError(500, forbiddenMeaning: .premiumRequired) == .serverError(500))
+    }
 }

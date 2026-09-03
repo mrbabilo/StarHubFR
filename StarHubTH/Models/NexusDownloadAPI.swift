@@ -1,5 +1,60 @@
 import Foundation
 
+/// L'erreur d'un téléchargement Nexus. Vit ici — côté cœur testable — parce
+/// que son mapping statut → erreur (`statusError`) est de la logique pure.
+enum NexusDownloadError: Error, LocalizedError, Equatable {
+    case noApiKey
+    case noValidFile
+    case noDownloadLink
+    case authFailed
+    case rateLimited
+    case serverError(Int)
+    /// Le lien de téléchargement — clé `nxm://` ou URL du CDN — a été refusé
+    /// pour expiration. La clé d'API n'est pas en cause : la revérifier dans
+    /// les Réglages ne réparerait rien, et c'est pourtant ce que disait
+    /// `authFailed`. Le remède est de relancer le téléchargement depuis la
+    /// page du mod.
+    case linkExpired
+    /// L'utilisateur a annulé. Ce n'est pas une panne : l'appelant doit s'en
+    /// taire plutôt que d'ouvrir une alerte sur un geste volontaire.
+    case cancelled
+    /// Reserved for genuine OS/URLSession failures; `%@` is the OS-localized
+    /// `error.localizedDescription`, never a hand-written English string.
+    case requestFailed(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .noApiKey:            return L10nKey("vm_nexus_dl_no_api_key")
+        case .noValidFile:         return L10nKey("vm_nexus_dl_no_valid_file")
+        case .noDownloadLink:      return L10nKey("vm_nexus_dl_no_link")
+        case .authFailed:          return L10nKey("vm_nexus_dl_auth_failed")
+        case .rateLimited:         return L10nKey("vm_nexus_dl_rate_limited")
+        case .linkExpired:         return L10nKey("vm_nexus_dl_link_expired")
+        case .cancelled:           return L10nKey("vm_nexus_dl_cancelled_error")
+        case .serverError(let c):  return String(format: L10nKey("vm_nexus_dl_server_error"), c)
+        case .requestFailed(let m): return String(format: L10nKey("vm_nexus_dl_request_failed"), m)
+        }
+    }
+    // Small localized-string helper (the ViewModel owns the language bundle;
+    // here we fall back to the main bundle, which build_app.py populates).
+    private func L10nKey(_ k: String) -> String { NSLocalizedString(k, comment: "") }
+}
+
+/// Ce qu'un 403 veut dire **sur l'appel qui le reçoit** — le même statut
+/// annonce trois pannes différentes, et chacune appelle un remède différent.
+enum Forbidden403Meaning {
+    /// `download_link.json` interrogé avec la seule clé d'API (sans clé
+    /// `nxm://`) : le compte n'est simplement pas Premium, le lien direct
+    /// n'existe pas pour lui.
+    case premiumRequired
+    /// `download_link.json` interrogé avec une clé `nxm://`, ou le CDN du
+    /// transfert : le lien est périmé — une clé nxm sert une fois et vite.
+    case expiredLink
+    /// Aucun lien en jeu (`files.json`) : c'est l'authentification elle-même
+    /// qui refuse.
+    case authProblem
+}
+
 /// Decodable models + pure helpers for the Nexus "download link" API surface.
 /// Kept free of networking so it can be unit-tested; the actual URLSession
 /// calls live in NexusDownloader (build-verified only).
@@ -160,5 +215,24 @@ enum NexusDownloadAPI {
     /// traductions). Voir `pickLatestMainFile` pour la règle de tri.
     static func pickLatestMainFileId(_ list: NexusModFileList) -> Int? {
         pickLatestMainFile(list)?.fileId
+    }
+
+    /// Statut HTTP → erreur, `nil` quand la réponse est un succès. La partie
+    /// pure de `NexusDownloader.noteQuotaAndStatusError`, extraite pour être
+    /// testée — le sens d'un 403 est le seul point qui dépende de l'appel.
+    static func statusError(_ statusCode: Int,
+                            forbiddenMeaning: Forbidden403Meaning) -> NexusDownloadError? {
+        switch statusCode {
+        case 200..<300: return nil
+        case 401:       return .authFailed
+        case 403:
+            switch forbiddenMeaning {
+            case .premiumRequired: return .noDownloadLink
+            case .expiredLink:     return .linkExpired
+            case .authProblem:     return .authFailed
+            }
+        case 429:       return .rateLimited
+        default:        return .serverError(statusCode)
+        }
     }
 }

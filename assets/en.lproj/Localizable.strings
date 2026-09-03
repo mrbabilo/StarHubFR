@@ -924,6 +924,7 @@
 "vm_nexus_dl_auth_failed" = "Nexus authentication failed — check your API key in Settings.";
 "vm_nexus_dl_rate_limited" = "Too many requests to Nexus — wait a moment and try again.";
 "vm_nexus_dl_server_error" = "Nexus returned an unexpected response (%lld).";
+"vm_nexus_dl_link_expired" = "The Nexus download link has expired — start the download again from the mod's page on the website.";
 "vm_nexus_dl_completed" = "Nexus download #%lld complete";
 "vm_manifest_version_fixed" = "%@ manifest reports version %@, but Nexus already offers %@.";
 "vm_manifest_version_date_fixed" = "Refreshed %@ manifest date to clear a Nexus minor-update flag.";

@@ -1181,6 +1181,7 @@ enum L10n {
         static let nexusDlAuthFailed    = "vm_nexus_dl_auth_failed"
         static let nexusDlRateLimited   = "vm_nexus_dl_rate_limited"
         static let nexusDlServerError   = "vm_nexus_dl_server_error"
+        static let nexusDlLinkExpired   = "vm_nexus_dl_link_expired"
         static let nexusDlCompleted     = "vm_nexus_dl_completed"
         static let manifestVersionFixed     = "vm_manifest_version_fixed"
         static let manifestVersionDateFixed = "vm_manifest_version_date_fixed"

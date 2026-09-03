@@ -1,6 +1,6 @@
 {
   "abbreviation_vm": 2493,
-  "bare_L_calls": 108,
+  "bare_L_calls": 109,
   "dispatch_queue": 137,
   "get_prefixed_funcs": 7,
   "non_final_classes": 10,

@@ -5755,6 +5755,7 @@ for mod in mods {
         case .noValidFile:         return L(L10n.VM.nexusDlNoValidFile)
         case .noDownloadLink:      return L(L10n.VM.nexusDlNoLink)
         case .authFailed:          return L(L10n.VM.nexusDlAuthFailed)
+        case .linkExpired:         return L(L10n.VM.nexusDlLinkExpired)
         case .rateLimited:         return L(L10n.VM.nexusDlRateLimited)
         case .serverError(let code): return String(format: L(L10n.VM.nexusDlServerError), code)
         case .requestFailed(let msg): return String(format: L(L10n.VM.nexusDlRequestFailed), msg)
