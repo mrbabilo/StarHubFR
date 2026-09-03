@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.34.1] - 2026-09-03
+
 ### Fixed
 
 - **Une réponse HTTP 200 illisible ne détruit plus le cache de compatibilité** : la liste Pathoschild était écrite sur le disque dès la réponse reçue, avant toute vérification. Une page d'erreur de GitHub, un portail captif ou un transfert coupé rendent tous un 200 dont le contenu n'est pas lisible — l'app écrasait alors ses 919 Ko de données valides et annonçait « 0 mod » comme un succès. Ce cache sert aussi à retrouver la page Nexus des mods que smapi.io ignore, hors ligne : un seul mauvais téléchargement emportait les deux. Le journal dit désormais lequel des trois cas s'est produit.
