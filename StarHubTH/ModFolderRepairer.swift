@@ -154,8 +154,12 @@ public struct ModFolderRepairer {
         for entry in topEntries {
             // Skip hidden top-level entries UNLESS they are known OS junk
             // (.DS_Store, ._*, etc.) which we actively quarantine.
-            let isOsJunk = OSJunk.files.contains(entry) || entry.hasPrefix(OSJunk.appleDoublePrefix)
-            if entry.hasPrefix(".") && !isOsJunk { continue }
+            // `OSJunk.isJunk` et pas une reformulation : la liste des
+            // **dossiers** (`.Spotlight-V100`, `.Trashes`) est pointée, et une
+            // condition qui n'énumérait que les fichiers les laissait passer
+            // pour des mods en pause — l'amputation même qui a fait naître
+            // `OSJunk` (cf. son en-tête).
+            if entry.hasPrefix(".") && !OSJunk.isJunk(entry) { continue }
 
             let fullPath = (modsRoot as NSString).appendingPathComponent(entry)
             let rel = relativePath(of: fullPath, from: modsRoot)
@@ -242,6 +246,19 @@ public struct ModFolderRepairer {
         ) else { return [] }
         var items: [Item] = []
         for case let fileURL as URL in enumerator {
+            // Le test de nom d'abord : c'est le seul qui ne touche pas au
+            // disque, et il élimine tout. Les gardes qui suivent — lien
+            // symbolique, quarantaine, dossier — sont toutes des `continue`,
+            // donc leur ordre est libre ; les placer avant coûtait un `stat`
+            // par entrée sur un arbre qui en compte **93 784** chez l'auteur,
+            // soit 1,1 s à chaque scan de lancement, pour un test qui ne
+            // retient rien. `lastPathComponent` préserve le retour chariot de
+            // `Icon\r` (fixé par un test).
+            let filename = fileURL.lastPathComponent
+            let isJunkFile = OSJunk.files.contains(filename)
+            let isAppleDouble = filename.hasPrefix(OSJunk.appleDoublePrefix)
+            guard isJunkFile || isAppleDouble else { continue }
+
             // Skip symlinks entirely — they could point outside the game dir,
             // and quarantining through them would move foreign files into _Trash_.
             if let vals = try? fileURL.resourceValues(forKeys: [.isSymbolicLinkKey]),
@@ -260,21 +277,22 @@ public struct ModFolderRepairer {
             let firstComponent = (rel as NSString).components(separatedBy: "/").first ?? rel
             if firstComponent.hasPrefix(Self.trashPrefix) { continue }
 
-            let filename = fileURL.lastPathComponent
             // fullPath is built from the resolved root so it matches what the
             // enumerator reported; moveToTrash receives the resolved root too.
             let fullPath = (resolvedRoot as NSString).appendingPathComponent(rel)
 
+            // Un **dossier** portant un nom de résidu n'est pas balayé ici :
+            // ce chemin ne déplace que des fichiers.
             var isDir: ObjCBool = false
             fm.fileExists(atPath: fullPath, isDirectory: &isDir)
             if isDir.boolValue { continue }
 
-            if OSJunk.files.contains(filename) {
+            if isJunkFile {
                 if moveToTrash(fullPath: fullPath, modsRoot: resolvedRoot, gameDir: gameDir, trashProvider: trashProvider) {
                     items.append(Item(kind: .osJunkFile, relativePath: rel,
                                       reason: "OS metadata file (\(filename)), not used by Stardew/SMAPI."))
                 }
-            } else if filename.hasPrefix(OSJunk.appleDoublePrefix) {
+            } else if isAppleDouble {
                 if moveToTrash(fullPath: fullPath, modsRoot: resolvedRoot, gameDir: gameDir, trashProvider: trashProvider) {
                     items.append(Item(kind: .appleDouble, relativePath: rel,
                                       reason: "macOS AppleDouble resource-fork file, not used by Stardew/SMAPI."))

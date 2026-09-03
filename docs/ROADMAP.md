@@ -556,6 +556,42 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       énonce lui-même : *une suppression ne se décide jamais sur une absence.* Gain
       ≈ 0 octet : à traiter comme un nettoyage explicite, jamais comme un automatisme
       silencieux. · **S**
+- [x] **X26** ✅ *(corrigé le 2026-09-04)* — **Le balayage des résidus posait deux
+      questions au disque par entrée avant de regarder le nom.**
+      `sweepJunkInsideMods` tourne à chaque scan de lancement (`includeRepair`
+      vaut `true` par défaut) et parcourt tout l'arbre de `Mods/` : **93 784
+      entrées** sur le parc de référence, dont **aucune** ne porte un nom de
+      résidu. Chacune passait par `resourceValues` (lien symbolique) puis un
+      `fileExists(atPath:isDirectory:)` — mesuré à **1,09 s** de `lstat` seuls.
+      Les quatre gardes sont des `continue` conjoints : leur ordre est libre, et
+      le test de nom, seul à ne pas toucher au disque, passe devant. Comportement
+      inchangé, y compris `Icon\r` (dont `lastPathComponent` préserve le retour
+      chariot — fixé par un test). · **S**
+- [x] **X27** ✅ *(corrigé le 2026-09-04)* — **La garde du premier niveau du
+      réparateur n'énumérait que les résidus *fichiers*.** `OSJunk.folders`
+      contient `.Spotlight-V100` et `.Trashes`, pointés tous les deux : la
+      condition `OSJunk.files.contains(entry) || hasPrefix("._")` les laissait
+      donc passer pour des mods en pause, jamais mis en quarantaine. C'est
+      littéralement l'amputation qui a fait naître `OSJunk` (voir son en-tête) —
+      la copie avait survécu à la consolidation des données. Aucun exemplaire sur
+      le parc : **défaut latent**, corrigé par cohérence, sans effet visible
+      aujourd'hui. Remplacé par `OSJunk.isJunk`. · **S**
+- [ ] **X28** — **Un `__MACOSX` niché dans un mod perd ses fichiers mais garde son
+      dossier.** Le balayage profond ne déplace que des fichiers (`if isDir { continue }`)
+      et la passe de premier niveau ne traite `OSJunk.folders` qu'à la profondeur 1 :
+      un `__MACOSX` à l'intérieur d'un dossier de mod voit ses fichiers mis en
+      quarantaine un par un, et la coquille reste indéfiniment. Zéro exemplaire sur le
+      parc aujourd'hui — même classe de latence que X27. · **S**
+- [ ] **X29** — **La détection de doublons sur disque n'a aucun appelant en
+      production** : le ViewModel passe `detectDuplicates: false` et utilise la
+      version en mémoire. La version disque garde donc sa propre lecture de
+      manifeste (regex de commentaires bloc + `.json5Allowed`) au lieu de
+      `ManifestJSON.decode`, quatrième copie d'une règle consolidée ailleurs. La
+      seule divergence nommable — la marque d'octets, présente sur **142 des 1 095
+      manifestes** — a été testée : elle ne se reproduit pas, `JSONSerialization`
+      tolère la marque. Deux tests de parité épinglent le comportement ; unifier
+      serait un changement de comportement sur un chemin sans appelant, donc à ne
+      faire qu'en même temps qu'on lui en donne un (ou qu'on le retire). · **S**
 - [x] **B1-T1** ✅ *(livré le 2026-08-01)* — Boutons **Activer/Désactiver** et
       **Supprimer** sur la fiche mod (parité avec la liste, mêmes confirmations).
       Absents pour un composant de pack, comme dans la liste. La fiche se referme
