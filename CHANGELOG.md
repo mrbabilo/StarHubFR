@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.34.0] - 2026-09-03
+
 ### Changed
 
 - **Les liens `nxm://` et téléchargements lancés pendant qu'un autre tourne — ou pendant que la feuille d'installation est ouverte — ne sont plus refusés** : ils attendent dans une file (un clic répété sur le même fichier ne duplique pas l'entrée) et démarrent tour à tour quand le créneau se libère. Les dépôts de traduction gardent l'ancien comportement.
