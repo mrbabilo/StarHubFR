@@ -804,6 +804,14 @@ struct SaveDateTests {
 @Suite("Cache de lecture des sauvegardes", .serialized)
 struct SaveParseCacheTests {
 
+    /// **Un `SaveManager` par test, jamais `shared`.** Le cache de lecture est
+    /// vidé en entier par toute écriture, et les suites tournent en parallèle :
+    /// un `updateSave` d'une autre suite tombant entre les deux lectures d'ici
+    /// faisait échouer la mémoïsation par intermittence (relevé le 2026-09-03,
+    /// `money == 999` au lieu de 100). Le cache appartenant désormais à
+    /// l'instance, une instance à soi suffit à isoler ces tests.
+    let manager = SaveManager()
+
     /// Date figée, posée à chaque écriture. ⚠️ Ne **pas** capturer la date du
     /// fichier puis la restaurer : `setAttributes` la relit différente de
     /// l'originale au bit près (les deux `Date` s'impriment pareil et leur
@@ -836,24 +844,24 @@ struct SaveParseCacheTests {
 
     @Test func aSecondReadOfAnUntouchedFileComesFromTheCache() throws {
         let env = TestEnvironment(); defer { env.cleanup() }
-        SaveManager.shared.invalidateParseCache()
+        manager.invalidateParseCache()
         let url = env.savesDir.appendingPathComponent("Cached").appendingPathComponent("Cached")
         try Self.write(Self.xml(money: 100), at: url)
-        _ = SaveManager.shared.parseSaveFile(url: url, folderName: "Cached")
+        _ = manager.parseSaveFile(url: url, folderName: "Cached")
         // Même taille (3 chiffres), même date : le cache doit encore répondre 100.
         try Self.rewritePreservingStamp(Self.xml(money: 999), at: url)
-        let again = SaveManager.shared.parseSaveFile(url: url, folderName: "Cached")
+        let again = manager.parseSaveFile(url: url, folderName: "Cached")
         #expect(again?.money == 100)
     }
 
     @Test func aFileWhoseSizeChangedIsReparsed() throws {
         let env = TestEnvironment(); defer { env.cleanup() }
-        SaveManager.shared.invalidateParseCache()
+        manager.invalidateParseCache()
         let url = env.savesDir.appendingPathComponent("Resized").appendingPathComponent("Resized")
         try Self.write(Self.xml(money: 100), at: url)
-        _ = SaveManager.shared.parseSaveFile(url: url, folderName: "Resized")
+        _ = manager.parseSaveFile(url: url, folderName: "Resized")
         try Self.rewritePreservingStamp(Self.xml(money: 1234567), at: url)  // taille différente
-        #expect(SaveManager.shared.parseSaveFile(url: url, folderName: "Resized")?.money == 1234567)
+        #expect(manager.parseSaveFile(url: url, folderName: "Resized")?.money == 1234567)
     }
 
     /// Une restauration de sauvegarde recopie un fichier en **préservant sa
@@ -861,13 +869,13 @@ struct SaveParseCacheTests {
     /// contenu. Toute écriture de `SaveManager` doit donc vider le cache.
     @Test func invalidatingForcesAReparse() throws {
         let env = TestEnvironment(); defer { env.cleanup() }
-        SaveManager.shared.invalidateParseCache()
+        manager.invalidateParseCache()
         let url = env.savesDir.appendingPathComponent("Invalidated").appendingPathComponent("Invalidated")
         try Self.write(Self.xml(money: 100), at: url)
-        _ = SaveManager.shared.parseSaveFile(url: url, folderName: "Invalidated")
+        _ = manager.parseSaveFile(url: url, folderName: "Invalidated")
         try Self.rewritePreservingStamp(Self.xml(money: 999), at: url)
-        SaveManager.shared.invalidateParseCache()
-        #expect(SaveManager.shared.parseSaveFile(url: url, folderName: "Invalidated")?.money == 999)
+        manager.invalidateParseCache()
+        #expect(manager.parseSaveFile(url: url, folderName: "Invalidated")?.money == 999)
     }
 
     /// `restoreBackup` recopie un dossier avec `copyItem`, qui **préserve la
@@ -876,12 +884,12 @@ struct SaveParseCacheTests {
     /// fiche continuerait d'afficher la sauvegarde d'avant la restauration.
     @Test func restoringABackupInvalidatesTheCache() throws {
         let env = TestEnvironment(); defer { env.cleanup() }
-        SaveManager.shared.invalidateParseCache()
+        manager.invalidateParseCache()
 
         let saveFolder = env.savesDir.appendingPathComponent("Restored")
         let saveURL = saveFolder.appendingPathComponent("Restored")
         try Self.write(Self.xml(money: 100), at: saveURL)
-        let info = try #require(SaveManager.shared.parseSaveFile(url: saveURL, folderName: "Restored"))
+        let info = try #require(manager.parseSaveFile(url: saveURL, folderName: "Restored"))
         #expect(info.money == 100)
 
         // Une sauvegarde de secours au **même** gabarit : même date, même taille.
@@ -890,20 +898,20 @@ struct SaveParseCacheTests {
 
         let backup = SaveBackup(folderPath: backupFolder, timestamp: Self.fixedDate,
                                 saveFolder: "Restored")
-        #expect(SaveManager.shared.restoreBackup(backup: backup, info: info) == true)
-        #expect(SaveManager.shared.parseSaveFile(url: saveURL, folderName: "Restored")?.money == 999)
+        #expect(manager.restoreBackup(backup: backup, info: info) == true)
+        #expect(manager.parseSaveFile(url: saveURL, folderName: "Restored")?.money == 999)
     }
 
     @Test func updateSaveInvalidatesTheCacheItself() throws {
         let env = TestEnvironment(); defer { env.cleanup() }
-        SaveManager.shared.invalidateParseCache()
+        manager.invalidateParseCache()
         let url = env.savesDir.appendingPathComponent("Edited").appendingPathComponent("Edited")
         try Self.write(Self.xml(money: 100), at: url)
-        let info = try #require(SaveManager.shared.parseSaveFile(url: url, folderName: "Edited"))
-        _ = SaveManager.shared.updateSave(info: info, newName: "Alice", newFarm: "F", newFav: "",
+        let info = try #require(manager.parseSaveFile(url: url, folderName: "Edited"))
+        _ = manager.updateSave(info: info, newName: "Alice", newFarm: "F", newFav: "",
                                           newMoney: 777, newTotalMoneyEarned: 0, newMaxHealth: 100,
                                           newMaxStamina: 270, newGoldenWalnuts: 0, newQiGems: 0,
                                           newClubCoins: 0, newSpouse: "")
-        #expect(SaveManager.shared.parseSaveFile(url: url, folderName: "Edited")?.money == 777)
+        #expect(manager.parseSaveFile(url: url, folderName: "Edited")?.money == 777)
     }
 }

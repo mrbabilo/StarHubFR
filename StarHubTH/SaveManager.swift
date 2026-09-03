@@ -264,17 +264,25 @@ public class SaveManager {
     /// Verrou dédié : `fetchSaves()` peut être appelé hors du fil principal,
     /// et le subscript d'un `Dictionary` Swift sans verrou a déjà coûté un
     /// `EXC_BAD_ACCESS` à ce dépôt (CLAUDE.md §Concurrence).
-    private static var parseCache: [String: ParsedSave] = [:]
-    private static let parseCacheLock = NSLock()
+    ///
+    /// **Porté par l'instance, pas par le type.** La production n'en a qu'une
+    /// (`shared`), donc rien n'y change ; mais un cache statique était vidé
+    /// par *tout* test appelant une écriture, et les suites tournent en
+    /// parallèle : une invalidation d'une autre suite tombant entre les deux
+    /// lectures du test de mémoïsation le faisait échouer par intermittence
+    /// (`money == 999` au lieu de 100, vu le 2026-09-03). Chaque test peut
+    /// désormais posséder son propre `SaveManager()`.
+    private var parseCache: [String: ParsedSave] = [:]
+    private let parseCacheLock = NSLock()
 
     /// Vide le cache. Appelé par tout chemin qui écrit dans une sauvegarde —
     /// vider entièrement plutôt que par entrée : une invalidation partielle
     /// oubliée resservirait du contenu périmé, et un reparse complet ne coûte
     /// qu'une fois ce que la mémoïsation économise ensuite.
     public func invalidateParseCache() {
-        Self.parseCacheLock.lock()
-        Self.parseCache.removeAll()
-        Self.parseCacheLock.unlock()
+        parseCacheLock.lock()
+        parseCache.removeAll()
+        parseCacheLock.unlock()
     }
 
     private static func stamp(of url: URL) -> (modified: Date, size: Int64)? {
@@ -284,8 +292,8 @@ public class SaveManager {
         return (modified, size)
     }
 
-    private static func cached(path: String, folderName: String,
-                               modified: Date, size: Int64) -> SaveGameInfo? {
+    private func cached(path: String, folderName: String,
+                        modified: Date, size: Int64) -> SaveGameInfo? {
         parseCacheLock.lock()
         defer { parseCacheLock.unlock() }
         guard let hit = parseCache[path], hit.folderName == folderName,
@@ -293,8 +301,8 @@ public class SaveManager {
         return hit.info
     }
 
-    private static func remember(_ info: SaveGameInfo, path: String, folderName: String,
-                                 modified: Date, size: Int64) {
+    private func remember(_ info: SaveGameInfo, path: String, folderName: String,
+                          modified: Date, size: Int64) {
         parseCacheLock.lock()
         parseCache[path] = ParsedSave(modified: modified, size: size,
                                       folderName: folderName, info: info)
@@ -334,7 +342,7 @@ public class SaveManager {
     func parseSaveFile(url: URL, folderName: String) -> SaveGameInfo? {
         let stamp = Self.stamp(of: url)
         if let stamp,
-           let hit = Self.cached(path: url.path, folderName: folderName,
+           let hit = cached(path: url.path, folderName: folderName,
                                  modified: stamp.modified, size: stamp.size) {
             return hit
         }
@@ -425,7 +433,7 @@ public class SaveManager {
             isFemale: isFemale
         )
         if let stamp {
-            Self.remember(parsed, path: url.path, folderName: folderName,
+            remember(parsed, path: url.path, folderName: folderName,
                           modified: stamp.modified, size: stamp.size)
         }
         return parsed
