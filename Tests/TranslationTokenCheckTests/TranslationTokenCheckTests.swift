@@ -80,9 +80,11 @@ struct TranslationTokenCheckTests {
 /// laisse neutres.
 ///
 /// Comparer ces marques au nombre revenait donc à refuser la traduction juste :
-/// **1 227 des 4 331 lignes** signalées en écart de marques sur le parc
-/// n'avaient que ce motif. Le contenu d'un sélecteur, bornes comprises, est
-/// donc hors comparaison — il est du texte, et il se traduit.
+/// **1 092 des 4 331 lignes** signalées en écart de marques sur le parc
+/// n'avaient que ce motif. Hors comparaison, donc : les bornes et le `^` qui
+/// les sépare — rien d'autre. Le texte du sélecteur se traduit, mais les
+/// marques qu'il porte restent comparées ; les exempter aussi aurait levé
+/// 135 lignes de plus, toutes de vraies pertes.
 struct TranslationTokenCheckGenderTests {
 
     @Test func aSelectorAddedByFrenchIsNotAMismatch() {
@@ -120,6 +122,16 @@ struct TranslationTokenCheckGenderTests {
             source: "${my son^daughter}$ arrive#$b#et repart",
             target: "${mon fils^ma fille}$ arrive et repart")
         #expect(found.map(\.token) == ["#$b#"])
+    }
+
+    @Test func aMarkDroppedInsideASelectorIsStillCaught() {
+        // La levée porte sur les **bornes** et leur `^`, rien de plus : le
+        // nombre de sélecteurs ne se déduit pas de la source, mais un `$7`
+        // perdu à l'intérieur casse le portrait comme il le ferait dehors.
+        let found = TranslationTokenCheck.mismatches(
+            source: "${He said $7hello^She said $7hello}$",
+            target: "${Il a dit bonjour^Elle a dit bonjour}$")
+        #expect(found.map(\.token) == ["$7"])
     }
 
     @Test func aSelectorLeftUnclosedInTheTargetIsCaught() {

@@ -68,28 +68,36 @@ public enum TranslationTokenCheck {
         }
     }
 
-    /// Les marques **comparables** : celles d'`extract`, moins tout ce qui vit
-    /// dans un sélecteur de genre, bornes comprises.
+    /// Les marques **comparables** : celles d'`extract`, moins les bornes d'un
+    /// sélecteur de genre et le `^` qui les sépare. Rien d'autre — ce qui vit
+    /// *dans* un sélecteur reste comparé.
     ///
     /// Le nombre de `${…}$` d'une traduction ne se déduit pas de sa source : le
     /// français accorde en genre là où l'anglais reste neutre. Sur le parc de
     /// l'auteur, 211 sélecteurs côté source contre **1 528** côté français ; et
     /// la localisation française du jeu fait de même — un sélecteur devient
     /// trois dans `Abigail/summer_Tue4`. Les compter revenait à refuser la
-    /// traduction juste : **1 227 des 4 331** lignes du parc signalées en écart
+    /// traduction juste : **1 092 des 4 331** lignes du parc signalées en écart
     /// de marques n'avaient que ce motif, et l'écriture les bloquait toutes.
     ///
-    /// Ce qui reste hors des sélecteurs est comparé comme avant — un `^` de
-    /// saut de ligne, un `#$b#` perdu remontent toujours. Et un sélecteur mal
-    /// refermé n'en est pas un pour `TranslationTokens` : son contenu retombe
-    /// dans le texte comparé, donc l'écart remonte.
+    /// ⚠️ La levée s'arrête là. Exempter tout le **contenu** d'un sélecteur
+    /// aurait levé 1 227 lignes au lieu de 1 092 — les 135 de plus sont de
+    /// vraies pertes (`$10`, `$0`, `@`) que ce contrôle doit voir : un `#$b#`
+    /// reste une fin de page dans un sélecteur comme dehors. Un sélecteur mal
+    /// refermé, lui, n'en est pas un pour `TranslationTokens` : son contenu
+    /// retombe dans le texte comparé, donc l'écart remonte.
     private static func comparedTokens(_ text: String) -> [String] {
         var out: [String] = []
         var depth = 0
         for segment in TranslationTokens.split(text) where segment.isCode {
             if segment.text == "${" { depth += 1; continue }
             if segment.text == "}$" { depth = max(0, depth - 1); continue }
-            guard depth == 0 else { continue }
+            // Le `^` d'un sélecteur est un séparateur de genre, pas un saut de
+            // ligne : c'est **lui** que le nombre de sélecteurs entraîne. Les
+            // autres marques, elles, restent comparées où qu'elles soient —
+            // un `#$b#` reste une fin de page à l'intérieur d'un sélecteur
+            // comme dehors, et le perdre casse le dialogue de la même façon.
+            if depth > 0, segment.text == "^" { continue }
             out.append(segment.text)
         }
         return out

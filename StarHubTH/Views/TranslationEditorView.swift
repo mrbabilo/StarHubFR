@@ -51,6 +51,14 @@ struct TranslationEditorView: View {
 
     /// Dédoublonnées et triées : la même marque répétée trois fois ne donne
     /// qu'une pastille, et l'ordre ne doit pas sauter d'une ouverture à l'autre.
+    ///
+    /// ⚠️ Ces pastilles montrent **toutes** les marques de la source, y compris
+    /// les bornes `${` / `}$` d'un sélecteur de genre et le `^` qui les sépare.
+    /// Le contrôle d'écriture, lui, ne compare pas ces trois-là : le français
+    /// en ajoute légitimement (voir `TranslationTokenCheck.comparedTokens`).
+    /// L'affichage promet donc un cran de plus que ce qui bloque — c'est voulu,
+    /// une borne perdue reste une erreur à voir. Ne pas « aligner » le contrôle
+    /// sur les pastilles.
     private var sourceTokens: [String] {
         Array(Set(TranslationTokenCheck.extract(row.english))).sorted()
     }
