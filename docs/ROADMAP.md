@@ -445,6 +445,32 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       latent, pas ouvert. L'écriture est désormais enroulée dans
       `RecoveredFileWriter.withWriteAccess` (droits rendus tels quels, remontée bornée à
       l'hôte), et `destination(for:)` passe par `physicalFolderName`. · **S**
+- [x] **X18** ✅ *(corrigé le 2026-09-03 par `f078244`)* — 🔴 **Le framework qu'exige un
+      content pack manquait à ses dépendances, à l'installation.**
+      `ModManifest.init(dict:)` lisait `Dependencies` par une boucle à lui, sans
+      `ContentPackFor` — or c'est ainsi que la plupart des mods de contenu déclarent
+      leur seule exigence — et sans déduplication, quand `ModDependencyParser` (le
+      lecteur du scan des mods installés) fait les deux.
+      Mesuré sur le parc (1 085 manifests) : **625 déclarent un `ContentPackFor`**,
+      dont 254 sans aucune autre dépendance — annoncés « aucune dépendance » alors
+      qu'ils ne font rien sans leur framework — et 340 avec une liste amputée de
+      celui-ci ; les 31 restants le déclarent deux fois, et seule la déduplication
+      les concerne (483 des 625 visent Content Patcher). Plus **8 manifests déclarant deux fois la
+      même dépendance** : 13 lignes en double, et des `id` dupliqués au `ForEach`.
+      Une seule lecture désormais, celle du parseur. · **S**
+- [x] **X19** ✅ *(corrigé le 2026-09-03 par `013d5c5`)* — **Une dépendance installée
+      dans un pack était annoncée manquante.** La feuille d'installation cherchait
+      chaque dépendance parmi les seules lignes de premier niveau : un pack n'en occupe
+      qu'une, ses composants vivant dans `children` — et ce sont eux que les autres
+      mods réclament.
+      Mesuré sur les 1 988 déclarations du parc : 1 012 trouvées, **296 désignant un
+      composant de pack** (109 identifiants distincts — `FlashShifter.SVE-FTM`,
+      `Rafseazz.RSVCC`, `ichortower.HatMouseLacey.Core`…) affichées en rouge avec une
+      recherche Nexus proposée pour un mod déjà là, 13 désignant la racine d'un pack
+      (hors d'atteinte : un en-tête de pack ne porte pas d'identifiant), 667 vraiment
+      absentes. `ModZipInstaller.findExistingMod` cherchait déjà correctement : sa
+      règle est devenue `Array<ModItem>.mod(withUniqueId:)`, testée, et ses trois
+      appelants la partagent. · **S**
 - [x] **B1-T1** ✅ *(livré le 2026-08-01)* — Boutons **Activer/Désactiver** et
       **Supprimer** sur la fiche mod (parité avec la liste, mêmes confirmations).
       Absents pour un composant de pack, comme dans la liste. La fiche se referme
