@@ -255,3 +255,109 @@ struct SmapiUpdateRequestTests {
         #expect(parts.allSatisfy { Int($0) != nil })
     }
 }
+
+/// La version **affirmée** : le second champ capable de vider un lot.
+///
+/// `sanitizedGameVersion` protège `gameVersion` depuis le jour où une version
+/// à point final a fait renvoyer une liste vide. `installedVersion` courait le
+/// même risque, mod par mod, et il s'est réalisé : sur le parc de l'auteur,
+/// **15 ancres** portent une version que smapi.io ne sait pas analyser, toutes
+/// posées par « Je l'ai déjà » — qui enregistre l'étiquette **Nexus** de la
+/// mise à jour (« 5 », « 1.01 »), pas une version SMAPI. Une seule entrée
+/// fautive fait rendre **HTTP 200 et une liste vide** pour son lot entier :
+/// 173 mods rendus sur 1 073, une mise à jour annoncée au lieu de quatorze.
+///
+/// ⚠️ **L'asymétrie décide de la sévérité du filtre** : un faux négatif coûte
+/// le bénéfice d'une ancre sur un mod ; un faux positif emporte les 150 mods
+/// du lot. Ce validateur ne se desserre pas sans mesure contraire.
+struct SmapiInstalledVersionTests {
+
+    /// Formes **mesurées acceptées** par `smapi.io/api/v3.0/mods`, le
+    /// 2026-09-03, une requête par forme.
+    private let accepted = ["1.0", "0.1", "0.0.1", "1.2.0", "10.20.30",
+                            "0.1.9-beta.4", "1.0.0-a", "1.0.0+build",
+                            "1.6.1-unofficial-2.dphill", "999999999.0"]
+
+    /// Formes **mesurées refusées** — chacune, seule dans un lot, fait rendre
+    /// HTTP 200 et une liste vide. `2147483648.0` borne le champ à un Int32 :
+    /// `2147483647.0` passe.
+    private let rejected = ["1", "5", "v5", "1.01", "1.0.4.1", "0.0", "0.0.0",
+                            "1.0.0-", "999999999999.0", "2147483648.0",
+                            "1.6.15.", "x.y.z"]
+
+    @Test func theMeasuredGrammarIsHonoured() {
+        for version in accepted {
+            #expect(SmapiUpdateRequest.isExpressibleVersion(version), "accepté : \(version)")
+        }
+        for version in rejected {
+            #expect(!SmapiUpdateRequest.isExpressibleVersion(version), "refusé : \(version)")
+        }
+    }
+
+    @Test func whitespaceIsToleratedLikeTheServerDoes() {
+        #expect(SmapiUpdateRequest.isExpressibleVersion(" 1.0.0 "))
+    }
+
+    @Test func theEmptyStringIsNotAVersionButIsAcceptedByTheServer() {
+        // Mesurée à part : le serveur la prend et **ne suggère rien**. Ce
+        // n'est pas une version — le validateur la refuse — mais c'est ce qui
+        // en fait le dernier recours sûr quand plus rien n'est exprimable.
+        #expect(!SmapiUpdateRequest.isExpressibleVersion(""))
+    }
+
+    private func candidate(_ uid: String, _ version: String) -> SmapiUpdateRequest.Candidate {
+        .init(uniqueId: uid, manifestVersion: version, updateKeys: [], isPaused: false,
+              manualNexusId: nil)
+    }
+
+    private func anchor(_ uid: String, _ version: String) -> ModVersionAnchor {
+        ModVersionAnchor(uniqueId: uid, anchoredVersion: version, origin: .userAffirmed,
+                         anchoredAt: Date())
+    }
+
+    @Test func anInexpressibleAnchorFallsBackToTheManifest() {
+        // Le cas réel : `Clmny.ModCollectionAlbum`, ancré sur l'étiquette
+        // Nexus « 5 » alors que le disque déclare 1.2.0.
+        let entries = SmapiUpdateRequest.entries(from: [candidate("a", "1.2.0")],
+                                                 anchors: ["a": anchor("a", "5")])
+        #expect(entries[0].installedVersion == "1.2.0")
+    }
+
+    @Test func anExpressibleAnchorStillWins() {
+        // La contre-épreuve : le repli ne doit pas manger les ancres valides,
+        // qui sont la majorité (19 des 34 divergentes du parc).
+        let entries = SmapiUpdateRequest.entries(from: [candidate("a", "2.1.0")],
+                                                 anchors: ["a": anchor("a", "2.2.0")])
+        #expect(entries[0].installedVersion == "2.2.0")
+    }
+
+    @Test func aManifestVersionThatIsItselfInexpressibleSendsNothing() {
+        // Dernier recours : la chaîne vide est la seule valeur mesurée à la
+        // fois **acceptée** et sans suggestion — le mod reste dans la réponse,
+        // et le lot avec lui. Aucun mod du parc n'y tombe aujourd'hui.
+        let entries = SmapiUpdateRequest.entries(from: [candidate("a", "1")],
+                                                 anchors: ["a": anchor("a", "5")])
+        #expect(entries[0].installedVersion == "")
+    }
+
+    @Test func theSubstitutionIsReported() {
+        // Un repli muet ici serait le défaut qu'on vient de passer une heure à
+        // trouver : c'est l'appelant qui le journalise.
+        var reported: [(String, String, String)] = []
+        _ = SmapiUpdateRequest.entries(from: [candidate("a", "1.2.0")],
+                                       anchors: ["a": anchor("a", "5")],
+                                       reportingSubstitution: { reported.append(($0, $1, $2)) })
+        #expect(reported.count == 1)
+        #expect(reported.first?.0 == "a")
+        #expect(reported.first?.1 == "5")
+        #expect(reported.first?.2 == "1.2.0")
+    }
+
+    @Test func nothingIsReportedWhenEveryVersionIsExpressible() {
+        var reported = 0
+        _ = SmapiUpdateRequest.entries(from: [candidate("a", "1.2.0")],
+                                       anchors: ["a": anchor("a", "2.0.0")],
+                                       reportingSubstitution: { _, _, _ in reported += 1 })
+        #expect(reported == 0)
+    }
+}

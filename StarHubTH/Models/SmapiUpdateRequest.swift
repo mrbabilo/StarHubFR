@@ -59,6 +59,55 @@ public enum SmapiUpdateRequest {
         return trimmed
     }
 
+    /// La version affirmée est-elle **exprimable** à smapi.io ?
+    ///
+    /// Troisième champ capable de vider un lot en silence, après `apiVersion`
+    /// et `gameVersion` — et le seul qui l'ait fait pour de vrai. Mesuré sur le
+    /// parc de l'auteur le 2026-09-03 : **15 ancres** portent une version que
+    /// le serveur ne sait pas analyser, et une seule entrée fautive fait rendre
+    /// **HTTP 200 avec une liste vide** pour son lot de 150. Résultat mesuré,
+    /// avant correctif : 173 mods rendus sur 1 073, **une** mise à jour
+    /// annoncée au lieu de quatorze.
+    ///
+    /// Elles viennent toutes de « Je l'ai déjà », qui enregistre l'étiquette
+    /// **Nexus** de la mise à jour — « 5 », « 1.01 », « 1.0.4.1 » — et non une
+    /// version SMAPI. C'est voulu côté ancre (voir `affirmInstalled`) : c'est
+    /// ici, au moment d'écrire la requête, que la traduction doit se faire.
+    ///
+    /// ⚠️ **La sévérité du filtre n'est pas négociable.** Un faux négatif coûte
+    /// le bénéfice d'une ancre sur un mod ; un faux positif emporte les 150
+    /// mods de son lot. Il ne se desserre que contre une mesure, jamais contre
+    /// une lecture de la grammaire SemVer.
+    ///
+    /// Grammaire retenue, calée sur ce que le serveur a accepté et refusé une
+    /// requête à la fois : `majeur.mineur[.correctif][-préversion][+build]`,
+    /// deux ou trois parties entières, sans zéro de tête, non toutes nulles, et
+    /// tenant dans un `Int32` — la longueur est bornée à neuf chiffres plutôt
+    /// qu'analysée, un `Int` accepterait `999999999999`.
+    public static func isExpressibleVersion(_ raw: String) -> Bool {
+        var core = Substring(raw.trimmingCharacters(in: .whitespacesAndNewlines))
+        // `+build` d'abord, `-préversion` ensuite : `1.0.0+build-x` porte son
+        // tiret **dans** le build, le découper à l'envers casserait la lecture.
+        if let plus = core.firstIndex(of: "+") {
+            let build = core[core.index(after: plus)...]
+            guard !build.isEmpty else { return false }
+            core = core[..<plus]
+        }
+        if let dash = core.firstIndex(of: "-") {
+            let prerelease = core[core.index(after: dash)...]
+            guard !prerelease.isEmpty else { return false }
+            core = core[..<dash]
+        }
+        let parts = core.split(separator: ".", omittingEmptySubsequences: false)
+        guard parts.count == 2 || parts.count == 3 else { return false }
+        for part in parts {
+            guard !part.isEmpty, part.count <= 9,
+                  part.allSatisfy({ $0.isASCII && $0.isNumber }),
+                  part == "0" || part.first != "0" else { return false }
+        }
+        return parts.contains { $0.contains(where: { $0 != "0" }) }
+    }
+
     /// Un dossier de mod tel que le scan l'a vu.
     public struct Candidate {
         public let uniqueId: String
@@ -122,8 +171,15 @@ public enum SmapiUpdateRequest {
     /// verdict de l'ordre de parcours du disque. Quand deux candidats sont
     /// strictement égaux sur statut et version, on fusionne leurs UpdateKeys
     /// pour garantir le déterminisme : c'est l'union, dédoublonnée, triée.
+    ///
+    /// - Parameter reportingSubstitution: appelé `(uniqueId, refusée, envoyée)`
+    ///   quand la version affirmée n'est pas exprimable et qu'on lui en
+    ///   substitue une autre. Un repli muet ici serait exactement le défaut
+    ///   qu'il corrige : c'est l'appelant qui le journalise.
     public static func entries(from candidates: [Candidate],
-                               anchors: [String: ModVersionAnchor]) -> [Entry] {
+                               anchors: [String: ModVersionAnchor],
+                               reportingSubstitution: ((String, String, String) -> Void)? = nil)
+        -> [Entry] {
         var best: [String: Candidate] = [:]
         for candidate in candidates where !candidate.uniqueId.isEmpty {
             guard let existing = best[candidate.uniqueId] else {
@@ -145,8 +201,10 @@ public enum SmapiUpdateRequest {
             .map { candidate in
                 Entry(id: candidate.uniqueId,
                       updateKeys: resolvedUpdateKeys(candidate),
-                      installedVersion: anchors[candidate.uniqueId]?.anchoredVersion
-                          ?? candidate.manifestVersion)
+                      installedVersion: sentVersion(for: candidate,
+                                                    anchored: anchors[candidate.uniqueId]?
+                                                        .anchoredVersion,
+                                                    reporting: reportingSubstitution))
             }
     }
 
@@ -158,6 +216,34 @@ public enum SmapiUpdateRequest {
     }
 
     // MARK: - Privé
+
+    /// La version à **poster** : l'ancre si le serveur sait la lire, la version
+    /// du manifest sinon, et la chaîne vide en dernier recours.
+    ///
+    /// Le repli sur le manifest ne ramène aucune ligne éteinte, et c'est
+    /// mesuré : aucun des 15 mods concernés du parc n'obtient de suggestion de
+    /// smapi.io quand on lui envoie sa version de manifest. L'affirmation, elle,
+    /// continue de valoir — `NexusFallbackCheck.Blocked` prend l'ancre **au
+    /// retour**, pas ce qu'on a envoyé.
+    ///
+    /// La chaîne vide est le seul dernier recours sûr : mesurée à la fois
+    /// acceptée par le serveur et sans suggestion, elle garde le mod dans la
+    /// réponse — et le lot avec lui. Aucun mod du parc n'y tombe aujourd'hui ;
+    /// elle couvre le manifest d'un mod à venir dont la version ne s'exprime
+    /// pas davantage.
+    private static func sentVersion(for candidate: Candidate,
+                                    anchored: String?,
+                                    reporting: ((String, String, String) -> Void)?) -> String {
+        guard let anchored else { return fallback(candidate.manifestVersion) }
+        guard !isExpressibleVersion(anchored) else { return anchored }
+        let sent = fallback(candidate.manifestVersion)
+        reporting?(candidate.uniqueId, anchored, sent)
+        return sent
+    }
+
+    private static func fallback(_ manifestVersion: String) -> String {
+        isExpressibleVersion(manifestVersion) ? manifestVersion : ""
+    }
 
     /// Résultat de la comparaison de deux candidats avec le même UniqueID.
     private enum Comparison {

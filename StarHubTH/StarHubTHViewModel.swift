@@ -4221,7 +4221,17 @@ class StarHubTHViewModel: ObservableObject {
                 isPaused: !mod.isEnabled,
                 manualNexusId: nexusCustomModIds[mod.folderName])
         }
-        let entries = SmapiUpdateRequest.entries(from: candidates, anchors: anchors)
+        // Une version affirmée que smapi.io ne sait pas lire vide **tout son
+        // lot** — 150 mods — sur un HTTP 200 sans message. Le repli est décidé
+        // dans `SmapiUpdateRequest` ; il se dit ici, sinon il serait aussi muet
+        // que la panne qu'il corrige.
+        let entries = SmapiUpdateRequest.entries(
+            from: candidates, anchors: anchors,
+            reportingSubstitution: { [weak self] uniqueId, refused, sent in
+                self?.log("Version affirmée inutilisable pour \(uniqueId) : « \(refused) » "
+                          + "n'est pas analysable par smapi.io, envoi de "
+                          + (sent.isEmpty ? "rien" : "« \(sent) »"), level: .warning)
+            })
         // Le parc **tel qu'interrogé**, figé avec la requête. Un scan peut
         // survenir entre l'envoi et la réponse (installation, activation,
         // profil appliqué) : relire la liste vivante à l'arrivée ferait
@@ -4955,6 +4965,15 @@ for mod in mods {
     /// champ `Version` de son manifest : smapi.io compare des chaînes, voit un
     /// retard qui n'existe pas, et le redira à chaque passe. L'ancre
     /// `.userAffirmed` fige la version envoyée et éteint la ligne pour de bon.
+    ///
+    /// ⚠️ La version enregistrée est celle **affichée** dans la ligne, donc
+    /// parfois une étiquette Nexus libre (« 5 », « 1.01 ») que smapi.io ne sait
+    /// pas analyser. C'est voulu, et ça ne doit pas être « corrigé » ici :
+    /// `NexusFallbackCheck` compare l'ancre à ce que la page Nexus annonce, et
+    /// c'est cette comparaison-là qui tait la ligne. La traduction vers ce que
+    /// le serveur sait lire se fait au moment d'écrire la requête — voir
+    /// `SmapiUpdateRequest.isExpressibleVersion`, sans lequel une seule de ces
+    /// étiquettes vidait un lot de 150 mods.
     func affirmInstalled(uniqueId: String, version: String) {
         anchorStore.put(ModVersionAnchorRules.afterUserAffirmation(
             uniqueId: uniqueId, version: version, now: Date()))
