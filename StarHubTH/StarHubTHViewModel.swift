@@ -4660,7 +4660,23 @@ for mod in mods {
             guard let self else { return }
             let entries = (try? result.get()) ?? []
             guard !entries.isEmpty else {
-                self.log("Filet Pathoschild : aucun dump récupérable (réseau + cache)", level: .info)
+                // Dire **pourquoi** : un corps de réponse illisible n'est pas
+                // une panne de réseau, et le cache n'est plus écrasé dans ce
+                // cas — les deux méritent des phrases différentes dans le
+                // journal, sans quoi on cherche une coupure qui n'existe pas.
+                switch result {
+                case .failure(.decoding(let detail)):
+                    self.log("Filet Pathoschild : dump reçu mais illisible (\(detail)) — "
+                             + "cache conservé", level: .warning)
+                case .failure(.http(let code)):
+                    self.log("Filet Pathoschild : HTTP \(code), et aucun cache lisible",
+                             level: .info)
+                case .failure(.transport(let detail)):
+                    self.log("Filet Pathoschild : réseau indisponible (\(detail)) et aucun "
+                             + "cache lisible", level: .info)
+                case .success:
+                    self.log("Filet Pathoschild : dump vide", level: .info)
+                }
                 return
             }
             let verdicts = PathoschildCompatibilityList.verdicts(for: uniqueIds, from: entries)

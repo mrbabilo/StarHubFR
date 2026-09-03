@@ -205,6 +205,49 @@ struct PathoschildCompatibilityListTests {
         #expect(entries.map(\.id) == ["a.b", "c.d"])
     }
 
+    // MARK: - Un 200 n'est pas une donnée
+
+    @Test func anUnreadableBodyNeverReplacesAReadableCache() {
+        // Une page d'erreur GitHub ou un portail captif : HTTP 200, corps qui
+        // n'est pas du JSONC. Le cache doit survivre — c'est lui que
+        // `PathoschildNexusIndex` relit hors ligne.
+        let cache = Data(#"{ "mods": [ { "id": "a.b", "status": "Broken" } ] }"#.utf8)
+        let outcome = PathoschildCompatibilityList.outcome(
+            forPayload: Data("<html>502 Bad Gateway</html>".utf8),
+            cachedPayload: { cache })
+        guard case .fallback(let entries) = outcome else {
+            Issue.record("attendu un repli sur le cache, obtenu \(outcome)"); return
+        }
+        #expect(entries.map(\.id) == ["a.b"])
+    }
+
+    @Test func aTruncatedBodyIsUnreadableToo() {
+        // Un transfert coupé rend un 200 au JSON tronqué : même traitement.
+        let outcome = PathoschildCompatibilityList.outcome(
+            forPayload: Data(#"{ "mods": [ { "id": "a.b", "stat"#.utf8),
+            cachedPayload: { nil })
+        #expect(outcome == .unreadable)
+    }
+
+    @Test func areadableBodyIsTheOneThatGetsCached() {
+        let outcome = PathoschildCompatibilityList.outcome(
+            forPayload: Data(#"{ "mods": [ { "id": "a.b", "status": "Abandoned" } ] }"#.utf8),
+            cachedPayload: { Issue.record("le cache ne doit pas être lu quand le corps se lit")
+                             return nil })
+        guard case .fresh(let entries) = outcome else {
+            Issue.record("attendu un corps frais, obtenu \(outcome)"); return
+        }
+        #expect(entries.map(\.id) == ["a.b"])
+    }
+
+    @Test func anUnreadableBodyWithAnUnreadableCacheSaysSo() {
+        // Le cas qui construit enfin `Failure.decoding` : elle existait dans
+        // l'enum sans qu'aucun chemin ne la produise.
+        #expect(PathoschildCompatibilityList.outcome(
+            forPayload: Data("nope".utf8),
+            cachedPayload: { Data("nope non plus".utf8) }) == .unreadable)
+    }
+
     // MARK: - TTL
 
     @Test func cacheTTLIsInTheDocumentedRange() {

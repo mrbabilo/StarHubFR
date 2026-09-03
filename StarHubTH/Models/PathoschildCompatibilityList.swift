@@ -169,13 +169,65 @@ public enum PathoschildCompatibilityList {
                 }
                 return
             }
-            // On a un 200 et un payload : on garde le cache à jour.
-            writeCache(data)
-            let count = decode(data)?.count ?? 0
-            onEvent?("Dump Pathoschild : \(count) mod(s) récupérés, cache mis à jour")
-            DispatchQueue.main.async { completion(.success(decode(data) ?? [])) }
+            // Un 200 ne suffit pas : le corps doit se **lire**. La décision
+            // vit dans `outcome(forPayload:cachedPayload:)` — c'est le seul
+            // moyen de la tester, ce chemin-ci exigeant un réseau et le vrai
+            // Application Support.
+            // Un seul saut vers le fil principal, à la fin : les trois issues
+            // se décident ici, et `completion` est rendue une fois.
+            let result: Result<[Entry], Failure>
+            switch outcome(forPayload: data,
+                           cachedPayload: { loadFreshCache(now: now) ?? cachedAnyAge() }) {
+            case .fresh(let entries):
+                writeCache(data)
+                onEvent?("Dump Pathoschild : \(entries.count) mod(s) récupérés, cache mis à jour")
+                result = .success(entries)
+            case .fallback(let entries):
+                onEvent?("Dump Pathoschild : HTTP 200 au corps illisible — cache conservé, "
+                         + "\(entries.count) mod(s) servis depuis lui")
+                result = .success(entries)
+            case .unreadable:
+                onEvent?("Dump Pathoschild : HTTP 200 au corps illisible, et aucun cache lisible")
+                result = .failure(.decoding("unreadable_payload"))
+            }
+            DispatchQueue.main.async { completion(result) }
         }
         task.resume()
+    }
+
+    /// Ce que devient un corps de réponse HTTP 200.
+    public enum PayloadOutcome: Equatable {
+        /// Le corps se lit : ces entrées sont à servir, **et** le corps est à
+        /// écrire en cache.
+        case fresh([Entry])
+        /// Le corps ne se lit pas mais le cache, si : on sert le cache et on
+        /// **n'écrit rien**.
+        case fallback([Entry])
+        /// Ni l'un ni l'autre.
+        case unreadable
+    }
+
+    /// La règle « on n'écrase le cache que par un corps qu'on sait lire »,
+    /// isolée pour être vérifiable sans réseau ni disque.
+    ///
+    /// **Ce qu'elle corrige** : le code écrivait le cache dès le 200, avant
+    /// tout décodage, puis rendait `.success(decode(data) ?? [])`. Une page
+    /// d'erreur GitHub, un portail captif ou un transfert tronqué rendent tous
+    /// un 200 dont le JSONC ne parse pas — le filet annonçait alors « 0 mod »
+    /// comme un succès **et** détruisait un cache de 919 Ko. Ce cache n'est pas
+    /// qu'un filet à verdicts : `PathoschildNexusIndex` le relit pour attribuer
+    /// un identifiant Nexus aux mods que smapi.io ignore, hors ligne. Un seul
+    /// mauvais 200 emportait les deux, jusqu'au prochain 200 valide.
+    ///
+    /// Le décodage n'a lieu **qu'une fois** par corps : l'ancien code repassait
+    /// deux fois sur les 919 Ko pour compter puis pour rendre.
+    static func outcome(forPayload data: Data,
+                        cachedPayload: () -> Data?) -> PayloadOutcome {
+        if let entries = decode(data) { return .fresh(entries) }
+        if let cached = cachedPayload(), let entries = decode(cached) {
+            return .fallback(entries)
+        }
+        return .unreadable
     }
 
     /// Le cache, quel que soit son âge. Distinct de `loadFreshCache` :
@@ -216,6 +268,37 @@ public enum PathoschildCompatibilityList {
     /// Joint `entries` à `uniqueIds` sur le champ `id` (= `UniqueID`).
     /// Renvoie un dictionnaire `UniqueID → ModCompatibility`. Les entrées sans
     /// `status` ou sans `UniqueID` installé sont silencieusement écartées.
+    ///
+    /// **Cette jointure est plus étroite que celle de `PathoschildNexusIndex`,
+    /// et les chiffres sont là pour le prochain qui s'y intéressera** (mesuré
+    /// le 2026-09-03 sur le dump réel — 4 720 entrées — et les 1 083 `UniqueID`
+    /// du parc) :
+    /// - le champ `id` du dump est parfois une **liste** (`"Gathouria.AdoptSkin,
+    ///   Gathouria.AnimalSkinner"` : un mod sous ses deux identifiants
+    ///   successifs) — **231 entrées**, dont **42 porteuses d'un statut**. Ici
+    ///   on joint sur la chaîne entière, donc aucune de ces 42 n'est
+    ///   atteignable ; `PathoschildNexusIndex.loadFromCache`, lui, découpe ;
+    /// - la comparaison est sensible à la casse, là où SMAPI compare les
+    ///   identifiants de mod sans la casse. Le dump et les manifestes
+    ///   divergent réellement (`DIGUS.CustomKissingMod` contre
+    ///   `Digus.CustomKissingMod`, `moonslime.ManaBarApi` contre
+    ///   `moonslime.ManaBarAPI`).
+    ///
+    /// Joindre comme SMAPI apparierait **321 mods au lieu de 289** — et
+    /// rendrait **exactement les mêmes 2 verdicts** : aucune des 32 entrées
+    /// gagnées ne porte de statut. C'est pourquoi rien n'est changé ici :
+    /// l'élargir demanderait de trancher deux questions dont la réponse n'est
+    /// pas dans ce dépôt (un statut posé sur une paire de renommage vaut-il
+    /// pour les deux identifiants ou pour le courant seul ? quelle entrée
+    /// gagne quand deux ne diffèrent que par la casse ?) pour un gain mesuré
+    /// nul. Si un jour un verdict manque à l'appel, la mesure est ici.
+    ///
+    /// Autre chose que la mesure a montrée et qui ne s'attrape pas : le champ
+    /// `summary` du dump porte des liens Markdown, et **une entrée sur 4 720**
+    /// (`Forkmaster.CustomGreenhouse`) oublie la parenthèse fermante de son
+    /// lien. `ModCompatibility.parseSummary` laisse alors le balisage en
+    /// clair, faute de mieux — deviner où finit l'URL serait une nouvelle
+    /// façon d'abîmer une phrase valide. Zéro cas sur le parc de l'auteur.
     public static func verdicts(for uniqueIds: [String],
                                 from entries: [Entry]) -> [String: ModCompatibility] {
         let wanted = Set(uniqueIds.filter { !$0.isEmpty })
