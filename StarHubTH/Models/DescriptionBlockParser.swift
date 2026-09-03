@@ -720,7 +720,12 @@ enum DescriptionBlockParser {
             }
             // Le contenu garde son balisage : `SpoilerView` le reparse, donc les
             // spoilers imbriqués et leurs images rendent à l'ouverture.
-            blocks.append(.spoiler(title: title, content: trimmed))
+            // ⚠️ Les marqueurs de `[code]` doivent redevenir du balisage : la
+            // re-lecture ne reçoit pas le tableau `codeBlocks`, si bien qu'un
+            // exemple de config replié — la forme la plus courante d'un
+            // spoiler de page de mod — s'affichait dans un spoiler **vide**.
+            blocks.append(.spoiler(title: title,
+                                   content: rehydrateCode(trimmed, codeBlocks: codeBlocks)))
         case "quote":
             let q = balancedText(flattenInline(trimmed, codeBlocks: codeBlocks))
             if !q.isEmpty { blocks.append(.quote(q)) }
@@ -740,6 +745,31 @@ enum DescriptionBlockParser {
         default:
             break
         }
+    }
+
+    /// Rend aux marqueurs `\u{0}C<i>\u{0}` leur forme `[code]…[/code]`.
+    ///
+    /// Nécessaire partout où un contenu repart pour un second `parse` sans le
+    /// tableau `codeBlocks` — le contenu d'un spoiler, que `SpoilerView`
+    /// relit à l'ouverture. Un marqueur y serait résolu contre un tableau
+    /// vide, donc effacé sans bruit.
+    private static func rehydrateCode(_ s: String, codeBlocks: [String]) -> String {
+        guard s.contains("\u{0}"),
+              let regex = try? NSRegularExpression(pattern: "\u{0}C(\\d+)\u{0}")
+        else { return s }
+        let ns = s as NSString
+        var out = ""
+        var last = 0
+        for m in regex.matches(in: s, range: NSRange(location: 0, length: ns.length)) {
+            out += ns.substring(with: NSRange(location: last, length: m.range.location - last))
+            let idx = Int(ns.substring(with: m.range(at: 1))) ?? -1
+            if (0..<codeBlocks.count).contains(idx) {
+                out += "[code]" + codeBlocks[idx] + "[/code]"
+            }
+            last = m.range.location + m.range.length
+        }
+        out += ns.substring(from: last)
+        return out
     }
 
     /// Retire les `[img]…[/img]` d'un fragment et renvoie leurs URL, pour que

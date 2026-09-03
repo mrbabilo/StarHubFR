@@ -538,4 +538,20 @@ struct DescriptionBlockTests {
     @Test func anImageWithoutAHostIsDropped() {
         #expect(DescriptionBlockParser.parse("[img]https://[/img]").isEmpty)
     }
+
+    /// **Un exemple de config replié s'affichait dans un spoiler vide.** Le
+    /// `[code]` est extrait avant toute conversion et remplacé par un
+    /// marqueur ; le contenu d'un spoiler est gardé brut pour que
+    /// `SpoilerView` le relise — mais cette relecture n'a pas le tableau des
+    /// blocs de code, et le marqueur s'y résolvait contre du vide. C'est la
+    /// forme la plus courante d'un spoiler de page de mod.
+    @Test func aCodeBlockInsideASpoilerSurvivesTheReparse() {
+        let out = DescriptionBlockParser.parse(
+            "[spoiler=Config][code]{ \"Toggle\": \"F5\" }[/code][/spoiler]")
+        guard case let .spoiler(title, content)? = out.first else {
+            Issue.record("attendu un spoiler"); return
+        }
+        #expect(title == "Config")
+        #expect(DescriptionBlockParser.parse(content) == [.code("{ \"Toggle\": \"F5\" }")])
+    }
 }
