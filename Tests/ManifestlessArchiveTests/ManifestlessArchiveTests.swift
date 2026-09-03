@@ -333,4 +333,38 @@ struct ManifestlessArchiveTests {
         #expect(ManifestlessArchive.classify(paths: ["bagconfig.json"],
                                              installedFolderNames: parc) == .unrecognised)
     }
+
+    /// **Le cas réel qui manquait.** L'archive de traduction de UI Info Suite 2
+    /// Alternative nomme son dossier `UI Info Suite 2 Alternative FR`, le parc
+    /// nomme le mod `UIInfoSuite2Alt`. Sans césure du sigle, les deux ne
+    /// partagent **aucun** mot (`uiinfo`/`suite2` d'un côté, `ui`/`info`/
+    /// `suite` de l'autre) : l'hôte était absent des candidats et la feuille en
+    /// proposait quatre autres, tous faux.
+    @Test func anAcronymRunIsCutBeforeTheWordItPrecedes() {
+        #expect(ManifestlessArchive.significantWords("UIInfoSuite2Alt")
+                == ["ui", "info", "suite2", "alt"])
+        let parc = ["UIInfoSuite2Alt", "MatrixFishingUI", "FishingLogbook"]
+        #expect(ManifestlessArchive.candidates(for: "UI Info Suite 2 Alternative FR",
+                                               among: parc).first == "UIInfoSuite2Alt")
+    }
+
+    /// Une suite de majuscules **seule** n'est pas coupée : la césure n'a lieu
+    /// que si un mot commence derrière.
+    @Test func aStandaloneAcronymStaysWhole() {
+        #expect(ManifestlessArchive.significantWords("SVE") == ["sve"])
+        // Et le découpage de la casse chameau ordinaire ne change pas.
+        #expect(ManifestlessArchive.significantWords("MakeGuntherRealFR")
+                == ["make", "gunther", "real"])
+    }
+
+    /// **Le sigle de cadre reste un mot porteur**, sauf `[CP]` et `[SMAPI]` que
+    /// `noiseWords` écarte. Contre-intuitif : 375 des 947 mods du parc portent
+    /// un préfixe de ce genre, sur 20 sigles distincts (`ftm`, `ja`, `npc`,
+    /// `bl`, `mfm`…), et les retirer tous **perd** un hôte sur la mesure du
+    /// parc (932/927 au lieu de 933/928). Là où le reste du nom ne concorde
+    /// qu'à peine, le sigle est le signal qui reste.
+    @Test func aFrameworkAcronymStillCounts() {
+        #expect(ManifestlessArchive.significantWords("[FTM] SVE") == ["ftm", "sve"])
+        #expect(!ManifestlessArchive.significantWords("[CP] SVE").contains("cp"))
+    }
 }

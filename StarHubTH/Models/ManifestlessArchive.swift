@@ -334,14 +334,34 @@ public enum ManifestlessArchive {
     /// Les mots porteurs d'identité d'un nom : sans accents ni casse, coupés
     /// sur la ponctuation **et** sur la casse chameau (`MakeGuntherReal` donne
     /// trois mots), débarrassés de ce qui ne distingue rien.
+    ///
+    /// **Une suite de majuscules se coupe avant le mot qu'elle précède** :
+    /// `UIInfoSuite2Alt` rend `ui`, `info`, `suite2`, `alt`. Sans cette
+    /// césure, l'archive de traduction réelle
+    /// `UI Info Suite 2 Alternative FR` ne partageait **aucun** mot avec le
+    /// dossier `UIInfoSuite2Alt` du parc : l'hôte était absent des candidats
+    /// et la feuille en proposait quatre autres, tous faux. Mesuré sur les 947
+    /// mods installés le 2026-09-03 — en simulant, pour chacun, une archive
+    /// nommée comme lui espaces retirés : l'hôte est retrouvé 933 fois contre
+    /// 930 avant, et figure 928 fois dans les quatre candidats affichés contre
+    /// 925. Aucun cas perdu, et le cas réel passe d'absent au premier rang.
+    ///
+    /// Une suite de majuscules **seule** reste entière (`SVE`) : la césure
+    /// n'a lieu que si une minuscule suit, c'est-à-dire si un mot commence.
     static func significantWords(_ name: String) -> Set<String> {
         var words: [String] = []
         var current = ""
-        for character in name {
-            if character.isUppercase, !current.isEmpty,
-               current.last?.isUppercase == false {
-                words.append(current)
-                current = ""
+        let characters = Array(name)
+        for (index, character) in characters.enumerated() {
+            if character.isUppercase, !current.isEmpty {
+                let previousIsLower = current.last?.isUppercase == false
+                let next = index + 1 < characters.count ? characters[index + 1] : nil
+                // `UIInfo` : le `I` clôt le sigle, le `nfo` ouvre un mot.
+                let opensAWord = current.last?.isUppercase == true && next?.isLowercase == true
+                if previousIsLower || opensAWord {
+                    words.append(current)
+                    current = ""
+                }
             }
             if character.isLetter || character.isNumber {
                 current.append(character)
