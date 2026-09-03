@@ -7,24 +7,37 @@ import Foundation
 /// une ligne et non dix, et la ligne retenue ne doit pas en masquer une plus
 /// récente — auquel cas le pack passerait pour à jour alors qu'il ne l'est pas.
 ///
-/// La **résolution** d'un identifiant Nexus vers son pack parent reste au
-/// ViewModel (elle dépend du registre des mods installés) ; seule la table
-/// `parentPackName` entre ici. C'est ce qui rend ce calcul pur, donc testable.
+/// La **résolution** d'un mod vers son pack parent reste au ViewModel (elle
+/// dépend du registre des mods installés) ; seule la table
+/// `packNameByUniqueId` entre ici. C'est ce qui rend ce calcul pur, donc
+/// testable.
 /// `internal` et non `public` : `NexusUpdateChecker.ModUpdate` l'est aussi, et
 /// les tests y accèdent par `@testable import`. L'application compile en un
 /// seul module, donc le ViewModel y accède également.
 enum NexusUpdateConsolidation {
-    /// - Parameter parentPackName: identifiant Nexus effectif → nom du pack qui
-    ///   le contient. Un mod autonome n'y figure pas.
+    /// - Parameter packNameByUniqueId: `UniqueID` d'un composant → nom du pack
+    ///   qui le contient. Un mod autonome n'y figure pas.
+    ///
+    ///   ⚠️ **Par `UniqueID`, jamais par identifiant Nexus.** Cette table était
+    ///   indexée sur l'identifiant Nexus, qui n'est pas une identité : mesuré
+    ///   sur le parc de l'auteur, **4 identifiants** sont déclarés à la fois par
+    ///   l'enfant d'un pack et par un mod extérieur — dont `Nexus:50165`, que
+    ///   `Automate` revendique par une clé copiée à tort et que
+    ///   `NexusFallbackCheck` documente longuement. Le mod extérieur était alors
+    ///   absorbé dans la ligne du pack : **une ligne pour deux mods, et la mise
+    ///   à jour de l'autre disparaissait de l'écran**. Deux identifiants sont
+    ///   même revendiqués par plusieurs packs (`Nexus:8828` par trois), et la
+    ///   table écrasait alors une entrée par l'autre — la mise à jour d'un pack
+    ///   s'affichait sous le nom d'un autre.
     /// - Returns: une entrée par mod autonome et une par pack, par ordre
     ///   alphabétique.
     static func consolidate(_ updates: [NexusUpdateChecker.ModUpdate],
-                                   parentPackName: [String: String]) -> [NexusUpdateChecker.ModUpdate] {
+                                   packNameByUniqueId: [String: String]) -> [NexusUpdateChecker.ModUpdate] {
         var byPack: [String: [NexusUpdateChecker.ModUpdate]] = [:]
         var consolidated: [NexusUpdateChecker.ModUpdate] = []
 
         for update in updates {
-            if let packName = parentPackName[update.nexusModId] {
+            if let packName = packNameByUniqueId[update.uniqueId] {
                 byPack[packName, default: []].append(update)
             } else {
                 // Un mod autonome passe tel quel.

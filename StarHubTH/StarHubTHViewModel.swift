@@ -5136,14 +5136,18 @@ for mod in mods {
     /// composant représentatif et le tri vivent dans `NexusUpdateConsolidation`
     /// (module testable).
     private func consolidateUpdatesByPack(_ updates: [NexusUpdateChecker.ModUpdate]) -> [NexusUpdateChecker.ModUpdate] {
-        var parentPackName: [String: String] = [:]
+        // Par `UniqueID`, jamais par identifiant Nexus : quatre identifiants du
+        // parc sont déclarés à la fois par l'enfant d'un pack et par un mod
+        // extérieur, qui se faisait alors absorber dans la ligne du pack — voir
+        // la note de `consolidate`.
+        var packNameByUniqueId: [String: String] = [:]
         for mod in mods where mod.isGroup {
-            for child in mod.children ?? [] {
-                let id = effectiveNexusModId(for: child)
-                if !id.isEmpty { parentPackName[id] = mod.name }
+            for child in mod.children ?? [] where !child.uniqueId.isEmpty {
+                packNameByUniqueId[child.uniqueId] = mod.name
             }
         }
-        return NexusUpdateConsolidation.consolidate(updates, parentPackName: parentPackName)
+        return NexusUpdateConsolidation.consolidate(updates,
+                                                    packNameByUniqueId: packNameByUniqueId)
     }
 
     /// Formats a Nexus upload timestamp for display next to the latest version
