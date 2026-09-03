@@ -49,4 +49,47 @@ struct ModItemFlatteningTests {
     @Test func anEmptyPackYieldsNothing() {
         #expect([mod("Vide", children: [])].flattenedMods.isEmpty)
     }
+
+    // MARK: - Retrouver un mod par son identifiant
+    //
+    // 296 déclarations de dépendances du parc (109 identifiants distincts)
+    // désignent un mod installé **en composant de pack**. Les chercher dans
+    // les seules lignes de premier niveau les annonçait manquantes.
+
+    @Test func aComponentOfAPackIsFoundByItsIdentifier() {
+        let pack = mod("SVE", id: "", children: [mod("Code", id: "FlashShifter.SVECode"),
+                                                 mod("FTM", id: "FlashShifter.SVE-FTM")])
+        #expect([pack].mod(withUniqueId: "FlashShifter.SVE-FTM")?.name == "FTM")
+    }
+
+    @Test func aStandaloneModIsFoundByItsIdentifier() {
+        #expect([mod("Automate", id: "Pathoschild.Automate")]
+            .mod(withUniqueId: "Pathoschild.Automate")?.name == "Automate")
+    }
+
+    @Test func theSearchIgnoresCaseLikeSmapi() {
+        #expect([mod("CP", id: "Pathoschild.ContentPatcher")]
+            .mod(withUniqueId: "pathoschild.contentpatcher") != nil)
+    }
+
+    @Test func aTopLevelModWinsOverAComponentOfTheSameId() {
+        // Cas du parc : un identifiant partagé par un mod autonome et un
+        // composant (Swim est installé deux fois). La ligne de premier niveau
+        // est celle que l'utilisateur voit — c'est elle qu'on rend.
+        let pack = mod("Pack", id: "", children: [mod("Copie", id: "dupe.id")])
+        let standalone = mod("Original", id: "dupe.id")
+        #expect([standalone, pack].mod(withUniqueId: "dupe.id")?.name == "Original")
+    }
+
+    @Test func anAbsentIdentifierFindsNothing() {
+        #expect([mod("Automate", id: "Pathoschild.Automate")]
+            .mod(withUniqueId: "Nobody.Here") == nil)
+    }
+
+    @Test func anEmptyIdentifierNeverMatchesAPackHeader() {
+        // L'en-tête d'un pack porte un `uniqueId` vide, et 111 mods du parc
+        // n'en déclarent aucun : chercher "" ne doit pas les apparier.
+        let pack = mod("RSV", id: "", children: [mod("Core", id: "")])
+        #expect([pack].mod(withUniqueId: "") == nil)
+    }
 }

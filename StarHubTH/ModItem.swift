@@ -190,4 +190,31 @@ extension Array where Element == ModItem {
     var allUniqueIds: Set<String> {
         Set(flattenedMods.map(\.uniqueId).filter { !$0.isEmpty })
     }
+
+    /// Le mod installé qui porte cet `UniqueID`, **composants de packs
+    /// compris** — un mod de premier niveau d'abord, puis les composants.
+    ///
+    /// La comparaison est insensible à la casse, comme SMAPI, et les
+    /// identifiants vides sont écartés : l'en-tête d'un pack n'en porte pas,
+    /// et 111 mods du parc n'en déclarent aucun (les apparier tous entre eux
+    /// serait pire que ne rien trouver).
+    ///
+    /// Cette règle existait déjà dans `ModZipInstaller.findExistingMod`, mais
+    /// pas dans les vues, qui cherchaient dans les seules lignes de premier
+    /// niveau. Mesuré sur le parc : **296 déclarations de dépendances** (109
+    /// identifiants distincts) désignent un mod installé **en composant de
+    /// pack** — `FlashShifter.SVE-FTM`, `Rafseazz.RSVCC`… — et étaient donc
+    /// annoncées manquantes alors qu'elles sont là.
+    func mod(withUniqueId uniqueId: String) -> ModItem? {
+        guard !uniqueId.isEmpty else { return nil }
+        func matches(_ mod: ModItem) -> Bool {
+            !mod.uniqueId.isEmpty
+                && mod.uniqueId.caseInsensitiveCompare(uniqueId) == .orderedSame
+        }
+        for mod in self {
+            if matches(mod) { return mod }
+            if let child = mod.children?.first(where: matches) { return child }
+        }
+        return nil
+    }
 }

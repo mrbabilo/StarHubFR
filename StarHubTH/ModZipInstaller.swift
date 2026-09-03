@@ -29,22 +29,12 @@ class ModZipInstaller {
     /// search would miss mods that are part of a multi-mod pack — this
     /// resolves that so updates of packed mods are correctly detected as
     /// conflicts.
+    /// Le mod déjà installé qui porte cet identifiant. La règle — composants
+    /// de packs compris — vit dans `Array<ModItem>.mod(withUniqueId:)`, seul
+    /// endroit où elle est écrite et testée : les vues cherchaient dans les
+    /// seules lignes de premier niveau et manquaient 296 déclarations du parc.
     private func findExistingMod(_ uniqueId: String, in mods: [ModItem]) -> ModItem? {
-        for mod in mods {
-            if !mod.uniqueId.isEmpty
-                && mod.uniqueId.caseInsensitiveCompare(uniqueId) == .orderedSame {
-                return mod
-            }
-            if let children = mod.children {
-                if let child = children.first(where: {
-                    !$0.uniqueId.isEmpty
-                        && $0.uniqueId.caseInsensitiveCompare(uniqueId) == .orderedSame
-                }) {
-                    return child
-                }
-            }
-        }
-        return nil
+        mods.mod(withUniqueId: uniqueId)
     }
     // Caps the *uncompressed* payload a zip is allowed to expand to, checked
     // via `unzip -l` before any extraction happens. `maxZipSize` alone only

@@ -156,8 +156,11 @@ struct InstallPreview: View {
                 let depId = depDetail.uniqueId
                 let depIdLower = depId.lowercased()
 
-                // Check installed mods.
-                if let installed = vm.mods.first(where: { $0.uniqueId.caseInsensitiveCompare(depId) == .orderedSame }) {
+                // Check installed mods — composants de packs compris : 296
+                // déclarations du parc désignent un composant (`Rafseazz.RSVCC`,
+                // `FlashShifter.SVE-FTM`…), qu'une recherche limitée aux lignes
+                // de premier niveau annonçait manquant.
+                if let installed = vm.mods.mod(withUniqueId: depId) {
                     if installed.isEnabled {
                         entries.append(DepEntry(uniqueId: depId, isRequired: depDetail.isRequired, status: .satisfied, nexusUrl: nil))
                     } else {
@@ -648,7 +651,7 @@ struct DetectedModRow: View {
                         .font(.system(size: 12, weight: .semibold))
                         .padding(.top, 4)
                     ForEach(mod.dependencies, id: \.self) { dep in
-                        let depMod = existingMods.first { $0.uniqueId.caseInsensitiveCompare(dep) == .orderedSame }
+                        let depMod = existingMods.mod(withUniqueId: dep)
                         HStack {
                             if depMod != nil {
                                 Image(systemName: "checkmark.circle.fill")
