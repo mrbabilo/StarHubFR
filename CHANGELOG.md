@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+
+- **« Je l'ai déjà » n'est plus un aller sans retour** : la page Mises à jour porte désormais un bloc repliable « *N* mods marqués “Je l'ai déjà” », visible **même quand tout est annoncé à jour** — c'est justement là qu'il manquait. Chaque ligne montre le numéro que vous avez affirmé **et** celui que le dossier déclare, l'écart en couleur, avec un bouton **Réafficher**. Une explication dit ce que le geste a fait et ce que le bouton défait. Sur une installation de référence, 34 mods étaient éteints sans que rien ne le dise, dont plusieurs par mégarde — l'un affirmé en 1.3.0 pour un dossier en 0.1.0.
+
 ### Fixed
 
 - **La vérification des mises à jour ne rendait plus qu'un sixième du parc** : quand vous cliquez « Je l'ai déjà », l'app retient le numéro **affiché** — souvent l'étiquette libre d'une page Nexus (« 5 », « 1.01 »). Or smapi.io, interrogé avec un numéro qu'il ne sait pas lire, répond « tout va bien » et **une liste vide pour les 150 mods du même envoi**, sans erreur ni message. Sur votre installation, 15 mods étaient dans ce cas : la vérification ne rendait plus que **173 mods sur 1 073**, et annonçait **1 mise à jour au lieu de 7**. Le numéro envoyé est désormais traduit en une forme que le serveur sait lire, l'affirmation « je l'ai déjà » continue de valoir, et le journal dit quand une substitution a lieu.

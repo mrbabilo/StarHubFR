@@ -714,6 +714,12 @@
 "updates_nexus_get_key" = "Get API Key";
 "updates_nexus_already_have" = "I already have it";
 "updates_nexus_already_have_help" = "You already have this version, but the author didn't record it in their manifest. The row goes away. On a pack, this only covers the component it stands for.";
+"updates_affirmed_title" = "%lld mod(s) marked “I already have it”";
+"updates_affirmed_explanation" = "These mods no longer report an update: you stated you already had the version shown, and StarHubFR now sends that number to smapi.io instead of the one in the manifest. When the two disagree, the mod is either genuinely ahead of its own manifest — or the button was clicked by mistake, and a real update has been silent ever since.";
+"updates_affirmed_version" = "stated: %@";
+"updates_affirmed_on_disk" = "on disk: %@";
+"updates_affirmed_reveal" = "Show again";
+"updates_affirmed_reveal_help" = "Drops the statement for this mod. The row comes back at the next check — it is not restored on the spot, because nothing here knows what the page says today.";
 "updates_nexus_updates_count" = "%lld update(s) available";
 "updates_nexus_error" = "An error occurred while checking for updates";
 "updates_nexus_rate_limited" = "Nexus Mods rate-limited this check — try again later";

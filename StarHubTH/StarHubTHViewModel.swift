@@ -70,6 +70,16 @@ class StarHubTHViewModel: ObservableObject {
     @Published private(set) var unverifiableMods: [(uniqueId: String,
                                                     name: String,
                                                     blocker: SmapiUpdateResponse.Blocker)] = []
+    /// Les mods que « Je l'ai déjà » a fait taire (X12).
+    ///
+    /// **Publié, et non calculé à la demande** : le construire relit et décode
+    /// les ancres depuis `UserDefaults`, et une propriété calculée est
+    /// réévaluée à chaque accès d'un corps de vue — le patron même relevé sur
+    /// `healthIssues` et rangé en F3. Rafraîchi aux trois seuls moments où la
+    /// liste peut changer : après un scan, après une affirmation, après un
+    /// réaffichage.
+    @Published private(set) var affirmedUpdates: [AffirmedUpdates.Row] = []
+
     /// Ce que smapi.io sait de la compatibilité de chaque mod, par `UniqueID`.
     ///
     /// Relu au lancement plutôt que reconstruit : l'avertissement le plus utile
@@ -4977,6 +4987,7 @@ for mod in mods {
     func affirmInstalled(uniqueId: String, version: String) {
         anchorStore.put(ModVersionAnchorRules.afterUserAffirmation(
             uniqueId: uniqueId, version: version, now: Date()))
+        refreshAffirmedUpdates()
         // `$0.id` — c'est-à-dire l'`UniqueID`. Le prédicat comparait `name`,
         // un nom d'affichage, et `nexusModId`, une identité partagée : il ne
         // retirait donc jamais la bonne ligne, quand il en retirait une.
@@ -4985,6 +4996,40 @@ for mod in mods {
         // pas à la fermeture. L'affichage se recalcule ensuite depuis lui.
         NexusUpdateChecker.shared.dismissUpdate(uniqueId: uniqueId)
         republishUpdatesFromCache()
+    }
+
+    /// Recompose la liste des affirmations depuis les ancres et le parc.
+    ///
+    /// Appelée aux trois seuls moments où elle peut changer — voir
+    /// `affirmedUpdates`. `allInstalledMods()` déplie les packs : une
+    /// affirmation porte sur un `UniqueID`, donc sur un composant, jamais sur
+    /// l'en-tête qui le contient.
+    func refreshAffirmedUpdates() {
+        affirmedUpdates = AffirmedUpdates.rows(
+            anchors: anchorStore.all(),
+            installed: allInstalledMods().map {
+                AffirmedUpdates.InstalledMod(uniqueId: $0.uniqueId, name: $0.name,
+                                             version: $0.version)
+            })
+    }
+
+    /// « Réafficher » : retire l'affirmation posée sur un mod.
+    ///
+    /// C'est le seul appelant de `ModVersionAnchorStore.remove(uniqueId:)`, qui
+    /// n'en avait aucun : le geste « Je l'ai déjà » était un aller sans retour,
+    /// et la seule sortie était de désinstaller le mod pour que `pruneAnchors`
+    /// nettoie l'ancre.
+    ///
+    /// **La ligne ne revient pas sur-le-champ**, et c'est assumé : le cache ne
+    /// la porte plus, et rien ici ne sait ce que la page annonce aujourd'hui.
+    /// Relancer une passe complète — huit lots réseau — sur un clic isolé
+    /// serait disproportionné, surtout pour qui en réaffiche plusieurs. Le
+    /// libellé d'aide de l'action le dit.
+    func revealAffirmedUpdate(uniqueId: String) {
+        anchorStore.remove(uniqueId: uniqueId)
+        refreshAffirmedUpdates()
+        log("Affirmation « je l'ai déjà » retirée pour \(uniqueId) — "
+            + "la ligne reviendra à la prochaine vérification", level: .info)
     }
 
     /// Pose une ancre `.install` pour chaque mod que l'installation vient de
@@ -7294,6 +7339,9 @@ for mod in mods {
         // Un mod supprimé ne doit pas laisser son affirmation derrière lui :
         // réinstallé plus tard, il hériterait d'une version qu'il n'a pas.
         anchorStore.pruneAnchors(keeping: Set(allMods.map(\.uniqueId).filter { !$0.isEmpty }))
+        // Le parc vient de changer : la liste des affirmations en dépend par
+        // ses deux bouts — l'ancre et la version du manifest.
+        Task { @MainActor [weak self] in self?.refreshAffirmedUpdates() }
 
         if wasEmpty && rebuiltCount > 0 {
             self.log(

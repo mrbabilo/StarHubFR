@@ -913,6 +913,65 @@ struct UpdatesView: View {
                                 .foregroundColor(.orange)
                         }
                     }
+
+                    // X12 — ce que « Je l'ai déjà » a fait taire.
+                    //
+                    // **Hors de la chaîne `if/else` ci-dessus**, comme le bloc
+                    // des invérifiables : c'est justement quand la page annonce
+                    // « tous à jour » que ces mods doivent se voir. Sur
+                    // l'installation de référence, 34 mods étaient éteints sans
+                    // que rien ne le dise, et plusieurs par mégarde.
+                    if !vm.affirmedUpdates.isEmpty {
+                        DisclosureGroup {
+                            VStack(alignment: .leading, spacing: 6) {
+                                // L'explication d'abord : la liste seule ne dit
+                                // ni ce que le geste a fait, ni ce qu'il coûte.
+                                Text(vm.L(L10n.Updates.affirmedExplanation))
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                    .padding(.bottom, 2)
+
+                                ForEach(vm.affirmedUpdates) { row in
+                                    HStack(spacing: 8) {
+                                        Text(row.name)
+                                            .font(.system(size: 11, weight: .medium))
+                                            .lineLimit(1)
+                                        // Les deux versions côte à côte : le
+                                        // numéro affirmé seul ne dit rien,
+                                        // c'est l'écart avec le disque qui
+                                        // trahit le clic malheureux.
+                                        Text(String(format: vm.L(L10n.Updates.affirmedVersion),
+                                                    row.affirmedVersion))
+                                            .font(.system(size: 11, design: .monospaced))
+                                            .foregroundStyle(.secondary)
+                                        Text(String(format: vm.L(L10n.Updates.affirmedOnDisk),
+                                                    row.manifestVersion))
+                                            .font(.system(size: 11, design: .monospaced))
+                                            .foregroundColor(row.disagreesWithDisk
+                                                             ? .orange : .secondary)
+                                        Spacer(minLength: 8)
+                                        Button {
+                                            vm.revealAffirmedUpdate(uniqueId: row.uniqueId)
+                                        } label: {
+                                            Text(vm.L(L10n.Updates.affirmedReveal))
+                                                .font(.system(size: 11))
+                                        }
+                                        .buttonStyle(PlainButtonStyle())
+                                        .pointingHandCursor()
+                                        .help(vm.L(L10n.Updates.affirmedRevealHelp))
+                                    }
+                                }
+                            }
+                            .padding(.vertical, 4)
+                        } label: {
+                            Label(String(format: vm.L(L10n.Updates.affirmedTitle),
+                                         Int64(vm.affirmedUpdates.count)),
+                                  systemImage: "eye.slash")
+                                .font(.system(size: 12))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                 }
                 .padding(20)
                 .background(Color.primary.opacity(0.03))
@@ -923,6 +982,10 @@ struct UpdatesView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(nsColor: .windowBackgroundColor))
+        // Le scan de lancement remplit déjà la liste ; ce rappel couvre
+        // l'ouverture de l'onglet avant qu'il n'ait rendu la main, et le
+        // retour sur l'onglet après une affirmation faite ailleurs.
+        .onAppear { vm.refreshAffirmedUpdates() }
     }
 }
 

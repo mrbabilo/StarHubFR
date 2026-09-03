@@ -86,6 +86,7 @@ let package = Package(
                 "Models/NexusIdLearning.swift",
                 "Models/ModVersionAnchor.swift",
                 "Models/ModVersionAnchorRules.swift",
+                "Models/AffirmedUpdates.swift",
                 "Models/ModVersionAnchorStore.swift",
                 "Models/InstalledModRegistry.swift",
                 "Models/SmapiUpdateRequest.swift",
@@ -158,6 +159,11 @@ let package = Package(
                 "Models/HealthIssue.swift",
                 "Models/HealthIssueResolver.swift",
             ]
+        ),
+        .testTarget(
+            name: "AffirmedUpdatesTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/AffirmedUpdatesTests"
         ),
         .testTarget(
             name: "TranslationWaiverTests",

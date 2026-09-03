@@ -963,6 +963,15 @@ enum L10n {
         static let nexusGetKey          = "updates_nexus_get_key"
         static let nexusAlreadyHave     = "updates_nexus_already_have"
         static let nexusAlreadyHaveHelp = "updates_nexus_already_have_help"
+        // X12 — ce que « Je l'ai déjà » a fait taire, et comment le défaire.
+        // Le geste n'était ni montré ni annulable : 34 mods dans ce cas sur
+        // l'installation de référence, dont plusieurs par mégarde.
+        static let affirmedTitle        = "updates_affirmed_title"
+        static let affirmedExplanation  = "updates_affirmed_explanation"
+        static let affirmedVersion      = "updates_affirmed_version"
+        static let affirmedOnDisk       = "updates_affirmed_on_disk"
+        static let affirmedReveal       = "updates_affirmed_reveal"
+        static let affirmedRevealHelp   = "updates_affirmed_reveal_help"
         static let nexusUpdatesCount    = "updates_nexus_updates_count"
         static let nexusError           = "updates_nexus_error"
         static let nexusRateLimited     = "updates_nexus_rate_limited"
