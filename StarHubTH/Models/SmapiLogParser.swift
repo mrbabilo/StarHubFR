@@ -127,7 +127,7 @@ extension SmapiLogParser {
                 let words = split[0].components(separatedBy: " ")
                 updates.append(ModUpdateInfo(name: words.dropLast().joined(separator: " "),
                                              version: words.last ?? "",
-                                             url: "https://" + split[1]))
+                                             url: "https://" + Self.urlHead(split[1])))
             } else if line.trimmingCharacters(in: .whitespaces).isEmpty {
                 // Respiration du format, pas la fin du bloc.
                 continue
@@ -136,5 +136,22 @@ extension SmapiLogParser {
             }
         }
         return updates
+    }
+
+    /// L'URL seule, coupée au premier blanc.
+    ///
+    /// SMAPI accole la version **installée** derrière l'adresse :
+    /// `… /releases (you have 1.6.1-unofficial-2.dphill)`. Prise telle quelle,
+    /// la parenthèse faisait partie de l'URL — et `URL(string:)` ne la refuse
+    /// pas, il **encode l'espace** : le bouton « Ouvrir la page » menait à un
+    /// 404 (`/releases%20(you%20have%201.6.1-unofficial-2.dphill)`) et le lien
+    /// cliquable affichait cette bouillie en guise de libellé. Mesuré sur le
+    /// journal de l'auteur : **la seule mise à jour annoncée était dans ce
+    /// cas**.
+    ///
+    /// La version entre parenthèses n'est pas reprise : `ModUpdateInfo.version`
+    /// est la version **disponible**, ce que l'écran dit explicitement.
+    private static func urlHead(_ tail: String) -> String {
+        String(tail.prefix { !$0.isWhitespace })
     }
 }

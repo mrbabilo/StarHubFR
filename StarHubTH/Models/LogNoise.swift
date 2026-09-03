@@ -59,6 +59,32 @@ public enum LogNoise {
     /// L'appelant filtre sur le niveau ; ici on écarte ce qui ne peut pas être
     /// un nom de mod, pour qu'une ligne anodine contenant un deux-points
     /// n'invente pas un coupable.
+    ///
+    /// ⚠️ **C'est une heuristique sur du texte libre, et aucun critère
+    /// textuel ne la rend sûre.** Relevé sur le journal de l'auteur
+    /// (2026-09-01, 4 638 entrées) : elle se déclenche **3 fois** et se trompe
+    /// **3 fois** — `You can update 1 mod`, `Galaxy auth failure`, et
+    /// `Mod Update Menu 2.7.0` (un vrai nom de mod, mais suivi de sa version,
+    /// donc irrésoluble). Le cas pour lequel elle existe —
+    /// `Gunther's Guide: Tried to map…`, une erreur que SMAPI journalise pour
+    /// le compte d'un mod sous son propre crochet — **ne figure pas dans ce
+    /// journal-là** : 3 sur 3 ne dit pas que l'heuristique est inutile, il dit
+    /// que ce journal ne contenait que ses faux positifs.
+    ///
+    /// Les consommateurs ne la traitent **pas** de la même façon, et c'est le
+    /// point à connaître :
+    /// - `StarHubTHViewModel.recordErrorHistory` passe chaque imputation par
+    ///   `resolveModFolder(forLoggedName:)` — rien de fantôme n'est donc
+    ///   **persisté** dans l'historique par mod ;
+    /// - `LogsView` lui fait confiance telle quelle : la pastille cliquable
+    ///   (`:650`) et le regroupement par mod (`:102`) affichent ces trois noms
+    ///   comme des mods, et la pastille ne mène nulle part.
+    ///
+    /// Le correctif évident — ne montrer que les noms qui résolvent — ne peut
+    /// **pas** vivre ici : `SmapiLogParser.parse` tourne sur
+    /// `DispatchQueue.global` (`loadSmapiLog`), où la liste des mods
+    /// (`@Published`, isolée sur le fil principal) n'est pas lisible. La
+    /// validation ne peut se faire que côté consommation.
     public static func modNamePrefix(in message: String) -> String? {
         guard let colon = message.firstIndex(of: ":") else { return nil }
         let candidate = String(message[..<colon]).trimmingCharacters(in: .whitespaces)

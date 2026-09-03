@@ -120,4 +120,33 @@ struct SmapiUpdateBlockTests {
         #expect(out.first?.name == "Stardew Valley Expanded")
         #expect(out.first?.version == "1.14.20")
     }
+
+    @Test func theUpdateUrlStopsBeforeTheInstalledVersion() throws {
+        // Ligne réelle du journal de l'auteur (2026-09-01) : SMAPI accole la
+        // version installée derrière l'URL. `URL(string:)` ne refuse pas
+        // l'espace — il l'encode — donc le bouton menait à un 404 et le lien
+        // affichait `…/releases%20(you%20have%201.6.1-unofficial-2.dphill)`.
+        let log = """
+        [17:40:11 ALERT SMAPI] You can update 1 mod:
+        [17:40:11 ALERT SMAPI]    Mod Update Menu 2.7.0: https://github.com/Dphill10827/UnofficialModUpdateMenu/releases (you have 1.6.1-unofficial-2.dphill)
+        """
+        let updates = SmapiLogParser.updates(in: log)
+        #expect(updates.count == 1)
+        let update = try #require(updates.first)
+        #expect(update.name == "Mod Update Menu")
+        #expect(update.version == "2.7.0")
+        #expect(update.url == "https://github.com/Dphill10827/UnofficialModUpdateMenu/releases")
+        // Ce que l'écran en fait : deux `URL(string:)`, un bouton et un lien.
+        let url = try #require(URL(string: update.url))
+        #expect(!url.absoluteString.contains("%20"))
+        #expect(url.absoluteString == update.url)
+    }
+
+    @Test func anUrlWithoutATrailingNoteIsUntouched() {
+        // La borne : la forme sans parenthèse ne doit rien perdre.
+        let log = "[12:00:00 ALERT SMAPI]    Content Patcher 2.0.0: https://smapi.io/mods#Pathoschild.ContentPatcher"
+        let updates = SmapiLogParser.updates(in: "You can update 1 mod:\n" + log)
+        #expect(updates.first?.url == "https://smapi.io/mods#Pathoschild.ContentPatcher")
+    }
+
 }
