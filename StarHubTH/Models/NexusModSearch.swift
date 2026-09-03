@@ -104,16 +104,6 @@ public enum NexusModSearch {
 
     // MARK: - Requête
 
-    /// Corps JSON de la requête de recherche par nom.
-    ///
-    /// - Parameters:
-    ///   - name: le nom à chercher — celui du mod installé, pas un mot-clé.
-    ///   - gameId: identifiant **numérique** du jeu. `gameDomainName` seul rend
-    ///     `totalCount: 0` sans la moindre erreur : un faux négatif silencieux,
-    ///     et la raison pour laquelle ce paramètre n'a pas de valeur par défaut
-    ///     lisible ailleurs que dans `NexusRequestBuilder`.
-    ///   - count: nombre de résultats. Douze suffisaient à couvrir un mod et
-    ///     ses onze traductions ; le défaut laisse de la marge.
     /// Le tag que Nexus pose sur les traductions françaises.
     ///
     /// Mesuré sur 80 traductions françaises réelles : **77 le portent**, et
@@ -138,6 +128,25 @@ public enum NexusModSearch {
     /// des traductions japonaises, chinoises, hongroises, brésiliennes…
     public static let translationTag = "Translation"
 
+    /// Corps JSON de la requête de recherche par nom.
+    ///
+    /// - Parameters:
+    ///   - name: le nom à chercher — celui du mod installé, pas un mot-clé.
+    ///     Réduit par `searchTerm(for:)` avant l'envoi ; un terme qui s'y vide
+    ///     rend `nil` plutôt qu'une requête qui chercherait tout.
+    ///   - gameId: identifiant **numérique** du jeu. `gameDomainName` seul rend
+    ///     `totalCount: 0` sans la moindre erreur : un faux négatif silencieux,
+    ///     et la raison pour laquelle ce paramètre n'a pas de valeur par défaut
+    ///     lisible ailleurs que dans `NexusRequestBuilder`.
+    ///   - tag: un tag Nexus à exiger — `frenchTag` pour les traductions.
+    ///     Absent, le filtre n'entre pas dans la requête : un tag vide rendrait
+    ///     `totalCount: 0` sans erreur, comme le domaine du jeu.
+    ///   - category: une catégorie à exiger, filtrée **au serveur** pour que le
+    ///     total annoncé et la tranche suivante parlent du même ensemble que
+    ///     les cartes affichées.
+    ///   - count: nombre de résultats. Douze suffisaient à couvrir un mod et
+    ///     ses onze traductions ; le défaut laisse de la marge.
+    ///   - offset: le rang du premier résultat, pour la tranche suivante.
     public static func queryBody(name: String, gameId: Int, tag: String? = nil,
                                  category: String? = nil,
                                  count: Int = 30, offset: Int = 0) -> Data? {
