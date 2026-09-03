@@ -307,6 +307,23 @@ struct ZipModInfo: Identifiable {
 }
 
 /// Resolution selection for a mod during installation
+/// Un dossier réellement écrit par `ModZipInstaller.install`, rattaché à la
+/// sélection qui l'a produit.
+///
+/// Le `modId` n'est pas décoratif : l'appelant en a besoin pour retrouver la
+/// résolution de conflit du mod. Une installation **renommée** laisse
+/// l'original en place, si bien que deux dossiers portent alors le même
+/// `UniqueID` — et une ancre de version, elle, est unique par `UniqueID` :
+/// affirmer la version de la copie renommée décrirait mal celle qui reste
+/// active. L'appelant écarte donc ces chemins de l'ancrage, en connaissance
+/// de cause.
+struct InstalledModPath: Equatable {
+    /// L'`id` du `DetectedMod` installé — c'est aussi le `modId` de sa
+    /// `InstallSelection`.
+    let modId: UUID
+    let path: String
+}
+
 struct InstallSelection {
     let modId: UUID
     let selected: Bool

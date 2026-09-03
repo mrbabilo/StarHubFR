@@ -18,7 +18,8 @@ import Testing
 /// Résultat pour ces mods, mis à jour depuis Nexus : chemin faux, donc aucune
 /// ancre, aucun identifiant Nexus retenu, et la mise à jour toujours annoncée
 /// après l'avoir installée. La règle est maintenant écrite une seule fois, là où
-/// l'écriture a lieu.
+/// l'écriture a lieu — chaque chemin portant l'`id` de sa sélection, pour que
+/// l'appelant reconnaisse une installation renommée et s'en abstienne.
 struct InstalledPathsTests {
     private func detected(folderName: String, relativePath: String, uniqueId: String,
                           version: String, existing: ModItem?) -> DetectedMod {
@@ -59,7 +60,7 @@ struct InstalledPathsTests {
                                             gameDir: env.gameDir, existingMods: [existing])
 
         let expected = env.modsDir.appendingPathComponent(".Parchment/[CP] Example").path
-        #expect(written == [expected])
+        #expect(written.map(\.path) == [expected])
         #expect(FileManager.default.fileExists(atPath: expected + "/manifest.json"))
         // Ce que la vue calculait à la place : un chemin où il n'y a rien.
         #expect(!FileManager.default.fileExists(
@@ -87,7 +88,7 @@ struct InstalledPathsTests {
                                             selections: [selection], detectedMods: [mod],
                                             gameDir: env.gameDir, existingMods: [existing])
 
-        #expect(written == [env.modsDir.appendingPathComponent("Automate").path])
+        #expect(written.map(\.path) == [env.modsDir.appendingPathComponent("Automate").path])
     }
 
     @Test func aBrandNewModLandsPausedAndSaysSo() throws {
@@ -106,12 +107,16 @@ struct InstalledPathsTests {
                                             selections: [selection], detectedMods: [mod],
                                             gameDir: env.gameDir, existingMods: [])
 
-        #expect(written == [env.modsDir.appendingPathComponent(".NewMod").path])
+        #expect(written.map(\.path) == [env.modsDir.appendingPathComponent(".NewMod").path])
     }
 
     @Test func aRenamedInstallReportsItsStampedFolder() throws {
-        // La vue s'abstenait sur `.rename` : le suffixe horodaté est fabriqué
-        // dans l'installateur et n'était visible nulle part. Il l'est enfin.
+        // Le suffixe horodaté est fabriqué dans l'installateur : personne
+        // d'autre ne peut le reproduire, et il est donc annoncé ici.
+        // L'appelant, lui, écarte sciemment ces chemins de l'ancrage — une
+        // installation renommée laisse l'original en place, deux dossiers
+        // portent alors le même identifiant, et l'ancre est unique par
+        // identifiant (voir `InstalledModPath`).
         let env = InstallerTestEnv()
         defer { env.cleanup() }
 
@@ -132,9 +137,9 @@ struct InstalledPathsTests {
                                             gameDir: env.gameDir, existingMods: [existing])
 
         #expect(written.count == 1)
-        let name = (written[0] as NSString).lastPathComponent
+        let name = (written[0].path as NSString).lastPathComponent
         #expect(name.hasPrefix(".Automate_"))
-        #expect(FileManager.default.fileExists(atPath: written[0] + "/manifest.json"))
+        #expect(FileManager.default.fileExists(atPath: written[0].path + "/manifest.json"))
         // L'original reste en place : c'est tout le sens de « renommer ».
         #expect(FileManager.default.fileExists(
             atPath: env.modsDir.appendingPathComponent("Automate").path))

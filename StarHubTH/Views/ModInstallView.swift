@@ -898,7 +898,7 @@ struct ModInstallView: View {
                 // il a écrit — un composant reste dans son pack, un mod
                 // activé garde sa place, un `.rename` porte un horodatage
                 // fabriqué au moment de l'écriture.
-                let installedFolderPaths = try self.installer.install(
+                let written = try self.installer.install(
                     from: tempDir,
                     to: modsDisabledPath,
                     selections: selections,
@@ -906,6 +906,22 @@ struct ModInstallView: View {
                     gameDir: gameDir,
                     existingMods: existingMods
                 )
+
+                // Une installation **renommée** laisse l'original en place :
+                // deux dossiers portent alors le même `UniqueID`, quand une
+                // ancre de version est unique par identifiant. Affirmer la
+                // version de la copie renommée décrirait mal celle qui reste
+                // active — et si l'utilisateur supprimait la copie sans
+                // l'activer, la mise à jour ne serait plus jamais annoncée.
+                // On s'abstient donc pour elles, comme avant ; la différence
+                // est qu'on le fait sciemment, et non faute de connaître le
+                // chemin.
+                let renamedIds = Set(selections
+                    .filter { $0.conflictResolution == .rename }
+                    .map(\.modId))
+                let installedFolderPaths = written
+                    .filter { !renamedIds.contains($0.modId) }
+                    .map(\.path)
 
                 DispatchQueue.main.async {
                     self.isInstalling = false

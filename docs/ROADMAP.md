@@ -484,9 +484,14 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       composant depuis `nxm://` ou le téléchargement intégré ne posait donc aucune
       ancre — la mise à jour restait annoncée après installation, et l'identifiant
       Nexus, connu à ce seul instant, était perdu.
-      `install` rend désormais les chemins **réellement écrits** ; la copie de la vue
-      a disparu, et le cas `.rename` (dont l'horodatage n'était visible nulle part)
-      cesse d'être un angle mort. · **S**
+      `install` rend désormais les chemins **réellement écrits**, chacun portant
+      l'`id` de sa sélection ; la copie de la vue a disparu.
+      ⚠️ **Le cas `.rename` reste écarté de l'ancrage** — c'était le comportement
+      d'avant, pour une raison que le commentaire d'origine ne disait pas : une
+      installation renommée laisse l'original en place, deux dossiers portent alors
+      le même `UniqueID`, et une ancre est unique par identifiant. La première
+      version du correctif (`bb0674b`) l'avait changé sans le mesurer ;
+      `4196b12` rétablit l'abstention, cette fois sciemment. · **S**
 - [x] **B1-T1** ✅ *(livré le 2026-08-01)* — Boutons **Activer/Désactiver** et
       **Supprimer** sur la fiche mod (parité avec la liste, mêmes confirmations).
       Absents pour un composant de pack, comme dans la liste. La fiche se referme

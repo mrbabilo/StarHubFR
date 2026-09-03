@@ -1002,10 +1002,15 @@ class ModZipInstaller {
     ///   mécanismes nourris par ces chemins lisent un `manifest.json` et
     ///   s'abstiennent en silence s'il n'y a rien : la mise à jour d'un
     ///   composant restait donc annoncée après avoir été installée.
+    ///
+    ///   Chaque chemin porte l'`id` de sa sélection : une installation
+    ///   **renommée** laisse l'original en place, et l'appelant doit pouvoir
+    ///   la reconnaître pour ne pas ancrer une version que deux dossiers se
+    ///   disputent (voir `InstalledModPath`).
     @discardableResult
-    func install(from tempDir: URL, to modsDisabledPath: String, selections: [InstallSelection], detectedMods: [DetectedMod], gameDir: String, existingMods: [ModItem]) throws -> [String] {
+    func install(from tempDir: URL, to modsDisabledPath: String, selections: [InstallSelection], detectedMods: [DetectedMod], gameDir: String, existingMods: [ModItem]) throws -> [InstalledModPath] {
         guard !gameDir.isEmpty else { throw InstallError.gameDirEmpty }
-        var installedPaths: [String] = []
+        var installedPaths: [InstalledModPath] = []
         // Est-ce que cette installation a produit une sauvegarde ? Sinon il
         // n'y a rien de neuf à élaguer, et balayer l'index serait payé pour
         // rien.
@@ -1181,7 +1186,7 @@ class ModZipInstaller {
             try restoreUserConfigs(&preservedConfigs, into: destPath)
 
             // Le mod est entièrement posé : son chemin peut être annoncé.
-            installedPaths.append(destPath)
+            installedPaths.append(InstalledModPath(modId: selection.modId, path: destPath))
         }
 
         // La rétention par âge, **une fois** pour toute l'installation : elle
