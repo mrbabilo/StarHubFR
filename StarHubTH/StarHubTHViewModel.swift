@@ -3433,6 +3433,22 @@ class StarHubTHViewModel: ObservableObject {
         }
     }
 
+    /// L'`UniqueID` déclaré par le manifeste d'un dossier de mod, ou `nil`.
+    ///
+    /// Sert à savoir **à qui appartient** un dossier avant de le déplacer. Passe
+    /// par `ManifestJSON`, comme le scan : un manifeste avec commentaires, BOM
+    /// ou virgule traînante se lit ici exactement comme là-bas, sinon un mod
+    /// bien réel passerait pour un résidu anonyme.
+    private static func uniqueId(ofModAt folderPath: String) -> String? {
+        let manifestPath = (folderPath as NSString).appendingPathComponent("manifest.json")
+        guard let data = FileManager.default.contents(atPath: manifestPath),
+              let raw = String(data: data, encoding: .utf8),
+              let manifest = ManifestJSON.decode(raw),
+              let uniqueId = manifest.caseInsensitiveValue(forKey: "UniqueID") as? String
+        else { return nil }
+        return uniqueId
+    }
+
     @MainActor
     private func performToggle(_ mod: ModItem, completion: (() -> Void)? = nil) {
         // Helper to find the top-level folder that contains a given uniqueId
@@ -3585,7 +3601,30 @@ class StarHubTHViewModel: ObservableObject {
                 // prior toggle) — keep the defensive set-aside + rollback.
                 var staleDuplicateAside: String? = nil
                 if fm.fileExists(atPath: destPath) {
-                    let asidePath = destPath + ".stale_\(UUID().uuidString)"
+                    // ⚠️ Une collision à destination n'est PAS forcément un
+                    // résidu de bascule plantée : `folderName` est logique, et
+                    // deux mods différents peuvent le partager — `X` actif et
+                    // `.X` en pause. Mesuré sur le parc de l'auteur :
+                    // `[CP] Seaside Sounds` (witchtopia) et son homonyme en
+                    // pause (Liana) sont deux mods de deux auteurs. Déplacer le
+                    // dossier d'autrui lui ferait perdre favori, note, config
+                    // de profil et identifiant Nexus, sans un mot.
+                    let destinationId = Self.uniqueId(ofModAt: destPath)
+                    guard ModFolderCollision.isStaleDuplicate(destinationUniqueId: destinationId,
+                                                              toggling: m.uniqueId) else {
+                        log("Bascule refusée pour \(m.name) : « \(dstName) » est déjà le dossier "
+                            + "d'un autre mod (\(destinationId ?? "?")). Renommer l'un des deux "
+                            + "dossiers pour les distinguer.", level: .error)
+                        continue
+                    }
+                    // Le dossier écarté est **préfixé d'un point** : sans lui,
+                    // SMAPI continuerait de charger le résidu, qui n'est plus
+                    // censé compter.
+                    let parent = (destPath as NSString).deletingLastPathComponent
+                    let leaf = (destPath as NSString).lastPathComponent
+                    let asideLeaf = leaf.hasPrefix(".") ? leaf : "." + leaf
+                    let asidePath = (parent as NSString)
+                        .appendingPathComponent("\(asideLeaf).stale_\(UUID().uuidString)")
                     try fm.moveItem(atPath: destPath, toPath: asidePath)
                     staleDuplicateAside = asidePath
                 }

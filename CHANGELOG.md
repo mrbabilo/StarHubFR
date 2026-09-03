@@ -14,6 +14,8 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **Activer un mod ne peut plus déplacer le dossier d'un autre** : mettre un mod en pause le renomme en le préfixant d'un point, et l'app considère les deux formes comme un seul nom. Deux mods différents peuvent pourtant les occuper — sur votre parc, `[CP] Seaside Sounds` (actif, de witchtopia) et son homonyme en pause (de Liana) sont deux mods de deux auteurs. Réactiver celui en pause aurait écarté l'autre sous un nom de sauvegarde, lui faisant perdre favori, note, configuration de profil et identifiant Nexus — sans un mot. L'app vérifie désormais à qui appartient le dossier avant d'y toucher, et refuse en le disant. Le dossier écarté, lui, est enfin masqué au jeu.
+
 - **Une mise à jour ne disparaît plus dans la ligne d'un pack voisin** : le regroupement par pack de l'écran des mises à jour s'indexait sur l'identifiant Nexus, qui n'identifie pourtant pas un mod. Sur votre parc, **4 identifiants** sont déclarés à la fois par un composant de pack et par un mod extérieur — `Automate` revendique par exemple la page de *Powered Automation*, une clé copiée à tort par son auteur — et le mod extérieur se faisait absorber : une seule ligne pour deux mods, la seconde mise à jour invisible. Deux identifiants sont même revendiqués par plusieurs packs (l'un par trois), auquel cas la mise à jour d'un pack s'affichait sous le nom d'un autre. Le regroupement passe par l'identifiant unique du mod.
 
 
