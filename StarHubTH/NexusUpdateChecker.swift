@@ -642,6 +642,12 @@ final class NexusUpdateChecker {
     /// Returns `""` on any failure (no API key, network error, non-200 status,
     /// parse error, missing field) so callers can treat that uniformly as
     /// "offline / unavailable" and keep showing cached/local data instead.
+    ///
+    /// ⚠️ **La complétion n'est PAS ramenée sur le fil principal**, à la
+    /// différence de `fetchSingleMod` et `fetchAccount` : elle est appelée là
+    /// où `URLSession` la rend, donc en tâche de fond. L'appelant actuel
+    /// (`StarHubTHViewModel.loadModDetail`) repasse par `DispatchQueue.main`
+    /// avant de toucher un `@Published` — le prochain devra faire de même.
     func fetchRawDescription(modId: Int, completion: @escaping (String) -> Void) {
         guard let apiKey = apiKey(), !apiKey.isEmpty else {
             completion("")
@@ -684,6 +690,8 @@ final class NexusUpdateChecker {
     /// result as Markdown, newest version first (compared with
     /// `NexusUpdateChecker.compare`). Yields `""` on any failure (no key,
     /// offline, empty) so the caller keeps its cached/local fallback.
+    /// ⚠️ Même contrat que `fetchRawDescription` : la complétion arrive sur le
+    /// fil de `URLSession`, pas sur le principal.
     func fetchChangelogs(modId: Int, completion: @escaping (String) -> Void) {
         guard let apiKey = apiKey(), !apiKey.isEmpty else {
             completion("")
