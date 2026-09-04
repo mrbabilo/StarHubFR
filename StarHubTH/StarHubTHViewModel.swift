@@ -4406,6 +4406,14 @@ class StarHubTHViewModel: ObservableObject {
             // applyPathoschildFallback can take seconds on large parks).
             // Setting it before would let a fast user re-trigger a 2nd
             // check before the 1st has finished processing.
+            //
+            // Sauf si une reprise Nexus vient de partir : `applySmapiResults`
+            // l'a lancée quelques lignes plus haut, dans ce même bloc, et elle
+            // interroge Nexus page par page bien après ce point. Relâcher ici
+            // rouvrirait précisément le re-déclenchement que le paragraphe
+            // ci-dessus décrit — et cette fois sur le quota Nexus.
+            // `finishNexusFallback` relâche les deux à sa place.
+            guard !self.nexusFallbackInFlight else { return }
             self.isCheckingNexusUpdates = false
             self.nexusCheckProgress = nil
         }
@@ -4859,9 +4867,24 @@ for mod in mods {
         log("Reprise Nexus : \(modCount) mods sans verdict, \(targets.count) pages à interroger",
             level: .info)
         isCheckingNexusUpdates = true
+        nexusFallbackInFlight = true
         nexusCheckProgress = (0, targets.count)
         fetchNexusFallback(targets, index: 0, found: [], settled: [], failures: 0)
     }
+
+    /// Vrai entre le lancement d'une reprise Nexus et sa fin.
+    ///
+    /// La reprise démarre **dans** `applySmapiResults`, donc avant que le
+    /// `group.notify` de `checkNexusUpdates` n'ait fini son propre travail :
+    /// sans ce drapeau, le relâchement de fin de passe (`isCheckingNexusUpdates
+    /// = false`, `nexusCheckProgress = nil`) écrasait le `true` que la reprise
+    /// venait de poser. La vérification se déclarait terminée alors qu'elle
+    /// interrogeait encore Nexus page par page — le bouton « Vérifier »
+    /// réapparaissait, et un second passage complet pouvait démarrer par-dessus,
+    /// aux dépens du quota Nexus là où smapi.io est gratuit. C'est exactement le
+    /// re-déclenchement que ce relâchement tardif avait été placé là pour
+    /// empêcher.
+    private var nexusFallbackInFlight = false
 
     /// Une page après l'autre. `settled` retient les mods dont Nexus a bien
     /// rendu un verdict — mise à jour trouvée **ou** confirmation qu'il n'y en
@@ -4963,6 +4986,11 @@ for mod in mods {
                                      settled: Set<String>,
                                      failures: Int,
                                      attempted: Int) {
+        // Baissé **en premier**, avant tout retour possible : les deux sorties
+        // de `fetchNexusFallback` (dernière page atteinte, et l'abandon sur
+        // limitation de débit) passent par ici, et un drapeau resté levé
+        // laisserait la vérification bloquée « en cours » pour la session.
+        nexusFallbackInFlight = false
         isCheckingNexusUpdates = false
         nexusCheckProgress = nil
 
@@ -7839,15 +7867,30 @@ for mod in mods {
                 if mod.name.localizedCaseInsensitiveContains(nameToCheck) || nameToCheck.localizedCaseInsensitiveContains(mod.name) {
                     foundOriginal = true
                     
-                    let thJsonPath = (modsDir as NSString).appendingPathComponent("\(mod.folderName)/i18n/th.json")
-                    let cpThJsonPath = (modsDir as NSString).appendingPathComponent("\(mod.folderName)/[CP] \(mod.folderName)/i18n/th.json") // Handle nested [CP]
-                    
+                    // `physicalFolderName`, pas `folderName` : un mod en pause
+                    // vit dans `Mods/.X`, et chercher sous `Mods/X` ne trouve
+                    // rien. Mesuré sur le parc : **22 des 30 `i18n/th.json`**
+                    // sont sous un dossier de tête en pause — la quasi-totalité
+                    // du hub s'annonçait « non installée ». Le point vit sur
+                    // l'entrée de tête, donc `.Pack/Composant` pour un
+                    // composant, ce que `physicalFolderName` compose déjà.
+                    //
+                    // Le second `[CP] …` d'un chemin niché, lui, est un
+                    // sous-dossier **dans** le dossier du mod : il garde le nom
+                    // logique, et sa feuille seule — `folderName` d'un composant
+                    // porte le chemin du pack, et « [CP] Pack/Composant » ne
+                    // désigne aucun dossier.
+                    let thJsonPath = (modsDir as NSString).appendingPathComponent("\(mod.physicalFolderName)/i18n/th.json")
+                    let modLeaf = (mod.folderName as NSString).lastPathComponent
+                    let cpThJsonPath = (modsDir as NSString).appendingPathComponent("\(mod.physicalFolderName)/[CP] \(modLeaf)/i18n/th.json") // Handle nested [CP]
+
                     if fm.fileExists(atPath: thJsonPath) || fm.fileExists(atPath: cpThJsonPath) {
                         foundTranslation = true
                     } else if mod.isGroup {
                         for child in mod.children ?? [] {
-                            let childThJsonPath = (modsDir as NSString).appendingPathComponent("\(child.folderName)/i18n/th.json")
-                            let childCpThJsonPath = (modsDir as NSString).appendingPathComponent("\(child.folderName)/[CP] \(child.folderName)/i18n/th.json")
+                            let childLeaf = (child.folderName as NSString).lastPathComponent
+                            let childThJsonPath = (modsDir as NSString).appendingPathComponent("\(child.physicalFolderName)/i18n/th.json")
+                            let childCpThJsonPath = (modsDir as NSString).appendingPathComponent("\(child.physicalFolderName)/[CP] \(childLeaf)/i18n/th.json")
                             if fm.fileExists(atPath: childThJsonPath) || fm.fileExists(atPath: childCpThJsonPath) {
                                 foundTranslation = true
                                 break
