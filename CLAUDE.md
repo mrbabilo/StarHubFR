@@ -69,6 +69,13 @@ Le build est **scindé en deux systèmes** ; vérifier lequel couvre le fichier 
   pour voir l'état. Un ajout délibéré demande un `--update` explicite, visible
   dans le diff. `--skip-standards` débloque un build ponctuel.
 
+- **`check_sources.py`** — le pendant du cliquet pour ce qui vit **hors** du
+  dépôt : les API qu'on appelle, les dumps qu'on télécharge, les projets dont on
+  a repris du code. Relevé comparé à `.sources-baseline.json`, `--update` pour
+  assumer, `--report` pour tout voir, `--offline` pour les seuls contrôles
+  locaux. Un écart n'est **pas** une faute : c'est une chose à aller regarder.
+  → carte complète et raisonnement dans `docs/SOURCES.md`.
+
 **Ne jamais lancer l'app ni prendre de capture depuis un agent/sous-agent.** La
 vérification GUI est déléguée à l'humain ; les agents valident par succès de build.
 

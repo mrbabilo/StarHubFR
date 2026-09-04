@@ -1,0 +1,125 @@
+{
+  "SMAPI": {
+    "archived": false,
+    "default_branch": "develop",
+    "last_commit": "79f9bbb",
+    "last_commit_at": "2026-07-01T20:31:21Z",
+    "pushed_at": "2026-07-01T20:31:27Z",
+    "release": "4.5.2",
+    "released_at": "2026-03-22T23:55:42Z"
+  },
+  "Stardrop": {
+    "archived": false,
+    "default_branch": "development",
+    "last_commit": "55c7f22",
+    "last_commit_at": "2026-09-01T04:48:53Z",
+    "pushed_at": "2026-09-01T04:49:01Z",
+    "release": "v1.9.0",
+    "released_at": "2026-06-07T02:51:45Z"
+  },
+  "XnbHack": {
+    "archived": false,
+    "default_branch": "develop",
+    "last_commit": "e0b5d50",
+    "last_commit_at": "2024-11-06T00:21:27Z",
+    "pushed_at": "2024-11-06T00:37:05Z",
+    "release": "1.1.2",
+    "released_at": "2024-11-06T00:44:02Z"
+  },
+  "amont/StarHubTH": {
+    "archived": false,
+    "default_branch": "main",
+    "last_commit": "1f47a1e",
+    "last_commit_at": "2026-07-27T05:34:53Z",
+    "pushed_at": "2026-07-27T05:35:39Z",
+    "release": "v1.1.9",
+    "released_at": "2026-07-27T05:06:25Z"
+  },
+  "compat-list": {
+    "archived": false,
+    "default_branch": "develop",
+    "last_commit": "96b480c",
+    "last_commit_at": "2026-06-04T03:10:09Z",
+    "pushed_at": "2026-06-04T03:10:42Z"
+  },
+  "constantes-figées": {
+    "nexus_apiBase": "https://api.nexusmods.com/v1",
+    "pathoschild_dumpURL": "https://raw.githubusercontent.com/Pathoschild/SmapiCompatibilityList/develop/data/mods.jsonc",
+    "smapi_apiVersion": "4.1.10",
+    "smapi_defaultGameVersion": "1.6.15",
+    "smapi_endpoint": "https://smapi.io/api/v3.0/mods"
+  },
+  "i18n-translator": {
+    "archived": false,
+    "default_branch": "main",
+    "last_commit": "4099f12",
+    "last_commit_at": "2026-09-02T23:11:38Z",
+    "pushed_at": "2026-09-02T23:17:09Z",
+    "release": "v2.0.3",
+    "released_at": "2026-09-02T23:17:13Z"
+  },
+  "log-doctor": {
+    "archived": false,
+    "default_branch": "main",
+    "last_commit": "cbfbf6c",
+    "last_commit_at": "2026-03-17T01:20:36Z",
+    "pushed_at": "2026-03-17T01:20:57Z"
+  },
+  "nexus/api-v1": {
+    "bytes": 53,
+    "http": 401
+  },
+  "pathoschild/dump": {
+    "champs": {
+      "abandonedReason": 277,
+      "brokeIn": 1109,
+      "id": 4720,
+      "nexus": 4582,
+      "status": 534,
+      "summary": 334,
+      "unofficialUpdate": 67,
+      "warnings": 24
+    },
+    "http": 200,
+    "mods": 4720
+  },
+  "save-editor": {
+    "archived": false,
+    "default_branch": "main",
+    "last_commit": "158f662",
+    "last_commit_at": "2026-08-29T17:17:50Z",
+    "pushed_at": "2026-08-29T17:17:50Z"
+  },
+  "smapi.io/contrat": {
+    "cles_metadata": [
+      "compatibilityStatus",
+      "compatibilitySummary",
+      "curseForgeID",
+      "gitHubRepo",
+      "id",
+      "main",
+      "modDropID",
+      "name",
+      "nexusID"
+    ],
+    "cles_racine": [
+      "errors",
+      "id",
+      "metadata",
+      "suggestedUpdate"
+    ],
+    "http": 200,
+    "mods_rendus": 2,
+    "platform_macOS_rend": 0,
+    "suggestions": 2
+  },
+  "thai-translations": {
+    "archived": false,
+    "default_branch": "main",
+    "last_commit": "e26d71b",
+    "last_commit_at": "2026-07-18T05:57:40Z",
+    "pushed_at": "2026-07-18T05:57:44Z",
+    "release": "PickForgeEnchantment-th-v1.0.0",
+    "released_at": "2026-07-17T19:51:04Z"
+  }
+}

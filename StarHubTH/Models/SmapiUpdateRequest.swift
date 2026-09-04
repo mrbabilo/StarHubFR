@@ -152,6 +152,14 @@ public enum SmapiUpdateRequest {
         public let mods: [Entry]
         public let includeExtendedMetadata: Bool
         public let gameVersion: String
+        /// **Sensible à la casse, et quatrième champ capable de vider un lot en
+        /// silence.** Mesuré contre smapi.io le 2026-09-04 : `"Mac"` répond,
+        /// `"macOS"` et `"MacOS"` rendent `HTTP 200` et une **liste vide**.
+        /// C'est la panne d'`apiVersion` par une quatrième porte, et la plus
+        /// tentante à ouvrir : « macOS » est le nom moderne de la plateforme,
+        /// et le corriger « proprement » couperait toute vérification de mise à
+        /// jour sans un message. Ne pas y toucher ; `check_sources.py` surveille
+        /// ce comportement dans les deux sens.
         public let platform: String
         /// Voir `SmapiUpdateRequest.apiVersion` : sans ce champ, la réponse ne
         /// porte aucune suggestion de mise à jour.

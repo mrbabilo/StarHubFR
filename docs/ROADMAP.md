@@ -849,6 +849,27 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       un autre mod hérite du drapeau « sa config suit le profil ». Demande une
       décision de politique (tout purger ? garder l'identifiant Nexus, qui est
       souvent le bon au réinstall ?), pas seulement du code. · **S**
+- [ ] **X56** — **Trois champs du dump de compatibilité ne sont pas décodés.**
+      `PathoschildCompatibilityList.Entry` lit `id`, `status`, `brokeIn`,
+      `summary`, `nexusID`. Le dump (4 720 mods) en porte trois autres :
+      `unofficialUpdate` (67 mods), `abandonedReason` (277) et `warnings` (24).
+      Croisé avec le parc le 2026-09-04 — 1 090 identifiants, 292 connus du
+      dump : **5 mods ont une mise à jour non officielle** (Bus Locations,
+      Informant, SAAT ×2, Mod Update Menu), **2 ont un avertissement**
+      (« use Nexus, ModDrop is NOT updated » ; « Broken on Android »), aucun n'a
+      de motif d'abandon. Les cinq premiers sont des correctifs communautaires
+      installables pour des mods que rien ne signale aujourd'hui — exactement le
+      « et maintenant, quoi ? » que l'écran de diagnostic doit porter. · **M**
+- [ ] **X57** — **La bascule en masse agit sur le parc entier, depuis une liste
+      filtrée.** Le bouton « Tout activer / Tout désactiver » vit dans
+      `ModListView` — qui a une recherche, des catégories et une pagination à 15
+      — mais `toggleAllMods` parcourt `mods` en entier, **949 dossiers de tête**.
+      Filtrer sur « Content Patcher » puis cliquer « Tout désactiver » désactive
+      le parc. Stardrop a résolu exactement ça le 2026-09-01 (`c630c11`), et
+      formule bien la règle : *« bulk actions run through this so that what the
+      user is looking at is what they act on »*, filtre de source, recherche,
+      filtres actif/inactif et masqués sous une règle unique, évaluée sur l'état
+      courant plutôt que relue de la vue. Voir `docs/SOURCES.md` §5. · **M**
 - [x] **B1-T1** ✅ *(livré le 2026-08-01)* — Boutons **Activer/Désactiver** et
       **Supprimer** sur la fiche mod (parité avec la liste, mêmes confirmations).
       Absents pour un composant de pack, comme dans la liste. La fiche se referme
