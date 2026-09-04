@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.35.5] - 2026-09-04
+
 ### Fixed
 
 - **« Tout activer » ne supprime plus le mod qui portait le même nom de dossier** : activer ou désactiver tout le parc renomme chaque dossier entre `Mods/X` et `Mods/.X`. Quand un dossier existait déjà à destination, il était écarté puis **effacé**, sans vérifier à qui il appartenait — au prétexte qu'une collision ne pouvait être qu'un résidu de bascule interrompue. C'est faux sur votre parc : `[CP] Seaside Sounds` (de witchtopia, actif) et `.[CP] Seaside Sounds` (de Liana, 3,2 Mo, en pause) sont deux mods différents de deux auteurs différents. Un seul clic effaçait l'un des deux, sans corbeille ni journal. La bascule unitaire refusait déjà ce cas ; la bascule en masse le refuse à son tour, et le mod écarté est nommé dans le bilan de fin au lieu de disparaître en silence.
