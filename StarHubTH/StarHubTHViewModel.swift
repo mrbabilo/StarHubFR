@@ -10110,6 +10110,10 @@ for mod in mods {
     /// sauvegarde protégée du parc est celle d'un mod **désinstallé** : il n'y a
     /// pas de dossier où écrire, et en créer un reviendrait à réinstaller le
     /// mod. D'où l'action jumelle, `revealProtectedBackup`.
+    ///
+    /// `@discardableResult` : l'échec est déjà porté à l'écran par le modal
+    /// que `recoverFile` lève en interne, l'appelant n'a rien à en faire.
+    @discardableResult
     func recoverProtectedFile(_ file: RecoverableFile) -> Bool {
         recoverFile(file)
     }
