@@ -722,6 +722,33 @@ répond. L'ordre et les titres de section sont ceux de la roadmap.
       exact. La garde de collision de **X51** est intacte — un refus sur les
       mods cadrés se lit là où il se noyait dans un bilan de huit cents
       déplacements. · **M**
+- [x] **R6** ✅ *(livré le 2026-09-04)* — **Property-test « idempotent » sur
+      `applyProfileToFilesystem`.** La règle qui décide *qui bouge, qui reste et
+      dans quel ordre* vivait à l'intérieur de la méthode, mêlée au
+      `DispatchQueue`, aux renommages et au rescane — donc hors de portée de
+      `swift test`. Elle est extraite dans `ProfileApplyPlan` (Core) : la
+      méthode du ViewModel exécute désormais un plan au lieu de le recalculer,
+      une seule source pour la liste des dossiers à renommer.
+      ▸ **Le verdict, mesuré** : l'application **est** idempotente. Sur 200 parcs
+      engendrés (générateur déterministe, packs, mods sans identifiant, noms de
+      dossier volontairement peu nombreux pour forcer les collisions), la
+      seconde passe ne redemande **que** les déplacements que le disque a
+      refusés au premier tour, et la troisième ne bouge plus rien. L'hypothèse
+      de l'item — « des cas où un double-apply renomme deux fois (X→.X→X) » —
+      est infirmée : rien n'oscille.
+      ▸ **Ce que la propriété a trouvé à la place** : 86 des 200 parcs portent au
+      moins un déplacement impossible, tous de la même forme — l'échange de nom
+      entre `X` actif et `.X` en pause. Ouvert en **X60**.
+      ▸ **Ce que les mutants ont dit** : la garde « mod sans identifiant » et
+      l'ordre des déplacements sont bien tenus par un test chacun. Le mutant qui
+      construit la destination depuis le nom **physique** survit — il est
+      équivalent : seuls des mods actifs entrent dans la liste des mises en
+      pause, où nom physique et nom logique coïncident. Sur l'ordre, ce qui est
+      **mesuré** : l'échanger ne change le résultat d'aucun des 200 parcs
+      engendrés, et tous les conflits observés y sont des échanges à deux, qu'un
+      ordonnancement ne débloque pas. Un test le tient tout de même
+      (`modsAreSetAsideBeforeOthersAreBroughtBack`) : l'ordre reste celui que la
+      méthode a toujours eu. · **S**
 - [x] **X59** ✅ *(constat faux, clos le 2026-09-04 — aucun code changé)* —
       **« Changer de profil jette la liste de ses échecs. »** Faux. Le constat
       avait été ouvert en lisant le paramètre `completion` de

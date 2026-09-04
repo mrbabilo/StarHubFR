@@ -177,6 +177,21 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       ces mods ne sont pas cassés. Zéro exemplaire utile sur le parc
       aujourd'hui : à faire quand l'écran d'alertes gagnera une ligne
       « à savoir ». · **S**
+- [ ] **X60** — **Un changement de profil ne peut pas échanger deux noms de
+      dossier, et ne le dit pas.** `X` actif et `.X` en pause sont deux mods
+      différents (cas réel du parc : les deux `[CP] Seaside Sounds`, de
+      witchtopia et de Liana). Un profil qui réclame celui en pause et pas
+      l'actif demande un **échange** de noms : `moveItem` refuse les deux
+      déplacements — il n'écrase pas, rien n'est perdu — et aucun ordre ne les
+      débloquerait, c'est un cycle à deux. Le profil reste marqué « appliqué
+      incomplètement » pour toujours, et l'alerte de fin ne dit que le message
+      brut du système (« le fichier existe déjà »). La bascule en masse, elle,
+      nomme déjà le coupable et dit quoi faire (`BulkToggleRefusal`,
+      `ModFolderCollision`) : c'est ce message-là qui manque ici. Le correctif
+      complet — renommer par un nom temporaire pour dénouer le cycle — écrit
+      trois fois là où on écrivait une, sur le chemin le plus fréquent : à
+      instruire avant d'engager. Trouvé le 2026-09-04 par la propriété
+      d'idempotence de **R6** (86 parcs engendrés sur 200 en portent un). · **S**
 
 ---
 
@@ -1357,7 +1372,7 @@ corrompre ou faire disparaître quelque chose sans le dire ?* — et non à
 |---|---|---|---|
 | ~~1~~ | ~~**X55**~~ | ✅ **Corrigé le 2026-09-04** — politique « on efface tout » tranchée par l'auteur. 35 entrées fantômes mesurées dans les préférences réelles au moment du correctif ; les anciennes restent, les balayer heurterait X25. Voir l'archive |
 | ~~2~~ | ~~**X25**~~ | ✅ **Livré le 2026-09-04** — l'écran « Entretien » : inventaire mesuré (1,80 Go de sauvegardes, 340 dossiers orphelins, 35 clés mortes, 1 seule copie protégée), purge par cran sous confirmation, nettoyage explicite des orphelins et clés — jamais de passe automatique. Voir l'archive |
-| 3 | **R6** | Rien encore — c'est le filet qui manque | Aucun test d'idempotence sur `applyProfileToFilesystem` (vérifié : aucun `Tests/` ne contient le mot). Caractériser un double-apply **avant** de toucher au code, comme le dit l'item |
+| ~~3~~ | ~~**R6**~~ | ✅ **Livré le 2026-09-04** — la règle extraite dans `ProfileApplyPlan` (Core), 10 tests dont la propriété sur 200 parcs engendrés. Verdict : **idempotent**, la seconde passe ne redemande que ce que le disque a refusé. Ce que la propriété a mis au jour : `X60`. Voir l'archive |
 | 4 | **R2** | Un état partiel, pas des octets | `moveItem` **échoue** si la destination existe — il n'écrase pas — et chaque échec est journalisé. Reste vrai : aucune garde « jeu en cours », aucun instantané au niveau profil, des renommages en série interruptibles |
 
 **P2 — masque une information, ou en affirme une fausse**
@@ -1369,7 +1384,7 @@ corrompre ou faire disparaître quelque chose sans le dire ?* — et non à
 | 7 | **X54** | Le journal annonce « profil créé » sur un simple ajout de mod et sur un import de favoris |
 | 8 | **X49** | Deux recherches Nexus rapprochées peuvent revenir dans le désordre |
 | 9 | **F6-T4** | Une ancre « je l'ai déjà » ratée quand le manifeste et l'ancre diffèrent par la casse |
-| 10 | **X58**, **C2-T4**, **X47** | Ce qu'un mod garde en silence (avertissements filtrés par plateforme), les clés de config perdues à une mise à jour, les lots smapi.io abandonnés après un échec |
+| 10 | **X58**, **X60**, **C2-T4**, **X47** | Ce qu'un mod garde en silence (avertissements filtrés par plateforme), l'échange de noms de dossier qu'un profil ne peut pas faire et n'explique pas, les clés de config perdues à une mise à jour, les lots smapi.io abandonnés après un échec |
 
 **P3 — latent : la condition est vraie, zéro exemplaire sur le parc**
 
@@ -1562,12 +1577,6 @@ sur macOS / SwiftUI. Les features trop spécifiques à RimWorld (Cecil analyzer,
       réécrire l'historique. Pinning (étoile) protège du pruning auto à 30 j. Remplace
       l'actuel *« annuler la dernière action »* (s'il existe) par un vrai timeline.
       · **M** · *B3-T1+ : à concevoir avec R4 pour partager le store.*
-- [ ] **R6** — **Property-test « idempotent » sur `applyProfileToFilesystem`.**
-      Appliquer deux fois un même profil = appliquer une fois (état final stable).
-      Mesure RimManager : 100+ cas générés automatiquement, propriété tenue. Notre code
-      a probablement des cas où un double-apply renomme deux fois (toggle
-      X→.X→X) — à property-tester pour **caractériser** avant de **corriger**.
-      · **S** · *F2 (audit perf & sécurité).*
 
 ### 10.4 Ce qu'on **n'importe PAS**
 
@@ -1652,6 +1661,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **X55** | 2026-09-04 | Le ménage à la suppression d'un mod était partiel — quatre magasins survivaient au dossier |
 | **X25** | 2026-09-04 | 340 dossiers de sauvegarde orphelins et 35 clés de préférences mortes — l'écran « Entretien » les nomme avant de les retirer, jamais automatiquement |
 | **X59** | 2026-09-04 | Constat faux, clos sans correctif : l'alerte de fin d'application nomme déjà les mods restés du mauvais côté |
+| **R6** | 2026-09-04 | Le plan d'application d'un profil extrait dans Core et prouvé idempotent sur 200 parcs engendrés |
 | **B1-T1** | 2026-08-01 | Boutons Activer/Désactiver et Supprimer sur la fiche mod (parité avec la liste, mêmes confirmations). Absents pour un… |
 | **B1-T2** | 2026-08-01 | Tri, filtres, catégorie, page et recherche portés par ModListFilters dans le ViewModel. La remise à la page 1 est por… |
 

@@ -8996,42 +8996,20 @@ for mod in mods {
                                                         backupNames: [:],
                                                         nexusHints: [:]).map(\.uniqueId)
 
-        // Check whether a mod (or any of its children) is covered by the profile's enabled list
-        func isCoveredByProfile(_ mod: ModItem) -> Bool {
-            if mod.isGroup, let children = mod.children {
-                return children.contains { profile.enabledModIds.contains($0.uniqueId) }
-            }
-            return profile.enabledModIds.contains(mod.uniqueId)
-        }
-
-        // Whether a mod can be represented in a profile at all. Profiles key on
-        // `UniqueID`, which the enabled list stores (empty ids are filtered out
-        // when snapshotting), so a mod whose manifest has no `UniqueID` can
-        // never be "covered". Without this guard, applying ANY profile would
-        // sweep every such mod into the disabled set — a silent data loss.
-        // Leave those mods exactly where they are instead.
-        func isProfileManageable(_ mod: ModItem) -> Bool {
-            if mod.isGroup, let children = mod.children {
-                return children.contains { !$0.uniqueId.isEmpty }
-            }
-            return !mod.uniqueId.isEmpty
-        }
-
-        // Les deux listes de travail sont arrêtées **ici**, sur l'instantané,
-        // et pas relues dans la boucle : les déplacements tournent en tâche de
-        // fond, et `mods` est réécrit par `scanMods` — le parcourir de là
-        // serait lire un tableau en cours de mutation.
-        let toDisable = snapshotMods.filter {
-            $0.isEnabled && isProfileManageable($0) && !isCoveredByProfile($0)
-        }
-        let toEnable = snapshotMods.filter { !$0.isEnabled && isCoveredByProfile($0) }
+        // Le plan des renommages est arrêté **ici**, sur l'instantané, et pas
+        // relu dans la boucle : les déplacements tournent en tâche de fond, et
+        // `mods` est réécrit par `scanMods` — le parcourir de là serait lire un
+        // tableau en cours de mutation. La règle elle-même (qui bouge, qui
+        // reste, dans quel ordre) vit dans `ProfileApplyPlan`, où elle est
+        // testable — ici elle n'aurait aucun test possible.
+        let moves = ProfileApplyPlan.moves(applying: profile, to: snapshotMods)
 
         let profileName = profile.name
         let profileId = profile.id
         // Le total est connu d'avance : la barre est déterminée dès le premier
         // dossier. Publié avant le dispatch pour que le voile soit là au
         // premier rendu, sans clignotement.
-        let total = toDisable.count + toEnable.count
+        let total = moves.count
         profileApplyProgress = ProfileApplyProgress(done: 0, total: total, phase: .movingFolders)
 
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
@@ -9041,17 +9019,23 @@ for mod in mods {
             var anyEnabled = false
             var done = 0
 
-            // Rename a mod folder within Mods/ to flip its enabled/disabled
-            // state via the dot-prefix convention. `srcPhysical` is the current
-            // on-disk name (with dot if disabled), `dstPhysical` is the target
-            // name. Never throws, so the loop keeps processing the remaining
-            // mods instead of aborting at the first error.
-            func renameModFolder(_ mod: ModItem, from srcPhysical: String, to dstPhysical: String, direction: String) {
+            // Exécute un renommage du plan (`Mods/X` ↔ `Mods/.X`). Ne lève
+            // jamais : la boucle traite les dossiers suivants au lieu de
+            // s'arrêter au premier échec. Rend `true` quand le dossier a
+            // bougé.
+            func perform(_ move: ProfileApplyPlan.Move) -> Bool {
                 attempted += 1
+                let src = (modsPath as NSString).appendingPathComponent(move.source)
+                let dst = (modsPath as NSString).appendingPathComponent(move.destination)
                 do {
-                    try fm.moveItem(atPath: srcPhysical, toPath: dstPhysical)
+                    try fm.moveItem(atPath: src, toPath: dst)
+                    return true
                 } catch {
-                    failures.append(MoveFailure(modName: mod.name, direction: direction, error: error))
+                    failures.append(MoveFailure(modName: move.modName,
+                                                direction: move.direction == .enable
+                                                    ? "→ activé" : "→ désactivé",
+                                                error: error))
+                    return false
                 }
             }
 
@@ -9071,29 +9055,19 @@ for mod in mods {
                 }
             }
 
-            // Disable mods not in profile: rename Mods/X → Mods/.X
-            for mod in toDisable {
-                let src = (modsPath as NSString).appendingPathComponent(mod.physicalFolderName)
-                let dst = (modsPath as NSString).appendingPathComponent("." + mod.folderName)
-                renameModFolder(mod, from: src, to: dst, direction: "→ désactivé")
-                publishProgress()
-            }
-
-            // Enable mods in profile: rename Mods/.X → Mods/X. Only stamp the
-            // activation timestamp for mods that were actually moved — stamping
-            // a mod that failed to rename would record a phantom "last
-            // activation" for a folder that is still sitting disabled.
-            for mod in toEnable {
-                let src = (modsPath as NSString).appendingPathComponent(mod.physicalFolderName)
-                let dst = (modsPath as NSString).appendingPathComponent(mod.folderName)
-                let beforeCount = failures.count
-                renameModFolder(mod, from: src, to: dst, direction: "→ activé")
-                if failures.count == beforeCount {
+            // Le plan porte déjà l'ordre : les mises en pause d'abord, les
+            // activations ensuite. L'horodatage n'est posé que sur un dossier
+            // qui a **vraiment** bougé — le poser sur un renommage en échec
+            // enregistrerait une « dernière activation » fantôme pour un mod
+            // resté en pause.
+            for move in moves {
+                let moved = perform(move)
+                if moved, move.direction == .enable {
                     // `modActivationTimestamps` appartient au thread principal,
                     // comme dans `toggleAllMods` : les écritures y arrivent dans
                     // l'ordre, et l'enregistrement plus bas les voit toutes.
                     DispatchQueue.main.async {
-                        self.modActivationTimestamps[mod.folderName] = Date()
+                        self.modActivationTimestamps[move.folderName] = Date()
                     }
                     anyEnabled = true
                 }
