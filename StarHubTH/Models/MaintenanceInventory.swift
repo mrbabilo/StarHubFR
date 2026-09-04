@@ -120,4 +120,29 @@ public enum MaintenanceInventory {
                          freedBytes: doomed.reduce(0) { $0 + $1.sizeBytes },
                          protectedCount: protectedCount)
     }
+
+    /// Dossiers de session présents sur le disque et absents de l'index.
+    ///
+    /// 340 sur le parc de référence, dont 336 à zéro octet : c'est le constat
+    /// **X25**, dont le gain disque est nul. Ils ne sont retirés que par un
+    /// bouton, jamais par une passe au lancement — une suppression ne se décide
+    /// pas sur une absence constatée toute seule.
+    public static func orphanSessions(onDisk: Set<String>,
+                                      referenced: Set<String>) -> Set<String> {
+        onDisk.subtracting(referenced)
+    }
+
+    /// Clés de magasin qui ne désignent plus aucun mod installé — appliqué à
+    /// `profileManagedConfigMods`, `modActivationTimestamps`, `nexusCustomModIds`
+    /// et `nexusCustomCategories`, les quatre que X55 a câblés à la suppression.
+    ///
+    /// La comparaison est une simple appartenance : chaque clé est jugée pour
+    /// elle-même. Un composant de pack porte son propre nom
+    /// (`Pack/Composant`) et figure donc dans `installedFolders` quand son pack
+    /// est là — inutile de rejouer la règle de préfixe de `ModRemovalPurge`,
+    /// qui répond à une autre question (ce qui part *avec* un dossier supprimé).
+    public static func stalePreferenceKeys(_ keys: some Sequence<String>,
+                                           installedFolders: Set<String>) -> Set<String> {
+        Set(keys.filter { !$0.isEmpty && !installedFolders.contains($0) })
+    }
 }
