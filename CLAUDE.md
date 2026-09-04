@@ -30,6 +30,11 @@ Ce dépôt est travaillé par plusieurs IA, et le contexte n'est pas tout dans
   mods, à SMAPI, à Nexus, aux profils, aux sauvegardes ou aux traductions.
 - **`docs/ROADMAP.md`** — l'état des tâches. ⚠️ Ses cases traînent derrière le
   code livré : vérifier `git log` avant de traiter une tâche « à faire ».
+- **`docs/SOURCES.md`** — la carte de tout ce qui vit **hors** du dépôt : API
+  interrogées, dumps téléchargés, code repris. Obligatoire avant de toucher un
+  client réseau (Nexus, smapi.io, DeepL, IA locale) ou un parseur de format
+  externe. Le document porte les *rôles* et le *raisonnement*, jamais les
+  valeurs : celles-là se relèvent par `check_sources.py` (voir plus bas).
 - **`.kilo/plans/`** — les plans écrits du temps de Kilo (installation par
   glisser-déposer, sauvegarde de config, bascule par préfixe point, comparaison
   StarHubFR/StarHubTH…). Ils portent le **raisonnement** derrière des choix

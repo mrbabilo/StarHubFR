@@ -47,6 +47,13 @@ CONTEXTE STRUCTUREL (mesuré le 2026-09-04, pas estimé) :
 - Qualité : `check_standards.py` + `.standards-baseline.json` — cliquet qui
   n'échoue qu'à l'**augmentation** d'un compteur ; un ajout délibéré demande un
   `--update` explicite, visible dans le diff
+- Sources externes : `check_sources.py` + `.sources-baseline.json` — même patron
+  de cliquet, appliqué à ce qui vit **hors** du dépôt (API interrogées, dumps
+  téléchargés, code repris). Différence de sens : **un écart n'y est pas une
+  faute**, c'est une chose à aller regarder. Carte et raisonnement dans
+  `docs/SOURCES.md`. ⚠️ **Ne pas lancer ce script pendant l'audit** (il sonde
+  le réseau) et **ne jamais réécrire `.sources-baseline.json`** : le signaler
+  comme constat, c'est tout
 - Docs : `docs/` (dont `docs/DOMAINE.md` et `docs/ROADMAP.md`), `README.md`
   (22 911 o), `README_EN.md`, `CONTRIBUTING.md`, `SECURITY.md`
 - Contexte projet : `AGENTS.md` (10 230 o) ET `CLAUDE.md` (17 142 o)
@@ -81,6 +88,12 @@ PHASE 1 — Cœur applicatif
  10. `StarHubTH/Extensions/`, `StarHubTH/Views/`
 
 PHASE 2 — Intégrations réseau (cœur métier)
+  ⚠️ PRÉREQUIS : lire `docs/SOURCES.md` avant cette phase. Il donne, pour chaque
+  contrat externe, le point d'entrée, le rôle, le fichier qui l'implémente et le
+  piège connu — notamment que `NexusRequestBuilder.makeRequest(path:apiKey:)` est
+  le **seul** constructeur de requête Nexus admis, et que `apiVersion` est
+  obligatoire dans la requête smapi.io (sans elle : zéro suggestion, en silence).
+  Le document porte les rôles et le raisonnement, jamais les valeurs courantes.
  11. `NexusSearchClient`, `NexusModSearch`, `NexusDownloader`,
      `NexusUpdateChecker`, `NexusRequestBuilder`, `NexusRateLimitGate`,
      `NexusQuota`
@@ -106,7 +119,11 @@ PHASE 4 — Tests
 PHASE 5 — Configuration, build & déploiement
  20. `Package.swift` (targets/dépendances), `Info.plist`
  21. `build_app.py`, `release.py`, `check_standards.py`,
-     `.standards-baseline.json`, `.mcp.json`
+     `.standards-baseline.json`, `check_sources.py`, `.sources-baseline.json`,
+     `.mcp.json` — pour les deux cliquets, auditer *en lecture* : que le script
+     rende bien un code de sortie non nul quand il doit échouer (ce dépôt a payé
+     cher des scripts rendant `exit 0` sur un échec), et qu'un `--update` reste
+     un geste explicite
 
 ────────────────────────────────────────────
 PROTOCOLE D'AUDIT PAR FICHIER :

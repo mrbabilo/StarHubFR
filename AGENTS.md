@@ -3,7 +3,8 @@
 > **LIRE OBLIGATOIREMENT avant toute modification de ce projet.**
 > Ce fichier consolide les conventions, pièges techniques et commandes validées.
 > Complémentaire à `CLAUDE.md` (qui pointe vers les skills et liste les sources
-> à consulter), à `docs/DOMAINE.md` (le vocabulaire métier) et à `.kilo/plans/`
+> à consulter), à `docs/DOMAINE.md` (le vocabulaire métier), à `docs/SOURCES.md`
+> (la carte de ce qui vit hors du dépôt : API, dumps, code repris) et à `.kilo/plans/`
 > — les plans de l'époque Kilo, qui portent le raisonnement derrière des choix
 > encore en place. Ces plans sont des **archives** : à lire pour le « pourquoi »,
 > jamais comme une spécification courante.
@@ -43,6 +44,29 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test
 ### `swift build` (Core seulement)
 - Ne compile que le sous-ensemble du `Package.swift` (`ModItem`, managers de backup, `SaveManager`, `L10n`, etc.) — **pas** l'UI ni le ViewModel complet.
 - Utile pour un check rapide de logique Core, mais ne remplace pas `build_app.py`.
+
+### Les deux cliquets
+
+```bash
+python3 check_standards.py --report      # conventions Swift (état, sans juger)
+python3 check_sources.py --offline       # sources externes, contrôles locaux seuls
+```
+
+- **`check_standards.py`** / `.standards-baseline.json` — cliquet sur les
+  conventions Swift, lancé automatiquement par `build_app.py` après une
+  compilation réussie. Il n'échoue qu'à l'**augmentation** d'un compteur : le
+  code viole massivement ces règles aujourd'hui. Faire baisser puis `--update`
+  pour resserrer ; un ajout délibéré exige un `--update` explicite, visible
+  dans le diff. `--skip-standards` débloque un build ponctuel.
+- **`check_sources.py`** / `.sources-baseline.json` — le pendant pour ce qui
+  vit **hors** du dépôt : API appelées, dumps téléchargés, projets dont du code
+  a été repris. Carte et raisonnement dans `docs/SOURCES.md`.
+  ⚠️ **Un écart n'est pas un échec** : une nouvelle version de SMAPI n'est pas
+  un bug, c'est une chose à aller regarder — donc on l'explique, on ne le tait
+  pas, et `--update` n'est jamais un moyen de faire taire le script.
+  Depuis un agent, préférer `--offline` : la passe complète sonde smapi.io,
+  GitHub raw et Nexus (les sources injoignables sont de toute façon reportées
+  à part, sans compter comme un écart).
 
 ### Règle absolue
 **Ne jamais lancer l'app ni prendre de capture depuis un agent.** La vérification GUI est déléguée à l'humain ; les agents valident par succès de build + tests.
@@ -173,5 +197,9 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test
 6. [ ] Si nouveau code asynchrone : `weak self` + mutations sur main.
 7. [ ] Si parsing de manifest : pas de `.allowFragments`, strip des commentaires.
 8. [ ] Si énumération de fichiers : résoudre les symlinks avant comparaison de chemins.
-9. [ ] CHANGELOG mis à jour si changement utilisateur-visible.
-10. [ ] Pas de lancement d'app ni capture depuis l'agent.
+9. [ ] Si touché une URL, un chemin d'API, un en-tête ou une constante de
+       contrat externe : `python3 check_sources.py --offline` — et **expliquer**
+       l'écart au lieu de le taire (un écart n'est pas un échec ; `--update`
+       n'est pas un moyen de faire taire le script).
+10. [ ] CHANGELOG mis à jour si changement utilisateur-visible.
+11. [ ] Pas de lancement d'app ni capture depuis l'agent.
