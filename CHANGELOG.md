@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+
+- **Un écran « Entretien » dit ce que l'app occupe, et permet de le rendre sans rien perdre.** Il mesure les sauvegardes d'installation et de configuration (1,80 Go sur le parc de référence, dont 723 Mo libérables en gardant une sauvegarde par mod), sous confirmation qui nomme ce qui part — par la corbeille, jamais en suppression directe. Une sauvegarde qui est la seule copie d'un fichier écrit par vous ne part jamais : le fichier peut être remis en place, ou montré dans le Finder si le mod n'est plus installé. Un bouton nettoie enfin les 340 dossiers orphelins et 35 entrées de préférences mortes laissés par d'anciens bugs — sur clic, jamais automatiquement.
+
 ### Fixed
 
 - **Supprimer un mod l'oublie vraiment.** Quatre listes gardaient son nom de dossier après coup : l'horodatage d'activation, l'identifiant Nexus que vous aviez saisi, la catégorie que vous lui aviez donnée, et le drapeau « sa configuration suit le profil ». Vos préférences en portaient **35 pour des dossiers disparus**. La vitrine Découverte continuait d'afficher « Je l'ai » pour un mod supprimé dans la session, et surtout : un dossier réoccupé par un autre mod héritait du drapeau de configuration, si bien que le changement de profil suivant lui restaurait les réglages du disparu. Supprimer un pack oublie aussi ses composants, sans toucher au mod voisin dont le nom commence pareil. Les 35 entrées déjà là ne sont pas balayées — un dossier absent n'est pas forcément un dossier supprimé.

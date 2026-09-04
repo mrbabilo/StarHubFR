@@ -80,24 +80,6 @@ les chantiers, **§7** pour la dette technique.
 
 Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées.
 
-- [ ] **X25** — **340 dossiers de sauvegarde orphelins restent sur le disque**, séquelle
-      de X23 (321) et de X24 (19) : vides ou ne portant qu'un dossier vide, ~0 octet, invisibles dans
-      l'app. Un ménage automatique fondé sur « non référencé par l'index » est
-      **dangereux tel quel** : `loadIndex()` rend un index **vide** dès que le fichier
-      est illisible ou mal décodé — et ce magasin porte les traces d'écritures
-      difficiles (un `install_metadata.json.sb-*` traîne à côté). Tout le parc
-      passerait alors pour orphelin. Il inverserait aussi la règle que ce fichier
-      énonce lui-même : *une suppression ne se décide jamais sur une absence.* Gain
-      ≈ 0 octet : à traiter comme un nettoyage explicite, jamais comme un automatisme
-      silencieux. · **S**
-      ▸ **Étendu le 2026-09-04, même famille** : les préférences portent **35 entrées
-      mortes** — 19 horodatages d'activation et 16 identifiants Nexus pour des dossiers
-      disparus, mesurés au moment de X55. Depuis X55 plus aucune ne s'ajoute (les deux
-      chemins de `deleteMod` purgent, y compris celui du dossier déjà disparu, où
-      l'utilisateur a **explicitement** demandé la suppression — c'est ce consentement
-      qui manque à un balayage). Mais les 35 ne sont plus atteignables par aucun chemin
-      de code : les effacer demande une **action délibérée** — un bouton d'entretien qui
-      dit ce qu'il va retirer et attend un clic, jamais une passe au lancement.
 - [ ] **X28** — **Un `__MACOSX` niché dans un mod perd ses fichiers mais garde son
       dossier.** Le balayage profond ne déplace que des fichiers (`if isDir { continue }`)
       et la passe de premier niveau ne traite `OSJunk.folders` qu'à la profondeur 1 :
@@ -1384,7 +1366,7 @@ corrompre ou faire disparaître quelque chose sans le dire ?* — et non à
 | Rang | Item | Ce qui se perd | Ce que la vérification a établi |
 |---|---|---|---|
 | ~~1~~ | ~~**X55**~~ | ✅ **Corrigé le 2026-09-04** — politique « on efface tout » tranchée par l'auteur. 35 entrées fantômes mesurées dans les préférences réelles au moment du correctif ; les anciennes restent, les balayer heurterait X25. Voir l'archive |
-| 2 | **X25** | Potentiellement tout, si on « corrige » mal | Le danger est le **correctif**, pas le défaut : `loadIndex()` rend un index vide dès que le fichier est illisible, donc un ménage fondé sur « non référencé » ferait passer tout le parc pour orphelin. Gain réel ≈ 0 octet. À ne jamais automatiser |
+| ~~2~~ | ~~**X25**~~ | ✅ **Livré le 2026-09-04** — l'écran « Entretien » : inventaire mesuré (1,80 Go de sauvegardes, 340 dossiers orphelins, 35 clés mortes, 1 seule copie protégée), purge par cran sous confirmation, nettoyage explicite des orphelins et clés — jamais de passe automatique. Voir l'archive |
 | 3 | **R6** | Rien encore — c'est le filet qui manque | Aucun test d'idempotence sur `applyProfileToFilesystem` (vérifié : aucun `Tests/` ne contient le mot). Caractériser un double-apply **avant** de toucher au code, comme le dit l'item |
 | 4 | **R2** | Un état partiel, pas des octets | `moveItem` **échoue** si la destination existe — il n'écrase pas — et chaque échec est journalisé. Reste vrai : aucune garde « jeu en cours », aucun instantané au niveau profil, des renommages en série interruptibles |
 
@@ -1678,6 +1660,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **X56** | 2026-09-04 | Le filet de compatibilité était muet sur les mods dont il ne connaît que la mise à jour non officielle |
 | **X57** | 2026-09-04 | La bascule en masse agissait sur le parc entier, depuis une liste filtrée |
 | **X55** | 2026-09-04 | Le ménage à la suppression d'un mod était partiel — quatre magasins survivaient au dossier |
+| **X25** | 2026-09-04 | 340 dossiers de sauvegarde orphelins et 35 clés de préférences mortes — l'écran « Entretien » les nomme avant de les retirer, jamais automatiquement |
 | **B1-T1** | 2026-08-01 | Boutons Activer/Désactiver et Supprimer sur la fiche mod (parité avec la liste, mêmes confirmations). Absents pour un… |
 | **B1-T2** | 2026-08-01 | Tri, filtres, catégorie, page et recherche portés par ModListFilters dans le ViewModel. La remise à la page 1 est por… |
 

@@ -397,6 +397,31 @@ répond. L'ordre et les titres de section sont ceux de la roadmap.
       X23 n'explique pas : nom plat (jamais un pack), quatre fois le même mod le même
       jour — la signature de tentatives répétées dont la marche arrière n'a rien pu
       effacer. · **S**
+- [x] **X25** ✅ *(livré le 2026-09-04)* — **340 dossiers de sauvegarde orphelins
+      restaient sur le disque**, séquelle de X23 (321) et de X24 (19) : vides ou ne
+      portant qu'un dossier vide, ~0 octet, invisibles dans l'app. Un ménage
+      automatique fondé sur « non référencé par l'index » était **dangereux tel
+      quel** : `loadIndex()` rend un index **vide** dès que le fichier est illisible
+      ou mal décodé — et ce magasin porte les traces d'écritures difficiles (un
+      `install_metadata.json.sb-*` traîne à côté). Tout le parc passerait alors pour
+      orphelin. Il inverserait aussi la règle que ce fichier énonce lui-même :
+      *une suppression ne se décide jamais sur une absence.* Gain ≈ 0 octet.
+      ▸ **Étendu le 2026-09-04, même famille** : les préférences portaient **35
+      entrées mortes** — 19 horodatages d'activation et 16 identifiants Nexus pour
+      des dossiers disparus, mesurés au moment de X55. Depuis X55 plus aucune ne
+      s'ajoute (les deux chemins de `deleteMod` purgent, y compris celui du dossier
+      déjà disparu, où l'utilisateur a **explicitement** demandé la suppression —
+      c'est ce consentement qui manque à un balayage).
+      ▸ **Livré par l'écran « Entretien »** (`MaintenanceView`, `MaintenanceInventory`
+      en Core — 22 tests) : un inventaire mesuré sur le disque (923 sauvegardes
+      d'installation, 1,80 Go ; garder 1 par mod libérerait 723 Mo ; **1**
+      sauvegarde protégée, seule copie d'un fichier d'un mod désinstallé), trois
+      crans de purge sous confirmation nominative (corbeille, pas suppression ;
+      les protégées ne partent jamais), et le nettoyage explicite des orphelins et
+      clés mortes — un bouton qui dit ce qu'il retire et attend un clic, jamais
+      une passe au lancement. L'inventaire nomme les sessions par la même règle
+      que la suppression (`backupDirectory(of:)`, rendu public pour l'occasion) :
+      décrire et retirer ne peuvent pas diverger sur le nom d'un dossier.
 - [x] **X26** ✅ *(corrigé le 2026-09-04)* — **Le balayage des résidus posait deux
       questions au disque par entrée avant de regarder le nom.**
       `sweepJunkInsideMods` tourne à chaque scan de lancement (`includeRepair`
