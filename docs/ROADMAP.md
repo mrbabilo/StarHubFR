@@ -96,15 +96,6 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       tolère la marque. Deux tests de parité épinglent le comportement ; unifier
       serait un changement de comportement sur un chemin sans appelant, donc à ne
       faire qu'en même temps qu'on lui en donne un (ou qu'on le retire). · **S**
-- [ ] **X31** — **Le marqueur de version SMAPI peut mentir indéfiniment.**
-      `getInstalledVersion` lit d'abord `smapi-internal/.starhubth-installed-version`,
-      écrit par l'app seule. Une mise à jour de SMAPI faite autrement (son propre
-      installateur) ne le réécrit pas : l'app annonce alors éternellement l'ancienne
-      version et propose une mise à jour déjà faite. Le repli — la première ligne de
-      `SMAPI-latest.txt` — dirait vrai mais n'est jamais consulté. Piste : comparer
-      les dates des deux sources et croire la plus récente (le journal peut être en
-      retard sur une installation dont le jeu n'a pas encore été lancé). **Non
-      mesuré** : sur le parc, marqueur et journal disent tous deux `4.5.2`. · **S**
 - [ ] **X32** — **L'installateur SMAPI accepte `--install` / `--uninstall` /
       `--game-path`.** Vérifié dans le binaire 4.5.2 (`"You can't specify both
       --install and --uninstall command-line flags."`, `'You specified --game-path "'`).
@@ -1373,7 +1364,7 @@ corrompre ou faire disparaître quelque chose sans le dire ?* — et non à
 | Rang | Item | Ce qui est caché ou faux |
 |---|---|---|
 | ~~5~~ | ~~**X59**~~ | ✅ **Constat faux, clos le 2026-09-04** — l'alerte existe et nomme les mods : `applyProfileToFilesystem` appelle `showModal` avant de rendre la main, et `MainView` porte le `.alert` en permanence. Le `_` du changement de profil ne jette qu'un **compte**, pas le signal. Voir l'archive |
-| 6 | **X31** | La version de SMAPI installée, si elle a été posée hors de l'app — l'app propose alors éternellement une mise à jour déjà faite |
+| ~~6~~ | ~~**X31**~~ | ✅ **Corrigé le 2026-09-04** — marqueur et journal départagés par leur date d'écriture (`SmapiVersionEvidence`, 13 tests). Voir l'archive |
 | ~~7~~ | ~~**X54**~~ | ✅ **Corrigé le 2026-09-04** — deux clés neuves : l'ajout nomme le mod, l'import dit combien de favoris sont entrés. Voir l'archive |
 | 8 | **X49** | Deux recherches Nexus rapprochées peuvent revenir dans le désordre |
 | 9 | **F6-T4** | Une ancre « je l'ai déjà » ratée quand le manifeste et l'ancre diffèrent par la casse |
@@ -1656,6 +1647,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **X59** | 2026-09-04 | Constat faux, clos sans correctif : l'alerte de fin d'application nomme déjà les mods restés du mauvais côté |
 | **R6** | 2026-09-04 | Le plan d'application d'un profil extrait dans Core et prouvé idempotent sur 200 parcs engendrés |
 | **X54** | 2026-09-04 | Le journal annonçait « profil créé » sur un ajout de mod et sur un import de favoris |
+| **X31** | 2026-09-04 | La version de SMAPI affichée restait celle que l'app avait installée, même après une mise à jour faite ailleurs |
 | **B1-T1** | 2026-08-01 | Boutons Activer/Désactiver et Supprimer sur la fiche mod (parité avec la liste, mêmes confirmations). Absents pour un… |
 | **B1-T2** | 2026-08-01 | Tri, filtres, catégorie, page et recherche portés par ModListFilters dans le ViewModel. La remise à la page 1 est por… |
 

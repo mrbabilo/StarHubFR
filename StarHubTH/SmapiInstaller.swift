@@ -18,6 +18,13 @@ class SmapiInstaller: ObservableObject {
     /// `runOfficialInstaller`'s doc comment for why this exists.
     private static let installedVersionMarkerRelativePath = "smapi-internal/.starhubth-installed-version"
 
+    /// La date d'écriture d'un fichier, ou `nil` s'il est absent ou illisible.
+    /// C'est elle qui départage le marqueur et le journal : sans date, une
+    /// source ne peut pas être comparée à l'autre, et ne compte pas.
+    private static func modificationDate(of path: String, fm: FileManager) -> Date? {
+        (try? fm.attributesOfItem(atPath: path))?[.modificationDate] as? Date
+    }
+
     // Check if SMAPI is installed in the Stardew Valley MacOS directory
     static func getInstalledVersion(gameDir: String) -> String? {
         let fm = FileManager.default
@@ -26,41 +33,47 @@ class SmapiInstaller: ObservableObject {
         // SMAPI must have replaced the launcher
         guard fm.fileExists(atPath: originalPath) else { return nil }
 
-        // 1. Our own marker, written by `install()` right after a successful
-        // run. SMAPI's packaging no longer includes anything that reliably
-        // states its own version (verified directly against a real
-        // install: no `smapi-internal/manifest.json`, the installed
-        // `StardewModdingAPI.deps.json` is an empty stub, and
-        // `StardewModdingAPI.runtimeconfig.json` only names the .NET
-        // runtime version, not SMAPI's) — so this app records what it
-        // installed itself instead of guessing from artifacts afterward.
+        // Les deux sources sont lues, puis départagées par leur date
+        // d'écriture (`SmapiVersionEvidence`) : le marqueur seul mentait
+        // indéfiniment dès qu'une mise à jour de SMAPI passait par son propre
+        // installateur, qui ne le réécrit pas (X31).
+        //
+        // 1. Notre marqueur, écrit par `install()` après une exécution réussie.
+        // SMAPI ne livre plus rien qui déclare sa propre version de façon
+        // fiable (vérifié sur une vraie installation : pas de
+        // `smapi-internal/manifest.json`, un `StardewModdingAPI.deps.json`
+        // réduit à une coquille, un `runtimeconfig.json` qui ne nomme que la
+        // version du runtime .NET) — d'où ce que l'app enregistre elle-même.
         let markerPath = (gameDir as NSString).appendingPathComponent(installedVersionMarkerRelativePath)
-        if let version = try? String(contentsOfFile: markerPath, encoding: .utf8) {
-            let trimmed = version.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmed.isEmpty { return trimmed }
+        var marker: SmapiVersionEvidence.Statement?
+        if let version = try? String(contentsOfFile: markerPath, encoding: .utf8),
+           let writtenAt = Self.modificationDate(of: markerPath, fm: fm) {
+            marker = SmapiVersionEvidence.Statement(version: version, observedAt: writtenAt)
         }
 
-        // 2. Fallback: parse version from SMAPI-latest.txt first line, for
-        // an install this app didn't perform itself (e.g. installed
-        // manually, or by a version of this app that predates the marker
-        // above). Only available after the game has been launched at least
-        // once post-install.
-        // Format: [HH:MM:SS INFO  SMAPI] SMAPI 4.5.2 with Stardew Valley ...
+        // 2. La première ligne de `SMAPI-latest.txt`, qui nomme la version
+        // réellement **chargée** au dernier lancement — la seule source pour
+        // une installation que cette app n'a pas faite.
+        // Format : [HH:MM:SS INFO  SMAPI] SMAPI 4.5.2 with Stardew Valley ...
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         let logPath = (home as NSString).appendingPathComponent(
             ".config/StardewValley/ErrorLogs/SMAPI-latest.txt"
         )
+        var logStatement: SmapiVersionEvidence.Statement?
         if fm.fileExists(atPath: logPath),
            let handle = FileHandle(forReadingAtPath: logPath) {
             let data = handle.readData(ofLength: 256)
             try? handle.close()
             if let line = String(data: data, encoding: .utf8)?
                 .components(separatedBy: .newlines).first,
-               let range = line.range(of: #"SMAPI (\d+\.\d+\.\d+)"#, options: .regularExpression) {
-                let match = String(line[range])
-                let version = match.replacingOccurrences(of: "SMAPI ", with: "")
-                return version
+               let version = SmapiVersionEvidence.version(inLogLine: line),
+               let writtenAt = Self.modificationDate(of: logPath, fm: fm) {
+                logStatement = SmapiVersionEvidence.Statement(version: version, observedAt: writtenAt)
             }
+        }
+
+        if let resolved = SmapiVersionEvidence.resolve(marker: marker, log: logStatement) {
+            return resolved
         }
 
         // 3. Installed but version unknown

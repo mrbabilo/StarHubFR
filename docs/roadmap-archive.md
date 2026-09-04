@@ -722,6 +722,39 @@ répond. L'ordre et les titres de section sont ceux de la roadmap.
       exact. La garde de collision de **X51** est intacte — un refus sur les
       mods cadrés se lit là où il se noyait dans un bilan de huit cents
       déplacements. · **M**
+- [x] **X31** ✅ *(corrigé le 2026-09-04)* — **Le marqueur de version SMAPI
+      mentait indéfiniment.** `getInstalledVersion` rendait le contenu de
+      `smapi-internal/.starhubth-installed-version` dès qu'il était lisible, et
+      ce fichier n'est écrit que par cette app. Une mise à jour de SMAPI passée
+      par son propre installateur ne le réécrit pas : l'app affichait
+      éternellement l'ancienne version, et le repli — la première ligne de
+      `SMAPI-latest.txt` — n'était jamais consulté.
+      ▸ **La règle retenue** : lire les deux sources, les départager par leur
+      **date d'écriture**, croire la plus récente. Un journal plus récent que le
+      marqueur veut dire qu'une partie a tourné depuis notre installation, et il
+      nomme la version réellement *chargée*. Un marqueur plus récent veut dire
+      qu'on vient d'installer sans que le jeu ait été relancé. Extrait en Core
+      (`SmapiVersionEvidence`), 13 tests.
+      ▸ **Ce que la mesure a corrigé dans l'item** : l'app ne « propose » aucune
+      mise à jour de SMAPI — rien dans le code ne compare la version installée à
+      une release. Ce qui était faux, c'est ce qui est **affiché**, aux trois
+      endroits qui le montrent (accueil, réglages, pastille du bandeau d'état).
+      ▸ **Deux pistes écartées, mesurées** : dater l'installation par
+      `StardewModdingAPI.dll` ne marche pas — sa date est celle du **build** de
+      la release (2026-03-14 pour 4.5.2), pas de la copie ; et le dossier
+      `smapi-internal` est retouché par SMAPI en cours de partie (27/07 contre un
+      marqueur du 23/07), donc sa date ne signale pas une réinstallation.
+      ▸ **Ce qui reste ouvert, assumé** : SMAPI installé ailleurs *puis* jeu
+      jamais relancé — les deux sources parlent d'avant. La fenêtre se referme au
+      premier lancement, celui-là même pour lequel on met SMAPI à jour.
+      ▸ **Ce qui rend la règle valide**, et qui a été vérifié plutôt que supposé :
+      SMAPI **réécrit** `SMAPI-latest.txt` à chaque lancement — une seule
+      bannière dans un fichier de 489 Ko, session du 01/09 de 17:39 à 17:44. La
+      date du fichier appartient donc bien à la session que sa première ligne
+      nomme. S'il s'accumulait, on apparierait une version ancienne à une date
+      fraîche, et la règle préférerait le vieux journal à un marqueur juste.
+      ▸ Cliquet `try_optional` relevé de 1 (301 → 302) : la lecture de date passe
+      par `try?`, comme les 13 autres lectures d'attributs du dépôt. · **S**
 - [x] **X54** ✅ *(corrigé le 2026-09-04)* — **Le journal annonçait « profil
       créé » sur un simple ajout.** `vm_profile_created` était journalisé en
       quatre endroits ; deux ne créaient rien. Ajouter un mod à un profil — le
