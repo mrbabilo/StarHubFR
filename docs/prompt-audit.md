@@ -39,7 +39,7 @@ CONTEXTE STRUCTUREL (mesuré le 2026-09-04, pas estimé) :
   `Extensions/` 3, `Design/` 2, racine 27
 - Tests : `Tests/` — **Swift Testing, pas XCTest** (0 `import XCTest`).
   131 cibles de test dans `Package.swift`, 151 fichiers, 61 `@Suite` explicites
-  (215 suites au rapport du coureur, implicites comprises), **2 120 `@Test`**.
+  (215 suites au rapport de `swift test`, implicites comprises), **2 120 `@Test`**.
   Les tests ne couvrent que ce que `Package.swift` embarque :
   du code UI/ViewModel n'est pas testable ici, il faut d'abord le déplacer en Core.
 - Build/packaging : `Package.swift` (29 634 o), `Info.plist`, `build_app.py`,

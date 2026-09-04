@@ -869,7 +869,12 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       formule bien la règle : *« bulk actions run through this so that what the
       user is looking at is what they act on »*, filtre de source, recherche,
       filtres actif/inactif et masqués sous une règle unique, évaluée sur l'état
-      courant plutôt que relue de la vue. Voir `docs/SOURCES.md` §5. · **M**
+      courant plutôt que relue de la vue. Voir `docs/SOURCES.md` §5.
+      ⚠️ **Même chemin de code que X51** : la garde de collision y est désormais
+      en place et lève un refus nommé dans le bilan. Restreindre la portée de la
+      bascule ne doit pas la retirer — et la rendra au contraire plus lisible,
+      un refus sur quinze mods visibles se voyant là où il se noie dans un
+      bilan de huit cents déplacements. · **M**
 - [x] **B1-T1** ✅ *(livré le 2026-08-01)* — Boutons **Activer/Désactiver** et
       **Supprimer** sur la fiche mod (parité avec la liste, mêmes confirmations).
       Absents pour un composant de pack, comme dans la liste. La fiche se referme
