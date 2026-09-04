@@ -323,16 +323,20 @@ Deux constats de lecture, mesurés :
 
 ## 7. Pistes d'intégration ouvertes
 
-Consignées en `docs/ROADMAP.md` §4, avec leur mesure :
+Consignées en `docs/ROADMAP.md` §4 (les ouvertes) ou dans
+`docs/roadmap-archive.md` (les livrées), avec leur mesure :
 
-- **X56** — les champs `unofficialUpdate`, `warnings` et `abandonedReason` du
-  dump Pathoschild ne sont pas décodés. Sur le parc : 5, 2 et 0 mods
-  respectivement. Les cinq premiers sont des correctifs communautaires
-  installables pour des mods que rien ne signale aujourd'hui.
+- ~~**X56** — les champs `unofficialUpdate`, `warnings` et `abandonedReason` du
+  dump Pathoschild ne sont pas décodés.~~ **Corrigé le 2026-09-04** :
+  `unofficialUpdate` est décodé et vaut le statut `unofficial` quand aucun statut
+  n'est posé — 63 des 67 entrées qui le portent n'en ont pas, et le filet se
+  taisait sur 4 mods du parc que smapi.io déclare `Unofficial`. `warnings` et
+  `abandonedReason` mesurés puis écartés ; le filtre de plateforme qui manque au
+  premier est ouvert en **X58**.
 - ~~**X57** — la bascule en masse agit sur le parc entier alors que son
   bouton vit dans une liste filtrée et paginée.~~ **Corrigé le 2026-09-04** :
   la règle de cadrage vit dans le ViewModel (`mods(matching:)` +
-  `scopedMods(from:scope:)`), liste et bascule en dérivent — voir ROADMAP §4.
+  `scopedMods(from:scope:)`), liste et bascule en dérivent — voir l'archive.
 Fait dans la même passe : le piège `platform` est désormais documenté dans
 `SmapiUpdateRequest.swift`, à côté des trois autres champs capables de vider un
 lot en silence, et surveillé par `check_sources.py`.

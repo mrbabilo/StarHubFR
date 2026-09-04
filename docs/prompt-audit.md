@@ -63,9 +63,13 @@ RÈGLE ABSOLUE : lire `AGENTS.md`, `CLAUDE.md` ET `docs/DOMAINE.md` EN PREMIER.
 `DOMAINE.md` porte le vocabulaire métier — « pack », « profil » et « sauvegarde »
 ne désignent pas ici ce qu'ils désignent chez l'amont, et un mod **en pause** est
 un dossier **préfixé par un point** dans `Mods/`, pas un dossier déplacé.
-Lire aussi `docs/ROADMAP.md` §4 : les constats d'audit déjà consignés y portent
-un numéro `X<n>`. ⚠️ Ses cases traînent derrière le code livré — vérifier
+Lire aussi `docs/ROADMAP.md` §4 : les constats d'audit **encore ouverts** y
+portent un numéro `X<n>`. ⚠️ Ses cases traînent derrière le code livré — vérifier
 `git log` avant de traiter une tâche « à faire ».
+⚠️ **Les constats déjà corrigés ne sont plus là** : depuis le 2026-09-04 ils
+vivent dans `docs/roadmap-archive.md`, avec la mesure qui les a établis. Chercher
+un `X<n>` dans **les deux** fichiers — sans quoi on re-signale un bug corrigé, et
+on refait une mesure du parc déjà faite.
 
 ────────────────────────────────────────────
 ORDRE D'AUDIT (respecter impérativement) :
@@ -74,7 +78,8 @@ PHASE 0 — Contexte global
   1. `AGENTS.md`
   2. `CLAUDE.md`
   3. `docs/DOMAINE.md`
-  4. `docs/ROADMAP.md` (§4 : les constats X<n> déjà relevés)
+  4. `docs/ROADMAP.md` (§4 : les constats X<n> **ouverts**) **et**
+     `docs/roadmap-archive.md` (ceux déjà corrigés, avec leur mesure)
   5. `README.md`
 
 PHASE 1 — Cœur applicatif
@@ -201,8 +206,9 @@ RÈGLES COMPLÉMENTAIRES :
    complet, prêt à copier-coller — **mais uniquement pour un constat
    démontré** (voir règle 6).
 6. **Trois filtres avant qu'un constat entre en 🔴 ou 🟡** :
-   a. Est-il déjà consigné en ROADMAP §4 sous un numéro `X<n>` ? Alors il est
-      connu, et souvent assorti d'une raison explicite de ne pas y toucher.
+   a. Est-il déjà consigné sous un numéro `X<n>` — en ROADMAP §4 s'il est
+      ouvert, dans `roadmap-archive.md` s'il est corrigé ? Alors il est connu,
+      et souvent assorti d'une raison explicite de ne pas y toucher.
    b. A-t-il déjà été mesuré et écarté ? Ne pas refaire une mesure du parc
       déjà faite.
    c. **Peux-tu le démontrer ?** Un scénario d'échec sur le parc réel

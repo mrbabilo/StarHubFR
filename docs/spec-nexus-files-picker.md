@@ -5,7 +5,8 @@
 > 0 sans timestamp — détail dans la ROADMAP, entrée X8) · **Effort** : S ·
 > **Risque** : bas
 > **Origine** : audit de `jathych/Stardew-Valley-Mod-Updater` (2026-08-31), §« Audit 2 ».
-> **Documents liés** : [`ROADMAP.md`](ROADMAP.md) (X8), [`DOMAINE.md`](DOMAINE.md) §3.2.
+> **Documents liés** : [`roadmap-archive.md`](roadmap-archive.md) (X8, livré),
+> [`DOMAINE.md`](DOMAINE.md) §3.2.
 
 ---
 

@@ -28,8 +28,13 @@ Ce dépôt est travaillé par plusieurs IA, et le contexte n'est pas tout dans
   de ce fichier, pas redondant.
 - **`docs/DOMAINE.md`** — le vocabulaire métier. Obligatoire avant de toucher aux
   mods, à SMAPI, à Nexus, aux profils, aux sauvegardes ou aux traductions.
-- **`docs/ROADMAP.md`** — l'état des tâches. ⚠️ Ses cases traînent derrière le
-  code livré : vérifier `git log` avant de traiter une tâche « à faire ».
+- **`docs/ROADMAP.md`** — ce qu'il **reste** à faire. ⚠️ Ses cases traînent
+  derrière le code livré : vérifier `git log` avant de traiter une tâche « à
+  faire ». Les items terminés ont été sortis le 2026-09-04 dans
+  **`docs/roadmap-archive.md`** — c'est là que vivent les mesures qu'on ne veut
+  pas refaire (combien de manifestes déclarent un `ContentPackFor`, ce que
+  smapi.io rend sans `apiVersion`…). Un identifiant de tâche absent de la
+  roadmap est livré : le chercher dans l'archive.
 - **`docs/SOURCES.md`** — la carte de tout ce qui vit **hors** du dépôt : API
   interrogées, dumps téléchargés, code repris. Obligatoire avant de toucher un
   client réseau (Nexus, smapi.io, DeepL, IA locale) ou un parseur de format
@@ -152,6 +157,11 @@ raisonnement derrière les choix anciens, `.kilo/plans/`.
   même si la racine était `/var/...`. Toujours passer par
   `resolvingSymlinksInPath()` avant tout `replacingOccurrences(of: resolvedRoot)`
   sur un chemin calculé.
+- **Deux `Date` ayant fait un aller-retour par `setAttributes` ne sont pas
+  `==`.** Elles s'impriment identiques et leur écart mesure 0,0 — l'égalité
+  stricte est pourtant fausse. En production on compare deux lectures de la même
+  source, où `==` est correct ; dans un test qui écrit puis relit, comparer à la
+  seconde près.
 - **`Process()` doit forcer la locale `en_US_POSIX`.** Tout `Process` qui
   invoque `/usr/bin/unzip`, `unrar`, `unar`, `7z` et parse la sortie texte
   (notamment `uncompressedSize` dans `ModZipInstaller`) doit définir
@@ -181,6 +191,10 @@ raisonnement derrière les choix anciens, `.kilo/plans/`.
   protégée par un `NSLock` dédié. Le subscript setter d'un `Dictionary` Swift
   sans verrou cause un `EXC_BAD_ACCESS` (crash confirmé juillet 2026 sur
   `manifestCache`).
+- **Un cache global impose des tests `.serialized`.** Quand le cache et son
+  invalidation vivent au niveau du type (mémoïsation de `SaveManager`, par
+  exemple), une suite parallèle voit un test effacer l'entrée qu'un autre vient
+  de poser.
 - **`weak self` obligatoire** dans toute closure passée à
   `DispatchQueue.global().async`. Toute mutation `@Published` doit rester sur
   le main thread.
@@ -222,6 +236,17 @@ raisonnement derrière les choix anciens, `.kilo/plans/`.
   `apiBase`, `gameDomain`, headers `User-Agent`/`Application-Name`/
   `Application-Version`. Deux jeux d'en-têtes feraient voir deux clients
   distincts à Nexus.
+- **`ModItem.id` est `folderName`, et c'est la clé de tous les magasins
+  persistés.** (favoris, notes, catégories, horodatages, configs de profil).
+  Deux mods peuvent porter le même nom logique — `X` actif et `.X` en pause sont
+  deux dossiers distincts, cas réel sur le parc — et se partagent alors identité
+  `Identifiable`, identifiant Nexus, favori et poids ; un `ForEach` n'en rend
+  qu'un. ⚠️ **Ne pas « corriger » en changeant `ModItem.id`** : ce serait une
+  migration de tous les magasins. Le défaut est signalé à l'écran (Alertes
+  système), pas résolu par un changement de clé.
+- **Ne jamais décapiter un suffixe de nom de dossier sans confirmation.**
+  `MakeGuntherRealFR` désigne *la traduction*, pas un dossier `MakeGuntherReal`
+  à deviner : ce genre d'heuristique écrase le mauvais dossier.
 - **Le Nexus mod id n'est pas une clé d'identité** : des mods distincts le
   partagent (58 id partagés sur le parc ; l'id 8828 couvre 3 mods — indexer
   dessus a effacé les mises à jour de 3 mods). Toute clé par mod passe par
