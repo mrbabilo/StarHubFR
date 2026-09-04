@@ -803,6 +803,52 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       la liste des sauvegardes est **groupée par mod** dans un `LazyVStack` — pas
       922 lignes. Le seuil `whichFarm >= 8` de `SaveFarmNameResolver` est correct :
       SDV 1.6 compte bien huit fermes vanilla, Meadowlands incluse. · **S**
+- [x] **X51** ✅ *(corrigé le 2026-09-04 par `b063085`)* — 🔴 **« Tout activer »
+      supprimait définitivement le mod qui portait le même nom de dossier.**
+      `toggleAllMods` écartait le dossier trouvé à destination sous `.stale_<uuid>`
+      puis le supprimait, sans vérifier à qui il appartenait.
+      `ModFolderCollision.isStaleDuplicate` existe depuis le 2026-09-03 pour
+      exactement ça et le dit dans son en-tête, mais seul `performToggle`
+      l'appelait. Mesuré sur le parc le jour même : `[CP] Seaside Sounds`
+      (`witchtopia.SeasideSounds` 1.0.0, 360 Ko, actif) et `.[CP] Seaside Sounds`
+      (`Liana.SeasideSounds` 1.1.0, 3,2 Mo, en pause) sont deux mods de deux
+      auteurs — un clic effaçait l'un des deux, sans corbeille ni journal. Le refus
+      est jeté et non sauté, pour qu'il entre dans `failures` et soit nommé au
+      bilan. `applyProfileToFilesystem` n'a pas la garde non plus mais ne détruit
+      rien : son `moveItem` échoue et est rapporté. · **S**
+- [x] **X52** ✅ *(corrigé le 2026-09-04 par `48b1489`)* — **La vérification des
+      mises à jour se déclarait terminée pendant la reprise Nexus.** Le
+      relâchement de `isCheckingNexusUpdates` en fin de `group.notify` — placement
+      délibéré, commenté comme empêchant un re-déclenchement — écrasait le `true`
+      que `recheckBlockedViaNexus` venait de poser, la reprise démarrant *dans*
+      `applySmapiResults`, appelé depuis ce même bloc. Bouton « Vérifier » de
+      retour et second passage possible par-dessus, sur le quota Nexus.
+      `nexusFallbackInFlight` porte l'état, baissé en tête de
+      `finishNexusFallback` pour couvrir ses deux sorties. · **S**
+- [x] **X53** ✅ *(corrigé le 2026-09-04 par `48b1489`)* — **Le hub thaï cherchait
+      sous le nom logique.** `Mods/<folderName>/i18n/th.json` au lieu de
+      `physicalFolderName` (AGENTS.md §4.1). Mesuré : **22 des 30 `i18n/th.json`**
+      du parc sont sous un dossier de tête en pause, donc annoncés « non
+      installés » et rétrogradés par le tri. · **S**
+- [ ] **X54** — **Le journal annonce « profil créé » sur un simple ajout.**
+      `L10n.VM.profileCreated` (« Profil « %@ » créé (%lld mods) ») est journalisé
+      en quatre endroits : `createProfile` (juste), `duplicateProfile`
+      (acceptable), mais aussi `addModToProfile` et `importFavorites`, qui ne
+      créent rien. Demande deux clés L10n neuves, en parité `en`/`fr`. Non corrigé
+      dans la passe d'audit pour ne pas mêler un ajout de clés à des correctifs de
+      perte de données. · **S**
+- [ ] **X55** — **Le ménage à la suppression d'un mod est partiel.** `deleteMod`
+      purge `favoriteMods`, `modErrorHistory`, la référence de traduction et la
+      couverture FR, mais laisse quatre magasins indexés sur le même `folderName` :
+      `profileManagedConfigMods`, `modActivationTimestamps`, `nexusCustomModIds`,
+      `nexusCustomCategories` — et `recentNexusInstalls`, indexé sur l'identifiant
+      Nexus. Effet le plus visible : la vitrine Découverte continue d'afficher
+      « Je l'ai » pour un mod installé puis supprimé dans la même session
+      (`installedNexusIds()` ne fait qu'ajouter à cet ensemble, jamais retrancher —
+      le patron de X38). Effet le plus gênant, mais rare : un dossier réutilisé par
+      un autre mod hérite du drapeau « sa config suit le profil ». Demande une
+      décision de politique (tout purger ? garder l'identifiant Nexus, qui est
+      souvent le bon au réinstall ?), pas seulement du code. · **S**
 - [x] **B1-T1** ✅ *(livré le 2026-08-01)* — Boutons **Activer/Désactiver** et
       **Supprimer** sur la fiche mod (parité avec la liste, mêmes confirmations).
       Absents pour un composant de pack, comme dans la liste. La fiche se referme

@@ -179,9 +179,15 @@ raisonnement derrière les choix anciens, `.kilo/plans/`.
   bloc `/* … */` d'abord.** Un manifest DOIT être un objet ; accepter un
   scalaire masquerait un fichier corrompu. Stripper
   `/\*[\s\S]*?\*/` en `.regularExpression` avant parsing.
-- **Encodage du manifest** : UTF-8 suffit, mais le BOM en tête (`EF BB BF`)
-  fait échouer `String(data:encoding:.utf8)` silencieusement. Si un mod
-  apparaît sans nom ou avec un nom bizarre, vérifier le BOM avant tout.
+- **Encodage du manifest** : UTF-8 suffit, et **le BOM en tête (`EF BB BF`) ne
+  pose aucun problème** — mesuré le 2026-09-04. Ce piège disait l'inverse ; il
+  était faux. Sur macOS, `String(data:encoding:.utf8)` *retire* le BOM (premier
+  scalaire rendu = `{`) et `JSONSerialization` l'accepte avec comme sans
+  `.json5Allowed` — vérifié en compilant le cas, pas déduit. **142 des 1 096
+  manifestes du parc en portent un**, tous lus correctement. Ce qui casserait
+  vraiment, c'est un manifeste **hors** UTF-8 : `parseModFolder` abandonne alors
+  en silence, sans même journaliser, et le mod paraît sans nom ni identifiant.
+  Le parc n'en compte **aucun** — d'où l'absence de correctif.
 - **Les i18n du parc ne sont pas toutes en UTF-8** : UTF-16 et UTF-32, LE et
   BE, existent réellement — passer par `I18nFileDecoder`, jamais
   `String(data:encoding:.utf8)` direct.
