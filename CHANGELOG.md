@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.35.4] - 2026-09-04
+
 ### Fixed
 
 - **Une recherche guidée relancée ne juge plus sur les relevés de la précédente** : à côté des réponses que vous donnez, la recherche tient un second signal — ce que le journal de SMAPI reproche à chaque essai, pour dire « l'erreur n'apparaît qu'avec tel mod ». Ces relevés n'étaient jamais remis à zéro : abandonner une recherche puis en lancer une autre faisait croiser les essais de deux recherches sans rapport, et le compte d'essais en échec incluait ceux de la première. Le second signal, censé être indépendant, pouvait ainsi confirmer un verdict avec les restes d'une recherche abandonnée.
