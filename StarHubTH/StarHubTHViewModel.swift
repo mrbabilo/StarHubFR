@@ -10005,6 +10005,130 @@ for mod in mods {
         }
         return .init(presentFiles: Set(present.map(\.relativePath)))
     }
+
+    /// Met à la corbeille les sauvegardes que `keepPerMod` écarte, et rend leur
+    /// nombre. Les protégées ne partent jamais — la règle est dans
+    /// `MaintenanceInventory.plan`, pas ici.
+    ///
+    /// **Corbeille, pas suppression** : une action qui retire 723 Mo mérite le
+    /// filet du Finder. L'écran doit dire que l'espace n'est rendu qu'après
+    /// vidage, sinon le chiffre annoncé ment.
+    @discardableResult
+    func purgeInstallBackups(keepPerMod: Int) -> Int {
+        guard let report = maintenanceReport else { return 0 }
+        let plan = MaintenanceInventory.plan(keepPerMod: keepPerMod,
+                                             entries: report.backups,
+                                             protections: report.protections)
+        guard !plan.doomed.isEmpty else { return 0 }
+        let doomedIds = Set(plan.doomed.map(\.id))
+        var removed = 0
+        // L'index est la source de vérité : on passe par le manager pour que
+        // l'entrée disparaisse avec le dossier. Le dossier horodaté vient du
+        // manager lui-même — la même règle qui le supprime, et la même clé
+        // (`lastPathComponent`) que l'inventaire a relevée.
+        let manager = ModInstallBackupManager.shared
+        for backup in manager.loadBackups() {
+            let sessionDir = manager.backupDirectory(of: backup)
+            guard doomedIds.contains(sessionDir.lastPathComponent) else { continue }
+            do {
+                try ModZipInstaller.trashItemGrantingWriteAccess(atPath: sessionDir.path)
+                try? manager.deleteBackup(backup)
+                removed += 1
+            } catch {
+                log(String(format: L(L10n.Maintenance.trashFailed),
+                           backup.modMetadata.name, error.localizedDescription),
+                    level: .warning)
+            }
+        }
+        log(String(format: L(L10n.Maintenance.purgedLog), removed,
+                   ByteCountFormatter.string(fromByteCount: plan.freedBytes,
+                                             countStyle: .file)))
+        buildMaintenanceReport()
+        return removed
+    }
+
+    /// Retire les dossiers de session sans index et les clés de préférences sans
+    /// mod. Rend le nombre total d'éléments retirés.
+    ///
+    /// C'est le « nettoyage explicite » que **X25** réclame : un bouton, jamais
+    /// une passe au lancement — là-bas, une absence déciderait seule d'une
+    /// suppression, ici l'utilisateur a vu ce qui part et a cliqué.
+    @discardableResult
+    func cleanStaleMaintenanceEntries() -> Int {
+        guard let report = maintenanceReport else { return 0 }
+        var removed = 0
+        let root = ModInstallBackupManager.shared.backupsDirectory
+        for session in report.orphanSessions {
+            do {
+                try ModZipInstaller.trashItemGrantingWriteAccess(
+                    atPath: root.appendingPathComponent(session).path)
+                removed += 1
+            } catch {
+                log(String(format: L(L10n.Maintenance.trashFailed), session,
+                           error.localizedDescription), level: .warning)
+            }
+        }
+        for key in report.stalePreferenceKeys {
+            if ModRemovalPurge.purge(&profileManagedConfigMods, removing: key) {
+                Self.saveProfileManagedConfigMods(profileManagedConfigMods)
+            }
+            if ModRemovalPurge.purge(&modActivationTimestamps, removing: key) {
+                Self.saveModActivationTimestamps(modActivationTimestamps)
+            }
+            if ModRemovalPurge.purge(&nexusCustomModIds, removing: key) {
+                Self.saveCustomModIds(nexusCustomModIds)
+            }
+            if ModRemovalPurge.purge(&nexusCustomCategories, removing: key) {
+                Self.saveCustomCategories(nexusCustomCategories)
+            }
+            removed += 1
+        }
+        log(String(format: L(L10n.Maintenance.cleanedLog), removed))
+        buildMaintenanceReport()
+        return removed
+    }
+
+    /// Le mod vit encore, mais la mise à jour a emporté le fichier : on le
+    /// remet en place. `recoverFile` passe par `RecoveredFileWriter.withWriteAccess`,
+    /// qui ouvre les droits du dossier cible — les mods sont souvent en 0555.
+    ///
+    /// **Le cas réel du parc n'est pas récupérable dans le mod.** La seule
+    /// sauvegarde protégée du parc est celle d'un mod **désinstallé** : il n'y a
+    /// pas de dossier où écrire, et en créer un reviendrait à réinstaller le
+    /// mod. D'où l'action jumelle, `revealProtectedBackup`.
+    func recoverProtectedFile(_ file: RecoverableFile) -> Bool {
+        recoverFile(file)
+    }
+
+    /// Le mod n'est plus installé : il n'y a **pas** de dossier où écrire, et en
+    /// fabriquer un reviendrait à le réinstaller. On montre le fichier dans le
+    /// Finder — l'utilisateur en fait ce qu'il veut, et la sauvegarde reste
+    /// protégée tant qu'elle est la seule copie.
+    func revealProtectedBackup(atPath path: String) {
+        NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
+    }
+
+    /// Retire une sauvegarde protégée, à la demande explicite de l'utilisateur.
+    /// Elle passe par la corbeille comme les autres : c'est le filet, et il vaut
+    /// d'autant plus ici que le fichier n'existe nulle part ailleurs.
+    @discardableResult
+    func purgeProtectedBackup(session: String) -> Bool {
+        let manager = ModInstallBackupManager.shared
+        do {
+            try ModZipInstaller.trashItemGrantingWriteAccess(
+                atPath: manager.backupsDirectory.appendingPathComponent(session).path)
+        } catch {
+            log(String(format: L(L10n.Maintenance.trashFailed), session,
+                       error.localizedDescription), level: .warning)
+            return false
+        }
+        for backup in manager.loadBackups()
+        where manager.backupDirectory(of: backup).lastPathComponent == session {
+            try? manager.deleteBackup(backup)
+        }
+        buildMaintenanceReport()
+        return true
+    }
 }
 
 // MARK: - L10nResolver
