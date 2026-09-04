@@ -44,4 +44,21 @@ struct ReportTests {
         #expect(report.isEmpty)
         #expect(report.totalBytes == 0)
     }
+
+    @Test func aMissingModAndALostFileAreBothSoleCopy() {
+        // Les deux protections valent `.soleCopy` : c'est `missingMods` qui
+        // dit laquelle se remet en place et laquelle ne peut que se montrer.
+        let gone = e("a", "Parti", day: 1, mb: 1)
+        let hurt = e("b", "Vivant", day: 2, mb: 1)
+        let sole = [MaintenanceInventory.UserFile(relativePath: "config.json",
+                                                  kind: .config)]
+        let report = MaintenanceInventory.Report(
+            backups: [gone, hurt],
+            protections: ["a": .soleCopy(sole), "b": .soleCopy(sole)],
+            configBackupCount: 0, configBackupBytes: 0,
+            orphanSessions: [], stalePreferenceKeys: [],
+            missingMods: ["a"])
+        #expect(report.protectedCount == 2)
+        #expect(report.missingMods == ["a"])
+    }
 }

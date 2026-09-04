@@ -36,6 +36,7 @@ struct MainView: View {
         if currentTab == "Mods" { return vm.L(L10n.Mods.mods) }
         if currentTab == "InstallBackups" { return vm.L(L10n.ModInstall.manageBackups) }
         if currentTab == "ConfigBackups" { return vm.L(L10n.ModConfigBackups.title) }
+        if currentTab == "Maintenance" { return vm.L(L10n.Maintenance.title) }
         if currentTab == "Profiles" { return vm.L(L10n.Profiles.title) }
         if currentTab == "Updates" { return vm.L(L10n.Main.modUpdates) }
         if currentTab == "SystemAlerts" { return vm.L(L10n.Main.systemAlerts) }
@@ -130,6 +131,10 @@ struct MainView: View {
                     SidebarItem(icon: "archivebox.fill",
                                 label: vm.L(L10n.ModConfigBackups.tabTitle),
                                 tab: "ConfigBackups", currentTab: $currentTab)
+
+                    SidebarItem(icon: "internaldrive",
+                                label: vm.L(L10n.Maintenance.title),
+                                tab: "Maintenance", currentTab: $currentTab)
                 }
 
                 // APPLICATION.
@@ -196,6 +201,8 @@ struct MainView: View {
                     }
                 } else if currentTab == "ConfigBackups" {
                     ModConfigBackupsView(vm: vm)
+                } else if currentTab == "Maintenance" {
+                    MaintenanceView(vm: vm)
                 } else if currentTab == "InstallBackups" {
                     ModInstallBackupsView(vm: vm)
                 } else if currentTab == "Saves" {

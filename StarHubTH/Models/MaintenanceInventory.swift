@@ -155,16 +155,24 @@ public enum MaintenanceInventory {
         public let configBackupBytes: Int64
         public let orphanSessions: Set<String>
         public let stalePreferenceKeys: Set<String>
+        /// Les sessions dont le mod n'est plus installé (`InstalledState.presentFiles
+        /// == nil`). La protection seule ne distingue pas « le mod est parti » de
+        /// « la mise à jour a emporté le fichier » : les deux sont `.soleCopy`.
+        /// L'écran en a besoin — l'une se remet en place, l'autre ne peut que
+        /// se montrer.
+        public let missingMods: Set<String>
 
         public init(backups: [BackupEntry], protections: [String: Protection],
                     configBackupCount: Int, configBackupBytes: Int64,
-                    orphanSessions: Set<String>, stalePreferenceKeys: Set<String>) {
+                    orphanSessions: Set<String>, stalePreferenceKeys: Set<String>,
+                    missingMods: Set<String> = []) {
             self.backups = backups
             self.protections = protections
             self.configBackupCount = configBackupCount
             self.configBackupBytes = configBackupBytes
             self.orphanSessions = orphanSessions
             self.stalePreferenceKeys = stalePreferenceKeys
+            self.missingMods = missingMods
         }
 
         public var backupBytes: Int64 { backups.reduce(0) { $0 + $1.sizeBytes } }

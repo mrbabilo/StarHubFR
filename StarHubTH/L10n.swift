@@ -1491,5 +1491,21 @@ enum L10n {
         static let purgedLog       = "maintenance_purged_log"
         static let cleanedLog      = "maintenance_cleaned_log"
         static let trashFailed     = "maintenance_trash_failed"
+        // États et confirmations (tâche 8).
+        static let loading         = "maintenance_loading"
+        static let nothingToDo     = "maintenance_nothing_to_do"
+        static let actionClean     = "maintenance_action_clean"
+        static let cancel          = "maintenance_cancel"
+        static let confirmTrash    = "maintenance_confirm_trash"
+        static let confirmRemove   = "maintenance_confirm_remove"
+        static let purgeTitle      = "maintenance_confirm_purge_title"
+        static let purgeMessage    = "maintenance_confirm_purge_message"
+        static let cleanTitle      = "maintenance_confirm_clean_title"
+        static let cleanMessage    = "maintenance_confirm_clean_message"
+        static let protectedRemoveTitle   = "maintenance_confirm_protected_title"
+        static let protectedRemoveMessage = "maintenance_confirm_protected_message"
+        static let actionRecover   = "maintenance_action_recover"
+        static let actionReveal    = "maintenance_action_reveal"
+        static let actionRemoveAnyway = "maintenance_action_remove_anyway"
     }
 }

@@ -9907,6 +9907,7 @@ for mod in mods {
         let fm = FileManager.default
         var entries: [MaintenanceInventory.BackupEntry] = []
         var protections: [String: MaintenanceInventory.Protection] = [:]
+        var missingMods: Set<String> = []
 
         for backup in installBackups {
             let root = URL(fileURLWithPath: backup.backupPath)
@@ -9926,6 +9927,7 @@ for mod in mods {
                                                 modsRoot: modsRoot, userFiles: files)
             protections[session] = MaintenanceInventory.protection(of: entry,
                                                                    installed: installed)
+            if installed.presentFiles == nil { missingMods.insert(session) }
         }
 
         let onDisk = Set((try? fm.contentsOfDirectory(atPath: installBackupsRoot.path))?
@@ -9944,7 +9946,8 @@ for mod in mods {
             orphanSessions: MaintenanceInventory.orphanSessions(
                 onDisk: onDisk, referenced: Set(entries.map(\.id))),
             stalePreferenceKeys: MaintenanceInventory.stalePreferenceKeys(
-                preferenceKeys, installedFolders: installedFolders))
+                preferenceKeys, installedFolders: installedFolders),
+            missingMods: missingMods)
     }
 
     /// Taille et fichiers utilisateur d'une sauvegarde, en **une** traversée.
@@ -9992,18 +9995,29 @@ for mod in mods {
                                        userFiles: [MaintenanceInventory.UserFile])
     -> MaintenanceInventory.InstalledState {
         let fm = FileManager.default
+        guard let current = Self.resolvingModRoot(of: folderName, modsRoot: modsRoot) else {
+            return .init(presentFiles: nil)
+        }
+        let present = userFiles.filter {
+            fm.fileExists(atPath: (current as NSString).appendingPathComponent($0.relativePath))
+        }
+        return .init(presentFiles: Set(present.map(\.relativePath)))
+    }
+
+    /// Le dossier réel d'un mod — chaque composant essayé actif puis en pause
+    /// (préfixe point), `nil` si l'un d'eux manque. C'est la résolution que
+    /// l'inventaire juge et que la récupération d'un fichier protégé écrit.
+    private static func resolvingModRoot(of folderName: String, modsRoot: String) -> String? {
+        let fm = FileManager.default
         var current = modsRoot
         for component in folderName.components(separatedBy: "/") {
             let plain = (current as NSString).appendingPathComponent(component)
             let dotted = (current as NSString).appendingPathComponent("." + component)
             if fm.fileExists(atPath: plain) { current = plain }
             else if fm.fileExists(atPath: dotted) { current = dotted }
-            else { return .init(presentFiles: nil) }
+            else { return nil }
         }
-        let present = userFiles.filter {
-            fm.fileExists(atPath: (current as NSString).appendingPathComponent($0.relativePath))
-        }
-        return .init(presentFiles: Set(present.map(\.relativePath)))
+        return current
     }
 
     /// Met à la corbeille les sauvegardes que `keepPerMod` écarte, et rend leur
@@ -10128,6 +10142,41 @@ for mod in mods {
         }
         buildMaintenanceReport()
         return true
+    }
+
+    /// La sauvegarde d'origine d'une session de l'inventaire — le `Report`
+    /// n'en porte que l'essentiel, la récupération a besoin du reste.
+    private func maintenanceBackup(forSession session: String) -> ModInstallBackup? {
+        let manager = ModInstallBackupManager.shared
+        return manager.loadBackups().first {
+            manager.backupDirectory(of: $0).lastPathComponent == session
+        }
+    }
+
+    /// Le fichier à remettre en place pour une protection dont le mod vit
+    /// encore. `nil` si la sauvegarde ou le dossier du mod a disparu depuis
+    /// l'inventaire — l'écran ne propose alors que le Finder.
+    func maintenanceRecoverableFile(session: String, relativePath: String)
+    -> RecoverableFile? {
+        guard let backup = maintenanceBackup(forSession: session) else { return nil }
+        let modsRoot = (gameDir as NSString).appendingPathComponent("Mods")
+        guard let installedRoot = Self.resolvingModRoot(of: backup.originalFolderName,
+                                                        modsRoot: modsRoot) else { return nil }
+        return RecoverableFile(
+            folderName: backup.originalFolderName,
+            modName: backup.modMetadata.name,
+            relativePath: relativePath,
+            backupPath: (backup.backupPath as NSString).appendingPathComponent(relativePath),
+            installedPath: (installedRoot as NSString).appendingPathComponent(relativePath),
+            installedRoot: installedRoot,
+            reason: .absentFromInstall)
+    }
+
+    /// Le chemin du fichier dans la sauvegarde, pour le montrer dans le Finder
+    /// quand le mod n'est plus là pour le recevoir.
+    func maintenanceProtectedFilePath(session: String, relativePath: String) -> String? {
+        guard let backup = maintenanceBackup(forSession: session) else { return nil }
+        return (backup.backupPath as NSString).appendingPathComponent(relativePath)
     }
 }
 
