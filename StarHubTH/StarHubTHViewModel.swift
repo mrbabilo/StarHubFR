@@ -6845,8 +6845,15 @@ for mod in mods {
     @Published private(set) var discovery: [ModCatalog.SectionKind: ModCatalog.SectionState] = [:]
     @Published private(set) var discoveryLoading = false
     @Published private(set) var discoverySearch: DiscoverySearchResult?
+    /// Ce qui dit si une réponse de recherche est encore attendue. Les
+    /// réponses arrivent sur le fil principal (`NexusSearchClient`), comme les
+    /// mutations d'ici.
+    private var discoveryEpoch = RequestEpoch()
     @Published private(set) var discoveryDetail: NexusModSearch.Detail?
     @Published private(set) var discoveryDetailState: DiscoveryDetailState = .idle
+    /// Même rôle que `discoveryEpoch`, pour la fiche : la feuille se ferme et
+    /// s'ouvre sur un autre mod plus vite qu'une requête ne revient.
+    private var discoveryDetailEpoch = RequestEpoch()
     /// La dernière panne réseau des sections — un seul message en haut de
     /// l'onglet, chaque section n'a pas à répéter (spec §8).
     @Published private(set) var lastDiscoveryError: NexusSearchClient.SearchError?
@@ -7031,10 +7038,17 @@ for mod in mods {
     /// ou non.
     func searchDiscovery(name: String) {
         let term = NexusModSearch.searchTerm(for: name)
-        guard !term.isEmpty else { discoverySearch = nil; return }
+        guard !term.isEmpty else {
+            // Vider le champ périme ce qui est en vol : sinon la réponse
+            // arrivée une seconde plus tard ferait revenir la liste.
+            discoveryEpoch.abandonAll()
+            discoverySearch = nil
+            return
+        }
+        let token = discoveryEpoch.open()
         NexusSearchClient.search(name: name,
                                  category: discoveryCategory?.englishName) { [weak self] result in
-            guard let self else { return }
+            guard let self, self.discoveryEpoch.isCurrent(token) else { return }
             switch result {
             case .success(let page):
                 self.lastDiscoveryError = nil
@@ -7058,11 +7072,14 @@ for mod in mods {
     /// recherche à qui aurait retapé entre-temps.
     func loadMoreDiscoverySearch() {
         guard let current = discoverySearch, current.loaded < current.totalCount else { return }
+        // Le jeton de la recherche en cours, pas un neuf : demander la suite
+        // prolonge la recherche, il ne la remplace pas.
+        let token = discoveryEpoch.currentToken
         NexusSearchClient.search(name: current.term,
                                  category: discoveryCategory?.englishName,
                                  offset: current.loaded) { [weak self] result in
-            guard let self else { return }
-            // La recherche a pu être quittée ou relancée pendant la requête.
+            guard let self, self.discoveryEpoch.isCurrent(token) else { return }
+            // La liste a pu grandir par ailleurs pendant la requête.
             guard let now = self.discoverySearch, now.term == current.term,
                   now.loaded == current.loaded else { return }
             switch result {
@@ -7086,6 +7103,9 @@ for mod in mods {
     /// Quitte les résultats : les sections reprennent la place. Sans cette
     /// porte de sortie, une recherche remplacerait définitivement la vitrine.
     func clearDiscoverySearch() {
+        // Périmer d'abord : une réponse en vol repeuplerait sinon la liste
+        // que l'utilisateur vient de fermer.
+        discoveryEpoch.abandonAll()
         discoverySearch = nil
     }
 
@@ -7097,8 +7117,11 @@ for mod in mods {
             discoveryDetailState = .loaded
             return
         }
+        let token = discoveryDetailEpoch.open()
         NexusSearchClient.detail(modId: modId) { [weak self] result in
-            guard let self else { return }
+            // Sans ce jeton, la réponse d'une fiche fermée entre-temps
+            // s'affichait sous le titre de celle qu'on venait d'ouvrir.
+            guard let self, self.discoveryDetailEpoch.isCurrent(token) else { return }
             switch result {
             case .success(let detail):
                 self.discoveryCatalog.recordDetail(detail)
@@ -7112,6 +7135,7 @@ for mod in mods {
     }
 
     func closeDiscoveryDetail() {
+        discoveryDetailEpoch.abandonAll()
         discoveryDetail = nil
         discoveryDetailState = .idle
     }

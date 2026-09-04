@@ -30,6 +30,7 @@ let package = Package(
                 "Models/NexusRequestBuilder.swift",
                 "Models/SmapiInstallerLimits.swift",
                 "Models/SmapiVersionEvidence.swift",
+                "Models/RequestEpoch.swift",
                 "Models/NexusRateLimitGate.swift",
                 "Models/NexusQuota.swift",
                 "Models/NexusAccount.swift",
@@ -771,6 +772,11 @@ let package = Package(
             name: "SmapiVersionEvidenceTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/SmapiVersionEvidenceTests"
+        ),
+        .testTarget(
+            name: "RequestEpochTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/RequestEpochTests"
         ),
         .testTarget(
             name: "FileRecoveryTests",

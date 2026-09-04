@@ -722,6 +722,30 @@ répond. L'ordre et les titres de section sont ceux de la roadmap.
       exact. La garde de collision de **X51** est intacte — un refus sur les
       mods cadrés se lit là où il se noyait dans un bilan de huit cents
       déplacements. · **M**
+- [x] **X49** ✅ *(corrigé le 2026-09-04)* — **Deux recherches Nexus lancées coup
+      sur coup pouvaient revenir dans le désordre.** `searchDiscovery(name:)`
+      écrasait `discoverySearch` sans vérifier que le terme demandé était encore
+      celui qu'on attendait ; le voisin immédiat, `loadMoreDiscoverySearch`,
+      portait pourtant une garde. Le jeton d'époque manquant est extrait en Core
+      (`RequestEpoch`, 6 tests) et posé aux trois endroits qui en avaient besoin.
+      ▸ **Ce que le câblage a montré, et que l'item ne disait pas** : le désordre
+      n'était pas le pire cas. Vider le champ ou quitter les résultats mettait
+      `discoverySearch` à `nil` **sans périmer la requête en vol** — une réponse
+      arrivée une seconde plus tard faisait revenir la liste que l'utilisateur
+      venait de fermer. Même chose sur la fiche d'un mod : `loadDiscoveryDetail`
+      n'a aucune garde, et la feuille se ferme puis se rouvre sur un autre mod
+      bien plus vite qu'une requête ne revient — le corps du premier mod
+      s'affichait alors sous le titre du second, l'en-tête venant de la ligne
+      cliquée et le corps de `discoveryDetail`. Les deux sont couverts par le
+      même jeton.
+      ▸ **La pagination prolonge, elle ne remplace pas** : `loadMoreDiscoverySearch`
+      porte le jeton *courant* (`currentToken`) au lieu d'en ouvrir un — demander
+      la suite ne doit pas invalider la recherche qu'elle continue. Sa garde
+      d'origine (même terme, même compte chargé) reste : elle protège d'autre
+      chose, une liste qui a grandi entre-temps.
+      ▸ L'item disait le correctif « non testable ici ». Il l'est devenu en
+      sortant la règle du ViewModel : ce qui n'était pas testable, c'était son
+      emplacement. · **S**
 - [x] **X31** ✅ *(corrigé le 2026-09-04)* — **Le marqueur de version SMAPI
       mentait indéfiniment.** `getInstalledVersion` rendait le contenu de
       `smapi-internal/.starhubth-installed-version` dès qu'il était lisible, et

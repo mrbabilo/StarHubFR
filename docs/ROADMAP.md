@@ -135,17 +135,6 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       Redessiner la politique — continuer, ou réessayer le lot une fois avec un
       retrait — est une décision de conception, pas un correctif d'audit. X46 rend
       au moins le fait visible et réessayable. · **S**
-- [ ] **X49** — **Deux recherches Nexus lancées coup sur coup peuvent revenir dans
-      le désordre.** `searchDiscovery(name:)` écrase `discoverySearch` sans vérifier
-      que le terme demandé est encore celui qu'on attend. Le voisin immédiat,
-      `loadMoreDiscoverySearch`, porte pourtant la garde (`now.term == current.term,
-      now.loaded == current.loaded`) — une règle présente d'un côté, absente de
-      l'autre. Atténué par le déclenchement : la recherche part sur Entrée ou sur le
-      bouton loupe, pas à chaque frappe, et un champ vidé ne relance rien. Il faut
-      donc deux soumissions rapprochées, et le résultat affiché reste cohérent avec
-      l'étiquette qu'il porte — simplement pas avec le dernier terme tapé. Le
-      correctif demande un compteur d'époque dans le ViewModel, non testable ici : à
-      faire en même temps qu'on touchera cet écran. · **S**
 - [ ] **X58** — **`warnings` mérite un filtre de plateforme, pas un rejet.**
       Le champ existe sur 24 entrées du dump, et **17 parlent d'Android** —
       « Broken on Android », « Only works on Android » : du bruit pur sur
@@ -1366,8 +1355,8 @@ corrompre ou faire disparaître quelque chose sans le dire ?* — et non à
 | ~~5~~ | ~~**X59**~~ | ✅ **Constat faux, clos le 2026-09-04** — l'alerte existe et nomme les mods : `applyProfileToFilesystem` appelle `showModal` avant de rendre la main, et `MainView` porte le `.alert` en permanence. Le `_` du changement de profil ne jette qu'un **compte**, pas le signal. Voir l'archive |
 | ~~6~~ | ~~**X31**~~ | ✅ **Corrigé le 2026-09-04** — marqueur et journal départagés par leur date d'écriture (`SmapiVersionEvidence`, 13 tests). Voir l'archive |
 | ~~7~~ | ~~**X54**~~ | ✅ **Corrigé le 2026-09-04** — deux clés neuves : l'ajout nomme le mod, l'import dit combien de favoris sont entrés. Voir l'archive |
-| 8 | **X49** | Deux recherches Nexus rapprochées peuvent revenir dans le désordre |
-| 9 | **F6-T4** | Une ancre « je l'ai déjà » ratée quand le manifeste et l'ancre diffèrent par la casse |
+| ~~8~~ | ~~**X49**~~ | ✅ **Corrigé le 2026-09-04** — jeton d'époque (`RequestEpoch`, Core, 6 tests) sur la recherche **et** sur la fiche, second exemplaire trouvé en câblant. Voir l'archive |
+| 9 | **F6-T4** | Une ancre « je l'ai déjà » ratée quand le manifeste et l'ancre diffèrent par la casse. ⚠️ **Réévalué le 2026-09-04 : ce n'est pas un S.** Corriger la seule lecture créerait la divergence que l'item décrit ; le faire d'un bloc demande de normaliser la clé à l'écriture **et** de migrer les ancres déjà posées. Aucun observable sur le parc — ne pas le reprendre comme « petit correctif » |
 | 10 | **X58**, **X60**, **C2-T4**, **X47** | Ce qu'un mod garde en silence (avertissements filtrés par plateforme), l'échange de noms de dossier qu'un profil ne peut pas faire et n'explique pas, les clés de config perdues à une mise à jour, les lots smapi.io abandonnés après un échec |
 
 **P3 — latent : la condition est vraie, zéro exemplaire sur le parc**
@@ -1648,6 +1637,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **R6** | 2026-09-04 | Le plan d'application d'un profil extrait dans Core et prouvé idempotent sur 200 parcs engendrés |
 | **X54** | 2026-09-04 | Le journal annonçait « profil créé » sur un ajout de mod et sur un import de favoris |
 | **X31** | 2026-09-04 | La version de SMAPI affichée restait celle que l'app avait installée, même après une mise à jour faite ailleurs |
+| **X49** | 2026-09-04 | Deux recherches Nexus rapprochées pouvaient revenir dans le désordre, et une réponse tardive ressuscitait une liste fermée |
 | **B1-T1** | 2026-08-01 | Boutons Activer/Désactiver et Supprimer sur la fiche mod (parité avec la liste, mêmes confirmations). Absents pour un… |
 | **B1-T2** | 2026-08-01 | Tri, filtres, catégorie, page et recherche portés par ModListFilters dans le ViewModel. La remise à la page 1 est por… |
 

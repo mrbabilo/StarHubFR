@@ -18,6 +18,8 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **La vitrine Découverte n'affiche plus la réponse d'une question que vous ne posez plus.** Deux recherches lancées coup sur coup pouvaient revenir dans le désordre, et la plus lente écrasait la plus récente. Pire : fermer les résultats ou vider le champ n'annulait pas la requête en cours — la liste revenait toute seule une seconde plus tard. La fiche d'un mod avait le même défaut : fermer une fiche et en ouvrir une autre rapidement pouvait afficher la description de la première sous le titre de la seconde.
+
 - **La version de SMAPI affichée peut enfin changer sans passer par l'app.** L'app notait dans un fichier à elle la version qu'elle venait d'installer, et ne lisait que ce fichier. Une mise à jour de SMAPI faite par son propre installateur ne le réécrit pas : les trois endroits qui affichent la version (accueil, réglages, bandeau d'état) restaient bloqués sur l'ancienne, indéfiniment. Le journal de SMAPI, qui nomme la version réellement chargée au dernier lancement, est maintenant lu lui aussi — et c'est la plus récente des deux sources qui l'emporte.
 
 - **Le journal ne dit plus « profil créé » quand rien n'a été créé.** Ajouter un mod à un profil — le geste qui répare une dépendance laissée de côté — et importer vos favoris écrivaient tous deux « Profil « X » créé ». Une journée de réglages donnait à lire une série de créations qui n'avaient jamais eu lieu. L'ajout nomme maintenant le mod entré, et l'import dit combien de favoris sont entrés.
