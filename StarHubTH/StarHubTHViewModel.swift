@@ -9685,6 +9685,48 @@ for mod in mods {
     /// single top-level folder that contains all child mods. The mod list is
     /// rescanned afterward so the UI reflects the real on-disk state. Surfaces
     /// a user-visible alert on failure.
+    /// Oublie tout ce que les magasins persistés savaient d'un mod supprimé
+    /// (X55). Politique tranchée le 2026-09-04 : **on efface tout** — ce qu'on
+    /// supprime disparaît, et une réinstallation repart d'une page blanche.
+    ///
+    /// Quatre magasins étaient indexés sur le nom de dossier et survivaient à
+    /// la suppression. Le plus visible : la vitrine Découverte affichait
+    /// encore « Je l'ai ». Le plus coûteux, quoique rare : un dossier
+    /// **réutilisé par un autre mod** héritait du drapeau « sa config suit le
+    /// profil », et le changement de profil suivant lui restaurait la
+    /// configuration du disparu.
+    ///
+    /// Un pack emporte ses composants — leur `folderName` est le chemin
+    /// relatif sous lui — sans toucher au voisin dont le nom commence pareil :
+    /// la règle vit dans `ModRemovalPurge`, avec ses tests.
+    ///
+    /// Chaque magasin n'est réécrit **que s'il a changé** : réécrire les
+    /// préférences pour rien à chaque suppression n'apporte rien.
+    private func forgetStores(of mod: ModItem) {
+        let folder = mod.folderName
+        if ModRemovalPurge.purge(&profileManagedConfigMods, removing: folder) {
+            Self.saveProfileManagedConfigMods(profileManagedConfigMods)
+        }
+        if ModRemovalPurge.purge(&modActivationTimestamps, removing: folder) {
+            Self.saveModActivationTimestamps(modActivationTimestamps)
+        }
+        if ModRemovalPurge.purge(&nexusCustomModIds, removing: folder) {
+            Self.saveCustomModIds(nexusCustomModIds)
+        }
+        if ModRemovalPurge.purge(&nexusCustomCategories, removing: folder) {
+            Self.saveCustomCategories(nexusCustomCategories)
+        }
+        // « Je l'ai déjà » dans la vitrine : `installedNexusInstalls` n'est
+        // qu'un complément de ce que le disque dit (`installedNexusIds()` en
+        // fait l'union avec les mods réellement installés). Le retrait est
+        // donc sans risque même quand deux mods partagent un identifiant
+        // Nexus — 58 cas sur le parc : celui qui reste installé continue de
+        // se voir par l'autre moitié de l'union.
+        if let id = Int(resolvedNexusModId(for: mod)) {
+            recentNexusInstalls.remove(id)
+        }
+    }
+
     func deleteMod(_ mod: ModItem) {
         guard !gameDir.isEmpty else {
             showModal(message: L(L10n.Settings.gameDirNotSet))
@@ -9700,6 +9742,14 @@ for mod in mods {
         let fm = FileManager.default
         guard fm.fileExists(atPath: modPath) else {
             showModal(message: L(L10n.Mods.deleteNotFound))
+            // Le dossier a disparu hors de l'app (Finder, mise à jour ratée,
+            // autre gestionnaire) : c'est **le** producteur de traces mortes,
+            // parce que ce chemin ne touchait aucun magasin. On purge ici
+            // aussi — et ce n'est pas le balayage que X25 interdit : là-bas
+            // une absence *déciderait seule* d'une suppression, ici
+            // l'utilisateur vient de demander la suppression de ce mod
+            // nommément. Le consentement fait toute la différence.
+            forgetStores(of: mod)
             DispatchQueue.global(qos: .userInitiated).async {
                 self.scanMods()
             }
@@ -9742,6 +9792,7 @@ for mod in mods {
             if favoriteMods.remove(mod.folderName) != nil {
                 Self.saveFavoriteMods(favoriteMods)
             }
+            forgetStores(of: mod)
             log(String(format: L(L10n.Mods.deletedLog), mod.name))
             DispatchQueue.global(qos: .userInitiated).async {
                 self.scanMods()

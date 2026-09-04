@@ -629,6 +629,42 @@ répond. L'ordre et les titres de section sont ceux de la roadmap.
       elle, est **close** : jouée à la manière de SMAPI (découpage des `id` en
       liste, insensible à la casse) elle gagne 32 appariements et **aucun**
       champ neuf — la mesure de 2026-09-03 vaut aussi pour ces trois-là. · **S**
+- [x] **X55** ✅ *(corrigé le 2026-09-04)* — **Le ménage à la suppression d'un mod
+      était partiel.** `deleteMod` purgeait les favoris, l'historique d'erreurs, la
+      référence de traduction et la couverture FR, mais laissait quatre magasins
+      indexés sur le même nom de dossier — `profileManagedConfigMods`,
+      `modActivationTimestamps`, `nexusCustomModIds`, `nexusCustomCategories` — plus
+      la présence du mod dans « Je l'ai » de la vitrine (`recentNexusInstalls`,
+      indexé sur l'identifiant Nexus).
+      ▸ **Mesuré sur les préférences réelles le 2026-09-04** : **35 entrées
+      fantômes** — 19 horodatages d'activation et 16 identifiants Nexus pour des
+      dossiers qui n'existent plus (`[CP] ArchaeologySkill`, `Swim`,
+      `MoreSecretNotes/PEEM`…). `favoriteMods` était propre : sa purge, elle,
+      existait déjà.
+      ▸ **Politique tranchée : on efface tout.** Ce qu'on supprime disparaît, et une
+      réinstallation repart d'une page blanche. L'alternative — garder ce qui décrit
+      le mod (identifiant Nexus, catégorie) et n'effacer que ce qui suit le dossier —
+      laissait deux traces que rien ne nettoie jamais, pour épargner une ressaisie
+      rare.
+      ▸ `ModRemovalPurge` (Core, 9 tests) porte la règle : un pack emporte ses
+      composants (leur `folderName` est le chemin relatif sous lui) **sans toucher au
+      voisin dont le nom commence pareil** — supprimer `Pack` laisse `PackDeLuxe`.
+      Le nom comparé est le **logique** : `.Pack` n'est pas ramassé au passage, ce
+      serait l'entrée d'un autre mod. Chaque magasin n'est réécrit que s'il a changé.
+      ▸ **Le retrait de `recentNexusInstalls` est sans risque** malgré les 58
+      identifiants Nexus partagés du parc : `installedNexusIds()` en fait l'union
+      avec les mods réellement installés, donc celui qui reste se voit par l'autre
+      moitié.
+      ▸ **Les deux chemins de `deleteMod` purgent**, y compris celui où le dossier a
+      déjà disparu hors de l'app (Finder, mise à jour ratée) : c'était le producteur
+      de traces mortes, puisqu'il ne touchait aucun magasin. Ce n'est pas le balayage
+      que X25 interdit — là-bas une absence déciderait seule d'une suppression, ici
+      l'utilisateur vient de demander la suppression de ce mod nommément.
+      ▸ **Non fait, et volontairement** : les 35 fantômes déjà en place restent. Les
+      balayer demanderait de décider qu'un dossier absent est un dossier supprimé —
+      c'est très exactement ce que **X25** interdit, et un dossier `Mods/` non scanné
+      ou un jeu déplacé effacerait des réglages vivants. À traiter comme un ménage
+      explicite, jamais comme un automatisme. · **S**
 - [x] **X57** ✅ *(corrigé le 2026-09-04)* — **La bascule en masse agissait sur
       le parc entier, depuis une liste filtrée.** Le bouton « Tout activer /
       Tout désactiver » vit dans `ModListView` — qui a une recherche, des
