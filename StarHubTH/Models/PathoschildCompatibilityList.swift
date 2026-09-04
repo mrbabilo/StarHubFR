@@ -19,13 +19,14 @@ import Foundation
 /// 2. **strippe** les commentaires JSONC (`//` et `/* … */`) avant
 ///   `JSONSerialization` — `JSONSerialization` n'accepte pas les commentaires ;
 /// 3. **décode** uniquement les champs nécessaires (`id`, `status`, `brokeIn`,
-///   `summary`) en ignorant les clés `name`, `author`, `nexus`, `github`, etc. ;
+///   `summary`, `unofficialUpdate`) en ignorant les clés `name`, `author`,
+///   `github`, etc. ;
 /// 4. **joint** sur `UniqueID` à la liste des mods installés, en rendant
 ///   `ModCompatibility` (le même type que smapi.io) pour ne pas multiplier les
 ///   formes de verdicts côté UI.
 ///
 /// Le résultat n'est **pas** aussi riche que smapi.io — pas de
-/// `suggestedUpdate`, pas de `unofficial` séparé — mais le verdict de statut
+/// `suggestedUpdate` — mais le verdict de statut
 /// (`broken`/`abandoned`/`obsolete`/`workaround`/`unofficial`) y est, et
 /// `brokeIn` aussi quand présent. C'est strictement le filet qui manquait
 /// quand smapi.io se tait.
@@ -48,8 +49,11 @@ public enum PathoschildCompatibilityList {
 
     /// Une entrée brute du dump, réduite aux champs que l'app utilise.
     /// Les autres (`name`, `author`, `github`, `curse`, `chucklefish`,
-    /// `abandonedReason`, `source`, `unofficialUpdate`, …) sont ignorées :
-    /// on les laisse tomber côté décodeur, jamais on ne les propage.
+    /// `abandonedReason`, `warnings`, `source`, …) sont ignorées : on les
+    /// laisse tomber côté décodeur, jamais on ne les propage. Ce qu'elles
+    /// vaudraient est mesuré dans la ROADMAP (X56) — `warnings` porte
+    /// 17 mentions d'Android sur 24, et `abandonedReason` n'accompagne jamais
+    /// qu'un statut `abandoned` déjà rendu.
     public struct Entry: Decodable, Equatable, Sendable {
         public let id: String
         public let status: String?
@@ -64,6 +68,45 @@ public enum PathoschildCompatibilityList {
         /// ~4 000 mods là où smapi.io est plus étroit), et **offline** : on
         /// évite une requête Nexus par mod que smapi.io a ignoré.
         public let nexusID: Int?
+        /// La mise à jour non officielle que Pathoschild publie pour ce mod —
+        /// version et lien — ou `nil`.
+        ///
+        /// **Ce champ est presque toujours seul.** Mesuré sur le dump du
+        /// 2026-09-04 (4 720 entrées) : **67 le portent, dont 63 sans aucun
+        /// `status` et 62 sans `summary`** ; les 67 ont un `brokeIn`. Sans lui,
+        /// ces 63 entrées ne produisaient donc **aucun verdict** — le filet
+        /// était muet exactement là où smapi.io, interrogé le même jour sur les
+        /// mêmes identifiants, répond `Unofficial` et « broken, use unofficial
+        /// version ». Sur le parc de référence, quatre mods : Bus Locations,
+        /// Mod Update Menu et les deux moitiés de SAAT.
+        public let unofficialUpdate: UnofficialUpdate?
+
+        /// Version et destination d'une mise à jour non officielle. Toujours
+        /// un objet `{ version, url }` dans le dump — jamais une chaîne,
+        /// vérifié sur les 67.
+        public struct UnofficialUpdate: Decodable, Equatable, Sendable {
+            public let version: String
+            public let url: String
+
+            public init(version: String, url: String) {
+                self.version = version
+                self.url = url
+            }
+        }
+
+        public init(id: String,
+                    status: String?,
+                    brokeIn: String?,
+                    summary: String?,
+                    nexusID: Int?,
+                    unofficialUpdate: UnofficialUpdate? = nil) {
+            self.id = id
+            self.status = status
+            self.brokeIn = brokeIn
+            self.summary = summary
+            self.nexusID = nexusID
+            self.unofficialUpdate = unofficialUpdate
+        }
     }
 
     public enum Failure: Error, Equatable {
@@ -309,12 +352,47 @@ public enum PathoschildCompatibilityList {
         }
         var out: [String: ModCompatibility] = [:]
         for (uniqueId, entry) in byId {
-            guard let verdict = ModCompatibility.from(
-                status: entry.status, brokeIn: entry.brokeIn, summary: entry.summary
-            ) else { continue }
+            guard let verdict = verdict(for: entry) else { continue }
             out[uniqueId] = verdict
         }
         return out
+    }
+
+    /// Le verdict d'une entrée, statut inféré compris.
+    ///
+    /// **L'inférence ne comble qu'une absence.** Un `unofficialUpdate` sans
+    /// `status` vaut `unofficial` — c'est ce que smapi.io répond pour ces
+    /// mêmes entrées, et ce que la liste de compatibilité calcule en amont.
+    /// Mais un statut déjà posé gagne toujours : quatre des 67 en portent un
+    /// (trois `workaround`, un `abandoned`), et rétrograder un mod abandonné
+    /// en « une mise à jour non officielle existe » perdrait plus que
+    /// l'inférence ne gagne — `abandoned` dit justement qu'aucun remplaçant
+    /// n'est proposé. Un statut **inconnu** garde lui aussi sa règle : `nil`,
+    /// jamais un repli.
+    ///
+    /// Aucune phrase n'est fabriquée pour les 62 entrées sans `summary` : le
+    /// libellé du statut et `brokeIn` sont déjà rendus localisés par l'UI, et
+    /// une phrase écrite ici ne serait traduite nulle part. Le lien porte le
+    /// **numéro de version** pour libellé — c'est ce qu'il faut installer.
+    static func verdict(for entry: Entry) -> ModCompatibility? {
+        let base = ModCompatibility.from(status: entry.status,
+                                         brokeIn: entry.brokeIn,
+                                         summary: entry.summary)
+        guard let update = entry.unofficialUpdate else { return base }
+        let declaredStatus = entry.status?.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard declaredStatus == nil || declaredStatus?.isEmpty == true else { return base }
+
+        let parsed = ModCompatibility.parseSummary(entry.summary ?? "")
+        // Le résumé cite parfois déjà la même page (cas réel :
+        // `Slothsoft.Informant`) — deux boutons vers la même destination
+        // seraient du bruit, l'UI n'en affiche que deux en tout.
+        let links = parsed.links.contains(where: { $0.url == update.url })
+            ? parsed.links
+            : parsed.links + [ModCompatibility.Link(label: update.version, url: update.url)]
+        return ModCompatibility(status: .unofficial,
+                                brokeIn: normalized(entry.brokeIn),
+                                summary: parsed.text,
+                                links: links)
     }
 
     // MARK: - Helpers
@@ -383,8 +461,8 @@ public enum PathoschildCompatibilityList {
     }
 
     /// Décode une entrée. Les champs inconnus (`name`, `author`, `github`,
-    /// `abandonedReason`, `source`, `unofficialUpdate`, …) sont ignorés — on ne
-    /// les a pas déclarés sur `Entry`, `JSONSerialization` ne s'en plaint pas.
+    /// `abandonedReason`, `warnings`, `source`, …) sont ignorés — on ne les a
+    /// pas déclarés sur `Entry`, `JSONSerialization` ne s'en plaint pas.
     private static func decodeEntry(_ dict: [String: Any]) -> Entry? {
         guard let id = dict["id"] as? String, !id.isEmpty else { return nil }
         return Entry(
@@ -396,7 +474,30 @@ public enum PathoschildCompatibilityList {
             // Nexus. Le `as? Int` accepte aussi un nombre négatif ou nul — on
             // le filtre au site d'usage (`PathoschildNexusIndex.resolveNexusID`)
             // pour n'avoir qu'une règle de validation, pas plusieurs.
-            nexusID: dict["nexus"] as? Int
+            nexusID: dict["nexus"] as? Int,
+            unofficialUpdate: decodeUnofficialUpdate(dict["unofficialUpdate"])
         )
+    }
+
+    /// Une chaîne débarrassée de ses blancs, ou `nil` si elle n'en portait
+    /// que. Écrite ici plutôt qu'empruntée : le `trimmed`/`nonEmpty` de
+    /// `ModCompatibility.swift` est `private` à son fichier, et une seconde
+    /// copie d'extension sur `String` finirait par diverger de la première.
+    private static func normalized(_ raw: String?) -> String? {
+        guard let trimmed = raw?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !trimmed.isEmpty else { return nil }
+        return trimmed
+    }
+
+    /// Décode `{ "version": …, "url": … }`. Les deux champs sont exigés :
+    /// une version sans lien n'a pas de destination, un lien sans version n'a
+    /// pas de libellé — et c'est le numéro de version qui dit ce qu'il faut
+    /// installer. Zéro entrée amputée sur le dump réel ; la garde est là pour
+    /// le jour où il en portera une.
+    private static func decodeUnofficialUpdate(_ raw: Any?) -> Entry.UnofficialUpdate? {
+        guard let dict = raw as? [String: Any],
+              let version = normalized(dict["version"] as? String),
+              let url = normalized(dict["url"] as? String) else { return nil }
+        return Entry.UnofficialUpdate(version: version, url: url)
     }
 }

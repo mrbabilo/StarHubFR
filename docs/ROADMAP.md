@@ -849,17 +849,54 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       un autre mod hérite du drapeau « sa config suit le profil ». Demande une
       décision de politique (tout purger ? garder l'identifiant Nexus, qui est
       souvent le bon au réinstall ?), pas seulement du code. · **S**
-- [ ] **X56** — **Trois champs du dump de compatibilité ne sont pas décodés.**
-      `PathoschildCompatibilityList.Entry` lit `id`, `status`, `brokeIn`,
-      `summary`, `nexusID`. Le dump (4 720 mods) en porte trois autres :
-      `unofficialUpdate` (67 mods), `abandonedReason` (277) et `warnings` (24).
-      Croisé avec le parc le 2026-09-04 — 1 090 identifiants, 292 connus du
-      dump : **5 mods ont une mise à jour non officielle** (Bus Locations,
-      Informant, SAAT ×2, Mod Update Menu), **2 ont un avertissement**
-      (« use Nexus, ModDrop is NOT updated » ; « Broken on Android »), aucun n'a
-      de motif d'abandon. Les cinq premiers sont des correctifs communautaires
-      installables pour des mods que rien ne signale aujourd'hui — exactement le
-      « et maintenant, quoi ? » que l'écran de diagnostic doit porter. · **M**
+- [x] **X56** ✅ *(corrigé le 2026-09-04)* — **Le filet de compatibilité était
+      muet sur les mods dont il ne connaît que la mise à jour non officielle.**
+      `PathoschildCompatibilityList.Entry` lisait `id`, `status`, `brokeIn`,
+      `summary`, `nexusID` ; le dump (4 720 entrées) porte aussi
+      `unofficialUpdate` (67), `abandonedReason` (277) et `warnings` (24).
+      **Le constat d'origine visait les trois champs ; la mesure a montré que
+      seul le premier valait quelque chose, et pas pour la raison écrite ici.**
+      ▸ **Ce que la mesure a trouvé.** Des 67 entrées à `unofficialUpdate`,
+      **63 n'ont aucun `status`** et 62 aucun `summary` — les 67 ont un
+      `brokeIn`. Le verdict se construisant à partir du seul `status`, ces 63
+      entrées ne produisaient **rien** : le filet se taisait exactement là où
+      smapi.io, sondé le même jour sur les mêmes identifiants, répond
+      `Unofficial` + « broken, use unofficial version ». Sur le parc, quatre
+      mods invisibles dès que smapi.io se tait : Bus Locations, Mod Update Menu
+      et les deux moitiés de SAAT.
+      ▸ **Livré.** Un `unofficialUpdate` sans statut vaut `unofficial` — la
+      règle que la liste amont applique elle-même. Un statut déjà posé n'est
+      **jamais** écrasé (4 des 67 en portent un, dont un `abandoned` : le
+      rétrograder en « une mise à jour existe » perdrait plus que l'inférence
+      ne gagne), un statut inconnu reste `nil`, et le seul `brokeIn` n'invente
+      pas de verdict. Aucune phrase n'est fabriquée pour les 62 sans résumé :
+      le libellé du statut et `brokeIn` sont déjà rendus localisés, et le lien
+      porte le **numéro de version** pour libellé, ce qu'il faut installer.
+      L'unique entrée à résumé sans statut (`Lajna.24hClock`) cite déjà l'URL
+      de sa mise à jour — pas de troisième bouton, l'UI n'en montre que deux.
+      Rejoué sur le dump réel : **+63 verdicts au dump, +4 sur le parc, zéro
+      verdict modifié**. Aucun écran neuf, aucune clé L10n.
+      ▸ **Ce qui a été mesuré puis écarté.** `abandonedReason` accompagne
+      **toujours** un statut `abandoned` (277/277) déjà rendu, et zéro mod du
+      parc en porte : rien à gagner qu'une phrase non traduite. La jointure,
+      elle, est **close** : jouée à la manière de SMAPI (découpage des `id` en
+      liste, insensible à la casse) elle gagne 32 appariements et **aucun**
+      champ neuf — la mesure de 2026-09-03 vaut aussi pour ces trois-là. · **S**
+- [ ] **X58** — **`warnings` mérite un filtre de plateforme, pas un rejet.**
+      Le champ existe sur 24 entrées du dump, et **17 parlent d'Android** —
+      « Broken on Android », « Only works on Android » : du bruit pur sur
+      macOS, et les deux exemplaires du parc en font partie (le second dit
+      « use Nexus, ModDrop is NOT updated », ce qu'on fait déjà). Les remonter
+      tels quels ferait **contredire la source primaire** : smapi.io déclare
+      `Ok` ces deux mods-là. Mais les six autres valent la lecture — télémétrie
+      non divulguée et non annoncée sur la page du mod, plantages au chargement
+      d'une sauvegarde, archive à la structure fausse qu'il faut dézipper deux
+      fois, incompatibilité multijoueur. Ce qui manque n'est pas le champ,
+      c'est la règle qui écarte ce qui ne concerne pas la plateforme — et un
+      endroit où le dire qui ne soit pas le verdict de compatibilité, puisque
+      ces mods ne sont pas cassés. Zéro exemplaire utile sur le parc
+      aujourd'hui : à faire quand l'écran d'alertes gagnera une ligne
+      « à savoir ». · **S**
 - [x] **X57** ✅ *(corrigé le 2026-09-04)* — **La bascule en masse agissait sur
       le parc entier, depuis une liste filtrée.** Le bouton « Tout activer /
       Tout désactiver » vit dans `ModListView` — qui a une recherche, des

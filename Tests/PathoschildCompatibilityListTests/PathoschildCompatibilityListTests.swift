@@ -173,6 +173,144 @@ struct PathoschildCompatibilityListTests {
         #expect(verdicts.isEmpty)
     }
 
+    // MARK: - Mise à jour non officielle sans statut
+
+    // Mesuré sur le dump réel du 2026-09-04 (4 720 entrées) : **67 portent un
+    // `unofficialUpdate`, et 63 d'entre elles n'ont aucun `status`** — 62 n'ont
+    // pas non plus de `summary`. Elles ne produisaient donc aucun verdict,
+    // quand smapi.io, interrogé le même jour sur les mêmes identifiants, les
+    // déclare `Unofficial` avec « broken, use unofficial version ».
+    // Sur le parc : **4 mods** (Bus Locations, Mod Update Menu, SAAT ×2) que le
+    // filet passait sous silence dès que smapi.io se taisait.
+
+    @Test func anUnofficialUpdateWithoutStatusBecomesAnUnofficialVerdict() throws {
+        let entries = [PathoschildCompatibilityList.Entry(
+            id: "hootless.BusLocations",
+            status: nil,
+            brokeIn: "Stardew Valley 1.6",
+            summary: nil,
+            nexusID: 21264,
+            unofficialUpdate: .init(version: "1.2.2-unofficial.1-Xytronix",
+                                    url: "https://github.com/Xytronix/BusLocations/releases"))]
+        let verdict = try #require(PathoschildCompatibilityList.verdicts(
+            for: ["hootless.BusLocations"], from: entries)["hootless.BusLocations"])
+        #expect(verdict.status == .unofficial)
+        // `brokeIn` est porté : c'est lui qui fait « cassé depuis la 1.6 »
+        // plutôt que « une mise à jour existe ».
+        #expect(verdict.brokeIn == "Stardew Valley 1.6")
+        // Aucune phrase n'est inventée — le dump n'en a pas, et une phrase
+        // écrite en dur ici ne serait traduite nulle part.
+        #expect(verdict.summary.isEmpty)
+        // Le lien porte le **numéro de version** pour libellé : c'est ce qu'il
+        // faut installer, et l'UI en fait un bouton.
+        #expect(verdict.links.count == 1)
+        #expect(verdict.links.first?.label == "1.2.2-unofficial.1-Xytronix")
+        #expect(verdict.links.first?.url == "https://github.com/Xytronix/BusLocations/releases")
+    }
+
+    @Test func anExistingStatusIsNeverOverwrittenByTheInference() throws {
+        // Le voisin qui ne doit **pas** être inféré. Quatre des 67 entrées
+        // portent déjà un statut (3 `workaround`, 1 `abandoned`) : les faire
+        // passer pour « une mise à jour non officielle existe » perdrait plus
+        // que l'inférence ne gagne — `abandoned` est le verdict le plus grave
+        // des deux, et il dit qu'aucun remplaçant n'est proposé.
+        let entries = [
+            PathoschildCompatibilityList.Entry(
+                id: "a.abandoned", status: "Abandoned", brokeIn: "SMAPI 3.0",
+                summary: nil, nexusID: nil,
+                unofficialUpdate: .init(version: "1.0.1-unofficial.1", url: "https://example.com/a")),
+            PathoschildCompatibilityList.Entry(
+                id: "b.workaround", status: "Workaround", brokeIn: nil,
+                summary: nil, nexusID: nil,
+                unofficialUpdate: .init(version: "2.0.0-unofficial.1", url: "https://example.com/b"))
+        ]
+        let verdicts = PathoschildCompatibilityList.verdicts(
+            for: ["a.abandoned", "b.workaround"], from: entries)
+        #expect(try #require(verdicts["a.abandoned"]).status == .abandoned)
+        #expect(try #require(verdicts["b.workaround"]).status == .workaround)
+    }
+
+    @Test func anUnknownStatusIsStillSkippedEvenWithAnUnofficialUpdate() {
+        // L'inférence ne comble que l'**absence** de statut. Un statut que le
+        // code ne connaît pas garde sa règle : `nil`, jamais une valeur de
+        // repli — smapi.io peut en ajouter un demain.
+        let entries = [PathoschildCompatibilityList.Entry(
+            id: "x.y", status: "Sideways", brokeIn: nil, summary: nil, nexusID: nil,
+            unofficialUpdate: .init(version: "1.0.0-unofficial.1", url: "https://example.com/x"))]
+        #expect(PathoschildCompatibilityList.verdicts(for: ["x.y"], from: entries).isEmpty)
+    }
+
+    @Test func noStatusAndNoUnofficialUpdateStillProducesNothing() {
+        // L'inférence n'invente pas un verdict à partir du seul `brokeIn` :
+        // 1 109 entrées du dump en portent un pour 534 statuts, et « cassé
+        // par SMAPI 3.0 » ne dit rien d'un mod réparé depuis.
+        let entries = [PathoschildCompatibilityList.Entry(
+            id: "x.y", status: nil, brokeIn: "SMAPI 3.0", summary: nil, nexusID: nil)]
+        #expect(PathoschildCompatibilityList.verdicts(for: ["x.y"], from: entries).isEmpty)
+    }
+
+    @Test func theUnofficialLinkIsNotAddedTwiceWhenTheSummaryAlreadyCarriesIt() throws {
+        // **Une seule** des 63 entrées sans statut porte un `summary` —
+        // `Lajna.24hClock` — et ce résumé cite déjà l'URL de son
+        // `unofficialUpdate`, plus un mod de remplacement. Un troisième bouton
+        // vers la première page serait du bruit, et l'UI n'en affiche que deux :
+        // il chasserait le remplaçant de l'écran.
+        let entries = [PathoschildCompatibilityList.Entry(
+            id: "Lajna.24hClock", status: nil, brokeIn: "SMAPI 3.0",
+            summary: "use [unofficial update](https://forums.example.net/post-3342641)"
+                   + " or [24H Clock Language](https://www.nexusmods.com/stardewvalley/mods/20794)"
+                   + " instead.",
+            nexusID: nil,
+            unofficialUpdate: .init(version: "1.0.1-unofficial.1-pathoschild",
+                                    url: "https://forums.example.net/post-3342641"))]
+        let verdict = try #require(PathoschildCompatibilityList.verdicts(
+            for: ["Lajna.24hClock"], from: entries)["Lajna.24hClock"])
+        #expect(verdict.status == .unofficial)
+        #expect(verdict.links.map(\.url) == ["https://forums.example.net/post-3342641",
+                                            "https://www.nexusmods.com/stardewvalley/mods/20794"])
+        #expect(verdict.summary == "use unofficial update or 24H Clock Language instead.")
+    }
+
+    @Test func theUnofficialUpdateIsDecodedFromTheDump() throws {
+        // Forme réelle du champ : un objet `{ version, url }`, jamais une
+        // chaîne — vérifié sur les 67 entrées du dump.
+        let raw = """
+        {
+          "mods": [
+            {
+              "id": "cat.modupdatemenu",
+              "brokeIn": "Stardew Valley 1.5",
+              "unofficialUpdate": {
+                "version": "1.6.1-unofficial-2.dphill",
+                "url": "https://forums.example.net/post-148313"
+              }
+            }
+          ]
+        }
+        """
+        let entries = try #require(PathoschildCompatibilityList.decode(Data(raw.utf8)))
+        let update = try #require(entries.first?.unofficialUpdate)
+        #expect(update.version == "1.6.1-unofficial-2.dphill")
+        #expect(update.url == "https://forums.example.net/post-148313")
+    }
+
+    @Test func anUnofficialUpdateMissingItsUrlOrVersionInfersNothing() {
+        // Un objet amputé ne devient pas un verdict : le bouton n'aurait pas
+        // de destination, ou pas de libellé.
+        let raw = """
+        {
+          "mods": [
+            { "id": "a.b", "unofficialUpdate": { "version": "1.0.0-unofficial.1" } },
+            { "id": "c.d", "unofficialUpdate": { "url": "https://example.com/c" } }
+          ]
+        }
+        """
+        let entries = PathoschildCompatibilityList.decode(Data(raw.utf8)) ?? []
+        #expect(entries.count == 2)
+        #expect(entries.allSatisfy { $0.unofficialUpdate == nil })
+        #expect(PathoschildCompatibilityList.verdicts(for: ["a.b", "c.d"], from: entries).isEmpty)
+    }
+
     // MARK: - Fins de ligne
 
     @Test func lineCommentsStopAtACarriageReturnToo() throws {
