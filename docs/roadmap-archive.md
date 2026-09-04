@@ -756,6 +756,66 @@ répond. L'ordre et les titres de section sont ceux de la roadmap.
       ▸ Lecture du dump **quel que soit son âge** : un avertissement d'il y a
       trois jours reste vrai, et le lier au TTL de 6 h ferait disparaître ces
       lignes 18 heures par jour. **18 tests neufs** (2 215 → 2 233). · **S**
+- [x] **X60** ✅ *(livré le 2026-09-05)* — **Deux mods se disputaient un nom de
+      dossier ; on les sépare pour de bon.** `X` actif et `.X` en pause sont deux
+      mods distincts — cas réel du parc : les deux `[CP] Seaside Sounds`, de
+      witchtopia et de Liana. Un profil qui réclame celui en pause et pas l'autre
+      demande un **échange** de noms : les deux déplacements se refusent l'un
+      l'autre, et aucun ordre ne les débloque — c'est un cycle à deux, trouvé le
+      2026-09-04 par la propriété d'idempotence de **R6** (86 parcs engendrés sur
+      200 en portent un). Le 2026-09-04, le refus a d'abord été rendu *explicite*
+      (`renameModFolder` partagé par les trois chemins de bascule nomme le mod
+      qui occupe le dossier).
+      ▸ **Ce que la roadmap prescrivait, et pourquoi on ne l'a pas fait.** Le
+      nom temporaire dénoue le cycle et rien d'autre : `ModItem.id` **est** le
+      nom de dossier, et sur le parc **4 magasins persistés** tenaient la seule
+      clé `[CP] Seaside Sounds` pour les deux mods —
+      `installedModRegistry`, son backup, `modActivationTimestamps`,
+      `nexusCustomModIds`. Un échange de dossiers rendrait le profil
+      « appliqué » sans rien changer à ça : l'identifiant Nexus saisi pour l'un
+      continuerait de servir pour l'autre. Le choix de l'auteur : **renommer, et
+      migrer les clés** — la case verte contre la cause.
+      ▸ **Le geste.** Une action « Renommer ce dossier » sur la ligne de
+      collision de l'écran d'alertes système. La feuille fait **choisir lequel**
+      des deux renommer (nom, auteur, identifiant, état du dossier) : sans ça
+      l'utilisateur renommerait celui que la liste des mods lui montre —
+      c'est-à-dire, justement, celui qu'elle a retenu arbitrairement. Le disque
+      bouge d'abord ; si le `moveItem` échoue, aucun magasin n'a bougé.
+      ▸ **Les douze surfaces** indexées par nom de dossier suivent : favoris,
+      configs pilotées par profil, horodatages d'activation, identifiants et
+      catégories Nexus personnalisés, registre installé, historique d'erreurs,
+      les deux jeux de sauvegardes (config et installation), la référence de
+      traduction, les configs retenues par chaque profil, les traductions
+      posées. Plus deux caches (le poids, indexé sur le nom **physique** — donc
+      les deux formes, pointée et non pointée — et la couverture FR).
+      ▸ **La distinction qui décide de tout : préférence ou affirmation.** Une
+      clé partagée n'est pas *déplacée* — le mod resté en place perdrait ce
+      qu'elle portait pour avoir laissé son voisin se renommer. Mais elle n'est
+      pas non plus copiée aveuglément : un favori est une **préférence**, les
+      deux la gardent ; l'identifiant Nexus saisi à la main et la ligne de
+      registre sont des **affirmations sur un mod**, et rien ne dit lequel des
+      deux prétendants elles décrivaient. Les copier enverrait le mod renommé
+      chercher ses mises à jour sur la page d'un autre — et « je l'ai déjà »
+      (**X62**) s'ancrerait sur cette version-là. `SharedKeyPolicy` tranche par
+      magasin : `.copy` pour les préférences, `.leaveBehind` pour les deux
+      autres — comme pour les deux jeux de sauvegardes, config et installation :
+      ces fichiers-là portent ce que l'utilisateur a écrit à la main, et les
+      emporter priverait de sa propre config le mod resté en place. Ce que le
+      mod renommé perd ainsi, il le réapprend de son manifeste au scan suivant.
+      La feuille le dit à l'écran, sinon l'utilisateur chercherait ensuite
+      l'identifiant qu'il avait saisi.
+      ▸ **Les refus** (`ModFolderRename.Verdict`) : nom vide, point de tête —
+      c'est la marque d'un mod en pause, pas un caractère de nom —, `/` et `:`,
+      nom déjà pris. La comparaison est **insensible à la casse** : le disque
+      macOS l'est, et `Seaside` renommé `SEASIDE` ne libérerait rien.
+      ▸ **Et le préfixe de composant** : une clé `Pack/Composant` suit son pack,
+      `PackDeLuxe` non — la frontière est la barre oblique, pas la sous-chaîne.
+      ▸ Un bandeau prévient si le jeu tourne **et** que le mod choisi est actif ;
+      renommer un dossier en pause pendant une partie ne risque rien, SMAPI ne
+      l'a pas chargé. Avertir, jamais interdire — la doctrine du dépôt.
+      ▸ **30 tests neufs** (2 233 → 2 263), dont les 17 de `ModFolderRename` et
+      les deux qui pinglaient l'ancienne action unique de la ligne de collision,
+      réécrits. · **S**
 - [x] **X62** ✅ *(corrigé le 2026-09-04, signalé par l'auteur)* — **« Je l'ai
       déjà » ne tenait pas sur une étiquette Nexus libre.** Le geste posait bien
       son ancre, et la ligne revenait quand même à chaque vérification.

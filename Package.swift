@@ -61,6 +61,7 @@ let package = Package(
                 "Models/ModPlatformWarnings.swift",
                 "Models/ModConfigWriteGuard.swift",
                 "Models/ModRemovalPurge.swift",
+                "Models/ModFolderRename.swift",
                 "Models/MaintenanceInventory.swift",
                 "Models/PathoschildCompatibilityList.swift",
                 "Models/PathoschildNexusIndex.swift",
@@ -783,6 +784,11 @@ let package = Package(
             name: "ModPlatformWarningsTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ModPlatformWarningsTests"
+        ),
+        .testTarget(
+            name: "ModFolderRenameTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ModFolderRenameTests"
         ),
         .testTarget(
             name: "FileRecoveryTests",

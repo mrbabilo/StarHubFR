@@ -106,6 +106,45 @@ public class ModInstallBackupManager {
         }
     }
 
+    /// Fait suivre un renommage de dossier de mod dans l'index (X60).
+    ///
+    /// `originalFolderName` dit **où la restauration remettra le mod**. Sans ce
+    /// suivi, restaurer après un renommage recréerait le dossier sous son
+    /// ancien nom — soit, dans le cas qui motive X60, en plein sur le dossier
+    /// du voisin avec lequel le nom était disputé.
+    ///
+    /// Le dossier de sauvegarde sur disque ne bouge pas : `backupPath` désigne
+    /// une session horodatée, et son contenu est le mod tel qu'il était.
+    ///
+    /// - Returns: `true` si l'index a changé.
+    @discardableResult
+    /// - Parameter shared: `true` quand un **autre** mod réclame encore
+    ///   l'ancien nom. L'historique d'installation est une affirmation sur un
+    ///   mod, pas une préférence partageable : le déplacer volerait au mod
+    ///   resté en place le sien. Voir `ModFolderRename.SharedKeyPolicy`.
+    public func renameMod(from old: String, to new: String, shared: Bool = false) -> Bool {
+        guard !shared else { return false }
+        return withIndexLock {
+            var index = loadIndex()
+            var changed = false
+            index.backups = index.backups.map { backup in
+                let folder = backup.originalFolderName
+                // Le mod lui-même, ou l'un de ses composants — jamais un voisin
+                // dont le nom commence pareil (`Pack` ≠ `PackDeLuxe`).
+                guard folder == old || folder.hasPrefix(old + "/") else { return backup }
+                changed = true
+                return ModInstallBackup(id: backup.id,
+                                        timestamp: backup.timestamp,
+                                        originalFolderName: new + folder.dropFirst(old.count),
+                                        backupPath: backup.backupPath,
+                                        modMetadata: backup.modMetadata,
+                                        reason: backup.reason)
+            }
+            if changed { saveIndex(index) }
+            return changed
+        }
+    }
+
     // MARK: - Create
 
     /// Backs up a complete mod folder before installation or update.

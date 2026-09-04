@@ -258,6 +258,36 @@ public enum TranslationBaseline {
         try data.write(to: indexURL(in: directory), options: .atomic)
     }
 
+    /// Fait suivre un renommage de dossier (X60) : le magasin du mod **et** son
+    /// entrée d'index.
+    ///
+    /// Le fichier n'est déplacé que si son nom change réellement. `fileURL`
+    /// n'en garde que le **dernier composant** du chemin — renommer un pack ne
+    /// touche donc pas le fichier de son composant, dont la clé d'index change
+    /// pourtant. Les deux sont traités séparément pour cette raison.
+    ///
+    /// Silencieux quand le mod n'a rien enregistré : renommer un dossier ne
+    /// doit pas échouer parce qu'il n'avait pas de référence de traduction.
+    public static func rename(modFolderName old: String, to new: String, in directory: URL,
+                              fileManager: FileManager = .default) throws {
+        let entries = load(modFolderName: old, in: directory, fileManager: fileManager)
+        let oldFile = fileURL(old, in: directory)
+        let newFile = fileURL(new, in: directory)
+        if !entries.isEmpty, oldFile != newFile {
+            try save(entries, modFolderName: new, in: directory, fileManager: fileManager)
+            try? fileManager.removeItem(at: oldFile)
+        }
+
+        // L'index, lui, est toujours indexé sur le nom **complet**.
+        indexLock.lock()
+        defer { indexLock.unlock() }
+        var index = loadIndex(in: directory, fileManager: fileManager)
+        guard let count = index.removeValue(forKey: old) else { return }
+        index[new] = count
+        try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
+        try JSONEncoder().encode(index).write(to: indexURL(in: directory), options: .atomic)
+    }
+
     /// Supprime le magasin d'un mod **et** son entrée dans l'index partagé —
     /// à appeler quand le mod lui-même disparaît, pas quand son contenu
     /// change (c'est `removeFromIndex`, seul, qui sert ce second cas via

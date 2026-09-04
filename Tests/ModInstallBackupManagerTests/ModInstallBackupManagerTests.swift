@@ -819,4 +819,52 @@ func modsFolderEntries(_ env: TestEnvironment) -> [String] {
 
         #expect(loaded.map(\.originalFolderName) == ["newest", "middle", "oldest"])
     }
+
+    // MARK: - Renommage d'un dossier de mod (X60)
+
+    /// Une sauvegarde d'installation retient le dossier d'où le mod venait :
+    /// c'est là que la restauration le remettra. Sans ce suivi, restaurer
+    /// après un renommage recréerait le mod sous son **ancien** nom — soit,
+    /// dans le cas qui motive X60, en plein sur le dossier du voisin.
+    @Test func renamingAModFollowsIntoTheInstallBackupIndex() {
+        let env = TestEnvironment(); defer { env.cleanup() }
+        env.manager.seedIndexForTesting(with: [makeFakeBackup(timestamp: Date(),
+                                                              folderName: "Seaside")])
+
+        #expect(env.manager.renameMod(from: "Seaside", to: "Seaside (Liana)"))
+        #expect(env.manager.loadBackups().map(\.originalFolderName) == ["Seaside (Liana)"])
+    }
+
+    /// Un voisin dont le nom commence pareil ne bouge pas — renommer `Pack`
+    /// ne touche pas `PackDeLuxe`.
+    @Test func aNeighbourWhoseNameStartsTheSameIsLeftAlone() {
+        let env = TestEnvironment(); defer { env.cleanup() }
+        env.manager.seedIndexForTesting(with: [
+            makeFakeBackup(timestamp: Date(), folderName: "Pack"),
+            makeFakeBackup(timestamp: Date().addingTimeInterval(-60), folderName: "PackDeLuxe")])
+
+        #expect(env.manager.renameMod(from: "Pack", to: "MonPack"))
+        #expect(Set(env.manager.loadBackups().map(\.originalFolderName))
+                == ["MonPack", "PackDeLuxe"])
+    }
+
+    /// **Sauf en cas de collision.** Quand un *autre* mod réclame encore
+    /// l'ancien nom, rien ne dit de qui ces sauvegardes étaient : les deux mods
+    /// vivaient sous la même clé. Les déplacer volerait au mod resté en place
+    /// tout son historique d'installation. On les laisse — c'est une
+    /// affirmation sur un mod, pas une préférence partageable.
+    @Test func aCollisionLeavesTheInstallBackupsWithTheModThatKeepsTheName() {
+        let env = TestEnvironment(); defer { env.cleanup() }
+        env.manager.seedIndexForTesting(with: [makeFakeBackup(timestamp: Date(),
+                                                              folderName: "Seaside")])
+
+        #expect(!env.manager.renameMod(from: "Seaside", to: "Seaside (Liana)", shared: true))
+        #expect(env.manager.loadBackups().map(\.originalFolderName) == ["Seaside"])
+    }
+
+    /// Un mod sans sauvegarde d'installation ne fait rien réécrire.
+    @Test func renamingAModWithoutInstallBackupsChangesNothing() {
+        let env = TestEnvironment(); defer { env.cleanup() }
+        #expect(!env.manager.renameMod(from: "Inconnu", to: "Autre"))
+    }
 }

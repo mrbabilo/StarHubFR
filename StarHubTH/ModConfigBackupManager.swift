@@ -243,6 +243,61 @@ public class ModConfigBackupManager {
         backupsDirPath.appendingPathComponent(folderName, isDirectory: true)
     }
 
+    /// Fait suivre un renommage de dossier de mod dans l'index (X60).
+    ///
+    /// Une sauvegarde de configuration désigne son mod par son **nom de
+    /// dossier** — `modFolderName`, et `parentFolderName` pour un composant de
+    /// pack. Renommer le dossier sans le dire ici couperait le lien : la
+    /// sauvegarde ne se rattacherait plus à aucun mod installé, l'écran
+    /// d'entretien la compterait parmi ce qu'on peut retirer, et une
+    /// restauration viserait un dossier qui n'existe plus.
+    ///
+    /// Le dossier de sauvegarde sur disque, lui, ne bouge pas : il porte un
+    /// horodatage, jamais le nom du mod.
+    ///
+    /// - Returns: `true` si l'index a changé — l'appelant n'a rien à réécrire
+    ///   sinon.
+    @discardableResult
+    /// - Parameter shared: `true` quand un **autre** mod réclame encore
+    ///   l'ancien nom. Ces sauvegardes portent une configuration écrite à la
+    ///   main, et rien ne dit pour lequel des deux : les emporter priverait le
+    ///   mod resté en place de la sienne. Voir `ModFolderRename.SharedKeyPolicy`.
+    public func renameMod(from old: String, to new: String, shared: Bool = false) -> Bool {
+        guard !shared else { return false }
+        return withIndexLock {
+            var index = loadIndex()
+            var changed = false
+            index.backups = index.backups.map { backup in
+                let items = backup.items.map { item -> ModConfigBackupItem in
+                    var folder = item.modFolderName
+                    var parent = item.parentFolderName
+                    var touched = false
+                    if folder == old || folder.hasPrefix(old + "/") {
+                        folder = new + folder.dropFirst(old.count)
+                        touched = true
+                    }
+                    if parent == old {
+                        parent = new
+                        touched = true
+                    }
+                    guard touched else { return item }
+                    changed = true
+                    return ModConfigBackupItem(modFolderName: folder,
+                                               parentFolderName: parent,
+                                               modDisplayName: item.modDisplayName,
+                                               files: item.files,
+                                               fileSizes: item.fileSizes)
+                }
+                guard changed else { return backup }
+                return ModConfigBackup(id: backup.id, timestamp: backup.timestamp,
+                                       items: items, totalFiles: backup.totalFiles,
+                                       totalSize: backup.totalSize, folderName: backup.folderName)
+            }
+            if changed { saveIndex(index) }
+            return changed
+        }
+    }
+
     // MARK: - Restore
 
     /// Restores the selected items from `backup` into `gameDir`'s Mods

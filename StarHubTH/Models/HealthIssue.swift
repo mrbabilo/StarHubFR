@@ -66,6 +66,13 @@ public struct HealthIssue: Identifiable, Equatable {
         /// renommer celui qu'il veut.
         case revealInFinder(paths: [String])
 
+        /// Ouvre le renommage du dossier disputé (X60). C'est le seul geste qui
+        /// supprime la **cause** d'une collision : tant que deux mods portent
+        /// le même nom logique, ils se partagent tout ce que l'app indexe
+        /// dessus — et un profil qui demande d'échanger leurs états ne peut pas
+        /// aboutir, les deux déplacements se refusant l'un l'autre.
+        case renameFolder(folderName: String)
+
         /// Identité dérivée du contenu, comme celle de `HealthIssue` : une
         /// ligne peut offrir deux chemins (voir `actions`), et `ForEach` les
         /// distingue par ceci — jamais par leur position, qui changerait la
@@ -75,6 +82,7 @@ public struct HealthIssue: Identifiable, Equatable {
             case .openMod(let q):   return "mod:\(q)"
             case .openLogs(let s):  return "logs:\(s)"
             case .revealInFinder(let p): return "finder:\(p.joined(separator: "|"))"
+            case .renameFolder(let f):   return "rename:\(f)"
             }
         }
     }

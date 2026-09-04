@@ -168,4 +168,35 @@ struct TranslationBaselineReviewFlagTests {
         #expect(TranslationBaseline.reviewNeededRowIDs(modFolderName: "ModA", in: dir)
                     .sorted() == ["CP/quest", "intro"])
     }
+
+    // MARK: - Renommage du dossier (X60)
+
+    /// Le magasin de référence d'un mod et son entrée d'index sont tous deux
+    /// indexés sur le nom de dossier. Renommer sans les emmener ferait
+    /// réapparaître un compte de clés obsolètes sous l'ancien nom — et le mod
+    /// renommé repartirait de zéro, sa référence perdue.
+    @Test func renamingCarriesTheStoreAndTheIndexEntry() throws {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("baseline-rename-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let entry = TranslationBaseline.Entry(source: "Hello", target: "Bonjour")
+        try TranslationBaseline.save(["clé": entry], modFolderName: "Seaside", in: dir)
+        try TranslationBaseline.updateIndex(modFolderName: "Seaside", outdatedCount: 3, in: dir)
+
+        try TranslationBaseline.rename(modFolderName: "Seaside", to: "Seaside (Liana)", in: dir)
+
+        #expect(TranslationBaseline.loadIndex(in: dir) == ["Seaside (Liana)": 3])
+        #expect(TranslationBaseline.load(modFolderName: "Seaside (Liana)", in: dir)["clé"]?.source == "Hello")
+        #expect(TranslationBaseline.load(modFolderName: "Seaside", in: dir).isEmpty)
+    }
+
+    /// Un mod sans référence enregistrée ne fait rien échouer.
+    @Test func renamingAModWithoutABaselineIsHarmless() throws {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("baseline-rename-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        try TranslationBaseline.rename(modFolderName: "Inconnu", to: "Autre", in: dir)
+        #expect(TranslationBaseline.loadIndex(in: dir).isEmpty)
+    }
 }

@@ -206,10 +206,16 @@ public enum HealthIssueResolver {
             HealthIssue(id: "folder-collision-\(collision.folderName)",
                         severity: .warning, source: .folderCollision,
                         title: title(collision), detail: detail(collision),
-                        actions: collision.physicalFolderNames.isEmpty ? [] :
+                        // Montrer les deux dossiers **et** offrir de renommer :
+                        // le premier laisse voir lequel porte le point de tête,
+                        // le second supprime la cause. Sans dossier connu, il
+                        // n'y a rien à montrer — mais le nom disputé, lui, se
+                        // renomme quand même.
+                        actions: (collision.physicalFolderNames.isEmpty ? [] :
                             [.revealInFinder(paths: collision.physicalFolderNames.map {
                                 (modsPath as NSString).appendingPathComponent($0)
                             })])
+                            + [.renameFolder(folderName: collision.folderName)])
         }
     }
 

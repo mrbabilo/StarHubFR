@@ -260,6 +260,19 @@ enum L10n {
     // MARK: - Mods
     enum Mods {
         static let apiOffline           = "mods_api_offline"
+        static let renamedLog           = "mods_renamed_log"
+        static let renameTitle          = "mods_rename_title"
+        static let renameExplain        = "mods_rename_explain"
+        static let renameField          = "mods_rename_field"
+        static let renameConfirm        = "mods_rename_confirm"
+        static let renameErrorEmpty     = "mods_rename_error_empty"
+        static let renameErrorDot       = "mods_rename_error_dot"
+        static let renameErrorCharacter = "mods_rename_error_character"
+        static let renameErrorTaken     = "mods_rename_error_taken"
+        static let renameErrorUnchanged = "mods_rename_error_unchanged"
+        static let renameSharedNote     = "mods_rename_shared_note"
+        static let renameGameRunning    = "mods_rename_game_running"
+        static let renameFailed         = "mods_rename_failed"
         static let apiNormal            = "mods_api_normal"
         static let noModsInstalled      = "mods_no_mods_installed"
         static let noModFound           = "mods_no_mod_found"
@@ -758,6 +771,7 @@ enum L10n {
         static let actionOpenLogs       = "health_action_open_logs"
         // X13 — deux mods qui réclament le même nom logique de dossier.
         static let actionRevealInFinder = "health_action_reveal_in_finder"
+        static let actionRenameFolder   = "health_action_rename_folder"
         static let folderCollisionTitle  = "health_folder_collision_title"
         static let folderCollisionDetail = "health_folder_collision_detail"
         static let modWarningTitle       = "health_mod_warning_title"

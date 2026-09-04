@@ -565,4 +565,65 @@ struct TestEnvironment {
 
         #expect(env.manager.backupFromToday(protecting: "config.json", forMod: "StandaloneMod") == nil)
     }
+
+    // MARK: - Renommage d'un dossier de mod (X60)
+
+    /// Une sauvegarde de configuration désigne son mod par son **nom de
+    /// dossier**. Renommer le dossier sans le dire ici couperait le lien : la
+    /// sauvegarde ne se rattacherait plus à aucun mod installé, et l'écran
+    /// d'entretien la compterait parmi ce qu'on peut retirer.
+    @Test func renamingAModFolderFollowsIntoTheBackupIndex() {
+        let env = TestEnvironment(); defer { env.cleanup() }
+        let item = ModConfigBackupItem(modFolderName: "Seaside", parentFolderName: nil,
+                                       modDisplayName: "Seaside Sounds",
+                                       files: ["config.json"], fileSizes: ["config.json": 12])
+        env.manager.seedIndexForTesting(with: [
+            ModConfigBackup(timestamp: Date(), items: [item], totalFiles: 1, totalSize: 12,
+                            folderName: "dossier_de_sauvegarde")])
+
+        #expect(env.manager.renameMod(from: "Seaside", to: "Seaside (Liana)"))
+        #expect(env.manager.loadBackups().first?.items.first?.modFolderName == "Seaside (Liana)")
+    }
+
+    /// Un composant de pack désigne son pack par `parentFolderName` : renommer
+    /// le pack doit l'y suivre aussi, sans quoi la restauration viserait un
+    /// dossier qui n'existe plus.
+    @Test func renamingAPackFollowsIntoItsComponentsParent() {
+        let env = TestEnvironment(); defer { env.cleanup() }
+        let item = ModConfigBackupItem(modFolderName: "Pack/Composant",
+                                       parentFolderName: "Pack",
+                                       modDisplayName: "Composant",
+                                       files: ["config.json"], fileSizes: [:])
+        env.manager.seedIndexForTesting(with: [
+            ModConfigBackup(timestamp: Date(), items: [item], totalFiles: 1, totalSize: 0,
+                            folderName: "dossier")])
+
+        #expect(env.manager.renameMod(from: "Pack", to: "MonPack"))
+        let renamed = env.manager.loadBackups().first?.items.first
+        #expect(renamed?.modFolderName == "MonPack/Composant")
+        #expect(renamed?.parentFolderName == "MonPack")
+    }
+
+    /// **Sauf en cas de collision.** Un autre mod réclame encore l'ancien nom,
+    /// et ces sauvegardes portent une configuration que l'utilisateur a écrite
+    /// à la main : rien ne dit pour lequel des deux. Les emporter priverait le
+    /// mod resté en place de sa propre config sauvegardée.
+    @Test func aCollisionLeavesTheConfigBackupsWithTheModThatKeepsTheName() {
+        let env = TestEnvironment(); defer { env.cleanup() }
+        let item = ModConfigBackupItem(modFolderName: "Seaside", parentFolderName: nil,
+                                       modDisplayName: "Seaside Sounds",
+                                       files: ["config.json"], fileSizes: ["config.json": 12])
+        env.manager.seedIndexForTesting(with: [
+            ModConfigBackup(timestamp: Date(), items: [item], totalFiles: 1, totalSize: 12,
+                            folderName: "dossier_de_sauvegarde")])
+
+        #expect(!env.manager.renameMod(from: "Seaside", to: "Seaside (Liana)", shared: true))
+        #expect(env.manager.loadBackups().first?.items.first?.modFolderName == "Seaside")
+    }
+
+    /// Un mod sans sauvegarde ne fait rien réécrire.
+    @Test func renamingAModWithoutBackupsChangesNothing() {
+        let env = TestEnvironment(); defer { env.cleanup() }
+        #expect(!env.manager.renameMod(from: "Inconnu", to: "Autre"))
+    }
 }

@@ -135,21 +135,7 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       Redessiner la politique — continuer, ou réessayer le lot une fois avec un
       retrait — est une décision de conception, pas un correctif d'audit. X46 rend
       au moins le fait visible et réessayable. · **S**
-- [ ] **X60** — **Un changement de profil ne peut pas échanger deux noms de
-      dossier.** `X` actif et `.X` en pause sont deux mods différents (cas réel
-      du parc : les deux `[CP] Seaside Sounds`, de witchtopia et de Liana). Un
-      profil qui réclame celui en pause et pas l'actif demande un **échange** de
-      noms : les deux déplacements se refusent l'un l'autre, et aucun ordre ne
-      les débloquerait — c'est un cycle à deux. Le profil reste marqué « appliqué
-      incomplètement » pour toujours.
-      ▸ **Ce qui est fait le 2026-09-04** : le refus est maintenant *expliqué*.
-      L'application d'un profil passe par `renameModFolder`, partagé avec les
-      deux autres chemins de bascule : elle nomme le mod qui occupe le dossier et
-      dit quoi faire, là où `moveItem` ne rendait que « le fichier existe déjà ».
-      ▸ **Ce qui reste** : dénouer le cycle, en renommant par un nom temporaire.
-      Trois écritures là où on en faisait une, sur le chemin le plus fréquent —
-      à instruire avant d'engager. Trouvé le 2026-09-04 par la propriété
-      d'idempotence de **R6** (86 parcs engendrés sur 200 en portent un). · **S**
+
 
 ---
 
@@ -1342,7 +1328,7 @@ corrompre ou faire disparaître quelque chose sans le dire ?* — et non à
 | ~~7~~ | ~~**X54**~~ | ✅ **Corrigé le 2026-09-04** — deux clés neuves : l'ajout nomme le mod, l'import dit combien de favoris sont entrés. Voir l'archive |
 | ~~8~~ | ~~**X49**~~ | ✅ **Corrigé le 2026-09-04** — jeton d'époque (`RequestEpoch`, Core, 6 tests) sur la recherche **et** sur la fiche, second exemplaire trouvé en câblant. Voir l'archive |
 | 9 | **F6-T4** | Une ancre « je l'ai déjà » ratée quand le manifeste et l'ancre diffèrent par la casse. ⚠️ **Réévalué le 2026-09-04 : ce n'est pas un S.** Corriger la seule lecture créerait la divergence que l'item décrit ; le faire d'un bloc demande de normaliser la clé à l'écriture **et** de migrer les ancres déjà posées. Aucun observable sur le parc — ne pas le reprendre comme « petit correctif » |
-| 10 | ~~**X58**~~ ✅, **X60** *(à moitié fait)*, **C2-T4**, **X47** | ~~Ce qu'un mod garde en silence~~ *(corrigé le 2026-09-05 — voir l'archive)*, l'échange de noms de dossier qu'un profil ne peut pas faire et n'explique pas, les clés de config perdues à une mise à jour, les lots smapi.io abandonnés après un échec |
+| 10 | ~~**X58**~~ ✅, ~~**X60**~~ ✅, **C2-T4**, **X47** | ~~Ce qu'un mod garde en silence~~ et ~~l'échange de noms de dossier qu'un profil ne peut pas faire~~ *(corrigés le 2026-09-05 — voir l'archive)*, les clés de config perdues à une mise à jour, les lots smapi.io abandonnés après un échec |
 
 **P3 — latent : la condition est vraie, zéro exemplaire sur le parc**
 

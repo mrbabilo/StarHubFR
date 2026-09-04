@@ -126,12 +126,16 @@ struct FolderCollisionIssueTests {
         #expect(found.first?.detail == "Liana.SeasideSounds · witchtopia.SeasideSounds")
     }
 
-    @Test func theOnlyActionShowsBothFoldersSideBySide() {
-        // Un seul bouton, et il désigne les DEUX dossiers : « Voir la fiche »
+    @Test func theLineShowsBothFoldersAndOffersToRenameOne() {
+        // Le premier bouton désigne les DEUX dossiers — « Voir la fiche »
         // prendrait le nom logique, c'est-à-dire la clé ambiguë elle-même.
+        // Le second (X60) est le seul geste qui supprime la **cause** : tant
+        // que les deux mods partagent ce nom, ils partagent tout ce que l'app
+        // indexe dessus, et un profil ne peut pas échanger leurs états.
         #expect(issues([collision]).first?.actions
                 == [.revealInFinder(paths: ["/Jeu/Mods/.[CP] Seaside Sounds",
-                                            "/Jeu/Mods/[CP] Seaside Sounds"])])
+                                            "/Jeu/Mods/[CP] Seaside Sounds"]),
+                    .renameFolder(folderName: "[CP] Seaside Sounds")])
     }
 
     @Test func theIdentityFollowsTheDisputedFolderNotTheDisplayedNames() {
@@ -144,13 +148,14 @@ struct FolderCollisionIssueTests {
         #expect(issues([collision]).first?.id == issues([renamed]).first?.id)
     }
 
-    @Test func aCollisionWithoutKnownFoldersOffersNoButton() {
-        // Rien à montrer : mieux vaut pas de bouton qu'un bouton qui ouvre le
-        // dossier des mods au hasard.
+    @Test func aCollisionWithoutKnownFoldersStillOffersTheRename() {
+        // Rien à **montrer** : mieux vaut pas de bouton Finder qu'un bouton qui
+        // ouvre le dossier des mods au hasard. Mais le nom disputé, lui, est
+        // connu — et c'est tout ce que le renommage demande.
         let unknown = ModFolderCollision.Collision(folderName: "X",
                                                    uniqueIds: ["a", "b"],
                                                    physicalFolderNames: [])
-        #expect(issues([unknown]).first?.actions.isEmpty == true)
+        #expect(issues([unknown]).first?.actions == [.renameFolder(folderName: "X")])
     }
 
     // MARK: - Le dossier mis de côté

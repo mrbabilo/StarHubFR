@@ -5119,6 +5119,159 @@ for mod in mods {
         modWarnings = PathoschildCompatibilityList.warnings(for: installed, from: entries)
     }
 
+    // MARK: - Renommer le dossier d'un mod (X60)
+
+    /// Ce que le renommage a donné.
+    enum ModFolderRenameOutcome: Equatable {
+        case renamed(newFolderName: String)
+        case refused(ModFolderRename.Verdict)
+        /// Le dossier n'a pas pu être renommé sur le disque. Aucun magasin
+        /// n'a bougé : la migration ne part qu'après un renommage réussi.
+        case failed(String)
+    }
+
+    /// Donne un nouveau nom de dossier à un mod, et emmène avec lui tout ce qui
+    /// s'indexe dessus.
+    ///
+    /// **Pourquoi ce geste existe** : `ModItem.id` **est** `folderName`, et
+    /// deux mods peuvent porter le même — `X` actif et `.X` en pause sont deux
+    /// dossiers distincts. Sur le parc de référence ce sont deux
+    /// `[CP] Seaside Sounds` d'identifiants différents ; ils partagent alors
+    /// identité, favori, catégorie, identifiant Nexus, horodatage et
+    /// configuration de profil, un `ForEach` n'en rend qu'un, et un profil qui
+    /// demande d'échanger leurs états ne peut pas aboutir. Renommer l'un des
+    /// deux est la seule chose qui supprime **la cause**.
+    ///
+    /// ⚠️ **La liste ci-dessous doit rester exhaustive.** Un magasin oublié
+    /// n'échoue pas : il perd silencieusement un favori, une note ou une
+    /// sauvegarde qui ne se rattache plus à rien. Elle a été relevée le
+    /// 2026-09-05 en croisant `deleteMod`/`forgetStores` (X55), les clés de
+    /// `UDKey` et les gestionnaires de fichiers. Ce qui suit l'`UniqueID` —
+    /// les notes de profil, les ancres de version — n'y figure pas, à raison.
+    @discardableResult
+    func renameModFolder(_ mod: ModItem, to rawName: String) -> ModFolderRenameOutcome {
+        let old = mod.folderName
+        let existing = mods.map(\.folderName)
+        let verdict = ModFolderRename.validate(rawName, renaming: old, existing: existing)
+        guard verdict == .ok else { return .refused(verdict) }
+        let new = ModFolderRename.sanitized(rawName)
+
+        // Le disque d'abord : si le renommage échoue, aucun magasin n'a bougé.
+        let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
+        let src = (modsPath as NSString).appendingPathComponent(mod.physicalFolderName)
+        let newPhysical = ModFolderRename.physicalName(new, pausedLike: mod.physicalFolderName)
+        let dst = (modsPath as NSString).appendingPathComponent(newPhysical)
+        do {
+            try FileManager.default.moveItem(atPath: src, toPath: dst)
+        } catch {
+            return .failed(error.localizedDescription)
+        }
+
+        // Un **autre** mod réclame-t-il encore l'ancien nom ? C'est le cas
+        // d'une collision, et il départage les clés en deux natures : voir
+        // `ModFolderRename.SharedKeyPolicy`.
+        let stillClaimed = mods.contains { $0.folderName == old && $0.uniqueId != mod.uniqueId }
+        migrateFolderKeyedStores(from: old, to: new, shared: stillClaimed)
+
+        log(String(format: L(L10n.Mods.renamedLog), old, new))
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in self?.scanMods() }
+        return .renamed(newFolderName: new)
+    }
+
+    /// Les douze surfaces indexées par nom de dossier. Voir l'avertissement de
+    /// `renameModFolder` : cette liste est le cœur du geste.
+    private func migrateFolderKeyedStores(from old: String, to new: String,
+                                          shared: Bool) {
+        // 1-5. Les préférences, celles que X55 a câblées à la suppression —
+        // sauf l'identifiant Nexus, qui n'en est pas une (voir plus bas).
+        if ModFolderRename.migrate(&favoriteMods, from: old, to: new,
+                                   shared: shared) {
+            Self.saveFavoriteMods(favoriteMods)
+        }
+        if ModFolderRename.migrate(&profileManagedConfigMods, from: old, to: new,
+                                   shared: shared) {
+            Self.saveProfileManagedConfigMods(profileManagedConfigMods)
+        }
+        if ModFolderRename.migrate(&modActivationTimestamps, from: old, to: new,
+                                   shared: shared) {
+            Self.saveModActivationTimestamps(modActivationTimestamps)
+        }
+        // L'identifiant Nexus saisi à la main est une **affirmation** sur un
+        // mod, pas une préférence : en cas de collision, rien ne dit lequel des
+        // deux prétendants il désignait. Le copier enverrait le mod renommé
+        // chercher ses mises à jour sur la page d'un autre — et « je l'ai
+        // déjà » (X62) s'ancrerait sur cette version-là. On le laisse à celui
+        // qui reste ; le renommé le réapprend de ses `UpdateKeys` au scan.
+        if ModFolderRename.migrate(&nexusCustomModIds, from: old, to: new,
+                                   shared: shared, policy: .leaveBehind) {
+            Self.saveCustomModIds(nexusCustomModIds)
+        }
+        if ModFolderRename.migrate(&nexusCustomCategories, from: old, to: new,
+                                   shared: shared) {
+            Self.saveCustomCategories(nexusCustomCategories)
+        }
+
+        // 6. Le registre : sans lui, le mod repasserait pour « vu pour la
+        // première fois » au prochain scan, et perdrait sa date d'installation.
+        // Même réserve que l'identifiant Nexus, pour la même raison : une date
+        // d'installation copiée serait une date inventée. En cas de collision,
+        // le mod renommé repart neuf — c'est la seule chose vraie qu'on sache
+        // de lui.
+        var registry = loadInstalledModRegistry()
+        if ModFolderRename.migrate(&registry, from: old, to: new,
+                                   shared: shared, policy: .leaveBehind) {
+            saveInstalledModRegistry(registry)
+        }
+
+        // 7. L'historique d'erreurs par version.
+        if errorHistoryLoaded,
+           ModFolderRename.migrate(&modErrorHistory.mods, from: old, to: new,
+                                   shared: shared) {
+            persistErrorHistory()
+        }
+
+        // 8-9. Les deux jeux de sauvegardes : configuration et installation.
+        // Même nature que l'identifiant Nexus et le registre — ce sont des
+        // affirmations sur un mod, pas des préférences : en cas de collision
+        // elles restent à celui qui garde le nom.
+        ModConfigBackupManager.shared.renameMod(from: old, to: new, shared: shared)
+        ModInstallBackupManager.shared.renameMod(from: old, to: new, shared: shared)
+
+        // 10. La référence de traduction et son index de clés obsolètes.
+        if let store = TranslationBaseline.defaultDirectory() {
+            try? TranslationBaseline.rename(modFolderName: old, to: new, in: store)
+        }
+
+        // 11. Les configurations retenues par chaque profil.
+        for profile in modProfiles {
+            guard let url = ProfileConfigStore.fileURL(profileId: profile.id) else { continue }
+            var entries = ProfileConfigStore.load(from: url)
+            if ModFolderRename.migrate(&entries, from: old, to: new,
+                                       shared: shared) {
+                ProfileConfigStore.save(entries, to: url)
+            }
+        }
+
+        // 12. Les traductions et greffes posées sur ce mod.
+        if installedTranslations.rename(host: old, to: new) {
+            _ = InstalledTranslationStore.save(installedTranslations)
+        }
+
+        // Et deux caches, qui ne survivent pas au lancement mais mentiraient
+        // d'ici là. Le poids est indexé sur le nom **physique**.
+        modsFolderSizes = modsFolderSizes?
+            .renamingFolder(from: old, to: new)
+            .renamingFolder(from: "." + old, to: "." + new)
+        // `invalidateFrenchCoverage` est `@MainActor` (trois mutations
+        // `@Published`). Le renommage part d'une action de vue, toujours sur le
+        // fil principal : `assumeIsolated` garde l'invalidation **synchrone**,
+        // juste après la migration — un saut par `Task` la ferait courir après
+        // le rescane, qui aurait déjà relu l'ancienne couverture.
+        MainActor.assumeIsolated {
+            invalidateFrenchCoverage(for: old)
+        }
+    }
+
     /// Recompose la liste des affirmations depuis les ancres et le parc.
     ///
     /// Appelée aux trois seuls moments où elle peut changer — voir

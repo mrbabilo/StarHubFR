@@ -19,11 +19,15 @@ import SwiftUI
 private enum SystemAlertsSheet: Identifiable {
     case keybindReport
     case modConflicts
+    /// Le renommage du dossier disputé par deux mods (X60). Porte le nom
+    /// **logique** : c'est lui que les deux prétendants ont en commun.
+    case renameFolder(String)
 
     var id: String {
         switch self {
         case .keybindReport: return "keybindReport"
         case .modConflicts: return "modConflicts"
+        case .renameFolder(let name): return "rename:\(name)"
         }
     }
 }
@@ -146,6 +150,9 @@ struct SystemAlertsView: View {
                 case .modConflicts:
                     ModConflictSection(vm: vm)
                         .padding(AppDesign.Spacing.lg)
+                case .renameFolder(let name):
+                    ModFolderRenameSection(vm: vm, folderName: name) { sheet = nil }
+                        .padding(AppDesign.Spacing.lg)
                 }
             }
             Divider()
@@ -216,6 +223,7 @@ struct SystemAlertsView: View {
         case .openMod: return vm.L(L10n.Health.actionOpenMod)
         case .openLogs: return vm.L(L10n.Health.actionOpenLogs)
         case .revealInFinder: return vm.L(L10n.Health.actionRevealInFinder)
+        case .renameFolder: return vm.L(L10n.Health.actionRenameFolder)
         }
     }
 
@@ -241,6 +249,8 @@ struct SystemAlertsView: View {
             // « le » dossier choisirait au hasard entre les deux prétendants.
             NSWorkspace.shared.activateFileViewerSelecting(
                 paths.map { URL(fileURLWithPath: $0) })
+        case .renameFolder(let name):
+            sheet = .renameFolder(name)
         }
     }
 

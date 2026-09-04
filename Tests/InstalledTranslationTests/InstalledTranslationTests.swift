@@ -516,4 +516,51 @@ struct InstalledTranslationRealRegistryTests {
         print("[oracle] registre réel : \(lignes(avant).count) ligne(s), "
               + "\(réparées) identifiant(s) retrouvé(s)")
     }
+
+    // MARK: - Renommage du dossier hôte (X60)
+
+    /// Une traduction, une greffe et une déclaration désignent leur hôte par
+    /// son **nom de dossier**. Le renommer sans les prévenir rendrait la
+    /// traduction indésinstallable : plus rien ne dirait quels fichiers ont été
+    /// déposés, ni où.
+    @Test func renamingTheHostFolderCarriesEverythingPostedOnIt() {
+        var registry = InstalledTranslationRegistry()
+        registry.record(InstalledTranslation(hostFolderName: "Seaside", nexusModId: 1,
+                                             nexusName: "FR", version: "1.0", updatedAt: nil,
+                                             installedAt: Date(), files: ["i18n/fr.json"]))
+        registry.recordAddon(InstalledTranslation(hostFolderName: "Seaside", nexusModId: 2,
+                                                  nexusName: "Sacs", version: "1.0", updatedAt: nil,
+                                                  installedAt: Date(), files: ["assets/x"]))
+        registry.declare(DeclaredTranslation(nexusModId: 3, nexusName: "Déclarée",
+                                             version: nil, updatedAt: nil, declaredAt: Date()),
+                         forHost: "Seaside")
+
+        let changed = registry.rename(host: "Seaside", to: "Seaside (Liana)")
+        #expect(changed)
+
+        #expect(registry.translation(forHost: "Seaside") == nil)
+        #expect(registry.translation(forHost: "Seaside (Liana)")?.nexusModId == 1)
+        #expect(registry.addons(forHost: "Seaside (Liana)").count == 1)
+        #expect(registry.declaredTranslation(forHost: "Seaside (Liana)")?.nexusModId == 3)
+    }
+
+    /// L'hôte inscrit **dans** la traduction suit aussi : c'est lui que la
+    /// désinstallation lit pour retrouver le dossier où rendre les fichiers.
+    @Test func theHostRecordedInsideTheTranslationFollowsToo() {
+        var registry = InstalledTranslationRegistry()
+        registry.record(InstalledTranslation(hostFolderName: "Seaside", nexusModId: 1,
+                                             nexusName: "FR", version: "1.0", updatedAt: nil,
+                                             installedAt: Date(), files: []))
+
+        _ = registry.rename(host: "Seaside", to: "Nouveau")
+
+        #expect(registry.translation(forHost: "Nouveau")?.hostFolderName == "Nouveau")
+    }
+
+    /// Un hôte inconnu du registre ne fait rien réécrire.
+    @Test func renamingAnUnknownHostChangesNothing() {
+        var registry = InstalledTranslationRegistry()
+        let changed = registry.rename(host: "Inconnu", to: "Autre")
+        #expect(!changed)
+    }
 }

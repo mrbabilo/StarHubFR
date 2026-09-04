@@ -69,6 +69,17 @@ public struct InstalledTranslation: Codable, Equatable, Sendable {
 /// **déclaration** n'efface rien du disque — il retire juste la ligne du
 /// registre. C'est l'utilisateur qui a posé les fichiers, c'est lui qui les
 /// enlèvera. L'UI le dit.
+extension InstalledTranslation {
+    /// La même traduction, rattachée à un autre dossier hôte. Le nom est
+    /// inscrit **dans** la traduction : c'est lui que la désinstallation lit.
+    func rehosted(to host: String) -> InstalledTranslation {
+        InstalledTranslation(hostFolderName: host, nexusModId: nexusModId,
+                             nexusName: nexusName, version: version,
+                             updatedAt: updatedAt, installedAt: installedAt,
+                             files: files, replacedFiles: replacedFiles)
+    }
+}
+
 public struct DeclaredTranslation: Codable, Equatable, Sendable {
     public let nexusModId: Int
     public let nexusName: String
@@ -178,6 +189,32 @@ public struct InstalledTranslationRegistry: Codable, Equatable, Sendable {
             installedAt: entry.installedAt,
             files: entry.files,
             replacedFiles: entry.replacedFiles)
+    }
+
+    /// Fait suivre un renommage du dossier hôte (X60).
+    ///
+    /// Trois tables désignent l'hôte par son nom de dossier — la traduction
+    /// posée, les greffes, et la déclaration manuelle — et le nom est **aussi**
+    /// inscrit dans chaque traduction, où la désinstallation le lit pour savoir
+    /// dans quel dossier rendre les fichiers. Les quatre suivent ensemble.
+    ///
+    /// - Returns: `true` si le registre a changé.
+    @discardableResult
+    public mutating func rename(host old: String, to new: String) -> Bool {
+        var changed = false
+        if let posted = byHost.removeValue(forKey: old) {
+            byHost[new] = posted.rehosted(to: new)
+            changed = true
+        }
+        if let addons = addonsByHost.removeValue(forKey: old) {
+            addonsByHost[new] = addons.map { $0.rehosted(to: new) }
+            changed = true
+        }
+        if let declared = declaredTranslations.removeValue(forKey: old) {
+            declaredTranslations[new] = declared
+            changed = true
+        }
+        return changed
     }
 
     public func translation(forHost host: String) -> InstalledTranslation? {
