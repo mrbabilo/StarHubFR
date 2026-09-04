@@ -1292,5 +1292,19 @@
   "mods_pager_unavailable": "Ce mod n'est pas dans le cadrage courant",
   "mods_back_to_pack": "Retour au pack %@",
   "mods_detail_enabled": "Activé",
-  "mods_reveal_in_finder": "Afficher dans le Finder"
+  "mods_reveal_in_finder": "Afficher dans le Finder",
+  "maintenance_title": "Entretien",
+  "maintenance_total": "Occupé par StarHubFR",
+  "maintenance_install_backups": "Sauvegardes d'installation",
+  "maintenance_config_backups": "Sauvegardes de configuration",
+  "maintenance_orphan_sessions": "Dossiers sans sauvegarde",
+  "maintenance_stale_keys": "Entrées sans mod",
+  "maintenance_keep_per_mod": "Garder %lld par mod — libère %@",
+  "maintenance_trash_hint": "Mis à la corbeille : l'espace revient quand vous la videz.",
+  "maintenance_protected_title": "%lld sauvegarde(s) ne seront pas retirées",
+  "maintenance_protected_reason_gone": "Le mod n'est plus installé : c'est la seule copie.",
+  "maintenance_protected_reason_missing": "La mise à jour a retiré ce fichier : c'est la seule copie.",
+  "maintenance_purged_log": "%lld sauvegarde(s) mises à la corbeille (%@)",
+  "maintenance_cleaned_log": "%lld entrée(s) mortes retirées",
+  "maintenance_trash_failed": "Impossible de mettre %@ à la corbeille : %@"
 }

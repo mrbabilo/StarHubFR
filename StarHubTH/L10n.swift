@@ -1475,4 +1475,21 @@ enum L10n {
         static let statUpdated       = "discovery_stat_updated"
         static let statEndorsements  = "discovery_stat_endorsements"
     }
+
+    enum Maintenance {
+        static let title           = "maintenance_title"
+        static let total           = "maintenance_total"
+        static let installBackups  = "maintenance_install_backups"
+        static let configBackups   = "maintenance_config_backups"
+        static let orphanSessions  = "maintenance_orphan_sessions"
+        static let staleKeys       = "maintenance_stale_keys"
+        static let keepPerMod      = "maintenance_keep_per_mod"
+        static let trashHint       = "maintenance_trash_hint"
+        static let protectedTitle  = "maintenance_protected_title"
+        static let reasonGone      = "maintenance_protected_reason_gone"
+        static let reasonMissing   = "maintenance_protected_reason_missing"
+        static let purgedLog       = "maintenance_purged_log"
+        static let cleanedLog      = "maintenance_cleaned_log"
+        static let trashFailed     = "maintenance_trash_failed"
+    }
 }

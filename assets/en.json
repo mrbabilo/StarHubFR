@@ -1292,5 +1292,19 @@
   "mods_pager_unavailable": "This mod is not in the current view",
   "mods_back_to_pack": "Back to pack %@",
   "mods_detail_enabled": "Enabled",
-  "mods_reveal_in_finder": "Reveal in Finder"
+  "mods_reveal_in_finder": "Reveal in Finder",
+  "maintenance_title": "Maintenance",
+  "maintenance_total": "Used by StarHubFR",
+  "maintenance_install_backups": "Install backups",
+  "maintenance_config_backups": "Configuration backups",
+  "maintenance_orphan_sessions": "Folders with no backup entry",
+  "maintenance_stale_keys": "Entries with no mod",
+  "maintenance_keep_per_mod": "Keep %lld per mod — frees %@",
+  "maintenance_trash_hint": "Moved to the Trash: the space comes back once you empty it.",
+  "maintenance_protected_title": "%lld backup(s) will not be removed",
+  "maintenance_protected_reason_gone": "The mod is no longer installed: this is the only copy.",
+  "maintenance_protected_reason_missing": "The update removed this file: this is the only copy.",
+  "maintenance_purged_log": "%lld backup(s) moved to the Trash (%@)",
+  "maintenance_cleaned_log": "%lld stale entry/entries removed",
+  "maintenance_trash_failed": "Could not move %@ to the Trash: %@"
 }
