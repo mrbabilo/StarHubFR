@@ -1176,6 +1176,8 @@ enum L10n {
         static let started              = "vm_started"
         static let profileCreated       = "vm_profile_created"
         static let profileDeleted       = "vm_profile_deleted"
+        static let profileModAdded      = "vm_profile_mod_added"
+        static let profileFavoritesImported = "vm_profile_favorites_imported"
         static let applyProfileError    = "vm_apply_profile_error"
         static let applyProfilePartial  = "vm_apply_profile_partial"
         static let applyProfileMoveFail = "vm_apply_profile_move_fail"

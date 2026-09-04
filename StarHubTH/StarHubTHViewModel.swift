@@ -8362,14 +8362,20 @@ for mod in mods {
 
         // Ce qu'on sait du mod entre dans le profil avec lui : c'est tout ce
         // qui restera le jour où il aura été désinstallé.
-        if let mod = mods.flattenedMods.first(where: { $0.uniqueId.lowercased() == key }) {
-            modProfiles[index].modMetadata[mod.uniqueId] = ProfileModMetadata(name: mod.name,
-                                                                             nexusModId: mod.nexusModId)
+        let added = mods.flattenedMods.first(where: { $0.uniqueId.lowercased() == key })
+        if let added {
+            modProfiles[index].modMetadata[added.uniqueId] = ProfileModMetadata(name: added.name,
+                                                                               nexusModId: added.nexusModId)
         }
         var ids = modProfiles[index].enabledModIds
         ids.append(uniqueId)
+        // Le nom du mod quand on le connaît, son identifiant sinon : un ajout
+        // peut porter sur un mod que le parc n'a plus (dépendance réclamée par
+        // un profil importé), et « ajouté » sans dire quoi n'apprend rien.
+        let addedName = added?.name ?? uniqueId
         updateProfile(id: id, newName: modProfiles[index].name, enabledModIds: ids)
-        log(String(format: L(L10n.VM.profileCreated), modProfiles[index].name, ids.count))
+        log(String(format: L(L10n.VM.profileModAdded),
+                   addedName, modProfiles[index].name, ids.count))
     }
 
     /// Marque ou démarque un mod comme favori. Persisté aussitôt : c'est un
@@ -8575,8 +8581,10 @@ for mod in mods {
         // journaliser l'état du disque plutôt que le résultat de l'import.
         let name = modProfiles[index].name
         let newIds = modProfiles[index].enabledModIds + resolution.ids
+        let importedCount = resolution.ids.count
         updateProfile(id: profileId, newName: name, enabledModIds: newIds)
-        log(String(format: L(L10n.VM.profileCreated), name, newIds.count))
+        log(String(format: L(L10n.VM.profileFavoritesImported),
+                   importedCount, name, newIds.count))
         return resolution
     }
 

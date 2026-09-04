@@ -722,6 +722,19 @@ répond. L'ordre et les titres de section sont ceux de la roadmap.
       exact. La garde de collision de **X51** est intacte — un refus sur les
       mods cadrés se lit là où il se noyait dans un bilan de huit cents
       déplacements. · **M**
+- [x] **X54** ✅ *(corrigé le 2026-09-04)* — **Le journal annonçait « profil
+      créé » sur un simple ajout.** `vm_profile_created` était journalisé en
+      quatre endroits ; deux ne créaient rien. Ajouter un mod à un profil — le
+      geste de réparation d'une dépendance que le profil laissait de côté —
+      écrivait « Profil « Solo » créé (312 mods) », et importer les favoris
+      aussi. Sur une journée de réglages, le journal donnait à lire une série de
+      créations de profils qui n'avaient jamais eu lieu.
+      ▸ Deux clés neuves, en parité `en`/`fr` : `vm_profile_mod_added` nomme le
+      mod entré (son identifiant à défaut — une dépendance réclamée par un
+      profil importé peut ne pas être installée) et `vm_profile_favorites_imported`
+      dit **combien** de favoris sont entrés, ce que le compte final du profil ne
+      disait pas. `createProfile` et `duplicateProfile` gardent la clé d'origine :
+      dupliquer crée bien un profil. · **S**
 - [x] **R6** ✅ *(livré le 2026-09-04)* — **Property-test « idempotent » sur
       `applyProfileToFilesystem`.** La règle qui décide *qui bouge, qui reste et
       dans quel ordre* vivait à l'intérieur de la méthode, mêlée au

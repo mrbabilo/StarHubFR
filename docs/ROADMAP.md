@@ -155,13 +155,6 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       l'étiquette qu'il porte — simplement pas avec le dernier terme tapé. Le
       correctif demande un compteur d'époque dans le ViewModel, non testable ici : à
       faire en même temps qu'on touchera cet écran. · **S**
-- [ ] **X54** — **Le journal annonce « profil créé » sur un simple ajout.**
-      `L10n.VM.profileCreated` (« Profil « %@ » créé (%lld mods) ») est journalisé
-      en quatre endroits : `createProfile` (juste), `duplicateProfile`
-      (acceptable), mais aussi `addModToProfile` et `importFavorites`, qui ne
-      créent rien. Demande deux clés L10n neuves, en parité `en`/`fr`. Non corrigé
-      dans la passe d'audit pour ne pas mêler un ajout de clés à des correctifs de
-      perte de données. · **S**
 - [ ] **X58** — **`warnings` mérite un filtre de plateforme, pas un rejet.**
       Le champ existe sur 24 entrées du dump, et **17 parlent d'Android** —
       « Broken on Android », « Only works on Android » : du bruit pur sur
@@ -1381,7 +1374,7 @@ corrompre ou faire disparaître quelque chose sans le dire ?* — et non à
 |---|---|---|
 | ~~5~~ | ~~**X59**~~ | ✅ **Constat faux, clos le 2026-09-04** — l'alerte existe et nomme les mods : `applyProfileToFilesystem` appelle `showModal` avant de rendre la main, et `MainView` porte le `.alert` en permanence. Le `_` du changement de profil ne jette qu'un **compte**, pas le signal. Voir l'archive |
 | 6 | **X31** | La version de SMAPI installée, si elle a été posée hors de l'app — l'app propose alors éternellement une mise à jour déjà faite |
-| 7 | **X54** | Le journal annonce « profil créé » sur un simple ajout de mod et sur un import de favoris |
+| ~~7~~ | ~~**X54**~~ | ✅ **Corrigé le 2026-09-04** — deux clés neuves : l'ajout nomme le mod, l'import dit combien de favoris sont entrés. Voir l'archive |
 | 8 | **X49** | Deux recherches Nexus rapprochées peuvent revenir dans le désordre |
 | 9 | **F6-T4** | Une ancre « je l'ai déjà » ratée quand le manifeste et l'ancre diffèrent par la casse |
 | 10 | **X58**, **X60**, **C2-T4**, **X47** | Ce qu'un mod garde en silence (avertissements filtrés par plateforme), l'échange de noms de dossier qu'un profil ne peut pas faire et n'explique pas, les clés de config perdues à une mise à jour, les lots smapi.io abandonnés après un échec |
@@ -1662,6 +1655,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **X25** | 2026-09-04 | 340 dossiers de sauvegarde orphelins et 35 clés de préférences mortes — l'écran « Entretien » les nomme avant de les retirer, jamais automatiquement |
 | **X59** | 2026-09-04 | Constat faux, clos sans correctif : l'alerte de fin d'application nomme déjà les mods restés du mauvais côté |
 | **R6** | 2026-09-04 | Le plan d'application d'un profil extrait dans Core et prouvé idempotent sur 200 parcs engendrés |
+| **X54** | 2026-09-04 | Le journal annonçait « profil créé » sur un ajout de mod et sur un import de favoris |
 | **B1-T1** | 2026-08-01 | Boutons Activer/Désactiver et Supprimer sur la fiche mod (parité avec la liste, mêmes confirmations). Absents pour un… |
 | **B1-T2** | 2026-08-01 | Tri, filtres, catégorie, page et recherche portés par ModListFilters dans le ViewModel. La remise à la page 1 est por… |
 

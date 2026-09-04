@@ -568,6 +568,8 @@
   "vm_switch_profile": "Profil de mods basculé vers : %@",
   "vm_started": "StarHubFR démarré",
   "vm_profile_created": "Profil « %@ » créé (%lld mods)",
+  "vm_profile_mod_added": "« %@ » ajouté au profil « %@ » (%lld mods)",
+  "vm_profile_favorites_imported": "%lld favori(s) importé(s) dans le profil « %@ » (%lld mods)",
   "vm_profile_deleted": "Profil « %@ » supprimé",
   "saves_inventory_editor": "Éditeur d'inventaire",
   "saves_item_name": "Nom de l'objet",
