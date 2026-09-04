@@ -219,6 +219,35 @@ struct ModConfigBackupsView: View {
         return String(format: vm.L(genericKey), error.localizedDescription)
     }
 
+    /// Ce que la restauration annonce.
+    ///
+    /// « Sauvegarde restaurée avec succès » ne se dit que d'une restauration
+    /// qui n'a rien sauté. Les trois cas où elle saute — mod plus installé,
+    /// dossier absent du magasin, fichier impossible à écrire — n'étaient que
+    /// journalisés en `print`, si bien que zéro fichier écrit s'annonçait comme
+    /// douze.
+    private func restoreReportMessage(_ report: ModConfigRestoreReport) -> String {
+        if report.isComplete {
+            return vm.L(L10n.ModConfigBackups.backupRestored)
+        }
+        var lines: [String] = []
+        if report.filesWritten == 0 {
+            lines.append(vm.L(L10n.ModConfigBackups.restoreReportNothing))
+        } else {
+            lines.append(String(format: vm.L(L10n.ModConfigBackups.restoreReportWritten),
+                                Int64(report.filesWritten), Int64(report.modsRestored)))
+        }
+        if !report.skippedMods.isEmpty {
+            lines.append(String(format: vm.L(L10n.ModConfigBackups.restoreReportSkippedMods),
+                                report.skippedMods.joined(separator: ", ")))
+        }
+        if !report.skippedFiles.isEmpty {
+            lines.append(String(format: vm.L(L10n.ModConfigBackups.restoreReportSkippedFiles),
+                                report.skippedFiles.joined(separator: ", ")))
+        }
+        return lines.joined(separator: "\n\n")
+    }
+
     private func performRestore(_ backup: ModConfigBackup) {
         let selected = backup.items.filter { selectedItemIds.contains($0.id) }
         guard !selected.isEmpty else { return }
@@ -230,7 +259,7 @@ struct ModConfigBackupsView: View {
         let currentMods = vm.mods
         DispatchQueue.global(qos: .userInitiated).async {
             do {
-                try ModConfigBackupManager.shared.restoreBackup(
+                let report = try ModConfigBackupManager.shared.restoreBackup(
                     gameDir: gameDir,
                     backup: backup,
                     selectedItems: selected,
@@ -240,8 +269,10 @@ struct ModConfigBackupsView: View {
                 DispatchQueue.main.async {
                     self.backups = fetched
                     self.isBusy = false
-                    self.vm.alertMessage = self.vm.L(L10n.ModConfigBackups.backupRestored)
+                    self.vm.alertMessage = self.restoreReportMessage(report)
                     self.vm.showAlert = true
+                    self.vm.log(self.restoreReportMessage(report),
+                                level: report.isComplete ? .info : .warning)
                 }
             } catch {
                 DispatchQueue.main.async {

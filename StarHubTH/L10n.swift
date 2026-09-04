@@ -650,6 +650,13 @@ enum L10n {
         static let nothingToBackUp           = "mod_config_backups_nothing_to_back_up"
         static let fileNotFound              = "mod_config_backups_file_not_found"
         static let restoreFailed             = "mod_config_backups_restore_failed"
+        /// Le compte-rendu d'une restauration — ce qui a été écrit, et ce qui a
+        /// été sauté. La seule annonce « restaurée » sans réserve ne vaut que
+        /// pour un rapport `isComplete` (voir `ModConfigRestoreReport`).
+        static let restoreReportWritten      = "mod_config_backups_restore_report_written"
+        static let restoreReportNothing      = "mod_config_backups_restore_report_nothing"
+        static let restoreReportSkippedMods  = "mod_config_backups_restore_report_skipped_mods"
+        static let restoreReportSkippedFiles = "mod_config_backups_restore_report_skipped_files"
         static let deleteFailed              = "mod_config_backups_delete_failed"
         static let backupAutoCreated         = "mod_config_backups_auto_created"
         static let cleanupComplete           = "mod_config_backups_cleanup_complete"

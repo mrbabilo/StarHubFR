@@ -254,7 +254,11 @@ public class ModConfigBackupManager {
     /// failure here doesn't block the restore, since the user has already
     /// confirmed they want to overwrite). Missing source files/folders are
     /// skipped with a log line rather than aborting the whole restore.
-    public func restoreBackup(gameDir: String, backup: ModConfigBackup, selectedItems: [ModConfigBackupItem], currentMods: [ModItem]) throws {
+    /// - Returns: ce qui a été écrit, et ce qui a été sauté. `@discardableResult`
+    ///   parce que la valeur est un **ajout** : les appelants qui ne la lisent
+    ///   pas gardent exactement le comportement d'avant.
+    @discardableResult
+    public func restoreBackup(gameDir: String, backup: ModConfigBackup, selectedItems: [ModConfigBackupItem], currentMods: [ModItem]) throws -> ModConfigRestoreReport {
         guard !gameDir.isEmpty else { throw BackupError.gameDirEmpty }
 
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
@@ -275,11 +279,17 @@ public class ModConfigBackupManager {
 
         let backupDir = backupDirURL(named: backup.folderName)
 
+        var filesWritten = 0
+        var modsRestored = 0
+        var skippedMods: [String] = []
+        var skippedFiles: [String] = []
+
         for item in selectedItems {
             let sourceDir = destinationDir(in: backupDir, leafFolderName: item.modFolderName)
 
             guard fm.fileExists(atPath: sourceDir.path) else {
                 print("ModConfigBackup restore: source folder missing for \(item.modFolderName), skipping")
+                skippedMods.append(item.modFolderName)
                 continue
             }
             // Le dossier **réel** du mod, point compris. Sans cette résolution,
@@ -290,16 +300,19 @@ public class ModConfigBackupManager {
             // « sauvegarde restaurée ».
             guard let targetDir = installedFolder(named: item.modFolderName, modsPath: modsPath) else {
                 print("ModConfigBackup restore: mod folder missing for \(item.modFolderName), skipping")
+                skippedMods.append(item.modFolderName)
                 continue
             }
             // La racine du mod borne l'ouverture des droits ci-dessous : un
             // `i18n/` en lecture seule existe pour de bon sur le parc.
             let modRoot = Self.topLevelRoot(of: targetDir.path, under: modsPath)
 
+            var writtenForThisMod = 0
             for relativePath in item.files {
                 let source = sourceDir.appendingPathComponent(relativePath)
                 guard fm.fileExists(atPath: source.path) else {
                     print("ModConfigBackup restore: file missing \(relativePath) for \(item.modFolderName), skipping")
+                    skippedFiles.append("\(item.modFolderName)/\(relativePath)")
                     continue
                 }
                 // Même écriture que la récupération de fichiers : elle recrée
@@ -316,11 +329,20 @@ public class ModConfigBackupManager {
                     try RecoveredFileWriter.write(from: source.path,
                                                   to: targetDir.appendingPathComponent(relativePath).path,
                                                   modRoot: modRoot)
+                    writtenForThisMod += 1
                 } catch {
                     print("ModConfigBackup restore: could not write \(relativePath) for \(item.modFolderName): \(error)")
+                    skippedFiles.append("\(item.modFolderName)/\(relativePath)")
                 }
             }
+            filesWritten += writtenForThisMod
+            if writtenForThisMod > 0 { modsRestored += 1 }
         }
+
+        return ModConfigRestoreReport(filesWritten: filesWritten,
+                                      modsRestored: modsRestored,
+                                      skippedMods: skippedMods,
+                                      skippedFiles: skippedFiles)
     }
 
     /// Le dossier réel d'un mod sous `Mods/`, en pause compris — ou `nil` s'il

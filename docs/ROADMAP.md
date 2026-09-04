@@ -666,13 +666,19 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       Antérieur à X34 — l'ancien `copyItem` levait pareil. Chaque fichier est
       maintenant tenté pour lui-même, échec journalisé. Cliquet `print_calls`
       20 → 21, même justification. · **S**
-- [ ] **X37** — **Une restauration de configs annonce « restaurée » même quand
-      elle a tout sauté.** Les trois cas ignorés (source absente, mod plus installé,
+- [x] **X37** ✅ *(corrigé le 2026-09-04)* — **Une restauration de configs annonçait
+      « restaurée » même quand elle avait tout sauté.** Les trois cas ignorés (source absente, mod plus installé,
       fichier non écrit) ne sont que journalisés : l'écran dit « Sauvegarde
       restaurée » sans distinguer 12 fichiers écrits de 0. Modèle à suivre :
-      `ModInstallRestoreReport` (X22), qui rend ce qui a été écrit et où. Demande de
-      toucher `ModConfigBackupsView` et la signature de `restoreBackup` — à faire
-      d'un bloc, en cherchant d'abord ce que les appelants tiennent pour acquis. · **S**
+      `ModInstallRestoreReport` (X22), qui rend ce qui a été écrit et où. `restoreBackup`
+      rend désormais un `ModConfigRestoreReport` — fichiers écrits, mods restaurés,
+      mods entièrement sautés, fichiers sautés — et l'écran n'annonce « restaurée
+      avec succès » que sur un rapport `isComplete` ; sinon il nomme ce qui manque,
+      et le journal passe en avertissement. `@discardableResult` : la valeur est un
+      **ajout**, les dix appelants existants (dont les tests de la bascule en pause)
+      gardent le comportement d'avant — c'est la réponse au « ce que les appelants
+      tiennent pour acquis ». Cinq tests, dont quatre **vérifiés par mutation** :
+      un rapport qui tait ses sauts les fait tomber. · **S**
 - [x] **X42** ✅ *(corrigé le 2026-09-04)* — **Trois lectures divergentes du champ
       `Version` d'un manifeste**, alors que `ManifestVersionReader` a été écrit pour
       qu'il n'y en ait qu'une (son en-tête le dit). Pire : les deux chemins de

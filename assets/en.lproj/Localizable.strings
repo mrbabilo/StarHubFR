@@ -180,6 +180,10 @@
 "mod_config_backups_restore_create_backup" = "A backup of your current configs will be created first.";
 "mod_config_backups_restore_warning" = "This will overwrite the selected mods' current config files. Continue?";
 "mod_config_backups_restored" = "Backup restored successfully.";
+"mod_config_backups_restore_report_written" = "%1$lld file(s) restored across %2$lld mod(s).";
+"mod_config_backups_restore_report_nothing" = "Nothing was restored: not one file could be written.";
+"mod_config_backups_restore_report_skipped_mods" = "Mods skipped entirely (no longer installed, or missing from this backup): %@";
+"mod_config_backups_restore_report_skipped_files" = "Files skipped (missing from the backup, or impossible to write): %@";
 "mod_config_backups_restore_failed" = "Restore failed: %@";
 "mod_config_backups_restoring" = "Restoring…";
 "mod_config_backups_select_files" = "Select the mods to restore";

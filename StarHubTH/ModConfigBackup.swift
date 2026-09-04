@@ -97,6 +97,40 @@ public struct ModConfigBackup: Identifiable, Codable, Equatable {
     }
 }
 
+/// Ce qu'une restauration de configurations a écrit — et ce qu'elle a sauté.
+///
+/// `restoreBackup` saute quatre choses, et c'est voulu : un incident sur un mod
+/// n'emporte pas les autres. Mais elle ne rendait rien, et l'écran annonçait
+/// « Sauvegarde restaurée » sans distinguer douze fichiers écrits de **zéro**.
+/// Même intention que `ModInstallRestoreReport` : dire ce qui a été fait plutôt
+/// qu'affirmer que tout l'a été.
+public struct ModConfigRestoreReport: Sendable, Equatable {
+    /// Fichiers effectivement réécrits dans `Mods/`.
+    public let filesWritten: Int
+    /// Mods dont au moins un fichier a été réécrit.
+    public let modsRestored: Int
+    /// Les mods entièrement sautés, par nom de dossier **logique** : leur
+    /// dossier de sauvegarde a disparu du magasin, ou le mod n'est plus
+    /// installé. Un mod nommé ici n'a reçu aucun fichier.
+    public let skippedMods: [String]
+    /// Les fichiers sautés d'un mod par ailleurs restauré, en
+    /// `« dossier/fichier »` : absents de la sauvegarde, ou impossibles à
+    /// écrire (verrouillés, appartenant à un autre compte).
+    public let skippedFiles: [String]
+
+    /// Vrai quand rien n'a été sauté. C'est la seule condition qui autorise
+    /// un « restaurée » sans réserve.
+    public var isComplete: Bool { skippedMods.isEmpty && skippedFiles.isEmpty }
+
+    public init(filesWritten: Int, modsRestored: Int,
+                skippedMods: [String], skippedFiles: [String]) {
+        self.filesWritten = filesWritten
+        self.modsRestored = modsRestored
+        self.skippedMods = skippedMods
+        self.skippedFiles = skippedFiles
+    }
+}
+
 /// On-disk index of every backup, persisted as `metadata.json`.
 struct ModConfigBackupsIndex: Codable {
     var backups: [ModConfigBackup] = []

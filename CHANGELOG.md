@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Restaurer des configurations dit ce qui a vraiment été restauré** : l'écran annonçait « Sauvegarde restaurée avec succès » sans distinguer douze fichiers réécrits de **zéro**. La restauration sait sauter — un mod désinstallé depuis, un dossier absent du magasin de sauvegardes, un fichier impossible à écrire — et c'est voulu : un incident sur un mod n'emporte pas les autres. Mais rien ne vous le disait. Elle rend maintenant son compte : combien de fichiers sur combien de mods, et le nom de ce qui a été sauté. Le « avec succès » ne s'affiche plus que quand il n'y a rien eu à sauter.
+
 ## [1.35.4] - 2026-09-04
 
 ### Fixed
