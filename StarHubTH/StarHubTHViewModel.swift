@@ -2777,15 +2777,11 @@ class StarHubTHViewModel: ObservableObject {
                     if let mName = json.caseInsensitiveValue(forKey: "Name") as? String { name = mName }
                 if let mUniqueId = json.caseInsensitiveValue(forKey: "UniqueID") as? String { uniqueId = mUniqueId }
 
-                let mVer = json.caseInsensitiveValue(forKey: "Version")
-                if let vStr = mVer as? String {
-                    version = vStr
-                } else if let vDict = mVer as? [String: Any] {
-                    let major = vDict.caseInsensitiveValue(forKey: "MajorVersion") as? Int ?? 1
-                    let minor = vDict.caseInsensitiveValue(forKey: "MinorVersion") as? Int ?? 0
-                    let patch = vDict.caseInsensitiveValue(forKey: "PatchVersion") as? Int ?? 0
-                    version = "\(major).\(minor).\(patch)"
-                }
+                // Même lecture que le chemin « cache chaud » quelques lignes
+                // plus haut. Elle était écrite à la main ici : le même mod
+                // pouvait rendre deux versions différentes selon que son
+                // manifeste venait du cache ou du disque.
+                if let read = ManifestVersionReader.version(from: json) { version = read }
 
                 if let mAuthor = json.caseInsensitiveValue(forKey: "Author") as? String { author = mAuthor }
                 if let mDesc = json.caseInsensitiveValue(forKey: "Description") as? String { description = mDesc }

@@ -673,6 +673,33 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       `ModInstallRestoreReport` (X22), qui rend ce qui a été écrit et où. Demande de
       toucher `ModConfigBackupsView` et la signature de `restoreBackup` — à faire
       d'un bloc, en cherchant d'abord ce que les appelants tiennent pour acquis. · **S**
+- [x] **X42** ✅ *(corrigé le 2026-09-04)* — **Trois lectures divergentes du champ
+      `Version` d'un manifeste**, alors que `ManifestVersionReader` a été écrit pour
+      qu'il n'y en ait qu'une (son en-tête le dit). Pire : les deux chemins de
+      `parseModFolder` divergeaient entre eux — le « cache chaud » passait par le
+      lecteur commun (L. 2746), le « cache froid » relisait le champ à la main
+      quarante lignes plus bas, si bien que le même mod pouvait rendre deux versions
+      selon l'état du cache. `ModManifest.init(dict:)` portait la troisième copie.
+      Divergences réelles sur les trois formes que SMAPI accepte : partie de version
+      en chaîne (`"MajorVersion": "2"` → 1.0.0 par échec du `as? Int`), chaîne
+      entourée d'espaces (gardée telle quelle), chaîne blanche (affichée, donc un
+      « v » suivi de rien). **Aucun des 1 095 manifestes du parc ne les porte
+      aujourd'hui** (mesuré) — le seul mod à version-objet, *LovedLabels*, n'a que
+      des entiers : **défaut latent**, corrigé par cohérence, six tests le
+      verrouillent. · **S**
+- [ ] **X43** — **Le dialogue de conflit de configuration est mort dans sa
+      totalité.** `ConflictType.configFilesConflict` et `.dependencyMissing` n'ont
+      **aucun site de construction** ; `ConfigResolution` (`keepExisting`, `useNew`,
+      `merge`) n'est jamais posé — `InstallSelection.configResolution` vaut `nil` à
+      tous les sites de l'UI, qui se contente de le recopier, et `ModZipInstaller` ne
+      le lit nulle part ; `ConflictResolution.keepExisting`/`.useNew` ne sont
+      construits nulle part non plus (juste traités dans un `switch` exhaustif,
+      L. 1113). C'est le **résidu d'une bascule de conception** : demander à
+      l'utilisateur ce qu'il veut faire de son `config.json` a été remplacé par la
+      préservation automatique (`snapshotUserConfigs`, L. 1108), qui est le bon
+      comportement et fonctionne. Rien n'est cassé ; le retrait touche une signature
+      de Core (`InstallSelection`), quatre sites de `InstallPreview` et douze lignes
+      de tests — à faire d'un bloc, ou pas du tout. · **S**
 - [x] **B1-T1** ✅ *(livré le 2026-08-01)* — Boutons **Activer/Désactiver** et
       **Supprimer** sur la fiche mod (parité avec la liste, mêmes confirmations).
       Absents pour un composant de pack, comme dans la liste. La fiche se referme

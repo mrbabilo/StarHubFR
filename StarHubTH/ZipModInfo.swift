@@ -120,16 +120,13 @@ struct ModManifest {
             self.author = "Unknown"
         }
         
-        if let ver = dict.caseInsensitiveValue(forKey: "Version") as? String {
-            self.version = ver
-        } else if let verDict = dict.caseInsensitiveValue(forKey: "Version") as? [String: Any] {
-            let major = verDict.caseInsensitiveValue(forKey: "MajorVersion") as? Int ?? 1
-            let minor = verDict.caseInsensitiveValue(forKey: "MinorVersion") as? Int ?? 0
-            let patch = verDict.caseInsensitiveValue(forKey: "PatchVersion") as? Int ?? 0
-            self.version = "\(major).\(minor).\(patch)"
-        } else {
-            self.version = "Unknown"
-        }
+        // `ManifestVersionReader` est la lecture commune du champ `Version` —
+        // il existe pour qu'il n'y en ait qu'une. Celle écrite ici divergeait
+        // sur trois formes que SMAPI accepte : une partie de version en chaîne
+        // (`"MajorVersion": "2"`, rendue 1.0.0 par le `as? Int`), une chaîne
+        // entourée d'espaces, et une chaîne blanche — affichée telle quelle,
+        // donc une ligne « v » sans rien derrière.
+        self.version = ManifestVersionReader.version(from: dict) ?? "Unknown"
 
         self.description = dict.caseInsensitiveValue(forKey: "Description") as? String ?? ""
 

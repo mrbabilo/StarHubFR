@@ -22,6 +22,8 @@ where the exact log format was verified.
 
 - **Une recherche démarrée pendant un rafraîchissement part d'un parc cohérent** : la liste des mods était lue deux fois, à quelques instants d'intervalle. Un mod mis en pause entre les deux lectures entrait dans la recherche sans figurer dans l'instantané de départ — et n'était donc jamais réactivé à la fin, en silence.
 
+- **Un numéro de version se lit partout de la même façon** : SMAPI accepte plusieurs écritures du champ `Version` d'un manifeste, et trois endroits de l'app le lisaient chacun à sa manière — le scan de la bibliothèque divergeait même d'avec lui-même selon que le manifeste venait de son cache ou du disque. Un mod écrivant sa version en objet à parties textuelles s'affichait « 1.0.0 », une version entourée d'espaces ne s'appariait pas avec elle-même, une version blanche laissait un « v » suivi de rien. Aucun de vos 1 095 mods n'écrit ainsi aujourd'hui : c'est corrigé avant qu'un le fasse.
+
 ## [1.35.3] - 2026-09-04
 
 ### Changed
