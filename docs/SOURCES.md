@@ -272,7 +272,8 @@ Références du domaine, pas des dépendances : aucun code de ces mods ne vit
 chez nous. Elles sont là parce que notre **éditeur de config** lit une
 convention dont ces mods sont l'origine et le corpus — étudiés le
 **2026-09-04** depuis les archives de `mods tests/` (gitignoré), pas depuis
-les pages Nexus.
+les pages Nexus. L'étude approfondie (décompilation comprise) vit dans
+`docs/etude-mods-config-perf.md`.
 
 **La convention.** Un mod SMAPI configurable enregistre ses options auprès
 d'un menu générique (l'API `IGenericModConfigMenuApi`) et résout
