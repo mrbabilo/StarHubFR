@@ -362,4 +362,36 @@ struct SmapiInstalledVersionTests {
                                        reportingSubstitution: { _, _, _ in reported += 1 })
         #expect(reported == 0)
     }
+
+    // MARK: - La version à comparer, distincte de celle qu'on envoie
+
+    /// Sans ancre, il n'y a rien à affirmer : on compare ce qu'on a envoyé.
+    @Test func withoutAnAnchorTheSentVersionIsAlsoTheComparedOne() {
+        #expect(SmapiUpdateRequest.comparedVersion(anchored: nil, sent: "1.2.0") == "1.2.0")
+    }
+
+    /// Une ancre que le serveur sait lire est envoyée telle quelle : les deux
+    /// valeurs coïncident déjà.
+    @Test func anExpressibleAnchorIsBothSentAndCompared() {
+        #expect(SmapiUpdateRequest.comparedVersion(anchored: "2.2.0", sent: "2.2.0") == "2.2.0")
+    }
+
+    /// **Le défaut mesuré le 2026-09-04.** Une étiquette Nexus libre (« 3 »,
+    /// « 5 », « 1.01 ») n'est pas exprimable pour smapi.io : on lui envoie le
+    /// manifeste à la place. Mais la reprise Nexus, elle, compare l'ancre à
+    /// l'étiquette de la page — le **même** vocabulaire. Lui donner ce qu'on a
+    /// envoyé fait comparer « 1.1.5 » à « 3 » et ressusciter une ligne que
+    /// l'utilisateur avait éteinte. Sur le parc de référence, 15 mods affirmés
+    /// sur 38 revenaient ainsi à chaque vérification.
+    @Test func aNonExpressibleAnchorIsStillWhatGetsCompared() {
+        #expect(SmapiUpdateRequest.comparedVersion(anchored: "3", sent: "1.1.5") == "3")
+        #expect(SmapiUpdateRequest.comparedVersion(anchored: "1.01", sent: "1.0.0") == "1.01")
+    }
+
+    /// Une ancre vide n'affirme rien — elle ne doit pas effacer ce qu'on avait
+    /// à comparer.
+    @Test func aBlankAnchorFallsBackToTheSentVersion() {
+        #expect(SmapiUpdateRequest.comparedVersion(anchored: "  ", sent: "1.0.0") == "1.0.0")
+        #expect(SmapiUpdateRequest.comparedVersion(anchored: "", sent: "1.0.0") == "1.0.0")
+    }
 }

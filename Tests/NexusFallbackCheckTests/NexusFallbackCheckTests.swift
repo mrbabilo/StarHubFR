@@ -373,4 +373,91 @@ struct NexusFallbackCheckTests {
         ])
         #expect(plan.isEmpty)
     }
+
+    // MARK: - « Je l'ai déjà » sur une étiquette Nexus libre (2026-09-04)
+
+    /// Le cas mesuré sur le parc : `Seiz.FarmComputerTodo`, manifeste 1.1.5,
+    /// page étiquetée « 3 », affirmé « 3 » par l'utilisateur. Tant que la
+    /// comparaison recevait la version **envoyée à smapi.io** — le manifeste,
+    /// substitué parce que « 3 » n'est pas exprimable — la ligne renaissait à
+    /// chaque vérification. 15 des 38 affirmations du parc étaient dans ce cas.
+    @Test func anAffirmedFreeFormLabelSilencesTheRow() {
+        let target = NexusFallbackCheck.Target(
+            nexusId: "50122",
+            mods: [blocked("Seiz.FarmComputerTodo", version: "3", errors: ["nexus: no answer"])])
+
+        #expect(NexusFallbackCheck.rows(for: target, pageVersion: "3", uploadedTime: nil).isEmpty)
+    }
+
+    /// La preuve que le test précédent discrimine : la même page, comparée à
+    /// la version du manifeste, **rend** la ligne. C'est exactement ce que
+    /// l'app faisait.
+    @Test func theSameRowComesBackWhenTheManifestIsComparedInstead() {
+        let target = NexusFallbackCheck.Target(
+            nexusId: "50122",
+            mods: [blocked("Seiz.FarmComputerTodo", version: "1.1.5", errors: ["nexus: no answer"])])
+
+        #expect(NexusFallbackCheck.rows(for: target, pageVersion: "3", uploadedTime: nil).count == 1)
+    }
+
+    /// Affirmer n'est pas se taire pour toujours : la page qui publie au-delà
+    /// de l'étiquette affirmée rend de nouveau la ligne.
+    @Test func aLabelPublishedBeyondTheAffirmationSpeaksAgain() {
+        let target = NexusFallbackCheck.Target(
+            nexusId: "50122",
+            mods: [blocked("Seiz.FarmComputerTodo", version: "3", errors: ["nexus: no answer"])])
+
+        #expect(NexusFallbackCheck.rows(for: target, pageVersion: "4", uploadedTime: nil).count == 1)
+    }
+
+    /// `1.01` est l'autre forme relevée sur le parc (deux mods) : deux
+    /// segments, mais un `01` que smapi.io refuse. La page l'écrit pareil.
+    @Test func aPaddedLabelIsAlsoSilencedByItsAffirmation() {
+        let target = NexusFallbackCheck.Target(
+            nexusId: "49999",
+            mods: [blocked("Assistant.CollectionChest", version: "1.01", errors: ["nexus: no answer"])])
+
+        #expect(NexusFallbackCheck.rows(for: target, pageVersion: "1.01", uploadedTime: nil).isEmpty)
+    }
+
+    // MARK: - Une ligne conservée reste-t-elle due ?
+
+    private func update(_ uniqueId: String, installed: String, latest: String)
+        -> NexusUpdateChecker.ModUpdate {
+        NexusUpdateChecker.ModUpdate(uniqueId: uniqueId, name: uniqueId,
+                                     installedVersion: installed, latestVersion: latest,
+                                     nexusModId: "1", url: "", uploadedTime: nil)
+    }
+
+    /// Quand smapi.io ne répond pas pour un mod, sa ligne précédente est
+    /// **conservée** — un mod sans réponse n'est pas un mod à jour. Mais elle
+    /// doit rester confrontée à ce que l'utilisateur affirme : sans ça, une
+    /// ligne posée avant l'affirmation survit indéfiniment, et le correctif
+    /// n'empêche que sa recréation.
+    @Test func aKeptRowIsDroppedOnceItsVersionIsAffirmed() {
+        let row = update("Seiz.FarmComputerTodo", installed: "1.1.5", latest: "3")
+        #expect(!AffirmedUpdates.isStillDue(row, anchored: "3"))
+    }
+
+    /// Sans affirmation, rien ne change : la ligne conservée reste due.
+    @Test func aKeptRowWithoutAnAnchorStaysDue() {
+        let row = update("Seiz.FarmComputerTodo", installed: "1.1.5", latest: "3")
+        #expect(AffirmedUpdates.isStillDue(row, anchored: nil))
+    }
+
+    /// ⚠️ Le cas qui rend cette règle dangereuse si on l'écrit à l'envers :
+    /// une version installée **vide**. `SmapiUpdateRequest.sentVersion` la rend
+    /// en dernier recours quand ni l'ancre ni le manifeste ne sont exprimables,
+    /// et elle se retrouve alors dans la ligne. Ne rien savoir n'est pas être à
+    /// jour — la ligne doit rester due, comme un mod absent de la réponse.
+    @Test func aKeptRowWithoutAnyKnownInstalledVersionStaysDue() {
+        let row = update("Inconnu.Mod", installed: "", latest: "3")
+        #expect(AffirmedUpdates.isStillDue(row, anchored: nil))
+    }
+
+    /// Et une page qui publie au-delà de l'affirmation la remet en jeu.
+    @Test func aKeptRowBeyondTheAffirmationStaysDue() {
+        let row = update("Seiz.FarmComputerTodo", installed: "1.1.5", latest: "4")
+        #expect(AffirmedUpdates.isStillDue(row, anchored: "3"))
+    }
 }

@@ -722,6 +722,42 @@ répond. L'ordre et les titres de section sont ceux de la roadmap.
       exact. La garde de collision de **X51** est intacte — un refus sur les
       mods cadrés se lit là où il se noyait dans un bilan de huit cents
       déplacements. · **M**
+- [x] **X62** ✅ *(corrigé le 2026-09-04, signalé par l'auteur)* — **« Je l'ai
+      déjà » ne tenait pas sur une étiquette Nexus libre.** Le geste posait bien
+      son ancre, et la ligne revenait quand même à chaque vérification.
+      ▸ **Mesuré avant de toucher au code** : les **15** lignes du cache de mises
+      à jour étaient **toutes** des mods affirmés, et la version affirmée y
+      égalait la version proposée. Corrélation parfaite avec une seule
+      propriété : **15/15** des lignes revenues portent une version affirmée que
+      smapi.io ne sait pas lire (`3`, `5`, `6`, `1.01`…), quand **22/23** des
+      affirmations silencieuses en portent une lisible. La casse, elle,
+      correspondait partout — ce n'était pas `F6-T4`.
+      ▸ **La cause** : `SmapiUpdateRequest.sentVersion` substitue la version du
+      manifeste quand l'ancre n'est pas exprimable — à raison, une seule de ces
+      étiquettes vide un lot de 150 mods. Mais le ViewModel passait ensuite
+      **ce qui avait été envoyé** à `NexusFallbackCheck.Blocked`, alors que la
+      reprise Nexus compare à l'**étiquette de la page**, qui parle exactement ce
+      vocabulaire-là. Elle comparait donc « 1.1.5 » à « 3 » et rendait la ligne.
+      Le commentaire du code affirmait l'inverse (« prend l'ancre au retour, pas
+      ce qu'on a envoyé ») : l'intention était juste, le câblage non.
+      ▸ **Le second demi-tour** : une ligne que smapi.io ne « répond » pas est
+      conservée d'une passe à l'autre — un mod sans réponse n'est pas un mod à
+      jour — mais elle n'était jamais reconfrontée à l'ancre. Une ligne posée
+      *avant* l'affirmation survivait donc à toutes les passes suivantes, et
+      corriger la seule recréation n'aurait rien montré à l'écran.
+      `AffirmedUpdates.isStillDue` la reconfronte.
+      ▸ **Un risque mesuré et écarté** : faire entrer l'ancre dans la comparaison
+      la fait aussi entrer dans `isAmbiguous`, qui écarte une page dont les mods
+      ne s'accordent pas sur leur version — un voisin de page légitime pouvait
+      donc devenir muet. Sur le parc, **3 affirmations sur 38** partagent leur
+      page avec un mod non affirmé, et les trois portent une ancre **exprimable**
+      : leur valeur comparée est inchangée. Zéro cas aujourd'hui ; à revoir si
+      une affirmation inexprimable rejoint une page partagée.
+      ▸ **12 tests neufs** (2 203 → 2 215), dont un qui prouve que le cas
+      discrimine — la même page, comparée au manifeste, **rend** la ligne — et un
+      qui épingle la frontière dangereuse de `isStillDue` : une version installée
+      **vide** (le dernier recours de `sentVersion`) laisse la ligne due. Ne rien
+      savoir n'est pas être à jour. · **S**
 - [x] **X61** ✅ *(corrigé le 2026-09-04)* — **Deux copies de la même
       précaution avaient divergé, et la troisième manquait.** Quand une bascule
       trouve un dossier à la destination, la règle est de l'écarter s'il s'agit

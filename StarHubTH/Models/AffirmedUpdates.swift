@@ -15,6 +15,25 @@ import Foundation
 /// seul ne dit rien, c'est son **écart avec le disque** qui trahit l'erreur.
 public enum AffirmedUpdates {
 
+    /// Une ligne de mise à jour **conservée** d'une passe précédente est-elle
+    /// encore due ?
+    ///
+    /// Quand smapi.io ne répond pas pour un mod, sa ligne précédente est
+    /// gardée : un mod sans réponse n'est pas un mod à jour. Mais rien ne la
+    /// confrontait à ce que l'utilisateur affirme entre-temps, si bien qu'une
+    /// ligne posée **avant** l'affirmation survivait indéfiniment — et corriger
+    /// la seule recréation n'aurait rien montré à l'écran.
+    ///
+    /// La comparaison se fait sur la version affirmée quand il y en a une,
+    /// exactement comme la reprise Nexus : c'est le même vocabulaire, celui de
+    /// l'étiquette de page.
+    static func isStillDue(_ update: NexusUpdateChecker.ModUpdate,
+                           anchored: String?) -> Bool {
+        let installed = SmapiUpdateRequest.comparedVersion(anchored: anchored,
+                                                           sent: update.installedVersion)
+        return NexusUpdateChecker.isNewer(update.latestVersion, installed: installed)
+    }
+
     /// Un mod installé, réduit à ce que cette liste croise. Même patron que
     /// `SmapiUpdateRequest.Candidate` : le Core ne dépend pas du type
     /// d'affichage de la liste des mods.

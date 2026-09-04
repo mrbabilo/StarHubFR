@@ -1639,6 +1639,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **X31** | 2026-09-04 | La version de SMAPI affichée restait celle que l'app avait installée, même après une mise à jour faite ailleurs |
 | **X49** | 2026-09-04 | Deux recherches Nexus rapprochées pouvaient revenir dans le désordre, et une réponse tardive ressuscitait une liste fermée |
 | **X61** | 2026-09-04 | Le résidu écarté par la bascule en masse restait chargé par SMAPI, faute du point de tête que l'autre chemin posait |
+| **X62** | 2026-09-04 | « Je l'ai déjà » ne tenait pas quand la version affirmée était une étiquette Nexus libre — 15 mods sur 38 revenaient à chaque vérification |
 | **B1-T1** | 2026-08-01 | Boutons Activer/Désactiver et Supprimer sur la fiche mod (parité avec la liste, mêmes confirmations). Absents pour un… |
 | **B1-T2** | 2026-08-01 | Tri, filtres, catégorie, page et recherche portés par ModListFilters dans le ViewModel. La remise à la page 1 est por… |
 

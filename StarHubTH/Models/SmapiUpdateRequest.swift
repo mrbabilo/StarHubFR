@@ -222,6 +222,26 @@ public enum SmapiUpdateRequest {
             }
     }
 
+    /// La version à **comparer** quand le verdict ne vient pas de smapi.io :
+    /// l'ancre, toujours — pas ce qu'on a réussi à lui envoyer.
+    ///
+    /// Les deux valeurs divergent sur un seul cas, et c'est celui qui compte :
+    /// une étiquette Nexus libre (« 3 », « 5 », « 1.01 ») n'est pas exprimable
+    /// pour smapi.io, à qui l'on envoie donc le manifeste à la place
+    /// (`sentVersion` — sans quoi une seule de ces étiquettes vide un lot de
+    /// 150 mods). La reprise Nexus, elle, compare à l'**étiquette de la page**,
+    /// qui parle exactement ce vocabulaire-là : lui donner ce qu'on a envoyé
+    /// revient à comparer « 1.1.5 » à « 3 » et à ressusciter une ligne que
+    /// l'utilisateur avait éteinte d'un « Je l'ai déjà ».
+    ///
+    /// Mesuré sur le parc le 2026-09-04 : **15 des 38 affirmations** revenaient
+    /// à chaque vérification, et toutes les 15 portaient une version
+    /// inexprimable — quand 22 des 23 silencieuses en portaient une exprimable.
+    public static func comparedVersion(anchored: String?, sent: String) -> String {
+        let anchor = (anchored ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        return anchor.isEmpty ? sent : anchor
+    }
+
     public static func batches(_ entries: [Entry], size: Int) -> [[Entry]] {
         guard size > 0 else { return entries.isEmpty ? [] : [entries] }
         return stride(from: 0, to: entries.count, by: size).map {

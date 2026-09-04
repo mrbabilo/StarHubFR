@@ -4527,10 +4527,15 @@ for mod in mods {
                     blocked.append(NexusFallbackCheck.Blocked(
                         uniqueId: mod.id,
                         name: name,
-                        // La version **affirmée**, celle qu'on a envoyée : d'ancre
-                        // s'il y en a une, de manifest sinon. Comparer une autre valeur ferait
-                        // reparaître une ligne que l'utilisateur a éteinte.
-                        installedVersion: assertedVersion[mod.id] ?? "",
+                        // La version **affirmée** — l'ancre, pas ce qu'on a
+                        // envoyé. Les deux diffèrent quand l'ancre est une
+                        // étiquette Nexus libre que smapi.io ne sait pas lire :
+                        // on lui a alors envoyé le manifeste, mais la page
+                        // Nexus, elle, parle ce vocabulaire-là. Comparer
+                        // l'envoi ferait reparaître une ligne éteinte.
+                        installedVersion: SmapiUpdateRequest.comparedVersion(
+                            anchored: anchorStore.anchor(for: mod.id)?.anchoredVersion,
+                            sent: assertedVersion[mod.id] ?? ""),
                         declaredKeys: declaredKeys[mod.id] ?? [],
                         metadataNexusId: mod.metadata?.nexusID,
                         errors: mod.errors,
@@ -4602,12 +4607,12 @@ for mod in mods {
             blocked.append(NexusFallbackCheck.Blocked(
                 uniqueId: entry.id,
                 name: name,
-                // On **n'envoie pas** la version installée affirmée ici :
-                // l'entry a été construite à partir de smapi.io sans réponse,
-                // donc on retombe sur le manifest (le `assertedVersion[id]`
-                // est vide puisque smapi.io n'a rien renvoyé). La reprise
-                // Nexus lira alors le manifest côté caller.
-                installedVersion: assertedVersion[entry.id] ?? "",
+                // Même règle que plus haut : l'ancre commande la comparaison,
+                // et `assertedVersion` ne sert que de repli — l'entrée a été
+                // construite pour smapi.io, qui n'a rien répondu.
+                installedVersion: SmapiUpdateRequest.comparedVersion(
+                    anchored: anchorStore.anchor(for: entry.id)?.anchoredVersion,
+                    sent: assertedVersion[entry.id] ?? ""),
                 declaredKeys: entry.updateKeys,
                 metadataNexusId: Int(id),
                 // Préfixe `nexus:` volontaire : `NexusFallbackCheck.needsNexusVerdict`
@@ -4635,7 +4640,12 @@ for mod in mods {
         // Le cache est la vérité, à plat ; l'affichage n'en est qu'une vue.
         let previousRows = NexusUpdateChecker.shared.cachedUpdates()
         let unanswered = previousRows.filter {
-            !answered.contains($0.id) && stillInstalled.contains($0.id)
+            guard !answered.contains($0.id), stillInstalled.contains($0.id) else { return false }
+            // …et seulement tant qu'elle est encore due. Une ligne posée avant
+            // un « Je l'ai déjà » n'était jamais reconfrontée à l'ancre : elle
+            // survivait à toutes les passes suivantes, faute d'être « répondue ».
+            return AffirmedUpdates.isStillDue(
+                $0, anchored: anchorStore.anchor(for: $0.id)?.anchoredVersion)
         }
         let dropped = previousRows.filter {
             !answered.contains($0.id) && !stillInstalled.contains($0.id)
