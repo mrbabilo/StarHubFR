@@ -58,6 +58,7 @@ let package = Package(
                 "Models/ModCompatibility.swift",
                 "Models/ModConfigWriteGuard.swift",
                 "Models/ModRemovalPurge.swift",
+                "Models/MaintenanceInventory.swift",
                 "Models/PathoschildCompatibilityList.swift",
                 "Models/PathoschildNexusIndex.swift",
                 "Models/ModDuplicateIndex.swift",
@@ -474,6 +475,11 @@ let package = Package(
             name: "ModRemovalPurgeTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ModRemovalPurgeTests"
+        ),
+        .testTarget(
+            name: "MaintenanceInventoryTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/MaintenanceInventoryTests"
         ),
         .testTarget(
             name: "ModConfigWriteGuardTests",
