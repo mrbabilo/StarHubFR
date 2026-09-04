@@ -315,6 +315,12 @@ class StarHubTHViewModel: ObservableObject {
     /// **logique** de dossier — même clé que `favoriteMods`.
     @Published private(set) var profileManagedConfigMods: Set<String> = []
 
+    /// L'inventaire de l'écran « Entretien » (X25). `nil` tant qu'il n'a pas
+    /// été construit — distinct d'un rapport vide, qui veut dire « rien à
+    /// faire ».
+    @Published private(set) var maintenanceReport: MaintenanceInventory.Report?
+    @Published private(set) var isBuildingMaintenanceReport = false
+
     @Published var smapiInstalledVersion: String? = nil   // nil = not installed
     /// True during the initial launch load (mod scan + save reload + profile
     /// load). Drives the launch spinner overlay in `MainView` so the user sees
@@ -9828,6 +9834,176 @@ for mod in mods {
         // Le profil vient d'adopter l'état du disque : il n'y a plus d'écart
         // en suspens à protéger.
         incompletelyAppliedProfileIds.remove(id)
+    }
+
+    // MARK: - Entretien (X25)
+
+    /// Construit l'inventaire d'entretien. Une **seule** traversée du dossier
+    /// de sauvegardes : taille et fichiers utilisateur sont relevés ensemble.
+    /// Mesuré le 2026-09-04 : 0,86 s pour 17 628 fichiers, d'où le passage
+    /// hors du fil principal et le témoin de chargement.
+    func buildMaintenanceReport() {
+        guard !isBuildingMaintenanceReport else { return }
+        isBuildingMaintenanceReport = true
+        let installedFolders = Set(mods.flattenedMods.map(\.folderName))
+        let translationPaths = installedTranslationRelativePaths()
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self else { return }
+            let report = Self.readMaintenanceReport(
+                installBackups: ModInstallBackupManager.shared.loadBackups(),
+                installBackupsRoot: ModInstallBackupManager.shared.backupsDirectory,
+                configBackups: ModConfigBackupManager.shared.loadBackups(),
+                configBackupsRoot: ModConfigBackupManager.shared.backupsDirectory,
+                modsRoot: (self.gameDir as NSString).appendingPathComponent("Mods"),
+                installedFolders: installedFolders,
+                userTranslationPaths: translationPaths,
+                preferenceKeys: self.maintenancePreferenceKeys())
+            DispatchQueue.main.async {
+                self.maintenanceReport = report
+                self.isBuildingMaintenanceReport = false
+            }
+        }
+    }
+
+    /// Les clés des quatre magasins indexés par nom de dossier — ceux que X55
+    /// a câblés à la suppression d'un mod, et dont les entrées d'avant X55
+    /// subsistent (35 mesurées le 2026-09-04).
+    private func maintenancePreferenceKeys() -> Set<String> {
+        var keys = Set(profileManagedConfigMods)
+        keys.formUnion(modActivationTimestamps.keys)
+        keys.formUnion(nexusCustomModIds.keys)
+        keys.formUnion(nexusCustomCategories.keys)
+        return keys
+    }
+
+    /// Les chemins des traductions et greffes que **l'app** a posées.
+    /// Une traduction d'auteur (`i18n/default.json`) n'en fait pas partie : elle
+    /// revient avec le mod, donc elle ne protège aucune sauvegarde.
+    ///
+    /// ⚠️ Ces chemins sont relatifs au dossier **`Mods/`** — ils portent le nom
+    /// du mod hôte en tête (`[CP]Cloths and Colors/i18n/fr.json`), là où le
+    /// chemin d'une sauvegarde est relatif à **sa propre racine**
+    /// (`i18n/fr.json`). La comparaison se fait donc par suffixe de segment,
+    /// jamais par égalité — voir `walkBackup`.
+    private func installedTranslationRelativePaths() -> Set<String> {
+        let registry = InstalledTranslationStore.load()
+        var paths = Set(registry.byHost.values.flatMap(\.files))
+        paths.formUnion(registry.addonsByHost.values.flatMap { $0.flatMap(\.files) })
+        return paths
+    }
+
+    /// La lecture proprement dite. Statique : aucune capture de `self`, donc
+    /// aucune mutation `@Published` hors du fil principal.
+    private static func readMaintenanceReport(
+        installBackups: [ModInstallBackup],
+        installBackupsRoot: URL,
+        configBackups: [ModConfigBackup],
+        configBackupsRoot: URL,
+        modsRoot: String,
+        installedFolders: Set<String>,
+        userTranslationPaths: Set<String>,
+        preferenceKeys: Set<String>
+    ) -> MaintenanceInventory.Report {
+        let fm = FileManager.default
+        var entries: [MaintenanceInventory.BackupEntry] = []
+        var protections: [String: MaintenanceInventory.Protection] = [:]
+
+        for backup in installBackups {
+            let root = URL(fileURLWithPath: backup.backupPath)
+            guard let (bytes, files) = Self.walkBackup(
+                root: root, userTranslationPaths: userTranslationPaths) else { continue }
+            // Le nom de session vient du manager : la même règle que celle qui
+            // supprime le dossier horodaté (premier composant sous `backups/`,
+            // suffixe de nommage compris). Une formule locale, même simplifiée,
+            // désynchroniserait l'inventaire de ce qui part vraiment.
+            let session = ModInstallBackupManager.shared
+                .backupDirectory(of: backup).lastPathComponent
+            let entry = MaintenanceInventory.BackupEntry(
+                id: session, modFolder: backup.originalFolderName,
+                timestamp: backup.timestamp, sizeBytes: bytes, userFiles: files)
+            entries.append(entry)
+            let installed = Self.installedState(of: backup.originalFolderName,
+                                                modsRoot: modsRoot, userFiles: files)
+            protections[session] = MaintenanceInventory.protection(of: entry,
+                                                                   installed: installed)
+        }
+
+        let onDisk = Set((try? fm.contentsOfDirectory(atPath: installBackupsRoot.path))?
+            .filter { !$0.hasPrefix(".") } ?? [])
+        let configBytes = configBackups.reduce(Int64(0)) { total, backup in
+            total + (Self.walkBackup(root: configBackupsRoot
+                .appendingPathComponent(backup.folderName),
+                userTranslationPaths: [])?.0 ?? 0)
+        }
+
+        return MaintenanceInventory.Report(
+            backups: entries,
+            protections: protections,
+            configBackupCount: configBackups.count,
+            configBackupBytes: configBytes,
+            orphanSessions: MaintenanceInventory.orphanSessions(
+                onDisk: onDisk, referenced: Set(entries.map(\.id))),
+            stalePreferenceKeys: MaintenanceInventory.stalePreferenceKeys(
+                preferenceKeys, installedFolders: installedFolders))
+    }
+
+    /// Taille et fichiers utilisateur d'une sauvegarde, en **une** traversée.
+    /// `nil` quand le dossier n'existe plus.
+    private static func walkBackup(root: URL, userTranslationPaths: Set<String>)
+    -> (Int64, [MaintenanceInventory.UserFile])? {
+        let fm = FileManager.default
+        var isDir: ObjCBool = false
+        guard fm.fileExists(atPath: root.path, isDirectory: &isDir), isDir.boolValue
+        else { return nil }
+        guard let walker = fm.enumerator(at: root,
+                                         includingPropertiesForKeys: [.fileSizeKey,
+                                                                      .isRegularFileKey])
+        else { return nil }
+        var bytes: Int64 = 0
+        var files: [MaintenanceInventory.UserFile] = []
+        // ⚠️ `resolvingSymlinksInPath()` avant tout retrait de préfixe : sur macOS
+        // l'énumérateur rend des chemins résolus (`/private/var…`) même quand la
+        // racine passait par `/var…`.
+        let base = root.resolvingSymlinksInPath().path + "/"
+        for case let url as URL in walker {
+            let values = try? url.resourceValues(forKeys: [.fileSizeKey, .isRegularFileKey])
+            guard values?.isRegularFile == true else { continue }
+            bytes += Int64(values?.fileSize ?? 0)
+            let relative = url.resolvingSymlinksInPath().path
+                .replacingOccurrences(of: base, with: "")
+            if url.lastPathComponent.lowercased() == "config.json" {
+                files.append(.init(relativePath: relative, kind: .config))
+            } else if userTranslationPaths.contains(where: {
+                // Le chemin du registre porte le mod en tête, celui de la
+                // sauvegarde non : on apparie sur un **segment** complet, sinon
+                // `fr.json` d'un mod vaudrait pour celui d'un autre.
+                $0 == relative || $0.hasSuffix("/" + relative)
+            }) {
+                files.append(.init(relativePath: relative, kind: .translation))
+            }
+        }
+        return (bytes, files)
+    }
+
+    /// Ce que le mod porte aujourd'hui, limité aux chemins qui nous intéressent.
+    /// `presentFiles` vaut `nil` quand le dossier du mod n'existe plus — actif ou
+    /// en pause, les deux formes sont cherchées.
+    private static func installedState(of folderName: String, modsRoot: String,
+                                       userFiles: [MaintenanceInventory.UserFile])
+    -> MaintenanceInventory.InstalledState {
+        let fm = FileManager.default
+        var current = modsRoot
+        for component in folderName.components(separatedBy: "/") {
+            let plain = (current as NSString).appendingPathComponent(component)
+            let dotted = (current as NSString).appendingPathComponent("." + component)
+            if fm.fileExists(atPath: plain) { current = plain }
+            else if fm.fileExists(atPath: dotted) { current = dotted }
+            else { return .init(presentFiles: nil) }
+        }
+        let present = userFiles.filter {
+            fm.fileExists(atPath: (current as NSString).appendingPathComponent($0.relativePath))
+        }
+        return .init(presentFiles: Set(present.map(\.relativePath)))
     }
 }
 

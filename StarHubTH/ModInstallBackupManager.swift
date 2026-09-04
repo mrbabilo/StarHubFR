@@ -474,7 +474,12 @@ public class ModInstallBackupManager {
     /// main ne doit jamais faire remonter la suppression jusqu'à `backups/`.
     /// Le suffixe UUID garantit par ailleurs qu'un dossier horodaté n'abrite
     /// qu'une sauvegarde : y remonter ne peut pas emporter celle d'à côté.
-    private func backupDirectory(of backup: ModInstallBackup) -> URL {
+    ///
+    /// Public pour l'inventaire d'entretien (X25) : la passe de lecture et les
+    /// actions de purge nomment les sessions par la même règle que celle qui
+    /// les supprime — une seconde formule, fût-elle plus simple, référencerait
+    /// mal les dossiers qu'elle prétend décrire.
+    public func backupDirectory(of backup: ModInstallBackup) -> URL {
         let stored = URL(fileURLWithPath: backup.backupPath).standardizedFileURL
         let fallback = stored.deletingLastPathComponent()
         let base = backupsDirPath.standardizedFileURL.path

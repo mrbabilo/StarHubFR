@@ -145,4 +145,44 @@ public enum MaintenanceInventory {
                                            installedFolders: Set<String>) -> Set<String> {
         Set(keys.filter { !$0.isEmpty && !installedFolders.contains($0) })
     }
+
+    /// L'inventaire complet, tel que l'écran le lit.
+    public struct Report: Equatable, Sendable {
+        public let backups: [BackupEntry]
+        /// Par `BackupEntry.id`.
+        public let protections: [String: Protection]
+        public let configBackupCount: Int
+        public let configBackupBytes: Int64
+        public let orphanSessions: Set<String>
+        public let stalePreferenceKeys: Set<String>
+
+        public init(backups: [BackupEntry], protections: [String: Protection],
+                    configBackupCount: Int, configBackupBytes: Int64,
+                    orphanSessions: Set<String>, stalePreferenceKeys: Set<String>) {
+            self.backups = backups
+            self.protections = protections
+            self.configBackupCount = configBackupCount
+            self.configBackupBytes = configBackupBytes
+            self.orphanSessions = orphanSessions
+            self.stalePreferenceKeys = stalePreferenceKeys
+        }
+
+        public var backupBytes: Int64 { backups.reduce(0) { $0 + $1.sizeBytes } }
+        public var totalBytes: Int64 { backupBytes + configBackupBytes }
+        public var protectedCount: Int {
+            protections.values.filter { $0 != .none }.count
+        }
+        public var isEmpty: Bool {
+            backups.isEmpty && configBackupCount == 0
+                && orphanSessions.isEmpty && stalePreferenceKeys.isEmpty
+        }
+
+        /// Le gain d'un cran, par le **même** chemin que la purge : un gain
+        /// affiché qui divergerait de ce qui part serait un mensonge.
+        public func freedBytes(keepPerMod: Int) -> Int64 {
+            MaintenanceInventory.plan(keepPerMod: keepPerMod,
+                                      entries: backups,
+                                      protections: protections).freedBytes
+        }
+    }
 }
