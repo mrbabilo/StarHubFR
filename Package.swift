@@ -91,6 +91,7 @@ let package = Package(
                 "Models/ModFolderCollision.swift",
                 "Models/ModVersionAnchorStore.swift",
                 "Models/InstalledModRegistry.swift",
+                "SmapiUpdateClient.swift",
                 "Models/SmapiUpdateRequest.swift",
                 "Models/SmapiUpdateResponse.swift",
                 "Models/ManifestVersionReader.swift",
@@ -556,6 +557,11 @@ let package = Package(
             name: "VersionCompareTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/VersionCompareTests"
+        ),
+        .testTarget(
+            name: "SmapiUpdateClientTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/SmapiUpdateClientTests"
         ),
         .testTarget(
             name: "SmapiUpdateRequestTests",

@@ -24,6 +24,24 @@ final class SmapiUpdateClient {
         case decoding(String)
     }
 
+    /// Ce qu'une vérification a **réellement couvert**.
+    ///
+    /// Rendre les seuls verdicts obtenus ne suffit pas : le premier lot en
+    /// échec arrête la boucle, les suivants ne partent jamais, et un succès nu
+    /// est indistinguable d'une passe complète. L'appelant y posait alors
+    /// l'horodatage de dernier succès, qui coupe la vérification automatique
+    /// pendant douze heures (`UpdateCheckPolicy`) : sur les huit lots du parc
+    /// de référence, un 503 au troisième laissait jusqu'à 795 mods jamais
+    /// interrogés, sans rien au journal et sans nouvelle tentative.
+    struct Outcome {
+        let mods: [SmapiUpdateResponse.Mod]
+        /// Lots effectivement envoyés **et** revenus.
+        let batchesCompleted: Int
+        let batchesTotal: Int
+        /// Un parc vide (zéro lot) est complet : il n'y a rien à réessayer.
+        var isComplete: Bool { batchesCompleted >= batchesTotal }
+    }
+
     init(session: URLSession = .shared) {
         self.session = session
     }
@@ -34,16 +52,19 @@ final class SmapiUpdateClient {
     func fetch(entries: [SmapiUpdateRequest.Entry],
                gameVersion: String,
                progress: ((Int, Int) -> Void)? = nil,
-               completion: @escaping (Result<[SmapiUpdateResponse.Mod], Failure>) -> Void) {
+               completion: @escaping (Result<Outcome, Failure>) -> Void) {
         let batches = SmapiUpdateRequest.batches(entries, size: batchSize)
         guard !batches.isEmpty else {
-            Task { @MainActor in completion(.success([])) }
+            Task { @MainActor in
+                completion(.success(Outcome(mods: [], batchesCompleted: 0, batchesTotal: 0)))
+            }
             return
         }
 
         Task {
             var collected: [SmapiUpdateResponse.Mod] = []
             var failure: Failure?
+            var completedBatches = 0
 
             // Les lots partent en série : la charge est déjà groupée, et une
             // rafale parallèle sur une API publique gratuite ne gagnerait que
@@ -64,15 +85,25 @@ final class SmapiUpdateClient {
                     failure = .transport(error.localizedDescription)
                     break
                 }
-                let done = index + 1
+                completedBatches = index + 1
+                // `let` local : `completedBatches` est un `var` capturé, ce
+                // qu'une closure concurrente ne peut pas emporter.
+                let done = completedBatches
                 await MainActor.run { progress?(done, batches.count) }
             }
 
             // Un lot en échec après des lots réussis rend quand même ce qui a
             // abouti : perdre 800 verdicts parce que le dernier lot a échoué
             // serait le défaut qu'on vient de corriger, sous une autre forme.
-            let outcome: Result<[SmapiUpdateResponse.Mod], Failure> =
-                (failure != nil && collected.isEmpty) ? .failure(failure!) : .success(collected)
+            // Mais la passe **dit** qu'elle est amputée : `Outcome.isComplete`
+            // est ce qui permet à l'appelant de ne pas la prendre pour un
+            // passage réussi du parc entier.
+            let outcome: Result<Outcome, Failure> =
+                (failure != nil && collected.isEmpty)
+                ? .failure(failure!)
+                : .success(Outcome(mods: collected,
+                                   batchesCompleted: completedBatches,
+                                   batchesTotal: batches.count))
             await MainActor.run { completion(outcome) }
         }
     }

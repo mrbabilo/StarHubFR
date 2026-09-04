@@ -4369,10 +4369,26 @@ class StarHubTHViewModel: ObservableObject {
                          level: .warning)
             }
             switch result {
-            case .success(let mods)?:
-                self.applySmapiResults(mods, entries: entries, folders: folders)
+            case .success(let outcome)?:
+                self.applySmapiResults(outcome.mods, entries: entries, folders: folders)
                 self.compatibilitySource = .live
-                NexusUpdateChecker.shared.recordSuccessfulCheck()
+                // Une passe amputée n'est pas un passage réussi du parc. Le
+                // premier lot en échec arrête la boucle : les suivants ne
+                // partent jamais, et enregistrer un succès couperait la
+                // vérification automatique pendant douze heures
+                // (`UpdateCheckPolicy`) pour des mods qui n'ont pas été
+                // interrogés une seule fois. Ils repartent bien en reprise
+                // Nexus faute de verdict — mais aux dépens du quota Nexus, là
+                // où smapi.io est gratuit et sans quota.
+                if outcome.isComplete {
+                    NexusUpdateChecker.shared.recordSuccessfulCheck()
+                } else {
+                    self.log("[MAJ] Passe smapi.io incomplète : \(outcome.batchesCompleted) "
+                             + "lot(s) sur \(outcome.batchesTotal) — les mods des lots restants "
+                             + "gardent leurs lignes précédentes, et la prochaine vérification "
+                             + "automatique repartira au lieu d'attendre 12 h",
+                             level: .warning)
+                }
             case .failure(let failure)?:
                 if case .http(429) = failure {
                     self.nexusCheckError = "rate_limited"
@@ -4398,7 +4414,7 @@ class StarHubTHViewModel: ObservableObject {
 
     /// Tampon du résultat smapi.io en attendant que `PathoschildCompatibilityList.fetch`
     /// ait posé son cache. `nil` tant que la complétion smapi.io n'a pas eu lieu.
-    private var pendingSmapiResult: Result<[SmapiUpdateResponse.Mod], SmapiUpdateClient.Failure>?
+    private var pendingSmapiResult: Result<SmapiUpdateClient.Outcome, SmapiUpdateClient.Failure>?
     /// Tampon des `entries` envoyées, pour la même raison.
     private var pendingSmapiEntries: [SmapiUpdateRequest.Entry]?
     /// Tampon des `folders` (NexusIdLearning), pour la même raison.

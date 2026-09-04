@@ -724,6 +724,34 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       couvre aujourd'hui. **Vérifié : elles ne divergent pas** — toutes écrivent
       `?? []`. C'est donc un constat de forme, pas un bug ; il vaut surtout pour ce
       qu'il annonce, un `ModItem.components` manquant. · **S**
+- [x] **X46** ✅ *(corrigé le 2026-09-04)* — **Une vérification amputée était
+      enregistrée comme un passage réussi du parc entier.** `SmapiUpdateClient.fetch`
+      envoie les mods par lots de 150 — **huit** pour le parc de référence — et
+      s'arrête au premier lot en échec (`break`) : les suivants ne partent jamais.
+      Elle rendait pourtant `.success(collected)`, indistinguable d'une passe
+      complète, et le ViewModel y appelait `recordSuccessfulCheck()` — l'horodatage
+      que `UpdateCheckPolicy` lit pour **couper la vérification automatique pendant
+      12 h**. Un 503 au troisième lot laissait donc jusqu'à **795 mods** jamais
+      interrogés, sans une ligne au journal et sans nouvelle tentative avant le
+      lendemain. Ce qui n'était **pas** cassé, et qui a été vérifié : les lignes de
+      mise à jour et les verdicts de compatibilité sont bien **fusionnés** et non
+      remplacés (`unanswered`, et la boucle sur les seuls `mods` répondus) — le trap
+      « une passe partielle fusionne avec le cache » est respecté ; et les mods sans
+      réponse partent en reprise Nexus, donc ils ne sont pas muets — mais aux dépens
+      du **quota Nexus**, là où smapi.io est gratuit et sans quota. `fetch` rend
+      désormais un `Outcome` qui porte `batchesCompleted`/`batchesTotal` ; le TTL
+      n'est posé que sur une passe complète, et l'incomplétude est journalisée.
+      `SmapiUpdateClient.swift` est entré dans `Package.swift` à cette occasion — il
+      n'avait aucune dépendance hors Core — et quatre tests l'éprouvent par un
+      `URLProtocol` simulé. · **S**
+- [ ] **X47** — **Le `break` du premier lot en échec coûte les lots suivants.** Un
+      503 ponctuel sur le lot 3 de 8 renonce aux lots 4 à 8, que rien n'incriminait :
+      795 mods repartent en reprise Nexus (quota payant) là où un simple passage au
+      lot suivant les aurait couverts gratuitement. Le fichier assume ce choix (« ne
+      pas cogner une API publique gratuite »), et il protège d'une rafale d'erreurs.
+      Redessiner la politique — continuer, ou réessayer le lot une fois avec un
+      retrait — est une décision de conception, pas un correctif d'audit. X46 rend
+      au moins le fait visible et réessayable. · **S**
 - [x] **B1-T1** ✅ *(livré le 2026-08-01)* — Boutons **Activer/Désactiver** et
       **Supprimer** sur la fiche mod (parité avec la liste, mêmes confirmations).
       Absents pour un composant de pack, comme dans la liste. La fiche se referme
