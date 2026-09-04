@@ -752,6 +752,31 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       Redessiner la politique — continuer, ou réessayer le lot une fois avec un
       retrait — est une décision de conception, pas un correctif d'audit. X46 rend
       au moins le fait visible et réessayable. · **S**
+- [x] **X48** ✅ *(corrigé le 2026-09-04)* — **Une branche du lancement pouvait
+      laisser l'app sans aucune fenêtre.** `applicationWillFinishLaunching` pose un
+      observateur qui masque la fenêtre principale **à chaque fois** qu'elle devient
+      visible ; seul `LaunchSplashController.finish()` le détache et la révèle. Or
+      le `.onAppear` de `MainView` a deux branches : si `isLaunching` est vrai il
+      lève le splash (et le `.onChange` appellera `finish()`), sinon il ne faisait
+      que délivrer les liens `nxm://` en attente — sans `finish()`, et le `.onChange`
+      ne se déclenchera jamais puisque la valeur ne change plus. Fenêtre masquée à
+      vie, et `applicationShouldTerminateAfterLastWindowClosed` à `false` empêche
+      l'app de se refermer. **Inatteignable aujourd'hui** : `isLaunching` ne retombe
+      qu'après un `DispatchQueue.global` puis un `asyncAfter(0.15)`, bien après ce
+      `.onAppear` — la branche tenait donc à un délai de 150 ms. `finish()` est
+      idempotent et documenté sûr avant tout `show()` : l'appeler là coûte une ligne
+      et retire la dépendance au timing. · **S**
+- [ ] **X49** — **Deux recherches Nexus lancées coup sur coup peuvent revenir dans
+      le désordre.** `searchDiscovery(name:)` écrase `discoverySearch` sans vérifier
+      que le terme demandé est encore celui qu'on attend. Le voisin immédiat,
+      `loadMoreDiscoverySearch`, porte pourtant la garde (`now.term == current.term,
+      now.loaded == current.loaded`) — une règle présente d'un côté, absente de
+      l'autre. Atténué par le déclenchement : la recherche part sur Entrée ou sur le
+      bouton loupe, pas à chaque frappe, et un champ vidé ne relance rien. Il faut
+      donc deux soumissions rapprochées, et le résultat affiché reste cohérent avec
+      l'étiquette qu'il porte — simplement pas avec le dernier terme tapé. Le
+      correctif demande un compteur d'époque dans le ViewModel, non testable ici : à
+      faire en même temps qu'on touchera cet écran. · **S**
 - [x] **B1-T1** ✅ *(livré le 2026-08-01)* — Boutons **Activer/Désactiver** et
       **Supprimer** sur la fiche mod (parité avec la liste, mêmes confirmations).
       Absents pour un composant de pack, comme dans la liste. La fiche se referme

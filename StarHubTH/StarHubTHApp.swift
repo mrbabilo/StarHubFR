@@ -119,8 +119,24 @@ struct StarHubTHApp: App {
                         LaunchSplashController.shared.show(vm: vm)
                     } else {
                         // Lancement déjà terminé quand la vue paraît : le
-                        // `.onChange` ci-dessous ne se déclenchera jamais, et
-                        // un lien en attente resterait sans réponse.
+                        // `.onChange` ci-dessous ne se déclenchera jamais.
+                        //
+                        // `finish()` d'abord, et pas seulement la livraison des
+                        // liens : c'est lui qui détache l'observateur posé par
+                        // `claimMainWindowBeforeItAppears`, lequel masque la
+                        // fenêtre principale à chaque fois qu'elle devient
+                        // visible. Sans lui, ce chemin laisse une app sans
+                        // aucune fenêtre — et que
+                        // `applicationShouldTerminateAfterLastWindowClosed`
+                        // empêche de se refermer d'elle-même.
+                        //
+                        // Aujourd'hui inatteignable : `isLaunching` ne retombe
+                        // qu'après un `DispatchQueue.global` suivi d'un
+                        // `asyncAfter(0.15)`, bien après ce `.onAppear`. La
+                        // branche ne dépend plus de ce délai pour être sûre.
+                        // `finish()` est idempotent et documenté comme sûr
+                        // avant tout `show()`.
+                        LaunchSplashController.shared.finish()
                         appDelegate.deliverPendingURLs()
                     }
                 }
