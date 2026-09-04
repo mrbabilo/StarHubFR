@@ -60,6 +60,24 @@ public enum ModFolderCollision {
         return destination.lowercased() == toggled.lowercased()
     }
 
+    /// Le nom sous lequel écarter un dossier qui occupe la destination d'une
+    /// bascule, avant de tenter le renommage.
+    ///
+    /// **Le point de tête n'est pas décoratif.** Le dossier écarté reste dans
+    /// `Mods/` le temps du renommage — et, si le nettoyage échoue ou que l'app
+    /// s'arrête entre-temps, bien plus longtemps. Sans point, SMAPI le charge :
+    /// il déclare alors le même `UniqueID` que le dossier qui vient de prendre
+    /// sa place, et le jeu signale un doublon. Les deux chemins de bascule
+    /// n'écrivaient pas la même chose ici — l'un préfixait, l'autre non.
+    ///
+    /// Le suffixe aléatoire évite qu'un second écart percute le premier.
+    public static func asideName(for physicalFolderName: String) -> String {
+        let dotted = physicalFolderName.hasPrefix(".")
+            ? physicalFolderName
+            : "." + physicalFolderName
+        return "\(dotted).stale_\(UUID().uuidString)"
+    }
+
     /// Un mod tel qu'il revendique son dossier.
     public struct Claim: Equatable, Sendable {
         public let folderName: String

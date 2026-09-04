@@ -22,10 +22,14 @@ private func makeMod(_ folderName: String,
             isGroup: children != nil)
 }
 
-/// Ce que `FileManager.moveItem` fait vraiment : il **échoue** si la
-/// destination existe — il n'écrase pas. Le simulateur applique donc les
-/// déplacements dans l'ordre du plan, en refusant ceux dont la destination est
-/// occupée par un autre dossier au moment où ils passent.
+/// Ce que l'exécutant fait vraiment : `moveItem` **échoue** si la destination
+/// existe — il n'écrase pas —, et la garde de collision ne met de côté le
+/// dossier trouvé que s'il est un résidu **du mod qu'on bascule**. Deux
+/// identités distinctes sur un même nom logique se refusent donc l'une
+/// l'autre. Le simulateur applique les déplacements dans l'ordre du plan et
+/// refuse ceux dont la destination est occupée : c'est exactement ce que
+/// produisent les parcs engendrés ici, où deux dossiers homonymes portent
+/// toujours des identifiants différents.
 private func simulate(_ moves: [ProfileApplyPlan.Move],
                       on mods: [ModItem]) -> (mods: [ModItem], refused: [ProfileApplyPlan.Move]) {
     var state = mods
@@ -132,6 +136,28 @@ private func simulate(_ moves: [ProfileApplyPlan.Move],
 
         #expect(move?.folderName == "Alpha")
         #expect(move?.modName == "Alpha")
+    }
+
+    /// Et l'`UniqueID`, sans quoi l'exécutant ne peut pas distinguer un résidu
+    /// de sa propre bascule du dossier d'un **autre** mod portant le même nom
+    /// logique — la garde qui empêche d'effacer le voisin.
+    @Test func eachMoveCarriesTheUniqueIdThatArbitratesACollision() {
+        let mods = [makeMod("Seaside", uniqueId: "witchtopia.seaside", enabled: true)]
+        let profile = ModProfile(name: "Solo", enabledModIds: [])
+
+        #expect(ProfileApplyPlan.moves(applying: profile, to: mods).first?.uniqueId
+                == "witchtopia.seaside")
+    }
+
+    /// Un pack n'a pas d'identifiant propre : c'est son en-tête qui se
+    /// renomme, et l'arbitrage de collision se fait alors sans identité — la
+    /// règle refuse plutôt que de deviner (`isStaleDuplicate`).
+    @Test func aPackCarriesTheEmptyIdentityOfItsHeader() {
+        let child = makeMod("Pack/Composant", uniqueId: "child.mod", enabled: false)
+        let pack = makeMod("Pack", uniqueId: "", enabled: false, children: [child])
+        let profile = ModProfile(name: "Solo", enabledModIds: ["child.mod"])
+
+        #expect(ProfileApplyPlan.moves(applying: profile, to: [pack]).first?.uniqueId == "")
     }
 
     // MARK: - Idempotence (R6)

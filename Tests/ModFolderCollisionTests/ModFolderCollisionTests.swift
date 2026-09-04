@@ -153,6 +153,36 @@ struct FolderCollisionIssueTests {
         #expect(issues([unknown]).first?.actions.isEmpty == true)
     }
 
+    // MARK: - Le dossier mis de côté
+
+    /// Un résidu écarté doit être **préfixé d'un point** : sans lui, SMAPI
+    /// continue de charger un dossier qui n'est plus censé compter — et il
+    /// déclare le même `UniqueID` que celui qui vient de prendre sa place.
+    @Test func theSetAsideFolderIsDotPrefixed() {
+        let aside = ModFolderCollision.asideName(for: "[CP] Seaside Sounds")
+        #expect(aside.hasPrefix(".[CP] Seaside Sounds"))
+    }
+
+    /// Un résidu déjà en pause ne gagne pas un second point.
+    @Test func anAlreadyPausedResidueKeepsASingleDot() {
+        let aside = ModFolderCollision.asideName(for: ".[CP] Seaside Sounds")
+        #expect(aside.hasPrefix(".[CP] Seaside Sounds"))
+        #expect(!aside.hasPrefix("..") )
+    }
+
+    /// Le suffixe rend le nom unique : deux résidus écartés coup sur coup ne
+    /// doivent pas se percuter.
+    @Test func twoSetAsidesNeverCollide() {
+        #expect(ModFolderCollision.asideName(for: "X") != ModFolderCollision.asideName(for: "X"))
+    }
+
+    /// Le nom d'origine reste lisible dans le résidu : c'est ce qui permet à
+    /// un humain de comprendre ce qu'il a sous les yeux dans `Mods/`.
+    @Test func theOriginalNameStaysReadable() {
+        #expect(ModFolderCollision.asideName(for: "MonMod").contains("MonMod"))
+        #expect(ModFolderCollision.asideName(for: "MonMod").contains(".stale_"))
+    }
+
     @Test func noCollisionYieldsNoLine() {
         #expect(issues([]).isEmpty)
     }

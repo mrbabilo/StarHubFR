@@ -3612,57 +3612,15 @@ class StarHubTHViewModel: ObservableObject {
             }
 
             do {
-                // A pre-existing duplicate at destPath is set aside rather than
-                // deleted outright, so a failed moveItem below can't leave the
-                // mod lost from both locations. On a same-parent rename a
-                // collision means a pre-existing `.X` (e.g. from a crashed
-                // prior toggle) — keep the defensive set-aside + rollback.
-                var staleDuplicateAside: String? = nil
-                if fm.fileExists(atPath: destPath) {
-                    // ⚠️ Une collision à destination n'est PAS forcément un
-                    // résidu de bascule plantée : `folderName` est logique, et
-                    // deux mods différents peuvent le partager — `X` actif et
-                    // `.X` en pause. Mesuré sur le parc de l'auteur :
-                    // `[CP] Seaside Sounds` (witchtopia) et son homonyme en
-                    // pause (Liana) sont deux mods de deux auteurs. Déplacer le
-                    // dossier d'autrui lui ferait perdre favori, note, config
-                    // de profil et identifiant Nexus, sans un mot.
-                    let destinationId = Self.uniqueId(ofModAt: destPath)
-                    guard ModFolderCollision.isStaleDuplicate(destinationUniqueId: destinationId,
-                                                              toggling: m.uniqueId) else {
-                        log("Bascule refusée pour \(m.name) : « \(dstName) » est déjà le dossier "
-                            + "d'un autre mod (\(destinationId ?? "?")). Renommer l'un des deux "
-                            + "dossiers pour les distinguer.", level: .error)
-                        continue
-                    }
-                    // Le dossier écarté est **préfixé d'un point** : sans lui,
-                    // SMAPI continuerait de charger le résidu, qui n'est plus
-                    // censé compter.
-                    let parent = (destPath as NSString).deletingLastPathComponent
-                    let leaf = (destPath as NSString).lastPathComponent
-                    let asideLeaf = leaf.hasPrefix(".") ? leaf : "." + leaf
-                    let asidePath = (parent as NSString)
-                        .appendingPathComponent("\(asideLeaf).stale_\(UUID().uuidString)")
-                    try fm.moveItem(atPath: destPath, toPath: asidePath)
-                    staleDuplicateAside = asidePath
-                }
-
-                do {
-                    try fm.moveItem(atPath: srcPath, toPath: destPath)
-                } catch {
-                    if let asidePath = staleDuplicateAside {
-                        do {
-                            try fm.moveItem(atPath: asidePath, toPath: destPath)
-                        } catch {
-                            log("CRITICAL: toggle rollback failed — mod still in \(asidePath) (could not move back to \(destPath): \(error))", level: .error)
-                        }
-                    }
-                    throw error
-                }
-
-                if let asidePath = staleDuplicateAside {
-                    try? fm.removeItem(atPath: asidePath)
-                }
+                // ⚠️ Une collision à destination n'est PAS forcément un résidu
+                // de bascule plantée : `folderName` est logique, et deux mods
+                // différents peuvent le partager — `X` actif et `.X` en pause.
+                // La règle, le dossier écarté et le retour arrière vivent dans
+                // `renameModFolder`, partagé avec la bascule en masse et
+                // l'application d'un profil.
+                try renameModFolder(from: srcPath, to: destPath,
+                                    destinationName: dstName,
+                                    uniqueId: m.uniqueId, fm: fm)
 
                 anyMoved = true
                 // Le poids mesuré suit le renommement : la clé physique
@@ -9060,7 +9018,14 @@ for mod in mods {
                 let src = (modsPath as NSString).appendingPathComponent(move.source)
                 let dst = (modsPath as NSString).appendingPathComponent(move.destination)
                 do {
-                    try fm.moveItem(atPath: src, toPath: dst)
+                    // Même garde que les deux autres chemins de bascule : le
+                    // dossier trouvé à destination est un résidu de ce mod-là,
+                    // ou celui d'un **autre** mod de même nom logique — et
+                    // dans ce second cas le refus dit quoi faire, là où
+                    // `moveItem` ne rendait que « le fichier existe déjà ».
+                    try self.renameModFolder(from: src, to: dst,
+                                             destinationName: move.destination,
+                                             uniqueId: move.uniqueId, fm: fm)
                     return true
                 } catch {
                     failures.append(MoveFailure(modName: move.modName,
@@ -9253,13 +9218,14 @@ for mod in mods {
         return headline + "\n" + shown + extra
     }
 
-    /// Pourquoi une bascule en masse peut refuser un mod.
+    /// Pourquoi une bascule peut refuser un mod — les trois chemins
+    /// (unitaire, en masse, application d'un profil) disent la même chose.
     ///
     /// `LocalizedError` parce que le bilan de fin ne lit que
     /// `error.localizedDescription` : un `NSError` nu y aurait affiché un code.
     /// Le nom du mod et le sens de la bascule sont déjà préfixés par la ligne
     /// de journal, la phrase ne les répète pas.
-    private enum BulkToggleRefusal: LocalizedError {
+    private enum FolderToggleRefusal: LocalizedError {
         /// Le dossier de destination appartient à un **autre** mod. Le
         /// déplacer, puis le supprimer, effacerait un mod que l'utilisateur
         /// n'a pas désigné — voir `ModFolderCollision`.
@@ -9273,6 +9239,60 @@ for mod in mods {
                     + "les distinguer."
             }
         }
+    }
+
+    /// Renomme un dossier de mod dans `Mods/`, en traitant le cas où la
+    /// destination est déjà occupée.
+    ///
+    /// La règle vivait en **deux exemplaires** (bascule unitaire, bascule en
+    /// masse) et manquait au **troisième** chemin, l'application d'un profil,
+    /// qui se contentait d'échouer avec le message brut du système. Les deux
+    /// exemplaires divergeaient déjà : l'un préfixait d'un point le dossier
+    /// écarté, l'autre non — cf. `ModFolderCollision.asideName`.
+    ///
+    /// - Throws: `FolderToggleRefusal.folderClaimedByAnotherMod` quand la
+    ///   destination appartient à un **autre** mod (le déplacer lui ferait
+    ///   perdre favori, note, config de profil et identifiant Nexus, sans un
+    ///   mot) ; l'erreur du système de fichiers sinon.
+    private func renameModFolder(from srcPath: String, to dstPath: String,
+                                 destinationName: String, uniqueId: String,
+                                 fm: FileManager) throws {
+        // Le résidu est **écarté**, pas supprimé : un renommage en échec juste
+        // après ne doit pas laisser le mod perdu des deux côtés.
+        var aside: String? = nil
+        if fm.fileExists(atPath: dstPath) {
+            let destinationId = Self.uniqueId(ofModAt: dstPath)
+            guard ModFolderCollision.isStaleDuplicate(destinationUniqueId: destinationId,
+                                                      toggling: uniqueId) else {
+                throw FolderToggleRefusal.folderClaimedByAnotherMod(
+                    destination: destinationName,
+                    otherUniqueId: destinationId ?? "?")
+            }
+            let parent = (dstPath as NSString).deletingLastPathComponent
+            let leaf = (dstPath as NSString).lastPathComponent
+            let asidePath = (parent as NSString)
+                .appendingPathComponent(ModFolderCollision.asideName(for: leaf))
+            try fm.moveItem(atPath: dstPath, toPath: asidePath)
+            aside = asidePath
+        }
+
+        do {
+            try fm.moveItem(atPath: srcPath, toPath: dstPath)
+        } catch {
+            // Remettre le résidu en place : sans ça, le mod n'est plus nulle
+            // part sous un nom que l'app sache retrouver.
+            if let aside {
+                do {
+                    try fm.moveItem(atPath: aside, toPath: dstPath)
+                } catch {
+                    self.log("CRITICAL: toggle rollback failed — mod still in \(aside) "
+                             + "(could not move back to \(dstPath): \(error))", level: .error)
+                }
+            }
+            throw error
+        }
+
+        if let aside { try? fm.removeItem(atPath: aside) }
     }
 
     // MARK: - Règle de cadrage de la liste des mods
@@ -9590,50 +9610,20 @@ for mod in mods {
                     // sur « Tout activer » effaçait celui d'à côté : ni
                     // corbeille, ni journal, ni retour possible.
                     //
-                    // C'est la règle que `performToggle` applique déjà, et
-                    // qu'elle était seule à appliquer : `ModFolderCollision`
-                    // existe pour ça (« ce fichier se borne à empêcher le dégât
-                    // irréversible ») et ce second chemin de bascule ne l'avait
-                    // jamais appelée.
+                    // La règle vit dans `renameModFolder`, partagé par les
+                    // trois chemins de bascule : `ModFolderCollision` existe
+                    // pour ça (« ce fichier se borne à empêcher le dégât
+                    // irréversible »), et deux copies de la même précaution
+                    // avaient déjà divergé sur le nom du dossier écarté.
                     //
                     // Le refus est **jeté**, pas sauté : il rejoint `failures`,
                     // donc le bilan de fin le compte et le nomme. Un `continue`
                     // aurait laissé « 42 mods activés » sur une bascule
                     // silencieusement déclinée.
-                    var staleDuplicateAside: String? = nil
-                    if fm.fileExists(atPath: dst) {
-                        let destinationId = Self.uniqueId(ofModAt: dst)
-                        guard ModFolderCollision.isStaleDuplicate(
-                            destinationUniqueId: destinationId,
-                            toggling: mod.uniqueId) else {
-                            throw BulkToggleRefusal.folderClaimedByAnotherMod(
-                                destination: dstName,
-                                otherUniqueId: destinationId ?? "?")
-                        }
-                        let asidePath = dst + ".stale_\(UUID().uuidString)"
-                        try fm.moveItem(atPath: dst, toPath: asidePath)
-                        staleDuplicateAside = asidePath
-                    }
-
-                    do {
-                        try fm.moveItem(atPath: src, toPath: dst)
-                        didMove = true
-                    } catch {
-                        // Restore the old destination so the mod isn't lost.
-                        if let asidePath = staleDuplicateAside {
-                            do {
-                                try fm.moveItem(atPath: asidePath, toPath: dst)
-                            } catch {
-                                self.log("CRITICAL: toggle rollback failed — mod still in \(asidePath) (could not move back to \(dst): \(error))", level: .error)
-                            }
-                        }
-                        throw error
-                    }
-
-                    // Main move succeeded — clean up the stale duplicate.
-                    if let asidePath = staleDuplicateAside {
-                        try? fm.removeItem(atPath: asidePath)
-                    }
+                    try self.renameModFolder(from: src, to: dst,
+                                             destinationName: dstName,
+                                             uniqueId: mod.uniqueId, fm: fm)
+                    didMove = true
                 } catch {
                     failures.append(MoveFailure(modName: mod.name, direction: direction, error: error))
                 }

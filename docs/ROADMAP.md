@@ -151,19 +151,19 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       aujourd'hui : à faire quand l'écran d'alertes gagnera une ligne
       « à savoir ». · **S**
 - [ ] **X60** — **Un changement de profil ne peut pas échanger deux noms de
-      dossier, et ne le dit pas.** `X` actif et `.X` en pause sont deux mods
-      différents (cas réel du parc : les deux `[CP] Seaside Sounds`, de
-      witchtopia et de Liana). Un profil qui réclame celui en pause et pas
-      l'actif demande un **échange** de noms : `moveItem` refuse les deux
-      déplacements — il n'écrase pas, rien n'est perdu — et aucun ordre ne les
-      débloquerait, c'est un cycle à deux. Le profil reste marqué « appliqué
-      incomplètement » pour toujours, et l'alerte de fin ne dit que le message
-      brut du système (« le fichier existe déjà »). La bascule en masse, elle,
-      nomme déjà le coupable et dit quoi faire (`BulkToggleRefusal`,
-      `ModFolderCollision`) : c'est ce message-là qui manque ici. Le correctif
-      complet — renommer par un nom temporaire pour dénouer le cycle — écrit
-      trois fois là où on écrivait une, sur le chemin le plus fréquent : à
-      instruire avant d'engager. Trouvé le 2026-09-04 par la propriété
+      dossier.** `X` actif et `.X` en pause sont deux mods différents (cas réel
+      du parc : les deux `[CP] Seaside Sounds`, de witchtopia et de Liana). Un
+      profil qui réclame celui en pause et pas l'actif demande un **échange** de
+      noms : les deux déplacements se refusent l'un l'autre, et aucun ordre ne
+      les débloquerait — c'est un cycle à deux. Le profil reste marqué « appliqué
+      incomplètement » pour toujours.
+      ▸ **Ce qui est fait le 2026-09-04** : le refus est maintenant *expliqué*.
+      L'application d'un profil passe par `renameModFolder`, partagé avec les
+      deux autres chemins de bascule : elle nomme le mod qui occupe le dossier et
+      dit quoi faire, là où `moveItem` ne rendait que « le fichier existe déjà ».
+      ▸ **Ce qui reste** : dénouer le cycle, en renommant par un nom temporaire.
+      Trois écritures là où on en faisait une, sur le chemin le plus fréquent —
+      à instruire avant d'engager. Trouvé le 2026-09-04 par la propriété
       d'idempotence de **R6** (86 parcs engendrés sur 200 en portent un). · **S**
 
 ---
@@ -1357,7 +1357,7 @@ corrompre ou faire disparaître quelque chose sans le dire ?* — et non à
 | ~~7~~ | ~~**X54**~~ | ✅ **Corrigé le 2026-09-04** — deux clés neuves : l'ajout nomme le mod, l'import dit combien de favoris sont entrés. Voir l'archive |
 | ~~8~~ | ~~**X49**~~ | ✅ **Corrigé le 2026-09-04** — jeton d'époque (`RequestEpoch`, Core, 6 tests) sur la recherche **et** sur la fiche, second exemplaire trouvé en câblant. Voir l'archive |
 | 9 | **F6-T4** | Une ancre « je l'ai déjà » ratée quand le manifeste et l'ancre diffèrent par la casse. ⚠️ **Réévalué le 2026-09-04 : ce n'est pas un S.** Corriger la seule lecture créerait la divergence que l'item décrit ; le faire d'un bloc demande de normaliser la clé à l'écriture **et** de migrer les ancres déjà posées. Aucun observable sur le parc — ne pas le reprendre comme « petit correctif » |
-| 10 | **X58**, **X60**, **C2-T4**, **X47** | Ce qu'un mod garde en silence (avertissements filtrés par plateforme), l'échange de noms de dossier qu'un profil ne peut pas faire et n'explique pas, les clés de config perdues à une mise à jour, les lots smapi.io abandonnés après un échec |
+| 10 | **X58**, **X60** *(à moitié fait)*, **C2-T4**, **X47** | Ce qu'un mod garde en silence (avertissements filtrés par plateforme), l'échange de noms de dossier qu'un profil ne peut pas faire et n'explique pas, les clés de config perdues à une mise à jour, les lots smapi.io abandonnés après un échec |
 
 **P3 — latent : la condition est vraie, zéro exemplaire sur le parc**
 
@@ -1638,6 +1638,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **X54** | 2026-09-04 | Le journal annonçait « profil créé » sur un ajout de mod et sur un import de favoris |
 | **X31** | 2026-09-04 | La version de SMAPI affichée restait celle que l'app avait installée, même après une mise à jour faite ailleurs |
 | **X49** | 2026-09-04 | Deux recherches Nexus rapprochées pouvaient revenir dans le désordre, et une réponse tardive ressuscitait une liste fermée |
+| **X61** | 2026-09-04 | Le résidu écarté par la bascule en masse restait chargé par SMAPI, faute du point de tête que l'autre chemin posait |
 | **B1-T1** | 2026-08-01 | Boutons Activer/Désactiver et Supprimer sur la fiche mod (parité avec la liste, mêmes confirmations). Absents pour un… |
 | **B1-T2** | 2026-08-01 | Tri, filtres, catégorie, page et recherche portés par ModListFilters dans le ViewModel. La remise à la page 1 est por… |
 

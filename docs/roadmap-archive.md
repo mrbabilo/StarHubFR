@@ -722,6 +722,31 @@ répond. L'ordre et les titres de section sont ceux de la roadmap.
       exact. La garde de collision de **X51** est intacte — un refus sur les
       mods cadrés se lit là où il se noyait dans un bilan de huit cents
       déplacements. · **M**
+- [x] **X61** ✅ *(corrigé le 2026-09-04)* — **Deux copies de la même
+      précaution avaient divergé, et la troisième manquait.** Quand une bascule
+      trouve un dossier à la destination, la règle est de l'écarter s'il s'agit
+      d'un résidu du mod qu'on bascule, et de refuser si c'est le dossier d'un
+      **autre** mod (`ModFolderCollision`). Trois chemins renomment des dossiers ;
+      la règle vivait en deux exemplaires, et ils ne disaient pas la même chose.
+      ▸ **La divergence** : la bascule unitaire écarte le résidu sous un nom
+      **préfixé d'un point** — sans lui, SMAPI continue de charger un dossier qui
+      déclare le même `UniqueID` que celui qui vient de prendre sa place. La
+      bascule en masse écartait sous `X.stale_<uuid>`, sans point. Le résidu n'est
+      supprimé qu'après un renommage réussi : si cette suppression échoue, ou si
+      l'app s'arrête entre les deux, le parc garde un dossier chargé en double.
+      ▸ **Le manque** : l'application d'un profil n'appelait pas la règle du tout.
+      Elle ne perdait rien (`moveItem` échoue au lieu d'écraser), mais elle ne
+      savait ni récupérer son propre résidu, ni dire à qui appartenait le dossier
+      qui la bloquait — voir **X60**. ⚠️ *Récupérer* veut dire **supprimer** :
+      une suppression apparaît donc sur un chemin qui n'en faisait aucune. Elle
+      est bornée par `isStaleDuplicate` — le dossier écarté doit déclarer
+      l'identifiant du mod qu'on déplace (ou n'avoir aucun manifeste lisible) —
+      et le retour arrière remet le dossier en place si le renommage échoue.
+      C'est la doctrine que les deux autres chemins appliquaient déjà.
+      ▸ Un seul `renameModFolder` sert désormais les trois, et le nom du dossier
+      écarté est une règle de Core testée (`ModFolderCollision.asideName`,
+      4 tests). Le plan d'application porte l'`UniqueID` de chaque déplacement,
+      sans quoi l'arbitrage était impossible depuis ce chemin. · **S**
 - [x] **X49** ✅ *(corrigé le 2026-09-04)* — **Deux recherches Nexus lancées coup
       sur coup pouvaient revenir dans le désordre.** `searchDiscovery(name:)`
       écrasait `discoverySearch` sans vérifier que le terme demandé était encore

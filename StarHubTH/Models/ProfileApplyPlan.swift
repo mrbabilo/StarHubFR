@@ -29,6 +29,11 @@ enum ProfileApplyPlan {
         let folderName: String
         /// Le nom affiché, pour le journal et l'alerte de fin.
         let modName: String
+        /// L'`UniqueID` du mod qui bouge, vide pour un en-tête de pack. C'est
+        /// lui qui arbitre une collision à destination : un dossier qui s'y
+        /// trouve déjà est un résidu **de ce mod-là**, ou le dossier d'un
+        /// autre mod portant le même nom logique.
+        let uniqueId: String
         let source: String
         let destination: String
         let direction: Direction
@@ -51,6 +56,7 @@ enum ProfileApplyPlan {
         return toDisable.map { mod in
             Move(folderName: mod.folderName,
                  modName: mod.name,
+                 uniqueId: mod.uniqueId,
                  source: mod.physicalFolderName,
                  // Le nom **logique**, jamais le physique : les deux sont
                  // égaux ici (seul un mod actif entre dans cette liste), mais
@@ -61,6 +67,7 @@ enum ProfileApplyPlan {
         } + toEnable.map { mod in
             Move(folderName: mod.folderName,
                  modName: mod.name,
+                 uniqueId: mod.uniqueId,
                  source: mod.physicalFolderName,
                  destination: mod.folderName,
                  direction: .enable)
