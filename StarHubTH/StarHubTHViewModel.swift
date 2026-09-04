@@ -9263,6 +9263,225 @@ for mod in mods {
         }
     }
 
+    // MARK: - Règle de cadrage de la liste des mods
+    //
+    // La règle qui décide quels mods la liste montre — et, depuis X57, ceux
+    // sur lesquels la bascule en masse agit. Elle vivait dans `ModListView` :
+    // « Tout activer » parcourait alors `mods` en entier (949 dossiers sur le
+    // parc de référence), filtré ou non. La liste et la bascule la partagent
+    // désormais au lieu de la recopier — deux pipelines jumeaux divergent à
+    // la première retouche, X45 en compte dix. Formulation de Stardrop
+    // (`c630c11`, 2026-09-01) : « what the user is looking at is what they
+    // act on ». La pagination n'entre pas dans la règle : c'est un artefact
+    // d'affichage, pas une intention — la bascule agit sur tout le résultat
+    // filtré, pas sur la page visible.
+
+    /// Whether `mod` itself satisfies `predicate`, or — for a group — any of
+    /// its children do. Standalone mods just apply the predicate directly.
+    /// The single "does this row match X" test shared by search and the
+    /// issues filter, so the two can't independently drift out of sync (a
+    /// group's own `dependencies`/`uniqueId` are empty, so checking the
+    /// group itself before its children is always safe and often a no-op).
+    func matchesSelfOrAnyChild(_ mod: ModItem, _ predicate: (ModItem) -> Bool) -> Bool {
+        if predicate(mod) { return true }
+        if mod.isGroup, let children = mod.children {
+            return children.contains(where: predicate)
+        }
+        return false
+    }
+
+    /// La même règle que la pastille d'anomalie. Elle ne l'était pas : le
+    /// cadrage ne regardait que les dépendances quand la pastille couvrait
+    /// aussi les erreurs du journal et les manifestes sans identifiant — un
+    /// mod portant une pastille pouvait manquer à l'onglet censé les réunir.
+    /// Mesuré avant de les réunir : sur les versions installées du parc,
+    /// cela n'ajoute qu'une erreur et cinq avertissements.
+    func hasIssues(_ mod: ModItem) -> Bool { anomaly(for: mod) != nil }
+
+    func matchesSearch(_ mod: ModItem, filters: ModListFilters) -> Bool {
+        filters.search.isEmpty || matchesSelfOrAnyChild(mod) {
+            $0.name.localizedCaseInsensitiveContains(filters.search) || $0.uniqueId.localizedCaseInsensitiveContains(filters.search)
+        }
+    }
+
+    func matchesCategory(_ mod: ModItem, filters: ModListFilters) -> Bool {
+        switch filters.category {
+        case .all:
+            return true
+        case .category(let cat):
+            // `category(for:)` already resolves a group to its dominant
+            // child category, so this agrees with the badge shown on the
+            // group's own row by construction.
+            return category(for: mod)?.id == cat.id
+        case .inferredTag(let tag):
+            return category(for: mod) == nil && inferredTagKey(for: mod) == tag
+        case .uncategorized:
+            // Same reasoning: `category(for:)` returns nil for a group
+            // exactly when none of its children have a known category,
+            // matching what its badge (absence) shows.
+            return category(for: mod) == nil && inferredTagKey(for: mod) == "Other"
+        }
+    }
+
+    func matchesConfig(_ mod: ModItem, filters: ModListFilters) -> Bool {
+        !filters.configOnly || matchesSelfOrAnyChild(mod) { $0.hasConfigFile }
+    }
+
+    /// Le favori se marque sur la ligne de premier niveau, donc se teste sur
+    /// elle : un pack est favori pour lui-même, pas par l'un de ses composants.
+    func matchesFavorites(_ mod: ModItem, filters: ModListFilters) -> Bool {
+        !filters.favoritesOnly || isFavorite(mod)
+    }
+
+    func matchesTranslation(_ mod: ModItem, _ scope: FrenchTranslationScope) -> Bool {
+        switch scope {
+        case .off:
+            return true
+        case .available:
+            // A group matches if any child ships an fr translation.
+            return matchesSelfOrAnyChild(mod) { $0.languages.contains("fr") }
+        case .partial:
+            // Ne montre que les mods **déjà mesurés** : la couverture
+            // se calcule en tâche de fond, et annoncer « complet » sur
+            // un mod qu'on n'a pas encore lu serait faux. La liste se
+            // complète donc à mesure que le calcul avance.
+            return matchesSelfOrAnyChild(mod) { child in
+                guard let coverage = frenchCoverage(for: child) else { return false }
+                return coverage < 100
+            }
+        case .missing:
+            // « Pas de français » ne veut rien dire d'un mod qui n'a
+            // aucun `i18n` : il n'a pas de texte à traduire, et l'y
+            // faire figurer noyait le filtre. Mesuré sur le parc : 397
+            // mods sans français, dont **310 sans le moindre fichier de
+            // traduction**. Le filtre servait à trouver ce qu'on
+            // pourrait traduire ; il rendait 8 fois plus de bruit que de
+            // signal.
+            //
+            // `languages` porte `en` dès qu'un `default.json` existe :
+            // un mod traduisible en a donc au moins un.
+            let translatable = matchesSelfOrAnyChild(mod) { !$0.languages.isEmpty }
+            return translatable
+                && !matchesSelfOrAnyChild(mod) { $0.languages.contains("fr") }
+        case .stale:
+            // Les deux signaux réunis : la date, connue de tous les
+            // mods dès le scan, et les clés, connues des seuls mods
+            // dont on a déjà ouvert le diff.
+            return matchesSelfOrAnyChild(mod) { child in
+                staleTranslationMods.contains(child.folderName)
+                    || outdatedKeyCount(for: child) > 0
+            }
+        }
+    }
+
+    /// La liste cadrée : les cinq filtres composés, puis triée. C'est la
+    /// source dont `ModListView.filteredMods` et `toggleAllMods` dérivent
+    /// tous deux — le scope (`scopedMods(from:scope:)`) et la pagination
+    /// (vue) s'appliquent par-dessus.
+    func mods(matching filters: ModListFilters) -> [ModItem] {
+        mods
+            .filter { mod in
+                matchesSearch(mod, filters: filters)
+                    && matchesCategory(mod, filters: filters)
+                    && matchesConfig(mod, filters: filters)
+                    && matchesFavorites(mod, filters: filters)
+                    && matchesTranslation(mod, filters.frenchTranslation)
+            }
+            .sorted { lhs, rhs in
+                switch filters.sort {
+                case .name:
+                    // `mods` is already alphabetical (see `scanMods()`),
+                    // and `.sorted` is stable, so this is a no-op ordering
+                    // pass — kept as an explicit case so the switch stays
+                    // exhaustive and self-documenting.
+                    return false
+                case .activationOrder:
+                    let lhsDate = modActivationTimestamps[lhs.folderName]
+                    let rhsDate = modActivationTimestamps[rhs.folderName]
+                    switch (lhsDate, rhsDate) {
+                    case (let l?, let r?):
+                        return l > r
+                    case (.some, nil):
+                        return true
+                    case (nil, .some):
+                        return false
+                    case (nil, nil):
+                        return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+                    }
+                case .installDate:
+                    let lhsDate = lhs.effectiveInstallDate
+                    let rhsDate = rhs.effectiveInstallDate
+                    switch (lhsDate, rhsDate) {
+                    case (let l?, let r?):
+                        return l > r
+                    case (.some, nil):
+                        return true
+                    case (nil, .some):
+                        return false
+                    case (nil, nil):
+                        return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+                    }
+                case .nameDescending:
+                    return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedDescending
+                case .author:
+                    let authorOrder = lhs.author.localizedCaseInsensitiveCompare(rhs.author)
+                    if authorOrder != .orderedSame { return authorOrder == .orderedAscending }
+                    return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+                case .version:
+                    let versionOrder = NexusUpdateChecker.compare(lhs.version, rhs.version)
+                    if versionOrder != .orderedSame { return versionOrder == .orderedDescending }
+                    return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+                case .size:
+                    // Le plus lourd d'abord : c'est le sens dans lequel on
+                    // cherche. Les non mesurés ferment la marche, par nom —
+                    // et ils sont nombreux par construction : rien n'est
+                    // mesuré tant que la première passe n'a pas abouti, ni
+                    // pendant les secondes qui suivent une bascule.
+                    switch (sizeOnDisk(of: lhs), sizeOnDisk(of: rhs)) {
+                    case (let l?, let r?):
+                        if l != r { return l > r }
+                        return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+                    case (.some, nil):
+                        return true
+                    case (nil, .some):
+                        return false
+                    case (nil, nil):
+                        return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+                    }
+                }
+            }
+    }
+
+    func activeMods(from filtered: [ModItem]) -> [ModItem] { filtered.filter { $0.isEnabled } }
+    func inactiveMods(from filtered: [ModItem]) -> [ModItem] { filtered.filter { !$0.isEnabled } }
+
+    /// Enabled mods (or packs containing an enabled child) with at least one
+    /// problematic required dependency — either completely missing or
+    /// installed-but-disabled. A disabled mod isn't currently relying on its
+    /// dependencies, so it's excluded even if one is missing/disabled. Packs
+    /// (groups) appear if any enabled child matches.
+    func modsWithIssues(from filtered: [ModItem]) -> [ModItem] {
+        filtered.filter { matchesSelfOrAnyChild($0, hasIssues) }
+    }
+
+    /// La liste cadrée restreinte au scope courant — ce que la section
+    /// « Tous / Activés / En pause / Problèmes » montre, et l'ensemble
+    /// exact sur lequel la bascule en masse agit (X57).
+    ///
+    /// **Pas** de partition actifs/en pause sous « Tous » : grouper d'abord
+    /// par état écraserait le tri choisi — trier par poids remontait le plus
+    /// gros mod *actif*, jamais le plus gros du parc, alors que les trois
+    /// quarts du poids dorment dans des mods en pause. L'état reste lisible
+    /// ligne à ligne dans la liste ; ici, l'ordre du tri passe tel quel.
+    func scopedMods(from filtered: [ModItem], scope: ModFilter) -> [ModItem] {
+        switch scope {
+        case .all:      return filtered
+        case .enabled:  return activeMods(from: filtered)
+        case .disabled: return inactiveMods(from: filtered)
+        case .issues:   return modsWithIssues(from: filtered)
+        }
+    }
+
     /// Enable or disable every installed mod at once. File operations run on a
     /// background queue so the UI (and the progress bar) stay responsive. Each
     /// move uses the same "stale duplicate aside" safety pattern as
@@ -9271,6 +9490,11 @@ for mod in mods {
     /// qu'on bascule, sans quoi le mod est refusé et compté dans le bilan.
     /// Progress is published after every move. Activation
     /// timestamps are stamped only for mods that were actually moved.
+    ///
+    /// X57 : « every installed mod » s'entend **au cadrage près** — la règle
+    /// de la liste (`mods(matching:)` + `scopedMods(from:scope:)`), lue sur
+    /// `modList.filters`. Filtrer puis « Tout désactiver » ne touche que
+    /// l'ensemble cadré, pas les 949 dossiers du parc.
     @MainActor
     func toggleAllMods(enable: Bool) {
         // Guard against re-entry: a second tap while the first run is still
@@ -9281,7 +9505,14 @@ for mod in mods {
         // la collision, ce garde l'empêche d'exister.
         guard bulkToggleProgress == nil, !isToggling, pendingToggles.isEmpty else { return }
 
-        let modsToMove = mods.filter { $0.isEnabled != enable }
+        // X57 : l'ensemble vient du cadrage courant de la liste — la même
+        // règle qui la rend (filtres, catégorie, traduction, scope), pas le
+        // parc entier. Instantané pris ici, sur le main thread : les filtres
+        // ne peuvent plus changer l'ensemble une fois la bascule partie en
+        // arrière-plan.
+        let framing = modList.filters
+        let modsToMove = scopedMods(from: mods(matching: framing), scope: framing.scope)
+            .filter { $0.isEnabled != enable }
         guard !modsToMove.isEmpty else {
             log(enable ? L(L10n.Mods.allAlreadyEnabled) : L(L10n.Mods.allAlreadyDisabled))
             return

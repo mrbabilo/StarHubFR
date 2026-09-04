@@ -252,9 +252,9 @@
 "mods_disable_all" = "Disable All";
 "mods_toggle_all_hint" = "Enable or disable all mods at once";
 "mods_enable_all_confirm" = "Enable all mods?";
-"mods_enable_all_message" = "All installed mods will be enabled. This will activate every mod regardless of its dependencies.";
+"mods_enable_all_message" = "%d mod(s) matching the current list filters will be enabled, regardless of their dependencies.";
 "mods_disable_all_confirm" = "Disable all mods?";
-"mods_disable_all_message" = "All installed mods will be disabled. This will deactivate every mod at once.";
+"mods_disable_all_message" = "%d mod(s) matching the current list filters will be disabled.";
 "mods_enabled_all_count" = "Enabled %d mod(s)";
 "mods_disabled_all_count" = "Disabled %d mod(s)";
 "mods_all_already_enabled" = "All mods are already enabled";

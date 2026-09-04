@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Fixed
+
+- **« Tout activer » n'agit plus que sur les mods que la liste montre.** La bascule en masse parcourait le parc entier (949 dossiers sur le parc de référence), filtré ou non : filtrer sur une catégorie, une recherche ou l'état « Problèmes », puis cliquer « Tout désactiver », basculait tout le monde. La règle qui cadre la liste (recherche, catégorie, traduction, scope) vit désormais dans le ViewModel et sert aussi à la bascule — une seule source, évaluée au moment du clic. Le dialogue de confirmation annonce le compte exact des mods concernés, et la garde de collision de v1.35.5 reste en place sur ce chemin.
+
 ## [1.35.5] - 2026-09-04
 
 ### Fixed

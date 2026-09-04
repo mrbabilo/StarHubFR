@@ -860,21 +860,24 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       de motif d'abandon. Les cinq premiers sont des correctifs communautaires
       installables pour des mods que rien ne signale aujourd'hui — exactement le
       « et maintenant, quoi ? » que l'écran de diagnostic doit porter. · **M**
-- [ ] **X57** — **La bascule en masse agit sur le parc entier, depuis une liste
-      filtrée.** Le bouton « Tout activer / Tout désactiver » vit dans
-      `ModListView` — qui a une recherche, des catégories et une pagination à 15
-      — mais `toggleAllMods` parcourt `mods` en entier, **949 dossiers de tête**.
-      Filtrer sur « Content Patcher » puis cliquer « Tout désactiver » désactive
-      le parc. Stardrop a résolu exactement ça le 2026-09-01 (`c630c11`), et
-      formule bien la règle : *« bulk actions run through this so that what the
-      user is looking at is what they act on »*, filtre de source, recherche,
-      filtres actif/inactif et masqués sous une règle unique, évaluée sur l'état
-      courant plutôt que relue de la vue. Voir `docs/SOURCES.md` §5.
-      ⚠️ **Même chemin de code que X51** : la garde de collision y est désormais
-      en place et lève un refus nommé dans le bilan. Restreindre la portée de la
-      bascule ne doit pas la retirer — et la rendra au contraire plus lisible,
-      un refus sur quinze mods visibles se voyant là où il se noie dans un
-      bilan de huit cents déplacements. · **M**
+- [x] **X57** ✅ *(corrigé le 2026-09-04)* — **La bascule en masse agissait sur
+      le parc entier, depuis une liste filtrée.** Le bouton « Tout activer /
+      Tout désactiver » vit dans `ModListView` — qui a une recherche, des
+      catégories et une pagination à 15 — mais `toggleAllMods` parcourait
+      `mods` en entier, **949 dossiers de tête** : filtrer sur « Content
+      Patcher » puis cliquer « Tout désactiver » désactivait le parc. La règle
+      de Stardrop (`c630c11`, 2026-09-01) est appliquée : *« what the user is
+      looking at is what they act on »*. Le prédicat de cadrage (cinq filtres,
+      tri, scope) a déménagé de la vue vers le ViewModel —
+      `mods(matching:)` + `scopedMods(from:scope:)` — et liste comme bascule
+      dérivent de la même source, évaluée sur `modList.filters` au moment du
+      clic. La pagination n'entre pas dans la règle : artefact d'affichage, la
+      bascule agit sur tout le résultat filtré, pas sur la page visible. Le
+      menu grise ses entrées selon le cadrage courant (une entrée disponible
+      dit ce qui bougerait), et le dialogue de confirmation annonce le compte
+      exact. La garde de collision de **X51** est intacte — un refus sur les
+      mods cadrés se lit là où il se noyait dans un bilan de huit cents
+      déplacements. · **M**
 - [x] **B1-T1** ✅ *(livré le 2026-08-01)* — Boutons **Activer/Désactiver** et
       **Supprimer** sur la fiche mod (parité avec la liste, mêmes confirmations).
       Absents pour un composant de pack, comme dans la liste. La fiche se referme

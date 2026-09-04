@@ -87,35 +87,6 @@ struct ModListView: View {
     /// = disabling — kept as a single optional so the dialog binds cleanly.
     @State private var bulkToggleTarget: Bool? = nil
 
-    /// Whether `mod` itself satisfies `predicate`, or — for a group — any of
-    /// its children do. Standalone mods just apply the predicate directly.
-    /// The single "does this row match X" test shared by search and the
-    /// issues filter, so the two can't independently drift out of sync (a
-    /// group's own `dependencies`/`uniqueId` are empty, so checking the
-    /// group itself before its children is always safe and often a no-op).
-    private func matchesSelfOrAnyChild(_ mod: ModItem, _ predicate: (ModItem) -> Bool) -> Bool {
-        if predicate(mod) { return true }
-        if mod.isGroup, let children = mod.children {
-            return children.contains(where: predicate)
-        }
-        return false
-    }
-
-    /// Whether `mod` is enabled and has at least one problematic required
-    /// dependency (missing entirely, or installed but disabled). A disabled
-    /// mod isn't currently relying on its dependencies, so it's excluded
-    /// even if one is missing/disabled. Shared by `modsWithIssues` and
-    /// `scopeCounts` so their notion of "has issues" can't drift apart.
-    /// Délègue au ViewModel : la pastille d'anomalie s'appuie sur la même
-    /// règle, et deux définitions de « ce mod a un problème » divergeraient.
-    /// **La même règle que la pastille, désormais.** Elle ne l'était pas : le
-    /// cadrage ne regardait que les dépendances quand la pastille couvrait
-    /// aussi les erreurs du journal et les manifestes sans identifiant — un mod
-    /// portant une pastille pouvait manquer à l'onglet censé les réunir.
-    /// Mesuré avant de les réunir : sur les versions installées du parc, cela
-    /// n'ajoute qu'une erreur et cinq avertissements.
-    private func hasIssues(_ mod: ModItem) -> Bool { vm.anomaly(for: mod) != nil }
-
     /// Scopes the list to the mod the user asked to jump to, clearing anything
     /// that could filter it out, then clears the request so it fires once.
     private func consumePendingModFocus() {
@@ -129,174 +100,16 @@ struct ModListView: View {
         vm.pendingModFocus = nil
     }
 
-    // MARK: - Les prédicats de cadrage
+    // MARK: - Cadrage : amincissements de la règle du ViewModel
     //
-    // Un filtre, une fonction. `filteredMods` les compose pour la liste ; les
-    // menus les recomposent **en laissant tomber le leur** pour compter ce que
-    // la vue active contient. Deux pipelines jumeaux auraient divergé à la
-    // première retouche — le dépôt l'a déjà payé ailleurs.
+    // La règle de cadrage (les cinq filtres, le tri, le scope) vit dans le
+    // ViewModel — `mods(matching:)` et `scopedMods(from:scope:)` — pour que
+    // la liste et la bascule en masse (« Tout activer », X57) la partagent
+    // au lieu de la recopier. La vue n'en garde que des raccourcis de
+    // lecture ; les facettes recomposent les prédicats **en laissant tomber
+    // le leur** pour compter ce que la vue active contient.
 
-    private func matchesSearch(_ mod: ModItem) -> Bool {
-        filters.search.isEmpty || matchesSelfOrAnyChild(mod) {
-            $0.name.localizedCaseInsensitiveContains(filters.search) || $0.uniqueId.localizedCaseInsensitiveContains(filters.search)
-        }
-    }
-
-    private func matchesCategory(_ mod: ModItem) -> Bool {
-        switch filters.category {
-        case .all:
-            return true
-        case .category(let cat):
-            // `vm.category(for:)` already resolves a group to its
-            // dominant child category, so this agrees with the badge
-            // shown on the group's own row by construction.
-            return vm.category(for: mod)?.id == cat.id
-        case .inferredTag(let tag):
-            return vm.category(for: mod) == nil && vm.inferredTagKey(for: mod) == tag
-        case .uncategorized:
-            // Same reasoning: `vm.category(for:)` returns nil for a
-            // group exactly when none of its children have a known
-            // category, matching what its badge (absence) shows.
-            return vm.category(for: mod) == nil && vm.inferredTagKey(for: mod) == "Other"
-        }
-    }
-
-    private func matchesConfig(_ mod: ModItem) -> Bool {
-        !filters.configOnly || matchesSelfOrAnyChild(mod) { $0.hasConfigFile }
-    }
-
-    /// Le favori se marque sur la ligne de premier niveau, donc se teste sur
-    /// elle : un pack est favori pour lui-même, pas par l'un de ses composants.
-    private func matchesFavorites(_ mod: ModItem) -> Bool {
-        !filters.favoritesOnly || vm.isFavorite(mod)
-    }
-
-    private func matchesTranslation(_ mod: ModItem, _ scope: FrenchTranslationScope) -> Bool {
-        switch scope {
-        case .off:
-            return true
-        case .available:
-            // A group matches if any child ships an fr translation.
-            return matchesSelfOrAnyChild(mod) { $0.languages.contains("fr") }
-        case .partial:
-            // Ne montre que les mods **déjà mesurés** : la couverture
-            // se calcule en tâche de fond, et annoncer « complet » sur
-            // un mod qu'on n'a pas encore lu serait faux. La liste se
-            // complète donc à mesure que le calcul avance.
-            return matchesSelfOrAnyChild(mod) { child in
-                guard let coverage = vm.frenchCoverage(for: child) else { return false }
-                return coverage < 100
-            }
-        case .missing:
-            // « Pas de français » ne veut rien dire d'un mod qui n'a
-            // aucun `i18n` : il n'a pas de texte à traduire, et l'y
-            // faire figurer noyait le filtre. Mesuré sur le parc : 397
-            // mods sans français, dont **310 sans le moindre fichier de
-            // traduction**. Le filtre servait à trouver ce qu'on
-            // pourrait traduire ; il rendait 8 fois plus de bruit que de
-            // signal.
-            //
-            // `languages` porte `en` dès qu'un `default.json` existe :
-            // un mod traduisible en a donc au moins un.
-            let translatable = matchesSelfOrAnyChild(mod) { !$0.languages.isEmpty }
-            return translatable
-                && !matchesSelfOrAnyChild(mod) { $0.languages.contains("fr") }
-        case .stale:
-            // Les deux signaux réunis : la date, connue de tous les
-            // mods dès le scan, et les clés, connues des seuls mods
-            // dont on a déjà ouvert le diff.
-            return matchesSelfOrAnyChild(mod) { child in
-                vm.staleTranslationMods.contains(child.folderName)
-                    || vm.outdatedKeyCount(for: child) > 0
-            }
-        }
-    }
-
-    var filteredMods: [ModItem] {
-        vm.mods
-            .filter { mod in
-                matchesSearch(mod)
-                    && matchesCategory(mod)
-                    && matchesConfig(mod)
-                    && matchesFavorites(mod)
-                    && matchesTranslation(mod, filters.frenchTranslation)
-            }
-            .sorted { lhs, rhs in
-                switch filters.sort {
-                case .name:
-                    // `vm.mods` is already alphabetical (see `scanMods()`),
-                    // and `.sorted` is stable, so this is a no-op ordering
-                    // pass — kept as an explicit case so the switch stays
-                    // exhaustive and self-documenting.
-                    return false
-                case .activationOrder:
-                    let lhsDate = vm.modActivationTimestamps[lhs.folderName]
-                    let rhsDate = vm.modActivationTimestamps[rhs.folderName]
-                    switch (lhsDate, rhsDate) {
-                    case (let l?, let r?):
-                        return l > r
-                    case (.some, nil):
-                        return true
-                    case (nil, .some):
-                        return false
-                    case (nil, nil):
-                        return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
-                    }
-                case .installDate:
-                    let lhsDate = lhs.effectiveInstallDate
-                    let rhsDate = rhs.effectiveInstallDate
-                    switch (lhsDate, rhsDate) {
-                    case (let l?, let r?):
-                        return l > r
-                    case (.some, nil):
-                        return true
-                    case (nil, .some):
-                        return false
-                    case (nil, nil):
-                        return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
-                    }
-                case .nameDescending:
-                    return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedDescending
-                case .author:
-                    let authorOrder = lhs.author.localizedCaseInsensitiveCompare(rhs.author)
-                    if authorOrder != .orderedSame { return authorOrder == .orderedAscending }
-                    return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
-                case .version:
-                    let versionOrder = NexusUpdateChecker.compare(lhs.version, rhs.version)
-                    if versionOrder != .orderedSame { return versionOrder == .orderedDescending }
-                    return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
-                case .size:
-                    // Le plus lourd d'abord : c'est le sens dans lequel on
-                    // cherche. Les non mesurés ferment la marche, par nom —
-                    // et ils sont nombreux par construction : rien n'est
-                    // mesuré tant que la première passe n'a pas abouti, ni
-                    // pendant les secondes qui suivent une bascule.
-                    switch (vm.sizeOnDisk(of: lhs), vm.sizeOnDisk(of: rhs)) {
-                    case (let l?, let r?):
-                        if l != r { return l > r }
-                        return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
-                    case (.some, nil):
-                        return true
-                    case (nil, .some):
-                        return false
-                    case (nil, nil):
-                        return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
-                    }
-                }
-            }
-    }
-
-    func activeMods(from filtered: [ModItem]) -> [ModItem] { filtered.filter { $0.isEnabled } }
-    func inactiveMods(from filtered: [ModItem]) -> [ModItem] { filtered.filter { !$0.isEnabled } }
-
-    /// Enabled mods (or packs containing an enabled child) with at least one
-    /// problematic required dependency — either completely missing or
-    /// installed-but-disabled. A disabled mod isn't currently relying on its
-    /// dependencies, so it's excluded even if one is missing/disabled. Packs
-    /// (groups) appear if any enabled child matches.
-    func modsWithIssues(from filtered: [ModItem]) -> [ModItem] {
-        filtered.filter { matchesSelfOrAnyChild($0, hasIssues) }
-    }
+    var filteredMods: [ModItem] { vm.mods(matching: filters) }
 
     /// The full ordered list of mods that should be displayed under the current
     /// scope (search + category + enabled/disabled filter). Pagination slices
@@ -307,18 +120,7 @@ struct ModListView: View {
     /// computed it once per render don't trigger the search/category/sort
     /// pass again.
     private func displayMods(from filtered: [ModItem]) -> [ModItem] {
-        switch filters.scope {
-        // **Pas** de partition actifs/en pause : le cadrage « Tous » rend
-        // l'ordre du tri tel quel. Grouper d'abord par état écrasait le tri
-        // choisi — trier par poids remontait le plus gros mod *actif*, jamais
-        // le plus gros du parc, alors que les trois quarts du poids dorment
-        // dans des mods en pause. L'état reste lisible ligne à ligne : barre
-        // d'accent verte ou grise, et le point à côté du nom.
-        case .all:      return filtered
-        case .enabled:  return activeMods(from: filtered)
-        case .disabled: return inactiveMods(from: filtered)
-        case .issues:   return modsWithIssues(from: filtered)
-        }
+        vm.scopedMods(from: filtered, scope: filters.scope)
     }
 
     private func totalPages(for mods: [ModItem]) -> Int {
@@ -358,11 +160,13 @@ struct ModListView: View {
     ///
     /// Le tri n'entre pas ici : il ne change pas quels mods sont là.
     private func facetBases() -> (category: [ModItem], translation: [ModItem]) {
-        let scoped = displayMods(from: vm.mods.filter { mod in
-            matchesSearch(mod) && matchesConfig(mod) && matchesFavorites(mod)
-        })
-        return (category: scoped.filter { matchesTranslation($0, filters.frenchTranslation) },
-                translation: scoped.filter { matchesCategory($0) })
+        let scoped = vm.scopedMods(from: vm.mods.filter { mod in
+            vm.matchesSearch(mod, filters: filters)
+                && vm.matchesConfig(mod, filters: filters)
+                && vm.matchesFavorites(mod, filters: filters)
+        }, scope: filters.scope)
+        return (category: scoped.filter { vm.matchesTranslation($0, filters.frenchTranslation) },
+                translation: scoped.filter { vm.matchesCategory($0, filters: filters) })
     }
 
     /// Categories actually present among the currently installed mods, sorted
@@ -418,7 +222,7 @@ struct ModListView: View {
         var enabled = 0, disabled = 0, issues = 0
         for mod in filtered {
             if mod.isEnabled { enabled += 1 } else { disabled += 1 }
-            if matchesSelfOrAnyChild(mod, hasIssues) { issues += 1 }
+            if vm.matchesSelfOrAnyChild(mod, { vm.hasIssues($0) }) { issues += 1 }
         }
         return (filtered.count, enabled, disabled, issues)
     }
@@ -578,7 +382,7 @@ struct ModListView: View {
                     // there is nothing to act on (empty list, or every mod
                     // is already in the target state), or while a bulk
                     // toggle operation is already in flight.
-                    bulkToggleMenu
+                    bulkToggleMenu(scoped: display)
                         .disabled(vm.mods.isEmpty || vm.bulkToggleProgress != nil)
 
                     Button {
@@ -809,9 +613,14 @@ struct ModListView: View {
                 bulkToggleTarget = nil
             }
         } message: {
-            Text(bulkToggleTarget == true
-                 ? vm.L(L10n.Mods.enableAllMessage)
-                 : vm.L(L10n.Mods.disableAllMessage))
+            // Le compte dit la portée réelle — celle du cadrage courant, pas
+            // du parc entier (X57). C'est lui qui rend « Tout » lisible :
+            // filtrer sur une catégorie puis « Tout désactiver » annonce les
+            // mods de cette catégorie, tous confondus sinon.
+            let count = display.filter { $0.isEnabled != (bulkToggleTarget ?? true) }.count
+            Text(String(format: vm.L(bulkToggleTarget == true
+                 ? L10n.Mods.enableAllMessage
+                 : L10n.Mods.disableAllMessage), count))
         }
     }
 
@@ -1164,7 +973,7 @@ struct ModListView: View {
     private func frenchTranslationCounts(from base: [ModItem]) -> [FrenchTranslationScope: Int] {
         var counts: [FrenchTranslationScope: Int] = [:]
         for scope in [FrenchTranslationScope.available, .partial, .missing, .stale] {
-            counts[scope] = base.filter { matchesTranslation($0, scope) }.count
+            counts[scope] = base.filter { vm.matchesTranslation($0, scope) }.count
         }
         return counts
     }
@@ -1245,13 +1054,19 @@ struct ModListView: View {
             total: total)
     }
 
-    /// Menu offering to enable or disable every installed mod at once. Each
-    /// entry is disabled individually when there is nothing to move in that
-    /// direction (all already enabled / all already disabled), so the user
-    /// sees why an action isn't available rather than a dead button.
-    private var bulkToggleMenu: some View {
-        let anyDisabled = vm.mods.contains { !$0.isEnabled }
-        let anyEnabled = vm.mods.contains { $0.isEnabled }
+    /// Menu offering to enable or disable the framed mods at once. Each entry
+    /// is disabled individually when the **current framing** (search, category,
+    /// translation, scope — the same rule `toggleAllMods` applies, X57) has
+    /// nothing to move in that direction, so an available entry says exactly
+    /// what would move, and the user sees why an action isn't available
+    /// rather than a dead button.
+    ///
+    /// Takes the scoped list computed once per render by `body` (`display`)
+    /// rather than re-deriving it : the rule is the ViewModel's, the menu
+    /// only reads its result.
+    private func bulkToggleMenu(scoped: [ModItem]) -> some View {
+        let anyDisabled = scoped.contains { !$0.isEnabled }
+        let anyEnabled = scoped.contains { $0.isEnabled }
         return Menu {
             Button {
                 bulkToggleTarget = true
