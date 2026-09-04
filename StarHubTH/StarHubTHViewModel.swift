@@ -2186,7 +2186,8 @@ class StarHubTHViewModel: ObservableObject {
     }
     
     // Helper to force localization using the currently selected language bundle
-    /// Cache of locale-specific bundles keyed by language code (e.g. "en", "th").
+    /// Cache of locale-specific bundles keyed by language code ("en", "fr" —
+    /// les seules langues d'interface depuis le retrait du thaï).
     /// Avoids rebuilding a `Bundle(url:)` on every `L(...)` call, which is invoked
     /// dozens of times per render pass.
     private static var bundleCache: [String: Bundle] = [:]

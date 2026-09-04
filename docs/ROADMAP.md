@@ -777,6 +777,26 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       l'étiquette qu'il porte — simplement pas avec le dernier terme tapé. Le
       correctif demande un compteur d'époque dans le ViewModel, non testable ici : à
       faire en même temps qu'on touchera cet écran. · **S**
+- [x] **X50** ✅ *(fait le 2026-09-04)* — **Tranche des fichiers racine de
+      `StarHubTH/` terminée** : 26 fichiers, dont les neuf derniers
+      (`ModInstallBackup`, `ModConfigBackup`, `AppDesignCore`, `NexusCategory`,
+      `UDKey`, `SaveFarmerPalette`, `SaveFarmNameResolver`, `DictionaryExtensions`,
+      `L10nResolver`) balayés par les Traps de `CLAUDE.md` — **aucun défaut**. Seule
+      correction : deux commentaires annonçaient encore `"th"` parmi les langues
+      d'interface, retirée depuis (`assets/` ne porte que `en.json` et `fr.json`) ;
+      le hub de traduction traite toujours les mods thaï, ce sont deux notions
+      distinctes. **Trois pistes mesurées et écartées**, à ne pas rouvrir :
+      (a) `caseInsensitiveValue` rend une valeur **arbitraire** quand deux clés ne
+      diffèrent que par la casse — `Dictionary.first(where:)` n'a pas d'ordre, et
+      Swift sème son hachage à chaque lancement — mais **0 des 1 086 manifestes**
+      du parc a de telles clés ;
+      (b) le scan des raccourcis lit les `config.json` en UTF-8 strict, or les 11
+      fichiers à marque d'octets du parc vivent tous dans des sous-dossiers que ce
+      scan ne regarde pas ;
+      (c) les deux `formattedDate` construisent un `DateFormatter` par accès, mais
+      la liste des sauvegardes est **groupée par mod** dans un `LazyVStack` — pas
+      922 lignes. Le seuil `whichFarm >= 8` de `SaveFarmNameResolver` est correct :
+      SDV 1.6 compte bien huit fermes vanilla, Meadowlands incluse. · **S**
 - [x] **B1-T1** ✅ *(livré le 2026-08-01)* — Boutons **Activer/Désactiver** et
       **Supprimer** sur la fiche mod (parité avec la liste, mêmes confirmations).
       Absents pour un composant de pack, comme dans la liste. La fiche se referme

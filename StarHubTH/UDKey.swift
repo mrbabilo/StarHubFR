@@ -10,7 +10,9 @@ import Foundation
 public enum UDKey {
     /// Folder path of the user's Stardew Valley install.
     public static let gameDir = "gameDir"
-    /// Active UI language code (`"en"` / `"fr"` / `"th"`).
+    /// Active UI language code (`"en"` / `"fr"`). Le thaï a été retiré des
+    /// langues d'interface ; le hub de traduction, lui, traite toujours les
+    /// mods thaï — ce sont deux notions distinctes (voir `docs/DOMAINE.md`).
     public static let currentLanguage = "currentLanguage"
     /// When `true`, toggling a mod on/off also toggles its SMAPI dependencies
     /// (and optionally its content-pack children) in the same operation.
