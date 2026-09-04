@@ -545,3 +545,70 @@ struct HealthIssueResolverAggregateTests {
     let critical = HealthIssueResolver.smapiIssues(d).filter { $0.severity == .critical }
     #expect(critical.allSatisfy { $0.actions.count == 1 })
 }
+
+
+// MARK: - Avertissements du dump Pathoschild (X58)
+
+/// Une ligne « à savoir » n'est **pas** un verdict de compatibilité : ces mods
+/// ne sont pas cassés, smapi.io les déclare `Ok`. D'où `info`, la seule gravité
+/// que la pastille de la barre latérale ne compte pas.
+@Test func aModWarningIsInformationalAndNeverCounted() {
+    let issues = HealthIssueResolver.modWarningIssues(
+        [("Exohayvan.DissolverEnhanced", "Dissolver Enhanced",
+          ["Mod collects telemetry data by default."])],
+        title: { name, _ in "À savoir : \(name)" })
+
+    #expect(issues.count == 1)
+    #expect(issues[0].severity == .info)
+    #expect(issues.actionableCount == 0)
+}
+
+/// La ligne emmène à la fiche du mod : c'est là qu'on décide de le garder ou
+/// non, et le nom du dossier est ce que `ModFocusResolver` sait résoudre.
+@Test func aModWarningPointsAtTheModItself() {
+    let issues = HealthIssueResolver.modWarningIssues(
+        [("Exohayvan.DissolverEnhanced", "Dissolver Enhanced", ["Télémétrie."])],
+        title: { name, _ in name })
+
+    #expect(issues[0].actions == [.openMod(query: "Dissolver Enhanced")])
+}
+
+/// Plusieurs avertissements sur un mod tiennent en **une** ligne : c'est un
+/// seul mod à juger, pas trois incidents.
+@Test func severalWarningsOnOneModMakeASingleRow() {
+    let issues = HealthIssueResolver.modWarningIssues(
+        [("a.mod", "A", ["Un.", "Deux."])],
+        title: { name, _ in name })
+
+    #expect(issues.count == 1)
+    #expect(issues[0].detail?.contains("Un.") == true)
+    #expect(issues[0].detail?.contains("Deux.") == true)
+}
+
+/// L'identité tient à l'`UniqueID`, pas au nom affiché : un manifeste renommé
+/// entre deux scans ne doit pas faire sauter la ligne sous les doigts.
+@Test func theRowIdentityFollowsTheUniqueIdNotTheDisplayedName() {
+    let a = HealthIssueResolver.modWarningIssues([("a.mod", "Ancien nom", ["x"])],
+                                                 title: { n, _ in n })
+    let b = HealthIssueResolver.modWarningIssues([("a.mod", "Nouveau nom", ["x"])],
+                                                 title: { n, _ in n })
+    #expect(a[0].id == b[0].id)
+}
+
+/// Le détail dit **d'où vient** l'avertissement et que le mod n'est pas
+/// déclaré cassé : sans ça, la ligne se lit comme un verdict de compatibilité
+/// et contredit smapi.io, qui déclare ces mods `Ok`.
+@Test func theDetailNamesItsSourceAndSaysTheModIsNotBroken() {
+    let issues = HealthIssueResolver.modWarningIssues(
+        [("a.mod", "A", ["Télémétrie."])],
+        title: { n, _ in n },
+        detail: { joined in joined + " — signalé par la liste de compatibilité." })
+
+    #expect(issues[0].detail == "Télémétrie. — signalé par la liste de compatibilité.")
+}
+
+/// Un mod sans avertissement retenu ne produit rien — pas une ligne vide.
+@Test func aModWithoutKeptWarningsProducesNoRow() {
+    #expect(HealthIssueResolver.modWarningIssues([("a.mod", "A", [])],
+                                                 title: { n, _ in n }).isEmpty)
+}

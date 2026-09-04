@@ -722,6 +722,40 @@ répond. L'ordre et les titres de section sont ceux de la roadmap.
       exact. La garde de collision de **X51** est intacte — un refus sur les
       mods cadrés se lit là où il se noyait dans un bilan de huit cents
       déplacements. · **M**
+- [x] **X58** ✅ *(livré le 2026-09-05)* — **`warnings` méritait un filtre de
+      plateforme, pas un rejet.** Le champ existait sur 24 des 4 720 entrées du
+      dump Pathoschild et l'app le jetait entièrement : télémétrie non divulguée
+      et non annoncée sur la page du mod, plantages au chargement d'une
+      sauvegarde, archive à la structure fausse qu'il faut dézipper deux fois,
+      incompatibilité multijoueur — rien de tout ça n'était dit nulle part.
+      ▸ **Pourquoi on ne pouvait pas simplement l'afficher** : **17 des 24 ne
+      parlent que d'Android**. Les remonter tels quels ferait contredire la
+      source primaire — smapi.io déclare `Ok` les deux mods du parc concernés.
+      `ModPlatformWarnings` tranche : on n'écarte que sur un signe **positif**
+      qu'il s'agit d'ailleurs, et la mention de notre plateforme **annule**
+      l'écart (« Broken on Android and macOS » est gardé). Le corpus se répartit
+      exactement comme la mesure d'août l'annonçait — 17 + 1 renvoi vers un autre
+      magasin de téléchargement écartés, **6 gardés** — et un test épingle ce
+      compte : s'il bouge, c'est la règle ou le dump qui a changé.
+      ▸ **Le piège de la sous-chaîne** : « ios » vit dans « ratios » et
+      « kiosk », « mac » et « pc » sont tout aussi courts. Un faux positif du
+      côté « plateforme étrangère » **masque** un avertissement réel : la
+      recherche se fait en mots entiers, avec le test qui le prouve.
+      ▸ **Où ça se dit** : une ligne de l'écran d'alertes, en gravité `info` —
+      la seule que `actionableCount` ne compte pas, donc la pastille de la barre
+      latérale ne s'allume jamais pour ça. Le détail nomme sa source et dit que
+      le mod n'est pas déclaré cassé, sans quoi la ligne se lirait comme un
+      verdict. Le balisage Markdown passe par `ModCompatibility.parseSummary`,
+      déjà écrit pour le champ voisin du même dump — pas de seconde règle.
+      ▸ ⚠️ **Zéro ligne sur le parc de référence**, et c'est le résultat correct :
+      les deux mods concernés (`Automatic Gates`, `Bigger Backpack`, tous deux en
+      pause) portent l'un « Broken on Android », l'autre « use Nexus, ModDrop is
+      NOT updated ». Une ligne apparaîtrait en installant l'un des six —
+      `Dissolver Enhanced` (télémétrie) ou `Entoarox Utilities` (plantages au
+      chargement) par exemple.
+      ▸ Lecture du dump **quel que soit son âge** : un avertissement d'il y a
+      trois jours reste vrai, et le lier au TTL de 6 h ferait disparaître ces
+      lignes 18 heures par jour. **18 tests neufs** (2 215 → 2 233). · **S**
 - [x] **X62** ✅ *(corrigé le 2026-09-04, signalé par l'auteur)* — **« Je l'ai
       déjà » ne tenait pas sur une étiquette Nexus libre.** Le geste posait bien
       son ancre, et la ligne revenait quand même à chaque vérification.

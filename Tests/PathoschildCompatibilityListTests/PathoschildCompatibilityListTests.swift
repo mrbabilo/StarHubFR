@@ -394,4 +394,52 @@ struct PathoschildCompatibilityListTests {
         // doit cesser d'être signalé dans la journée.
         #expect(PathoschildCompatibilityList.cacheTTL == 6 * 60 * 60)
     }
+
+    // MARK: - Avertissements (X58)
+
+    /// Le champ `warnings` du dump, décodé et rendu **filtré** : ce qui ne
+    /// concerne pas notre plateforme n'a rien à faire à l'écran.
+    @Test func warningsAreDecodedAndSieved() {
+        let json = """
+        {"mods": [
+          {"id": "Exohayvan.DissolverEnhanced", "warnings": ["Mod collects telemetry data by default and transmits it to a remote server."]},
+          {"id": "spacechase0.BiggerBackpack", "warnings": ["Broken on Android."]}
+        ]}
+        """
+        let entries = PathoschildCompatibilityList.decode(Data(json.utf8)) ?? []
+        let out = PathoschildCompatibilityList.warnings(
+            for: ["Exohayvan.DissolverEnhanced", "spacechase0.BiggerBackpack"], from: entries)
+
+        #expect(out.count == 1)
+        #expect(out["Exohayvan.DissolverEnhanced"]?.first?.hasPrefix("Mod collects telemetry") == true)
+        #expect(out["spacechase0.BiggerBackpack"] == nil)
+    }
+
+    /// ⚠️ `id` est parfois une **liste** d'alias séparés par des virgules —
+    /// trois des 24 entrées à avertissement en portent une
+    /// (`Entoarox.ShopExpander, EntoaroxShopExpander`). Une comparaison sur la
+    /// chaîne entière les manquerait toutes les trois, exactement comme
+    /// `PathoschildNexusIndex` a dû l'apprendre pour les identifiants Nexus.
+    @Test func aCommaSeparatedIdMatchesEachOfItsAliases() {
+        let json = """
+        {"mods": [{"id": "Entoarox.ShopExpander, EntoaroxShopExpander",
+                   "warnings": ["Players report frequent crashes."]}]}
+        """
+        let entries = PathoschildCompatibilityList.decode(Data(json.utf8)) ?? []
+
+        #expect(PathoschildCompatibilityList.warnings(for: ["EntoaroxShopExpander"],
+                                                      from: entries).count == 1)
+        #expect(PathoschildCompatibilityList.warnings(for: ["Entoarox.ShopExpander"],
+                                                      from: entries).count == 1)
+    }
+
+    /// Un mod qu'on n'a pas installé n'a pas de ligne, même s'il porte un
+    /// avertissement.
+    @Test func onlyInstalledModsGetWarnings() {
+        let json = """
+        {"mods": [{"id": "autre.Mod", "warnings": ["Doesn't work in multiplayer."]}]}
+        """
+        let entries = PathoschildCompatibilityList.decode(Data(json.utf8)) ?? []
+        #expect(PathoschildCompatibilityList.warnings(for: ["le.mien"], from: entries).isEmpty)
+    }
 }

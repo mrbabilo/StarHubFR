@@ -93,6 +93,18 @@ class StarHubTHViewModel: ObservableObject {
         ModCompatibilityStore.load() {
         didSet { compatibilityStatuses = modCompatibility.mapValues(\.status) }
     }
+    /// Ce que le dump Pathoschild signale d'un mod **sans le déclarer cassé**,
+    /// par `UniqueID`, déjà tamisé par `ModPlatformWarnings`.
+    ///
+    /// Relu depuis le cache disque, **quel que soit son âge** : un
+    /// avertissement d'il y a trois jours reste vrai, et le lier à la fraîcheur
+    /// du dump ferait disparaître ces lignes 18 heures par jour.
+    ///
+    /// Mesuré le 2026-09-05 sur le parc de référence : **zéro ligne** — les
+    /// deux mods concernés portent l'un « Broken on Android », l'autre
+    /// « use Nexus, ModDrop is NOT updated », tous deux écartés à raison.
+    @Published private(set) var modWarnings: [String: [String]] = [:]
+
     /// Les mêmes verdicts réduits à leur statut, **tenus à jour plutôt que
     /// recalculés** : `anomaly(for:)` tourne sur chaque ligne du parc, deux
     /// fois — pour le compteur du cadrage et pour le filtrage. Reconstruire le
@@ -416,10 +428,24 @@ class StarHubTHViewModel: ObservableObject {
             title: { String(format: self.L(L10n.Health.folderCollisionTitle), $0.folderName) },
             detail: { String(format: self.L(L10n.Health.folderCollisionDetail),
                              $0.uniqueIds.joined(separator: " · ")) })
+        // X58 — ce que le dump signale sans déclarer le mod cassé. Le nom
+        // affiché vient du parc : c'est lui que `ModFocusResolver` sait
+        // résoudre, et il doit être le même qu'ailleurs à l'écran.
+        let nameByUniqueId = Dictionary(installedMods.map { ($0.uniqueId, $0.name) },
+                                        uniquingKeysWith: { first, _ in first })
+        let warningIssues = HealthIssueResolver.modWarningIssues(
+            modWarnings.keys.sorted().compactMap { uniqueId in
+                guard let name = nameByUniqueId[uniqueId],
+                      let texts = modWarnings[uniqueId] else { return nil }
+                return (uniqueId: uniqueId, name: name, warnings: texts)
+            },
+            title: { name, _ in String(format: self.L(L10n.Health.modWarningTitle), name) },
+            detail: { joined in joined + " " + self.L(L10n.Health.modWarningSource) })
+
         return HealthIssueResolver.resolve(diagnostics: smapiDiagnostics,
                                            keybindReport: keybindScanService.report,
                                            conflicts: live,
-                                           folderCollisions: collisionIssues,
+                                           folderCollisions: collisionIssues + warningIssues,
                                            displayName: { folderName in
             installedMods.first(where: { $0.folderName == folderName })?.name ?? folderName
         })
@@ -2150,10 +2176,14 @@ class StarHubTHViewModel: ObservableObject {
                     // promet déjà d'invoquer sur le fil principal.
                     self?.log(message, level: .info)
                 },
-                completion: { _ in
-                    // Pas de branche : `checkNexusUpdates` lira le cache
-                    // disque quand l'utilisateur cliquera le bouton, et c'est
-                    // déjà l'information dont il a besoin.
+                completion: { [weak self] _ in
+                    // Les verdicts, eux, attendent : `checkNexusUpdates` lira
+                    // le cache disque au clic sur « Vérifier ». Mais les lignes
+                    // « à savoir » n'ont pas d'autre déclencheur au **premier**
+                    // lancement, celui où le cache n'existait pas encore quand
+                    // le scan est passé. Sans ça, l'écran d'alertes reste muet
+                    // jusqu'à une vérification manuelle.
+                    self?.refreshModWarnings()
                 }
             )
         }
@@ -4287,8 +4317,12 @@ class StarHubTHViewModel: ObservableObject {
         // paient rien. Le coût d'une seule requête au premier lancement est
         // négligeable face au bénéfice (couverture offline sur ~4 000 mods).
         group.enter()
-        PathoschildCompatibilityList.fetch { result in
+        PathoschildCompatibilityList.fetch { [weak self] result in
             if case .failure = result { pathoschildFetchFailed = true }
+            // Le dump vient d'être posé : c'est le seul moment où les lignes
+            // « à savoir » peuvent changer sans que le parc bouge. Sans ça,
+            // elles n'apparaîtraient qu'au scan suivant.
+            self?.refreshModWarnings()
             group.leave()
         }
 
@@ -5065,6 +5099,24 @@ for mod in mods {
         // pas à la fermeture. L'affichage se recalcule ensuite depuis lui.
         NexusUpdateChecker.shared.dismissUpdate(uniqueId: uniqueId)
         republishUpdatesFromCache()
+    }
+
+    /// Relit les avertissements du dump pour les mods réellement installés.
+    ///
+    /// Lecture disque seule, sans réseau : le dump est posé par
+    /// `PathoschildCompatibilityList.fetch`, déclenché à chaque vérification
+    /// des mises à jour. Un cache absent rend une table vide — aucune ligne,
+    /// aucun effet de bord.
+    func refreshModWarnings() {
+        let installed = allInstalledMods().map(\.uniqueId).filter { !$0.isEmpty }
+        guard !installed.isEmpty,
+              let data = PathoschildCompatibilityList.loadFreshCache()
+                ?? PathoschildCompatibilityList.cachedAnyAgeNow(),
+              let entries = PathoschildCompatibilityList.decode(data) else {
+            modWarnings = [:]
+            return
+        }
+        modWarnings = PathoschildCompatibilityList.warnings(for: installed, from: entries)
     }
 
     /// Recompose la liste des affirmations depuis les ancres et le parc.
@@ -7439,8 +7491,13 @@ for mod in mods {
         // réinstallé plus tard, il hériterait d'une version qu'il n'a pas.
         anchorStore.pruneAnchors(keeping: Set(allMods.map(\.uniqueId).filter { !$0.isEmpty }))
         // Le parc vient de changer : la liste des affirmations en dépend par
-        // ses deux bouts — l'ancre et la version du manifest.
-        Task { @MainActor [weak self] in self?.refreshAffirmedUpdates() }
+        // ses deux bouts — l'ancre et la version du manifest. Les
+        // avertissements du dump aussi : ils ne portent que sur les mods
+        // réellement installés.
+        Task { @MainActor [weak self] in
+            self?.refreshAffirmedUpdates()
+            self?.refreshModWarnings()
+        }
 
         if wasEmpty && rebuiltCount > 0 {
             self.log(

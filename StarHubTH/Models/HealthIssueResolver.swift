@@ -213,6 +213,43 @@ public enum HealthIssueResolver {
         }
     }
 
+    /// Les lignes « à savoir » tirées du dump Pathoschild.
+    ///
+    /// **Ce n'est pas un verdict de compatibilité** : ces mods tournent, et
+    /// smapi.io les déclare `Ok`. Les afficher comme cassés contredirait la
+    /// source primaire à l'écran. D'où `info`, la seule gravité que
+    /// `actionableCount` ne compte pas — la pastille de la barre latérale ne
+    /// s'allume donc jamais pour ça.
+    ///
+    /// Les avertissements arrivent **déjà tamisés** par
+    /// `PathoschildCompatibilityList.warnings(for:from:)` : ce qui ne concerne
+    /// pas notre plateforme n'entre pas ici.
+    ///
+    /// - Parameter mods: `(uniqueId, nom affiché, avertissements retenus)`.
+    /// - Parameter title: la phrase d'en-tête, injectée — ce modèle vit dans
+    ///   Core, sans accès à la locale, même patron que `folderCollisionIssues`.
+    /// - Parameter detail: reçoit les avertissements joints et rend la phrase
+    ///   affichée. C'est là que l'appelant dit **d'où ça vient** et que le mod
+    ///   n'est pas déclaré cassé : sans ça, la ligne se lit comme un verdict.
+    public static func modWarningIssues(
+        _ mods: [(uniqueId: String, name: String, warnings: [String])],
+        title: (_ name: String, _ count: Int) -> String,
+        detail: (_ joined: String) -> String = { $0 }) -> [HealthIssue] {
+        mods.compactMap { mod in
+            guard !mod.warnings.isEmpty else { return nil }
+            // Une ligne par **mod**, pas par avertissement : c'est un seul mod
+            // à juger. Les phrases sont jointes, dans l'ordre du dump.
+            return HealthIssue(
+                id: "mod-warning-\(mod.uniqueId)",
+                severity: .info,
+                source: .modWarning,
+                title: title(mod.name, mod.warnings.count),
+                detail: detail(mod.warnings.joined(separator: " ")),
+                // La fiche du mod : c'est là qu'on décide de le garder ou non.
+                actions: [.openMod(query: mod.name)])
+        }
+    }
+
     /// Tri **stable** par gravité décroissante : à gravité égale, l'ordre de
     /// production (`smapiIssues` puis `keybindIssues` puis `conflictIssues`)
     /// est conservé, sinon les lignes sauteraient d'un rafraîchissement à

@@ -32,6 +32,11 @@ public struct HealthIssue: Identifiable, Equatable {
         /// `ModFolderCollision`. Sans bouton de panorama : il n'y a pas de
         /// feuille à ouvrir, la ligne se suffit.
         case folderCollision
+        /// Ce que le dump Pathoschild signale d'un mod **sans le déclarer
+        /// cassé** — voir `ModPlatformWarnings`. Toujours en `info` : ces mods
+        /// tournent, et smapi.io les déclare `Ok`. Les mettre plus haut
+        /// contredirait la source primaire à l'écran.
+        case modWarning
     }
 
     /// Une cible, pas seulement un onglet — c'est tout le manque de l'ancien

@@ -14,6 +14,8 @@ where the exact log format was verified.
 
 ### Added
 
+- **L'écran d'alertes dit maintenant ce qu'un mod garde en silence.** La liste de compatibilité SMAPI signale, sur certains mods, des choses qu'elle ne considère pas comme des pannes : une télémétrie envoyée par défaut à un serveur distant sans que la page du mod le dise, des plantages au chargement d'une sauvegarde, une archive à la structure fausse qu'il faut dézipper deux fois, une incompatibilité multijoueur. L'app jetait ce champ en bloc. Elle en écarte désormais ce qui ne concerne pas macOS — 17 des 24 avertissements ne parlent que d'Android — et affiche le reste en ligne « à savoir », qui ne compte pas dans la pastille : ces mods ne sont pas cassés, et le dire ainsi contredirait la liste elle-même. *(Aucun des mods de votre parc n'est concerné aujourd'hui.)*
+
 - **Un écran « Entretien » dit ce que l'app occupe, et permet de le rendre sans rien perdre.** Il mesure les sauvegardes d'installation et de configuration (1,80 Go sur le parc de référence, dont 723 Mo libérables en gardant une sauvegarde par mod), sous confirmation qui nomme ce qui part — par la corbeille, jamais en suppression directe. Une sauvegarde qui est la seule copie d'un fichier écrit par vous ne part jamais : le fichier peut être remis en place, ou montré dans le Finder si le mod n'est plus installé. Un bouton nettoie enfin les 340 dossiers orphelins et 35 entrées de préférences mortes laissés par d'anciens bugs — sur clic, jamais automatiquement.
 
 ### Fixed

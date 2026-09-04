@@ -760,6 +760,8 @@ enum L10n {
         static let actionRevealInFinder = "health_action_reveal_in_finder"
         static let folderCollisionTitle  = "health_folder_collision_title"
         static let folderCollisionDetail = "health_folder_collision_detail"
+        static let modWarningTitle       = "health_mod_warning_title"
+        static let modWarningSource      = "health_mod_warning_source"
         /// Titre d'une ligne d'alerte pour une notice bénigne qui ne nomme
         /// aucun mod (H-T6c) : un groupe nominal court. À ne pas confondre
         /// avec les `Logs.healthBenign*`, qui sont les phrases de réassurance

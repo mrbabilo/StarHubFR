@@ -58,6 +58,7 @@ let package = Package(
                 "Models/ModErrorHistoryStore.swift",
                 "Models/ModAnomaly.swift",
                 "Models/ModCompatibility.swift",
+                "Models/ModPlatformWarnings.swift",
                 "Models/ModConfigWriteGuard.swift",
                 "Models/ModRemovalPurge.swift",
                 "Models/MaintenanceInventory.swift",
@@ -777,6 +778,11 @@ let package = Package(
             name: "RequestEpochTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/RequestEpochTests"
+        ),
+        .testTarget(
+            name: "ModPlatformWarningsTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ModPlatformWarningsTests"
         ),
         .testTarget(
             name: "FileRecoveryTests",

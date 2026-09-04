@@ -68,6 +68,13 @@ public enum PathoschildCompatibilityList {
         /// ~4 000 mods là où smapi.io est plus étroit), et **offline** : on
         /// évite une requête Nexus par mod que smapi.io a ignoré.
         public let nexusID: Int?
+        /// Ce que Pathoschild signale du mod **sans le déclarer cassé** :
+        /// télémétrie non divulguée, plantages au chargement d'une sauvegarde,
+        /// archive à la structure fausse. 24 entrées sur 4 720 en portent un
+        /// (mesuré le 2026-09-05), dont **17 ne parlent que d'Android** — voir
+        /// `ModPlatformWarnings`, qui tamise avant tout affichage.
+        public let warnings: [String]
+
         /// La mise à jour non officielle que Pathoschild publie pour ce mod —
         /// version et lien — ou `nil`.
         ///
@@ -99,13 +106,15 @@ public enum PathoschildCompatibilityList {
                     brokeIn: String?,
                     summary: String?,
                     nexusID: Int?,
-                    unofficialUpdate: UnofficialUpdate? = nil) {
+                    unofficialUpdate: UnofficialUpdate? = nil,
+                    warnings: [String] = []) {
             self.id = id
             self.status = status
             self.brokeIn = brokeIn
             self.summary = summary
             self.nexusID = nexusID
             self.unofficialUpdate = unofficialUpdate
+            self.warnings = warnings
         }
     }
 
@@ -358,6 +367,35 @@ public enum PathoschildCompatibilityList {
         return out
     }
 
+    /// Les avertissements **qui nous concernent**, par `UniqueID` installé.
+    ///
+    /// Deux différences avec `verdicts(for:from:)`, et les deux comptent :
+    ///
+    /// - l'`id` du dump est parfois une **liste d'alias** séparés par des
+    ///   virgules (`"Entoarox.ShopExpander, EntoaroxShopExpander"`) — trois des
+    ///   24 entrées à avertissement en portent une. Comparer la chaîne entière
+    ///   les manquerait toutes les trois, la leçon que `PathoschildNexusIndex`
+    ///   a déjà tirée pour les identifiants Nexus ;
+    /// - la liste rendue est **tamisée** par `ModPlatformWarnings` : un mod
+    ///   dont il ne reste rien à dire n'a pas d'entrée du tout, plutôt qu'une
+    ///   entrée vide dont l'appelant devrait se méfier.
+    public static func warnings(for uniqueIds: [String],
+                                from entries: [Entry]) -> [String: [String]] {
+        let wanted = Set(uniqueIds.filter { !$0.isEmpty })
+        guard !wanted.isEmpty else { return [:] }
+        var out: [String: [String]] = [:]
+        for entry in entries where !entry.warnings.isEmpty {
+            let kept = ModPlatformWarnings.worthReading(entry.warnings)
+            guard !kept.isEmpty else { continue }
+            for alias in entry.id.split(separator: ",") {
+                let id = alias.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard wanted.contains(id) else { continue }
+                out[id] = kept
+            }
+        }
+        return out
+    }
+
     /// Le verdict d'une entrée, statut inféré compris.
     ///
     /// **L'inférence ne comble qu'une absence.** Un `unofficialUpdate` sans
@@ -475,7 +513,8 @@ public enum PathoschildCompatibilityList {
             // le filtre au site d'usage (`PathoschildNexusIndex.resolveNexusID`)
             // pour n'avoir qu'une règle de validation, pas plusieurs.
             nexusID: dict["nexus"] as? Int,
-            unofficialUpdate: decodeUnofficialUpdate(dict["unofficialUpdate"])
+            unofficialUpdate: decodeUnofficialUpdate(dict["unofficialUpdate"]),
+            warnings: (dict["warnings"] as? [Any])?.compactMap { normalized($0 as? String) } ?? []
         )
     }
 

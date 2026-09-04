@@ -135,21 +135,6 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       Redessiner la politique — continuer, ou réessayer le lot une fois avec un
       retrait — est une décision de conception, pas un correctif d'audit. X46 rend
       au moins le fait visible et réessayable. · **S**
-- [ ] **X58** — **`warnings` mérite un filtre de plateforme, pas un rejet.**
-      Le champ existe sur 24 entrées du dump, et **17 parlent d'Android** —
-      « Broken on Android », « Only works on Android » : du bruit pur sur
-      macOS, et les deux exemplaires du parc en font partie (le second dit
-      « use Nexus, ModDrop is NOT updated », ce qu'on fait déjà). Les remonter
-      tels quels ferait **contredire la source primaire** : smapi.io déclare
-      `Ok` ces deux mods-là. Mais les six autres valent la lecture — télémétrie
-      non divulguée et non annoncée sur la page du mod, plantages au chargement
-      d'une sauvegarde, archive à la structure fausse qu'il faut dézipper deux
-      fois, incompatibilité multijoueur. Ce qui manque n'est pas le champ,
-      c'est la règle qui écarte ce qui ne concerne pas la plateforme — et un
-      endroit où le dire qui ne soit pas le verdict de compatibilité, puisque
-      ces mods ne sont pas cassés. Zéro exemplaire utile sur le parc
-      aujourd'hui : à faire quand l'écran d'alertes gagnera une ligne
-      « à savoir ». · **S**
 - [ ] **X60** — **Un changement de profil ne peut pas échanger deux noms de
       dossier.** `X` actif et `.X` en pause sont deux mods différents (cas réel
       du parc : les deux `[CP] Seaside Sounds`, de witchtopia et de Liana). Un
@@ -1357,7 +1342,7 @@ corrompre ou faire disparaître quelque chose sans le dire ?* — et non à
 | ~~7~~ | ~~**X54**~~ | ✅ **Corrigé le 2026-09-04** — deux clés neuves : l'ajout nomme le mod, l'import dit combien de favoris sont entrés. Voir l'archive |
 | ~~8~~ | ~~**X49**~~ | ✅ **Corrigé le 2026-09-04** — jeton d'époque (`RequestEpoch`, Core, 6 tests) sur la recherche **et** sur la fiche, second exemplaire trouvé en câblant. Voir l'archive |
 | 9 | **F6-T4** | Une ancre « je l'ai déjà » ratée quand le manifeste et l'ancre diffèrent par la casse. ⚠️ **Réévalué le 2026-09-04 : ce n'est pas un S.** Corriger la seule lecture créerait la divergence que l'item décrit ; le faire d'un bloc demande de normaliser la clé à l'écriture **et** de migrer les ancres déjà posées. Aucun observable sur le parc — ne pas le reprendre comme « petit correctif » |
-| 10 | **X58**, **X60** *(à moitié fait)*, **C2-T4**, **X47** | Ce qu'un mod garde en silence (avertissements filtrés par plateforme), l'échange de noms de dossier qu'un profil ne peut pas faire et n'explique pas, les clés de config perdues à une mise à jour, les lots smapi.io abandonnés après un échec |
+| 10 | ~~**X58**~~ ✅, **X60** *(à moitié fait)*, **C2-T4**, **X47** | ~~Ce qu'un mod garde en silence~~ *(corrigé le 2026-09-05 — voir l'archive)*, l'échange de noms de dossier qu'un profil ne peut pas faire et n'explique pas, les clés de config perdues à une mise à jour, les lots smapi.io abandonnés après un échec |
 
 **P3 — latent : la condition est vraie, zéro exemplaire sur le parc**
 
@@ -1640,6 +1625,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **X49** | 2026-09-04 | Deux recherches Nexus rapprochées pouvaient revenir dans le désordre, et une réponse tardive ressuscitait une liste fermée |
 | **X61** | 2026-09-04 | Le résidu écarté par la bascule en masse restait chargé par SMAPI, faute du point de tête que l'autre chemin posait |
 | **X62** | 2026-09-04 | « Je l'ai déjà » ne tenait pas quand la version affirmée était une étiquette Nexus libre — 15 mods sur 38 revenaient à chaque vérification |
+| **X58** | 2026-09-05 | Le champ `warnings` du dump était ignoré en bloc ; il est désormais tamisé par plateforme et rendu en ligne « à savoir » |
 | **B1-T1** | 2026-08-01 | Boutons Activer/Désactiver et Supprimer sur la fiche mod (parité avec la liste, mêmes confirmations). Absents pour un… |
 | **B1-T2** | 2026-08-01 | Tri, filtres, catégorie, page et recherche portés par ModListFilters dans le ViewModel. La remise à la page 1 est por… |
 

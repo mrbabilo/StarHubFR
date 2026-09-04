@@ -348,6 +348,8 @@
 "health_severity_info" = "Information";
 "health_problem_count" = "%1$lld problème(s) · %2$lld critique(s)";
 "health_action_open_mod" = "Voir le mod";
+"health_mod_warning_title" = "À savoir sur « %@ »";
+"health_mod_warning_source" = "Signalé par la liste de compatibilité SMAPI — le mod n’est pas déclaré cassé.";
 "health_folder_collision_title" = "Deux mods réclament le dossier « %@ »";
 "health_folder_collision_detail" = "%@ — l’un des deux est absent de la liste des mods, et ils partagent identifiant Nexus, catégorie, favori, note et configuration de profil. Renommez l’un des deux dossiers pour les distinguer.";
 "health_action_reveal_in_finder" = "Montrer dans le Finder";
