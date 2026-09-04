@@ -722,6 +722,24 @@ répond. L'ordre et les titres de section sont ceux de la roadmap.
       exact. La garde de collision de **X51** est intacte — un refus sur les
       mods cadrés se lit là où il se noyait dans un bilan de huit cents
       déplacements. · **M**
+- [x] **X59** ✅ *(constat faux, clos le 2026-09-04 — aucun code changé)* —
+      **« Changer de profil jette la liste de ses échecs. »** Faux. Le constat
+      avait été ouvert en lisant le paramètre `completion` de
+      `applyProfileToFilesystem` : trois appels sur quatre l'ignorent, et le
+      changement de profil reçoit ses échecs sous `_`. Mais ce paramètre ne porte
+      qu'un **compte**, à l'usage de la bissection ; le signal à l'utilisateur,
+      lui, part de l'intérieur de la méthode. Vérifié ligne à ligne :
+      `profileApplyMessage` compose un texte qui **nomme** les mods restés du
+      mauvais côté (huit au plus, puis `(+N)`), distingue l'échec total de
+      l'échec partiel, y ajoute les mods du profil absents du disque, et
+      `showModal` le pose dans `alertMessage` / `showAlert`. `MainView` porte le
+      `.alert(isPresented: $vm.showAlert)` en permanence, quel que soit l'onglet :
+      l'alerte s'affiche donc sur le geste, pas dans les journaux. Le profil est
+      en outre marqué `incompletelyAppliedProfileIds`, ce qui transforme un
+      re-clic en reprise des déplacements manquants. Rien à corriger.
+      ▸ **Ce que ça enseigne** : la vérification qui a ouvert X59 s'était arrêtée
+      à la signature. Un constat « l'utilisateur n'est pas prévenu » n'est acquis
+      qu'après avoir suivi le chemin **jusqu'à la vue qui présente**. · **S**
 - [x] **B1-T1** ✅ *(livré le 2026-08-01)* — Boutons **Activer/Désactiver** et
       **Supprimer** sur la fiche mod (parité avec la liste, mêmes confirmations).
       Absents pour un composant de pack, comme dans la liste. La fiche se referme

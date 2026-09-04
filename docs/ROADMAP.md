@@ -177,20 +177,6 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       ces mods ne sont pas cassés. Zéro exemplaire utile sur le parc
       aujourd'hui : à faire quand l'écran d'alertes gagnera une ligne
       « à savoir ». · **S**
-- [ ] **X59** — **Changer de profil jette la liste de ses échecs.**
-      `applyProfileToFilesystem` capture chaque déplacement raté dans un
-      `MoveFailure` — son propre commentaire dit que l'ancienne version « avalait
-      toute erreur de système de fichiers […] sans signal pour l'utilisateur », et
-      que celle-ci les capture. Elle les capture bien, et les journalise une par
-      une. Mais sur **quatre appels, un seul** les consomme (la restauration de
-      bissection, L. 8713) : l'adoption des bascules manuelles (L. 8616, 8920) ne
-      passe pas de complétion, et **le changement de profil (L. 8938) reçoit les
-      échecs sous `_`**. C'est l'action la plus courante des trois. Un mod resté du
-      mauvais côté après un changement de profil n'est donc annoncé nulle part où
-      l'utilisateur regarde — il faut ouvrir les journaux pour l'apprendre.
-      Aucune donnée n'est détruite (`moveItem` échoue si la destination existe, il
-      n'écrase pas), mais l'état affiché ne correspond plus au disque.
-      Constaté le 2026-09-04 en vérifiant **R2**. · **S**
 
 ---
 
@@ -1355,7 +1341,11 @@ lus, **vérifiés** — la condition que chacun affirme, cherchée là où il di
 qu'elle est. Résultat de la passe : **une case fausse** (`F1-T1`, terminé le
 2026-08-01, son propre corps l'écrivait), **un doublon d'une tâche livrée**
 (`R4` = `B3-T5`), **un constat neuf** (`X59`, trouvé en vérifiant `R2`) ; tous
-les autres constats sont **encore vrais aujourd'hui**.
+les autres constats sont **encore vrais aujourd'hui**. `X59` a été **clos le
+même jour, sans correctif** : la vérification qui l'a ouvert s'était arrêtée au
+paramètre `completion`, sans lire les cinquante lignes où la méthode montre
+elle-même l'alerte. Un constat n'est acquis qu'une fois le chemin lu **jusqu'à
+l'écran**.
 
 L'ordre ci-dessous répond à une question précise — *qu'est-ce qui peut détruire,
 corrompre ou faire disparaître quelque chose sans le dire ?* — et non à
@@ -1374,7 +1364,7 @@ corrompre ou faire disparaître quelque chose sans le dire ?* — et non à
 
 | Rang | Item | Ce qui est caché ou faux |
 |---|---|---|
-| 5 | **X59** | Un mod resté du mauvais côté après un changement de profil : l'échec est journalisé, jamais annoncé là où l'utilisateur agit (3 appels sur 4 jettent la liste) |
+| ~~5~~ | ~~**X59**~~ | ✅ **Constat faux, clos le 2026-09-04** — l'alerte existe et nomme les mods : `applyProfileToFilesystem` appelle `showModal` avant de rendre la main, et `MainView` porte le `.alert` en permanence. Le `_` du changement de profil ne jette qu'un **compte**, pas le signal. Voir l'archive |
 | 6 | **X31** | La version de SMAPI installée, si elle a été posée hors de l'app — l'app propose alors éternellement une mise à jour déjà faite |
 | 7 | **X54** | Le journal annonce « profil créé » sur un simple ajout de mod et sur un import de favoris |
 | 8 | **X49** | Deux recherches Nexus rapprochées peuvent revenir dans le désordre |
@@ -1661,6 +1651,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **X57** | 2026-09-04 | La bascule en masse agissait sur le parc entier, depuis une liste filtrée |
 | **X55** | 2026-09-04 | Le ménage à la suppression d'un mod était partiel — quatre magasins survivaient au dossier |
 | **X25** | 2026-09-04 | 340 dossiers de sauvegarde orphelins et 35 clés de préférences mortes — l'écran « Entretien » les nomme avant de les retirer, jamais automatiquement |
+| **X59** | 2026-09-04 | Constat faux, clos sans correctif : l'alerte de fin d'application nomme déjà les mods restés du mauvais côté |
 | **B1-T1** | 2026-08-01 | Boutons Activer/Désactiver et Supprimer sur la fiche mod (parité avec la liste, mêmes confirmations). Absents pour un… |
 | **B1-T2** | 2026-08-01 | Tri, filtres, catégorie, page et recherche portés par ModListFilters dans le ViewModel. La remise à la page 1 est por… |
 
