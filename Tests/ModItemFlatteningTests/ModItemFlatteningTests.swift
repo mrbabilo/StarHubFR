@@ -81,6 +81,30 @@ struct ModItemFlatteningTests {
         #expect([standalone, pack].mod(withUniqueId: "dupe.id")?.name == "Original")
     }
 
+    @Test func theTopLevelModWinsEvenWhenThePackComesFirst() {
+        // Le test ci-dessus passait quel que soit le code : il donnait au mod
+        // de tête la première place du tableau, donc la boucle le rencontrait
+        // d'abord. La règle doit tenir **seule**, sans hériter de l'ordre.
+        //
+        // Cas réel du parc (2026-09-04) : `schulz.SexyCombatIdols` est installé
+        // deux fois — en mod de tête `.SexyCombatIdols` (v1.1.1, en pause) et
+        // en composant `.SexyCombatIdolsNEW/SexyCombatIdols` (v1.2.0). Lequel
+        // des deux est rendu décidait jusqu'ici de l'ordre d'énumération du
+        // dossier `Mods/`, qui n'est pas garanti — et c'est ce mod que
+        // l'installateur écrase, sauvegarde et dont il ancre la version.
+        let pack = mod("Pack", id: "", children: [mod("Copie", id: "dupe.id")])
+        let standalone = mod("Original", id: "dupe.id")
+        #expect([pack, standalone].mod(withUniqueId: "dupe.id")?.name == "Original")
+    }
+
+    @Test func aComponentIsStillFoundWhenNoTopLevelModClaimsTheId() {
+        // La préférence pour la tête ne doit pas coûter la recherche dans les
+        // packs : 296 déclarations de dépendances du parc en dépendent.
+        let pack = mod("Pack", id: "", children: [mod("Composant", id: "only.here")])
+        let other = mod("Autre", id: "autre.id")
+        #expect([pack, other].mod(withUniqueId: "only.here")?.name == "Composant")
+    }
+
     @Test func anAbsentIdentifierFindsNothing() {
         #expect([mod("Automate", id: "Pathoschild.Automate")]
             .mod(withUniqueId: "Nobody.Here") == nil)

@@ -700,6 +700,30 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       comportement et fonctionne. Rien n'est cassé ; le retrait touche une signature
       de Core (`InstallSelection`), quatre sites de `InstallPreview` et douze lignes
       de tests — à faire d'un bloc, ou pas du tout. · **S**
+- [x] **X44** ✅ *(corrigé le 2026-09-04)* — **Quel mod on trouve quand deux
+      dossiers déclarent le même `UniqueID` dépendait de l'ordre du dossier
+      `Mods/`.** `Array<ModItem>.mod(withUniqueId:)` promet en toutes lettres « un
+      mod de premier niveau d'abord, puis les composants », mais faisait **une seule
+      passe** : pour chaque entrée, elle-même puis ses composants. Un pack placé
+      avant le mod autonome rendait donc le composant — et l'ordre vient de
+      `contentsOfDirectory`, qui n'en garantit aucun. Cas réel du parc :
+      `schulz.SexyCombatIdols` est installé deux fois, en mod de tête
+      `.SexyCombatIdols` (v1.1.1) et en composant `.SexyCombatIdolsNEW/…` (v1.2.0).
+      C'est ce mod que `findExistingMod` écrase et sauvegarde à la réinstallation, et
+      celui dont les écrans de dépendances montrent la version. **Le test censé
+      verrouiller la règle passait quel que soit le code** : il donnait au mod de
+      tête la première place du tableau. Deux passes désormais, et deux tests —
+      l'ordre inverse, et un composant seul à porter l'identifiant. · **S**
+- [ ] **X45** — **Le dépliage des packs a encore dix copies manuelles.**
+      `flattenedMods` affirme dans son propre en-tête avoir remplacé les 22
+      réécritures de 2026-08-01 ; il en reste **dix** : trois portent sur un tableau
+      complet et pourraient l'appeler directement (`StarHubTHViewModel` L. 8404,
+      8648, 8714), sept sur un mod isolé (`mod.isGroup ? (mod.children ?? []) :
+      [mod]` — VM L. 4421 et 7326, `BisectionRunner` L. 395 et 416,
+      `ModFolderRepairer` L. 359, `ModGridCardValues` L. 55), forme qu'aucune API ne
+      couvre aujourd'hui. **Vérifié : elles ne divergent pas** — toutes écrivent
+      `?? []`. C'est donc un constat de forme, pas un bug ; il vaut surtout pour ce
+      qu'il annonce, un `ModItem.components` manquant. · **S**
 - [x] **B1-T1** ✅ *(livré le 2026-08-01)* — Boutons **Activer/Désactiver** et
       **Supprimer** sur la fiche mod (parité avec la liste, mêmes confirmations).
       Absents pour un composant de pack, comme dans la liste. La fiche se referme

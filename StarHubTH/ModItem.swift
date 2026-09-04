@@ -205,14 +205,22 @@ extension Array where Element == ModItem {
     /// identifiants distincts) désignent un mod installé **en composant de
     /// pack** — `FlashShifter.SVE-FTM`, `Rafseazz.RSVCC`… — et étaient donc
     /// annoncées manquantes alors qu'elles sont là.
+    /// **Deux passes, et non une** : la préférence pour la ligne de premier
+    /// niveau ne peut pas dépendre de l'ordre du tableau. Une passe unique qui
+    /// teste chaque entrée puis ses composants rend le composant dès que son
+    /// pack précède le mod autonome — et l'ordre vient de l'énumération de
+    /// `Mods/`, qui n'en garantit aucun. Cas réel du parc : le mod de tête
+    /// `.SexyCombatIdols` (v1.1.1) et le composant
+    /// `.SexyCombatIdolsNEW/SexyCombatIdols` (v1.2.0) partagent
+    /// `schulz.SexyCombatIdols`.
     func mod(withUniqueId uniqueId: String) -> ModItem? {
         guard !uniqueId.isEmpty else { return nil }
         func matches(_ mod: ModItem) -> Bool {
             !mod.uniqueId.isEmpty
                 && mod.uniqueId.caseInsensitiveCompare(uniqueId) == .orderedSame
         }
+        if let top = first(where: matches) { return top }
         for mod in self {
-            if matches(mod) { return mod }
             if let child = mod.children?.first(where: matches) { return child }
         }
         return nil

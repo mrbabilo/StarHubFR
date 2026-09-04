@@ -22,6 +22,8 @@ where the exact log format was verified.
 
 - **Une recherche démarrée pendant un rafraîchissement part d'un parc cohérent** : la liste des mods était lue deux fois, à quelques instants d'intervalle. Un mod mis en pause entre les deux lectures entrait dans la recherche sans figurer dans l'instantané de départ — et n'était donc jamais réactivé à la fin, en silence.
 
+- **Quand un mod est installé deux fois, l'app vise celui que vous voyez dans la liste** : deux dossiers peuvent déclarer le même identifiant — chez vous, *Sexy Combat Idols* l'est en mod à part (v1.1.1) et en composant d'un pack (v1.2.0). Lequel des deux l'app retenait dépendait de l'ordre dans lequel macOS lui rendait le dossier `Mods/`, qui n'en garantit aucun. C'est pourtant ce mod-là qu'elle écrase et sauvegarde à la réinstallation, et dont les écrans de dépendances affichent la version. La ligne de premier niveau l'emporte désormais, toujours.
+
 - **Un numéro de version se lit partout de la même façon** : SMAPI accepte plusieurs écritures du champ `Version` d'un manifeste, et trois endroits de l'app le lisaient chacun à sa manière — le scan de la bibliothèque divergeait même d'avec lui-même selon que le manifeste venait de son cache ou du disque. Un mod écrivant sa version en objet à parties textuelles s'affichait « 1.0.0 », une version entourée d'espaces ne s'appariait pas avec elle-même, une version blanche laissait un « v » suivi de rien. Aucun de vos 1 095 mods n'écrit ainsi aujourd'hui : c'est corrigé avant qu'un le fasse.
 
 ## [1.35.3] - 2026-09-04
