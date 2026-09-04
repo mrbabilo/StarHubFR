@@ -1458,14 +1458,49 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       serait cherché au mauvais endroit — par l'éditeur comme par la sauvegarde, qui
       restent au moins cohérents. Zéro cas sur le parc (un seul dossier pointé imbriqué,
       et c'est un `.config`).
-- [ ] **C4-T6** — `audit-mods-config-perf.md` — **Dire quand le fichier va être réécrit
-      sous nos pieds.** Un mod C# peut rappeler `WriteConfig` à tout moment (UltraSmooth :
-      4 sites — migration, profil, commandes ; MCM : 5) : tant que le jeu tourne, une
-      édition faite dans StarHubFR peut être écrasée à la fermeture de session.
-      Avertissement « jeu en cours » à l'ouverture de l'éditeur ; et pour les mods connus
-      pour normaliser au chargement (SLO : 24 clamps versionnés ; UltraSmooth : 3),
-      prévisualiser « sera normalisé au prochain lancement » sur les valeurs hors bornes
-      connues. · **S**
+- [x] **C4-T6** ✅ *(corrigé le 2026-09-04)* — **Dire quand le fichier va être réécrit
+      sous nos pieds** — et refuser de l'écraser en aveugle.
+      Un mod C# rappelle `WriteConfig` quand il veut (UltraSmooth : 4 sites — migration,
+      profil, commandes ; MCM : 5 ; et la vue « raccourcis » de GMCM en réécrit N d'un
+      coup). L'éditeur lisait `config.json` à l'ouverture et le **remplaçait en bloc** à
+      l'enregistrement, sans jamais relire : une session de jeu ouverte à côté suffisait
+      à faire disparaître ce que le mod venait d'écrire.
+      ▸ **Le filet ne rattrapait pas ce cas.** `backUpCurrentConfig` ne garde qu'une
+      sauvegarde par mod et par jour, et c'est la **première** (règle voulue). Éditer à
+      10 h, laisser le mod réécrire à 14 h, éditer à 15 h : la seule copie du jour est
+      celle d'avant 10 h, et l'état de 14 h n'existe plus nulle part. Le contrôle à
+      l'enregistrement n'est donc pas un supplément de prudence — c'est ce qui protège
+      cet état-là.
+      ▸ **Livré.** `ModConfigWriteGuard` (Core, 10 tests) compare le texte chargé, le
+      texte relu juste avant d'écrire et le texte à écrire : `proceed` quand le disque
+      n'a pas bougé, quand le fichier a disparu, ou quand il porte déjà au caractère
+      près ce qu'on allait écrire ; `externallyChanged` sinon ; **`unverifiable` quand
+      la relecture échoue** — une lecture ratée n'est pas un consentement (le piège de
+      X25 en miniature). Les deux derniers ouvrent une alerte qui dit ce qui est en jeu,
+      « Enregistrer quand même » à un clic. Comparaison sur le texte entier : un simple
+      reformatage compte pour une réécriture, et rien ne compare ligne à ligne (`\r\n`
+      est un seul `Character`).
+      ▸ Bandeau « jeu en cours » dans les deux onglets de l'éditeur, évalué **dans** le
+      `body` (l'idiome de `SavesView`) pour qu'un jeu lancé après l'ouverture le fasse
+      apparaître — et conditionné à `mod.isEnabled` : un mod en pause n'est pas chargé
+      par SMAPI et ne peut rien réécrire, or **379 des 462 mods à `config.json`** du parc
+      sont en pause. 6 clés L10n en/fr.
+      ▸ **Prévisualisation de normalisation : écartée, mesurée.** La piste gratuite —
+      lire les bornes dans la prose des infobulles — ne couvre rien : sur les **5 476
+      clés `config.*`** du parc, **24 clés dans 8 mods** portent une borne numérique
+      explicite (`(1-20)`, `(0 to 100)`), soit 0,4 %, et un motif plus large ramène
+      surtout des faux positifs (« Monster Range Detection »). Surtout, elle rate le mod
+      qui motivait la tâche : les **24 clamps de SLO vivent dans `Normalize()`**, aucun
+      en prose. Une table curative codée en dur périmerait au prochain
+      `OptimizationProfileVersion`. → **C4-T8**. · **S**
+- [ ] **C4-T8** — **Prévisualiser la normalisation en lisant ce que le mod a fait,
+      pas en devinant ses bornes.** SLO journalise sa configuration normalisée
+      **entière** au démarrage, sous `[OPTIMIZER CONFIG]` (relevé dans le journal SMAPI
+      réel de l'auteur) — et l'app sait déjà lire ce journal en profondeur. Comparer la
+      valeur du `config.json` à celle que le mod a annoncée au dernier lancement dirait
+      « le mod a ramené 8192 à 4096 » sans coder une seule borne, et sans périmer à la
+      version suivante. À instruire : combien de mods du parc journalisent leur config,
+      et sous quelle forme. · **M**
 - [ ] **C4-T7** — `audit-mods-config-perf.md` — **Les angles morts keybind de C4-T2.**
       Chevauchements sous-ensemble (A = `K`, B = `K`+Shift co-déclenchent sur le geste
       long — spec §12), composants de pack, mods en pause ; et donner aux collisions

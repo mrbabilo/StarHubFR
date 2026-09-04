@@ -912,6 +912,16 @@ enum L10n {
         static let configResetToDefault    = "config_reset_to_default"
         static let configValueOutsideList  = "config_value_outside_list"
         static let configSchemaUnreadable  = "config_schema_unreadable"
+        /// C4-T6 — le fichier est volatile tant que le jeu tourne : un mod
+        /// réécrit sa propre config depuis son code (UltraSmooth : 4 sites,
+        /// Modern Config Menu : 5, et la vue « raccourcis » de GMCM en
+        /// réécrit N d'un coup).
+        static let configGameRunning       = "config_game_running"
+        static let configChangedExtTitle   = "config_changed_externally_title"
+        static let configChangedExtMsg     = "config_changed_externally_msg"
+        static let configRecheckFailedTitle = "config_recheck_failed_title"
+        static let configRecheckFailedMsg  = "config_recheck_failed_msg"
+        static let configOverwriteAnyway   = "config_overwrite_anyway"
     }
 
     // MARK: - Smapi

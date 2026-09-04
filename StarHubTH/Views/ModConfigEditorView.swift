@@ -30,6 +30,15 @@ struct ModConfigEditorView: View {
     /// — 246 des 462 mods à `config.json` du parc sont des mods C#.
     @State private var schemaReading: ContentPackConfigSchema.Reading?
     @State private var searchText: String = ""
+    /// Ce que la relecture du fichier a trouvé au moment d'enregistrer, quand
+    /// elle interdit l'écriture directe. `nil` le reste du temps.
+    @State private var blockedWrite: ModConfigWriteGuard.Decision?
+    /// Le contenu **du disque** au moment où l'éditeur l'a chargé, ou `nil`
+    /// quand le mod n'avait pas encore de `config.json`. Distinct de
+    /// `originalText`, qui suit ce que l'écran montre : une restauration de
+    /// sauvegarde change celui-ci sans rien écrire, et le disque, lui, n'a
+    /// pas bougé.
+    @State private var loadedFromDisk: String?
 
     private var configRows: [ConfigEditorModel.Row] { configGroups.flatMap(\.rows) }
 
@@ -92,6 +101,20 @@ struct ModConfigEditorView: View {
     
     var body: some View {
         VStack(spacing: 0) {
+            // Évalué **dans** le `body`, jamais mis en cache dans un `@State`
+            // posé à l'ouverture : le jeu peut être lancé pendant que
+            // l'éditeur est ouvert, et un instantané ne le verrait jamais.
+            // C'est l'idiome déjà suivi par `SavesView` et `SaveTimelineView`.
+            //
+            // `mod.isEnabled` est la seconde moitié de la condition, et elle
+            // n'est pas cosmétique : un mod en pause porte un point de tête,
+            // SMAPI ne le charge pas, et il ne peut donc rien réécrire même
+            // en pleine partie. **379 des 462 mods à `config.json`** du parc
+            // sont en pause : sans cette moitié, le bandeau crierait au loup
+            // quatre fois sur cinq.
+            if vm.isGameRunning() && mod.isEnabled {
+                gameRunningBanner
+            }
             if selectedTab == 0 {
                 if configRows.isEmpty {
                     VStack {
@@ -220,6 +243,21 @@ struct ModConfigEditorView: View {
         .toolbarBackground(.hidden, for: .automatic)
         .background(Color(nsColor: .controlBackgroundColor))
         .onAppear(perform: loadConfig)
+        .alert(vm.L(blockedWrite == .unverifiable
+                    ? L10n.Settings.configRecheckFailedTitle
+                    : L10n.Settings.configChangedExtTitle),
+               isPresented: Binding(get: { blockedWrite != nil },
+                                    set: { if !$0 { blockedWrite = nil } })) {
+            Button(vm.L(L10n.Settings.configOverwriteAnyway), role: .destructive) {
+                blockedWrite = nil
+                if writeConfig() { vm.editingModConfig = nil }
+            }
+            Button(vm.L(L10n.ModInstall.cancel), role: .cancel) { blockedWrite = nil }
+        } message: {
+            Text(vm.L(blockedWrite == .unverifiable
+                      ? L10n.Settings.configRecheckFailedMsg
+                      : L10n.Settings.configChangedExtMsg))
+        }
     }
     
     private func loadConfig() {
@@ -229,6 +267,7 @@ struct ModConfigEditorView: View {
                 let content = try String(contentsOfFile: configPath, encoding: .utf8)
                 configText = content
                 originalText = content
+                loadedFromDisk = content
                 validateJson(configText)
                 parseToVisual()
             } catch {
@@ -237,6 +276,7 @@ struct ModConfigEditorView: View {
             }
         } else {
             configText = "{}"
+            loadedFromDisk = nil
             parseToVisual()
         }
     }
@@ -360,11 +400,43 @@ struct ModConfigEditorView: View {
         parseToVisual()
     }
 
+    /// Enregistre — après avoir vérifié que le fichier est bien celui qu'on a
+    /// chargé.
+    ///
+    /// L'écriture est un **remplacement en bloc** : sans ce contrôle, une
+    /// réécriture faite par le mod pendant que l'éditeur était ouvert
+    /// disparaissait sans trace. Le filet ne la rattrape pas — il ne garde
+    /// qu'une sauvegarde par mod et par jour, et c'est la première. Voir
+    /// `ModConfigWriteGuard`.
     private func saveConfig() -> Bool {
+        // Une seule relecture : en refaire une entre la décision et l'écriture
+        // rouvrirait la fenêtre qu'on vient de fermer.
+        let decision = ModConfigWriteGuard.decide(
+            loaded: loadedFromDisk,
+            onDisk: ModConfigWriteGuard.readDisk(atPath: configPath),
+            pending: configText)
+        // Les deux cas bloquants sont nommés, jamais rattrapés par un `default`
+        // ou un `case let` : un cinquième état de la règle doit faire échouer
+        // la compilation ici, pas se faire traiter comme un conflit.
+        switch decision {
+        case .proceed:
+            return writeConfig()
+        case .externallyChanged, .unverifiable:
+            // On ne décide pas à sa place : l'alerte dit ce qui est en jeu, et
+            // « Enregistrer quand même » reste à un clic.
+            blockedWrite = decision
+            return false
+        }
+    }
+
+    private func writeConfig() -> Bool {
         do {
             backUpCurrentConfig()
             try configText.write(toFile: configPath, atomically: true, encoding: .utf8)
             originalText = configText
+            // Sans cette ligne, un second enregistrement dans la même session
+            // se croirait en conflit avec sa propre écriture.
+            loadedFromDisk = configText
             vm.showModal(message: vm.L(L10n.Settings.configSaved))
             return true
         } catch {
@@ -495,6 +567,26 @@ struct ModConfigEditorView: View {
     /// Le pack décrit ses options, mais son `content.json` n'a pas pu être lu
     /// — 5 mods du parc. Sans ce mot, l'écran montre des clés brutes et rien
     /// ne dit qu'il manque quelque chose.
+    /// Le fichier peut être réécrit sous nos pieds tant que le jeu tourne.
+    /// Un avertissement, pas une interdiction : **379 des 462 mods à
+    /// `config.json`** du parc sont en pause, et éditer la config d'un mod
+    /// que le jeu n'a pas chargé ne risque rien.
+    private var gameRunningBanner: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "gamecontroller.fill")
+                .foregroundColor(.orange)
+            Text(vm.L(L10n.Settings.configGameRunning))
+                .font(.system(size: 12))
+                .foregroundColor(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer()
+        }
+        .padding(12)
+        .background(Color.orange.opacity(0.08))
+        .padding(.horizontal, 20)
+        .padding(.top, 12)
+    }
+
     private var schemaUnreadableBanner: some View {
         HStack(alignment: .top, spacing: 8) {
             Image(systemName: "exclamationmark.triangle.fill")

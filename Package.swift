@@ -56,6 +56,7 @@ let package = Package(
                 "Models/ModErrorHistoryStore.swift",
                 "Models/ModAnomaly.swift",
                 "Models/ModCompatibility.swift",
+                "Models/ModConfigWriteGuard.swift",
                 "Models/PathoschildCompatibilityList.swift",
                 "Models/PathoschildNexusIndex.swift",
                 "Models/ModDuplicateIndex.swift",
@@ -467,6 +468,11 @@ let package = Package(
             name: "PathoschildNexusIndexTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/PathoschildNexusIndexTests"
+        ),
+        .testTarget(
+            name: "ModConfigWriteGuardTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ModConfigWriteGuardTests"
         ),
         .testTarget(
             name: "ModCompatibilityTests",
