@@ -422,6 +422,20 @@ répond. L'ordre et les titres de section sont ceux de la roadmap.
       une passe au lancement. L'inventaire nomme les sessions par la même règle
       que la suppression (`backupDirectory(of:)`, rendu public pour l'occasion) :
       décrire et retirer ne peuvent pas diverger sur le nom d'un dossier.
+      ▸ **Revue du 2026-09-04, suite à la livraison** : la revue de code a
+      soulevé deux remarques. La première corrigée par `0b1ee17`
+      (`@discardableResult` sur `recoverProtectedFile` : le `Bool` rendu
+      était ignoré par l'écran alors que `recoverFile` porte déjà
+      l'échec à l'utilisateur via un modal — la marque fait taire le
+      warning proprement, comme `purgeInstallBackups` et
+      `purgeProtectedBackup`). La seconde — accès concurrent à
+      `ModInstallBackupManager.shared` depuis le `DispatchQueue.global`
+      — était un faux positif : `backupsDirPath` est un `let` du
+      manager et `backupDirectory(of:)` est une fonction pure sur
+      l'`URL` stockée ; `loadBackups()` est de toute façon snapshotté
+      avant l'`async` (signature de `readMaintenanceReport`). Pas de
+      suivi, pas de fix. Règle pure (`MaintenanceInventory`, 22 tests)
+      et code effectful du VM inchangés par ailleurs.
 - [x] **X26** ✅ *(corrigé le 2026-09-04)* — **Le balayage des résidus posait deux
       questions au disque par entrée avant de regarder le nom.**
       `sweepJunkInsideMods` tourne à chaque scan de lancement (`includeRepair`
