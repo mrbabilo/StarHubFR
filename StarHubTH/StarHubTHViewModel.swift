@@ -9198,12 +9198,35 @@ for mod in mods {
         return headline + "\n" + shown + extra
     }
 
+    /// Pourquoi une bascule en masse peut refuser un mod.
+    ///
+    /// `LocalizedError` parce que le bilan de fin ne lit que
+    /// `error.localizedDescription` : un `NSError` nu y aurait affiché un code.
+    /// Le nom du mod et le sens de la bascule sont déjà préfixés par la ligne
+    /// de journal, la phrase ne les répète pas.
+    private enum BulkToggleRefusal: LocalizedError {
+        /// Le dossier de destination appartient à un **autre** mod. Le
+        /// déplacer, puis le supprimer, effacerait un mod que l'utilisateur
+        /// n'a pas désigné — voir `ModFolderCollision`.
+        case folderClaimedByAnotherMod(destination: String, otherUniqueId: String)
+
+        var errorDescription: String? {
+            switch self {
+            case .folderClaimedByAnotherMod(let destination, let otherUniqueId):
+                return "« \(destination) » est déjà le dossier d'un autre mod "
+                    + "(\(otherUniqueId)). Renommer l'un des deux dossiers pour "
+                    + "les distinguer."
+            }
+        }
+    }
+
     /// Enable or disable every installed mod at once. File operations run on a
     /// background queue so the UI (and the progress bar) stay responsive. Each
     /// move uses the same "stale duplicate aside" safety pattern as
-    /// `performToggle`: a pre-existing destination folder is set aside first,
-    /// and restored if the main move fails, so no mod can ever end up in
-    /// neither location. Progress is published after every move. Activation
+    /// `performToggle` — **garde de collision comprise** : un dossier déjà
+    /// présent à destination n'est mis de côté que s'il porte l'identité du mod
+    /// qu'on bascule, sans quoi le mod est refusé et compté dans le bilan.
+    /// Progress is published after every move. Activation
     /// timestamps are stamped only for mods that were actually moved.
     @MainActor
     func toggleAllMods(enable: Bool) {
@@ -9268,13 +9291,39 @@ for mod in mods {
                 }
 
                 do {
-                    // A pre-existing duplicate at dst is set aside rather than
-                    // deleted outright, so a failed moveItem below can't leave
-                    // the mod lost from both locations. Kept defensively even
-                    // though a same-parent rename should only collide on a bug
-                    // or a leftover from a crashed prior toggle.
+                    // Un dossier déjà présent à destination n'est mis de côté —
+                    // puis **supprimé** quelques lignes plus bas — que si c'est
+                    // un résidu de ce mod-là.
+                    //
+                    // Le raisonnement d'origine tenait : sur un renommage à
+                    // parent identique, une collision ne pouvait être qu'une
+                    // bascule plantée. Le parc le dément — `[CP] Seaside Sounds`
+                    // (`witchtopia.SeasideSounds`, actif) et
+                    // `.[CP] Seaside Sounds` (`Liana.SeasideSounds`, en pause)
+                    // sont deux mods de deux auteurs. Sans cette garde, un clic
+                    // sur « Tout activer » effaçait celui d'à côté : ni
+                    // corbeille, ni journal, ni retour possible.
+                    //
+                    // C'est la règle que `performToggle` applique déjà, et
+                    // qu'elle était seule à appliquer : `ModFolderCollision`
+                    // existe pour ça (« ce fichier se borne à empêcher le dégât
+                    // irréversible ») et ce second chemin de bascule ne l'avait
+                    // jamais appelée.
+                    //
+                    // Le refus est **jeté**, pas sauté : il rejoint `failures`,
+                    // donc le bilan de fin le compte et le nomme. Un `continue`
+                    // aurait laissé « 42 mods activés » sur une bascule
+                    // silencieusement déclinée.
                     var staleDuplicateAside: String? = nil
                     if fm.fileExists(atPath: dst) {
+                        let destinationId = Self.uniqueId(ofModAt: dst)
+                        guard ModFolderCollision.isStaleDuplicate(
+                            destinationUniqueId: destinationId,
+                            toggling: mod.uniqueId) else {
+                            throw BulkToggleRefusal.folderClaimedByAnotherMod(
+                                destination: dstName,
+                                otherUniqueId: destinationId ?? "?")
+                        }
                         let asidePath = dst + ".stale_\(UUID().uuidString)"
                         try fm.moveItem(atPath: dst, toPath: asidePath)
                         staleDuplicateAside = asidePath

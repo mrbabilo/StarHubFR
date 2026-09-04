@@ -14,6 +14,8 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **« Tout activer » ne supprime plus le mod qui portait le même nom de dossier** : activer ou désactiver tout le parc renomme chaque dossier entre `Mods/X` et `Mods/.X`. Quand un dossier existait déjà à destination, il était écarté puis **effacé**, sans vérifier à qui il appartenait — au prétexte qu'une collision ne pouvait être qu'un résidu de bascule interrompue. C'est faux sur votre parc : `[CP] Seaside Sounds` (de witchtopia, actif) et `.[CP] Seaside Sounds` (de Liana, 3,2 Mo, en pause) sont deux mods différents de deux auteurs différents. Un seul clic effaçait l'un des deux, sans corbeille ni journal. La bascule unitaire refusait déjà ce cas ; la bascule en masse le refuse à son tour, et le mod écarté est nommé dans le bilan de fin au lieu de disparaître en silence.
+
 - **Restaurer des configurations dit ce qui a vraiment été restauré** : l'écran annonçait « Sauvegarde restaurée avec succès » sans distinguer douze fichiers réécrits de **zéro**. La restauration sait sauter — un mod désinstallé depuis, un dossier absent du magasin de sauvegardes, un fichier impossible à écrire — et c'est voulu : un incident sur un mod n'emporte pas les autres. Mais rien ne vous le disait. Elle rend maintenant son compte : combien de fichiers sur combien de mods, et le nom de ce qui a été sauté. Le « avec succès » ne s'affiche plus que quand il n'y a rien eu à sauter.
 
 ## [1.35.4] - 2026-09-04
