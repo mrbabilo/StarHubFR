@@ -10,7 +10,7 @@ by ZeroXPatch (the idea of a player-facing SMAPI log doctor), to SMAPI's own
 [log parser](https://smapi.io/log/), and to the [SMAPI sources](https://github.com/pathoschild/SMAPI)
 where the exact log format was verified.
 
-## [Unreleased]
+## [1.36.0] - 2026-09-05
 
 ### Added
 
@@ -22,7 +22,7 @@ where the exact log format was verified.
 
 - **« Je l'ai déjà » tient enfin, même quand l'auteur numérote sa page à sa façon.** Le bouton pose bien votre affirmation, mais elle était perdue en route dès que la version affichée n'était pas une version au sens de SMAPI — un simple « 3 », « 5 » ou « 1.01 », comme les auteurs en posent souvent sur leur page Nexus. L'app comparait alors la version du manifeste à l'étiquette de la page, y voyait un retard, et reproposait la mise à jour à chaque vérification. Sur votre parc, **15 des 38 mods marqués « Je l'ai déjà » revenaient ainsi indéfiniment**. Ils se taisent désormais — et reparlent si la page publie au-delà de ce que vous avez affirmé.
 
-- **Deux mods qui se disputent un nom de dossier peuvent enfin être séparés.** Un mod actif et un mod en pause peuvent porter le même nom de dossier — c'est le cas chez vous des deux `[CP] Seaside Sounds`. L'app les confond alors en un seul : ils se partagent identifiant Nexus, catégorie, favori, configuration par profil et date d'installation, la liste n'en montre qu'un, et un profil qui veut échanger leurs états n'y arrive jamais. L'écran d'alertes propose maintenant de **renommer le dossier** de celui des deux que vous désignez. Tout ce que l'app indexait sur l'ancien nom suit — sauf ce qui décrit un mod en particulier — l'identifiant Nexus que vous auriez saisi à la main, la date d'installation, les sauvegardes de configuration et d'installation. Rien ne dit auquel des deux ils appartenaient : ils restent à celui qui garde le nom, et le mod renommé retrouve seul le reste au prochain balayage.
+- **Deux mods qui se disputent un nom de dossier peuvent enfin être séparés.** Un mod actif et un mod en pause peuvent porter le même nom de dossier — c'est le cas chez vous des deux `[CP] Seaside Sounds`. L'app les confond alors en un seul : ils se partagent identifiant Nexus, catégorie, favori, configuration par profil et date d'installation, la liste n'en montre qu'un, et un profil qui veut échanger leurs états n'y arrive jamais. L'écran d'alertes propose maintenant de **renommer le dossier** de celui des deux que vous désignez. Tout ce que l'app indexait sur l'ancien nom suit, sauf ce qui décrit un mod en particulier : l'identifiant Nexus que vous auriez saisi à la main, la date d'installation, les sauvegardes de configuration et d'installation. Rien ne dit auquel des deux ils appartenaient : ils restent à celui qui garde le nom, et le mod renommé retrouve seul le reste au prochain balayage.
 
 - **Changer de profil sait enfin dire quel mod lui barre la route.** Trois gestes renomment des dossiers de mods — basculer un mod, tout basculer, appliquer un profil — et chacun peut tomber sur un dossier déjà occupé. Les deux premiers savaient distinguer un résidu de leur propre bascule du dossier d'un **autre** mod portant le même nom ; le troisième ne le savait pas, et affichait « le fichier existe déjà » sans dire lequel ni pourquoi. Il le sait maintenant, et nomme le mod à renommer — et il sait aussi, comme les deux autres, récupérer un résidu de sa propre bascule interrompue : le dossier resté en travers est mis de côté puis **supprimé**, mais uniquement quand il déclare l'identifiant du mod qu'on déplace. Le dossier d'un autre mod n'est jamais touché. Au passage : le résidu écarté par « Tout activer » n'était pas mis en pause, si bien que le jeu pouvait continuer à le charger en double le temps que le ménage se fasse.
 
@@ -1163,7 +1163,7 @@ where the exact log format was verified.
 - Added translation for **Wear More Rings** (v7.9) by bcmpinc.
 - Added translation for **World Navigator** (v1.4.2) by pneuma163.
 
-[Unreleased]: https://github.com/mrbabilo/StarHubFR/compare/v1.26.0...HEAD
+[Unreleased]: https://github.com/mrbabilo/StarHubFR/compare/v1.36.0...HEAD
 [1.26.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.25.0...v1.26.0
 [1.25.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.24.0...v1.25.0
 [1.24.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.23.0...v1.24.0
