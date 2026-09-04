@@ -792,6 +792,31 @@ class ModZipInstaller {
         }
     }
 
+    /// Met un élément à la corbeille, en ouvrant les droits si nécessaire.
+    ///
+    /// **`trashItem` échoue sur un dossier en lecture seule** — vérifié le
+    /// 2026-09-04 en compilant le cas sur un arbre en 0555 :
+    /// `NSCocoaErrorDomain Code=513`, « you don't have permission to access
+    /// it », avec `afpAccessDenied` en cause sous-jacente. Les sauvegardes
+    /// héritent des permissions POSIX du mod qu'elles copient, exactement comme
+    /// pour `removeItemGrantingWriteAccess` — même patron, même remède : on
+    /// tente, et on n'ouvre les droits qu'en cas d'échec.
+    ///
+    /// Rend l'URL de destination dans la corbeille quand le système la donne.
+    @discardableResult
+    static func trashItemGrantingWriteAccess(atPath path: String) throws -> URL? {
+        let fm = FileManager.default
+        let url = URL(fileURLWithPath: path)
+        var resulting: NSURL?
+        do {
+            try fm.trashItem(at: url, resultingItemURL: &resulting)
+        } catch {
+            grantOwnerWriteAccess(in: url)
+            try fm.trashItem(at: url, resultingItemURL: &resulting)
+        }
+        return resulting as URL?
+    }
+
     /// Whether an extraction tool's exit status means "the files are there".
     ///
     /// Info-ZIP (`unzip`), `unrar` and `7z` all share the same convention:
