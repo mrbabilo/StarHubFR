@@ -272,8 +272,8 @@ Références du domaine, pas des dépendances : aucun code de ces mods ne vit
 chez nous. Elles sont là parce que notre **éditeur de config** lit une
 convention dont ces mods sont l'origine et le corpus — étudiés le
 **2026-09-04** depuis les archives de `mods tests/` (gitignoré), pas depuis
-les pages Nexus. L'étude approfondie (décompilation comprise) vit dans
-`docs/etude-mods-config-perf.md`.
+les pages Nexus. L'audit approfondi (décompilation comprise) vit dans
+`docs/audit-mods-config-perf.md`.
 
 **La convention.** Un mod SMAPI configurable enregistre ses options auprès
 d'un menu générique (l'API `IGenericModConfigMenuApi`) et résout
@@ -308,9 +308,14 @@ Deux constats de lecture, mesurés :
   not required dependencies ». SMAPI applique le manifeste — c'est lui qui
   fait foi sur le disque.
 - Quatre des cinq sont **installés sur le parc** (tous sauf Faster Menu
-  Load) : leurs mises à jour relèvent donc du vérificateur de l'app, pas
-  d'ici. Seule la **source GMCM** est surveillée par `check_sources.py`
-  (monorepo spacechase0) ; les pages Nexus ne se sondent pas sans clé.
+  Load) : leurs mises à jour relèvent donc du vérificateur de l'app. Les
+  cinq **versions** sont néanmoins surveillées par `check_sources.py`
+  (sonde `smapi-mod`) : les pages Nexus renvoient **403** aux clients
+  non-navigateurs (Cloudflare, mesuré sur urllib et curl le 2026-09-04) et
+  l'API v1 exigerait la clé du Trousseau — l'oracle est smapi.io, avec la
+  grammaire exacte de `SmapiUpdateRequest` (lot d'un, `platform: "Mac"`).
+  Les sources **code** suivent leurs monorepos GitHub : GMCM
+  (spacechase0) et FasterMenuLoad (ZeroXPatch, entrée `log-doctor`).
 
 ---
 

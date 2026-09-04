@@ -127,7 +127,7 @@ portée dans la colonne de droite.
 | §4 | Sauvegarde / restauration de `config.json` et `fr.json` | **Fait** | `ModConfigBackupManager.swift` + `Extensions/ModConfigFiles.swift` |
 | §5 | Éditeur de config exploitant les clés de traduction | **Fait** (v1.26.0) | **C4-T4** livré : sections, descriptions et listes déroulantes tirées du `ConfigSchema` du pack, libellés lus dans son i18n — 1889 réglages du parc y gagnent un nom lisible. Reste **C4-T1** (i18n des mods C#, 39 % côté actifs) |
 | §5 | Intégrer *Modern Config Menu* / GMCM (49382, 49437) | **Instruit, écarté ✅** | Spike du 2026-08-28 (**C4-T3**) : ni l'un ni l'autre n'écrit de schéma hors du jeu. La source utilisable est le `ConfigSchema` de Content Patcher → **C4-T4**. Voir `audit-config-menus.md` |
-| §5 | Aide à la configuration des raccourcis clavier | **À faire** | → **C4-T2** |
+| §5 | Aide à la configuration des raccourcis clavier | **Fait** (2026-08-29) | **C4-T2** livré : validation `SButton`, collisions inter-mods et conflits jeu — 141 liaisons, 18 collisions, 11 conflits jeu mesurés sur le parc. Angles morts restants → **C4-T7** |
 | §6 | Éditeur `fr.json` avec diagnostic des clés | **À faire** | → **C2**, **C3** |
 | §6 | Chaînes anglaises non traduites hors i18n (`events.json`, `dialogues.json`…) | **À faire** | → **C3-T2** |
 | §6 | Pré-traduction (DeepL / Claude / Google) | **Fait** | Trois voies livrées : **locale** (Ollama / LM Studio, glossaire du jeu imposé) → **C3-T3** ; **par son propre chat** (lot `.json` exporté puis réimporté) → **C3-T5** ; **distante par API** (DeepL, marques protégées, quota lu) → **C3-T7**. Google et LibreTranslate écartés, voir la spec |
@@ -1335,6 +1335,14 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       pour en tirer une règle.)*
       Aujourd'hui `ModConfigEditorView.swift:6` affiche `keyPath.joined(separator: " > ")` :
       la clé brute, pour tous.
+      ▸ **Confirmé par l'audit du 2026-09-04** (décompilation —
+      [`audit-mods-config-perf.md`](audit-mods-config-perf.md)) : les deux patterns
+      cohabitent. UltraSmooth suit `camelCase(champ)` à 100 % (115 clés, toutes
+      retombées) ; SLO choisit librement (`config.fast-warp.name` pour un champ nommé
+      `EnableFastWarpTransitions`). Le rapprochement par tige reste la bonne règle,
+      avec repli assumé sur la clé brute. Piste pour élargir le plafond : **les bornes
+      vivent parfois en prose dans l'infobulle** (« Clamped 256–4096 KB »,
+      UltraSmooth) — la seule trace sur disque des min/max des mods C#.
 - [x] **C4-T5** — `§audit-config-menus` — **Sortir l'éditeur de `JSONSerialization`.**
       Défaut indépendant des menus de config, trouvé en instruisant C4-T3, et le plus
       coûteux des trois : `ModConfigEditorView` lit et réécrit le `config.json` avec
@@ -1413,6 +1421,19 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       serait cherché au mauvais endroit — par l'éditeur comme par la sauvegarde, qui
       restent au moins cohérents. Zéro cas sur le parc (un seul dossier pointé imbriqué,
       et c'est un `.config`).
+- [ ] **C4-T6** — `audit-mods-config-perf.md` — **Dire quand le fichier va être réécrit
+      sous nos pieds.** Un mod C# peut rappeler `WriteConfig` à tout moment (UltraSmooth :
+      4 sites — migration, profil, commandes ; MCM : 5) : tant que le jeu tourne, une
+      édition faite dans StarHubFR peut être écrasée à la fermeture de session.
+      Avertissement « jeu en cours » à l'ouverture de l'éditeur ; et pour les mods connus
+      pour normaliser au chargement (SLO : 24 clamps versionnés ; UltraSmooth : 3),
+      prévisualiser « sera normalisé au prochain lancement » sur les valeurs hors bornes
+      connues. · **S**
+- [ ] **C4-T7** — `audit-mods-config-perf.md` — **Les angles morts keybind de C4-T2.**
+      Chevauchements sous-ensemble (A = `K`, B = `K`+Shift co-déclenchent sur le geste
+      long — spec §12), composants de pack, mods en pause ; et donner aux collisions
+      **manette** leur catégorie visible — cas réel mesuré le 2026-09-04 : `LeftStick`
+      partagé par deux frameworks ValleyBonds. · **M**
 - [x] **C4-T2** — Champs de raccourcis clavier : validation des noms `SButton`, détection
       des collisions entre mods. · **M**
       `§audit-config-menus` : la tâche est confirmée par l'existence de
@@ -2596,6 +2617,35 @@ SMAPI 3.0, voici son remplaçant » — et, avant d'activer un mod, savoir ce qu
 silencieux plutôt que faux chiffres.
 **Critère de succès** : identifier en une session de jeu les trois mods les plus coûteux,
 sans lire une ligne de log.
+
+#### D2 — Les sources de télémétrie déjà installées — [`audit-mods-config-perf.md`](audit-mods-config-perf.md)
+
+Complément de D1 : trois mods déjà présents sur le parc écrivent de la télémétrie
+exploitable **sans rien installer de plus**. Établi par décompilation et mesure sur
+le journal réel le 2026-09-04.
+
+- [ ] **D2-T1** — Parser `[OPTIMIZER CONFIG]` (SLO, une ligne INFO au démarrage) :
+      profil, limites de cache, et le triplet configuré/effectif/**raison** de chaque
+      optimisation. Modèle Core testable ; échec silencieux si la ligne change de
+      forme. · **S**
+- [ ] **D2-T2** — Ingérer les `Mods/*/UltraSmooth_TraceReport_*.txt` : sections
+      balisées (surcharge boucle CPU, délai de présentation GPU, budget de trame
+      16,6 ms), rapprochées du mod et de la session. ⚠️ Les dossiers de mods sont
+      en 0555 par endroits (piège X7) : l'écriture du rapport peut y échouer —
+      l'absence de rapport n'est pas une absence de problème. · **M**
+- [ ] **D2-T3** — Vue « Performance » dans l'onglet Diagnostic (à côté de D1-T3) :
+      état SLO résolu, derniers rapports UltraSmooth, couverture des menus de config
+      (`Registered config menu` de MCM), le tout corrélé aux patches Content Patcher
+      par mod. · **M**
+- [ ] **D2-T4** — Session instrumentée : « Lancer avec diagnostics » — activer
+      `EnablePerformanceMeasurement` (SLO) ou le benchmark UltraSmooth (F9 par défaut
+      ici) le temps d'une session, puis ingérer journal et rapports au retour. · **M**
+
+**Risques** : mêmes que D1 — formats de sortie de mods tiers, parseurs tolérants,
+**ne jamais inventer de chiffre**. La ventilation fine « ce mod coûte X ms »
+n'existe pas dans SMAPI 4.5.2 (scan des DLL) : ne pas la promettre dans l'UI.
+**Critère de succès** : sans installer quoi que ce soit de nouveau, l'écran dit si
+SLO est actif et ce que la dernière session a mesuré.
 
 ---
 

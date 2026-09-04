@@ -172,6 +172,46 @@ def probe_http(spec):
     return state
 
 
+# ── Sondes « mod » — version d'un mod du jeu, via l'oracle smapi.io ──────────
+
+def probe_smapi_mod(spec):
+    """La dernière version d'un mod Nexus, **sans clé**.
+
+    Les pages Nexus refusent les clients non-navigateurs (403 Cloudflare,
+    mesuré sur urllib et curl le 2026-09-04) et l'API v1 exige la clé du
+    Trousseau — hors de question de la faire lire à un script de relevé.
+    On passe donc par smapi.io, déjà le contrat réseau n° 1 de l'app, avec
+    la grammaire exacte de `SmapiUpdateRequest` : une entrée
+    `{id, updateKeys, installedVersion}`, **lot d'un** (un `installedVersion`
+    illisible vide le lot entier — voir docs/SOURCES.md §2.1), version
+    ancienne par construction pour forcer la suggestion. La réponse porte
+    `metadata.main.version` : c'est l'oracle de version gratuit.
+
+    Une réponse vide n'est pas une panne : la base smapi.io couvre les mods
+    avec un décalage, un mod tout neuf peut y être absent — état relevé,
+    pas alerte.
+    """
+    body = {
+        "apiVersion": "4.1.10",   # figée, voir probe_smapi_contract
+        "gameVersion": "1.6.15",
+        "platform": "Mac",        # sensible à la casse : « mac » vide le lot
+        "includeExtendedMetadata": True,
+        "mods": [{"id": spec["uniqueId"],
+                  "updateKeys": [f"Nexus:{spec['nexusId']}"],
+                  "installedVersion": "0.0.1"}],
+    }
+    status, data = _post_json("https://smapi.io/api/v3.0/mods", body)
+    if status != 200 or not data:
+        return {"version": None,
+                "note": f"réponse {status}{' vide' if status == 200 else ''} — couverture smapi.io en décalage ?"}
+    meta = (data[0].get("metadata") or {})
+    return {
+        "version": (meta.get("main") or {}).get("version"),
+        "name": meta.get("name"),
+        "gitHubRepo": meta.get("gitHubRepo"),
+    }
+
+
 # ── Sondes « contrat » ────────────────────────────────────────────────────────
 
 SMAPI_ENDPOINT = "https://smapi.io/api/v3.0/mods"
@@ -371,7 +411,8 @@ SOURCES = [
      "used_by": "XnbStringDictionaryReader.swift"},
 
     {"key": "log-doctor", "kind": "repo", "repo": "ZeroXPatch/Projects-for-Nexus-Mod",
-     "role": "l'idée du diagnostic de journal SMAPI présenté au joueur",
+     "role": "l'idée du diagnostic de journal SMAPI présenté au joueur ; "
+             "héberge aussi la source de FasterMenuLoad",
      "used_by": "SmapiDiagnostics.swift (crédité dans CHANGELOG.md)"},
 
     {"key": "gmcm-source", "kind": "repo", "repo": "spacechase0/StardewValleyMods",
@@ -379,6 +420,32 @@ SOURCES = [
              "config.<clé>.name/.tooltip que notre éditeur de config lit "
              "dans les i18n",
      "used_by": "ModConfigSchema (libellés), docs/SOURCES.md §6"},
+
+    # — Mods du jeu observés (docs/SOURCES.md §6, audit-mods-config-perf.md) —
+    {"key": "mod/gmcm", "kind": "smapi-mod", "probe": probe_smapi_mod,
+     "nexusId": 5098, "uniqueId": "spacechase0.GenericModConfigMenu",
+     "role": "l'origine de la convention config.* lue par notre éditeur",
+     "used_by": "ModConfigSchema (libellés), docs/audit-mods-config-perf.md"},
+
+    {"key": "mod/modern-config-menu", "kind": "smapi-mod", "probe": probe_smapi_mod,
+     "nexusId": 49437, "uniqueId": "palmhacker13.ModernConfigMenu",
+     "role": "front alternatif à la même API — la convention survit au changement de front",
+     "used_by": "docs/audit-mods-config-perf.md"},
+
+    {"key": "mod/ultrasmooth", "kind": "smapi-mod", "probe": probe_smapi_mod,
+     "nexusId": 50971, "uniqueId": "palmhacker13.UltraSmooth",
+     "role": "corpus de test de l'éditeur (115 clés config.*) ; ses rapports de trace sont ingérables",
+     "used_by": "docs/audit-mods-config-perf.md"},
+
+    {"key": "mod/faster-menu-load", "kind": "smapi-mod", "probe": probe_smapi_mod,
+     "nexusId": 41564, "uniqueId": "ZeroXPatch.FasterMenuLoad",
+     "role": "mod de perf ZeroXPatch — sa source vit dans le monorepo déjà suivi (log-doctor)",
+     "used_by": "docs/audit-mods-config-perf.md"},
+
+    {"key": "mod/loading-optimizer", "kind": "smapi-mod", "probe": probe_smapi_mod,
+     "nexusId": 50153, "uniqueId": "neoiw.StardewLoadingOptimizer",
+     "role": "orchestrateur perf ; journalise [OPTIMIZER CONFIG], ligne à parser (chantier D2)",
+     "used_by": "docs/audit-mods-config-perf.md"},
 
     # — Local —
     {"key": "constantes-figées", "kind": "local", "probe": probe_pinned_constants,

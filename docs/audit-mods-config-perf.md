@@ -1,10 +1,13 @@
-# Étude des mods de référence — config, keybinds, performance
+# Audit des mods de référence — config, keybinds, performance
 
 > **Objet** — ce que la décompilation de cinq mods du jeu (GMCM, Modern
 > Config Menu, UltraSmooth, Faster Menu Load, Stardew Loading Optimizer)
 > apprend à StarHubFR, sur quatre axes : gestion des fichiers de config,
 > éditeur de `config.json`, détecteur de collision de touches, analyse
-> d'impact mémoire/FPS.
+> d'impact mémoire/FPS. Précédé du même geste que
+> [`audit-config-menus.md`](audit-config-menus.md) (2026-08-28) : décompiler
+> les menus de config pour instruire C4 — ici pour instruire C4-T1, le
+> chantier D et la surveillance des sources.
 >
 > **Méthode** — les archives viennent de `mods tests/` (gitignoré). DLL
 > décompilées avec `ilspycmd` 10.1.1 (`DOTNET_ROOT` doit pointer sur le
@@ -160,16 +163,26 @@ imparsable ignorée, `None` ignoré) :
 - la règle MCM (premier bouton) verrait 4 groupes — dont sa classe de faux
   positifs.
 
-### Conséquences pour StarHubFR
+### Réconciliation avec C4-T2 — livré, et meilleur que ce prototype
 
-Le détecteur statique est **meilleur que celui du jeu** : ensembles
-complets plutôt que premier bouton, tous les mods (mêmes non enregistrés
-auprès d'un menu), jeu éteint. Il lui faut : la table des défauts vanilla
-(constantes du jeu — MCM les lit en marche, nous les versionnons), le
-parseur KeybindList ci-dessus, et un écran de restitution groupé par
-touche. La fusion avec les contrôles remappés du joueur (lus dans la
-sauvegarde) est une v2. GMCM fournit déjà l'UX de référence : sa vue
-« raccourcis » groupe par mod et sauvegarde tout d'un coup.
+**Ce détecteur existe déjà dans StarHubFR depuis le 2026-08-29**
+(C4-T2) : `SButtonTable` figée depuis un relevé IL, `KeybindParser`,
+`KeybindScanner` en Core, sémantique **exact-combo** avec le contre-exemple
+MCM couvert par une non-régression, règle du catalogue R4, restitution dans
+les Alertes système et sur la fiche du mod. Mesuré à la livraison sur le
+parc réel : **141 liaisons, 18 collisions, 11 conflits jeu** — mon prototype
+ci-dessus (31 liaisons) voyait moins de champs : son heuristique de nommage
+(suffixe Key/Hotkey) est plus étroite que le scanner livré. La mesure reste
+utile comme contre-vérification indépendante, et pour un constat que la
+livraison ne couvrait pas : les collisions **manette** (`LeftStick`) sont
+bien réelles sur le parc.
+
+Les angles morts documentés à la livraison restent ouverts (spec §12) :
+chevauchements sous-ensemble (A = `K`, B = `K`+Shift), composants de pack,
+mods en pause. La fusion avec les contrôles remappés du joueur (lus dans la
+sauvegarde) reste une suite possible — MCM les lit en marche dans
+`Game1.options` (10 catégories), nous les versionnerions depuis la
+sauvegarde.
 
 ---
 
@@ -230,15 +243,34 @@ instrumentation SMAPI dédiée ; ne pas la promettre dans l'UI.
 
 ---
 
-## 5. Propositions (à consigner en ROADMAP si retenues)
+## 5. Propositions — réalignées sur l'existant (consignées en ROADMAP)
 
-| # | Proposition | Axe | Taille |
+La première rédaction de cette table proposait un détecteur keybind (P3)
+que **C4-T2 avait déjà livré** le 2026-08-29 — vérifié, cf. §3. La table
+ci-dessous ne porte que ce qui manque vraiment :
+
+| # | Proposition | Aboutit à | Taille |
 |---|---|---|---|
-| P1 | Éditeur : avertissement « jeu en cours » + tolérance champs inconnus/retirés, prévisualisation « sera normalisé au prochain lancement » quand le mod est connu pour normaliser (SLO, UltraSmooth) | config | S |
-| P2 | Éditeur : lecture des bornes en prose d'infobulle (« Clamped X–Y ») + bibliothèque de schémas curative pour les gros mods du parc | éditeur | M |
-| P3 | **Détecteur de collisions keybind statique** — parseur KeybindList, ensembles exacts, table des défauts vanilla, restitution groupée par touche ; prototype validé : 31 binds / 16 mods / 3 collisions | keybind | M |
-| P4 | Écran « Performance » : ingestion `[OPTIMIZER CONFIG]` + `UltraSmooth_TraceReport_*.txt` + couverture menus (`Registered config menu`), corrélée aux patches CP par mod | perf | M |
-| P5 | Session instrumentée : bouton « lancer avec diagnostics » (SLO/UltraSmooth) et analyse au retour | perf | M→L |
+| P1 | Éditeur : avertissement « jeu en cours » (config volatile, un `WriteConfig` mod peut écraser) + prévisualisation « sera normalisé au prochain lancement » pour les mods connus pour normaliser (SLO, UltraSmooth) | **C4-T6** | S |
+| P2 | Bornes : lecture de la prose d'infobulle (« Clamped X–Y ») puis bibliothèque de schémas curative pour les gros mods C# du parc — complète le `ConfigSchema` des packs (C4-T4) | **C4-T1** (instruction) | M |
+| P3' | Keybinds : les angles morts livrés — chevauchements sous-ensemble, composants de pack, mods en pause — et la collision manette rendue visible dans le rapport existant | **C4-T2 suite** | M |
+| P4 | Écran « Performance » : ingestion `[OPTIMIZER CONFIG]` (SLO), `UltraSmooth_TraceReport_*.txt`, `Registered config menu` (MCM), corrélée aux patches CP par mod — en complément du log Profiler (D1) | **D2** | M |
+| P5 | Session instrumentée : « lancer avec diagnostics » (EnablePerformanceMeasurement SLO / benchmark UltraSmooth) et analyse au retour | **D2** | M |
 
-Fait dans la foulée : SOURCES.md §6 porte désormais ces cinq mods avec les
-mesures d'identité ; la source GMCM est surveillée par `check_sources.py`.
+Fait dans la foulée : SOURCES.md §6 porte ces cinq mods, **tous surveillés**
+par `check_sources.py` — la version de chaque page via l'oracle smapi.io
+(gratuit, sans clé : les pages Nexus renvoient 403 aux clients
+non-navigateurs), la source de GMCM et de FasterMenuLoad via leurs monorepos
+GitHub.
+
+---
+
+## 6. Verdicts par mod
+
+| Mod | Verdict | Détail |
+|---|---|---|
+| **GMCM** | **référence, ne pas copier aveuglément** | Son modèle save/revert par callbacks et son `Cancel` mensonger (setters live, rien n'est défait) sont les pièges à ne pas reproduire ; sa taxonomie d'options (11 types) et sa vue raccourcis groupée sont l'ergonomie de référence. Notre éditeur est déjà plus honnête : ses annulations sont vraies. |
+| **Modern Config Menu** | **observer, dépasser** | Front alternatif qui importe les enregistrements GMCM (mesuré dans son DLL) — preuve que la couche d'enregistrement est le vrai contrat, pas l'UI. Sa règle de collision au premier bouton est l'anti-pattern documenté ; C4-T2 la couvre en non-régression. |
+| **UltraSmooth** | **exploiter** | Corpus de test de l'éditeur (115 clés `config.*`, sections, choix, boutons, clé maison) **et** source de télémétrie : ses `UltraSmooth_TraceReport_*.txt` écrits dans son dossier sont ingérables tels quels (→ D2). Ses `config.json` réécrits à 4 sites imposent l'avertissement « jeu en cours » (→ P1). |
+| **Faster Menu Load** | **crédit, pas de code** | `LazyTab` : une page-placeholder qui ne génère la vraie qu'à l'activation — élégant, hors du périmètre d'un gestionnaire. ZeroXPatch déjà crédité pour SMAPILogDoctor ; sa source vit dans le monorepo suivi (`log-doctor`). |
+| **Stardew Loading Optimizer** | **le patron à imiter côté éditeur** | `Normalize()` versionné (24 clamps, migration, champs retirés fail-closed, profils) est exactement ce qu'un éditeur de config devrait *prévisualiser* (→ P1/P2) ; sa ligne `[OPTIMIZER CONFIG]` au démarrage est un état de config résolu gratuit (→ D2). Constat défavorable à journaliser : son manifeste exige 13 dépendances que son README dit optionnelles. |
