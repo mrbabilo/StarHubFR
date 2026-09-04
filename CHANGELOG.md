@@ -12,6 +12,16 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Une recherche guidée relancée ne juge plus sur les relevés de la précédente** : à côté des réponses que vous donnez, la recherche tient un second signal — ce que le journal de SMAPI reproche à chaque essai, pour dire « l'erreur n'apparaît qu'avec tel mod ». Ces relevés n'étaient jamais remis à zéro : abandonner une recherche puis en lancer une autre faisait croiser les essais de deux recherches sans rapport, et le compte d'essais en échec incluait ceux de la première. Le second signal, censé être indépendant, pouvait ainsi confirmer un verdict avec les restes d'une recherche abandonnée.
+
+- **Le croisement du journal voit enfin tout ce qui tournait** : il ne connaissait que les mods de l'essai en cours — les mods à code, seuls candidats à la mise en pause. Tout le reste, packs de contenu compris, restait actif sur le disque sans jamais figurer au relevé. Un pack incriminé par le journal était donc réputé absent à chaque étape, et sa colonne « n'apparaît qu'avec » restait vide sans que rien ne l'explique. Sur votre parc, **496 des 948 dossiers de mods n'ont pas de code** : plus de la moitié. Second angle mort levé au passage : le journal nomme individuellement les mods logés **dans** un pack — **221 mods chez vous** — et leur dossier était cherché sous la forme « Pack/Composant », alors que la recherche ne bascule que le pack entier. Le relevé porte désormais l'état réellement appliqué au disque, et un composant est cherché sous le nom de son pack.
+
+- **Abandonner une recherche arrête sa surveillance du journal** : pendant une étape, l'app relit le journal de SMAPI dès qu'il change pour que vous n'ayez pas à ouvrir le vrai fichier. Répondre à l'étape coupait cette surveillance ; abandonner la recherche, non. Le journal continuait donc d'être relu — et réanalysé en entier — toutes les deux secondes pour le reste de la session, au profit d'une recherche qui n'existait plus.
+
+- **Une recherche démarrée pendant un rafraîchissement part d'un parc cohérent** : la liste des mods était lue deux fois, à quelques instants d'intervalle. Un mod mis en pause entre les deux lectures entrait dans la recherche sans figurer dans l'instantané de départ — et n'était donc jamais réactivé à la fin, en silence.
+
 ## [1.35.3] - 2026-09-04
 
 ### Changed

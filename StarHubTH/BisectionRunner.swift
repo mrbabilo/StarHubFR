@@ -42,6 +42,14 @@ final class BisectionRunner: ObservableObject {
     private var evidenceLog: [(enabled: Set<String>,
                                blamed: [String: String],
                                stillBroken: Bool)] = []
+    /// Ce que `apply()` a réellement posé sur le disque : les candidats de
+    /// l'essai **plus** les mods hors périmètre restés actifs, moins ceux que la
+    /// fermeture de dépendances a retirés. `currentFolders` ne porte que l'essai
+    /// (pour l'affichage) ; le croisement du journal, lui, a besoin de l'état
+    /// complet — un pack de contenu incriminé n'est jamais candidat, et le
+    /// chercher dans le seul essai le déclarait absent à chaque étape, ce qui
+    /// vidait sa colonne « n'apparaît qu'avec » sans jamais le dire.
+    private var appliedFolders: [String] = []
     /// Surveille le journal SMAPI pendant qu'une partie tourne. Sans elle, la
     /// vue des journaux de StarHubFR ne se rafraîchissait qu'au moment de
     /// répondre : l'utilisateur devait ouvrir le vrai fichier de SMAPI pour
@@ -92,19 +100,33 @@ final class BisectionRunner: ObservableObject {
         gameStillRunning = false
         restoreIncomplete = false
         noCandidates = false
+        // Les relevés de la recherche précédente ne disent rien de celle-ci :
+        // ses essais portaient sur une autre partition. Les garder faisait
+        // intersecter des ensembles sans rapport et comptait ses échecs dans
+        // `brokenSteps` — le « second signal » censé être indépendant des
+        // réponses aurait confirmé un verdict avec les restes d'une autre
+        // recherche. Même classe que `restoreIncomplete` ci-dessus, à ceci près
+        // que ces deux-là s'**accumulent** au lieu d'être réécrits.
+        evidenceLog.removeAll()
+        logEvidence = []
         isApplying = true
         let gameDir = vm.gameDir
+        // Une seule lecture de `vm.mods` : un `scanMods()` concurrent entre les
+        // deux lectures ferait juger les candidats sur un parc et l'instantané
+        // de restauration sur un autre — un mod mis en pause entre-temps
+        // entrerait dans la recherche sans figurer dans l'instantané, donc sans
+        // jamais être réactivé à la fin.
         let mods = vm.mods
         // Détection des candidats déportée hors du thread principal : ouvrir un
         // énumérateur de fichiers par dossier de mod (pour chercher un .dll) sur
         // ~900 mods gèlerait l'interface.
         DispatchQueue.global(qos: .userInitiated).async {
             let list = Self.candidates(from: mods, gameDir: gameDir)
-            Task { @MainActor [weak self] in self?.continueStart(with: list) }
+            Task { @MainActor [weak self] in self?.continueStart(with: list, from: mods) }
         }
     }
 
-    private func continueStart(with list: [BisectionCandidate]) {
+    private func continueStart(with list: [BisectionCandidate], from mods: [ModItem]) {
         guard !list.isEmpty else {
             // Aucun code-mod parmi les mods actifs : rien à mettre en pause.
             isApplying = false
@@ -112,7 +134,7 @@ final class BisectionRunner: ObservableObject {
             return
         }
 
-        let enabledFolders = vm.mods.filter(\.isEnabled).map(\.folderName)
+        let enabledFolders = mods.filter(\.isEnabled).map(\.folderName)
         // L'instantané part sur le disque AVANT le premier déplacement.
         let snap = BisectionSnapshot(enabledFolders: enabledFolders, startedAt: Date())
         BisectionSnapshotStore.save(snap)
@@ -121,7 +143,7 @@ final class BisectionRunner: ObservableObject {
         candidateFolders = Set(list.map(\.folderName))
         candidateCount = list.count
         nonCandidateFolders = enabledFolders.filter { !candidateFolders.contains($0) }
-        allEnabled = Self.describe(vm.mods.filter(\.isEnabled))
+        allEnabled = Self.describe(mods.filter(\.isEnabled))
 
         let s = BisectionSession(candidates: list)
         session = s
@@ -177,10 +199,10 @@ final class BisectionRunner: ObservableObject {
         // Le journal a été réécrit par la partie qui vient de finir : le relire
         // maintenant, sinon on jugerait sur la session précédente.
         // Gèle les dossiers de cet essai *maintenant* : apply() ci-dessous
-        // (essai suivant, ou restauration de conclusion) met `currentFolders` à
+        // (essai suivant, ou restauration de conclusion) met `appliedFolders` à
         // jour de façon synchrone, avant que cette completion async ne tire —
         // l'evidence serait sinon collée à l'essai d'après.
-        let played = Set(currentFolders)
+        let played = Set(appliedFolders)
         vm.loadSmapiLog { [weak self] in
             self?.recordLogEvidence(stillBroken: outcome == .stillBroken, enabled: played)
         }
@@ -237,7 +259,17 @@ final class BisectionRunner: ObservableObject {
         evidenceLog.append((enabled: enabled, blamed: blamed,
                             stillBroken: stillBroken))
         logEvidence = BisectionEvidence.analyse(evidenceLog, resolve: { [weak vm] name in
+            // Le dossier de tête, jamais celui du composant : `resolveModFolder`
+            // cherche dans `flattenedMods`, qui remplace un pack par ses
+            // composants — leur `folderName` porte alors le chemin relatif
+            // « Pack/Composant » (`ModItem.isPackComponent`). Or les relevés ne
+            // connaissent que les entrées de premier niveau, seule unité que la
+            // recherche bascule. Sans cette remontée, un composant de pack
+            // incriminé restait introuvable dans tous les relevés et sa colonne
+            // « n'apparaît qu'avec » demeurait vide — le défaut même que porter
+            // l'état réel du disque devait corriger.
             vm?.resolveModFolder(forLoggedName: name)?.folderName
+                .split(separator: "/").first.map(String.init)
         })
     }
 
@@ -262,6 +294,13 @@ final class BisectionRunner: ObservableObject {
 
     func restoreAndStop() {
         guard !isApplying else { return }
+        // Abandonner en pleine étape laissait le minuteur des deux secondes
+        // tourner pour le reste de la session : le journal de SMAPI était
+        // relu — et reparsé en entier — à chaque partie jouée ensuite, pour
+        // une recherche qui n'existait plus. `answer()` l'arrête déjà, mais ce
+        // chemin-ci ne passe pas par elle, et la branche d'échec plus bas
+        // saute délibérément `reset()`.
+        stopWatchingLog()
         let restore = snapshot?.enabledFolders ?? interruptedSnapshot?.enabledFolders ?? []
         // Rien à restaurer (recherche n'ayant rien déplacé — ex. zéro candidat,
         // ou déjà restauré) : on se contente de réinitialiser l'état, SANS
@@ -296,12 +335,15 @@ final class BisectionRunner: ObservableObject {
     }
 
     private func reset() {
+        stopWatchingLog()
         BisectionSnapshotStore.clear()
         snapshot = nil
         interruptedSnapshot = nil
         session = nil
         state = nil
         noCandidates = false
+        evidenceLog.removeAll()
+        logEvidence = []
         // Plus de recherche en cours, donc plus de remise en état à laquelle un
         // avertissement pourrait se rapporter. Sans cela, le drapeau levé par un
         // échec partiel survit à la fermeture de la recherche : seul `start()`
@@ -338,6 +380,7 @@ final class BisectionRunner: ObservableObject {
             applied = BisectionSession.runnable(allEnabled.filter { kept.contains($0.folderName) },
                                                 knowing: allEnabled).map(\.folderName)
         }
+        appliedFolders = applied
         vm.applyEnabledFolders(applied) { [weak self] outcome in
             self?.isApplying = false
             next(outcome)

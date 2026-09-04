@@ -52,6 +52,35 @@ struct BisectionEvidenceTests {
         #expect(out.first?.whenFine == 1)
     }
 
+    /// Le croisement ne sait rien d'un mod dont le dossier ne figure dans aucun
+    /// relevé : il ne peut pas dire s'il tournait en silence, donc il ne désigne
+    /// aucun déclencheur. C'est pourquoi l'appelant doit relever **tout** ce qui
+    /// était actif sur le disque — essai *et* mods hors périmètre — et non le
+    /// seul essai : plus de la moitié du parc n'est pas candidate, et un pack de
+    /// contenu incriminé aurait une colonne vide sans que rien ne le dise.
+    @Test func aBlamedFolderMissingFromTheRecordsNamesNoTrigger() {
+        // Un pack de contenu se plaint quand LetsMoveIt tourne, se tait sans
+        // lui — mais les relevés ne portent que les candidats.
+        let partial: [Step] = [
+            (enabled: ["LetsMoveIt", "Autre"],
+             blamed: ["[CP] Pack": "champ inconnu"], stillBroken: true),
+            (enabled: ["Autre"], blamed: [:], stillBroken: false),
+        ]
+        let blind = BisectionEvidence.analyse(partial, resolve: identity)
+        #expect(blind.first?.name == "[CP] Pack")
+        #expect(blind.first?.appearsOnlyWith.isEmpty == true)
+
+        // Les mêmes étapes, relevées avec l'état complet du disque : le
+        // déclencheur apparaît.
+        let complete: [Step] = [
+            (enabled: ["[CP] Pack", "LetsMoveIt", "Autre"],
+             blamed: ["[CP] Pack": "champ inconnu"], stillBroken: true),
+            (enabled: ["[CP] Pack", "Autre"], blamed: [:], stillBroken: false),
+        ]
+        let seeing = BisectionEvidence.analyse(complete, resolve: identity)
+        #expect(seeing.first?.appearsOnlyWith == ["LetsMoveIt"])
+    }
+
     @Test func aModNeverBlamedWhileBrokenIsNotListed() {
         let steps: [Step] = [
             (enabled: ["A"], blamed: ["A": "x"], stillBroken: false),
