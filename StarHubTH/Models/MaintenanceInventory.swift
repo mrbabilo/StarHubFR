@@ -72,4 +72,52 @@ public enum MaintenanceInventory {
         let missing = entry.userFiles.filter { !present.contains($0.relativePath) }
         return missing.isEmpty ? .none : .soleCopy(missing)
     }
+
+    /// Ce qu'une politique retirerait, protections déduites.
+    public struct PurgePlan: Equatable, Sendable {
+        public let doomed: [BackupEntry]
+        public let freedBytes: Int64
+        public let protectedCount: Int
+
+        public init(doomed: [BackupEntry], freedBytes: Int64, protectedCount: Int) {
+            self.doomed = doomed
+            self.freedBytes = freedBytes
+            self.protectedCount = protectedCount
+        }
+    }
+
+    /// Les sauvegardes à retirer pour ne garder que `keepPerMod` par mod.
+    ///
+    /// Trois règles, dans cet ordre :
+    /// 1. **Une sauvegarde protégée ne part jamais** et ne consomme pas de place
+    ///    dans le quota — elle survit *en plus*, sinon protéger un mod reviendrait
+    ///    à supprimer sa dernière sauvegarde libre.
+    /// 2. Les plus **récentes** sont gardées : c'est leur date qui répond à « ce
+    ///    que j'avais avant ma dernière mise à jour ».
+    /// 3. `keepPerMod` est borné à 1 ici, pas chez l'appelant : zéro gardé
+    ///    effacerait tout l'historique d'un mod.
+    public static func plan(keepPerMod: Int,
+                            entries: [BackupEntry],
+                            protections: [String: Protection]) -> PurgePlan {
+        let keep = max(1, keepPerMod)
+        var doomed: [BackupEntry] = []
+        var protectedCount = 0
+
+        for (_, group) in Dictionary(grouping: entries, by: \.modFolder) {
+            var free: [BackupEntry] = []
+            for entry in group {
+                if case .soleCopy = protections[entry.id] ?? .none {
+                    protectedCount += 1
+                } else {
+                    free.append(entry)
+                }
+            }
+            let ordered = free.sorted { $0.timestamp > $1.timestamp }
+            doomed.append(contentsOf: ordered.dropFirst(keep))
+        }
+
+        return PurgePlan(doomed: doomed,
+                         freedBytes: doomed.reduce(0) { $0 + $1.sizeBytes },
+                         protectedCount: protectedCount)
+    }
 }
