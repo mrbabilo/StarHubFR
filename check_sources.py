@@ -447,6 +447,15 @@ SOURCES = [
      "role": "orchestrateur perf ; journalise [OPTIMIZER CONFIG], ligne à parser (chantier D2)",
      "used_by": "docs/audit-mods-config-perf.md"},
 
+    {"key": "mod/profiler", "kind": "smapi-mod", "probe": probe_smapi_mod,
+     "nexusId": 12135, "uniqueId": "SinZ.Profiler",
+     "role": "la télémétrie que le chantier D1 parse ([BigLoop]) ; installé mais en pause sur le parc",
+     "used_by": "chantier D1 (ROADMAP), docs/SOURCES.md §6"},
+
+    {"key": "profiler-source", "kind": "repo", "repo": "SinZ163/StardewMods",
+     "role": "source du mod Profiler — le format de journal que D1-T2 doit parser",
+     "used_by": "chantier D1 (ROADMAP)"},
+
     # — Local —
     {"key": "constantes-figées", "kind": "local", "probe": probe_pinned_constants,
      "role": "les versions et URL codées en dur dans les sources",

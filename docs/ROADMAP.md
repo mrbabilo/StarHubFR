@@ -2600,6 +2600,14 @@ SMAPI 3.0, voici son remplaçant » — et, avant d'activer un mod, savoir ce qu
 
 #### D1 — Exploitation du log du mod *Profiler* (Nexus 12135)
 
+> Source ajoutée au registre le 2026-09-04 : `SinZ.Profiler` 2.0.0, page et
+> monorepo **surveillés** (`mod/profiler`, `profiler-source`). La chaîne de
+> journal à parser est mesurée dans la DLL : `[BigLoop] In total, it took
+> {0:N}ms handling {1}{2}`. ⚠️ Sur le parc de référence, Profiler est
+> **installé mais en pause** (`.Profiler/`) : sa détection doit regarder les
+> mods en pause, pas seulement les actifs — et son activation n'efface pas
+> l'historique : le dernier journal date d'avant la mise en pause.
+
 - [ ] **D1-T1** — Détecter la présence et l'activation de Profiler ; guidage (installer →
       jouer une session représentative → revenir). · **S**
 - [ ] **D1-T2** — Parser les lignes `[Profiler] [BigLoop] … GameLoop.TimeChanged` : événement,

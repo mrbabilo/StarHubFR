@@ -92,6 +92,11 @@
     "name": null,
     "version": "1.7.8"
   },
+  "mod/profiler": {
+    "gitHubRepo": "SinZ163/StardewMods",
+    "name": "Profiler",
+    "version": "2.0.0"
+  },
   "mod/ultrasmooth": {
     "gitHubRepo": null,
     "name": null,
@@ -114,6 +119,13 @@
     },
     "http": 200,
     "mods": 4720
+  },
+  "profiler-source": {
+    "archived": false,
+    "default_branch": "main",
+    "last_commit": "05b9c8e",
+    "last_commit_at": "2025-09-30T03:44:27Z",
+    "pushed_at": "2025-09-30T03:45:40Z"
   },
   "save-editor": {
     "archived": false,
