@@ -199,6 +199,20 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       ces mods ne sont pas cassés. Zéro exemplaire utile sur le parc
       aujourd'hui : à faire quand l'écran d'alertes gagnera une ligne
       « à savoir ». · **S**
+- [ ] **X59** — **Changer de profil jette la liste de ses échecs.**
+      `applyProfileToFilesystem` capture chaque déplacement raté dans un
+      `MoveFailure` — son propre commentaire dit que l'ancienne version « avalait
+      toute erreur de système de fichiers […] sans signal pour l'utilisateur », et
+      que celle-ci les capture. Elle les capture bien, et les journalise une par
+      une. Mais sur **quatre appels, un seul** les consomme (la restauration de
+      bissection, L. 8713) : l'adoption des bascules manuelles (L. 8616, 8920) ne
+      passe pas de complétion, et **le changement de profil (L. 8938) reçoit les
+      échecs sous `_`**. C'est l'action la plus courante des trois. Un mod resté du
+      mauvais côté après un changement de profil n'est donc annoncé nulle part où
+      l'utilisateur regarde — il faut ouvrir les journaux pour l'apprendre.
+      Aucune donnée n'est détruite (`moveItem` échoue si la destination existe, il
+      n'écrase pas), mais l'état affiché ne correspond plus au disque.
+      Constaté le 2026-09-04 en vérifiant **R2**. · **S**
 
 ---
 
@@ -1034,7 +1048,7 @@ devient distribuable et partageable), pas par une rupture d'API.
 
 ### Horizon 2.x — Mutualisation communautaire — **Axe D3**
 
-#### D2 — Diagnostics et mesures partagés entre utilisateurs (cf. `circinus.sh`)
+#### D3 — Diagnostics et mesures partagés entre utilisateurs (cf. `circinus.sh`)
 
 **Volontairement non chiffré.** Ce n'est pas une tâche de développement mais une décision
 produit. Trois verrous à lever *avant* d'écrire la moindre ligne :
@@ -1095,7 +1109,7 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
       **Méthode imposée par l'environnement** : `swift test` est inutilisable ici, donc un
       refactor n'a pour filet que la **compilation** (`python3 build_app.py`) — ce qui
       exclut tout big-bang. Deux règles :
-  - [ ] **F1-T1** — Extraire deux domaines nets et autonomes en types dédiés, chacun dans
+  - [x] **F1-T1** ✅ *(terminé le 2026-08-01 par `b25a550` — case corrigée le 2026-09-04, l'item se déclarait lui-même terminé)* — Extraire deux domaines nets et autonomes en types dédiés, chacun dans
         un commit isolé, sans changement de comportement. · **M**
         **Domaine 1 livré le 2026-08-01 — journal SMAPI**, en trois commits :
         `LogEntry` sort du ViewModel (sa présentation `Color` l'excluait du module testable),
@@ -1356,6 +1370,65 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
 
 ## 8. Ordre recommandé et arbitrage
 
+### 8.0 Priorité courante — **le risque de perte de données** (2026-09-04)
+
+Les 73 items ouverts ont été confrontés au code le 2026-09-04, un par un : pas
+lus, **vérifiés** — la condition que chacun affirme, cherchée là où il dit
+qu'elle est. Résultat de la passe : **une case fausse** (`F1-T1`, terminé le
+2026-08-01, son propre corps l'écrivait), **un doublon d'une tâche livrée**
+(`R4` = `B3-T5`), **un constat neuf** (`X59`, trouvé en vérifiant `R2`) ; tous
+les autres constats sont **encore vrais aujourd'hui**.
+
+L'ordre ci-dessous répond à une question précise — *qu'est-ce qui peut détruire,
+corrompre ou faire disparaître quelque chose sans le dire ?* — et non à
+« qu'est-ce qui a le plus de valeur ». Les deux ne donnent pas le même ordre.
+
+**P1 — peut faire perdre quelque chose**
+
+| Rang | Item | Ce qui se perd | Ce que la vérification a établi |
+|---|---|---|---|
+| 1 | **X55** | La configuration d'un mod, écrasée par celle d'un mod supprimé | `deleteMod` ne purge que l'historique d'erreurs et la référence de traduction. `profileManagedConfigMods` garde le **nom de dossier** : un dossier réutilisé hérite du drapeau « sa config suit le profil », et le prochain changement de profil y restaure la config de l'ancien. Demande une décision de politique (tout purger ? garder l'identifiant Nexus ?) |
+| 2 | **X25** | Potentiellement tout, si on « corrige » mal | Le danger est le **correctif**, pas le défaut : `loadIndex()` rend un index vide dès que le fichier est illisible, donc un ménage fondé sur « non référencé » ferait passer tout le parc pour orphelin. Gain réel ≈ 0 octet. À ne jamais automatiser |
+| 3 | **R6** | Rien encore — c'est le filet qui manque | Aucun test d'idempotence sur `applyProfileToFilesystem` (vérifié : aucun `Tests/` ne contient le mot). Caractériser un double-apply **avant** de toucher au code, comme le dit l'item |
+| 4 | **R2** | Un état partiel, pas des octets | `moveItem` **échoue** si la destination existe — il n'écrase pas — et chaque échec est journalisé. Reste vrai : aucune garde « jeu en cours », aucun instantané au niveau profil, des renommages en série interruptibles |
+
+**P2 — masque une information, ou en affirme une fausse**
+
+| Rang | Item | Ce qui est caché ou faux |
+|---|---|---|
+| 5 | **X59** | Un mod resté du mauvais côté après un changement de profil : l'échec est journalisé, jamais annoncé là où l'utilisateur agit (3 appels sur 4 jettent la liste) |
+| 6 | **X31** | La version de SMAPI installée, si elle a été posée hors de l'app — l'app propose alors éternellement une mise à jour déjà faite |
+| 7 | **X54** | Le journal annonce « profil créé » sur un simple ajout de mod et sur un import de favoris |
+| 8 | **X49** | Deux recherches Nexus rapprochées peuvent revenir dans le désordre |
+| 9 | **F6-T4** | Une ancre « je l'ai déjà » ratée quand le manifeste et l'ancre diffèrent par la casse |
+| 10 | **X58**, **C2-T4**, **X47** | Ce qu'un mod garde en silence (avertissements filtrés par plateforme), les clés de config perdues à une mise à jour, les lots smapi.io abandonnés après un échec |
+
+**P3 — latent : la condition est vraie, zéro exemplaire sur le parc**
+
+`X28` (`__MACOSX` niché), `X29` (détection de doublons sans appelant),
+`X32` (drapeaux de l'installateur SMAPI), `X43` (dialogue de conflit mort —
+code mort, rien de cassé), `X45` (dix dépliages manuels, aucun divergent),
+`F4` (`uniqueId: ""` sur les groupes — chaîne d'exploitation coupée),
+`F6-T1` (course à l'annulation, sans observable), `F6-T3` (deux parseurs du
+même journal). Vérifiés un par un : tous encore exacts, aucun ne se manifeste.
+À traiter quand on passe à côté, pas pour eux-mêmes.
+
+**P4 — chantiers et fonctionnalités** *(rien à perdre, tout à construire)*
+
+Par lot, dans l'ordre de ce que l'axe « perte de données » recommande de faire
+ensuite : **F2** (audit sécurité et perf — c'est lui qui trouverait les X à
+venir), **F5** (identité de bundle partagée avec l'amont : 31 clés de
+préférences et le Trousseau en commun), puis **C4** (T1/T7/T8, éditeur de
+config), **H** (5 lots restants), **A** (A1-T1/T2, A2-T5, A5-T4/T5), **D1/D2**
+(Profiler et télémétrie), **C3/C5/C6**, **I** (accessibilité, après H),
+**E1–E3** et **D3** (horizon, sous décision produit).
+
+**Non classés ici parce qu'ils attendent une décision, pas un développement** :
+`X47` (politique de reprise smapi.io), `X55` (politique de purge), `D3-T1`
+(un backend ou non), `F5` (quand casser la cohabitation avec l'amont),
+`F1-T2` (règle permanente, pas une tâche).
+
+
 L'ordre **A4 → C → B → A → D → E** se justifie ainsi :
 
 1. **La bissection d'abord** parce qu'elle est en tête de la liste de l'auteur, qu'elle
@@ -1511,12 +1584,11 @@ sur macOS / SwiftUI. Les features trop spécifiques à RimWorld (Cecil analyzer,
       l'inventaire. Répond à un vrai UX gap : aujourd'hui, ignorer un update = l'avoir
       en permanence sous les yeux.
       · **S** · *axe B.*
-- [ ] **R4** — **Profils = modlist + configs isolées.** Chaque profil capture ses propres
-      `config.json` / `fr.json` au switch (toggle par profil, off par défaut). Le scan
-      actuel distingue déjà la config par mod ; il manque l'association config↔profil
-      et le snapshot au moment du switch. Faisable en s'appuyant sur
-      `ModConfigBackupManager` déjà livré.
-      · **L** · *B3-T1 → successeur direct.*
+- [x] **R4** ✅ *(sans objet — c'est **B3-T5**, livré ; constaté le 2026-09-04)* —
+      **Profils = modlist + configs isolées.** La veille RimManager a redemandé ce que
+      l'axe B avait déjà livré : `profileManagedConfigMods` existe en production
+      (`UDKey.swift:52`, `StarHubTHViewModel.swift:316`), la capture se fait au profil
+      sortant et la restauration au profil entrant. Voir **B3-T5** dans l'archive.
 - [ ] **R5** — **Historique append-only des actions.** Modèle RimManager : chaque
       `apply`, `sort`, `install`, `delete` crée un snapshot, restaurable sans
       réécrire l'historique. Pinning (étoile) protège du pruning auto à 30 j. Remplace
@@ -1555,9 +1627,11 @@ table dit seulement **quoi chercher et où** — les identifiants sont ceux que
 citent le code et les messages de commit, et un `grep` dessus dans l'archive
 rend le texte complet.
 
-⚠️ **Deux exceptions à cette table.** Un sous-item coché dont le parent est
-resté ouvert n'a pas bougé : `F2-T1`, `F2-T2` et `F6-T2` se lisent sous leur
-parent, au §7, et non dans l'archive. Et un identifiant qui ne se trouve ni ici
+⚠️ **Deux exceptions à cette table.** Un item coché reste sur place quand le
+sortir perdrait son sens : les sous-items d'un parent ouvert (`F1-T1`, `F2-T1`,
+`F2-T2`, `F6-T2` — au §7, sous leur parent) et `R4` au §10.3, qui n'existe que
+pour dire à la prochaine lecture de la veille que cette action-là est déjà
+livrée sous le nom `B3-T5`. Et un identifiant qui ne se trouve ni ici
 ni dans l'archive n'a jamais existé sous cette forme — vérifier la casse et le
 suffixe (`H-T5b`, pas `H-T5B`).
 
