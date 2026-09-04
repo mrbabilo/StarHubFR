@@ -49,6 +49,13 @@
     "smapi_defaultGameVersion": "1.6.15",
     "smapi_endpoint": "https://smapi.io/api/v3.0/mods"
   },
+  "gmcm-source": {
+    "archived": false,
+    "default_branch": "develop",
+    "last_commit": "c1f7c3f",
+    "last_commit_at": "2026-09-01T20:56:53Z",
+    "pushed_at": "2026-09-01T20:56:58Z"
+  },
   "i18n-translator": {
     "archived": false,
     "default_branch": "main",

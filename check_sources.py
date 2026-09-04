@@ -374,6 +374,12 @@ SOURCES = [
      "role": "l'idée du diagnostic de journal SMAPI présenté au joueur",
      "used_by": "SmapiDiagnostics.swift (crédité dans CHANGELOG.md)"},
 
+    {"key": "gmcm-source", "kind": "repo", "repo": "spacechase0/StardewValleyMods",
+     "role": "source de Generic Mod Config Menu — l'origine de la convention "
+             "config.<clé>.name/.tooltip que notre éditeur de config lit "
+             "dans les i18n",
+     "used_by": "ModConfigSchema (libellés), docs/SOURCES.md §6"},
+
     # — Local —
     {"key": "constantes-figées", "kind": "local", "probe": probe_pinned_constants,
      "role": "les versions et URL codées en dur dans les sources",

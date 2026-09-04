@@ -251,9 +251,9 @@ et sorti `v1.10.0-beta.2`. Les changements qui touchent nos zones :
    grille** (2026-09-01, `c630c11`). Leur règle : *« Bulk actions run through
    this so that what the user is looking at is what they act on »* — filtre de
    source, recherche, filtres actif/inactif et mods masqués, sous une règle
-   unique, évaluée sur l'état courant et non relue de la vue. **Chez nous, le
-   bouton est dans `ModListView` — qui a recherche, catégories et pagination —
-   mais `toggleAllMods` agit sur `mods` en entier, 949 dossiers.** → X57.
+   unique, évaluée sur l'état courant et non relue de la vue. Chez nous,
+   repris le **2026-09-04** (X57) : la règle de cadrage vit dans le
+   ViewModel, et la liste comme la bascule en dérivent.
 2. **Enregistrement du protocole NXM durci** (2026-08-31). Nous avons aussi un
    gestionnaire `nxm://` ; à comparer.
 3. **Notifications de mise à jour qui n'arrivaient qu'après redémarrage**
@@ -266,7 +266,54 @@ et sorti `v1.10.0-beta.2`. Les changements qui touchent nos zones :
 
 ---
 
-## 6. Pistes d'intégration ouvertes
+## 6. Mods du jeu observés — la convention `config.*`
+
+Références du domaine, pas des dépendances : aucun code de ces mods ne vit
+chez nous. Elles sont là parce que notre **éditeur de config** lit une
+convention dont ces mods sont l'origine et le corpus — étudiés le
+**2026-09-04** depuis les archives de `mods tests/` (gitignoré), pas depuis
+les pages Nexus.
+
+**La convention.** Un mod SMAPI configurable enregistre ses options auprès
+d'un menu générique (l'API `IGenericModConfigMenuApi`) et résout
+**lui-même** ses libellés dans son i18n, selon les clés nées des exemples
+GMCM : `config.<clé>.name` / `.tooltip`, et par extension
+`config.<clé>.choice.<valeur>`, `config.<clé>.button`,
+`config.section.<id>.title` / `.desc`, `config.category`. Notre éditeur lit
+ces clés **statiquement**, jeu éteint — voir la mémoire
+`mod-config-schema-sources`.
+
+Mesuré dans les DLL (scan UTF-16) : `ModernConfigMenu.dll` porte « Generic
+Mod Config Menu detected » et « not installed; nothing to import » — c'est
+un front alternatif qui **importe les enregistrements GMCM** — et zéro clé
+`config.*` en propre ; `UltraSmooth.dll`, elle, compose ses clés
+elle-même (« Modern Config Menu detected. Registering… »). La convention
+vit dans les i18n des mods, pas dans les menus : c'est pourquoi une lecture
+statique peut exister, et pourquoi elle survit aux remplacements de front.
+
+| Mod | Identité | Ce qu'on en tire |
+|---|---|---|
+| [**Generic Mod Config Menu**](https://www.nexusmods.com/stardewvalley/mods/5098) — spacechase0, 1.16.0 | `spacechase0.GenericModConfigMenu` · Nexus 5098 · [source](https://github.com/spacechase0/StardewValleyMods) (monorepo, **surveillé**) | **l'origine de la convention `config.*`** que notre éditeur lit pour ses libellés |
+| [**Modern Config Menu**](https://www.nexusmods.com/stardewvalley/mods/49437) — palmhacker13, 1.7.8 | `palmhacker13.ModernConfigMenu` · Nexus 49437 | la preuve que la convention survit à un changement de front : même i18n, autre UI |
+| [**UltraSmooth**](https://www.nexusmods.com/stardewvalley/mods/50971) — palmhacker13, 2.1.3 | `palmhacker13.UltraSmooth` · Nexus 50971 · dépend de MCM | **le corpus de test de l'éditeur** : 115 clés `config.*` (41 `.name`, 41 `.tooltip`, 11 `.button`, 16 de section, 4 `.choice`) plus une clé maison `.gmcmGuide` ; porte aussi un `i18n/th.json` (hub thaï) |
+| [**Faster Menu Load**](https://www.nexusmods.com/stardewvalley/mods/41564) — ZeroXPatch, 1.5.0 | `ZeroXPatch.FasterMenuLoad` · Nexus 41564 | même auteur que le SMAPILogDoctor crédité §3 ; une des 13 dépendances du SLO ; **seul des cinq non installé** sur le parc |
+| [**Stardew Loading Optimizer**](https://www.nexusmods.com/stardewvalley/mods/50153) — neoiw, 1.0.0 (source : 0.5.0-rc.18) | `neoiw.StardewLoadingOptimizer` · Nexus 50153 | orchestrateur de 13 mods de performance ; son téléchargement « Source Code » est un **exemple complet d'intégration GMCM côté mod** (`GenericModConfigMenuIntegration.cs`) |
+
+Deux constats de lecture, mesurés :
+
+- **Le manifeste du SLO contredit son README** : les 13 dépendances y sont
+  toutes **requises** (`IsOptional` absent de chacune), alors que le README
+  présente Content Patcher, SpaceCore et GMCM comme « optional integrations,
+  not required dependencies ». SMAPI applique le manifeste — c'est lui qui
+  fait foi sur le disque.
+- Quatre des cinq sont **installés sur le parc** (tous sauf Faster Menu
+  Load) : leurs mises à jour relèvent donc du vérificateur de l'app, pas
+  d'ici. Seule la **source GMCM** est surveillée par `check_sources.py`
+  (monorepo spacechase0) ; les pages Nexus ne se sondent pas sans clé.
+
+---
+
+## 7. Pistes d'intégration ouvertes
 
 Consignées en `docs/ROADMAP.md` §4, avec leur mesure :
 
@@ -274,16 +321,17 @@ Consignées en `docs/ROADMAP.md` §4, avec leur mesure :
   dump Pathoschild ne sont pas décodés. Sur le parc : 5, 2 et 0 mods
   respectivement. Les cinq premiers sont des correctifs communautaires
   installables pour des mods que rien ne signale aujourd'hui.
-- **X57** — la bascule en masse agit sur le parc entier alors que son bouton
-  vit dans une liste filtrée et paginée. Stardrop a résolu exactement ça le
-  2026-09-01.
+- ~~**X57** — la bascule en masse agit sur le parc entier alors que son
+  bouton vit dans une liste filtrée et paginée.~~ **Corrigé le 2026-09-04** :
+  la règle de cadrage vit dans le ViewModel (`mods(matching:)` +
+  `scopedMods(from:scope:)`), liste et bascule en dérivent — voir ROADMAP §4.
 Fait dans la même passe : le piège `platform` est désormais documenté dans
 `SmapiUpdateRequest.swift`, à côté des trois autres champs capables de vider un
 lot en silence, et surveillé par `check_sources.py`.
 
 ---
 
-## 7. Mesures à ne pas refaire
+## 8. Mesures à ne pas refaire
 
 Relevées le 2026-09-04, sur le parc réel
 (`/Applications/Stardew Valley.app/Contents/MacOS/Mods`) :
