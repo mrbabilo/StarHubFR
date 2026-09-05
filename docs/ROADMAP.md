@@ -80,6 +80,30 @@ les chantiers, **§7** pour la dette technique.
 
 Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées.
 
+- [ ] **X72** — **Un composant de pack en collision se voit offrir un renommage
+      qui ne peut pas aboutir.** Les revendications de collision sont bâties sur
+      `mods.flattenedMods` (`StarHubTHViewModel.swift:421`) : les composants y
+      figurent, avec un `folderName` de la forme `Pack/Composant`.
+      `HealthIssueResolver.folderCollisionIssues` ajoute alors
+      `.renameFolder(folderName:)` **sans condition**. Mais
+      `ModFolderRenameSection.swift:28` cherche ses prétendants dans `vm.mods`,
+      qui ne porte que les entrées de tête : zéro prétendant pour un nom de
+      composant → `chosen == nil` → verdict `.empty` → « le nom est vide »
+      s'affiche à l'ouverture et le bouton reste désactivé pour toujours.
+      ▸ La feuille est inerte **par construction**, pas par accident :
+      `ModFolderRename.validate` refuse de toute façon un `/`
+      (`.invalidCharacter`), donc aucune saisie ne pourrait viser
+      `Pack/Composant`.
+      ▸ **Mesuré sur le parc : zéro occurrence.** Une seule collision existe,
+      entre deux mods de tête ordinaires (`Liana.SeasideSounds` /
+      `witchtopia.SeasideSounds`). Il faudrait un pack de tête dupliqué
+      `X`/`.X` dont les composants partagent leur nom avec des `UniqueID`
+      différents. Même classe de latence que X28.
+      ▸ **Question ouverte, à trancher avant de coder** : supprimer l'action
+      pour les noms contenant `/`, ou donner un chemin de renommage aux
+      composants. Le refus du `/` par `validate` porte sur une **saisie**, pas
+      sur une politique : en faire une interdiction serait coder la lecture
+      large d'une garde. · **S**
 - [ ] **X28** — **Un `__MACOSX` niché dans un mod perd ses fichiers mais garde son
       dossier.** Le balayage profond ne déplace que des fichiers (`if isDir { continue }`)
       et la passe de premier niveau ne traite `OSJunk.folders` qu'à la profondeur 1 :

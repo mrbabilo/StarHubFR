@@ -1114,6 +1114,18 @@ répond. L'ordre et les titres de section sont ceux de la roadmap.
       ▸ **30 tests neufs** (2 233 → 2 263), dont les 17 de `ModFolderRename` et
       les deux qui pinglaient l'ancienne action unique de la ligne de collision,
       réécrits. · **S**
+      ▸ **Relu le 2026-09-05, deux pistes vérifiées et mortes** — à ne pas
+      rejouer. (a) `ForEach(claimants, id: \.uniqueId)` avec deux identifiants
+      **vides** rejouerait le piège d'identité de `CLAUDE.md` ; il est
+      **inatteignable** : `ModFolderCollision.collisions` écarte les
+      identifiants vides et exige au moins deux identités **distinctes**, donc
+      la feuille ne s'ouvre jamais sur cet état. (b) `stillClaimed` compare par
+      `uniqueId` et rendrait `false` pour deux prétendants de même identifiant —
+      les clés seraient alors *déplacées* au lieu d'être partagées, et le jumeau
+      resté en place perdrait favori, horodatage et ligne de registre. Même
+      raison : cet état n'ouvre pas la feuille. Et deux entrées de tête ne
+      peuvent pas dépasser deux prétendants, un par nom physique. Ce qui reste
+      ouvert de cette relecture est **X72** (composant de pack), en ROADMAP §4.
 - [x] **X62** ✅ *(corrigé le 2026-09-04, signalé par l'auteur)* — **« Je l'ai
       déjà » ne tenait pas sur une étiquette Nexus libre.** Le geste posait bien
       son ancre, et la ligne revenait quand même à chaque vérification.
