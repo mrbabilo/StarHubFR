@@ -311,6 +311,40 @@ public struct InstalledTranslationRegistry: Codable, Equatable, Sendable {
         byHost.removeValue(forKey: host)
     }
 
+    /// Tout ce que le registre garde sur cet hôte — traduction **et** greffes.
+    ///
+    /// Sert avant `forgetEverything(host:)` : les valeurs de `replacedFiles`
+    /// sont les seuls pointeurs vers les originaux mis à l'abri, et oublier les
+    /// entrées sans les avoir relevées laisserait des octets que plus rien ne
+    /// désigne.
+    public func entries(forHost host: String) -> [InstalledTranslation] {
+        var all: [InstalledTranslation] = []
+        if let posted = byHost[host] { all.append(posted) }
+        all += addonsByHost[host] ?? []
+        return all
+    }
+
+    /// Efface **toutes** les traces de cet hôte, dans les trois dictionnaires
+    /// — la contrepartie symétrique de `rename(host:to:)` (X69).
+    ///
+    /// À ne pas confondre avec `forget(host:)`, qui ne vide que `byHost` : ce
+    /// dernier sert au **retrait d'une traduction**, où l'entrée est rendue
+    /// pour savoir quels fichiers remettre, et où une greffe posée sur le même
+    /// mod n'a aucune raison de partir. Ici l'hôte lui-même a disparu :
+    /// affirmer qu'une traduction est installée sur un mod qui n'existe plus
+    /// est faux, quel que soit le dictionnaire qui le dit.
+    ///
+    /// - Returns: `true` si quelque chose a été retiré — l'appelant n'a rien à
+    ///   réécrire sur le disque sinon.
+    @discardableResult
+    public mutating func forgetEverything(host: String) -> Bool {
+        var changed = false
+        if byHost.removeValue(forKey: host) != nil { changed = true }
+        if addonsByHost.removeValue(forKey: host) != nil { changed = true }
+        if declaredTranslations.removeValue(forKey: host) != nil { changed = true }
+        return changed
+    }
+
     /// Une traduction plus récente que celle en place ?
     ///
     /// Sur les **dates Nexus**, jamais sur les numéros de version : mesuré sur

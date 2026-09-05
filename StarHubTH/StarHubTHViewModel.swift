@@ -9984,6 +9984,55 @@ for mod in mods {
         if let id = Int(resolvedNexusModId(for: mod)) {
             recentNexusInstalls.remove(id)
         }
+        forgetTranslations(of: folder)
+    }
+
+    /// X69 — le registre des traductions et des greffes, oublié lui aussi.
+    ///
+    /// Le renommage le migre (`installedTranslations.rename(host:to:)`, un des
+    /// douze magasins de X60) ; la suppression, elle, ne le touchait pas. Sur
+    /// le parc de référence, il gardait une greffe posée sur
+    /// `[CP] Make Gunther Real`, un mod absent du disque : l'entrée affirme
+    /// qu'une traduction est installée sur un mod qui n'existe plus.
+    ///
+    /// `forgetEverything` et non `forget(host:)` : ce dernier ne vide que
+    /// `byHost`, et l'orphelin du parc vivait justement dans `addonsByHost` —
+    /// le câblage seul n'aurait pas suffi.
+    ///
+    /// **Les originaux mis à l'abri partent avec.** Les valeurs de
+    /// `replacedFiles` sont les seuls pointeurs vers eux, et rien ne balaie
+    /// `TranslationBackups/` : les oublier sans les retirer échangerait une
+    /// entrée fausse contre des octets que plus personne ne désigne. On ne
+    /// retire que ce qui vit **sous la racine des sauvegardes** — un chemin
+    /// venu d'ailleurs ne s'efface pas sur la foi d'un registre.
+    private func forgetTranslations(of folder: String) {
+        let strandedOriginals = installedTranslations.entries(forHost: folder)
+            .flatMap { $0.replacedFiles.values }
+        guard installedTranslations.forgetEverything(host: folder) else { return }
+        if !InstalledTranslationStore.save(installedTranslations) {
+            log("Registre des traductions : \(folder) retiré en mémoire seulement",
+                level: .warning)
+        }
+        guard let root = InstalledTranslationStore.backupRoot?.standardizedFileURL.path else { return }
+        let prefix = root.hasSuffix("/") ? root : root + "/"
+        // Un échec se dit, mais une fois : huit fichiers récalcitrants ne
+        // valent pas huit lignes de journal. Et il ne s'avale pas non plus —
+        // c'est la seule occasion de savoir que des octets sont restés.
+        var failed: [String] = []
+        for path in strandedOriginals
+        where URL(fileURLWithPath: path).standardizedFileURL.path.hasPrefix(prefix) {
+            do {
+                try FileManager.default.removeItem(atPath: path)
+            } catch CocoaError.fileNoSuchFile {
+                // Déjà parti : c'est le résultat voulu.
+            } catch {
+                failed.append((path as NSString).lastPathComponent)
+            }
+        }
+        if !failed.isEmpty {
+            log("Originaux de traduction non retirés pour \(folder) : "
+                + failed.joined(separator: ", "), level: .warning)
+        }
     }
 
     func deleteMod(_ mod: ModItem) {

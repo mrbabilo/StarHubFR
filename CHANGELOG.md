@@ -14,6 +14,8 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **Supprimer un mod efface enfin la trace de sa traduction.** Le registre des traductions et des greffes suivait bien un renommage de dossier, mais survivait à une suppression : il affirmait qu'une traduction était posée sur un mod absent du disque — un cas réel chez vous. Les fichiers d'origine mis à l'abri, que plus rien n'aurait désignés, partent avec.
+
 - **Le texte coloré d'une description de mod ne risque plus d'être illisible en thème sombre.** L'app corrige le contraste des couleurs qu'un auteur pose dans sa description, en s'éloignant du fond. Mais elle lisait ce fond hors de tout contexte de dessin, où il revient **blanc** même en thème sombre : la correction assombrissait alors un texte déjà sombre, au lieu de l'éclaircir. Le fond est désormais lu sous l'apparence réelle de l'app.
 
 - **Un refus de Nexus freine enfin toutes les requêtes, pas seulement celles qui l'ont vu.** Un `429` reçu par la recherche, la vitrine Découverte ou un téléchargement relevait bien le quota, mais n'armait pas le délai d'attente partagé : l'app continuait d'appeler Nexus dans une fenêtre déjà refusée, ce qui allonge le bannissement. Le délai réellement annoncé par le serveur est désormais respecté, au lieu d'une minute fixe.

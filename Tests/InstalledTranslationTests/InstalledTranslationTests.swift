@@ -564,3 +564,79 @@ struct InstalledTranslationRealRegistryTests {
         #expect(!changed)
     }
 }
+
+// MARK: - X69 — supprimer le mod hôte efface toutes ses traces
+
+/// `rename(host:to:)` déplace **trois** dictionnaires — `byHost`,
+/// `addonsByHost`, `declaredTranslations`. `forget(host:)`, lui, n'en vide
+/// qu'**un** : c'est délibéré, il sert au retrait d'une traduction et rend
+/// l'entrée pour savoir quoi remettre.
+///
+/// Il manquait la contrepartie symétrique du renommage — celle qui vaut quand
+/// le mod hôte **disparaît**. `deleteMod` n'appelait ni l'une ni l'autre : sur
+/// le parc de référence, le registre gardait une greffe posée sur
+/// `[CP] Make Gunther Real`, un mod absent du disque. L'entrée affirme qu'une
+/// traduction est installée sur un mod qui n'existe plus.
+@Suite("Registre — oubli complet d'un hôte")
+struct RegistryForgetEverythingTests {
+    private let t0 = Date(timeIntervalSince1970: 1_787_595_034)
+
+    private func entry(host: String, name: String,
+                       replaced: [String: String] = [:]) -> InstalledTranslation {
+        InstalledTranslation(hostFolderName: host, nexusModId: 1, nexusName: name,
+                             version: "1", updatedAt: t0, installedAt: t0,
+                             files: ["i18n/fr.json"], replacedFiles: replaced)
+    }
+
+    @Test func forgettingAHostClearsTheThreeDictionaries() {
+        var registry = InstalledTranslationRegistry()
+        registry.record(entry(host: "Gunther", name: "trad"))
+        registry.recordAddon(entry(host: "Gunther", name: "greffe"))
+        registry.declare(DeclaredTranslation(nexusModId: 7, nexusName: "posée à la main",
+                                             version: "1", updatedAt: t0, declaredAt: t0),
+                         forHost: "Gunther")
+
+        let changed = registry.forgetEverything(host: "Gunther")
+        #expect(changed)
+        #expect(registry.translation(forHost: "Gunther") == nil)
+        #expect(registry.addons(forHost: "Gunther").isEmpty)
+        #expect(registry.declaredTranslation(forHost: "Gunther") == nil)
+    }
+
+    /// Un hôte qu'on ne connaît pas ne fait rien bouger — l'appelant n'a alors
+    /// rien à réécrire sur le disque.
+    @Test func forgettingAnUnknownHostChangesNothing() {
+        var registry = InstalledTranslationRegistry()
+        registry.record(entry(host: "Gunther", name: "trad"))
+        let changed = registry.forgetEverything(host: "Absent")
+        #expect(!changed)
+        #expect(registry.translation(forHost: "Gunther") != nil)
+    }
+
+    /// Le cas voisin qui ne doit **pas** bouger : les autres hôtes restent.
+    @Test func forgettingAHostLeavesTheOthersAlone() {
+        var registry = InstalledTranslationRegistry()
+        registry.record(entry(host: "Gunther", name: "trad"))
+        registry.recordAddon(entry(host: "ItemBags", name: "sacs"))
+        let changed = registry.forgetEverything(host: "Gunther")
+        #expect(changed)
+        #expect(registry.addons(forHost: "ItemBags").count == 1)
+    }
+
+    /// Ce que l'appelant doit balayer : les originaux mis à l'abri par **toutes**
+    /// les entrées de cet hôte, traduction et greffes confondues. Sans eux, les
+    /// fichiers de `TranslationBackups/` deviendraient des octets que plus
+    /// aucune entrée ne désigne.
+    @Test func theEntriesOfAHostAreListedBeforeBeingForgotten() {
+        var registry = InstalledTranslationRegistry()
+        registry.record(entry(host: "Gunther", name: "trad",
+                              replaced: ["i18n/fr.json": "/bak/Gunther/1/fr.json"]))
+        registry.recordAddon(entry(host: "Gunther", name: "greffe",
+                                replaced: ["assets/a.json": "/bak/Gunther/2/a.json"]))
+        registry.recordAddon(entry(host: "ItemBags", name: "sacs",
+                                replaced: ["assets/b.json": "/bak/ItemBags/1/b.json"]))
+
+        let paths = Set(registry.entries(forHost: "Gunther").flatMap { $0.replacedFiles.values })
+        #expect(paths == ["/bak/Gunther/1/fr.json", "/bak/Gunther/2/a.json"])
+    }
+}

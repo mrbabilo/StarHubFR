@@ -756,6 +756,46 @@ répond. L'ordre et les titres de section sont ceux de la roadmap.
       ▸ Lecture du dump **quel que soit son âge** : un avertissement d'il y a
       trois jours reste vrai, et le lier au TTL de 6 h ferait disparaître ces
       lignes 18 heures par jour. **18 tests neufs** (2 215 → 2 233). · **S**
+- [x] **X69** ✅ *(corrigé le 2026-09-05)* — **Supprimer un mod laissait le
+      registre des traductions derrière lui.** Trouvé en relisant le **delta du
+      ViewModel** — 1 386 lignes ajoutées sur 31 commits depuis que sa tranche
+      avait été déclarée complète.
+      ▸ **La comparaison qui l'a montré** : les trois chemins qui touchent aux
+      magasins indexés par nom de dossier. Le **renommage** (X60) en migre
+      douze, dont `installedTranslations` ; la **suppression** (`forgetStores`,
+      X55) en purge cinq ; le **ménage** de l'écran Entretien (X25) en balaie
+      quatre. `installedTranslations` est le seul que le renommage migre et que
+      ni la suppression ni le ménage ne touchent.
+      ▸ **Un orphelin réel sur le parc** : une greffe posée sur
+      `[CP] Make Gunther Real`, mod absent du disque (vérifié : aucun dossier de
+      ce nom, ni à plat ni niché — seul `.GunthersGuide` s'en approche). L'entrée
+      affirme qu'une traduction est installée sur un mod qui n'existe plus.
+      ▸ **Le défaut a deux étages**, et n'en corriger qu'un n'aurait rien changé :
+      `rename(host:to:)` couvre **trois** dictionnaires (`byHost`,
+      `addonsByHost`, `declaredTranslations`), quand `forget(host:)` n'en vide
+      qu'**un**. L'orphelin du parc vit dans `addonsByHost` — câbler
+      `forget(host:)` à la suppression ne l'aurait pas atteint. D'où
+      `forgetEverything(host:)`, contrepartie symétrique du renommage, **4 tests
+      neufs** (2 268 → 2 272). `forget(host:)` reste tel quel : le retrait d'une
+      traduction rend délibérément l'entrée pour savoir quoi remettre, et une
+      greffe sur le même mod n'a pas à partir avec.
+      ▸ **Les originaux mis à l'abri partent avec l'entrée.** Les valeurs de
+      `replacedFiles` en sont les seuls pointeurs, et **rien ne balaie
+      `TranslationBackups/`** — `readMaintenanceReport` ne parcourt que les
+      sauvegardes d'installation. Les oublier sans les retirer aurait échangé
+      une entrée fausse contre des octets que plus personne ne désigne. Seuls
+      les chemins **sous la racine des sauvegardes** sont retirés : un chemin
+      venu d'ailleurs ne s'efface pas sur la foi d'un registre. Mesuré : les 5
+      dossiers de `TranslationBackups/` (544 Ko) ont tous leur mod encore
+      installé — zéro orphelin de fichiers aujourd'hui.
+      ▸ 📌 **Suite possible, non faite** : `TranslationBackups/` n'a aucun
+      balayeur, et `cleanStaleMaintenanceEntries` ne connaît que les quatre
+      préférences de X25. L'y ajouter demande d'étendre le rapport, producteur
+      distinct — à traiter à part.
+      ▸ 📌 **Cliquet non relevé** : le premier jet posait un `try?` sur le
+      retrait des originaux (`try_optional` +1). Corrigé plutôt qu'assumé — les
+      échecs sont comptés et journalisés **en une ligne**, ce qui est aussi la
+      seule occasion de savoir que des octets sont restés. · **S**
 - [x] **X68** ✅ *(corrigé le 2026-09-05)* — **La correction de contraste des
       descriptions partait à l'envers en thème sombre.** `MarkdownText.render`
       résolvait `NSColor.windowBackgroundColor` par `usingColorSpace(.sRGB)`
