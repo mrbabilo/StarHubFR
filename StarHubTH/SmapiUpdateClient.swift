@@ -26,25 +26,34 @@ final class SmapiUpdateClient {
 
     /// Ce qu'une vérification a **réellement couvert**.
     ///
-    /// Rendre les seuls verdicts obtenus ne suffit pas : le premier lot en
-    /// échec arrête la boucle, les suivants ne partent jamais, et un succès nu
-    /// est indistinguable d'une passe complète. L'appelant y posait alors
+    /// Rendre les seuls verdicts obtenus ne suffit pas : un succès nu est
+    /// indistinguable d'une passe complète, et l'appelant y posait alors
     /// l'horodatage de dernier succès, qui coupe la vérification automatique
-    /// pendant douze heures (`UpdateCheckPolicy`) : sur les huit lots du parc
-    /// de référence, un 503 au troisième laissait jusqu'à 795 mods jamais
-    /// interrogés, sans rien au journal et sans nouvelle tentative.
+    /// pendant douze heures (`UpdateCheckPolicy`).
+    ///
+    /// Depuis X47, un lot en échec n'arrête plus la boucle : on continue au
+    /// suivant et on retente le fautif une fois en fin de passe. Une passe
+    /// reste donc amputée seulement si un lot a échoué **deux fois** — ou si
+    /// le budget de re-découpage s'est épuisé (X64).
     struct Outcome {
         let mods: [SmapiUpdateResponse.Mod]
         /// Lots effectivement envoyés **et** revenus.
         let batchesCompleted: Int
         let batchesTotal: Int
+        /// La **première** défaillance de lot, quand la passe est amputée.
+        /// Un compte de lots seul ne dit pas pourquoi — le journal de
+        /// l'appelant, lui, doit le dire.
+        var failure: Failure?
         /// Un parc vide (zéro lot) est complet : il n'y a rien à réessayer.
         var isComplete: Bool { batchesCompleted >= batchesTotal }
     }
 
-    init(session: URLSession = .shared) {
+    init(session: URLSession = .shared, retryPause: TimeInterval = 5) {
         self.session = session
+        self.retryPause = retryPause
     }
+
+    private let retryPause: TimeInterval
 
     /// - Parameters:
     ///   - progress: `(lots terminés, lots au total)`, sur le fil principal.
@@ -56,15 +65,19 @@ final class SmapiUpdateClient {
         let batches = SmapiUpdateRequest.batches(entries, size: batchSize)
         guard !batches.isEmpty else {
             Task { @MainActor in
-                completion(.success(Outcome(mods: [], batchesCompleted: 0, batchesTotal: 0)))
+                completion(.success(Outcome(mods: [], batchesCompleted: 0,
+                                            batchesTotal: 0, failure: nil)))
             }
             return
         }
 
         Task {
             var collected: [SmapiUpdateResponse.Mod] = []
-            var failure: Failure?
-            var completedBatches = 0
+            /// Index des lots en échec, et l'erreur vue — la **première**
+            /// vue pour la passe entière, pour un verdict déterministe.
+            var batchFailures: [Int: Failure] = [:]
+            var firstFailure: Failure?
+            var completed = Set<Int>()
 
             // Les lots partent en série : la charge est déjà groupée, et une
             // rafale parallèle sur une API publique gratuite ne gagnerait que
@@ -73,42 +86,94 @@ final class SmapiUpdateClient {
             // Voir `collect(batch:gameVersion:budget:)`.
             var budget = Self.resplitBudget
             for (index, batch) in batches.enumerated() {
+                // X47 — un lot en échec ne sacrifie plus les suivants : on le
+                // note, on continue. Le fautif aura sa seconde chance en fin
+                // de passe. Sur les huit lots du parc de référence, l'ancien
+                // `break` livrait jusqu'à 795 mods à la reprise Nexus (quota
+                // compté) pour un 503 qui ne les concernait pas.
                 do {
                     let outcome = try await collect(batch: batch, gameVersion: gameVersion,
                                                     budget: budget)
                     collected += outcome.mods
                     budget = outcome.budgetLeft
                     // Ce qui a été isolé avant l'épuisement est gardé (ligne
-                    // au-dessus), mais le lot n'est pas terminé : on s'arrête
-                    // sans le compter. Un budget épuisé signale de toute façon
-                    // une cause qui ne s'arrêtera pas au lot suivant.
-                    if outcome.abandoned { break }
+                    // au-dessus), mais le lot n'est pas terminé : il ne compte
+                    // pas. Les suivants partent quand même : un budget épuisé
+                    // condamne le re-découpage, pas les lots sains — chacun
+                    // d'eux coûte une requête et peut très bien revenir.
+                    if outcome.abandoned { continue }
                 } catch let error as Failure {
-                    failure = error
-                    break
+                    batchFailures[index] = error
+                    if firstFailure == nil { firstFailure = error }
+                    continue
                 } catch {
-                    failure = .transport(error.localizedDescription)
-                    break
+                    batchFailures[index] = .transport(error.localizedDescription)
+                    if firstFailure == nil {
+                        firstFailure = .transport(error.localizedDescription)
+                    }
+                    continue
                 }
-                completedBatches = index + 1
-                // `let` local : `completedBatches` est un `var` capturé, ce
-                // qu'une closure concurrente ne peut pas emporter.
-                let done = completedBatches
+                completed.insert(index)
+                // `let` local : la progression ne peut pas emporter un `var`
+                // capturé dans une closure concurrente.
+                let done = completed.count
                 await MainActor.run { progress?(done, batches.count) }
             }
 
-            // Un lot en échec après des lots réussis rend quand même ce qui a
-            // abouti : perdre 800 verdicts parce que le dernier lot a échoué
-            // serait le défaut qu'on vient de corriger, sous une autre forme.
-            // Mais la passe **dit** qu'elle est amputée : `Outcome.isComplete`
-            // est ce qui permet à l'appelant de ne pas la prendre pour un
-            // passage réussi du parc entier.
+            // La seconde chance (X47) : après un retrait, **une** tentative de
+            // plus pour les lots victimes d'un accident — transport ou HTTP.
+            // Une erreur de décodage est déterministe : les mêmes octets
+            // reviendraient, la retenter dépenserait une requête contre une
+            // API publique gratuite pour n'apprendre rien de nouveau.
+            let transient = batchFailures
+                .filter { if case .decoding = $0.value { return false } else { return true } }
+                .sorted { $0.key < $1.key }
+            // Le retrait. Une annulation (la tâche n'a plus d'auditoire —
+            // sortie de l'app) dit que la seconde chance n'a pas à partir :
+            // l'avaler et retenter quand même serait pire que le silence.
+            var retryRound = transient
+            if !transient.isEmpty, retryPause > 0 {
+                do {
+                    try await Task.sleep(nanoseconds: UInt64(retryPause * 1_000_000_000))
+                } catch {
+                    retryRound = []
+                }
+            }
+            for (index, _) in retryRound {
+                do {
+                    let outcome = try await collect(batch: batches[index],
+                                                    gameVersion: gameVersion,
+                                                    budget: budget)
+                    collected += outcome.mods
+                    budget = outcome.budgetLeft
+                    if outcome.abandoned { continue }
+                } catch let error as Failure {
+                    batchFailures[index] = error
+                    continue
+                } catch {
+                    batchFailures[index] = .transport(error.localizedDescription)
+                    continue
+                }
+                batchFailures[index] = nil
+                completed.insert(index)
+                let done = completed.count
+                await MainActor.run { progress?(done, batches.count) }
+            }
+
+            // Des lots en échec après des lots réussis rendent quand même ce
+            // qui a abouti : perdre 800 verdicts parce que le dernier lot a
+            // échoué serait le défaut qu'on corrige, sous une autre forme.
+            // Mais la passe **dit** qu'elle est amputée — et pourquoi :
+            // `Outcome.isComplete` empêche l'appelant de la prendre pour un
+            // passage réussi du parc entier, `Outcome.failure` nomme la cause.
+            let completedBatches = completed.count
             let outcome: Result<Outcome, Failure> =
-                (failure != nil && collected.isEmpty)
-                ? .failure(failure!)
+                (firstFailure != nil && completedBatches == 0 && collected.isEmpty)
+                ? .failure(firstFailure!)
                 : .success(Outcome(mods: collected,
                                    batchesCompleted: completedBatches,
-                                   batchesTotal: batches.count))
+                                   batchesTotal: batches.count,
+                                   failure: firstFailure))
             await MainActor.run { completion(outcome) }
         }
     }

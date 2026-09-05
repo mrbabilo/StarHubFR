@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Un lot smapi.io en échec ne sacrifie plus les suivants.** Un 503 ponctuel au milieu d'une vérification renonçait à tous les lots restants — jusqu'à 795 mods repartant vers la reprise Nexus, elle, comptée dans votre quota. La vérification continue au lot suivant et offre au lot fautif une seconde chance après un retrait ; une passe encore amputée dit désormais sa cause au journal.
+
 ## [1.36.1] - 2026-09-05
 
 ### Fixed

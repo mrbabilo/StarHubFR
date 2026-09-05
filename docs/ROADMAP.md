@@ -127,14 +127,6 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       couvre aujourd'hui. **Vérifié : elles ne divergent pas** — toutes écrivent
       `?? []`. C'est donc un constat de forme, pas un bug ; il vaut surtout pour ce
       qu'il annonce, un `ModItem.components` manquant. · **S**
-- [ ] **X47** — **Le `break` du premier lot en échec coûte les lots suivants.** Un
-      503 ponctuel sur le lot 3 de 8 renonce aux lots 4 à 8, que rien n'incriminait :
-      795 mods repartent en reprise Nexus (quota payant) là où un simple passage au
-      lot suivant les aurait couverts gratuitement. Le fichier assume ce choix (« ne
-      pas cogner une API publique gratuite »), et il protège d'une rafale d'erreurs.
-      Redessiner la politique — continuer, ou réessayer le lot une fois avec un
-      retrait — est une décision de conception, pas un correctif d'audit. X46 rend
-      au moins le fait visible et réessayable. · **S**
 
 
 ---
@@ -1328,7 +1320,7 @@ corrompre ou faire disparaître quelque chose sans le dire ?* — et non à
 | ~~7~~ | ~~**X54**~~ | ✅ **Corrigé le 2026-09-04** — deux clés neuves : l'ajout nomme le mod, l'import dit combien de favoris sont entrés. Voir l'archive |
 | ~~8~~ | ~~**X49**~~ | ✅ **Corrigé le 2026-09-04** — jeton d'époque (`RequestEpoch`, Core, 6 tests) sur la recherche **et** sur la fiche, second exemplaire trouvé en câblant. Voir l'archive |
 | 9 | **F6-T4** | Une ancre « je l'ai déjà » ratée quand le manifeste et l'ancre diffèrent par la casse. ⚠️ **Réévalué le 2026-09-04 : ce n'est pas un S.** Corriger la seule lecture créerait la divergence que l'item décrit ; le faire d'un bloc demande de normaliser la clé à l'écriture **et** de migrer les ancres déjà posées. Aucun observable sur le parc — ne pas le reprendre comme « petit correctif » |
-| 10 | ~~**X58**~~ ✅, ~~**X60**~~ ✅, **C2-T4**, **X47** | ~~Ce qu'un mod garde en silence~~ et ~~l'échange de noms de dossier qu'un profil ne peut pas faire~~ *(corrigés le 2026-09-05 — voir l'archive)*, les clés de config perdues à une mise à jour, les lots smapi.io abandonnés après un échec |
+| 10 | ~~**X58**~~ ✅, ~~**X60**~~ ✅, **C2-T4**, ~~**X47**~~ ✅ | ~~Ce qu'un mod garde en silence~~, ~~l'échange de noms de dossier qu'un profil ne peut pas faire~~ et ~~les lots smapi.io abandonnés après un échec~~ *(corrigés le 2026-09-05 — voir l'archive)*, les clés de config perdues à une mise à jour |
 
 **P3 — latent : la condition est vraie, zéro exemplaire sur le parc**
 
@@ -1351,7 +1343,7 @@ config), **H** (5 lots restants), **A** (A1-T1/T2, A2-T5, A5-T4/T5), **D1/D2**
 **E1–E3** et **D3** (horizon, sous décision produit).
 
 **Non classés ici parce qu'ils attendent une décision, pas un développement** :
-`X47` (politique de reprise smapi.io), `X55` (politique de purge), `D3-T1`
+`X55` (politique de purge), `D3-T1`
 (un backend ou non), `F5` (quand casser la cohabitation avec l'amont),
 `F1-T2` (règle permanente, pas une tâche).
 
@@ -1612,6 +1604,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **X61** | 2026-09-04 | Le résidu écarté par la bascule en masse restait chargé par SMAPI, faute du point de tête que l'autre chemin posait |
 | **X62** | 2026-09-04 | « Je l'ai déjà » ne tenait pas quand la version affirmée était une étiquette Nexus libre — 15 mods sur 38 revenaient à chaque vérification |
 | **X76** | 2026-09-05 | Un index de sauvegardes absent ou corrompu rendait orphelines toutes les sessions réelles — 203 corbeillées d'un clic |
+| **X47** | 2026-09-05 | Un lot smapi.io en échec sacrifiait les suivants — 795 mods livrés au quota Nexus pour un 503 qui ne les visait pas ; continuer, puis une seconde chance avec retrait |
 | **X72** | 2026-09-05 | Le renommage offert à un composant de pack en collision était mort par construction — l'offre ne se fait plus (tranché par l'auteur) |
 | **X75** | 2026-09-05 | L'inventaire étiquetait « traduction » le `i18n/fr.json` d'auteur d'un mod dès qu'un *autre* mod avait sa traduction au même chemin — 59 fichiers, protections fantômes en attente |
 | **X74** | 2026-09-05 | Les préférences posées sur un en-tête de pack étaient jugées mortes — l'écran Entretien ne comptait que les composants |

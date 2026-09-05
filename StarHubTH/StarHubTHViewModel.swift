@@ -4409,21 +4409,23 @@ class StarHubTHViewModel: ObservableObject {
             case .success(let outcome)?:
                 self.applySmapiResults(outcome.mods, entries: entries, folders: folders)
                 self.compatibilitySource = .live
-                // Une passe amputée n'est pas un passage réussi du parc. Le
-                // premier lot en échec arrête la boucle : les suivants ne
-                // partent jamais, et enregistrer un succès couperait la
-                // vérification automatique pendant douze heures
-                // (`UpdateCheckPolicy`) pour des mods qui n'ont pas été
-                // interrogés une seule fois. Ils repartent bien en reprise
+                // Une passe amputée n'est pas un passage réussi du parc.
+                // Enregistrer un succès couperait la vérification automatique
+                // pendant douze heures (`UpdateCheckPolicy`) pour des mods qui
+                // n'ont pas été interrogés. Ils repartent bien en reprise
                 // Nexus faute de verdict — mais aux dépens du quota Nexus, là
-                // où smapi.io est gratuit et sans quota.
+                // où smapi.io est gratuit et sans quota. Depuis X47, un lot en
+                // échec ne sacrifie plus les suivants : une passe amputée
+                // signifie un lot échoué **deux fois** (première passe et
+                // seconde chance) ou un budget de re-découpage épuisé (X64).
                 if outcome.isComplete {
                     NexusUpdateChecker.shared.recordSuccessfulCheck()
                 } else {
+                    let cause = outcome.failure.map { " — cause : \($0)" } ?? ""
                     self.log("[MAJ] Passe smapi.io incomplète : \(outcome.batchesCompleted) "
-                             + "lot(s) sur \(outcome.batchesTotal) — les mods des lots restants "
-                             + "gardent leurs lignes précédentes, et la prochaine vérification "
-                             + "automatique repartira au lieu d'attendre 12 h",
+                             + "lot(s) sur \(outcome.batchesTotal)\(cause) — les mods des lots "
+                             + "restants gardent leurs lignes précédentes, et la prochaine "
+                             + "vérification automatique repartira au lieu d'attendre 12 h",
                              level: .warning)
                 }
             case .failure(let failure)?:

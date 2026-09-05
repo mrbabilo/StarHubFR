@@ -774,6 +774,31 @@ répond. L'ordre et les titres de section sont ceux de la roadmap.
       et la révélation Finder restent. La frontière est la barre oblique du
       nom disputé, pas une garde dérivée du refus de saisie. **1 test
       neuf** (2 297 → 2 298). · **S**
+- [x] **X47** ✅ *(corrigé le 2026-09-05)* — **Un lot smapi.io en échec ne
+      sacrifie plus les lots suivants.** Le `break` du premier lot fautif
+      renonçait aux lots restants, que rien n'incriminait : sur les huit lots
+      du parc de référence, un 503 ponctuel au troisième livrait **795 mods**
+      à la reprise Nexus (quota compté) là où smapi.io les aurait couverts
+      gratuitement. Le choix d'origine protégeait d'une rafale contre une API
+      publique gratuite — la nouvelle politique garde la protection et rend
+      les lots : **continuer** au suivant, puis **une** seconde chance au
+      fautif en fin de passe, après un retrait de 5 s. Une seule : réessayer
+      indéfiniment cognerait ce que le code s'interdit déjà de paralléliser.
+      ▸ **Ce qui ne relève pas** : une erreur de **décodage** est
+      déterministe — les mêmes octets reviendraient —, aucune seconde chance
+      pour elle ; un lot **abandonné** par budget de re-découpage épuisé
+      (X64) non plus, le budget est consommé. Les lots sains partent quand
+      même après un abandon : un budget épuisé condamne le découpage, pas un
+      lot d'une requête qui peut très bien revenir.
+      ▸ **`Outcome` dit la cause** : un compte de lots n'explique pas
+      pourquoi une passe est amputée. `Outcome.failure` porte la **première**
+      défaillance de la passe — choix déterministe, le journal de l'appelant
+      n'y verrait sinon que l'ordre d'un dictionnaire.
+      ▸ Le retrait vit derrière `retryPause` (5 s en production, 0 dans les
+      tests) ; son `Task.sleep` est en do/catch, pas en `try?` — une
+      annulation dit que la seconde chance n'a pas d'auditoire, l'avaler et
+      retenter quand même serait pire que le silence (leçon X69, le cliquet
+      a confirmé). **3 tests neufs** (2 298 → 2 301). · **S**
 - [x] **X76** ✅ *(corrigé le 2026-09-05)* — **Un index qu'on n'a pas lu ne
       rend pas orphelines les sauvegardes qu'il référence.**
       `loadIndex` rendait un index vide pour trois états distincts — premier

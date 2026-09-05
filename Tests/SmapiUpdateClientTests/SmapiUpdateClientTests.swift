@@ -3,14 +3,15 @@ import Testing
 @testable import StarHubTHCore
 
 /// Une vérification smapi.io part en lots de 150 : le parc de référence en
-/// demande **huit**. Le premier lot en échec arrête la boucle — les suivants ne
-/// partent jamais — et le client rendait malgré tout un succès, indistinguable
-/// d'une passe complète. L'appelant y posait alors l'horodatage de dernier
-/// succès, qui coupe la vérification automatique pendant **douze heures** : un
-/// 503 sur le troisième lot laissait jusqu'à 795 mods sans avoir été interrogés
-/// une seule fois, sans rien dans le journal, et sans nouvelle tentative.
+/// demande **huit**. Le client rendait un succès nu indistinguable d'une passe
+/// complète : l'appelant y posait l'horodatage de dernier succès, qui coupe la
+/// vérification automatique pendant **douze heures**. X64 a donné à la passe
+/// le moyen de dire ce qu'elle a **réellement couvert** ; X47 a fait qu'un lot
+/// en échec n'arrête plus la boucle — on continue au suivant, et le fautif a
+/// une seconde chance en fin de passe.
 ///
-/// Ces tests épinglent ce que la passe a **réellement couvert**.
+/// Ces tests épinglent les deux : ce que la passe a couvert, et ce qu'elle
+/// récupère.
 ///
 /// `.serialized` : le protocole d'URL simulé porte son script en statique, et
 /// Swift Testing exécute les tests d'une suite en parallèle par défaut — deux
@@ -47,12 +48,14 @@ struct SmapiUpdateClientTests {
         override func stopLoading() {}
     }
 
+    /// `retryPause: 0` — le retrait de fin de passe (X47) n'est pas ce que
+    /// ces tests éprouvent, et la production seule a cinq secondes à perdre.
     private func client(script: [(Int, Data)]) -> SmapiUpdateClient {
         StubProtocol.script = script
         StubProtocol.received = 0
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [StubProtocol.self]
-        return SmapiUpdateClient(session: URLSession(configuration: config))
+        return SmapiUpdateClient(session: URLSession(configuration: config), retryPause: 0)
     }
 
     private func entries(_ count: Int, prefix: String = "mod") -> [SmapiUpdateRequest.Entry] {
@@ -104,8 +107,10 @@ struct SmapiUpdateClientTests {
     }
 
     @Test func aFailedBatchMakesThePassPartial() {
-        // Le cas vécu : le premier lot répond, le second tombe en 503. La
-        // boucle s'arrête là — les lots suivants ne partent pas.
+        // Le cas vécu : le premier lot répond, le second tombe en 503 — et sa
+        // seconde chance aussi (le script épuisé rend 500 à toute requête
+        // suivante). Les lots suivants partent (X47), échouent de même, et la
+        // passe reste amputée : c'est ce que l'appelant doit voir.
         let all = entries(450)          // trois lots
         let first = Array(all[..<150])
         let c = client(script: [(200, body(for: first)), (503, Data())])
@@ -174,5 +179,85 @@ struct SmapiUpdateClientTests {
         #expect(outcome.isComplete)
         #expect(outcome.mods.isEmpty)
         #expect(outcome.batchesTotal == 0)
+    }
+
+    // MARK: - X47 — un lot en échec ne sacrifie plus les suivants
+
+    /// X47 — le `break` du premier lot fautif coûtait tous les suivants : un
+    /// 503 ponctuel au lot 3 de 8 renonçait aux lots 4 à 8, que rien
+    /// n'incriminait — 795 mods du parc de référence repartaient en reprise
+    /// Nexus (quota compté) là où smapi.io les aurait couverts gratuitement.
+    ///
+    /// La politique : **continuer** au lot suivant, et offrir au lot fautif
+    /// **une** seconde chance en fin de passe, après un retrait. Une seule :
+    /// réessayer indéfiniment cognerait l'API publique gratuite que le code
+    /// s'interdit déjà de paralléliser.
+    @Test func aTransientFailureIsRetriedOnceAndThePassRecovers() {
+        // Le lot 2 répond 503 ; le lot 3 part quand même ; le re-tri du lot 2
+        // réussit. La passe redevient **complète** — c'est la récupération
+        // que X47 achète.
+        let all = entries(450)          // trois lots
+        let first = Array(all[..<150])
+        let second = Array(all[150..<300])
+        let third = Array(all[300...])
+        let c = client(script: [(200, body(for: first)),
+                                (503, Data()),
+                                (200, body(for: third)),
+                                (200, body(for: second))],
+                       )
+        guard case .success(let outcome) = fetch(c, entries: all) else {
+            Issue.record("succès attendu — la passe a récupéré"); return
+        }
+        #expect(outcome.isComplete)
+        #expect(outcome.batchesCompleted == 3)
+        #expect(outcome.mods.count == 450)
+    }
+
+    @Test func aLotThatFailsItsRetryLeavesThePassPartialAndNamesTheCause() {
+        // Même scénario, mais le lot 2 échoue aussi à sa seconde chance : la
+        // passe est amputée — et dit **pourquoi**, ce qu'un compte de lots
+        // seul ne disait pas.
+        let all = entries(450)
+        let first = Array(all[..<150])
+        let third = Array(all[300...])
+        let c = client(script: [(200, body(for: first)),
+                                (503, Data()),
+                                (200, body(for: third)),
+                                (503, Data())],               // le lot 2, retenté
+                       )
+        guard case .success(let outcome) = fetch(c, entries: all) else {
+            Issue.record("les 300 verdicts obtenus doivent être rendus"); return
+        }
+        #expect(!outcome.isComplete)
+        #expect(outcome.batchesCompleted == 2)
+        #expect(outcome.mods.count == 300)
+        guard case .http(503)? = outcome.failure else {
+            Issue.record("la cause de l'amputation doit être nommée : \(String(describing: outcome.failure))")
+            return
+        }
+    }
+
+    @Test func aDecodingFailureIsNotRetried() {
+        // Une erreur de décodage est déterministe : les mêmes octets
+        // reviendront. La retenter dépenserait une requête contre une API
+        // publique gratuite pour n'apprendre rien de nouveau — on note
+        // l'échec, on continue, sans seconde chance.
+        let all = entries(450)
+        let first = Array(all[..<150])
+        let third = Array(all[300...])
+        let c = client(script: [(200, body(for: first)),
+                                (200, Data("pas du JSON".utf8)),   // lot 2 : décodage
+                                (200, body(for: third))],
+                       )
+        guard case .success(let outcome) = fetch(c, entries: all) else {
+            Issue.record("les 300 verdicts obtenus doivent être rendus"); return
+        }
+        #expect(!outcome.isComplete)
+        #expect(outcome.batchesCompleted == 2)
+        guard case .decoding? = outcome.failure else {
+            Issue.record("la cause doit être un échec de décodage"); return
+        }
+        // Trois requêtes, pas une de plus : le lot fautif n'a pas été retenté.
+        #expect(StubProtocol.received == 3)
     }
 }
