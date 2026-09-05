@@ -158,6 +158,23 @@ struct FolderCollisionIssueTests {
         #expect(issues([unknown]).first?.actions == [.renameFolder(folderName: "X")])
     }
 
+    @Test func aPackComponentCollisionDoesNotOfferARenameThatCannotComplete() {
+        // X72 — la feuille cherche ses prétendants dans `vm.mods`, qui ne
+        // porte que les entrées de tête : un nom de composant
+        // (`Pack/Composant`) n'y a aucun prétendant, la feuille s'ouvrirait
+        // sur « le nom est vide » et le bouton resterait désactivé pour
+        // toujours. L'offre est morte **par construction** : elle ne se fait
+        // pas. Tranché par l'auteur le 2026-09-05 — retirer l'action plutôt
+        // que donner un chemin de renommage aux composants (zéro occurrence
+        // sur le parc ; la ligne et la révélation Finder restent).
+        let component = ModFolderCollision.Collision(
+            folderName: "Pack/Composant", uniqueIds: ["a.x", "b.x"],
+            physicalFolderNames: ["Pack/Composant", ".Pack/Composant"])
+        #expect(issues([component]).first?.actions
+                == [.revealInFinder(paths: ["/Jeu/Mods/Pack/Composant",
+                                            "/Jeu/Mods/.Pack/Composant"])])
+    }
+
     // MARK: - Le dossier mis de côté
 
     /// Un résidu écarté doit être **préfixé d'un point** : sans lui, SMAPI

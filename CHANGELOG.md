@@ -14,6 +14,8 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **Un renommage mort ne s'offre plus.** Sur une collision de dossier entre composants de pack, l'app proposait « Renommer » — une feuille qui s'ouvrait sur « le nom est vide », bouton à jamais désactivé : elle cherchait ses prétendants parmi les mods de tête, où un composant n'existe pas. La ligne de collision et la révélation dans le Finder restent ; seul le geste impossible a été retiré.
+
 - **Une sauvegarde d'installation ne passe plus pour orpheline parce que l'index est illisible.** Absent ou corrompu, l'index était lu comme « aucune sauvegarde » : l'écran Entretien déclarait alors orphelines toutes les sessions présentes sur le disque — 203 chez vous — et un clic sur « nettoyer » les mettait à la corbeille. Sans index lisible, plus aucune session n'est jugée orpheline, et le journal le dit.
 
 - **Une traduction d'auteur ne passe plus pour une traduction posée par l'app.** L'écran Entretien comparait chaque fichier de vos sauvegardes aux chemins de traduction de *tous* les mods : dès qu'un mod avait son `i18n/fr.json` posé par l'app, celui de n'importe quel autre mod — écrit par son auteur — était compté « fichier utilisateur » : 59 fichiers chez vous, tous prêts à devenir des « seules copies » fantômes rendant leurs sauvegardes impurgeables. La comparaison se fait désormais sur les seuls chemins du mod de la sauvegarde.

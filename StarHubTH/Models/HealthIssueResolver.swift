@@ -211,11 +211,22 @@ public enum HealthIssueResolver {
                         // le second supprime la cause. Sans dossier connu, il
                         // n'y a rien à montrer — mais le nom disputé, lui, se
                         // renomme quand même.
+                        //
+                        // Sauf pour un composant de pack (X72) : la feuille
+                        // cherche ses prétendants dans les entrées de tête, où
+                        // un nom `Pack/Composant` n'existe pas — elle serait
+                        // morte par construction (« le nom est vide », bouton
+                        // désactivé pour toujours). Ne pas offrir un geste qui
+                        // ne peut pas aboutir ; la ligne et la révélation
+                        // Finder, elles, restent. Tranché par l'auteur le
+                        // 2026-09-05 : retirer l'action plutôt que construire
+                        // un renommage de composants, que zéro parc n'appelle.
                         actions: (collision.physicalFolderNames.isEmpty ? [] :
                             [.revealInFinder(paths: collision.physicalFolderNames.map {
                                 (modsPath as NSString).appendingPathComponent($0)
                             })])
-                            + [.renameFolder(folderName: collision.folderName)])
+                            + (collision.folderName.contains("/")
+                               ? [] : [.renameFolder(folderName: collision.folderName)]))
         }
     }
 

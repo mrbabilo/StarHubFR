@@ -756,6 +756,24 @@ répond. L'ordre et les titres de section sont ceux de la roadmap.
       ▸ Lecture du dump **quel que soit son âge** : un avertissement d'il y a
       trois jours reste vrai, et le lier au TTL de 6 h ferait disparaître ces
       lignes 18 heures par jour. **18 tests neufs** (2 215 → 2 233). · **S**
+- [x] **X72** ✅ *(corrigé le 2026-09-05, tranché par l'auteur)* — **Le
+      renommage offert à un composant de pack en collision était mort par
+      construction.** Les revendications de collision sont bâties sur
+      `flattenedMods`, où les composants figurent sous la forme
+      `Pack/Composant` ; `folderCollisionIssues` offrait `.renameFolder`
+      sans condition. Mais la feuille cherche ses prétendants dans `vm.mods`
+      (entrées de tête seulement) : zéro prétendant pour un nom de composant
+      → « le nom est vide » à l'ouverture, bouton désactivé pour toujours —
+      et `validate` refuserait de toute façon le `/` de la saisie.
+      ▸ **Tranché avant de coder, comme l'exigeait le constat** : supprimer
+      l'action pour les noms contenant `/`, plutôt que construire un
+      renommage de composants — qui exigerait d'abord de débloquer le cas
+      latent X28 (composant en pause dans un pack actif, que
+      `physicalFolderName` ne sait pas exprimer) pour ne pas bâtir un chemin
+      qui casse sur lui. Zéro occurrence sur le parc ; la ligne de collision
+      et la révélation Finder restent. La frontière est la barre oblique du
+      nom disputé, pas une garde dérivée du refus de saisie. **1 test
+      neuf** (2 297 → 2 298). · **S**
 - [x] **X76** ✅ *(corrigé le 2026-09-05)* — **Un index qu'on n'a pas lu ne
       rend pas orphelines les sauvegardes qu'il référence.**
       `loadIndex` rendait un index vide pour trois états distincts — premier
