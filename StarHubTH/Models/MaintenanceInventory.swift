@@ -141,9 +141,24 @@ public enum MaintenanceInventory {
     /// (`Pack/Composant`) et figure donc dans `installedFolders` quand son pack
     /// est là — inutile de rejouer la règle de préfixe de `ModRemovalPurge`,
     /// qui répond à une autre question (ce qui part *avec* un dossier supprimé).
+    ///
+    /// ⚠️ **Un parc vide ne juge rien** (X70). `installedFolders` vide ne veut
+    /// pas dire « aucun mod installé » : il veut dire « on n'a rien vu » —
+    /// dossier de jeu introuvable ou déplacé, disque externe débranché,
+    /// balayage pas encore terminé quand l'écran s'ouvre. Sans cette garde,
+    /// **toutes** les clés paraissent mortes et le bouton « nettoyer » les
+    /// efface : **616 entrées sur le parc de référence**, dont 169 identifiants
+    /// Nexus qui ne se ressaisissent qu'à la main, un par un.
+    ///
+    /// C'est la règle que cet écran s'était déjà donnée pour les sessions
+    /// orphelines — « une suppression ne se décide pas sur une absence
+    /// constatée toute seule ». Le prix de la garde est qu'un parc réellement
+    /// vide ne nettoie plus ses clés ; le prix de son absence est la perte de
+    /// données de tous les autres.
     public static func stalePreferenceKeys(_ keys: some Sequence<String>,
                                            installedFolders: Set<String>) -> Set<String> {
-        Set(keys.filter { !$0.isEmpty && !installedFolders.contains($0) })
+        guard !installedFolders.isEmpty else { return [] }
+        return Set(keys.filter { !$0.isEmpty && !installedFolders.contains($0) })
     }
 
     /// L'inventaire complet, tel que l'écran le lit.

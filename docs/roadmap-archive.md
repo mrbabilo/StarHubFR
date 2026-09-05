@@ -756,6 +756,31 @@ répond. L'ordre et les titres de section sont ceux de la roadmap.
       ▸ Lecture du dump **quel que soit son âge** : un avertissement d'il y a
       trois jours reste vrai, et le lier au TTL de 6 h ferait disparaître ces
       lignes 18 heures par jour. **18 tests neufs** (2 215 → 2 233). · **S**
+- [x] **X70** ✅ *(corrigé le 2026-09-05)* — **Un parc qu'on ne voit pas n'est
+      pas un parc vide.** `MaintenanceInventory.stalePreferenceKeys` juge chaque
+      clé sur son absence de `installedFolders`. Ce lot vide ne veut pas dire
+      « aucun mod installé » : il veut dire « on n'a rien lu » — dossier de jeu
+      introuvable ou déplacé, disque externe débranché, balayage pas terminé
+      quand l'écran s'ouvre. Toutes les clés passaient alors pour mortes, et le
+      bouton « nettoyer » les effaçait.
+      ▸ **Mesuré sur le parc** : **616 entrées** partaient — 437 dates
+      d'activation, 169 identifiants Nexus saisis à la main, 10 mods à
+      configuration suivie par profil. Les identifiants Nexus ne se retrouvent
+      qu'à la main, un par un.
+      ▸ **La règle existait déjà à côté**, dans le même fichier, pour les
+      sessions orphelines : « une suppression ne se décide pas sur une absence
+      constatée toute seule ». Elle n'avait pas été appliquée aux clés.
+      Même famille que X63–X69 : le chemin voisin qui n'applique pas la règle de
+      son jumeau.
+      ▸ **Le reste de l'écran échoue déjà du bon côté** — vérifié : un
+      `modsRoot` illisible rend chaque sauvegarde `.soleCopy`, donc *protégée*,
+      donc non supprimable. Seules les clés penchaient dans le mauvais sens.
+      ▸ **Prix assumé** : un parc réellement vide ne nettoie plus ses clés. Le
+      prix de l'inverse est la perte de données de tous les autres.
+      **2 tests neufs** (2 272 → 2 274), dont le cas voisin — un seul mod vu
+      suffit à rendre le jugement. Et le journal dit la différence entre « tout
+      est propre » et « je n'ai rien pu lire »
+      ([[warn-when-a-feature-shows-nothing]]). · **S**
 - [x] **X69** ✅ *(corrigé le 2026-09-05)* — **Supprimer un mod laissait le
       registre des traductions derrière lui.** Trouvé en relisant le **delta du
       ViewModel** — 1 386 lignes ajoutées sur 31 commits depuis que sa tranche

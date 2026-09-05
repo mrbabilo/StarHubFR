@@ -1611,6 +1611,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **X49** | 2026-09-04 | Deux recherches Nexus rapprochées pouvaient revenir dans le désordre, et une réponse tardive ressuscitait une liste fermée |
 | **X61** | 2026-09-04 | Le résidu écarté par la bascule en masse restait chargé par SMAPI, faute du point de tête que l'autre chemin posait |
 | **X62** | 2026-09-04 | « Je l'ai déjà » ne tenait pas quand la version affirmée était une étiquette Nexus libre — 15 mods sur 38 revenaient à chaque vérification |
+| **X70** | 2026-09-05 | Le ménage jugeait mortes **toutes** les préférences quand aucun mod n'était lu — 616 entrées du parc effaçables d'un clic |
 | **X69** | 2026-09-05 | Le registre des traductions suivait un renommage mais survivait à une suppression — un orphelin réel sur le parc |
 | **X68** | 2026-09-05 | Le fond servant à corriger le contraste était lu sans apparence : blanc même en thème sombre, la correction partait à l'envers |
 | **X67** | 2026-09-05 | La recherche GraphQL et le téléchargement voyaient un `429` sans armer le délai d'attente partagé, et ignoraient `Retry-After` |

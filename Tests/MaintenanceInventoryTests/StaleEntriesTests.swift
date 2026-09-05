@@ -48,3 +48,37 @@ struct StaleEntriesTests {
                                                          installedFolders: ["A"]).isEmpty)
     }
 }
+
+/// X70 — **un parc qu'on ne voit pas n'est pas un parc vide.**
+///
+/// `stalePreferenceKeys` juge chaque clé sur son absence de `installedFolders`.
+/// Quand ce lot est vide — dossier de jeu introuvable ou déplacé, disque
+/// externe débranché, balayage pas encore terminé quand l'écran s'ouvre —
+/// **toutes** les clés paraissent mortes, et le bouton « nettoyer » les efface.
+///
+/// Sur le parc de référence, mesuré le 2026-09-05 : **616 entrées** partiraient
+/// — 437 dates d'activation, 169 identifiants Nexus saisis à la main, 10 mods
+/// à configuration suivie par profil. Les identifiants Nexus, en particulier,
+/// ne se retrouvent qu'à la main, un par un.
+///
+/// C'est la règle que l'écran s'était déjà donnée pour les dossiers de session
+/// orphelins : « une suppression ne se décide pas sur une absence constatée
+/// toute seule ». Elle vaut ici pour la même raison.
+@Suite("Entretien — un parc illisible n'autorise aucune purge")
+struct StaleKeysNeedAKnownParcTests {
+
+    @Test func anEmptyParcDeclaresNothingStale() {
+        let keys = ["Automate", "Disparu", "Pack/Composant"]
+        #expect(MaintenanceInventory.stalePreferenceKeys(keys, installedFolders: [])
+                    .isEmpty,
+                "un parc vide fait passer toutes les clés pour mortes")
+    }
+
+    /// Le cas voisin qui ne doit **pas** changer : dès qu'un seul mod est vu,
+    /// le parc est lisible et le jugement reprend normalement.
+    @Test func aSingleKnownModIsEnoughToJudgeTheOthers() {
+        #expect(MaintenanceInventory.stalePreferenceKeys(["Automate", "Disparu"],
+                                                         installedFolders: ["Automate"])
+                == ["Disparu"])
+    }
+}

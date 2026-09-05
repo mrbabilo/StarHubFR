@@ -14,6 +14,8 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **Le ménage de l'écran Entretien ne peut plus effacer vos réglages quand il ne voit aucun mod.** Il jugeait morte toute préférence ne désignant pas un mod installé — mais un dossier de jeu introuvable, un disque débranché ou un balayage encore en cours donnent une liste vide, et alors **tout** paraît mort. Sur votre parc, un clic aurait effacé 616 entrées, dont 169 identifiants Nexus saisis à la main. Sans parc lisible, plus rien n'est jugé, et le journal le dit.
+
 - **Supprimer un mod efface enfin la trace de sa traduction.** Le registre des traductions et des greffes suivait bien un renommage de dossier, mais survivait à une suppression : il affirmait qu'une traduction était posée sur un mod absent du disque — un cas réel chez vous. Les fichiers d'origine mis à l'abri, que plus rien n'aurait désignés, partent avec.
 
 - **Le texte coloré d'une description de mod ne risque plus d'être illisible en thème sombre.** L'app corrige le contraste des couleurs qu'un auteur pose dans sa description, en s'éloignant du fond. Mais elle lisait ce fond hors de tout contexte de dessin, où il revient **blanc** même en thème sombre : la correction assombrissait alors un texte déjà sombre, au lieu de l'éclaircir. Le fond est désormais lu sous l'apparence réelle de l'app.

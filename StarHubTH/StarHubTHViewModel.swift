@@ -10148,6 +10148,16 @@ for mod in mods {
         guard !isBuildingMaintenanceReport else { return }
         isBuildingMaintenanceReport = true
         let installedFolders = Set(mods.flattenedMods.map(\.folderName))
+        // X70 — un parc vide ne juge aucune clé morte (`stalePreferenceKeys`
+        // s'en garde). Mais l'écran afficherait alors « rien à nettoyer » sans
+        // dire pourquoi : le dire ici, c'est la seule trace que l'utilisateur
+        // aura de la différence entre « tout est propre » et « je n'ai rien
+        // pu lire ».
+        if installedFolders.isEmpty {
+            log("Entretien : aucun mod lu (dossier de jeu introuvable, ou "
+                + "balayage en cours) — les clés de préférences ne sont pas jugées",
+                level: .warning)
+        }
         let translationPaths = installedTranslationRelativePaths()
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self else { return }
