@@ -169,6 +169,30 @@ extension Array where Element == ModItem {
         flatMap { $0.isGroup ? ($0.children ?? []) : [$0] }
     }
 
+    /// Les noms de dossier sur lesquels une **préférence** peut être posée :
+    /// les composants **et** les en-têtes de packs (X74).
+    ///
+    /// `flattenedMods` remplace un pack par ses composants — c'est ce qu'il
+    /// faut pour juger d'une identité, un en-tête n'en ayant pas. Mais une
+    /// préférence ne se pose pas sur une identité : elle se pose sur la
+    /// **ligne** que l'utilisateur a sous les yeux, et cette ligne est un
+    /// en-tête de pack aussi souvent qu'un mod simple. L'identifiant Nexus est
+    /// le cas exemplaire : c'est le pack qui a une page, jamais ses
+    /// composants — 20 des 55 mods introuvables par leur nom sont des
+    /// composants. La catégorie et l'horodatage d'activation se posent
+    /// pareillement sur la ligne de tête.
+    ///
+    /// Juger les clés sur `flattenedMods` seul déclarait donc mortes les
+    /// préférences d'un pack **installé**, et le bouton « nettoyer » les
+    /// effaçait — avec, par la règle de préfixe de `ModRemovalPurge`, celles
+    /// de ses composants.
+    var preferenceKeyableFolders: Set<String> {
+        var folders = Set(flattenedMods.map(\.folderName))
+        folders.formUnion(map(\.folderName))
+        folders.remove("")
+        return folders
+    }
+
     /// L'ordre de la liste des mods : alphabétique sur le nom, **packs et mods
     /// simples mêlés**. Le tri d'origine faisait passer tous les packs en tête
     /// (retour du 2026-08-26 : chercher un nom dans la liste ne doit pas

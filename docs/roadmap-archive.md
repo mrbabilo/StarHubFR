@@ -756,6 +756,38 @@ répond. L'ordre et les titres de section sont ceux de la roadmap.
       ▸ Lecture du dump **quel que soit son âge** : un avertissement d'il y a
       trois jours reste vrai, et le lier au TTL de 6 h ferait disparaître ces
       lignes 18 heures par jour. **18 tests neufs** (2 215 → 2 233). · **S**
+- [x] **X74** ✅ *(corrigé le 2026-09-05)* — **Une préférence posée sur un pack
+      passait pour morte.** `buildMaintenanceReport` bâtissait son
+      `installedFolders` sur `mods.flattenedMods`, qui **remplace** un pack par
+      ses composants : l'en-tête n'y figure pas. Toute clé portant le nom d'un
+      pack installé était donc jugée orpheline par
+      `MaintenanceInventory.stalePreferenceKeys`, montrée comme telle, et
+      effacée au clic sur « nettoyer ».
+      ▸ **Ce n'est pas un cas tordu, c'est le geste recommandé.** La fiche d'un
+      pack offre le champ « identifiant Nexus » et le sélecteur de catégorie —
+      ni l'un ni l'autre n'est conditionné à `!isGroup`, vérifié dans
+      `ModDetailView` — et c'est le **seul** endroit sensé pour eux : un
+      composant n'a pas de page Nexus, 20 des 55 mods introuvables par leur nom
+      en sont. La bascule horodate elle aussi la ligne de tête
+      (`mods.first(where:)` porte les entrées de tête).
+      ▸ **Et la règle de préfixe aggravait la perte** : le rapport juge chaque
+      clé isolément, mais `cleanStaleMaintenanceEntries` purge par
+      `ModRemovalPurge`, qui emporte `Pack` **et** tout `Pack/…`. Les
+      préférences des composants partaient donc sans avoir jamais été montrées.
+      ▸ **Mesuré sur le parc : 0 occurrence aujourd'hui** — 521 clés relevées
+      dans les quatre magasins (437 horodatages, 169 identifiants Nexus, 10
+      configs suivies par profil), aucune ne désigne un des 115 en-têtes de
+      packs. Le défaut est donc latent ; sa gâchette est un clic sur une action
+      ordinaire.
+      ▸ **La règle vit dans Core** (`preferenceKeyableFolders`, sur `[ModItem]`)
+      plutôt qu'au ViewModel, avec la distinction écrite : `flattenedMods`
+      répond à « quelles **identités** sont installées » — bon pour un
+      `UniqueID`, faux pour une préférence, qui se pose sur la **ligne**.
+      **4 tests neufs** (2 280 → 2 284), dont un qui épingle l'écart avec
+      l'ancienne règle : les trois premiers étaient passés du premier coup, donc
+      ne prouvaient rien.
+      ▸ Même famille que X70 : l'écran d'entretien juge mort ce qu'il n'a pas
+      regardé. · **S**
 - [x] **X73** ✅ *(corrigé le 2026-09-05)* — **« Nom (A→Z) » ne triait pas
       comme les six autres tris de la liste.** `mods(matching:)` compte sept
       cas de tri. Six comparent les noms par

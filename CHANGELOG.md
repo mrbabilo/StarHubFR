@@ -14,6 +14,8 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **L'écran Entretien ne déclare plus mortes les préférences d'un pack installé.** Il jugeait les clés sur les seuls composants, en écartant les en-têtes de packs — or c'est justement sur eux qu'on pose un identifiant Nexus (un composant n'a pas de page) ou une catégorie. Un clic sur « nettoyer » les effaçait, et emportait au passage celles de leurs composants.
+
 - **La liste des mods se range enfin comme le reste du système.** « Nom (A→Z) » comparait les noms caractère par caractère : `*SorryLabCore*` et `6480's Giant Crops` sautaient avant tout le bloc `[…]`, et l'apostrophe séparait deux mods du même auteur. Ce n'était pas l'inverse de « Nom (Z→A) », qui suivait déjà la règle de macOS — 190 de vos 951 mods changeaient de place entre les deux sens.
 
 - **Un dossier `Mods/` illisible n'efface plus la mémoire de vos installations.** Le balayage ne distinguait pas « rien vu » de « rien installé » : jeu déplacé, volume débranché ou droits refusés rendaient une liste vide, et l'app purgeait alors le registre d'install et les ancres de version — 1 097 et 251 entrées chez vous, copie de secours comprise. Sans lecture du dossier, plus rien n'est purgé, et le journal le dit.

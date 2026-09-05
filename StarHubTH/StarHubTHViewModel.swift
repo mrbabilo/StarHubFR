@@ -10182,7 +10182,13 @@ for mod in mods {
     func buildMaintenanceReport() {
         guard !isBuildingMaintenanceReport else { return }
         isBuildingMaintenanceReport = true
-        let installedFolders = Set(mods.flattenedMods.map(\.folderName))
+        // X74 — les en-têtes de packs comptent : une préférence se pose sur la
+        // **ligne** qu'on a sous les yeux, pas sur une identité. Le champ
+        // « identifiant Nexus » et le sélecteur de catégorie sont offerts sur
+        // la fiche d'un pack — c'est même le seul endroit sensé pour eux, un
+        // composant n'ayant pas de page Nexus — et la bascule horodate la
+        // ligne de tête. `flattenedMods` seul les déclarait mortes.
+        let installedFolders = mods.preferenceKeyableFolders
         // X70 — un parc vide ne juge aucune clé morte (`stalePreferenceKeys`
         // s'en garde). Mais l'écran afficherait alors « rien à nettoyer » sans
         // dire pourquoi : le dire ici, c'est la seule trace que l'utilisateur
