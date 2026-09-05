@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.36.1] - 2026-09-05
+
 ### Fixed
 
 - **Un renommage mort ne s'offre plus.** Sur une collision de dossier entre composants de pack, l'app proposait « Renommer » — une feuille qui s'ouvrait sur « le nom est vide », bouton à jamais désactivé : elle cherchait ses prétendants parmi les mods de tête, où un composant n'existe pas. La ligne de collision et la révélation dans le Finder restent ; seul le geste impossible a été retiré.
