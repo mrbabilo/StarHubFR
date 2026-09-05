@@ -51,13 +51,23 @@ enum InstalledModRegistry {
     ///   fois, par la migration qui retire `nexusVersion` du registre ;
     ///   l'appelant vide le lot après la passe qui suit. Un dossier absent de
     ///   cette passe est de toute façon purgé du registre, donc une passe suffit.
+    /// - Parameter pruneMissing: faux quand le scan **n'a pas pu lire** le
+    ///   dossier `Mods/`. Un lot vide veut alors dire « on n'a rien vu », pas
+    ///   « il n'y a rien » — dossier de jeu déplacé, volume externe débranché,
+    ///   droits refusés. Purger sur cette base viderait le registre entier
+    ///   (1 097 entrées sur le parc de référence) **et** sa copie de secours,
+    ///   qui reçoit le même blob à la même écriture. Ce qui a été vu
+    ///   s'enregistre quand même : seule la purge est suspendue. C'est la règle
+    ///   que `MaintenanceInventory.stalePreferenceKeys` s'était déjà donnée
+    ///   (X70), appliquée ici au magasin voisin.
     /// - Returns: le registre mis à jour, et `didChange` — faux quand rien n'a
     ///   bougé. Un rafraîchissement sans installation ni suppression est le cas
     ///   courant : ne rien réécrire épargne un encodage JSON à chaque scan.
     static func sync(registry current: [String: InstalledModRecord],
                      seen: [Seen],
                      now: Date,
-                     installDateGrace: Set<String> = []) -> (registry: [String: InstalledModRecord], didChange: Bool) {
+                     installDateGrace: Set<String> = [],
+                     pruneMissing: Bool = true) -> (registry: [String: InstalledModRecord], didChange: Bool) {
         var registry = current
         var didChange = false
         var seenFolders = Set<String>()
@@ -99,10 +109,13 @@ enum InstalledModRegistry {
             }
         }
 
-        // Les dossiers disparus du disque quittent le registre.
-        let before = registry.count
-        registry = registry.filter { seenFolders.contains($0.key) }
-        if registry.count != before { didChange = true }
+        // Les dossiers disparus du disque quittent le registre — sauf si le
+        // scan n'a pas pu lire `Mods/` : voir `pruneMissing`.
+        if pruneMissing {
+            let before = registry.count
+            registry = registry.filter { seenFolders.contains($0.key) }
+            if registry.count != before { didChange = true }
+        }
 
         return (registry, didChange)
     }

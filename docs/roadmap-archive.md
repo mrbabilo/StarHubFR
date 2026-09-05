@@ -756,6 +756,41 @@ répond. L'ordre et les titres de section sont ceux de la roadmap.
       ▸ Lecture du dump **quel que soit son âge** : un avertissement d'il y a
       trois jours reste vrai, et le lier au TTL de 6 h ferait disparaître ces
       lignes 18 heures par jour. **18 tests neufs** (2 215 → 2 233). · **S**
+- [x] **X71** ✅ *(corrigé le 2026-09-05)* — **Un `Mods/` illisible effaçait la
+      mémoire des installations.** `scanMods` ne garde que `gameDir.isEmpty`.
+      Le parcours de tête est `if fm.fileExists(atPath: modsPath), let
+      topEntries = try? fm.contentsOfDirectory(...)` : quand il échoue,
+      `scannedMods` reste vide et l'exécution **continue** jusqu'à
+      `syncInstalledModRegistry(scannedMods:)`, appelé sans condition. Deux
+      purges s'y appliquent alors à un lot vide — `registry.filter {
+      seenFolders.contains($0.key) }` vide le registre d'install, et
+      `anchorStore.pruneAnchors(keeping:)` retire toutes les ancres de version.
+      ▸ **Mesuré sur le parc** : **1 097 entrées de registre + 251 ancres**.
+      ▸ **La copie de secours ne rattrape rien** — vérifié dans le code :
+      `persistInstalledModRegistry` écrit le **même blob** sur la clé principale
+      et sur la clé de secours, à la même écriture. Le filet couvre un blob
+      corrompu (`loadInstalledModRegistryFromDisk` promeut la secours si la
+      principale ne décode pas), pas un effacement logique : les deux copies
+      partent ensemble, dès la première passe.
+      ▸ **Aucun clic requis, contrairement à X70** : le déclencheur est
+      `HomeView.swift:254` — `.onAppear { vm.refresh() }`. Ouvrir l'app suffit,
+      revenir à l'Accueil aussi. Il n'y a ni minuterie ni observateur de focus.
+      Causes plausibles d'un `Mods/` illisible : volume externe débranché
+      (`gameDir` pointe alors dans le vide), dossier de jeu déplacé, droits
+      refusés. Non mesuré — le correctif ne s'appuie sur aucune d'elles.
+      ▸ **Le correctif porte un fait, pas un test de vacuité** : `scanMods`
+      capture `modsFolderWasReadable` à l'endroit même où la distinction existe,
+      et le passe jusqu'aux deux purges. Un `Mods/` **lu et vide** purge
+      normalement : c'est une désinstallation réelle. Ce qui a été vu
+      s'enregistre dans les deux cas — seule la purge est suspendue, pas le
+      reste de la passe (bookkeeping des versions, lot de grâce).
+      ▸ Même famille que X63–X70 : le magasin voisin qui n'applique pas la règle
+      de son jumeau. X70 l'avait posée pour les préférences d'entretien, dans le
+      même vocabulaire (« on n'a rien vu » ≠ « il n'y a rien ») ; elle n'avait
+      pas été appliquée au registre d'install ni aux ancres.
+      **3 tests neufs** (2 274 → 2 277), dont le cas voisin qui doit continuer
+      de purger. Le journal dit la différence
+      ([[warn-when-a-feature-shows-nothing]]). · **S**
 - [x] **X70** ✅ *(corrigé le 2026-09-05)* — **Un parc qu'on ne voit pas n'est
       pas un parc vide.** `MaintenanceInventory.stalePreferenceKeys` juge chaque
       clé sur son absence de `installedFolders`. Ce lot vide ne veut pas dire

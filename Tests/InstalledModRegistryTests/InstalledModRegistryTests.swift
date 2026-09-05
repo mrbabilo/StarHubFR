@@ -115,4 +115,39 @@ struct InstalledModRegistryTests {
         #expect(!changed)
         #expect(reg.isEmpty)
     }
+
+    // MARK: - « Rien vu » n'est pas « rien installé »
+
+    @Test func aScanThatCouldNotReadTheFolderPrunesNothing() {
+        // X71 : `Mods/` illisible (dossier de jeu déplacé, volume débranché,
+        // droits refusés) rend un lot vide. Purger sur cette base efface tout
+        // le registre — 1 097 entrées sur le parc de référence — et sa copie de
+        // secours avec, puisque les deux clés reçoivent le même blob.
+        let current = ["Automate": InstalledModRecord(version: "1.0", installedAt: t0),
+                       "SVE": InstalledModRecord(version: "2.0", installedAt: t0)]
+        let (reg, changed) = InstalledModRegistry.sync(
+            registry: current, seen: [], now: t1, pruneMissing: false)
+        #expect(!changed)
+        #expect(reg.count == 2)
+        #expect(reg["Automate"]?.installedAt == t0)
+    }
+
+    @Test func aReadableButEmptyFolderStillPrunes() {
+        // Le cas voisin qui doit continuer de purger : le dossier a bien été
+        // lu, il ne contient plus rien. C'est une désinstallation réelle.
+        let current = ["Parti": InstalledModRecord(version: "1.0", installedAt: t0)]
+        let (reg, changed) = InstalledModRegistry.sync(
+            registry: current, seen: [], now: t1, pruneMissing: true)
+        #expect(changed)
+        #expect(reg.isEmpty)
+    }
+
+    @Test func anUnreadableScanStillRecordsWhatItDidSee() {
+        // Un lot partiel reste utile : ce qu'on a vu s'enregistre, seule la
+        // purge est suspendue.
+        let (reg, changed) = InstalledModRegistry.sync(
+            registry: [:], seen: [seen("Automate", "1.0")], now: t0, pruneMissing: false)
+        #expect(changed)
+        #expect(reg["Automate"]?.installedAt == t0)
+    }
 }

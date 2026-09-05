@@ -14,6 +14,8 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **Un dossier `Mods/` illisible n'efface plus la mémoire de vos installations.** Le balayage ne distinguait pas « rien vu » de « rien installé » : jeu déplacé, volume débranché ou droits refusés rendaient une liste vide, et l'app purgeait alors le registre d'install et les ancres de version — 1 097 et 251 entrées chez vous, copie de secours comprise. Sans lecture du dossier, plus rien n'est purgé, et le journal le dit.
+
 - **Le ménage de l'écran Entretien ne peut plus effacer vos réglages quand il ne voit aucun mod.** Il jugeait morte toute préférence ne désignant pas un mod installé — mais un dossier de jeu introuvable, un disque débranché ou un balayage encore en cours donnent une liste vide, et alors **tout** paraît mort. Sur votre parc, un clic aurait effacé 616 entrées, dont 169 identifiants Nexus saisis à la main. Sans parc lisible, plus rien n'est jugé, et le journal le dit.
 
 - **Supprimer un mod efface enfin la trace de sa traduction.** Le registre des traductions et des greffes suivait bien un renommage de dossier, mais survivait à une suppression : il affirmait qu'une traduction était posée sur un mod absent du disque — un cas réel chez vous. Les fichiers d'origine mis à l'abri, que plus rien n'aurait désignés, partent avec.

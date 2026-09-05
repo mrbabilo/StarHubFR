@@ -2969,8 +2969,15 @@ class StarHubTHViewModel: ObservableObject {
         // classified exactly the same way `ModFolderRepairer.repairFolder`
         // classifies top-level entries, so the scanner and the repairer agree
         // on what counts as OS junk vs. a disabled mod.
+        // « Rien vu » n'est pas « rien installé » (X71). Ce booléen porte la
+        // différence jusqu'aux deux purges de fin de passe : un `Mods/`
+        // introuvable ou illisible rend un lot vide qui, pris pour un parc
+        // vide, effacerait le registre d'install et toutes les ancres de
+        // version. Un `Mods/` bien lu mais vide, lui, purge normalement.
+        var modsFolderWasReadable = false
         if fm.fileExists(atPath: modsPath),
            let topEntries = try? fm.contentsOfDirectory(atPath: modsPath) {
+            modsFolderWasReadable = true
             let scanTotal = topEntries.count
             var scanDone = 0
             var lastProgressPublish: CFAbsoluteTime = 0
@@ -3018,8 +3025,14 @@ class StarHubTHViewModel: ObservableObject {
         //   1. A mod whose version changed since last scan → record NOW.
         //   2. A mod on disk but absent from the registry (first time seen)
         //      → record with the folder mtime as a best-effort date.
-        //   3. Registry entries whose folder no longer exists → pruned.
-        syncInstalledModRegistry(scannedMods: scannedMods)
+        //   3. Registry entries whose folder no longer exists → pruned —
+        //      sauf si `Mods/` n'a pas pu être lu (X71).
+        syncInstalledModRegistry(scannedMods: scannedMods,
+                                 modsFolderWasReadable: modsFolderWasReadable)
+        if !modsFolderWasReadable {
+            log("Dossier Mods/ introuvable ou illisible : registre d'install et ancres de version conservés en l'état",
+                level: .warning)
+        }
 
         // Detect X/.X duplicates from the just-scanned mods instead of the
         // repairer's separate disk walk — same result, no extra I/O or decode.
@@ -7593,7 +7606,13 @@ for mod in mods {
         var value: Bool = false
     }
 
-    private func syncInstalledModRegistry(scannedMods: [ModItem]) {
+    /// - Parameter modsFolderWasReadable: faux quand le scan n'a pas pu lire
+    ///   `Mods/`. Les deux purges de cette passe — le registre lui-même et les
+    ///   ancres de version — sont alors suspendues : elles répondent à « ce
+    ///   dossier a disparu », question à laquelle un lot qu'on n'a pas pu lire
+    ///   ne répond pas. L'enregistrement, lui, continue.
+    private func syncInstalledModRegistry(scannedMods: [ModItem],
+                                          modsFolderWasReadable: Bool = true) {
         // Flatten groups into individual mods so pack children are tracked too.
         let allMods = scannedMods.flatMap { mod -> [ModItem] in
             mod.isGroup ? (mod.children ?? []) : [mod]
@@ -7648,7 +7667,8 @@ for mod in mods {
             let (synced, _) = InstalledModRegistry.sync(registry: registry,
                                                         seen: seen,
                                                         now: now,
-                                                        installDateGrace: graceFolders)
+                                                        installDateGrace: graceFolders,
+                                                        pruneMissing: modsFolderWasReadable)
             registry = synced
             if preSyncEmpty && !registry.isEmpty { rebuiltCount = registry.count }
         }
@@ -7667,7 +7687,11 @@ for mod in mods {
 
         // Un mod supprimé ne doit pas laisser son affirmation derrière lui :
         // réinstallé plus tard, il hériterait d'une version qu'il n'a pas.
-        anchorStore.pruneAnchors(keeping: Set(allMods.map(\.uniqueId).filter { !$0.isEmpty }))
+        // Même réserve que pour le registre : un `Mods/` illisible n'atteste
+        // aucune suppression, et purger là-dessus retire les 251 ancres du parc.
+        if modsFolderWasReadable {
+            anchorStore.pruneAnchors(keeping: Set(allMods.map(\.uniqueId).filter { !$0.isEmpty }))
+        }
         // Le parc vient de changer : la liste des affirmations en dépend par
         // ses deux bouts — l'ancre et la version du manifest. Les
         // avertissements du dump aussi : ils ne portent que sur les mods
