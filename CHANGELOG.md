@@ -14,6 +14,8 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **Un lien « Mod Manager Download » n'est plus perdu quand le démarrage traîne.** Un clic sur Nexus qui lance l'app met le lien en attente jusqu'à ce que la fenêtre paraisse. Si le chargement dépassait 30 s, le filet de sécurité révélait bien la fenêtre — mais sans délivrer le lien : rien ne se téléchargeait, sans un mot. La livraison suit désormais la révélation, quel que soit le chemin.
+
 - **Une vérification de mises à jour amputée ne se déclare plus complète.** Quand smapi.io refuse une entrée, l'app re-découpe le lot pour l'isoler, avec un budget de requêtes borné. Ce budget épuisé, les mods restants repartaient sans verdict — 287 sur 300 en simulation — pendant que la passe s'annonçait réussie et coupait la vérification automatique pour 12 h. Elle se dit désormais amputée et repart au prochain tour.
 
 - **Installer un mod dont le nom de dossier est déjà pris n'efface plus l'occupant.** Un mod neuf portant le nom de dossier d'un mod en pause (vos deux `[CP] Seaside Sounds`) l'écrasait sans sauvegarde ni message. Il se pose maintenant sous un nom horodaté, et le journal le dit.

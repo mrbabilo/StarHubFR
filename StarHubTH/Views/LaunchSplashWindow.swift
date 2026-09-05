@@ -21,6 +21,18 @@ final class LaunchSplashController {
     /// Main window we hid at startup, restored once loading finishes.
     private weak var mainWindow: NSWindow?
 
+    /// Ce qu'il faut faire **une fois la fenêtre principale à l'écran**, quel
+    /// que soit le chemin qui l'y a mise (X65).
+    ///
+    /// Trois chemins révèlent la fenêtre : la fin de chargement ordinaire, un
+    /// lancement déjà terminé quand la vue paraît, et le filet de sécurité des
+    /// 30 secondes. Les deux premiers délivraient à la main les liens `nxm://`
+    /// mis en attente ; le troisième, non — un lancement à froid déclenché par
+    /// « Mod Manager Download » et resté bloqué au-delà de 30 s rendait la
+    /// fenêtre puis ne téléchargeait jamais rien, sans un mot. La règle vit
+    /// désormais ici, en un seul exemplaire.
+    var onReveal: (() -> Void)?
+
     /// Hides the main window the moment AppKit creates it, before it is ever
     /// drawn. Called from `applicationWillFinishLaunching`.
     ///
@@ -110,6 +122,13 @@ final class LaunchSplashController {
             self.observer = nil
         }
         showMainWindow()
+        // Avant le `guard` : un lancement assez rapide pour finir avant
+        // `show()` n'a pas de panneau, et sortir ici priverait ce chemin-là de
+        // la livraison — une quatrième asymétrie à la place des trois qu'on
+        // vient de réduire. `makeKeyAndOrderFront` a déjà eu lieu (l'animation
+        // qui suit ne fait que monter l'opacité) : la fenêtre est à l'écran,
+        // ce qu'une feuille d'installation demande pour s'y attacher.
+        onReveal?()
 
         guard let panel else { return }
         self.panel = nil

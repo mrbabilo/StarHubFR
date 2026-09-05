@@ -109,6 +109,14 @@ struct StarHubTHApp: App {
                     // Route nxm:// links (buffered at cold launch) into the
                     // single shared ViewModel.
                     appDelegate.onURL = { [vm] url in vm.handleNxmURL(url) }
+                    // X65 — la livraison suit la **révélation de la fenêtre**,
+                    // et rien d'autre. Elle était recopiée sur deux des trois
+                    // chemins qui révèlent ; le troisième, le filet de sécurité
+                    // des 30 s, l'oubliait. Posé avant tout `finish()`, y
+                    // compris celui de la branche ci-dessous.
+                    LaunchSplashController.shared.onReveal = { [appDelegate] in
+                        appDelegate.deliverPendingURLs()
+                    }
                     // Une recherche laissée en plan (app quittée ou plantée en
                     // cours de bissection) ? Le signaler dès le démarrage.
                     vm.bisection.checkForInterruptedSession()
@@ -135,9 +143,9 @@ struct StarHubTHApp: App {
                         // `asyncAfter(0.15)`, bien après ce `.onAppear`. La
                         // branche ne dépend plus de ce délai pour être sûre.
                         // `finish()` est idempotent et documenté comme sûr
-                        // avant tout `show()`.
+                        // avant tout `show()`. Il délivre lui-même les liens
+                        // en attente, via `onReveal` posé ci-dessus.
                         LaunchSplashController.shared.finish()
-                        appDelegate.deliverPendingURLs()
                     }
                 }
                 // The splash lives in its own window now, so there's no
@@ -145,12 +153,12 @@ struct StarHubTHApp: App {
                 // stay as they are.
                 .onChange(of: vm.isLaunching) { _, isLaunching in
                     if !isLaunching {
-                        LaunchSplashController.shared.finish()
-                        // Après `finish()`, jamais avant : la feuille
-                        // d'installation qu'un lien `nxm://` finit par ouvrir
-                        // a besoin d'une fenêtre principale à l'écran pour s'y
+                        // `finish()` révèle la fenêtre **puis** délivre les
+                        // liens en attente, dans cet ordre : la feuille
+                        // d'installation qu'un lien `nxm://` finit par ouvrir a
+                        // besoin d'une fenêtre principale à l'écran pour s'y
                         // attacher — et pour pouvoir être refermée.
-                        appDelegate.deliverPendingURLs()
+                        LaunchSplashController.shared.finish()
                     }
                 }
         }

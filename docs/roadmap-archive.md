@@ -756,6 +756,39 @@ répond. L'ordre et les titres de section sont ceux de la roadmap.
       ▸ Lecture du dump **quel que soit son âge** : un avertissement d'il y a
       trois jours reste vrai, et le lier au TTL de 6 h ferait disparaître ces
       lignes 18 heures par jour. **18 tests neufs** (2 215 → 2 233). · **S**
+- [x] **X65** ✅ *(corrigé le 2026-09-05)* — **Le filet de sécurité du splash
+      révélait la fenêtre sans délivrer les liens `nxm://` en attente.** Un clic
+      « Mod Manager Download » sur Nexus lance l'app à froid ; le lien est mis en
+      file jusqu'à ce que la fenêtre principale soit à l'écran (sans quoi la
+      feuille d'installation s'ouvre sur une fenêtre absente et ne peut plus être
+      refermée — piège documenté sur `AppDelegate.isReady`).
+      ▸ **Trois chemins révèlent la fenêtre** : la fin de chargement ordinaire
+      (`onChange(of: vm.isLaunching)`), un lancement déjà terminé quand la vue
+      paraît, et le **filet des 30 secondes** de `hideMainWindow()`. Les deux
+      premiers appelaient `deliverPendingURLs()` à la main ; le troisième
+      appelle `finish()` directement et l'oubliait. Un chargement qui n'aboutit
+      jamais — la prémisse même du filet — rendait donc la fenêtre puis ne
+      téléchargeait rien, en silence.
+      ▸ Même forme que **X64** : une branche sœur qui ne fait pas ce que font
+      ses voisines. La règle vit maintenant en un seul exemplaire,
+      `LaunchSplashController.onReveal`, appelée dans `finish()` juste après
+      `showMainWindow()` — **avant** le `guard let panel`, sans quoi un
+      lancement assez rapide pour finir avant `show()` (panneau nil) aurait
+      recréé une quatrième asymétrie. Les deux appels explicites sont retirés.
+      ▸ ⚠️ **Sans test** : `AppDelegate` et `LaunchSplashController` sont du
+      AppKit, hors du périmètre de `Package.swift` — balayage par les Traps,
+      comme le protocole le prescrit pour ces fichiers. Extraire la file
+      (`pendingURLs` / `isReady` / `onURL`) vers Core reste possible, mais elle
+      n'était pas en cause : ses invariants tiennent sur tous les chemins, c'est
+      le **câblage** qui manquait. Cliquet `our_shared_singletons` relevé (+1,
+      la ligne reprend le patron des quatre autres du même fichier).
+      ▸ ❓ **Question ouverte pour l'auteur, invérifiable depuis un agent** :
+      `applicationShouldTerminateAfterLastWindowClosed → false` existe pour le
+      splash, mais vaut pour toute la vie de l'app. Fermer la fenêtre
+      principale (Cmd+W) après le lancement laisse-t-il une app sans fenêtre
+      qu'un clic sur le Dock ne rouvre pas ? SwiftUI gère normalement la
+      réouverture d'une scène `Window`, mais cela demande un lancement réel
+      pour être tranché. · **S**
 - [x] **X64** ✅ *(corrigé le 2026-09-05)* — **Un budget de re-découpage épuisé
       se faisait passer pour une passe complète.** smapi.io ne rejette jamais :
       il rend `200` et une liste vide quand une seule entrée du lot lui déplaît.

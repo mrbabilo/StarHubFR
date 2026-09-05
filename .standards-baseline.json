@@ -4,7 +4,7 @@
   "dispatch_queue": 140,
   "get_prefixed_funcs": 7,
   "non_final_classes": 10,
-  "our_shared_singletons": 88,
+  "our_shared_singletons": 89,
   "print_calls": 21,
   "published_without_private_set": 74,
   "try_optional": 303,
