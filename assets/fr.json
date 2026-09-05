@@ -1326,6 +1326,7 @@
   "maintenance_purged_log": "%lld sauvegarde(s) mises à la corbeille (%@)",
   "maintenance_cleaned_log": "%lld entrée(s) mortes retirées",
   "maintenance_trash_failed": "Impossible de mettre %@ à la corbeille : %@",
+  "maintenance_index_unreadable": "Entretien : l'index des sauvegardes d'installation est absent ou illisible — aucune session n'est jugée orpheline.",
   "maintenance_loading": "Lecture du dossier de sauvegardes…",
   "maintenance_nothing_to_do": "Rien à faire : aucune sauvegarde, aucune entrée morte.",
   "maintenance_action_clean": "Nettoyer les entrées mortes",

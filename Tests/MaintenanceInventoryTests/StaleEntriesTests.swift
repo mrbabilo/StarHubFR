@@ -11,14 +11,16 @@ struct StaleEntriesTests {
         let onDisk: Set<String> = ["2026-07-26_145243_A_install_backup",
                                    "2026-07-26_145318_B_install_backup"]
         let referenced: Set<String> = ["2026-07-26_145243_A_install_backup"]
-        #expect(MaintenanceInventory.orphanSessions(onDisk: onDisk, referenced: referenced)
+        #expect(MaintenanceInventory.orphanSessions(onDisk: onDisk, referenced: referenced,
+                                                    indexWasReadable: true)
                 == ["2026-07-26_145318_B_install_backup"])
     }
 
     @Test func anIndexEntryWithoutItsFolderIsNotAnOrphanOfThisKind() {
         // L'inverse n'est pas un orphelin de dossier : c'est une entrée d'index
         // qui pointe dans le vide, et rien à supprimer sur le disque.
-        #expect(MaintenanceInventory.orphanSessions(onDisk: [], referenced: ["X"]).isEmpty)
+        #expect(MaintenanceInventory.orphanSessions(onDisk: [], referenced: ["X"],
+                                                    indexWasReadable: true).isEmpty)
     }
 
     @Test func aKeyNamingAnInstalledModSurvives() {
@@ -64,6 +66,35 @@ struct StaleEntriesTests {
 /// C'est la règle que l'écran s'était déjà donnée pour les dossiers de session
 /// orphelins : « une suppression ne se décide pas sur une absence constatée
 /// toute seule ». Elle vaut ici pour la même raison.
+/// X76 — **un index qu'on n'a pas lu ne rend pas orphelins les
+/// dossiers qu'il référence.** `loadBackups` rend `[]` aussi bien au premier
+/// lancement que sur un index corrompu ; si l'inventaire calcule alors
+/// `onDisk − referenced`, chaque session réelle passe pour un dossier que
+/// l'index ignore — et le bouton « nettoyer » les met toutes à la corbeille.
+/// Même règle que X70/X71, appliquée au troisième lot de l'écran.
+@Suite("Entretien — un index illisible n'autorise aucun verdict d'orphelin")
+struct OrphansNeedAReadableIndexTests {
+
+    @Test func anUnreadableIndexDeclaresNoOrphans() {
+        let onDisk: Set<String> = ["2026-08-06_171624_A_install_backup",
+                                   "2026-08-06_172648_B_install_backup"]
+        #expect(MaintenanceInventory.orphanSessions(onDisk: onDisk,
+                                                    referenced: [],
+                                                    indexWasReadable: false).isEmpty,
+                "des sessions présentes ne sont pas des orphelins parce que l'index est illisible")
+    }
+
+    /// Le cas voisin qui ne doit **pas** changer : index lu, orphelins
+    /// réels — les 340 dossiers que l'index ignore volontairement (X25).
+    @Test func aReadableIndexStillJudgesItsOrphans() {
+        let onDisk: Set<String> = ["A_install_backup", "B_install_backup"]
+        #expect(MaintenanceInventory.orphanSessions(onDisk: onDisk,
+                                                    referenced: ["A_install_backup"],
+                                                    indexWasReadable: true)
+                == ["B_install_backup"])
+    }
+}
+
 @Suite("Entretien — un parc illisible n'autorise aucune purge")
 struct StaleKeysNeedAKnownParcTests {
 

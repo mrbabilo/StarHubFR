@@ -14,6 +14,10 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **Une sauvegarde d'installation ne passe plus pour orpheline parce que l'index est illisible.** Absent ou corrompu, l'index était lu comme « aucune sauvegarde » : l'écran Entretien déclarait alors orphelines toutes les sessions présentes sur le disque — 203 chez vous — et un clic sur « nettoyer » les mettait à la corbeille. Sans index lisible, plus aucune session n'est jugée orpheline, et le journal le dit.
+
+- **Une traduction d'auteur ne passe plus pour une traduction posée par l'app.** L'écran Entretien comparait chaque fichier de vos sauvegardes aux chemins de traduction de *tous* les mods : dès qu'un mod avait son `i18n/fr.json` posé par l'app, celui de n'importe quel autre mod — écrit par son auteur — était compté « fichier utilisateur » : 59 fichiers chez vous, tous prêts à devenir des « seules copies » fantômes rendant leurs sauvegardes impurgeables. La comparaison se fait désormais sur les seuls chemins du mod de la sauvegarde.
+
 - **L'écran Entretien ne déclare plus mortes les préférences d'un pack installé.** Il jugeait les clés sur les seuls composants, en écartant les en-têtes de packs — or c'est justement sur eux qu'on pose un identifiant Nexus (un composant n'a pas de page) ou une catégorie. Un clic sur « nettoyer » les effaçait, et emportait au passage celles de leurs composants.
 
 - **La liste des mods se range enfin comme le reste du système.** « Nom (A→Z) » comparait les noms caractère par caractère : `*SorryLabCore*` et `6480's Giant Crops` sautaient avant tout le bloc `[…]`, et l'apostrophe séparait deux mods du même auteur. Ce n'était pas l'inverse de « Nom (Z→A) », qui suivait déjà la règle de macOS — 190 de vos 951 mods changeaient de place entre les deux sens.

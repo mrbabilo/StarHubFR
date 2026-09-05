@@ -1635,6 +1635,8 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **X49** | 2026-09-04 | Deux recherches Nexus rapprochées pouvaient revenir dans le désordre, et une réponse tardive ressuscitait une liste fermée |
 | **X61** | 2026-09-04 | Le résidu écarté par la bascule en masse restait chargé par SMAPI, faute du point de tête que l'autre chemin posait |
 | **X62** | 2026-09-04 | « Je l'ai déjà » ne tenait pas quand la version affirmée était une étiquette Nexus libre — 15 mods sur 38 revenaient à chaque vérification |
+| **X76** | 2026-09-05 | Un index de sauvegardes absent ou corrompu rendait orphelines toutes les sessions réelles — 203 corbeillées d'un clic |
+| **X75** | 2026-09-05 | L'inventaire étiquetait « traduction » le `i18n/fr.json` d'auteur d'un mod dès qu'un *autre* mod avait sa traduction au même chemin — 59 fichiers, protections fantômes en attente |
 | **X74** | 2026-09-05 | Les préférences posées sur un en-tête de pack étaient jugées mortes — l'écran Entretien ne comptait que les composants |
 | **X73** | 2026-09-05 | « Nom (A→Z) » triait par scalaires Unicode quand les six autres tris comparaient comme macOS — 190 des 951 mods du parc changeaient de place, et les deux sens du tri n'étaient pas inverses |
 | **X71** | 2026-09-05 | Un `Mods/` illisible rendait un lot vide que le balayage purgeait sans condition — 1 097 entrées de registre et 251 ancres, copie de secours comprise |

@@ -756,6 +756,51 @@ répond. L'ordre et les titres de section sont ceux de la roadmap.
       ▸ Lecture du dump **quel que soit son âge** : un avertissement d'il y a
       trois jours reste vrai, et le lier au TTL de 6 h ferait disparaître ces
       lignes 18 heures par jour. **18 tests neufs** (2 215 → 2 233). · **S**
+- [x] **X76** ✅ *(corrigé le 2026-09-05)* — **Un index qu'on n'a pas lu ne
+      rend pas orphelines les sauvegardes qu'il référence.**
+      `loadIndex` rendait un index vide pour trois états distincts — premier
+      lancement, fichier absent, fichier corrompu — et `readMaintenanceReport`
+      calculait les orphelins par différence `onDisk − referenced` : index
+      corrompu ⇒ `referenced` vide ⇒ **les 203 sessions réelles du parc
+      passaient pour des dossiers que l'index ignore**, exactement la famille
+      que le bouton « nettoyer » (X25) existe à corbeiller. Un clic les y
+      envoyait toutes ; la corbeille était le seul filet.
+      ▸ **Pourquoi la garde ne pouvait pas être heuristique** : les 340
+      orphelins légitimes de X25 existent **avec un index intact** qui
+      référence les vraies sauvegardes. Distinguer « index vide de corruption »
+      de « index sain, orphelins réels » ne peut pas se faire sur les lots —
+      seul l'**état de lecture** tranche.
+      ▸ **La règle** : `loadBackupsWithIndexState()` rend un `BackupsRead`
+      qui dit si un index a été décodé — absent et corrompu sont les deux
+      faces du même « non » (un index supprimé sous des sauvegardes présentes
+      est le même danger) ; `orphanSessions(indexWasReadable:)` ne rend
+      rien sans lecture, et le journal dit la différence entre « rien à
+      nettoyer » et « je n'ai rien pu lire » — la leçon de X70, appliquée au
+      troisième lot de l'écran. **5 tests neufs** (2 292 → 2 297). · **S**
+- [x] **X75** ✅ *(corrigé le 2026-09-05)* — **Le `i18n/fr.json` d'un mod ne
+      doit pas être reclamé parce qu'un *autre* mod a sa traduction au même
+      chemin.** `installedTranslationRelativePaths()` aplatissait les chemins
+      de **tous** les hôtes du registre en un seul ensemble, et `walkBackup`
+      appariait chaque fichier de chaque sauvegarde par suffixe contre lui.
+      L'hôte de la sauvegarde — `originalFolderName`, connu avant la
+      traversée — était ignoré.
+      ▸ **Mesuré sur le parc** : 4 hôtes portent `i18n/fr.json` dans le
+      registre, donc **59 fichiers d'auteur** sur les 203 sauvegardes
+      étaient étiquetés « traduction posée par l'app ». Aucun ne l'était.
+      ▸ **La chaîne de conséquence quand elle s'arme** : un fichier
+      `.translation` d'un mod désinstallé compte comme manquant
+      (`installedState` rend `presentFiles == nil` → tout manque) → la
+      sauvegarde devient `.soleCopy` → protégée, impurgeable, affichée
+      « seule copie », proposée à la récupération. **Zéro aujourd'hui** (les
+      trois mods Zebrus de la mesure du 04-09 ont été réinstallés depuis —
+      vérifié), donc latent, même classe que X28 — mais sa gâchette est un
+      simple `keepPerMod` au-dessus du nombre de sauvegardes.
+      ▸ **La règle de suffixe ne peut pas distinguer les hôtes** — c'est
+      vérifié par le test qui a échoué : la première fixture exigeait
+      l'impossible d'elle. Le correctif vit donc dans le **bornage** :
+      l'appariement se fait contre les seuls chemins de l'hôte de la
+      sauvegarde, la règle de classification est extraite dans Core
+      (`MaintenanceInventory.classifyUserFile`). **8 tests neufs**. · **S**
 - [x] **X74** ✅ *(corrigé le 2026-09-05)* — **Une préférence posée sur un pack
       passait pour morte.** `buildMaintenanceReport` bâtissait son
       `installedFolders` sur `mods.flattenedMods`, qui **remplace** un pack par

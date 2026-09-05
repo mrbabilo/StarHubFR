@@ -1,5 +1,18 @@
 import Foundation
 
+/// Ce que `loadBackupsWithIndexState()` rend : les sauvegardes, et le fait
+/// que `loadBackups()` seul ne pouvait pas dire — **a-t-on décodé un index ?**
+/// Absent et corrompu sont les deux faces du même « non ».
+public struct BackupsRead: Equatable {
+    public let backups: [ModInstallBackup]
+    public let indexWasReadable: Bool
+
+    public init(backups: [ModInstallBackup], indexWasReadable: Bool) {
+        self.backups = backups
+        self.indexWasReadable = indexWasReadable
+    }
+}
+
 /// Manages backups of complete mod folders before installation or update.
 ///
 /// Mirrors `ModConfigBackupManager`'s singleton pattern with synchronous,
@@ -69,15 +82,38 @@ public class ModInstallBackupManager {
 
     /// All backups, most recent first. Returns empty list if index is missing/corrupted.
     public func loadBackups() -> [ModInstallBackup] {
-        withIndexLock { loadIndex().backups.sorted { $0.timestamp > $1.timestamp } }
+        loadBackupsWithIndexState().backups
+    }
+
+    /// `loadBackups`, avec le fait qui lui manquait : **a-t-on décodé un
+    /// index ?** Un lot vide sans ce drapeau se lit comme « aucune
+    /// sauvegarde » ; or l'écran d'entretien en déduit des orphelins par
+    /// différence avec le disque, et sur un index absent ou corrompu chaque
+    /// session réelle passerait pour un dossier oublié — corbeille en un clic
+    /// pour tout l'historique (X76). Le verdict d'orphelin reste dans
+    /// `MaintenanceInventory.orphanSessions(indexWasReadable:)`.
+    public func loadBackupsWithIndexState() -> BackupsRead {
+        withIndexLock {
+            let (index, wasReadable) = loadIndexReportingReadability()
+            return BackupsRead(
+                backups: index.backups.sorted { $0.timestamp > $1.timestamp },
+                indexWasReadable: wasReadable)
+        }
     }
 
     private func loadIndex() -> ModInstallBackupsIndex {
+        loadIndexReportingReadability().0
+    }
+
+    /// L'index décodé, et la réponse à « en a-t-on décodé un ? » — absent et
+    /// corrompu sont les deux faces du même « non » : l'un comme l'autre,
+    /// rien n'a été lu et aucun verdict ne peut s'appuyer dessus.
+    private func loadIndexReportingReadability() -> (ModInstallBackupsIndex, Bool) {
         guard let data = try? Data(contentsOf: metadataPath),
               let index = try? JSONDecoder().decode(ModInstallBackupsIndex.self, from: data) else {
-            return ModInstallBackupsIndex()
+            return (ModInstallBackupsIndex(), false)
         }
-        return index
+        return (index, true)
     }
 
     private func saveIndex(_ index: ModInstallBackupsIndex) {

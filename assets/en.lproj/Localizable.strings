@@ -1326,6 +1326,7 @@
 "maintenance_purged_log" = "%lld backup(s) moved to the Trash (%@)";
 "maintenance_cleaned_log" = "%lld stale entry/entries removed";
 "maintenance_trash_failed" = "Could not move %@ to the Trash: %@";
+"maintenance_index_unreadable" = "Maintenance: the install backup index is missing or unreadable — no session is judged orphan.";
 "maintenance_loading" = "Reading the backups folder…";
 "maintenance_nothing_to_do" = "Nothing to do: no backup, no stale entry.";
 "maintenance_action_clean" = "Clean stale entries";

@@ -868,3 +868,52 @@ func modsFolderEntries(_ env: TestEnvironment) -> [String] {
         #expect(!env.manager.renameMod(from: "Inconnu", to: "Autre"))
     }
 }
+
+// MARK: - X76 — l'état de lecture de l'index
+
+/// X76 — **distinguer « pas d'index » et « index illisible » d'un premier
+/// lancement.** `loadBackups()` rend `[]` dans les trois cas (absent,
+/// corrompu, vide) ; l'écran d'entretien en déduit des orphelins par
+/// différence avec le disque, et sur un index corrompu chaque session réelle
+/// passe pour un dossier oublié — corbeille en un clic pour tout l'historique.
+/// `loadBackupsWithIndexState()` rend le fait lisible, le verdict d'orphelin
+/// reste à `MaintenanceInventory.orphanSessions(indexWasReadable:)`.
+struct IndexReadStateTests {
+
+    @Test func aReadableIndexReportsItsBackups() {
+        let env = TestEnvironment(); defer { env.cleanup() }
+        env.manager.seedIndexForTesting(with: [
+            makeFakeBackup(timestamp: Date(timeIntervalSince1970: 1_000), folderName: "ModA")
+        ])
+        let read = env.manager.loadBackupsWithIndexState()
+        #expect(read.indexWasReadable)
+        #expect(read.backups.map(\.originalFolderName) == ["ModA"])
+    }
+
+    @Test func aCorruptedIndexReportsUnreadableAndNoBackups() {
+        let env = TestEnvironment(); defer { env.cleanup() }
+        env.manager.seedIndexForTesting(with: [
+            makeFakeBackup(timestamp: Date(timeIntervalSince1970: 1_000), folderName: "ModA")
+        ])
+        let indexURL = env.manager.backupsDirectory.deletingLastPathComponent()
+            .appendingPathComponent("install_metadata.json")
+        try! "{ pas du JSON".data(using: .utf8)!.write(to: indexURL, options: .atomic)
+
+        let read = env.manager.loadBackupsWithIndexState()
+        #expect(!read.indexWasReadable)
+        #expect(read.backups.isEmpty)
+        // L'API existante ne change pas : elle rend bien vide, c'est le
+        // seul fait qu'on ne peut plus distinguer d'ici.
+        #expect(env.manager.loadBackups().isEmpty)
+    }
+
+    @Test func aMissingIndexIsNotAReadableOne() {
+        // Premier lancement : aucun index sur le disque. Le dire « lisible »
+        // serait juger orphelins des dossiers qu'aucune lecture n'a couverts ;
+        // l'état qui compte est « ai-je décodé un index », pas « y en avait-il ».
+        let env = TestEnvironment(); defer { env.cleanup() }
+        let read = env.manager.loadBackupsWithIndexState()
+        #expect(!read.indexWasReadable)
+        #expect(read.backups.isEmpty)
+    }
+}

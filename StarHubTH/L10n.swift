@@ -1510,6 +1510,7 @@ enum L10n {
         static let purgedLog       = "maintenance_purged_log"
         static let cleanedLog      = "maintenance_cleaned_log"
         static let trashFailed     = "maintenance_trash_failed"
+        static let indexUnreadable = "maintenance_index_unreadable"
         // États et confirmations (tâche 8).
         static let loading         = "maintenance_loading"
         static let nothingToDo     = "maintenance_nothing_to_do"

@@ -10199,17 +10199,26 @@ for mod in mods {
                 + "balayage en cours) — les clés de préférences ne sont pas jugées",
                 level: .warning)
         }
-        let translationPaths = installedTranslationRelativePaths()
+        // X76 — l'état de lecture de l'index doit exister **avant** la passe :
+        // un index absent ou corrompu ne rend orpheline aucune session, et le
+        // dire est la seule trace que l'utilisateur aura de la différence
+        // entre « rien à nettoyer » et « je n'ai rien pu lire ».
+        let installRead = ModInstallBackupManager.shared.loadBackupsWithIndexState()
+        if !installRead.indexWasReadable {
+            log(self.L(L10n.Maintenance.indexUnreadable), level: .warning)
+        }
+        let translationPathsByHost = installedTranslationRelativePaths()
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self else { return }
             let report = Self.readMaintenanceReport(
-                installBackups: ModInstallBackupManager.shared.loadBackups(),
+                installBackups: installRead.backups,
+                installIndexWasReadable: installRead.indexWasReadable,
                 installBackupsRoot: ModInstallBackupManager.shared.backupsDirectory,
                 configBackups: ModConfigBackupManager.shared.loadBackups(),
                 configBackupsRoot: ModConfigBackupManager.shared.backupsDirectory,
                 modsRoot: (self.gameDir as NSString).appendingPathComponent("Mods"),
                 installedFolders: installedFolders,
-                userTranslationPaths: translationPaths,
+                userTranslationPathsByHost: translationPathsByHost,
                 preferenceKeys: self.maintenancePreferenceKeys())
             DispatchQueue.main.async {
                 self.maintenanceReport = report
@@ -10229,19 +10238,30 @@ for mod in mods {
         return keys
     }
 
-    /// Les chemins des traductions et greffes que **l'app** a posées.
-    /// Une traduction d'auteur (`i18n/default.json`) n'en fait pas partie : elle
-    /// revient avec le mod, donc elle ne protège aucune sauvegarde.
+    /// Les chemins des traductions et greffes que **l'app** a posées, par mod
+    /// hôte. Une traduction d'auteur (`i18n/default.json`) n'en fait pas
+    /// partie : elle revient avec le mod, donc elle ne protège aucune
+    /// sauvegarde.
     ///
     /// ⚠️ Ces chemins sont relatifs au dossier **`Mods/`** — ils portent le nom
     /// du mod hôte en tête (`[CP]Cloths and Colors/i18n/fr.json`), là où le
     /// chemin d'une sauvegarde est relatif à **sa propre racine**
-    /// (`i18n/fr.json`). La comparaison se fait donc par suffixe de segment,
-    /// jamais par égalité — voir `walkBackup`.
-    private func installedTranslationRelativePaths() -> Set<String> {
+    /// (`i18n/fr.json`). La comparaison se fait par suffixe de segment, jamais
+    /// par égalité — et **bornée à l'hôte de la sauvegarde** : l'appariement
+    /// tous-hôtes étiquetait à tort 59 fichiers du parc, tous des
+    /// `i18n/*.json` d'auteur (X75). Voir
+    /// `MaintenanceInventory.classifyUserFile`.
+    private func installedTranslationRelativePaths() -> [String: Set<String>] {
         let registry = InstalledTranslationStore.load()
-        var paths = Set(registry.byHost.values.flatMap(\.files))
-        paths.formUnion(registry.addonsByHost.values.flatMap { $0.flatMap(\.files) })
+        var paths: [String: Set<String>] = [:]
+        for (host, entry) in registry.byHost {
+            paths[host, default: []].formUnion(entry.files)
+        }
+        for (host, addons) in registry.addonsByHost {
+            for addon in addons {
+                paths[host, default: []].formUnion(addon.files)
+            }
+        }
         return paths
     }
 
@@ -10249,12 +10269,13 @@ for mod in mods {
     /// aucune mutation `@Published` hors du fil principal.
     private static func readMaintenanceReport(
         installBackups: [ModInstallBackup],
+        installIndexWasReadable: Bool,
         installBackupsRoot: URL,
         configBackups: [ModConfigBackup],
         configBackupsRoot: URL,
         modsRoot: String,
         installedFolders: Set<String>,
-        userTranslationPaths: Set<String>,
+        userTranslationPathsByHost: [String: Set<String>],
         preferenceKeys: Set<String>
     ) -> MaintenanceInventory.Report {
         let fm = FileManager.default
@@ -10265,7 +10286,9 @@ for mod in mods {
         for backup in installBackups {
             let root = URL(fileURLWithPath: backup.backupPath)
             guard let (bytes, files) = Self.walkBackup(
-                root: root, userTranslationPaths: userTranslationPaths) else { continue }
+                root: root,
+                hostTranslationPaths: userTranslationPathsByHost[backup.originalFolderName] ?? [])
+            else { continue }
             // Le nom de session vient du manager : la même règle que celle qui
             // supprime le dossier horodaté (premier composant sous `backups/`,
             // suffixe de nommage compris). Une formule locale, même simplifiée,
@@ -10288,7 +10311,7 @@ for mod in mods {
         let configBytes = configBackups.reduce(Int64(0)) { total, backup in
             total + (Self.walkBackup(root: configBackupsRoot
                 .appendingPathComponent(backup.folderName),
-                userTranslationPaths: [])?.0 ?? 0)
+                hostTranslationPaths: [])?.0 ?? 0)
         }
 
         return MaintenanceInventory.Report(
@@ -10297,15 +10320,18 @@ for mod in mods {
             configBackupCount: configBackups.count,
             configBackupBytes: configBytes,
             orphanSessions: MaintenanceInventory.orphanSessions(
-                onDisk: onDisk, referenced: Set(entries.map(\.id))),
+                onDisk: onDisk, referenced: Set(entries.map(\.id)),
+                indexWasReadable: installIndexWasReadable),
             stalePreferenceKeys: MaintenanceInventory.stalePreferenceKeys(
                 preferenceKeys, installedFolders: installedFolders),
             missingMods: missingMods)
     }
 
     /// Taille et fichiers utilisateur d'une sauvegarde, en **une** traversée.
-    /// `nil` quand le dossier n'existe plus.
-    private static func walkBackup(root: URL, userTranslationPaths: Set<String>)
+    /// `nil` quand le dossier n'existe plus. La règle de classification vit
+    /// dans `MaintenanceInventory.classifyUserFile` — appariement **borné à
+    /// l'hôte de la sauvegarde** (X75).
+    private static func walkBackup(root: URL, hostTranslationPaths: Set<String>)
     -> (Int64, [MaintenanceInventory.UserFile])? {
         let fm = FileManager.default
         var isDir: ObjCBool = false
@@ -10327,15 +10353,9 @@ for mod in mods {
             bytes += Int64(values?.fileSize ?? 0)
             let relative = url.resolvingSymlinksInPath().path
                 .replacingOccurrences(of: base, with: "")
-            if url.lastPathComponent.lowercased() == "config.json" {
-                files.append(.init(relativePath: relative, kind: .config))
-            } else if userTranslationPaths.contains(where: {
-                // Le chemin du registre porte le mod en tête, celui de la
-                // sauvegarde non : on apparie sur un **segment** complet, sinon
-                // `fr.json` d'un mod vaudrait pour celui d'un autre.
-                $0 == relative || $0.hasSuffix("/" + relative)
-            }) {
-                files.append(.init(relativePath: relative, kind: .translation))
+            if let kind = MaintenanceInventory.classifyUserFile(
+                relativePath: relative, hostTranslationPaths: hostTranslationPaths) {
+                files.append(.init(relativePath: relative, kind: kind))
             }
         }
         return (bytes, files)

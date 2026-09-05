@@ -24,6 +24,34 @@ public enum MaintenanceInventory {
         }
     }
 
+    /// Classe un fichier de sauvegarde : `config.json` par son nom, traduction
+    /// par appariement avec les chemins **posés sur ce mod-là**. `nil` quand ce
+    /// n'est ni l'un ni l'autre — un fichier d'auteur, qui revient avec le mod.
+    ///
+    /// Le chemin du registre porte le mod hôte en tête
+    /// (`[CP]Cloths and Colors/i18n/fr.json`), celui de la sauvegarde est
+    /// relatif à **sa propre racine** (`i18n/fr.json`) : l'appariement se fait
+    /// par suffixe, sur un **segment complet** — sinon `fr.json` d'un mod
+    /// vaudrait pour celui d'un autre.
+    ///
+    /// ⚠️ **Les chemins passés sont ceux de l'hôte de la sauvegarde, jamais le
+    /// registre entier.** Un `i18n/fr.json` d'auteur du mod A ne doit pas être
+    /// reclamé parce que le mod B a sa traduction posée au même chemin relatif :
+    /// mesuré le 2026-09-05, l'appariement tous-hôtes étiquetait à tort
+    /// **59 fichiers** du parc — tous prêts à devenir des protections fantômes
+    /// (« seule copie » d'un mod désinstallé, donc sauvegarde impurgeable) le
+    /// jour où leur mod partirait.
+    public static func classifyUserFile(relativePath: String,
+                                        hostTranslationPaths: Set<String>) -> UserFile.Kind? {
+        if (relativePath as NSString).lastPathComponent.lowercased() == "config.json" {
+            return .config
+        }
+        let isTranslation = hostTranslationPaths.contains {
+            $0 == relativePath || $0.hasSuffix("/" + relativePath)
+        }
+        return isTranslation ? .translation : nil
+    }
+
     /// Une sauvegarde d'installation, réduite à ce que la décision demande.
     public struct BackupEntry: Equatable, Sendable {
         /// Le dossier de session sous `Backups/ModInstalls/backups/`.
@@ -127,9 +155,19 @@ public enum MaintenanceInventory {
     /// **X25**, dont le gain disque est nul. Ils ne sont retirés que par un
     /// bouton, jamais par une passe au lancement — une suppression ne se décide
     /// pas sur une absence constatée toute seule.
+    ///
+    /// ⚠️ **Un index qu'on n'a pas lu ne rend orphelin personne** (X76).
+    /// `referenced` vide veut alors dire « rien n'a été décodé », pas « l'index
+    /// ne connaît rien » — la différence avec le disque ferait passer chaque
+    /// session réelle pour un dossier oublié, et le bouton « nettoyer » les
+    /// mettrait toutes à la corbeille. Même règle que `stalePreferenceKeys` (X70)
+    /// et le
+    /// registre d'install (X71), appliquée au troisième lot de l'écran.
     public static func orphanSessions(onDisk: Set<String>,
-                                      referenced: Set<String>) -> Set<String> {
-        onDisk.subtracting(referenced)
+                                      referenced: Set<String>,
+                                      indexWasReadable: Bool) -> Set<String> {
+        guard indexWasReadable else { return [] }
+        return onDisk.subtracting(referenced)
     }
 
     /// Clés de magasin qui ne désignent plus aucun mod installé — appliqué à
