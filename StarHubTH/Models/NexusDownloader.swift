@@ -36,10 +36,18 @@ struct NexusDownloader {
     /// serait l'occasion d'en oublier un. Celle du CDN ne porte aucun en-tête
     /// `x-rl-*` — `NexusQuota` la reconnaît comme muette et laisse la mesure
     /// précédente intacte.
+    /// X67 — le relevé passe par `noteRateLimitIfThrottled`, qui **arme aussi
+    /// la porte de limitation partagée** sur un 429. Ce site n'appelait que
+    /// `noteQuota` : il reconnaissait pourtant le 429 (`statusError` le rend en
+    /// `.rateLimited`) sans que rien ne freine la suite. C'est la **même API v1**
+    /// que `fetchModInfo`, qui arme, elle — une asymétrie pure, sans la
+    /// question de budget partagé que pose le GraphQL v2. Et le téléchargement
+    /// est le geste le plus cher en quota : un 429 non vu y aggrave le
+    /// bannissement au lieu de l'attendre.
     private func noteQuotaAndStatusError(for response: URLResponse?,
                                          forbiddenMeaning: Forbidden403Meaning) -> NexusDownloadError? {
         guard let http = response as? HTTPURLResponse else { return nil }
-        NexusUpdateChecker.shared.noteQuota(from: http)
+        NexusUpdateChecker.shared.noteRateLimitIfThrottled(http)
         return NexusDownloadAPI.statusError(http.statusCode, forbiddenMeaning: forbiddenMeaning)
     }
 

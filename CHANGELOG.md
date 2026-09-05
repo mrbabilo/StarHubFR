@@ -14,6 +14,8 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **Un refus de Nexus freine enfin toutes les requêtes, pas seulement celles qui l'ont vu.** Un `429` reçu par la recherche, la vitrine Découverte ou un téléchargement relevait bien le quota, mais n'armait pas le délai d'attente partagé : l'app continuait d'appeler Nexus dans une fenêtre déjà refusée, ce qui allonge le bannissement. Le délai réellement annoncé par le serveur est désormais respecté, au lieu d'une minute fixe.
+
 - **Le rapport de raccourcis ne reste plus sur l'état d'avant après une restauration de configurations.** Il se lit dans les `config.json`, mais ne se relançait qu'à la fermeture de l'éditeur. Restaurer une sauvegarde de configurations, basculer de profil ou récupérer un fichier perdu réécrit ces fichiers sans que le parc bouge : le rapport et sa pastille gardaient les conflits d'avant. Les quatre chemins passent désormais par la même règle.
 
 - **Un lien « Mod Manager Download » n'est plus perdu quand le démarrage traîne.** Un clic sur Nexus qui lance l'app met le lien en attente jusqu'à ce que la fenêtre paraisse. Si le chargement dépassait 30 s, le filet de sécurité révélait bien la fenêtre — mais sans délivrer le lien : rien ne se téléchargeait, sans un mot. La livraison suit désormais la révélation, quel que soit le chemin.

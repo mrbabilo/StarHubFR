@@ -756,6 +756,41 @@ répond. L'ordre et les titres de section sont ceux de la roadmap.
       ▸ Lecture du dump **quel que soit son âge** : un avertissement d'il y a
       trois jours reste vrai, et le lier au TTL de 6 h ferait disparaître ces
       lignes 18 heures par jour. **18 tests neufs** (2 215 → 2 233). · **S**
+- [x] **X67** ✅ *(corrigé le 2026-09-05)* — **Deux chemins Nexus voyaient un
+      `429` sans armer la porte de limitation partagée.** `NexusUpdateChecker`
+      tient un `NexusRateLimitGate` commun à tous les appels ; son propre
+      helper, `noteRateLimitIfThrottled`, relève le quota, analyse `Retry-After`
+      et arme la porte — et sa documentation dit pourquoi : « une réponse qui
+      échappe au relevé est un 429 non vu, qui aggrave le bannissement au lieu
+      de l'attendre ». Elle se limitait à « tous les `dataTask` **de ce
+      fichier** ».
+      ▸ **Le commentaire faux est le vrai point de départ.**
+      `NexusSearchClient.send` portait déjà, mot pour mot, « un 429 freine tout
+      le monde plutôt que la seule recherche ». C'était faux : il n'appelait que
+      `noteQuota`, qui relève sans armer. Un commentaire qui affirme une
+      propriété de sûreté absente est ce qui empêche le lecteur suivant d'aller
+      vérifier.
+      ▸ **`NexusDownloader.noteQuotaAndStatusError`** faisait pareil, et c'est
+      le cas le plus net : `statusError` **reconnaît** le 429 (`.rateLimited`)
+      sans que rien ne freine la suite, sur la **même API v1** que
+      `fetchModInfo`, qui arme, elle. Aucune incertitude, et c'est le geste le
+      plus cher en quota. Trois sites de téléchargement y convergent.
+      ▸ **`retryAfter: 60` en dur** dans `send` : le délai annoncé par le
+      serveur était jeté. Un 429 disant « attends 300 » valait 60 s d'attente,
+      donc un nouveau 429.
+      ▸ ❓ **Ce qu'on n'a pas fait, faute de mesure** : la porte armée ne
+      **bloque pas** une requête GraphQL v2 au départ, là où `fetchModInfo` s'y
+      refuse. Le coût d'une erreur n'est pas symétrique — armer depuis v2 risque
+      un contrôle de mises à jour retardé, bloquer v2 depuis v1 couperait la
+      vitrine Découverte jusqu'à quinze minutes — et la prémisse n'est pas
+      établie : **un `429` sur v1 refuse-t-il aussi v2 sur la même clé ?**
+      La mesure demande la clé de l'auteur et consomme du quota ; `docs/SOURCES.md`
+      §2.4 note d'ailleurs qu'aucune sonde n'existe pour v2.
+      ▸ ⚠️ **Sans test**, comme X65 et X66. **Cause commune, nommée ici** : ces
+      clients codent en dur `URLSession.shared` et des singletons, donc aucun
+      test ne peut atteindre le câblage. `SmapiUpdateClient` a pris un
+      `init(session:)` et en a tiré cinq tests — c'est le précédent à suivre si
+      on veut rendre cette grappe testable. · **S**
 - [x] **X66** ✅ *(corrigé le 2026-09-05)* — **Le rapport de raccourcis restait
       sur l'état d'avant une écriture de `config.json`.** Il se lit
       exclusivement dans ces fichiers, et la signature de

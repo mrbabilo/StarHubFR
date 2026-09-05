@@ -103,12 +103,23 @@ final class NexusUpdateChecker {
     /// qui traite son 429 lui-même et appelle donc `noteQuota` directement :
     /// une réponse qui échappe au relevé est un 429 non vu, qui aggrave le
     /// bannissement au lieu de l'attendre.
-    private func noteRateLimitIfThrottled(_ response: URLResponse?) {
-        guard let http = response as? HTTPURLResponse else { return }
+    ///
+    /// **Interne et non privé depuis X67** : `NexusSearchClient` (GraphQL v2,
+    /// autre fichier) ne relevait que le quota et n'armait donc jamais la
+    /// porte. Une seule entrée pour les deux API — le relevé, l'analyse de
+    /// `Retry-After` et l'armement ne se recopient pas.
+    ///
+    /// - Returns: le délai annoncé par le serveur quand la réponse est un 429,
+    ///   `nil` sinon — pour que l'appelant rende l'attente réelle plutôt qu'une
+    ///   constante.
+    @discardableResult
+    func noteRateLimitIfThrottled(_ response: URLResponse?) -> TimeInterval? {
+        guard let http = response as? HTTPURLResponse else { return nil }
         let quota = noteQuota(from: http)
-        guard http.statusCode == 429 else { return }
-        noteRateLimit(retryAfter: Self.parseRetryAfter(http.value(forHTTPHeaderField: "Retry-After")),
-                      quota: quota)
+        guard http.statusCode == 429 else { return nil }
+        let retry = Self.parseRetryAfter(http.value(forHTTPHeaderField: "Retry-After"))
+        noteRateLimit(retryAfter: retry, quota: quota)
+        return retry
     }
 
     // MARK: - Quota (B2-T6)

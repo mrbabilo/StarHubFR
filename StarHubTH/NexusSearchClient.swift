@@ -85,14 +85,23 @@ enum NexusSearchClient {
             if let error {
                 finish(.failure(.transport(error.localizedDescription))); return
             }
+            // Même entonnoir que les appels v1 : relevé du quota (sans en-tête,
+            // la mesure précédente reste en place) **et armement de la porte
+            // partagée** sur un 429, avec le délai réel annoncé par le serveur.
+            //
+            // ⚠️ Ce commentaire affirmait déjà qu'« un 429 freine tout le monde
+            // plutôt que la seule recherche » — et c'était faux : le chemin
+            // n'appelait que `noteQuota`, qui relève sans armer (X67). Ce qui
+            // est vrai maintenant, et rien de plus : un 429 **venu d'ici** freine
+            // tout le monde. L'inverse n'est **pas** fait — cette requête part
+            // même quand la porte est armée par un 429 v1. Le faire couperait la
+            // vitrine Découverte jusqu'à quinze minutes sur une prémisse non
+            // mesurée : on ne sait pas si les deux API partagent un budget.
+            let retryAfter = NexusUpdateChecker.shared.noteRateLimitIfThrottled(response)
+            if let retryAfter {
+                finish(.failure(.rateLimited(retryAfter: retryAfter))); return
+            }
             if let http = response as? HTTPURLResponse {
-                // Même entonnoir que les appels v1 : sans en-tête de quota la
-                // mesure précédente reste en place, et un 429 freine tout le
-                // monde plutôt que la seule recherche.
-                NexusUpdateChecker.shared.noteQuota(from: http)
-                if http.statusCode == 429 {
-                    finish(.failure(.rateLimited(retryAfter: 60))); return
-                }
                 guard (200..<300).contains(http.statusCode) else {
                     finish(.failure(.http(http.statusCode))); return
                 }
