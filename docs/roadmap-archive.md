@@ -756,6 +756,39 @@ répond. L'ordre et les titres de section sont ceux de la roadmap.
       ▸ Lecture du dump **quel que soit son âge** : un avertissement d'il y a
       trois jours reste vrai, et le lier au TTL de 6 h ferait disparaître ces
       lignes 18 heures par jour. **18 tests neufs** (2 215 → 2 233). · **S**
+- [x] **X68** ✅ *(corrigé le 2026-09-05)* — **La correction de contraste des
+      descriptions partait à l'envers en thème sombre.** `MarkdownText.render`
+      résolvait `NSColor.windowBackgroundColor` par `usingColorSpace(.sRGB)`
+      pour donner un fond à `ContrastChecker.adjusted`. C'est une couleur
+      **dynamique** : elle se résout contre `NSAppearance.currentDrawing()`,
+      posée seulement pendant un dessin. Or `render` est appelé depuis l'`init`
+      de la vue — aucun contexte de dessin, aucune garantie sur l'apparence
+      ambiante.
+      ▸ **Mesuré en compilant le cas, pas déduit** (2026-09-05) : sans
+      apparence posée, `windowBackgroundColor` rend du **blanc** (luminance
+      1,0000) ; sous `.darkAqua`, du gris 0,118 (luminance 0,0130). Le seuil de
+      `adjusted` étant à 0,2, la première réponse fait **assombrir** le texte et
+      la seconde l'**éclaircir** : la décision s'inverse entièrement. Se
+      tromper, c'est écrire du texte sombre sur fond sombre — exactement ce que
+      la correction de contraste existe pour empêcher.
+      ▸ **Le correctif** : `performAsCurrentDrawingAppearance` sur
+      `NSApp.effectiveAppearance` (l'apparence réelle de l'app, bascule de
+      thème comprise), avec repli sur `NSAppearance.currentDrawing()`. Vérifié
+      en exécutant le code corrigé : il suit désormais l'apparence dans les deux
+      sens. Sans effet quand l'ambiante était déjà la bonne, décisif sinon.
+      ▸ Corollaire tombé au passage : la valeur était figée à l'`init` et donc
+      jamais recalculée à une bascule de thème. SwiftUI réinitialise la vue au
+      changement de `colorScheme`, ce qui rejoue `render` — le repli sur
+      `NSApp.effectiveAppearance` suffit donc, sans toucher à la mise en cache
+      (un `body` qui recalculerait ce parsing coûterait cher, cf. les pièges de
+      perf de `CLAUDE.md`).
+      ▸ **Faux positifs écartés dans le même fichier**, à ne pas rouvrir :
+      `ContrastChecker.color(named:)` semblait court-circuiter la correction
+      pour les couleurs nommées (`[color=red]`) — il n'en est rien,
+      `DescriptionBlockParser.resolveColorHex` les normalise en `#rrggbb` et
+      elles repassent par `adjusted`. Et `adjusted` n'essaie qu'**une**
+      direction avant de rendre `nil` : c'est conservateur, pas faux — l'appelant
+      retombe sur la couleur par défaut. · **S**
 - [x] **X67** ✅ *(corrigé le 2026-09-05)* — **Deux chemins Nexus voyaient un
       `429` sans armer la porte de limitation partagée.** `NexusUpdateChecker`
       tient un `NexusRateLimitGate` commun à tous les appels ; son propre

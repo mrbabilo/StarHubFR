@@ -82,6 +82,35 @@ struct MarkdownText: View {
         self.hasLink = a.runs.contains { $0.link != nil }
     }
 
+    /// Le fond de fenêtre **résolu sous l'apparence réelle de l'app** (X68).
+    ///
+    /// `windowBackgroundColor` est une couleur dynamique : `usingColorSpace`
+    /// la résout contre `NSAppearance.currentDrawing()`, qui n'est posée que
+    /// pendant un dessin. Or `render` est appelé depuis l'`init` de la vue —
+    /// il n'y a là aucun contexte de dessin, et rien ne garantit l'apparence
+    /// ambiante.
+    ///
+    /// Ce n'est pas une nuance : **la valeur résolue décide du sens de la
+    /// correction**. Mesuré le 2026-09-05 en compilant le cas —
+    /// sans apparence posée, `windowBackgroundColor` rend du **blanc**
+    /// (luminance 1,0) ; sous `.darkAqua`, du gris 0,118 (luminance 0,013). Le
+    /// seuil de `ContrastChecker.adjusted` étant à 0,2, la première réponse
+    /// fait **assombrir** le texte et la seconde l'**éclaircir**. Se tromper,
+    /// c'est écrire du texte sombre sur fond sombre — exactement ce que cette
+    /// correction de contraste existe pour empêcher.
+    ///
+    /// `performAsCurrentDrawingAppearance` est l'API prévue pour ça. Elle rend
+    /// le résultat juste quelle que soit l'apparence ambiante : sans effet
+    /// quand celle-ci était déjà la bonne, décisive sinon.
+    private static func resolvedWindowBackground() -> NSColor {
+        var resolved: NSColor?
+        let appearance = NSApp?.effectiveAppearance ?? NSAppearance.currentDrawing()
+        appearance.performAsCurrentDrawingAppearance {
+            resolved = NSColor.windowBackgroundColor.usingColorSpace(.sRGB)
+        }
+        return resolved ?? .windowBackgroundColor
+    }
+
     /// Découpe le Markdown sur les attributs personnalisés `^[X](shcolor: 'hex')`
     /// (couleur, contraste-corrigée sur le fond fenêtre) et `^[X](shunderline:
     /// 'true')` (souligné), puis applique de vrais runs natifs `.foregroundColor`
@@ -90,7 +119,7 @@ struct MarkdownText: View {
     /// attributs custom en mode inline, on les applique donc soi-même. Le texte
     /// hors de ces spans est parsé à l'identique d'avant (un seul segment).
     static func render(_ s: String) -> AttributedString {
-        let background = NSColor.windowBackgroundColor.usingColorSpace(.sRGB) ?? .windowBackgroundColor
+        let background = resolvedWindowBackground()
         var result = AttributedString()
         let ns = s as NSString
         let pattern = "(?s)\\^\\[(.*?)\\]\\((?:shcolor: '([^']*)'|shunderline: '([^']*)')\\)"
