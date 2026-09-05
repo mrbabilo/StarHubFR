@@ -78,6 +78,11 @@ final class SmapiUpdateClient {
                                                     budget: budget)
                     collected += outcome.mods
                     budget = outcome.budgetLeft
+                    // Ce qui a été isolé avant l'épuisement est gardé (ligne
+                    // au-dessus), mais le lot n'est pas terminé : on s'arrête
+                    // sans le compter. Un budget épuisé signale de toute façon
+                    // une cause qui ne s'arrêtera pas au lot suivant.
+                    if outcome.abandoned { break }
                 } catch let error as Failure {
                     failure = error
                     break
@@ -137,24 +142,32 @@ final class SmapiUpdateClient {
     private func collect(batch: [SmapiUpdateRequest.Entry],
                          gameVersion: String,
                          budget: Int) async throws -> (mods: [SmapiUpdateResponse.Mod],
-                                                       budgetLeft: Int) {
+                                                       budgetLeft: Int,
+                                                       abandoned: Bool) {
         let answers = try await post(batch: batch, gameVersion: gameVersion)
-        guard answers.isEmpty, !batch.isEmpty else { return (answers, budget) }
+        guard answers.isEmpty, !batch.isEmpty else { return (answers, budget, false) }
         guard batch.count > 1 else {
             // Seule dans son lot et toujours rien : c'est elle. La remonter en
             // erreur plutôt que de la laisser disparaître : un mod passé sous
             // silence est exactement le défaut que cette fonction répare.
             return ([SmapiUpdateResponse.Mod(id: batch[0].id,
                                              errors: [SmapiUpdateResponse.rejectedEntryError])],
-                    budget)
+                    budget, false)
         }
-        guard budget >= 2 else { return ([], budget) }
+        // Budget épuisé : les entrées de ce sous-lot resteront sans verdict.
+        // Le dire — `abandoned` remonte jusqu'à `fetch`, qui refuse alors de
+        // compter le lot comme terminé. Rendre un tableau vide en silence
+        // faisait passer 287 mods sur 300 à la trappe *et* déclarait la passe
+        // complète : l'appelant posait son horodatage de succès et ne
+        // revérifiait pas avant douze heures. La branche « seule dans son
+        // lot » avait déjà tranché de ne pas se taire ; celle-ci s'aligne.
+        guard budget >= 2 else { return ([], budget, true) }
         let half = batch.count / 2
         let left = try await collect(batch: Array(batch[..<half]),
                                      gameVersion: gameVersion, budget: budget - 2)
         let right = try await collect(batch: Array(batch[half...]),
                                       gameVersion: gameVersion, budget: left.budgetLeft)
-        return (left.mods + right.mods, right.budgetLeft)
+        return (left.mods + right.mods, right.budgetLeft, left.abandoned || right.abandoned)
     }
 
     private func post(batch: [SmapiUpdateRequest.Entry],

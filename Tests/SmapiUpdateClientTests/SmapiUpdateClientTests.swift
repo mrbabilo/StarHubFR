@@ -131,6 +131,40 @@ struct SmapiUpdateClientTests {
         #expect(code == 503)
     }
 
+    /// X64 — le budget de re-découpage épuisé ne doit pas se faire passer pour
+    /// une passe complète.
+    ///
+    /// Le re-découpage isole l'entrée que smapi.io refuse (200 + liste vide) ;
+    /// son budget est de 32 requêtes pour toute la vérification. Au-delà, les
+    /// sous-lots restants rendaient un tableau **vide** — et la boucle comptait
+    /// le lot comme terminé. `isComplete` restait vrai, l'appelant posait son
+    /// horodatage de succès, et jusqu'à 150 mods repartaient sans verdict pour
+    /// douze heures. C'est exactement le défaut que `batchesCompleted` a été
+    /// créé pour empêcher, par la porte de derrière : la branche « seule dans
+    /// son lot » avait choisi de remonter une erreur plutôt que de se taire,
+    /// celle-ci se taisait.
+    ///
+    /// Les trois champs connus pour vider un lot sont filtrés avant l'envoi
+    /// (`isExpressibleVersion`, `sanitizedGameVersion`, `apiVersion` figée) —
+    /// le filet reste pour le manifeste tiers qu'on ne contrôle pas.
+    @Test func anExhaustedResplitBudgetDoesNotPassForACompleteCheck() {
+        // Tout revient vide : le re-découpage descend jusqu'à épuiser son
+        // budget bien avant d'avoir isolé les 150 entrées du premier lot.
+        let all = entries(300)          // deux lots
+        let c = client(script: Array(repeating: (200, Data("[]".utf8)), count: 200))
+        guard case .success(let outcome) = fetch(c, entries: all) else {
+            Issue.record("ce qui a été isolé doit être rendu, pas perdu"); return
+        }
+        #expect(!outcome.isComplete,
+                "un budget épuisé laisse des mods sans verdict — la passe est amputée")
+        #expect(outcome.batchesCompleted < outcome.batchesTotal)
+        // Et ce que le re-découpage avait isolé avant l'épuisement survit :
+        // troquer un abandon silencieux contre une perte totale referait le
+        // défaut d'à côté.
+        #expect(!outcome.mods.isEmpty,
+                "les entrées isolées avant l'épuisement doivent être rendues")
+    }
+
     @Test func anEmptyParkIsACompletePass() {
         // Zéro mod à vérifier n'est pas une passe amputée : rien à réessayer.
         let c = client(script: [])

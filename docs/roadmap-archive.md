@@ -756,6 +756,34 @@ répond. L'ordre et les titres de section sont ceux de la roadmap.
       ▸ Lecture du dump **quel que soit son âge** : un avertissement d'il y a
       trois jours reste vrai, et le lier au TTL de 6 h ferait disparaître ces
       lignes 18 heures par jour. **18 tests neufs** (2 215 → 2 233). · **S**
+- [x] **X64** ✅ *(corrigé le 2026-09-05)* — **Un budget de re-découpage épuisé
+      se faisait passer pour une passe complète.** smapi.io ne rejette jamais :
+      il rend `200` et une liste vide quand une seule entrée du lot lui déplaît.
+      `SmapiUpdateClient.collect` re-découpe alors le lot pour isoler la
+      coupable, avec un budget de **32 requêtes pour toute la vérification**.
+      Ce budget épuisé, la fonction rendait `([], budget)` — un tableau vide, en
+      silence — et la boucle de `fetch` comptait malgré tout le lot comme
+      terminé.
+      ▸ **Mesuré par le test avant correction** : 300 mods demandés, **13
+      verdicts rendus**, `batchesCompleted: 2 / 2`, `isComplete: true`. Le
+      `NexusUpdateChecker.recordSuccessfulCheck()` de l'appelant posait donc son
+      horodatage, ce qui coupe la vérification automatique **douze heures**
+      (`UpdateCheckPolicy`) pour 287 mods jamais interrogés.
+      ▸ C'est le défaut que `batchesCompleted` avait été créé pour empêcher
+      (X47 et la passe partielle), rentré par la porte de derrière. L'asymétrie
+      était visible dans le fichier : la branche « seule dans son lot » avait
+      délibérément choisi de remonter `rejectedEntryError` plutôt que de se
+      taire ; la branche voisine se taisait.
+      ▸ **La correction** : un troisième membre `abandoned` au tuple privé de
+      `collect`, remonté à `fetch`, qui garde ce qui a été isolé puis sort sans
+      compter le lot. Aucune signature publique touchée, et le chemin d'honnêteté
+      existant fait le reste — l'appelant journalise déjà « passe incomplète » et
+      ne pose pas l'horodatage.
+      ▸ **Déclenchabilité** : les trois champs connus pour vider un lot sont
+      filtrés avant l'envoi (`isExpressibleVersion` depuis X62,
+      `sanitizedGameVersion`, `apiVersion` figée). Le filet reste pour le
+      manifeste tiers qu'on ne contrôle pas — ce que sa propre documentation
+      dit. **1 test neuf** (2 267 → 2 268). · **S**
 - [x] **X63** ✅ *(corrigé le 2026-09-05)* — **Installer un mod neuf effaçait
       le mod qui portait déjà son nom de dossier.** `install` ne reconnaît un mod
       installé qu'à son `UniqueID` (`findExistingMod`). Sans correspondance, il
