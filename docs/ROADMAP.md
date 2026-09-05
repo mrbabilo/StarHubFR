@@ -1635,6 +1635,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **X49** | 2026-09-04 | Deux recherches Nexus rapprochées pouvaient revenir dans le désordre, et une réponse tardive ressuscitait une liste fermée |
 | **X61** | 2026-09-04 | Le résidu écarté par la bascule en masse restait chargé par SMAPI, faute du point de tête que l'autre chemin posait |
 | **X62** | 2026-09-04 | « Je l'ai déjà » ne tenait pas quand la version affirmée était une étiquette Nexus libre — 15 mods sur 38 revenaient à chaque vérification |
+| **X73** | 2026-09-05 | « Nom (A→Z) » triait par scalaires Unicode quand les six autres tris comparaient comme macOS — 190 des 951 mods du parc changeaient de place, et les deux sens du tri n'étaient pas inverses |
 | **X71** | 2026-09-05 | Un `Mods/` illisible rendait un lot vide que le balayage purgeait sans condition — 1 097 entrées de registre et 251 ancres, copie de secours comprise |
 | **X70** | 2026-09-05 | Le ménage jugeait mortes **toutes** les préférences quand aucun mod n'était lu — 616 entrées du parc effaçables d'un clic |
 | **X69** | 2026-09-05 | Le registre des traductions suivait un renommage mais survivait à une suppression — un orphelin réel sur le parc |

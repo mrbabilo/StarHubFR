@@ -14,6 +14,8 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **La liste des mods se range enfin comme le reste du système.** « Nom (A→Z) » comparait les noms caractère par caractère : `*SorryLabCore*` et `6480's Giant Crops` sautaient avant tout le bloc `[…]`, et l'apostrophe séparait deux mods du même auteur. Ce n'était pas l'inverse de « Nom (Z→A) », qui suivait déjà la règle de macOS — 190 de vos 951 mods changeaient de place entre les deux sens.
+
 - **Un dossier `Mods/` illisible n'efface plus la mémoire de vos installations.** Le balayage ne distinguait pas « rien vu » de « rien installé » : jeu déplacé, volume débranché ou droits refusés rendaient une liste vide, et l'app purgeait alors le registre d'install et les ancres de version — 1 097 et 251 entrées chez vous, copie de secours comprise. Sans lecture du dossier, plus rien n'est purgé, et le journal le dit.
 
 - **Le ménage de l'écran Entretien ne peut plus effacer vos réglages quand il ne voit aucun mod.** Il jugeait morte toute préférence ne désignant pas un mod installé — mais un dossier de jeu introuvable, un disque débranché ou un balayage encore en cours donnent une liste vide, et alors **tout** paraît mort. Sur votre parc, un clic aurait effacé 616 entrées, dont 169 identifiants Nexus saisis à la main. Sans parc lisible, plus rien n'est jugé, et le journal le dit.

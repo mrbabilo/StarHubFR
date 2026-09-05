@@ -9692,7 +9692,7 @@ for mod in mods {
     /// tous deux — le scope (`scopedMods(from:scope:)`) et la pagination
     /// (vue) s'appliquent par-dessus.
     func mods(matching filters: ModListFilters) -> [ModItem] {
-        mods
+        let filtered = mods
             .filter { mod in
                 matchesSearch(mod, filters: filters)
                     && matchesCategory(mod, filters: filters)
@@ -9700,13 +9700,24 @@ for mod in mods {
                     && matchesFavorites(mod, filters: filters)
                     && matchesTranslation(mod, filters.frenchTranslation)
             }
+        // `.name` ne trie pas : `mods` porte **déjà** cet ordre, et un filtre
+        // le préserve. C'est `scanMods()` qui l'établit
+        // (`scannedMods.alphabeticalListOrder`), et la seule autre écriture de
+        // `mods` — la bascule en masse — est un `map`, qui préserve l'ordre.
+        //
+        // Le code triait ici avec un comparateur toujours faux, ce qui ne
+        // rendait le même résultat **que si** `sorted(by:)` était stable : la
+        // bibliothèque standard ne le garantit pas (elle l'est aujourd'hui,
+        // par implémentation). Ne rien faire est à la fois juste et gratuit —
+        // le tri à blanc coûtait une passe complète sur 949 mods à chaque
+        // rendu, donc à chaque frappe dans la recherche.
+        guard filters.sort != .name else { return filtered }
+        return filtered
             .sorted { lhs, rhs in
                 switch filters.sort {
                 case .name:
-                    // `mods` is already alphabetical (see `scanMods()`),
-                    // and `.sorted` is stable, so this is a no-op ordering
-                    // pass — kept as an explicit case so the switch stays
-                    // exhaustive and self-documenting.
+                    // Inatteignable : écarté par le `guard` ci-dessus. Le cas
+                    // reste écrit pour que le `switch` demeure exhaustif.
                     return false
                 case .activationOrder:
                     let lhsDate = modActivationTimestamps[lhs.folderName]

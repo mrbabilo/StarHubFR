@@ -174,8 +174,17 @@ extension Array where Element == ModItem {
     /// (retour du 2026-08-26 : chercher un nom dans la liste ne doit pas
     /// dépendre de la nature pack ou non du mod). Les enfants d'un pack vivent
     /// dans sa ligne, l'imbrication ne peut donc rien orphaniser.
+    ///
+    /// La comparaison est celle de **macOS**, pas celle des scalaires Unicode
+    /// (X73). `lowercased() <` compare octet à octet : `*` (U+002A), les
+    /// chiffres et `[` (U+005B) se rangent dans un ordre qui n'est celui de
+    /// personne, et l'apostrophe sépare deux mods du même auteur
+    /// (`Nyapu's …` loin de `Nyapu-Style …`). Surtout, c'est déjà la règle des
+    /// six autres tris de la liste et de « Nom (Z→A) » : sans elle, les deux
+    /// sens du tri par nom n'étaient pas inverses l'un de l'autre — **190 des
+    /// 951 noms du parc** changeaient de place.
     var alphabeticalListOrder: [ModItem] {
-        sorted { $0.name.lowercased() < $1.name.lowercased() }
+        sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 
     /// Les identifiants uniques des mods **activés**, ceux qu'un profil retient.

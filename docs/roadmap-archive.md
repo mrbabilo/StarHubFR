@@ -756,6 +756,43 @@ répond. L'ordre et les titres de section sont ceux de la roadmap.
       ▸ Lecture du dump **quel que soit son âge** : un avertissement d'il y a
       trois jours reste vrai, et le lier au TTL de 6 h ferait disparaître ces
       lignes 18 heures par jour. **18 tests neufs** (2 215 → 2 233). · **S**
+- [x] **X73** ✅ *(corrigé le 2026-09-05)* — **« Nom (A→Z) » ne triait pas
+      comme les six autres tris de la liste.** `mods(matching:)` compte sept
+      cas de tri. Six comparent les noms par
+      `localizedCaseInsensitiveCompare` — la règle de macOS — et « Nom (Z→A) »
+      aussi. Le septième, `.name`, ne comparait rien : il rendait `false` et
+      s'en remettait à l'ordre posé au balayage par `alphabeticalListOrder`,
+      qui était `lowercased() <`, c'est-à-dire l'ordre des **scalaires
+      Unicode**.
+      ▸ **Mesuré sur le parc, avec le vrai comparateur compilé** (pas une
+      approximation : la première, en Python, disait « 0 divergence » et était
+      fausse) : **190 des 951 noms** changent de place entre les deux règles,
+      et **553 paires** s'inversent. Conséquence directe : « A→Z » n'était pas
+      l'inverse de « Z→A ».
+      ▸ **Ce que ça donnait à l'écran** : `*SorryLabCore*` et `6480's Giant
+      Crops` passaient avant tout le bloc `[…]` — `*` vaut U+002A et `[`
+      U+005B — quand macOS les range après. `[CP] 6480's Storage Variety`
+      arrivait avant `[CP] [DDF] Garry` pour la même raison. Et l'apostrophe
+      séparait deux mods du même auteur : `Nyapu's Portraits` loin de
+      `Nyapu-Style More Haley Events` (`'` U+0027 précède `-` U+002D).
+      ▸ **Deux corrections, une cause.** (a) `alphabeticalListOrder`
+      (`ModItem.swift`) adopte le comparateur des six autres — un seul endroit,
+      dans Core, déjà couvert par `ModListOrderTests`. (b) `.name` ne trie plus
+      du tout : il rendait `false` pour tout, ce qui ne redonnait l'ordre
+      d'entrée **que si** `sorted(by:)` était stable — la bibliothèque standard
+      ne le garantit pas. Le commentaire l'affirmait pourtant : c'est le
+      corollaire de X67, une propriété de sûreté affirmée est un endroit à
+      vérifier. L'invariant réel est écrit à sa place (le balayage pose
+      l'ordre, la bascule en masse est un `map` qui le préserve).
+      ▸ **Gratuit, et même moins cher** : le tri à blanc coûtait une passe sur
+      949 mods à chaque rendu, donc à chaque frappe dans la recherche.
+      Mesuré : 2,28 ms par tri à blanc, 0,01 ms sans tri ; le tri localisé
+      complet aurait coûté 3,33 ms par rendu, d'où le choix de corriger l'ordre
+      **à la source** plutôt que de trier à chaque cadrage.
+      ▸ Même famille que X63–X71 : le chemin voisin qui n'applique pas la règle
+      de ses six jumeaux. **4 tests neufs** (2 277 → 2 280), tous d'attentes
+      **mesurées** — la première version en portait deux, devinées, toutes deux
+      fausses. · **S**
 - [x] **X71** ✅ *(corrigé le 2026-09-05)* — **Un `Mods/` illisible effaçait la
       mémoire des installations.** `scanMods` ne garde que `gameDir.isEmpty`.
       Le parcours de tête est `if fm.fileExists(atPath: modsPath), let
