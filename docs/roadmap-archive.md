@@ -1120,13 +1120,16 @@ répond. L'ordre et les titres de section sont ceux de la roadmap.
       n'était pas en cause : ses invariants tiennent sur tous les chemins, c'est
       le **câblage** qui manquait. Cliquet `our_shared_singletons` relevé (+1,
       la ligne reprend le patron des quatre autres du même fichier).
-      ▸ ❓ **Question ouverte pour l'auteur, invérifiable depuis un agent** :
+      ▸ ❓ **Question pour l'auteur, tranchée le 2026-09-05 sur l'app lancée** :
       `applicationShouldTerminateAfterLastWindowClosed → false` existe pour le
       splash, mais vaut pour toute la vie de l'app. Fermer la fenêtre
       principale (Cmd+W) après le lancement laisse-t-il une app sans fenêtre
-      qu'un clic sur le Dock ne rouvre pas ? SwiftUI gère normalement la
-      réouverture d'une scène `Window`, mais cela demande un lancement réel
-      pour être tranché. · **S**
+      qu'un clic sur le Dock ne rouvre pas ? **Non — mesuré par l'auteur** :
+      Cmd+W est inopérant durant le splash (voulu : on ne referme pas un
+      lancement en cours), ferme la fenêtre lancée, et **le clic Dock la fait
+      revenir** — la scène `Window` SwiftUI se réinstancie. C'est le patron
+      macOS standard des applis à fenêtre unique (App Store, Réglages
+      Système) ; rien à corriger, la question est close sans correctif.
 - [x] **X64** ✅ *(corrigé le 2026-09-05)* — **Un budget de re-découpage épuisé
       se faisait passer pour une passe complète.** smapi.io ne rejette jamais :
       il rend `200` et une liste vide quand une seule entrée du lot lui déplaît.
