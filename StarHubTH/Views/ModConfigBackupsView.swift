@@ -273,6 +273,10 @@ struct ModConfigBackupsView: View {
                     self.vm.showAlert = true
                     self.vm.log(self.restoreReportMessage(report),
                                 level: report.isComplete ? .info : .warning)
+                    // Des `config.json` viennent d'être réécrits, et le parc
+                    // n'a pas bougé : sans ça, le rapport de raccourcis reste
+                    // sur l'état d'avant la restauration (X66).
+                    self.vm.rescanKeybindsAfterConfigWrite()
                 }
             } catch {
                 DispatchQueue.main.async {

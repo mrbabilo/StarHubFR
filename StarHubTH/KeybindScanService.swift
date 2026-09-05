@@ -18,6 +18,24 @@ final class KeybindScanService: ObservableObject {
     /// n'a jamais eu lieu (ronde de revue 2, constat 3).
     private var lastScannedSignature: Int?
 
+    /// Un scan demandé pendant qu'un autre tourne, à rejouer à sa fin (X66).
+    ///
+    /// `scan` refuse quand `isScanning` : la demande était simplement perdue.
+    /// Sans conséquence tant que le seul appelant était le `.onAppear` d'une
+    /// section, mais les écritures de `config.json` (restauration d'une
+    /// sauvegarde, bascule de profil, récupération d'un fichier) demandent un
+    /// rescan à des moments qu'elles ne choisissent pas — et la lecture qui
+    /// tourne à ce moment-là voit un état d'avant l'écriture. Le rapport
+    /// resterait périmé jusqu'à la prochaine visite de l'onglet.
+    ///
+    /// On garde **l'état demandé**, pas un simple drapeau : rejouer avec les
+    /// arguments du scan en cours relirait bien le disque, mais sur la liste
+    /// de candidats d'avant — et poserait `lastScannedSignature` pour un parc
+    /// jamais lu. `scanIfNeeded` se croirait alors à jour sur un état qu'il
+    /// n'a pas vu. C'est le cas d'une bascule de profil, qui bouge le parc
+    /// *puis* réécrit des `config.json`.
+    private var pendingRescan: (mods: [ModItem], gameDir: String)?
+
     // `nonisolated`, comme `BisectionRunner.init(vm:)` : la propriété qui
     // porte ce service sur `StarHubTHViewModel` (`keybindScanService`) est
     // instanciée depuis une classe qui n'est elle-même pas `@MainActor`.
@@ -43,7 +61,13 @@ final class KeybindScanService: ObservableObject {
     }
 
     func scan(mods: [ModItem], gameDir: String) {
-        guard !isScanning else { return }
+        guard !isScanning else {
+            // Ne pas perdre la demande : la relecture en cours a pu commencer
+            // avant l'écriture qui motive celle-ci. La dernière demande gagne
+            // — c'est celle qui décrit l'état le plus récent.
+            pendingRescan = (mods, gameDir)
+            return
+        }
         // Sans dossier de jeu, tous les chemins seraient construits sur « » :
         // le scan ne lirait rien et rendrait un rapport à zéro conflit — un
         // vert mensonger. On ne scanne pas, la vue le dit.
@@ -83,6 +107,10 @@ final class KeybindScanService: ObservableObject {
             }.value
             self.report = KeybindScanner.report(mods: inputs)
             self.isScanning = false
+            if let pending = self.pendingRescan {
+                self.pendingRescan = nil
+                self.scan(mods: pending.mods, gameDir: pending.gameDir)
+            }
         }
     }
 

@@ -1901,18 +1901,43 @@ class StarHubTHViewModel: ObservableObject {
             // `folderName`/`isEnabled` : `scanIfNeeded` ne verrait rien, et
             // le rapport comme la pastille resteraient sur l'état d'avant —
             // le conflit que l'utilisateur vient de corriger encore affiché.
-            // On force donc par `scan` (l'entrée sans condition de signature,
-            // celle du bouton « Relancer l'analyse »). Transition vers nil
-            // seulement : ouvrir l'éditeur n'a rien à rescanner, et un rescan
-            // de trop après une annulation est sans coût (gardes
-            // `isScanning`/`gameDir` dans `scan`, lecture détachée hors du
-            // fil principal). `Task { @MainActor … }` comme le `didSet` de
-            // `mods` : cette classe n'est pas `@MainActor`, le service l'est.
+            // Transition vers nil seulement : ouvrir l'éditeur n'a rien à
+            // rescanner, et un rescan de trop après une annulation est sans
+            // coût. La règle vit dans `rescanKeybindsAfterConfigWrite()` —
+            // ce `didSet` n'est plus qu'un de ses appelants (X66).
             guard oldValue != nil, editingModConfig == nil else { return }
-            Task { @MainActor [weak self] in
-                guard let self else { return }
-                self.keybindScanService.scan(mods: self.mods, gameDir: self.gameDir)
-            }
+            rescanKeybindsAfterConfigWrite()
+        }
+    }
+
+    /// **Toute écriture dans un `config.json` périme le rapport de
+    /// raccourcis** — la règle, en un seul exemplaire (X66).
+    ///
+    /// Le rapport se lit exclusivement dans ces fichiers, et la signature de
+    /// `scanIfNeeded` ne couvre que `folderName`/`isEnabled` : une écriture
+    /// qui ne touche pas au parc est invisible pour elle. Le rapport et la
+    /// pastille resteraient sur l'état d'avant — le conflit que l'utilisateur
+    /// vient de corriger encore affiché, ou celui que la restauration vient
+    /// d'introduire toujours absent.
+    ///
+    /// La fermeture de l'éditeur de configuration l'avait déjà ; les trois
+    /// autres chemins qui écrivent un `config.json` l'ignoraient : la
+    /// restauration d'une sauvegarde de configurations, la bascule de profil
+    /// (`restoreProfileConfigs`) et la récupération d'un fichier perdu
+    /// (`recoverFile`, partagé avec la reprise d'une sauvegarde protégée).
+    ///
+    /// `scan` et non `scanIfNeeded` : c'est l'entrée sans condition de
+    /// signature, celle du bouton « Relancer l'analyse ». Ses propres gardes
+    /// (`gameDir` vide, lecture détachée hors du fil principal) rendent
+    /// l'appel sûr même quand rien n'a changé, et une demande arrivant
+    /// pendant un scan est désormais rejouée à sa fin plutôt que perdue.
+    ///
+    /// `Task { @MainActor … }` comme le `didSet` de `mods` : cette classe
+    /// n'est pas `@MainActor`, le service l'est.
+    func rescanKeybindsAfterConfigWrite() {
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            self.keybindScanService.scan(mods: self.mods, gameDir: self.gameDir)
         }
     }
 
@@ -8426,6 +8451,13 @@ for mod in mods {
                                           modRoot: file.installedRoot)
             log(String(format: L(L10n.Recovery.recovered), file.relativePath, file.modName))
             recoverableFiles.removeAll { $0.id == file.id }
+            // Le fichier rendu peut être un `config.json` — le cas le plus
+            // courant du parc — comme un `i18n/fr.json`, qui ne concerne pas
+            // les raccourcis. On rescanne sans distinguer : un scan de trop
+            // est sans coût (lecture détachée hors du fil principal), et
+            // trancher sur le nom du fichier serait une règle de plus à tenir
+            // en accord avec celle du scanner (X66).
+            rescanKeybindsAfterConfigWrite()
             return true
         } catch {
             showModal(message: installErrorMessage(error))
@@ -9093,6 +9125,11 @@ for mod in mods {
             }
         }
         guard verbatim + merged > 0 else { return }
+        // Des `config.json` viennent d'être réécrits : le rapport de
+        // raccourcis les lit, il est périmé (X66). Deux profils peuvent
+        // n'avoir *que* leurs configurations de différent — le parc ne bouge
+        // alors pas, et la signature de `scanIfNeeded` ne verrait rien.
+        rescanKeybindsAfterConfigWrite()
         let name = modProfiles.first(where: { $0.id == profileId })?.name ?? ""
         // Deux comptes plutôt qu'un : « restaurés » masquerait qu'une partie
         // l'a été sans merge, faute d'un texte lisible — la seule information

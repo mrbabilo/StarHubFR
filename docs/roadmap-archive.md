@@ -756,6 +756,44 @@ répond. L'ordre et les titres de section sont ceux de la roadmap.
       ▸ Lecture du dump **quel que soit son âge** : un avertissement d'il y a
       trois jours reste vrai, et le lier au TTL de 6 h ferait disparaître ces
       lignes 18 heures par jour. **18 tests neufs** (2 215 → 2 233). · **S**
+- [x] **X66** ✅ *(corrigé le 2026-09-05)* — **Le rapport de raccourcis restait
+      sur l'état d'avant une écriture de `config.json`.** Il se lit
+      exclusivement dans ces fichiers, et la signature de
+      `KeybindScanService.scanIfNeeded` ne couvre que `folderName`/`isEnabled` :
+      une écriture qui ne touche pas au parc lui est invisible.
+      ▸ **Quatre chemins écrivent un `config.json`, un seul rescannait.** La
+      fermeture de l'éditeur de configuration le faisait — et son commentaire
+      expliquait précisément pourquoi. Les trois autres l'ignoraient : la
+      restauration d'une sauvegarde de configurations
+      (`ModConfigBackupsView.performRestore`), la bascule de profil
+      (`restoreProfileConfigs`, qui réécrit chaque mod marqué) et la
+      récupération d'un fichier perdu (`recoverFile`, partagé avec la reprise
+      d'une sauvegarde protégée). Le cas le plus net : l'utilisateur corrige un
+      conflit, restaure une sauvegarde, et l'écran lui montre encore les
+      conflits d'avant.
+      ▸ Le cas du profil n'est pas couvert par le rescan que déclenche déjà un
+      changement de parc : **deux profils peuvent n'avoir que leurs
+      configurations de différent**, aucun dossier ne bouge alors.
+      ▸ **La règle en un seul exemplaire** :
+      `StarHubTHViewModel.rescanKeybindsAfterConfigWrite()`, dont le `didSet` de
+      l'éditeur n'est plus qu'un appelant parmi quatre. Même forme que X61, X65.
+      ▸ **Défaut trouvé en relecture du correctif** : `scan` refusait
+      silencieusement une demande arrivée pendant un scan (`guard !isScanning`),
+      ce qui reperdait le rescan à chaque fois qu'une écriture tombait pendant
+      une lecture. Le rejeu garde **l'état demandé** (`pendingRescan`) et non un
+      drapeau : rejouer avec les arguments du scan en cours relirait le disque
+      mais sur la liste de candidats d'avant, et poserait
+      `lastScannedSignature` pour un parc jamais lu — `scanIfNeeded` se croirait
+      alors à jour. C'est exactement le cas de la bascule de profil, qui bouge le
+      parc *puis* réécrit des configs.
+      ▸ ⚠️ **Sans test**, comme X65 : `KeybindScanService` est `@MainActor` et
+      hors du périmètre de `Package.swift`. **Vérification manuelle en une
+      minute** : restaurer une sauvegarde de configurations, puis regarder la
+      pastille de raccourcis de la barre latérale sans passer par l'onglet.
+      ▸ 📌 **Cliquet** : `abbreviation_vm` +1 ici. Sur la journée, la base a été
+      relevée quatre fois (X63 +2/+1, X65 +1, X66 +1) — chaque ligne reprenait
+      l'idiome de sa voisine, mais le cliquet ne fait que se desserrer. À
+      resserrer lors d'une passe dédiée plutôt qu'au fil des correctifs. · **S**
 - [x] **X65** ✅ *(corrigé le 2026-09-05)* — **Le filet de sécurité du splash
       révélait la fenêtre sans délivrer les liens `nxm://` en attente.** Un clic
       « Mod Manager Download » sur Nexus lance l'app à froid ; le lien est mis en
