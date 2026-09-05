@@ -1328,6 +1328,7 @@ enum L10n {
         static let invalidZipStructure  = "mod_install_invalid_structure"
         static let archiveContains      = "mod_install_archive_contains"
         static let notAModHint          = "mod_install_not_a_mod_hint"
+        static let folderTaken          = "mod_install_folder_taken"
         static let droppedTitle         = "mod_install_dropped_title"
         static let droppedQuestion      = "mod_install_dropped_question"
         static let droppedHostPaused    = "mod_install_dropped_host_paused"

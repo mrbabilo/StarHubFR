@@ -919,8 +919,15 @@ struct ModInstallView: View {
                 let renamedIds = Set(selections
                     .filter { $0.conflictResolution == .rename }
                     .map(\.modId))
+                // X63 — une installation **déplacée** est un renommage par
+                // d'autres moyens, et la même abstention s'impose. Le
+                // déclencheur n'est pas toujours un identifiant étranger :
+                // une racine de pack ne porte pas de manifeste, et le mod qui
+                // s'en écarte peut très bien partager son `UniqueID` avec un
+                // composant vivant sous cette racine. Deux dossiers pour un
+                // identifiant, exactement ce que l'abstention évite.
                 let installedFolderPaths = written
-                    .filter { !renamedIds.contains($0.modId) }
+                    .filter { !renamedIds.contains($0.modId) && $0.displacedFrom == nil }
                     .map(\.path)
 
                 DispatchQueue.main.async {
@@ -939,6 +946,17 @@ struct ModInstallView: View {
                     }
                     self.vm.refresh()
                     self.vm.log(self.vm.L(L10n.ModInstall.installSuccess), level: .info)
+
+                    // X63 — un mod dont le nom de dossier était déjà pris par
+                    // un autre mod a été posé ailleurs. Sans cette ligne, la
+                    // liste montre deux mods de même nom logique et rien ne
+                    // dit pourquoi l'un vit dans un dossier horodaté.
+                    for written in written where written.displacedFrom != nil {
+                        self.vm.log(String(format: self.vm.L(L10n.ModInstall.folderTaken),
+                                           written.displacedFrom ?? "",
+                                           (written.path as NSString).lastPathComponent),
+                                    level: .warning)
+                    }
 
                     // The install registry is updated by scanMods() during the
                     // refresh() above (syncInstalledModRegistry detects the new

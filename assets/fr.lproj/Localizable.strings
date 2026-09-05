@@ -811,6 +811,7 @@
 "mod_install_invalid_structure" = "Cette archive ne contient pas une structure de mod valide (manifest.json manquant).";
 "mod_install_archive_contains" = "L'archive contient : %@";
 "mod_install_not_a_mod_hint" = "L'archive est intacte — ce n'est simplement pas un mod. Certains téléchargements sont des fichiers de contenu à déposer dans le dossier d'un autre mod (un sac ItemBags, par exemple). La page du mod indique où placer le fichier.";
+"mod_install_folder_taken" = "« %1$@ » était déjà le dossier d'un autre mod — installé sous « %2$@ ».";
 "mod_install_dropped_title" = "Pas un mod — du contenu pour un autre mod";
 "mod_install_dropped_question" = "Ce fichier est du contenu pour %1$@, pas un mod à lui seul.\n\nL'installer dans :\n%2$@";
 "mod_install_dropped_host_paused" = "%@ est en pause — le fichier prendra effet à sa réactivation.";

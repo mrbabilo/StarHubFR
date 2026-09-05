@@ -10,6 +10,12 @@ by ZeroXPatch (the idea of a player-facing SMAPI log doctor), to SMAPI's own
 [log parser](https://smapi.io/log/), and to the [SMAPI sources](https://github.com/pathoschild/SMAPI)
 where the exact log format was verified.
 
+## [Unreleased]
+
+### Fixed
+
+- **Installer un mod dont le nom de dossier est déjà pris n'efface plus l'occupant.** Un mod neuf portant le nom de dossier d'un mod en pause (vos deux `[CP] Seaside Sounds`) l'écrasait sans sauvegarde ni message. Il se pose maintenant sous un nom horodaté, et le journal le dit.
+
 ## [1.36.0] - 2026-09-05
 
 ### Added

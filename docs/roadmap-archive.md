@@ -756,6 +756,37 @@ répond. L'ordre et les titres de section sont ceux de la roadmap.
       ▸ Lecture du dump **quel que soit son âge** : un avertissement d'il y a
       trois jours reste vrai, et le lier au TTL de 6 h ferait disparaître ces
       lignes 18 heures par jour. **18 tests neufs** (2 215 → 2 233). · **S**
+- [x] **X63** ✅ *(corrigé le 2026-09-05)* — **Installer un mod neuf effaçait
+      le mod qui portait déjà son nom de dossier.** `install` ne reconnaît un mod
+      installé qu'à son `UniqueID` (`findExistingMod`). Sans correspondance, il
+      posait la copie à `Mods/.<nom de l'archive>` — et si ce chemin était pris,
+      l'occupant partait au rollback dans le dossier temporaire puis était
+      **supprimé** dès la copie réussie. Aucune sauvegarde : elle ne vit que dans
+      la branche `.overwriteWithBackup`, conditionnée au même `UniqueID`. Aucun
+      message non plus.
+      ▸ **Le cas est réel** : les deux `[CP] Seaside Sounds` du parc (X60)
+      montrent qu'un même nom logique porté par deux `UniqueID` distincts arrive ;
+      il suffit que l'un soit en pause — donc à `Mods/.X`, exactement là où
+      atterrit un mod neuf — pour que l'installation du second le détruise.
+      Prouvé par test avant correction, pas déduit.
+      ▸ **La règle** : à destination occupée, on lit le `manifest.json` du
+      dossier. Même `UniqueID` (comparaison insensible à la casse) → c'est notre
+      propre mod, l'écraser est le geste demandé. Autre identifiant, ou **aucun
+      identifiant lisible** → on se décale sur un nom horodaté. La polarité
+      compte : une **racine de pack** ne porte pas de manifeste (ce sont ses
+      composants qui en portent), et lire l'absence de propriétaire comme une
+      permission d'effacer aurait détruit les packs — pire que le défaut corrigé.
+      ▸ C'est le **nouveau** qui bouge, jamais l'installé : `ModItem.id` est le
+      nom de dossier, et déplacer l'installé casserait toutes les clés
+      persistées. Le décalage ne porte que sur la dernière composante, un
+      composant de pack reste donc dans son pack.
+      ▸ **Tombé au passage** : deux composants d'une même archive partageant un
+      nom de feuille (deux parents différents, donc pas de `commonParent`)
+      s'écrasaient l'un l'autre — le second arrive quand le premier est déjà
+      écrit, la même règle les sépare. **5 tests neufs** (2 263 → 2 267), dont le
+      cas voisin qui ne doit *pas* bouger : réinstaller le même mod écrase bien
+      son propre dossier. Le déplacement remonte à l'utilisateur par
+      `InstalledModPath.displacedFrom` et une ligne de journal. · **S**
 - [x] **X60** ✅ *(livré le 2026-09-05)* — **Deux mods se disputaient un nom de
       dossier ; on les sépare pour de bon.** `X` actif et `.X` en pause sont deux
       mods distincts — cas réel du parc : les deux `[CP] Seaside Sounds`, de

@@ -319,6 +319,20 @@ struct InstalledModPath: Equatable {
     /// `InstallSelection`.
     let modId: UUID
     let path: String
+    /// Le nom de dossier que ce mod **voulait**, quand il a fallu s'en écarter
+    /// parce qu'un autre mod l'occupait déjà (X63). `nil` dans le cas
+    /// ordinaire : le mod a eu le nom qu'il demandait.
+    ///
+    /// L'écart doit remonter jusqu'à l'utilisateur. Sans lui, deux mods
+    /// portant le même nom logique apparaissent dans la liste sans que rien
+    /// n'explique pourquoi l'un vit dans un dossier horodaté.
+    let displacedFrom: String?
+
+    init(modId: UUID, path: String, displacedFrom: String? = nil) {
+        self.modId = modId
+        self.path = path
+        self.displacedFrom = displacedFrom
+    }
 }
 
 struct InstallSelection {

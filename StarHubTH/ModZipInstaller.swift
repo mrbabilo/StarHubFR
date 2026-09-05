@@ -1158,7 +1158,26 @@ class ModZipInstaller {
 
             try fm.createDirectory(atPath: destBasePath, withIntermediateDirectories: true, attributes: nil)
 
-            let destPath = (destBasePath as NSString).appendingPathComponent(destFolderPrefix + finalDestFolderName)
+            // X63 — le dossier de destination peut appartenir à **un autre
+            // mod**. `findExistingMod` ne reconnaît que l'`UniqueID` : un mod
+            // neuf dont le nom de dossier est déjà pris atterrissait quand même
+            // à `Mods/.<nom>`, l'occupant partait au rollback et disparaissait
+            // à la première copie réussie — sans sauvegarde (elle ne vit que
+            // dans la branche `.overwriteWithBackup`) et sans un mot. Deux
+            // `[CP] Seaside Sounds` d'auteurs différents se disputent déjà un
+            // nom sur le parc (X60) : le cas est réel, et il suffit que
+            // l'occupant soit en pause pour qu'il vive exactement là où le
+            // nouveau se pose.
+            let intendedPath = (destBasePath as NSString)
+                .appendingPathComponent(destFolderPrefix + finalDestFolderName)
+            let destPath = nonCollidingDestination(
+                basePath: destBasePath,
+                prefix: destFolderPrefix,
+                folderName: finalDestFolderName,
+                uniqueId: detectedMod.uniqueId,
+                stamp: timestampStamp
+            )
+            let displacedFrom = destPath == intendedPath ? nil : finalDestFolderName
 
             // Replace destination folder with the new mod copy. For a
             // pack/group child, `finalDestFolderName` is a nested path
@@ -1211,7 +1230,8 @@ class ModZipInstaller {
             try restoreUserConfigs(&preservedConfigs, into: destPath)
 
             // Le mod est entièrement posé : son chemin peut être annoncé.
-            installedPaths.append(InstalledModPath(modId: selection.modId, path: destPath))
+            installedPaths.append(InstalledModPath(modId: selection.modId, path: destPath,
+                                                   displacedFrom: displacedFrom))
         }
 
         // La rétention par âge, **une fois** pour toute l'installation : elle
@@ -1290,6 +1310,75 @@ class ModZipInstaller {
     }
 
     /// Short timestamp suffix used for renamed duplicate mod folders.
+    /// L'`UniqueID` du mod qui occupe `path`, ou `nil` si le dossier n'en
+    /// déclare pas un lisible.
+    ///
+    /// `nil` ne veut **pas** dire « libre » : une racine de pack ne porte pas
+    /// de `manifest.json` (ce sont ses composants qui en portent), et un
+    /// manifeste hors UTF-8 est illisible sans être vide. L'appelant traite
+    /// donc l'absence de propriétaire comme une occupation, jamais comme une
+    /// permission d'effacer.
+    private func installedUniqueId(at path: String) -> String? {
+        let manifestPath = (path as NSString).appendingPathComponent("manifest.json")
+        guard let data = fm.contents(atPath: manifestPath),
+              let raw = String(data: data, encoding: .utf8),
+              let json = ManifestJSON.decode(raw),
+              let uniqueId = json.caseInsensitiveValue(forKey: "UniqueID") as? String else {
+            return nil
+        }
+        let trimmed = uniqueId.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    /// Le chemin où poser `folderName`, en s'écartant si un **autre** mod
+    /// occupe déjà celui-là.
+    ///
+    /// Trois issues :
+    /// - destination libre → on la prend ;
+    /// - destination occupée par un dossier déclarant le **même** `UniqueID`
+    ///   → on la prend aussi : c'est notre propre mod, l'écraser est le geste
+    ///   demandé (mise à jour, réinstallation) ;
+    /// - destination occupée par autre chose — un mod étranger, une racine de
+    ///   pack, un manifeste illisible → on se décale sur un nom horodaté.
+    ///   C'est le nouveau qui bouge : il n'a aucun titre sur un dossier qui ne
+    ///   lui appartient pas, et le déplacer laisse l'installé intact là où
+    ///   tous les magasins persistés le cherchent (`ModItem.id` est le nom de
+    ///   dossier).
+    ///
+    /// Le nom horodaté ne décale que la **dernière** composante : un composant
+    /// de pack (`Pack/Composant`) reste dans son pack.
+    private func nonCollidingDestination(basePath: String, prefix: String, folderName: String,
+                                         uniqueId: String, stamp: String) -> String {
+        let candidate = (basePath as NSString).appendingPathComponent(prefix + folderName)
+        guard fm.fileExists(atPath: candidate) else { return candidate }
+        if let owner = installedUniqueId(at: candidate),
+           owner.compare(uniqueId, options: .caseInsensitive) == .orderedSame {
+            return candidate
+        }
+
+        let parentRelative = (folderName as NSString).deletingLastPathComponent
+        let leaf = (folderName as NSString).lastPathComponent
+        // Un même horodatage sert toute l'installation : deux composants d'une
+        // même archive qui se disputent un nom se décaleraient sinon vers le
+        // même chemin. Le compteur les sépare.
+        for index in 0...99 {
+            let suffix = index == 0 ? "_\(stamp)" : "_\(stamp)_\(index)"
+            let stampedLeaf = leaf + suffix
+            let relative = parentRelative.isEmpty
+                ? stampedLeaf
+                : (parentRelative as NSString).appendingPathComponent(stampedLeaf)
+            let path = (basePath as NSString).appendingPathComponent(prefix + relative)
+            if !fm.fileExists(atPath: path) { return path }
+        }
+        // Cent noms horodatés pris d'affilée n'arrive pas ; s'il fallait tout de
+        // même trancher, un identifiant unique vaut mieux qu'un écrasement.
+        let fallbackLeaf = "\(leaf)_\(stamp)_\(UUID().uuidString)"
+        let relative = parentRelative.isEmpty
+            ? fallbackLeaf
+            : (parentRelative as NSString).appendingPathComponent(fallbackLeaf)
+        return (basePath as NSString).appendingPathComponent(prefix + relative)
+    }
+
     private static func stampedFolderSuffix() -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyyMMdd_HHmmss"
