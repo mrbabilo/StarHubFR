@@ -774,6 +774,32 @@ répond. L'ordre et les titres de section sont ceux de la roadmap.
       et la révélation Finder restent. La frontière est la barre oblique du
       nom disputé, pas une garde dérivée du refus de saisie. **1 test
       neuf** (2 297 → 2 298). · **S**
+- [x] **X43** ✅ *(corrigé le 2026-09-06)* — **Le dialogue de conflit de
+      configuration est mort dans sa totalité.**
+      `ConflictType.configFilesConflict` et `.dependencyMissing` n'avaient
+      **aucun site de construction** ; `ConfigResolution` (`keepExisting`,
+      `useNew`, `merge`) n'était jamais posé — `InstallSelection
+      .configResolution` valait `nil` à tous les sites de l'UI, qui se
+      contentait de le recopier, et `ModZipInstaller` ne le lisait nulle
+      part ; `ConflictResolution.keepExisting`/`.useNew` étaient traités
+      dans un `switch` mais jamais construits.
+      ▸ **Résidu d'une bascule de conception** : demander à l'utilisateur
+      ce qu'il veut faire de son `config.json` a été remplacé par la
+      préservation automatique (`snapshotUserConfigs` dans
+      `ModZipInstaller`), qui est le bon comportement et fonctionne. Le
+      retrait, fait d'un bloc comme l'exigeait le constat, emporte les
+      deux cas morts de `ConflictType`, les deux cas morts de
+      `ConflictResolution` (le `else` voisin du switch faisait déjà la
+      même chose), l'`enum ConfigResolution` entier et le champ
+      `InstallSelection.configResolution` : 4 sites d'`InstallPreview`,
+      17 sites de tests.
+      ▸ **Rien ne change à l'écran** — le dialogue n'a jamais été affiché ;
+      pas d'entrée CHANGELOG. Ce qui reste vivant : `folderExists` et
+      `overwriteWithBackup`/`.rename`/`.skip` (le dialogue de collision
+      réel), l'affichage des dépendances manquantes d'`InstallPreview`
+      (vit ailleurs), et le `keepExisting` de `SmapiUpdateRequest` — un
+      autre type, vivant lui.
+      **2 304 tests inchangés et verts** (retrait de code mort). · **S**
 - [x] **X28** ✅ *(corrigé le 2026-09-06)* — **Un `__MACOSX` niché dans un
       mod perd ses fichiers mais garde son dossier.** Le balayage profond ne
       déplaçait que des fichiers (`if isDir { continue }`) et la passe de

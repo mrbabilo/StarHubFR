@@ -45,7 +45,7 @@ import Testing
                           version: "1.0.0", extraContent: "le nouveau de witchtopia")
         let mod = detected(folderName: "[CP] Seaside Sounds", uniqueId: "witchtopia.seasidesounds")
         let selection = InstallSelection(modId: mod.id, selected: true,
-                                         conflictResolution: nil, configResolution: nil)
+                                         conflictResolution: nil)
 
         let installer = ModZipInstaller(backupManager: env.backupManager)
         let written = try installer.install(from: env.tempExtractDir, to: env.modsDisabledDir.path,
@@ -92,7 +92,7 @@ import Testing
                                  hasConfigFiles: false, dependencies: [], dependencyDetails: [],
                                  existingVersion: nil)
         let selections = [first, second].map {
-            InstallSelection(modId: $0.id, selected: true, conflictResolution: nil, configResolution: nil)
+            InstallSelection(modId: $0.id, selected: true, conflictResolution: nil)
         }
 
         let installer = ModZipInstaller(backupManager: env.backupManager)
@@ -131,7 +131,7 @@ import Testing
                           version: "1.1.0", extraContent: "nouvelle version")
         let mod = detected(folderName: "[CP] Portraits", uniqueId: "author.portraits", version: "1.1.0")
         let selection = InstallSelection(modId: mod.id, selected: true,
-                                         conflictResolution: nil, configResolution: nil)
+                                         conflictResolution: nil)
 
         let installer = ModZipInstaller(backupManager: env.backupManager)
         let written = try installer.install(from: env.tempExtractDir, to: env.modsDisabledDir.path,
@@ -167,7 +167,7 @@ import Testing
                           extraContent: "l'archive")
         let mod = detected(folderName: "Lilybrook", uniqueId: "someone.lilybrook")
         let selection = InstallSelection(modId: mod.id, selected: true,
-                                         conflictResolution: nil, configResolution: nil)
+                                         conflictResolution: nil)
 
         let installer = ModZipInstaller(backupManager: env.backupManager)
         let written = try installer.install(from: env.tempExtractDir, to: env.modsDisabledDir.path,

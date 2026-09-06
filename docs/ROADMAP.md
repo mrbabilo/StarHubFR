@@ -98,19 +98,6 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       la question du jeu de couleurs (mesuré : elle est posée quand même), mais ils
       retireraient le chemin et l'action de la file d'attente. À faire avec une vraie
       installation de contrôle, impossible depuis un agent. · **M**
-- [ ] **X43** — **Le dialogue de conflit de configuration est mort dans sa
-      totalité.** `ConflictType.configFilesConflict` et `.dependencyMissing` n'ont
-      **aucun site de construction** ; `ConfigResolution` (`keepExisting`, `useNew`,
-      `merge`) n'est jamais posé — `InstallSelection.configResolution` vaut `nil` à
-      tous les sites de l'UI, qui se contente de le recopier, et `ModZipInstaller` ne
-      le lit nulle part ; `ConflictResolution.keepExisting`/`.useNew` ne sont
-      construits nulle part non plus (juste traités dans un `switch` exhaustif,
-      L. 1113). C'est le **résidu d'une bascule de conception** : demander à
-      l'utilisateur ce qu'il veut faire de son `config.json` a été remplacé par la
-      préservation automatique (`snapshotUserConfigs`, L. 1108), qui est le bon
-      comportement et fonctionne. Rien n'est cassé ; le retrait touche une signature
-      de Core (`InstallSelection`), quatre sites de `InstallPreview` et douze lignes
-      de tests — à faire d'un bloc, ou pas du tout. · **S**
 - [ ] **X45** — **Le dépliage des packs a encore dix copies manuelles.**
       `flattenedMods` affirme dans son propre en-tête avoir remplacé les 22
       réécritures de 2026-08-01 ; il en reste **dix** : trois portent sur un tableau
@@ -1319,8 +1306,7 @@ corrompre ou faire disparaître quelque chose sans le dire ?* — et non à
 **P3 — latent : la condition est vraie, zéro exemplaire sur le parc**
 
 `X29` (détection de doublons sans appelant),
-`X32` (drapeaux de l'installateur SMAPI), `X43` (dialogue de conflit mort —
-code mort, rien de cassé), `X45` (dix dépliages manuels, aucun divergent),
+`X32` (drapeaux de l'installateur SMAPI), `X45` (dix dépliages manuels, aucun divergent),
 `F4` (`uniqueId: ""` sur les groupes — chaîne d'exploitation coupée),
 `F6-T1` (course à l'annulation, sans observable), `F6-T3` (deux parseurs du
 même journal). Vérifiés un par un : tous encore exacts, aucun ne se manifeste.
@@ -1614,6 +1600,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **X63** | 2026-09-05 | Installer un mod neuf effaçait le mod en pause qui portait le même nom de dossier — ni sauvegarde ni message |
 | **X58** | 2026-09-05 | Le champ `warnings` du dump était ignoré en bloc ; il est désormais tamisé par plateforme et rendu en ligne « à savoir » |
 | **X28** | 2026-09-06 | Un dossier de résidu OS niché dans un mod était vidé fichier par fichier mais sa coquille restait pour toujours — il part désormais en bloc, comme au premier niveau |
+| **X43** | 2026-09-06 | Le dialogue de conflit de `config.json` n'a jamais existé à l'écran — ses enums et son champ de sélection, vestiges d'une bascule de conception, sont retirés ; la préservation automatique reste le comportement livré |
 | **B1-T1** | 2026-08-01 | Boutons Activer/Désactiver et Supprimer sur la fiche mod (parité avec la liste, mêmes confirmations). Absents pour un… |
 | **B1-T2** | 2026-08-01 | Tri, filtres, catégorie, page et recherche portés par ModListFilters dans le ViewModel. La remise à la page 1 est por… |
 

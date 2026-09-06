@@ -1135,8 +1135,6 @@ class ModZipInstaller {
                     }
                 case .rename:
                     finalDestFolderName = "\(detectedMod.folderName)_\(timestampStamp)"
-                case .keepExisting, .useNew:
-                    finalDestFolderName = detectedMod.folderName
                 }
             } else {
                 finalDestFolderName = detectedMod.folderName

@@ -51,8 +51,7 @@ struct InstalledPathsTests {
         let mod = detected(folderName: "[CP] Example", relativePath: "Parchment/[CP] Example",
                            uniqueId: "peacefulend.example", version: "1.3.0", existing: existing)
         let selection = InstallSelection(modId: mod.id, selected: true,
-                                         conflictResolution: .overwriteWithBackup,
-                                         configResolution: nil)
+                                         conflictResolution: .overwriteWithBackup)
 
         let installer = ModZipInstaller(backupManager: env.backupManager)
         let written = try installer.install(from: env.tempExtractDir, to: env.modsDisabledDir.path,
@@ -80,8 +79,7 @@ struct InstalledPathsTests {
         let mod = detected(folderName: "Automate", relativePath: "Automate",
                            uniqueId: "pathoschild.automate", version: "2.0.0", existing: existing)
         let selection = InstallSelection(modId: mod.id, selected: true,
-                                         conflictResolution: .overwriteWithBackup,
-                                         configResolution: nil)
+                                         conflictResolution: .overwriteWithBackup)
 
         let installer = ModZipInstaller(backupManager: env.backupManager)
         let written = try installer.install(from: env.tempExtractDir, to: env.modsDisabledDir.path,
@@ -100,7 +98,7 @@ struct InstalledPathsTests {
         let mod = detected(folderName: "NewMod", relativePath: "NewMod",
                            uniqueId: "new.mod", version: "1.0.0", existing: nil)
         let selection = InstallSelection(modId: mod.id, selected: true,
-                                         conflictResolution: nil, configResolution: nil)
+                                         conflictResolution: nil)
 
         let installer = ModZipInstaller(backupManager: env.backupManager)
         let written = try installer.install(from: env.tempExtractDir, to: env.modsDisabledDir.path,
@@ -129,7 +127,7 @@ struct InstalledPathsTests {
         let mod = detected(folderName: "Automate", relativePath: "Automate",
                            uniqueId: "pathoschild.automate", version: "2.0.0", existing: existing)
         let selection = InstallSelection(modId: mod.id, selected: true,
-                                         conflictResolution: .rename, configResolution: nil)
+                                         conflictResolution: .rename)
 
         let installer = ModZipInstaller(backupManager: env.backupManager)
         let written = try installer.install(from: env.tempExtractDir, to: env.modsDisabledDir.path,
@@ -158,7 +156,7 @@ struct InstalledPathsTests {
         let mod = detected(folderName: "Automate", relativePath: "Automate",
                            uniqueId: "pathoschild.automate", version: "2.0.0", existing: existing)
         let selection = InstallSelection(modId: mod.id, selected: true,
-                                         conflictResolution: .skip, configResolution: nil)
+                                         conflictResolution: .skip)
 
         let installer = ModZipInstaller(backupManager: env.backupManager)
         let written = try installer.install(from: env.tempExtractDir, to: env.modsDisabledDir.path,
@@ -177,7 +175,7 @@ struct InstalledPathsTests {
         let mod = detected(folderName: "NewMod", relativePath: "NewMod",
                            uniqueId: "new.mod", version: "1.0.0", existing: nil)
         let selection = InstallSelection(modId: mod.id, selected: false,
-                                         conflictResolution: nil, configResolution: nil)
+                                         conflictResolution: nil)
 
         let installer = ModZipInstaller(backupManager: env.backupManager)
         let written = try installer.install(from: env.tempExtractDir, to: env.modsDisabledDir.path,

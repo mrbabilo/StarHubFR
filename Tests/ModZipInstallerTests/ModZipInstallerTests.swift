@@ -157,8 +157,7 @@ struct InstallerTestEnv {
         let selection = InstallSelection(
             modId: detected.id,
             selected: true,
-            conflictResolution: .overwriteWithBackup,
-            configResolution: nil
+            conflictResolution: .overwriteWithBackup
         )
 
         let installer = ModZipInstaller(backupManager: env.backupManager)
@@ -243,8 +242,7 @@ struct InstallerTestEnv {
         let selection = InstallSelection(
             modId: detected.id,
             selected: true,
-            conflictResolution: .overwriteWithBackup,
-            configResolution: nil
+            conflictResolution: .overwriteWithBackup
         )
 
         let installer = ModZipInstaller(backupManager: env.backupManager)
@@ -319,8 +317,7 @@ struct InstallerTestEnv {
         let selection = InstallSelection(
             modId: detected.id,
             selected: true,
-            conflictResolution: .overwriteWithBackup,
-            configResolution: nil
+            conflictResolution: .overwriteWithBackup
         )
 
         let installer = ModZipInstaller(backupManager: env.backupManager)
@@ -381,8 +378,7 @@ struct InstallerTestEnv {
             hasConfigFiles: false, dependencies: [], dependencyDetails: [],
             existingVersion: existing)
         let selection = InstallSelection(modId: detected.id, selected: true,
-                                         conflictResolution: .overwriteWithBackup,
-                                         configResolution: nil)
+                                         conflictResolution: .overwriteWithBackup)
 
         let installer = ModZipInstaller(backupManager: env.backupManager)
         try installer.install(
@@ -423,8 +419,7 @@ struct InstallerTestEnv {
         let selection = InstallSelection(
             modId: detected.id,
             selected: true,
-            conflictResolution: nil,
-            configResolution: nil
+            conflictResolution: nil
         )
 
         let installer = ModZipInstaller(backupManager: env.backupManager)

@@ -203,17 +203,16 @@ extension ValidationStatus {
 /// Type of conflict detected during installation
 enum ConflictType: Equatable {
     case folderExists
-    case configFilesConflict
-    case dependencyMissing
 }
 
-/// Available resolutions for conflicts
+/// Available resolutions for conflicts. `keepExisting`/`useNew` — les
+/// vestiges d'un dialogue de conflit de `config.json` jamais branché —
+/// ont été retirés (X43) : la préservation automatique
+/// (`snapshotUserConfigs` dans `ModZipInstaller`) est le comportement livré.
 enum ConflictResolution: Hashable {
     case overwriteWithBackup
     case rename
     case skip
-    case keepExisting
-    case useNew
 }
 
 /// Conflict detected during mod installation
@@ -335,16 +334,12 @@ struct InstalledModPath: Equatable {
     }
 }
 
+/// One mod's selection in an install batch. `configResolution` (que faire
+/// d'un `config.json` existant) a été retiré avec le dialogue mort qui
+/// devait le poser (X43) : la préservation automatique
+/// (`snapshotUserConfigs` dans `ModZipInstaller`) est le comportement livré.
 struct InstallSelection {
     let modId: UUID
     let selected: Bool
     let conflictResolution: ConflictResolution?
-    let configResolution: ConfigResolution?
-}
-
-/// Resolution for config file conflicts
-enum ConfigResolution: Hashable {
-    case keepExisting
-    case useNew
-    case merge
 }

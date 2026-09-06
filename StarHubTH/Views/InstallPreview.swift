@@ -352,8 +352,7 @@ struct InstallPreview: View {
             selections[mod.id] = InstallSelection(
                 modId: mod.id,
                 selected: true,
-                conflictResolution: defaultResolution,
-                configResolution: nil
+                conflictResolution: defaultResolution
             )
         }
     }
@@ -376,8 +375,7 @@ struct InstallPreview: View {
                 selections[mod.id] = InstallSelection(
                     modId: existing.modId,
                     selected: selected,
-                    conflictResolution: existing.conflictResolution,
-                    configResolution: existing.configResolution
+                    conflictResolution: existing.conflictResolution
                 )
             }
         }
@@ -400,8 +398,7 @@ struct InstallPreview: View {
                 selections[mod.id] = InstallSelection(
                     modId: mod.id,
                     selected: current?.selected ?? true,
-                    conflictResolution: newValue,
-                    configResolution: current?.configResolution
+                    conflictResolution: newValue
                 )
             }
         )
@@ -581,8 +578,7 @@ struct DetectedModRow: View {
                     let newSelection = InstallSelection(
                         modId: mod.id,
                         selected: newValue,
-                        conflictResolution: selection?.conflictResolution,
-                        configResolution: selection?.configResolution
+                        conflictResolution: selection?.conflictResolution
                     )
                     onSelectionChange(newSelection)
                 }
