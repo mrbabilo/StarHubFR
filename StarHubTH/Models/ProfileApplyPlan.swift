@@ -13,7 +13,7 @@ enum ProfileApplyPlan {
 
     /// Le sens d'un renommage. Le disque ne connaît que le préfixe point ;
     /// c'est ici qu'il porte un nom.
-    enum Direction: Equatable {
+    enum Direction: Codable, Equatable {
         /// `Mods/.X` → `Mods/X`.
         case enable
         /// `Mods/X` → `Mods/.X`.
@@ -23,7 +23,7 @@ enum ProfileApplyPlan {
     /// Un renommage à faire dans `Mods/`. `source` et `destination` sont des
     /// noms **physiques** (le point y vit) relatifs à `Mods/` : l'appelant les
     /// joint au chemin du dossier.
-    struct Move: Equatable {
+    struct Move: Codable, Equatable {
         /// Le nom **logique** du mod (jamais de point) — la clé des magasins
         /// persistés, notamment l'horodatage d'activation.
         let folderName: String

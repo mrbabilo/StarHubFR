@@ -218,6 +218,30 @@ private func simulate(_ moves: [ProfileApplyPlan.Move],
         #expect(outcome.refused.count == 2)
         #expect(outcome.mods.map(\.physicalFolderName) == ["Seaside", ".Seaside"])
     }
+
+    // MARK: - R2 : Codable (le journal sérialise les déplacements)
+
+    /// La fixture porte un nom physique préfixé point (`.SeasideSounds`) :
+    /// c'est la forme exacte qui vit sur disque et dans le journal.
+    @Test func moveRoundTripPreservesEveryField() throws {
+        let move = ProfileApplyPlan.Move(folderName: "SeasideSounds",
+                                         modName: "Seaside Sounds",
+                                         uniqueId: "ampedseas.SeasideSounds",
+                                         source: ".SeasideSounds",
+                                         destination: "SeasideSounds",
+                                         direction: .enable)
+        let data = try JSONEncoder().encode(move)
+        let decoded = try JSONDecoder().decode(ProfileApplyPlan.Move.self, from: data)
+        #expect(decoded == move)
+    }
+
+    @Test func directionRoundTripPreservesSense() throws {
+        for direction in [ProfileApplyPlan.Direction.enable, .disable] {
+            let data = try JSONEncoder().encode(direction)
+            #expect(try JSONDecoder().decode(ProfileApplyPlan.Direction.self,
+                                             from: data) == direction)
+        }
+    }
 }
 
 // MARK: - Générateur
