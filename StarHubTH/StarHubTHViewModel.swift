@@ -9144,6 +9144,12 @@ for mod in mods {
     func restoreProfileConfigs(for profileId: UUID) {
         guard !isGameRunning() else {
             log(L(L10n.VM.profileConfigsSkippedGame), level: .warning)
+            // R2 (spec §3.5) : le disque ne portera pas les configs de ce
+            // profil — c'est la définition même du desync (doc de
+            // `profileConfigsDesyncedProfileId`). Sans marqueur, le trou
+            // restait invisible jusqu'à ce qu'une capture future maquille le
+            // disque en donnée du profil actif.
+            Self.profileConfigsDesyncedProfileId = profileId
             return
         }
         guard let url = ProfileConfigStore.fileURL(profileId: profileId) else { return }
