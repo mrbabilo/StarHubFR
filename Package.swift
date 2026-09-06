@@ -148,6 +148,7 @@ let package = Package(
                 "Models/ProfileFactory.swift",
                 "Models/ProfileDiagnostics.swift",
                 "Models/ProfileApplyPlan.swift",
+                "Models/ProfileApplyJournal.swift",
                 "Models/ProfileTranslationCoverage.swift",
                 "Models/TranslationCoverageCache.swift",
                 "Models/DownloadProgress.swift",
@@ -172,6 +173,11 @@ let package = Package(
                 "Models/HealthIssue.swift",
                 "Models/HealthIssueResolver.swift",
             ]
+        ),
+        .testTarget(
+            name: "ProfileApplyJournalTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ProfileApplyJournalTests"
         ),
         .testTarget(
             name: "ModFolderCollisionTests",
