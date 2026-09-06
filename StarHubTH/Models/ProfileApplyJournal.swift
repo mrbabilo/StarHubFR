@@ -37,11 +37,12 @@ enum ProfileApplyJournalStore {
     static var storageDirectory: URL? = defaultDirectory()
 
     private static func defaultDirectory() -> URL? {
-        guard let base = FileManager.default.urls(for: .applicationSupportDirectory,
-                                                  in: .userDomainMask).first else { return nil }
-        let dir = base.appendingPathComponent("StarHubTH", isDirectory: true)
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir
+        // Pas de création ici : `save` garantit le chemin au moment d'écrire
+        // (et signale un échec) — créer à la déclaration ne servirait qu'un
+        // journal qu'on n'écrira peut-être jamais.
+        FileManager.default.urls(for: .applicationSupportDirectory,
+                                 in: .userDomainMask).first?
+            .appendingPathComponent("StarHubTH", isDirectory: true)
     }
 
     private static var fileURL: URL? {
@@ -68,10 +69,13 @@ enum ProfileApplyJournalStore {
     }
 
     /// Corrompu ⇒ nil : un journal illisible ne doit jamais paralyser le
-    /// lancement.
+    /// lancement. La forme `do/catch` plutôt que `try?` rend le contrat
+    /// lisible : chaque échec **est** « absent », pas un accident avalé.
     static func load() -> ProfileApplyJournal? {
-        guard let url = fileURL, let data = try? Data(contentsOf: url) else { return nil }
-        return try? JSONDecoder().decode(ProfileApplyJournal.self, from: data)
+        guard let url = fileURL else { return nil }
+        let data: Data
+        do { data = try Data(contentsOf: url) } catch { return nil }
+        do { return try JSONDecoder().decode(ProfileApplyJournal.self, from: data) } catch { return nil }
     }
 
     static func clear() {
