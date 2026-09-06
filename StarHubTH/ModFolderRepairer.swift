@@ -375,7 +375,7 @@ public struct ModFolderRepairer {
         var enabled: [(id: String, folder: String)] = []
         var disabled: [(id: String, folder: String)] = []
         for m in mods {
-            let leafs: [ModItem] = m.isGroup ? (m.children ?? []) : [m]
+            let leafs = m.components
             for c in leafs where !c.uniqueId.isEmpty {
                 if c.isEnabled {
                     enabled.append((c.uniqueId, c.folderName))

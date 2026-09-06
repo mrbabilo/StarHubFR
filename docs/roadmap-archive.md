@@ -774,6 +774,32 @@ répond. L'ordre et les titres de section sont ceux de la roadmap.
       et la révélation Finder restent. La frontière est la barre oblique du
       nom disputé, pas une garde dérivée du refus de saisie. **1 test
       neuf** (2 297 → 2 298). · **S**
+- [x] **X45** ✅ *(corrigé le 2026-09-06)* — **Le dépliage des packs a
+      encore dix copies manuelles.** `flattenedMods` affirmait dans son
+      propre en-tête avoir remplacé les 22 réécritures de 2026-08-01 ; il
+      en restait dix, revérifiées une à une avant d'agir (les lignes du
+      constat avaient dérivé, et une copie du décompte vivait sur deux
+      lignes dans `FavoriteResolution`) : trois sur un tableau complet
+      (VM — registre d'install, ancres de profil éphémère de bissection,
+      cibles de config gérée), sept sur un mod isolé (VM ×2,
+      `BisectionRunner` ×2, `ModFolderRepairer`, `ModGridCardValues`,
+      `FavoriteResolution`).
+      ▸ **L'API manquante, pas juste les appels** : la forme à un seul mod
+      n'était couverte par rien — `ModItem.components` naît : un pack rend
+      ses composants, un mod autonome se représente lui-même. Et
+      `flattenedMods` devient `flatMap(\.components)` : la brique et sa
+      version tableau ne peuvent plus diverger.
+      ▸ **Une onzième, non comptée par le constat** :
+      `DroppedContentRecognizer.allMods(in:)` réécrivait `flattenedMods`
+      entière en forme `guard` — même brique, retirée au passage (un seul
+      appelant).
+      ▸ **Resté tel quel, à dessein** : VM L.5497 (`children?.first ??
+      mod`) prend le *premier* enfant, pas tous — sémantique différente,
+      pas une copie de dépliage.
+      ▸ Refactor pur, rien à l'écran — pas d'entrée CHANGELOG.
+      **5 tests neufs** (2 304 → 2 309) : les quatre cas de `components`,
+      dont le groupe sans `children` que chaque copie protégeait par son
+      `?? []`, et la parité avec `flattenedMods`. Deux gates verts. · **S**
 - [x] **X43** ✅ *(corrigé le 2026-09-06)* — **Le dialogue de conflit de
       configuration est mort dans sa totalité.**
       `ConflictType.configFilesConflict` et `.dependencyMissing` n'avaient

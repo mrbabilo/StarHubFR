@@ -98,19 +98,8 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       la question du jeu de couleurs (mesuré : elle est posée quand même), mais ils
       retireraient le chemin et l'action de la file d'attente. À faire avec une vraie
       installation de contrôle, impossible depuis un agent. · **M**
-- [ ] **X45** — **Le dépliage des packs a encore dix copies manuelles.**
-      `flattenedMods` affirme dans son propre en-tête avoir remplacé les 22
-      réécritures de 2026-08-01 ; il en reste **dix** : trois portent sur un tableau
-      complet et pourraient l'appeler directement (`StarHubTHViewModel` L. 8404,
-      8648, 8714), sept sur un mod isolé (`mod.isGroup ? (mod.children ?? []) :
-      [mod]` — VM L. 4421 et 7326, `BisectionRunner` L. 395 et 416,
-      `ModFolderRepairer` L. 359, `ModGridCardValues` L. 55), forme qu'aucune API ne
-      couvre aujourd'hui. **Vérifié : elles ne divergent pas** — toutes écrivent
-      `?? []`. C'est donc un constat de forme, pas un bug ; il vaut surtout pour ce
-      qu'il annonce, un `ModItem.components` manquant. · **S**
-
-
 ---
+
 
 ## 5. Roadmap par chantier
 
@@ -1306,7 +1295,7 @@ corrompre ou faire disparaître quelque chose sans le dire ?* — et non à
 **P3 — latent : la condition est vraie, zéro exemplaire sur le parc**
 
 `X29` (détection de doublons sans appelant),
-`X32` (drapeaux de l'installateur SMAPI), `X45` (dix dépliages manuels, aucun divergent),
+`X32` (drapeaux de l'installateur SMAPI),
 `F4` (`uniqueId: ""` sur les groupes — chaîne d'exploitation coupée),
 `F6-T1` (course à l'annulation, sans observable), `F6-T3` (deux parseurs du
 même journal). Vérifiés un par un : tous encore exacts, aucun ne se manifeste.
@@ -1601,6 +1590,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **X58** | 2026-09-05 | Le champ `warnings` du dump était ignoré en bloc ; il est désormais tamisé par plateforme et rendu en ligne « à savoir » |
 | **X28** | 2026-09-06 | Un dossier de résidu OS niché dans un mod était vidé fichier par fichier mais sa coquille restait pour toujours — il part désormais en bloc, comme au premier niveau |
 | **X43** | 2026-09-06 | Le dialogue de conflit de `config.json` n'a jamais existé à l'écran — ses enums et son champ de sélection, vestiges d'une bascule de conception, sont retirés ; la préservation automatique reste le comportement livré |
+| **X45** | 2026-09-06 | Le dépliage des packs restait réécrit à la main en dix sites après la consolidation de `flattenedMods` — `ModItem.components` couvre désormais la forme à un seul mod, et les dix sites l'appellent |
 | **B1-T1** | 2026-08-01 | Boutons Activer/Désactiver et Supprimer sur la fiche mod (parité avec la liste, mêmes confirmations). Absents pour un… |
 | **B1-T2** | 2026-08-01 | Tri, filtres, catégorie, page et recherche portés par ModListFilters dans le ViewModel. La remise à la page 1 est por… |
 

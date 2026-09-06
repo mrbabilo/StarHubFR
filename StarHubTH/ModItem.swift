@@ -47,6 +47,15 @@ public struct ModItem: Identifiable, Equatable, Sendable {
         return children.compactMap { $0.installedFileDate }.max()
     }
 
+    /// Les mods individuels derrière une ligne : un pack rend ses composants,
+    /// un mod autonome se représente lui-même. La brique d'un seul item dont
+    /// `flattenedMods` est la version tableau — dix réécritures manuelles de
+    /// cette forme vivaient encore au 2026-09-06 (X45), toutes identiques
+    /// (`?? []` partout, vérifié), aucune couverte par API.
+    public var components: [ModItem] {
+        isGroup ? (children ?? []) : [self]
+    }
+
     public let version: String
     public let author: String
     public let description: String
@@ -166,7 +175,7 @@ extension Array where Element == ModItem {
     /// exact sur lequel ce dépôt a déjà produit des listes divergentes. Une
     /// seule définition, testée, plutôt que vingt-deux relectures.
     var flattenedMods: [ModItem] {
-        flatMap { $0.isGroup ? ($0.children ?? []) : [$0] }
+        flatMap(\.components)
     }
 
     /// Les noms de dossier sur lesquels une **préférence** peut être posée :

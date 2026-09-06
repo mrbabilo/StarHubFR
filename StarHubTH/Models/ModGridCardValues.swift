@@ -52,7 +52,7 @@ public enum ModGridCardValues {
     public static func card(mod: ModItem,
                             versionPrefix: String,
                             pictureURL: String? = nil) -> Card {
-        let items = mod.isGroup ? (mod.children ?? []) : [mod]
+        let items = mod.components
         let author = sharedValue(of: items, \.author)
         let version = sharedValue(of: items, \.version)
             .map { String(format: versionPrefix, $0) }

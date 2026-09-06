@@ -94,7 +94,7 @@ public enum DroppedContentRecognizer {
         guard let safeName = safeFileName(from: fileName) else { return .unusableFileName }
 
         let wanted = rule.hostUniqueId.lowercased()
-        guard let host = allMods(in: installedMods).first(where: {
+        guard let host = installedMods.flattenedMods.first(where: {
             $0.uniqueId.lowercased() == wanted
         }) else {
             return .hostMissing(hostDisplayName: rule.hostDisplayName)
@@ -188,14 +188,5 @@ public enum DroppedContentRecognizer {
             found.append((match, url))
         }
         return found
-    }
-
-    /// Les mods et les composants des packs : un framework hôte peut très bien
-    /// être livré à l'intérieur d'un dossier multi-composants.
-    private static func allMods(in mods: [ModItem]) -> [ModItem] {
-        mods.flatMap { mod -> [ModItem] in
-            guard mod.isGroup, let children = mod.children else { return [mod] }
-            return children
-        }
     }
 }

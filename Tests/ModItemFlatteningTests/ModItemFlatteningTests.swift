@@ -50,6 +50,42 @@ struct ModItemFlatteningTests {
         #expect([mod("Vide", children: [])].flattenedMods.isEmpty)
     }
 
+    // MARK: - La brique d'un seul item : ModItem.components
+    //
+    // `flattenedMods` couvre le tableau complet ; `components` couvre le mod
+    // isolé, la forme que dix réécritures manuelles vivaient encore au
+    // 2026-09-06 (X45). Le cas qui les faisait toutes écrire `?? []` : un
+    // groupe dont `children` est nil.
+
+    @Test func aStandaloneModHasItselfAsComponents() {
+        let alone = mod("Automate")
+        #expect(alone.components.map(\.name) == ["Automate"])
+    }
+
+    @Test func aPackHasItsChildrenAsComponents() {
+        let pack = mod("RSV", children: [mod("Core"), mod("Extras")])
+        #expect(pack.components.map(\.name) == ["Core", "Extras"])
+    }
+
+    @Test func anEmptyPackHasNoComponents() {
+        #expect(mod("Vide", children: []).components.isEmpty)
+    }
+
+    @Test func aGroupWithoutChildrenHasNoComponents() {
+        // isGroup vrai, children nil : le cas que le `?? []` de chaque copie
+        // protégeait. Le helper ne sait pas le construire — à la main.
+        let childless = ModItem(uniqueId: "", name: "Fantôme", folderName: "Fantôme",
+                                version: "1", author: "", description: "",
+                                nexusUrl: "", nexusModId: "", isEnabled: true,
+                                dependencies: [], children: nil, isGroup: true)
+        #expect(childless.components.isEmpty)
+    }
+
+    @Test func componentsIsTheBrickBehindFlattenedMods() {
+        let items = [mod("RSV", children: [mod("Core")]), mod("Automate")]
+        #expect(items.flattenedMods == items.flatMap(\.components))
+    }
+
     // MARK: - Retrouver un mod par son identifiant
     //
     // 296 déclarations de dépendances du parc (109 identifiants distincts)

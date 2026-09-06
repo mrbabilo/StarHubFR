@@ -4481,7 +4481,7 @@ class StarHubTHViewModel: ObservableObject {
     /// avertissement, jamais un satisfecit.
     func compatibilityWarning(for mod: ModItem) -> (component: ModItem,
                                                     verdict: ModCompatibility)? {
-        let components = mod.isGroup ? (mod.children ?? []) : [mod]
+        let components = mod.components
         return components
             .compactMap { component -> (component: ModItem, verdict: ModCompatibility)? in
                 guard let verdict = modCompatibility[component.uniqueId],
@@ -7616,9 +7616,7 @@ for mod in mods {
     private func syncInstalledModRegistry(scannedMods: [ModItem],
                                           modsFolderWasReadable: Bool = true) {
         // Flatten groups into individual mods so pack children are tracked too.
-        let allMods = scannedMods.flatMap { mod -> [ModItem] in
-            mod.isGroup ? (mod.children ?? []) : [mod]
-        }
+        let allMods = scannedMods.flattenedMods
 
         let now = Date()
 
@@ -8732,9 +8730,7 @@ for mod in mods {
         // `folderName` reste logique : un mod en pause porte un point sur le
         // disque, pas dans son identité — sans quoi mettre un mod en pause
         // le ferait passer pour désinstallé.
-        let installed = Set(mods
-            .flatMap { $0.isGroup ? ($0.children ?? []) : [$0] }
-            .map(\.folderName))
+        let installed = Set(mods.flattenedMods.map(\.folderName))
         let orphans = entries.keys
             .filter { !installed.contains($0) }
             .sorted()
@@ -8979,7 +8975,7 @@ for mod in mods {
             name: L(L10n.Bisect.profileName),
             enabledModIds: mods
                 .filter { target.contains($0.folderName) }
-                .flatMap { $0.isGroup ? ($0.children ?? []).map(\.uniqueId) : [$0.uniqueId] }
+                .flatMap { $0.components.map(\.uniqueId) }
                 .filter { !$0.isEmpty }
         )
         let savedActiveProfile = activeProfileId
@@ -9045,7 +9041,7 @@ for mod in mods {
     private func managedConfigTargets() -> [(key: String, url: URL)] {
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
         return mods
-            .flatMap { $0.isGroup ? ($0.children ?? []) : [$0] }
+            .flattenedMods
             .filter { profileManagedConfigMods.contains($0.folderName) }
             .map { (key: $0.folderName,
                     url: ProfileConfigStore.configURL(modsPath: modsPath,

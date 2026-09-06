@@ -392,7 +392,7 @@ final class BisectionRunner: ObservableObject {
     /// eux qui cessent de pouvoir tourner quand leur framework part en pause.
     private nonisolated static func describe(_ mods: [ModItem]) -> [BisectionCandidate] {
         mods.map { mod in
-            let children = mod.isGroup ? (mod.children ?? []) : [mod]
+            let children = mod.components
             return BisectionCandidate(
                 folderName: mod.folderName,
                 uniqueIds: children.map(\.uniqueId).filter { !$0.isEmpty },
@@ -413,7 +413,7 @@ final class BisectionRunner: ObservableObject {
             guard mod.isEnabled else { return nil }
             let folder = (modsPath as NSString).appendingPathComponent(mod.physicalFolderName)
             guard containsCode(at: folder) else { return nil }
-            let children = mod.isGroup ? (mod.children ?? []) : [mod]
+            let children = mod.components
             return BisectionCandidate(
                 folderName: mod.folderName,
                 uniqueIds: children.map(\.uniqueId).filter { !$0.isEmpty },

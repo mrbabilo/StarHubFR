@@ -56,9 +56,7 @@ public enum FavoriteResolution {
             // Un pack n'a pas d'identifiant à lui : ce sont ses composants qui
             // entrent dans le profil, exactement comme quand la bissection
             // traduit des dossiers actifs en profil éphémère.
-            let candidates = mod.isGroup
-                ? (mod.children ?? []).map(\.uniqueId)
-                : [mod.uniqueId]
+            let candidates = mod.components.map(\.uniqueId)
             let usable = candidates.filter { !$0.isEmpty }
             guard !usable.isEmpty else {
                 unresolved.append(favorite)
