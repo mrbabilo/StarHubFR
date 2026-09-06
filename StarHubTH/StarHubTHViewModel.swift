@@ -9233,6 +9233,65 @@ for mod in mods {
         log(String(format: self.L(L10n.VM.profileRecoveryImplicitKeep), name), level: .warning)
     }
 
+    /// Le texte du dialogue : profil, date, et le cas échéant la mention
+    /// d'un profil supprimé (« Reprendre » n'a alors plus de sens — le
+    /// dialogue n'offre que d'effacer le signalement).
+    var applyRecoveryDialogText: String? {
+        guard let journal = unresolvedApplyJournal else { return nil }
+        var text = String(format: self.L(L10n.VM.profileRecoveryMessage),
+                          journal.profileName,
+                          journal.startedAt.formatted(date: .abbreviated, time: .shortened))
+        if !recoveryProfileExists {
+            text += " " + self.L(L10n.VM.profileRecoveryProfileGone)
+        }
+        return text
+    }
+
+    var recoveryProfileExists: Bool {
+        guard let journal = unresolvedApplyJournal else { return false }
+        return modProfiles.contains { $0.id == journal.profileId }
+    }
+
+    /// « Reprendre l'application ». Même branche que le re-clic de reprise,
+    /// à une différence près : le completion que le crash a avalé portait
+    /// aussi la **restauration** des configs du profil entrant (la capture,
+    /// elle, avait déjà couru à l'entrée d'`applyProfile`, avant le
+    /// dispatch). Reprendre sans restaurer laisserait sur disque les configs
+    /// du profil sortant sans aucun marqueur.
+    func resumeInterruptedApply() {
+        guard let journal = pendingApplyRecovery ?? unresolvedApplyJournal else { return }
+        pendingApplyRecovery = nil
+        guard !isApplyingProfile else { return }
+        guard let profile = modProfiles.first(where: { $0.id == journal.profileId }) else {
+            clearUnresolvedJournal(implicitKeepNamed: journal.profileName)
+            return
+        }
+        if isGameRunning() {
+            // Refus net, même garde que l'activation ; le journal reste —
+            // l'alerte reviendra au prochain lancement, et le re-clic du
+            // profil actif re-présente le résolveur.
+            let message = String(format: self.L(L10n.VM.profileApplyRefusedGame), profile.name)
+            log(message, level: .warning)
+            showModal(message: message)
+            return
+        }
+        applyingProfileId = profile.id
+        applyProfileToFilesystem(profile: profile) { [weak self] _ in
+            self?.restoreProfileConfigs(for: profile.id)
+        }
+    }
+
+    /// « Garder l'état actuel » — l'adoption explicite de l'état du disque,
+    /// celle que `syncActiveProfileIds` refuse tant que le journal vit.
+    func keepCurrentDiskState() {
+        guard let journal = pendingApplyRecovery ?? unresolvedApplyJournal else { return }
+        pendingApplyRecovery = nil
+        clearUnresolvedJournal(implicitKeepNamed: journal.profileName)
+        if activeProfileId == journal.profileId {
+            syncActiveProfileIds()
+        }
+    }
+
     /// Le garde des entrées qui **appliquent un profil au disque**.
     ///
     /// Deux refus, chacun avec son message : le jeu ouvert (une application

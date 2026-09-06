@@ -378,6 +378,25 @@ struct MainView: View {
                 dismissButton: .default(Text(vm.L(L10n.Main.ok)))
             )
         }
+        // R2 — une application de profil morte en route : reprendre ou
+        // garder l'état actuel. Patron confirmationDialog de ModProfilesView
+        // (suppression de profil) ; présenté une seule fois la fenêtre
+        // révélée (surfaceApplyRecoveryIfNeeded).
+        .confirmationDialog(
+            vm.applyRecoveryDialogText ?? "",
+            isPresented: Binding(
+                get: { vm.pendingApplyRecovery != nil },
+                set: { if !$0 { vm.dismissApplyRecovery() } }
+            ),
+            titleVisibility: .visible
+        ) {
+            if vm.recoveryProfileExists {
+                Button(vm.L(L10n.VM.profileRecoveryResume)) { vm.resumeInterruptedApply() }
+                Button(vm.L(L10n.VM.profileRecoveryKeep), role: .cancel) { vm.keepCurrentDiskState() }
+            } else {
+                Button(vm.L(L10n.VM.profileRecoveryDismiss), role: .cancel) { vm.dismissApplyRecovery() }
+            }
+        }
         .onChange(of: vm.pendingDownloadedZip) { _, newValue in
             showDownloadedInstall = (newValue != nil)
         }
