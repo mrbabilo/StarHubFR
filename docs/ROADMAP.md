@@ -80,12 +80,6 @@ les chantiers, **§7** pour la dette technique.
 
 Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées.
 
-- [ ] **X28** — **Un `__MACOSX` niché dans un mod perd ses fichiers mais garde son
-      dossier.** Le balayage profond ne déplace que des fichiers (`if isDir { continue }`)
-      et la passe de premier niveau ne traite `OSJunk.folders` qu'à la profondeur 1 :
-      un `__MACOSX` à l'intérieur d'un dossier de mod voit ses fichiers mis en
-      quarantaine un par un, et la coquille reste indéfiniment. Zéro exemplaire sur le
-      parc aujourd'hui — même classe de latence que X27. · **S**
 - [ ] **X29** — **La détection de doublons sur disque n'a aucun appelant en
       production** : le ViewModel passe `detectDuplicates: false` et utilise la
       version en mémoire. La version disque garde donc sa propre lecture de
@@ -1324,7 +1318,7 @@ corrompre ou faire disparaître quelque chose sans le dire ?* — et non à
 
 **P3 — latent : la condition est vraie, zéro exemplaire sur le parc**
 
-`X28` (`__MACOSX` niché), `X29` (détection de doublons sans appelant),
+`X29` (détection de doublons sans appelant),
 `X32` (drapeaux de l'installateur SMAPI), `X43` (dialogue de conflit mort —
 code mort, rien de cassé), `X45` (dix dépliages manuels, aucun divergent),
 `F4` (`uniqueId: ""` sur les groupes — chaîne d'exploitation coupée),
@@ -1619,6 +1613,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **X64** | 2026-09-05 | Le budget de re-découpage épuisé rendait un lot vide en silence, et la passe smapi.io se déclarait quand même complète |
 | **X63** | 2026-09-05 | Installer un mod neuf effaçait le mod en pause qui portait le même nom de dossier — ni sauvegarde ni message |
 | **X58** | 2026-09-05 | Le champ `warnings` du dump était ignoré en bloc ; il est désormais tamisé par plateforme et rendu en ligne « à savoir » |
+| **X28** | 2026-09-06 | Un dossier de résidu OS niché dans un mod était vidé fichier par fichier mais sa coquille restait pour toujours — il part désormais en bloc, comme au premier niveau |
 | **B1-T1** | 2026-08-01 | Boutons Activer/Désactiver et Supprimer sur la fiche mod (parité avec la liste, mêmes confirmations). Absents pour un… |
 | **B1-T2** | 2026-08-01 | Tri, filtres, catégorie, page et recherche portés par ModListFilters dans le ViewModel. La remise à la page 1 est por… |
 

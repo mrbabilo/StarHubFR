@@ -231,12 +231,15 @@ public struct ModFolderRepairer {
 
     // MARK: - Deep junk sweep inside valid mods
 
-    /// Walks the full tree under `modsRoot` and quarantines OS junk files
-    /// (.DS_Store, ._*, Thumbs.db, …) found *inside* mod folders. Only
-    /// operates on files — never directories — and skips anything under an
-    /// existing `_Trash_*` folder. **Symlinks are never followed** to prevent
-    /// a malicious or accidental link from sweeping files outside the game
-    /// directory into quarantine.
+    /// Walks the full tree under `modsRoot` and quarantines OS junk found
+    /// *inside* mod folders : fichiers (.DS_Store, ._*, Thumbs.db, …) un à
+    /// un, et **dossiers** de résidu (`__MACOSX`, …) **en bloc** — X28 : la
+    /// passe ne déplaçait que des fichiers, la coquille d'un `__MACOSX` niché
+    /// restait indéfiniment, vidée fichier par fichier, et la passe de
+    /// premier niveau ne traite les dossiers qu'à la profondeur 1. Skips
+    /// anything under an existing `_Trash_*` folder. **Symlinks are never
+    /// followed** to prevent a malicious or accidental link from sweeping
+    /// files outside the game directory into quarantine.
     private func sweepJunkInsideMods(modsRoot: String, gameDir: String, trashProvider: (String) -> String) -> [Item] {
         let rootURL = URL(fileURLWithPath: modsRoot)
         guard let enumerator = fm.enumerator(
@@ -257,10 +260,13 @@ public struct ModFolderRepairer {
             let filename = fileURL.lastPathComponent
             let isJunkFile = OSJunk.files.contains(filename)
             let isAppleDouble = filename.hasPrefix(OSJunk.appleDoublePrefix)
-            guard isJunkFile || isAppleDouble else { continue }
+            let isJunkFolder = OSJunk.folders.contains(filename)
+            guard isJunkFile || isAppleDouble || isJunkFolder else { continue }
 
             // Skip symlinks entirely — they could point outside the game dir,
             // and quarantining through them would move foreign files into _Trash_.
+            // Vaut pour les dossiers aussi : un `__MACOSX`-lien ne déplace pas
+            // ce qu'il désigne (fixé par un test).
             if let vals = try? fileURL.resourceValues(forKeys: [.isSymbolicLinkKey]),
                vals.isSymbolicLink == true {
                 continue
@@ -281,11 +287,24 @@ public struct ModFolderRepairer {
             // enumerator reported; moveToTrash receives the resolved root too.
             let fullPath = (resolvedRoot as NSString).appendingPathComponent(rel)
 
-            // Un **dossier** portant un nom de résidu n'est pas balayé ici :
-            // ce chemin ne déplace que des fichiers.
             var isDir: ObjCBool = false
             fm.fileExists(atPath: fullPath, isDirectory: &isDir)
-            if isDir.boolValue { continue }
+            if isDir.boolValue {
+                // X28 — un **dossier** de résidu OS niché part **en bloc**,
+                // le geste de la passe de premier niveau sans sa limite de
+                // profondeur : son contenu est du résidu par construction, le
+                // balayer fichier par fichier ne laisse qu'une coquille. Et
+                // ne pas redescendre dedans — l'énumérateur rendrait des
+                // entrées d'un dossier déjà déplacé.
+                if isJunkFolder,
+                   moveToTrash(fullPath: fullPath, modsRoot: resolvedRoot,
+                               gameDir: gameDir, trashProvider: trashProvider) {
+                    items.append(Item(kind: .osJunkFolder, relativePath: rel,
+                                      reason: "OS metadata folder (\(filename)), not used by Stardew/SMAPI."))
+                    enumerator.skipDescendants()
+                }
+                continue
+            }
 
             if isJunkFile {
                 if moveToTrash(fullPath: fullPath, modsRoot: resolvedRoot, gameDir: gameDir, trashProvider: trashProvider) {

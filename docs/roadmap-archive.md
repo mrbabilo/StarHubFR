@@ -774,6 +774,31 @@ répond. L'ordre et les titres de section sont ceux de la roadmap.
       et la révélation Finder restent. La frontière est la barre oblique du
       nom disputé, pas une garde dérivée du refus de saisie. **1 test
       neuf** (2 297 → 2 298). · **S**
+- [x] **X28** ✅ *(corrigé le 2026-09-06)* — **Un `__MACOSX` niché dans un
+      mod perd ses fichiers mais garde son dossier.** Le balayage profond ne
+      déplaçait que des fichiers (`if isDir { continue }`) et la passe de
+      premier niveau ne traite `OSJunk.folders` qu'à la profondeur 1 : un
+      `__MACOSX` à l'intérieur d'un dossier de mod voyait ses fichiers mis
+      en quarantaine un par un, et la coquille restait indéfiniment.
+      ▸ **Le geste du premier niveau, sans sa limite de profondeur** : le
+      dossier de résidu niché part **en bloc** — son contenu est du résidu
+      par construction, le balayer fichier par fichier ne laisse qu'une
+      coquille. `enumerator.skipDescendants()` empêche d'énumérer les
+      entrées d'un dossier déjà déplacé. Un dossier de résidu à la
+      **racine** de `Mods/` n'est pas traité deux fois : la passe profonde
+      tourne avant celle de premier niveau, qui ne revoit pas un dossier
+      déjà parti.
+      ▸ **La coquille déjà vidée par les versions précédentes part elle
+      aussi** : leurs balayages emportaient les fichiers, jamais le
+      dossier — c'était la trace visible du défaut chez qui l'a déjà
+      rencontré (testé).
+      ▸ **Le voisin qui ne doit pas partir ne part pas** : un lien
+      symbolique nommé `__MACOSX` ne déplace pas ce qu'il désigne — la
+      règle du balayage fichiers vaut pour les dossiers (testé).
+      ▸ **Zéro exemplaire sur le parc de référence** — latent, comme le
+      disait le constat ; la gâchette est une extraction dont le
+      `__MACOSX` atterrit à l'intérieur du dossier du mod.
+      **3 tests neufs** (2 301 → 2 304). · **S**
 - [x] **X47** ✅ *(corrigé le 2026-09-05)* — **Un lot smapi.io en échec ne
       sacrifie plus les lots suivants.** Le `break` du premier lot fautif
       renonçait aux lots restants, que rien n'incriminait : sur les huit lots

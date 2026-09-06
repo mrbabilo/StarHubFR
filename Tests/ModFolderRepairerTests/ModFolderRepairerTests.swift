@@ -135,6 +135,76 @@ struct RepairerTestEnv {
         #expect(!FileManager.default.fileExists(atPath: macosx.path))
     }
 
+    // MARK: - X28 — un dossier de résidu OS niché part en bloc
+
+    /// X28 — le balayage profond ne déplaçait que des fichiers : un
+    /// `__MACOSX` niché dans un mod voyait ses `._*` mis en quarantaine un
+    /// par un, et la coquille restait indéfiniment — la passe de premier
+    /// niveau ne traite les dossiers junk qu'à la profondeur 1. Il part
+    /// désormais **en bloc**, comme au premier niveau.
+    @Test func quarantinesAMacOSXFolderNestedInsideAModWholesale() throws {
+        let env = RepairerTestEnv()
+        defer { env.cleanup() }
+
+        let mod = env.modsDir.appendingPathComponent("GoodMod")
+        try writeManifest(in: mod, uniqueId: "good.mod")
+        let macosx = mod.appendingPathComponent("__MACOSX")
+        try writeFile(in: macosx.appendingPathComponent("GoodMod"), filename: "._manifest.json")
+        try writeFile(in: macosx, filename: ".DS_Store")
+
+        let report = ModFolderRepairer().repairIfNeeded(gameDir: env.gameDir)
+
+        // La coquille entière a quitté le mod…
+        #expect(!FileManager.default.fileExists(atPath: macosx.path))
+        // …en **une** ligne de rapport, pas une par fichier balayé.
+        let entries = report.quarantined.filter { $0.relativePath.hasPrefix("GoodMod/__MACOSX") }
+        #expect(entries.map(\.kind) == [.osJunkFolder])
+        // Et le mod vit toujours.
+        #expect(FileManager.default.fileExists(atPath: mod.appendingPathComponent("manifest.json").path))
+    }
+
+    @Test func sweepsAnEmptiedMacosxShellLeftByPastSweeps() throws {
+        // Le résidu inverse : une coquille déjà vidée par les versions
+        // précédentes (leurs balayages emportaient les fichiers, jamais le
+        // dossier) — elle part elle aussi.
+        let env = RepairerTestEnv()
+        defer { env.cleanup() }
+
+        let mod = env.modsDir.appendingPathComponent("GoodMod")
+        try writeManifest(in: mod, uniqueId: "good.mod")
+        let shell = mod.appendingPathComponent("__MACOSX")
+        try FileManager.default.createDirectory(at: shell, withIntermediateDirectories: true)
+
+        let report = ModFolderRepairer().repairIfNeeded(gameDir: env.gameDir)
+
+        #expect(report.quarantined.contains {
+            $0.kind == .osJunkFolder && $0.relativePath == "GoodMod/__MACOSX"
+        })
+        #expect(!FileManager.default.fileExists(atPath: shell.path))
+    }
+
+    @Test func doesNotQuarantineASymbolicLinkNamedLikeAJunkFolder() throws {
+        // Le voisin qui ne doit pas partir : un lien symbolique pourrait
+        // pointer hors du dossier de jeu, le suivre déplacerait du contenu
+        // étranger. La règle du balayage fichiers vaut pour les dossiers.
+        let env = RepairerTestEnv()
+        defer { env.cleanup() }
+
+        let mod = env.modsDir.appendingPathComponent("GoodMod")
+        try writeManifest(in: mod, uniqueId: "good.mod")
+        let outside = env.modsDir.appendingPathComponent("RealAssets")
+        try FileManager.default.createDirectory(at: outside, withIntermediateDirectories: true)
+        try writeFile(in: outside, filename: "keep.txt", content: "données étrangères")
+        let link = mod.appendingPathComponent("__MACOSX")
+        try FileManager.default.createSymbolicLink(
+            atPath: link.path, withDestinationPath: outside.path)
+
+        _ = ModFolderRepairer().repairIfNeeded(gameDir: env.gameDir)
+
+        #expect(FileManager.default.fileExists(atPath: link.path))
+        #expect(FileManager.default.fileExists(atPath: outside.appendingPathComponent("keep.txt").path))
+    }
+
     @Test func doesNotAutoQuarantineNestedModsWrapper() throws {
         // Nested Mods/Mods wrappers are ambiguous — some mods legitimately
         // bundle reference Mods dirs. NOT auto-quarantined; left for manual review.
