@@ -80,14 +80,18 @@ les chantiers, **§7** pour la dette technique.
 
 Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées.
 
-- [ ] **X32** — **L'installateur SMAPI accepte `--install` / `--uninstall` /
-      `--game-path`.** Vérifié dans le binaire 4.5.2 (`"You can't specify both
-      --install and --uninstall command-line flags."`, `'You specified --game-path "'`).
-      L'app, elle, répond à l'aveugle à une séquence de questions dont l'ordre est
-      supposé stable — c'est ce qui rend X30 possible. Les drapeaux ne suppriment pas
-      la question du jeu de couleurs (mesuré : elle est posée quand même), mais ils
-      retireraient le chemin et l'action de la file d'attente. À faire avec une vraie
-      installation de contrôle, impossible depuis un agent. · **M**
+- [ ] **X77** — **Une installation propre de SMAPI est indétectable par
+      l'app.** `getInstalledVersion` exige `StardewValley-original` (garde avant
+      même de lire le marqueur de version) et la garde de `uninstall()` teste le
+      même fichier — or une installation **propre** de SMAPI 4.5.2 ne le pose
+      pas : mesuré le 2026-09-06 sur une installation de contrôle, le fichier
+      n'apparaît qu'en remplaçant une installation SMAPI antérieure. Sur un jeu
+      vierge : l'installeur de l'app réussit (« SMAPI is installed! ») mais au
+      scan suivant SMAPI paraît absent — réinstallation en boucle possible, et
+      désinstallation impossible depuis l'app. Le marqueur fiable existe :
+      `smapi-internal/`, posé à chaque installation et retiré à chaque
+      désinstallation (mesuré). Latent sur le parc de l'auteur (son dossier
+      porte le fichier). · **S**
 ---
 
 
@@ -1284,7 +1288,6 @@ corrompre ou faire disparaître quelque chose sans le dire ?* — et non à
 
 **P3 — latent : la condition est vraie, zéro exemplaire sur le parc**
 
-`X32` (drapeaux de l'installateur SMAPI),
 `F4` (`uniqueId: ""` sur les groupes — chaîne d'exploitation coupée),
 `F6-T1` (course à l'annulation, sans observable), `F6-T3` (deux parseurs du
 même journal). Vérifiés un par un : tous encore exacts, aucun ne se manifeste.
@@ -1581,6 +1584,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **X43** | 2026-09-06 | Le dialogue de conflit de `config.json` n'a jamais existé à l'écran — ses enums et son champ de sélection, vestiges d'une bascule de conception, sont retirés ; la préservation automatique reste le comportement livré |
 | **X45** | 2026-09-06 | Le dépliage des packs restait réécrit à la main en dix sites après la consolidation de `flattenedMods` — `ModItem.components` couvre désormais la forme à un seul mod, et les dix sites l'appellent |
 | **X29** | 2026-09-06 | La détection de doublons sur disque gardait une quatrième copie de la lecture de manifeste (regex aveugle aux chaînes) — elle lit par `ManifestJSON.decode` comme le scan ; parité mesurée : 1 101 manifestes, zéro divergence |
+| **X32** | 2026-09-06 | L'installateur SMAPI se pilotait par quatre réponses à l'aveugle dont l'ordre était supposé stable — invoqué par ses drapeaux `--install/--uninstall --game-path`, une seule question reste et un dossier refusé rend son diagnostic |
 | **B1-T1** | 2026-08-01 | Boutons Activer/Désactiver et Supprimer sur la fiche mod (parité avec la liste, mêmes confirmations). Absents pour un… |
 | **B1-T2** | 2026-08-01 | Tri, filtres, catégorie, page et recherche portés par ModListFilters dans le ViewModel. La remise à la page 1 est por… |
 

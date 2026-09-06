@@ -201,11 +201,6 @@ class SmapiInstaller: ObservableObject {
         releaseTask.resume()
     }
 
-    private enum InstallerAction: String {
-        case install = "1"
-        case uninstall = "2"
-    }
-
     /// Downloads SMAPI's installer zip, extracts it, and hands off to
     /// `runOfficialInstaller`. Older versions of this app manually searched
     /// the archive for a flat `internal/mac/payload` folder and copied its
@@ -216,7 +211,7 @@ class SmapiInstaller: ObservableObject {
     /// directly: it renames some of its own files when copying them into
     /// the game directory, a mapping that isn't recoverable from the zip's
     /// structure alone).
-    private func downloadAndRunInstaller(from smapiZipUrl: URL, version: String, gameDir: String, action: InstallerAction, completion: @escaping (Bool, String, String?) -> Void) {
+    private func downloadAndRunInstaller(from smapiZipUrl: URL, version: String, gameDir: String, action: SmapiInstallerAction, completion: @escaping (Bool, String, String?) -> Void) {
         let tempDir = NSTemporaryDirectory()
         let zipDest = URL(fileURLWithPath: tempDir).appendingPathComponent("smapi_latest.zip")
 
@@ -354,33 +349,40 @@ class SmapiInstaller: ObservableObject {
         downloadTask.resume()
     }
 
-    /// Runs SMAPI's own official installer binary non-interactively by
-    /// feeding its fixed prompt sequence through stdin in one write:
-    /// color scheme, "enter a custom game path" (option 2 — never trust
-    /// its auto-detected option 1, which only matches well-known install
-    /// locations), the game path itself, then install (1) or uninstall (2).
-    /// Verified directly against a real download: this sequence is stable,
-    /// short, and doesn't require synchronizing on the installer's output
-    /// text (which could reword between versions) — stdin is a queue the
-    /// installer's prompts consume from in order, regardless of what's
-    /// already been printed.
+    /// Runs SMAPI's own official installer binary non-interactively through
+    /// its command-line flags (X32): `--install`/`--uninstall` declares the
+    /// action, `--game-path` declares the folder — only the color-scheme
+    /// question remains on stdin, answered with `1`.
+    ///
+    /// Mesuré le 2026-09-06 sur le vrai binaire 4.5.2, lancé sur une
+    /// installation de contrôle (dossier factice avec `Stardew Valley`,
+    /// `Stardew Valley.dll`, `.deps.json`, `.runtimeconfig.json`) : sous
+    /// drapeaux l'installateur annonce « Just one question first » — le jeu
+    /// de couleurs — puis « That's all I need! ». L'ancien pilotage écrivait
+    /// quatre réponses d'un coup (`1`, `2`, le chemin, l'action) dans un
+    /// ordre supposé stable : une seule question réordonnée par une future
+    /// version décalait toute la file — le chemin devenait la réponse à une
+    /// autre question. Bonus mesuré : un dossier sans jeu rend « Failed
+    /// finding your game path. » et **sort**, au lieu de reboucler la
+    /// question à l'infini sur stdin fermé (l'amorce de X30).
     ///
     /// The process's exit code alone isn't fully trustworthy: on its error
     /// path, the installer tries to read a keypress before exiting, which
-    /// throws an unhandled .NET exception (and a non-zero exit) whenever
-    /// stdin isn't a real terminal — including some cases that already
-    /// completed the actual install/uninstall work. So success is
-    /// determined by a combination of the installer's own "done" message
-    /// and concrete file-system evidence, not the exit code by itself.
+    /// can throw an unhandled .NET exception (and a non-zero exit) whenever
+    /// stdin isn't a real terminal — measured: the exit code is 0 on some
+    /// failures too. So success is determined by a combination of the
+    /// installer's own "done" message and concrete file-system evidence,
+    /// not the exit code by itself.
     ///
     /// On a successful install, also writes `version` to
     /// `installedVersionMarkerRelativePath` — verified directly against a
     /// real install that nothing else on disk reliably states SMAPI's own
     /// version afterward (see `getInstalledVersion`'s doc comment), so this
     /// app records what it just installed instead of guessing later.
-    private func runOfficialInstaller(at installerPath: String, version: String, gameDir: String, action: InstallerAction, completion: @escaping (Bool, String, String?) -> Void) {
+    private func runOfficialInstaller(at installerPath: String, version: String, gameDir: String, action: SmapiInstallerAction, completion: @escaping (Bool, String, String?) -> Void) {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: installerPath)
+        process.arguments = SmapiInstallerInvocation.arguments(action: action, gamePath: gameDir)
 
         let stdinPipe = Pipe()
         let stdoutPipe = Pipe()
@@ -388,7 +390,7 @@ class SmapiInstaller: ObservableObject {
         process.standardOutput = stdoutPipe
         process.standardError = stdoutPipe
 
-        let answers = "1\n2\n\(gameDir)\n\(action.rawValue)\n"
+        let answers = SmapiInstallerInvocation.stdinAnswers
 
         do {
             try process.run()

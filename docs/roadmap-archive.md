@@ -774,6 +774,44 @@ répond. L'ordre et les titres de section sont ceux de la roadmap.
       et la révélation Finder restent. La frontière est la barre oblique du
       nom disputé, pas une garde dérivée du refus de saisie. **1 test
       neuf** (2 297 → 2 298). · **S**
+- [x] **X32** ✅ *(corrigé le 2026-09-06)* — **L'installateur SMAPI accepte
+      `--install` / `--uninstall` / `--game-path`.** L'app répondait à l'aveugle
+      à une séquence de questions dont l'ordre était supposé stable — quatre
+      réponses d'un coup sur stdin (`1` couleurs, `2` chemin personnalisé, le
+      chemin, l'action) — c'est ce qui rendait X30 possible.
+      ▸ **Le constat disait « impossible depuis un agent » : démenti par
+      l'expérience.** Une installation de contrôle a été montée en /tmp —
+      dossier factice avec `Stardew Valley` (lanceur exécutable),
+      `Stardew Valley.dll`, `.deps.json`, `.runtimeconfig.json`, composition
+      découverte par les messages d'erreur de l'installateur lui-même (« That
+      directory doesn't contain a Stardew Valley executable », puis
+      `FileNotFoundException` sur `.deps.json`) — et le vrai binaire 4.5.2
+      téléchargé de sa release GitHub y a été lancé, comme X30 l'avait fait
+      avant. ⚠️ Leçon d'exécution : un binaire .NET **ignore SIGPIPE** —
+      `| head -c` ne le tue pas, il faut un kill -TERM temporisé explicite
+      (l'incident a coûté 1,4 Go de flot sur la première mesure).
+      ▸ **Mesuré sur le vrai binaire** : `--install --game-path P` → « Just
+      one question first » (le jeu de couleurs, notre `1`), « That's all I
+      need! I'll install SMAPI now. », « SMAPI is installed! », exit 0, même
+      attelage posé qu'en mode interactif (`Mods/`, `smapi-internal/`,
+      `StardewModdingAPI*`, mods groupés). `--uninstall --game-path P` →
+      « SMAPI is removed! », `Mods/` conservé. `--install --uninstall` →
+      refus propre immédiat. Dossier sans jeu → « Failed finding your game
+      path. » et **sortie** — plus de rebouclage de question, l'amorce de X30
+      ne peut même plus s'armer par un mauvais chemin. Exit code **0 même en
+      échec** : le critère de réussite (message + preuves disque) reste le
+      bon.
+      ▸ **Le contrat vit en Core** (`SmapiInstallerInvocation` + 
+      `SmapiInstallerAction`) : arguments de drapeaux, chemin brut sans
+      quoting (`Process.arguments` n'est pas un shell — l'espace de « Stardew
+      Valley.app » passe tel quel, épinglé par test), réponse couleurs. La
+      garde de lecture bornée de X30 est conservée telle quelle.
+      ▸ **Constat neuf ouvert en échange : X77** — l'installation de contrôle
+      a montré qu'une installation **propre** ne pose pas
+      `StardewValley-original`, que `getInstalledVersion` et la garde
+      d'uninstall exigent : une installation propre est indétectable par
+      l'app. Voir la roadmap.
+      **4 tests neufs** (2 310 → 2 314). Deux gates verts. · **M**
 - [x] **X29** ✅ *(corrigé le 2026-09-06)* — **La détection de doublons sur
       disque n'a aucun appelant en production.** Le ViewModel passe
       `detectDuplicates: false` et utilise la version en mémoire — la version

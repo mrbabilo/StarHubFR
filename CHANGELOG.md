@@ -14,6 +14,8 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **L'installateur SMAPI est piloté par ses drapeaux officiels.** L'app lui répondait à l'aveugle à quatre questions dont l'ordre était supposé stable ; un dossier sans jeu déclenchait le coupe-circuit de secours. L'action et le dossier de jeu se déclarent désormais sur sa ligne de commande — plus qu'une question reste, et un dossier refusé rend son diagnostic propre.
+
 - **Un dossier `__MACOSX` niché dans un mod part enfin en entier.** Le balayage profond ne déplaçait que les fichiers de résidu, un par un : la coquille du dossier restait pour toujours. Un dossier de résidu OS niché — `__MACOSX`, `.Spotlight-V100`, `.Trashes` — part désormais en bloc, comme au premier niveau.
 
 - **Un lot smapi.io en échec ne sacrifie plus les suivants.** Un 503 ponctuel au milieu d'une vérification renonçait à tous les lots restants — jusqu'à 795 mods repartant vers la reprise Nexus, elle, comptée dans votre quota. La vérification continue au lot suivant et offre au lot fautif une seconde chance après un retrait ; une passe encore amputée dit désormais sa cause au journal.
