@@ -445,23 +445,17 @@ public struct ModFolderRepairer {
             // duplicate-detection set with throwaway UniqueIDs.
             if OSJunk.folders.contains(topFolder) { continue }
 
-            guard let data = try? Data(contentsOf: fileURL),
-                  let raw = String(data: data, encoding: .utf8) else { continue }
-            let clean = raw.replacingOccurrences(of: "/\\*[\\s\\S]*?\\*/", with: "", options: .regularExpression)
-            // Match the scanner's reading options so JSON5 manifests (trailing
-            // commas, // comments) are parsed the same way here — otherwise a
-            // JSON5 manifest that the scanner accepts would be silently
-            // skipped by duplicate detection.
-            // `.json5Allowed` lets JSON5 manifests (some Stardew mods ship
-            // comments / trailing commas) parse. `.allowFragments` was previously
-            // also set but is redundant here — the next line downcasts to a dict,
-            // which a non-object fragment can never satisfy.
-            var options: JSONSerialization.ReadingOptions = []
-            if #available(macOS 12.0, *) {
-                options.insert(.json5Allowed)
-            }
-            guard let cleanData = clean.data(using: .utf8),
-                  let json = try? JSONSerialization.jsonObject(with: cleanData, options: options) as? [String: Any],
+            // Lecture par la source consolidée `ManifestJSON.decode` (X29) :
+            // marque d'ordre des octets retirée, commentaires `//` et `/*…*/`
+            // strippés en étant conscient des chaînes, virgules traînantes
+            // retirées, fragments refusés — la même grammaire que le scan,
+            // l'installation et la sauvegarde. La quatrième copie de cette
+            // règle vivait ici (regex de commentaires bloc + `.json5Allowed`,
+            // aveugle au contexte des chaînes). Parité mesurée sur le parc de
+            // référence avant de basculer : 1 101 manifestes, zéro
+            // divergence, 4 muets des deux côtés.
+            guard let raw = try? String(contentsOf: fileURL, encoding: .utf8),
+                  let json = ManifestJSON.decode(raw),
                   let uid = json.caseInsensitiveValue(forKey: "UniqueID") as? String,
                   !uid.isEmpty else { continue }
             results.append((id: uid, folder: logicalFolder, isEnabled: !isDisabled))

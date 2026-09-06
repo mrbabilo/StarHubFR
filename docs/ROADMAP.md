@@ -80,16 +80,6 @@ les chantiers, **§7** pour la dette technique.
 
 Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées.
 
-- [ ] **X29** — **La détection de doublons sur disque n'a aucun appelant en
-      production** : le ViewModel passe `detectDuplicates: false` et utilise la
-      version en mémoire. La version disque garde donc sa propre lecture de
-      manifeste (regex de commentaires bloc + `.json5Allowed`) au lieu de
-      `ManifestJSON.decode`, quatrième copie d'une règle consolidée ailleurs. La
-      seule divergence nommable — la marque d'octets, présente sur **142 des 1 095
-      manifestes** — a été testée : elle ne se reproduit pas, `JSONSerialization`
-      tolère la marque. Deux tests de parité épinglent le comportement ; unifier
-      serait un changement de comportement sur un chemin sans appelant, donc à ne
-      faire qu'en même temps qu'on lui en donne un (ou qu'on le retire). · **S**
 - [ ] **X32** — **L'installateur SMAPI accepte `--install` / `--uninstall` /
       `--game-path`.** Vérifié dans le binaire 4.5.2 (`"You can't specify both
       --install and --uninstall command-line flags."`, `'You specified --game-path "'`).
@@ -1294,7 +1284,6 @@ corrompre ou faire disparaître quelque chose sans le dire ?* — et non à
 
 **P3 — latent : la condition est vraie, zéro exemplaire sur le parc**
 
-`X29` (détection de doublons sans appelant),
 `X32` (drapeaux de l'installateur SMAPI),
 `F4` (`uniqueId: ""` sur les groupes — chaîne d'exploitation coupée),
 `F6-T1` (course à l'annulation, sans observable), `F6-T3` (deux parseurs du
@@ -1591,6 +1580,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **X28** | 2026-09-06 | Un dossier de résidu OS niché dans un mod était vidé fichier par fichier mais sa coquille restait pour toujours — il part désormais en bloc, comme au premier niveau |
 | **X43** | 2026-09-06 | Le dialogue de conflit de `config.json` n'a jamais existé à l'écran — ses enums et son champ de sélection, vestiges d'une bascule de conception, sont retirés ; la préservation automatique reste le comportement livré |
 | **X45** | 2026-09-06 | Le dépliage des packs restait réécrit à la main en dix sites après la consolidation de `flattenedMods` — `ModItem.components` couvre désormais la forme à un seul mod, et les dix sites l'appellent |
+| **X29** | 2026-09-06 | La détection de doublons sur disque gardait une quatrième copie de la lecture de manifeste (regex aveugle aux chaînes) — elle lit par `ManifestJSON.decode` comme le scan ; parité mesurée : 1 101 manifestes, zéro divergence |
 | **B1-T1** | 2026-08-01 | Boutons Activer/Désactiver et Supprimer sur la fiche mod (parité avec la liste, mêmes confirmations). Absents pour un… |
 | **B1-T2** | 2026-08-01 | Tri, filtres, catégorie, page et recherche portés par ModListFilters dans le ViewModel. La remise à la page 1 est por… |
 

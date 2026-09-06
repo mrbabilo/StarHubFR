@@ -50,6 +50,26 @@ import Testing
 
         #expect(report.duplicates.map(\.uniqueId) == ["dup.mod"])
     }
+
+    @Test func aCommentMarkerInsideAStringValueIsNotStripped() throws {
+        // X29 — la lecture maison strippait `/* … */` par expression régulière,
+        // aveugle au contexte : un identifiant contenant le marqueur était
+        // amputé (« a/*keep*/b » lu « ab »). La détection lit désormais par
+        // `ManifestJSON.decode`, conscient des chaînes — la même lecture que
+        // le scan, l'installation et la sauvegarde. Zéro manifeste du parc ne
+        // porte le cas ; le test épingle le mécanisme, pas un défaut vécu.
+        let env = RepairerTestEnv()
+        defer { env.cleanup() }
+
+        let bytes = #"{"Name":"T","UniqueID":"a/*keep*/b","Version":"1.0.0","Author":"T"}"#
+            .data(using: .utf8)!
+        try writeRawManifest(in: env.modsDir.appendingPathComponent("Mod"), bytes: bytes)
+        try writeRawManifest(in: env.modsDir.appendingPathComponent(".Mod"), bytes: bytes)
+
+        let report = ModFolderRepairer().repairIfNeeded(gameDir: env.gameDir)
+
+        #expect(report.duplicates.map(\.uniqueId) == ["a/*keep*/b"])
+    }
 }
 
 /// **Le balayage profond teste le nom avant de toucher au disque.**

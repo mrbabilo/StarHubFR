@@ -774,6 +774,34 @@ répond. L'ordre et les titres de section sont ceux de la roadmap.
       et la révélation Finder restent. La frontière est la barre oblique du
       nom disputé, pas une garde dérivée du refus de saisie. **1 test
       neuf** (2 297 → 2 298). · **S**
+- [x] **X29** ✅ *(corrigé le 2026-09-06)* — **La détection de doublons sur
+      disque n'a aucun appelant en production.** Le ViewModel passe
+      `detectDuplicates: false` et utilise la version en mémoire — la version
+      disque gardait donc sa propre lecture de manifeste (regex de
+      commentaires bloc + `.json5Allowed`), quatrième copie d'une règle
+      consolidée dans `ManifestJSON.decode`.
+      ▸ **Le tranchage qu'exigeait le constat, par la mesure** : « unifier
+      serait un changement de comportement sur un chemin sans appelant » —
+      la parité des deux lectures a été **mesurée sur le parc réel avant de
+      décider** (harnais compilant le vrai `ManifestJSON.swift` + la
+      réplique exacte de la lecture maison, exécuté sur les manifestes du
+      dossier de jeu) : **1 101 manifestes, 1 101 identiques, 0
+      divergents**, dont 4 muets des deux côtés. Unifier n'est plus un
+      changement de comportement hypothétique : c'est un no-op mesuré.
+      ▸ **La fonction et son défaut `true` restent** : `repairIfNeeded` est
+      un type autonome par design, ses appelants standalone (et les tests)
+      gardent la détection complète. Seule la copie de lecture part —
+      remplacée par `ManifestJSON.decode`, la même grammaire que le scan,
+      l'installation et la sauvegarde. Une grammaire commune n'est pas un
+      détail : un manifeste JSON5 exotique que seule une voie décoderait
+      serait invisible du scan mais compté par la détection — exactement
+      la divergence silencieuse que le constat refusait de créer à moitié.
+      ▸ **La divergence théorique, épinglée par test** : la regex maison
+      strippait `/* … */` **aveugle au contexte des chaînes** — un
+      identifiant contenant le marqueur était amputé (« a/*keep*/b » lu
+      « ab »). Zéro manifeste du parc ne porte le cas ; le test rouge-vert
+      épingle le mécanisme désormais conforme au scan. **1 test neuf**
+      (2 309 → 2 310). Deux gates verts. · **S**
 - [x] **X45** ✅ *(corrigé le 2026-09-06)* — **Le dépliage des packs a
       encore dix copies manuelles.** `flattenedMods` affirmait dans son
       propre en-tête avoir remplacé les 22 réécritures de 2026-08-01 ; il
