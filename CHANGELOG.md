@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.36.2] - 2026-09-06
+
 ### Fixed
 
 - **Une installation propre de SMAPI est enfin détectée.** La présence se jugeait sur `StardewValley-original`, un fichier que l'installateur ne pose qu'en remplaçant une installation antérieure : sur un jeu vierge, l'installation réussissait puis SMAPI paraissait absent au scan suivant, et la désinstallation était refusée. Elle se juge désormais sur `smapi-internal/`, posé et retiré par chaque passage de l'installateur.
