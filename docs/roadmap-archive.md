@@ -24,6 +24,35 @@ répond. L'ordre et les titres de section sont ceux de la roadmap.
 ---
 ## 4. Correctifs identifiés — à traiter en premier
 
+- [x] **R2** ✅ *(livré le 2026-09-06)* — **Écriture atomique + apply guard pour
+      `applyProfileToFilesystem`.** Le constat de la passe du 2026-09-04 disait
+      « aucun instantané au niveau profil » ; la relecture du code en a dit plus :
+      `incompletelyAppliedProfileIds` était un `private var` en mémoire, et le
+      premier `syncActiveProfileIds()` après un crash — n'importe quelle bascule
+      manuelle — **écrivait l'état disque partiel dans le profil**, l'accident
+      maquillé en décision. Mesure du défaut : sur un parc de ~966 mods, une boucle
+      de renommage interrompue au tiers laisse ~300 dossiers du mauvais côté, et
+      le profil actif les réclame comme voulus au premier sync.
+      ▸ **Livré** : garde jeu refus net aux quatre entrées applicatives
+      (`applyProfile`, `updateProfile`, `addModToProfile`, `importFavorites` —
+      la bissection passe à côté, elle gère l'état du jeu elle-même) ;
+      `ProfileApplyJournal` (Core, patron `BisectionSnapshotStore`, écriture
+      `.atomic`, corrompu ⇒ absent) écrit avant la boucle, effacé dans le
+      completion ; adoption et capture bloquées tant qu'il vit ; dialogue de
+      reprise au lancement (présenté après la révélation de la fenêtre, jamais
+      pendant le splash) — « Reprendre » rejoue les déplacements **et** la
+      restauration des configs (le completion que le crash a avalé la portait ;
+      la capture, elle, avait déjà couru), « Garder l'état actuel » adopte
+      explicitement. Quitter ou activer un autre profil tranche implicitement,
+      avec journal. Correctif adjacent : la restauration qui saute jeu ouvert
+      pose enfin le marqueur desync.
+      ▸ **Écarté** : le « backup timestamped » du pattern RimManager (copie de
+      dossiers — dizaines de Go sur le parc ; l'état pré-apply est le plan
+      inverse, quelques Ko, déjà dans le journal pour R5), la « validation
+      post-write » (redondante avec la capture d'échec par déplacement et le
+      rescane systématique), la garde sur la bascule unitaire (autre ampleur,
+      item séparé si demandé). 5 tests Core neufs, 2 325 verts.
+
 - [x] **X1** ❌ *(non reproduit — pas de bug)* — Le copier/coller fonctionne dans le champ
       NexusID comme ailleurs dans l'app (vérifié par l'utilisateur, 2026-07-30). Le menu
       Édition est bien présent. Rien à corriger.

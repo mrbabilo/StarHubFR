@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Un crash pendant une activation de profil ne s'écrit plus dans le profil.** La première bascule après redémarrage adoptait l'état disque partiel comme une décision. Un journal trace chaque application, le lancement propose de reprendre ou d'assumer, et rien ne s'applique tant que le jeu tourne.
+
 ## [1.36.2] - 2026-09-06
 
 ### Fixed

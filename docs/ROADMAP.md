@@ -1260,7 +1260,7 @@ corrompre ou faire disparaître quelque chose sans le dire ?* — et non à
 | ~~1~~ | ~~**X55**~~ | ✅ **Corrigé le 2026-09-04** — politique « on efface tout » tranchée par l'auteur. 35 entrées fantômes mesurées dans les préférences réelles au moment du correctif ; les anciennes restent, les balayer heurterait X25. Voir l'archive |
 | ~~2~~ | ~~**X25**~~ | ✅ **Livré le 2026-09-04** — l'écran « Entretien » : inventaire mesuré (1,80 Go de sauvegardes, 340 dossiers orphelins, 35 clés mortes, 1 seule copie protégée), purge par cran sous confirmation, nettoyage explicite des orphelins et clés — jamais de passe automatique. Voir l'archive |
 | ~~3~~ | ~~**R6**~~ | ✅ **Livré le 2026-09-04** — la règle extraite dans `ProfileApplyPlan` (Core), 10 tests dont la propriété sur 200 parcs engendrés. Verdict : **idempotent**, la seconde passe ne redemande que ce que le disque a refusé. Ce que la propriété a mis au jour : `X60`. Voir l'archive |
-| 4 | **R2** | Un état partiel, pas des octets | `moveItem` **échoue** si la destination existe — il n'écrase pas — et chaque échec est journalisé. Reste vrai : aucune garde « jeu en cours », aucun instantané au niveau profil, des renommages en série interruptibles |
+| ~~4~~ | ~~**R2**~~ | ✅ **Livré le 2026-09-06** — garde jeu (refus net, quatre entrées), journal write-ahead + dialogue de reprise au lancement, blocage de l'adoption silencieuse après crash, desync marqué au saut jeu ouvert. Le « backup timestamped » RimManager écarté : l'état pré-apply = le plan, quelques Ko. Voir l'archive |
 
 **P2 — masque une information, ou en affirme une fausse**
 
@@ -1438,13 +1438,13 @@ sur macOS / SwiftUI. Les features trop spécifiques à RimWorld (Cecil analyzer,
       RimManager : stocker un `paletteIndex: Int` (0–5), interpréter via le thème
       courant au rendu. Bénéfice futur : un thème custom n'a pas à migrer les données.
       · **M** · *à pousser dans l'axe H (cohérence UI), après H-T1.*
-- [ ] **R2** — **Écriture atomique + apply guard pour `applyProfileToFilesystem`.**
-      Pattern RimManager : `guard !isGameRunning` → backup timestamped → write
-      atomique (tmp + rename) → validation post-write. Un crash en cours d'activation
-      de profil peut aujourd'hui laisser l'état partiel (pas de backup de l'état
-      pré-apply au niveau profil — seulement au niveau mod). Réutilise
-      `ModInstallBackupManager` côté backup, ajoute l'atomique.
-      · **M** · *cible F2 (audit sécurité) ou §4 (correctifs X9).*
+- [x] **R2** ✅ *(livré le 2026-09-06)* — **Écriture atomique + apply guard pour
+      `applyProfileToFilesystem`.** Le garde jeu (refus net, quatre entrées), le
+      journal write-ahead et le dialogue de reprise au lancement sont livrés ; le
+      « backup timestamped » du pattern RimManager a été écarté — l'état
+      pré-apply est le plan lui-même, quelques Ko au lieu de dizaines de Go sur
+      le parc. Récit et mesures : archive §4. Spec :
+      `docs/superpowers/specs/2026-09-06-r2-apply-guard-design.md`.
 - [ ] **R3** — **Snooze d'updates Nexus.** Granularité : 1 semaine / jusqu'à prochaine
       version du mod / jusqu'à prochaine version de Stardew. Persiste en UserDefaults,
       expire tout seul, retire le mod de la liste « updates » sans le masquer dans
