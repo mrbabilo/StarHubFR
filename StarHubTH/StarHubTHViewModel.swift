@@ -9103,6 +9103,15 @@ for mod in mods {
             log(String(format: L(L10n.VM.profileConfigsDesynced), name), level: .warning)
             return
         }
+        // R2 : le profil dont l'application s'est arrêtée en chemin tient sur
+        // disque un état dont rien ne dit pour quel profil il est fait —
+        // même règle que le desync ci-dessus : laisser le trou visible plutôt
+        // que maquiller une donnée fausse.
+        if let journal = unresolvedApplyJournal, journal.profileId == profileId {
+            log(String(format: self.L(L10n.VM.profileConfigsSkippedRecovery), journal.profileName),
+                level: .warning)
+            return
+        }
         guard let url = ProfileConfigStore.fileURL(profileId: profileId) else { return }
         var entries = ProfileConfigStore.load(from: url)
         let before = entries
@@ -9213,6 +9222,17 @@ for mod in mods {
         pendingApplyRecovery = nil
     }
 
+    /// Trancher une interruption **sans la reprendre** : l'utilisateur vient
+    /// de faire un choix explicite sur ce profil (quitter, activer un autre,
+    /// « Garder l'état actuel ») — le disque reste tel quel, le journal part,
+    /// le choix est journalisé.
+    func clearUnresolvedJournal(implicitKeepNamed name: String) {
+        ProfileApplyJournalStore.clear()
+        unresolvedApplyJournal = nil
+        pendingApplyRecovery = nil
+        log(String(format: self.L(L10n.VM.profileRecoveryImplicitKeep), name), level: .warning)
+    }
+
     /// Le garde des entrées qui **appliquent un profil au disque**.
     ///
     /// Deux refus, chacun avec son message : le jeu ouvert (une application
@@ -9250,7 +9270,15 @@ for mod in mods {
             // Quitter un profil sans en prendre un autre est une transition
             // réelle : le config est capturé au crédit du profil qu'on quitte,
             // même si aucun dossier ne bouge.
-            if let leaving = activeProfileId { captureProfileConfigs(for: leaving) }
+            if let leaving = activeProfileId {
+                captureProfileConfigs(for: leaving)
+                // R2 : quitter le profil journalisé tranche la question posée
+                // par le crash — sinon le prochain lancement re-proposerait de
+                // reprendre un profil explicitement quitté.
+                if let journal = unresolvedApplyJournal, journal.profileId == leaving {
+                    clearUnresolvedJournal(implicitKeepNamed: journal.profileName)
+                }
+            }
             syncProfileConfigsDesyncMarker(entering: nil)
             activeProfileId = nil
             saveProfiles()
@@ -9271,6 +9299,12 @@ for mod in mods {
         // Activation is exclusive: setting activeProfileId below replaces any
         // previously-active profile (only one can be active at a time).
         if activeProfileId == id {
+            // R2 : le re-clic du profil journalisé re-présente le résolveur —
+            // sinon le garde de syncActiveProfileIds rendrait le geste muet.
+            if let journal = unresolvedApplyJournal, journal.profileId == id {
+                pendingApplyRecovery = journal
+                return
+            }
             if incompletelyAppliedProfileIds.contains(id) {
                 // La dernière application s'est arrêtée en chemin. Re-cliquer
                 // le profil actif est le seul geste de reprise offert (le
@@ -9291,6 +9325,13 @@ for mod in mods {
         // Capture AVANT tout : le disque porte encore les réglages du profil
         // sortant. C'est la seule fenêtre où ils existent.
         if let leaving = activeProfileId { captureProfileConfigs(for: leaving) }
+        // R2 : activer un autre profil ferme aussi la question posée par le
+        // crash — capture bloquée ci-dessus (le disque n'est pas attribuable
+        // au sortant), puis journal effacé avant que celui du profil entrant
+        // ne s'écrive.
+        if let journal = unresolvedApplyJournal, journal.profileId != id {
+            clearUnresolvedJournal(implicitKeepNamed: journal.profileName)
+        }
         syncProfileConfigsDesyncMarker(entering: id)
         activeProfileId = id
         saveProfiles()
@@ -10267,6 +10308,15 @@ for mod in mods {
     func syncActiveProfileIds() {
         guard let id = activeProfileId,
               let index = modProfiles.firstIndex(where: { $0.id == id }) else { return }
+
+        // R2 : adopter l'état du disque tant qu'une application est morte en
+        // route, c'est écrire l'accident dans le profil — le mod resté actif
+        // faute d'avoir pu bouger deviendrait un mod que le profil *demande*.
+        if let journal = unresolvedApplyJournal, journal.profileId == id {
+            log(String(format: self.L(L10n.VM.profileAdoptionBlockedJournal), journal.profileName),
+                level: .warning)
+            return
+        }
 
         let enabledMods = mods.flattenedMods.filter(\.isEnabled).filter { !$0.uniqueId.isEmpty }
 
