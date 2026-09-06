@@ -2117,6 +2117,10 @@ class StarHubTHViewModel: ObservableObject {
         // Seed the first launch step label synchronously so the overlay never
         // shows an empty string before the first async hop lands.
         self.launchStep = self.L(L10n.Main.launchStepInit)
+        // R2 : une application de profil morte en route ? Le journal est lu
+        // ici, mais il ne sera **présenté** qu'une fois la fenêtre révélée
+        // (voir `surfaceApplyRecoveryIfNeeded`, appelée par StarHubFRApp).
+        unresolvedApplyJournal = ProfileApplyJournalStore.load()
         // IMPORTANT: everything below `performInitialLoad()` runs on a
         // background thread; this `init()` returns as fast as possible so the
         // app window can render the launch overlay without waiting for any
@@ -8365,6 +8369,12 @@ for mod in mods {
     /// révélation de la fenêtre.
     private(set) var unresolvedApplyJournal: ProfileApplyJournal?
 
+    /// R2 — le dialogue de reprise, présenté une fois la fenêtre révélée —
+    /// jamais pendant le splash : un dialogue attaché à une fenêtre hors
+    /// écran ne se présente pas, et le cycle de lancement est un terrain
+    /// documenté comme meurtrier.
+    @Published private(set) var pendingApplyRecovery: ProfileApplyJournal?
+
     /// One-time: on a fresh install, create a starter profile capturing the
     /// current mod setup so there's always an active profile to work from.
     /// Guarded by a persisted flag so deleting every profile later never
@@ -9003,7 +9013,7 @@ for mod in mods {
         )
         let savedActiveProfile = activeProfileId
         activeProfileId = nil
-        applyProfileToFilesystem(profile: ephemeral) { [weak self] moveFailures in
+        applyProfileToFilesystem(profile: ephemeral, journaling: false) { [weak self] moveFailures in
             self?.activeProfileId = savedActiveProfile
             completion(BisectionRestoreOutcome(moveFailures: moveFailures))
         }
@@ -9187,6 +9197,22 @@ for mod in mods {
         }
     }
 
+    // MARK: - R2 : reprise d'une application interrompue
+
+    /// À appeler une fois la fenêtre principale révélée — le point établi
+    /// qui délivre aussi les liens `nxm://` en attente. Idempotent : ne
+    /// re-présente pas un dialogue déjà là.
+    func surfaceApplyRecoveryIfNeeded() {
+        guard pendingApplyRecovery == nil else { return }
+        pendingApplyRecovery = unresolvedApplyJournal
+    }
+
+    /// Fermer le dialogue sans trancher : le journal reste, l'alerte reviendra
+    /// au prochain lancement, l'adoption demeure bloquée en attendant.
+    func dismissApplyRecovery() {
+        pendingApplyRecovery = nil
+    }
+
     /// Le garde des entrées qui **appliquent un profil au disque**.
     ///
     /// Deux refus, chacun avec son message : le jeu ouvert (une application
@@ -9294,6 +9320,7 @@ for mod in mods {
     ///   d'une application partielle — et la bissection y jetterait l'instantané
     ///   qui aurait permis de rattraper une modlist restée à moitié en pause.
     private func applyProfileToFilesystem(profile: ModProfile,
+                                          journaling: Bool = true,
                                           completion: ((_ moveFailures: Int) -> Void)? = nil) {
         // Mark an application in progress so `applyProfile` refuses to start a
         // second one and the UI disables the Activate/Manage buttons until the
@@ -9336,6 +9363,20 @@ for mod in mods {
 
         let profileName = profile.name
         let profileId = profile.id
+
+        // R2 : le journal dit « cette boucle existe » à tout lancement futur.
+        // Écrit avant le moindre déplacement, effacé dans le completion — sa
+        // présence ne signifie qu'une chose : la boucle est morte en route.
+        // La bissection passe `journaling: false` : profil éphémère, et son
+        // propre BisectionSnapshotStore couvre ses interruptions.
+        if journaling {
+            let journal = ProfileApplyJournal(profileId: profileId,
+                                              profileName: profileName,
+                                              startedAt: Date(),
+                                              moves: moves)
+            ProfileApplyJournalStore.save(journal)
+            unresolvedApplyJournal = journal
+        }
         // Le total est connu d'avance : la barre est déterminée dès le premier
         // dossier. Publié avant le dispatch pour que le voile soit là au
         // premier rendu, sans clignotement.
@@ -9464,6 +9505,15 @@ for mod in mods {
             // whatever it is after partial failures.
             self.scanMods()
             DispatchQueue.main.async {
+                // R2 : la boucle est allée au bout (échecs de déplacement
+                // compris — ceux-là vivent dans `incompletelyAppliedProfileIds`).
+                // Le journal ne couvre que le crash ; il part **avant** le
+                // sync ci-dessous, sinon le garde d'adoption bloquerait un
+                // succès.
+                if journaling {
+                    ProfileApplyJournalStore.clear()
+                    self.unresolvedApplyJournal = nil
+                }
                 self.profileApplyProgress = nil
                 // Le profil actif ne suit le disque que si l'application a
                 // abouti. Un déplacement en échec — dossier tenu ouvert,

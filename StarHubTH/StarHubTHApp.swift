@@ -146,6 +146,9 @@ struct StarHubTHApp: App {
                         // avant tout `show()`. Il délivre lui-même les liens
                         // en attente, via `onReveal` posé ci-dessus.
                         LaunchSplashController.shared.finish()
+                        // R2 : la fenêtre est révélée — c'est le moment de
+                        // présenter le dialogue de reprise, s'il y en a un.
+                        vm.surfaceApplyRecoveryIfNeeded()
                     }
                 }
                 // The splash lives in its own window now, so there's no
@@ -159,6 +162,10 @@ struct StarHubTHApp: App {
                         // besoin d'une fenêtre principale à l'écran pour s'y
                         // attacher — et pour pouvoir être refermée.
                         LaunchSplashController.shared.finish()
+                        // R2 : la fenêtre est révélée — même point que la
+                        // livraison des liens nxm://. Un dialogue présenté
+                        // pendant le splash ne s'afficherait pas.
+                        vm.surfaceApplyRecoveryIfNeeded()
                     }
                 }
         }
