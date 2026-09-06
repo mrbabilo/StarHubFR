@@ -30,6 +30,7 @@ let package = Package(
                 "Models/NexusRequestBuilder.swift",
                 "Models/SmapiInstallerLimits.swift",
                 "Models/SmapiInstallerInvocation.swift",
+                "Models/SmapiInstallMarker.swift",
                 "Models/SmapiVersionEvidence.swift",
                 "Models/RequestEpoch.swift",
                 "Models/NexusRateLimitGate.swift",
@@ -281,6 +282,11 @@ let package = Package(
             name: "SmapiInstallerInvocationTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/SmapiInstallerInvocationTests"
+        ),
+        .testTarget(
+            name: "SmapiInstallMarkerTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/SmapiInstallMarkerTests"
         ),
         .testTarget(
             name: "ModFolderRepairerTests",

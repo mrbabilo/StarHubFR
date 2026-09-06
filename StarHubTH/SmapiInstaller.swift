@@ -16,7 +16,8 @@ class SmapiInstaller: ObservableObject {
     /// File `install()` writes on success, holding the plain version string
     /// (e.g. "4.5.2") of the release it just installed — see
     /// `runOfficialInstaller`'s doc comment for why this exists.
-    private static let installedVersionMarkerRelativePath = "smapi-internal/.starhubth-installed-version"
+    private static let installedVersionMarkerRelativePath =
+        "\(SmapiInstallMarker.folderName)/.starhubth-installed-version"
 
     /// La date d'écriture d'un fichier, ou `nil` s'il est absent ou illisible.
     /// C'est elle qui départage le marqueur et le journal : sans date, une
@@ -28,10 +29,14 @@ class SmapiInstaller: ObservableObject {
     // Check if SMAPI is installed in the Stardew Valley MacOS directory
     static func getInstalledVersion(gameDir: String) -> String? {
         let fm = FileManager.default
-        let originalPath = (gameDir as NSString).appendingPathComponent("StardewValley-original")
 
-        // SMAPI must have replaced the launcher
-        guard fm.fileExists(atPath: originalPath) else { return nil }
+        // Le marqueur fiable de présence est `smapi-internal/` (X77) : posé
+        // par chaque installation, retiré par chaque désinstallation. La
+        // garde testait `StardewValley-original`, qu'une installation
+        // **propre** ne pose jamais (mesuré sur installation de contrôle du
+        // binaire 4.5.2) — SMAPI paraissait absent juste après avoir été
+        // installé sur un jeu vierge.
+        guard SmapiInstallMarker.isPresent(gameDir: gameDir, fm: fm) else { return nil }
 
         // Les deux sources sont lues, puis départagées par leur date
         // d'écriture (`SmapiVersionEvidence`) : le marqueur seul mentait
@@ -126,9 +131,11 @@ class SmapiInstaller: ObservableObject {
     // simple and correct; uninstalling isn't a hot path.
     func uninstall(gameDir: String, completion: @escaping (Bool, String, String?) -> Void) {
         let fm = FileManager.default
-        let originalPath = (gameDir as NSString).appendingPathComponent("StardewValley-original")
 
-        guard fm.fileExists(atPath: originalPath) else {
+        // Même marqueur que `getInstalledVersion` (X77) : une installation
+        // **propre** ne pose pas `StardewValley-original`, l'ancienne garde
+        // refusait donc de désinstaller ce que l'app venait d'installer.
+        guard SmapiInstallMarker.isPresent(gameDir: gameDir, fm: fm) else {
             completion(false, L10n.Smapi.notFound, nil)
             return
         }
@@ -449,7 +456,7 @@ class SmapiInstaller: ObservableObject {
         }
 
         let fm = FileManager.default
-        let smapiInternalPath = (gameDir as NSString).appendingPathComponent("smapi-internal")
+        let smapiInternalPath = (gameDir as NSString).appendingPathComponent(SmapiInstallMarker.folderName)
 
         switch action {
         case .install:

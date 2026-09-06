@@ -79,19 +79,6 @@ les chantiers, **§7** pour la dette technique.
 ## 4. Correctifs identifiés — à traiter en premier
 
 Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées.
-
-- [ ] **X77** — **Une installation propre de SMAPI est indétectable par
-      l'app.** `getInstalledVersion` exige `StardewValley-original` (garde avant
-      même de lire le marqueur de version) et la garde de `uninstall()` teste le
-      même fichier — or une installation **propre** de SMAPI 4.5.2 ne le pose
-      pas : mesuré le 2026-09-06 sur une installation de contrôle, le fichier
-      n'apparaît qu'en remplaçant une installation SMAPI antérieure. Sur un jeu
-      vierge : l'installeur de l'app réussit (« SMAPI is installed! ») mais au
-      scan suivant SMAPI paraît absent — réinstallation en boucle possible, et
-      désinstallation impossible depuis l'app. Le marqueur fiable existe :
-      `smapi-internal/`, posé à chaque installation et retiré à chaque
-      désinstallation (mesuré). Latent sur le parc de l'auteur (son dossier
-      porte le fichier). · **S**
 ---
 
 
@@ -1585,6 +1572,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **X45** | 2026-09-06 | Le dépliage des packs restait réécrit à la main en dix sites après la consolidation de `flattenedMods` — `ModItem.components` couvre désormais la forme à un seul mod, et les dix sites l'appellent |
 | **X29** | 2026-09-06 | La détection de doublons sur disque gardait une quatrième copie de la lecture de manifeste (regex aveugle aux chaînes) — elle lit par `ManifestJSON.decode` comme le scan ; parité mesurée : 1 101 manifestes, zéro divergence |
 | **X32** | 2026-09-06 | L'installateur SMAPI se pilotait par quatre réponses à l'aveugle dont l'ordre était supposé stable — invoqué par ses drapeaux `--install/--uninstall --game-path`, une seule question reste et un dossier refusé rend son diagnostic |
+| **X77** | 2026-09-06 | La présence de SMAPI se jugeait sur `StardewValley-original`, jamais posé par une installation propre — elle se juge désormais sur `smapi-internal/`, partagé avec les preuves de réussite de l'installateur |
 | **B1-T1** | 2026-08-01 | Boutons Activer/Désactiver et Supprimer sur la fiche mod (parité avec la liste, mêmes confirmations). Absents pour un… |
 | **B1-T2** | 2026-08-01 | Tri, filtres, catégorie, page et recherche portés par ModListFilters dans le ViewModel. La remise à la page 1 est por… |
 

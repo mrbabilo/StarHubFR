@@ -14,6 +14,8 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **Une installation propre de SMAPI est enfin détectée.** La présence se jugeait sur `StardewValley-original`, un fichier que l'installateur ne pose qu'en remplaçant une installation antérieure : sur un jeu vierge, l'installation réussissait puis SMAPI paraissait absent au scan suivant, et la désinstallation était refusée. Elle se juge désormais sur `smapi-internal/`, posé et retiré par chaque passage de l'installateur.
+
 - **L'installateur SMAPI est piloté par ses drapeaux officiels.** L'app lui répondait à l'aveugle à quatre questions dont l'ordre était supposé stable ; un dossier sans jeu déclenchait le coupe-circuit de secours. L'action et le dossier de jeu se déclarent désormais sur sa ligne de commande — plus qu'une question reste, et un dossier refusé rend son diagnostic propre.
 
 - **Un dossier `__MACOSX` niché dans un mod part enfin en entier.** Le balayage profond ne déplaçait que les fichiers de résidu, un par un : la coquille du dossier restait pour toujours. Un dossier de résidu OS niché — `__MACOSX`, `.Spotlight-V100`, `.Trashes` — part désormais en bloc, comme au premier niveau.
