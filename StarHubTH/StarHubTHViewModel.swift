@@ -8356,6 +8356,15 @@ for mod in mods {
     /// ne l'est plus, et l'utilisateur réapplique.
     private var incompletelyAppliedProfileIds: Set<UUID> = []
 
+    /// R2 — le journal d'une application morte en route (crash, force-quit),
+    /// chargé au lancement et maintenu par écriture/effacement dans
+    /// `applyProfileToFilesystem`. Contrairement au set ci-dessus, il
+    /// **survit** au redémarrage : c'est lui qui empêche l'adoption
+    /// silencieuse de l'état partiel par `syncActiveProfileIds`. Non publié :
+    /// sa présentation passe par `pendingApplyRecovery`, différée à la
+    /// révélation de la fenêtre.
+    private(set) var unresolvedApplyJournal: ProfileApplyJournal?
+
     /// One-time: on a fresh install, create a starter profile capturing the
     /// current mod setup so there's always an active profile to work from.
     /// Guarded by a persisted flag so deleting every profile later never
@@ -8615,6 +8624,9 @@ for mod in mods {
     /// ajoutant une dépendance manquante, que le mod se remette à tourner.
     func addModToProfile(id: UUID, uniqueId: String) {
         guard let index = modProfiles.firstIndex(where: { $0.id == id }) else { return }
+        // R2 : le geste « ajouter la dépendance manquante » applique au
+        // disque quand le profil est actif — mêmes gardes que l'activation.
+        guard guardProfileApply(for: id, name: modProfiles[index].name) else { return }
         let key = uniqueId.lowercased()
         guard !modProfiles[index].enabledModIds.contains(where: { $0.lowercased() == key }) else { return }
 
@@ -8818,6 +8830,12 @@ for mod in mods {
         guard let index = modProfiles.firstIndex(where: { $0.id == profileId }) else {
             return FavoriteResolution.Result(ids: [], unresolved: [])
         }
+        // R2 : avant la moindre mutation — ce flux écrit `modMetadata` avant
+        // d'appeler `updateProfile`, qui réapplique au disque sur un profil
+        // actif ; un refus après coup laisserait un demi-état en mémoire.
+        guard guardProfileApply(for: profileId, name: modProfiles[index].name) else {
+            return FavoriteResolution.Result(ids: [], unresolved: [])
+        }
         let resolution = FavoriteResolution.profileIds(
             favorites: favoriteMods, in: mods,
             existing: modProfiles[index].enabledModIds)
@@ -8876,6 +8894,11 @@ for mod in mods {
     }
     
     func updateProfile(id: UUID, newName: String, enabledModIds: [String]) {
+        // R2 : l'édition d'un profil actif se termine par une application au
+        // disque (branche ci-dessous) — mêmes gardes que l'activation. Sur un
+        // profil non actif, `guardProfileApply` est permissif : rien ne
+        // bouge, l'édition passe.
+        guard guardProfileApply(for: id, name: newName) else { return }
         if let index = modProfiles.firstIndex(where: { $0.id == id }) {
             modProfiles[index].name = newName
             modProfiles[index].enabledModIds = enabledModIds
@@ -9164,6 +9187,33 @@ for mod in mods {
         }
     }
 
+    /// Le garde des entrées qui **appliquent un profil au disque**.
+    ///
+    /// Deux refus, chacun avec son message : le jeu ouvert (une application
+    /// déplace des centaines de dossiers d'un coup — la bissection refuse
+    /// pour la même raison), et le journal d'interruption du profil lui-même
+    /// (éditer un profil à moitié appliqué, c'est appliquer un état neuf sur
+    /// un accident). Permissif et silencieux quand l'appelant ne déclenchera
+    /// de toute façon pas de déplacement (profil non actif, non journalisé).
+    private func guardProfileApply(for profileId: UUID, name: String) -> Bool {
+        guard activeProfileId == profileId || unresolvedApplyJournal?.profileId == profileId else {
+            return true
+        }
+        if isGameRunning() {
+            let message = String(format: self.L(L10n.VM.profileApplyRefusedGame), name)
+            log(message, level: .warning)
+            showModal(message: message)
+            return false
+        }
+        if let journal = unresolvedApplyJournal, journal.profileId == profileId {
+            let message = String(format: self.L(L10n.VM.profileEditBlockedRecovery), name)
+            log(message, level: .warning)
+            showModal(message: message)
+            return false
+        }
+        return true
+    }
+
     func applyProfile(id: UUID?) {
         // Serialize activations: refuse to start a new one while a previous
         // profile is still being applied (mod folders being renamed /
@@ -9178,6 +9228,17 @@ for mod in mods {
             syncProfileConfigsDesyncMarker(entering: nil)
             activeProfileId = nil
             saveProfiles()
+            return
+        }
+
+        // R2 : activer un profil déplace des centaines de dossiers — refus net
+        // tant que le jeu tourne, avant la moindre mutation (capture,
+        // activeProfileId, saveProfiles). La bissection passe par ailleurs :
+        // elle gère elle-même l'état du jeu et appelle le cœur directement.
+        if isGameRunning() {
+            let message = String(format: self.L(L10n.VM.profileApplyRefusedGame), profile.name)
+            log(message, level: .warning)
+            showModal(message: message)
             return
         }
 

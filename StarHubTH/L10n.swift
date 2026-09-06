@@ -1198,6 +1198,8 @@ enum L10n {
         static let applyProfilePartial  = "vm_apply_profile_partial"
         static let applyProfileMoveFail = "vm_apply_profile_move_fail"
         static let applyProfileMissing  = "vm_apply_profile_missing"
+        static let profileApplyRefusedGame = "vm_profile_apply_refused_game"
+        static let profileEditBlockedRecovery = "vm_profile_edit_blocked_recovery"
         static let profileConfigsCaptured   = "vm_profile_configs_captured"
         static let profileConfigsRestored   = "vm_profile_configs_restored"
         static let profileConfigsMerged    = "vm_profile_configs_merged"

@@ -560,6 +560,8 @@
   "vm_cannot_run_zip": "Failed to run zip command",
   "vm_apply_profile_error": "Failed to apply mod profile \"%@\". %lld mod(s) could not be moved and may be in an inconsistent state. Check the logs for details.",
   "vm_apply_profile_partial": "Profile \"%@\" applied, but %lld mod(s) could not be moved and were left in their previous location. Check the logs for details.",
+  "vm_profile_apply_refused_game": "Stardew Valley is running — close it before applying profile \"%@\".",
+  "vm_profile_edit_blocked_recovery": "Profile \"%@\" still has an interrupted apply pending. Resolve it first — click the active profile to bring the prompt back.",
   "vm_apply_profile_move_fail": "Mod \"%@\" could not be moved (%@): %@",
   "vm_apply_profile_missing": "Profile \"%@\" references %lld mod(s) that are not installed: %@",
   "vm_profile_configs_captured": "Configs remembered for profile \"%@\": %lld mod(s)",
