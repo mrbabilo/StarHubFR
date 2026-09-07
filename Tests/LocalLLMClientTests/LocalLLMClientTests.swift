@@ -309,7 +309,7 @@ struct LocalLLMClientTests {
         #expect(messages.last?["content"] as? String == source)   // la source seule
     }
 
-        @Test func maxTokensIsClamped() async throws {
+    @Test func maxTokensIsClamped() async throws {
         // X85 : la sortie n'est plus plafonnée à 1024 — un dialogue de 800
         // caractères (fréquent dans le corpus) se traduisait en `finish_reason
         // = length` et la traduction était jetée. La règle est 2 × source.count,
