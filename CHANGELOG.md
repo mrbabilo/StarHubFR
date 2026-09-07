@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+
+- **Les mises à jour Nexus se mettent en veille — et la veille expire toute seule.** L'écran des updates propose maintenant de snoozer un mod : une semaine, jusqu'à ce que Nexus publie une version différente, ou jusqu'à la prochaine version du jeu. L'identité du snooze est l'UniqueID — jamais l'identifiant Nexus (58 partages sur le parc réel) ni le nom de dossier (un renommage ne réveille pas une veille). Un bouton « réactiver » réveille sur clic ; les trois modes expirent à leur tour sans intervention, paresseusement, à l'usage. Le mod reste dans l'inventaire, seul l'update quitte la liste.
+
 ### Fixed
 
 - **Un crash pendant une activation de profil ne s'écrit plus dans le profil.** La première bascule après redémarrage adoptait l'état disque partiel comme une décision. Un journal trace chaque application, le lancement propose de reprendre ou d'assumer, et rien ne s'applique tant que le jeu tourne.
