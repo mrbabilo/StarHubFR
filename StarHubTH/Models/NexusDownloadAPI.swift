@@ -168,9 +168,16 @@ enum NexusDownloadAPI {
     static func downloadLinkEndpoint(game: String, modId: Int, fileId: Int, key: String?, expires: Int?) -> String {
         let base = "/games/\(game)/mods/\(modId)/files/\(fileId)/download_link.json"
         if let key = key, let expires = expires {
-            // Percent-encode the key so a value containing &, =, or + can't
-            // break the query (Nexus keys are alphanumeric today, but be safe).
-            let allowed = CharacterSet.urlQueryAllowed.subtracting(CharacterSet(charactersIn: "&=+"))
+            // Percent-encode the key so a value containing a query separator
+            // can't break the URL. La liste noire couvre les séparateurs
+            // reconnus par RFC 3986 §3.4 — `&` sépare les paires, `=` sépare
+            // clé/valeur, `+` est l'espace encodé en query, `;` sépare les
+            // paramètres (rejeté par certains serveurs/proxies), et `%` doit
+            // être encodé pour ne pas être réinterprété comme un préfixe
+            // d'escape. Aujourd'hui les clés `nxm://` sont alphanumériques
+            // (vérifié par `check_sources.py`), donc aucun encodage effectif ;
+            // la liste noire ferme un trou latent si Nexus changeait le format.
+            let allowed = CharacterSet.urlQueryAllowed.subtracting(CharacterSet(charactersIn: "&=+;%"))
             let encodedKey = key.addingPercentEncoding(withAllowedCharacters: allowed) ?? key
             return "\(base)?key=\(encodedKey)&expires=\(expires)"
         }

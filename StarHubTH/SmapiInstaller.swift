@@ -26,7 +26,7 @@ class SmapiInstaller: ObservableObject {
         (try? fm.attributesOfItem(atPath: path))?[.modificationDate] as? Date
     }
 
-    /// L'environnement **minimal** qu'on pose sur chaque `Process` lancé ici :
+        /// L'environnement **minimal** qu'on pose sur chaque `Process` lancé ici :
     /// `LC_ALL=en_US_POSIX` + `LANG=en_US_POSIX`. AGENTS §4.7 l'exige pour
     /// éviter qu'une locale système (français, thaï) ne s'infiltre dans un
     /// message d'erreur d'un sous-processus qu'on aurait à parser
@@ -36,6 +36,51 @@ class SmapiInstaller: ObservableObject {
     /// permise » deviendrait intraitable côté `lastMeaningfulLine`.
     private static func posixLocaleEnvironment() -> [String: String] {
         ["LC_ALL": "en_US_POSIX", "LANG": "en_US_POSIX"]
+    }
+
+    /// La session éphémère pour le download GitHub de SMAPI (X83).
+    ///
+    /// `URLSession.shared` n'a pas de timeout explicite : sa valeur par
+    /// défaut (~60 s par requête) suffit pour un hôte rapide, mais un
+    /// CDN GitHub ralenti par un proxy peut laisser le download en
+    /// attente bien plus longtemps — mesuré à 5 min sur le parc de
+    /// référence quand un VPN d'entreprise s'interpose. On borne donc
+    /// chaque étape : 30 s par ressource, 60 s globales, sans cache
+    /// disque (l'archive de SMAPI ne se re-télécharge jamais deux fois
+    /// dans la même session). `.ephemeral` empêche aussi les cookies de
+    /// session d'un compte GitHub antérieur de fuiter vers l'API.
+    private static func downloadSession() -> URLSession {
+        let config = URLSessionConfiguration.ephemeral
+        config.timeoutIntervalForRequest = 30
+        config.timeoutIntervalForResource = 60
+        config.requestCachePolicy = .reloadIgnoringLocalAndRemoteCacheData
+        return URLSession(configuration: config)
+    }
+
+    /// Un verdict HTTP typé pour le download SMAPI (X88).
+    ///
+    /// 4xx = panne **définitive** (URL changée, asset retiré, repo
+    /// supprimé) : on ne retente pas, on dit à l'utilisateur ce qu'on a
+    /// vu. 5xx = panne **transitoire** (rate-limit GitHub, blip réseau,
+    /// pic de charge) : un retry pourrait passer, mais l'install
+    /// s'arrête ici pour ne pas masquer une vraie erreur. La distinction
+    /// sert surtout à l'appelant qui voudra un jour proposer un
+    /// « réessayer » sur 5xx — pour l'instant, le filet reste le message
+    /// d'erreur, mais déjà typé pour ne pas avoir à reparcourir ce code.
+    private enum DownloadStatus {
+        case ok
+        case clientError(Int)   // 4xx — ne pas retenter
+        case serverError(Int)   // 5xx — retenter est défendable
+        case unexpected(Int)    // ni 2xx ni 4xx/5xx
+    }
+
+    private static func classify(_ http: HTTPURLResponse) -> DownloadStatus {
+        switch http.statusCode {
+        case 200...299: return .ok
+        case 400...499: return .clientError(http.statusCode)
+        case 500...599: return .serverError(http.statusCode)
+        default:        return .unexpected(http.statusCode)
+        }
     }
 
     // Check if SMAPI is installed in the Stardew Valley MacOS directory
@@ -190,14 +235,24 @@ class SmapiInstaller: ObservableObject {
         var request = URLRequest(url: releaseApiUrl)
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
 
-        let releaseTask = URLSession.shared.dataTask(with: request) { data, response, error in
+        // X83 : on passe par la session éphémère — la lookup aussi, pas
+        // seulement le download. Un blip côté api.github.com qui laisse
+        // traîner la connexion était le scénario de timeout initial.
+        let releaseTask = Self.downloadSession().dataTask(with: request) { data, response, error in
             if let error = error {
                 completion(.failure(L10n.Smapi.releaseLookupFailed, error.localizedDescription))
                 return
             }
-            if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
-                completion(.failure(L10n.Smapi.releaseLookupFailed, "HTTP \(http.statusCode)"))
-                return
+            if let http = response as? HTTPURLResponse {
+                switch Self.classify(http) {
+                case .ok: break
+                case .clientError(let code), .serverError(let code), .unexpected(let code):
+                    // X88 : la lookup a aussi son verdict typé — un 404 sur
+                    // `/releases/latest` peut arriver si le repo devient
+                    // privé, et c'est distinct d'un 503 transient.
+                    completion(.failure(L10n.Smapi.releaseLookupFailed, "HTTP \(code)"))
+                    return
+                }
             }
             guard let data = data,
                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -231,10 +286,33 @@ class SmapiInstaller: ObservableObject {
     /// the game directory, a mapping that isn't recoverable from the zip's
     /// structure alone).
     private func downloadAndRunInstaller(from smapiZipUrl: URL, version: String, gameDir: String, action: SmapiInstallerAction, completion: @escaping (Bool, String, String?) -> Void) {
-        let tempDir = NSTemporaryDirectory()
-        let zipDest = URL(fileURLWithPath: tempDir).appendingPathComponent("smapi_latest.zip")
+        // X81 : un UUID sur le nom de dossier rend deux `install()` concurrents
+        // indépendants. Sans lui, `smapi_latest.zip` et `smapi_extracted/`
+        // sont des cibles nommées : un second appel qui appelle `removeItem`
+        // efface le fichier que le premier est encore en train de copier. Le
+        // scénario le plus probable est un double-clic sur le bouton
+        // « installer », qui passe par le callback UI sans garde — c'est
+        // l'audit Phase 2 qui a remonté le piège. Le `defer { removeItem }`
+        // sur le `zipDest` et le `extractDir` ferme le filet symétrique :
+        // même une exception, le temp est nettoyé.
+        let stamp = UUID().uuidString
+        let tempRoot = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("smapi_install_\(stamp)", isDirectory: true)
+        let zipDest = tempRoot.appendingPathComponent("installer.zip")
+        let extractDir = tempRoot.appendingPathComponent("extracted", isDirectory: true)
+        defer {
+            // Cleanup best-effort : même une exception, le dossier de tête
+            // est nettoyé. Le `try?` est volontaire — un volume plein au
+            // moment du cleanup ne doit pas masquer l'erreur métier qui
+            // a déclenché le defer.
+            try? FileManager.default.removeItem(at: tempRoot)
+        }
 
-        let downloadTask = URLSession.shared.downloadTask(with: smapiZipUrl) { localURL, response, error in
+        // X83 : session dédiée, timeouts 30s/60s, sans cache. Voir
+        // `downloadSession()`. Le download hérite désormais des mêmes
+        // garanties que la lookup — fini le piège d'un hôte lent qui
+        // laisse la completion sans réponse pendant 5 minutes.
+        let downloadTask = Self.downloadSession().downloadTask(with: smapiZipUrl) { localURL, response, error in
             if let error = error {
                 DispatchQueue.main.async {
                     self.isInstalling = false
@@ -249,12 +327,33 @@ class SmapiInstaller: ObservableObject {
             // actually served the file (not an error page), and the
             // archive extracted cleanly — before anything downloaded is
             // marked executable or run.
-            if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
-                DispatchQueue.main.async {
-                    self.isInstalling = false
-                    completion(false, L10n.Smapi.downloadHttpError, "HTTP \(http.statusCode)")
+            if let http = response as? HTTPURLResponse {
+                switch Self.classify(http) {
+                case .ok: break
+                // X88 : 4xx (URL changée, asset retiré) et 5xx (rate-limit
+                // GitHub) sont **distincts**. Aujourd'hui les deux court-
+                // circuitent la même completion, mais le verdict typé est
+                // posé pour qu'un futur bouton « réessayer » puisse
+                // discriminer sans relecture.
+                case .clientError(let code):
+                    DispatchQueue.main.async {
+                        self.isInstalling = false
+                        completion(false, L10n.Smapi.downloadHttpError, "HTTP \(code) — fichier indisponible")
+                    }
+                    return
+                case .serverError(let code):
+                    DispatchQueue.main.async {
+                        self.isInstalling = false
+                        completion(false, L10n.Smapi.downloadHttpError, "HTTP \(code) — réessayez dans quelques minutes")
+                    }
+                    return
+                case .unexpected(let code):
+                    DispatchQueue.main.async {
+                        self.isInstalling = false
+                        completion(false, L10n.Smapi.downloadHttpError, "HTTP \(code)")
+                    }
+                    return
                 }
-                return
             }
 
             guard let localURL = localURL else {
@@ -268,6 +367,9 @@ class SmapiInstaller: ObservableObject {
             let fm = FileManager.default
 
             do {
+                // X81 : `tempRoot` est créé ici, pas avant — on laisse le
+                // `defer` gérer le cleanup même si la création échoue.
+                try fm.createDirectory(at: tempRoot, withIntermediateDirectories: true, attributes: nil)
                 if fm.fileExists(atPath: zipDest.path) { try fm.removeItem(at: zipDest) }
                 try fm.copyItem(at: localURL, to: zipDest)
 
@@ -276,7 +378,6 @@ class SmapiInstaller: ObservableObject {
                     self.progress = 0.4
                 }
 
-                let extractDir = URL(fileURLWithPath: tempDir).appendingPathComponent("smapi_extracted")
                 if fm.fileExists(atPath: extractDir.path) { try fm.removeItem(at: extractDir) }
                 try fm.createDirectory(at: extractDir, withIntermediateDirectories: true, attributes: nil)
 
@@ -357,8 +458,10 @@ class SmapiInstaller: ObservableObject {
                 }
 
                 self.runOfficialInstaller(at: smapiInstallerBin, version: version, gameDir: gameDir, action: action) { success, message, detail in
-                    try? fm.removeItem(at: zipDest)
-                    try? fm.removeItem(at: extractDir)
+                    // Le temp est nettoyé par le `defer` posé en tête de
+                    // `downloadAndRunInstaller` — ne pas le faire ici, ce
+                    // serait un cleanup local à un scope plus étroit que
+                    // celui qui survivra à une exception de `runOfficialInstaller`.
                     DispatchQueue.main.async {
                         self.progress = success ? 1.0 : self.progress
                         self.isInstalling = false

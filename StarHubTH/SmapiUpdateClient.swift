@@ -24,6 +24,13 @@ final class SmapiUpdateClient {
         case decoding(String)
     }
 
+    /// Verrou anti-double-appel. `fetch` peut être appelé plusieurs fois
+    /// (vérification auto + bouton manuel de l'utilisateur pendant qu'une
+    /// passe est en cours) ; sans verrou, deux `Task` partiraient en
+    /// parallèle et doubleraient la charge sur l'API publique.
+    private var inFlight: Task<Void, Never>?
+    private let inFlightLock = NSLock()
+
     /// Ce qu'une vérification a **réellement couvert**.
     ///
     /// Rendre les seuls verdicts obtenus ne suffit pas : un succès nu est
@@ -51,9 +58,21 @@ final class SmapiUpdateClient {
     init(session: URLSession = .shared, retryPause: TimeInterval = 5) {
         self.session = session
         self.retryPause = retryPause
+        self.rateLimitPause = 30
+    }
+
+    /// Constructeur de test — `retryPause: 0` court-circuite le retrait de
+    /// fin de passe ; `rateLimitPause: 0` court-circuite le mur de
+    /// rate-limit. X87 veut qu'on respecte le mur en production, mais
+    /// les tests programment des 503 et comptent sur un cycle court.
+    init(session: URLSession, retryPause: TimeInterval, rateLimitPause: TimeInterval) {
+        self.session = session
+        self.retryPause = retryPause
+        self.rateLimitPause = rateLimitPause
     }
 
     private let retryPause: TimeInterval
+    private let rateLimitPause: TimeInterval
 
     /// - Parameters:
     ///   - progress: `(lots terminés, lots au total)`, sur le fil principal.
@@ -62,120 +81,170 @@ final class SmapiUpdateClient {
                gameVersion: String,
                progress: ((Int, Int) -> Void)? = nil,
                completion: @escaping (Result<Outcome, Failure>) -> Void) {
+        // X87 : sérialiser les appels concurrents. Sans ce verrou, un
+        // déclenchement automatique (UpdateCheckPolicy) qui tomberait
+        // pendant qu'une vérification manuelle est en cours doublerait la
+        // charge sur l'API. La `Task` antérieure est attendue par
+        // `await inFlight?.value` : on ne perd pas son résultat, on
+        // attend qu'elle finisse.
+        inFlightLock.lock()
+        if let existing = inFlight {
+            inFlightLock.unlock()
+            Task {
+                _ = await existing.value
+                await MainActor.run { [entries, gameVersion, progress, completion] in
+                    self.fetch(entries: entries, gameVersion: gameVersion,
+                               progress: progress, completion: completion)
+                }
+            }
+            return
+        }
+        let task = Task { [entries, gameVersion, progress, completion] in
+            await self.runFetch(entries: entries, gameVersion: gameVersion,
+                                progress: progress, completion: completion)
+        }
+        inFlight = task
+        inFlightLock.unlock()
+        Task {
+            await task.value
+            self.inFlightLock.lock()
+            self.inFlight = nil
+            self.inFlightLock.unlock()
+        }
+    }
+
+    /// Le corps du fetch, isolé pour que `fetch` puisse l'attendre et le
+    /// ré-enchaîner sans dupliquer sa logique. X87 : un mur de
+    /// rate-limit (`rateLimitUntil`) est respecté entre chaque lot —
+    /// sans lui, un 503 suivi d'un retry immédiat aggrave la situation
+    /// au lieu de la laisser respirer.
+    private func runFetch(entries: [SmapiUpdateRequest.Entry],
+                          gameVersion: String,
+                          progress: ((Int, Int) -> Void)? = nil,
+                          completion: @escaping (Result<Outcome, Failure>) -> Void) async {
         let batches = SmapiUpdateRequest.batches(entries, size: batchSize)
         guard !batches.isEmpty else {
-            Task { @MainActor in
+            await MainActor.run {
                 completion(.success(Outcome(mods: [], batchesCompleted: 0,
                                             batchesTotal: 0, failure: nil)))
             }
             return
         }
 
-        Task {
-            var collected: [SmapiUpdateResponse.Mod] = []
-            /// Index des lots en échec, et l'erreur vue — la **première**
-            /// vue pour la passe entière, pour un verdict déterministe.
-            var batchFailures: [Int: Failure] = [:]
-            var firstFailure: Failure?
-            var completed = Set<Int>()
+        var collected: [SmapiUpdateResponse.Mod] = []
+        /// Index des lots en échec, et l'erreur vue — la **première**
+        /// vue pour la passe entière, pour un verdict déterministe.
+        var batchFailures: [Int: Failure] = [:]
+        var firstFailure: Failure?
+        var completed = Set<Int>()
 
-            // Les lots partent en série : la charge est déjà groupée, et une
-            // rafale parallèle sur une API publique gratuite ne gagnerait que
-            // le risque de se faire fermer la porte.
-            // Le budget de re-découpage, pour **toute** la vérification.
-            // Voir `collect(batch:gameVersion:budget:)`.
-            var budget = Self.resplitBudget
-            for (index, batch) in batches.enumerated() {
-                // X47 — un lot en échec ne sacrifie plus les suivants : on le
-                // note, on continue. Le fautif aura sa seconde chance en fin
-                // de passe. Sur les huit lots du parc de référence, l'ancien
-                // `break` livrait jusqu'à 795 mods à la reprise Nexus (quota
-                // compté) pour un 503 qui ne les concernait pas.
-                do {
-                    let outcome = try await collect(batch: batch, gameVersion: gameVersion,
-                                                    budget: budget)
-                    collected += outcome.mods
-                    budget = outcome.budgetLeft
-                    // Ce qui a été isolé avant l'épuisement est gardé (ligne
-                    // au-dessus), mais le lot n'est pas terminé : il ne compte
-                    // pas. Les suivants partent quand même : un budget épuisé
-                    // condamne le re-découpage, pas les lots sains — chacun
-                    // d'eux coûte une requête et peut très bien revenir.
-                    if outcome.abandoned { continue }
-                } catch let error as Failure {
-                    batchFailures[index] = error
-                    if firstFailure == nil { firstFailure = error }
-                    continue
-                } catch {
-                    batchFailures[index] = .transport(error.localizedDescription)
-                    if firstFailure == nil {
-                        firstFailure = .transport(error.localizedDescription)
-                    }
-                    continue
-                }
-                completed.insert(index)
-                // `let` local : la progression ne peut pas emporter un `var`
-                // capturé dans une closure concurrente.
-                let done = completed.count
-                await MainActor.run { progress?(done, batches.count) }
-            }
-
-            // La seconde chance (X47) : après un retrait, **une** tentative de
-            // plus pour les lots victimes d'un accident — transport ou HTTP.
-            // Une erreur de décodage est déterministe : les mêmes octets
-            // reviendraient, la retenter dépenserait une requête contre une
-            // API publique gratuite pour n'apprendre rien de nouveau.
-            let transient = batchFailures
-                .filter { if case .decoding = $0.value { return false } else { return true } }
-                .sorted { $0.key < $1.key }
-            // Le retrait. Une annulation (la tâche n'a plus d'auditoire —
-            // sortie de l'app) dit que la seconde chance n'a pas à partir :
-            // l'avaler et retenter quand même serait pire que le silence.
-            var retryRound = transient
-            if !transient.isEmpty, retryPause > 0 {
-                do {
-                    try await Task.sleep(nanoseconds: UInt64(retryPause * 1_000_000_000))
-                } catch {
-                    retryRound = []
+        // Les lots partent en série : la charge est déjà groupée, et une
+        // rafale parallèle sur une API publique gratuite ne gagnerait que
+        // le risque de se faire fermer la porte.
+        // Le budget de re-découpage, pour **toute** la vérification.
+        // Voir `collect(batch:gameVersion:budget:)`.
+        var budget = Self.resplitBudget
+        for (index, batch) in batches.enumerated() {
+            // X87 : si un 429/503 a armé le mur pendant un lot précédent,
+            // attendre ici plutôt que de partir tout de suite. L'attente
+            // est `try?` : une annulation (sortie d'app) ne nous bloque
+            // pas, et on saute au lot suivant si le mur n'est pas levé.
+            if let until = rateLimitUntil, until > Date() {
+                let wait = until.timeIntervalSinceNow
+                if wait > 0, wait < self.rateLimitPause * 2 {
+                    do { try await Task.sleep(nanoseconds: UInt64(wait * 1_000_000_000)) }
+                    catch { continue }
                 }
             }
-            for (index, _) in retryRound {
-                do {
-                    let outcome = try await collect(batch: batches[index],
-                                                    gameVersion: gameVersion,
-                                                    budget: budget)
-                    collected += outcome.mods
-                    budget = outcome.budgetLeft
-                    if outcome.abandoned { continue }
-                } catch let error as Failure {
-                    batchFailures[index] = error
-                    continue
-                } catch {
-                    batchFailures[index] = .transport(error.localizedDescription)
-                    continue
+            // X47 — un lot en échec ne sacrifie plus les suivants : on le
+            // note, on continue. Le fautif aura sa seconde chance en fin
+            // de passe. Sur les huit lots du parc de référence, l'ancien
+            // `break` livrait jusqu'à 795 mods à la reprise Nexus (quota
+            // compté) pour un 503 qui ne les concernait pas.
+            do {
+                let outcome = try await collect(batch: batch, gameVersion: gameVersion,
+                                                budget: budget)
+                collected += outcome.mods
+                budget = outcome.budgetLeft
+                // Ce qui a été isolé avant l'épuisement est gardé (ligne
+                // au-dessus), mais le lot n'est pas terminé : il ne compte
+                // pas. Les suivants partent quand même : un budget épuisé
+                // condamne le re-découpage, pas les lots sains — chacun
+                // d'eux coûte une requête et peut très bien revenir.
+                if outcome.abandoned { continue }
+            } catch let error as Failure {
+                batchFailures[index] = error
+                if firstFailure == nil { firstFailure = error }
+                continue
+            } catch {
+                batchFailures[index] = .transport(error.localizedDescription)
+                if firstFailure == nil {
+                    firstFailure = .transport(error.localizedDescription)
                 }
-                batchFailures[index] = nil
-                completed.insert(index)
-                let done = completed.count
-                await MainActor.run { progress?(done, batches.count) }
+                continue
             }
-
-            // Des lots en échec après des lots réussis rendent quand même ce
-            // qui a abouti : perdre 800 verdicts parce que le dernier lot a
-            // échoué serait le défaut qu'on corrige, sous une autre forme.
-            // Mais la passe **dit** qu'elle est amputée — et pourquoi :
-            // `Outcome.isComplete` empêche l'appelant de la prendre pour un
-            // passage réussi du parc entier, `Outcome.failure` nomme la cause.
-            let completedBatches = completed.count
-            let outcome: Result<Outcome, Failure> =
-                (firstFailure != nil && completedBatches == 0 && collected.isEmpty)
-                ? .failure(firstFailure!)
-                : .success(Outcome(mods: collected,
-                                   batchesCompleted: completedBatches,
-                                   batchesTotal: batches.count,
-                                   failure: firstFailure))
-            await MainActor.run { completion(outcome) }
+            completed.insert(index)
+            // `let` local : la progression ne peut pas emporter un `var`
+            // capturé dans une closure concurrente.
+            let done = completed.count
+            await MainActor.run { progress?(done, batches.count) }
         }
+
+        // La seconde chance (X47) : après un retrait, **une** tentative de
+        // plus pour les lots victimes d'un accident — transport ou HTTP.
+        // Une erreur de décodage est déterministe : les mêmes octets
+        // reviendraient, la retenter dépenserait une requête contre une
+        // API publique gratuite pour n'apprendre rien de nouveau.
+        let transient = batchFailures
+            .filter { if case .decoding = $0.value { return false } else { return true } }
+            .sorted { $0.key < $1.key }
+        // Le retrait. Une annulation (la tâche n'a plus d'auditoire —
+        // sortie de l'app) dit que la seconde chance n'a pas à partir :
+        // l'avaler et retenter quand même serait pire que le silence.
+        var retryRound = transient
+        if !transient.isEmpty, retryPause > 0 {
+            do {
+                try await Task.sleep(nanoseconds: UInt64(retryPause * 1_000_000_000))
+            } catch {
+                retryRound = []
+            }
+        }
+        for (index, _) in retryRound {
+            do {
+                let outcome = try await collect(batch: batches[index],
+                                                gameVersion: gameVersion,
+                                                budget: budget)
+                collected += outcome.mods
+                budget = outcome.budgetLeft
+                if outcome.abandoned { continue }
+            } catch let error as Failure {
+                batchFailures[index] = error
+                continue
+            } catch {
+                batchFailures[index] = .transport(error.localizedDescription)
+                continue
+            }
+            batchFailures[index] = nil
+            completed.insert(index)
+            let done = completed.count
+            await MainActor.run { progress?(done, batches.count) }
+        }
+
+        // Des lots en échec après des lots réussis rendent quand même ce
+        // qui a abouti : perdre 800 verdicts parce que le dernier lot a
+        // échoué serait le défaut qu'on corrige, sous une autre forme.
+        // Mais la passe **dit** qu'elle est amputée — et pourquoi :
+        // `Outcome.isComplete` empêche l'appelant de la prendre pour un
+        // passage réussi du parc entier, `Outcome.failure` nomme la cause.
+        let completedBatches = completed.count
+        let outcome: Result<Outcome, Failure> =
+            (firstFailure != nil && completedBatches == 0 && collected.isEmpty)
+            ? .failure(firstFailure!)
+            : .success(Outcome(mods: collected,
+                               batchesCompleted: completedBatches,
+                               batchesTotal: batches.count,
+                               failure: firstFailure))
+        await MainActor.run { completion(outcome) }
     }
 
     /// Le nombre de requêtes **supplémentaires** qu'une vérification peut
@@ -253,7 +322,18 @@ final class SmapiUpdateClient {
         guard let http = response as? HTTPURLResponse else {
             throw Failure.transport("no_response")
         }
+        // X87 : 429 / 503 sont des signaux de rate-limit. Plutôt que de
+        // relancer le lot tout de suite, on lève un **mur** que la boucle
+        // `fetch` lira et respectera. L'erreur remonte comme n'importe
+        // quel `Failure.http` ; le mur s'exprime à côté. La double
+        // information est volontaire : un 503 suivi d'un mur de 30 s a
+        // la même signature dans le journal qu'un 503 d'un serveur en
+        // panne, mais le mur protège contre la première des deux sans
+        // masquer la seconde (un 5xx non-rate-limit ne lève pas de mur).
         guard http.statusCode == 200 else {
+            if (429...429).contains(http.statusCode) || (503...503).contains(http.statusCode) {
+                rateLimitUntil = Date().addingTimeInterval(self.rateLimitPause)
+            }
             throw Failure.http(http.statusCode)
         }
         do {
@@ -262,4 +342,19 @@ final class SmapiUpdateClient {
             throw Failure.decoding(error.localizedDescription)
         }
     }
+
+    /// L'horodatage avant lequel les requêtes smapi.io ne doivent pas partir
+    /// (X87). Lu par `fetch` avant chaque lot. Pas de NSLock : `post` est
+    /// `await`-borne par `session.data`, et les mutations de cette propriété
+    /// arrivent séquentiellement dans la même `Task` que les lectures de
+    /// `fetch`. Un appel `fetch` concurrent passe par `inFlight`, mutex
+    /// séparé.
+    ///
+    /// Durée du mur : `rateLimitPause` (30 s en production, 0 dans les
+    /// tests). smapi.io ne documente pas de header `Retry-After` formel ;
+    /// on s'aligne sur l'observation X87 : un 429 suivi d'un délai
+    /// d'au moins 5 s est accepté, un retry immédiat est refusé. 30 s
+    /// laisse une vraie respiration sans transformer une panne
+    /// transitoire en blocage de 5 minutes.
+    private var rateLimitUntil: Date?
 }

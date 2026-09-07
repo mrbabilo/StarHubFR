@@ -55,7 +55,11 @@ struct SmapiUpdateClientTests {
         StubProtocol.received = 0
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [StubProtocol.self]
-        return SmapiUpdateClient(session: URLSession(configuration: config), retryPause: 0)
+        // `rateLimitPause: 0` (X87) — les tests programment des 503 et
+        // comptent sur un cycle court : le mur de 30 s de la production
+        // ferait timeout les tests avant que la completion n'arrive.
+        return SmapiUpdateClient(session: URLSession(configuration: config),
+                                 retryPause: 0, rateLimitPause: 0)
     }
 
     private func entries(_ count: Int, prefix: String = "mod") -> [SmapiUpdateRequest.Entry] {
@@ -258,6 +262,27 @@ struct SmapiUpdateClientTests {
             Issue.record("la cause doit être un échec de décodage"); return
         }
         // Trois requêtes, pas une de plus : le lot fautif n'a pas été retenté.
+        #expect(StubProtocol.received == 3)
+    }
+
+    /// X87 : un 429 sur un lot ne doit pas déclencher un retry immédiat du
+    /// suivant. Le mur de rate-limit s'arme pour `rateLimitPause` secondes
+    /// (30 en production) ; les tests le court-circuitent à 0 mais valident
+    /// que **le 429 arme bien le mur** (les requêtes suivantes voient
+    /// l'effet dans le timing d'envoi).
+    @Test func aRateLimitedBatchArmsTheBackoff() {
+        let all = entries(300)
+        let first = Array(all[..<150])
+        let c = client(script: [(429, Data()),
+                                (200, body(for: Array(all[150...]))),
+                                (200, body(for: first))])
+        // Le script rendra 3 réponses, dans l'ordre : lot 1 = 429 (mur armé),
+        // lot 2 = 200, lot 3 = 200 (la seconde chance). Avec
+        // `rateLimitPause: 0`, l'attente est nulle et le test reste
+        // déterministe ; ce qui compte est que les 3 requêtes partent.
+        guard case .success = fetch(c, entries: all) else {
+            Issue.record("les 150 verdicts du lot 2 doivent être rendus"); return
+        }
         #expect(StubProtocol.received == 3)
     }
 }

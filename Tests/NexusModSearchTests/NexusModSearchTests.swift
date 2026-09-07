@@ -221,6 +221,35 @@ struct NexusModSearchTests {
         }
     }
 
+    /// X79 (audit Phase 2) : un titre qui porte un marqueur français **et** un
+    /// marqueur d'une autre langue est retiré — le mot « traduction » seul est
+    /// neutre, mais « espagnole » ne l'est pas. Sans ce filet, une recherche
+    /// large (« Traduction » sans tag `French`) faisait remonter des
+    /// traductions inutiles à un lecteur francophone.
+    ///
+    /// On n'éprouve que les **variantes longues** des langues cibles (les
+    /// codes ISO 2 lettres sont ambigus avec des mots français). Le filet
+    /// X79 n'est pas une heuristique large, c'est un coup de précision.
+    @Test func aFrenchMarkerIsOverriddenByAnotherLanguageMention() {
+        for title in ["Traduction espagnole de X",
+                      "Traduzione italiana di X",
+                      "Russian translation of X",
+                      "Mod — english version",
+                      "Sword and Sorcery (Traduction allemande)"] {
+            #expect(!NexusModSearch.announcesFrenchTranslation(title), "\(title)")
+        }
+    }
+
+    /// L'inverse : un titre français sans mention d'une autre langue reste
+    /// accepté, même si le mot « traduction » y figure. Le filet X79 ne doit
+    /// pas transformer un match légitime en faux négatif.
+    @Test func aFrenchTitleWithoutOtherLanguageStaysAccepted() {
+        for title in ["Traduction française de Ridgeside Village",
+                      "Mod VF - Traduction"] {
+            #expect(NexusModSearch.announcesFrenchTranslation(title), "\(title)")
+        }
+    }
+
     /// **Mots entiers, jamais des fragments.** « fr » contenu dans « from »,
     /// « fresh » ou « Frontier » ferait passer pour françaises la moitié des
     /// pages de Nexus — le mot-clé « FR » seul rend 1 559 mods sur Stardew, là

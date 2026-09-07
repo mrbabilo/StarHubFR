@@ -455,6 +455,31 @@ public enum NexusModSearch {
         "traduction", "traduit", "traduite", "francophone",
     ]
 
+    /// Ce qui, dans un titre, **parle d'une autre langue que le français** —
+    /// un filet contre X79 (audit Phase 2). Le mot « traduction » seul
+    /// matche une « Traduction espagnole de X » : sans ce filet, la
+    /// recherche large (« Traduction » sans tag `French`) remonterait
+    /// des traductions inutiles à un lecteur francophone.
+    ///
+    /// **Variantes longues uniquement.** Les codes ISO 2 lettres (`de`, `en`,
+    /// `it`, `pt`, `es`, `ja`...) sont volontairement exclus : ils sont
+    /// aussi des mots français courants (« de », « en », « y », « au »),
+    /// et un titre « Traduction française **de** Ridgeside » matcherait
+    /// `de` (allemand) sans aucune intention. Le filet ne porte que sur
+    /// les variantes linguistiquement explicites, qu'un auteur n'emploie
+    /// que pour signaler la langue cible.
+    private static let nonFrenchLanguageMarkers: Set<String> = [
+        "espagnol", "espagnole", "allemand", "allemande",
+        "italien", "italienne", "portugais", "portugaise",
+        "anglais", "anglaise", "english", "japonais", "japonaise",
+        "coreen", "coreenne", "chinois", "chinoise", "russe",
+        "polonais", "polonaise", "hongrois", "hongroise", "turc", "turque",
+        "arabe", "neerlandais", "neerlandaise", "suedois", "suedoise",
+        "norvegien", "norvegienne", "danois", "danoise", "finnois",
+        "finlandaise", "grec", "grecque", "tcheque", "ukrainien",
+        "ukrainienne",
+    ]
+
     /// `true` quand ce titre annonce une traduction française.
     ///
     /// **Filet de secours, pas chemin principal** : le tag `French` de Nexus
@@ -466,11 +491,21 @@ public enum NexusModSearch {
     /// moitié des pages de Nexus — le mot-clé « FR » seul rend 1 559 mods sur
     /// Stardew, là où « Francais » en rend 184.
     ///
-    /// Les titres des autres langues ne sont pas écartés à part : il suffit de
-    /// n'avoir aucun marqueur français pour être laissé de côté. « PT-BR »,
-    /// « KOR Translation » ou « Traditional Chinese » n'en portent aucun.
+    /// X79 : un titre qui porte un marqueur français **et** un marqueur d'une
+    /// autre langue (« Traduction espagnole de X ») est retiré — le mot
+    /// « traduction » est neutre, mais « espagnole » ne l'est pas. Un titre
+    /// qui porte un marqueur français seul reste accepté.
     public static func announcesFrenchTranslation(_ title: String) -> Bool {
-        !words(in: title).isDisjoint(with: frenchMarkers)
+        let words = words(in: title)
+        let hasFrench = !words.isDisjoint(with: frenchMarkers)
+        guard hasFrench else { return false }
+        // La présence d'un marqueur d'une autre langue **annule** le match
+        // français, sauf si le seul marqueur « fr » est en fait partagé
+        // (« fr » ne fait pas partie des marqueurs non-français — c'est
+        // ambigu mais tranché en faveur du français, parce qu'un titre
+        // « PT-fr » qui annonce à la fois la cible portugaise et la
+        // source française est rarissime sur Nexus).
+        return words.isDisjoint(with: nonFrenchLanguageMarkers)
     }
 
     /// Découpe un titre en mots comparables : accents repliés, minuscules,

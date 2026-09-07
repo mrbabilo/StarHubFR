@@ -32,6 +32,16 @@ where the exact log format was verified.
 
 - **Le LLM local ne tronque plus les traductions de dialogues longs.** L'ancien plafond de 1024 tokens de sortie jetait toute source de plus de 700 caractères comme `finish_reason=length` — y compris des dialogues du jeu de 800 caractères. Le plafond passe à 4096, dérivé de la taille de la source par la règle 2 × `source.count`, plancher 64.
 
+- **Le download SMAPI distingue les erreurs définitives des transitoires.** Un 4xx (asset retiré, repo privé) et un 5xx (rate-limit GitHub, blip réseau) reçoivent désormais des messages distincts : « fichier indisponible » contre « réessayez dans quelques minutes ». La session qui télécharge le zip de SMAPI depuis GitHub est aussi dédiée et éphémère, avec un timeout de 30 s par ressource et 60 s global — fini le piège d'un hôte lent qui laissait la completion sans réponse pendant 5 minutes.
+
+- **Le client smapi.io respecte un mur de rate-limit entre les lots.** Un 429 ou 503 sur un lot arme une porte de 30 s : les lots suivants attendent au lieu de partir tout de suite, ce qui aggravait la situation. Le mur est aussi désarmé dès qu'un lot réussit, et l'attente est `try?` (une annulation de l'app ne reste pas bloquée). Un appel `fetch` concurrent est sérialisé — un déclenchement automatique qui tomberait pendant une vérification manuelle attend la fin de la passe, et ne double pas la charge sur l'API publique.
+
+- **L'installateur SMAPI ne partage plus de fichiers de travail entre passes concurrentes.** Si l'utilisateur double-clique sur le bouton d'installation, deux passes peuvent maintenant partir sans que la seconde efface le téléchargement de la première. Le dossier temp est nommé par UUID, créé à la demande, et nettoyé par `defer` même en cas d'exception.
+
+- **La clé `nxm://` est mieux protégée contre les séparateurs d'URL.** Le percent-encoding couvre désormais `&`, `=`, `+`, `;` et `%` — la clé est alphanumérique aujourd'hui, mais la liste noire ferme un trou latent si Nexus changeait le format.
+
+- **Une traduction espagnole ne passe plus pour française.** Le mot « traduction » est neutre, et un titre « Traduction espagnole de X » matchait l'ancien filtre de traduction française. La nouvelle règle pose un second jeu de marqueurs (variantes longues des autres langues) qui annule le match français si l'une d'elles est aussi présente. Les codes ISO 2 lettres (`de`, `en`, `it`...) sont exclus : ils sont aussi des mots français courants, et déclencheraient des faux positifs.
+
 ## [1.37.0] - 2026-09-07
 
 ### Added
