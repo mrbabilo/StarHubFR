@@ -42,6 +42,10 @@ where the exact log format was verified.
 
 - **Une traduction espagnole ne passe plus pour française.** Le mot « traduction » est neutre, et un titre « Traduction espagnole de X » matchait l'ancien filtre de traduction française. La nouvelle règle pose un second jeu de marqueurs (variantes longues des autres langues) qui annule le match français si l'une d'elles est aussi présente. Les codes ISO 2 lettres (`de`, `en`, `it`...) sont exclus : ils sont aussi des mots français courants, et déclencheraient des faux positifs.
 
+- **Le renommage d'un mod n'avale plus l'échec d'écriture du suivi des traductions.** Le registre en mémoire était renommé, mais si sa persistance échouait (disque plein, droits refusés), l'échec restait silencieux : au redémarrage, le registre relu gardait l'ancien nom d'hôte, et la traduction posée ne se rattachait plus au mod renommé — sa désinstallation ne retrouvait plus les fichiers à retirer. L'échec est désormais dit au journal, comme les huit autres chemins qui écrivent ce registre.
+
+- **Un échec d'écriture de l'index des sauvegardes de config ne se tait plus.** Une sauvegarde copie ses fichiers puis enregistre son entrée d'index ; si cette écriture échouait (disque devenu plein pendant la copie), la sauvegarde complète existait sur disque mais n'apparaissait dans aucune liste — et l'écran Entretien la proposait à la purge comme orpheline. L'échec est consigné, au même niveau que le manager des sauvegardes d'installation, qui le fait depuis l'audit du 2026-08-05.
+
 ## [1.37.0] - 2026-09-07
 
 ### Added

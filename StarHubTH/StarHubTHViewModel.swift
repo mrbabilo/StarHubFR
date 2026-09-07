@@ -5340,7 +5340,10 @@ for mod in mods {
 
         // 12. Les traductions et greffes posées sur ce mod.
         if installedTranslations.rename(host: old, to: new) {
-            _ = InstalledTranslationStore.save(installedTranslations)
+            if !InstalledTranslationStore.save(installedTranslations) {
+                log("Suivi des traductions non enregistré après renommage : il ne survivra pas à la fermeture",
+                    level: .warning)
+            }
         }
 
         // Et deux caches, qui ne survivent pas au lancement mais mentiraient

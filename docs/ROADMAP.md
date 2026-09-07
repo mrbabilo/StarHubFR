@@ -1585,6 +1585,8 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **X86** | 2026-09-07 | La requête smapi.io ne gardait pas `platform` : `"macOS"` rend un HTTP 200 et une liste vide en silence — une `precondition` au plus près de la sérialisation fait tomber le test rouge au geste fautif |
 | **X87** | 2026-09-07 | smapi.io n'avait pas de mur de rate-limit entre les lots — un 429/503 arme une porte de 30 s, désarmée au premier lot réussi, et un `fetch` concurrent est sérialisé |
 | **X88** | 2026-09-07 | Le download SMAPI ne distinguait pas 4xx et 5xx — « fichier indisponible » contre « réessayez dans quelques minutes » |
+| **X89** | 2026-09-07 | Le renommage d'un mod avalait l'échec de persistance du suivi des traductions (`_ =` au site 12 de X60) — le registre relu gardait l'ancien hôte, la désinstallation ne retrouvait plus les fichiers ; les huit autres sites qui écrivent ce registre le disaient déjà |
+| **X90** | 2026-09-07 | `ModConfigBackupManager.saveIndex` se taisait en échec — sauvegarde complète sur disque mais invisible dans la liste, et purgable comme orpheline ; aligné sur le `print` CRITICAL du manager jumeau (`dd6b4d1`) |
 | **B1-T1** | 2026-08-01 | Boutons Activer/Désactiver et Supprimer sur la fiche mod (parité avec la liste, mêmes confirmations). Absents pour un… |
 | **B1-T2** | 2026-08-01 | Tri, filtres, catégorie, page et recherche portés par ModListFilters dans le ViewModel. La remise à la page 1 est por… |
 

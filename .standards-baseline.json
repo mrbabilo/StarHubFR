@@ -5,8 +5,8 @@
   "get_prefixed_funcs": 7,
   "non_final_classes": 10,
   "our_shared_singletons": 89,
-  "print_calls": 23,
+  "print_calls": 24,
   "published_without_private_set": 74,
-  "try_optional": 305,
+  "try_optional": 303,
   "vm_dot_L_calls": 1392
 }
