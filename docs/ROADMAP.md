@@ -1261,6 +1261,7 @@ corrompre ou faire disparaître quelque chose sans le dire ?* — et non à
 | ~~2~~ | ~~**X25**~~ | ✅ **Livré le 2026-09-04** — l'écran « Entretien » : inventaire mesuré (1,80 Go de sauvegardes, 340 dossiers orphelins, 35 clés mortes, 1 seule copie protégée), purge par cran sous confirmation, nettoyage explicite des orphelins et clés — jamais de passe automatique. Voir l'archive |
 | ~~3~~ | ~~**R6**~~ | ✅ **Livré le 2026-09-04** — la règle extraite dans `ProfileApplyPlan` (Core), 10 tests dont la propriété sur 200 parcs engendrés. Verdict : **idempotent**, la seconde passe ne redemande que ce que le disque a refusé. Ce que la propriété a mis au jour : `X60`. Voir l'archive |
 | ~~4~~ | ~~**R2**~~ | ✅ **Livré le 2026-09-06** — garde jeu (refus net, quatre entrées), journal write-ahead + dialogue de reprise au lancement, blocage de l'adoption silencieuse après crash, desync marqué au saut jeu ouvert. Le « backup timestamped » RimManager écarté : l'état pré-apply = le plan, quelques Ko. Voir l'archive |
+| ~~4bis~~ | ~~**R2bis**~~ | ✅ **Livré le 2026-09-07** — complément trouvé en vérifiant R2 : le bouton de lancement pouvait repartir une seconde instance dans la fenêtre aveugle où le jeu n'apparaît pas encore dans `NSWorkspace`. Refus net jeu ouvert + délai de 10 s (`GameLaunchGate`). Voir l'archive |
 
 **P2 — masque une information, ou en affirme une fausse**
 

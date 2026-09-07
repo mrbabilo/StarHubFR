@@ -53,6 +53,21 @@ répond. L'ordre et les titres de section sont ceux de la roadmap.
       rescane systématique), la garde sur la bascule unitaire (autre ampleur,
       item séparé si demandé). 5 tests Core neufs, 2 325 verts.
 
+- [x] **R2bis** ✅ *(livré le 2026-09-07)* — **Jamais deux instances du jeu au
+      lancement.** Complément à R2, trouvé en le vérifiant : les quatre entrées
+      applicatives refusaient jeu ouvert, mais le bouton de lancement lui-même
+      pouvait repartir une seconde instance — `isGameRunning()` ne voit pas le
+      processus pendant les quelques secondes avant son apparition dans
+      `NSWorkspace.runningApplications`, et un double-clic passe librement dans
+      cette fenêtre aveugle. Deux instances, c'est deux processus sur les mêmes
+      fichiers de sauvegarde.
+      ▸ **Livré** : refus net et alerte si le jeu tourne déjà ; `GameLaunchGate`
+      (Core, 5 tests) ferme la porte 10 s après un lancement admis — la fenêtre
+      part du **premier** essai admis, un refus ne la rallonge pas ; la porte se
+      rouvre dès que le jeu devient visible (`isGameRunning()` appelle
+      `noticeGameRunning()`) pour ne pas retarder un relancement légitime après
+      un crash immédiat. 2 330 tests verts.
+
 - [x] **X1** ❌ *(non reproduit — pas de bug)* — Le copier/coller fonctionne dans le champ
       NexusID comme ailleurs dans l'app (vérifié par l'utilisateur, 2026-07-30). Le menu
       Édition est bien présent. Rien à corriger.
