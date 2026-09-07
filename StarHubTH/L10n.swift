@@ -1001,6 +1001,19 @@ enum L10n {
         static let nexusGetKey          = "updates_nexus_get_key"
         static let nexusAlreadyHave     = "updates_nexus_already_have"
         static let nexusAlreadyHaveHelp = "updates_nexus_already_have_help"
+        // R3 — snooze : la mise à jour est vraie, mais pas voulue maintenant.
+        // Elle quitte cette liste, jamais l'inventaire, et revient toute
+        // seule selon le mode choisi.
+        static let snoozeButton         = "updates_snooze_button"
+        static let snoozeOneWeek        = "updates_snooze_one_week"
+        static let snoozeUntilModVersion = "updates_snooze_until_mod_version"
+        static let snoozeUntilGameVersion = "updates_snooze_until_game_version"
+        static let snoozedTitle         = "updates_snoozed_title"
+        static let snoozedExplanation   = "updates_snoozed_explanation"
+        static let snoozedUntilDate     = "updates_snoozed_until_date"
+        static let snoozedUntilModVersion = "updates_snoozed_until_mod_version_label"
+        static let snoozedUntilGameVersion = "updates_snoozed_until_game_version_label"
+        static let snoozedWake          = "updates_snoozed_wake"
         // X12 — ce que « Je l'ai déjà » a fait taire, et comment le défaire.
         // Le geste n'était ni montré ni annulable : 34 mods dans ce cas sur
         // l'installation de référence, dont plusieurs par mégarde.

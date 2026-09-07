@@ -58,6 +58,14 @@ class StarHubTHViewModel: ObservableObject {
 
     /// Mods with an available update on Nexus Mods (from last user-triggered check).
     @Published var nexusUpdates: [NexusUpdateChecker.ModUpdate] = []
+    /// R3 — les mises à jour en veille : vraies, mais repoussées par un
+    /// snooze encore vivant. Affichées repliées sous la liste, jamais dans
+    /// l'inventaire masquées. Le badge sidebar ne les compte pas (`nexusUpdates`
+    /// seul y figure).
+    @Published private(set) var snoozedUpdates: [NexusUpdateChecker.ModUpdate] = []
+    /// R3 — le store des snoozes (persistance UserDefaults, expiration
+    /// paresseuse). Touche principale uniquement, comme `nexusUpdates`.
+    let updateSnoozer = ModUpdateSnoozer()
     /// Les mods que smapi.io n'a pas pu vérifier, avec le nom affiché partout
     /// ailleurs et le motif classé. 115 mods du parc réel sont dans ce cas :
     /// les taire laissait la fenêtre dire « tous à jour » alors qu'ils
@@ -5456,7 +5464,65 @@ for mod in mods {
     private func republishUpdatesFromCache() {
         // L'ordre alphabétique vient de `NexusUpdateConsolidation`, où il
         // est testé — pas d'un second tri ici, qui divergerait un jour.
-        nexusUpdates = consolidateUpdatesByPack(NexusUpdateChecker.shared.cachedUpdates())
+        let consolidated = consolidateUpdatesByPack(NexusUpdateChecker.shared.cachedUpdates())
+        // R3 — partition actifs / en veille. Le snooze se juge **après** la
+        // consolidation et ne touche jamais le cache plat : une passe Nexus
+        // partielle doit continuer d'y fusionner (piège mesuré le
+        // 2026-09-03). La version du jeu local, critère du mode « jusqu'à
+        // prochaine version de Stardew », vient du journal SMAPI — brute,
+        // comme au moment du snooze, pour que la comparaison reste
+        // symétrique.
+        let gameVersion = smapiDiagnostics?.gameVersion
+        var active: [NexusUpdateChecker.ModUpdate] = []
+        var sleeping: [NexusUpdateChecker.ModUpdate] = []
+        for row in consolidated {
+            if updateSnoozer.isSnoozed(uniqueId: row.uniqueId,
+                                       currentModVersion: row.latestVersion,
+                                       currentGameVersion: gameVersion) {
+                sleeping.append(row)
+            } else {
+                active.append(row)
+            }
+        }
+        nexusUpdates = active
+        snoozedUpdates = sleeping
+    }
+
+    /// R3 — met en veille la mise à jour d'un mod. La ligne quitte la liste
+    /// « updates » (et le badge) à l'instant ; elle revient toute seule à
+    /// l'échéance du mode choisi. L'inventaire, lui, n'est jamais touché.
+    func snoozeUpdate(_ update: NexusUpdateChecker.ModUpdate,
+                      mode: ModUpdateSnoozeEntry.Mode) {
+        updateSnoozer.snooze(uniqueId: update.uniqueId, mode: mode,
+                             currentModVersion: update.latestVersion,
+                             currentGameVersion: smapiDiagnostics?.gameVersion)
+        republishUpdatesFromCache()
+    }
+
+    /// R3 — réveille une mise à jour en veille : elle revient dans la liste
+    /// immédiatement, dans l'ordre de la consolidation.
+    func unsnoozeUpdate(uniqueId: String) {
+        updateSnoozer.clear(uniqueId: uniqueId)
+        republishUpdatesFromCache()
+    }
+
+    /// R3 — le motif affiché d'une mise à jour en veille : l'échéance pour
+    /// le mode horloge, la condition pour les modes événementiels (eux
+    /// n'ont pas de date de fin).
+    func snoozeExpiryLabel(for update: NexusUpdateChecker.ModUpdate) -> String {
+        guard let entry = updateSnoozer.entry(for: update.uniqueId) else { return "" }
+        switch entry.mode {
+        case .oneWeek:
+            let formatter = DateFormatter()
+            formatter.dateStyle = .medium
+            formatter.timeStyle = .none
+            return String(format: self.L(L10n.Updates.snoozedUntilDate),
+                          formatter.string(from: entry.expiresAt ?? entry.snoozedAt))
+        case .untilModVersion:
+            return self.L(L10n.Updates.snoozedUntilModVersion)
+        case .untilGameVersion:
+            return self.L(L10n.Updates.snoozedUntilGameVersion)
+        }
     }
 
     /// Consolidates the flat Nexus update list so each pack (mod group)

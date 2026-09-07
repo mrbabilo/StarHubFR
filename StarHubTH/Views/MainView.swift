@@ -897,6 +897,48 @@ struct UpdatesView: View {
                                     .buttonStyle(PlainButtonStyle())
                                     .pointingHandCursor()
                                     .help(vm.L(L10n.Updates.nexusAlreadyHaveHelp))
+
+                                    // R3 — « je sais, pas maintenant ». Troisième
+                                    // geste après mettre à jour et « je l'ai
+                                    // déjà » : l'update est vraie mais pas
+                                    // voulue tout de suite. La ligne disparaît
+                                    // d'ici (et du badge), jamais de
+                                    // l'inventaire, et revient toute seule
+                                    // selon le mode choisi.
+                                    Menu {
+                                        Button {
+                                            vm.snoozeUpdate(update, mode: .oneWeek)
+                                        } label: {
+                                            Label(vm.L(L10n.Updates.snoozeOneWeek),
+                                                  systemImage: "clock")
+                                        }
+                                        Button {
+                                            vm.snoozeUpdate(update, mode: .untilModVersion)
+                                        } label: {
+                                            Label(vm.L(L10n.Updates.snoozeUntilModVersion),
+                                                  systemImage: "sparkles")
+                                        }
+                                        Button {
+                                            vm.snoozeUpdate(update, mode: .untilGameVersion)
+                                        } label: {
+                                            Label(vm.L(L10n.Updates.snoozeUntilGameVersion),
+                                                  systemImage: "gamecontroller")
+                                        }
+                                    } label: {
+                                        Label(vm.L(L10n.Updates.snoozeButton),
+                                              systemImage: "moon.zzz.fill")
+                                            .font(.system(size: 12, weight: .medium))
+                                            .foregroundColor(.primary)
+                                            .padding(.horizontal, 14)
+                                            .padding(.vertical, 6)
+                                            .background(Color.primary.opacity(0.1))
+                                            .cornerRadius(6)
+                                    }
+                                    .menuStyle(.borderlessButton)
+                                    .menuIndicator(.hidden)
+                                    .fixedSize()
+                                    .pointingHandCursor()
+                                    .disabled(vm.isDownloadingFromNexus)
                                 }
                             }
                             .padding(.vertical, 8)
@@ -1019,6 +1061,50 @@ struct UpdatesView: View {
                             Label(String(format: vm.L(L10n.Updates.affirmedTitle),
                                          Int64(vm.affirmedUpdates.count)),
                                   systemImage: "eye.slash")
+                                .font(.system(size: 12))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    // R3 — ce que « Mettre en veille » a endormi. Même
+                    // patron que les deux replis ci-dessus, et pour la même
+                    // raison : la liste doit rester trouvable et réversible —
+                    // snoozer ne doit jamais ressembler à perdre une
+                    // information. Contrairement à « je l'ai déjà », rien
+                    // n'est affirmé ici : tout revient tout seul.
+                    if !vm.snoozedUpdates.isEmpty {
+                        DisclosureGroup {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(vm.L(L10n.Updates.snoozedExplanation))
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                    .padding(.bottom, 2)
+                                ForEach(vm.snoozedUpdates) { row in
+                                    HStack(spacing: 8) {
+                                        Text(row.name)
+                                            .font(.system(size: 11, weight: .medium))
+                                            .lineLimit(1)
+                                        Text(vm.snoozeExpiryLabel(for: row))
+                                            .font(.system(size: 11))
+                                            .foregroundStyle(.secondary)
+                                        Spacer(minLength: 8)
+                                        Button {
+                                            vm.unsnoozeUpdate(uniqueId: row.uniqueId)
+                                        } label: {
+                                            Text(vm.L(L10n.Updates.snoozedWake))
+                                                .font(.system(size: 11))
+                                        }
+                                        .buttonStyle(PlainButtonStyle())
+                                        .pointingHandCursor()
+                                    }
+                                }
+                            }
+                            .padding(.vertical, 4)
+                        } label: {
+                            Label(String(format: vm.L(L10n.Updates.snoozedTitle),
+                                         Int64(vm.snoozedUpdates.count)),
+                                  systemImage: "moon.zzz.fill")
                                 .font(.system(size: 12))
                                 .foregroundStyle(.secondary)
                         }

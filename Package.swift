@@ -150,6 +150,7 @@ let package = Package(
                 "Models/ProfileApplyPlan.swift",
                 "Models/ProfileApplyJournal.swift",
                 "Models/GameLaunchGate.swift",
+                "Models/ModUpdateSnoozer.swift",
                 "Models/ProfileTranslationCoverage.swift",
                 "Models/TranslationCoverageCache.swift",
                 "Models/DownloadProgress.swift",
@@ -184,6 +185,11 @@ let package = Package(
             name: "GameLaunchGateTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/GameLaunchGateTests"
+        ),
+        .testTarget(
+            name: "ModUpdateSnoozerTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ModUpdateSnoozerTests"
         ),
         .testTarget(
             name: "ModFolderCollisionTests",
