@@ -68,6 +68,31 @@ répond. L'ordre et les titres de section sont ceux de la roadmap.
       `noticeGameRunning()`) pour ne pas retarder un relancement légitime après
       un crash immédiat. 2 330 tests verts.
 
+- [x] **R3** ✅ *(livré le 2026-09-07)* — **Snooze d'updates Nexus.** Le UX
+      gap mesuré : ignorer une mise à jour = l'avoir en permanence sous les
+      yeux — le seul geste « pas maintenant » était de fermer l'onglet.
+      ▸ **Livré** : menu « Mettre en veille » sur chaque ligne Nexus, trois
+      échéances — une semaine (horloge), jusqu'à la prochaine version du mod
+      (la version Nexus au moment du geste est mémorisée ; une version
+      **différente** réveille), jusqu'à la prochaine version de Stardew (la
+      version locale du jeu, lue du journal SMAPI ; son changement réveille).
+      `ModUpdateSnoozer` (Core, 11 tests) : identité par **UniqueID** (jamais
+      l'id Nexus — 58 partagés sur le parc — ni le nom de dossier — un
+      renommage ne doit pas réveiller un snooze), persistance UserDefaults
+      (JSON, corruption ⇒ démarrage vide), expiration paresseuse évaluée et
+      purgée à la lecture. La partition actifs/en-veille se juge **après** la
+      consolidation par pack — jamais sur le cache plat, où une passe Nexus
+      partielle doit continuer de fusionner. Le badge sidebar ne compte plus
+      les veilles ; l'inventaire n'est jamais masqué (la pastille update y
+      reste). Une section repliée sous la liste montre les veilles avec leur
+      échéance et un bouton « Réactiver » — snoozer ne ressemble jamais à
+      perdre une information. Absence de version lue (`nil`, 429, mod hors
+      réponse) : le snooze tient — on ne réveille pas sur une absence
+      d'information, seulement sur un changement. Cliquet : `vm.L`/`vm`/deux
+      `print` Warning assumés par `--update` (patron des vues et des stores
+      Core) ; les `try?` refondus en `do/catch` et `snoozedUpdates` en
+      `private(set)` plutôt qu'assumés. 11 tests Core neufs, 2 341 verts.
+
 - [x] **X1** ❌ *(non reproduit — pas de bug)* — Le copier/coller fonctionne dans le champ
       NexusID comme ailleurs dans l'app (vérifié par l'utilisateur, 2026-07-30). Le menu
       Édition est bien présent. Rien à corriger.

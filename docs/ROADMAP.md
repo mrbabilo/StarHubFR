@@ -1446,7 +1446,7 @@ sur macOS / SwiftUI. Les features trop spécifiques à RimWorld (Cecil analyzer,
       pré-apply est le plan lui-même, quelques Ko au lieu de dizaines de Go sur
       le parc. Récit et mesures : archive §4. Spec :
       `docs/superpowers/specs/2026-09-06-r2-apply-guard-design.md`.
-- [ ] **R3** — **Snooze d'updates Nexus.** Granularité : 1 semaine / jusqu'à prochaine
+- [x] **R3** ✅ *(livré le 2026-09-07)* — **Snooze d'updates Nexus.** Granularité : 1 semaine / jusqu'à prochaine
       version du mod / jusqu'à prochaine version de Stardew. Persiste en UserDefaults,
       expire tout seul, retire le mod de la liste « updates » sans le masquer dans
       l'inventaire. Répond à un vrai UX gap : aujourd'hui, ignorer un update = l'avoir
