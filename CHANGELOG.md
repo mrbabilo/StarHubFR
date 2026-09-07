@@ -12,25 +12,17 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.37.4] - 2026-09-07
+
 ### Fixed
 
-- **La marque « à écarter » ne se duplique plus sur une collision de dossier.** Si un mod blacklisté est renommé en un nom déjà pris par un autre mod, la marque restait collée aux deux : le mod renommé apparaissait à son tour comme écarté, sans que l'utilisateur ne l'ait jamais demandé. La même politique que l'identifiant Nexus saisi à la main : on laisse la marque à celui qui portait déjà le nom, le mod renommé la réapprend s'il le faut. La marque n'est jamais dupliquée sur deux mods.
+- **Le renommage d'un mod n'avale plus l'échec d'écriture du suivi des traductions.** Le registre en mémoire était renommé, mais si sa persistance échouait (disque plein, droits refusés), l'échec restait silencieux : au redémarrage, le registre relu gardait l'ancien nom d'hôte, et la traduction posée ne se rattachait plus au mod renommé — sa désinstallation ne retrouvait plus les fichiers à retirer. L'échec est désormais dit au journal, comme les huit autres chemins qui écrivent ce registre.
 
-- **Les glyphes d'état d'un mod écarté restent lisibles, malgré le grisé.** L'icône « × » à côté du nom du mod sert précisément à signaler qu'il est écarté — le grisé de la ligne rend l'Info discrète, mais doit laisser la redondance visible. Elle quitte la zone grisée et rejoint l'étoile de favori dans la rangée de gauche, à pleine opacité, à côté de la glyphe « pause » quand le mod est aussi désactivé.
+- **Un échec d'écriture de l'index des sauvegardes de config ne se tait plus.** Une sauvegarde copie ses fichiers puis enregistre son entrée d'index ; si cette écriture échouait (disque devenu plein pendant la copie), la sauvegarde complète existait sur disque mais n'apparaissait dans aucune liste — et l'écran Entretien la proposait à la purge comme orpheline. L'échec est consigné, au même niveau que le manager des sauvegardes d'installation, qui le fait depuis l'audit du 2026-08-05.
 
-- **Le filtre « à écarter » ne montre plus une liste vide sans explication.** Si vous dé-marquez le dernier mod pendant que le filtre est actif, la liste se vide sans qu'on sache pourquoi. Le filtre se lève maintenant automatiquement, par symétrie avec ce qui se passe quand il n'y a rien à écarter au départ.
+## [1.37.3] - 2026-09-07
 
-- **Une écriture ratée du journal de reprise d'application de profil ne se perd plus en silence.** Disque plein, droits refusés, l'écriture échouait sans que l'app ne le dise : la session courante se déroulait correctement, mais le filet de récupération au prochain démarrage n'existerait pas. L'échec est maintenant journalisé avec le nom du profil et la cause.
-
-- **L'installateur SMAPI ne dépend plus de la locale système.** Les trois `Process` qu'il lance — `unzip` sur le zip téléchargé, `xattr` pour retirer la quarantaine, et l'installateur .NET de SMAPI lui-même — héritent maintenant de `LC_ALL=en_US_POSIX` et `LANG=en_US_POSIX`. Sans cette pose, une installation sur un système francophone faisait passer les messages d'erreur en français et le check `output.contains("SMAPI is installed!")` pouvait tomber en échec. Le pilote de l'installateur officiel (X32) est aussi concerné : son verdict de succès repose sur des chaînes anglaises.
-
-- **Le client DeepL respecte le `Retry-After` du serveur sur 429.** Un plan gratuit qui sature renvoyait un 429 sans qu'on l'écoute — l'app attendait deux secondes, retentait, retombait en 429, et jetait la traduction. Le header est désormais lu et appliqué, borné à 60 secondes pour ne pas attendre un délai aberrant qu'un incident côté DeepL aurait pu poser. Le délai par défaut de 2 secondes reste le repli quand le header est absent.
-
-- **La file de téléchargement Nexus ne dégrade plus un clic Premium en clic free.** Une entrée déjà en file avec une clé nulle (utilisateur payeur) ne se voit plus écraser par une `nxm://` partagée qui arrive ensuite avec une clé bornée — l'utilisateur payeur ne voit plus son propre téléchargement lui être refusé pour un partage de session. L'inverse (free → Premium) reste une promotion sans risque.
-
-- **Le client smapi.io refuse désormais toute autre valeur que « Mac » pour `platform`.** Mesuré contre smapi.io : `"macOS"` et `"MacOS"` rendent un HTTP 200 et une liste vide de suggestions, sans message d'erreur. Une `precondition(platform == "Mac")` au plus près de la sérialisation fait tomber le test rouge au geste qui s'est trompé, plutôt que dans une couche de codage qui mélangerait les `Body` valides et invalides.
-
-- **Le LLM local ne tronque plus les traductions de dialogues longs.** L'ancien plafond de 1024 tokens de sortie jetait toute source de plus de 700 caractères comme `finish_reason=length` — y compris des dialogues du jeu de 800 caractères. Le plafond passe à 4096, dérivé de la taille de la source par la règle 2 × `source.count`, plancher 64.
+### Fixed
 
 - **Le download SMAPI distingue les erreurs définitives des transitoires.** Un 4xx (asset retiré, repo privé) et un 5xx (rate-limit GitHub, blip réseau) reçoivent désormais des messages distincts : « fichier indisponible » contre « réessayez dans quelques minutes ». La session qui télécharge le zip de SMAPI depuis GitHub est aussi dédiée et éphémère, avec un timeout de 30 s par ressource et 60 s global — fini le piège d'un hôte lent qui laissait la completion sans réponse pendant 5 minutes.
 
@@ -42,9 +34,31 @@ where the exact log format was verified.
 
 - **Une traduction espagnole ne passe plus pour française.** Le mot « traduction » est neutre, et un titre « Traduction espagnole de X » matchait l'ancien filtre de traduction française. La nouvelle règle pose un second jeu de marqueurs (variantes longues des autres langues) qui annule le match français si l'une d'elles est aussi présente. Les codes ISO 2 lettres (`de`, `en`, `it`...) sont exclus : ils sont aussi des mots français courants, et déclencheraient des faux positifs.
 
-- **Le renommage d'un mod n'avale plus l'échec d'écriture du suivi des traductions.** Le registre en mémoire était renommé, mais si sa persistance échouait (disque plein, droits refusés), l'échec restait silencieux : au redémarrage, le registre relu gardait l'ancien nom d'hôte, et la traduction posée ne se rattachait plus au mod renommé — sa désinstallation ne retrouvait plus les fichiers à retirer. L'échec est désormais dit au journal, comme les huit autres chemins qui écrivent ce registre.
+## [1.37.2] - 2026-09-07
 
-- **Un échec d'écriture de l'index des sauvegardes de config ne se tait plus.** Une sauvegarde copie ses fichiers puis enregistre son entrée d'index ; si cette écriture échouait (disque devenu plein pendant la copie), la sauvegarde complète existait sur disque mais n'apparaissait dans aucune liste — et l'écran Entretien la proposait à la purge comme orpheline. L'échec est consigné, au même niveau que le manager des sauvegardes d'installation, qui le fait depuis l'audit du 2026-08-05.
+### Fixed
+
+- **L'installateur SMAPI ne dépend plus de la locale système.** Les trois `Process` qu'il lance — `unzip` sur le zip téléchargé, `xattr` pour retirer la quarantaine, et l'installateur .NET de SMAPI lui-même — héritent maintenant de `LC_ALL=en_US_POSIX` et `LANG=en_US_POSIX`. Sans cette pose, une installation sur un système francophone faisait passer les messages d'erreur en français et le check `output.contains("SMAPI is installed!")` pouvait tomber en échec. Le pilote de l'installateur officiel (X32) est aussi concerné : son verdict de succès repose sur des chaînes anglaises.
+
+- **Le client DeepL respecte le `Retry-After` du serveur sur 429.** Un plan gratuit qui sature renvoyait un 429 sans qu'on l'écoute — l'app attendait deux secondes, retentait, retombait en 429, et jetait la traduction. Le header est désormais lu et appliqué, borné à 60 secondes pour ne pas attendre un délai aberrant qu'un incident côté DeepL aurait pu poser. Le délai par défaut de 2 secondes reste le repli quand le header est absent.
+
+- **La file de téléchargement Nexus ne dégrade plus un clic Premium en clic free.** Une entrée déjà en file avec une clé nulle (utilisateur payeur) ne se voit plus écraser par une `nxm://` partagée qui arrive ensuite avec une clé bornée — l'utilisateur payeur ne voit plus son propre téléchargement lui être refusé pour un partage de session. L'inverse (free → Premium) reste une promotion sans risque.
+
+- **Le client smapi.io refuse désormais toute autre valeur que « Mac » pour `platform`.** Mesuré contre smapi.io : `"macOS"` et `"MacOS"` rendent un HTTP 200 et une liste vide de suggestions, sans message d'erreur. Une `precondition(platform == "Mac")` au plus près de la sérialisation fait tomber le test rouge au geste qui s'est trompé, plutôt que dans une couche de codage qui mélangerait les `Body` valides et invalides.
+
+- **Le LLM local ne tronque plus les traductions de dialogues longs.** L'ancien plafond de 1024 tokens de sortie jetait toute source de plus de 700 caractères comme `finish_reason=length` — y compris des dialogues du jeu de 800 caractères. Le plafond passe à 4096, dérivé de la taille de la source par la règle 2 × `source.count`, plancher 64.
+
+## [1.37.1] - 2026-09-07
+
+### Fixed
+
+- **La marque « à écarter » ne se duplique plus sur une collision de dossier.** Si un mod blacklisté est renommé en un nom déjà pris par un autre mod, la marque restait collée aux deux : le mod renommé apparaissait à son tour comme écarté, sans que l'utilisateur ne l'ait jamais demandé. La même politique que l'identifiant Nexus saisi à la main : on laisse la marque à celui qui portait déjà le nom, le mod renommé la réapprend s'il le faut. La marque n'est jamais dupliquée sur deux mods.
+
+- **Les glyphes d'état d'un mod écarté restent lisibles, malgré le grisé.** L'icône « × » à côté du nom du mod sert précisément à signaler qu'il est écarté — le grisé de la ligne rend l'Info discrète, mais doit laisser la redondance visible. Elle quitte la zone grisée et rejoint l'étoile de favori dans la rangée de gauche, à pleine opacité, à côté de la glyphe « pause » quand le mod est aussi désactivé.
+
+- **Le filtre « à écarter » ne montre plus une liste vide sans explication.** Si vous dé-marquez le dernier mod pendant que le filtre est actif, la liste se vide sans qu'on sache pourquoi. Le filtre se lève maintenant automatiquement, par symétrie avec ce qui se passe quand il n'y a rien à écarter au départ.
+
+- **Une écriture ratée du journal de reprise d'application de profil ne se perd plus en silence.** Disque plein, droits refusés, l'écriture échouait sans que l'app ne le dise : la session courante se déroulait correctement, mais le filet de récupération au prochain démarrage n'existerait pas. L'échec est maintenant journalisé avec le nom du profil et la cause.
 
 ## [1.37.0] - 2026-09-07
 
