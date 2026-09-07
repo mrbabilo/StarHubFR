@@ -68,17 +68,18 @@ Le protocole d'audit (par fichier : 🔴 / 🟠 / 🟡 / ✅ / 📋) est défini
 
 ## 3. Findings par fichier
 
-Les sections détaillées par fichier suivent ci-dessous, dans l'ordre Tier 1 → Tier 4.
-
-## 4. Sections détaillées
-
-Les sections 🔴 / 🟠 / 🟡 / ✅ / 📋 par fichier sont détaillées dans les annexes `audit-phase2-2026-09-07-tier1-2.md` (Tier 1-2, 17 fichiers Nexus) et `audit-phase2-2026-09-07-tier3-4.md` (Tier 3-4, 8 fichiers SMAPI + DeepL + LLM).
-
-Les deux annexes sont produites séparément par les sous-agents d'audit, dans le même format que l'audit Phase 1.2 (`docs/audit-phase1-2-2026-09-01.md`).
+⚠️ **Les sections détaillées par fichier annoncées par le plan d'origine n'ont
+jamais été écrites.** Deux annexes étaient prévues (`…-tier1-2.md`,
+`…-tier3-4.md`), produites par les sous-agents d'audit ; elles n'existent pas —
+le détail par fichier est resté dans leurs transcripts, non versionnés. Ce
+document est donc la seule trace versionnée de la passe : bilan par tier (§1.1),
+candidats `X<n>` (§1.2), croisements avec l'existant (§4) et verdict (§5). Les
+onze durcissements `X78`–`X88` ont été livrés le jour même (commits `530459b`,
+`a658e08`, tests inclus) et sont indexés dans `docs/ROADMAP.md` §11.
 
 ---
 
-## 5. Cross-reference outcomes
+## 4. Cross-reference outcomes
 
 | Constat | Tier | Statut existant | Recommandation |
 |---------|------|-----------------|----------------|
@@ -103,7 +104,7 @@ Les deux annexes sont produites séparément par les sous-agents d'audit, dans l
 
 ---
 
-## 6. Verdict global
+## 5. Verdict global
 
 La surface réseau est **solide** :
 - Entonnoir rate-limit unifié (X67)

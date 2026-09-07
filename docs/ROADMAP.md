@@ -1574,6 +1574,17 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **X29** | 2026-09-06 | La détection de doublons sur disque gardait une quatrième copie de la lecture de manifeste (regex aveugle aux chaînes) — elle lit par `ManifestJSON.decode` comme le scan ; parité mesurée : 1 101 manifestes, zéro divergence |
 | **X32** | 2026-09-06 | L'installateur SMAPI se pilotait par quatre réponses à l'aveugle dont l'ordre était supposé stable — invoqué par ses drapeaux `--install/--uninstall --game-path`, une seule question reste et un dossier refusé rend son diagnostic |
 | **X77** | 2026-09-06 | La présence de SMAPI se jugeait sur `StardewValley-original`, jamais posé par une installation propre — elle se juge désormais sur `smapi-internal/`, partagé avec les preuves de réussite de l'installateur |
+| **X78** | 2026-09-07 | La file Nexus écrasait l'entrée Premium d'un `fileId` par une `nxm://` arrivée ensuite avec clé bornée — le payeur voyait son téléchargement refusé pour un partage de session |
+| **X79** | 2026-09-07 | « Traduction espagnole de X » passait pour une traduction française dans les annonces Nexus — les variantes longues des autres langues annulent désormais le match |
+| **X80** | 2026-09-07 | La clé `nxm://` n'était protégée que partiellement dans l'URL — le percent-encoding couvre `&`, `=`, `+`, `;` et `%` |
+| **X81** | 2026-09-07 | Un double-clic sur « Installer SMAPI » faisait partager fichiers de travail et téléchargement entre deux passes — dossier temp nommé par UUID, créé à la demande, nettoyé par `defer` |
+| **X82** | 2026-09-07 | Les trois `Process` de l'installateur SMAPI (`unzip`, `xattr`, installateur .NET) héritaient de la locale système — `en_US_POSIX` posé, le verdict de succès lit des chaînes anglaises |
+| **X83** | 2026-09-07 | Le download GitHub de SMAPI n'avait aucun timeout — session dédiée et éphémère, 30 s par ressource, 60 s global |
+| **X84** | 2026-09-07 | DeepL ignorait le `Retry-After` d'un 429 et jetait la traduction après un délai fixe — le délai du serveur est lu et appliqué, borné à 60 s |
+| **X85** | 2026-09-07 | Le LLM local tronquait toute source de plus de ~700 caractères (`max_tokens` 1024, `finish_reason=length`) — plafond 4096, dérivé de la source (2 × `source.count`, plancher 64) |
+| **X86** | 2026-09-07 | La requête smapi.io ne gardait pas `platform` : `"macOS"` rend un HTTP 200 et une liste vide en silence — une `precondition` au plus près de la sérialisation fait tomber le test rouge au geste fautif |
+| **X87** | 2026-09-07 | smapi.io n'avait pas de mur de rate-limit entre les lots — un 429/503 arme une porte de 30 s, désarmée au premier lot réussi, et un `fetch` concurrent est sérialisé |
+| **X88** | 2026-09-07 | Le download SMAPI ne distinguait pas 4xx et 5xx — « fichier indisponible » contre « réessayez dans quelques minutes » |
 | **B1-T1** | 2026-08-01 | Boutons Activer/Désactiver et Supprimer sur la fiche mod (parité avec la liste, mêmes confirmations). Absents pour un… |
 | **B1-T2** | 2026-08-01 | Tri, filtres, catégorie, page et recherche portés par ModListFilters dans le ViewModel. La remise à la page 1 est por… |
 
