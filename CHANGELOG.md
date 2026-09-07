@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Changed
+
+- **Le cadrage de la liste des mods se teste.** Les types des filtres — cadrage général, traduction française, catégorie, tri — quittent la vue qui les affichait pour le module testable, avec `NexusCategory` dont ils dépendaient. Leurs contrats sont désormais épinglés par des tests, au premier rang desquels la règle de pagination : changer un filtre ramène à la première page, changer le tri n'y touche pas.
+
 ## [1.37.5] - 2026-09-07
 
 ### Changed

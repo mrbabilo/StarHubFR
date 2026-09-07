@@ -1,47 +1,9 @@
 import SwiftUI
 
-/// Scope filter for the mods list.
-enum ModFilter: String, CaseIterable, Identifiable {
-    case all, enabled, disabled, issues
-    var id: String { rawValue }
-}
-
-/// Three-state French-translation filter: off (all mods), only mods that ship
-/// an `fr` i18n file, or only mods that don't. Matches `ModItem.languages`
-/// (lowercased codes from the mod's `i18n/` folder).
-enum FrenchTranslationScope: Equatable {
-    case off
-    case available   // ships an i18n/fr.json
-    /// Traduit, mais pas entièrement — ceux sur lesquels il reste à faire.
-    /// Sur le parc, 31 mods contre 392 complets : sans ce cadrage ils sont
-    /// introuvables.
-    case partial
-    case missing     // translatable, but ships no i18n/fr.json
-    /// Traduit, mais l'anglais a bougé depuis — par la date du fichier ou par
-    /// une clé dont la référence ne correspond plus. 18 mods du parc au premier
-    /// lancement, sans qu'aucun diff ait été ouvert.
-    case stale
-}
-
-/// Scope for the category-filter menu: show everything, scope to one Nexus
-/// category, or scope to mods with no category assigned. A single enum
-/// (rather than `NexusCategory?` plus a separate boolean) keeps these three
-/// states mutually exclusive by construction.
-enum CategoryScope: Equatable {
-    case all
-    case category(NexusCategory)
-    case inferredTag(String)   // stable inferTag key, for mods with no Nexus category
-    case uncategorized         // mods with no Nexus category whose inferred tag is "Other"
-}
-
-/// Sort order for the mods list. `.name` matches `vm.mods`'s existing
-/// alphabetical order (so no extra sort is needed for it); `.activationOrder`
-/// sorts by `vm.modActivationTimestamps`, most recent first; `.installDate`
-/// sorts by `installedFileDate` (folder mod date), most recent first.
-enum ModSortOrder: String, CaseIterable, Identifiable {
-    case name, nameDescending, activationOrder, installDate, author, version, size
-    var id: String { rawValue }
-}
+// Les enums de cadrage de la liste (`ModFilter`, `FrenchTranslationScope`,
+// `CategoryScope`, `ModSortOrder`) vivent désormais dans
+// `Models/ModListFilters.swift` : ils sont entrés dans `StarHubTHCore` pour
+// se tester (F1 — voir l'en-tête de ce fichier).
 
 /// A single slot in the pagination footer: either a numbered page button or
 /// an ellipsis gap. Using an enum (instead of a sentinel like `-1`) makes it

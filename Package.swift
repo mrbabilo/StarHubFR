@@ -18,6 +18,7 @@ let package = Package(
                 "ModConfigBackupManager.swift",
                 "DictionaryExtensions.swift",
                 "ZipModInfo.swift",
+                "NexusCategory.swift",
                 "ModInstallBackup.swift",
                 "ModInstallBackupManager.swift",
                 "ModZipInstaller.swift",
@@ -115,6 +116,7 @@ let package = Package(
                 "Models/BlacklistResolution.swift",
                 "Models/ModDependencyStatus.swift",
                 "Models/CoreModSlot.swift",
+                "Models/ModListFilters.swift",
                 "Models/XMLEntities.swift",
                 "L10n.swift",
                 "L10nResolver.swift",
@@ -489,6 +491,11 @@ let package = Package(
             name: "CoreModSlotTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/CoreModSlotTests"
+        ),
+        .testTarget(
+            name: "ModListFiltersTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ModListFiltersTests"
         ),
         .testTarget(
             name: "ModDependencyStatusTests",

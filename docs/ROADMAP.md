@@ -1006,6 +1006,16 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
         fonctionnalité nouvelle ne rentre plus dans le VM ; elle arrive dans son propre
         type, que le VM se contente d'appeler. *(Le risque noté en v1.15 disparaît alors
         de lui-même.)*
+        **Première application du sens inverse (2026-09-07)** — extraire ce qu'on
+        veut tester : les quatre enums de cadrage de la liste (`ModFilter`,
+        `FrenchTranslationScope`, `CategoryScope`, `ModSortOrder`) descendent de
+        `ModListView.swift` vers `Models/ModListFilters.swift`, et `NexusCategory`
+        entre dans le module (`AppDesignCore` y prouve que SwiftUI compile).
+        `ModListFilters` devient testable : **11 tests de caractérisation**,
+        dont le contrat de pagination — tout critère qui change le nombre de
+        résultats ramène à la page 1, le tri n'y touche pas, et `focus(on:)`
+        lève tout filtre susceptible d'écarter. C'était le déblocage que X91
+        avait laissé documenté. 2 370 tests verts.
 - [ ] **F4** — **Les en-têtes de pack portent `uniqueId: ""`.**
       `StarHubTHViewModel.swift:1207` construit chaque groupe avec une identité vide.
       L'upstream a traité le même défaut (leur 2.4) : une dépendance déclarée avec un
