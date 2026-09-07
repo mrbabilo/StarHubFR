@@ -1587,6 +1587,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **X88** | 2026-09-07 | Le download SMAPI ne distinguait pas 4xx et 5xx — « fichier indisponible » contre « réessayez dans quelques minutes » |
 | **X89** | 2026-09-07 | Le renommage d'un mod avalait l'échec de persistance du suivi des traductions (`_ =` au site 12 de X60) — le registre relu gardait l'ancien hôte, la désinstallation ne retrouvait plus les fichiers ; les huit autres sites qui écrivent ce registre le disaient déjà |
 | **X90** | 2026-09-07 | `ModConfigBackupManager.saveIndex` se taisait en échec — sauvegarde complète sur disque mais invisible dans la liste, et purgable comme orpheline ; aligné sur le `print` CRITICAL du manager jumeau (`dd6b4d1`) |
+| **X91** | 2026-09-07 | Trois fichiers de `Models/` n'ont jamais été listés dans `Package.swift` (`ModCompatibilityStore`, `ModDetailCache`, `NexusFileDownload`) — compilés dans l'app, invisibles de `swift build` et des tests ; ajoutés, preuve par 2 359 tests verts. `ModListFilters`, extrait du VM pour être testable, reste bloqué : il dépend de `FrenchTranslationScope` défini dans une vue |
 | **B1-T1** | 2026-08-01 | Boutons Activer/Désactiver et Supprimer sur la fiche mod (parité avec la liste, mêmes confirmations). Absents pour un… |
 | **B1-T2** | 2026-08-01 | Tri, filtres, catégorie, page et recherche portés par ModListFilters dans le ViewModel. La remise à la page 1 est por… |
 

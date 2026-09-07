@@ -230,7 +230,8 @@ def write_compile_commands(swift_files: list[str], app_executable: str, module_c
         for swift_file in swift_files
     ]
     fingerprint = json.dumps(
-        [(e["file"], e["directory"]) for e in entries], sort_keys=True
+        [(e["file"], e["directory"], e["arguments"]) for e in entries],
+        sort_keys=True,
     )
     cache_path = ".build/compile_commands.fingerprint"
     try:
