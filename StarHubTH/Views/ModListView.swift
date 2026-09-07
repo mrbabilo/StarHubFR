@@ -164,6 +164,7 @@ struct ModListView: View {
             vm.matchesSearch(mod, filters: filters)
                 && vm.matchesConfig(mod, filters: filters)
                 && vm.matchesFavorites(mod, filters: filters)
+                && vm.matchesBlacklisted(mod, filters: filters)
         }, scope: filters.scope)
         return (category: scoped.filter { vm.matchesTranslation($0, filters.frenchTranslation) },
                 translation: scoped.filter { vm.matchesCategory($0, filters: filters) })
@@ -406,6 +407,8 @@ struct ModListView: View {
                     configFilterToggle
 
                     favoritesFilterToggle
+
+                    blacklistedFilterToggle
 
                     Divider()
                         .frame(height: 16)
@@ -959,6 +962,54 @@ struct ModListView: View {
         // Le compte est à l'écran : sans cette valeur, VoiceOver le perdrait
         // avec le libellé.
         .accessibilityValue(empty ? "" : "\(vm.favoriteMods.count)")
+    }
+
+    // MARK: - Blacklisted filter toggle
+
+    /// Cadre la liste sur les mods marqués « à écarter ». Même famille visuelle
+    /// que `favoritesFilterToggle` — `.circle` plein quand actif, vide sinon,
+    /// compteur tant qu'il y a quelque chose à compter, libellé quand il n'y
+    /// a rien à expliquer d'autre que le geste.
+    ///
+    /// Le filtre est **positif** : par défaut tout le monde passe, et c'est
+    /// l'activer qui réduit la liste aux seuls marqués. Un grisé de la liste
+    /// générale reste donc découvrable sans ce filtre — c'est la même
+    /// logique que les favoris, retournée.
+    private var blacklistedFilterToggle: some View {
+        let active = filters.blacklistedOnly
+        let empty = vm.blacklistedMods.isEmpty
+        return Button {
+            listState.filters.blacklistedOnly.toggle()
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: active ? "xmark.circle.fill" : "xmark.circle")
+                    .font(AppDesign.Font.footnote)
+                if empty {
+                    Text(vm.L(L10n.Mods.filterBlacklisted))
+                        .font(AppDesign.Font.caption(.medium))
+                } else {
+                    Text("\(vm.blacklistedMods.count)")
+                        .font(AppDesign.Font.iconXS(.semibold).monospacedDigit())
+                        .foregroundColor(.secondary)
+                }
+            }
+            .foregroundColor(active ? Color.accentColor : .primary)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(
+                RoundedRectangle(cornerRadius: AppDesign.Radius.sm)
+                    .fill(active ? Color.accentColor.opacity(AppDesign.Opacity.medium) : Color.secondary.opacity(AppDesign.Opacity.light))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: AppDesign.Radius.sm)
+                    .stroke(active ? Color.accentColor.opacity(0.4) : Color.secondary.opacity(AppDesign.Opacity.medium), lineWidth: 0.5)
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
+        .disabled(empty && !active)
+        .help(vm.L(empty ? L10n.Mods.filterBlacklistedEmptyHint : L10n.Mods.filterBlacklistedHint))
+        .accessibilityLabel(vm.L(L10n.Mods.filterBlacklisted))
+        .accessibilityValue(empty ? "" : "\(vm.blacklistedMods.count)")
     }
 
     // MARK: - French-translation filter picker
@@ -1643,6 +1694,16 @@ struct ModListRow: View {
                         .font(AppDesign.Font.body(.medium))
                         .foregroundColor(effectiveEnabled ? .primary : .secondary)
                         .lineLimit(1)
+                    // Le glyph de l'état « à écarter » (blacklist) — toujours
+                    // visible quand la marque est posée, sur les lignes de
+                    // premier niveau. Symétrique du `pause.circle` du dessus :
+                    // même rôle de redondance visuelle quand le grisé de
+                    // l'Info pourrait prêter à confusion.
+                    if !isChild && vm.isBlacklisted(mod) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(AppDesign.Font.iconXS)
+                            .foregroundColor(.secondary)
+                    }
                     // Le glyph de l'état « en pause » (P6 : glyph + couleur
                     // + barre d'accent — jamais la couleur seule). Redondant
                     // avec la barre d'accent : chaque signal seul suffit.
@@ -1771,11 +1832,34 @@ struct ModListRow: View {
                     .padding(.top, 2)
                 }
             }
+            // Grisé du contenu « info » quand le mod est marqué « à écarter ».
+            // On ne touche ni la barre d'accent (l'état enabled/disabled doit
+            // rester lisible), ni les boutons d'action (les gestes doivent
+            // rester cliquables — y compris le bouton × qui lève la marque).
+            .opacity((!isChild && vm.isBlacklisted(mod)) ? 0.55 : 1.0)
 
             Spacer()
 
             // Actions (always visible)
             HStack(spacing: AppDesign.Spacing.md) {
+                // Bouton « à écarter » — premier niveau seulement, comme
+                // l'étoile de favori. La marque se pose ici parce que c'est
+                // l'écran de décision : marquer le sort d'un mod.
+                if !isChild {
+                    let blacklisted = vm.isBlacklisted(mod)
+                    Button {
+                        vm.toggleBlacklist(mod)
+                    } label: {
+                        Image(systemName: blacklisted ? "xmark.circle.fill" : "xmark.circle")
+                            .font(AppDesign.Font.rowTitle)
+                            .foregroundColor(blacklisted ? .secondary : .secondary.opacity(0.6))
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .help(vm.L(blacklisted ? L10n.Mods.blacklistRemove : L10n.Mods.blacklistAdd))
+                    .accessibilityLabel(vm.L(blacklisted ? L10n.Mods.blacklistRemove : L10n.Mods.blacklistAdd))
+                    .pointingHandCursor()
+                }
+
                 Button {
                     let url = URL(fileURLWithPath: vm.gameDir)
                         .appendingPathComponent("Mods")

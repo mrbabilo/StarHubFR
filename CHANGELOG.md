@@ -14,6 +14,8 @@ where the exact log format was verified.
 
 ### Added
 
+- **Les mods à écarter se marquent comme les favoris, et la marque survit à tout.** Un `×.circle` sur la ligne de premier niveau, dans la fiche, et une pastille « À écarter » dans la barre de filtres de la liste, à côté des favoris. Le mod reste installé et activable : il est juste **grisé** dans la liste (nom + métadonnées + état, sans toucher aux boutons d'action), avec un `×.circle.fill` à côté du nom pour qu'un grisé ne prête pas à confusion. La clé est le `folderName` **logique** — un mod en pause garde sa marque, un renommage la suit, un mod supprimé la perd avec ses autres traces. Une entrée « Importer les écarter » dans le menu de chaque profil en active le lot en bloc, symétrique de l'import des favoris : même résolution `folderName` → `UniqueID`, même filet de sécurité sur profil actif, même journal qui distingue le geste de la ré-application disque.
+
 - **Les mises à jour Nexus se mettent en veille — et la veille expire toute seule.** L'écran des updates propose maintenant de snoozer un mod : une semaine, jusqu'à ce que Nexus publie une version différente, ou jusqu'à la prochaine version du jeu. L'identité du snooze est l'UniqueID — jamais l'identifiant Nexus (58 partages sur le parc réel) ni le nom de dossier (un renommage ne réveille pas une veille). Un bouton « réactiver » réveille sur clic ; les trois modes expirent à leur tour sans intervention, paresseusement, à l'usage. Le mod reste dans l'inventaire, seul l'update quitte la liste.
 
 ### Fixed

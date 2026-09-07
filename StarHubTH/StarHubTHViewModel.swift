@@ -331,6 +331,11 @@ class StarHubTHViewModel: ObservableObject {
     /// celui qui ne porte pas le point d'un dossier en pause, donc le marquage
     /// survit à une mise en pause. Même clé que `modActivationTimestamps`.
     @Published private(set) var favoriteMods: Set<String> = []
+    /// Les mods marqués « à écarter » (blacklist) — même clé que
+    /// `favoriteMods` : `folderName` **logique**, pour survivre à une mise en
+    /// pause. Le mod reste installé et activable ; il est juste **grisé** dans
+    /// la liste, et un filtre / import dans un profil le distingue du reste.
+    @Published private(set) var blacklistedMods: Set<String> = []
     /// Les mods dont le `config.json` suit le profil actif (B3-T5), par nom
     /// **logique** de dossier — même clé que `favoriteMods`.
     @Published private(set) var profileManagedConfigMods: Set<String> = []
@@ -5265,6 +5270,10 @@ for mod in mods {
                                    shared: shared) {
             Self.saveFavoriteMods(favoriteMods)
         }
+        if ModFolderRename.migrate(&blacklistedMods, from: old, to: new,
+                                   shared: shared) {
+            Self.saveBlacklistedMods(blacklistedMods)
+        }
         if ModFolderRename.migrate(&profileManagedConfigMods, from: old, to: new,
                                    shared: shared) {
             Self.saveProfileManagedConfigMods(profileManagedConfigMods)
@@ -7462,6 +7471,20 @@ for mod in mods {
         UserDefaults.standard.set(data, forKey: favoriteModsKey)
     }
 
+    // MARK: - Mods à écarter (blacklist)
+
+    private static let blacklistedModsKey = "blacklistedMods"
+
+    private static func loadBlacklistedMods() -> Set<String> {
+        guard let data = UserDefaults.standard.data(forKey: blacklistedModsKey) else { return [] }
+        return (try? JSONDecoder().decode(Set<String>.self, from: data)) ?? []
+    }
+
+    private static func saveBlacklistedMods(_ names: Set<String>) {
+        guard let data = try? JSONEncoder().encode(names) else { return }
+        UserDefaults.standard.set(data, forKey: blacklistedModsKey)
+    }
+
     // MARK: - Configs par profil (B3-T5)
 
     private static func loadProfileManagedConfigMods() -> Set<String> {
@@ -8769,6 +8792,23 @@ for mod in mods {
 
     func isFavorite(_ mod: ModItem) -> Bool { favoriteMods.contains(mod.folderName) }
 
+    /// Marque ou démarque un mod comme « à écarter ». Symétrique de
+    /// `toggleFavorite` : persistance immédiate, même clé logique, même
+    /// idempotence. Le mod reste installé — la marque n'agit que sur
+    /// l'affichage et le filtre.
+    func toggleBlacklist(_ mod: ModItem) {
+        if blacklistedMods.contains(mod.folderName) {
+            blacklistedMods.remove(mod.folderName)
+        } else {
+            blacklistedMods.insert(mod.folderName)
+        }
+        Self.saveBlacklistedMods(blacklistedMods)
+    }
+
+    func isBlacklisted(_ mod: ModItem) -> Bool {
+        blacklistedMods.contains(mod.folderName)
+    }
+
     /// Un mod peut-il porter des configs par profil ?
     ///
     /// Un **en-tête de pack** ne le peut pas : il n'a pas de réglages propres,
@@ -8966,6 +9006,51 @@ for mod in mods {
         let importedCount = resolution.ids.count
         updateProfile(id: profileId, newName: name, enabledModIds: newIds)
         log(String(format: L(L10n.VM.profileFavoritesImported),
+                   importedCount, name, newIds.count))
+        return resolution
+    }
+
+    /// Ce que donnerait un import des mods « à écarter » dans ce profil. Voir
+    /// `favoriteImportPreview` pour l'esprit — la résolution est strictement
+    /// symétrique (folders → UniqueIDs, dédupliqué contre `existing`).
+    func blacklistImportPreview(profileId: UUID) -> BlacklistResolution.Result {
+        guard let profile = modProfiles.first(where: { $0.id == profileId }) else {
+            return BlacklistResolution.Result(ids: [], unresolved: [])
+        }
+        return BlacklistResolution.profileIds(blacklist: blacklistedMods, in: mods,
+                                              existing: profile.enabledModIds)
+    }
+
+    /// Ajoute tous les mods « à écarter » à un profil. Symétrique d'
+    /// `importFavorites(into:)` : les mêmes raisons d'éviter la boucle sur
+    /// `addModToProfile`, le même enrichissement de `modMetadata`, le même
+    /// filet `guardProfileApply` (R2) avant la moindre mutation, et le même
+    /// journal qui distingue le geste d'une passe de ré-application disque.
+    @discardableResult
+    func importBlacklisted(into profileId: UUID) -> BlacklistResolution.Result {
+        guard let index = modProfiles.firstIndex(where: { $0.id == profileId }) else {
+            return BlacklistResolution.Result(ids: [], unresolved: [])
+        }
+        guard guardProfileApply(for: profileId, name: modProfiles[index].name) else {
+            return BlacklistResolution.Result(ids: [], unresolved: [])
+        }
+        let resolution = BlacklistResolution.profileIds(
+            blacklist: blacklistedMods, in: mods,
+            existing: modProfiles[index].enabledModIds)
+        guard !resolution.ids.isEmpty else { return resolution }
+
+        let byId = Dictionary(mods.flattenedMods.map { ($0.uniqueId.lowercased(), $0) },
+                              uniquingKeysWith: { first, _ in first })
+        for id in resolution.ids {
+            guard let mod = byId[id.lowercased()] else { continue }
+            modProfiles[index].modMetadata[id] = ProfileModMetadata(name: mod.name,
+                                                                    nexusModId: mod.nexusModId)
+        }
+        let name = modProfiles[index].name
+        let newIds = modProfiles[index].enabledModIds + resolution.ids
+        let importedCount = resolution.ids.count
+        updateProfile(id: profileId, newName: name, enabledModIds: newIds)
+        log(String(format: L(L10n.VM.profileBlacklistedImported),
                    importedCount, name, newIds.count))
         return resolution
     }
@@ -9959,6 +10044,14 @@ for mod in mods {
         !filters.favoritesOnly || isFavorite(mod)
     }
 
+    /// Le cadrage « écarter » : laisse passer tout le monde par défaut, ne
+    /// garde que les mods blacklistés quand le filtre est actif. Symétrique
+    /// de `matchesFavorites` — voir son commentaire pour le pourquoi du
+    /// premier niveau.
+    func matchesBlacklisted(_ mod: ModItem, filters: ModListFilters) -> Bool {
+        !filters.blacklistedOnly || isBlacklisted(mod)
+    }
+
     func matchesTranslation(_ mod: ModItem, _ scope: FrenchTranslationScope) -> Bool {
         switch scope {
         case .off:
@@ -10011,6 +10104,7 @@ for mod in mods {
                     && matchesCategory(mod, filters: filters)
                     && matchesConfig(mod, filters: filters)
                     && matchesFavorites(mod, filters: filters)
+                    && matchesBlacklisted(mod, filters: filters)
                     && matchesTranslation(mod, filters.frenchTranslation)
             }
         // `.name` ne trie pas : `mods` porte **déjà** cet ordre, et un filtre
@@ -10447,6 +10541,11 @@ for mod in mods {
             // n'existent plus.
             if favoriteMods.remove(mod.folderName) != nil {
                 Self.saveFavoriteMods(favoriteMods)
+            }
+            // Idem pour la marque « à écarter » : un dossier supprimé ne se
+            // grise plus jamais, la marque resterait fantôme.
+            if blacklistedMods.remove(mod.folderName) != nil {
+                Self.saveBlacklistedMods(blacklistedMods)
             }
             forgetStores(of: mod)
             log(String(format: L(L10n.Mods.deletedLog), mod.name))

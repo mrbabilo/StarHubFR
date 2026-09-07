@@ -60,6 +60,12 @@ struct ModListFilters: Equatable {
     var favoritesOnly: Bool = false {
         didSet { if favoritesOnly != oldValue { page = 1 } }
     }
+    /// N'afficher que les mods « à écarter ». Filtre **positif** : par
+    /// défaut tout le monde passe, seuls les blacklistés restent quand il
+    /// est actif. Le mod grisé se laisse toujours trouver sans ce filtre.
+    var blacklistedOnly: Bool = false {
+        didSet { if blacklistedOnly != oldValue { page = 1 } }
+    }
     var frenchTranslation: FrenchTranslationScope = .off {
         didSet { if frenchTranslation != oldValue { page = 1 } }
     }
@@ -79,6 +85,7 @@ struct ModListFilters: Equatable {
         category = .all
         configOnly = false
         favoritesOnly = false
+        blacklistedOnly = false
         frenchTranslation = .off
         search = searchTerm
         // Pas redondant avec le `didSet` de `search` : sauter deux fois vers le

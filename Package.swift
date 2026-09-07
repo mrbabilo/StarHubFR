@@ -109,6 +109,7 @@ let package = Package(
                 "Models/ModsFolderSizer.swift",
                 "Models/LastUpdateAge.swift",
                 "Models/FavoriteResolution.swift",
+                "Models/BlacklistResolution.swift",
                 "Models/ModDependencyStatus.swift",
                 "Models/CoreModSlot.swift",
                 "Models/XMLEntities.swift",
@@ -530,6 +531,11 @@ let package = Package(
             name: "FavoriteResolutionTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/FavoriteResolutionTests"
+        ),
+        .testTarget(
+            name: "BlacklistResolutionTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/BlacklistResolutionTests"
         ),
         .testTarget(
             name: "ModsFolderSizerTests",

@@ -46,6 +46,19 @@ struct ModDetailActionBar: View {
             .foregroundColor(vm.isFavorite(live) ? .yellow : .secondary)
             .pointingHandCursor()
 
+            // « À écarter » — symétrique du favori. Marquer le mod comme
+            // sortant du jeu d'attention sans le désinstaller ni changer son
+            // activation. `live` pour la même raison que le favori.
+            Button {
+                vm.toggleBlacklist(live)
+            } label: {
+                Label(vm.L(vm.isBlacklisted(live) ? L10n.Mods.blacklistRemove : L10n.Mods.blacklistAdd),
+                      systemImage: vm.isBlacklisted(live) ? "xmark.circle.fill" : "xmark.circle")
+            }
+            .buttonStyle(.bordered)
+            .foregroundColor(vm.isBlacklisted(live) ? .secondary : .secondary)
+            .pointingHandCursor()
+
             // La config du mod — même prédicat que la liste
             // (`!isGroup && hasConfigFile`) : un en-tête de pack n'a pas de
             // config à lui. `live`, car l'éditeur construit ses chemins

@@ -17,6 +17,11 @@ struct ModProfilesView: View {
     /// données. Sur un profil inactif l'import part directement.
     @State private var profileImportingFavorites: ModProfile?
 
+    /// Symétrique de `profileImportingFavorites` : profil **actif** pour
+    /// lequel on a demandé un import des mods « à écarter », en attente de
+    /// confirmation. La feuille de confirmation vit dans `body`.
+    @State private var profileImportingBlacklisted: ModProfile?
+
     /// Aiguille l'import : rien à importer, profil actif (confirmation), ou
     /// simple changement de données.
     private func importFavorites(into profile: ModProfile) {
@@ -30,6 +35,22 @@ struct ModProfilesView: View {
             profileImportingFavorites = profile
         } else {
             runFavoriteImport(into: profile)
+        }
+    }
+
+    /// Symétrique de `importFavorites(into:)` — même aiguillage, même
+    /// filet de sécurité, même message d'absence. Le bouton de menu dit
+    /// « importer les écarter » et la marque `blacklistedMods` se traduit en
+    /// `UniqueID` exactement comme la favorite.
+    private func importBlacklisted(into profile: ModProfile) {
+        guard !vm.blacklistedMods.isEmpty else {
+            vm.showModal(message: vm.L(L10n.Profiles.importBlacklistedNone))
+            return
+        }
+        if vm.activeProfileId == profile.id {
+            profileImportingBlacklisted = profile
+        } else {
+            runBlacklistedImport(into: profile)
         }
     }
 
@@ -47,6 +68,26 @@ struct ModProfilesView: View {
         }
         if !result.unresolved.isEmpty {
             lines.append(String(format: vm.L(L10n.Profiles.importFavoritesUnresolved),
+                                result.unresolved.count,
+                                result.unresolved.joined(separator: ", ")))
+        }
+        vm.showModal(message: lines.joined(separator: "\n\n"))
+    }
+
+    /// Symétrique de `runFavoriteImport(into:)` : les mêmes trois lignes
+    /// (comptes / aucun nouveau / non résolus), avec les libellés dédiés à
+    /// la marque « à écarter ».
+    private func runBlacklistedImport(into profile: ModProfile) {
+        let result = vm.importBlacklisted(into: profile.id)
+        var lines: [String] = []
+        if result.ids.isEmpty {
+            lines.append(String(format: vm.L(L10n.Profiles.importBlacklistedNothingNew), profile.name))
+        } else {
+            lines.append(String(format: vm.L(L10n.Profiles.importBlacklistedDone),
+                                result.ids.count, profile.name))
+        }
+        if !result.unresolved.isEmpty {
+            lines.append(String(format: vm.L(L10n.Profiles.importBlacklistedUnresolved),
                                 result.unresolved.count,
                                 result.unresolved.joined(separator: ", ")))
         }
@@ -120,6 +161,7 @@ struct ModProfilesView: View {
                                 onRename: { renamingProfile = profile; renameText = profile.name },
                                 onDuplicate: { vm.duplicateProfile(id: profile.id) },
                                 onImportFavorites: { importFavorites(into: profile) },
+                                onImportBlacklisted: { importBlacklisted(into: profile) },
                                 onShowMissing: { profileShowingMissing = profile },
                                 onDelete: { profileToDelete = profile }
                             )
@@ -239,6 +281,25 @@ struct ModProfilesView: View {
             }
             Button(vm.L(L10n.Profiles.cancel), role: .cancel) { profileImportingFavorites = nil }
         }
+        // Import des mods « à écarter » dans le profil **actif** —
+        // exactement la même porte que les favoris : les mods s'activeront sur
+        // le disque dans la foulée, il faut le dire avant.
+        .confirmationDialog(
+            profileImportingBlacklisted.map {
+                String(format: vm.L(L10n.Profiles.importBlacklistedConfirm), $0.name)
+            } ?? "",
+            isPresented: Binding(
+                get: { profileImportingBlacklisted != nil },
+                set: { if !$0 { profileImportingBlacklisted = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button(vm.L(L10n.Profiles.importBlacklistedConfirmAction)) {
+                if let p = profileImportingBlacklisted { runBlacklistedImport(into: p) }
+                profileImportingBlacklisted = nil
+            }
+            Button(vm.L(L10n.Profiles.cancel), role: .cancel) { profileImportingBlacklisted = nil }
+        }
         // La couverture française lit les fichiers de traduction de tous les
         // mods des profils : elle se mesure ici, à l'ouverture de la page, et
         // jamais au scan — le lancement est déjà le moment le plus chargé.
@@ -321,6 +382,7 @@ struct ProfileRow: View {
     let onRename: () -> Void
     let onDuplicate: () -> Void
     let onImportFavorites: () -> Void
+    let onImportBlacklisted: () -> Void
     let onShowMissing: () -> Void
     let onDelete: () -> Void
     @State private var isHovered = false
@@ -412,6 +474,8 @@ struct ProfileRow: View {
                 // dans cette fenêtre courserait les déplacements en cours.
                 Button(vm.L(L10n.Profiles.importFavorites)) { onImportFavorites() }
                     .disabled(vm.isApplyingProfile)
+                Button(vm.L(L10n.Profiles.importBlacklisted)) { onImportBlacklisted() }
+                    .disabled(vm.isApplyingProfile)
                 if !vm.isDefaultProfile(profile.id) {
                     Divider()
                     Button(vm.L(L10n.Profiles.delete), role: .destructive) { onDelete() }
@@ -441,6 +505,8 @@ struct ProfileRow: View {
             Button(vm.L(L10n.Profiles.rename)) { onRename() }
             Button(vm.L(L10n.Profiles.duplicate)) { onDuplicate() }
             Button(vm.L(L10n.Profiles.importFavorites)) { onImportFavorites() }
+                .disabled(vm.isApplyingProfile)
+            Button(vm.L(L10n.Profiles.importBlacklisted)) { onImportBlacklisted() }
                 .disabled(vm.isApplyingProfile)
             if !vm.isDefaultProfile(profile.id) {
                 Divider()
