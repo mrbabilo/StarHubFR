@@ -26,6 +26,18 @@ class SmapiInstaller: ObservableObject {
         (try? fm.attributesOfItem(atPath: path))?[.modificationDate] as? Date
     }
 
+    /// L'environnement **minimal** qu'on pose sur chaque `Process` lancé ici :
+    /// `LC_ALL=en_US_POSIX` + `LANG=en_US_POSIX`. AGENTS §4.7 l'exige pour
+    /// éviter qu'une locale système (français, thaï) ne s'infiltre dans un
+    /// message d'erreur d'un sous-processus qu'on aurait à parser
+    /// (`unzip`, `xattr`, installateur .NET de SMAPI). Le pattern partagé
+    /// avec les `DateFormatter.locale` du dépôt : sans cette pose, la locale
+    /// du parent est héritée, et un message comme « l'opération n'est pas
+    /// permise » deviendrait intraitable côté `lastMeaningfulLine`.
+    private static func posixLocaleEnvironment() -> [String: String] {
+        ["LC_ALL": "en_US_POSIX", "LANG": "en_US_POSIX"]
+    }
+
     // Check if SMAPI is installed in the Stardew Valley MacOS directory
     static func getInstalledVersion(gameDir: String) -> String? {
         let fm = FileManager.default
@@ -276,6 +288,10 @@ class SmapiInstaller: ObservableObject {
                 // sur une entrée standard qui n'existe pas ici. Même ceinture
                 // que sur l'extraction des mods.
                 unzipProcess.arguments = ["-q", "-o", zipDest.path, "-d", extractDir.path]
+                // AGENTS §4.7 : locale POSIX explicite, sinon la locale du
+                // parent (système) peut colorer les messages d'erreur et
+                // empêcher le parsing en aval.
+                unzipProcess.environment = Self.posixLocaleEnvironment()
                 try unzipProcess.run()
                 unzipProcess.waitUntilExit()
 
@@ -324,6 +340,10 @@ class SmapiInstaller: ObservableObject {
                 let xattrProcess = Process()
                 xattrProcess.executableURL = URL(fileURLWithPath: "/usr/bin/xattr")
                 xattrProcess.arguments = ["-r", "-d", "com.apple.quarantine", internalRoot]
+                // AGENTS §4.7 : voir `posixLocaleEnvironment()`. Pour `xattr`,
+                // l'enjeu est nul en pratique (sa sortie est vide au succès),
+                // mais on garde la règle uniforme.
+                xattrProcess.environment = Self.posixLocaleEnvironment()
                 try? xattrProcess.run()
                 xattrProcess.waitUntilExit()
 
@@ -390,6 +410,14 @@ class SmapiInstaller: ObservableObject {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: installerPath)
         process.arguments = SmapiInstallerInvocation.arguments(action: action, gamePath: gameDir)
+        // AGENTS §4.7 : SMAPI est un binaire .NET dont la sortie dépend de
+        // la locale. Les deux messages qui déclenchent le verdict de succès
+        // (« SMAPI is installed! » / « SMAPI is removed! ») et le rendu de
+        // `lastMeaningfulLine` ne sont tenables qu'en locale POSIX. Sans
+        // cette pose, un système francophone basculerait l'installateur sur
+        // sa propre traduction et le check `output.contains(...)` tomberait
+        // en échec. Le coût est nul, le filet est mesurable.
+        process.environment = Self.posixLocaleEnvironment()
 
         let stdinPipe = Pipe()
         let stdoutPipe = Pipe()

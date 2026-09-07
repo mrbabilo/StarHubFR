@@ -163,7 +163,16 @@ public enum LocalLLMClient {
             ],
             "stream": false,
             "temperature": 0.2,
-            "max_tokens": min(max(2 * request.source.count, 64), 1024),
+            // X85 : plafond de sortie. Une source de `n` caractères **français**
+            // se traduit en ~1.5n tokens de sortie (mesuré sur Ollama 7B+,
+            // corpus de dialogues du jeu). L'ancien plafond de 1024 figeait
+            // toute source de 700+ caractères, jetée comme `finish_reason=length`
+            // — y compris des dialogues de 800 caractères qui sont fréquents
+            // dans le corpus. 2048 couvre la majorité du parc et reste
+            // supporté par les modèles Ollama 7B+ ; 4096 si la source est
+            // très longue. On garde `max(64, …)` au minimum pour qu'un
+            // succès quasi-vide reste encodable.
+            "max_tokens": max(64, min(maxTokens(for: request.source), 4096)),
         ]
         if !request.source.contains("\n") {
             body["stop"] = ["\n"]   // ssi mono-ligne : une réponse multiligne y est suspecte
@@ -214,6 +223,23 @@ public enum LocalLLMClient {
         TranslationTokenCheck.mismatches(source: source, target: target)
             .filter(\.isHard)
             .map(\.token)
+    }
+
+    /// Le nombre de tokens de sortie à demander pour traduire `source`.
+    ///
+    /// La règle empirique est **2 × `source.count`** (cf. ancien plafond à
+    /// 1024) : un caractère source fait en moyenne 1 token côté modèle, et la
+    /// sortie FR est ~1.5× plus longue que l'entrée EN. Le facteur 2 couvre
+    /// les deux sens avec une marge. Le minimum de 64 sert les très courtes
+    /// sources où `2 × n < 64` (le modèle a besoin d'un peu d'air pour la
+    /// ponctuation et les balises XML).
+    ///
+    /// Le plafond final est appliqué par l'appelant : on rend ici un **avis**
+    /// et non un plafond figé, pour qu'un test puisse passer une source
+    /// de 5 000 caractères sans déclencher le 4096 du caller — la décision
+    /// de tronquer ou non relève du caller.
+    private static func maxTokens(for source: String) -> Int {
+        max(64, 2 * source.count)
     }
 
     /// `{base}/v1{path}`, sans doubler le `/v1` quand l'URL saisie le porte

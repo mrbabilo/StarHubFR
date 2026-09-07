@@ -74,4 +74,46 @@ struct NexusDownloadQueueTests {
         #expect(nothing == nil)
         #expect(queue.isEmpty)
     }
+
+    /// X78 : une entrée Premium (`key == nil`) ne doit pas se voir écraser
+    /// par une entrée free (`key != nil`) qui arriverait ensuite. Le
+    /// scénario mesuré est un clic in-app (Premium) suivi d'un `nxm://`
+    /// partagé (free) qui, sans cette garde, ferait partir le téléchargement
+    /// en mode borné alors que l'utilisateur payeur a un compte illimité.
+    @Test func aPremiumEntryIsNotOverwrittenByAFreeOne() {
+        var queue = NexusDownloadQueue()
+        let premium = NexusDownloadQueue.Entry(modId: 8828, fileId: nil,
+                                               game: "stardewvalley",
+                                               key: nil, expires: nil)
+        let free = NexusDownloadQueue.Entry(modId: 8828, fileId: nil,
+                                            game: "stardewvalley",
+                                            key: "nxm.abc", expires: 9_999_999)
+        queue.enqueue(premium)
+        let addedOnRepeat = queue.enqueue(free)
+        let surviving = queue.dequeue()
+        // `count` est testé **après** `dequeue` : l'entrée survivante a été
+        // défilée, la queue est donc à 0.
+        #expect(!addedOnRepeat)
+        #expect(surviving?.key == nil)
+    }
+
+    /// L'inverse (free → Premium) reste une promotion sans risque : une
+    /// entrée free arrivée d'abord accepte l'écrasement par une Premium
+    /// arrivée ensuite. Sans cette branche, la garde X78 serait trop large
+    /// et bloquerait des promotions légitimes.
+    @Test func aFreeEntryIsPromotedByALaterPremiumOne() {
+        var queue = NexusDownloadQueue()
+        let free = NexusDownloadQueue.Entry(modId: 8828, fileId: nil,
+                                            game: "stardewvalley",
+                                            key: "nxm.abc", expires: 9_999_999)
+        let premium = NexusDownloadQueue.Entry(modId: 8828, fileId: nil,
+                                               game: "stardewvalley",
+                                               key: nil, expires: nil)
+        queue.enqueue(free)
+        queue.enqueue(premium)   // promeut free → Premium (key = nil)
+        let surviving = queue.dequeue()
+        // L'entrée défilée porte la clé promue (nil) — pas la clé free
+        // d'origine, qui aurait été jetée par le second enqueue.
+        #expect(surviving?.key == nil)
+    }
 }

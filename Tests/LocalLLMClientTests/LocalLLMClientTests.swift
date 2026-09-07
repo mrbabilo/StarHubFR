@@ -309,7 +309,11 @@ struct LocalLLMClientTests {
         #expect(messages.last?["content"] as? String == source)   // la source seule
     }
 
-    @Test func maxTokensIsClamped() async throws {
+        @Test func maxTokensIsClamped() async throws {
+        // X85 : la sortie n'est plus plafonnée à 1024 — un dialogue de 800
+        // caractères (fréquent dans le corpus) se traduisait en `finish_reason
+        // = length` et la traduction était jetée. La règle est 2 × source.count,
+        // plancher 64, plafond 4096.
         LLMStub.route { _ in .json(Self.completion("ok")) }
         _ = await LocalLLMClient.translate(request(source: "Short"),   // 2×5=10 → 64
                                            baseURL: base, session: stubbedSession())
@@ -317,11 +321,20 @@ struct LocalLLMClientTests {
         #expect(first["max_tokens"] as? Int == 64)
 
         LLMStub.route { _ in .json(Self.completion("ok")) }
-        let long = String(repeating: "a", count: 1000)   // 2×1000 → 1024
+        let long = String(repeating: "a", count: 1000)   // 2×1000 = 2000, < 4096
         _ = await LocalLLMClient.translate(request(source: long),
                                            baseURL: base, session: stubbedSession())
         let second = try decodedBody(try #require(LLMStub.seenBodies.first))
-        #expect(second["max_tokens"] as? Int == 1024)
+        #expect(second["max_tokens"] as? Int == 2000)
+
+        // Au-delà de 4096 caractères, on plafonne — la requête s'allonge
+        // démesurément, et Ollama 7B ne tient pas au-delà de 8K de toute façon.
+        LLMStub.route { _ in .json(Self.completion("ok")) }
+        let veryLong = String(repeating: "a", count: 5000)
+        _ = await LocalLLMClient.translate(request(source: veryLong),
+                                           baseURL: base, session: stubbedSession())
+        let third = try decodedBody(try #require(LLMStub.seenBodies.first))
+        #expect(third["max_tokens"] as? Int == 4096)
     }
 
     @Test func stopOnlyForSingleLineSources() async throws {

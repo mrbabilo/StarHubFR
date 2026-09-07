@@ -22,6 +22,16 @@ where the exact log format was verified.
 
 - **Une écriture ratée du journal de reprise d'application de profil ne se perd plus en silence.** Disque plein, droits refusés, l'écriture échouait sans que l'app ne le dise : la session courante se déroulait correctement, mais le filet de récupération au prochain démarrage n'existerait pas. L'échec est maintenant journalisé avec le nom du profil et la cause.
 
+- **L'installateur SMAPI ne dépend plus de la locale système.** Les trois `Process` qu'il lance — `unzip` sur le zip téléchargé, `xattr` pour retirer la quarantaine, et l'installateur .NET de SMAPI lui-même — héritent maintenant de `LC_ALL=en_US_POSIX` et `LANG=en_US_POSIX`. Sans cette pose, une installation sur un système francophone faisait passer les messages d'erreur en français et le check `output.contains("SMAPI is installed!")` pouvait tomber en échec. Le pilote de l'installateur officiel (X32) est aussi concerné : son verdict de succès repose sur des chaînes anglaises.
+
+- **Le client DeepL respecte le `Retry-After` du serveur sur 429.** Un plan gratuit qui sature renvoyait un 429 sans qu'on l'écoute — l'app attendait deux secondes, retentait, retombait en 429, et jetait la traduction. Le header est désormais lu et appliqué, borné à 60 secondes pour ne pas attendre un délai aberrant qu'un incident côté DeepL aurait pu poser. Le délai par défaut de 2 secondes reste le repli quand le header est absent.
+
+- **La file de téléchargement Nexus ne dégrade plus un clic Premium en clic free.** Une entrée déjà en file avec une clé nulle (utilisateur payeur) ne se voit plus écraser par une `nxm://` partagée qui arrive ensuite avec une clé bornée — l'utilisateur payeur ne voit plus son propre téléchargement lui être refusé pour un partage de session. L'inverse (free → Premium) reste une promotion sans risque.
+
+- **Le client smapi.io refuse désormais toute autre valeur que « Mac » pour `platform`.** Mesuré contre smapi.io : `"macOS"` et `"MacOS"` rendent un HTTP 200 et une liste vide de suggestions, sans message d'erreur. Une `precondition(platform == "Mac")` au plus près de la sérialisation fait tomber le test rouge au geste qui s'est trompé, plutôt que dans une couche de codage qui mélangerait les `Body` valides et invalides.
+
+- **Le LLM local ne tronque plus les traductions de dialogues longs.** L'ancien plafond de 1024 tokens de sortie jetait toute source de plus de 700 caractères comme `finish_reason=length` — y compris des dialogues du jeu de 800 caractères. Le plafond passe à 4096, dérivé de la taille de la source par la règle 2 × `source.count`, plancher 64.
+
 ## [1.37.0] - 2026-09-07
 
 ### Added

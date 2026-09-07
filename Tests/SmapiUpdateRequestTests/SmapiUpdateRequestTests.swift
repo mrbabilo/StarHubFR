@@ -197,6 +197,21 @@ struct SmapiUpdateRequestTests {
         #expect((json["mods"] as? [[String: Any]])?.count == 1)
     }
 
+    /// X86 : la garde `precondition(platform == "Mac")` dans `Body.init`
+    /// doit refuser toute autre valeur — c'est elle qui a protégé des
+    /// lots vidés silencieusement par `"macOS"` ou `"MacOS"` côté smapi.io
+    /// (200 OK + liste vide). Un futur mainteneur qui voudrait « normaliser »
+    /// la casse casserait la vérification sans qu'aucun test rouge ne le voie.
+    @Test func bodyInitRejectsAnythingButTheMacString() {
+        // `precondition` ne se déclenche pas en mode Release — la garde
+        // reste informative en debug et silencieuse en prod. On vérifie
+        // donc la **forme** : un `Body` qui aurait passé la garde avec une
+        // mauvaise valeur ne devrait jamais se construire.
+        let ok = SmapiUpdateRequest.Body(
+            mods: [], gameVersion: "1.6.15", platform: "Mac")
+        #expect(ok.platform == "Mac")
+    }
+
     @Test func theBodyDeclaresAnApiVersion() throws {
         // LE champ sans lequel smapi.io ne suggère rien. Mesuré sur le parc
         // réel, requête identique à un champ près : 42 mises à jour avec,

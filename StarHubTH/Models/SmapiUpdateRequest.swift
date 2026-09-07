@@ -170,6 +170,17 @@ public enum SmapiUpdateRequest {
                     gameVersion: String,
                     platform: String = "Mac",
                     apiVersion: String = SmapiUpdateRequest.apiVersion) {
+            // X86 : `platform` doit rester exactement `"Mac"`. smapi.io
+            // répond 200 + liste vide pour `"macOS"` / `"MacOS"` — voir
+            // l'avertissement ligne 155-162. La garde est ici plutôt qu'à
+            // l'`Encodable` : on veut que le test rouge tombe au plus près
+            // du geste qui s'est trompé, et pas dans une couche de
+            // sérialisation qui mélangerait tous les `Body` valides et
+            // invalides. `precondition` plutôt que `assert` : on parle
+            // d'un codage réseau qui ne peut pas se rétablir, pas d'un
+            // invariant debug-only.
+            precondition(platform == "Mac",
+                         "SmapiUpdateRequest.Body.platform doit être \"Mac\" exactement ; reçu \(platform)")
             self.mods = mods
             self.includeExtendedMetadata = includeExtendedMetadata
             self.gameVersion = gameVersion

@@ -138,9 +138,29 @@ public enum DeepLClient {
         // Un 429 vaut **une** seconde tentative, temporisée. Le second refus
         // arrête là : l'appelant coupe le secours pour le reste du lot.
         guard case .rateLimited = first else { return first }
-        try? await Task.sleep(for: retryDelay)
+        // Si DeepL a renvoyé un `Retry-After`, on l'écoute plutôt que le délai
+        // par défaut : un 429 sur le plan gratuit est typiquement suivi d'un
+        // Retry-After > 2 s, et retry avant aurait redéclenché le 429 sans
+        // rien apprendre. Le header est en secondes entières ou en date HTTP
+        // (RFC 7231) ; on ne supporte ici que la forme secondes, et on borne
+        // à 60 s — au-delà, on retombe sur `retryDelay` (mieux que d'attendre
+        // un délai arbitraire que DeepL aurait pu poser sur un incident).
+        let wait: Duration
+        if let retryAfter = retryAfterSeconds(from: lastResponse) {
+            wait = .seconds(min(retryAfter, 60))
+        } else {
+            wait = retryDelay
+        }
+        try? await Task.sleep(for: wait)
         return await send(request, session: session)
     }
+
+    /// La dernière réponse lue par `send` — portée module pour que
+    /// `translate` puisse consulter le header `Retry-After` sans changer le
+    /// contrat de `send` (qui reste un simple `Outcome`). Pas de concurrence
+    /// à protéger : tout passe par `await`, un seul appel en vol à la fois
+    /// par `translate`, et `send` n'est pas partagé.
+    private static var lastResponse: URLResponse?
 
     /// « HTTP 400 : Value for 'ignore_tags' not supported. », ou « HTTP 400 »
     /// si le corps ne porte rien de lisible.
@@ -156,6 +176,9 @@ public enum DeepLClient {
     private static func send(_ request: URLRequest, session: URLSession) async -> Outcome {
         do {
             let (data, response) = try await session.data(for: request)
+            // Mémorisée pour que `translate` puisse consulter `Retry-After`
+            // après un 429, sans élargir le contrat de retour de `send`.
+            lastResponse = response
             let status = (response as? HTTPURLResponse)?.statusCode ?? 0
             if status == 456 { return .quotaExhausted }
             if status == 429 { return .rateLimited }
@@ -176,7 +199,19 @@ public enum DeepLClient {
             return .translated(TokenShield.unwrap(text))
         } catch {
             // Jamais la clé : `error` peut porter l'URL, pas l'en-tête.
+            lastResponse = nil
             return .transportError("\(error)")
         }
+    }
+
+    /// Parse le `Retry-After` de la dernière réponse. Renvoie `nil` si le
+    /// header est absent, vide, malformé, ou au format date HTTP — seule la
+    /// forme secondes entières (RFC 7231 §7.1.3) est lue ici, qui est celle
+    /// que DeepL documente sur ses 429. `nil` laisse `translate` retomber sur
+    /// son `retryDelay` par défaut.
+    private static func retryAfterSeconds(from response: URLResponse?) -> Int? {
+        guard let http = response as? HTTPURLResponse,
+              let raw = http.value(forHTTPHeaderField: "Retry-After") else { return nil }
+        return Int(raw.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 }
