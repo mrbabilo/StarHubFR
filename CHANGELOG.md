@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.37.0] - 2026-09-07
+
 ### Added
 
 - **Les mods à écarter se marquent comme les favoris, et la marque survit à tout.** Un `×.circle` sur la ligne de premier niveau, dans la fiche, et une pastille « À écarter » dans la barre de filtres de la liste, à côté des favoris. Le mod reste installé et activable : il est juste **grisé** dans la liste (nom + métadonnées + état, sans toucher aux boutons d'action), avec un `×.circle.fill` à côté du nom pour qu'un grisé ne prête pas à confusion. La clé est le `folderName` **logique** — un mod en pause garde sa marque, un renommage la suit, un mod supprimé la perd avec ses autres traces. Une entrée « Importer les écarter » dans le menu de chaque profil en active le lot en bloc, symétrique de l'import des favoris : même résolution `folderName` → `UniqueID`, même filet de sécurité sur profil actif, même journal qui distingue le geste de la ré-application disque.
