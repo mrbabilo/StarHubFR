@@ -53,18 +53,22 @@ enum ProfileApplyJournalStore {
     /// lira « corrompu ⇒ absent », et un journal absent au moment d'un crash
     /// pendant l'écriture signifie que la boucle n'avait pas commencé — les
     /// deux lectures sont correctes.
-    static func save(_ journal: ProfileApplyJournal) {
-        guard let url = fileURL else { return }
+    ///
+    /// Retourne l'erreur d'écriture s'il y en a une, pour que l'appelant la
+    /// dise à l'utilisateur plutôt que de l'avaler en `print` : sans
+    /// filet de récupération après crash, la prochaine reprise ne pourra pas
+    /// se déclencher et l'app continuera comme si de rien n'était.
+    @discardableResult
+    static func save(_ journal: ProfileApplyJournal) -> Error? {
+        guard let url = fileURL else { return nil }
         do {
             try FileManager.default.createDirectory(at: url.deletingLastPathComponent(),
                                                     withIntermediateDirectories: true)
             let data = try JSONEncoder().encode(journal)
             try data.write(to: url, options: .atomic)
+            return nil
         } catch {
-            // L'unique filet de récupération après crash : si l'écriture
-            // échoue, la reprise sera impossible au prochain démarrage. Le
-            // signaler plutôt que de l'avaler silencieusement.
-            print("Warning: profile apply journal write failed at \(url.path): \(error)")
+            return error
         }
     }
 

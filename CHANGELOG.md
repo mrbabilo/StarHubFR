@@ -12,6 +12,16 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Fixed
+
+- **La marque « à écarter » ne se duplique plus sur une collision de dossier.** Si un mod blacklisté est renommé en un nom déjà pris par un autre mod, la marque restait collée aux deux : le mod renommé apparaissait à son tour comme écarté, sans que l'utilisateur ne l'ait jamais demandé. La même politique que l'identifiant Nexus saisi à la main : on laisse la marque à celui qui portait déjà le nom, le mod renommé la réapprend s'il le faut. La marque n'est jamais dupliquée sur deux mods.
+
+- **Les glyphes d'état d'un mod écarté restent lisibles, malgré le grisé.** L'icône « × » à côté du nom du mod sert précisément à signaler qu'il est écarté — le grisé de la ligne rend l'Info discrète, mais doit laisser la redondance visible. Elle quitte la zone grisée et rejoint l'étoile de favori dans la rangée de gauche, à pleine opacité, à côté de la glyphe « pause » quand le mod est aussi désactivé.
+
+- **Le filtre « à écarter » ne montre plus une liste vide sans explication.** Si vous dé-marquez le dernier mod pendant que le filtre est actif, la liste se vide sans qu'on sache pourquoi. Le filtre se lève maintenant automatiquement, par symétrie avec ce qui se passe quand il n'y a rien à écarter au départ.
+
+- **Une écriture ratée du journal de reprise d'application de profil ne se perd plus en silence.** Disque plein, droits refusés, l'écriture échouait sans que l'app ne le dise : la session courante se déroulait correctement, mais le filet de récupération au prochain démarrage n'existerait pas. L'échec est maintenant journalisé avec le nom du profil et la cause.
+
 ## [1.37.0] - 2026-09-07
 
 ### Added

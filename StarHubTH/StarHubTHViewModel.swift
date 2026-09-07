@@ -5271,7 +5271,7 @@ for mod in mods {
             Self.saveFavoriteMods(favoriteMods)
         }
         if ModFolderRename.migrate(&blacklistedMods, from: old, to: new,
-                                   shared: shared) {
+                                   shared: shared, policy: .leaveBehind) {
             Self.saveBlacklistedMods(blacklistedMods)
         }
         if ModFolderRename.migrate(&profileManagedConfigMods, from: old, to: new,
@@ -9663,7 +9663,16 @@ for mod in mods {
                                               profileName: profileName,
                                               startedAt: Date(),
                                               moves: moves)
-            ProfileApplyJournalStore.save(journal)
+            // Une écriture échouée (disque plein, droits refusés) prive le
+            // prochain lancement du filet de reprise après crash : la boucle
+            // mourrait en route, le journal n'existerait pas, et l'app ne
+            // proposerait pas de récupérer. On logue et on continue — la
+            // session courante reste correcte, c'est la **prochaine** qui
+            // perdra la mémoire.
+            if let err = ProfileApplyJournalStore.save(journal) {
+                log(String(format: L(L10n.VM.profileApplyJournalWriteFailed),
+                           profileName, err.localizedDescription), level: .error)
+            }
             unresolvedApplyJournal = journal
         }
         // Le total est connu d'avance : la barre est déterminée dès le premier

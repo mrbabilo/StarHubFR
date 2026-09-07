@@ -1222,6 +1222,7 @@ enum L10n {
         static let profileModAdded      = "vm_profile_mod_added"
         static let profileFavoritesImported = "vm_profile_favorites_imported"
         static let profileBlacklistedImported = "vm_profile_blacklisted_imported"
+        static let profileApplyJournalWriteFailed = "vm_profile_apply_journal_write_failed"
         static let applyProfileError    = "vm_apply_profile_error"
         static let applyProfilePartial  = "vm_apply_profile_partial"
         static let applyProfileMoveFail = "vm_apply_profile_move_fail"

@@ -497,7 +497,7 @@ struct ModListView: View {
                         // ordre que le tri choisi n'avait pas demandé.
                         switch listLayout {
                         case .list:
-                            ModSectionGroup(title: scopeSectionTitle, mods: paged, vm: vm)
+                            ModSectionGroup(title: scopeSectionTitle, mods: paged, vm: vm, listState: listState)
                         case .grid:
                             // Même section, même titre, même page que la liste
                             // (P2 : le compte honnête ne change pas avec la
@@ -1247,15 +1247,17 @@ struct ModSectionGroup: View {
     let title: String
     let mods: [ModItem]
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var listState: ModListState
 
     var body: some View {
         StandardSection(title: title) {
             VStack(spacing: 0) {
                 ForEach(Array(mods.enumerated()), id: \.element.id) { idx, mod in
                     if mod.isGroup, let children = mod.children {
-                        ModGroupRow(mod: mod, children: children, vm: vm)
+                        ModGroupRow(mod: mod, children: children, vm: vm, listState: listState)
                     } else {
-                        ModListRow(mod: mod, vm: vm, isChild: false, isGroupHeader: false, isExpanded: .constant(false))
+                        ModListRow(mod: mod, vm: vm, listState: listState,
+                                   isChild: false, isGroupHeader: false, isExpanded: .constant(false))
                     }
                     
                     if idx < mods.count - 1 {
@@ -1277,21 +1279,24 @@ struct ModGroupRow: View {
     let mod: ModItem
     let children: [ModItem]
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var listState: ModListState
     @State private var isExpanded = false
-    
+
     var body: some View {
         VStack(spacing: 0) {
-            ModListRow(mod: mod, vm: vm, isChild: false, isGroupHeader: true, isExpanded: $isExpanded)
+            ModListRow(mod: mod, vm: vm, listState: listState,
+                       isChild: false, isGroupHeader: true, isExpanded: $isExpanded)
                 .onTapGesture {
                     withAnimation(.easeInOut(duration: 0.2)) {
                         isExpanded.toggle()
                     }
                 }
-            
+
             if isExpanded {
                 VStack(spacing: 0) {
                     ForEach(Array(children.enumerated()), id: \.element.id) { cIdx, child in
-                        ModListRow(mod: child, vm: vm, isChild: true, isGroupHeader: false, isExpanded: .constant(false))
+                        ModListRow(mod: child, vm: vm, listState: listState,
+                                   isChild: true, isGroupHeader: false, isExpanded: .constant(false))
                         if cIdx < children.count - 1 {
                             Rectangle()
                                 .fill(Color.primary.opacity(AppDesign.Opacity.subtle))
@@ -1311,6 +1316,11 @@ struct ModGroupRow: View {
 struct ModListRow: View {
     let mod: ModItem
     @ObservedObject var vm: StarHubTHViewModel
+    /// Porté pour les gestes qui touchent au cadrage de la liste — par
+    /// exemple, lever le filtre « à écarter » quand le dernier mod marqué
+    /// est démarqué, plutôt que de laisser l'utilisateur devant une liste
+    /// vide sans explication.
+    @ObservedObject var listState: ModListState
     @State private var isHovered = false
     var isChild: Bool = false
     var isGroupHeader: Bool = false
@@ -1678,13 +1688,45 @@ struct ModListRow: View {
                     // glyph veut, et l'indentation des composants ci-dessous
                     // ne pouvait pas s'y accorder.
                     .frame(width: 16, alignment: .center)
+
+                // Les glyphes d'état « à écarter » et « en pause » vivent ici,
+                // pas dans la VStack grisée : à 0.55 d'opacité, le grisé
+                // mangerait la redondance que ces glyphes sont censés porter
+                // (P6 : couleur + barre d'accent + glyph). Trois indicateurs
+                // côte à côte, à pleine opacité, d'un coup d'œil lisibles.
+                // Mêmes 16 pt que l'étoile : l'alignement vertical reste
+                // stable d'une ligne à l'autre.
+                if !isChild && vm.isBlacklisted(mod) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(AppDesign.Font.footnote)
+                        .foregroundColor(.secondary)
+                        .frame(width: 16, alignment: .center)
+                } else if !effectiveEnabled && !isChild {
+                    // Pas de `pause.circle` plein + × : un mod blacklisté ET
+                    // en pause reste surtout blacklisté, et superposer deux
+                    // glyphes côte à côte se lirait comme une 3e colonne
+                    // d'actions. On garde la même largeur réservée pour la
+                    // stabilité de l'alignement.
+                    Image(systemName: "pause.circle")
+                        .font(AppDesign.Font.footnote)
+                        .foregroundColor(.secondary)
+                        .frame(width: 16, alignment: .center)
+                } else if !isChild {
+                    // Réserve la place même quand aucun des deux états n'est
+                    // posé : sans cette largeur invisible, un mod actif non
+                    // blacklisté apparaîtrait plus à gauche qu'un mod
+                    // blacklisté, et les colonnes de métadonnées se
+                    // décaleraient.
+                    Color.clear.frame(width: 16, height: 1)
+                }
             } else {
                 // L'indentation d'un composant se **calcule** sur ce qui la
                 // précède chez son pack — chevron (14) + espace (12) + étoile
-                // (16) — plus un cran. Le 32 forfaitaire d'avant tombait en
-                // deçà : le nom d'un composant commençait à *gauche* de celui
-                // de son pack, et toute sa bande de métadonnées avec.
-                Spacer().frame(width: 14 + AppDesign.Spacing.md + 16 + AppDesign.Spacing.md)
+                // (16) + espace (12) + état (16) — plus un cran. Le 32
+                // forfaitaire d'avant tombait en deçà : le nom d'un composant
+                // commençait à *gauche* de celui de son pack, et toute sa
+                // bande de métadonnées avec.
+                Spacer().frame(width: 14 + AppDesign.Spacing.md + 16 + AppDesign.Spacing.md + 16 + AppDesign.Spacing.md)
             }
 
             // Info
@@ -1694,24 +1736,13 @@ struct ModListRow: View {
                         .font(AppDesign.Font.body(.medium))
                         .foregroundColor(effectiveEnabled ? .primary : .secondary)
                         .lineLimit(1)
-                    // Le glyph de l'état « à écarter » (blacklist) — toujours
-                    // visible quand la marque est posée, sur les lignes de
-                    // premier niveau. Symétrique du `pause.circle` du dessus :
-                    // même rôle de redondance visuelle quand le grisé de
-                    // l'Info pourrait prêter à confusion.
-                    if !isChild && vm.isBlacklisted(mod) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(AppDesign.Font.iconXS)
-                            .foregroundColor(.secondary)
-                    }
-                    // Le glyph de l'état « en pause » (P6 : glyph + couleur
-                    // + barre d'accent — jamais la couleur seule). Redondant
-                    // avec la barre d'accent : chaque signal seul suffit.
-                    if !effectiveEnabled && !isChild {
-                        Image(systemName: "pause.circle")
-                            .font(AppDesign.Font.iconXS)
-                            .foregroundColor(.secondary)
-                    }
+                    // Les glyphes d'état « à écarter » et « en pause » sont dans
+                    // le HStack d'actions à gauche (à côté de l'étoile), pas
+                    // dans la zone grisée : à 0.55 d'opacité, le grisé
+                    // mange la redondance que ces glyphes sont censés porter
+                    // (P6 : couleur + barre d'accent + glyph, jamais la
+                    // couleur seule). Sur la même rangée que `favoriteStar`,
+                    // les trois indicateurs se lisent d'un coup d'œil.
                     // L'anomalie, la note et la config de profil sont parties
                     // dans la bande de métadonnées : à côté du nom, leur
                     // abscisse suivait la longueur de celui-ci et rien ne
@@ -1849,6 +1880,14 @@ struct ModListRow: View {
                     let blacklisted = vm.isBlacklisted(mod)
                     Button {
                         vm.toggleBlacklist(mod)
+                        // Lever le filtre « à écarter » s'il ne montre plus
+                        // rien : sans ça, l'utilisateur voit une liste vide
+                        // sans comprendre pourquoi — la pastille dit
+                        // « À écarter » (au lieu du compte, qui est 0), mais
+                        // la liste reste filtrée et vide.
+                        if vm.blacklistedMods.isEmpty {
+                            listState.filters.blacklistedOnly = false
+                        }
                     } label: {
                         Image(systemName: blacklisted ? "xmark.circle.fill" : "xmark.circle")
                             .font(AppDesign.Font.rowTitle)
