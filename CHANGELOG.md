@@ -12,6 +12,14 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.37.5] - 2026-09-07
+
+### Changed
+
+- **Trois modules de données entrent dans le périmètre des tests.** `ModCompatibilityStore`, `ModDetailCache` et `NexusFileDownload` vivaient dans `Models/` sans jamais figurer dans la liste du module testable : l'application les compilait, les tests ne les voyaient pas — leurs régressions ne pouvaient se voir qu'à l'audit. Invisible à l'écran ; visible à la prochaine suite de tests.
+
+- **L'index des sources ne peut plus rester sur une commande de compilation périmée.** Le fichier qui guide l'éditeur de code se régénère désormais aussi quand les drapeaux du compilateur changent, pas seulement quand la liste des fichiers bouge.
+
 ## [1.37.4] - 2026-09-07
 
 ### Fixed
