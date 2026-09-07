@@ -1158,6 +1158,8 @@ enum L10n {
         static let launchingVanilla     = "vm_launching_vanilla"
         static let launchVanillaSuccess = "vm_launch_vanilla_success"
         static let launchVanillaError   = "vm_launch_vanilla_error"
+        static let launchRefusedRunning = "vm_launch_refused_game_running"
+        static let launchRefusedRecent  = "vm_launch_refused_recent"
         static let cannotStartVanilla   = "vm_cannot_start_vanilla"
         static let launchingSmapi       = "vm_launching_smapi"
         static let launchSteamSuccess   = "vm_launch_steam_success"

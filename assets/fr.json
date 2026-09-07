@@ -539,6 +539,8 @@
   "vm_launching_vanilla": "Lancement de Stardew Valley (Vanilla)…",
   "vm_launch_vanilla_success": "Session de jeu vanilla lancée avec succès",
   "vm_launch_vanilla_error": "Impossible d'ouvrir l'exécutable principal du jeu : %@",
+  "vm_launch_refused_game_running": "Stardew Valley est déjà en cours d'exécution — fermez-le avant de le relancer.",
+  "vm_launch_refused_recent": "Un lancement vient déjà d'être demandé — laissez au jeu quelques secondes pour apparaître avant de réessayer.",
   "vm_cannot_start_vanilla": "Échec du démarrage du jeu vanilla",
   "vm_launching_smapi": "Lancement de Stardew Valley (SMAPI)…",
   "vm_launch_steam_success": "Lancé via Steam avec succès",

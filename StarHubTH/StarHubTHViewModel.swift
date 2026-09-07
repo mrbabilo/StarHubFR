@@ -2058,6 +2058,12 @@ class StarHubTHViewModel: ObservableObject {
     /// together with `isApplyingProfile` once the move + rescan completes.
     @Published var applyingProfileId: UUID? = nil
 
+    /// Délai anti double-lancement (R2bis) : ponte la fenêtre où le jeu lancé
+    /// n'apparaît pas encore dans `NSWorkspace.runningApplications`. La porte
+    /// se rouvre dès que le jeu y devient visible (`isGameRunning()` appelle
+    /// `noticeGameRunning()`).
+    private var launchGate = GameLaunchGate()
+
     /// When true, toggling a mod also cascades to its dependencies / dependents.
     @Published var chainToggleDependencies: Bool = UserDefaults.standard.object(forKey: UDKey.chainToggleDependencies) as? Bool ?? true {
         didSet {
@@ -3881,6 +3887,25 @@ class StarHubTHViewModel: ObservableObject {
     func launchGame(honoringCloseAfterLaunch: Bool = true) {
         guard !gameDir.isEmpty else {
             showModal(message: L(L10n.Settings.gameDirNotSet))
+            return
+        }
+        // Première couche : le jeu tourne déjà — refus net. La seconde
+        // instance corromprait les sauvegardes (deux processus sur les mêmes
+        // fichiers). Ce passage rouvre aussi le gate : le jeu étant visible,
+        // la protection repose désormais sur cette seule garde.
+        guard !isGameRunning() else {
+            let message = self.L(L10n.VM.launchRefusedRunning)
+            log(message, level: .warning)
+            showModal(message: message)
+            return
+        }
+        // Seconde couche : la fenêtre aveugle — le jeu vient d'être lancé et
+        // n'apparaît pas encore dans `runningApplications`. Un double-clic
+        // passerait la garde ci-dessus ; le délai le retient.
+        guard launchGate.admit() else {
+            let message = self.L(L10n.VM.launchRefusedRecent)
+            log(message, level: .warning)
+            showModal(message: message)
             return
         }
 
@@ -7739,10 +7764,17 @@ for mod in mods {
     /// game's own autosave could conflict with an edit/restore made while
     /// it's open. Not a guarantee: a differently-named build wouldn't match.
     func isGameRunning() -> Bool {
-        NSWorkspace.shared.runningApplications.contains {
+        let running = NSWorkspace.shared.runningApplications.contains {
             guard let name = $0.localizedName else { return false }
             return name.caseInsensitiveCompare("Stardew Valley") == .orderedSame
         }
+        if running {
+            // Le jeu est visible : le garde système protège désormais seul,
+            // et le délai anti double-lancement ne doit plus retenir un
+            // relancement légitime (crash immédiat, puis nouvelle tentative).
+            launchGate.noticeGameRunning()
+        }
+        return running
     }
 
     /// Whether `info`'s save file has been modified on disk since `info` was
