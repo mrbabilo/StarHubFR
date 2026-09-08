@@ -1100,6 +1100,23 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
       `lastError` **réfuté** (site supprimé avec `check()`). L'audit 2026-08-05
       est désormais **clôturé** ; il reste la grille de patterns, pas un stock de
       tâches.
+      ▸ **Tranche « écritures » livrée (2026-09-09)** — la grille `policy.ts` de
+      Vortex (jamais absorber `smapi-internal/`, jamais d'attribution racine,
+      jamais de `Content/`) passée sur les 151 sites d'écriture du dépôt, par
+      aire. Verdicts : `Content/` — aucune écriture ; `smapi-internal/` — seul
+      le marqueur de version délibéré (écrit après succès officiel, échec
+      journalisé) ; l'installeur ne pose jamais rien hors `Mods/<dossier>/` ;
+      attribution de contenu déposé — hôte obligatoirement installé, table de
+      règles à signature de clés, refus plutôt qu'assainissement, préfixe
+      vérifié après construction, chmod par `RecoveredFileWriter`, sauvegarde
+      de l'hôte par l'appelant (`ModInstallView:898`) ; rollback complet côté
+      `ManifestlessInstaller`. Écritures directes du VM, réparateur, magasins,
+      `nxm://` (`NxmLink.parse` strict), clé Nexus (SecItemAdd vérifié,
+      2026-08-11) : relus, rien à corriger. **Zéro nouveau défaut, une question
+      de conception sortie : `X103`** (permanence de la suppression des mods
+      vs corbeille/quarantaine et rétention des archives). Restent dans F2 :
+      extraction d'archives (recouvrement des audits du 2026-07-27 et de la
+      Phase 2 à refaire à l'occasion, pas refait ici), puis perf + concurrence.
       À y joindre le candidat **#4 de `§audit-gestionnaires`** : la liste explicite de
       garde-fous d'écriture de Vortex (`policy.ts`), à reprendre **comme grille de revue
       de nos chemins d'écriture**, pas comme code à porter.
@@ -1318,7 +1335,8 @@ config), **H** (5 lots restants), **A** (A1-T1/T2, A2-T5, A5-T4/T5), **D1/D2**
 **E1–E3** et **D3** (horizon, sous décision produit).
 
 **Non classés ici parce qu'ils attendent une décision, pas un développement** :
-`X55` (politique de purge), `D3-T1`
+`X55` (politique de purge), `X103` (suppression des mods : corbeille/quarantaine
+et rétention des archives, ou permanence assumée ?), `D3-T1`
 (un backend ou non), `F5` (quand casser la cohabitation avec l'amont),
 `F1-T2` (règle permanente, pas une tâche).
 
@@ -1625,6 +1643,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **X100** | 2026-09-08 | Un report de traduction dont la paire CHANGE de composant écrivait la forme brute de la nouvelle clé dans le fr.json de l'ANCIEN — orpheline chez l'ancien, cible non traduite, paire passée réconciliée en silence ; `RenameReport.routeByOldComponent` les écarte et l'écran les annonce (`d50d2e6`) |
 | **X101** | 2026-09-08 | Les préfixes de composants du report venaient de `mod.children` — nil sur la fiche d'un enfant imbriqué (les descendants d'un groupe vivent à plat sous l'en-tête) : clés qualifiées affichées mais « Rien à reporter » à jamais ; dérivés de l'arbre scanné par préfixe de folderName (`d50d2e6`) |
 | **X102** | 2026-09-08 | Le snapshot ne découvrait les composants qu'à UN niveau contre `maxModDepth` pour la traversée de référence (commentaire « même convention » faux) — 6 mods imbriqués sur le parc dont 3 avec i18n se taisaient dans le delta ; récursion, composant nommé par chemin relatif (`d50d2e6`) |
+| **X103** | 2026-09-09 | *Question de conception, sortie de la grille de revue des écritures (F2)* — supprimer un mod est définitif (`removeItem` direct, confirmé aux deux points d'entrée) là où les sauvegardes vont à la corbeille et le réparateur quarantaine ; l'archive Nexus est effacée après install — l'uninstall Vortex, lui, reste réversible (archive conservée). À trancher : quarantaine des mods supprimés, rétention des archives ? |
 | **B1-T1** | 2026-08-01 | Boutons Activer/Désactiver et Supprimer sur la fiche mod (parité avec la liste, mêmes confirmations). Absents pour un… |
 | **B1-T2** | 2026-08-01 | Tri, filtres, catégorie, page et recherche portés par ModListFilters dans le ViewModel. La remise à la page 1 est por… |
 
