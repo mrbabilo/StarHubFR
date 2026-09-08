@@ -52,4 +52,14 @@ public enum ModUpdateKeyDeltaStore {
         guard let directory else { return }
         try? FileManager.default.removeItem(at: fileURL(uniqueId: uniqueId, directory: directory))
     }
+
+    /// Plusieurs mods perdent leur delta d'un coup — supprimer un pack
+    /// emporte ses composants. Les identifiants vides sont ignorés : une
+    /// en-tête de groupe n'en a pas (`""` au scan), et les viser construirait
+    /// un chemin « .json » qui ne devrait jamais exister.
+    public static func removeAll(uniqueIds: [String], directory: URL?) {
+        for uniqueId in uniqueIds where !uniqueId.isEmpty {
+            remove(uniqueId: uniqueId, directory: directory)
+        }
+    }
 }

@@ -41,6 +41,27 @@ import Testing
         #expect(ModUpdateKeyDeltaStore.load(uniqueId: "a.b", directory: d) == nil)
     }
 
+    @Test func removeAllPurgesEveryIdAndIgnoresEmpty() throws {
+        // Un pack emporte les deltas de ses composants : l'en-tête de groupe
+        // n'a pas d'identifiant (""), ce sont les enfants qui portent les
+        // fichiers <uniqueId>.json. Un identifiant vide ne doit pas viser un
+        // fichier « .json » — et un identifiant absent ne doit pas échouer.
+        let d = dir
+        try ModUpdateKeyDeltaStore.save(sample, directory: d)
+        let child = ModUpdateKeyDelta(
+            uniqueId: "child.mod", folderName: "Pack/Kid",
+            date: sample.date, config: sample.config, translation: sample.translation)
+        try ModUpdateKeyDeltaStore.save(child, directory: d)
+
+        ModUpdateKeyDeltaStore.removeAll(uniqueIds: ["a.b", "child.mod", "", "absent.id"],
+                                         directory: d)
+
+        #expect(ModUpdateKeyDeltaStore.load(uniqueId: "a.b", directory: d) == nil)
+        #expect(ModUpdateKeyDeltaStore.load(uniqueId: "child.mod", directory: d) == nil)
+        let files = (try? FileManager.default.contentsOfDirectory(atPath: d.path)) ?? []
+        #expect(files.isEmpty, "le dossier du store est vide, pas de « .json » fantôme")
+    }
+
     @Test func nilDirectoryAndCorruptFileAreSilent() throws {
         #expect(ModUpdateKeyDeltaStore.load(uniqueId: "a.b", directory: nil) == nil)
         let d = dir

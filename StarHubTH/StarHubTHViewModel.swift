@@ -10710,9 +10710,15 @@ for mod in mods {
         }
         forgetTranslations(of: folder)
 
-        // C2-T4 — le delta du mod n'a plus de titulaire.
+        // C2-T4 — le delta du mod n'a plus de titulaire. Un pack emporte
+        // ceux de ses composants : l'en-tête de groupe n'a pas d'identifiant
+        // (""), ce sont les enfants qui portent les fichiers <uniqueId>.json.
+        // Sans eux, la fiche d'un composant réinstallé ressusciterait le
+        // delta d'un install qui ne décrit plus rien (promesse X55).
         if let dir = ModUpdateKeyDeltaStore.defaultDirectory() {
-            ModUpdateKeyDeltaStore.remove(uniqueId: mod.uniqueId, directory: dir)
+            ModUpdateKeyDeltaStore.removeAll(
+                uniqueIds: [mod.uniqueId] + (mod.children ?? []).map(\.uniqueId),
+                directory: dir)
             // Le store a changé : les caches de lecture (delta, paires) ne
             // doivent pas ressusciter un fichier qui vient de partir — cas
             // réel du parc, deux dossiers partageant un même UniqueID.
