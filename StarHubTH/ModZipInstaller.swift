@@ -1258,6 +1258,14 @@ class ModZipInstaller {
     func snapshotUserConfigs(from modFolder: String) -> [String: URL] {
         var snapshots: [String: URL] = [:]
         for file in ModConfigFiles.preservableFiles(under: modFolder) {
+            // C2-T4 §4 — `i18n/default.json` et `i18n/en.json` sont le texte
+            // anglais de l'AUTEUR, pas des données utilisateur : les restaurer
+            // par-dessus la copie neuve figeait l'anglais du mod à chaque mise
+            // à jour (le garde trop large de B4-T4). Le filtrage est par chemin
+            // relatif, pas par nom nu : un `default.json` hors `i18n/` reste
+            // préservé. Le backup manuel (`ModConfigBackupManager`) continue de
+            // tout sauvegarder — sauvegarder ne perd rien, restaurer écrase.
+            if Self.isAuthorLanguageFile(file.relativePath) { continue }
             // Flat temp name (no '/'): the relative path is the dictionary
             // key, the temp file is just throwaway storage.
             let flat = file.relativePath.replacingOccurrences(of: "/", with: "__")
@@ -1271,6 +1279,14 @@ class ModZipInstaller {
             }
         }
         return snapshots
+    }
+
+    /// Fichier de langue de l'auteur sous `i18n/` (anglais de référence) :
+    /// ne fait pas partie de ce que la préservation à l'update doit protéger.
+    static func isAuthorLanguageFile(_ relativePath: String) -> Bool {
+        let posix = relativePath.replacingOccurrences(of: "\\", with: "/")
+        return posix == "i18n/default.json" || posix == "i18n/en.json"
+            || posix.hasSuffix("/i18n/default.json") || posix.hasSuffix("/i18n/en.json")
     }
 
     /// Restores snapshotted files (keyed by relative path, e.g. `"i18n/fr.json"`)

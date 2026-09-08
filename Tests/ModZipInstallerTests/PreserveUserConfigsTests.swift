@@ -83,7 +83,10 @@ import Testing
 
         // La clé est le chemin relatif — sans cela, le restore ne saurait pas
         // que fr.json doit retourner sous i18n/.
-        #expect(Set(preserved.keys) == ["config.json", "i18n/default.json", "i18n/fr.json"])
+        // C2-T4 §4 — `i18n/default.json` est l'anglais de l'AUTEUR : il ne
+        // fait plus partie du lot restauré (le restaurer figeait l'anglais du
+        // mod à chaque mise à jour).
+        #expect(Set(preserved.keys) == ["config.json", "i18n/fr.json"])
     }
 
     @Test func restorePutsTranslationsBackInI18nFolder() throws {
