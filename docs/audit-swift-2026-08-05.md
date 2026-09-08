@@ -1,5 +1,11 @@
 # Audit Swift — 2026-08-05
 
+> ✅ **Clôturé le 2026-09-09** — premier geste de **F2** (audit optimisation &
+> sécurité, ROADMAP) : revalidation des 5 derniers ⛔️ puis correction (4) ou
+> réfutation (1 — site supprimé avec `check()`). Plus aucun finding ouvert
+> dans ce document ; il reste consultable comme inventaire historique et
+> grille de patterns.
+
 Audit large du code Swift de StarHubFR, succédant à celui du 2026-08-04 (52 bugs,
 8 hauts corrigés). Objectif de cette passe : couvrir au-delà des patterns transverses
 déjà traités (CRLF, copies divergentes, concurrence `@Published`, format par nom) et
@@ -117,18 +123,30 @@ mtime, quasi impossible à échouer après `copyItem` réussi), `BisectionSnapsh
 >   sérialisation complète des écritures reste à faire — c'est le verrou
 >   fichier ci-dessous.
 > - `SaveManager:376/826` — `updateSave`/`updateInventory` toujours sans verrou
->   fichier (`NSFileCoordinator`).
+>   fichier (`NSFileCoordinator`). ✅ **Corrigé le 2026-09-09** (`dfc55c7`) :
+>   `isSaveOperationRunning` couvre désormais les deux. Le volet « le jeu
+>   tourne » restait couvert par l'avertissement `confirmedOrWarn` — décision
+>   d'UX existante, pas de refus dur ajouté.
 > - `SaveManager:401` — remariage. `cleanDivorceNPCFriendship` démote bien
 >   l'ancien conjoint (`Married`→`Friendly`, `WeddingDate` retiré, l. 485-490),
->   mais **rien ne promeut le nouveau**. Bloqué : `~/.config/StardewValley/Saves`
->   est vide, pas de save de test — et le XML de mariage est à mesurer, pas à
->   deviner.
+>   mais **rien ne promeut le nouveau**. ✅ **Corrigé le 2026-09-09**
+>   (`3565e10`) — le blocage est levé, le XML est **mesuré** : membres
+>   sérialisables de `WorldDate` lus dans les assemblages du jeu 1.6.15
+>   (`Year`, `DayOfMonth`, clé chaîne de saison en `[XmlElement]` ;
+>   `Season{Spring=0, Summer=1, Fall=2, Winter=3}` dans
+>   `StardewValley.GameData.dll`), en accord avec la définition du format de
+>   sauvegarde de l'éditeur communautaire colecrouter/stardew-save-editor.
 > - `NexusUpdateChecker:424-428` — classification `lastError`. Le cas
 >   `successCount>0` est intentionnel ; seul `==0` reste trompeur.
-> - `SaveCopySheets:38/103` — `dismiss()` inconditionnel. ⛔️ Le scénario écrit
->   plus bas (« silence total ») est **inexact** : le ViewModel affiche bien un
->   modal d'échec (`duplicateSaveError`/`branchError`). Il ne reste que la feuille
->   qui se ferme sur un échec, ce qui vaut « bas », pas « moyen ».
+>   ✅ **Réfuté le 2026-09-09, site supprimé** : `check()` est mort avec la
+>   Task 8 (`f788149`) ; le client actuel rend des résultats typés
+>   (`.rateLimited(retryAfter:)`) derrière la porte de back-off 429 partagée —
+>   plus de classification textuelle à écraser.
+> - `SaveCopySheets:38/103` — `dismiss()` inconditionnel. ✅ **Corrigé le
+>   2026-09-09** (`dfc55c7`) : le scénario écrit plus bas (« silence total »)
+>   était **inexact** — le ViewModel affiche bien un modal d'échec
+>   (`duplicateSaveError`/`branchError`) ; il ne restait que la feuille qui se
+>   fermait sur un échec. Elle ne se ferme désormais que sur un succès.
 
 Dans la table : ✅ = corrigé, ⛔️ = ouvert. Les numéros de ligne sont ceux de
 l'audit du 2026-08-05 sauf mention « auj. ».
@@ -142,20 +160,20 @@ l'audit du 2026-08-05 sauf mention « auj. ».
 | ✅ `StarHubTHViewModel:2223` | `setNexusApiKey` met `hasNexusApiKey = true` sans vérifier le retour de `SecItemAdd`. | UI dit « clé configurée » si la Keychain refuse → le prochain `checkNexusUpdates` part en `.noApiKey`. |
 | ✅ `StarHubTHViewModel:1811` | `performToggle` catch en `print` au lieu de `log(.error)` (`toggleAllMods` logge correctement à 3982). | Échec de toggle invisible dans l'UI et les Journaux. |
 | ✅ `NexusUpdateChecker:723/758` | 429 silencieux : `fetchRawDescription`/`fetchChangelogs` retournent `""` sur tout non-200, ignorant le circuit rate-limit de `check()`. | Navigation entre mods pendant un 429 → nouvelles requêtes sans back-off → aggravation du ban. |
-| ⛔️ `NexusUpdateChecker:425` | Classification `lastError` : une requête post-abort peut l'écraser. Le cas `successCount>0` est **intentionnel** (commentaire), mais `==0` reste trompeur. | Un 404 en vol après un 429 masque le message « rate-limited ». |
+| ✅ `NexusUpdateChecker:425` | Classification `lastError` : une requête post-abort peut l'écraser. Le cas `successCount>0` est **intentionnel** (commentaire), mais `==0` reste trompeur. | Un 404 en vol après un 429 masque le message « rate-limited ». *Réfuté le 2026-09-09 : site supprimé avec `check()` (`f788149`), résultats typés + back-off partagé désormais.* |
 | ✅ `ModInstallView:672` | `fetchNexusMetadata` boucle sans throttle (commentaire « bounded concurrency » trompeur). | Pack de 20 mods → rafale de ~40 requêtes → 429/ban. |
 | ✅ `ModInstallBackupManager:299` | `deleteBackup` en `removeItem` simple au lieu de `removeItemGrantingWriteAccess`. | Backups read-only (POSIX hérités) non supprimables, erreur sans workaround UI. |
 | ✅ `SmapiLogDiagnostics:451` | Règle benign `.apiIntegration` matche « couldn't get the »/« failed to get the » sans exiger « API ». | Erreur réelle classée benign → carte « sain » trompeuse, mod absent du top 5. |
 | ✅ `BisectionSnapshot:58` | `save` en `try?` : l'unique filet de récupération après crash avale l'erreur disque. | Disque plein → reprise impossible, modlist laissée à moitié en pause, sans avertissement. |
-| ⛔️ `SaveManager:396` (auj. `401`) | Divorce/remariage : la démotion de l'ancien conjoint est faite (`Married`→`Friendly`, `WeddingDate` retiré, l. 485-490) ; c'est la **promotion du nouveau** qui manque. | Changement « Abigail → Penny » → glitch du nouveau conjoint à l'arrivée en ferme. |
-| ⛔️ `SaveManager:371/814` | Pas de verrou fichier : `updateSave`/`updateInventory` (ou autosave du jeu) peuvent s'entrelacer. | Deux écritures concurrentes → dernier gagne, changements de l'autre perdus. |
+| ✅ `SaveManager:396` (auj. `401`) | Divorce/remariage : la démotion de l'ancien conjoint est faite (`Married`→`Friendly`, `WeddingDate` retiré, l. 485-490) ; c'est la **promotion du nouveau** qui manque. | Changement « Abigail → Penny » → glitch du nouveau conjoint à l'arrivée en ferme. *Corrigé le 2026-09-09 (`3565e10`) — XML mesuré (DLL du jeu + éditeur communautaire), 5 tests.* |
+| ✅ `SaveManager:371/814` | Pas de verrou fichier : `updateSave`/`updateInventory` (ou autosave du jeu) peuvent s'entrelacer. | Deux écritures concurrentes → dernier gagne, changements de l'autre perdus. *Corrigé le 2026-09-09 (`dfc55c7`) pour la moitié applicative ; le volet jeu est couvert par l'avertissement `confirmedOrWarn` (décision d'UX).* |
 | ✅ `StarHubTHViewModel:3117/3148/3159/3057` | `duplicateSave`/`branchFromBackup`/`restoreBackup`/`deleteSave` ne dispatchent pas hors main (contrairement à `editSave`/`saveInventory`). Le finding en manquait deux du même défaut : `createBackup` et `deleteBackup`. | Copie de plusieurs centaines de Mo → spinner bloqué, rainbow. |
 | ✅ `SaveTimelineView:88` | `onDelete` sans confirmation, alors que la restauration (réversible, juste à côté) en a une. | Clic « trash » → backup supprimé sans avertissement (asymétrie du risque). |
 | ✅ `LogsView:371` | Le watcher SMAPI n'est relancé au `onAppear` que si les entrées sont vides. | Quitter/revenir à l'onglet Journaux → suivi live de `SMAPI.log` perdu. |
 | ✅ `SettingsView:238` | `cleanDisabledMods` supprime en lot tous les mods en pause sans confirmation. | Un clic efface tous les mods désactivés du profil (juste un message post-op). |
 | ✅ `DescriptionBlocksView:190/200` | `ForEach(id: \.offset)` → @State `isExpanded` des spoilers fuit entre fiches. | Spoilers dépliés sur la fiche du mod A se retrouvent dépliés sur la fiche B. |
 | ✅ `SaveCopySheets:61` | `split(separator: ".")[0]` sans garde. | `lastPathComponent` vide → crash à l'ouverture de la feuille de branchement. |
-| ⛔️ `SaveCopySheets:37/98` (auj. `38/103`) | `duplicateSave`/`branchFromBackup` suivis de `dismiss()` inconditionnel. | Échec (disque plein, nom pris) → feuille fermée, aucune sauvegarde créée. ⛔️ Le « silence total » écrit ici est faux : le ViewModel affiche un modal d'échec. |
+| ✅ `SaveCopySheets:37/98` (auj. `38/103`) | `duplicateSave`/`branchFromBackup` suivis de `dismiss()` inconditionnel. | Échec (disque plein, nom pris) → feuille fermée, aucune sauvegarde créée. *Corrigé le 2026-09-09 (`dfc55c7`) — fermeture au succès seul. Le « silence total » écrit ici était faux : le modal d'échec existait.* |
 | ✅ `ModListView:1456` / `ModDetailView:206` | `pendingToggle` (debounce) jamais cancellé au `.onDisappear`. | `toggleMod` se déclenche pour un mod désaffiché (scroll rapide, navigation). |
 | ✅ `InstallPreview:95` | `.frame(maxHeight: visibleFrame.height)` entier, pas 60 % comme l'indique le commentaire. | Boutons d'action poussés hors vue sur un pack de 50 mods. |
 
@@ -201,7 +219,7 @@ fonctionnel réel. Les sites précis sont conservés pour action ciblée.
 - **Gels UI (main thread)** : `evaluateThaiTranslationStatus:3315` (~180k `fileExists` mods×thai), `deleteMod:4043` (`removeItem` synchrone sur gros mod), `HomeView:274` (`refresh()` à chaque `onAppear`).
 - **Parsing / encoding edge cases** : `I18nFileDecoder:54` (UTF-32 LE confondu UTF-16 LE → caractères nuls), `I18nOutline:160` (échappement `\"` conservé vs JSON déséchappé → clé orpheline), `TranslationTokens:96` (`mailCommand` sans limite de mot), `I18nOutline:127` (`depth` négatif sur JSON malformé), `I18nLocaleResolver:176` (`fold` whitespace au lieu de `whitespacesAndNewlines`), `extractTag:284` (pas de décodage entités → double-encodage), `replaceFirstTag:526` (regex `[^<]+` exige ≥1 char), regex CRLF dans `extractTag`.
 - **Localisation (chaînes hardcoded contournant `vm.L`/L10n)** : `ModConfigEditorView:223/385/404/406`, `AppChangelogView:38/41`, `MainView:501` (`NSLocalizedString` brut pour l'a11y — clé probablement absente des JSON), `ModInstallBackupsView:27` (`lowercased()` sur chaîne localisée).
-- **Sécurité (schéma URL / injection)** : ✅ `DescriptionBlockParser:343/671` (pas d'allowlist `http(s)` → `javascript:`/`file:`) — corrigé `a4d7d9e` ; ✅ `NexusUpdateChecker:599` (`modId` interpolé sans validation numérique) — corrigé `0758206` ; reste `LogNoise:62` (`modNamePrefix` prend « http » comme nom de mod).
+- **Sécurité (schéma URL / injection)** : ✅ `DescriptionBlockParser:343/671` (pas d'allowlist `http(s)` → `javascript:`/`file:`) — corrigé `a4d7d9e` ; ✅ `NexusUpdateChecker:599` (`modId` interpolé sans validation numérique) — corrigé `0758206` ; ✅ `LogNoise:62` (`modNamePrefix` prend « http » comme nom de mod — le candidat précède le premier « : », le slash est derrière) — corrigé `df2ce99`.
 - **Concurrence / lifecycle** : `applyEnabledFolders:3589` (pas de guard `isApplyingProfile`), `BisectionRunner:94` (`start` sans garde `interruptedSnapshot`), `installSmapi:1863/1873` (capture `self` forte), `categoryCache:2362` (dict mutable sans lock), `loadSmapiLog:189` (timing : log de la mauvaise étape), `SmapiInstaller:72` (`@Published` muté sans main explicite).
 - **Attribution / faux négatifs** : `SmapiLogDiagnostics:328` (`modName` inclut la version → `resolveModFolder` ne matche pas), `LogNoise:121` (`warningGroupRange` header orphelin).
 - **UX / logique UI** : tri saves non localisé, `ModListView:575` (état vide affiche le label *opposé*), `DescriptionBlockParser:658` (perf O(n²) `firstIndex`), `DependencyTreeView:88` (`onTapGesture` sur rangée à boutons), `BisectionCard:155` (Yes/No sans debounce double-clic), `InstallPreview:95` (déjà en moyen).

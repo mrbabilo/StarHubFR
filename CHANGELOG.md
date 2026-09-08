@@ -12,6 +12,14 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Changer de conjoint dans une sauvegarde ne glitch plus le nouveau.** Le tag disait « marié » mais l'amitié restait « Friendly »/« Dating » : le nouveau conjoint était promu lui aussi, avec sa date de mariage, et l'ancien démis comme avant.
+
+- **Deux opérations de sauvegarde ne peuvent plus s'entrelacer.** L'édition et l'inventaire rejoignent le verrou des autres opérations ; et la feuille de duplication ou de branchement ne se ferme plus sur un échec — on peut réessayer.
+
+- **Une URL en tête d'erreur SMAPI n'est plus prise pour un nom de mod.** « https://… » passait l'heuristique d'imputation : la ligne tombait sur un faux mod au lieu du bon.
+
 ## [1.38.1] - 2026-09-08
 
 ### Fixed

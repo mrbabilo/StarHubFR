@@ -1092,6 +1092,14 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
       part de la performance. Il porte son propre avertissement de péremption (il a listé
       comme ouverts pendant cinq jours trois findings corrigés entre-temps) : `git log -S`
       sur le symbole avant d'attaquer une ligne. **F2 le complète, il ne le refait pas.**
+      ▸ **Rattrapage de l'inventaire livré (2026-09-09)** — les 5 derniers ⛔️ de
+      l'audit 2026-08-05 sont refermés : remariage sans promotion du nouveau
+      conjoint (`3565e10`, XML mesuré contre les DLL du jeu), `updateSave`/
+      `updateInventory` hors verrou + `dismiss()` inconditionnel des feuilles de
+      sauvegarde (`dfc55c7`), « http » pris pour un nom de mod (`df2ce99`),
+      `lastError` **réfuté** (site supprimé avec `check()`). L'audit 2026-08-05
+      est désormais **clôturé** ; il reste la grille de patterns, pas un stock de
+      tâches.
       À y joindre le candidat **#4 de `§audit-gestionnaires`** : la liste explicite de
       garde-fous d'écriture de Vortex (`policy.ts`), à reprendre **comme grille de revue
       de nos chemins d'écriture**, pas comme code à porter.
