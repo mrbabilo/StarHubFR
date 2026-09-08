@@ -8157,11 +8157,18 @@ for mod in mods {
     }
 
     func editSave(info: SaveGameInfo, newName: String, newFarm: String, newFav: String, newMoney: Int, newTotalMoneyEarned: Int, newMaxHealth: Int, newMaxStamina: Int, newGoldenWalnuts: Int, newQiGems: Int, newClubCoins: Int, newSpouse: String) {
+        // Même verrou que `duplicateSave`/`deleteSave` : une réécriture de
+        // sauvegarde est un lecture-modification-écriture entier — deux
+        // opérations qui s'entrelacent valent « dernier gagne », les
+        // changements de l'autre perdus (audit 2026-08-05).
+        guard !isSaveOperationRunning else { return }
+        isSaveOperationRunning = true
         // `updateSave` parses and rewrites the full save XML — dispatched
         // off main so it doesn't block the UI on a large save file.
         DispatchQueue.global(qos: .userInitiated).async {
             let success = SaveManager.shared.updateSave(info: info, newName: newName, newFarm: newFarm, newFav: newFav, newMoney: newMoney, newTotalMoneyEarned: newTotalMoneyEarned, newMaxHealth: newMaxHealth, newMaxStamina: newMaxStamina, newGoldenWalnuts: newGoldenWalnuts, newQiGems: newQiGems, newClubCoins: newClubCoins, newSpouse: newSpouse)
             DispatchQueue.main.async {
+                self.isSaveOperationRunning = false
                 if success {
                     self.reloadSaves()
                     self.showModal(message: self.L(L10n.VM.saveSuccess))
@@ -8175,12 +8182,16 @@ for mod in mods {
     func saveInventory() {
         guard let save = editingSave else { return }
         let items = inventoryToEdit
+        // Même verrou qu'`editSave` (audit 2026-08-05).
+        guard !isSaveOperationRunning else { return }
+        isSaveOperationRunning = true
         // Same rationale as `editSave` — the save file read/write below
         // must not run on the main thread.
         DispatchQueue.global(qos: .userInitiated).async {
             let success = SaveManager.shared.updateInventory(info: save, items: items)
             let refetched = success ? SaveManager.shared.fetchInventory(for: save) : nil
             DispatchQueue.main.async {
+                self.isSaveOperationRunning = false
                 if success {
                     self.showModal(message: self.L(L10n.Saves.inventorySuccess))
                     if let refetched = refetched {
@@ -8275,9 +8286,12 @@ for mod in mods {
     /// Copie le dossier de sauvegarde puis réécrit les noms dans son XML.
     /// Même raison qu'`deleteSave` de tourner hors du fil principal — ici
     /// c'est une copie complète, l'opération la plus lente de l'onglet.
+    /// Rend le succès : la feuille de duplication ne se ferme que sur une
+    /// copie réussie (audit 2026-08-05), l'échec laisse l'utilisateur
+    /// réessayer sous le modal d'erreur.
     @MainActor
-    func duplicateSave(info: SaveGameInfo, newName: String, newFarm: String) async {
-        guard !isSaveOperationRunning else { return }
+    func duplicateSave(info: SaveGameInfo, newName: String, newFarm: String) async -> Bool {
+        guard !isSaveOperationRunning else { return false }
         isSaveOperationRunning = true
         let duplicated = await Task.detached(priority: .userInitiated) {
             SaveManager.shared.duplicateSave(info: info, newName: newName, newFarm: newFarm)
@@ -8289,6 +8303,7 @@ for mod in mods {
         } else {
             showModal(message: L(L10n.VM.duplicateSaveError))
         }
+        return duplicated
     }
     
     func openSaveInFinder(info: SaveGameInfo) {

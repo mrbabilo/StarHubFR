@@ -34,12 +34,17 @@ struct DuplicateSaveSheet: View {
                 .keyboardShortcut(.cancelAction)
                 
                 // `Task` non structurée, lancée depuis l'action du bouton : la
-                // copie doit survivre au `dismiss()` qui suit. Un `.task` de
-                // vue serait annulé à la fermeture de la feuille, laissant un
-                // dossier de sauvegarde copié à moitié.
+                // copie doit survivre à la fermeture de la feuille. Un `.task`
+                // de vue serait annulé à sa disparition, laissant un dossier
+                // de sauvegarde copié à moitié. La feuille ne se ferme que
+                // sur un succès (audit 2026-08-05) : sur échec, le modal
+                // d'erreur s'affiche et l'utilisateur peut réessayer.
                 Button(vm.L(L10n.Saves.duplicate)) {
-                    Task { await vm.duplicateSave(info: save, newName: newName, newFarm: newFarm) }
-                    dismiss()
+                    Task {
+                        if await vm.duplicateSave(info: save, newName: newName, newFarm: newFarm) {
+                            dismiss()
+                        }
+                    }
                 }
                 .keyboardShortcut(.defaultAction)
                 .buttonStyle(.borderedProminent)
@@ -103,11 +108,15 @@ struct BranchBackupSheet: View {
                 }
                 .keyboardShortcut(.cancelAction)
                 
-                // Même raison qu'au-dessus : la `Task` doit survivre au
-                // `dismiss()`, donc non structurée.
+                // Même raison qu'au-dessus : la `Task` doit survivre à la
+                // fermeture de la feuille, donc non structurée. Fermeture sur
+                // succès seul — un échec laisse réessayer sous le modal.
                 Button(vm.L(L10n.Saves.branch)) {
-                    Task { _ = await vm.branchFromBackup(backup: backup, newName: newName, newFarm: newFarm) }
-                    dismiss()
+                    Task {
+                        if await vm.branchFromBackup(backup: backup, newName: newName, newFarm: newFarm) {
+                            dismiss()
+                        }
+                    }
                 }
                 .keyboardShortcut(.defaultAction)
                 .buttonStyle(.borderedProminent)
