@@ -7474,6 +7474,35 @@ for mod in mods {
         UserDefaults.standard.set(data, forKey: favoriteModsKey)
     }
 
+    // MARK: - Delta de clés de mise à jour (C2-T4)
+
+    /// Écrit le store pour chaque chemin installé portant un delta. Appelé
+    /// dans le completion de `performInstall` AVANT l'écran de succès : un
+    /// crash ne perd pas le delta, et la feuille comme la fiche lisent la
+    /// même chose. Échec journalisé, jamais bloquant.
+    func persistUpdateKeyDeltas(_ paths: [InstalledModPath]) {
+        guard let dir = ModUpdateKeyDeltaStore.defaultDirectory() else {
+            log("Delta de mise à jour : dossier Application Support indisponible, non persisté",
+                level: .warning)
+            return
+        }
+        for path in paths {
+            guard let delta = path.keyDelta else { continue }
+            do {
+                try ModUpdateKeyDeltaStore.save(delta, directory: dir)
+            } catch {
+                log("Delta de mise à jour (\(delta.folderName)) : \(error.localizedDescription)",
+                    level: .warning)
+            }
+        }
+    }
+
+    /// Le delta persisté du mod, pour la fiche — nil si aucun.
+    func updateKeyDelta(for mod: ModItem) -> ModUpdateKeyDelta? {
+        guard let dir = ModUpdateKeyDeltaStore.defaultDirectory() else { return nil }
+        return ModUpdateKeyDeltaStore.load(uniqueId: mod.uniqueId, directory: dir)
+    }
+
     // MARK: - Mods à écarter (blacklist)
 
     private static let blacklistedModsKey = "blacklistedMods"
@@ -10439,6 +10468,11 @@ for mod in mods {
             recentNexusInstalls.remove(id)
         }
         forgetTranslations(of: folder)
+
+        // C2-T4 — le delta du mod n'a plus de titulaire.
+        if let dir = ModUpdateKeyDeltaStore.defaultDirectory() {
+            ModUpdateKeyDeltaStore.remove(uniqueId: mod.uniqueId, directory: dir)
+        }
     }
 
     /// X69 — le registre des traductions et des greffes, oublié lui aussi.

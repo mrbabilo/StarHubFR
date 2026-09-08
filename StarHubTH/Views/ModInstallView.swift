@@ -935,6 +935,9 @@ struct ModInstallView: View {
                     self.installer.cleanupTempDir(at: tempDir)
                     self.tempDir = nil
                     self.installedModNames = modsBeingInstalled.map { $0.name }
+                    // C2-T4 — le delta de clés se persiste avant l'écran de
+                    // succès : la feuille et la fiche liront la même chose.
+                    self.vm.persistUpdateKeyDeltas(written)
                     self.showSuccess = true
                     self.zipModInfo = nil
                     // Les fichiers de ces mods viennent de changer : leur
