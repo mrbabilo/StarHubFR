@@ -45,3 +45,33 @@ public enum RenameReport {
         return (rewritten, applied)
     }
 }
+
+extension RenameReport {
+
+    /// Reporte des paires de clés de premier niveau dans un `config.json`.
+    /// Les valeurs non-chaîne (booléens, nombres, objets imbriqués des mods
+    /// C#) passent telles quelles. Abstention par paire si la nouvelle clé
+    /// existe déjà. Réécriture JSONSerialization : l'ordre n'est pas
+    /// préservé — le jeu réécrit ce fichier lui-même à chaque lancement.
+    public static func applyToConfig(_ text: String,
+                                     pairs: [RenamePair]) -> (text: String, applied: [RenamePair]) {
+        guard var obj = try? JSONSerialization.jsonObject(
+            with: Data(text.utf8)) as? [String: Any] else { return (text, []) }
+
+        var applied: [RenamePair] = []
+        for pair in pairs {
+            guard let value = obj[pair.oldKey] else { continue }   // rien à reporter
+            guard obj[pair.newKey] == nil else { continue }        // la cible existe
+            obj.removeValue(forKey: pair.oldKey)
+            obj[pair.newKey] = value
+            applied.append(pair)
+        }
+        guard !applied.isEmpty else { return (text, []) }
+
+        guard let data = try? JSONSerialization.data(withJSONObject: obj,
+                                                     options: [.prettyPrinted, .sortedKeys]),
+              let rewritten = String(data: data, encoding: .utf8)
+        else { return (text, []) }
+        return (rewritten, applied)
+    }
+}
