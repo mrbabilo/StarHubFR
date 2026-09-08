@@ -1074,6 +1074,9 @@ class ModZipInstaller {
             // top of the freshly installed copy. Drag-drop install must never
             // silently overwrite a user's live config.
             var preservedConfigs: [String: URL] = [:]
+            // C2-T4 — le delta de clés de la mise à jour, capturé dans la
+            // branche overwrite seulement.
+            var pendingKeyDelta: ModUpdateKeyDelta? = nil
             // Guarantee temp snapshot files never leak, even if this loop
             // iteration throws partway through (after snapshotting configs but
             // before restoring them). On the success path the entries are
@@ -1130,6 +1133,15 @@ class ModZipInstaller {
                     let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
                     let existingFolder = (modsPath as NSString).appendingPathComponent(existing.physicalFolderName)
                     if fm.fileExists(atPath: existingFolder) {
+                        // C2-T4 §5 — l'ancien état se lit ici ou nulle part : le
+                        // dossier existe encore. Le neuf se lit au tempDir (source),
+                        // pas au dossier posé : la restauration du config.json
+                        // utilisateur masquerait l'embarqué du neuf.
+                        let oldSnapshot = UpdateKeySnapshot.read(folder: URL(fileURLWithPath: existingFolder))
+                        let newSnapshot = UpdateKeySnapshot.read(folder: sourcePath)
+                        pendingKeyDelta = ModUpdateKeyDelta.compare(
+                            old: oldSnapshot, new: newSnapshot,
+                            uniqueId: detectedMod.uniqueId, folderName: existing.folderName)
                         preservedConfigs = snapshotUserConfigs(from: existingFolder)
                         try Self.removeItemGrantingWriteAccess(atPath: existingFolder)
                     }
@@ -1229,7 +1241,8 @@ class ModZipInstaller {
 
             // Le mod est entièrement posé : son chemin peut être annoncé.
             installedPaths.append(InstalledModPath(modId: selection.modId, path: destPath,
-                                                   displacedFrom: displacedFrom))
+                                                   displacedFrom: displacedFrom,
+                                                   keyDelta: pendingKeyDelta))
         }
 
         // La rétention par âge, **une fois** pour toute l'installation : elle

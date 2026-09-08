@@ -326,11 +326,17 @@ struct InstalledModPath: Equatable {
     /// portant le même nom logique apparaissent dans la liste sans que rien
     /// n'explique pourquoi l'un vit dans un dossier horodaté.
     let displacedFrom: String?
+    /// C2-T4 — le delta de clés de la mise à jour, quand ce chemin est une
+    /// mise à jour (`.overwriteWithBackup`). nil pour `.rename`/`.skip` et
+    /// les installs neuves : pas de « avant » pertinent.
+    var keyDelta: ModUpdateKeyDelta?
 
-    init(modId: UUID, path: String, displacedFrom: String? = nil) {
+    init(modId: UUID, path: String, displacedFrom: String? = nil,
+         keyDelta: ModUpdateKeyDelta? = nil) {
         self.modId = modId
         self.path = path
         self.displacedFrom = displacedFrom
+        self.keyDelta = keyDelta
     }
 }
 
