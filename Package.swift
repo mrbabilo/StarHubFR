@@ -84,6 +84,7 @@ let package = Package(
                 "Models/TranslationTokens.swift",
                 "Models/I18nFileDecoder.swift",
                 "Models/I18nOutline.swift",
+                "Models/UpdateKeyDelta.swift",
                 "Models/I18nLenientParser.swift",
                 "Models/I18nLocaleResolver.swift",
                 "Models/TranslationCoverage.swift",
@@ -261,6 +262,11 @@ let package = Package(
             name: "ModZipInstallerTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ModZipInstallerTests"
+        ),
+        .testTarget(
+            name: "UpdateKeySnapshotTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/UpdateKeySnapshotTests"
         ),
         .testTarget(
             name: "LastUpdateAgeTests",
