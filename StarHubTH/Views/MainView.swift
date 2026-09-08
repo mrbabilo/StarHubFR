@@ -413,7 +413,7 @@ struct MainView: View {
             // la file nxm:// peut dérouler le lien suivant, s'il y en a.
             vm.drainQueuedNexusDownloads()
         }) {
-            ModInstallView(vm: vm, isPresented: $showDownloadedInstall, preloadedZip: vm.pendingDownloadedZip)
+            ModInstallView(vm: vm, currentTab: $currentTab, isPresented: $showDownloadedInstall, preloadedZip: vm.pendingDownloadedZip)
         }
     }
     

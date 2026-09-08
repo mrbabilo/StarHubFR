@@ -7476,11 +7476,15 @@ for mod in mods {
 
     // MARK: - Delta de clés de mise à jour (C2-T4)
 
+    /// Les deltas de la dernière installation, pour l'écran de succès.
+    @Published private(set) var lastInstallKeyDeltas: [ModUpdateKeyDelta] = []
+
     /// Écrit le store pour chaque chemin installé portant un delta. Appelé
     /// dans le completion de `performInstall` AVANT l'écran de succès : un
     /// crash ne perd pas le delta, et la feuille comme la fiche lisent la
     /// même chose. Échec journalisé, jamais bloquant.
     func persistUpdateKeyDeltas(_ paths: [InstalledModPath]) {
+        lastInstallKeyDeltas = paths.compactMap(\.keyDelta)
         guard let dir = ModUpdateKeyDeltaStore.defaultDirectory() else {
             log("Delta de mise à jour : dossier Application Support indisponible, non persisté",
                 level: .warning)

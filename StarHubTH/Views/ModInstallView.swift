@@ -4,6 +4,10 @@ import UniformTypeIdentifiers
 /// Main view for mod installation via drag-and-drop of zip files.
 struct ModInstallView: View {
     @ObservedObject var vm: StarHubTHViewModel
+    /// C2-T4 — le bouton « Voir la fiche » de l'écran de succès conduit au
+    /// bon onglet : même canal que `SystemAlertsView` (pending posé avant le
+    /// changement d'onglet — patron B3-T4).
+    @Binding var currentTab: String
     @State private var isDropTarget = false
     @State private var zipModInfo: ZipModInfo?
     @State private var isAnalyzing = false
@@ -87,8 +91,10 @@ struct ModInstallView: View {
 
     private let installer = ModZipInstaller()
 
-    init(vm: StarHubTHViewModel, isPresented: Binding<Bool>, preloadedZip: URL? = nil) {
+    init(vm: StarHubTHViewModel, currentTab: Binding<String>,
+         isPresented: Binding<Bool>, preloadedZip: URL? = nil) {
         self.vm = vm
+        self._currentTab = currentTab
         self._isPresented = isPresented
         self.preloadedZip = preloadedZip
     }
@@ -324,6 +330,19 @@ struct ModInstallView: View {
             }
             .frame(maxHeight: 220)
 
+            // C2-T4 — ce que la mise à jour a changé, mod par mod : les
+            // compteurs non nuls joints par « · », et le geste qui conduit
+            // à la fiche au lieu de laisser le signalement en suspens.
+            if !vm.lastInstallKeyDeltas.isEmpty {
+                VStack(spacing: 10) {
+                    ForEach(vm.lastInstallKeyDeltas, id: \.folderName) { delta in
+                        updateDeltaRow(delta)
+                    }
+                }
+                .padding(.horizontal, 20)
+                .frame(maxWidth: 400)
+            }
+
             Spacer()
 
             // Un dépôt multiple garde des archives en file : le dire, sinon
@@ -349,6 +368,61 @@ struct ModInstallView: View {
         }
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    /// C2-T4 — la ligne de succès d'un mod mis à jour : compteurs non nuls,
+    /// suffixe des renommages suggérés par valeur, et le bouton vers la fiche.
+    private func updateDeltaRow(_ delta: ModUpdateKeyDelta) -> some View {
+        var parts: [String] = []
+        if let added = delta.config?.added.count, added > 0 {
+            parts.append(String(format: vm.L(L10n.Mods.updateDeltaConfigAdded), added))
+        }
+        if let removed = delta.config?.removed.count, removed > 0 {
+            parts.append(String(format: vm.L(L10n.Mods.updateDeltaConfigRemoved), removed))
+        }
+        if !delta.translation.addedUntranslated.isEmpty {
+            parts.append(String(format: vm.L(L10n.Mods.updateDeltaTranslationTodo),
+                                delta.translation.addedUntranslated.count))
+        }
+        if !delta.translation.addedAuthorTranslated.isEmpty {
+            parts.append(String(format: vm.L(L10n.Mods.updateDeltaTranslationAuthor),
+                                delta.translation.addedAuthorTranslated.count))
+        }
+        if !delta.translation.removedKeys.isEmpty {
+            parts.append(String(format: vm.L(L10n.Mods.updateDeltaTranslationOrphan),
+                                delta.translation.removedKeys.count))
+        }
+        let renamed = KeyRenameMatcher.pairsByValue(old: delta.translation.removedKeys,
+                                                    new: delta.translation.addedUntranslated)
+        if !renamed.isEmpty {
+            parts.append(String(format: vm.L(L10n.Mods.updateDeltaRenamedSuffix), renamed.count))
+        }
+        return HStack(alignment: .top, spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text((delta.folderName as NSString).lastPathComponent)
+                    .font(.system(size: 13, weight: .medium))
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Text(parts.joined(separator: " · "))
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+                    .lineLimit(2)
+            }
+            Spacer()
+            Button(vm.L(L10n.Mods.updateDeltaOpenDetail)) {
+                // Poser le pending PUIS changer d'onglet — l'inverse est
+                // effacé par le reset des vues de détail (patron B3-T4).
+                vm.pendingModDetailFocus = delta.folderName
+                vm.pendingDetailTab = .state
+                currentTab = "Mods"
+                showSuccess = false
+                installedModNames = []
+                isPresented = false
+            }
+            .buttonStyle(.link)
+            .font(.system(size: 12))
+            .pointingHandCursor()
+        }
     }
 
     private var dropZone: some View {

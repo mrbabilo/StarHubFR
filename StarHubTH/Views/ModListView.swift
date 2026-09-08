@@ -553,7 +553,7 @@ struct ModListView: View {
         .onAppear { vm.modList.displayOrder = displayIds }
         .onChange(of: displayIds) { _, order in vm.modList.displayOrder = order }
         .sheet(isPresented: $showInstallSheet) {
-            ModInstallView(vm: vm, isPresented: $showInstallSheet)
+            ModInstallView(vm: vm, currentTab: $currentTab, isPresented: $showInstallSheet)
         }
         .confirmationDialog(
             bulkToggleTarget == true
