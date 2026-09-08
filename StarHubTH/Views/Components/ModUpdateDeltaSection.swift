@@ -20,6 +20,11 @@ struct ModUpdateDeltaSection: View {
 
     @State private var shownAdded = 50
     @State private var shownRemoved = 50
+    @State private var showReportConfigConfirm = false
+    @State private var showReportTranslationConfirm = false
+    /// Le retour du dernier report (« Report effectué : N clés » ou
+    /// « Rien à reporter »), affiché sous les boutons jusqu'au suivant.
+    @State private var reportMessage: String?
 
     var body: some View {
         if let delta = vm.updateKeyDelta(for: mod) {
@@ -31,11 +36,111 @@ struct ModUpdateDeltaSection: View {
                     Text(counters(delta).joined(separator: " · "))
                         .font(.system(size: 12, weight: .medium))
                         .textSelection(.enabled)
+                    renamedSubsection(delta)
                     lists(delta)
                     buttons(delta)
                 }
+                .confirmationDialog(vm.L(L10n.Mods.updateDeltaRenamedTitle),
+                                    isPresented: $showReportConfigConfirm,
+                                    titleVisibility: .visible) {
+                    Button(vm.L(L10n.Mods.updateDeltaRenamedReportConfig)) {
+                        doReport { vm.applyRenameReportConfig(proposedPairs(for: delta).config, to: mod) }
+                    }
+                }
+                .confirmationDialog(vm.L(L10n.Mods.updateDeltaRenamedTitle),
+                                    isPresented: $showReportTranslationConfirm,
+                                    titleVisibility: .visible) {
+                    Button(vm.L(L10n.Mods.updateDeltaRenamedReportTranslation)) {
+                        doReport { vm.applyRenameReportTranslation(proposedPairs(for: delta).translation, to: mod) }
+                    }
+                }
             }
         }
+    }
+
+    // MARK: - Clés renommées (C2-T4 §8)
+
+    /// Les paires proposées, montrées AVANT action : celles par valeur sont
+    /// sûres (point plein), celles par nom sont une heuristique à vérifier
+    /// à l'œil (point creux).
+    private func proposedPairs(for delta: ModUpdateKeyDelta) -> (translation: [RenamePair], config: [RenamePair]) {
+        vm.renamePairs(for: delta)
+    }
+
+    @ViewBuilder
+    private func renamedSubsection(_ delta: ModUpdateKeyDelta) -> some View {
+        let proposed = proposedPairs(for: delta)
+        if !proposed.translation.isEmpty || !proposed.config.isEmpty {
+            // Les paires par valeur sont le signal sûr ; le reste vient de
+            // l'heuristique de nom — le point creux dit « vérifiez ».
+            let safeTranslation = Set(KeyRenameMatcher.pairsByValue(
+                old: delta.translation.removedKeys,
+                new: delta.translation.addedUntranslated))
+            VStack(alignment: .leading, spacing: 6) {
+                Text(vm.L(L10n.Mods.updateDeltaRenamedTitle))
+                    .font(.system(size: 12, weight: .semibold))
+                Text(vm.L(L10n.Mods.updateDeltaRenamedExplain))
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+                ForEach(proposed.config, id: \.oldKey) { pair in
+                    pairRow(pair, safe: true)
+                }
+                ForEach(proposed.translation, id: \.oldKey) { pair in
+                    pairRow(pair, safe: safeTranslation.contains(pair))
+                }
+                HStack(spacing: 12) {
+                    if !proposed.config.isEmpty {
+                        Button(vm.L(L10n.Mods.updateDeltaRenamedReportConfig)) {
+                            showReportConfigConfirm = true
+                        }
+                        .buttonStyle(.link)
+                        .font(.system(size: 12))
+                        .pointingHandCursor()
+                    }
+                    if !proposed.translation.isEmpty {
+                        Button(vm.L(L10n.Mods.updateDeltaRenamedReportTranslation)) {
+                            showReportTranslationConfirm = true
+                        }
+                        .buttonStyle(.link)
+                        .font(.system(size: 12))
+                        .pointingHandCursor()
+                    }
+                }
+                if let message = reportMessage {
+                    Text(message)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.secondary)
+                }
+            }
+            .padding(.leading, 8)
+        }
+    }
+
+    private func pairRow(_ pair: RenamePair, safe: Bool) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: safe ? "circle.fill" : "circle")
+                .font(.system(size: 6))
+                .foregroundColor(safe ? .green : .secondary)
+            Text(pair.oldKey)
+                .font(.system(size: 11).monospaced())
+                .lineLimit(1)
+                .truncationMode(.middle)
+            Image(systemName: "arrow.right")
+                .font(.system(size: 8))
+                .foregroundColor(.secondary)
+            Text(pair.newKey)
+                .font(.system(size: 11).monospaced())
+                .lineLimit(1)
+                .truncationMode(.middle)
+        }
+        .textSelection(.enabled)
+    }
+
+    private func doReport(_ action: () -> [RenamePair]) {
+        let count = action().count
+        reportMessage = count > 0
+            ? String(format: vm.L(L10n.Mods.updateDeltaRenamedDone), count)
+            : vm.L(L10n.Mods.updateDeltaRenamedNoneLeft)
     }
 
     // MARK: - Compteurs

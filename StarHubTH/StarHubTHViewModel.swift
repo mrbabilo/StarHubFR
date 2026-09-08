@@ -7514,6 +7514,202 @@ for mod in mods {
         return ModUpdateKeyDeltaStore.load(uniqueId: mod.uniqueId, directory: dir)
     }
 
+    /// Incrémenté après chaque report : la section fiche relit le store
+    /// (le magasin n'est pas `@Published` — sans ce compteur, la section ne
+    /// se rafraîchirait pas après un report).
+    @Published private(set) var updateKeyDeltasRevision = 0
+
+    /// Les paires de renommage proposées pour ce delta : fusion des deux
+    /// signaux (valeur EN identique = sûr ; similarité de nom = à vérifier
+    /// à l'œil), moins ce qui est déjà réconcilié.
+    func renamePairs(for delta: ModUpdateKeyDelta) -> (translation: [RenamePair], config: [RenamePair]) {
+        let byValue = KeyRenameMatcher.pairsByValue(old: delta.translation.removedKeys,
+                                                    new: delta.translation.addedUntranslated)
+        let valueOlds = Set(byValue.map(\.oldKey))
+        let valueNews = Set(byValue.map(\.newKey))
+        let doneTradOlds = Set(delta.translation.reconciled.map(\.oldKey))
+        // Signal sûr d'abord ; la similarité de nom ne voit que le reste.
+        let left = delta.translation.removedKeys.keys
+            .filter { !valueOlds.contains($0) && !doneTradOlds.contains($0) }
+        let byNameTrad = KeyRenameMatcher.pairsBySimilarity(
+            removed: left,
+            added: delta.translation.addedUntranslated.keys
+                .filter { !valueNews.contains($0) })
+        let doneConfigKeys = Set((delta.config?.reconciled ?? []).map(\.oldKey))
+        let byNameConfig = KeyRenameMatcher.pairsBySimilarity(
+            removed: (delta.config?.removed ?? [:]).keys.filter { !doneConfigKeys.contains($0) },
+            added: (delta.config?.added ?? [:]).keys.filter { !doneConfigKeys.contains($0) })
+        return (byValue + byNameTrad, byNameConfig)
+    }
+
+    /// Sépare `"Composant/clé"` en (composant, clé) sur le plus long préfixe
+    /// de composants connu ; sans préfixe connu, tout est la clé (racine).
+    /// Une clé i18n peut elle-même contenir un `/` (packs Content Patcher :
+    /// `"Strings/…"`) — d'où le plus long préfixe, jamais le premier.
+    static func splitQualifiedKey(_ qualified: String, known prefixes: [String]) -> (String, String) {
+        let match = prefixes.filter { !$0.isEmpty }
+            .filter { qualified.hasPrefix($0 + "/") }
+            .max(by: { $0.count < $1.count })
+        if let m = match {
+            return (m, String(qualified.dropFirst(m.count + 1)))
+        }
+        return ("", qualified)
+    }
+
+    /// Reporte des paires renommées dans le(s) `fr.json` du mod. Les clés
+    /// qualifiées `"Composant/clé"` désignent le fr.json du composant — le
+    /// préfixe est le **dernier composant du chemin** : le snapshot nomme
+    /// ses composants comme les entrées du dossier, pas comme le chemin
+    /// relatif complet du `ModItem`.
+    @MainActor
+    @discardableResult
+    func applyRenameReportTranslation(_ pairs: [RenamePair], to mod: ModItem) -> [RenamePair] {
+        guard !pairs.isEmpty, let dir = ModUpdateKeyDeltaStore.defaultDirectory(),
+              var delta = ModUpdateKeyDeltaStore.load(uniqueId: mod.uniqueId, directory: dir)
+        else { return [] }
+
+        let modsRoot = (gameDir as NSString).appendingPathComponent("Mods")
+        // Préfixe = nom du sous-dossier (ce que le snapshot a qualifié),
+        // physique = le chemin disque réel (point de pause inclus).
+        let componentFolders: [(prefix: String, physical: String)] =
+            [("", mod.physicalFolderName)]
+            + (mod.children ?? []).map {
+                ((($0.folderName as NSString).lastPathComponent), $0.physicalFolderName)
+            }
+        let prefixes = componentFolders.map(\.prefix)
+
+        var applied: [RenamePair] = []
+        for (prefix, physical) in componentFolders {
+            // Désqualifier les DEUX bouts : le fr.json ne voit que des clés
+            // brutes — une clé qualifiée cherchée dedans ne matcherait rien,
+            // en silence.
+            var qualifiedHere: [RenamePair] = []
+            var rawHere: [RenamePair] = []
+            for pair in pairs {
+                let (c, oldRaw) = Self.splitQualifiedKey(pair.oldKey, known: prefixes)
+                guard c == prefix else { continue }
+                let (_, newRaw) = Self.splitQualifiedKey(pair.newKey, known: prefixes)
+                qualifiedHere.append(pair)
+                rawHere.append(RenamePair(oldKey: oldRaw, newKey: newRaw))
+            }
+            guard !qualifiedHere.isEmpty else { continue }
+
+            let i18nDir = URL(fileURLWithPath: modsRoot)
+                .appendingPathComponent(physical, isDirectory: true)
+                .appendingPathComponent("i18n", isDirectory: true)
+            let frURL = i18nDir.appendingPathComponent("fr.json")
+            guard let data = try? Data(contentsOf: frURL),
+                  let text = I18nFileDecoder.decode(data)?.text else { continue }
+
+            let (rewritten, done) = RenameReport.applyToFrench(text, pairs: rawHere)
+            guard !done.isEmpty else { continue }
+
+            // X7 : ouvrir les droits avant d'écrire dans le dossier du mod.
+            ModZipInstaller.grantOwnerWriteAccess(in: i18nDir)
+            do {
+                try rewritten.write(toFile: frURL.path, atomically: true, encoding: .utf8)
+                for d in done {
+                    if let q = qualifiedHere.first(where: { $0.oldKey == d.oldKey && $0.newKey == d.newKey }) {
+                        applied.append(q)
+                    }
+                }
+            } catch {
+                log("Report de traduction (\(mod.name)) : \(error.localizedDescription)",
+                    level: .warning)
+            }
+        }
+
+        guard !applied.isEmpty else { return [] }
+        // Le delta persisté : les paires appliquées passent en reconciled et
+        // quittent les compteurs.
+        let appliedSet = Set(applied)
+        delta.translation.reconciled += applied
+        delta.translation.addedUntranslated = delta.translation.addedUntranslated
+            .filter { entry in !appliedSet.contains { $0.newKey == entry.key } }
+        delta.translation.removedKeys = delta.translation.removedKeys
+            .filter { entry in !appliedSet.contains { $0.oldKey == entry.key } }
+        try? ModUpdateKeyDeltaStore.save(delta, directory: dir)
+        updateKeyDeltasRevision += 1
+        // Sinon la pastille de couverture ment jusqu'au prochain scan.
+        invalidateFrenchCoverage(for: mod.folderName)
+        log(String(format: L(L10n.Mods.updateDeltaRenamedDone), applied.count))
+        return applied
+    }
+
+    /// Reporte des paires renommées dans le `config.json` racine du mod —
+    /// le seul que le delta décrit (les composants n'y figurent pas).
+    /// Backup avant écriture et garde anti-écrasement : le patron de
+    /// l'éditeur de config, repris tel quel.
+    @MainActor
+    @discardableResult
+    func applyRenameReportConfig(_ pairs: [RenamePair], to mod: ModItem) -> [RenamePair] {
+        guard !pairs.isEmpty, let dir = ModUpdateKeyDeltaStore.defaultDirectory(),
+              var delta = ModUpdateKeyDeltaStore.load(uniqueId: mod.uniqueId, directory: dir)
+        else { return [] }
+
+        let configURL = URL(fileURLWithPath: gameDir)
+            .appendingPathComponent("Mods", isDirectory: true)
+            .appendingPathComponent(mod.physicalFolderName, isDirectory: true)
+            .appendingPathComponent("config.json")
+
+        // Premier jet : ce qu'on applique au texte lu maintenant.
+        guard let loadedText = try? String(contentsOf: configURL, encoding: .utf8)
+        else { return [] }
+        let (rewritten, done) = RenameReport.applyToConfig(loadedText, pairs: pairs)
+        guard !done.isEmpty else { return [] }
+
+        // Garde : relecture fraîche juste avant d'écrire — un fichier que le
+        // mod ou le jeu vient de toucher ne se fait pas écraser en silence.
+        let onDisk: ModConfigWriteGuard.DiskState
+        if !FileManager.default.fileExists(atPath: configURL.path) {
+            onDisk = .missing
+        } else if let reread = try? String(contentsOf: configURL, encoding: .utf8) {
+            onDisk = .content(reread)
+        } else {
+            onDisk = .unreadable
+        }
+        switch ModConfigWriteGuard.decide(loaded: loadedText, onDisk: onDisk, pending: rewritten) {
+        case .proceed:
+            break
+        case .externallyChanged, .unverifiable:
+            // On ne décide pas à sa place : journalisé, le report attendra.
+            log("Report de réglages (\(mod.name)) : config.json a changé sous nos pieds, report annulé",
+                level: .warning)
+            return []
+        }
+
+        // Backup avant écriture — le patron de l'éditeur, `onlyEnabled:
+        // false` pareil (le mod peut être en pause).
+        if ModConfigBackupManager.shared.backupFromToday(protecting: "config.json",
+                                                         forMod: mod.folderName) == nil {
+            _ = try? ModConfigBackupManager.shared.createBackup(gameDir: gameDir,
+                                                                mods: [mod],
+                                                                onlyEnabled: false)
+        }
+        // X7 : ouvrir les droits avant d'écrire dans le dossier du mod.
+        ModZipInstaller.grantOwnerWriteAccess(in: configURL.deletingLastPathComponent())
+        do {
+            try rewritten.write(to: configURL, atomically: true, encoding: .utf8)
+        } catch {
+            log("Report de réglages (\(mod.name)) : \(error.localizedDescription)", level: .warning)
+            return []
+        }
+
+        let appliedSet = Set(done)
+        if var config = delta.config {
+            config.reconciled += done
+            config.added = config.added
+                .filter { entry in !appliedSet.contains { $0.newKey == entry.key } }
+            config.removed = config.removed
+                .filter { entry in !appliedSet.contains { $0.oldKey == entry.key } }
+            delta.config = config
+        }
+        try? ModUpdateKeyDeltaStore.save(delta, directory: dir)
+        updateKeyDeltasRevision += 1
+        log(String(format: L(L10n.Mods.updateDeltaRenamedDone), done.count))
+        return done
+    }
+
     // MARK: - Mods à écarter (blacklist)
 
     private static let blacklistedModsKey = "blacklistedMods"
