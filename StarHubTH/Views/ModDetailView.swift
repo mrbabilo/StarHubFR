@@ -1304,6 +1304,17 @@ struct ModDetailView: View {
             VStack(alignment: .leading, spacing: 16) {
                 if mod.isGroup { packContentsSection }
                 settingsSection
+                // C2-T4 — ce que la dernière mise à jour a changé aux clés.
+                // La fiche vit déjà sur l'onglet Mods : les gestes passent
+                // par des closures directes, pas par les canaux
+                // `pending…Focus` (consommés seulement par un CHANGEMENT
+                // d'onglet dans MainView).
+                ModUpdateDeltaSection(vm: vm, mod: mod,
+                                      onOpenConfig: { vm.editingModConfig = mod },
+                                      onOpenTranslation: {
+                                          vm.pendingTranslationDiffFilter = .state(.missing)
+                                          selectedTab = .translation
+                                      })
                 blocksView(isChangelog: false)
             }
         }

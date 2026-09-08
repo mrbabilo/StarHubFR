@@ -111,6 +111,15 @@ struct TranslationDiffView: View {
             }
         }
         .task {
+            // C2-T4 — le cadrage demandé par la section « Dernière mise à
+            // jour » se consomme ici, avant `rebuildGroups()` : c'est le seul
+            // point où le filtre existe déjà quand les groupes se rebâtissent.
+            // Remis à nil aussitôt — rouvrir l'onglet à la main ne rejoue pas
+            // le cadrage.
+            if let pending = vm.pendingTranslationDiffFilter {
+                filter = pending
+                vm.pendingTranslationDiffFilter = nil
+            }
             // Chargement détaché côté ViewModel : lire et analyser 11 021 clés
             // sur le fil principal figerait la fenêtre.
             rows = await vm.translationDiff(for: mod)

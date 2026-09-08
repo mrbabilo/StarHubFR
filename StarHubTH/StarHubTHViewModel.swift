@@ -3856,6 +3856,13 @@ class StarHubTHViewModel: ObservableObject {
     /// jusqu'à la prochaine fiche ouverte à la main.
     @Published var pendingDetailTab: DetailTab? = nil
 
+    /// C2-T4 — le cadrage du diff de traduction demandé par le bouton
+    /// « Traduire les nouveaux textes » de la section « Dernière mise à jour ».
+    /// Consommé au `.task` de `TranslationDiffView` (là seul où le filtre
+    /// existe avant que les groupes se rebâtissent), remis à `nil` aussitôt —
+    /// la réouverture manuelle de l'onglet ne rejoue pas le cadrage.
+    @Published var pendingTranslationDiffFilter: TranslationDiffView.DiffFilter? = nil
+
     /// Le texte à préremplir dans la recherche des Journaux après un
     /// changement d'onglet. Posé par `SystemAlertsView` (H-T6b) pour ses
     /// lignes sans mod résolvable (outil externe, notice bénigne sans mod).
