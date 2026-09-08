@@ -7599,34 +7599,47 @@ for mod in mods {
     func applyRenameReportTranslation(_ pairs: [RenamePair], to mod: ModItem) -> KeyRenameReportOutcome {
         guard !pairs.isEmpty, let dir = ModUpdateKeyDeltaStore.defaultDirectory(),
               var delta = ModUpdateKeyDeltaStore.load(uniqueId: mod.uniqueId, directory: dir)
-        else { return .nothingLeft }
+        else { return .nothingLeft(skippedCrossComponent: 0) }
 
         let modsRoot = (gameDir as NSString).appendingPathComponent("Mods")
-        // Préfixe = nom du sous-dossier (ce que le snapshot a qualifié),
-        // physique = le chemin disque réel (point de pause inclus).
+        // Les composants du mod = ses descendants dans l'arbre scanné — PAS
+        // mod.children : les descendants d'un groupe vivent À PLAT sous
+        // l'en-tête (scanMods), la fiche d'un enfant imbriqué a children nil
+        // alors que son delta peut porter les clés qualifiées de ses propres
+        // sous-mods — « Rien à reporter » à jamais, sinon. Le préfixe est le
+        // chemin relatif sous le mod, ce que le snapshot a nommé ; le disque,
+        // le chemin physique réel (point de pause inclus).
+        var descendants: [ModItem] = []
+        func collect(_ items: [ModItem]) {
+            for item in items {
+                if item.folderName.hasPrefix(mod.folderName + "/") {
+                    descendants.append(item)
+                }
+                collect(item.children ?? [])
+            }
+        }
+        collect(mods)
         let componentFolders: [(prefix: String, physical: String)] =
             [("", mod.physicalFolderName)]
-            + (mod.children ?? []).map {
-                ((($0.folderName as NSString).lastPathComponent), $0.physicalFolderName)
+            + descendants.compactMap { item in
+                guard item.folderName.hasPrefix(mod.folderName + "/") else { return nil }
+                let rel = String(item.folderName.dropFirst(mod.folderName.count + 1))
+                return (rel, item.physicalFolderName)
             }
         let prefixes = componentFolders.map(\.prefix)
+        let physicalByPrefix = Dictionary(componentFolders.map { ($0.prefix, $0.physical) },
+                                          uniquingKeysWith: { first, _ in first })
+
+        // Désqualifier et router : le fr.json ne voit que des clés brutes —
+        // une clé qualifiée cherchée dedans ne matcherait rien, en silence.
+        // Les paires qui CHANGENT de composant ne sont pas reportables
+        // (RenameReport.routeByOldComponent) : comptées, rendues à l'écran.
+        let routed = RenameReport.routeByOldComponent(pairs, known: prefixes)
+        let skipped = routed.crossComponent.count
 
         var applied: [RenamePair] = []
-        for (prefix, physical) in componentFolders {
-            // Désqualifier les DEUX bouts : le fr.json ne voit que des clés
-            // brutes — une clé qualifiée cherchée dedans ne matcherait rien,
-            // en silence.
-            var qualifiedHere: [RenamePair] = []
-            var rawHere: [RenamePair] = []
-            for pair in pairs {
-                let (c, oldRaw) = Self.splitQualifiedKey(pair.oldKey, known: prefixes)
-                guard c == prefix else { continue }
-                let (_, newRaw) = Self.splitQualifiedKey(pair.newKey, known: prefixes)
-                qualifiedHere.append(pair)
-                rawHere.append(RenamePair(oldKey: oldRaw, newKey: newRaw))
-            }
-            guard !qualifiedHere.isEmpty else { continue }
-
+        for (prefix, routedPairs) in routed.byComponent.sorted(by: { $0.key < $1.key }) {
+            guard let physical = physicalByPrefix[prefix] else { continue }
             let i18nDir = URL(fileURLWithPath: modsRoot)
                 .appendingPathComponent(physical, isDirectory: true)
                 .appendingPathComponent("i18n", isDirectory: true)
@@ -7634,7 +7647,8 @@ for mod in mods {
             guard let data = try? Data(contentsOf: frURL),
                   let text = I18nFileDecoder.decode(data)?.text else { continue }
 
-            let (rewritten, done) = RenameReport.applyToFrench(text, pairs: rawHere)
+            let (rewritten, done) = RenameReport.applyToFrench(
+                text, pairs: routedPairs.map(\.raw))
             guard !done.isEmpty else { continue }
 
             // X7 : ouvrir les droits avant d'écrire dans le dossier du mod.
@@ -7642,7 +7656,7 @@ for mod in mods {
             do {
                 try rewritten.write(toFile: frURL.path, atomically: true, encoding: .utf8)
                 for d in done {
-                    if let q = qualifiedHere.first(where: { $0.oldKey == d.oldKey && $0.newKey == d.newKey }) {
+                    if let q = routedPairs.first(where: { $0.raw == d })?.pair {
                         applied.append(q)
                     }
                 }
@@ -7652,7 +7666,9 @@ for mod in mods {
             }
         }
 
-        guard !applied.isEmpty else { return .nothingLeft }
+        guard !applied.isEmpty else {
+            return .nothingLeft(skippedCrossComponent: skipped)
+        }
         // Le delta persisté : les paires appliquées passent en reconciled et
         // quittent les compteurs.
         let appliedSet = Set(applied)
@@ -7666,7 +7682,7 @@ for mod in mods {
         // Sinon la pastille de couverture ment jusqu'au prochain scan.
         invalidateFrenchCoverage(for: mod.folderName)
         log(String(format: L(L10n.Mods.updateDeltaRenamedDone), applied.count))
-        return .applied(applied.count)
+        return .applied(count: applied.count, skippedCrossComponent: skipped)
     }
 
     /// Reporte des paires renommées dans le `config.json` racine du mod —
@@ -7677,7 +7693,7 @@ for mod in mods {
     func applyRenameReportConfig(_ pairs: [RenamePair], to mod: ModItem) -> KeyRenameReportOutcome {
         guard !pairs.isEmpty, let dir = ModUpdateKeyDeltaStore.defaultDirectory(),
               var delta = ModUpdateKeyDeltaStore.load(uniqueId: mod.uniqueId, directory: dir)
-        else { return .nothingLeft }
+        else { return .nothingLeft(skippedCrossComponent: 0) }
 
         let configURL = URL(fileURLWithPath: gameDir)
             .appendingPathComponent("Mods", isDirectory: true)
@@ -7688,7 +7704,7 @@ for mod in mods {
         guard let loadedText = try? String(contentsOf: configURL, encoding: .utf8)
         else { return .cancelled }
         let (rewritten, done) = RenameReport.applyToConfig(loadedText, pairs: pairs)
-        guard !done.isEmpty else { return .nothingLeft }
+        guard !done.isEmpty else { return .nothingLeft(skippedCrossComponent: 0) }
 
         // Garde : relecture fraîche juste avant d'écrire — un fichier que le
         // mod ou le jeu vient de toucher ne se fait pas écraser en silence.
@@ -7741,7 +7757,9 @@ for mod in mods {
         try? ModUpdateKeyDeltaStore.save(delta, directory: dir)
         updateKeyDeltasRevision += 1
         log(String(format: L(L10n.Mods.updateDeltaRenamedDone), done.count))
-        return .applied(done.count)
+        // Le delta config ne décrit que des clés de premier niveau : pas de
+        // notion de composant, donc rien à annoncer en cross.
+        return .applied(count: done.count, skippedCrossComponent: 0)
     }
 
     // MARK: - Mods à écarter (blacklist)

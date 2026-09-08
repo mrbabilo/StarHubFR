@@ -44,6 +44,16 @@ import Testing
         #expect(delta?.translation.removedKeys.isEmpty == true, "gone n'a pas disparu")
     }
 
+    @Test func nestedComponentKeysAreQualifiedByPath() throws {
+        // Composant imbriqué : la qualification porte le chemin relatif
+        // entier — « Kid/GrandKid/clé », pas seulement le dernier segment.
+        let old = snapshot(english: [:], french: [:])
+        let new = snapshot(english: ["Kid/GrandKid": ["fresh": "Text"]], french: [:])
+        let delta = ModUpdateKeyDelta.compare(old: old, new: new,
+                                              uniqueId: "a.b", folderName: "Mod")
+        #expect(delta?.translation.addedUntranslated["Kid/GrandKid/fresh"] == "Text")
+    }
+
     @Test func removedEnglishKeepsOldValue() throws {
         let old = snapshot(english: ["": ["gone": "Le vieux texte"]], french: [:])
         let new = snapshot(english: ["": [:]], french: [:])

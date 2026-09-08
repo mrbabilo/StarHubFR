@@ -124,6 +124,27 @@ import Testing
         #expect(snap.english[""]?["a"] == "A")
     }
 
+    @Test func nestedComponentsAreDiscoveredByRelativePath() throws {
+        // Un mod imbriqué dans un composant est lui-même un composant — la
+        // traversée de référence (i18nDirectories) descend à maxModDepth,
+        // le snapshot s'arrêtait au premier niveau et la section se taisait
+        // sur les packs profonds (6 mods imbriqués sur le parc dont 3 avec
+        // i18n). Le nom du composant est son chemin relatif ; au premier
+        // niveau, son nom d'entrée — les deltas déjà persistés portent ce
+        // nom-là, rien à migrer.
+        let dir = tmp
+        try write(#"{"root":"R"}"#, base: dir, relativePath: "i18n/default.json")
+        try write(#"{"manifest":true}"#, base: dir, relativePath: "Kid/manifest.json")
+        try write(#"{"k":"K"}"#, base: dir, relativePath: "Kid/i18n/default.json")
+        try write(#"{"manifest":true}"#, base: dir, relativePath: "Kid/GrandKid/manifest.json")
+        try write(#"{"gk":"G"}"#, base: dir, relativePath: "Kid/GrandKid/i18n/default.json")
+
+        let snap = UpdateKeySnapshot.read(folder: dir)
+        #expect(Set(snap.english.keys) == ["", "Kid", "Kid/GrandKid"])
+        #expect(snap.english["Kid"]?["k"] == "K")
+        #expect(snap.english["Kid/GrandKid"]?["gk"] == "G")
+    }
+
     @Test func missingFolderYieldsEmptySnapshot() throws {
         let snap = UpdateKeySnapshot.read(folder: tmp)
         #expect(snap.config == nil)

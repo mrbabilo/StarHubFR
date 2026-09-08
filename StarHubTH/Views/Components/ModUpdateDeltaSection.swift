@@ -140,15 +140,24 @@ struct ModUpdateDeltaSection: View {
     }
 
     private func doReport(_ action: () -> KeyRenameReportOutcome) {
+        func crossMessage(_ skipped: Int) -> String {
+            String(format: vm.L(L10n.Mods.updateDeltaRenamedCrossComponent), skipped)
+        }
         switch action() {
-        case .applied(let count):
-            reportMessage = String(format: vm.L(L10n.Mods.updateDeltaRenamedDone), count)
+        case .applied(let count, let skipped):
+            var message = String(format: vm.L(L10n.Mods.updateDeltaRenamedDone), count)
+            if skipped > 0 { message += " · " + crossMessage(skipped) }
+            reportMessage = message
+        case .nothingLeft(let skipped):
+            // Un lot uniquement cross-composant est un vrai état : dire
+            // pourquoi, pas « rien à reporter » comme si les paires
+            // étaient fantaisistes.
+            reportMessage = skipped > 0 ? crossMessage(skipped)
+                                        : vm.L(L10n.Mods.updateDeltaRenamedNoneLeft)
         case .cancelled:
             // « Rien à reporter » ferait conclure que les paires étaient
             // fantaisistes ; le vrai état est « annulé pour sécurité ».
             reportMessage = vm.L(L10n.Mods.updateDeltaRenamedCancelled)
-        case .nothingLeft:
-            reportMessage = vm.L(L10n.Mods.updateDeltaRenamedNoneLeft)
         }
     }
 

@@ -220,6 +220,7 @@
 "mods_update_delta_renamed_done" = "Reported: %d keys";
 "mods_update_delta_renamed_none_left" = "Nothing left to report";
 "mods_update_delta_renamed_cancelled" = "Report cancelled: the file changed or could not be read — close the game and try again.";
+"mods_update_delta_renamed_cross_component" = "%d renames across components can't be reported automatically — do them by hand in the translation diff.";
 "mods_update_delta_list_added" = "Added keys";
 "mods_update_delta_list_removed" = "Removed keys";
 "mods_error_history_current" = "installed";

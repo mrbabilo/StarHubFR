@@ -74,4 +74,62 @@ extension RenameReport {
         else { return (text, []) }
         return (rewritten, applied)
     }
+
+    // MARK: - Routage par composant (revue C2-T4 n°6/n°9)
+
+    /// Sépare `"Composant/clé"` en (composant, clé) sur le plus long préfixe
+    /// de composants connu ; sans préfixe connu, tout est la clé (racine).
+    /// Une clé i18n peut elle-même contenir un `/` (packs Content Patcher :
+    /// `"Strings/…"`) — d'où le plus long préfixe, jamais le premier.
+    public static func splitQualifiedKey(_ qualified: String,
+                                         known prefixes: [String]) -> (String, String) {
+        let match = prefixes.filter { !$0.isEmpty }
+            .filter { qualified.hasPrefix($0 + "/") }
+            .max(by: { $0.count < $1.count })
+        if let m = match {
+            return (m, String(qualified.dropFirst(m.count + 1)))
+        }
+        return ("", qualified)
+    }
+
+    /// Une paire routée : telle qu'affichée (clés qualifiées) et telle que le
+    /// `fr.json` du composant doit la voir (clés brutes).
+    public struct RoutedPair: Equatable {
+        public let pair: RenamePair
+        public let raw: RenamePair
+
+        public init(pair: RenamePair, raw: RenamePair) {
+            self.pair = pair
+            self.raw = raw
+        }
+    }
+
+    /// La destination de chaque paire : le composant de son ANCIENNE clé,
+    /// à condition que la nouvelle vive sous le même. Un renommage qui
+    /// CHANGE de composant (composant entier rebaptisé, paire par valeur à
+    /// travers le pack) n'est pas reportable : le `fr.json` de l'ancien
+    /// composant n'a pas de clé à remplacer — y écrire la forme brute de la
+    /// nouvelle clé y déposerait une orpheline pendant que la vraie restera
+    /// non traduite, et la paire passerait « réconciliée » sans un mot. Ces
+    /// paires sont rendues à part : l'écran les annonce, l'onglet diff
+    /// reste l'outil. Une nouvelle clé sous un composant inconnu du scan
+    /// compte comme cross — on ne sait pas quel fichier viser.
+    public static func routeByOldComponent(_ pairs: [RenamePair],
+                                           known prefixes: [String])
+        -> (byComponent: [String: [RoutedPair]], crossComponent: [RenamePair]) {
+        var byComponent: [String: [RoutedPair]] = [:]
+        var crossComponent: [RenamePair] = []
+        for pair in pairs {
+            let (oldComponent, oldRaw) = splitQualifiedKey(pair.oldKey, known: prefixes)
+            let (newComponent, newRaw) = splitQualifiedKey(pair.newKey, known: prefixes)
+            guard oldComponent == newComponent else {
+                crossComponent.append(pair)
+                continue
+            }
+            byComponent[oldComponent, default: []]
+                .append(RoutedPair(pair: pair,
+                                   raw: RenamePair(oldKey: oldRaw, newKey: newRaw)))
+        }
+        return (byComponent, crossComponent)
+    }
 }

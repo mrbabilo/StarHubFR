@@ -423,6 +423,7 @@ enum L10n {
         static let updateDeltaRenamedDone  = "mods_update_delta_renamed_done"
         static let updateDeltaRenamedNoneLeft = "mods_update_delta_renamed_none_left"
         static let updateDeltaRenamedCancelled = "mods_update_delta_renamed_cancelled"
+        static let updateDeltaRenamedCrossComponent = "mods_update_delta_renamed_cross_component"
         static let updateDeltaListAdded    = "mods_update_delta_list_added"
         static let updateDeltaListRemoved  = "mods_update_delta_list_removed"
         static let translationSourceNewer  = "mods_translation_source_newer"

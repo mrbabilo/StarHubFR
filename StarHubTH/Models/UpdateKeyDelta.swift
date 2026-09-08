@@ -42,20 +42,37 @@ public struct UpdateKeySnapshot: Equatable, Sendable {
         var english: [String: [String: String]] = [:]
         var french: [String: [String: String]] = [:]
 
-        // Racine + composants : un composant est un sous-dossier portant un
-        // manifeste — même convention que la traversée de `TranslationCoverage`.
+        // Racine + composants : un composant est un dossier portant un
+        // manifeste, à TOUTE profondeur jusqu'à `maxModDepth` — un mod
+        // imbriqué dans un composant est lui-même un composant, comme pour
+        // la traversée de référence (`I18nLocaleResolver.i18nDirectories`).
+        // S'arrêter au premier niveau faisait se taire la section sur les
+        // packs profonds (6 mods imbriqués sur le parc, dont 3 avec i18n).
+        // Le nom du composant est son chemin relatif depuis la racine du
+        // mod ; au premier niveau, son nom d'entrée — les deltas déjà
+        // persistés portent ce nom-là, rien à migrer.
         var components: [(name: String, dir: URL)] = [("", folder)]
-        if let entries = try? fm.contentsOfDirectory(atPath: folder.path) {
-            for entry in entries.sorted() where !entry.hasPrefix(".") {
-                let sub = folder.appendingPathComponent(entry)
+        func collectComponents(from dir: URL, relativeTo root: URL,
+                               depth: Int) {
+            guard depth < I18nLocaleResolver.maxModDepth else { return }
+            let entries = (try? fm.contentsOfDirectory(atPath: dir.path))?.sorted() ?? []
+            for entry in entries where !entry.hasPrefix(".") {
+                let sub = dir.appendingPathComponent(entry)
                 var isDir: ObjCBool = false
                 guard fm.fileExists(atPath: sub.path, isDirectory: &isDir),
-                      isDir.boolValue,
-                      fm.fileExists(atPath: sub.appendingPathComponent("manifest.json").path)
+                      isDir.boolValue
                 else { continue }
-                components.append((entry, sub))
+                let base = root.path.hasSuffix("/") ? root.path : root.path + "/"
+                let name = sub.path.hasPrefix(base)
+                    ? String(sub.path.dropFirst(base.count))
+                    : sub.lastPathComponent
+                if fm.fileExists(atPath: sub.appendingPathComponent("manifest.json").path) {
+                    components.append((name, sub))
+                }
+                collectComponents(from: sub, relativeTo: root, depth: depth + 1)
             }
         }
+        collectComponents(from: folder, relativeTo: folder, depth: 0)
 
         for (name, dir) in components {
             let i18n = dir.appendingPathComponent("i18n")
@@ -140,8 +157,11 @@ public struct RenamePair: Codable, Equatable, Hashable, Sendable {
 /// « ces paires étaient fantaisistes » là où le vrai message est « le fichier
 /// a bougé, réessayez jeu fermé ».
 public enum KeyRenameReportOutcome: Equatable, Sendable {
-    case applied(Int)
-    case nothingLeft
+    /// `skippedCrossComponent` : paires qui changent de composant, non
+    /// reportables automatiquement — l'écran les annonce, l'onglet diff
+    /// reste l'outil.
+    case applied(count: Int, skippedCrossComponent: Int)
+    case nothingLeft(skippedCrossComponent: Int)
     /// Le garde d'écriture a vu `config.json` bouger sous nos pieds, ou il
     /// est illisible : on ne décide pas à la place de l'utilisateur.
     case cancelled
