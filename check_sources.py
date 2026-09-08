@@ -434,10 +434,10 @@ SOURCES = [
 
     {"key": "mod/ultrasmooth", "kind": "smapi-mod", "probe": probe_smapi_mod,
      "nexusId": 50971, "uniqueId": "palmhacker13.UltraSmooth",
-     "role": "corpus de test de l'éditeur (115 clés config.*) ; embarque "
-             "l'analyseur de performances us_analyze — ses rapports de "
-             "trace sont durs à ingérer",
-     "used_by": "docs/audit-mods-config-perf.md"},
+     "role": "corpus de test de l'éditeur (115 clés config.*) ; perf : "
+             "us_analyze est un profil de soi, l'outil profond est la "
+             "boîte noire us_trace (60 s) — rien chez les autres mods",
+     "used_by": "docs/audit-mods-config-perf.md, docs/audit-perf-analyzers.md"},
 
     {"key": "mod/faster-menu-load", "kind": "smapi-mod", "probe": probe_smapi_mod,
      "nexusId": 41564, "uniqueId": "ZeroXPatch.FasterMenuLoad",
@@ -460,9 +460,10 @@ SOURCES = [
 
     {"key": "mod/radiance", "kind": "smapi-mod", "probe": probe_smapi_mod,
      "nexusId": 49397, "uniqueId": "phuicmt.SDVRadiance",
-     "role": "suite graphique lourde (bloom, ombres, reflets) embarquant un "
-             "analyseur de performances — installé sur le parc",
-     "used_by": "docs/SOURCES.md §6"},
+     "role": "suite graphique lourde ; diagnostic FrameCost (14 parties "
+             "CPU+GPU, ours / not ours, arrival+N) — radiance_report "
+             "écrit dans ~/Documents/Radiance-Dumps/",
+     "used_by": "docs/SOURCES.md §6, docs/audit-perf-analyzers.md"},
 
     # — Local —
     {"key": "constantes-figées", "kind": "local", "probe": probe_pinned_constants,
