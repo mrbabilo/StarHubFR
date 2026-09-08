@@ -31,4 +31,13 @@ struct LogAttributionTests {
         let longPrefix = String(repeating: "a", count: 61) + ": x"
         #expect(LogNoise.modNamePrefix(in: longPrefix) == nil)
     }
+
+    @Test func urlAtMessageStartIsNotAModName() {
+        // Un message qui commence par une URL : tout ce qui précède le premier
+        // « : » est le schéma (« http », « https »), pas un nom de mod.
+        #expect(LogNoise.modNamePrefix(in: "https://smapi.io/mods: check compatibility there.") == nil)
+        #expect(LogNoise.modNamePrefix(in: "http://forums.example.com/t: thread title") == nil)
+        // L'URL peut aussi suivre un court verbe — même verdict.
+        #expect(LogNoise.modNamePrefix(in: "See https://smapi.io: details") == nil)
+    }
 }

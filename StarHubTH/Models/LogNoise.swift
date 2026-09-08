@@ -93,6 +93,12 @@ public enum LogNoise {
               !candidate.contains("/"), !candidate.contains("\\"),  // chemin ou URL
               !candidate.contains(". "),                            // phrase
               candidate.rangeOfCharacter(from: .letters) != nil else { return nil }
+        // Une URL (`https://…`) place le schéma **avant** le premier « : » :
+        // le candidat (« http », « https », « See https ») passe les gardes
+        // ci-dessus — le slash, lui, est derrière. Ce qui suit le « : »
+        // commence par « // » ⇢ c'est une URL, pas un mod.
+        let afterColon = message[message.index(after: colon)...].trimmingCharacters(in: .whitespaces)
+        guard !afterColon.hasPrefix("//") else { return nil }
         return candidate
     }
 
