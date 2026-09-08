@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.38.0] - 2026-09-08
+
 ### Added
 
 - **Ce qu'une mise à jour de mod change enfin se dit.** Options de config ajoutées ou retirées, textes à traduire, traductions de l'auteur écartées, clés orphelines — signalés à l'installation et sur la fiche du mod, avec les outils à portée de bouton. Les clés renommées se réconcilient : traduction ou réglage reportés, jamais écrasés.
