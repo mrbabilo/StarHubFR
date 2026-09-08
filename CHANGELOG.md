@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.38.1] - 2026-09-08
+
 ### Fixed
 
 - **Le delta d'une mise à jour lit les i18n comme le jeu.** Commentaires et virgules finales — un fichier EN/FR sur deux sur le parc — faisaient disparaître le composant du relevé : compteurs gonflés des deux sens, pendant que l'onglet diff disait juste. `config.json` reste lu strict, comme le jeu.
