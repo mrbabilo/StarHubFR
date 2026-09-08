@@ -7564,11 +7564,10 @@ for mod in mods {
     /// ses composants comme les entrées du dossier, pas comme le chemin
     /// relatif complet du `ModItem`.
     @MainActor
-    @discardableResult
-    func applyRenameReportTranslation(_ pairs: [RenamePair], to mod: ModItem) -> [RenamePair] {
+    func applyRenameReportTranslation(_ pairs: [RenamePair], to mod: ModItem) -> KeyRenameReportOutcome {
         guard !pairs.isEmpty, let dir = ModUpdateKeyDeltaStore.defaultDirectory(),
               var delta = ModUpdateKeyDeltaStore.load(uniqueId: mod.uniqueId, directory: dir)
-        else { return [] }
+        else { return .nothingLeft }
 
         let modsRoot = (gameDir as NSString).appendingPathComponent("Mods")
         // Préfixe = nom du sous-dossier (ce que le snapshot a qualifié),
@@ -7621,7 +7620,7 @@ for mod in mods {
             }
         }
 
-        guard !applied.isEmpty else { return [] }
+        guard !applied.isEmpty else { return .nothingLeft }
         // Le delta persisté : les paires appliquées passent en reconciled et
         // quittent les compteurs.
         let appliedSet = Set(applied)
@@ -7635,7 +7634,7 @@ for mod in mods {
         // Sinon la pastille de couverture ment jusqu'au prochain scan.
         invalidateFrenchCoverage(for: mod.folderName)
         log(String(format: L(L10n.Mods.updateDeltaRenamedDone), applied.count))
-        return applied
+        return .applied(applied.count)
     }
 
     /// Reporte des paires renommées dans le `config.json` racine du mod —
@@ -7643,11 +7642,10 @@ for mod in mods {
     /// Backup avant écriture et garde anti-écrasement : le patron de
     /// l'éditeur de config, repris tel quel.
     @MainActor
-    @discardableResult
-    func applyRenameReportConfig(_ pairs: [RenamePair], to mod: ModItem) -> [RenamePair] {
+    func applyRenameReportConfig(_ pairs: [RenamePair], to mod: ModItem) -> KeyRenameReportOutcome {
         guard !pairs.isEmpty, let dir = ModUpdateKeyDeltaStore.defaultDirectory(),
               var delta = ModUpdateKeyDeltaStore.load(uniqueId: mod.uniqueId, directory: dir)
-        else { return [] }
+        else { return .nothingLeft }
 
         let configURL = URL(fileURLWithPath: gameDir)
             .appendingPathComponent("Mods", isDirectory: true)
@@ -7656,9 +7654,9 @@ for mod in mods {
 
         // Premier jet : ce qu'on applique au texte lu maintenant.
         guard let loadedText = try? String(contentsOf: configURL, encoding: .utf8)
-        else { return [] }
+        else { return .cancelled }
         let (rewritten, done) = RenameReport.applyToConfig(loadedText, pairs: pairs)
-        guard !done.isEmpty else { return [] }
+        guard !done.isEmpty else { return .nothingLeft }
 
         // Garde : relecture fraîche juste avant d'écrire — un fichier que le
         // mod ou le jeu vient de toucher ne se fait pas écraser en silence.
@@ -7675,9 +7673,11 @@ for mod in mods {
             break
         case .externallyChanged, .unverifiable:
             // On ne décide pas à sa place : journalisé, le report attendra.
+            // Le `.cancelled` est porté jusqu'à l'écran : « rien à reporter »
+            // ferait conclure que les paires étaient fantaisistes.
             log("Report de réglages (\(mod.name)) : config.json a changé sous nos pieds, report annulé",
                 level: .warning)
-            return []
+            return .cancelled
         }
 
         // Backup avant écriture — le patron de l'éditeur, `onlyEnabled:
@@ -7694,7 +7694,7 @@ for mod in mods {
             try rewritten.write(to: configURL, atomically: true, encoding: .utf8)
         } catch {
             log("Report de réglages (\(mod.name)) : \(error.localizedDescription)", level: .warning)
-            return []
+            return .cancelled
         }
 
         let appliedSet = Set(done)
@@ -7709,7 +7709,7 @@ for mod in mods {
         try? ModUpdateKeyDeltaStore.save(delta, directory: dir)
         updateKeyDeltasRevision += 1
         log(String(format: L(L10n.Mods.updateDeltaRenamedDone), done.count))
-        return done
+        return .applied(done.count)
     }
 
     // MARK: - Mods à écarter (blacklist)

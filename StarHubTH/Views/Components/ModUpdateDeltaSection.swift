@@ -72,7 +72,10 @@ struct ModUpdateDeltaSection: View {
         let proposed = proposedPairs(for: delta)
         if !proposed.translation.isEmpty || !proposed.config.isEmpty {
             // Les paires par valeur sont le signal sûr ; le reste vient de
-            // l'heuristique de nom — le point creux dit « vérifiez ».
+            // l'heuristique de nom — le point creux dit « vérifiez ». La
+            // config n'a pas de signal par valeur (ses valeurs sont des
+            // réglages, pas des textes) : TOUTES ses paires sont
+            // heuristiques, donc creuses.
             let safeTranslation = Set(KeyRenameMatcher.pairsByValue(
                 old: delta.translation.removedKeys,
                 new: delta.translation.addedUntranslated))
@@ -83,7 +86,7 @@ struct ModUpdateDeltaSection: View {
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
                 ForEach(proposed.config, id: \.oldKey) { pair in
-                    pairRow(pair, safe: true)
+                    pairRow(pair, safe: false)
                 }
                 ForEach(proposed.translation, id: \.oldKey) { pair in
                     pairRow(pair, safe: safeTranslation.contains(pair))
@@ -136,11 +139,17 @@ struct ModUpdateDeltaSection: View {
         .textSelection(.enabled)
     }
 
-    private func doReport(_ action: () -> [RenamePair]) {
-        let count = action().count
-        reportMessage = count > 0
-            ? String(format: vm.L(L10n.Mods.updateDeltaRenamedDone), count)
-            : vm.L(L10n.Mods.updateDeltaRenamedNoneLeft)
+    private func doReport(_ action: () -> KeyRenameReportOutcome) {
+        switch action() {
+        case .applied(let count):
+            reportMessage = String(format: vm.L(L10n.Mods.updateDeltaRenamedDone), count)
+        case .cancelled:
+            // « Rien à reporter » ferait conclure que les paires étaient
+            // fantaisistes ; le vrai état est « annulé pour sécurité ».
+            reportMessage = vm.L(L10n.Mods.updateDeltaRenamedCancelled)
+        case .nothingLeft:
+            reportMessage = vm.L(L10n.Mods.updateDeltaRenamedNoneLeft)
+        }
     }
 
     // MARK: - Compteurs

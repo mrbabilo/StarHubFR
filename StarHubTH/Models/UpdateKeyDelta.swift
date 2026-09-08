@@ -135,6 +135,18 @@ public struct RenamePair: Codable, Equatable, Hashable, Sendable {
     }
 }
 
+/// Ce qu'un report de renommages a fait. `nothingLeft` et `cancelled`
+/// appliquent tous deux zéro clé — les confondre à l'écran ferait conclure
+/// « ces paires étaient fantaisistes » là où le vrai message est « le fichier
+/// a bougé, réessayez jeu fermé ».
+public enum KeyRenameReportOutcome: Equatable, Sendable {
+    case applied(Int)
+    case nothingLeft
+    /// Le garde d'écriture a vu `config.json` bouger sous nos pieds, ou il
+    /// est illisible : on ne décide pas à la place de l'utilisateur.
+    case cancelled
+}
+
 /// Le delta des clés de premier niveau du `config.json`. Les valeurs
 /// embarquées : `added` porte celle du neuf, `removed` celle de
 /// l'utilisateur au moment de la capture — ce qu'un report voudrait

@@ -219,6 +219,7 @@
   "mods_update_delta_renamed_report_translation": "Reporter mes traductions",
   "mods_update_delta_renamed_done": "Report effectué : %d clés",
   "mods_update_delta_renamed_none_left": "Rien à reporter",
+  "mods_update_delta_renamed_cancelled": "Report annulé : le fichier a changé ou n'a pas pu être relu — fermez le jeu et réessayez.",
   "mods_update_delta_list_added": "Clés ajoutées",
   "mods_update_delta_list_removed": "Clés disparues",
   "mods_error_history_current": "installée",
