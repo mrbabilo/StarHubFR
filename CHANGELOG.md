@@ -28,6 +28,8 @@ where the exact log format was verified.
 
 - **Le téléchargement Nexus s'affiche en volet coulissant.** La barre de progression devient une fenêtre temporaire au bas de la barre latérale : elle glisse à l'écran au démarrage, posée sur un fond matériau, et repart glisser à la fin.
 
+- **L'écosystème de mesure du jeu est cartographié.** Les analyseurs de performance embarqués aux mods — `us_analyze` (UltraSmooth), FrameCost (SDV-Radiance), `[BigLoop]` (Profiler) — sont documentés : ce qu'ils mesurent, ce qu'ils n'attribuent pas, et la forme de leurs rapports.
+
 - **Le cadrage de la liste des mods se teste.** Les types des filtres — cadrage général, traduction française, catégorie, tri — quittent la vue qui les affichait pour le module testable, avec `NexusCategory` dont ils dépendaient. Leurs contrats sont désormais épinglés par des tests, au premier rang desquels la règle de pagination : changer un filtre ramène à la première page, changer le tri n'y touche pas.
 
 ## [1.37.5] - 2026-09-07

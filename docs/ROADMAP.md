@@ -1606,6 +1606,8 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **X89** | 2026-09-07 | Le renommage d'un mod avalait l'échec de persistance du suivi des traductions (`_ =` au site 12 de X60) — le registre relu gardait l'ancien hôte, la désinstallation ne retrouvait plus les fichiers ; les huit autres sites qui écrivent ce registre le disaient déjà |
 | **X90** | 2026-09-07 | `ModConfigBackupManager.saveIndex` se taisait en échec — sauvegarde complète sur disque mais invisible dans la liste, et purgable comme orpheline ; aligné sur le `print` CRITICAL du manager jumeau (`dd6b4d1`) |
 | **X91** | 2026-09-07 | Trois fichiers de `Models/` n'ont jamais été listés dans `Package.swift` (`ModCompatibilityStore`, `ModDetailCache`, `NexusFileDownload`) — compilés dans l'app, invisibles de `swift build` et des tests ; ajoutés, preuve par 2 359 tests verts. `ModListFilters`, extrait du VM pour être testable, reste bloqué : il dépend de `FrenchTranslationScope` défini dans une vue |
+| **X92** | 2026-09-08 | `loadBlacklistedMods()` n'a jamais eu d'appelant — la marque « à écarter » s'écrivait mais repartait à vide à chaque ouverture ; chargée au démarrage dans le lot des magasins, symétrique des favoris (`799382c`) |
+| **X93** | 2026-09-08 | La barre latérale était une pile plein-fixe sans défilement : en fenêtre basse, son bas (poids de `Mods/`, thème, langue) était écrêté — groupes déportés dans un `ScrollView`, pied épinglé (`ff7c154`) |
 | **B1-T1** | 2026-08-01 | Boutons Activer/Désactiver et Supprimer sur la fiche mod (parité avec la liste, mêmes confirmations). Absents pour un… |
 | **B1-T2** | 2026-08-01 | Tri, filtres, catégorie, page et recherche portés par ModListFilters dans le ViewModel. La remise à la page 1 est por… |
 
