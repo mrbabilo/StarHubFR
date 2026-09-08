@@ -176,8 +176,10 @@ public struct ModUpdateKeyDelta: Codable, Equatable, Hashable, Sendable {
     public let uniqueId: String
     public let folderName: String
     public let date: Date
-    public let config: KeySetDelta?
-    public let translation: TranslationKeyDelta
+    /// `var` : un report réconcilie des paires et retire les clés traitées
+    /// du delta persisté.
+    public var config: KeySetDelta?
+    public var translation: TranslationKeyDelta
 
     public init(uniqueId: String, folderName: String, date: Date,
                 config: KeySetDelta?, translation: TranslationKeyDelta) {
