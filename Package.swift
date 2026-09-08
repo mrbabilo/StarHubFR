@@ -87,6 +87,7 @@ let package = Package(
                 "Models/UpdateKeyDelta.swift",
                 "Models/KeyRenameMatcher.swift",
                 "Models/ModUpdateKeyDeltaStore.swift",
+                "Models/RenameReport.swift",
                 "Models/I18nLenientParser.swift",
                 "Models/I18nLocaleResolver.swift",
                 "Models/TranslationCoverage.swift",
@@ -284,6 +285,11 @@ let package = Package(
             name: "ModUpdateKeyDeltaStoreTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ModUpdateKeyDeltaStoreTests"
+        ),
+        .testTarget(
+            name: "RenameReportTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/RenameReportTests"
         ),
         .testTarget(
             name: "LastUpdateAgeTests",
