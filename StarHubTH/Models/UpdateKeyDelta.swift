@@ -114,3 +114,143 @@ public struct UpdateKeySnapshot: Equatable, Sendable {
         I18nFileDecoder.decode(data)?.text ?? String(data: data, encoding: .utf8)
     }
 }
+
+// MARK: - Le delta (C2-T4 §3.2)
+
+/// Une clé ancienne et sa remplaçante présumée — le pairage des renommages
+/// (`KeyRenameMatcher`) produit ces paires, le report les applique.
+public struct RenamePair: Codable, Equatable, Hashable, Sendable {
+    public let oldKey: String
+    public let newKey: String
+
+    public init(oldKey: String, newKey: String) {
+        self.oldKey = oldKey
+        self.newKey = newKey
+    }
+}
+
+/// Le delta des clés de premier niveau du `config.json`. Les valeurs
+/// embarquées : `added` porte celle du neuf, `removed` celle de
+/// l'utilisateur au moment de la capture — ce qu'un report voudrait
+/// ré-poser, et ce qu'une ligne d'écran sait montrer.
+public struct KeySetDelta: Codable, Equatable, Hashable, Sendable {
+    public var added: [String: String]
+    public var removed: [String: String]
+    /// Les paires déjà réconciliées par un report — ni re-proposées, ni
+    /// comptées deux fois.
+    public var reconciled: [RenamePair]
+
+    public init(added: [String: String], removed: [String: String],
+                reconciled: [RenamePair]) {
+        self.added = added
+        self.removed = removed
+        self.reconciled = reconciled
+    }
+}
+
+/// Le delta des clés de traduction. `addedUntranslated` : les textes neufs
+/// à traduire ; `addedAuthorTranslated` : traduits par l'auteur dans son
+/// propre `fr.json`, écartés par la préservation mais jamais perdus de vue ;
+/// `removedKeys` : disparus du neuf, avec leur valeur ancienne.
+public struct TranslationKeyDelta: Codable, Equatable, Hashable, Sendable {
+    public var addedUntranslated: [String: String]
+    public var addedAuthorTranslated: [String: String]
+    public var removedKeys: [String: String]
+    public var reconciled: [RenamePair]
+
+    public init(addedUntranslated: [String: String],
+                addedAuthorTranslated: [String: String],
+                removedKeys: [String: String],
+                reconciled: [RenamePair]) {
+        self.addedUntranslated = addedUntranslated
+        self.addedAuthorTranslated = addedAuthorTranslated
+        self.removedKeys = removedKeys
+        self.reconciled = reconciled
+    }
+}
+
+/// Ce qu'une mise à jour a changé aux clés d'un mod — capturé à
+/// l'installation (§5), persisté par `UniqueID` (§6), affiché sur la fiche
+/// (§7.2) et réconciliable (§8).
+public struct ModUpdateKeyDelta: Codable, Equatable, Hashable, Sendable {
+    public let uniqueId: String
+    public let folderName: String
+    public let date: Date
+    public let config: KeySetDelta?
+    public let translation: TranslationKeyDelta
+
+    public init(uniqueId: String, folderName: String, date: Date,
+                config: KeySetDelta?, translation: TranslationKeyDelta) {
+        self.uniqueId = uniqueId
+        self.folderName = folderName
+        self.date = date
+        self.config = config
+        self.translation = translation
+    }
+
+    public var isEmpty: Bool {
+        let configEmpty = config.map {
+            $0.added.isEmpty && $0.removed.isEmpty && $0.reconciled.isEmpty
+        } ?? true
+        let translationEmpty = translation.addedUntranslated.isEmpty
+            && translation.addedAuthorTranslated.isEmpty
+            && translation.removedKeys.isEmpty
+            && translation.reconciled.isEmpty
+        return configEmpty && translationEmpty
+    }
+
+    /// Compare l'ancien et le neuf. Rend `nil` quand rien n'a bougé : pas de
+    /// ligne à l'écran, pas de fichier dans le store.
+    public static func compare(old: UpdateKeySnapshot, new: UpdateKeySnapshot,
+                               uniqueId: String, folderName: String,
+                               now: Date = Date()) -> ModUpdateKeyDelta? {
+        // Config : l'archive sans config.json se tait — l'absence n'est pas
+        // « zéro option retirée ».
+        let configDelta: KeySetDelta?
+        if let newConfig = new.config {
+            let oldConfig = old.config ?? [:]
+            configDelta = KeySetDelta(
+                added: newConfig.filter { oldConfig[$0.key] == nil },
+                removed: oldConfig.filter { newConfig[$0.key] == nil },
+                reconciled: [])
+        } else {
+            configDelta = nil
+        }
+
+        // Traduction, par composant ; les clés sont qualifiées
+        // `Composant/clé` dès qu'un composant entre en jeu.
+        var addedUntranslated: [String: String] = [:]
+        var addedAuthorTranslated: [String: String] = [:]
+        var removedKeys: [String: String] = [:]
+
+        for (component, newKeys) in new.english {
+            let oldKeys = old.english[component] ?? [:]
+            let prefix = component.isEmpty ? "" : "\(component)/"
+            for (key, value) in newKeys where oldKeys[key] == nil {
+                let qualified = prefix + key
+                if let authorFR = new.french[component]?[key] {
+                    addedAuthorTranslated[qualified] = authorFR
+                } else {
+                    addedUntranslated[qualified] = value
+                }
+            }
+            for (key, value) in oldKeys where newKeys[key] == nil {
+                removedKeys[prefix + key] = value
+            }
+        }
+        // Les composants disparus entiers versent leurs clés dans removedKeys.
+        for (component, oldKeys) in old.english where new.english[component] == nil {
+            let prefix = component.isEmpty ? "" : "\(component)/"
+            for (key, value) in oldKeys { removedKeys[prefix + key] = value }
+        }
+
+        let delta = ModUpdateKeyDelta(
+            uniqueId: uniqueId, folderName: folderName, date: now,
+            config: configDelta,
+            translation: TranslationKeyDelta(
+                addedUntranslated: addedUntranslated,
+                addedAuthorTranslated: addedAuthorTranslated,
+                removedKeys: removedKeys, reconciled: []))
+        return delta.isEmpty ? nil : delta
+    }
+}

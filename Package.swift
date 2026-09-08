@@ -269,6 +269,11 @@ let package = Package(
             path: "Tests/UpdateKeySnapshotTests"
         ),
         .testTarget(
+            name: "UpdateKeyDeltaTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/UpdateKeyDeltaTests"
+        ),
+        .testTarget(
             name: "LastUpdateAgeTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/LastUpdateAgeTests"
