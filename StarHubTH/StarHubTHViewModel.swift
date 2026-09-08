@@ -7576,25 +7576,11 @@ for mod in mods {
         return result
     }
 
-    /// Sépare `"Composant/clé"` en (composant, clé) sur le plus long préfixe
-    /// de composants connu ; sans préfixe connu, tout est la clé (racine).
-    /// Une clé i18n peut elle-même contenir un `/` (packs Content Patcher :
-    /// `"Strings/…"`) — d'où le plus long préfixe, jamais le premier.
-    static func splitQualifiedKey(_ qualified: String, known prefixes: [String]) -> (String, String) {
-        let match = prefixes.filter { !$0.isEmpty }
-            .filter { qualified.hasPrefix($0 + "/") }
-            .max(by: { $0.count < $1.count })
-        if let m = match {
-            return (m, String(qualified.dropFirst(m.count + 1)))
-        }
-        return ("", qualified)
-    }
-
     /// Reporte des paires renommées dans le(s) `fr.json` du mod. Les clés
     /// qualifiées `"Composant/clé"` désignent le fr.json du composant — le
-    /// préfixe est le **dernier composant du chemin** : le snapshot nomme
-    /// ses composants comme les entrées du dossier, pas comme le chemin
-    /// relatif complet du `ModItem`.
+    /// préfixe est le **chemin relatif sous le mod**, ce que le snapshot
+    /// nomme ; le routage et la désqualification vivent dans
+    /// `RenameReport.routeByOldComponent` (Core, testé).
     @MainActor
     func applyRenameReportTranslation(_ pairs: [RenamePair], to mod: ModItem) -> KeyRenameReportOutcome {
         guard !pairs.isEmpty, let dir = ModUpdateKeyDeltaStore.defaultDirectory(),
