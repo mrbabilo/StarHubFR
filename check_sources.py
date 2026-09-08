@@ -434,7 +434,9 @@ SOURCES = [
 
     {"key": "mod/ultrasmooth", "kind": "smapi-mod", "probe": probe_smapi_mod,
      "nexusId": 50971, "uniqueId": "palmhacker13.UltraSmooth",
-     "role": "corpus de test de l'éditeur (115 clés config.*) ; ses rapports de trace sont ingérables",
+     "role": "corpus de test de l'éditeur (115 clés config.*) ; embarque "
+             "l'analyseur de performances us_analyze — ses rapports de "
+             "trace sont durs à ingérer",
      "used_by": "docs/audit-mods-config-perf.md"},
 
     {"key": "mod/faster-menu-load", "kind": "smapi-mod", "probe": probe_smapi_mod,
@@ -455,6 +457,12 @@ SOURCES = [
     {"key": "profiler-source", "kind": "repo", "repo": "SinZ163/StardewMods",
      "role": "source du mod Profiler — le format de journal que D1-T2 doit parser",
      "used_by": "chantier D1 (ROADMAP)"},
+
+    {"key": "mod/radiance", "kind": "smapi-mod", "probe": probe_smapi_mod,
+     "nexusId": 49397, "uniqueId": "phuicmt.SDVRadiance",
+     "role": "suite graphique lourde (bloom, ombres, reflets) embarquant un "
+             "analyseur de performances — installé sur le parc",
+     "used_by": "docs/SOURCES.md §6"},
 
     # — Local —
     {"key": "constantes-figées", "kind": "local", "probe": probe_pinned_constants,

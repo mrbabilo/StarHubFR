@@ -97,6 +97,11 @@
     "name": "Profiler",
     "version": "2.0.0"
   },
+  "mod/radiance": {
+    "gitHubRepo": null,
+    "name": null,
+    "version": "1.7.6"
+  },
   "mod/ultrasmooth": {
     "gitHubRepo": null,
     "name": null,
