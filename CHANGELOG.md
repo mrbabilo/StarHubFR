@@ -12,6 +12,14 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+
+- **Ce qu'une mise à jour de mod change enfin se dit.** Options de config ajoutées ou retirées, textes à traduire, traductions de l'auteur écartées, clés orphelines — signalés à l'installation et sur la fiche du mod, avec les outils à portée de bouton. Les clés renommées se réconcilient : traduction ou réglage reportés, jamais écrasés.
+
+### Fixed
+
+- **L'anglais d'un mod ne se fige plus à la mise à jour.** La préservation restaurait `i18n/default.json` et `i18n/en.json` de l'ancienne version par-dessus la neuve : le texte anglais d'un mod mis à jour ne bougeait jamais. Seul le français de l'utilisateur reste protégé — le backup manuel garde tout.
+
 ### Changed
 
 - **Le cadrage de la liste des mods se teste.** Les types des filtres — cadrage général, traduction française, catégorie, tri — quittent la vue qui les affichait pour le module testable, avec `NexusCategory` dont ils dépendaient. Leurs contrats sont désormais épinglés par des tests, au premier rang desquels la règle de pagination : changer un filtre ramène à la première page, changer le tri n'y touche pas.

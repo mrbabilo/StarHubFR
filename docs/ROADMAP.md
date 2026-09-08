@@ -133,7 +133,7 @@ dizaine d'essais guidés, et retrouver l'état initial exact à la fin.
 
 ---
 
-### Hub de traduction FR, phase 1 : *diagnostic* — **Axe C** · livrée en **v1.13.0**, sauf **C2-T4**
+### Hub de traduction FR, phase 1 : *diagnostic* — **Axe C** · livrée en **v1.13.0**, C2-T4 le 2026-09-08
 
 Objectif : tenir la promesse du dépôt (« traduction en français ») **en lecture seule**,
 sans risque d'écriture destructive.
@@ -145,9 +145,17 @@ sans risque d'écriture destructive.
 
 #### C2 — Vue diff EN/FR
 
-- [ ] **C2-T4** — Après mise à jour d'un mod, signaler les clés de config **et** de
+- [x] **C2-T4** — Après mise à jour d'un mod, signaler les clés de config **et** de
       traduction ajoutées ou disparues (s'appuie sur les références par clé adoptées
       en C2-T2 — l'empreinte prévue n'a pas été retenue, cf. C2-T2). · **M**
+      *(Livrée le 2026-09-08 : capture du delta dans la branche `.overwriteWithBackup`
+      de l'installeur (`UpdateKeySnapshot`/`ModUpdateKeyDelta.compare`, seul instant où
+      ancien et neuf coexistent), persistance par `UniqueID`, ligne à l'écran de succès,
+      section « Dernière mise à jour » sur la fiche avec réconciliation des renommages
+      (`KeyRenameMatcher` par valeur ou similarité, report via `RenameReport` — jamais
+      d'écrasement d'un existant). Correctif embarqué : l'anglais du mod
+      (`i18n/default.json`/`en.json`) ne se fige plus à la mise à jour. Commits
+      `ac7e8e8`→`0200b38`.)*
 
 **Risques** : formats i18n hétérogènes (tous les mods n'ont pas de `default.json`) ; gros
 mods (SVE ≈ milliers de clés) → calcul hors du thread principal.
@@ -1282,7 +1290,7 @@ corrompre ou faire disparaître quelque chose sans le dire ?* — et non à
 | ~~7~~ | ~~**X54**~~ | ✅ **Corrigé le 2026-09-04** — deux clés neuves : l'ajout nomme le mod, l'import dit combien de favoris sont entrés. Voir l'archive |
 | ~~8~~ | ~~**X49**~~ | ✅ **Corrigé le 2026-09-04** — jeton d'époque (`RequestEpoch`, Core, 6 tests) sur la recherche **et** sur la fiche, second exemplaire trouvé en câblant. Voir l'archive |
 | 9 | **F6-T4** | Une ancre « je l'ai déjà » ratée quand le manifeste et l'ancre diffèrent par la casse. ⚠️ **Réévalué le 2026-09-04 : ce n'est pas un S.** Corriger la seule lecture créerait la divergence que l'item décrit ; le faire d'un bloc demande de normaliser la clé à l'écriture **et** de migrer les ancres déjà posées. Aucun observable sur le parc — ne pas le reprendre comme « petit correctif » |
-| 10 | ~~**X58**~~ ✅, ~~**X60**~~ ✅, **C2-T4**, ~~**X47**~~ ✅ | ~~Ce qu'un mod garde en silence~~, ~~l'échange de noms de dossier qu'un profil ne peut pas faire~~ et ~~les lots smapi.io abandonnés après un échec~~ *(corrigés le 2026-09-05 — voir l'archive)*, les clés de config perdues à une mise à jour |
+| 10 | ~~**X58**~~ ✅, ~~**X60**~~ ✅, ~~**C2-T4**~~ ✅, ~~**X47**~~ ✅ | ~~Ce qu'un mod garde en silence~~, ~~l'échange de noms de dossier qu'un profil ne peut pas faire~~, ~~les lots smapi.io abandonnés après un échec~~ *(corrigés le 2026-09-05 — voir l'archive)* et ~~les clés de config perdues à une mise à jour~~ *(livré le 2026-09-08 — la case C2-T4 ci-dessus porte le constat)* |
 
 **P3 — latent : la condition est vraie, zéro exemplaire sur le parc**
 
@@ -1612,7 +1620,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **A4-T5** | — | Conclusion : l'écran final nomme le mod trouvé, le laisse en pause (tous les autres sont réactivés) et offre « tout r… |
 | **A4-T6** | — | Actions sur le mod trouvé : page Nexus, fiche du mod (où vit son historique d'erreurs), et « garder ce mod en pause »… |
 
-**Hub de traduction FR, phase 1 : diagnostic — Axe C · livrée en v1.13.0, sauf C2-T4**
+**Hub de traduction FR, phase 1 : diagnostic — Axe C · livrée en v1.13.0, C2-T4 le 2026-09-08**
 
 | Item | Livré | Ce qui était en cause |
 |---|---|---|
