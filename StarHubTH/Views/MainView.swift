@@ -53,8 +53,8 @@ struct MainView: View {
     var body: some View {
         ZStack {
             NavigationSplitView {
-            VStack(alignment: .leading, spacing: 16) {
-                
+            VStack(spacing: 0) {
+
                 // Account Header Card — compact identity + active profile +
                 // key metadata (mods active/total, SMAPI status). Replaces the
                 // old bulky 48px avatar and the floating SystemStatusFooter:
@@ -66,121 +66,22 @@ struct MainView: View {
                     onTap: { currentTab = "Home" }
                 )
                 .onHover { isProfileHovered = $0 }
-                
-                // BIBLIOTHÈQUE — l'usage quotidien.
-                VStack(alignment: .leading, spacing: 2) {
-                    SidebarSectionHeader(title: vm.L(L10n.Main.groupLibrary),
-                                         icon: "square.grid.2x2")
+                .padding(.horizontal, 10)
+                .padding(.top, 14)
+                .padding(.bottom, 16)
 
-                    SidebarItem(icon: "puzzlepiece.extension.fill",
-                                label: vm.L(L10n.Mods.mods), tab: "Mods",
-                                currentTab: $currentTab)
-
-                    SidebarItem(icon: "safari.fill",
-                                label: vm.L(L10n.Main.discover), tab: "Discover",
-                                currentTab: $currentTab)
-
-                    // Toujours visible, même à zéro : sans l'entrée, plus
-                    // moyen de déclencher une vérification Nexus à la main.
-                    SidebarItem(icon: "arrow.triangle.2.circlepath",
-                                label: vm.L(L10n.Main.modUpdates), tab: "Updates",
-                                badge: vm.outOfDateMods.count + vm.nexusUpdates.count,
-                                badgeColor: .blue, currentTab: $currentTab)
+                // En fenêtre basse, ce sont les groupes qui défilent :
+                // l'ancienne pile plein-fixe écrêtait d'abord le bas de la
+                // colonne — poids de `Mods/`, thème, langue — sous la hauteur
+                // disponible. Patron des pages de liste : haut fixe, milieu
+                // défilant, pied épinglé.
+                ScrollView(.vertical) {
+                    SidebarNavGroups(vm: vm, currentTab: $currentTab)
+                        .padding(.horizontal, 10)
                 }
 
-                // PARTIES.
-                VStack(alignment: .leading, spacing: 2) {
-                    SidebarSectionHeader(title: vm.L(L10n.Main.groupSaves),
-                                         icon: "gamecontroller")
-
-                    SidebarItem(icon: "person.2.fill",
-                                label: vm.L(L10n.Profiles.title), tab: "Profiles",
-                                currentTab: $currentTab)
-
-                    SidebarItem(icon: "folder.fill",
-                                label: vm.L(L10n.Saves.saves), tab: "Saves",
-                                currentTab: $currentTab)
-                }
-
-                // SANTÉ & SECOURS — ce qui répare et ce qui prévient.
-                VStack(alignment: .leading, spacing: 2) {
-                    SidebarSectionHeader(title: vm.L(L10n.Main.groupHealth),
-                                         icon: "cross.case")
-
-                    // Atteignable au vert aussi : la page porte
-                    // « Revérifier le journal », et un journal muet avant une
-                    // installation ne dit rien de l'après.
-                    SidebarItem(icon: "exclamationmark.triangle.fill",
-                                label: vm.L(L10n.Main.systemAlerts), tab: "SystemAlerts",
-                                badge: vm.systemAlertCount, badgeColor: .orange,
-                                currentTab: $currentTab)
-
-                    // Idem : l'entrée n'apparaissait autrefois qu'avec des
-                    // éléments en quarantaine — cachant la page précisément
-                    // quand on veut lancer l'analyse et la voir ne rien
-                    // trouver.
-                    SidebarItem(icon: "tray.full.fill",
-                                label: vm.L(L10n.Main.quarantine), tab: "Quarantine",
-                                badge: vm.lastRepairReport?.quarantined.count ?? 0,
-                                badgeColor: .purple, currentTab: $currentTab)
-
-                    SidebarItem(icon: "arrow.uturn.backward.circle.fill",
-                                label: vm.L(L10n.ModInstall.manageBackups),
-                                tab: "InstallBackups", currentTab: $currentTab)
-
-                    SidebarItem(icon: "archivebox.fill",
-                                label: vm.L(L10n.ModConfigBackups.tabTitle),
-                                tab: "ConfigBackups", currentTab: $currentTab)
-
-                    SidebarItem(icon: "internaldrive",
-                                label: vm.L(L10n.Maintenance.title),
-                                tab: "Maintenance", currentTab: $currentTab)
-                }
-
-                // APPLICATION.
-                VStack(alignment: .leading, spacing: 2) {
-                    SidebarSectionHeader(title: vm.L(L10n.Main.groupApp),
-                                         icon: "gearshape")
-
-                    SidebarItem(icon: "terminal.fill",
-                                label: vm.L(L10n.Logs.logs), tab: "Logs",
-                                currentTab: $currentTab)
-
-                    SidebarItem(icon: "gearshape.fill",
-                                label: vm.L(L10n.Settings.settings), tab: "Settings",
-                                currentTab: $currentTab)
-
-                    SidebarItem(icon: "doc.text.fill",
-                                label: vm.L(L10n.Main.appChangelog), tab: "AppChangelog",
-                                currentTab: $currentTab)
-
-                    if showThaiTranslationHub {
-                        SidebarItem(icon: "globe.asia.australia.fill",
-                                    label: vm.L(L10n.ThaiHub.title), tab: "ThaiHub",
-                                    currentTab: $currentTab)
-                    }
-                }
-
-                Spacer()
-
-                // Au-dessus du poids de `Mods/` : un lien `nxm://` peut
-                // arriver du navigateur quel que soit l'onglet ouvert, et le
-                // téléchargement n'avait jusqu'ici pour tout témoin qu'un
-                // spinner sur la page des mises à jour.
-                NexusDownloadFooter(vm: vm)
-
-                ModsWeightFooter(vm: vm)
-
-                // Bottom bar: theme switcher (left) + language switcher (right).
-                HStack {
-                    ThemeToggle(vm: vm, appColorScheme: $appColorScheme)
-                    Spacer()
-                    LanguageFlagToggle(vm: vm)
-                }
+                SidebarPinnedFooter(vm: vm, appColorScheme: $appColorScheme)
             }
-            .padding(.horizontal, 10)
-            .padding(.top, 14)
-            .padding(.bottom, 10)
             .frame(minWidth: 240, idealWidth: 240, maxWidth: 240, maxHeight: .infinity, alignment: .top)
             .background(Color(nsColor: .windowBackgroundColor).ignoresSafeArea())
 
@@ -424,6 +325,149 @@ struct MainView: View {
         case "Dark": return .dark
         default: return nil
         }
+    }
+}
+
+// MARK: - Sidebar Nav Groups
+
+/// Les quatre groupes d'entrées de la barre latérale — Bibliothèque, Parties,
+/// Santé & secours, Application. Extrait du corps de `MainView` (densité) et
+/// posé dans le `ScrollView` de la colonne : en fenêtre basse, ce sont ces
+/// lignes qui défilent, pas les réglages du bas.
+struct SidebarNavGroups: View {
+    @ObservedObject var vm: StarHubTHViewModel
+    @Binding var currentTab: String
+    @AppStorage("showThaiTranslationHub") private var showThaiTranslationHub = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // BIBLIOTHÈQUE — l'usage quotidien.
+            VStack(alignment: .leading, spacing: 2) {
+                SidebarSectionHeader(title: vm.L(L10n.Main.groupLibrary),
+                                     icon: "square.grid.2x2")
+
+                SidebarItem(icon: "puzzlepiece.extension.fill",
+                            label: vm.L(L10n.Mods.mods), tab: "Mods",
+                            currentTab: $currentTab)
+
+                SidebarItem(icon: "safari.fill",
+                            label: vm.L(L10n.Main.discover), tab: "Discover",
+                            currentTab: $currentTab)
+
+                // Toujours visible, même à zéro : sans l'entrée, plus
+                // moyen de déclencher une vérification Nexus à la main.
+                SidebarItem(icon: "arrow.triangle.2.circlepath",
+                            label: vm.L(L10n.Main.modUpdates), tab: "Updates",
+                            badge: vm.outOfDateMods.count + vm.nexusUpdates.count,
+                            badgeColor: .blue, currentTab: $currentTab)
+            }
+
+            // PARTIES.
+            VStack(alignment: .leading, spacing: 2) {
+                SidebarSectionHeader(title: vm.L(L10n.Main.groupSaves),
+                                     icon: "gamecontroller")
+
+                SidebarItem(icon: "person.2.fill",
+                            label: vm.L(L10n.Profiles.title), tab: "Profiles",
+                            currentTab: $currentTab)
+
+                SidebarItem(icon: "folder.fill",
+                            label: vm.L(L10n.Saves.saves), tab: "Saves",
+                            currentTab: $currentTab)
+            }
+
+            // SANTÉ & SECOURS — ce qui répare et ce qui prévient.
+            VStack(alignment: .leading, spacing: 2) {
+                SidebarSectionHeader(title: vm.L(L10n.Main.groupHealth),
+                                     icon: "cross.case")
+
+                // Atteignable au vert aussi : la page porte
+                // « Revérifier le journal », et un journal muet avant une
+                // installation ne dit rien de l'après.
+                SidebarItem(icon: "exclamationmark.triangle.fill",
+                            label: vm.L(L10n.Main.systemAlerts), tab: "SystemAlerts",
+                            badge: vm.systemAlertCount, badgeColor: .orange,
+                            currentTab: $currentTab)
+
+                // Idem : l'entrée n'apparaissait autrefois qu'avec des
+                // éléments en quarantaine — cachant la page précisément
+                // quand on veut lancer l'analyse et la voir ne rien
+                // trouver.
+                SidebarItem(icon: "tray.full.fill",
+                            label: vm.L(L10n.Main.quarantine), tab: "Quarantine",
+                            badge: vm.lastRepairReport?.quarantined.count ?? 0,
+                            badgeColor: .purple, currentTab: $currentTab)
+
+                SidebarItem(icon: "arrow.uturn.backward.circle.fill",
+                            label: vm.L(L10n.ModInstall.manageBackups),
+                            tab: "InstallBackups", currentTab: $currentTab)
+
+                SidebarItem(icon: "archivebox.fill",
+                            label: vm.L(L10n.ModConfigBackups.tabTitle),
+                            tab: "ConfigBackups", currentTab: $currentTab)
+
+                SidebarItem(icon: "internaldrive",
+                            label: vm.L(L10n.Maintenance.title),
+                            tab: "Maintenance", currentTab: $currentTab)
+            }
+
+            // APPLICATION.
+            VStack(alignment: .leading, spacing: 2) {
+                SidebarSectionHeader(title: vm.L(L10n.Main.groupApp),
+                                     icon: "gearshape")
+
+                SidebarItem(icon: "terminal.fill",
+                            label: vm.L(L10n.Logs.logs), tab: "Logs",
+                            currentTab: $currentTab)
+
+                SidebarItem(icon: "gearshape.fill",
+                            label: vm.L(L10n.Settings.settings), tab: "Settings",
+                            currentTab: $currentTab)
+
+                SidebarItem(icon: "doc.text.fill",
+                            label: vm.L(L10n.Main.appChangelog), tab: "AppChangelog",
+                            currentTab: $currentTab)
+
+                if showThaiTranslationHub {
+                    SidebarItem(icon: "globe.asia.australia.fill",
+                                label: vm.L(L10n.ThaiHub.title), tab: "ThaiHub",
+                                currentTab: $currentTab)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Sidebar Pinned Footer
+
+/// Le pied épinglé de la barre latérale : volet de téléchargement Nexus,
+/// poids de `Mods/`, réglages de thème et de langue. Ce bloc doit rester
+/// visible quelle que soit la hauteur de la fenêtre — c'est lui que
+/// l'ancienne pile plein-fixe laissait écrêter en premier.
+struct SidebarPinnedFooter: View {
+    @ObservedObject var vm: StarHubTHViewModel
+    @Binding var appColorScheme: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Au-dessus du poids de `Mods/` : un lien `nxm://` peut
+            // arriver du navigateur quel que soit l'onglet ouvert, et le
+            // téléchargement n'avait jusqu'ici pour tout témoin qu'un
+            // spinner sur la page des mises à jour.
+            NexusDownloadFooter(vm: vm)
+
+            ModsWeightFooter(vm: vm)
+
+            // Bottom bar: theme switcher (left) + language switcher (right).
+            HStack {
+                ThemeToggle(vm: vm, appColorScheme: $appColorScheme)
+                Spacer()
+                LanguageFlagToggle(vm: vm)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.top, 8)
+        .padding(.bottom, 10)
     }
 }
 
@@ -1158,10 +1202,25 @@ struct UpdatesView: View {
 /// **Sans taille annoncée, il ne ment pas.** Le CDN de Nexus n'annonce pas
 /// toujours `Content-Length` : la barre disparaît alors, et il ne reste que le
 /// volume reçu et le débit. Une barre figée à 0 % ferait croire à un blocage.
+/// Volet de téléchargement Nexus, en bas de la barre latérale : une fenêtre
+/// temporaire qui ne vit que le temps d'un téléchargement (`isDownloadingFromNexus`).
+/// Le contenu — mod visé, annulation, progression, débit — reste identique ;
+/// seul l'habillage en fait un volet flottant plutôt qu'une ligne du pied.
 struct NexusDownloadFooter: View {
     @ObservedObject var vm: StarHubTHViewModel
 
     var body: some View {
+        panel
+            // Le glissement est piloté côté vue : le VM se contente de muter
+            // l'état à ses deux bascules (démarrage, complétion) ; animer ici
+            // n'exige aucune transaction dans le ViewModel.
+            .animation(.spring(response: 0.3, dampingFraction: 0.85),
+                       value: vm.isDownloadingFromNexus)
+    }
+
+    /// Volet posé seulement pendant un téléchargement : glisse depuis le bord
+    /// bas de la colonne, repart en sens inverse à la complétion.
+    @ViewBuilder private var panel: some View {
         if vm.isDownloadingFromNexus {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 4) {
@@ -1196,9 +1255,18 @@ struct NexusDownloadFooter: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
-            .padding(.horizontal, 8)
-            .padding(.bottom, 6)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
             .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.regularMaterial,
+                        in: RoundedRectangle(cornerRadius: AppDesign.Radius.md,
+                                             style: .continuous))
+            .shadow(color: .black.opacity(0.12),
+                    radius: AppDesign.Shadow.badge.radius,
+                    y: AppDesign.Shadow.badge.y)
+            // Fenêtre temporaire : entrée et sortie glissées, pas une ligne
+            // de plus dans le pied.
+            .transition(.move(edge: .bottom).combined(with: .opacity))
             .accessibilityElement(children: .combine)
         }
     }

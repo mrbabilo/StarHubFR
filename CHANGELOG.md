@@ -18,11 +18,15 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **La sidebar garde son bas en fenêtre réduite.** La pile plein-fixe écrêtait d'abord le pied — poids de `Mods/`, thème, langue — dès que la hauteur manquait. Les groupes de navigation défilent désormais dans une zone dédiée ; le compte et les réglages restent épinglés.
+
 - **La liste « à écarter » survit au redémarrage.** La marque était bien écrite mais jamais relue au lancement : à chaque ouverture, la blacklist repartait à vide. Elle est chargée au démarrage comme les favoris, dont elle reprend tout le reste.
 
 - **L'anglais d'un mod ne se fige plus à la mise à jour.** La préservation restaurait `i18n/default.json` et `i18n/en.json` de l'ancienne version par-dessus la neuve : le texte anglais d'un mod mis à jour ne bougeait jamais. Seul le français de l'utilisateur reste protégé — le backup manuel garde tout.
 
 ### Changed
+
+- **Le téléchargement Nexus s'affiche en volet coulissant.** La barre de progression devient une fenêtre temporaire au bas de la barre latérale : elle glisse à l'écran au démarrage, posée sur un fond matériau, et repart glisser à la fin.
 
 - **Le cadrage de la liste des mods se teste.** Les types des filtres — cadrage général, traduction française, catégorie, tri — quittent la vue qui les affichait pour le module testable, avec `NexusCategory` dont ils dépendaient. Leurs contrats sont désormais épinglés par des tests, au premier rang desquels la règle de pagination : changer un filtre ramène à la première page, changer le tri n'y touche pas.
 
