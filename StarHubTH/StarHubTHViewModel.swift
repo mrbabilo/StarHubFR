@@ -2177,6 +2177,7 @@ class StarHubTHViewModel: ObservableObject {
         let customIds = Self.loadCustomModIds()
         let activationTs = Self.loadModActivationTimestamps()
         let favorites = Self.loadFavoriteMods()
+        let blacklisted = Self.loadBlacklistedMods()
         let managedConfigs = Self.loadProfileManagedConfigMods()
         let translations = InstalledTranslationStore.load()
         // Les verdicts d'incompatibilité (A5-T2) : même lot que les autres
@@ -2202,6 +2203,7 @@ class StarHubTHViewModel: ObservableObject {
             self.nexusCustomModIds = customIds
             self.modActivationTimestamps = activationTs
             self.favoriteMods = favorites
+            self.blacklistedMods = blacklisted
             self.profileManagedConfigMods = managedConfigs
             self.installedTranslations = translations
             self.modConflictVerdicts = conflictVerdicts

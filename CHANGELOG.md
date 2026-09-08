@@ -18,6 +18,8 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **La liste « à écarter » survit au redémarrage.** La marque était bien écrite mais jamais relue au lancement : à chaque ouverture, la blacklist repartait à vide. Elle est chargée au démarrage comme les favoris, dont elle reprend tout le reste.
+
 - **L'anglais d'un mod ne se fige plus à la mise à jour.** La préservation restaurait `i18n/default.json` et `i18n/en.json` de l'ancienne version par-dessus la neuve : le texte anglais d'un mod mis à jour ne bougeait jamais. Seul le français de l'utilisateur reste protégé — le backup manuel garde tout.
 
 ### Changed
