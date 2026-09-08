@@ -99,12 +99,18 @@ public struct UpdateKeySnapshot: Equatable, Sendable {
     }
 
     /// Clés → valeurs d'un fichier i18n, par `I18nFileDecoder` (UTF-16/32
-    /// réels sur le parc — jamais `String(data:encoding:.utf8)` direct).
+    /// réels sur le parc — jamais `String(data:encoding:.utf8)` direct) puis
+    /// `I18nLenientParser.lenientObject` : le JSON strict refusait 125 des
+    /// 241 fichiers i18n EN/FR du parc (commentaires, virgules finales) que
+    /// le jeu charge très bien — le composant disparaissait du snapshot et
+    /// le delta comptait faux. `lenientObject` plutôt que `parse` : une
+    /// valeur numérique est chargée par le jeu, refuser le fichier entier
+    /// perdrait le composant pour un i18n pourtant lisible.
     private static func languageValues(at i18n: URL, file: String) -> [String: String]? {
         let url = i18n.appendingPathComponent(file)
         guard let data = try? Data(contentsOf: url),
               let decoded = I18nFileDecoder.decode(data),
-              let obj = try? JSONSerialization.jsonObject(with: Data(decoded.text.utf8)) as? [String: Any]
+              let obj = I18nLenientParser.lenientObject(decoded.text)
         else { return nil }
         return obj.mapValues(scalarString)
     }

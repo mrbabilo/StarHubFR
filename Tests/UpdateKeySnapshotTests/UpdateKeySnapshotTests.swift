@@ -92,6 +92,38 @@ import Testing
         #expect(snap.configKeys == ["a", "b"])
     }
 
+    @Test func lenientI18nFilesAreRead() throws {
+        // Le JSON strict refusait 125 des 241 fichiers i18n EN/FR du parc
+        // (commentaires, virgules finales) que le jeu charge très bien : le
+        // composant disparaissait du snapshot et le delta comptait faux dans
+        // les deux sens. Même tolérance que l'onglet diff.
+        let dir = tmp
+        try write("""
+            // Section greeting
+            {
+              "a": "A", /* bloc */
+              "b": "B",
+            }
+            """, base: dir, relativePath: "i18n/default.json")
+        try write(#"{"a":"fr","b":"fr"}"#, base: dir, relativePath: "i18n/fr.json")
+
+        let snap = UpdateKeySnapshot.read(folder: dir)
+        #expect(Set((snap.english[""] ?? [:]).keys) == ["a", "b"])
+        #expect(Set((snap.french[""] ?? [:]).keys) == ["a", "b"])
+    }
+
+    @Test func numericI18nValueIsKept() throws {
+        // lenientObject plutôt que parse : une valeur numérique est chargée
+        // par le jeu (Newtonsoft mesuré) — refuser le fichier entier perdrait
+        // le composant au snapshot pour un i18n pourtant lisible.
+        let dir = tmp
+        try write(#"{"a":"A","count":3}"#, base: dir, relativePath: "i18n/default.json")
+
+        let snap = UpdateKeySnapshot.read(folder: dir)
+        #expect(snap.english[""]?["count"] == "3")
+        #expect(snap.english[""]?["a"] == "A")
+    }
+
     @Test func missingFolderYieldsEmptySnapshot() throws {
         let snap = UpdateKeySnapshot.read(folder: tmp)
         #expect(snap.config == nil)
