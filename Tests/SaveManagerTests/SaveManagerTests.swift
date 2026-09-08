@@ -932,3 +932,139 @@ struct SaveParseCacheTests {
         #expect(manager.parseSaveFile(url: url, folderName: "Edited")?.money == 777)
     }
 }
+
+// MARK: - Remariage : la promotion du nouveau conjoint (audit 2026-08-05)
+
+/// `updateSave(newSpouse:)` changeait le tag `<spouse>` et démoliait l'ancien
+/// conjoint, mais laissait l'entrée d'amitié du nouveau à son ancien statut :
+/// le jeu lisait « marié » (le tag) contre « Friendly »/« Dating » (l'amitié)
+/// — glitch du nouveau conjoint à l'arrivée en ferme.
+///
+/// Forme de `<WeddingDate>` mesurée deux fois, en accord : membres
+/// sérialisables de `WorldDate` dans l'assemblage du jeu (1.6.15 —
+/// `Year`, `DayOfMonth`, et la clé chaîne portée par la propriété
+/// `[XmlElement]`; `Season`/`SeasonIndex` sont `[XmlIgnore]`), et définition
+/// du format de sauvegarde de l'éditeur communautaire
+/// (colecrouter/stardew-save-editor, codegen de vraies sauvegardes).
+/// Les valeurs viennent de la date courante du fermier :
+/// `yearForSaveGame`/`seasonForSaveGame`/`dayOfMonthForSaveGame` (mesurés
+/// enfants directs de `<player>`), l'index de saison selon
+/// `StardewValley.GameData.dll` : Spring=0, Summer=1, Fall=2, Winter=3.
+@Suite("SaveManager — remariage")
+struct SaveManagerRemarriageTests {
+
+    /// Topologie réelle : `<friendshipData>` dans `<player>`, entrées
+    /// `<item><key><string>NPC</string></key><value><Friendship>…`.
+    static func marriedXML(oldSpouse: String = "Abigail") -> String {
+        """
+        <SaveGame><player><name>Jemila</name>\
+        <spouse>\(oldSpouse)</spouse>\
+        <friendshipData>\
+        <item><key><string>Abigail</string></key><value><Friendship><Points>2500</Points>\
+        <Status>Married</Status><Proposer>0</Proposer><RoommateMarriage>false</RoommateMarriage>\
+        <WeddingDate><Year>1</Year><DayOfMonth>3</DayOfMonth><Season>spring</Season></WeddingDate>\
+        </Friendship></value></item>\
+        <item><key><string>Penny</string></key><value><Friendship><Points>2000</Points>\
+        <Status>Dating</Status><Proposer>0</Proposer><RoommateMarriage>false</RoommateMarriage>\
+        </Friendship></value></item>\
+        </friendshipData>\
+        <yearForSaveGame>4</yearForSaveGame><seasonForSaveGame>2</seasonForSaveGame>\
+        <dayOfMonthForSaveGame>17</dayOfMonthForSaveGame>\
+        <money>52380</money></player><whichFarm>0</whichFarm></SaveGame>
+        """
+    }
+
+    static func parse(_ xml: String, _ env: TestEnvironment, _ name: String) throws -> SaveGameInfo {
+        let fileURL = env.savesDir.appendingPathComponent(name).appendingPathComponent(name)
+        try writeTestSaveFile(at: fileURL, content: xml)
+        let info = SaveManager.shared.parseSaveFile(url: fileURL, folderName: name)
+        return try #require(info)
+    }
+
+    static func update(_ info: SaveGameInfo, newSpouse: String) -> Bool {
+        SaveManager.shared.updateSave(
+            info: info, newName: "Jemila", newFarm: "Zofia", newFav: "glaces",
+            newMoney: 52380, newTotalMoneyEarned: 511148, newMaxHealth: 150,
+            newMaxStamina: 304, newGoldenWalnuts: 3, newQiGems: 0,
+            newClubCoins: 0, newSpouse: newSpouse)
+    }
+
+    @Test func remarriagePromotesTheNewSpouseAndDemotesTheOld() throws {
+        let env = TestEnvironment(); defer { env.cleanup() }
+        let info = try Self.parse(Self.marriedXML(), env, "RemarryPromote")
+        try #require(info.spouse == "Abigail")
+
+        #expect(Self.update(info, newSpouse: "Penny"))
+
+        let after = try String(contentsOf: info.fileURL, encoding: .utf8)
+        #expect(after.contains("<spouse>Penny</spouse>"))
+        // Abigail démolia : Friendly, sans WeddingDate.
+        #expect(after.contains("<string>Abigail</string></key><value><Friendship>"
+                             + "<Points>2500</Points><Status>Friendly</Status>"))
+        #expect(after.contains("<string>Abigail</string>") && !after.contains("<Season>spring</Season>"))
+        // Penny promue : Married + WeddingDate à la date courante
+        // (4, 17, saison 2 = fall).
+        #expect(after.contains("<string>Penny</string></key><value><Friendship>"
+                             + "<Points>2000</Points><Status>Married</Status>"
+                             + "<WeddingDate><Year>4</Year><DayOfMonth>17</DayOfMonth>"
+                             + "<Season>fall</Season></WeddingDate>"))
+    }
+
+    @Test func plainDivorcePromotesNobody() throws {
+        let env = TestEnvironment(); defer { env.cleanup() }
+        let info = try Self.parse(Self.marriedXML(), env, "DivorceOnly")
+
+        #expect(Self.update(info, newSpouse: ""))
+
+        let after = try String(contentsOf: info.fileURL, encoding: .utf8)
+        // Penny garde son statut de rencontre, sans WeddingDate insérée.
+        #expect(after.contains("<string>Penny</string></key><value><Friendship>"
+                             + "<Points>2000</Points><Status>Dating</Status>"))
+        #expect(after.filter { $0 == "<" }.count > 0) // fichier toujours XML
+        #expect(!after.contains("Married</Status><WeddingDate><Year>4</Year>"))
+    }
+
+    @Test func editingWithoutChangingSpouseTouchesNobody() throws {
+        let env = TestEnvironment(); defer { env.cleanup() }
+        let info = try Self.parse(Self.marriedXML(), env, "SameSpouse")
+
+        #expect(Self.update(info, newSpouse: "Abigail"))
+
+        let after = try String(contentsOf: info.fileURL, encoding: .utf8)
+        // Abigail reste mariée avec SA date de mariage d'origine.
+        #expect(after.contains("<Status>Married</Status>"
+                             + "<Proposer>0</Proposer><RoommateMarriage>false</RoommateMarriage>"
+                             + "<WeddingDate><Year>1</Year><DayOfMonth>3</DayOfMonth>"
+                             + "<Season>spring</Season></WeddingDate>"))
+        #expect(after.contains("<spouse>Abigail</spouse>"))
+    }
+
+    @Test func marryingAnNpcWithoutFriendshipEntryUpdatesOnlyTheSpouseTag() throws {
+        let env = TestEnvironment(); defer { env.cleanup() }
+        let info = try Self.parse(Self.marriedXML(), env, "MarryStranger")
+
+        #expect(Self.update(info, newSpouse: "Haley"))
+
+        let after = try String(contentsOf: info.fileURL, encoding: .utf8)
+        #expect(after.contains("<spouse>Haley</spouse>"))
+        // Pas d'invention d'entrée : aucun bloc Haley n'apparaît.
+        #expect(!after.contains("<string>Haley</string>"))
+    }
+
+    @Test func firstMarriagePromotesToo() throws {
+        let env = TestEnvironment(); defer { env.cleanup() }
+        // Jamais mariée (`oldSpouse` vide) : épouser Penny promut quand même.
+        let info = try Self.parse(Self.marriedXML(oldSpouse: ""), env, "FirstMarriage")
+
+        #expect(Self.update(info, newSpouse: "Penny"))
+
+        let after = try String(contentsOf: info.fileURL, encoding: .utf8)
+        #expect(after.contains("<string>Penny</string></key><value><Friendship>"
+                             + "<Points>2000</Points><Status>Married</Status>"
+                             + "<WeddingDate><Year>4</Year><DayOfMonth>17</DayOfMonth>"
+                             + "<Season>fall</Season></WeddingDate>"))
+        // Abigail, elle, n'a jamais été conjointe : intouchée.
+        #expect(after.contains("<string>Abigail</string></key><value><Friendship>"
+                             + "<Points>2500</Points><Status>Married</Status>"))
+    }
+}

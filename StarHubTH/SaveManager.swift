@@ -659,6 +659,14 @@ public class SaveManager {
         if !oldSpouse.isEmpty && newSpouse != oldSpouse {
             content = cleanDivorceNPCFriendship(npcName: oldSpouse, in: content)
         }
+
+        // Et symétriquement, le nouveau conjoint (remariage ou premier
+        // mariage) est promu : le tag seul faisait lire « marié » au jeu
+        // contre « Friendly »/« Dating » dans l'amitié — glitch du nouveau
+        // conjoint (audit 2026-08-05).
+        if !newSpouse.isEmpty && newSpouse != oldSpouse {
+            content = promoteMarriageNPCFriendship(npcName: newSpouse, in: content)
+        }
         
         do {
             guard let payload = content.data(using: .utf8) else { return false }
@@ -754,6 +762,119 @@ public class SaveManager {
                 range: NSRange(location: 0, length: nsBlock.length),
                 withTemplate: ""
             )
+        }
+
+        return beforeItem + itemBlock + afterItem
+    }
+
+    // MARK: Marriage — promotion du nouveau conjoint
+
+    /// Index de saison tel que le save le porte (`seasonForSaveGame`) et tel
+    /// que `StardewValley.GameData.dll` définit l'enum `Season` (mesuré) :
+    /// Spring=0, Summer=1, Fall=2, Winter=3.
+    private static let seasonsByIndex = ["spring", "summer", "fall", "winter"]
+
+    /// Promotes the NEW spouse's friendship entry so the game reads them as
+    /// married: `Status` → `Married`, plus a `WeddingDate` anchored to the
+    /// save's current in-game date. Only the demotion of the OLD spouse
+    /// existed (audit 2026-08-05) — the game read « married » from the
+    /// `<spouse>` tag against « Friendly »/« Dating » in the friendship
+    /// data, glitching the new spouse.
+    ///
+    /// `WorldDate` serializes `Year`, `DayOfMonth` and the season **string**
+    /// (the `Season`/`SeasonIndex` properties are `[XmlIgnore]`, the string
+    /// lives on an `[XmlElement]` property) — measured against the game's
+    /// own assemblies (1.6.15) and cross-checked with the save-format
+    /// definition of the community save editor. Without a friendship entry
+    /// for this NPC, nothing is invented: the `<spouse>` tag alone stays
+    /// updated.
+    private func promoteMarriageNPCFriendship(npcName: String, in xml: String) -> String {
+        // Date courante du fermier (mesuré : enfants directs de <player>).
+        guard let year = extractTag(tag: "yearForSaveGame", from: xml), !year.isEmpty,
+              let day = extractTag(tag: "dayOfMonthForSaveGame", from: xml), !day.isEmpty,
+              let seasonRaw = extractTag(tag: "seasonForSaveGame", from: xml),
+              let seasonIndex = Int(seasonRaw),
+              Self.seasonsByIndex.indices.contains(seasonIndex) else {
+            print("[Marriage] Could not read the current in-game date — new spouse not promoted")
+            return xml
+        }
+        let weddingDate = "<WeddingDate><Year>\(year)</Year>"
+                        + "<DayOfMonth>\(day)</DayOfMonth>"
+                        + "<Season>\(Self.seasonsByIndex[seasonIndex])</Season></WeddingDate>"
+
+        guard let playerStartRange = xml.range(of: "<player>"),
+              let playerEndRange = xml.range(of: "</player>", range: playerStartRange.upperBound..<xml.endIndex) else {
+            print("[Marriage] Could not find <player> block")
+            return xml
+        }
+
+        let beforePlayer = String(xml[..<playerStartRange.lowerBound])
+        let playerBlock  = String(xml[playerStartRange.lowerBound..<playerEndRange.upperBound])
+        let afterPlayer  = String(xml[playerEndRange.upperBound...])
+
+        let updatedPlayerBlock = promoteNPCFriendshipInScope(npcName: npcName, in: playerBlock, weddingDate: weddingDate)
+        return beforePlayer + updatedPlayerBlock + afterPlayer
+    }
+
+    /// Même resserrement que la démotion : `<friendshipData>…</friendshipData>`
+    /// quand il est présent, le bloc joueur entier sinon.
+    private func promoteNPCFriendshipInScope(npcName: String, in xml: String, weddingDate: String) -> String {
+        guard let fdStartRange = xml.range(of: "<friendshipData>"),
+              let fdEndRange = xml.range(of: "</friendshipData>", range: fdStartRange.upperBound..<xml.endIndex) else {
+            return promoteNPCFriendshipEntry(npcName: npcName, in: xml, weddingDate: weddingDate)
+        }
+
+        let before = String(xml[..<fdStartRange.lowerBound])
+        let fdBlock  = String(xml[fdStartRange.lowerBound..<fdEndRange.upperBound])
+        let after  = String(xml[fdEndRange.upperBound...])
+
+        return before + promoteNPCFriendshipEntry(npcName: npcName, in: fdBlock, weddingDate: weddingDate) + after
+    }
+
+    /// Motifs constants — `try!` sur un motif figé, idiome du dépôt
+    /// (`ManifestVersionPatcher.versionStringRegex`).
+    private static let statusTagRegex = try! NSRegularExpression(pattern: "<Status>[^<]*</Status>")
+    private static let weddingDateTagRegex = try! NSRegularExpression(
+        pattern: "<WeddingDate>.*?</WeddingDate>", options: .dotMatchesLineSeparators)
+
+    /// Locates the `<item>` block keyed by `npcName` and applies the
+    /// Status→Married / WeddingDate-insertion edit to it.
+    private func promoteNPCFriendshipEntry(npcName: String, in xml: String, weddingDate: String) -> String {
+        let keyMarker = "<string>\(npcName)</string>"
+        guard let keyRange = xml.range(of: keyMarker) else {
+            print("[Marriage] Could not find friendship entry for \(npcName)")
+            return xml
+        }
+
+        let beforeKey = String(xml[..<keyRange.lowerBound])
+        guard let itemStart = beforeKey.range(of: "<item>", options: .backwards) else {
+            print("[Marriage] Could not find <item> before key for \(npcName)")
+            return xml
+        }
+        guard let itemEnd = xml.range(of: "</item>", range: keyRange.upperBound..<xml.endIndex) else {
+            print("[Marriage] Could not find </item> after key for \(npcName)")
+            return xml
+        }
+
+        let beforeItem = String(xml[..<itemStart.lowerBound])
+        var itemBlock  = String(xml[itemStart.lowerBound..<itemEnd.upperBound])
+        let afterItem  = String(xml[itemEnd.upperBound...])
+
+        // 1. Le statut courant (Dating, Friendly…) vaut désormais Married.
+        // 2. Une WeddingDate résiduelle (ce NPC a été marié plus tôt) saute,
+        //    comme à la démotion ; la nouvelle s'insère derrière le statut.
+        let nsBlock = itemBlock as NSString
+        let fullRange = NSRange(location: 0, length: nsBlock.length)
+        itemBlock = Self.statusTagRegex.stringByReplacingMatches(
+            in: itemBlock, options: [], range: fullRange,
+            withTemplate: "<Status>Married</Status>")
+        itemBlock = Self.weddingDateTagRegex.stringByReplacingMatches(
+            in: itemBlock, options: [], range: fullRange,
+            withTemplate: "")
+        if let statusRange = itemBlock.range(of: "<Status>Married</Status>") {
+            itemBlock.insert(contentsOf: weddingDate, at: statusRange.upperBound)
+        } else {
+            print("[Marriage] Could not find <Status> in the friendship entry for \(npcName)")
         }
 
         return beforeItem + itemBlock + afterItem
