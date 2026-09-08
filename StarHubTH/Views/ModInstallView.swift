@@ -410,11 +410,23 @@ struct ModInstallView: View {
             }
             Spacer()
             Button(vm.L(L10n.Mods.updateDeltaOpenDetail)) {
-                // Poser le pending PUIS changer d'onglet — l'inverse est
-                // effacé par le reset des vues de détail (patron B3-T4).
-                vm.pendingModDetailFocus = delta.folderName
-                vm.pendingDetailTab = .state
-                currentTab = "Mods"
+                // Déjà sur l'onglet Mods (feuille posée par la liste) : le
+                // canal pending n'est consommé que par un CHANGEMENT d'onglet
+                // (MainView.onChange) — poser les pendings ici ne les
+                // consommerait jamais et les armerait pour un changement
+                // futur : la fiche aurait surgi plus tard, sans raison.
+                // On ouvre donc en direct. Depuis un autre onglet (volet de
+                // téléchargement), le canal reste le chemin — le changement
+                // d'onglet le consomme (patron B3-T4).
+                if currentTab == "Mods",
+                   let target = ModFocusResolver.resolve(delta.folderName, in: vm.mods) {
+                    vm.viewingModDetail = target
+                    vm.pendingDetailTab = .state
+                } else {
+                    vm.pendingModDetailFocus = delta.folderName
+                    vm.pendingDetailTab = .state
+                    currentTab = "Mods"
+                }
                 showSuccess = false
                 installedModNames = []
                 isPresented = false
