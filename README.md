@@ -1,5 +1,5 @@
 > [!IMPORTANT]
-> Ce fork ajoute le support de la langue française, ainsi qu'une UX/UI « french touch ». Pour la version anglaise, consultez le [README anglais](README_EN.md).
+> Ce fork ajoute la prise en charge de la langue française, ainsi qu'une UX/UI « French touch ». Pour la version anglaise, consultez le [README anglais](README_EN.md).
 >
 > Projet original : [StarHubTH](https://github.com/AppleBoiy/StarHubTH) par **AppleBoiy** — qui propose une version en **thaï**.
 
@@ -22,7 +22,7 @@ Installez, organisez et dépannez votre collection de mods sans jamais toucher a
 ## Pourquoi StarHubFR
 
 *   🇫🇷 **Entièrement en français** — interface, messages d'erreur et diagnostics, avec bascule instantanée vers l'anglais.
-*   ✍️ **Vous traduisez les mods dans l'app** — un éditeur clé par clé écrit le `fr.json`, avec les marqueurs du jeu protégés au passage.
+*   ✍️ **Vous traduisez les mods dans l'app** — un éditeur clé par clé écrit le `fr.json`, sans risque de casser les marqueurs du jeu.
 *   🩺 **Il vous explique ce qui ne va pas** — StarHubFR lit le journal SMAPI à votre place et vous dit quoi faire, en langage clair, au lieu de vous laisser face à un mur de texte technique.
 *   🍎 **Vraiment natif macOS** — Swift et SwiftUI, sans Electron ni couche web, accessible à VoiceOver.
 *   🧩 **Calibré pour les grosses collections** — pensé et testé sur des installations de plusieurs centaines de mods (SVE et compagnie).
@@ -48,25 +48,27 @@ Quand le jeu plante ou qu'un mod refuse de se charger, StarHubFR transforme le j
 ### 📦 Installation et organisation des mods
 
 *   **Glisser-déposer une archive** (`.zip`, `.7z`, `.rar`) — détection automatique de la structure (mod seul ou pack multi-composants), validation d'intégrité (taille d'archive plafonnée à 500 Mo, garde anti-zip-bomb à 2 Go décompressés couvrant les trois formats, détection du vrai format par la signature du fichier et non son extension), aperçu des conflits et suggestion des dépendances manquantes.
-*   **Un fichier destiné à un autre mod s'installe au bon endroit** — certains téléchargements Nexus sont du contenu pour un framework (un sac *ItemBags*, par ex.), pas un mod autonome, et ne portent pas de `manifest.json`. L'app les reconnaît et propose de les placer où ils appartiennent, en montrant le chemin exact et en sauvegardant d'abord un fichier existant ; un mod hôte en pause est géré, et une sauvegarde qui échoue annule l'installation plutôt que d'écraser.
+*   **Un fichier destiné à un autre mod s'installe au bon endroit** — certains téléchargements Nexus sont du contenu pour un framework (un sac *ItemBags*, par exemple), pas un mod autonome, et ne portent pas de `manifest.json`. L'app les reconnaît et propose de les placer où ils appartiennent, en montrant le chemin exact et en sauvegardant d'abord un fichier existant ; un mod hôte en pause est géré, et une sauvegarde qui échoue annule l'installation plutôt que d'écraser.
 *   **Activation sans déplacer de fichiers** — activez ou désactivez un mod d'un clic, ou **tous vos mods d'un coup** (barre de progression, aucune perte). Supprimez un mod ou un pack du disque après confirmation.
 *   **Profils de mods** — regroupez vos mods en plusieurs profils et basculez de l'un à l'autre en un clic.
-*   **Liste avancée** — classification automatique par type (UI, Framework, Content Patcher, Traduction, PNJ, Audio, Carte…) déduite du manifeste, qui sert aussi de repli hors ligne. Filtres par catégorie, mods non catégorisés, mods configurables ; tri par nom, auteur, version ou ordre d'activation ; pagination avec saut de page direct.
+*   **Liste avancée** — classification automatique par type (UI, Framework, Content Patcher, Traduction, PNJ, Audio, Carte…) déduite du manifeste, qui sert aussi de repli hors ligne. Filtres par catégorie, mods non catégorisés, mods configurables, mods « à écarter » ; tri par nom, auteur, version ou ordre d'activation ; pagination avec saut de page direct.
+*   **Marque « à écarter »** — un mod à retirer de la circulation sans le désinstaller : il reste installé, mais gris dans la liste, sa marque survit au redémarrage et à un renommage de dossier, un filtre les rassemble, et un profil peut importer le lot en un clic.
 
 ### 🔄 Mises à jour et téléchargements
 
 *   **Détection des mises à jour** via [smapi.io](https://smapi.io/) — sans clé API ni compte Nexus : la vérification lit ce que chaque mod déclare dans son manifeste, et un mod qu'elle n'a pas pu joindre reste signalé au lieu de passer pour à jour.
 *   **« Je l'ai déjà »** — certains auteurs publient une nouvelle version sans incrémenter celle de leur manifeste : le contrôle voit un écart qui n'existe pas et le réaffiche à chaque passage. La ligne porte un bouton qui enregistre la version réellement installée, puis s'efface.
-*   **Téléchargement dans l'application** — bouton *MàJ Premium* pour les comptes Premium, ou *MàJ Nexus* via le lien `nxm://` pour les comptes gratuits. La clé API Nexus, stockée dans le trousseau macOS, ne sert qu'à télécharger.
-*   **Réconciliation automatique du `manifest.json`** après installation, pour qu'un mod mis à jour ne réapparaisse pas indéfiniment comme « à mettre à jour ».
+*   **Téléchargement dans l'application** — bouton *MàJ Premium* pour les comptes Premium, ou *MàJ Nexus* via le lien `nxm://` pour les comptes gratuits. La clé API Nexus, stockée dans le trousseau macOS, ne sert qu'à télécharger. Le téléchargement s'affiche en **volet coulissant** au bas de la barre latérale : il glisse à l'écran au démarrage et repart glisser à la fin, sans masquer le reste.
+*   **Réconciliation automatique du `manifest.json`** après installation, pour qu'un mod mis à jour ne revienne pas indéfiniment dans la liste des mises à jour.
+*   **Ce qu'une mise à jour change se dit enfin** — après l'installation d'une nouvelle version, l'app signale les options de config ajoutées ou retirées, les textes à traduire nouveaux, les traductions de l'auteur écartées et les clés orphelines, avec les outils à portée de bouton sur la fiche du mod. Les clés renommées se réconcilient : traduction ou réglage reportés, jamais écrasés.
 
 ### 🧭 Découvrir de nouveaux mods
 
 L'app savait tout faire **à partir d'un mod installé** — traductions, suppléments — et rien **sans point de départ**. L'onglet *Découvrir* comble ce trou.
 
 *   **Trois vitrines servies par Nexus** — tendances (les plus endossés), mises à jour récentes, et **sélection française**. Une requête par section, mise en cache 24 h : seul le bouton de rafraîchissement redemande au réseau, jamais l'ouverture de l'onglet.
-*   **Vous voyez tout de suite ce que vous avez déjà** — chaque carte porte une pastille « Installé », croisée avec votre parc par identifiant Nexus **et** par titre, et un filtre masque les mods installés en affichant toujours combien il en a masqué. Sur plusieurs centaines de mods, l'essentiel des tendances vous est déjà connu.
-*   **Filtre par catégorie** — les 26 catégories du jeu, appliquées **au serveur** : « Portraits » redemande des portraits à Nexus plutôt que de trier les vingt mods déjà reçus. Chaque catégorie garde son propre cache.
+*   **Vous voyez tout de suite ce que vous avez déjà** — chaque carte porte une pastille « Installé », croisée avec votre parc par identifiant Nexus **et** par titre, et un filtre masque les mods installés en affichant toujours combien elle en a masqué. Sur plusieurs centaines de mods, l'essentiel des tendances vous est déjà familier.
+*   **Filtre par catégorie** — les 26 catégories du jeu, avec un filtrage fait **côté serveur** : « Portraits » redemande des portraits à Nexus plutôt que de trier les vingt mods déjà reçus. Chaque catégorie garde son propre cache.
 *   **Recherche par nom** dans la même vitrine, avec le total réel annoncé — une poignée de résultats n'est jamais tout ce qui existe.
 *   **La vitrine est francophone** — une traduction n'y figure que si elle est française. La recherche par nom, elle, rend ce que vous lui demandez, sans filtre de langue.
 *   **Fiche éclair** — bandeau illustré, endossements, version, âge de la mise à jour, catégorie, et la description rendue comme sur la page du mod. De là : **Installer** (compte Nexus Premium requis par l'API de téléchargement) ou **Ouvrir sur Nexus**, qui vise directement l'onglet des fichiers — le lien `nxm://` ramène ensuite l'archive dans l'app, sur compte gratuit comme Premium.
@@ -83,11 +85,11 @@ L'app savait tout faire **à partir d'un mod installé** — traductions, suppl�
 
 Un onglet **Traduction** sur la fiche de chaque mod vous montre l'état réel de son français, là où la liste se contentait d'un « FR disponible » dès qu'un `fr.json` existait — une demi-vérité sur un mod traduit à 8 %. Et c'est un éditeur, pas seulement un rapport : le français s'écrit ici, sans quitter l'app.
 
-*   **Traduire sans quitter l'app** — cliquez une ligne pour l'ouvrir en édition : l'anglais à gauche, en lecture seule ; votre français à droite. Passez à la clé suivante, ou revenez à la précédente, sans repasser par la liste. Un mod qui n'a pas encore de `fr.json` en obtient un au premier enregistrement — l'onglet s'ouvre aussi sur les mods sans aucun français, pas seulement là où le travail est déjà commencé.
-*   **Une IA locale propose le français** — un modèle qui tourne sur votre Mac remplit le brouillon, clé par clé ou par lot que vous pouvez arrêter et reprendre. Les propositions arrivent marquées « À relire », avec un filtre pour les retrouver, et passent par le même contrôle de marqueurs que la saisie manuelle. Rien ne quitte la machine : l'app n'accepte qu'une adresse en loopback, sans proxy et sans suivre de redirection.
+*   **Traduire sans quitter l'app** — cliquez sur une ligne pour l'ouvrir en édition : l'anglais à gauche, en lecture seule ; votre français à droite. Passez à la clé suivante, ou revenez à la précédente, sans repasser par la liste. Un mod qui n'a pas encore de `fr.json` en obtient un au premier enregistrement — l'onglet s'ouvre aussi sur les mods sans aucun français, pas seulement là où le travail est déjà commencé.
+*   **Une IA locale propose le français** — un modèle qui tourne sur votre Mac remplit le brouillon, clé par clé ou par lots que vous pouvez arrêter et reprendre. Les propositions arrivent marquées « À relire », avec un filtre pour les retrouver, et passent par le même contrôle de marqueurs que la saisie manuelle. Rien ne quitte la machine : l'app n'accepte qu'une adresse en loopback, sans proxy et sans suivre de redirection.
 *   **Le glossaire vient du jeu lui-même** — plus de mille noms d'objets, d'outils, de personnages, de lieux et de saisons, lus dans les fichiers de votre installation et imposés au modèle : une proposition dit « Minerai d'iridium », pas un synonyme inventé. Les termes en jeu s'affichent en pastilles dans l'éditeur, à insérer d'un clic.
 *   **L'app dit quel modèle installer** — un Ollama fraîchement installé n'a aucun modèle, et le bon nom n'est pas devinable. Les réglages lisent la mémoire du Mac, nomment un modèle qui lui convient et donnent la commande à lancer — ou pointent un modèle convenable déjà présent, plutôt qu'un téléchargement de plusieurs gigaoctets pour rien.
-*   **Les marqueurs du jeu sont protégés pendant la traduction** — dans l'éditeur, ils s'insèrent d'un clic plutôt qu'ils ne se retapent ; un enregistrement qui en fait disparaître un est refusé, en nommant celui qui manque. Une issue existe quand l'omission est délibérée : une phrase française neutre n'a que faire d'un sélecteur de genre.
+*   **Les marqueurs du jeu sont protégés pendant la traduction** — dans l'éditeur, vous les insérez d'un clic au lieu de les retaper ; un enregistrement qui en fait disparaître un est refusé, en nommant celui qui manque. Une exception est prévue quand l'omission est délibérée : une phrase française neutre n'a que faire d'un sélecteur de genre.
 *   **Chaque clé sous ses deux langues** — l'anglais et le français côte à côte, avec l'état de la clé (traduit, à traduire, vide, identique à l'anglais, orphelin). Chaque filtre porte son compte, pour qu'un « Vides 3 » saute aux yeux avant même de cliquer.
 *   **Ce qui ne doit pas être traduit est visible** — une valeur mêle la phrase et les marques que le jeu lit : token Content Patcher, séparateur de dialogue, commande qui change une expression de portrait. Les traduire ou les déplacer casse le mod ; elles s'affichent en chasse fixe et en couleur, dans les deux colonnes. Plus de la moitié des valeurs en contiennent au moins une.
 *   **Les sections mises en évidence** — celles qu'un auteur a écrites dans son fichier deviennent des titres repliables, avec ce qu'il reste à y faire, et une liste permet de sauter directement à l'une.
@@ -109,7 +111,7 @@ Un onglet **Traduction** sur la fiche de chaque mod vous montre l'état réel de
 
 *   **Lancement du jeu** — démarrez Stardew Valley en mode Vanilla ou via SMAPI, directement depuis l'accueil.
 *   **Journaux en temps réel** — sortie SMAPI et StarHubFR dans l'application, avec filtrage par source et par niveau (compteurs à l'appui), recherche, et copie de lignes conservant l'origine et le mod concerné.
-*   **Indicateur d'état système** — mods actifs, mises à jour disponibles et erreurs SMAPI, visibles en permanence en bas de la barre latérale.
+*   **État toujours lisible** — la carte de compte en tête de barre latérale porte le profil actif, les mods actifs et l'état de SMAPI ; les mises à jour et les alertes comptent leurs badges sur leurs propres entrées ; le pied donne le poids du dossier `Mods/` et l'espace disque restant. Réduite, la fenêtre fait défiler les groupes de navigation — le compte et les réglages restent en place.
 *   **Journal des modifications intégré** — l'historique des versions se consulte depuis la barre latérale.
 *   **Accessibilité VoiceOver** — navigation complète au lecteur d'écran sur la liste des mods, les boutons d'action et la barre latérale.
 *   **Détails qui comptent** — zone de glisser-déposer dédiée quand aucun mod n'est installé, recherche Nexus avec des termes lisibles (« Content Patcher » plutôt que `Pathoschild.ContentPatcher`), infobulles sur tous les boutons d'icône.
@@ -140,14 +142,14 @@ Un onglet **Traduction** sur la fiche de chaque mod vous montre l'état réel de
 ### Étapes d'installation
 1. **Télécharger** : Récupérez la dernière version depuis la page [Releases](../../releases).
 2. **Installer** : Décompressez le fichier et glissez `StarHubFR.app` dans votre dossier Applications, puis double-cliquez pour le lancer.
-3. **Définir le dossier du jeu** : Au premier lancement, l'application tentera de détecter automatiquement le dossier du jeu Steam. Si celui-ci n'est pas trouvé, vous pouvez sélectionner manuellement le répertoire du jeu (ex. `/Applications/Stardew Valley.app/Contents/MacOS`).
+3. **Définir le dossier du jeu** : Au premier lancement, l'application tentera de détecter automatiquement le dossier du jeu Steam. Si celui-ci n'est pas trouvé, vous pouvez sélectionner manuellement le répertoire du jeu (p. ex. `/Applications/Stardew Valley.app/Contents/MacOS`).
 4. **C'est prêt !** : Gérez vos mods ou vos sauvegardes, puis cliquez sur **« Lancer le jeu »** sur la page d'accueil.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/developers_banner.png" alt="Pour les développeurs" width="300">
 </p>
 
-Cette application est développée en **Swift** et **SwiftUI** en tant qu'application macOS native.
+Cette application est développée nativement pour macOS en **Swift** et **SwiftUI**.
 
 ### Prérequis
 *   macOS 14.0 (Sonoma) ou ultérieur
@@ -161,17 +163,17 @@ open StarHubFR.app
 ```
 
 ### Créer une version Release
-Pour empaqueter l'application dans un fichier `.zip` pour la distribution :
+Pour empaqueter l'application en un `.zip` prêt à distribuer :
 ```bash
 python3 release.py
 ```
-Les fichiers Release seront sauvegardés dans le dossier `bundles/`.
+Les archives de release sont déposées dans le dossier `bundles/`.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/credits_banner.png" alt="Crédits et Licence" width="300">
 </p>
 
-Ce projet est publié sous la [Licence MIT](LICENSE). N'hésitez pas à forker, modifier et l'améliorer.
+Ce projet est publié sous la [Licence MIT](LICENSE). N'hésitez pas à le forker, le modifier et l'améliorer.
 Projet original : [StarHubTH](https://github.com/AppleBoiy/StarHubTH) par **AppleBoiy** — qui propose une version en **thaï**.
 
 ### Remerciements
@@ -189,9 +191,9 @@ La **découverte de mods et la vérification des mises à jour** reposent sur de
 
 La **traduction assistée** (glossaire des termes du jeu, pré-traduction IA) doit beaucoup aux travaux suivants :
 
-*   [**lzxd**](https://github.com/Lonami/lzxd) par **Lonami** (MIT / Apache-2.0) — notre décodeur LZX, qui lit les fichiers de traduction officiels du jeu directement depuis votre installation, est une translittération en Swift de cette implémentation.
+*   [**lzxd**](https://github.com/Lonami/lzxd) par **Lonami** (MIT / Apache-2.0) — notre décodeur LZX, qui lit les fichiers de traduction officiels du jeu directement depuis votre installation, est une transposition en Swift de cette implémentation.
 *   [**stardew-i18n-translator**](https://github.com/Nana1873/stardew-i18n-translator) par **Nana1873** (GPL-3.0) — application Windows de traduction de mods dont le workflow a servi de référence de conception à la nôtre. Aucun code n'est repris : les licences l'excluent.
 *   [**StardewXnbHack**](https://github.com/Pathoschild/StardewXnbHack) par **Pathoschild** (MIT) — sert d'oracle pour valider notre lecteur de fichiers du jeu, octet par octet.
-*   [**Ollama**](https://ollama.com) (MIT) — le serveur d'IA locale que l'app détecte, vers lequel elle oriente, et le seul destinataire de ce qu'elle envoie. StarHubFR ne l'installe pas et ne l'embarque pas : il tourne chez vous, sous votre contrôle.
+*   [**Ollama**](https://ollama.com) (MIT) — le serveur d'IA locale que l'app détecte et recommande, et le seul destinataire de ce qu'elle envoie. StarHubFR ne l'installe pas et ne l'embarque pas : il tourne chez vous, sous votre contrôle.
 *   [**LM Studio**](https://lmstudio.ai) — détecté au même titre qu'Ollama quand il expose son API compatible OpenAI (gratuit, propriétaire).
 *   [**Qwen2.5**](https://ollama.com/library/qwen2.5) par l'**équipe Qwen** (Apache-2.0) — la famille conseillée par défaut : multilingue, tailles régulières, et surtout **sans raisonnement** — un modèle qui délibère avant de répondre épuise son budget de jetons et rend une traduction tronquée. Le choix reste le vôtre : le champ Modèle accepte n'importe quel modèle servi par votre serveur.
