@@ -55,4 +55,31 @@ import Testing
             removed: ["color"], added: ["colour", "colour2"])
         #expect(pairs.count == 1)
     }
+
+    @Test func lengthDiffAtBoundStillPairs() {
+        // Écart de longueurs EXACTEMENT à la borne (2) : distance 2 ≤ 2,
+        // la paire doit exister — le pré-filtre n'écarte qu'au-DELA de la
+        // borne, jamais à elle.
+        let pairs = KeyRenameMatcher.pairsBySimilarity(
+            removed: ["abcd"], added: ["abcdef"])
+        #expect(pairs.count == 1)
+    }
+
+    @Test func lengthDiffBeyondBoundCannotPair() {
+        // Écart de longueurs au-delà de la borne : la distance majore
+        // l'écart, le calcul ne peut pas passer — le pré-filtre saute
+        // sans Levenshtein, le résultat est le même.
+        let pairs = KeyRenameMatcher.pairsBySimilarity(
+            removed: ["ab"], added: ["abcdefgh"])
+        #expect(pairs.isEmpty)
+    }
+
+    @Test func prefilterUsesNormalizedLengths() {
+        // La normalisation insère des espaces (camelCase → mots joints) :
+        // le pré-filtre juge sur les longueurs NORMALISÉES, sinon il
+        // écarterait des paires que le calcul accepterait.
+        let pairs = KeyRenameMatcher.pairsBySimilarity(
+            removed: ["EnableBetaFeatures"], added: ["enable_beta_feature"])
+        #expect(pairs.count == 1)
+    }
 }

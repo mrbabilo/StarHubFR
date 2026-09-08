@@ -7494,6 +7494,10 @@ for mod in mods {
     /// même chose. Échec journalisé, jamais bloquant.
     func persistUpdateKeyDeltas(_ paths: [InstalledModPath]) {
         lastInstallKeyDeltas = paths.compactMap(\.keyDelta)
+        // Le store vient de changer sous les caches de lecture : une mise à
+        // jour du MÊME mod dans la session ne doit pas resservir l'ancien
+        // delta mémorisé.
+        updateKeyDeltasRevision += 1
         guard let dir = ModUpdateKeyDeltaStore.defaultDirectory() else {
             log("Delta de mise à jour : dossier Application Support indisponible, non persisté",
                 level: .warning)
@@ -7510,21 +7514,47 @@ for mod in mods {
         }
     }
 
+    /// Incrémenté à chaque mutation du store (report, nouvelle capture,
+    /// suppression) : la section fiche relit le delta et rejoue le matcher
+    /// (le magasin n'est pas `@Published` — sans ce compteur, ni le
+    /// rafraîchissement ni l'invalidation des caches ci-dessous ne marchent).
+    @Published private(set) var updateKeyDeltasRevision = 0
+
+    /// Caches de lecture de la fiche. Le body relit le delta à CHAQUE rendu
+    /// et le matcher de renommage est O(retirées × ajoutées) — sans
+    /// mémoïsation, chaque republication du VM (scan, journal, Nexus)
+    /// rejouait lecture disque + Levenshtein sur le fil principal tant que
+    /// la fiche est ouverte, la classe exacte de gel corrigée deux fois
+    /// (index glossaire, LazyVStack). Une entrée suffit : la fiche ne
+    /// montre qu'un mod, et la révision invalide à toute mutation du store.
+    /// Touchés du fil principal seulement (body, actions de boutons,
+    /// completion d'installation sur `DispatchQueue.main`).
+    private var deltaReadCache: (uniqueId: String, revision: Int, delta: ModUpdateKeyDelta?)?
+    private var renamePairsCache: (uniqueId: String, revision: Int,
+                                   result: (translation: [RenamePair], config: [RenamePair]))?
+
     /// Le delta persisté du mod, pour la fiche — nil si aucun.
     func updateKeyDelta(for mod: ModItem) -> ModUpdateKeyDelta? {
-        guard let dir = ModUpdateKeyDeltaStore.defaultDirectory() else { return nil }
-        return ModUpdateKeyDeltaStore.load(uniqueId: mod.uniqueId, directory: dir)
+        if let cached = deltaReadCache,
+           cached.uniqueId == mod.uniqueId,
+           cached.revision == updateKeyDeltasRevision {
+            return cached.delta
+        }
+        let delta = ModUpdateKeyDeltaStore.defaultDirectory()
+            .flatMap { ModUpdateKeyDeltaStore.load(uniqueId: mod.uniqueId, directory: $0) }
+        deltaReadCache = (mod.uniqueId, updateKeyDeltasRevision, delta)
+        return delta
     }
-
-    /// Incrémenté après chaque report : la section fiche relit le store
-    /// (le magasin n'est pas `@Published` — sans ce compteur, la section ne
-    /// se rafraîchirait pas après un report).
-    @Published private(set) var updateKeyDeltasRevision = 0
 
     /// Les paires de renommage proposées pour ce delta : fusion des deux
     /// signaux (valeur EN identique = sûr ; similarité de nom = à vérifier
     /// à l'œil), moins ce qui est déjà réconcilié.
     func renamePairs(for delta: ModUpdateKeyDelta) -> (translation: [RenamePair], config: [RenamePair]) {
+        if let cached = renamePairsCache,
+           cached.uniqueId == delta.uniqueId,
+           cached.revision == updateKeyDeltasRevision {
+            return cached.result
+        }
         let byValue = KeyRenameMatcher.pairsByValue(old: delta.translation.removedKeys,
                                                     new: delta.translation.addedUntranslated)
         let valueOlds = Set(byValue.map(\.oldKey))
@@ -7541,7 +7571,9 @@ for mod in mods {
         let byNameConfig = KeyRenameMatcher.pairsBySimilarity(
             removed: (delta.config?.removed ?? [:]).keys.filter { !doneConfigKeys.contains($0) },
             added: (delta.config?.added ?? [:]).keys.filter { !doneConfigKeys.contains($0) })
-        return (byValue + byNameTrad, byNameConfig)
+        let result = (byValue + byNameTrad, byNameConfig)
+        renamePairsCache = (delta.uniqueId, updateKeyDeltasRevision, result)
+        return result
     }
 
     /// Sépare `"Composant/clé"` en (composant, clé) sur le plus long préfixe
@@ -10681,6 +10713,10 @@ for mod in mods {
         // C2-T4 — le delta du mod n'a plus de titulaire.
         if let dir = ModUpdateKeyDeltaStore.defaultDirectory() {
             ModUpdateKeyDeltaStore.remove(uniqueId: mod.uniqueId, directory: dir)
+            // Le store a changé : les caches de lecture (delta, paires) ne
+            // doivent pas ressusciter un fichier qui vient de partir — cas
+            // réel du parc, deux dossiers partageant un même UniqueID.
+            updateKeyDeltasRevision += 1
         }
     }
 

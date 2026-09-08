@@ -25,6 +25,13 @@ public enum KeyRenameMatcher {
 
     /// Similarité de nom : normalisation casse/séparateurs, Levenshtein borné,
     /// un-à-un par meilleur score. Rend seulement les paires sous seuil.
+    ///
+    /// Pré-filtre de longueur : la distance majore l'écart des longueurs
+    /// **normalisées** — au-delà de la borne, le calcul ne peut pas passer.
+    /// Sans lui, une grosse mise à jour rewordée (~1 000 × 1 000 clés) paie
+    /// 10⁶ Levenshtein sur le fil principal ; avec lui, quelques milliers.
+    /// Juger les longueurs normalisées, jamais brutes : la normalisation
+    /// change la longueur (séparateurs → espaces).
     public static func pairsBySimilarity(removed: [String],
                                          added: [String]) -> [RenamePair] {
         // Seuil : distance ≤ max(2, 30 % de la longueur du plus long).
@@ -41,8 +48,9 @@ public enum KeyRenameMatcher {
         for oldKey in removed {
             for newKey in added {
                 let a = normalize(oldKey), b = normalize(newKey)
-                let d = levenshtein(a, b)
                 let bound = max(2, max(a.count, b.count) * 3 / 10)
+                if abs(a.count - b.count) > bound { continue }
+                let d = levenshtein(a, b)
                 if d <= bound {
                     all.append(Candidate(distance: d, oldKey: oldKey, newKey: newKey))
                 }
