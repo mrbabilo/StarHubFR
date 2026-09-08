@@ -12,6 +12,20 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Le delta d'une mise à jour lit les i18n comme le jeu.** Commentaires et virgules finales — un fichier EN/FR sur deux sur le parc — faisaient disparaître le composant du relevé : compteurs gonflés des deux sens, pendant que l'onglet diff disait juste. `config.json` reste lu strict, comme le jeu.
+
+- **« Voir la fiche » depuis l'écran d'installation ouvre vraiment la fiche.** Demandée depuis l'onglet Mods, elle n'était jamais consommée et surgissait plus tard, au prochain changement d'onglet. Elle s'ouvre sur place ; le canal ne sert qu'aux vrais changements d'onglet.
+
+- **Le report de renommages dit la vérité.** Les paires de config, issues de la seule heuristique de nom, portent le point creux « à vérifier » plutôt que le vert ; et un report annulé par sécurité — fichier changé ou illisible — ne se cache plus derrière « Rien à reporter ».
+
+- **La fiche d'un gros delta ne gèle plus.** Lecture disque et appariement des renommages se rejetaient à chaque rafraîchissement, Levenshtein compris : mémoïsés, et pré-filtrés par longueur.
+
+- **Supprimer un pack efface le delta de ses composants.** Les fiches d'une réinstallation ressuscitaient l'analyse d'une mise à jour passée, boutons « Reporter » compris.
+
+- **Les composants des packs entrent dans la réconciliation.** Les sous-mods imbriqués, jusqu'à la profondeur du scan, portent leurs clés dans le delta ; un renommage qui change de composant n'est plus appliqué au mauvais fichier — il est annoncé, à faire dans le diff.
+
 ## [1.38.0] - 2026-09-08
 
 ### Added
