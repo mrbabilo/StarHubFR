@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.41.1] - 2026-09-09
+
 ### Fixed
 
 - **« Vérifier les mises à jour » refonctionne.** Le premier contrôle au lancement laissait l'écran À propos bloqué sur « Vérification… », bouton grisé, pour toute la session.
