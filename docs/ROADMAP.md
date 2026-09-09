@@ -1013,6 +1013,32 @@ par lot, une release par lot. Périmètre : visuel + navigation —
       depuis H-T7.**
 - [ ] **H-T8** — **Hub de traduction** : reskin de continuité seulement —
       monde à part, déjà structuré. · **M**
+      ▸ **Cadré et mesuré le 2026-09-09.**
+      **Périmètre : cinq vues, 74 tailles littérales, 1 970 lignes** —
+      `TranslationDiffView` (1 021 l., 37), `TranslationEditorView` (494 l., 13),
+      `TranslationRecoveryDiffView` (190 l., 12), `TranslationBatchView`
+      (164 l., 8), `TranslationSectionIndexView` (101 l., 4). Ce sont bien les
+      « Éditeur, diffs, lots » que la spec §6 nomme pour ce lot ; les deux
+      dernières sont ouvertes **depuis** `TranslationDiffView` (l.213 et l.313),
+      aucune n'est orpheline.
+      ⚠️ **`ThaiTranslationHubView` (283 l., 17 littérales) est EXCLU, et c'est
+      délibéré.** Ce n'est pas l'éditeur FR mais le catalogue de traductions
+      thaï de l'amont — et surtout **`C5-T1` est encore ouvert** (vérifié : la
+      case l.346, et aucun commit ne touche `showThaiTranslationHub`), qui doit
+      rendre cette vue générique et exposer une vue FR par défaut. La
+      reskinner maintenant serait du travail que C5-T1 jetterait. **Ses 17
+      littérales rejoignent donc l'inventaire H-T9**, pour que cet écran ne
+      sorte pas de l'axe H sans que personne s'en aperçoive.
+      **Deux tokens manquent encore**, et le lot les ajoute : le monospace
+      n'existe qu'en 11 et 12 (posés par H-T7) alors que le hub en emploie 7 à
+      **10 pt** et 1 à **9 pt** — des clés techniques, plus petites qu'une ligne
+      de journal. `size: 8` (un glyphe décoratif annotant une clé) monte à 9,
+      le plus petit palier : **changement visible d'1 pt**, à vérifier à
+      l'écran.
+      **Accessibilité §7 point 1, mesurée** : `TranslationEditorView` porte
+      **6 `.help()` et zéro cible élargie** — le motif exact de `LogsView`
+      avant H-T7, où quatre infobulles ne sortaient jamais.
+      `TranslationDiffView` en a 5 pour 3 cibles.
 - [ ] **H-T9** — **Closage** : audit de fidélité (Découvrir visuellement
       identique à la v1.25.0 malgré les évolutions du système), bibliothèque
       `/design` complétée (Screens), nettoyage des vestiges. · **S**
