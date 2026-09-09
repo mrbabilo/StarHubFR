@@ -1838,13 +1838,30 @@ antérieure ne portent pas `categoryId` (pastille absente jusqu'au premier
 rafraîchissement), et `languageName` existe au filtre — piste pour la sélection
 FR sans passer par le tag.
 
-### 8.1 Cadrage X103 — la suppression peut-elle se défaire ? *(instruit le 2026-09-09, à trancher par l'auteur)*
+### 8.1 Cadrage X103 — la suppression peut-elle se défaire ? *(instruit le 2026-09-09, **B tranché et livré le jour même** ; C encore ouvert)*
 
 > **Arbitrage rendu le jour même (2026-09-09) : option B, livrée en séance** —
 > type Core `ModTrash` (corbeille `Mods/_Trash_*`, 15 tests), « Remettre »
 > en désactivé, purge nominative et « Vider » à l'écran Entretien, jamais de
 > purge automatique. L'option C (rétention des archives Nexus) reste une
 > suite possible, non planifiée.
+>
+> **Ce que l'option C coûterait, mesuré le 2026-09-09** — les chiffres
+> manquaient au tableau ci-dessous, qui la jugeait « M-L » sans les avoir.
+> Sur le parc de référence : **723 manifestes sur 1 102 (65 %) déclarent un
+> `Nexus:<id>`** et sont donc éligibles ; ils pèsent **3,1 Go décompressés**
+> sur les 13 Go du parc — les 379 restants, sans clé Nexus, en pèsent dix à
+> eux seuls (gros packs de contenu). Une archive conservée par mod éligible
+> ferait donc de l'ordre de **1,7 Go**.
+> ⚠️ **Mais ce coût ne s'applique pas rétroactivement** : l'option ne peut
+> garder que les archives des mods **installés depuis l'app**, à partir du
+> jour où elle existe. L'empreinte part de zéro et croît à l'usage — ce qui
+> change la nature de la décision : la question n'est pas « accepte-t-on
+> 1,7 Go », mais « veut-on une rétention à régler, et sur quel critère ».
+> Le geste existe déjà pour les sauvegardes (rétention par âge/taille de
+> `ModInstallBackupManager`) et son écran aussi (Entretien, X25) : c'est
+> autant de neuf en moins que ne le disait « nouveau magasin, nouvelle
+> rétention, nouvelle UI ».
 
 > Les faits ci-dessous sont relevés dans le code au jour dit, pas supposés.
 > La question : supprimer un mod est définitif (`removeItem` direct, confirmé
