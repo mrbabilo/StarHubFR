@@ -14,6 +14,8 @@ where the exact log format was verified.
 
 ### Changed
 
+- **Les Réglages se lisent par nature.** Onze sections à la file deviennent quatre groupes titrés — Jeu, Mods & contenu, Données & stockage, À propos — et le groupe Jeu suit l'ordre des gestes : on choisit un dossier de jeu, puis on installe SMAPI dedans, puis on lance. Tailles, espacements et couleurs passent au système de design.
+
 - **Les journaux parlent la langue de l'app.** Filtres, barre d'outils et lignes de journal reprennent les tailles, espacements et couleurs du système de design — le monospace y entre pour la première fois. Un état vide dit désormais s'il est vide *parce qu'un filtre exclut tout*, et propose de le lever.
 
 ### Fixed

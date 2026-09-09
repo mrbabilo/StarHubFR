@@ -626,7 +626,7 @@ non installé), jamais des prédictions.
 
 ---
 
-### Cohérence UI : un seul langage pour toute l'app — **Axe H** · **5 items ouverts sur 13**
+### Cohérence UI : un seul langage pour toute l'app — **Axe H** · **4 items ouverts sur 13** *(relevé le 2026-09-09, H-T7 livré : restent H-T5c, H-T5e, H-T8, H-T9)*
 
 L'onglet Découvrir (axe G) a établi de fait un langage — cartes en grille
 adaptative, états qui portent l'action qui les lève, comptes honnêtes, un
@@ -897,7 +897,7 @@ par lot, une release par lot. Périmètre : visuel + navigation —
 > `healthIssues` comme le prévoyait la spec §6 bis. `[HealthIssue].actionableCount`
 > (critique + avertissement, `.info` exclu) est la règle unique désormais lue
 > par la pastille et le pied de liste.
-- [ ] **H-T7** — **Lots Journaux & Réglages** : reskin léger des journaux
+- [x] **H-T7** — ✅ **Livré le 2026-09-09, en deux lots.** **Lots Journaux & Réglages** : reskin léger des journaux
       (la perf est déjà faite), Réglages absorbe les déménagés de l'accueil
       en sections unifiées. Deux releases — phases 5 et 6 de la spec. · **S**
       ▸ **Cadré et mesuré le 2026-09-09** — plan
@@ -963,6 +963,37 @@ par lot, une release par lot. Périmètre : visuel + navigation —
       > tokenisation y resserrait deux espacements. Il tient. La même
       > tokenisation peut donc être répétée sur les 53 sites de `SettingsView`
       > sans reposer la question.
+
+      ✅ **Lot Réglages (phase 6) livré le 2026-09-09.** `SettingsView` tombe de
+      **53 tailles littérales à ZÉRO** : les deux vues du lot sont à zéro, le
+      critère §10 n°1 est atteint sur tout le périmètre de H-T7. Onze sections
+      de premier niveau — et non treize : **le glossaire et le secours en ligne
+      sont imbriqués dans « Traduction assistée »** (`LocalAISettingsSection`),
+      les hisser aurait demandé d'éclater cette vue, refonte que §9 exclut.
+      Elles se lisent en quatre groupes titrés (Jeu, Mods & contenu, Données &
+      stockage, À propos), dont l'ordre vient d'un type Core sous test
+      (`SettingsSectionOrder`, 7 tests) : le groupe Jeu suit **l'ordre des
+      gestes** — dossier, puis SMAPI, puis lancement — et les réglages de
+      développeur quittent le milieu de l'écran pour le groupe Données.
+      *Garde-fous du déplacement :* le `switch` de `sectionView` est exhaustif
+      (jamais de `default:`, qui rendrait une perte silencieuse), le compte de
+      `StandardSection` reste à 13, et le mapping cas → propriété a été relu un
+      à un — c'est le seul contrôle qui attrape un **branchement croisé**, que
+      ni le `switch` ni le compte ne voient. Cliquet relevé de +1 (le `vm.L`
+      des titres de groupe). Bénéfice de côté : un `body` de 380 lignes découpé
+      en onze propriétés nommées, exactement le genre qui sature le
+      type-checker.
+      > **À vérifier à l'écran (lot Réglages)** — 1. Les onze sections sont
+      > toutes là, aucune perdue au déplacement : **4** sous Jeu, **3** sous
+      > Mods & contenu, **3** sous Données & stockage, **1** sous À propos.
+      > 2. **En français, fenêtre à sa largeur minimale** : les quatre titres
+      > de groupe ne se tronquent pas — « Données & stockage » est le plus
+      > long. 3. Sans clé Nexus enregistrée : le champ sécurisé et le bouton
+      > « Enregistrer » sont là, le flash vert sort à l'enregistrement.
+      > 4. Avec une clé : les points masqués sont monospacés et alignés.
+      > 5. « Traduction assistée » contient toujours le glossaire **et** le
+      > secours en ligne — ils n'ont pas été hissés au premier niveau, et
+      > n'apparaissent nulle part en double.
 
       **Ce qui n'est PAS dans ce lot, et attend H-T9** : le dépôt porte **538**
       tailles littérales au total — `ModDetailView` 106, `MainView` 57,
