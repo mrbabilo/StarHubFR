@@ -29,6 +29,18 @@ struct ModInstallView: View {
     /// flag so it cleans up the temp dir itself instead of writing into
     /// `@State` that `onDisappear` already ran past (which would leak it).
     @State private var isViewActive = true
+    /// Cette feuille se ferme-t-elle parce qu'une installation a réussi ?
+    /// Si oui, le lot continue : c'est le **bilan** qui devient responsable
+    /// de la file (« Archive suivante », ou abandon à la fermeture de sa
+    /// fenêtre). Sinon, la feuille meurt sur un abandon et emporte la file.
+    ///
+    /// Un `@State` local, et pas une lecture de `vm.pendingInstallReport` :
+    /// le bilan s'ouvre pendant l'animation de fermeture de la feuille, si
+    /// bien qu'un clic rapide sur « Archive suivante » remet le report à nil
+    /// **avant** que cet `onDisappear` ne s'exécute — la file de la suite
+    /// serait alors effacée sous les pieds du lot en cours. Porté par
+    /// l'instance de vue, ce drapeau ne dépend d'aucun ordre.
+    @State private var closingAfterInstall = false
 
     /// Une archive qui n'est pas un mod, mais du contenu reconnu comme
     /// destiné au dossier d'un autre mod — voir `DroppedContentRecognizer`.
@@ -287,10 +299,9 @@ struct ModInstallView: View {
         }
         .onDisappear {
             isViewActive = false
-            // Le lot de dépôt meurt avec la feuille **sauf** si un bilan
-            // vient d'être posé : dans ce cas la feuille s'est fermée pour
-            // laisser place au bilan, qui enchaîne (« Archive suivante »).
-            if vm.pendingInstallReport == nil {
+            // Le lot de dépôt meurt avec la feuille **sauf** si elle se ferme
+            // sur une installation réussie : le bilan prend alors la suite.
+            if !closingAfterInstall {
                 vm.abandonDropQueue()
             }
             // If the sheet is dismissed without the Cancel button (swipe /
@@ -1006,6 +1017,7 @@ struct ModInstallView: View {
                     // téléchargé vivait encore.
                     self.vm.completeInstall(
                         installedNames: modsBeingInstalled.map { $0.name })
+                    self.closingAfterInstall = true
                     self.isPresented = false
                 }
             } catch {

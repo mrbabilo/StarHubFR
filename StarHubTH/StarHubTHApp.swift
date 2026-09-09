@@ -103,7 +103,7 @@ struct StarHubTHApp: App {
         // A single `Window` (not `WindowGroup`): macOS never spawns a second
         // window for it, so an nxm:// activation just brings this one forward
         // instead of stacking duplicates.
-        Window("StarHubFR", id: "main") {
+        Window("StarHubFR", id: AppWindowID.main) {
             MainView(vm: vm)
                 .onAppear {
                     // Route nxm:// links (buffered at cold launch) into the
@@ -181,7 +181,7 @@ struct StarHubTHApp: App {
         // là où l'écran de succès interne de la feuille vivait. Ouverte par
         // `openWindow(id:)` depuis MainView quand un report est posé ; une
         // seconde ouverture l'amène au premier plan et remplace le contenu.
-        Window(vm.L(L10n.InstallReport.windowTitle), id: "installReport") {
+        Window(vm.L(L10n.InstallReport.windowTitle), id: AppWindowID.installReport) {
             InstallReportWindow(vm: vm)
         }
         .windowResizability(.contentMinSize)

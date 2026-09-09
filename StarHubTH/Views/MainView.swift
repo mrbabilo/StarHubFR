@@ -333,7 +333,7 @@ struct MainView: View {
         // report est posé (réouverture idempotente, contenu remplacé).
         .onChange(of: vm.pendingInstallReport) { _, report in
             guard report != nil else { return }
-            openWindow(id: "installReport")
+            openWindow(id: AppWindowID.installReport)
         }
         // « Archive suivante » de la fenêtre de bilan : la feuille se
         // rouvre sur l'archive posée (chemin preloadedZip existant).
@@ -364,7 +364,7 @@ struct MainView: View {
             }
             // Amener la fenêtre principale devant : la fiche s'y pose, la
             // fenêtre de bilan reste ouverte derrière.
-            openWindow(id: "main")
+            openWindow(id: AppWindowID.main)
             vm.consumeReportDetailFocus()
         }
         // L'alerte release attend son tour : posée par le check au lancement,

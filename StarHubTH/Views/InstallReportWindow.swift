@@ -1,5 +1,14 @@
 import SwiftUI
 
+/// Les identifiants de scène de l'app. Chacun est employé à trois endroits
+/// au moins — déclaration, ouverture, fermeture — et une faute de frappe y
+/// échoue **en silence** : `openWindow`/`dismissWindow` sur un identifiant
+/// inconnu ne font rien. Même raison d'être que `UDKey`.
+enum AppWindowID {
+    static let main = "main"
+    static let installReport = "installReport"
+}
+
 /// La fenêtre de bilan post-installation — redimensionnable, là où l'écran
 /// de succès interne de la feuille vivait. Les données sont l'`InstallReport`
 /// figé par le ViewModel : un rafraîchissement du parc pendant la lecture ne
@@ -7,7 +16,11 @@ import SwiftUI
 /// fenêtre déjà ouverte l'amène au premier plan et le contenu se remplace.
 struct InstallReportWindow: View {
     @ObservedObject var vm: StarHubTHViewModel
-    @Environment(\.dismiss) private var dismiss
+    /// `dismissWindow`, pas `dismiss` : sur une racine de scène, `dismiss`
+    /// n'est pas garanti de viser la fenêtre, et il échouerait sans bruit —
+    /// exactement le défaut qu'on corrige ici. `dismissWindow(id:)` nomme
+    /// sa cible.
+    @Environment(\.dismissWindow) private var dismissWindow
 
     var body: some View {
         Group {
@@ -25,7 +38,7 @@ struct InstallReportWindow: View {
         // laissait flotter derrière la feuille rouverte. Un seul point de
         // fermeture, pour les deux boutons.
         .onChange(of: vm.pendingInstallReport) { _, report in
-            if report == nil { dismiss() }
+            if report == nil { dismissWindow(id: AppWindowID.installReport) }
         }
         // Fermeture au bouton rouge, bilan encore posé : le lot est abandonné,
         // le reste de la file part avec lui. Les deux boutons, eux, passent
