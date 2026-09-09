@@ -14,6 +14,8 @@ where the exact log format was verified.
 
 ### Changed
 
+- **Les archives Nexus peuvent être conservées, si vous le demandez.** Une fois activée dans les Réglages, la fonction garde le fichier servi par Nexus après chaque installation réussie : un mod supprimé se réinstalle depuis l'écran Entretien, sans réseau et dans sa version exacte. Désactivée par défaut, bornée par une rétention, et son poids est affiché avec le reste.
+
 - **Trois images mortes quittent l'application.** `green_button`, `wood_button` et `wood_panel` étaient embarquées depuis le premier commit sans qu'aucune ligne de code ne les charge.
 
 - **Une ferme de mod a enfin sa vignette.** Les sauvegardes dont la ferme vient d'un mod affichaient un glyphe sur fond neutre, au milieu de sept illustrations — la case se lisait comme celle qui manque. Une neuvième image générique prend sa place, au même format que les autres.

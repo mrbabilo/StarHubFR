@@ -1951,7 +1951,38 @@ sienne avec ses réglages.
 
 ⚠️ **Piège connu à rejouer** : toute extraction vers un dossier de mod doit
 ouvrir les droits (le parc est en `0555` partout) — la réinstallation
-emprunte ce chemin.
+emprunte ce chemin. *(Sans objet à l'arrivée : la réinstallation ne
+décompresse rien elle-même, elle rouvre la feuille d'installation ordinaire,
+qui porte déjà ce traitement.)*
+
+✅ **Livré le 2026-09-09, en trois tâches.** `NexusArchiveStore` (Core, 12
+tests, tous sur dossier temporaire), le réglage `keepNexusArchives` dans la
+section Nexus des Réglages, l'archivage branché au succès de l'installation,
+et la section « Archives Nexus » de l'écran Entretien — voir, réinstaller,
+supprimer une archive ou vider le magasin.
+**Le défaut le plus coûteux, évité de justesse** : la réinstallation passe par
+une **copie** de l'archive. La feuille d'installation efface le fichier qu'on
+lui confie à sa fermeture (`MainView:onDismiss` → `discardDownloaded`), et ce
+ménage n'épargne que les dossiers au préfixe du téléchargeur — lui passer le
+fichier du magasin l'aurait détruit. Réinstaller un mod aurait supprimé le
+moyen de le réinstaller une seconde fois.
+**Le cliquet des conventions a servi deux fois**, et ce n'était pas du bruit :
+`try_optional` +8 a fait voir que `saveIndex` avalait son échec — une archive
+copiée dont l'index n'est pas écrit est un fichier invisible qui pèse,
+exactement l'occupation muette que le lot veut éviter ; et
+`published_without_private_set` +1 sur `nexusArchives`. Les deux **corrigés**,
+pas relevés.
+> **À vérifier à l'écran (X103-C)** — 1. Réglages → Nexus : l'interrupteur est
+> **éteint**, et l'écran Entretien n'affiche alors la section Archives que si
+> elle contient déjà quelque chose. 2. L'allumer : Entretien affiche la
+> section avec sa phrase « aucune archive pour l'instant ». 3. Installer un
+> mod depuis Nexus : son archive apparaît, avec sa version et son poids.
+> 4. Supprimer ce mod, puis « Réinstaller » depuis Entretien : la feuille
+> d'installation habituelle s'ouvre, et **l'archive est toujours là après**
+> — c'est le point où le défaut évité se verrait. 5. Installer un **pack**
+> (plusieurs mods dans une archive) : rien n'est conservé, c'est l'abstention
+> voulue. 6. Éteindre l'interrupteur : les archives déjà là restent
+> listées et supprimables.
 
 ---
 
