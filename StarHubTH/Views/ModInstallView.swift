@@ -1058,6 +1058,18 @@ struct ModInstallView: View {
                     // Version — reconcile it against the Nexus file's own
                     // version/date now that the mod is on disk.
                     if let source = self.vm.pendingNexusSource {
+                        // X103-C — garder l'archive AVANT tout le reste, pour
+                        // la même raison que l'identifiant juste dessous : on
+                        // est ici au succès de l'installation, le seul instant
+                        // où l'archive, son mod et sa version sont connus
+                        // ensemble. Un seul mod installé, sinon abstention —
+                        // un pack porte plusieurs UniqueID pour une archive.
+                        let onlyMod = modsBeingInstalled.count == 1 ? modsBeingInstalled.first : nil
+                        self.vm.keepNexusArchiveIfEnabled(
+                            archive: self.preloadedZip,
+                            uniqueId: onlyMod?.uniqueId,
+                            version: onlyMod?.version,
+                            modName: onlyMod?.name)
                         // Retenir l'identifiant AVANT tout le reste : c'est la
                         // seule occasion où l'app le connaît, et
                         // `reconcileManifestVersion` consomme

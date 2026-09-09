@@ -174,6 +174,13 @@ class StarHubTHViewModel: ObservableObject {
     /// Set alongside pendingDownloadedZip when the zip came from a Nexus download,
     /// so the post-install step can reconcile the manifest version.
     @Published var pendingNexusSource: NexusInstallSource?
+    /// X103-C — le magasin d'archives Nexus. Inerte tant que le réglage
+    /// `keepNexusArchives` est éteint : rien n'appelle `keep`.
+    lazy var nexusArchiveStore = NexusArchiveStore(
+        root: NexusArchiveStore.defaultRoot(
+            applicationSupport: FileManager.default
+                .urls(for: .applicationSupportDirectory, in: .userDomainMask)
+                .first ?? URL(fileURLWithPath: NSTemporaryDirectory())))
     @Published var isDownloadingFromNexus = false
     /// Nexus mod id of the mod currently being downloaded, or nil when idle.
     /// Drives the per-row spinner in the Updates list while a premium update
@@ -5892,6 +5899,41 @@ for mod in mods {
     /// v1 : installations d'un seul mod. Un pack livre plusieurs dossiers pour
     /// une seule page Nexus — les relier tous au même identifiant ferait de
     /// chaque composant un faux candidat, avec sa propre version.
+    /// X103-C — garde l'archive Nexus qui vient de servir, si l'utilisateur
+    /// l'a demandé dans les Réglages.
+    ///
+    /// **Appelée au succès de l'installation, pas à la fermeture de la
+    /// feuille.** Les deux sites qui effacent l'archive
+    /// (`MainView:onDismiss`, le `defer` de `depositTranslation`) se
+    /// déclenchent aussi à l'annulation et à l'échec : y brancher l'archivage
+    /// stockerait des archives d'installations qui n'ont jamais eu lieu.
+    ///
+    /// **S'abstient sur un pack** — plusieurs mods, plusieurs `UniqueID`, une
+    /// seule archive : rien ne dit sous quelle identité la ranger. Même
+    /// abstention que `reconcileManifestVersion`, et pour la même raison.
+    func keepNexusArchiveIfEnabled(archive: URL?, uniqueId: String?,
+                                   version: String?, modName: String?) {
+        guard UserDefaults.standard.bool(forKey: UDKey.keepNexusArchives),
+              let archive, let uniqueId, let version, let modName,
+              !uniqueId.isEmpty, !version.isEmpty else { return }
+        do {
+            try nexusArchiveStore.keep(archive: archive, uniqueId: uniqueId,
+                                       version: version, modName: modName)
+            // La rétention court à chaque dépôt, comme celle des sauvegardes
+            // d'installation : sans elle le magasin ne connaîtrait aucune
+            // borne tant que l'utilisateur n'ouvre pas l'écran Entretien.
+            let purged = nexusArchiveStore.applyRetention()
+            if purged > 0 {
+                log("Archives Nexus : \(purged) ancienne(s) archive(s) retirée(s) par la rétention.",
+                    level: .info)
+            }
+        } catch {
+            // Un magasin d'archives qui échoue ne doit jamais faire échouer
+            // l'installation : le mod est posé, c'est ce qui compte.
+            log("Archive Nexus non conservée : \(error.localizedDescription)", level: .warning)
+        }
+    }
+
     func recordNexusModId(_ modId: Int, installedFolderPaths: [String]) {
         // **Avant** les deux refus qui suivent — pack multi-dossiers,
         // manifeste qui fait foi. Aucun des deux ne change le fait qui

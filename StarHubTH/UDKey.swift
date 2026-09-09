@@ -71,4 +71,10 @@ public enum UDKey {
     /// `Date()` has run. Removed in the release after the one that introduces
     /// this wipe (N+1) — see AGENTS §4.3 "key removed at version N+1".
     public static let registryMigrationV2Done = "registryMigrationV2Done"
+
+    /// X103-C — garder l'archive Nexus après une installation réussie, pour
+    /// réinstaller sans retélécharger. **Inactif par défaut** : une fonction
+    /// qui écrit sur le disque sans qu'on l'ait demandée fait croître
+    /// l'empreinte en silence.
+    public static let keepNexusArchives = "keepNexusArchives"
 }

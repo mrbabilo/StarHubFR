@@ -126,7 +126,14 @@ public final class NexusArchiveStore {
         var index = loadIndex()
         index.removeAll { $0.id == entry.id }
         index.append(entry)
-        saveIndex(index)
+        do {
+            try saveIndex(index)
+        } catch {
+            // L'index n'a pas pu être écrit : reprendre la copie plutôt que
+            // laisser un fichier que plus rien ne référence.
+            try? fm.removeItem(at: destination)
+            throw error
+        }
         return entry
     }
 
@@ -135,13 +142,15 @@ public final class NexusArchiveStore {
         lock.lock(); defer { lock.unlock() }
         var index = loadIndex()
         index.removeAll { $0.id == entry.id }
-        saveIndex(index)
+        // Le fichier est déjà parti : un index non réécrit se rattrape au
+        // prochain passage, `entries()` ne sert pas une entrée sans fichier.
+        try? saveIndex(index)
     }
 
     public func removeAll() {
         lock.lock(); defer { lock.unlock() }
         try? fm.removeItem(at: filesDir)
-        saveIndex([])
+        try? saveIndex([])
     }
 
     /// Rétention hybride : tout ce qui a moins de 30 jours, plus la plus
@@ -186,7 +195,7 @@ public final class NexusArchiveStore {
         lock.lock(); defer { lock.unlock() }
         var index = loadIndex()
         index.removeAll { removed.contains($0.id) }
-        saveIndex(index)
+        try? saveIndex(index)
         return removed.count
     }
 
@@ -197,7 +206,7 @@ public final class NexusArchiveStore {
         var index = loadIndex()
         index.removeAll { $0.id == entry.id }
         index.append(entry)
-        saveIndex(index)
+        try? saveIndex(index)
     }
 
     // MARK: - Index
@@ -207,9 +216,16 @@ public final class NexusArchiveStore {
         return (try? JSONDecoder().decode([NexusArchiveEntry].self, from: data)) ?? []
     }
 
-    private func saveIndex(_ entries: [NexusArchiveEntry]) {
-        try? fm.createDirectory(at: root, withIntermediateDirectories: true)
-        guard let data = try? JSONEncoder().encode(entries) else { return }
-        try? data.write(to: indexURL, options: .atomic)
+    /// Écrit l'index, et **remonte son échec**.
+    ///
+    /// Un `try?` ici serait le pire endroit du fichier pour en mettre un : une
+    /// archive copiée dont l'index n'a pas été écrit est un fichier invisible
+    /// qui pèse — exactement l'occupation disque muette que ce lot cherche à
+    /// éviter. `keep` propage donc l'erreur, et l'appelant sait que l'archive
+    /// n'a pas été conservée.
+    private func saveIndex(_ entries: [NexusArchiveEntry]) throws {
+        try fm.createDirectory(at: root, withIntermediateDirectories: true)
+        let data = try JSONEncoder().encode(entries)
+        try data.write(to: indexURL, options: .atomic)
     }
 }

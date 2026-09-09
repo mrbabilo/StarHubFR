@@ -8,6 +8,9 @@ struct SettingsView: View {
     @AppStorage("closeAfterLaunch") private var closeAfterLaunch: Bool = false
     @AppStorage("showDeveloperLogs") private var showDeveloperLogs: Bool = false
     @AppStorage(UDKey.autoCheckNexusUpdates) private var autoCheckNexusUpdates: Bool = true
+    /// X103-C — inactif par défaut : une fonction qui écrit sur le disque sans
+    /// qu'on l'ait demandée fait croître l'empreinte en silence.
+    @AppStorage(UDKey.keepNexusArchives) private var keepNexusArchives: Bool = false
 
     // Nexus Mods API key entry (only used when no key is stored yet).
     @State private var nexusApiKeyInput: String = ""
@@ -119,6 +122,21 @@ struct SettingsView: View {
                         .controlSize(.small)
                         .labelsHidden()
                     InfoPopoverButton(text: vm.L(L10n.Settings.nexusAutoCheckHint))
+                }
+
+                // X103-C. Il vit ici, avec ce qui touche à Nexus, plutôt que
+                // dans « Données & stockage » : c'est en réglant Nexus qu'on
+                // se demande ce que deviennent les fichiers téléchargés. Son
+                // poids et sa purge, eux, sont à l'écran Entretien.
+                HStack {
+                    Text(vm.L(L10n.Settings.keepNexusArchives))
+                        .font(AppDesign.Font.body)
+                    Spacer()
+                    Toggle("", isOn: $keepNexusArchives)
+                        .toggleStyle(SwitchToggleStyle(tint: .blue))
+                        .controlSize(.small)
+                        .labelsHidden()
+                    InfoPopoverButton(text: vm.L(L10n.Settings.keepNexusArchivesHint))
                 }
 
                 if vm.hasNexusApiKey {

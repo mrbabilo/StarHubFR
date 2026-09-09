@@ -928,6 +928,8 @@ enum L10n {
         static let nexusKeySaved        = "settings_nexus_key_saved"
         static let nexusKeyPlaceholder  = "settings_nexus_api_key_placeholder"
         static let nexusAutoCheck        = "settings_nexus_auto_check"
+        static let keepNexusArchives     = "settings_keep_nexus_archives"
+        static let keepNexusArchivesHint = "settings_keep_nexus_archives_hint"
         static let nexusAutoCheckHint    = "settings_nexus_auto_check_hint"
         static let nexusQuota            = "settings_nexus_quota"
         static let nexusQuotaDaily       = "settings_nexus_quota_daily"
@@ -1568,6 +1570,15 @@ enum L10n {
     }
 
     enum Maintenance {
+        // X103-C — archives Nexus conservées
+        static let archivesTitle        = "maintenance_archives_title"
+        static let archivesEmptyOff     = "maintenance_archives_empty_off"
+        static let archivesEmptyOn      = "maintenance_archives_empty_on"
+        static let archivesCount        = "maintenance_archives_count"
+        static let archivesReinstall    = "maintenance_archives_reinstall"
+        static let archivesDelete       = "maintenance_archives_delete"
+        static let archivesPurge        = "maintenance_archives_purge"
+        static let archivesPurgeConfirm = "maintenance_archives_purge_confirm"
         static let title           = "maintenance_title"
         static let total           = "maintenance_total"
         static let installBackups  = "maintenance_install_backups"
