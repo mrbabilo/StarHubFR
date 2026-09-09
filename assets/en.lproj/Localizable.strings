@@ -298,6 +298,8 @@
 "mods_profile_config_badge" = "Keeps a separate config.json per profile";
 "logs_system_logs" = "System Logs";
 "logs_no_logs" = "No logs for this session";
+"logs_empty_filtered_title" = "No line matches these filters";
+"logs_empty_filtered_action" = "Clear the filters";
 "logs_mac_o_s_tips" = "macOS Troubleshooting Tips";
 "logs_mac_o_s_tips_content" = "1. If the game cannot run due to 'Developer cannot be verified', go to System Settings > Privacy & Security and click 'Allow Anyway' next to SMAPI or Stardew Valley.\n2. Disabled mods are stored inside your game's Mods/ folder with a leading dot (e.g. Mods/.CJBCheats). SMAPI ignores these folders automatically.";
 "logs_history" = "System Logs";

@@ -298,6 +298,8 @@
   "mods_profile_config_badge": "Garde un config.json par profil",
   "logs_system_logs": "Journaux système",
   "logs_no_logs": "Aucun journal pour cette session",
+  "logs_empty_filtered_title": "Aucune ligne ne correspond à ces filtres",
+  "logs_empty_filtered_action": "Effacer les filtres",
   "logs_mac_o_s_tips": "Astuces de dépannage macOS",
   "logs_mac_o_s_tips_content": "1. Si le jeu ne se lance pas à cause de « Le développeur ne peut pas être vérifié », allez dans Réglages Système > Confidentialité et sécurité, puis cliquez sur « Autoriser quand même » à côté de SMAPI ou Stardew Valley.\n2. Les mods désactivés sont stockés dans le dossier Mods/ du jeu avec un point en préfixe (ex. Mods/.CJBCheats). SMAPI ignore automatiquement ces dossiers.",
   "logs_history": "Journaux système",

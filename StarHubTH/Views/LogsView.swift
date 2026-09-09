@@ -296,15 +296,25 @@ struct LogsView: View {
             }
 
             if views.filtered.isEmpty {
-                VStack(spacing: 8) {
-                    Image(systemName: "text.badge.checkmark")
-                        .font(.system(size: 32))
-                        .foregroundColor(.secondary.opacity(0.4))
-                    Text(vm.L(L10n.Logs.noLogs))
-                        .font(.system(size: 13))
-                        .foregroundColor(.secondary)
+                // Deux vides très différents, qui ne se lèvent pas pareil : un
+                // filtre qui exclut tout part d'un geste, une absence réelle de
+                // lignes ne part pas. Dire lequel, et n'offrir l'action que
+                // quand elle existe — `StateCard.actionTitle` est optionnel
+                // pour exactement ce cas.
+                let isFiltered = selectedLevel != nil
+                    || !searchText.isEmpty
+                    || selectedSource != nil
+                StateCard(
+                    icon: isFiltered ? "line.3.horizontal.decrease.circle" : "text.badge.checkmark",
+                    text: vm.L(isFiltered ? L10n.Logs.emptyFilteredTitle : L10n.Logs.noLogs),
+                    actionTitle: isFiltered ? vm.L(L10n.Logs.emptyFilteredAction) : nil
+                ) {
+                    selectedLevel = nil
+                    searchText = ""
+                    selectedSource = nil
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(AppDesignCore.Spacing.lg)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             } else {
                 ScrollViewReader { proxy in
                     // LazyVStack (not List): List was constructing/measuring all

@@ -712,6 +712,8 @@ enum L10n {
     enum Logs {
         static let systemLogs           = "logs_system_logs"
         static let noLogs               = "logs_no_logs"
+        static let emptyFilteredTitle   = "logs_empty_filtered_title"
+        static let emptyFilteredAction  = "logs_empty_filtered_action"
         static let macOSTips            = "logs_mac_o_s_tips"
         static let macOSTipsContent     = "logs_mac_o_s_tips_content"
         static let history              = "logs_history"
