@@ -926,7 +926,8 @@ par lot, une release par lot. Périmètre : visuel + navigation —
       de 2 s immobile : **ces infobulles ne s'affichent jamais**, alors qu'elles
       sont la seule explication de quatre boutons sans libellé. Corrigé dans le
       lot (cible 18×18 + `contentShape`), règle d'accessibilité §7 point 1.
-      ✅ **Lot Journaux (phase 5) livré le 2026-09-09.** `LogsView` tombe de
+      ✅ **Lot Journaux (phase 5) livré et vérifié à l'écran le 2026-09-09.**
+      `LogsView` tombe de
       **26 tailles de police littérales à ZÉRO** — le critère §10 n°1 est
       atteint pour cette vue. Deux tokens monospace neufs
       (`AppDesign.Font.monoFootnote`/`.monoCaption`, dérivés des tokens
@@ -955,6 +956,13 @@ par lot, une release par lot. Périmètre : visuel + navigation —
       > nom. 6. **Survoler deux secondes chacun des quatre boutons-glyphes de
       > la barre d'outils** : l'infobulle sort — avant ce lot, aucune ne
       > sortait.
+      >
+      > ✅ **Les six points sont passés** (vérification de l'auteur, 2026-09-09).
+      > Le point 4 en particulier — les pastilles de niveau en français à la
+      > largeur minimale — était le seul risque de mise en page du lot : la
+      > tokenisation y resserrait deux espacements. Il tient. La même
+      > tokenisation peut donc être répétée sur les 53 sites de `SettingsView`
+      > sans reposer la question.
 
       **Ce qui n'est PAS dans ce lot, et attend H-T9** : le dépôt porte **538**
       tailles littérales au total — `ModDetailView` 106, `MainView` 57,
