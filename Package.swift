@@ -70,6 +70,7 @@ let package = Package(
                 "Models/ModFolderRename.swift",
                 "Models/ModTrash.swift",
                 "Models/SettingsSectionOrder.swift",
+                "Models/NexusArchiveStore.swift",
                 "Models/ConfigLabelResolver.swift",
                 "Models/MaintenanceInventory.swift",
                 "Models/PathoschildCompatibilityList.swift",
@@ -877,6 +878,11 @@ let package = Package(
             name: "SettingsSectionOrderTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/SettingsSectionOrderTests"
+        ),
+        .testTarget(
+            name: "NexusArchiveStoreTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/NexusArchiveStoreTests"
         ),
         .testTarget(
             name: "ConfigLabelResolverTests",
