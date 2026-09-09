@@ -25,6 +25,7 @@ let package = Package(
                 "ModFolderRepairer.swift",
                 "SaveManager.swift",
                 "Models/SidebarDestination.swift",
+                "Models/SidebarOrder.swift",
                 "Models/InventoryItem.swift",
                 "Models/NxmLink.swift",
                 "Models/NexusDownloadQueue.swift",
@@ -976,6 +977,11 @@ let package = Package(
             name: "HealthIssueTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/HealthIssueTests"
+        ),
+        .testTarget(
+            name: "SidebarOrderTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/SidebarOrderTests"
         ),
     ]
 )
