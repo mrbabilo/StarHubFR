@@ -194,6 +194,7 @@ let package = Package(
                 "Models/HealthIssue.swift",
                 "Models/HealthIssueResolver.swift",
                 "Models/AppSupportMigration.swift",
+                "Models/AppSupport.swift",
             ]
         ),
         .testTarget(
