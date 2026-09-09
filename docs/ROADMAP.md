@@ -262,6 +262,47 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       « le mod a ramené 8192 à 4096 » sans coder une seule borne, et sans périmer à la
       version suivante. À instruire : combien de mods du parc journalisent leur config,
       et sous quelle forme. · **M**
+      ⛔️ **Instruit le 2026-09-09 — la prémisse est fausse sur le parc mesuré. Ne pas
+      coder en l'état ; go/no-go à l'auteur, cadré en §8.2.** Journal réel de l'auteur
+      (`SMAPI-latest.txt`, 9,5 Mo, 119 486 lignes horodatées, run du 2026-09-08,
+      verbose actif) balayé **en entier** — pas seulement la fenêtre de démarrage, car
+      un mod peut publier sa config à `SaveLoaded` ou au premier usage.
+      **1. Deux mods sur ~966 publient leur configuration entière**, et un seul est
+      visible sans journal verbeux : SLO en `INFO` (`[OPTIMIZER CONFIG]`, 48 clés) et
+      **UI Info Suite 2 Alternative** en `TRACE` (`ModEntry: initial config`, 85 clés).
+      Comptage par niveau, sources non-SMAPI, ≥ 3 paires `clé=valeur` : `INFO` 2 sources
+      (SLO + un avertissement de dépréciation GMCM), `DEBUG` 1 (Fish Helper UI — des
+      poissons, pas sa config), `TRACE` 4 (Font Settings, Wizardry, UIS2, Wildroot).
+      L'idiome `[TAG EN MAJUSCULES]` n'a **qu'un** porteur : SLO. Font Settings, le plus
+      bavard (30 lignes, 20 paires), journalise ses `FontConfigModel` **effectifs par
+      contexte** — son `config.json` ne porte, lui, que des bornes `Min*/Max*` : aucune
+      clé commune, rien à rapprocher.
+      **2. Le mod qui a motivé la tâche est justement celui qu'on ne peut pas
+      rapprocher.** SLO renomme ses clés dans le journal : **3 clés communes sur 46
+      (config) / 48 (journal)**. `prefetchLimit` ↔ `PrefetchMaximumMegabytes`,
+      `fastWarpMultiplier` ↔ `FastWarpTransitionMultiplier`, `profile` ↔
+      `OptimizationProfileVersion` — aucune règle de tige (celle de C4-T1) ne relie ces
+      paires. Il faudrait une **table de correspondance par mod**, qui périmerait à la
+      version suivante exactement comme les bornes codées en dur que la tâche voulait
+      éviter. UIS2, à l'inverse, se rapproche parfaitement : **85 clés journalisées sur
+      85 retombent sur le `config.json`** (les 13 clés restantes du fichier sont des
+      raccourcis, non journalisés).
+      **3. Et là où le rapprochement marche, il n'y a rien à montrer.** UIS2 : **0 écart**
+      entre les 85 valeurs journalisées et le `config.json`. SLO, sur les cinq clés
+      rapprochables à la main : `workingSetSoftLimit=4096` = `…SoftLimitMegabytes: 4096`,
+      `prefetchLimit=256 MB` = `256`, `fastWarpMultiplier=6.5x` = `6.5`, `profile=12`
+      = `12`, `mapCacheLimit=1024 MB` = `1024`. **Le « 8192 ramené à 4096 » du libellé
+      n'existe pas dans ce journal** : 4096 est la valeur que l'auteur a écrite. Le
+      journal *reproduit* la configuration lue, il n'expose pas de correction.
+      ▸ **Ce qui survit, et qui n'est pas cette tâche** : SLO publie sa vraie
+      normalisation sous une **autre** forme, un triplet lisible tel quel, sans aucun
+      rapprochement de clé — `backgroundMapPreparation=configured=False,effective=false,`
+      `reason=retired-thread-affinity` (idem `fastWarp`, `deferredTileSheets`). C'est le
+      mod qui dit lui-même *voulu / effectif / pourquoi*. Un seul porteur sur le parc :
+      pas de quoi faire une fonctionnalité, à reprendre si un second apparaît.
+      ⚠️ **Limite de l'échantillon** : un seul journal, un seul lancement — le dossier
+      `ErrorLogs/` n'en contient pas d'autre. Cela établit « rare », pas « exactement
+      deux ».
 - [x] **C4-T7** — `audit-mods-config-perf.md` — **Les angles morts keybind de C4-T2.**
       Chevauchements sous-ensemble (A = `K`, B = `K`+Shift co-déclenchent sur le geste
       long — spec §12), composants de pack, mods en pause ; et donner aux collisions
@@ -1417,14 +1458,16 @@ même journal). Vérifiés un par un : tous encore exacts, aucun ne se manifeste
 Par lot, dans l'ordre de ce que l'axe « perte de données » recommande de faire
 ensuite : **F2** (audit sécurité et perf — c'est lui qui trouverait les X à
 venir), **F5** (identité de bundle partagée avec l'amont : 31 clés de
-préférences et le Trousseau en commun), puis **C4** (T1/T7/T8, éditeur de
-config), **H** (5 lots restants), **A** (A1-T1/T2, A2-T5, A5-T4/T5), **D1/D2**
+préférences et le Trousseau en commun), puis ~~**C4**~~ *(T1 et T7
+livrés le 2026-09-09 ; T8 instruit le même jour, prémisse réfutée — décision en
+§8.2)*, **H** (5 lots restants), **A** (A1-T1/T2, A2-T5, A5-T4/T5), **D1/D2**
 (Profiler et télémétrie), **C3/C5/C6**, **I** (accessibilité, après H),
 **E1–E3** et **D3** (horizon, sous décision produit).
 
 **Non classés ici parce qu'ils attendent une décision, pas un développement** :
-`X55` (politique de purge), `X103` (suppression des mods : corbeille/quarantaine
-et rétention des archives, ou permanence assumée ?), `D3-T1`
+`X55` (politique de purge), `X103` (suppression des mods : corbeille livrée en
+X103-B ; reste la rétention des archives Nexus, §8.1 option C), `C4-T8` (clore le
+constat réfuté, ou lire les triplets de SLO — §8.2), `D3-T1`
 (un backend ou non), `F5` (quand casser la cohabitation avec l'amont),
 `F1-T2` (règle permanente, pas une tâche).
 
@@ -1557,6 +1600,39 @@ le faire seul (sans B) laisserait la suppression aussi définitive
 qu'aujourd'hui pour un mod installé à la main. **A** reste défendable si la
 page des sauvegardes gagne d'abord une porte « restaurer sur un mod
 supprimé » — le retour existe, il n'est juste pas *trouvable*.
+
+---
+
+### 8.2 Cadrage C4-T8 — le journal SMAPI peut-il montrer la normalisation ? *(instruit le 2026-09-09, à trancher par l'auteur)*
+
+> **Verdict de la mesure : non, pas sur ce parc.** La tâche pariait qu'un mod
+> journalise sa configuration *normalisée*, et qu'il suffirait de la comparer au
+> `config.json` pour dire « le mod a ramené 8192 à 4096 » sans coder de borne.
+> Les trois maillons du pari ont été vérifiés dans le journal réel de l'auteur, un
+> par un. Les trois cèdent — le détail chiffré est dans la case **C4-T8** ci-dessus.
+
+| Maillon du pari | Ce que la mesure donne |
+|---|---|
+| « Assez de mods journalisent leur config » | **2 sur ~966**, un seul hors `TRACE`. Un journal non verbeux — celui de la plupart des utilisateurs — n'en porte **qu'un** |
+| « On rapproche la ligne du `config.json` » | **SLO, l'exemple qui a motivé la tâche : 3 clés communes sur 46.** Il renomme tout dans son journal. Le rapprochement demanderait une table par mod — qui périme comme les bornes qu'on refusait de coder. UIS2, lui, se rapproche à **85/85** |
+| « L'écart révèle la normalisation » | **0 écart sur les 85 clés d'UIS2**, et les 5 clés SLO rapprochables à la main sont identiques au fichier. Le journal **reproduit** la config lue ; il ne montre pas de correction |
+
+**Trois issues** :
+
+| Option | Geste | Coût | Ce qu'elle vaut / ce qu'elle risque |
+|---|---|---|---|
+| **A — clore sans code** | décocher C4-T8 comme constat réfuté, garder la mesure ici | ~0 | Honnête, et daté : si le parc change (un second mod adopte l'idiome), la case se rouvre sur des chiffres. Risque : aucun — la fonctionnalité n'aurait rien affiché sur les deux seuls mods éligibles |
+| **B — lire les triplets de SLO** | afficher tel quel `configured=X, effective=Y, reason=Z` sur les 3 options SLO qui le publient, sans rapprochement de clé | **S** | C'est la **vraie** normalisation, et elle se lit sans deviner. Mais **un seul porteur sur le parc** : une fonctionnalité écrite pour un mod, avec le risque que sa prochaine version change le format |
+| **C — table de correspondance par mod** | écrire à la main `prefetchLimit ↔ PrefetchMaximumMegabytes`… | **M**, récurrent | Rendrait SLO rapprochable — mais c'est exactement la dette que la tâche disait éviter, et pour montrer **zéro écart** aujourd'hui |
+
+**Recommandation de l'agent** : **A**. Le pari n'échoue pas sur la rareté seule
+— il échoue sur le troisième maillon, celui qu'on ne peut pas contourner en
+attendant plus de mods : là où le rapprochement fonctionne parfaitement (UIS2,
+85/85), l'écart mesuré est nul. **B** est la seule piste qui apprend quelque
+chose à l'écran, mais elle n'est pas cette tâche : elle ne compare rien, elle
+répète ce qu'un mod unique déclare. À rouvrir si un second mod publie un triplet
+*voulu / effectif / pourquoi* — c'est le signal à guetter, pas le nombre de mods
+bavards.
 
 ---
 
