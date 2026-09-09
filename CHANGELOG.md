@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.41.0] - 2026-09-09
+
 ### Added
 
 - **L'app sait quand une nouvelle version sort.** Au lancement, StarHubFR regarde la dernière release publiée sur GitHub et vous le dit — un bouton ouvre la page, « Plus tard » la tait jusqu'à la suivante. L'état et la vérification manuelle vivent dans Réglages → À propos.
