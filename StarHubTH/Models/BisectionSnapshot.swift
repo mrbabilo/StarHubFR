@@ -44,11 +44,7 @@ public enum BisectionSnapshotStore {
     static var storageDirectory: URL? = defaultDirectory()
 
     private static func defaultDirectory() -> URL? {
-        guard let base = FileManager.default.urls(for: .applicationSupportDirectory,
-                                                  in: .userDomainMask).first else { return nil }
-        let dir = base.appendingPathComponent("StarHubTH", isDirectory: true)
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir
+        AppSupport.directory
     }
 
     private static var fileURL: URL? {

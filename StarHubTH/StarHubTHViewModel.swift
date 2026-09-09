@@ -178,9 +178,8 @@ class StarHubTHViewModel: ObservableObject {
     /// `keepNexusArchives` est éteint : rien n'appelle `keep`.
     lazy var nexusArchiveStore = NexusArchiveStore(
         root: NexusArchiveStore.defaultRoot(
-            applicationSupport: FileManager.default
-                .urls(for: .applicationSupportDirectory, in: .userDomainMask)
-                .first ?? URL(fileURLWithPath: NSTemporaryDirectory())))
+            applicationSupport: AppSupport.directory
+                ?? URL(fileURLWithPath: NSTemporaryDirectory())))
     @Published var isDownloadingFromNexus = false
     /// Nexus mod id of the mod currently being downloaded, or nil when idle.
     /// Drives the per-row spinner in the Updates list while a premium update
@@ -757,8 +756,7 @@ class StarHubTHViewModel: ObservableObject {
     /// Le dossier racine du glossaire en Application Support — même règle de
     /// placement que `TranslationBaseline`, jamais Caches.
     private static func glossaryAppSupport() -> URL? {
-        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)
-            .first?.appendingPathComponent("StarHubTH", isDirectory: true)
+        AppSupport.directory
     }
 
     /// Le glossaire courant s'il existe (construit depuis les réglages),
@@ -8642,9 +8640,9 @@ for mod in mods {
         panel.canChooseDirectories = false
         panel.title = L(L10n.Saves.avatarPanelTitle)
         if panel.runModal() == .OK, let url = panel.url,
-           let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
+           let appSupport = AppSupport.directory {
             // Copy to app support dir to prevent broken paths
-            let supportDir = appSupport.appendingPathComponent("StarHubTH/Avatars", isDirectory: true)
+            let supportDir = appSupport.appendingPathComponent("Avatars", isDirectory: true)
             try? FileManager.default.createDirectory(at: supportDir, withIntermediateDirectories: true)
             let destURL = supportDir.appendingPathComponent("\(folderName)_\(url.lastPathComponent)")
             do {

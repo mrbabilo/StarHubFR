@@ -10,11 +10,8 @@ public enum ModUpdateKeyDeltaStore {
     /// Le dossier du magasin. `nil` si Application Support est introuvable.
     /// Ne crée rien : la création appartient à `save`, pour ne pas déposer
     /// un dossier vide à chaque lecture de fiche.
-    public static func defaultDirectory(fileManager: FileManager = .default) -> URL? {
-        guard let base = fileManager.urls(for: .applicationSupportDirectory,
-                                          in: .userDomainMask).first else { return nil }
-        return base
-            .appendingPathComponent("StarHubTH", isDirectory: true)
+    public static func defaultDirectory() -> URL? {
+        AppSupport.directory?
             .appendingPathComponent("ModUpdateKeyDeltas", isDirectory: true)
     }
 

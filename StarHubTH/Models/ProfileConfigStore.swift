@@ -35,14 +35,10 @@ public enum ProfileConfigStore {
 
     /// Le fichier du magasin pour ce profil. `nil` si Application Support est
     /// introuvable — le magasin est alors simplement inopérant, jamais fautif.
-    public static func fileURL(profileId: UUID,
-                               fileManager: FileManager = .default) -> URL? {
-        guard let base = fileManager.urls(for: .applicationSupportDirectory,
-                                          in: .userDomainMask).first else { return nil }
-        let dir = base
-            .appendingPathComponent("StarHubTH", isDirectory: true)
-            .appendingPathComponent("ProfileConfigs", isDirectory: true)
-        try? fileManager.createDirectory(at: dir, withIntermediateDirectories: true)
+    public static func fileURL(profileId: UUID) -> URL? {
+        guard let base = AppSupport.directory else { return nil }
+        let dir = base.appendingPathComponent("ProfileConfigs", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir.appendingPathComponent("\(profileId.uuidString).json")
     }
 
@@ -98,11 +94,8 @@ public enum ProfileConfigStore {
 
     /// Le dossier qui porte les magasins. `nil` si Application Support est
     /// introuvable — comme `fileURL`, qui le construit de la même façon.
-    public static func directoryURL(fileManager: FileManager = .default) -> URL? {
-        guard let base = fileManager.urls(for: .applicationSupportDirectory,
-                                          in: .userDomainMask).first else { return nil }
-        return base
-            .appendingPathComponent("StarHubTH", isDirectory: true)
+    public static func directoryURL() -> URL? {
+        AppSupport.directory?
             .appendingPathComponent("ProfileConfigs", isDirectory: true)
     }
 
@@ -120,7 +113,7 @@ public enum ProfileConfigStore {
     @discardableResult
     public static func delete(profileId: UUID,
                               fileManager: FileManager = .default) -> Bool {
-        guard let url = fileURL(profileId: profileId, fileManager: fileManager),
+        guard let url = fileURL(profileId: profileId),
               fileManager.fileExists(atPath: url.path) else { return false }
         return (try? fileManager.removeItem(at: url)) != nil
     }

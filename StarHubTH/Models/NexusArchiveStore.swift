@@ -60,9 +60,10 @@ public final class NexusArchiveStore {
     }
 
     /// L'emplacement par défaut, à côté des autres magasins de l'app.
+    /// Le paramètre est **le dossier de données lui-même** (`AppSupport.directory`),
+    /// pas la base Application Support.
     public static func defaultRoot(applicationSupport: URL) -> URL {
         applicationSupport
-            .appendingPathComponent("StarHubTH")
             .appendingPathComponent("NexusArchives")
     }
 

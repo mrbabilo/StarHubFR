@@ -70,13 +70,10 @@ public enum TranslationBaseline {
     }
 
     /// Le dossier du magasin. `nil` si Application Support est introuvable.
-    public static func defaultDirectory(fileManager: FileManager = .default) -> URL? {
-        guard let base = fileManager.urls(for: .applicationSupportDirectory,
-                                          in: .userDomainMask).first else { return nil }
-        let dir = base
-            .appendingPathComponent("StarHubTH", isDirectory: true)
-            .appendingPathComponent("TranslationBaselines", isDirectory: true)
-        try? fileManager.createDirectory(at: dir, withIntermediateDirectories: true)
+    public static func defaultDirectory() -> URL? {
+        guard let dir = AppSupport.directory?
+            .appendingPathComponent("TranslationBaselines", isDirectory: true) else { return nil }
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
     }
 

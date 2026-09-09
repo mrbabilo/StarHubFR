@@ -40,9 +40,7 @@ enum ProfileApplyJournalStore {
         // Pas de création ici : `save` garantit le chemin au moment d'écrire
         // (et signale un échec) — créer à la déclaration ne servirait qu'un
         // journal qu'on n'écrira peut-être jamais.
-        FileManager.default.urls(for: .applicationSupportDirectory,
-                                 in: .userDomainMask).first?
-            .appendingPathComponent("StarHubTH", isDirectory: true)
+        AppSupport.directory
     }
 
     private static var fileURL: URL? {

@@ -14,10 +14,7 @@ import Foundation
 /// une information définitivement perdue.
 enum ModCompatibilityStore {
     private static var fileURL: URL? {
-        guard let base = FileManager.default.urls(for: .applicationSupportDirectory,
-                                                  in: .userDomainMask).first else { return nil }
-        let dir = base.appendingPathComponent("StarHubTH", isDirectory: true)
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        guard let dir = AppSupport.directory else { return nil }
         return dir.appendingPathComponent("mod_compatibility.json")
     }
 

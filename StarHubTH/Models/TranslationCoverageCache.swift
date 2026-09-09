@@ -112,11 +112,8 @@ enum TranslationCoverageCache {
         return entry
     }
 
-    static func defaultFileURL(fileManager: FileManager = .default) -> URL? {
-        guard let base = fileManager.urls(for: .applicationSupportDirectory,
-                                          in: .userDomainMask).first else { return nil }
-        let dir = base.appendingPathComponent("StarHubTH", isDirectory: true)
-        try? fileManager.createDirectory(at: dir, withIntermediateDirectories: true)
+    static func defaultFileURL() -> URL? {
+        guard let dir = AppSupport.directory else { return nil }
         return dir.appendingPathComponent("ProfileTranslationCoverage.json")
     }
 

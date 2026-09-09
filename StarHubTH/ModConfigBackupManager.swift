@@ -47,6 +47,10 @@ public class ModConfigBackupManager {
     /// Support folder. Production code always uses `.shared`, which calls
     /// this with `nil` and gets the exact same directory as before.
     public init(backupsBasePath overrideBasePath: URL? = nil) {
+        // **Reste sous `StarHubTH/`, délibérément.** Comme `ModInstallBackupManager` :
+        // l'index de ces sauvegardes porte des chemins absolus, les déplacer
+        // obligerait à tous les réécrire, et l'application d'origine — la seule
+        // raison du renommage — n'écrit jamais ici. Voir `AppSupport`.
         let base = overrideBasePath ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?
             .appendingPathComponent("StarHubTH/Backups/ModConfigs", isDirectory: true)
             ?? FileManager.default.temporaryDirectory.appendingPathComponent("StarHubTH/Backups/ModConfigs", isDirectory: true)
