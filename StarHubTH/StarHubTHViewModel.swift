@@ -5934,6 +5934,57 @@ for mod in mods {
         }
     }
 
+    /// X103-C — réinstalle un mod depuis son archive conservée.
+    ///
+    /// ⚠️ **Une copie, jamais l'archive elle-même.** La feuille d'installation
+    /// efface le fichier qu'on lui confie à sa fermeture
+    /// (`MainView:onDismiss` → `discardDownloaded`), et ce ménage n'épargne
+    /// que les dossiers portant le préfixe du téléchargeur. Lui passer le
+    /// fichier du magasin le détruirait — réinstaller un mod supprimerait donc
+    /// le moyen de le réinstaller une seconde fois.
+    ///
+    /// La copie va dans un dossier au préfixe du téléchargeur, pour que le
+    /// ménage de la feuille l'emporte entière comme n'importe quel
+    /// téléchargement.
+    func reinstallFromArchive(_ entry: NexusArchiveEntry) {
+        let source = nexusArchiveStore.fileURL(of: entry)
+        guard FileManager.default.fileExists(atPath: source.path) else {
+            log("Archive introuvable pour \(entry.modName) — elle a dû être effacée hors de l'app.",
+                level: .warning)
+            refreshNexusArchives()
+            return
+        }
+        let folder = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("\(NexusFileDownload.downloadFolderPrefix)\(UUID().uuidString)")
+        do {
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            let copy = folder.appendingPathComponent(entry.fileName)
+            try FileManager.default.copyItem(at: source, to: copy)
+            pendingDownloadedZip = copy
+        } catch {
+            log("Réinstallation impossible : \(error.localizedDescription)", level: .error)
+        }
+    }
+
+    /// Les archives conservées, telles que l'écran Entretien les lit.
+    /// En lecture seule au-dehors : la liste se recharge par
+    /// `refreshNexusArchives()`, jamais en la réécrivant depuis une vue.
+    @Published private(set) var nexusArchives: [NexusArchiveEntry] = []
+
+    func refreshNexusArchives() {
+        nexusArchives = nexusArchiveStore.entries()
+    }
+
+    func deleteNexusArchive(_ entry: NexusArchiveEntry) {
+        nexusArchiveStore.remove(entry)
+        refreshNexusArchives()
+    }
+
+    func purgeNexusArchives() {
+        nexusArchiveStore.removeAll()
+        refreshNexusArchives()
+    }
+
     func recordNexusModId(_ modId: Int, installedFolderPaths: [String]) {
         // **Avant** les deux refus qui suivent — pack multi-dossiers,
         // manifeste qui fait foi. Aucun des deux ne change le fait qui

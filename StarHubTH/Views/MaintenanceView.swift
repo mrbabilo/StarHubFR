@@ -14,6 +14,8 @@ private enum MaintenanceConfirmation {
     /// d'état de vue en plus).
     case purgeTrashAll(events: Int)
     case purgeTrashEntry(event: String, entry: String)
+    /// X103-C — vider les archives Nexus conservées.
+    case purgeArchives(count: Int)
 }
 
 /// L'écran « Entretien » (X25) : ce que StarHubFR occupe, et de quoi le rendre
@@ -25,6 +27,9 @@ struct MaintenanceView: View {
     @ObservedObject var vm: StarHubTHViewModel
 
     @State private var confirmation: MaintenanceConfirmation?
+    /// X103-C — l'écran doit dire ce que la fonction *ferait* quand elle est
+    /// éteinte, plutôt que de rester vide sans explication.
+    @AppStorage(UDKey.keepNexusArchives) private var keepNexusArchives: Bool = false
 
     // MARK: - Corps
 
@@ -36,7 +41,8 @@ struct MaintenanceView: View {
                 // La corbeille (X103-B) se montre même sur un entretien sans
                 // objet : des sauvegardes à rien à dire et des mods en
                 // corbeille sont deux vérités indépendantes.
-                if !report.isEmpty || !vm.trashEvents.isEmpty {
+                if !report.isEmpty || !vm.trashEvents.isEmpty || keepNexusArchives
+                    || !vm.nexusArchives.isEmpty {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 18) {
                             if report.isEmpty {
@@ -45,6 +51,7 @@ struct MaintenanceView: View {
                                 content(report)
                             }
                             trashSection
+                            archivesSection
                         }
                         .padding()
                     }
@@ -62,6 +69,7 @@ struct MaintenanceView: View {
         .onAppear {
             vm.buildMaintenanceReport()
             vm.refreshTrash()
+            vm.refreshNexusArchives()
         }
         // Un seul présentateur pour les trois confirmations — voir
         // `MaintenanceConfirmation`.
@@ -95,6 +103,11 @@ struct MaintenanceView: View {
                     vm.purgeTrashEntry(event: event, entry: entry)
                 }
                 Button(vm.L(L10n.Maintenance.cancel), role: .cancel) { }
+            case .purgeArchives:
+                Button(vm.L(L10n.Maintenance.confirmRemove), role: .destructive) {
+                    vm.purgeNexusArchives()
+                }
+                Button(vm.L(L10n.Maintenance.cancel), role: .cancel) { }
             }
         } message: { pending in
             switch pending {
@@ -111,6 +124,8 @@ struct MaintenanceView: View {
                 Text(String(format: vm.L(L10n.Maintenance.trashPurgeAllMessage), events))
             case .purgeTrashEntry(_, let entry):
                 Text(String(format: vm.L(L10n.Maintenance.trashPurgeOneMessage), entry))
+            case .purgeArchives:
+                Text(vm.L(L10n.Maintenance.archivesPurgeConfirm))
             }
         }
     }
@@ -219,6 +234,73 @@ struct MaintenanceView: View {
                 Text(vm.L(L10n.Maintenance.trashHint2))
                     .font(.caption)
                     .foregroundColor(.secondary)
+            }
+        }
+    }
+
+    /// X103-C — les archives Nexus conservées : ce qu'elles pèsent, et de quoi
+    /// réinstaller un mod supprimé sans réseau.
+    ///
+    /// La section se montre **aussi quand elle est vide**, et dit alors deux
+    /// choses différentes selon que la fonction est allumée ou non. Une
+    /// fonction éteinte par défaut qui n'expliquerait nulle part ce qu'elle
+    /// fait ne serait jamais découverte.
+    @ViewBuilder
+    private var archivesSection: some View {
+        if keepNexusArchives || !vm.nexusArchives.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text(vm.L(L10n.Maintenance.archivesTitle))
+                        .font(AppDesign.Font.body(.semibold))
+                    Spacer()
+                    if !vm.nexusArchives.isEmpty {
+                        Text(String(format: vm.L(L10n.Maintenance.archivesCount),
+                                    vm.nexusArchives.count,
+                                    Self.bytes(vm.nexusArchives.reduce(0) { $0 + $1.byteSize })))
+                            .font(AppDesign.Font.footnote)
+                            .foregroundColor(.secondary)
+                        Button(vm.L(L10n.Maintenance.archivesPurge)) {
+                            confirmation = .purgeArchives(count: vm.nexusArchives.count)
+                        }
+                        .controlSize(.small)
+                        .foregroundColor(.red)
+                    }
+                }
+
+                if vm.nexusArchives.isEmpty {
+                    Text(vm.L(keepNexusArchives
+                              ? L10n.Maintenance.archivesEmptyOn
+                              : L10n.Maintenance.archivesEmptyOff))
+                        .font(AppDesign.Font.footnote)
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    ForEach(vm.nexusArchives) { entry in
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(entry.modName)
+                                    .font(AppDesign.Font.caption)
+                                Text("\(entry.version) · \(Self.bytes(entry.byteSize))")
+                                    .font(AppDesign.Font.monoIconXS)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            Button(vm.L(L10n.Maintenance.archivesReinstall)) {
+                                vm.reinstallFromArchive(entry)
+                            }
+                            .controlSize(.small)
+                            Button(vm.L(L10n.Maintenance.archivesDelete)) {
+                                vm.deleteNexusArchive(entry)
+                            }
+                            .controlSize(.small)
+                            .foregroundColor(.red)
+                        }
+                        .padding(10)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color(nsColor: .controlBackgroundColor))
+                        .cornerRadius(AppDesignCore.Radius.md)
+                    }
+                }
             }
         }
     }
@@ -435,6 +517,7 @@ struct MaintenanceView: View {
         case .removeProtected: return vm.L(L10n.Maintenance.protectedRemoveTitle)
         case .purgeTrashAll, .purgeTrashEntry:
             return vm.L(L10n.Maintenance.trashSectionTitle)
+        case .purgeArchives: return vm.L(L10n.Maintenance.archivesTitle)
         case nil: return ""
         }
     }
