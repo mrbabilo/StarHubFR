@@ -55,6 +55,7 @@ let package = Package(
                 "Models/ModDetailPager.swift",
                 "Models/ModDetailCache.swift",
                 "Models/UpdateCheckPolicy.swift",
+                "Models/AppReleaseCheck.swift",
                 "Models/ModDependencyParser.swift",
                 "Models/DependencyTree.swift",
                 "Models/SmapiLogDiagnostics.swift",
@@ -454,6 +455,11 @@ let package = Package(
             name: "UpdateCheckPolicyTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/UpdateCheckPolicyTests"
+        ),
+        .testTarget(
+            name: "AppReleaseCheckTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/AppReleaseCheckTests"
         ),
         .testTarget(
             name: "ModConflictVerdictsStoreTests",
