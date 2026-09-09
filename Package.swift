@@ -26,6 +26,7 @@ let package = Package(
                 "SaveManager.swift",
                 "Models/SidebarDestination.swift",
                 "Models/SidebarOrder.swift",
+                "Models/CommandPaletteSearch.swift",
                 "Models/InventoryItem.swift",
                 "Models/NxmLink.swift",
                 "Models/NexusDownloadQueue.swift",
@@ -982,6 +983,11 @@ let package = Package(
             name: "SidebarOrderTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/SidebarOrderTests"
+        ),
+        .testTarget(
+            name: "CommandPaletteSearchTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/CommandPaletteSearchTests"
         ),
     ]
 )
