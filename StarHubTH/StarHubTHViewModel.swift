@@ -7824,6 +7824,41 @@ for mod in mods {
         reportDetailFocus = folderName
     }
 
+    // MARK: - Navigation demandée depuis la scène App (I-T1 / I-T2)
+
+    /// L'onglet demandé depuis le menu « Aller » ou la palette ⌘K.
+    ///
+    /// `.commands` vit dans la scène App, `currentTab` est un `@State` de
+    /// MainView : le menu ne peut pas l'écrire. Même canal que
+    /// `reportDetailFocus` ci-dessus, pour la même raison (patron B3-T4).
+    @Published private(set) var pendingTabRequest: SidebarDestination?
+
+    func requestTab(_ destination: SidebarDestination) {
+        pendingTabRequest = destination
+    }
+
+    /// Consommé par MainView une fois l'onglet appliqué.
+    func consumePendingTabRequest() {
+        pendingTabRequest = nil
+    }
+
+    /// Ouverture de la palette demandée depuis le menu — ⌘K y est déclaré pour
+    /// être visible et découvrable. Même problème, même remède : la
+    /// superposition est un `@State` de MainView.
+    @Published private(set) var paletteRequested = false
+
+    func requestPalette() {
+        paletteRequested = true
+    }
+
+    /// Consommé par MainView — que la palette s'ouvre **ou non** : elle refuse
+    /// de s'ouvrir sous une feuille (spec §10), et le canal doit retomber quand
+    /// même. Un canal resté armé ferait voir la demande suivante comme « déjà
+    /// en cours » : la famille de bugs de `releaseCheckInFlight`.
+    func consumePaletteRequest() {
+        paletteRequested = false
+    }
+
     // MARK: - Delta de clés de mise à jour (C2-T4)
 
     /// Les deltas de la dernière installation, pour l'écran de succès.
