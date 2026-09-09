@@ -30,6 +30,7 @@ struct MainView: View {
     /// bouton « Archive suivante » de la fenêtre de bilan. ⚠️ Son onDismiss
     /// ne discard RIEN : ce sont les fichiers originaux de l'utilisateur.
     @State private var showDropInstall = false
+    @State private var showCommandPalette = false
     @Environment(\.openWindow) private var openWindow
 
     /// L'alerte « nouvelle release de StarHubFR » n'est présentée que si
@@ -37,6 +38,23 @@ struct MainView: View {
     /// simultanés et l'un se perd en silence (spec §7.4).
     private var canPresentReleaseAlert: Bool {
         !showDownloadedInstall && !showDropInstall
+    }
+
+    /// Aucune feuille ni voile modal à l'écran : une superposition présentée
+    /// dessous serait invisible, et laisserait un état ouvert que personne ne
+    /// voit — la famille de bugs de `releaseCheckInFlight`.
+    ///
+    /// Bâtie **sur** `canPresentReleaseAlert` plutôt qu'en recopiant sa liste :
+    /// deux conditions jumelles divergeraient au premier ajout de feuille. S'y
+    /// ajoutent l'alerte de release elle-même (à l'écran dès qu'un tag est
+    /// disponible et que le gate la laisse passer) et l'application de profil,
+    /// dont le voile vit dans ce ZStack : la palette se dessinerait par-dessus
+    /// et laisserait naviguer pendant que les dossiers bougent.
+    private var canPresentPalette: Bool {
+        canPresentReleaseAlert
+            && vm.availableAppRelease == nil
+            && vm.profileApplyProgress == nil
+            && !showCommandPalette
     }
     
 
@@ -280,6 +298,14 @@ struct MainView: View {
                                          total: vm.scanProgress?.total ?? 0)
                 }
             }
+
+            // La palette ⌘K — au sommet du ZStack, donc au-dessus du voile
+            // d'application de profil. Elle ne s'y ouvre pas pour autant :
+            // `canPresentPalette` le refuse (voir plus haut).
+            if showCommandPalette {
+                CommandPaletteView(vm: vm, isPresented: $showCommandPalette)
+                    .zIndex(10)
+            }
         } // End of outer ZStack
         // No launch overlay here any more: the splash is its own window
         // (`LaunchSplashController`) and this window stays hidden until the
@@ -297,6 +323,35 @@ struct MainView: View {
                 currentTab = .mods
             }
         }
+        // Le menu « Aller » et la palette demandent un onglet ; c'est ici, où
+        // vit `currentTab`, qu'il s'applique (patron B3-T4).
+        .onChange(of: vm.pendingTabRequest) { _, requested in
+            guard let requested else { return }
+            vm.consumePendingTabRequest()
+            currentTab = requested
+        }
+        // ⌘K depuis le menu. **Refus assumé quand une feuille est ouverte** :
+        // la superposition se dessinerait sous elle — invisible, alors que la
+        // palette se croirait ouverte. On vide le canal sans rien ouvrir.
+        .onChange(of: vm.paletteRequested) { _, requested in
+            guard requested else { return }
+            vm.consumePaletteRequest()
+            guard canPresentPalette else { return }
+            showCommandPalette = true
+        }
+        // ⌘K local, en plus de l'entrée de menu : la bascule doit marcher sans
+        // passer par la barre de menus.
+        .background(
+            Button("") {
+                if showCommandPalette {
+                    showCommandPalette = false
+                } else if canPresentPalette {
+                    showCommandPalette = true
+                }
+            }
+            .keyboardShortcut("k", modifiers: .command)
+            .opacity(0)
+        )
         .alert(isPresented: $vm.showAlert) {
             Alert(
                 title: Text(vm.L(L10n.Main.alert)),
