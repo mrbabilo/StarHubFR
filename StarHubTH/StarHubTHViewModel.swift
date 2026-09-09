@@ -7771,6 +7771,23 @@ for mod in mods {
         pendingDropPresentation = nil
     }
 
+    /// « Voir la fiche » depuis la fenêtre de bilan. La fenêtre ne peut
+    /// pas lire `currentTab` (`@State` de MainView) — la décision se prend
+    /// donc LÀ où vit l'état : MainView consomme ce canal et choisit la
+    /// pose directe ou le passage par le changement d'onglet (patron
+    /// B3-T4 — poser les pendings avant `currentTab` ne marche jamais).
+    @Published private(set) var reportDetailFocus: String?
+
+    /// Consommé par MainView : la fiche est demandée (pose directe ou
+    /// changement d'onglet), le canal peut retomber.
+    func consumeReportDetailFocus() {
+        reportDetailFocus = nil
+    }
+
+    func openReportDetail(for folderName: String) {
+        reportDetailFocus = folderName
+    }
+
     // MARK: - Delta de clés de mise à jour (C2-T4)
 
     /// Les deltas de la dernière installation, pour l'écran de succès.

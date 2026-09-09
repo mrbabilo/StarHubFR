@@ -1332,6 +1332,20 @@ enum L10n {
     }
 
     // MARK: - ModInstall
+    /// Le bilan post-installation, dans sa fenêtre dédiée (remplace
+    /// l'écran de succès interne de la feuille).
+    enum InstallReport {
+        static let windowTitle    = "install_report_window_title"
+        static let titleUpdate    = "install_report_title_update"
+        static let titleInstall   = "install_report_title_install"
+        static let summaryMods    = "install_report_summary_mods"
+        static let summaryTranslation = "install_report_summary_translation"
+        static let summaryConfig  = "install_report_summary_config"
+        static let summaryRenames = "install_report_summary_renames"
+        static let done           = "install_report_done"
+        static let nextArchive    = "install_report_next_archive"
+    }
+
     enum ModInstall {
         static let depositTitle             = "mod_install_deposit_title"
         static let depositMessage           = "mod_install_deposit_message"

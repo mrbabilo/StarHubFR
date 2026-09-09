@@ -25,6 +25,12 @@ struct MainView: View {
     
     @State private var isProfileHovered = false
     @State private var showDownloadedInstall = false
+    /// La feuille d'installation rouverte sur l'archive suivante d'un dépôt
+    /// multiple — le canal `vm.pendingDropPresentation` est posé par le
+    /// bouton « Archive suivante » de la fenêtre de bilan. ⚠️ Son onDismiss
+    /// ne discard RIEN : ce sont les fichiers originaux de l'utilisateur.
+    @State private var showDropInstall = false
+    @Environment(\.openWindow) private var openWindow
     
 
     private var navigationTitleText: String {
@@ -315,6 +321,44 @@ struct MainView: View {
             vm.drainQueuedNexusDownloads()
         }) {
             ModInstallView(vm: vm, currentTab: $currentTab, isPresented: $showDownloadedInstall, preloadedZip: vm.pendingDownloadedZip)
+        }
+        // Le bilan d'installation vit dans SA fenêtre — ouverte dès qu'un
+        // report est posé (réouverture idempotente, contenu remplacé).
+        .onChange(of: vm.pendingInstallReport) { _, report in
+            guard report != nil else { return }
+            openWindow(id: "installReport")
+        }
+        // « Archive suivante » de la fenêtre de bilan : la feuille se
+        // rouvre sur l'archive posée (chemin preloadedZip existant).
+        .onChange(of: vm.pendingDropPresentation) { _, url in
+            guard url != nil else { return }
+            showDropInstall = true
+        }
+        .sheet(isPresented: $showDropInstall, onDismiss: {
+            // PAS de discard ici : fichiers originaux de l'utilisateur.
+            vm.clearDropPresentation()
+        }) {
+            ModInstallView(vm: vm, currentTab: $currentTab,
+                           isPresented: $showDropInstall,
+                           preloadedZip: vm.pendingDropPresentation)
+        }
+        // « Voir la fiche » depuis la fenêtre de bilan : la décision vit
+        // ici, où seul vit `currentTab` (patron B3-T4).
+        .onChange(of: vm.reportDetailFocus) { _, folder in
+            guard let folder else { return }
+            if currentTab == "Mods",
+               let target = ModFocusResolver.resolve(folder, in: vm.mods) {
+                vm.viewingModDetail = target
+                vm.pendingDetailTab = .state
+            } else {
+                vm.pendingModDetailFocus = folder
+                vm.pendingDetailTab = .state
+                currentTab = "Mods"
+            }
+            // Amener la fenêtre principale devant : la fiche s'y pose, la
+            // fenêtre de bilan reste ouverte derrière.
+            openWindow(id: "main")
+            vm.consumeReportDetailFocus()
         }
     }
     

@@ -176,5 +176,14 @@ struct StarHubTHApp: App {
         }
         .windowResizability(.contentMinSize)
         .defaultSize(width: 900, height: 600)
+
+        // Le bilan post-installation — une fenêtre dédiée, redimensionnable,
+        // là où l'écran de succès interne de la feuille vivait. Ouverte par
+        // `openWindow(id:)` depuis MainView quand un report est posé ; une
+        // seconde ouverture l'amène au premier plan et remplace le contenu.
+        Window(vm.L(L10n.InstallReport.windowTitle), id: "installReport") {
+            InstallReportWindow(vm: vm)
+        }
+        .windowResizability(.contentMinSize)
     }
 }
