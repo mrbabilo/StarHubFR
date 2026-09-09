@@ -7,7 +7,7 @@ struct MainView: View {
     // `ObservableObject` distinct — sans cet abonnement, la pastille ne se
     // redessinerait jamais quand le scan termine (tâche 7).
     @ObservedObject private var keybindScanService: KeybindScanService
-    @State private var currentTab: String = "Home"
+    @State private var currentTab: SidebarDestination = .home
 
     init(vm: StarHubTHViewModel) {
         self.vm = vm
@@ -15,8 +15,8 @@ struct MainView: View {
     }
 
     // History Management
-    @State private var tabHistory: [String] = ["Home"]
-    @State private var forwardHistory: [String] = []
+    @State private var tabHistory: [SidebarDestination] = [.home]
+    @State private var forwardHistory: [SidebarDestination] = []
     @State private var isNavigatingBackOrForward = false
     
     @AppStorage("appColorScheme") private var appColorScheme: String = "System"
@@ -41,26 +41,31 @@ struct MainView: View {
     
 
     private var navigationTitleText: String {
-        if currentTab == "Saves" && vm.viewingSaveTimeline != nil { return vm.L(L10n.Saves.timeline) }
-        if currentTab == "Saves" && vm.editingSave != nil { return vm.editingSave!.playerName }
-        if currentTab == "ThaiHub" && vm.viewingThaiMod != nil { return vm.viewingThaiMod!.name }
-        if currentTab == "Mods" && vm.editingModConfig != nil { return vm.editingModConfig!.name }
-        if currentTab == "Mods" && vm.viewingModDetail != nil { return vm.viewingModDetail!.name }
-        if currentTab == "Mods" { return vm.L(L10n.Mods.mods) }
-        if currentTab == "InstallBackups" { return vm.L(L10n.ModInstall.manageBackups) }
-        if currentTab == "ConfigBackups" { return vm.L(L10n.ModConfigBackups.title) }
-        if currentTab == "Maintenance" { return vm.L(L10n.Maintenance.title) }
-        if currentTab == "Profiles" { return vm.L(L10n.Profiles.title) }
-        if currentTab == "Updates" { return vm.L(L10n.Main.modUpdates) }
-        if currentTab == "SystemAlerts" { return vm.L(L10n.Main.systemAlerts) }
-        if currentTab == "Discover" { return vm.L(L10n.Main.discover) }
-        if currentTab == "Quarantine" { return vm.L(L10n.Main.quarantine) }
-        if currentTab == "ThaiHub" { return vm.L(L10n.ThaiHub.title) }
-        if currentTab == "Saves" { return vm.L(L10n.Saves.saves) }
-        if currentTab == "Settings" { return vm.L(L10n.Settings.settings) }
-        if currentTab == "Logs" { return vm.L(L10n.Logs.logs) }
-        if currentTab == "AppChangelog" { return vm.L(L10n.Main.appChangelog) }
-        return vm.L(L10n.Main.home)
+        if currentTab == .saves && vm.viewingSaveTimeline != nil { return vm.L(L10n.Saves.timeline) }
+        if currentTab == .saves && vm.editingSave != nil { return vm.editingSave!.playerName }
+        if currentTab == .thaiHub && vm.viewingThaiMod != nil { return vm.viewingThaiMod!.name }
+        if currentTab == .mods && vm.editingModConfig != nil { return vm.editingModConfig!.name }
+        if currentTab == .mods && vm.viewingModDetail != nil { return vm.viewingModDetail!.name }
+        // Le titre de base — exhaustif, **jamais de `default:`** : une
+        // destination ajoutée sans titre est une erreur de build, pas une
+        // fenêtre qui s'intitule « Accueil » sans qu'on le remarque.
+        switch currentTab {
+        case .mods:           return vm.L(L10n.Mods.mods)
+        case .installBackups: return vm.L(L10n.ModInstall.manageBackups)
+        case .configBackups:  return vm.L(L10n.ModConfigBackups.title)
+        case .maintenance:    return vm.L(L10n.Maintenance.title)
+        case .profiles:       return vm.L(L10n.Profiles.title)
+        case .updates:        return vm.L(L10n.Main.modUpdates)
+        case .systemAlerts:   return vm.L(L10n.Main.systemAlerts)
+        case .discover:       return vm.L(L10n.Main.discover)
+        case .quarantine:     return vm.L(L10n.Main.quarantine)
+        case .thaiHub:        return vm.L(L10n.ThaiHub.title)
+        case .saves:          return vm.L(L10n.Saves.saves)
+        case .settings:       return vm.L(L10n.Settings.settings)
+        case .logs:           return vm.L(L10n.Logs.logs)
+        case .appChangelog:   return vm.L(L10n.Main.appChangelog)
+        case .home:           return vm.L(L10n.Main.home)
+        }
     }
     
     var body: some View {
@@ -74,9 +79,9 @@ struct MainView: View {
                 // everything the user needs at-a-glance is now in one card.
                 AccountHeaderCard(
                     vm: vm,
-                    isActive: currentTab == "Home",
+                    isActive: currentTab == .home,
                     isHovered: isProfileHovered,
-                    onTap: { currentTab = "Home" }
+                    onTap: { currentTab = .home }
                 )
                 .onHover { isProfileHovered = $0 }
                 .padding(.horizontal, 10)
@@ -101,7 +106,14 @@ struct MainView: View {
         } detail: {
             // ── CONTENT AREA ─────────────────────────────────────────
             Group {
-                if currentTab == "Mods" {
+                // ⚠️ Exhaustif, et **jamais de `default:`** : c'est le
+                // compilateur qui garantit qu'aucune destination ne se
+                // retrouve sans page. Avant le 2026-09-09 cette répartition
+                // comparait des chaînes, et un identifiant mal écrit rendait
+                // une page blanche en silence. Même règle que
+                // `SettingsSectionOrder.sectionView`.
+                switch currentTab {
+                case .mods:
                     if let mod = vm.editingModConfig {
                         // L'onglet visuel par défaut : c'est celui qui montre
                         // les réglages du mod, l'onglet de code étant le repli
@@ -113,13 +125,13 @@ struct MainView: View {
                     } else {
                         ModListView(vm: vm, currentTab: $currentTab)
                     }
-                } else if currentTab == "ConfigBackups" {
+                case .configBackups:
                     ModConfigBackupsView(vm: vm)
-                } else if currentTab == "Maintenance" {
+                case .maintenance:
                     MaintenanceView(vm: vm)
-                } else if currentTab == "InstallBackups" {
+                case .installBackups:
                     ModInstallBackupsView(vm: vm)
-                } else if currentTab == "Saves" {
+                case .saves:
                     if let save = vm.viewingSaveTimeline {
                         SaveTimelineView(vm: vm, save: save)
                     } else if let save = vm.editingSave {
@@ -127,25 +139,25 @@ struct MainView: View {
                     } else {
                         SavesView(vm: vm)
                     }
-                } else if currentTab == "Profiles" {
+                case .profiles:
                     ModProfilesView(vm: vm, currentTab: $currentTab)
-                } else if currentTab == "Updates" {
+                case .updates:
                     UpdatesView(vm: vm, currentTab: $currentTab)
-                } else if currentTab == "SystemAlerts" {
+                case .systemAlerts:
                     SystemAlertsView(vm: vm, currentTab: $currentTab)
-                } else if currentTab == "Quarantine" {
+                case .quarantine:
                     QuarantineView(vm: vm)
-                } else if currentTab == "Discover" {
+                case .discover:
                     DiscoverView(vm: vm, currentTab: $currentTab)
-                } else if currentTab == "ThaiHub" {
+                case .thaiHub:
                     ThaiTranslationHubView(vm: vm)
-                } else if currentTab == "Settings" {
+                case .settings:
                     SettingsView(vm: vm)
-                } else if currentTab == "Logs" {
+                case .logs:
                     LogsView(vm: vm)
-                } else if currentTab == "AppChangelog" {
+                case .appChangelog:
                     AppChangelogView(vm: vm)
-                } else {
+                case .home:
                     HomeView(vm: vm, currentTab: $currentTab)
                 }
             }
@@ -162,7 +174,7 @@ struct MainView: View {
                 // française d'un profil). La poser avant de changer d'onglet
                 // ne servait à rien : la remise à zéro ci-dessus l'effaçait
                 // aussitôt, et le bouton n'ouvrait que la liste des mods.
-                if currentTab == "Mods", let folderName = vm.pendingTranslationFocus {
+                if currentTab == .mods, let folderName = vm.pendingTranslationFocus {
                     vm.viewingModDetail = vm.mods.flattenedMods
                         .first { $0.folderName == folderName }
                 }
@@ -173,7 +185,7 @@ struct MainView: View {
                 // tard dans la vue : l'éditeur n'a pas d'onglet à présélectionner,
                 // on l'ouvre donc ici et on efface la demande aussitôt — sans
                 // quoi chaque retour sur l'onglet la rejouerait.
-                if currentTab == "Mods", let folderName = vm.pendingConfigFocus {
+                if currentTab == .mods, let folderName = vm.pendingConfigFocus {
                     vm.pendingConfigFocus = nil
                     vm.editingModConfig = vm.mods.flattenedMods
                         .first { $0.folderName == folderName }
@@ -183,7 +195,7 @@ struct MainView: View {
                 // depuis l'écran d'alertes système : une ligne SMAPI porte un
                 // nom affiché, une ligne de conflit un `folderName` —
                 // `ModFocusResolver` accepte les deux.
-                if currentTab == "Mods", let query = vm.pendingModDetailFocus {
+                if currentTab == .mods, let query = vm.pendingModDetailFocus {
                     vm.pendingModDetailFocus = nil
                     vm.viewingModDetail = ModFocusResolver.resolve(query, in: vm.mods)
                     // Résolution vide : aucune fiche ne s'ouvrira, donc
@@ -220,7 +232,7 @@ struct MainView: View {
                                 isNavigatingBackOrForward = true
                                 let current = tabHistory.removeLast()
                                 forwardHistory.append(current)
-                                currentTab = tabHistory.last ?? "Home"
+                                currentTab = tabHistory.last ?? .home
                             }
                         }) {
                             Image(systemName: "chevron.left")
@@ -282,7 +294,7 @@ struct MainView: View {
                 // yet (tabs are created on demand), so it picks this up on
                 // appear and scopes itself to the mod.
                 vm.pendingModFocus = modName
-                currentTab = "Mods"
+                currentTab = .mods
             }
         }
         .alert(isPresented: $vm.showAlert) {
@@ -353,14 +365,14 @@ struct MainView: View {
         // ici, où seul vit `currentTab` (patron B3-T4).
         .onChange(of: vm.reportDetailFocus) { _, folder in
             guard let folder else { return }
-            if currentTab == "Mods",
+            if currentTab == .mods,
                let target = ModFocusResolver.resolve(folder, in: vm.mods) {
                 vm.viewingModDetail = target
                 vm.pendingDetailTab = .state
             } else {
                 vm.pendingModDetailFocus = folder
                 vm.pendingDetailTab = .state
-                currentTab = "Mods"
+                currentTab = .mods
             }
             // Amener la fenêtre principale devant : la fiche s'y pose, la
             // fenêtre de bilan reste ouverte derrière.
@@ -409,7 +421,7 @@ struct MainView: View {
 /// lignes qui défilent, pas les réglages du bas.
 struct SidebarNavGroups: View {
     @ObservedObject var vm: StarHubTHViewModel
-    @Binding var currentTab: String
+    @Binding var currentTab: SidebarDestination
     @AppStorage("showThaiTranslationHub") private var showThaiTranslationHub = false
 
     var body: some View {
@@ -420,17 +432,17 @@ struct SidebarNavGroups: View {
                                      icon: "square.grid.2x2")
 
                 SidebarItem(icon: "puzzlepiece.extension.fill",
-                            label: vm.L(L10n.Mods.mods), tab: "Mods",
+                            label: vm.L(L10n.Mods.mods), tab: .mods,
                             currentTab: $currentTab)
 
                 SidebarItem(icon: "safari.fill",
-                            label: vm.L(L10n.Main.discover), tab: "Discover",
+                            label: vm.L(L10n.Main.discover), tab: .discover,
                             currentTab: $currentTab)
 
                 // Toujours visible, même à zéro : sans l'entrée, plus
                 // moyen de déclencher une vérification Nexus à la main.
                 SidebarItem(icon: "arrow.triangle.2.circlepath",
-                            label: vm.L(L10n.Main.modUpdates), tab: "Updates",
+                            label: vm.L(L10n.Main.modUpdates), tab: .updates,
                             badge: vm.outOfDateMods.count + vm.nexusUpdates.count,
                             badgeColor: .blue, currentTab: $currentTab)
             }
@@ -441,11 +453,11 @@ struct SidebarNavGroups: View {
                                      icon: "gamecontroller")
 
                 SidebarItem(icon: "person.2.fill",
-                            label: vm.L(L10n.Profiles.title), tab: "Profiles",
+                            label: vm.L(L10n.Profiles.title), tab: .profiles,
                             currentTab: $currentTab)
 
                 SidebarItem(icon: "folder.fill",
-                            label: vm.L(L10n.Saves.saves), tab: "Saves",
+                            label: vm.L(L10n.Saves.saves), tab: .saves,
                             currentTab: $currentTab)
             }
 
@@ -458,7 +470,7 @@ struct SidebarNavGroups: View {
                 // « Revérifier le journal », et un journal muet avant une
                 // installation ne dit rien de l'après.
                 SidebarItem(icon: "exclamationmark.triangle.fill",
-                            label: vm.L(L10n.Main.systemAlerts), tab: "SystemAlerts",
+                            label: vm.L(L10n.Main.systemAlerts), tab: .systemAlerts,
                             badge: vm.systemAlertCount, badgeColor: .orange,
                             currentTab: $currentTab)
 
@@ -467,21 +479,21 @@ struct SidebarNavGroups: View {
                 // quand on veut lancer l'analyse et la voir ne rien
                 // trouver.
                 SidebarItem(icon: "tray.full.fill",
-                            label: vm.L(L10n.Main.quarantine), tab: "Quarantine",
+                            label: vm.L(L10n.Main.quarantine), tab: .quarantine,
                             badge: vm.lastRepairReport?.quarantined.count ?? 0,
                             badgeColor: .purple, currentTab: $currentTab)
 
                 SidebarItem(icon: "arrow.uturn.backward.circle.fill",
                             label: vm.L(L10n.ModInstall.manageBackups),
-                            tab: "InstallBackups", currentTab: $currentTab)
+                            tab: .installBackups, currentTab: $currentTab)
 
                 SidebarItem(icon: "archivebox.fill",
                             label: vm.L(L10n.ModConfigBackups.tabTitle),
-                            tab: "ConfigBackups", currentTab: $currentTab)
+                            tab: .configBackups, currentTab: $currentTab)
 
                 SidebarItem(icon: "internaldrive",
                             label: vm.L(L10n.Maintenance.title),
-                            tab: "Maintenance", currentTab: $currentTab)
+                            tab: .maintenance, currentTab: $currentTab)
             }
 
             // APPLICATION.
@@ -490,20 +502,20 @@ struct SidebarNavGroups: View {
                                      icon: "gearshape")
 
                 SidebarItem(icon: "terminal.fill",
-                            label: vm.L(L10n.Logs.logs), tab: "Logs",
+                            label: vm.L(L10n.Logs.logs), tab: .logs,
                             currentTab: $currentTab)
 
                 SidebarItem(icon: "gearshape.fill",
-                            label: vm.L(L10n.Settings.settings), tab: "Settings",
+                            label: vm.L(L10n.Settings.settings), tab: .settings,
                             currentTab: $currentTab)
 
                 SidebarItem(icon: "doc.text.fill",
-                            label: vm.L(L10n.Main.appChangelog), tab: "AppChangelog",
+                            label: vm.L(L10n.Main.appChangelog), tab: .appChangelog,
                             currentTab: $currentTab)
 
                 if showThaiTranslationHub {
                     SidebarItem(icon: "globe.asia.australia.fill",
-                                label: vm.L(L10n.ThaiHub.title), tab: "ThaiHub",
+                                label: vm.L(L10n.ThaiHub.title), tab: .thaiHub,
                                 currentTab: $currentTab)
                 }
             }
@@ -648,7 +660,7 @@ struct SidebarSectionHeader: View {
 // MARK: - Updates View (macOS System Settings style)
 struct UpdatesView: View {
     @ObservedObject var vm: StarHubTHViewModel
-    @Binding var currentTab: String
+    @Binding var currentTab: SidebarDestination
     
     var body: some View {
         ScrollView {
@@ -1153,7 +1165,7 @@ struct UpdatesView: View {
                                         Button {
                                             vm.pendingModDetailFocus = row.folderName
                                             vm.pendingDetailTab = .state
-                                            currentTab = "Mods"
+                                            currentTab = .mods
                                         } label: {
                                             Text(vm.L(L10n.Updates.affirmedOpenMod))
                                                 .font(.system(size: 11))

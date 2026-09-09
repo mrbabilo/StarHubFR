@@ -1683,6 +1683,26 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
         scanner inline. Pas au fil de l'eau : ça touche l'affichage du volet
         erreurs, à faire avec un vrai journal SMAPI sous la main. · **M**
 
+- [x] **F7** ✅ *(livré le 2026-09-09)* — **L'onglet courant était une chaîne, et
+      rien ne garantissait qu'elle désigne une page.** `currentTab` était un
+      `String`, et la répartition du contenu de `MainView` une **chaîne de
+      `if / else if` sur des littéraux** — pas un `switch`. Une faute de frappe
+      ne cassait pas la compilation : elle rendait une **page blanche, en
+      silence**. Le dépôt avait pourtant déjà tranché l'inverse ailleurs, avec
+      le `switch` exhaustif de `sectionView` (`SettingsSectionOrder`, H-T7).
+      **Livré** : `SidebarDestination` (Core, 15 cas, `rawValue` reprenant les
+      anciennes chaînes) ; `MainView` switche exhaustivement pour la
+      répartition **et** pour le titre de fenêtre, sans `default:` ;
+      `HomeAttention.Kind.tab` — deuxième endroit qui écrivait ces
+      identifiants à la main, en Core — est typé lui aussi.
+      **Le garde-fou est vérifié, pas supposé** : une 16ᵉ destination ajoutée
+      sans page fait échouer le build (`error: switch must be exhaustive`).
+      10 fichiers, 2 500 tests verts, un compteur du cliquet en baisse.
+      **Relevé pendant la relecture critique de I-T1/I-T2, puis fait *avant*
+      le lot** : la spec y crée `SidebarOrder`, une table Core de ces mêmes
+      identifiants alimentant trois nouveaux écrivains (⌘1…⌘9, palette,
+      menus) — la garder en `String` aurait écrit les identifiants une
+      deuxième fois et *augmenté* la surface de page blanche.
 ---
 
 ## 8. Ordre recommandé et arbitrage

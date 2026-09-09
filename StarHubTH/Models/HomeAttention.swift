@@ -24,12 +24,12 @@ public enum HomeAttention {
 
         /// L'onglet où mène le compteur. Le porter ici évite que chaque vue
         /// refasse l'association — et que l'une d'elles se trompe.
-        public var tab: String {
+        public var tab: SidebarDestination {
             switch self {
-            case .updates: return "Updates"
-            case .alerts: return "SystemAlerts"
-            case .quarantine: return "Quarantine"
-            case .library: return "Mods"
+            case .updates: return .updates
+            case .alerts: return .systemAlerts
+            case .quarantine: return .quarantine
+            case .library: return .mods
             }
         }
     }
@@ -39,7 +39,7 @@ public enum HomeAttention {
         public let count: Int
         public let level: Level
         public var id: Kind { kind }
-        public var tab: String { kind.tab }
+        public var tab: SidebarDestination { kind.tab }
     }
 
     /// Les quatre compteurs de la bande d'accueil, **toujours** les quatre.

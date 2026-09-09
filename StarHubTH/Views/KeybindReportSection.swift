@@ -36,9 +36,9 @@ struct KeybindReportSection: View {
     @ObservedObject var service: KeybindScanService
     /// La bascule d'onglet fait partie du geste « ouvrir la config » : le
     /// bouton d'une ligne vit sur les Alertes système, l'éditeur sur Mods.
-    @Binding var currentTab: String
+    @Binding var currentTab: SidebarDestination
 
-    init(vm: StarHubTHViewModel, currentTab: Binding<String>) {
+    init(vm: StarHubTHViewModel, currentTab: Binding<SidebarDestination>) {
         self.vm = vm
         self.service = vm.keybindScanService
         self._currentTab = currentTab
@@ -240,7 +240,7 @@ struct KeybindReportSection: View {
         let settingsLabel = vm.L(L10n.Settings.configModSettings)
         return Button {
             if vm.openModConfig(forFolder: modID) {
-                currentTab = "Mods"
+                currentTab = .mods
             }
         } label: {
             Image(systemName: "gearshape")

@@ -3,7 +3,7 @@ import SwiftUI
 struct ModProfilesView: View {
     @ObservedObject var vm: StarHubTHViewModel
     /// Bound to `MainView.currentTab` so "Manage mods" can jump to the Mods page.
-    @Binding var currentTab: String
+    @Binding var currentTab: SidebarDestination
 
     @State private var isShowingNewProfileAlert = false
     @State private var newProfileName = ""
@@ -156,7 +156,7 @@ struct ModProfilesView: View {
                                 onApply: { vm.applyProfile(id: profile.id) },
                                 onManage: {
                                     vm.applyProfile(id: profile.id)
-                                    currentTab = "Mods"
+                                    currentTab = .mods
                                 },
                                 onRename: { renamingProfile = profile; renameText = profile.name },
                                 onDuplicate: { vm.duplicateProfile(id: profile.id) },
@@ -312,7 +312,7 @@ struct ModProfilesView: View {
                                      set: { if !$0 { profileShowingMissing = nil } }),
                 onOpenTranslation: { folderName in
                     vm.openTranslation(forFolder: folderName)
-                    currentTab = "Mods"
+                    currentTab = .mods
                 })
         }
     }

@@ -11,7 +11,7 @@ struct DiscoverView: View {
     /// L'onglet courant de `MainView` : sans clé d'API la vitrine ne peut
     /// rien montrer, et le dire sans offrir le chemin des réglages laisse
     /// l'utilisateur le chercher.
-    @Binding var currentTab: String
+    @Binding var currentTab: SidebarDestination
     @AppStorage("discoveryHideInstalled") private var hideInstalled = false
     @State private var searchText = ""
     @State private var detailRow: StarHubTHViewModel.DiscoveryRow?
@@ -260,7 +260,7 @@ struct DiscoverView: View {
                 // le diagnostic.
                 StateCard(icon: "key", text: vm.L(L10n.Discovery.noKey),
                           actionTitle: vm.L(L10n.Discovery.openSettings)) {
-                    currentTab = "Settings"
+                    currentTab = .settings
                 }
             case .rateLimited:
                 StateCard(icon: "hourglass", text: vm.L(L10n.Discovery.rateLimited),
@@ -323,7 +323,7 @@ struct DiscoverView: View {
             // diagnostic.
             return ErrorBanner(text: text,
                                actionTitle: vm.L(L10n.Discovery.openSettings)) {
-                currentTab = "Settings"
+                currentTab = .settings
             }
         }
         return ErrorBanner(text: text,

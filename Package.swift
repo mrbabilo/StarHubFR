@@ -24,6 +24,7 @@ let package = Package(
                 "ModZipInstaller.swift",
                 "ModFolderRepairer.swift",
                 "SaveManager.swift",
+                "Models/SidebarDestination.swift",
                 "Models/InventoryItem.swift",
                 "Models/NxmLink.swift",
                 "Models/NexusDownloadQueue.swift",

@@ -42,10 +42,10 @@ struct HomeAttentionTests {
         // Le compteur porte l'onglet où il mène : la vue ne doit pas
         // ré-associer à la main ce que le modèle sait déjà.
         let counters = HomeAttention.counters(updates: 1, alerts: 1, quarantined: 1, mods: 1)
-        #expect(counters.first { $0.kind == .updates }?.tab == "Updates")
-        #expect(counters.first { $0.kind == .alerts }?.tab == "SystemAlerts")
-        #expect(counters.first { $0.kind == .quarantine }?.tab == "Quarantine")
-        #expect(counters.first { $0.kind == .library }?.tab == "Mods")
+        #expect(counters.first { $0.kind == .updates }?.tab == .updates)
+        #expect(counters.first { $0.kind == .alerts }?.tab == .systemAlerts)
+        #expect(counters.first { $0.kind == .quarantine }?.tab == .quarantine)
+        #expect(counters.first { $0.kind == .library }?.tab == .mods)
     }
 
     // MARK: - L'état de lancement

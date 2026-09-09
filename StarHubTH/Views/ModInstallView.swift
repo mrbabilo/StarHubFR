@@ -7,7 +7,7 @@ struct ModInstallView: View {
     /// C2-T4 — le bouton « Voir la fiche » de l'écran de succès conduit au
     /// bon onglet : même canal que `SystemAlertsView` (pending posé avant le
     /// changement d'onglet — patron B3-T4).
-    @Binding var currentTab: String
+    @Binding var currentTab: SidebarDestination
     @State private var isDropTarget = false
     @State private var zipModInfo: ZipModInfo?
     @State private var isAnalyzing = false
@@ -104,7 +104,7 @@ struct ModInstallView: View {
 
     private let installer = ModZipInstaller()
 
-    init(vm: StarHubTHViewModel, currentTab: Binding<String>,
+    init(vm: StarHubTHViewModel, currentTab: Binding<SidebarDestination>,
          isPresented: Binding<Bool>, preloadedZip: URL? = nil) {
         self.vm = vm
         self._currentTab = currentTab

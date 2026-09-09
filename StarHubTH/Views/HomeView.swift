@@ -12,12 +12,12 @@ struct HomeView: View {
     /// L'onglet courant de `MainView` : les compteurs de la bande mènent
     /// chacun à sa page, et un accueil qui les affiche sans y conduire ne
     /// ferait que constater.
-    @Binding var currentTab: String
+    @Binding var currentTab: SidebarDestination
 
     // Mirrors the key launchGame() reads, so the subtitle reflects the mode that fires.
     @AppStorage("launchProfile") private var launchProfile: String = "SMAPI"
 
-    init(vm: StarHubTHViewModel, currentTab: Binding<String>) {
+    init(vm: StarHubTHViewModel, currentTab: Binding<SidebarDestination>) {
         self.vm = vm
         self.smapiInstaller = vm.smapiInstaller
         self.bisection = vm.bisection
@@ -270,8 +270,8 @@ private struct AttentionCounterTile: View {
     let value: Int
     let label: String
     let tint: Color?
-    let tab: String
-    @Binding var currentTab: String
+    let tab: SidebarDestination
+    @Binding var currentTab: SidebarDestination
 
     var body: some View {
         Button { currentTab = tab } label: {

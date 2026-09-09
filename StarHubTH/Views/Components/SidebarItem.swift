@@ -10,13 +10,13 @@ import SwiftUI
 struct SidebarItem: View {
     let icon: String
     let label: String
-    let tab: String
+    let tab: SidebarDestination
     /// `nil` : cet item ne compte rien. `0` : il compte, et il n'y a rien —
     /// la capsule disparaît mais l'item reste, parce que la destination doit
     /// rester atteignable quand tout va bien.
     var badge: Int? = nil
     var badgeColor: Color = .blue
-    @Binding var currentTab: String
+    @Binding var currentTab: SidebarDestination
     @State private var isHovered = false
 
     private var isSelected: Bool { currentTab == tab }

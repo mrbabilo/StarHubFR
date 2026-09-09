@@ -34,7 +34,7 @@ private enum SystemAlertsSheet: Identifiable {
 
 struct SystemAlertsView: View {
     @ObservedObject var vm: StarHubTHViewModel
-    @Binding var currentTab: String
+    @Binding var currentTab: SidebarDestination
 
     /// H-T6b — `KeybindReportSection` et `ModConflictSection` n'avaient plus
     /// aucun appelant depuis que tâche 7 a remplacé leurs trois sections par
@@ -239,10 +239,10 @@ struct SystemAlertsView: View {
             vm.pendingModDetailFocus = query
             // Une alerte parle de l'état du mod, pas de sa description.
             vm.pendingDetailTab = .state
-            currentTab = "Mods"
+            currentTab = .mods
         case .openLogs(let searchText):
             vm.pendingLogFocus = searchText
-            currentTab = "Logs"
+            currentTab = .logs
         case .revealInFinder(let paths):
             // Les deux dossiers sélectionnés **ensemble** : c'est ce qui montre
             // lequel porte le point de tête, donc lequel est en pause. Ouvrir

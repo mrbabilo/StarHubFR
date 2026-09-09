@@ -19,12 +19,12 @@ struct ModListView: View {
     /// L'onglet affiché, pour les rares endroits d'où la liste **mène
     /// ailleurs** (le badge de profil actif). Même patron que
     /// `ModProfilesView`, `UpdatesView` et `SystemAlertsView`.
-    @Binding var currentTab: String
+    @Binding var currentTab: SidebarDestination
     /// Le cadrage de la liste, observé **à part** du ViewModel pour que taper
     /// dans la recherche ne redessine pas toute la fenêtre — voir `ModListState`.
     @ObservedObject private var listState: ModListState
 
-    init(vm: StarHubTHViewModel, currentTab: Binding<String>) {
+    init(vm: StarHubTHViewModel, currentTab: Binding<SidebarDestination>) {
         self.vm = vm
         self.listState = vm.modList
         self._currentTab = currentTab
@@ -398,7 +398,7 @@ struct ModListView: View {
                     // gère : c'est là qu'on va quand on le lit ici.
                     if let profile = vm.activeProfile {
                         Button {
-                            currentTab = "Profiles"
+                            currentTab = .profiles
                         } label: {
                             HStack(spacing: 5) {
                                 Image(systemName: "person.crop.circle")
