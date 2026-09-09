@@ -12,6 +12,14 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Changed
+
+- **Les journaux parlent la langue de l'app.** Filtres, barre d'outils et lignes de journal reprennent les tailles, espacements et couleurs du système de design — le monospace y entre pour la première fois. Un état vide dit désormais s'il est vide *parce qu'un filtre exclut tout*, et propose de le lever.
+
+### Fixed
+
+- **Les infobulles de la barre d'outils des journaux s'affichent enfin.** Défilement automatique, copier, grouper par mod et recharger sont quatre boutons sans libellé dont l'aide au survol était la seule explication — leur zone sensible était trop petite pour que macOS la déclenche.
+
 ## [1.39.0] - 2026-09-09
 
 ### Added

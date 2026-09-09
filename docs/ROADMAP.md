@@ -926,6 +926,36 @@ par lot, une release par lot. Périmètre : visuel + navigation —
       de 2 s immobile : **ces infobulles ne s'affichent jamais**, alors qu'elles
       sont la seule explication de quatre boutons sans libellé. Corrigé dans le
       lot (cible 18×18 + `contentShape`), règle d'accessibilité §7 point 1.
+      ✅ **Lot Journaux (phase 5) livré le 2026-09-09.** `LogsView` tombe de
+      **26 tailles de police littérales à ZÉRO** — le critère §10 n°1 est
+      atteint pour cette vue. Deux tokens monospace neufs
+      (`AppDesign.Font.monoFootnote`/`.monoCaption`, dérivés des tokens
+      proportionnels), espacements et rayons rangés sur les paliers du système,
+      couleurs de gravité passées en sémantique. L'état vide passe à
+      `StateCard` et **distingue deux vides** qui ne se lèvent pas pareil :
+      filtré (glyphe de filtre + bouton qui remet source, niveau et recherche à
+      zéro) ou réellement vide (message seul, sans bouton inerte) — critère §10
+      n°4. Les quatre infobulles de la barre d'outils sont **réparées** (cible
+      13 pt → 18×18 + `contentShape`). Cliquet relevé de +1 sur
+      `vm_dot_L_calls` et `abbreviation_vm` — le `vm.L` du libellé neuf.
+      *Écarts assumés, à ne pas « corriger » :* la largeur 58 de la colonne
+      d'horodatage (c'est un alignement, pas un espacement) et le diamètre 6 pt
+      des points de gravité (plus petit il disparaît, plus gros il déborde).
+      > **À vérifier à l'écran (lot Journaux)** — 1. Onglet Journaux sur un
+      > vrai journal SMAPI (~120 000 lignes) : le défilement reste fluide, les
+      > cartes de santé et de bissection gardent leur place. 2. Taper une
+      > recherche qui ne rend rien : le glyphe change, la phrase parle de
+      > filtres, le bouton « Effacer les filtres » ramène la liste. 3. Source
+      > StarHubFR sans aucun filtre et sans journaux : « Aucun journal pour
+      > cette session » revient, **sans** bouton. 4. **Fenêtre à sa largeur
+      > minimale, en français** : les pastilles de niveau (Tout/INFO/WARN/
+      > ERROR/TRACE avec leur compte) ne se chevauchent pas — c'est la seule
+      > zone où la tokenisation a resserré des espacements (10 → 8, 5 → 4).
+      > 5. Grouper par mod : les points rouge/orange restent visibles à côté du
+      > nom. 6. **Survoler deux secondes chacun des quatre boutons-glyphes de
+      > la barre d'outils** : l'infobulle sort — avant ce lot, aucune ne
+      > sortait.
+
       **Ce qui n'est PAS dans ce lot, et attend H-T9** : le dépôt porte **538**
       tailles littérales au total — `ModDetailView` 106, `MainView` 57,
       `BisectionCard` 36, `SmapiHealthCard` 35, `QuarantineView` 19. Les lots
