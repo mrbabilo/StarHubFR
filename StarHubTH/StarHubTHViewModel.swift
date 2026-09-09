@@ -7719,6 +7719,58 @@ for mod in mods {
         }
     }
 
+    // MARK: - Bilan d'installation (fenêtre dédiée)
+
+    /// Posé au succès de l'installation ; la `MainView` l'observe pour
+    /// ouvrir la fenêtre de bilan. Sa remise à nil se fait à la fermeture
+    /// de la fenêtre (ou avant réouverture de la feuille).
+    @Published private(set) var pendingInstallReport: InstallReport?
+    /// La file de dépôt multiple, migrée du `@State` de `ModInstallView` :
+    /// la fenêtre de bilan vit entre deux zips, un état de feuille serait
+    /// perdu à sa fermeture.
+    @Published private(set) var pendingDropQueue = InstallDropQueue()
+
+    func dropQueuePush(_ urls: [URL]) { pendingDropQueue.push(urls) }
+    @discardableResult func dropQueueAdvance() -> URL? { pendingDropQueue.advance() }
+    var nextQueuedDropURL: URL? { pendingDropQueue.current }
+
+    /// Appelé par la feuille AU succès de l'installation — les noms restent
+    /// apportés par la vue, qui les possède. Consomme l'archive courante de
+    /// la file puis publie le bilan figé. Ne touche à aucun ménage : le
+    /// `onDismiss` de la feuille (archive, X103-C, file nxm) s'exécute
+    /// ensuite à l'identique.
+    func completeInstall(installedNames: [String]) {
+        pendingDropQueue.advance()
+        pendingInstallReport = InstallReport(
+            installedNames: installedNames,
+            deltas: lastInstallKeyDeltas,
+            remainingInQueue: pendingDropQueue.count)
+    }
+
+    /// Referme le bilan — bouton « Terminé » de la fenêtre.
+    func dismissInstallReport() {
+        pendingInstallReport = nil
+    }
+
+    /// Le canal de réouverture de la feuille sur l'archive suivante —
+    /// observé par la MainView. ⚠️ Ne passe JAMAIS par le `onDismiss` qui
+    /// discard : ce sont les fichiers originaux de l'utilisateur, pas des
+    /// téléchargements.
+    @Published private(set) var pendingDropPresentation: URL?
+
+    /// « Archive suivante (n) » : pose la prochaine archive pour
+    /// réouverture de la feuille et referme le bilan.
+    func queueNextDropArchive() {
+        pendingDropPresentation = nextQueuedDropURL
+        pendingInstallReport = nil
+    }
+
+    /// La feuille est refermée (onDismiss MainView) : le canal de
+    /// réouverture a été consommé.
+    func clearDropPresentation() {
+        pendingDropPresentation = nil
+    }
+
     // MARK: - Delta de clés de mise à jour (C2-T4)
 
     /// Les deltas de la dernière installation, pour l'écran de succès.
