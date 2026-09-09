@@ -182,10 +182,10 @@ struct LogsView: View {
                 HStack {
                     Image(systemName: "magnifyingglass")
                         .foregroundColor(.secondary)
-                        .font(.system(size: 12))
+                        .font(AppDesign.Font.caption)
                     TextField(vm.L(L10n.Logs.searchPlaceholder), text: $searchText)
                         .textFieldStyle(.plain)
-                        .font(.system(size: 12))
+                        .font(AppDesign.Font.caption)
                     if !searchText.isEmpty {
                         Button { searchText = "" } label: {
                             Image(systemName: "xmark.circle.fill").foregroundColor(.secondary)
@@ -193,10 +193,10 @@ struct LogsView: View {
                          .help(vm.L(L10n.Logs.clearSearchHint))
                     }
                 }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color(nsColor: .textBackgroundColor))
-                .cornerRadius(6)
+                .padding(.horizontal, AppDesignCore.Spacing.sm)
+                .padding(.vertical, AppDesignCore.Spacing.xs)
+                .background(AppDesign.Color.textBg)
+                .cornerRadius(AppDesignCore.Radius.sm)
 
                 Spacer()
 
@@ -242,7 +242,7 @@ struct LogsView: View {
                 Button(vm.L(L10n.Logs.clearLogs)) {
                     showClearConfirm = true
                 }
-                .font(.system(size: 12))
+                .font(AppDesign.Font.caption)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
@@ -256,12 +256,12 @@ struct LogsView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "line.3.horizontal.decrease.circle.fill")
                         .foregroundColor(.accentColor)
-                        .font(.system(size: 11))
+                        .font(AppDesign.Font.footnote)
                     Text(header)
-                        .font(.system(size: 11, weight: .medium))
+                        .font(AppDesign.Font.footnote(.medium))
                     Spacer()
                     Button(vm.L(L10n.Logs.backToAllLogs)) { sectionHeader = nil }
-                        .font(.system(size: 11))
+                        .font(AppDesign.Font.footnote)
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
@@ -338,7 +338,7 @@ struct LogsView: View {
             // ── Status bar ───────────────────────────────────────────
             HStack {
                 Text(String(format: vm.L(L10n.Logs.entryCount), views.filtered.count, vm.logEntries.count))
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
                     .foregroundColor(.secondary)
                 Spacer()
             }
@@ -501,15 +501,15 @@ struct LogsView: View {
             selectedSource = source
             selectedLevel = nil  // reset level filter on source change
         } label: {
-            HStack(spacing: 5) {
-                Image(systemName: icon).font(.system(size: 11))
-                Text(label).font(.system(size: 12, weight: .medium))
+            HStack(spacing: AppDesignCore.Spacing.xs) {
+                Image(systemName: icon).font(AppDesign.Font.footnote)
+                Text(label).font(AppDesign.Font.caption(.medium))
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
+            .padding(.horizontal, AppDesignCore.Spacing.md)
+            .padding(.vertical, AppDesignCore.Spacing.xs)
             .background(isSelected ? Color.accentColor : Color.clear)
             .foregroundColor(isSelected ? .white : .secondary)
-            .cornerRadius(7)
+            .cornerRadius(AppDesignCore.Radius.sm)
         }
         .buttonStyle(.plain)
     }
@@ -521,17 +521,17 @@ struct LogsView: View {
         Button { selectedLevel = level } label: {
             HStack(spacing: 4) {
                 if let level = level {
-                    Image(systemName: level.icon).font(.system(size: 10))
+                    Image(systemName: level.icon).font(AppDesign.Font.iconXS)
                 }
-                Text(label).font(.system(size: 11, weight: .medium))
+                Text(label).font(AppDesign.Font.footnote(.medium))
                 if count > 0 {
                     Text("\(count)")
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(AppDesign.Font.iconXS(.semibold))
                         .foregroundColor(isSelected ? badgeColor : .secondary)
-                        .padding(.horizontal, 5)
+                        .padding(.horizontal, AppDesignCore.Spacing.xs)
                         .padding(.vertical, 1)
-                        .background(badgeColor.opacity(isSelected ? 0.22 : 0.12))
-                        .cornerRadius(4)
+                        .background(badgeColor.opacity(isSelected ? AppDesignCore.Opacity.strong : AppDesignCore.Opacity.light))
+                        .cornerRadius(AppDesignCore.Radius.sm)
                 }
             }
             .padding(.horizontal, 8)
