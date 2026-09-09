@@ -77,4 +77,19 @@ public enum UDKey {
     /// qui écrit sur le disque sans qu'on l'ait demandée fait croître
     /// l'empreinte en silence.
     public static let keepNexusArchives = "keepNexusArchives"
+
+    // MARK: - Mise à jour de l'app
+
+    /// ⚠️ Ces clés portent le préfixe `starhubFR.` **à dessein** : le fork et
+    /// l'upstream partagent encore `UserDefaults` sous le même bundle id et
+    /// 31 clés se marchent dessus. Une clé nouvelle n'appartient pas à ce
+    /// stock — ne jamais retirer le préfixe.
+    /// Dernier check réussi (Date) — un échec réseau ne le repousse pas.
+    public static let frReleaseLastCheckedAt = "starhubFR.releaseLastCheckedAt"
+    /// Tag dont l'alerte a été acquittée (« Voir la release » comme « Plus
+    /// tard ») — un même tag ne re-alerte pas au lancement suivant.
+    public static let frReleaseLastSeenTag = "starhubFR.releaseLastSeenTag"
+    /// JSON `GitHubRelease` de la dernière réponse réussie — l'état de
+    /// Réglages → À propos en dérive, indépendant du tag acquitté.
+    public static let frReleaseLastKnown = "starhubFR.releaseLastKnown"
 }

@@ -7579,6 +7579,146 @@ for mod in mods {
         UserDefaults.standard.set(data, forKey: favoriteModsKey)
     }
 
+    // MARK: - Mise à jour de l'app (release GitHub du fork)
+
+    /// L'alerte à présenter — `nil` = rien. Posé seulement pour le chemin
+    /// du lancement, et seulement si le tag n'a pas déjà été acquitté.
+    @Published private(set) var availableAppRelease: GitHubRelease?
+    /// La dernière release connue — l'état de Réglages → À propos en
+    /// dérive, indépendant du tag acquitté : vue mais non installée, une
+    /// release reste « disponible ».
+    @Published private(set) var lastKnownRelease: GitHubRelease?
+    @Published private(set) var releaseCheckInFlight = false
+    /// L'échec du check — dit **seulement** sur le check manuel ; au
+    /// lancement, une app hors-ligne ne doit pas brair à chaque ouverture.
+    @Published private(set) var releaseCheckFailedMessage: String?
+
+    private static let appReleaseURL = URL(string:
+        "https://api.github.com/repos/mrbabilo/StarHubFR/releases/latest")!
+
+    func checkForAppRelease(bypassThrottle: Bool = false) {
+        guard !releaseCheckInFlight else { return }
+        let lastChecked = UserDefaults.standard.object(forKey: UDKey.frReleaseLastCheckedAt) as? Date
+        guard bypassThrottle
+                || UpdateCheckPolicy.shouldAutoCheck(lastSuccess: lastChecked,
+                                                     now: Date(), ttl: 24 * 60 * 60) else { return }
+        releaseCheckInFlight = true
+        if bypassThrottle { releaseCheckFailedMessage = nil }
+        Task { @MainActor [weak self] in
+            await self?.performReleaseCheck(lastChecked: lastChecked,
+                                            bypassThrottle: bypassThrottle)
+        }
+    }
+
+    private func performReleaseCheck(lastChecked: Date?, bypassThrottle: Bool) async {
+        var request = URLRequest(url: Self.appReleaseURL)
+        request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+        // Session éphémère comme la lookup SMAPI (X83) : un blip réseau ne
+        // doit pas laisser traîner une connexion.
+        let session = URLSession(configuration: .ephemeral)
+        do {
+            let (data, response) = try await session.data(for: request)
+            let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+            guard status == 200 else {
+                recordReleaseCheckFailure(status: status, bypassThrottle: bypassThrottle)
+                return
+            }
+            applyReleaseCheck(data: data, lastChecked: lastChecked,
+                              bypassThrottle: bypassThrottle)
+        } catch {
+            recordReleaseCheckFailure(status: nil, bypassThrottle: bypassThrottle,
+                                      underlying: error)
+        }
+    }
+
+    /// Échec : `lastCheckedAt` n'est PAS repoussé — on retente au prochain
+    /// lancement. Le manuel, lui, dit pourquoi ; le lancement se tait.
+    private func recordReleaseCheckFailure(status: Int?, bypassThrottle: Bool,
+                                           underlying: Error? = nil) {
+        guard bypassThrottle else { return }
+        releaseCheckFailedMessage = String(
+            format: self.L(L10n.Settings.appCheckFailed),
+            underlying?.localizedDescription ?? "HTTP \(status ?? 0)")
+    }
+
+    /// Le traitement d'une réponse 200 — séparé du transport pour la
+    /// lisibilité ; la décision est déjà testée en Core.
+    private func applyReleaseCheck(data: Data, lastChecked: Date?, bypassThrottle: Bool) {
+        let release: GitHubRelease
+        do {
+            release = try JSONDecoder().decode(GitHubRelease.self, from: data)
+        } catch {
+            // Une réponse 200 illisible se traite comme un échec — jamais
+            // comme « à jour » (leçon du cache d'octets étrangers).
+            recordReleaseCheckFailure(status: 200, bypassThrottle: bypassThrottle,
+                                      underlying: error)
+            return
+        }
+        let defaults = UserDefaults.standard
+        let current = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0"
+        let decision = AppReleasePolicy.decide(
+            current: current, latest: release,
+            lastSeenTag: defaults.string(forKey: UDKey.frReleaseLastSeenTag),
+            lastCheckedAt: lastChecked, now: Date(), bypassThrottle: bypassThrottle)
+        switch decision {
+        case .throttled:
+            return
+        case .unavailable, .unparseable:
+            if bypassThrottle {
+                releaseCheckFailedMessage = String(
+                    format: self.L(L10n.Settings.appCheckFailed), "HTTP 200")
+            }
+        case .upToDate:
+            // Succès : la date de check est repoussée, même sans nouveauté.
+            defaults.set(Date(), forKey: UDKey.frReleaseLastCheckedAt)
+            releaseCheckFailedMessage = nil
+        case .updateAvailable(let knownRelease, let alreadySeen):
+            defaults.set(Date(), forKey: UDKey.frReleaseLastCheckedAt)
+            if let json = encodeRelease(knownRelease) {
+                defaults.set(json, forKey: UDKey.frReleaseLastKnown)
+            }
+            lastKnownRelease = knownRelease
+            releaseCheckFailedMessage = nil
+            // L'alerte n'est posée que pour le chemin du lancement et un
+            // tag jamais acquitté. Le check manuel met à jour l'état
+            // d'À propos sans présenter de sheet (spec §7.5).
+            if !bypassThrottle && !alreadySeen {
+                availableAppRelease = knownRelease
+            }
+        }
+    }
+
+    func acknowledgeRelease(_ release: GitHubRelease) {
+        // « Voir la release » comme « Plus tard » acquittent (spec §7.4) :
+        // l'alerte se montre une fois par tag, point.
+        UserDefaults.standard.set(release.tagName, forKey: UDKey.frReleaseLastSeenTag)
+        availableAppRelease = nil
+    }
+
+    private func encodeRelease(_ release: GitHubRelease) -> String? {
+        do {
+            return String(data: try JSONEncoder().encode(release), encoding: .utf8)
+        } catch {
+            log("Release : encodage impossible, l'état d'À propos garde l'ancienne valeur : \(error.localizedDescription)",
+                level: .warning)
+            return nil
+        }
+    }
+
+    /// L'état d'À propos au lancement, avant tout check : la dernière
+    /// release connue relue du disque.
+    func loadLastKnownRelease() {
+        guard let json = UserDefaults.standard.string(forKey: UDKey.frReleaseLastKnown),
+              let data = json.data(using: .utf8) else { return }
+        do {
+            lastKnownRelease = try JSONDecoder().decode(GitHubRelease.self, from: data)
+        } catch {
+            // JSON corrompu : repartir de nil plutôt qu'un état fantôme —
+            // le prochain check réussi réécrira la clé.
+            lastKnownRelease = nil
+        }
+    }
+
     // MARK: - Delta de clés de mise à jour (C2-T4)
 
     /// Les deltas de la dernière installation, pour l'écran de succès.

@@ -114,8 +114,13 @@ struct StarHubTHApp: App {
                     // chemins qui révèlent ; le troisième, le filet de sécurité
                     // des 30 s, l'oubliait. Posé avant tout `finish()`, y
                     // compris celui de la branche ci-dessous.
-                    LaunchSplashController.shared.onReveal = { [appDelegate] in
+                    LaunchSplashController.shared.onReveal = { [appDelegate, vm] in
                         appDelegate.deliverPendingURLs()
+                        // L'état d'À propos, puis le check — asynchrones :
+                        // l'alerte arrive quand elle arrive, la *demande*
+                        // suit la révélation de la fenêtre (leçon X65).
+                        vm.loadLastKnownRelease()
+                        vm.checkForAppRelease()
                     }
                     // Une recherche laissée en plan (app quittée ou plantée en
                     // cours de bissection) ? Le signaler dès le démarrage.
