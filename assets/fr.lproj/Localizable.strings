@@ -1393,6 +1393,17 @@
 "maintenance_confirm_purge_message" = "%lld sauvegarde(s), %@ — les sauvegardes protégées restent.";
 "maintenance_confirm_clean_title" = "Retirer les entrées mortes ?";
 "maintenance_confirm_clean_message" = "%1$lld dossier(s) sans sauvegarde, %2$lld entrée(s) de préférences sans mod.";
+"maintenance_modtrash_section_title" = "Corbeille des mods";
+"maintenance_modtrash_restore" = "Remettre";
+"maintenance_modtrash_purge_one" = "Supprimer";
+"maintenance_modtrash_purge_all" = "Vider la corbeille";
+"maintenance_modtrash_purge_one_message" = "« %@ » sera supprimé de la corbeille pour de bon — impossible de le récupérer ensuite.";
+"maintenance_modtrash_purge_all_message" = "%lld événement(s) de suppression seront effacés pour de bon — rien dans la corbeille ne pourra être récupéré ensuite.";
+"maintenance_modtrash_restored_log" = "%@ remis dans Mods/ (désactivé).";
+"maintenance_modtrash_purged_log" = "%@ supprimé de la corbeille.";
+"maintenance_modtrash_emptied_log" = "Corbeille des mods vidée (%lld événement(s)).";
+"maintenance_modtrash_failed" = "Opération de corbeille échouée : %@";
+"maintenance_modtrash_hint" = "Un mod remis revient désactivé — réactivez-le depuis la liste. Rien n'est purgé automatiquement.";
 "maintenance_confirm_protected_title" = "Cette sauvegarde est la seule copie";
 "maintenance_confirm_protected_message" = "%@ n'existe nulle part ailleurs. Retirer cette sauvegarde le perd définitivement — il restera en corbeille jusqu'à son vidage.";
 "maintenance_action_recover" = "Remettre le fichier";

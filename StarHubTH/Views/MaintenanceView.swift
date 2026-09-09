@@ -9,6 +9,11 @@ private enum MaintenanceConfirmation {
     case purge(keepPerMod: Int, doomed: Int, freedBytes: Int64)
     case cleanStale(orphans: Int, keys: Int)
     case removeProtected(session: String, modName: String)
+    /// X103-B — purge de la corbeille : toute entière, ou une entrée nommée.
+    /// Le nom d'événement et l'entrée sont portés par la confirmation (pas
+    /// d'état de vue en plus).
+    case purgeTrashAll(events: Int)
+    case purgeTrashEntry(event: String, entry: String)
 }
 
 /// L'écran « Entretien » (X25) : ce que StarHubFR occupe, et de quoi le rendre
@@ -28,12 +33,23 @@ struct MaintenanceView: View {
             header
             Divider()
             if let report = vm.maintenanceReport {
-                if report.isEmpty {
-                    emptyState
-                } else {
+                // La corbeille (X103-B) se montre même sur un entretien sans
+                // objet : des sauvegardes à rien à dire et des mods en
+                // corbeille sont deux vérités indépendantes.
+                if !report.isEmpty || !vm.trashEvents.isEmpty {
                     ScrollView {
-                        content(report).padding()
+                        VStack(alignment: .leading, spacing: 18) {
+                            if report.isEmpty {
+                                nothingToDoInline
+                            } else {
+                                content(report)
+                            }
+                            trashSection
+                        }
+                        .padding()
                     }
+                } else {
+                    emptyState
                 }
             } else {
                 loadingState
@@ -43,7 +59,10 @@ struct MaintenanceView: View {
         // Une passe coûte 0,86 s mesurées : au `.onAppear` seulement, et le
         // garde de `buildMaintenanceReport` refuse le chevauchement. Le rapport
         // déjà posé reste affiché pendant la refonte.
-        .onAppear { vm.buildMaintenanceReport() }
+        .onAppear {
+            vm.buildMaintenanceReport()
+            vm.refreshTrash()
+        }
         // Un seul présentateur pour les trois confirmations — voir
         // `MaintenanceConfirmation`.
         .alert(alertTitle,
@@ -66,6 +85,16 @@ struct MaintenanceView: View {
                     vm.purgeProtectedBackup(session: session)
                 }
                 Button(vm.L(L10n.Maintenance.cancel), role: .cancel) { }
+            case .purgeTrashAll:
+                Button(vm.L(L10n.Maintenance.confirmRemove), role: .destructive) {
+                    vm.purgeAllTrash()
+                }
+                Button(vm.L(L10n.Maintenance.cancel), role: .cancel) { }
+            case .purgeTrashEntry(let event, let entry):
+                Button(vm.L(L10n.Maintenance.confirmRemove), role: .destructive) {
+                    vm.purgeTrashEntry(event: event, entry: entry)
+                }
+                Button(vm.L(L10n.Maintenance.cancel), role: .cancel) { }
             }
         } message: { pending in
             switch pending {
@@ -78,6 +107,10 @@ struct MaintenanceView: View {
             case .removeProtected(_, let modName):
                 Text(String(format: vm.L(L10n.Maintenance.protectedRemoveMessage),
                             modName))
+            case .purgeTrashAll(let events):
+                Text(String(format: vm.L(L10n.Maintenance.trashPurgeAllMessage), events))
+            case .purgeTrashEntry(_, let entry):
+                Text(String(format: vm.L(L10n.Maintenance.trashPurgeOneMessage), entry))
             }
         }
     }
@@ -115,6 +148,79 @@ struct MaintenanceView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// Le « rien à faire » de l'entretien, en version encastrée — la
+    /// corbeille peut avoir des choses à dire juste en dessous.
+    private var nothingToDoInline: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 34))
+                .foregroundColor(.secondary.opacity(0.5))
+            Text(vm.L(L10n.Maintenance.nothingToDo))
+                .multilineTextAlignment(.center)
+                .font(.system(size: 14))
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 24)
+    }
+
+    /// X103-B — la corbeille des mods supprimés : remettre (désactivé) ou
+    /// purger pour de bon. Rien ne part sans confirmation ; rien ne part non
+    /// plus sans geste — aucune purge automatique (leçon X25).
+    private var trashSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if !vm.trashEvents.isEmpty {
+                HStack {
+                    Text(vm.L(L10n.Maintenance.trashSectionTitle))
+                        .font(.system(size: 13, weight: .semibold))
+                    Spacer()
+                    Button(vm.L(L10n.Maintenance.trashPurgeAll)) {
+                        confirmation = .purgeTrashAll(events: vm.trashEvents.count)
+                    }
+                    .controlSize(.small)
+                    .foregroundColor(.red)
+                }
+                ForEach(vm.trashEvents) { event in
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Image(systemName: "trash")
+                                .foregroundColor(.secondary)
+                            Text(event.date.map {
+                                $0.formatted(date: .abbreviated, time: .shortened)
+                            } ?? event.folderName)
+                                .font(.system(size: 12))
+                                .foregroundColor(.secondary)
+                        }
+                        ForEach(event.entries, id: \.self) { entry in
+                            HStack {
+                                Text(entry)
+                                    .font(.system(size: 12, design: .monospaced))
+                                Spacer()
+                                Button(vm.L(L10n.Maintenance.trashRestore)) {
+                                    vm.restoreTrashEntry(event: event.folderName, entry: entry)
+                                }
+                                .controlSize(.small)
+                                Button(vm.L(L10n.Maintenance.trashPurgeOne)) {
+                                    confirmation = .purgeTrashEntry(event: event.folderName,
+                                                                    entry: entry)
+                                }
+                                .controlSize(.small)
+                                .foregroundColor(.red)
+                            }
+                        }
+                    }
+                    .padding(10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color(nsColor: .controlBackgroundColor))
+                    .cornerRadius(8)
+                }
+                Text(vm.L(L10n.Maintenance.trashHint2))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
     }
 
     /// Le total et sa décomposition — le chiffre que l'utilisateur est venu voir.
@@ -327,6 +433,8 @@ struct MaintenanceView: View {
         case .purge: return vm.L(L10n.Maintenance.purgeTitle)
         case .cleanStale: return vm.L(L10n.Maintenance.cleanTitle)
         case .removeProtected: return vm.L(L10n.Maintenance.protectedRemoveTitle)
+        case .purgeTrashAll, .purgeTrashEntry:
+            return vm.L(L10n.Maintenance.trashSectionTitle)
         case nil: return ""
         }
     }

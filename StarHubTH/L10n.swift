@@ -1587,5 +1587,17 @@ enum L10n {
         static let actionRecover   = "maintenance_action_recover"
         static let actionReveal    = "maintenance_action_reveal"
         static let actionRemoveAnyway = "maintenance_action_remove_anyway"
+        // X103-B — la corbeille des mods supprimés.
+        static let trashSectionTitle    = "maintenance_modtrash_section_title"
+        static let trashRestore         = "maintenance_modtrash_restore"
+        static let trashPurgeOne        = "maintenance_modtrash_purge_one"
+        static let trashPurgeAll        = "maintenance_modtrash_purge_all"
+        static let trashPurgeOneMessage = "maintenance_modtrash_purge_one_message"
+        static let trashPurgeAllMessage = "maintenance_modtrash_purge_all_message"
+        static let trashRestoredLog     = "maintenance_modtrash_restored_log"
+        static let trashPurgedLog       = "maintenance_modtrash_purged_log"
+        static let trashEmptiedLog      = "maintenance_modtrash_emptied_log"
+        static let trashFailed2         = "maintenance_modtrash_failed"
+        static let trashHint2           = "maintenance_modtrash_hint"
     }
 }

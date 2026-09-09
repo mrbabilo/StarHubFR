@@ -10829,8 +10829,26 @@ for mod in mods {
         // that follows the folder removal has republished `mods`.
         pendingDeleteFolder = mod.folderName
 
+        let stamp = ModTrash.makeStamp()
         do {
-            try fm.removeItem(atPath: modPath)
+            // X103-B — « supprimer » met en corbeille : le dossier déménage
+            // sous `Mods/_Trash_<horodatage>/<feuille logique>`, le préfixe
+            // que le scanner saute déjà au niveau 1. Rien n'est effacé ici :
+            // la purge est un geste explicite de l'écran Entretien, jamais
+            // une heuristique (leçon X25). La feuille est le nom **logique**
+            // (jamais le point) — un composant de pack supprimé un à un
+            // atterrit à plat, sous son propre nom.
+            let eventDir = (modsPath as NSString)
+                .appendingPathComponent(ModTrash.trashFolderName(stamp: stamp))
+            try fm.createDirectory(atPath: eventDir, withIntermediateDirectories: true)
+            // Le marqueur AVANT le déplacement : si le disque refuse cette
+            // écriture, aucun mod n'a encore bougé — et un événement sans
+            // marqueur n'est pas une corbeille utilisateur (la quarantaine
+            // du réparateur partage le préfixe).
+            try ModTrash.markEvent(eventDir: eventDir)
+            let leaf = (mod.folderName as NSString).lastPathComponent
+            let trashDest = ModTrash.destination(eventDir: eventDir, logicalFolderName: leaf)
+            try fm.moveItem(atPath: modPath, toPath: trashDest)
             // The registry entry is pruned by the next scanMods() (below),
             // which removes entries for folders no longer on disk.
             // Forget the mod's error history too, so the file doesn't keep
@@ -10876,12 +10894,125 @@ for mod in mods {
                 }
             }
         } catch {
+            // Le marquage a pu réussir avant l'échec du déplacement : un
+            // événement resté vide n'est pas une corbeille — il part.
+            ModTrash.discardEventIfEmpty(
+                modsPath: modsPath,
+                event: ModTrash.trashFolderName(stamp: stamp))
             pendingDeleteFolder = nil
             log(String(format: "%@: %@",
                        L(L10n.Mods.deleteFailed), error.localizedDescription),
                 level: .error)
             showModal(message: String(format: L(L10n.Mods.deleteFailed),
                                       error.localizedDescription))
+        }
+    }
+
+    // MARK: - Corbeille des mods supprimés (X103-B)
+
+    /// Les événements de corbeille, du plus récent au plus ancien. Lu à la
+    /// demande (ouverture de l'écran Entretien, geste de remise/purge) — pas
+    /// un état que le scan entretient, la corbeille est hors liste par
+    /// construction.
+    @Published private(set) var trashEvents: [ModTrash.Event] = []
+
+    func refreshTrash() {
+        let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let events = ModTrash.events(modsPath: modsPath)
+            DispatchQueue.main.async {
+                self?.trashEvents = events
+            }
+        }
+    }
+
+    /// Remet un mod de la corbeille : `Mods/.<nom>` — **désactivé**, même
+    /// règle que la restauration de sauvegarde (§5.6). L'utilisateur le
+    /// réactive explicitement ; le rescan qui suit le fait réapparaître.
+    func restoreTrashEntry(event: String, entry: String) {
+        let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
+        // Même garde que la purge : un event non marqué (quarantaine du
+        // réparateur, nom forgé) n'est pas une corbeille à remettre.
+        guard ModTrash.isUserEvent(modsPath: modsPath, event: event) else {
+            showModal(message: String(format: L(L10n.Maintenance.trashFailed2), event))
+            return
+        }
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let stamp = ModTrash.makeStamp()
+            let source = (modsPath as NSString).appendingPathComponent(
+                (event as NSString).appendingPathComponent(entry))
+            let dest = ModTrash.restoreDestination(modsPath: modsPath,
+                                                   entryRelativePath: entry,
+                                                   stamp: stamp)
+            do {
+                try FileManager.default.createDirectory(
+                    atPath: (dest as NSString).deletingLastPathComponent,
+                    withIntermediateDirectories: true)
+                try FileManager.default.moveItem(atPath: source, toPath: dest)
+                ModTrash.discardEventIfEmpty(modsPath: modsPath, event: event)
+                DispatchQueue.main.async {
+                    guard let self else { return }
+                    self.log(String(format: self.L(L10n.Maintenance.trashRestoredLog),
+                                    entry))
+                    self.refreshTrash()
+                    self.scanMods()
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    guard let self else { return }
+                    self.showModal(message: String(
+                        format: self.L(L10n.Maintenance.trashFailed),
+                        error.localizedDescription))
+                }
+            }
+        }
+    }
+
+    /// Purge nominative : une entrée, pour de bon. Jamais appelée sans la
+    /// confirmation de l'écran Entretien.
+    func purgeTrashEntry(event: String, entry: String) {
+        let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            do {
+                try ModTrash.purgeEntry(modsPath: modsPath, event: event, entry: entry)
+                DispatchQueue.main.async {
+                    guard let self else { return }
+                    self.log(String(format: self.L(L10n.Maintenance.trashPurgedLog),
+                                    entry))
+                    self.refreshTrash()
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    guard let self else { return }
+                    self.showModal(message: String(
+                        format: self.L(L10n.Maintenance.trashFailed),
+                        error.localizedDescription))
+                }
+            }
+        }
+    }
+
+    /// Vide toute la corbeille. Le compte annoncé par la confirmation vient
+    /// du même `trashEvents` que l'écran affiche — un chiffre qui divergerait
+    /// de ce qui part serait un mensonge.
+    func purgeAllTrash() {
+        let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            do {
+                let removed = try ModTrash.purgeAll(modsPath: modsPath)
+                DispatchQueue.main.async {
+                    guard let self else { return }
+                    self.log(String(format: self.L(L10n.Maintenance.trashEmptiedLog), removed))
+                    self.refreshTrash()
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    guard let self else { return }
+                    self.showModal(message: String(
+                        format: self.L(L10n.Maintenance.trashFailed),
+                        error.localizedDescription))
+                }
+            }
         }
     }
 

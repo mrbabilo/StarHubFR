@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+
+- **Supprimer un mod se défait.** « Supprimer » met le mod en corbeille — `Mods/_Trash_<horodatage>/`, invisible de la liste comme de SMAPI — au lieu de l'effacer. L'écran Entretien la liste : « Remettre » ramène le mod désactivé (il se réactive depuis la liste), « Supprimer » et « Vider la corbeille » effacent pour de bon, après confirmation. Rien n'est jamais purgé automatiquement, et la quarantaine du réparateur — même préfixe, autre usage — n'est pas touchée par la corbeille.
+
 ## [1.38.2] - 2026-09-09
 
 ### Changed

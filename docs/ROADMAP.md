@@ -1497,6 +1497,12 @@ FR sans passer par le tag.
 
 ### 8.1 Cadrage X103 — la suppression peut-elle se défaire ? *(instruit le 2026-09-09, à trancher par l'auteur)*
 
+> **Arbitrage rendu le jour même (2026-09-09) : option B, livrée en séance** —
+> type Core `ModTrash` (corbeille `Mods/_Trash_*`, 11 tests), « Remettre »
+> en désactivé, purge nominative et « Vider » à l'écran Entretien, jamais de
+> purge automatique. L'option C (rétention des archives Nexus) reste une
+> suite possible, non planifiée.
+
 > Les faits ci-dessous sont relevés dans le code au jour dit, pas supposés.
 > La question : supprimer un mod est définitif (`removeItem` direct, confirmé
 > aux trois points d'entrée — `ModListView:558`, `ModListView:2093`,
@@ -1762,7 +1768,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **X100** | 2026-09-08 | Un report de traduction dont la paire CHANGE de composant écrivait la forme brute de la nouvelle clé dans le fr.json de l'ANCIEN — orpheline chez l'ancien, cible non traduite, paire passée réconciliée en silence ; `RenameReport.routeByOldComponent` les écarte et l'écran les annonce (`d50d2e6`) |
 | **X101** | 2026-09-08 | Les préfixes de composants du report venaient de `mod.children` — nil sur la fiche d'un enfant imbriqué (les descendants d'un groupe vivent à plat sous l'en-tête) : clés qualifiées affichées mais « Rien à reporter » à jamais ; dérivés de l'arbre scanné par préfixe de folderName (`d50d2e6`) |
 | **X102** | 2026-09-08 | Le snapshot ne découvrait les composants qu'à UN niveau contre `maxModDepth` pour la traversée de référence (commentaire « même convention » faux) — 6 mods imbriqués sur le parc dont 3 avec i18n se taisaient dans le delta ; récursion, composant nommé par chemin relatif (`d50d2e6`) |
-| **X103** | 2026-09-09 | *Question de conception, sortie de la grille de revue des écritures (F2)* — supprimer un mod est définitif (`removeItem` direct, confirmé aux deux points d'entrée) là où les sauvegardes vont à la corbeille et le réparateur quarantaine ; l'archive Nexus est effacée après install — l'uninstall Vortex, lui, reste réversible (archive conservée). À trancher : quarantaine des mods supprimés, rétention des archives ? — **cadré en §8.1 (2026-09-09)** : faits relevés, trois options (A permanence / B corbeille `_Trash_` / C rétention archives), recommandation B minimal |
+| **X103** | 2026-09-09 | *Question de conception, sortie de la grille de revue des écritures (F2)* — supprimer un mod est définitif (`removeItem` direct, confirmé aux deux points d'entrée) là où les sauvegardes vont à la corbeille et le réparateur quarantaine ; l'archive Nexus est effacée après install — l'uninstall Vortex, lui, reste réversible (archive conservée). À trancher : quarantaine des mods supprimés, rétention des archives ? — **cadré en §8.1 puis tranché B le jour même, livré** : corbeille `Mods/_Trash_*` (type Core `ModTrash`, 15 tests, marqueur qui distingue la corbeille de la quarantaine du réparateur — même préfixe), « Remettre » en désactivé, purge explicite à l'écran Entretien, zéro purge automatique ; l'option C (rétention des archives Nexus) reste une suite possible |
 | **X104** | 2026-09-09 | Déposer une traduction Nexus laissait son dossier `StarHubFR-download-<UUID>` vide en tmp — le `defer` n'effaçait que le fichier, quand le flux des mods passe par `discardDownloaded` (fichier + dossier) à la fermeture de la feuille ; **corrigé en séance** : `discardDownloaded` au `defer` — l'archive y vient toujours du téléchargeur, le geste est sûr sans condition (`MainView:onDismiss` déjà au pattern) |
 | **B1-T1** | 2026-08-01 | Boutons Activer/Désactiver et Supprimer sur la fiche mod (parité avec la liste, mêmes confirmations). Absents pour un… |
 | **B1-T2** | 2026-08-01 | Tri, filtres, catégorie, page et recherche portés par ModListFilters dans le ViewModel. La remise à la page 1 est por… |
