@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.40.0] - 2026-09-09
+
 ### Added
 
 - **Les archives Nexus peuvent être conservées, si vous le demandez.** Une fois activée dans les Réglages, la fonction garde le fichier servi par Nexus après chaque installation réussie : un mod supprimé se réinstalle depuis l'écran Entretien, sans réseau et dans sa version exacte. Désactivée par défaut, bornée par une rétention, et son poids est affiché avec le reste.
