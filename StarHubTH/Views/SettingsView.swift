@@ -38,6 +38,11 @@ struct SettingsView: View {
                     }
                 }
 
+                // L'état de mise à jour de l'app — dérivé de la dernière
+                // réponse réussie (releaseLastKnown), PAS du tag acquitté :
+                // une release vue mais non installée reste « disponible ».
+                releaseStatusRow
+
                 // La version de l'app, en pied de la dernière section — lue dans
                 // le bundle comme sur l'accueil, pour rester juste après chaque
                 // bump de release.
@@ -66,6 +71,43 @@ struct SettingsView: View {
     }
 
     // MARK: - Groupes
+
+    /// L'état de mise à jour + le bouton de vérification manuelle. Le
+    /// check manuel bypass le throttle ; l'échec, lui, ne se dit qu'ICI —
+    /// au lancement, une app hors-ligne ne doit pas brair (spec §7.5).
+    @ViewBuilder private var releaseStatusRow: some View {
+        HStack(spacing: 8) {
+            if vm.releaseCheckInFlight {
+                Text(vm.L(L10n.Settings.appChecking))
+                    .font(AppDesign.Font.footnote)
+                    .foregroundColor(.secondary)
+            } else if let known = vm.lastKnownRelease,
+                      NexusUpdateChecker.compare(known.tagName, currentAppVersion) == .orderedDescending {
+                Text(String(format: vm.L(L10n.Settings.appUpdateAvailableState), known.tagName))
+                    .font(AppDesign.Font.footnote)
+                    .foregroundColor(.orange)
+            } else {
+                Text(vm.L(L10n.Settings.appUpToDate))
+                    .font(AppDesign.Font.footnote)
+                    .foregroundColor(.secondary)
+            }
+            Spacer()
+            Button(vm.L(L10n.Settings.appCheckUpdates)) {
+                vm.checkForAppRelease(bypassThrottle: true)
+            }
+            .disabled(vm.releaseCheckInFlight)
+            .font(AppDesign.Font.footnote)
+        }
+        if let failure = vm.releaseCheckFailedMessage {
+            Text(failure)
+                .font(AppDesign.Font.footnote)
+                .foregroundColor(.red)
+        }
+    }
+
+    private var currentAppVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
+    }
 
     /// Le titre d'un groupe. Pas `SectionHeader` : celui-ci est l'en-tête d'une
     /// section de liste paginée (titre + compte + « voir plus »), et un groupe
