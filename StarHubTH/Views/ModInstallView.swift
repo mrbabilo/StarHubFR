@@ -106,7 +106,7 @@ struct ModInstallView: View {
                 // Header
                 HStack {
                     Text(vm.L(L10n.ModInstall.title))
-                        .font(.system(size: 20, weight: .semibold))
+                        .font(AppDesign.Font.viewTitle)
                     Spacer()
                     Button {
                         isPresented = false
@@ -141,8 +141,12 @@ struct ModInstallView: View {
                 }
             }
         }
-        .padding(20)
-        .frame(minWidth: 600, idealWidth: 700, minHeight: 400, idealHeight: 600)
+        .padding(AppDesignCore.Spacing.xl)
+        // Grande feuille : l'analyse d'un pack (liste des mods, dépendances,
+        // avertissements de compatibilité) demande de la place — et
+        // `InstallPreview` n'a aucun plafond de largeur propre, il profite
+        // de chaque point gagné ici.
+        .frame(minWidth: 800, idealWidth: 960, minHeight: 560, idealHeight: 700)
         .onDrop(of: [.fileURL], isTargeted: $isDropTarget) { providers in
             // Reject drops while an analysis or install is in flight — both
             // read from `tempDir` on a background queue, and `analyzeZip`
@@ -304,8 +308,9 @@ struct ModInstallView: View {
                 .font(.system(size: 56))
                 .foregroundColor(.green)
             Text(recoveryAckMessage ?? "")
-                .font(.system(size: 15))
+                .font(AppDesign.Font.headline)
                 .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
             Button(vm.L(L10n.Main.ok)) {
                 recoveryAckMessage = nil
                 if vm.nextQueuedDropURL != nil {
@@ -318,36 +323,38 @@ struct ModInstallView: View {
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
         }
-        .padding(20)
+        .padding(AppDesignCore.Spacing.xl)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var dropZone: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: AppDesignCore.Spacing.lg) {
             if isAnalyzing {
                 ProgressView()
                     .controlSize(.large)
                 Text(vm.L(L10n.ModInstall.analyzingZip))
-                    .font(.system(size: 14))
+                    .font(AppDesign.Font.rowTitle)
                     .foregroundColor(.secondary)
             } else {
                 Image(systemName: isDropTarget ? "arrow.down.doc.fill" : "arrow.down.doc")
                     .font(.system(size: 48))
                     .foregroundColor(isDropTarget ? .accentColor : .secondary.opacity(0.6))
 
-                VStack(spacing: 8) {
+                VStack(spacing: AppDesignCore.Spacing.sm) {
                     Text(vm.L(L10n.ModInstall.dropZoneText))
-                        .font(.system(size: 16, weight: .medium))
+                        .font(AppDesign.Font.headline.weight(.medium))
                         .foregroundColor(.primary)
 
                     Text(vm.L(L10n.ModInstall.dropHint))
-                        .font(.system(size: 12))
+                        .font(AppDesign.Font.caption)
                         .foregroundColor(.accentColor.opacity(0.8))
                 }
             }
         }
         .frame(maxWidth: .infinity)
-        .frame(height: isDropTarget ? 200 : 180)
+        // Plus haute : premier écran de la feuille, elle doit accueillir le
+        // geste sans que le texte soit tassé sous le glyphe.
+        .frame(height: isDropTarget ? 300 : 260)
         .background(
             RoundedRectangle(cornerRadius: 12)
                 .fill(isDropTarget ? Color.accentColor.opacity(0.1) : Color.secondary.opacity(0.05))

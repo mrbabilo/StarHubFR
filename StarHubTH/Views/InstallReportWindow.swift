@@ -56,7 +56,7 @@ private struct ReportContent: View {
                         }
                     }
                 }
-                .padding(20)
+                .padding(AppDesignCore.Spacing.xl)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             Divider()
@@ -124,7 +124,7 @@ private struct ReportContent: View {
                 .controlSize(.large)
             }
         }
-        .padding(14)
+        .padding(AppDesignCore.Spacing.lg)
     }
 }
 
