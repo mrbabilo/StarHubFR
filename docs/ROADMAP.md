@@ -1203,10 +1203,32 @@ Cadrage volontairement léger ici : la spec SDD complète se fera à son tour,
 sur les composants réels. Les tâches ci-dessous sont des hypothèses de
 travail, pas des engagements.
 
-- [ ] **I-T1** — Raccourcis clavier d'onglets (⌘1…⌘9) et de vues, focus
-      visible et géré (entrer/sortir des fiches, des feuilles, de la liste). · **S**
-- [ ] **I-T2** — Palette de commandes ⌘K : mods, profils, onglets et actions
-      (installer, mettre à jour, restaurer) appelables depuis partout. · **M**
+- [x] **I-T1** ✅ *(partie raccourcis livrée le 2026-09-09)* — **⌘1…⌘9** mènent
+      aux neuf premières destinations visibles, et un **menu « Aller »** les
+      affiche : les raccourcis deviennent découvrables et macOS les gère
+      nativement. `SidebarOrder` (Core, 15 destinations, 11 tests) est la
+      source unique que lisent la barre latérale, le menu et la palette —
+      la barre a cessé d'écrire ses 14 entrées à la main.
+      ⚠️ **Le second membre de I-T1 reste ouvert** : la navigation au focus
+      des 14 écrans (entrer/sortir des fiches, des feuilles, de la liste).
+      Elle traverse toute l'app, vaut **L**, et demande une **mesure d'abord** :
+      quels écrans piègent réellement le clavier aujourd'hui. La deviner écran
+      par écran ferait un lot qui ne se termine pas. → repris en **I-T6**.
+- [x] **I-T2** ✅ *(livré le 2026-09-09)* — **Palette ⌘K** : mods, profils,
+      sauvegardes et pages, recherche tolérante (sous-séquence, accents
+      ignorés) et classée de façon déterministe (`CommandPaletteSearch`, Core,
+      18 tests). Mesurée à **4,5 ms** par frappe sur 1 000 entrées et 0,7 ms à
+      l'ouverture, sous le seuil des 16 ms — aucune indexation nécessaire.
+      **Écart assumé avec l'intitulé d'origine** : la palette **navigue
+      seulement**. Les actions qui écrivent (installer, mettre à jour,
+      restaurer) en sont exclues — tranché avec l'auteur : une frappe rapide
+      ne doit pas pouvoir écrire dans `Mods/`. Et elle conduit à l'**onglet**
+      des profils et des sauvegardes, pas à l'élément précis : aucun canal
+      n'existe pour ça, et en ajouter deux pour un besoin non mesuré est ce
+      que ce dépôt regrette ailleurs.
+- [ ] **I-T6** — **Navigation au focus des 14 écrans** *(sorti de I-T1 le
+      2026-09-09)*. Précédé d'une mesure : lister les écrans où le clavier se
+      perd réellement, avant d'en coder un seul. · **L**
 - [ ] **I-T3** — VoiceOver : labels, traits et ordre de lecture sur chaque
       composant de la bibliothèque, écrans majeurs vérifiés à l'oreille. · **M**
 - [ ] **I-T4** — Réglages d'accessibilité système respectés (réduire les

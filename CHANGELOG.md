@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+
+- **Navigation au clavier.** ⌘1 à ⌘9 mènent aux neuf premières pages, un menu « Aller » les affiche, et ⌘K ouvre une palette pour rejoindre un mod, un profil, une sauvegarde ou une page en tapant son nom — accents et abréviations tolérés (« cp » trouve Content Patcher).
+
 ## [1.41.1] - 2026-09-09
 
 ### Fixed
