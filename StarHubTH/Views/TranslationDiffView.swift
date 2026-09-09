@@ -19,6 +19,9 @@ import SwiftUI
 /// - **Le compte est dans le libellé du filtre.** On sait ce qu'on va trouver
 ///   avant de cliquer, et « Vides 3 » attire l'œil là où il faut.
 struct TranslationDiffView: View {
+    /// ⌘F amène ici (voir `SearchFieldShortcut`).
+    @FocusState private var searchFocused: Bool
+
     @ObservedObject var vm: StarHubTHViewModel
     let mod: ModItem
 
@@ -289,6 +292,7 @@ struct TranslationDiffView: View {
                 TextField(vm.L(L10n.Mods.diffSearch), text: $searchText)
                     .textFieldStyle(.roundedBorder)
                     .font(AppDesign.Font.footnote)
+                    .searchFieldShortcut($searchFocused)
                 if hasSections {
                     Button {
                         isShowingSectionIndex = true

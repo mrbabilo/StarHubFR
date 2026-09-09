@@ -1,6 +1,9 @@
 import SwiftUI
 
 struct LogsView: View {
+    /// ⌘F amène ici (voir `SearchFieldShortcut`).
+    @FocusState private var searchFocused: Bool
+
     @ObservedObject var vm: StarHubTHViewModel
 
     // Source tabs: nil = All, .app = StarHubFR, .smapi = SMAPI
@@ -186,6 +189,7 @@ struct LogsView: View {
                     TextField(vm.L(L10n.Logs.searchPlaceholder), text: $searchText)
                         .textFieldStyle(.plain)
                         .font(AppDesign.Font.caption)
+                        .searchFieldShortcut($searchFocused)
                     if !searchText.isEmpty {
                         Button { searchText = "" } label: {
                             Image(systemName: "xmark.circle.fill").foregroundColor(.secondary)

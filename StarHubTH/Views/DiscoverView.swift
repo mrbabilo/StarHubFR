@@ -7,6 +7,9 @@ import SwiftUI
 /// remis à nil au changement d'onglet, et cette vue ne doit ni les vider ni
 /// en dépendre (spec §7.1).
 struct DiscoverView: View {
+    /// ⌘F amène ici (voir `SearchFieldShortcut`).
+    @FocusState private var searchFocused: Bool
+
     @ObservedObject var vm: StarHubTHViewModel
     /// L'onglet courant de `MainView` : sans clé d'API la vitrine ne peut
     /// rien montrer, et le dire sans offrir le chemin des réglages laisse
@@ -75,6 +78,7 @@ struct DiscoverView: View {
             TextField(vm.L(L10n.Discovery.searchPlaceholder), text: $searchText)
                 .textFieldStyle(.roundedBorder)
                 .onSubmit { vm.searchDiscovery(name: searchText) }
+                .searchFieldShortcut($searchFocused)
             Button {
                 vm.searchDiscovery(name: searchText)
             } label: {

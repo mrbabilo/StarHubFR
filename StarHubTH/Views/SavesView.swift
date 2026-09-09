@@ -72,6 +72,9 @@ extension SaveGameInfo {
 }
 
 struct SavesView: View {
+    /// ⌘F amène ici (voir `SearchFieldShortcut`).
+    @FocusState private var searchFocused: Bool
+
     @ObservedObject var vm: StarHubTHViewModel
     @State private var searchText = ""
 
@@ -221,6 +224,7 @@ struct SavesView: View {
                 .foregroundColor(.secondary)
             TextField(vm.L(L10n.Saves.searchPlaceholder), text: $searchText)
                 .textFieldStyle(.plain)
+                .searchFieldShortcut($searchFocused)
             if !searchText.isEmpty {
                 Button {
                     searchText = ""

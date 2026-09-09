@@ -15,6 +15,9 @@ private enum PageSlot {
 }
 
 struct ModListView: View {
+    /// ⌘F amène ici (voir `SearchFieldShortcut`).
+    @FocusState private var searchFocused: Bool
+
     @ObservedObject var vm: StarHubTHViewModel
     /// L'onglet affiché, pour les rares endroits d'où la liste **mène
     /// ailleurs** (le badge de profil actif). Même patron que
@@ -300,6 +303,7 @@ struct ModListView: View {
                         TextField(vm.L(L10n.Mods.searchMods),
                                   text: $listState.filters.search)
                             .textFieldStyle(.plain)
+                            .searchFieldShortcut($searchFocused)
                         if !listState.filters.search.isEmpty {
                             Button {
                                 listState.filters.search = ""

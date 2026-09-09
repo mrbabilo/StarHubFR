@@ -15,6 +15,9 @@ private enum ModInstallBackupsConfirmation {
 
 /// View for managing mod installation backups (complete mod folders).
 struct ModInstallBackupsView: View {
+    /// ⌘F amène ici (voir `SearchFieldShortcut`).
+    @FocusState private var searchFocused: Bool
+
     @ObservedObject var vm: StarHubTHViewModel
     @State private var backups: [ModInstallBackup] = []
     @State private var showRecoverable = false
@@ -243,6 +246,7 @@ struct ModInstallBackupsView: View {
                 TextField(vm.L(L10n.ModInstall.backupsSearch), text: $search)
                     .textFieldStyle(.plain)
                     .font(.system(size: 12))
+                    .searchFieldShortcut($searchFocused)
                 if !search.isEmpty {
                     Button {
                         search = ""

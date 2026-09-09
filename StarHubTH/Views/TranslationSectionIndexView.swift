@@ -15,6 +15,9 @@ import SwiftUI
 /// La liste est paresseuse : jusqu'à 1881 lignes (tous les groupes du mod,
 /// blocs sans titre et orphelin compris) ne se rendent pas d'un bloc.
 struct TranslationSectionIndexView: View {
+    /// ⌘F amène ici (voir `SearchFieldShortcut`).
+    @FocusState private var searchFocused: Bool
+
     let groups: [TranslationCoverage.DiffGroup]
     let searchPlaceholder: String
     let noMatchLabel: String
@@ -33,6 +36,7 @@ struct TranslationSectionIndexView: View {
                 .font(AppDesign.Font.footnote)
                 .padding(.horizontal, 10)
                 .padding(.top, 10)
+                .searchFieldShortcut($searchFocused)
             Divider()
             if matches.isEmpty {
                 Text(noMatchLabel)
