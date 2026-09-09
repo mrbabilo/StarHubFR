@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.39.0] - 2026-09-09
+
 ### Added
 
 - **L'éditeur de config des mods C# parle leur langue.** Les options d'un `config.json` sans schéma s'étiquettent avec les libellés que le mod publie dans son `i18n/` — en français quand il est traduit, champ par champ — au lieu d'afficher la clé brute. L'aide du mod (`description`, `tooltip`) suit ; là où le choix de l'auteur ne retombe sur aucune clé, la clé brute reste, assumée.
