@@ -4,7 +4,10 @@ import SwiftUI
 /// illustrations embarquées (`farm_glyph_0…7.png` dans les resources,
 /// ordre du wiki = `whichFarm`), remplissage couvrant et coins arrondis.
 /// Les fermes de mods (`whichFarm` hors 0-7, dont la sentinelle `-1` posée
-/// par `SaveFarmType`) retombent sur un SF Symbol proportionnel.
+/// par `SaveFarmType`) prennent `farm_glyph_mod.png`, une neuvième
+/// illustration générique au même format — sans elle, la case se lisait
+/// comme « celle qui manque » à côté des sept autres (H-T5e). Le SF Symbol
+/// reste le filet si la resource est absente du bundle.
 ///
 /// Ce composant remplace les glyphes vectoriels dessinés à la main (H-T5b) :
 /// jugés illisibles à 80×56 à l'écran, ils ont cédé la place aux vignettes
@@ -27,14 +30,23 @@ struct SaveFarmGlyph: View, Equatable {
     private static var imageCache: [Int: NSImage?] = [:]
     private static let imageCacheLock = NSLock()
 
+    /// Nom de resource pour une ferme. Hors 0-7, une seule illustration
+    /// générique : le jeu n'impose aucune borne haute à `whichFarm` et les
+    /// fermes de mods n'ont pas d'image à elles. La clé de cache reste
+    /// `whichFarm`, donc deux fermes de mods différentes chargent deux fois le
+    /// même fichier — deux entrées pour une image de 100 Ko, contre un second
+    /// index à tenir juste.
+    private static func resourceName(_ whichFarm: Int) -> String {
+        (0...7).contains(whichFarm) ? "farm_glyph_\(whichFarm)" : "farm_glyph_mod"
+    }
+
     private static func farmImage(_ whichFarm: Int) -> NSImage? {
-        guard (0...7).contains(whichFarm) else { return nil }
         imageCacheLock.lock()
         let cached = imageCache[whichFarm]
         imageCacheLock.unlock()
         if let cached = cached { return cached }
 
-        let loaded = Bundle.main.url(forResource: "farm_glyph_\(whichFarm)", withExtension: "png")
+        let loaded = Bundle.main.url(forResource: resourceName(whichFarm), withExtension: "png")
             .flatMap { NSImage(contentsOf: $0) }
         imageCacheLock.lock()
         imageCache[whichFarm] = loaded

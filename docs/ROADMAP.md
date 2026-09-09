@@ -626,7 +626,7 @@ non installé), jamais des prédictions.
 
 ---
 
-### Cohérence UI : un seul langage pour toute l'app — **Axe H** · **3 items ouverts sur 13** *(relevé le 2026-09-09, H-T7 et H-T8 livrés : restent H-T5c, H-T5e, H-T9)*
+### Cohérence UI : un seul langage pour toute l'app — **Axe H** · **1 item ouvert sur 13** *(relevé le 2026-09-09 : H-T7, H-T8 et H-T5e livrés, H-T5c abandonné — reste **H-T9**, le closage)*
 
 L'onglet Découvrir (axe G) a établi de fait un langage — cartes en grille
 adaptative, états qui portent l'action qui les lève, comptes honnêtes, un
@@ -821,8 +821,7 @@ par lot, une release par lot. Périmètre : visuel + navigation —
 > Ferme en passant un bug latent : `SaveManager.farmTypeName` retournait du thaï codé en dur depuis l'origine — désormais localisé via 10 clés `L10n.Saves.farmType*` + `heroFarmHelpFormat`. Architecture : `L10nResolver` protocole Core + `SaveFarmNameResolver` injecté (VM pas god-object-ifié).
 
 
-- [ ] **H-T5e** — **Vignette illustrée pour une ferme de mod.** ⏸️ *En attente
-      d'une image de l'auteur — rien à faire côté code d'ici là.*
+- [x] **H-T5e** — ✅ **Livré le 2026-09-09.** **Vignette illustrée pour une ferme de mod.**
       Depuis que `SaveFarmType` reconnaît une ferme de mod (`whichFarm = -1`,
       cas `FrontierFarm`), sa vignette sort de la plage 0-7 des illustrations
       et affiche un glyphe `house.fill` sur fond neutre. C'est honnête — on
@@ -834,11 +833,27 @@ par lot, une release par lot. Périmètre : visuel + navigation —
       retomber sur le SF Symbol, qui reste le filet.
       Vérifié à l'écran le 2026-09-02 : le repli actuel est acceptable, ce
       n'est pas un défaut à corriger en urgence. · **XS**
-      ▸ **Toujours bloqué au 2026-09-09** : il faut un PNG 190×200 de l'auteur.
-      Rien à écrire d'ici là, et surtout pas une image générée en substitut —
-      ce serait poser un asset que personne n'a choisi.
+      ✅ **L'auteur a fourni l'illustration le 2026-09-09** (« Ferme
+      frontière »), et elle est en place. **Traitement mesuré, pas estimé** :
+      la source faisait 1254×1254 avec un cartouche titré ; un profil de
+      luminance ligne par ligne a situé la bordure crème à 20 px et le début du
+      cartouche à y≈1108 — les sept vignettes du dépôt n'ont ni cadre ni titre.
+      Recadrée sur l'illustration seule au ratio 190:200, décalée de 40 px vers
+      la gauche pour garder la ferme entière (elle occupe x≈80…570 ; un
+      centrage strict l'aurait collée au bord), puis rendue en 190×200 —
+      **le format exact des sept autres, vérifié par `sips`**.
+      `SaveFarmGlyph.resourceName(_:)` route tout `whichFarm` hors 0-7 vers
+      `farm_glyph_mod`. Le SF Symbol **reste** le filet si la resource manque
+      du bundle : le repli n'est pas supprimé, il recule d'un cran.
+      > **À vérifier à l'écran (H-T5e)** — 1. Écran Sauvegardes, une partie sur
+      > ferme de mod (le parc en a une : `FrontierFarm`) : la vignette illustrée
+      > remplace le glyphe, et se lit comme les sept autres à 80×56.
+      > 2. Les huit fermes vanilla n'ont **pas** changé d'image — la bascule ne
+      > vaut que hors 0-7. 3. Le cadrage tient à la taille d'affichage réelle :
+      > la ferme reste lisible, elle n'est pas coupée par le remplissage
+      > couvrant (`aspectRatio(.fill)` rogne les bords longs).
 
-- [ ] **H-T5c** — **Portrait du fermier fidèle à la sauvegarde.** L'avatar du hero
+- [x] **H-T5c** — ⛔️ **Abandonné le 2026-09-09** *(décision de l'auteur, §8.3 — la case est cochée parce que l'item est clos, pas parce qu'il est fait ; même convention que `X59` et `C4-T8`)*. **Portrait du fermier fidèle à la sauvegarde.** L'avatar du hero
       est aujourd'hui une illustration fixe par sexe ; `<hair>`, `<hairstyleColor>`
       et `<skin>` sont lues et correctes mais ne pilotent aucun pixel. Recomposer
       la tête (base + calques coiffure/peau) plutôt que teinter un crop.
@@ -864,14 +879,18 @@ par lot, une release par lot. Périmètre : visuel + navigation —
       calques, teinte de `<hairstyleColor>`, palette de `skinColors`).
       **Jamais tenté** : `git log -S` ne rend rien sur `farmer_base`,
       `Texture2D` ni `hairstyles`.
-      ⛔️ **Mais ce n'est pas un lot de l'axe H, et je ne l'ouvre pas seul.**
+      ⛔️ **Abandonné le 2026-09-09, par décision de l'auteur** *(§8.3 —
+      l'item est fermé, pas déplacé)*. Ce qui suit dit pourquoi, et ce que la
+      réfutation ci-dessus vaut si la question revient un jour.
+      **Ce n'est pas un lot de l'axe H.**
       La spec §9 pose « **aucune fonctionnalité nouvelle** : la refonte
       déplace, renomme et restyle ». Un lecteur de textures, un index de
       sprites et un compositeur de calques sont une **capacité neuve** — le
-      plus gros morceau de code neuf jamais proposé dans cet axe. → **arbitrage
-      en §8.3**, à trancher par l'auteur ; et la taille **M** était estimée en
-      supposant les calques absents : avec un lecteur de textures à écrire,
-      elle est à revoir à la hausse.
+      plus gros morceau de code neuf jamais proposé dans cet axe, et la taille
+      **M** était estimée en supposant les calques absents. L'auteur a tranché
+      l'abandon : l'avatar garde son illustration fixe par sexe. **Ne pas
+      rouvrir sans décision explicite** — et si la question revient, partir de
+      la mesure ci-dessus plutôt que du prérequis, qui était faux.
 > **Ce qui tourne aujourd'hui** : un modèle de gravité pur et testé —
 > `HealthIssue` (critique / avertissement / information) et
 > `HealthIssueResolver`, qui agrège trois sources (diagnostics SMAPI,
@@ -1678,9 +1697,7 @@ préférences et le Trousseau en commun), puis ~~**C4**~~ *(clos le
 
 **Non classés ici parce qu'ils attendent une décision, pas un développement** :
 `X55` (politique de purge), `X103` (suppression des mods : corbeille livrée en
-X103-B ; reste la rétention des archives Nexus, §8.1 option C), `H-T5c`
-(recomposer le portrait du fermier : le prérequis est réfuté, mais c'est une
-capacité neuve que §9 exclut de l'axe H — §8.3), `D3-T1`
+X103-B ; reste la rétention des archives Nexus, §8.1 option C), `D3-T1`
 (un backend ou non), `F5` (quand casser la cohabitation avec l'amont),
 `F1-T2` (règle permanente, pas une tâche).
 
@@ -1854,7 +1871,13 @@ bavards.
 
 ---
 
-### 8.3 Cadrage H-T5c — recomposer le portrait du fermier ? *(instruit le 2026-09-09, à trancher par l'auteur)*
+### 8.3 Cadrage H-T5c — recomposer le portrait du fermier ? *(instruit le 2026-09-09, **abandonné le jour même**)*
+
+> ⛔️ **Décision de l'auteur, 2026-09-09 : abandon.** H-T5c est fermé — ni
+> option B ni option C : l'item ne migre pas vers un autre axe, il ne se fait
+> pas. L'avatar garde son illustration fixe par sexe. La section reste ici pour
+> porter la **réfutation du prérequis** : si la question revient, elle repart de
+> ces mesures et non de la phrase fausse qu'elle a remplacée.
 
 > **La question n'est pas « est-ce possible » — ça l'est — mais « est-ce que
 > l'axe H a le droit de le faire ».** Le prérequis qui bloquait cet item est

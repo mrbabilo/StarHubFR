@@ -14,6 +14,8 @@ where the exact log format was verified.
 
 ### Changed
 
+- **Une ferme de mod a enfin sa vignette.** Les sauvegardes dont la ferme vient d'un mod affichaient un glyphe sur fond neutre, au milieu de sept illustrations — la case se lisait comme celle qui manque. Une neuvième image générique prend sa place, au même format que les autres.
+
 - **Le hub de traduction rejoint le système de design.** L'écran de diff, l'éditeur, les lots, l'index des sections et la comparaison de récupération reprennent les tailles et les espacements de l'app — les clés i18n gardent leur monospace, les compteurs leurs chiffres alignés.
 
 - **Les Réglages se lisent par nature.** Onze sections à la file deviennent quatre groupes titrés — Jeu, Mods & contenu, Données & stockage, À propos — et le groupe Jeu suit l'ordre des gestes : on choisit un dossier de jeu, puis on installe SMAPI dedans, puis on lance. Tailles, espacements et couleurs passent au système de design.
