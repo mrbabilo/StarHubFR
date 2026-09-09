@@ -164,7 +164,7 @@ partiellement traduits ou pas du tout, sans ouvrir un seul fichier.
 
 ---
 
-### Hub de traduction FR, phase 2 : *édition & assistance* — **Axe C** · livrée par morceaux (**v1.15.0** → **v1.17.0**), **8 items ouverts**
+### Hub de traduction FR, phase 2 : *édition & assistance* — **Axe C** · livrée par morceaux (**v1.15.0** → **v1.17.0**), **5 items ouverts** *(compteur relevé le 2026-09-09 : C3-T2, C3-T5, C5-T1, C5-T2, C6-T1 — **C4 est clos en entier**)*
 
 C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 
@@ -254,8 +254,9 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       avec repli assumé sur la clé brute. Piste pour élargir le plafond : **les bornes
       vivent parfois en prose dans l'infobulle** (« Clamped 256–4096 KB »,
       UltraSmooth) — la seule trace sur disque des min/max des mods C#.
-- [ ] **C4-T8** — **Prévisualiser la normalisation en lisant ce que le mod a fait,
-      pas en devinant ses bornes.** SLO journalise sa configuration normalisée
+- [x] **C4-T8** — ⛔️ **Constat réfuté, clos sans code le 2026-09-09** *(option A,
+      tranchée par l'auteur — §8.2)*. **Prévisualiser la normalisation en lisant ce que
+      le mod a fait, pas en devinant ses bornes.** SLO journalise sa configuration normalisée
       **entière** au démarrage, sous `[OPTIMIZER CONFIG]` (relevé dans le journal SMAPI
       réel de l'auteur) — et l'app sait déjà lire ce journal en profondeur. Comparer la
       valeur du `config.json` à celle que le mod a annoncée au dernier lancement dirait
@@ -303,11 +304,11 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       ⚠️ **Limite de l'échantillon** : un seul journal, un seul lancement — le dossier
       `ErrorLogs/` n'en contient pas d'autre. Cela établit « rare », pas « exactement
       deux ».
-      ▸ **La case reste `- [ ]` à dessein** : ce n'est ni une tâche livrée ni un constat
-      clos (comparer `X59`, coché en constat faux). Elle attend **la décision de l'auteur
-      en §8.2** — option A (clore, la case passe alors cochée « réfuté ») ou option B
-      (les triplets de SLO, qui serait une tâche neuve). **Ne pas ré-instruire** : la
-      mesure est faite et datée ci-dessus.
+      ▸ **Tranché le 2026-09-09 : option A, clore sans code** (comparer `X59`, coché
+      en constat faux). **Ne pas ré-instruire** : la mesure est faite et datée ci-dessus.
+      Le signal qui rouvrirait la case n'est *pas* le nombre de mods bavards, mais
+      l'apparition d'un **second** mod publiant un triplet *voulu / effectif / pourquoi*
+      — l'option B deviendrait alors une tâche neuve, à écrire comme telle.
 - [x] **C4-T7** — `audit-mods-config-perf.md` — **Les angles morts keybind de C4-T2.**
       Chevauchements sous-ensemble (A = `K`, B = `K`+Shift co-déclenchent sur le geste
       long — spec §12), composants de pack, mods en pause ; et donner aux collisions
@@ -1463,16 +1464,15 @@ même journal). Vérifiés un par un : tous encore exacts, aucun ne se manifeste
 Par lot, dans l'ordre de ce que l'axe « perte de données » recommande de faire
 ensuite : **F2** (audit sécurité et perf — c'est lui qui trouverait les X à
 venir), **F5** (identité de bundle partagée avec l'amont : 31 clés de
-préférences et le Trousseau en commun), puis ~~**C4**~~ *(T1 et T7
-livrés le 2026-09-09 ; T8 instruit le même jour, prémisse réfutée — décision en
-§8.2)*, **H** (5 lots restants), **A** (A1-T1/T2, A2-T5, A5-T4/T5), **D1/D2**
+préférences et le Trousseau en commun), puis ~~**C4**~~ *(clos le
+2026-09-09 : T1 et T7 livrés, T8 réfuté et coché sans code — §8.2)*,
+**H** (5 lots restants), **A** (A1-T1/T2, A2-T5, A5-T4/T5), **D1/D2**
 (Profiler et télémétrie), **C3/C5/C6**, **I** (accessibilité, après H),
 **E1–E3** et **D3** (horizon, sous décision produit).
 
 **Non classés ici parce qu'ils attendent une décision, pas un développement** :
 `X55` (politique de purge), `X103` (suppression des mods : corbeille livrée en
-X103-B ; reste la rétention des archives Nexus, §8.1 option C), `C4-T8` (clore le
-constat réfuté, ou lire les triplets de SLO — §8.2), `D3-T1`
+X103-B ; reste la rétention des archives Nexus, §8.1 option C), `D3-T1`
 (un backend ou non), `F5` (quand casser la cohabitation avec l'amont),
 `F1-T2` (règle permanente, pas une tâche).
 
@@ -1608,7 +1608,12 @@ supprimé » — le retour existe, il n'est juste pas *trouvable*.
 
 ---
 
-### 8.2 Cadrage C4-T8 — le journal SMAPI peut-il montrer la normalisation ? *(instruit le 2026-09-09, à trancher par l'auteur)*
+### 8.2 Cadrage C4-T8 — le journal SMAPI peut-il montrer la normalisation ? *(instruit le 2026-09-09, **tranché A le jour même**)*
+
+> ✅ **Décision de l'auteur, 2026-09-09 : option A — clore sans code.** C4-T8 est
+> cochée en constat réfuté. Les options B et C ne sont pas retenues ; la section
+> reste ici pour porter la mesure, et le signal de réouverture est nommé dans la
+> case (un **second** mod publiant un triplet *voulu / effectif / pourquoi*).
 
 > **Verdict de la mesure : non, pas sur ce parc.** La tâche pariait qu'un mod
 > journalise sa configuration *normalisée*, et qu'il suffirait de la comparer au
@@ -1910,6 +1915,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **C4-T6** | 2026-09-04 | Dire quand le fichier va être réécrit sous nos pieds |
 | **C4-T1** | 2026-09-09 | Étiqueter les options des mods C# avec les libellés `config.*` de leur `i18n/` (FR champ par champ, repli clé brute) — `ConfigLabelResolver` + `groups(labeledBy:)`, 12 tests |
 | **C4-T7** | 2026-09-09 | Angles morts keybind : co-déclenchements sous-ensemble (`SubsetOverlap`, jamais intra-mod), catégorie manette (`isGamepad`), collisions latentes des mods en pause (hors `problemCount`), R4 pour tous — 11 tests |
+| **C4-T8** | 2026-09-09 | Constat réfuté, clos sans code (option A de §8.2) : le journal SMAPI ne montre pas la normalisation. 2 mods sur ~966 publient leur config entière, un seul hors `TRACE` ; SLO — l'exemple qui a motivé la tâche — renomme ses clés (3 communes sur 46) ; et là où le rapprochement est parfait (UIS2, 85/85), l'écart mesuré est **nul**. Le journal reproduit la config lue |
 | **C4-T2** | 2026-08-29 | Champs de raccourcis clavier : validation des noms SButton, détection des collisions entre mods. · M §audit-config-me… |
 | **C4-T3** | 2026-08-28 | Spike mené le 2026-08-28. Verdict : non-go sur les menus de config — et une meilleure source trouvée à côté. §audit-c… |
 
