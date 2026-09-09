@@ -92,6 +92,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 struct StarHubTHApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var vm = StarHubTHViewModel()
+    @AppStorage("showThaiTranslationHub") private var showThaiHub = false
 
     init() {
         // No-op : StarHubTHViewModel.currentLanguage est l'unique source de
@@ -176,6 +177,28 @@ struct StarHubTHApp: App {
         }
         .windowResizability(.contentMinSize)
         .defaultSize(width: 900, height: 600)
+        // Le menu « Aller » — I-T1/I-T2. Les raccourcis deviennent visibles, et
+        // macOS les gère nativement.
+        //
+        // ⚠️ Ce code vit dans la **scène App** : il ne peut écrire aucun
+        // `@State` de MainView. Il n'appelle donc que les canaux du ViewModel.
+        .commands {
+            CommandMenu(vm.L(L10n.Palette.goMenu)) {
+                // Construits depuis SidebarOrder — jamais réécrits ici, sinon
+                // le menu et la barre divergeraient au premier ajout.
+                ForEach(1...9, id: \.self) { n in
+                    if let e = SidebarOrder.entry(forShortcut: n,
+                                                  showThaiHub: showThaiHub) {
+                        Button(vm.L(e.labelKey)) { vm.requestTab(e.destination) }
+                            .keyboardShortcut(KeyEquivalent(Character("\(n)")),
+                                              modifiers: .command)
+                    }
+                }
+                Divider()
+                Button(vm.L(L10n.Palette.open)) { vm.requestPalette() }
+                    .keyboardShortcut("k", modifiers: .command)
+            }
+        }
 
         // Le bilan post-installation — une fenêtre dédiée, redimensionnable,
         // là où l'écran de succès interne de la feuille vivait. Ouverte par
