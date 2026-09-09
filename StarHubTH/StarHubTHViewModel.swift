@@ -6876,8 +6876,11 @@ for mod in mods {
         defer { busyTranslations.remove(mod.folderName) }
         // L'archive téléchargée n'a plus d'usage passé ce point : la laisser
         // derrière nous encombrerait le dossier temporaire d'un fichier dont
-        // plus personne ne connaît le chemin.
-        defer { try? FileManager.default.removeItem(at: archive) }
+        // plus personne ne connaît le chemin. `discardDownloaded` emporte le
+        // dossier `StarHubFR-download-*` qui l'isolait — un `removeItem` du
+        // seul fichier y laissait un dossier vide par traduction déposée
+        // (X104), là où le flux des mods passe déjà par MainView:onDismiss.
+        defer { NexusFileDownload.discardDownloaded(at: archive) }
         let installer = ModZipInstaller()
         do {
             let extracted = try installer.extractToTemp(zipUrl: archive)

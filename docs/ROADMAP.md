@@ -1495,6 +1495,50 @@ antérieure ne portent pas `categoryId` (pastille absente jusqu'au premier
 rafraîchissement), et `languageName` existe au filtre — piste pour la sélection
 FR sans passer par le tag.
 
+### 8.1 Cadrage X103 — la suppression peut-elle se défaire ? *(instruit le 2026-09-09, à trancher par l'auteur)*
+
+> Les faits ci-dessous sont relevés dans le code au jour dit, pas supposés.
+> La question : supprimer un mod est définitif (`removeItem` direct, confirmé
+> aux trois points d'entrée — `ModListView:558`, `ModListView:2093`,
+> `ModDetailView:155`), là où le réparateur met en quarantaine et les
+> sauvegardes se restaurent. L'uninstall Vortex, lui, reste réversible
+> (archive conservée en staging, purge = geste séparé).
+
+**Ce que la suppression laisse déjà derrière elle** (`deleteMod`,
+`StarHubTHViewModel.swift:10796` + `forgetStores`) :
+
+- les **sauvegardes d'installation** (`ModInstallBackupManager`) et de
+  config (`ModConfigBackupManager`) **survivent** au mod supprimé — la
+  restauration d'une sauvegarde d'installation recrée le mod **en
+  désactivé** (`Mods/.X`) depuis le navigateur de sauvegardes. *Un chemin
+  de retour existe donc déjà* — mais il n'est pas garanti : la rétention
+  hybride (`cleanupOldBackups`, purge par âge/taille) peut emporter la
+  dernière sauvegarde d'un mod qui n'est plus là pour la re-provoquer ;
+- huit magasins + l'historique d'erreurs + la baseline de traduction +
+  favoris + liste « à écarter » sont purgés nommément — les ramener du
+  retour ne restitue pas favori ni verdicts : un mod restauré est un mod
+  **neuf** pour l'app ;
+- l'**archive Nexus** ne survit jamais : posée dans
+  `tmp/StarHubFR-download-<UUID>/`, elle est effacée **à la fermeture de
+  la feuille d'installation** — installée, annulée ou échouée
+  (`MainView:304-312`). Réinstaller un mod supprimé = retélécharger.
+
+**Trois issues** :
+
+| Option | Geste | Coût | Ce qu'elle vaut / ce qu'elle risque |
+|---|---|---|---|
+| **A — permanence assumée** | rien, documenter (« la sauvegarde d'installation est votre corbeille, dans la limite de la rétention ») | ~0 | Zéro code, zéro surface. Risque : la rétention peut déjà avoir mangé le retour — promettre « réversible » serait mentir |
+| **B — corbeille dédiée** | `deleteMod` déplace vers `Mods/_Trash_<horodatage>/` (le préfixe que le scanner skip déjà) ; purge = bouton Entretien ou rétention bornée ; restaurer = remettre en `Mods/.X` | **M** | Le retour devient garanti et à un geste. Le pattern `_Trash_` existe (`ModFolderRepairer.trashPrefix`, fail-safe X-épreuve). Attention : la corbeille grossit dans le dossier du jeu — la faire compter dans la mesure du poids et la purge automatique doit être explicite, jamais une heuristique silencieuse (leçon X25) |
+| **C — rétention des archives Nexus** | garder l'archive dans un dossier d'application (pas tmp), rétention par âge/taille, « réinstaller depuis l'archive » sur un mod absent | **M-L** | L'équivalent Vortex exact : réinstallation instantanée, hors-ligne, même version. Nouveau magasin, nouvelle rétention, nouvelle UI — et ne sert qu'aux mods installés via Nexus |
+
+**Recommandation de l'agent** : **B minimal**, le plus proche du geste déjà
+posé par le réparateur — il rend le retour garanti sans créer de magasin
+nouveau. **C** n'a de sens que si l'auteur veut la réinstallation instantanée ;
+le faire seul (sans B) laisserait la suppression aussi définitive
+qu'aujourd'hui pour un mod installé à la main. **A** reste défendable si la
+page des sauvegardes gagne d'abord une porte « restaurer sur un mod
+supprimé » — le retour existe, il n'est juste pas *trouvable*.
+
 ---
 
 ## 9. Suivi
@@ -1718,7 +1762,8 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **X100** | 2026-09-08 | Un report de traduction dont la paire CHANGE de composant écrivait la forme brute de la nouvelle clé dans le fr.json de l'ANCIEN — orpheline chez l'ancien, cible non traduite, paire passée réconciliée en silence ; `RenameReport.routeByOldComponent` les écarte et l'écran les annonce (`d50d2e6`) |
 | **X101** | 2026-09-08 | Les préfixes de composants du report venaient de `mod.children` — nil sur la fiche d'un enfant imbriqué (les descendants d'un groupe vivent à plat sous l'en-tête) : clés qualifiées affichées mais « Rien à reporter » à jamais ; dérivés de l'arbre scanné par préfixe de folderName (`d50d2e6`) |
 | **X102** | 2026-09-08 | Le snapshot ne découvrait les composants qu'à UN niveau contre `maxModDepth` pour la traversée de référence (commentaire « même convention » faux) — 6 mods imbriqués sur le parc dont 3 avec i18n se taisaient dans le delta ; récursion, composant nommé par chemin relatif (`d50d2e6`) |
-| **X103** | 2026-09-09 | *Question de conception, sortie de la grille de revue des écritures (F2)* — supprimer un mod est définitif (`removeItem` direct, confirmé aux deux points d'entrée) là où les sauvegardes vont à la corbeille et le réparateur quarantaine ; l'archive Nexus est effacée après install — l'uninstall Vortex, lui, reste réversible (archive conservée). À trancher : quarantaine des mods supprimés, rétention des archives ? |
+| **X103** | 2026-09-09 | *Question de conception, sortie de la grille de revue des écritures (F2)* — supprimer un mod est définitif (`removeItem` direct, confirmé aux deux points d'entrée) là où les sauvegardes vont à la corbeille et le réparateur quarantaine ; l'archive Nexus est effacée après install — l'uninstall Vortex, lui, reste réversible (archive conservée). À trancher : quarantaine des mods supprimés, rétention des archives ? — **cadré en §8.1 (2026-09-09)** : faits relevés, trois options (A permanence / B corbeille `_Trash_` / C rétention archives), recommandation B minimal |
+| **X104** | 2026-09-09 | Déposer une traduction Nexus laissait son dossier `StarHubFR-download-<UUID>` vide en tmp — le `defer` n'effaçait que le fichier, quand le flux des mods passe par `discardDownloaded` (fichier + dossier) à la fermeture de la feuille ; **corrigé en séance** : `discardDownloaded` au `defer` — l'archive y vient toujours du téléchargeur, le geste est sûr sans condition (`MainView:onDismiss` déjà au pattern) |
 | **B1-T1** | 2026-08-01 | Boutons Activer/Désactiver et Supprimer sur la fiche mod (parité avec la liste, mêmes confirmations). Absents pour un… |
 | **B1-T2** | 2026-08-01 | Tri, filtres, catégorie, page et recherche portés par ModListFilters dans le ViewModel. La remise à la page 1 est por… |
 

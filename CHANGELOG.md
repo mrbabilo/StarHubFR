@@ -18,6 +18,8 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **Le dossier d'une traduction déposée part avec elle.** L'archive Nexus vivait dans un dossier temporaire qui ne s'effaçait que du fichier : chaque traduction déposée depuis Nexus laissait un dossier vide derrière elle. Il part désormais entier, comme à la fermeture d'une feuille d'installation de mod.
+
 - **Changer de conjoint dans une sauvegarde ne glitch plus le nouveau.** Le tag disait « marié » mais l'amitié restait « Friendly »/« Dating » : le nouveau conjoint était promu lui aussi, avec sa date de mariage, et l'ancien démis comme avant.
 
 - **Deux opérations de sauvegarde ne peuvent plus s'entrelacer.** L'édition et l'inventaire rejoignent le verrou des autres opérations ; et la feuille de duplication ou de branchement ne se ferme plus sur un échec — on peut réessayer.
