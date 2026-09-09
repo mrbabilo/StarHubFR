@@ -204,6 +204,12 @@ struct LogsView: View {
                 Button { autoScroll.toggle() } label: {
                     Image(systemName: autoScroll ? "arrow.down.to.line" : "arrow.down.to.line.compact")
                         .foregroundColor(autoScroll ? .accentColor : .secondary)
+                        // macOS n'affiche une infobulle qu'après ~2 s de
+                        // survol immobile *dans* la zone : sur un glyphe de
+                        // ~13 pt, le curseur n'y tient pas et l'aide ne sort
+                        // jamais. 18×18 est le seuil documenté du dépôt.
+                        .frame(width: 18, height: 18)
+                        .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
                 .help(vm.L(L10n.Logs.autoScrollHint))
@@ -216,7 +222,14 @@ struct LogsView: View {
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(text, forType: .string)
                 } label: {
-                    Image(systemName: "doc.on.clipboard").foregroundColor(.secondary)
+                    Image(systemName: "doc.on.clipboard")
+                        .foregroundColor(.secondary)
+                        // macOS n'affiche une infobulle qu'après ~2 s de
+                        // survol immobile *dans* la zone : sur un glyphe de
+                        // ~13 pt, le curseur n'y tient pas et l'aide ne sort
+                        // jamais. 18×18 est le seuil documenté du dépôt.
+                        .frame(width: 18, height: 18)
+                        .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
                 .help(vm.L(L10n.Logs.copyAll))
@@ -225,6 +238,12 @@ struct LogsView: View {
                 Button { groupByMod.toggle() } label: {
                     Image(systemName: groupByMod ? "rectangle.grid.1x2.fill" : "rectangle.grid.1x2")
                         .foregroundColor(groupByMod ? .accentColor : .secondary)
+                        // macOS n'affiche une infobulle qu'après ~2 s de
+                        // survol immobile *dans* la zone : sur un glyphe de
+                        // ~13 pt, le curseur n'y tient pas et l'aide ne sort
+                        // jamais. 18×18 est le seuil documenté du dépôt.
+                        .frame(width: 18, height: 18)
+                        .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
                 .help(vm.L(L10n.Logs.groupByMod))
@@ -233,7 +252,14 @@ struct LogsView: View {
                 Button {
                     vm.loadSmapiLog()
                 } label: {
-                    Image(systemName: "arrow.clockwise").foregroundColor(.secondary)
+                    Image(systemName: "arrow.clockwise")
+                        .foregroundColor(.secondary)
+                        // macOS n'affiche une infobulle qu'après ~2 s de
+                        // survol immobile *dans* la zone : sur un glyphe de
+                        // ~13 pt, le curseur n'y tient pas et l'aide ne sort
+                        // jamais. 18×18 est le seuil documenté du dépôt.
+                        .frame(width: 18, height: 18)
+                        .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
                 .help(vm.L(L10n.Logs.refreshHint))
