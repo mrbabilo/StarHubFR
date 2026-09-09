@@ -1889,6 +1889,9 @@ FR sans passer par le tag.
   la feuille d'installation** — installée, annulée ou échouée
   (`MainView:304-312`). Réinstaller un mod supprimé = retélécharger.
 
+> ✅ **Option C ouverte le 2026-09-09, à la demande de l'auteur**, avec un
+> interrupteur pour la couper — voir `X103-C` ci-dessous.
+
 **Trois issues** :
 
 | Option | Geste | Coût | Ce qu'elle vaut / ce qu'elle risque |
@@ -1904,6 +1907,51 @@ le faire seul (sans B) laisserait la suppression aussi définitive
 qu'aujourd'hui pour un mod installé à la main. **A** reste défendable si la
 page des sauvegardes gagne d'abord une porte « restaurer sur un mod
 supprimé » — le retour existe, il n'est juste pas *trouvable*.
+
+**X103-C — ce que le lot fait, et pourquoi il ne fait pas double emploi avec
+la corbeille** *(ouvert le 2026-09-09)*
+
+La corbeille (X103-B) garde le **dossier installé** : la remise rend exactement
+les octets qui étaient sur le disque, `config.json` et `fr.json` compris.
+L'archive garde le **zip d'origine**, tel que Nexus l'a servi. Ce ne sont pas
+les mêmes besoins, et §8.1 nomme lui-même celui que B ne couvre pas :
+« l'archive Nexus ne survit jamais […] Réinstaller un mod supprimé =
+retélécharger ». L'archive sert quand la corbeille a été vidée, quand il n'y a
+pas de réseau, ou quand on veut **la même version, propre**, plutôt que la
+sienne avec ses réglages.
+
+**Décisions prises à l'ouverture**, pour qu'elles soient discutables :
+
+1. **La copie se fait au succès de l'installation, pas à la fermeture de la
+   feuille.** Les deux sites d'effacement (`MainView:onDismiss` et le `defer`
+   de `depositTranslation`) se déclenchent **aussi** à l'annulation et à
+   l'échec : y brancher l'archivage stockerait des archives d'installations qui
+   n'ont jamais eu lieu. Le point retenu est le bloc de succès de
+   `ModInstallView.installSelected` — `discardDownloaded` reste inchangé.
+2. **La clé est `UniqueID` + version, jamais l'identifiant Nexus.** 58 id sont
+   partagés sur le parc, et l'id 8828 en couvre trois : indexer dessus a déjà
+   effacé les mises à jour de trois mods.
+3. **La rétention réutilise celle des sauvegardes d'installation**
+   (`cleanupOldBackups`, hybride : tout ce qui a moins de 30 jours, plus le
+   plus récent par mois au-delà). Inventer une seconde politique en ferait deux
+   à tenir d'accord.
+4. **Le réglage est INACTIF par défaut** — tranché par l'auteur le
+   2026-09-09, après une première rédaction qui le mettait actif. La raison
+   tient en une phrase : une fonction qui écrit sur le disque sans qu'on l'ait
+   demandée fait croître l'empreinte en silence, ce que X25 existe précisément
+   pour éviter. Conséquence à assumer dans la livraison : **la fonction ne
+   montre rien tant qu'elle n'est pas allumée**, et une archive ne peut pas
+   être récupérée rétroactivement — l'écran Entretien doit donc dire ce qu'elle
+   *ferait*, pas rester vide sans explication.
+5. **La réinstallation depuis l'archive fait partie du lot, elle n'est pas
+   différée.** Sans elle, on garde des fichiers qu'on ne peut pas réutiliser :
+   de l'occupation disque pure. Elle vit à l'écran Entretien, à côté de la
+   liste des archives — c'est le seul endroit où un mod **absent** peut se
+   voir, puisqu'il n'est plus dans aucune liste de mods.
+
+⚠️ **Piège connu à rejouer** : toute extraction vers un dossier de mod doit
+ouvrir les droits (le parc est en `0555` partout) — la réinstallation
+emprunte ce chemin.
 
 ---
 
