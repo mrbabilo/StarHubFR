@@ -18,6 +18,8 @@ where the exact log format was verified.
 
 - **Le bilan d'installation devient une fenêtre à part, redimensionnable.** Résumé chiffré en tête (mods, clés à traduire, options), liste des mods posés et deltas par mod ; « Voir la fiche » n'oblige plus à tout refermer, et un dépôt multiple s'enchaîne depuis le bilan.
 
+### Changed
+
 - **La feuille d'installation gagne de la place.** Plus large, plus haute, zone de dépôt plus accueillante : l'analyse d'un pack — liste des mods, dépendances, avertissements — respire enfin.
 
 ## [1.40.0] - 2026-09-09
