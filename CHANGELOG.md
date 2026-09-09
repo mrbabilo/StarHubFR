@@ -14,6 +14,8 @@ where the exact log format was verified.
 
 ### Changed
 
+- **Le hub de traduction rejoint le système de design.** L'écran de diff, l'éditeur, les lots, l'index des sections et la comparaison de récupération reprennent les tailles et les espacements de l'app — les clés i18n gardent leur monospace, les compteurs leurs chiffres alignés.
+
 - **Les Réglages se lisent par nature.** Onze sections à la file deviennent quatre groupes titrés — Jeu, Mods & contenu, Données & stockage, À propos — et le groupe Jeu suit l'ordre des gestes : on choisit un dossier de jeu, puis on installe SMAPI dedans, puis on lance. Tailles, espacements et couleurs passent au système de design.
 
 - **Les journaux parlent la langue de l'app.** Filtres, barre d'outils et lignes de journal reprennent les tailles, espacements et couleurs du système de design — le monospace y entre pour la première fois. Un état vide dit désormais s'il est vide *parce qu'un filtre exclut tout*, et propose de le lever.

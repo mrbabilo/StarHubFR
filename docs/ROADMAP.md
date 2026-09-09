@@ -626,7 +626,7 @@ non installé), jamais des prédictions.
 
 ---
 
-### Cohérence UI : un seul langage pour toute l'app — **Axe H** · **4 items ouverts sur 13** *(relevé le 2026-09-09, H-T7 livré : restent H-T5c, H-T5e, H-T8, H-T9)*
+### Cohérence UI : un seul langage pour toute l'app — **Axe H** · **3 items ouverts sur 13** *(relevé le 2026-09-09, H-T7 et H-T8 livrés : restent H-T5c, H-T5e, H-T9)*
 
 L'onglet Découvrir (axe G) a établi de fait un langage — cartes en grille
 adaptative, états qui portent l'action qui les lève, comptes honnêtes, un
@@ -1010,8 +1010,9 @@ par lot, une release par lot. Périmètre : visuel + navigation —
       qui ont touché ces fichiers (H-T2/T3, H-T4b, H-T6) n'en avaient scopé
       qu'une partie : ce n'est pas un manquement de leur part, c'est
       l'inventaire que le closage doit reprendre. **Ne pas rouvrir ces lots
-      depuis H-T7.**
-- [ ] **H-T8** — **Hub de traduction** : reskin de continuité seulement —
+      depuis H-T7.** S'y ajoutent, depuis H-T8, les **17** littérales de
+      `ThaiTranslationHubView`, écarté parce que `C5-T1` doit le refondre.
+- [x] **H-T8** — ✅ **Livré le 2026-09-09.** **Hub de traduction** : reskin de continuité seulement —
       monde à part, déjà structuré. · **M**
       ▸ **Cadré et mesuré le 2026-09-09.**
       **Périmètre : cinq vues, 74 tailles littérales, 1 970 lignes** —
@@ -1035,10 +1036,42 @@ par lot, une release par lot. Périmètre : visuel + navigation —
       de journal. `size: 8` (un glyphe décoratif annotant une clé) monte à 9,
       le plus petit palier : **changement visible d'1 pt**, à vérifier à
       l'écran.
-      **Accessibilité §7 point 1, mesurée** : `TranslationEditorView` porte
-      **6 `.help()` et zéro cible élargie** — le motif exact de `LogsView`
-      avant H-T7, où quatre infobulles ne sortaient jamais.
-      `TranslationDiffView` en a 5 pour 3 cibles.
+      **Accessibilité §7 point 1** : le relevé automatique donnait
+      `TranslationEditorView` à 6 `.help()` pour zéro cible élargie — le motif
+      de `LogsView` avant H-T7. **La lecture du code l'a réfuté, et c'est le
+      constat le plus utile du lot.** Les trois glyphes de l'éditeur
+      (baguette, chevrons) sont des boutons **système bordés**, pas `.plain` :
+      macOS leur donne déjà une zone de contrôle bien plus large que le glyphe.
+      Les trois de `TranslationDiffView` portent **glyphe *et* libellé** dans un
+      `HStack` — la cible fait la largeur du texte. Le défaut de `LogsView`
+      venait des boutons `.plain` à `Image` nue, forme **absente** du hub.
+      Un compteur `help()` sans `contentShape` en face n'est donc pas un
+      défaut : c'est un signal à instruire, six faux positifs sur six ici.
+      **États vides §10 n°4 : déjà tenus, rien à corriger.** Le vide filtré de
+      `TranslationDiffView` porte son échappatoire depuis toujours
+      (`diffClearFilters`, l.586 — « sans elle, un filtre trop étroit est une
+      impasse dont on ne voit pas la sortie »). Les autres sont des états
+      **sans issue** — ce mod n'a aucune clé, rien à comparer — auxquels il n'y
+      a rien à proposer ; ou bien leur champ de recherche est à vingt points
+      au-dessus (`TranslationSectionIndexView`).
+      ✅ **Bilan : le lot se réduit à la tokenisation, et c'est le résultat
+      juste.** La spec annonçait « reskin de continuité seulement » : le hub,
+      écrit plus tard que les journaux, tenait déjà les deux critères de fond.
+      Aucun correctif inventé pour justifier le lot.
+      > **À vérifier à l'écran (H-T8)** — 1. Fiche d'un mod traduit → onglet
+      > diff : les clés i18n restent monospacées et alignées en colonne, les
+      > compteurs des filtres gardent leurs chiffres alignés d'une ligne à
+      > l'autre (`.monospacedDigit()` préservé sur trois d'entre eux).
+      > 2. **Le seul écart visible du lot** : dans la liste du diff, le petit
+      > glyphe de loupe qui annote une clé passe de 8 à 9 pt — vérifier qu'il
+      > reste aligné sur la ligne de base de la clé qu'il annote (son
+      > commentaire d'origine dit que c'est son enjeu). 3. Éditeur d'une clé :
+      > baguette de pré-traduction et chevrons précédent/suivant restent
+      > cliquables et leurs infobulles sortent. 4. Lot de traduction et index
+      > des sections ouverts depuis le diff : rien n'a changé de taille au
+      > point de tronquer. 5. Un mod sans aucune clé à traduire, puis un filtre
+      > qui ne rend rien : le premier affiche son constat, le second garde son
+      > lien « effacer les filtres ».
 - [ ] **H-T9** — **Closage** : audit de fidélité (Découvrir visuellement
       identique à la v1.25.0 malgré les évolutions du système), bibliothèque
       `/design` complétée (Screens), nettoyage des vestiges. · **S**
