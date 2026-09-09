@@ -26,7 +26,78 @@ public enum AppSupport {
         guard let base = FileManager.default.urls(for: .applicationSupportDirectory,
                                                   in: .userDomainMask).first else { return nil }
         let target = base.appendingPathComponent(folderName, isDirectory: true)
+        let legacy = base.appendingPathComponent(legacyFolderName, isDirectory: true)
+        // **Ici et pas au lancement.** `StarHubTHApp` construit son ViewModel
+        // dans un initialiseur de propriété, qui s'exécute avant le corps de
+        // `init()` — et ce ViewModel lit deux stores dès sa construction. Aucun
+        // point d'entrée de l'app n'est donc assez tôt. Un `static let` l'est :
+        // Swift garantit qu'il ne s'évalue qu'une fois, à la première lecture.
+        _ = migrate(from: legacy, to: target, fileManager: .default)
         try? FileManager.default.createDirectory(at: target, withIntermediateDirectories: true)
         return target
+    }
+
+    /// Déplace les données de l'ancien dossier vers le nouveau, **après** avoir
+    /// repointé les chemins absolus qu'elles contiennent.
+    ///
+    /// - Returns: `false` quand la migration a été tentée et a échoué. Rien à
+    ///   migrer rend `true` : ce n'est pas un échec.
+    ///
+    /// **L'ordre n'est pas négociable.** La réécriture d'abord, dans l'ancien
+    /// dossier, sur une copie de travail ; le déplacement seulement si elle a
+    /// abouti. Un dossier déplacé dont le registre pointerait encore vers
+    /// l'ancien chemin ferait *supprimer* les fichiers d'origine du parc au
+    /// premier retrait de greffe — `ManifestlessInstaller.uninstall` supprime
+    /// quand la sauvegarde est introuvable.
+    ///
+    /// `Backups/` reste dans l'ancien dossier : son index porte 1 309 chemins
+    /// absolus, et l'application d'origine n'y écrit jamais.
+    @discardableResult
+    static func migrate(from legacy: URL, to target: URL, fileManager fm: FileManager) -> Bool {
+        var isDirectory: ObjCBool = false
+        guard fm.fileExists(atPath: legacy.path, isDirectory: &isDirectory),
+              isDirectory.boolValue else { return true }
+        // **Toujours entrée par entrée, jamais le dossier entier.** `Backups/`
+        // doit rester derrière, et surtout : un déplacement en bloc qui échoue
+        // au milieu laisserait un état à moitié migré qu'aucun second passage
+        // ne saurait reprendre. Entrée par entrée, en sautant ce qui est déjà
+        // arrivé, la migration est **reprenable** — elle peut échouer, être
+        // relancée, et finir le travail.
+        let registry = legacy.appendingPathComponent("installed_translations.json")
+        let registryTarget = target.appendingPathComponent("installed_translations.json")
+        // La réécriture d'abord, et seulement si ce registre-là va bouger : une
+        // destination qui en a déjà un porte des données plus récentes.
+        if !fm.fileExists(atPath: registryTarget.path),
+           let data = try? Data(contentsOf: registry),
+           let rewritten = AppSupportMigration.rewrite(data, from: legacy.path, to: target.path) {
+            do {
+                try rewritten.write(to: registry, options: .atomic)
+            } catch {
+                // Rien n'a bougé : le dossier est intact, et un prochain
+                // lancement retentera.
+                return false
+            }
+        }
+
+        do {
+            try fm.createDirectory(at: target, withIntermediateDirectories: true)
+            for name in try fm.contentsOfDirectory(atPath: legacy.path) {
+                // `Backups/` reste, délibérément (1 309 chemins absolus).
+                guard name != "Backups" else { continue }
+                let destination = target.appendingPathComponent(name)
+                // Déjà arrivé : ne pas écraser. Ce qui est en place est plus
+                // récent que ce qui attend encore dans l'ancien dossier.
+                guard !fm.fileExists(atPath: destination.path) else { continue }
+                try fm.moveItem(at: legacy.appendingPathComponent(name), to: destination)
+            }
+            // Un ancien dossier vidé de tout s'en va ; s'il garde `Backups/`,
+            // il reste, et c'est voulu.
+            if let rest = try? fm.contentsOfDirectory(atPath: legacy.path), rest.isEmpty {
+                try? fm.removeItem(at: legacy)
+            }
+        } catch {
+            return false
+        }
+        return true
     }
 }

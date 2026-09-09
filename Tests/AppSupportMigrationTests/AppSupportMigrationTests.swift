@@ -50,4 +50,105 @@ struct AppSupportMigrationTests {
         let bytes = Data([0xFF, 0xFE, 0x00])
         #expect(AppSupportMigration.rewrite(bytes, from: "/a", to: "/b") == nil)
     }
+
+    // MARK: - Le déplacement réel
+
+    private func makeLegacy(_ fm: FileManager) throws -> (root: URL, old: URL, new: URL) {
+        let root = fm.temporaryDirectory.appendingPathComponent("as-\(UUID().uuidString)")
+        let old = root.appendingPathComponent("StarHubTH")
+        let new = root.appendingPathComponent("StarHubFR")
+        try fm.createDirectory(at: old.appendingPathComponent("TranslationBackups/ItemBags/a"),
+                               withIntermediateDirectories: true)
+        try Data("sauvegarde".utf8)
+            .write(to: old.appendingPathComponent("TranslationBackups/ItemBags/a/bagconfig.json"))
+        try Data("""
+        {"byHost":{},"addonsByHost":{"ItemBags":[{"hostFolderName":"ItemBags",
+        "nexusModId":48157,"nexusName":"C","version":"1","installedAt":1,
+        "files":["bagconfig.json"],"replacedFiles":{"bagconfig.json":
+        "\(old.path)/TranslationBackups/ItemBags/a/bagconfig.json"}}]}}
+        """.utf8).write(to: old.appendingPathComponent("installed_translations.json"))
+        return (root, old, new)
+    }
+
+    /// Le cas nominal : le dossier passe, et le chemin stocké **suit**.
+    @Test func theFolderMovesAndTheStoredPathFollows() throws {
+        let fm = FileManager.default
+        let g = try makeLegacy(fm)
+        defer { try? fm.removeItem(at: g.root) }
+
+        #expect(AppSupport.migrate(from: g.old, to: g.new, fileManager: fm))
+        #expect(!fm.fileExists(atPath: g.old.path))
+        let moved = g.new.appendingPathComponent("TranslationBackups/ItemBags/a/bagconfig.json")
+        #expect(fm.fileExists(atPath: moved.path))
+        let text = try String(contentsOf: g.new.appendingPathComponent("installed_translations.json"),
+                              encoding: .utf8)
+        #expect(text.contains(g.new.path))
+        #expect(!text.contains(g.old.path))
+    }
+
+    /// **Rien à migrer n'est pas un échec.** Une installation neuve n'a pas
+    /// d'ancien dossier ; la migration doit passer sans bruit.
+    @Test func nothingToMigrateSucceedsQuietly() throws {
+        let fm = FileManager.default
+        let root = fm.temporaryDirectory.appendingPathComponent("as-\(UUID().uuidString)")
+        defer { try? fm.removeItem(at: root) }
+        #expect(AppSupport.migrate(from: root.appendingPathComponent("StarHubTH"),
+                                   to: root.appendingPathComponent("StarHubFR"),
+                                   fileManager: fm))
+    }
+
+    /// **Ce qui est déjà arrivé n'est jamais écrasé** — l'utilisateur a lancé
+    /// une version migrée, puis une ancienne qui a réécrit dans l'ancien
+    /// dossier. La donnée en place est la plus récente.
+    @Test func anythingAlreadyMovedIsNeverOverwritten() throws {
+        let fm = FileManager.default
+        let g = try makeLegacy(fm)
+        defer { try? fm.removeItem(at: g.root) }
+        try fm.createDirectory(at: g.new, withIntermediateDirectories: true)
+        try Data("récent".utf8).write(to: g.new.appendingPathComponent("installed_translations.json"))
+
+        #expect(AppSupport.migrate(from: g.old, to: g.new, fileManager: fm))
+        #expect(try String(contentsOf: g.new.appendingPathComponent("installed_translations.json"),
+                           encoding: .utf8) == "récent")
+        // Le reste a bien suivi, lui.
+        #expect(fm.fileExists(atPath: g.new
+            .appendingPathComponent("TranslationBackups/ItemBags/a/bagconfig.json").path))
+    }
+
+    /// **La migration est reprenable.** Un échec en cours de route ne doit pas
+    /// figer un état à moitié migré : un second passage finit le travail.
+    @Test func aSecondPassFinishesTheJob() throws {
+        let fm = FileManager.default
+        let g = try makeLegacy(fm)
+        defer { try? fm.removeItem(at: g.root) }
+        // Premier passage partiel simulé : le registre est déjà arrivé.
+        try fm.createDirectory(at: g.new, withIntermediateDirectories: true)
+        try fm.moveItem(at: g.old.appendingPathComponent("installed_translations.json"),
+                        to: g.new.appendingPathComponent("installed_translations.json"))
+
+        #expect(AppSupport.migrate(from: g.old, to: g.new, fileManager: fm))
+        #expect(fm.fileExists(atPath: g.new
+            .appendingPathComponent("TranslationBackups/ItemBags/a/bagconfig.json").path))
+        #expect(!fm.fileExists(atPath: g.old.path))
+    }
+
+    /// **La réécriture d'abord, le déplacement ensuite.** Un dossier déplacé
+    /// dont le JSON n'aurait pas été réécrit détruirait des fichiers au premier
+    /// retrait de greffe : la migration doit échouer sans avoir rien bougé.
+    @Test func aFailedRewriteLeavesTheFolderWhereItWas() throws {
+        let fm = FileManager.default
+        let g = try makeLegacy(fm)
+        defer {
+            try? fm.setAttributes([.posixPermissions: 0o755], ofItemAtPath: g.old.path)
+            try? fm.removeItem(at: g.root)
+        }
+        // Registre illisible en écriture : la réécriture ne peut pas aboutir.
+        let registry = g.old.appendingPathComponent("installed_translations.json")
+        try fm.setAttributes([.posixPermissions: 0o444], ofItemAtPath: registry.path)
+        try fm.setAttributes([.posixPermissions: 0o555], ofItemAtPath: g.old.path)
+
+        #expect(!AppSupport.migrate(from: g.old, to: g.new, fileManager: fm))
+        #expect(fm.fileExists(atPath: g.old.path))
+        #expect(!fm.fileExists(atPath: g.new.path))
+    }
 }
