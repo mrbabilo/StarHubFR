@@ -1012,7 +1012,7 @@ par lot, une release par lot. Périmètre : visuel + navigation —
       l'inventaire que le closage doit reprendre. **Ne pas rouvrir ces lots
       depuis H-T7.** S'y ajoutent, depuis H-T8, les **17** littérales de
       `ThaiTranslationHubView`, écarté parce que `C5-T1` doit le refondre.
-- [x] **H-T8** — ✅ **Livré le 2026-09-09.** **Hub de traduction** : reskin de continuité seulement —
+- [x] **H-T8** — ✅ **Livré et vérifié à l'écran le 2026-09-09.** **Hub de traduction** : reskin de continuité seulement —
       monde à part, déjà structuré. · **M**
       ▸ **Cadré et mesuré le 2026-09-09.**
       **Périmètre : cinq vues, 74 tailles littérales, 1 970 lignes** —
@@ -1072,6 +1072,10 @@ par lot, une release par lot. Périmètre : visuel + navigation —
       > point de tronquer. 5. Un mod sans aucune clé à traduire, puis un filtre
       > qui ne rend rien : le premier affiche son constat, le second garde son
       > lien « effacer les filtres ».
+      >
+      > ✅ **Les cinq points sont passés** (vérification de l'auteur,
+      > 2026-09-09), le glyphe monté de 8 à 9 pt compris : il reste aligné sur
+      > la ligne de base de la clé qu'il annote.
 - [ ] **H-T9** — **Closage** : audit de fidélité (Découvrir visuellement
       identique à la v1.25.0 malgré les évolutions du système), bibliothèque
       `/design` complétée (Screens), nettoyage des vestiges. · **S**
