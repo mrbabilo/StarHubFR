@@ -110,7 +110,11 @@ struct CommandPaletteView: View {
                     return .handled
                 }
                 .onKeyPress(.downArrow) {
-                    selection = min(displayed.count - 1, selection + 1)
+                    // `count - 1` vaut −1 sur une liste vide : borner à 0
+                    // sinon `selection` part en négatif. `activate()` s'en
+                    // garde déjà, mais un état absurde finit toujours par
+                    // ressortir ailleurs.
+                    selection = max(0, min(displayed.count - 1, selection + 1))
                     return .handled
                 }
                 .onKeyPress(.escape) {

@@ -54,7 +54,6 @@ struct MainView: View {
         canPresentReleaseAlert
             && vm.availableAppRelease == nil
             && vm.profileApplyProgress == nil
-            && !showCommandPalette
     }
     
 
@@ -333,25 +332,20 @@ struct MainView: View {
         // ⌘K depuis le menu. **Refus assumé quand une feuille est ouverte** :
         // la superposition se dessinerait sous elle — invisible, alors que la
         // palette se croirait ouverte. On vide le canal sans rien ouvrir.
+        //
+        // ⚠️ **Bascule, pas ouverture.** ⌘K doit refermer ce qu'il a ouvert
+        // (spec §7). Un `guard canPresentPalette` seul ne le permettait pas :
+        // le garde tombait dès la palette ouverte, le canal se vidait, et
+        // rien ne se passait — ⌘K ouvrait sans jamais refermer.
         .onChange(of: vm.paletteRequested) { _, requested in
             guard requested else { return }
             vm.consumePaletteRequest()
-            guard canPresentPalette else { return }
-            showCommandPalette = true
-        }
-        // ⌘K local, en plus de l'entrée de menu : la bascule doit marcher sans
-        // passer par la barre de menus.
-        .background(
-            Button("") {
-                if showCommandPalette {
-                    showCommandPalette = false
-                } else if canPresentPalette {
-                    showCommandPalette = true
-                }
+            if showCommandPalette {
+                showCommandPalette = false
+            } else if canPresentPalette {
+                showCommandPalette = true
             }
-            .keyboardShortcut("k", modifiers: .command)
-            .opacity(0)
-        )
+        }
         .alert(isPresented: $vm.showAlert) {
             Alert(
                 title: Text(vm.L(L10n.Main.alert)),
