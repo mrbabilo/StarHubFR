@@ -215,6 +215,23 @@ public enum SButtonTable {
 public struct KeybindCombo: Equatable, Hashable, Sendable, Comparable {
     public let buttons: [String]
 
+    /// C4-T7 — la famille manette, figée sur la même table que le parseur
+    /// (SButton ≥ 2000 dans le relevé IL). Les collisions manette du parc
+    /// (`LeftStick` partagé par deux frameworks ValleyBonds, mesuré le
+    /// 2026-09-04) ne sont pas des collisions clavier : elles ont leur
+    /// catégorie visible dans le rapport.
+    public static let gamepadButtons: Set<String> = [
+        "DPadUp", "DPadDown", "DPadLeft", "DPadRight",
+        "ControllerStart", "ControllerBack",
+        "LeftStick", "RightStick",
+        "LeftShoulder", "RightShoulder",
+        "BigButton",
+        "ControllerA", "ControllerB", "ControllerX", "ControllerY",
+        "LeftThumbstickLeft", "LeftThumbstickUp", "LeftThumbstickDown", "LeftThumbstickRight",
+        "RightThumbstickLeft", "RightThumbstickUp", "RightThumbstickDown", "RightThumbstickRight",
+        "LeftTrigger", "RightTrigger",
+    ]
+
     public init?(buttons: [String]) {
         let unique = Array(Set(buttons)).sorted()
         // Un nom inconnu ne doit jamais entrer : le parseur valide avant.
@@ -232,6 +249,18 @@ public struct KeybindCombo: Equatable, Hashable, Sendable, Comparable {
     }
     public var display: String {
         buttons.isEmpty ? "None" : buttons.joined(separator: " + ")
+    }
+    /// C4-T7 — au moins un bouton manette.
+    public var isGamepad: Bool {
+        buttons.contains(where: Self.gamepadButtons.contains)
+    }
+    /// C4-T7 — sous-ensemble strict de `other` : `A ⊂ B`. C'est le cas
+    /// « co-déclenchement au geste long » de la spec §12 — tenir `B` fait
+    /// aussi tirer `A`. L'égalité exacte n'est PAS un sous-ensemble : elle
+    /// est déjà une collision.
+    public func isStrictSubset(of other: KeybindCombo) -> Bool {
+        buttons.count < other.buttons.count
+            && buttons.allSatisfy { other.buttons.contains($0) }
     }
     public static func < (l: Self, r: Self) -> Bool { l.buttons.lexicographicallyPrecedes(r.buttons) }
 }

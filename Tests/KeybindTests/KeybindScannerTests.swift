@@ -423,4 +423,152 @@ struct KeybindScannerTests {
         #expect(r.gameConflicts.count == 1)
         #expect(r.gameConflicts[0].uses.map(\.modID) == ["a.Swim", "z.Swim"])
     }
+
+    // — C4-T7 : les angles morts devenus visibles
+
+    @Test func subsetOverlapIsReportedAcrossMods() {
+        // Le cas de la spec §12 : tenir « LeftControl + F8 » fait aussi
+        // tirer « F8 » — gesture long, co-déclenchement.
+        let chord = mod1
+        let plain = KeybindScanner.ModScan(id: "b.Mod2", name: "Mod 2", isActive: true,
+                                           tree: tree(["ToggleKey": .string("F8")]))
+        let r = KeybindScanner.report(mods: [chord, plain])
+        #expect(r.collisions.isEmpty)
+        #expect(r.subsetOverlaps.count == 1)
+        let overlap = r.subsetOverlaps[0]
+        #expect(overlap.subset.buttons == ["F8"])
+        #expect(overlap.superset.buttons == ["F8", "LeftControl"])
+        #expect(Set(overlap.uses.map(\.modID)) == ["a.Mod1", "b.Mod2"])
+    }
+
+    @Test func subsetOverlapNeverInsideOneMod() {
+        // §3 : un mod ne se conflitte pas lui-même — ni en exact, ni en
+        // sous-ensemble.
+        let both = KeybindScanner.ModScan(id: "a.Mod1", name: "Mod 1", isActive: true,
+                                          tree: tree(["Hotkey": .string("LeftControl + F8"),
+                                                      "Other": .string("F8")]))
+        #expect(KeybindScanner.report(mods: [both]).subsetOverlaps.isEmpty)
+    }
+
+    @Test func exactCollisionIsNotAlsoASubsetOverlap() {
+        // L'égalité exacte est une collision — le sous-ensemble est STRICT.
+        let a = mod1
+        let b = KeybindScanner.ModScan(id: "b.Mod2", name: "Mod 2", isActive: true,
+                                       tree: tree(["Shortcut": .string("F8 + LeftControl")]))
+        let r = KeybindScanner.report(mods: [a, b])
+        #expect(r.collisions.count == 1)
+        #expect(r.subsetOverlaps.isEmpty)
+    }
+
+    @Test func supersetsOfThreeButtonsAreFoundToo() {
+        // Trois niveaux : F8 ⊂ LeftControl+F8 ⊂ LeftControl+Alt+F8. Deux
+        // paires de co-déclenchement, le plus court coupable des deux fois.
+        let single = KeybindScanner.ModScan(id: "b.Mod2", name: "Mod 2", isActive: true,
+                                            tree: tree(["ToggleKey": .string("F8")]))
+        let r = KeybindScanner.report(mods: [mod1, single])
+        #expect(r.subsetOverlaps.count == 1)
+        let big = KeybindScanner.ModScan(id: "c.Mod3", name: "Mod 3", isActive: true,
+                                         tree: tree(["MenuKey": .string("LeftAlt + LeftControl + F8")]))
+        let r3 = KeybindScanner.report(mods: [mod1, single, big])
+        // F8 ⊂ LC+F8, F8 ⊂ LC+Alt+F8 : deux recouvrements (LC+F8 et
+        // LC+Alt+F8 ne se contiennent pas l'un l'autre).
+        #expect(r3.subsetOverlaps.count == 2)
+    }
+
+    @Test func gamepadCollisionGetsItsOwnCategory() {
+        // Le cas réel mesuré le 2026-09-04 : LeftStick partagé par deux
+        // frameworks ValleyBonds.
+        let a = KeybindScanner.ModScan(id: "a.Valley1", name: "Valley 1", isActive: true,
+                                       tree: tree(["Hotkey": .string("LeftStick")]))
+        let b = KeybindScanner.ModScan(id: "b.Valley2", name: "Valley 2", isActive: true,
+                                       tree: tree(["Hotkey": .string("LeftStick")]))
+        let r = KeybindScanner.report(mods: [a, b])
+        #expect(r.collisions.isEmpty)
+        #expect(r.gamepadCollisions.count == 1)
+        #expect(r.gamepadCollisions[0].combo.buttons == ["LeftStick"])
+        // Problème avéré quand même : le compte les voit.
+        #expect(r.problemCount == 1)
+    }
+
+    @Test func keyboardAndGamepadCollisionsStayInTheirOwnLists() {
+        let kbA = KeybindScanner.ModScan(id: "a.Kb1", name: "Kb 1", isActive: true,
+                                         tree: tree(["Hotkey": .string("F8")]))
+        let kbB = KeybindScanner.ModScan(id: "b.Kb2", name: "Kb 2", isActive: true,
+                                         tree: tree(["Hotkey": .string("F8")]))
+        let padA = KeybindScanner.ModScan(id: "c.Pad1", name: "Pad 1", isActive: true,
+                                          tree: tree(["Hotkey": .string("ControllerB")]))
+        let padB = KeybindScanner.ModScan(id: "d.Pad2", name: "Pad 2", isActive: true,
+                                          tree: tree(["Hotkey": .string("ControllerB")]))
+        let r = KeybindScanner.report(mods: [kbA, kbB, padA, padB])
+        #expect(r.collisions.count == 1)
+        #expect(r.gamepadCollisions.count == 1)
+        #expect(r.problemCount == 2)
+    }
+
+    @Test func pausedBindsBecomeLatentNotProven() {
+        // L'angle mort du toggling : activer le mod en pause ferait naître
+        // la collision — le rapport l'annonce AVANT, sans la compter.
+        let paused = KeybindScanner.ModScan(id: "p.Mod", name: "Pause", isActive: false,
+                                            tree: tree(["Hotkey": .string("LeftControl + F8")]))
+        let r = KeybindScanner.report(mods: [mod1, paused])
+        #expect(r.collisions.isEmpty)
+        #expect(r.latentCollisions.count == 1)
+        #expect(r.latentCollisions[0].combo.buttons == ["F8", "LeftControl"])
+        // Tout le monde est cité, avec l'état lisible sur l'usage.
+        #expect(r.latentCollisions[0].uses.map(\.isActive).count == 2)
+        #expect(r.latentCollisions[0].uses.contains { !$0.isActive })
+        #expect(r.latentCollisions[0].uses.contains { $0.isActive })
+        // Ni les problèmes avérés, ni le compte de raccourcis : un mod en
+        // pause ne lie pas au jeu.
+        #expect(r.problemCount == 0)
+        #expect(r.keybindCount == 1)
+    }
+
+    @Test func twoPausedModsCollidingIsLatentToo() {
+        let p1 = KeybindScanner.ModScan(id: "p.One", name: "P One", isActive: false,
+                                        tree: tree(["Hotkey": .string("F8")]))
+        let p2 = KeybindScanner.ModScan(id: "p.Two", name: "P Two", isActive: false,
+                                        tree: tree(["Hotkey": .string("F8")]))
+        let r = KeybindScanner.report(mods: [p1, p2])
+        #expect(r.collisions.isEmpty)
+        #expect(r.latentCollisions.count == 1)
+        #expect(r.latentCollisions[0].uses.allSatisfy { !$0.isActive })
+    }
+
+    @Test func provenCollisionIsNeverDuplicatedAsLatent() {
+        // Deux mods actifs en collision + un mod en pause sur la même
+        // touche : le conflit est AVÉRÉ, le point latent n'ajoute rien.
+        let paused = KeybindScanner.ModScan(id: "p.Mod", name: "Pause", isActive: false,
+                                            tree: tree(["Hotkey": .string("LeftControl + F8")]))
+        let b = KeybindScanner.ModScan(id: "b.Mod2", name: "Mod 2", isActive: true,
+                                       tree: tree(["Shortcut": .string("F8 + LeftControl")]))
+        let r = KeybindScanner.report(mods: [mod1, b, paused])
+        #expect(r.collisions.count == 1)
+        #expect(r.latentCollisions.isEmpty)
+    }
+
+    @Test func catalogRuleAppliesToPausedModsToo() {
+        // Un catalogue en pause ne doit pas revenir en collisions latentes :
+        // la règle R4 court pour tous, active ou non.
+        let hub = KeybindScanner.ModScan(
+            id: "z.Hub", name: "ModShortcutReferenceHub", isActive: false,
+            tree: tree(["Shortcuts": shortcutsCatalog(catalogTokens.prefix(42))]))
+        let swim = KeybindScanner.ModScan(id: "s.Swim", name: "Swim", isActive: true,
+                                          tree: tree(["DiveKey": .string("K")]))
+        let r = KeybindScanner.report(mods: [hub, swim])
+        #expect(r.latentCollisions.isEmpty)
+        #expect(r.catalogModsIgnored == ["ModShortcutReferenceHub"])
+    }
+
+    @Test func conflictsAffectingSeesGamepadCollisions() {
+        let a = KeybindScanner.ModScan(id: "a.Valley1", name: "Valley 1", isActive: true,
+                                       tree: tree(["Hotkey": .string("LeftStick")]))
+        let b = KeybindScanner.ModScan(id: "b.Valley2", name: "Valley 2", isActive: true,
+                                       tree: tree(["Hotkey": .string("LeftStick")]))
+        let r = KeybindScanner.report(mods: [a, b])
+        let sel = r.conflicts(affecting: "a.Valley1")
+        #expect(sel.collisions.count == 1)
+        #expect(sel.collisions[0].combo.buttons == ["LeftStick"])
+        #expect(sel.collisions[0].uses.map(\.modID) == ["b.Valley2"])
+    }
 }

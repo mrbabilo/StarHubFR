@@ -133,13 +133,27 @@ struct KeybindReportSection: View {
             // Le vert n'affirme l'absence de conflit que si le lot a aussi
             // été entièrement compris : des raccourcis non reconnus sont
             // eux aussi un signal, pas un simple à-côté du vert (ronde de
-            // revue 1, constat 2).
-            if report.collisions.isEmpty && report.gameConflicts.isEmpty && report.unrecognized.isEmpty {
+            // revue 1, constat 2). Les co-déclenchements (C4-T7) sont listés
+            // plus bas : un vert qui les précéderait serait un vert qui
+            // contredit.
+            if report.problemCount == 0 && report.unrecognized.isEmpty
+                && report.subsetOverlaps.isEmpty {
                 statusRow(icon: "checkmark.circle.fill", color: .green,
                           text: vm.L(L10n.Keybinds.empty))
             } else {
                 if !report.collisions.isEmpty {
-                    collisionsGroup(report.collisions)
+                    collisionsGroup(report.collisions, key: "collisions",
+                                    header: L10n.Keybinds.collisionsHeader)
+                }
+                if !report.gamepadCollisions.isEmpty {
+                    // C4-T7 — `LeftStick` partagé par deux frameworks
+                    // ValleyBonds n'est pas une collision clavier : celui qui
+                    // joue au clavier n'y est pas sujet.
+                    collisionsGroup(report.gamepadCollisions, key: "gamepad",
+                                    header: L10n.Keybinds.gamepadHeader)
+                }
+                if !report.subsetOverlaps.isEmpty {
+                    subsetOverlapsGroup(report.subsetOverlaps)
                 }
                 if !report.gameConflicts.isEmpty {
                     // La réserve reste visible même groupe replié : c'est
@@ -153,6 +167,11 @@ struct KeybindReportSection: View {
                     unrecognizedGroup(report.unrecognized)
                 }
             }
+        }
+        if !report.latentCollisions.isEmpty {
+            // C4-T7 — l'angle mort du toggling : activer un mod ne doit pas
+            // faire apparaître une collision que personne n'a annoncée.
+            latentCollisionsGroup(report.latentCollisions)
         }
         if report.pausedIgnored > 0 {
             Text(String(format: vm.L(L10n.Keybinds.pausedNote), report.pausedIgnored))
@@ -192,7 +211,10 @@ struct KeybindReportSection: View {
     /// formater le résultat.
     private func groupedUseLine(_ use: KeybindScanner.GroupedUse) -> some View {
         HStack(spacing: AppDesign.Spacing.xs) {
-            Text("· \(use.modName) (\(use.keyPaths.map { $0.joined(separator: ".") }.joined(separator: ", ")))")
+            // C4-T7 — dans les collisions latentes, le lecteur doit voir qui
+            // est en pause : c'est LUI qu'il faut activer pour que le conflit
+            // naisse.
+            Text("· \(use.modName)\(use.isActive ? "" : " (\(vm.L(L10n.Keybinds.pausedSuffix)))") (\(use.keyPaths.map { $0.joined(separator: ".") }.joined(separator: ", ")))")
                 .font(.system(size: 12)).foregroundColor(.secondary)
                 .lineLimit(1).truncationMode(.middle)
             configButton(modID: use.modID)
@@ -235,8 +257,9 @@ struct KeybindReportSection: View {
         .layoutPriority(1)
     }
 
-    private func collisionsGroup(_ collisions: [KeybindScanner.KeybindCollision]) -> some View {
-        DisclosureGroup(isExpanded: expansion("collisions",
+    private func collisionsGroup(_ collisions: [KeybindScanner.KeybindCollision],
+                                 key: String, header: String) -> some View {
+        DisclosureGroup(isExpanded: expansion(key,
                                                defaultOpen: collisions.count <= Self.autoExpandThreshold)) {
             VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
                 ForEach(collisions, id: \.combo) { collision in
@@ -250,7 +273,56 @@ struct KeybindReportSection: View {
             }
             .padding(.top, AppDesign.Spacing.xs)
         } label: {
-            Text(String(format: vm.L(L10n.Keybinds.collisionsHeader), collisions.count))
+            Text(String(format: vm.L(header), collisions.count))
+                .font(.system(size: 13, weight: .semibold))
+        }
+    }
+
+    /// C4-T7 — le co-déclenchement au geste long : « F8 » part aussi quand
+    /// « LeftControl + F8 » est tenu. L'aide tient lieu d'explication ; les
+    /// deux combinaisons sont posées sur une ligne, le plus court en premier.
+    private func subsetOverlapsGroup(_ overlaps: [KeybindScanner.SubsetOverlap]) -> some View {
+        DisclosureGroup(isExpanded: expansion("subsets",
+                                               defaultOpen: overlaps.count <= Self.autoExpandThreshold)) {
+            VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
+                Text(vm.L(L10n.Keybinds.subsetsHint))
+                    .font(.system(size: 11)).foregroundColor(.secondary)
+                ForEach(overlaps, id: \.self) { overlap in
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("\(overlap.subset.display)  ⊂  \(overlap.superset.display)")
+                            .font(.system(size: 13, weight: .medium))
+                        ForEach(KeybindScanner.groupedUses(overlap.uses)) { use in
+                            groupedUseLine(use)
+                        }
+                    }
+                }
+            }
+            .padding(.top, AppDesign.Spacing.xs)
+        } label: {
+            Text(String(format: vm.L(L10n.Keybinds.subsetsHeader), overlaps.count))
+                .font(.system(size: 13, weight: .semibold))
+        }
+    }
+
+    /// C4-T7 — l'angle mort du toggling : rien ne s'affiche ici qui soit
+    /// déjà un conflit avéré, et rien de ce qui est affiché ne tire au jeu
+    /// aujourd'hui. Chaque ligne dit qui est en pause.
+    private func latentCollisionsGroup(_ collisions: [KeybindScanner.KeybindCollision]) -> some View {
+        DisclosureGroup(isExpanded: expansion("latent",
+                                               defaultOpen: collisions.count <= Self.autoExpandThreshold)) {
+            VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
+                ForEach(collisions, id: \.combo) { collision in
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(collision.combo.display).font(.system(size: 13, weight: .medium))
+                        ForEach(KeybindScanner.groupedUses(collision.uses)) { use in
+                            groupedUseLine(use)
+                        }
+                    }
+                }
+            }
+            .padding(.top, AppDesign.Spacing.xs)
+        } label: {
+            Text(String(format: vm.L(L10n.Keybinds.latentHeader), collisions.count))
                 .font(.system(size: 13, weight: .semibold))
         }
     }

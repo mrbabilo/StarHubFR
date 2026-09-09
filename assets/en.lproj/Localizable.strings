@@ -57,6 +57,11 @@
 "keybinds_counters" = "%1$lld mods scanned · %2$lld shortcuts";
 "keybinds_no_game_dir" = "Set the game folder to scan for keybind conflicts.";
 "keybinds_no_mods_scanned" = "No active mod exposes a config.json to scan.";
+"keybinds_gamepad_header" = "Gamepad conflicts (%lld)";
+"keybinds_subsets_header" = "Chord co-triggers (%lld)";
+"keybinds_subsets_hint" = "Holding a chord also fires the shorter shortcut it contains — the shorter binding fires first.";
+"keybinds_latent_header" = "If the paused mods were active (%lld)";
+"keybinds_paused_suffix" = "paused";
 "conflicts_title" = "Mod conflicts";
 "conflicts_none_observed" = "No conflicts in the last session's log.";
 "conflicts_no_log" = "No SMAPI log has been read yet — this section fills in after a play session.";

@@ -57,6 +57,11 @@
 "keybinds_counters" = "%1$lld mods scannés · %2$lld raccourcis";
 "keybinds_no_game_dir" = "Définissez le dossier du jeu pour analyser les conflits de raccourcis.";
 "keybinds_no_mods_scanned" = "Aucun mod actif ne propose de config.json à analyser.";
+"keybinds_gamepad_header" = "Conflits manette (%lld)";
+"keybinds_subsets_header" = "Raccourcis co-déclenchés (%lld)";
+"keybinds_subsets_hint" = "Maintenir une combinaison déclenche aussi le raccourci plus court qu'elle contient — le plus court part en premier.";
+"keybinds_latent_header" = "Si les mods en pause étaient actifs (%lld)";
+"keybinds_paused_suffix" = "en pause";
 "conflicts_title" = "Conflits entre mods";
 "conflicts_none_observed" = "Aucun conflit dans le journal de la dernière partie.";
 "conflicts_no_log" = "Aucun journal SMAPI n'a encore été lu — cette section se remplira après une partie.";

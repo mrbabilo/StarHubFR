@@ -262,11 +262,18 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       « le mod a ramené 8192 à 4096 » sans coder une seule borne, et sans périmer à la
       version suivante. À instruire : combien de mods du parc journalisent leur config,
       et sous quelle forme. · **M**
-- [ ] **C4-T7** — `audit-mods-config-perf.md` — **Les angles morts keybind de C4-T2.**
+- [x] **C4-T7** — `audit-mods-config-perf.md` — **Les angles morts keybind de C4-T2.**
       Chevauchements sous-ensemble (A = `K`, B = `K`+Shift co-déclenchent sur le geste
       long — spec §12), composants de pack, mods en pause ; et donner aux collisions
       **manette** leur catégorie visible — cas réel mesuré le 2026-09-04 : `LeftStick`
       partagé par deux frameworks ValleyBonds. · **M**
+      ✅ **Livré le 2026-09-09** — `SubsetOverlap` (sous-ensemble strict, jamais au sein
+      d'un même mod, signalé sans peser sur le badge) ; collisions manette dans leur
+      catégorie (`KeybindCombo.isGamepad`, figée sur la table SButton) ; les liaisons
+      des mods en pause sont scannées et leurs collisions publiées comme **latentes**
+      (`latentCollisions`, hors `problemCount`, l'état de chacun lisible sur l'usage) ;
+      la règle du catalogue R4 court pour tous. Composants de pack : déjà couverts par
+      `flattenedMods` du service de scan. 11 tests nouveaux (43 dans la suite).
 
 > **Le socle de C4 est déjà découpé, et dormant.** Un plan local de 67 étapes
 > (`docs/superpowers/plans/2026-08-03-c4-socle-core.md`, marqué « Plan 1/3 ») détaille les
@@ -1821,6 +1828,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **C4-T5** | 2026-08-28 | §audit-config-menus — Sortir l'éditeur de JSONSerialization. Défaut indépendant des menus de config, trouvé en instru… |
 | **C4-T6** | 2026-09-04 | Dire quand le fichier va être réécrit sous nos pieds |
 | **C4-T1** | 2026-09-09 | Étiqueter les options des mods C# avec les libellés `config.*` de leur `i18n/` (FR champ par champ, repli clé brute) — `ConfigLabelResolver` + `groups(labeledBy:)`, 12 tests |
+| **C4-T7** | 2026-09-09 | Angles morts keybind : co-déclenchements sous-ensemble (`SubsetOverlap`, jamais intra-mod), catégorie manette (`isGamepad`), collisions latentes des mods en pause (hors `problemCount`), R4 pour tous — 11 tests |
 | **C4-T2** | 2026-08-29 | Champs de raccourcis clavier : validation des noms SButton, détection des collisions entre mods. · M §audit-config-me… |
 | **C4-T3** | 2026-08-28 | Spike mené le 2026-08-28. Verdict : non-go sur les menus de config — et une meilleure source trouvée à côté. §audit-c… |
 

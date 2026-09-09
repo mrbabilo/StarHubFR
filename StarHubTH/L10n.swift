@@ -95,6 +95,12 @@ enum L10n {
         static let counters           = "keybinds_counters"
         static let noGameDir          = "keybinds_no_game_dir"
         static let noModsScanned      = "keybinds_no_mods_scanned"
+        // C4-T7 — les angles morts devenus visibles.
+        static let gamepadHeader      = "keybinds_gamepad_header"
+        static let subsetsHeader      = "keybinds_subsets_header"
+        static let subsetsHint        = "keybinds_subsets_hint"
+        static let latentHeader       = "keybinds_latent_header"
+        static let pausedSuffix       = "keybinds_paused_suffix"
     }
 
     // MARK: - Saves
