@@ -40,7 +40,7 @@ struct SettingsView: View {
                 // bump de release.
                 Text(String(format: vm.L(L10n.Settings.appVersion),
                             Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"))
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
                     .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity)
             }
@@ -112,7 +112,7 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
                     Text(vm.L(L10n.Settings.nexusAutoCheck))
-                        .font(.system(size: 13))
+                        .font(AppDesign.Font.body)
                     Spacer()
                     Toggle("", isOn: $autoCheckNexusUpdates)
                         .toggleStyle(SwitchToggleStyle(tint: .blue))
@@ -126,9 +126,9 @@ struct SettingsView: View {
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(vm.L(L10n.Settings.nexusApiKey))
-                                .font(.system(size: 13))
+                                .font(AppDesign.Font.body)
                             Text("••••••••••••")
-                                .font(.system(size: 12, design: .monospaced))
+                                .font(AppDesign.Font.monoCaption)
                                 .foregroundColor(.secondary)
                         }
                         Spacer()
@@ -154,7 +154,7 @@ struct SettingsView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         SecureField(vm.L(L10n.Settings.nexusKeyPlaceholder), text: $nexusApiKeyInput)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .font(.system(size: 12, design: .monospaced))
+                            .font(AppDesign.Font.monoCaption)
                             .autocorrectionDisabled(true)
                             .textContentType(.password)
 
@@ -171,7 +171,7 @@ struct SettingsView: View {
 
                             if nexusKeySavedFlash {
                                 Text(vm.L(L10n.Settings.nexusKeySaved))
-                                    .font(.system(size: 11))
+                                    .font(AppDesign.Font.footnote)
                                     .foregroundColor(.green)
                                     .transition(.opacity)
                             }
@@ -213,7 +213,7 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
                     Text(vm.L(L10n.Settings.defaultLaunchMode))
-                        .font(.system(size: 13))
+                        .font(AppDesign.Font.body)
                     Spacer()
                     Picker("", selection: $launchProfile) {
                         Text(vm.L(L10n.Settings.playSMAPI)).tag("SMAPI")
@@ -229,7 +229,7 @@ struct SettingsView: View {
                 
                 HStack {
                     Text(vm.L(L10n.Settings.closeLauncher))
-                        .font(.system(size: 13))
+                        .font(AppDesign.Font.body)
                     Spacer()
                     Toggle("", isOn: $closeAfterLaunch)
                         .toggleStyle(SwitchToggleStyle(tint: .blue))
@@ -252,7 +252,7 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
                     Text(vm.L(L10n.Settings.backupSaves))
-                        .font(.system(size: 13))
+                        .font(AppDesign.Font.body)
                     Spacer()
                     Button(action: { vm.backupAllSaves() }) {
                         Text(vm.L(L10n.Settings.backupSavesButton))
@@ -264,7 +264,7 @@ struct SettingsView: View {
                 
                 HStack {
                     Text(vm.L(L10n.Settings.backupMods))
-                        .font(.system(size: 13))
+                        .font(AppDesign.Font.body)
                     Spacer()
                     Button(action: { vm.backupAllMods() }) {
                         Text(vm.L(L10n.Settings.backupModsButton))
@@ -287,7 +287,7 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
                     Text(vm.L(L10n.Settings.showDevLogs))
-                        .font(.system(size: 13))
+                        .font(AppDesign.Font.body)
                     Spacer()
                     Toggle("", isOn: $showDeveloperLogs)
                         .toggleStyle(SwitchToggleStyle(tint: .blue))
@@ -309,7 +309,7 @@ struct SettingsView: View {
         ) {
             HStack {
                 Text(vm.L(L10n.Settings.chainToggle))
-                    .font(.system(size: 13))
+                    .font(AppDesign.Font.body)
                 Spacer()
                 Toggle("", isOn: Binding(
                     get: { vm.chainToggleDependencies },
@@ -334,7 +334,7 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
                     Text(vm.L(L10n.Settings.savesFolder))
-                        .font(.system(size: 13))
+                        .font(AppDesign.Font.body)
                     Spacer()
                     Button(action: { vm.openSavesFolder() }) {
                         Text(vm.L(L10n.Settings.openFolder))
@@ -346,7 +346,7 @@ struct SettingsView: View {
                 
                 HStack {
                     Text(vm.L(L10n.Settings.clearDisabledMods))
-                        .font(.system(size: 13))
+                        .font(AppDesign.Font.body)
                     Spacer()
                     Button(action: { showClearDisabledConfirm = true }) {
                         Text(vm.L(L10n.Settings.deleteJunkMods))
@@ -374,14 +374,14 @@ struct SettingsView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(vm.L(L10n.Home.gamePath))
-                        .font(.system(size: 13))
+                        .font(AppDesign.Font.body)
                     if vm.gameDir.isEmpty {
                         Text(vm.L(L10n.Home.notSet))
-                            .font(.system(size: 12))
+                            .font(AppDesign.Font.caption)
                             .foregroundColor(.secondary)
                     } else {
                         Text(vm.gameDir)
-                            .font(.system(size: 12))
+                            .font(AppDesign.Font.caption)
                             .foregroundColor(.secondary)
                             .lineLimit(1)
                             .truncationMode(.middle)
@@ -401,14 +401,14 @@ struct SettingsView: View {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(vm.L(L10n.Home.smapiStatus))
-                            .font(.system(size: 13))
+                            .font(AppDesign.Font.body)
                         if let version = vm.smapiInstalledVersion {
                             Text(String(format: vm.L(L10n.Home.smapiInstalled), version))
-                                .font(.system(size: 12))
+                                .font(AppDesign.Font.caption)
                                 .foregroundColor(.secondary)
                         } else {
                             Text(vm.L(L10n.Home.smapiNotInstalled))
-                                .font(.system(size: 12))
+                                .font(AppDesign.Font.caption)
                                 .foregroundColor(.secondary)
                         }
                     }
@@ -431,7 +431,7 @@ struct SettingsView: View {
                             .tint(.blue)
                             .animation(.easeInOut, value: smapiInstaller.progress)
                         Text(vm.L(smapiInstaller.statusMessage))
-                            .font(.system(size: 11))
+                            .font(AppDesign.Font.footnote)
                             .foregroundColor(.secondary)
                     }
                     .padding(.top, 12)
@@ -537,7 +537,7 @@ private struct LocalAISettingsSection: View {
                         }
                     } else if probes.isEmpty {
                         Text(vm.L(L10n.Settings.localAINoneDetected))
-                            .font(.system(size: 11))
+                            .font(AppDesign.Font.footnote)
                             .foregroundColor(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     } else {
@@ -557,7 +557,7 @@ private struct LocalAISettingsSection: View {
                                              probe.baseURL.absoluteString,
                                              Int64(probe.models.count)),
                                       systemImage: "circle.fill")
-                                    .font(.system(size: 11))
+                                    .font(AppDesign.Font.footnote)
                                     .foregroundColor(.accentColor)
                             }
                             .buttonStyle(.plain)
@@ -566,15 +566,15 @@ private struct LocalAISettingsSection: View {
                     }
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(vm.L(L10n.Settings.localAIURL)).font(.system(size: 13))
+                        Text(vm.L(L10n.Settings.localAIURL)).font(AppDesign.Font.body)
                         TextField("http://localhost:11434", text: $baseURL)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .font(.system(size: 12, design: .monospaced))
+                            .font(AppDesign.Font.monoCaption)
                     }
 
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
-                            Text(vm.L(L10n.Settings.localAIModel)).font(.system(size: 13))
+                            Text(vm.L(L10n.Settings.localAIModel)).font(AppDesign.Font.body)
                             if !models.isEmpty {
                                 // Les modèles vus sur ce serveur, en choix
                                 // rapide — le champ reste la voie de saisie
@@ -590,14 +590,14 @@ private struct LocalAISettingsSection: View {
                         }
                         TextField("qwen2.5", text: $model)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .font(.system(size: 12, design: .monospaced))
+                            .font(AppDesign.Font.monoCaption)
                         // Un modèle à raisonnement épuise le budget de jetons
                         // en délibérant : la réponse revient tronquée et le
                         // client la rejette. Le dire ici, pas après un lot.
                         if modelThinks {
                             Label(vm.L(L10n.Settings.localAIModelThinks),
                                   systemImage: "exclamationmark.triangle.fill")
-                                .font(.system(size: 11))
+                                .font(AppDesign.Font.footnote)
                                 .foregroundColor(.orange)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
@@ -617,13 +617,13 @@ private struct LocalAISettingsSection: View {
                         .disabled(baseURL.isEmpty)
                         if testVerdictOK == true {
                             Text(vm.L(L10n.Settings.localAIOK))
-                                .font(.system(size: 11))
+                                .font(AppDesign.Font.footnote)
                                 .foregroundColor(.green)
                         } else if testVerdictOK == false {
                             // Pas « aucun serveur détecté » : l'utilisateur
                             // vient de saisir une URL, c'est d'elle qu'on parle.
                             Text(vm.L(L10n.Settings.localAITestFailed))
-                                .font(.system(size: 11))
+                                .font(AppDesign.Font.footnote)
                                 .foregroundColor(.secondary)
                         }
                     }
@@ -639,11 +639,11 @@ private struct LocalAISettingsSection: View {
                             Text(String(format: vm.L(L10n.Settings.glossaryInfo),
                                         Int64(count),
                                         date.formatted(date: .abbreviated, time: .shortened)))
-                                .font(.system(size: 12))
+                                .font(AppDesign.Font.caption)
                                 .foregroundColor(.secondary)
                         } else {
                             Text(vm.L(L10n.Settings.glossaryNone))
-                                .font(.system(size: 11))
+                                .font(AppDesign.Font.footnote)
                                 .foregroundColor(.secondary)
                         }
                         Spacer()
@@ -707,7 +707,7 @@ private struct LocalAISettingsSection: View {
                         footer: fallbackPrivacy) {
             VStack(alignment: .leading, spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(vm.L(L10n.Settings.fallbackKey)).font(.system(size: 13))
+                    Text(vm.L(L10n.Settings.fallbackKey)).font(AppDesign.Font.body)
                     // Même forme que la clé Nexus : une fois la clé enregistrée,
                     // le champ cède la place à un masque. Il restait saisissable
                     // ici, avec son bouton « Enregistrer » — on pouvait donc
@@ -717,7 +717,7 @@ private struct LocalAISettingsSection: View {
                     if vm.hasDeepLKey {
                         HStack(spacing: 8) {
                             Text("••••••••••••")
-                                .font(.system(size: 12, design: .monospaced))
+                                .font(AppDesign.Font.monoCaption)
                                 .foregroundColor(.secondary)
                             Spacer()
                             Button(vm.L(L10n.Settings.fallbackGetKey)) {
@@ -728,7 +728,7 @@ private struct LocalAISettingsSection: View {
                         HStack(spacing: 8) {
                             SecureField("", text: $fallbackKeyDraft)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .font(.system(size: 12, design: .monospaced))
+                                .font(AppDesign.Font.monoCaption)
                             Button(vm.L(L10n.Settings.fallbackSave)) { saveFallbackKey() }
                                 .disabled(fallbackKeyDraft
                                     .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -744,14 +744,14 @@ private struct LocalAISettingsSection: View {
                     // vide ne prouve pas l'absence, donc on n'affirme rien.
                     if isDeepLAppInstalled {
                         Text(vm.L(L10n.Settings.fallbackDesktopApp))
-                            .font(.system(size: 11))
+                            .font(AppDesign.Font.footnote)
                             .foregroundColor(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     if vm.hasDeepLKey {
                         HStack(spacing: 8) {
                             Text(vm.L(L10n.Settings.fallbackSaved))
-                                .font(.system(size: 11))
+                                .font(AppDesign.Font.footnote)
                                 .foregroundColor(.green)
                             Button(vm.L(L10n.Settings.fallbackClear)) {
                                 vm.clearDeepLKey()
@@ -770,7 +770,7 @@ private struct LocalAISettingsSection: View {
                         }
                     } else {
                         Text(vm.L(L10n.Settings.fallbackNeedsKey))
-                            .font(.system(size: 11))
+                            .font(AppDesign.Font.footnote)
                             .foregroundColor(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -786,11 +786,11 @@ private struct LocalAISettingsSection: View {
                         // mentirait au premier changement d'offre.
                         Text(String(format: vm.L(L10n.Settings.fallbackQuota),
                                     Int64(usage.used), Int64(usage.limit)))
-                            .font(.system(size: 11))
+                            .font(AppDesign.Font.footnote)
                             .foregroundColor(.secondary)
                     } else if let error = fallbackTestError {
                         Text(error)
-                            .font(.system(size: 11))
+                            .font(AppDesign.Font.footnote)
                             .foregroundColor(.orange)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -800,7 +800,7 @@ private struct LocalAISettingsSection: View {
                                                    : L10n.Settings.fallbackEnableNoLocal),
                        isOn: $fallbackEnabled)
                     .disabled(!vm.hasDeepLKey)
-                    .font(.system(size: 13))
+                    .font(AppDesign.Font.body)
             }
         }
     }
@@ -852,7 +852,7 @@ private struct LocalAISettingsSection: View {
             case .useInstalled(let tag):
                 Text(String(format: vm.L(L10n.Settings.localAIAdviceInstalled),
                             tag, Int64(ramGB)))
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 Button(String(format: vm.L(L10n.Settings.localAIAdviceUse), tag)) {
@@ -864,12 +864,12 @@ private struct LocalAISettingsSection: View {
                             Int64(ramGB), candidate.tag,
                             candidate.downloadGB.formatted(
                                 .number.precision(.fractionLength(0...1)))))
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 HStack(spacing: 8) {
                     Text("ollama pull \(candidate.tag)")
-                        .font(.system(size: 11, design: .monospaced))
+                        .font(AppDesign.Font.monoFootnote)
                         .textSelection(.enabled)
                     Button(vm.L(didCopyPullCommand ? L10n.Settings.localAICopied
                                                    : L10n.Settings.localAICopy)) {
@@ -895,7 +895,7 @@ private struct LocalAISettingsSection: View {
                     }
                     .buttonStyle(.plain)
                     .foregroundColor(.accentColor)
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
                     .pointingHandCursor()
                 }
             }
@@ -975,24 +975,24 @@ private struct NexusQuotaRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(vm.L(L10n.Settings.nexusQuota))
-                .font(.system(size: 13))
+                .font(AppDesign.Font.body)
 
             if let quota = vm.nexusQuota {
                 if quota.isStale() {
                     // Les chiffres d'hier mentent après la remise à zéro : ne
                     // rien affirmer plutôt qu'afficher un reste périmé.
                     Text(vm.L(L10n.Settings.nexusQuotaRenewed))
-                        .font(.system(size: 12))
+                        .font(AppDesign.Font.caption)
                         .foregroundColor(.secondary)
                 } else {
                     measured(quota)
                 }
             } else {
                 Text(vm.L(L10n.Settings.nexusQuotaNever))
-                    .font(.system(size: 12))
+                    .font(AppDesign.Font.caption)
                     .foregroundColor(.secondary)
                 Text(vm.L(L10n.Settings.nexusQuotaNeverHint))
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -1014,23 +1014,23 @@ private struct NexusQuotaRow: View {
         if let daily = quota.dailyIfCurrent() {
             HStack(spacing: 6) {
                 Text(String(format: vm.L(L10n.Settings.nexusQuotaDaily), counts(daily)))
-                    .font(.system(size: 12))
+                    .font(AppDesign.Font.caption)
                     .foregroundColor(daily.remaining == 0 ? .orange : .secondary)
                 if daily.remaining == 0 {
                     Text(vm.L(L10n.Settings.nexusQuotaExhausted))
-                        .font(.system(size: 11, weight: .medium))
+                        .font(AppDesign.Font.footnote(.medium))
                         .foregroundColor(.orange)
                 }
             }
             if let reset = daily.reset {
                 Text(String(format: vm.L(L10n.Settings.nexusQuotaReset), Self.time(reset)))
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
                     .foregroundColor(.secondary)
             }
         }
         if let hourly = quota.hourlyIfCurrent() {
             Text(String(format: vm.L(L10n.Settings.nexusQuotaHourly), counts(hourly)))
-                .font(.system(size: 11))
+                .font(AppDesign.Font.footnote)
                 .foregroundColor(.secondary)
         }
     }
