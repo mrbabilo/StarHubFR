@@ -73,3 +73,8 @@ mods tests/
 # Canevas Claude Design assemblé (généré par seed-canvas.mjs) — les sources
 # versionnées sont les .dc.html et canvas.json
 design/starhubfr-design-system.html
+
+# Icônes Windows du jeu (StardewValley.Icon.bmp/.ico), déposées à la racine par
+# un outil tiers — apparues le 2026-09-09. Ce ne sont pas nos assets : le bundle
+# utilise AppIcon.icns, et rien dans le code ni dans build_app.py ne les lit.
+StardewValley.Icon.*
