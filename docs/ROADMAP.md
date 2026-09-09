@@ -821,7 +821,7 @@ par lot, une release par lot. Périmètre : visuel + navigation —
 > Ferme en passant un bug latent : `SaveManager.farmTypeName` retournait du thaï codé en dur depuis l'origine — désormais localisé via 10 clés `L10n.Saves.farmType*` + `heroFarmHelpFormat`. Architecture : `L10nResolver` protocole Core + `SaveFarmNameResolver` injecté (VM pas god-object-ifié).
 
 
-- [x] **H-T5e** — ✅ **Livré le 2026-09-09.** **Vignette illustrée pour une ferme de mod.**
+- [x] **H-T5e** — ✅ **Livré et vérifié à l'écran le 2026-09-09.** **Vignette illustrée pour une ferme de mod.**
       Depuis que `SaveFarmType` reconnaît une ferme de mod (`whichFarm = -1`,
       cas `FrontierFarm`), sa vignette sort de la plage 0-7 des illustrations
       et affiche un glyphe `house.fill` sur fond neutre. C'est honnête — on
@@ -852,6 +852,10 @@ par lot, une release par lot. Périmètre : visuel + navigation —
       > vaut que hors 0-7. 3. Le cadrage tient à la taille d'affichage réelle :
       > la ferme reste lisible, elle n'est pas coupée par le remplissage
       > couvrant (`aspectRatio(.fill)` rogne les bords longs).
+      >
+      > ✅ **Les trois points sont passés** (vérification de l'auteur,
+      > 2026-09-09) : le cadrage tient à 80×56 malgré le remplissage couvrant,
+      > et les huit fermes vanilla sont inchangées.
 
 - [x] **H-T5c** — ⛔️ **Abandonné le 2026-09-09** *(décision de l'auteur, §8.3 — la case est cochée parce que l'item est clos, pas parce qu'il est fait ; même convention que `X59` et `C4-T8`)*. **Portrait du fermier fidèle à la sauvegarde.** L'avatar du hero
       est aujourd'hui une illustration fixe par sexe ; `<hair>`, `<hairstyleColor>`
