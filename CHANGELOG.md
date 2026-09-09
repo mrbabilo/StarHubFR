@@ -16,6 +16,8 @@ where the exact log format was verified.
 
 - **Navigation au clavier.** ⌘1 à ⌘9 mènent aux neuf premières pages, un menu « Aller » les affiche, et ⌘K ouvre une palette pour rejoindre un mod, un profil, une sauvegarde ou une page en tapant son nom — accents et abréviations tolérés (« cp » trouve Content Patcher).
 
+- **⌘F place le curseur dans le champ de recherche.** Les sept écrans qui en portent un — mods, découvertes, journaux, sauvegardes, entretien, hub de traduction — y répondent du même geste ; plus besoin d'attraper la souris pour chercher parmi 966 mods.
+
 ## [1.41.1] - 2026-09-09
 
 ### Fixed
