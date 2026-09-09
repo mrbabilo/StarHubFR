@@ -900,6 +900,39 @@ par lot, une release par lot. Périmètre : visuel + navigation —
 - [ ] **H-T7** — **Lots Journaux & Réglages** : reskin léger des journaux
       (la perf est déjà faite), Réglages absorbe les déménagés de l'accueil
       en sections unifiées. Deux releases — phases 5 et 6 de la spec. · **S**
+      ▸ **Cadré et mesuré le 2026-09-09** — plan
+      `docs/superpowers/plans/2026-09-09-lots-journaux-reglages-h-t7.md` (local,
+      gitignoré) ; les faits qui engagent sont ici :
+      **Ligne de base** — `LogsView` (706 l.) : **26** tailles de police
+      littérales, zéro token, zéro composant partagé. `SettingsView` (977 l.) :
+      **53** littérales, zéro token, `StandardSection` ×13. Cible du critère
+      §10 n°1 : **0** des deux côtés.
+      **Le système n'a aucun token monospace** — et le dépôt en porte déjà deux
+      formes divergentes (`design: .monospaced` dans `BisectionCard`,
+      `.monospaced()` dans `ModUpdateDeltaSection`). Le châssis H-T1 les avait
+      extraits de `DiscoverView`, qui n'affiche aucun texte monospacé ; les
+      journaux le sont par nature.
+      ⚠️ **Ce qui est testable et ce qui ne l'est pas** : `Package.swift` ne
+      compile de tout le système de design que `AppDesignCore.swift` (l.129).
+      **`AppDesign.Font`/`Color` vit hors SPM** — une *taille* (`CGFloat`) se
+      teste, une *police* SwiftUI ne se teste pas dans ce dépôt. Un test qui
+      importerait `StarHubTHCore` pour lire `AppDesign.Font.…` ne compilerait
+      pas. Choix ancien et délibéré (cf. `.kilo/plans/…ux-ui-spec…`, décision
+      D1) — ne pas le « corriger » en chemin.
+      **Défaut d'accessibilité trouvé au cadrage** : `LogsView` porte 6
+      `.help()` et **aucune** cible élargie. Les quatre boutons-glyphes de sa
+      barre d'outils (défilement auto, copier, grouper, recharger) sont des
+      `Image` nues d'environ 13 pt, sous le seuil où macOS peut tenir un survol
+      de 2 s immobile : **ces infobulles ne s'affichent jamais**, alors qu'elles
+      sont la seule explication de quatre boutons sans libellé. Corrigé dans le
+      lot (cible 18×18 + `contentShape`), règle d'accessibilité §7 point 1.
+      **Ce qui n'est PAS dans ce lot, et attend H-T9** : le dépôt porte **538**
+      tailles littérales au total — `ModDetailView` 106, `MainView` 57,
+      `BisectionCard` 36, `SmapiHealthCard` 35, `QuarantineView` 19. Les lots
+      qui ont touché ces fichiers (H-T2/T3, H-T4b, H-T6) n'en avaient scopé
+      qu'une partie : ce n'est pas un manquement de leur part, c'est
+      l'inventaire que le closage doit reprendre. **Ne pas rouvrir ces lots
+      depuis H-T7.**
 - [ ] **H-T8** — **Hub de traduction** : reskin de continuité seulement —
       monde à part, déjà structuré. · **M**
 - [ ] **H-T9** — **Closage** : audit de fidélité (Découvrir visuellement
