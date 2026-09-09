@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.38.2] - 2026-09-09
+
 ### Changed
 
 - **L'audit optimisation & sécurité (F2) est complet.** Ses tranches sont toutes passées : écritures (grille Vortex passée sur les 151 sites, zéro défaut), extraction d'archives (la prémisse du zip-slip de l'audit d'août est réfutée — l'`unzip` macOS actuel neutralise lui-même les composantes `..`, avant comme en arrière-slash, et ampute les chemins absolus ; la garde pré-extraction reste posée pour les outils tiers), perf & concurrence (cache de manifestes verrouillé des deux côtés ; index de dépendances sûrs par confinement au fil principal, invariant documenté ; le progrès du scan est throttlé depuis longtemps — la note qui disait le contraire est corrigée). Zéro nouveau défaut ; les correctifs de latence restent portés en F3.
