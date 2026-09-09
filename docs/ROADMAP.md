@@ -834,12 +834,44 @@ par lot, une release par lot. Périmètre : visuel + navigation —
       retomber sur le SF Symbol, qui reste le filet.
       Vérifié à l'écran le 2026-09-02 : le repli actuel est acceptable, ce
       n'est pas un défaut à corriger en urgence. · **XS**
+      ▸ **Toujours bloqué au 2026-09-09** : il faut un PNG 190×200 de l'auteur.
+      Rien à écrire d'ici là, et surtout pas une image générée en substitut —
+      ce serait poser un asset que personne n'a choisi.
 
 - [ ] **H-T5c** — **Portrait du fermier fidèle à la sauvegarde.** L'avatar du hero
       est aujourd'hui une illustration fixe par sexe ; `<hair>`, `<hairstyleColor>`
       et `<skin>` sont lues et correctes mais ne pilotent aucun pixel. Recomposer
       la tête (base + calques coiffure/peau) plutôt que teinter un crop.
-      Prérequis : des calques séparés, que l'affiche du jeu ne fournit pas. · **M**
+      ~~Prérequis : des calques séparés, que l'affiche du jeu ne fournit pas.~~ · ~~**M**~~
+      ⚠️ **Le prérequis est faux — réfuté le 2026-09-09.** Il est vrai de
+      l'*affiche* et faux du **jeu installé** :
+      `Stardew Valley.app/Contents/Resources/Content/Characters/Farmer/` porte
+      les calques séparés, lus octet par octet et non déduits du nom —
+      `farmer_base.xnb` et `farmer_girl_base.xnb` (18 Ko, drapeau `0x81` :
+      **compressés LZX**), `hairstyles.xnb` (11 Ko) et `hairstyles2.xnb`
+      (6,7 Ko, LZX aussi), `skinColors.xnb` (**non compressé** — son
+      `Microsoft.Xna.Framework.Content.Texture2DReader` se lit en clair dans
+      l'en-tête), plus `accessories`, `hats`, `shirts`, `pants`. Et la
+      décompression LZX **existe déjà** dans le dépôt (`LzxdDecoder`,
+      `LzxdBitstream`, `LzxdWindow`, `LzxdTree`, plus
+      `XnbStringDictionaryReader.decompressLZX`).
+      **Ce qui manque vraiment**, et que le prérequis aurait dû nommer : un
+      lecteur de **`Texture2D`** — le travail XNB du dépôt lit des
+      *dictionnaires de chaînes*, jamais des pixels (format de surface,
+      dimensions, niveaux de mip, données RGBA) ; la correspondance entre
+      l'index `<hair>` d'une sauvegarde et sa région dans
+      `hairstyles`/`hairstyles2` ; et les règles de composition (ordre des
+      calques, teinte de `<hairstyleColor>`, palette de `skinColors`).
+      **Jamais tenté** : `git log -S` ne rend rien sur `farmer_base`,
+      `Texture2D` ni `hairstyles`.
+      ⛔️ **Mais ce n'est pas un lot de l'axe H, et je ne l'ouvre pas seul.**
+      La spec §9 pose « **aucune fonctionnalité nouvelle** : la refonte
+      déplace, renomme et restyle ». Un lecteur de textures, un index de
+      sprites et un compositeur de calques sont une **capacité neuve** — le
+      plus gros morceau de code neuf jamais proposé dans cet axe. → **arbitrage
+      en §8.3**, à trancher par l'auteur ; et la taille **M** était estimée en
+      supposant les calques absents : avec un lecteur de textures à écrire,
+      elle est à revoir à la hausse.
 > **Ce qui tourne aujourd'hui** : un modèle de gravité pur et testé —
 > `HealthIssue` (critique / avertissement / information) et
 > `HealthIssueResolver`, qui agrège trois sources (diagnostics SMAPI,
@@ -1646,7 +1678,9 @@ préférences et le Trousseau en commun), puis ~~**C4**~~ *(clos le
 
 **Non classés ici parce qu'ils attendent une décision, pas un développement** :
 `X55` (politique de purge), `X103` (suppression des mods : corbeille livrée en
-X103-B ; reste la rétention des archives Nexus, §8.1 option C), `D3-T1`
+X103-B ; reste la rétention des archives Nexus, §8.1 option C), `H-T5c`
+(recomposer le portrait du fermier : le prérequis est réfuté, mais c'est une
+capacité neuve que §9 exclut de l'axe H — §8.3), `D3-T1`
 (un backend ou non), `F5` (quand casser la cohabitation avec l'amont),
 `F1-T2` (règle permanente, pas une tâche).
 
@@ -1817,6 +1851,51 @@ chose à l'écran, mais elle n'est pas cette tâche : elle ne compare rien, elle
 répète ce qu'un mod unique déclare. À rouvrir si un second mod publie un triplet
 *voulu / effectif / pourquoi* — c'est le signal à guetter, pas le nombre de mods
 bavards.
+
+---
+
+### 8.3 Cadrage H-T5c — recomposer le portrait du fermier ? *(instruit le 2026-09-09, à trancher par l'auteur)*
+
+> **La question n'est pas « est-ce possible » — ça l'est — mais « est-ce que
+> l'axe H a le droit de le faire ».** Le prérequis qui bloquait cet item est
+> faux : les calques existent dans le `Content` du jeu installé, et le dépôt
+> décompresse déjà le LZX. Les chiffres sont dans la case **H-T5c** ci-dessus.
+> Ce qui l'arrête désormais, c'est le non-but §9 de la spec de refonte :
+> « **aucune fonctionnalité nouvelle** ». Un lecteur de textures n'est pas du
+> restylage.
+
+**Ce que ça demanderait vraiment**, au-delà de ce qui existe :
+
+| Brique | État | Ce qu'il faut écrire |
+|---|---|---|
+| Décompression LZX | ✅ existe (`Lzxd*`, 4 fichiers) | rien |
+| Lecture XNB | ⚠️ partielle | le dépôt lit des **dictionnaires de chaînes**, pas des pixels : il manque le `Texture2DReader` (format de surface, dimensions, mips, RGBA) |
+| Index des coiffures | ❌ | `<hair>` → région dans `hairstyles.xnb` / `hairstyles2.xnb`, avec le seuil de bascule entre les deux |
+| Palette de peau | ❌ | `skinColors.xnb` (non compressé — le plus facile des trois) |
+| Composition | ❌ | ordre des calques, teinte de `<hairstyleColor>`, cadrage tête |
+
+**Trois issues** :
+
+| Option | Geste | Coût | Ce qu'elle vaut / ce qu'elle risque |
+|---|---|---|---|
+| **A — laisser fermé dans l'axe H** | garder le repli actuel (illustration fixe par sexe), déplacer H-T5c hors de H | ~0 | Respecte §9 sans discussion. L'avatar reste faux pour qui a changé de coiffure — un défaut d'exactitude, pas d'esthétique |
+| **B — exception §9 explicite** | ouvrir H-T5c comme lot, en assumant que l'axe H produit une capacité neuve | **L**, pas M | Le portrait devient juste. Mais c'est le plus gros morceau de code neuf de l'axe, et il ouvre une dépendance au format d'assets du jeu — qui change à chaque version majeure |
+| **C — sortir de l'axe H** | en faire un item d'un axe « fonctionnalités » (D ou E), planifié pour lui-même | ~0 aujourd'hui | Honnête sur sa nature, et le fait juger sur sa valeur propre plutôt que dans un lot d'uniformisation où il détonne |
+
+**Recommandation de l'agent** : **C**. La réfutation du prérequis vaut d'être
+gardée — elle transforme un item « impossible » en item « faisable et
+chiffré ». Mais le faire *sous l'axe H* obligerait à lire §9 comme une règle
+qu'on contourne dès qu'un item est tentant ; et H-T9, le closage, aurait à
+auditer la fidélité visuelle d'un écran qui aurait changé de nature pendant le
+chantier. **A** revient au même si l'auteur ne veut pas de l'item du tout.
+
+⚖️ **Contrainte à connaître avant de trancher, pas après** : lire le `Content/`
+du jeu **installé sur la machine de l'utilisateur**, à l'exécution, ne
+redistribue rien — c'est son propre exemplaire. En revanche l'app ne doit
+**jamais embarquer** de sprites extraits dans son bundle ni dans le dépôt : ce
+serait redistribuer des assets sous copyright ConcernedApe. Toute
+implémentation lit à l'exécution, et échoue proprement si le dossier est
+absent.
 
 ---
 
