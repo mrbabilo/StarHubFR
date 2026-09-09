@@ -1114,12 +1114,43 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
       `nxm://` (`NxmLink.parse` strict), clé Nexus (SecItemAdd vérifié,
       2026-08-11) : relus, rien à corriger. **Zéro nouveau défaut, une question
       de conception sortie : `X103`** (permanence de la suppression des mods
-      vs corbeille/quarantaine et rétention des archives). Restent dans F2 :
-      extraction d'archives (recouvrement des audits du 2026-07-27 et de la
-      Phase 2 à refaire à l'occasion, pas refait ici), puis perf + concurrence.
-      À y joindre le candidat **#4 de `§audit-gestionnaires`** : la liste explicite de
-      garde-fous d'écriture de Vortex (`policy.ts`), à reprendre **comme grille de revue
-      de nos chemins d'écriture**, pas comme code à porter.
+      vs corbeille/quarantaine et rétention des archives).
+      ▸ **Tranche « extraction d'archives » passée (2026-09-09)** — reprise à neuf
+      des gardes d'extraction, chaque prémisse éprouvée par l'expérience et non
+      par la seule lecture. **Zéro nouveau défaut, une prémisse réfutée, une
+      nuance documentée** :
+      - la prémisse du zip-slip de l'audit 2026-08-05 (« `unzip` extrait les
+        `../` tels quels ») **ne se reproduit pas** sur l'`/usr/bin/unzip`
+        actuel. Mesuré sur six archives fabriquées pour l'occasion : `..` en
+        tête et en milieu de chemin, chemin absolu, backslashes avec et sans
+        drapeau MS-DOS — l'outil élimine les composantes `..`, ampute les
+        chemins absolus (« stripped absolute path »), et rien ne sort jamais
+        du dossier de destination ;
+      - nuance : `containsTraversalPath` ne découpe que sur `/`, donc les
+        noms `..\..\x` passent le contrôle statique — mais l'extraction
+        reste saine (l'outil sanitise, cf. ci-dessus), et pré-rejeter ces
+        noms casserait de vraies archives Windows : le backslash est un
+        caractère de nom légal sur APFS. Documenté, délibérément non
+        « corrigé » ;
+      - la garde pré-extraction reste posée pour les **outils tiers**
+        (`unrar`/`unar`/`7zz`, versions non maîtrisées) : défense en
+        profondeur, à garder ;
+      - zip-bomb : le plafond 2 Go décompressé est bien lu **avant**
+        extraction dans les deux voies (`unzip -l` sous locale C,
+        `7zz l -slt` via `totalSizeFromSevenZipListing`), avec fail-open
+        assumé et documenté (en-tête 7z chiffré illisible) ;
+      - le rouge Phase 2 sur `SmapiInstaller` (scénario concurrent) est
+        **clos par le correctif X81** (racine temporaire par UUID +
+        `defer` de nettoyage) : plus aucun chemin statique partagé entre
+        deux `install()`, le test concurrentiel qu'appelait l'audit n'a
+        plus d'objet ;
+      - un écart résiduel noté, sans action aujourd'hui : le hub thaï
+        (`StarHubTHViewModel.swift:8666`) extrait directement dans
+        `Mods/` via le même `extractArchive` — zip-slip et détection de
+        format couverts, mais sans la garde symlinks ni le strip
+        `__MACOSX`. Source unique et curatée à ce jour ; à reprendre le
+        jour où le hub s'ouvre à d'autres sources.
+      Reste dans F2 : perf + concurrence.
       Le périmètre « build » a son propre découpage — voir **F2-T1** (gains rapides déjà
       identifiés) et **F2-T2** (le bottleneck réel, qui relève d'un choix d'architecture
       et non d'un script Python).
