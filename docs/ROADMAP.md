@@ -51,11 +51,13 @@ trouve plus ici est livré : le chercher dans l'archive.
 - **Axe E — Packs, distribution & pédagogie** : packaging, rapport de modlist, doc, Nexus.
 - **Axe F — Dette technique** *(transverse)* : découpage du God module, audit perf/sécurité,
   réactivité de la liste des mods (**F3**).
-- **Axe H — Cohérence UI** *(transverse)* : généraliser à toute l'app le langage
-  visuel établi par l'onglet Découvrir (axe G) — navigation regroupée, accueil
-  tableau de bord, reskin écran par écran, bibliothèque de composants vivante.
-- **Axe I — Expérience utilisateur** *(après H)* : navigation optimisée et
-  accessibilité en **capacités** — clavier, palette de commandes, VoiceOver.
+- ~~**Axe H — Cohérence UI**~~ *(transverse)* ✅ **clos le 2026-09-09** :
+  généraliser à toute l'app le langage visuel établi par l'onglet Découvrir
+  (axe G) — navigation regroupée, accueil tableau de bord, reskin écran par
+  écran, bibliothèque de composants vivante.
+- **Axe I — Expérience utilisateur** *(**débloqué** : H est clos)* : navigation
+  optimisée et accessibilité en **capacités** — clavier, palette de commandes,
+  VoiceOver.
 
 **Règle de discipline reprise du document de veille** :
 > *Chaque release ne sert qu'un seul axe principal, plus quelques correctifs gratuits.*
@@ -1188,7 +1190,7 @@ de sidebar, Découvrir inchangé au closage.
 
 ---
 
-### Expérience utilisateur : navigation & accessibilité — **Axe I** · à faire, **après H**
+### Expérience utilisateur : navigation & accessibilité — **Axe I** · à faire — **plus rien devant : H est clos depuis le 2026-09-09**
 
 Ce que H pose en **règles** (cibles ≥ 18×18, jamais la couleur seule, contraste
 vérifié), I le transforme en **capacités** : naviguer au clavier, piloter à la
@@ -1737,8 +1739,8 @@ ensuite : **F2** (audit sécurité et perf — c'est lui qui trouverait les X à
 venir), **F5** (identité de bundle partagée avec l'amont : 31 clés de
 préférences et le Trousseau en commun), puis ~~**C4**~~ *(clos le
 2026-09-09 : T1 et T7 livrés, T8 réfuté et coché sans code — §8.2)*,
-**H** (5 lots restants), **A** (A1-T1/T2, A2-T5, A5-T4/T5), **D1/D2**
-(Profiler et télémétrie), **C3/C5/C6**, **I** (accessibilité, après H),
+~~**H**~~ *(clos le 2026-09-09)*, **A** (A1-T1/T2, A2-T5, A5-T4/T5), **D1/D2**
+(Profiler et télémétrie), **C3/C5/C6**, **I** (accessibilité — **débloqué**, H est clos),
 **E1–E3** et **D3** (horizon, sous décision produit).
 
 **Non classés ici parce qu'ils attendent une décision, pas un développement** :
@@ -2028,7 +2030,11 @@ sur macOS / SwiftUI. Les features trop spécifiques à RimWorld (Cecil analyzer,
       dark est géré par un asset 1:1 qui ne survivra pas à un thème custom. Pattern
       RimManager : stocker un `paletteIndex: Int` (0–5), interpréter via le thème
       courant au rendu. Bénéfice futur : un thème custom n'a pas à migrer les données.
-      · **M** · *à pousser dans l'axe H (cohérence UI), après H-T1.*
+      · **M** · ~~*à pousser dans l'axe H (cohérence UI), après H-T1.*~~
+      ⚠️ **Ancrage caduc depuis le 2026-09-09 : l'axe H est clos et R1 n'y a
+      pas été traité.** Il n'a jamais été un item H — il y était seulement
+      *renvoyé*. Reste ouvert et sans axe : à rattacher (I, ou un lot de thème)
+      ou à instruire pour lui-même. Ne pas le croire livré parce que H l'est.
 - [x] **R2** ✅ *(livré le 2026-09-06)* — **Écriture atomique + apply guard pour
       `applyProfileToFilesystem`.** Le garde jeu (refus net, quatre entrées), le
       journal write-ahead et le dialogue de reprise au lancement sont livrés ; le
@@ -2296,7 +2302,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **G-T2** | — | Onglet « Découvrir » : trois sections (une requête chacune, cache 24 h, rafraîchissement manuel seul), recherche par… |
 | **G-T3** | — | Install direct depuis la fiche : pipeline des mises à jour appliqué à un mod non installé. API réservée Premium — 403… |
 
-**Cohérence UI : un seul langage pour toute l'app — Axe H · à faire**
+**Cohérence UI : un seul langage pour toute l'app — Axe H · ✅ clos le 2026-09-09** *(12 livrés, 1 abandonné)*
 
 | Item | Livré | Ce qui était en cause |
 |---|---|---|
@@ -2308,3 +2314,8 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **H-T5b** | 2026-08-31 | Hero de sauvegarde illustré |
 | **H-T5d** | 2026-09-02 | Lecture d'une sauvegarde : la queue au lieu du fichier entier |
 | **H-T6** | 2026-09-02 | Lot Santé & secours |
+| **H-T7** | 2026-09-09 | Lots Journaux & Réglages, deux releases : `LogsView` 26 tailles littérales → 0, `SettingsView` 53 → 0 ; tokens monospace ; onze sections rangées en quatre groupes par un type Core sous test ; état vide qui dit s'il est filtré ; quatre infobulles de toolbar rendues atteignables (cible ~13 pt → 18×18, elles ne sortaient jamais) |
+| **H-T8** | 2026-09-09 | Hub de traduction, reskin de continuité : 74 littérales → 0 sur cinq vues, deux tokens monospace de plus (10 et 9 pt). Le reste du lot est un **constat** — accessibilité et états vides étaient déjà tenus, six faux positifs sur six ; aucun correctif inventé. `ThaiTranslationHubView` écarté : `C5-T1` doit le refondre |
+| **H-T5e** | 2026-09-09 | Vignette illustrée d'une ferme de mod : image de l'auteur recadrée sur mesure (profil de luminance pour situer cartouche et bordure) au format exact des sept autres ; le SF Symbol reste le filet |
+| **H-T5c** | 2026-09-09 | ⛔️ **Abandonné** (décision de l'auteur, §8.3). Son prérequis était faux — les calques du fermier existent dans le `Content` du jeu installé — mais un lecteur de `Texture2D` est une capacité neuve, que §9 exclut de l'axe H |
+| **H-T9** | 2026-09-09 | Closage : audit de fidélité de Découvrir à **zéro écart** (29 valeurs de style identiques v1.25.0 ↔ aujourd'hui, tokens résolus ; 21 « écarts » initiaux tous faux, dus à un périmètre trop étroit), artboard `Screens` ajouté à `/design`, trois images mortes retirées du bundle |
