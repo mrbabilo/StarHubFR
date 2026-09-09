@@ -447,27 +447,27 @@ struct LogsView: View {
             Button { toggle(group.id, in: &expandedMods) } label: {
                 HStack(spacing: 8) {
                     Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                        .font(.system(size: 9))
+                        .font(AppDesign.Font.iconXXS)
                         .foregroundColor(.secondary)
                         .frame(width: 14)
 
                     Text(group.mod ?? vm.L(L10n.Logs.frameworkGroup))
-                        .font(.system(size: 12, weight: .medium))
+                        .font(AppDesign.Font.caption(.medium))
                         .foregroundColor(group.mod == nil ? .secondary : .primary)
 
                     Text("\(group.lineCount)")
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(AppDesign.Font.iconXS(.semibold))
                         .foregroundColor(.secondary)
-                        .padding(.horizontal, 5)
+                        .padding(.horizontal, AppDesignCore.Spacing.xs)
                         .padding(.vertical, 1)
-                        .background(Color.secondary.opacity(0.12))
-                        .cornerRadius(4)
+                        .background(Color.secondary.opacity(AppDesignCore.Opacity.light))
+                        .cornerRadius(AppDesignCore.Radius.sm)
 
                     // Severity dot: lets a problem mod be spotted while collapsed.
                     if group.errorCount > 0 {
-                        Circle().fill(Color.red).frame(width: 6, height: 6)
+                        Circle().fill(AppDesign.Color.error).frame(width: 6, height: 6)
                     } else if group.warningCount > 0 {
-                        Circle().fill(Color.orange).frame(width: 6, height: 6)
+                        Circle().fill(AppDesign.Color.warning).frame(width: 6, height: 6)
                     }
 
                     Spacer()
@@ -565,28 +565,28 @@ struct LogGroupRow: View {
             Button(action: toggle) {
                 HStack(alignment: .top, spacing: 8) {
                     Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                        .font(.system(size: 9))
+                        .font(AppDesign.Font.iconXXS)
                         .foregroundColor(.secondary)
                         .frame(width: 14)
                         .padding(.top, 2)
 
                     Text(entries.first?.timestamp ?? "—")
-                        .font(.system(size: 11, design: .monospaced))
+                        .font(AppDesign.Font.monoFootnote)
                         .foregroundColor(.secondary)
                         .frame(width: 58, alignment: .leading)
 
                     VStack(alignment: .leading, spacing: 1) {
                         if let mod = entries.first?.modName {
                             Text(mod)
-                                .font(.system(size: 10, weight: .medium))
+                                .font(AppDesign.Font.iconXS(.medium))
                                 .foregroundColor(.accentColor)
                         }
                         Text(entries.first?.message ?? "")
-                            .font(.system(size: 12, design: .monospaced))
+                            .font(AppDesign.Font.monoCaption)
                             .foregroundColor((entries.first?.level.color ?? .primary).opacity(0.75))
                             .lineLimit(1)
                         Text(String(format: vm.L(L10n.Logs.similarLines), Int64(entries.count)))
-                            .font(.system(size: 10))
+                            .font(AppDesign.Font.iconXS)
                             .foregroundColor(.secondary)
                     }
 
@@ -635,13 +635,13 @@ struct LogEntryRow: View {
                         .foregroundColor(entry.level.color)
                 }
             }
-            .font(.system(size: 11))
+            .font(AppDesign.Font.footnote)
             .frame(width: 14)
             .padding(.top, 1)
 
             // Timestamp
             Text(entry.timestamp)
-                .font(.system(size: 11, design: .monospaced))
+                .font(AppDesign.Font.monoFootnote)
                 .foregroundColor(.secondary)
                 .frame(width: 58, alignment: .leading)
 
@@ -652,12 +652,12 @@ struct LogEntryRow: View {
                         NotificationCenter.default.post(name: .jumpToMod, object: modName)
                     } label: {
                         Text(modName)
-                            .font(.system(size: 10, weight: .medium))
+                            .font(AppDesign.Font.iconXS(.medium))
                             .foregroundColor(.accentColor)
-                            .padding(.horizontal, 6)
+                            .padding(.horizontal, AppDesignCore.Spacing.xs)
                             .padding(.vertical, 1)
-                            .background(Color.accentColor.opacity(0.1))
-                            .cornerRadius(4)
+                            .background(Color.accentColor.opacity(AppDesignCore.Opacity.light))
+                            .cornerRadius(AppDesignCore.Radius.sm)
                     }
                     .buttonStyle(.plain)
                     .pointingHandCursor()
@@ -667,7 +667,7 @@ struct LogEntryRow: View {
                 // app entries were always primary, hiding errors/warnings).
                 // SMAPI TRACE entries are dimmed since they're verbose/noisy.
                 Text(entry.message)
-                    .font(.system(size: 12, design: .monospaced))
+                    .font(AppDesign.Font.monoCaption)
                     .foregroundColor(entry.source == .smapi && entry.level == .trace
                         ? entry.level.color.opacity(0.75)
                         : entry.level.color)
