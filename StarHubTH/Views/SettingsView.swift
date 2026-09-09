@@ -21,356 +21,19 @@ struct SettingsView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 32) {
-
-                // ── Nexus Mods ──
-                StandardSection(
-                    title: vm.L(L10n.Settings.nexusMods),
-                    footer: vm.L(L10n.Settings.nexusApiKeyHint)
-                ) {
-                    VStack(alignment: .leading, spacing: 16) {
-                        HStack {
-                            Text(vm.L(L10n.Settings.nexusAutoCheck))
-                                .font(.system(size: 13))
-                            Spacer()
-                            Toggle("", isOn: $autoCheckNexusUpdates)
-                                .toggleStyle(SwitchToggleStyle(tint: .blue))
-                                .controlSize(.small)
-                                .labelsHidden()
-                            InfoPopoverButton(text: vm.L(L10n.Settings.nexusAutoCheckHint))
-                        }
-
-                        if vm.hasNexusApiKey {
-                            // Key stored — offer removal and link to fetch another.
-                            HStack {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(vm.L(L10n.Settings.nexusApiKey))
-                                        .font(.system(size: 13))
-                                    Text("••••••••••••")
-                                        .font(.system(size: 12, design: .monospaced))
-                                        .foregroundColor(.secondary)
-                                }
-                                Spacer()
-                                Button(action: {
-                                    if let url = URL(string: "https://www.nexusmods.com/users/myaccount?tab=api") {
-                                        NSWorkspace.shared.open(url)
-                                    }
-                                }) {
-                                    Text(vm.L(L10n.Settings.nexusGetKey))
-                                }
-                                Button(role: .destructive, action: {
-                                    vm.clearNexusApiKey()
-                                }) {
-                                    Text(vm.L(L10n.Settings.nexusClearKey))
-                                }
-                            }
-
-                            Divider()
-
-                            NexusQuotaRow(vm: vm)
-                        } else {
-                            // No key yet — secure field + save action.
-                            VStack(alignment: .leading, spacing: 8) {
-                                SecureField(vm.L(L10n.Settings.nexusKeyPlaceholder), text: $nexusApiKeyInput)
-                                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                                    .font(.system(size: 12, design: .monospaced))
-                                    .autocorrectionDisabled(true)
-                                    .textContentType(.password)
-
-                                HStack {
-                                    Button(action: {
-                                        if let url = URL(string: "https://www.nexusmods.com/users/myaccount?tab=api") {
-                                            NSWorkspace.shared.open(url)
-                                        }
-                                    }) {
-                                        Text(vm.L(L10n.Settings.nexusGetKey))
-                                    }
-
-                                    Spacer()
-
-                                    if nexusKeySavedFlash {
-                                        Text(vm.L(L10n.Settings.nexusKeySaved))
-                                            .font(.system(size: 11))
-                                            .foregroundColor(.green)
-                                            .transition(.opacity)
-                                    }
-
-                                    Button {
-                                        let trimmed = nexusApiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines)
-                                        guard !trimmed.isEmpty else { return }
-                                        vm.setNexusApiKey(trimmed)
-                                        nexusApiKeyInput = ""
-                                        withAnimation { nexusKeySavedFlash = true }
-                                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                            withAnimation { nexusKeySavedFlash = false }
-                                        }
-                                    } label: {
-                                        Text(vm.L(L10n.Settings.nexusSaveKey))
-                                    }
-                                    .buttonStyle(.borderedProminent)
-                                    .disabled(nexusApiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                                }
-                            }
-                        }
+            VStack(alignment: .leading, spacing: AppDesignCore.Spacing.xxl) {
+                // L'ordre et le groupement sont des données, pas la forme d'un
+                // VStack : `SettingsSectionOrder` (Core) les porte, sous test.
+                // Le `switch` de `sectionView` est exhaustif — c'est le
+                // compilateur qui garantit qu'aucune section ne disparaît de
+                // l'écran. Ne jamais y ajouter de `default:`, qui rendrait la
+                // perte silencieuse.
+                ForEach(SettingsSectionOrder.groups, id: \.self) { group in
+                    groupTitle(group)
+                    ForEach(SettingsSectionOrder.sections(in: group), id: \.self) { section in
+                        sectionView(section)
                     }
                 }
-
-                // ── Traduction assistée ──
-                LocalAISettingsSection(vm: vm)
-
-                // ── Launch Options ──
-                StandardSection(
-                    title: vm.L(L10n.Settings.launchOptions),
-                    footer: vm.L(L10n.Settings.footerLaunch)
-                ) {
-                    VStack(alignment: .leading, spacing: 16) {
-                        HStack {
-                            Text(vm.L(L10n.Settings.defaultLaunchMode))
-                                .font(.system(size: 13))
-                            Spacer()
-                            Picker("", selection: $launchProfile) {
-                                Text(vm.L(L10n.Settings.playSMAPI)).tag("SMAPI")
-                                Text(vm.L(L10n.Settings.vanillaGame)).tag("Vanilla")
-                            }
-                            .pickerStyle(MenuPickerStyle())
-                            .fixedSize()
-                            
-                            InfoPopoverButton(text: vm.L(L10n.Settings.hintNextLaunchMode))
-                        }
-                        
-                        Divider().padding(.leading, 0)
-                        
-                        HStack {
-                            Text(vm.L(L10n.Settings.closeLauncher))
-                                .font(.system(size: 13))
-                            Spacer()
-                            Toggle("", isOn: $closeAfterLaunch)
-                                .toggleStyle(SwitchToggleStyle(tint: .blue))
-                                .controlSize(.small)
-                                .labelsHidden()
-                            
-                            InfoPopoverButton(text: vm.L(L10n.Settings.hintSaveResources))
-                        }
-                    }
-                }
-                
-                // ── Backup ──
-                StandardSection(
-                    title: vm.L(L10n.Settings.backup),
-                    footer: vm.L(L10n.Settings.footerBackup)
-                ) {
-                    VStack(alignment: .leading, spacing: 16) {
-                        HStack {
-                            Text(vm.L(L10n.Settings.backupSaves))
-                                .font(.system(size: 13))
-                            Spacer()
-                            Button(action: { vm.backupAllSaves() }) {
-                                Text(vm.L(L10n.Settings.backupSavesButton))
-                            }
-                            InfoPopoverButton(text: vm.L(L10n.Settings.hintCompressSaves))
-                        }
-                        
-                        Divider().padding(.leading, 0)
-                        
-                        HStack {
-                            Text(vm.L(L10n.Settings.backupMods))
-                                .font(.system(size: 13))
-                            Spacer()
-                            Button(action: { vm.backupAllMods() }) {
-                                Text(vm.L(L10n.Settings.backupModsButton))
-                            }
-                            InfoPopoverButton(text: vm.L(L10n.Settings.hintCompressMods))
-                        }
-                    }
-                }
-                
-                // ── Developer ──
-                // (App theme and language now live as toggles at the bottom of
-                // the sidebar; this section keeps the developer-logs setting.)
-                StandardSection(
-                    title: vm.L(L10n.Settings.developer),
-                    footer: vm.L(L10n.Settings.footerAppearance)
-                ) {
-                    VStack(alignment: .leading, spacing: 16) {
-                        HStack {
-                            Text(vm.L(L10n.Settings.showDevLogs))
-                                .font(.system(size: 13))
-                            Spacer()
-                            Toggle("", isOn: $showDeveloperLogs)
-                                .toggleStyle(SwitchToggleStyle(tint: .blue))
-                                .controlSize(.small)
-                                .labelsHidden()
-                            
-                            InfoPopoverButton(text: vm.L(L10n.Settings.hintDevLogs))
-                        }
-                    }
-                }
-                
-                // ── Mod Behavior ──
-                StandardSection(
-                    title: vm.L(L10n.Settings.modBehavior),
-                    footer: vm.L(L10n.Settings.chainToggleHint)
-                ) {
-                    HStack {
-                        Text(vm.L(L10n.Settings.chainToggle))
-                            .font(.system(size: 13))
-                        Spacer()
-                        Toggle("", isOn: Binding(
-                            get: { vm.chainToggleDependencies },
-                            set: { vm.chainToggleDependencies = $0 }
-                        ))
-                        .toggleStyle(SwitchToggleStyle(tint: .blue))
-                        .controlSize(.small)
-                        .labelsHidden()
-                        
-                        InfoPopoverButton(text: vm.L(L10n.Settings.chainToggleHint))
-                    }
-                }
-
-                // ── Management ──
-                StandardSection(
-                    title: vm.L(L10n.Settings.management),
-                    footer: vm.L(L10n.Settings.footerManagement)
-                ) {
-                    VStack(alignment: .leading, spacing: 16) {
-                        HStack {
-                            Text(vm.L(L10n.Settings.savesFolder))
-                                .font(.system(size: 13))
-                            Spacer()
-                            Button(action: { vm.openSavesFolder() }) {
-                                Text(vm.L(L10n.Settings.openFolder))
-                            }
-                            InfoPopoverButton(text: vm.L(L10n.Settings.openFolder))
-                        }
-                        
-                        Divider().padding(.leading, 0)
-                        
-                        HStack {
-                            Text(vm.L(L10n.Settings.clearDisabledMods))
-                                .font(.system(size: 13))
-                            Spacer()
-                            Button(action: { showClearDisabledConfirm = true }) {
-                                Text(vm.L(L10n.Settings.deleteJunkMods))
-                            }
-                            .foregroundColor(.red)
-                            
-                            InfoPopoverButton(text: vm.L(L10n.Settings.clearDisabledMods), color: .red.opacity(0.8))
-                        }
-                    }
-                }
-
-                // Regroupées dans un seul `Group` : le VStack parent dépasserait
-                // sinon dix enfants directs (limite de `ViewBuilder.buildBlock`)
-                // avec ces quatre sections en plus des huit déjà présentes.
-                // `Group` est transparent pour la mise en page — l'espacement
-                // de 32pt entre sections n'en est pas affecté.
-                Group {
-                // ── App ──
-                StandardSection(title: vm.L(L10n.Home.appInfo)) {
-                    StandardRow(title: LocalizedStringKey(vm.L(L10n.Home.developer)), detail: "AppleBoiy (original) · mrbabilo (fork)", showDivider: false)
-                }
-
-                // Folder Settings
-                StandardSection(title: vm.L(L10n.Home.gameFolder)) {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(vm.L(L10n.Home.gamePath))
-                                .font(.system(size: 13))
-                            if vm.gameDir.isEmpty {
-                                Text(vm.L(L10n.Home.notSet))
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.secondary)
-                            } else {
-                                Text(vm.gameDir)
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.secondary)
-                                    .lineLimit(1)
-                                    .truncationMode(.middle)
-                            }
-                        }
-                        Spacer()
-                        Button(vm.L(L10n.Home.selectFolder)) { vm.selectGameDir() }
-                    }
-                }
-
-                // SMAPI Settings
-                StandardSection(title: vm.L(L10n.Home.smapiManager)) {
-                    VStack(spacing: 0) {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(vm.L(L10n.Home.smapiStatus))
-                                    .font(.system(size: 13))
-                                if let version = vm.smapiInstalledVersion {
-                                    Text(String(format: vm.L(L10n.Home.smapiInstalled), version))
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.secondary)
-                                } else {
-                                    Text(vm.L(L10n.Home.smapiNotInstalled))
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-                            Spacer()
-                            if smapiInstaller.isInstalling {
-                                ProgressView()
-                                    .controlSize(.small)
-                                    .padding(.trailing, 4)
-                            } else if vm.smapiInstalledVersion == nil {
-                                Button(vm.L(L10n.Home.installSmapi)) { vm.installSmapi() }
-                            } else {
-                                Button(vm.L(L10n.Home.uninstall)) { vm.uninstallSmapi() }
-                            }
-                        }
-
-                        if smapiInstaller.isInstalling {
-                            VStack(alignment: .leading, spacing: 4) {
-                                ProgressView(value: smapiInstaller.progress, total: 1.0)
-                                    .progressViewStyle(.linear)
-                                    .tint(.blue)
-                                    .animation(.easeInOut, value: smapiInstaller.progress)
-                                Text(vm.L(smapiInstaller.statusMessage))
-                                    .font(.system(size: 11))
-                                    .foregroundColor(.secondary)
-                            }
-                            .padding(.top, 12)
-                        }
-                    }
-                }
-
-                // ── CORE EXTENSIONS SECTION ──
-                StandardSection(title: vm.L(L10n.Home.coreExtensions)) {
-                    VStack(spacing: 0) {
-                        let core = vm.coreExtensionsSnapshot
-                        CoreModRow(vm: vm, title: "Content Patcher", status: core.contentPatcher.status, mod: core.contentPatcher.mod)
-                        Rectangle().fill(Color.primary.opacity(0.05)).frame(height: 1).padding(.leading, 12).padding(.vertical, 2)
-
-                        CoreModRow(vm: vm, title: "SpaceCore", status: core.spacecore.status, mod: core.spacecore.mod)
-                        Rectangle().fill(Color.primary.opacity(0.05)).frame(height: 1).padding(.leading, 12).padding(.vertical, 2)
-
-                        CoreModRow(vm: vm, title: "Stardew Valley Thai", status: core.thai.status, mod: core.thai.mod)
-                        Rectangle().fill(Color.primary.opacity(0.05)).frame(height: 1).padding(.leading, 12).padding(.vertical, 2)
-
-                        CoreModRow(vm: vm, title: "Stardew Valley Expanded", status: core.sve.status, mod: core.sve.mod)
-                        Rectangle().fill(Color.primary.opacity(0.05)).frame(height: 1).padding(.leading, 12).padding(.vertical, 2)
-
-                        CoreToolRow(
-                            title: vm.L(L10n.Home.toolUnar),
-                            status: core.unarTool.installed ? .enabledAndInstalled : .notInstalled,
-                            tooltip: vm.L(L10n.Home.toolUnarTooltip),
-                            installCommand: "brew install unar"
-                        )
-                        Rectangle().fill(Color.primary.opacity(0.05)).frame(height: 1).padding(.leading, 12).padding(.vertical, 2)
-
-                        CoreToolRow(
-                            title: vm.L(L10n.Home.toolSevenZip),
-                            status: core.sevenZipTool.installed ? .enabledAndInstalled : .notInstalled,
-                            tooltip: vm.L(L10n.Home.toolSevenZipTooltip),
-                            installCommand: "brew install sevenzip"
-                        )
-                    }
-                    .padding(.vertical, -8)
-                }
-                } // Group
 
                 // La version de l'app, en pied de la dernière section — lue dans
                 // le bundle comme sur l'accueil, pour rester juste après chaque
@@ -396,6 +59,421 @@ struct SettingsView: View {
                 },
                 secondaryButton: .cancel(Text(vm.L(L10n.Saves.cancel)))
             )
+        }
+    }
+
+    // MARK: - Groupes
+
+    /// Le titre d'un groupe. Pas `SectionHeader` : celui-ci est l'en-tête d'une
+    /// section de liste paginée (titre + compte + « voir plus »), et un groupe
+    /// de réglages n'a ni compte à montrer ni suite à charger — l'employer
+    /// demanderait trois valeurs mensongères pour réutiliser un nom.
+    private func groupTitle(_ group: SettingsGroup) -> some View {
+        Text(vm.L(titleKey(for: group)))
+            .font(AppDesign.Font.viewTitle)
+            .foregroundColor(.primary)
+    }
+
+    private func titleKey(for group: SettingsGroup) -> String {
+        switch group {
+        case .game:    return L10n.Settings.groupGame
+        case .content: return L10n.Settings.groupContent
+        case .data:    return L10n.Settings.groupData
+        case .about:   return L10n.Settings.groupAbout
+        }
+    }
+
+    @ViewBuilder
+    private func sectionView(_ section: SettingsSection) -> some View {
+        switch section {
+        case .gameFolder:     gameFolderSection
+        case .smapi:          smapiSection
+        case .launch:         launchSection
+        case .coreExtensions: coreExtensionsSection
+        case .nexus:          nexusSection
+        case .translationAI:  translationAISection
+        case .modBehavior:    modBehaviorSection
+        case .management:     managementSection
+        case .backup:         backupSection
+        case .developer:      developerSection
+        case .appInfo:        appInfoSection
+        }
+    }
+
+    // MARK: - Sections
+
+    @ViewBuilder
+    private var nexusSection: some View {
+        // ── Nexus Mods ──
+        StandardSection(
+            title: vm.L(L10n.Settings.nexusMods),
+            footer: vm.L(L10n.Settings.nexusApiKeyHint)
+        ) {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
+                    Text(vm.L(L10n.Settings.nexusAutoCheck))
+                        .font(.system(size: 13))
+                    Spacer()
+                    Toggle("", isOn: $autoCheckNexusUpdates)
+                        .toggleStyle(SwitchToggleStyle(tint: .blue))
+                        .controlSize(.small)
+                        .labelsHidden()
+                    InfoPopoverButton(text: vm.L(L10n.Settings.nexusAutoCheckHint))
+                }
+
+                if vm.hasNexusApiKey {
+                    // Key stored — offer removal and link to fetch another.
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(vm.L(L10n.Settings.nexusApiKey))
+                                .font(.system(size: 13))
+                            Text("••••••••••••")
+                                .font(.system(size: 12, design: .monospaced))
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                        Button(action: {
+                            if let url = URL(string: "https://www.nexusmods.com/users/myaccount?tab=api") {
+                                NSWorkspace.shared.open(url)
+                            }
+                        }) {
+                            Text(vm.L(L10n.Settings.nexusGetKey))
+                        }
+                        Button(role: .destructive, action: {
+                            vm.clearNexusApiKey()
+                        }) {
+                            Text(vm.L(L10n.Settings.nexusClearKey))
+                        }
+                    }
+
+                    Divider()
+
+                    NexusQuotaRow(vm: vm)
+                } else {
+                    // No key yet — secure field + save action.
+                    VStack(alignment: .leading, spacing: 8) {
+                        SecureField(vm.L(L10n.Settings.nexusKeyPlaceholder), text: $nexusApiKeyInput)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .font(.system(size: 12, design: .monospaced))
+                            .autocorrectionDisabled(true)
+                            .textContentType(.password)
+
+                        HStack {
+                            Button(action: {
+                                if let url = URL(string: "https://www.nexusmods.com/users/myaccount?tab=api") {
+                                    NSWorkspace.shared.open(url)
+                                }
+                            }) {
+                                Text(vm.L(L10n.Settings.nexusGetKey))
+                            }
+
+                            Spacer()
+
+                            if nexusKeySavedFlash {
+                                Text(vm.L(L10n.Settings.nexusKeySaved))
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.green)
+                                    .transition(.opacity)
+                            }
+
+                            Button {
+                                let trimmed = nexusApiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines)
+                                guard !trimmed.isEmpty else { return }
+                                vm.setNexusApiKey(trimmed)
+                                nexusApiKeyInput = ""
+                                withAnimation { nexusKeySavedFlash = true }
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                    withAnimation { nexusKeySavedFlash = false }
+                                }
+                            } label: {
+                                Text(vm.L(L10n.Settings.nexusSaveKey))
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .disabled(nexusApiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var translationAISection: some View {
+        // ── Traduction assistée ──
+        LocalAISettingsSection(vm: vm)
+    }
+
+    @ViewBuilder
+    private var launchSection: some View {
+        // ── Launch Options ──
+        StandardSection(
+            title: vm.L(L10n.Settings.launchOptions),
+            footer: vm.L(L10n.Settings.footerLaunch)
+        ) {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
+                    Text(vm.L(L10n.Settings.defaultLaunchMode))
+                        .font(.system(size: 13))
+                    Spacer()
+                    Picker("", selection: $launchProfile) {
+                        Text(vm.L(L10n.Settings.playSMAPI)).tag("SMAPI")
+                        Text(vm.L(L10n.Settings.vanillaGame)).tag("Vanilla")
+                    }
+                    .pickerStyle(MenuPickerStyle())
+                    .fixedSize()
+                    
+                    InfoPopoverButton(text: vm.L(L10n.Settings.hintNextLaunchMode))
+                }
+                
+                Divider().padding(.leading, 0)
+                
+                HStack {
+                    Text(vm.L(L10n.Settings.closeLauncher))
+                        .font(.system(size: 13))
+                    Spacer()
+                    Toggle("", isOn: $closeAfterLaunch)
+                        .toggleStyle(SwitchToggleStyle(tint: .blue))
+                        .controlSize(.small)
+                        .labelsHidden()
+                    
+                    InfoPopoverButton(text: vm.L(L10n.Settings.hintSaveResources))
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var backupSection: some View {
+        // ── Backup ──
+        StandardSection(
+            title: vm.L(L10n.Settings.backup),
+            footer: vm.L(L10n.Settings.footerBackup)
+        ) {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
+                    Text(vm.L(L10n.Settings.backupSaves))
+                        .font(.system(size: 13))
+                    Spacer()
+                    Button(action: { vm.backupAllSaves() }) {
+                        Text(vm.L(L10n.Settings.backupSavesButton))
+                    }
+                    InfoPopoverButton(text: vm.L(L10n.Settings.hintCompressSaves))
+                }
+                
+                Divider().padding(.leading, 0)
+                
+                HStack {
+                    Text(vm.L(L10n.Settings.backupMods))
+                        .font(.system(size: 13))
+                    Spacer()
+                    Button(action: { vm.backupAllMods() }) {
+                        Text(vm.L(L10n.Settings.backupModsButton))
+                    }
+                    InfoPopoverButton(text: vm.L(L10n.Settings.hintCompressMods))
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var developerSection: some View {
+        // ── Developer ──
+        // (App theme and language now live as toggles at the bottom of
+        // the sidebar; this section keeps the developer-logs setting.)
+        StandardSection(
+            title: vm.L(L10n.Settings.developer),
+            footer: vm.L(L10n.Settings.footerAppearance)
+        ) {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
+                    Text(vm.L(L10n.Settings.showDevLogs))
+                        .font(.system(size: 13))
+                    Spacer()
+                    Toggle("", isOn: $showDeveloperLogs)
+                        .toggleStyle(SwitchToggleStyle(tint: .blue))
+                        .controlSize(.small)
+                        .labelsHidden()
+                    
+                    InfoPopoverButton(text: vm.L(L10n.Settings.hintDevLogs))
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var modBehaviorSection: some View {
+        // ── Mod Behavior ──
+        StandardSection(
+            title: vm.L(L10n.Settings.modBehavior),
+            footer: vm.L(L10n.Settings.chainToggleHint)
+        ) {
+            HStack {
+                Text(vm.L(L10n.Settings.chainToggle))
+                    .font(.system(size: 13))
+                Spacer()
+                Toggle("", isOn: Binding(
+                    get: { vm.chainToggleDependencies },
+                    set: { vm.chainToggleDependencies = $0 }
+                ))
+                .toggleStyle(SwitchToggleStyle(tint: .blue))
+                .controlSize(.small)
+                .labelsHidden()
+                
+                InfoPopoverButton(text: vm.L(L10n.Settings.chainToggleHint))
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var managementSection: some View {
+        // ── Management ──
+        StandardSection(
+            title: vm.L(L10n.Settings.management),
+            footer: vm.L(L10n.Settings.footerManagement)
+        ) {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
+                    Text(vm.L(L10n.Settings.savesFolder))
+                        .font(.system(size: 13))
+                    Spacer()
+                    Button(action: { vm.openSavesFolder() }) {
+                        Text(vm.L(L10n.Settings.openFolder))
+                    }
+                    InfoPopoverButton(text: vm.L(L10n.Settings.openFolder))
+                }
+                
+                Divider().padding(.leading, 0)
+                
+                HStack {
+                    Text(vm.L(L10n.Settings.clearDisabledMods))
+                        .font(.system(size: 13))
+                    Spacer()
+                    Button(action: { showClearDisabledConfirm = true }) {
+                        Text(vm.L(L10n.Settings.deleteJunkMods))
+                    }
+                    .foregroundColor(.red)
+                    
+                    InfoPopoverButton(text: vm.L(L10n.Settings.clearDisabledMods), color: .red.opacity(0.8))
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var appInfoSection: some View {
+        // ── App ──
+        StandardSection(title: vm.L(L10n.Home.appInfo)) {
+            StandardRow(title: LocalizedStringKey(vm.L(L10n.Home.developer)), detail: "AppleBoiy (original) · mrbabilo (fork)", showDivider: false)
+        }
+    }
+
+    @ViewBuilder
+    private var gameFolderSection: some View {
+        // Folder Settings
+        StandardSection(title: vm.L(L10n.Home.gameFolder)) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(vm.L(L10n.Home.gamePath))
+                        .font(.system(size: 13))
+                    if vm.gameDir.isEmpty {
+                        Text(vm.L(L10n.Home.notSet))
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                    } else {
+                        Text(vm.gameDir)
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
+                }
+                Spacer()
+                Button(vm.L(L10n.Home.selectFolder)) { vm.selectGameDir() }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var smapiSection: some View {
+        // SMAPI Settings
+        StandardSection(title: vm.L(L10n.Home.smapiManager)) {
+            VStack(spacing: 0) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(vm.L(L10n.Home.smapiStatus))
+                            .font(.system(size: 13))
+                        if let version = vm.smapiInstalledVersion {
+                            Text(String(format: vm.L(L10n.Home.smapiInstalled), version))
+                                .font(.system(size: 12))
+                                .foregroundColor(.secondary)
+                        } else {
+                            Text(vm.L(L10n.Home.smapiNotInstalled))
+                                .font(.system(size: 12))
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    Spacer()
+                    if smapiInstaller.isInstalling {
+                        ProgressView()
+                            .controlSize(.small)
+                            .padding(.trailing, 4)
+                    } else if vm.smapiInstalledVersion == nil {
+                        Button(vm.L(L10n.Home.installSmapi)) { vm.installSmapi() }
+                    } else {
+                        Button(vm.L(L10n.Home.uninstall)) { vm.uninstallSmapi() }
+                    }
+                }
+
+                if smapiInstaller.isInstalling {
+                    VStack(alignment: .leading, spacing: 4) {
+                        ProgressView(value: smapiInstaller.progress, total: 1.0)
+                            .progressViewStyle(.linear)
+                            .tint(.blue)
+                            .animation(.easeInOut, value: smapiInstaller.progress)
+                        Text(vm.L(smapiInstaller.statusMessage))
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.top, 12)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var coreExtensionsSection: some View {
+        // ── CORE EXTENSIONS SECTION ──
+        StandardSection(title: vm.L(L10n.Home.coreExtensions)) {
+            VStack(spacing: 0) {
+                let core = vm.coreExtensionsSnapshot
+                CoreModRow(vm: vm, title: "Content Patcher", status: core.contentPatcher.status, mod: core.contentPatcher.mod)
+                Rectangle().fill(Color.primary.opacity(0.05)).frame(height: 1).padding(.leading, 12).padding(.vertical, 2)
+
+                CoreModRow(vm: vm, title: "SpaceCore", status: core.spacecore.status, mod: core.spacecore.mod)
+                Rectangle().fill(Color.primary.opacity(0.05)).frame(height: 1).padding(.leading, 12).padding(.vertical, 2)
+
+                CoreModRow(vm: vm, title: "Stardew Valley Thai", status: core.thai.status, mod: core.thai.mod)
+                Rectangle().fill(Color.primary.opacity(0.05)).frame(height: 1).padding(.leading, 12).padding(.vertical, 2)
+
+                CoreModRow(vm: vm, title: "Stardew Valley Expanded", status: core.sve.status, mod: core.sve.mod)
+                Rectangle().fill(Color.primary.opacity(0.05)).frame(height: 1).padding(.leading, 12).padding(.vertical, 2)
+
+                CoreToolRow(
+                    title: vm.L(L10n.Home.toolUnar),
+                    status: core.unarTool.installed ? .enabledAndInstalled : .notInstalled,
+                    tooltip: vm.L(L10n.Home.toolUnarTooltip),
+                    installCommand: "brew install unar"
+                )
+                Rectangle().fill(Color.primary.opacity(0.05)).frame(height: 1).padding(.leading, 12).padding(.vertical, 2)
+
+                CoreToolRow(
+                    title: vm.L(L10n.Home.toolSevenZip),
+                    status: core.sevenZipTool.installed ? .enabledAndInstalled : .notInstalled,
+                    tooltip: vm.L(L10n.Home.toolSevenZipTooltip),
+                    installCommand: "brew install sevenzip"
+                )
+            }
+            .padding(.vertical, -8)
         }
     }
 }

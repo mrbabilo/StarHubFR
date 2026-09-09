@@ -414,6 +414,10 @@
 "quarantine_and_n_more" = "and %lld more";
 "settings_launch_options" = "Launch Options";
 "settings_backup" = "Backup";
+"settings_group_game" = "Game";
+"settings_group_content" = "Mods & content";
+"settings_group_data" = "Data & storage";
+"settings_group_about" = "About";
 "settings_developer" = "Developer";
 "settings_management" = "Management";
 "settings_default_launch_mode" = "Default Launch Mode";

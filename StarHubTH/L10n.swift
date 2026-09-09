@@ -839,6 +839,10 @@ enum L10n {
 
     // MARK: - Settings
     enum Settings {
+        static let groupGame            = "settings_group_game"
+        static let groupContent         = "settings_group_content"
+        static let groupData            = "settings_group_data"
+        static let groupAbout           = "settings_group_about"
         static let launchOptions        = "settings_launch_options"
         static let backup               = "settings_backup"
         static let developer           = "settings_developer"
