@@ -140,31 +140,57 @@ struct CommandPaletteView: View {
         // Une seule dérivation par rendu : `displayed` reclasse tout le parc,
         // et `body` la lirait sinon une fois par ligne.
         let rows = displayed
-        return ScrollView {
-            LazyVStack(alignment: .leading, spacing: 0) {
-                // Identité par `id` composé, jamais par position : l'@State
-                // d'une ligne fuirait vers sa voisine à chaque frappe.
-                //
-                // `rows` est plate — c'est elle que ↑/↓ parcourent et que
-                // `selection` indexe — mais **regroupée par nature** : sans ce
-                // regroupement, `rank` renvoie les natures entrelacées et les
-                // en-têtes doublonneraient.
-                ForEach(Array(rows.enumerated()), id: \.element.id) { i, e in
-                    if i == 0 || rows[i - 1].kind != e.kind {
-                        Text(sectionTitle(e.kind))
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundColor(.secondary)
-                            .padding(.horizontal, 14)
-                            .padding(.top, i == 0 ? 8 : 12)
-                            .padding(.bottom, 2)
+        // ⚠️ `ScrollViewReader` n'est pas un ornement : sans lui, ↑/↓
+        // déplacent bien la sélection mais la liste ne bouge pas, et la ligne
+        // choisie sort du cadre dès la sixième — on pilote une surbrillance
+        // qu'on ne voit plus. Relevé à l'écran par l'auteur le 2026-09-10 ;
+        // aucun test d'ici ne l'atteint.
+        return ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    // Identité par `id` composé, jamais par position : l'@State
+                    // d'une ligne fuirait vers sa voisine à chaque frappe.
+                    //
+                    // `rows` est plate — c'est elle que ↑/↓ parcourent et que
+                    // `selection` indexe — mais **regroupée par nature** : sans
+                    // ce regroupement, `rank` renvoie les natures entrelacées
+                    // et les en-têtes doublonneraient.
+                    ForEach(Array(rows.enumerated()), id: \.element.id) { i, e in
+                        if i == 0 || rows[i - 1].kind != e.kind {
+                            Text(sectionTitle(e.kind))
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(.secondary)
+                                .padding(.horizontal, 14)
+                                .padding(.top, i == 0 ? 8 : 12)
+                                .padding(.bottom, 2)
+                        }
+                        CommandPaletteRow(entry: e, isSelected: i == selection)
+                            .contentShape(.rect)
+                            // Cible explicite de `scrollTo` : ne pas compter
+                            // sur l'identité que `ForEach` pose seule.
+                            .id(e.id)
+                            .onTapGesture { selection = i; activate() }
                     }
-                    CommandPaletteRow(entry: e, isSelected: i == selection)
-                        .contentShape(.rect)
-                        .onTapGesture { selection = i; activate() }
                 }
             }
+            .frame(maxHeight: 380)
+            // Nouvelle requête : les résultats changent entièrement, on
+            // remonte. `onChange(of: selection)` ne suffit pas — si la
+            // sélection était déjà à 0, il ne se déclenche pas, et la liste
+            // resterait là où la molette l'avait laissée.
+            .onChange(of: query) { _, _ in
+                guard let first = rows.first else { return }
+                proxy.scrollTo(first.id, anchor: .top)
+            }
+            .onChange(of: selection) { _, i in
+                guard rows.indices.contains(i) else { return }
+                // `.center` plutôt que `.top` : la ligne suivante et la
+                // précédente restent visibles, on garde le contexte. Pas
+                // d'animation — une frappe maintenue en empilerait une par
+                // pression et la liste traînerait derrière le doigt.
+                proxy.scrollTo(rows[i].id, anchor: .center)
+            }
         }
-        .frame(maxHeight: 380)
     }
 
     /// L'état vide **dit pourquoi** il est vide — règle posée par H-T7.
