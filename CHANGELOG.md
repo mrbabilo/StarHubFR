@@ -14,6 +14,8 @@ where the exact log format was verified.
 
 ### Changed
 
+- **Trois images mortes quittent l'application.** `green_button`, `wood_button` et `wood_panel` étaient embarquées depuis le premier commit sans qu'aucune ligne de code ne les charge.
+
 - **Une ferme de mod a enfin sa vignette.** Les sauvegardes dont la ferme vient d'un mod affichaient un glyphe sur fond neutre, au milieu de sept illustrations — la case se lisait comme celle qui manque. Une neuvième image générique prend sa place, au même format que les autres.
 
 - **Le hub de traduction rejoint le système de design.** L'écran de diff, l'éditeur, les lots, l'index des sections et la comparaison de récupération reprennent les tailles et les espacements de l'app — les clés i18n gardent leur monospace, les compteurs leurs chiffres alignés.

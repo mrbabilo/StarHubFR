@@ -626,7 +626,7 @@ non installé), jamais des prédictions.
 
 ---
 
-### Cohérence UI : un seul langage pour toute l'app — **Axe H** · **1 item ouvert sur 13** *(relevé le 2026-09-09 : H-T7, H-T8 et H-T5e livrés, H-T5c abandonné — reste **H-T9**, le closage)*
+### Cohérence UI : un seul langage pour toute l'app — **Axe H** · ✅ **CLOS le 2026-09-09** *(13 items : 12 livrés, H-T5c abandonné par décision de l'auteur. Les six critères §10 sont tenus — le n°6, l'audit de fidélité de Découvrir, mesuré à zéro écart en H-T9.)*
 
 L'onglet Découvrir (axe G) a établi de fait un langage — cartes en grille
 adaptative, états qui portent l'action qui les lève, comptes honnêtes, un
@@ -1131,9 +1131,51 @@ par lot, une release par lot. Périmètre : visuel + navigation —
       > ✅ **Les cinq points sont passés** (vérification de l'auteur,
       > 2026-09-09), le glyphe monté de 8 à 9 pt compris : il reste aligné sur
       > la ligne de base de la clé qu'il annote.
-- [ ] **H-T9** — **Closage** : audit de fidélité (Découvrir visuellement
-      identique à la v1.25.0 malgré les évolutions du système), bibliothèque
-      `/design` complétée (Screens), nettoyage des vestiges. · **S**
+- [x] **H-T9** — ✅ **Livré le 2026-09-09 — l'axe H est clos.** **Closage** :
+      audit de fidélité (Découvrir visuellement identique à la v1.25.0 malgré
+      les évolutions du système), bibliothèque `/design` complétée (Screens),
+      nettoyage des vestiges. · **S**
+      **1. Audit de fidélité : ZÉRO écart** — critère §10 n°6 atteint. Méthode,
+      faute de pouvoir comparer à l'œil : résoudre chaque token en sa valeur
+      numérique et comparer les multisets de valeurs de style (polices,
+      espacements, rayons, marges, hauteurs) entre `v1.25.0` et aujourd'hui.
+      Résultat : **29 valeurs distinctes des deux côtés, aucune disparue,
+      aucune apparue**. Et **aucune valeur de token n'a bougé** depuis
+      v1.25.0 : le diff de `AppDesignCore.swift` et `AppDesignUI.swift` ne
+      porte que des ajouts, pas une seule ligne supprimée.
+      ⚠️ **Le chemin vaut d'être retenu : 21 écarts → 8 → 5 → 0, et les 21
+      étaient tous faux.** Chaque réduction est venue d'un **élargissement du
+      périmètre**, jamais d'un correctif. La vitrine de v1.25.0 tenait dans un
+      seul fichier ; aujourd'hui son style vit aussi dans `ModCard`,
+      `HeroHeader`, `SectionHeader`, `StatStrip`, `StateCard`, `NeutralBadge`,
+      `ErrorBanner` et `CategoryBadge`. Comparer fichier à fichier montrait des
+      disparitions fantômes. Deux pièges en particulier : `NeutralBadge` est
+      l'ancien `badge(_:)` privé de `DiscoverView` (son en-tête dit lui-même
+      pourquoi ses marges 6 et 2 **restent littérales** — les tokens voisins
+      valent 4 et 8, les substituer aurait changé l'apparence), et
+      `CategoryBadge` existait **déjà** en v1.25.0, dans `ModListView` : ses
+      valeurs paraissaient « nouvelles » parce qu'elles n'étaient pas dans le
+      fichier comparé. **Un compte n'est pas une lecture** — trois fois de
+      suite ici.
+      **2. Bibliothèque `/design` complétée** : quatrième artboard
+      `Screens.dc.html` (`canvas.json` n'en déclarait que trois — Foundations,
+      Components, Cards). Il montre ce que les autres ne montrent pas : le
+      **patron de page de liste** (en-tête fixe / défilement / pied fixe), les
+      journaux avec leur repli de familles et leurs comptes par source, les
+      deux états vides qui ne se lèvent pas pareil, et les quatre groupes des
+      Réglages. Il dit aussi ce qu'il ne montre pas, et pourquoi.
+      **3. Vestiges retirés** : `green_button.png`, `wood_button.png`,
+      `wood_panel.png` — hérités du commit initial (`8b068b2`, 2026-07-03),
+      **jamais chargés par une ligne de ce fork** (`git log -S` muet sur les
+      trois), et pourtant copiés dans le bundle à chaque build. Leur seule
+      autre trace est une déclaration de ressource dans le `.pbxproj` de
+      l'amont, pas un usage.
+      ▸ **Ce que H-T9 ne fait PAS, et c'est délibéré** : les **555** tailles de
+      police littérales du reste du dépôt (538 relevées en H-T7 + 17 de
+      `ThaiTranslationHubView` en H-T8) restent en place. Le critère §10 n°1 ne
+      porte que sur « les vues migrées », et les remettre à zéro sur quarante
+      fichiers serait un chantier plus gros que tout l'axe H réuni. **C'est un
+      relevé daté pour un futur axe, pas une dette à éteindre ici.**
 
 **Risques** : cohabitation ancien/nouveau style pendant le chantier (bornée :
 chaque lot livré est cohérent avec le système) ; `MainView` remet ses états

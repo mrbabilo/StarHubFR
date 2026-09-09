@@ -1,0 +1,190 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; }
+    a { color: rgb(0,122,255); } a:hover { color: rgb(0,90,200); }
+  </style>
+</helmet>
+
+<div style="background: #ffffff; color: rgba(0,0,0,.85); padding: 32px; display: flex; flex-direction: column; gap: 28px">
+
+  <div style="display: flex; flex-direction: column; gap: 6px">
+    <div style="font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: rgba(0,0,0,.45)">StarHubFR · design system · groupe Screens</div>
+    <div style="font-size: 26px; font-weight: 700; letter-spacing: -.02em">Les écrans, et la règle qui les tient ensemble</div>
+    <div style="font-size: 13px; color: rgba(0,0,0,.55); max-width: 66ch; text-wrap: pretty">
+      Les trois autres artboards montrent des <b style="font-weight: 600">pièces</b>. Celui-ci montre comment elles
+      s'assemblent — et surtout le patron que chaque page de liste répète : en-tête fixe, séparateur,
+      zone défilante, pied fixe. Un seul <code style="font-size: 12px">ScrollView</code> qui ferait tout défiler ensemble
+      est le défaut que ce patron empêche.
+    </div>
+  </div>
+
+  <!-- ── Le patron de page ─────────────────────────────────────── -->
+  <section style="display: flex; flex-direction: column; gap: 10px">
+    <div style="display: flex; align-items: baseline; gap: 10px">
+      <h2 style="margin: 0; font-size: 17px; font-weight: 600">Le patron de page de liste</h2>
+      <span style="font-size: 12px; color: rgba(0,0,0,.5)">ModListView, LogsView — <code style="font-size: 11px">VStack(spacing: 0)</code></span>
+    </div>
+    <div style="background: #ececec; border-radius: 10px; padding: 20px; display: flex; gap: 24px; align-items: flex-start">
+      <div style="width: 420px; border: 1px solid rgba(0,0,0,.12); border-radius: 8px; overflow: hidden; background: #fff">
+        <div style="background: #f2f2f4; padding: 10px 12px; font-size: 12px; font-weight: 500; border-bottom: 1px solid rgba(0,0,0,.10)">En-tête · filtres, recherche, actions — <b style="font-weight:600">fixe</b></div>
+        <div style="background: #fbfbfd; padding: 10px 12px; font-size: 12px; border-bottom: 1px solid rgba(0,0,0,.10)">Barre d'outils — <b style="font-weight:600">fixe</b></div>
+        <div style="padding: 0; height: 150px; overflow: hidden; position: relative; background: repeating-linear-gradient(180deg, #fff 0 28px, #fafafa 28px 56px)">
+          <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; color: rgba(0,0,0,.45)">zone défilante — <b style="font-weight:600; margin-left:.35em">seule</b> à défiler</div>
+        </div>
+        <div style="background: #f2f2f4; padding: 8px 12px; font-size: 11px; color: rgba(0,0,0,.55); border-top: 1px solid rgba(0,0,0,.10)">Pied · compte honnête « N sur M » — <b style="font-weight:600">fixe</b></div>
+      </div>
+      <div style="flex: 1; font-size: 12px; color: rgba(0,0,0,.6); line-height: 1.55; max-width: 44ch">
+        <p style="margin: 0 0 10px">Le pied porte un <b style="font-weight:600">compte honnête</b> : ce qui est montré sur ce qui a été reçu. Un filtre qui masque des lignes le dit ici, pas ailleurs.</p>
+        <p style="margin: 0">La zone défilante est virtualisée (<code style="font-size:11px">LazyVStack</code>). Sur ~2 000 lignes de journal, un <code style="font-size:11px">List</code> construisait et mesurait toutes les rangées d'un coup : 8 à 10 s de gel.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Journaux ──────────────────────────────────────────────── -->
+  <section style="display: flex; flex-direction: column; gap: 10px">
+    <div style="display: flex; align-items: baseline; gap: 10px">
+      <h2 style="margin: 0; font-size: 17px; font-weight: 600">Journaux</h2>
+      <span style="font-size: 12px; color: rgba(0,0,0,.5)">source, niveaux à compte, monospace — H-T7</span>
+    </div>
+    <div style="background: #ececec; border-radius: 10px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+      <div style="width: 100%; border: 1px solid rgba(0,0,0,.12); border-radius: 8px; overflow: hidden; background: #fff">
+
+        <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #f2f2f4; border-bottom: 1px solid rgba(0,0,0,.10); flex-wrap: wrap">
+          <span style="font-size: 12px; font-weight: 500; padding: 4px 12px; border-radius: 6px; background: rgb(0,122,255); color: #fff">Tout</span>
+          <span style="font-size: 12px; font-weight: 500; padding: 4px 12px; border-radius: 6px; color: rgba(0,0,0,.5)">StarHubFR</span>
+          <span style="font-size: 12px; font-weight: 500; padding: 4px 12px; border-radius: 6px; color: rgba(0,0,0,.5)">SMAPI</span>
+          <span style="width: 1px; height: 16px; background: rgba(0,0,0,.15)"></span>
+          <span style="font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 6px; color: rgba(0,0,0,.5)">Tout <span style="font-size:10px; font-weight:600; padding:1px 5px; border-radius:6px; background: rgba(0,0,0,.08)">119 486</span></span>
+          <span style="font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 6px; color: rgb(0,122,255); background: rgba(0,122,255,.15); border: 1px solid rgba(0,122,255,.35)">INFO <span style="font-size:10px; font-weight:600; padding:1px 5px; border-radius:6px; background: rgba(0,122,255,.22)">312</span></span>
+          <span style="font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 6px; color: rgba(0,0,0,.5)">WARN <span style="font-size:10px; font-weight:600; padding:1px 5px; border-radius:6px; background: rgba(0,0,0,.08)">27</span></span>
+          <span style="font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 6px; color: rgba(0,0,0,.5)">ERROR <span style="font-size:10px; font-weight:600; padding:1px 5px; border-radius:6px; background: rgba(0,0,0,.08)">3</span></span>
+        </div>
+
+        <div style="padding: 4px 0">
+          <div style="display: flex; gap: 8px; padding: 3px 8px; align-items: flex-start">
+            <span style="width: 14px; color: rgb(0,122,255); font-size: 11px; text-align: center">ⓘ</span>
+            <span style="width: 58px; font-size: 11px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: rgba(0,0,0,.5)">23:07:52</span>
+            <span style="font-size: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: rgba(0,0,0,.8)">Stardew Loading Optimizer démarré</span>
+          </div>
+          <div style="display: flex; gap: 8px; padding: 3px 8px; align-items: flex-start; background: rgba(0,0,0,.03); border-radius: 4px; margin: 0 6px">
+            <span style="width: 14px; color: rgba(0,0,0,.4); font-size: 11px; text-align: center">▸</span>
+            <span style="width: 58px; font-size: 11px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: rgba(0,0,0,.5)">23:07:19</span>
+            <div style="display: flex; flex-direction: column; gap: 1px">
+              <span style="font-size: 10px; font-weight: 500; color: rgb(0,122,255)">Content Patcher</span>
+              <span style="font-size: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: rgba(0,0,0,.6)">loaded asset 'Characters/Abigail'</span>
+              <span style="font-size: 10px; color: rgba(0,0,0,.5)">646 lignes semblables</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="padding: 4px 12px; font-size: 11px; color: rgba(0,0,0,.55); background: #f2f2f4; border-top: 1px solid rgba(0,0,0,.10)">342 sur 119 486 entrées</div>
+      </div>
+
+      <div style="font-size: 12px; color: rgba(0,0,0,.6); line-height: 1.55; max-width: 72ch">
+        <b style="font-weight: 600">Deux choses s'y jouent.</b> Les familles répétitives se replient en une ligne (« 646 lignes semblables ») —
+        rien n'est jeté, le détail est à un clic. Et les comptes des pastilles suivent la <b style="font-weight:600">source</b> choisie,
+        jamais la recherche en cours : sinon chercher un mot ferait croire que les erreurs ont disparu.
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Etats vides ──────────────────────────────────────────── -->
+  <section style="display: flex; flex-direction: column; gap: 10px">
+    <div style="display: flex; align-items: baseline; gap: 10px">
+      <h2 style="margin: 0; font-size: 17px; font-weight: 600">Deux vides qui ne se lèvent pas pareil</h2>
+      <span style="font-size: 12px; color: rgba(0,0,0,.5)">StateCard · <code style="font-size:11px">actionTitle</code> optionnel</span>
+    </div>
+    <div style="background: #ececec; border-radius: 10px; padding: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px">
+      <div>
+        <div style="font-size: 11px; color: rgba(0,0,0,.45); margin-bottom: 8px">Filtré — une issue existe</div>
+        <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: #f5f5f7; border: 1px solid rgba(0,0,0,.10); border-radius: 10px">
+          <span style="font-size: 20px; color: rgba(0,0,0,.35)">⛃</span>
+          <span style="font-size: 13px; color: rgba(0,0,0,.6)">Aucune ligne ne correspond à ces filtres</span>
+          <span style="flex-grow: 1; min-width: 8px"></span>
+          <a href="#" style="font-size: 13px; text-decoration: none">Effacer les filtres</a>
+        </div>
+      </div>
+      <div>
+        <div style="font-size: 11px; color: rgba(0,0,0,.45); margin-bottom: 8px">Réellement vide — <b style="font-weight:600">pas</b> de bouton inerte</div>
+        <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: #f5f5f7; border: 1px solid rgba(0,0,0,.10); border-radius: 10px">
+          <span style="font-size: 20px; color: rgba(0,0,0,.35)">✓</span>
+          <span style="font-size: 13px; color: rgba(0,0,0,.6)">Aucun journal pour cette session</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Reglages ─────────────────────────────────────────────── -->
+  <section style="display: flex; flex-direction: column; gap: 10px">
+    <div style="display: flex; align-items: baseline; gap: 10px">
+      <h2 style="margin: 0; font-size: 17px; font-weight: 600">Réglages</h2>
+      <span style="font-size: 12px; color: rgba(0,0,0,.5)">quatre groupes, dans l'ordre des gestes — H-T7</span>
+    </div>
+    <div style="background: #ececec; border-radius: 10px; padding: 20px; display: flex; gap: 24px; align-items: flex-start">
+      <div style="width: 400px; border: 1px solid rgba(0,0,0,.12); border-radius: 8px; background: #fff; padding: 20px; display: flex; flex-direction: column; gap: 20px">
+        <div>
+          <div style="font-size: 20px; font-weight: 600; margin-bottom: 10px">Jeu</div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <div style="font-size: 12px; padding: 8px 10px; background: #f5f5f7; border-radius: 6px">Dossier du jeu</div>
+            <div style="font-size: 12px; padding: 8px 10px; background: #f5f5f7; border-radius: 6px">Gestionnaire SMAPI</div>
+            <div style="font-size: 12px; padding: 8px 10px; background: #f5f5f7; border-radius: 6px">Options de lancement</div>
+            <div style="font-size: 12px; padding: 8px 10px; background: #f5f5f7; border-radius: 6px">Extensions cœur</div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size: 20px; font-weight: 600; margin-bottom: 10px">Mods &amp; contenu</div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <div style="font-size: 12px; padding: 8px 10px; background: #f5f5f7; border-radius: 6px">Nexus Mods</div>
+            <div style="font-size: 12px; padding: 8px 10px; background: #f5f5f7; border-radius: 6px">Traduction assistée <span style="color: rgba(0,0,0,.45)">· glossaire, secours en ligne</span></div>
+            <div style="font-size: 12px; padding: 8px 10px; background: #f5f5f7; border-radius: 6px">Comportement des mods</div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size: 20px; font-weight: 600; margin-bottom: 10px">Données &amp; stockage</div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <div style="font-size: 12px; padding: 8px 10px; background: #f5f5f7; border-radius: 6px">Gestion</div>
+            <div style="font-size: 12px; padding: 8px 10px; background: #f5f5f7; border-radius: 6px">Sauvegarde</div>
+            <div style="font-size: 12px; padding: 8px 10px; background: #f5f5f7; border-radius: 6px">Développeur</div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size: 20px; font-weight: 600; margin-bottom: 10px">À propos</div>
+          <div style="font-size: 12px; padding: 8px 10px; background: #f5f5f7; border-radius: 6px">Informations sur l'app</div>
+        </div>
+      </div>
+      <div style="flex: 1; font-size: 12px; color: rgba(0,0,0,.6); line-height: 1.55; max-width: 44ch">
+        <p style="margin: 0 0 10px">Le groupe <b style="font-weight: 600">Jeu</b> suit l'ordre des <b style="font-weight:600">gestes</b>, pas l'alphabet : on choisit un dossier, puis on installe SMAPI dedans, puis on lance. Qui découvre l'écran le lit dans cet ordre-là.</p>
+        <p style="margin: 0 0 10px">Le glossaire et le secours en ligne vivent <b style="font-weight:600">dans</b> « Traduction assistée », pas à côté — ce sont onze sections de premier niveau, pas treize.</p>
+        <p style="margin: 0">Les réglages de développeur ont quitté le milieu de l'écran : ce sont les moins utilisés.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Ce que l'artboard ne montre pas ──────────────────────── -->
+  <section style="display: flex; flex-direction: column; gap: 10px">
+    <div style="display: flex; align-items: baseline; gap: 10px">
+      <h2 style="margin: 0; font-size: 17px; font-weight: 600">Ce que cet artboard ne montre pas</h2>
+    </div>
+    <div style="background: #fff8e6; border: 1px solid rgba(180,140,0,.3); border-radius: 10px; padding: 16px; font-size: 12px; color: rgba(0,0,0,.7); line-height: 1.6; max-width: 78ch">
+      <p style="margin: 0 0 8px">Ce sont des <b style="font-weight: 600">reconstructions HTML</b>, pas des captures. Le code Swift reste la source de vérité —
+      <code style="font-size: 11px">AppDesignCore.swift</code>, <code style="font-size: 11px">AppDesignUI.swift</code>, <code style="font-size: 11px">Views/</code>.
+      Les matériaux macOS (<code style="font-size: 11px">.background.secondary</code>, <code style="font-size: 11px">.fill.tertiary</code>) et les couleurs
+      système sont approchés : leur rendu réel dépend du thème et du contraste de la machine.</p>
+      <p style="margin: 0">Trois écrans manquent volontairement — la vitrine <b style="font-weight: 600">Découvrir</b> (déjà couverte par l'artboard Cards, et c'est
+      elle qui a servi de référence à tout le système), le <b style="font-weight: 600">hub de traduction</b> (H-T8 n'y a fait qu'un reskin de continuité :
+      sa structure n'a pas changé) et la <b style="font-weight: 600">fiche mod</b>, dont seule une partie a été migrée en H-T4b.</p>
+    </div>
+  </section>
+
+</div>
+</x-dc>
+</body>
+</html>
