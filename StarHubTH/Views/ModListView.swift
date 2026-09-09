@@ -34,9 +34,10 @@ struct ModListView: View {
     /// écritures passent par `listState.filters` en clair, pour qu'on voie au
     /// premier coup d'œil ce qui modifie un état partagé.
     private var filters: ModListFilters { listState.filters }
-    /// Number of mods rendered per page. Tuned so the list stays responsive
-    /// even with several hundred installed mods.
-    private let pageSize: Int = 15
+    /// Nombre de mods rendus par page — liste **et** grille, une seule
+    /// constante pour les deux dispositions. 12 depuis le 2026-09-09 (15
+    /// auparavant), à la demande de l'auteur.
+    private let pageSize: Int = 12
     @State private var showInstallSheet = false
     /// La grille optionnelle du lot Mods (H-T4). Liste par défaut : 966 mods
     /// se parcourent en rangées denses. `@AppStorage` suit le patron de
