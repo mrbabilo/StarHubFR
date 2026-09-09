@@ -1332,6 +1332,13 @@ enum L10n {
     }
 
     // MARK: - ModInstall
+    /// L'alerte « une nouvelle release existe » au lancement.
+    enum AppUpdate {
+        static let title      = "app_update_title"
+        static let seeRelease = "app_update_see_release"
+        static let later      = "app_update_later"
+    }
+
     /// Le bilan post-installation, dans sa fenêtre dédiée (remplace
     /// l'écran de succès interne de la feuille).
     enum InstallReport {

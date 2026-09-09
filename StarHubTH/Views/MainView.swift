@@ -30,7 +30,15 @@ struct MainView: View {
     /// bouton « Archive suivante » de la fenêtre de bilan. ⚠️ Son onDismiss
     /// ne discard RIEN : ce sont les fichiers originaux de l'utilisateur.
     @State private var showDropInstall = false
+    /// L'alerte « nouvelle release de StarHubFR » — présentée seulement si
+    /// aucune feuille d'installation n'est ouverte : deux `.sheet`
+    /// simultanés et l'un se perd en silence (spec §7.4).
+    @State private var showReleaseAlert = false
     @Environment(\.openWindow) private var openWindow
+
+    private var canPresentReleaseAlert: Bool {
+        !showDownloadedInstall && !showDropInstall
+    }
     
 
     private var navigationTitleText: String {
@@ -359,6 +367,29 @@ struct MainView: View {
             // fenêtre de bilan reste ouverte derrière.
             openWindow(id: "main")
             vm.consumeReportDetailFocus()
+        }
+        // L'alerte release attend son tour : posée par le check au
+        // lancement, elle rattrape à la fermeture de chaque feuille.
+        .onChange(of: vm.availableAppRelease) { _, release in
+            showReleaseAlert = (release != nil && canPresentReleaseAlert)
+        }
+        .onChange(of: showDownloadedInstall) { _, open in
+            if !open, vm.availableAppRelease != nil { showReleaseAlert = canPresentReleaseAlert }
+        }
+        .onChange(of: showDropInstall) { _, open in
+            if !open, vm.availableAppRelease != nil { showReleaseAlert = canPresentReleaseAlert }
+        }
+        .sheet(isPresented: $showReleaseAlert, onDismiss: {
+            // Fermeture par Esc ou clic hors cadre = acquittement aussi :
+            // une alerte chassée ne re-vient pas au prochain lancement
+            // pour le même tag.
+            if let release = vm.availableAppRelease {
+                vm.acknowledgeRelease(release)
+            }
+        }) {
+            if let release = vm.availableAppRelease {
+                AppUpdateAlertView(vm: vm, release: release)
+            }
         }
     }
     
