@@ -193,6 +193,7 @@ let package = Package(
                 "SaveFarmNameResolver.swift",
                 "Models/HealthIssue.swift",
                 "Models/HealthIssueResolver.swift",
+                "Models/AppSupportMigration.swift",
             ]
         ),
         .testTarget(
@@ -988,6 +989,11 @@ let package = Package(
             name: "CommandPaletteSearchTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/CommandPaletteSearchTests"
+        ),
+        .testTarget(
+            name: "AppSupportMigrationTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/AppSupportMigrationTests"
         ),
     ]
 )
