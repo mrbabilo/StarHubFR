@@ -52,11 +52,11 @@
   "fork/StarHubFR": {
     "archived": false,
     "default_branch": "main",
-    "last_commit": "e9bfb39",
-    "last_commit_at": "2026-09-09T17:10:41Z",
-    "pushed_at": "2026-09-09T17:11:05Z",
-    "release": "v1.40.0",
-    "released_at": "2026-09-09T17:11:29Z"
+    "last_commit": "e1251a8",
+    "last_commit_at": "2026-09-09T22:45:53Z",
+    "pushed_at": "2026-09-09T22:45:58Z",
+    "release": "v1.42.0",
+    "released_at": "2026-09-09T22:45:59Z"
   },
   "gmcm-source": {
     "archived": false,
@@ -99,7 +99,7 @@
   "mod/modern-config-menu": {
     "gitHubRepo": null,
     "name": null,
-    "version": "2.0.0"
+    "version": "2.1.0"
   },
   "mod/profiler": {
     "gitHubRepo": "SinZ163/StardewMods",
