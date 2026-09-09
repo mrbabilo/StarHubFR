@@ -1744,7 +1744,16 @@ préférences et le Trousseau en commun), puis ~~**C4**~~ *(clos le
 **E1–E3** et **D3** (horizon, sous décision produit).
 
 **Non classés ici parce qu'ils attendent une décision, pas un développement** :
-`X55` (politique de purge), `X103` (suppression des mods : corbeille livrée en
+~~`X55`~~ *(politique de purge — **rien n'attend** : tranchée « on efface tout »
+le 2026-09-04 et implémentée (`ModRemovalPurge`). Son seul reliquat assumé —
+les 35 entrées fantômes déjà en place, à balayer « comme un ménage explicite,
+jamais comme un automatisme » — est **couvert par X25** :
+`MaintenanceInventory.stalePreferenceKeys` juge exactement les quatre magasins
+que X55 a câblés, sous bouton, avec la garde du parc vide que X55 réclamait.
+**Mesuré sur les préférences réelles le 2026-09-09 : 0 fantôme** sur 735
+entrées — 537 horodatages d'activation, 188 identifiants Nexus, 10 configs de
+profil, tous pointant sur un dossier existant. Ne pas rouvrir)*,
+`X103` (suppression des mods : corbeille livrée en
 X103-B ; reste la rétention des archives Nexus, §8.1 option C), `D3-T1`
 (un backend ou non), `F5` (quand casser la cohabitation avec l'amont),
 `F1-T2` (règle permanente, pas une tâche).
