@@ -1053,7 +1053,8 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
       computed) est recalculé à chaque accès — aplatissement des ~966 mods, `Set`,
       résolution complète — et lu plusieurs fois par rendu (`systemAlertCount`,
       `activeConflictCount`, écran d'alertes, accueil). Chaque tick de `scanProgress`
-      (publié **par mod** pendant un scan) fait réévaluer les corps observateurs : ~un
+      (publié **par mod** pendant un scan — ⚠️ **périmé** : throttlé à ~12/s et
+      publié sur main depuis `87de592`, voir tranche perf & concurrence de F2) fait réévaluer les corps observateurs : ~un
       recalcul complet par mod scanné, soit ~966 par passe. Coût unitaire faible
       (microsecondes), mais c'est le patron exact qui a beach-ballé les journaux (voir
       Traps, `List` → `LazyVStack`). **Mesurer avant d'agir** ; une mémoïsation sur
@@ -1148,9 +1149,52 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
         (`StarHubTHViewModel.swift:8666`) extrait directement dans
         `Mods/` via le même `extractArchive` — zip-slip et détection de
         format couverts, mais sans la garde symlinks ni le strip
-        `__MACOSX`. Source unique et curatée à ce jour ; à reprendre le
-        jour où le hub s'ouvre à d'autres sources.
-      Reste dans F2 : perf + concurrence.
+      `__MACOSX`. Source unique et curatée à ce jour ; à reprendre le
+      jour où le hub s'ouvre à d'autres sources.
+      ▸ **Tranche « perf & concurrence » passée (2026-09-09)** — re-vérification
+      des constats accumulés contre le code, puis balayage de la surface de
+      concurrence du scan. **Zéro nouveau défaut, un constat périmé corrigé** :
+      - `healthIssues` (`StarHubTHViewModel.swift:419`) reste une computed
+        `@MainActor` réévaluée à chaque accès, sans mémoïsation — le patron
+        est reconnu dans le code (la doc d'`affirmedUpdates` raconte l'avoir
+        publié *pour* l'éviter) et son traitement reste **porté en F3**
+        (arbitrage du 2026-08-01 : passe groupée, pas au fil de l'eau) ;
+      - `exportTranslationLot`/`importTranslationLot`
+        (`StarHubTHViewModel.swift:1485`, `:1534`) restent synchrones sur le
+        fil principal — `TranslationLot.build` inline, sans `Task.detached`
+        ni progression, alors que le patron de la tâche détachée est déjà
+        celui du VM partout ailleurs (couverture FR, profil, mesures) ; F3 ;
+      - **constat périmé corrigé** : `scanProgress` n'est plus « publié par
+        mod » (note du 2026-09-02) — throttlé à ~12/s et publié sur main
+        depuis `87de592` ; l'annotation est posée sur la note ;
+      - la latence de frappe (F3) reste non tranchée régression/défaut
+        préexistant : le témoin A/B `v1.11.1` exige une manipulation à
+        l'écran — interdite à l'agent, à l'auteur de jouer ;
+      - **surface de concurrence**, balayage complet des états mutés par
+        `scanMods()` (qui peut courir contre lui-même, queue globale
+        concurrente, cas admis au `manifestCache`) : le cache est verrouillé
+        des deux côtés (lecture `:2752`, écriture `:2894`) ; les trois index
+        de dépendances (`installedUniqueIds`, `installedModStates`,
+        `installedModsByUniqueId`) n'ont **pas** de verrou et n'en ont pas
+        besoin — écrits uniquement sous `main.async` (`:3099`, `:3770`),
+        lus par les rendus de vues : **confinement main, invariant à
+        préserver** (les déplacer hors main sans verrou referait la classe
+        `EXC_BAD_ACCESS` qu'a eue le cache) ; registre
+        (`installedModRegistryLock` + `defer`), mesure du poids
+        (`modsSizeLock` + drapeau de re-demande), `parseSMAPILog` (parsé en
+        fond, publié sur main) : tous au pattern ;
+      - **une observation, sans défaut** : la quarantaine du réparateur est
+        nommée à la seconde (`ModFolderRepairer.nowStamp`, pas d'UUID —
+        même forme que X81), donc deux réparations concurrentes dans la
+        même seconde partagent le même `_Trash_`. Conséquence nulle :
+        `moveToTrash` est fail-safe par item (échec → item laissé en place,
+        jamais d'abandon, la passe suivante le reprend), pas de perte
+        possible. Un suffixe UUID serait l'endurcissement trivial si le
+        réparateur prend un jour un état de passe.
+      **L'audit F2 est complet.** Restent ouverts ses deux sous-items de
+      build — **F2-T1** livré, **F2-T2** (le bottleneck `swiftc`, un choix
+      d'architecture) — et les **correctifs** de perf, dont le seau désigné
+      est **F3**.
       Le périmètre « build » a son propre découpage — voir **F2-T1** (gains rapides déjà
       identifiés) et **F2-T2** (le bottleneck réel, qui relève d'un choix d'architecture
       et non d'un script Python).
