@@ -424,101 +424,52 @@ struct SidebarNavGroups: View {
     @Binding var currentTab: SidebarDestination
     @AppStorage("showThaiTranslationHub") private var showThaiTranslationHub = false
 
+    /// Le badge d'une destination — donnée **vivante** du ViewModel, pas de
+    /// `SidebarOrder` : il change à chaque scan. `nil` quand l'entrée ne
+    /// compte rien.
+    private func badge(_ d: SidebarDestination) -> (count: Int, color: Color)? {
+        switch d {
+        case .updates:
+            return (vm.outOfDateMods.count + vm.nexusUpdates.count, .blue)
+        case .systemAlerts:
+            return (vm.systemAlertCount, .orange)
+        case .quarantine:
+            return (vm.lastRepairReport?.quarantined.count ?? 0, .purple)
+        default:
+            return nil
+        }
+    }
+
+    private func group(_ g: SidebarGroup, header: String,
+                       icon: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            SidebarSectionHeader(title: header, icon: icon)
+            ForEach(SidebarOrder.entries(in: g,
+                                         showThaiHub: showThaiTranslationHub)) { e in
+                // `badge: Int?` est déjà optionnel côté SidebarItem — `nil`
+                // veut dire « cet item ne compte rien », `0` « il compte, et
+                // il n'y a rien ». Pas de branche à écrire.
+                let b = badge(e.destination)
+                SidebarItem(icon: e.icon, label: vm.L(e.labelKey),
+                            tab: e.destination, badge: b?.count,
+                            badgeColor: b?.color ?? .blue,
+                            currentTab: $currentTab)
+            }
+        }
+    }
+
+    /// Le groupe `.top` (l'Accueil) n'est **pas** rendu ici : il vit dans
+    /// `AccountHeaderCard`, en tête de colonne. Il est dans `SidebarOrder`
+    /// parce que le menu « Aller » et la palette en ont besoin, pas la barre.
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // BIBLIOTHÈQUE — l'usage quotidien.
-            VStack(alignment: .leading, spacing: 2) {
-                SidebarSectionHeader(title: vm.L(L10n.Main.groupLibrary),
-                                     icon: "square.grid.2x2")
-
-                SidebarItem(icon: "puzzlepiece.extension.fill",
-                            label: vm.L(L10n.Mods.mods), tab: .mods,
-                            currentTab: $currentTab)
-
-                SidebarItem(icon: "safari.fill",
-                            label: vm.L(L10n.Main.discover), tab: .discover,
-                            currentTab: $currentTab)
-
-                // Toujours visible, même à zéro : sans l'entrée, plus
-                // moyen de déclencher une vérification Nexus à la main.
-                SidebarItem(icon: "arrow.triangle.2.circlepath",
-                            label: vm.L(L10n.Main.modUpdates), tab: .updates,
-                            badge: vm.outOfDateMods.count + vm.nexusUpdates.count,
-                            badgeColor: .blue, currentTab: $currentTab)
-            }
-
-            // PARTIES.
-            VStack(alignment: .leading, spacing: 2) {
-                SidebarSectionHeader(title: vm.L(L10n.Main.groupSaves),
-                                     icon: "gamecontroller")
-
-                SidebarItem(icon: "person.2.fill",
-                            label: vm.L(L10n.Profiles.title), tab: .profiles,
-                            currentTab: $currentTab)
-
-                SidebarItem(icon: "folder.fill",
-                            label: vm.L(L10n.Saves.saves), tab: .saves,
-                            currentTab: $currentTab)
-            }
-
-            // SANTÉ & SECOURS — ce qui répare et ce qui prévient.
-            VStack(alignment: .leading, spacing: 2) {
-                SidebarSectionHeader(title: vm.L(L10n.Main.groupHealth),
-                                     icon: "cross.case")
-
-                // Atteignable au vert aussi : la page porte
-                // « Revérifier le journal », et un journal muet avant une
-                // installation ne dit rien de l'après.
-                SidebarItem(icon: "exclamationmark.triangle.fill",
-                            label: vm.L(L10n.Main.systemAlerts), tab: .systemAlerts,
-                            badge: vm.systemAlertCount, badgeColor: .orange,
-                            currentTab: $currentTab)
-
-                // Idem : l'entrée n'apparaissait autrefois qu'avec des
-                // éléments en quarantaine — cachant la page précisément
-                // quand on veut lancer l'analyse et la voir ne rien
-                // trouver.
-                SidebarItem(icon: "tray.full.fill",
-                            label: vm.L(L10n.Main.quarantine), tab: .quarantine,
-                            badge: vm.lastRepairReport?.quarantined.count ?? 0,
-                            badgeColor: .purple, currentTab: $currentTab)
-
-                SidebarItem(icon: "arrow.uturn.backward.circle.fill",
-                            label: vm.L(L10n.ModInstall.manageBackups),
-                            tab: .installBackups, currentTab: $currentTab)
-
-                SidebarItem(icon: "archivebox.fill",
-                            label: vm.L(L10n.ModConfigBackups.tabTitle),
-                            tab: .configBackups, currentTab: $currentTab)
-
-                SidebarItem(icon: "internaldrive",
-                            label: vm.L(L10n.Maintenance.title),
-                            tab: .maintenance, currentTab: $currentTab)
-            }
-
-            // APPLICATION.
-            VStack(alignment: .leading, spacing: 2) {
-                SidebarSectionHeader(title: vm.L(L10n.Main.groupApp),
-                                     icon: "gearshape")
-
-                SidebarItem(icon: "terminal.fill",
-                            label: vm.L(L10n.Logs.logs), tab: .logs,
-                            currentTab: $currentTab)
-
-                SidebarItem(icon: "gearshape.fill",
-                            label: vm.L(L10n.Settings.settings), tab: .settings,
-                            currentTab: $currentTab)
-
-                SidebarItem(icon: "doc.text.fill",
-                            label: vm.L(L10n.Main.appChangelog), tab: .appChangelog,
-                            currentTab: $currentTab)
-
-                if showThaiTranslationHub {
-                    SidebarItem(icon: "globe.asia.australia.fill",
-                                label: vm.L(L10n.ThaiHub.title), tab: .thaiHub,
-                                currentTab: $currentTab)
-                }
-            }
+            group(.library, header: vm.L(L10n.Main.groupLibrary),
+                  icon: "square.grid.2x2")
+            group(.saves, header: vm.L(L10n.Main.groupSaves),
+                  icon: "gamecontroller")
+            group(.health, header: vm.L(L10n.Main.groupHealth),
+                  icon: "cross.case")
+            group(.app, header: vm.L(L10n.Main.groupApp), icon: "gearshape")
         }
     }
 }
