@@ -12,25 +12,29 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
-### Changed
-
-- **La liste des mods affiche 12 mods par page**, au lieu de 15.
+### Added
 
 - **Les archives Nexus peuvent être conservées, si vous le demandez.** Une fois activée dans les Réglages, la fonction garde le fichier servi par Nexus après chaque installation réussie : un mod supprimé se réinstalle depuis l'écran Entretien, sans réseau et dans sa version exacte. Désactivée par défaut, bornée par une rétention, et son poids est affiché avec le reste.
 
-- **Trois images mortes quittent l'application.** `green_button`, `wood_button` et `wood_panel` étaient embarquées depuis le premier commit sans qu'aucune ligne de code ne les charge.
-
 - **Une ferme de mod a enfin sa vignette.** Les sauvegardes dont la ferme vient d'un mod affichaient un glyphe sur fond neutre, au milieu de sept illustrations — la case se lisait comme celle qui manque. Une neuvième image générique prend sa place, au même format que les autres.
 
-- **Le hub de traduction rejoint le système de design.** L'écran de diff, l'éditeur, les lots, l'index des sections et la comparaison de récupération reprennent les tailles et les espacements de l'app — les clés i18n gardent leur monospace, les compteurs leurs chiffres alignés.
+### Changed
+
+- **Les journaux parlent la langue de l'app.** Filtres, barre d'outils et lignes de journal reprennent les tailles, espacements et couleurs du système de design — le monospace y entre pour la première fois. Un état vide dit désormais s'il est vide *parce qu'un filtre exclut tout*, et propose de le lever.
 
 - **Les Réglages se lisent par nature.** Onze sections à la file deviennent quatre groupes titrés — Jeu, Mods & contenu, Données & stockage, À propos — et le groupe Jeu suit l'ordre des gestes : on choisit un dossier de jeu, puis on installe SMAPI dedans, puis on lance. Tailles, espacements et couleurs passent au système de design.
 
-- **Les journaux parlent la langue de l'app.** Filtres, barre d'outils et lignes de journal reprennent les tailles, espacements et couleurs du système de design — le monospace y entre pour la première fois. Un état vide dit désormais s'il est vide *parce qu'un filtre exclut tout*, et propose de le lever.
+- **Le hub de traduction rejoint le système de design.** L'écran de diff, l'éditeur, les lots, l'index des sections et la comparaison de récupération reprennent les tailles et les espacements de l'app — les clés i18n gardent leur monospace, les compteurs leurs chiffres alignés.
+
+- **La liste des mods affiche 12 mods par page**, au lieu de 15.
 
 ### Fixed
 
 - **Les infobulles de la barre d'outils des journaux s'affichent enfin.** Défilement automatique, copier, grouper par mod et recharger sont quatre boutons sans libellé dont l'aide au survol était la seule explication — leur zone sensible était trop petite pour que macOS la déclenche.
+
+### Removed
+
+- **Trois images mortes quittent l'application.** `green_button`, `wood_button` et `wood_panel` étaient embarquées depuis le premier commit sans qu'aucune ligne de code ne les charge.
 
 ## [1.39.0] - 2026-09-09
 
