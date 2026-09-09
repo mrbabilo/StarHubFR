@@ -964,7 +964,8 @@ par lot, une release par lot. Périmètre : visuel + navigation —
       > tokenisation peut donc être répétée sur les 53 sites de `SettingsView`
       > sans reposer la question.
 
-      ✅ **Lot Réglages (phase 6) livré le 2026-09-09.** `SettingsView` tombe de
+      ✅ **Lot Réglages (phase 6) livré et vérifié à l'écran le 2026-09-09.**
+      `SettingsView` tombe de
       **53 tailles littérales à ZÉRO** : les deux vues du lot sont à zéro, le
       critère §10 n°1 est atteint sur tout le périmètre de H-T7. Onze sections
       de premier niveau — et non treize : **le glossaire et le secours en ligne
@@ -994,6 +995,14 @@ par lot, une release par lot. Périmètre : visuel + navigation —
       > 5. « Traduction assistée » contient toujours le glossaire **et** le
       > secours en ligne — ils n'ont pas été hissés au premier niveau, et
       > n'apparaissent nulle part en double.
+      >
+      > ✅ **Les cinq points sont passés** (vérification de l'auteur,
+      > 2026-09-09). Aucune section perdue au déplacement des onze blocs, et
+      > les quatre titres tiennent en français à la largeur minimale.
+
+      **H-T7 est clos.** Les deux vues du lot sont à zéro taille littérale, les
+      deux lots sont vérifiés à l'écran. L'axe H garde **quatre** items ouverts
+      — H-T5c, H-T5e, H-T8, H-T9.
 
       **Ce qui n'est PAS dans ce lot, et attend H-T9** : le dépôt porte **538**
       tailles littérales au total — `ModDetailView` 106, `MainView` 57,
