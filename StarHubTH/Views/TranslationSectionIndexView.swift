@@ -30,13 +30,13 @@ struct TranslationSectionIndexView: View {
         VStack(alignment: .leading, spacing: 6) {
             TextField(searchPlaceholder, text: $query)
                 .textFieldStyle(.roundedBorder)
-                .font(.system(size: 11))
+                .font(AppDesign.Font.footnote)
                 .padding(.horizontal, 10)
                 .padding(.top, 10)
             Divider()
             if matches.isEmpty {
                 Text(noMatchLabel)
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
                     .foregroundColor(.secondary)
                     .padding(10)
             } else {
@@ -64,12 +64,12 @@ struct TranslationSectionIndexView: View {
                     // différents seraient indiscernables ici, sauf par leur
                     // première clé.
                     Text(group.displayTitle(fallback: untitledLabel, orphan: orphanLabel))
-                        .font(.system(size: 11, weight: .medium))
+                        .font(AppDesign.Font.footnote(.medium))
                         .foregroundColor(.primary)
                         .lineLimit(1)
                     // Ce qui distingue deux sections homonymes du même composant.
                     Text(group.firstKey)
-                        .font(.system(size: 9, design: .monospaced))
+                        .font(AppDesign.Font.monoIconXXS)
                         .foregroundColor(.secondary)
                         .lineLimit(1)
                 }

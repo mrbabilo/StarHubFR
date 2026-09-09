@@ -70,6 +70,11 @@ enum AppDesign {
         static let monoFootnote = footnote.monospaced()
         // Idem, un cran au-dessus — le corps d'une ligne de journal.
         static let monoCaption  = caption.monospaced()
+        // Deux crans en dessous : les clés d'un fichier i18n, affichées en
+        // annotation d'autre chose plutôt qu'en corps de texte. Les journaux
+        // n'en avaient pas besoin — c'est le hub de traduction qui les emploie.
+        static let monoIconXS   = iconXS.monospaced()
+        static let monoIconXXS  = iconXXS.monospaced()
 
         // Helpers avec weight — évite de répéter .system(size:weight:)
         static func iconXXS(_ w: SwiftUI.Font.Weight) -> SwiftUI.Font {

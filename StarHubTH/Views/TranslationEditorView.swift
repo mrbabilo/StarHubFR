@@ -66,17 +66,17 @@ struct TranslationEditorView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(row.key)
-                .font(.system(size: 12, design: .monospaced))
+                .font(AppDesign.Font.monoCaption)
                 .foregroundColor(.secondary)
                 .textSelection(.enabled)
             if let component = row.component {
                 Text(component)
-                    .font(.system(size: 10))
+                    .font(AppDesign.Font.iconXS)
                     .foregroundColor(.secondary.opacity(0.8))
             }
 
             Text(vm.L(L10n.Mods.translationEditorSource))
-                .font(.system(size: 11, weight: .semibold))
+                .font(AppDesign.Font.footnote(.semibold))
                 .foregroundColor(.secondary)
             // Le pont AppKit remplace un `Text` sélectionnable : c'est la
             // sélection **lue** qui manquait, pas la sélection elle-même.
@@ -93,10 +93,10 @@ struct TranslationEditorView: View {
             selectionRow.frame(height: 24, alignment: .leading)
 
             Text(vm.L(L10n.Mods.translationEditorTarget))
-                .font(.system(size: 11, weight: .semibold))
+                .font(AppDesign.Font.footnote(.semibold))
                 .foregroundColor(.secondary)
             TextEditor(text: $draft)
-                .font(.system(size: 13))
+                .font(AppDesign.Font.body)
                 .frame(minHeight: 90)
                 .overlay(RoundedRectangle(cornerRadius: 6)
                     .stroke(Color.primary.opacity(0.15), lineWidth: 1))
@@ -209,13 +209,13 @@ struct TranslationEditorView: View {
         } else {
             VStack(alignment: .leading, spacing: 4) {
                 Text(vm.L(L10n.Mods.translationEditorTokens))
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(AppDesign.Font.iconXS(.semibold))
                     .foregroundColor(.secondary)
                 HStack(spacing: 6) {
                     ForEach(sourceTokens, id: \.self) { token in
                         Button { draft += token } label: {
                             Text(token)
-                                .font(.system(size: 11, design: .monospaced))
+                                .font(AppDesign.Font.monoFootnote)
                                 .padding(.horizontal, 6).padding(.vertical, 3)
                                 .background(Color.accentColor.opacity(0.12))
                                 .cornerRadius(4)
@@ -245,7 +245,7 @@ struct TranslationEditorView: View {
                 // Même mécanique que les chips de glossaire : cliquer insère.
                 Button { draft += proposal } label: {
                     Text(proposal)
-                        .font(.system(size: 11))
+                        .font(AppDesign.Font.footnote)
                         .lineLimit(1)
                         .padding(.horizontal, 6).padding(.vertical, 2)
                         .background(Color.accentColor.opacity(0.15))
@@ -295,7 +295,7 @@ struct TranslationEditorView: View {
                 ForEach(glossaryMatches, id: \.en) { entry in
                     Button { draft += entry.fr } label: {
                         Text("\(entry.en) → \(entry.fr)")
-                            .font(.system(size: 11, design: .monospaced))
+                            .font(AppDesign.Font.monoFootnote)
                             .padding(.horizontal, 6).padding(.vertical, 2)
                             .background(Color.green.opacity(0.12))
                             .cornerRadius(4)
@@ -377,7 +377,7 @@ struct TranslationEditorView: View {
                 // le traducteur ne peut pas se permettre de manquer, quelle
                 // que soit sa langue d'UI.
                 Text(vm.L(L10n.Mods.translationEditorFailed))
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(AppDesign.Font.footnote(.semibold))
                     .foregroundColor(.red.opacity(0.85))
                 // Le diagnostic, verbatim : c'est exactement la phrase posée
                 // dans le journal (`log(...)` côté ViewModel), donc greppable
@@ -387,7 +387,7 @@ struct TranslationEditorView: View {
                 // `.textSelection` porte sur le texte complet, jamais sur un
                 // « … » qui aurait avalé la moitié d'un chemin.
                 Text(failureMessage)
-                    .font(.system(size: 10))
+                    .font(AppDesign.Font.iconXS)
                     .foregroundColor(.secondary)
                     .textSelection(.enabled)
             }
@@ -401,7 +401,7 @@ struct TranslationEditorView: View {
                 // suffisent déjà plus.
                 Text(String(format: vm.L(L10n.Mods.translationEditorBlocked), Int64(blocked.count))
                      + "  " + blocked.map(\.token).joined(separator: "  "))
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
                     .foregroundColor(.red.opacity(0.85))
                     .lineLimit(3)
                 // Pas de `lineLimit` : c'est l'information la plus
@@ -409,7 +409,7 @@ struct TranslationEditorView: View {
                 // bouton juste en dessous — et à 155 caractères en français
                 // elle ne tient déjà pas sur une ligne.
                 Text(vm.L(L10n.Mods.translationEditorMismatchHint))
-                    .font(.system(size: 10))
+                    .font(AppDesign.Font.iconXS)
                     .foregroundColor(.secondary)
             }
         } else {

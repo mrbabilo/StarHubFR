@@ -55,7 +55,7 @@ struct TranslationBatchView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text(String(format: vm.L(L10n.Mods.translationBatchRecap),
                         Int64(eligible.count), engineName))
-                .font(.system(size: 12))
+                .font(AppDesign.Font.caption)
                 .fixedSize(horizontal: false, vertical: true)
             HStack {
                 Spacer()
@@ -98,7 +98,7 @@ struct TranslationBatchView: View {
             ProgressView(value: Double(progress.done), total: Double(max(progress.total, 1)))
             Text(String(format: vm.L(L10n.Mods.translationBatchProgress),
                         Int64(progress.done), Int64(progress.total)))
-                .font(.system(size: 11, design: .monospaced))
+                .font(AppDesign.Font.monoFootnote)
                 .foregroundColor(.secondary)
             HStack {
                 Spacer()
@@ -114,12 +114,12 @@ struct TranslationBatchView: View {
             Text(String(format: vm.L(L10n.Mods.translationBatchReport),
                         Int64(report.translated), Int64(report.refusedRowIDs.count),
                         Int64(report.errors)))
-                .font(.system(size: 12))
+                .font(AppDesign.Font.caption)
                 .fixedSize(horizontal: false, vertical: true)
             if report.softGlossaryIgnored > 0 {
                 Text(String(format: vm.L(L10n.Mods.translationBatchSoftIgnored),
                             Int64(report.softGlossaryIgnored)))
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -128,7 +128,7 @@ struct TranslationBatchView: View {
                 // service en ligne n'a pas le même statut qu'une locale.
                 Text(String(format: vm.L(L10n.Mods.translationBatchFallback),
                             Int64(report.translatedByFallback)))
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -136,7 +136,7 @@ struct TranslationBatchView: View {
                 // Deux causes, deux phrases : un quota épuisé se règle chez
                 // DeepL, un rythme refusé se règle en attendant.
                 Text(vm.L(batchStopMessage(stop)))
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
                     .foregroundColor(.orange)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -146,11 +146,11 @@ struct TranslationBatchView: View {
                 // résume pas en un chiffre.
                 VStack(alignment: .leading, spacing: 2) {
                     ForEach(report.refusedRowIDs.prefix(20), id: \.self) { id in
-                        Text(id).font(.system(size: 10, design: .monospaced))
+                        Text(id).font(AppDesign.Font.monoIconXS)
                             .foregroundColor(.secondary)
                     }
                     if report.refusedRowIDs.count > 20 {
-                        Text("…").font(.system(size: 10)).foregroundColor(.secondary)
+                        Text("…").font(AppDesign.Font.iconXS).foregroundColor(.secondary)
                     }
                 }
             }

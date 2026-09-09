@@ -86,14 +86,14 @@ struct TranslationDiffView: View {
                 if let staleness {
                     HStack(spacing: 6) {
                         Image(systemName: "clock.badge.exclamationmark")
-                            .font(.system(size: 10))
+                            .font(AppDesign.Font.iconXS)
                         Text(staleness.note(
                             sourceNewerFormat: vm.L(L10n.Mods.translationSourceNewer),
                             sameDayFormat: vm.L(L10n.Mods.translationSourceNewerToday),
                             oneDayFormat: vm.L(L10n.Mods.translationSourceNewerOneDay),
                             dateText: staleness.sourceDate.formatted(date: .abbreviated,
                                                                      time: .omitted)))
-                            .font(.system(size: 11))
+                            .font(AppDesign.Font.footnote)
                         Spacer(minLength: 0)
                     }
                     .foregroundColor(.secondary)
@@ -151,7 +151,7 @@ struct TranslationDiffView: View {
         HStack(spacing: 8) {
             ProgressView().controlSize(.small)
             Text(vm.L(L10n.Mods.diffLoading))
-                .font(.system(size: 11))
+                .font(AppDesign.Font.footnote)
                 .foregroundColor(.secondary)
         }
         .padding(.vertical, 12)
@@ -159,7 +159,7 @@ struct TranslationDiffView: View {
 
     private func emptyRow(_ text: String) -> some View {
         Text(text)
-            .font(.system(size: 11))
+            .font(AppDesign.Font.footnote)
             .foregroundColor(.secondary)
             .padding(.vertical, 12)
     }
@@ -200,9 +200,9 @@ struct TranslationDiffView: View {
                         isShowingBatch = true
                     } label: {
                         HStack(spacing: 4) {
-                            Image(systemName: "wand.and.rays").font(.system(size: 10))
+                            Image(systemName: "wand.and.rays").font(AppDesign.Font.iconXS)
                             Text(vm.L(L10n.Mods.translationBatchButton))
-                                .font(.system(size: 10, weight: .medium))
+                                .font(AppDesign.Font.iconXS(.medium))
                         }
                     }
                     .buttonStyle(.plain)
@@ -237,9 +237,9 @@ struct TranslationDiffView: View {
                         exportTranslationLot()
                     } label: {
                         HStack(spacing: 4) {
-                            Image(systemName: "square.and.arrow.up").font(.system(size: 10))
+                            Image(systemName: "square.and.arrow.up").font(AppDesign.Font.iconXS)
                             Text(vm.L(L10n.Mods.translationLotExport))
-                                .font(.system(size: 10, weight: .medium))
+                                .font(AppDesign.Font.iconXS(.medium))
                         }
                     }
                     .buttonStyle(.plain)
@@ -254,9 +254,9 @@ struct TranslationDiffView: View {
                     importTranslationLot()
                 } label: {
                     HStack(spacing: 4) {
-                        Image(systemName: "square.and.arrow.down").font(.system(size: 10))
+                        Image(systemName: "square.and.arrow.down").font(AppDesign.Font.iconXS)
                         Text(vm.L(L10n.Mods.translationLotImport))
-                            .font(.system(size: 10, weight: .medium))
+                            .font(AppDesign.Font.iconXS(.medium))
                     }
                 }
                 .buttonStyle(.plain)
@@ -288,14 +288,14 @@ struct TranslationDiffView: View {
                 }
                 TextField(vm.L(L10n.Mods.diffSearch), text: $searchText)
                     .textFieldStyle(.roundedBorder)
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
                 if hasSections {
                     Button {
                         isShowingSectionIndex = true
                     } label: {
                         HStack(spacing: 4) {
-                            Image(systemName: "list.bullet.indent").font(.system(size: 10))
-                            Text(vm.L(L10n.Mods.diffSections)).font(.system(size: 10, weight: .medium))
+                            Image(systemName: "list.bullet.indent").font(AppDesign.Font.iconXS)
+                            Text(vm.L(L10n.Mods.diffSections)).font(AppDesign.Font.iconXS(.medium))
                             // `groups.count`, pas les seuls groupes titrés : c'est
                             // exactement ce que le popover ci-dessous liste (blocs
                             // sans titre et orphelin compris). Annoncer les titrés
@@ -303,7 +303,7 @@ struct TranslationDiffView: View {
                             // faux — mesuré sur Ridgeside : 1878 annoncés pour 1881
                             // lignes listées.
                             Text("\(groups.count)")
-                                .font(.system(size: 10, weight: .semibold).monospacedDigit())
+                                .font(AppDesign.Font.iconXS(.semibold).monospacedDigit())
                                 .foregroundColor(.secondary)
                         }
                     }
@@ -343,7 +343,7 @@ struct TranslationDiffView: View {
                         collapsed = collapsed.isEmpty ? Set(allGroups.map(\.id)) : []
                     }
                     .buttonStyle(.link)
-                    .font(.system(size: 10))
+                    .font(AppDesign.Font.iconXS)
                 }
             }
         }
@@ -360,13 +360,13 @@ struct TranslationDiffView: View {
         } label: {
             HStack(spacing: 4) {
                 if let glyph {
-                    Image(systemName: glyph).font(.system(size: 9))
+                    Image(systemName: glyph).font(AppDesign.Font.iconXXS)
                 } else if case .state(let state) = criterion {
-                    Image(systemName: DiffStateStyle.glyph(state)).font(.system(size: 9))
+                    Image(systemName: DiffStateStyle.glyph(state)).font(AppDesign.Font.iconXXS)
                 }
-                Text(label).font(.system(size: 10, weight: .medium))
+                Text(label).font(AppDesign.Font.iconXS(.medium))
                 Text("\(count)")
-                    .font(.system(size: 10, weight: .semibold).monospacedDigit())
+                    .font(AppDesign.Font.iconXS(.semibold).monospacedDigit())
                     .foregroundColor(.secondary)
             }
             .padding(.horizontal, 8)
@@ -481,7 +481,7 @@ struct TranslationDiffView: View {
         VStack(alignment: .leading, spacing: 12) {
             if let refusal = outcome.refusal {
                 Text(refusalMessage(refusal))
-                    .font(.system(size: 12))
+                    .font(AppDesign.Font.caption)
                     .fixedSize(horizontal: false, vertical: true)
             } else if outcome.producedNothing {
                 // « 0 écrites, 0 écartées, 0 échecs » ne dit rien de la suite
@@ -489,7 +489,7 @@ struct TranslationDiffView: View {
                 // passé par aucun chat — le dire, plutôt que compter des
                 // zéros.
                 Text(vm.L(L10n.Mods.translationLotNothingTranslated))
-                    .font(.system(size: 12))
+                    .font(AppDesign.Font.caption)
                     .fixedSize(horizontal: false, vertical: true)
             } else {
                 // Trois nombres distincts, comme le rapport du lot IA
@@ -506,18 +506,18 @@ struct TranslationDiffView: View {
                             Int64(outcome.written),
                             Int64(outcome.rejected.count),
                             Int64(outcome.writeFailures)))
-                    .font(.system(size: 12))
+                    .font(AppDesign.Font.caption)
                     .fixedSize(horizontal: false, vertical: true)
                 if !outcome.rejected.isEmpty {
                     VStack(alignment: .leading, spacing: 2) {
                         ForEach(Array(outcome.rejected.prefix(20).enumerated()),
                                 id: \.offset) { _, rejection in
                             Text(rejectionLabel(rejection))
-                                .font(.system(size: 10, design: .monospaced))
+                                .font(AppDesign.Font.monoIconXS)
                                 .foregroundColor(.secondary)
                         }
                         if outcome.rejected.count > 20 {
-                            Text("…").font(.system(size: 10)).foregroundColor(.secondary)
+                            Text("…").font(AppDesign.Font.iconXS).foregroundColor(.secondary)
                         }
                     }
                 }
@@ -589,7 +589,7 @@ struct TranslationDiffView: View {
                         filter = nil
                     }
                     .buttonStyle(.link)
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
                 }
             } else {
                 ScrollViewReader { proxy in
@@ -688,7 +688,7 @@ struct TranslationDiffView: View {
             Text(vm.L(L10n.Mods.diffColFrench))
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .font(.system(size: 10, weight: .semibold))
+        .font(AppDesign.Font.iconXS(.semibold))
         .foregroundColor(.secondary)
         .padding(.vertical, 5)
     }
@@ -705,10 +705,10 @@ struct TranslationDiffView: View {
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
-                    .font(.system(size: 9, weight: .semibold))
+                    .font(AppDesign.Font.iconXXS(.semibold))
                     .foregroundColor(.secondary)
                 Text(title(of: group))
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(AppDesign.Font.footnote(.semibold))
                     .foregroundColor(.primary)
                     .lineLimit(1)
                     // Le titre est tronqué à une ligne : deux sections homonymes
@@ -895,9 +895,9 @@ struct RemainderBadges: View {
                 let count = group.remaining(state)
                 if count > 0 {
                     HStack(spacing: 3) {
-                        Image(systemName: DiffStateStyle.glyph(state)).font(.system(size: 9))
+                        Image(systemName: DiffStateStyle.glyph(state)).font(AppDesign.Font.iconXXS)
                         Text("\(count)")
-                            .font(.system(size: 10, weight: .semibold).monospacedDigit())
+                            .font(AppDesign.Font.iconXS(.semibold).monospacedDigit())
                     }
                     .foregroundColor(DiffStateStyle.tint(state))
                 }
@@ -937,12 +937,12 @@ private struct DiffRowView: View {
             // l'éditeur ; copier un texte reste possible dans l'éditeur, où les
             // deux valeurs sont sélectionnables.
             Image(systemName: DiffStateStyle.glyph(row.state))
-                .font(.system(size: 10))
+                .font(AppDesign.Font.iconXS)
                 .foregroundColor(DiffStateStyle.tint(row.state))
                 .frame(width: DiffMetrics.glyphWidth)
             HStack(alignment: .firstTextBaseline, spacing: 3) {
                 Text(row.key)
-                    .font(.system(size: 10, design: .monospaced))
+                    .font(AppDesign.Font.monoIconXS)
                     .foregroundColor(.secondary)
                 if needsReview {
                     // Discret : un glyphe orange collé à la clé, nommé au
@@ -958,7 +958,7 @@ private struct DiffRowView: View {
                     // baseline — sans lui, le glyphe remonterait au-dessus
                     // de la clé qu'il annote.
                     Image(systemName: "text.magnifyingglass")
-                        .font(.system(size: 8))
+                        .font(AppDesign.Font.iconXXS)
                         .foregroundColor(.orange)
                         .frame(width: 18, height: 18, alignment: .bottom)
                         .contentShape(.rect)
@@ -974,7 +974,7 @@ private struct DiffRowView: View {
                 // obligerait à aller chercher soi-même ce qui a changé.
                 if let previous = row.previousEnglish {
                     Text(String(format: previousEnglishLabel, previous))
-                        .font(.system(size: 10))
+                        .font(AppDesign.Font.iconXS)
                         .strikethrough()
                         .foregroundColor(.secondary)
                 }
@@ -992,7 +992,7 @@ private struct DiffRowView: View {
     private var frenchColumn: some View {
         if row.state == .empty {
             Text(emptyPlaceholder)
-                .font(.system(size: 11).italic())
+                .font(AppDesign.Font.footnote.italic())
                 .foregroundColor(DiffStateStyle.tint(.empty))
                 .frame(maxWidth: .infinity, alignment: .leading)
         } else {
@@ -1012,9 +1012,9 @@ private struct DiffRowView: View {
         TranslationTokens.split(value).reduce(Text("")) { accumulated, segment in
             let piece = segment.isCode
                 ? Text(segment.text)
-                    .font(.system(size: 10, design: .monospaced))
+                    .font(AppDesign.Font.monoIconXS)
                     .foregroundColor(.purple)
-                : Text(segment.text).font(.system(size: 11))
+                : Text(segment.text).font(AppDesign.Font.footnote)
             return accumulated + piece
         }
     }

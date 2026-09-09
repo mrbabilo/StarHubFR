@@ -24,9 +24,9 @@ struct TranslationRecoveryDiffView: View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 6) {
                 Text(String(format: vm.L(L10n.Recovery.diffTitle), file.modName, file.relativePath))
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(AppDesign.Font.headline(.semibold))
                 Text(vm.L(L10n.Recovery.note))
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -38,7 +38,7 @@ struct TranslationRecoveryDiffView: View {
                 VStack {
                     Spacer()
                     Text(vm.L(L10n.Recovery.diffNothing))
-                        .font(.system(size: 12))
+                        .font(AppDesign.Font.caption)
                         .foregroundColor(.secondary)
                     Spacer()
                 }
@@ -102,7 +102,7 @@ struct TranslationRecoveryDiffView: View {
             selected = selected.count == recoverable.count ? [] : Set(recoverable.map(\.key))
         }
         .buttonStyle(.link)
-        .font(.system(size: 11))
+        .font(AppDesign.Font.footnote)
     }
 
     private func header(_ title: String) -> some View {
@@ -112,7 +112,7 @@ struct TranslationRecoveryDiffView: View {
     private func header<Trailing: View>(_ title: String, trailing: Trailing) -> some View {
         HStack {
             Text(title)
-                .font(.system(size: 11, weight: .semibold))
+                .font(AppDesign.Font.footnote(.semibold))
                 .foregroundColor(.secondary)
             Spacer()
             trailing
@@ -132,10 +132,10 @@ struct TranslationRecoveryDiffView: View {
                 .labelsHidden()
             VStack(alignment: .leading, spacing: 2) {
                 Text(diff.key)
-                    .font(.system(size: 10, design: .monospaced))
+                    .font(AppDesign.Font.monoIconXS)
                     .foregroundColor(.secondary)
                 Text(diff.backupValue ?? "")
-                    .font(.system(size: 12))
+                    .font(AppDesign.Font.caption)
                     .textSelection(.enabled)
             }
             Spacer()
@@ -149,7 +149,7 @@ struct TranslationRecoveryDiffView: View {
     private func comparisonRow(_ diff: TranslationKeyDiff) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(diff.key)
-                .font(.system(size: 10, design: .monospaced))
+                .font(AppDesign.Font.monoIconXS)
                 .foregroundColor(.secondary)
             HStack(alignment: .top, spacing: 12) {
                 labelled(vm.L(L10n.Recovery.inBackup), diff.backupValue ?? "", color: .secondary)
@@ -164,10 +164,10 @@ struct TranslationRecoveryDiffView: View {
     private func labelled(_ label: String, _ value: String, color: Color) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(label)
-                .font(.system(size: 9, weight: .semibold))
+                .font(AppDesign.Font.iconXXS(.semibold))
                 .foregroundColor(.secondary)
             Text(value)
-                .font(.system(size: 12))
+                .font(AppDesign.Font.caption)
                 .foregroundColor(color)
                 .textSelection(.enabled)
         }
@@ -177,10 +177,10 @@ struct TranslationRecoveryDiffView: View {
     private func readOnlyRow(key: String, value: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(key)
-                .font(.system(size: 10, design: .monospaced))
+                .font(AppDesign.Font.monoIconXS)
                 .foregroundColor(.secondary)
             Text(value)
-                .font(.system(size: 12))
+                .font(AppDesign.Font.caption)
                 .textSelection(.enabled)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
