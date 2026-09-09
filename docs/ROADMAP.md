@@ -222,9 +222,15 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 > Établi le 2026-08-28 par décompilation et mesure → `§audit-config-menus`,
 > [`audit-config-menus.md`](audit-config-menus.md). **Prendre C4-T4 avant C4-T1.**
 
-- [ ] **C4-T1** — *(voie secondaire — pour les mods C#, qui n'ont pas de schéma)*
+- [x] **C4-T1** — *(voie secondaire — pour les mods C#, qui n'ont pas de schéma)*
       Étiqueter les champs de `config.json` avec les libellés `config.*` que le mod publie
       dans son `i18n/` (en FR si disponible), au lieu des clés brutes. · **M**
+      ✅ **Livré le 2026-09-09** — type Core `ConfigLabelResolver` (12 tests) branché sur
+      `ConfigEditorModel.groups(labeledBy:)` : le schéma d'un pack gagne, sinon la tige
+      i18n (`config.<clé>.name|label|title` / `description|tooltip|desc`, insensible à la
+      casse, FR champ par champ sur l'anglais), sinon la clé brute. Les deux dispositions
+      i18n de SMAPI couvertes (`I18nLocaleResolver`), BOM compris (`I18nFileDecoder`).
+      Une description orpheline (`config.x.tooltip` sans `name`) aide sous la clé brute.
       ⚠️ **Mesure du 2026-08-28, qui remplace celle du matin** — la première comptait les
       mods *ayant des clés `config.*`*, pas ceux dont les clés **retombent** sur le
       `config.json`. Règle appliquée : comparer la **tige** (clé i18n privée du préfixe
@@ -1814,6 +1820,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **C4-T4** | 2026-08-28 | §audit-config-menus — Lire le ConfigSchema de content.json (Content Patcher) : type, valeur par défaut, valeurs admis… |
 | **C4-T5** | 2026-08-28 | §audit-config-menus — Sortir l'éditeur de JSONSerialization. Défaut indépendant des menus de config, trouvé en instru… |
 | **C4-T6** | 2026-09-04 | Dire quand le fichier va être réécrit sous nos pieds |
+| **C4-T1** | 2026-09-09 | Étiqueter les options des mods C# avec les libellés `config.*` de leur `i18n/` (FR champ par champ, repli clé brute) — `ConfigLabelResolver` + `groups(labeledBy:)`, 12 tests |
 | **C4-T2** | 2026-08-29 | Champs de raccourcis clavier : validation des noms SButton, détection des collisions entre mods. · M §audit-config-me… |
 | **C4-T3** | 2026-08-28 | Spike mené le 2026-08-28. Verdict : non-go sur les menus de config — et une meilleure source trouvée à côté. §audit-c… |
 

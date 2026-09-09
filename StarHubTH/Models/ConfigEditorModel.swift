@@ -270,7 +270,8 @@ public enum ConfigEditorModel {
     /// pack venait à décrire une clé imbriquée, c'est ici qu'il faudrait
     /// apparier sur le chemin.
     public static func groups(of tree: ConfigJSONTree.Value,
-                              describedBy options: [ConfigSchemaOption]) -> [Group] {
+                              describedBy options: [ConfigSchemaOption],
+                              labeledBy labels: [String: ConfigLabelResolver.Labels] = [:]) -> [Group] {
         var index: [String: ConfigSchemaOption] = [:]
         for option in options where index[option.token.lowercased()] == nil {
             index[option.token.lowercased()] = option
@@ -282,7 +283,7 @@ public enum ConfigEditorModel {
 
         for leaf in leaves(of: tree) {
             let option = leaf.keyPath.last.flatMap { index[$0.lowercased()] }
-            guard let row = row(for: leaf, describedBy: option) else { continue }
+            guard let row = row(for: leaf, describedBy: option, orLabeledBy: labels) else { continue }
             guard let section = option?.section else { unsectioned.append(row); continue }
             if bySection[section] == nil { sectionOrder.append(section) }
             bySection[section, default: []].append(row)
@@ -295,16 +296,35 @@ public enum ConfigEditorModel {
         return groups
     }
 
-    private static func row(for leaf: Leaf, describedBy option: ConfigSchemaOption?) -> Row? {
+    private static func row(for leaf: Leaf, describedBy option: ConfigSchemaOption?,
+                            orLabeledBy labels: [String: ConfigLabelResolver.Labels]) -> Row? {
         guard var control = control(for: leaf.value) else { return nil }
         var isOutside = false
         if let option, let choice = choiceControl(for: leaf.value, option: option) {
             control = choice.control
             isOutside = choice.isOutside
         }
+
+        // C4-T1 — deux populations, deux sources : le schéma d'un content
+        // pack nomme ses options ; un mod C# ne publie que son `i18n/`. Le
+        // schéma gagne quand il existe — son `Name` est l'identifiant que le
+        // token porte, pas un libellé de repli. Une description i18n
+        // orpheline (seul `config.x.tooltip` existe) aide quand même, sous
+        // la clé brute.
+        let rawKey = leaf.keyPath.last ?? ""
+        let resolved = labels[rawKey.lowercased()]
+        let label: String
+        if let name = option?.name {
+            label = name
+        } else if let text = resolved?.text, !text.isEmpty {
+            label = text
+        } else {
+            label = rawKey
+        }
+
         return Row(keyPath: leaf.keyPath,
-                   label: option?.name ?? leaf.keyPath.last ?? "",
-                   description: option?.description,
+                   label: label,
+                   description: option?.description ?? resolved?.detail,
                    control: control,
                    defaultControl: defaultControl(of: leaf.value, shownAs: control, option: option),
                    isOutsideAllowedValues: isOutside)

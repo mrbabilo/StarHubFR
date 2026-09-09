@@ -29,6 +29,9 @@ struct ModConfigEditorView: View {
     /// Ce que le `content.json` voisin a donné. `nil` quand le mod n'en a pas
     /// — 246 des 462 mods à `config.json` du parc sont des mods C#.
     @State private var schemaReading: ContentPackConfigSchema.Reading?
+    /// C4-T1 — les libellés `config.*` de l'`i18n/` du mod, pour les mods
+    /// **sans schéma**. Vide pour un content pack : son schéma nomme déjà.
+    @State private var labelIndex: [String: ConfigLabelResolver.Labels] = [:]
     @State private var searchText: String = ""
     /// Ce que la relecture du fichier a trouvé au moment d'enregistrer, quand
     /// elle interdit l'écriture directe. `nil` le reste du temps.
@@ -262,6 +265,7 @@ struct ModConfigEditorView: View {
     
     private func loadConfig() {
         loadSchema()
+        loadLabelIndex()
         if FileManager.default.fileExists(atPath: configPath) {
             do {
                 let content = try String(contentsOfFile: configPath, encoding: .utf8)
@@ -305,7 +309,9 @@ struct ModConfigEditorView: View {
     /// très loin de la section où l'auteur l'avait rangé).
     private func parseToVisual() {
         guard let tree = ConfigJSONTree.parse(configText) else { return }
-        configGroups = ConfigEditorModel.groups(of: tree, describedBy: schemaReading?.options ?? [])
+        configGroups = ConfigEditorModel.groups(of: tree,
+                                                describedBy: schemaReading?.options ?? [],
+                                                labeledBy: labelIndex)
     }
 
     /// Lit le `ConfigSchema` du `content.json` voisin, s'il y en a un.
@@ -333,6 +339,39 @@ struct ModConfigEditorView: View {
         // jetons `{{i18n: …}}`, et surtout le pack traduit son menu par la
         // convention `config.<clé>.name`, sans qu'aucun jeton ne le demande.
         schemaReading = .options(ContentPackI18n.localized(options, with: packTranslations()))
+    }
+
+    /// C4-T1 — l'index tige → libellés du `i18n/` du mod.
+    ///
+    /// Lecture **synchrone**, même justification que `loadSchema` : les
+    /// fichiers sont petits et le chemin doit répondre sans état
+    /// intermédiaire. `default.json` est la base ; la langue de l'app gagne
+    /// champ par champ quand c'est le français — pour un utilisateur EN, la
+    /// base anglaise est déjà la bonne langue.
+    ///
+    /// Le passage par `I18nLocaleResolver` couvre les deux dispositions que
+    /// SMAPI accepte (`i18n/fr.json` **et** `i18n/fr/*.json` — 6 mods du parc
+    /// en disposition B), et `I18nFileDecoder` gère les marques d'ordre des
+    /// octets que `String(data:)` rendrait illisibles.
+    private func loadLabelIndex() {
+        let basePath = (vm.gameDir as NSString).appendingPathComponent("Mods")
+        let modPath = (basePath as NSString).appendingPathComponent(mod.physicalFolderName)
+        let i18nDirectory = URL(fileURLWithPath: (modPath as NSString).appendingPathComponent("i18n"))
+
+        func table(_ locale: String) -> [String: String] {
+            var merged: [String: String] = [:]
+            for url in I18nLocaleResolver.files(in: i18nDirectory, locale: locale) {
+                guard let data = FileManager.default.contents(atPath: url.path),
+                      let decoded = I18nFileDecoder.decode(data),
+                      let parsed = try? I18nLenientParser.parse(decoded.text) else { continue }
+                for (key, value) in parsed { merged[key] = value }
+            }
+            return merged
+        }
+
+        let base = table("default")
+        let localized = vm.currentLanguage == "fr" ? table("fr") : [:]
+        labelIndex = ConfigLabelResolver.index(defaultFile: base, localizedFile: localized)
     }
 
     /// La table de traduction du pack, dans la langue de l'app si elle existe,

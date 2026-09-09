@@ -14,6 +14,8 @@ where the exact log format was verified.
 
 ### Added
 
+- **L'éditeur de config des mods C# parle leur langue.** Les options d'un `config.json` sans schéma s'étiquettent avec les libellés que le mod publie dans son `i18n/` — en français quand il est traduit, champ par champ — au lieu d'afficher la clé brute. L'aide du mod (`description`, `tooltip`) suit ; là où le choix de l'auteur ne retombe sur aucune clé, la clé brute reste, assumée.
+
 - **Supprimer un mod se défait.** « Supprimer » met le mod en corbeille — `Mods/_Trash_<horodatage>/`, invisible de la liste comme de SMAPI — au lieu de l'effacer. L'écran Entretien la liste : « Remettre » ramène le mod désactivé (il se réactive depuis la liste), « Supprimer » et « Vider la corbeille » effacent pour de bon, après confirmation. Rien n'est jamais purgé automatiquement, et la quarantaine du réparateur — même préfixe, autre usage — n'est pas touchée par la corbeille.
 
 ## [1.38.2] - 2026-09-09
