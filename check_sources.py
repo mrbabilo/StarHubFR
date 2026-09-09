@@ -394,6 +394,12 @@ SOURCES = [
      "role": "catalogue et archives du hub de traduction thaï",
      "used_by": "StarHubTHViewModel.fetchThaiTranslations / installThaiTranslation"},
 
+    {"key": "fork/StarHubFR", "kind": "repo", "repo": "mrbabilo/StarHubFR",
+     "role": "le dépôt du fork — sa page releases alimente la détection "
+             "de mise à jour de l'app (jamais l'upstream : ses releases "
+             "ne sont pas les nôtres)",
+     "used_by": "StarHubTHViewModel.checkForAppRelease / Models/AppReleaseCheck.swift"},
+
     {"key": "Stardrop", "kind": "repo", "repo": "Floogen/Stardrop",
      "role": "gestionnaire concurrent (C#/Avalonia) — audité pour ses idées",
      "used_by": "docs/audit-stardrop.md"},

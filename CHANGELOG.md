@@ -12,6 +12,12 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+
+- **L'app sait quand une nouvelle version sort.** Au lancement, StarHubFR regarde la dernière release publiée sur GitHub et vous le dit — un bouton ouvre la page, « Plus tard » la tait jusqu'à la suivante. L'état et la vérification manuelle vivent dans Réglages → À propos.
+
+- **Le bilan d'installation devient une fenêtre à part, redimensionnable.** Résumé chiffré en tête (mods, clés à traduire, options), liste des mods posés et deltas par mod ; « Voir la fiche » n'oblige plus à tout refermer, et un dépôt multiple s'enchaîne depuis le bilan.
+
 ## [1.40.0] - 2026-09-09
 
 ### Added

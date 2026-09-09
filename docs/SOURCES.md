@@ -163,6 +163,12 @@ Deux usages, sans clé :
 - `api.github.com/repos/AppleBoiy/stardew-thai-translations/releases?per_page=100`
   et `raw.githubusercontent.com/.../main/README.md` — le catalogue et les
   archives du hub thaï (`StarHubTHViewModel`).
+- `api.github.com/repos/mrbabilo/StarHubFR/releases/latest` — la détection de
+  mise à jour de l'app elle-même (`StarHubTHViewModel.checkForAppRelease`,
+  décision en `Models/AppReleaseCheck.swift`). **Le fork, jamais l'upstream** :
+  interroger AppleBoiy/StarHubTH proposerait ses releases, pas les nôtres.
+  `/releases/latest` exclut déjà drafts et prereleases côté GitHub ; le check
+  est throttlé à 24 h.
 
 ⚠️ Sans jeton, l'API GitHub plafonne à **60 requêtes/heure par IP**. Le script
 passe par `gh` quand il est présent (5 000/h).
