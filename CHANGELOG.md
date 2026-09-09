@@ -12,6 +12,14 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Fixed
+
+- **« Vérifier les mises à jour » refonctionne.** Le premier contrôle au lancement laissait l'écran À propos bloqué sur « Vérification… », bouton grisé, pour toute la session.
+
+- **La fenêtre de bilan se ferme quand on la ferme.** « Terminé » laissait une fenêtre vide à refermer à la main, et « Archive suivante » la laissait flotter derrière la feuille rouverte.
+
+- **Un dépôt de plusieurs archives ne saute plus la deuxième.** Après l'installation de la première, l'archive suivante était retirée de la file sans jamais être analysée — et le compte annoncé était faux d'une unité.
+
 ## [1.41.0] - 2026-09-09
 
 ### Added

@@ -7,6 +7,7 @@ import SwiftUI
 /// fenêtre déjà ouverte l'amène au premier plan et le contenu se remplace.
 struct InstallReportWindow: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         Group {
@@ -19,6 +20,20 @@ struct InstallReportWindow: View {
             }
         }
         .frame(minWidth: 520, minHeight: 420)
+        // Vider le bilan ne fermait PAS la fenêtre : « Terminé » laissait une
+        // fenêtre blanche à refermer à la main, et « Archive suivante » la
+        // laissait flotter derrière la feuille rouverte. Un seul point de
+        // fermeture, pour les deux boutons.
+        .onChange(of: vm.pendingInstallReport) { _, report in
+            if report == nil { dismiss() }
+        }
+        // Fermeture au bouton rouge, bilan encore posé : le lot est abandonné,
+        // le reste de la file part avec lui. Les deux boutons, eux, passent
+        // par `onChange` ci-dessus avec un report déjà nil — ils n'arrivent
+        // jamais ici avec du travail en attente.
+        .onDisappear {
+            if vm.pendingInstallReport != nil { vm.abandonInstallReport() }
+        }
     }
 }
 

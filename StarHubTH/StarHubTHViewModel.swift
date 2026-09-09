@@ -7601,16 +7601,27 @@ for mod in mods {
         let lastChecked = UserDefaults.standard.object(forKey: UDKey.frReleaseLastCheckedAt) as? Date
         guard bypassThrottle
                 || UpdateCheckPolicy.shouldAutoCheck(lastSuccess: lastChecked,
-                                                     now: Date(), ttl: 24 * 60 * 60) else { return }
+                                                     now: Date(),
+                                                     ttl: AppReleasePolicy.checkTTL) else { return }
         releaseCheckInFlight = true
         if bypassThrottle { releaseCheckFailedMessage = nil }
-        Task { @MainActor [weak self] in
+        Task { [weak self] in
             await self?.performReleaseCheck(lastChecked: lastChecked,
                                             bypassThrottle: bypassThrottle)
         }
     }
 
+    /// `@MainActor` explicite : la classe ne l'est pas, et une `func async`
+    /// non isolée exécuterait son corps hors du fil principal — or tout ce
+    /// qui suit mute des `@Published`.
+    @MainActor
     private func performReleaseCheck(lastChecked: Date?, bypassThrottle: Bool) async {
+        // Le drapeau retombe par **tous** les chemins, succès comme échec.
+        // Sans ce `defer`, le check du lancement le laissait à `true` pour
+        // la session : « Vérifier les mises à jour » devenait inopérant
+        // (le garde de `checkForAppRelease`) et À propos affichait
+        // « Vérification… » indéfiniment, bouton grisé.
+        defer { releaseCheckInFlight = false }
         var request = URLRequest(url: Self.appReleaseURL)
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
         // Session éphémère comme la lookup SMAPI (X83) : un blip réseau ne
@@ -7633,6 +7644,7 @@ for mod in mods {
 
     /// Échec : `lastCheckedAt` n'est PAS repoussé — on retente au prochain
     /// lancement. Le manuel, lui, dit pourquoi ; le lancement se tait.
+    @MainActor
     private func recordReleaseCheckFailure(status: Int?, bypassThrottle: Bool,
                                            underlying: Error? = nil) {
         guard bypassThrottle else { return }
@@ -7643,6 +7655,7 @@ for mod in mods {
 
     /// Le traitement d'une réponse 200 — séparé du transport pour la
     /// lisibilité ; la décision est déjà testée en Core.
+    @MainActor
     private func applyReleaseCheck(data: Data, lastChecked: Date?, bypassThrottle: Bool) {
         let release: GitHubRelease
         do {
@@ -7735,12 +7748,17 @@ for mod in mods {
     var nextQueuedDropURL: URL? { pendingDropQueue.current }
 
     /// Appelé par la feuille AU succès de l'installation — les noms restent
-    /// apportés par la vue, qui les possède. Consomme l'archive courante de
-    /// la file puis publie le bilan figé. Ne touche à aucun ménage : le
-    /// `onDismiss` de la feuille (archive, X103-C, file nxm) s'exécute
-    /// ensuite à l'identique.
+    /// apportés par la vue, qui les possède. Publie le bilan figé. Ne touche
+    /// à aucun ménage : le `onDismiss` de la feuille (archive, X103-C, file
+    /// nxm) s'exécute ensuite à l'identique.
+    ///
+    /// ⚠️ **Ne dépile pas.** L'invariant de la file est : *elle porte les
+    /// archives qui n'ont pas encore été présentées, et c'est celui qui
+    /// présente qui dépile* (`analyzeNextQueuedArchive`,
+    /// `queueNextDropArchive`). Dépiler ici en plus sautait une archive en
+    /// silence sur un dépôt multiple — l'archive suivant celle qu'on venait
+    /// d'installer n'était jamais analysée, et le compte annoncé était faux.
     func completeInstall(installedNames: [String]) {
-        pendingDropQueue.advance()
         pendingInstallReport = InstallReport(
             installedNames: installedNames,
             deltas: lastInstallKeyDeltas,
@@ -7758,11 +7776,29 @@ for mod in mods {
     /// téléchargements.
     @Published private(set) var pendingDropPresentation: URL?
 
-    /// « Archive suivante (n) » : pose la prochaine archive pour
-    /// réouverture de la feuille et referme le bilan.
+    /// « Archive suivante (n) » : dépile la prochaine archive, la pose pour
+    /// réouverture de la feuille et referme le bilan. **Dépile** — voir
+    /// l'invariant de `completeInstall`.
     func queueNextDropArchive() {
-        pendingDropPresentation = nextQueuedDropURL
+        pendingDropPresentation = pendingDropQueue.advance()
         pendingInstallReport = nil
+    }
+
+    /// Le lot est abandonné : la feuille a été refermée sans installer.
+    /// L'ancienne file vivait en `@State` sur la feuille et mourait avec
+    /// elle — ce que ce `@Published` ne fait plus tout seul. Sans ce ménage,
+    /// des archives d'un dépôt délaissé resurgissent à une installation
+    /// ultérieure, en pointant peut-être sur des fichiers disparus.
+    func abandonDropQueue() {
+        guard !pendingDropQueue.isEmpty else { return }
+        pendingDropQueue = InstallDropQueue()
+    }
+
+    /// La fenêtre de bilan a été fermée à la main, sans « Archive suivante » :
+    /// le reste du lot part avec elle.
+    func abandonInstallReport() {
+        pendingInstallReport = nil
+        abandonDropQueue()
     }
 
     /// La feuille est refermée (onDismiss MainView) : le canal de

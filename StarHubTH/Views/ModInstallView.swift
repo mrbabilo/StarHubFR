@@ -73,9 +73,11 @@ struct ModInstallView: View {
     /// l'archive téléchargée : la même feuille accepte aussi un glisser-déposer,
     /// et `vm.pendingNexusSource` vaudrait alors pour un autre fichier.
     @State private var analyzedURL: URL?
-    /// Les archives restant à traiter d'un dépôt multiple vivent dans le
-    /// ViewModel (`vm.pendingDropQueue`) : la fenêtre de bilan s'ouvre
-    /// entre deux zips, un état de feuille serait perdu à sa fermeture.
+    // Les archives restant à traiter d'un dépôt multiple vivent dans le
+    // ViewModel (`vm.pendingDropQueue`) : la fenêtre de bilan s'ouvre entre
+    // deux zips, un état de feuille serait perdu à sa fermeture. Leur ménage
+    // à l'abandon est explicite — voir `onDisappear` plus bas.
+
     /// La sélection dont l'installation attend une confirmation : smapi.io
     /// signale l'un de ses mods comme cassé. Voir `CompatibilityWarning`.
     @State private var pendingBrokenInstall: [InstallSelection]?
@@ -285,6 +287,12 @@ struct ModInstallView: View {
         }
         .onDisappear {
             isViewActive = false
+            // Le lot de dépôt meurt avec la feuille **sauf** si un bilan
+            // vient d'être posé : dans ce cas la feuille s'est fermée pour
+            // laisser place au bilan, qui enchaîne (« Archive suivante »).
+            if vm.pendingInstallReport == nil {
+                vm.abandonDropQueue()
+            }
             // If the sheet is dismissed without the Cancel button (swipe /
             // Esc), don't leak the extracted temp directory. Skip cleanup
             // while an install is in flight — it owns the temp dir.
@@ -449,8 +457,9 @@ struct ModInstallView: View {
     /// refermées. Une feuille fermée par l'utilisateur n'y passe pas : la
     /// file meurt avec elle, c'est l'arrêt volontaire du lot.
     private func analyzeNextQueuedArchive() {
-        guard let next = vm.nextQueuedDropURL else { return }
-        vm.dropQueueAdvance()
+        // Dépile : qui présente une archive la retire de la file (invariant
+        // partagé avec `queueNextDropArchive`).
+        guard let next = vm.dropQueueAdvance() else { return }
         analyzeZip(next)
     }
 

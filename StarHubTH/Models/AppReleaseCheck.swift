@@ -39,7 +39,7 @@ public enum AppReleasePolicy {
 
     /// TTL du check automatique — le même ordre de grandeur que smapi.io
     /// (12 h) ; GitHub anonyme tolère 60 req/h par IP, 24 h est large.
-    static let checkTTL: TimeInterval = 24 * 60 * 60
+    public static let checkTTL: TimeInterval = 24 * 60 * 60
 
     /// La décision, sans réseau. `latest == nil` (échec, 404) vaut
     /// `.unavailable` — jamais « à jour » : écrire un état faux serait pire

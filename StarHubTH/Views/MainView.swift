@@ -30,12 +30,11 @@ struct MainView: View {
     /// bouton « Archive suivante » de la fenêtre de bilan. ⚠️ Son onDismiss
     /// ne discard RIEN : ce sont les fichiers originaux de l'utilisateur.
     @State private var showDropInstall = false
-    /// L'alerte « nouvelle release de StarHubFR » — présentée seulement si
-    /// aucune feuille d'installation n'est ouverte : deux `.sheet`
-    /// simultanés et l'un se perd en silence (spec §7.4).
-    @State private var showReleaseAlert = false
     @Environment(\.openWindow) private var openWindow
 
+    /// L'alerte « nouvelle release de StarHubFR » n'est présentée que si
+    /// aucune feuille d'installation n'occupe la fenêtre : deux `.sheet`
+    /// simultanés et l'un se perd en silence (spec §7.4).
     private var canPresentReleaseAlert: Bool {
         !showDownloadedInstall && !showDropInstall
     }
@@ -368,28 +367,27 @@ struct MainView: View {
             openWindow(id: "main")
             vm.consumeReportDetailFocus()
         }
-        // L'alerte release attend son tour : posée par le check au
-        // lancement, elle rattrape à la fermeture de chaque feuille.
-        .onChange(of: vm.availableAppRelease) { _, release in
-            showReleaseAlert = (release != nil && canPresentReleaseAlert)
-        }
-        .onChange(of: showDownloadedInstall) { _, open in
-            if !open, vm.availableAppRelease != nil { showReleaseAlert = canPresentReleaseAlert }
-        }
-        .onChange(of: showDropInstall) { _, open in
-            if !open, vm.availableAppRelease != nil { showReleaseAlert = canPresentReleaseAlert }
-        }
-        .sheet(isPresented: $showReleaseAlert, onDismiss: {
-            // Fermeture par Esc ou clic hors cadre = acquittement aussi :
-            // une alerte chassée ne re-vient pas au prochain lancement
-            // pour le même tag.
-            if let release = vm.availableAppRelease {
+        // L'alerte release attend son tour : posée par le check au lancement,
+        // elle rattrape à la fermeture de chaque feuille. `item:` plutôt que
+        // `isPresented:` — la release à afficher EST l'état, et un corps
+        // conditionnel pouvait s'évaluer vide une frame (les boutons vident
+        // `availableAppRelease` avant que le drapeau ne retombe). Le gate de
+        // priorité vit dans le `get` : une feuille d'installation ouverte
+        // rend `nil`, et l'alerte revient d'elle-même à sa fermeture.
+        .sheet(item: Binding(
+            get: { canPresentReleaseAlert ? vm.availableAppRelease : nil },
+            set: { newValue in
+                // Fermeture par Esc ou clic hors cadre = acquittement aussi.
+                // ⚠️ Seulement si l'alerte était bien présentable : quand
+                // c'est le gate qui vient de la retirer (une feuille s'est
+                // ouverte par-dessus), acquitter tairait un tag que
+                // l'utilisateur n'a jamais vu.
+                guard newValue == nil, canPresentReleaseAlert,
+                      let release = vm.availableAppRelease else { return }
                 vm.acknowledgeRelease(release)
             }
-        }) {
-            if let release = vm.availableAppRelease {
-                AppUpdateAlertView(vm: vm, release: release)
-            }
+        )) { release in
+            AppUpdateAlertView(vm: vm, release: release)
         }
     }
     
