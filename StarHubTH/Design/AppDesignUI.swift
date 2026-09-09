@@ -64,6 +64,13 @@ enum AppDesign {
         // précédent : fusionner serait un changement visuel.
         static let emptyScopeGlyph = SwiftUI.Font.system(size: 40)
 
+        // Journal, chemins, clés d'API : tout ce qui se lit colonne par
+        // colonne. Dérivés des tokens proportionnels plutôt que redéclarés,
+        // pour qu'un changement de taille suive des deux côtés.
+        static let monoFootnote = footnote.monospaced()
+        // Idem, un cran au-dessus — le corps d'une ligne de journal.
+        static let monoCaption  = caption.monospaced()
+
         // Helpers avec weight — évite de répéter .system(size:weight:)
         static func iconXXS(_ w: SwiftUI.Font.Weight) -> SwiftUI.Font {
             .system(size: 9, weight: w)
