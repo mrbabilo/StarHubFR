@@ -1447,3 +1447,11 @@
 "maintenance_action_recover" = "Remettre le fichier";
 "maintenance_action_reveal" = "Afficher dans le Finder";
 "maintenance_action_remove_anyway" = "Retirer quand même";
+"palette_go_menu" = "Aller";
+"palette_open" = "Palette de commandes…";
+"palette_placeholder" = "Rechercher un mod, un profil, une page…";
+"palette_no_results" = "Aucun résultat pour « %@ »";
+"palette_section_destinations" = "Pages";
+"palette_section_mods" = "Mods";
+"palette_section_profiles" = "Profils";
+"palette_section_saves" = "Sauvegardes";

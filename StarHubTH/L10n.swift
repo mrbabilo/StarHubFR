@@ -1649,4 +1649,17 @@ enum L10n {
         static let trashFailed2         = "maintenance_modtrash_failed"
         static let trashHint2           = "maintenance_modtrash_hint"
     }
+
+    // MARK: - Palette de commandes (I-T2)
+    enum Palette {
+        static let goMenu               = "palette_go_menu"
+        static let open                 = "palette_open"
+        static let placeholder          = "palette_placeholder"
+        static let noResults            = "palette_no_results"
+        static let sectionDestinations  = "palette_section_destinations"
+        static let sectionMods          = "palette_section_mods"
+        static let sectionProfiles      = "palette_section_profiles"
+        static let sectionSaves         = "palette_section_saves"
+    }
+
 }

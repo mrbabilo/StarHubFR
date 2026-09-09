@@ -1435,7 +1435,7 @@
   "maintenance_modtrash_restore": "Put back",
   "maintenance_modtrash_purge_one": "Delete",
   "maintenance_modtrash_purge_all": "Empty the trash",
-  "maintenance_modtrash_purge_one_message": "\u201c%@\u201d will be removed from the trash for good — it cannot be recovered.",
+  "maintenance_modtrash_purge_one_message": "“%@” will be removed from the trash for good — it cannot be recovered.",
   "maintenance_modtrash_purge_all_message": "%lld deletion event(s) will be removed for good — nothing in the trash can be recovered afterwards.",
   "maintenance_modtrash_restored_log": "%@ put back (disabled).",
   "maintenance_modtrash_purged_log": "%@ removed from the trash.",
@@ -1446,5 +1446,13 @@
   "maintenance_confirm_protected_message": "%@ exists nowhere else. Removing this backup loses it for good — it will still be in the Trash until emptied.",
   "maintenance_action_recover": "Put the file back",
   "maintenance_action_reveal": "Show in Finder",
-  "maintenance_action_remove_anyway": "Remove anyway"
+  "maintenance_action_remove_anyway": "Remove anyway",
+  "palette_go_menu": "Go",
+  "palette_open": "Command Palette…",
+  "palette_placeholder": "Search mods, profiles, pages…",
+  "palette_no_results": "No result for “%@”",
+  "palette_section_destinations": "Pages",
+  "palette_section_mods": "Mods",
+  "palette_section_profiles": "Profiles",
+  "palette_section_saves": "Saves"
 }
