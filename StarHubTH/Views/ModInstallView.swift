@@ -19,9 +19,11 @@ struct ModInstallView: View {
     @State private var errorRecoveryHint: String?
     @State private var showError = false
     @State private var tempDir: URL?
-    @State private var installedModNames: [String] = []
-    @State private var showSuccess = false
     @State private var showFilePicker = false
+    /// L'accusé du flux « fichiers déposés dans un mod existant » — un
+    /// message, pas un bilan : ce flux garde son écran réduit DANS la
+    /// feuille (spec §5.6).
+    @State private var recoveryAckMessage: String?
     /// Set false in `onDisappear`. A background analysis started before
     /// dismissal can still complete afterward; its completion checks this
     /// flag so it cleans up the temp dir itself instead of writing into
@@ -71,12 +73,9 @@ struct ModInstallView: View {
     /// l'archive téléchargée : la même feuille accepte aussi un glisser-déposer,
     /// et `vm.pendingNexusSource` vaudrait alors pour un autre fichier.
     @State private var analyzedURL: URL?
-    /// Les archives restant à traiter d'un dépôt multiple : une seule fiche à
-    /// la fois, les suivantes attendent la fermeture de la courante (bouton
-    /// Terminé, annulation, alerte refermée). Déposer N zips d'un coup
-    /// n'analysait que le premier, les autres étaient ignorés en silence
-    /// (constaté le 2026-09-01 sur un dépôt de quatre).
-    @State private var pendingDropURLs: [URL] = []
+    /// Les archives restant à traiter d'un dépôt multiple vivent dans le
+    /// ViewModel (`vm.pendingDropQueue`) : la fenêtre de bilan s'ouvre
+    /// entre deux zips, un état de feuille serait perdu à sa fermeture.
     /// La sélection dont l'installation attend une confirmation : smapi.io
     /// signale l'un de ses mods comme cassé. Voir `CompatibilityWarning`.
     @State private var pendingBrokenInstall: [InstallSelection]?
@@ -101,8 +100,8 @@ struct ModInstallView: View {
 
     var body: some View {
         VStack(spacing: 20) {
-            if showSuccess {
-                successView
+            if recoveryAckMessage != nil {
+                recoveryAckView
             } else {
                 // Header
                 HStack {
@@ -295,72 +294,25 @@ struct ModInstallView: View {
         }
     }
 
-    private var successView: some View {
-        VStack(spacing: 20) {
+    /// L'accusé du flux « fichiers déposés dans un mod existant » — un
+    /// message, pas un bilan : ce flux garde son écran réduit DANS la
+    /// feuille (spec §5.6). Le bilan d'installation, lui, vit dans
+    /// `InstallReportWindow`.
+    private var recoveryAckView: some View {
+        VStack(spacing: 16) {
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 56))
                 .foregroundColor(.green)
-
-            Text(String(format: vm.L(L10n.ModInstall.successMessage), installedModNames.count))
-                .font(.system(size: 18, weight: .semibold))
+            Text(recoveryAckMessage ?? "")
+                .font(.system(size: 15))
                 .multilineTextAlignment(.center)
-
-            // Un pack peut poser jusqu'à 50 mods (limite `maxModsPerZip`) :
-            // la liste défile, bornée, pour que le titre et le bouton
-            // restent visibles quel que soit le compte — sinon la feuille
-            // coupe le texte et le bouton sort du cadre.
-            ScrollView {
-                VStack(spacing: 6) {
-                    ForEach(installedModNames, id: \.self) { name in
-                        HStack(spacing: 6) {
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(.green)
-                            Text(name)
-                                .font(.system(size: 13))
-                                .foregroundColor(.primary)
-                                .lineLimit(1)
-                                .truncationMode(.middle)
-                            Spacer()
-                        }
-                    }
-                }
-                .padding(.horizontal, 20)
-                .frame(maxWidth: 400)
-            }
-            .frame(maxHeight: 220)
-
-            // C2-T4 — ce que la mise à jour a changé, mod par mod : les
-            // compteurs non nuls joints par « · », et le geste qui conduit
-            // à la fiche au lieu de laisser le signalement en suspens.
-            if !vm.lastInstallKeyDeltas.isEmpty {
-                VStack(spacing: 10) {
-                    ForEach(vm.lastInstallKeyDeltas, id: \.folderName) { delta in
-                        updateDeltaRow(delta)
-                    }
-                }
-                .padding(.horizontal, 20)
-                .frame(maxWidth: 400)
-            }
-
-            Spacer()
-
-            // Un dépôt multiple garde des archives en file : le dire, sinon
-            // « Terminé » qui rouvre une fiche au lieu de fermer surprend.
-            if !pendingDropURLs.isEmpty {
-                Text(String(format: vm.L(L10n.ModInstall.queuedDrops), pendingDropURLs.count))
-                    .font(.system(size: 12))
-                    .foregroundColor(.secondary)
-            }
-
-            Button(vm.L(L10n.ModInstall.done)) {
-                showSuccess = false
-                installedModNames = []
-                if pendingDropURLs.isEmpty {
-                    isPresented = false
-                } else {
-                    // Le dépôt n'est pas épuisé : la fiche suivante attend.
+            Button(vm.L(L10n.Main.ok)) {
+                recoveryAckMessage = nil
+                if vm.nextQueuedDropURL != nil {
+                    // Le dépôt n'est pas épuisé : l'archive suivante attend.
                     analyzeNextQueuedArchive()
+                } else {
+                    isPresented = false
                 }
             }
             .buttonStyle(.borderedProminent)
@@ -368,73 +320,6 @@ struct ModInstallView: View {
         }
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    /// C2-T4 — la ligne de succès d'un mod mis à jour : compteurs non nuls,
-    /// suffixe des renommages suggérés par valeur, et le bouton vers la fiche.
-    private func updateDeltaRow(_ delta: ModUpdateKeyDelta) -> some View {
-        var parts: [String] = []
-        if let added = delta.config?.added.count, added > 0 {
-            parts.append(String(format: vm.L(L10n.Mods.updateDeltaConfigAdded), added))
-        }
-        if let removed = delta.config?.removed.count, removed > 0 {
-            parts.append(String(format: vm.L(L10n.Mods.updateDeltaConfigRemoved), removed))
-        }
-        if !delta.translation.addedUntranslated.isEmpty {
-            parts.append(String(format: vm.L(L10n.Mods.updateDeltaTranslationTodo),
-                                delta.translation.addedUntranslated.count))
-        }
-        if !delta.translation.addedAuthorTranslated.isEmpty {
-            parts.append(String(format: vm.L(L10n.Mods.updateDeltaTranslationAuthor),
-                                delta.translation.addedAuthorTranslated.count))
-        }
-        if !delta.translation.removedKeys.isEmpty {
-            parts.append(String(format: vm.L(L10n.Mods.updateDeltaTranslationOrphan),
-                                delta.translation.removedKeys.count))
-        }
-        let renamed = KeyRenameMatcher.pairsByValue(old: delta.translation.removedKeys,
-                                                    new: delta.translation.addedUntranslated)
-        if !renamed.isEmpty {
-            parts.append(String(format: vm.L(L10n.Mods.updateDeltaRenamedSuffix), renamed.count))
-        }
-        return HStack(alignment: .top, spacing: 8) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text((delta.folderName as NSString).lastPathComponent)
-                    .font(.system(size: 13, weight: .medium))
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                Text(parts.joined(separator: " · "))
-                    .font(.system(size: 12))
-                    .foregroundColor(.secondary)
-                    .lineLimit(2)
-            }
-            Spacer()
-            Button(vm.L(L10n.Mods.updateDeltaOpenDetail)) {
-                // Déjà sur l'onglet Mods (feuille posée par la liste) : le
-                // canal pending n'est consommé que par un CHANGEMENT d'onglet
-                // (MainView.onChange) — poser les pendings ici ne les
-                // consommerait jamais et les armerait pour un changement
-                // futur : la fiche aurait surgi plus tard, sans raison.
-                // On ouvre donc en direct. Depuis un autre onglet (volet de
-                // téléchargement), le canal reste le chemin — le changement
-                // d'onglet le consomme (patron B3-T4).
-                if currentTab == "Mods",
-                   let target = ModFocusResolver.resolve(delta.folderName, in: vm.mods) {
-                    vm.viewingModDetail = target
-                    vm.pendingDetailTab = .state
-                } else {
-                    vm.pendingModDetailFocus = delta.folderName
-                    vm.pendingDetailTab = .state
-                    currentTab = "Mods"
-                }
-                showSuccess = false
-                installedModNames = []
-                isPresented = false
-            }
-            .buttonStyle(.link)
-            .font(.system(size: 12))
-            .pointingHandCursor()
-        }
     }
 
     private var dropZone: some View {
@@ -515,10 +400,10 @@ struct ModInstallView: View {
                 if self.isSheetShowingAnArchive {
                     // Une fiche est déjà ouverte : ne pas la balayer sous le
                     // dépôt — les nouvelles archives attendent leur tour.
-                    self.pendingDropURLs.append(contentsOf: archives)
+                    self.vm.dropQueuePush(archives)
                 } else {
                     // La première part tout de suite ; les suivantes en file.
-                    self.pendingDropURLs.append(contentsOf: Array(archives.dropFirst()))
+                    self.vm.dropQueuePush(Array(archives.dropFirst()))
                     self.analyzeZip(first)
                 }
             }
@@ -547,7 +432,7 @@ struct ModInstallView: View {
     /// Vrai quand la feuille montre déjà quelque chose à ne pas balayer :
     /// une fiche d'installation, un succès, ou une proposition de dépôt.
     private var isSheetShowingAnArchive: Bool {
-        zipModInfo != nil || showSuccess || droppedProposal != nil
+        zipModInfo != nil || recoveryAckMessage != nil || droppedProposal != nil
             || manifestlessPlan != nil || !manifestlessCandidates.isEmpty
     }
 
@@ -557,8 +442,9 @@ struct ModInstallView: View {
     /// refermées. Une feuille fermée par l'utilisateur n'y passe pas : la
     /// file meurt avec elle, c'est l'arrêt volontaire du lot.
     private func analyzeNextQueuedArchive() {
-        guard !pendingDropURLs.isEmpty else { return }
-        analyzeZip(pendingDropURLs.removeFirst())
+        guard let next = vm.nextQueuedDropURL else { return }
+        vm.dropQueueAdvance()
+        analyzeZip(next)
     }
 
     private func analyzeZip(_ url: URL) {
@@ -925,12 +811,11 @@ struct ModInstallView: View {
                     // mod existant, aucun dossier de mod n'a bougé. Rescanner
                     // ne changerait rien à l'écran et laisserait croire le
                     // contraire.
-                    self.installedModNames = [proposal.files.count == 1
+                    self.recoveryAckMessage = proposal.files.count == 1
                         ? String(format: self.vm.L(L10n.ModInstall.droppedDone),
                                  proposal.hostDisplayName)
                         : String(format: self.vm.L(L10n.ModInstall.droppedDoneMany),
-                                 proposal.files.count, proposal.hostDisplayName)]
-                    self.showSuccess = true
+                                 proposal.files.count, proposal.hostDisplayName)
                 }
             }
         }
@@ -1020,11 +905,9 @@ struct ModInstallView: View {
                     self.isInstalling = false
                     self.installer.cleanupTempDir(at: tempDir)
                     self.tempDir = nil
-                    self.installedModNames = modsBeingInstalled.map { $0.name }
                     // C2-T4 — le delta de clés se persiste avant l'écran de
                     // succès : la feuille et la fiche liront la même chose.
                     self.vm.persistUpdateKeyDeltas(written)
-                    self.showSuccess = true
                     self.zipModInfo = nil
                     // Les fichiers de ces mods viennent de changer : leur
                     // couverture en cache ne vaut plus rien. Sans cela, un mod
@@ -1098,6 +981,16 @@ struct ModInstallView: View {
                     // installed mods that have a Nexus mod id, so the mods
                     // list shows them immediately without a manual check.
                     self.fetchNexusMetadata(for: modsBeingInstalled)
+
+                    // Le bilan quitte la feuille : le report est posé, la
+                    // feuille se referme — le `onDismiss` de la MainView
+                    // (archive, X103-C, file nxm) s'exécute à l'identique.
+                    // ICI, et pas avant : l'archive a déjà été copiée par
+                    // `keepNexusArchiveIfEnabled` pendant que le fichier
+                    // téléchargé vivait encore.
+                    self.vm.completeInstall(
+                        installedNames: modsBeingInstalled.map { $0.name })
+                    self.isPresented = false
                 }
             } catch {
                 DispatchQueue.main.async {
