@@ -195,6 +195,7 @@ let package = Package(
                 "Models/HealthIssueResolver.swift",
                 "Models/AppSupportMigration.swift",
                 "Models/AppSupport.swift",
+                "Models/DefaultsMigration.swift",
             ]
         ),
         .testTarget(
@@ -995,6 +996,11 @@ let package = Package(
             name: "AppSupportMigrationTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/AppSupportMigrationTests"
+        ),
+        .testTarget(
+            name: "DefaultsMigrationTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/DefaultsMigrationTests"
         ),
     ]
 )
