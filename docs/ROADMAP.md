@@ -1648,12 +1648,22 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
       machine restante : `defaults read com.mrbabilo.StarHubFR gameDir`, la clé
       Nexus reconnue, et un « Mod Manager Download » Nexus qui ouvre StarHubFR.
 - [ ] **X105** — **Déplacer `Backups/` sous `StarHubFR/`.** Laissé de côté par
-      la migration du 2026-09-10 : son index porte **1 309 chemins absolus**
-      (`Backups/ModInstalls/install_metadata.json`, 617 Ko, 1 468 sauvegardes
-      sur 145 dossiers) et l'application d'origine n'y écrit jamais — aucun
-      gain de coexistence, tout le risque. À reprendre avec
-      `AppSupportMigration.rewrite`, qui sait déjà le faire, et une épreuve
-      sur une copie du fichier réel avant d'y toucher. · **S**
+      la migration du 2026-09-10 : l'application d'origine n'y écrit jamais —
+      aucun gain de coexistence, tout le risque (1,2 Go de points de
+      restauration).
+      **Chiffres re-mesurés le 2026-09-10** — ceux du plan du 2026-08-26
+      étaient périmés d'un facteur 6 : `ModInstalls/install_metadata.json`
+      pèse **106 Ko** et porte **220 sauvegardes / 220 chemins absolus**
+      (champ `backupPath`, tous *dans* `Backups/`), pas 617 Ko / 1 468 / 1 309 ;
+      `ModConfigs/metadata.json` porte **6 sauvegardes et aucun chemin absolu**.
+      ⚠️ **Compter ces chemins avec une recherche non échappée rend 0** : les
+      index sont écrits par un `JSONEncoder` nu, le disque porte `\/`. C'est le
+      défaut qui a rendu la réécriture inopérante jusqu'au commit `01ef900`.
+      `AppSupportMigration.rewrite` sait désormais le faire — les deux
+      graphies — et `AppSupport.repairStalePaths` répare une installation déjà
+      déplacée. Ajouter les deux index de `Backups/` à
+      `AppSupport.pathBearingIndexes` ; épreuve sur une copie du fichier réel
+      avant d'y toucher. · **S**
 - [ ] **F6** — **Constats laissés ouverts par l'audit des 2026-09-02/03.** *(audit
       fichier-par-fichier : `StarHubTHApp.swift` et tranches ①-④ du ViewModel —
       aucun bug bloquant, deux corrections livrées au commit `7e0896a`. Les items
