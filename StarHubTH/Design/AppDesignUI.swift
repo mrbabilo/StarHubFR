@@ -126,6 +126,15 @@ enum AppDesign {
         /// (spec §7). Distinct de `success` (`.green` système), jamais
         /// confondus : l'un signale une réussite d'action, l'autre un état
         /// installé.
+        ///
+        /// ⚠️ **Tout ce qui dit « activé » ou « installé » passe par ici**, y
+        /// compris hors de la liste des mods : pastille de composant sur la
+        /// fiche d'un pack, badge d'état de la liste des mises à jour, badge
+        /// « installé » de la vitrine. Ces trois-là ont porté `.green` système
+        /// jusqu'au 2026-09-10 — soit **33/255 d'écart sur le canal vert** avec
+        /// ce token (mesuré), à teinte et saturation égales : deux verts pour
+        /// le même état, visibles côte à côte sur la fiche d'un pack, où le
+        /// toggle de la barre d'action porte celui-ci.
         static let installed  = SwiftUI.Color(red: 0.20, green: 0.65, blue: 0.35)
 
         /// Le pendant « en pause » de `installed`, pour les pastilles posées

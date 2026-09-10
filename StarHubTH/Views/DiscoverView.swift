@@ -455,7 +455,7 @@ struct DiscoveryDetailSheet: View {
             if row.installed {
                 Label(vm.L(L10n.Discovery.installedBadge), systemImage: "checkmark.circle.fill")
                     .font(AppDesign.Font.footnote)
-                    .foregroundStyle(Color.green)
+                    .foregroundStyle(AppDesign.Color.installed)
             }
         }
         .padding(.horizontal, AppDesign.Spacing.lg)

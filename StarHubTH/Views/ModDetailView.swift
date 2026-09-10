@@ -509,7 +509,7 @@ struct ModDetailView: View {
                         } label: {
                             HStack(spacing: 10) {
                                 Circle()
-                                    .fill(child.isEnabled ? Color.green : Color.secondary.opacity(0.35))
+                                    .fill(child.isEnabled ? AppDesign.Color.installed : Color.secondary.opacity(0.35))
                                     .frame(width: 7, height: 7)
                                 Text(child.name).font(.system(size: 13))
                                 Spacer()

@@ -32,7 +32,7 @@ struct ModCard: View {
     /// par défaut — vert plein, coche : elle y dit « déjà installé ». La
     /// grille des mods installés s'en sert pour dire l'**état** (actif / en
     /// pause), où le vert seul mentirait sur la moitié des cartes.
-    var badgeTint: Color = .green
+    var badgeTint: Color = AppDesign.Color.installed
     var badgeSystemImage: String = "checkmark.circle.fill"
     let category: NexusCategory?
     /// Une pastille neutre supplémentaire (« FR »), ou `nil`.

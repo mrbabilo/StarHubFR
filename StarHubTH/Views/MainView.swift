@@ -920,10 +920,10 @@ struct UpdatesView: View {
                                             .foregroundColor(.primary)
                                         Text(isEnabled ? vm.L(L10n.Updates.enabled) : vm.L(L10n.Updates.disabled))
                                             .font(.system(size: 9, weight: .medium))
-                                            .foregroundColor(isEnabled ? .green : .orange)
+                                            .foregroundColor(isEnabled ? AppDesign.Color.installed : .orange)
                                             .padding(.horizontal, 6)
                                             .padding(.vertical, 2)
-                                            .background((isEnabled ? Color.green : Color.orange).opacity(0.12))
+                                            .background((isEnabled ? AppDesign.Color.installed : Color.orange).opacity(0.12))
                                             .cornerRadius(4)
                                     }
                                     HStack(spacing: 12) {
