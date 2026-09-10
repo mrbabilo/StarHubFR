@@ -14,7 +14,15 @@ where the exact log format was verified.
 
 ### Added
 
-- **StarHubFR ne partage plus ses données avec l'application dont il est le fork.** Installées côte à côte, les deux écrivaient au même endroit : le même domaine de préférences — 45 clés, dont le registre d'installation, les profils et le dossier du jeu —, la même entrée du Trousseau pour la clé Nexus, le même enregistrement `nxm://`, et le même dossier Application Support. Les données vivent désormais sous `StarHubFR/`, les préférences et le Trousseau sous une identité propre (`com.mrbabilo.StarHubFR`), et ce que l'ancienne version avait écrit est repris au premier lancement plutôt que laissé derrière. L'application d'origine garde les siens, et `Backups/` reste où elle l'attend. Les sauvegardes de mods ont suivi elles aussi : plus rien ne reste dans l'ancien dossier.
+- **StarHubFR ne partage plus ses données avec l'application dont il est le fork.** Installées côte à côte, les deux écrivaient au même endroit : le même domaine de préférences — 45 clés, dont le registre d'installation, les profils et le dossier du jeu —, la même entrée du Trousseau pour la clé Nexus, le même enregistrement `nxm://`, et le même dossier Application Support. Les données vivent désormais sous `StarHubFR/`, les préférences et le Trousseau sous une identité propre (`com.mrbabilo.StarHubFR`), et ce que l'ancienne version avait écrit est repris au premier lancement plutôt que laissé derrière. L'application d'origine garde les siens. Les sauvegardes de mods ont suivi elles aussi : plus rien ne reste dans l'ancien dossier.
+
+### Changed
+
+- **Le démarrage est plus rapide.** L'analyse du journal SMAPI — l'étape la plus longue du lancement — passe de 9,4 à 5,4 secondes sur un journal de 10 Mo.
+
+### Fixed
+
+- **L'écran de démarrage ne se fige plus.** La barre s'arrêtait plusieurs secondes sur un compte incomplet (« 949/957 »), puis disparaissait avant d'être pleine. Elle avance désormais sans interruption, va jusqu'au bout, et nomme ce qu'elle fait : lecture du journal SMAPI, registre des mods, recherche de doublons.
 
 ## [1.42.0] - 2026-09-10
 
