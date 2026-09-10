@@ -2548,7 +2548,7 @@ class StarHubTHViewModel: ObservableObject {
                 // que `syncInstalledModRegistry` ne ré-estampille pas leur date
                 // d'installation, seule trace qu'aucune autre source ne
                 // reconstitue.
-                UserDefaults.standard.set(folders, forKey: Self.installDateGraceKey)
+                self.installedModRegistryStore.setInstallDateGrace(folders)
                 self.log("Registre nettoyé : \(folders.count) entrées portaient une version Nexus non constatée",
                     level: .info)
             case .registryUnreadable:
@@ -2566,7 +2566,7 @@ class StarHubTHViewModel: ObservableObject {
                 self?.launchStep = self?.L(L10n.Main.launchStepRegistry) ?? ""
                 self?.launchProgress = 0.15
             }
-            _ = self.loadInstalledModRegistry()
+            self.installedModRegistryStore.warmCache()
 
             // Step 2 — Scanning mods: the big one. Walks the game's Mods/
             // folder (both enabled entries and `.X` disabled ones, which SMAPI
@@ -5408,10 +5408,10 @@ for mod in mods {
         // d'installation copiée serait une date inventée. En cas de collision,
         // le mod renommé repart neuf — c'est la seule chose vraie qu'on sache
         // de lui.
-        var registry = loadInstalledModRegistry()
+        var registry = installedModRegistryStore.all()
         if ModFolderRename.migrate(&registry, from: old, to: new,
                                    shared: shared, policy: .leaveBehind) {
-            saveInstalledModRegistry(registry)
+            installedModRegistryStore.replaceAll(registry)
         }
 
         // 7. L'historique d'erreurs par version.
@@ -8254,159 +8254,11 @@ for mod in mods {
 
     // MARK: - Installed mod registry (version + install date)
 
-    /// Persistent record of when each mod was last installed/updated, keyed by
-    /// folder name. Unlike the on-disk folder mtime (which `copyItem` preserves
-    /// from the archive's packaging date and is therefore unreliable), this
-    /// registry stores the *actual* installation timestamp on this machine.
-    /// The update checker uses it for same-version detection: a Nexus upload
-    /// newer than the registry date means the installed copy is stale.
-    private static let installedModRegistryKey = UDKey.installedModRegistry
-    /// Les dossiers dont la migration a retiré `nexusVersion`. Posée une fois
-    /// par la migration, consommée et effacée par la synchronisation suivante :
-    /// elle empêche que le changement de *lecture* de la version passe pour un
-    /// changement sur le disque et écrase leur date d'installation.
-    private static let installDateGraceKey = UDKey.installDateGrace
-    private static let installedModRegistryBackupKey = UDKey.installedModRegistryBackup
-
-    private var installedModRegistryCache: [String: InstalledModRecord]?
-    private let installedModRegistryLock = NSLock()
-
-    /// Loads the install registry from UserDefaults with automatic fallback:
-    ///
-    /// 1. **Primary key** — decode it. If valid, return it.
-    /// 2. **Backup key** — if the primary is absent or corrupt, try the
-    ///    backup. On success, promote the backup back to the primary key and
-    ///    log a recovery notice.
-    /// 3. **Neither is usable** — return `[:]`. The registry will be fully
-    ///    rebuilt from disk by `syncInstalledModRegistry` on the next scan.
-    ///
-    /// Corrupt blobs (primary and/or backup) are purged so they don't block
-    /// future saves.
-    /// Returns the registry, populating the in-memory cache on first access.
-    /// Subsequent calls read from the cache (no JSON decode, no UserDefaults
-    /// I/O) — the cache is refreshed by `saveInstalledModRegistry` on writes.
-    /// Thread-safe via `installedModRegistryLock`.
-    private func loadInstalledModRegistry() -> [String: InstalledModRecord] {
-        installedModRegistryLock.lock()
-        defer { installedModRegistryLock.unlock() }
-        if let cached = installedModRegistryCache {
-            return cached
-        }
-        // Cold path: decode from UserDefaults (with backup fallback) exactly
-        // once per session, then memoize.
-        let loaded = Self.loadInstalledModRegistryFromDisk()
-        installedModRegistryCache = loaded
-        return loaded
-    }
-
-    /// Disk-level load with the primary/backup fallback chain. Static so it
-    /// can run before the cache exists (called by `loadInstalledModRegistry`
-    /// on the cold path, and by `clearInstalledModRegistryForTests` if a
-    /// future test needs a disk-fresh copy).
-    private static func loadInstalledModRegistryFromDisk() -> [String: InstalledModRecord] {
-        let defaults = UserDefaults.standard
-
-        // 1. Try the primary.
-        if let primary = defaults.data(forKey: installedModRegistryKey),
-           let decoded = try? JSONDecoder().decode([String: InstalledModRecord].self, from: primary) {
-            return decoded
-        }
-
-        // Primary is absent or corrupt — purge it.
-        if defaults.data(forKey: installedModRegistryKey) != nil {
-            defaults.removeObject(forKey: installedModRegistryKey)
-        }
-
-        // 2. Try the backup.
-        if let backup = defaults.data(forKey: installedModRegistryBackupKey),
-           let decoded = try? JSONDecoder().decode([String: InstalledModRecord].self, from: backup) {
-            // Promote the backup to the primary slot so subsequent loads are
-            // fast and the (corrupt) primary is replaced.
-            if let data = try? JSONEncoder().encode(decoded) {
-                defaults.set(data, forKey: installedModRegistryKey)
-            }
-            NSLog("[StarHubFR] Install registry restored from backup (%d entries).",
-                  decoded.count)
-            return decoded
-        }
-
-        // Backup is also absent or corrupt — purge it too.
-        if defaults.data(forKey: installedModRegistryBackupKey) != nil {
-            defaults.removeObject(forKey: installedModRegistryBackupKey)
-            NSLog("[StarHubFR] Install registry and backup both corrupt/unavailable — rebuilding from disk.")
-        }
-
-        // 3. Neither usable — empty; will be rebuilt on next scan.
-        return [:]
-    }
-
-    /// Saves the registry to BOTH the primary and backup keys atomically. The
-    /// backup guarantees that a corruption of one blob (e.g. a crashed write)
-    /// can be recovered from the other on the next load.
-    /// Updates the in-memory cache AND persists to BOTH the primary and backup
-    /// keys. The `data` blob is encoded exactly once and reused for both keys
-    /// (was encoded twice before). Thread-safe via `installedModRegistryLock`.
-    private func saveInstalledModRegistry(_ map: [String: InstalledModRecord]) {
-        installedModRegistryLock.lock()
-        installedModRegistryCache = map
-        installedModRegistryLock.unlock()
-        persistInstalledModRegistry(map)
-    }
-
-    /// Persistance disque seule (primary + backup), hors lock. Extraite pour que
-    /// `mutateInstalledModRegistry` puisse écrire après avoir relâché le lock
-    /// (UserDefaults.set est lent : on ne tient pas le lock pendant l'écriture).
-    private func persistInstalledModRegistry(_ map: [String: InstalledModRecord]) {
-        guard let data = try? JSONEncoder().encode(map) else { return }
-        let defaults = UserDefaults.standard
-        defaults.set(data, forKey: Self.installedModRegistryKey)
-        defaults.set(data, forKey: Self.installedModRegistryBackupKey)
-    }
-
-    /// RMW atomique sur le registre d'install : la séquence lecture du cache →
-    /// mutation → écriture du cache se fait sous un seul lock, pour qu'un second
-    /// scan concurrent ne puisse pas charger la même version, muter, et écraser
-    /// nos changements (audit 2026-08-05 : faux « update available » perpétuel
-    /// quand l'entrée nexusVersion était perdue dans la course).
-    private func mutateInstalledModRegistry(_ body: (inout [String: InstalledModRecord]) -> Void) {
-        installedModRegistryLock.lock()
-        var map = installedModRegistryCache ?? Self.loadInstalledModRegistryFromDisk()
-        body(&map)
-        installedModRegistryCache = map
-        installedModRegistryLock.unlock()
-        persistInstalledModRegistry(map)
-    }
-
-    /// Returns the recorded install date for a mod folder, or nil if the mod
-    /// was never registered (e.g. installed before this feature existed).
-    func installedModDate(for folderName: String) -> Date? {
-        // Fast path: cache hit under lock (one lock/unlock, no double
-        // lookup). Slow path: cold cache (first call after launch) reads
-        // from UserDefaults via the static helper, which is safe to call
-        // outside the lock because it only runs once per session.
-        installedModRegistryLock.lock()
-        let cached = installedModRegistryCache
-        installedModRegistryLock.unlock()
-        if let cached { return cached[folderName]?.installedAt }
-        return Self.loadInstalledModRegistryFromDisk()[folderName]?.installedAt
-    }
-
-    /// Reconciles the persistent install registry with the mods found on disk
-    /// during a scan. Called at the end of every `scanMods()` so that mods
-    /// added by ANY means (app installer, drag-and-drop, manual copy into
-    /// Mods/) are tracked.
-    ///
-    /// - A mod whose version differs from the registry (new install or update)
-    ///   is recorded with `Date()` — the actual moment it was detected.
-    /// - A mod on disk but absent from the registry (first time seen by the
-    ///   app, e.g. manually copied) is recorded with its folder mtime as a
-    ///   best-effort timestamp.
-    /// - Registry entries for folders no longer on disk are pruned.
-    /// One-shot migration flag. When false (first launch with the registry
-    /// feature, or an upgrade from a version that used stale folder mtimes),
-    /// the registry is wiped and rebuilt from scratch so every entry gets a
-    /// clean `Date()` instead of the unreliable archive packaging date.
-    private static let registryMigrationV2Key = UDKey.registryMigrationV2Done
+    /// Le registre des mods installés — version vue sur disque et date de ce
+    /// constat. Sa persistance, ses trois mécanismes de sûreté et la règle de
+    /// rapprochement vivent dans `InstalledModRegistryStore` (Core, testé) ;
+    /// le ViewModel ne garde ici que le câblage et le journal.
+    private let installedModRegistryStore = InstalledModRegistryStore()
 
     /// Tous les mods, packs aplatis en leurs composants. Réutilise
     /// `flattenedMods` (module Core testé) plutôt que de réécrire le
@@ -8415,59 +8267,17 @@ for mod in mods {
         mods.flattenedMods
     }
 
-    /// Constate sur disque les mises à jour que l'app n'a pas menées, et
-    /// déplace l'ancre en conséquence.
-    ///
-    /// Sans cet appel, `ModVersionAnchorRules.afterDiskChange` n'avait aucun
-    /// appelant et l'origine `.diskObserved` ne se produisait jamais : un mod
-    /// ancré à la version X, puis mis à jour à la main (glisser-déposer, copie),
-    /// continuait d'annoncer X comme version installée. smapi.io répondait
-    /// « mise à jour disponible » indéfiniment — le défaut d'origine en miroir,
-    /// une fausse mise à jour affirmée au lieu d'une vraie effacée.
-    ///
-    /// - Parameter excluding: les dossiers en grâce. Leur version « change »
-    ///   parce que la lecture a changé, pas le disque : les ancrer ici
-    ///   affirmerait une installation qui n'a pas eu lieu.
-    private func anchorModsUpdatedOnDisk(_ allMods: [ModItem],
-                                         previousVersions: [String: String],
-                                         excluding graceFolders: Set<String>,
-                                         now: Date) {
-        // La version que smapi.io suggère, par `UniqueID` : c'est la cible que
-        // le manifest doit rejoindre pour qu'on tienne l'installation pour
-        // accomplie. Sans suggestion connue, la règle compare à la version du
-        // manifest elle-même, donc l'atteint d'office.
-        //
-        // Source : le cache plat sous son lock, pas `nexusUpdates`. La
-        // propriété @Published ne s'écrit que sur le fil principal
-        // (`republishUpdatesFromCache`) — la lire ici, sur le fil du scan,
-        // est une course. Et la liste consolidée par pack ne garde que
-        // l'enfant gagnant de chaque pack : un enfant perdant avec mise à
-        // jour y perd sa suggestion. Le cache plat, lui, a une ligne par mod.
-        let suggested = Dictionary(
-            NexusUpdateChecker.shared.cachedUpdates().map { ($0.uniqueId, $0.latestVersion) },
-            uniquingKeysWith: { first, _ in first })
-        for mod in allMods where !mod.uniqueId.isEmpty && !graceFolders.contains(mod.folderName) {
-            guard let previous = previousVersions[mod.folderName] else { continue }
-            guard let anchor = ModVersionAnchorRules.afterDiskChange(
-                existing: anchorStore.anchor(for: mod.uniqueId),
-                uniqueId: mod.uniqueId,
-                previousManifestVersion: previous,
-                currentManifestVersion: mod.version,
-                suggestedVersion: suggested[mod.uniqueId] ?? mod.version,
-                now: now) else { continue }
-            anchorStore.put(anchor)
-        }
+    /// La date d'installation enregistrée pour un dossier, ou `nil` si le mod
+    /// n'a jamais été enregistré. Façade : les vues et le reste du ViewModel
+    /// l'appellent, le store la calcule.
+    func installedModDate(for folderName: String) -> Date? {
+        installedModRegistryStore.installedDate(for: folderName)
     }
 
-    /// Mutable box used to ferry a `var`-captured value out of an
-    /// `inout`-body closure (`mutateInstalledModRegistry`). Necessary because
-    /// Swift closures capture outer `var`s by value, so a simple
-    /// `var wasEmpty = false` mutated inside the closure would never be
-    /// visible outside.
-    private final class WasEmptyBox {
-        var value: Bool = false
-    }
-
+    /// Rapproche le registre de ce que le scan a vu, puis dit à l'utilisateur ce
+    /// qui s'est passé. Le store ne journalise pas lui-même : il rend un
+    /// rapport, et c'est ici qu'on sait écrire dans le journal de l'app.
+    ///
     /// - Parameter modsFolderWasReadable: faux quand le scan n'a pas pu lire
     ///   `Mods/`. Les deux purges de cette passe — le registre lui-même et les
     ///   ancres de version — sont alors suspendues : elles répondent à « ce
@@ -8475,83 +8285,28 @@ for mod in mods {
     ///   ne répond pas. L'enregistrement, lui, continue.
     private func syncInstalledModRegistry(scannedMods: [ModItem],
                                           modsFolderWasReadable: Bool = true) {
-        // Flatten groups into individual mods so pack children are tracked too.
-        let allMods = scannedMods.flattenedMods
+        // La version que smapi.io suggère, par `UniqueID`. Source : le cache
+        // plat sous son lock, pas `nexusUpdates`. La propriété @Published ne
+        // s'écrit que sur le fil principal (`republishUpdatesFromCache`) — la
+        // lire ici, sur le fil du scan, est une course. Et la liste consolidée
+        // par pack ne garde que l'enfant gagnant de chaque pack : un enfant
+        // perdant avec mise à jour y perd sa suggestion. Le cache plat, lui, a
+        // une ligne par mod.
+        let suggested = Dictionary(
+            NexusUpdateChecker.shared.cachedUpdates().map { ($0.uniqueId, $0.latestVersion) },
+            uniquingKeysWith: { first, _ in first })
 
-        let now = Date()
+        let report = installedModRegistryStore.sync(
+            scannedMods: scannedMods,
+            modsFolderWasReadable: modsFolderWasReadable,
+            anchorStore: anchorStore,
+            suggestedVersions: suggested)
 
-        // One-shot migration: wipe any pre-existing registry built with stale
-        // folder mtimes. The flag is set INSIDE the `mutate` closure below,
-        // only after the wipe has been written, so a crash mid-wipe leaves
-        // the flag at `false` and the wipe re-runs on the next scan.
-        let migrationDone = UserDefaults.standard.bool(forKey: Self.registryMigrationV2Key)
-
-        let seen = allMods.map {
-            InstalledModRegistry.Seen(folder: $0.folderName, version: $0.version)
-        }
-
-        // Les dossiers que la migration a nettoyés de leur `nexusVersion` : leur
-        // version change à cette passe parce que la LECTURE a changé, pas le
-        // disque. On les met en grâce pour cette passe seulement, puis on vide
-        // le lot — un dossier absent de cette passe est de toute façon purgé du
-        // registre, donc une passe suffit.
-        let graceFolders = Set(
-            UserDefaults.standard.stringArray(forKey: Self.installDateGraceKey) ?? [])
-
-        // RMW atomique (load → sync → save sous un seul lock) : un scan
-        // concurrent ne peut plus charger la même version du registre et
-        // écraser nos changements (audit 2026-08-05 : faux « update available »
-        // perpétuel quand l'entrée nexusVersion était perdue dans la course).
-        // On perd la petite optimisation « n'écrire que si didChange », mais la
-        // persistance d'un registre inchangé est idempotente et peu coûteuse.
-        // La version que le registre portait AVANT cette passe. C'est le seul
-        // endroit où l'app voit l'ancienne et la nouvelle version d'un dossier
-        // côte à côte, donc le seul d'où l'on puisse constater qu'une
-        // installation a eu lieu hors de l'app. À lire avant la mutation.
-        let previousVersions = loadInstalledModRegistry().mapValues(\.version)
-
-        var rebuiltCount = 0
-        // `wasEmpty` needs to escape the `mutateInstalledModRegistry` closure
-        // (the post-block log at the end of this method reads it). The
-        // closure parameter `body: (inout) -> Void` does not give us access
-        // to outer `var`s directly, so we use a 1-element box.
-        let wasEmptyBox = WasEmptyBox()
-        mutateInstalledModRegistry { registry in
-            if !migrationDone {
-                registry = [:]
-                wasEmptyBox.value = true
-                // Set the flag AFTER the wipe so a crash mid-wipe re-runs it.
-                UserDefaults.standard.set(true, forKey: Self.registryMigrationV2Key)
-            }
-            let preSyncEmpty = wasEmptyBox.value && registry.isEmpty
-            let (synced, _) = InstalledModRegistry.sync(registry: registry,
-                                                        seen: seen,
-                                                        now: now,
-                                                        installDateGrace: graceFolders,
-                                                        pruneMissing: modsFolderWasReadable)
-            registry = synced
-            if preSyncEmpty && !registry.isEmpty { rebuiltCount = registry.count }
-        }
-        let wasEmpty = wasEmptyBox.value
-
-        anchorModsUpdatedOnDisk(allMods,
-                                previousVersions: previousVersions,
-                                excluding: graceFolders,
-                                now: now)
-
-        if !graceFolders.isEmpty {
-            UserDefaults.standard.removeObject(forKey: Self.installDateGraceKey)
-            log("Dates d'installation préservées pour \(graceFolders.count) mods dont seule la lecture de version avait changé",
+        if report.gracePreserved > 0 {
+            log("Dates d'installation préservées pour \(report.gracePreserved) mods dont seule la lecture de version avait changé",
                 level: .info)
         }
 
-        // Un mod supprimé ne doit pas laisser son affirmation derrière lui :
-        // réinstallé plus tard, il hériterait d'une version qu'il n'a pas.
-        // Même réserve que pour le registre : un `Mods/` illisible n'atteste
-        // aucune suppression, et purger là-dessus retire les 251 ancres du parc.
-        if modsFolderWasReadable {
-            anchorStore.pruneAnchors(keeping: Set(allMods.map(\.uniqueId).filter { !$0.isEmpty }))
-        }
         // Le parc vient de changer : la liste des affirmations en dépend par
         // ses deux bouts — l'ancre et la version du manifest. Les
         // avertissements du dump aussi : ils ne portent que sur les mods
@@ -8561,10 +8316,10 @@ for mod in mods {
             self?.refreshModWarnings()
         }
 
-        if wasEmpty && rebuiltCount > 0 {
+        if report.rebuiltFromDisk > 0 {
             self.log(
                 String(format: "Install registry rebuilt: %d mod(s) registered from disk.",
-                       rebuiltCount),
+                       report.rebuiltFromDisk),
                 level: .info
             )
         }

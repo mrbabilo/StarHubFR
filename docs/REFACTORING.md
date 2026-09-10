@@ -113,7 +113,7 @@ que la nôtre en fonctionnalités, mais la forme, elle, tient.
 
 | Quoi | Pourquoi maintenant |
 | --- | --- |
-| **`PreferenceStoring` + `PreferenceStore` + `StubPreferenceStoring`** (`Services/System/`, `Tests/Stubs/`) — ~95 lignes en tout | C'est exactement la frontière dont le point 1 a besoin, déjà écrite et éprouvée. Protocole à 10 méthodes typées (`string`/`bool`/`data`/`dictionary` + les `set` + `removeObject`), `Live` en `struct` prenant `UserDefaults` en init, bouchon en cinq dictionnaires mémoire. Notre registre sérialise en JSON `Data` : il passe par `data(forKey:)` sans rien ajouter. ⚠️ **Un défaut à corriger en le reprenant** : `set(_ value: [String], forKey:)` existe **sans getter correspondant** — on peut écrire un tableau qu'aucune méthode ne relit. Ajouter `stringArray(forKey:)` ou retirer le setter. |
+| ~~**`PreferenceStoring` + `PreferenceStore` + `StubPreferenceStoring`**~~ ❌ **écarté le 2026-09-10, à l'extraction même qui devait l'inaugurer** | Le relevé fait au moment d'écrire le store a retourné l'argument. **Ce dépôt a déjà sa frontière de préférences, et elle est plus simple** : `UserDefaults` entre par l'initialiseur — `ModVersionAnchorStore.init(defaults:)`, dont le commentaire l'érige en convention (« la dépendance à l'environnement entre par l'initialiseur, pas par un singleton »), `ModUpdateSnoozer`, `DefaultsMigration` — et trois suites l'exercent déjà en `UserDefaults(suiteName:)`. Le protocole n'ajouterait rien qu'un passe-plat de 10 méthodes, **et une seconde façon d'injecter les préférences dans Core** : exactement la divergence dont le dépôt sait le coût. Le défaut qu'il fallait corriger en le reprenant (`set([String], forKey:)` sans getter) **n'existe pas** avec `UserDefaults`, où `stringArray(forKey:)` est natif : l'argument qui justifiait le port se retourne contre lui. `InstalledModRegistryStore` prend donc `defaults: UserDefaults = .standard`. |
 | **`AppCoordinator`** — ce qui remplace le ViewModel | Il **ne publie rien** — vérifié sur les déclarations, pas sur sa prose : zéro `@Published`, seulement **10 références** (7 stores, plus `AppEnvironment`, `AlertStore`, `ToastStore` ; leur commentaire en annonce 8), et `ObservableObject` uniquement pour être injectable en `@EnvironmentObject`. L'argument porté par le code : ne rien posséder, c'est ne jamais pouvoir dériver de ce qu'on coordonne. **Cela répond à la question ouverte de notre §6 (« Cible »)**, où l'on écartait la suppression du ViewModel faute de filet : on n'a pas à le supprimer, il faut le **vider de son état publié**. La cible fonctionnelle qu'on s'était donnée trouve ici sa forme concrète. |
 | **Le patron « ce qui n'est pas à moi arrive en paramètre »** | Leur en-tête de `ModsStore` : `gameDir`, `chainToggleDependencies`, `showModal`, `log`, `refresh` « ne sont pas possédés ici » et sont passés en paramètres ou en closures. C'est la réponse aux deux blocages du §5 — les sorties `log(…)`/alerte du registre, et les cinq dépendances croisées des prédicats de liste. Ce n'est pas une astuce : c'est la même règle que notre critère d'entrée. |
 | ~~**`check_file_length` (> 400 lignes)**~~ ✅ **repris le 2026-09-10** | **C'était la seule de leurs six règles que nous n'avions pas** (les cinq autres — `get`, classes non `final`, `.shared`, `DispatchQueue`, `@Published` sans `private(set)` — étaient déjà couvertes), et précisément celle qui aurait crié pendant les 41 jours où le God module a triplé. Voir ci-dessous : reprise **avec un écart**, la leur n'aurait rien attrapé. |
@@ -167,11 +167,12 @@ l'annotation d'exception ; le savoir avant évite de croire à une régression.
   *warnings-only* (`exit 0`) sauf `--strict`. Le nôtre est un vrai cliquet contre
   baseline. Ne pas régresser vers le leur : un contrôle qui sort 0 sur un échec est
   exactement le défaut que le §8 leur reproche par ailleurs.
-- **La sûreté du registre ne vient pas du protocole.** `PreferenceStoring` est un
-  passe-plat volontairement bête ; nos trois mécanismes (sauvegarde avant écriture,
-  restauration sur corruption, reconstruction depuis le disque) vivent **au-dessus**,
-  dans le store. C'est le bon découpage — mais adopter le protocole ne donne aucune de
-  ces garanties, et il serait facile de le croire.
+- **La sûreté du registre ne vient pas de la frontière d'I/O.** Qu'on injecte un
+  protocole ou `UserDefaults`, on n'obtient qu'un passe-plat : nos trois mécanismes
+  (sauvegarde avant écriture, restauration sur corruption, reconstruction depuis le
+  disque) vivent **au-dessus**, dans le store. C'est le bon découpage — mais il serait
+  facile de croire que l'injection les apporte. Ce sont des **tests** qui les tiennent,
+  et ils n'en avaient aucun jusqu'au 2026-09-10.
 - **Leur prose a dérivé comme la nôtre.** L'en-tête de `ModsStore` renvoie à un
   ViewModel qui n'existe plus, et leur §8 parle de « 43 `@Published` » d'un état
   révolu. Lire leur **code**, jamais leurs commentaires, pour établir un fait.
@@ -223,7 +224,11 @@ Une extraction se fait dans cet ordre, et chaque étape est un commit :
 6. **Poser un repère avant de commencer un domaine.** Un tag
    `pre-refactor-<domaine>` sur le commit de départ : c'est ce qui rend un `git diff`
    de fin d'extraction lisible, et une marche arrière possible sans reconstituer
-   l'historique. Repris de leur 0.1, jamais fait ici jusqu'à présent.
+   l'historique. Repris de leur 0.1. ⚠️ *« Jamais fait ici jusqu'à présent » était
+   faux* : `git tag -l 'pre-refactor*'` en rend **huit**, dont sept posés le
+   2026-08-01 — et `pre-refactor-installed-registry` était déjà pris par l'extraction
+   de la règle pure. Vérifier avant de nommer ; le repère du store est
+   `pre-refactor-registry-store` (`eed26dc`).
 7. **Se méfier de l'outillage autant que du code.** Un « build vert » ne vaut que si
    le script échoue vraiment quand il doit échouer. Épreuve passée le 2026-08-01 (les
    deux sortent en 1 : parité de clés rompue, assertion fausse) — **à refaire après
@@ -326,7 +331,7 @@ logique pure / enchevêtrement, pas à son volume (§4.1).
 
 | Ordre | Cible | Pourquoi |
 | --- | --- | --- |
-| 1 | **Registre des mods installés** (8255–8577, 323 l.) | **Ses fonctions cœur reçoivent déjà leurs entrées en paramètres** : `syncInstalledModRegistry(scannedMods:modsFolderWasReadable:)`, `anchorModsUpdatedOnDisk(_:previousVersions:excluding:now:)` — l'horloge y est même déjà injectée (déviation consignée au §6). `loadInstalledModRegistryFromDisk()` est `static` et ne touche que `UserDefaults`. Ses seules sorties vers le VM sont `log(…)` et l'alerte : elles deviennent un **rapport rendu**, ce qui est le geste habituel. Rapprochement version/date testable, `NSLock` déjà en place, et **trois mécanismes de sûreté que personne ne vérifie** (backup avant écriture, restauration sur corruption, reconstruction depuis le disque — les trois requis, cf. Traps). Premier candidat au protocole `PreferenceStoring` + bouchon (§3) : le coût est **prévu ici**, pas contrebandé. `allInstalledMods()` a 13 appelants ailleurs — il **reste** au VM comme fournisseur, il n'entre pas dans le store. |
+| ~~1~~ ✅ | **Registre des mods installés** — livré le 2026-09-10 | `StarHubTH/Stores/InstalledModRegistryStore.swift` (**première occupation du dossier `Stores/` tranché au §9**), inscrit aux `sources:` de `StarHubTHCore` : le store est donc testé, pas seulement déplacé. **22 tests neufs sur les trois mécanismes de sûreté que rien ne vérifiait** — copie de secours à chaque écriture, restauration depuis le secours (avec promotion en clé principale), purge des blobs corrompus — plus la migration v2, la grâce et le `Mods/` illisible. Les sept ont été **prouvés rouges** par sabotage (§4.2). ViewModel : **11 903 → 11 658 lignes** (−245), `oversized_excess_lines` 27 414 → 27 169. `allInstalledMods()` **reste** au VM comme prévu (13 appelants). |
 | 2 | **Prédicats de cadrage de la liste** (10743–10995, 253 l. sur les 630 du bloc) | `matchesSearch/Category/Config/Favorites/Blacklisted/Translation`, `mods(matching:)`, `scopedMods`. Ils prennent déjà `ModListFilters` — type **déjà en Core avec 11 tests** (F1-T2, 2026-09-07) — et c'est le chemin de filtrage mis en cause par **F3**. ⚠️ **Mais ils ne sont pas extractibles tels quels**, contrôle du 2026-09-10 : ils vont chercher `anomaly(for:)` (3465), `category(for:)` et `inferredTagKey(for:)` (5697, 5708, mémoïsés par `categoryCache`), `isBlacklisted` (9565), `frenchCoverage(for:)` (667), `staleTranslationMods` — **cinq dépendances dans quatre autres domaines**. Les extraire suppose un objet de paramètres portant ces verdicts déjà résolus. Faisable et payant, mais ce n'est pas la petite extraction d'échauffement qu'on croyait : à prendre une fois la recette éprouvée. `toggleAllMods` et `deleteMod` (le reste du bloc) **ne suivent pas** : ils écrivent sur le disque. |
 | 3 | **Couverture FR** (575–797 + 1704–1912, ~430 l.) | Deux blocs séparés par 900 lignes d'autre chose, même domaine. Rend **F6-T1** (course à l'annulation dans `recomputeFrenchCoverage`) testable — un item ROADMAP ouvert, aujourd'hui sans observable parce qu'invérifiable. |
 | 4 | **Le bloc de tête** (1–574 + 1913–3196, ~1 858 l.) | Le God module proprement dit — décomposé au §6, dont **les coordonnées sont périmées** (voir l'encadré en tête de ce §6). |
@@ -352,6 +357,7 @@ passant leurs correctifs en revue (§8), et sans urgence propre :
 | --- | --- |
 | `NSOpenPanel` appelé depuis le ViewModel (`:2321` dans `selectGameDir`, `:8728` dans `selectCustomAvatar` — coordonnées du 2026-09-10), ce qui rend ces fonctions intestables | **Le premier protocole à écrire** (`FilePicking`), au moment où l'extraction touche l'installation d'un mod ou le choix du dossier de jeu — avec son bouchon dans le même commit |
 | AppKit importé hors des vues par `ContrastChecker`, `SaveManager`, `DescriptionBlockParser` et le ViewModel — les trois premiers étant **déjà dans Core** | À traiter quand on modifie l'un d'eux, pas avant : ils compilent, la gêne est théorique tant qu'on n'y touche pas |
+| `ModVersionAnchorStore.swift:26` porte `private static let registryKey = "installedModRegistry"` **en littéral, hors `UDKey`** — second lecteur de la clé que possède désormais `InstalledModRegistryStore` (relevé le 2026-09-10) | Au prochain passage sur la migration `migrateAwayFromNexusVersion`. Ce n'est pas une ligne à changer à l'aveugle : cette migration réécrit le **JSON brut** du registre, c'est-à-dire qu'elle contourne volontairement le type `InstalledModRecord`, et l'ordre de ses trois appels au lancement est déjà délicat (voir l'avertissement en tête du store) |
 
 **Règle permanente (F1-T2)** : une fonctionnalité neuve ne rentre plus dans le
 ViewModel. Elle naît dans son propre type, que le ViewModel se contente d'appeler.
@@ -467,6 +473,9 @@ qu'une de ces trois lignes avait été appliquée sans être dite.
 | Registre des mods (`4d50349`, consigné après coup par `838e32c`) | `Date()` évalué à chaque enregistrement → un instant unique pour tout le lot | Rend la logique vérifiable (l'horloge devient un paramètre) et donne un lot cohérent. Écart réel de quelques microsecondes entre mods d'un même scan ; sans portée, cette date se comparant à une date de mise en ligne dont la granularité est l'heure |
 | Résidu système (`OSJunk`) | Le scan reconnaît trois entrées de plus : `Icon\r`, `.Spotlight-V100`, `.Trashes` | **Correction, pas simple déplacement.** Sa copie locale était amputée ; or le scan traite tout dossier en `.` comme un mod en pause, si bien qu'un `.Spotlight-V100` s'affichait comme un mod désactivé nommé « Spotlight-V100 ». Trois autres copies étaient déjà correctes |
 | Arbre des sauvegardes (`4204c6e`) | Filtre par étiquette appliqué **après** le tri, au lieu d'avant | Conséquence de l'extraction : `SaveTree.build` trie en construisant. Résultat identique — un filtre ne réordonne pas ce qu'il conserve |
+| Store du registre (2026-09-10) | `mutate` rend la valeur produite par son corps | Supprime `WasEmptyBox`, la boîte à un élément qui existait uniquement pour faire échapper un booléen d'une closure `inout`. Le commentaire qui l'expliquait disparaît avec elle |
+| Store du registre (2026-09-10) | `anchorStore` et les versions suggérées **arrivent en paramètres** au lieu d'être lus sur `self` et sur `NexusUpdateChecker.shared` | C'est ce qui fait tenir le store dans Core (Foundation seul) et rend `anchorModsUpdatedOnDisk` testable — quatre de ses tests reposent sur une suggestion posée par l'appelant. Le VM garde la lecture du cache plat, avec la mise en garde de course qui la motive |
+| Store du registre (2026-09-10) | Les deux `log(…)` sortent en **rapport rendu** (`SyncReport`) | Le store ne connaît ni le journal de l'app ni sa localisation. L'appelant journalise exactement les deux mêmes lignes, aux deux mêmes conditions |
 
 ### Travail concurrent
 

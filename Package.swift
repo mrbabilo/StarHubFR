@@ -196,7 +196,13 @@ let package = Package(
                 "Models/AppSupportMigration.swift",
                 "Models/AppSupport.swift",
                 "Models/DefaultsMigration.swift",
+                "Stores/InstalledModRegistryStore.swift",
             ]
+        ),
+        .testTarget(
+            name: "InstalledModRegistryStoreTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/InstalledModRegistryStoreTests"
         ),
         .testTarget(
             name: "ProfileApplyJournalTests",

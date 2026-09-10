@@ -1341,6 +1341,17 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
       et **52 accès directs à `UserDefaults`**. (Compté hors commentaires,
       comme `check_standards.py` : un `grep` nu gonfle ces deux nombres à 166
       et 73.) C'est un sixième des 71 956 lignes Swift du dépôt.
+      ✅ **Point 1 du §5 livré le 2026-09-10 — le registre des mods installés.**
+      `StarHubTH/Stores/InstalledModRegistryStore.swift` inaugure le dossier `Stores/`
+      tranché le 2026-08-01 et jamais créé depuis ; il est inscrit aux `sources:` de
+      `StarHubTHCore`, donc **testé** et pas seulement déplacé. 22 tests neufs, dont les
+      trois mécanismes de sûreté que rien ne vérifiait (copie de secours à chaque
+      écriture, restauration depuis le secours avec promotion, purge des blobs corrompus)
+      — les sept mécanismes prouvés rouges par sabotage. VM **11 902 → 11 658**,
+      `oversized_excess_lines` 27 414 → 27 169. **Écart assumé au plan** : le protocole
+      `PreferenceStoring` de l'amont est **écarté** — `UserDefaults` entre déjà par
+      l'initialiseur dans trois stores Core testés, et le port aurait ajouté une seconde
+      façon d'injecter les préférences (raison au §3 de `REFACTORING.md`).
       ⚠️ **Ordre d'extraction re-dérivé le 2026-09-10** dans
       [`REFACTORING.md`](REFACTORING.md) §5 : l'ancien avait été écrit contre un VM de
       4 153 lignes et ne couvrait plus que 7 % du fichier. Le relevé s'y fait désormais
