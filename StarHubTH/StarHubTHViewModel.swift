@@ -302,28 +302,20 @@ class StarHubTHViewModel: ObservableObject {
     /// in the mod details popover.
     @Published var nexusModExtras: [String: NexusUpdateChecker.NexusModExtra] = [:]
 
-    /// User-assigned category overrides keyed by mod `folderName` (= `ModItem.id`).
-    /// A non-nil entry takes precedence over anything fetched from the Nexus API,
-    /// which lets the user categorize mods that have no `nexus:` UpdateKey (and
-    /// therefore no category_id from the API) as well as correct wrong automatic
-    /// assignments. Persisted in UserDefaults so it survives rescans / launches.
-    @Published var nexusCustomCategories: [String: Int] = [:] {
-        didSet { categoryCache.removeAll() }
-    }
+    // Les overrides **écrits par l'utilisateur** (catégorie épinglée,
+    // identifiant Nexus saisi) vivent dans `NexusMetadataStore` (Core,
+    // testé) avec leur persistance. Les deux propriétés ci-dessous sont des
+    // façades de lecture pour les vues — le relais `objectWillChange` du
+    // store, posé dans `init()`, invalide le cache de catégories et
+    // republie. L'invalidation remplace les `didSet` d'origine.
+    var nexusCustomCategories: [String: Int] { nexusMetadata.customCategories }
+    var nexusCustomModIds: [String: String] { nexusMetadata.customModIds }
 
-    /// Nexus mod id overrides keyed by mod `folderName`. Used to give a Nexus
-    /// link to mods that don't declare a `nexus:<id>` UpdateKey in their
-    /// manifest. When present, it also feeds back into the update check so the
-    /// linked mod can be checked for updates like any other.
-    ///
-    /// Trois sources l'alimentent, par ordre d'ancienneté : la saisie de
-    /// l'utilisateur, l'identifiant d'une installation venue de Nexus
-    /// (`recordNexusModId`), et le `metadata.nexusID` que smapi.io rend à
-    /// chaque vérification (`learnNexusIds`). Les deux dernières ne recouvrent
-    /// jamais la première.
-    @Published var nexusCustomModIds: [String: String] = [:] {
-        didSet { categoryCache.removeAll() }
-    }
+    /// Le store des métadonnées utilisateur. Il appartient au VM tant que
+    /// les vues ne l'observent pas directement (P8) ; le relais ci-dessous
+    /// républie à chaque écriture.
+    private let nexusMetadata = NexusMetadataStore()
+    private var nexusMetadataCancellable: AnyCancellable?
 
     /// `{ folderName: lastActivatedDate }` — stamped every time a mod (or a
     /// whole pack, which moves as a single folder) transitions from
@@ -2133,6 +2125,14 @@ class StarHubTHViewModel: ObservableObject {
         environmentCancellable = environment.objectWillChange.sink { [weak self] _ in
             self?.objectWillChange.send()
         }
+        // Le store des métadonnées utilisateur : ses écritures invalident le
+        // cache de catégories (le travail des `didSet` d'origine) et
+        // republient.
+        nexusMetadataCancellable = nexusMetadata.objectWillChange.sink { [weak self] _ in
+            guard let self else { return }
+            self.categoryCache.removeAll()
+            self.objectWillChange.send()
+        }
         // Seed the first launch step label synchronously so the overlay never
         // shows an empty string before the first async hop lands.
         self.launchStep = self.localization.L(L10n.Main.launchStepInit)
@@ -2173,8 +2173,7 @@ class StarHubTHViewModel: ObservableObject {
         let account = NexusUpdateChecker.shared.cachedAccount()
         // User-saved overrides (per-mod custom categories / Nexus id links /
         // activation timestamps). Small dicts, but still UserDefaults I/O.
-        let customCats = Self.loadCustomCategories()
-        let customIds = Self.loadCustomModIds()
+
         let activationTs = Self.loadModActivationTimestamps()
         let favorites = Self.loadFavoriteMods()
         let blacklisted = Self.loadBlacklistedMods()
@@ -2199,8 +2198,6 @@ class StarHubTHViewModel: ObservableObject {
             self.republishUpdatesFromCache()
             self.nexusCategories = categories
             self.nexusModExtras = extras
-            self.nexusCustomCategories = customCats
-            self.nexusCustomModIds = customIds
             self.modActivationTimestamps = activationTs
             self.favoriteMods = favorites
             self.blacklistedMods = blacklisted
@@ -4531,15 +4528,12 @@ for mod in mods {
                                         existingOverrides: nexusCustomModIds)
         guard !plan.isEmpty else { return }
 
-        // Une seule assignation : `nexusCustomModIds` vide le cache de
-        // catégories à chaque écriture, et le plan en porte parfois vingt.
-        var updated = nexusCustomModIds
+        // Le log reste par entrée (trié, pour la lisibilité du journal) ;
+        // la fusion + la persistance sont un bloc unique dans le store.
         for (folderName, id) in plan.sorted(by: { $0.key < $1.key }) {
-            updated[folderName] = id
             log(String(format: localization.L(L10n.VM.nexusIdLearned), folderName, id))
         }
-        nexusCustomModIds = updated
-        Self.saveCustomModIds(updated)
+        nexusMetadata.mergeCustomModIds(plan)
     }
 
     /// « Je l'ai déjà » : l'utilisateur affirme avoir la version suggérée.
@@ -4676,14 +4670,7 @@ for mod in mods {
         // chercher ses mises à jour sur la page d'un autre — et « je l'ai
         // déjà » (X62) s'ancrerait sur cette version-là. On le laisse à celui
         // qui reste ; le renommé le réapprend de ses `UpdateKeys` au scan.
-        if ModFolderRename.migrate(&nexusCustomModIds, from: old, to: new,
-                                   shared: shared, policy: .leaveBehind) {
-            Self.saveCustomModIds(nexusCustomModIds)
-        }
-        if ModFolderRename.migrate(&nexusCustomCategories, from: old, to: new,
-                                   shared: shared) {
-            Self.saveCustomCategories(nexusCustomCategories)
-        }
+        nexusMetadata.migrateFolderName(from: old, to: new, shared: shared)
 
         // 6. Le registre : sans lui, le mod repasserait pour « vu pour la
         // première fois » au prochain scan, et perdrait sa date d'installation.
@@ -5037,12 +5024,7 @@ for mod in mods {
 
     /// Pins a category on a mod. Pass `nil` to revert to the automatic category.
     func setCustomCategory(for mod: ModItem, categoryId: Int?) {
-        if let cid = categoryId {
-            nexusCustomCategories[mod.folderName] = cid
-        } else {
-            nexusCustomCategories.removeValue(forKey: mod.folderName)
-        }
-        Self.saveCustomCategories(nexusCustomCategories)
+        nexusMetadata.setCustomCategory(categoryId, for: mod.folderName)
     }
 
     /// The effective Nexus mod id for a mod: user override first, then the id
@@ -5218,13 +5200,7 @@ for mod in mods {
     /// it participate in update checks). Pass `nil`/empty to clear the override
     /// and fall back to the manifest-declared id.
     func setCustomNexusModId(for mod: ModItem, modId: String?) {
-        let trimmed = (modId ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmed.isEmpty {
-            nexusCustomModIds.removeValue(forKey: mod.folderName)
-        } else {
-            nexusCustomModIds[mod.folderName] = trimmed
-        }
-        Self.saveCustomModIds(nexusCustomModIds)
+        nexusMetadata.setCustomModId(modId, for: mod.folderName)
     }
 
     /// Retient l'identifiant Nexus d'une installation venue de Nexus, quand le
@@ -5355,8 +5331,7 @@ for mod in mods {
             existingOverride: nexusCustomModIds[folderName]
         ) else { return }
 
-        nexusCustomModIds[folderName] = id
-        Self.saveCustomModIds(nexusCustomModIds)
+        nexusMetadata.setCustomModId(id, for: folderName)
         log(String(format: localization.L(L10n.VM.nexusIdLearned), folderName, id))
     }
 
@@ -5708,29 +5683,6 @@ for mod in mods {
 
     /// Ce que l'app affirme avoir installé, par `UniqueID`.
     let anchorStore = ModVersionAnchorStore()
-
-    private static let customCategoriesKey = "nexusCustomCategories"
-    private static let customModIdsKey = "nexusCustomModIds"
-
-    private static func loadCustomCategories() -> [String: Int] {
-        guard let data = UserDefaults.standard.data(forKey: customCategoriesKey) else { return [:] }
-        return (try? JSONDecoder().decode([String: Int].self, from: data)) ?? [:]
-    }
-
-    private static func saveCustomCategories(_ map: [String: Int]) {
-        guard let data = try? JSONEncoder().encode(map) else { return }
-        UserDefaults.standard.set(data, forKey: customCategoriesKey)
-    }
-
-    private static func loadCustomModIds() -> [String: String] {
-        guard let data = UserDefaults.standard.data(forKey: customModIdsKey) else { return [:] }
-        return (try? JSONDecoder().decode([String: String].self, from: data)) ?? [:]
-    }
-
-    private static func saveCustomModIds(_ map: [String: String]) {
-        guard let data = try? JSONEncoder().encode(map) else { return }
-        UserDefaults.standard.set(data, forKey: customModIdsKey)
-    }
 
     // MARK: - Traductions communautaires (A3-T3)
 
@@ -10062,12 +10014,7 @@ for mod in mods {
         if ModRemovalPurge.purge(&modActivationTimestamps, removing: folder) {
             Self.saveModActivationTimestamps(modActivationTimestamps)
         }
-        if ModRemovalPurge.purge(&nexusCustomModIds, removing: folder) {
-            Self.saveCustomModIds(nexusCustomModIds)
-        }
-        if ModRemovalPurge.purge(&nexusCustomCategories, removing: folder) {
-            Self.saveCustomCategories(nexusCustomCategories)
-        }
+        nexusMetadata.purgeMod(folderName: folder)
         // « Je l'ai déjà » dans la vitrine : `installedNexusInstalls` n'est
         // qu'un complément de ce que le disque dit (`installedNexusIds()` en
         // fait l'union avec les mods réellement installés). Le retrait est
@@ -10680,12 +10627,7 @@ for mod in mods {
             if ModRemovalPurge.purge(&modActivationTimestamps, removing: key) {
                 Self.saveModActivationTimestamps(modActivationTimestamps)
             }
-            if ModRemovalPurge.purge(&nexusCustomModIds, removing: key) {
-                Self.saveCustomModIds(nexusCustomModIds)
-            }
-            if ModRemovalPurge.purge(&nexusCustomCategories, removing: key) {
-                Self.saveCustomCategories(nexusCustomCategories)
-            }
+            nexusMetadata.purgeMod(folderName: key)
             removed += 1
         }
         log(String(format: localization.L(L10n.Maintenance.cleanedLog), removed))

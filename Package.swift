@@ -207,6 +207,7 @@ let package = Package(
                 "Stores/FilePicking.swift",
                 "Stores/GameEnvironmentStore.swift",
                 "Stores/LocalizationStore.swift",
+                "Stores/NexusMetadataStore.swift",
                 "Models/ModScanner.swift",
                 "Models/DependencyIndex.swift",
                 "Models/TogglePlan.swift",
@@ -242,6 +243,11 @@ let package = Package(
             name: "NexusModIdentityTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/NexusModIdentityTests"
+        ),
+        .testTarget(
+            name: "NexusMetadataStoreTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/NexusMetadataStoreTests"
         ),
         .testTarget(
             name: "DisabledModsMigrationTests",
