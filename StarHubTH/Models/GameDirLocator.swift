@@ -29,9 +29,6 @@ public enum GameDirLocator {
         if fm.fileExists(atPath: gogPath) {
             return gogPath
         }
-        if fm.fileExists(atPath: gogPath) {
-            return gogPath
-        }
 
         return ""
     }
