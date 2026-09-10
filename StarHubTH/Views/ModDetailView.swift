@@ -1548,7 +1548,7 @@ private struct SupplementSection: View {
         HStack(spacing: 8) {
             Image(systemName: "checkmark.seal.fill")
                 .font(.system(size: 10))
-                .foregroundColor(.green)
+                .foregroundColor(AppDesign.Color.installed)
             VStack(alignment: .leading, spacing: 1) {
                 Text(addon.nexusName)
                     .font(.system(size: 11, weight: .medium))
@@ -1596,7 +1596,7 @@ private struct SupplementSection: View {
         HStack(spacing: 8) {
             Image(systemName: "checkmark.seal.fill")
                 .font(.system(size: 10))
-                .foregroundColor(.green)
+                .foregroundColor(AppDesign.Color.installed)
             VStack(alignment: .leading, spacing: 1) {
                 Text(hit.name)
                     .font(.system(size: 11, weight: .medium))
@@ -1820,7 +1820,7 @@ private struct TranslationSection: View {
         HStack(spacing: 6) {
             Image(systemName: "checkmark.seal.fill")
                 .font(.system(size: 10))
-                .foregroundColor(.green)
+                .foregroundColor(AppDesign.Color.installed)
             Text(vm.L(L10n.Mods.translationInPlace))
                 .font(.system(size: 12, weight: .medium))
             Text(installed.nexusName)

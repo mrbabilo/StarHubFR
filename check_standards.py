@@ -130,6 +130,14 @@ INFORMATIONAL: dict[str, Callable[[str], int]] = {
 }
 
 
+_LINE_COUNTS: dict[str, int] | None = None
+
+
+def read_source(path: str) -> str:
+    with open(path, encoding="utf-8") as handle:
+        return handle.read()
+
+
 def file_line_counts() -> dict[str, int]:
     """Lignes **brutes** par fichier — commentaires compris, contrairement à
     tous les autres compteurs.
@@ -140,8 +148,21 @@ def file_line_counts() -> dict[str, int]:
     parcourent, se scrollent et saturent le type-checker exactement comme
     3 000 lignes de code. C'est aussi le compte que rend `wc -l`, donc celui
     qu'on vérifie à la main sans se demander quelle convention s'applique.
+
+    Mémoïsé pour le processus courant : `--report` relit le détail des gros
+    fichiers après `measure()` — sans mémo, la seconde passe repayait le
+    parcours des ~211 fichiers que la première venait de faire (revue du
+    2026-09-10). Un processus ne voit qu'un état du disque ; le gâchis
+    inter-processus, lui, reste couvert par le cache d'empreinte.
     """
-    return {p: sum(1 for _ in open(p, encoding="utf-8")) for p in swift_sources()}
+    global _LINE_COUNTS
+    if _LINE_COUNTS is None:
+        counts = {}
+        for p in swift_sources():
+            with open(p, encoding="utf-8") as handle:
+                counts[p] = sum(1 for _ in handle)
+        _LINE_COUNTS = counts
+    return _LINE_COUNTS
 
 
 # § convention de taille de fichier. Deux compteurs, parce qu'un seul laisse
@@ -203,8 +224,7 @@ def measure(force: bool = False) -> tuple[dict[str, int], dict[str, int]]:
         except (OSError, ValueError):
             pass  # missing cache, malformed cache → fall through to full measure
 
-    text = "\n".join(strip_comments(open(p, encoding="utf-8").read())
-                     for p in swift_sources())
+    text = "\n".join(strip_comments(read_source(p)) for p in swift_sources())
     counts = {name: rule(text) for name, rule in RULES.items()}
     line_counts = file_line_counts()
     counts.update({name: rule(line_counts) for name, rule in FILE_RULES.items()})

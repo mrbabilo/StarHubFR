@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Les trois derniers verts d'état « installé » rejoignent le vert de l'application.** Les greffes et suppléments installés, et la mention « traduction en place » de la fiche d'un mod, portaient encore le vert système — le même écart de teinte que celui corrigé sur la fiche d'un pack.
+
 ## [1.43.1] - 2026-09-10
 
 ### Fixed
