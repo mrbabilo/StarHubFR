@@ -1352,6 +1352,15 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
       `PreferenceStoring` de l'amont est **écarté** — `UserDefaults` entre déjà par
       l'initialiseur dans trois stores Core testés, et le port aurait ajouté une seconde
       façon d'injecter les préférences (raison au §3 de `REFACTORING.md`).
+      ✅ **Point 2 du §5 clos le 2026-09-10 — la règle de cadrage de la liste.**
+      `Models/ModListScoping.swift`, en trois lots : les prédicats à valeurs, la
+      couverture française, puis la catégorie, la composition et le tri. **49 tests**
+      sur la règle qui décide de ce que la liste montre *et* de ce sur quoi « Tout
+      activer » agit (X57) — elle n'en avait aucun. Le plan annonçait cinq dépendances
+      croisées ; neuf mesurées, mais **sept étaient des valeurs**, d'où deux closures
+      seulement (`category(for:)`, `anomaly(for:)`), gardées **paresseuses** : les
+      résoudre d'avance ferait un balayage inconditionnel des 949 mods sur le chemin
+      même que **F3** met en cause. Trois déviations consignées au §6.
       ⚠️ **Ordre d'extraction re-dérivé le 2026-09-10** dans
       [`REFACTORING.md`](REFACTORING.md) §5 : l'ancien avait été écrit contre un VM de
       4 153 lignes et ne couvrait plus que 7 % du fichier. Le relevé s'y fait désormais

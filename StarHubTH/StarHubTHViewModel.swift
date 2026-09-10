@@ -10534,22 +10534,8 @@ for mod in mods {
     }
 
     func matchesCategory(_ mod: ModItem, filters: ModListFilters) -> Bool {
-        switch filters.category {
-        case .all:
-            return true
-        case .category(let cat):
-            // `category(for:)` already resolves a group to its dominant
-            // child category, so this agrees with the badge shown on the
-            // group's own row by construction.
-            return category(for: mod)?.id == cat.id
-        case .inferredTag(let tag):
-            return category(for: mod) == nil && inferredTagKey(for: mod) == tag
-        case .uncategorized:
-            // Same reasoning: `category(for:)` returns nil for a group
-            // exactly when none of its children have a known category,
-            // matching what its badge (absence) shows.
-            return category(for: mod) == nil && inferredTagKey(for: mod) == "Other"
-        }
+        ModListScoping.matchesCategory(mod, filters: filters,
+                                       category: { self.category(for: $0) })
     }
 
     func matchesConfig(_ mod: ModItem, filters: ModListFilters) -> Bool {
@@ -10580,90 +10566,27 @@ for mod in mods {
     /// source dont `ModListView.filteredMods` et `toggleAllMods` dérivent
     /// tous deux — le scope (`scopedMods(from:scope:)`) et la pagination
     /// (vue) s'appliquent par-dessus.
+    /// Les entrées du cadrage, assemblées **ici et nulle part ailleurs** : les
+    /// deux closures capturent `self`, et les faire construire par une vue les
+    /// ferait vivre dans un `@State` retenant le ViewModel.
+    private var scopingInputs: ModListScoping.Inputs {
+        .init(category: { [weak self] in self?.category(for: $0) },
+              hasAnomaly: { [weak self] in self?.anomaly(for: $0) != nil },
+              sizeOnDisk: { [weak self] in self?.sizeOnDisk(of: $0) ?? nil },
+              favorites: favoriteMods,
+              blacklisted: blacklistedMods,
+              translation: translationScopingState,
+              activationDates: modActivationTimestamps)
+    }
+
+    /// La liste cadrée : les six filtres composés, puis triée. C'est la source
+    /// dont `ModListView.filteredMods` et `toggleAllMods` dérivent tous deux —
+    /// le cadrage (`scopedMods(from:scope:)`) et la pagination (vue)
+    /// s'appliquent par-dessus.
     func mods(matching filters: ModListFilters) -> [ModItem] {
-        let filtered = mods
-            .filter { mod in
-                matchesSearch(mod, filters: filters)
-                    && matchesCategory(mod, filters: filters)
-                    && matchesConfig(mod, filters: filters)
-                    && matchesFavorites(mod, filters: filters)
-                    && matchesBlacklisted(mod, filters: filters)
-                    && matchesTranslation(mod, filters.frenchTranslation)
-            }
-        // `.name` ne trie pas : `mods` porte **déjà** cet ordre, et un filtre
-        // le préserve. C'est `scanMods()` qui l'établit
-        // (`scannedMods.alphabeticalListOrder`), et la seule autre écriture de
-        // `mods` — la bascule en masse — est un `map`, qui préserve l'ordre.
-        //
-        // Le code triait ici avec un comparateur toujours faux, ce qui ne
-        // rendait le même résultat **que si** `sorted(by:)` était stable : la
-        // bibliothèque standard ne le garantit pas (elle l'est aujourd'hui,
-        // par implémentation). Ne rien faire est à la fois juste et gratuit —
-        // le tri à blanc coûtait une passe complète sur 949 mods à chaque
-        // rendu, donc à chaque frappe dans la recherche.
-        guard filters.sort != .name else { return filtered }
-        return filtered
-            .sorted { lhs, rhs in
-                switch filters.sort {
-                case .name:
-                    // Inatteignable : écarté par le `guard` ci-dessus. Le cas
-                    // reste écrit pour que le `switch` demeure exhaustif.
-                    return false
-                case .activationOrder:
-                    let lhsDate = modActivationTimestamps[lhs.folderName]
-                    let rhsDate = modActivationTimestamps[rhs.folderName]
-                    switch (lhsDate, rhsDate) {
-                    case (let l?, let r?):
-                        return l > r
-                    case (.some, nil):
-                        return true
-                    case (nil, .some):
-                        return false
-                    case (nil, nil):
-                        return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
-                    }
-                case .installDate:
-                    let lhsDate = lhs.effectiveInstallDate
-                    let rhsDate = rhs.effectiveInstallDate
-                    switch (lhsDate, rhsDate) {
-                    case (let l?, let r?):
-                        return l > r
-                    case (.some, nil):
-                        return true
-                    case (nil, .some):
-                        return false
-                    case (nil, nil):
-                        return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
-                    }
-                case .nameDescending:
-                    return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedDescending
-                case .author:
-                    let authorOrder = lhs.author.localizedCaseInsensitiveCompare(rhs.author)
-                    if authorOrder != .orderedSame { return authorOrder == .orderedAscending }
-                    return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
-                case .version:
-                    let versionOrder = NexusUpdateChecker.compare(lhs.version, rhs.version)
-                    if versionOrder != .orderedSame { return versionOrder == .orderedDescending }
-                    return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
-                case .size:
-                    // Le plus lourd d'abord : c'est le sens dans lequel on
-                    // cherche. Les non mesurés ferment la marche, par nom —
-                    // et ils sont nombreux par construction : rien n'est
-                    // mesuré tant que la première passe n'a pas abouti, ni
-                    // pendant les secondes qui suivent une bascule.
-                    switch (sizeOnDisk(of: lhs), sizeOnDisk(of: rhs)) {
-                    case (let l?, let r?):
-                        if l != r { return l > r }
-                        return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
-                    case (.some, nil):
-                        return true
-                    case (nil, .some):
-                        return false
-                    case (nil, nil):
-                        return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
-                    }
-                }
-            }
+        let inputs = scopingInputs
+        let filtered = mods.filter { ModListScoping.matches($0, filters: filters, inputs: inputs) }
+        return ModListScoping.sorted(filtered, by: filters.sort, inputs: inputs)
     }
 
     func activeMods(from filtered: [ModItem]) -> [ModItem] { filtered.filter { $0.isEnabled } }
@@ -10675,7 +10598,7 @@ for mod in mods {
     /// dependencies, so it's excluded even if one is missing/disabled. Packs
     /// (groups) appear if any enabled child matches.
     func modsWithIssues(from filtered: [ModItem]) -> [ModItem] {
-        filtered.filter { matchesSelfOrAnyChild($0, hasIssues) }
+        ModListScoping.scoped(filtered, scope: .issues, hasAnomaly: { self.hasIssues($0) })
     }
 
     /// La liste cadrée restreinte au scope courant — ce que la section
@@ -10688,13 +10611,9 @@ for mod in mods {
     /// quarts du poids dorment dans des mods en pause. L'état reste lisible
     /// ligne à ligne dans la liste ; ici, l'ordre du tri passe tel quel.
     func scopedMods(from filtered: [ModItem], scope: ModFilter) -> [ModItem] {
-        switch scope {
-        case .all:      return filtered
-        case .enabled:  return activeMods(from: filtered)
-        case .disabled: return inactiveMods(from: filtered)
-        case .issues:   return modsWithIssues(from: filtered)
-        }
+        ModListScoping.scoped(filtered, scope: scope, hasAnomaly: { self.hasIssues($0) })
     }
+
 
     /// Enable or disable every installed mod at once. File operations run on a
     /// background queue so the UI (and the progress bar) stay responsive. Each

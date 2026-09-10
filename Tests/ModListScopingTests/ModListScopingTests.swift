@@ -262,6 +262,167 @@ struct ModListScopingTests {
         #expect(!ModListScoping.inferredTagKey(for: empty).isEmpty)
     }
 
+    // MARK: - Cadrage par catégorie
+
+    private func categorized(_ map: [String: NexusCategory]) -> (ModItem) -> NexusCategory? {
+        { map[$0.folderName] }
+    }
+
+    @Test func theCategoryFilterIsInertWhenAll() {
+        #expect(ModListScoping.matchesCategory(mod("Automate"), filters: filters(),
+                                               category: { _ in nil }))
+    }
+
+    @Test func aCategoryScopeKeepsOnlyThatCategory() {
+        let cat = NexusCategory.all[0]
+        var f = filters(); f.category = .category(cat)
+        #expect(ModListScoping.matchesCategory(mod("Automate"), filters: f,
+                                               category: categorized(["Automate": cat])))
+        #expect(!ModListScoping.matchesCategory(mod("Autre"), filters: f,
+                                                category: categorized(["Automate": cat])))
+    }
+
+    @Test func anInferredTagOnlyAppliesToUncategorizedMods() {
+        // Un mod qui a une vraie catégorie ne tombe jamais dans un seau
+        // inféré : les deux se recouvriraient, et le compte du menu mentirait.
+        let m = mod("Automate")
+        var f = filters(); f.category = .inferredTag(ModListScoping.inferredTagKey(for: m))
+        #expect(ModListScoping.matchesCategory(m, filters: f, category: { _ in nil }))
+        #expect(!ModListScoping.matchesCategory(m, filters: f,
+                                                category: { _ in NexusCategory.all[0] }))
+    }
+
+    @Test func uncategorizedMeansNoCategoryAndNoSpecificTag() {
+        var f = filters(); f.category = .uncategorized
+        let other = mod("zzzz")
+        // Le mod ne tombe dans « Sans catégorie » que si son tag inféré est
+        // « Other » — sinon il a son propre seau.
+        let isOther = ModListScoping.inferredTagKey(for: other) == "Other"
+        #expect(ModListScoping.matchesCategory(other, filters: f, category: { _ in nil }) == isOther)
+        #expect(!ModListScoping.matchesCategory(other, filters: f,
+                                                category: { _ in NexusCategory.all[0] }))
+    }
+
+    // MARK: - Composition et cadrage
+
+    @Test func theSixFiltersAreCombinedWithAnd() {
+        // Un seul filtre qui refuse suffit : c'est ce qui garantit que la
+        // bascule en masse agit sur ce que l'utilisateur regarde (X57).
+        let m = mod("Automate", config: true)
+        var f = filters(search: "automate", configOnly: true)
+        f.favoritesOnly = true
+        #expect(!ModListScoping.matches(m, filters: f, inputs: .init()))
+        #expect(ModListScoping.matches(m, filters: f, inputs: .init(favorites: ["Automate"])))
+    }
+
+    @Test func scopingSplitsOnEnabledState() {
+        var paused = mod("Pause"); paused.isEnabled = false
+        let all = [mod("Actif"), paused]
+        #expect(ModListScoping.scoped(all, scope: .all, hasAnomaly: { _ in false }).count == 2)
+        #expect(ModListScoping.scoped(all, scope: .enabled,
+                                      hasAnomaly: { _ in false }).map(\.name) == ["Actif"])
+        #expect(ModListScoping.scoped(all, scope: .disabled,
+                                      hasAnomaly: { _ in false }).map(\.name) == ["Pause"])
+    }
+
+    @Test func theIssuesScopeReadsTheAnomalyThroughComponents() {
+        let pack = mod("RSV", children: [mod("Core"), mod("Cassé")])
+        let scoped = ModListScoping.scoped([pack, mod("Sain")], scope: .issues,
+                                           hasAnomaly: { $0.name == "Cassé" })
+        #expect(scoped.map(\.name) == ["RSV"])
+    }
+
+    @Test func theAllScopeNeverAsksForAnomalies() {
+        // La closure est paresseuse à dessein : sous « Tous », le balayage de
+        // dépendances ne doit pas avoir lieu du tout.
+        final class Counter { var calls = 0 }
+        let counter = Counter()
+        _ = ModListScoping.scoped([mod("a"), mod("b")], scope: .all,
+                                  hasAnomaly: { _ in counter.calls += 1; return false })
+        #expect(counter.calls == 0)
+    }
+
+    // MARK: - Tri
+
+    private func named(_ names: [String]) -> [ModItem] { names.map { mod($0) } }
+
+    @Test func sortingByNameIsANoOp() {
+        // La liste porte déjà l'ordre alphabétique, établi par le scan. Trier à
+        // blanc coûtait une passe complète sur 949 mods à chaque frappe.
+        let input = named(["Zeta", "Alpha"])
+        #expect(ModListScoping.sorted(input, by: .name, inputs: .init()).map(\.name)
+            == ["Zeta", "Alpha"])
+    }
+
+    @Test func sortingByNameDescendingReverses() {
+        #expect(ModListScoping.sorted(named(["Alpha", "Zeta"]), by: .nameDescending,
+                                      inputs: .init()).map(\.name) == ["Zeta", "Alpha"])
+    }
+
+    @Test func sortingByActivationPutsTheMostRecentFirstAndTheUndatedLast() {
+        let t0 = Date(timeIntervalSince1970: 1_000)
+        let t1 = Date(timeIntervalSince1970: 2_000)
+        let sorted = ModListScoping.sorted(
+            named(["Ancien", "Jamais", "Recent"]), by: .activationOrder,
+            inputs: .init(activationDates: ["Ancien": t0, "Recent": t1]))
+        #expect(sorted.map(\.name) == ["Recent", "Ancien", "Jamais"])
+    }
+
+    @Test func equalDatesAreBrokenByNameRatherThanLeftUndetermined() {
+        // Déviation assumée : l'original rendait `false` à dates égales, ce qui
+        // ne donnait un ordre stable que si `sorted(by:)` l'était — la
+        // bibliothèque standard ne le garantit pas.
+        let t = Date(timeIntervalSince1970: 1_000)
+        let sorted = ModListScoping.sorted(
+            named(["Zeta", "Alpha"]), by: .activationOrder,
+            inputs: .init(activationDates: ["Zeta": t, "Alpha": t]))
+        #expect(sorted.map(\.name) == ["Alpha", "Zeta"])
+    }
+
+    @Test func sortingBySizePutsTheHeaviestFirstAndTheUnmeasuredLast() {
+        // Les non mesurés sont nombreux par construction : rien n'est mesuré
+        // tant que la première passe n'a pas abouti.
+        let sizes: [String: Int64] = ["Gros": 900, "Petit": 10]
+        let sorted = ModListScoping.sorted(
+            named(["Petit", "Inconnu", "Gros"]), by: .size,
+            inputs: .init(sizeOnDisk: { sizes[$0.folderName] }))
+        #expect(sorted.map(\.name) == ["Gros", "Petit", "Inconnu"])
+    }
+
+    @Test func sortingBySizeReadsThePhysicalFolderThroughTheCaller() {
+        // Cinq des huit plus gros mods du parc sont en pause : le poids se
+        // relève sur le nom physique. La closure vient de l'appelant, donc ce
+        // test vérifie que le cadrage ne la court-circuite pas.
+        var paused = mod("Enorme"); paused.isEnabled = false
+        let sorted = ModListScoping.sorted(
+            [mod("Petit"), paused], by: .size,
+            inputs: .init(sizeOnDisk: { $0.physicalFolderName == ".Enorme" ? 900 : 10 }))
+        #expect(sorted.map(\.name) == ["Enorme", "Petit"])
+    }
+
+    @Test func sortingByAuthorFallsBackToTheName() {
+        let a = ModItem(uniqueId: "a", name: "Zeta", folderName: "Zeta", version: "1",
+                        author: "Pathoschild", description: "", nexusUrl: "", nexusModId: "",
+                        isEnabled: true, dependencies: [], children: nil)
+        let b = ModItem(uniqueId: "b", name: "Alpha", folderName: "Alpha", version: "1",
+                        author: "Pathoschild", description: "", nexusUrl: "", nexusModId: "",
+                        isEnabled: true, dependencies: [], children: nil)
+        #expect(ModListScoping.sorted([a, b], by: .author, inputs: .init()).map(\.name)
+            == ["Alpha", "Zeta"])
+    }
+
+    @Test func sortingByVersionPutsTheHighestFirst() {
+        let old = ModItem(uniqueId: "a", name: "A", folderName: "A", version: "1.2.0",
+                          author: "", description: "", nexusUrl: "", nexusModId: "",
+                          isEnabled: true, dependencies: [], children: nil)
+        let new = ModItem(uniqueId: "b", name: "B", folderName: "B", version: "1.10.0",
+                          author: "", description: "", nexusUrl: "", nexusModId: "",
+                          isEnabled: true, dependencies: [], children: nil)
+        // 1.10 > 1.2 : la comparaison est sémantique, pas lexicographique.
+        #expect(ModListScoping.sorted([old, new], by: .version, inputs: .init()).map(\.name)
+            == ["B", "A"])
+    }
+
     // MARK: - Les marques se lisent sur le nom **logique**
 
     @Test func aPausedModKeepsItsMarksUnderItsLogicalName() {

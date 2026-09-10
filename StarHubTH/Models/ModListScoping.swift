@@ -144,6 +144,185 @@ enum ModListScoping {
         }
     }
 
+    /// Ce que le cadrage complet a besoin de savoir et qu'il ne peut pas
+    /// calculer lui-même.
+    ///
+    /// Deux closures seulement — le relevé du 2026-09-10 avait annoncé cinq
+    /// dépendances puis en a mesuré neuf, mais sept se sont révélées être des
+    /// **valeurs** : des `Set` de noms de dossiers et des dictionnaires. Ne
+    /// restent ici que ce qui calcule vraiment.
+    ///
+    /// ⚠️ **Les deux closures sont paresseuses à dessein, et doivent le rester.**
+    /// `category` est mémoïsée derrière un cache côté appelant, et `hasAnomaly`
+    /// fait un balayage de dépendances par mod — c'est pour ne pas le refaire à
+    /// chaque évaluation du sélecteur que `ModListView.scopeCounts` existe.
+    /// Résoudre ces verdicts d'avance pour les 949 mods du parc les
+    /// transformerait en balayage inconditionnel, y compris sous le cadrage
+    /// « Tous », qui ne lit jamais `hasAnomaly`. C'est le chemin même que **F3**
+    /// met en cause.
+    struct Inputs {
+        /// La catégorie effective, surcharge manuelle comprise, un pack rendant
+        /// celle qui domine chez ses composants.
+        let category: (ModItem) -> NexusCategory?
+        /// Ce mod porte-t-il une anomalie ? La même règle que la pastille : le
+        /// cadrage ne regardait que les dépendances quand la pastille couvrait
+        /// aussi les erreurs du journal et les manifestes sans identifiant — un
+        /// mod pastillé pouvait manquer à l'onglet censé les réunir.
+        let hasAnomaly: (ModItem) -> Bool
+        /// Le poids mesuré, `nil` tant que la mesure n'a pas abouti.
+        let sizeOnDisk: (ModItem) -> Int64?
+        let favorites: Set<String>
+        let blacklisted: Set<String>
+        let translation: TranslationState
+        /// Les dates de dernière activation, pour le tri correspondant.
+        let activationDates: [String: Date]
+
+        init(category: @escaping (ModItem) -> NexusCategory? = { _ in nil },
+             hasAnomaly: @escaping (ModItem) -> Bool = { _ in false },
+             sizeOnDisk: @escaping (ModItem) -> Int64? = { _ in nil },
+             favorites: Set<String> = [],
+             blacklisted: Set<String> = [],
+             translation: TranslationState = .init(),
+             activationDates: [String: Date] = [:]) {
+            self.category = category
+            self.hasAnomaly = hasAnomaly
+            self.sizeOnDisk = sizeOnDisk
+            self.favorites = favorites
+            self.blacklisted = blacklisted
+            self.translation = translation
+            self.activationDates = activationDates
+        }
+    }
+
+    /// Le cadrage par catégorie.
+    ///
+    /// `category` résout déjà un pack à la catégorie qui domine chez ses
+    /// composants : ce prédicat s'accorde donc **par construction** avec la
+    /// pastille affichée sur la ligne du pack.
+    static func matchesCategory(_ mod: ModItem, filters: ModListFilters,
+                                category: (ModItem) -> NexusCategory?) -> Bool {
+        switch filters.category {
+        case .all:
+            return true
+        case .category(let cat):
+            return category(mod)?.id == cat.id
+        case .inferredTag(let tag):
+            return category(mod) == nil && inferredTagKey(for: mod) == tag
+        case .uncategorized:
+            // Même raisonnement : `category` rend `nil` pour un pack exactement
+            // quand aucun de ses composants n'a de catégorie connue, ce que son
+            // absence de pastille montre.
+            return category(mod) == nil && inferredTagKey(for: mod) == "Other"
+        }
+    }
+
+    /// Les six filtres composés. **Ne trie pas** — voir `sorted(_:by:_:)`.
+    static func matches(_ mod: ModItem, filters: ModListFilters,
+                        inputs: Inputs) -> Bool {
+        matchesSearch(mod, filters: filters)
+            && matchesCategory(mod, filters: filters, category: inputs.category)
+            && matchesConfig(mod, filters: filters)
+            && matchesFavorites(mod, filters: filters, favorites: inputs.favorites)
+            && matchesBlacklisted(mod, filters: filters, blacklisted: inputs.blacklisted)
+            && matchesTranslation(mod, filters.frenchTranslation, state: inputs.translation)
+    }
+
+    /// La liste cadrée restreinte au cadrage courant — ce que la section
+    /// « Tous / Activés / En pause / Problèmes » montre, et l'ensemble exact
+    /// sur lequel la bascule en masse agit (X57).
+    ///
+    /// **Pas** de partition actifs/en pause sous « Tous » : grouper d'abord par
+    /// état écraserait le tri choisi — trier par poids remontait le plus gros
+    /// mod *actif*, jamais le plus gros du parc, alors que les trois quarts du
+    /// poids dorment dans des mods en pause. L'état reste lisible ligne à ligne
+    /// dans la liste ; ici, l'ordre du tri passe tel quel.
+    static func scoped(_ mods: [ModItem], scope: ModFilter,
+                       hasAnomaly: (ModItem) -> Bool) -> [ModItem] {
+        switch scope {
+        case .all:      return mods
+        case .enabled:  return mods.filter(\.isEnabled)
+        case .disabled: return mods.filter { !$0.isEnabled }
+        case .issues:   return mods.filter { mod in
+            // Mods activés (ou packs à composant activé) portant une anomalie.
+            // Un mod en pause ne s'appuie sur rien : il est écarté même si une
+            // dépendance lui manque.
+            matchesSelfOrAnyChild(mod) { hasAnomaly($0) }
+        }
+        }
+    }
+
+    /// Le tri de la liste.
+    ///
+    /// `.name` ne trie **pas** : la liste porte déjà cet ordre, établi par le
+    /// scan (`scannedMods.alphabeticalListOrder`), et un filtre le préserve. Le
+    /// code triait ici avec un comparateur toujours faux, ce qui ne rendait le
+    /// même résultat **que si** `sorted(by:)` était stable : la bibliothèque
+    /// standard ne le garantit pas (elle l'est aujourd'hui, par implémentation).
+    /// Ne rien faire est à la fois juste et gratuit — le tri à blanc coûtait une
+    /// passe complète sur 949 mods à chaque rendu, donc à chaque frappe dans la
+    /// recherche.
+    static func sorted(_ mods: [ModItem], by order: ModSortOrder,
+                       inputs: Inputs) -> [ModItem] {
+        guard order != .name else { return mods }
+        return mods.sorted { lhs, rhs in
+            switch order {
+            case .name:
+                // Inatteignable : écarté par le `guard` ci-dessus. Le cas reste
+                // écrit pour que le `switch` demeure exhaustif.
+                return false
+            case .activationOrder:
+                return byDateThenName(inputs.activationDates[lhs.folderName],
+                                      inputs.activationDates[rhs.folderName], lhs, rhs)
+            case .installDate:
+                return byDateThenName(lhs.effectiveInstallDate, rhs.effectiveInstallDate,
+                                      lhs, rhs)
+            case .nameDescending:
+                return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedDescending
+            case .author:
+                let authorOrder = lhs.author.localizedCaseInsensitiveCompare(rhs.author)
+                if authorOrder != .orderedSame { return authorOrder == .orderedAscending }
+                return byName(lhs, rhs)
+            case .version:
+                let versionOrder = NexusUpdateChecker.compare(lhs.version, rhs.version)
+                if versionOrder != .orderedSame { return versionOrder == .orderedDescending }
+                return byName(lhs, rhs)
+            case .size:
+                // Le plus lourd d'abord : c'est le sens dans lequel on cherche.
+                // Les non mesurés ferment la marche, par nom — et ils sont
+                // nombreux par construction : rien n'est mesuré tant que la
+                // première passe n'a pas abouti, ni pendant les secondes qui
+                // suivent une bascule.
+                switch (inputs.sizeOnDisk(lhs), inputs.sizeOnDisk(rhs)) {
+                case (let l?, let r?):
+                    if l != r { return l > r }
+                    return byName(lhs, rhs)
+                case (.some, nil): return true
+                case (nil, .some): return false
+                case (nil, nil):   return byName(lhs, rhs)
+                }
+            }
+        }
+    }
+
+    /// Le plus récent d'abord, les sans-date en fin de liste, départagés par
+    /// nom. La forme est la même pour la date d'activation et celle
+    /// d'installation : elle vivait en deux exemplaires identiques.
+    private static func byDateThenName(_ lhs: Date?, _ rhs: Date?,
+                                       _ lhsMod: ModItem, _ rhsMod: ModItem) -> Bool {
+        switch (lhs, rhs) {
+        case (let l?, let r?):
+            if l != r { return l > r }
+            return byName(lhsMod, rhsMod)
+        case (.some, nil): return true
+        case (nil, .some): return false
+        case (nil, nil):   return byName(lhsMod, rhsMod)
+        }
+    }
+
+    private static func byName(_ lhs: ModItem, _ rhs: ModItem) -> Bool {
+        lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+    }
+
     /// La clé de type inférée d'un mod, stable. Pour un pack, celle de son
     /// composant **principal** (le premier) — le pack montre le tag de son
     /// composant de tête, comme en amont.
