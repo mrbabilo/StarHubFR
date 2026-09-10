@@ -616,27 +616,27 @@ class StarHubTHViewModel: ObservableObject {
         }
         let root = gameDir
         guard !root.isEmpty else { return }
-        let known = Set(frenchCoverageByMod.keys)
-        let snapshot = mods.filter { !known.contains($0.folderName) }
+        // Le lot se fige ici, avant la tâche détachée : lui faire relire `mods`
+        // déplacerait la course au lieu de l'éviter.
+        let snapshot = FrenchCoveragePass.targets(in: mods,
+                                                  known: Set(frenchCoverageByMod.keys))
         guard !snapshot.isEmpty else { return }
 
         frenchCoverageTask = Task.detached(priority: .utility) { [weak self] in
             let modsPath = (root as NSString).appendingPathComponent("Mods")
             var batch: [String: TranslationCoverage.Coverage] = [:]
             var staleBatch: Set<String> = []
-            for mod in snapshot where mod.languages.contains("fr") {
+            for target in snapshot {
                 if Task.isCancelled { return }
                 let directory = URL(fileURLWithPath: modsPath)
-                    .appendingPathComponent(mod.physicalFolderName)
+                    .appendingPathComponent(target.physicalFolder)
                 guard let coverage = TranslationCoverage.coverage(forModAt: directory,
                                                                   locale: "fr") else { continue }
-                batch[mod.folderName] = coverage
+                batch[target.key] = coverage
                 if TranslationFreshness.staleness(forModAt: directory, locale: "fr") != nil {
-                    staleBatch.insert(mod.folderName)
+                    staleBatch.insert(target.key)
                 }
-                // Publier par paquets : un envoi par mod ferait redessiner la
-                // liste des centaines de fois pour rien.
-                if batch.count >= 25 {
+                if batch.count >= FrenchCoveragePass.batchSize {
                     let published = batch
                     let publishedStale = staleBatch
                     batch.removeAll(keepingCapacity: true)
@@ -652,15 +652,14 @@ class StarHubTHViewModel: ObservableObject {
     @MainActor
     private func mergeFrenchCoverage(_ batch: [String: TranslationCoverage.Coverage],
                                      stale: Set<String>) {
-        guard !batch.isEmpty || !stale.isEmpty else { return }
-        frenchCoverageByMod.merge(batch) { _, new in new }
-        // Un mod du lot qui n'y est plus signalé a cessé d'être suspect — le
-        // retirer d'abord laisse `formUnion` ne faire grandir l'ensemble que
-        // de ce que ce lot confirme. Latent aujourd'hui, le balayage étant
-        // incrémental (chaque mod n'est mesuré qu'une fois) ; nécessaire dès
-        // qu'une re-mesure ciblée existera.
-        staleTranslationMods.subtract(batch.keys)
-        staleTranslationMods.formUnion(stale)
+        // Garde de génération non câblée à dessein (F6-T1) : testée, pas
+        // encore utile — voir `FrenchCoveragePass.merging`.
+        guard let next = FrenchCoveragePass.merging(
+            batch, stale: stale,
+            into: .init(coverage: frenchCoverageByMod, stale: staleTranslationMods))
+        else { return }
+        frenchCoverageByMod = next.coverage
+        staleTranslationMods = next.stale
     }
 
     /// Le taux à afficher sur la pastille de la liste, si mesuré.
