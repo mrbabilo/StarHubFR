@@ -315,6 +315,7 @@
   "main_group_saves": "Games",
   "main_home": "Home",
   "main_launch_game": "Launch Game",
+  "main_launch_mods_found": "%d mods found",
   "main_launch_step_done": "Ready",
   "main_launch_step_duplicates": "Checking for duplicates…",
   "main_launch_step_init": "Initializing…",

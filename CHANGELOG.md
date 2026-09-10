@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Changed
+
+- **Le compteur du splash compte les mods trouvés, plus les entrées de `Mods/`.** Pendant l'analyse, il monte désormais vers le chiffre que la liste affichera — les dossiers d'outils et les packs sans manifeste ne gonflent plus un total que rien ne rattrapait (961 vu au splash pour 956 dans la liste).
+
 ### Fixed
 
 - **L'installation ne refuse plus un manifeste que le jeu charge.** Quatre formes tolérées par SMAPI — clé sans guillemets, guillemets simples, hexadécimal, `Infinity` — écartaient encore un mod à l'installation, la réparation ou le renommage. Aucun mod du parc n'est écrit ainsi : la correction vaut pour les prochains.

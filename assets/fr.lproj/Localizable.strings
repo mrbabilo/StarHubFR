@@ -315,6 +315,7 @@
 "main_group_saves" = "Parties";
 "main_home" = "Accueil";
 "main_launch_game" = "Lancer le jeu";
+"main_launch_mods_found" = "%d mods trouvés";
 "main_launch_step_done" = "Prêt";
 "main_launch_step_duplicates" = "Recherche de doublons…";
 "main_launch_step_init" = "Initialisation…";

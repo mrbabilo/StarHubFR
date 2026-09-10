@@ -5,15 +5,21 @@ import Foundation
 /// scanner qui le produit (REFACTORING §6, domaine Scan, tranche 1).
 ///
 /// `phase` — non nil quand la boucle par mod est **finie** et qu'une phase
-/// nommée tourne encore (journal SMAPI, registre, doublons). Le compteur
-/// reste alors affiché — à `total/total`, ce qu'il n'atteignait jamais —
-/// mais la barre suit `launchProgress` au lieu du ratio, sans quoi elle
-/// resterait immobile pendant toute la phase.
+/// nommée tourne encore (journal SMAPI, registre, doublons). La barre suit
+/// alors `launchProgress` plutôt que le ratio, qui serait immobile à 1.
+///
+/// `modsFound` — le compte de **mods trouvés jusqu'ici**, que le splash
+/// affiche à la place de `done/total`. `total` compte toutes les entrées de
+/// `Mods/` — dossiers d'outils et packs sans manifeste compris — et ne
+/// converge donc jamais vers le compte de la liste : c'est l'écart signalé
+/// le 2026-09-10 (961 au splash contre 956 dans la liste). `nil` sur la
+/// trame de préparation, qui n'a encore rien compté.
 struct ScanProgress: Equatable {
     let done: Int
     let total: Int
     let currentName: String
     var phase: String? = nil
+    var modsFound: Int? = nil
 }
 
 /// Le balayage de `Mods/` — énumération haut niveau, lecture des manifestes
@@ -357,7 +363,9 @@ final class ModScanner {
                     lastProgressPublish = now
                     let d = scanDone, t = scanTotal
                     let nm = topLevelLogicalFolder
-                    onProgress(ScanProgress(done: d, total: t, currentName: nm))
+                    let found = scannedMods.count
+                    onProgress(ScanProgress(done: d, total: t, currentName: nm,
+                                            modsFound: found))
                 }
 
                 scanEntryForMods(at: physicalRoot, topLevelLogicalFolder: topLevelLogicalFolder, isEnabled: isEnabled)

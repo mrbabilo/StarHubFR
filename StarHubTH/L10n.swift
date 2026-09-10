@@ -55,6 +55,7 @@ enum L10n {
         static let changelogReadError   = "main_changelog_read_error"
         static let changelogMissing     = "main_changelog_missing"
         static let quarantine           = "main_quarantine"
+        static let modsFound            = "main_launch_mods_found"
     }
 
     // MARK: - Home

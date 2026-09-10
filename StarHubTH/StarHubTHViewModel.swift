@@ -409,13 +409,15 @@ class StarHubTHViewModel: ObservableObject {
 
     /// Annonce une phase qui suit la boucle par mod de `scanMods`.
     ///
-    /// Le compteur reste à `done/total` — la boucle est terminée, donc
-    /// `total/total` : c'est la seule façon pour l'écran d'afficher enfin le
-    /// compte complet, que le throttle de publication ne laissait jamais
-    /// atteindre. `phase` fait suivre la barre à `launchProgress` plutôt qu'au
-    /// ratio, qui serait immobile à 1.
+    /// Le compteur affiche désormais le compte **définitif de mods trouvés**
+    /// (`modsFound`) et non plus `total/total` : le total de `total` comptait
+    /// toutes les entrées de `Mods/` — dossiers d'outils, packs sans
+    /// manifeste — et n'a jamais convergé vers le compte de la liste (écart
+    /// signalé le 2026-09-10). `phase` fait suivre la barre à `launchProgress`
+    /// plutôt qu'au ratio, qui serait immobile à 1.
     private func publishLaunchPhase(_ stepKey: String, progress: Double,
-                                    entries: (done: Int, total: Int)) {
+                                    entries: (done: Int, total: Int),
+                                    modsFound: Int) {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             let label = self.localization.L(stepKey)
@@ -425,7 +427,8 @@ class StarHubTHViewModel: ObservableObject {
             self.launchProgress = max(self.launchProgress, progress)
             guard entries.total > 0 else { return }
             self.scanProgress = ScanProgress(done: entries.done, total: entries.total,
-                                             currentName: "", phase: label)
+                                             currentName: "", phase: label,
+                                             modsFound: modsFound)
         }
     }
 
@@ -435,9 +438,11 @@ class StarHubTHViewModel: ObservableObject {
     /// supplémentaire.
     private func publishLaunchPhaseProgress(_ stepKey: String, fraction: Double,
                                             from: Double, to: Double,
-                                            entries: (done: Int, total: Int)) {
+                                            entries: (done: Int, total: Int),
+                                            modsFound: Int) {
         let clamped = min(max(fraction, 0), 1)
-        publishLaunchPhase(stepKey, progress: from + (to - from) * clamped, entries: entries)
+        publishLaunchPhase(stepKey, progress: from + (to - from) * clamped,
+                           entries: entries, modsFound: modsFound)
     }
 
     @Published var mods: [ModItem] = [] {
@@ -2564,13 +2569,13 @@ class StarHubTHViewModel: ObservableObject {
         // « 949/957 » pendant que les phases ci-dessous tournaient. Chacune
         // s'annonce désormais, compte complet à l'appui.
         publishLaunchPhase(L10n.Main.launchStepSmapiLog,
-                           progress: Self.launchSmapiLogStart, entries: scanned.scannedEntries)
+                           progress: Self.launchSmapiLogStart, entries: scanned.scannedEntries, modsFound: scanned.mods.count)
         parseSMAPILog(onProgress: { [weak self] fraction in
             self?.publishLaunchPhaseProgress(L10n.Main.launchStepSmapiLog,
                                              fraction: fraction,
                                              from: Self.launchSmapiLogStart,
                                              to: Self.launchSmapiLogEnd,
-                                             entries: scanned.scannedEntries)
+                                             entries: scanned.scannedEntries, modsFound: scanned.mods.count)
         })
 
         // Synchronize the installed-mod registry with what's on disk. This
@@ -2582,7 +2587,7 @@ class StarHubTHViewModel: ObservableObject {
         //   3. Registry entries whose folder no longer exists → pruned —
         //      sauf si `Mods/` n'a pas pu être lu (X71).
         publishLaunchPhase(L10n.Main.launchStepRegistrySync,
-                           progress: Self.launchRegistrySyncProgress, entries: scanned.scannedEntries)
+                           progress: Self.launchRegistrySyncProgress, entries: scanned.scannedEntries, modsFound: scanned.mods.count)
         syncInstalledModRegistry(scannedMods: scannedMods,
                                  modsFolderWasReadable: scanned.modsFolderWasReadable)
         if !scanned.modsFolderWasReadable {
@@ -2594,7 +2599,7 @@ class StarHubTHViewModel: ObservableObject {
         // repairer's separate disk walk — same result, no extra I/O or decode.
         if includeRepair {
             publishLaunchPhase(L10n.Main.launchStepDuplicates,
-                               progress: Self.launchDuplicatesProgress, entries: scanned.scannedEntries)
+                               progress: Self.launchDuplicatesProgress, entries: scanned.scannedEntries, modsFound: scanned.mods.count)
             let duplicates = repairer.detectDuplicates(from: scannedMods)
             repairReport = ModFolderRepairer.Report(
                 quarantined: repairReport.quarantined,

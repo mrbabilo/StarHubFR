@@ -166,6 +166,33 @@ import Testing
         #expect(!outcome.modsFolderWasReadable)
     }
 
+    // MARK: - Progrès
+
+    /// Les trames de progrès portent le compte de **mods trouvés** — c'est
+    /// lui que le splash affiche, et il doit converger vers le compte de la
+    /// liste, pas vers le nombre brut d'entrées de `Mods/` (écart signalé
+    /// le 2026-09-10 : 961 au splash contre 956 dans la liste — des dossiers
+    /// d'outils et un pack Vortex sans manifeste comptaient dans le total).
+    /// Le throttle ne publie qu'une trame sur un petit arbre : elle porte
+    /// `done/total` (entrées, pour la barre) et `modsFound` (0 : la trame
+    /// précède le balayage de l'entrée qu'elle annonce).
+    @Test func loopProgressCarriesModsFound() throws {
+        let gameDir = try makeGameDir()
+        for i in 0..<3 {
+            try makeMod(in: gameDir + "/Mods", name: "Mod\(i)",
+                        manifest: "{ \"Name\": \"M\(i)\", \"UniqueID\": \"progress.\(i)\" }")
+        }
+        var frames: [ScanProgress] = []
+        let scanner = ModScanner()
+        _ = scanner.scan(gameDir: gameDir, installedModDate: { _ in nil },
+                         onProgress: { frames.append($0) }, log: { _ in })
+        let loopFrame = try #require(frames.first)
+        #expect(loopFrame.total == 3)
+        #expect(loopFrame.done == 1)
+        #expect(loopFrame.modsFound == 0)
+        #expect(loopFrame.phase == nil)
+    }
+
     // MARK: - Cache mtime
 
     /// Le cache sert la valeur **stale** tant que le mtime ne bouge pas —

@@ -389,10 +389,11 @@ struct LaunchProgressBar: View {
 
     private var caption: String {
         if let scan = vm.scanProgress, scan.total > 0 {
-            // En phase, le nom du mod n'a plus de sens — la boucle est finie.
-            // Le compteur, lui, reste : c'est là qu'il atteint enfin son total.
             let label = scan.phase ?? scan.currentName
-            return "\(label)  (\(scan.done)/\(scan.total))"
+            if let found = scan.modsFound {
+                return "\(label) — \(String(format: localization.L(L10n.Main.modsFound), found))"
+            }
+            return label
         }
         return vm.launchStep.isEmpty ? localization.L(L10n.Main.launching) : vm.launchStep
     }
