@@ -80,4 +80,70 @@ public enum SmapiVersionEvidence {
                                      options: .regularExpression) else { return nil }
         return String(line[range]).replacingOccurrences(of: "SMAPI ", with: "")
     }
+
+    // MARK: - Lecture sur disque
+
+    /// La version installée dans `gameDir`, lue sur le disque. C'est
+    /// l'orchestration qui vivait dans `SmapiInstaller.getInstalledVersion`
+    /// (app) : déplacée ici parce que `checkSmapiVersion` — domaine
+    /// Environnement — n'a que lui sous la main, et pour que la règle
+    /// X77/X31 soit testable de bout en bout.
+    ///
+    /// `fm` et `home` arrivent en paramètres : le lecteur teste des
+    /// installations sur dossiers temporaires, pas la machine hôte.
+    ///
+    /// 1. Le marqueur écrit par `SmapiInstaller.install()` ; 2. la première
+    /// ligne de `SMAPI-latest.txt` (256 premiers octets, la bannière y est),
+    /// qui nomme la version réellement **chargée** au dernier lancement — la
+    /// seule source pour une installation que cette app n'a pas faite. Le
+    /// départage est la règle `resolve` ci-dessus, à date égale le marqueur.
+    public static func installedVersion(gameDir: String,
+                                        fm: FileManager = .default,
+                                        home: String = FileManager.default.homeDirectoryForCurrentUser.path) -> String? {
+        // Le marqueur fiable de présence est `smapi-internal/` (X77) : posé
+        // par chaque installation, retiré par chaque désinstallation. La
+        // garde historique testait `StardewValley-original`, qu'une
+        // installation **propre** ne pose jamais (mesuré sur installation de
+        // contrôle du binaire 4.5.2) — SMAPI paraissait absent juste après
+        // avoir été installé sur un jeu vierge.
+        guard SmapiInstallMarker.isPresent(gameDir: gameDir, fm: fm) else { return nil }
+
+        let markerPath = (gameDir as NSString)
+            .appendingPathComponent(SmapiInstallMarker.installedVersionRelativePath)
+        var marker: Statement?
+        if let version = try? String(contentsOfFile: markerPath, encoding: .utf8),
+           let writtenAt = modificationDate(of: markerPath, fm: fm) {
+            marker = Statement(version: version, observedAt: writtenAt)
+        }
+
+        let logPath = (home as NSString).appendingPathComponent(
+            ".config/StardewValley/ErrorLogs/SMAPI-latest.txt"
+        )
+        var logStatement: Statement?
+        if fm.fileExists(atPath: logPath),
+           let handle = FileHandle(forReadingAtPath: logPath) {
+            let data = handle.readData(ofLength: 256)
+            try? handle.close()
+            if let line = String(data: data, encoding: .utf8)?
+                .components(separatedBy: .newlines).first,
+               let version = version(inLogLine: line),
+               let writtenAt = modificationDate(of: logPath, fm: fm) {
+                logStatement = Statement(version: version, observedAt: writtenAt)
+            }
+        }
+
+        if let resolved = resolve(marker: marker, log: logStatement) {
+            return resolved
+        }
+
+        // 3. Installé mais version inconnue
+        return "Installed"
+    }
+
+    /// La date d'écriture d'un fichier, ou `nil` s'il est absent ou illisible.
+    /// C'est elle qui départage le marqueur et le journal : sans date, une
+    /// source ne peut pas être comparée à l'autre, et ne compte pas.
+    private static func modificationDate(of path: String, fm: FileManager) -> Date? {
+        (try? fm.attributesOfItem(atPath: path))?[.modificationDate] as? Date
+    }
 }

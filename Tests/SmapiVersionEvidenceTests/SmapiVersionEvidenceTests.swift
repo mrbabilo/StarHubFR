@@ -120,4 +120,94 @@ private func date(_ iso: String) -> Date {
         let line = "[17:39:40 INFO  SMAPI] SMAPI 4.6.0-beta.3 with Stardew Valley 1.6.15"
         #expect(SmapiVersionEvidence.version(inLogLine: line) == "4.6.0-beta.3")
     }
+
+    // MARK: - Lecture sur disque (`installedVersion`)
+
+    /// L'orchestration qui vivait dans `SmapiInstaller.getInstalledVersion`
+    /// : mêmes règles, maintenant testées sur dossiers temporaires — un
+    /// « jeu » et un « domicile » fabriqués pour l'essai. Les dates passent
+    /// par `setAttributes`, à une heure d'écart : l'égalité stricte des
+    /// `Date` après `setAttributes` n'est pas fiable (AGENTS), l'ordre l'est.
+    private let fm = FileManager.default
+
+    /// Un « dossier de jeu » avec `smapi-internal/` présent, et le marqueur
+    /// de version écrit par l'installateur de l'app.
+    private func makeGameDir(markerVersion: String?, modifiedAt: Date? = nil) throws -> String {
+        let game = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try fm.createDirectory(at: game.appendingPathComponent("smapi-internal"),
+                               withIntermediateDirectories: true)
+        if let markerVersion {
+            let marker = game.appendingPathComponent("smapi-internal/.starhubth-installed-version")
+            try markerVersion.write(to: marker, atomically: true, encoding: .utf8)
+            if let modifiedAt {
+                try fm.setAttributes([.modificationDate: modifiedAt], ofItemAtPath: marker.path)
+            }
+        }
+        return game.path
+    }
+
+    /// Un « domicile » portant `SMAPI-latest.txt` avec sa bannière.
+    private func makeHome(logLine: String?, modifiedAt: Date? = nil) throws -> String {
+        let home = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let log = home.appendingPathComponent(".config/StardewValley/ErrorLogs/SMAPI-latest.txt")
+        try fm.createDirectory(at: log.deletingLastPathComponent(), withIntermediateDirectories: true)
+        if let logLine {
+            try logLine.write(to: log, atomically: true, encoding: .utf8)
+            if let modifiedAt {
+                try fm.setAttributes([.modificationDate: modifiedAt], ofItemAtPath: log.path)
+            }
+        }
+        return home.path
+    }
+
+    private func logLine(_ version: String) -> String {
+        "[17:39:40 INFO  SMAPI] SMAPI \(version) with Stardew Valley 1.6.15 on macOS"
+    }
+
+    /// X77 : sans `smapi-internal/`, SMAPI est absent — même si un journal
+    /// valide traîne (une désinstallation laisse le journal derrière elle).
+    @Test func withoutTheMarkerFolderNothingIsRead() throws {
+        let game = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString).path
+        let home = try makeHome(logLine: logLine("4.5.2"))
+        #expect(SmapiVersionEvidence.installedVersion(gameDir: game, home: home) == nil)
+    }
+
+    @Test func theMarkerAloneAnswersFromDisk() throws {
+        let game = try makeGameDir(markerVersion: "4.5.2")
+        #expect(SmapiVersionEvidence.installedVersion(gameDir: game, home: "/nulle-part") == "4.5.2")
+    }
+
+    /// X31 sur disque : SMAPI mis à jour par son propre installateur, le
+    /// marqueur de l'app traîne — le journal, plus récent, dit la version
+    /// réellement chargée.
+    @Test func aNewerLogOnDiskOverridesTheMarker() throws {
+        let markerDate = Date(timeIntervalSinceNow: -3_600)
+        let logDate = Date()
+        let game = try makeGameDir(markerVersion: "4.4.0", modifiedAt: markerDate)
+        let home = try makeHome(logLine: logLine("4.5.2"), modifiedAt: logDate)
+        #expect(SmapiVersionEvidence.installedVersion(gameDir: game, home: home) == "4.5.2")
+    }
+
+    @Test func aNewerMarkerOverridesTheLog() throws {
+        let logDate = Date(timeIntervalSinceNow: -3_600)
+        let markerDate = Date()
+        let game = try makeGameDir(markerVersion: "4.5.2", modifiedAt: markerDate)
+        let home = try makeHome(logLine: logLine("4.4.0"), modifiedAt: logDate)
+        #expect(SmapiVersionEvidence.installedVersion(gameDir: game, home: home) == "4.5.2")
+    }
+
+    /// Présent, mais ni le marqueur ni le journal ne nomment de version :
+    /// « Installed » — l'app le sait là, pas quelle version.
+    @Test func anInstalledButUnversionedSMAPIIsReportedAsInstalled() throws {
+        let game = try makeGameDir(markerVersion: nil)
+        #expect(SmapiVersionEvidence.installedVersion(gameDir: game, home: "/nulle-part") == "Installed")
+    }
+
+    /// Un marqueur interrompu (blanc) ne doit pas faire taire le journal —
+    /// la règle `trimmed`, vérifiée sur le chemin disque.
+    @Test func aBlankMarkerFileDoesNotSilenceTheLog() throws {
+        let game = try makeGameDir(markerVersion: "   \n")
+        let home = try makeHome(logLine: logLine("4.5.2"))
+        #expect(SmapiVersionEvidence.installedVersion(gameDir: game, home: home) == "4.5.2")
+    }
 }

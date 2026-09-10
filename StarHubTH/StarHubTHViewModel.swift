@@ -2672,7 +2672,7 @@ class StarHubTHViewModel: ObservableObject {
             self.smapiInstalledVersion = nil
             return
         }
-        self.smapiInstalledVersion = SmapiInstaller.getInstalledVersion(gameDir: gameDir)
+        self.smapiInstalledVersion = SmapiVersionEvidence.installedVersion(gameDir: gameDir)
     }
     
     func scanMods(includeRepair: Bool = true) {

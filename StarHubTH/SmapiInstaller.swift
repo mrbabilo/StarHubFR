@@ -13,19 +13,6 @@ class SmapiInstaller: ObservableObject {
     @Published var statusMessage = ""   // holds an L10n key, translated by caller via vm.L()
     @Published var progress: Double = 0.0
 
-    /// File `install()` writes on success, holding the plain version string
-    /// (e.g. "4.5.2") of the release it just installed — see
-    /// `runOfficialInstaller`'s doc comment for why this exists.
-    private static let installedVersionMarkerRelativePath =
-        "\(SmapiInstallMarker.folderName)/.starhubth-installed-version"
-
-    /// La date d'écriture d'un fichier, ou `nil` s'il est absent ou illisible.
-    /// C'est elle qui départage le marqueur et le journal : sans date, une
-    /// source ne peut pas être comparée à l'autre, et ne compte pas.
-    private static func modificationDate(of path: String, fm: FileManager) -> Date? {
-        (try? fm.attributesOfItem(atPath: path))?[.modificationDate] as? Date
-    }
-
         /// L'environnement **minimal** qu'on pose sur chaque `Process` lancé ici :
     /// `LC_ALL=en_US_POSIX` + `LANG=en_US_POSIX`. AGENTS §4.7 l'exige pour
     /// éviter qu'une locale système (français, thaï) ne s'infiltre dans un
@@ -84,63 +71,8 @@ class SmapiInstaller: ObservableObject {
     }
 
     // Check if SMAPI is installed in the Stardew Valley MacOS directory
-    static func getInstalledVersion(gameDir: String) -> String? {
-        let fm = FileManager.default
-
-        // Le marqueur fiable de présence est `smapi-internal/` (X77) : posé
-        // par chaque installation, retiré par chaque désinstallation. La
-        // garde testait `StardewValley-original`, qu'une installation
-        // **propre** ne pose jamais (mesuré sur installation de contrôle du
-        // binaire 4.5.2) — SMAPI paraissait absent juste après avoir été
-        // installé sur un jeu vierge.
-        guard SmapiInstallMarker.isPresent(gameDir: gameDir, fm: fm) else { return nil }
-
-        // Les deux sources sont lues, puis départagées par leur date
-        // d'écriture (`SmapiVersionEvidence`) : le marqueur seul mentait
-        // indéfiniment dès qu'une mise à jour de SMAPI passait par son propre
-        // installateur, qui ne le réécrit pas (X31).
-        //
-        // 1. Notre marqueur, écrit par `install()` après une exécution réussie.
-        // SMAPI ne livre plus rien qui déclare sa propre version de façon
-        // fiable (vérifié sur une vraie installation : pas de
-        // `smapi-internal/manifest.json`, un `StardewModdingAPI.deps.json`
-        // réduit à une coquille, un `runtimeconfig.json` qui ne nomme que la
-        // version du runtime .NET) — d'où ce que l'app enregistre elle-même.
-        let markerPath = (gameDir as NSString).appendingPathComponent(installedVersionMarkerRelativePath)
-        var marker: SmapiVersionEvidence.Statement?
-        if let version = try? String(contentsOfFile: markerPath, encoding: .utf8),
-           let writtenAt = Self.modificationDate(of: markerPath, fm: fm) {
-            marker = SmapiVersionEvidence.Statement(version: version, observedAt: writtenAt)
-        }
-
-        // 2. La première ligne de `SMAPI-latest.txt`, qui nomme la version
-        // réellement **chargée** au dernier lancement — la seule source pour
-        // une installation que cette app n'a pas faite.
-        // Format : [HH:MM:SS INFO  SMAPI] SMAPI 4.5.2 with Stardew Valley ...
-        let home = FileManager.default.homeDirectoryForCurrentUser.path
-        let logPath = (home as NSString).appendingPathComponent(
-            ".config/StardewValley/ErrorLogs/SMAPI-latest.txt"
-        )
-        var logStatement: SmapiVersionEvidence.Statement?
-        if fm.fileExists(atPath: logPath),
-           let handle = FileHandle(forReadingAtPath: logPath) {
-            let data = handle.readData(ofLength: 256)
-            try? handle.close()
-            if let line = String(data: data, encoding: .utf8)?
-                .components(separatedBy: .newlines).first,
-               let version = SmapiVersionEvidence.version(inLogLine: line),
-               let writtenAt = Self.modificationDate(of: logPath, fm: fm) {
-                logStatement = SmapiVersionEvidence.Statement(version: version, observedAt: writtenAt)
-            }
-        }
-
-        if let resolved = SmapiVersionEvidence.resolve(marker: marker, log: logStatement) {
-            return resolved
-        }
-
-        // 3. Installed but version unknown
-        return "Installed"
-    }
+    // — la lecture vit désormais en Core : `SmapiVersionEvidence.installedVersion`.
+    // Le verdict de présence et son histoire (X77, X31) y sont documentés.
 
     // Install SMAPI
     //
@@ -189,7 +121,7 @@ class SmapiInstaller: ObservableObject {
     func uninstall(gameDir: String, completion: @escaping (Bool, String, String?) -> Void) {
         let fm = FileManager.default
 
-        // Même marqueur que `getInstalledVersion` (X77) : une installation
+        // Même marqueur que `SmapiVersionEvidence.installedVersion` (X77) : une installation
         // **propre** ne pose pas `StardewValley-original`, l'ancienne garde
         // refusait donc de désinstaller ce que l'app venait d'installer.
         guard SmapiInstallMarker.isPresent(gameDir: gameDir, fm: fm) else {
@@ -505,10 +437,11 @@ class SmapiInstaller: ObservableObject {
     /// not the exit code by itself.
     ///
     /// On a successful install, also writes `version` to
-    /// `installedVersionMarkerRelativePath` — verified directly against a
+    /// `SmapiInstallMarker.installedVersionRelativePath` — verified directly against a
     /// real install that nothing else on disk reliably states SMAPI's own
-    /// version afterward (see `getInstalledVersion`'s doc comment), so this
-    /// app records what it just installed instead of guessing later.
+    /// version afterward (see `SmapiVersionEvidence.installedVersion`'s doc
+    /// comment), so this app records what it just installed instead of
+    /// guessing later.
     private func runOfficialInstaller(at installerPath: String, version: String, gameDir: String, action: SmapiInstallerAction, completion: @escaping (Bool, String, String?) -> Void) {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: installerPath)
@@ -593,7 +526,7 @@ class SmapiInstaller: ObservableObject {
         case .install:
             let succeeded = output.contains("SMAPI is installed!") && fm.fileExists(atPath: smapiInternalPath)
             if succeeded {
-                let markerPath = (gameDir as NSString).appendingPathComponent(Self.installedVersionMarkerRelativePath)
+                let markerPath = (gameDir as NSString).appendingPathComponent(SmapiInstallMarker.installedVersionRelativePath)
                 do {
                     try version.write(toFile: markerPath, atomically: true, encoding: .utf8)
                 } catch {

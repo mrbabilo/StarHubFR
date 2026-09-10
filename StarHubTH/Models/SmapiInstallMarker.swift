@@ -22,6 +22,14 @@ public enum SmapiInstallMarker {
     /// Posé par chaque installation SMAPI, retiré par chaque désinstallation.
     public static let folderName = "smapi-internal"
 
+    /// Le marqueur de **version** que `SmapiInstaller.install()` écrit à la
+    /// fin d'une installation réussie — chemin relatif au dossier de jeu,
+    /// source n°1 du lecteur `SmapiVersionEvidence.installedVersion`.
+    /// Une seule définition : l'installateur qui l'écrit et le lecteur qui
+    /// le lit doivent nommer le même fichier par construction.
+    public static let installedVersionRelativePath =
+        "\(folderName)/.starhubth-installed-version"
+
     public static func isPresent(gameDir: String, fm: FileManager = .default) -> Bool {
         let path = (gameDir as NSString).appendingPathComponent(folderName)
         var isDir: ObjCBool = false
