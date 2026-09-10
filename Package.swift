@@ -206,6 +206,7 @@ let package = Package(
                 "Stores/GameEnvironmentStore.swift",
                 "Stores/LocalizationStore.swift",
                 "Models/ModScanner.swift",
+                "Models/DependencyIndex.swift",
                 "Models/DisabledModsMigration.swift",
             ]
         ),
@@ -218,6 +219,11 @@ let package = Package(
             name: "ModScannerTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ModScannerTests"
+        ),
+        .testTarget(
+            name: "DependencyIndexTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/DependencyIndexTests"
         ),
         .testTarget(
             name: "DisabledModsMigrationTests",

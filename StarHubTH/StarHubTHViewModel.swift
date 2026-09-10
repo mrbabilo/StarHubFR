@@ -1918,29 +1918,18 @@ class StarHubTHViewModel: ObservableObject {
         mods.filter { $0.isEnabled }
     }
 
-    /// Lowercased set of every installed mod's UniqueID (including group children).
-    /// Rebuilt in `scanMods()` so that `getMissingDependencies(for:)` stays O(deps)
-    /// instead of rebuilding the set on every row render.
-    private var installedUniqueIds: Set<String> = []
+    /// Le domaine Dépendances (REFACTORING §6) : les index dérivés du parc
+    /// (`DependencyIndex`, Core, testé) reconstruits à chaque scan. Les trois
+    /// propriétés privées d'origine (`installedUniqueIds`, `installedModStates`,
+    /// `installedModsByUniqueId`) vivent dans la struct ; `duplicateIndex`
+    /// reste publié tel quel — c'est lui qui nourrit les anomalies de ligne.
+    private var dependencyIndex = DependencyIndex.empty
     /// Les mods installés plusieurs fois, reconstruit à chaque scan.
     ///
     /// Mesuré le 2026-08-25 : **7 identifiants sur 14 dossiers**, dont trois
     /// avec leurs deux copies actives (le mod Swim, à plat et dans son dossier
     /// de téléchargement). Rien ne le disait jusqu'ici.
     @Published private(set) var duplicateIndex: ModDuplicateIndex = .empty
-
-    /// Lowercased UniqueID → enabled state, rebuilt alongside `installedUniqueIds`.
-    /// Used by `getDisabledDependencies(for:)` to flag required deps that are
-    /// installed but currently disabled (a real problem for the mod that needs them).
-    private var installedModStates: [String: Bool] = [:]
-
-    /// Lowercased UniqueID → the installed `ModItem` (pack children included),
-    /// rebuilt in `scanMods()`. The single lookup shared by `dependencyTree(for:)`
-    /// (and available to the Issues-filter helpers, which read sibling indexes
-    /// rebuilt from the same `scannedMods`). Unlike the bool maps above it yields
-    /// the resolved mod, needed to read a dependency's OWN dependencies when
-    /// recursing.
-    private var installedModsByUniqueId: [String: ModItem] = [:]
 
     /// Manifest decode cache, keyed by manifest.json absolute path. Each
     /// entry stores the file's mtime alongside the decoded JSON so a stale
@@ -2732,40 +2721,9 @@ class StarHubTHViewModel: ObservableObject {
     /// `scanMods()` and after an in-memory toggle, which flips `isEnabled`
     /// without rescanning.
     private func rebuildDependencyIndexes() {
-        var ids = Set<String>()
-        var states: [String: Bool] = [:]
-        var byId: [String: ModItem] = [:]
-        var entries: [(uniqueId: String, folderName: String, isEnabled: Bool)] = []
-        for m in mods {
-            if m.isGroup, let children = m.children {
-                for c in children {
-                    let k = c.uniqueId.lowercased()
-                    ids.insert(k)
-                    states[k] = c.isEnabled
-                    byId[k] = c
-                    // `folderName` d'un composant **porte déjà** le nom du
-                    // pack (`scanEntryForMods` construit
-                    // `{pack}/{sous-chemin}`) : c'est lui qui distingue
-                    // « Swim » de « Swim Mod-23169…/Swim ». Le préfixer une
-                    // seconde fois donnerait un chemin qui n'existe pas.
-                    entries.append((c.uniqueId, c.folderName, c.isEnabled))
-                }
-            } else {
-                let k = m.uniqueId.lowercased()
-                ids.insert(k)
-                states[k] = m.isEnabled
-                byId[k] = m
-                entries.append((m.uniqueId, m.folderName, m.isEnabled))
-            }
-        }
-        installedUniqueIds = ids
-        installedModStates = states
-        installedModsByUniqueId = byId
-        // Les doublons sortent du **même parcours** : `states` et `byId` en
-        // écrasent silencieusement un sur deux (le dernier gagne), si bien que
-        // le seul endroit où l'information existe encore est ici, avant
-        // l'aplatissement.
-        duplicateIndex = ModDuplicateIndex.build(from: entries)
+        let index = DependencyIndex.build(from: mods)
+        dependencyIndex = index
+        duplicateIndex = index.duplicateIndex
     }
     
     // Parses the SMAPI-latest.txt log for updates and errors
@@ -2939,14 +2897,14 @@ class StarHubTHViewModel: ObservableObject {
     func getMissingDependencies(for mod: ModItem) -> [String] {
         // Uses the precomputed index built in scanMods() — O(deps) per call,
         // safe to invoke from every ModListRow render.
-        ModDependencyStatus.missing(for: mod, installedIds: installedUniqueIds)
+        dependencyIndex.missing(for: mod)
     }
 
     /// Required dependency UniqueIDs that are installed but currently disabled.
     /// A disabled required dependency is just as problematic for an enabled mod
     /// as a missing one, so these are surfaced in the "Issues" filter too.
     func getDisabledDependencies(for mod: ModItem) -> [String] {
-        ModDependencyStatus.disabled(for: mod, states: installedModStates)
+        dependencyIndex.disabled(for: mod)
     }
 
     /// Builds `mod`'s transitive dependency tree (see `DependencyTreeBuilder`).
@@ -2955,28 +2913,9 @@ class StarHubTHViewModel: ObservableObject {
     /// pack still shows a meaningful tree. Rebuilds from `@Published mods` state,
     /// so an "Enable" action (which republishes `mods`) makes the view re-resolve.
     func dependencyTree(for mod: ModItem) -> [DependencyNode] {
-        let roots: [ModDependency]
-        if mod.isGroup, let children = mod.children {
-            var merged: [ModDependency] = []
-            for child in children {
-                for dep in child.dependencies {
-                    let key = dep.uniqueId.lowercased()
-                    if let idx = merged.firstIndex(where: { $0.uniqueId.lowercased() == key }) {
-                        if dep.isRequired && !merged[idx].isRequired {
-                            merged[idx] = ModDependency(uniqueId: merged[idx].uniqueId, isRequired: true)
-                        }
-                    } else {
-                        merged.append(dep)
-                    }
-                }
-            }
-            roots = merged
-        } else {
-            roots = mod.dependencies
-        }
+        let roots = DependencyIndex.mergedPackRoots(of: mod)
         return DependencyTreeBuilder.build(roots) { [weak self] uid in
-            guard let m = self?.installedModsByUniqueId[uid.lowercased()] else { return nil }
-            return (m, m.isEnabled, m.dependencies)
+            self?.dependencyIndex.resolve(uid)
         }
     }
 
