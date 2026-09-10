@@ -137,4 +137,98 @@ struct FrenchCoveragePassTests {
         #expect(FrenchCoveragePass.merging(["Automate": coverage(40, of: 100)],
                                            stale: [], into: .init()) != nil)
     }
+
+    // MARK: - Passe des profils : les mêmes gestes, d'autres règles
+
+    private func profile(_ name: String, _ ids: [String]) -> ModProfile {
+        ModProfile(name: name, enabledModIds: ids)
+    }
+
+    @Test func aModWithASourceButNoFrenchIsMeasuredForProfiles() {
+        // La divergence assumée avec la passe de la liste : ce sont ces mods-là
+        // qui font tout l'intérêt de l'écran des profils — 8, 28 et 15 sur les
+        // trois profils de référence. La liste, elle, les écarte, parce qu'une
+        // entrée y ferait surgir une pastille « 0 % ».
+        let m = mod("Anglais seul", languages: ["en"])
+        let targets = ProfileCoveragePass.targets(profiles: [profile("A", ["id.Anglais seul"])],
+                                                  installed: [m], known: [])
+        #expect(targets.map(\.id) == ["id.anglais seul"])
+        // Et la même entrée est bien refusée par la passe de la liste.
+        #expect(FrenchCoveragePass.targets(in: [m], known: []).isEmpty)
+    }
+
+    @Test func aModWithNoI18nAtAllIsSkippedEverywhere() {
+        // Plus de la moitié du parc : les ouvrir serait le gros du coût pour rien.
+        let m = mod("Sans i18n", languages: [])
+        #expect(ProfileCoveragePass.targets(profiles: [profile("A", ["id.Sans i18n"])],
+                                            installed: [m], known: []).isEmpty)
+    }
+
+    @Test func aModPresentInSeveralProfilesIsMeasuredOnce() {
+        // La mesure porte sur le mod, pas sur son appartenance.
+        let m = mod("Automate")
+        let targets = ProfileCoveragePass.targets(
+            profiles: [profile("A", ["id.Automate"]), profile("B", ["id.Automate"])],
+            installed: [m], known: [])
+        #expect(targets.count == 1)
+    }
+
+    @Test func aProfileNamingAnUninstalledModHasNothingToMeasure() {
+        // Un profil garde ses `UniqueID` même quand le mod n'est plus là : il
+        // n'y a rien à lire sur le disque.
+        #expect(ProfileCoveragePass.targets(profiles: [profile("A", ["id.Parti"])],
+                                            installed: [], known: []).isEmpty)
+    }
+
+    @Test func anAlreadyMeasuredModIsNotReopenedForProfiles() {
+        // Sans ça, ouvrir la page des profils coûterait 15,7 s à chaque fois.
+        #expect(ProfileCoveragePass.targets(profiles: [profile("A", ["id.Automate"])],
+                                            installed: [mod("Automate")],
+                                            known: ["id.automate"]).isEmpty)
+    }
+
+    @Test func theProfileKeyIsLowercasedOnBothSides() {
+        // Les profils portent l'`UniqueID` tel que le manifest l'écrit ; la
+        // comparaison se fait en minuscules des deux côtés, sinon un mod
+        // n'est jamais retrouvé.
+        let m = ModItem(uniqueId: "Pathoschild.Automate", name: "Automate",
+                        folderName: "Automate", version: "1", author: "", description: "",
+                        nexusUrl: "", nexusModId: "", isEnabled: true, dependencies: [],
+                        children: nil, languages: ["en"])
+        let targets = ProfileCoveragePass.targets(
+            profiles: [profile("A", ["PATHOSCHILD.AUTOMATE"])], installed: [m], known: [])
+        #expect(targets.map(\.id) == ["pathoschild.automate"])
+    }
+
+    @Test func aPausedProfileModIsOpenedAtItsDottedFolder() {
+        let targets = ProfileCoveragePass.targets(
+            profiles: [profile("A", ["id.Automate"])],
+            installed: [mod("Automate", enabled: false)], known: [])
+        #expect(targets == [.init(id: "id.automate", physicalFolder: ".Automate")])
+    }
+
+    @Test func anEmptyUniqueIdNamesNothing() {
+        // 111 mods du parc n'ont **aucun identifiant** : leur dossier entre dans
+        // l'index sous la clé vide. Sans le garde, un profil portant une entrée
+        // vide — ou un mod sans manifest — ferait mesurer ce dossier-là comme
+        // s'il avait été nommé.
+        //
+        // ⚠️ Ce test avait d'abord été écrit avec un parc où rien ne portait la
+        // clé vide : il passait avec **comme sans** le garde, donc il ne
+        // vérifiait rien. C'est le sabotage qui l'a montré.
+        let anonymous = ModItem(uniqueId: "", name: "Sans manifest",
+                                folderName: "Sans manifest", version: "", author: "",
+                                description: "", nexusUrl: "", nexusModId: "",
+                                isEnabled: true, dependencies: [], children: nil,
+                                languages: ["en"])
+        #expect(ProfileCoveragePass.targets(profiles: [profile("A", [""])],
+                                            installed: [anonymous], known: []).isEmpty)
+    }
+
+    @Test func targetsFollowProfileOrder() {
+        let targets = ProfileCoveragePass.targets(
+            profiles: [profile("A", ["id.Zeta"]), profile("B", ["id.Alpha"])],
+            installed: [mod("Alpha"), mod("Zeta")], known: [])
+        #expect(targets.map(\.id) == ["id.zeta", "id.alpha"])
+    }
 }

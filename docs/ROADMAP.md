@@ -1714,6 +1714,13 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
       `Extensions/`, `AppDesignCore`, puis les phases 2-5 du brief (clients réseau
       restants, persistance, `Tests/`, configuration de build).
   - [ ] **F6-T1** — **Course à l'annulation dans `recomputeFrenchCoverage`.** · **S**
+        ✅ **Rendue observable le 2026-09-10** (point 3 du §5 de `REFACTORING.md`) :
+        `FrenchCoveragePass.merging` prend une génération, et un test décrit la course
+        — lot de la passe précédente arrivé après le recalcul suivant, écarté. **Le
+        défaut n'est pas corrigé pour autant** : le chemin livré ne compte toujours
+        qu'une génération, le paramètre y est inerte. Ce qui manquait à cet item pour
+        être traitable — un observable — existe désormais ; le reste vaut toujours.
+        La garde à câbler est écrite et testée, il n'y a plus qu'à l'appeler.
         (`StarHubTHViewModel.swift:473`) Le `cancel()` d'un recalcul n'interrompt pas un
         `await mergeFrenchCoverage(…)` déjà engagé : un lot de ≤ 25 mesures de la
         génération précédente peut atterrir après le recalcul de la génération suivante.

@@ -116,3 +116,67 @@ enum FrenchCoveragePass {
         return next
     }
 }
+
+/// Le même travail, mais pour la page des profils — **et ses règles ne sont pas
+/// les mêmes**.
+///
+/// La différence tient en une ligne et elle est délibérée : un mod qui livre un
+/// `default.json` et **aucun** `fr.json` compte ici, alors qu'il est écarté de
+/// la passe de la liste. Ce sont même ceux-là qui font tout l'intérêt de cet
+/// écran — 8, 28 et 15 sur les trois profils de référence. Les verser dans le
+/// magasin commun ferait surgir une pastille « 0 % » sur autant de lignes de la
+/// liste des mods, où l'absence d'entrée veut dire « pas encore mesuré ».
+///
+/// Le grain diffère aussi : la pastille de la liste mesure un dossier de premier
+/// niveau entier, quand un profil raisonne par composant — d'où l'indexation par
+/// `UniqueID` et non par nom de dossier.
+enum ProfileCoveragePass {
+
+    /// Un mod à mesurer pour les profils.
+    struct Target: Equatable {
+        /// L'`UniqueID` en minuscules — la clé du magasin de couverture des
+        /// profils.
+        let id: String
+        /// Le nom du dossier sur le disque (`.X` pour un mod en pause).
+        let physicalFolder: String
+    }
+
+    /// Ce qu'il reste à mesurer pour couvrir tous les profils.
+    ///
+    /// Quatre règles, toutes nécessaires :
+    ///
+    /// - **Une seule fois par mod**, même s'il apparaît dans dix profils : la
+    ///   mesure porte sur le mod, pas sur son appartenance.
+    /// - **Incrémental** : ce qui est déjà mesuré n'est pas rouvert.
+    /// - **Installé** : un profil peut nommer un mod absent du disque — il n'y a
+    ///   rien à y lire.
+    /// - **Livrant une source** : `languages` porte `en` dès qu'un
+    ///   `default.json` existe. Sur le parc, plus de la moitié des mods n'ont
+    ///   aucun dossier `i18n` ; les ouvrir serait le gros du coût pour rien.
+    ///
+    /// - Parameter known: les `UniqueID` déjà mesurés, en minuscules.
+    /// - Returns: les cibles dans l'ordre des profils, puis des mods qu'ils
+    ///   nomment — l'ordre de la mesure, donc celui où les résumés se
+    ///   complètent.
+    static func targets(profiles: [ModProfile], installed: [ModItem],
+                        known: Set<String>) -> [Target] {
+        // `uniquingKeysWith: first` : deux mods peuvent porter le même
+        // `UniqueID` — `X` actif et `.X` en pause sont deux dossiers distincts,
+        // cas réel sur le parc. Le premier vu l'emporte, comme partout ailleurs.
+        let byId = Dictionary(installed.map { ($0.uniqueId.lowercased(), $0) },
+                              uniquingKeysWith: { first, _ in first })
+        var targets: [Target] = []
+        var queued = Set<String>()
+        for profile in profiles {
+            for uniqueId in profile.enabledModIds {
+                let key = uniqueId.lowercased()
+                guard !key.isEmpty, !known.contains(key),
+                      queued.insert(key).inserted, let mod = byId[key],
+                      mod.languages.contains("en") || mod.languages.contains("fr")
+                else { continue }
+                targets.append(Target(id: key, physicalFolder: mod.physicalFolderName))
+            }
+        }
+        return targets
+    }
+}

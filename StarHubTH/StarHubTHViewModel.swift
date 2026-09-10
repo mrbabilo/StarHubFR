@@ -1757,8 +1757,6 @@ class StarHubTHViewModel: ObservableObject {
 
         let installed = mods.flattenedMods
         let profiles = modProfiles
-        let byId = Dictionary(installed.map { ($0.uniqueId.lowercased(), $0) },
-                              uniquingKeysWith: { first, _ in first })
 
         if !profileTranslationCacheLoaded, let url = TranslationCoverageCache.defaultFileURL() {
             profileTranslationCacheEntries = TranslationCoverageCache.load(from: url)
@@ -1766,18 +1764,9 @@ class StarHubTHViewModel: ObservableObject {
         }
 
         let modsPath = URL(fileURLWithPath: (gameDir as NSString).appendingPathComponent("Mods"))
-        var targets: [(id: String, directory: URL)] = []
-        var queued = Set<String>()
-        for profile in profiles {
-            for uniqueId in profile.enabledModIds {
-                let key = uniqueId.lowercased()
-                guard !key.isEmpty, profileTranslationCoverage[key] == nil,
-                      queued.insert(key).inserted, let mod = byId[key],
-                      mod.languages.contains("en") || mod.languages.contains("fr")
-                else { continue }
-                targets.append((key, modsPath.appendingPathComponent(mod.physicalFolderName)))
-            }
-        }
+        let targets = ProfileCoveragePass.targets(
+            profiles: profiles, installed: installed,
+            known: Set(profileTranslationCoverage.keys))
 
         guard !targets.isEmpty else {
             publishProfileTranslationSummaries(profiles: profiles, installed: installed)
@@ -1799,7 +1788,8 @@ class StarHubTHViewModel: ObservableObject {
                 // mesuré pour son propre compte, et ses clés compteraient deux
                 // fois si son hôte les reprenait.
                 let directories = I18nLocaleResolver.i18nDirectories(
-                    inModDirectory: target.directory, stoppingAtNestedMods: true)
+                    inModDirectory: modsPath.appendingPathComponent(target.physicalFolder),
+                    stoppingAtNestedMods: true)
                 let stamp = TranslationStamp.of(directories: directories)
 
                 if let entry = TranslationCoverageCache.valid(cached[target.id], against: stamp) {
