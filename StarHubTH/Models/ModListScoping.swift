@@ -243,9 +243,16 @@ enum ModListScoping {
         case .enabled:  return mods.filter(\.isEnabled)
         case .disabled: return mods.filter { !$0.isEnabled }
         case .issues:   return mods.filter { mod in
-            // Mods activés (ou packs à composant activé) portant une anomalie.
-            // Un mod en pause ne s'appuie sur rien : il est écarté même si une
-            // dépendance lui manque.
+            // Tout ce qui porte une anomalie, en propre ou par un composant.
+            //
+            // ⚠️ **La restriction aux mods activés n'est pas ici** : elle vit
+            // dans le verdict que l'appelant fournit, et elle ne porte que sur
+            // les **dépendances** (`hasDependencyIssue` : `mod.isEnabled && …`)
+            // — un mod en pause ne s'appuie sur rien, lui reprocher une
+            // dépendance manquante n'aurait pas de sens. Un mod en pause
+            // apparaît en revanche pour une erreur de journal, un manifest sans
+            // identifiant, un doublon ou une incompatibilité connue : ceux-là ne
+            // cessent pas d'exister parce qu'on l'a mis en pause.
             matchesSelfOrAnyChild(mod) { hasAnomaly($0) }
         }
         }

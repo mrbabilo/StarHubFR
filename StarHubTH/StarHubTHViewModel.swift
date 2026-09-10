@@ -10569,10 +10569,17 @@ for mod in mods {
     /// Les entrées du cadrage, assemblées **ici et nulle part ailleurs** : les
     /// deux closures capturent `self`, et les faire construire par une vue les
     /// ferait vivre dans un `@State` retenant le ViewModel.
+    ///
+    /// Capture **forte**, à dessein. La règle du dépôt (`weak self` obligatoire)
+    /// vise les closures confiées à `DispatchQueue.global().async`, qui
+    /// survivent à leur appelant ; celles-ci sont construites et consommées dans
+    /// un seul appel synchrone. Un `weak` n'y protégerait rien et changerait un
+    /// plantage impossible en réponses fausses et muettes : « aucun mod n'a
+    /// d'anomalie », « aucun poids mesuré ».
     private var scopingInputs: ModListScoping.Inputs {
-        .init(category: { [weak self] in self?.category(for: $0) },
-              hasAnomaly: { [weak self] in self?.anomaly(for: $0) != nil },
-              sizeOnDisk: { [weak self] in self?.sizeOnDisk(of: $0) ?? nil },
+        .init(category: { self.category(for: $0) },
+              hasAnomaly: { self.anomaly(for: $0) != nil },
+              sizeOnDisk: { self.sizeOnDisk(of: $0) },
               favorites: favoriteMods,
               blacklisted: blacklistedMods,
               translation: translationScopingState,
@@ -10587,18 +10594,6 @@ for mod in mods {
         let inputs = scopingInputs
         let filtered = mods.filter { ModListScoping.matches($0, filters: filters, inputs: inputs) }
         return ModListScoping.sorted(filtered, by: filters.sort, inputs: inputs)
-    }
-
-    func activeMods(from filtered: [ModItem]) -> [ModItem] { filtered.filter { $0.isEnabled } }
-    func inactiveMods(from filtered: [ModItem]) -> [ModItem] { filtered.filter { !$0.isEnabled } }
-
-    /// Enabled mods (or packs containing an enabled child) with at least one
-    /// problematic required dependency — either completely missing or
-    /// installed-but-disabled. A disabled mod isn't currently relying on its
-    /// dependencies, so it's excluded even if one is missing/disabled. Packs
-    /// (groups) appear if any enabled child matches.
-    func modsWithIssues(from filtered: [ModItem]) -> [ModItem] {
-        ModListScoping.scoped(filtered, scope: .issues, hasAnomaly: { self.hasIssues($0) })
     }
 
     /// La liste cadrée restreinte au scope courant — ce que la section

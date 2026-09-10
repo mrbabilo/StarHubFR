@@ -332,6 +332,20 @@ struct ModListScopingTests {
         #expect(scoped.map(\.name) == ["RSV"])
     }
 
+    @Test func aPausedModWithAnAnomalyStillShowsUnderIssues() {
+        // Le voisin qui ne doit **pas** être écarté. La restriction aux mods
+        // activés vit chez l'appelant, dans le verdict de dépendance
+        // (`hasDependencyIssue`), et ne porte que sur les dépendances : une
+        // erreur de journal, un manifest sans identifiant ou une
+        // incompatibilité ne cessent pas d'exister parce qu'on a mis le mod en
+        // pause. Un garde `isEnabled` posé ici les ferait disparaître en
+        // silence de l'onglet censé les réunir.
+        var paused = mod("Cassé"); paused.isEnabled = false
+        let scoped = ModListScoping.scoped([paused], scope: .issues,
+                                           hasAnomaly: { _ in true })
+        #expect(scoped.map(\.name) == ["Cassé"])
+    }
+
     @Test func theAllScopeNeverAsksForAnomalies() {
         // La closure est paresseuse à dessein : sous « Tous », le balayage de
         // dépendances ne doit pas avoir lieu du tout.

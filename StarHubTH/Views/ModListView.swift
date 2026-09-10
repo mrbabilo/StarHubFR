@@ -182,9 +182,11 @@ struct ModListView: View {
     }
 
     /// Precomputed counts for all four scope filters, derived in a single pass
-    /// over `filtered`. Avoids recomputing `modsWithIssues` (which does a
+    /// over `filtered`. Avoids recomputing the `.issues` scope (which does a
     /// per-mod dependency scan) every time the Picker label is evaluated.
-    /// `issues` mirrors `modsWithIssues`'s enabled-only rule (see its doc).
+    /// `issues` applique le même verdict d'anomalie que
+    /// `ModListScoping.scoped(_:scope:hasAnomaly:)` — voir son commentaire pour
+    /// ce que « en pause » y change, et ce qu'il n'y change pas.
     private func scopeCounts(for filtered: [ModItem]) -> (all: Int, enabled: Int, disabled: Int, issues: Int) {
         var enabled = 0, disabled = 0, issues = 0
         for mod in filtered {
