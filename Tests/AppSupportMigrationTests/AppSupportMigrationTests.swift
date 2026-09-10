@@ -151,4 +151,56 @@ struct AppSupportMigrationTests {
         #expect(fm.fileExists(atPath: g.old.path))
         #expect(!fm.fileExists(atPath: g.new.path))
     }
+
+    /// **Le `.bak` compte autant que le principal** (constat de revue).
+    /// `InstalledTranslationStore` écrit les deux et **promeut le `.bak`**
+    /// quand le principal est corrompu : laissé aux chemins périmés, il ferait
+    /// *supprimer* les fichiers d'origine du parc au premier retrait de greffe.
+    /// C'est l'assertion dont dépend le chemin destructeur.
+    @Test func theRegistryBackupIsRewrittenToo() throws {
+        let fm = FileManager.default
+        let g = try makeLegacy(fm)
+        defer { try? fm.removeItem(at: g.root) }
+        // Le `.bak` que `save` écrit à chaque enregistrement, mêmes octets.
+        let registry = g.old.appendingPathComponent("installed_translations.json")
+        let backup = g.old.appendingPathComponent("installed_translations.json.bak")
+        try fm.copyItem(at: registry, to: backup)
+
+        #expect(AppSupport.migrate(from: g.old, to: g.new, fileManager: fm))
+
+        for name in ["installed_translations.json", "installed_translations.json.bak"] {
+            let landed = g.new.appendingPathComponent(name)
+            #expect(fm.fileExists(atPath: landed.path))
+            let text = try String(contentsOf: landed, encoding: .utf8)
+            #expect(text.contains(g.new.path))
+            #expect(!text.contains(g.old.path))
+        }
+    }
+
+    /// La reprise est par fichier, pas par paire : un premier passage
+    /// interrompu qui n'a posé que le principal doit finir le `.bak` — et ne
+    /// pas réécrire celui qui est déjà arrivé, plus récent par construction.
+    @Test func aBackupLeftBehindIsFinishedOnTheNextPass() throws {
+        let fm = FileManager.default
+        let g = try makeLegacy(fm)
+        defer { try? fm.removeItem(at: g.root) }
+        let backup = g.old.appendingPathComponent("installed_translations.json.bak")
+        try fm.copyItem(at: g.old.appendingPathComponent("installed_translations.json"),
+                        to: backup)
+        // Passage partiel : le principal est déjà arrivé, avec son contenu à jour.
+        try fm.createDirectory(at: g.new, withIntermediateDirectories: true)
+        try Data("déjà à jour".utf8)
+            .write(to: g.new.appendingPathComponent("installed_translations.json"))
+
+        #expect(AppSupport.migrate(from: g.old, to: g.new, fileManager: fm))
+
+        // Le principal en place n'a pas été touché…
+        #expect(try String(contentsOf: g.new.appendingPathComponent("installed_translations.json"),
+                           encoding: .utf8) == "déjà à jour")
+        // …et le `.bak` a suivi, réécrit.
+        let landedBackup = g.new.appendingPathComponent("installed_translations.json.bak")
+        let text = try String(contentsOf: landedBackup, encoding: .utf8)
+        #expect(text.contains(g.new.path))
+        #expect(!text.contains(g.old.path))
+    }
 }
