@@ -1347,7 +1347,7 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
       `StarHubTHCore`, donc **testé** et pas seulement déplacé. 22 tests neufs, dont les
       trois mécanismes de sûreté que rien ne vérifiait (copie de secours à chaque
       écriture, restauration depuis le secours avec promotion, purge des blobs corrompus)
-      — les sept mécanismes prouvés rouges par sabotage. VM **11 902 → 11 658**,
+      — les sept mécanismes prouvés rouges par sabotage. VM **11 902 → 11 657**,
       `oversized_excess_lines` 27 414 → 27 169. **Écart assumé au plan** : le protocole
       `PreferenceStoring` de l'amont est **écarté** — `UserDefaults` entre déjà par
       l'initialiseur dans trois stores Core testés, et le port aurait ajouté une seconde

@@ -5408,10 +5408,10 @@ for mod in mods {
         // d'installation copiée serait une date inventée. En cas de collision,
         // le mod renommé repart neuf — c'est la seule chose vraie qu'on sache
         // de lui.
-        var registry = installedModRegistryStore.all()
-        if ModFolderRename.migrate(&registry, from: old, to: new,
-                                   shared: shared, policy: .leaveBehind) {
-            installedModRegistryStore.replaceAll(registry)
+        // Par `mutate` : lire puis réécrire hors verrou perd la course (2026-08-05).
+        installedModRegistryStore.mutate {
+            _ = ModFolderRename.migrate(&$0, from: old, to: new,
+                                        shared: shared, policy: .leaveBehind)
         }
 
         // 7. L'historique d'erreurs par version.

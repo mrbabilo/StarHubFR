@@ -19,12 +19,15 @@ import Foundation
 /// et `ModUpdateSnoozer` : c'est ce qui permet aux tests d'écrire dans un
 /// domaine jetable au lieu des préférences réelles de l'utilisateur.
 ///
-/// ⚠️ **L'initialiseur ne lit rien.** Le chargement est paresseux, et il doit le
-/// rester : au lancement, `ModVersionAnchorStore.migrateAwayFromNexusVersion()`
-/// réécrit le JSON brut du registre *avant* que le cache ne soit chauffé. Un
-/// store qui chargerait à la construction figerait la carte d'avant migration,
-/// et la première écriture l'écraserait par-dessus le travail de la migration —
-/// perte définitive, sans journal.
+/// **L'initialiseur ne lit rien**, et le chargement reste paresseux. Au
+/// lancement, `ModVersionAnchorStore.migrateAwayFromNexusVersion()` réécrit le
+/// JSON brut du registre avant que le cache ne soit chauffé — mais un cache pris
+/// trop tôt ne perdrait rien : `InstalledModRecord` ne porte plus `nexusVersion`,
+/// donc les deux JSON se décodent en cartes **identiques champ pour champ**.
+/// L'ordre qui compte vraiment est plus étroit : la migration doit passer **avant**
+/// que la liste de grâce ne soit posée puis consommée, sous peine de ré-estampiller
+/// des dates d'installation qu'aucune autre source ne reconstitue. C'est ce que
+/// l'ordre des trois appels au lancement garantit déjà.
 final class InstalledModRegistryStore {
 
     /// Ce que la synchronisation a constaté, rendu à l'appelant plutôt que
@@ -105,6 +108,11 @@ final class InstalledModRegistryStore {
     /// Le corps rend une valeur, qui ressort d'ici : c'est ce qui a supprimé la
     /// boîte à un élément dont le ViewModel se servait pour faire échapper un
     /// booléen d'une closure `inout` (déviation consignée au §6).
+    ///
+    /// ⚠️ **Le corps s'exécute sous le verrou, et `NSLock` n'est pas récursif :
+    /// il ne doit appeler aucune autre méthode de ce store** — `all()`,
+    /// `installedDate(for:)` et `mutate` lui-même bloqueraient sans plantage ni
+    /// journal. Ce qu'il lui faut du registre, il le reçoit en `inout`.
     @discardableResult
     func mutate<T>(_ body: (inout [String: InstalledModRecord]) -> T) -> T {
         lock.lock()
