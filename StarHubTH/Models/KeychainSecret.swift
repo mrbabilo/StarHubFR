@@ -15,14 +15,21 @@ public struct KeychainSecret: Sendable {
         self.account = account
     }
 
-    /// La clé d'API Nexus, aux identifiants **historiques** : les changer
-    /// rendrait illisible une clé déjà enregistrée par une version antérieure.
+    /// Le service **historique**, celui de l'application d'origine. Conservé
+    /// comme secours : une clé enregistrée avant le changement d'identifiant y
+    /// dort encore, et la perdre obligerait l'utilisateur à la ressaisir.
+    public static let legacyService = "com.appleboiy.StarHubTH"
+
+    /// La clé d'API Nexus, sous le service **propre au fork** depuis le
+    /// changement d'identifiant de bundle. `read()` retombe sur le service
+    /// historique et y **recopie** ce qu'il trouve : le détour ne se rejoue
+    /// pas, et l'ancienne entrée reste en place pour l'application d'origine.
     public static let nexusApiKey = KeychainSecret(
-        service: "com.appleboiy.StarHubTH", account: "nexusApiKey")
+        service: "com.mrbabilo.StarHubFR", account: "nexusApiKey")
 
     /// La clé d'API DeepL, sous le même service.
     public static let deepLApiKey = KeychainSecret(
-        service: "com.appleboiy.StarHubTH", account: "deeplApiKey")
+        service: "com.mrbabilo.StarHubFR", account: "deeplApiKey")
 
     private var baseQuery: [String: Any] {
         [kSecClass as String: kSecClassGenericPassword,
@@ -36,7 +43,18 @@ public struct KeychainSecret: Sendable {
         query[kSecMatchLimit as String] = kSecMatchLimitOne
         var item: CFTypeRef?
         guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,
-              let data = item as? Data else { return nil }
+              let data = item as? Data else {
+            // **Secours sur l'ancien service, une fois.** La clé y a été écrite
+            // par une version antérieure au changement d'identifiant de bundle.
+            // On la recopie sous le nouveau service pour que ce détour ne se
+            // rejoue pas — et on laisse l'ancienne en place : l'application
+            // d'origine, si elle est installée, en a encore l'usage.
+            guard service != Self.legacyService else { return nil }
+            let legacy = KeychainSecret(service: Self.legacyService, account: account)
+            guard let inherited = legacy.read() else { return nil }
+            _ = write(inherited)
+            return inherited
+        }
         return String(data: data, encoding: .utf8)
     }
 

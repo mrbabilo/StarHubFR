@@ -37,10 +37,15 @@ struct KeychainSecretTests {
         #expect(store.read() == nil)
     }
 
-    /// Le refactor ne doit **pas** déménager la clé Nexus déjà enregistrée :
-    /// même service, même compte, donc même entrée du trousseau.
+    /// F5 phase 2 — la clé vit désormais sous le service **propre au fork** ;
+    /// l'ancien service reste le filet : `legacyService` le désigne, et
+    /// `read()` y retombe une fois en recopiant. Le compte, lui, n'a jamais
+    /// bougé. (Le test verrouillait l'inverse avant la migration d'identité.)
     @Test func theNexusIdentifiersAreThoseAlreadyInUse() {
-        #expect(KeychainSecret.nexusApiKey.service == "com.appleboiy.StarHubTH")
+        #expect(KeychainSecret.nexusApiKey.service == "com.mrbabilo.StarHubFR")
         #expect(KeychainSecret.nexusApiKey.account == "nexusApiKey")
+        #expect(KeychainSecret.legacyService == "com.appleboiy.StarHubTH")
+        #expect(KeychainSecret.deepLApiKey.service == "com.mrbabilo.StarHubFR")
+        #expect(KeychainSecret.deepLApiKey.account == "deeplApiKey")
     }
 }
