@@ -348,7 +348,7 @@ première version de ce plan :
 | Chantier | Quand | Pourquoi ici |
 | --- | --- | --- |
 | **Découper les vues** (leur P8, cible ~150 lignes) | **Au contact** : quand on extrait un domaine, on découpe la vue qui le consomme, dans le même mouvement | Au 2026-09-10 : `ModListView` **2340** lignes, `ModDetailView` **2145**, `MainView` **1536**, `SavesView` **1162**, `LogsView` 746 — la même pente que le ViewModel (`ModDetailView` a triplé depuis le relevé de 683). Une campagne dédiée serait un big-bang sans filet ; couplé à l'extraction, le découpage a une raison d'être et un périmètre |
-| **Verrouiller les règles** (leur P9) | **Dès que le premier store existe** | Leur `check_standards.py` empêche la dette de revenir. L'équivalent ici est bon marché : un contrôle dans `build_app.py` refusant qu'un fichier de `Models/` importe SwiftUI — même forme que le contrôle de parité des clés qui existe déjà, et qui sort en `SystemExit(1)` |
+| **Verrouiller les règles** (leur P9) | ✅ **Fait le 2026-09-10** | `build_app.py` refuse désormais qu'un fichier du target SPM importe SwiftUI — barre dure, échec rapide avant compilation (pas un cliquet), épreuve §4.7 faite (injection volontaire → `[ERROR]` → restauration). **Elle a mordu à l'installation** : `NexusCategory` et `SaveFarmerPalette` importaient SwiftUI pour leurs couleurs — conversion §4.4 en `RGBColor` (Core) rendu par `Color(RGBColor)` (AppDesignUI). `AppKit` reste volontairement hors barrière : quatre fichiers Core en dépendent (dette ci-dessous, au contact de chacun) |
 
 **Deux dettes de couche, à traiter au contact plutôt qu'en campagne** — trouvées en
 passant leurs correctifs en revue (§8), et sans urgence propre :
