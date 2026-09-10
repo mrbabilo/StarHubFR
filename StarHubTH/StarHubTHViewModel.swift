@@ -2902,47 +2902,36 @@ class StarHubTHViewModel: ObservableObject {
             if let cached = cachedManifest(at: manifestPath) {
                 apply(ManifestFields(manifest: cached))
             } else if let rawData = try? Data(contentsOf: URL(fileURLWithPath: manifestPath)),
-                let rawString = String(data: rawData, encoding: .utf8) {
-
-                // Strip block comments (/* ... */) often added by ModManifestBuilder
-                let cleanString = rawString.replacingOccurrences(of: "/\\*[\\s\\S]*?\\*/", with: "", options: .regularExpression)
-
-                var options: JSONSerialization.ReadingOptions = []
-                if #available(macOS 12.0, *) {
-                    options.insert(.json5Allowed)
-                }
-
-                if let data = cleanString.data(using: .utf8) {
-                    do {
-                        guard let json = try JSONSerialization.jsonObject(with: data, options: options) as? [String: Any] else {
-                            throw NSError(domain: "StarHubFR.Manifest", code: -1,
-                                userInfo: [NSLocalizedDescriptionKey:
-                                    "Manifeste \(manifestPath) : racine non objet JSON"])
-                        }
-
+                      let rawString = String(data: rawData, encoding: .utf8) {
+                do {
+                    // `decodeInstalled` : la tolérance JSON5 pleine, parce que
+                    // le scan lit un mod que SMAPI a déjà chargé — il n'a rien
+                    // à juger. L'expression régulière qui retirait ici les
+                    // commentaires bloc est partie avec : JSON5 les gère, et
+                    // elle amputait une valeur de chaîne en contenant.
+                    let json = try ManifestJSON.decodeInstalled(rawString)
                     apply(ManifestFields(manifest: json))
 
-                // Fill the cache so the next scan of an unchanged manifest
-                // is a cheap mtime compare + dict reuse. Storing the raw
-                // decoded JSON (not a narrowed subset) keeps the cache usable
-                // for any future field added to the scan without rework.
-                // Write under the lock — concurrent scans would otherwise race
-                // on the dictionary subscript setter (EXC_BAD_ACCESS).
-                if let mtime = (try? fm.attributesOfItem(atPath: manifestPath))?[.modificationDate] as? Date {
-                    manifestCacheLock.lock()
-                    manifestCache[manifestPath] = (mtime: mtime, manifest: json)
-                    manifestCacheLock.unlock()
-                }
-                    } catch {
-                        // Manifest mal formé : on garde les valeurs par défaut
-                        // (nom = dossier logique) mais on le signale pour que
-                        // l'utilisateur comprenne pourquoi les métadonnées
-                        // sont vides plutôt que de voir un mod "Unknown".
-                        log("Manifest invalide pour \(relativePath.isEmpty ? logicalLeaf : relativePath): \(error.localizedDescription)",
-                            level: .warning)
+                    // Fill the cache so the next scan of an unchanged manifest
+                    // is a cheap mtime compare + dict reuse. Storing the raw
+                    // decoded JSON (not a narrowed subset) keeps the cache usable
+                    // for any future field added to the scan without rework.
+                    // Write under the lock — concurrent scans would otherwise race
+                    // on the dictionary subscript setter (EXC_BAD_ACCESS).
+                    if let mtime = (try? fm.attributesOfItem(atPath: manifestPath))?[.modificationDate] as? Date {
+                        manifestCacheLock.lock()
+                        manifestCache[manifestPath] = (mtime: mtime, manifest: json)
+                        manifestCacheLock.unlock()
                     }
+                } catch {
+                    // Manifest mal formé : on garde les valeurs par défaut
+                    // (nom = dossier logique) mais on le signale pour que
+                    // l'utilisateur comprenne pourquoi les métadonnées
+                    // sont vides plutôt que de voir un mod "Unknown".
+                    log("Manifest invalide pour \(relativePath.isEmpty ? logicalLeaf : relativePath): \(error.localizedDescription)",
+                        level: .warning)
+                }
             }
-        }
 
             return ModItem(
                 uniqueId: uniqueId,

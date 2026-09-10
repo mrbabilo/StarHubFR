@@ -19,10 +19,49 @@ public enum ManifestJSON {
 
     /// Décode un manifeste, ou `nil` s'il reste indécodable après nettoyage.
     /// Refuse les fragments : un manifeste est un objet, pas une valeur nue.
+    ///
+    /// C'est la porte pour **juger** un manifeste — décider d'une installation,
+    /// d'une réparation, d'une écriture. Pour lire un mod **déjà en place**,
+    /// voir `decodeInstalled(_:)`, plus tolérant.
     public static func decode(_ raw: String) -> [String: Any]? {
         guard let data = sanitize(raw).data(using: .utf8),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
         else { return nil }
+        return json
+    }
+
+    /// Décode le manifeste d'un mod **déjà installé**, en laissant
+    /// `JSONSerialization` faire tout le travail en JSON5.
+    ///
+    /// Le scan n'a pas de décision à prendre : SMAPI a chargé ce mod, la liste
+    /// doit le montrer avec son nom et sa version. `.json5Allowed` accepte donc
+    /// strictement plus que `decode(_:)` — mesuré le 2026-09-10 : clé non
+    /// quotée, chaîne en quote simple, nombre hexadécimal et `Infinity` passent
+    /// ici et sont refusés là ; **l'inverse n'existe pas**, aucune forme que
+    /// `decode` accepte n'échoue ici.
+    ///
+    /// ⚠️ Le scan appliquait avant une expression régulière
+    /// (`/\*[\s\S]*?\*/`) pour retirer les commentaires bloc. Elle était
+    /// **inutile** — JSON5 les gère, imbriqués et en fin de fichier compris —
+    /// et **nuisible** : une expression régulière ne peut pas être consciente
+    /// des chaînes, si bien qu'une description contenant `/* … */` perdait son
+    /// milieu en silence. Aucun des 1 108 manifestes du parc n'était touché (47
+    /// portent un commentaire bloc, aucun dans une valeur), d'où un défaut
+    /// latent et non un incident.
+    ///
+    /// - Throws: l'erreur de `JSONSerialization`, ou une erreur de racine
+    ///   non-objet. L'appelant journalise : un manifeste illisible laisse un mod
+    ///   sans métadonnées à l'écran, ce qui doit être explicable.
+    public static func decodeInstalled(_ raw: String) throws -> [String: Any] {
+        guard let data = raw.data(using: .utf8) else {
+            throw NSError(domain: "StarHubFR.Manifest", code: -2,
+                          userInfo: [NSLocalizedDescriptionKey: "manifeste non convertible en UTF-8"])
+        }
+        guard let json = try JSONSerialization.jsonObject(with: data, options: [.json5Allowed])
+                as? [String: Any] else {
+            throw NSError(domain: "StarHubFR.Manifest", code: -1,
+                          userInfo: [NSLocalizedDescriptionKey: "racine non objet JSON"])
+        }
         return json
     }
 
