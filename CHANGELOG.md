@@ -12,6 +12,12 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Fixed
+
+- **« Installé » se dit désormais d'un seul vert.** La pastille d'un composant de pack, le badge d'état de la liste des mises à jour et le badge « Installé » de Découvrir employaient un vert différent de celui du reste de l'application — visibles côte à côte sur la fiche d'un pack.
+
+- **La date d'installation d'un mod ne se perd plus au relancement.** Deux analyses simultanées du dossier Mods pouvaient laisser sur le disque un registre en retard sur ce que la session avait constaté ; les mods concernés repassaient ensuite pour « installés aujourd'hui ».
+
 ## [1.43.0] - 2026-09-10
 
 ### Added
