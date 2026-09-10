@@ -47,13 +47,15 @@ public class ModConfigBackupManager {
     /// Support folder. Production code always uses `.shared`, which calls
     /// this with `nil` and gets the exact same directory as before.
     public init(backupsBasePath overrideBasePath: URL? = nil) {
-        // **Reste sous `StarHubTH/`, délibérément.** Comme `ModInstallBackupManager` :
-        // l'index de ces sauvegardes porte des chemins absolus, les déplacer
-        // obligerait à tous les réécrire, et l'application d'origine — la seule
-        // raison du renommage — n'écrit jamais ici. Voir `AppSupport`.
-        let base = overrideBasePath ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?
-            .appendingPathComponent("StarHubTH/Backups/ModConfigs", isDirectory: true)
-            ?? FileManager.default.temporaryDirectory.appendingPathComponent("StarHubTH/Backups/ModConfigs", isDirectory: true)
+        // **Sous `StarHubFR/` depuis X105** (2026-09-10), comme le reste des
+        // données : les 220 chemins absolus de son index sont repointés par
+        // `AppSupport.migrate` avant le déplacement, qui est un rename sur le
+        // même volume. Le repli temporaire n'existe que si Application Support
+        // est introuvable — l'app ne peut alors rien persister de toute façon.
+        let base = overrideBasePath
+            ?? AppSupport.directory?.appendingPathComponent("Backups/ModConfigs", isDirectory: true)
+            ?? FileManager.default.temporaryDirectory
+                .appendingPathComponent("StarHubFR/Backups/ModConfigs", isDirectory: true)
         backupsBasePath = base
         backupsDirPath = base.appendingPathComponent("backups", isDirectory: true)
         metadataPath = base.appendingPathComponent("metadata.json")

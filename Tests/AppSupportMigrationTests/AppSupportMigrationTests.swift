@@ -273,4 +273,77 @@ struct AppSupportMigrationTests {
         // Idempotente : un second passage n'a plus rien à faire.
         #expect(AppSupport.repairStalePaths(in: new, legacyRoot: old, fileManager: fm) == 0)
     }
+
+    // MARK: - X105 : `Backups/` suit, avec son index (2026-09-10)
+
+    /// **1,2 Go de points de restauration, et 220 chemins absolus qui doivent
+    /// suivre.** L'index vit dans un sous-dossier (`Backups/ModInstalls/`) :
+    /// l'épreuve porte autant sur le fait qu'il soit *trouvé* là que sur le
+    /// déplacement lui-même — un index nommé mais jamais atteint se réécrirait
+    /// silencieusement à zéro, et la sauvegarde deviendrait introuvable au
+    /// premier restaurer.
+    @Test func backupsMoveWithTheirIndexRewritten() throws {
+        struct Entry: Codable { let backupPath: String }
+        struct Index: Codable { let backups: [Entry] }
+        let fm = FileManager.default
+        let root = fm.temporaryDirectory.appendingPathComponent("as-\(UUID().uuidString)")
+        let old = root.appendingPathComponent("StarHubTH")
+        let new = root.appendingPathComponent("StarHubFR")
+        defer { try? fm.removeItem(at: root) }
+
+        // Une sauvegarde réelle : le dossier archivé, et l'index qui le désigne
+        // par chemin **absolu**, écrit par le vrai producteur (slashes échappés).
+        let archived = old.appendingPathComponent("Backups/ModInstalls/backups/2026_X/[CP] Mod")
+        try fm.createDirectory(at: archived, withIntermediateDirectories: true)
+        try Data("mod".utf8).write(to: archived.appendingPathComponent("manifest.json"))
+        try JSONEncoder().encode(Index(backups: [Entry(backupPath: archived.path)]))
+            .write(to: old.appendingPathComponent("Backups/ModInstalls/install_metadata.json"))
+
+        #expect(AppSupport.migrate(from: old, to: new, fileManager: fm))
+
+        // L'ancien dossier s'en va **entièrement** : plus rien ne reste derrière.
+        #expect(!fm.fileExists(atPath: old.path))
+        // L'archive a suivi…
+        let landed = new.appendingPathComponent("Backups/ModInstalls/backups/2026_X/[CP] Mod/manifest.json")
+        #expect(fm.fileExists(atPath: landed.path))
+        // …et l'index la désigne là où elle est vraiment.
+        let index = try JSONDecoder().decode(
+            Index.self,
+            from: try Data(contentsOf: new.appendingPathComponent("Backups/ModInstalls/install_metadata.json")))
+        let target = try #require(index.backups.first).backupPath
+        #expect(target.hasPrefix(new.path))
+        #expect(fm.fileExists(atPath: target))
+    }
+
+    /// Un index **sans** chemin absolu — le cas de `ModConfigs/metadata.json`,
+    /// 6 sauvegardes et aucun chemin sur le parc — traverse intact.
+    @Test func anIndexWithoutPathsIsNotDisturbed() throws {
+        let fm = FileManager.default
+        let root = fm.temporaryDirectory.appendingPathComponent("as-\(UUID().uuidString)")
+        let old = root.appendingPathComponent("StarHubTH")
+        let new = root.appendingPathComponent("StarHubFR")
+        defer { try? fm.removeItem(at: root) }
+        let dir = old.appendingPathComponent("Backups/ModConfigs")
+        try fm.createDirectory(at: dir, withIntermediateDirectories: true)
+        let untouched = Data(#"{"backups":[{"folderName":"X","items":[]}]}"#.utf8)
+        try untouched.write(to: dir.appendingPathComponent("metadata.json"))
+
+        #expect(AppSupport.migrate(from: old, to: new, fileManager: fm))
+        #expect(try Data(contentsOf: new.appendingPathComponent("Backups/ModConfigs/metadata.json"))
+                == untouched)
+    }
+
+    /// **Le garde qui manquait.** `AppSupport.directory` est un `static let` à
+    /// effet de bord : le lire migre. Cette suite en a fait la démonstration le
+    /// 2026-09-10 en déplaçant 1,2 Go de sauvegardes réelles, simplement parce
+    /// qu'un test construisait `ModInstallBackupManager.shared`.
+    ///
+    /// L'épreuve porte sur le mécanisme lui-même : si elle échoue un jour,
+    /// c'est que la suite s'est remise à pouvoir toucher les données de
+    /// l'utilisateur.
+    @Test func theTestProcessNeverTriggersARealMigration() {
+        #expect(!AppSupport.isHostedByTheApp)
+        // Le chemin reste rendu — seuls les effets de bord sont retenus.
+        #expect(AppSupport.directory?.lastPathComponent == "StarHubFR")
+    }
 }

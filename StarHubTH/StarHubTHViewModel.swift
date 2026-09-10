@@ -9800,7 +9800,7 @@ for mod in mods {
     /// Les incompatibilités que l'utilisateur a déclarées ou écartées.
     /// Chargé au démarrage (dans `seedNexusAndUserData`, avec les autres
     /// registres utilisateur), réécrit à chaque décision. Fichier :
-    /// `Application Support/StarHubTH/mod_conflicts.json`.
+    /// `Application Support/StarHubFR/mod_conflicts.json`.
     @Published private(set) var modConflictVerdicts = ModConflictVerdicts()
 
     /// Écrit le magasin, et **le dit quand il n'a pas pu** — même patron que

@@ -8,8 +8,8 @@ import Foundation
 /// oublie une. Re-compté le 2026-09-10, ils sont quatorze (sept stores de plus
 /// depuis le plan) : la tâche 4 les branche tous ici.
 ///
-/// `Backups/` n'en fait délibérément pas partie : voir
-/// `ModInstallBackupManager`.
+/// `Backups/` en fait partie depuis X105 (2026-09-10) : l'ancien dossier
+/// disparaît donc entièrement une fois la migration passée.
 public enum AppSupport {
     /// Le nom du dossier. `StarHubFR` et non `StarHubTH` : l'application
     /// d'origine, dont ce dépôt est un fork, écrit encore dans le second
@@ -30,6 +30,26 @@ public enum AppSupport {
         directory?.appendingPathComponent("Avatars", isDirectory: true)
     }
 
+    /// **Seule l'application migre.**
+    ///
+    /// `directory` est un `static let` **à effet de bord** : le lire déclenche
+    /// la reprise des préférences, le déplacement du dossier de données et la
+    /// réparation des index. Tout processus qui touche le Core les déclenche
+    /// donc — **y compris la suite de tests**, qui a déplacé 1,2 Go de
+    /// sauvegardes réelles le 2026-09-10 en construisant
+    /// `ModInstallBackupManager.shared`. Le dépôt connaissait la règle (« les
+    /// tests n'écrivent jamais dans le vrai Application Support ») ; ce qui
+    /// manquait, c'est le garde qui la tient.
+    ///
+    /// Mesuré plutôt que deviné : sous `swift test`, l'hôte est
+    /// `swiftpm-testing-helper` et `Bundle.main.bundleIdentifier` vaut **nil** ;
+    /// les marqueurs XCTest sont tous absents, `NSClassFromString("XCTestCase")`
+    /// compris. Le chemin, lui, reste rendu normalement — seuls les effets de
+    /// bord sont retenus.
+    static var isHostedByTheApp: Bool {
+        Bundle.main.bundleIdentifier == "com.mrbabilo.StarHubFR"
+    }
+
     private static func resolve() -> URL? {
         // **La reprise des préférences part d'ici, et c'est le point du
         // dispositif.** Elle est aussi déclenchée depuis `StarHubTHApp`, mais
@@ -37,11 +57,14 @@ public enum AppSupport {
         // le premier initialisateur stocké du ViewModel qui touche quoi que ce
         // soit passe par `directory`, donc par ici. Idempotente : le second
         // appel ne coûte rien. Voir `DefaultsMigration.runOnce`.
-        _ = DefaultsMigration.runOnce
         guard let base = FileManager.default.urls(for: .applicationSupportDirectory,
                                                   in: .userDomainMask).first else { return nil }
         let target = base.appendingPathComponent(folderName, isDirectory: true)
         let legacy = base.appendingPathComponent(legacyFolderName, isDirectory: true)
+        // Hors de l'application, on rend le chemin et rien d'autre : aucun
+        // déplacement, aucune écriture de préférences. Voir `isHostedByTheApp`.
+        guard isHostedByTheApp else { return target }
+        _ = DefaultsMigration.runOnce
         // **Ici et pas au lancement.** `StarHubTHApp` construit son ViewModel
         // dans un initialiseur de propriété, qui s'exécute avant le corps de
         // `init()` — et ce ViewModel lit deux stores dès sa construction. Aucun
@@ -60,8 +83,20 @@ public enum AppSupport {
     /// Les index qui portent des chemins **absolus** : tout déplacement du
     /// dossier doit les repointer, et le `.bak` compte autant que le principal
     /// — `InstalledTranslationStore` le promeut quand le principal est corrompu.
+    ///
+    /// Les deux index de `Backups/` s'y sont ajoutés avec X105. Énumération
+    /// faite champ par champ le 2026-09-10, pas devinée : seul
+    /// `ModInstallBackup.backupPath` est absolu (220 entrées) ;
+    /// `ModConfigBackup` ne porte que des noms relatifs (6 entrées, 0 chemin),
+    /// et les `destinationPath`/`displayPath` appartiennent à
+    /// `ModInstallRestoreReport`, un rapport transitoire jamais persisté.
+    /// `metadata.json` reste dans la liste malgré son absence de chemins : la
+    /// réécriture ne touche que ce qui correspond, et l'y inscrire coûte moins
+    /// qu'un champ oublié le jour où il en gagnera un.
     static let pathBearingIndexes = ["installed_translations.json",
-                                     "installed_translations.json.bak"]
+                                     "installed_translations.json.bak",
+                                     "Backups/ModInstalls/install_metadata.json",
+                                     "Backups/ModConfigs/metadata.json"]
 
     /// Repointe les chemins d'une installation **déjà migrée** dont les index
     /// sont restés à l'ancienne racine.
@@ -114,8 +149,9 @@ public enum AppSupport {
     /// premier retrait de greffe — `ManifestlessInstaller.uninstall` supprime
     /// quand la sauvegarde est introuvable.
     ///
-    /// `Backups/` reste dans l'ancien dossier : son index porte 1 309 chemins
-    /// absolus, et l'application d'origine n'y écrit jamais.
+    /// `Backups/` suit depuis X105 (2026-09-10), avec ses 220 chemins absolus
+    /// repointés d'abord — c'est un rename sur le même volume, pas une copie
+    /// des 1,2 Go.
     @discardableResult
     static func migrate(from legacy: URL, to target: URL, fileManager fm: FileManager) -> Bool {
         var isDirectory: ObjCBool = false
@@ -155,16 +191,14 @@ public enum AppSupport {
         do {
             try fm.createDirectory(at: target, withIntermediateDirectories: true)
             for name in try fm.contentsOfDirectory(atPath: legacy.path) {
-                // `Backups/` reste, délibérément (1 309 chemins absolus).
-                guard name != "Backups" else { continue }
                 let destination = target.appendingPathComponent(name)
                 // Déjà arrivé : ne pas écraser. Ce qui est en place est plus
                 // récent que ce qui attend encore dans l'ancien dossier.
                 guard !fm.fileExists(atPath: destination.path) else { continue }
                 try fm.moveItem(at: legacy.appendingPathComponent(name), to: destination)
             }
-            // Un ancien dossier vidé de tout s'en va ; s'il garde `Backups/`,
-            // il reste, et c'est voulu.
+            // L'ancien dossier vidé s'en va — depuis X105 il n'y reste plus
+            // rien à garder.
             if let rest = try? fm.contentsOfDirectory(atPath: legacy.path), rest.isEmpty {
                 try? fm.removeItem(at: legacy)
             }

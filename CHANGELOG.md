@@ -14,7 +14,7 @@ where the exact log format was verified.
 
 ### Added
 
-- **StarHubFR ne partage plus ses données avec l'application dont il est le fork.** Installées côte à côte, les deux écrivaient au même endroit : le même domaine de préférences — 45 clés, dont le registre d'installation, les profils et le dossier du jeu —, la même entrée du Trousseau pour la clé Nexus, le même enregistrement `nxm://`, et le même dossier Application Support. Les données vivent désormais sous `StarHubFR/`, les préférences et le Trousseau sous une identité propre (`com.mrbabilo.StarHubFR`), et ce que l'ancienne version avait écrit est repris au premier lancement plutôt que laissé derrière. L'application d'origine garde les siens, et `Backups/` reste où elle l'attend.
+- **StarHubFR ne partage plus ses données avec l'application dont il est le fork.** Installées côte à côte, les deux écrivaient au même endroit : le même domaine de préférences — 45 clés, dont le registre d'installation, les profils et le dossier du jeu —, la même entrée du Trousseau pour la clé Nexus, le même enregistrement `nxm://`, et le même dossier Application Support. Les données vivent désormais sous `StarHubFR/`, les préférences et le Trousseau sous une identité propre (`com.mrbabilo.StarHubFR`), et ce que l'ancienne version avait écrit est repris au premier lancement plutôt que laissé derrière. L'application d'origine garde les siens, et `Backups/` reste où elle l'attend. Les sauvegardes de mods ont suivi elles aussi : plus rien ne reste dans l'ancien dossier.
 
 ## [1.42.0] - 2026-09-10
 

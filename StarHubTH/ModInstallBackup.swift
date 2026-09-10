@@ -26,7 +26,7 @@ public struct ModMetadata: Codable, Equatable {
 }
 
 /// Backup of a complete mod folder before installation or update.
-/// Stored in ~/Library/Application Support/StarHubTH/Backups/ModInstalls/
+/// Stored in ~/Library/Application Support/StarHubFR/Backups/ModInstalls/
 public struct ModInstallBackup: Identifiable, Codable, Equatable {
     public var id: UUID = UUID()
     public let timestamp: Date

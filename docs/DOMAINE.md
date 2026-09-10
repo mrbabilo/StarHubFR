@@ -42,10 +42,11 @@ Deux conséquences structurantes :
   (l'accesseur unique est `AppSupport`, la migration de dossier est
   reprenable), l'identifiant est `com.mrbabilo.StarHubFR`, et l'ancien
   domaine comme l'ancien service du Trousseau restent lus **en secours** —
-  l'application d'origine, si elle est installée, garde les siens. Deux
-  exceptions délibérées : `Backups/` vit toujours sous
-  `StarHubTH/` (son index porte 1 309 chemins absolus — **X105**), et le
-  schéma `nxm` lui-même ne bouge pas (c'est lui que Nexus appelle).
+  l'application d'origine, si elle est installée, garde les siens. Une seule
+  exception délibérée : le schéma `nxm` lui-même ne bouge pas — c'est lui que
+  Nexus appelle. `Backups/` a suivi avec **X105** (2026-09-10), ses 220
+  chemins absolus repointés avant le déplacement : l'ancien dossier disparaît
+  désormais entièrement.
 
 ## 2. Les quatre mots qui se confondent
 
@@ -57,7 +58,7 @@ interchangeable, et **notre vocabulaire diverge de celui de l'upstream**.
 | **pack** | un **dossier de premier niveau contenant plusieurs mods** — un même téléchargement livre un framework et ses packs de contenu. `ModItem.isGroup` + `children`. | Chez l'upstream, `ModPack` désigne tout autre chose : un ensemble exportable, calqué sur les *Collections* Nexus. **Nous n'avons pas cela** — aucun `ModPack.swift`, aucune collection. Leur doc induirait en erreur. |
 | **profil** | un jeu nommé d'identifiants de mods activés, purement local, pour basculer d'une configuration à l'autre. `ModProfile.swift`. | Aucun partage, aucune métadonnée Nexus, aucun format d'export. |
 | **sauvegarde de partie** | les parties de Stardew Valley, sous `~/.config/StardewValley/Saves/`. `SaveManager.swift`, `SaveTree.swift`. | « sauvegarde » tout court est ambigu — préciser. |
-| **sauvegarde d'application** | ce que StarHubFR archive lui-même, sous `~/Library/Application Support/StarHubTH/Backups/{ModInstalls,ModConfigs}`. | Deux dossiers distincts : le mod entier avant réinstallation, et les seuls fichiers de configuration. |
+| **sauvegarde d'application** | ce que StarHubFR archive lui-même, sous `~/Library/Application Support/StarHubFR/Backups/{ModInstalls,ModConfigs}`. | Deux dossiers distincts : le mod entier avant réinstallation, et les seuls fichiers de configuration. |
 
 ## 3. SMAPI
 
