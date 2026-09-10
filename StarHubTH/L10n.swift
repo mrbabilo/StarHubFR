@@ -31,6 +31,13 @@ enum L10n {
         static let launchStepProfile      = "main_launch_step_profile"
         static let launchStepNexus        = "main_launch_step_nexus"
         static let launchStepDone         = "main_launch_step_done"
+        /// Les phases qui suivent la boucle par mod, à l'intérieur de
+        /// `scanMods` : elles tournaient sans rien annoncer, et l'écran de
+        /// lancement restait sur son dernier échantillon pendant plusieurs
+        /// secondes.
+        static let launchStepSmapiLog     = "main_launch_step_smapi_log"
+        static let launchStepRegistrySync = "main_launch_step_registry_sync"
+        static let launchStepDuplicates   = "main_launch_step_duplicates"
         static let alert                = "main_alert"
         static let ok                   = "main_ok"
         static let home                 = "main_home"

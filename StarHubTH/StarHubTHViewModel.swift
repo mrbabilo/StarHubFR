@@ -374,6 +374,12 @@ class StarHubTHViewModel: ObservableObject {
         let done: Int
         let total: Int
         let currentName: String
+        /// Non nil quand la boucle par mod est **finie** et qu'une phase
+        /// nommée tourne encore (journal SMAPI, registre, doublons). Le
+        /// compteur reste alors affiché — à `total/total`, ce qu'il n'atteignait
+        /// jamais — mais la barre suit `launchProgress` au lieu du ratio, sans
+        /// quoi elle resterait immobile pendant toute la phase.
+        var phase: String? = nil
     }
     @Published var scanProgress: ScanProgress? = nil
 
@@ -381,7 +387,39 @@ class StarHubTHViewModel: ObservableObject {
     /// constants so `performInitialLoad` and the launch overlay agree on how
     /// far the bar should move while `scanMods` streams per-mod progress.
     static let launchScanProgressStart: Double = 0.25
-    static let launchScanProgressEnd: Double = 0.70
+    /// Fin de la **boucle par mod**. Ramenée de 0,70 à 0,60 pour laisser une
+    /// tranche aux phases qui la suivent : elles duraient plusieurs secondes
+    /// sans rien annoncer, barre figée sur le dernier échantillon publié.
+    static let launchScanProgressEnd: Double = 0.60
+    /// Fin des phases post-boucle, à l'intérieur de `scanMods`.
+    static let launchScanPhasesEnd: Double = 0.70
+    /// Poids de chacune, proportionnels à leur coût mesuré sur le journal réel
+    /// de l'auteur (9,8 Mo) : la lecture du journal en est l'essentiel.
+    static let launchSmapiLogProgress: Double = 0.62
+    static let launchRegistrySyncProgress: Double = 0.66
+    static let launchDuplicatesProgress: Double = 0.69
+
+    /// Annonce une phase qui suit la boucle par mod de `scanMods`.
+    ///
+    /// Le compteur reste à `done/total` — la boucle est terminée, donc
+    /// `total/total` : c'est la seule façon pour l'écran d'afficher enfin le
+    /// compte complet, que le throttle de publication ne laissait jamais
+    /// atteindre. `phase` fait suivre la barre à `launchProgress` plutôt qu'au
+    /// ratio, qui serait immobile à 1.
+    private func publishLaunchPhase(_ stepKey: String, progress: Double,
+                                    entries: (done: Int, total: Int)) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            let label = self.L(stepKey)
+            self.launchStep = label
+            // `max` : la barre ne recule jamais, même si une passe hors
+            // lancement repassait ici avec un poids inférieur.
+            self.launchProgress = max(self.launchProgress, progress)
+            guard entries.total > 0 else { return }
+            self.scanProgress = ScanProgress(done: entries.done, total: entries.total,
+                                             currentName: "", phase: label)
+        }
+    }
 
     @Published var mods: [ModItem] = [] {
         didSet {
@@ -2537,7 +2575,7 @@ class StarHubTHViewModel: ObservableObject {
             // slow when many saves exist.
             DispatchQueue.main.async { [weak self] in
                 self?.launchStep = self?.L(L10n.Main.launchStepSaves) ?? ""
-                self?.launchProgress = Self.launchScanProgressEnd
+                self?.launchProgress = Self.launchScanPhasesEnd
             }
             self.reloadSaves()
 
@@ -2572,7 +2610,12 @@ class StarHubTHViewModel: ObservableObject {
                 self?.launchStep = self?.L(L10n.Main.launchStepDone) ?? ""
                 self?.launchProgress = 1.0
             }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+            // 0,15 s ne suffisait pas : le commentaire ci-dessus promettait
+            // « animate the bar to 100% then dismiss », mais la barre partait
+            // encore de ~0,90 et disparaissait avant d'arriver. Avec le pas de
+            // fin élargi (`LaunchProgressBar`), le remplissage prend ~0,25 s —
+            // ce délai le laisse se voir.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { [weak self] in
                 guard let self else { return }
                 self.isLaunching = false
                 if !self.autoCheckNexusUpdates {
@@ -3005,6 +3048,9 @@ class StarHubTHViewModel: ObservableObject {
         // vide, effacerait le registre d'install et toutes les ancres de
         // version. Un `Mods/` bien lu mais vide, lui, purge normalement.
         var modsFolderWasReadable = false
+        // Hors du bloc : les phases qui suivent la boucle en ont besoin pour
+        // afficher le compte complet, et `topEntries` n'existe plus là-bas.
+        var scannedEntries = (done: 0, total: 0)
         if fm.fileExists(atPath: modsPath),
            let topEntries = try? fm.contentsOfDirectory(atPath: modsPath) {
             modsFolderWasReadable = true
@@ -3045,8 +3091,16 @@ class StarHubTHViewModel: ObservableObject {
 
                 scanEntryForMods(at: physicalRoot, topLevelLogicalFolder: topLevelLogicalFolder, isEnabled: isEnabled)
             }
+            scannedEntries = (done: scanDone, total: scanTotal)
         }
 
+        // **La boucle est finie : le compte est complet.** Le throttle publie
+        // au plus toutes les 80 ms et *avant* de traiter l'entrée, si bien que
+        // les dernières ne paraissaient jamais — l'écran restait sur un
+        // « 949/957 » pendant que les phases ci-dessous tournaient. Chacune
+        // s'annonce désormais, compte complet à l'appui.
+        publishLaunchPhase(L10n.Main.launchStepSmapiLog,
+                           progress: Self.launchSmapiLogProgress, entries: scannedEntries)
         parseSMAPILog()
 
         // Synchronize the installed-mod registry with what's on disk. This
@@ -3057,6 +3111,8 @@ class StarHubTHViewModel: ObservableObject {
         //      → record with the folder mtime as a best-effort date.
         //   3. Registry entries whose folder no longer exists → pruned —
         //      sauf si `Mods/` n'a pas pu être lu (X71).
+        publishLaunchPhase(L10n.Main.launchStepRegistrySync,
+                           progress: Self.launchRegistrySyncProgress, entries: scannedEntries)
         syncInstalledModRegistry(scannedMods: scannedMods,
                                  modsFolderWasReadable: modsFolderWasReadable)
         if !modsFolderWasReadable {
@@ -3067,6 +3123,8 @@ class StarHubTHViewModel: ObservableObject {
         // Detect X/.X duplicates from the just-scanned mods instead of the
         // repairer's separate disk walk — same result, no extra I/O or decode.
         if includeRepair {
+            publishLaunchPhase(L10n.Main.launchStepDuplicates,
+                               progress: Self.launchDuplicatesProgress, entries: scannedEntries)
             let duplicates = repairer.detectDuplicates(from: scannedMods)
             repairReport = ModFolderRepairer.Report(
                 quarantined: repairReport.quarantined,
@@ -3080,7 +3138,7 @@ class StarHubTHViewModel: ObservableObject {
             // weight BEFORE clearing the per-mod scanProgress, so the overlay
             // falls back to launchScanProgressEnd (not the stale scan-start
             // value) and the bar never visibly regresses before step 3 runs.
-            self.launchProgress = Self.launchScanProgressEnd
+            self.launchProgress = Self.launchScanPhasesEnd
             self.scanProgress = nil
             // Publish the repair report on the main thread (the scan itself
             // runs on a background queue via refresh()).

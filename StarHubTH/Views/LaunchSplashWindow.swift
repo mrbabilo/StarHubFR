@@ -345,7 +345,11 @@ struct LaunchProgressBar: View {
     private static let ticker = Timer.publish(every: 0.05, on: .main, in: .common).autoconnect()
 
     private var target: Double {
-        if let scan = vm.scanProgress, scan.total > 0 {
+        // `phase == nil` : la boucle par mod tourne encore, la barre suit le
+        // ratio. Une fois la boucle finie le ratio vaut 1 et resterait
+        // immobile pendant les phases qui suivent — c'est `launchProgress`
+        // qui prend le relais.
+        if let scan = vm.scanProgress, scan.total > 0, scan.phase == nil {
             let span = StarHubTHViewModel.launchScanProgressEnd - StarHubTHViewModel.launchScanProgressStart
             let ratio = Double(scan.done) / Double(scan.total)
             return StarHubTHViewModel.launchScanProgressStart + span * ratio
@@ -370,13 +374,23 @@ struct LaunchProgressBar: View {
             guard displayed < goal else { return }
             // Ease toward the goal: fast when far, slow when close, so the bar
             // keeps moving through the gaps without ever overshooting.
-            displayed += max(0.002, (goal - displayed) * 0.08)
+            //
+            // **Le pas plancher s'élargit sur la dernière ligne droite.** À
+            // 0,002 par tick de 50 ms, couvrir 0,90 → 1,00 demande près de
+            // deux secondes — or le splash se ferme peu après avoir posé sa
+            // cible à 1,0 : la barre disparaissait autour de 91 %, sans jamais
+            // se remplir. Le pas de fin la fait arriver en ~0,25 s.
+            let step = goal >= 1.0 ? 0.02 : 0.002
+            displayed = min(goal, displayed + max(step, (goal - displayed) * 0.08))
         }
     }
 
     private var caption: String {
         if let scan = vm.scanProgress, scan.total > 0 {
-            return "\(scan.currentName)  (\(scan.done)/\(scan.total))"
+            // En phase, le nom du mod n'a plus de sens — la boucle est finie.
+            // Le compteur, lui, reste : c'est là qu'il atteint enfin son total.
+            let label = scan.phase ?? scan.currentName
+            return "\(label)  (\(scan.done)/\(scan.total))"
         }
         return vm.launchStep.isEmpty ? vm.L(L10n.Main.launching) : vm.launchStep
     }
