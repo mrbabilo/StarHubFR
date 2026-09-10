@@ -2655,38 +2655,20 @@ class StarHubTHViewModel: ObservableObject {
         let home = NSHomeDirectory()
         let vdfPath = "\(home)/Library/Application Support/Steam/config/loginusers.vdf"
         guard let content = try? String(contentsOfFile: vdfPath, encoding: .utf8) else { return }
-        
-        // Very basic VDF parsing
-        var currentSteamID = ""
-        var personaName = ""
-        
-        let lines = content.components(separatedBy: .newlines)
-        for line in lines {
-            let tLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
-            if tLine.hasPrefix("\"7656") {
-                currentSteamID = tLine.replacingOccurrences(of: "\"", with: "")
-            }
-            if tLine.hasPrefix("\"PersonaName\"") {
-                let parts = tLine.components(separatedBy: "\"")
-                if parts.count >= 4 { personaName = parts[3] }
-            }
-            if tLine.hasPrefix("\"MostRecent\"") && tLine.contains("\"1\"") {
-                break
-            }
-        }
-        
+        let parsed = SteamLoginUsers.parse(content: content)
+
         let resolvedUsername: String
-        if !personaName.isEmpty {
-            resolvedUsername = personaName
+        if !parsed.personaName.isEmpty {
+            resolvedUsername = parsed.personaName
         } else {
             let defaultName = NSFullUserName().components(separatedBy: " ").first ?? ""
             resolvedUsername = defaultName.isEmpty ? L(L10n.VM.defaultFarmerName) : defaultName
         }
 
         var resolvedAvatarPath: String?
-        if !currentSteamID.isEmpty {
-            let avatarPathPng = "\(home)/Library/Application Support/Steam/config/avatarcache/\(currentSteamID).png"
-            let avatarPathJpg = "\(home)/Library/Application Support/Steam/config/avatarcache/\(currentSteamID).jpg"
+        if !parsed.steamID.isEmpty {
+            let avatarPathPng = "\(home)/Library/Application Support/Steam/config/avatarcache/\(parsed.steamID).png"
+            let avatarPathJpg = "\(home)/Library/Application Support/Steam/config/avatarcache/\(parsed.steamID).jpg"
             if FileManager.default.fileExists(atPath: avatarPathPng) {
                 resolvedAvatarPath = avatarPathPng
             } else if FileManager.default.fileExists(atPath: avatarPathJpg) {
