@@ -2348,7 +2348,7 @@ class StarHubTHViewModel: ObservableObject {
             guard let self else { return }
             self.scanMods()          // also kicks off parseSMAPILog internally
             self.reloadSaves()
-            self.environment.fetchSteamUser(fallbackFarmerName: self.L(L10n.VM.defaultFarmerName))
+            self.environment.fetchSteamUser(fallbackFarmerName: { self.L(L10n.VM.defaultFarmerName) })
         }
         // Lightweight synchronous check: reads the install marker, or the
         // first 256 bytes of SMAPI-latest.txt — no process is ever launched
@@ -2575,7 +2575,7 @@ class StarHubTHViewModel: ObservableObject {
                 // call it here, on main, rather than on the background queue below.
                 self?.loadProfiles()
             }
-            self.environment.fetchSteamUser(fallbackFarmerName: self.L(L10n.VM.defaultFarmerName))
+            self.environment.fetchSteamUser(fallbackFarmerName: { self.L(L10n.VM.defaultFarmerName) })
 
             // Step 4b — Seed the Nexus caches + user overrides (was blocking
             // the window's first paint when it ran in init).
@@ -5286,10 +5286,10 @@ for mod in mods {
         // d'installation copiée serait une date inventée. En cas de collision,
         // le mod renommé repart neuf — c'est la seule chose vraie qu'on sache
         // de lui.
-        // Par `mutate` : lire puis réécrire hors verrou perd la course (2026-08-05).
-        installedModRegistryStore.mutate {
-            _ = ModFolderRename.migrate(&$0, from: old, to: new,
-                                        shared: shared, policy: .leaveBehind)
+        // Sous verrou (`mutateIfChanged`) — réécrire hors verrou perd la course (2026-08-05) ; sans entrée à migrer, rien ne s'écrit.
+        installedModRegistryStore.mutateIfChanged {
+            ModFolderRename.migrate(&$0, from: old, to: new,
+                                    shared: shared, policy: .leaveBehind)
         }
 
         // 7. L'historique d'erreurs par version.

@@ -177,7 +177,7 @@ private final class StubFilePicker: FilePicking {
 
         let store = GameEnvironmentStore(defaults: makeDefaults(), picker: StubFilePicker(path: nil))
         store.fetchSteamUser(home: home.path, systemUserName: "David Baudoin",
-                             fallbackFarmerName: "Fermier")
+                             fallbackFarmerName: { "Fermier" })
         drainMainQueue()
         #expect(store.steamUsername == "David")
         #expect(store.steamAvatarPath == avatar.path)
@@ -188,7 +188,7 @@ private final class StubFilePicker: FilePicking {
     @Test func withoutAVDFNothingIsPublished() {
         let store = GameEnvironmentStore(defaults: makeDefaults(), picker: StubFilePicker(path: nil))
         store.fetchSteamUser(home: "/nulle-part", systemUserName: "David Baudoin",
-                             fallbackFarmerName: "Fermier")
+                             fallbackFarmerName: { "Fermier" })
         drainMainQueue()
         #expect(store.steamUsername == "")
         #expect(store.steamAvatarPath == nil)
@@ -213,13 +213,13 @@ private final class StubFilePicker: FilePicking {
 
         let store = GameEnvironmentStore(defaults: makeDefaults(), picker: StubFilePicker(path: nil))
         store.fetchSteamUser(home: home.path, systemUserName: "David Baudoin",
-                             fallbackFarmerName: "Fermier")
+                             fallbackFarmerName: { "Fermier" })
         drainMainQueue()
         #expect(store.steamUsername == "David")
 
         let store2 = GameEnvironmentStore(defaults: makeDefaults(), picker: StubFilePicker(path: nil))
         store2.fetchSteamUser(home: home.path, systemUserName: "",
-                              fallbackFarmerName: "Fermier")
+                              fallbackFarmerName: { "Fermier" })
         drainMainQueue()
         #expect(store2.steamUsername == "Fermier")
     }

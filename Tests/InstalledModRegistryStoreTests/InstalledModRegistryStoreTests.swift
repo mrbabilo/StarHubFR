@@ -158,6 +158,41 @@ struct InstalledModRegistryStoreTests {
         #expect(count == 1)
     }
 
+    /// `mutateIfChanged` : le corps qui ne bouge pas ne doit rien écrire —
+    /// ni la clé principale, ni son secours. C'est l'état que l'ancien code
+    /// au VM garantissait (`if migrate → save`) et que le `mutate`
+    /// inconditionnel avait perdu.
+    @Test func mutateIfChangedPersistsNothingWhenTheBodyReportsNoChange() throws {
+        let defaults = migratedDefaults()
+        let store = InstalledModRegistryStore(defaults: defaults)
+        store.mutate { $0 = ["Automate": self.record("1.0", self.t0)] }
+        let primaryBefore = defaults.data(forKey: UDKey.installedModRegistry)
+        let backupBefore = defaults.data(forKey: UDKey.installedModRegistryBackup)
+
+        let changed = store.mutateIfChanged { _ in false }
+
+        #expect(changed == false)
+        #expect(defaults.data(forKey: UDKey.installedModRegistry) == primaryBefore)
+        #expect(defaults.data(forKey: UDKey.installedModRegistryBackup) == backupBefore)
+        #expect(read(UDKey.installedModRegistry, in: defaults)?["Automate"]?.version == "1.0")
+    }
+
+    @Test func mutateIfChangedPersistsWhenTheBodyChangesSomething() throws {
+        let defaults = migratedDefaults()
+        let store = InstalledModRegistryStore(defaults: defaults)
+        store.mutate { $0 = ["Automate": self.record("1.0", self.t0)] }
+
+        let changed = store.mutateIfChanged { registry in
+            registry["Automate"] = self.record("2.0", self.t1)
+            return true
+        }
+
+        #expect(changed == true)
+        #expect(InstalledModRegistryStore(defaults: defaults)
+            .installedDate(for: "Automate") == self.t1)
+        #expect(read(UDKey.installedModRegistry, in: defaults)?["Automate"]?.version == "2.0")
+    }
+
     // MARK: - 5. Migration v2 : purge une fois, drapeau après la purge
 
     @Test func theFirstSyncWipesARegistryBuiltOnStaleFolderDates() {

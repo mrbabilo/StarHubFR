@@ -139,6 +139,22 @@ final class InstalledModRegistryStore {
         return result
     }
 
+    /// La même lecture-modification-écriture, mais le corps **dit** s'il a
+    /// bougé : sur `false`, rien n'est mis en cache ni persisté. Le code que
+    /// cette variante remplace ne sauvait que quand `ModFolderRename.migrate`
+    /// rendait `true` — le `mutate` inconditionnel réécrivait ~91 Ko sur les
+    /// deux clés pour chaque renommage sans entrée de registre (revue du
+    /// 2026-09-10).
+    func mutateIfChanged(_ body: (inout [String: InstalledModRecord]) -> Bool) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        var map = cache ?? loadFromDisk()
+        guard body(&map) else { return false }
+        cache = map
+        persist(map)
+        return true
+    }
+
     // MARK: - Dossiers en grâce
 
     /// Les dossiers dont un changement de version ne doit **pas** ré-estampiller

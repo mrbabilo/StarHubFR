@@ -11,7 +11,7 @@ import Foundation
 /// « Ce qui n'est pas à moi arrive en paramètre » (§3) : les préférences
 /// (`defaults`, comme dans `InstalledModRegistryStore`), le sélecteur de
 /// dossier (`picker`) et le domicile arrivent par l'initialiseur. Le nom de
-/// repli « Farmer » arrive en **valeur localisée** par l'appelant : le store
+/// repli « Farmer » arrive en **closure** que l'appelant localise : le store
 /// ne connaît ni L10n ni le bundle.
 ///
 /// Threading — mêmes contrats qu'avant l'extraction : `fetchSteamUser` est
@@ -81,9 +81,16 @@ final class GameEnvironmentStore: ObservableObject {
     /// Lit `loginusers.vdf` et l'avatarcache. Silence total quand le VDF est
     /// illisible : le nom déjà affiché reste (comportement historique — pas
     /// de repli « Farmer » sur un fichier absent).
+    ///
+    /// `fallbackFarmerName` est une **closure**, évaluée aux deux seuls
+    /// endroits qui en ont besoin — le repli hors file principale, et la
+    /// publication sur main. Une valeur évaluée à l'appel aurait fait lire
+    /// `currentLanguage` par chaque passage sur file de fond, là où le code
+    /// d'origine ne la lisait que dans ses branches rares (revue du
+    /// 2026-09-10).
     func fetchSteamUser(home: String = NSHomeDirectory(),
                         systemUserName: String = NSFullUserName(),
-                        fallbackFarmerName: String) {
+                        fallbackFarmerName: @escaping () -> String) {
         let vdfPath = "\(home)/Library/Application Support/Steam/config/loginusers.vdf"
         guard let content = try? String(contentsOfFile: vdfPath, encoding: .utf8) else { return }
         let parsed = SteamLoginUsers.parse(content: content)
@@ -93,7 +100,7 @@ final class GameEnvironmentStore: ObservableObject {
             resolvedUsername = parsed.personaName
         } else {
             let defaultName = systemUserName.components(separatedBy: " ").first ?? ""
-            resolvedUsername = defaultName.isEmpty ? fallbackFarmerName : defaultName
+            resolvedUsername = defaultName.isEmpty ? fallbackFarmerName() : defaultName
         }
 
         let resolvedAvatarPath = GameDirLocator.avatarPath(steamID: parsed.steamID, home: home)
@@ -102,7 +109,7 @@ final class GameEnvironmentStore: ObservableObject {
         // `isEmpty` appelant s'exécutant avant cette écriture ne peut pas
         // voir l'ancienne valeur écraser le vrai nom (audit 2026-08-05).
         DispatchQueue.main.async {
-            self.steamUsername = resolvedUsername.isEmpty ? fallbackFarmerName : resolvedUsername
+            self.steamUsername = resolvedUsername.isEmpty ? fallbackFarmerName() : resolvedUsername
             if let resolvedAvatarPath {
                 self.steamAvatarPath = resolvedAvatarPath
             }
