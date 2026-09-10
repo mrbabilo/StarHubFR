@@ -2352,7 +2352,7 @@ class StarHubTHViewModel: ObservableObject {
         }
         // Lightweight synchronous check: reads the install marker, or the
         // first 256 bytes of SMAPI-latest.txt — no process is ever launched
-        // (SmapiInstaller.getInstalledVersion).
+        // (la lecture vit en Core : `SmapiVersionEvidence.installedVersion`).
         self.environment.checkSmapiVersion()
     }
 
