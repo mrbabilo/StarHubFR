@@ -267,9 +267,14 @@ raisonnement derrière les choix anciens, `.kilo/plans/`.
   `apiVersion`, zéro suggestion revient ; une version mal formée vide le lot
   entier en silence.
 - **Serialisation du registre** (`installedModRegistry` en UserDefaults) :
-  backup auto avant écriture, restauration auto si corruption détectée, plus
-  la reconstruction depuis le disque déjà existante. Les trois sont
-  indépendants, tous requis.
+  clé de secours doublant **chaque** écriture, restauration auto si corruption
+  détectée, plus la reconstruction depuis le disque. Les trois sont
+  indépendants, tous requis. ⚠️ Ce piège a longtemps dit « backup auto **avant**
+  écriture » : c'est faux, et la formulation avait déjà été recopiée dans le
+  code. `persist` écrit les **mêmes octets neufs** sur les deux clés dans la
+  foulée (mesuré : 90 902 octets des deux côtés sur une installation réelle) —
+  le secours ne permet aucun retour en arrière, il ne couvre qu'une clé devenue
+  illisible pendant que l'autre reste lisible.
 - **Mise à jour d'un mod déjà activé** : préserver l'état activé après
   l'écrasement. Ne **jamais** écraser `config.json` ou `fr.json` d'un mod
   existant (drag-drop inclus).
