@@ -126,7 +126,7 @@ plus **B1-T1** et **B1-T2**.
 **Risques** : manipulation massive de dossiers ; un abandon en cours de session ne doit
 jamais laisser la modlist dans un état intermédiaire.
 ⚠️ **Dépendance croisée avec F1** : A4-T2 s'appuie sur la machinerie de profils, qui vit
-dans le VM — 8389 lignes au 2026-08-28 — que **F1-T1** désigne justement comme premier candidat à
+dans le VM — 11 902 lignes au 2026-09-10 — que **F1-T1** désigne justement comme premier candidat à
 l'extraction. Deux issues acceptables — soit l'état de session de bissection naît d'emblée
 dans son propre type, soit **F1-T1** passe avant. À trancher au démarrage de la version,
 pas à mi-parcours.
@@ -1183,7 +1183,7 @@ par lot, une release par lot. Périmètre : visuel + navigation —
 chaque lot livré est cohérent avec le système) ; `MainView` remet ses états
 de détail à `nil` au changement d'onglet — tout nouvel écran suit le motif
 « sheet interne à la vue » de Découvrir ; l'accueil puise dans le God module
-(8389 lignes) → touches minimales, logique pure côté `Models/`.
+(11 902 lignes au 2026-09-10) → touches minimales, logique pure côté `Models/`.
 **Critère de succès** : plus aucun écran ne parle sa langue propre — mesurable :
 zéro valeur de style hors tokens dans les vues migrées, un seul style d'item
 de sidebar, Découvrir inchangé au closage.
@@ -1331,10 +1331,19 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
 > **Méthode, ordre des extractions et état d'avancement : [`REFACTORING.md`](REFACTORING.md).**
 > Ce document-ci ne garde que les tâches ; le comment vit là-bas.
 
-- [ ] **F1** — **Découper le God module.** `StarHubTHViewModel.swift` fait **8389 lignes**
-      (mesuré le 2026-08-28 ; **4278** au relevé initial du 2026-07-30, soit **+96 %** —
-      le module grossit plus vite qu'on ne l'allège) et concentre profils, scan, Nexus,
-      logs, configs et sauvegardes.
+- [ ] **F1** — **Découper le God module.** `StarHubTHViewModel.swift` fait
+      **11 902 lignes** (mesuré le 2026-09-10 ; **4 296** au relevé initial du
+      2026-07-30, soit **+177 % en 41 jours** — le module grossit plus vite qu'on ne
+      l'allège, ~285 lignes/jour sur la dernière semaine) et concentre profils, scan,
+      Nexus, logs, configs et sauvegardes. Il porte **166 `@Published`** sur l'unique
+      `ObservableObject` qu'observe toute la fenêtre, et **73 accès directs à
+      `UserDefaults`**. C'est un sixième des 71 956 lignes Swift du dépôt.
+      ⚠️ **Ordre d'extraction re-dérivé le 2026-09-10** dans
+      [`REFACTORING.md`](REFACTORING.md) §5 : l'ancien avait été écrit contre un VM de
+      4 153 lignes et ne couvrait plus que 7 % du fichier. Le relevé s'y fait désormais
+      sur les déclarations et **jamais sur les `// MARK:`** — elles mentent : la moitié
+      du bloc de tête (`scanMods`, `L(_:)`, `selectGameDir`…) vit sous une étiquette
+      « Couverture française d'un profil ».
       **Méthode imposée par l'environnement** : `swift test` est inutilisable ici, donc un
       refactor n'a pour filet que la **compilation** (`python3 build_app.py`) — ce qui
       exclut tout big-bang. Deux règles :
@@ -1440,7 +1449,7 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
       (`scanMods()` parallèle, verrous du registre), et surface de sécurité : extraction
       d'archives (traversée de chemin, zip-bomb — déjà partiellement couverte), stockage
       de la clé Nexus, gestion du protocole `nxm://`, écritures dans `Mods/`. · **M** ·
-      *à faire après F1-T1 : auditer 8389 lignes de VM monolithique coûte plus cher que
+      *à faire après F1-T1 : auditer 11 902 lignes de VM monolithique coûte plus cher que
       d'auditer des types séparés.*
       ⚠️ **Une partie de l'inventaire existe déjà** :
       [`audit-swift-2026-08-05.md`](audit-swift-2026-08-05.md) — 309 lignes, ~72 findings

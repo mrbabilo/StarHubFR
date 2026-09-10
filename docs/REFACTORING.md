@@ -12,11 +12,42 @@ sauvegardes et bissection. Il est passé de 4390 à 4153 lignes le 2026-08-01, c
 ne change pas sa nature : c'est un module fourre-tout dont **aucune ligne n'est
 testable**.
 
-⚠️ **Mesure du 2026-08-28 : 8389 lignes.** Le gain de 237 lignes d'août 2026 a été
-effacé et doublé — le module a **doublé** depuis le relevé initial de 4278. Chaque axe
-livré depuis (traduction, profils, découverte) y a déposé sa part, ce que **F1-T2** était
-censé empêcher. Le chiffre ci-dessus reste écrit tel qu'il était : il montre que la
-seule extraction menée n'a pas tenu la pente.
+⚠️ **Mesure du 2026-09-10 : 11 902 lignes.** La série, relevée par `git rev-list` sur
+les commits de fin de journée — chaque chiffre est le fichier tel qu'il était, pas une
+reconstitution :
+
+| Date | Lignes | Écart |
+| --- | --- | --- |
+| 2026-07-30 | 4 296 | relevé initial |
+| 2026-08-11 | 4 394 | +98 en 12 jours |
+| 2026-08-28 | 8 389 | **+3 995 en 17 jours** — le chiffre resté écrit ici jusqu'au 2026-09-10 |
+| 2026-09-04 | 10 192 | +1 803 en 7 jours |
+| 2026-09-10 | **11 902** | +1 710 en 6 jours |
+
+*Le « 4278 » consigné jusqu'ici pour le 2026-07-30 n'était pas faux : c'est le fichier
+à `feat(diagnostics): persist per-version error history`, en milieu de journée. Le
+tableau prend la fin de journée pour toutes les dates, d'où 4 296. Écart de 18 lignes,
+sans portée — mais deux conventions de relevé qui se croisent produisent des séries
+incomparables, alors celle-ci est fixée.*
+
+**+177 % en 41 jours**, dont **+3 513 lignes après** que ce document eut constaté le
+problème et posé la règle censée l'empêcher. Le rythme de la dernière semaine est de
+~285 lignes/jour. Le VM pèse **11 902 des 71 956 lignes Swift** du dépôt : un sixième
+de l'application dans un fichier.
+
+Le gain de 237 lignes d'août 2026 a été effacé et quadruplé. Chaque axe livré depuis
+(traduction, profils, découverte, entretien, corbeille, clavier) y a déposé sa part, ce
+que **F1-T2** était censé empêcher. Deux constats à en tirer, plus utiles que le
+chiffre :
+
+- **F1-T2 comme règle écrite ne fonctionne pas.** Elle est posée depuis le 2026-08-01 et
+  a été violée par tous les axes livrés depuis, sans exception. Une règle que six
+  chantiers consécutifs ignorent n'est pas une règle : c'est un vœu. Le dépôt a déjà
+  la réponse à cette classe d'échec — le cliquet (`check_standards.py`), qui échoue à
+  l'augmentation d'un compteur et exige un `--update` visible dans le diff. Y inscrire
+  le nombre de lignes du ViewModel est le seul mécanisme qui rende F1-T2 opposable.
+- **Le dossier `Stores/`, tranché le 2026-08-01 (§9), n'a jamais été créé.** La décision
+  est prise, elle n'attend rien ; elle n'a simplement jamais eu de première occupation.
 
 Le coût est déjà constaté, pas théorique : le 2026-07-31 a produit trois listes de
 chemins d'outils divergentes et quatre nettoyeurs de manifeste incompatibles, faute
@@ -133,27 +164,106 @@ Une extraction se fait dans cet ordre, et chaque étape est un commit :
 **F1-T1 est clos.** ViewModel : 4390 → 4153 lignes. 35 tests neufs sur du code qui
 n'en avait aucun.
 
-### Prochaines extractions, du moins au plus enchevêtré
+### Prochaines extractions — ordre re-dérivé le 2026-09-10
 
-**Un seul ordre fait foi : celui de ce tableau.** Le §6 détaille l'intérieur de son
-cinquième point (le bloc de tête) et n'ouvre pas une file parallèle — l'ordre qu'il
-donne ne s'applique qu'une fois arrivé là.
+> ⚠️ **L'ordre précédent est périmé et a été retiré.** Il avait été écrit contre un
+> ViewModel de 4 153 lignes : ses quatre premiers points totalisaient ~841 lignes, soit
+> **7 % du fichier d'aujourd'hui**. Son point 1 (`consolidateUpdatesByPack` +
+> `pickHighestVersion`, ~78 l.) reste juste mais coûterait plusieurs jours pour 0,7 %.
+> Le tableau ci-dessous le remplace intégralement.
 
+> 🚩 **Ne jamais découper d'après les `// MARK:`.** Elles mentent, et le vérifier a
+> failli fausser cette révision même. Classer les 38 sections par taille désigne
+> « Couverture française d'un profil (B3-T4) » comme la plus grosse, à 1 493 lignes ;
+> en lisant les bornes, cette section contient ~180 lignes de couverture FR, **puis
+> tout le bloc de tête du §6** — `detectDefaultGameDir`, `selectGameDir`, `L(_:)`,
+> `cachedBundle`, `fetchSteamUser`, `checkSmapiVersion`, `scanMods`, `parseModFolder`,
+> `performInitialLoad` — jusqu'à la ligne 3196, sous une étiquette qui parle d'autre
+> chose. Le God module n'a pas rétréci : une `MARK` s'est insérée au-dessus de lui et
+> l'a enfoui. **Tout relevé se fait sur les déclarations, pas sur les étiquettes.**
+
+**Relevé du 2026-09-10** — 34 blocs contigus, bornes lues sur les déclarations de
+membres. La somme fait exactement 11 902 : la partition est exhaustive, aucun bloc
+n'est oublié.
+
+| Lignes | Bornes | Bloc |
+| ---: | --- | --- |
+| 1 284 | 1913–3196 | **Tête n°2** — état divers, Environnement, Localisation, Steam, `performInitialLoad`, `scanMods`/`parseModFolder` |
+| 916 | 4393–5308 | Nexus — vérification des mises à jour, smapi.io, repli Pathoschild, apprentissage d'ids |
+| 906 | 798–1703 | Pré-traduction assistée, lot, glossaire, `saveTranslation`, export/import de lot |
+| 852 | 6481–7332 | Traductions communautaires (A3-T3) — recherche, dépôt, addons, suppléments |
+| 630 | 10743–11372 | Cadrage de la liste (prédicats), `toggleAllMods`, `deleteMod`, `forgetStores` |
+| 588 | 10155–10742 | R2 reprise d'application + `applyProfile` + `applyProfileToFilesystem` |
+| 579 | 3562–4140 | Bascule des mods, install SMAPI, états de focus, `launchGame`, `log` |
+| 574 | 1–574 | **Tête n°1** — état publié, fiche mod Nexus, phases de lancement, `mods`, `healthIssues` |
+| 568 | 9296–9863 | Récupération d'un fichier isolé (B4-T4), mods manquants, favoris/blacklist et configs par profil |
+| 491 | 5475–5965 | Nexus — ancrage, snooze, catégories, identifiants, liens, métadonnées |
+| 487 | 5966–6452 | Nexus — archives, file de téléchargement, `nxm://`, erreurs d'installation |
+| 387 | 8578–8964 | Sauvegardes — CRUD, timeline, notes, backups globaux |
+| 384 | 11509–11892 | Entretien (X25) |
+| 365 | 3197–3561 | Poids du parc, index de dépendances, `parseSMAPILog`, outils d'archive |
+| 324 | 7333–7656 | Découverte (axe G) |
+| 323 | 8255–8577 | Registre des mods installés (version + date) |
+| 265 | 7951–8215 | Delta de clés de mise à jour (C2-T4) + renommage de clés |
+| 252 | 4141–4392 | Journal SMAPI — lecture, historique d'erreurs par mod, diagnostics |
+| 223 | 575–797 | Couverture FR d'un mod |
+| 209 | 1704–1912 | Couverture FR d'un profil (B3-T4) |
+| 193 | 9962–10154 | Configs par profil — capture et restauration (B3-T5) |
+| 188 | 8965–9152 | Hub de traduction thaï |
+| 166 | 5309–5474 | Renommer le dossier d'un mod (X60) |
+| 153 | 7671–7823 | Mise à jour de l'app (release GitHub) |
+| 143 | 9153–9295 | Profils — chargement, CRUD, profil par défaut |
+| 136 | 11373–11508 | Corbeille des mods supprimés (X103-B) |
+| 127 | 7824–7950 | Bilan d'installation, file de dépôt, navigation demandée |
+| 39 | 8216–8254 | Blacklist, configs gérées, horodatages (persistance) |
+| 38 | 9924–9961 | Bissection |
+| 35 | 9889–9923 | Incompatibilités entre mods (A5-T2) |
+| 28 | 6453–6480 | Persistance des surcharges |
+| 25 | 9864–9888 | Notes de mod (B3-T6) |
+| 14 | 7657–7670 | Favoris (persistance) |
+| 10 | 11893–11902 | `L10nResolver` (hors classe) |
+
+**Regroupés par domaine**, ce que le découpage en blocs ne montre pas — un domaine est
+éparpillé, c'est précisément le symptôme :
+
+| Domaine | Lignes | Blocs |
+| --- | ---: | --- |
+| **Traduction FR** | ~2 190 | 798–1703, 6481–7332, 575–797, 1704–1912 |
+| **Nexus** (hors Découverte) | ~2 000 | 4393–5308, 5475–5965, 5966–6452, 6453–6480, + la fiche mod de la tête n°1 |
+| **Bloc de tête** (Environnement, Localisation, Scan, état) | ~1 858 | 1–574, 1913–3196 |
+| **Profils** | ~1 490 | 10155–10742, 9962–10154, 9153–9295, une part de 9296–9863 |
+| **Liste & parc** | ~1 350 | 10743–11372, 3197–3561, 8255–8577 |
+| **Sauvegardes** | ~560 | 8578–8964, une part de 9296–9863 |
+
+**Ordre retenu.** Il ne suit pas la taille : une extraction se juge à son rapport
+logique pure / enchevêtrement, pas à son volume (§4.1).
+
+> 🔎 **Critère de choix, éprouvé le 2026-09-10 : ce sont les *entrées* qui décident,
+> pas la taille ni la pureté apparente.** Une cible est extractible quand ce dont elle
+> a besoin lui arrive **en valeurs** ; elle ne l'est pas quand elle va le chercher sur
+> `self`, même si son corps est du calcul pur. C'est ce contrôle qui a fait inverser
+> les deux premiers points ci-dessous — le faire avant d'écrire coûte un `grep`, le
+> découvrir après coûte l'extraction.
 
 | Ordre | Cible | Pourquoi |
 | --- | --- | --- |
-| 1 | `consolidateUpdatesByPack` + `pickHighestVersion` (~78 l.) | Transformations pures ; leur type est déjà en Core. Elles décident quelles mises à jour tu vois — un mauvais regroupement en fait disparaître une. |
-| 2 | Registre des mods installés (~298 l.) | Version et date d'installation : de la logique de rapprochement, testable. |
-| 3 | Profils (~115 l.) | Petit, mais la bissection s'appuie sur la même machinerie (dépendance croisée signalée dans `ROADMAP.md`) — extraire l'état avant les opérations. |
-| 4 | Sauvegardes (~350 l., 4 sections éparpillées) | `SaveManager` est déjà en Core : le gain est surtout de lisibilité. |
-| 5 | Le bloc de tête (1934 l.) | Le God module proprement dit — décomposé au §6. |
+| 1 | **Registre des mods installés** (8255–8577, 323 l.) | **Ses fonctions cœur reçoivent déjà leurs entrées en paramètres** : `syncInstalledModRegistry(scannedMods:modsFolderWasReadable:)`, `anchorModsUpdatedOnDisk(_:previousVersions:excluding:now:)` — l'horloge y est même déjà injectée (déviation consignée au §6). `loadInstalledModRegistryFromDisk()` est `static` et ne touche que `UserDefaults`. Ses seules sorties vers le VM sont `log(…)` et l'alerte : elles deviennent un **rapport rendu**, ce qui est le geste habituel. Rapprochement version/date testable, `NSLock` déjà en place, et **trois mécanismes de sûreté que personne ne vérifie** (backup avant écriture, restauration sur corruption, reconstruction depuis le disque — les trois requis, cf. Traps). Premier candidat au protocole `PreferenceStoring` + bouchon (§3) : le coût est **prévu ici**, pas contrebandé. `allInstalledMods()` a 13 appelants ailleurs — il **reste** au VM comme fournisseur, il n'entre pas dans le store. |
+| 2 | **Prédicats de cadrage de la liste** (10743–10995, 253 l. sur les 630 du bloc) | `matchesSearch/Category/Config/Favorites/Blacklisted/Translation`, `mods(matching:)`, `scopedMods`. Ils prennent déjà `ModListFilters` — type **déjà en Core avec 11 tests** (F1-T2, 2026-09-07) — et c'est le chemin de filtrage mis en cause par **F3**. ⚠️ **Mais ils ne sont pas extractibles tels quels**, contrôle du 2026-09-10 : ils vont chercher `anomaly(for:)` (3465), `category(for:)` et `inferredTagKey(for:)` (5697, 5708, mémoïsés par `categoryCache`), `isBlacklisted` (9565), `frenchCoverage(for:)` (667), `staleTranslationMods` — **cinq dépendances dans quatre autres domaines**. Les extraire suppose un objet de paramètres portant ces verdicts déjà résolus. Faisable et payant, mais ce n'est pas la petite extraction d'échauffement qu'on croyait : à prendre une fois la recette éprouvée. `toggleAllMods` et `deleteMod` (le reste du bloc) **ne suivent pas** : ils écrivent sur le disque. |
+| 3 | **Couverture FR** (575–797 + 1704–1912, ~430 l.) | Deux blocs séparés par 900 lignes d'autre chose, même domaine. Rend **F6-T1** (course à l'annulation dans `recomputeFrenchCoverage`) testable — un item ROADMAP ouvert, aujourd'hui sans observable parce qu'invérifiable. |
+| 4 | **Le bloc de tête** (1–574 + 1913–3196, ~1 858 l.) | Le God module proprement dit — décomposé au §6, dont **les coordonnées sont périmées** (voir l'encadré en tête de ce §6). |
+
+**Non classés, et pourquoi** : Nexus (~2 000 l.) et Traduction FR (~2 190 l.) sont les
+deux plus gros domaines, mais ce sont aussi les deux plus enchevêtrés avec le réseau et
+le disque — les ouvrir en premier ferait porter le premier protocole *et* le premier
+gros déplacement par le même commit. Ils viennent après que la recette a été éprouvée
+sur les points 1 à 3.
 
 **Deux chantiers transverses, repris de leurs phases 8 et 9** — absents de la
 première version de ce plan :
 
 | Chantier | Quand | Pourquoi ici |
 | --- | --- | --- |
-| **Découper les vues** (leur P8, cible ~150 lignes) | **Au contact** : quand on extrait un domaine, on découpe la vue qui le consomme, dans le même mouvement | `ModListView` fait 1596 lignes, `MainView` 1125, `SavesView` 794. Une campagne dédiée serait un big-bang sans filet ; couplé à l'extraction, le découpage a une raison d'être et un périmètre |
+| **Découper les vues** (leur P8, cible ~150 lignes) | **Au contact** : quand on extrait un domaine, on découpe la vue qui le consomme, dans le même mouvement | Au 2026-09-10 : `ModListView` **2340** lignes, `ModDetailView` **2145**, `MainView` **1536**, `SavesView` **1162**, `LogsView` 746 — la même pente que le ViewModel (`ModDetailView` a triplé depuis le relevé de 683). Une campagne dédiée serait un big-bang sans filet ; couplé à l'extraction, le découpage a une raison d'être et un périmètre |
 | **Verrouiller les règles** (leur P9) | **Dès que le premier store existe** | Leur `check_standards.py` empêche la dette de revenir. L'équivalent ici est bon marché : un contrôle dans `build_app.py` refusant qu'un fichier de `Models/` importe SwiftUI — même forme que le contrôle de parité des clés qui existe déjà, et qui sort en `SystemExit(1)` |
 
 **Deux dettes de couche, à traiter au contact plutôt qu'en campagne** — trouvées en
@@ -161,7 +271,7 @@ passant leurs correctifs en revue (§8), et sans urgence propre :
 
 | Dette | Déclencheur |
 | --- | --- |
-| `NSOpenPanel` appelé depuis le ViewModel (`:477`, `:3158`), ce qui rend ces fonctions intestables | **Le premier protocole à écrire** (`FilePicking`), au moment où l'extraction touche l'installation d'un mod ou le choix du dossier de jeu — avec son bouchon dans le même commit |
+| `NSOpenPanel` appelé depuis le ViewModel (`:2321` dans `selectGameDir`, `:8728` dans `selectCustomAvatar` — coordonnées du 2026-09-10), ce qui rend ces fonctions intestables | **Le premier protocole à écrire** (`FilePicking`), au moment où l'extraction touche l'installation d'un mod ou le choix du dossier de jeu — avec son bouchon dans le même commit |
 | AppKit importé hors des vues par `ContrastChecker`, `SaveManager`, `DescriptionBlockParser` et le ViewModel — les trois premiers étant **déjà dans Core** | À traiter quand on modifie l'un d'eux, pas avant : ils compilent, la gêne est théorique tant qu'on n'y touche pas |
 
 **Règle permanente (F1-T2)** : une fonctionnalité neuve ne rentre plus dans le
@@ -169,10 +279,26 @@ ViewModel. Elle naît dans son propre type, que le ViewModel se contente d'appel
 Le plan du hub de traduction la respecte déjà.
 
 
-## 6. Le bloc de tête — 1934 lignes, 70 propriétés publiées, 36 fonctions
+## 6. Le bloc de tête — ~1 858 lignes en **deux morceaux**, 166 propriétés publiées
 
-C'est le God module lui-même : tout ce qui précède la première `MARK`. Le décomposer
-est le vrai travail ; le reste n'en est que la préparation.
+> ⚠️ **Coordonnées corrigées le 2026-09-10.** Ce § disait « 1934 lignes, 70 propriétés
+> publiées, 36 fonctions », et « tout ce qui précède la première `MARK` ». Les trois
+> chiffres et la définition sont faux aujourd'hui :
+> - le bloc de tête n'est plus contigu. Il occupe **1–574** *et* **1913–3196**,
+>   séparés par 1 338 lignes de traduction (pré-traduction, glossaire, couverture) ;
+> - « ce qui précède la première `MARK` » ne désigne plus que 797 lignes, parce
+>   qu'une `MARK` s'est insérée au milieu du bloc — la moitié du God module vit
+>   sous l'étiquette « Couverture française d'un profil (B3-T4) » (voir l'encadré
+>   du §5) ;
+> - le fichier porte **166 `@Published`** (et non 70) et **73 accès à
+>   `UserDefaults`** (et non 33 — voir §9, P3).
+>
+> Ce qui suit — la table des domaines, le tri des `@Published`, la cible, l'ordre
+> interne, les quatre conditions — **reste valable** : c'est du raisonnement, pas des
+> coordonnées. Seuls les emplacements avaient bougé.
+
+C'est le God module lui-même. Le décomposer est le vrai travail ; le reste n'en est
+que la préparation.
 
 ### Domaines qu'on y distingue
 
@@ -185,7 +311,7 @@ est le vrai travail ; le reste n'en est que la préparation.
 | **Bascule des mods** | `toggleMod`, `processNextToggleIfNeeded`, `performToggle` | Manipule le disque et sérialise les opérations. À extraire **après** le scan, dont il dépend |
 | **Détail de mod** | `loadModDetail`, `fetchModDetailRemote`, `markDetailNotLoading` | Réseau Nexus ; rejoint le domaine Nexus déjà identifié |
 
-### Les 70 propriétés publiées sont le vrai sujet
+### Les 166 propriétés publiées sont le vrai sujet
 
 Elles sont de deux natures que le fichier ne distingue pas :
 
@@ -289,7 +415,7 @@ Ce qui nous concernait :
 | --- | --- | --- |
 | Le bloc de mises à jour SMAPI ne détectait jamais rien (une ligne vide le refermait) | reproduit sur un journal de test, en cassant volontairement la correction | **Présent à l'identique. Corrigé** le 2026-08-01 (`54113eb`) |
 | `build_app.py` imprimait `[ERROR]` puis sortait en **0** sur échec de compilation ; leur `run_tests.py` ignorait le code de sortie du binaire de test | épreuve empirique : parité de clés cassée volontairement, puis test délibérément faux | **Sain ici.** `build_app.py` → code 1 ; `run_tests.sh` (`set -euo pipefail` + `swift test`) → code 1 |
-| `NSOpenPanel` dans le ViewModel rend ses fonctions intestables (leur 3.4) | `grep` | **Présent** : deux occurrences (`StarHubTHViewModel.swift:477` et `:3158`). Ce sera le premier besoin de protocole (`FilePicking`) — voir §3 |
+| `NSOpenPanel` dans le ViewModel rend ses fonctions intestables (leur 3.4) | `grep` | **Présent** : deux occurrences (`StarHubTHViewModel.swift:2321` et `:8728`, relevées le 2026-09-10). Ce sera le premier besoin de protocole (`FilePicking`) — voir §3 |
 | AppKit confiné à un seul fichier non-vue (leur B.2) | `grep` sur les imports | **Non respecté** : `ContrastChecker`, `SaveManager`, `DescriptionBlockParser` et le ViewModel importent Cocoa/AppKit. Les trois premiers sont **déjà dans Core**, où ils compilent — mais c'est une violation de couche à traiter quand on y touchera |
 | `bump_version.py` écrivait `Info.plist` avant de valider le CHANGELOG, laissant un état incohérent | lecture de notre flux | **Sans objet** : nous n'avons pas ce script. `release.py` se contente de **lire** `Info.plist`. Le risque n'existe que si un humain bumpe la version sans toucher au CHANGELOG — l'ordre inverse (CHANGELOG d'abord) reste la bonne pratique |
 | `CFBundleVersion` figé à 1 depuis la v1.0.0 | lecture d'`Info.plist` | **Sans objet** : incrémenté à chaque release (8 au 2026-08-01) |
@@ -318,12 +444,12 @@ coordonnées et leur outillage ne se transposent pas (§3).
 | **P0 Garde-fous** | **Oui, et déjà fait pour l'essentiel** | Leur 0.3 — « extraire la logique pure en fonctions libres, la tester, *puis* refactorer autour » — est exactement la méthode du §4, appliquée trois fois le 2026-08-01. **Manquent** : un tag `pre-refactor-baseline`, et le compteur d'avertissements de concurrence (`-Xfrontend -warn-concurrency` dans `build_app.py`) qui sert de jalon à leur P5 |
 | **P1 Sortir les types des fichiers fourre-tout** | Oui, mécanique | Fait pour `LogEntry`, `ThaiTranslationMod`, `ModUpdateInfo`. **Mais leur table `current → target` vise une arborescence que nous n'avons pas** — voir la question ouverte ci-dessous |
 | **P2 Corriger les violations de couche** | Oui, partiellement fait | `LogLevel.color` et les méthodes de `ThaiTranslationMod` prenant le ViewModel : faits. **Restent** : `Mod.Kind` (qui supprimerait les `flatMap { isGroup ? children : [self] }` réécrits trois fois), les identifiants typés (`Mod.ID` / `NexusID` / `FolderName`), et le `uniqueId` vide des groupes (**F4**) |
-| **P3 Protocoles et injection** | Oui — **plus urgent chez nous** | Ils comptaient 26 accès directs à `UserDefaults` ; nous en avons **33** dans le seul ViewModel. `NSOpenPanel` y est appelé deux fois. Pas besoin de leur `DependencyContainer` : un protocole ici, c'est un fichier de plus dans `Package.swift` |
+| **P3 Protocoles et injection** | Oui — **plus urgent chez nous**, et l'écart se creuse | Ils comptaient 26 accès directs à `UserDefaults` ; nous en avions 33 dans le seul ViewModel au 2026-08-01, **73 au 2026-09-10**. `NSOpenPanel` y est toujours appelé deux fois (`:2321`, `:8728`). Pas besoin de leur `DependencyContainer` : un protocole ici, c'est un fichier de plus dans `Package.swift` |
 | **P4 Découper le ViewModel** | Oui — c'est le §6 | Leur ordre vaut, leurs numéros de ligne non |
 | **P5 Concurrence structurée** | **Douteux — et angle mort** | Ni `build_app.py` ni `Package.swift` ne passent `-swift-version 6` ou `-strict-concurrency` : **nous ne savons pas combien de problèmes existent**, faute de les avoir jamais fait compter (leur 0.4 sert à ça). À ne pas ouvrir avant que les domaines soient séparés — `@MainActor` sur un fourre-tout de 4000 lignes en révélerait des dizaines d'un coup, sans moyen de les isoler. **Première étape, peu coûteuse : mesurer** en ajoutant l'avertissement, sans rien corriger |
 | **P6 Balayage de nommage** | **Non** | Des centaines d'appels touchés pour un gain cosmétique, sans revue automatisée. Écarté (§7) |
 | **P7 Erreurs typées** | Oui | **Swift 6.3.3** ici : `throws(E)` est disponible. Ce qui les a mordus (une CI sur Xcode 15.4) ne nous concerne pas |
-| **P8 Découpage des vues** | Oui — **et ça manquait à ce plan** | Ils visent ~150 lignes par vue. Chez nous : `ModListView` **1596**, `MainView` **1125**, `SavesView` 794, `LogsView` 684, `ModDetailView` 683. À traiter au contact, en même temps que le domaine correspondant |
+| **P8 Découpage des vues** | Oui — **et ça manquait à ce plan** | Ils visent ~150 lignes par vue. Chez nous, au 2026-09-10 : `ModListView` **2340**, `ModDetailView` **2145**, `MainView` **1536**, `SavesView` **1162**, `LogsView` 746. À traiter au contact, en même temps que le domaine correspondant |
 | **P9 Verrouiller** | Oui — **et ça manquait aussi** | Leur `check_standards.py` empêche la dette de revenir. L'équivalent ici est bon marché : un contrôle dans `build_app.py` refusant qu'un fichier de `Models/` importe SwiftUI, sur le modèle du contrôle de parité des clés qui existe déjà |
 
 ### Arborescence — tranché le 2026-08-01 : un dossier `Stores/`
