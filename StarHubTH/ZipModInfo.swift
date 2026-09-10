@@ -122,7 +122,7 @@ struct ModManifest {
         self.author = fields.author ?? "Unknown"
         self.version = fields.version ?? "Unknown"
         self.description = fields.description ?? ""
-        self.updateCautionMessage = fields.updateCautionMessage
+        self.updateCautionMessage = ManifestFields.updateCautionMessage(in: dict)
         self.nexusModId = fields.nexus?.id ?? ""
         self.nexusUrl = fields.nexus?.url ?? ""
         self.dependencies = fields.dependencies

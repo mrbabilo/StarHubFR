@@ -92,14 +92,24 @@ struct ManifestFieldsTests {
         #expect(fields.updateKeys == ["GitHub:foo/bar"])
     }
 
-    // MARK: - Le seul champ qui porte une politique
+    // MARK: - Le champ qu'on ne lit qu'à la demande
 
     @Test func aBlankCautionMessageAnnouncesNothing() {
         // Extension Stardrop : un message d'espaces n'alerte pas plus qu'un
         // champ absent.
-        #expect(ManifestFields(manifest: ["UpdateCautionMessage": "   "]).updateCautionMessage == nil)
-        #expect(ManifestFields(manifest: [:]).updateCautionMessage == nil)
-        #expect(ManifestFields(manifest: ["UpdateCautionMessage": "Casse les sauvegardes"])
-                    .updateCautionMessage == "Casse les sauvegardes")
+        #expect(ManifestFields.updateCautionMessage(in: ["UpdateCautionMessage": "   "]) == nil)
+        #expect(ManifestFields.updateCautionMessage(in: [:]) == nil)
+        #expect(ManifestFields.updateCautionMessage(in: ["updatecautionmessage": "Casse les sauvegardes"])
+                    == "Casse les sauvegardes")
+    }
+
+    @Test func theCautionMessageStaysOutOfTheScannedFields() {
+        // Le scan construit un `ManifestFields` par manifeste du parc et n'a
+        // rien à faire de ce champ : le lire pour tout le monde coûtait 1,6 ms
+        // des 17,5 ms de lecture d'un scan complet, pour un champ qu'aucun des
+        // 1 108 manifestes ne porte. Ce test tombera si quelqu'un le remet
+        // dans l'initialiseur.
+        let mirror = Mirror(reflecting: ManifestFields(manifest: ["UpdateCautionMessage": "x"]))
+        #expect(!mirror.children.contains { $0.label == "updateCautionMessage" })
     }
 }

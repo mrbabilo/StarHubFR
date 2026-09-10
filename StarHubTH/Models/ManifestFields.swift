@@ -25,9 +25,6 @@ public struct ManifestFields {
     /// `nil` quand aucune `UpdateKey` ne porte d'identifiant Nexus valide —
     /// l'appelant choisit sa propre sentinelle plutôt qu'un id vide.
     public let nexus: (id: String, url: String)?
-    /// `UpdateCautionMessage` — extension **Stardrop** ignorée par SMAPI.
-    /// Seul champ portant une politique : trim, et blanc vaut absent.
-    public let updateCautionMessage: String?
 
     public init(manifest: [String: Any]) {
         name = manifest.caseInsensitiveValue(forKey: "Name") as? String
@@ -41,12 +38,25 @@ public struct ManifestFields {
         dependencies = ModDependencyParser.parse(manifest: manifest)
         updateKeys = manifest.caseInsensitiveValue(forKey: "UpdateKeys") as? [String] ?? []
         nexus = ModManifest.parseNexusId(fromUpdateKeys: updateKeys)
+    }
 
-        if let caution = manifest.caseInsensitiveValue(forKey: "UpdateCautionMessage") as? String,
-           !caution.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            updateCautionMessage = caution
-        } else {
-            updateCautionMessage = nil
+    /// `UpdateCautionMessage` — extension **Stardrop** du manifeste, ignorée
+    /// par SMAPI : l'auteur y annonce ce que sa mise à jour casse. Trim, et un
+    /// message blanc vaut absent (Stardrop : `IsNullOrEmpty`) — un message
+    /// d'espaces n'alerte pas plus qu'un champ vide.
+    ///
+    /// **Hors de l'initialiseur à dessein** : seule la fiche d'un mod à
+    /// installer le lit, alors que le scan construit un `ManifestFields` par
+    /// manifeste du parc. Mesuré le 2026-09-10 : le lire pour tout le monde
+    /// coûtait 1,6 ms des 17,5 ms de lecture d'un scan complet (1 108
+    /// manifestes) — pour un champ qu'**aucun** d'entre eux ne porte. Le
+    /// chemin lent est celui d'un champ absent : `caseInsensitiveValue`
+    /// balaie alors toutes les clés en les minusculant.
+    public static func updateCautionMessage(in manifest: [String: Any]) -> String? {
+        guard let caution = manifest.caseInsensitiveValue(forKey: "UpdateCautionMessage") as? String,
+              !caution.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return nil
         }
+        return caution
     }
 }
