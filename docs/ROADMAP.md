@@ -1628,24 +1628,32 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
         cas, pas seulement le cas moyen.
         ▸ **(P2)** SPM à deux cibles et **(P3)** cache partagé restent sans
         objet tant que P1 tient le critère.
-- [ ] **F5** — **StarHubFR et StarHubTH écrivent dans les mêmes données.** Le fork a changé
-      le nom du produit, pas son identité : le bundle reste `com.appleboiy.StarHubTH` et
-      les fichiers vivent sous `~/Library/Application Support/StarHubTH/`. Deux
-      installations sur la même machine partagent donc **31 clés de préférences**,
-      l'entrée de Trousseau qui porte la clé Nexus, et l'enregistrement du protocole
-      `nxm://` — qui revient à la dernière application enregistrée. Mesuré le 2026-08-26,
-      revérifié dans le code le 2026-08-28 : rien n'a bougé.
-      *Provenance : `docs/superpowers/plans/2026-08-26-migration-identite-starhubfr.md`
-      (local, gitignoré). Les faits qui décident sont recopiés ci-dessus ; le plan ne garde
-      que le détail des 41 étapes.*
-  - [ ] **F5-T1** — *(phase 1, livrable seule)* Déplacer les données de fichiers vers
-        `~/Library/Application Support/StarHubFR/` derrière un **accesseur unique** qui
-        migre à la première lecture — **pas au lancement** : il n'existe aucun point de
-        lancement assez tôt pour garantir que rien n'a encore lu l'ancien chemin. · **M**
-  - [ ] **F5-T2** — *(phase 2, livrable seule)* Changer l'identifiant de bundle, ce qui
-        sépare préférences, Trousseau et `nxm://`, puis recopier l'ancien domaine vers le
-        nouveau. Seule, T2 laisse les fichiers en commun ; seule, T1 laisse les préférences
-        et le Trousseau en commun. · **M**
+- [x] **F5-T1** — ✅ **livré le 2026-09-10** (commits `8724fb9`..`4deb794`).
+      Les données de fichiers vivent sous `~/Library/Application Support/StarHubFR/`
+      derrière l'accesseur unique `AppSupport` — quatorze sites branchés, sept
+      stores de plus que les six prévus par le plan. Migration **reprenable**
+      (entrée par entrée, ce qui est déjà arrivé n'est jamais écrasé),
+      déclenchée par un `static let` : aucun point de lancement n'est assez
+      tôt, le ViewModel lit deux stores dans ses initialisateurs de
+      propriétés. `Backups/` reste derrière, délibérément. Validée sur
+      machine : dossier déplacé au premier accès, `StarHubTH/` ne garde que
+      `Backups/`, le registre ne porte plus aucun chemin absolu.
+- [x] **F5-T2** — ✅ **livré le 2026-09-10** (`8c54ba6`, `07ca257`, `5c5ea4e`).
+      Identifiant `com.mrbabilo.StarHubFR` — et le `CFBundleURLName` du schéma
+      `nxm`, qui ne change pas lui-même. Les 45 clés possédées (re-mesurées sur
+      le domaine réel du 2026-09-10 : le plan en comptait 31, neuf sont nées
+      depuis) sont recopiées au premier lancement, **jamais écrasées** ; le
+      Trousseau passe au nouveau service avec lecture de secours unique sur
+      l'ancien, qui reste en place pour l'application d'origine. Vérification
+      machine restante : `defaults read com.mrbabilo.StarHubFR gameDir`, la clé
+      Nexus reconnue, et un « Mod Manager Download » Nexus qui ouvre StarHubFR.
+- [ ] **X105** — **Déplacer `Backups/` sous `StarHubFR/`.** Laissé de côté par
+      la migration du 2026-09-10 : son index porte **1 309 chemins absolus**
+      (`Backups/ModInstalls/install_metadata.json`, 617 Ko, 1 468 sauvegardes
+      sur 145 dossiers) et l'application d'origine n'y écrit jamais — aucun
+      gain de coexistence, tout le risque. À reprendre avec
+      `AppSupportMigration.rewrite`, qui sait déjà le faire, et une épreuve
+      sur une copie du fichier réel avant d'y toucher. · **S**
 - [ ] **F6** — **Constats laissés ouverts par l'audit des 2026-09-02/03.** *(audit
       fichier-par-fichier : `StarHubTHApp.swift` et tranches ①-④ du ViewModel —
       aucun bug bloquant, deux corrections livrées au commit `7e0896a`. Les items
@@ -1778,8 +1786,9 @@ même journal). Vérifiés un par un : tous encore exacts, aucun ne se manifeste
 
 Par lot, dans l'ordre de ce que l'axe « perte de données » recommande de faire
 ensuite : **F2** (audit sécurité et perf — c'est lui qui trouverait les X à
-venir), **F5** (identité de bundle partagée avec l'amont : 31 clés de
-préférences et le Trousseau en commun), puis ~~**C4**~~ *(clos le
+venir), ~~**F5**~~ *(clos le 2026-09-10 : dossier de données, domaine de
+préférences et Trousseau propres au fork — le plan du 2026-08-26 exécuté avec
+re-mesures ; reste X105 pour `Backups/`)*, puis ~~**C4**~~ *(clos le
 2026-09-09 : T1 et T7 livrés, T8 réfuté et coché sans code — §8.2)*,
 ~~**H**~~ *(clos le 2026-09-09)*, **A** (A1-T1/T2, A2-T5, A5-T4/T5), **D1/D2**
 (Profiler et télémétrie), **C3/C5/C6**, **I** (accessibilité — **débloqué**, H est clos),
@@ -1797,8 +1806,7 @@ entrées — 537 horodatages d'activation, 188 identifiants Nexus, 10 configs de
 profil, tous pointant sur un dossier existant. Ne pas rouvrir)*,
 `X103` (suppression des mods : corbeille livrée en
 X103-B ; reste la rétention des archives Nexus, §8.1 option C), `D3-T1`
-(un backend ou non), `F5` (quand casser la cohabitation avec l'amont),
-`F1-T2` (règle permanente, pas une tâche).
+(un backend ou non), `F1-T2` (règle permanente, pas une tâche).
 
 
 L'ordre **A4 → C → B → A → D → E** se justifie ainsi :

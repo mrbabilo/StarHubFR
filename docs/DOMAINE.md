@@ -31,6 +31,21 @@ Deux conséquences structurantes :
   « catalogue de traductions thaï » subsiste (`ThaiTranslationTable.swift`),
   neutralisée derrière `showThaiTranslationHub`, faux par défaut
   ([MainView.swift:13](../StarHubTH/Views/MainView.swift#L13)).
+- **Deux applications peuvent coexister — elles se marchaient dessus.**
+  StarHubFR est un fork de StarHubTH (AppleBoiy), dont il a longtemps gardé
+  l'identité : même `CFBundleIdentifier`, même dossier Application Support.
+  Installées côte à côte, les deux écrivaient alors au même endroit — 45 clés
+  de préférences (re-mesuré le 2026-09-10 ; le plan de 2026-08-26 en comptait
+  31), l'entrée du Trousseau qui porte la clé Nexus, et le schéma `nxm://`,
+  qui revient à la dernière application enregistrée. Depuis le 2026-09-10
+  (F5) : les données vivent sous `~/Library/Application Support/StarHubFR/`
+  (l'accesseur unique est `AppSupport`, la migration de dossier est
+  reprenable), l'identifiant est `com.mrbabilo.StarHubFR`, et l'ancien
+  domaine comme l'ancien service du Trousseau restent lus **en secours** —
+  l'application d'origine, si elle est installée, garde les siens. Deux
+  exceptions délibérées : `Backups/` vit toujours sous
+  `StarHubTH/` (son index porte 1 309 chemins absolus — **X105**), et le
+  schéma `nxm` lui-même ne bouge pas (c'est lui que Nexus appelle).
 
 ## 2. Les quatre mots qui se confondent
 
