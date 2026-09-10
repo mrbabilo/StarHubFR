@@ -5047,27 +5047,19 @@ for mod in mods {
 
     /// The effective Nexus mod id for a mod: user override first, then the id
     /// declared in the mod's manifest `UpdateKeys`. Empty when neither is set.
+    /// Façade provisoire (REFACTORING §6, cond. 1) — la règle vit dans
+    /// `NexusModIdentity` (Core, testé).
     func effectiveNexusModId(for mod: ModItem) -> String {
-        if let custom = nexusCustomModIds[mod.folderName], !custom.isEmpty {
-            return custom
-        }
-        return mod.nexusModId
+        NexusModIdentity.effectiveId(for: mod, customIds: nexusCustomModIds)
     }
 
     /// Like `effectiveNexusModId(for:)`, but for a pack header with no own id
     /// falls back to the first child that has one — mirroring `nexusLink(for:)`
     /// and `modExtra(for:)`. The detail pane fetches against this id so a pack
     /// shows the same mod its header links to, instead of no Nexus content.
+    /// Façade provisoire (§6, cond. 1) — règle dans `NexusModIdentity`.
     func resolvedNexusModId(for mod: ModItem) -> String {
-        let id = effectiveNexusModId(for: mod)
-        if !id.isEmpty { return id }
-        if mod.isGroup, let children = mod.children {
-            for c in children {
-                let cid = resolvedNexusModId(for: c)
-                if !cid.isEmpty { return cid }
-            }
-        }
-        return ""
+        NexusModIdentity.resolvedId(for: mod, customIds: nexusCustomModIds)
     }
 
     /// The Nexus Mods URL for a mod derived from its effective mod id, or the
@@ -5075,38 +5067,18 @@ for mod in mods {
     /// agree, but the manifest URL is the original source of truth). For pack
     /// headers with no own link, falls back to the first child that has one.
     /// Empty when neither the mod nor any child has a Nexus link.
+    /// Façade provisoire (§6, cond. 1) — règle dans `NexusModIdentity`.
     func nexusLink(for mod: ModItem) -> String {
-        let id = effectiveNexusModId(for: mod)
-        if !id.isEmpty {
-            return "https://www.nexusmods.com/stardewvalley/mods/\(id)"
-        }
-        if !mod.nexusUrl.isEmpty {
-            return mod.nexusUrl
-        }
-        if mod.isGroup, let children = mod.children {
-            for c in children {
-                let link = nexusLink(for: c)
-                if !link.isEmpty { return link }
-            }
-        }
-        return ""
+        NexusModIdentity.link(for: mod, customIds: nexusCustomModIds)
     }
 
     /// The cached Nexus summary + picture URL for a mod, or `nil` when none
     /// has been fetched yet (no check has run, or the mod has no effective
     /// Nexus id). For pack headers with no own data, falls back to the first
     /// child that has some — same convention as `nexusLink(for:)`.
+    /// Façade provisoire (§6, cond. 1) — règle dans `NexusModIdentity`.
     func modExtra(for mod: ModItem) -> NexusUpdateChecker.NexusModExtra? {
-        let id = effectiveNexusModId(for: mod)
-        if !id.isEmpty, let extra = nexusModExtras[id], !extra.summary.isEmpty || !extra.pictureUrl.isEmpty {
-            return extra
-        }
-        if mod.isGroup, let children = mod.children {
-            for c in children {
-                if let extra = modExtra(for: c) { return extra }
-            }
-        }
-        return nil
+        NexusModIdentity.extra(for: mod, customIds: nexusCustomModIds, extras: nexusModExtras)
     }
 
     /// Finds the installed mod corresponding to a Nexus update. Searches both

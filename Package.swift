@@ -60,6 +60,7 @@ let package = Package(
                 "Models/ModDetailPager.swift",
                 "Models/ModDetailCache.swift",
                 "Models/ModDetailState.swift",
+                "Models/NexusModIdentity.swift",
                 "Models/UpdateCheckPolicy.swift",
                 "Models/AppReleaseCheck.swift",
                 "Models/InstallReport.swift",
@@ -236,6 +237,11 @@ let package = Package(
             name: "ModDetailStateTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ModDetailStateTests"
+        ),
+        .testTarget(
+            name: "NexusModIdentityTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/NexusModIdentityTests"
         ),
         .testTarget(
             name: "DisabledModsMigrationTests",
