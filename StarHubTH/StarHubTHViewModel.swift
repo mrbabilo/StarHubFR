@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 import Cocoa
 import SwiftUI
 
@@ -12,16 +13,23 @@ class StarHubTHViewModel: ObservableObject {
     @Published var saveSortOption: SaveSortOption = .lastPlayed
     @Published var saveFilterTag: String = ""
 
-    // Does NOT auto-refresh on set — every call site that changes `gameDir`
-    // (init, selectGameDir) calls `refresh()` itself, exactly once. This
-    // used to auto-refresh here *and* have callers refresh again right
-    // after, firing two overlapping background scans that both read/write
-    // `gameDir` and `self.mods` with no synchronization between them.
-    @Published var gameDir: String = "" {
-        didSet {
-            UserDefaults.standard.set(gameDir, forKey: UDKey.gameDir)
-        }
-    }
+    // MARK: Environnement — le store du domaine (REFACTORING §6), et ses
+    // façades provisoires (condition 1) : les vues lisent encore
+    // `vm.gameDir` etc. La reprise des vues au contact (P8) fera observer
+    // le store directement et supprimera ces façades avec le relais
+    // `objectWillChange` posé dans `init()`.
+    //
+    // `gameDir` ne s'y rafraîchit jamais tout seul : chaque appelant qui le
+    // change (init, selectGameDir) relance `refresh()` exactement une fois —
+    // l'auto-refresh historique lançait deux scans concurrents qui
+    // écrivaient `gameDir` et `mods` sans synchronisation.
+    private let environment = GameEnvironmentStore(picker: LiveFilePicker())
+    private var environmentCancellable: AnyCancellable?
+
+    var gameDir: String { environment.gameDir }
+    var steamUsername: String { environment.steamUsername }
+    var steamAvatarPath: String? { environment.steamAvatarPath }
+    var smapiInstalledVersion: String? { environment.smapiInstalledVersion }
     
     @Published var outOfDateMods: [ModUpdateInfo] = []
     @Published var smapiErrors: [String] = []
@@ -352,7 +360,6 @@ class StarHubTHViewModel: ObservableObject {
     @Published private(set) var maintenanceReport: MaintenanceInventory.Report?
     @Published private(set) var isBuildingMaintenanceReport = false
 
-    @Published var smapiInstalledVersion: String? = nil   // nil = not installed
     /// True during the initial launch load (mod scan + save reload + profile
     /// load). Drives the launch spinner overlay in `MainView` so the user sees
     /// immediate feedback before the first mod list is ready.
@@ -2066,10 +2073,7 @@ class StarHubTHViewModel: ObservableObject {
     /// concurrentes du même dossier. Même rôle qu'`isApplyingProfile` —
     /// `guard` dans le ViewModel, `.disabled` sur les boutons.
     @Published private(set) var isSaveOperationRunning = false
-    
-    @Published var steamUsername: String = ""
-    @Published var steamAvatarPath: String? = nil
-    
+
     private static let supportedLanguages = Set(["en", "fr"])
     /// Les codes de langue SMAPI vivent désormais en Core avec la résolution
     /// qui s'en sert — `I18nLocaleResolver.knownLanguageCodes`. Les garder ici
@@ -2172,12 +2176,14 @@ class StarHubTHViewModel: ObservableObject {
         // didSet, explicit set below) and risked a desync if any of the three
         // branches diverged.
         
-        // Automatically retrieve saved game path, or attempt to find the default Steam path on Mac
-        let savedPath = UserDefaults.standard.string(forKey: UDKey.gameDir) ?? ""
-        if !savedPath.isEmpty && FileManager.default.fileExists(atPath: savedPath) {
-            self.gameDir = savedPath
-        } else {
-            self.gameDir = GameDirLocator.detectDefault(home: NSHomeDirectory())
+        // Automatically retrieve saved game path, or attempt to find the
+        // default Steam path on Mac.
+        environment.restoreGameDir()
+        // Le relais : les vues n'observent pas encore le store directement
+        // (façades provisoires ci-dessus) — sans lui, elles resteraient sur
+        // l'ancienne valeur après chaque écriture du store.
+        environmentCancellable = environment.objectWillChange.sink { [weak self] _ in
+            self?.objectWillChange.send()
         }
         // Seed the first launch step label synchronously so the overlay never
         // shows an empty string before the first async hop lands.
@@ -2285,15 +2291,12 @@ class StarHubTHViewModel: ObservableObject {
         }
     }
     
+    /// Façade provisoire (REFACTORING §6, cond. 1) — HomeView et
+    /// SettingsView l'appellent encore. La décision vit dans le store
+    /// (`GameEnvironmentStore.selectGameDir`, panneau injecté via
+    /// `FilePicking`) ; le `refresh()` est ce qui n'appartient pas au store.
     func selectGameDir() {
-        let panel = NSOpenPanel()
-        panel.canChooseDirectories = true
-        panel.canChooseFiles = false
-        panel.allowsMultipleSelection = false
-        if panel.runModal() == .OK {
-            self.gameDir = panel.url?.path ?? ""
-            self.refresh()
-        }
+        environment.selectGameDir { [weak self] in self?.refresh() }
     }
     
     // Helper to force localization using the currently selected language bundle
@@ -2345,12 +2348,12 @@ class StarHubTHViewModel: ObservableObject {
             guard let self else { return }
             self.scanMods()          // also kicks off parseSMAPILog internally
             self.reloadSaves()
-            self.fetchSteamUser()
+            self.environment.fetchSteamUser(fallbackFarmerName: self.L(L10n.VM.defaultFarmerName))
         }
         // Lightweight synchronous check: reads the install marker, or the
         // first 256 bytes of SMAPI-latest.txt — no process is ever launched
         // (SmapiInstaller.getInstalledVersion).
-        self.checkSmapiVersion()
+        self.environment.checkSmapiVersion()
     }
 
     /// `true` pendant qu'un `refreshSmapiLog()` tourne — piloter le bouton de
@@ -2572,7 +2575,7 @@ class StarHubTHViewModel: ObservableObject {
                 // call it here, on main, rather than on the background queue below.
                 self?.loadProfiles()
             }
-            self.fetchSteamUser()
+            self.environment.fetchSteamUser(fallbackFarmerName: self.L(L10n.VM.defaultFarmerName))
 
             // Step 4b — Seed the Nexus caches + user overrides (was blocking
             // the window's first paint when it ran in init).
@@ -2627,52 +2630,7 @@ class StarHubTHViewModel: ObservableObject {
         // après le dispatch background ci-dessus. Deux petits fichiers lus
         // (marqueur, ou 256 octets de journal) : sub-milliseconde, rien sur
         // quoi l'overlay de lancement doive attendre.
-        self.checkSmapiVersion()
-    }
-    
-    func fetchSteamUser() {
-        let home = NSHomeDirectory()
-        let vdfPath = "\(home)/Library/Application Support/Steam/config/loginusers.vdf"
-        guard let content = try? String(contentsOfFile: vdfPath, encoding: .utf8) else { return }
-        let parsed = SteamLoginUsers.parse(content: content)
-
-        let resolvedUsername: String
-        if !parsed.personaName.isEmpty {
-            resolvedUsername = parsed.personaName
-        } else {
-            let defaultName = NSFullUserName().components(separatedBy: " ").first ?? ""
-            resolvedUsername = defaultName.isEmpty ? L(L10n.VM.defaultFarmerName) : defaultName
-        }
-
-        var resolvedAvatarPath: String?
-        if !parsed.steamID.isEmpty {
-            resolvedAvatarPath = GameDirLocator.avatarPath(steamID: parsed.steamID, home: home)
-        }
-
-        // `fetchSteamUser` is called from `refresh()`'s background dispatch
-        // alongside `scanMods()`/`reloadSaves()` — unlike those two, this
-        // used to mutate these @Published properties directly on that
-        // background thread instead of hopping back to main.
-        DispatchQueue.main.async {
-            // Le fallback « Farmer » appartient ici, à côté de la publication
-            // du vrai nom : un check `isEmpty` côté appelant (performInitialLoad)
-            // s'exécutait avant cette fermeture main et voyait toujours "" → le
-            // fallback écrasait le vrai nom (main FIFO). Audit 2026-08-05.
-            self.steamUsername = resolvedUsername.isEmpty
-                ? self.L(L10n.VM.defaultFarmerName)
-                : resolvedUsername
-            if let resolvedAvatarPath = resolvedAvatarPath {
-                self.steamAvatarPath = resolvedAvatarPath
-            }
-        }
-    }
-    
-    func checkSmapiVersion() {
-        guard !gameDir.isEmpty else {
-            self.smapiInstalledVersion = nil
-            return
-        }
-        self.smapiInstalledVersion = SmapiVersionEvidence.installedVersion(gameDir: gameDir)
+        self.environment.checkSmapiVersion()
     }
     
     func scanMods(includeRepair: Bool = true) {
@@ -3802,7 +3760,7 @@ class StarHubTHViewModel: ObservableObject {
     // Install SMAPI via Installer Helper
     func installSmapi() {
         smapiInstaller.install(gameDir: gameDir) { success, key, detail in
-            self.checkSmapiVersion()
+            self.environment.checkSmapiVersion()
             let message = self.resolveSmapiMessage(key, detail)
             self.showModal(message: message)
             self.log(message)
@@ -3812,7 +3770,7 @@ class StarHubTHViewModel: ObservableObject {
     // Uninstall SMAPI
     func uninstallSmapi() {
         smapiInstaller.uninstall(gameDir: gameDir) { success, key, detail in
-            self.checkSmapiVersion()
+            self.environment.checkSmapiVersion()
             let message = self.resolveSmapiMessage(key, detail)
             self.showModal(message: message)
             self.log(message)

@@ -202,6 +202,8 @@ let package = Package(
                 "Models/FrenchCoveragePass.swift",
                 "Models/ModListScoping.swift",
                 "Stores/InstalledModRegistryStore.swift",
+                "Stores/FilePicking.swift",
+                "Stores/GameEnvironmentStore.swift",
             ]
         ),
         .testTarget(
@@ -1037,6 +1039,11 @@ let package = Package(
             name: "GameDirLocatorTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/GameDirLocatorTests"
+        ),
+        .testTarget(
+            name: "GameEnvironmentStoreTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/GameEnvironmentStoreTests"
         ),
     ]
 )
