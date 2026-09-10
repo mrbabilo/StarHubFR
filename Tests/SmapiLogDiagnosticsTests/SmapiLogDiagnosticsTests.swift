@@ -302,3 +302,35 @@ import Testing
     #expect(d.benignNotices.count == 1)
     #expect(d.benignNotices.first?.mod == "Global Config Settings Rewrite")
 }
+
+// MARK: - La progression pendant la lecture (2026-09-10)
+
+/// **La barre ne doit pas se figer pendant l'analyse.** Sur le journal réel de
+/// l'auteur — 9,8 Mo, 239 237 lignes — cette fonction occupe plusieurs secondes
+/// du lancement. Sans compte rendu, l'écran de démarrage restait immobile tout
+/// du long : le rapport se fait donc **depuis la boucle**, comme celui de la
+/// boucle par mod.
+@Test func theParseReportsItsProgressWhileItReads() {
+    let log = (0..<5_000).map { "[00:00:00 TRACE SMAPI] ligne \($0)" }
+        .joined(separator: "\n")
+    var seen: [Double] = []
+    _ = SmapiDiagnostics.parse(logContent: log, onProgress: { seen.append($0) })
+
+    #expect(!seen.isEmpty, "aucun compte rendu")
+    // Une fraction, jamais hors bornes, et jamais en recul.
+    #expect(seen.allSatisfy { $0 >= 0 && $0 <= 1 })
+    #expect(zip(seen, seen.dropFirst()).allSatisfy { $0 <= $1 })
+    // Le dernier rapport dit que tout est lu : sans lui la barre s'arrêterait
+    // avant le bout de sa tranche.
+    #expect(seen.last == 1.0)
+}
+
+/// Sans rapporteur, rien ne change — c'est le chemin de tous les autres
+/// appelants (rafraîchissement du journal, tests).
+@Test func theParseIsUnchangedWithoutAReporter() {
+    let log = "[00:00:00 INFO  SMAPI] SMAPI 4.1.10 with Stardew Valley 1.6.15"
+    let withReporter = SmapiDiagnostics.parse(logContent: log, onProgress: { _ in })
+    let without = SmapiDiagnostics.parse(logContent: log)
+    #expect(withReporter.smapiVersion == without.smapiVersion)
+    #expect(without.smapiVersion == "4.1.10")
+}

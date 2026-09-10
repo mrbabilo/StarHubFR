@@ -395,8 +395,11 @@ class StarHubTHViewModel: ObservableObject {
     static let launchScanPhasesEnd: Double = 0.70
     /// Poids de chacune, proportionnels à leur coût mesuré sur le journal réel
     /// de l'auteur (9,8 Mo) : la lecture du journal en est l'essentiel.
-    static let launchSmapiLogProgress: Double = 0.62
-    static let launchRegistrySyncProgress: Double = 0.66
+    /// La lecture du journal occupe l'essentiel des phases : elle avance en
+    /// **continu** entre ces deux bornes, au rythme de ses propres lignes.
+    static let launchSmapiLogStart: Double = 0.60
+    static let launchSmapiLogEnd: Double = 0.66
+    static let launchRegistrySyncProgress: Double = 0.68
     static let launchDuplicatesProgress: Double = 0.69
 
     /// Annonce une phase qui suit la boucle par mod de `scanMods`.
@@ -419,6 +422,17 @@ class StarHubTHViewModel: ObservableObject {
             self.scanProgress = ScanProgress(done: entries.done, total: entries.total,
                                              currentName: "", phase: label)
         }
+    }
+
+    /// La même annonce, mais à une fraction d'une tranche : une phase qui dure
+    /// rapporte son avancée plutôt que de laisser la barre immobile jusqu'à sa
+    /// fin. Délègue à `publishLaunchPhase` — donc aucun saut de file
+    /// supplémentaire.
+    private func publishLaunchPhaseProgress(_ stepKey: String, fraction: Double,
+                                            from: Double, to: Double,
+                                            entries: (done: Int, total: Int)) {
+        let clamped = min(max(fraction, 0), 1)
+        publishLaunchPhase(stepKey, progress: from + (to - from) * clamped, entries: entries)
     }
 
     @Published var mods: [ModItem] = [] {
@@ -3100,8 +3114,14 @@ class StarHubTHViewModel: ObservableObject {
         // « 949/957 » pendant que les phases ci-dessous tournaient. Chacune
         // s'annonce désormais, compte complet à l'appui.
         publishLaunchPhase(L10n.Main.launchStepSmapiLog,
-                           progress: Self.launchSmapiLogProgress, entries: scannedEntries)
-        parseSMAPILog()
+                           progress: Self.launchSmapiLogStart, entries: scannedEntries)
+        parseSMAPILog(onProgress: { [weak self] fraction in
+            self?.publishLaunchPhaseProgress(L10n.Main.launchStepSmapiLog,
+                                             fraction: fraction,
+                                             from: Self.launchSmapiLogStart,
+                                             to: Self.launchSmapiLogEnd,
+                                             entries: scannedEntries)
+        })
 
         // Synchronize the installed-mod registry with what's on disk. This
         // catches mods added by ANY means — drag-and-drop, manual copy into
@@ -3284,8 +3304,15 @@ class StarHubTHViewModel: ObservableObject {
     }
     
     // Parses the SMAPI-latest.txt log for updates and errors
-    func parseSMAPILog() {
-        guard !gameDir.isEmpty else { return }
+    /// - Parameter onProgress: fraction de **son propre** travail (0…1),
+    ///   rapportée en continu. Les poids ci-dessous viennent des coûts mesurés
+    ///   sur le journal réel de l'auteur (9,8 Mo) : le diagnostic pèse 5,4 s
+    ///   des ~7,1 s, les trois autres passes se partagent le reste. Sans ce
+    ///   compte rendu, l'écran de démarrage restait immobile toute la durée.
+    func parseSMAPILog(onProgress: ((Double) -> Void)? = nil) {
+        // Bornes des quatre passes, proportionnelles à leur coût mesuré.
+        let wDiagnostics = 0.76, wUpdates = 0.83, wConflicts = 0.93
+        guard !gameDir.isEmpty else { onProgress?(1.0); return }
         
         let homeDir = FileManager.default.homeDirectoryForCurrentUser.path
         let logPath = (homeDir as NSString).appendingPathComponent(".config/StardewValley/ErrorLogs/SMAPI-latest.txt")
@@ -3306,10 +3333,13 @@ class StarHubTHViewModel: ObservableObject {
             return
         }
 
-        let (smapiDiag, smapiDate, smapiStale) = computeSmapiDiagnostics(logContent: logContent, atPath: logPath)
+        let (smapiDiag, smapiDate, smapiStale) = computeSmapiDiagnostics(
+            logContent: logContent, atPath: logPath,
+            onProgress: onProgress.map { report in { report($0 * wDiagnostics) } })
 
         // Bloc « You can update N mods » — voir SmapiLogParser.updates(in:).
         let updates = SmapiLogParser.updates(in: logContent)
+        onProgress?(wUpdates)
         // Ce scan (rafraîchissement ordinaire du parc, déclenché à chaque
         // `scanMods()`) alimente aussi `contentPatcherConflicts`, en plus de
         // `parseAndAppendSmapiLog` (onglet Journaux / veilleur) : la section
@@ -3320,6 +3350,7 @@ class StarHubTHViewModel: ObservableObject {
         // Réutilise le même analyseur que l'autre chemin (`SmapiLogParser.parse`)
         // plutôt que d'écrire un second parseur de conflits.
         let conflictEntries = SmapiLogParser.parse(logContent)
+        onProgress?(wConflicts)
         let conflicts = ContentPatcherConflicts.read(from: conflictEntries)
         var errors: [String] = []
         
@@ -4339,8 +4370,10 @@ class StarHubTHViewModel: ObservableObject {
     /// `SmapiDiagnostics.parse` is pure and the mtime lookup is a single stat.
     /// Reused by both `parseSMAPILog` (scan/refresh) and `parseAndAppendSmapiLog`
     /// (reload button) so the health card refreshes on either path.
-    private func computeSmapiDiagnostics(logContent: String, atPath path: String) -> (SmapiDiagnostics, Date?, Bool) {
-        let diag = SmapiDiagnostics.parse(logContent: logContent)
+    private func computeSmapiDiagnostics(logContent: String, atPath path: String,
+                                        onProgress: ((Double) -> Void)? = nil)
+    -> (SmapiDiagnostics, Date?, Bool) {
+        let diag = SmapiDiagnostics.parse(logContent: logContent, onProgress: onProgress)
         let mtime = (try? FileManager.default.attributesOfItem(atPath: path)[.modificationDate]) as? Date
         let stale = (mtime ?? .distantFuture) < sessionStart
         return (diag, mtime, stale)

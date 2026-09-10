@@ -142,9 +142,23 @@ public struct SmapiDiagnostics {
 
     /// Parse a raw SMAPI log. Tolerant by design: never throws, silently
     /// ignores lines it can't make sense of.
-    public static func parse(logContent: String) -> SmapiDiagnostics {
+    /// - Parameter onProgress: appelé pendant la lecture avec la fraction déjà
+    ///   parcourue (0…1), le dernier appel valant toujours 1. Il existe parce
+    ///   que cette fonction **dure** : sur le journal réel de l'auteur — 9,8 Mo,
+    ///   239 237 lignes — elle occupe plusieurs secondes du lancement, pendant
+    ///   lesquelles l'écran de démarrage restait figé faute de savoir où elle
+    ///   en était. Les autres appelants (rafraîchissement du journal, tests)
+    ///   l'omettent et ne paient rien.
+    public static func parse(logContent: String,
+                             onProgress: ((Double) -> Void)? = nil) -> SmapiDiagnostics {
         var d = SmapiDiagnostics()
         let lines = logContent.components(separatedBy: .newlines)
+        // Un rapport tous les 4 096 lignes : assez fin pour que la barre avance
+        // sans à-coups sur 239 237 lignes (≈ 58 rapports), assez rare pour que
+        // le compte ne coûte rien face au travail par ligne.
+        let reportEvery = 4_096
+        var lineIndex = 0
+        let lineCount = lines.count
 
         var inSkipped = false
         var currentLoadingMod: String?
@@ -153,6 +167,13 @@ public struct SmapiDiagnostics {
         var groupEntriesStarted = false
 
         for raw in lines {
+            if let onProgress {
+                lineIndex += 1
+                if lineIndex % reportEvery == 0 {
+                    onProgress(Double(lineIndex) / Double(max(lineCount, 1)))
+                }
+            }
+
             // **Une fois par ligne, pas trois.** `messageBody` était appelé
             // trois fois et `lowercased()` une fois de plus dans les helpers ;
             // mesuré sur le journal réel de l'auteur (9,8 Mo), chaque passe
@@ -290,6 +311,10 @@ public struct SmapiDiagnostics {
             }
             // (else: blurb text before entries — ignore)
         }
+
+        // Le dernier rapport dit que tout est lu : sans lui la barre
+        // s'arrêterait juste avant le bout de sa tranche.
+        onProgress?(1.0)
 
         // Top mods by ERROR count (top 5; count desc, then name asc).
         d.topErrorMods = errorCounts
