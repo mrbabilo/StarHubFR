@@ -30,6 +30,29 @@ class StarHubTHViewModel: ObservableObject {
     var steamUsername: String { environment.steamUsername }
     var steamAvatarPath: String? { environment.steamAvatarPath }
     var smapiInstalledVersion: String? { environment.smapiInstalledVersion }
+
+    // MARK: Localisation — le store du domaine (REFACTORING §6), et ses
+    // façades provisoires (condition 1) : ~1 500 appels `vm.L(...)` et cinq
+    // lectures de `vm.currentLanguage` dans les vues. Le remplacement
+    // mécanique (commit suivant) fera recevoir le store directement par les
+    // vues et supprimera ces façades avec le relais `objectWillChange`.
+    // Le store appartient à l'App (`@StateObject`) : les menus de
+    // `StarHubTHApp` résolvent leurs libellés avant toute vue, ils doivent
+    // observer la source elle-même, pas un relais.
+    let localization: LocalizationStore
+    private var localizationCancellable: AnyCancellable?
+
+    /// Façade provisoire — lecture **et écriture** (le sélecteur de langue
+    /// de `MainView` écrit encore `vm.currentLanguage = code`) ; la
+    /// normalisation et la persistance vivent dans le store.
+    var currentLanguage: String {
+        get { localization.currentLanguage }
+        set { localization.setLanguage(newValue) }
+    }
+
+    /// Façade provisoire — les vues appelleront `localization.L(...)` après
+    /// le remplacement mécanique.
+    func L(_ key: String) -> String { localization.L(key) }
     
     @Published var outOfDateMods: [ModUpdateInfo] = []
     @Published var smapiErrors: [String] = []
@@ -2074,39 +2097,6 @@ class StarHubTHViewModel: ObservableObject {
     /// `guard` dans le ViewModel, `.disabled` sur les boutons.
     @Published private(set) var isSaveOperationRunning = false
 
-    private static let supportedLanguages = Set(["en", "fr"])
-    /// Les codes de langue SMAPI vivent désormais en Core avec la résolution
-    /// qui s'en sert — `I18nLocaleResolver.knownLanguageCodes`. Les garder ici
-    /// aurait laissé la moitié de la règle hors de portée des tests.
-    static var knownLanguageCodes: Set<String> { I18nLocaleResolver.knownLanguageCodes }
-    private static func normalizedLanguage(_ language: String?) -> String {
-        guard let language, supportedLanguages.contains(language) else { return defaultLanguage }
-        return language
-    }
-    /// This fork (StarHubFR) launches in **French by default**, regardless of
-    /// the system locale — English is only used when the user explicitly picks
-    /// it (via the sidebar flag toggle). Only affects a first launch with no
-    /// saved `currentLanguage`; an existing choice is always respected.
-    private static var defaultLanguage: String { "fr" }
-    
-    @Published var currentLanguage: String = StarHubTHViewModel.normalizedLanguage(UserDefaults.standard.string(forKey: UDKey.currentLanguage)) {
-        didSet {
-            // Normalize first: a non-supported value is rewritten in-place,
-            // which re-enters `didSet` once with a supported value — at which
-            // point we fall through to the persistence write. This avoids the
-            // previous "write then reassign" cascade where the rejection path
-            // left the in-memory and on-disk values out of sync.
-            let normalized = Self.normalizedLanguage(currentLanguage)
-            if normalized != currentLanguage {
-                currentLanguage = normalized
-                return
-            }
-            UserDefaults.standard.set(normalized, forKey: UDKey.currentLanguage)
-            UserDefaults.standard.set([normalized], forKey: UDKey.appleLanguagesOverride)
-        }
-    }
-    
-    
     @Published var modProfiles: [ModProfile] = []
     @Published var activeProfileId: UUID? = nil
 
@@ -2152,7 +2142,8 @@ class StarHubTHViewModel: ObservableObject {
     // `@MainActor` au niveau de la classe — échoue à la compilation.
     let keybindScanService = KeybindScanService()
     
-    init() {
+    init(localization: LocalizationStore) {
+        self.localization = localization
         // `didSet` ne voit pas la valeur d'initialisation : sans cette ligne,
         // les verdicts relus au lancement seraient là sans que rien ne les
         // signale, jusqu'à la première vérification.
@@ -2170,11 +2161,11 @@ class StarHubTHViewModel: ObservableObject {
         smapiInstaller.onWarning = { [weak self] message in
             self?.log(message, level: .warning)
         }
-        // `AppleLanguages` is resynced from `currentLanguage.didSet`; no
-        // manual write needed here. The previous 3-line block caused a triple
-        // write on first launch (initializer → didSet, init reassignment →
-        // didSet, explicit set below) and risked a desync if any of the three
-        // branches diverged.
+        // `AppleLanguages` is resynced from the store's `currentLanguage.didSet`
+        // (`LocalizationStore`); no manual write needed here. The previous
+        // 3-line block caused a triple write on first launch (initializer →
+        // didSet, init reassignment → didSet, explicit set below) and risked
+        // a desync if any of the three branches diverged.
         
         // Automatically retrieve saved game path, or attempt to find the
         // default Steam path on Mac.
@@ -2183,6 +2174,9 @@ class StarHubTHViewModel: ObservableObject {
         // (façades provisoires ci-dessus) — sans lui, elles resteraient sur
         // l'ancienne valeur après chaque écriture du store.
         environmentCancellable = environment.objectWillChange.sink { [weak self] _ in
+            self?.objectWillChange.send()
+        }
+        localizationCancellable = localization.objectWillChange.sink { [weak self] _ in
             self?.objectWillChange.send()
         }
         // Seed the first launch step label synchronously so the overlay never
@@ -2297,45 +2291,6 @@ class StarHubTHViewModel: ObservableObject {
     /// `FilePicking`) ; le `refresh()` est ce qui n'appartient pas au store.
     func selectGameDir() {
         environment.selectGameDir { [weak self] in self?.refresh() }
-    }
-    
-    // Helper to force localization using the currently selected language bundle
-    /// Cache of locale-specific bundles keyed by language code ("en", "fr" —
-    /// les seules langues d'interface depuis le retrait du thaï).
-    /// Avoids rebuilding a `Bundle(url:)` on every `L(...)` call, which is invoked
-    /// dozens of times per render pass.
-    private static var bundleCache: [String: Bundle] = [:]
-    private static let bundleCacheLock = NSLock()
-
-    private func cachedBundle(for language: String) -> Bundle? {
-        Self.bundleCacheLock.lock()
-        let cached = Self.bundleCache[language]
-        Self.bundleCacheLock.unlock()
-        if let cached = cached { return cached }
-
-        guard let resourceURL = Bundle.main.resourceURL else { return nil }
-        let lprojURL = resourceURL.appendingPathComponent("\(language).lproj")
-        guard let bundle = Bundle(url: lprojURL) else { return nil }
-
-        Self.bundleCacheLock.lock()
-        Self.bundleCache[language] = bundle
-        Self.bundleCacheLock.unlock()
-        return bundle
-    }
-
-    func localizedString(for key: String) -> String {
-        if let bundle = cachedBundle(for: currentLanguage) {
-            let result = bundle.localizedString(forKey: key, value: "__MISSING__", table: nil)
-            if result != "__MISSING__" { return result }
-        }
-        // Last resort: return key so missing translations are visible
-        return key
-    }
-
-    /// Typed-key shorthand. Prefer this over localizedString(for:) with raw strings.
-    /// Example: vm.L(L10n.Mods.enabled)
-    func L(_ key: String) -> String {
-        localizedString(for: key)
     }
     
     func refresh() {

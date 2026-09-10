@@ -105,12 +105,23 @@ struct StarHubTHApp: App {
     private let bootstrapDefaults = DefaultsMigration.runOnce
 
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-    @StateObject private var vm = StarHubTHViewModel()
+    // La langue d'interface appartient à l'App (REFACTORING §6, domaine
+    // Localisation) : les menus de `CommandMenu` résolvent leurs libellés
+    // avant toute vue, ils observent la source elle-même. Le ViewModel la
+    // reçoit à l'init et ne la possède pas.
+    @StateObject private var localization: LocalizationStore
+    @StateObject private var vm: StarHubTHViewModel
     @AppStorage("showThaiTranslationHub") private var showThaiHub = false
 
     init() {
-        // No-op : StarHubTHViewModel.currentLanguage est l'unique source de
-        // vérité. Son didSet resynchronise `AppleLanguages` (via
+        // Une seule instance du store, habillée deux fois : les menus et le
+        // VM doivent observer le même objet, et un `@StateObject` ne peut pas
+        // lire un autre `@StateObject` de la même struct dans son init.
+        let store = LocalizationStore()
+        _localization = StateObject(wrappedValue: store)
+        _vm = StateObject(wrappedValue: StarHubTHViewModel(localization: store))
+        // currentLanguage (désormais `LocalizationStore`) reste l'unique
+        // source de vérité. Son didSet resynchronise `AppleLanguages` (via
         // UDKey.appleLanguagesOverride) — aucune écriture à faire ici.
     }
 

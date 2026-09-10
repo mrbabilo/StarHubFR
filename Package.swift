@@ -204,7 +204,13 @@ let package = Package(
                 "Stores/InstalledModRegistryStore.swift",
                 "Stores/FilePicking.swift",
                 "Stores/GameEnvironmentStore.swift",
+                "Stores/LocalizationStore.swift",
             ]
+        ),
+        .testTarget(
+            name: "LocalizationStoreTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/LocalizationStoreTests"
         ),
         .testTarget(
             name: "FrenchCoveragePassTests",
