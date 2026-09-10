@@ -151,6 +151,117 @@ struct ModListScopingTests {
                                                    blacklisted: ["Core"]))
     }
 
+    // MARK: - Cadrage par couverture française
+
+    private func coverage(_ translated: Int, of total: Int) -> TranslationCoverage.Coverage {
+        .init(total: total, translated: translated, missing: [], empty: [],
+              orphan: [], identicalToSource: [])
+    }
+
+    private func state(coverage: [String: TranslationCoverage.Coverage] = [:],
+                       stale: Set<String> = [],
+                       outdatedKeys: [String: Int] = [:]) -> ModListScoping.TranslationState {
+        .init(coverage: coverage, stale: stale, outdatedKeys: outdatedKeys)
+    }
+
+    @Test func theTranslationFilterIsInertWhenOff() {
+        #expect(ModListScoping.matchesTranslation(mod("Automate"), .off, state: state()))
+    }
+
+    @Test func availableKeepsModsShippingAFrenchFile() {
+        #expect(ModListScoping.matchesTranslation(mod("Automate", languages: ["en", "fr"]),
+                                                  .available, state: state()))
+        #expect(!ModListScoping.matchesTranslation(mod("Automate", languages: ["en"]),
+                                                   .available, state: state()))
+    }
+
+    @Test func aPackShipsFrenchThroughAnyComponent() {
+        let pack = mod("RSV", children: [mod("Core", languages: ["en"]),
+                                         mod("Extras", languages: ["en", "fr"])])
+        #expect(ModListScoping.matchesTranslation(pack, .available, state: state()))
+    }
+
+    @Test func partialShowsOnlyModsAlreadyMeasured() {
+        // Annoncer « complet » sur un mod qu'on n'a pas encore lu serait faux :
+        // la couverture se calcule en tâche de fond. Un mod absent de la carte
+        // n'est donc **pas** partiel — c'est un inconnu.
+        let m = mod("Automate")
+        #expect(!ModListScoping.matchesTranslation(m, .partial, state: state()))
+        #expect(ModListScoping.matchesTranslation(
+            m, .partial, state: state(coverage: ["Automate": coverage(40, of: 100)])))
+    }
+
+    @Test func aFullyTranslatedModIsNotPartial() {
+        let m = mod("Automate")
+        #expect(!ModListScoping.matchesTranslation(
+            m, .partial, state: state(coverage: ["Automate": coverage(100, of: 100)])))
+    }
+
+    @Test func aBarelyStartedTranslationCountsAsPartialNotAsMissing() {
+        // `displayPercent` ne ramène jamais un début de traduction à 0 : le
+        // cadrage doit voir 1 %, pas « rien ».
+        let m = mod("Automate")
+        #expect(ModListScoping.matchesTranslation(
+            m, .partial, state: state(coverage: ["Automate": coverage(1, of: 1000)])))
+    }
+
+    @Test func missingIgnoresModsWithNoTranslatableTextAtAll() {
+        // Mesuré sur le parc : 397 mods sans français, dont **310 sans le
+        // moindre fichier de traduction**. Les y faire figurer rendait 8 fois
+        // plus de bruit que de signal.
+        #expect(!ModListScoping.matchesTranslation(mod("Sans i18n", languages: []),
+                                                   .missing, state: state()))
+        #expect(ModListScoping.matchesTranslation(mod("Traduisible", languages: ["en"]),
+                                                  .missing, state: state()))
+    }
+
+    @Test func missingRejectsAModThatAlreadyHasFrench() {
+        #expect(!ModListScoping.matchesTranslation(mod("Automate", languages: ["en", "fr"]),
+                                                   .missing, state: state()))
+    }
+
+    @Test func aPackIsNotMissingFrenchWhenOneComponentHasIt() {
+        // Le voisin qui doit être refusé : un seul composant traduit suffit à
+        // sortir le pack de « à traduire ».
+        let pack = mod("RSV", children: [mod("Core", languages: ["en"]),
+                                         mod("Extras", languages: ["en", "fr"])])
+        #expect(!ModListScoping.matchesTranslation(pack, .missing, state: state()))
+    }
+
+    @Test func staleReadsBothSignals() {
+        // La date, connue de tous les mods dès le scan ; les clés, connues des
+        // seuls mods dont on a déjà ouvert le diff. L'un ou l'autre suffit.
+        let m = mod("Automate")
+        #expect(ModListScoping.matchesTranslation(m, .stale, state: state(stale: ["Automate"])))
+        #expect(ModListScoping.matchesTranslation(
+            m, .stale, state: state(outdatedKeys: ["Automate": 3])))
+        #expect(!ModListScoping.matchesTranslation(m, .stale, state: state()))
+    }
+
+    @Test func zeroOutdatedKeysIsNotStale() {
+        // Zéro est la valeur par défaut d'un mod jamais diffé : le traiter
+        // comme un signal ferait apparaître tout le parc.
+        #expect(!ModListScoping.matchesTranslation(mod("Automate"), .stale,
+                                                   state: state(outdatedKeys: ["Automate": 0])))
+    }
+
+    // MARK: - Clé de type inférée
+
+    @Test func aPackTakesTheTagOfItsLeadComponent() {
+        let pack = mod("RSV", children: [mod("Core"), mod("Extras")])
+        #expect(ModListScoping.inferredTagKey(for: pack)
+            == ModListScoping.inferredTagKey(for: mod("Core")))
+    }
+
+    @Test func anEmptyPackFallsBackToItself() {
+        let empty = ModItem(uniqueId: "", name: "Vide", folderName: "Vide", version: "",
+                            author: "", description: "", nexusUrl: "", nexusModId: "",
+                            isEnabled: true, dependencies: [], children: nil, isGroup: true)
+        // Pas de composant de tête : la clé se lit sur l'en-tête lui-même
+        // plutôt que de planter sur un `children!` absent.
+        #expect(!ModListScoping.inferredTagKey(for: empty).isEmpty)
+    }
+
     // MARK: - Les marques se lisent sur le nom **logique**
 
     @Test func aPausedModKeepsItsMarksUnderItsLogicalName() {

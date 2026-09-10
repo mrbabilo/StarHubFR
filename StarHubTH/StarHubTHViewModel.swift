@@ -5706,8 +5706,7 @@ for mod in mods {
     /// Stable inferred type key for a mod. For a group, uses the primary
     /// (first) child — mirrors upstream's "group shows its primary child's tag".
     func inferredTagKey(for mod: ModItem) -> String {
-        let target = (mod.isGroup ? (mod.children?.first ?? mod) : mod)
-        return ModItem.inferTag(name: target.name, uniqueId: target.uniqueId, description: target.description)
+        ModListScoping.inferredTagKey(for: mod)
     }
 
     private func computeCategory(for mod: ModItem) -> NexusCategory? {
@@ -10566,44 +10565,15 @@ for mod in mods {
     }
 
     func matchesTranslation(_ mod: ModItem, _ scope: FrenchTranslationScope) -> Bool {
-        switch scope {
-        case .off:
-            return true
-        case .available:
-            // A group matches if any child ships an fr translation.
-            return matchesSelfOrAnyChild(mod) { $0.languages.contains("fr") }
-        case .partial:
-            // Ne montre que les mods **déjà mesurés** : la couverture
-            // se calcule en tâche de fond, et annoncer « complet » sur
-            // un mod qu'on n'a pas encore lu serait faux. La liste se
-            // complète donc à mesure que le calcul avance.
-            return matchesSelfOrAnyChild(mod) { child in
-                guard let coverage = frenchCoverage(for: child) else { return false }
-                return coverage < 100
-            }
-        case .missing:
-            // « Pas de français » ne veut rien dire d'un mod qui n'a
-            // aucun `i18n` : il n'a pas de texte à traduire, et l'y
-            // faire figurer noyait le filtre. Mesuré sur le parc : 397
-            // mods sans français, dont **310 sans le moindre fichier de
-            // traduction**. Le filtre servait à trouver ce qu'on
-            // pourrait traduire ; il rendait 8 fois plus de bruit que de
-            // signal.
-            //
-            // `languages` porte `en` dès qu'un `default.json` existe :
-            // un mod traduisible en a donc au moins un.
-            let translatable = matchesSelfOrAnyChild(mod) { !$0.languages.isEmpty }
-            return translatable
-                && !matchesSelfOrAnyChild(mod) { $0.languages.contains("fr") }
-        case .stale:
-            // Les deux signaux réunis : la date, connue de tous les
-            // mods dès le scan, et les clés, connues des seuls mods
-            // dont on a déjà ouvert le diff.
-            return matchesSelfOrAnyChild(mod) { child in
-                staleTranslationMods.contains(child.folderName)
-                    || outdatedKeyCount(for: child) > 0
-            }
-        }
+        ModListScoping.matchesTranslation(mod, scope, state: translationScopingState)
+    }
+
+    /// Les trois magasins de couverture, rassemblés pour le cadrage. Construit à
+    /// chaque appel : ce sont trois copies de références (`Dictionary` et `Set`
+    /// sont à copie sur écriture), pas un parcours.
+    private var translationScopingState: ModListScoping.TranslationState {
+        .init(coverage: frenchCoverageByMod, stale: staleTranslationMods,
+              outdatedKeys: outdatedKeysByMod)
     }
 
     /// La liste cadrée : les cinq filtres composés, puis triée. C'est la

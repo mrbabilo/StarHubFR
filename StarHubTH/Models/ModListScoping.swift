@@ -69,4 +69,87 @@ enum ModListScoping {
                                    blacklisted: Set<String>) -> Bool {
         !filters.blacklistedOnly || blacklisted.contains(mod.folderName)
     }
+
+    /// Ce que la couverture française d'un mod vaut pour le cadrage. Trois
+    /// magasins que le ViewModel tient à jour en tâche de fond, groupés ici
+    /// parce que `matchesTranslation` les lit tous les trois et qu'aucun n'est
+    /// un calcul : ce sont des lectures de dictionnaire.
+    struct TranslationState {
+        /// La couverture mesurée, par nom de dossier. Un mod **absent** de cette
+        /// carte n'a pas encore été lu — ce n'est pas la même chose qu'une
+        /// couverture nulle, et le cadrage `.partial` en dépend.
+        let coverage: [String: TranslationCoverage.Coverage]
+        /// Les mods dont la traduction est en retard sur la version anglaise,
+        /// constaté à la date des fichiers.
+        let stale: Set<String>
+        /// Le nombre de clés obsolètes connu du dernier diff ouvert. Zéro tant
+        /// qu'on n'a jamais ouvert l'onglet Traduction d'un mod : sans
+        /// référence, il n'y a pas de verdict.
+        let outdatedKeys: [String: Int]
+
+        init(coverage: [String: TranslationCoverage.Coverage] = [:],
+             stale: Set<String> = [],
+             outdatedKeys: [String: Int] = [:]) {
+            self.coverage = coverage
+            self.stale = stale
+            self.outdatedKeys = outdatedKeys
+        }
+    }
+
+    /// Le cadrage par couverture française.
+    ///
+    /// Les cinq cas ne se déduisent pas les uns des autres — chacun porte une
+    /// mesure faite sur le parc réel, consignée à son cas.
+    static func matchesTranslation(_ mod: ModItem,
+                                   _ scope: FrenchTranslationScope,
+                                   state: TranslationState) -> Bool {
+        switch scope {
+        case .off:
+            return true
+        case .available:
+            // Un pack correspond dès qu'un composant livre une traduction fr.
+            return matchesSelfOrAnyChild(mod) { $0.languages.contains("fr") }
+        case .partial:
+            // Ne montre que les mods **déjà mesurés** : la couverture se calcule
+            // en tâche de fond, et annoncer « complet » sur un mod qu'on n'a pas
+            // encore lu serait faux. La liste se complète donc à mesure que le
+            // calcul avance.
+            return matchesSelfOrAnyChild(mod) { child in
+                guard let coverage = state.coverage[child.folderName]?.displayPercent else {
+                    return false
+                }
+                return coverage < 100
+            }
+        case .missing:
+            // « Pas de français » ne veut rien dire d'un mod qui n'a aucun
+            // `i18n` : il n'a pas de texte à traduire, et l'y faire figurer
+            // noyait le filtre. Mesuré sur le parc : 397 mods sans français,
+            // dont **310 sans le moindre fichier de traduction**. Le filtre
+            // servait à trouver ce qu'on pourrait traduire ; il rendait 8 fois
+            // plus de bruit que de signal.
+            //
+            // `languages` porte `en` dès qu'un `default.json` existe : un mod
+            // traduisible en a donc au moins un.
+            let translatable = matchesSelfOrAnyChild(mod) { !$0.languages.isEmpty }
+            return translatable
+                && !matchesSelfOrAnyChild(mod) { $0.languages.contains("fr") }
+        case .stale:
+            // Les deux signaux réunis : la date, connue de tous les mods dès le
+            // scan, et les clés, connues des seuls mods dont on a déjà ouvert
+            // le diff.
+            return matchesSelfOrAnyChild(mod) { child in
+                state.stale.contains(child.folderName)
+                    || (state.outdatedKeys[child.folderName] ?? 0) > 0
+            }
+        }
+    }
+
+    /// La clé de type inférée d'un mod, stable. Pour un pack, celle de son
+    /// composant **principal** (le premier) — le pack montre le tag de son
+    /// composant de tête, comme en amont.
+    static func inferredTagKey(for mod: ModItem) -> String {
+        let target = (mod.isGroup ? (mod.children?.first ?? mod) : mod)
+        return ModItem.inferTag(name: target.name, uniqueId: target.uniqueId,
+                                description: target.description)
+    }
 }
