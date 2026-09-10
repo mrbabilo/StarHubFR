@@ -843,6 +843,8 @@ enum L10n {
         static let noQuarantine         = "quarantine_no_quarantine"
         static let rescan               = "quarantine_rescan"
         static let andNMore             = "quarantine_and_n_more"
+        static let reviewTitle          = "quarantine_review_title"
+        static let reviewNote           = "quarantine_review_note"
     }
 
     // MARK: - Settings

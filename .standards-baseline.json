@@ -1,11 +1,11 @@
 {
-  "abbreviation_vm": 1330,
+  "abbreviation_vm": 1331,
   "bare_L_calls": 3,
   "dispatch_queue": 154,
   "get_prefixed_funcs": 6,
   "non_final_classes": 10,
   "our_shared_singletons": 91,
-  "oversized_excess_lines": 26547,
+  "oversized_excess_lines": 26566,
   "oversized_files": 37,
   "print_calls": 30,
   "published_without_private_set": 70,

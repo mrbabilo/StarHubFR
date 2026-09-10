@@ -58,6 +58,12 @@ final class ModScanner {
         /// Le compte complet d'entrées, pour les phases qui suivent la boucle
         /// (`topEntries` n'existe plus là-bas).
         let scannedEntries: (done: Int, total: Int)
+        /// Les dossiers de premier niveau qui n'ont produit **aucun mod** —
+        /// dossiers d'outils, installations cassées. Noms **physiques** (le
+        /// point des entrées cachées est conservé, c'est ce qui permet de
+        /// les retrouver dans le Finder). Junk, corbeilles et fichiers sont
+        /// exclus : le réparateur les gère déjà.
+        let entriesWithoutMods: [String]
     }
 
     /// Cache de décodage indexé par mtime : évite de relire et re-parser
@@ -95,6 +101,7 @@ final class ModScanner {
         }
 
         var scannedMods: [ModItem] = []
+        var entriesWithoutMods: [String] = []
 
         // Manifest decode cache hit-test helper. Returns the cached JSON when
         // the on-disk mtime matches the cached entry's mtime, nil otherwise
@@ -264,7 +271,9 @@ final class ModScanner {
         // `relativePath` passed to parseModFolder is computed relative to
         // `physicalRoot` so the dot prefix never leaks into `folderName`
         // (the registry/profile key) or into the pack grouping key.
-        func scanEntryForMods(at physicalRoot: String, topLevelLogicalFolder: String, isEnabled: Bool) {
+        /// Rend `false` quand l'entrée n'a produit **aucun mod** — c'est le
+        /// signal qui alimente `entriesWithoutMods`.
+        func scanEntryForMods(at physicalRoot: String, topLevelLogicalFolder: String, isEnabled: Bool) -> Bool {
             let url = URL(fileURLWithPath: physicalRoot)
             var foundMods: [ModItem] = []
 
@@ -300,7 +309,7 @@ final class ModScanner {
             }
 
             if foundMods.isEmpty {
-                return
+                return false
             } else if foundMods.count == 1 && foundMods[0].folderName == topLevelLogicalFolder {
                 scannedMods.append(foundMods[0])
             } else {
@@ -321,6 +330,7 @@ final class ModScanner {
                 )
                 scannedMods.append(groupMod)
             }
+            return true
         }
 
         // Top-level enumeration of Mods/ WITHOUT `.skipsHiddenFiles` so the
@@ -368,13 +378,18 @@ final class ModScanner {
                                             modsFound: found))
                 }
 
-                scanEntryForMods(at: physicalRoot, topLevelLogicalFolder: topLevelLogicalFolder, isEnabled: isEnabled)
+                if !scanEntryForMods(at: physicalRoot, topLevelLogicalFolder: topLevelLogicalFolder, isEnabled: isEnabled) {
+                    // Nom physique : c'est lui que l'utilisateur cherchera
+                    // dans le Finder, point des entrées cachées compris.
+                    entriesWithoutMods.append(entry)
+                }
             }
             scannedEntries = (done: scanDone, total: scanTotal)
         }
 
         return Outcome(mods: scannedMods,
                        modsFolderWasReadable: modsFolderWasReadable,
-                       scannedEntries: scannedEntries)
+                       scannedEntries: scannedEntries,
+                       entriesWithoutMods: entriesWithoutMods)
     }
 }

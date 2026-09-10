@@ -234,8 +234,7 @@ import Testing
     /// La régression de juillet 2026 : deux balayages concurrents sur la
     /// même instance — le subscript du cache sans verrou y perdait un
     /// `EXC_BAD_ACCESS`. L'instance est volontairement **partagée**.
-    @Test func concurrentScansOnSharedInstanceDoNotRace() throws {
-        let gameDir = try makeGameDir()
+    @Test func concurrentScansOnSharedInstanceDoNotRace() throws {        let gameDir = try makeGameDir()
         let modsPath = gameDir + "/Mods"
         for i in 0..<12 {
             try makeMod(in: modsPath, name: "Mod\(i)",
@@ -275,5 +274,29 @@ import Testing
             folder == "Dated" ? registry : nil
         })
         #expect(outcome.mods.first?.installedFileDate == registry)
+    }
+
+    // MARK: - Dossiers sans manifeste
+
+    /// Les dossiers de premier niveau qui ne produisent aucun mod — dossiers
+    /// d'outils, installations cassées — sont **nommés** dans le résultat,
+    /// pour que l'app puisse les montrer au lieu de les ignorer en silence.
+    /// Cachés (`.kilo`) et visibles (`Tools`) comptent ; le junk est écarté
+    /// (il est déjà géré par le réparateur) ; un vrai mod n'y figure jamais —
+    /// y compris un mod en pause, dont le manifeste en casse variante
+    /// (`Manifest.json`) est trouvé par la comparaison insensible à la casse.
+    @Test func silentEntriesListedWithoutMods() throws {
+        let gameDir = try makeGameDir()
+        let modsPath = gameDir + "/Mods"
+        try fm.createDirectory(at: URL(fileURLWithPath: modsPath).appendingPathComponent(".kilo"),
+                               withIntermediateDirectories: true)
+        try fm.createDirectory(at: URL(fileURLWithPath: modsPath).appendingPathComponent("Tools"),
+                               withIntermediateDirectories: true)
+        try fm.createDirectory(at: URL(fileURLWithPath: modsPath).appendingPathComponent(".DS_Store"),
+                               withIntermediateDirectories: true)
+        try makeMod(in: modsPath, name: "Real", manifest: fullManifest, disabled: true)
+        let outcome = try scan(gameDir)
+        #expect(Set(outcome.entriesWithoutMods) == [".kilo", "Tools"])
+        #expect(outcome.mods.count == 1)
     }
 }

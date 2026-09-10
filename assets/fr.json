@@ -1012,6 +1012,8 @@
   "quarantine_no_quarantine": "Aucun dossier de quarantaine n'existe encore.",
   "quarantine_open_folder": "Ouvrir le dossier de quarantaine",
   "quarantine_rescan": "Relancer l'analyse",
+  "quarantine_review_note": "Ces dossiers de Mods/ ne contiennent aucun manifest.json : l'app ne peut pas les lister comme mods. Ils n'ont pas été déplacés.",
+  "quarantine_review_title": "Dossiers sans manifeste — laissés en place",
   "quarantine_subtitle": "Les dossiers corrompus ou indésirables sont déplacés ici automatiquement lors des analyses. Rien n'est supprimé — vous pouvez consulter ou restaurer à tout moment.",
   "quarantine_title": "Quarantaine",
   "recovery_badge": "%lld fichier(s) à récupérer",

@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+
+- **Les dossiers de `Mods/` sans aucun manifeste sont signalés.** Dossiers d'outils, installations cassées : l'onglet Quarantaine les liste désormais sous « Dossiers sans manifeste — laissés en place », avec un bouton pour les révéler dans le Finder. Rien n'est déplacé automatiquement.
+
 ### Changed
 
 - **Le compteur du splash compte les mods trouvés, plus les entrées de `Mods/`.** Pendant l'analyse, il monte désormais vers le chiffre que la liste affichera — les dossiers d'outils et les packs sans manifeste ne gonflent plus un total que rien ne rattrapait (961 vu au splash pour 956 dans la liste).

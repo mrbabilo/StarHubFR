@@ -2621,11 +2621,21 @@ class StarHubTHViewModel: ObservableObject {
             // repair-skipped scan (after a toggle) must preserve the last real
             // report instead of clearing it to nil.
             if includeRepair {
-                if repairReport.isEmpty {
+                // Les dossiers sans manifeste rejoignent le rapport comme
+                // « à voir » — jamais déplacés, donc jamais dans
+                // `quarantined` : c'est le contrat de ce champ.
+                var published = repairReport
+                published.reviewItems = scanned.entriesWithoutMods.map {
+                    ModFolderRepairer.Item(kind: .orphanFolder, relativePath: $0,
+                                           reason: "No manifest.json found — not listable as a mod. Left in place.")
+                }
+                if published.isEmpty && published.reviewItems.isEmpty {
                     self.lastRepairReport = nil
                 } else {
-                    self.lastRepairReport = repairReport
-                    self.log("Folder repair: \(repairReport.quarantined.count) item(s) quarantined, \(repairReport.duplicates.count) duplicate(s) found.", level: .info)
+                    self.lastRepairReport = published
+                    if !repairReport.isEmpty {
+                        self.log("Folder repair: \(repairReport.quarantined.count) item(s) quarantined, \(repairReport.duplicates.count) duplicate(s) found.", level: .info)
+                    }
                 }
             }
 

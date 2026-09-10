@@ -63,10 +63,17 @@ public struct ModFolderRepairer {
         public let duplicates: [Duplicate]
         /// Absolute path of the _Trash_ folder created this run, if any.
         public let trashPath: String?
+        /// Top-level folders that contain no manifest at all — tools,
+        /// broken installs. **Never moved**: informational only. The
+        /// scanner produces them (it walks hidden entries, the repairer
+        /// does not) and the caller folds them in here.
+        public var reviewItems: [Item] = []
 
         public var isEmpty: Bool { quarantined.isEmpty && duplicates.isEmpty }
 
-        public init(quarantined: [Item] = [], duplicates: [Duplicate] = [], trashPath: String? = nil) {
+        public init(quarantined: [Item] = [], duplicates: [Duplicate] = [], trashPath: String? = nil,
+                    reviewItems: [Item] = []) {
+            self.reviewItems = reviewItems
             self.quarantined = quarantined
             self.duplicates = duplicates
             self.trashPath = trashPath

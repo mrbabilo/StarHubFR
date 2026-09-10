@@ -1012,6 +1012,8 @@
   "quarantine_no_quarantine": "No quarantine folder exists yet.",
   "quarantine_open_folder": "Open Quarantine Folder",
   "quarantine_rescan": "Re-run Analysis",
+  "quarantine_review_note": "These folders inside Mods/ contain no manifest.json: the app cannot list them as mods. They were not moved.",
+  "quarantine_review_title": "Folders without a manifest — left in place",
   "quarantine_subtitle": "Corrupt or junk folders moved here automatically during scans. Nothing is deleted — you can review or restore anytime.",
   "quarantine_title": "Quarantine",
   "recovery_badge": "%lld file(s) to recover",
