@@ -19,6 +19,14 @@ Faire baisser un compteur est le travail ; le faire monter demande un
 Les règles viennent de `docs/SWIFT_STANDARDS.md` de l'upstream, elles-mêmes une
 compression des Swift API Design Guidelines. Voir `docs/REFACTORING.md` pour ce
 qu'on en retient et ce qu'on écarte.
+
+Deux compteurs (`oversized_files`, `oversized_excess_lines`) portent sur la
+**taille des fichiers** et non sur un motif dans le texte : ils viennent du
+`check_file_length` de l'upstream, la seule de leurs six règles qui nous
+manquait — et celle qui aurait crié pendant les 41 jours où le ViewModel a
+triplé. Repris avec un écart assumé : leur version ne compte que les fichiers
+en dépassement, ce qui ne bouge pas quand un fichier déjà trop gros grossit
+encore. Voir le commentaire de `FILE_RULES`.
 """
 from __future__ import annotations
 
@@ -30,6 +38,10 @@ from typing import Callable, Iterator
 
 SOURCE_DIR = "StarHubTH"
 BASELINE_PATH = ".standards-baseline.json"
+# § convention de taille de fichier — le seuil de l'upstream, repris tel quel.
+# Leur plus gros fichier après refactor fait 392 lignes : le seuil est tenable,
+# ce n'est pas une cible théorique.
+LINE_LIMIT = 400
 # Per-file mtime sum, used to skip the 211-file scan when nothing has changed
 # since the last run. Lives next to the baseline so a `rm .standards-*` cleans
 # both. Recomputed every time the hash drifts.
@@ -118,6 +130,41 @@ INFORMATIONAL: dict[str, Callable[[str], int]] = {
 }
 
 
+def file_line_counts() -> dict[str, int]:
+    """Lignes **brutes** par fichier — commentaires compris, contrairement à
+    tous les autres compteurs.
+
+    Délibéré : les règles de `RULES` cherchent des violations, et écrire *sur*
+    une violation n'en est pas une, d'où `strip_comments`. Ici la question est
+    « ce fichier est-il maniable ? », et 3 000 lignes de commentaires se
+    parcourent, se scrollent et saturent le type-checker exactement comme
+    3 000 lignes de code. C'est aussi le compte que rend `wc -l`, donc celui
+    qu'on vérifie à la main sans se demander quelle convention s'applique.
+    """
+    return {p: sum(1 for _ in open(p, encoding="utf-8")) for p in swift_sources()}
+
+
+# § convention de taille de fichier. Deux compteurs, parce qu'un seul laisse
+# passer la moitié du défaut :
+#
+#   - `oversized_files` seul ne bouge pas quand un fichier déjà trop gros
+#     grossit encore. C'est exactement ce qui est arrivé au ViewModel — 4 296
+#     → 11 902 lignes en 41 jours **sans jamais changer de catégorie**. Un
+#     cliquet aveugle à ça n'aurait rien empêché.
+#   - `oversized_excess_lines` seul ne distingue pas un fichier neuf à 401
+#     lignes (+1) d'un dépassement anodin ; et il est le seul à récompenser
+#     un découpage, puisqu'il tombe dès qu'un fichier repasse sous le seuil.
+#
+# Ensemble : le premier interdit d'ouvrir un nouveau fourre-tout, le second
+# interdit d'engraisser ceux qui existent.
+FILE_RULES: dict[str, Callable[[dict[str, int]], int]] = {
+    "oversized_files": lambda c: sum(1 for n in c.values() if n > LINE_LIMIT),
+    "oversized_excess_lines": lambda c: sum(
+        n - LINE_LIMIT for n in c.values() if n > LINE_LIMIT
+    ),
+}
+
+
 def measure(force: bool = False) -> tuple[dict[str, int], dict[str, int]]:
     """Run every ratchet rule over the source tree.
 
@@ -143,13 +190,24 @@ def measure(force: bool = False) -> tuple[dict[str, int], dict[str, int]]:
                     cached_counts: dict[str, int] = json.loads(f.read())
                 with open(info_path, encoding="utf-8") as f:
                     cached_info: dict[str, int] = json.loads(f.read())
-                return cached_counts, cached_info
+                # ⚠️ L'empreinte ne couvre que les **sources**, pas le jeu de
+                # règles. Ajouter une règle sans toucher au Swift rendait donc
+                # un relevé d'où elle était absente : `main()` n'itère que sur
+                # les clés reçues, la règle neuve n'était ni vérifiée ni
+                # signalée comme inconnue — elle sautait en silence, et
+                # `build_app.py` passe justement par ce chemin. Comparer les
+                # clés attendues referme ça sans fichier supplémentaire.
+                if (set(cached_counts) == set(RULES) | set(FILE_RULES)
+                        and set(cached_info) == set(INFORMATIONAL)):
+                    return cached_counts, cached_info
         except (OSError, ValueError):
             pass  # missing cache, malformed cache → fall through to full measure
 
     text = "\n".join(strip_comments(open(p, encoding="utf-8").read())
                      for p in swift_sources())
     counts = {name: rule(text) for name, rule in RULES.items()}
+    line_counts = file_line_counts()
+    counts.update({name: rule(line_counts) for name, rule in FILE_RULES.items()})
     info = {name: rule(text) for name, rule in INFORMATIONAL.items()}
 
     # Persist the verdict for next time. Errors here are non-fatal — a failed
@@ -212,6 +270,17 @@ def main() -> int:
             print(f"  {name:<{width}}  {value}")
         for name, value in sorted(info.items()):
             print(f"  {name:<{width}}  {value}  (informatif)")
+        # Un compte de fichiers trop gros ne dit pas *lesquels*, et c'est la
+        # seule chose dont le refactor a besoin pour choisir sa prochaine
+        # cible. Les nommer ici évite de refaire un `wc -l | sort` à la main.
+        oversized = sorted(((n, p) for p, n in file_line_counts().items()
+                            if n > LINE_LIMIT), reverse=True)
+        if oversized:
+            print(f"\n  Les plus gros fichiers (> {LINE_LIMIT} lignes) :")
+            for count, path in oversized[:10]:
+                print(f"    {count:>6}  (+{count - LINE_LIMIT})  {path}")
+            if len(oversized) > 10:
+                print(f"    … et {len(oversized) - 10} autres")
         return 0
 
     if "--update" in args:

@@ -116,7 +116,34 @@ que la nôtre en fonctionnalités, mais la forme, elle, tient.
 | **`PreferenceStoring` + `PreferenceStore` + `StubPreferenceStoring`** (`Services/System/`, `Tests/Stubs/`) — ~95 lignes en tout | C'est exactement la frontière dont le point 1 a besoin, déjà écrite et éprouvée. Protocole à 10 méthodes typées (`string`/`bool`/`data`/`dictionary` + les `set` + `removeObject`), `Live` en `struct` prenant `UserDefaults` en init, bouchon en cinq dictionnaires mémoire. Notre registre sérialise en JSON `Data` : il passe par `data(forKey:)` sans rien ajouter. ⚠️ **Un défaut à corriger en le reprenant** : `set(_ value: [String], forKey:)` existe **sans getter correspondant** — on peut écrire un tableau qu'aucune méthode ne relit. Ajouter `stringArray(forKey:)` ou retirer le setter. |
 | **`AppCoordinator`** — ce qui remplace le ViewModel | Il **ne publie rien** — vérifié sur les déclarations, pas sur sa prose : zéro `@Published`, seulement **10 références** (7 stores, plus `AppEnvironment`, `AlertStore`, `ToastStore` ; leur commentaire en annonce 8), et `ObservableObject` uniquement pour être injectable en `@EnvironmentObject`. L'argument porté par le code : ne rien posséder, c'est ne jamais pouvoir dériver de ce qu'on coordonne. **Cela répond à la question ouverte de notre §6 (« Cible »)**, où l'on écartait la suppression du ViewModel faute de filet : on n'a pas à le supprimer, il faut le **vider de son état publié**. La cible fonctionnelle qu'on s'était donnée trouve ici sa forme concrète. |
 | **Le patron « ce qui n'est pas à moi arrive en paramètre »** | Leur en-tête de `ModsStore` : `gameDir`, `chainToggleDependencies`, `showModal`, `log`, `refresh` « ne sont pas possédés ici » et sont passés en paramètres ou en closures. C'est la réponse aux deux blocages du §5 — les sorties `log(…)`/alerte du registre, et les cinq dépendances croisées des prédicats de liste. Ce n'est pas une astuce : c'est la même règle que notre critère d'entrée. |
-| **`check_file_length` (> 400 lignes)** dans leur `check_standards.py` | **La seule de leurs six règles que nous n'avons pas.** Nous couvrons déjà les cinq autres (`get`, classes non `final`, `.shared`, `DispatchQueue`, `@Published` sans `private(set)`). C'est précisément la règle qui aurait crié pendant les 41 jours où le God module a triplé. Chez nous : **37 fichiers dépassent 400 lignes**, pour 42 208 lignes cumulées — la baseline serait grosse, mais un cliquet ne juge que la hausse. |
+| ~~**`check_file_length` (> 400 lignes)**~~ ✅ **repris le 2026-09-10** | **C'était la seule de leurs six règles que nous n'avions pas** (les cinq autres — `get`, classes non `final`, `.shared`, `DispatchQueue`, `@Published` sans `private(set)` — étaient déjà couvertes), et précisément celle qui aurait crié pendant les 41 jours où le God module a triplé. Voir ci-dessous : reprise **avec un écart**, la leur n'aurait rien attrapé. |
+
+**L'écart sur la règle de taille, et pourquoi il fallait le faire** — leur
+`check_file_length` compte les **fichiers** en dépassement. Transposé tel quel chez
+nous, ce compteur serait resté figé à 37 pendant que le ViewModel passait de 4 296 à
+11 902 lignes : un fichier trop gros qui grossit ne change pas de catégorie. **Le
+cliquet n'aurait jamais rougi sur le défaut même qu'on cherche à empêcher.** D'où deux
+compteurs plutôt qu'un :
+
+| Compteur | Base au 2026-09-10 | Ce qu'il interdit |
+| --- | ---: | --- |
+| `oversized_files` | 37 | Ouvrir un **nouveau** fourre-tout |
+| `oversized_excess_lines` (somme des dépassements) | 27 414 | **Engraisser** ceux qui existent — et il tombe dès qu'un fichier repasse sous le seuil, donc il récompense le découpage |
+
+Seul compteur du script à se mesurer sur les lignes **brutes**, commentaires compris :
+les autres cherchent des violations, et écrire *sur* une violation n'en est pas une ;
+celui-ci demande si le fichier est maniable, et 3 000 lignes de commentaires se
+scrollent et saturent le type-checker comme 3 000 lignes de code. C'est aussi ce que
+rend `wc -l`, donc ce qu'on vérifie à la main sans se demander quelle convention
+s'applique.
+
+**Un défaut du script trouvé en l'étendant, et corrigé** : l'empreinte de fraîcheur qui
+évite de re-balayer 260 fichiers ne couvrait que les **sources**, pas le jeu de règles.
+Ajouter une règle sans toucher au Swift rendait donc un relevé d'où elle était absente —
+et `main()` n'itérant que sur les clés reçues, elle n'était **ni vérifiée ni signalée
+comme inconnue** : sautée en silence, sur le chemin exact qu'emprunte `build_app.py`.
+Le contrefactuel a été mesuré, pas déduit : avec une base truquée à 36 pour 37 réels et
+un cache privé des deux clés, l'ancien code sort **0**, le nouveau **1**.
 
 **Leur échappatoire mérite d'être reprise à côté de la nôtre, pas à sa place.** Ils
 autorisent le silence par un commentaire `// STANDARDS-EXCEPTION: <règle> — <raison>`

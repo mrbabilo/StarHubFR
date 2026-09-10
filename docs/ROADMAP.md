@@ -1381,6 +1381,18 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
         fonctionnalité nouvelle ne rentre plus dans le VM ; elle arrive dans son propre
         type, que le VM se contente d'appeler. *(Le risque noté en v1.15 disparaît alors
         de lui-même.)*
+        ✅ **La règle est devenue opposable le 2026-09-10** — elle ne l'était pas :
+        posée le 2026-08-01, violée par **tous** les axes livrés depuis, pour
+        +7 606 lignes de ViewModel. `check_standards.py` porte désormais deux
+        compteurs de taille de fichier (`oversized_files` 37,
+        `oversized_excess_lines` 27 414), repris du `check_file_length` de
+        l'amont **avec un écart nécessaire** : leur version ne compte que les
+        fichiers en dépassement, donc elle serait restée figée à 37 pendant que
+        le VM triplait. Le second compteur monte à chaque ligne ajoutée à un
+        fichier déjà trop gros, et tombe dès qu'un découpage repasse sous le
+        seuil. Une hausse délibérée demande un `--update` visible dans le diff.
+        ⚠️ Cela ne *fait* pas le refactor : cela empêche seulement de l'annuler
+        au fil de l'eau.
         **Première application du sens inverse (2026-09-07)** — extraire ce qu'on
         veut tester : les quatre enums de cadrage de la liste (`ModFilter`,
         `FrenchTranslationScope`, `CategoryScope`, `ModSortOrder`) descendent de

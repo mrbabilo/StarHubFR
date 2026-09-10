@@ -5,6 +5,8 @@
   "get_prefixed_funcs": 7,
   "non_final_classes": 10,
   "our_shared_singletons": 91,
+  "oversized_excess_lines": 27414,
+  "oversized_files": 37,
   "print_calls": 30,
   "published_without_private_set": 75,
   "try_optional": 334,
