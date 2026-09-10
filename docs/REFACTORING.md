@@ -395,6 +395,14 @@ Le plan du hub de traduction la respecte déjà.
 > accesseur protégé, et le cliquet est resserré en conséquence (75 → 71 : 66 au VM
 > + 5 ailleurs). Le domaine Environnement est sorti des deux morceaux ; ce qui
 > reste du bloc de tête est inchangé par nature.
+>
+> **Relevé d'après-tranche (2026-09-10, Localisation)** : le VM est à **11 341
+> lignes** et porte **130 `@Published`**, dont **65 sans `private(set)`** —
+> `currentLanguage` vit dans `LocalizationStore` (Core, testé), et le domaine
+> Localisation est sorti **entièrement** : plus aucune fonction, plus aucune
+> façade définitive, plus de relais — les vues et l'App observent le store
+> directement. Le cliquet atteste la migration : `vm_dot_L_calls` est descendu
+> de 1 462 **à 0** et y est verrouillé.
 
 C'est le God module lui-même. Le décomposer est le vrai travail ; le reste n'en est
 que la préparation.
@@ -404,7 +412,7 @@ que la préparation.
 | Domaine | Fonctions représentatives | Destination |
 | --- | --- | --- |
 | **Environnement** | `detectDefaultGameDir`, `selectGameDir`, `fetchSteamUser`, `checkSmapiVersion` | ✅ **Extrait le 2026-09-10** — `GameEnvironmentStore` (Core, testé), `FilePicking` + `LiveFilePicker` dans le même commit. Façades provisoires au VM tant que les vues ne réobservent pas le store (voir le point 4 du §5) |
-| **Localisation** | `L(_:)`, `localizedString(for:)`, `cachedBundle(for:)` | Un type dédié. Techniquement simple, mais `L(_:)` a **des centaines d'appels** : faire le remplacement mécanique dans un commit séparé de l'extraction, sinon le diff devient illisible |
+| **Localisation** | `L(_:)`, `localizedString(for:)`, `cachedBundle(for:)` | ✅ **Extrait le 2026-09-10, en deux commits** comme prescrit — `LocalizationStore` (Core, 13 tests prouvés rouges par sabotage sur trois mécanismes), puis le remplacement mécanique des appels : 1 453 sites dans 45 fichiers de vues, 180 appels internes du VM, les menus de l'App, `BisectionRunner`, l'écriture du sélecteur de langue. Le store appartient à l'App (`@StateObject` passé au VM à l'init) : les menus résolvent leurs libellés avant toute vue. Les vues reçoivent le store en paramètre (76 structs) — **aucune façade n'a survécu** : le VM n'a plus ni `L`, ni `currentLanguage`, ni la conformité `L10nResolver` (passée au store ; `SavesView` lui passe directement). ⚠️ Condition 4 : l'exercice manuel de bascule de langue à l'écran reste dû à l'auteur (celui d'Environnement aussi) |
 | **Scan** | `scanMods`, `parseModFolder`, `scanEntryForMods`, `cachedManifest`, `migrateDisabledModsToDotPrefix`, `isOsJunk` | Le cœur. `parseModFolder` et `isOsJunk` sont de la **logique pure** : les extraire et les tester **avant** de toucher au reste |
 | **Dépendances** | `rebuildDependencyIndexes`, `getMissingDependencies`, `getDisabledDependencies`, `dependencyTree`, `slot(matching:)` | S'appuie déjà sur `DependencyTreeBuilder` (Core, testé). Surtout des index à déplacer |
 | **Bascule des mods** | `toggleMod`, `processNextToggleIfNeeded`, `performToggle` | Manipule le disque et sérialise les opérations. À extraire **après** le scan, dont il dépend |
@@ -446,7 +454,8 @@ pour le plaisir du compteur.
 et son bouchon, soit un chantier propre. La méthode (§4.1, « chercher la logique
 pure d'abord ») l'emporte ici sur l'ordre indicatif.
 
-Environnement → Localisation → *(logique pure du scan)* → Scan → Dépendances →
+Environnement ✅ → **Localisation ✅** → *(logique pure du scan — entamée, le
+point 4 du §5 reste ouvert)* → Scan → Dépendances →
 Bascule → Détail de mod. Chaque étape est un commit, précédée de ses tests quand la
 cible est du calcul pur.
 
@@ -491,6 +500,12 @@ qu'une de ces trois lignes avait été appliquée sans être dite.
 | Cadrage de la liste, lot 3 (2026-09-10) | `Inputs` porte **deux closures et cinq valeurs**, là où le §5 prescrivait « un objet de paramètres portant ces verdicts déjà résolus » | Résoudre les verdicts d'avance transformerait deux chemins paresseux en balayage inconditionnel des 949 mods — `category(for:)` est mémoïsé derrière `categoryCache`, et `ModListView.scopeCounts` existe précisément pour ne pas refaire le balayage de dépendances d'`anomaly(for:)`. Ce serait une régression sur le chemin que **F3** met en cause. L'intention du plan (« ne pas aller chercher sur `self` ») est tenue ; sa forme littérale ne l'est pas |
 | Environnement, `GameDirLocator` (2026-09-10) | `gogRoot` arrive en paramètre (défaut `/Applications`), et `restoreGameDir` le laisse passer | Pas un changement de comportement — le défaut vaut l'ancien littéral — mais une couture à consigner : sans elle, la branche GOG est **intrôlable en test** sur la machine de référence, où le jeu est justement installé sous `/Applications`. Même raison pour `home`, `fm`, `systemUserName` : les états de la machine ne sont pas des entrées de test |
 | Environnement, `selectGameDir` (2026-09-10) | Un **OK sans URL** vaut désormais annulation ; l'original affectait `panel.url?.path ?? ""` puis relançait `refresh()` — vidant `gameDir` et rescannant | Cas impossible en pratique sur un panneau dossiers-seuls (le bouton est sans effet sans sélection), mais l'ancien chemin écrasait l'état en silence. La nouvelle forme refuse d'écrire quand le panneau ne dit rien |
+| Localisation, `LocalizationStore` (2026-09-10) | Le cache de bundles passe de **`static` (sur le type) à l'instance** ; le verrou `NSLock` reste | Même comportement pour l'app, qui ne crée qu'un store ; en test, chaque essai a son cache au lieu d'un cache de type partagé (CLAUDE.md : un cache global impose des tests `.serialized`) — les deux tests de bascule de langue utilisent des racines de ressources différentes |
+| Localisation, `LocalizationStore` (2026-09-10) | La racine des ressources **arrive en paramètre** (`resourceURL`, défaut `Bundle.main.resourceURL`) | Couture de test, même motif que `gogRoot` chez Environnement : sous `swift test`, `Bundle.main` n'est pas l'app — sans elle, la chaîne `Bundle(url:)` → `localizedString` serait **intrôlable** ; les tests construisent de vrais `.lproj` temporaires |
+| Localisation (2026-09-10) | Le store **appartient à l'App**, pas au VM : `@StateObject` créé dans `StarHubTHApp.init`, passé au VM à l'init et aux vues en paramètre | Les menus de `CommandMenu` résolvent leurs libellés avant toute vue ; s'ils passaient par un relais du VM, ils resteraient figés après une bascule de langue dès la suppression des façades. Un seul `let store` habille les deux `@StateObject` — un wrapper ne peut pas lire un autre wrapper dans l'`init` de la même struct |
+| Localisation (2026-09-10) | `knownLanguageCodes`, statique du VM, est **supprimé** plutôt que déplacé | Mort : zéro appelant dans le code comme dans les tests — son commentaire renvoyait à `ModConfigEditorView` qui ne s'en sert plus. Récupérable à `pre-refactor-localisation` si un besoin reparaît |
+| Localisation (2026-09-10) | `CompatibilityWarning.label`/`.message` prennent `_ l10n: LocalizationStore` au lieu du VM ; `ConflictActivationGate` et la fonction libre `anomalyReasons` lisent `vm.localization` ; les closures `L:` des composants reçoivent `localization.L` | Ces helpers ne se servaient du VM **que** pour résoudre des clés. La signature du gate et de la fonction libre ne change pas côté appelants (`vm.localization` est un `let` interne du VM) ; les trois fonctions statiques, elles, changent de signature — quatre appelants mis à jour |
+| Localisation (2026-09-10) | `MainView` et `ModProfilesView` sont **découpées** au passage (`destinationView`, `handleTabChange`, `sidebarColumn`, `navHistoryButtons`, `profileRow`, `profileDeletionMessage`) | L'ajout d'un argument `localization:` à chaque destination de `MainView` a fait franchir au `body` le seuil de saturation du type-checker — erreurs « unable to type-check in reasonable time » réelles au build. Le découpage en sous-vues est le remède documenté (CLAUDE.md, pièges SwiftUI) ; comportement inchangé, +92 lignes au cliquet `oversized_excess_lines`, assumées |
 
 ### Travail concurrent
 
