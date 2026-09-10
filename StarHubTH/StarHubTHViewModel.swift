@@ -10514,12 +10514,12 @@ for mod in mods {
     /// issues filter, so the two can't independently drift out of sync (a
     /// group's own `dependencies`/`uniqueId` are empty, so checking the
     /// group itself before its children is always safe and often a no-op).
+    /// Façade **provisoire** vers `ModListScoping` : les vues appellent encore
+    /// ces prédicats sur le ViewModel (six sites dans `ModListView`). Elles
+    /// passeront directement au type extrait quand la vue sera découpée (§P8) ;
+    /// d'ici là, la règle n'a qu'une définition, ici comme là-bas.
     func matchesSelfOrAnyChild(_ mod: ModItem, _ predicate: (ModItem) -> Bool) -> Bool {
-        if predicate(mod) { return true }
-        if mod.isGroup, let children = mod.children {
-            return children.contains(where: predicate)
-        }
-        return false
+        ModListScoping.matchesSelfOrAnyChild(mod, predicate)
     }
 
     /// La même règle que la pastille d'anomalie. Elle ne l'était pas : le
@@ -10531,9 +10531,7 @@ for mod in mods {
     func hasIssues(_ mod: ModItem) -> Bool { anomaly(for: mod) != nil }
 
     func matchesSearch(_ mod: ModItem, filters: ModListFilters) -> Bool {
-        filters.search.isEmpty || matchesSelfOrAnyChild(mod) {
-            $0.name.localizedCaseInsensitiveContains(filters.search) || $0.uniqueId.localizedCaseInsensitiveContains(filters.search)
-        }
+        ModListScoping.matchesSearch(mod, filters: filters)
     }
 
     func matchesCategory(_ mod: ModItem, filters: ModListFilters) -> Bool {
@@ -10556,21 +10554,15 @@ for mod in mods {
     }
 
     func matchesConfig(_ mod: ModItem, filters: ModListFilters) -> Bool {
-        !filters.configOnly || matchesSelfOrAnyChild(mod) { $0.hasConfigFile }
+        ModListScoping.matchesConfig(mod, filters: filters)
     }
 
-    /// Le favori se marque sur la ligne de premier niveau, donc se teste sur
-    /// elle : un pack est favori pour lui-même, pas par l'un de ses composants.
     func matchesFavorites(_ mod: ModItem, filters: ModListFilters) -> Bool {
-        !filters.favoritesOnly || isFavorite(mod)
+        ModListScoping.matchesFavorites(mod, filters: filters, favorites: favoriteMods)
     }
 
-    /// Le cadrage « écarter » : laisse passer tout le monde par défaut, ne
-    /// garde que les mods blacklistés quand le filtre est actif. Symétrique
-    /// de `matchesFavorites` — voir son commentaire pour le pourquoi du
-    /// premier niveau.
     func matchesBlacklisted(_ mod: ModItem, filters: ModListFilters) -> Bool {
-        !filters.blacklistedOnly || isBlacklisted(mod)
+        ModListScoping.matchesBlacklisted(mod, filters: filters, blacklisted: blacklistedMods)
     }
 
     func matchesTranslation(_ mod: ModItem, _ scope: FrenchTranslationScope) -> Bool {

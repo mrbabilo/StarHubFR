@@ -196,8 +196,14 @@ let package = Package(
                 "Models/AppSupportMigration.swift",
                 "Models/AppSupport.swift",
                 "Models/DefaultsMigration.swift",
+                "Models/ModListScoping.swift",
                 "Stores/InstalledModRegistryStore.swift",
             ]
+        ),
+        .testTarget(
+            name: "ModListScopingTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ModListScopingTests"
         ),
         .testTarget(
             name: "InstalledModRegistryStoreTests",
