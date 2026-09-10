@@ -3060,111 +3060,17 @@ class StarHubTHViewModel: ObservableObject {
 
     @MainActor
     private func performToggle(_ mod: ModItem, completion: (() -> Void)? = nil) {
-        // Helper to find the top-level folder that contains a given uniqueId
-        func getTopLevelFolder(for uniqueId: String) -> String? {
-            for m in self.mods {
-                if !m.isGroup && m.uniqueId.caseInsensitiveCompare(uniqueId) == .orderedSame {
-                    return m.folderName
-                } else if m.isGroup, let children = m.children {
-                    if children.contains(where: { $0.uniqueId.caseInsensitiveCompare(uniqueId) == .orderedSame }) {
-                        return m.folderName
-                    }
-                }
-            }
-            return nil
-        }
-        
-        // Helper to get all dependencies of a top-level folder (including its children)
-        func getDependencies(for folderName: String) -> [ModDependency] {
-            guard let m = self.mods.first(where: { $0.folderName == folderName }) else { return [] }
-            if m.isGroup, let children = m.children {
-                return children.flatMap { $0.dependencies }
-            } else {
-                return m.dependencies
-            }
-        }
-        
-        // Everything below matches against TOP-LEVEL entries of `self.mods`,
-        // so a mod that is a pack *child* has to be mapped to its owning
-        // folder first. This matters because callers don't all pass top-level
-        // items: the dependency tree resolves through `installedModsByUniqueId`,
-        // which indexes children (a dependency usually lives inside a pack), so
-        // its "Enable" button handed us a child whose folderName is
-        // "Pack/Child". No top-level entry matches that, the apply loop hit
-        // `continue`, and the button silently did nothing.
-        let seedFolder: String = {
-            // Already top-level (standalone mod or pack header) → unchanged.
-            if self.mods.contains(where: { $0.folderName == mod.folderName }) {
-                return mod.folderName
-            }
-            // Otherwise resolve the pack that owns this uniqueId — the same
-            // mapping the dependency traversal below already relies on.
-            return getTopLevelFolder(for: mod.uniqueId) ?? mod.folderName
-        }()
+        // Le QUOI — quels dossiers, quel état visé — vit dans `TogglePlan`
+        // (Core, testé) : rapprochement enfant de pack → dossier de premier
+        // niveau, re-dérivation de l'état depuis l'instantané `mods` (le mod
+        // a été capturé par valeur à l'empilement), chaînage des dépendances
+        // requises. Ici ne reste que le COMMENT : les renommages disque et
+        // la publication.
+        let plan = TogglePlan.make(mod: mod, mods: mods, chain: chainToggleDependencies)
+        let seedFolder = plan.seedFolder
+        let targetState = plan.targetState
+        let foldersToToggle = plan.folders
 
-        var foldersToToggle: Set<String> = [seedFolder]
-        // Re-derive from the current snapshot rather than trusting
-        // `mod.isEnabled` — `mod` was captured by value when this call was
-        // enqueued (see `toggleMod`), so by the time a queued call actually
-        // runs, `self.mods` may already reflect a state change from an
-        // earlier queued toggle.
-        let currentIsEnabled = self.mods.first(where: { $0.folderName == seedFolder })?.isEnabled ?? mod.isEnabled
-        let targetState = !currentIsEnabled // True if we are enabling, false if disabling
-        
-        if chainToggleDependencies {
-            if targetState == true {
-                // Enabling: recursively enable all REQUIRED dependencies.
-                // Traversal continues through dependencies that are already
-                // enabled (tracked by `visited`, separate from
-                // `foldersToToggle`) so that a disabled mod two levels down
-                // an already-enabled chain still gets picked up.
-                var queue = [seedFolder]
-                var visited: Set<String> = [seedFolder]
-                while !queue.isEmpty {
-                    let currentFolder = queue.removeFirst()
-                    let deps = getDependencies(for: currentFolder)
-
-                    for dep in deps where dep.isRequired {
-                        if let depFolder = getTopLevelFolder(for: dep.uniqueId), !visited.contains(depFolder) {
-                            visited.insert(depFolder)
-                            let isDepFolderEnabled = self.mods.first(where: { $0.folderName == depFolder })?.isEnabled ?? false
-                            if !isDepFolderEnabled {
-                                foldersToToggle.insert(depFolder)
-                            }
-                            queue.append(depFolder)
-                        }
-                    }
-                }
-            } else {
-                // Disabling: recursively disable all enabled mods that REQUIRE this mod
-                var queue = [seedFolder]
-                while !queue.isEmpty {
-                    let currentFolder = queue.removeFirst()
-                    
-                    var providedUniqueIds: [String] = []
-                    if let m = self.mods.first(where: { $0.folderName == currentFolder }) {
-                        if m.isGroup, let children = m.children {
-                            providedUniqueIds = children.map { $0.uniqueId }
-                        } else {
-                            providedUniqueIds = [m.uniqueId]
-                        }
-                    }
-                    
-                    for otherMod in self.mods where otherMod.isEnabled && !foldersToToggle.contains(otherMod.folderName) {
-                        let otherDeps = getDependencies(for: otherMod.folderName)
-                        let requiresCurrent = otherDeps.contains { dep in
-                            dep.isRequired && providedUniqueIds.contains { $0.caseInsensitiveCompare(dep.uniqueId) == .orderedSame }
-                        }
-                        if requiresCurrent {
-                            foldersToToggle.insert(otherMod.folderName)
-                            queue.append(otherMod.folderName)
-                        }
-                    }
-                }
-            }
-        }
-        // else: chainToggleDependencies == false → only toggle the single mod itself
-        
         let fm = FileManager.default
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
         var anyMoved = false
@@ -3244,8 +3150,6 @@ class StarHubTHViewModel: ObservableObject {
             // next full scan (launch / refresh / install / delete) reconciles
             // against the disk. Done on the main thread: it's an O(toggled) map
             // over self.mods, cheaper than the UI refresh it triggers.
-            let toggledFolders = foldersToToggle
-            let target = targetState
             DispatchQueue.main.async { [weak self] in
                 guard let self else {
                     // Self is gone — the queue runner is dead anyway. Try to
@@ -3254,17 +3158,7 @@ class StarHubTHViewModel: ObservableObject {
                     completion?()
                     return
                 }
-                self.mods = self.mods.map { mod in
-                    guard toggledFolders.contains(mod.folderName) else { return mod }
-                    var m = mod
-                    m.isEnabled = target
-                    // A pack's children share their top-level folder's state.
-                    if m.isGroup, var children = m.children {
-                        for i in children.indices { children[i].isEnabled = target }
-                        m.children = children
-                    }
-                    return m
-                }
+                self.mods = TogglePlan.flipped(self.mods, folders: foldersToToggle, target: targetState)
                 self.rebuildDependencyIndexes()
                 self.syncActiveProfileIds()
                 completion?()
