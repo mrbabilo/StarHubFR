@@ -9,6 +9,7 @@ import SwiftUI
 /// vivent plus que dans une sauvegarde.
 struct RecoverableFilesView: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     @Binding var isPresented: Bool
 
     /// Le fichier dont l'aperçu est déplié. Un seul à la fois : la lecture se
@@ -20,9 +21,9 @@ struct RecoverableFilesView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 6) {
-                Text(vm.L(L10n.Recovery.title))
+                Text(localization.L(L10n.Recovery.title))
                     .font(.system(size: 16, weight: .semibold))
-                Text(vm.L(L10n.Recovery.note))
+                Text(localization.L(L10n.Recovery.note))
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -35,7 +36,7 @@ struct RecoverableFilesView: View {
                 centered { ProgressView() }
             } else if vm.recoverableFiles.isEmpty {
                 centered {
-                    Text(vm.L(L10n.Recovery.empty))
+                    Text(localization.L(L10n.Recovery.empty))
                         .font(.system(size: 12))
                         .foregroundColor(.secondary)
                 }
@@ -54,10 +55,10 @@ struct RecoverableFilesView: View {
             Divider()
 
             HStack {
-                Button(vm.L(L10n.ModInstall.refreshBackups)) { vm.scanRecoverableFiles() }
+                Button(localization.L(L10n.ModInstall.refreshBackups)) { vm.scanRecoverableFiles() }
                     .disabled(vm.isScanningRecoverableFiles)
                 Spacer()
-                Button(vm.L(L10n.Main.ok)) { isPresented = false }
+                Button(localization.L(L10n.Main.ok)) { isPresented = false }
                     .keyboardShortcut(.defaultAction)
             }
             .padding(16)
@@ -67,6 +68,7 @@ struct RecoverableFilesView: View {
         .sheet(item: $comparing) { file in
             TranslationRecoveryDiffView(
                 vm: vm,
+                localization: localization,
                 file: file,
                 isPresented: Binding(get: { comparing != nil },
                                      set: { if !$0 { comparing = nil } }))
@@ -98,21 +100,21 @@ struct RecoverableFilesView: View {
             // Un fichier de traduction se compare clé à clé : le remplacer en
             // entier coûterait au traducteur ce qu'il a écrit depuis.
             if file.relativePath.hasPrefix("i18n/") {
-                Button(vm.L(L10n.Recovery.compareKeys)) { comparing = file }
+                Button(localization.L(L10n.Recovery.compareKeys)) { comparing = file }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
                     .pointingHandCursor()
             }
             // L'aperçu avant l'écriture : on n'écrase pas un fichier du dossier
             // d'un mod sans avoir montré ce qu'on y met.
-            Button(vm.L(L10n.Recovery.preview)) { togglePreview(file) }
+            Button(localization.L(L10n.Recovery.preview)) { togglePreview(file) }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
                 .pointingHandCursor()
             // Rien à remplacer quand le fichier installé n'a rien perdu : le
             // proposer inviterait à écraser le plus récent par le plus ancien.
             if file.reason != .translationDiffers {
-                Button(vm.L(L10n.Recovery.recover)) { vm.recoverFile(file) }
+                Button(localization.L(L10n.Recovery.recover)) { vm.recoverFile(file) }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
                     .pointingHandCursor()
@@ -152,11 +154,11 @@ struct RecoverableFilesView: View {
     private func reasonLabel(_ reason: RecoveryReason) -> String {
         switch reason {
         case .absentFromInstall:
-            return vm.L(L10n.Recovery.reasonAbsent)
+            return localization.L(L10n.Recovery.reasonAbsent)
         case .keysLostSinceBackup(let keys):
-            return String(format: vm.L(L10n.Recovery.reasonLostKeys), Int64(keys.count))
+            return String(format: localization.L(L10n.Recovery.reasonLostKeys), Int64(keys.count))
         case .translationDiffers:
-            return vm.L(L10n.Recovery.reasonDiffers)
+            return localization.L(L10n.Recovery.reasonDiffers)
         }
     }
 }

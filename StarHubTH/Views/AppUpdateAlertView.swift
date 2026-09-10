@@ -6,11 +6,12 @@ import SwiftUI
 /// boutons acquittent le tag : l'alerte se montre une fois par release.
 struct AppUpdateAlertView: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     let release: GitHubRelease
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(String(format: vm.L(L10n.AppUpdate.title), release.tagName))
+            Text(String(format: localization.L(L10n.AppUpdate.title), release.tagName))
                 .font(.system(size: 16, weight: .semibold))
             if let excerpt = AppReleasePolicy.firstParagraph(of: release.body) {
                 Text(excerpt)
@@ -21,11 +22,11 @@ struct AppUpdateAlertView: View {
             }
             HStack {
                 Spacer()
-                Button(vm.L(L10n.AppUpdate.later)) {
+                Button(localization.L(L10n.AppUpdate.later)) {
                     vm.acknowledgeRelease(release)
                 }
                 .keyboardShortcut(.cancelAction)
-                Button(vm.L(L10n.AppUpdate.seeRelease)) {
+                Button(localization.L(L10n.AppUpdate.seeRelease)) {
                     if let url = URL(string: release.htmlURL) {
                         NSWorkspace.shared.open(url)
                     }

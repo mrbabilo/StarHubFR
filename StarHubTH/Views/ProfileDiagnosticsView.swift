@@ -17,6 +17,7 @@ import SwiftUI
 /// sur un profil sans le moindre défaut.
 struct ProfileDiagnosticsView: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     let profile: ModProfile
     @Binding var isPresented: Bool
     /// Ouvre la fiche d'un mod sur son onglet Traduction. Confié à l'appelant :
@@ -35,14 +36,14 @@ struct ProfileDiagnosticsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 6) {
-                Text(String(format: vm.L(L10n.Profiles.diagnosticTitle), profile.name))
+                Text(String(format: localization.L(L10n.Profiles.diagnosticTitle), profile.name))
                     .font(AppDesign.Font.headline(.semibold))
                 // Seulement quand des mods manquent vraiment : cette feuille
                 // s'ouvre aussi depuis la couverture française d'un profil
                 // sans le moindre défaut, et l'accueillir par « ce profil
                 // réclame des mods qui ne sont plus installés » serait faux.
                 if !missing.isEmpty {
-                    Text(vm.L(L10n.Profiles.missingNote) + " " + vm.L(L10n.Profiles.missingRestoreNote))
+                    Text(localization.L(L10n.Profiles.missingNote) + " " + localization.L(L10n.Profiles.missingRestoreNote))
                         .font(AppDesign.Font.footnote)
                         .foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -55,14 +56,14 @@ struct ProfileDiagnosticsView: View {
             ScrollView {
                 LazyVStack(spacing: 0) {
                     if !missing.isEmpty {
-                        sectionHeader(vm.L(L10n.Profiles.sectionMissing))
+                        sectionHeader(localization.L(L10n.Profiles.sectionMissing))
                         ForEach(missing) { mod in
                             row(mod)
                             Divider().padding(.leading, 20)
                         }
                     }
                     if !gaps.isEmpty {
-                        sectionHeader(vm.L(L10n.Profiles.sectionDependencies))
+                        sectionHeader(localization.L(L10n.Profiles.sectionDependencies))
                         ForEach(gaps) { gap in
                             gapRow(gap)
                             Divider().padding(.leading, 20)
@@ -76,7 +77,7 @@ struct ProfileDiagnosticsView: View {
 
             HStack {
                 Spacer()
-                Button(vm.L(L10n.Main.ok)) { isPresented = false }
+                Button(localization.L(L10n.Main.ok)) { isPresented = false }
                     .keyboardShortcut(.defaultAction)
             }
             .padding(16)
@@ -118,25 +119,25 @@ struct ProfileDiagnosticsView: View {
             // La feuille peut s'ouvrir par la pastille d'anomalies avant que la
             // mesure ne soit finie : le dire vaut mieux qu'une section absente,
             // qu'on prendrait pour « rien à traduire ».
-            sectionHeader(vm.L(L10n.Profiles.sectionTranslation))
+            sectionHeader(localization.L(L10n.Profiles.sectionTranslation))
             HStack(spacing: 8) {
                 ProgressView().controlSize(.small)
-                Text(vm.L(L10n.Profiles.translationMeasuring))
+                Text(localization.L(L10n.Profiles.translationMeasuring))
                     .font(AppDesign.Font.caption)
                     .foregroundColor(.secondary)
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 12)
         } else if let summary = translation, !summary.isEmpty {
-            sectionHeader(vm.L(L10n.Profiles.sectionTranslation))
+            sectionHeader(localization.L(L10n.Profiles.sectionTranslation))
             VStack(alignment: .leading, spacing: 6) {
-                Text(String(format: vm.L(L10n.Profiles.translationSummary),
+                Text(String(format: localization.L(L10n.Profiles.translationSummary),
                             Int64(summary.translatedKeys), Int64(summary.totalKeys),
                             summary.displayPercent,
                             Int64(summary.translatableCount),
                             Int64(summary.fullyTranslatedCount)))
                     .font(AppDesign.Font.caption)
-                Text(vm.L(L10n.Profiles.translationNote))
+                Text(localization.L(L10n.Profiles.translationNote))
                     .font(AppDesign.Font.footnote)
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -145,7 +146,7 @@ struct ProfileDiagnosticsView: View {
             .padding(.bottom, 8)
 
             if summary.pending.isEmpty {
-                Text(vm.L(L10n.Profiles.translationAllDone))
+                Text(localization.L(L10n.Profiles.translationAllDone))
                     .font(AppDesign.Font.caption)
                     .foregroundColor(.secondary)
                     .padding(.horizontal, 20)
@@ -167,7 +168,7 @@ struct ProfileDiagnosticsView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(mod.name)
                     .font(AppDesign.Font.body)
-                Text(String(format: vm.L(L10n.Profiles.translationRowCounts),
+                Text(String(format: localization.L(L10n.Profiles.translationRowCounts),
                             Int64(mod.translated), Int64(mod.total),
                             Int64(mod.missingCount)))
                     .font(AppDesign.Font.iconXS)
@@ -182,7 +183,7 @@ struct ProfileDiagnosticsView: View {
                 .font(.system(size: 11, weight: .medium, design: .monospaced))
                 .foregroundColor(mod.translated == 0 ? .secondary : AppDesign.Color.accent)
 
-            Button(vm.L(L10n.Profiles.translationOpen)) {
+            Button(localization.L(L10n.Profiles.translationOpen)) {
                 // Ouvre la fiche du mod sur son onglet Traduction. Passer par
                 // `.jumpToMod` n'aurait fait que **cadrer la liste** — la fiche
                 // s'ouvre par `viewingModDetail` — et aurait laissé la liste
@@ -218,7 +219,7 @@ struct ProfileDiagnosticsView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(gap.displayName)
                     .font(AppDesign.Font.body)
-                Text(String(format: vm.L(L10n.Profiles.requiredByCount),
+                Text(String(format: localization.L(L10n.Profiles.requiredByCount),
                             Int64(gap.requiredBy.count),
                             gap.requiredBy.prefix(3).joined(separator: ", ")))
                     .font(AppDesign.Font.iconXS)
@@ -237,7 +238,7 @@ struct ProfileDiagnosticsView: View {
                     ProgressView()
                         .controlSize(.small)
                 } else {
-                    Button(vm.L(L10n.Profiles.addToProfile)) {
+                    Button(localization.L(L10n.Profiles.addToProfile)) {
                         vm.addModToProfile(id: profile.id, uniqueId: gap.uniqueId)
                     }
                     .buttonStyle(.bordered)
@@ -250,7 +251,7 @@ struct ProfileDiagnosticsView: View {
                 HStack(spacing: AppDesign.Spacing.xs) {
                     Image(systemName: "exclamationmark.circle")
                         .font(AppDesign.Font.iconXS)
-                    Text(vm.L(L10n.Profiles.dependencyNotInstalled))
+                    Text(localization.L(L10n.Profiles.dependencyNotInstalled))
                         .font(AppDesign.Font.footnote)
                 }
                 .foregroundColor(AppDesign.Color.warning)
@@ -279,12 +280,12 @@ struct ProfileDiagnosticsView: View {
             if mod.isBundledWithSmapi {
                 // Proposer Nexus ici serait un mauvais conseil : ce mod revient
                 // avec une réinstallation de SMAPI, et n'a pas de page à lui.
-                Text(vm.L(L10n.Profiles.missingBundled))
+                Text(localization.L(L10n.Profiles.missingBundled))
                     .font(AppDesign.Font.footnote)
                     .foregroundColor(.secondary)
             } else {
                 if mod.hasBackup {
-                    Button(vm.L(L10n.Profiles.missingRestore)) {
+                    Button(localization.L(L10n.Profiles.missingRestore)) {
                         vm.restoreMissingModFromBackup(uniqueId: mod.uniqueId)
                     }
                     .buttonStyle(.bordered)
@@ -292,7 +293,7 @@ struct ProfileDiagnosticsView: View {
                     .pointingHandCursor()
                 }
                 if let nexusId = mod.nexusModId, let id = Int(nexusId) {
-                    Button(vm.L(L10n.ModInstall.depDownload)) {
+                    Button(localization.L(L10n.ModInstall.depDownload)) {
                         vm.downloadModFromNexus(nexusId: id)
                     }
                     .buttonStyle(.bordered)
@@ -300,10 +301,10 @@ struct ProfileDiagnosticsView: View {
                     // L'API refuse tout lien direct à un compte non premium :
                     // proposer le bouton reviendrait à promettre un échec.
                     .disabled(vm.isDownloadingFromNexus || vm.nexusDirectDownloadUnavailable)
-                    .help(vm.nexusDirectDownloadUnavailable ? vm.L(L10n.Mods.premiumOnlyHint) : "")
+                    .help(vm.nexusDirectDownloadUnavailable ? localization.L(L10n.Mods.premiumOnlyHint) : "")
                     .pointingHandCursor()
                 } else if !mod.hasBackup {
-                    Text(vm.L(L10n.Profiles.missingUnknown))
+                    Text(localization.L(L10n.Profiles.missingUnknown))
                         .font(AppDesign.Font.footnote)
                         .foregroundColor(.secondary)
                 }

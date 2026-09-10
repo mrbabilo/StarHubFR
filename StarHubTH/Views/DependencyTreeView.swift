@@ -6,17 +6,18 @@ import SwiftUI
 /// `@Published mods` — so an "Enable" action re-resolves automatically.
 struct DependencyTreeView: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     let mod: ModItem
 
     var body: some View {
         let nodes = vm.dependencyTree(for: mod)
         if nodes.isEmpty {
-            ContentUnavailableView(vm.L(L10n.VM.noDependenciesFound), systemImage: "shippingbox")
+            ContentUnavailableView(localization.L(L10n.VM.noDependenciesFound), systemImage: "shippingbox")
                 .frame(maxWidth: .infinity, minHeight: 160)
         } else {
             VStack(alignment: .leading, spacing: 8) {
                 ForEach(nodes) { node in
-                    DependencyNodeTree(node: node, vm: vm)
+                    DependencyNodeTree(node: node, vm: vm, localization: localization)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -30,14 +31,15 @@ struct DependencyTreeView: View {
 struct DependencyNodeTree: View {
     let node: DependencyNode
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            DependencyRowView(node: node, vm: vm)
+            DependencyRowView(node: node, vm: vm, localization: localization)
             if !node.children.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
                     ForEach(node.children) { child in
-                        DependencyNodeTree(node: child, vm: vm)
+                        DependencyNodeTree(node: child, vm: vm, localization: localization)
                     }
                 }
                 .padding(.leading, 18)
@@ -59,6 +61,7 @@ struct DependencyNodeTree: View {
 struct DependencyRowView: View {
     let node: DependencyNode
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     /// La dépendance dont l'activation attend une confirmation : smapi.io la
     /// signale cassée. Voir `CompatibilityWarning`.
     @State private var pendingActivation: ModItem?
@@ -81,7 +84,7 @@ struct DependencyRowView: View {
                         .foregroundColor(.secondary)
                 }
                 HStack(spacing: 6) {
-                    Text(node.isRequired ? vm.L(L10n.Profiles.required) : vm.L(L10n.Profiles.optional))
+                    Text(node.isRequired ? localization.L(L10n.Profiles.required) : localization.L(L10n.Profiles.optional))
                         .font(.system(size: 9, weight: .bold))
                         .foregroundColor(node.isRequired ? .orange : .secondary)
                         .padding(.horizontal, 5).padding(.vertical, 2)
@@ -123,9 +126,9 @@ struct DependencyRowView: View {
     }
     private var statusText: String {
         switch node.status {
-        case .active: return vm.L(L10n.Mods.depActive)
-        case .disabled: return vm.L(L10n.Mods.depDisabled)
-        case .missing: return vm.L(L10n.Mods.depMissing)
+        case .active: return localization.L(L10n.Mods.depActive)
+        case .disabled: return localization.L(L10n.Mods.depDisabled)
+        case .missing: return localization.L(L10n.Mods.depMissing)
         }
     }
 
@@ -133,7 +136,7 @@ struct DependencyRowView: View {
     private var actionButton: some View {
         switch node.status {
         case .disabled(let depMod):
-            Button(vm.L(L10n.Mods.depEnable)) {
+            Button(localization.L(L10n.Mods.depEnable)) {
                 // Même porte qu'ailleurs : activer un mod signalé cassé se
                 // confirme. Une dépendance cassée est justement le cas où
                 // l'utilisateur a le plus besoin de le savoir avant de cliquer.
@@ -149,7 +152,7 @@ struct DependencyRowView: View {
         case .active:
             let link = node.resolved.map { vm.nexusLink(for: $0) } ?? ""
             if !link.isEmpty {
-                Button(vm.L(L10n.Mods.nexusOpenPage)) {
+                Button(localization.L(L10n.Mods.nexusOpenPage)) {
                     if let url = URL(string: link) { NSWorkspace.shared.open(url) }
                 }
                 .buttonStyle(.borderless).controlSize(.small)
@@ -162,19 +165,19 @@ struct DependencyRowView: View {
                 Button {
                     openNexusSearch(for: modName)
                 } label: {
-                    Label(String(format: vm.L(L10n.Mods.searchNexusByModName), modName),
+                    Label(String(format: localization.L(L10n.Mods.searchNexusByModName), modName),
                           systemImage: "magnifyingglass")
                 }
                 if !author.isEmpty {
                     Button {
                         openNexusAuthorSearch(for: author)
                     } label: {
-                        Label(String(format: vm.L(L10n.Mods.searchNexusByAuthor), author),
+                        Label(String(format: localization.L(L10n.Mods.searchNexusByAuthor), author),
                               systemImage: "person")
                     }
                 }
             } label: {
-                Text(vm.L(L10n.Mods.depSearch))
+                Text(localization.L(L10n.Mods.depSearch))
             }
             .buttonStyle(.borderless).controlSize(.small)
             .foregroundColor(.accentColor).pointingHandCursor()

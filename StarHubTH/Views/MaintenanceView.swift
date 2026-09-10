@@ -25,6 +25,7 @@ private enum MaintenanceConfirmation {
 /// que « pas encore mesuré » et « rien à mesurer » ne s'affichent pas pareil.
 struct MaintenanceView: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
 
     @State private var confirmation: MaintenanceConfirmation?
     /// X103-C — l'écran doit dire ce que la fonction *ferait* quand elle est
@@ -79,53 +80,53 @@ struct MaintenanceView: View {
                presenting: confirmation) { pending in
             switch pending {
             case .purge(let keep, _, _):
-                Button(vm.L(L10n.Maintenance.confirmTrash), role: .destructive) {
+                Button(localization.L(L10n.Maintenance.confirmTrash), role: .destructive) {
                     vm.purgeInstallBackups(keepPerMod: keep)
                 }
-                Button(vm.L(L10n.Maintenance.cancel), role: .cancel) { }
+                Button(localization.L(L10n.Maintenance.cancel), role: .cancel) { }
             case .cleanStale:
-                Button(vm.L(L10n.Maintenance.confirmRemove), role: .destructive) {
+                Button(localization.L(L10n.Maintenance.confirmRemove), role: .destructive) {
                     vm.cleanStaleMaintenanceEntries()
                 }
-                Button(vm.L(L10n.Maintenance.cancel), role: .cancel) { }
+                Button(localization.L(L10n.Maintenance.cancel), role: .cancel) { }
             case .removeProtected(let session, _):
-                Button(vm.L(L10n.Maintenance.actionRemoveAnyway), role: .destructive) {
+                Button(localization.L(L10n.Maintenance.actionRemoveAnyway), role: .destructive) {
                     vm.purgeProtectedBackup(session: session)
                 }
-                Button(vm.L(L10n.Maintenance.cancel), role: .cancel) { }
+                Button(localization.L(L10n.Maintenance.cancel), role: .cancel) { }
             case .purgeTrashAll:
-                Button(vm.L(L10n.Maintenance.confirmRemove), role: .destructive) {
+                Button(localization.L(L10n.Maintenance.confirmRemove), role: .destructive) {
                     vm.purgeAllTrash()
                 }
-                Button(vm.L(L10n.Maintenance.cancel), role: .cancel) { }
+                Button(localization.L(L10n.Maintenance.cancel), role: .cancel) { }
             case .purgeTrashEntry(let event, let entry):
-                Button(vm.L(L10n.Maintenance.confirmRemove), role: .destructive) {
+                Button(localization.L(L10n.Maintenance.confirmRemove), role: .destructive) {
                     vm.purgeTrashEntry(event: event, entry: entry)
                 }
-                Button(vm.L(L10n.Maintenance.cancel), role: .cancel) { }
+                Button(localization.L(L10n.Maintenance.cancel), role: .cancel) { }
             case .purgeArchives:
-                Button(vm.L(L10n.Maintenance.confirmRemove), role: .destructive) {
+                Button(localization.L(L10n.Maintenance.confirmRemove), role: .destructive) {
                     vm.purgeNexusArchives()
                 }
-                Button(vm.L(L10n.Maintenance.cancel), role: .cancel) { }
+                Button(localization.L(L10n.Maintenance.cancel), role: .cancel) { }
             }
         } message: { pending in
             switch pending {
             case .purge(_, let doomed, let freed):
-                Text(String(format: vm.L(L10n.Maintenance.purgeMessage),
+                Text(String(format: localization.L(L10n.Maintenance.purgeMessage),
                             doomed, Self.bytes(freed)))
             case .cleanStale(let orphans, let keys):
-                Text(String(format: vm.L(L10n.Maintenance.cleanMessage),
+                Text(String(format: localization.L(L10n.Maintenance.cleanMessage),
                             orphans, keys))
             case .removeProtected(_, let modName):
-                Text(String(format: vm.L(L10n.Maintenance.protectedRemoveMessage),
+                Text(String(format: localization.L(L10n.Maintenance.protectedRemoveMessage),
                             modName))
             case .purgeTrashAll(let events):
-                Text(String(format: vm.L(L10n.Maintenance.trashPurgeAllMessage), events))
+                Text(String(format: localization.L(L10n.Maintenance.trashPurgeAllMessage), events))
             case .purgeTrashEntry(_, let entry):
-                Text(String(format: vm.L(L10n.Maintenance.trashPurgeOneMessage), entry))
+                Text(String(format: localization.L(L10n.Maintenance.trashPurgeOneMessage), entry))
             case .purgeArchives:
-                Text(vm.L(L10n.Maintenance.archivesPurgeConfirm))
+                Text(localization.L(L10n.Maintenance.archivesPurgeConfirm))
             }
         }
     }
@@ -134,14 +135,14 @@ struct MaintenanceView: View {
 
     private var header: some View {
         HStack {
-            Text(vm.L(L10n.Maintenance.title))
+            Text(localization.L(L10n.Maintenance.title))
                 .font(.headline)
                 .foregroundColor(.primary)
             Spacer()
             if vm.isBuildingMaintenanceReport {
                 HStack(spacing: 6) {
                     ProgressView().controlSize(.small)
-                    Text(vm.L(L10n.Maintenance.loading))
+                    Text(localization.L(L10n.Maintenance.loading))
                         .font(.system(size: 12))
                         .foregroundColor(.secondary)
                 }
@@ -172,7 +173,7 @@ struct MaintenanceView: View {
             Image(systemName: "sparkles")
                 .font(.system(size: 34))
                 .foregroundColor(.secondary.opacity(0.5))
-            Text(vm.L(L10n.Maintenance.nothingToDo))
+            Text(localization.L(L10n.Maintenance.nothingToDo))
                 .multilineTextAlignment(.center)
                 .font(.system(size: 14))
                 .foregroundColor(.secondary)
@@ -188,10 +189,10 @@ struct MaintenanceView: View {
         VStack(alignment: .leading, spacing: 10) {
             if !vm.trashEvents.isEmpty {
                 HStack {
-                    Text(vm.L(L10n.Maintenance.trashSectionTitle))
+                    Text(localization.L(L10n.Maintenance.trashSectionTitle))
                         .font(.system(size: 13, weight: .semibold))
                     Spacer()
-                    Button(vm.L(L10n.Maintenance.trashPurgeAll)) {
+                    Button(localization.L(L10n.Maintenance.trashPurgeAll)) {
                         confirmation = .purgeTrashAll(events: vm.trashEvents.count)
                     }
                     .controlSize(.small)
@@ -213,11 +214,11 @@ struct MaintenanceView: View {
                                 Text(entry)
                                     .font(.system(size: 12, design: .monospaced))
                                 Spacer()
-                                Button(vm.L(L10n.Maintenance.trashRestore)) {
+                                Button(localization.L(L10n.Maintenance.trashRestore)) {
                                     vm.restoreTrashEntry(event: event.folderName, entry: entry)
                                 }
                                 .controlSize(.small)
-                                Button(vm.L(L10n.Maintenance.trashPurgeOne)) {
+                                Button(localization.L(L10n.Maintenance.trashPurgeOne)) {
                                     confirmation = .purgeTrashEntry(event: event.folderName,
                                                                     entry: entry)
                                 }
@@ -231,7 +232,7 @@ struct MaintenanceView: View {
                     .background(Color(nsColor: .controlBackgroundColor))
                     .cornerRadius(8)
                 }
-                Text(vm.L(L10n.Maintenance.trashHint2))
+                Text(localization.L(L10n.Maintenance.trashHint2))
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -250,16 +251,16 @@ struct MaintenanceView: View {
         if keepNexusArchives || !vm.nexusArchives.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
-                    Text(vm.L(L10n.Maintenance.archivesTitle))
+                    Text(localization.L(L10n.Maintenance.archivesTitle))
                         .font(AppDesign.Font.body(.semibold))
                     Spacer()
                     if !vm.nexusArchives.isEmpty {
-                        Text(String(format: vm.L(L10n.Maintenance.archivesCount),
+                        Text(String(format: localization.L(L10n.Maintenance.archivesCount),
                                     vm.nexusArchives.count,
                                     Self.bytes(vm.nexusArchives.reduce(0) { $0 + $1.byteSize })))
                             .font(AppDesign.Font.footnote)
                             .foregroundColor(.secondary)
-                        Button(vm.L(L10n.Maintenance.archivesPurge)) {
+                        Button(localization.L(L10n.Maintenance.archivesPurge)) {
                             confirmation = .purgeArchives(count: vm.nexusArchives.count)
                         }
                         .controlSize(.small)
@@ -268,7 +269,7 @@ struct MaintenanceView: View {
                 }
 
                 if vm.nexusArchives.isEmpty {
-                    Text(vm.L(keepNexusArchives
+                    Text(localization.L(keepNexusArchives
                               ? L10n.Maintenance.archivesEmptyOn
                               : L10n.Maintenance.archivesEmptyOff))
                         .font(AppDesign.Font.footnote)
@@ -285,11 +286,11 @@ struct MaintenanceView: View {
                                     .foregroundColor(.secondary)
                             }
                             Spacer()
-                            Button(vm.L(L10n.Maintenance.archivesReinstall)) {
+                            Button(localization.L(L10n.Maintenance.archivesReinstall)) {
                                 vm.reinstallFromArchive(entry)
                             }
                             .controlSize(.small)
-                            Button(vm.L(L10n.Maintenance.archivesDelete)) {
+                            Button(localization.L(L10n.Maintenance.archivesDelete)) {
                                 vm.deleteNexusArchive(entry)
                             }
                             .controlSize(.small)
@@ -308,23 +309,23 @@ struct MaintenanceView: View {
     /// Le total et sa décomposition — le chiffre que l'utilisateur est venu voir.
     private func summarySection(_ report: MaintenanceInventory.Report) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(vm.L(L10n.Maintenance.total))
+            Text(localization.L(L10n.Maintenance.total))
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(.secondary)
             Text(Self.bytes(report.totalBytes))
                 .font(.system(size: 28, weight: .bold))
                 .foregroundStyle(.primary)
             VStack(alignment: .leading, spacing: 3) {
-                row(vm.L(L10n.Maintenance.installBackups),
+                row(localization.L(L10n.Maintenance.installBackups),
                     "\(report.backups.count) · \(Self.bytes(report.backupBytes))")
-                row(vm.L(L10n.Maintenance.configBackups),
+                row(localization.L(L10n.Maintenance.configBackups),
                     "\(report.configBackupCount) · \(Self.bytes(report.configBackupBytes))")
                 if !report.orphanSessions.isEmpty {
-                    row(vm.L(L10n.Maintenance.orphanSessions),
+                    row(localization.L(L10n.Maintenance.orphanSessions),
                         String(report.orphanSessions.count))
                 }
                 if !report.stalePreferenceKeys.isEmpty {
-                    row(vm.L(L10n.Maintenance.staleKeys),
+                    row(localization.L(L10n.Maintenance.staleKeys),
                         String(report.stalePreferenceKeys.count))
                 }
             }
@@ -348,14 +349,14 @@ struct MaintenanceView: View {
                                            doomed: plan.doomed.count,
                                            freedBytes: plan.freedBytes)
                 } label: {
-                    Text(String(format: vm.L(L10n.Maintenance.keepPerMod),
+                    Text(String(format: localization.L(L10n.Maintenance.keepPerMod),
                                 keep, Self.bytes(freed)))
                         .font(.system(size: 13, weight: .medium))
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(freed <= 0)
             }
-            Text(vm.L(L10n.Maintenance.trashHint))
+            Text(localization.L(L10n.Maintenance.trashHint))
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
@@ -367,7 +368,7 @@ struct MaintenanceView: View {
                 confirmation = .cleanStale(orphans: report.orphanSessions.count,
                                            keys: report.stalePreferenceKeys.count)
             } label: {
-                Label(vm.L(L10n.Maintenance.actionClean),
+                Label(localization.L(L10n.Maintenance.actionClean),
                       systemImage: "paintbrush")
                     .font(.system(size: 13, weight: .medium))
             }
@@ -380,7 +381,7 @@ struct MaintenanceView: View {
     /// « la mise à jour l'a emporté » (on peut le remettre).
     private func protectedSection(_ report: MaintenanceInventory.Report) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(String(format: vm.L(L10n.Maintenance.protectedTitle),
+            Text(String(format: localization.L(L10n.Maintenance.protectedTitle),
                         report.protectedCount))
                 .font(.system(size: 13, weight: .semibold))
             ForEach(protectedRows(report)) { row in
@@ -408,12 +409,12 @@ struct MaintenanceView: View {
                         .font(.system(size: 12, design: .monospaced))
                         .foregroundColor(.secondary)
                     Spacer()
-                    Text(vm.L(row.isGone ? L10n.Maintenance.reasonGone
+                    Text(localization.L(row.isGone ? L10n.Maintenance.reasonGone
                                          : L10n.Maintenance.reasonMissing))
                         .font(.caption)
                         .foregroundColor(.secondary)
                     if row.isGone {
-                        Button(vm.L(L10n.Maintenance.actionReveal)) {
+                        Button(localization.L(L10n.Maintenance.actionReveal)) {
                             if let path = vm.maintenanceProtectedFilePath(
                                 session: row.session, relativePath: file.relativePath) {
                                 vm.revealProtectedBackup(atPath: path)
@@ -421,7 +422,7 @@ struct MaintenanceView: View {
                         }
                         .controlSize(.small)
                     } else {
-                        Button(vm.L(L10n.Maintenance.actionRecover)) {
+                        Button(localization.L(L10n.Maintenance.actionRecover)) {
                             if let recoverable = vm.maintenanceRecoverableFile(
                                 session: row.session, relativePath: file.relativePath) {
                                 vm.recoverProtectedFile(recoverable)
@@ -431,7 +432,7 @@ struct MaintenanceView: View {
                     }
                 }
             }
-            Button(vm.L(L10n.Maintenance.actionRemoveAnyway)) {
+            Button(localization.L(L10n.Maintenance.actionRemoveAnyway)) {
                 confirmation = .removeProtected(session: row.session,
                                                 modName: row.modFolder)
             }
@@ -458,7 +459,7 @@ struct MaintenanceView: View {
         VStack(spacing: 16) {
             Spacer()
             ProgressView()
-            Text(vm.L(L10n.Maintenance.loading))
+            Text(localization.L(L10n.Maintenance.loading))
                 .font(.system(size: 14))
                 .foregroundColor(.secondary)
             Spacer()
@@ -472,7 +473,7 @@ struct MaintenanceView: View {
             Image(systemName: "sparkles")
                 .font(.system(size: 40))
                 .foregroundColor(.secondary.opacity(0.5))
-            Text(vm.L(L10n.Maintenance.nothingToDo))
+            Text(localization.L(L10n.Maintenance.nothingToDo))
                 .multilineTextAlignment(.center)
                 .font(.system(size: 14))
                 .foregroundColor(.secondary)
@@ -512,12 +513,12 @@ struct MaintenanceView: View {
 
     private var alertTitle: String {
         switch confirmation {
-        case .purge: return vm.L(L10n.Maintenance.purgeTitle)
-        case .cleanStale: return vm.L(L10n.Maintenance.cleanTitle)
-        case .removeProtected: return vm.L(L10n.Maintenance.protectedRemoveTitle)
+        case .purge: return localization.L(L10n.Maintenance.purgeTitle)
+        case .cleanStale: return localization.L(L10n.Maintenance.cleanTitle)
+        case .removeProtected: return localization.L(L10n.Maintenance.protectedRemoveTitle)
         case .purgeTrashAll, .purgeTrashEntry:
-            return vm.L(L10n.Maintenance.trashSectionTitle)
-        case .purgeArchives: return vm.L(L10n.Maintenance.archivesTitle)
+            return localization.L(L10n.Maintenance.trashSectionTitle)
+        case .purgeArchives: return localization.L(L10n.Maintenance.archivesTitle)
         case nil: return ""
         }
     }

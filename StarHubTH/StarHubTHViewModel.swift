@@ -31,28 +31,11 @@ class StarHubTHViewModel: ObservableObject {
     var steamAvatarPath: String? { environment.steamAvatarPath }
     var smapiInstalledVersion: String? { environment.smapiInstalledVersion }
 
-    // MARK: Localisation — le store du domaine (REFACTORING §6), et ses
-    // façades provisoires (condition 1) : ~1 500 appels `vm.L(...)` et cinq
-    // lectures de `vm.currentLanguage` dans les vues. Le remplacement
-    // mécanique (commit suivant) fera recevoir le store directement par les
-    // vues et supprimera ces façades avec le relais `objectWillChange`.
-    // Le store appartient à l'App (`@StateObject`) : les menus de
-    // `StarHubTHApp` résolvent leurs libellés avant toute vue, ils doivent
-    // observer la source elle-même, pas un relais.
+    // MARK: Localisation — le store du domaine (REFACTORING §6). Il
+    // appartient à l'App, qui le passe à l'init et l'observe pour ses
+    // menus ; les vues le reçoivent directement en paramètre. Le VM ne
+    // publie plus rien pour lui : plus de façade, plus de relais.
     let localization: LocalizationStore
-    private var localizationCancellable: AnyCancellable?
-
-    /// Façade provisoire — lecture **et écriture** (le sélecteur de langue
-    /// de `MainView` écrit encore `vm.currentLanguage = code`) ; la
-    /// normalisation et la persistance vivent dans le store.
-    var currentLanguage: String {
-        get { localization.currentLanguage }
-        set { localization.setLanguage(newValue) }
-    }
-
-    /// Façade provisoire — les vues appelleront `localization.L(...)` après
-    /// le remplacement mécanique.
-    func L(_ key: String) -> String { localization.L(key) }
     
     @Published var outOfDateMods: [ModUpdateInfo] = []
     @Published var smapiErrors: [String] = []
@@ -443,7 +426,7 @@ class StarHubTHViewModel: ObservableObject {
                                     entries: (done: Int, total: Int)) {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
-            let label = self.L(stepKey)
+            let label = self.localization.L(stepKey)
             self.launchStep = label
             // `max` : la barre ne recule jamais, même si une passe hors
             // lancement repassait ici avec un poids inférieur.
@@ -526,8 +509,8 @@ class StarHubTHViewModel: ObservableObject {
         let collisionIssues = HealthIssueResolver.folderCollisionIssues(
             collisions,
             modsPath: (gameDir as NSString).appendingPathComponent("Mods"),
-            title: { String(format: self.L(L10n.Health.folderCollisionTitle), $0.folderName) },
-            detail: { String(format: self.L(L10n.Health.folderCollisionDetail),
+            title: { String(format: self.localization.L(L10n.Health.folderCollisionTitle), $0.folderName) },
+            detail: { String(format: self.localization.L(L10n.Health.folderCollisionDetail),
                              $0.uniqueIds.joined(separator: " · ")) })
         // X58 — ce que le dump signale sans déclarer le mod cassé. Le nom
         // affiché vient du parc : c'est lui que `ModFocusResolver` sait
@@ -540,8 +523,8 @@ class StarHubTHViewModel: ObservableObject {
                       let texts = modWarnings[uniqueId] else { return nil }
                 return (uniqueId: uniqueId, name: name, warnings: texts)
             },
-            title: { name, _ in String(format: self.L(L10n.Health.modWarningTitle), name) },
-            detail: { joined in joined + " " + self.L(L10n.Health.modWarningSource) })
+            title: { name, _ in String(format: self.localization.L(L10n.Health.modWarningTitle), name) },
+            detail: { joined in joined + " " + self.localization.L(L10n.Health.modWarningSource) })
 
         return HealthIssueResolver.resolve(diagnostics: smapiDiagnostics,
                                            keybindReport: keybindScanService.report,
@@ -2176,12 +2159,9 @@ class StarHubTHViewModel: ObservableObject {
         environmentCancellable = environment.objectWillChange.sink { [weak self] _ in
             self?.objectWillChange.send()
         }
-        localizationCancellable = localization.objectWillChange.sink { [weak self] _ in
-            self?.objectWillChange.send()
-        }
         // Seed the first launch step label synchronously so the overlay never
         // shows an empty string before the first async hop lands.
-        self.launchStep = self.L(L10n.Main.launchStepInit)
+        self.launchStep = self.localization.L(L10n.Main.launchStepInit)
         // R2 : une application de profil morte en route ? Le journal est lu
         // ici, mais il ne sera **présenté** qu'une fois la fenêtre révélée
         // (voir `surfaceApplyRecoveryIfNeeded`, appelée par StarHubFRApp).
@@ -2303,7 +2283,7 @@ class StarHubTHViewModel: ObservableObject {
             guard let self else { return }
             self.scanMods()          // also kicks off parseSMAPILog internally
             self.reloadSaves()
-            self.environment.fetchSteamUser(fallbackFarmerName: { self.L(L10n.VM.defaultFarmerName) })
+            self.environment.fetchSteamUser(fallbackFarmerName: { self.localization.L(L10n.VM.defaultFarmerName) })
         }
         // Lightweight synchronous check: reads the install marker, or the
         // first 256 bytes of SMAPI-latest.txt — no process is ever launched
@@ -2443,7 +2423,7 @@ class StarHubTHViewModel: ObservableObject {
         // Step 0 — "Initializing": caches already seeded synchronously in
         // init (game dir, Nexus caches). Just publish the first frame.
         DispatchQueue.main.async { [weak self] in
-            self?.launchStep = self?.L(L10n.Main.launchStepInit) ?? ""
+            self?.launchStep = self?.localization.L(L10n.Main.launchStepInit) ?? ""
             self?.launchProgress = 0.05
         }
 
@@ -2489,7 +2469,7 @@ class StarHubTHViewModel: ObservableObject {
             // read depends on. Cheap (cached after this), but explicit so
             // the user knows the registry is part of the startup cost.
             DispatchQueue.main.async { [weak self] in
-                self?.launchStep = self?.L(L10n.Main.launchStepRegistry) ?? ""
+                self?.launchStep = self?.localization.L(L10n.Main.launchStepRegistry) ?? ""
                 self?.launchProgress = 0.15
             }
             self.installedModRegistryStore.warmCache()
@@ -2500,7 +2480,7 @@ class StarHubTHViewModel: ObservableObject {
             // registry. Published mutations land on main inside scanMods()
             // itself.
             DispatchQueue.main.async { [weak self] in
-                self?.launchStep = self?.L(L10n.Main.launchStepScan) ?? ""
+                self?.launchStep = self?.localization.L(L10n.Main.launchStepScan) ?? ""
                 self?.launchProgress = Self.launchScanProgressStart
             }
             // One-shot migration from the legacy Mods_disabled/ layout to the
@@ -2514,7 +2494,7 @@ class StarHubTHViewModel: ObservableObject {
             // Step 3 — Saves: read & parse the user's save XML files. Can be
             // slow when many saves exist.
             DispatchQueue.main.async { [weak self] in
-                self?.launchStep = self?.L(L10n.Main.launchStepSaves) ?? ""
+                self?.launchStep = self?.localization.L(L10n.Main.launchStepSaves) ?? ""
                 self?.launchProgress = Self.launchScanPhasesEnd
             }
             self.reloadSaves()
@@ -2524,30 +2504,30 @@ class StarHubTHViewModel: ObservableObject {
             // Grouped here because they don't block the mod list and can run
             // concurrently with the UI work that scanMods already published.
             DispatchQueue.main.async { [weak self] in
-                self?.launchStep = self?.L(L10n.Main.launchStepProfile) ?? ""
+                self?.launchStep = self?.localization.L(L10n.Main.launchStepProfile) ?? ""
                 self?.launchProgress = 0.80
                 // loadProfiles() mutates @Published (modProfiles/activeProfileId):
                 // call it here, on main, rather than on the background queue below.
                 self?.loadProfiles()
             }
-            self.environment.fetchSteamUser(fallbackFarmerName: { self.L(L10n.VM.defaultFarmerName) })
+            self.environment.fetchSteamUser(fallbackFarmerName: { self.localization.L(L10n.VM.defaultFarmerName) })
 
             // Step 4b — Seed the Nexus caches + user overrides (was blocking
             // the window's first paint when it ran in init).
             DispatchQueue.main.async { [weak self] in
-                self?.launchStep = self?.L(L10n.Main.launchStepNexus) ?? ""
+                self?.launchStep = self?.localization.L(L10n.Main.launchStepNexus) ?? ""
                 self?.launchProgress = 0.90
             }
             self.seedNexusAndUserData()
             // Startup marker — confirms LogsView is receiving entries.
-            self.log(self.L(L10n.VM.started), level: .info)
+            self.log(self.localization.L(L10n.VM.started), level: .info)
 
             // Step 5 — Done. Hop back to main *after* scanMods() has
             // published its own @Published mutations, so `isLaunching = false`
             // lands on the same runloop turn as the freshly-populated `mods`
             // array. Animate the bar to 100% then dismiss.
             DispatchQueue.main.async { [weak self] in
-                self?.launchStep = self?.L(L10n.Main.launchStepDone) ?? ""
+                self?.launchStep = self?.localization.L(L10n.Main.launchStepDone) ?? ""
                 self?.launchProgress = 1.0
             }
             // 0,15 s ne suffisait pas : le commentaire ci-dessus promettait
@@ -2623,7 +2603,7 @@ class StarHubTHViewModel: ObservableObject {
         let fm = FileManager.default
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
         if let topCount = try? fm.contentsOfDirectory(atPath: modsPath).count, topCount > 0 {
-            let preparing = self.L(L10n.Main.launchStepPreparing)
+            let preparing = self.localization.L(L10n.Main.launchStepPreparing)
             DispatchQueue.main.async {
                 self.scanProgress = ScanProgress(done: 0, total: topCount, currentName: preparing)
             }
@@ -3266,7 +3246,7 @@ class StarHubTHViewModel: ObservableObject {
             if !newAlerts.isEmpty {
                 self.lastLoggedSMAPIErrors = currentSet
                 self.log(
-                    String(format: self.L(L10n.Logs.alertLogged), Int64(newAlerts.count)),
+                    String(format: self.localization.L(L10n.Logs.alertLogged), Int64(newAlerts.count)),
                     level: .warning
                 )
                 for err in uniqueErrors where newAlerts.contains(err) {
@@ -3662,7 +3642,7 @@ class StarHubTHViewModel: ObservableObject {
             if targetState {
                 Self.saveModActivationTimestamps(self.modActivationTimestamps)
             }
-            log("\(targetState ? L(L10n.Mods.enabled) : L(L10n.Mods.disabled)): \(mod.name)\(foldersToToggle.count > 1 ? " + Dependencies" : "")")
+            log("\(targetState ? localization.L(L10n.Mods.enabled) : localization.L(L10n.Mods.disabled)): \(mod.name)\(foldersToToggle.count > 1 ? " + Dependencies" : "")")
             // A toggle only renames Mods/X ↔ Mods/.X in place — every other
             // mod attribute (name, version, dependencies, …) is unchanged. So
             // instead of re-walking the whole Mods/ tree (O(total files), which
@@ -3708,8 +3688,8 @@ class StarHubTHViewModel: ObservableObject {
     /// completion, since only this class (not `SmapiInstaller`) can
     /// translate.
     private func resolveSmapiMessage(_ key: String, _ detail: String?) -> String {
-        guard let detail = detail else { return self.L(key) }
-        return String(format: self.L(key), detail)
+        guard let detail = detail else { return self.localization.L(key) }
+        return String(format: self.localization.L(key), detail)
     }
 
     // Install SMAPI via Installer Helper
@@ -3835,7 +3815,7 @@ class StarHubTHViewModel: ObservableObject {
     ///   the mod list half-paused.
     func launchGame(honoringCloseAfterLaunch: Bool = true) {
         guard !gameDir.isEmpty else {
-            showModal(message: L(L10n.Settings.gameDirNotSet))
+            showModal(message: localization.L(L10n.Settings.gameDirNotSet))
             return
         }
         // Première couche : le jeu tourne déjà — refus net. La seconde
@@ -3843,7 +3823,7 @@ class StarHubTHViewModel: ObservableObject {
         // fichiers). Ce passage rouvre aussi le gate : le jeu étant visible,
         // la protection repose désormais sur cette seule garde.
         guard !isGameRunning() else {
-            let message = self.L(L10n.VM.launchRefusedRunning)
+            let message = self.localization.L(L10n.VM.launchRefusedRunning)
             log(message, level: .warning)
             showModal(message: message)
             return
@@ -3852,7 +3832,7 @@ class StarHubTHViewModel: ObservableObject {
         // n'apparaît pas encore dans `runningApplications`. Un double-clic
         // passerait la garde ci-dessus ; le délai le retient.
         guard launchGate.admit() else {
-            let message = self.L(L10n.VM.launchRefusedRecent)
+            let message = self.localization.L(L10n.VM.launchRefusedRecent)
             log(message, level: .warning)
             showModal(message: message)
             return
@@ -3865,21 +3845,21 @@ class StarHubTHViewModel: ObservableObject {
         let originalPath = (gameDir as NSString).appendingPathComponent("StardewValley-original")
         
         if profile == "Vanilla" && FileManager.default.fileExists(atPath: originalPath) {
-            log(L(L10n.VM.launchingVanilla))
+            log(localization.L(L10n.VM.launchingVanilla))
             let process = Process()
             process.executableURL = URL(fileURLWithPath: "/bin/bash")
             process.arguments = [originalPath]
             process.currentDirectoryURL = URL(fileURLWithPath: gameDir)
             do {
                 try process.run()
-                log(L(L10n.VM.launchVanillaSuccess))
+                log(localization.L(L10n.VM.launchVanillaSuccess))
                 if closeAfter { NSApplication.shared.terminate(nil) }
             } catch {
-                log(String(format: L(L10n.VM.launchVanillaError), error.localizedDescription))
-                showModal(message: L(L10n.VM.cannotStartVanilla))
+                log(String(format: localization.L(L10n.VM.launchVanillaError), error.localizedDescription))
+                showModal(message: localization.L(L10n.VM.cannotStartVanilla))
             }
         } else {
-            log(L(L10n.VM.launchingSmapi))
+            log(localization.L(L10n.VM.launchingSmapi))
             // Route through Steam ONLY for an actual Steam install. NSWorkspace.open(steam://)
             // returns true whenever Steam is installed at all, so an unconditional attempt
             // hijacks direct/GOG launches (Steam opens, the game never starts). Detect a
@@ -3888,7 +3868,7 @@ class StarHubTHViewModel: ObservableObject {
             let isSteamInstall = gameDir.contains("steamapps")
             if isSteamInstall, let steamURL = URL(string: "steam://run/413150"),
                NSWorkspace.shared.open(steamURL) {
-                log(L(L10n.VM.launchSteamSuccess))
+                log(localization.L(L10n.VM.launchSteamSuccess))
                 startSmapiLogWatcher()
                 if closeAfter { NSApplication.shared.terminate(nil) }
                 return
@@ -3908,12 +3888,12 @@ class StarHubTHViewModel: ObservableObject {
                 process.currentDirectoryURL = URL(fileURLWithPath: gameDir)
                 do {
                     try process.run()
-                    log(L(L10n.VM.launchDirectSuccess))
+                    log(localization.L(L10n.VM.launchDirectSuccess))
                     startSmapiLogWatcher()
                     if closeAfter { NSApplication.shared.terminate(nil) }
                     return
                 } catch {
-                    log(String(format: L(L10n.VM.launchVanillaError), error.localizedDescription))
+                    log(String(format: localization.L(L10n.VM.launchVanillaError), error.localizedDescription))
                 }
             }
 
@@ -3933,12 +3913,12 @@ class StarHubTHViewModel: ObservableObject {
         // Fallback: Open app directly
         let appURL = URL(fileURLWithPath: appPath)
             if NSWorkspace.shared.open(appURL) {
-                log(L(L10n.VM.launchDirectSuccess))
+                log(localization.L(L10n.VM.launchDirectSuccess))
                 startSmapiLogWatcher()
                 if closeAfter { NSApplication.shared.terminate(nil) }
             } else {
-                log(L(L10n.VM.cannotStartDirect))
-                showModal(message: L(L10n.VM.cannotStartGame))
+                log(localization.L(L10n.VM.cannotStartDirect))
+                showModal(message: localization.L(L10n.VM.cannotStartGame))
             }
         }
     }
@@ -5086,7 +5066,7 @@ for mod in mods {
         var updated = nexusCustomModIds
         for (folderName, id) in plan.sorted(by: { $0.key < $1.key }) {
             updated[folderName] = id
-            log(String(format: L(L10n.VM.nexusIdLearned), folderName, id))
+            log(String(format: localization.L(L10n.VM.nexusIdLearned), folderName, id))
         }
         nexusCustomModIds = updated
         Self.saveCustomModIds(updated)
@@ -5193,7 +5173,7 @@ for mod in mods {
         let stillClaimed = mods.contains { $0.folderName == old && $0.uniqueId != mod.uniqueId }
         migrateFolderKeyedStores(from: old, to: new, shared: stillClaimed)
 
-        log(String(format: L(L10n.Mods.renamedLog), old, new))
+        log(String(format: localization.L(L10n.Mods.renamedLog), old, new))
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in self?.scanMods() }
         return .renamed(newFolderName: new)
     }
@@ -5466,12 +5446,12 @@ for mod in mods {
             let formatter = DateFormatter()
             formatter.dateStyle = .medium
             formatter.timeStyle = .none
-            return String(format: self.L(L10n.Updates.snoozedUntilDate),
+            return String(format: self.localization.L(L10n.Updates.snoozedUntilDate),
                           formatter.string(from: entry.expiresAt ?? entry.snoozedAt))
         case .untilModVersion:
-            return self.L(L10n.Updates.snoozedUntilModVersion)
+            return self.localization.L(L10n.Updates.snoozedUntilModVersion)
         case .untilGameVersion:
-            return self.L(L10n.Updates.snoozedUntilGameVersion)
+            return self.localization.L(L10n.Updates.snoozedUntilGameVersion)
         }
     }
 
@@ -5515,7 +5495,7 @@ for mod in mods {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
         formatter.timeStyle = .none
-        return String(format: L(L10n.Updates.uploadedOn), formatter.string(from: date))
+        return String(format: localization.L(L10n.Updates.uploadedOn), formatter.string(from: date))
     }
 
     /// Returns the effective category for a mod.
@@ -5708,13 +5688,13 @@ for mod in mods {
 
     /// Un message de journal qui nomme le mod quand c'est possible, et se
     /// rabat sur l'identifiant seul sinon. Les deux formats sont fournis par
-    /// l'appelant : seule une vue résout `L(…)`, et les deux phrases n'ont pas
+    /// l'appelant : seule une vue résout `localization.L(…)`, et les deux phrases n'ont pas
     /// le même nombre de substitutions.
     private func nexusDownloadLogMessage(named: String, plain: String, modId: Int) -> String {
         guard let name = nexusModDisplayName(for: modId) else {
-            return String(format: L(plain), Int64(modId))
+            return String(format: localization.L(plain), Int64(modId))
         }
-        return String(format: L(named), name, Int64(modId))
+        return String(format: localization.L(named), name, Int64(modId))
     }
 
     func modForNexusUpdate(_ update: NexusUpdateChecker.ModUpdate) -> ModItem? {
@@ -5747,7 +5727,7 @@ for mod in mods {
                                 .filter { !$0.isEmpty && $0 != "Unknown" })
             if authors.count == 1 { return authors.first! }
             if authors.isEmpty { return "—" }
-            return L(L10n.Mods.packMultipleAuthors)
+            return localization.L(L10n.Mods.packMultipleAuthors)
         }
         return mod.author
     }
@@ -5935,7 +5915,7 @@ for mod in mods {
 
         nexusCustomModIds[folderName] = id
         Self.saveCustomModIds(nexusCustomModIds)
-        log(String(format: L(L10n.VM.nexusIdLearned), folderName, id))
+        log(String(format: localization.L(L10n.VM.nexusIdLearned), folderName, id))
     }
 
     /// Fetches a single mod's metadata (category + latest version + summary/
@@ -5980,14 +5960,14 @@ for mod in mods {
     /// `NexusDownloader.download` appelle sa complétion exactement une fois.
     private func rejectNexusDownloadIfBusy() -> Bool {
         guard isDownloadingFromNexus || pendingDownloadedZip != nil else { return false }
-        showModal(message: L(L10n.VM.nexusDlBusy))
+        showModal(message: localization.L(L10n.VM.nexusDlBusy))
         return true
     }
 
     /// Entry point for `nxm://` deep links (free-user "Mod Manager Download").
     func handleNxmURL(_ url: URL) {
         guard let link = NxmLink.parse(url) else {
-            showModal(message: L(L10n.VM.nexusDlBadLink))
+            showModal(message: localization.L(L10n.VM.nexusDlBadLink))
             return
         }
         enqueueOrStartNexusDownload(.init(modId: link.modId, fileId: link.fileId,
@@ -6137,24 +6117,24 @@ for mod in mods {
     }
 
     /// Renders a `NexusDownloadError` through the app's live per-language bundle
-    /// (`L(...)`) rather than `errorDescription`'s `NSLocalizedString`, which
+    /// (`localization.L(...)`) rather than `errorDescription`'s `NSLocalizedString`, which
     /// doesn't follow in-session language switching.
     private func nexusDownloadMessage(_ error: NexusDownloadError) -> String {
         switch error {
-        case .noApiKey:            return L(L10n.VM.nexusDlNoApiKey)
-        case .noValidFile:         return L(L10n.VM.nexusDlNoValidFile)
-        case .noDownloadLink:      return L(L10n.VM.nexusDlNoLink)
-        case .authFailed:          return L(L10n.VM.nexusDlAuthFailed)
-        case .linkExpired:         return L(L10n.VM.nexusDlLinkExpired)
-        case .rateLimited:         return L(L10n.VM.nexusDlRateLimited)
-        case .serverError(let code): return String(format: L(L10n.VM.nexusDlServerError), code)
-        case .requestFailed(let msg): return String(format: L(L10n.VM.nexusDlRequestFailed), msg)
+        case .noApiKey:            return localization.L(L10n.VM.nexusDlNoApiKey)
+        case .noValidFile:         return localization.L(L10n.VM.nexusDlNoValidFile)
+        case .noDownloadLink:      return localization.L(L10n.VM.nexusDlNoLink)
+        case .authFailed:          return localization.L(L10n.VM.nexusDlAuthFailed)
+        case .linkExpired:         return localization.L(L10n.VM.nexusDlLinkExpired)
+        case .rateLimited:         return localization.L(L10n.VM.nexusDlRateLimited)
+        case .serverError(let code): return String(format: localization.L(L10n.VM.nexusDlServerError), code)
+        case .requestFailed(let msg): return String(format: localization.L(L10n.VM.nexusDlRequestFailed), msg)
         // Ne devrait jamais s'afficher : les appelants traitent `.cancelled`
         // avant d'en arriver là, une alerte sur un geste volontaire étant du
         // bruit. Le cas est là pour que le switch reste exhaustif — c'est lui
         // qui a fait échouer la compilation quand ce cas est apparu, plutôt
         // que de laisser passer une chaîne anglaise en silence.
-        case .cancelled:           return L(L10n.VM.nexusDlCancelledError)
+        case .cancelled:           return localization.L(L10n.VM.nexusDlCancelledError)
         }
     }
 
@@ -6184,20 +6164,20 @@ for mod in mods {
 
         if let error = error as? InstallError {
             switch error {
-            case .extractionFailed:       return L(L10n.ModInstall.errExtraction)
-            case .unsafeContent:          return L(L10n.ModInstall.errUnsafe)
-            case .gameDirEmpty:           return L(L10n.ModInstall.errGameDir)
-            case .rarToolMissing:         return L(L10n.ModInstall.rarToolMissing)
-            case .backupFailed(let reason):  return String(format: L(L10n.ModInstall.errBackup), reason)
-            case .installFailed(let reason): return String(format: L(L10n.ModInstall.errInstall), reason)
+            case .extractionFailed:       return localization.L(L10n.ModInstall.errExtraction)
+            case .unsafeContent:          return localization.L(L10n.ModInstall.errUnsafe)
+            case .gameDirEmpty:           return localization.L(L10n.ModInstall.errGameDir)
+            case .rarToolMissing:         return localization.L(L10n.ModInstall.rarToolMissing)
+            case .backupFailed(let reason):  return String(format: localization.L(L10n.ModInstall.errBackup), reason)
+            case .installFailed(let reason): return String(format: localization.L(L10n.ModInstall.errInstall), reason)
             }
         }
         if let error = error as? ModInstallBackupManager.InstallBackupError {
             switch error {
-            case .gameDirEmpty:           return L(L10n.ModInstall.errGameDir)
-            case .modNotFound(let folder): return String(format: L(L10n.ModInstall.errModMissing), folder)
-            case .backupCreationFailed(let reason): return String(format: L(L10n.ModInstall.errBackupCreate), reason)
-            case .restoreFailed(let reason):        return String(format: L(L10n.ModInstall.errRestore), reason)
+            case .gameDirEmpty:           return localization.L(L10n.ModInstall.errGameDir)
+            case .modNotFound(let folder): return String(format: localization.L(L10n.ModInstall.errModMissing), folder)
+            case .backupCreationFailed(let reason): return String(format: localization.L(L10n.ModInstall.errBackupCreate), reason)
+            case .restoreFailed(let reason):        return String(format: localization.L(L10n.ModInstall.errRestore), reason)
             }
         }
         return error.localizedDescription
@@ -6276,9 +6256,9 @@ for mod in mods {
         // Log the outcome: either the manifest was already correct, or it
         // lags behind what Nexus reports.
         if let mv = manifestVersion, NexusUpdateChecker.isNewer(nexusVersion, installed: mv) {
-            log(String(format: L(L10n.VM.manifestVersionFixed), folderName, mv, nexusVersion))
+            log(String(format: localization.L(L10n.VM.manifestVersionFixed), folderName, mv, nexusVersion))
         } else if let mv = manifestVersion {
-            log(String(format: L(L10n.VM.manifestVersionSkipped), folderName, mv))
+            log(String(format: localization.L(L10n.VM.manifestVersionSkipped), folderName, mv))
         }
     }
 
@@ -6510,7 +6490,7 @@ for mod in mods {
                 // qu'afficher « aucun résultat » pour une requête qui a échoué.
                 self.identitySearches[mod.folderName] = nil
                 self.log("Recherche de la fiche Nexus : \(error)", level: .warning)
-                self.showModal(message: self.L(L10n.Mods.translationSearchFailed))
+                self.showModal(message: self.localization.L(L10n.Mods.translationSearchFailed))
             }
         }
     }
@@ -6537,7 +6517,7 @@ for mod in mods {
         dismissIdentityResults(for: mod)
         fetchMetadata(forNexusModId: String(candidate.hit.modId)) { _ in }
         loadModDetail(for: mod)
-        log(String(format: L(L10n.VM.nexusIdLearned), mod.folderName, String(candidate.hit.modId)))
+        log(String(format: localization.L(L10n.VM.nexusIdLearned), mod.folderName, String(candidate.hit.modId)))
     }
 
     /// Referme les propositions de traduction d'un mod.
@@ -6678,7 +6658,7 @@ for mod in mods {
             installedTranslations.recordAddon(linked)
         }
         if !InstalledTranslationStore.save(installedTranslations) {
-            showModal(message: L(L10n.Mods.translationNotTracked))
+            showModal(message: localization.L(L10n.Mods.translationNotTracked))
         }
         // La liste des propositions perd ce qui vient d'être reconnu — **sans
         // repartir sur le réseau** : on sait déjà lequel des résultats c'était,
@@ -6713,12 +6693,12 @@ for mod in mods {
         if failures.isEmpty {
             installedTranslations.forgetAddon(addon)
             if !InstalledTranslationStore.save(installedTranslations) {
-                showModal(message: L(L10n.Mods.translationRemoveNotTracked))
+                showModal(message: localization.L(L10n.Mods.translationRemoveNotTracked))
             }
         } else {
             // Même règle que pour une traduction : un retrait à moitié fait
             // garde sa ligne, seule à porter la liste des fichiers restants.
-            showModal(message: String(format: L(L10n.Mods.translationRemovePartial),
+            showModal(message: String(format: localization.L(L10n.Mods.translationRemovePartial),
                                       failures.joined(separator: ", ")))
         }
         // Une greffe mixte emporte des fichiers de langue : la couverture
@@ -6767,7 +6747,7 @@ for mod in mods {
                 // Une panne n'est pas une absence, comme pour les traductions.
                 self.supplementSearches[mod.folderName] = nil
                 self.log("Recherche de suppléments : \(error)", level: .warning)
-                self.showModal(message: self.L(L10n.Mods.translationSearchFailed))
+                self.showModal(message: self.localization.L(L10n.Mods.translationSearchFailed))
             }
         }
     }
@@ -6806,7 +6786,7 @@ for mod in mods {
                 // « aucune traduction trouvée » pour une recherche cassée.
                 self.translationHits[mod.folderName] = nil
                 self.log("Recherche de traduction : \(error)", level: .warning)
-                self.showModal(message: self.L(L10n.Mods.translationSearchFailed))
+                self.showModal(message: self.localization.L(L10n.Mods.translationSearchFailed))
             }
         }
     }
@@ -6831,7 +6811,7 @@ for mod in mods {
                 // les erreurs GraphQL.
                 self.translationHits[mod.folderName] = nil
                 self.log("Recherche de traduction (titre) : \(error)", level: .warning)
-                self.showModal(message: self.L(L10n.Mods.translationSearchFailed))
+                self.showModal(message: self.localization.L(L10n.Mods.translationSearchFailed))
             }
         }
     }
@@ -6875,7 +6855,7 @@ for mod in mods {
                     // l'utilisateur devant une impasse.
                     var hint = ""
                     if case .noDownloadLink = error {
-                        hint = "\n\n" + self.L(L10n.Mods.translationManualHint)
+                        hint = "\n\n" + self.localization.L(L10n.Mods.translationManualHint)
                     }
                     self.showModal(message: self.nexusDownloadMessage(error) + hint)
                 }
@@ -6910,7 +6890,7 @@ for mod in mods {
             case .plan(let plan): entries = plan.entries
             case .needsHost(_, _, let found): entries = found
             case .unrecognised:
-                showModal(message: L(L10n.Mods.translationUnrecognised))
+                showModal(message: localization.L(L10n.Mods.translationUnrecognised))
                 return
             }
             let plan = ManifestlessArchive.Plan(hostFolderName: mod.folderName,
@@ -6919,10 +6899,10 @@ for mod in mods {
                                         sourceName: hit.name, nexus: hit)
             if let message = result.message { showModal(message: message) }
             guard result.outcome != nil else { return }
-            log(String(format: L(L10n.Mods.translationInstalled), hit.name, mod.name))
+            log(String(format: localization.L(L10n.Mods.translationInstalled), hit.name, mod.name))
             refresh()
         } catch {
-            showModal(message: L(L10n.Mods.translationInstallFailed))
+            showModal(message: localization.L(L10n.Mods.translationInstallFailed))
             log("Dépôt de traduction : \(error)", level: .error)
         }
     }
@@ -6959,7 +6939,7 @@ for mod in mods {
         // Le refus se dit dans les mots de ce qu'on déposait : « la traduction »
         // n'a pas de sens quand l'utilisateur a glissé un lot de sacs.
         let failed = plan.kind == .translation
-            ? L(L10n.Mods.translationInstallFailed) : L(L10n.ModInstall.depositFailed)
+            ? localization.L(L10n.Mods.translationInstallFailed) : localization.L(L10n.ModInstall.depositFailed)
         guard let backupRoot = InstalledTranslationStore.backupRoot else {
             return (nil, failed)
         }
@@ -7010,7 +6990,7 @@ for mod in mods {
         if let incumbent {
             let failures = ManifestlessInstaller.uninstall(incumbent, hostPath: hostPath)
             guard failures.isEmpty else {
-                return (nil, String(format: L(L10n.Mods.translationRemovePartial),
+                return (nil, String(format: localization.L(L10n.Mods.translationRemovePartial),
                                     failures.joined(separator: ", ")))
             }
             if plan.kind == .translation {
@@ -7030,7 +7010,7 @@ for mod in mods {
             // cette erreur : les fondre dans « installation impossible »
             // laisserait croire le mod intact alors qu'il ne l'est pas.
             log("Dépôt sans manifeste, annulation incomplète : \(reason)", level: .error)
-            return (nil, String(format: L(L10n.ModInstall.depositRollbackIncomplete),
+            return (nil, String(format: localization.L(L10n.ModInstall.depositRollbackIncomplete),
                                 leftBehind.joined(separator: ", ")))
         } catch {
             log("Dépôt sans manifeste : \(error)", level: .error)
@@ -7071,7 +7051,7 @@ for mod in mods {
         guard InstalledTranslationStore.save(installedTranslations) else {
             // Les fichiers sont posés mais rien ne les retient : le dire,
             // sinon la traduction ne pourra plus être retirée.
-            return (written, L(L10n.Mods.translationNotTracked))
+            return (written, localization.L(L10n.Mods.translationNotTracked))
         }
         return (written, nil)
     }
@@ -7090,13 +7070,13 @@ for mod in mods {
         if failures.isEmpty {
             installedTranslations.forget(host: mod.folderName)
             if !InstalledTranslationStore.save(installedTranslations) {
-                showModal(message: L(L10n.Mods.translationRemoveNotTracked))
+                showModal(message: localization.L(L10n.Mods.translationRemoveNotTracked))
             }
         } else {
             // **Un retrait à moitié fait garde son entrée.** Elle porte la liste
             // des fichiers restants et l'endroit où dorment les originaux du
             // mod : l'oublier ici rendrait la seconde tentative impossible.
-            showModal(message: String(format: L(L10n.Mods.translationRemovePartial),
+            showModal(message: String(format: localization.L(L10n.Mods.translationRemovePartial),
                                       failures.joined(separator: ", ")))
         }
         // Des fichiers ont bougé même quand tout n'a pas été retiré : la
@@ -7570,7 +7550,7 @@ for mod in mods {
                                            underlying: Error? = nil) {
         guard bypassThrottle else { return }
         releaseCheckFailedMessage = String(
-            format: self.L(L10n.Settings.appCheckFailed),
+            format: self.localization.L(L10n.Settings.appCheckFailed),
             underlying?.localizedDescription ?? "HTTP \(status ?? 0)")
     }
 
@@ -7600,7 +7580,7 @@ for mod in mods {
         case .unavailable, .unparseable:
             if bypassThrottle {
                 releaseCheckFailedMessage = String(
-                    format: self.L(L10n.Settings.appCheckFailed), "HTTP 200")
+                    format: self.localization.L(L10n.Settings.appCheckFailed), "HTTP 200")
             }
         case .upToDate:
             // Succès : la date de check est repoussée, même sans nouveauté.
@@ -7964,7 +7944,7 @@ for mod in mods {
         updateKeyDeltasRevision += 1
         // Sinon la pastille de couverture ment jusqu'au prochain scan.
         invalidateFrenchCoverage(for: mod.folderName)
-        log(String(format: L(L10n.Mods.updateDeltaRenamedDone), applied.count))
+        log(String(format: localization.L(L10n.Mods.updateDeltaRenamedDone), applied.count))
         return .applied(count: applied.count, skippedCrossComponent: skipped)
     }
 
@@ -8039,7 +8019,7 @@ for mod in mods {
         }
         try? ModUpdateKeyDeltaStore.save(delta, directory: dir)
         updateKeyDeltasRevision += 1
-        log(String(format: L(L10n.Mods.updateDeltaRenamedDone), done.count))
+        log(String(format: localization.L(L10n.Mods.updateDeltaRenamedDone), done.count))
         // Le delta config ne décrit que des clés de premier niveau : pas de
         // notion de composant, donc rien à annoncer en cross.
         return .applied(count: done.count, skippedCrossComponent: 0)
@@ -8223,9 +8203,9 @@ for mod in mods {
                 self.isSaveOperationRunning = false
                 if success {
                     self.reloadSaves()
-                    self.showModal(message: self.L(L10n.VM.saveSuccess))
+                    self.showModal(message: self.localization.L(L10n.VM.saveSuccess))
                 } else {
-                    self.showModal(message: self.L(L10n.VM.saveError))
+                    self.showModal(message: self.localization.L(L10n.VM.saveError))
                 }
             }
         }
@@ -8245,12 +8225,12 @@ for mod in mods {
             DispatchQueue.main.async {
                 self.isSaveOperationRunning = false
                 if success {
-                    self.showModal(message: self.L(L10n.Saves.inventorySuccess))
+                    self.showModal(message: self.localization.L(L10n.Saves.inventorySuccess))
                     if let refetched = refetched {
                         self.inventoryToEdit = refetched
                     }
                 } else {
-                    self.showModal(message: self.L(L10n.Saves.inventoryError))
+                    self.showModal(message: self.localization.L(L10n.Saves.inventoryError))
                 }
             }
         }
@@ -8278,9 +8258,9 @@ for mod in mods {
             // supprimée — on peut en éditer une autre depuis l'arbre.
             if editingSave?.id == info.id { editingSave = nil }
             reloadSaves()
-            showModal(message: L(L10n.VM.deleteSaveSuccess))
+            showModal(message: localization.L(L10n.VM.deleteSaveSuccess))
         } else {
-            showModal(message: L(L10n.VM.deleteSaveError))
+            showModal(message: localization.L(L10n.VM.deleteSaveError))
         }
     }
     
@@ -8316,7 +8296,7 @@ for mod in mods {
         panel.allowedContentTypes = [.png, .jpeg, .gif]
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = false
-        panel.title = L(L10n.Saves.avatarPanelTitle)
+        panel.title = localization.L(L10n.Saves.avatarPanelTitle)
         if panel.runModal() == .OK, let url = panel.url,
            let appSupport = AppSupport.avatarsDirectory {
             // Copy to app support dir to prevent broken paths
@@ -8351,9 +8331,9 @@ for mod in mods {
         isSaveOperationRunning = false
         if duplicated {
             reloadSaves()
-            showModal(message: L(L10n.VM.duplicateSaveSuccess))
+            showModal(message: localization.L(L10n.VM.duplicateSaveSuccess))
         } else {
-            showModal(message: L(L10n.VM.duplicateSaveError))
+            showModal(message: localization.L(L10n.VM.duplicateSaveError))
         }
         return duplicated
     }
@@ -8400,10 +8380,10 @@ for mod in mods {
         isSaveOperationRunning = false
         if branched {
             reloadSaves()
-            showModal(message: L(L10n.VM.branchSuccess))
+            showModal(message: localization.L(L10n.VM.branchSuccess))
             return true
         } else {
-            showModal(message: L(L10n.VM.branchError))
+            showModal(message: localization.L(L10n.VM.branchError))
             return false
         }
     }
@@ -8420,9 +8400,9 @@ for mod in mods {
             reloadSaves()
             viewingSaveTimeline = nil
             editingSave = nil
-            showModal(message: L(L10n.VM.restoreSuccess))
+            showModal(message: localization.L(L10n.VM.restoreSuccess))
         } else {
-            showModal(message: L(L10n.VM.restoreError))
+            showModal(message: localization.L(L10n.VM.restoreError))
         }
     }
 
@@ -8476,14 +8456,14 @@ for mod in mods {
                 process.waitUntilExit()
                 DispatchQueue.main.async {
                     if process.terminationStatus == 0 {
-                        self.showModal(message: String(format: self.L(successKey), zipPath))
+                        self.showModal(message: String(format: self.localization.L(successKey), zipPath))
                     } else {
-                        self.showModal(message: self.L(errorKey))
+                        self.showModal(message: self.localization.L(errorKey))
                     }
                 }
             } catch {
                 DispatchQueue.main.async {
-                    self.showModal(message: self.L(L10n.VM.cannotRunZip))
+                    self.showModal(message: self.localization.L(L10n.VM.cannotRunZip))
                 }
             }
         }
@@ -8496,7 +8476,7 @@ for mod in mods {
 
     func backupAllMods() {
         guard !gameDir.isEmpty else {
-            showModal(message: L(L10n.Settings.gameDirNotSet))
+            showModal(message: localization.L(L10n.Settings.gameDirNotSet))
             return
         }
         let modsDir = (gameDir as NSString).appendingPathComponent("Mods")
@@ -8512,7 +8492,7 @@ for mod in mods {
         // (Mods/.X). Enumerate the top level and remove every `.X` that
         // isn't OS junk.
         guard let entries = try? fm.contentsOfDirectory(atPath: modsPath) else {
-            showModal(message: L(L10n.VM.cleanModsNotFound))
+            showModal(message: localization.L(L10n.VM.cleanModsNotFound))
             return
         }
 
@@ -8534,12 +8514,12 @@ for mod in mods {
         }
 
         if removed == 0 && failed == 0 {
-            showModal(message: L(L10n.VM.cleanModsNotFound))
+            showModal(message: localization.L(L10n.VM.cleanModsNotFound))
         } else if failed > 0 {
-            showModal(message: String(format: L(L10n.VM.cleanModsError),
+            showModal(message: String(format: localization.L(L10n.VM.cleanModsError),
                                       firstError?.localizedDescription ?? ""))
         } else {
-            showModal(message: L(L10n.VM.cleanModsSuccess))
+            showModal(message: localization.L(L10n.VM.cleanModsSuccess))
         }
 
         if removed > 0 || failed > 0 {
@@ -8564,7 +8544,7 @@ for mod in mods {
                   let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode),
                   let data = data, let content = String(data: data, encoding: .utf8) else {
                 DispatchQueue.main.async {
-                    self.thaiTranslationsError = self.L(L10n.ThaiHub.loadError)
+                    self.thaiTranslationsError = self.localization.L(L10n.ThaiHub.loadError)
                 }
                 return
             }
@@ -8652,7 +8632,7 @@ for mod in mods {
         let modsDir = (gameDir as NSString).appendingPathComponent("Mods")
         let zipName = "\(Self.strippingCPPrefix(mod.name)) - Thai Translation.zip"
         
-        showModal(message: String(format: L(L10n.VM.downloadingTranslation), mod.name))
+        showModal(message: String(format: localization.L(L10n.VM.downloadingTranslation), mod.name))
         
         let apiUrl = URL(string: "https://api.github.com/repos/AppleBoiy/stardew-thai-translations/releases?per_page=100")!
         var request = URLRequest(url: apiUrl)
@@ -8662,13 +8642,13 @@ for mod in mods {
             guard let self = self else { return }
             
             if let error = error {
-                DispatchQueue.main.async { self.showModal(message: String(format: self.L(L10n.VM.downloadFailed), error.localizedDescription)) }
+                DispatchQueue.main.async { self.showModal(message: String(format: self.localization.L(L10n.VM.downloadFailed), error.localizedDescription)) }
                 return
             }
             
             guard let data = data,
                   let releases = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
-                DispatchQueue.main.async { self.showModal(message: String(format: self.L(L10n.VM.downloadFailed), "Invalid API response")) }
+                DispatchQueue.main.async { self.showModal(message: String(format: self.localization.L(L10n.VM.downloadFailed), "Invalid API response")) }
                 return
             }
             
@@ -8694,18 +8674,18 @@ for mod in mods {
             }
             
             guard let downloadUrl = targetDownloadUrl else {
-                DispatchQueue.main.async { self.showModal(message: String(format: self.L(L10n.VM.downloadFailed), "Zip not found in releases")) }
+                DispatchQueue.main.async { self.showModal(message: String(format: self.localization.L(L10n.VM.downloadFailed), "Zip not found in releases")) }
                 return
             }
             
             let task = URLSession.shared.downloadTask(with: downloadUrl) { localUrl, response, error in
                 if let error = error {
-                    DispatchQueue.main.async { self.showModal(message: String(format: self.L(L10n.VM.downloadFailed), error.localizedDescription)) }
+                    DispatchQueue.main.async { self.showModal(message: String(format: self.localization.L(L10n.VM.downloadFailed), error.localizedDescription)) }
                     return
                 }
                 
                 guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-                    DispatchQueue.main.async { self.showModal(message: String(format: self.L(L10n.VM.downloadFailed), "HTTP \((response as? HTTPURLResponse)?.statusCode ?? 0)")) }
+                    DispatchQueue.main.async { self.showModal(message: String(format: self.localization.L(L10n.VM.downloadFailed), "HTTP \((response as? HTTPURLResponse)?.statusCode ?? 0)")) }
                     return
                 }
                 
@@ -8718,12 +8698,12 @@ for mod in mods {
                     try ModZipInstaller.extractArchive(zipUrl: localUrl, to: URL(fileURLWithPath: modsDir))
                     ModZipInstaller.grantOwnerWriteAccess(in: URL(fileURLWithPath: modsDir))
                     DispatchQueue.main.async {
-                        self.showModal(message: String(format: self.L(L10n.VM.installThaiSuccess), mod.name))
+                        self.showModal(message: String(format: self.localization.L(L10n.VM.installThaiSuccess), mod.name))
                         self.evaluateThaiTranslationStatus()
                     }
                 } catch {
                     DispatchQueue.main.async {
-                        self.showModal(message: String(format: self.L(L10n.VM.unzipFailed), error.localizedDescription))
+                        self.showModal(message: String(format: self.localization.L(L10n.VM.unzipFailed), error.localizedDescription))
                     }
                 }
             }
@@ -8782,7 +8762,7 @@ for mod in mods {
             removed += 1
         }
         guard removed > 0 else { return }
-        log(String(format: L(L10n.VM.profileConfigsSwept), Int64(removed)))
+        log(String(format: localization.L(L10n.VM.profileConfigsSwept), Int64(removed)))
     }
     
     func saveProfiles() {
@@ -8853,7 +8833,7 @@ for mod in mods {
             // Amorçage : ce profil doit décrire l'installation telle qu'elle
             // est trouvée — c'est la base de référence, et elle est protégée
             // de la suppression. Vide, elle ne servirait à rien.
-            createProfile(name: L(L10n.Profiles.defaultName), seed: .currentlyEnabledMods)
+            createProfile(name: localization.L(L10n.Profiles.defaultName), seed: .currentlyEnabledMods)
             // Record the seeded profile as the (undeletable) default.
             if let seeded = modProfiles.last {
                 UserDefaults.standard.set(seeded.id.uuidString, forKey: defaultProfileKey)
@@ -8877,7 +8857,7 @@ for mod in mods {
             activeProfileId = made.profile.id
         }
         saveProfiles()
-        log(String(format: L(L10n.VM.profileCreated), name, made.profile.enabledModIds.count))
+        log(String(format: localization.L(L10n.VM.profileCreated), name, made.profile.enabledModIds.count))
     }
 
     // MARK: - Récupérer un fichier isolé depuis une sauvegarde (B4-T4)
@@ -8957,7 +8937,7 @@ for mod in mods {
             try RecoveredFileWriter.write(from: file.backupPath,
                                           to: file.installedPath,
                                           modRoot: file.installedRoot)
-            log(String(format: L(L10n.Recovery.recovered), file.relativePath, file.modName))
+            log(String(format: localization.L(L10n.Recovery.recovered), file.relativePath, file.modName))
             recoverableFiles.removeAll { $0.id == file.id }
             // Le fichier rendu peut être un `config.json` — le cas le plus
             // courant du parc — comme un `i18n/fr.json`, qui ne concerne pas
@@ -9018,7 +8998,7 @@ for mod in mods {
         guard let sourceFile,
               let sourceData = FileManager.default.contents(atPath: sourceFile.path),
               let sourceText = I18nFileDecoder.decode(sourceData)?.text else {
-            showModal(message: L(L10n.Recovery.noSource))
+            showModal(message: localization.L(L10n.Recovery.noSource))
             return false
         }
 
@@ -9037,7 +9017,7 @@ for mod in mods {
                                                     modRoot: file.installedRoot) {
                 try TranslationFileStore.write(text, to: target)
             }
-            log(String(format: L(L10n.Recovery.keysRecovered), Int64(edits.count), file.modName))
+            log(String(format: localization.L(L10n.Recovery.keysRecovered), Int64(edits.count), file.modName))
             scanRecoverableFiles()
             return true
         } catch {
@@ -9081,7 +9061,7 @@ for mod in mods {
             .max(by: { $0.timestamp < $1.timestamp }) else { return false }
         do {
             let report = try manager.restoreBackup(backup, gameDir: gameDir)
-            log(String(format: L(L10n.ModInstall.restoreReportWritten),
+            log(String(format: localization.L(L10n.ModInstall.restoreReportWritten),
                        report.modName, report.version, report.displayPath))
             refresh()
             return true
@@ -9119,7 +9099,7 @@ for mod in mods {
         // un profil importé), et « ajouté » sans dire quoi n'apprend rien.
         let addedName = added?.name ?? uniqueId
         updateProfile(id: id, newName: modProfiles[index].name, enabledModIds: ids)
-        log(String(format: L(L10n.VM.profileModAdded),
+        log(String(format: localization.L(L10n.VM.profileModAdded),
                    addedName, modProfiles[index].name, ids.count))
     }
 
@@ -9271,7 +9251,7 @@ for mod in mods {
             // Seulement 169 mods sur ~900 portent un config.json, et le bouton
             // reste actif pour tous les mods non-groupes : sans ce log, un clic
             // sur un mod qui n'en a pas ne laisse aucune trace nulle part.
-            log(String(format: L(L10n.VM.profileConfigResetAbsent), mod.folderName), level: .info)
+            log(String(format: localization.L(L10n.VM.profileConfigResetAbsent), mod.folderName), level: .info)
             return false
         }
         // Le dossier du mod est souvent en lecture seule (`unzip`/`unrar`
@@ -9283,7 +9263,7 @@ for mod in mods {
             try RecoveredFileWriter.withWriteAccess(to: url.path, modRoot: modRoot) {
                 try ModZipInstaller.removeItemGrantingWriteAccess(atPath: url.path)
             }
-            log(String(format: L(L10n.VM.profileConfigResetDone), mod.folderName))
+            log(String(format: localization.L(L10n.VM.profileConfigResetDone), mod.folderName))
             return true
         } catch {
             log(String(format: "config.json: %@ — %@", mod.folderName,
@@ -9349,7 +9329,7 @@ for mod in mods {
         let newIds = modProfiles[index].enabledModIds + resolution.ids
         let importedCount = resolution.ids.count
         updateProfile(id: profileId, newName: name, enabledModIds: newIds)
-        log(String(format: L(L10n.VM.profileFavoritesImported),
+        log(String(format: localization.L(L10n.VM.profileFavoritesImported),
                    importedCount, name, newIds.count))
         return resolution
     }
@@ -9394,7 +9374,7 @@ for mod in mods {
         let newIds = modProfiles[index].enabledModIds + resolution.ids
         let importedCount = resolution.ids.count
         updateProfile(id: profileId, newName: name, enabledModIds: newIds)
-        log(String(format: L(L10n.VM.profileBlacklistedImported),
+        log(String(format: localization.L(L10n.VM.profileBlacklistedImported),
                    importedCount, name, newIds.count))
         return resolution
     }
@@ -9406,17 +9386,17 @@ for mod in mods {
     /// que personne n'a demandé de bouger.
     func duplicateProfile(id: UUID) {
         guard let source = modProfiles.first(where: { $0.id == id }) else { return }
-        let copy = ProfileFactory.duplicate(source, nameFormat: L(L10n.Profiles.copyNameFormat))
+        let copy = ProfileFactory.duplicate(source, nameFormat: localization.L(L10n.Profiles.copyNameFormat))
         modProfiles.append(copy)
         saveProfiles()
-        log(String(format: L(L10n.VM.profileCreated), copy.name, copy.enabledModIds.count))
+        log(String(format: localization.L(L10n.VM.profileCreated), copy.name, copy.enabledModIds.count))
     }
 
     func deleteProfile(id: UUID) {
         // The default profile is protected — never delete it.
         guard !isDefaultProfile(id) else { return }
         if let name = modProfiles.first(where: { $0.id == id })?.name {
-            log(String(format: L(L10n.VM.profileDeleted), name))
+            log(String(format: localization.L(L10n.VM.profileDeleted), name))
         }
         modProfiles.removeAll { $0.id == id }
         // Le magasin de configs part avec le profil (B3-T7) : plus aucun
@@ -9532,7 +9512,7 @@ for mod in mods {
             // Nom lisible : si un déplacement échoue, l'alerte d'application
             // nomme le « profil » concerné — un nom vide donnerait un message
             // parlant d'un profil « ».
-            name: L(L10n.Bisect.profileName),
+            name: localization.L(L10n.Bisect.profileName),
             enabledModIds: mods
                 .filter { target.contains($0.folderName) }
                 .flatMap { $0.components.map(\.uniqueId) }
@@ -9617,7 +9597,7 @@ for mod in mods {
     /// config dans le geste même censé rattraper une erreur.
     func captureProfileConfigs(for profileId: UUID) {
         guard !isGameRunning() else {
-            log(L(L10n.VM.profileConfigsSkippedGame), level: .warning)
+            log(localization.L(L10n.VM.profileConfigsSkippedGame), level: .warning)
             return
         }
         // Une bascule antérieure, faite jeu ouvert, a laissé ce profil actif
@@ -9627,7 +9607,7 @@ for mod in mods {
         // visible que le maquiller en donnée fausse.
         guard Self.profileConfigsDesyncedProfileId != profileId else {
             let name = modProfiles.first(where: { $0.id == profileId })?.name ?? ""
-            log(String(format: L(L10n.VM.profileConfigsDesynced), name), level: .warning)
+            log(String(format: localization.L(L10n.VM.profileConfigsDesynced), name), level: .warning)
             return
         }
         // R2 : le profil dont l'application s'est arrêtée en chemin tient sur
@@ -9635,7 +9615,7 @@ for mod in mods {
         // même règle que le desync ci-dessus : laisser le trou visible plutôt
         // que maquiller une donnée fausse.
         if let journal = unresolvedApplyJournal, journal.profileId == profileId {
-            log(String(format: self.L(L10n.VM.profileConfigsSkippedRecovery), journal.profileName),
+            log(String(format: self.localization.L(L10n.VM.profileConfigsSkippedRecovery), journal.profileName),
                 level: .warning)
             return
         }
@@ -9658,7 +9638,7 @@ for mod in mods {
         let touched = Set(entries.keys).symmetricDifference(before.keys).count
             + entries.filter { before[$0.key]?.text != nil && before[$0.key]?.text != $0.value.text }.count
         let name = modProfiles.first(where: { $0.id == profileId })?.name ?? ""
-        log(String(format: L(L10n.VM.profileConfigsCaptured), name, touched))
+        log(String(format: localization.L(L10n.VM.profileConfigsCaptured), name, touched))
     }
 
     /// Réécrit dans chaque mod marqué le `config.json` que ce profil avait
@@ -9670,7 +9650,7 @@ for mod in mods {
     /// réécrire le même texte est idempotent, contrairement à la capture.
     func restoreProfileConfigs(for profileId: UUID) {
         guard !isGameRunning() else {
-            log(L(L10n.VM.profileConfigsSkippedGame), level: .warning)
+            log(localization.L(L10n.VM.profileConfigsSkippedGame), level: .warning)
             // R2 (spec §3.5) : le disque ne portera pas les configs de ce
             // profil — c'est la définition même du desync (doc de
             // `profileConfigsDesyncedProfileId`). Sans marqueur, le trou
@@ -9732,10 +9712,10 @@ for mod in mods {
         // l'a été sans merge, faute d'un texte lisible — la seule information
         // qui distingue une restauration fidèle d'un repli.
         if merged > 0 {
-            log(String(format: L(L10n.VM.profileConfigsMerged), name,
+            log(String(format: localization.L(L10n.VM.profileConfigsMerged), name,
                        Int64(verbatim), Int64(merged), Int64(reintroducedKeys)))
         } else {
-            log(String(format: L(L10n.VM.profileConfigsRestored), name, verbatim))
+            log(String(format: localization.L(L10n.VM.profileConfigsRestored), name, verbatim))
         }
     }
 
@@ -9763,7 +9743,7 @@ for mod in mods {
         ProfileApplyJournalStore.clear()
         unresolvedApplyJournal = nil
         pendingApplyRecovery = nil
-        log(String(format: self.L(L10n.VM.profileRecoveryImplicitKeep), name), level: .warning)
+        log(String(format: self.localization.L(L10n.VM.profileRecoveryImplicitKeep), name), level: .warning)
     }
 
     /// Le texte du dialogue : profil, date, et le cas échéant la mention
@@ -9771,11 +9751,11 @@ for mod in mods {
     /// dialogue n'offre que d'effacer le signalement).
     var applyRecoveryDialogText: String? {
         guard let journal = unresolvedApplyJournal else { return nil }
-        var text = String(format: self.L(L10n.VM.profileRecoveryMessage),
+        var text = String(format: self.localization.L(L10n.VM.profileRecoveryMessage),
                           journal.profileName,
                           journal.startedAt.formatted(date: .abbreviated, time: .shortened))
         if !recoveryProfileExists {
-            text += " " + self.L(L10n.VM.profileRecoveryProfileGone)
+            text += " " + self.localization.L(L10n.VM.profileRecoveryProfileGone)
         }
         return text
     }
@@ -9803,7 +9783,7 @@ for mod in mods {
             // Refus net, même garde que l'activation ; le journal reste —
             // l'alerte reviendra au prochain lancement, et le re-clic du
             // profil actif re-présente le résolveur.
-            let message = String(format: self.L(L10n.VM.profileApplyRefusedGame), profile.name)
+            let message = String(format: self.localization.L(L10n.VM.profileApplyRefusedGame), profile.name)
             log(message, level: .warning)
             showModal(message: message)
             return
@@ -9838,13 +9818,13 @@ for mod in mods {
             return true
         }
         if isGameRunning() {
-            let message = String(format: self.L(L10n.VM.profileApplyRefusedGame), name)
+            let message = String(format: self.localization.L(L10n.VM.profileApplyRefusedGame), name)
             log(message, level: .warning)
             showModal(message: message)
             return false
         }
         if let journal = unresolvedApplyJournal, journal.profileId == profileId {
-            let message = String(format: self.L(L10n.VM.profileEditBlockedRecovery), name)
+            let message = String(format: self.localization.L(L10n.VM.profileEditBlockedRecovery), name)
             log(message, level: .warning)
             showModal(message: message)
             return false
@@ -9882,7 +9862,7 @@ for mod in mods {
         // activeProfileId, saveProfiles). La bissection passe par ailleurs :
         // elle gère elle-même l'état du jeu et appelle le cœur directement.
         if isGameRunning() {
-            let message = String(format: self.L(L10n.VM.profileApplyRefusedGame), profile.name)
+            let message = String(format: self.localization.L(L10n.VM.profileApplyRefusedGame), profile.name)
             log(message, level: .warning)
             showModal(message: message)
             return
@@ -9933,7 +9913,7 @@ for mod in mods {
         applyProfileToFilesystem(profile: profile) { [weak self] _ in
             self?.restoreProfileConfigs(for: id)
         }
-        self.log(String(format: L(L10n.VM.switchProfile), profile.name))
+        self.log(String(format: localization.L(L10n.VM.switchProfile), profile.name))
     }
 
     /// Actually move mod files to match the given profile's enabledModIds.
@@ -10014,7 +9994,7 @@ for mod in mods {
             // session courante reste correcte, c'est la **prochaine** qui
             // perdra la mémoire.
             if let err = ProfileApplyJournalStore.save(journal) {
-                log(String(format: L(L10n.VM.profileApplyJournalWriteFailed),
+                log(String(format: localization.L(L10n.VM.profileApplyJournalWriteFailed),
                            profileName, err.localizedDescription), level: .error)
             }
             unresolvedApplyJournal = journal
@@ -10114,7 +10094,7 @@ for mod in mods {
             // non-annotated ObservableObjects.
             for failure in failures {
                 self.log(
-                    String(format: self.L(L10n.VM.applyProfileMoveFail),
+                    String(format: self.localization.L(L10n.VM.applyProfileMoveFail),
                            failure.modName, failure.direction, failure.error.localizedDescription),
                     level: .error
                 )
@@ -10127,7 +10107,7 @@ for mod in mods {
             if !missingIds.isEmpty {
                 let listing = missingIds.joined(separator: ", ")
                 self.log(
-                    String(format: self.L(L10n.VM.applyProfileMissing),
+                    String(format: self.localization.L(L10n.VM.applyProfileMissing),
                            profileName, missingIds.count, listing),
                     level: .warning
                 )
@@ -10219,9 +10199,9 @@ for mod in mods {
         if !failedNames.isEmpty {
             let headline: String
             if attempted == failureCount {
-                headline = String(format: L(L10n.VM.applyProfileError), profileName, failureCount)
+                headline = String(format: localization.L(L10n.VM.applyProfileError), profileName, failureCount)
             } else {
-                headline = String(format: L(L10n.VM.applyProfilePartial), profileName, failureCount)
+                headline = String(format: localization.L(L10n.VM.applyProfilePartial), profileName, failureCount)
             }
             sections.append(self.truncatedList(headline: headline,
                                                names: failedNames, limit: listLimit))
@@ -10229,7 +10209,7 @@ for mod in mods {
 
         // Missing mods — references in the profile that aren't installed.
         if !missingIds.isEmpty {
-            let headline = String(format: L(L10n.VM.applyProfileMissing),
+            let headline = String(format: localization.L(L10n.VM.applyProfileMissing),
                                   profileName, missingIds.count,
                                   missingIds.prefix(listLimit).joined(separator: ", "))
             let extra = missingIds.count > listLimit
@@ -10474,7 +10454,7 @@ for mod in mods {
         let modsToMove = scopedMods(from: mods(matching: framing), scope: framing.scope)
             .filter { $0.isEnabled != enable }
         guard !modsToMove.isEmpty else {
-            log(enable ? L(L10n.Mods.allAlreadyEnabled) : L(L10n.Mods.allAlreadyDisabled))
+            log(enable ? localization.L(L10n.Mods.allAlreadyEnabled) : localization.L(L10n.Mods.allAlreadyDisabled))
             return
         }
 
@@ -10596,13 +10576,13 @@ for mod in mods {
                 self.bulkToggleProgress = nil
                 self.syncActiveProfileIds()
                 if failures.isEmpty {
-                    self.log(String(format: enable ? self.L(L10n.Mods.enabledAllCount) : self.L(L10n.Mods.disabledAllCount),
+                    self.log(String(format: enable ? self.localization.L(L10n.Mods.enabledAllCount) : self.localization.L(L10n.Mods.disabledAllCount),
                                     movedCount))
                 } else if attempted == failures.count {
-                    self.showModal(message: String(format: self.L(L10n.Mods.bulkToggleFailed), failures.count))
+                    self.showModal(message: String(format: self.localization.L(L10n.Mods.bulkToggleFailed), failures.count))
                 } else {
-                    self.showModal(message: String(format: self.L(L10n.Mods.bulkTogglePartial), movedCount, failures.count))
-                    self.log(String(format: enable ? self.L(L10n.Mods.enabledAllCount) : self.L(L10n.Mods.disabledAllCount),
+                    self.showModal(message: String(format: self.localization.L(L10n.Mods.bulkTogglePartial), movedCount, failures.count))
+                    self.log(String(format: enable ? self.localization.L(L10n.Mods.enabledAllCount) : self.localization.L(L10n.Mods.disabledAllCount),
                                     movedCount), level: .warning)
                 }
             }
@@ -10723,7 +10703,7 @@ for mod in mods {
 
     func deleteMod(_ mod: ModItem) {
         guard !gameDir.isEmpty else {
-            showModal(message: L(L10n.Settings.gameDirNotSet))
+            showModal(message: localization.L(L10n.Settings.gameDirNotSet))
             return
         }
 
@@ -10735,7 +10715,7 @@ for mod in mods {
 
         let fm = FileManager.default
         guard fm.fileExists(atPath: modPath) else {
-            showModal(message: L(L10n.Mods.deleteNotFound))
+            showModal(message: localization.L(L10n.Mods.deleteNotFound))
             // Le dossier a disparu hors de l'app (Finder, mise à jour ratée,
             // autre gestionnaire) : c'est **le** producteur de traces mortes,
             // parce que ce chemin ne touchait aucun magasin. On purge ici
@@ -10810,7 +10790,7 @@ for mod in mods {
                 Self.saveBlacklistedMods(blacklistedMods)
             }
             forgetStores(of: mod)
-            log(String(format: L(L10n.Mods.deletedLog), mod.name))
+            log(String(format: localization.L(L10n.Mods.deletedLog), mod.name))
             DispatchQueue.global(qos: .userInitiated).async {
                 self.scanMods()
                 DispatchQueue.main.async {
@@ -10826,9 +10806,9 @@ for mod in mods {
                 event: ModTrash.trashFolderName(stamp: stamp))
             pendingDeleteFolder = nil
             log(String(format: "%@: %@",
-                       L(L10n.Mods.deleteFailed), error.localizedDescription),
+                       localization.L(L10n.Mods.deleteFailed), error.localizedDescription),
                 level: .error)
-            showModal(message: String(format: L(L10n.Mods.deleteFailed),
+            showModal(message: String(format: localization.L(L10n.Mods.deleteFailed),
                                       error.localizedDescription))
         }
     }
@@ -10859,7 +10839,7 @@ for mod in mods {
         // Même garde que la purge : un event non marqué (quarantaine du
         // réparateur, nom forgé) n'est pas une corbeille à remettre.
         guard ModTrash.isUserEvent(modsPath: modsPath, event: event) else {
-            showModal(message: String(format: L(L10n.Maintenance.trashFailed2), event))
+            showModal(message: String(format: localization.L(L10n.Maintenance.trashFailed2), event))
             return
         }
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
@@ -10877,7 +10857,7 @@ for mod in mods {
                 ModTrash.discardEventIfEmpty(modsPath: modsPath, event: event)
                 DispatchQueue.main.async {
                     guard let self else { return }
-                    self.log(String(format: self.L(L10n.Maintenance.trashRestoredLog),
+                    self.log(String(format: self.localization.L(L10n.Maintenance.trashRestoredLog),
                                     entry))
                     self.refreshTrash()
                     self.scanMods()
@@ -10886,7 +10866,7 @@ for mod in mods {
                 DispatchQueue.main.async {
                     guard let self else { return }
                     self.showModal(message: String(
-                        format: self.L(L10n.Maintenance.trashFailed),
+                        format: self.localization.L(L10n.Maintenance.trashFailed),
                         error.localizedDescription))
                 }
             }
@@ -10902,7 +10882,7 @@ for mod in mods {
                 try ModTrash.purgeEntry(modsPath: modsPath, event: event, entry: entry)
                 DispatchQueue.main.async {
                     guard let self else { return }
-                    self.log(String(format: self.L(L10n.Maintenance.trashPurgedLog),
+                    self.log(String(format: self.localization.L(L10n.Maintenance.trashPurgedLog),
                                     entry))
                     self.refreshTrash()
                 }
@@ -10910,7 +10890,7 @@ for mod in mods {
                 DispatchQueue.main.async {
                     guard let self else { return }
                     self.showModal(message: String(
-                        format: self.L(L10n.Maintenance.trashFailed),
+                        format: self.localization.L(L10n.Maintenance.trashFailed),
                         error.localizedDescription))
                 }
             }
@@ -10927,14 +10907,14 @@ for mod in mods {
                 let removed = try ModTrash.purgeAll(modsPath: modsPath)
                 DispatchQueue.main.async {
                     guard let self else { return }
-                    self.log(String(format: self.L(L10n.Maintenance.trashEmptiedLog), removed))
+                    self.log(String(format: self.localization.L(L10n.Maintenance.trashEmptiedLog), removed))
                     self.refreshTrash()
                 }
             } catch {
                 DispatchQueue.main.async {
                     guard let self else { return }
                     self.showModal(message: String(
-                        format: self.L(L10n.Maintenance.trashFailed),
+                        format: self.localization.L(L10n.Maintenance.trashFailed),
                         error.localizedDescription))
                 }
             }
@@ -10950,7 +10930,7 @@ for mod in mods {
         // route, c'est écrire l'accident dans le profil — le mod resté actif
         // faute d'avoir pu bouger deviendrait un mod que le profil *demande*.
         if let journal = unresolvedApplyJournal, journal.profileId == id {
-            log(String(format: self.L(L10n.VM.profileAdoptionBlockedJournal), journal.profileName),
+            log(String(format: self.localization.L(L10n.VM.profileAdoptionBlockedJournal), journal.profileName),
                 level: .warning)
             return
         }
@@ -11001,7 +10981,7 @@ for mod in mods {
         // entre « rien à nettoyer » et « je n'ai rien pu lire ».
         let installRead = ModInstallBackupManager.shared.loadBackupsWithIndexState()
         if !installRead.indexWasReadable {
-            log(self.L(L10n.Maintenance.indexUnreadable), level: .warning)
+            log(self.localization.L(L10n.Maintenance.indexUnreadable), level: .warning)
         }
         let translationPathsByHost = installedTranslationRelativePaths()
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
@@ -11218,12 +11198,12 @@ for mod in mods {
                 try? manager.deleteBackup(backup)
                 removed += 1
             } catch {
-                log(String(format: L(L10n.Maintenance.trashFailed),
+                log(String(format: localization.L(L10n.Maintenance.trashFailed),
                            backup.modMetadata.name, error.localizedDescription),
                     level: .warning)
             }
         }
-        log(String(format: L(L10n.Maintenance.purgedLog), removed,
+        log(String(format: localization.L(L10n.Maintenance.purgedLog), removed,
                    ByteCountFormatter.string(fromByteCount: plan.freedBytes,
                                              countStyle: .file)))
         buildMaintenanceReport()
@@ -11247,7 +11227,7 @@ for mod in mods {
                     atPath: root.appendingPathComponent(session).path)
                 removed += 1
             } catch {
-                log(String(format: L(L10n.Maintenance.trashFailed), session,
+                log(String(format: localization.L(L10n.Maintenance.trashFailed), session,
                            error.localizedDescription), level: .warning)
             }
         }
@@ -11266,7 +11246,7 @@ for mod in mods {
             }
             removed += 1
         }
-        log(String(format: L(L10n.Maintenance.cleanedLog), removed))
+        log(String(format: localization.L(L10n.Maintenance.cleanedLog), removed))
         buildMaintenanceReport()
         return removed
     }
@@ -11305,7 +11285,7 @@ for mod in mods {
             try ModZipInstaller.trashItemGrantingWriteAccess(
                 atPath: manager.backupsDirectory.appendingPathComponent(session).path)
         } catch {
-            log(String(format: L(L10n.Maintenance.trashFailed), session,
+            log(String(format: localization.L(L10n.Maintenance.trashFailed), session,
                        error.localizedDescription), level: .warning)
             return false
         }
@@ -11355,11 +11335,7 @@ for mod in mods {
 
 // MARK: - L10nResolver
 //
-// Conformité ajoutée par H-T5b T7 : `SaveFarmNameResolver` est du Core pur
-// qui ne dépend pas du VM. Il consomme un `L10nResolver` (protocole Core)
-// pour rester testable sans VM. Le VM implémente `localized(_:)` en
-// déléguant à sa propre méthode d'instance `L(_:)`. Cette extension vit
-// hors du corps du VM (god-object §5.1) pour ne pas aggraver le diff.
-extension StarHubTHViewModel: L10nResolver {
-    public func localized(_ key: String) -> String { L(key) }
-}
+// `SaveFarmNameResolver` consomme un `L10nResolver` (protocole Core) pour
+// rester testable sans VM. La conformité vit désormais sur le store du
+// domaine (`LocalizationStore`, qui porte la résolution) — `SavesView`
+// lui passe le store directement.

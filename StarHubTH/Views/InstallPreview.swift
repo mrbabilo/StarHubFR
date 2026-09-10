@@ -5,6 +5,7 @@ struct InstallPreview: View {
     let zipModInfo: ZipModInfo
     let installer: ModZipInstaller
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     @Binding var tempDir: URL?
     @Binding var isInstalling: Bool
 
@@ -83,7 +84,8 @@ struct InstallPreview: View {
                                 selections[mod.id] = newSelection
                             },
                             existingMods: vm.mods,
-                            vm: vm
+                            vm: vm,
+                            localization: localization
                         )
                     }
 
@@ -118,7 +120,7 @@ struct InstallPreview: View {
                 Text(zipModInfo.zipName)
                     .font(.system(size: 14, weight: .medium))
                 HStack(spacing: 16) {
-                    Text(String(format: vm.L(L10n.ModInstall.modsInZip), zipModInfo.detectedMods.count))
+                    Text(String(format: localization.L(L10n.ModInstall.modsInZip), zipModInfo.detectedMods.count))
                         .font(.system(size: 12))
                         .foregroundColor(.secondary)
                     Text(zipModInfo.formattedSize)
@@ -206,7 +208,7 @@ struct InstallPreview: View {
     private var dependenciesSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text(vm.L(L10n.ModInstall.dependenciesTitle))
+                Text(localization.L(L10n.ModInstall.dependenciesTitle))
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(.primary)
                 Spacer()
@@ -215,8 +217,8 @@ struct InstallPreview: View {
                     withAnimation { showOnlyProblematicDeps.toggle() }
                 } label: {
                     Text(showOnlyProblematicDeps
-                         ? vm.L(L10n.ModInstall.depsShowAll)
-                         : vm.L(L10n.ModInstall.depsShowProblemsOnly))
+                         ? localization.L(L10n.ModInstall.depsShowAll)
+                         : localization.L(L10n.ModInstall.depsShowProblemsOnly))
                         .font(.system(size: 10, weight: .medium))
                         .foregroundColor(.accentColor)
                 }
@@ -232,7 +234,7 @@ struct InstallPreview: View {
                             .foregroundColor(.primary)
 
                         ForEach(report.entries) { entry in
-                            DependencyRow(entry: entry, vm: vm)
+                            DependencyRow(entry: entry, vm: vm, localization: localization)
                         }
                     }
                 }
@@ -250,7 +252,7 @@ struct InstallPreview: View {
     @ViewBuilder
     private var conflictsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(vm.L(L10n.ModInstall.conflictsTitle))
+            Text(localization.L(L10n.ModInstall.conflictsTitle))
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundColor(.primary)
 
@@ -259,7 +261,8 @@ struct InstallPreview: View {
                     ConflictRow(
                         conflict: conflict,
                         resolution: conflictResolutionBinding(for: conflict),
-                        vm: vm
+                        vm: vm,
+                        localization: localization
                     )
                 }
             }
@@ -282,7 +285,7 @@ struct InstallPreview: View {
 
     private var updateCautionsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label(vm.L(L10n.ModInstall.updateCautionTitle),
+            Label(localization.L(L10n.ModInstall.updateCautionTitle),
                   systemImage: "exclamation.triangle.fill")
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundColor(.orange)
@@ -310,7 +313,7 @@ struct InstallPreview: View {
 
     private var actionButtons: some View {
         HStack(spacing: 12) {
-            Button(vm.L(L10n.ModInstall.cancel)) {
+            Button(localization.L(L10n.ModInstall.cancel)) {
                 onCancel()
             }
             .buttonStyle(.bordered)
@@ -320,12 +323,12 @@ struct InstallPreview: View {
 
             let selectedCount = selections.values.filter { $0.selected }.count
             if selectedCount == 0 {
-                Text(vm.L(L10n.ModInstall.cannotInstallEmpty))
+                Text(localization.L(L10n.ModInstall.cannotInstallEmpty))
                     .font(.system(size: 12))
                     .foregroundColor(.red)
             }
 
-            Button(String(format: vm.L(L10n.ModInstall.installSelected), selectedCount)) {
+            Button(String(format: localization.L(L10n.ModInstall.installSelected), selectedCount)) {
                 let selected = selections.values.filter { $0.selected }
                 if !selected.isEmpty {
                     onInstall(Array(selected))
@@ -410,6 +413,7 @@ struct InstallPreview: View {
 struct DependencyRow: View {
     let entry: InstallPreview.DepEntry
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
 
     var body: some View {
         HStack(spacing: 8) {
@@ -420,7 +424,7 @@ struct DependencyRow: View {
                 Text(entry.uniqueId)
                     .font(.system(size: 11, design: .monospaced))
                     .foregroundColor(.secondary)
-                Text(vm.L(L10n.ModInstall.depInstalled))
+                Text(localization.L(L10n.ModInstall.depInstalled))
                     .font(.system(size: 10))
                     .foregroundColor(.green)
             case .installedDisabled:
@@ -429,7 +433,7 @@ struct DependencyRow: View {
                 Text(entry.uniqueId)
                     .font(.system(size: 11, design: .monospaced))
                     .foregroundColor(.primary)
-                Text(vm.L(L10n.ModInstall.depDisabled))
+                Text(localization.L(L10n.ModInstall.depDisabled))
                     .font(.system(size: 10))
                     .foregroundColor(.orange)
             case .inPack:
@@ -438,7 +442,7 @@ struct DependencyRow: View {
                 Text(entry.uniqueId)
                     .font(.system(size: 11, design: .monospaced))
                     .foregroundColor(.primary)
-                Text(vm.L(L10n.ModInstall.depInPack))
+                Text(localization.L(L10n.ModInstall.depInPack))
                     .font(.system(size: 10))
                     .foregroundColor(.blue)
             case .missing:
@@ -448,7 +452,7 @@ struct DependencyRow: View {
                     .font(.system(size: 11, design: .monospaced))
                     .foregroundColor(.primary)
                 if entry.isRequired {
-                    Text(vm.L(L10n.ModInstall.depRequiredMissing))
+                    Text(localization.L(L10n.ModInstall.depRequiredMissing))
                         .font(.system(size: 10))
                         .foregroundColor(.red)
                 }
@@ -460,7 +464,7 @@ struct DependencyRow: View {
                 Spacer()
             }
             if !entry.isRequired && entry.status != .satisfied {
-                Text(vm.L(L10n.ModInstall.depOptional))
+                Text(localization.L(L10n.ModInstall.depOptional))
                     .font(.system(size: 9))
                     .foregroundColor(.secondary.opacity(0.7))
                     .padding(.horizontal, 6)
@@ -482,14 +486,14 @@ struct DependencyRow: View {
             Button {
                 openNexusSearch(for: modName)
             } label: {
-                Label(String(format: vm.L(L10n.Mods.searchNexusByModName), modName),
+                Label(String(format: localization.L(L10n.Mods.searchNexusByModName), modName),
                       systemImage: "magnifyingglass")
             }
             if !author.isEmpty {
                 Button {
                     openNexusAuthorSearch(for: author)
                 } label: {
-                    Label(String(format: vm.L(L10n.Mods.searchNexusByAuthor), author),
+                    Label(String(format: localization.L(L10n.Mods.searchNexusByAuthor), author),
                           systemImage: "person")
                 }
             }
@@ -497,7 +501,7 @@ struct DependencyRow: View {
             HStack(spacing: 3) {
                 Image(systemName: "arrow.up.right.square")
                     .font(.system(size: 10))
-                Text(vm.L(L10n.ModInstall.depDownload))
+                Text(localization.L(L10n.ModInstall.depDownload))
                     .font(.system(size: 10, weight: .medium))
             }
             .foregroundColor(.accentColor)
@@ -527,6 +531,7 @@ struct ConflictRow: View {
     let conflict: ModConflict
     @Binding var resolution: ConflictResolution
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -538,19 +543,19 @@ struct ConflictRow: View {
             }
 
             HStack(spacing: 8) {
-                Text(String(format: vm.L(L10n.ModInstall.existingVersion), conflict.existingVersion))
+                Text(String(format: localization.L(L10n.ModInstall.existingVersion), conflict.existingVersion))
                     .font(.system(size: 11))
                 Text("→")
                     .foregroundColor(.secondary)
-                Text(String(format: vm.L(L10n.ModInstall.newVersion), conflict.newVersion))
+                Text(String(format: localization.L(L10n.ModInstall.newVersion), conflict.newVersion))
                     .font(.system(size: 11))
             }
             .foregroundColor(.secondary)
 
             Picker("", selection: $resolution) {
-                Text(vm.L(L10n.ModInstall.backupBeforeOverwrite)).tag(ConflictResolution.overwriteWithBackup)
-                Text(vm.L(L10n.ModInstall.renameMod)).tag(ConflictResolution.rename)
-                Text(vm.L(L10n.ModInstall.skipMod)).tag(ConflictResolution.skip)
+                Text(localization.L(L10n.ModInstall.backupBeforeOverwrite)).tag(ConflictResolution.overwriteWithBackup)
+                Text(localization.L(L10n.ModInstall.renameMod)).tag(ConflictResolution.rename)
+                Text(localization.L(L10n.ModInstall.skipMod)).tag(ConflictResolution.skip)
             }
             .pickerStyle(.radioGroup)
         }
@@ -567,6 +572,7 @@ struct DetectedModRow: View {
     let onSelectionChange: (InstallSelection) -> Void
     let existingMods: [ModItem]
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
 
     @State private var showDetails = false
 
@@ -608,7 +614,7 @@ struct DetectedModRow: View {
                     HStack(spacing: 4) {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundColor(.orange)
-                        Text(String(format: vm.L(L10n.ModInstall.existingVersion), existing.version))
+                        Text(String(format: localization.L(L10n.ModInstall.existingVersion), existing.version))
                             .font(.system(size: 10))
                             .foregroundColor(.orange)
                     }
@@ -618,7 +624,7 @@ struct DetectedModRow: View {
                     HStack(spacing: 4) {
                         Image(systemName: "link")
                             .foregroundColor(.secondary)
-                        Text(String(format: vm.L(L10n.ModInstall.depCount), mod.dependencies.count))
+                        Text(String(format: localization.L(L10n.ModInstall.depCount), mod.dependencies.count))
                             .font(.system(size: 10))
                             .foregroundColor(.secondary)
                     }
@@ -634,21 +640,21 @@ struct DetectedModRow: View {
                     .foregroundColor(.secondary)
             }
             .buttonStyle(.plain)
-            .help(vm.L(L10n.ModInstall.detailsHint))
+            .help(localization.L(L10n.ModInstall.detailsHint))
         }
         .padding()
         .background(Color.secondary.opacity(0.03))
         .cornerRadius(6)
         .popover(isPresented: $showDetails) {
             VStack(alignment: .leading, spacing: 8) {
-                Text(vm.L(L10n.ModInstall.modInfo))
+                Text(localization.L(L10n.ModInstall.modInfo))
                     .font(.headline)
-                infoRow(vm.L(L10n.ModInstall.labelName), mod.name)
-                infoRow(vm.L(L10n.ModInstall.labelVersion), mod.version)
-                infoRow(vm.L(L10n.ModInstall.labelAuthor), mod.author)
-                infoRow(vm.L(L10n.ModInstall.labelUniqueId), mod.uniqueId)
+                infoRow(localization.L(L10n.ModInstall.labelName), mod.name)
+                infoRow(localization.L(L10n.ModInstall.labelVersion), mod.version)
+                infoRow(localization.L(L10n.ModInstall.labelAuthor), mod.author)
+                infoRow(localization.L(L10n.ModInstall.labelUniqueId), mod.uniqueId)
                 if !mod.dependencies.isEmpty {
-                    Text(vm.L(L10n.ModInstall.dependenciesTitle))
+                    Text(localization.L(L10n.ModInstall.dependenciesTitle))
                         .font(.system(size: 12, weight: .semibold))
                         .padding(.top, 4)
                     ForEach(mod.dependencies, id: \.self) { dep in

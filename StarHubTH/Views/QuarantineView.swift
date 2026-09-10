@@ -9,6 +9,7 @@ import SwiftUI
 /// empties the Trash themselves.
 struct QuarantineView: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     @State private var showEmptyConfirmation = false
 
     var body: some View {
@@ -18,9 +19,9 @@ struct QuarantineView: View {
             VStack(alignment: .leading, spacing: 20) {
                 // Header
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(vm.L(L10n.Quarantine.title))
+                    Text(localization.L(L10n.Quarantine.title))
                         .font(.system(size: 20, weight: .bold))
-                    Text(vm.L(L10n.Quarantine.subtitle))
+                    Text(localization.L(L10n.Quarantine.subtitle))
                         .font(.system(size: 13))
                         .foregroundColor(AppDesign.Color.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -29,17 +30,17 @@ struct QuarantineView: View {
                 // Last repair report (or empty state when none yet).
                 if let report = vm.lastRepairReport {
                     VStack(alignment: .leading, spacing: 10) {
-                        Text(vm.L(L10n.Quarantine.lastRepair))
+                        Text(localization.L(L10n.Quarantine.lastRepair))
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(AppDesign.Color.primary)
 
                         if report.quarantined.isEmpty && report.duplicates.isEmpty {
-                            Text(vm.L(L10n.Quarantine.noQuarantine))
+                            Text(localization.L(L10n.Quarantine.noQuarantine))
                                 .font(.system(size: 13))
                                 .foregroundColor(AppDesign.Color.secondary)
                         } else {
                             Label(
-                                String(format: vm.L(L10n.Quarantine.itemsQuarantined), Int64(report.quarantined.count)),
+                                String(format: localization.L(L10n.Quarantine.itemsQuarantined), Int64(report.quarantined.count)),
                                 systemImage: "tray.and.arrow.down.fill"
                             )
                             .font(.system(size: 13))
@@ -78,7 +79,7 @@ struct QuarantineView: View {
                                 }
                             }
                             if report.quarantined.count > 20 {
-                                Text(String(format: vm.L(L10n.Quarantine.andNMore), Int64(report.quarantined.count - 20)))
+                                Text(String(format: localization.L(L10n.Quarantine.andNMore), Int64(report.quarantined.count - 20)))
                                     .font(.system(size: 11))
                                     .foregroundColor(AppDesign.Color.secondary)
                                     .italic()
@@ -87,7 +88,7 @@ struct QuarantineView: View {
 
                         if !report.duplicates.isEmpty {
                             Label(
-                                String(format: vm.L(L10n.Quarantine.duplicatesFound), Int64(report.duplicates.count)),
+                                String(format: localization.L(L10n.Quarantine.duplicatesFound), Int64(report.duplicates.count)),
                                 systemImage: "exclamationmark.triangle.fill"
                             )
                             .font(.system(size: 13))
@@ -121,7 +122,7 @@ struct QuarantineView: View {
                                 }
                             }
                             if report.duplicates.count > 20 {
-                                Text(String(format: vm.L(L10n.Quarantine.andNMore), Int64(report.duplicates.count - 20)))
+                                Text(String(format: localization.L(L10n.Quarantine.andNMore), Int64(report.duplicates.count - 20)))
                                     .font(.system(size: 11))
                                     .foregroundColor(AppDesign.Color.secondary)
                                     .italic()
@@ -137,7 +138,7 @@ struct QuarantineView: View {
                     // rapport jamais produit). Même message que le rapport
                     // vide, plutôt qu'un blanc entre le sous-titre et les
                     // boutons.
-                    Text(vm.L(L10n.Quarantine.noQuarantine))
+                    Text(localization.L(L10n.Quarantine.noQuarantine))
                         .font(.system(size: 13))
                         .foregroundColor(AppDesign.Color.secondary)
                 }
@@ -145,7 +146,7 @@ struct QuarantineView: View {
                 // Actions
                 HStack(spacing: 12) {
                     Button(action: { vm.refresh() }) {
-                        Label(vm.L(L10n.Quarantine.rescan), systemImage: "arrow.clockwise")
+                        Label(localization.L(L10n.Quarantine.rescan), systemImage: "arrow.clockwise")
                             .font(.system(size: 13, weight: .medium))
                     }
                     .buttonStyle(.bordered)
@@ -160,7 +161,7 @@ struct QuarantineView: View {
                     }
 
                     Button(action: openQuarantineFolder) {
-                        Label(vm.L(L10n.Quarantine.openFolder), systemImage: "folder.fill")
+                        Label(localization.L(L10n.Quarantine.openFolder), systemImage: "folder.fill")
                             .font(.system(size: 13, weight: .medium))
                     }
                     .buttonStyle(.borderedProminent)
@@ -168,7 +169,7 @@ struct QuarantineView: View {
                     .disabled(quarantineDir == nil)
 
                     Button(role: .destructive, action: { showEmptyConfirmation = true }) {
-                        Label(vm.L(L10n.Quarantine.emptyTrash), systemImage: "trash.fill")
+                        Label(localization.L(L10n.Quarantine.emptyTrash), systemImage: "trash.fill")
                             .font(.system(size: 13, weight: .medium))
                     }
                     .buttonStyle(.bordered)
@@ -191,16 +192,16 @@ struct QuarantineView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(AppDesign.Color.windowBg)
         .confirmationDialog(
-            vm.L(L10n.Quarantine.emptyConfirmTitle),
+            localization.L(L10n.Quarantine.emptyConfirmTitle),
             isPresented: $showEmptyConfirmation,
             titleVisibility: .visible
         ) {
-            Button(vm.L(L10n.Quarantine.emptyTrash), role: .destructive) {
+            Button(localization.L(L10n.Quarantine.emptyTrash), role: .destructive) {
                 emptyToMacTrash()
             }
-            Button(vm.L(L10n.Main.ok), role: .cancel) {}
+            Button(localization.L(L10n.Main.ok), role: .cancel) {}
         } message: {
-            Text(vm.L(L10n.Quarantine.emptyConfirmMessage))
+            Text(localization.L(L10n.Quarantine.emptyConfirmMessage))
         }
     }
 
@@ -278,7 +279,7 @@ struct QuarantineView: View {
             .map { gameDirURL.appendingPathComponent($0) }
 
         guard !trashURLs.isEmpty else {
-            vm.quarantineActionMessage = .init(text: vm.L(L10n.Quarantine.noQuarantine), isError: false)
+            vm.quarantineActionMessage = .init(text: localization.L(L10n.Quarantine.noQuarantine), isError: false)
             return
         }
 
@@ -287,7 +288,7 @@ struct QuarantineView: View {
                 if let error = error {
                     vm.quarantineActionMessage = .init(text: error.localizedDescription, isError: true)
                 } else {
-                    vm.quarantineActionMessage = .init(text: vm.L(L10n.Quarantine.emptied), isError: false)
+                    vm.quarantineActionMessage = .init(text: localization.L(L10n.Quarantine.emptied), isError: false)
                     vm.lastRepairReport = nil
                 }
             }

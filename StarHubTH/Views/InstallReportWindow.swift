@@ -16,6 +16,7 @@ enum AppWindowID {
 /// fenêtre déjà ouverte l'amène au premier plan et le contenu se remplace.
 struct InstallReportWindow: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     /// `dismissWindow`, pas `dismiss` : sur une racine de scène, `dismiss`
     /// n'est pas garanti de viser la fenêtre, et il échouerait sans bruit —
     /// exactement le défaut qu'on corrige ici. `dismissWindow(id:)` nomme
@@ -25,7 +26,7 @@ struct InstallReportWindow: View {
     var body: some View {
         Group {
             if let report = vm.pendingInstallReport {
-                ReportContent(vm: vm, report: report)
+                ReportContent(vm: vm, localization: localization, report: report)
             } else {
                 // Fenêtre ouverte sans bilan (fermeture en cours) : ne rien
                 // montrer plutôt qu'un état fantôme.
@@ -52,6 +53,7 @@ struct InstallReportWindow: View {
 
 private struct ReportContent: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     let report: InstallReport
 
     var body: some View {
@@ -80,7 +82,7 @@ private struct ReportContent: View {
                     if !report.deltas.isEmpty {
                         Divider()
                         ForEach(report.deltas, id: \.folderName) { delta in
-                            DeltaRow(vm: vm, delta: delta)
+                            DeltaRow(vm: vm, localization: localization, delta: delta)
                         }
                     }
                 }
@@ -97,16 +99,16 @@ private struct ReportContent: View {
     private var summaryParts: [String] {
         var parts: [String] = []
         if summary.modsUpdated > 0 {
-            parts.append(String(format: vm.L(L10n.InstallReport.summaryMods), summary.modsUpdated))
+            parts.append(String(format: localization.L(L10n.InstallReport.summaryMods), summary.modsUpdated))
         }
         if summary.translationTodo > 0 {
-            parts.append(String(format: vm.L(L10n.InstallReport.summaryTranslation), summary.translationTodo))
+            parts.append(String(format: localization.L(L10n.InstallReport.summaryTranslation), summary.translationTodo))
         }
         if summary.configChanges > 0 {
-            parts.append(String(format: vm.L(L10n.InstallReport.summaryConfig), summary.configChanges))
+            parts.append(String(format: localization.L(L10n.InstallReport.summaryConfig), summary.configChanges))
         }
         if summary.renamesSuggested > 0 {
-            parts.append(String(format: vm.L(L10n.InstallReport.summaryRenames), summary.renamesSuggested))
+            parts.append(String(format: localization.L(L10n.InstallReport.summaryRenames), summary.renamesSuggested))
         }
         return parts
     }
@@ -117,7 +119,7 @@ private struct ReportContent: View {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 28))
                     .foregroundColor(.green)
-                Text(vm.L(summary.modsUpdated > 0
+                Text(localization.L(summary.modsUpdated > 0
                           ? L10n.InstallReport.titleUpdate
                           : L10n.InstallReport.titleInstall))
                     .font(.system(size: 18, weight: .semibold))
@@ -137,7 +139,7 @@ private struct ReportContent: View {
         HStack {
             Spacer()
             if report.remainingInQueue > 0 {
-                Button(String(format: vm.L(L10n.InstallReport.nextArchive),
+                Button(String(format: localization.L(L10n.InstallReport.nextArchive),
                               report.remainingInQueue)) {
                     // L'archive suivante repart dans la feuille — par le
                     // canal SANS discard : fichier original de l'utilisateur.
@@ -145,7 +147,7 @@ private struct ReportContent: View {
                 }
                 .buttonStyle(.borderedProminent)
             } else {
-                Button(vm.L(L10n.InstallReport.done)) {
+                Button(localization.L(L10n.InstallReport.done)) {
                     vm.dismissInstallReport()
                 }
                 .buttonStyle(.borderedProminent)
@@ -161,6 +163,7 @@ private struct ReportContent: View {
 /// ce soit : la fenêtre de bilan reste ouverte.
 private struct DeltaRow: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     let delta: ModUpdateKeyDelta
 
     var body: some View {
@@ -176,7 +179,7 @@ private struct DeltaRow: View {
                     .lineLimit(2)
             }
             Spacer()
-            Button(vm.L(L10n.Mods.updateDeltaOpenDetail)) {
+            Button(localization.L(L10n.Mods.updateDeltaOpenDetail)) {
                 vm.openReportDetail(for: delta.folderName)
             }
             .buttonStyle(.link)
@@ -187,27 +190,27 @@ private struct DeltaRow: View {
     private var parts: [String] {
         var parts: [String] = []
         if let added = delta.config?.added.count, added > 0 {
-            parts.append(String(format: vm.L(L10n.Mods.updateDeltaConfigAdded), added))
+            parts.append(String(format: localization.L(L10n.Mods.updateDeltaConfigAdded), added))
         }
         if let removed = delta.config?.removed.count, removed > 0 {
-            parts.append(String(format: vm.L(L10n.Mods.updateDeltaConfigRemoved), removed))
+            parts.append(String(format: localization.L(L10n.Mods.updateDeltaConfigRemoved), removed))
         }
         if !delta.translation.addedUntranslated.isEmpty {
-            parts.append(String(format: vm.L(L10n.Mods.updateDeltaTranslationTodo),
+            parts.append(String(format: localization.L(L10n.Mods.updateDeltaTranslationTodo),
                                 delta.translation.addedUntranslated.count))
         }
         if !delta.translation.addedAuthorTranslated.isEmpty {
-            parts.append(String(format: vm.L(L10n.Mods.updateDeltaTranslationAuthor),
+            parts.append(String(format: localization.L(L10n.Mods.updateDeltaTranslationAuthor),
                                 delta.translation.addedAuthorTranslated.count))
         }
         if !delta.translation.removedKeys.isEmpty {
-            parts.append(String(format: vm.L(L10n.Mods.updateDeltaTranslationOrphan),
+            parts.append(String(format: localization.L(L10n.Mods.updateDeltaTranslationOrphan),
                                 delta.translation.removedKeys.count))
         }
         let renamed = KeyRenameMatcher.pairsByValue(old: delta.translation.removedKeys,
                                                     new: delta.translation.addedUntranslated)
         if !renamed.isEmpty {
-            parts.append(String(format: vm.L(L10n.Mods.updateDeltaRenamedSuffix), renamed.count))
+            parts.append(String(format: localization.L(L10n.Mods.updateDeltaRenamedSuffix), renamed.count))
         }
         return parts
     }

@@ -27,6 +27,7 @@ enum PathoschildDateLabel {
 struct SmapiHealthCard: View {
 
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
 
     /// nil = follow the default (collapsed when healthy). Once the user taps the
     /// chevron, this holds their explicit choice and overrides the default.
@@ -113,7 +114,7 @@ struct SmapiHealthCard: View {
                     .font(.system(size: 22))
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(isHealthy ? vm.L(L10n.Logs.healthHealthy) : vm.L(L10n.Logs.healthTitle))
+                    Text(isHealthy ? localization.L(L10n.Logs.healthHealthy) : localization.L(L10n.Logs.healthTitle))
                         .font(.system(size: 14, weight: .semibold))
                     if !versionLine.isEmpty {
                         Text(versionLine)
@@ -133,7 +134,7 @@ struct SmapiHealthCard: View {
                 }
                 .buttonStyle(.plain)
                 .pointingHandCursor()
-                .help(vm.L(L10n.Logs.healthReveal))
+                .help(localization.L(L10n.Logs.healthReveal))
 
                 if !isHealthy || hasDetails {
                     Button { userCollapsed = !isExpanded } label: {
@@ -164,11 +165,11 @@ struct SmapiHealthCard: View {
         let d = diagnostics
         var out: [(Int, String, Color)] = []
         let blocking = d.skipped.count + d.failed.count + d.brokenMods.count
-        if blocking > 0 { out.append((blocking, vm.L(L10n.Logs.healthCountBlocking), .red)) }
-        if !d.missingDeps.isEmpty { out.append((d.missingDeps.count, vm.L(L10n.Logs.healthCountDeps), .orange)) }
+        if blocking > 0 { out.append((blocking, localization.L(L10n.Logs.healthCountBlocking), .red)) }
+        if !d.missingDeps.isEmpty { out.append((d.missingDeps.count, localization.L(L10n.Logs.healthCountDeps), .orange)) }
         let advisory = d.saveSerializerMods.count + d.patchedMods.count + d.consoleMods.count
-        if advisory > 0 { out.append((advisory, vm.L(L10n.Logs.healthCountAdvisory), .secondary)) }
-        if !d.benignNotices.isEmpty { out.append((d.benignNotices.count, vm.L(L10n.Logs.healthCountBenign), .green)) }
+        if advisory > 0 { out.append((advisory, localization.L(L10n.Logs.healthCountAdvisory), .secondary)) }
+        if !d.benignNotices.isEmpty { out.append((d.benignNotices.count, localization.L(L10n.Logs.healthCountBenign), .green)) }
         return out.map { (count: $0.0, label: $0.1, color: $0.2) }
     }
 
@@ -194,7 +195,7 @@ struct SmapiHealthCard: View {
         HStack(spacing: AppDesignCore.Spacing.xs) {
             Image(systemName: "clock.badge.exclamationmark")
                 .font(.system(size: 10))
-            Text(vm.L(L10n.Logs.healthStale))
+            Text(localization.L(L10n.Logs.healthStale))
                 .font(.system(size: 10, weight: .medium))
             if let date = vm.smapiLogDate {
                 Text(date, style: .relative).font(.system(size: 10))
@@ -251,7 +252,7 @@ struct SmapiHealthCard: View {
 
     private var suggestionsBlock: some View {
         sectionCard(.accentColor) {
-            sectionTitle(vm.L(L10n.Logs.healthSuggestionsTitle), icon: "lightbulb.fill", color: .accentColor)
+            sectionTitle(localization.L(L10n.Logs.healthSuggestionsTitle), icon: "lightbulb.fill", color: .accentColor)
             VStack(alignment: .leading, spacing: AppDesignCore.Spacing.sm) {
                 ForEach(Array(suggestions.enumerated()), id: \.offset) { index, text in
                     HStack(alignment: .top, spacing: AppDesignCore.Spacing.sm) {
@@ -270,7 +271,7 @@ struct SmapiHealthCard: View {
 
     private var conflictsBlock: some View {
         sectionCard(.orange) {
-            sectionTitle(vm.L(L10n.Logs.healthConflicts), icon: "bolt.trianglebadge.exclamationmark.fill", color: .orange)
+            sectionTitle(localization.L(L10n.Logs.healthConflicts), icon: "bolt.trianglebadge.exclamationmark.fill", color: .orange)
             ForEach(diagnostics.externalConflicts, id: \.self) { conflict in
                 Text(conflict).font(.system(size: 12))
             }
@@ -279,12 +280,12 @@ struct SmapiHealthCard: View {
 
     private var topErrorsBlock: some View {
         sectionCard(.secondary) {
-            sectionTitle(vm.L(L10n.Logs.healthTopErrors), icon: "chart.bar.fill", color: .secondary)
+            sectionTitle(localization.L(L10n.Logs.healthTopErrors), icon: "chart.bar.fill", color: .secondary)
             VStack(spacing: AppDesignCore.Spacing.xs) {
                 ForEach(diagnostics.topErrorMods) { entry in
                     HStack(spacing: AppDesignCore.Spacing.sm) {
                         Text(entry.name).font(.system(size: 12, weight: .medium))
-                        Text(String(format: vm.L(L10n.Logs.healthErrorsCount), Int64(entry.count)))
+                        Text(String(format: localization.L(L10n.Logs.healthErrorsCount), Int64(entry.count)))
                             .font(.system(size: 10, weight: .medium))
                             .foregroundColor(.red)
                             .padding(.horizontal, AppDesignCore.Spacing.xs)
@@ -301,8 +302,8 @@ struct SmapiHealthCard: View {
 
     private var benignBlock: some View {
         sectionCard(.green) {
-            sectionTitle(vm.L(L10n.Logs.healthBenign), icon: "checkmark.circle.fill", color: .green)
-            Text(vm.L(L10n.Logs.healthExpBenign))
+            sectionTitle(localization.L(L10n.Logs.healthBenign), icon: "checkmark.circle.fill", color: .green)
+            Text(localization.L(L10n.Logs.healthExpBenign))
                 .font(.system(size: 11))
                 .foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -362,13 +363,13 @@ struct SmapiHealthCard: View {
     private var compatibilitySourceBadge: some View {
         switch vm.compatibilitySource {
         case .live:
-            pill(text: vm.L(L10n.Mods.compatSourceLive), color: .green)
+            pill(text: localization.L(L10n.Mods.compatSourceLive), color: .green)
         case .pathoschildDump:
-            pill(text: String(format: vm.L(L10n.Mods.compatSourcePathoschild),
+            pill(text: String(format: localization.L(L10n.Mods.compatSourcePathoschild),
                               PathoschildDateLabel.string(from: vm.pathoschildDumpDate)),
                  color: .orange)
         case .diskCache:
-            pill(text: String(format: vm.L(L10n.Mods.compatSourceCache),
+            pill(text: String(format: localization.L(L10n.Mods.compatSourceCache),
                               PathoschildDateLabel.string(from: vm.pathoschildDumpDate)),
                  color: .secondary)
         case .none:
@@ -402,7 +403,7 @@ struct SmapiHealthCard: View {
         let unknown = vm.compatibilityUnknownCount
         if !flagged.isEmpty || unknown > 0 {
             sectionCard(flagged.isEmpty ? .secondary : .red) {
-                sectionTitle(String(format: vm.L(L10n.Mods.compatHealthFlagged), flagged.count),
+                sectionTitle(String(format: localization.L(L10n.Mods.compatHealthFlagged), flagged.count),
                              icon: "exclamationmark.triangle.fill",
                              color: flagged.isEmpty ? .secondary : .red,
                              trailing: { AnyView(compatibilitySourceBadge) })
@@ -412,11 +413,11 @@ struct SmapiHealthCard: View {
                             .font(.system(size: 11, weight: .medium))
                             .lineLimit(1)
                             .truncationMode(.middle)
-                        Text(CompatibilityWarning.label(entry.verdict.status, vm))
+                        Text(CompatibilityWarning.label(entry.verdict.status, localization))
                             .font(.system(size: 10, weight: .semibold))
                             .foregroundColor(CompatibilityWarning.tint(entry.verdict.status))
                         if let brokeIn = entry.verdict.brokeIn {
-                            Text(String(format: vm.L(L10n.Mods.compatBrokeIn), brokeIn))
+                            Text(String(format: localization.L(L10n.Mods.compatBrokeIn), brokeIn))
                                 .font(.system(size: 10))
                                 .foregroundColor(.secondary)
                                 .lineLimit(1)
@@ -425,7 +426,7 @@ struct SmapiHealthCard: View {
                     }
                 }
                 if unknown > 0 {
-                    Text(String(format: vm.L(L10n.Mods.compatHealthUnknown), unknown))
+                    Text(String(format: localization.L(L10n.Mods.compatHealthUnknown), unknown))
                         .font(.system(size: 10))
                         .foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -477,7 +478,7 @@ struct SmapiHealthCard: View {
     private func modSection(_ titleKey: String, explanation: String, mods: [String],
                             severity: Color, logHeader: String? = nil) -> some View {
         sectionCard(severity) {
-            sectionTitle(vm.L(titleKey), icon: "shippingbox.fill", color: severity) {
+            sectionTitle(localization.L(titleKey), icon: "shippingbox.fill", color: severity) {
                 AnyView(
                     Group {
                         // Shows SMAPI's own block for this category — the full
@@ -492,12 +493,12 @@ struct SmapiHealthCard: View {
                             }
                             .buttonStyle(.plain)
                             .pointingHandCursor()
-                            .help(vm.L(L10n.Logs.healthShowSection))
+                            .help(localization.L(L10n.Logs.healthShowSection))
                         }
                     }
                 )
             }
-            Text(vm.L(explanation))
+            Text(localization.L(explanation))
                 .font(.system(size: 11))
                 .foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -514,7 +515,7 @@ struct SmapiHealthCard: View {
                 }
             }
             if mods.count > Self.maxListedMods {
-                Text(String(format: vm.L(L10n.Logs.healthAndMore), Int64(mods.count - Self.maxListedMods)))
+                Text(String(format: localization.L(L10n.Logs.healthAndMore), Int64(mods.count - Self.maxListedMods)))
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
             }
@@ -524,7 +525,7 @@ struct SmapiHealthCard: View {
     private func issueSection(_ titleKey: String, items: [SmapiDiagnostics.Issue],
                               severity: Color) -> some View {
         sectionCard(severity) {
-            sectionTitle(vm.L(titleKey), icon: "xmark.octagon.fill", color: severity)
+            sectionTitle(localization.L(titleKey), icon: "xmark.octagon.fill", color: severity)
             VStack(alignment: .leading, spacing: AppDesignCore.Spacing.sm) {
                 ForEach(items) { issue in
                     VStack(alignment: .leading, spacing: 2) {
@@ -569,7 +570,7 @@ struct SmapiHealthCard: View {
         }
         .buttonStyle(.plain)
         .pointingHandCursor()
-        .help(vm.L(help))
+        .help(localization.L(help))
     }
 
     /// Plain-language reassurance for a known-harmless error. The mod name is
@@ -577,10 +578,10 @@ struct SmapiHealthCard: View {
     /// repeated in the sentence.
     private func benignText(_ notice: SmapiDiagnostics.BenignNotice) -> String {
         switch notice.kind {
-        case .galaxyAuth:        return vm.L(L10n.Logs.healthBenignGalaxy)
-        case .apiIntegration:    return vm.L(L10n.Logs.healthBenignApiGeneric)
-        case .optionalModMissing: return vm.L(L10n.Logs.healthBenignOptionalGeneric)
-        case .modContentParse:   return vm.L(L10n.Logs.healthBenignParseGeneric)
+        case .galaxyAuth:        return localization.L(L10n.Logs.healthBenignGalaxy)
+        case .apiIntegration:    return localization.L(L10n.Logs.healthBenignApiGeneric)
+        case .optionalModMissing: return localization.L(L10n.Logs.healthBenignOptionalGeneric)
+        case .modContentParse:   return localization.L(L10n.Logs.healthBenignParseGeneric)
         }
     }
 
@@ -594,7 +595,7 @@ struct SmapiHealthCard: View {
         let d = diagnostics
 
         for dep in d.missingDeps {
-            out.append(String(format: vm.L(L10n.Logs.healthSgMissingDep), dep.missing, dep.mod))
+            out.append(String(format: localization.L(L10n.Logs.healthSgMissingDep), dep.missing, dep.mod))
         }
         // Mods already covered by a missing-dependency tip don't need a second,
         // vaguer one repeating the same root cause.
@@ -606,19 +607,19 @@ struct SmapiHealthCard: View {
             out.append(advice(for: issue, fallback: L10n.Logs.healthSgFailed))
         }
         if !d.brokenMods.isEmpty {
-            out.append(vm.L(L10n.Logs.healthSgBroken))
+            out.append(localization.L(L10n.Logs.healthSgBroken))
         }
         if d.externalConflicts.contains(where: { $0.contains("RivaTuner") }) {
-            out.append(vm.L(L10n.Logs.healthSgRivatuner))
+            out.append(localization.L(L10n.Logs.healthSgRivatuner))
         }
         for mod in d.saveSerializerMods {
-            out.append(String(format: vm.L(L10n.Logs.healthSgSave), mod))
+            out.append(String(format: localization.L(L10n.Logs.healthSgSave), mod))
         }
         if let worst = d.topErrorMods.first, worst.count >= 5 {
-            out.append(String(format: vm.L(L10n.Logs.healthSgErrorMod), worst.name, Int64(worst.count)))
+            out.append(String(format: localization.L(L10n.Logs.healthSgErrorMod), worst.name, Int64(worst.count)))
         }
         if d.patchedMods.count >= 15 {
-            out.append(String(format: vm.L(L10n.Logs.healthSgPatchedMany), Int64(d.patchedMods.count)))
+            out.append(String(format: localization.L(L10n.Logs.healthSgPatchedMany), Int64(d.patchedMods.count)))
         }
         // Keep the advice list readable: per-mod tips could otherwise run to
         // dozens of lines. Ordering above puts the most blocking ones first,
@@ -626,7 +627,7 @@ struct SmapiHealthCard: View {
         if out.count > Self.maxSuggestions {
             let hidden = out.count - Self.maxSuggestions
             out = Array(out.prefix(Self.maxSuggestions))
-            out.append(String(format: vm.L(L10n.Logs.healthAndMore), Int64(hidden)))
+            out.append(String(format: localization.L(L10n.Logs.healthAndMore), Int64(hidden)))
         }
         return out
     }
@@ -651,9 +652,9 @@ struct SmapiHealthCard: View {
     private func advice(for issue: SmapiDiagnostics.Issue, fallback: String) -> String {
         let reason = issue.reason.lowercased()
         for rule in Self.adviceRules where rule.patterns.contains(where: reason.contains) {
-            return String(format: vm.L(rule.key), issue.name)
+            return String(format: localization.L(rule.key), issue.name)
         }
-        return String(format: vm.L(fallback), issue.name, issue.reason)
+        return String(format: localization.L(fallback), issue.name, issue.reason)
     }
 
     // MARK: - Summary
@@ -664,8 +665,8 @@ struct SmapiHealthCard: View {
         var parts: [String] = []
         if let v = diagnostics.smapiVersion { parts.append("SMAPI \(v)") }
         if let g = diagnostics.gameVersion { parts.append("Stardew Valley \(g)") }
-        if let m = diagnostics.modsLoaded { parts.append(String(format: vm.L(L10n.Logs.healthModsCount), Int64(m))) }
-        if let c = diagnostics.contentPacksLoaded { parts.append(String(format: vm.L(L10n.Logs.healthPacksCount), Int64(c))) }
+        if let m = diagnostics.modsLoaded { parts.append(String(format: localization.L(L10n.Logs.healthModsCount), Int64(m))) }
+        if let c = diagnostics.contentPacksLoaded { parts.append(String(format: localization.L(L10n.Logs.healthPacksCount), Int64(c))) }
         return parts.joined(separator: "  ·  ")
     }
 }

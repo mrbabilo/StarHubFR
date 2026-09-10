@@ -23,6 +23,7 @@ struct TranslationDiffView: View {
     @FocusState private var searchFocused: Bool
 
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     let mod: ModItem
 
     /// Ce que la barre de filtres peut cadrer : un état du diff, ou le
@@ -83,7 +84,7 @@ struct TranslationDiffView: View {
             if isLoading {
                 loadingRow
             } else if rows.isEmpty {
-                emptyRow(vm.L(L10n.Mods.diffNone))
+                emptyRow(localization.L(L10n.Mods.diffNone))
             } else {
                 filterBar
                 if let staleness {
@@ -91,9 +92,9 @@ struct TranslationDiffView: View {
                         Image(systemName: "clock.badge.exclamationmark")
                             .font(AppDesign.Font.iconXS)
                         Text(staleness.note(
-                            sourceNewerFormat: vm.L(L10n.Mods.translationSourceNewer),
-                            sameDayFormat: vm.L(L10n.Mods.translationSourceNewerToday),
-                            oneDayFormat: vm.L(L10n.Mods.translationSourceNewerOneDay),
+                            sourceNewerFormat: localization.L(L10n.Mods.translationSourceNewer),
+                            sameDayFormat: localization.L(L10n.Mods.translationSourceNewerToday),
+                            oneDayFormat: localization.L(L10n.Mods.translationSourceNewerOneDay),
                             dateText: staleness.sourceDate.formatted(date: .abbreviated,
                                                                      time: .omitted)))
                             .font(AppDesign.Font.footnote)
@@ -153,7 +154,7 @@ struct TranslationDiffView: View {
     private var loadingRow: some View {
         HStack(spacing: 8) {
             ProgressView().controlSize(.small)
-            Text(vm.L(L10n.Mods.diffLoading))
+            Text(localization.L(L10n.Mods.diffLoading))
                 .font(AppDesign.Font.footnote)
                 .foregroundColor(.secondary)
         }
@@ -177,7 +178,7 @@ struct TranslationDiffView: View {
         let reviewCount = filterSummary.reviewCount
         return VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
-                filterChip(nil, label: vm.L(L10n.Mods.diffStateAll), count: rows.count)
+                filterChip(nil, label: localization.L(L10n.Mods.diffStateAll), count: rows.count)
                 ForEach(TranslationCoverage.DiffRow.State.allCases, id: \.self) { state in
                     if let count = counts[state], count > 0 {
                         filterChip(.state(state), label: label(for: state), count: count)
@@ -187,7 +188,7 @@ struct TranslationDiffView: View {
                     // Comme les autres : glyphe et compte dans le libellé, on
                     // sait ce qu'on va trouver avant de cliquer.
                     filterChip(.reviewNeeded,
-                               label: vm.L(L10n.Mods.translationReviewNeeded),
+                               label: localization.L(L10n.Mods.translationReviewNeeded),
                                count: reviewCount,
                                glyph: "text.magnifyingglass",
                                tint: .orange)
@@ -204,17 +205,19 @@ struct TranslationDiffView: View {
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: "wand.and.rays").font(AppDesign.Font.iconXS)
-                            Text(vm.L(L10n.Mods.translationBatchButton))
+                            Text(localization.L(L10n.Mods.translationBatchButton))
                                 .font(AppDesign.Font.iconXS(.medium))
                         }
                     }
                     .buttonStyle(.plain)
                     .pointingHandCursor()
-                    .help(vm.L(L10n.Mods.translationBatchButton))
-                    .accessibilityLabel(vm.L(L10n.Mods.translationBatchButton))
+                    .help(localization.L(L10n.Mods.translationBatchButton))
+                    .accessibilityLabel(localization.L(L10n.Mods.translationBatchButton))
                     .sheet(isPresented: $isShowingBatch) {
                         TranslationBatchView(
-                            vm: vm, mod: mod, locale: "fr", rows: rows,
+                            vm: vm,
+                            localization: localization,
+                            mod: mod, locale: "fr", rows: rows,
                             onClose: {
                                 isShowingBatch = false
                                 // Recharger ce que le lot vient d'écrire, et
@@ -241,7 +244,7 @@ struct TranslationDiffView: View {
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: "square.and.arrow.up").font(AppDesign.Font.iconXS)
-                            Text(vm.L(L10n.Mods.translationLotExport))
+                            Text(localization.L(L10n.Mods.translationLotExport))
                                 .font(AppDesign.Font.iconXS(.medium))
                         }
                     }
@@ -250,22 +253,22 @@ struct TranslationDiffView: View {
                     // Le mode d'emploi complet — export puis chat puis
                     // réimport — tient ici plutôt que sur le bouton d'import :
                     // c'est en exportant qu'on a besoin de savoir la suite.
-                    .help(vm.L(L10n.Mods.translationLotHint))
-                    .accessibilityLabel(vm.L(L10n.Mods.translationLotExport))
+                    .help(localization.L(L10n.Mods.translationLotHint))
+                    .accessibilityLabel(localization.L(L10n.Mods.translationLotExport))
                 }
                 Button {
                     importTranslationLot()
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "square.and.arrow.down").font(AppDesign.Font.iconXS)
-                        Text(vm.L(L10n.Mods.translationLotImport))
+                        Text(localization.L(L10n.Mods.translationLotImport))
                             .font(AppDesign.Font.iconXS(.medium))
                     }
                 }
                 .buttonStyle(.plain)
                 .pointingHandCursor()
-                .help(vm.L(L10n.Mods.translationLotImport))
-                .accessibilityLabel(vm.L(L10n.Mods.translationLotImport))
+                .help(localization.L(L10n.Mods.translationLotImport))
+                .accessibilityLabel(localization.L(L10n.Mods.translationLotImport))
                 .sheet(item: $lotOutcome) { presentation in
                     lotReportView(presentation.outcome, onClose: {
                         let outcome = presentation.outcome
@@ -289,7 +292,7 @@ struct TranslationDiffView: View {
                         }
                     })
                 }
-                TextField(vm.L(L10n.Mods.diffSearch), text: $searchText)
+                TextField(localization.L(L10n.Mods.diffSearch), text: $searchText)
                     .textFieldStyle(.roundedBorder)
                     .font(AppDesign.Font.footnote)
                     .searchFieldShortcut($searchFocused)
@@ -299,7 +302,7 @@ struct TranslationDiffView: View {
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: "list.bullet.indent").font(AppDesign.Font.iconXS)
-                            Text(vm.L(L10n.Mods.diffSections)).font(AppDesign.Font.iconXS(.medium))
+                            Text(localization.L(L10n.Mods.diffSections)).font(AppDesign.Font.iconXS(.medium))
                             // `groups.count`, pas les seuls groupes titrés : c'est
                             // exactement ce que le popover ci-dessous liste (blocs
                             // sans titre et orphelin compris). Annoncer les titrés
@@ -316,10 +319,10 @@ struct TranslationDiffView: View {
                     .popover(isPresented: $isShowingSectionIndex, arrowEdge: .bottom) {
                         TranslationSectionIndexView(
                             groups: groups,
-                            searchPlaceholder: vm.L(L10n.Mods.diffSectionsSearch),
-                            noMatchLabel: vm.L(L10n.Mods.diffSectionsNoMatch),
-                            untitledLabel: vm.L(L10n.Mods.diffSectionUntitled),
-                            orphanLabel: vm.L(L10n.Mods.diffStateOrphan)
+                            searchPlaceholder: localization.L(L10n.Mods.diffSectionsSearch),
+                            noMatchLabel: localization.L(L10n.Mods.diffSectionsNoMatch),
+                            untitledLabel: localization.L(L10n.Mods.diffSectionUntitled),
+                            orphanLabel: localization.L(L10n.Mods.diffStateOrphan)
                         ) { group in
                             isShowingSectionIndex = false
                             // Déplier avant de viser : dans une section repliée
@@ -335,7 +338,7 @@ struct TranslationDiffView: View {
                 // groupes sans qu'aucun en-tête ne soit affiché (cf. `table`) —
                 // replier n'a de sens que là où quelque chose nomme ce qu'on replie.
                 if allGroups.count > 1 && fileHasTitledSections {
-                    Button(vm.L(collapsed.isEmpty ? L10n.Mods.diffCollapseAll
+                    Button(localization.L(collapsed.isEmpty ? L10n.Mods.diffCollapseAll
                                                   : L10n.Mods.diffExpandAll)) {
                         // Sur `allGroups`, volontairement, pas `groups` : l'état de
                         // repliage est indépendant du filtre — c'est tout l'intérêt
@@ -412,16 +415,16 @@ struct TranslationDiffView: View {
         let data: Data
         switch vm.exportTranslationLot(mod: mod, locale: "fr", rows: rows) {
         case .nothingToTranslate:
-            vm.showModal(message: vm.L(L10n.Mods.translationLotNothing))
+            vm.showModal(message: localization.L(L10n.Mods.translationLotNothing))
             return
         case .failed:
-            vm.showModal(message: vm.L(L10n.Mods.translationLotExportFailed))
+            vm.showModal(message: localization.L(L10n.Mods.translationLotExportFailed))
             return
         case .data(let encoded):
             data = encoded
         }
         let panel = NSSavePanel()
-        panel.title = vm.L(L10n.Mods.translationLotExport)
+        panel.title = localization.L(L10n.Mods.translationLotExport)
         panel.allowedContentTypes = [.json]
         panel.nameFieldStringValue = "\(mod.folderName)-fr-lot.json"
         guard panel.runModal() == .OK, let url = panel.url else { return }
@@ -451,7 +454,7 @@ struct TranslationDiffView: View {
     /// s'y retrouve est refusé en bloc.
     private func importTranslationLot() {
         let panel = NSOpenPanel()
-        panel.title = vm.L(L10n.Mods.translationLotImport)
+        panel.title = localization.L(L10n.Mods.translationLotImport)
         panel.allowedContentTypes = [.json]
         panel.allowsMultipleSelection = false
         guard panel.runModal() == .OK, let url = panel.url else { return }
@@ -492,7 +495,7 @@ struct TranslationDiffView: View {
                 // à donner : le cas ordinaire est un fichier rendu tel quel,
                 // passé par aucun chat — le dire, plutôt que compter des
                 // zéros.
-                Text(vm.L(L10n.Mods.translationLotNothingTranslated))
+                Text(localization.L(L10n.Mods.translationLotNothingTranslated))
                     .font(AppDesign.Font.caption)
                     .fixedSize(horizontal: false, vertical: true)
             } else {
@@ -506,7 +509,7 @@ struct TranslationDiffView: View {
                 // disque). Séparer les deux comptes rend visible ce que la
                 // liste ne peut pas nommer, plutôt que de le noyer dans un
                 // total plus gros que ce qu'on montre.
-                Text(String(format: vm.L(L10n.Mods.translationLotDone),
+                Text(String(format: localization.L(L10n.Mods.translationLotDone),
                             Int64(outcome.written),
                             Int64(outcome.rejected.count),
                             Int64(outcome.writeFailures)))
@@ -528,7 +531,7 @@ struct TranslationDiffView: View {
             }
             HStack {
                 Spacer()
-                Button(vm.L(L10n.Mods.translationBatchClose)) { onClose() }
+                Button(localization.L(L10n.Mods.translationBatchClose)) { onClose() }
                     .keyboardShortcut(.defaultAction)
             }
         }
@@ -551,15 +554,15 @@ struct TranslationDiffView: View {
     private func rejectionReasonLabel(_ reason: TranslationLotImport.Rejection.Reason) -> String {
         switch reason {
         case .missingHardMarkers(let markers):
-            return String(format: vm.L(L10n.Mods.translationLotReasonMissingMarkers),
+            return String(format: localization.L(L10n.Mods.translationLotReasonMissingMarkers),
                            markers.joined(separator: ", "))
         case .extraHardMarkers(let markers):
-            return String(format: vm.L(L10n.Mods.translationLotReasonExtraMarkers),
+            return String(format: localization.L(L10n.Mods.translationLotReasonExtraMarkers),
                            markers.joined(separator: ", "))
         case .unknownKey:
-            return vm.L(L10n.Mods.translationLotReasonUnknownKey)
+            return localization.L(L10n.Mods.translationLotReasonUnknownKey)
         case .sourceAltered:
-            return vm.L(L10n.Mods.translationLotReasonSourceAltered)
+            return localization.L(L10n.Mods.translationLotReasonSourceAltered)
         }
     }
 
@@ -572,10 +575,10 @@ struct TranslationDiffView: View {
     /// d'illisibilité reste honnête.
     private func refusalMessage(_ refusal: TranslationLotImport.FileRefusal) -> String {
         switch refusal {
-        case .staleLot: return vm.L(L10n.Mods.translationLotStale)
-        case .wrongMod: return vm.L(L10n.Mods.translationLotWrongMod)
+        case .staleLot: return localization.L(L10n.Mods.translationLotStale)
+        case .wrongMod: return localization.L(L10n.Mods.translationLotWrongMod)
         case .unreadable, .wrongLanguage, .unsupportedFormat:
-            return vm.L(L10n.Mods.translationLotUnreadable)
+            return localization.L(L10n.Mods.translationLotUnreadable)
         }
     }
 
@@ -585,10 +588,10 @@ struct TranslationDiffView: View {
         Group {
             if groups.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
-                    emptyRow(vm.L(L10n.Mods.diffNoMatch))
+                    emptyRow(localization.L(L10n.Mods.diffNoMatch))
                     // L'échappatoire : sans elle, un filtre trop étroit est une
                     // impasse dont on ne voit pas la sortie.
-                    Button(vm.L(L10n.Mods.diffClearFilters)) {
+                    Button(localization.L(L10n.Mods.diffClearFilters)) {
                         searchText = ""
                         filter = nil
                     }
@@ -604,10 +607,10 @@ struct TranslationDiffView: View {
                                     if !collapsed.contains(group.id) {
                                         ForEach(group.rows) { row in
                                             DiffRowView(row: row,
-                                                        emptyPlaceholder: vm.L(L10n.Mods.diffEmptyValue),
-                                                        previousEnglishLabel: vm.L(L10n.Mods.diffPreviousEnglish),
+                                                        emptyPlaceholder: localization.L(L10n.Mods.diffEmptyValue),
+                                                        previousEnglishLabel: localization.L(L10n.Mods.diffPreviousEnglish),
                                                         needsReview: reviewNeededIDs.contains(row.id),
-                                                        reviewLabel: vm.L(L10n.Mods.translationReviewNeeded))
+                                                        reviewLabel: localization.L(L10n.Mods.translationReviewNeeded))
                                                 .contentShape(Rectangle())
                                                 .onTapGesture { editing = row }
                                                 // Rien n'indiquait qu'une
@@ -648,7 +651,9 @@ struct TranslationDiffView: View {
                         let shown = groups.flatMap(\.rows)
                         let here = shown.firstIndex { $0.id == row.id }
                         TranslationEditorView(
-                            vm: vm, mod: mod, locale: "fr", row: row,
+                            vm: vm,
+                            localization: localization,
+                            mod: mod, locale: "fr", row: row,
                             previous: here.flatMap { $0 > 0 ? shown[$0 - 1] : nil },
                             next: here.flatMap { $0 + 1 < shown.count ? shown[$0 + 1] : nil },
                             onNavigate: { editing = $0 },
@@ -685,11 +690,11 @@ struct TranslationDiffView: View {
     private var columnHeader: some View {
         HStack(alignment: .firstTextBaseline, spacing: DiffMetrics.spacing) {
             Color.clear.frame(width: DiffMetrics.glyphWidth, height: 1)
-            Text(vm.L(L10n.Mods.diffColKey))
+            Text(localization.L(L10n.Mods.diffColKey))
                 .frame(width: DiffMetrics.keyWidth, alignment: .leading)
-            Text(vm.L(L10n.Mods.diffColEnglish))
+            Text(localization.L(L10n.Mods.diffColEnglish))
                 .frame(maxWidth: .infinity, alignment: .leading)
-            Text(vm.L(L10n.Mods.diffColFrench))
+            Text(localization.L(L10n.Mods.diffColFrench))
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .font(AppDesign.Font.iconXS(.semibold))
@@ -746,8 +751,8 @@ struct TranslationDiffView: View {
     /// dans ce fichier (`DiffStateStyle`), pas de raison d'en ouvrir une
     /// troisième.
     private func title(of group: TranslationCoverage.DiffGroup) -> String {
-        group.displayTitle(fallback: vm.L(L10n.Mods.diffSectionUntitled),
-                            orphan: vm.L(L10n.Mods.diffStateOrphan))
+        group.displayTitle(fallback: localization.L(L10n.Mods.diffSectionUntitled),
+                            orphan: localization.L(L10n.Mods.diffStateOrphan))
     }
 
     // MARK: - Données dérivées
@@ -833,7 +838,7 @@ struct TranslationDiffView: View {
         case .orphan:            key = L10n.Mods.diffStateOrphan
         case .outdated:          key = L10n.Mods.diffStateOutdated
         }
-        return vm.L(key)
+        return localization.L(key)
     }
 }
 

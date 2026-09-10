@@ -15,6 +15,7 @@ import SwiftUI
 /// montre — c'est-à-dire, justement, celui qu'elle a choisi arbitrairement.
 struct ModFolderRenameSection: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     let folderName: String
     let onDone: () -> Void
 
@@ -40,9 +41,9 @@ struct ModFolderRenameSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
-            Text(vm.L(L10n.Mods.renameTitle))
+            Text(localization.L(L10n.Mods.renameTitle))
                 .font(AppDesign.Font.headline)
-            Text(vm.L(L10n.Mods.renameExplain))
+            Text(localization.L(L10n.Mods.renameExplain))
                 .font(AppDesign.Font.footnote)
                 .foregroundColor(AppDesign.Color.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -76,18 +77,18 @@ struct ModFolderRenameSection: View {
             // cette ligne, l'utilisateur qui a saisi un identifiant Nexus à la
             // main le chercherait ensuite sur le mod renommé.
             if claimants.count > 1 {
-                note(vm.L(L10n.Mods.renameSharedNote), icon: "arrow.uturn.left")
+                note(localization.L(L10n.Mods.renameSharedNote), icon: "arrow.uturn.left")
             }
             // Un avertissement, pas une interdiction — c'est la doctrine du
             // dépôt. Renommer le dossier d'un mod **en pause** pendant que le
             // jeu tourne ne risque rien : SMAPI ne l'a pas chargé.
             if vm.isGameRunning(), chosen?.isEnabled == true {
-                note(vm.L(L10n.Mods.renameGameRunning), icon: "gamecontroller.fill")
+                note(localization.L(L10n.Mods.renameGameRunning), icon: "gamecontroller.fill")
             }
 
             Divider()
 
-            Text(vm.L(L10n.Mods.renameField)).font(AppDesign.Font.footnote)
+            Text(localization.L(L10n.Mods.renameField)).font(AppDesign.Font.footnote)
             TextField("", text: $newName)
                 .textFieldStyle(.roundedBorder)
                 .frame(maxWidth: 420)
@@ -105,7 +106,7 @@ struct ModFolderRenameSection: View {
 
             HStack {
                 Spacer()
-                Button(vm.L(L10n.Mods.renameConfirm)) { rename() }
+                Button(localization.L(L10n.Mods.renameConfirm)) { rename() }
                     .disabled(verdict != .ok)
             }
         }
@@ -135,10 +136,10 @@ struct ModFolderRenameSection: View {
     private func message(for verdict: ModFolderRename.Verdict) -> String? {
         switch verdict {
         case .ok, .unchanged: return nil
-        case .empty: return vm.L(L10n.Mods.renameErrorEmpty)
-        case .leadingDot: return vm.L(L10n.Mods.renameErrorDot)
-        case .invalidCharacter: return vm.L(L10n.Mods.renameErrorCharacter)
-        case .alreadyTaken: return vm.L(L10n.Mods.renameErrorTaken)
+        case .empty: return localization.L(L10n.Mods.renameErrorEmpty)
+        case .leadingDot: return localization.L(L10n.Mods.renameErrorDot)
+        case .invalidCharacter: return localization.L(L10n.Mods.renameErrorCharacter)
+        case .alreadyTaken: return localization.L(L10n.Mods.renameErrorTaken)
         }
     }
 
@@ -150,7 +151,7 @@ struct ModFolderRenameSection: View {
         case .refused(let verdict):
             failure = message(for: verdict)
         case .failed(let reason):
-            failure = String(format: vm.L(L10n.Mods.renameFailed), reason)
+            failure = String(format: localization.L(L10n.Mods.renameFailed), reason)
         }
     }
 }

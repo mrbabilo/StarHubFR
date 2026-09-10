@@ -2,6 +2,7 @@ import SwiftUI
 
 struct HomeView: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     @ObservedObject var smapiInstaller: SmapiInstaller
     @ObservedObject private var bisection: BisectionRunner
     // Observé séparément, comme `smapiInstaller`/`bisection` juste au-dessus :
@@ -17,7 +18,8 @@ struct HomeView: View {
     // Mirrors the key launchGame() reads, so the subtitle reflects the mode that fires.
     @AppStorage("launchProfile") private var launchProfile: String = "SMAPI"
 
-    init(vm: StarHubTHViewModel, currentTab: Binding<SidebarDestination>) {
+    init(vm: StarHubTHViewModel, localization: LocalizationStore, currentTab: Binding<SidebarDestination>) {
+        self.localization = localization
         self.vm = vm
         self.smapiInstaller = vm.smapiInstaller
         self.bisection = vm.bisection
@@ -33,12 +35,12 @@ struct HomeView: View {
     @ViewBuilder
     private var interruptedSearchNotice: some View {
         if let snapshot = bisection.interruptedSnapshot, bisection.state == nil {
-            StandardSection(title: vm.L(L10n.Bisect.interruptedTitle)) {
+            StandardSection(title: localization.L(L10n.Bisect.interruptedTitle)) {
                 VStack(alignment: .leading, spacing: 10) {
                     HStack(alignment: .top, spacing: 8) {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundColor(.orange)
-                        Text(String(format: vm.L(L10n.Bisect.interruptedBody),
+                        Text(String(format: localization.L(L10n.Bisect.interruptedBody),
                                     DateFormatter.localizedString(from: snapshot.startedAt,
                                                                   dateStyle: .short,
                                                                   timeStyle: .short)))
@@ -46,7 +48,7 @@ struct HomeView: View {
                             .foregroundColor(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
-                    Button(vm.L(L10n.Bisect.restore)) { bisection.restoreAndStop() }
+                    Button(localization.L(L10n.Bisect.restore)) { bisection.restoreAndStop() }
                         .buttonStyle(.borderedProminent)
                         .disabled(bisection.isApplying)
                 }
@@ -108,10 +110,10 @@ struct HomeView: View {
 
     private func label(for kind: HomeAttention.Kind) -> String {
         switch kind {
-        case .updates: return vm.L(L10n.Main.modUpdates)
-        case .alerts: return vm.L(L10n.Main.systemAlerts)
-        case .quarantine: return vm.L(L10n.Main.quarantine)
-        case .library: return vm.L(L10n.Mods.mods)
+        case .updates: return localization.L(L10n.Main.modUpdates)
+        case .alerts: return localization.L(L10n.Main.systemAlerts)
+        case .quarantine: return localization.L(L10n.Main.quarantine)
+        case .library: return localization.L(L10n.Mods.mods)
         }
     }
 
@@ -125,23 +127,23 @@ struct HomeView: View {
             // Un bouton « Jouer » grisé ne dit pas quoi faire ; la carte
             // d'état porte l'action qui lève l'empêchement.
             StateCard(icon: "folder.badge.questionmark",
-                      text: vm.L(L10n.Home.notSet),
-                      actionTitle: vm.L(L10n.Home.selectFolder)) { vm.selectGameDir() }
+                      text: localization.L(L10n.Home.notSet),
+                      actionTitle: localization.L(L10n.Home.selectFolder)) { vm.selectGameDir() }
         case .needsSmapi:
             // SMAPI reste installable **d'ici** : c'est le prérequis de tout
             // le reste. La progression l'accompagne, sinon l'installation se
             // fait sans témoin.
             VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
                 StateCard(icon: "shippingbox",
-                          text: vm.L(L10n.Home.smapiNotInstalled),
+                          text: localization.L(L10n.Home.smapiNotInstalled),
                           actionTitle: smapiInstaller.isInstalling
-                              ? nil : vm.L(L10n.Home.installSmapi)) { vm.installSmapi() }
+                              ? nil : localization.L(L10n.Home.installSmapi)) { vm.installSmapi() }
                 if smapiInstaller.isInstalling {
                     ProgressView(value: smapiInstaller.progress, total: 1.0)
                         .progressViewStyle(.linear)
                         .tint(.blue)
                         .animation(.easeInOut, value: smapiInstaller.progress)
-                    Text(vm.L(smapiInstaller.statusMessage))
+                    Text(localization.L(smapiInstaller.statusMessage))
                         .font(AppDesign.Font.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -156,7 +158,7 @@ struct HomeView: View {
     private func readyCard(_ mode: HomeLaunchMode) -> some View {
         VStack(spacing: AppDesign.Spacing.sm) {
             Button(action: { vm.launchGame() }) {
-                Label(vm.L(L10n.Main.launchGame), systemImage: "play.fill")
+                Label(localization.L(L10n.Main.launchGame), systemImage: "play.fill")
                     .frame(maxWidth: 240)
             }
             .buttonStyle(.borderedProminent)
@@ -164,7 +166,7 @@ struct HomeView: View {
             .tint(.green)
 
             HStack(spacing: AppDesign.Spacing.xs) {
-                Text(mode == .vanilla ? vm.L(L10n.Settings.vanillaGame) : vm.L(L10n.Settings.playSMAPI))
+                Text(mode == .vanilla ? localization.L(L10n.Settings.vanillaGame) : localization.L(L10n.Settings.playSMAPI))
                 Text("•").foregroundStyle(.secondary.opacity(0.5))
                 Text(vm.gameDir)
                     .lineLimit(1)
@@ -195,51 +197,51 @@ struct HomeView: View {
                     .padding(.horizontal, 40)
 
                 // ── GAME INFO BLOCK ──
-                StandardSection(title: vm.L(L10n.Home.appInfo)) {
-                    StandardRow(title: LocalizedStringKey(vm.L(L10n.Home.developer)), detail: "AppleBoiy (original) · mrbabilo (fork)", showDivider: true)
+                StandardSection(title: localization.L(L10n.Home.appInfo)) {
+                    StandardRow(title: LocalizedStringKey(localization.L(L10n.Home.developer)), detail: "AppleBoiy (original) · mrbabilo (fork)", showDivider: true)
                     StandardRow(
-                        title: LocalizedStringKey(vm.L(L10n.Home.modManager)),
+                        title: LocalizedStringKey(localization.L(L10n.Home.modManager)),
                         detail: LocalizedStringKey(vm.smapiInstalledVersion == nil
-                            ? vm.L(L10n.Home.notInstalled)
+                            ? localization.L(L10n.Home.notInstalled)
                             : "SMAPI \(vm.smapiInstalledVersion!)"),
                         showDivider: true
                     )
                     StandardRow(
-                        title: LocalizedStringKey(vm.L(L10n.Home.installedMods)),
-                        detail: LocalizedStringKey(String(format: vm.L(L10n.Home.itemCount), Int64(vm.mods.count))),
+                        title: LocalizedStringKey(localization.L(L10n.Home.installedMods)),
+                        detail: LocalizedStringKey(String(format: localization.L(L10n.Home.itemCount), Int64(vm.mods.count))),
                         showDivider: false
                     )
                 }
                 .padding(.horizontal, 40)
 
                 // ── CORE EXTENSIONS SECTION ──
-                StandardSection(title: vm.L(L10n.Home.coreExtensions)) {
+                StandardSection(title: localization.L(L10n.Home.coreExtensions)) {
                     VStack(spacing: 0) {
                         let core = vm.coreExtensionsSnapshot
-                        CoreModRow(vm: vm, title: "Content Patcher", status: core.contentPatcher.status, mod: core.contentPatcher.mod)
+                        CoreModRow(vm: vm, localization: localization, title: "Content Patcher", status: core.contentPatcher.status, mod: core.contentPatcher.mod)
                         Rectangle().fill(Color.primary.opacity(0.05)).frame(height: 1).padding(.leading, 12).padding(.vertical, 2)
 
-                        CoreModRow(vm: vm, title: "SpaceCore", status: core.spacecore.status, mod: core.spacecore.mod)
+                        CoreModRow(vm: vm, localization: localization, title: "SpaceCore", status: core.spacecore.status, mod: core.spacecore.mod)
                         Rectangle().fill(Color.primary.opacity(0.05)).frame(height: 1).padding(.leading, 12).padding(.vertical, 2)
 
-                        CoreModRow(vm: vm, title: "Stardew Valley Thai", status: core.thai.status, mod: core.thai.mod)
+                        CoreModRow(vm: vm, localization: localization, title: "Stardew Valley Thai", status: core.thai.status, mod: core.thai.mod)
                         Rectangle().fill(Color.primary.opacity(0.05)).frame(height: 1).padding(.leading, 12).padding(.vertical, 2)
 
-                        CoreModRow(vm: vm, title: "Stardew Valley Expanded", status: core.sve.status, mod: core.sve.mod)
+                        CoreModRow(vm: vm, localization: localization, title: "Stardew Valley Expanded", status: core.sve.status, mod: core.sve.mod)
                         Rectangle().fill(Color.primary.opacity(0.05)).frame(height: 1).padding(.leading, 12).padding(.vertical, 2)
 
                         CoreToolRow(
-                            title: vm.L(L10n.Home.toolUnar),
+                            title: localization.L(L10n.Home.toolUnar),
                             status: core.unarTool.installed ? .enabledAndInstalled : .notInstalled,
-                            tooltip: vm.L(L10n.Home.toolUnarTooltip),
+                            tooltip: localization.L(L10n.Home.toolUnarTooltip),
                             installCommand: "brew install unar"
                         )
                         Rectangle().fill(Color.primary.opacity(0.05)).frame(height: 1).padding(.leading, 12).padding(.vertical, 2)
 
                         CoreToolRow(
-                            title: vm.L(L10n.Home.toolSevenZip),
+                            title: localization.L(L10n.Home.toolSevenZip),
                             status: core.sevenZipTool.installed ? .enabledAndInstalled : .notInstalled,
-                            tooltip: vm.L(L10n.Home.toolSevenZipTooltip),
+                            tooltip: localization.L(L10n.Home.toolSevenZipTooltip),
                             installCommand: "brew install sevenzip"
                         )
                     }
@@ -316,6 +318,7 @@ struct CoreToolSlot {
 // Helper for core mod status rows
 struct CoreModRow: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     let title: String
     let status: CoreModStatus
     let mod: ModItem?
@@ -348,10 +351,10 @@ struct CoreModRow: View {
                     Group {
                         switch status {
                         case .enabledAndInstalled:
-                            Text(vm.L(L10n.Home.installedAndEnabled))
+                            Text(localization.L(L10n.Home.installedAndEnabled))
                                 .foregroundColor(.secondary)
                         case .installedButDisabled:
-                            Text(vm.L(L10n.Home.installedButDisabled))
+                            Text(localization.L(L10n.Home.installedButDisabled))
                                 .foregroundColor(.orange)
                         case .notInstalled:
                             EmptyView()
@@ -359,7 +362,7 @@ struct CoreModRow: View {
                     }
                     .font(AppDesign.Font.footnote)
                 } else {
-                    Text(vm.L(L10n.Home.notInstalledOrDisabled))
+                    Text(localization.L(L10n.Home.notInstalledOrDisabled))
                         .font(AppDesign.Font.caption)
                         .foregroundColor(.red)
                 }

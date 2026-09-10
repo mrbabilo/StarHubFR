@@ -33,12 +33,14 @@ import SwiftUI
 ///   inconditionnel, lui : voir `header`.
 struct KeybindReportSection: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     @ObservedObject var service: KeybindScanService
     /// La bascule d'onglet fait partie du geste « ouvrir la config » : le
     /// bouton d'une ligne vit sur les Alertes système, l'éditeur sur Mods.
     @Binding var currentTab: SidebarDestination
 
-    init(vm: StarHubTHViewModel, currentTab: Binding<SidebarDestination>) {
+    init(vm: StarHubTHViewModel, localization: LocalizationStore, currentTab: Binding<SidebarDestination>) {
+        self.localization = localization
         self.vm = vm
         self.service = vm.keybindScanService
         self._currentTab = currentTab
@@ -59,11 +61,11 @@ struct KeybindReportSection: View {
             header
             if vm.gameDir.isEmpty {
                 statusRow(icon: "exclamationmark.triangle.fill", color: .yellow,
-                          text: vm.L(L10n.Keybinds.noGameDir))
+                          text: localization.L(L10n.Keybinds.noGameDir))
             } else if service.isScanning {
                 HStack(spacing: AppDesign.Spacing.sm) {
                     ProgressView().controlSize(.small)
-                    Text(vm.L(L10n.Keybinds.scanning))
+                    Text(localization.L(L10n.Keybinds.scanning))
                         .foregroundColor(.secondary)
                 }
             } else if let report = service.report {
@@ -89,12 +91,12 @@ struct KeybindReportSection: View {
     private var header: some View {
         HStack {
             Image(systemName: "keyboard")
-            Text(vm.L(L10n.Keybinds.title))
+            Text(localization.L(L10n.Keybinds.title))
                 .font(.system(size: 14, weight: .bold))
                 .lineLimit(1)
             Spacer(minLength: AppDesign.Spacing.sm)
             Button(action: { service.scan(mods: vm.mods, gameDir: vm.gameDir) }) {
-                Label(vm.L(L10n.Keybinds.rescan), systemImage: "arrow.clockwise")
+                Label(localization.L(L10n.Keybinds.rescan), systemImage: "arrow.clockwise")
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(.primary)
                     .lineLimit(1)
@@ -125,9 +127,9 @@ struct KeybindReportSection: View {
             // porte de config.json. Distinct du vert « aucun conflit » —
             // là, on n'a rien scanné du tout.
             statusRow(icon: "info.circle", color: .secondary,
-                      text: vm.L(L10n.Keybinds.noModsScanned))
+                      text: localization.L(L10n.Keybinds.noModsScanned))
         } else {
-            Text(String(format: vm.L(L10n.Keybinds.counters),
+            Text(String(format: localization.L(L10n.Keybinds.counters),
                         report.scannedMods, report.keybindCount))
                 .font(.system(size: 12)).foregroundColor(.secondary)
             // Le vert n'affirme l'absence de conflit que si le lot a aussi
@@ -139,7 +141,7 @@ struct KeybindReportSection: View {
             if report.problemCount == 0 && report.unrecognized.isEmpty
                 && report.subsetOverlaps.isEmpty {
                 statusRow(icon: "checkmark.circle.fill", color: .green,
-                          text: vm.L(L10n.Keybinds.empty))
+                          text: localization.L(L10n.Keybinds.empty))
             } else {
                 if !report.collisions.isEmpty {
                     collisionsGroup(report.collisions, key: "collisions",
@@ -159,7 +161,7 @@ struct KeybindReportSection: View {
                     // La réserve reste visible même groupe replié : c'est
                     // elle qui évite la fausse alerte chez qui a remappé
                     // ses touches (ronde de revue 1, constat 3).
-                    Text(vm.L(L10n.Keybinds.gameCaveat))
+                    Text(localization.L(L10n.Keybinds.gameCaveat))
                         .font(.system(size: 11)).foregroundColor(.secondary)
                     gameConflictsGroup(report.gameConflicts)
                 }
@@ -174,7 +176,7 @@ struct KeybindReportSection: View {
             latentCollisionsGroup(report.latentCollisions)
         }
         if report.pausedIgnored > 0 {
-            Text(String(format: vm.L(L10n.Keybinds.pausedNote), report.pausedIgnored))
+            Text(String(format: localization.L(L10n.Keybinds.pausedNote), report.pausedIgnored))
                 .font(.system(size: 11)).foregroundColor(.secondary)
         }
         if !report.catalogModsIgnored.isEmpty {
@@ -191,7 +193,7 @@ struct KeybindReportSection: View {
             // liste est longue, mais jamais le nombre en tête de phrase — le
             // plancher d'information que le brief demandait survit donc à la
             // troncature.
-            Text(String(format: vm.L(L10n.Keybinds.catalogNote),
+            Text(String(format: localization.L(L10n.Keybinds.catalogNote),
                         report.catalogModsIgnored.count,
                         report.catalogModsIgnored.joined(separator: ", ")))
                 .font(.system(size: 11)).foregroundColor(.secondary)
@@ -214,7 +216,7 @@ struct KeybindReportSection: View {
             // C4-T7 — dans les collisions latentes, le lecteur doit voir qui
             // est en pause : c'est LUI qu'il faut activer pour que le conflit
             // naisse.
-            Text("· \(use.modName)\(use.isActive ? "" : " (\(vm.L(L10n.Keybinds.pausedSuffix)))") (\(use.keyPaths.map { $0.joined(separator: ".") }.joined(separator: ", ")))")
+            Text("· \(use.modName)\(use.isActive ? "" : " (\(localization.L(L10n.Keybinds.pausedSuffix)))") (\(use.keyPaths.map { $0.joined(separator: ".") }.joined(separator: ", ")))")
                 .font(.system(size: 12)).foregroundColor(.secondary)
                 .lineLimit(1).truncationMode(.middle)
             configButton(modID: use.modID)
@@ -237,7 +239,7 @@ struct KeybindReportSection: View {
     private func configButton(modID: String) -> some View {
         // Évaluée une fois par ligne (ronde finale) : elle servait à la
         // fois à `.help` et à `.accessibilityLabel`.
-        let settingsLabel = vm.L(L10n.Settings.configModSettings)
+        let settingsLabel = localization.L(L10n.Settings.configModSettings)
         return Button {
             if vm.openModConfig(forFolder: modID) {
                 currentTab = .mods
@@ -253,7 +255,7 @@ struct KeybindReportSection: View {
         .pointingHandCursor()
         .help(settingsLabel)
         .accessibilityLabel(settingsLabel)
-        .accessibilityHint(vm.L(L10n.Settings.configModSettingsA11yHint))
+        .accessibilityHint(localization.L(L10n.Settings.configModSettingsA11yHint))
         .layoutPriority(1)
     }
 
@@ -273,7 +275,7 @@ struct KeybindReportSection: View {
             }
             .padding(.top, AppDesign.Spacing.xs)
         } label: {
-            Text(String(format: vm.L(header), collisions.count))
+            Text(String(format: localization.L(header), collisions.count))
                 .font(.system(size: 13, weight: .semibold))
         }
     }
@@ -285,7 +287,7 @@ struct KeybindReportSection: View {
         DisclosureGroup(isExpanded: expansion("subsets",
                                                defaultOpen: overlaps.count <= Self.autoExpandThreshold)) {
             VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
-                Text(vm.L(L10n.Keybinds.subsetsHint))
+                Text(localization.L(L10n.Keybinds.subsetsHint))
                     .font(.system(size: 11)).foregroundColor(.secondary)
                 ForEach(overlaps, id: \.self) { overlap in
                     VStack(alignment: .leading, spacing: 2) {
@@ -299,7 +301,7 @@ struct KeybindReportSection: View {
             }
             .padding(.top, AppDesign.Spacing.xs)
         } label: {
-            Text(String(format: vm.L(L10n.Keybinds.subsetsHeader), overlaps.count))
+            Text(String(format: localization.L(L10n.Keybinds.subsetsHeader), overlaps.count))
                 .font(.system(size: 13, weight: .semibold))
         }
     }
@@ -322,7 +324,7 @@ struct KeybindReportSection: View {
             }
             .padding(.top, AppDesign.Spacing.xs)
         } label: {
-            Text(String(format: vm.L(L10n.Keybinds.latentHeader), collisions.count))
+            Text(String(format: localization.L(L10n.Keybinds.latentHeader), collisions.count))
                 .font(.system(size: 13, weight: .semibold))
         }
     }
@@ -364,7 +366,7 @@ struct KeybindReportSection: View {
             }
             .padding(.top, AppDesign.Spacing.xs)
         } label: {
-            Text(String(format: vm.L(L10n.Keybinds.gameHeader), conflicts.count))
+            Text(String(format: localization.L(L10n.Keybinds.gameHeader), conflicts.count))
                 .font(.system(size: 13, weight: .semibold))
         }
     }
@@ -384,7 +386,7 @@ struct KeybindReportSection: View {
             }
             .padding(.top, AppDesign.Spacing.xs)
         } label: {
-            Text(String(format: vm.L(L10n.Keybinds.unrecognizedHeader), items.count))
+            Text(String(format: localization.L(L10n.Keybinds.unrecognizedHeader), items.count))
                 .font(.system(size: 13, weight: .semibold))
         }
     }

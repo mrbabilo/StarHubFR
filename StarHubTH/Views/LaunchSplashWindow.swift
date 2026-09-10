@@ -81,7 +81,7 @@ final class LaunchSplashController {
         // splash up that nothing will ever take down.
         guard panel == nil, !finished else { return }
 
-        let hosting = NSHostingView(rootView: LaunchSplashView(vm: vm))
+        let hosting = NSHostingView(rootView: LaunchSplashView(vm: vm, localization: vm.localization))
         let size = NSSize(width: 720, height: 560)
         // Not `.nonactivatingPanel`: at launch the app has no active window
         // yet, and a non-activating panel then never comes forward.
@@ -190,6 +190,7 @@ final class LaunchSplashController {
 /// Draws its own rounded background since the hosting panel is borderless.
 struct LaunchSplashView: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
 
     var body: some View {
         VStack(spacing: 16) {
@@ -225,12 +226,12 @@ struct LaunchSplashView: View {
                         .font(.system(size: 12, weight: .medium, design: .rounded))
                         .foregroundColor(.white.opacity(0.55))
                 }
-                Text(vm.L(L10n.Main.launching))
+                Text(localization.L(L10n.Main.launching))
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(.white.opacity(0.7))
             }
 
-            LaunchProgressBar(vm: vm)
+            LaunchProgressBar(vm: vm, localization: localization)
         }
         .padding(.vertical, 32)
         .padding(.horizontal, 28)
@@ -252,7 +253,7 @@ struct LaunchSplashView: View {
                 )
         )
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(vm.L(L10n.Main.launching))
+        .accessibilityLabel(localization.L(L10n.Main.launching))
     }
 
     /// Cover art bundled as a resource by `build_app.py`.
@@ -339,6 +340,7 @@ private extension NSColor {
 /// timer — always moving, even mid-gap — so the splash never looks stuck.
 struct LaunchProgressBar: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     @State private var displayed: Double = 0
 
     // Static → one underlying timer, never stacked across re-renders.
@@ -392,6 +394,6 @@ struct LaunchProgressBar: View {
             let label = scan.phase ?? scan.currentName
             return "\(label)  (\(scan.done)/\(scan.total))"
         }
-        return vm.launchStep.isEmpty ? vm.L(L10n.Main.launching) : vm.launchStep
+        return vm.launchStep.isEmpty ? localization.L(L10n.Main.launching) : vm.launchStep
     }
 }

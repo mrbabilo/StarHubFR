@@ -10,7 +10,7 @@ class SmapiInstaller: ObservableObject {
     var onWarning: ((String) -> Void)?
 
     @Published var isInstalling = false
-    @Published var statusMessage = ""   // holds an L10n key, translated by caller via vm.L()
+    @Published var statusMessage = ""   // holds an L10n key, translated by caller via LocalizationStore.L()
     @Published var progress: Double = 0.0
 
         /// L'environnement **minimal** qu'on pose sur chaque `Process` lancé ici :
@@ -80,7 +80,7 @@ class SmapiInstaller: ObservableObject {
     // into the message key's "%@" placeholder (via String(format:)) — the
     // key alone is passed for messages that take no detail. Kept separate
     // (rather than pre-concatenated) because this class has no localization
-    // bundle of its own; only the caller (which has `vm.L`) can translate,
+    // bundle of its own; only the caller (which has `LocalizationStore.L`) can translate,
     // and concatenating the raw key with detail text before translation
     // would corrupt the lookup key itself.
     func install(gameDir: String, completion: @escaping (Bool, String, String?) -> Void) {

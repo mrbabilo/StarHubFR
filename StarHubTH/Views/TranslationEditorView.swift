@@ -7,6 +7,7 @@ import SwiftUI
 /// l'autre — insupportable quand on en enchaîne des centaines.
 struct TranslationEditorView: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     let mod: ModItem
     let locale: String
     let row: TranslationCoverage.DiffRow
@@ -75,7 +76,7 @@ struct TranslationEditorView: View {
                     .foregroundColor(.secondary.opacity(0.8))
             }
 
-            Text(vm.L(L10n.Mods.translationEditorSource))
+            Text(localization.L(L10n.Mods.translationEditorSource))
                 .font(AppDesign.Font.footnote(.semibold))
                 .foregroundColor(.secondary)
             // Le pont AppKit remplace un `Text` sélectionnable : c'est la
@@ -83,7 +84,7 @@ struct TranslationEditorView: View {
             SelectableTextView(
                 text: row.english,
                 selection: $sourceSelection,
-                actionTitle: vm.L(L10n.Mods.translationEditorTranslateSelectionMenu),
+                actionTitle: localization.L(L10n.Mods.translationEditorTranslateSelectionMenu),
                 action: { Task { await translateSelection() } })
                 .frame(maxWidth: .infinity)
                 .frame(height: 88)
@@ -92,7 +93,7 @@ struct TranslationEditorView: View {
 
             selectionRow.frame(height: 24, alignment: .leading)
 
-            Text(vm.L(L10n.Mods.translationEditorTarget))
+            Text(localization.L(L10n.Mods.translationEditorTarget))
                 .font(AppDesign.Font.footnote(.semibold))
                 .foregroundColor(.secondary)
             TextEditor(text: $draft)
@@ -126,9 +127,9 @@ struct TranslationEditorView: View {
                 }
                 .disabled(isPreTranslating)
                 .help(isPreTranslating
-                      ? vm.L(L10n.Mods.translationEditorPretranslating)
-                      : vm.L(L10n.Mods.translationEditorPretranslate))
-                .accessibilityLabel(vm.L(L10n.Mods.translationEditorPretranslate))
+                      ? localization.L(L10n.Mods.translationEditorPretranslating)
+                      : localization.L(L10n.Mods.translationEditorPretranslate))
+                .accessibilityLabel(localization.L(L10n.Mods.translationEditorPretranslate))
 
                 // Enchaîner les clés sans repasser par la liste : c'est le
                 // geste d'un traducteur qui en traite des centaines.
@@ -151,8 +152,8 @@ struct TranslationEditorView: View {
                     Image(systemName: "chevron.left")
                 }
                 .disabled(previous == nil)
-                .help(vm.L(L10n.Mods.translationEditorPrevious))
-                .accessibilityLabel(vm.L(L10n.Mods.translationEditorPrevious))
+                .help(localization.L(L10n.Mods.translationEditorPrevious))
+                .accessibilityLabel(localization.L(L10n.Mods.translationEditorPrevious))
 
                 Button {
                     navigate(to: next)
@@ -160,20 +161,20 @@ struct TranslationEditorView: View {
                     Image(systemName: "chevron.right")
                 }
                 .disabled(next == nil)
-                .help(vm.L(L10n.Mods.translationEditorNext))
-                .accessibilityLabel(vm.L(L10n.Mods.translationEditorNext))
+                .help(localization.L(L10n.Mods.translationEditorNext))
+                .accessibilityLabel(localization.L(L10n.Mods.translationEditorNext))
 
-                Button(vm.L(L10n.Mods.translationEditorKeepEnglish)) { draft = row.english }
+                Button(localization.L(L10n.Mods.translationEditorKeepEnglish)) { draft = row.english }
                 Spacer()
-                Button(vm.L(L10n.Mods.translationEditorCancel)) { isPresented = false }
+                Button(localization.L(L10n.Mods.translationEditorCancel)) { isPresented = false }
                 // N'apparaît **qu'après** un refus : offert d'emblée, il
                 // inviterait à contourner la vérification avant même de l'avoir
                 // lue. N'a de sens que pour un blocage de tokens — un `.failed`
                 // n'a rien à « forcer », le problème n'est pas dans le texte.
                 if !blocked.isEmpty {
-                    Button(vm.L(L10n.Mods.translationEditorSaveAnyway)) { save(acceptingMismatch: true) }
+                    Button(localization.L(L10n.Mods.translationEditorSaveAnyway)) { save(acceptingMismatch: true) }
                 }
-                Button(vm.L(L10n.Mods.translationEditorSave)) { save() }
+                Button(localization.L(L10n.Mods.translationEditorSave)) { save() }
                     .keyboardShortcut(.defaultAction)
             }
         }
@@ -208,7 +209,7 @@ struct TranslationEditorView: View {
             EmptyView()
         } else {
             VStack(alignment: .leading, spacing: 4) {
-                Text(vm.L(L10n.Mods.translationEditorTokens))
+                Text(localization.L(L10n.Mods.translationEditorTokens))
                     .font(AppDesign.Font.iconXS(.semibold))
                     .foregroundColor(.secondary)
                 HStack(spacing: 6) {
@@ -233,7 +234,7 @@ struct TranslationEditorView: View {
     /// ne bouge pas selon qu'une pastille est là ou non.
     @ViewBuilder private var selectionRow: some View {
         HStack(spacing: 8) {
-            Button(vm.L(L10n.Mods.translationEditorTranslateSelection)) {
+            Button(localization.L(L10n.Mods.translationEditorTranslateSelection)) {
                 Task { await translateSelection() }
             }
             .controlSize(.small)
@@ -270,16 +271,16 @@ struct TranslationEditorView: View {
         case .proposal(let text):
             fragmentProposal = text
         case .refusedMarkers(let markers):
-            failureMessage = String(format: vm.L(L10n.Mods.translationEditorSelectionMarkers),
+            failureMessage = String(format: localization.L(L10n.Mods.translationEditorSelectionMarkers),
                                     markers.joined(separator: ", "))
         case .noFallback:
-            failureMessage = vm.L(L10n.Mods.translationEditorSelectionNoFallback)
+            failureMessage = localization.L(L10n.Mods.translationEditorSelectionNoFallback)
         case .nothingSelected:
             break
         case .fallbackStopped(let stop):
-            failureMessage = vm.L(stopMessage(stop))
+            failureMessage = localization.L(stopMessage(stop))
         case .failed:
-            failureMessage = vm.L(L10n.Mods.translationEditorPretranslateFailed)
+            failureMessage = localization.L(L10n.Mods.translationEditorPretranslateFailed)
         }
     }
 
@@ -302,10 +303,10 @@ struct TranslationEditorView: View {
                     }
                     .buttonStyle(.plain)
                     .pointingHandCursor()
-                    .help("\(vm.L(L10n.Mods.translationEditorGlossary)) : \(entry.en) → \(entry.fr)")
+                    .help("\(localization.L(L10n.Mods.translationEditorGlossary)) : \(entry.en) → \(entry.fr)")
                 }
             }
-            .help(vm.L(L10n.Mods.translationEditorGlossary))
+            .help(localization.L(L10n.Mods.translationEditorGlossary))
         }
     }
 
@@ -329,7 +330,7 @@ struct TranslationEditorView: View {
         // serveur muet, alors qu'il n'y a pas de serveur. Le lot cache son
         // bouton dans ce cas (spec §7) ; ici il reste, mais il dit où aller.
         guard vm.isTranslationAssistAvailable else {
-            failureMessage = vm.L(L10n.Mods.translationEditorPretranslateNoAI)
+            failureMessage = localization.L(L10n.Mods.translationEditorPretranslateNoAI)
             return
         }
         isPreTranslating = true
@@ -340,9 +341,9 @@ struct TranslationEditorView: View {
         case .fallbackStopped(let stop):
             // Nommer la cause : sur ce chemin on reclique, et un message
             // générique ferait retenter une clé que le service ne rendra pas.
-            failureMessage = vm.L(stopMessage(stop))
+            failureMessage = localization.L(stopMessage(stop))
         case .failed:
-            failureMessage = vm.L(L10n.Mods.translationEditorPretranslateFailed)
+            failureMessage = localization.L(L10n.Mods.translationEditorPretranslateFailed)
         }
     }
 
@@ -376,7 +377,7 @@ struct TranslationEditorView: View {
                 // Seule cette ligne est localisée : c'est l'unique constat que
                 // le traducteur ne peut pas se permettre de manquer, quelle
                 // que soit sa langue d'UI.
-                Text(vm.L(L10n.Mods.translationEditorFailed))
+                Text(localization.L(L10n.Mods.translationEditorFailed))
                     .font(AppDesign.Font.footnote(.semibold))
                     .foregroundColor(.red.opacity(0.85))
                 // Le diagnostic, verbatim : c'est exactement la phrase posée
@@ -399,7 +400,7 @@ struct TranslationEditorView: View {
                 // sélecteur de genre. `lineLimit(3)` plutôt que 2 : au-delà
                 // de quatre ou cinq marques distinctes, deux lignes ne
                 // suffisent déjà plus.
-                Text(String(format: vm.L(L10n.Mods.translationEditorBlocked), Int64(blocked.count))
+                Text(String(format: localization.L(L10n.Mods.translationEditorBlocked), Int64(blocked.count))
                      + "  " + blocked.map(\.token).joined(separator: "  "))
                     .font(AppDesign.Font.footnote)
                     .foregroundColor(.red.opacity(0.85))
@@ -408,7 +409,7 @@ struct TranslationEditorView: View {
                 // importante de tout l'écran — c'est elle qui explique le
                 // bouton juste en dessous — et à 155 caractères en français
                 // elle ne tient déjà pas sur une ligne.
-                Text(vm.L(L10n.Mods.translationEditorMismatchHint))
+                Text(localization.L(L10n.Mods.translationEditorMismatchHint))
                     .font(AppDesign.Font.iconXS)
                     .foregroundColor(.secondary)
             }

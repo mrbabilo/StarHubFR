@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 /// Main view for mod installation via drag-and-drop of zip files.
 struct ModInstallView: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     /// C2-T4 — le bouton « Voir la fiche » de l'écran de succès conduit au
     /// bon onglet : même canal que `SystemAlertsView` (pending posé avant le
     /// changement d'onglet — patron B3-T4).
@@ -104,8 +105,9 @@ struct ModInstallView: View {
 
     private let installer = ModZipInstaller()
 
-    init(vm: StarHubTHViewModel, currentTab: Binding<SidebarDestination>,
+    init(vm: StarHubTHViewModel, localization: LocalizationStore, currentTab: Binding<SidebarDestination>,
          isPresented: Binding<Bool>, preloadedZip: URL? = nil) {
+        self.localization = localization
         self.vm = vm
         self._currentTab = currentTab
         self._isPresented = isPresented
@@ -119,7 +121,7 @@ struct ModInstallView: View {
             } else {
                 // Header
                 HStack {
-                    Text(vm.L(L10n.ModInstall.title))
+                    Text(localization.L(L10n.ModInstall.title))
                         .font(AppDesign.Font.viewTitle)
                     Spacer()
                     Button {
@@ -131,7 +133,7 @@ struct ModInstallView: View {
                     }
                     .buttonStyle(.plain)
                     .pointingHandCursor()
-                    .help(vm.L(L10n.Saves.cancel))
+                    .help(localization.L(L10n.Saves.cancel))
                 }
 
                 // Drop zone
@@ -147,6 +149,7 @@ struct ModInstallView: View {
                         zipModInfo: zipModInfo!,
                         installer: installer,
                         vm: vm,
+                        localization: localization,
                         tempDir: $tempDir,
                         isInstalling: $isInstalling,
                         onInstall: installSelected,
@@ -183,17 +186,17 @@ struct ModInstallView: View {
                 break
             }
         }
-        .alert(vm.L(L10n.ModInstall.validationError), isPresented: $showError) {
+        .alert(localization.L(L10n.ModInstall.validationError), isPresented: $showError) {
             // B2-T4 : le bouton n'existe que si l'erreur courante porte une
             // commande. Le clic la copie et referme l'alerte — le contenu est
             // au presse-papiers, prêt à coller dans Terminal.
             if let command = copyableInstallCommand {
-                Button(vm.L(L10n.ModInstall.copyCommand)) {
+                Button(localization.L(L10n.ModInstall.copyCommand)) {
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(command, forType: .string)
                 }
             }
-            Button(vm.L(L10n.Main.ok)) {
+            Button(localization.L(L10n.Main.ok)) {
                 // L'archive refusée ne doit pas arrêter le reste du dépôt.
                 analyzeNextQueuedArchive()
             }
@@ -206,7 +209,7 @@ struct ModInstallView: View {
                 }
             }
         }
-        .alert(vm.L(L10n.Mods.compatInstallTitle),
+        .alert(localization.L(L10n.Mods.compatInstallTitle),
                isPresented: Binding(get: { pendingBrokenInstall != nil },
                                     set: { if !$0 { pendingBrokenInstall = nil } })) {
             if let selections = pendingBrokenInstall {
@@ -217,7 +220,7 @@ struct ModInstallView: View {
                         pendingBrokenInstall = nil
                     }
                 }
-                Button(vm.L(L10n.Mods.compatInstallConfirm)) {
+                Button(localization.L(L10n.Mods.compatInstallConfirm)) {
                     // **Directement `performInstall`, jamais `installSelected`.**
                     // Repasser par la porte dépendrait de l'ordre dans lequel
                     // SwiftUI exécute l'action et vide le binding : s'il le vide
@@ -225,26 +228,26 @@ struct ModInstallView: View {
                     pendingBrokenInstall = nil
                     performInstall(selections: selections)
                 }
-                Button(vm.L(L10n.ModInstall.cancel), role: .cancel) { pendingBrokenInstall = nil }
+                Button(localization.L(L10n.ModInstall.cancel), role: .cancel) { pendingBrokenInstall = nil }
             }
         } message: {
             if let selections = pendingBrokenInstall {
                 Text(brokenAmong(selections).map { entry in
-                    var line = entry.name + " — " + CompatibilityWarning.label(entry.verdict.status, vm)
+                    var line = entry.name + " — " + CompatibilityWarning.label(entry.verdict.status, localization)
                     if let brokeIn = entry.verdict.brokeIn {
-                        line += "\n" + String(format: vm.L(L10n.Mods.compatBrokeIn), brokeIn)
+                        line += "\n" + String(format: localization.L(L10n.Mods.compatBrokeIn), brokeIn)
                     }
                     if !entry.verdict.summary.isEmpty { line += "\n" + entry.verdict.summary }
                     return line
                 }.joined(separator: "\n\n"))
             }
         }
-        .alert(vm.L(L10n.ModInstall.depositTitle), isPresented: $showManifestlessPlan) {
+        .alert(localization.L(L10n.ModInstall.depositTitle), isPresented: $showManifestlessPlan) {
             if let plan = manifestlessPlan {
-                Button(String(format: vm.L(L10n.ModInstall.depositConfirm), plan.hostFolderName)) {
+                Button(String(format: localization.L(L10n.ModInstall.depositConfirm), plan.hostFolderName)) {
                     deposit(plan)
                 }
-                Button(vm.L(L10n.ModInstall.cancel), role: .cancel) {
+                Button(localization.L(L10n.ModInstall.cancel), role: .cancel) {
                     manifestlessPlan = nil
                     // Dépôt annulé : le reste du dépôt multiple continue.
                     analyzeNextQueuedArchive()
@@ -254,13 +257,13 @@ struct ModInstallView: View {
             if let plan = manifestlessPlan {
                 // Une greffe ne promet pas d'être défaisable depuis l'app : le
                 // registre ne retient que les traductions.
-                Text(String(format: vm.L(plan.kind == .translation
+                Text(String(format: localization.L(plan.kind == .translation
                                          ? L10n.ModInstall.depositMessage
                                          : L10n.ModInstall.depositMessageAddon),
                             plan.entries.count, plan.hostFolderName))
             }
         }
-        .confirmationDialog(vm.L(L10n.ModInstall.depositChooseTitle),
+        .confirmationDialog(localization.L(L10n.ModInstall.depositChooseTitle),
                             isPresented: $showManifestlessChoice, titleVisibility: .visible) {
             // Un bouton par candidat : c'est l'utilisateur qui tranche, jamais
             // l'heuristique — écrire dans le mauvais mod ne se rattrape pas.
@@ -271,22 +274,22 @@ struct ModInstallView: View {
                                                      entries: manifestlessEntries))
                 }
             }
-            Button(vm.L(L10n.ModInstall.cancel), role: .cancel) {
+            Button(localization.L(L10n.ModInstall.cancel), role: .cancel) {
                 manifestlessCandidates = []
                 // Choix annulé : le reste du dépôt multiple continue.
                 analyzeNextQueuedArchive()
             }
         } message: {
-            Text(String(format: vm.L(L10n.ModInstall.depositChoose), manifestlessEntries.count))
+            Text(String(format: localization.L(L10n.ModInstall.depositChoose), manifestlessEntries.count))
         }
-        .alert(vm.L(L10n.ModInstall.droppedTitle), isPresented: $showDroppedProposal) {
+        .alert(localization.L(L10n.ModInstall.droppedTitle), isPresented: $showDroppedProposal) {
             if let proposal = droppedProposal {
-                Button(String(format: vm.L(L10n.ModInstall.droppedInstall),
+                Button(String(format: localization.L(L10n.ModInstall.droppedInstall),
                               proposal.hostDisplayName)) {
                     installDroppedContent(proposal)
                 }
             }
-            Button(vm.L(L10n.ModInstall.cancel), role: .cancel) {
+            Button(localization.L(L10n.ModInstall.cancel), role: .cancel) {
                 if let tempDir = tempDir {
                     installer.cleanupTempDir(at: tempDir)
                     self.tempDir = nil
@@ -330,7 +333,7 @@ struct ModInstallView: View {
                 .font(AppDesign.Font.headline)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
-            Button(vm.L(L10n.Main.ok)) {
+            Button(localization.L(L10n.Main.ok)) {
                 recoveryAckMessage = nil
                 if vm.nextQueuedDropURL != nil {
                     // Le dépôt n'est pas épuisé : l'archive suivante attend.
@@ -351,7 +354,7 @@ struct ModInstallView: View {
             if isAnalyzing {
                 ProgressView()
                     .controlSize(.large)
-                Text(vm.L(L10n.ModInstall.analyzingZip))
+                Text(localization.L(L10n.ModInstall.analyzingZip))
                     .font(AppDesign.Font.rowTitle)
                     .foregroundColor(.secondary)
             } else {
@@ -360,11 +363,11 @@ struct ModInstallView: View {
                     .foregroundColor(isDropTarget ? .accentColor : .secondary.opacity(0.6))
 
                 VStack(spacing: AppDesignCore.Spacing.sm) {
-                    Text(vm.L(L10n.ModInstall.dropZoneText))
+                    Text(localization.L(L10n.ModInstall.dropZoneText))
                         .font(AppDesign.Font.headline.weight(.medium))
                         .foregroundColor(.primary)
 
-                    Text(vm.L(L10n.ModInstall.dropHint))
+                    Text(localization.L(L10n.ModInstall.dropHint))
                         .font(AppDesign.Font.caption)
                         .foregroundColor(.accentColor.opacity(0.8))
                 }
@@ -399,9 +402,9 @@ struct ModInstallView: View {
                 // découle du statut, et il n'y a qu'un saut de plus vers le fil
                 // principal.
                 guard !urls.isEmpty else {
-                    self.showFailure(self.vm.L(L10n.ModInstall.invalidZipStructure))
+                    self.showFailure(self.localization.L(L10n.ModInstall.invalidZipStructure))
                     self.errorRecoveryHint = ValidationStatus.invalidStructure.recoveryHintKey
-                        .map { self.vm.L($0) }
+                        .map { self.localization.L($0) }
                     self.showError = true
                     return
                 }
@@ -413,11 +416,11 @@ struct ModInstallView: View {
                 let (archives, _) = ModZipInstaller.partitionDroppedFiles(urls)
                 guard let first = archives.first else {
                     if let url = urls.first {
-                        self.showFailure(String(format: self.vm.L(L10n.ModInstall.unsupportedFormat),
+                        self.showFailure(String(format: self.localization.L(L10n.ModInstall.unsupportedFormat),
                                                 url.pathExtension))
                         self.errorRecoveryHint = ValidationStatus
                             .unsupportedFormat(url.pathExtension).recoveryHintKey
-                            .map { self.vm.L($0) }
+                            .map { self.localization.L($0) }
                         self.showError = true
                     }
                     return
@@ -547,7 +550,7 @@ struct ModInstallView: View {
                                 return
                             case .hostMissing(let hostName):
                                 self.showFailure(String(
-                                    format: self.vm.L(L10n.ModInstall.droppedHostMissing), hostName))
+                                    format: self.localization.L(L10n.ModInstall.droppedHostMissing), hostName))
                                 self.errorRecoveryHint = nil
                                 self.showError = true
                                 self.zipModInfo = nil
@@ -576,26 +579,26 @@ struct ModInstallView: View {
                             // Dire ce que l'archive contenait : sans cela
                             // l'utilisateur sait seulement qu'il manque un
                             // manifeste, pas ce qu'il y avait à la place.
-                            var msg = self.vm.L(L10n.ModInstall.invalidZipStructure)
+                            var msg = self.localization.L(L10n.ModInstall.invalidZipStructure)
                             if !info.extractedTopLevel.isEmpty {
-                                msg += "\n\n" + String(format: self.vm.L(L10n.ModInstall.archiveContains),
+                                msg += "\n\n" + String(format: self.localization.L(L10n.ModInstall.archiveContains),
                                                        info.extractedTopLevel.joined(separator: ", "))
                             }
                             self.showFailure(msg)
                         case .oversized:
-                            self.showFailure(self.vm.L(L10n.ModInstall.zipOversized))
+                            self.showFailure(self.localization.L(L10n.ModInstall.zipOversized))
                         case .tooManyMods:
-                            self.showFailure(self.vm.L(L10n.ModInstall.tooManyMods))
+                            self.showFailure(self.localization.L(L10n.ModInstall.tooManyMods))
                         case .corrupted:
-                            self.showFailure(self.vm.L(L10n.ModInstall.zipCorrupted))
+                            self.showFailure(self.localization.L(L10n.ModInstall.zipCorrupted))
                         case .unsupportedFormat(let ext):
-                            self.showFailure(String(format: self.vm.L(L10n.ModInstall.unsupportedFormat), ext))
+                            self.showFailure(String(format: self.localization.L(L10n.ModInstall.unsupportedFormat), ext))
                         case .valid:
                             break
                         }
                         // Le conseil découle du statut, et cette règle vit dans
                         // Core avec ses tests — la vue ne fait que l'afficher.
-                        self.errorRecoveryHint = info.validationStatus.recoveryHintKey.map { self.vm.L($0) }
+                        self.errorRecoveryHint = info.validationStatus.recoveryHintKey.map { self.localization.L($0) }
                         self.showError = true
                         self.zipModInfo = nil
                         // Invalid → drop the temp dir.
@@ -607,7 +610,7 @@ struct ModInstallView: View {
                     }
 
                     if info.detectedMods.isEmpty {
-                        self.showFailure(self.vm.L(L10n.ModInstall.noModsDetected))
+                        self.showFailure(self.localization.L(L10n.ModInstall.noModsDetected))
                         self.showError = true
                         self.zipModInfo = nil
                         if let tempDir = self.tempDir {
@@ -637,17 +640,17 @@ struct ModInstallView: View {
         guard let proposal = droppedProposal else { return "" }
         var text: String
         if proposal.files.count == 1 {
-            text = String(format: vm.L(L10n.ModInstall.droppedQuestion),
+            text = String(format: localization.L(L10n.ModInstall.droppedQuestion),
                           proposal.hostDisplayName, proposal.files[0].destination.path)
         } else {
             // Un lot : c'est le dossier qui compte, pas dix chemins qui ne
             // tiendraient pas dans l'alerte.
-            text = String(format: vm.L(L10n.ModInstall.droppedQuestionMany),
+            text = String(format: localization.L(L10n.ModInstall.droppedQuestionMany),
                           proposal.files.count, proposal.hostDisplayName,
                           proposal.destinationFolder.path)
         }
         if proposal.hostIsPaused {
-            text += "\n\n" + String(format: vm.L(L10n.ModInstall.droppedHostPaused),
+            text += "\n\n" + String(format: localization.L(L10n.ModInstall.droppedHostPaused),
                                     proposal.hostDisplayName)
         }
         return text
@@ -710,7 +713,7 @@ struct ModInstallView: View {
     private func deposit(_ plan: ManifestlessArchive.Plan) {
         guard let tempDir,
               let host = vm.mods.first(where: { $0.folderName == plan.hostFolderName }) else {
-            showFailure(vm.L(L10n.ModInstall.depositFailed))
+            showFailure(localization.L(L10n.ModInstall.depositFailed))
             showError = true
             return
         }
@@ -724,11 +727,11 @@ struct ModInstallView: View {
                                        sourceName: analyzedArchiveName, nexus: nil,
                                        downloadedModId: downloadedModId)
         guard let outcome = result.outcome else {
-            showFailure(result.message ?? vm.L(L10n.ModInstall.depositFailed))
+            showFailure(result.message ?? localization.L(L10n.ModInstall.depositFailed))
             showError = true
             return
         }
-        vm.log(String(format: vm.L(L10n.ModInstall.depositDone),
+        vm.log(String(format: localization.L(L10n.ModInstall.depositDone),
                       outcome.written.count, host.name))
         installer.cleanupTempDir(at: tempDir)
         self.tempDir = nil
@@ -819,7 +822,7 @@ struct ModInstallView: View {
                 failure = self.vm.installErrorMessage(error)
                 failureCommand = (error as? InstallError)?.copyableCommand
                 if installed > 0 {
-                    failure! += "\n\n" + String(format: self.vm.L(L10n.ModInstall.droppedDoneMany),
+                    failure! += "\n\n" + String(format: self.localization.L(L10n.ModInstall.droppedDoneMany),
                                                  installed, proposal.hostDisplayName)
                 }
             }
@@ -839,9 +842,9 @@ struct ModInstallView: View {
                     // ne changerait rien à l'écran et laisserait croire le
                     // contraire.
                     self.recoveryAckMessage = proposal.files.count == 1
-                        ? String(format: self.vm.L(L10n.ModInstall.droppedDone),
+                        ? String(format: self.localization.L(L10n.ModInstall.droppedDone),
                                  proposal.hostDisplayName)
-                        : String(format: self.vm.L(L10n.ModInstall.droppedDoneMany),
+                        : String(format: self.localization.L(L10n.ModInstall.droppedDoneMany),
                                  proposal.files.count, proposal.hostDisplayName)
                 }
             }
@@ -944,14 +947,14 @@ struct ModInstallView: View {
                         self.vm.invalidateFrenchCoverage(for: mod.folderName)
                     }
                     self.vm.refresh()
-                    self.vm.log(self.vm.L(L10n.ModInstall.installSuccess), level: .info)
+                    self.vm.log(self.localization.L(L10n.ModInstall.installSuccess), level: .info)
 
                     // X63 — un mod dont le nom de dossier était déjà pris par
                     // un autre mod a été posé ailleurs. Sans cette ligne, la
                     // liste montre deux mods de même nom logique et rien ne
                     // dit pourquoi l'un vit dans un dossier horodaté.
                     for written in written where written.displacedFrom != nil {
-                        self.vm.log(String(format: self.vm.L(L10n.ModInstall.folderTaken),
+                        self.vm.log(String(format: self.localization.L(L10n.ModInstall.folderTaken),
                                            written.displacedFrom ?? "",
                                            (written.path as NSString).lastPathComponent),
                                     level: .warning)

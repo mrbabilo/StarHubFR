@@ -34,6 +34,7 @@ private enum SystemAlertsSheet: Identifiable {
 
 struct SystemAlertsView: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     @Binding var currentTab: SidebarDestination
 
     /// H-T6b — `KeybindReportSection` et `ModConflictSection` n'avaient plus
@@ -86,15 +87,15 @@ struct SystemAlertsView: View {
 
     private func header(_ issues: [HealthIssue]) -> some View {
         HStack(spacing: AppDesign.Spacing.sm) {
-            Text(vm.L(L10n.Main.systemAlerts))
+            Text(localization.L(L10n.Main.systemAlerts))
                 .font(AppDesign.Font.viewTitle)
             Spacer()
             // Comptes dérivés de la liste DÉJÀ capturée, jamais de
             // `vm.activeConflictCount` : celui-ci relit `vm.healthIssues`,
             // propriété calculée qui retrie le parc entier (~966 mods).
-            panoramaButton(vm.L(L10n.Keybinds.title), icon: "keyboard",
+            panoramaButton(localization.L(L10n.Keybinds.title), icon: "keyboard",
                            count: issues.count { $0.source == .keybind }) { sheet = .keybindReport }
-            panoramaButton(vm.L(L10n.Conflicts.title), icon: "arrow.triangle.merge",
+            panoramaButton(localization.L(L10n.Conflicts.title), icon: "arrow.triangle.merge",
                            count: issues.count { $0.source == .modConflict }) { sheet = .modConflicts }
             recheckLogButton
         }
@@ -145,20 +146,20 @@ struct SystemAlertsView: View {
             ScrollView {
                 switch which {
                 case .keybindReport:
-                    KeybindReportSection(vm: vm, currentTab: $currentTab)
+                    KeybindReportSection(vm: vm, localization: localization, currentTab: $currentTab)
                         .padding(AppDesign.Spacing.lg)
                 case .modConflicts:
-                    ModConflictSection(vm: vm)
+                    ModConflictSection(vm: vm, localization: localization)
                         .padding(AppDesign.Spacing.lg)
                 case .renameFolder(let name):
-                    ModFolderRenameSection(vm: vm, folderName: name) { sheet = nil }
+                    ModFolderRenameSection(vm: vm, localization: localization, folderName: name) { sheet = nil }
                         .padding(AppDesign.Spacing.lg)
                 }
             }
             Divider()
             HStack {
                 Spacer()
-                Button(vm.L(L10n.Main.ok)) { sheet = nil }
+                Button(localization.L(L10n.Main.ok)) { sheet = nil }
                     .keyboardShortcut(.defaultAction)
             }
             .padding(AppDesign.Spacing.md)
@@ -178,13 +179,13 @@ struct SystemAlertsView: View {
             // Cas courant de `SeverityBadge` : le libellé est résolu depuis
             // la gravité elle-même (voir doc de tête du composant) — ce n'est
             // pas le cas « libellé différent » de son second initialiseur.
-            SeverityBadge(severity: issue.severity, L: vm.L)
+            SeverityBadge(severity: issue.severity, L: localization.L)
                 .frame(width: 130, alignment: .leading)
             VStack(alignment: .leading, spacing: 2) {
                 // `titleKey` n'est posé que quand le titre est un libellé
                 // d'interface et non une donnée (notice bénigne sans mod) —
                 // voir `HealthIssue.titleKey`.
-                Text(issue.titleKey.map { vm.L($0) } ?? issue.title)
+                Text(issue.titleKey.map { localization.L($0) } ?? issue.title)
                     .font(AppDesign.Font.body)
                 // `detail` est un diagnostic brut venu du journal SMAPI —
                 // de la DONNÉE, pas de la copie d'interface : il ne passe
@@ -220,10 +221,10 @@ struct SystemAlertsView: View {
     /// ni le mod fautif eux-mêmes (H-T6b).
     private func actionLabel(for action: HealthIssue.Action) -> String {
         switch action {
-        case .openMod: return vm.L(L10n.Health.actionOpenMod)
-        case .openLogs: return vm.L(L10n.Health.actionOpenLogs)
-        case .revealInFinder: return vm.L(L10n.Health.actionRevealInFinder)
-        case .renameFolder: return vm.L(L10n.Health.actionRenameFolder)
+        case .openMod: return localization.L(L10n.Health.actionOpenMod)
+        case .openLogs: return localization.L(L10n.Health.actionOpenLogs)
+        case .revealInFinder: return localization.L(L10n.Health.actionRevealInFinder)
+        case .renameFolder: return localization.L(L10n.Health.actionRenameFolder)
         }
     }
 
@@ -264,7 +265,7 @@ struct SystemAlertsView: View {
     /// « 7 problèmes » en pied de page. Les critiques restent un filtrage
     /// direct sur la gravité.
     private func footer(for issues: [HealthIssue]) -> some View {
-        Text(String(format: vm.L(L10n.Health.problemCount),
+        Text(String(format: localization.L(L10n.Health.problemCount),
                     Int64(issues.actionableCount),
                     Int64(issues.filter { $0.severity == .critical }.count)))
             .font(AppDesign.Font.footnote)
@@ -284,7 +285,7 @@ struct SystemAlertsView: View {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundColor(AppDesign.Color.success)
                     .font(.system(size: 28))
-                Text(vm.L(L10n.Updates.noAlerts))
+                Text(localization.L(L10n.Updates.noAlerts))
                     .font(AppDesign.Font.headline)
                     .foregroundColor(AppDesign.Color.secondary)
             }
@@ -299,7 +300,7 @@ struct SystemAlertsView: View {
     private var recheckLogButton: some View {
         HStack(spacing: AppDesign.Spacing.xs) {
             Button(action: { vm.refreshSmapiLog() }) {
-                Label(vm.L(L10n.Updates.recheckLog), systemImage: "arrow.clockwise")
+                Label(localization.L(L10n.Updates.recheckLog), systemImage: "arrow.clockwise")
                     .font(AppDesign.Font.caption(.medium))
                     .foregroundColor(AppDesign.Color.primary)
                     .padding(.horizontal, AppDesign.Spacing.md)

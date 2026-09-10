@@ -19,6 +19,7 @@ struct ModListView: View {
     @FocusState private var searchFocused: Bool
 
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     /// L'onglet affiché, pour les rares endroits d'où la liste **mène
     /// ailleurs** (le badge de profil actif). Même patron que
     /// `ModProfilesView`, `UpdatesView` et `SystemAlertsView`.
@@ -27,7 +28,8 @@ struct ModListView: View {
     /// dans la recherche ne redessine pas toute la fenêtre — voir `ModListState`.
     @ObservedObject private var listState: ModListState
 
-    init(vm: StarHubTHViewModel, currentTab: Binding<SidebarDestination>) {
+    init(vm: StarHubTHViewModel, localization: LocalizationStore, currentTab: Binding<SidebarDestination>) {
+        self.localization = localization
         self.vm = vm
         self.listState = vm.modList
         self._currentTab = currentTab
@@ -156,8 +158,8 @@ struct ModListView: View {
         return NexusCategory.all
             .filter { counts[$0.id] != nil }
             .map { ($0, counts[$0.id] ?? 0) }
-            .sorted { $0.category.localizedName(vm.L)
-                .localizedCaseInsensitiveCompare($1.category.localizedName(vm.L)) == .orderedAscending }
+            .sorted { $0.category.localizedName(localization.L)
+                .localizedCaseInsensitiveCompare($1.category.localizedName(localization.L)) == .orderedAscending }
     }
 
     /// (tag key, localized label, count) for top-level mods with no Nexus
@@ -168,7 +170,7 @@ struct ModListView: View {
             let tag = vm.inferredTagKey(for: mod)
             if tag != "Other" { counts[tag, default: 0] += 1 }
         }
-        return counts.map { (tag: $0.key, label: vm.L(L10n.ModTag.key(for: $0.key)), count: $0.value) }
+        return counts.map { (tag: $0.key, label: localization.L(L10n.ModTag.key(for: $0.key)), count: $0.value) }
             .sorted { $0.label.localizedCaseInsensitiveCompare($1.label) == .orderedAscending }
     }
 
@@ -201,10 +203,10 @@ struct ModListView: View {
     /// de la même façon dans les deux denses (P2).
     private var scopeSectionTitle: String {
         switch filters.scope {
-        case .all: return vm.L(L10n.Mods.filterAll)
-        case .enabled: return vm.L(L10n.Mods.enabled)
-        case .disabled: return vm.L(L10n.Mods.disabled)
-        case .issues: return vm.L(L10n.Mods.filterIssues)
+        case .all: return localization.L(L10n.Mods.filterAll)
+        case .enabled: return localization.L(L10n.Mods.enabled)
+        case .disabled: return localization.L(L10n.Mods.disabled)
+        case .issues: return localization.L(L10n.Mods.filterIssues)
         }
     }
 
@@ -228,7 +230,7 @@ struct ModListView: View {
             // curseurs à 10 pt s'y lisaient comme une note.
             attributes.append(CardAttribute(id: "profileConfig",
                                             systemImage: "gearshape",
-                                            help: vm.L(L10n.Mods.profileConfigBadge)))
+                                            help: localization.L(L10n.Mods.profileConfigBadge)))
         }
         return attributes
     }
@@ -279,13 +281,13 @@ struct ModListView: View {
                 // same visual priority, above the secondary filters.
                 HStack {
                     Picker("", selection: $listState.filters.scope) {
-                        Text("\(vm.L(L10n.Mods.filterAll)) (\(counts.all))")
+                        Text("\(localization.L(L10n.Mods.filterAll)) (\(counts.all))")
                             .tag(ModFilter.all)
-                        Text("\(vm.L(L10n.Mods.enabled)) (\(counts.enabled))")
+                        Text("\(localization.L(L10n.Mods.enabled)) (\(counts.enabled))")
                             .tag(ModFilter.enabled)
-                        Text("\(vm.L(L10n.Mods.disabled)) (\(counts.disabled))")
+                        Text("\(localization.L(L10n.Mods.disabled)) (\(counts.disabled))")
                             .tag(ModFilter.disabled)
-                        Label("\(vm.L(L10n.Mods.filterIssues)) (\(counts.issues))",
+                        Label("\(localization.L(L10n.Mods.filterIssues)) (\(counts.issues))",
                               systemImage: "exclamationmark.triangle")
                             .tag(ModFilter.issues)
                     }
@@ -302,7 +304,7 @@ struct ModListView: View {
                         Image(systemName: "magnifyingglass")
                             .font(AppDesign.Font.iconXS)
                             .foregroundColor(.secondary)
-                        TextField(vm.L(L10n.Mods.searchMods),
+                        TextField(localization.L(L10n.Mods.searchMods),
                                   text: $listState.filters.search)
                             .textFieldStyle(.plain)
                             .searchFieldShortcut($searchFocused)
@@ -318,7 +320,7 @@ struct ModListView: View {
                             // lot ; patron `ModListView` ligne ~1500).
                             .frame(width: 18, height: 18)
                             .contentShape(.rect)
-                            .help(vm.L(L10n.Discovery.clearSearch))
+                            .help(localization.L(L10n.Discovery.clearSearch))
                         }
                     }
                     .padding(.horizontal, 6)
@@ -332,7 +334,7 @@ struct ModListView: View {
                     // La grille optionnelle (H-T4) : liste dense par défaut,
                     // cartes au-dessus. Choix persisté — c'est une habitude
                     // de parcours, pas un état de session.
-                    Picker(vm.L(L10n.Mods.layoutList), selection: $listLayout) {
+                    Picker(localization.L(L10n.Mods.layoutList), selection: $listLayout) {
                         // `list.bullet` et non un glyph de disposition : à
                         // 32 pt de demi-segment, tout ce qui dessine des
                         // quartiers devient illisible.
@@ -345,8 +347,8 @@ struct ModListView: View {
                     .labelsHidden()
                     .frame(width: 64)
                     .help(listLayout == .list
-                          ? vm.L(L10n.Mods.layoutList)
-                          : vm.L(L10n.Mods.layoutGrid))
+                          ? localization.L(L10n.Mods.layoutList)
+                          : localization.L(L10n.Mods.layoutGrid))
 
                     // Bulk enable/disable all mods at once. Disabled when
                     // there is nothing to act on (empty list, or every mod
@@ -358,7 +360,7 @@ struct ModListView: View {
                     Button {
                         showInstallSheet = true
                     } label: {
-                        Label(vm.L(L10n.ModInstall.installButton), systemImage: "plus.circle")
+                        Label(localization.L(L10n.ModInstall.installButton), systemImage: "plus.circle")
                     }
                     .buttonStyle(.borderedProminent)
                 }
@@ -387,15 +389,15 @@ struct ModListView: View {
                     categoryPicker(categories: categories, uncatCount: uncatCount, tagBuckets: tagBuckets)
                         .disabled(categories.isEmpty && uncatCount == 0 && tagBuckets.isEmpty)
                         .help(categories.isEmpty && uncatCount == 0 && tagBuckets.isEmpty
-                              ? vm.L(L10n.Mods.categoryFilterEmptyHint)
-                              : vm.L(L10n.Mods.categoryFilterHint))
+                              ? localization.L(L10n.Mods.categoryFilterEmptyHint)
+                              : localization.L(L10n.Mods.categoryFilterHint))
 
                     Spacer()
 
                     scopeWeightLabel(for: display)
 
                     if categories.isEmpty && uncatCount == 0 && tagBuckets.isEmpty {
-                        Text(vm.L(L10n.Mods.categoryFilterEmptyHint))
+                        Text(localization.L(L10n.Mods.categoryFilterEmptyHint))
                             .font(AppDesign.Font.footnote)
                             .foregroundColor(.secondary.opacity(AppDesign.Opacity.secondary))
                     }
@@ -409,7 +411,7 @@ struct ModListView: View {
                             HStack(spacing: 5) {
                                 Image(systemName: "person.crop.circle")
                                     .font(AppDesign.Font.footnote)
-                                Text(String(format: vm.L(L10n.Profiles.activeLabel), profile.name))
+                                Text(String(format: localization.L(L10n.Profiles.activeLabel), profile.name))
                                     .font(AppDesign.Font.footnote(.medium))
                                     .lineLimit(1)
                             }
@@ -421,9 +423,9 @@ struct ModListView: View {
                         }
                         .buttonStyle(PlainButtonStyle())
                         .pointingHandCursor()
-                        .help(vm.L(L10n.Profiles.title))
-                        .accessibilityLabel(String(format: vm.L(L10n.Profiles.activeLabel), profile.name))
-                        .accessibilityHint(vm.L(L10n.Profiles.title))
+                        .help(localization.L(L10n.Profiles.title))
+                        .accessibilityLabel(String(format: localization.L(L10n.Profiles.activeLabel), profile.name))
+                        .accessibilityHint(localization.L(L10n.Profiles.title))
                     }
                 }
             }
@@ -440,7 +442,7 @@ struct ModListView: View {
                     if filtered.isEmpty {
                         if vm.mods.isEmpty {
                             // Première utilisation : zone de drop XXL
-                            EmptyStateDropZone(vm: vm, onInstall: { showInstallSheet = true })
+                            EmptyStateDropZone(vm: vm, localization: localization, onInstall: { showInstallSheet = true })
                                 .padding(.top, 40)
                         } else {
                             // Recherche sans résultat
@@ -448,7 +450,7 @@ struct ModListView: View {
                                 Image(systemName: "puzzlepiece.extension")
                                     .font(AppDesign.Font.emptyStateGlyph)
                                     .foregroundColor(.secondary.opacity(AppDesign.Opacity.disabled))
-                                Text(String(format: vm.L(L10n.Mods.noModFound), filters.search))
+                                Text(String(format: localization.L(L10n.Mods.noModFound), filters.search))
                                     .multilineTextAlignment(.center)
                                     .font(AppDesign.Font.rowTitle)
                                     .foregroundColor(.secondary)
@@ -466,7 +468,7 @@ struct ModListView: View {
                         // ordre que le tri choisi n'avait pas demandé.
                         switch listLayout {
                         case .list:
-                            ModSectionGroup(title: scopeSectionTitle, mods: paged, vm: vm, listState: listState)
+                            ModSectionGroup(title: scopeSectionTitle, mods: paged, vm: vm, localization: localization, listState: listState)
                         case .grid:
                             // Même section, même titre, même page que la liste
                             // (P2 : le compte honnête ne change pas avec la
@@ -481,7 +483,7 @@ struct ModListView: View {
                                     ForEach(paged) { mod in
                                         let values = ModGridCardValues.card(
                                             mod: mod,
-                                            versionPrefix: vm.L(L10n.Mods.versionPrefix),
+                                            versionPrefix: localization.L(L10n.Mods.versionPrefix),
                                             pictureURL: gridPictureURL(for: mod))
                                         let active = values.state == .active
                                         ModCard(title: values.title,
@@ -492,7 +494,7 @@ struct ModListView: View {
                                                 // ici. Les deux états se posent,
                                                 // jamais l'un par l'absence de
                                                 // l'autre (P6).
-                                                installedLabel: vm.L(active
+                                                installedLabel: localization.L(active
                                                     ? L10n.Mods.cardActive
                                                     : L10n.Mods.cardPaused),
                                                 badgeTint: active
@@ -511,7 +513,7 @@ struct ModListView: View {
                                                 endorsements: values.endorsements,
                                                 usesDefaultArtwork: true,
                                                 attributes: gridAttributes(for: mod),
-                                                L: vm.L,
+                                                L: localization.L,
                                                 action: { vm.viewingModDetail = mod })
                                     }
                                 }
@@ -560,12 +562,12 @@ struct ModListView: View {
         .onAppear { vm.modList.displayOrder = displayIds }
         .onChange(of: displayIds) { _, order in vm.modList.displayOrder = order }
         .sheet(isPresented: $showInstallSheet) {
-            ModInstallView(vm: vm, currentTab: $currentTab, isPresented: $showInstallSheet)
+            ModInstallView(vm: vm, localization: localization, currentTab: $currentTab, isPresented: $showInstallSheet)
         }
         .confirmationDialog(
             bulkToggleTarget == true
-                ? vm.L(L10n.Mods.enableAllConfirm)
-                : vm.L(L10n.Mods.disableAllConfirm),
+                ? localization.L(L10n.Mods.enableAllConfirm)
+                : localization.L(L10n.Mods.disableAllConfirm),
             isPresented: Binding(
                 get: { bulkToggleTarget != nil },
                 set: { if !$0 { bulkToggleTarget = nil } }
@@ -573,15 +575,15 @@ struct ModListView: View {
             titleVisibility: .visible
         ) {
             Button(bulkToggleTarget == true
-                   ? vm.L(L10n.Mods.enableAll)
-                   : vm.L(L10n.Mods.disableAll),
+                   ? localization.L(L10n.Mods.enableAll)
+                   : localization.L(L10n.Mods.disableAll),
                    role: .destructive) {
                 if let target = bulkToggleTarget {
                     vm.toggleAllMods(enable: target)
                 }
                 bulkToggleTarget = nil
             }
-            Button(vm.L(L10n.Saves.cancel), role: .cancel) {
+            Button(localization.L(L10n.Saves.cancel), role: .cancel) {
                 bulkToggleTarget = nil
             }
         } message: {
@@ -590,7 +592,7 @@ struct ModListView: View {
             // filtrer sur une catégorie puis « Tout désactiver » annonce les
             // mods de cette catégorie, tous confondus sinon.
             let count = display.filter { $0.isEnabled != (bulkToggleTarget ?? true) }.count
-            Text(String(format: vm.L(bulkToggleTarget == true
+            Text(String(format: localization.L(bulkToggleTarget == true
                  ? L10n.Mods.enableAllMessage
                  : L10n.Mods.disableAllMessage), count))
         }
@@ -603,7 +605,7 @@ struct ModListView: View {
             Image(systemName: "checkmark.seal")
                 .font(AppDesign.Font.emptyScopeGlyph)
                 .foregroundColor(.secondary.opacity(AppDesign.Opacity.disabled))
-            Text(vm.L(filters.scope == .enabled
+            Text(localization.L(filters.scope == .enabled
                       ? L10n.Mods.disabled
                       : L10n.Mods.enabled))
                 .font(AppDesign.Font.rowTitle)
@@ -619,7 +621,7 @@ struct ModListView: View {
             Image(systemName: "checkmark.seal.fill")
                 .font(AppDesign.Font.emptyScopeGlyph)
                 .foregroundColor(.green.opacity(0.6))
-            Text(vm.L(L10n.Mods.filterIssues))
+            Text(localization.L(L10n.Mods.filterIssues))
                 .font(AppDesign.Font.rowTitle)
                 .foregroundColor(.secondary)
         }
@@ -647,7 +649,7 @@ struct ModListView: View {
                 .buttonStyle(.bordered)
                 .controlSize(.small)
                 .disabled(filters.page == 1)
-                .help(vm.L(L10n.Mods.prevPageHint))
+                .help(localization.L(L10n.Mods.prevPageHint))
 
                 // Numbered page buttons with ellipsis logic.
                 ForEach(Array(pageSlots(current: page, total: totalPages).enumerated()), id: \.offset) { _, slot in
@@ -684,10 +686,10 @@ struct ModListView: View {
                 .buttonStyle(.bordered)
                 .controlSize(.small)
                 .disabled(filters.page == totalPages)
-                .help(vm.L(L10n.Mods.nextPageHint))
+                .help(localization.L(L10n.Mods.nextPageHint))
             }
 
-            Text(String(format: vm.L(L10n.Mods.pageShowing), rangeStart, rangeEnd, total))
+            Text(String(format: localization.L(L10n.Mods.pageShowing), rangeStart, rangeEnd, total))
                 .font(AppDesign.Font.iconXS)
                 .foregroundColor(.secondary.opacity(AppDesign.Opacity.secondary))
         }
@@ -747,7 +749,7 @@ struct ModListView: View {
             HStack(spacing: 3) {
                 Image(systemName: "internaldrive")
                     .font(AppDesign.Font.iconXXS)
-                Text(String(format: vm.L(L10n.Mods.pageWeight),
+                Text(String(format: localization.L(L10n.Mods.pageWeight),
                             ByteCountFormatter.string(fromByteCount: total, countStyle: .file)))
                     .font(AppDesign.Font.footnote)
             }
@@ -765,7 +767,7 @@ struct ModListView: View {
         Button {
             listState.filters.sort = order
         } label: {
-            Label(vm.L(label), systemImage: icon)
+            Label(localization.L(label), systemImage: icon)
         }
     }
 
@@ -783,7 +785,7 @@ struct ModListView: View {
         Button {
             listState.filters.frenchTranslation = scope
         } label: {
-            Label("\(vm.L(label)) (\(count))", systemImage: icon)
+            Label("\(localization.L(label)) (\(count))", systemImage: icon)
         }
     }
 
@@ -829,13 +831,13 @@ struct ModListView: View {
 
     private var sortLabel: String {
         switch filters.sort {
-        case .name: return vm.L(L10n.Mods.sortName)
-        case .nameDescending: return vm.L(L10n.Mods.sortNameDescending)
-        case .activationOrder: return vm.L(L10n.Mods.sortActivationOrder)
-        case .installDate: return vm.L(L10n.Mods.sortInstallDate)
-        case .author: return vm.L(L10n.Mods.sortAuthor)
-        case .version: return vm.L(L10n.Mods.sortVersion)
-        case .size: return vm.L(L10n.Mods.sortSize)
+        case .name: return localization.L(L10n.Mods.sortName)
+        case .nameDescending: return localization.L(L10n.Mods.sortNameDescending)
+        case .activationOrder: return localization.L(L10n.Mods.sortActivationOrder)
+        case .installDate: return localization.L(L10n.Mods.sortInstallDate)
+        case .author: return localization.L(L10n.Mods.sortAuthor)
+        case .version: return localization.L(L10n.Mods.sortVersion)
+        case .size: return localization.L(L10n.Mods.sortSize)
         }
     }
 
@@ -868,10 +870,10 @@ struct ModListView: View {
                 )
         }
         .buttonStyle(PlainButtonStyle())
-        .help(vm.L(L10n.Mods.configFilterLabel))
+        .help(localization.L(L10n.Mods.configFilterLabel))
         // Sans texte visible, l'infobulle ne suffit pas : VoiceOver n'a plus
         // que ce libellé.
-        .accessibilityLabel(vm.L(L10n.Mods.configFilterLabel))
+        .accessibilityLabel(localization.L(L10n.Mods.configFilterLabel))
     }
 
     // MARK: - Favourites filter toggle (B3-T2)
@@ -904,7 +906,7 @@ struct ModListView: View {
                 Image(systemName: active ? "star.fill" : "star")
                     .font(AppDesign.Font.footnote)
                 if empty {
-                    Text(vm.L(L10n.Mods.filterFavorites))
+                    Text(localization.L(L10n.Mods.filterFavorites))
                         .font(AppDesign.Font.caption(.medium))
                 } else {
                     Text("\(vm.favoriteMods.count)")
@@ -926,8 +928,8 @@ struct ModListView: View {
         }
         .buttonStyle(PlainButtonStyle())
         .disabled(empty && !active)
-        .help(vm.L(empty ? L10n.Mods.filterFavoritesEmptyHint : L10n.Mods.filterFavoritesHint))
-        .accessibilityLabel(vm.L(L10n.Mods.filterFavorites))
+        .help(localization.L(empty ? L10n.Mods.filterFavoritesEmptyHint : L10n.Mods.filterFavoritesHint))
+        .accessibilityLabel(localization.L(L10n.Mods.filterFavorites))
         // Le compte est à l'écran : sans cette valeur, VoiceOver le perdrait
         // avec le libellé.
         .accessibilityValue(empty ? "" : "\(vm.favoriteMods.count)")
@@ -954,7 +956,7 @@ struct ModListView: View {
                 Image(systemName: active ? "xmark.circle.fill" : "xmark.circle")
                     .font(AppDesign.Font.footnote)
                 if empty {
-                    Text(vm.L(L10n.Mods.filterBlacklisted))
+                    Text(localization.L(L10n.Mods.filterBlacklisted))
                         .font(AppDesign.Font.caption(.medium))
                 } else {
                     Text("\(vm.blacklistedMods.count)")
@@ -976,8 +978,8 @@ struct ModListView: View {
         }
         .buttonStyle(PlainButtonStyle())
         .disabled(empty && !active)
-        .help(vm.L(empty ? L10n.Mods.filterBlacklistedEmptyHint : L10n.Mods.filterBlacklistedHint))
-        .accessibilityLabel(vm.L(L10n.Mods.filterBlacklisted))
+        .help(localization.L(empty ? L10n.Mods.filterBlacklistedEmptyHint : L10n.Mods.filterBlacklistedHint))
+        .accessibilityLabel(localization.L(L10n.Mods.filterBlacklisted))
         .accessibilityValue(empty ? "" : "\(vm.blacklistedMods.count)")
     }
 
@@ -1002,11 +1004,11 @@ struct ModListView: View {
         let isActive = filters.frenchTranslation != .off
         let label: String = {
             switch filters.frenchTranslation {
-            case .off:       return vm.L(L10n.Mods.frTranslationFilterLabel)
-            case .available: return vm.L(L10n.Mods.frTranslationAvailable)
-            case .partial:   return vm.L(L10n.Mods.frTranslationPartial)
-            case .missing:   return vm.L(L10n.Mods.frTranslationMissing)
-            case .stale:     return vm.L(L10n.Mods.frTranslationStale)
+            case .off:       return localization.L(L10n.Mods.frTranslationFilterLabel)
+            case .available: return localization.L(L10n.Mods.frTranslationAvailable)
+            case .partial:   return localization.L(L10n.Mods.frTranslationPartial)
+            case .missing:   return localization.L(L10n.Mods.frTranslationMissing)
+            case .stale:     return localization.L(L10n.Mods.frTranslationStale)
             }
         }()
         let icon: String = {
@@ -1024,7 +1026,7 @@ struct ModListView: View {
             Button {
                 listState.filters.frenchTranslation = .off
             } label: {
-                Label(vm.L(L10n.Mods.frTranslationFilterLabel), systemImage: "character.bubble")
+                Label(localization.L(L10n.Mods.frTranslationFilterLabel), systemImage: "character.bubble")
             }
             translationItem(.available, label: L10n.Mods.frTranslationAvailable,
                             icon: "checkmark.bubble", count: counts[.available] ?? 0)
@@ -1058,7 +1060,7 @@ struct ModListView: View {
         }
         .menuStyle(.borderlessButton)
         .fixedSize()
-        .help(vm.L(L10n.Mods.frTranslationFilterLabel))
+        .help(localization.L(L10n.Mods.frTranslationFilterLabel))
     }
 
     /// Full-screen overlay shown while a bulk enable/disable-all operation is
@@ -1068,8 +1070,8 @@ struct ModListView: View {
     private func bulkToggleOverlay(done: Int, total: Int) -> some View {
         ModalProgressOverlay(
             label: vm.bulkToggleEnabling
-                ? vm.L(L10n.Mods.enablingAllProgress)
-                : vm.L(L10n.Mods.disablingAllProgress),
+                ? localization.L(L10n.Mods.enablingAllProgress)
+                : localization.L(L10n.Mods.disablingAllProgress),
             done: done,
             total: total)
     }
@@ -1091,22 +1093,22 @@ struct ModListView: View {
             Button {
                 bulkToggleTarget = true
             } label: {
-                Label(vm.L(L10n.Mods.enableAll), systemImage: "checkmark.circle")
+                Label(localization.L(L10n.Mods.enableAll), systemImage: "checkmark.circle")
             }
             .disabled(!anyDisabled)
 
             Button {
                 bulkToggleTarget = false
             } label: {
-                Label(vm.L(L10n.Mods.disableAll), systemImage: "xmark.circle")
+                Label(localization.L(L10n.Mods.disableAll), systemImage: "xmark.circle")
             }
             .disabled(!anyEnabled)
         } label: {
-            Label(vm.L(L10n.Mods.toggleAllHint), systemImage: "power")
+            Label(localization.L(L10n.Mods.toggleAllHint), systemImage: "power")
                 .labelStyle(.iconOnly)
                 .font(AppDesign.Font.body)
         }
-        .help(vm.L(L10n.Mods.toggleAllHint))
+        .help(localization.L(L10n.Mods.toggleAllHint))
     }
 
     // MARK: - Category picker
@@ -1119,13 +1121,13 @@ struct ModListView: View {
             Button {
                 listState.filters.category = .all
             } label: {
-                Label(vm.L(L10n.Mods.categoryFilterAll), systemImage: "square.grid.2x2")
+                Label(localization.L(L10n.Mods.categoryFilterAll), systemImage: "square.grid.2x2")
             }
             if uncatCount > 0 {
                 Button {
                     listState.filters.category = .uncategorized
                 } label: {
-                    Label("\(vm.L(L10n.Mods.categoryFilterUncategorized))   (\(uncatCount))", systemImage: "circle.dashed")
+                    Label("\(localization.L(L10n.Mods.categoryFilterUncategorized))   (\(uncatCount))", systemImage: "circle.dashed")
                 }
             }
             if !categories.isEmpty {
@@ -1139,7 +1141,7 @@ struct ModListView: View {
                     // HStack would only show its first child. Concatenating
                     // Text views (or building a single string) keeps both the
                     // icon and the category name visible in the row.
-                    Text(entry.category.emoji + " " + entry.category.localizedName(vm.L) + "   (\(entry.count))")
+                    Text(entry.category.emoji + " " + entry.category.localizedName(localization.L) + "   (\(entry.count))")
                 }
             }
             // Offline fallback: mods with no Nexus category, grouped by their
@@ -1159,7 +1161,7 @@ struct ModListView: View {
                 Button(role: .destructive) {
                     listState.filters.category = .all
                 } label: {
-                    Label(vm.L(L10n.Mods.categoryFilterClear), systemImage: "xmark.circle")
+                    Label(localization.L(L10n.Mods.categoryFilterClear), systemImage: "xmark.circle")
                 }
             }
         } label: {
@@ -1168,25 +1170,25 @@ struct ModListView: View {
                 case .all:
                     Image(systemName: "tag")
                         .font(AppDesign.Font.footnote)
-                    Text(vm.L(L10n.Mods.categoryFilter))
+                    Text(localization.L(L10n.Mods.categoryFilter))
                         .font(AppDesign.Font.caption(.medium))
                 case .category(let cat):
                     Circle()
                         .fill(cat.color)
                         .frame(width: 9, height: 9)
-                    Text(cat.localizedName(vm.L))
+                    Text(cat.localizedName(localization.L))
                         .font(AppDesign.Font.caption(.medium))
                 case .inferredTag(let tag):
                     Image(systemName: "tag.circle")
                         .font(AppDesign.Font.footnote)
                         .foregroundColor(.secondary)
-                    Text(vm.L(L10n.ModTag.key(for: tag)))
+                    Text(localization.L(L10n.ModTag.key(for: tag)))
                         .font(AppDesign.Font.caption(.medium))
                 case .uncategorized:
                     Image(systemName: "circle.dashed")
                         .font(AppDesign.Font.footnote)
                         .foregroundColor(.secondary)
-                    Text(vm.L(L10n.Mods.categoryFilterUncategorized))
+                    Text(localization.L(L10n.Mods.categoryFilterUncategorized))
                         .font(AppDesign.Font.caption(.medium))
                 }
                 Image(systemName: "chevron.down")
@@ -1216,6 +1218,7 @@ struct ModSectionGroup: View {
     let title: String
     let mods: [ModItem]
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     @ObservedObject var listState: ModListState
 
     var body: some View {
@@ -1223,9 +1226,9 @@ struct ModSectionGroup: View {
             VStack(spacing: 0) {
                 ForEach(Array(mods.enumerated()), id: \.element.id) { idx, mod in
                     if mod.isGroup, let children = mod.children {
-                        ModGroupRow(mod: mod, children: children, vm: vm, listState: listState)
+                        ModGroupRow(mod: mod, children: children, vm: vm, localization: localization, listState: listState)
                     } else {
-                        ModListRow(mod: mod, vm: vm, listState: listState,
+                        ModListRow(mod: mod, vm: vm, localization: localization, listState: listState,
                                    isChild: false, isGroupHeader: false, isExpanded: .constant(false))
                     }
                     
@@ -1248,12 +1251,13 @@ struct ModGroupRow: View {
     let mod: ModItem
     let children: [ModItem]
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     @ObservedObject var listState: ModListState
     @State private var isExpanded = false
 
     var body: some View {
         VStack(spacing: 0) {
-            ModListRow(mod: mod, vm: vm, listState: listState,
+            ModListRow(mod: mod, vm: vm, localization: localization, listState: listState,
                        isChild: false, isGroupHeader: true, isExpanded: $isExpanded)
                 .onTapGesture {
                     withAnimation(.easeInOut(duration: 0.2)) {
@@ -1264,7 +1268,7 @@ struct ModGroupRow: View {
             if isExpanded {
                 VStack(spacing: 0) {
                     ForEach(Array(children.enumerated()), id: \.element.id) { cIdx, child in
-                        ModListRow(mod: child, vm: vm, listState: listState,
+                        ModListRow(mod: child, vm: vm, localization: localization, listState: listState,
                                    isChild: true, isGroupHeader: false, isExpanded: .constant(false))
                         if cIdx < children.count - 1 {
                             Rectangle()
@@ -1285,6 +1289,7 @@ struct ModGroupRow: View {
 struct ModListRow: View {
     let mod: ModItem
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     /// Porté pour les gestes qui touchent au cadrage de la liste — par
     /// exemple, lever le filtre « à écarter » quand le dernier mod marqué
     /// est démarqué, plutôt que de laisser l'utilisateur devant une liste
@@ -1315,10 +1320,10 @@ struct ModListRow: View {
 
     private var modRowA11yLabel: String {
         String(
-            format: vm.L(L10n.Mods.rowA11yLabel),
+            format: localization.L(L10n.Mods.rowA11yLabel),
             mod.name,
             mod.author,
-            String(format: vm.L(L10n.Mods.versionPrefix), mod.version)
+            String(format: localization.L(L10n.Mods.versionPrefix), mod.version)
         )
     }
 
@@ -1463,7 +1468,7 @@ struct ModListRow: View {
                 .buttonStyle(PlainButtonStyle())
                 .pointingHandCursor()
                 .popover(isPresented: $showingAnomaly, arrowEdge: .bottom) {
-                    attributePopover(title: vm.L(L10n.Mods.filterIssues),
+                    attributePopover(title: localization.L(L10n.Mods.filterIssues),
                                      systemImage: "exclamationmark.triangle.fill",
                                      text: anomalyReasons(anomaly, vm: vm))
                 }
@@ -1489,7 +1494,7 @@ struct ModListRow: View {
                 .pointingHandCursor()
                 .help(note)
                 .popover(isPresented: $showingNote, arrowEdge: .bottom) {
-                    attributePopover(title: vm.L(L10n.Mods.noteTitle),
+                    attributePopover(title: localization.L(L10n.Mods.noteTitle),
                                      systemImage: "note.text",
                                      text: note)
                 }
@@ -1515,7 +1520,7 @@ struct ModListRow: View {
                     .foregroundStyle(.secondary)
                     .frame(width: 18, height: 18)
                     .contentShape(.rect)
-                    .help(vm.L(L10n.Mods.profileConfigBadge))
+                    .help(localization.L(L10n.Mods.profileConfigBadge))
             }
         }
         .frame(width: Self.attributeSlot, alignment: .leading)
@@ -1550,7 +1555,7 @@ struct ModListRow: View {
                     // Un code de langue, pas une phrase : il ne se traduit pas,
                     // exactement comme la liste des langues à côté.
                     unmeasuredLabel: "FR",
-                    percentFormat: vm.L(L10n.Mods.frCoveragePercent)
+                    percentFormat: localization.L(L10n.Mods.frCoveragePercent)
                 )
             }
         }
@@ -1623,8 +1628,8 @@ struct ModListRow: View {
         }
         .buttonStyle(PlainButtonStyle())
         .pointingHandCursor()
-        .help(vm.L(on ? L10n.Mods.favoriteRemove : L10n.Mods.favoriteAdd))
-        .accessibilityLabel(vm.L(on ? L10n.Mods.favoriteRemove : L10n.Mods.favoriteAdd))
+        .help(localization.L(on ? L10n.Mods.favoriteRemove : L10n.Mods.favoriteAdd))
+        .accessibilityLabel(localization.L(on ? L10n.Mods.favoriteRemove : L10n.Mods.favoriteAdd))
     }
 
     var body: some View {
@@ -1736,9 +1741,9 @@ struct ModListRow: View {
                     // fall back to the offline-inferred type tag.
                     Group {
                         if let cat = vm.category(for: mod) {
-                            CategoryBadge(category: cat, L: vm.L)
+                            CategoryBadge(category: cat, L: localization.L)
                         } else {
-                            InferredTagBadge(label: vm.L(L10n.ModTag.key(for: vm.inferredTagKey(for: mod))))
+                            InferredTagBadge(label: localization.L(L10n.ModTag.key(for: vm.inferredTagKey(for: mod))))
                         }
                     }
                     .frame(width: ModListRow.Column.category, alignment: .leading)
@@ -1774,7 +1779,7 @@ struct ModListRow: View {
                                 Image(systemName: "exclamationmark.triangle.fill")
                                 // Chaque dépendance manquante est cliquable :
                                 // ouvre la recherche Nexus Mods pour ce nom.
-                                Text("\(vm.L(L10n.Mods.missingDependenciesPrefix)) ")
+                                Text("\(localization.L(L10n.Mods.missingDependenciesPrefix)) ")
                                     .foregroundColor(.secondary)
                                 ForEach(Array(missingDeps.enumerated()), id: \.offset) { idx, depId in
                                     HStack(spacing: 2) {
@@ -1787,14 +1792,14 @@ struct ModListRow: View {
                                             Button {
                                                 openNexusSearch(for: modName)
                                             } label: {
-                                                Label(String(format: vm.L(L10n.Mods.searchNexusByModName), modName),
+                                                Label(String(format: localization.L(L10n.Mods.searchNexusByModName), modName),
                                                       systemImage: "magnifyingglass")
                                             }
                                             if !author.isEmpty {
                                                 Button {
                                                     openNexusAuthorSearch(for: author)
                                                 } label: {
-                                                    Label(String(format: vm.L(L10n.Mods.searchNexusByAuthor), author),
+                                                    Label(String(format: localization.L(L10n.Mods.searchNexusByAuthor), author),
                                                           systemImage: "person")
                                                 }
                                             }
@@ -1813,7 +1818,7 @@ struct ModListRow: View {
                         if !disabledDeps.isEmpty {
                             HStack(spacing: AppDesign.Spacing.xs) {
                                 Image(systemName: "exclamationmark.octagon.fill")
-                                Text(String(format: vm.L(L10n.Mods.disabledRequiredDeps), disabledDeps.joined(separator: ", ")))
+                                Text(String(format: localization.L(L10n.Mods.disabledRequiredDeps), disabledDeps.joined(separator: ", ")))
                             }
                             .foregroundColor(.orange)
                         }
@@ -1863,8 +1868,8 @@ struct ModListRow: View {
                             .foregroundColor(blacklisted ? .secondary : .secondary.opacity(0.6))
                     }
                     .buttonStyle(PlainButtonStyle())
-                    .help(vm.L(blacklisted ? L10n.Mods.blacklistRemove : L10n.Mods.blacklistAdd))
-                    .accessibilityLabel(vm.L(blacklisted ? L10n.Mods.blacklistRemove : L10n.Mods.blacklistAdd))
+                    .help(localization.L(blacklisted ? L10n.Mods.blacklistRemove : L10n.Mods.blacklistAdd))
+                    .accessibilityLabel(localization.L(blacklisted ? L10n.Mods.blacklistRemove : L10n.Mods.blacklistAdd))
                     .pointingHandCursor()
                 }
 
@@ -1879,9 +1884,9 @@ struct ModListRow: View {
                         .foregroundColor(.secondary)
                 }
                 .buttonStyle(PlainButtonStyle())
-                .help(vm.L(L10n.Mods.openFolder))
-                .accessibilityLabel(vm.L(L10n.Mods.openFolder))
-                .accessibilityHint(vm.L(L10n.Mods.openFolderA11yHint))
+                .help(localization.L(L10n.Mods.openFolder))
+                .accessibilityLabel(localization.L(L10n.Mods.openFolder))
+                .accessibilityHint(localization.L(L10n.Mods.openFolderA11yHint))
                 .pointingHandCursor()
 
                 // Direct config-editor access, mirroring upstream's
@@ -1898,9 +1903,9 @@ struct ModListRow: View {
                             .foregroundColor(.secondary)
                     }
                     .buttonStyle(PlainButtonStyle())
-                    .help(vm.L(L10n.Settings.configModSettings))
-                    .accessibilityLabel(vm.L(L10n.Settings.configModSettings))
-                    .accessibilityHint(vm.L(L10n.Settings.configModSettingsA11yHint))
+                    .help(localization.L(L10n.Settings.configModSettings))
+                    .accessibilityLabel(localization.L(L10n.Settings.configModSettings))
+                    .accessibilityHint(localization.L(L10n.Settings.configModSettingsA11yHint))
                     .pointingHandCursor()
                 }
 
@@ -1916,9 +1921,9 @@ struct ModListRow: View {
                             .foregroundColor(.secondary)
                     }
                     .buttonStyle(PlainButtonStyle())
-                    .help(vm.L(L10n.Mods.viewOnNexus))
-                    .accessibilityLabel(vm.L(L10n.Mods.viewOnNexus))
-                    .accessibilityHint(vm.L(L10n.Mods.viewOnNexusA11yHint))
+                    .help(localization.L(L10n.Mods.viewOnNexus))
+                    .accessibilityLabel(localization.L(L10n.Mods.viewOnNexus))
+                    .accessibilityHint(localization.L(L10n.Mods.viewOnNexusA11yHint))
                     .pointingHandCursor()
                 }
 
@@ -1933,9 +1938,9 @@ struct ModListRow: View {
                         .foregroundColor(.secondary)
                 }
                 .buttonStyle(PlainButtonStyle())
-                .help(vm.L(L10n.Mods.openDetails))
-                .accessibilityLabel(vm.L(L10n.Mods.openDetails))
-                .accessibilityHint(vm.L(L10n.Mods.openDetailsHint))
+                .help(localization.L(L10n.Mods.openDetails))
+                .accessibilityLabel(localization.L(L10n.Mods.openDetails))
+                .accessibilityHint(localization.L(L10n.Mods.openDetailsHint))
                 .pointingHandCursor()
 
                 // Delete button — permanently removes the mod (or pack) from
@@ -1949,7 +1954,7 @@ struct ModListRow: View {
                         ProgressView()
                             .controlSize(.small)
                             .frame(width: 16, height: 16)
-                            .help(vm.L(L10n.Mods.deleteMod))
+                            .help(localization.L(L10n.Mods.deleteMod))
                     } else {
                         Button {
                             showDeleteConfirm = true
@@ -1960,9 +1965,9 @@ struct ModListRow: View {
                         }
                         .buttonStyle(PlainButtonStyle())
                         .disabled(vm.pendingDeleteFolder != nil)
-                        .help(vm.L(L10n.Mods.deleteMod))
-                        .accessibilityLabel(vm.L(L10n.Mods.deleteMod))
-                        .accessibilityHint(vm.L(L10n.Mods.deleteModA11yHint))
+                        .help(localization.L(L10n.Mods.deleteMod))
+                        .accessibilityLabel(localization.L(L10n.Mods.deleteMod))
+                        .accessibilityHint(localization.L(L10n.Mods.deleteModA11yHint))
                         .pointingHandCursor()
                     }
                 }
@@ -2032,9 +2037,9 @@ struct ModListRow: View {
                         // tirait pour un mod désaffiché.
                         .onDisappear { pendingToggle?.cancel() }
                         .labelsHidden()
-                        .accessibilityLabel(String(format: vm.L(L10n.Mods.toggleA11yLabel), mod.name))
-                        .accessibilityHint(vm.L(L10n.Mods.toggleA11yHint))
-                        .accessibilityValue(mod.isEnabled ? vm.L(L10n.Mods.enabled) : vm.L(L10n.Mods.disabled))
+                        .accessibilityLabel(String(format: localization.L(L10n.Mods.toggleA11yLabel), mod.name))
+                        .accessibilityHint(localization.L(L10n.Mods.toggleA11yHint))
+                        .accessibilityValue(mod.isEnabled ? localization.L(L10n.Mods.enabled) : localization.L(L10n.Mods.disabled))
                 }
             } else {
                 Toggle("", isOn: .constant(false))
@@ -2072,44 +2077,44 @@ struct ModListRow: View {
         // avec son nom, auteur, version et état (activé/désactivé).
         .accessibilityElement(children: .contain)
         .accessibilityLabel(modRowA11yLabel)
-        .accessibilityValue(mod.isEnabled ? vm.L(L10n.Mods.enabled) : vm.L(L10n.Mods.disabled))
-        .accessibilityHint(vm.L(L10n.Mods.openDetailsHint))
+        .accessibilityValue(mod.isEnabled ? localization.L(L10n.Mods.enabled) : localization.L(L10n.Mods.disabled))
+        .accessibilityHint(localization.L(L10n.Mods.openDetailsHint))
         .contextMenu {
-            Button(vm.L(L10n.Mods.openInFinder)) {
+            Button(localization.L(L10n.Mods.openInFinder)) {
                 let url = URL(fileURLWithPath: vm.gameDir)
                     .appendingPathComponent("Mods")
                     .appendingPathComponent(mod.physicalFolderName)
                 NSWorkspace.shared.open(url)
             }
-            Button(vm.L(L10n.Settings.configModSettings)) {
+            Button(localization.L(L10n.Settings.configModSettings)) {
                 vm.editingModConfig = mod
             }
             let effectiveLink = vm.nexusLink(for: mod)
             if !effectiveLink.isEmpty {
-                Button(vm.L(L10n.Mods.viewDetailsOnNexus)) {
+                Button(localization.L(L10n.Mods.viewDetailsOnNexus)) {
                     if let url = URL(string: effectiveLink) { NSWorkspace.shared.open(url) }
                 }
             }
             if !isChild {
                 Divider()
-                Button(vm.L(L10n.Mods.deleteMod), role: .destructive) {
+                Button(localization.L(L10n.Mods.deleteMod), role: .destructive) {
                     showDeleteConfirm = true
                 }
             }
         }
         .confirmationDialog(
-            String(format: vm.L(L10n.Mods.deleteConfirmTitle), mod.name),
+            String(format: localization.L(L10n.Mods.deleteConfirmTitle), mod.name),
             isPresented: $showDeleteConfirm,
             titleVisibility: .visible
         ) {
-            Button(vm.L(L10n.Mods.deleteMod), role: .destructive) {
+            Button(localization.L(L10n.Mods.deleteMod), role: .destructive) {
                 vm.deleteMod(mod)
             }
-            Button(vm.L(L10n.Saves.cancel), role: .cancel) { }
+            Button(localization.L(L10n.Saves.cancel), role: .cancel) { }
         } message: {
              Text(mod.isGroup
-                 ? vm.L(L10n.Mods.deleteConfirmPack)
-                 : vm.L(L10n.Mods.deleteConfirmMessage))
+                 ? localization.L(L10n.Mods.deleteConfirmPack)
+                 : localization.L(L10n.Mods.deleteConfirmMessage))
         }
         .compatibilityGate(vm: vm, pending: $pendingActivation) { target in
             vm.toggleMod(target)
@@ -2317,26 +2322,26 @@ private struct AnomalyBadge: View {
 /// aurait été un détour.
 private func anomalyReasons(_ anomaly: ModAnomaly, vm: StarHubTHViewModel) -> String {
     var lines: [String] = []
-    if anomaly.isUnloadable { lines.append(vm.L(L10n.Mods.anomalyUnloadable)) }
-    if anomaly.hasDependencyIssue { lines.append(vm.L(L10n.Mods.anomalyDependency)) }
+    if anomaly.isUnloadable { lines.append(vm.localization.L(L10n.Mods.anomalyUnloadable)) }
+    if anomaly.hasDependencyIssue { lines.append(vm.localization.L(L10n.Mods.anomalyDependency)) }
     if let duplicate = anomaly.duplicate {
         // Les dossiers **nommés** : un compte seul laisserait chercher
         // lequel supprimer parmi 863.
-        lines.append(String(format: vm.L(duplicate.isActive
+        lines.append(String(format: vm.localization.L(duplicate.isActive
                                          ? L10n.Mods.anomalyDuplicateActive
                                          : L10n.Mods.anomalyDuplicateDormant),
                             duplicate.copies,
                             duplicate.folders.joined(separator: ", ")))
     }
     if let status = anomaly.compatibility {
-        lines.append(String(format: vm.L(L10n.Mods.anomalyCompat),
-                            CompatibilityWarning.label(status, vm)))
+        lines.append(String(format: vm.localization.L(L10n.Mods.anomalyCompat),
+                            CompatibilityWarning.label(status, vm.localization)))
     }
     if anomaly.errorCount > 0 {
-        lines.append(String(format: vm.L(L10n.Mods.anomalyErrors), anomaly.errorCount))
+        lines.append(String(format: vm.localization.L(L10n.Mods.anomalyErrors), anomaly.errorCount))
     }
     if anomaly.warningCount > 0 {
-        lines.append(String(format: vm.L(L10n.Mods.anomalyWarnings), anomaly.warningCount))
+        lines.append(String(format: vm.localization.L(L10n.Mods.anomalyWarnings), anomaly.warningCount))
     }
     return lines.joined(separator: "\n")
 }

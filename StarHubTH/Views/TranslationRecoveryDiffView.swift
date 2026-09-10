@@ -10,6 +10,7 @@ import SwiftUI
 /// proposé au remplacement.
 struct TranslationRecoveryDiffView: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     let file: RecoverableFile
     @Binding var isPresented: Bool
 
@@ -23,9 +24,9 @@ struct TranslationRecoveryDiffView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 6) {
-                Text(String(format: vm.L(L10n.Recovery.diffTitle), file.modName, file.relativePath))
+                Text(String(format: localization.L(L10n.Recovery.diffTitle), file.modName, file.relativePath))
                     .font(AppDesign.Font.headline(.semibold))
-                Text(vm.L(L10n.Recovery.note))
+                Text(localization.L(L10n.Recovery.note))
                     .font(AppDesign.Font.footnote)
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -37,7 +38,7 @@ struct TranslationRecoveryDiffView: View {
             if diffs.isEmpty {
                 VStack {
                     Spacer()
-                    Text(vm.L(L10n.Recovery.diffNothing))
+                    Text(localization.L(L10n.Recovery.diffNothing))
                         .font(AppDesign.Font.caption)
                         .foregroundColor(.secondary)
                     Spacer()
@@ -47,21 +48,21 @@ struct TranslationRecoveryDiffView: View {
                 ScrollView {
                     LazyVStack(spacing: 0) {
                         if !recoverable.isEmpty {
-                            header(vm.L(L10n.Recovery.diffOnlyInBackup), trailing: selectAllButton)
+                            header(localization.L(L10n.Recovery.diffOnlyInBackup), trailing: selectAllButton)
                             ForEach(recoverable) { diff in
                                 selectableRow(diff)
                                 Divider().padding(.leading, 20)
                             }
                         }
                         if !diverging.isEmpty {
-                            header(vm.L(L10n.Recovery.diffValueDiffers))
+                            header(localization.L(L10n.Recovery.diffValueDiffers))
                             ForEach(diverging) { diff in
                                 comparisonRow(diff)
                                 Divider().padding(.leading, 20)
                             }
                         }
                         if !extra.isEmpty {
-                            header(vm.L(L10n.Recovery.diffOnlyInInstalled))
+                            header(localization.L(L10n.Recovery.diffOnlyInInstalled))
                             ForEach(extra) { diff in
                                 readOnlyRow(key: diff.key, value: diff.installedValue ?? "")
                                 Divider().padding(.leading, 20)
@@ -74,7 +75,7 @@ struct TranslationRecoveryDiffView: View {
             Divider()
 
             HStack {
-                Button(String(format: vm.L(L10n.Recovery.recoverKeys), Int64(selected.count))) {
+                Button(String(format: localization.L(L10n.Recovery.recoverKeys), Int64(selected.count))) {
                     vm.recoverTranslationKeys(recoverable.filter { selected.contains($0.key) },
                                               in: file)
                     isPresented = false
@@ -82,7 +83,7 @@ struct TranslationRecoveryDiffView: View {
                 .buttonStyle(.borderedProminent)
                 .disabled(selected.isEmpty)
                 Spacer()
-                Button(vm.L(L10n.Main.ok)) { isPresented = false }
+                Button(localization.L(L10n.Main.ok)) { isPresented = false }
                     .keyboardShortcut(.defaultAction)
             }
             .padding(16)
@@ -98,7 +99,7 @@ struct TranslationRecoveryDiffView: View {
     }
 
     private var selectAllButton: some View {
-        Button(vm.L(L10n.Recovery.selectAll)) {
+        Button(localization.L(L10n.Recovery.selectAll)) {
             selected = selected.count == recoverable.count ? [] : Set(recoverable.map(\.key))
         }
         .buttonStyle(.link)
@@ -152,8 +153,8 @@ struct TranslationRecoveryDiffView: View {
                 .font(AppDesign.Font.monoIconXS)
                 .foregroundColor(.secondary)
             HStack(alignment: .top, spacing: 12) {
-                labelled(vm.L(L10n.Recovery.inBackup), diff.backupValue ?? "", color: .secondary)
-                labelled(vm.L(L10n.Recovery.installed), diff.installedValue ?? "", color: .primary)
+                labelled(localization.L(L10n.Recovery.inBackup), diff.backupValue ?? "", color: .secondary)
+                labelled(localization.L(L10n.Recovery.installed), diff.installedValue ?? "", color: .primary)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

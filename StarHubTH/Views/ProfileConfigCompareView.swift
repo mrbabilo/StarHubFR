@@ -11,6 +11,7 @@ import SwiftUI
 /// sur des arbres à 8 niveaux.
 struct ProfileConfigCompareView: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     let mod: ModItem
     let other: ModProfile
     @Binding var isPresented: Bool
@@ -32,10 +33,10 @@ struct ProfileConfigCompareView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 6) {
-                Text(String(format: vm.L(L10n.Mods.profileConfigDiffTitle),
+                Text(String(format: localization.L(L10n.Mods.profileConfigDiffTitle),
                             mod.name, activeName, other.name))
                     .font(.system(size: 16, weight: .semibold))
-                Text(vm.L(L10n.Mods.profileConfigDiffNote))
+                Text(localization.L(L10n.Mods.profileConfigDiffNote))
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -45,18 +46,18 @@ struct ProfileConfigCompareView: View {
             Divider()
 
             if missing {
-                centered(vm.L(L10n.Mods.profileConfigDiffMissing))
+                centered(localization.L(L10n.Mods.profileConfigDiffMissing))
             } else if unparseable {
-                centered(vm.L(L10n.Mods.profileConfigDiffUnparseable))
+                centered(localization.L(L10n.Mods.profileConfigDiffUnparseable))
             } else if diffs.isEmpty {
-                centered(vm.L(L10n.Mods.profileConfigDiffNone))
+                centered(localization.L(L10n.Mods.profileConfigDiffNone))
             } else {
                 ScrollView {
                     LazyVStack(spacing: 0) {
-                        section(String(format: vm.L(L10n.Mods.profileConfigDiffOnlyA),
+                        section(String(format: localization.L(L10n.Mods.profileConfigDiffOnlyA),
                                        activeName), items: onlyA)
-                        section(vm.L(L10n.Mods.profileConfigDiffDiffers), items: differs)
-                        section(String(format: vm.L(L10n.Mods.profileConfigDiffOnlyB),
+                        section(localization.L(L10n.Mods.profileConfigDiffDiffers), items: differs)
+                        section(String(format: localization.L(L10n.Mods.profileConfigDiffOnlyB),
                                        other.name), items: onlyB)
                     }
                 }
@@ -66,7 +67,7 @@ struct ProfileConfigCompareView: View {
 
             HStack {
                 Spacer()
-                Button(vm.L(L10n.Main.ok)) { isPresented = false }
+                Button(localization.L(L10n.Main.ok)) { isPresented = false }
                     .keyboardShortcut(.defaultAction)
             }
             .padding(16)

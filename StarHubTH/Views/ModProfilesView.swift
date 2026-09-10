@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ModProfilesView: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     /// Bound to `MainView.currentTab` so "Manage mods" can jump to the Mods page.
     @Binding var currentTab: SidebarDestination
 
@@ -28,7 +29,7 @@ struct ModProfilesView: View {
         guard !vm.favoriteMods.isEmpty else {
             // Ne rien faire silencieusement laisserait croire à un bouton
             // cassé : dire où l'on marque un favori.
-            vm.showModal(message: vm.L(L10n.Profiles.importFavoritesNone))
+            vm.showModal(message: localization.L(L10n.Profiles.importFavoritesNone))
             return
         }
         if vm.activeProfileId == profile.id {
@@ -44,7 +45,7 @@ struct ModProfilesView: View {
     /// `UniqueID` exactement comme la favorite.
     private func importBlacklisted(into profile: ModProfile) {
         guard !vm.blacklistedMods.isEmpty else {
-            vm.showModal(message: vm.L(L10n.Profiles.importBlacklistedNone))
+            vm.showModal(message: localization.L(L10n.Profiles.importBlacklistedNone))
             return
         }
         if vm.activeProfileId == profile.id {
@@ -61,13 +62,13 @@ struct ModProfilesView: View {
         let result = vm.importFavorites(into: profile.id)
         var lines: [String] = []
         if result.ids.isEmpty {
-            lines.append(String(format: vm.L(L10n.Profiles.importFavoritesNothingNew), profile.name))
+            lines.append(String(format: localization.L(L10n.Profiles.importFavoritesNothingNew), profile.name))
         } else {
-            lines.append(String(format: vm.L(L10n.Profiles.importFavoritesDone),
+            lines.append(String(format: localization.L(L10n.Profiles.importFavoritesDone),
                                 result.ids.count, profile.name))
         }
         if !result.unresolved.isEmpty {
-            lines.append(String(format: vm.L(L10n.Profiles.importFavoritesUnresolved),
+            lines.append(String(format: localization.L(L10n.Profiles.importFavoritesUnresolved),
                                 result.unresolved.count,
                                 result.unresolved.joined(separator: ", ")))
         }
@@ -81,17 +82,61 @@ struct ModProfilesView: View {
         let result = vm.importBlacklisted(into: profile.id)
         var lines: [String] = []
         if result.ids.isEmpty {
-            lines.append(String(format: vm.L(L10n.Profiles.importBlacklistedNothingNew), profile.name))
+            lines.append(String(format: localization.L(L10n.Profiles.importBlacklistedNothingNew), profile.name))
         } else {
-            lines.append(String(format: vm.L(L10n.Profiles.importBlacklistedDone),
+            lines.append(String(format: localization.L(L10n.Profiles.importBlacklistedDone),
                                 result.ids.count, profile.name))
         }
         if !result.unresolved.isEmpty {
-            lines.append(String(format: vm.L(L10n.Profiles.importBlacklistedUnresolved),
+            lines.append(String(format: localization.L(L10n.Profiles.importBlacklistedUnresolved),
                                 result.unresolved.count,
                                 result.unresolved.joined(separator: ", ")))
         }
         vm.showModal(message: lines.joined(separator: "\n\n"))
+    }
+
+
+    /// La phrase de confirmation de suppression. Hissée hors du `message:`
+    /// le 2026-09-10 : la concaténation en une expression a fait franchir au
+    /// `body` le seuil de saturation du type-checker (piège CLAUDE.md).
+    private var profileDeletionMessage: String {
+        var lines = [localization.L(L10n.Profiles.deleteNote),
+                     localization.L(L10n.Profiles.deleteKeepsMods)]
+        if deletionConfigCount > 0 {
+            lines.append("\n" + String(format: localization.L(L10n.Profiles.deleteDropsConfigs),
+                                       Int64(deletionConfigCount)))
+        }
+        return lines.joined(separator: "\n")
+    }
+
+
+    /// La rangée d'un profil. Extraite du `ForEach` le 2026-09-10 : la
+    /// longue liste d'arguments avec closures saturaient le
+    /// type-checker au sein du `body` (piège CLAUDE.md).
+    private func profileRow(_ profile: ModProfile, issueCount: Int, flattened: [ModItem]) -> some View {
+        ProfileRow(
+            profile: profile,
+            isActive: vm.activeProfileId == profile.id,
+            modCount: profile.enabledModIds.count,
+            issueCount: issueCount
+                + ProfileDiagnostics.dependencyGaps(in: profile,
+                                                    installedMods: flattened).count,
+            translation: vm.translationSummary(for: profile),
+            isMeasuringTranslation: vm.isMeasuringProfileTranslation,
+            vm: vm,
+            localization: localization,
+            onApply: { vm.applyProfile(id: profile.id) },
+            onManage: {
+                vm.applyProfile(id: profile.id)
+                currentTab = .mods
+            },
+            onRename: { renamingProfile = profile; renameText = profile.name },
+            onDuplicate: { vm.duplicateProfile(id: profile.id) },
+            onImportFavorites: { importFavorites(into: profile) },
+            onImportBlacklisted: { importBlacklisted(into: profile) },
+            onShowMissing: { profileShowingMissing = profile },
+            onDelete: { profileToDelete = profile }
+        )
     }
 
     var body: some View {
@@ -105,7 +150,7 @@ struct ModProfilesView: View {
             // primaire « Ajouter » occupe seule la rangée, à droite.
             HStack {
                 Spacer()
-                Button(vm.L(L10n.Profiles.addProfile)) { presentNewProfileAlert() }
+                Button(localization.L(L10n.Profiles.addProfile)) { presentNewProfileAlert() }
                     .buttonStyle(.borderedProminent)
                     .pointingHandCursor()
             }
@@ -123,10 +168,10 @@ struct ModProfilesView: View {
                         Image(systemName: "person.2.slash")
                             .font(AppDesign.Font.emptyScopeGlyph)
                             .foregroundColor(.secondary.opacity(AppDesign.Opacity.disabled))
-                        Text(vm.L(L10n.Profiles.noProfiles))
+                        Text(localization.L(L10n.Profiles.noProfiles))
                             .font(AppDesign.Font.body)
                             .foregroundColor(.secondary)
-                        Button(vm.L(L10n.Profiles.addProfile)) { presentNewProfileAlert() }
+                        Button(localization.L(L10n.Profiles.addProfile)) { presentNewProfileAlert() }
                             .buttonStyle(.borderedProminent)
                             .pointingHandCursor()
                     }
@@ -137,34 +182,19 @@ struct ModProfilesView: View {
                     let installedIds = vm.mods.allUniqueIds
                     LazyVStack(spacing: 0) {
                         ForEach(Array(vm.modProfiles.enumerated()), id: \.element.id) { index, profile in
-                            ProfileRow(
-                                profile: profile,
-                                isActive: vm.activeProfileId == profile.id,
-                                modCount: profile.enabledModIds.count,
-                                // Compte brut : l'enrichissement (sauvegardes, cache
-                                // Nexus) lit le disque et n'a lieu qu'à l'ouverture
-                                // de la feuille.
-                                issueCount: ProfileDiagnostics.missingMods(in: profile,
-                                                                           installedUniqueIds: installedIds,
-                                                                           backupNames: [:],
-                                                                           nexusHints: [:]).count
-                                    + ProfileDiagnostics.dependencyGaps(in: profile,
-                                                                        installedMods: flattened).count,
-                                translation: vm.translationSummary(for: profile),
-                                isMeasuringTranslation: vm.isMeasuringProfileTranslation,
-                                vm: vm,
-                                onApply: { vm.applyProfile(id: profile.id) },
-                                onManage: {
-                                    vm.applyProfile(id: profile.id)
-                                    currentTab = .mods
-                                },
-                                onRename: { renamingProfile = profile; renameText = profile.name },
-                                onDuplicate: { vm.duplicateProfile(id: profile.id) },
-                                onImportFavorites: { importFavorites(into: profile) },
-                                onImportBlacklisted: { importBlacklisted(into: profile) },
-                                onShowMissing: { profileShowingMissing = profile },
-                                onDelete: { profileToDelete = profile }
-                            )
+                            // Compte brut, hissé hors de l'initialiseur le
+                            // 2026-09-10 : les littéraux [:] dans une longue
+                            // liste d'arguments saturaient le type-checker
+                            // (piège CLAUDEmd). L'enrichissement (sauvegardes,
+                            // cache Nexus) lit le disque et n'a lieu qu'à
+                            // l'ouverture de la feuille.
+                            let issueCount = ProfileDiagnostics.missingMods(
+                                in: profile,
+                                installedUniqueIds: installedIds,
+                                backupNames: [:],
+                                nexusHints: [:]).count
+                            self.profileRow(profile, issueCount: issueCount, flattened: flattened)
+
                             if index < vm.modProfiles.count - 1 {
                                 Divider().padding(.leading, 64)
                             }
@@ -177,8 +207,8 @@ struct ModProfilesView: View {
         }
         .background(Color(nsColor: .controlBackgroundColor))
         // Create
-        .alert(vm.L(L10n.Profiles.createNewProfile), isPresented: $isShowingNewProfileAlert) {
-            TextField(vm.L(L10n.Profiles.profileNamePlaceholder), text: $newProfileName)
+        .alert(localization.L(L10n.Profiles.createNewProfile), isPresented: $isShowingNewProfileAlert) {
+            TextField(localization.L(L10n.Profiles.profileNamePlaceholder), text: $newProfileName)
             // Deux boutons plutôt qu'un : le contenu du profil se décide ici,
             // et « vide » vient en premier — c'est le cas courant, préparer une
             // autre configuration sans figer celle en cours.
@@ -187,30 +217,30 @@ struct ModProfilesView: View {
             // exactement comme « Annuler », sans que rien ne le dise. Le champ
             // arrive de toute façon pré-rempli (voir le bouton « Ajouter »),
             // donc le cas ne se présente qu'à qui efface délibérément.
-            Button(vm.L(L10n.Profiles.createEmpty)) { createProfile(seed: .empty) }
+            Button(localization.L(L10n.Profiles.createEmpty)) { createProfile(seed: .empty) }
                 .disabled(trimmedNewProfileName.isEmpty)
-            Button(vm.L(L10n.Profiles.createFromCurrent)) { createProfile(seed: .currentlyEnabledMods) }
+            Button(localization.L(L10n.Profiles.createFromCurrent)) { createProfile(seed: .currentlyEnabledMods) }
                 .disabled(trimmedNewProfileName.isEmpty)
-            Button(vm.L(L10n.Profiles.cancel), role: .cancel) { newProfileName = "" }
+            Button(localization.L(L10n.Profiles.cancel), role: .cancel) { newProfileName = "" }
         } message: {
-            Text(vm.L(L10n.Profiles.newProfileNote))
+            Text(localization.L(L10n.Profiles.newProfileNote))
         }
         // Rename
-        .alert(vm.L(L10n.Profiles.renameTitle), isPresented: Binding(
+        .alert(localization.L(L10n.Profiles.renameTitle), isPresented: Binding(
             get: { renamingProfile != nil },
             set: { if !$0 { renamingProfile = nil } }
         )) {
-            TextField(vm.L(L10n.Profiles.profileNamePlaceholder), text: $renameText)
-            Button(vm.L(L10n.Profiles.save)) {
+            TextField(localization.L(L10n.Profiles.profileNamePlaceholder), text: $renameText)
+            Button(localization.L(L10n.Profiles.save)) {
                 let name = renameText.trimmingCharacters(in: .whitespacesAndNewlines)
                 if let p = renamingProfile, !name.isEmpty { vm.renameProfile(id: p.id, newName: name) }
                 renamingProfile = nil
             }
-            Button(vm.L(L10n.Profiles.cancel), role: .cancel) { renamingProfile = nil }
+            Button(localization.L(L10n.Profiles.cancel), role: .cancel) { renamingProfile = nil }
         }
         // Delete confirmation
         .confirmationDialog(
-            profileToDelete.map { String(format: vm.L(L10n.Profiles.deleteConfirm), $0.name) } ?? "",
+            profileToDelete.map { String(format: localization.L(L10n.Profiles.deleteConfirm), $0.name) } ?? "",
             isPresented: Binding(
                 get: { profileToDelete != nil },
                 set: { if !$0 { profileToDelete = nil } }
@@ -232,7 +262,7 @@ struct ModProfilesView: View {
             // sans qu'on l'ait voulu — sur ce parc, plusieurs secondes de
             // renommage. D'où le bouton qui supprime sans rien activer, gardé.
             ForEach(deletionSuccessors) { successor in
-                Button(String(format: vm.L(L10n.Profiles.deleteActivateNamed), successor.name)) {
+                Button(String(format: localization.L(L10n.Profiles.deleteActivateNamed), successor.name)) {
                     if let p = profileToDelete {
                         vm.deleteProfile(id: p.id)
                         vm.applyProfile(id: successor.id)
@@ -245,29 +275,24 @@ struct ModProfilesView: View {
             // un successeur est proposé juste au-dessus, laisserait croire
             // qu'il en active un.
             Button(deletionSuccessors.isEmpty
-                   ? vm.L(L10n.Profiles.delete)
-                   : vm.L(L10n.Profiles.deleteWithoutActivating),
+                   ? localization.L(L10n.Profiles.delete)
+                   : localization.L(L10n.Profiles.deleteWithoutActivating),
                    role: .destructive) {
                 if let p = profileToDelete { vm.deleteProfile(id: p.id) }
                 profileToDelete = nil
             }
-            Button(vm.L(L10n.Profiles.cancel), role: .cancel) { profileToDelete = nil }
+            Button(localization.L(L10n.Profiles.cancel), role: .cancel) { profileToDelete = nil }
         } message: {
             // La phrase sur les configs n'apparaît que s'il y a quelque chose
             // à perdre : l'annoncer à vide apprendrait au lecteur à ne plus
             // la lire, le jour où elle compte.
-            Text(vm.L(L10n.Profiles.deleteNote) + "\n"
-                 + vm.L(L10n.Profiles.deleteKeepsMods)
-                 + (deletionConfigCount > 0
-                    ? "\n" + String(format: vm.L(L10n.Profiles.deleteDropsConfigs),
-                                     Int64(deletionConfigCount))
-                    : ""))
+            Text(profileDeletionMessage)
         }
         // Import des favoris dans le profil **actif** : les mods s'activeront
         // sur le disque immédiatement, il faut le dire avant.
         .confirmationDialog(
             profileImportingFavorites.map {
-                String(format: vm.L(L10n.Profiles.importFavoritesConfirm), $0.name)
+                String(format: localization.L(L10n.Profiles.importFavoritesConfirm), $0.name)
             } ?? "",
             isPresented: Binding(
                 get: { profileImportingFavorites != nil },
@@ -275,18 +300,18 @@ struct ModProfilesView: View {
             ),
             titleVisibility: .visible
         ) {
-            Button(vm.L(L10n.Profiles.importFavoritesConfirmAction)) {
+            Button(localization.L(L10n.Profiles.importFavoritesConfirmAction)) {
                 if let p = profileImportingFavorites { runFavoriteImport(into: p) }
                 profileImportingFavorites = nil
             }
-            Button(vm.L(L10n.Profiles.cancel), role: .cancel) { profileImportingFavorites = nil }
+            Button(localization.L(L10n.Profiles.cancel), role: .cancel) { profileImportingFavorites = nil }
         }
         // Import des mods « à écarter » dans le profil **actif** —
         // exactement la même porte que les favoris : les mods s'activeront sur
         // le disque dans la foulée, il faut le dire avant.
         .confirmationDialog(
             profileImportingBlacklisted.map {
-                String(format: vm.L(L10n.Profiles.importBlacklistedConfirm), $0.name)
+                String(format: localization.L(L10n.Profiles.importBlacklistedConfirm), $0.name)
             } ?? "",
             isPresented: Binding(
                 get: { profileImportingBlacklisted != nil },
@@ -294,11 +319,11 @@ struct ModProfilesView: View {
             ),
             titleVisibility: .visible
         ) {
-            Button(vm.L(L10n.Profiles.importBlacklistedConfirmAction)) {
+            Button(localization.L(L10n.Profiles.importBlacklistedConfirmAction)) {
                 if let p = profileImportingBlacklisted { runBlacklistedImport(into: p) }
                 profileImportingBlacklisted = nil
             }
-            Button(vm.L(L10n.Profiles.cancel), role: .cancel) { profileImportingBlacklisted = nil }
+            Button(localization.L(L10n.Profiles.cancel), role: .cancel) { profileImportingBlacklisted = nil }
         }
         // La couverture française lit les fichiers de traduction de tous les
         // mods des profils : elle se mesure ici, à l'ouverture de la page, et
@@ -307,6 +332,7 @@ struct ModProfilesView: View {
         .sheet(item: $profileShowingMissing) { profile in
             ProfileDiagnosticsView(
                 vm: vm,
+                localization: localization,
                 profile: profile,
                 isPresented: Binding(get: { profileShowingMissing != nil },
                                      set: { if !$0 { profileShowingMissing = nil } }),
@@ -351,7 +377,7 @@ struct ModProfilesView: View {
     /// sur « Annuler ». Proposer un nom supprime le cas au lieu de le
     /// signaler, et laisse le champ prêt à être réécrit.
     private func presentNewProfileAlert() {
-        newProfileName = vm.L(L10n.Profiles.defaultNewName)
+        newProfileName = localization.L(L10n.Profiles.defaultNewName)
         isShowingNewProfileAlert = true
     }
 
@@ -377,6 +403,7 @@ struct ProfileRow: View {
     /// sous les yeux de l'utilisateur.
     let isMeasuringTranslation: Bool
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     let onApply: () -> Void
     let onManage: () -> Void
     let onRename: () -> Void
@@ -410,7 +437,7 @@ struct ProfileRow: View {
                         .font(AppDesign.Font.rowTitle)
                         .foregroundColor(.primary)
                     if isActive {
-                        Text(vm.L(L10n.Profiles.active))
+                        Text(localization.L(L10n.Profiles.active))
                             .font(AppDesign.Font.iconXS(.bold))
                             .foregroundColor(.white)
                             .padding(.horizontal, 6)
@@ -450,7 +477,7 @@ struct ProfileRow: View {
                     .controlSize(.small)
                     .frame(width: 70, alignment: .center)
             } else if !isActive {
-                Button(vm.L(L10n.Profiles.activate)) { onApply() }
+                Button(localization.L(L10n.Profiles.activate)) { onApply() }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
                     .disabled(vm.isApplyingProfile)
@@ -458,7 +485,7 @@ struct ProfileRow: View {
             }
 
             // Manage → apply this profile and jump to the Mods page to edit it.
-            Button(vm.L(L10n.Profiles.manageMods)) { onManage() }
+            Button(localization.L(L10n.Profiles.manageMods)) { onManage() }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
                 .disabled(vm.isApplyingProfile)
@@ -467,18 +494,18 @@ struct ProfileRow: View {
             // Overflow: rename / delete. The default profile can't be deleted,
             // so its menu only offers rename.
             Menu {
-                Button(vm.L(L10n.Profiles.rename)) { onRename() }
-                Button(vm.L(L10n.Profiles.duplicate)) { onDuplicate() }
+                Button(localization.L(L10n.Profiles.rename)) { onRename() }
+                Button(localization.L(L10n.Profiles.duplicate)) { onDuplicate() }
                 // Refusée pendant qu'un profil s'applique : le profil devient
                 // actif **avant** que ses dossiers ne bougent, un import lancé
                 // dans cette fenêtre courserait les déplacements en cours.
-                Button(vm.L(L10n.Profiles.importFavorites)) { onImportFavorites() }
+                Button(localization.L(L10n.Profiles.importFavorites)) { onImportFavorites() }
                     .disabled(vm.isApplyingProfile)
-                Button(vm.L(L10n.Profiles.importBlacklisted)) { onImportBlacklisted() }
+                Button(localization.L(L10n.Profiles.importBlacklisted)) { onImportBlacklisted() }
                     .disabled(vm.isApplyingProfile)
                 if !vm.isDefaultProfile(profile.id) {
                     Divider()
-                    Button(vm.L(L10n.Profiles.delete), role: .destructive) { onDelete() }
+                    Button(localization.L(L10n.Profiles.delete), role: .destructive) { onDelete() }
                 }
             } label: {
                 Image(systemName: "ellipsis.circle")
@@ -487,7 +514,7 @@ struct ProfileRow: View {
             }
             .menuStyle(.borderlessButton)
             .fixedSize()
-            .help(vm.L(L10n.Profiles.rename))
+            .help(localization.L(L10n.Profiles.rename))
         }
         .padding(.vertical, AppDesign.Spacing.md)
         .padding(.horizontal, AppDesign.Spacing.lg)
@@ -497,20 +524,20 @@ struct ProfileRow: View {
         .onAppear { configSummary = vm.profileConfigSummary(for: profile) }
         .contextMenu {
             if !isActive {
-                Button(vm.L(L10n.Profiles.activate)) { onApply() }
+                Button(localization.L(L10n.Profiles.activate)) { onApply() }
                     .disabled(vm.isApplyingProfile)
             }
-            Button(vm.L(L10n.Profiles.manageMods)) { onManage() }
+            Button(localization.L(L10n.Profiles.manageMods)) { onManage() }
                 .disabled(vm.isApplyingProfile)
-            Button(vm.L(L10n.Profiles.rename)) { onRename() }
-            Button(vm.L(L10n.Profiles.duplicate)) { onDuplicate() }
-            Button(vm.L(L10n.Profiles.importFavorites)) { onImportFavorites() }
+            Button(localization.L(L10n.Profiles.rename)) { onRename() }
+            Button(localization.L(L10n.Profiles.duplicate)) { onDuplicate() }
+            Button(localization.L(L10n.Profiles.importFavorites)) { onImportFavorites() }
                 .disabled(vm.isApplyingProfile)
-            Button(vm.L(L10n.Profiles.importBlacklisted)) { onImportBlacklisted() }
+            Button(localization.L(L10n.Profiles.importBlacklisted)) { onImportBlacklisted() }
                 .disabled(vm.isApplyingProfile)
             if !vm.isDefaultProfile(profile.id) {
                 Divider()
-                Button(vm.L(L10n.Profiles.delete), role: .destructive) { onDelete() }
+                Button(localization.L(L10n.Profiles.delete), role: .destructive) { onDelete() }
             }
         }
     }
@@ -528,19 +555,19 @@ struct ProfileRow: View {
     /// seule (P6).
     private var statColumns: some View {
         HStack(alignment: .top, spacing: AppDesign.Spacing.xl) {
-            StatColumn(label: vm.L(L10n.Profiles.colMods),
+            StatColumn(label: localization.L(L10n.Profiles.colMods),
                        value: "\(modCount)",
-                       help: String(format: vm.L(L10n.Profiles.modCount), modCount))
+                       help: String(format: localization.L(L10n.Profiles.modCount), modCount))
             Button(action: onShowMissing) {
-                StatColumn(label: vm.L(L10n.Profiles.colIssues),
+                StatColumn(label: localization.L(L10n.Profiles.colIssues),
                            value: "\(issueCount)",
                            attention: issueCount > 0,
-                           help: String(format: vm.L(L10n.Profiles.issuesBadge),
+                           help: String(format: localization.L(L10n.Profiles.issuesBadge),
                                         Int64(issueCount)))
             }
             .buttonStyle(.plain)
             .pointingHandCursor()
-            StatColumn(label: vm.L(L10n.Profiles.colConfigs),
+            StatColumn(label: localization.L(L10n.Profiles.colConfigs),
                        value: configSummary.total > 0 ? "\(configSummary.total)" : "—")
         }
         .fixedSize()
@@ -557,14 +584,14 @@ struct ProfileRow: View {
     private var configBadge: some View {
         if configSummary.total > 0 {
             VStack(alignment: .leading, spacing: 2) {
-                Text(String(format: vm.L(L10n.Profiles.configStored),
+                Text(String(format: localization.L(L10n.Profiles.configStored),
                             Int64(configSummary.total)))
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
                 if !configSummary.orphans.isEmpty {
                     let names = configSummary.orphans.prefix(5).joined(separator: ", ")
                     let more = configSummary.orphans.count - 5
-                    Text(String(format: vm.L(L10n.Profiles.configOrphans),
+                    Text(String(format: localization.L(L10n.Profiles.configOrphans),
                                 Int64(configSummary.orphans.count),
                                 more > 0 ? "\(names) +\(more)" : names))
                         .font(.system(size: 11))
@@ -592,8 +619,8 @@ struct ProfileRow: View {
                 HStack(spacing: 4) {
                     Image(systemName: "globe")
                     Text(summary.pending.isEmpty
-                         ? String(format: vm.L(L10n.Profiles.frBadgeDone), summary.displayPercent)
-                         : String(format: vm.L(L10n.Profiles.frBadge),
+                         ? String(format: localization.L(L10n.Profiles.frBadgeDone), summary.displayPercent)
+                         : String(format: localization.L(L10n.Profiles.frBadge),
                                   summary.displayPercent, Int64(summary.pending.count)))
                 }
                 .font(.system(size: 11, weight: .medium))
@@ -607,7 +634,7 @@ struct ProfileRow: View {
             }
             .buttonStyle(.plain)
             .pointingHandCursor()
-            .help(String(format: vm.L(L10n.Profiles.frBadgeHint),
+            .help(String(format: localization.L(L10n.Profiles.frBadgeHint),
                          Int64(summary.translatableCount),
                          Int64(summary.fullyTranslatedCount)))
         } else if isMeasuringTranslation {
@@ -617,7 +644,7 @@ struct ProfileRow: View {
                 .controlSize(.small)
                 .scaleEffect(0.6)
                 .frame(width: 14, height: 14)
-                .help(vm.L(L10n.Profiles.translationMeasuring))
+                .help(localization.L(L10n.Profiles.translationMeasuring))
         }
     }
 }

@@ -21,6 +21,7 @@ enum DetailTab: Hashable {
 
 struct ModDetailView: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     let mod: ModItem
     /// Le rapport de raccourcis vit sur ce service (tâche 9) : il est
     /// publié de façon asynchrone — le scan part quand le parc est connu
@@ -30,7 +31,8 @@ struct ModDetailView: View {
     /// Même patron que `HomeView` et `MainView`.
     @ObservedObject private var keybindScanService: KeybindScanService
 
-    init(vm: StarHubTHViewModel, mod: ModItem) {
+    init(vm: StarHubTHViewModel, localization: LocalizationStore, mod: ModItem) {
+        self.localization = localization
         self.vm = vm
         self.mod = mod
         self.keybindScanService = vm.keybindScanService
@@ -119,7 +121,7 @@ struct ModDetailView: View {
             refreshConfigHolders()
         }
         .sheet(item: $compareProfile) { profile in
-            ProfileConfigCompareView(vm: vm, mod: live, other: profile,
+            ProfileConfigCompareView(vm: vm, localization: localization, mod: live, other: profile,
                                      isPresented: Binding(
                                         get: { compareProfile != nil },
                                         set: { if !$0 { compareProfile = nil } }))
@@ -153,22 +155,22 @@ struct ModDetailView: View {
         // La confirmation de suppression vivait dans l'ancienne rangée
         // d'actions ; le geste est dans la barre, la porte reste ici.
         .confirmationDialog(
-            String(format: vm.L(L10n.Mods.deleteConfirmTitle), mod.name),
+            String(format: localization.L(L10n.Mods.deleteConfirmTitle), mod.name),
             isPresented: $showDeleteConfirm,
             titleVisibility: .visible
         ) {
-            Button(vm.L(L10n.Mods.deleteMod), role: .destructive) {
+            Button(localization.L(L10n.Mods.deleteMod), role: .destructive) {
                 vm.deleteMod(mod)
                 // Refermer la fiche : le mod qu'elle décrit n'existe plus.
                 // La laisser ouverte afficherait une version, des
                 // dépendances et une description d'un dossier supprimé.
                 vm.viewingModDetail = nil
             }
-            Button(vm.L(L10n.Saves.cancel), role: .cancel) { }
+            Button(localization.L(L10n.Saves.cancel), role: .cancel) { }
         } message: {
             Text(mod.isGroup
-                 ? vm.L(L10n.Mods.deleteConfirmPack)
-                 : vm.L(L10n.Mods.deleteConfirmMessage))
+                 ? localization.L(L10n.Mods.deleteConfirmPack)
+                 : localization.L(L10n.Mods.deleteConfirmMessage))
         }
         // Les chevrons de parcourt, dans la zone de navigation de la fenêtre :
         // SwiftUI fusionne les ToolbarItems de la hiérarchie — celui du
@@ -213,14 +215,14 @@ struct ModDetailView: View {
     /// hero (outside the ScrollView) so it stays visible while scrolling.
     private var tabBar: some View {
         Picker("", selection: $selectedTab) {
-            Text(vm.L(L10n.Mods.detailDescription)).tag(DetailTab.description)
-            Text(vm.L(L10n.Mods.detailChangelog)).tag(DetailTab.changelog)
-            Text("\(vm.L(L10n.Profiles.dependencies)) (\(dependencyCount))")
+            Text(localization.L(L10n.Mods.detailDescription)).tag(DetailTab.description)
+            Text(localization.L(L10n.Mods.detailChangelog)).tag(DetailTab.changelog)
+            Text("\(localization.L(L10n.Profiles.dependencies)) (\(dependencyCount))")
                 .tag(DetailTab.dependencies)
             // L'état du mod — compatibilité, traduction, erreurs, raccourcis,
             // conflits — se lit groupé dans son onglet, pas empilé au-dessus
             // de la prose.
-            Text(vm.L(L10n.Mods.tabState)).tag(DetailTab.state)
+            Text(localization.L(L10n.Mods.tabState)).tag(DetailTab.state)
             // Dernier onglet plutôt qu'une feuille : la barre est déjà
             // épinglée sous le bandeau, et le diff est une lecture du mod
             // comme les autres — pas une action modale.
@@ -231,7 +233,7 @@ struct ModDetailView: View {
             // (`I18nLocaleResolver.languageCodes` rend `default` sous la forme
             // `en` : la présence de `en` signifie donc « il y a une source ».)
             if mod.languages.contains("fr") || mod.languages.contains("en") {
-                Text(vm.L(L10n.Mods.diffTab)).tag(DetailTab.translation)
+                Text(localization.L(L10n.Mods.diffTab)).tag(DetailTab.translation)
             }
         }
         .pickerStyle(.segmented)
@@ -259,6 +261,7 @@ struct ModDetailView: View {
             if isTopLevel {
                 ModDetailActionBar(
                     vm: vm,
+                    localization: localization,
                     mod: mod,
                     pendingActivation: $pendingActivation,
                     pendingConflict: $pendingConflict,
@@ -275,7 +278,7 @@ struct ModDetailView: View {
     /// « version · auteur » — l'auteur disparaît s'il est vide ou « Unknown »,
     /// comme l'ancienne bande d'en-tête.
     private var heroSubtitle: String {
-        let version = String(format: vm.L(L10n.Mods.versionPrefix), vm.displayVersion(for: mod))
+        let version = String(format: localization.L(L10n.Mods.versionPrefix), vm.displayVersion(for: mod))
         if !mod.isGroup, !mod.author.isEmpty, mod.author != "Unknown" {
             return "\(version) · \(mod.author)"
         }
@@ -298,7 +301,7 @@ struct ModDetailView: View {
                 Button {
                     vm.viewingModDetail = pack
                 } label: {
-                    Label(String(format: vm.L(L10n.Mods.backToPack), pack.name),
+                    Label(String(format: localization.L(L10n.Mods.backToPack), pack.name),
                           systemImage: "chevron.backward")
                         .font(AppDesign.Font.footnote)
                 }
@@ -309,8 +312,8 @@ struct ModDetailView: View {
             let link = vm.nexusLink(for: mod)
             if !link.isEmpty {
                 HStack(spacing: 16) {
-                    linkButton(icon: "link", label: vm.L(L10n.Mods.nexusOpenPage), url: link)
-                    linkButton(icon: "ladybug", label: vm.L(L10n.Mods.detailBugs), url: link + "?tab=bugs")
+                    linkButton(icon: "link", label: localization.L(L10n.Mods.nexusOpenPage), url: link)
+                    linkButton(icon: "ladybug", label: localization.L(L10n.Mods.detailBugs), url: link + "?tab=bugs")
                 }
             }
             Spacer()
@@ -318,7 +321,7 @@ struct ModDetailView: View {
                 Text(installed.formatted(date: .abbreviated, time: .omitted))
                     .font(AppDesign.Font.footnote)
                     .foregroundStyle(.secondary)
-                    .accessibilityLabel(vm.L(L10n.Mods.detailInstalled))
+                    .accessibilityLabel(localization.L(L10n.Mods.detailInstalled))
             }
         }
         .padding(.horizontal, 24)
@@ -348,9 +351,9 @@ struct ModDetailView: View {
                                                  in: vm.modList.displayOrder)
         return HStack(spacing: 4) {
             chevron(icon: "chevron.left", target: neighbors.previous,
-                    help: vm.L(L10n.Mods.pagerPrevious))
+                    help: localization.L(L10n.Mods.pagerPrevious))
             chevron(icon: "chevron.right", target: neighbors.next,
-                    help: vm.L(L10n.Mods.pagerNext))
+                    help: localization.L(L10n.Mods.pagerNext))
         }
     }
 
@@ -370,7 +373,7 @@ struct ModDetailView: View {
                 Image(systemName: icon)
                     .font(.system(size: AppDesign.Icon.sm))
                     .foregroundStyle(.tertiary)
-                    .help(vm.L(L10n.Mods.pagerUnavailable))
+                    .help(localization.L(L10n.Mods.pagerUnavailable))
             }
         }
         .frame(width: 18, height: 18)   // cible de survol vivante
@@ -381,12 +384,12 @@ struct ModDetailView: View {
     /// Rien ne dépend du réseau — les quatre se servent localement.
     private var statStrip: some View {
         StatStrip(items: [
-            .init(label: vm.L(L10n.ModInstall.labelVersion),
+            .init(label: localization.L(L10n.ModInstall.labelVersion),
                   value: vm.displayVersion(for: mod)),
-            .init(label: vm.L(L10n.Mods.detailUpdated), value: updatedLine),
-            .init(label: vm.L(L10n.Mods.detailSize),
+            .init(label: localization.L(L10n.Mods.detailUpdated), value: updatedLine),
+            .init(label: localization.L(L10n.Mods.detailSize),
                   value: vm.sizeOnDisk(of: live).map(sizeText) ?? "—"),
-            .init(label: vm.L(L10n.Mods.detailLanguages),
+            .init(label: localization.L(L10n.Mods.detailLanguages),
                   value: mod.languages.isEmpty
                       ? "—"
                       : mod.languages.map { $0.uppercased() }.joined(separator: " "),
@@ -442,7 +445,7 @@ struct ModDetailView: View {
         if let cat = vm.category(for: mod) {
             HStack(spacing: 5) {
                 Circle().fill(cat.color).frame(width: 7, height: 7)
-                Text(cat.localizedName(vm.L)).font(.system(size: 11, weight: .semibold))
+                Text(cat.localizedName(localization.L)).font(.system(size: 11, weight: .semibold))
             }
             .foregroundStyle(.primary)
             .padding(.horizontal, 9).padding(.vertical, 4)
@@ -451,7 +454,7 @@ struct ModDetailView: View {
         } else {
             HStack(spacing: 5) {
                 Image(systemName: "tag.fill").font(.system(size: 9))
-                Text(vm.L(L10n.ModTag.key(for: vm.inferredTagKey(for: mod)))).font(.system(size: 11, weight: .semibold))
+                Text(localization.L(L10n.ModTag.key(for: vm.inferredTagKey(for: mod)))).font(.system(size: 11, weight: .semibold))
             }
             .foregroundStyle(.secondary)
             .padding(.horizontal, 9).padding(.vertical, 4)
@@ -473,8 +476,8 @@ struct ModDetailView: View {
         // Un « pack » d'un seul mod existe : le scan prend la branche groupe
         // dès que le manifeste ne siège pas à la racine du dossier de premier
         // niveau. « Pack, 1 mods » se lirait comme un défaut.
-        guard count > 1 else { return formatted + " · " + vm.L(L10n.Mods.detailSizePackOne) }
-        return formatted + " · " + String(format: vm.L(L10n.Mods.detailSizePack), count)
+        guard count > 1 else { return formatted + " · " + localization.L(L10n.Mods.detailSizePackOne) }
+        return formatted + " · " + String(format: localization.L(L10n.Mods.detailSizePack), count)
     }
 
     private func linkButton(icon: String, label: String, url: String) -> some View {
@@ -498,7 +501,7 @@ struct ModDetailView: View {
     private var packContentsSection: some View {
         if let children = mod.children, !children.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
-                Text(String(format: vm.L(L10n.Mods.detailPackContents), children.count))
+                Text(String(format: localization.L(L10n.Mods.detailPackContents), children.count))
                     .font(.headline)
                 VStack(spacing: 6) {
                     ForEach(children) { child in
@@ -567,7 +570,7 @@ struct ModDetailView: View {
         if !mod.isGroup {
             VStack(alignment: .leading, spacing: 6) {
                 if let profile = vm.activeProfile {
-                    Text(String(format: vm.L(L10n.Mods.noteTitleProfile), profile.name))
+                    Text(String(format: localization.L(L10n.Mods.noteTitleProfile), profile.name))
                         .font(.headline)
                     TextEditor(text: $noteDraft)
                         .font(.system(size: 12))
@@ -576,13 +579,13 @@ struct ModDetailView: View {
                         .background(Color.secondary.opacity(0.12))
                         .clipShape(RoundedRectangle(cornerRadius: 6))
                         .focused($noteFocused)
-                    Text(vm.L(L10n.Mods.noteHint))
+                    Text(localization.L(L10n.Mods.noteHint))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } else {
-                    Text(vm.L(L10n.Mods.noteTitle))
+                    Text(localization.L(L10n.Mods.noteTitle))
                         .font(.headline)
-                    Text(vm.L(L10n.Mods.noteNeedsProfile))
+                    Text(localization.L(L10n.Mods.noteNeedsProfile))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -600,11 +603,11 @@ struct ModDetailView: View {
     @ViewBuilder
     private var profileConfigSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(vm.L(L10n.Mods.profileConfigTitle))
+            Text(localization.L(L10n.Mods.profileConfigTitle))
                 .font(.headline)
 
             if !vm.canManageProfileConfig(live) {
-                Text(vm.L(L10n.Mods.profileConfigGroup))
+                Text(localization.L(L10n.Mods.profileConfigGroup))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -618,7 +621,7 @@ struct ModDetailView: View {
                 // comme `profileConfigHolders(for:)` calculent leur chemin à
                 // partir de `physicalFolderName` — la copie figée viserait un
                 // dossier qui n'existe plus.
-                Toggle(vm.L(L10n.Mods.profileConfigEnable), isOn: Binding(
+                Toggle(localization.L(L10n.Mods.profileConfigEnable), isOn: Binding(
                     get: { vm.isProfileConfigManaged(live) },
                     set: { on in
                         vm.setProfileConfigManaged(live, on)
@@ -628,7 +631,7 @@ struct ModDetailView: View {
                 .toggleStyle(.checkbox)
                 .font(.system(size: 12))
 
-                Text(vm.L(L10n.Mods.profileConfigHint))
+                Text(localization.L(L10n.Mods.profileConfigHint))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -644,14 +647,14 @@ struct ModDetailView: View {
                             Button(profile.name) { compareProfile = profile }
                         }
                     } label: {
-                        Label(vm.L(L10n.Mods.profileConfigCompare),
+                        Label(localization.L(L10n.Mods.profileConfigCompare),
                               systemImage: "rectangle.split.2x1")
                             .font(.system(size: 12))
                     }
                     .disabled(vm.modProfiles.filter { $0.id != vm.activeProfileId }.isEmpty)
                 }
 
-                Button(vm.L(L10n.Mods.profileConfigReset)) {
+                Button(localization.L(L10n.Mods.profileConfigReset)) {
                     vm.resetModConfigToDefaults(live)
                     refreshConfigHolders()
                 }
@@ -659,7 +662,7 @@ struct ModDetailView: View {
                 .controlSize(.small)
                 .padding(.top, 2)
 
-                Text(vm.L(L10n.Mods.profileConfigResetHint))
+                Text(localization.L(L10n.Mods.profileConfigResetHint))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -680,7 +683,7 @@ struct ModDetailView: View {
     @ViewBuilder
     private var profileConfigHoldersView: some View {
         if configHolders.isEmpty {
-            Text(vm.L(L10n.Mods.profileConfigNone))
+            Text(localization.L(L10n.Mods.profileConfigNone))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -700,7 +703,7 @@ struct ModDetailView: View {
                             .font(.system(size: 11))
                             .foregroundStyle(.secondary)
                         Spacer(minLength: 8)
-                        Text(vm.L(holder.matchesDisk ? L10n.Mods.profileConfigSame
+                        Text(localization.L(holder.matchesDisk ? L10n.Mods.profileConfigSame
                                                      : L10n.Mods.profileConfigDiffers))
                             .font(.system(size: 11))
                             .foregroundStyle(.secondary)
@@ -716,10 +719,10 @@ struct ModDetailView: View {
 
     private var categorySection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(vm.L(L10n.Mods.categoryLabel))
+            Text(localization.L(L10n.Mods.categoryLabel))
                 .font(.headline)
             categoryPicker
-            Text(vm.L(L10n.Mods.categoryEditHint))
+            Text(localization.L(L10n.Mods.categoryEditHint))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -734,9 +737,9 @@ struct ModDetailView: View {
             get: { overrideId },
             set: { newValue in vm.setCustomCategory(for: mod, categoryId: newValue) }
         )) {
-            Text(vm.L(L10n.Mods.categoryAutomatic)).tag(Int?.none)
+            Text(localization.L(L10n.Mods.categoryAutomatic)).tag(Int?.none)
             ForEach(NexusCategory.all) { cat in
-                Text(cat.localizedName(vm.L)).tag(Int?.some(cat.id))
+                Text(cat.localizedName(localization.L)).tag(Int?.some(cat.id))
             }
         }
         .pickerStyle(.menu)
@@ -749,35 +752,35 @@ struct ModDetailView: View {
     /// open-link button and the raw URL text — it only owns the id itself.
     private var nexusSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(vm.L(L10n.Mods.nexusSection))
+            Text(localization.L(L10n.Mods.nexusSection))
                 .font(.headline)
             HStack(spacing: 8) {
-                Text(vm.L(L10n.Mods.nexusModId))
+                Text(localization.L(L10n.Mods.nexusModId))
                     .font(.system(size: 11, weight: .medium))
                 TextField("191", text: $nexusIdDraft)
                     .font(.system(size: 12, design: .monospaced))
                     .textFieldStyle(.roundedBorder)
                     .frame(maxWidth: 120)
                     .onSubmit { commitDraft() }
-                Button(vm.L(L10n.Mods.nexusSave)) { commitDraft() }
+                Button(localization.L(L10n.Mods.nexusSave)) { commitDraft() }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
                     .disabled(!isValidDraft)
                 if vm.nexusCustomModIds[mod.folderName] != nil {
-                    Button(vm.L(L10n.Mods.nexusReset)) { resetDraft() }
+                    Button(localization.L(L10n.Mods.nexusReset)) { resetDraft() }
                         .buttonStyle(.borderless)
                         .controlSize(.small)
                         .foregroundColor(.red)
                 }
             }
-            Text(vm.L(L10n.Mods.nexusModIdHint))
+            Text(localization.L(L10n.Mods.nexusModIdHint))
                 .font(.caption)
                 .foregroundStyle(.secondary)
             fetchStatusRow
             // Uniquement quand rien n'est connu : chercher la fiche d'un mod
             // qui en déclare déjà une n'a pas d'objet.
             if vm.resolvedNexusModId(for: mod).isEmpty {
-                NexusIdentitySection(vm: vm, mod: mod)
+                NexusIdentitySection(vm: vm, localization: localization, mod: mod)
             }
         }
     }
@@ -794,7 +797,7 @@ struct ModDetailView: View {
             HStack(spacing: 6) {
                 ProgressView()
                     .controlSize(.small)
-                Text(vm.L(L10n.Mods.nexusFetching))
+                Text(localization.L(L10n.Mods.nexusFetching))
                     .font(.system(size: 10))
                     .foregroundColor(.secondary)
             }
@@ -804,23 +807,23 @@ struct ModDetailView: View {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundColor(.green)
                         .font(.system(size: 10))
-                    Text(vm.L(L10n.Mods.nexusFetchSuccess))
+                    Text(localization.L(L10n.Mods.nexusFetchSuccess))
                         .font(.system(size: 10, weight: .medium))
                         .foregroundColor(.secondary)
                 }
                 if let cat = catName {
-                    Text(String(format: vm.L(L10n.Mods.nexusFetchedCategory), cat))
+                    Text(String(format: localization.L(L10n.Mods.nexusFetchedCategory), cat))
                         .font(.system(size: 10))
                         .foregroundColor(.secondary.opacity(0.85))
                 }
                 if let v = latest {
-                    Text(String(format: vm.L(L10n.Mods.nexusLatestVersion), v))
+                    Text(String(format: localization.L(L10n.Mods.nexusLatestVersion), v))
                         .font(.system(size: 10))
                         .foregroundColor(.secondary.opacity(0.85))
                 }
             }
         case .noApiKey:
-            Text(vm.L(L10n.Mods.nexusNoApiKey))
+            Text(localization.L(L10n.Mods.nexusNoApiKey))
                 .font(.system(size: 10))
                 .foregroundColor(.orange)
         case .failed(let msg):
@@ -828,7 +831,7 @@ struct ModDetailView: View {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundColor(.red)
                     .font(.system(size: 10))
-                Text(String(format: vm.L(L10n.Mods.nexusFetchFailed), msg))
+                Text(String(format: localization.L(L10n.Mods.nexusFetchFailed), msg))
                     .font(.system(size: 10))
                     .foregroundColor(.red)
             }
@@ -877,7 +880,7 @@ struct ModDetailView: View {
             switch result {
             case .success(let version, let catId, _, _):
                 let catName: String? = catId.flatMap { NexusCategory.from(id: $0) }
-                    .map { $0.localizedName(vm.L) }
+                    .map { $0.localizedName(localization.L) }
                 fetchStatus = .success(categoryName: catName, latestVersion: version)
             case .noApiKey:
                 fetchStatus = .noApiKey
@@ -908,7 +911,7 @@ struct ModDetailView: View {
     /// flat list. Empty/loaded states are handled inside the tree view.
     @ViewBuilder
     private var dependenciesSection: some View {
-        DependencyTreeView(vm: vm, mod: mod)
+        DependencyTreeView(vm: vm, localization: localization, mod: mod)
     }
 
     // MARK: Error history
@@ -934,7 +937,7 @@ struct ModDetailView: View {
         if mod.languages.contains("fr") || backupTranslation != nil || translationStaleness != nil
             || !unloadableLocaleFiles.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
-                Text(vm.L(L10n.Mods.translationSection))
+                Text(localization.L(L10n.Mods.translationSection))
                     .font(.system(size: 13, weight: .semibold))
 
                 // Un défaut du mod, pas une panne de l'app : le jeu ne charge
@@ -949,18 +952,18 @@ struct ModDetailView: View {
                 // seul identifiant qui ne collisionne jamais ici.
                 ForEach(Array(unloadableLocaleFiles.enumerated()), id: \.offset) { _, file in
                     if let expected = file.expectedName {
-                        translationNote(String(format: vm.L(L10n.Mods.translationUnloadableExpected),
+                        translationNote(String(format: localization.L(L10n.Mods.translationUnloadableExpected),
                                                file.fileName, expected),
                                         icon: "exclamationmark.triangle", color: .secondary)
                     } else {
-                        translationNote(String(format: vm.L(L10n.Mods.translationUnloadableUnknown),
+                        translationNote(String(format: localization.L(L10n.Mods.translationUnloadableUnknown),
                                                file.fileName),
                                         icon: "exclamationmark.triangle", color: .secondary)
                     }
                 }
 
                 if let backup = backupTranslation {
-                    translationNote(String(format: vm.L(L10n.Mods.translationInBackup),
+                    translationNote(String(format: localization.L(L10n.Mods.translationInBackup),
                                            backup.modifiedAt.formatted(date: .abbreviated,
                                                                        time: .omitted)),
                                     icon: "clock.arrow.circlepath", color: .orange)
@@ -970,15 +973,15 @@ struct ModDetailView: View {
                     // Le fait et ses deux dates, jamais un verdict : l'auteur a
                     // pu retoucher son fichier sans changer une phrase.
                     translationNote(
-                        stale.note(sourceNewerFormat: vm.L(L10n.Mods.translationSourceNewer),
-                                  sameDayFormat: vm.L(L10n.Mods.translationSourceNewerToday),
-                                  oneDayFormat: vm.L(L10n.Mods.translationSourceNewerOneDay),
+                        stale.note(sourceNewerFormat: localization.L(L10n.Mods.translationSourceNewer),
+                                  sameDayFormat: localization.L(L10n.Mods.translationSourceNewerToday),
+                                  oneDayFormat: localization.L(L10n.Mods.translationSourceNewerOneDay),
                                   dateText: stale.sourceDate.formatted(date: .abbreviated,
                                                                        time: .omitted)),
                         icon: "clock.badge.exclamationmark", color: .secondary)
                 }
                 if vm.outdatedKeyCount(for: mod) > 0 {
-                    translationNote(String(format: vm.L(L10n.Mods.translationOutdatedKeys),
+                    translationNote(String(format: localization.L(L10n.Mods.translationOutdatedKeys),
                                            vm.outdatedKeyCount(for: mod)),
                                     icon: "clock.badge.exclamationmark",
                                     color: DiffStateStyle.tint(.outdated))
@@ -986,7 +989,7 @@ struct ModDetailView: View {
 
                 if mod.languages.contains("fr"), let coverage = vm.frenchCoverageDetail(for: mod) {
                     TranslationProgressBar(percent: coverage.displayPercent)
-                    Text(String(format: vm.L(L10n.Mods.translationCounts),
+                    Text(String(format: localization.L(L10n.Mods.translationCounts),
                                 coverage.translated, coverage.total))
                         .font(.system(size: 11).monospacedDigit())
                         .foregroundColor(.secondary)
@@ -995,13 +998,13 @@ struct ModDetailView: View {
                     // vraiment l'affichage, et il passerait inaperçu derrière un
                     // pourcentage flatteur.
                     if !coverage.empty.isEmpty {
-                        translationNote(String(format: vm.L(L10n.Mods.translationEmpty),
+                        translationNote(String(format: localization.L(L10n.Mods.translationEmpty),
                                                coverage.empty.count),
                                         icon: "exclamationmark.triangle.fill",
                                         color: .orange)
                     }
                     if !coverage.missing.isEmpty {
-                        translationNote(String(format: vm.L(L10n.Mods.translationMissing),
+                        translationNote(String(format: localization.L(L10n.Mods.translationMissing),
                                                coverage.missing.count),
                                         icon: "text.badge.minus", color: .secondary)
                     }
@@ -1014,19 +1017,19 @@ struct ModDetailView: View {
                     // traduction recopiée : 12 mods, et ceux-là méritent l'œil.
                     if coverage.total > 0,
                        Double(coverage.identicalToSource.count) / Double(coverage.total) > 0.2 {
-                        translationNote(String(format: vm.L(L10n.Mods.translationIdentical),
+                        translationNote(String(format: localization.L(L10n.Mods.translationIdentical),
                                                coverage.identicalToSource.count),
                                         icon: "equal.circle", color: .secondary)
                     }
                     if !coverage.orphan.isEmpty {
-                        translationNote(String(format: vm.L(L10n.Mods.translationOrphan),
+                        translationNote(String(format: localization.L(L10n.Mods.translationOrphan),
                                                coverage.orphan.count),
                                         icon: "questionmark.circle", color: .secondary)
                     }
                 } else if mod.languages.contains("fr") {
                     // Le calcul se fait en tâche de fond : le dire plutôt que
                     // de laisser un blanc qu'on prendrait pour une erreur.
-                    Text(vm.L(L10n.Mods.translationPending))
+                    Text(localization.L(L10n.Mods.translationPending))
                         .font(.system(size: 11))
                         .foregroundColor(.secondary)
                 }
@@ -1054,9 +1057,9 @@ struct ModDetailView: View {
         let records = vm.modErrorHistory.history(for: mod.folderName)
         if !records.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
-                Text(vm.L(L10n.Mods.errorHistory))
+                Text(localization.L(L10n.Mods.errorHistory))
                     .font(.system(size: 13, weight: .semibold))
-                Text(vm.L(L10n.Mods.errorHistoryHint))
+                Text(localization.L(L10n.Mods.errorHistoryHint))
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -1069,7 +1072,7 @@ struct ModDetailView: View {
                             // The mod's current version, for context: an old
                             // version's tally isn't what the player runs today.
                             if record.version == mod.version {
-                                Text(vm.L(L10n.Mods.errorHistoryCurrent))
+                                Text(localization.L(L10n.Mods.errorHistoryCurrent))
                                     .font(.system(size: 9, weight: .medium))
                                     .padding(.horizontal, 5)
                                     .padding(.vertical, 1)
@@ -1128,11 +1131,11 @@ struct ModDetailView: View {
         if let conflicts = keybindScanService.report?.conflicts(affecting: mod.folderName),
            !conflicts.isEmpty {
             VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
-                Text(vm.L(L10n.Keybinds.title))
+                Text(localization.L(L10n.Keybinds.title))
                     .font(.system(size: 13, weight: .semibold))
 
                 if !conflicts.collisions.isEmpty {
-                    Text(String(format: vm.L(L10n.Keybinds.collisionsHeader),
+                    Text(String(format: localization.L(L10n.Keybinds.collisionsHeader),
                                 conflicts.collisions.count))
                         .font(.system(size: 12, weight: .semibold))
                     ForEach(conflicts.collisions, id: \.combo) { collision in
@@ -1157,9 +1160,9 @@ struct ModDetailView: View {
                     // La réserve reste visible : c'est elle qui évite la
                     // fausse alerte chez qui a remappé ses touches (même
                     // raison que dans le rapport global).
-                    Text(vm.L(L10n.Keybinds.gameCaveat))
+                    Text(localization.L(L10n.Keybinds.gameCaveat))
                         .font(.system(size: 11)).foregroundColor(.secondary)
-                    Text(String(format: vm.L(L10n.Keybinds.gameHeader),
+                    Text(String(format: localization.L(L10n.Keybinds.gameHeader),
                                 conflicts.gameConflicts.count))
                         .font(.system(size: 12, weight: .semibold))
                     ForEach(conflicts.gameConflicts, id: \.control.name) { conflict in
@@ -1202,7 +1205,7 @@ struct ModDetailView: View {
         let pairs = vm.modConflictVerdicts.declared.filter { $0.contains(mod.folderName) }
         if !pairs.isEmpty {
             VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
-                Text(vm.L(L10n.Conflicts.title))
+                Text(localization.L(L10n.Conflicts.title))
                     .font(.system(size: 13, weight: .semibold))
                 ForEach(pairs, id: \.self) { pair in
                     let otherFolder = pair.first == mod.folderName ? pair.second : pair.first
@@ -1213,7 +1216,7 @@ struct ModDetailView: View {
                             .font(.system(size: 13, weight: .medium))
                             .lineLimit(1).truncationMode(.middle)
                         Spacer()
-                        Button(vm.L(L10n.Conflicts.dismissButton)) {
+                        Button(localization.L(L10n.Conflicts.dismissButton)) {
                             vm.dismissConflict(pair)
                         }
                         .buttonStyle(.borderless)
@@ -1243,20 +1246,20 @@ struct ModDetailView: View {
     /// l'autre, même patron que `nexusIdDraft`/`noteDraft`.
     private var reportConflictSheet: some View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
-            Text(vm.L(L10n.Conflicts.reportButton))
+            Text(localization.L(L10n.Conflicts.reportButton))
                 .font(.system(size: 15, weight: .bold))
-            Picker(vm.L(L10n.Conflicts.pickMod), selection: $reportConflictTargetFolder) {
+            Picker(localization.L(L10n.Conflicts.pickMod), selection: $reportConflictTargetFolder) {
                 Text("").tag(String?.none)
                 ForEach(reportConflictCandidates, id: \.folderName) { candidate in
                     Text(candidate.name).tag(String?.some(candidate.folderName))
                 }
             }
-            TextField(vm.L(L10n.Conflicts.notePlaceholder), text: $reportConflictNote)
+            TextField(localization.L(L10n.Conflicts.notePlaceholder), text: $reportConflictNote)
                 .textFieldStyle(.roundedBorder)
             HStack {
                 Spacer()
-                Button(vm.L(L10n.Saves.cancel)) { showReportConflict = false }
-                Button(vm.L(L10n.Conflicts.reportConfirm)) {
+                Button(localization.L(L10n.Saves.cancel)) { showReportConflict = false }
+                Button(localization.L(L10n.Conflicts.reportConfirm)) {
                     if let targetFolder = reportConflictTargetFolder {
                         vm.declareConflict(ModConflictPair(mod.folderName, targetFolder),
                                            note: reportConflictNote)
@@ -1277,7 +1280,7 @@ struct ModDetailView: View {
     private var content: some View {
         switch selectedTab {
         case .translation:
-            TranslationDiffView(vm: vm, mod: mod)
+            TranslationDiffView(vm: vm, localization: localization, mod: mod)
         case .dependencies:
             dependenciesSection
         case .changelog:
@@ -1287,13 +1290,13 @@ struct ModDetailView: View {
             // pas ce que l'auteur en raconte. Les sections déménagent
             // telles quelles — leurs gates et conditions internes suivent.
             VStack(alignment: .leading, spacing: 16) {
-                CompatibilityBanner(vm: vm, mod: live)
+                CompatibilityBanner(vm: vm, localization: localization, mod: live)
                 // Le hub de traduction — chercher, poser, mettre à jour,
                 // retirer — reste réservé au premier niveau : c'est ici,
                 // sur la fiche du mod concerné, qu'il a sens.
-                if isTopLevel { TranslationSection(vm: vm, mod: live) }
+                if isTopLevel { TranslationSection(vm: vm, localization: localization, mod: live) }
                 translationSection
-                if isTopLevel { SupplementSection(vm: vm, mod: live) }
+                if isTopLevel { SupplementSection(vm: vm, localization: localization, mod: live) }
                 errorHistorySection
                 keybindConflictsSection
                 declaredConflictsSection
@@ -1309,7 +1312,7 @@ struct ModDetailView: View {
                 // par des closures directes, pas par les canaux
                 // `pending…Focus` (consommés seulement par un CHANGEMENT
                 // d'onglet dans MainView).
-                ModUpdateDeltaSection(vm: vm, mod: mod,
+                ModUpdateDeltaSection(vm: vm, localization: localization, mod: mod,
                                       onOpenConfig: { vm.editingModConfig = mod },
                                       onOpenTranslation: {
                                           vm.pendingTranslationDiffFilter = .state(.missing)
@@ -1336,7 +1339,7 @@ struct ModDetailView: View {
                     // honest than an "offline" claim that would also fire for a
                     // perfectly online mod that simply ships no changelog.
                     ContentUnavailableView(
-                        vm.L(isChangelog ? L10n.Mods.detailNoChangelog : L10n.Mods.detailNoDescription),
+                        localization.L(isChangelog ? L10n.Mods.detailNoChangelog : L10n.Mods.detailNoDescription),
                         systemImage: "doc.plaintext"
                     )
                     .frame(maxWidth: .infinity, minHeight: 160)
@@ -1346,7 +1349,7 @@ struct ModDetailView: View {
                     if state.isStale {
                         stalenessHint
                     }
-                    DescriptionBlocksView(blocks: blocks, vm: vm)
+                    DescriptionBlocksView(blocks: blocks, vm: vm, localization: localization)
 
                     // **Ce que l'auteur dit de la compatibilité.** Mesuré sur 200
                     // fiches : 30 % en ouvrent une section, longue de 359
@@ -1360,10 +1363,10 @@ struct ModDetailView: View {
                     // la déclaration de l'auteur sur la fiche.
                     if !isChangelog, let note = CompatibilityNote.find(in: blocks) {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text(vm.L(L10n.Mods.compatibilityNote))
+                            Text(localization.L(L10n.Mods.compatibilityNote))
                                 .font(.system(size: 12, weight: .semibold))
                                 .foregroundColor(.secondary)
-                            DescriptionBlocksView(blocks: note.blocks, vm: vm)
+                            DescriptionBlocksView(blocks: note.blocks, vm: vm, localization: localization)
                         }
                         .padding(12)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -1382,7 +1385,7 @@ struct ModDetailView: View {
     /// cache/local fallback and a background refresh is in flight (or failed
     /// and was dropped in favor of keeping the last-known-good content).
     private var stalenessHint: some View {
-        Label(vm.L(L10n.Mods.detailCached), systemImage: "arrow.triangle.2.circlepath")
+        Label(localization.L(L10n.Mods.detailCached), systemImage: "arrow.triangle.2.circlepath")
             .font(.caption)
             .foregroundStyle(.secondary)
     }
@@ -1443,6 +1446,7 @@ private struct TranslationProgressBar: View {
 /// télécharger depuis l'API. Le bouton mène à la page Nexus.
 private struct SupplementSection: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     let mod: ModItem
 
     private var search: StarHubTHViewModel.SupplementSearch? {
@@ -1456,19 +1460,19 @@ private struct SupplementSection: View {
                 Button {
                     vm.searchSupplements(for: mod)
                 } label: {
-                    Label(vm.L(L10n.Mods.searchShortSupplement),
+                    Label(localization.L(L10n.Mods.searchShortSupplement),
                           systemImage: "puzzlepiece.extension")
                         .font(.system(size: 11))
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
                 .disabled(isSearching || !vm.hasNexusApiKey)
-                .help(vm.hasNexusApiKey ? vm.L(L10n.Mods.supplementSearch)
-                                        : vm.L(L10n.Mods.nexusNoApiKey))
+                .help(vm.hasNexusApiKey ? localization.L(L10n.Mods.supplementSearch)
+                                        : localization.L(L10n.Mods.nexusNoApiKey))
                 .pointingHandCursor()
                 if isSearching {
                     ProgressView().controlSize(.small)
-                    Text(vm.L(L10n.Mods.supplementSearching))
+                    Text(localization.L(L10n.Mods.supplementSearching))
                         .font(.system(size: 11))
                         .foregroundColor(.secondary)
                 } else if search != nil {
@@ -1480,10 +1484,10 @@ private struct SupplementSection: View {
                             .foregroundColor(.secondary)
                     }
                     .buttonStyle(.plain)
-                    .help(vm.L(L10n.Mods.searchClose))
+                    .help(localization.L(L10n.Mods.searchClose))
                     .pointingHandCursor()
                 } else if !vm.hasNexusApiKey {
-                    Text(vm.L(L10n.Mods.nexusNoApiKey))
+                    Text(localization.L(L10n.Mods.nexusNoApiKey))
                         .font(.system(size: 10))
                         .foregroundColor(.secondary)
                         .lineLimit(2)
@@ -1494,7 +1498,7 @@ private struct SupplementSection: View {
             // sait sans avoir à interroger Nexus.
             let installed = vm.addons(for: mod)
             if !installed.isEmpty || !(search?.alreadyInstalled.isEmpty ?? true) {
-                Text(vm.L(L10n.Mods.installedSection))
+                Text(localization.L(L10n.Mods.installedSection))
                     .font(.system(size: 11, weight: .semibold))
                 ForEach(installed, id: \.nexusName) { addon in installedRow(addon) }
                 // Reconnus dans les résultats **et absents du registre** :
@@ -1515,15 +1519,15 @@ private struct SupplementSection: View {
                 // « rien trouvé » s'affichait juste sous la liste de ce qui
                 // venait d'être trouvé, et reconnu comme déjà installé.
                 if search.hits.isEmpty, search.alreadyInstalled.isEmpty {
-                    Text(vm.L(L10n.Mods.supplementNone))
+                    Text(localization.L(L10n.Mods.supplementNone))
                         .font(.system(size: 11))
                         .foregroundColor(.secondary)
                 } else {
-                    Text(String(format: vm.L(L10n.Mods.supplementFound), search.hits.count))
+                    Text(String(format: localization.L(L10n.Mods.supplementFound), search.hits.count))
                         .font(.system(size: 11))
                         .foregroundColor(.secondary)
                     if search.isCapped {
-                        Text(String(format: vm.L(L10n.Mods.supplementCapped),
+                        Text(String(format: localization.L(L10n.Mods.supplementCapped),
                                     search.serverTotal, search.received))
                             .font(.system(size: 10))
                             .foregroundColor(.secondary)
@@ -1531,7 +1535,7 @@ private struct SupplementSection: View {
                     ForEach(search.hits.prefix(6)) { hit in candidate(hit) }
                     // La réserve reste sous les yeux : ce sont des titres qui
                     // citent ce mod, pas des suppléments établis.
-                    Text(vm.L(L10n.Mods.supplementHint))
+                    Text(localization.L(L10n.Mods.supplementHint))
                         .font(.system(size: 10))
                         .foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -1555,20 +1559,20 @@ private struct SupplementSection: View {
                     .lineLimit(1)
                     .truncationMode(.middle)
                 if addon.nexusModId == 0 {
-                    Text(vm.L(L10n.Mods.noUpdateCheck))
+                    Text(localization.L(L10n.Mods.noUpdateCheck))
                         .font(.system(size: 10))
                         .foregroundColor(.secondary)
                 }
             }
             Spacer()
             if vm.addonUpdateAvailable(addon, for: mod) != nil {
-                Text(vm.L(L10n.Mods.translationUpdateAvailable))
+                Text(localization.L(L10n.Mods.translationUpdateAvailable))
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundColor(.orange)
             }
             let linkable = (search.map { $0.alreadyInstalled + $0.hits }) ?? []
             if addon.nexusModId == 0, !linkable.isEmpty {
-                Menu(vm.L(L10n.Mods.linkToNexus)) {
+                Menu(localization.L(L10n.Mods.linkToNexus)) {
                     ForEach(linkable.prefix(6)) { hit in
                         Button(hit.name) {
                             vm.linkToNexus(addon, hit: hit, isTranslation: false, for: mod)
@@ -1578,9 +1582,9 @@ private struct SupplementSection: View {
                 .menuStyle(.borderlessButton)
                 .fixedSize()
                 .font(.system(size: 10))
-                .help(vm.L(L10n.Mods.linkToNexusHint))
+                .help(localization.L(L10n.Mods.linkToNexusHint))
             }
-            Button(vm.L(L10n.Mods.addonRemove)) { vm.removeAddon(addon, from: mod) }
+            Button(localization.L(L10n.Mods.addonRemove)) { vm.removeAddon(addon, from: mod) }
                 .buttonStyle(.borderless)
                 .foregroundColor(.red)
                 .font(.system(size: 11))
@@ -1602,7 +1606,7 @@ private struct SupplementSection: View {
                     .font(.system(size: 11, weight: .medium))
                     .lineLimit(1)
                     .truncationMode(.middle)
-                Text(vm.L(L10n.Mods.supplementAsMod))
+                Text(localization.L(L10n.Mods.supplementAsMod))
                     .font(.system(size: 10))
                     .foregroundColor(.secondary)
             }
@@ -1619,7 +1623,7 @@ private struct SupplementSection: View {
                     .font(.system(size: 11, weight: .medium))
                     .lineLimit(1)
                     .truncationMode(.middle)
-                Text(String(format: vm.L(L10n.Mods.translationFromNexus), hit.uploader,
+                Text(String(format: localization.L(L10n.Mods.translationFromNexus), hit.uploader,
                             hit.updatedAt.map { $0.formatted(date: .abbreviated, time: .omitted) } ?? "—"))
                     .font(.system(size: 10))
                     .foregroundColor(.secondary)
@@ -1631,7 +1635,7 @@ private struct SupplementSection: View {
                     NSWorkspace.shared.open(url)
                 }
             } label: {
-                Label(vm.L(L10n.Mods.translationOpenNexus), systemImage: "arrow.up.right.square")
+                Label(localization.L(L10n.Mods.translationOpenNexus), systemImage: "arrow.up.right.square")
                     .font(.system(size: 11))
             }
             .buttonStyle(.bordered)
@@ -1654,6 +1658,7 @@ private struct SupplementSection: View {
 /// traduit, comme c'est lui qu'on met en pause ou qu'on sauvegarde.
 private struct TranslationSection: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     let mod: ModItem
     @State private var showDeclareSheet = false
 
@@ -1685,7 +1690,7 @@ private struct TranslationSection: View {
             // ne sait pas encore.
             if !isSearching, vm.translationHits[mod.folderName] != nil {
                 if hits.isEmpty {
-                    Text(vm.L(L10n.Mods.translationNoneFound))
+                    Text(localization.L(L10n.Mods.translationNoneFound))
                         .font(.system(size: 11))
                         .foregroundColor(.secondary)
                 } else {
@@ -1709,7 +1714,7 @@ private struct TranslationSection: View {
             Image(systemName: "person.crop.rectangle.badge.checkmark")
                 .font(.system(size: 10))
                 .foregroundColor(.blue)
-            Text(vm.L(L10n.Mods.translationDeclared))
+            Text(localization.L(L10n.Mods.translationDeclared))
                 .font(.system(size: 12, weight: .medium))
             Text(declared.nexusName)
                 .font(.system(size: 11))
@@ -1717,13 +1722,13 @@ private struct TranslationSection: View {
                 .lineLimit(1)
                 .truncationMode(.middle)
             Spacer()
-            Button(vm.L(L10n.Mods.translationUndeclare)) {
+            Button(localization.L(L10n.Mods.translationUndeclare)) {
                 vm.undeclareTranslation(for: mod)
             }
             .buttonStyle(.borderless)
             .foregroundColor(.red)
             .font(.system(size: 11))
-            .help(vm.L(L10n.Mods.translationUndeclareHint))
+            .help(localization.L(L10n.Mods.translationUndeclareHint))
         }
     }
 
@@ -1742,19 +1747,19 @@ private struct TranslationSection: View {
                 .font(.system(size: 12))
                 .padding(.top, 2)
             VStack(alignment: .leading, spacing: 4) {
-                Text(vm.L(L10n.Mods.translationUndeclared))
+                Text(localization.L(L10n.Mods.translationUndeclared))
                     .font(.system(size: 12, weight: .medium))
-                Text(vm.L(L10n.Mods.translationUndeclaredHint))
+                Text(localization.L(L10n.Mods.translationUndeclaredHint))
                     .font(.system(size: 10))
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 HStack(spacing: 6) {
-                    Button(vm.L(L10n.Mods.translationDeclare)) {
+                    Button(localization.L(L10n.Mods.translationDeclare)) {
                         showDeclareSheet = true
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
-                    Button(vm.L(L10n.Mods.translationOpenNexus)) {
+                    Button(localization.L(L10n.Mods.translationOpenNexus)) {
                         vm.searchTranslations(for: mod)
                     }
                     .buttonStyle(.borderless)
@@ -1778,22 +1783,22 @@ private struct TranslationSection: View {
     @ViewBuilder
     private var declareSheet: some View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
-            Text(vm.L(L10n.Mods.translationDeclareTitle))
+            Text(localization.L(L10n.Mods.translationDeclareTitle))
                 .font(.system(size: 15, weight: .bold))
-            Text(vm.L(L10n.Mods.translationDeclareExplainer))
+            Text(localization.L(L10n.Mods.translationDeclareExplainer))
                 .font(.system(size: 11))
                 .foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            TextField(vm.L(L10n.Mods.translationDeclareNexusId), text: $declareModId)
+            TextField(localization.L(L10n.Mods.translationDeclareNexusId), text: $declareModId)
                 .textFieldStyle(.roundedBorder)
-            TextField(vm.L(L10n.Mods.translationDeclareName), text: $declareName)
+            TextField(localization.L(L10n.Mods.translationDeclareName), text: $declareName)
                 .textFieldStyle(.roundedBorder)
-            TextField(vm.L(L10n.Mods.translationDeclareVersion), text: $declareVersion)
+            TextField(localization.L(L10n.Mods.translationDeclareVersion), text: $declareVersion)
                 .textFieldStyle(.roundedBorder)
             HStack {
                 Spacer()
-                Button(vm.L(L10n.Saves.cancel)) { showDeclareSheet = false }
-                Button(vm.L(L10n.Mods.translationDeclareConfirm)) {
+                Button(localization.L(L10n.Saves.cancel)) { showDeclareSheet = false }
+                Button(localization.L(L10n.Mods.translationDeclareConfirm)) {
                     if let modId = Int(declareModId.trimmingCharacters(in: .whitespaces)),
                        modId > 0 {
                         let version = declareVersion.trimmingCharacters(in: .whitespaces)
@@ -1821,7 +1826,7 @@ private struct TranslationSection: View {
             Image(systemName: "checkmark.seal.fill")
                 .font(.system(size: 10))
                 .foregroundColor(AppDesign.Color.installed)
-            Text(vm.L(L10n.Mods.translationInPlace))
+            Text(localization.L(L10n.Mods.translationInPlace))
                 .font(.system(size: 12, weight: .medium))
             Text(installed.nexusName)
                 .font(.system(size: 11))
@@ -1829,21 +1834,21 @@ private struct TranslationSection: View {
                 .lineLimit(1)
                 .truncationMode(.middle)
             if update != nil {
-                Text(vm.L(L10n.Mods.translationUpdateAvailable))
+                Text(localization.L(L10n.Mods.translationUpdateAvailable))
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundColor(.orange)
             }
             Spacer()
             if let newer = update {
-                Button(vm.L(L10n.Mods.translationUpdate)) {
+                Button(localization.L(L10n.Mods.translationUpdate)) {
                     vm.installTranslation(newer, into: mod)
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
                 .disabled(isBusy || vm.nexusDirectDownloadUnavailable)
-                .help(vm.nexusDirectDownloadUnavailable ? vm.L(L10n.Mods.premiumOnlyHint) : "")
+                .help(vm.nexusDirectDownloadUnavailable ? localization.L(L10n.Mods.premiumOnlyHint) : "")
             }
-            Button(vm.L(L10n.Mods.translationRemove)) { vm.removeTranslation(from: mod) }
+            Button(localization.L(L10n.Mods.translationRemove)) { vm.removeTranslation(from: mod) }
                 .buttonStyle(.borderless)
                 .foregroundColor(.red)
                 .disabled(isBusy)
@@ -1855,14 +1860,14 @@ private struct TranslationSection: View {
         // coup, en désignant l'entrée correspondante parmi les résultats.
         if installed.nexusModId == 0 {
             HStack(spacing: 6) {
-                Text(vm.L(L10n.Mods.noUpdateCheck))
+                Text(localization.L(L10n.Mods.noUpdateCheck))
                     .font(.system(size: 10))
                     .foregroundColor(.secondary)
                 // Les deux moitiés : le bon candidat est celui que le filtre a
                 // retiré des propositions, et le menu serait vide sans lui.
                 let candidates = (vm.translationInstalledHits[mod.folderName] ?? []) + hits
                 if !candidates.isEmpty {
-                    Menu(vm.L(L10n.Mods.linkToNexus)) {
+                    Menu(localization.L(L10n.Mods.linkToNexus)) {
                         ForEach(candidates.prefix(6)) { hit in
                             Button(hit.name) {
                                 vm.linkToNexus(installed, hit: hit,
@@ -1873,7 +1878,7 @@ private struct TranslationSection: View {
                     .menuStyle(.borderlessButton)
                     .fixedSize()
                     .font(.system(size: 10))
-                    .help(vm.L(L10n.Mods.linkToNexusHint))
+                    .help(localization.L(L10n.Mods.linkToNexusHint))
                 }
             }
         }
@@ -1885,7 +1890,7 @@ private struct TranslationSection: View {
             Button {
                 vm.searchTranslations(for: mod)
             } label: {
-                Label(vm.L(L10n.Mods.searchShortTranslation),
+                Label(localization.L(L10n.Mods.searchShortTranslation),
                       systemImage: "globe.badge.chevron.backward")
                     .font(.system(size: 11))
             }
@@ -1897,12 +1902,12 @@ private struct TranslationSection: View {
             .disabled(isSearching || isBusy || !vm.hasNexusApiKey)
             // **Dire pourquoi il est gris.** Un bouton désactivé et muet laisse
             // chercher la panne du mauvais côté.
-            .help(vm.hasNexusApiKey ? vm.L(L10n.Mods.translationSearch)
-                                    : vm.L(L10n.Mods.nexusNoApiKey))
+            .help(vm.hasNexusApiKey ? localization.L(L10n.Mods.translationSearch)
+                                    : localization.L(L10n.Mods.nexusNoApiKey))
             .pointingHandCursor()
             if isSearching {
                 ProgressView().controlSize(.small)
-                Text(vm.L(L10n.Mods.translationSearching))
+                Text(localization.L(L10n.Mods.translationSearching))
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
             } else if isBusy {
@@ -1918,13 +1923,13 @@ private struct TranslationSection: View {
                         .foregroundColor(.secondary)
                 }
                 .buttonStyle(.plain)
-                .help(vm.L(L10n.Mods.searchClose))
+                .help(localization.L(L10n.Mods.searchClose))
                 .pointingHandCursor()
             } else if !vm.hasNexusApiKey {
                 // Écrit, pas seulement en infobulle : AppKit ne garantit pas
                 // l'infobulle d'un contrôle désactivé, et c'est précisément
                 // quand il est gris qu'il faut dire pourquoi.
-                Text(vm.L(L10n.Mods.nexusNoApiKey))
+                Text(localization.L(L10n.Mods.nexusNoApiKey))
                     .font(.system(size: 10))
                     .foregroundColor(.secondary)
                     .lineLimit(2)
@@ -1946,7 +1951,7 @@ private struct TranslationSection: View {
                     .font(.system(size: 11, weight: .medium))
                     .lineLimit(1)
                     .truncationMode(.middle)
-                Text(String(format: vm.L(L10n.Mods.translationFromNexus), hit.uploader,
+                Text(String(format: localization.L(L10n.Mods.translationFromNexus), hit.uploader,
                             hit.updatedAt.map { $0.formatted(date: .abbreviated, time: .omitted) } ?? "—"))
                     .font(.system(size: 10))
                     .foregroundColor(.secondary)
@@ -1963,14 +1968,14 @@ private struct TranslationSection: View {
                     NSWorkspace.shared.open(url)
                 }
             } label: {
-                Label(vm.L(L10n.Mods.translationOpenNexus), systemImage: "arrow.up.right.square")
+                Label(localization.L(L10n.Mods.translationOpenNexus), systemImage: "arrow.up.right.square")
                     .font(.system(size: 11))
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
             .pointingHandCursor()
 
-            Button(vm.L(installed?.nexusModId == hit.modId
+            Button(localization.L(installed?.nexusModId == hit.modId
                         ? L10n.Mods.translationUpdate : L10n.Mods.translationInstall)) {
                 vm.installTranslation(hit, into: mod)
             }
@@ -1980,7 +1985,7 @@ private struct TranslationSection: View {
             // l'API refuse le lien direct, et c'est le bouton Nexus qui prend
             // le relais.
             .disabled(isBusy || vm.nexusDirectDownloadUnavailable)
-            .help(vm.nexusDirectDownloadUnavailable ? vm.L(L10n.Mods.premiumOnlyHint) : "")
+            .help(vm.nexusDirectDownloadUnavailable ? localization.L(L10n.Mods.premiumOnlyHint) : "")
         }
         .padding(.vertical, 2)
     }
@@ -2002,6 +2007,7 @@ private struct TranslationSection: View {
 /// de désigner — et l'adoption reste un geste.
 private struct NexusIdentitySection: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     let mod: ModItem
 
     private var search: StarHubTHViewModel.IdentitySearch? {
@@ -2019,18 +2025,18 @@ private struct NexusIdentitySection: View {
                 Button {
                     vm.searchNexusIdentity(for: mod)
                 } label: {
-                    Label(vm.L(L10n.Mods.nexusIdentityShort), systemImage: "magnifyingglass")
+                    Label(localization.L(L10n.Mods.nexusIdentityShort), systemImage: "magnifyingglass")
                         .font(.system(size: 11))
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
                 .disabled(isSearching || !vm.hasNexusApiKey)
-                .help(vm.hasNexusApiKey ? vm.L(L10n.Mods.nexusIdentitySearch)
-                                        : vm.L(L10n.Mods.nexusNoApiKey))
+                .help(vm.hasNexusApiKey ? localization.L(L10n.Mods.nexusIdentitySearch)
+                                        : localization.L(L10n.Mods.nexusNoApiKey))
                 .pointingHandCursor()
                 if isSearching {
                     ProgressView().controlSize(.small)
-                    Text(vm.L(L10n.Mods.supplementSearching))
+                    Text(localization.L(L10n.Mods.supplementSearching))
                         .font(.system(size: 11))
                         .foregroundColor(.secondary)
                 } else if search != nil {
@@ -2042,12 +2048,12 @@ private struct NexusIdentitySection: View {
                             .foregroundColor(.secondary)
                     }
                     .buttonStyle(.plain)
-                    .help(vm.L(L10n.Mods.searchClose))
+                    .help(localization.L(L10n.Mods.searchClose))
                     .pointingHandCursor()
                 } else if !vm.hasNexusApiKey {
                     // Écrit, pas seulement en infobulle : AppKit ne garantit
                     // pas l'infobulle d'un contrôle désactivé.
-                    Text(vm.L(L10n.Mods.nexusNoApiKey))
+                    Text(localization.L(L10n.Mods.nexusNoApiKey))
                         .font(.system(size: 10))
                         .foregroundColor(.secondary)
                         .lineLimit(2)
@@ -2059,30 +2065,30 @@ private struct NexusIdentitySection: View {
             // ouvert — un composant peut avoir sa propre page — mais on annonce
             // où chercher pour de bon.
             if mod.isPackComponent, !packName.isEmpty {
-                Text(String(format: vm.L(L10n.Mods.nexusIdentityComponent), packName))
+                Text(String(format: localization.L(L10n.Mods.nexusIdentityComponent), packName))
                     .font(.system(size: 10))
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
             if !isSearching, let search {
                 if search.candidates.isEmpty {
-                    Text(vm.L(L10n.Mods.nexusIdentityNone))
+                    Text(localization.L(L10n.Mods.nexusIdentityNone))
                         .font(.system(size: 11))
                         .foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 } else {
-                    Text(String(format: vm.L(L10n.Mods.nexusIdentityFound),
+                    Text(String(format: localization.L(L10n.Mods.nexusIdentityFound),
                                 search.candidates.count))
                         .font(.system(size: 11))
                         .foregroundColor(.secondary)
                     if search.isCapped {
-                        Text(String(format: vm.L(L10n.Mods.supplementCapped),
+                        Text(String(format: localization.L(L10n.Mods.supplementCapped),
                                     search.serverTotal, search.received))
                             .font(.system(size: 10))
                             .foregroundColor(.secondary)
                     }
                     ForEach(search.candidates.prefix(6)) { candidate in row(candidate) }
-                    Text(vm.L(L10n.Mods.nexusIdentityHint))
+                    Text(localization.L(L10n.Mods.nexusIdentityHint))
                         .font(.system(size: 10))
                         .foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -2102,14 +2108,14 @@ private struct NexusIdentitySection: View {
                         .lineLimit(1)
                         .truncationMode(.middle)
                     if candidate.authorMatches {
-                        Text(vm.L(L10n.Mods.nexusIdentitySameAuthor))
+                        Text(localization.L(L10n.Mods.nexusIdentitySameAuthor))
                             .font(.system(size: 9, weight: .semibold))
                             .foregroundColor(.green)
                             .lineLimit(1)
                             .fixedSize()
                     }
                 }
-                Text(String(format: vm.L(L10n.Mods.translationFromNexus), candidate.hit.uploader,
+                Text(String(format: localization.L(L10n.Mods.translationFromNexus), candidate.hit.uploader,
                             candidate.hit.updatedAt.map {
                                 $0.formatted(date: .abbreviated, time: .omitted)
                             } ?? "—"))
@@ -2130,9 +2136,9 @@ private struct NexusIdentitySection: View {
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
-            .help(vm.L(L10n.Mods.translationOpenNexus))
+            .help(localization.L(L10n.Mods.translationOpenNexus))
             .pointingHandCursor()
-            Button(vm.L(L10n.Mods.nexusIdentityAdopt)) {
+            Button(localization.L(L10n.Mods.nexusIdentityAdopt)) {
                 vm.adoptNexusIdentity(candidate, for: mod)
             }
             .buttonStyle(.borderedProminent)

@@ -19,6 +19,7 @@ class ConfigTreeNode: Identifiable {
 
 struct ModConfigEditorView: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     let mod: ModItem
     
     @State private var configText: String = ""
@@ -59,7 +60,8 @@ struct ModConfigEditorView: View {
         return (modPath as NSString).appendingPathComponent("content.json")
     }
 
-    init(vm: StarHubTHViewModel, mod: ModItem, initialTab: Int = 0) {
+    init(vm: StarHubTHViewModel, localization: LocalizationStore, mod: ModItem, initialTab: Int = 0) {
+        self.localization = localization
         self.vm = vm
         self.mod = mod
         self._selectedTab = State(initialValue: initialTab)
@@ -122,7 +124,7 @@ struct ModConfigEditorView: View {
                 if configRows.isEmpty {
                     VStack {
                         Spacer()
-                        Text(vm.L(L10n.Settings.configNoSettingsFound))
+                        Text(localization.L(L10n.Settings.configNoSettingsFound))
                             .foregroundColor(.secondary)
                         Spacer()
                     }
@@ -135,7 +137,7 @@ struct ModConfigEditorView: View {
 
                             let filtered = filteredGroups
                             if filtered.isEmpty && !searchText.isEmpty {
-                                Text(String(format: vm.L(L10n.Settings.configNoSettingsFoundFor), searchText))
+                                Text(String(format: localization.L(L10n.Settings.configNoSettingsFoundFor), searchText))
                                     .foregroundColor(.secondary)
                                     .padding()
                             } else if hasSchema {
@@ -158,7 +160,7 @@ struct ModConfigEditorView: View {
                                 let rootGroups = tree.filter { $0.row == nil }
 
                                 if !rootLeaves.isEmpty {
-                                    StandardSection(title: vm.L(L10n.Settings.settings)) {
+                                    StandardSection(title: localization.L(L10n.Settings.settings)) {
                                         rowList(rootLeaves.compactMap(\.row))
                                     }
                                 }
@@ -175,7 +177,7 @@ struct ModConfigEditorView: View {
                 }
             } else {
                 VStack {
-                    StandardSection(title: vm.L(L10n.Settings.configRawJson)) {
+                    StandardSection(title: localization.L(L10n.Settings.configRawJson)) {
                         CodeEditorView(text: $configText)
                             .padding(8)
                             .background(Color(nsColor: .textBackgroundColor))
@@ -198,12 +200,12 @@ struct ModConfigEditorView: View {
             // Footer Action Bar
             HStack {
                 Button(action: { restoreConfigBackup() }) {
-                    Label(vm.L(L10n.Settings.configRestoreConfig), systemImage: "arrow.counterclockwise")
+                    Label(localization.L(L10n.Settings.configRestoreConfig), systemImage: "arrow.counterclockwise")
                 }
                 .buttonStyle(.bordered)
                 
                 if isInvalidJson {
-                    Text(vm.L(L10n.Settings.configInvalidJson))
+                    Text(localization.L(L10n.Settings.configInvalidJson))
                         .font(.system(size: 11, weight: .medium))
                         .foregroundColor(.red)
                         .padding(.leading, 8)
@@ -216,12 +218,12 @@ struct ModConfigEditorView: View {
                     isInvalidJson = false
                     parseToVisual()
                 }) {
-                    Text(vm.L(L10n.Settings.configReset))
+                    Text(localization.L(L10n.Settings.configReset))
                 }
                 .buttonStyle(.bordered)
                 .disabled(configText == originalText)
                 
-                Button(vm.L(L10n.Saves.saveChanges)) {
+                Button(localization.L(L10n.Saves.saveChanges)) {
                     if saveConfig() {
                         vm.editingModConfig = nil
                     }
@@ -233,12 +235,12 @@ struct ModConfigEditorView: View {
             .padding(.horizontal, 20)
             .padding(.vertical, 12)
         }
-        .searchable(text: $searchText, prompt: Text(vm.L(L10n.Settings.configSearchPlaceholder)))
+        .searchable(text: $searchText, prompt: Text(localization.L(L10n.Settings.configSearchPlaceholder)))
         .toolbar {
             ToolbarItem(placement: .principal) {
                 Picker("", selection: $selectedTab) {
-                    Text(vm.L(L10n.Settings.configVisualEditor)).tag(0)
-                    Text(vm.L(L10n.Settings.configCodeEditor)).tag(1)
+                    Text(localization.L(L10n.Settings.configVisualEditor)).tag(0)
+                    Text(localization.L(L10n.Settings.configCodeEditor)).tag(1)
                 }
                 .pickerStyle(.segmented)
             }
@@ -246,18 +248,18 @@ struct ModConfigEditorView: View {
         .toolbarBackground(.hidden, for: .automatic)
         .background(Color(nsColor: .controlBackgroundColor))
         .onAppear(perform: loadConfig)
-        .alert(vm.L(blockedWrite == .unverifiable
+        .alert(localization.L(blockedWrite == .unverifiable
                     ? L10n.Settings.configRecheckFailedTitle
                     : L10n.Settings.configChangedExtTitle),
                isPresented: Binding(get: { blockedWrite != nil },
                                     set: { if !$0 { blockedWrite = nil } })) {
-            Button(vm.L(L10n.Settings.configOverwriteAnyway), role: .destructive) {
+            Button(localization.L(L10n.Settings.configOverwriteAnyway), role: .destructive) {
                 blockedWrite = nil
                 if writeConfig() { vm.editingModConfig = nil }
             }
-            Button(vm.L(L10n.ModInstall.cancel), role: .cancel) { blockedWrite = nil }
+            Button(localization.L(L10n.ModInstall.cancel), role: .cancel) { blockedWrite = nil }
         } message: {
-            Text(vm.L(blockedWrite == .unverifiable
+            Text(localization.L(blockedWrite == .unverifiable
                       ? L10n.Settings.configRecheckFailedMsg
                       : L10n.Settings.configChangedExtMsg))
         }
@@ -275,7 +277,7 @@ struct ModConfigEditorView: View {
                 validateJson(configText)
                 parseToVisual()
             } catch {
-                configText = vm.L(L10n.Settings.configReadError)
+                configText = localization.L(L10n.Settings.configReadError)
                 isInvalidJson = true
             }
         } else {
@@ -370,7 +372,7 @@ struct ModConfigEditorView: View {
         }
 
         let base = table("default")
-        let localized = vm.currentLanguage == "fr" ? table("fr") : [:]
+        let localized = localization.currentLanguage == "fr" ? table("fr") : [:]
         labelIndex = ConfigLabelResolver.index(defaultFile: base, localizedFile: localized)
     }
 
@@ -385,7 +387,7 @@ struct ModConfigEditorView: View {
         let modPath = (basePath as NSString).appendingPathComponent(mod.physicalFolderName)
         let i18nPath = (modPath as NSString).appendingPathComponent("i18n")
 
-        for locale in ContentPackI18n.localeCandidates(for: vm.currentLanguage) {
+        for locale in ContentPackI18n.localeCandidates(for: localization.currentLanguage) {
             let path = (i18nPath as NSString).appendingPathComponent("\(locale).json")
             guard let data = FileManager.default.contents(atPath: path),
                   let text = String(data: data, encoding: .utf8),
@@ -427,7 +429,7 @@ struct ModConfigEditorView: View {
             // Une valeur qui ne s'écrit pas (nombre non fini, chemin qui ne
             // retombe plus sur l'arbre) laisserait sinon le contrôle bouger à
             // l'écran sans que rien ne change dans le fichier.
-            vm.log(String(format: vm.L(L10n.Settings.configEditNotApplied),
+            vm.log(String(format: localization.L(L10n.Settings.configEditNotApplied),
                           row.keyPath.joined(separator: " > ")), level: .warning)
             return
         }
@@ -476,10 +478,10 @@ struct ModConfigEditorView: View {
             // Sans cette ligne, un second enregistrement dans la même session
             // se croirait en conflit avec sa propre écriture.
             loadedFromDisk = configText
-            vm.showModal(message: vm.L(L10n.Settings.configSaved))
+            vm.showModal(message: localization.L(L10n.Settings.configSaved))
             return true
         } catch {
-            vm.showModal(message: String(format: vm.L(L10n.Settings.configSaveError), error.localizedDescription))
+            vm.showModal(message: String(format: localization.L(L10n.Settings.configSaveError), error.localizedDescription))
             return false
         }
     }
@@ -514,7 +516,7 @@ struct ModConfigEditorView: View {
                                                               onlyEnabled: false)
             _ = ModConfigBackupManager.shared.cleanupOldBackups()
         } catch {
-            vm.log(String(format: vm.L(L10n.Settings.configBackupFailed),
+            vm.log(String(format: localization.L(L10n.Settings.configBackupFailed),
                           mod.name, error.localizedDescription), level: .warning)
         }
     }
@@ -536,7 +538,7 @@ struct ModConfigEditorView: View {
                                                                            forMod: mod.folderName),
            let content = try? String(contentsOf: found.url, encoding: .utf8) {
             loadIntoEditor(content)
-            vm.showModal(message: String(format: vm.L(L10n.Settings.configRestoredFromBackup),
+            vm.showModal(message: String(format: localization.L(L10n.Settings.configRestoredFromBackup),
                                          found.backup.formattedDate))
             return
         }
@@ -548,29 +550,29 @@ struct ModConfigEditorView: View {
             do {
                 let content = try String(contentsOfFile: backupPath, encoding: .utf8)
                 loadIntoEditor(content)
-                vm.showModal(message: vm.L(L10n.Settings.configRestoredBak))
+                vm.showModal(message: localization.L(L10n.Settings.configRestoredBak))
                 return
             } catch {
                 // Consigné, pas avalé : l'échec fait retomber sur le sélecteur
                 // de fichier ci-dessous, ce qui, sans trace, ressemble à un
                 // simple changement d'avis de l'app.
-                vm.log(String(format: vm.L(L10n.Settings.configRestoreBakFailed),
+                vm.log(String(format: localization.L(L10n.Settings.configRestoreBakFailed),
                               error.localizedDescription), level: .warning)
             }
         }
         
         // 3. Un fichier choisi à la main.
         let panel = NSOpenPanel()
-        panel.title = vm.L(L10n.Settings.configBackupPanelTitle)
+        panel.title = localization.L(L10n.Settings.configBackupPanelTitle)
         panel.allowedContentTypes = [.json]
         panel.allowsMultipleSelection = false
         if panel.runModal() == .OK, let url = panel.url {
             do {
                 let content = try String(contentsOf: url, encoding: .utf8)
                 loadIntoEditor(content)
-                vm.showModal(message: String(format: vm.L(L10n.Settings.configLoadedFrom), url.lastPathComponent))
+                vm.showModal(message: String(format: localization.L(L10n.Settings.configLoadedFrom), url.lastPathComponent))
             } catch {
-                vm.showModal(message: String(format: vm.L(L10n.Settings.configLoadFailed), error.localizedDescription))
+                vm.showModal(message: String(format: localization.L(L10n.Settings.configLoadFailed), error.localizedDescription))
             }
         }
     }
@@ -599,8 +601,8 @@ struct ModConfigEditorView: View {
     private func sectionTitle(of group: ConfigEditorModel.Group,
                               among groups: [ConfigEditorModel.Group]) -> String {
         if let section = group.section { return section }
-        return groups.count > 1 ? vm.L(L10n.Settings.configOtherSettings)
-                                : vm.L(L10n.Settings.settings)
+        return groups.count > 1 ? localization.L(L10n.Settings.configOtherSettings)
+                                : localization.L(L10n.Settings.settings)
     }
 
     /// Le pack décrit ses options, mais son `content.json` n'a pas pu être lu
@@ -614,7 +616,7 @@ struct ModConfigEditorView: View {
         HStack(alignment: .top, spacing: 8) {
             Image(systemName: "gamecontroller.fill")
                 .foregroundColor(.orange)
-            Text(vm.L(L10n.Settings.configGameRunning))
+            Text(localization.L(L10n.Settings.configGameRunning))
                 .font(.system(size: 12))
                 .foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -630,7 +632,7 @@ struct ModConfigEditorView: View {
         HStack(alignment: .top, spacing: 8) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundColor(.orange)
-            Text(vm.L(L10n.Settings.configSchemaUnreadable))
+            Text(localization.L(L10n.Settings.configSchemaUnreadable))
                 .font(.system(size: 12))
                 .foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -692,7 +694,7 @@ struct ModConfigEditorView: View {
                         .font(.system(size: 13))
                         .foregroundColor(.primary)
                     if row.defaultControl != nil {
-                        Text(vm.L(L10n.Settings.configModified))
+                        Text(localization.L(L10n.Settings.configModified))
                             .font(.system(size: 10, weight: .medium))
                             .foregroundColor(.orange)
                             .padding(.horizontal, 5)
@@ -740,9 +742,9 @@ struct ModConfigEditorView: View {
                             .frame(width: 18, height: 18)
                     }
                     .buttonStyle(PlainButtonStyle())
-                    .help(String(format: vm.L(L10n.Settings.configResetToDefault),
+                    .help(String(format: localization.L(L10n.Settings.configResetToDefault),
                                  defaultLabel(of: defaultControl)))
-                    .accessibilityLabel(String(format: vm.L(L10n.Settings.configResetToDefault),
+                    .accessibilityLabel(String(format: localization.L(L10n.Settings.configResetToDefault),
                                                defaultLabel(of: defaultControl)))
                 } else {
                     Color.clear
@@ -827,9 +829,9 @@ struct ModConfigEditorView: View {
     /// alors qu'elle n'est pas dans la liste du mod (6 cas) — signalée plutôt
     /// que remplacée en silence.
     private func choiceLabel(_ value: String, in row: ConfigEditorModel.Row) -> String {
-        if value.isEmpty { return vm.L(L10n.Settings.configEmptyValue) }
+        if value.isEmpty { return localization.L(L10n.Settings.configEmptyValue) }
         if row.isOutsideAllowedValues, case .choice(let selected, _) = row.control, value == selected {
-            return "\(value) — \(vm.L(L10n.Settings.configValueOutsideList))"
+            return "\(value) — \(localization.L(L10n.Settings.configValueOutsideList))"
         }
         return value
     }
@@ -839,8 +841,8 @@ struct ModConfigEditorView: View {
         case .toggle(let flag, _): return flag ? "true" : "false"
         case .integer(let value):  return String(value)
         case .decimal(let value):  return String(value)
-        case .text(let value):     return value.isEmpty ? vm.L(L10n.Settings.configEmptyValue) : value
-        case .choice(let value, _): return value.isEmpty ? vm.L(L10n.Settings.configEmptyValue) : value
+        case .text(let value):     return value.isEmpty ? localization.L(L10n.Settings.configEmptyValue) : value
+        case .choice(let value, _): return value.isEmpty ? localization.L(L10n.Settings.configEmptyValue) : value
         }
     }
 

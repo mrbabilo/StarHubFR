@@ -12,6 +12,7 @@ import SwiftUI
 
 struct SystemStatusFooter: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
 
     private var enabledCount: Int { vm.mods.filter(\.isEnabled).count }
     private var updatesCount: Int { vm.outOfDateMods.count + vm.nexusUpdates.count }
@@ -42,7 +43,7 @@ struct SystemStatusFooter: View {
         .padding(.vertical, AppDesign.Spacing.xs)
         .accessibilityLabel(
             String(
-                format: vm.L(L10n.Main.systemStatusA11y),
+                format: localization.L(L10n.Main.systemStatusA11y),
                 Int64(enabledCount),
                 Int64(updatesCount),
                 Int64(errorsCount)
@@ -104,6 +105,7 @@ struct SystemStatusFooter: View {
 ///   3. Métadonnées : mods actifs/total + statut SMAPI
 struct AccountHeaderCard: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     let isActive: Bool
     let isHovered: Bool
     let onTap: () -> Void
@@ -124,12 +126,12 @@ struct AccountHeaderCard: View {
                     avatarView
                     VStack(alignment: .leading, spacing: 1) {
                         Text(vm.steamUsername.isEmpty
-                             ? vm.L(L10n.Main.playerFallback)
+                             ? localization.L(L10n.Main.playerFallback)
                              : vm.steamUsername)
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(.primary)
                             .lineLimit(1)
-                        Text(vm.L(L10n.Main.steamAccount))
+                        Text(localization.L(L10n.Main.steamAccount))
                             .font(.system(size: 10))
                             .foregroundColor(.secondary)
                             .lineLimit(1)
@@ -189,7 +191,7 @@ struct AccountHeaderCard: View {
         }
         .buttonStyle(PlainButtonStyle())
         .pointingHandCursor()
-        .help(vm.L(L10n.Main.home))
+        .help(localization.L(L10n.Main.home))
         .accessibilityElement(children: .combine)
     }
 
@@ -219,7 +221,7 @@ struct AccountHeaderCard: View {
         if let v = vm.smapiInstalledVersion {
             return "v\(v)"
         }
-        return vm.L(L10n.Home.notInstalled)
+        return localization.L(L10n.Home.notInstalled)
     }
 
     /// Une cellule de métadonnée compacte : icône + valeur. Couleur pilotée

@@ -11,6 +11,7 @@ struct DiscoverView: View {
     @FocusState private var searchFocused: Bool
 
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     /// L'onglet courant de `MainView` : sans clé d'API la vitrine ne peut
     /// rien montrer, et le dire sans offrir le chemin des réglages laisse
     /// l'utilisateur le chercher.
@@ -65,7 +66,7 @@ struct DiscoverView: View {
         }
         .onAppear { vm.loadDiscovery() }
         .sheet(item: $detailRow) { row in
-            DiscoveryDetailSheet(vm: vm, row: row)
+            DiscoveryDetailSheet(vm: vm, localization: localization, row: row)
         }
     }
 
@@ -75,7 +76,7 @@ struct DiscoverView: View {
     /// boutons pour un geste.
     private var toolbar: some View {
         HStack(spacing: AppDesign.Spacing.sm) {
-            TextField(vm.L(L10n.Discovery.searchPlaceholder), text: $searchText)
+            TextField(localization.L(L10n.Discovery.searchPlaceholder), text: $searchText)
                 .textFieldStyle(.roundedBorder)
                 .onSubmit { vm.searchDiscovery(name: searchText) }
                 .searchFieldShortcut($searchFocused)
@@ -84,7 +85,7 @@ struct DiscoverView: View {
             } label: {
                 Image(systemName: "magnifyingglass")
             }
-            .help(vm.L(L10n.Main.search))
+            .help(localization.L(L10n.Main.search))
             .disabled(searchText.trimmingCharacters(in: .whitespaces).isEmpty)
             if !searchText.isEmpty || vm.discoverySearch != nil {
                 Button {
@@ -94,13 +95,13 @@ struct DiscoverView: View {
                     Image(systemName: "xmark.circle.fill")
                 }
                 .buttonStyle(.borderless)
-                .help(vm.L(L10n.Discovery.clearSearch))
+                .help(localization.L(L10n.Discovery.clearSearch))
             }
             categoryPicker
             // « Masquer les installés » ne vaut que pour les sections : une
             // recherche par nom rend ce qu'on lui a demandé, installé ou non.
             if vm.discoverySearch == nil {
-                Toggle(vm.L(L10n.Discovery.hideInstalled), isOn: $hideInstalled)
+                Toggle(localization.L(L10n.Discovery.hideInstalled), isOn: $hideInstalled)
                     .font(AppDesign.Font.body)
                     .fixedSize()
             }
@@ -109,7 +110,7 @@ struct DiscoverView: View {
             } label: {
                 Image(systemName: "arrow.clockwise")
             }
-            .help(vm.L(L10n.Discovery.refresh))
+            .help(localization.L(L10n.Discovery.refresh))
             .disabled(vm.discoveryLoading)
         }
     }
@@ -123,18 +124,18 @@ struct DiscoverView: View {
         // reconstruit la hiérarchie sous le menu ouvert — un second choix ne
         // partait plus. Un `Picker` porte sa sélection, il survit à la
         // reconstruction.
-        Picker(vm.L(L10n.Mods.categoryFilter), selection: categorySelection) {
-            Text(vm.L(L10n.Mods.categoryFilterAll)).tag(0)
+        Picker(localization.L(L10n.Mods.categoryFilter), selection: categorySelection) {
+            Text(localization.L(L10n.Mods.categoryFilterAll)).tag(0)
             Divider()
             ForEach(sortedCategories, id: \.id) { category in
                 // Un menu SwiftUI rend l'item en texte simple : le glyphe doit
                 // tenir dans le `Text`, un `Label` le perdrait.
-                Text(category.emoji + " " + category.localizedName(vm.L)).tag(category.id)
+                Text(category.emoji + " " + category.localizedName(localization.L)).tag(category.id)
             }
         }
         .pickerStyle(.menu)
         .frame(maxWidth: 260)
-        .help(vm.L(L10n.Mods.categoryFilter))
+        .help(localization.L(L10n.Mods.categoryFilter))
     }
 
     /// `0` = toutes les catégories : `NexusCategory` n'utilise pas cet
@@ -146,8 +147,8 @@ struct DiscoverView: View {
 
     private var sortedCategories: [NexusCategory] {
         NexusCategory.all.sorted {
-            $0.localizedName(vm.L)
-                .localizedCaseInsensitiveCompare($1.localizedName(vm.L)) == .orderedAscending
+            $0.localizedName(localization.L)
+                .localizedCaseInsensitiveCompare($1.localizedName(localization.L)) == .orderedAscending
         }
     }
 
@@ -155,7 +156,7 @@ struct DiscoverView: View {
         VStack(alignment: .leading, spacing: 8) {
             // Le total toujours rendu : la poignée affichée n'est pas tout ce
             // qui existe (« Content Patcher » en rend 428).
-            Text(String(format: vm.L(L10n.Discovery.shownOfTotal),
+            Text(String(format: localization.L(L10n.Discovery.shownOfTotal),
                         search.rows.count, search.totalCount))
                 .font(.caption).foregroundStyle(.secondary)
             // Grille adaptative — comme les sections, en cartes, pas une pile
@@ -169,7 +170,7 @@ struct DiscoverView: View {
                 Button {
                     vm.loadMoreDiscoverySearch()
                 } label: {
-                    Label(vm.L(L10n.Discovery.loadMore), systemImage: "ellipsis.circle")
+                    Label(localization.L(L10n.Discovery.loadMore), systemImage: "ellipsis.circle")
                 }
                 .disabled(vm.discoveryLoading)
             }
@@ -204,13 +205,13 @@ struct DiscoverView: View {
                 // filtre ne doit pas masquer qu'il a filtré (spec §7.1). Le
                 // comparer au catalogue entier — « 20 affichés sur 33 204 »
                 // — ne comparait rien à rien.
-                countText: String(format: vm.L(L10n.Discovery.shownOfLoaded),
+                countText: String(format: localization.L(L10n.Discovery.shownOfLoaded),
                                   visible.count, loaded),
                 // Un seul bouton pour deux gestes : déplier ce qui est déjà
                 // reçu, et demander la suite au serveur quand le palier
                 // dépasse ce qu'on a. Deux boutons auraient obligé
                 // l'utilisateur à savoir lequel des deux il lui faut.
-                moreTitle: hasMore ? vm.L(L10n.Discovery.loadMore) : nil,
+                moreTitle: hasMore ? localization.L(L10n.Discovery.loadMore) : nil,
                 moreDisabled: vm.discoveryLoading
             ) {
                 let next = limit + Self.moreStep
@@ -243,9 +244,9 @@ struct DiscoverView: View {
 
     private func title(for kind: ModCatalog.SectionKind) -> String {
         switch kind {
-        case .trending: return vm.L(L10n.Discovery.trending)
-        case .recent: return vm.L(L10n.Discovery.recent)
-        case .french: return vm.L(L10n.Discovery.french)
+        case .trending: return localization.L(L10n.Discovery.trending)
+        case .recent: return localization.L(L10n.Discovery.recent)
+        case .french: return localization.L(L10n.Discovery.french)
         }
     }
 
@@ -255,23 +256,23 @@ struct DiscoverView: View {
     @ViewBuilder private func emptySection(_ reason: ModCatalog.EmptyReason) -> some View {
         switch reason {
         case .neverLoaded:
-            StateCard(icon: "square.grid.2x2", text: vm.L(L10n.Discovery.neverLoaded),
-                      actionTitle: vm.L(L10n.Discovery.retry)) { vm.loadDiscovery(force: true) }
+            StateCard(icon: "square.grid.2x2", text: localization.L(L10n.Discovery.neverLoaded),
+                      actionTitle: localization.L(L10n.Discovery.retry)) { vm.loadDiscovery(force: true) }
         case .failed:
             switch vm.lastDiscoveryError {
             case .noApiKey:
                 // La clé sert déjà aux mises à jour : le chemin, pas seulement
                 // le diagnostic.
-                StateCard(icon: "key", text: vm.L(L10n.Discovery.noKey),
-                          actionTitle: vm.L(L10n.Discovery.openSettings)) {
+                StateCard(icon: "key", text: localization.L(L10n.Discovery.noKey),
+                          actionTitle: localization.L(L10n.Discovery.openSettings)) {
                     currentTab = .settings
                 }
             case .rateLimited:
-                StateCard(icon: "hourglass", text: vm.L(L10n.Discovery.rateLimited),
-                          actionTitle: vm.L(L10n.Discovery.retry)) { vm.loadDiscovery(force: true) }
+                StateCard(icon: "hourglass", text: localization.L(L10n.Discovery.rateLimited),
+                          actionTitle: localization.L(L10n.Discovery.retry)) { vm.loadDiscovery(force: true) }
             default:
-                StateCard(icon: "wifi.exclamationmark", text: vm.L(L10n.Discovery.error),
-                          actionTitle: vm.L(L10n.Discovery.retry)) { vm.loadDiscovery(force: true) }
+                StateCard(icon: "wifi.exclamationmark", text: localization.L(L10n.Discovery.error),
+                          actionTitle: localization.L(L10n.Discovery.retry)) { vm.loadDiscovery(force: true) }
             }
         }
     }
@@ -282,14 +283,14 @@ struct DiscoverView: View {
     @ViewBuilder private var noMatchState: some View {
         if vm.discoveryCategory != nil || hideInstalled {
             StateCard(icon: "line.3.horizontal.decrease.circle",
-                      text: vm.L(L10n.Discovery.noMatch),
-                      actionTitle: vm.L(L10n.Discovery.clearFilters)) {
+                      text: localization.L(L10n.Discovery.noMatch),
+                      actionTitle: localization.L(L10n.Discovery.clearFilters)) {
                 hideInstalled = false
                 vm.setDiscoveryCategory(nil)
             }
         } else {
             StateCard(icon: "line.3.horizontal.decrease.circle",
-                      text: vm.L(L10n.Discovery.noMatch), actionTitle: nil, action: {})
+                      text: localization.L(L10n.Discovery.noMatch), actionTitle: nil, action: {})
         }
     }
 
@@ -299,11 +300,11 @@ struct DiscoverView: View {
             title: row.hit.name,
             subtitle: row.hit.uploader,
             thumbnailURL: row.hit.thumbnailUrl.flatMap { URL(string: $0) },
-            installedLabel: row.installed ? vm.L(L10n.Discovery.installedBadge) : nil,
+            installedLabel: row.installed ? localization.L(L10n.Discovery.installedBadge) : nil,
             category: row.hit.categoryId.flatMap(NexusCategory.from(id:)),
             neutralBadge: row.hit.tags.contains(NexusModSearch.frenchTag) ? "FR" : nil,
             endorsements: row.hit.endorsements,
-            L: vm.L
+            L: localization.L
         ) {
             detailRow = row
         }
@@ -318,20 +319,20 @@ struct DiscoverView: View {
     private func discoveryErrorBanner(_ error: NexusSearchClient.SearchError) -> some View {
         let text: String
         switch error {
-        case .noApiKey: text = vm.L(L10n.Discovery.noKey)
-        case .rateLimited: text = vm.L(L10n.Discovery.rateLimited)
-        default: text = vm.L(L10n.Discovery.error)
+        case .noApiKey: text = localization.L(L10n.Discovery.noKey)
+        case .rateLimited: text = localization.L(L10n.Discovery.rateLimited)
+        default: text = localization.L(L10n.Discovery.error)
         }
         if case .noApiKey = error {
             // La clé sert déjà aux mises à jour : le chemin, pas seulement le
             // diagnostic.
             return ErrorBanner(text: text,
-                               actionTitle: vm.L(L10n.Discovery.openSettings)) {
+                               actionTitle: localization.L(L10n.Discovery.openSettings)) {
                 currentTab = .settings
             }
         }
         return ErrorBanner(text: text,
-                           actionTitle: vm.L(L10n.Discovery.retry)) {
+                           actionTitle: localization.L(L10n.Discovery.retry)) {
             vm.loadDiscovery(force: true)
         }
     }
@@ -355,6 +356,7 @@ private struct ProminentButton: ViewModifier {
 /// La fiche éclair (spec §7.2) : sheet, jamais un état global.
 struct DiscoveryDetailSheet: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     let row: StarHubTHViewModel.DiscoveryRow
     @Environment(\.dismiss) private var dismiss
 
@@ -374,13 +376,13 @@ struct DiscoveryDetailSheet: View {
             case .loading:
                 ProgressView().frame(maxWidth: .infinity).padding()
             case .failed:
-                Text(vm.L(L10n.Discovery.detailFailed))
+                Text(localization.L(L10n.Discovery.detailFailed))
                     .font(AppDesign.Font.body).foregroundStyle(.secondary).padding()
             case .idle, .loaded:
                 if let detail = vm.discoveryDetail {
                     detailBody(detail)
                 } else {
-                    Text(vm.L(L10n.Discovery.neverLoaded))
+                    Text(localization.L(L10n.Discovery.neverLoaded))
                         .font(AppDesign.Font.body).foregroundStyle(.secondary).padding()
                 }
             }
@@ -406,17 +408,17 @@ struct DiscoveryDetailSheet: View {
     /// l'installation plus sûrement qu'un paragraphe de description.
     private var statStrip: some View {
         StatStrip(items: [
-            .init(label: vm.L(L10n.Discovery.statEndorsements),
+            .init(label: localization.L(L10n.Discovery.statEndorsements),
                   value: (vm.discoveryDetail?.endorsements ?? row.hit.endorsements)
                       .map { "\($0)" } ?? "—"),
-            .init(label: vm.L(L10n.ModInstall.labelVersion),
+            .init(label: localization.L(L10n.ModInstall.labelVersion),
                   value: vm.discoveryDetail?.version.isEmpty == false
                       ? vm.discoveryDetail!.version
                       : (row.hit.version.isEmpty ? "—" : row.hit.version)),
-            .init(label: vm.L(L10n.Discovery.statUpdated), value: updatedText),
-            .init(label: vm.L(L10n.Mods.categoryFilter),
+            .init(label: localization.L(L10n.Discovery.statUpdated), value: updatedText),
+            .init(label: localization.L(L10n.Mods.categoryFilter),
                   value: row.hit.categoryId.flatMap(NexusCategory.from(id:))?
-                      .localizedName(vm.L)
+                      .localizedName(localization.L)
                       ?? (row.hit.categoryName.isEmpty ? "—" : row.hit.categoryName)),
         ])
     }
@@ -447,13 +449,13 @@ struct DiscoveryDetailSheet: View {
                     NSWorkspace.shared.open(url)
                     dismiss()
                 } label: {
-                    Label(vm.L(L10n.Discovery.openNexus), systemImage: "arrow.up.forward.square")
+                    Label(localization.L(L10n.Discovery.openNexus), systemImage: "arrow.up.forward.square")
                 }
                 .modifier(ProminentButton(prominent: !installOffered))
             }
             Spacer(minLength: 0)
             if row.installed {
-                Label(vm.L(L10n.Discovery.installedBadge), systemImage: "checkmark.circle.fill")
+                Label(localization.L(L10n.Discovery.installedBadge), systemImage: "checkmark.circle.fill")
                     .font(AppDesign.Font.footnote)
                     .foregroundStyle(AppDesign.Color.installed)
             }
@@ -485,7 +487,7 @@ struct DiscoveryDetailSheet: View {
             dismiss()
             vm.downloadModFromNexus(nexusId: row.hit.modId)
         } label: {
-            Label(vm.L(L10n.Discovery.install), systemImage: "arrow.down.circle")
+            Label(localization.L(L10n.Discovery.install), systemImage: "arrow.down.circle")
         }
         .modifier(ProminentButton(prominent: installOffered))
         .disabled(vm.isDownloadingFromNexus || vm.nexusDirectDownloadUnavailable
@@ -494,9 +496,9 @@ struct DiscoveryDetailSheet: View {
     }
 
     private var installHint: String {
-        if row.installed { return vm.L(L10n.Discovery.alreadyInstalled) }
-        if vm.nexusDirectDownloadUnavailable { return vm.L(L10n.Mods.premiumOnlyHint) }
-        return vm.L(L10n.Discovery.install)
+        if row.installed { return localization.L(L10n.Discovery.alreadyInstalled) }
+        if vm.nexusDirectDownloadUnavailable { return localization.L(L10n.Mods.premiumOnlyHint) }
+        return localization.L(L10n.Discovery.install)
     }
 
     @ViewBuilder private func detailBody(_ detail: NexusModSearch.Detail) -> some View {
@@ -513,7 +515,7 @@ struct DiscoveryDetailSheet: View {
                 // native via cache, liens cliquables. Les captures y sont déjà des
                 // `[img]` : l'image d'en-tête du schéma serait un doublon.
                 DescriptionBlocksView(blocks: DescriptionBlockParser.parse(
-                    detail.descriptionText ?? ""), vm: vm)
+                    detail.descriptionText ?? ""), vm: vm, localization: localization)
             }
             .padding(.horizontal, AppDesign.Spacing.lg)
             .padding(.bottom, AppDesign.Spacing.lg)

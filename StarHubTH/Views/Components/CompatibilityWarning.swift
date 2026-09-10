@@ -13,13 +13,13 @@ import SwiftUI
 enum CompatibilityWarning {
 
     /// Le libellé du verdict.
-    static func label(_ status: ModCompatibility.Status, _ vm: StarHubTHViewModel) -> String {
+    static func label(_ status: ModCompatibility.Status, _ l10n: LocalizationStore) -> String {
         switch status {
-        case .broken:     return vm.L(L10n.Mods.compatStatusBroken)
-        case .abandoned:  return vm.L(L10n.Mods.compatStatusAbandoned)
-        case .obsolete:   return vm.L(L10n.Mods.compatStatusObsolete)
-        case .unofficial: return vm.L(L10n.Mods.compatStatusUnofficial)
-        case .workaround: return vm.L(L10n.Mods.compatStatusWorkaround)
+        case .broken:     return l10n.L(L10n.Mods.compatStatusBroken)
+        case .abandoned:  return l10n.L(L10n.Mods.compatStatusAbandoned)
+        case .obsolete:   return l10n.L(L10n.Mods.compatStatusObsolete)
+        case .unofficial: return l10n.L(L10n.Mods.compatStatusUnofficial)
+        case .workaround: return l10n.L(L10n.Mods.compatStatusWorkaround)
         case .ok:         return ""
         }
     }
@@ -36,16 +36,16 @@ enum CompatibilityWarning {
     /// « ce mod est cassé depuis la 1.6 », le passage que l'axe A2 se donne
     /// pour critère de réussite.
     static func message(_ verdict: ModCompatibility, component: ModItem, host: ModItem,
-                        vm: StarHubTHViewModel) -> String {
+                        l10n: LocalizationStore) -> String {
         var lines: [String] = []
         if let brokeIn = verdict.brokeIn {
-            lines.append(String(format: vm.L(L10n.Mods.compatBrokeIn), brokeIn))
+            lines.append(String(format: l10n.L(L10n.Mods.compatBrokeIn), brokeIn))
         }
         // Un pack nomme celui de ses composants qui est en cause : c'est le
         // dossier de premier niveau qu'on active, mais l'enfant qu'il faut
         // savoir regarder.
         if host.isGroup, component.uniqueId != host.uniqueId {
-            lines.append(String(format: vm.L(L10n.Mods.compatInPack), component.name))
+            lines.append(String(format: l10n.L(L10n.Mods.compatInPack), component.name))
         }
         if !verdict.summary.isEmpty { lines.append(verdict.summary) }
         return lines.joined(separator: "\n")
@@ -55,6 +55,7 @@ enum CompatibilityWarning {
 /// Le bandeau permanent de la fiche d'un mod.
 struct CompatibilityBanner: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     let mod: ModItem
 
     var body: some View {
@@ -65,16 +66,16 @@ struct CompatibilityBanner: View {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .font(.system(size: 11))
                         .foregroundColor(tint)
-                    Text(CompatibilityWarning.label(warning.verdict.status, vm))
+                    Text(CompatibilityWarning.label(warning.verdict.status, localization))
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundColor(tint)
-                    Text(vm.L(L10n.Mods.compatSource))
+                    Text(localization.L(L10n.Mods.compatSource))
                         .font(.system(size: 10))
                         .foregroundColor(.secondary)
                 }
                 let body = CompatibilityWarning.message(warning.verdict,
                                                         component: warning.component,
-                                                       host: mod, vm: vm)
+                                                       host: mod, l10n: localization)
                 if !body.isEmpty {
                     Text(body)
                         .font(.system(size: 11))
@@ -116,7 +117,7 @@ extension View {
     func compatibilityGate(vm: StarHubTHViewModel,
                            pending: Binding<ModItem?>,
                            onConfirm: @escaping (ModItem) -> Void) -> some View {
-        alert(vm.L(L10n.Mods.compatEnableTitle),
+        alert(vm.localization.L(L10n.Mods.compatEnableTitle),
               isPresented: Binding(get: { pending.wrappedValue != nil },
                                    set: { if !$0 { pending.wrappedValue = nil } })) {
             if let mod = pending.wrappedValue, let warning = vm.compatibilityWarning(for: mod) {
@@ -126,19 +127,19 @@ extension View {
                         pending.wrappedValue = nil
                     }
                 }
-                Button(vm.L(L10n.Mods.compatEnableConfirm)) {
+                Button(vm.localization.L(L10n.Mods.compatEnableConfirm)) {
                     let target = mod
                     pending.wrappedValue = nil
                     onConfirm(target)
                 }
-                Button(vm.L(L10n.ModInstall.cancel), role: .cancel) { pending.wrappedValue = nil }
+                Button(vm.localization.L(L10n.ModInstall.cancel), role: .cancel) { pending.wrappedValue = nil }
             }
         } message: {
             if let mod = pending.wrappedValue, let warning = vm.compatibilityWarning(for: mod) {
-                Text(CompatibilityWarning.label(warning.verdict.status, vm) + "\n"
+                Text(CompatibilityWarning.label(warning.verdict.status, vm.localization) + "\n"
                      + CompatibilityWarning.message(warning.verdict,
                                                     component: warning.component,
-                                                    host: mod, vm: vm))
+                                                    host: mod, l10n: vm.localization))
             }
         }
     }

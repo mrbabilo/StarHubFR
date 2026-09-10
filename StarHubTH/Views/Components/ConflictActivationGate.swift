@@ -29,20 +29,20 @@ extension View {
     func conflictActivationGate(vm: StarHubTHViewModel,
                                 pending: Binding<ConflictActivation?>,
                                 onConfirm: @escaping (ModItem) -> Void) -> some View {
-        alert(vm.L(L10n.Conflicts.title),
+        alert(vm.localization.L(L10n.Conflicts.title),
               isPresented: Binding(get: { pending.wrappedValue != nil },
                                    set: { if !$0 { pending.wrappedValue = nil } })) {
             if let state = pending.wrappedValue {
-                Button(vm.L(L10n.Mods.compatEnableConfirm)) {
+                Button(vm.localization.L(L10n.Mods.compatEnableConfirm)) {
                     let target = state.mod
                     pending.wrappedValue = nil
                     onConfirm(target)
                 }
-                Button(vm.L(L10n.ModInstall.cancel), role: .cancel) { pending.wrappedValue = nil }
+                Button(vm.localization.L(L10n.ModInstall.cancel), role: .cancel) { pending.wrappedValue = nil }
             }
         } message: {
             if let state = pending.wrappedValue {
-                Text(String(format: vm.L(L10n.Conflicts.activationWarning), state.mod.name, state.other.name))
+                Text(String(format: vm.localization.L(L10n.Conflicts.activationWarning), state.mod.name, state.other.name))
             }
         }
     }

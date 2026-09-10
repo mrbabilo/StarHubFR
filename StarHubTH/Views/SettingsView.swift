@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     @ObservedObject var smapiInstaller: SmapiInstaller
 
     @AppStorage("launchProfile") private var launchProfile: String = "SMAPI"
@@ -17,7 +18,8 @@ struct SettingsView: View {
     @State private var nexusKeySavedFlash: Bool = false
     @State private var showClearDisabledConfirm = false
 
-    init(vm: StarHubTHViewModel) {
+    init(vm: StarHubTHViewModel, localization: LocalizationStore) {
+        self.localization = localization
         self.vm = vm
         self.smapiInstaller = vm.smapiInstaller
     }
@@ -46,7 +48,7 @@ struct SettingsView: View {
                 // La version de l'app, en pied de la dernière section — lue dans
                 // le bundle comme sur l'accueil, pour rester juste après chaque
                 // bump de release.
-                Text(String(format: vm.L(L10n.Settings.appVersion),
+                Text(String(format: localization.L(L10n.Settings.appVersion),
                             Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"))
                     .font(AppDesign.Font.footnote)
                     .foregroundColor(.secondary)
@@ -60,12 +62,12 @@ struct SettingsView: View {
             // sans cette confirmation, un clic supprimait tous les mods désactivés
             // du profil sans retour possible.
             Alert(
-                title: Text(vm.L(L10n.Settings.clearDisabledMods)),
-                message: Text(vm.L(L10n.Settings.clearDisabledConfirm)),
-                primaryButton: .destructive(Text(vm.L(L10n.Settings.deleteJunkMods))) {
+                title: Text(localization.L(L10n.Settings.clearDisabledMods)),
+                message: Text(localization.L(L10n.Settings.clearDisabledConfirm)),
+                primaryButton: .destructive(Text(localization.L(L10n.Settings.deleteJunkMods))) {
                     vm.cleanDisabledMods()
                 },
-                secondaryButton: .cancel(Text(vm.L(L10n.Saves.cancel)))
+                secondaryButton: .cancel(Text(localization.L(L10n.Saves.cancel)))
             )
         }
     }
@@ -78,21 +80,21 @@ struct SettingsView: View {
     @ViewBuilder private var releaseStatusRow: some View {
         HStack(spacing: 8) {
             if vm.releaseCheckInFlight {
-                Text(vm.L(L10n.Settings.appChecking))
+                Text(localization.L(L10n.Settings.appChecking))
                     .font(AppDesign.Font.footnote)
                     .foregroundColor(.secondary)
             } else if let known = vm.lastKnownRelease,
                       NexusUpdateChecker.compare(known.tagName, currentAppVersion) == .orderedDescending {
-                Text(String(format: vm.L(L10n.Settings.appUpdateAvailableState), known.tagName))
+                Text(String(format: localization.L(L10n.Settings.appUpdateAvailableState), known.tagName))
                     .font(AppDesign.Font.footnote)
                     .foregroundColor(.orange)
             } else {
-                Text(vm.L(L10n.Settings.appUpToDate))
+                Text(localization.L(L10n.Settings.appUpToDate))
                     .font(AppDesign.Font.footnote)
                     .foregroundColor(.secondary)
             }
             Spacer()
-            Button(vm.L(L10n.Settings.appCheckUpdates)) {
+            Button(localization.L(L10n.Settings.appCheckUpdates)) {
                 vm.checkForAppRelease(bypassThrottle: true)
             }
             .disabled(vm.releaseCheckInFlight)
@@ -114,7 +116,7 @@ struct SettingsView: View {
     /// de réglages n'a ni compte à montrer ni suite à charger — l'employer
     /// demanderait trois valeurs mensongères pour réutiliser un nom.
     private func groupTitle(_ group: SettingsGroup) -> some View {
-        Text(vm.L(titleKey(for: group)))
+        Text(localization.L(titleKey(for: group)))
             .font(AppDesign.Font.viewTitle)
             .foregroundColor(.primary)
     }
@@ -151,19 +153,19 @@ struct SettingsView: View {
     private var nexusSection: some View {
         // ── Nexus Mods ──
         StandardSection(
-            title: vm.L(L10n.Settings.nexusMods),
-            footer: vm.L(L10n.Settings.nexusApiKeyHint)
+            title: localization.L(L10n.Settings.nexusMods),
+            footer: localization.L(L10n.Settings.nexusApiKeyHint)
         ) {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
-                    Text(vm.L(L10n.Settings.nexusAutoCheck))
+                    Text(localization.L(L10n.Settings.nexusAutoCheck))
                         .font(AppDesign.Font.body)
                     Spacer()
                     Toggle("", isOn: $autoCheckNexusUpdates)
                         .toggleStyle(SwitchToggleStyle(tint: .blue))
                         .controlSize(.small)
                         .labelsHidden()
-                    InfoPopoverButton(text: vm.L(L10n.Settings.nexusAutoCheckHint))
+                    InfoPopoverButton(text: localization.L(L10n.Settings.nexusAutoCheckHint))
                 }
 
                 // X103-C. Il vit ici, avec ce qui touche à Nexus, plutôt que
@@ -171,21 +173,21 @@ struct SettingsView: View {
                 // se demande ce que deviennent les fichiers téléchargés. Son
                 // poids et sa purge, eux, sont à l'écran Entretien.
                 HStack {
-                    Text(vm.L(L10n.Settings.keepNexusArchives))
+                    Text(localization.L(L10n.Settings.keepNexusArchives))
                         .font(AppDesign.Font.body)
                     Spacer()
                     Toggle("", isOn: $keepNexusArchives)
                         .toggleStyle(SwitchToggleStyle(tint: .blue))
                         .controlSize(.small)
                         .labelsHidden()
-                    InfoPopoverButton(text: vm.L(L10n.Settings.keepNexusArchivesHint))
+                    InfoPopoverButton(text: localization.L(L10n.Settings.keepNexusArchivesHint))
                 }
 
                 if vm.hasNexusApiKey {
                     // Key stored — offer removal and link to fetch another.
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(vm.L(L10n.Settings.nexusApiKey))
+                            Text(localization.L(L10n.Settings.nexusApiKey))
                                 .font(AppDesign.Font.body)
                             Text("••••••••••••")
                                 .font(AppDesign.Font.monoCaption)
@@ -197,22 +199,22 @@ struct SettingsView: View {
                                 NSWorkspace.shared.open(url)
                             }
                         }) {
-                            Text(vm.L(L10n.Settings.nexusGetKey))
+                            Text(localization.L(L10n.Settings.nexusGetKey))
                         }
                         Button(role: .destructive, action: {
                             vm.clearNexusApiKey()
                         }) {
-                            Text(vm.L(L10n.Settings.nexusClearKey))
+                            Text(localization.L(L10n.Settings.nexusClearKey))
                         }
                     }
 
                     Divider()
 
-                    NexusQuotaRow(vm: vm)
+                    NexusQuotaRow(vm: vm, localization: localization)
                 } else {
                     // No key yet — secure field + save action.
                     VStack(alignment: .leading, spacing: 8) {
-                        SecureField(vm.L(L10n.Settings.nexusKeyPlaceholder), text: $nexusApiKeyInput)
+                        SecureField(localization.L(L10n.Settings.nexusKeyPlaceholder), text: $nexusApiKeyInput)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .font(AppDesign.Font.monoCaption)
                             .autocorrectionDisabled(true)
@@ -224,13 +226,13 @@ struct SettingsView: View {
                                     NSWorkspace.shared.open(url)
                                 }
                             }) {
-                                Text(vm.L(L10n.Settings.nexusGetKey))
+                                Text(localization.L(L10n.Settings.nexusGetKey))
                             }
 
                             Spacer()
 
                             if nexusKeySavedFlash {
-                                Text(vm.L(L10n.Settings.nexusKeySaved))
+                                Text(localization.L(L10n.Settings.nexusKeySaved))
                                     .font(AppDesign.Font.footnote)
                                     .foregroundColor(.green)
                                     .transition(.opacity)
@@ -246,7 +248,7 @@ struct SettingsView: View {
                                     withAnimation { nexusKeySavedFlash = false }
                                 }
                             } label: {
-                                Text(vm.L(L10n.Settings.nexusSaveKey))
+                                Text(localization.L(L10n.Settings.nexusSaveKey))
                             }
                             .buttonStyle(.borderedProminent)
                             .disabled(nexusApiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -260,35 +262,35 @@ struct SettingsView: View {
     @ViewBuilder
     private var translationAISection: some View {
         // ── Traduction assistée ──
-        LocalAISettingsSection(vm: vm)
+        LocalAISettingsSection(vm: vm, localization: localization)
     }
 
     @ViewBuilder
     private var launchSection: some View {
         // ── Launch Options ──
         StandardSection(
-            title: vm.L(L10n.Settings.launchOptions),
-            footer: vm.L(L10n.Settings.footerLaunch)
+            title: localization.L(L10n.Settings.launchOptions),
+            footer: localization.L(L10n.Settings.footerLaunch)
         ) {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
-                    Text(vm.L(L10n.Settings.defaultLaunchMode))
+                    Text(localization.L(L10n.Settings.defaultLaunchMode))
                         .font(AppDesign.Font.body)
                     Spacer()
                     Picker("", selection: $launchProfile) {
-                        Text(vm.L(L10n.Settings.playSMAPI)).tag("SMAPI")
-                        Text(vm.L(L10n.Settings.vanillaGame)).tag("Vanilla")
+                        Text(localization.L(L10n.Settings.playSMAPI)).tag("SMAPI")
+                        Text(localization.L(L10n.Settings.vanillaGame)).tag("Vanilla")
                     }
                     .pickerStyle(MenuPickerStyle())
                     .fixedSize()
                     
-                    InfoPopoverButton(text: vm.L(L10n.Settings.hintNextLaunchMode))
+                    InfoPopoverButton(text: localization.L(L10n.Settings.hintNextLaunchMode))
                 }
                 
                 Divider().padding(.leading, 0)
                 
                 HStack {
-                    Text(vm.L(L10n.Settings.closeLauncher))
+                    Text(localization.L(L10n.Settings.closeLauncher))
                         .font(AppDesign.Font.body)
                     Spacer()
                     Toggle("", isOn: $closeAfterLaunch)
@@ -296,7 +298,7 @@ struct SettingsView: View {
                         .controlSize(.small)
                         .labelsHidden()
                     
-                    InfoPopoverButton(text: vm.L(L10n.Settings.hintSaveResources))
+                    InfoPopoverButton(text: localization.L(L10n.Settings.hintSaveResources))
                 }
             }
         }
@@ -306,30 +308,30 @@ struct SettingsView: View {
     private var backupSection: some View {
         // ── Backup ──
         StandardSection(
-            title: vm.L(L10n.Settings.backup),
-            footer: vm.L(L10n.Settings.footerBackup)
+            title: localization.L(L10n.Settings.backup),
+            footer: localization.L(L10n.Settings.footerBackup)
         ) {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
-                    Text(vm.L(L10n.Settings.backupSaves))
+                    Text(localization.L(L10n.Settings.backupSaves))
                         .font(AppDesign.Font.body)
                     Spacer()
                     Button(action: { vm.backupAllSaves() }) {
-                        Text(vm.L(L10n.Settings.backupSavesButton))
+                        Text(localization.L(L10n.Settings.backupSavesButton))
                     }
-                    InfoPopoverButton(text: vm.L(L10n.Settings.hintCompressSaves))
+                    InfoPopoverButton(text: localization.L(L10n.Settings.hintCompressSaves))
                 }
                 
                 Divider().padding(.leading, 0)
                 
                 HStack {
-                    Text(vm.L(L10n.Settings.backupMods))
+                    Text(localization.L(L10n.Settings.backupMods))
                         .font(AppDesign.Font.body)
                     Spacer()
                     Button(action: { vm.backupAllMods() }) {
-                        Text(vm.L(L10n.Settings.backupModsButton))
+                        Text(localization.L(L10n.Settings.backupModsButton))
                     }
-                    InfoPopoverButton(text: vm.L(L10n.Settings.hintCompressMods))
+                    InfoPopoverButton(text: localization.L(L10n.Settings.hintCompressMods))
                 }
             }
         }
@@ -341,12 +343,12 @@ struct SettingsView: View {
         // (App theme and language now live as toggles at the bottom of
         // the sidebar; this section keeps the developer-logs setting.)
         StandardSection(
-            title: vm.L(L10n.Settings.developer),
-            footer: vm.L(L10n.Settings.footerAppearance)
+            title: localization.L(L10n.Settings.developer),
+            footer: localization.L(L10n.Settings.footerAppearance)
         ) {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
-                    Text(vm.L(L10n.Settings.showDevLogs))
+                    Text(localization.L(L10n.Settings.showDevLogs))
                         .font(AppDesign.Font.body)
                     Spacer()
                     Toggle("", isOn: $showDeveloperLogs)
@@ -354,7 +356,7 @@ struct SettingsView: View {
                         .controlSize(.small)
                         .labelsHidden()
                     
-                    InfoPopoverButton(text: vm.L(L10n.Settings.hintDevLogs))
+                    InfoPopoverButton(text: localization.L(L10n.Settings.hintDevLogs))
                 }
             }
         }
@@ -364,11 +366,11 @@ struct SettingsView: View {
     private var modBehaviorSection: some View {
         // ── Mod Behavior ──
         StandardSection(
-            title: vm.L(L10n.Settings.modBehavior),
-            footer: vm.L(L10n.Settings.chainToggleHint)
+            title: localization.L(L10n.Settings.modBehavior),
+            footer: localization.L(L10n.Settings.chainToggleHint)
         ) {
             HStack {
-                Text(vm.L(L10n.Settings.chainToggle))
+                Text(localization.L(L10n.Settings.chainToggle))
                     .font(AppDesign.Font.body)
                 Spacer()
                 Toggle("", isOn: Binding(
@@ -379,7 +381,7 @@ struct SettingsView: View {
                 .controlSize(.small)
                 .labelsHidden()
                 
-                InfoPopoverButton(text: vm.L(L10n.Settings.chainToggleHint))
+                InfoPopoverButton(text: localization.L(L10n.Settings.chainToggleHint))
             }
         }
     }
@@ -388,32 +390,32 @@ struct SettingsView: View {
     private var managementSection: some View {
         // ── Management ──
         StandardSection(
-            title: vm.L(L10n.Settings.management),
-            footer: vm.L(L10n.Settings.footerManagement)
+            title: localization.L(L10n.Settings.management),
+            footer: localization.L(L10n.Settings.footerManagement)
         ) {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
-                    Text(vm.L(L10n.Settings.savesFolder))
+                    Text(localization.L(L10n.Settings.savesFolder))
                         .font(AppDesign.Font.body)
                     Spacer()
                     Button(action: { vm.openSavesFolder() }) {
-                        Text(vm.L(L10n.Settings.openFolder))
+                        Text(localization.L(L10n.Settings.openFolder))
                     }
-                    InfoPopoverButton(text: vm.L(L10n.Settings.openFolder))
+                    InfoPopoverButton(text: localization.L(L10n.Settings.openFolder))
                 }
                 
                 Divider().padding(.leading, 0)
                 
                 HStack {
-                    Text(vm.L(L10n.Settings.clearDisabledMods))
+                    Text(localization.L(L10n.Settings.clearDisabledMods))
                         .font(AppDesign.Font.body)
                     Spacer()
                     Button(action: { showClearDisabledConfirm = true }) {
-                        Text(vm.L(L10n.Settings.deleteJunkMods))
+                        Text(localization.L(L10n.Settings.deleteJunkMods))
                     }
                     .foregroundColor(.red)
                     
-                    InfoPopoverButton(text: vm.L(L10n.Settings.clearDisabledMods), color: .red.opacity(0.8))
+                    InfoPopoverButton(text: localization.L(L10n.Settings.clearDisabledMods), color: .red.opacity(0.8))
                 }
             }
         }
@@ -422,21 +424,21 @@ struct SettingsView: View {
     @ViewBuilder
     private var appInfoSection: some View {
         // ── App ──
-        StandardSection(title: vm.L(L10n.Home.appInfo)) {
-            StandardRow(title: LocalizedStringKey(vm.L(L10n.Home.developer)), detail: "AppleBoiy (original) · mrbabilo (fork)", showDivider: false)
+        StandardSection(title: localization.L(L10n.Home.appInfo)) {
+            StandardRow(title: LocalizedStringKey(localization.L(L10n.Home.developer)), detail: "AppleBoiy (original) · mrbabilo (fork)", showDivider: false)
         }
     }
 
     @ViewBuilder
     private var gameFolderSection: some View {
         // Folder Settings
-        StandardSection(title: vm.L(L10n.Home.gameFolder)) {
+        StandardSection(title: localization.L(L10n.Home.gameFolder)) {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(vm.L(L10n.Home.gamePath))
+                    Text(localization.L(L10n.Home.gamePath))
                         .font(AppDesign.Font.body)
                     if vm.gameDir.isEmpty {
-                        Text(vm.L(L10n.Home.notSet))
+                        Text(localization.L(L10n.Home.notSet))
                             .font(AppDesign.Font.caption)
                             .foregroundColor(.secondary)
                     } else {
@@ -448,7 +450,7 @@ struct SettingsView: View {
                     }
                 }
                 Spacer()
-                Button(vm.L(L10n.Home.selectFolder)) { vm.selectGameDir() }
+                Button(localization.L(L10n.Home.selectFolder)) { vm.selectGameDir() }
             }
         }
     }
@@ -456,18 +458,18 @@ struct SettingsView: View {
     @ViewBuilder
     private var smapiSection: some View {
         // SMAPI Settings
-        StandardSection(title: vm.L(L10n.Home.smapiManager)) {
+        StandardSection(title: localization.L(L10n.Home.smapiManager)) {
             VStack(spacing: 0) {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(vm.L(L10n.Home.smapiStatus))
+                        Text(localization.L(L10n.Home.smapiStatus))
                             .font(AppDesign.Font.body)
                         if let version = vm.smapiInstalledVersion {
-                            Text(String(format: vm.L(L10n.Home.smapiInstalled), version))
+                            Text(String(format: localization.L(L10n.Home.smapiInstalled), version))
                                 .font(AppDesign.Font.caption)
                                 .foregroundColor(.secondary)
                         } else {
-                            Text(vm.L(L10n.Home.smapiNotInstalled))
+                            Text(localization.L(L10n.Home.smapiNotInstalled))
                                 .font(AppDesign.Font.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -478,9 +480,9 @@ struct SettingsView: View {
                             .controlSize(.small)
                             .padding(.trailing, 4)
                     } else if vm.smapiInstalledVersion == nil {
-                        Button(vm.L(L10n.Home.installSmapi)) { vm.installSmapi() }
+                        Button(localization.L(L10n.Home.installSmapi)) { vm.installSmapi() }
                     } else {
-                        Button(vm.L(L10n.Home.uninstall)) { vm.uninstallSmapi() }
+                        Button(localization.L(L10n.Home.uninstall)) { vm.uninstallSmapi() }
                     }
                 }
 
@@ -490,7 +492,7 @@ struct SettingsView: View {
                             .progressViewStyle(.linear)
                             .tint(.blue)
                             .animation(.easeInOut, value: smapiInstaller.progress)
-                        Text(vm.L(smapiInstaller.statusMessage))
+                        Text(localization.L(smapiInstaller.statusMessage))
                             .font(AppDesign.Font.footnote)
                             .foregroundColor(.secondary)
                     }
@@ -503,33 +505,33 @@ struct SettingsView: View {
     @ViewBuilder
     private var coreExtensionsSection: some View {
         // ── CORE EXTENSIONS SECTION ──
-        StandardSection(title: vm.L(L10n.Home.coreExtensions)) {
+        StandardSection(title: localization.L(L10n.Home.coreExtensions)) {
             VStack(spacing: 0) {
                 let core = vm.coreExtensionsSnapshot
-                CoreModRow(vm: vm, title: "Content Patcher", status: core.contentPatcher.status, mod: core.contentPatcher.mod)
+                CoreModRow(vm: vm, localization: localization, title: "Content Patcher", status: core.contentPatcher.status, mod: core.contentPatcher.mod)
                 Rectangle().fill(Color.primary.opacity(0.05)).frame(height: 1).padding(.leading, 12).padding(.vertical, 2)
 
-                CoreModRow(vm: vm, title: "SpaceCore", status: core.spacecore.status, mod: core.spacecore.mod)
+                CoreModRow(vm: vm, localization: localization, title: "SpaceCore", status: core.spacecore.status, mod: core.spacecore.mod)
                 Rectangle().fill(Color.primary.opacity(0.05)).frame(height: 1).padding(.leading, 12).padding(.vertical, 2)
 
-                CoreModRow(vm: vm, title: "Stardew Valley Thai", status: core.thai.status, mod: core.thai.mod)
+                CoreModRow(vm: vm, localization: localization, title: "Stardew Valley Thai", status: core.thai.status, mod: core.thai.mod)
                 Rectangle().fill(Color.primary.opacity(0.05)).frame(height: 1).padding(.leading, 12).padding(.vertical, 2)
 
-                CoreModRow(vm: vm, title: "Stardew Valley Expanded", status: core.sve.status, mod: core.sve.mod)
+                CoreModRow(vm: vm, localization: localization, title: "Stardew Valley Expanded", status: core.sve.status, mod: core.sve.mod)
                 Rectangle().fill(Color.primary.opacity(0.05)).frame(height: 1).padding(.leading, 12).padding(.vertical, 2)
 
                 CoreToolRow(
-                    title: vm.L(L10n.Home.toolUnar),
+                    title: localization.L(L10n.Home.toolUnar),
                     status: core.unarTool.installed ? .enabledAndInstalled : .notInstalled,
-                    tooltip: vm.L(L10n.Home.toolUnarTooltip),
+                    tooltip: localization.L(L10n.Home.toolUnarTooltip),
                     installCommand: "brew install unar"
                 )
                 Rectangle().fill(Color.primary.opacity(0.05)).frame(height: 1).padding(.leading, 12).padding(.vertical, 2)
 
                 CoreToolRow(
-                    title: vm.L(L10n.Home.toolSevenZip),
+                    title: localization.L(L10n.Home.toolSevenZip),
                     status: core.sevenZipTool.installed ? .enabledAndInstalled : .notInstalled,
-                    tooltip: vm.L(L10n.Home.toolSevenZipTooltip),
+                    tooltip: localization.L(L10n.Home.toolSevenZipTooltip),
                     installCommand: "brew install sevenzip"
                 )
             }
@@ -548,6 +550,7 @@ struct SettingsView: View {
 /// n'est jamais verrouillé sur ce que le sondage a vu.
 private struct LocalAISettingsSection: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
 
     @AppStorage(UDKey.localAIBaseURL) private var baseURL: String = ""
     @AppStorage(UDKey.localAIModel) private var model: String = ""
@@ -584,11 +587,11 @@ private struct LocalAISettingsSection: View {
     var body: some View {
         VStack(spacing: 32) {
             StandardSection(
-                title: vm.L(L10n.Settings.localAITitle),
+                title: localization.L(L10n.Settings.localAITitle),
                 // « Rien n'est envoyé ailleurs que sur votre serveur local »
                 // devient faux dès que le secours est actif : la phrase de
                 // confidentialité passe alors au bloc qui en est la cause.
-                footer: isFallbackActive ? nil : vm.L(L10n.Settings.localAIPrivacy)
+                footer: isFallbackActive ? nil : localization.L(L10n.Settings.localAIPrivacy)
             ) {
                 VStack(alignment: .leading, spacing: 12) {
                     if isProbing {
@@ -596,7 +599,7 @@ private struct LocalAISettingsSection: View {
                             ProgressView().controlSize(.small)
                         }
                     } else if probes.isEmpty {
-                        Text(vm.L(L10n.Settings.localAINoneDetected))
+                        Text(localization.L(L10n.Settings.localAINoneDetected))
                             .font(AppDesign.Font.footnote)
                             .foregroundColor(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -613,7 +616,7 @@ private struct LocalAISettingsSection: View {
                                 }
                                 testVerdictOK = nil
                             } label: {
-                                Label(String(format: vm.L(L10n.Settings.localAIDetected),
+                                Label(String(format: localization.L(L10n.Settings.localAIDetected),
                                              probe.baseURL.absoluteString,
                                              Int64(probe.models.count)),
                                       systemImage: "circle.fill")
@@ -626,7 +629,7 @@ private struct LocalAISettingsSection: View {
                     }
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(vm.L(L10n.Settings.localAIURL)).font(AppDesign.Font.body)
+                        Text(localization.L(L10n.Settings.localAIURL)).font(AppDesign.Font.body)
                         TextField("http://localhost:11434", text: $baseURL)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .font(AppDesign.Font.monoCaption)
@@ -634,12 +637,12 @@ private struct LocalAISettingsSection: View {
 
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
-                            Text(vm.L(L10n.Settings.localAIModel)).font(AppDesign.Font.body)
+                            Text(localization.L(L10n.Settings.localAIModel)).font(AppDesign.Font.body)
                             if !models.isEmpty {
                                 // Les modèles vus sur ce serveur, en choix
                                 // rapide — le champ reste la voie de saisie
                                 // libre, jamais remplacé.
-                                Menu(vm.L(L10n.Settings.localAIModel)) {
+                                Menu(localization.L(L10n.Settings.localAIModel)) {
                                     ForEach(models, id: \.self) { name in
                                         Button(name) { model = name }
                                     }
@@ -655,7 +658,7 @@ private struct LocalAISettingsSection: View {
                         // en délibérant : la réponse revient tronquée et le
                         // client la rejette. Le dire ici, pas après un lot.
                         if modelThinks {
-                            Label(vm.L(L10n.Settings.localAIModelThinks),
+                            Label(localization.L(L10n.Settings.localAIModelThinks),
                                   systemImage: "exclamationmark.triangle.fill")
                                 .font(AppDesign.Font.footnote)
                                 .foregroundColor(.orange)
@@ -672,17 +675,17 @@ private struct LocalAISettingsSection: View {
                         Button {
                             testConnection()
                         } label: {
-                            Text(vm.L(L10n.Settings.localAITest))
+                            Text(localization.L(L10n.Settings.localAITest))
                         }
                         .disabled(baseURL.isEmpty)
                         if testVerdictOK == true {
-                            Text(vm.L(L10n.Settings.localAIOK))
+                            Text(localization.L(L10n.Settings.localAIOK))
                                 .font(AppDesign.Font.footnote)
                                 .foregroundColor(.green)
                         } else if testVerdictOK == false {
                             // Pas « aucun serveur détecté » : l'utilisateur
                             // vient de saisir une URL, c'est d'elle qu'on parle.
-                            Text(vm.L(L10n.Settings.localAITestFailed))
+                            Text(localization.L(L10n.Settings.localAITestFailed))
                                 .font(AppDesign.Font.footnote)
                                 .foregroundColor(.secondary)
                         }
@@ -692,17 +695,17 @@ private struct LocalAISettingsSection: View {
 
             fallbackSection
 
-            StandardSection(title: vm.L(L10n.Settings.glossaryTitle)) {
+            StandardSection(title: localization.L(L10n.Settings.glossaryTitle)) {
                 VStack(alignment: .leading, spacing: 10) {
                     HStack {
                         if let count = glossaryCount, let date = glossaryDate {
-                            Text(String(format: vm.L(L10n.Settings.glossaryInfo),
+                            Text(String(format: localization.L(L10n.Settings.glossaryInfo),
                                         Int64(count),
                                         date.formatted(date: .abbreviated, time: .shortened)))
                                 .font(AppDesign.Font.caption)
                                 .foregroundColor(.secondary)
                         } else {
-                            Text(vm.L(L10n.Settings.glossaryNone))
+                            Text(localization.L(L10n.Settings.glossaryNone))
                                 .font(AppDesign.Font.footnote)
                                 .foregroundColor(.secondary)
                         }
@@ -713,7 +716,7 @@ private struct LocalAISettingsSection: View {
                             if isRebuildingGlossary {
                                 ProgressView().controlSize(.small)
                             } else {
-                                Text(vm.L(L10n.Settings.glossaryRebuild))
+                                Text(localization.L(L10n.Settings.glossaryRebuild))
                             }
                         }
                         .disabled(isRebuildingGlossary)
@@ -756,18 +759,18 @@ private struct LocalAISettingsSection: View {
     /// a pas serait faux, et c'est justement la configuration la plus
     /// probable sur une machine qui ne fait pas tourner de modèle.
     private var fallbackPrivacy: String {
-        guard isFallbackActive else { return vm.L(L10n.Settings.fallbackPrivacyOff) }
+        guard isFallbackActive else { return localization.L(L10n.Settings.fallbackPrivacyOff) }
         return vm.isLocalAIConfigured
-            ? vm.L(L10n.Settings.fallbackPrivacyOn)
-            : vm.L(L10n.Settings.fallbackPrivacyOnNoLocal)
+            ? localization.L(L10n.Settings.fallbackPrivacyOn)
+            : localization.L(L10n.Settings.fallbackPrivacyOnNoLocal)
     }
 
     private var fallbackSection: some View {
-        StandardSection(title: vm.L(L10n.Settings.fallbackTitle),
+        StandardSection(title: localization.L(L10n.Settings.fallbackTitle),
                         footer: fallbackPrivacy) {
             VStack(alignment: .leading, spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(vm.L(L10n.Settings.fallbackKey)).font(AppDesign.Font.body)
+                    Text(localization.L(L10n.Settings.fallbackKey)).font(AppDesign.Font.body)
                     // Même forme que la clé Nexus : une fois la clé enregistrée,
                     // le champ cède la place à un masque. Il restait saisissable
                     // ici, avec son bouton « Enregistrer » — on pouvait donc
@@ -780,7 +783,7 @@ private struct LocalAISettingsSection: View {
                                 .font(AppDesign.Font.monoCaption)
                                 .foregroundColor(.secondary)
                             Spacer()
-                            Button(vm.L(L10n.Settings.fallbackGetKey)) {
+                            Button(localization.L(L10n.Settings.fallbackGetKey)) {
                                 NSWorkspace.shared.open(DeepLDesktop.apiKeyPageURL)
                             }
                         }
@@ -789,13 +792,13 @@ private struct LocalAISettingsSection: View {
                             SecureField("", text: $fallbackKeyDraft)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                                 .font(AppDesign.Font.monoCaption)
-                            Button(vm.L(L10n.Settings.fallbackSave)) { saveFallbackKey() }
+                            Button(localization.L(L10n.Settings.fallbackSave)) { saveFallbackKey() }
                                 .disabled(fallbackKeyDraft
                                     .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                             // La page que la documentation de DeepL nomme
                             // elle-même ; sans session, elle mène à la connexion,
                             // d'où l'offre gratuite est accessible.
-                            Button(vm.L(L10n.Settings.fallbackGetKey)) {
+                            Button(localization.L(L10n.Settings.fallbackGetKey)) {
                                 NSWorkspace.shared.open(DeepLDesktop.apiKeyPageURL)
                             }
                         }
@@ -803,17 +806,17 @@ private struct LocalAISettingsSection: View {
                     // Dit seulement quand l'application est là. Une résolution
                     // vide ne prouve pas l'absence, donc on n'affirme rien.
                     if isDeepLAppInstalled {
-                        Text(vm.L(L10n.Settings.fallbackDesktopApp))
+                        Text(localization.L(L10n.Settings.fallbackDesktopApp))
                             .font(AppDesign.Font.footnote)
                             .foregroundColor(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     if vm.hasDeepLKey {
                         HStack(spacing: 8) {
-                            Text(vm.L(L10n.Settings.fallbackSaved))
+                            Text(localization.L(L10n.Settings.fallbackSaved))
                                 .font(AppDesign.Font.footnote)
                                 .foregroundColor(.green)
-                            Button(vm.L(L10n.Settings.fallbackClear)) {
+                            Button(localization.L(L10n.Settings.fallbackClear)) {
                                 vm.clearDeepLKey()
                                 // Le champ réapparaît : le laisser prérempli
                                 // de ce qu'on venait de saisir rendrait la
@@ -829,7 +832,7 @@ private struct LocalAISettingsSection: View {
                             .buttonStyle(.link)
                         }
                     } else {
-                        Text(vm.L(L10n.Settings.fallbackNeedsKey))
+                        Text(localization.L(L10n.Settings.fallbackNeedsKey))
                             .font(AppDesign.Font.footnote)
                             .foregroundColor(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -837,14 +840,14 @@ private struct LocalAISettingsSection: View {
                 }
 
                 HStack(spacing: 8) {
-                    Button(vm.L(L10n.Settings.fallbackTest)) { testFallback() }
+                    Button(localization.L(L10n.Settings.fallbackTest)) { testFallback() }
                         .disabled(!vm.hasDeepLKey || isTestingFallback)
                     if isTestingFallback {
                         ProgressView().controlSize(.small)
                     } else if let usage = fallbackUsage {
                         // Le plafond vient du service : le coder en dur
                         // mentirait au premier changement d'offre.
-                        Text(String(format: vm.L(L10n.Settings.fallbackQuota),
+                        Text(String(format: localization.L(L10n.Settings.fallbackQuota),
                                     Int64(usage.used), Int64(usage.limit)))
                             .font(AppDesign.Font.footnote)
                             .foregroundColor(.secondary)
@@ -856,7 +859,7 @@ private struct LocalAISettingsSection: View {
                     }
                 }
 
-                Toggle(vm.L(vm.isLocalAIConfigured ? L10n.Settings.fallbackEnable
+                Toggle(localization.L(vm.isLocalAIConfigured ? L10n.Settings.fallbackEnable
                                                    : L10n.Settings.fallbackEnableNoLocal),
                        isOn: $fallbackEnabled)
                     .disabled(!vm.hasDeepLKey)
@@ -869,7 +872,7 @@ private struct LocalAISettingsSection: View {
         let key = fallbackKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !key.isEmpty else { return }
         fallbackUsage = nil
-        fallbackTestError = vm.setDeepLKey(key) ? nil : vm.L(L10n.Settings.fallbackFailed)
+        fallbackTestError = vm.setDeepLKey(key) ? nil : localization.L(L10n.Settings.fallbackFailed)
         // Le champ se vide : la clé vit au trousseau, pas dans la vue.
         fallbackKeyDraft = ""
     }
@@ -877,7 +880,7 @@ private struct LocalAISettingsSection: View {
     private func testFallback() {
         guard let credentials = KeychainSecret.deepLApiKey.read()
             .flatMap(DeepLClient.Credentials.init(key:)) else {
-            fallbackTestError = vm.L(L10n.Settings.fallbackFailed)
+            fallbackTestError = localization.L(L10n.Settings.fallbackFailed)
             return
         }
         isTestingFallback = true
@@ -891,12 +894,12 @@ private struct LocalAISettingsSection: View {
                 fallbackUsage = try await DeepLClient.usage(credentials: credentials,
                                                             session: session)
             } catch DeepLClient.UsageError.unauthorized {
-                fallbackTestError = vm.L(L10n.Settings.fallbackFailed)
+                fallbackTestError = localization.L(L10n.Settings.fallbackFailed)
             } catch {
                 // Ni la clé ni l'URL : un service muet ou une réponse
                 // illisible ne disent rien de la clé, et l'annoncer refusée
                 // enverrait l'utilisateur la changer pour rien.
-                fallbackTestError = vm.L(L10n.Settings.fallbackUnreachable)
+                fallbackTestError = localization.L(L10n.Settings.fallbackUnreachable)
             }
         }
     }
@@ -910,17 +913,17 @@ private struct LocalAISettingsSection: View {
         VStack(alignment: .leading, spacing: 6) {
             switch LocalModelAdvisor.advise(ramGB: ramGB, installed: models) {
             case .useInstalled(let tag):
-                Text(String(format: vm.L(L10n.Settings.localAIAdviceInstalled),
+                Text(String(format: localization.L(L10n.Settings.localAIAdviceInstalled),
                             tag, Int64(ramGB)))
                     .font(AppDesign.Font.footnote)
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-                Button(String(format: vm.L(L10n.Settings.localAIAdviceUse), tag)) {
+                Button(String(format: localization.L(L10n.Settings.localAIAdviceUse), tag)) {
                     model = tag
                 }
                 .controlSize(.small)
             case .pull(let candidate):
-                Text(String(format: vm.L(L10n.Settings.localAIAdvicePull),
+                Text(String(format: localization.L(L10n.Settings.localAIAdvicePull),
                             Int64(ramGB), candidate.tag,
                             candidate.downloadGB.formatted(
                                 .number.precision(.fractionLength(0...1)))))
@@ -931,7 +934,7 @@ private struct LocalAISettingsSection: View {
                     Text("ollama pull \(candidate.tag)")
                         .font(AppDesign.Font.monoFootnote)
                         .textSelection(.enabled)
-                    Button(vm.L(didCopyPullCommand ? L10n.Settings.localAICopied
+                    Button(localization.L(didCopyPullCommand ? L10n.Settings.localAICopied
                                                    : L10n.Settings.localAICopy)) {
                         NSPasteboard.general.clearContents()
                         NSPasteboard.general.setString("ollama pull \(candidate.tag)",
@@ -950,7 +953,7 @@ private struct LocalAISettingsSection: View {
                 // Le lien n'a de sens que si rien n'a répondu : avec un
                 // serveur détecté, Ollama est déjà là.
                 if probes.isEmpty, let url = URL(string: "https://ollama.com/download") {
-                    Button(vm.L(L10n.Settings.localAIInstallOllama)) {
+                    Button(localization.L(L10n.Settings.localAIInstallOllama)) {
                         NSWorkspace.shared.open(url)
                     }
                     .buttonStyle(.plain)
@@ -1031,27 +1034,28 @@ private struct LocalAISettingsSection: View {
 /// « jamais mesuré » explicite, avec ce qui le fera apparaître.
 private struct NexusQuotaRow: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(vm.L(L10n.Settings.nexusQuota))
+            Text(localization.L(L10n.Settings.nexusQuota))
                 .font(AppDesign.Font.body)
 
             if let quota = vm.nexusQuota {
                 if quota.isStale() {
                     // Les chiffres d'hier mentent après la remise à zéro : ne
                     // rien affirmer plutôt qu'afficher un reste périmé.
-                    Text(vm.L(L10n.Settings.nexusQuotaRenewed))
+                    Text(localization.L(L10n.Settings.nexusQuotaRenewed))
                         .font(AppDesign.Font.caption)
                         .foregroundColor(.secondary)
                 } else {
                     measured(quota)
                 }
             } else {
-                Text(vm.L(L10n.Settings.nexusQuotaNever))
+                Text(localization.L(L10n.Settings.nexusQuotaNever))
                     .font(AppDesign.Font.caption)
                     .foregroundColor(.secondary)
-                Text(vm.L(L10n.Settings.nexusQuotaNeverHint))
+                Text(localization.L(L10n.Settings.nexusQuotaNeverHint))
                     .font(AppDesign.Font.footnote)
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -1073,23 +1077,23 @@ private struct NexusQuotaRow: View {
     private func measured(_ quota: NexusQuota) -> some View {
         if let daily = quota.dailyIfCurrent() {
             HStack(spacing: 6) {
-                Text(String(format: vm.L(L10n.Settings.nexusQuotaDaily), counts(daily)))
+                Text(String(format: localization.L(L10n.Settings.nexusQuotaDaily), counts(daily)))
                     .font(AppDesign.Font.caption)
                     .foregroundColor(daily.remaining == 0 ? .orange : .secondary)
                 if daily.remaining == 0 {
-                    Text(vm.L(L10n.Settings.nexusQuotaExhausted))
+                    Text(localization.L(L10n.Settings.nexusQuotaExhausted))
                         .font(AppDesign.Font.footnote(.medium))
                         .foregroundColor(.orange)
                 }
             }
             if let reset = daily.reset {
-                Text(String(format: vm.L(L10n.Settings.nexusQuotaReset), Self.time(reset)))
+                Text(String(format: localization.L(L10n.Settings.nexusQuotaReset), Self.time(reset)))
                     .font(AppDesign.Font.footnote)
                     .foregroundColor(.secondary)
             }
         }
         if let hourly = quota.hourlyIfCurrent() {
-            Text(String(format: vm.L(L10n.Settings.nexusQuotaHourly), counts(hourly)))
+            Text(String(format: localization.L(L10n.Settings.nexusQuotaHourly), counts(hourly)))
                 .font(AppDesign.Font.footnote)
                 .foregroundColor(.secondary)
         }
@@ -1099,7 +1103,7 @@ private struct NexusQuotaRow: View {
     private func counts(_ window: NexusQuota.Window) -> String {
         let remaining = Self.number(window.remaining)
         guard let limit = window.limit else { return remaining }
-        return String(format: vm.L(L10n.Settings.nexusQuotaOf), remaining, Self.number(limit))
+        return String(format: localization.L(L10n.Settings.nexusQuotaOf), remaining, Self.number(limit))
     }
 
     private static func number(_ value: Int) -> String {

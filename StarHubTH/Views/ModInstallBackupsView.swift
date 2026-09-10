@@ -19,6 +19,7 @@ struct ModInstallBackupsView: View {
     @FocusState private var searchFocused: Bool
 
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     @State private var backups: [ModInstallBackup] = []
     @State private var showRecoverable = false
     @State private var confirmation: ModInstallBackupsConfirmation?
@@ -45,11 +46,11 @@ struct ModInstallBackupsView: View {
             // Header
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(vm.L(L10n.ModInstall.manageBackups))
+                    Text(localization.L(L10n.ModInstall.manageBackups))
                         .font(.system(size: 18, weight: .semibold))
                     // Clé dédiée : mettre en minuscules le titre « Gérer les
                     // sauvegardes » donnait « 12 gérer les sauvegardes ».
-                    Text(String(format: vm.L(L10n.ModInstall.backupsModsCount),
+                    Text(String(format: localization.L(L10n.ModInstall.backupsModsCount),
                                 Int64(groups.count), Int64(backups.count)))
                         .font(.system(size: 11))
                         .foregroundColor(.secondary)
@@ -58,7 +59,7 @@ struct ModInstallBackupsView: View {
                 // Ce que les sauvegardes savent rendre **sans** restaurer un
                 // mod entier : une traduction, des réglages. C'est leur usage
                 // le plus fin, et il n'avait pas de porte d'entrée.
-                Button(vm.L(L10n.Recovery.title)) { showRecoverable = true }
+                Button(localization.L(L10n.Recovery.title)) { showRecoverable = true }
                     .buttonStyle(.bordered)
                     .pointingHandCursor()
                 Button {
@@ -68,7 +69,7 @@ struct ModInstallBackupsView: View {
                         .font(.system(size: 13))
                 }
                 .buttonStyle(.bordered)
-                .help(vm.L(L10n.ModInstall.refreshBackups))
+                .help(localization.L(L10n.ModInstall.refreshBackups))
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 16)
@@ -113,7 +114,7 @@ struct ModInstallBackupsView: View {
             }
         }
         .sheet(isPresented: $showRecoverable) {
-            RecoverableFilesView(vm: vm, isPresented: $showRecoverable)
+            RecoverableFilesView(vm: vm, localization: localization, isPresented: $showRecoverable)
         }
         // Un seul présentateur pour les trois confirmations restantes — voir
         // `ModInstallBackupsConfirmation`. `presenting:` porte la valeur ;
@@ -125,32 +126,32 @@ struct ModInstallBackupsView: View {
                presenting: confirmation) { pending in
             switch pending {
             case .error:
-                Button(vm.L(L10n.Main.ok)) { }
+                Button(localization.L(L10n.Main.ok)) { }
             case .restore(let backup):
-                Button(vm.L(L10n.ModInstall.restoreBackup), role: .destructive) {
+                Button(localization.L(L10n.ModInstall.restoreBackup), role: .destructive) {
                     performRestore(backup)
                 }
-                Button(vm.L(L10n.ModInstall.cancel), role: .cancel) { }
+                Button(localization.L(L10n.ModInstall.cancel), role: .cancel) { }
             case .delete(let backup):
-                Button(vm.L(L10n.ModInstall.deleteBackup), role: .destructive) {
+                Button(localization.L(L10n.ModInstall.deleteBackup), role: .destructive) {
                     performDelete(backup)
                 }
-                Button(vm.L(L10n.ModInstall.cancel), role: .cancel) { }
+                Button(localization.L(L10n.ModInstall.cancel), role: .cancel) { }
             }
         } message: { pending in
             switch pending {
             case .error(let message): Text(message)
-            case .restore: Text(vm.L(L10n.ModInstall.restoreConfirmMessage))
-            case .delete: Text(vm.L(L10n.ModInstall.deleteConfirmMessage))
+            case .restore: Text(localization.L(L10n.ModInstall.restoreConfirmMessage))
+            case .delete: Text(localization.L(L10n.ModInstall.deleteConfirmMessage))
             }
         }
     }
 
     private var confirmationTitle: String {
         switch confirmation {
-        case .error: return vm.L(L10n.ModInstall.operationFailed)
-        case .restore: return vm.L(L10n.ModInstall.restoreConfirm)
-        case .delete: return vm.L(L10n.ModInstall.deleteConfirm)
+        case .error: return localization.L(L10n.ModInstall.operationFailed)
+        case .restore: return localization.L(L10n.ModInstall.restoreConfirm)
+        case .delete: return localization.L(L10n.ModInstall.deleteConfirm)
         case nil: return ""
         }
     }
@@ -162,7 +163,7 @@ struct ModInstallBackupsView: View {
     private func restoreReportPanel(_ report: ModInstallRestoreReport) -> some View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
             HStack {
-                Text(vm.L(L10n.ModInstall.restoreReportTitle))
+                Text(localization.L(L10n.ModInstall.restoreReportTitle))
                     .font(AppDesign.Font.headline)
                 Spacer()
                 Button {
@@ -175,25 +176,25 @@ struct ModInstallBackupsView: View {
                 .buttonStyle(.plain)
                 .pointingHandCursor()
             }
-            StatColumn(label: vm.L(L10n.ModInstall.labelName), value: report.modName)
-            StatColumn(label: vm.L(L10n.ModInstall.labelVersion), value: report.version)
+            StatColumn(label: localization.L(L10n.ModInstall.labelName), value: report.modName)
+            StatColumn(label: localization.L(L10n.ModInstall.labelVersion), value: report.version)
             // `help:` porte le texte entier — le chemin et la liste de
             // versions sont précisément les deux champs qui justifiaient un
             // panneau plutôt qu'un paragraphe ; sans lui, un chemin long ou
             // plusieurs versions remplacées se coupent sans recours (revue
             // 2026-09-02).
-            StatColumn(label: vm.L(L10n.ModInstall.labelFolder), value: report.displayPath,
+            StatColumn(label: localization.L(L10n.ModInstall.labelFolder), value: report.displayPath,
                        help: report.displayPath)
-            StatColumn(label: vm.L(L10n.ModInstall.labelFilesWritten), value: "\(report.fileCount)")
+            StatColumn(label: localization.L(L10n.ModInstall.labelFilesWritten), value: "\(report.fileCount)")
             SeverityBadge(severity: report.landedEnabled ? .info : .warning,
-                          label: vm.L(report.landedEnabled ? L10n.ModInstall.landedActiveBadge
+                          label: localization.L(report.landedEnabled ? L10n.ModInstall.landedActiveBadge
                                                             : L10n.ModInstall.landedPausedBadge))
             if !report.replacedVersions.isEmpty {
                 let replacedText = report.replacedVersions.joined(separator: ", ")
-                StatColumn(label: vm.L(L10n.ModInstall.labelKeptVersions),
+                StatColumn(label: localization.L(L10n.ModInstall.labelKeptVersions),
                            value: replacedText, help: replacedText)
             }
-            Button(vm.L(L10n.ModInstall.revealInFinder)) {
+            Button(localization.L(L10n.ModInstall.revealInFinder)) {
                 NSWorkspace.shared.activateFileViewerSelecting(
                     [URL(fileURLWithPath: report.destinationPath)])
             }
@@ -207,9 +208,9 @@ struct ModInstallBackupsView: View {
 
     private func reasonText(for reason: BackupReason) -> String {
         switch reason {
-        case .beforeInstall: return vm.L(L10n.ModInstall.backupReasonInstall)
-        case .beforeUpdate: return vm.L(L10n.ModInstall.backupReasonUpdate)
-        case .beforeRestore: return vm.L(L10n.ModInstall.backupReasonRestore)
+        case .beforeInstall: return localization.L(L10n.ModInstall.backupReasonInstall)
+        case .beforeUpdate: return localization.L(L10n.ModInstall.backupReasonUpdate)
+        case .beforeRestore: return localization.L(L10n.ModInstall.backupReasonRestore)
         }
     }
 
@@ -218,10 +219,10 @@ struct ModInstallBackupsView: View {
             Image(systemName: "tray")
                 .font(.system(size: 48))
                 .foregroundColor(.secondary.opacity(0.4))
-            Text(vm.L(L10n.ModInstall.noBackups))
+            Text(localization.L(L10n.ModInstall.noBackups))
                 .font(.system(size: 14))
                 .foregroundColor(.secondary)
-            Text(vm.L(L10n.ModInstall.noBackupsHint))
+            Text(localization.L(L10n.ModInstall.noBackupsHint))
                 .font(.system(size: 12))
                 .foregroundColor(.secondary.opacity(0.7))
                 .multilineTextAlignment(.center)
@@ -243,7 +244,7 @@ struct ModInstallBackupsView: View {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
-                TextField(vm.L(L10n.ModInstall.backupsSearch), text: $search)
+                TextField(localization.L(L10n.ModInstall.backupsSearch), text: $search)
                     .textFieldStyle(.plain)
                     .font(.system(size: 12))
                     .searchFieldShortcut($searchFocused)
@@ -263,11 +264,11 @@ struct ModInstallBackupsView: View {
             .background(RoundedRectangle(cornerRadius: 6)
                 .fill(Color(nsColor: .controlBackgroundColor)))
 
-            Picker(vm.L(L10n.ModInstall.backupsSort), selection: $sort) {
-                Text(vm.L(L10n.ModInstall.sortRecent)).tag(BackupBrowser.Sort.mostRecent)
-                Text(vm.L(L10n.ModInstall.sortNameAsc)).tag(BackupBrowser.Sort.nameAscending)
-                Text(vm.L(L10n.ModInstall.sortNameDesc)).tag(BackupBrowser.Sort.nameDescending)
-                Text(vm.L(L10n.ModInstall.sortCount)).tag(BackupBrowser.Sort.count)
+            Picker(localization.L(L10n.ModInstall.backupsSort), selection: $sort) {
+                Text(localization.L(L10n.ModInstall.sortRecent)).tag(BackupBrowser.Sort.mostRecent)
+                Text(localization.L(L10n.ModInstall.sortNameAsc)).tag(BackupBrowser.Sort.nameAscending)
+                Text(localization.L(L10n.ModInstall.sortNameDesc)).tag(BackupBrowser.Sort.nameDescending)
+                Text(localization.L(L10n.ModInstall.sortCount)).tag(BackupBrowser.Sort.count)
             }
             .pickerStyle(.menu)
             .fixedSize()
@@ -282,7 +283,7 @@ struct ModInstallBackupsView: View {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 26))
                 .foregroundColor(.secondary.opacity(0.6))
-            Text(String(format: vm.L(L10n.ModInstall.backupsNoMatch), search))
+            Text(String(format: localization.L(L10n.ModInstall.backupsNoMatch), search))
                 .font(.system(size: 12))
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -345,8 +346,8 @@ struct ModInstallBackupsView: View {
                     Spacer()
                     VStack(alignment: .trailing, spacing: 2) {
                         Text(group.backups.count == 1
-                             ? vm.L(L10n.ModInstall.backupsGroupSingle)
-                             : String(format: vm.L(L10n.ModInstall.backupsGroupSummary),
+                             ? localization.L(L10n.ModInstall.backupsGroupSingle)
+                             : String(format: localization.L(L10n.ModInstall.backupsGroupSummary),
                                       Int64(group.backups.count), Int64(group.versions.count)))
                             .font(.system(size: 11))
                             .foregroundColor(.secondary)
@@ -430,7 +431,7 @@ struct ModInstallBackupsView: View {
                 ProgressView()
                     .controlSize(.small)
                     .frame(width: 56, alignment: .center)
-                    .help(vm.L(L10n.ModInstall.manageBackups))
+                    .help(localization.L(L10n.ModInstall.manageBackups))
             } else {
                 HStack(spacing: 6) {
                     Button {
@@ -442,7 +443,7 @@ struct ModInstallBackupsView: View {
                     .buttonStyle(.bordered)
                     .controlSize(.small)
                     .disabled(busyBackupId != nil)
-                    .help(vm.L(L10n.ModInstall.restoreBackup))
+                    .help(localization.L(L10n.ModInstall.restoreBackup))
 
                     Button {
                         confirmation = .delete(backup)
@@ -453,7 +454,7 @@ struct ModInstallBackupsView: View {
                     .buttonStyle(.bordered)
                     .controlSize(.small)
                     .disabled(busyBackupId != nil)
-                    .help(vm.L(L10n.ModInstall.deleteBackup))
+                    .help(localization.L(L10n.ModInstall.deleteBackup))
                 }
             }
         }
@@ -468,11 +469,11 @@ struct ModInstallBackupsView: View {
         )
         .opacity(busyBackupId == backup.id ? 0.6 : 1.0)
         .contextMenu {
-            Button(vm.L(L10n.ModInstall.restoreBackup)) {
+            Button(localization.L(L10n.ModInstall.restoreBackup)) {
                 confirmation = .restore(backup)
             }
             Divider()
-            Button(vm.L(L10n.ModInstall.deleteBackup), role: .destructive) {
+            Button(localization.L(L10n.ModInstall.deleteBackup), role: .destructive) {
                 confirmation = .delete(backup)
             }
         }
@@ -492,7 +493,7 @@ struct ModInstallBackupsView: View {
             Image(systemName: "info.circle.fill")
                 .font(.system(size: 13))
                 .foregroundColor(.accentColor.opacity(0.7))
-            Text(vm.L(L10n.ModInstall.retentionPolicy))
+            Text(localization.L(L10n.ModInstall.retentionPolicy))
                 .font(.system(size: 11))
                 .foregroundColor(.secondary)
             Spacer()
@@ -512,17 +513,17 @@ struct ModInstallBackupsView: View {
     /// (elle a servi au message de l'alerte avant T9 H-T6).
     private func restoreReportMessage(_ report: ModInstallRestoreReport) -> String {
         var lines = [
-            String(format: vm.L(L10n.ModInstall.restoreReportWritten),
+            String(format: localization.L(L10n.ModInstall.restoreReportWritten),
                    report.modName, report.version, report.displayPath),
-            String(format: vm.L(L10n.ModInstall.restoreReportFiles), Int64(report.fileCount)),
-            vm.L(report.landedEnabled ? L10n.ModInstall.restoreReportActive
+            String(format: localization.L(L10n.ModInstall.restoreReportFiles), Int64(report.fileCount)),
+            localization.L(report.landedEnabled ? L10n.ModInstall.restoreReportActive
                                       : L10n.ModInstall.restoreReportPaused)
         ]
         if !report.replacedVersions.isEmpty {
             let key = report.replacedVersions.count == 1
                 ? L10n.ModInstall.restoreReportReplaced
                 : L10n.ModInstall.restoreReportReplacedMany
-            lines.append(String(format: vm.L(key),
+            lines.append(String(format: localization.L(key),
                                 report.replacedVersions.joined(separator: ", ")))
         }
         return lines.joined(separator: "\n")
@@ -538,7 +539,7 @@ struct ModInstallBackupsView: View {
             // même transaction que cette remise à zéro (patron des autres
             // sites d'erreur de ce fichier, tous en `DispatchQueue.main.async`).
             DispatchQueue.main.async {
-                confirmation = .error(vm.L(L10n.Settings.gameDirNotSet))
+                confirmation = .error(localization.L(L10n.Settings.gameDirNotSet))
             }
             return
         }

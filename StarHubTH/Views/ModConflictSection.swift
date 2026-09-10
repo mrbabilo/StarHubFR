@@ -115,6 +115,7 @@ import SwiftUI
 /// partagée plutôt que trois copies qui auraient fini par diverger.
 struct ModConflictSection: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
@@ -134,7 +135,7 @@ struct ModConflictSection: View {
             // glyphe `keyboard` ne préjuge pas non plus du contenu
             // (ronde de correction 1, mineur).
             Image(systemName: "arrow.triangle.merge")
-            Text(vm.L(L10n.Conflicts.title))
+            Text(localization.L(L10n.Conflicts.title))
                 .font(.system(size: 14, weight: .bold))
                 .lineLimit(1)
             Spacer(minLength: AppDesign.Spacing.sm)
@@ -142,7 +143,7 @@ struct ModConflictSection: View {
             // du parc : le dire est une exigence, pas une politesse (brief,
             // point 1). Absent tant qu'aucun journal n'a jamais été lu.
             if let date = vm.smapiLogDate {
-                Text(String(format: vm.L(L10n.Conflicts.observedAt),
+                Text(String(format: localization.L(L10n.Conflicts.observedAt),
                             DateFormatter.localizedString(from: date, dateStyle: .short, timeStyle: .short)))
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
@@ -209,7 +210,7 @@ struct ModConflictSection: View {
         guard !names.isEmpty else { return nil }
         let enabledFolders = Set(installedMods.filter(\.isEnabled).map(\.folderName))
         guard Set(names).isSubset(of: enabledFolders) else { return nil }
-        return names.count == 2 ? vm.L(L10n.Conflicts.bothActive) : vm.L(L10n.Conflicts.allActive)
+        return names.count == 2 ? localization.L(L10n.Conflicts.bothActive) : localization.L(L10n.Conflicts.allActive)
     }
 
     // MARK: - Corps
@@ -237,13 +238,13 @@ struct ModConflictSection: View {
         if betweenPacksConflicts.isEmpty && withinOnePackConflicts.isEmpty && declaredPairs.isEmpty {
             if vm.smapiLogDate == nil {
                 statusRow(icon: "info.circle", color: .secondary,
-                          text: vm.L(L10n.Conflicts.noLogRead))
+                          text: localization.L(L10n.Conflicts.noLogRead))
             } else if vm.contentPatcherConflicts.isEmpty {
                 statusRow(icon: "checkmark.circle.fill", color: .green,
-                          text: vm.L(L10n.Conflicts.noneObserved))
+                          text: localization.L(L10n.Conflicts.noneObserved))
             } else {
                 statusRow(icon: "info.circle", color: .secondary,
-                          text: vm.L(L10n.Conflicts.allDismissed))
+                          text: localization.L(L10n.Conflicts.allDismissed))
             }
         } else {
             VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
@@ -261,13 +262,13 @@ struct ModConflictSection: View {
 
         // Post-scripta inconditionnels : voir le commentaire de tête.
         if !vm.modConflictVerdicts.dismissed.isEmpty {
-            Text(String(format: vm.L(L10n.Conflicts.dismissedCount),
+            Text(String(format: localization.L(L10n.Conflicts.dismissedCount),
                         vm.modConflictVerdicts.dismissed.count))
                 .font(.system(size: 11)).foregroundColor(.secondary)
         }
         let orphanPairs = vm.modConflictVerdicts.orphans(among: installedMods.map(\.folderName))
         if !orphanPairs.isEmpty {
-            Text(String(format: vm.L(L10n.Conflicts.orphans), orphanPairs.count))
+            Text(String(format: localization.L(L10n.Conflicts.orphans), orphanPairs.count))
                 .font(.system(size: 11)).foregroundColor(.secondary)
         }
     }
@@ -284,7 +285,7 @@ struct ModConflictSection: View {
     /// clic écrirait un verdict que ce fichier ne sait pas lire (la
     /// contradiction que le commentaire de tête met en garde).
     private func dismissButton(for pair: ModConflictPair) -> some View {
-        Button(vm.L(L10n.Conflicts.dismissButton)) {
+        Button(localization.L(L10n.Conflicts.dismissButton)) {
             vm.dismissConflict(pair)
         }
         .buttonStyle(.borderless)
@@ -320,7 +321,7 @@ struct ModConflictSection: View {
                     dismissButton(for: p)
                 }
             }
-            Text(String(format: vm.L(L10n.Conflicts.asset), conflict.asset))
+            Text(String(format: localization.L(L10n.Conflicts.asset), conflict.asset))
                 .font(.system(size: 12)).foregroundColor(.secondary)
                 .lineLimit(1).truncationMode(.middle)
             // La TRACE « Affected patches » de Content Patcher : quel patch
@@ -329,7 +330,7 @@ struct ModConflictSection: View {
             // (`withinOnePack` n'en émet pas) — vide veut dire inconnu, la
             // ligne s'abstient plutôt que d'inventer.
             if !conflict.affectedPatches.isEmpty {
-                Text(String(format: vm.L(L10n.Conflicts.affectedPatches),
+                Text(String(format: localization.L(L10n.Conflicts.affectedPatches),
                             conflict.affectedPatches.joined(separator: ", ")))
                     .font(.system(size: 11)).foregroundColor(.secondary)
                     .lineLimit(1).truncationMode(.middle)
@@ -340,7 +341,7 @@ struct ModConflictSection: View {
     private func withinOnePackRow(_ conflict: LoadConflict) -> some View {
         let name = displayName(folders(conflict).first ?? "")
         return HStack(spacing: AppDesign.Spacing.xs) {
-            Text(String(format: vm.L(L10n.Conflicts.withinOne), name))
+            Text(String(format: localization.L(L10n.Conflicts.withinOne), name))
                 .font(.system(size: 13, weight: .medium))
                 .lineLimit(1).truncationMode(.middle)
             Spacer(minLength: AppDesign.Spacing.sm)
@@ -355,7 +356,7 @@ struct ModConflictSection: View {
             Text("· \(displayName(pair.first)) × \(displayName(pair.second))")
                 .font(.system(size: 13, weight: .medium))
                 .lineLimit(1).truncationMode(.middle)
-            badge(vm.L(L10n.Conflicts.declaredByYou))
+            badge(localization.L(L10n.Conflicts.declaredByYou))
             Spacer(minLength: AppDesign.Spacing.sm)
             dismissButton(for: pair)
         }

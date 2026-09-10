@@ -213,6 +213,7 @@ private struct LinkHandCursor: ViewModifier {
 struct DescriptionBlocksView: View {
     let blocks: [DescriptionBlock]
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -262,12 +263,12 @@ struct DescriptionBlocksView: View {
                 case .image(let url):
                     DescriptionImage(url: url)
                 case .spoiler(let title, let content):
-                    SpoilerView(title: title, content: content, vm: vm)
+                    SpoilerView(title: title, content: content, vm: vm, localization: localization)
                 case .divider:
                     Divider().padding(.vertical, 4)
                 case .centered(let inner):
                     // Conteneur récursif : on délègue au rendu de blocs, centré.
-                    DescriptionBlocksView(blocks: inner, vm: vm)
+                    DescriptionBlocksView(blocks: inner, vm: vm, localization: localization)
                         .frame(maxWidth: .infinity)
                 }
             }
@@ -293,9 +294,11 @@ struct SpoilerView: View {
     let title: String
     private let blocks: [DescriptionBlock]
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     @State private var isExpanded = false
 
-    init(title: String, content: String, vm: StarHubTHViewModel) {
+    init(title: String, content: String, vm: StarHubTHViewModel, localization: LocalizationStore) {
+        self.localization = localization
         self.title = title
         self.blocks = DescriptionBlockParser.parse(content)
         self.vm = vm
@@ -309,10 +312,10 @@ struct SpoilerView: View {
                 HStack {
                     Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
                         .font(.system(size: 11, weight: .bold))
-                    Text((title.isEmpty || title == "Spoiler") ? vm.L(L10n.Mods.spoiler) : title)
+                    Text((title.isEmpty || title == "Spoiler") ? localization.L(L10n.Mods.spoiler) : title)
                         .font(.system(size: 13, weight: .semibold))
                     Spacer()
-                    Text(isExpanded ? vm.L(L10n.Mods.spoilerHide) : vm.L(L10n.Mods.spoilerShow))
+                    Text(isExpanded ? localization.L(L10n.Mods.spoilerHide) : localization.L(L10n.Mods.spoilerShow))
                         .font(.system(size: 11, weight: .medium))
                         .foregroundColor(.accentColor)
                 }
@@ -323,7 +326,7 @@ struct SpoilerView: View {
             .buttonStyle(.plain)
 
             if isExpanded {
-                DescriptionBlocksView(blocks: blocks, vm: vm)
+                DescriptionBlocksView(blocks: blocks, vm: vm, localization: localization)
                     .padding(12)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(Color.primary.opacity(0.03))

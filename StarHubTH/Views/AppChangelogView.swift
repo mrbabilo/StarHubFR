@@ -2,12 +2,13 @@ import SwiftUI
 
 struct AppChangelogView: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     @State private var changelogText: String = "Loading..."
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text(vm.L(L10n.Main.appChangelog))
+                Text(localization.L(L10n.Main.appChangelog))
                     .font(.title2)
                     .fontWeight(.bold)
                 Spacer()
@@ -35,10 +36,10 @@ struct AppChangelogView: View {
             do {
                 changelogText = try String(contentsOf: url, encoding: .utf8)
             } catch {
-                changelogText = String(format: vm.L(L10n.Main.changelogReadError), error.localizedDescription)
+                changelogText = String(format: localization.L(L10n.Main.changelogReadError), error.localizedDescription)
             }
         } else {
-            changelogText = vm.L(L10n.Main.changelogMissing)
+            changelogText = localization.L(L10n.Main.changelogMissing)
         }
     }
 }

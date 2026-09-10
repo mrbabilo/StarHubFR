@@ -9,6 +9,7 @@ import SwiftUI
 /// qu'il arrive, avant tout le reste (spec §8.4).
 struct TranslationBatchView: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     let mod: ModItem
     let locale: String
     /// Les rangées à jour au moment de l'ouverture : le lot ne traite que
@@ -40,7 +41,7 @@ struct TranslationBatchView: View {
                     ProgressView().controlSize(.small)
                     HStack {
                         Spacer()
-                        Button(vm.L(L10n.Mods.translationBatchCancel)) { onClose() }
+                        Button(localization.L(L10n.Mods.translationBatchCancel)) { onClose() }
                     }
                 }
             }
@@ -53,14 +54,14 @@ struct TranslationBatchView: View {
 
     private var recap: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(String(format: vm.L(L10n.Mods.translationBatchRecap),
+            Text(String(format: localization.L(L10n.Mods.translationBatchRecap),
                         Int64(eligible.count), engineName))
                 .font(AppDesign.Font.caption)
                 .fixedSize(horizontal: false, vertical: true)
             HStack {
                 Spacer()
-                Button(vm.L(L10n.Mods.translationBatchCancel)) { onClose() }
-                Button(vm.L(L10n.Mods.translationBatchButton)) {
+                Button(localization.L(L10n.Mods.translationBatchCancel)) { onClose() }
+                Button(localization.L(L10n.Mods.translationBatchButton)) {
                     started = true
                     vm.startBatch(mod: mod, locale: locale, rows: rows)
                 }
@@ -88,7 +89,7 @@ struct TranslationBatchView: View {
         let model = UserDefaults.standard.string(forKey: UDKey.localAIModel) ?? ""
         guard vm.isLocalAIConfigured, !model.isEmpty else { return "DeepL" }
         guard vm.isFallbackEnabled else { return model }
-        return String(format: vm.L(L10n.Mods.translationBatchEngineBoth), model)
+        return String(format: localization.L(L10n.Mods.translationBatchEngineBoth), model)
     }
 
     // MARK: - En cours
@@ -96,13 +97,13 @@ struct TranslationBatchView: View {
     private func progressView(_ progress: StarHubTHViewModel.BatchProgress) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             ProgressView(value: Double(progress.done), total: Double(max(progress.total, 1)))
-            Text(String(format: vm.L(L10n.Mods.translationBatchProgress),
+            Text(String(format: localization.L(L10n.Mods.translationBatchProgress),
                         Int64(progress.done), Int64(progress.total)))
                 .font(AppDesign.Font.monoFootnote)
                 .foregroundColor(.secondary)
             HStack {
                 Spacer()
-                Button(vm.L(L10n.Mods.translationBatchCancel)) { vm.cancelBatch() }
+                Button(localization.L(L10n.Mods.translationBatchCancel)) { vm.cancelBatch() }
             }
         }
     }
@@ -111,13 +112,13 @@ struct TranslationBatchView: View {
 
     private func reportView(_ report: StarHubTHViewModel.BatchReport) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(String(format: vm.L(L10n.Mods.translationBatchReport),
+            Text(String(format: localization.L(L10n.Mods.translationBatchReport),
                         Int64(report.translated), Int64(report.refusedRowIDs.count),
                         Int64(report.errors)))
                 .font(AppDesign.Font.caption)
                 .fixedSize(horizontal: false, vertical: true)
             if report.softGlossaryIgnored > 0 {
-                Text(String(format: vm.L(L10n.Mods.translationBatchSoftIgnored),
+                Text(String(format: localization.L(L10n.Mods.translationBatchSoftIgnored),
                             Int64(report.softGlossaryIgnored)))
                     .font(AppDesign.Font.footnote)
                     .foregroundColor(.secondary)
@@ -126,7 +127,7 @@ struct TranslationBatchView: View {
             if report.translatedByFallback > 0 {
                 // La provenance doit être visible : une traduction venue d'un
                 // service en ligne n'a pas le même statut qu'une locale.
-                Text(String(format: vm.L(L10n.Mods.translationBatchFallback),
+                Text(String(format: localization.L(L10n.Mods.translationBatchFallback),
                             Int64(report.translatedByFallback)))
                     .font(AppDesign.Font.footnote)
                     .foregroundColor(.secondary)
@@ -135,7 +136,7 @@ struct TranslationBatchView: View {
             if let stop = report.fallbackStop {
                 // Deux causes, deux phrases : un quota épuisé se règle chez
                 // DeepL, un rythme refusé se règle en attendant.
-                Text(vm.L(batchStopMessage(stop)))
+                Text(localization.L(batchStopMessage(stop)))
                     .font(AppDesign.Font.footnote)
                     .foregroundColor(.orange)
                     .fixedSize(horizontal: false, vertical: true)
@@ -156,7 +157,7 @@ struct TranslationBatchView: View {
             }
             HStack {
                 Spacer()
-                Button(vm.L(L10n.Mods.translationBatchClose)) { onClose() }
+                Button(localization.L(L10n.Mods.translationBatchClose)) { onClose() }
                     .keyboardShortcut(.defaultAction)
             }
         }

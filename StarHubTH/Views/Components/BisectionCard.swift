@@ -4,18 +4,20 @@ import SwiftUI
 /// par écran : la personne en face a un jeu qui plante, pas envie de lire.
 struct BisectionCard: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     @ObservedObject private var runner: BisectionRunner
     @State private var showMods = false
     @State private var showCleared = false
 
-    init(vm: StarHubTHViewModel) {
+    init(vm: StarHubTHViewModel, localization: LocalizationStore) {
+        self.localization = localization
         self.vm = vm
         self.runner = vm.bisection
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(vm.L(L10n.Bisect.title)).font(.headline)
+            Text(localization.L(L10n.Bisect.title)).font(.headline)
 
             if let snapshot = runner.interruptedSnapshot, runner.state == nil, !runner.noCandidates {
                 interrupted(snapshot)
@@ -36,7 +38,7 @@ struct BisectionCard: View {
                 case .inconclusive(let remaining):
                     inconclusive(remaining)
                 case .notReproducible:
-                    finished(L10n.Bisect.notReproducibleTitle, vm.L(L10n.Bisect.notReproducibleBody))
+                    finished(L10n.Bisect.notReproducibleTitle, localization.L(L10n.Bisect.notReproducibleBody))
                 }
             }
         }
@@ -49,18 +51,18 @@ struct BisectionCard: View {
             if runner.isApplying {
                 // Préparation de la recherche (détection des candidats) ou
                 // lancement du jeu : rien à proposer tant que ça tourne.
-                Text(vm.L(L10n.Bisect.launching)).font(.system(size: 12)).foregroundColor(.secondary)
+                Text(localization.L(L10n.Bisect.launching)).font(.system(size: 12)).foregroundColor(.secondary)
             } else {
-                Text(vm.L(L10n.Bisect.intro)).font(.system(size: 12)).foregroundColor(.secondary)
-                Button(vm.L(L10n.Bisect.start)) { runner.start() }.buttonStyle(.borderedProminent)
+                Text(localization.L(L10n.Bisect.intro)).font(.system(size: 12)).foregroundColor(.secondary)
+                Button(localization.L(L10n.Bisect.start)) { runner.start() }.buttonStyle(.borderedProminent)
             }
         }
     }
 
     private func step(title: String, body: String) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(vm.L(title)).font(.system(size: 13, weight: .semibold))
-            Text(vm.L(body)).font(.system(size: 12)).foregroundColor(.secondary)
+            Text(localization.L(title)).font(.system(size: 13, weight: .semibold))
+            Text(localization.L(body)).font(.system(size: 12)).foregroundColor(.secondary)
             answerButtons
         }
     }
@@ -90,7 +92,7 @@ struct BisectionCard: View {
                 }
                 .frame(maxHeight: 160)
                 .textSelection(.enabled)
-                Button(vm.L(L10n.Bisect.copyList)) {
+                Button(localization.L(L10n.Bisect.copyList)) {
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(items.sorted().joined(separator: "\n"),
                                                    forType: .string)
@@ -98,24 +100,24 @@ struct BisectionCard: View {
                 .buttonStyle(.borderless).controlSize(.small)
             }
         } label: {
-            Text("\(vm.L(title)) (\(items.count))").font(.system(size: 12))
+            Text("\(localization.L(title)) (\(items.count))").font(.system(size: 12))
         }
     }
 
     private func trial(_ n: Int, _ total: Int) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(String(format: vm.L(L10n.Bisect.stepOf), n, total))
+            Text(String(format: localization.L(L10n.Bisect.stepOf), n, total))
                 .font(.system(size: 13, weight: .semibold))
             ProgressView(value: Double(n), total: Double(total))
             // Mods en pause = candidats (code-mods) moins ceux de l'essai courant.
             // On ne compte pas les mods déjà désactivés avant la recherche.
-            Text(String(format: vm.L(L10n.Bisect.pausedCount),
+            Text(String(format: localization.L(L10n.Bisect.pausedCount),
                         max(0, runner.candidateCount - runner.currentFolders.count)))
                 .font(.system(size: 12)).foregroundColor(.secondary)
             // Ce qui est déjà écarté : la seule mesure honnête de l'avancement,
             // et ce qui donne un sens à l'attente entre deux lancements de jeu.
             if !runner.clearedFolders.isEmpty {
-                Text(String(format: vm.L(L10n.Bisect.clearedCount), runner.clearedFolders.count))
+                Text(String(format: localization.L(L10n.Bisect.clearedCount), runner.clearedFolders.count))
                     .font(.system(size: 12)).foregroundColor(.secondary)
             }
             copyableList(L10n.Bisect.showMods, runner.currentFolders, expanded: $showMods)
@@ -128,8 +130,8 @@ struct BisectionCard: View {
 
     private func confirming(_ folder: String) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(vm.L(L10n.Bisect.confirmTitle)).font(.system(size: 13, weight: .semibold))
-            Text(String(format: vm.L(L10n.Bisect.confirmBody), folder))
+            Text(localization.L(L10n.Bisect.confirmTitle)).font(.system(size: 13, weight: .semibold))
+            Text(String(format: localization.L(L10n.Bisect.confirmBody), folder))
                 .font(.system(size: 12)).foregroundColor(.secondary)
             answerButtons
         }
@@ -138,24 +140,24 @@ struct BisectionCard: View {
     private var answerButtons: some View {
         VStack(alignment: .leading, spacing: 8) {
             if runner.isApplying {
-                Text(vm.L(L10n.Bisect.launching)).font(.system(size: 12)).foregroundColor(.secondary)
+                Text(localization.L(L10n.Bisect.launching)).font(.system(size: 12)).foregroundColor(.secondary)
             } else {
-                Text(vm.L(L10n.Bisect.waiting)).font(.system(size: 12)).foregroundColor(.secondary)
+                Text(localization.L(L10n.Bisect.waiting)).font(.system(size: 12)).foregroundColor(.secondary)
                 if let hint = logHint {
-                    Text(String(format: vm.L(L10n.Bisect.hintFromLog), hint))
+                    Text(String(format: localization.L(L10n.Bisect.hintFromLog), hint))
                         .font(.system(size: 11)).foregroundColor(.secondary)
                 }
                 if runner.gameStillRunning {
-                    Label(vm.L(L10n.Bisect.quitGameFirst), systemImage: "exclamationmark.triangle.fill")
+                    Label(localization.L(L10n.Bisect.quitGameFirst), systemImage: "exclamationmark.triangle.fill")
                         .font(.system(size: 12))
                         .foregroundColor(.orange)
                 }
-                Text(vm.L(L10n.Bisect.question)).font(.system(size: 12, weight: .medium))
+                Text(localization.L(L10n.Bisect.question)).font(.system(size: 12, weight: .medium))
                 HStack {
-                    Button(vm.L(L10n.Bisect.answerYes)) { runner.answer(.stillBroken) }
-                    Button(vm.L(L10n.Bisect.answerNo)) { runner.answer(.fixed) }
+                    Button(localization.L(L10n.Bisect.answerYes)) { runner.answer(.stillBroken) }
+                    Button(localization.L(L10n.Bisect.answerNo)) { runner.answer(.fixed) }
                     Spacer()
-                    Button(vm.L(L10n.Bisect.restore)) { runner.restoreAndStop() }
+                    Button(localization.L(L10n.Bisect.restore)) { runner.restoreAndStop() }
                         .buttonStyle(.borderless).foregroundColor(.secondary)
                 }
             }
@@ -174,7 +176,7 @@ struct BisectionCard: View {
     /// sans SMAPI, où il n'y a pas de journal du tout.
     private var logHint: String? {
         guard !vm.smapiLogStale, let d = vm.smapiDiagnostics else { return nil }
-        return vm.L(d.problemCount == 0 ? L10n.Bisect.hintClean : L10n.Bisect.hintCrashed)
+        return localization.L(d.problemCount == 0 ? L10n.Bisect.hintClean : L10n.Bisect.hintCrashed)
     }
 
     /// « Pas de réponse simple » n'est pas rien : la recherche a réduit le champ
@@ -182,8 +184,8 @@ struct BisectionCard: View {
     /// jeu à la dernière ligne.
     private func inconclusive(_ remaining: [String]) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(vm.L(L10n.Bisect.inconclusiveTitle)).font(.system(size: 13, weight: .semibold))
-            Text(vm.L(L10n.Bisect.inconclusiveBody))
+            Text(localization.L(L10n.Bisect.inconclusiveTitle)).font(.system(size: 13, weight: .semibold))
+            Text(localization.L(L10n.Bisect.inconclusiveBody))
                 .font(.system(size: 12)).foregroundColor(.secondary)
             // « Pas de réponse simple » est *le* cas de l'interaction : si le
             // journal accuse un mod que la recherche n'a pas retenu, c'est
@@ -192,7 +194,7 @@ struct BisectionCard: View {
                 !remaining.contains { $0.localizedCaseInsensitiveContains(suspect.name)
                                    || suspect.name.localizedCaseInsensitiveContains($0) }
             })?.name, let first = remaining.first {
-                Label(String(format: vm.L(L10n.Bisect.logNamesOther), other, first),
+                Label(String(format: localization.L(L10n.Bisect.logNamesOther), other, first),
                       systemImage: "info.circle")
                     .font(.system(size: 12)).foregroundColor(.orange)
                     // Sans cela le texte est tronqué sur une seule ligne : dans
@@ -201,7 +203,7 @@ struct BisectionCard: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             if !remaining.isEmpty {
-                Text(vm.L(L10n.Bisect.inconclusiveRemaining))
+                Text(localization.L(L10n.Bisect.inconclusiveRemaining))
                     .font(.system(size: 12, weight: .medium))
                 Text(remaining.sorted().joined(separator: "\n"))
                     .font(.system(size: 11, design: .monospaced))
@@ -210,7 +212,7 @@ struct BisectionCard: View {
             }
             logEvidenceView
             restoreWarning
-            Button(vm.L(L10n.Bisect.restore)) { runner.restoreAndStop() }
+            Button(localization.L(L10n.Bisect.restore)) { runner.restoreAndStop() }
                 .disabled(runner.isApplying)
         }
     }
@@ -232,11 +234,11 @@ struct BisectionCard: View {
             .first { !$0.name.localizedCaseInsensitiveContains(folder)
                   && !folder.localizedCaseInsensitiveContains($0.name) }?.name
         return VStack(alignment: .leading, spacing: 10) {
-            Text(vm.L(L10n.Bisect.concludedTitle)).font(.system(size: 13, weight: .semibold))
-            Text(String(format: vm.L(L10n.Bisect.concludedBody), folder))
+            Text(localization.L(L10n.Bisect.concludedTitle)).font(.system(size: 13, weight: .semibold))
+            Text(String(format: localization.L(L10n.Bisect.concludedBody), folder))
                 .font(.system(size: 12)).foregroundColor(.secondary)
             if let other = blamedByLog {
-                Label(String(format: vm.L(L10n.Bisect.logNamesOther), other, folder),
+                Label(String(format: localization.L(L10n.Bisect.logNamesOther), other, folder),
                       systemImage: "info.circle")
                     .font(.system(size: 12)).foregroundColor(.orange)
                     // Sans cela le texte est tronqué sur une seule ligne : dans
@@ -263,26 +265,26 @@ struct BisectionCard: View {
         let nexus = mod.map { vm.nexusLink(for: $0) } ?? ""
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                Button(vm.L(L10n.Bisect.restore)) { runner.restoreAndStop() }
+                Button(localization.L(L10n.Bisect.restore)) { runner.restoreAndStop() }
                     .disabled(runner.isApplying)
                 // Accepter le verdict ne déplace rien : le mod est déjà en pause
                 // et le reste déjà réactivé. Mais pas quand la remise en état a
                 // échoué — l'instantané est alors la seule trace de l'état de
                 // départ, et refermer la recherche l'effacerait avec elle.
                 if !runner.restoreIncomplete {
-                    Button(vm.L(L10n.Bisect.keepPaused)) { runner.keepPausedAndStop() }
+                    Button(localization.L(L10n.Bisect.keepPaused)) { runner.keepPausedAndStop() }
                         .disabled(runner.isApplying)
                 }
             }
             HStack(spacing: 12) {
-                Button(vm.L(L10n.Bisect.showMod)) {
+                Button(localization.L(L10n.Bisect.showMod)) {
                     NotificationCenter.default.post(name: .jumpToMod, object: folder)
                 }
                 .buttonStyle(.link)
                 // Masqué plutôt que grisé quand le mod n'a pas de lien : rien à
                 // faire de l'information « ce mod n'est pas sur Nexus » ici.
                 if !nexus.isEmpty {
-                    Button(vm.L(L10n.Bisect.openNexus)) {
+                    Button(localization.L(L10n.Bisect.openNexus)) {
                         if let url = URL(string: nexus) { NSWorkspace.shared.open(url) }
                     }
                     .buttonStyle(.link)
@@ -299,7 +301,7 @@ struct BisectionCard: View {
     @ViewBuilder
     private var restoreWarning: some View {
         if runner.restoreIncomplete {
-            Label(vm.L(L10n.Bisect.restoreIncomplete), systemImage: "exclamationmark.triangle.fill")
+            Label(localization.L(L10n.Bisect.restoreIncomplete), systemImage: "exclamationmark.triangle.fill")
                 .font(.system(size: 12))
                 .foregroundColor(.orange)
                 .fixedSize(horizontal: false, vertical: true)
@@ -314,12 +316,12 @@ struct BisectionCard: View {
     @ViewBuilder
     private var logEvidenceView: some View {
         if !runner.logEvidence.isEmpty {
-            Text(vm.L(L10n.Bisect.logEvidence))
+            Text(localization.L(L10n.Bisect.logEvidence))
                 .font(.system(size: 12, weight: .medium))
             ForEach(runner.logEvidence) { suspect in
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text(String(format: vm.L(L10n.Bisect.logSuspectLine),
+                        Text(String(format: localization.L(L10n.Bisect.logSuspectLine),
                                     suspect.name, suspect.whenBroken, suspect.brokenSteps))
                             .font(.system(size: 12, weight: .medium))
                         // Le journal accuse parfois un mod que la recherche n'a
@@ -331,7 +333,7 @@ struct BisectionCard: View {
                             Image(systemName: "arrow.right.circle")
                         }
                         .buttonStyle(.plain)
-                        .help(vm.L(L10n.Bisect.showMod))
+                        .help(localization.L(L10n.Bisect.showMod))
                     }
                     if let sample = suspect.sample {
                         // L'erreur elle-même : un compte ne dit pas ce qui a
@@ -342,7 +344,7 @@ struct BisectionCard: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     if !suspect.appearsOnlyWith.isEmpty {
-                        Text(String(format: vm.L(L10n.Bisect.appearsOnlyWith),
+                        Text(String(format: localization.L(L10n.Bisect.appearsOnlyWith),
                                     suspect.appearsOnlyWith.joined(separator: ", ")))
                             .font(.system(size: 11))
                             .foregroundColor(.orange)
@@ -358,22 +360,22 @@ struct BisectionCard: View {
 
     private func finished(_ title: String, _ body: String) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(vm.L(title)).font(.system(size: 13, weight: .semibold))
+            Text(localization.L(title)).font(.system(size: 13, weight: .semibold))
             Text(body).font(.system(size: 12)).foregroundColor(.secondary)
             restoreWarning
-            Button(vm.L(L10n.Bisect.restore)) { runner.restoreAndStop() }
+            Button(localization.L(L10n.Bisect.restore)) { runner.restoreAndStop() }
                 .disabled(runner.isApplying)
         }
     }
 
     private func interrupted(_ snapshot: BisectionSnapshot) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(vm.L(L10n.Bisect.interruptedTitle)).font(.system(size: 13, weight: .semibold))
-            Text(String(format: vm.L(L10n.Bisect.interruptedBody),
+            Text(localization.L(L10n.Bisect.interruptedTitle)).font(.system(size: 13, weight: .semibold))
+            Text(String(format: localization.L(L10n.Bisect.interruptedBody),
                         DateFormatter.localizedString(from: snapshot.startedAt,
                                                       dateStyle: .short, timeStyle: .short)))
                 .font(.system(size: 12)).foregroundColor(.secondary)
-            Button(vm.L(L10n.Bisect.restore)) { runner.restoreAndStop() }
+            Button(localization.L(L10n.Bisect.restore)) { runner.restoreAndStop() }
                 .buttonStyle(.borderedProminent)
                 .disabled(runner.isApplying)
         }
@@ -384,9 +386,9 @@ struct BisectionCard: View {
     /// réinitialiser l'état quand il n'y a rien à restaurer).
     private var noCandidatesView: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(vm.L(L10n.Bisect.title)).font(.system(size: 13, weight: .semibold))
-            Text(vm.L(L10n.Bisect.noCandidates)).font(.system(size: 12)).foregroundColor(.secondary)
-            Button(vm.L(L10n.Bisect.restore)) { runner.restoreAndStop() }
+            Text(localization.L(L10n.Bisect.title)).font(.system(size: 13, weight: .semibold))
+            Text(localization.L(L10n.Bisect.noCandidates)).font(.system(size: 12)).foregroundColor(.secondary)
+            Button(localization.L(L10n.Bisect.restore)) { runner.restoreAndStop() }
                 .disabled(runner.isApplying)
         }
     }

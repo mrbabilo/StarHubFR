@@ -9,6 +9,7 @@ import SwiftUI
 
 struct EmptyStateDropZone: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     let onInstall: () -> Void
     @State private var isHovered = false
 
@@ -20,10 +21,10 @@ struct EmptyStateDropZone: View {
                     .foregroundColor(AppDesign.Color.accent)
 
                 VStack(spacing: AppDesign.Spacing.xs) {
-                    Text(vm.L(L10n.ModInstall.emptyTitle))
+                    Text(localization.L(L10n.ModInstall.emptyTitle))
                         .font(AppDesign.Font.headline)
                         .foregroundColor(.primary)
-                    Text(vm.L(L10n.ModInstall.emptyHint))
+                    Text(localization.L(L10n.ModInstall.emptyHint))
                         .font(AppDesign.Font.caption)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
@@ -44,8 +45,8 @@ struct EmptyStateDropZone: View {
             )
         }
         .buttonStyle(PlainButtonStyle())
-        .accessibilityLabel(vm.L(L10n.ModInstall.emptyTitle))
-        .accessibilityHint(vm.L(L10n.ModInstall.emptyHint))
+        .accessibilityLabel(localization.L(L10n.ModInstall.emptyTitle))
+        .accessibilityHint(localization.L(L10n.ModInstall.emptyHint))
         .onHover { isHovered = $0 }
         .pointingHandCursor()
     }

@@ -7,6 +7,7 @@ import SwiftUI
 /// ordinaire, pas un problème.
 struct ModUpdateDeltaSection: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     let mod: ModItem
     /// Ouvre l'éditeur de config sur ce mod. La fiche vit déjà sur l'onglet
     /// Mods : poser `pendingConfigFocus` ne servirait à rien — ce canal n'est
@@ -28,7 +29,7 @@ struct ModUpdateDeltaSection: View {
 
     var body: some View {
         if let delta = vm.updateKeyDelta(for: mod) {
-            StandardSection(title: vm.L(L10n.Mods.updateDeltaTitle)) {
+            StandardSection(title: localization.L(L10n.Mods.updateDeltaTitle)) {
                 VStack(alignment: .leading, spacing: 10) {
                     Text(delta.date, style: .date)
                         .font(.system(size: 12))
@@ -40,17 +41,17 @@ struct ModUpdateDeltaSection: View {
                     lists(delta)
                     buttons(delta)
                 }
-                .confirmationDialog(vm.L(L10n.Mods.updateDeltaRenamedTitle),
+                .confirmationDialog(localization.L(L10n.Mods.updateDeltaRenamedTitle),
                                     isPresented: $showReportConfigConfirm,
                                     titleVisibility: .visible) {
-                    Button(vm.L(L10n.Mods.updateDeltaRenamedReportConfig)) {
+                    Button(localization.L(L10n.Mods.updateDeltaRenamedReportConfig)) {
                         doReport { vm.applyRenameReportConfig(proposedPairs(for: delta).config, to: mod) }
                     }
                 }
-                .confirmationDialog(vm.L(L10n.Mods.updateDeltaRenamedTitle),
+                .confirmationDialog(localization.L(L10n.Mods.updateDeltaRenamedTitle),
                                     isPresented: $showReportTranslationConfirm,
                                     titleVisibility: .visible) {
-                    Button(vm.L(L10n.Mods.updateDeltaRenamedReportTranslation)) {
+                    Button(localization.L(L10n.Mods.updateDeltaRenamedReportTranslation)) {
                         doReport { vm.applyRenameReportTranslation(proposedPairs(for: delta).translation, to: mod) }
                     }
                 }
@@ -80,9 +81,9 @@ struct ModUpdateDeltaSection: View {
                 old: delta.translation.removedKeys,
                 new: delta.translation.addedUntranslated))
             VStack(alignment: .leading, spacing: 6) {
-                Text(vm.L(L10n.Mods.updateDeltaRenamedTitle))
+                Text(localization.L(L10n.Mods.updateDeltaRenamedTitle))
                     .font(.system(size: 12, weight: .semibold))
-                Text(vm.L(L10n.Mods.updateDeltaRenamedExplain))
+                Text(localization.L(L10n.Mods.updateDeltaRenamedExplain))
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
                 ForEach(proposed.config, id: \.oldKey) { pair in
@@ -93,7 +94,7 @@ struct ModUpdateDeltaSection: View {
                 }
                 HStack(spacing: 12) {
                     if !proposed.config.isEmpty {
-                        Button(vm.L(L10n.Mods.updateDeltaRenamedReportConfig)) {
+                        Button(localization.L(L10n.Mods.updateDeltaRenamedReportConfig)) {
                             showReportConfigConfirm = true
                         }
                         .buttonStyle(.link)
@@ -101,7 +102,7 @@ struct ModUpdateDeltaSection: View {
                         .pointingHandCursor()
                     }
                     if !proposed.translation.isEmpty {
-                        Button(vm.L(L10n.Mods.updateDeltaRenamedReportTranslation)) {
+                        Button(localization.L(L10n.Mods.updateDeltaRenamedReportTranslation)) {
                             showReportTranslationConfirm = true
                         }
                         .buttonStyle(.link)
@@ -141,11 +142,11 @@ struct ModUpdateDeltaSection: View {
 
     private func doReport(_ action: () -> KeyRenameReportOutcome) {
         func crossMessage(_ skipped: Int) -> String {
-            String(format: vm.L(L10n.Mods.updateDeltaRenamedCrossComponent), skipped)
+            String(format: localization.L(L10n.Mods.updateDeltaRenamedCrossComponent), skipped)
         }
         switch action() {
         case .applied(let count, let skipped):
-            var message = String(format: vm.L(L10n.Mods.updateDeltaRenamedDone), count)
+            var message = String(format: localization.L(L10n.Mods.updateDeltaRenamedDone), count)
             if skipped > 0 { message += " · " + crossMessage(skipped) }
             reportMessage = message
         case .nothingLeft(let skipped):
@@ -153,11 +154,11 @@ struct ModUpdateDeltaSection: View {
             // pourquoi, pas « rien à reporter » comme si les paires
             // étaient fantaisistes.
             reportMessage = skipped > 0 ? crossMessage(skipped)
-                                        : vm.L(L10n.Mods.updateDeltaRenamedNoneLeft)
+                                        : localization.L(L10n.Mods.updateDeltaRenamedNoneLeft)
         case .cancelled:
             // « Rien à reporter » ferait conclure que les paires étaient
             // fantaisistes ; le vrai état est « annulé pour sécurité ».
-            reportMessage = vm.L(L10n.Mods.updateDeltaRenamedCancelled)
+            reportMessage = localization.L(L10n.Mods.updateDeltaRenamedCancelled)
         }
     }
 
@@ -168,21 +169,21 @@ struct ModUpdateDeltaSection: View {
     private func counters(_ delta: ModUpdateKeyDelta) -> [String] {
         var parts: [String] = []
         if let added = delta.config?.added.count, added > 0 {
-            parts.append(String(format: vm.L(L10n.Mods.updateDeltaConfigAdded), added))
+            parts.append(String(format: localization.L(L10n.Mods.updateDeltaConfigAdded), added))
         }
         if let removed = delta.config?.removed.count, removed > 0 {
-            parts.append(String(format: vm.L(L10n.Mods.updateDeltaConfigRemoved), removed))
+            parts.append(String(format: localization.L(L10n.Mods.updateDeltaConfigRemoved), removed))
         }
         if !delta.translation.addedUntranslated.isEmpty {
-            parts.append(String(format: vm.L(L10n.Mods.updateDeltaTranslationTodo),
+            parts.append(String(format: localization.L(L10n.Mods.updateDeltaTranslationTodo),
                                 delta.translation.addedUntranslated.count))
         }
         if !delta.translation.addedAuthorTranslated.isEmpty {
-            parts.append(String(format: vm.L(L10n.Mods.updateDeltaTranslationAuthor),
+            parts.append(String(format: localization.L(L10n.Mods.updateDeltaTranslationAuthor),
                                 delta.translation.addedAuthorTranslated.count))
         }
         if !delta.translation.removedKeys.isEmpty {
-            parts.append(String(format: vm.L(L10n.Mods.updateDeltaTranslationOrphan),
+            parts.append(String(format: localization.L(L10n.Mods.updateDeltaTranslationOrphan),
                                 delta.translation.removedKeys.count))
         }
         return parts
@@ -196,14 +197,14 @@ struct ModUpdateDeltaSection: View {
         let removed = delta.translation.removedKeys.keys.sorted()
         return VStack(alignment: .leading, spacing: 6) {
             if !added.isEmpty {
-                DisclosureGroup("\(vm.L(L10n.Mods.updateDeltaListAdded)) (\(added.count))") {
+                DisclosureGroup("\(localization.L(L10n.Mods.updateDeltaListAdded)) (\(added.count))") {
                     keyList(added, shown: shownAdded, more: {
                         shownAdded += 50
                     })
                 }
             }
             if !removed.isEmpty {
-                DisclosureGroup("\(vm.L(L10n.Mods.updateDeltaListRemoved)) (\(removed.count))") {
+                DisclosureGroup("\(localization.L(L10n.Mods.updateDeltaListRemoved)) (\(removed.count))") {
                     keyList(removed, shown: shownRemoved, more: {
                         shownRemoved += 50
                     })
@@ -245,7 +246,7 @@ struct ModUpdateDeltaSection: View {
     private func buttons(_ delta: ModUpdateKeyDelta) -> some View {
         HStack(spacing: 12) {
             if delta.config?.added.isEmpty == false {
-                Button(vm.L(L10n.Mods.updateDeltaOpenConfig)) {
+                Button(localization.L(L10n.Mods.updateDeltaOpenConfig)) {
                     onOpenConfig()
                 }
                 .buttonStyle(.link)
@@ -253,7 +254,7 @@ struct ModUpdateDeltaSection: View {
                 .pointingHandCursor()
             }
             if delta.translation.addedUntranslated.isEmpty == false {
-                Button(vm.L(L10n.Mods.updateDeltaOpenTranslation)) {
+                Button(localization.L(L10n.Mods.updateDeltaOpenTranslation)) {
                     onOpenTranslation()
                 }
                 .buttonStyle(.link)

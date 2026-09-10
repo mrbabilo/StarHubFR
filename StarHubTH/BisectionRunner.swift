@@ -289,7 +289,7 @@ final class BisectionRunner: ObservableObject {
     func keepPausedAndStop() {
         guard !isApplying else { return }
         reset()
-        vm.showModal(message: vm.L(L10n.Bisect.keptPaused))
+        vm.showModal(message: vm.localization.L(L10n.Bisect.keptPaused))
     }
 
     func restoreAndStop() {
@@ -330,7 +330,7 @@ final class BisectionRunner: ObservableObject {
             }
             self.reset()
             // Une remise en état silencieuse laisse un doute : le dire.
-            self.vm.showModal(message: self.vm.L(L10n.Bisect.restored))
+            self.vm.showModal(message: self.vm.localization.L(L10n.Bisect.restored))
         }
     }
 

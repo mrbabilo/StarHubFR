@@ -11,6 +11,7 @@ import SwiftUI
 /// la même raison — feuille et confirmation y vivent.
 struct ModDetailActionBar: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     /// La copie figée à l'ouverture — pour l'identité (dossier, libellés).
     let mod: ModItem
     @Binding var pendingActivation: ModItem?
@@ -39,7 +40,7 @@ struct ModDetailActionBar: View {
             Button {
                 vm.toggleFavorite(live)
             } label: {
-                Label(vm.L(vm.isFavorite(live) ? L10n.Mods.favoriteRemove : L10n.Mods.favoriteAdd),
+                Label(localization.L(vm.isFavorite(live) ? L10n.Mods.favoriteRemove : L10n.Mods.favoriteAdd),
                       systemImage: vm.isFavorite(live) ? "star.fill" : "star")
             }
             .buttonStyle(.bordered)
@@ -52,7 +53,7 @@ struct ModDetailActionBar: View {
             Button {
                 vm.toggleBlacklist(live)
             } label: {
-                Label(vm.L(vm.isBlacklisted(live) ? L10n.Mods.blacklistRemove : L10n.Mods.blacklistAdd),
+                Label(localization.L(vm.isBlacklisted(live) ? L10n.Mods.blacklistRemove : L10n.Mods.blacklistAdd),
                       systemImage: vm.isBlacklisted(live) ? "xmark.circle.fill" : "xmark.circle")
             }
             .buttonStyle(.bordered)
@@ -67,7 +68,7 @@ struct ModDetailActionBar: View {
                 Button {
                     vm.editingModConfig = live
                 } label: {
-                    Label(vm.L(L10n.Settings.configModSettings), systemImage: "gearshape")
+                    Label(localization.L(L10n.Settings.configModSettings), systemImage: "gearshape")
                 }
                 .buttonStyle(.bordered)
                 .foregroundColor(.secondary)
@@ -80,7 +81,7 @@ struct ModDetailActionBar: View {
             // dans le dépôt — un nom de symbole erroné compile sans
             // avertissement et se rend en rectangle vide.
             Button(action: onReportConflict) {
-                Label(vm.L(L10n.Conflicts.reportButton), systemImage: "exclamationmark.triangle")
+                Label(localization.L(L10n.Conflicts.reportButton), systemImage: "exclamationmark.triangle")
             }
             .buttonStyle(.bordered)
             .foregroundColor(.secondary)
@@ -91,7 +92,7 @@ struct ModDetailActionBar: View {
             // qu'on ne l'admet. Le dossier **physique** — le point de la
             // pause compris.
             Button(action: revealInFinder) {
-                Label(vm.L(L10n.Mods.revealInFinder), systemImage: "folder")
+                Label(localization.L(L10n.Mods.revealInFinder), systemImage: "folder")
             }
             .buttonStyle(.bordered)
             .foregroundColor(.secondary)
@@ -107,9 +108,9 @@ struct ModDetailActionBar: View {
             .buttonStyle(.borderless)
             .foregroundColor(.red)
             .disabled(vm.pendingDeleteFolder != nil)
-            .help(vm.L(L10n.Mods.deleteMod))
-            .accessibilityLabel(vm.L(L10n.Mods.deleteMod))
-            .accessibilityHint(vm.L(L10n.Mods.deleteModA11yHint))
+            .help(localization.L(L10n.Mods.deleteMod))
+            .accessibilityLabel(localization.L(L10n.Mods.deleteMod))
+            .accessibilityHint(localization.L(L10n.Mods.deleteModA11yHint))
             .pointingHandCursor()
         }
         .padding(.horizontal, 24)
@@ -131,7 +132,7 @@ struct ModDetailActionBar: View {
                 .controlSize(.small)
                 .frame(width: 14, height: 14)
                 .opacity(busy ? 1 : 0)
-            Toggle(vm.L(L10n.Mods.detailEnabled), isOn: Binding(
+            Toggle(localization.L(L10n.Mods.detailEnabled), isOn: Binding(
                 get: { localIsOn ?? live.isEnabled },
                 set: { newValue in
                     localIsOn = newValue
@@ -154,8 +155,8 @@ struct ModDetailActionBar: View {
             .disabled(busy)
         }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(String(format: vm.L(L10n.Mods.toggleA11yLabel), mod.name))
-        .accessibilityHint(vm.L(L10n.Mods.toggleA11yHint))
+        .accessibilityLabel(String(format: localization.L(L10n.Mods.toggleA11yLabel), mod.name))
+        .accessibilityHint(localization.L(L10n.Mods.toggleA11yHint))
     }
 
     /// Ouvre le dossier du mod dans le Finder — le **physique**, point de

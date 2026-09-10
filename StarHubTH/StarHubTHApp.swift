@@ -130,7 +130,7 @@ struct StarHubTHApp: App {
         // window for it, so an nxm:// activation just brings this one forward
         // instead of stacking duplicates.
         Window("StarHubFR", id: AppWindowID.main) {
-            MainView(vm: vm)
+            MainView(vm: vm, localization: localization)
                 .onAppear {
                     // Route nxm:// links (buffered at cold launch) into the
                     // single shared ViewModel.
@@ -208,19 +208,19 @@ struct StarHubTHApp: App {
         // ⚠️ Ce code vit dans la **scène App** : il ne peut écrire aucun
         // `@State` de MainView. Il n'appelle donc que les canaux du ViewModel.
         .commands {
-            CommandMenu(vm.L(L10n.Palette.goMenu)) {
+            CommandMenu(localization.L(L10n.Palette.goMenu)) {
                 // Construits depuis SidebarOrder — jamais réécrits ici, sinon
                 // le menu et la barre divergeraient au premier ajout.
                 ForEach(1...9, id: \.self) { n in
                     if let e = SidebarOrder.entry(forShortcut: n,
                                                   showThaiHub: showThaiHub) {
-                        Button(vm.L(e.labelKey)) { vm.requestTab(e.destination) }
+                        Button(localization.L(e.labelKey)) { vm.requestTab(e.destination) }
                             .keyboardShortcut(KeyEquivalent(Character("\(n)")),
                                               modifiers: .command)
                     }
                 }
                 Divider()
-                Button(vm.L(L10n.Palette.open)) { vm.requestPalette() }
+                Button(localization.L(L10n.Palette.open)) { vm.requestPalette() }
                     .keyboardShortcut("k", modifiers: .command)
             }
         }
@@ -229,8 +229,8 @@ struct StarHubTHApp: App {
         // là où l'écran de succès interne de la feuille vivait. Ouverte par
         // `openWindow(id:)` depuis MainView quand un report est posé ; une
         // seconde ouverture l'amène au premier plan et remplace le contenu.
-        Window(vm.L(L10n.InstallReport.windowTitle), id: AppWindowID.installReport) {
-            InstallReportWindow(vm: vm)
+        Window(localization.L(L10n.InstallReport.windowTitle), id: AppWindowID.installReport) {
+            InstallReportWindow(vm: vm, localization: localization)
         }
         .windowResizability(.contentMinSize)
     }

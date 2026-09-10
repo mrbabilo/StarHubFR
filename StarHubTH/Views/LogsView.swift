@@ -5,6 +5,7 @@ struct LogsView: View {
     @FocusState private var searchFocused: Bool
 
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
 
     // Source tabs: nil = All, .app = StarHubFR, .smapi = SMAPI
     @State private var selectedSource: LogSource? = nil
@@ -157,13 +158,13 @@ struct LogsView: View {
 
             // ── Source + Level filter (one row) ─────────────────────
             HStack(spacing: 10) {
-                sourceTab(nil,    label: vm.L(L10n.Logs.filterAll), icon: "list.bullet")
+                sourceTab(nil,    label: localization.L(L10n.Logs.filterAll), icon: "list.bullet")
                 sourceTab(.app,   label: "StarHubFR",               icon: "app.badge")
                 sourceTab(.smapi, label: "SMAPI",                    icon: "terminal")
 
                 Divider().frame(height: 16)
 
-                levelPill(nil,      label: vm.L(L10n.Logs.filterAll), count: views.sourceTotal)
+                levelPill(nil,      label: localization.L(L10n.Logs.filterAll), count: views.sourceTotal)
                 levelPill(.info,    label: "INFO",  count: views.counts[.info] ?? 0)
                 levelPill(.warning, label: "WARN",  count: views.counts[.warning] ?? 0)
                 levelPill(.error,   label: "ERROR", count: views.counts[.error] ?? 0)
@@ -186,7 +187,7 @@ struct LogsView: View {
                     Image(systemName: "magnifyingglass")
                         .foregroundColor(.secondary)
                         .font(AppDesign.Font.caption)
-                    TextField(vm.L(L10n.Logs.searchPlaceholder), text: $searchText)
+                    TextField(localization.L(L10n.Logs.searchPlaceholder), text: $searchText)
                         .textFieldStyle(.plain)
                         .font(AppDesign.Font.caption)
                         .searchFieldShortcut($searchFocused)
@@ -194,7 +195,7 @@ struct LogsView: View {
                         Button { searchText = "" } label: {
                             Image(systemName: "xmark.circle.fill").foregroundColor(.secondary)
                         }.buttonStyle(.plain)
-                         .help(vm.L(L10n.Logs.clearSearchHint))
+                         .help(localization.L(L10n.Logs.clearSearchHint))
                     }
                 }
                 .padding(.horizontal, AppDesignCore.Spacing.sm)
@@ -216,7 +217,7 @@ struct LogsView: View {
                         .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
-                .help(vm.L(L10n.Logs.autoScrollHint))
+                .help(localization.L(L10n.Logs.autoScrollHint))
 
                 // Copy
                 Button {
@@ -236,7 +237,7 @@ struct LogsView: View {
                         .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
-                .help(vm.L(L10n.Logs.copyAll))
+                .help(localization.L(L10n.Logs.copyAll))
 
                 // Group by mod
                 Button { groupByMod.toggle() } label: {
@@ -250,7 +251,7 @@ struct LogsView: View {
                         .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
-                .help(vm.L(L10n.Logs.groupByMod))
+                .help(localization.L(L10n.Logs.groupByMod))
 
                 // Reload SMAPI log (loadSmapiLog replaces existing SMAPI entries)
                 Button {
@@ -266,10 +267,10 @@ struct LogsView: View {
                         .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
-                .help(vm.L(L10n.Logs.refreshHint))
+                .help(localization.L(L10n.Logs.refreshHint))
 
                 // Clear app logs (destructive — confirmed via dialog below)
-                Button(vm.L(L10n.Logs.clearLogs)) {
+                Button(localization.L(L10n.Logs.clearLogs)) {
                     showClearConfirm = true
                 }
                 .font(AppDesign.Font.caption)
@@ -290,7 +291,7 @@ struct LogsView: View {
                     Text(header)
                         .font(AppDesign.Font.footnote(.medium))
                     Spacer()
-                    Button(vm.L(L10n.Logs.backToAllLogs)) { sectionHeader = nil }
+                    Button(localization.L(L10n.Logs.backToAllLogs)) { sectionHeader = nil }
                         .font(AppDesign.Font.footnote)
                 }
                 .padding(.horizontal, 12)
@@ -305,7 +306,7 @@ struct LogsView: View {
                 // The card's share is of the space it actually competes for:
                 // the filter bars, toolbar and status bar are fixed chrome, so
                 // they're taken out before splitting with the log list.
-                SmapiHealthCard(vm: vm,
+                SmapiHealthCard(vm: vm, localization: localization,
                                 availableHeight: max(240, viewHeight - Self.fixedChromeHeight - bisectionCardHeight))
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
@@ -315,7 +316,7 @@ struct LogsView: View {
             // Recherche guidée du mod responsable. Présente sur les onglets
             // liés au jeu (All/SMAPI), masquée sur les logs StarHubFR (.app).
             if selectedSource != .app {
-                BisectionCard(vm: vm)
+                BisectionCard(vm: vm, localization: localization)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
                     .background(GeometryReader { proxy in
@@ -336,8 +337,8 @@ struct LogsView: View {
                     || selectedSource != nil
                 StateCard(
                     icon: isFiltered ? "line.3.horizontal.decrease.circle" : "text.badge.checkmark",
-                    text: vm.L(isFiltered ? L10n.Logs.emptyFilteredTitle : L10n.Logs.noLogs),
-                    actionTitle: isFiltered ? vm.L(L10n.Logs.emptyFilteredAction) : nil
+                    text: localization.L(isFiltered ? L10n.Logs.emptyFilteredTitle : L10n.Logs.noLogs),
+                    actionTitle: isFiltered ? localization.L(L10n.Logs.emptyFilteredAction) : nil
                 ) {
                     selectedLevel = nil
                     searchText = ""
@@ -377,7 +378,7 @@ struct LogsView: View {
 
             // ── Status bar ───────────────────────────────────────────
             HStack {
-                Text(String(format: vm.L(L10n.Logs.entryCount), views.filtered.count, vm.logEntries.count))
+                Text(String(format: localization.L(L10n.Logs.entryCount), views.filtered.count, vm.logEntries.count))
                     .font(AppDesign.Font.footnote)
                     .foregroundColor(.secondary)
                 Spacer()
@@ -397,16 +398,16 @@ struct LogsView: View {
                     .onChange(of: proxy.size.height) { _, new in viewHeight = new }
             }
         )
-        .confirmationDialog(vm.L(L10n.Logs.clearConfirmTitle),
+        .confirmationDialog(localization.L(L10n.Logs.clearConfirmTitle),
                             isPresented: $showClearConfirm,
                             titleVisibility: .visible) {
             // macOS auto-appends a localized Cancel button since none here has
             // role .cancel. Only app entries are wiped; SMAPI entries are kept.
-            Button(vm.L(L10n.Logs.clearLogs), role: .destructive) {
+            Button(localization.L(L10n.Logs.clearLogs), role: .destructive) {
                 vm.logEntries.removeAll { $0.source == .app }
             }
         } message: {
-            Text(vm.L(L10n.Logs.clearConfirmMessage))
+            Text(localization.L(L10n.Logs.clearConfirmMessage))
         }
         .onAppear {
             // Pas de watcher live (ni polling ni handle) : c'est à l'apparition
@@ -464,13 +465,14 @@ struct LogsView: View {
         ForEach(rows) { row in
             switch row {
             case .single(let entry):
-                LogEntryRow(entry: entry, vm: vm)
+                LogEntryRow(entry: entry, vm: vm, localization: localization)
                     .id(entry.id)
             case .group(let id, let entries):
                 LogGroupRow(
                     entries: entries,
                     isExpanded: expandedGroups.contains(id),
                     vm: vm,
+                    localization: localization,
                     toggle: { toggle(id, in: &expandedGroups) }
                 )
                 .id(id)
@@ -491,7 +493,7 @@ struct LogsView: View {
                         .foregroundColor(.secondary)
                         .frame(width: 14)
 
-                    Text(group.mod ?? vm.L(L10n.Logs.frameworkGroup))
+                    Text(group.mod ?? localization.L(L10n.Logs.frameworkGroup))
                         .font(AppDesign.Font.caption(.medium))
                         .foregroundColor(group.mod == nil ? .secondary : .primary)
 
@@ -598,6 +600,7 @@ struct LogGroupRow: View {
     let entries: [LogEntry]
     let isExpanded: Bool
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     let toggle: () -> Void
 
     var body: some View {
@@ -625,7 +628,7 @@ struct LogGroupRow: View {
                             .font(AppDesign.Font.monoCaption)
                             .foregroundColor((entries.first?.level.color ?? .primary).opacity(0.75))
                             .lineLimit(1)
-                        Text(String(format: vm.L(L10n.Logs.similarLines), Int64(entries.count)))
+                        Text(String(format: localization.L(L10n.Logs.similarLines), Int64(entries.count)))
                             .font(AppDesign.Font.iconXS)
                             .foregroundColor(.secondary)
                     }
@@ -641,11 +644,11 @@ struct LogGroupRow: View {
             }
             .buttonStyle(.plain)
             .pointingHandCursor()
-            .help(vm.L(L10n.Logs.similarLinesHint))
+            .help(localization.L(L10n.Logs.similarLinesHint))
 
             if isExpanded {
                 ForEach(entries) { entry in
-                    LogEntryRow(entry: entry, vm: vm)
+                    LogEntryRow(entry: entry, vm: vm, localization: localization)
                         .padding(.leading, 16)
                 }
             }
@@ -657,6 +660,7 @@ struct LogGroupRow: View {
 struct LogEntryRow: View {
     let entry: LogEntry
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     @State private var isHovered = false
 
     var body: some View {
@@ -726,7 +730,7 @@ struct LogEntryRow: View {
         )
         .onHover { isHovered = $0 }
         .contextMenu {
-            Button(vm.L(L10n.Logs.copyLine)) {
+            Button(localization.L(L10n.Logs.copyLine)) {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(entry.formattedLine, forType: .string)
             }

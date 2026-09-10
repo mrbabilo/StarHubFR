@@ -12,6 +12,7 @@ private enum ModConfigBackupsConfirmation {
 
 struct ModConfigBackupsView: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
 
     @State private var backups: [ModConfigBackup] = []
     @State private var expandedBackupId: UUID?
@@ -23,8 +24,8 @@ struct ModConfigBackupsView: View {
     /// `nil` when a backup can be created; otherwise the localized reason
     /// shown as a tooltip on the disabled button.
     private var createDisabledReason: String? {
-        if vm.gameDir.isEmpty { return vm.L(L10n.ModConfigBackups.noGameDir) }
-        if vm.enabledMods.isEmpty { return vm.L(L10n.ModConfigBackups.noEnabledMods) }
+        if vm.gameDir.isEmpty { return localization.L(L10n.ModConfigBackups.noGameDir) }
+        if vm.enabledMods.isEmpty { return localization.L(L10n.ModConfigBackups.noEnabledMods) }
         return nil
     }
 
@@ -50,21 +51,21 @@ struct ModConfigBackupsView: View {
                presenting: confirmation) { pending in
             switch pending {
             case .restore(let backup):
-                Button(vm.L(L10n.ModConfigBackups.restoreBackup), role: .destructive) {
+                Button(localization.L(L10n.ModConfigBackups.restoreBackup), role: .destructive) {
                     performRestore(backup)
                 }
-                Button(vm.L(L10n.ModConfigBackups.cancel), role: .cancel) { }
+                Button(localization.L(L10n.ModConfigBackups.cancel), role: .cancel) { }
             case .delete(let backup):
-                Button(vm.L(L10n.ModConfigBackups.deleteBackup), role: .destructive) {
+                Button(localization.L(L10n.ModConfigBackups.deleteBackup), role: .destructive) {
                     performDelete(backup)
                 }
-                Button(vm.L(L10n.ModConfigBackups.cancel), role: .cancel) { }
+                Button(localization.L(L10n.ModConfigBackups.cancel), role: .cancel) { }
             case .cleanup:
-                Button(vm.L(L10n.Main.ok)) { }
+                Button(localization.L(L10n.Main.ok)) { }
             }
         } message: { pending in
             switch pending {
-            case .restore: Text(vm.L(L10n.ModConfigBackups.restoreWarningCreateBackup))
+            case .restore: Text(localization.L(L10n.ModConfigBackups.restoreWarningCreateBackup))
             case .delete: EmptyView()
             case .cleanup(let message): Text(message)
             }
@@ -73,9 +74,9 @@ struct ModConfigBackupsView: View {
 
     private var confirmationTitle: String {
         switch confirmation {
-        case .restore: return vm.L(L10n.ModConfigBackups.restoreWarning)
-        case .delete: return vm.L(L10n.ModConfigBackups.deleteConfirm)
-        case .cleanup: return vm.L(L10n.ModConfigBackups.title)
+        case .restore: return localization.L(L10n.ModConfigBackups.restoreWarning)
+        case .delete: return localization.L(L10n.ModConfigBackups.deleteConfirm)
+        case .cleanup: return localization.L(L10n.ModConfigBackups.title)
         case nil: return ""
         }
     }
@@ -84,7 +85,7 @@ struct ModConfigBackupsView: View {
 
     private var header: some View {
         HStack {
-            Text(vm.L(L10n.ModConfigBackups.title))
+            Text(localization.L(L10n.ModConfigBackups.title))
                 .font(.headline)
                 .foregroundColor(.primary)
 
@@ -97,7 +98,7 @@ struct ModConfigBackupsView: View {
                     } else {
                         Image(systemName: "plus.circle.fill")
                     }
-                    Text(vm.L(isBusy ? L10n.ModConfigBackups.creatingBackup : L10n.ModConfigBackups.createBackup))
+                    Text(localization.L(isBusy ? L10n.ModConfigBackups.creatingBackup : L10n.ModConfigBackups.createBackup))
                 }
                 .font(.system(size: 12, weight: .medium))
             }
@@ -118,7 +119,7 @@ struct ModConfigBackupsView: View {
             Image(systemName: "archivebox")
                 .font(.system(size: 40))
                 .foregroundColor(.secondary.opacity(0.5))
-            Text(vm.L(L10n.ModConfigBackups.noBackups))
+            Text(localization.L(L10n.ModConfigBackups.noBackups))
                 .multilineTextAlignment(.center)
                 .font(.system(size: 14))
                 .foregroundColor(.secondary)
@@ -135,6 +136,7 @@ struct ModConfigBackupsView: View {
                 ForEach(backups) { backup in
                     ModConfigBackupRow(
                         vm: vm,
+                        localization: localization,
                         backup: backup,
                         isExpanded: expandedBackupId == backup.id,
                         selectedItemIds: expandedBackupId == backup.id ? $selectedItemIds : .constant([]),
@@ -191,7 +193,7 @@ struct ModConfigBackupsView: View {
                     // que l'utilisateur croit voir. On préfère perdre le
                     // message de fin de purge que détourner son clic.
                     if deletedCount > 0 && self.confirmation == nil {
-                        self.confirmation = .cleanup(String(format: self.vm.L(L10n.ModConfigBackups.cleanupComplete), deletedCount))
+                        self.confirmation = .cleanup(String(format: self.localization.L(L10n.ModConfigBackups.cleanupComplete), deletedCount))
                     }
                 }
             } catch {
@@ -211,12 +213,12 @@ struct ModConfigBackupsView: View {
     private func localizedMessage(for error: Error, genericKey: String) -> String {
         if let backupError = error as? ModConfigBackupManager.BackupError {
             switch backupError {
-            case .gameDirEmpty: return vm.L(L10n.ModConfigBackups.noGameDir)
-            case .noEnabledMods: return vm.L(L10n.ModConfigBackups.noEnabledMods)
-            case .nothingToBackUp: return vm.L(L10n.ModConfigBackups.nothingToBackUp)
+            case .gameDirEmpty: return localization.L(L10n.ModConfigBackups.noGameDir)
+            case .noEnabledMods: return localization.L(L10n.ModConfigBackups.noEnabledMods)
+            case .nothingToBackUp: return localization.L(L10n.ModConfigBackups.nothingToBackUp)
             }
         }
-        return String(format: vm.L(genericKey), error.localizedDescription)
+        return String(format: localization.L(genericKey), error.localizedDescription)
     }
 
     /// Ce que la restauration annonce.
@@ -228,21 +230,21 @@ struct ModConfigBackupsView: View {
     /// douze.
     private func restoreReportMessage(_ report: ModConfigRestoreReport) -> String {
         if report.isComplete {
-            return vm.L(L10n.ModConfigBackups.backupRestored)
+            return localization.L(L10n.ModConfigBackups.backupRestored)
         }
         var lines: [String] = []
         if report.filesWritten == 0 {
-            lines.append(vm.L(L10n.ModConfigBackups.restoreReportNothing))
+            lines.append(localization.L(L10n.ModConfigBackups.restoreReportNothing))
         } else {
-            lines.append(String(format: vm.L(L10n.ModConfigBackups.restoreReportWritten),
+            lines.append(String(format: localization.L(L10n.ModConfigBackups.restoreReportWritten),
                                 Int64(report.filesWritten), Int64(report.modsRestored)))
         }
         if !report.skippedMods.isEmpty {
-            lines.append(String(format: vm.L(L10n.ModConfigBackups.restoreReportSkippedMods),
+            lines.append(String(format: localization.L(L10n.ModConfigBackups.restoreReportSkippedMods),
                                 report.skippedMods.joined(separator: ", ")))
         }
         if !report.skippedFiles.isEmpty {
-            lines.append(String(format: vm.L(L10n.ModConfigBackups.restoreReportSkippedFiles),
+            lines.append(String(format: localization.L(L10n.ModConfigBackups.restoreReportSkippedFiles),
                                 report.skippedFiles.joined(separator: ", ")))
         }
         return lines.joined(separator: "\n\n")
@@ -314,6 +316,7 @@ struct ModConfigBackupsView: View {
 
 private struct ModConfigBackupRow: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     let backup: ModConfigBackup
     let isExpanded: Bool
     @Binding var selectedItemIds: Set<UUID>
@@ -335,7 +338,7 @@ private struct ModConfigBackupRow: View {
                             Text(backup.formattedDate)
                                 .font(.system(size: 13, weight: .medium))
                                 .foregroundColor(.primary)
-                            Text("\(String(format: vm.L(L10n.ModConfigBackups.filesCount), backup.totalFiles)) · \(backup.formattedSize)")
+                            Text("\(String(format: localization.L(L10n.ModConfigBackups.filesCount), backup.totalFiles)) · \(backup.formattedSize)")
                                 .font(.system(size: 11))
                                 .foregroundColor(.secondary)
                         }
@@ -352,7 +355,7 @@ private struct ModConfigBackupRow: View {
                 }
                 .buttonStyle(.plain)
                 .pointingHandCursor()
-                .help(vm.L(L10n.ModConfigBackups.deleteBackup))
+                .help(localization.L(L10n.ModConfigBackups.deleteBackup))
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
@@ -373,7 +376,7 @@ private struct ModConfigBackupRow: View {
                                 Text(item.modDisplayName)
                                     .font(.system(size: 12, weight: .medium))
                                 let subtitle = item.parentFolderName.map {
-                                    "\(item.files.joined(separator: ", ")) — \(String(format: vm.L(L10n.ModConfigBackups.partOfGroup), $0))"
+                                    "\(item.files.joined(separator: ", ")) — \(String(format: localization.L(L10n.ModConfigBackups.partOfGroup), $0))"
                                 } ?? item.files.joined(separator: ", ")
                                 Text(subtitle)
                                     .font(.system(size: 10))
@@ -385,7 +388,7 @@ private struct ModConfigBackupRow: View {
 
                     HStack {
                         Spacer()
-                        Button(vm.L(L10n.ModConfigBackups.restoreBackup)) {
+                        Button(localization.L(L10n.ModConfigBackups.restoreBackup)) {
                             onRestoreSelected()
                         }
                         .buttonStyle(.bordered)

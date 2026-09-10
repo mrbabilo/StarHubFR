@@ -10,6 +10,7 @@ import SwiftUI
 /// pouvoir toucher à `Mods/`.
 struct CommandPaletteView: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     @Binding var isPresented: Bool
     @AppStorage("showThaiTranslationHub") private var showThaiTranslationHub = false
 
@@ -29,7 +30,7 @@ struct CommandPaletteView: View {
     private func buildEntries() -> [CommandPaletteEntry] {
         var out: [CommandPaletteEntry] = SidebarOrder
             .visible(showThaiHub: showThaiTranslationHub)
-            .map { CommandPaletteEntry.forDestination($0, title: vm.L($0.labelKey)) }
+            .map { CommandPaletteEntry.forDestination($0, title: localization.L($0.labelKey)) }
         out += vm.mods.flattenedMods.map(CommandPaletteEntry.forMod)
         out += vm.modProfiles.map { CommandPaletteEntry.forProfile(name: $0.name) }
         out += vm.saves.map {
@@ -95,7 +96,7 @@ struct CommandPaletteView: View {
     private var field: some View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass").foregroundColor(.secondary)
-            TextField(vm.L(L10n.Palette.placeholder), text: $query)
+            TextField(localization.L(L10n.Palette.placeholder), text: $query)
                 .textFieldStyle(.plain)
                 .font(.system(size: 16))
                 .focused($fieldFocused)
@@ -129,10 +130,10 @@ struct CommandPaletteView: View {
     /// Le libellé de section d'une nature — les quatre clés `palette_section_*`.
     private func sectionTitle(_ kind: CommandPaletteEntry.Kind) -> String {
         switch kind {
-        case .destination: return vm.L(L10n.Palette.sectionDestinations)
-        case .mod:         return vm.L(L10n.Palette.sectionMods)
-        case .profile:     return vm.L(L10n.Palette.sectionProfiles)
-        case .save:        return vm.L(L10n.Palette.sectionSaves)
+        case .destination: return localization.L(L10n.Palette.sectionDestinations)
+        case .mod:         return localization.L(L10n.Palette.sectionMods)
+        case .profile:     return localization.L(L10n.Palette.sectionProfiles)
+        case .save:        return localization.L(L10n.Palette.sectionSaves)
         }
     }
 
@@ -195,7 +196,7 @@ struct CommandPaletteView: View {
 
     /// L'état vide **dit pourquoi** il est vide — règle posée par H-T7.
     private var emptyState: some View {
-        Text(String(format: vm.L(L10n.Palette.noResults), query))
+        Text(String(format: localization.L(L10n.Palette.noResults), query))
             .font(.system(size: 13))
             .foregroundColor(.secondary)
             .padding(14)

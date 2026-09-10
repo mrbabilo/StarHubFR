@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MainView: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     // Observé séparément (même patron que `smapiInstaller`/`bisection` dans
     // HomeView) : `report` est publié par `KeybindScanService`, un
     // `ObservableObject` distinct — sans cet abonnement, la pastille ne se
@@ -9,7 +10,8 @@ struct MainView: View {
     @ObservedObject private var keybindScanService: KeybindScanService
     @State private var currentTab: SidebarDestination = .home
 
-    init(vm: StarHubTHViewModel) {
+    init(vm: StarHubTHViewModel, localization: LocalizationStore) {
+        self.localization = localization
         self.vm = vm
         self.keybindScanService = vm.keybindScanService
     }
@@ -58,7 +60,7 @@ struct MainView: View {
     
 
     private var navigationTitleText: String {
-        if currentTab == .saves && vm.viewingSaveTimeline != nil { return vm.L(L10n.Saves.timeline) }
+        if currentTab == .saves && vm.viewingSaveTimeline != nil { return localization.L(L10n.Saves.timeline) }
         if currentTab == .saves && vm.editingSave != nil { return vm.editingSave!.playerName }
         if currentTab == .thaiHub && vm.viewingThaiMod != nil { return vm.viewingThaiMod!.name }
         if currentTab == .mods && vm.editingModConfig != nil { return vm.editingModConfig!.name }
@@ -67,58 +69,222 @@ struct MainView: View {
         // destination ajoutée sans titre est une erreur de build, pas une
         // fenêtre qui s'intitule « Accueil » sans qu'on le remarque.
         switch currentTab {
-        case .mods:           return vm.L(L10n.Mods.mods)
-        case .installBackups: return vm.L(L10n.ModInstall.manageBackups)
-        case .configBackups:  return vm.L(L10n.ModConfigBackups.title)
-        case .maintenance:    return vm.L(L10n.Maintenance.title)
-        case .profiles:       return vm.L(L10n.Profiles.title)
-        case .updates:        return vm.L(L10n.Main.modUpdates)
-        case .systemAlerts:   return vm.L(L10n.Main.systemAlerts)
-        case .discover:       return vm.L(L10n.Main.discover)
-        case .quarantine:     return vm.L(L10n.Main.quarantine)
-        case .thaiHub:        return vm.L(L10n.ThaiHub.title)
-        case .saves:          return vm.L(L10n.Saves.saves)
-        case .settings:       return vm.L(L10n.Settings.settings)
-        case .logs:           return vm.L(L10n.Logs.logs)
-        case .appChangelog:   return vm.L(L10n.Main.appChangelog)
-        case .home:           return vm.L(L10n.Main.home)
+        case .mods:           return localization.L(L10n.Mods.mods)
+        case .installBackups: return localization.L(L10n.ModInstall.manageBackups)
+        case .configBackups:  return localization.L(L10n.ModConfigBackups.title)
+        case .maintenance:    return localization.L(L10n.Maintenance.title)
+        case .profiles:       return localization.L(L10n.Profiles.title)
+        case .updates:        return localization.L(L10n.Main.modUpdates)
+        case .systemAlerts:   return localization.L(L10n.Main.systemAlerts)
+        case .discover:       return localization.L(L10n.Main.discover)
+        case .quarantine:     return localization.L(L10n.Main.quarantine)
+        case .thaiHub:        return localization.L(L10n.ThaiHub.title)
+        case .saves:          return localization.L(L10n.Saves.saves)
+        case .settings:       return localization.L(L10n.Settings.settings)
+        case .logs:           return localization.L(L10n.Logs.logs)
+        case .appChangelog:   return localization.L(L10n.Main.appChangelog)
+        case .home:           return localization.L(L10n.Main.home)
         }
     }
     
+    /// Le consommage des foci en attente + l'historique de navigation.
+    /// Extrait du `.onChange` en même temps que `destinationView`, pour
+    /// la même raison.
+    private func handleTabChange() {
+            vm.editingSave = nil
+            vm.viewingThaiMod = nil
+            vm.viewingSaveTimeline = nil
+            vm.editingModConfig = nil
+            vm.viewingModDetail = nil
+
+            // …sauf une demande de traduction, qui est précisément **ce
+            // qui** amène sur cet onglet (B3-T4, depuis la couverture
+            // française d'un profil). La poser avant de changer d'onglet
+            // ne servait à rien : la remise à zéro ci-dessus l'effaçait
+            // aussitôt, et le bouton n'ouvrait que la liste des mods.
+            if currentTab == .mods, let folderName = vm.pendingTranslationFocus {
+                vm.viewingModDetail = vm.mods.flattenedMods
+                    .first { $0.folderName == folderName }
+            }
+
+            // T8 — même piège, même cure pour l'éditeur de config,
+            // demandé depuis le rapport de raccourcis (Alertes système).
+            // Contrairement à la traduction, rien ne se consomme plus
+            // tard dans la vue : l'éditeur n'a pas d'onglet à présélectionner,
+            // on l'ouvre donc ici et on efface la demande aussitôt — sans
+            // quoi chaque retour sur l'onglet la rejouerait.
+            if currentTab == .mods, let folderName = vm.pendingConfigFocus {
+                vm.pendingConfigFocus = nil
+                vm.editingModConfig = vm.mods.flattenedMods
+                    .first { $0.folderName == folderName }
+            }
+
+            // H-T6b — même piège, même cure pour la fiche mod, demandée
+            // depuis l'écran d'alertes système : une ligne SMAPI porte un
+            // nom affiché, une ligne de conflit un `folderName` —
+            // `ModFocusResolver` accepte les deux.
+            if currentTab == .mods, let query = vm.pendingModDetailFocus {
+                vm.pendingModDetailFocus = nil
+                vm.viewingModDetail = ModFocusResolver.resolve(query, in: vm.mods)
+                // Résolution vide : aucune fiche ne s'ouvrira, donc
+                // personne ne consommera l'onglet demandé — il faut
+                // l'effacer ici, sinon la prochaine fiche ouverte à la
+                // main s'ouvrirait sur « État » sans raison.
+                if vm.viewingModDetail == nil { vm.pendingDetailTab = nil }
+            }
+
+            if !isNavigatingBackOrForward {
+                if tabHistory.last != currentTab {
+                    tabHistory.append(currentTab)
+                    forwardHistory.removeAll()
+                }
+            } else {
+                isNavigatingBackOrForward = false
+            }
+    }
+
+    /// La vue de détail de l'onglet courant. Extraite du `body` le
+    /// 2026-09-10 : l'ajout du paramètre `localization` à chaque
+    /// destination a fait franchir au `body` le seuil de saturation du
+    /// type-checker (piège documenté CLAUDE.md) — découper en sous-vues
+    /// est le remède.
+    @ViewBuilder
+    private var destinationView: some View {
+                    switch currentTab {
+                    case .mods:
+                        if let mod = vm.editingModConfig {
+                            // L'onglet visuel par défaut : c'est celui qui montre
+                            // les réglages du mod, l'onglet de code étant le repli
+                            // pour ce que l'écran ne sait pas rendre.
+                            ModConfigEditorView(vm: vm, localization: localization, mod: mod)
+                        } else if let mod = vm.viewingModDetail {
+                            ModDetailView(vm: vm, localization: localization, mod: mod)
+                                .id(mod.folderName)
+                        } else {
+                            ModListView(vm: vm, localization: localization, currentTab: $currentTab)
+                        }
+                    case .configBackups:
+                        ModConfigBackupsView(vm: vm, localization: localization)
+                    case .maintenance:
+                        MaintenanceView(vm: vm, localization: localization)
+                    case .installBackups:
+                        ModInstallBackupsView(vm: vm, localization: localization)
+                    case .saves:
+                        if let save = vm.viewingSaveTimeline {
+                            SaveTimelineView(vm: vm, localization: localization, save: save)
+                        } else if let save = vm.editingSave {
+                            SaveEditorView(vm: vm, localization: localization, save: save)
+                        } else {
+                            SavesView(vm: vm, localization: localization)
+                        }
+                    case .profiles:
+                        ModProfilesView(vm: vm, localization: localization, currentTab: $currentTab)
+                    case .updates:
+                        UpdatesView(vm: vm, localization: localization, currentTab: $currentTab)
+                    case .systemAlerts:
+                        SystemAlertsView(vm: vm, localization: localization, currentTab: $currentTab)
+                    case .quarantine:
+                        QuarantineView(vm: vm, localization: localization)
+                    case .discover:
+                        DiscoverView(vm: vm, localization: localization, currentTab: $currentTab)
+                    case .thaiHub:
+                        ThaiTranslationHubView(vm: vm, localization: localization)
+                    case .settings:
+                        SettingsView(vm: vm, localization: localization)
+                    case .logs:
+                        LogsView(vm: vm, localization: localization)
+                    case .appChangelog:
+                        AppChangelogView(vm: vm, localization: localization)
+                    case .home:
+                        HomeView(vm: vm, localization: localization, currentTab: $currentTab)
+                    }
+    }
+
+    /// Les boutons d'historique (retour/avant). Extraits du `body` le
+    /// 2026-09-10 avec `destinationView` pour la même raison : saturation
+    /// du type-checker.
+    private var navHistoryButtons: some View {
+                    HStack(spacing: 8) {
+                    Button(action: {
+                        if vm.editingSave != nil {
+                            vm.editingSave = nil
+                        } else if vm.viewingThaiMod != nil {
+                            vm.viewingThaiMod = nil
+                        } else if vm.viewingSaveTimeline != nil {
+                            vm.viewingSaveTimeline = nil
+                        } else if vm.editingModConfig != nil {
+                            vm.editingModConfig = nil
+                        } else if vm.viewingModDetail != nil {
+                            vm.viewingModDetail = nil
+                        } else if tabHistory.count > 1 {
+                            isNavigatingBackOrForward = true
+                            let current = tabHistory.removeLast()
+                            forwardHistory.append(current)
+                            currentTab = tabHistory.last ?? .home
+                        }
+                    }) {
+                        Image(systemName: "chevron.left")
+                    }
+                    .accessibilityLabel(localization.L(L10n.Main.navBack))
+                    .help(localization.L(L10n.Main.navBack))
+                    .disabled(vm.editingSave == nil && vm.viewingThaiMod == nil && vm.viewingSaveTimeline == nil && vm.editingModConfig == nil && vm.viewingModDetail == nil && tabHistory.count <= 1)
+                    
+                    Button(action: {
+                        if let next = forwardHistory.popLast() {
+                            isNavigatingBackOrForward = true
+                            tabHistory.append(next)
+                            currentTab = next
+                        }
+                    }) {
+                        Image(systemName: "chevron.right")
+                    }
+                    .accessibilityLabel(localization.L(L10n.Main.navForward))
+                    .help(localization.L(L10n.Main.navForward))
+                    .disabled(forwardHistory.isEmpty)
+                }
+    }
+
+    /// La colonne latérale. Extraite du `body` le 2026-09-10, dans la
+    /// même série que `destinationView` : saturation du type-checker.
+    private var sidebarColumn: some View {
+                VStack(spacing: 0) {
+    
+                    // Account Header Card — compact identity + active profile +
+                    // key metadata (mods active/total, SMAPI status). Replaces the
+                    // old bulky 48px avatar and the floating SystemStatusFooter:
+                    // everything the user needs at-a-glance is now in one card.
+                    AccountHeaderCard(
+                        vm: vm,
+                        localization: localization,
+                        isActive: currentTab == .home,
+                        isHovered: isProfileHovered,
+                        onTap: { currentTab = .home }
+                    )
+                    .onHover { isProfileHovered = $0 }
+                    .padding(.horizontal, 10)
+                    .padding(.top, 14)
+                    .padding(.bottom, 16)
+    
+                    // En fenêtre basse, ce sont les groupes qui défilent :
+                    // l'ancienne pile plein-fixe écrêtait d'abord le bas de la
+                    // colonne — poids de `Mods/`, thème, langue — sous la hauteur
+                    // disponible. Patron des pages de liste : haut fixe, milieu
+                    // défilant, pied épinglé.
+                    ScrollView(.vertical) {
+                        SidebarNavGroups(vm: vm, localization: localization, currentTab: $currentTab)
+                            .padding(.horizontal, 10)
+                    }
+    
+                    SidebarPinnedFooter(vm: vm, localization: localization, appColorScheme: $appColorScheme)
+                }
+                .frame(minWidth: 240, idealWidth: 240, maxWidth: 240, maxHeight: .infinity, alignment: .top)
+                .background(Color(nsColor: .windowBackgroundColor).ignoresSafeArea())
+    }
+
     var body: some View {
         ZStack {
             NavigationSplitView {
-            VStack(spacing: 0) {
-
-                // Account Header Card — compact identity + active profile +
-                // key metadata (mods active/total, SMAPI status). Replaces the
-                // old bulky 48px avatar and the floating SystemStatusFooter:
-                // everything the user needs at-a-glance is now in one card.
-                AccountHeaderCard(
-                    vm: vm,
-                    isActive: currentTab == .home,
-                    isHovered: isProfileHovered,
-                    onTap: { currentTab = .home }
-                )
-                .onHover { isProfileHovered = $0 }
-                .padding(.horizontal, 10)
-                .padding(.top, 14)
-                .padding(.bottom, 16)
-
-                // En fenêtre basse, ce sont les groupes qui défilent :
-                // l'ancienne pile plein-fixe écrêtait d'abord le bas de la
-                // colonne — poids de `Mods/`, thème, langue — sous la hauteur
-                // disponible. Patron des pages de liste : haut fixe, milieu
-                // défilant, pied épinglé.
-                ScrollView(.vertical) {
-                    SidebarNavGroups(vm: vm, currentTab: $currentTab)
-                        .padding(.horizontal, 10)
-                }
-
-                SidebarPinnedFooter(vm: vm, appColorScheme: $appColorScheme)
-            }
-            .frame(minWidth: 240, idealWidth: 240, maxWidth: 240, maxHeight: .infinity, alignment: .top)
-            .background(Color(nsColor: .windowBackgroundColor).ignoresSafeArea())
+                sidebarColumn
 
         } detail: {
             // ── CONTENT AREA ─────────────────────────────────────────
@@ -129,150 +295,11 @@ struct MainView: View {
                 // comparait des chaînes, et un identifiant mal écrit rendait
                 // une page blanche en silence. Même règle que
                 // `SettingsSectionOrder.sectionView`.
-                switch currentTab {
-                case .mods:
-                    if let mod = vm.editingModConfig {
-                        // L'onglet visuel par défaut : c'est celui qui montre
-                        // les réglages du mod, l'onglet de code étant le repli
-                        // pour ce que l'écran ne sait pas rendre.
-                        ModConfigEditorView(vm: vm, mod: mod)
-                    } else if let mod = vm.viewingModDetail {
-                        ModDetailView(vm: vm, mod: mod)
-                            .id(mod.folderName)
-                    } else {
-                        ModListView(vm: vm, currentTab: $currentTab)
-                    }
-                case .configBackups:
-                    ModConfigBackupsView(vm: vm)
-                case .maintenance:
-                    MaintenanceView(vm: vm)
-                case .installBackups:
-                    ModInstallBackupsView(vm: vm)
-                case .saves:
-                    if let save = vm.viewingSaveTimeline {
-                        SaveTimelineView(vm: vm, save: save)
-                    } else if let save = vm.editingSave {
-                        SaveEditorView(vm: vm, save: save)
-                    } else {
-                        SavesView(vm: vm)
-                    }
-                case .profiles:
-                    ModProfilesView(vm: vm, currentTab: $currentTab)
-                case .updates:
-                    UpdatesView(vm: vm, currentTab: $currentTab)
-                case .systemAlerts:
-                    SystemAlertsView(vm: vm, currentTab: $currentTab)
-                case .quarantine:
-                    QuarantineView(vm: vm)
-                case .discover:
-                    DiscoverView(vm: vm, currentTab: $currentTab)
-                case .thaiHub:
-                    ThaiTranslationHubView(vm: vm)
-                case .settings:
-                    SettingsView(vm: vm)
-                case .logs:
-                    LogsView(vm: vm)
-                case .appChangelog:
-                    AppChangelogView(vm: vm)
-                case .home:
-                    HomeView(vm: vm, currentTab: $currentTab)
-                }
+                destinationView
             }
             .navigationTitle(navigationTitleText)
-            .onChange(of: currentTab) { _, _ in
-                vm.editingSave = nil
-                vm.viewingThaiMod = nil
-                vm.viewingSaveTimeline = nil
-                vm.editingModConfig = nil
-                vm.viewingModDetail = nil
-
-                // …sauf une demande de traduction, qui est précisément **ce
-                // qui** amène sur cet onglet (B3-T4, depuis la couverture
-                // française d'un profil). La poser avant de changer d'onglet
-                // ne servait à rien : la remise à zéro ci-dessus l'effaçait
-                // aussitôt, et le bouton n'ouvrait que la liste des mods.
-                if currentTab == .mods, let folderName = vm.pendingTranslationFocus {
-                    vm.viewingModDetail = vm.mods.flattenedMods
-                        .first { $0.folderName == folderName }
-                }
-
-                // T8 — même piège, même cure pour l'éditeur de config,
-                // demandé depuis le rapport de raccourcis (Alertes système).
-                // Contrairement à la traduction, rien ne se consomme plus
-                // tard dans la vue : l'éditeur n'a pas d'onglet à présélectionner,
-                // on l'ouvre donc ici et on efface la demande aussitôt — sans
-                // quoi chaque retour sur l'onglet la rejouerait.
-                if currentTab == .mods, let folderName = vm.pendingConfigFocus {
-                    vm.pendingConfigFocus = nil
-                    vm.editingModConfig = vm.mods.flattenedMods
-                        .first { $0.folderName == folderName }
-                }
-
-                // H-T6b — même piège, même cure pour la fiche mod, demandée
-                // depuis l'écran d'alertes système : une ligne SMAPI porte un
-                // nom affiché, une ligne de conflit un `folderName` —
-                // `ModFocusResolver` accepte les deux.
-                if currentTab == .mods, let query = vm.pendingModDetailFocus {
-                    vm.pendingModDetailFocus = nil
-                    vm.viewingModDetail = ModFocusResolver.resolve(query, in: vm.mods)
-                    // Résolution vide : aucune fiche ne s'ouvrira, donc
-                    // personne ne consommera l'onglet demandé — il faut
-                    // l'effacer ici, sinon la prochaine fiche ouverte à la
-                    // main s'ouvrirait sur « État » sans raison.
-                    if vm.viewingModDetail == nil { vm.pendingDetailTab = nil }
-                }
-
-                if !isNavigatingBackOrForward {
-                    if tabHistory.last != currentTab {
-                        tabHistory.append(currentTab)
-                        forwardHistory.removeAll()
-                    }
-                } else {
-                    isNavigatingBackOrForward = false
-                }
-            }
-            .toolbar {
-                ToolbarItem(placement: .navigation) {
-                    HStack(spacing: 8) {
-                        Button(action: {
-                            if vm.editingSave != nil {
-                                vm.editingSave = nil
-                            } else if vm.viewingThaiMod != nil {
-                                vm.viewingThaiMod = nil
-                            } else if vm.viewingSaveTimeline != nil {
-                                vm.viewingSaveTimeline = nil
-                            } else if vm.editingModConfig != nil {
-                                vm.editingModConfig = nil
-                            } else if vm.viewingModDetail != nil {
-                                vm.viewingModDetail = nil
-                            } else if tabHistory.count > 1 {
-                                isNavigatingBackOrForward = true
-                                let current = tabHistory.removeLast()
-                                forwardHistory.append(current)
-                                currentTab = tabHistory.last ?? .home
-                            }
-                        }) {
-                            Image(systemName: "chevron.left")
-                        }
-                        .accessibilityLabel(vm.L(L10n.Main.navBack))
-                        .help(vm.L(L10n.Main.navBack))
-                        .disabled(vm.editingSave == nil && vm.viewingThaiMod == nil && vm.viewingSaveTimeline == nil && vm.editingModConfig == nil && vm.viewingModDetail == nil && tabHistory.count <= 1)
-                        
-                        Button(action: {
-                            if let next = forwardHistory.popLast() {
-                                isNavigatingBackOrForward = true
-                                tabHistory.append(next)
-                                currentTab = next
-                            }
-                        }) {
-                            Image(systemName: "chevron.right")
-                        }
-                        .accessibilityLabel(vm.L(L10n.Main.navForward))
-                        .help(vm.L(L10n.Main.navForward))
-                        .disabled(forwardHistory.isEmpty)
-                    }
-                }
-            }
+            .onChange(of: currentTab) { _, _ in handleTabChange() }
+            .toolbar { ToolbarItem(placement: .navigation) { navHistoryButtons } }
             .frame(minWidth: 560, minHeight: 400)
             .background(Color(nsColor: .windowBackgroundColor).ignoresSafeArea())
             .toolbarBackground(.hidden, for: .windowToolbar)
@@ -285,14 +312,14 @@ struct MainView: View {
             if let progress = vm.profileApplyProgress {
                 switch progress.phase {
                 case .movingFolders:
-                    ModalProgressOverlay(label: vm.L(L10n.Profiles.applyingMoving),
+                    ModalProgressOverlay(label: localization.L(L10n.Profiles.applyingMoving),
                                          done: progress.done,
                                          total: progress.total)
                 case .rescanning:
                     // Le rescane publie déjà son propre avancement pour le
                     // voile de démarrage : on le montre plutôt que de laisser
                     // la barre pleine du temps d'avant.
-                    ModalProgressOverlay(label: vm.L(L10n.Profiles.applyingScanning),
+                    ModalProgressOverlay(label: localization.L(L10n.Profiles.applyingScanning),
                                          done: vm.scanProgress?.done ?? 0,
                                          total: vm.scanProgress?.total ?? 0)
                 }
@@ -302,7 +329,7 @@ struct MainView: View {
             // d'application de profil. Elle ne s'y ouvre pas pour autant :
             // `canPresentPalette` le refuse (voir plus haut).
             if showCommandPalette {
-                CommandPaletteView(vm: vm, isPresented: $showCommandPalette)
+                CommandPaletteView(vm: vm, localization: localization, isPresented: $showCommandPalette)
                     .zIndex(10)
             }
         } // End of outer ZStack
@@ -311,7 +338,7 @@ struct MainView: View {
         // app is ready, so there's never a half-loaded UI to cover up.
         .frame(minWidth: 820, minHeight: 520)
         .preferredColorScheme(colorScheme)
-        .environment(\.locale, Locale(identifier: vm.currentLanguage))
+        .environment(\.locale, Locale(identifier: localization.currentLanguage))
         .onReceive(NotificationCenter.default.publisher(for: .jumpToMod)) { notification in
             if let modName = notification.object as? String {
                 vm.selectedModID = ModFocusResolver.resolve(modName, in: vm.mods)?.folderName
@@ -348,9 +375,9 @@ struct MainView: View {
         }
         .alert(isPresented: $vm.showAlert) {
             Alert(
-                title: Text(vm.L(L10n.Main.alert)),
+                title: Text(localization.L(L10n.Main.alert)),
                 message: Text(vm.alertMessage),
-                dismissButton: .default(Text(vm.L(L10n.Main.ok)))
+                dismissButton: .default(Text(localization.L(L10n.Main.ok)))
             )
         }
         // R2 — une application de profil morte en route : reprendre ou
@@ -366,10 +393,10 @@ struct MainView: View {
             titleVisibility: .visible
         ) {
             if vm.recoveryProfileExists {
-                Button(vm.L(L10n.VM.profileRecoveryResume)) { vm.resumeInterruptedApply() }
-                Button(vm.L(L10n.VM.profileRecoveryKeep), role: .cancel) { vm.keepCurrentDiskState() }
+                Button(localization.L(L10n.VM.profileRecoveryResume)) { vm.resumeInterruptedApply() }
+                Button(localization.L(L10n.VM.profileRecoveryKeep), role: .cancel) { vm.keepCurrentDiskState() }
             } else {
-                Button(vm.L(L10n.VM.profileRecoveryDismiss), role: .cancel) { vm.dismissApplyRecovery() }
+                Button(localization.L(L10n.VM.profileRecoveryDismiss), role: .cancel) { vm.dismissApplyRecovery() }
             }
         }
         .onChange(of: vm.pendingDownloadedZip) { _, newValue in
@@ -388,7 +415,7 @@ struct MainView: View {
             // la file nxm:// peut dérouler le lien suivant, s'il y en a.
             vm.drainQueuedNexusDownloads()
         }) {
-            ModInstallView(vm: vm, currentTab: $currentTab, isPresented: $showDownloadedInstall, preloadedZip: vm.pendingDownloadedZip)
+            ModInstallView(vm: vm, localization: localization, currentTab: $currentTab, isPresented: $showDownloadedInstall, preloadedZip: vm.pendingDownloadedZip)
         }
         // Le bilan d'installation vit dans SA fenêtre — ouverte dès qu'un
         // report est posé (réouverture idempotente, contenu remplacé).
@@ -406,7 +433,7 @@ struct MainView: View {
             // PAS de discard ici : fichiers originaux de l'utilisateur.
             vm.clearDropPresentation()
         }) {
-            ModInstallView(vm: vm, currentTab: $currentTab,
+            ModInstallView(vm: vm, localization: localization, currentTab: $currentTab,
                            isPresented: $showDropInstall,
                            preloadedZip: vm.pendingDropPresentation)
         }
@@ -448,7 +475,7 @@ struct MainView: View {
                 vm.acknowledgeRelease(release)
             }
         )) { release in
-            AppUpdateAlertView(vm: vm, release: release)
+            AppUpdateAlertView(vm: vm, localization: localization, release: release)
         }
     }
     
@@ -470,6 +497,7 @@ struct MainView: View {
 /// lignes qui défilent, pas les réglages du bas.
 struct SidebarNavGroups: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     @Binding var currentTab: SidebarDestination
     @AppStorage("showThaiTranslationHub") private var showThaiTranslationHub = false
 
@@ -499,7 +527,7 @@ struct SidebarNavGroups: View {
                 // veut dire « cet item ne compte rien », `0` « il compte, et
                 // il n'y a rien ». Pas de branche à écrire.
                 let b = badge(e.destination)
-                SidebarItem(icon: e.icon, label: vm.L(e.labelKey),
+                SidebarItem(icon: e.icon, label: localization.L(e.labelKey),
                             tab: e.destination, badge: b?.count,
                             badgeColor: b?.color ?? .blue,
                             currentTab: $currentTab)
@@ -512,13 +540,13 @@ struct SidebarNavGroups: View {
     /// parce que le menu « Aller » et la palette en ont besoin, pas la barre.
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            group(.library, header: vm.L(L10n.Main.groupLibrary),
+            group(.library, header: localization.L(L10n.Main.groupLibrary),
                   icon: "square.grid.2x2")
-            group(.saves, header: vm.L(L10n.Main.groupSaves),
+            group(.saves, header: localization.L(L10n.Main.groupSaves),
                   icon: "gamecontroller")
-            group(.health, header: vm.L(L10n.Main.groupHealth),
+            group(.health, header: localization.L(L10n.Main.groupHealth),
                   icon: "cross.case")
-            group(.app, header: vm.L(L10n.Main.groupApp), icon: "gearshape")
+            group(.app, header: localization.L(L10n.Main.groupApp), icon: "gearshape")
         }
     }
 }
@@ -531,6 +559,7 @@ struct SidebarNavGroups: View {
 /// l'ancienne pile plein-fixe laissait écrêter en premier.
 struct SidebarPinnedFooter: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     @Binding var appColorScheme: String
 
     var body: some View {
@@ -539,15 +568,15 @@ struct SidebarPinnedFooter: View {
             // arriver du navigateur quel que soit l'onglet ouvert, et le
             // téléchargement n'avait jusqu'ici pour tout témoin qu'un
             // spinner sur la page des mises à jour.
-            NexusDownloadFooter(vm: vm)
+            NexusDownloadFooter(vm: vm, localization: localization)
 
-            ModsWeightFooter(vm: vm)
+            ModsWeightFooter(vm: vm, localization: localization)
 
             // Bottom bar: theme switcher (left) + language switcher (right).
             HStack {
-                ThemeToggle(vm: vm, appColorScheme: $appColorScheme)
+                ThemeToggle(vm: vm, localization: localization, appColorScheme: $appColorScheme)
                 Spacer()
-                LanguageFlagToggle(vm: vm)
+                LanguageFlagToggle(vm: vm, localization: localization)
             }
         }
         .padding(.horizontal, 10)
@@ -559,15 +588,16 @@ struct SidebarPinnedFooter: View {
 // MARK: - Sidebar Section Header
 /// Compact language switcher shown at the bottom of the sidebar: two flag
 /// buttons (🇫🇷 / 🇬🇧) with the active language highlighted. Setting
-/// `vm.currentLanguage` swaps the bundle live (same path as before), so the UI
+/// `localization.currentLanguage` swaps the bundle live (same path as before), so the UI
 /// re-localizes immediately.
 struct LanguageFlagToggle: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
 
     var body: some View {
         HStack(spacing: 2) {
-            flagButton(flag: "🇫🇷", code: "fr", help: vm.L(L10n.Settings.languageFrench))
-            flagButton(flag: "🇬🇧", code: "en", help: vm.L(L10n.Settings.languageEnglish))
+            flagButton(flag: "🇫🇷", code: "fr", help: localization.L(L10n.Settings.languageFrench))
+            flagButton(flag: "🇬🇧", code: "en", help: localization.L(L10n.Settings.languageEnglish))
         }
         .padding(3)
         .background(Color.primary.opacity(0.06))
@@ -575,9 +605,9 @@ struct LanguageFlagToggle: View {
     }
 
     private func flagButton(flag: String, code: String, help: String) -> some View {
-        let isActive = vm.currentLanguage == code
+        let isActive = localization.currentLanguage == code
         return Button {
-            if vm.currentLanguage != code { vm.currentLanguage = code }
+            if localization.currentLanguage != code { localization.setLanguage(code) }
         } label: {
             Text(flag)
                 .font(.system(size: 15))
@@ -600,13 +630,14 @@ struct LanguageFlagToggle: View {
 /// same `appColorScheme` AppStorage the app reads for `preferredColorScheme`.
 struct ThemeToggle: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     @Binding var appColorScheme: String
 
     var body: some View {
         HStack(spacing: 2) {
-            themeButton(icon: "circle.lefthalf.filled", value: "System", help: vm.L(L10n.Settings.themeSystem))
-            themeButton(icon: "sun.max.fill", value: "Light", help: vm.L(L10n.Settings.themeLight))
-            themeButton(icon: "moon.fill", value: "Dark", help: vm.L(L10n.Settings.themeDark))
+            themeButton(icon: "circle.lefthalf.filled", value: "System", help: localization.L(L10n.Settings.themeSystem))
+            themeButton(icon: "sun.max.fill", value: "Light", help: localization.L(L10n.Settings.themeLight))
+            themeButton(icon: "moon.fill", value: "Dark", help: localization.L(L10n.Settings.themeDark))
         }
         .padding(3)
         .background(Color.primary.opacity(0.06))
@@ -660,6 +691,7 @@ struct SidebarSectionHeader: View {
 // MARK: - Updates View (macOS System Settings style)
 struct UpdatesView: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
     @Binding var currentTab: SidebarDestination
     
     var body: some View {
@@ -676,11 +708,11 @@ struct UpdatesView: View {
                             Image(systemName: "exclamationmark.triangle")
                                 .foregroundColor(.orange)
                                 .font(.system(size: 16))
-                            Text(vm.L(L10n.Updates.smapiSection))
+                            Text(localization.L(L10n.Updates.smapiSection))
                                 .font(.system(size: 14, weight: .bold))
                                 .foregroundColor(.primary)
                         }
-                        Text(vm.L(L10n.Updates.smapiNote))
+                        Text(localization.L(L10n.Updates.smapiNote))
                             .font(.system(size: 12))
                             .foregroundColor(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -708,7 +740,7 @@ struct UpdatesView: View {
                                     // dans « You can update N mods ». Nue sous
                                     // le nom du mod, elle se lisait comme la
                                     // version installée, c'est-à-dire l'inverse.
-                                    Text(String(format: vm.L(L10n.Updates.availableVersion),
+                                    Text(String(format: localization.L(L10n.Updates.availableVersion),
                                                 mod.version))
                                         .font(.system(size: 12))
                                         .foregroundColor(.secondary)
@@ -718,7 +750,7 @@ struct UpdatesView: View {
                                     // leur lien pointe vers smapi.io. Le mod
                                     // peut n'avoir aucune page Nexus. Le
                                     // pourquoi est dit une fois, plus bas.
-                                    Text(vm.L(L10n.Updates.updateAvailable))
+                                    Text(localization.L(L10n.Updates.updateAvailable))
                                         .font(.system(size: 12))
                                         .foregroundColor(.orange)
                                         .padding(.top, 2)
@@ -733,7 +765,7 @@ struct UpdatesView: View {
                                         // Il ouvre `smapi.io/mods#…`, où rien
                                         // ne se télécharge : promettre un
                                         // téléchargement était un faux départ.
-                                        Text(vm.L(L10n.Updates.openSmapiPage))
+                                        Text(localization.L(L10n.Updates.openSmapiPage))
                                             .font(.system(size: 12, weight: .medium))
                                             .foregroundColor(.primary)
                                             .padding(.horizontal, 16)
@@ -752,13 +784,13 @@ struct UpdatesView: View {
                                 // — était inventé : l'app ne sait rien du
                                 // contenu de la mise à jour. La phrase le dit
                                 // maintenant, au lieu de le supposer.
-                                Text(vm.L(L10n.Updates.smapiDescription))
+                                Text(localization.L(L10n.Updates.smapiDescription))
                                     .font(.system(size: 13))
                                     .foregroundColor(.secondary)
                                     .fixedSize(horizontal: false, vertical: true)
 
                                 HStack(spacing: 4) {
-                                    Text(vm.L(L10n.Updates.visitWebsite))
+                                    Text(localization.L(L10n.Updates.visitWebsite))
                                         .font(.system(size: 13))
                                         .foregroundColor(.secondary)
                                     // Vrai lien cliquable plutôt qu'un Markdown
@@ -784,7 +816,7 @@ struct UpdatesView: View {
                         Image(systemName: "arrow.triangle.2.circlepath")
                             .foregroundColor(.accentColor)
                             .font(.system(size: 16))
-                        Text(vm.L(L10n.Updates.nexusSection))
+                        Text(localization.L(L10n.Updates.nexusSection))
                             .font(.system(size: 14, weight: .bold))
                             .foregroundColor(.primary)
                         Spacer()
@@ -795,7 +827,7 @@ struct UpdatesView: View {
                             Button {
                                 vm.checkNexusUpdates()
                             } label: {
-                                Text(vm.L(L10n.Updates.nexusCheckButton))
+                                Text(localization.L(L10n.Updates.nexusCheckButton))
                                     .font(.system(size: 12, weight: .medium))
                             }
                         }
@@ -814,7 +846,7 @@ struct UpdatesView: View {
                                 .font(.system(size: 12))
                                 .padding(.top, 2)
                             VStack(alignment: .leading, spacing: 4) {
-                                Text(vm.L(L10n.Updates.nexusApiKeyMissing))
+                                Text(localization.L(L10n.Updates.nexusApiKeyMissing))
                                     .font(.system(size: 12))
                                     .foregroundColor(.secondary)
                                 Button {
@@ -822,7 +854,7 @@ struct UpdatesView: View {
                                         NSWorkspace.shared.open(url)
                                     }
                                 } label: {
-                                    Text(vm.L(L10n.Updates.nexusGetKey))
+                                    Text(localization.L(L10n.Updates.nexusGetKey))
                                         .font(.system(size: 12, weight: .medium))
                                         .foregroundColor(.accentColor)
                                 }
@@ -837,7 +869,7 @@ struct UpdatesView: View {
                             HStack(spacing: 8) {
                                 ProgressView()
                                     .controlSize(.small)
-                                Text(vm.L(L10n.Updates.nexusChecking))
+                                Text(localization.L(L10n.Updates.nexusChecking))
                                     .font(.system(size: 12))
                                     .foregroundColor(.secondary)
                                 if let prog = vm.nexusCheckProgress, prog.total > 0 {
@@ -864,8 +896,8 @@ struct UpdatesView: View {
                         // error banner must never hide real data that was
                         // actually gathered.
                         Text(err == "rate_limited"
-                             ? vm.L(L10n.Updates.nexusRateLimited)
-                             : vm.L(L10n.Updates.nexusError))
+                             ? localization.L(L10n.Updates.nexusRateLimited)
+                             : localization.L(L10n.Updates.nexusError))
                             .font(.system(size: 12))
                             .foregroundColor(.red.opacity(0.8))
                     } else if vm.nexusUpdates.isEmpty {
@@ -882,7 +914,7 @@ struct UpdatesView: View {
                         // serait un quitus pour des mods sans verdict : le
                         // texte ne le dit plus, et le bloc sous la liste
                         // nomme les concernés.
-                        Text(vm.L(vm.unverifiableMods.isEmpty
+                        Text(localization.L(vm.unverifiableMods.isEmpty
                                   ? L10n.Updates.allUpToDate
                                   : L10n.Updates.allVerifiedUpToDate))
                         }
@@ -895,7 +927,7 @@ struct UpdatesView: View {
                         // date de mise en ligne, qui lui ne se voyait pas —
                         // et que le passage à smapi.io avait de toute façon
                         // fait disparaître sans que la phrase suive.
-                        Text(String(format: vm.L(L10n.Updates.nexusUpdatesCount),
+                        Text(String(format: localization.L(L10n.Updates.nexusUpdatesCount),
                                     Int64(vm.nexusUpdates.count)))
                             .font(.system(size: 12))
                             .foregroundColor(.secondary)
@@ -918,7 +950,7 @@ struct UpdatesView: View {
                                         Text(update.name)
                                             .font(.system(size: 14, weight: .semibold))
                                             .foregroundColor(.primary)
-                                        Text(isEnabled ? vm.L(L10n.Updates.enabled) : vm.L(L10n.Updates.disabled))
+                                        Text(isEnabled ? localization.L(L10n.Updates.enabled) : localization.L(L10n.Updates.disabled))
                                             .font(.system(size: 9, weight: .medium))
                                             .foregroundColor(isEnabled ? AppDesign.Color.installed : .orange)
                                             .padding(.horizontal, 6)
@@ -927,11 +959,11 @@ struct UpdatesView: View {
                                             .cornerRadius(4)
                                     }
                                     HStack(spacing: 12) {
-                                        Label("\(vm.L(L10n.Updates.installedVersion)) \(update.installedVersion)",
+                                        Label("\(localization.L(L10n.Updates.installedVersion)) \(update.installedVersion)",
                                               systemImage: "tag.fill")
                                             .font(.system(size: 11))
                                             .foregroundColor(.secondary)
-                                        Label("\(vm.L(L10n.Updates.latestVersion)) \(update.latestVersion)",
+                                        Label("\(localization.L(L10n.Updates.latestVersion)) \(update.latestVersion)",
                                               systemImage: "sparkles")
                                             .font(.system(size: 11))
                                             .foregroundColor(.green)
@@ -968,15 +1000,15 @@ struct UpdatesView: View {
                                         .buttonStyle(.plain)
                                         .foregroundStyle(.secondary)
                                         .pointingHandCursor()
-                                        .help(vm.L(L10n.Downloads.cancel))
+                                        .help(localization.L(L10n.Downloads.cancel))
                                     }
-                                    .help(vm.L(L10n.VM.nexusDlStarting).replacingOccurrences(of: "%lld", with: String(nexusId)))
+                                    .help(localization.L(L10n.VM.nexusDlStarting).replacingOccurrences(of: "%lld", with: String(nexusId)))
                                 } else {
                                     if let nexusId = Int(update.nexusModId) {
                                         Button {
                                             vm.downloadModFromNexus(nexusId: nexusId)
                                         } label: {
-                                            Label(vm.L(L10n.Mods.premiumUpdate), systemImage: "arrow.down.circle")
+                                            Label(localization.L(L10n.Mods.premiumUpdate), systemImage: "arrow.down.circle")
                                         }
                                         .buttonStyle(.bordered)
                                         // Désactivé quand on **sait** que le
@@ -988,7 +1020,7 @@ struct UpdatesView: View {
                                         // rien.
                                         .disabled(vm.isDownloadingFromNexus || vm.nexusDirectDownloadUnavailable)
                                         .help(vm.nexusDirectDownloadUnavailable
-                                              ? vm.L(L10n.Mods.premiumOnlyHint) : "")
+                                              ? localization.L(L10n.Mods.premiumOnlyHint) : "")
                                     }
 
                                     Button {
@@ -999,7 +1031,7 @@ struct UpdatesView: View {
                                             if let url = comps.url { NSWorkspace.shared.open(url) }
                                         }
                                     } label: {
-                                        Text(vm.L(L10n.Mods.nexusUpdate))
+                                        Text(localization.L(L10n.Mods.nexusUpdate))
                                             .font(.system(size: 12, weight: .medium))
                                             .foregroundColor(.primary)
                                             .padding(.horizontal, 14)
@@ -1019,13 +1051,13 @@ struct UpdatesView: View {
                                         vm.affirmInstalled(uniqueId: update.uniqueId,
                                                            version: update.latestVersion)
                                     } label: {
-                                        Text(vm.L(L10n.Updates.nexusAlreadyHave))
+                                        Text(localization.L(L10n.Updates.nexusAlreadyHave))
                                             .font(.system(size: 12))
                                             .foregroundColor(.secondary)
                                     }
                                     .buttonStyle(PlainButtonStyle())
                                     .pointingHandCursor()
-                                    .help(vm.L(L10n.Updates.nexusAlreadyHaveHelp))
+                                    .help(localization.L(L10n.Updates.nexusAlreadyHaveHelp))
 
                                     // R3 — « je sais, pas maintenant ». Troisième
                                     // geste après mettre à jour et « je l'ai
@@ -1038,23 +1070,23 @@ struct UpdatesView: View {
                                         Button {
                                             vm.snoozeUpdate(update, mode: .oneWeek)
                                         } label: {
-                                            Label(vm.L(L10n.Updates.snoozeOneWeek),
+                                            Label(localization.L(L10n.Updates.snoozeOneWeek),
                                                   systemImage: "clock")
                                         }
                                         Button {
                                             vm.snoozeUpdate(update, mode: .untilModVersion)
                                         } label: {
-                                            Label(vm.L(L10n.Updates.snoozeUntilModVersion),
+                                            Label(localization.L(L10n.Updates.snoozeUntilModVersion),
                                                   systemImage: "sparkles")
                                         }
                                         Button {
                                             vm.snoozeUpdate(update, mode: .untilGameVersion)
                                         } label: {
-                                            Label(vm.L(L10n.Updates.snoozeUntilGameVersion),
+                                            Label(localization.L(L10n.Updates.snoozeUntilGameVersion),
                                                   systemImage: "gamecontroller")
                                         }
                                     } label: {
-                                        Label(vm.L(L10n.Updates.snoozeButton),
+                                        Label(localization.L(L10n.Updates.snoozeButton),
                                               systemImage: "moon.zzz.fill")
                                             .font(.system(size: 12, weight: .medium))
                                             .foregroundColor(.primary)
@@ -1094,7 +1126,7 @@ struct UpdatesView: View {
                                     HStack(spacing: 6) {
                                         Text(row.name)
                                             .font(.system(size: 11, weight: .medium))
-                                        Text(vm.L(row.blocker.labelKey))
+                                        Text(localization.L(row.blocker.labelKey))
                                             .font(.system(size: 11))
                                             .foregroundStyle(.secondary)
                                         Spacer(minLength: 8)
@@ -1103,7 +1135,7 @@ struct UpdatesView: View {
                             }
                             .padding(.vertical, 4)
                         } label: {
-                            Label(String(format: vm.L(L10n.Updates.unverifiableTitle),
+                            Label(String(format: localization.L(L10n.Updates.unverifiableTitle),
                                          Int64(vm.unverifiableMods.count)),
                                   systemImage: "exclamationmark.triangle.fill")
                                 .font(.system(size: 12))
@@ -1123,7 +1155,7 @@ struct UpdatesView: View {
                             VStack(alignment: .leading, spacing: 6) {
                                 // L'explication d'abord : la liste seule ne dit
                                 // ni ce que le geste a fait, ni ce qu'il coûte.
-                                Text(vm.L(L10n.Updates.affirmedExplanation))
+                                Text(localization.L(L10n.Updates.affirmedExplanation))
                                     .font(.system(size: 11))
                                     .foregroundStyle(.secondary)
                                     .fixedSize(horizontal: false, vertical: true)
@@ -1138,11 +1170,11 @@ struct UpdatesView: View {
                                         // numéro affirmé seul ne dit rien,
                                         // c'est l'écart avec le disque qui
                                         // trahit le clic malheureux.
-                                        Text(String(format: vm.L(L10n.Updates.affirmedVersion),
+                                        Text(String(format: localization.L(L10n.Updates.affirmedVersion),
                                                     row.affirmedVersion))
                                             .font(.system(size: 11, design: .monospaced))
                                             .foregroundStyle(.secondary)
-                                        Text(String(format: vm.L(L10n.Updates.affirmedOnDisk),
+                                        Text(String(format: localization.L(L10n.Updates.affirmedOnDisk),
                                                     row.manifestVersion))
                                             .font(.system(size: 11, design: .monospaced))
                                             .foregroundColor(row.disagreesWithDisk
@@ -1167,27 +1199,27 @@ struct UpdatesView: View {
                                             vm.pendingDetailTab = .state
                                             currentTab = .mods
                                         } label: {
-                                            Text(vm.L(L10n.Updates.affirmedOpenMod))
+                                            Text(localization.L(L10n.Updates.affirmedOpenMod))
                                                 .font(.system(size: 11))
                                         }
                                         .buttonStyle(PlainButtonStyle())
                                         .pointingHandCursor()
-                                        .help(vm.L(L10n.Updates.affirmedOpenModHelp))
+                                        .help(localization.L(L10n.Updates.affirmedOpenModHelp))
                                         Button {
                                             vm.revealAffirmedUpdate(uniqueId: row.uniqueId)
                                         } label: {
-                                            Text(vm.L(L10n.Updates.affirmedReveal))
+                                            Text(localization.L(L10n.Updates.affirmedReveal))
                                                 .font(.system(size: 11))
                                         }
                                         .buttonStyle(PlainButtonStyle())
                                         .pointingHandCursor()
-                                        .help(vm.L(L10n.Updates.affirmedRevealHelp))
+                                        .help(localization.L(L10n.Updates.affirmedRevealHelp))
                                     }
                                 }
                             }
                             .padding(.vertical, 4)
                         } label: {
-                            Label(String(format: vm.L(L10n.Updates.affirmedTitle),
+                            Label(String(format: localization.L(L10n.Updates.affirmedTitle),
                                          Int64(vm.affirmedUpdates.count)),
                                   systemImage: "eye.slash")
                                 .font(.system(size: 12))
@@ -1204,7 +1236,7 @@ struct UpdatesView: View {
                     if !vm.snoozedUpdates.isEmpty {
                         DisclosureGroup {
                             VStack(alignment: .leading, spacing: 6) {
-                                Text(vm.L(L10n.Updates.snoozedExplanation))
+                                Text(localization.L(L10n.Updates.snoozedExplanation))
                                     .font(.system(size: 11))
                                     .foregroundStyle(.secondary)
                                     .fixedSize(horizontal: false, vertical: true)
@@ -1221,7 +1253,7 @@ struct UpdatesView: View {
                                         Button {
                                             vm.unsnoozeUpdate(uniqueId: row.uniqueId)
                                         } label: {
-                                            Text(vm.L(L10n.Updates.snoozedWake))
+                                            Text(localization.L(L10n.Updates.snoozedWake))
                                                 .font(.system(size: 11))
                                         }
                                         .buttonStyle(PlainButtonStyle())
@@ -1231,7 +1263,7 @@ struct UpdatesView: View {
                             }
                             .padding(.vertical, 4)
                         } label: {
-                            Label(String(format: vm.L(L10n.Updates.snoozedTitle),
+                            Label(String(format: localization.L(L10n.Updates.snoozedTitle),
                                          Int64(vm.snoozedUpdates.count)),
                                   systemImage: "moon.zzz.fill")
                                 .font(.system(size: 12))
@@ -1293,6 +1325,7 @@ struct UpdatesView: View {
 /// seul l'habillage en fait un volet flottant plutôt qu'une ligne du pied.
 struct NexusDownloadFooter: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
 
     var body: some View {
         panel
@@ -1325,7 +1358,7 @@ struct NexusDownloadFooter: View {
                     .buttonStyle(.plain)
                     .foregroundStyle(.secondary)
                     .pointingHandCursor()
-                    .help(vm.L(L10n.Downloads.cancel))
+                    .help(localization.L(L10n.Downloads.cancel))
                 }
                 .foregroundStyle(.secondary)
 
@@ -1360,12 +1393,12 @@ struct NexusDownloadFooter: View {
     /// connaît, faute de quoi la barre latérale n'annonçait qu'un numéro.
     private var headline: String {
         guard let modId = vm.downloadingNexusModId else {
-            return vm.L(L10n.Downloads.connecting)
+            return localization.L(L10n.Downloads.connecting)
         }
         if let name = vm.nexusModDisplayName(for: modId) {
-            return String(format: vm.L(L10n.Downloads.downloadingNamed), name)
+            return String(format: localization.L(L10n.Downloads.downloadingNamed), name)
         }
-        return String(format: vm.L(L10n.Downloads.downloading), Int64(modId))
+        return String(format: localization.L(L10n.Downloads.downloading), Int64(modId))
     }
 
     /// Volume, débit et temps restant — chacun seulement s'il est mesuré.
@@ -1373,21 +1406,21 @@ struct NexusDownloadFooter: View {
     /// débit.
     private var detail: String {
         guard let progress = vm.nexusDownloadProgress else {
-            return vm.L(L10n.Downloads.connecting)
+            return localization.L(L10n.Downloads.connecting)
         }
         var parts: [String] = []
         if let total = progress.totalBytes {
-            parts.append(String(format: vm.L(L10n.Downloads.progress),
+            parts.append(String(format: localization.L(L10n.Downloads.progress),
                                 Self.bytes(progress.bytesReceived), Self.bytes(total)))
         } else {
-            parts.append(String(format: vm.L(L10n.Downloads.progressUnknownTotal),
+            parts.append(String(format: localization.L(L10n.Downloads.progressUnknownTotal),
                                 Self.bytes(progress.bytesReceived)))
         }
         if let rate = progress.bytesPerSecond {
-            parts.append(String(format: vm.L(L10n.Downloads.rate), Self.bytes(Int64(rate))))
+            parts.append(String(format: localization.L(L10n.Downloads.rate), Self.bytes(Int64(rate))))
         }
         if let remaining = progress.estimatedTimeRemaining, remaining > 0 {
-            parts.append(String(format: vm.L(L10n.Downloads.eta), Self.duration(remaining)))
+            parts.append(String(format: localization.L(L10n.Downloads.eta), Self.duration(remaining)))
         }
         return parts.joined(separator: " · ")
     }
@@ -1410,6 +1443,7 @@ struct NexusDownloadFooter: View {
 
 struct ModsWeightFooter: View {
     @ObservedObject var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
 
     /// Reprises telles quelles de `ModListRow` : la barre d'accent verte d'un
     /// mod actif, le gris d'un mod en pause.
@@ -1423,7 +1457,7 @@ struct ModsWeightFooter: View {
                     Image(systemName: "internaldrive")
                         .font(.system(size: 9))
                         .foregroundStyle(.secondary)
-                    Text(String(format: vm.L(L10n.Main.sidebarModsWeight),
+                    Text(String(format: localization.L(L10n.Main.sidebarModsWeight),
                                 Self.bytes(sizes.totalBytes)))
                         .font(.system(size: 10, weight: .medium).monospacedDigit())
                         .foregroundStyle(.secondary)
@@ -1446,7 +1480,7 @@ struct ModsWeightFooter: View {
                 }
 
                 if let free = sizes.availableBytes {
-                    Text(String(format: vm.L(L10n.Main.sidebarDiskFree), Self.bytes(free)))
+                    Text(String(format: localization.L(L10n.Main.sidebarDiskFree), Self.bytes(free)))
                         .font(.system(size: 9).monospacedDigit())
                         // Orange quand il reste moins que ce que pèsent déjà
                         // les mods : le prochain gros mod ne rentrera pas.
@@ -1464,7 +1498,7 @@ struct ModsWeightFooter: View {
             // fichiers — et le vide se lit comme un défaut.
             HStack(spacing: 4) {
                 ProgressView().controlSize(.mini).scaleEffect(0.6)
-                Text(vm.L(L10n.Main.sidebarModsWeightMeasuring))
+                Text(localization.L(L10n.Main.sidebarModsWeightMeasuring))
                     .font(.system(size: 10))
             }
             .foregroundStyle(.secondary)
@@ -1499,10 +1533,10 @@ struct ModsWeightFooter: View {
     private func legend(_ sizes: ModsFolderSizes) -> some View {
         HStack(spacing: 5) {
             dot(Self.activeColor)
-            Text(String(format: vm.L(L10n.Main.sidebarModsWeightActive),
+            Text(String(format: localization.L(L10n.Main.sidebarModsWeightActive),
                         Self.bytes(sizes.totalBytes - sizes.pausedBytes)))
             dot(Self.pausedColor)
-            Text(String(format: vm.L(L10n.Main.sidebarModsWeightAsleep),
+            Text(String(format: localization.L(L10n.Main.sidebarModsWeightAsleep),
                         Self.bytes(sizes.pausedBytes)))
         }
         .font(.system(size: 9).monospacedDigit())
@@ -1521,7 +1555,7 @@ struct ModsWeightFooter: View {
     /// Une barre ne se lit pas à voix haute : le lecteur d'écran reçoit les
     /// mêmes chiffres que les lignes de texte.
     static func a11yLabel(_ sizes: ModsFolderSizes, vm: StarHubTHViewModel) -> String {
-        let label = String(format: vm.L(L10n.Main.sidebarModsWeightA11y),
+        let label = String(format: vm.localization.L(L10n.Main.sidebarModsWeightA11y),
                            bytes(sizes.totalBytes),
                            bytes(sizes.totalBytes - sizes.pausedBytes),
                            bytes(sizes.pausedBytes),
@@ -1531,6 +1565,6 @@ struct ModsWeightFooter: View {
         // d'écran recevrait des chiffres périmés pendant les secondes qui
         // suivent chaque bascule, sans rien pour le dire.
         guard vm.isMeasuringModsFolder else { return label }
-        return label + " " + vm.L(L10n.Main.sidebarModsWeightMeasuring)
+        return label + " " + vm.localization.L(L10n.Main.sidebarModsWeightMeasuring)
     }
 }
