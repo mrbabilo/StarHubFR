@@ -10563,11 +10563,10 @@ for mod in mods {
     /// vise les closures confiées à `DispatchQueue.global().async`, qui
     /// survivent à leur appelant ; celles-ci sont construites et consommées dans
     /// un seul appel synchrone. Un `weak` n'y protégerait rien et changerait un
-    /// plantage impossible en réponses fausses et muettes : « aucun mod n'a
-    /// d'anomalie », « aucun poids mesuré ».
+    /// plantage impossible en réponses fausses et muettes : « aucune catégorie »,
+    /// « aucun poids mesuré ».
     private var scopingInputs: ModListScoping.Inputs {
         .init(category: { self.category(for: $0) },
-              hasAnomaly: { self.anomaly(for: $0) != nil },
               sizeOnDisk: { self.sizeOnDisk(of: $0) },
               favorites: favoriteMods,
               blacklisted: blacklistedMods,

@@ -153,22 +153,21 @@ enum ModListScoping {
     /// restent ici que ce qui calcule vraiment.
     ///
     /// ⚠️ **Les deux closures sont paresseuses à dessein, et doivent le rester.**
-    /// `category` est mémoïsée derrière un cache côté appelant, et `hasAnomaly`
-    /// fait un balayage de dépendances par mod — c'est pour ne pas le refaire à
-    /// chaque évaluation du sélecteur que `ModListView.scopeCounts` existe.
-    /// Résoudre ces verdicts d'avance pour les 949 mods du parc les
-    /// transformerait en balayage inconditionnel, y compris sous le cadrage
-    /// « Tous », qui ne lit jamais `hasAnomaly`. C'est le chemin même que **F3**
-    /// met en cause.
+    /// `category` est mémoïsée derrière un cache côté appelant, et `sizeOnDisk`
+    /// rend `nil` tant que la passe de mesure n'a pas abouti. Résoudre ces
+    /// verdicts d'avance pour les 949 mods du parc les transformerait en
+    /// balayage inconditionnel, y compris sous les tris et filtres qui ne les
+    /// lisent jamais. C'est le chemin même que **F3** met en cause.
+    ///
+    /// Le verdict d'anomalie n'est **pas** ici : il ne sert qu'au cadrage
+    /// « Problèmes », et `scoped(_:scope:hasAnomaly:)` est une fonction séparée,
+    /// appelée depuis les vues (`ModListView`) sans jamais avoir d'`Inputs` en
+    /// main. Il a vécu ici un temps sans lecteur — deux portes d'entrée pour la
+    /// même règle, le motif X45 que ce fichier existe précisément pour fermer.
     struct Inputs {
         /// La catégorie effective, surcharge manuelle comprise, un pack rendant
         /// celle qui domine chez ses composants.
         let category: (ModItem) -> NexusCategory?
-        /// Ce mod porte-t-il une anomalie ? La même règle que la pastille : le
-        /// cadrage ne regardait que les dépendances quand la pastille couvrait
-        /// aussi les erreurs du journal et les manifestes sans identifiant — un
-        /// mod pastillé pouvait manquer à l'onglet censé les réunir.
-        let hasAnomaly: (ModItem) -> Bool
         /// Le poids mesuré, `nil` tant que la mesure n'a pas abouti.
         let sizeOnDisk: (ModItem) -> Int64?
         let favorites: Set<String>
@@ -178,14 +177,12 @@ enum ModListScoping {
         let activationDates: [String: Date]
 
         init(category: @escaping (ModItem) -> NexusCategory? = { _ in nil },
-             hasAnomaly: @escaping (ModItem) -> Bool = { _ in false },
              sizeOnDisk: @escaping (ModItem) -> Int64? = { _ in nil },
              favorites: Set<String> = [],
              blacklisted: Set<String> = [],
              translation: TranslationState = .init(),
              activationDates: [String: Date] = [:]) {
             self.category = category
-            self.hasAnomaly = hasAnomaly
             self.sizeOnDisk = sizeOnDisk
             self.favorites = favorites
             self.blacklisted = blacklisted
@@ -236,6 +233,13 @@ enum ModListScoping {
     /// mod *actif*, jamais le plus gros du parc, alors que les trois quarts du
     /// poids dorment dans des mods en pause. L'état reste lisible ligne à ligne
     /// dans la liste ; ici, l'ordre du tri passe tel quel.
+    /// - Parameter hasAnomaly: le verdict d'anomalie, **paresseux à dessein**.
+    ///   Il fait un balayage de dépendances par mod — c'est pour ne pas le
+    ///   refaire à chaque évaluation du sélecteur que `ModListView.scopeCounts`
+    ///   existe. Le résoudre d'avance pour les 949 mods du parc en ferait un
+    ///   balayage inconditionnel, y compris sous « Tous », qui ne le lit jamais.
+    ///   C'est le chemin même que **F3** met en cause. Il arrive en paramètre
+    ///   plutôt que par `Inputs` parce que les vues appellent ce cadrage seul.
     static func scoped(_ mods: [ModItem], scope: ModFilter,
                        hasAnomaly: (ModItem) -> Bool) -> [ModItem] {
         switch scope {
@@ -314,6 +318,16 @@ enum ModListScoping {
     /// Le plus récent d'abord, les sans-date en fin de liste, départagés par
     /// nom. La forme est la même pour la date d'activation et celle
     /// d'installation : elle vivait en deux exemplaires identiques.
+    ///
+    /// ⚠️ **Un point n'est pas un simple déplacement : le départage par nom sur
+    /// dates égales.** Les deux originaux rendaient `l > r` nu, donc `false` à
+    /// dates égales — un ordre qui ne tenait que si `sorted(by:)` était stable,
+    /// ce que la bibliothèque standard ne garantit pas. C'est le défaut même que
+    /// le tri `.name` corrige juste au-dessus. Le cas est atteignable :
+    /// `copyItem` conserve la date d'empaquetage de l'archive, et le parc de
+    /// référence compte **63 horodatages partagés couvrant 175 de ses 961
+    /// dossiers** (mesuré le 2026-09-10). Couvert par
+    /// `equalDatesAreBrokenByNameRatherThanLeftUndetermined`.
     private static func byDateThenName(_ lhs: Date?, _ rhs: Date?,
                                        _ lhsMod: ModItem, _ rhsMod: ModItem) -> Bool {
         switch (lhs, rhs) {
