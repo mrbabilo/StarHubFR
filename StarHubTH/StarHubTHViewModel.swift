@@ -278,15 +278,13 @@ class StarHubTHViewModel: ObservableObject {
     /// instead of overwriting it with blanks; an empty changelog is fine (some
     /// mods simply have none) and doesn't void the description.
     private func fetchModDetailRemote(modId: Int, completion: @escaping (ModDetailRaw?) -> Void) {
-        NexusUpdateChecker.shared.fetchRawDescription(modId: modId) { description in
-            guard !description.isEmpty else {
-                completion(nil)
-                return
-            }
-            NexusUpdateChecker.shared.fetchChangelogs(modId: modId) { changelog in
-                completion(ModDetailRaw(description: description, changelog: changelog))
-            }
-        }
+        // La règle de composition (description vide -> tout invalide,
+        // changelog vide acceptable) vit en Core, testée avec des stubs.
+        ModDetailRefresh.fetch(
+            modId: modId,
+            fetchDescription: { NexusUpdateChecker.shared.fetchRawDescription(modId: $0, completion: $1) },
+            fetchChangelogs: { NexusUpdateChecker.shared.fetchChangelogs(modId: $0, completion: $1) },
+            completion: completion)
     }
     /// `{ nexusModId: categoryId }` map populated from each Nexus check.
     /// Survives launches (cached in UserDefaults) so the mods-list category
