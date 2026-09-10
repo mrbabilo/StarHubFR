@@ -90,12 +90,64 @@ un protocole par frontière d'I/O (`ModScanning`, `SaveStoring`, `PreferenceStor
 `Tests/Stubs/`. C'est ce qui leur permet de tester un store qui lit le disque ou le
 réseau — sans quoi « extraire un store » ne fait que déplacer du code intestable.
 
-Ce mécanisme n'est **pas encore nécessaire** ici, parce que les trois extractions
-faites à ce jour portaient sur de la logique **pure** (parseurs, comparaison), qui
-se teste sans bouchon. Il le deviendra dès la première extraction touchant au
-disque ou au réseau — sauvegardes, registre, Nexus. À ce moment-là : introduire le
-protocole **avec** son bouchon dans le même commit, et non « plus tard », faute de
-quoi le store arrivera dans Core sans un seul test possible.
+Ce mécanisme n'était **pas encore nécessaire** tant que les trois extractions faites
+portaient sur de la logique **pure** (parseurs, comparaison), qui se teste sans
+bouchon. ⚠️ **Il l'est devenu le 2026-09-10** : le point 1 du §5 est le registre des
+mods installés, qui lit et écrit `UserDefaults`. Introduire le protocole **avec** son
+bouchon dans le même commit, et non « plus tard », faute de quoi le store arrivera
+dans Core sans un seul test possible.
+
+### 3 bis. Ce que leur code livré donne — relevé du 2026-09-10
+
+Les §3, §8 et §9 n'avaient examiné que leur **plan** et leurs **correctifs**. Leur
+code résultant n'avait jamais été lu. Il l'a été via le remote `upstream` (pas de
+clone : `git show upstream/main:<chemin>`).
+
+**D'abord, leur refactor a abouti** — ce n'est pas une opinion : plus aucun
+ViewModel dans l'arbre, plus gros fichier **392 lignes**, 16 301 lignes réparties sur
+166 fichiers, `Tests/Stubs/` peuplé de 9 bouchons. Le doute raisonnable (« ils ont
+peut-être juste déplacé le fourre-tout ») est levé. Leur application est plus petite
+que la nôtre en fonctionnalités, mais la forme, elle, tient.
+
+**Quatre choses à reprendre, et pourquoi :**
+
+| Quoi | Pourquoi maintenant |
+| --- | --- |
+| **`PreferenceStoring` + `PreferenceStore` + `StubPreferenceStoring`** (`Services/System/`, `Tests/Stubs/`) — ~95 lignes en tout | C'est exactement la frontière dont le point 1 a besoin, déjà écrite et éprouvée. Protocole à 10 méthodes typées (`string`/`bool`/`data`/`dictionary` + les `set` + `removeObject`), `Live` en `struct` prenant `UserDefaults` en init, bouchon en cinq dictionnaires mémoire. Notre registre sérialise en JSON `Data` : il passe par `data(forKey:)` sans rien ajouter. ⚠️ **Un défaut à corriger en le reprenant** : `set(_ value: [String], forKey:)` existe **sans getter correspondant** — on peut écrire un tableau qu'aucune méthode ne relit. Ajouter `stringArray(forKey:)` ou retirer le setter. |
+| **`AppCoordinator`** — ce qui remplace le ViewModel | Il **ne publie rien** — vérifié sur les déclarations, pas sur sa prose : zéro `@Published`, seulement **10 références** (7 stores, plus `AppEnvironment`, `AlertStore`, `ToastStore` ; leur commentaire en annonce 8), et `ObservableObject` uniquement pour être injectable en `@EnvironmentObject`. L'argument porté par le code : ne rien posséder, c'est ne jamais pouvoir dériver de ce qu'on coordonne. **Cela répond à la question ouverte de notre §6 (« Cible »)**, où l'on écartait la suppression du ViewModel faute de filet : on n'a pas à le supprimer, il faut le **vider de son état publié**. La cible fonctionnelle qu'on s'était donnée trouve ici sa forme concrète. |
+| **Le patron « ce qui n'est pas à moi arrive en paramètre »** | Leur en-tête de `ModsStore` : `gameDir`, `chainToggleDependencies`, `showModal`, `log`, `refresh` « ne sont pas possédés ici » et sont passés en paramètres ou en closures. C'est la réponse aux deux blocages du §5 — les sorties `log(…)`/alerte du registre, et les cinq dépendances croisées des prédicats de liste. Ce n'est pas une astuce : c'est la même règle que notre critère d'entrée. |
+| **`check_file_length` (> 400 lignes)** dans leur `check_standards.py` | **La seule de leurs six règles que nous n'avons pas.** Nous couvrons déjà les cinq autres (`get`, classes non `final`, `.shared`, `DispatchQueue`, `@Published` sans `private(set)`). C'est précisément la règle qui aurait crié pendant les 41 jours où le God module a triplé. Chez nous : **37 fichiers dépassent 400 lignes**, pour 42 208 lignes cumulées — la baseline serait grosse, mais un cliquet ne juge que la hausse. |
+
+**Leur échappatoire mérite d'être reprise à côté de la nôtre, pas à sa place.** Ils
+autorisent le silence par un commentaire `// STANDARDS-EXCEPTION: <règle> — <raison>`
+**sur la ligne signalée**, vérifié par constat et non par catégorie. Notre cliquet, lui,
+compte et exige un `--update` visible dans le diff. Les deux ne font pas le même
+travail : le nôtre empêche la dérive globale, le leur oblige à **écrire la raison à
+l'endroit exact**. Pour les **70 `@Published` sans `private(set)`**, c'est le second
+qu'il faut : le §6 demande de classer chaque propriété (domaine → store, présentation →
+`@State` de la vue), et une annotation par site *est* ce classement, sous une forme que
+le script peut compter.
+
+**Un piège Swift qu'ils ont documenté et qu'on rencontrera au premier gros store** :
+`private` et `private(set)` sont de portée **fichier**, pas type. Découper un store en
+extensions (`ModsStore+Toggle.swift`…) force donc à élargir la visibilité des
+propriétés que les méthodes déplacées écrivent encore. Leur contournement est
+l'annotation d'exception ; le savoir avant évite de croire à une régression.
+
+**Ce qu'on n'importe pas, et pourquoi :**
+
+- **Leur mode de sortie.** Leur `check_standards.py` est un scan pleine base
+  *warnings-only* (`exit 0`) sauf `--strict`. Le nôtre est un vrai cliquet contre
+  baseline. Ne pas régresser vers le leur : un contrôle qui sort 0 sur un échec est
+  exactement le défaut que le §8 leur reproche par ailleurs.
+- **La sûreté du registre ne vient pas du protocole.** `PreferenceStoring` est un
+  passe-plat volontairement bête ; nos trois mécanismes (sauvegarde avant écriture,
+  restauration sur corruption, reconstruction depuis le disque) vivent **au-dessus**,
+  dans le store. C'est le bon découpage — mais adopter le protocole ne donne aucune de
+  ces garanties, et il serait facile de le croire.
+- **Leur prose a dérivé comme la nôtre.** L'en-tête de `ModsStore` renvoie à un
+  ViewModel qui n'existe plus, et leur §8 parle de « 43 `@Published` » d'un état
+  révolu. Lire leur **code**, jamais leurs commentaires, pour établir un fait.
 
 **Leurs coordonnées ne sont pas transposables.** Leur ViewModel faisait 2102 lignes,
 le nôtre en faisait 4378 au moment de l'audit : tous les numéros de ligne de leur
@@ -279,7 +331,7 @@ ViewModel. Elle naît dans son propre type, que le ViewModel se contente d'appel
 Le plan du hub de traduction la respecte déjà.
 
 
-## 6. Le bloc de tête — ~1 858 lignes en **deux morceaux**, 166 propriétés publiées
+## 6. Le bloc de tête — ~1 858 lignes en **deux morceaux**, 135 propriétés publiées
 
 > ⚠️ **Coordonnées corrigées le 2026-09-10.** Ce § disait « 1934 lignes, 70 propriétés
 > publiées, 36 fonctions », et « tout ce qui précède la première `MARK` ». Les trois
@@ -290,8 +342,14 @@ Le plan du hub de traduction la respecte déjà.
 >   qu'une `MARK` s'est insérée au milieu du bloc — la moitié du God module vit
 >   sous l'étiquette « Couverture française d'un profil (B3-T4) » (voir l'encadré
 >   du §5) ;
-> - le fichier porte **166 `@Published`** (et non 70) et **73 accès à
->   `UserDefaults`** (et non 33 — voir §9, P3).
+> - le fichier porte **135 `@Published`** (et non 70), dont **70 sans
+>   `private(set)`**, et **52 accès à `UserDefaults`** (et non 33 — voir §9, P3).
+>   ⚠️ Ces trois nombres se comptent **hors commentaires** : un `grep` nu sur
+>   `@Published` en rend 166 et sur `UserDefaults` 73, parce que la
+>   documentation du fichier parle abondamment des deux (31 mentions pour le
+>   premier, 21 pour le second). `check_standards.py` retire les commentaires
+>   avant de compter — c'est son chiffre qui fait foi, et le contrôle croisé
+>   tombe juste : 70 dans le VM + 5 ailleurs = les 75 de la baseline.
 >
 > Ce qui suit — la table des domaines, le tri des `@Published`, la cible, l'ordre
 > interne, les quatre conditions — **reste valable** : c'est du raisonnement, pas des
@@ -311,7 +369,7 @@ que la préparation.
 | **Bascule des mods** | `toggleMod`, `processNextToggleIfNeeded`, `performToggle` | Manipule le disque et sérialise les opérations. À extraire **après** le scan, dont il dépend |
 | **Détail de mod** | `loadModDetail`, `fetchModDetailRemote`, `markDetailNotLoading` | Réseau Nexus ; rejoint le domaine Nexus déjà identifié |
 
-### Les 166 propriétés publiées sont le vrai sujet
+### Les 135 propriétés publiées sont le vrai sujet
 
 Elles sont de deux natures que le fichier ne distingue pas :
 
@@ -444,7 +502,7 @@ coordonnées et leur outillage ne se transposent pas (§3).
 | **P0 Garde-fous** | **Oui, et déjà fait pour l'essentiel** | Leur 0.3 — « extraire la logique pure en fonctions libres, la tester, *puis* refactorer autour » — est exactement la méthode du §4, appliquée trois fois le 2026-08-01. **Manquent** : un tag `pre-refactor-baseline`, et le compteur d'avertissements de concurrence (`-Xfrontend -warn-concurrency` dans `build_app.py`) qui sert de jalon à leur P5 |
 | **P1 Sortir les types des fichiers fourre-tout** | Oui, mécanique | Fait pour `LogEntry`, `ThaiTranslationMod`, `ModUpdateInfo`. **Mais leur table `current → target` vise une arborescence que nous n'avons pas** — voir la question ouverte ci-dessous |
 | **P2 Corriger les violations de couche** | Oui, partiellement fait | `LogLevel.color` et les méthodes de `ThaiTranslationMod` prenant le ViewModel : faits. **Restent** : `Mod.Kind` (qui supprimerait les `flatMap { isGroup ? children : [self] }` réécrits trois fois), les identifiants typés (`Mod.ID` / `NexusID` / `FolderName`), et le `uniqueId` vide des groupes (**F4**) |
-| **P3 Protocoles et injection** | Oui — **plus urgent chez nous**, et l'écart se creuse | Ils comptaient 26 accès directs à `UserDefaults` ; nous en avions 33 dans le seul ViewModel au 2026-08-01, **73 au 2026-09-10**. `NSOpenPanel` y est toujours appelé deux fois (`:2321`, `:8728`). Pas besoin de leur `DependencyContainer` : un protocole ici, c'est un fichier de plus dans `Package.swift` |
+| **P3 Protocoles et injection** | Oui — **plus urgent chez nous**, et l'écart se creuse | Ils comptaient 26 accès directs à `UserDefaults` ; nous en avions 33 dans le seul ViewModel au 2026-08-01, **52 au 2026-09-10** (hors commentaires ; 73 au `grep` nu). `NSOpenPanel` y est toujours appelé deux fois (`:2321`, `:8728`). Pas besoin de leur `DependencyContainer` : un protocole ici, c'est un fichier de plus dans `Package.swift` |
 | **P4 Découper le ViewModel** | Oui — c'est le §6 | Leur ordre vaut, leurs numéros de ligne non |
 | **P5 Concurrence structurée** | **Douteux — et angle mort** | Ni `build_app.py` ni `Package.swift` ne passent `-swift-version 6` ou `-strict-concurrency` : **nous ne savons pas combien de problèmes existent**, faute de les avoir jamais fait compter (leur 0.4 sert à ça). À ne pas ouvrir avant que les domaines soient séparés — `@MainActor` sur un fourre-tout de 4000 lignes en révélerait des dizaines d'un coup, sans moyen de les isoler. **Première étape, peu coûteuse : mesurer** en ajoutant l'avertissement, sans rien corriger |
 | **P6 Balayage de nommage** | **Non** | Des centaines d'appels touchés pour un gain cosmétique, sans revue automatisée. Écarté (§7) |

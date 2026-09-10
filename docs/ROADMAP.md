@@ -1335,9 +1335,12 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
       **11 902 lignes** (mesuré le 2026-09-10 ; **4 296** au relevé initial du
       2026-07-30, soit **+177 % en 41 jours** — le module grossit plus vite qu'on ne
       l'allège, ~285 lignes/jour sur la dernière semaine) et concentre profils, scan,
-      Nexus, logs, configs et sauvegardes. Il porte **166 `@Published`** sur l'unique
-      `ObservableObject` qu'observe toute la fenêtre, et **73 accès directs à
-      `UserDefaults`**. C'est un sixième des 71 956 lignes Swift du dépôt.
+      Nexus, logs, configs et sauvegardes. Il porte **135 `@Published`** sur l'unique
+      `ObservableObject` qu'observe toute la fenêtre — dont **70 sans
+      `private(set)`**, soit les 75 du cliquet moins 5 ailleurs dans le dépôt —
+      et **52 accès directs à `UserDefaults`**. (Compté hors commentaires,
+      comme `check_standards.py` : un `grep` nu gonfle ces deux nombres à 166
+      et 73.) C'est un sixième des 71 956 lignes Swift du dépôt.
       ⚠️ **Ordre d'extraction re-dérivé le 2026-09-10** dans
       [`REFACTORING.md`](REFACTORING.md) §5 : l'ancien avait été écrit contre un VM de
       4 153 lignes et ne couvrait plus que 7 % du fichier. Le relevé s'y fait désormais
