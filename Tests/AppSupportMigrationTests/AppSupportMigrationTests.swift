@@ -44,6 +44,36 @@ struct AppSupportMigrationTests {
         #expect(text.contains("/Applications/Game/Mods/StarHubTH/y"))
     }
 
+    /// **La fixture vient du vrai producteur, pas de ma main.**
+    ///
+    /// Les trois index que la migration réécrit — `installed_translations.json`
+    /// et son `.bak`, `install_metadata.json`, `metadata.json` — sont écrits
+    /// par un `JSONEncoder` **nu**, qui échappe les slashes : le disque porte
+    /// `…\/StarHubTH\/…`, pas `…/StarHubTH/…`. Toutes les autres fixtures de
+    /// ce fichier sont écrites à la main avec des slashes nus, et c'est ce qui
+    /// a laissé passer le défaut : `rewrite` ne trouvait rien, rendait `nil`
+    /// en silence, et le dossier partait avec ses chemins périmés — le
+    /// scénario destructeur exact que cette réécriture existe pour empêcher.
+    ///
+    /// Mesuré le 2026-09-10 sur le parc : 150 slashes du registre réel, tous
+    /// échappés ; 220 `backupPath` de `install_metadata.json`, tous échappés.
+    @Test func pathsEscapedByJSONEncoderAreRewrittenToo() throws {
+        struct Index: Codable { let backupPath: String }
+        let old = "/Users/x/Library/Application Support/StarHubTH"
+        let new = "/Users/x/Library/Application Support/StarHubFR"
+        let data = try JSONEncoder()
+            .encode(Index(backupPath: "\(old)/Backups/ModInstalls/backups/a"))
+
+        // Le producteur échappe bien : sans cela l'épreuve ne prouverait rien.
+        #expect(String(decoding: data, as: UTF8.self).contains("\\/"))
+        #expect(AppSupportMigration.needsRewrite(data, oldRoot: old))
+
+        let rewritten = try #require(AppSupportMigration.rewrite(data, from: old, to: new))
+        // Le résultat reste du JSON décodable, et pointe vers le nouveau dossier.
+        let back = try JSONDecoder().decode(Index.self, from: rewritten)
+        #expect(back.backupPath == "\(new)/Backups/ModInstalls/backups/a")
+    }
+
     /// Un JSON illisible n'est pas réécrit à l'aveugle : mieux vaut ne rien
     /// faire que produire un fichier corrompu.
     @Test func unreadableDataIsRefused() {
@@ -202,5 +232,45 @@ struct AppSupportMigrationTests {
         let text = try String(contentsOf: landedBackup, encoding: .utf8)
         #expect(text.contains(g.new.path))
         #expect(!text.contains(g.old.path))
+    }
+
+    // MARK: - Réparer une installation déjà migrée
+
+    /// **Le cas du parc de référence.** La réécriture d'origine était aveugle
+    /// aux slashes échappés : les installations migrées avant le correctif
+    /// portent un registre qui pointe encore vers l'ancien dossier, alors que
+    /// les sauvegardes, elles, ont bien suivi. Mesuré le 2026-09-10 : **six
+    /// greffes actives** dans cet état, et retirer l'une d'elles aurait
+    /// supprimé le fichier de l'utilisateur au lieu de le rendre.
+    ///
+    /// La réparation ne peut pas passer par `migrate` : l'ancien dossier peut
+    /// avoir disparu, et le registre de destination existe déjà — les deux
+    /// gardes du déplacement l'écartent.
+    @Test func anAlreadyMigratedRegistryIsRepaired() throws {
+        struct Entry: Codable { let replacedFiles: [String: String] }
+        let fm = FileManager.default
+        let root = fm.temporaryDirectory.appendingPathComponent("as-\(UUID().uuidString)")
+        let old = root.appendingPathComponent("StarHubTH")
+        let new = root.appendingPathComponent("StarHubFR")
+        defer { try? fm.removeItem(at: root) }
+        try fm.createDirectory(at: new, withIntermediateDirectories: true)
+
+        // Écrit par le vrai producteur : slashes échappés.
+        let stale = try JSONEncoder().encode(
+            Entry(replacedFiles: ["i18n/fr.json": "\(old.path)/TranslationBackups/X/a/fr.json"]))
+        let registry = new.appendingPathComponent("installed_translations.json")
+        try stale.write(to: registry)
+        try stale.write(to: new.appendingPathComponent("installed_translations.json.bak"))
+
+        // Aucun ancien dossier : la réparation ne dépend pas de sa présence.
+        #expect(!fm.fileExists(atPath: old.path))
+        #expect(AppSupport.repairStalePaths(in: new, legacyRoot: old, fileManager: fm) == 2)
+
+        let back = try JSONDecoder().decode(Entry.self, from: try Data(contentsOf: registry))
+        #expect(back.replacedFiles["i18n/fr.json"]
+                == "\(new.path)/TranslationBackups/X/a/fr.json")
+
+        // Idempotente : un second passage n'a plus rien à faire.
+        #expect(AppSupport.repairStalePaths(in: new, legacyRoot: old, fileManager: fm) == 0)
     }
 }

@@ -49,7 +49,56 @@ public enum AppSupport {
         // Swift garantit qu'il ne s'évalue qu'une fois, à la première lecture.
         _ = migrate(from: legacy, to: target, fileManager: .default)
         try? FileManager.default.createDirectory(at: target, withIntermediateDirectories: true)
+        // **Hors du garde de `migrate`, et c'est le point.** Une installation
+        // migrée avant le correctif des slashes échappés a son ancien dossier
+        // déjà vidé et sa destination déjà peuplée : les deux gardes du
+        // déplacement l'écartent, et son index continuerait de mentir.
+        repairStalePaths(in: target, legacyRoot: legacy, fileManager: .default)
         return target
+    }
+
+    /// Les index qui portent des chemins **absolus** : tout déplacement du
+    /// dossier doit les repointer, et le `.bak` compte autant que le principal
+    /// — `InstalledTranslationStore` le promeut quand le principal est corrompu.
+    static let pathBearingIndexes = ["installed_translations.json",
+                                     "installed_translations.json.bak"]
+
+    /// Repointe les chemins d'une installation **déjà migrée** dont les index
+    /// sont restés à l'ancienne racine.
+    ///
+    /// La réécriture d'origine était aveugle aux slashes échappés que produit
+    /// un `JSONEncoder` nu : elle ne trouvait rien, rendait `nil`, et le
+    /// dossier partait avec ses chemins périmés. Les sauvegardes, elles, ont
+    /// bien suivi — seul l'index ment. Mesuré sur le parc le 2026-09-10 :
+    /// **six greffes actives** dans cet état ; en retirer une aurait supprimé
+    /// le fichier de l'utilisateur au lieu de le rendre
+    /// (`ManifestlessInstaller.uninstall` supprime quand la sauvegarde est
+    /// introuvable).
+    ///
+    /// Séparée de `migrate`, et pas un cas particulier de celle-ci : ses deux
+    /// gardes — ancien dossier présent, destination encore vide — écartent
+    /// précisément l'installation à réparer.
+    ///
+    /// - Returns: combien de fichiers ont été repointés. Idempotente : 0 dès
+    ///   que plus rien ne pointe vers l'ancienne racine.
+    @discardableResult
+    static func repairStalePaths(in target: URL, legacyRoot: URL,
+                                 fileManager fm: FileManager) -> Int {
+        var repaired = 0
+        for name in pathBearingIndexes {
+            let url = target.appendingPathComponent(name)
+            guard let data = try? Data(contentsOf: url),
+                  let rewritten = AppSupportMigration.rewrite(data,
+                                                              from: legacyRoot.path,
+                                                              to: target.path)
+            else { continue }
+            // Un échec d'écriture n'est pas fatal : l'index reste tel quel et
+            // le prochain lancement retentera. Rien n'est perdu entre-temps —
+            // les sauvegardes, elles, sont bien à leur nouvelle place.
+            guard (try? rewritten.write(to: url, options: .atomic)) != nil else { continue }
+            repaired += 1
+        }
+        return repaired
     }
 
     /// Déplace les données de l'ancien dossier vers le nouveau, **après** avoir
@@ -77,7 +126,7 @@ public enum AppSupport {
         // principal est corrompu : un `.bak` laissé aux chemins périmés ferait
         // *supprimer* les fichiers d'origine du parc au premier retrait de
         // greffe, exactement le défaut que cette réécriture existe pour éviter.
-        for name in ["installed_translations.json", "installed_translations.json.bak"] {
+        for name in pathBearingIndexes {
             let source = legacy.appendingPathComponent(name)
             let destination = target.appendingPathComponent(name)
             // La réécriture d'abord, et seulement si ce fichier-là va bouger :
