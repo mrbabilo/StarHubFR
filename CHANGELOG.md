@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.43.1] - 2026-09-10
+
 ### Fixed
 
 - **« Installé » se dit désormais d'un seul vert.** La pastille d'un composant de pack, le badge d'état de la liste des mises à jour et le badge « Installé » de Découvrir employaient un vert différent de celui du reste de l'application — visibles côte à côte sur la fiche d'un pack.
