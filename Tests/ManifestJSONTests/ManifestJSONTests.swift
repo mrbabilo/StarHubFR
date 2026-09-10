@@ -63,18 +63,16 @@ struct ManifestJSONTests {
         #expect(ManifestJSON.decode("") == nil)
     }
 
-    // MARK: - `decodeInstalled` : la lecture d'un mod déjà en place
+    // MARK: - Les deux portes parlent la langue du jeu
 
-    /// Le scan lit un mod que SMAPI a **déjà chargé** : il n'a pas de décision
-    /// à prendre, donc pas de raison d'être plus strict que le jeu. Ces tests
-    /// verrouillent le sens de l'écart, mesuré le 2026-09-10 sur les 1 108
-    /// manifestes du parc — `decodeInstalled` accepte strictement plus, et
-    /// l'inverse n'existe pas.
+    /// Depuis le 2026-09-10, `decode` accepte les quatre formes JSON5 que le
+    /// strict refusait : l'oracle Newtonsoft (la DLL exacte de SMAPI, 13.0.0.0,
+    /// exécutée) les accepte toutes — un mod ainsi écrit tourne dans le jeu,
+    /// et l'installer, le réparer ou le renommer ne devaient pas le refuser
+    /// (la classe même du bug X29). Le scan les lisait déjà ; aucun des
+    /// 1 106 manifestes du parc n'en porte, l'invariance est mesurée.
 
-    @Test func fourJson5FormsPassWhereTheJudgingDoorRefuses() throws {
-        // Formes que Newtonsoft (donc SMAPI, donc le jeu) accepte. Un mod ainsi
-        // écrit tourne dans le jeu ; le refuser le laisserait sans nom ni
-        // version dans la liste.
+    @Test func theFourJson5FormsTheGameAcceptsPassBothDoors() throws {
         let tolerated = [
             #"{ Name: "X" }"#,                  // clé non quotée
             "{ 'Name': 'X' }",                  // chaîne en quote simple
@@ -82,8 +80,20 @@ struct ManifestJSONTests {
             #"{ "Name": "X", "N": Infinity }"#
         ]
         for raw in tolerated {
-            #expect(ManifestJSON.decode(raw) == nil, "decode devrait refuser : \(raw)")
             #expect(try ManifestJSON.decodeInstalled(raw)["Name"] as? String == "X")
+            #expect(ManifestJSON.decode(raw)?["Name"] as? String == "X",
+                    "decode devrait lire ce que le jeu charge : \(raw)")
+        }
+    }
+
+    /// Chez Newtonsoft, `0x1F` se lit comme l'entier 31 — l'hexadécimal est un
+    /// nombre, pas une chaîne. Le même sens doit sortir de nos portes, sinon
+    /// un champ numérique lu par le scan et par un juge divergerait.
+    @Test func hexNumbersReadAsTheIntegerValue() {
+        let doors = [ManifestJSON.decode(#"{ "N": 0xFF }"#),
+                     try? ManifestJSON.decodeInstalled(#"{ "N": 0xFF }"#)]
+        for fields in doors {
+            #expect(fields?["N"] as? Int == 255)
         }
     }
 

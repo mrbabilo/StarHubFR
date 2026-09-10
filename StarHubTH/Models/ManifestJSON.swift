@@ -21,11 +21,22 @@ public enum ManifestJSON {
     /// Refuse les fragments : un manifeste est un objet, pas une valeur nue.
     ///
     /// C'est la porte pour **juger** un manifeste — décider d'une installation,
-    /// d'une réparation, d'une écriture. Pour lire un mod **déjà en place**,
-    /// voir `decodeInstalled(_:)`, plus tolérant.
+    /// d'une réparation, d'une écriture. Elle parle la **langue du jeu** :
+    /// l'oracle Newtonsoft (la DLL exacte que SMAPI embarque, 13.0.0.0,
+    /// exécutée le 2026-09-10) accepte les quatre formes JSON5 que le strict
+    /// refusait — clé non quotée, chaîne en quote simple, hexadécimal (lu
+    /// comme l'entier : `0x1F` → 31) et `Infinity` — donc un manifeste que le
+    /// jeu charge doit passer ici aussi, sans quoi l'app refusait
+    /// d'installer ce qu'elle savait charger (la classe même du bug X29).
+    /// `.json5Allowed` complète `sanitize` : mêmes commentaires et virgules
+    /// traînantes, plus les quatre formes.
+    ///
+    /// Différence restante avec `decodeInstalled(_:)` : celle-ci **jette**
+    /// (le scan journalise la cause), celle-ci rend `nil` (l'appelant juge
+    /// en silence). Le vocabulaire accepté est désormais le même.
     public static func decode(_ raw: String) -> [String: Any]? {
         guard let data = sanitize(raw).data(using: .utf8),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+              let json = try? JSONSerialization.jsonObject(with: data, options: [.json5Allowed]) as? [String: Any]
         else { return nil }
         return json
     }
@@ -34,13 +45,12 @@ public enum ManifestJSON {
     /// `JSONSerialization` faire tout le travail en JSON5.
     ///
     /// Le scan n'a pas de décision à prendre : SMAPI a chargé ce mod, la liste
-    /// doit le montrer avec son nom et sa version. `.json5Allowed` accepte donc
-    /// strictement plus que `decode(_:)` — mesuré le 2026-09-10 : clé non
-    /// quotée, chaîne en quote simple, nombre hexadécimal et `Infinity` passent
-    /// ici et sont refusés là ; **l'inverse n'existe pas**, aucune forme que
-    /// `decode` accepte n'échoue ici.
+    /// doit le montrer avec son nom et sa version. Le vocabulaire est celui
+    /// de `decode(_:)` — les deux portes parlent la langue du jeu (oracle
+    /// Newtonsoft du 2026-09-10) ; seule la sortie diffère, `throw` ici pour
+    /// que l'appelant journalise la cause.
     ///
-    /// ⚠️ Le scan appliquait avant une expression régulière
+    /// ⚠️ Le scan a appliqué longtemps une expression régulière
     /// (`/\*[\s\S]*?\*/`) pour retirer les commentaires bloc. Elle était
     /// **inutile** — JSON5 les gère, imbriqués et en fin de fichier compris —
     /// et **nuisible** : une expression régulière ne peut pas être consciente

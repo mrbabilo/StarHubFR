@@ -14,6 +14,8 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **L'installation ne refuse plus un manifeste que le jeu charge.** Quatre formes tolérées par SMAPI — clé sans guillemets, guillemets simples, hexadécimal, `Infinity` — écartaient encore un mod à l'installation, la réparation ou le renommage. Aucun mod du parc n'est écrit ainsi : la correction vaut pour les prochains.
+
 - **Les trois derniers verts d'état « installé » rejoignent le vert de l'application.** Les greffes et suppléments installés, et la mention « traduction en place » de la fiche d'un mod, portaient encore le vert système — le même écart de teinte que celui corrigé sur la fiche d'un pack.
 
 ## [1.43.1] - 2026-09-10
