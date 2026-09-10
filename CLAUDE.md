@@ -47,6 +47,15 @@ Ce dépôt est travaillé par plusieurs IA, et le contexte n'est pas tout dans
   client réseau (Nexus, smapi.io, DeepL, IA locale) ou un parseur de format
   externe. Le document porte les *rôles* et le *raisonnement*, jamais les
   valeurs : celles-là se relèvent par `check_sources.py` (voir plus bas).
+- **`docs/REFACTORING.md`** — le plan de refactorisation du ViewModel (axe F de
+  la roadmap) : ce qui est extrait, ce qui reste, la méthode (logique pure
+  d'abord, tests prouvés rouges par sabotage, un commit par étape) et la règle
+  F1-T2 — **une fonctionnalité neuve ne rentre plus dans
+  `StarHubTHViewModel`**, elle naît dans son propre type. À lire avant toute
+  extraction ou tout ajout au ViewModel ; les stores extraits vivent dans
+  `StarHubTH/Stores/`, les types purs dans `StarHubTH/Models/`. ⚠️ Son état
+  traîne lui aussi derrière le code livré : vérifier `git log` avant d'y
+  croire.
 - **`.kilo/plans/`** — les plans écrits du temps de Kilo (installation par
   glisser-déposer, sauvegarde de config, bascule par préfixe point, comparaison
   StarHubFR/StarHubTH…). Ils portent le **raisonnement** derrière des choix
