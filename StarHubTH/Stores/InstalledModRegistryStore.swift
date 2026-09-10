@@ -12,8 +12,16 @@ import Foundation
 /// Extrait du ViewModel le 2026-09-10 (point 1 du §5 de `docs/REFACTORING.md`).
 /// La règle de rapprochement vivait déjà en Core (`InstalledModRegistry.sync`,
 /// testée) ; c'est la **persistance** qui restait au ViewModel, avec ses trois
-/// mécanismes de sûreté que rien ne vérifiait — copie de secours avant
+/// mécanismes de sûreté que rien ne vérifiait — clé de secours doublant chaque
 /// écriture, restauration sur corruption, reconstruction depuis le disque.
+///
+/// ⚠️ **Le secours n'est pas une copie « avant écriture ».** `persist` écrit les
+/// **mêmes octets neufs** sur les deux clés dans la foulée : le secours ne porte
+/// donc jamais la génération précédente, et ne permet aucun retour en arrière.
+/// Ce qu'il couvre est plus étroit — une clé devenue illisible pendant que
+/// l'autre reste lisible. Mesuré sur une installation réelle le 2026-09-10 :
+/// `installedModRegistry` et `installedModRegistryBackup` font tous deux
+/// exactement 90 902 octets.
 ///
 /// `UserDefaults` entre par l'initialiseur, comme dans `ModVersionAnchorStore`
 /// et `ModUpdateSnoozer` : c'est ce qui permet aux tests d'écrire dans un
@@ -42,8 +50,6 @@ final class InstalledModRegistryStore {
         /// malgré un changement de version — celui-ci venant d'un changement
         /// de lecture, pas du disque.
         let gracePreserved: Int
-
-        static let unchanged = SyncReport(rebuiltFromDisk: 0, gracePreserved: 0)
     }
 
     private let defaults: UserDefaults
@@ -86,15 +92,12 @@ final class InstalledModRegistryStore {
 
     // MARK: - Écriture
 
-    /// Remplace le registre entier : cache d'abord, puis les deux clés.
-    func replaceAll(_ map: [String: InstalledModRecord]) {
-        lock.lock()
-        cache = map
-        lock.unlock()
-        persist(map)
-    }
-
     /// Lecture–modification–écriture atomique.
+    ///
+    /// C'est le **seul** chemin d'écriture. Un `replaceAll` a existé à côté,
+    /// sans jamais trouver d'appelant de production : remplacer tout le registre
+    /// se dit `mutate { $0 = … }`, et une seconde porte n'aurait servi qu'à
+    /// diverger de celle-ci.
     ///
     /// La séquence « lire le cache → muter → réécrire le cache » se fait sous un
     /// seul verrou, pour qu'un second scan concurrent ne puisse pas charger la
@@ -102,8 +105,20 @@ final class InstalledModRegistryStore {
     /// « mise à jour disponible » perpétuel quand l'entrée `nexusVersion` était
     /// perdue dans la course).
     ///
-    /// La persistance se fait **hors verrou** : `UserDefaults.set` est lent, et
-    /// rien n'oblige à le tenir pendant l'écriture.
+    /// **La persistance est dedans, et doit y rester.** Elle a longtemps suivi
+    /// le `unlock`, au motif que `UserDefaults.set` serait lent — motif jamais
+    /// mesuré. Il l'est depuis le 2026-09-10 : sur un registre de la taille du
+    /// parc de référence (961 entrées, 95 Ko), encoder puis écrire les deux clés
+    /// coûte **3,4 ms en médiane, 6,8 ms au pire**, dont 2,6 ms d'encodage.
+    /// C'est une poignée d'appels par scan, pas un chemin de rendu.
+    ///
+    /// Ce que l'ancienne forme coûtait, elle, était une incohérence : deux
+    /// `mutate` concurrents pouvaient muter dans un ordre et persister dans
+    /// l'autre — le cache tenant le dernier état, `UserDefaults` l'avant-dernier.
+    /// Le registre survivant au lancement suivant n'était alors plus celui que
+    /// la session avait constaté, et les dossiers perdus repassaient pour
+    /// « installés aujourd'hui ». Le verrou rend l'écriture aussi ordonnée que
+    /// la mutation, sans mécanisme neuf ni état à vérifier.
     ///
     /// Le corps rend une valeur, qui ressort d'ici : c'est ce qui a supprimé la
     /// boîte à un élément dont le ViewModel se servait pour faire échapper un
@@ -116,10 +131,10 @@ final class InstalledModRegistryStore {
     @discardableResult
     func mutate<T>(_ body: (inout [String: InstalledModRecord]) -> T) -> T {
         lock.lock()
+        defer { lock.unlock() }
         var map = cache ?? loadFromDisk()
         let result = body(&map)
         cache = map
-        lock.unlock()
         persist(map)
         return result
     }
@@ -176,9 +191,16 @@ final class InstalledModRegistryStore {
         let allMods = scannedMods.flattenedMods
 
         // Migration unique : effacer tout registre antérieur, bâti sur des dates
-        // de dossier non fiables. Le drapeau est posé **dans** la mutation
-        // ci-dessous, après que la purge a été écrite : un plantage en cours de
-        // purge laisse le drapeau à `false` et la purge rejoue au scan suivant.
+        // de dossier non fiables.
+        //
+        // Le drapeau est posé **après** `mutate`, donc après que le registre
+        // purgé a été écrit. Il a longtemps été posé dans le corps, avec un
+        // commentaire affirmant l'inverse de ce qui se passait : le corps
+        // s'exécute avant `persist`, si bien que le drapeau atteignait le disque
+        // le premier. Un plantage entre les deux laissait alors `true` sur un
+        // registre non purgé — et la migration ne rejouait plus jamais. Dans cet
+        // ordre-ci, le même plantage laisse le drapeau à `false` et la purge
+        // rejoue au scan suivant, ce qui ne coûte que des dates réestampillées.
         let migrationDone = defaults.bool(forKey: UDKey.registryMigrationV2Done)
 
         let seen = allMods.map {
@@ -193,19 +215,17 @@ final class InstalledModRegistryStore {
         let previousVersions = all().mapValues(\.version)
 
         let rebuiltFromDisk = mutate { registry -> Int in
-            var wasWiped = false
-            if !migrationDone {
-                registry = [:]
-                wasWiped = true
-                defaults.set(true, forKey: UDKey.registryMigrationV2Done)
-            }
+            if !migrationDone { registry = [:] }
             let (synced, _) = InstalledModRegistry.sync(registry: registry,
                                                         seen: seen,
                                                         now: now,
                                                         installDateGrace: graceFolders,
                                                         pruneMissing: modsFolderWasReadable)
             registry = synced
-            return wasWiped ? registry.count : 0
+            return migrationDone ? 0 : registry.count
+        }
+        if !migrationDone {
+            defaults.set(true, forKey: UDKey.registryMigrationV2Done)
         }
 
         anchorModsUpdatedOnDisk(allMods,
@@ -314,11 +334,16 @@ final class InstalledModRegistryStore {
         return [:]
     }
 
-    /// Écrit le **même** blob sur la clé principale et sur celle de secours. Le
-    /// secours garantit que la corruption de l'un (une écriture interrompue par
-    /// un plantage, par exemple) se rattrape sur l'autre au chargement suivant.
+    /// Écrit le **même** blob sur la clé principale et sur celle de secours.
     ///
-    /// Hors verrou : `mutate` relâche le lock avant d'appeler ici.
+    /// Ce que cela couvre, exactement : une clé rendue illisible alors que
+    /// l'autre reste lisible — `loadFromDisk` bascule alors sur la seconde. Ce
+    /// que cela ne couvre **pas** : revenir à l'état d'avant, puisque les deux
+    /// clés reçoivent la même génération neuve ; ni une donnée fausse mais bien
+    /// formée, qui sera fidèlement doublée.
+    ///
+    /// Appelée **sous le verrou** par `mutate` — voir son commentaire pour la
+    /// mesure qui a réglé la question.
     private func persist(_ map: [String: InstalledModRecord]) {
         guard let data = try? JSONEncoder().encode(map) else { return }
         defaults.set(data, forKey: UDKey.installedModRegistry)

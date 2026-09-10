@@ -117,7 +117,7 @@ struct InstalledModRegistryStoreTests {
     @Test func writingPutsTheSameBlobOnBothKeys() {
         let defaults = migratedDefaults()
         let store = InstalledModRegistryStore(defaults: defaults)
-        store.replaceAll(["Automate": record("1.0", t0)])
+        store.mutate { $0 = ["Automate": record("1.0", t0)] }
 
         let primary = defaults.data(forKey: UDKey.installedModRegistry)
         let backup = defaults.data(forKey: UDKey.installedModRegistryBackup)
