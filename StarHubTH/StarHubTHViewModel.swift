@@ -2873,26 +2873,34 @@ class StarHubTHViewModel: ObservableObject {
             var updateKeys: [String] = []
             var dependencies: [ModDependency] = []
 
+            // Les deux branches ci-dessous — manifeste venu du cache chaud,
+            // manifeste relu sur le disque — lisaient les mêmes huit champs,
+            // chacune de son côté. Elles ont déjà divergé sur `Version` : un
+            // même mod rendait deux chaînes différentes selon la branche
+            // empruntée. La lecture vit désormais dans `ManifestFields` (Core,
+            // testé) ; ce qui reste ici est le **repli**, qui lui est propre —
+            // un champ absent laisse la valeur par défaut posée juste au-dessus,
+            // dont le nom du dossier logique quand le manifeste ne se nomme pas.
+            func apply(_ fields: ManifestFields) {
+                if let read = fields.name { name = read }
+                if let read = fields.uniqueId { uniqueId = read }
+                if let read = fields.version { version = read }
+                if let read = fields.author { author = read }
+                if let read = fields.description { description = read }
+                dependencies = fields.dependencies
+                updateKeys = fields.updateKeys
+                if let nexus = fields.nexus {
+                    nexusModId = nexus.id
+                    nexusUrl = nexus.url
+                }
+            }
+
             // mtime-keyed decode cache: avoids re-reading and re-parsing every
             // manifest.json on a rescan that follows a toggle (which moved only
             // one folder). The cache lives across scans on the VM, so a no-op
             // rescan becomes ~N stat() calls and zero JSON decodes.
             if let cached = cachedManifest(at: manifestPath) {
-                if let mName = cached.caseInsensitiveValue(forKey: "Name") as? String { name = mName }
-                if let mUniqueId = cached.caseInsensitiveValue(forKey: "UniqueID") as? String { uniqueId = mUniqueId }
-
-                if let read = ManifestVersionReader.version(from: cached) { version = read }
-
-                if let mAuthor = cached.caseInsensitiveValue(forKey: "Author") as? String { author = mAuthor }
-                if let mDesc = cached.caseInsensitiveValue(forKey: "Description") as? String { description = mDesc }
-
-                dependencies = ModDependencyParser.parse(manifest: cached)
-                updateKeys = cached.caseInsensitiveValue(forKey: "UpdateKeys") as? [String] ?? []
-
-                if let nexus = ModManifest.parseNexusId(fromUpdateKeys: updateKeys) {
-                    nexusModId = nexus.id
-                    nexusUrl = nexus.url
-                }
+                apply(ManifestFields(manifest: cached))
             } else if let rawData = try? Data(contentsOf: URL(fileURLWithPath: manifestPath)),
                 let rawString = String(data: rawData, encoding: .utf8) {
 
@@ -2912,28 +2920,7 @@ class StarHubTHViewModel: ObservableObject {
                                     "Manifeste \(manifestPath) : racine non objet JSON"])
                         }
 
-                    if let mName = json.caseInsensitiveValue(forKey: "Name") as? String { name = mName }
-                if let mUniqueId = json.caseInsensitiveValue(forKey: "UniqueID") as? String { uniqueId = mUniqueId }
-
-                // Même lecture que le chemin « cache chaud » quelques lignes
-                // plus haut. Elle était écrite à la main ici : le même mod
-                // pouvait rendre deux versions différentes selon que son
-                // manifeste venait du cache ou du disque.
-                if let read = ManifestVersionReader.version(from: json) { version = read }
-
-                if let mAuthor = json.caseInsensitiveValue(forKey: "Author") as? String { author = mAuthor }
-                if let mDesc = json.caseInsensitiveValue(forKey: "Description") as? String { description = mDesc }
-
-                dependencies = ModDependencyParser.parse(manifest: json)
-                updateKeys = json.caseInsensitiveValue(forKey: "UpdateKeys") as? [String] ?? []
-
-                // Reuse the shared parser so scanning stays in sync with
-                // `ModManifest.init` (single source of truth for the
-                // `nexus:<id>[@variant]` UpdateKey convention).
-                if let nexus = ModManifest.parseNexusId(fromUpdateKeys: updateKeys) {
-                    nexusModId = nexus.id
-                    nexusUrl = nexus.url
-                }
+                    apply(ManifestFields(manifest: json))
 
                 // Fill the cache so the next scan of an unchanged manifest
                 // is a cheap mtime compare + dict reuse. Storing the raw

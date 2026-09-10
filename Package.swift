@@ -120,6 +120,7 @@ let package = Package(
                 "SmapiUpdateClient.swift",
                 "Models/SmapiUpdateRequest.swift",
                 "Models/SmapiUpdateResponse.swift",
+                "Models/ManifestFields.swift",
                 "Models/ManifestVersionReader.swift",
                 "Models/SaveTree.swift",
                 "Models/OSJunk.swift",
@@ -705,6 +706,11 @@ let package = Package(
             name: "SmapiUpdateRequestTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/SmapiUpdateRequestTests"
+        ),
+        .testTarget(
+            name: "ManifestFieldsTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ManifestFieldsTests"
         ),
         .testTarget(
             name: "ManifestVersionReaderTests",

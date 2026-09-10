@@ -106,58 +106,26 @@ struct ModManifest {
     }
 
     init?(dict: [String: Any]) {
-        guard let name = dict.caseInsensitiveValue(forKey: "Name") as? String,
-              let uniqueId = dict.caseInsensitiveValue(forKey: "UniqueID") as? String else {
+        // Lecture unique des champs (`ManifestFields`) : cet initialiseur en
+        // portait sa propre copie, comme les deux branches du scan. Ce qui
+        // reste ici est ce qui lui appartient en propre — la **garde** (un
+        // manifeste sans `Name` ni `UniqueID` n'est pas un mod) et les replis
+        // d'affichage. Une chaîne vide passe la garde, comme avant : seul
+        // l'absence du champ refuse le manifeste.
+        let fields = ManifestFields(manifest: dict)
+        guard let name = fields.name, let uniqueId = fields.uniqueId else {
             return nil
         }
-        
+
         self.name = name
         self.uniqueId = uniqueId
-        
-        if let author = dict.caseInsensitiveValue(forKey: "Author") as? String {
-            self.author = author
-        } else {
-            self.author = "Unknown"
-        }
-        
-        // `ManifestVersionReader` est la lecture commune du champ `Version` —
-        // il existe pour qu'il n'y en ait qu'une. Celle écrite ici divergeait
-        // sur trois formes que SMAPI accepte : une partie de version en chaîne
-        // (`"MajorVersion": "2"`, rendue 1.0.0 par le `as? Int`), une chaîne
-        // entourée d'espaces, et une chaîne blanche — affichée telle quelle,
-        // donc une ligne « v » sans rien derrière.
-        self.version = ManifestVersionReader.version(from: dict) ?? "Unknown"
-
-        self.description = dict.caseInsensitiveValue(forKey: "Description") as? String ?? ""
-
-        // Trim et vide → nil : un message d'espaces n'alerte pas plus qu'un
-        // champ absent (Stardrop : `IsNullOrEmpty`).
-        if let caution = dict.caseInsensitiveValue(forKey: "UpdateCautionMessage") as? String,
-           !caution.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            self.updateCautionMessage = caution
-        } else {
-            self.updateCautionMessage = nil
-        }
-
-        // Parse Nexus mod id from UpdateKeys via the shared helper so the
-        // scanning logic stays in one place (also used by
-        // `StarHubTHViewModel.parseModFolder`).
-        let updateKeys = dict.caseInsensitiveValue(forKey: "UpdateKeys") as? [String]
-        if let nexus = Self.parseNexusId(fromUpdateKeys: updateKeys) {
-            self.nexusModId = nexus.id
-            self.nexusUrl = nexus.url
-        } else {
-            self.nexusModId = ""
-            self.nexusUrl = ""
-        }
-        
-        // Une seule lecture des dépendances pour tout le dépôt. Cette boucle
-        // était écrite ici à la main, en plus de `ModDependencyParser` (qui
-        // sert au scan des mods installés) : elle ignorait `ContentPackFor` —
-        // la façon dont la plupart des content packs déclarent leur seule
-        // exigence — et ne dédupliquait pas. 625 des 1 085 manifests du parc
-        // déclarent un `ContentPackFor`, dont 254 sans aucune autre dépendance.
-        self.dependencies = ModDependencyParser.parse(manifest: dict)
+        self.author = fields.author ?? "Unknown"
+        self.version = fields.version ?? "Unknown"
+        self.description = fields.description ?? ""
+        self.updateCautionMessage = fields.updateCautionMessage
+        self.nexusModId = fields.nexus?.id ?? ""
+        self.nexusUrl = fields.nexus?.url ?? ""
+        self.dependencies = fields.dependencies
     }
 }
 
