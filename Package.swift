@@ -38,6 +38,7 @@ let package = Package(
                 "Models/SmapiInstallMarker.swift",
                 "Models/SmapiVersionEvidence.swift",
                 "Models/SteamLoginUsers.swift",
+                "Models/GameDirLocator.swift",
                 "Models/RequestEpoch.swift",
                 "Models/NexusRateLimitGate.swift",
                 "Models/NexusQuota.swift",
@@ -1031,6 +1032,11 @@ let package = Package(
             name: "SteamLoginUsersTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/SteamLoginUsersTests"
+        ),
+        .testTarget(
+            name: "GameDirLocatorTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/GameDirLocatorTests"
         ),
     ]
 )

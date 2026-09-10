@@ -2177,7 +2177,7 @@ class StarHubTHViewModel: ObservableObject {
         if !savedPath.isEmpty && FileManager.default.fileExists(atPath: savedPath) {
             self.gameDir = savedPath
         } else {
-            self.gameDir = self.detectDefaultGameDir()
+            self.gameDir = GameDirLocator.detectDefault(home: NSHomeDirectory())
         }
         // Seed the first launch step label synchronously so the overlay never
         // shows an empty string before the first async hop lands.
@@ -2283,27 +2283,6 @@ class StarHubTHViewModel: ObservableObject {
                 }
             )
         }
-    }
-    
-    func detectDefaultGameDir() -> String {
-        // AGENTS §4.9 : macOS résout certains chemins via des symlinks
-        // (`/tmp` → `/private/tmp`, `Application Support` peut varier selon
-        // l'OS). On résout avant `fileExists` ET avant tout usage ultérieur
-        // pour que les comparaisons avec `physicalRoot` (cf. §J scanMods)
-        // restent cohérentes.
-        let resolve: (String) -> String = { ($0 as NSString).resolvingSymlinksInPath }
-        let home = NSHomeDirectory()
-        let steamPath = resolve("\(home)/Library/Application Support/Steam/steamapps/common/Stardew Valley/Contents/MacOS")
-        if FileManager.default.fileExists(atPath: steamPath) {
-            return steamPath
-        }
-
-        let gogPath = resolve("/Applications/Stardew Valley.app/Contents/MacOS")
-        if FileManager.default.fileExists(atPath: gogPath) {
-            return gogPath
-        }
-
-        return ""
     }
     
     func selectGameDir() {
@@ -2667,13 +2646,7 @@ class StarHubTHViewModel: ObservableObject {
 
         var resolvedAvatarPath: String?
         if !parsed.steamID.isEmpty {
-            let avatarPathPng = "\(home)/Library/Application Support/Steam/config/avatarcache/\(parsed.steamID).png"
-            let avatarPathJpg = "\(home)/Library/Application Support/Steam/config/avatarcache/\(parsed.steamID).jpg"
-            if FileManager.default.fileExists(atPath: avatarPathPng) {
-                resolvedAvatarPath = avatarPathPng
-            } else if FileManager.default.fileExists(atPath: avatarPathJpg) {
-                resolvedAvatarPath = avatarPathJpg
-            }
+            resolvedAvatarPath = GameDirLocator.avatarPath(steamID: parsed.steamID, home: home)
         }
 
         // `fetchSteamUser` is called from `refresh()`'s background dispatch
