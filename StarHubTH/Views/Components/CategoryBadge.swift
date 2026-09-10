@@ -19,22 +19,22 @@ struct CategoryBadge: View {
     var body: some View {
         HStack(spacing: AppDesign.Spacing.xs) {
             Circle()
-                .fill(category.color)
+                .fill(Color(category.color))
                 .frame(width: 7, height: 7)
             Text(category.localizedName(L))
                 .font(.system(size: 10, weight: .medium))
-                .foregroundColor(category.color)
+                .foregroundColor(Color(category.color))
                 .lineLimit(1)
         }
         .padding(.horizontal, 6)
         .padding(.vertical, 2)
         .background(
             RoundedRectangle(cornerRadius: 4)
-                .fill(category.color.opacity(0.12))
+                .fill(Color(category.color).opacity(0.12))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 4)
-                .stroke(category.color.opacity(0.30), lineWidth: 0.5)
+                .stroke(Color(category.color).opacity(0.30), lineWidth: 0.5)
         )
         .help(category.englishName)
     }

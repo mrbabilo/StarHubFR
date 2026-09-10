@@ -637,7 +637,7 @@ private struct SaveHeroBand: View {
     let iconPath: String
     let isFemale: Bool
     let hairStyle: Int
-    let hairColor: Color
+    let hairColor: RGBColor
     let skinIndex: Int
     let farmHelp: String
 

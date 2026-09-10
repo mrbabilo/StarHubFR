@@ -100,3 +100,22 @@ public enum AppDesignCore {
         public static let md: CGFloat = 20
     }
 }
+
+
+/// Couleur en composantes — la représentation **Core** des couleurs de
+/// données (palettes de l'avatar, catégories Nexus). Les vues la rendent
+/// via `Color(RGBColor)` (AppDesignUI) : la donnée reste pure, la peinture
+/// appartient à la couche d'UI (§4.4).
+public struct RGBColor: Equatable, Hashable, Sendable {
+    public let red: Double
+    public let green: Double
+    public let blue: Double
+    public let opacity: Double
+
+    public init(red: Double, green: Double, blue: Double, opacity: Double = 1.0) {
+        self.red = red
+        self.green = green
+        self.blue = blue
+        self.opacity = opacity
+    }
+}

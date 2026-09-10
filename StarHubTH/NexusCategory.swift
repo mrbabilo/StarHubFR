@@ -1,4 +1,3 @@
-import SwiftUI
 
 /// A Stardew Valley Nexus Mods category.
 ///
@@ -15,7 +14,7 @@ struct NexusCategory: Identifiable, Hashable {
     /// L10n key (e.g. `"category_3"`). Falls back to `englishName` if missing.
     let l10nKey: String
     let englishName: String
-    let color: Color
+    let color: RGBColor
     /// Unicode glyph shown in the category picker (SwiftUI Menus render
     /// labels as plain text, so this carries the visual identity a `Label`
     /// icon normally would). Kept as a field here — rather than a separate
@@ -25,32 +24,32 @@ struct NexusCategory: Identifiable, Hashable {
 
     /// All 26 Stardew Valley categories, ordered by Nexus category id.
     static let all: [NexusCategory] = [
-        .init(id: 2,  l10nKey: "category_2",  englishName: "Miscellaneous",         color: Color(red: 0.50, green: 0.52, blue: 0.55), emoji: "🗂"),
-        .init(id: 3,  l10nKey: "category_3",  englishName: "Gameplay Mechanics",    color: Color(red: 0.80, green: 0.30, blue: 0.30), emoji: "🎮"),
-        .init(id: 4,  l10nKey: "category_4",  englishName: "Player",                color: Color(red: 0.90, green: 0.55, blue: 0.25), emoji: "🧑‍🌾"),
-        .init(id: 5,  l10nKey: "category_5",  englishName: "Characters",           color: Color(red: 0.85, green: 0.45, blue: 0.65), emoji: "👥"),
-        .init(id: 6,  l10nKey: "category_6",  englishName: "Portraits",            color: Color(red: 0.80, green: 0.35, blue: 0.55), emoji: "🖼"),
-        .init(id: 7,  l10nKey: "category_7",  englishName: "Livestock and Animals",color: Color(red: 0.55, green: 0.35, blue: 0.20), emoji: "🐾"),
-        .init(id: 8,  l10nKey: "category_8",  englishName: "Pets / Horses",        color: Color(red: 0.70, green: 0.55, blue: 0.35), emoji: "🐾"),
-        .init(id: 9,  l10nKey: "category_9",  englishName: "Modding Tools",        color: Color(red: 0.25, green: 0.45, blue: 0.80), emoji: "🛠"),
-        .init(id: 10, l10nKey: "category_10", englishName: "User Interface",       color: Color(red: 0.35, green: 0.30, blue: 0.70), emoji: "🖥"),
-        .init(id: 11, l10nKey: "category_11", englishName: "Cheats",               color: Color(red: 0.55, green: 0.30, blue: 0.65), emoji: "🎲"),
-        .init(id: 12, l10nKey: "category_12", englishName: "Audio",                color: Color(red: 0.30, green: 0.60, blue: 0.60), emoji: "🔊"),
-        .init(id: 13, l10nKey: "category_13", englishName: "Clothing",             color: Color(red: 0.75, green: 0.35, blue: 0.60), emoji: "👕"),
-        .init(id: 14, l10nKey: "category_14", englishName: "Crops",                color: Color(red: 0.40, green: 0.65, blue: 0.35), emoji: "🌱"),
-        .init(id: 15, l10nKey: "category_15", englishName: "Items",                color: Color(red: 0.80, green: 0.65, blue: 0.25), emoji: "📦"),
-        .init(id: 16, l10nKey: "category_16", englishName: "Locations",            color: Color(red: 0.40, green: 0.60, blue: 0.55), emoji: "📍"),
-        .init(id: 17, l10nKey: "category_17", englishName: "Buildings",            color: Color(red: 0.55, green: 0.50, blue: 0.45), emoji: "🏠"),
-        .init(id: 18, l10nKey: "category_18", englishName: "Events",               color: Color(red: 0.30, green: 0.65, blue: 0.75), emoji: "🎉"),
-        .init(id: 19, l10nKey: "category_19", englishName: "Interiors",            color: Color(red: 0.55, green: 0.60, blue: 0.40), emoji: "🛋"),
-        .init(id: 20, l10nKey: "category_20", englishName: "Dialogue",             color: Color(red: 0.65, green: 0.55, blue: 0.75), emoji: "💬"),
-        .init(id: 21, l10nKey: "category_21", englishName: "Maps",                 color: Color(red: 0.30, green: 0.60, blue: 0.45), emoji: "🗺"),
-        .init(id: 22, l10nKey: "category_22", englishName: "Crafting",             color: Color(red: 0.80, green: 0.60, blue: 0.30), emoji: "🔨"),
-        .init(id: 23, l10nKey: "category_23", englishName: "Furniture",            color: Color(red: 0.60, green: 0.40, blue: 0.30), emoji: "🪑"),
-        .init(id: 24, l10nKey: "category_24", englishName: "New Characters",       color: Color(red: 0.90, green: 0.55, blue: 0.55), emoji: "👥"),
-        .init(id: 25, l10nKey: "category_25", englishName: "Visuals and Graphics", color: Color(red: 0.40, green: 0.55, blue: 0.80), emoji: "🎨"),
-        .init(id: 26, l10nKey: "category_26", englishName: "Fishing",              color: Color(red: 0.35, green: 0.65, blue: 0.65), emoji: "🎣"),
-        .init(id: 27, l10nKey: "category_27", englishName: "Expansions",           color: Color(red: 0.50, green: 0.35, blue: 0.70), emoji: "✨"),
+        .init(id: 2,  l10nKey: "category_2",  englishName: "Miscellaneous",         color: RGBColor(red: 0.50, green: 0.52, blue: 0.55), emoji: "🗂"),
+        .init(id: 3,  l10nKey: "category_3",  englishName: "Gameplay Mechanics",    color: RGBColor(red: 0.80, green: 0.30, blue: 0.30), emoji: "🎮"),
+        .init(id: 4,  l10nKey: "category_4",  englishName: "Player",                color: RGBColor(red: 0.90, green: 0.55, blue: 0.25), emoji: "🧑‍🌾"),
+        .init(id: 5,  l10nKey: "category_5",  englishName: "Characters",           color: RGBColor(red: 0.85, green: 0.45, blue: 0.65), emoji: "👥"),
+        .init(id: 6,  l10nKey: "category_6",  englishName: "Portraits",            color: RGBColor(red: 0.80, green: 0.35, blue: 0.55), emoji: "🖼"),
+        .init(id: 7,  l10nKey: "category_7",  englishName: "Livestock and Animals",color: RGBColor(red: 0.55, green: 0.35, blue: 0.20), emoji: "🐾"),
+        .init(id: 8,  l10nKey: "category_8",  englishName: "Pets / Horses",        color: RGBColor(red: 0.70, green: 0.55, blue: 0.35), emoji: "🐾"),
+        .init(id: 9,  l10nKey: "category_9",  englishName: "Modding Tools",        color: RGBColor(red: 0.25, green: 0.45, blue: 0.80), emoji: "🛠"),
+        .init(id: 10, l10nKey: "category_10", englishName: "User Interface",       color: RGBColor(red: 0.35, green: 0.30, blue: 0.70), emoji: "🖥"),
+        .init(id: 11, l10nKey: "category_11", englishName: "Cheats",               color: RGBColor(red: 0.55, green: 0.30, blue: 0.65), emoji: "🎲"),
+        .init(id: 12, l10nKey: "category_12", englishName: "Audio",                color: RGBColor(red: 0.30, green: 0.60, blue: 0.60), emoji: "🔊"),
+        .init(id: 13, l10nKey: "category_13", englishName: "Clothing",             color: RGBColor(red: 0.75, green: 0.35, blue: 0.60), emoji: "👕"),
+        .init(id: 14, l10nKey: "category_14", englishName: "Crops",                color: RGBColor(red: 0.40, green: 0.65, blue: 0.35), emoji: "🌱"),
+        .init(id: 15, l10nKey: "category_15", englishName: "Items",                color: RGBColor(red: 0.80, green: 0.65, blue: 0.25), emoji: "📦"),
+        .init(id: 16, l10nKey: "category_16", englishName: "Locations",            color: RGBColor(red: 0.40, green: 0.60, blue: 0.55), emoji: "📍"),
+        .init(id: 17, l10nKey: "category_17", englishName: "Buildings",            color: RGBColor(red: 0.55, green: 0.50, blue: 0.45), emoji: "🏠"),
+        .init(id: 18, l10nKey: "category_18", englishName: "Events",               color: RGBColor(red: 0.30, green: 0.65, blue: 0.75), emoji: "🎉"),
+        .init(id: 19, l10nKey: "category_19", englishName: "Interiors",            color: RGBColor(red: 0.55, green: 0.60, blue: 0.40), emoji: "🛋"),
+        .init(id: 20, l10nKey: "category_20", englishName: "Dialogue",             color: RGBColor(red: 0.65, green: 0.55, blue: 0.75), emoji: "💬"),
+        .init(id: 21, l10nKey: "category_21", englishName: "Maps",                 color: RGBColor(red: 0.30, green: 0.60, blue: 0.45), emoji: "🗺"),
+        .init(id: 22, l10nKey: "category_22", englishName: "Crafting",             color: RGBColor(red: 0.80, green: 0.60, blue: 0.30), emoji: "🔨"),
+        .init(id: 23, l10nKey: "category_23", englishName: "Furniture",            color: RGBColor(red: 0.60, green: 0.40, blue: 0.30), emoji: "🪑"),
+        .init(id: 24, l10nKey: "category_24", englishName: "New Characters",       color: RGBColor(red: 0.90, green: 0.55, blue: 0.55), emoji: "👥"),
+        .init(id: 25, l10nKey: "category_25", englishName: "Visuals and Graphics", color: RGBColor(red: 0.40, green: 0.55, blue: 0.80), emoji: "🎨"),
+        .init(id: 26, l10nKey: "category_26", englishName: "Fishing",              color: RGBColor(red: 0.35, green: 0.65, blue: 0.65), emoji: "🎣"),
+        .init(id: 27, l10nKey: "category_27", englishName: "Expansions",           color: RGBColor(red: 0.50, green: 0.35, blue: 0.70), emoji: "✨"),
     ]
 
     /// O(1) lookup by Nexus category id.

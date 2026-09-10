@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import re
+import pathlib
 import os
 import platform
 import shutil
@@ -91,6 +92,42 @@ def gather_swift_files() -> list[str]:
             if file.endswith(".swift"):
                 swift_files.append(os.path.join(root, file))
     return sorted(swift_files)
+
+# §9, leur P9 — « Verrouiller les règles ». La frontière Core est le dossier
+# `Models/` + `Stores/` + les fichiers racine compilés dans le target SPM :
+# y importer SwiftUI ferait de la logique pure une couche d'UI et la sortirait
+# du filet de tests. Barre dure (pas un cliquet) : une violation est une
+# violation, elle n'attend pas une baseline. `AppKit` n'est PAS dans la liste
+# — quatre fichiers Core en dépendent aujourd'hui (DeepLDesktop,
+# DescriptionBlockParser, ContrastChecker, SaveManager), dette assumée au
+# §9, à traiter au contact de chacun.
+CORE_BOUNDARY_FORBIDDEN_IMPORTS = {"SwiftUI"}
+
+def core_boundary_files() -> list[str]:
+    """Les fichiers du target SPM `StarHubTHCore`, d'après Package.swift."""
+    package = pathlib.Path("Package.swift").read_text(encoding="utf-8")
+    target_block = package.split(".testTarget(", 1)[0]
+    sources_start = target_block.index("sources: [")
+    sources = target_block[sources_start:target_block.index("]", sources_start)]
+    # Les chemins de Package.swift sont relatifs à `path: "StarHubTH"`.
+    return sorted(os.path.join("StarHubTH", rel)
+                  for rel in re.findall(r'"([^"]+\.swift)"', sources))
+
+def check_core_boundary() -> None:
+    """Refuse qu'un fichier Core importe une couche d'UI (SwiftUI)."""
+    offenders: list[tuple[str, str]] = []
+    for rel in core_boundary_files():
+        source = pathlib.Path(rel).read_text(encoding="utf-8")
+        for line in source.splitlines():
+            code = line.split("//", 1)[0]
+            stripped = code.strip()
+            if any(stripped == f"import {mod}" for mod in CORE_BOUNDARY_FORBIDDEN_IMPORTS):
+                offenders.append((rel, stripped))
+    if offenders:
+        for rel, imp in offenders:
+            print(f"[ERROR] Core boundary: {rel} : « {imp} ». "
+                  "Core est une couche logique : l'UI appartient aux vues.")
+        sys.exit(1)
 
 def build_swiftc_command(swift_files: list[str], app_executable: str, module_cache_dir: str) -> list[str]:
     """Compilation whole-module — chemin de repli (`--whole-module`) et base de
@@ -320,6 +357,11 @@ def create_app_bundle():
     if not swift_files:
         print("[ERROR] No Swift source files (.swift) found.")
         sys.exit(1)
+
+    # §9 P9 — barrière de frontière Core : Models//Stores n'importent pas
+    # SwiftUI. Échec rapide, avant la compilation (§4.7 : l'outillage doit
+    # rater quand il doit — épreuve faite le 2026-09-10, voir git log).
+    check_core_boundary()
 
     # Keep the LSP compile database in sync with what we actually compile
     write_compile_commands(swift_files, app_executable, module_cache_dir)

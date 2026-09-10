@@ -444,12 +444,12 @@ struct ModDetailView: View {
     private var categoryTag: some View {
         if let cat = vm.category(for: mod) {
             HStack(spacing: 5) {
-                Circle().fill(cat.color).frame(width: 7, height: 7)
+                Circle().fill(Color(cat.color)).frame(width: 7, height: 7)
                 Text(cat.localizedName(localization.L)).font(.system(size: 11, weight: .semibold))
             }
             .foregroundStyle(.primary)
             .padding(.horizontal, 9).padding(.vertical, 4)
-            .background(cat.color.opacity(0.18))
+            .background(Color(cat.color).opacity(0.18))
             .clipShape(Capsule())
         } else {
             HStack(spacing: 5) {

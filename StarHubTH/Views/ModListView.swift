@@ -1174,7 +1174,7 @@ struct ModListView: View {
                         .font(AppDesign.Font.caption(.medium))
                 case .category(let cat):
                     Circle()
-                        .fill(cat.color)
+                        .fill(Color(cat.color))
                         .frame(width: 9, height: 9)
                     Text(cat.localizedName(localization.L))
                         .font(AppDesign.Font.caption(.medium))

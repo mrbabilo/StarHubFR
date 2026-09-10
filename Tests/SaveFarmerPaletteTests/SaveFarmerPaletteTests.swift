@@ -1,4 +1,3 @@
-import SwiftUI
 import Testing
 @testable import StarHubTHCore
 
@@ -23,7 +22,7 @@ import Testing
         // pas un index de palette : la conversion est une normalisation
         // directe, et le clamp est déjà celui de `SaveHairColor.init`.
         let raw = SaveHairColor(r: 27, g: 81, b: 108)
-        let expected = Color(red: 27.0 / 255.0, green: 81.0 / 255.0, blue: 108.0 / 255.0)
+        let expected = RGBColor(red: 27.0 / 255.0, green: 81.0 / 255.0, blue: 108.0 / 255.0)
         #expect(SaveFarmerPalette.hairColor(from: raw) == expected)
 
         #expect(SaveFarmerPalette.hairColor(from: .default) ==

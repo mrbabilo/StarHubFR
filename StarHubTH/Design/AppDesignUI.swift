@@ -145,3 +145,13 @@ enum AppDesign {
         static let paused     = SwiftUI.Color(white: 0.38)
     }
 }
+
+
+extension Color {
+    /// Rend une couleur-donnée Core (`RGBColor`) en couleur SwiftUI.
+    /// Le pendant exact du §4.4 : la donnée reste pure, la peinture est ici.
+    init(_ rgb: RGBColor) {
+        self.init(.sRGB, red: rgb.red, green: rgb.green, blue: rgb.blue,
+                  opacity: rgb.opacity)
+    }
+}

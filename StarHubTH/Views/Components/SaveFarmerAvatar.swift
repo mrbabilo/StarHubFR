@@ -17,11 +17,11 @@ import SwiftUI
 struct SaveFarmerAvatar: View, Equatable {
     let isFemale: Bool
     let hairStyle: Int
-    let hairColor: Color
+    let hairColor: RGBColor
     let skinIndex: Int
     let size: CGFloat
 
-    init(isFemale: Bool, hairStyle: Int, hairColor: Color,
+    init(isFemale: Bool, hairStyle: Int, hairColor: RGBColor,
          skinIndex: Int, size: CGFloat = 44) {
         self.isFemale = isFemale
         self.hairStyle = hairStyle
@@ -75,11 +75,11 @@ struct SaveFarmerAvatar: View, Equatable {
                 // de la couleur lue dans la save, posée sur le **crâne**.
                 ZStack(alignment: .top) {
                     Circle()
-                        .fill(SaveFarmerPalette.skinColor(for: skinIndex))
+                        .fill(Color(SaveFarmerPalette.skinColor(for: skinIndex)))
                     let shape = SaveFarmerPalette.hatShape(for: hairStyle)
                     if shape != .bald {
                         SaveFarmerHatShape(style: shape)
-                            .fill(hairColor)
+                            .fill(Color(hairColor))
                             .frame(width: size, height: size * 0.6)
                     }
                 }
