@@ -59,6 +59,7 @@ let package = Package(
                 "Models/ModGridCardValues.swift",
                 "Models/ModDetailPager.swift",
                 "Models/ModDetailCache.swift",
+                "Models/ModDetailState.swift",
                 "Models/UpdateCheckPolicy.swift",
                 "Models/AppReleaseCheck.swift",
                 "Models/InstallReport.swift",
@@ -230,6 +231,11 @@ let package = Package(
             name: "TogglePlanTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/TogglePlanTests"
+        ),
+        .testTarget(
+            name: "ModDetailStateTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ModDetailStateTests"
         ),
         .testTarget(
             name: "DisabledModsMigrationTests",

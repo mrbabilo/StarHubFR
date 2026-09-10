@@ -228,13 +228,8 @@ class StarHubTHViewModel: ObservableObject {
 
     /// Rich detail state for the mod currently shown in the detail pane
     /// (Task 3 data layer; nav wiring lands in a later task).
-    struct ModDetailState {
-        let modId: Int
-        var description: [DescriptionBlock]
-        var changelog: [DescriptionBlock]
-        var isStale: Bool     // served from cache/local, refresh in-flight or failed
-        var isLoading: Bool
-    }
+    // `ModDetailState` vit en Core (Models/ModDetailState.swift, REFACTORING
+    // §6) avec ses transitions testées ; le VM garde l'état publié.
     @Published var modDetailState: ModDetailState?
     /// Non-nil = the detail pane is showing this mod. Its didSet kicks off
     /// loading (cache/local instantly, then a background refresh).
@@ -250,16 +245,9 @@ class StarHubTHViewModel: ObservableObject {
     func loadModDetail(for mod: ModItem) {
         let modId = Int(resolvedNexusModId(for: mod)) ?? -1
         // Immediate: cache if any, else local manifest description.
-        if modId > 0, let cached = ModDetailCache.load(modId: modId) {
-            modDetailState = ModDetailState(modId: modId,
-                description: DescriptionBlockParser.parse(cached.description),
-                changelog: DescriptionBlockParser.parse(cached.changelog),
-                isStale: true, isLoading: modId > 0)
-        } else {
-            modDetailState = ModDetailState(modId: modId,
-                description: DescriptionBlockParser.parse(mod.description),  // local manifest
-                changelog: [], isStale: true, isLoading: modId > 0)
-        }
+        let cached = modId > 0 ? ModDetailCache.load(modId: modId) : nil
+        modDetailState = ModDetailState.initial(modId: modId, cached: cached,
+                                                localDescription: mod.description)
         guard modId > 0 else { return }
         // Background refresh: description (mods/{id}.json) + changelog (files.json).
         fetchModDetailRemote(modId: modId) { [weak self] raw in
@@ -271,16 +259,13 @@ class StarHubTHViewModel: ObservableObject {
             DispatchQueue.main.async {
                 // Anti-race: only apply if still viewing this mod.
                 guard self.viewingModDetail.map({ Int(self.resolvedNexusModId(for: $0)) }) == modId else { return }
-                self.modDetailState = ModDetailState(modId: modId,
-                    description: DescriptionBlockParser.parse(raw.description),
-                    changelog: DescriptionBlockParser.parse(raw.changelog),
-                    isStale: false, isLoading: false)
+                self.modDetailState = ModDetailState.refreshed(modId: modId, raw: raw)
             }
         }
     }
 
     private func markDetailNotLoading(modId: Int) {
-        if modDetailState?.modId == modId { modDetailState?.isLoading = false }
+        modDetailState?.stopLoading(ifShowing: modId)
     }
 
     /// Fetches the remote description + changelog for `modId`, combining two
