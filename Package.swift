@@ -205,12 +205,24 @@ let package = Package(
                 "Stores/FilePicking.swift",
                 "Stores/GameEnvironmentStore.swift",
                 "Stores/LocalizationStore.swift",
+                "Models/ModScanner.swift",
+                "Models/DisabledModsMigration.swift",
             ]
         ),
         .testTarget(
             name: "LocalizationStoreTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/LocalizationStoreTests"
+        ),
+        .testTarget(
+            name: "ModScannerTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ModScannerTests"
+        ),
+        .testTarget(
+            name: "DisabledModsMigrationTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/DisabledModsMigrationTests"
         ),
         .testTarget(
             name: "FrenchCoveragePassTests",

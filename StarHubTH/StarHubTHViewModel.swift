@@ -383,18 +383,10 @@ class StarHubTHViewModel: ObservableObject {
     /// instead of a frozen bar. `nil` outside a scan. The overlay maps
     /// `done/total` onto the [`launchScanProgressStart`…`launchScanProgressEnd`]
     /// slice of the launch bar.
-    struct ScanProgress: Equatable {
-        let done: Int
-        let total: Int
-        let currentName: String
-        /// Non nil quand la boucle par mod est **finie** et qu'une phase
-        /// nommée tourne encore (journal SMAPI, registre, doublons). Le
-        /// compteur reste alors affiché — à `total/total`, ce qu'il n'atteignait
-        /// jamais — mais la barre suit `launchProgress` au lieu du ratio, sans
-        /// quoi elle resterait immobile pendant toute la phase.
-        var phase: String? = nil
-    }
+    // `ScanProgress` vit désormais en Core (`Models/ModScanner.swift`, avec
+    // le scanner qui le produit) — même nom, mêmes champs, `phase` compris.
     @Published var scanProgress: ScanProgress? = nil
+
 
     /// Launch-bar slice reserved for the "Scanning mods" phase. Kept as
     /// constants so `performInitialLoad` and the launch overlay agree on how
@@ -1950,12 +1942,15 @@ class StarHubTHViewModel: ObservableObject {
     /// cache entry is detected by `stat()` instead of a full re-read + decode.
     /// Persisted across scans (a rescan with no changes does ~N stats and 0
     /// decodes) and mutated on the background queue that runs `scanMods()`.
-    /// Guarded by `manifestCacheLock`: `scanMods()` can run concurrently with
-    /// itself (refresh + initial load, or a profile activation racing a manual
-    /// refresh), and an unprotected Dictionary subscript setter is a classic
-    /// EXC_BAD_ACCESS under that race.
-    private var manifestCache: [String: (mtime: Date, manifest: [String: Any])] = [:]
-    private let manifestCacheLock = NSLock()
+    /// Le scanner du domaine Scan (REFACTORING §6, tranche 1) : balayage de
+    /// `Mods/`, lecture des manifestes, cache mtime — l'état qui était ici
+    /// (`manifestCache` + son `NSLock`) vit dans l'instance. **Une classe,
+    /// pas une valeur** : deux `scanMods()` concurrents (refresh + chargement
+    /// initial, activation de profil croisant un refresh manuel) doivent
+    /// toucher le même cache, verrouillé dedans — le subscript non protégé
+    /// d'un dictionnaire est un `EXC_BAD_ACCESS` classique sous cette course
+    /// (crash de juillet 2026), et deux copies vaudraient deux caches.
+    private let scanner = ModScanner()
 
     // Thai Translation Hub State
     @Published var thaiTranslations: [ThaiTranslationMod] = []
@@ -2332,82 +2327,11 @@ class StarHubTHViewModel: ObservableObject {
     /// No registry/timestamp/profile migration is needed: those maps key on
     /// the logical `folderName` (without the dot), which is unchanged.
     private func migrateDisabledModsToDotPrefix(gameDir: String) {
-        guard !gameDir.isEmpty else { return }
-        let defaults = UserDefaults.standard
-        if defaults.bool(forKey: UDKey.disabledModsMigratedToDotPrefix) { return }
-
-        let fm = FileManager.default
-        let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
-        let disabledPath = (gameDir as NSString).appendingPathComponent("Mods_disabled")
-
-        // Fast path: no legacy folder → nothing to do.
-        guard fm.fileExists(atPath: disabledPath) else {
-            defaults.set(true, forKey: UDKey.disabledModsMigratedToDotPrefix)
-            return
+        // La règle vit en Core (`DisabledModsMigration`, §6 tranche 1) avec
+        // ses tests ; ici ne reste que le journal de l'app, pré-lié.
+        DisabledModsMigration.runIfNeeded(gameDir: gameDir) { [weak self] message, level in
+            self?.log(message, level: level)
         }
-
-        // Ensure Mods/ exists so moves below always have a destination.
-        try? fm.createDirectory(atPath: modsPath, withIntermediateDirectories: true)
-
-
-        guard let entries = try? fm.contentsOfDirectory(atPath: disabledPath) else {
-            // Can't even read the folder — leave it and let the scanMods
-            // warning surface it. Don't set the flag so we retry next launch.
-            log("Migration: could not read Mods_disabled/ — skipping (will retry next launch).", level: .warning)
-            return
-        }
-
-        var failed = 0
-        var moved = 0
-        for entry in entries {
-            if OSJunk.isJunk(entry) { continue }
-
-            let src = (disabledPath as NSString).appendingPathComponent(entry)
-            var isDir: ObjCBool = false
-            fm.fileExists(atPath: src, isDirectory: &isDir)
-            // Only migrate directories — a stray file at the root of
-            // Mods_disabled/ is left in place (and surfaced by the warning).
-            guard isDir.boolValue else { continue }
-
-            let dotName = "." + entry
-            let dst = (modsPath as NSString).appendingPathComponent(dotName)
-            let finalDst: String
-            if fm.fileExists(atPath: dst) {
-                // Collision: a `.X` already exists in Mods/ (e.g. from a
-                // crashed prior run, or a manual copy). Preserve the data by
-                // moving under a unique suffix rather than overwriting.
-                let uuid8 = String(UUID().uuidString.prefix(8))
-                finalDst = "\(dst)_\(uuid8)"
-                log("Migration: collision — Mods/.\(entry) already exists, moved Mods_disabled/\(entry) → Mods/.\(entry)_\(uuid8).", level: .warning)
-            } else {
-                finalDst = dst
-            }
-
-            do {
-                try fm.moveItem(atPath: src, toPath: finalDst)
-                moved += 1
-            } catch {
-                failed += 1
-                log("Migration: failed to move Mods_disabled/\(entry) → \(finalDst): \(error.localizedDescription)", level: .error)
-            }
-        }
-
-        // Remove Mods_disabled/ entirely if it's now empty or only holds junk.
-        let remaining = (try? fm.contentsOfDirectory(atPath: disabledPath)) ?? []
-        let onlyJunk = remaining.allSatisfy(OSJunk.isJunk)
-        if onlyJunk {
-            do {
-                try fm.removeItem(atPath: disabledPath)
-            } catch {
-                // Non-fatal — the permanent warning will re-surface it.
-                log("Migration: could not remove empty Mods_disabled/: \(error.localizedDescription)", level: .warning)
-            }
-        } else {
-            log("Migration: Mods_disabled/ still contains \(remaining.count) non-junk entries (failed moves or stray files) — left in place; see the Mods_disabled warning.", level: .warning)
-        }
-
-        log("Migration: moved \(moved) disabled mod(s) to Mods/.X, \(failed) failure(s).", level: failed > 0 ? .warning : .info)
-        defaults.set(true, forKey: UDKey.disabledModsMigratedToDotPrefix)
     }
 
     /// First-launch load tracked by the launch overlay. Mirrors `refresh()`
@@ -2614,312 +2538,25 @@ class StarHubTHViewModel: ObservableObject {
  ? repairer.repairIfNeeded(gameDir: gameDir, detectDuplicates: false)
             : ModFolderRepairer.Report()
 
-        // Permanent safety net: if a legacy `Mods_disabled/` folder still
-        // exists (recréé par un autre outil, ou un retardataire qui passe
-        // d'une version pré-migration directement à la version actuelle),
-        // the mods it holds are now invisible to the app and would otherwise
-        // silently vanish from the list. Surface a single warning so the
-        // user knows to reinstall them via drag-and-drop. Survives the N+1
-        // removal of the one-shot migration method (plan step 17).
-        let disabledModsPath = (gameDir as NSString).appendingPathComponent("Mods_disabled")
-        if fm.fileExists(atPath: disabledModsPath) {
-            // Source unique OSJunk.isJunk (files + folders + AppleDouble). La liste
-            // inline précédente omettait Icon\r, .Spotlight-V100 et .Trashes → un
-            // Mods_disabled/ ne contenant que ces résidus déclenchait un faux
-            // warning « still contains mods » (divergence de copie).
-            let hasNonJunk = (try? fm.contentsOfDirectory(atPath: disabledModsPath))?
-                .contains { entry in !OSJunk.isJunk(entry) } ?? false
-            if hasNonJunk {
-                log("Mods_disabled/ still contains mods — they are now invisible to StarHubTH. Reinstall them via drag-and-drop to make them appear under Mods/.", level: .warning)
-            }
-        }
-
-        var scannedMods: [ModItem] = []
-
-        // Manifest decode cache hit-test helper. Returns the cached JSON when
-        // the on-disk mtime matches the cached entry's mtime, nil otherwise
-        // (cache miss, file changed, or unreadable). The actual decode + cache
-        // fill happens inline in parseModFolder below. Reads the cache under
-        // `manifestCacheLock` because two concurrent `scanMods()` runs (refresh
-        // + initial load, or a profile activation racing a manual refresh)
-        // would otherwise race on the dictionary's storage.
-        func cachedManifest(at manifestPath: String) -> [String: Any]? {
-            guard let attrs = try? fm.attributesOfItem(atPath: manifestPath),
-                  let mtime = attrs[.modificationDate] as? Date else {
-                return nil
-            }
-            manifestCacheLock.lock()
-            let cached = manifestCache[manifestPath]
-            manifestCacheLock.unlock()
-            guard let cached, cached.mtime == mtime else {
-                return nil
-            }
-            return cached.manifest
-        }
-
-        // Helper to parse a folder containing manifest.json
-        func parseModFolder(at path: String, relativePath: String, isEnabled: Bool) -> ModItem? {
-            let manifestPath = (path as NSString).appendingPathComponent("manifest.json")
-            guard fm.fileExists(atPath: manifestPath) else { return nil }
-
-            // Logical on-disk leaf name, with the disabled dot-prefix stripped.
-            // For a top-level disabled mod the physical folder is `Mods/.X`, so
-            // `lastPathComponent` yields `.X`. `folderName` is the logical key
-            // (registry, profiles, activation timestamps, backups) and must
-            // NEVER carry the dot — otherwise `physicalFolderName` (= "." +
-            // folderName) would compute `..X`, and every on-disk access
-            // (toggle, open-in-Finder, config editor) would miss the folder.
-            // This is exactly the bug that left disabled mods un-toggleable and
-            // un-openable. `relativePath` is already computed against the
-            // physical root, so nested/pack mods never carry the prefix and
-            // need no stripping.
-            let physicalLeaf = (path as NSString).lastPathComponent
-            let logicalLeaf = physicalLeaf.hasPrefix(".") ? String(physicalLeaf.dropFirst()) : physicalLeaf
-
-            // Resolve the folder name used as the registry key — mirrors the
-            // logic that sets `folderName` on the ModItem below.
-            let resolvedFolderName = relativePath.isEmpty
-                ? logicalLeaf
-                : relativePath
-
-            // Install date: prefer the persistent registry (records the actual
-            // installation timestamp on this machine), which is far more
-            // reliable than the on-disk folder mtime — `copyItem` preserves the
-            // archive's packaging date, and backup/restore operations can shift
-            // it too. Fall back to the folder mtime only for mods installed
-            // before the registry existed.
-            let installedFileDate: Date? = installedModDate(for: resolvedFolderName)
-                ?? {
-                    if let attrs = try? fm.attributesOfItem(atPath: path) {
-                        return attrs[.modificationDate] as? Date
-                    }
-                    return nil
-                }()
-            let hasConfigFile = fm.fileExists(atPath: (path as NSString).appendingPathComponent("config.json"))
-            // Les langues que le mod livre, pour la fiche et le filtre FR.
-            //
-            // Ne lisait que `<mod>/i18n`, par nom de fichier. Deux angles morts,
-            // mesurés sur le parc : un content pack range son `i18n` sous
-            // `[CP] Nom/` (121 dossiers sur 550 sont à deux niveaux, un à
-            // quatre), et une locale peut être un **sous-dossier** dont les
-            // fichiers portent d'autres noms (`i18n/fr/gui.json`). Résultat :
-            // 90 mods mal détectés, dont **81 dont le français était
-            // invisible**. La règle vit désormais en Core avec ses tests.
-            let languages = I18nLocaleResolver.languageCodes(
-                inModDirectory: URL(fileURLWithPath: path))
-
-            // `name` is overridden from the manifest below when a `Name` field
-            // exists, but fall back to the logical (dot-stripped) leaf so a
-            // disabled mod missing a `Name` field displays as `X`, not `.X`.
-            var name = logicalLeaf
-            var uniqueId = ""
-            var version = "Unknown"
-            var author = "Unknown"
-            var description = ""
-            var nexusUrl = ""
-            var nexusModId = ""
-            var updateKeys: [String] = []
-            var dependencies: [ModDependency] = []
-
-            // Les deux branches ci-dessous — manifeste venu du cache chaud,
-            // manifeste relu sur le disque — lisaient les mêmes huit champs,
-            // chacune de son côté. Elles ont déjà divergé sur `Version` : un
-            // même mod rendait deux chaînes différentes selon la branche
-            // empruntée. La lecture vit désormais dans `ManifestFields` (Core,
-            // testé) ; ce qui reste ici est le **repli**, qui lui est propre —
-            // un champ absent laisse la valeur par défaut posée juste au-dessus,
-            // dont le nom du dossier logique quand le manifeste ne se nomme pas.
-            func apply(_ fields: ManifestFields) {
-                if let read = fields.name { name = read }
-                if let read = fields.uniqueId { uniqueId = read }
-                if let read = fields.version { version = read }
-                if let read = fields.author { author = read }
-                if let read = fields.description { description = read }
-                dependencies = fields.dependencies
-                updateKeys = fields.updateKeys
-                if let nexus = fields.nexus {
-                    nexusModId = nexus.id
-                    nexusUrl = nexus.url
+        // Le balayage lui-même — énumération de `Mods/`, lecture des
+        // manifestes (cache mtime compris), groupement des packs, décision
+        // `Mods_disabled` — vit dans `ModScanner` (Core, §6 tranche 1). Ici
+        // ne reste que ce qui touche d'autres domaines : la réparation
+        // ci-dessus, le journal SMAPI, la synchronisation du registre, les
+        // doublons, la publication de la liste.
+        let scanned = scanner.scan(
+            gameDir: gameDir,
+            installedModDate: { installedModDate(for: $0) },
+            onProgress: { [weak self] progress in
+                DispatchQueue.main.async {
+                    self?.scanProgress = progress
                 }
+            },
+            log: { [weak self] message in
+                self?.log(message, level: .warning)
             }
-
-            // mtime-keyed decode cache: avoids re-reading and re-parsing every
-            // manifest.json on a rescan that follows a toggle (which moved only
-            // one folder). The cache lives across scans on the VM, so a no-op
-            // rescan becomes ~N stat() calls and zero JSON decodes.
-            if let cached = cachedManifest(at: manifestPath) {
-                apply(ManifestFields(manifest: cached))
-            } else if let rawData = try? Data(contentsOf: URL(fileURLWithPath: manifestPath)),
-                      let rawString = String(data: rawData, encoding: .utf8) {
-                do {
-                    // `decodeInstalled` : la tolérance JSON5 pleine, parce que
-                    // le scan lit un mod que SMAPI a déjà chargé — il n'a rien
-                    // à juger. L'expression régulière qui retirait ici les
-                    // commentaires bloc est partie avec : JSON5 les gère, et
-                    // elle amputait une valeur de chaîne en contenant.
-                    let json = try ManifestJSON.decodeInstalled(rawString)
-                    apply(ManifestFields(manifest: json))
-
-                    // Fill the cache so the next scan of an unchanged manifest
-                    // is a cheap mtime compare + dict reuse. Storing the raw
-                    // decoded JSON (not a narrowed subset) keeps the cache usable
-                    // for any future field added to the scan without rework.
-                    // Write under the lock — concurrent scans would otherwise race
-                    // on the dictionary subscript setter (EXC_BAD_ACCESS).
-                    if let mtime = (try? fm.attributesOfItem(atPath: manifestPath))?[.modificationDate] as? Date {
-                        manifestCacheLock.lock()
-                        manifestCache[manifestPath] = (mtime: mtime, manifest: json)
-                        manifestCacheLock.unlock()
-                    }
-                } catch {
-                    // Manifest mal formé : on garde les valeurs par défaut
-                    // (nom = dossier logique) mais on le signale pour que
-                    // l'utilisateur comprenne pourquoi les métadonnées
-                    // sont vides plutôt que de voir un mod "Unknown".
-                    log("Manifest invalide pour \(relativePath.isEmpty ? logicalLeaf : relativePath): \(error.localizedDescription)",
-                        level: .warning)
-                }
-            }
-
-            return ModItem(
-                uniqueId: uniqueId,
-                name: name,
-                folderName: relativePath.isEmpty ? logicalLeaf : relativePath,
-                version: version,
-                author: author,
-                description: description,
-                nexusUrl: nexusUrl,
-                nexusModId: nexusModId,
-                updateKeys: updateKeys,
-                isEnabled: isEnabled,
-                dependencies: dependencies,
-                installedFileDate: installedFileDate,
-                hasConfigFile: hasConfigFile,
-                languages: languages
-            )
-        }
-
-        // Scan a single top-level entry (physicalRoot) for manifest.json files
-        // and group them. `physicalRoot` is the on-disk folder name — which
-        // for a disabled mod starts with `.` (e.g. `Mods/.CJBCheats`). The
-        // `relativePath` passed to parseModFolder is computed relative to
-        // `physicalRoot` so the dot prefix never leaks into `folderName`
-        // (the registry/profile key) or into the pack grouping key.
-        func scanEntryForMods(at physicalRoot: String, topLevelLogicalFolder: String, isEnabled: Bool) {
-            let url = URL(fileURLWithPath: physicalRoot)
-            var foundMods: [ModItem] = []
-
-            // Sub-scan with `.skipsHiddenFiles` so nested junk (.DS_Store,
-            // .git/, ._Foo) stays hidden — the dot-prefix classification of
-            // *top-level* entries is handled by the caller, not here.
-            // includingPropertiesForKeys: [] — we only filter by filename
-            // ("manifest.json"), so prefetching isDirectory per file is pure
-            // overhead on a tree with tens of thousands of files.
-            if let enumerator = fm.enumerator(at: url, includingPropertiesForKeys: [], options: [.skipsHiddenFiles]) {
-                for case let fileURL as URL in enumerator {
-                    if fileURL.lastPathComponent.lowercased() == "manifest.json" {
-                        let modFolderURL = fileURL.deletingLastPathComponent()
-                        // Chemin relatif canonique : on résout les symlinks des
-                        // deux côtés (l'énumérateur macOS rapporte /private/var/…
-                        // même si la racine était /var/…) puis on ne retire le
-                        // préfixe racine qu'une fois. Un replacingOccurrences(of:
-                        // url.path) l'amputait à nouveau si la racine réapparaissait
-                        // plus loin dans le sous-chemin — jumeau du bug M6 dans
-                        // ModFolderRepairer.collectUniqueIds.
-                        let resolvedMod = modFolderURL.resolvingSymlinksInPath().path
-                        let resolvedRoot = url.resolvingSymlinksInPath().path
-                        let rootStd = resolvedRoot.hasSuffix("/") ? resolvedRoot : resolvedRoot + "/"
-                        let relFromTop = (resolvedMod.hasPrefix(rootStd)
-                            ? String(resolvedMod.dropFirst(rootStd.count))
-                            : "").trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-                        let fullRelPath = relFromTop.isEmpty ? topLevelLogicalFolder : "\(topLevelLogicalFolder)/\(relFromTop)"
-                        if let mod = parseModFolder(at: modFolderURL.path, relativePath: fullRelPath, isEnabled: isEnabled) {
-                            foundMods.append(mod)
-                        }
-                    }
-                }
-            }
-
-            if foundMods.isEmpty {
-                return
-            } else if foundMods.count == 1 && foundMods[0].folderName == topLevelLogicalFolder {
-                scannedMods.append(foundMods[0])
-            } else {
-                let groupMod = ModItem(
-                    uniqueId: "",
-                    name: topLevelLogicalFolder,
-                    folderName: topLevelLogicalFolder,
-                    version: "",
-                    author: "Group",
-                    description: "\(foundMods.count) mods",
-                    nexusUrl: "",
-                    nexusModId: "",
-                    isEnabled: isEnabled,
-                    dependencies: [],
-                    children: foundMods,
-                    isGroup: true,
-                    languages: Set(foundMods.flatMap { $0.languages }).sorted()
-                )
-                scannedMods.append(groupMod)
-            }
-        }
-
-        // Top-level enumeration of Mods/ WITHOUT `.skipsHiddenFiles` so the
-        // dot-prefixed disabled entries (`.X`) are visible. Each entry is
-        // classified exactly the same way `ModFolderRepairer.repairFolder`
-        // classifies top-level entries, so the scanner and the repairer agree
-        // on what counts as OS junk vs. a disabled mod.
-        // « Rien vu » n'est pas « rien installé » (X71). Ce booléen porte la
-        // différence jusqu'aux deux purges de fin de passe : un `Mods/`
-        // introuvable ou illisible rend un lot vide qui, pris pour un parc
-        // vide, effacerait le registre d'install et toutes les ancres de
-        // version. Un `Mods/` bien lu mais vide, lui, purge normalement.
-        var modsFolderWasReadable = false
-        // Hors du bloc : les phases qui suivent la boucle en ont besoin pour
-        // afficher le compte complet, et `topEntries` n'existe plus là-bas.
-        var scannedEntries = (done: 0, total: 0)
-        if fm.fileExists(atPath: modsPath),
-           let topEntries = try? fm.contentsOfDirectory(atPath: modsPath) {
-            modsFolderWasReadable = true
-            let scanTotal = topEntries.count
-            var scanDone = 0
-            var lastProgressPublish: CFAbsoluteTime = 0
-            for entry in topEntries {
-                scanDone += 1
-                if OSJunk.isJunk(entry) { continue }
-                // Skip trash folders created by a prior repair run — the mods
-                // quarantined inside are not active and must not appear in the
-                // list nor in duplicate detection.
-                if entry.hasPrefix(ModFolderRepairer.trashPrefix) { continue }
-
-                // Dot prefix = disabled mod; strip it for the logical name.
-                // Anything else = enabled mod (including the rare legitimate
-                // dotted folder a user might have placed — treated as enabled
-                // since SMAPI wouldn't load it anyway, but we don't break it).
-                let isEnabled = !entry.hasPrefix(".")
-                let topLevelLogicalFolder = entry.hasPrefix(".") ? String(entry.dropFirst()) : entry
-                let physicalRoot = (modsPath as NSString).appendingPathComponent(entry)
-                var isDir: ObjCBool = false
-                fm.fileExists(atPath: physicalRoot, isDirectory: &isDir)
-                guard isDir.boolValue else { continue }
-
-                // Throttled progress publish (~12/s) so the launch overlay can
-                // show "Analyse de <mod>… (done/total)" instead of a frozen
-                // bar. Cheap relative to the per-folder scan that follows.
-                let now = CFAbsoluteTimeGetCurrent()
-                if now - lastProgressPublish > 0.08 {
-                    lastProgressPublish = now
-                    let d = scanDone, t = scanTotal
-                    let nm = topLevelLogicalFolder
-                    DispatchQueue.main.async { [weak self] in
-                        self?.scanProgress = ScanProgress(done: d, total: t, currentName: nm)
-                    }
-                }
-
-                scanEntryForMods(at: physicalRoot, topLevelLogicalFolder: topLevelLogicalFolder, isEnabled: isEnabled)
-            }
-            scannedEntries = (done: scanDone, total: scanTotal)
-        }
+        )
+        let scannedMods = scanned.mods
 
         // **La boucle est finie : le compte est complet.** Le throttle publie
         // au plus toutes les 80 ms et *avant* de traiter l'entrée, si bien que
@@ -2927,13 +2564,13 @@ class StarHubTHViewModel: ObservableObject {
         // « 949/957 » pendant que les phases ci-dessous tournaient. Chacune
         // s'annonce désormais, compte complet à l'appui.
         publishLaunchPhase(L10n.Main.launchStepSmapiLog,
-                           progress: Self.launchSmapiLogStart, entries: scannedEntries)
+                           progress: Self.launchSmapiLogStart, entries: scanned.scannedEntries)
         parseSMAPILog(onProgress: { [weak self] fraction in
             self?.publishLaunchPhaseProgress(L10n.Main.launchStepSmapiLog,
                                              fraction: fraction,
                                              from: Self.launchSmapiLogStart,
                                              to: Self.launchSmapiLogEnd,
-                                             entries: scannedEntries)
+                                             entries: scanned.scannedEntries)
         })
 
         // Synchronize the installed-mod registry with what's on disk. This
@@ -2945,10 +2582,10 @@ class StarHubTHViewModel: ObservableObject {
         //   3. Registry entries whose folder no longer exists → pruned —
         //      sauf si `Mods/` n'a pas pu être lu (X71).
         publishLaunchPhase(L10n.Main.launchStepRegistrySync,
-                           progress: Self.launchRegistrySyncProgress, entries: scannedEntries)
+                           progress: Self.launchRegistrySyncProgress, entries: scanned.scannedEntries)
         syncInstalledModRegistry(scannedMods: scannedMods,
-                                 modsFolderWasReadable: modsFolderWasReadable)
-        if !modsFolderWasReadable {
+                                 modsFolderWasReadable: scanned.modsFolderWasReadable)
+        if !scanned.modsFolderWasReadable {
             log("Dossier Mods/ introuvable ou illisible : registre d'install et ancres de version conservés en l'état",
                 level: .warning)
         }
@@ -2957,7 +2594,7 @@ class StarHubTHViewModel: ObservableObject {
         // repairer's separate disk walk — same result, no extra I/O or decode.
         if includeRepair {
             publishLaunchPhase(L10n.Main.launchStepDuplicates,
-                               progress: Self.launchDuplicatesProgress, entries: scannedEntries)
+                               progress: Self.launchDuplicatesProgress, entries: scanned.scannedEntries)
             let duplicates = repairer.detectDuplicates(from: scannedMods)
             repairReport = ModFolderRepairer.Report(
                 quarantined: repairReport.quarantined,
