@@ -8,7 +8,12 @@ skills (`.claude/skills/`) ; ce fichier ne fait qu'y pointer.
 - **StarHubFR** — gestionnaire de mods Stardew Valley pour macOS (SwiftUI, macOS 14+).
 - Fork de **StarHubTH** (AppleBoiy). Le dossier source s'appelle encore `StarHubTH/`,
   mais le bundle produit est désormais `StarHubFR.app` (exécutable `StarHubFR`).
-  Seul l'identifiant de bundle reste `com.appleboiy.StarHubTH` (Keychain/préférences).
+  L'identifiant de bundle est `com.mrbabilo.StarHubFR` depuis le 2026-09-10 (F5) :
+  l'application d'origine peut être installée à côté, et partager le domaine de
+  préférences lui aurait fait écrire dans les profils et le registre de celle-ci.
+  `com.appleboiy.StarHubTH` reste lu **en secours** (Trousseau via
+  `KeychainSecret.legacyService`, préférences via `DefaultsMigration`), et
+  `Backups/` vit toujours sous `~/Library/Application Support/StarHubTH/`.
 - UI **bilingue** : anglais (`en`), français (`fr`). *(Le thaï comme langue d'UI a
   été retiré ; la fonctionnalité « Thai Translation Hub » — mods de traduction —
   reste, elle.)*

@@ -90,6 +90,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
 @main
 struct StarHubTHApp: App {
+    /// **Avant tout le reste.** Changer l'identifiant de bundle change le
+    /// domaine `UserDefaults` : sans cette recopie, l'app se réveillerait sans
+    /// dossier de jeu, sans profils et sans registre d'installation. Le
+    /// `static let` garantit une évaluation unique et atomique — le même
+    /// patron qu'`AppSupport` pour les fichiers — et l'ordre des
+    /// initialisateurs de propriétés la force **avant** que `vm` ne lise le
+    /// moindre `UserDefaults.standard` : le ViewModel de son premier tour
+    /// voit déjà le domaine recopié, langue et `gameDir` compris. Ici et pas
+    /// dans `AppSupport` : les préférences ne dépendent d'aucun fichier.
+    private static let defaultsBootstrap: Void = {
+        guard let legacy = UserDefaults(suiteName: "com.appleboiy.StarHubTH") else { return }
+        let copied = DefaultsMigration.copy(from: legacy, to: .standard,
+                                            keys: DefaultsMigration.ownedKeys)
+        if copied > 0 {
+            NSLog("StarHubFR : %lu préférence(s) reprises de l'installation précédente",
+                  copied)
+        }
+    }()
+
+    /// Force l'évaluation de `defaultsBootstrap` à la construction de
+    /// l'instance, **avant** l'initialisateur de `vm` déclaré plus bas.
+    private let bootstrapDefaults = StarHubTHApp.defaultsBootstrap
+
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var vm = StarHubTHViewModel()
     @AppStorage("showThaiTranslationHub") private var showThaiHub = false

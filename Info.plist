@@ -9,7 +9,7 @@
 	<key>CFBundleIconFile</key>
 	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.appleboiy.StarHubTH</string>
+	<string>com.mrbabilo.StarHubFR</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
@@ -22,7 +22,7 @@
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>com.appleboiy.StarHubTH.nxm</string>
+			<string>com.mrbabilo.StarHubFR.nxm</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>nxm</string>
