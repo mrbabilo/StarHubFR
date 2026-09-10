@@ -8640,9 +8640,9 @@ for mod in mods {
         panel.canChooseDirectories = false
         panel.title = L(L10n.Saves.avatarPanelTitle)
         if panel.runModal() == .OK, let url = panel.url,
-           let appSupport = AppSupport.directory {
+           let appSupport = AppSupport.avatarsDirectory {
             // Copy to app support dir to prevent broken paths
-            let supportDir = appSupport.appendingPathComponent("Avatars", isDirectory: true)
+            let supportDir = appSupport
             try? FileManager.default.createDirectory(at: supportDir, withIntermediateDirectories: true)
             let destURL = supportDir.appendingPathComponent("\(folderName)_\(url.lastPathComponent)")
             do {

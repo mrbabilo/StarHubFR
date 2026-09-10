@@ -25,3 +25,32 @@ public enum SaveHeroPortrait {
         return !trimmed.hasPrefix(presetPrefix)
     }
 }
+
+extension SaveHeroPortrait {
+
+    /// Le chemin où l'image vit **aujourd'hui**.
+    ///
+    /// `selectCustomAvatar` enregistre un chemin **absolu** dans `SaveNotes_v2`.
+    /// F5 a déplacé `Avatars/` de `StarHubTH/` vers `StarHubFR/` : le chemin
+    /// stocké pendouille, et `NSImage(contentsOfFile:)` retombe **en silence**
+    /// sur le pictogramme générique — l'avatar disparaît sans un mot.
+    ///
+    /// La résolution se fait à la lecture plutôt qu'en réécrivant la
+    /// préférence : c'est idempotent, ça ne dépend d'aucun ordre de migration,
+    /// et ça vaut pour tout déplacement futur du dossier.
+    ///
+    /// - Returns: le chemin d'origine s'il est encore valide, le fichier de
+    ///   même nom dans `avatarsDirectory` sinon, et à défaut le chemin
+    ///   d'origine — inventer vaudrait moins que laisser l'appelant afficher
+    ///   son repli.
+    public static func resolvedImagePath(_ iconPath: String,
+                                         avatarsDirectory: URL?,
+                                         fileManager: FileManager = .default) -> String {
+        guard prefersCustomIcon(iconPath) else { return iconPath }
+        guard !fileManager.fileExists(atPath: iconPath) else { return iconPath }
+        guard let directory = avatarsDirectory else { return iconPath }
+        let candidate = directory
+            .appendingPathComponent((iconPath as NSString).lastPathComponent)
+        return fileManager.fileExists(atPath: candidate.path) ? candidate.path : iconPath
+    }
+}

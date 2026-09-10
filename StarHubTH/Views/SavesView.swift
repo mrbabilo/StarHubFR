@@ -20,6 +20,15 @@ struct SaveAvatarViewLocal: View {
     let iconPath: String
     let size: CGFloat
 
+    /// Le chemin tel qu'il vaut **aujourd'hui**. Celui qui dort dans
+    /// `SaveNotes_v2` est absolu : le déplacement du dossier de données (F5)
+    /// l'a périmé, et `NSImage(contentsOfFile:)` retombait alors en silence
+    /// sur le pictogramme générique — l'avatar disparaissait sans un mot.
+    private var resolvedPath: String {
+        SaveHeroPortrait.resolvedImagePath(iconPath,
+                                           avatarsDirectory: AppSupport.avatarsDirectory)
+    }
+
     var body: some View {
         ZStack {
             Circle()
@@ -32,7 +41,7 @@ struct SaveAvatarViewLocal: View {
                     .scaledToFit()
                     .foregroundColor(Color.accentColor.opacity(0.8))
                     .padding(size * 0.18)
-            } else if !iconPath.isEmpty, let img = NSImage(contentsOfFile: iconPath) {
+            } else if !iconPath.isEmpty, let img = NSImage(contentsOfFile: resolvedPath) {
                 Image(nsImage: img)
                     .resizable()
                     .scaledToFill()

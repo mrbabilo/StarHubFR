@@ -1068,3 +1068,63 @@ struct SaveManagerRemarriageTests {
                              + "<Points>2500</Points><Status>Married</Status>"))
     }
 }
+
+// MARK: - Le chemin d'un avatar survit au déplacement du dossier (revue F5)
+
+/// F5 a déplacé `Avatars/` de `StarHubTH/` vers `StarHubFR/`, mais le chemin
+/// **absolu** posé par `selectCustomAvatar` dort dans `SaveNotes_v2` : il
+/// pendouille après la migration, et `NSImage(contentsOfFile:)` retombe en
+/// silence sur le pictogramme générique. La résolution se fait donc à la
+/// lecture, par le nom de fichier, et vaut pour tout déplacement futur.
+struct SaveAvatarPathResolutionTests {
+
+    private func makeAvatars() throws -> (dir: URL, file: URL) {
+        let fm = FileManager.default
+        let dir = fm.temporaryDirectory
+            .appendingPathComponent("avatars-\(UUID().uuidString)")
+        try fm.createDirectory(at: dir, withIntermediateDirectories: true)
+        let file = dir.appendingPathComponent("Ferme_portrait.png")
+        try Data("png".utf8).write(to: file)
+        return (dir, file)
+    }
+
+    /// Un chemin encore valide n'est pas touché.
+    @Test func aLivePathIsLeftAlone() throws {
+        let a = try makeAvatars()
+        defer { try? FileManager.default.removeItem(at: a.dir) }
+        #expect(SaveHeroPortrait.resolvedImagePath(a.file.path,
+                                                   avatarsDirectory: a.dir) == a.file.path)
+    }
+
+    /// **Le cas de la migration** : le chemin stocké pointe vers l'ancien
+    /// dossier, le fichier vit sous le nouveau, le même nom.
+    @Test func aDanglingPathIsFoundBackInTheCurrentFolder() throws {
+        let a = try makeAvatars()
+        defer { try? FileManager.default.removeItem(at: a.dir) }
+        let stale = "/Users/x/Library/Application Support/StarHubTH/Avatars/Ferme_portrait.png"
+        #expect(SaveHeroPortrait.resolvedImagePath(stale,
+                                                   avatarsDirectory: a.dir) == a.file.path)
+    }
+
+    /// Un préréglage n'est pas un chemin de fichier : il traverse intact.
+    @Test func aPresetIsNeverResolved() throws {
+        let a = try makeAvatars()
+        defer { try? FileManager.default.removeItem(at: a.dir) }
+        #expect(SaveHeroPortrait.resolvedImagePath("preset:leaf",
+                                                   avatarsDirectory: a.dir) == "preset:leaf")
+        #expect(SaveHeroPortrait.resolvedImagePath("", avatarsDirectory: a.dir) == "")
+    }
+
+    /// Introuvable des deux côtés : rendre le chemin d'origine, et laisser
+    /// l'appelant afficher son pictogramme de repli. Inventer un chemin
+    /// vaudrait moins que dire la vérité.
+    @Test func anAvatarGoneForGoodKeepsItsStoredPath() throws {
+        let a = try makeAvatars()
+        defer { try? FileManager.default.removeItem(at: a.dir) }
+        let gone = "/Users/x/Library/Application Support/StarHubTH/Avatars/disparu.png"
+        #expect(SaveHeroPortrait.resolvedImagePath(gone, avatarsDirectory: a.dir) == gone)
+        // Sans dossier d'avatars du tout, même règle.
+        #expect(SaveHeroPortrait.resolvedImagePath(gone, avatarsDirectory: nil) == gone)
+    }
+}
+
