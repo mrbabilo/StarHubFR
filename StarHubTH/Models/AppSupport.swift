@@ -22,7 +22,22 @@ public enum AppSupport {
     /// dossier de support — cas où l'app ne peut de toute façon rien persister.
     public static let directory: URL? = resolve()
 
+    /// Le dossier des avatars de sauvegarde. Un seul endroit le construit :
+    /// le ViewModel y copie l'image choisie, `SaveHeroPortrait` l'y retrouve
+    /// quand le chemin absolu stocké dans `SaveNotes_v2` a été périmé par un
+    /// déplacement du dossier de données.
+    public static var avatarsDirectory: URL? {
+        directory?.appendingPathComponent("Avatars", isDirectory: true)
+    }
+
     private static func resolve() -> URL? {
+        // **La reprise des préférences part d'ici, et c'est le point du
+        // dispositif.** Elle est aussi déclenchée depuis `StarHubTHApp`, mais
+        // cet ordre-là serait une affirmation statique ; celui-ci se prouve —
+        // le premier initialisateur stocké du ViewModel qui touche quoi que ce
+        // soit passe par `directory`, donc par ici. Idempotente : le second
+        // appel ne coûte rien. Voir `DefaultsMigration.runOnce`.
+        _ = DefaultsMigration.runOnce
         guard let base = FileManager.default.urls(for: .applicationSupportDirectory,
                                                   in: .userDomainMask).first else { return nil }
         let target = base.appendingPathComponent(folderName, isDirectory: true)
@@ -57,21 +72,24 @@ public enum AppSupport {
         var isDirectory: ObjCBool = false
         guard fm.fileExists(atPath: legacy.path, isDirectory: &isDirectory),
               isDirectory.boolValue else { return true }
-        // **Toujours entrée par entrée, jamais le dossier entier.** `Backups/`
-        // doit rester derrière, et surtout : un déplacement en bloc qui échoue
-        // au milieu laisserait un état à moitié migré qu'aucun second passage
-        // ne saurait reprendre. Entrée par entrée, en sautant ce qui est déjà
-        // arrivé, la migration est **reprenable** — elle peut échouer, être
-        // relancée, et finir le travail.
-        let registry = legacy.appendingPathComponent("installed_translations.json")
-        let registryTarget = target.appendingPathComponent("installed_translations.json")
-        // La réécriture d'abord, et seulement si ce registre-là va bouger : une
-        // destination qui en a déjà un porte des données plus récentes.
-        if !fm.fileExists(atPath: registryTarget.path),
-           let data = try? Data(contentsOf: registry),
-           let rewritten = AppSupportMigration.rewrite(data, from: legacy.path, to: target.path) {
+        // **Le `.bak` compte autant que le principal.** `InstalledTranslationStore`
+        // écrit les deux à chaque enregistrement et promeut le `.bak` quand le
+        // principal est corrompu : un `.bak` laissé aux chemins périmés ferait
+        // *supprimer* les fichiers d'origine du parc au premier retrait de
+        // greffe, exactement le défaut que cette réécriture existe pour éviter.
+        for name in ["installed_translations.json", "installed_translations.json.bak"] {
+            let source = legacy.appendingPathComponent(name)
+            let destination = target.appendingPathComponent(name)
+            // La réécriture d'abord, et seulement si ce fichier-là va bouger :
+            // une destination qui en a déjà un porte des données plus récentes.
+            guard !fm.fileExists(atPath: destination.path),
+                  let data = try? Data(contentsOf: source),
+                  let rewritten = AppSupportMigration.rewrite(data,
+                                                              from: legacy.path,
+                                                              to: target.path)
+            else { continue }
             do {
-                try rewritten.write(to: registry, options: .atomic)
+                try rewritten.write(to: source, options: .atomic)
             } catch {
                 // Rien n'a bougé : le dossier est intact, et un prochain
                 // lancement retentera.
@@ -79,6 +97,12 @@ public enum AppSupport {
             }
         }
 
+        // **Toujours entrée par entrée, jamais le dossier entier.** `Backups/`
+        // doit rester derrière, et surtout : un déplacement en bloc qui échoue
+        // au milieu laisserait un état à moitié migré qu'aucun second passage
+        // ne saurait reprendre. Entrée par entrée, en sautant ce qui est déjà
+        // arrivé, la migration est **reprenable** — elle peut échouer, être
+        // relancée, et finir le travail.
         do {
             try fm.createDirectory(at: target, withIntermediateDirectories: true)
             for name in try fm.contentsOfDirectory(atPath: legacy.path) {

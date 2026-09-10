@@ -34,7 +34,7 @@ public enum DefaultsMigration {
         "installedModRegistry", "installedModRegistryBackup", "keepNexusArchives",
         "launchProfile", "localAIBaseURL", "localAIModel", "modActivationTimestamps",
         "modListViewMode", "modProfiles", "modUpdateSnoozes", "modVersionAnchors",
-        "modsListLayout", "nexusAccount", "nexusApiKey", "nexusCachedCategories",
+        "modsListLayout", "nexusAccount", "nexusCachedCategories",
         "nexusCachedExtras", "nexusCachedUpdates", "nexusCustomCategories",
         "nexusCustomModIds", "nexusLastCheckAt", "nexusQuota", "nexusUpdatesLastCheckedAt",
         "profileConfigsDesyncedProfileId", "profileManagedConfigMods",
@@ -42,6 +42,62 @@ public enum DefaultsMigration {
         "starhubFR.releaseLastCheckedAt", "starhubFR.releaseLastKnown",
         "starhubFR.releaseLastSeenTag",
     ]
+
+    /// Le domaine de l'application d'origine, dont le fork a hérité jusqu'au
+    /// 2026-09-10.
+    public static let legacyDomain = "com.appleboiy.StarHubTH"
+
+    /// Marqueur de reprise, posé dans le **nouveau** domaine. Délibérément
+    /// **hors `ownedKeys`** : il décrit l'installation courante, pas une donnée
+    /// à hériter — le recopier ferait croire à une reprise déjà faite.
+    public static let completionMarker = "starhubFR.legacyDefaultsImported"
+
+    /// La reprise, **une fois par installation**.
+    ///
+    /// Sans ce garde, la recopie rejouait à chaque lancement — et toute clé que
+    /// l'app efface volontairement revenait d'entre les morts : `activeProfileId`
+    /// à la désélection d'un profil (`StarHubTHViewModel`, branche `else` du
+    /// chemin normal), les quatre caches Nexus qu'on purge
+    /// (`NexusUpdateChecker`), et le registre d'installation purgé pour
+    /// corruption — remplacé par la copie périmée de l'ancien domaine.
+    ///
+    /// Le marqueur est posé **inconditionnellement**, y compris quand il n'y a
+    /// rien à reprendre : une installation neuve doit être « déjà à jour », pas
+    /// éternellement candidate.
+    ///
+    /// - Returns: combien de clés ont été reprises (0 aux lancements suivants).
+    @discardableResult
+    public static func importLegacyIfNeeded(from source: UserDefaults?,
+                                            to destination: UserDefaults,
+                                            keys: [String] = ownedKeys) -> Int {
+        guard !destination.bool(forKey: completionMarker) else { return 0 }
+        defer { destination.set(true, forKey: completionMarker) }
+        guard let source else { return 0 }
+        return copy(from: source, to: destination, keys: keys)
+    }
+
+    /// La reprise du processus courant, évaluée **une seule fois** quel que soit
+    /// le nombre d'appelants.
+    ///
+    /// Elle est déclenchée de deux endroits — `AppSupport.resolve()` et
+    /// `StarHubTHApp` — et c'est délibéré. L'ordre des initialisateurs de
+    /// propriétés de `StarHubTHApp` **ne doit pas être porteur** : ce serait
+    /// une affirmation statique, du genre que ce dépôt a déjà payé. Le premier
+    /// initialisateur stocké du ViewModel qui touche quoi que ce soit est
+    /// `modCompatibility = ModCompatibilityStore.load()`, qui passe par
+    /// `AppSupport.directory` — vérifié, pas déduit : `gameDir` s'initialise à
+    /// `""` et ne lit sa préférence qu'au `didSet`, et les lectures de
+    /// `localAIBaseURL`/`localAIModel` sont des propriétés **calculées**.
+    /// Déclencher depuis `resolve()` garantit donc l'antériorité ; le second
+    /// appel ne coûte rien.
+    public static let runOnce: Void = {
+        let copied = importLegacyIfNeeded(from: UserDefaults(suiteName: legacyDomain),
+                                          to: .standard)
+        if copied > 0 {
+            NSLog("StarHubFR : %lu préférence(s) reprises de l'installation précédente",
+                  copied)
+        }
+    }()
 
     /// Recopie les clés absentes de la destination. **Jamais d'écrasement** :
     /// une valeur déjà présente côté destination est plus récente que celle de
