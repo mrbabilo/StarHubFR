@@ -772,8 +772,10 @@ restent nombreuses — la reprise des vues (P8) doit devenir une tranche de
 son côté**, sinon le chantier continuera d'échanger des lignes contre de
 l'état gouverné.
 
-**Vérification à l'écran — due, auteur.** Cinq contrôles, depuis la fiche
-d'un mod :
+**Vérification à l'écran — OK, auteur, 2026-09-11.** Les cinq contrôles sont
+passés, dont celui qui porte (deux recherches successives n'héritent rien
+l'une de l'autre — les deux moitiés se vident bien ensemble). Ce qui a été
+exercé :
 
 1. chercher une traduction — la recherche tourne (le bouton de la fiche est
    désactivé), les autres fiches restent utilisables pendant ce temps
