@@ -2085,6 +2085,12 @@ final class StarHubTHViewModel {
         // sur une valeur périmée. Le patron existe déjà sur
         // `nexusCategories.didSet` et le `didSet` de `mods`.
         nexusMetadata.setOnInvalidate { [weak self] in self?.invalidateCategoryCache() }
+        // L'historique d'erreurs s'accumule et ne se rebâtit pas : une panne
+        // d'écriture ne se verrait qu'au lancement suivant, et par une perte.
+        errorHistory.setOnWriteFailure { [weak self] in
+            self?.log("Historique d'erreurs non enregistré : il ne survivra pas à la fermeture",
+                      level: .warning)
+        }
         // Seed the first launch step label synchronously so the overlay never
         // shows an empty string before the first async hop lands.
         self.launchStep = self.localization.L(L10n.Main.launchStepInit)
@@ -3443,12 +3449,15 @@ final class StarHubTHViewModel {
 
     // MARK: - Per-mod error history
 
+    // MARK: Historique d'erreurs — le store du sous-domaine (cadrage §4,
+    // domaine 2, tranche 3). Il tient lui-même la garde « rien ne se mute
+    // avant le chargement », qui vivait ici sous forme de deux
+    // `if errorHistoryLoaded` posés au point d'appel.
+    private let errorHistory = ErrorHistoryStore()
+
     /// Per-mod, per-version error history (see `ModErrorHistory`). Loaded once,
     /// then kept in memory; the mod detail view reads it.
-    var modErrorHistory = ModErrorHistory()
-    /// Log timestamp of the last fold, so the same log is never counted twice.
-    private var lastErrorHistoryLogDate: Date?
-    private var errorHistoryLoaded = false
+    var modErrorHistory: ModErrorHistory { errorHistory.history }
 
     /// Folds a parsed SMAPI log into the error history and persists it.
     ///
@@ -3456,34 +3465,17 @@ final class StarHubTHViewModel {
     /// and refresh, which would otherwise inflate every count. A log with no
     /// date is skipped too — without one we can't tell repeats apart.
     private func recordErrorHistory(from entries: [LogEntry], logDate: Date?) {
-        if !errorHistoryLoaded {
-            let loaded = ModErrorHistoryStore.load()
-            modErrorHistory = loaded.history
-            lastErrorHistoryLogDate = loaded.lastLogDate
-            errorHistoryLoaded = true
+        errorHistory.loadIfNeeded()
+        guard let logDate,
+              SmapiHealthFold.shouldFold(logDate: logDate,
+                                         lastFolded: errorHistory.lastFoldedDate) else { return }
+        // `resolveModFolder` a besoin du parc : c'est pour ça que cette
+        // fonction reste au ViewModel. La règle, elle, est en Core.
+        let observations = SmapiHealthFold.observations(from: entries) { name in
+            guard let mod = resolveModFolder(forLoggedName: name) else { return nil }
+            return .init(folderName: mod.folderName, version: mod.version)
         }
-
-        guard let logDate else { return }
-        if let last = lastErrorHistoryLogDate, logDate <= last { return }
-
-        let observations: [ModErrorHistory.Observation] = entries.compactMap { entry in
-            guard entry.level == .error || entry.level == .warning,
-                  let modName = entry.modName,
-                  let mod = resolveModFolder(forLoggedName: modName) else { return nil }
-            return .init(mod: mod.folderName,
-                         version: mod.version,
-                         message: entry.message,
-                         isError: entry.level == .error)
-        }
-        guard !observations.isEmpty else {
-            lastErrorHistoryLogDate = logDate
-            persistErrorHistory()
-            return
-        }
-
-        modErrorHistory.merge(observations, at: logDate)
-        lastErrorHistoryLogDate = logDate
-        persistErrorHistory()
+        errorHistory.fold(observations, at: logDate)
     }
 
     /// Écrit l'historique d'erreurs et dit quand l'écriture échoue : cette
@@ -3491,13 +3483,6 @@ final class StarHubTHViewModel {
     /// écrase le précédent). Une panne silencieuse ne se verrait qu'au
     /// lancement suivant — convention des stores voisins, l'appelant doit
     /// le dire.
-    private func persistErrorHistory() {
-        if !ModErrorHistoryStore.save(modErrorHistory, lastLogDate: lastErrorHistoryLogDate) {
-            log("Historique d'erreurs non enregistré : il ne survivra pas à la fermeture",
-                level: .warning)
-        }
-    }
-
     /// Maps a name as SMAPI logged it to an installed mod. SMAPI logs the
     /// manifest's display name, which usually matches but isn't guaranteed to,
     /// hence the tolerant containment match used elsewhere for mod jumps.
@@ -4330,11 +4315,7 @@ final class StarHubTHViewModel {
         }
 
         // 7. L'historique d'erreurs par version.
-        if errorHistoryLoaded,
-           ModFolderRename.migrate(&modErrorHistory.mods, from: old, to: new,
-                                   shared: shared) {
-            persistErrorHistory()
-        }
+        errorHistory.rename(from: old, to: new, shared: shared)
 
         // 8-9. Les deux jeux de sauvegardes : configuration et installation.
         // Même nature que l'identifiant Nexus et le registre — ce sont des
@@ -9725,10 +9706,7 @@ final class StarHubTHViewModel {
             // which removes entries for folders no longer on disk.
             // Forget the mod's error history too, so the file doesn't keep
             // growing with mods that are no longer installed.
-            if errorHistoryLoaded {
-                modErrorHistory.remove(mod: mod.folderName)
-                persistErrorHistory()
-            }
+            errorHistory.forget(mod: mod.folderName)
             // TranslationBaseline picked up every convention
             // ModErrorHistoryStore follows except the one that bounds its
             // growth — without this, a deleted mod's reference store (every
