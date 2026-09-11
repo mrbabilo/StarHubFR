@@ -892,8 +892,7 @@ private struct LocalAISettingsSection: View {
     }
 
     private func testFallback() {
-        guard let credentials = KeychainSecret.deepLApiKey.read()
-            .flatMap(DeepLClient.Credentials.init(key:)) else {
+        guard let credentials = DeepLClient.Credentials.fromKeychain() else {
             fallbackTestError = localization.L(L10n.Settings.fallbackFailed)
             return
         }

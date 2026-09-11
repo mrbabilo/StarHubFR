@@ -215,3 +215,16 @@ public enum DeepLClient {
         return Int(raw.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 }
+
+
+/// Le lecteur partagé des identifiants du secours. Construire `Credentials`
+/// depuis le trousseau en **un seul endroit** : le bouton « Tester » de
+/// `SettingsView` et le miroir du ViewModel doivent toujours valider la même
+/// clé que celle réellement envoyée (revue du chantier `@Observable`, Task 3
+/// — la leçon « copies qui divergent »).
+extension DeepLClient.Credentials {
+    /// Lit la clé du secours dans le trousseau, `nil` si absente.
+    public static func fromKeychain() -> Self? {
+        KeychainSecret.deepLApiKey.read().flatMap(Self.init(key:))
+    }
+}

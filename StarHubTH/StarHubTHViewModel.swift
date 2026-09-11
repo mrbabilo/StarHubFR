@@ -822,11 +822,16 @@ class StarHubTHViewModel: ObservableObject {
 
     /// Les identifiants du secours en ligne, `nil` si la case est décochée ou
     /// si aucune clé n'est enregistrée. Les deux conditions sont nécessaires :
-    /// une clé sans accord ne sort pas, un accord sans clé n'a rien à envoyer.
+    /// une clé sans accord ne sort pas, un accord sans clé n'a rien à envoyer
+    /// — les trois lecteurs (actions d'envoi et de test, aucun rendu)
+    /// dépendent de ce `nil`. **Calculée à dessein**, après revue : elle lit
+    /// le trousseau EN DIRECT — une rotation de clé hors de l'app est servie
+    /// fraîche, là où un miroir aurait servi du périmé indéfiniment pendant
+    /// que le bouton « Tester » (qui lit en direct) validait la nouvelle. Le
+    /// suivi de la case passe par le miroir `deepLFallbackEnabled` ; aucune
+    /// vue ne lit celle-ci, donc rien à suivre dessus.
     var deepLCredentials: DeepLClient.Credentials? {
-        guard UserDefaults.standard.bool(forKey: UDKey.deepLFallbackEnabled),
-              let key = KeychainSecret.deepLApiKey.read() else { return nil }
-        return DeepLClient.Credentials(key: key)
+        deepLFallbackEnabled ? DeepLClient.Credentials.fromKeychain() : nil
     }
 
     /// Une clé de secours est-elle enregistrée ? **Mémorisé** : la question
