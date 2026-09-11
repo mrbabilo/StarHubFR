@@ -2768,14 +2768,14 @@ class StarHubTHViewModel: ObservableObject {
             CoreModSlot.resolve(keyword: keyword, among: allMods)
         }
 
-        let thaiMod = allMods.first { $0.folderName.lowercased() == "stardew valley - thai" && $0.isEnabled }
-            ?? allMods.first { $0.name.localizedCaseInsensitiveContains("thai") && $0.isEnabled }
-            ?? allMods.first { $0.folderName.lowercased() == "stardew valley - thai" }
-            ?? allMods.first { $0.name.localizedCaseInsensitiveContains("thai") }
-        let thaiSlot: CoreModSlot = {
-            guard let mod = thaiMod else { return CoreModSlot(status: .notInstalled, mod: nil) }
-            return CoreModSlot(status: mod.isEnabled ? .enabledAndInstalled : .installedButDisabled, mod: mod)
-        }()
+        // Le hub thaï est la seule extension dont on connaisse le **dossier** :
+        // il prime sur une correspondance de nom, un auteur pouvant renommer
+        // son mod d'une version à l'autre. La cascade était écrite à la main
+        // ici, à côté de `CoreModSlot.resolve` qui fait le même travail pour
+        // les autres — une copie de plus de la même règle.
+        let thaiSlot = CoreModSlot.resolve(keyword: "thai",
+                                           folderName: "stardew valley - thai",
+                                           among: allMods)
 
         return CoreExtensionsSnapshot(
             contentPatcher: slot(matching: "content patcher"),

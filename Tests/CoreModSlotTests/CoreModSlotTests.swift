@@ -82,3 +82,72 @@ struct CoreModSlotTests {
         #expect(dated("Muet", nil).effectiveInstallDate == nil)
     }
 }
+
+/// L'ancrage d'une extension sur le **nom de dossier**, quand elle en a un
+/// connu — le cas du hub thaï.
+///
+/// La cascade vivait écrite à la main dans `coreExtensionsSnapshot`, à côté de
+/// `resolve(keyword:among:)` qui fait le même travail pour les autres
+/// extensions : deux copies d'une même règle, dont une seule était testée. Le
+/// dossier est plus stable que le nom — un mod renommé par son auteur garde
+/// son dossier.
+struct CoreModSlotFolderAnchorTests {
+
+    private func mod(_ folderName: String, name: String, enabled: Bool) -> ModItem {
+        ModItem(uniqueId: folderName, name: name, folderName: folderName,
+                version: "1.0.0", author: "A", description: "", nexusUrl: "",
+                nexusModId: "", isEnabled: enabled, dependencies: [],
+                children: nil, isGroup: false, installedFileDate: nil)
+    }
+
+    @Test func theExactFolderNameWinsOverANameMatch() {
+        // Le dossier connu désigne le mod lui-même ; un nom qui contient le
+        // mot-clé peut être une traduction ou un pack qui l'étend.
+        let slot = CoreModSlot.resolve(
+            keyword: "thai", folderName: "stardew valley - thai",
+            among: [mod("Autre", name: "Thai Font Fix", enabled: true),
+                    mod("Stardew Valley - Thai", name: "Traduction", enabled: true)])
+        #expect(slot.mod?.folderName == "Stardew Valley - Thai")
+    }
+
+    @Test func theFolderNameIsComparedWithoutCase() {
+        let slot = CoreModSlot.resolve(
+            keyword: "thai", folderName: "stardew valley - thai",
+            among: [mod("STARDEW VALLEY - THAI", name: "Peu importe", enabled: true)])
+        #expect(slot.status == .enabledAndInstalled)
+    }
+
+    @Test func anEnabledNameMatchBeatsAPausedExactFolder() {
+        // Ce que l'accueil doit dire, c'est ce qui **tourne** : un dossier
+        // exact mais en pause ne sert pas le joueur.
+        let slot = CoreModSlot.resolve(
+            keyword: "thai", folderName: "stardew valley - thai",
+            among: [mod("Stardew Valley - Thai", name: "Traduction", enabled: false),
+                    mod("Autre", name: "Thai Font Fix", enabled: true)])
+        #expect(slot.mod?.folderName == "Autre")
+        #expect(slot.status == .enabledAndInstalled)
+    }
+
+    @Test func aPausedExactFolderIsStillFoundWhenNothingRuns() {
+        let slot = CoreModSlot.resolve(
+            keyword: "thai", folderName: "stardew valley - thai",
+            among: [mod("Stardew Valley - Thai", name: "Traduction", enabled: false)])
+        #expect(slot.status == .installedButDisabled)
+    }
+
+    @Test func nothingInstalledStaysNothingInstalled() {
+        let slot = CoreModSlot.resolve(keyword: "thai", folderName: "stardew valley - thai",
+                                       among: [mod("SVE", name: "Expanded", enabled: true)])
+        #expect(slot.status == .notInstalled)
+        #expect(slot.mod == nil)
+    }
+
+    @Test func withoutAFolderAnchorTheRuleIsTheOriginalOne() {
+        // Les autres extensions n'ont pas de dossier connu : la cascade doit
+        // rester exactement celle qui était déjà testée.
+        let mods = [mod("A", name: "Content Patcher Extras", enabled: true),
+                    mod("B", name: "Content Patcher", enabled: true)]
+        #expect(CoreModSlot.resolve(keyword: "content patcher", folderName: nil, among: mods).mod?.name
+                == CoreModSlot.resolve(keyword: "content patcher", among: mods).mod?.name)
+    }
+}

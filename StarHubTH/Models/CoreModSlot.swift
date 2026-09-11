@@ -26,15 +26,34 @@ struct CoreModSlot {
     /// lequel d'activé, puis le nom exact même en pause, puis le premier venu.
     /// Sans cette hiérarchie, l'accueil peut annoncer « installé et actif » en
     /// désignant une traduction pendant que le mod, lui, est en pause.
-    static func resolve(keyword: String, among mods: [ModItem]) -> CoreModSlot {
-        let matches = mods.filter { $0.name.lowercased().contains(keyword) }
+    /// - Parameter folderName: le **nom de dossier** connu de cette extension,
+    ///   quand elle en a un — le cas du hub thaï. Il est plus stable que le
+    ///   nom, qu'un auteur peut changer d'une version à l'autre, et il prime
+    ///   donc sur une simple correspondance de nom à état d'activation égal.
+    ///   `nil` pour les extensions qui n'en ont pas : la cascade est alors
+    ///   exactement celle d'origine.
+    static func resolve(keyword: String, folderName: String? = nil,
+                        among mods: [ModItem]) -> CoreModSlot {
+        let folded = folderName?.lowercased()
+        let matches = mods.filter {
+            $0.name.lowercased().contains(keyword)
+                || (folded != nil && $0.folderName.lowercased() == folded)
+        }
         guard !matches.isEmpty else { return CoreModSlot(status: .notInstalled, mod: nil) }
 
+        func isExactFolder(_ mod: ModItem) -> Bool {
+            folded != nil && mod.folderName.lowercased() == folded
+        }
+        // L'ordre dit ce que l'accueil doit annoncer : ce qui **tourne**
+        // d'abord, le mod lui-même avant ce qui porte son nom.
+        let folderEnabled = matches.first { isExactFolder($0) && $0.isEnabled }
         let exactEnabled = matches.first { $0.name.lowercased() == keyword && $0.isEnabled }
         let anyEnabled = matches.first(where: \.isEnabled)
+        let folderAny = matches.first(where: isExactFolder)
         let exactAny = matches.first { $0.name.lowercased() == keyword }
         // `matches` n'est pas vide : le dernier recours ne peut pas échouer.
-        guard let mod = exactEnabled ?? anyEnabled ?? exactAny ?? matches.first else {
+        guard let mod = folderEnabled ?? exactEnabled ?? anyEnabled
+                ?? folderAny ?? exactAny ?? matches.first else {
             return CoreModSlot(status: .notInstalled, mod: nil)
         }
         return CoreModSlot(status: mod.isEnabled ? .enabledAndInstalled : .installedButDisabled,
