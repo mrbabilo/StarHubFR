@@ -580,6 +580,66 @@ d'un mod (onglet Mods → un mod qui a déjà journalisé des erreurs) :
    nom ;
 3. jeter un mod à la corbeille fait disparaître son historique.
 
+### Domaine 3 — Découverte, livrée le 2026-09-11
+
+Trois commits (`8ce5e06`, `f50b883`, `a32deda`), gate exit 0, **3 039 tests
+verts**. `DiscoveryStore` (`@Observable`, 8 tests, cinq sabotages). ViewModel
+10 266 → **10 246** ; `viewmodel_stored_state` 151 → **143**.
+
+**Ce que l'extraction achète ici est un compteur qui cesse d'exister en
+double.** `pendingSectionFetches += 1 ; discoveryLoading = true`, puis
+`max(0, …-1) ; if == 0 { discoveryLoading = false }`, était écrit **deux fois
+verbatim** — un compteur et son drapeau, dupliqués, c'est la forme exacte des
+divergences que ce dépôt a déjà payées (quatre copies d'`isOsJunk`, dont une
+amputée). Trois règles jusque-là muettes sont maintenant épinglées : le voyant
+ne s'éteint qu'à la **dernière** réponse ; le plancher à zéro défend contre un
+rappel en trop, qui laisserait le voyant allumé au chargement suivant ;
+« toutes catégories » (`nil`) est une **identité**, pas un joker.
+
+**Le relevé du cadrage disait « 8 propriétés » ; l'outil en compte onze**, et
+trois d'entre elles ne sont pas du domaine :
+
+| Reste au ViewModel | Pourquoi |
+| --- | --- |
+| `discoveryEpoch`, `discoveryDetailEpoch` | des jetons que l'orchestration réseau ouvre et vérifie, pas de l'état affiché |
+| `recentNexusInstalls` | malgré son voisinage dans le fichier, elle est écrite par une **installation**, retirée par une désinstallation, et lue par `installedNexusIds()` que trois zones consultent — elle n'est pas de la vitrine |
+| `discoveryRows`, `loadDiscovery`, `fetchDiscoverySection`, les recherches, la fiche | de l'orchestration : réseau (`NexusSearchClient`), cache disque (`ModCatalog`), et `discoveryRows` lit `mods` — donc le domaine Scan, extrait en dernier |
+
+**Trois types sont entrés en Core avant le store** : `NexusSearchError` (qui
+vivait dans `NexusSearchClient`, fichier de réseau — un store testable ne peut
+pas en dépendre ; l'ancien nom reste un **alias**, aucun des huit appelants ne
+change), `DiscoverySearchResult` et `DiscoveryDetailState`, tous deux imbriqués
+dans le ViewModel. `DiscoveryRow` **reste** un alias du ViewModel : son
+commentaire dit qu'il tient les vues en place jusqu'au découpage des vues.
+
+⚠️ **Une ligne de vue touchée** (`DiscoverView:155`), qui nommait
+`StarHubTHViewModel.DiscoverySearchResult` : un alias n'était pas possible —
+le build réel compile un seul module, donc `typealias X = X` serait circulaire.
+
+⚠️ **Un sabotage n'a d'abord rien rougi parce qu'il cassait la
+compilation**, ce qui n'est pas une preuve rouge : un test qui ne compile pas
+ne dit rien du mécanisme. Refait par **suppression du garde** plutôt que par
+substitution d'une expression invalide, il rougit son test. À retenir : un
+sabotage doit produire du code **valide et faux**, jamais du code invalide.
+
+✅ **La prédiction des compteurs est juste pour la première fois, sur les
+deux** — parce qu'elle a été faite par `class_members_with_lines` sur le
+ViewModel et sur les `LOT_FILES`, au lieu d'énumérer de tête. C'est la méthode
+à garder pour les domaines 4 à 8.
+
+**Vérification à l'écran — due, auteur.** Quatre contrôles, sur l'onglet
+Découvrir :
+
+1. les trois sections se remplissent, et le voyant de chargement **s'éteint**
+   (c'est le compteur : s'il passe sous zéro, il resterait allumé au
+   chargement suivant) ;
+2. choisir une catégorie filtre les sections ; rechoisir la même ne relance
+   rien ; revenir à « toutes » les rouvre ;
+3. une recherche par nom rend ses résultats, « voir plus » en ajoute sans
+   boucler, et fermer la recherche rend la vitrine ;
+4. ouvrir la fiche d'un mod l'affiche, la refermer et en ouvrir une autre
+   n'affiche pas la précédente.
+
 ### Quand un domaine est-il extrait ?
 
 Les quatre conditions du §6 s'appliquent telles quelles, avec un ajustement
