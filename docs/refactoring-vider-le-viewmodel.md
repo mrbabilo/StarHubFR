@@ -77,66 +77,102 @@ rendu, pas le rendu. La vérification à l'écran reste due (§5, condition 4).
 
 | Élément | Nombre | Attrapé par le compilateur ? |
 | --- | ---: | --- |
-| `@Published` (128 au VM, 23 ailleurs) | 151 | — (à retirer) |
-| Classes `ObservableObject` | 8 | — (à convertir) |
-| `@ObservedObject` dans les vues | 184 | **oui** |
+| `@Published` du ViewModel | 128 | — (à retirer) |
+| Classes à convertir | **4** | — (voir ci-dessous) |
+| `@ObservedObject var vm:` dans les vues | **87** | **oui** |
 | `@StateObject` (les deux de l'App) | 2 | **oui** |
 | `objectWillChange.send()` | 6 | **oui** |
 | Bindings `$vm.…` (à passer en `@Bindable`) | 5 | **oui** |
 
-Les 184 `@ObservedObject` se répartissent en : 87 `StarHubTHViewModel`,
-85 `LocalizationStore`, 4 `ModListState`, 4 `KeybindScanService`,
-2 `SmapiInstaller`, 2 `BisectionRunner`.
+### Ce que le lot doit contenir — et ce qu'il peut laisser dehors
 
-### Pourquoi c'est atomique, et pas séquençable
+⚠️ **Première rédaction de ce document : « les huit `ObservableObject` passent
+ensemble ». C'était faux, et cela doublait le coût annoncé.** Le cas 4 ne frappe
+que les **façades de propriété** (`var gameDir: String { store.gameDir }`) : la
+valeur transite par le VM, et si le store est resté en Combine, le suivi
+s'arrête là. Il ne frappe **pas** un objet que le VM se contente de *tenir* et
+qu'une vue observe pour lui-même — celui-là garde son propre mécanisme, quel
+qu'il soit.
 
-Le **cas 4** l'impose : un `@Observable` qui lit un `ObservableObject` perd le
-suivi **sans le moindre signal** — ça compile, ça s'exécute, la vue ne se
-rafraîchit simplement plus. Convertir domaine par domaine créerait exactement
-ces chaînes mixtes, et le défaut ne se verrait qu'à l'écran.
+Relevé des huit `ObservableObject`, par ce critère :
 
-Les **huit** classes passent donc ensemble : `StarHubTHViewModel`,
-`GameEnvironmentStore`, `LocalizationStore`, `NexusMetadataStore`,
-`ModListState`, `SmapiInstaller`, `KeybindScanService`, `BisectionRunner`.
+| Classe | Déclarations directes dans les vues | Dans le lot ? |
+| --- | ---: | --- |
+| `StarHubTHViewModel` | 87 | **oui** — c'est le sujet |
+| `GameEnvironmentStore` | **0** — façadé par le VM | **oui** (cas 4) |
+| `NexusMetadataStore` | **0** — façadé par le VM | **oui** (cas 4) |
+| `LocalizationStore` | 85, par paramètre | non |
+| `ModListState` | 4, via `vm.modList` | non |
+| `KeybindScanService` | 4, via `vm.keybindScan` | non |
+| `SmapiInstaller` | 2, via `vm.smapiInstaller` | non |
+| `BisectionRunner` | 2, via `vm.bisection` | non |
+
+Les deux stores façadés sont exactement ceux qui portent un relais
+`objectWillChange` — ce n'est pas une coïncidence : le relais **est** le symptôme
+de la façade. S'y ajoute `SaveNotesStore` (une classe nue, pas un
+`ObservableObject`), pour la raison exposée plus bas.
+
+**Le lot atomique est donc : `StarHubTHViewModel`, `GameEnvironmentStore`,
+`NexusMetadataStore`, `SaveNotesStore`.** Les cinq autres peuvent rester en
+Combine indéfiniment, ou être converties plus tard une par une — leur
+conversion ne dépend de rien et ne débloque rien.
+
+**Pourquoi ce noyau-là reste atomique** : dès que le VM devient `@Observable`,
+ses 87 sites `@ObservedObject` cessent de compiler d'un coup, et ses deux
+façades perdent leur suivi en silence si les stores ne suivent pas. Ce
+sous-ensemble ne se découpe pas ; le reste n'en fait pas partie.
 
 C'est un big-bang, ce que le §7 de `REFACTORING.md` écarte en général. L'écart
 est assumé ici pour une raison précise : **le risque d'un big-bang est
 proportionnel à ce que le compilateur ne voit pas**, et ici il voit tout sauf
-deux choses, toutes deux énumérables (ci-dessous). Le gate compile 294 fichiers
-en un module : une chaîne mixte résiduelle est impossible dès lors qu'aucun
-`ObservableObject` ne subsiste.
+deux choses, toutes deux énumérables (ci-dessous). Le gate compile les
+294 fichiers en un seul module : le lot se vérifie d'un bloc.
+
+⚠️ Et cinq `ObservableObject` **subsistent volontairement** après le lot. La
+règle à tenir n'est donc pas « plus aucun `ObservableObject` » — elle est
+**« aucune façade du ViewModel ne pointe vers un `ObservableObject` »**. C'est
+cette formulation-là que le cliquet doit porter (§5), et elle reste valable le
+jour où l'un des cinq sera converti.
 
 ### Les deux angles morts, nommément
 
-1. **Les chaînes mixtes** — éliminées par construction si les huit conversions
-   sont dans le même commit. Verrouillé ensuite par un compteur de cliquet à
-   zéro (§5).
-2. **Les façades lisant une source non observable** (cas 6). Un seul cas connu
-   dans le dépôt : `SaveNotesStore.shared`, lu par `savesHierarchy`,
-   `availableFilterTags` et `getNote(for:)`, et republié à la main par
-   `setAvatar` (`StarHubTHViewModel.swift:7195`), `setNote` (`:7335`) et deux
-   sites de vue (`SavesView.swift:926`, `:958`). Sous `@Observable`, ces quatre
+1. **Les chaînes mixtes** — éliminées par construction si les conversions du
+   lot (VM + les deux stores façadés) sont dans le même commit. Verrouillé
+   ensuite par un compteur de cliquet : plus aucune **façade** du VM ne doit
+   pointer vers un `ObservableObject` (§5).
+2. **Les façades lisant une source non observable** (cas 6). Le cas **trouvé**
+   est `SaveNotesStore.shared`, lu par `savesHierarchy`, `availableFilterTags`
+   et `getNote(for:)`, et republié à la main par `setAvatar`
+   (`StarHubTHViewModel.swift:7195`), `setNote` (`:7335`) et deux sites de vue
+   (`SavesView.swift:926`, `:958`). Sous `@Observable`, ces quatre
    `objectWillChange.send()` **cessent de compiler** — c'est le garde — mais les
    retirer sans rendre `SaveNotesStore` observable ferait cesser le
-   rafraîchissement des notes et avatars. `SaveNotesStore` rejoint donc la liste
-   des conversions.
+   rafraîchissement des notes et avatars. `SaveNotesStore` rejoint donc le lot.
 
-⚠️ **Ce recensement est statique.** Il liste les sites qui *appellent*
-`objectWillChange.send()` ; il ne prouve pas qu'il n'existe aucune autre vue
-dont le rafraîchissement dépendait d'une invalidation globale. Ces cas-là ne se
-constatent qu'à l'écran, et c'est ce que la condition 4 doit chercher en
-priorité sur ce chantier.
+⚠️ **« Trouvé », pas « seul » — et la différence est le principal angle mort de
+ce document.** Ce cas a été rencontré en lisant le ViewModel pour autre chose ;
+les **21 propriétés calculées** du VM n'ont **pas** été inventoriées, et le
+recensement ci-dessus ne liste que les sites qui *appellent*
+`objectWillChange.send()`. Une vue dont le rafraîchissement reposait sur une
+invalidation globale, sans appel explicite, n'apparaît dans aucun grep. **Le
+plan doit donc commencer par cet inventaire** — les 21 calculées, et ce que
+chacune lit — plutôt que par une conversion. Ce qu'il en restera ne se
+constatera qu'à l'écran (§5, condition 4).
 
 ### Ordre des opérations
 
 Le chantier se fait dans cet ordre, parce que chaque étape rend la suivante
 vérifiable par compilation :
 
-1. Convertir les **huit** classes (`@Observable`, retrait des `@Published`,
-   `final`), plus `SaveNotesStore`. Le build casse — c'est voulu, et la liste
-   des erreurs **est** la liste de travail.
-2. Reprendre les 184 `@ObservedObject` → propriété simple, les 2 `@StateObject`
-   → `@State`, les 5 bindings → `@Bindable`.
+0. **Inventorier les 21 propriétés calculées du VM** et ce que chacune lit —
+   avant toute conversion, parce que c'est le seul angle mort que le
+   compilateur ne couvre pas (§3, angle mort 2).
+1. Convertir les **quatre** classes du lot (`@Observable`, retrait des
+   `@Published`, `final`) : `StarHubTHViewModel`, `GameEnvironmentStore`,
+   `NexusMetadataStore`, `SaveNotesStore`. Le build casse — c'est voulu, et la
+   liste des erreurs **est** la liste de travail.
+2. Reprendre les 87 `@ObservedObject var vm` → propriété simple, les
+   2 `@StateObject` → `@State`, les 5 bindings → `@Bindable`.
 3. Supprimer les deux relais `objectWillChange` (`:1982`, `:1988`) et les
    `AnyCancellable` qui les portent : le cas 1 les rend inutiles.
 4. Traiter les quatre rafraîchissements manuels restants.
@@ -187,7 +223,7 @@ Commencer par ce qui n'est lu que chez soi, finir par ce que tout le monde lit.
 
 | Ordre | Domaine | Pourquoi là |
 | --- | --- | --- |
-| 1 | **Sauvegardes** (`saves`, `isSaveOperationRunning`, les trois préférences de vue) | ~560 l., `SaveManager`/`SaveTree` déjà en Core, l'état n'est lu que par `SavesView` et ses sous-vues. Et `SaveNotesStore` aura été rendu observable en A : le domaine arrive nettoyé |
+| 1 | **Sauvegardes** (`saves`, `isSaveOperationRunning`, les trois préférences de vue) | ~560 l., `SaveManager`/`SaveTree` déjà en Core, et deux consommateurs seulement — `SavesView` et `CommandPaletteView` (relevé, la première rédaction affirmait « SavesView seule »). `SaveNotesStore` aura été rendu observable en A : le domaine arrive nettoyé |
 | 2 | **Journal SMAPI** (`logEntries`, `smapiDiagnostics`, `smapiErrors`, `modErrorHistory`, …) | Le parseur est en Core depuis F1-T1 ; ne reste que l'état. Lu par `LogsView` et la pastille d'accueil — deux consommateurs connus |
 | 3 | **Découverte** (8 propriétés) | Axe G récent, écrit d'un bloc, isolé par construction |
 | 4 | **Entretien & corbeille** (`maintenanceReport`, `trashEvents`, `lastRepairReport`, `quarantineActionMessage`) | Petit, récent, déjà adossé à `MaintenanceInventory` et `DisabledModsCleanup` en Core |
@@ -216,7 +252,7 @@ rendu nécessaire par le chantier A :
 | Compteur | Base | Ce qu'il interdit |
 | --- | ---: | --- |
 | `viewmodel_stored_state` | 128 → 0 | Que le ViewModel regagne de l'état à lui |
-| `observableobject_remaining` | 8 → 0 après A | Qu'une chaîne mixte réapparaisse (cas 4) — le seul angle mort silencieux |
+| `viewmodel_facades_to_combine` | 2 → 0 après A | Qu'une chaîne mixte réapparaisse (cas 4) — le seul angle mort silencieux. **Pas** « zéro `ObservableObject` » : cinq subsistent volontairement (§3). Ce qui doit rester à zéro, c'est le nombre de façades du VM déléguant à un objet Combine |
 | `file:StarHubTH/StarHubTHViewModel.swift` | déjà posé, 10 212 | Que le fichier regrossisse |
 
 Le deuxième est le plus important : il transforme un défaut invisible en échec
@@ -242,6 +278,39 @@ Deux conséquences :
 
 Sans cette redéfinition, le chantier A ferait baisser trois compteurs d'un coup
 et le dépôt enregistrerait un progrès là où il a seulement changé de vocabulaire.
+
+⚠️ **Et `viewmodel_stored_state` doit se mesurer autrement qu'au `grep` nu.**
+Distinguer une `var` stockée d'une `var` calculée demande de voir si la
+déclaration est suivie d'un corps `{ … }`, sur un fichier de 10 212 lignes dont
+les commentaires parlent abondamment des deux. Le cliquet a déjà payé cette
+leçon — 166 `@Published` comptés pour 135 réels, 73 `UserDefaults` pour 52 —
+et `check_standards.py` retire les commentaires avant de compter précisément
+pour ça. Le compteur doit suivre la même règle, et son relevé être **vérifié à
+la main** une fois contre une lecture du fichier avant d'être posé en base : une
+base fausse verrouille un chiffre faux.
+
+## 5 bis. Comment on saura que ça a marché
+
+Les compteurs disent que l'état a bougé. Ils ne disent **rien** du but n°1, la
+réactivité — et sans mesure avant/après, la phase pourrait s'achever sur « 0
+état publié » sans que rien n'ait été gagné à l'écran.
+
+Le dépôt a déjà le critère qu'il faut, et il est **rapporté par l'auteur sur son
+parc réel** : **F3** (`ROADMAP.md`) — la latence de frappe dans la recherche de
+la liste des mods. Trois raisons d'en faire le juge de cette phase :
+
+- **le calcul y a été mesuré puis écarté** : filtrage ~2 à 5 ms par frappe, tri
+  0,04 ms. « La piste restante est le **rendu**, pas le calcul » ;
+- le constat joint à F3 décrit **exactement** ce que le cas 3 supprime :
+  `healthIssues` recalculé à chaque accès et réévalué à chaque tick de
+  `scanProgress` — par des vues qui ne lisent pas `scanProgress` ;
+- **le témoin A/B existe déjà** : `bundles/StarHubFR_v1.11.1.zip`, la version
+  d'avant B1-T2, que F3 désigne comme point de comparaison.
+
+F3 est donc à traiter **avec** cette phase, pas à côté : son A/B est la mesure
+de référence à prendre **avant** le chantier A, et la même manipulation après en
+dira le gain. Si la frappe ne s'améliore pas, le but n°1 n'est pas atteint,
+quels que soient les compteurs.
 
 **Tests** : chaque store extrait est inscrit aux `sources:` de `StarHubTHCore`
 et testé sur sa logique, pas son câblage — preuve rouge par sabotage (§4.2).
@@ -290,8 +359,9 @@ cadrage : la phase coûte une passe mécanique, pas une refonte des vues.
 | Risque | Ce qui le contient |
 | --- | --- |
 | Une vue cesse de se rafraîchir sans erreur ni plantage | Le seul angle mort réel. Contenu par : zéro `ObservableObject` restant (cliquet), les quatre sites connus traités, et une condition 4 ciblée sur le rafraîchissement |
-| Le chantier A casse le build longtemps | Assumé : la liste des erreurs de compilation **est** la liste de travail, et le gate est incrémental (~30 s quand une signature bouge) |
-| `@Observable` se comporte autrement dans SwiftUI que dans `withObservationTracking` | Non prouvé par le spike. C'est la première chose que la vérification à l'écran doit constater, sur un seul écran, **avant** de convertir les 184 sites |
+| Le chantier A casse le build longtemps | Assumé, et borné : 87 sites + 4 classes, tous désignés par le compilateur. Le build est incrémental (~30 s quand une signature du VM bouge, 59 s à froid) mais **chaque passe touche le VM**, donc aucune ne sera à 2,4 s : compter en dizaines de builds, pas en centaines |
+| Le gain de réactivité est nul et personne ne s'en aperçoit | Le vrai risque du but n°1, et le seul que les compteurs ne voient pas. Contenu par le §5 bis : mesure A/B de F3 **avant** le chantier, même manipulation après |
+| `@Observable` se comporte autrement dans SwiftUI que dans `withObservationTracking` | Non prouvé par le spike. C'est la première chose que la vérification à l'écran doit constater, sur un seul écran, **avant** de convertir les 87 sites |
 | Le chantier B s'enlise comme les tranches 15-21 (−20 lignes pour cinq tranches) | Le critère de succès de B n'est pas le nombre de lignes mais `viewmodel_published`, qui ne peut que baisser |
 
 ## 8. Découpage — ce que ce document ne fait pas
@@ -299,7 +369,7 @@ cadrage : la phase coûte une passe mécanique, pas une refonte des vues.
 Le plan d'exécution (tâches, tests, ordre des commits) n'est pas ici. Il sera
 écrit séparément, et il commence par une tâche qui n'est pas une conversion :
 **convertir un seul écran et le vérifier à l'écran**, pour lever le dernier
-risque du §7 avant d'engager les 184 sites.
+risque du §7 avant d'engager les 87 sites.
 
 Deux conventions du dépôt s'appliquent à l'ouverture du chantier : un tag
 `pre-refactor-observable` sur le commit de départ (§4.6 de `REFACTORING.md` —
