@@ -151,22 +151,72 @@ jour où l'un des cinq sera converti.
 
 ⚠️ **« Trouvé », pas « seul » — et la différence est le principal angle mort de
 ce document.** Ce cas a été rencontré en lisant le ViewModel pour autre chose ;
-les **21 propriétés calculées** du VM n'ont **pas** été inventoriées, et le
-recensement ci-dessus ne liste que les sites qui *appellent*
+le recensement ci-dessus ne liste que les sites qui *appellent*
 `objectWillChange.send()`. Une vue dont le rafraîchissement reposait sur une
-invalidation globale, sans appel explicite, n'apparaît dans aucun grep. **Le
-plan doit donc commencer par cet inventaire** — les 21 calculées, et ce que
-chacune lit — plutôt que par une conversion. Ce qu'il en restera ne se
-constatera qu'à l'écran (§5, condition 4).
+invalidation globale, sans appel explicite, n'apparaît dans aucun grep.
+
+**L'inventaire demandé est fait** (§3 bis) : 33 propriétés calculées de la
+classe ont été lues une à une, et il a trouvé **une régression que le plan
+aurait sinon découverte à l'écran**. Ce qu'il en reste à traiter est la
+version corrigée de l'« étape 0 » de l'ordre des opérations.
+
+### 3 bis. L'inventaire des propriétés calculées — fait le 2026-09-11
+
+⚠️ **Ni 21 ni 25 : 33.** Le chiffre du cadrage était un `grep` sur accolade en
+fin de ligne — il ratait `systemAlertCount: Int { … }` (accolade sur la même
+ligne) et les façades vers les stores. Deuxième décompte raté de la même
+manière que les 166 `@Published` comptés pour 135 : la règle du dépôt —
+compter n'est pas lire — vaut pour les scripts de l'inventaire lui-même.
+Chacune des 33 a été **lue**. Quatre autres propriétés calculées vivent dans
+des types imbriqués (`producedNothing`, `isCapped` ×2, `errorDescription`) :
+hors périmètre, elles ne dépendent d'aucun état observable.
+
+**La synthèse que l'inventaire produit : le VM vit aujourd'hui d'un
+*rafraîchissement par rebond*.** Sous `ObservableObject`, n'importe quelle
+écriture d'n'importe quelle propriété re-rend toute vue observatrice, qui relit
+donc **toutes** les propriétés calculées — y compris celles dont les sources
+n'ont rien publié. Treize des trente-trois n'ont pas d'autre filet. Le cas 3 du
+spike supprime ce rebond : c'est le but, et c'est précisément ce qui fera
+apparaître ces treize-là.
+
+| Famille | Sites | Remède |
+| --- | --- | --- |
+| **Couvert par le lot** — lit une source qui devient `@Observable` | 19, dont les 4 façades `gameDir`…, les façades `nexusMetadata`, `savesHierarchy`/`availableFilterTags` (la lecture `SaveNotesStore.shared.note(…)` devient trackée dès que le store entre dans le lot), `coreExtensionsSnapshot` (lit `mods`), et les dérivées d'état publié (`systemAlertCount`, `enabledMods`, `activeProfile`…) | Rien à faire |
+| **UserDefaults / Trousseau** | 6 — `localAIEndpoint`, `localAIModelName`, `isLocalAIConfigured`, `deepLCredentials`, `isFallbackEnabled`, `defaultProfileId` | Le patron existe déjà : `hasDeepLKey` est **mémorisé** dans une propriété suivie, invalidée par le chemin d'écriture. Généraliser ; ne jamais interroger `UserDefaults` dans un corps calculé |
+| **Service Combine hors lot** | 2 — `keybindProblemCount`, `healthIssues` (toutes deux lisent `keybindScanService.report`) | Voir ci-dessous — **la découverte de l'inventaire** |
+| **Disque / PATH** | 4 — `unarInstalled`, `sevenZipInstalled`, `coreExtensionsSnapshot` (indirect), `smapiLogPath` (chemin, constant) | Rattrapé par le scan : le snapshot lit aussi `mods`, tracké — la valeur se recalcule au prochain scan. Dégradation minime, acceptée |
+
+**La découverte : `SystemAlertsView` afficherait un compte figé.** Mesuré, pas
+déduit : elle observe `vm` et `localization`, **pas** `KeybindScanService`
+(`SystemAlertsView.swift:36-37`). Aujourd'hui elle s'en tire par rebond — la
+fin d'un scan de raccourcis ne mute aucune propriété du VM, mais le prochain
+mouvement quelconque du VM la fait relire `healthIssues` frais. Après
+conversion, elle ne se re-rend que si une propriété *trackée* lue par
+`healthIssues` change — et la fin d'un scan keybind n'en change aucune :
+**l'écran d'alertes et la pastille compteraient un rapport périmé,
+indéfiniment.** `MainView` n'a ce problème que parce qu'elle observe
+explicitement le service — son commentaire (`MainView.swift:6-10`) décrit le
+même bug, déjà corrigé une fois, pour elle seule. Remède : donner à
+`SystemAlertsView` la même observation explicite, ou mémoriser le compte
+keybind dans une propriété suivie invalidée par le chemin d'écriture — le
+patron `hasDeepLKey`, une deuxième fois.
+
+**Ce que l'inventaire change à l'ordre des opérations** : l'« étape 0 »
+n'est plus un inventaire à faire, mais **le traitement des 8 sites à remède**
+(6 UserDefaults + 2 service) et l'ajout de `SystemAlertsView` à la liste de la
+vérification à l'écran. Le lot atomique ne change pas : l'inventaire n'a trouvé
+aucune source à ajouter — `SaveNotesStore` y était déjà, et c'est lui qui couvre
+deux sites de plus qu'annoncé.
 
 ### Ordre des opérations
 
 Le chantier se fait dans cet ordre, parce que chaque étape rend la suivante
 vérifiable par compilation :
 
-0. **Inventorier les 21 propriétés calculées du VM** et ce que chacune lit —
-   avant toute conversion, parce que c'est le seul angle mort que le
-   compilateur ne couvre pas (§3, angle mort 2).
+0. **Traiter les 8 sites à remède de l'inventaire (§3 bis)** — 6 lectures
+   `UserDefaults`/Trousseau à mémoriser sur le patron `hasDeepLKey`, et les
+   2 propriétés lisant `keybindScanService.report` — et ajouter
+   `SystemAlertsView` à la liste de la vérification à l'écran.
 1. Convertir les **quatre** classes du lot (`@Observable`, retrait des
    `@Published`, `final`) : `StarHubTHViewModel`, `GameEnvironmentStore`,
    `NexusMetadataStore`, `SaveNotesStore`. Le build casse — c'est voulu, et la
