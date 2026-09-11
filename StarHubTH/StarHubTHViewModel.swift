@@ -8506,27 +8506,25 @@ class StarHubTHViewModel: ObservableObject {
     /// du profil *entrant* ; les capturer au crédit du sortant écraserait son
     /// config dans le geste même censé rattraper une erreur.
     func captureProfileConfigs(for profileId: UUID) {
-        guard !isGameRunning() else {
-            log(localization.L(L10n.VM.profileConfigsSkippedGame), level: .warning)
-            return
-        }
-        // Une bascule antérieure, faite jeu ouvert, a laissé ce profil actif
-        // sans que son disque en porte les réglages (§6.3) — il tient encore
-        // ceux d'un autre profil. Capturer ici attribuerait ce contenu
-        // étranger au magasin de ce profil ; mieux vaut laisser le trou
-        // visible que le maquiller en donnée fausse.
-        guard Self.profileConfigsDesyncedProfileId != profileId else {
-            let name = modProfiles.first(where: { $0.id == profileId })?.name ?? ""
-            log(String(format: localization.L(L10n.VM.profileConfigsDesynced), name), level: .warning)
-            return
-        }
-        // R2 : le profil dont l'application s'est arrêtée en chemin tient sur
-        // disque un état dont rien ne dit pour quel profil il est fait —
-        // même règle que le desync ci-dessus : laisser le trou visible plutôt
-        // que maquiller une donnée fausse.
-        if let journal = unresolvedApplyJournal, journal.profileId == profileId {
-            log(String(format: self.localization.L(L10n.VM.profileConfigsSkippedRecovery), journal.profileName),
-                level: .warning)
+        // Les trois abstentions — jeu ouvert, profil désynchronisé (§6.3),
+        // application interrompue (R2) — vivent dans `ProfileConfigCapture`
+        // (Core, 14 tests). Elles partagent une règle : laisser le trou
+        // visible plutôt que maquiller une donnée fausse.
+        if let abstention = ProfileConfigCapture.abstention(
+            capturing: profileId, profiles: modProfiles,
+            gameRunning: isGameRunning(),
+            desyncedProfileId: Self.profileConfigsDesyncedProfileId,
+            journal: unresolvedApplyJournal) {
+            switch abstention {
+            case .gameRunning:
+                log(localization.L(L10n.VM.profileConfigsSkippedGame), level: .warning)
+            case .desynced(let name):
+                log(String(format: localization.L(L10n.VM.profileConfigsDesynced), name),
+                    level: .warning)
+            case .interruptedApply(let name):
+                log(String(format: localization.L(L10n.VM.profileConfigsSkippedRecovery), name),
+                    level: .warning)
+            }
             return
         }
         guard let url = ProfileConfigStore.fileURL(profileId: profileId) else { return }
@@ -8545,8 +8543,7 @@ class StarHubTHViewModel: ObservableObject {
         // Ce que cette passe a changé, pas le total du magasin : « 12 configs
         // mémorisés » quand un seul a bougé donnerait une fausse idée de ce
         // que la bascule vient de faire. Symétrique du compte de restauration.
-        let touched = Set(entries.keys).symmetricDifference(before.keys).count
-            + entries.filter { before[$0.key]?.text != nil && before[$0.key]?.text != $0.value.text }.count
+        let touched = ProfileConfigCapture.touchedCount(before: before, after: entries)
         let name = modProfiles.first(where: { $0.id == profileId })?.name ?? ""
         log(String(format: localization.L(L10n.VM.profileConfigsCaptured), name, touched))
     }

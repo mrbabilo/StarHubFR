@@ -180,6 +180,7 @@ let package = Package(
                 "Models/ProfileDiagnostics.swift",
                 "Models/ProfileApplyPlan.swift",
                 "Models/ProfileActivation.swift",
+                "Models/ProfileConfigCapture.swift",
                 "Models/ProfileApplyJournal.swift",
                 "Models/GameLaunchGate.swift",
                 "Models/ModUpdateSnoozer.swift",
@@ -315,6 +316,11 @@ let package = Package(
             name: "ProfileActivationTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ProfileActivationTests"
+        ),
+        .testTarget(
+            name: "ProfileConfigCaptureTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ProfileConfigCaptureTests"
         ),
         .testTarget(
             name: "GameLaunchGateTests",
