@@ -627,8 +627,9 @@ deux** — parce qu'elle a été faite par `class_members_with_lines` sur le
 ViewModel et sur les `LOT_FILES`, au lieu d'énumérer de tête. C'est la méthode
 à garder pour les domaines 4 à 8.
 
-**Vérification à l'écran — due, auteur.** Quatre contrôles, sur l'onglet
-Découvrir :
+**Vérification à l'écran — OK, auteur, 2026-09-11.** Les quatre contrôles
+sont passés, dont celui qui porte (le voyant de chargement s'éteint — c'est le
+compteur de requêtes en vol). Ce qui a été exercé :
 
 1. les trois sections se remplissent, et le voyant de chargement **s'éteint**
    (c'est le compteur : s'il passe sous zéro, il resterait allumé au
