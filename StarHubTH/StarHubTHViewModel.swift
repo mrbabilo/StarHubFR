@@ -7393,24 +7393,20 @@ class StarHubTHViewModel: ObservableObject {
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
         let fm = FileManager.default
 
-        // Disabled mods now live as dot-prefixed folders inside Mods/
-        // (Mods/.X). Enumerate the top level and remove every `.X` that
-        // isn't OS junk.
         guard let entries = try? fm.contentsOfDirectory(atPath: modsPath) else {
             showModal(message: localization.L(L10n.VM.cleanModsNotFound))
             return
         }
 
-
+        // ⚠️ Suppression **définitive**, pas la corbeille, et le tri décide de
+        // ce qui part : il vit dans `DisabledModsCleanup` (Core, 11 tests).
+        // Sur le parc de référence, 721 dossiers sont en pause.
         var removed = 0
         var failed = 0
-        var firstError: Error? = nil
-        for entry in entries {
-            // Only dot-prefixed entries that aren't OS junk are disabled mods.
-            guard entry.hasPrefix(".") && !OSJunk.isJunk(entry) else { continue }
-            let path = (modsPath as NSString).appendingPathComponent(entry)
+        var firstError: Error?
+        for entry in DisabledModsCleanup.targets(in: entries) {
             do {
-                try fm.removeItem(atPath: path)
+                try fm.removeItem(atPath: (modsPath as NSString).appendingPathComponent(entry))
                 removed += 1
             } catch {
                 failed += 1
@@ -7418,22 +7414,24 @@ class StarHubTHViewModel: ObservableObject {
             }
         }
 
-        if removed == 0 && failed == 0 {
+        let outcome = DisabledModsCleanup.outcome(removed: removed, failed: failed)
+        switch outcome {
+        case .nothingFound:
             showModal(message: localization.L(L10n.VM.cleanModsNotFound))
-        } else if failed > 0 {
+        case .partial:
             showModal(message: String(format: localization.L(L10n.VM.cleanModsError),
                                       firstError?.localizedDescription ?? ""))
-        } else {
+        case .removed:
             showModal(message: localization.L(L10n.VM.cleanModsSuccess))
         }
 
-        if removed > 0 || failed > 0 {
+        if outcome.needsRescan {
             DispatchQueue.global(qos: .userInitiated).async {
                 self.scanMods()
             }
         }
     }
-    
+
     // MARK: - Thai Translation Hub Logic
     
     func fetchThaiTranslations() {
