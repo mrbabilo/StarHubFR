@@ -498,6 +498,16 @@ que la préparation.
 
 ### Les 135 propriétés publiées sont le vrai sujet
 
+> 📄 **Cette phase est cadrée depuis le 2026-09-11 :
+> [`docs/refactoring-vider-le-viewmodel.md`](refactoring-vider-le-viewmodel.md).**
+> Ce qui suit reste vrai, mais le cadrage le corrige sur un point mesuré : un
+> spike a montré que sous `@Observable` (macOS 14, que nous ciblons), une vue ne
+> se réinvalide que sur les propriétés qu'elle **lit** — le défaut décrit
+> ci-dessous disparaît donc **sans déplacer un seul `@Published`**, et
+> l'extraction en stores ne coûte plus rien côté vues. Le cadrage ajoute aussi
+> une **troisième** catégorie au tri ci-dessous : la présentation *inter-vues*
+> (les dix `pending…`), qui ne peut redescendre dans aucune vue.
+
 Elles sont de deux natures que le fichier ne distingue pas :
 
 - **État de domaine** (`mods`, `smapiDiagnostics`, `outOfDateMods`…) : il appartient au
