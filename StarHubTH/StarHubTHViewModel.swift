@@ -974,35 +974,12 @@ class StarHubTHViewModel: ObservableObject {
 
     // MARK: - Pré-traduction par lot
 
-    /// Où en est le lot en cours — `nil` quand aucun lot ne tourne.
-    struct BatchProgress: Equatable {
-        let done: Int
-        let total: Int
-    }
-
-    /// Le bilan du dernier lot : les traduites, les clés refusées pour
-    /// marques manquantes (nommées), les erreurs, et les termes du glossaire
-    /// que l'IA n'a pas repris — un signalement doux, jamais bloquant.
-    struct BatchReport: Equatable {
-        let translated: Int
-        let refusedRowIDs: [String]
-        let errors: Int
-        let softGlossaryIgnored: Int
-        /// Combien de ces traductions viennent du secours en ligne — la
-        /// provenance doit être visible, jamais devinée.
-        let translatedByFallback: Int
-        /// Le secours s'est arrêté en cours de lot, et pourquoi.
-        let fallbackStop: FallbackStop?
-
-        /// Ce qui a coupé le secours en ligne au milieu d'un lot. Deux
-        /// causes, deux phrases : un quota épuisé se règle chez DeepL, un
-        /// rythme refusé se règle en attendant.
-        enum FallbackStop: Equatable {
-            case quotaExhausted
-            case rateLimited
-            case unauthorized
-        }
-    }
+    /// Les deux types du lot vivent en Core (`TranslationBatchRun`), qui porte
+    /// aussi la comptabilité et les règles d'arrêt. Les alias tiennent les
+    /// vues en place — elles nomment encore `StarHubTHViewModel.BatchReport`
+    /// — et tomberont au découpage des vues (REFACTORING §5, P8).
+    typealias BatchProgress = TranslationBatchRun.Progress
+    typealias BatchReport = TranslationBatchRun.Report
 
     @Published private(set) var batchProgress: BatchProgress?
     @Published private(set) var batchReport: BatchReport?
@@ -1162,12 +1139,10 @@ class StarHubTHViewModel: ObservableObject {
         // Jamais une valeur française existante (spec §8.2) : le planneur ne
         // retient que ce qui est absent ou vide.
         let eligible = TranslationBatchPlanner.eligibleRows(rows)
-        var translated = 0
-        var refused: [String] = []
-        var errors = 0
-        var softIgnored = 0
-        var translatedByFallback = 0
-        var fallbackStop: BatchReport.FallbackStop?
+        // La comptabilité du lot et ses règles d'arrêt vivent dans
+        // `TranslationBatchRun` (Core, 15 tests) : ici ne restent que le
+        // réseau, l'écriture et les effets publiés.
+        var run = TranslationBatchRun(hasLocalEngine: isLocalAIConfigured)
         var flags: [TranslationBaseline.ReviewFlag] = []
         // Une seule session pour tout le lot : `URLSession` retient fortement
         // son délégué jusqu'à invalidation, une par clé laissait autant de
@@ -1175,9 +1150,7 @@ class StarHubTHViewModel: ObservableObject {
         let session = LocalLLMEndpoint.makeSession()
         defer { session.finishTasksAndInvalidate() }
         batchProgress = BatchProgress(done: 0, total: eligible.count)
-        // La boucle porte un nom parce qu'on en sort depuis un `switch` :
-        // un `break` nu y termine le `switch` et laisse la boucle courir.
-        rowLoop: for (index, row) in eligible.enumerated() {
+        for (index, row) in eligible.enumerated() {
             // Le point d'arrêt : la clé en cours est déjà partie, la
             // suivante ne partira pas — son résultat, s'il arrive, n'est pas
             // écrit puisque l'écriture suit le retour.
@@ -1189,9 +1162,9 @@ class StarHubTHViewModel: ObservableObject {
             let outcome = await TranslationEngine.translate(
                 request, localBaseURL: localAIEndpoint, localSession: session,
                 fallback: fallbackCredentials, fallbackSession: session)
-            switch outcome {
-            case .translated(let proposal, let by):
-                if by == .fallback { translatedByFallback += 1 }
+
+            var writeSucceeded = false
+            if case .translated(let proposal, _) = outcome {
                 // Le chemin d'écriture existant, avec son `.bak` et son gate
                 // de marques — le client n'a déjà rendu que des traductions
                 // sans marque dure manquante, mais le gate reste juge.
@@ -1200,9 +1173,9 @@ class StarHubTHViewModel: ObservableObject {
                 if case .saved = saveTranslation(mod: mod, locale: locale,
                                                  row: row, value: proposal,
                                                  clearingReviewFlag: false) {
+                    writeSucceeded = true
                     flags.append(.init(component: row.component, key: row.key,
                                        source: row.english, target: proposal))
-                    translated += 1
                     // Le français est déjà sur le disque ; le drapeau suit par
                     // paquets. Tout garder pour la fin exposerait un arrêt
                     // brutal — fermeture forcée, panne — à rendre des valeurs
@@ -1213,57 +1186,20 @@ class StarHubTHViewModel: ObservableObject {
                     if flags.count >= Self.reviewFlagFlushSize {
                         flushReviewFlags(&flags, mod: mod)
                     }
-                    // Signalement doux : l'IA n'a pas repris le terme imposé.
-                    // Jamais bloquant — le texte reste valide — mais le
-                    // rapport le dit.
-                    softIgnored += matches.filter { !proposal.contains($0.fr) }.count
-                } else {
-                    errors += 1
-                }
-            case .refusedTokens:
-                refused.append(row.id)
-            case .endpointError:
-                // `data(for:)` honore l'annulation : la requête en vol échoue
-                // *par notre fait*. La compter ferait rapporter une erreur
-                // fantôme à chaque arrêt demandé.
-                if !Task.isCancelled { errors += 1 }
-            case .quotaExhausted, .fallbackRateLimited, .fallbackUnauthorized:
-                // Couper le secours pour le reste du lot : marteler un service
-                // qui a déjà dit non ne le fera pas céder, et une clé refusée
-                // le sera autant à la clé suivante.
-                switch outcome {
-                case .quotaExhausted: fallbackStop = .quotaExhausted
-                case .fallbackRateLimited: fallbackStop = .rateLimited
-                case .fallbackUnauthorized: fallbackStop = .unauthorized
-                // Inatteignable : le `case` extérieur ne laisse passer que
-                // les trois ci-dessus. Nommé plutôt que replié sur un
-                // `default`, qui annoncerait un jour une clé refusée pour un
-                // cas ajouté ailleurs — mauvais message, mauvais remède.
-                case .translated, .refusedTokens, .endpointError: break
-                }
-                fallbackCredentials = nil
-                errors += 1
-                // Le local reste en course s'il est réglé. Sinon plus rien ne
-                // peut traduire : continuer collectionnerait une erreur par
-                // clé restante, là où le rapport a déjà dit ce qui s'est
-                // passé et ce qu'il reste à faire.
-                if !isLocalAIConfigured {
-                    batchProgress = BatchProgress(done: index + 1, total: eligible.count)
-                    break rowLoop
                 }
             }
+
+            let step = run.record(rowID: row.id, outcome: outcome,
+                                  glossaryMatches: matches,
+                                  writeSucceeded: writeSucceeded,
+                                  cancelled: Task.isCancelled)
+            if step.dropsFallback { fallbackCredentials = nil }
             batchProgress = BatchProgress(done: index + 1, total: eligible.count)
+            if step.stopsLoop { break }
         }
         flushReviewFlags(&flags, mod: mod)   // le reliquat, arrêt compris
-        batchReport = BatchReport(translated: translated, refusedRowIDs: refused,
-                                  errors: errors, softGlossaryIgnored: softIgnored,
-                                  translatedByFallback: translatedByFallback,
-                                  fallbackStop: fallbackStop)
-        log("Lot \(mod.folderName) : \(translated) traduites (dont \(translatedByFallback) "
-            + "par le secours en ligne), \(refused.count) refusées (marques manquantes), "
-            + "\(errors) erreurs, \(softIgnored) termes glossaire ignorés"
-            + (fallbackStop.map { ", secours coupé : \($0)" } ?? ""),
-            level: .info)
+        batchReport = run.report
+        log(run.summary(mod: mod.folderName), level: .info)
     }
 
     /// Enregistre une valeur traduite pour une ligne du diff.
