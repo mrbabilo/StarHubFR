@@ -472,6 +472,66 @@ exercé :
 5. la carte de santé SMAPI et la pastille d'alertes affichent toujours leur
    compte.
 
+### Domaine 2 — Journal, tranche 2 (santé SMAPI), livrée le 2026-09-11
+
+Trois commits (`7ce32ca`, `6c7b4d9`, `f2dd895`), gate exit 0, **3 020 tests
+verts**. `SmapiHealthFold` (pur, 12 tests) + `SmapiHealthStore`
+(`@Observable`, 8 tests). ViewModel 10 297 → **10 288** ;
+`viewmodel_stored_state` 162 → **154**.
+
+**Une propriété morte trouvée par le relevé lui-même.** `showSmapiAlerts`
+n'avait qu'une occurrence dans tout le dépôt : sa déclaration. Née le
+2026-07-03 avec la fonctionnalité, jamais touchée depuis. Cinquième instance
+de la famille « membre du ViewModel non câblé » — et elle n'a été vue que
+parce que le relevé des écritures, préalable au déplacement, a rendu **zéro**.
+Supprimée dans son propre commit, pour que la baisse d'un point reste lisible.
+
+**Ce que le store garantit, et que trois affectations voisines ne
+garantissaient que par convention** : date, diagnostics et conflits viennent
+d'une même lecture et changent ensemble. Un commentaire du ViewModel le
+demandait déjà ; c'est désormais la signature qui l'impose. Effet de bord
+bienvenu : au rechargement, les conflits étaient publiés *après*
+`recordErrorHistory`, donc dans un second temps — ils le sont maintenant dans
+le même appel que la date.
+
+**Deux règles d'accumulation, enfin sous test.** Le diff des alertes se fait
+par **contenu** et non par compte (une alerte remplacée par une autre laisse le
+compte inchangé) ; un journal **sans date** n'est jamais replié dans
+l'historique, et un journal déjà replié non plus — sans quoi chaque ouverture
+d'onglet gonflerait les compteurs. Deux branches sont **conservées telles
+quelles, pas déduites** — le jeu de référence n'est pas réécrit quand rien
+n'est neuf, et un `reset()` ne l'oublie pas : leurs tests disent ce que le code
+fait, pas qu'il a raison.
+
+⚠️ **Un sabotage n'a rien rougi, et c'était le test qui avait tort.** Celui de
+l'ordre de journalisation : à trois éléments, l'ordre du `Set` avait coïncidé
+avec celui du journal. Renforcé à huit — probabiliste contre un sabotage,
+jamais contre du code correct, et c'est écrit dans le test.
+
+⚠️ **La prédiction des compteurs a raté d'un point, pour la deuxième fois
+aujourd'hui, et de la même façon** : elle compte ce qui **part** du ViewModel
+et oublie ce que le code neuf **ajoute** (au domaine 1, le `.shared` de la
+closure ; ici, `loggedAlerts`, une `private var` du store). **Prédire le
+solde, pas le départ.**
+
+**Reste dû sur ce domaine — tranche 3** : l'historique d'erreurs par mod
+(`modErrorHistory`, `lastErrorHistoryLogDate`, `errorHistoryLoaded`). Il n'est
+pas ici parce qu'il est muté par méthode en trois endroits du ViewModel
+(`merge`, `ModFolderRename.migrate(&…)`, `remove`) et qu'il a sa propre
+persistance (`ModErrorHistoryStore`) : c'est un sous-domaine, pas un reste.
+`SmapiHealthFold.observations` l'attend déjà, testée.
+
+**Vérification à l'écran — due, auteur.** Quatre contrôles :
+
+1. la carte de santé SMAPI affiche sa version, ses mods ignorés, ses alertes ;
+2. le bouton de relecture de la page des alertes système tourne **et se
+   réactive** (le verrou : s'il reste pris, le bouton est mort jusqu'au
+   prochain lancement) ;
+3. relancer la relecture deux fois de suite n'ajoute **pas** une seconde fois
+   les mêmes alertes dans l'onglet Journaux ;
+4. la section des conflits Content Patcher affiche toujours ses conflits, avec
+   la date du journal.
+
 ### Quand un domaine est-il extrait ?
 
 Les quatre conditions du §6 s'appliquent telles quelles, avec un ajustement
