@@ -284,6 +284,26 @@ Une extraction se fait dans cet ordre, et chaque étape est un commit :
 **F1-T1 est clos.** ViewModel : 4390 → 4153 lignes. 35 tests neufs sur du code qui
 n'en avait aucun.
 
+### Livré le 2026-09-11 — chantier A, `@Observable`
+
+Pas une extraction : un **changement de mécanisme d'observation**, qui rend les
+extractions suivantes gratuites côté vues. `StarHubTHViewModel`,
+`GameEnvironmentStore`, `NexusMetadataStore` et `SaveNotesStore` passent
+`@Observable` en un lot atomique (`63d1278`..`aac7129`, 11 commits, gate vert,
+2 976 tests verts). 133 `@Published` retirés, 87 `@ObservedObject var vm`
+devenus des propriétés nues, les deux relais `objectWillChange` supprimés.
+
+Conséquence pour la suite : **une vue ne se réinvalide plus que sur ce qu'elle
+lit**, et le suivi traverse une façade jusqu'au store possédé. Extraire un
+domaine ne demande donc plus de toucher aux vues.
+
+⚠️ **Livré n'est pas clos** : la mesure F3 « avant » et la vérification à
+l'écran restent dues, et le chantier B (le tri des propriétés, §6) ne s'ouvre
+pas avant. → **§9 de
+[`refactoring-vider-le-viewmodel.md`](refactoring-vider-le-viewmodel.md)**,
+qui porte aussi les défauts trouvés après coup — dont une perte de données
+réelle antérieure au chantier, et trois compteurs de contrôle pris en défaut.
+
 ### Prochaines extractions — ordre re-dérivé le 2026-09-10
 
 > ⚠️ **L'ordre précédent est périmé et a été retiré.** Il avait été écrit contre un
@@ -500,6 +520,13 @@ que la préparation.
 
 > 📄 **Cette phase est cadrée depuis le 2026-09-11 :
 > [`docs/refactoring-vider-le-viewmodel.md`](refactoring-vider-le-viewmodel.md).**
+> ⚠️ **Son chantier A est livré le 2026-09-11** (`63d1278`..`aac7129`) : les
+> `@Published` ont disparu du lot atomique, le VM et trois stores sont
+> `@Observable`, et les vues ne déclarent plus `@ObservedObject var vm`. La
+> section ci-dessous décrit donc un mécanisme **révolu** — elle est conservée
+> parce que le tri des 135 propriétés, lui, reste à faire (c'est le chantier B).
+> Le chantier A n'est pas **clos** pour autant : la mesure F3 « avant » et la
+> vérification à l'écran restent dues → **§9 du cadrage**.
 > Ce qui suit reste vrai, mais le cadrage le corrige sur un point mesuré : un
 > spike a montré que sous `@Observable` (macOS 14, que nous ciblons), une vue ne
 > se réinvalide que sur les propriétés qu'elle **lit** — le défaut décrit

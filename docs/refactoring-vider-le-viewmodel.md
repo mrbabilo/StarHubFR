@@ -1,6 +1,9 @@
 # Phase 2 du refactor — vider le ViewModel de son état publié
 
-> **Statut** : cadrage validé le 2026-09-11, aucune ligne de code écrite.
+> **Statut** : cadrage validé le 2026-09-11. **Chantier A écrit et livré le même
+> jour** (11 commits, gate vert, 2 976 tests verts) — mais **pas clos** : la
+> mesure F3 « avant » et la vérification à l'écran restent dues, et elles
+> appartiennent à l'auteur. Le chantier B ne s'ouvre pas avant. → **§9**.
 > Rattaché à l'**axe F** de `ROADMAP.md` et au **§6** de `REFACTORING.md`, qui
 > annonçait cette phase sans la cadrer. Ce document la cadre ; il ne la planifie
 > pas — le découpage en tâches vient après (§8).
@@ -476,3 +479,64 @@ Deux conventions du dépôt s'appliquent à l'ouverture : le tag
 `pre-refactor-observable` posé par le plan (§4.6 de `REFACTORING.md` — c'est
 ce qui rend le `git diff` final lisible et la marche arrière possible), et un
 commit par étape.
+
+## 9. Ce qui est livré — chantier A, 2026-09-11
+
+Onze commits, de `63d1278` à `aac7129`. Gate vert (`python3 build_app.py`,
+exit 0), 2 976 tests verts.
+
+| Étape | Ce qui a été fait |
+| --- | --- |
+| 1 | `keybindReport` rejoint l'état du VM — miroir sur `$report` + `removeDuplicates()`, pas sur `objectWillChange` (qui copiait la valeur **d'avant** l'écriture). `keybindProblemCount` supprimée : zéro appelant. |
+| 2 | Les préférences IA locale et DeepL vivent en miroirs synchrones ; lecteurs statiques partagés ; `resyncMirroredDefaults()` pour les écritures faites hors du VM. |
+| 3 | `deepLCredentials` reste **calculée** — la mémoïser était une erreur : aucun rendu ne la lit. |
+| 4 | **La conversion atomique** : `StarHubTHViewModel`, `GameEnvironmentStore`, `NexusMetadataStore` et `SaveNotesStore` passent `@Observable`. 133 `@Published` retirés, 87 sites de vue passés en propriété nue, `@Bindable` sur les 4 vues qui projetaient, `@State` + `State(initialValue:)` dans l'App. Le relais `objectWillChange` du store Nexus devient une closure injectée. |
+| 5 | Trois compteurs de cliquet remplacent `published_without_private_set`. |
+
+### Les défauts trouvés après coup — tous par revue ou par mesure
+
+Aucun n'était visible à la compilation. C'est le point du §5 : le compilateur
+ne couvre pas ce chantier.
+
+- **Une perte de données réelle**, antérieure au chantier : `DefaultsMigration`
+  ne reprenait pas `"defaultProfileId"`. Sur une installation migrée, le profil
+  par défaut était perdu définitivement.
+- **Le suivi des memos.** Sous `ObservableObject`, remplir un cache privé
+  pendant un rendu était invisible à SwiftUI. Sous `@Observable`, c'est une
+  publication. Mesuré sur `withObservationTracking` : deux vues sœurs lisant
+  deux clés d'un cache à **créneau unique** bouclent à l'infini ; un
+  cache-dictionnaire converge en deux passes. Un `body` ne s'auto-invalide
+  jamais — l'observateur n'est armé qu'après la fermeture. Traités :
+  `deltaReadCache`, `renamePairsCache`, `_bisection` (hors suivi), et
+  `categoryCache` (hors suivi **plus** une révision suivie, parce que le vider
+  était son unique signal de rafraîchissement — l'ignorer seul aurait tué
+  l'épinglage en silence).
+- **Le cliquet lui-même.** La règle des façades rendait 0 en ne décrivant
+  aucune propriété : numéros de ligne de la source strippée appliqués à la
+  source brute (3 949 lignes d'écart), puis fenêtres avalant les `func`
+  intercalées. Corrigée et vérifiée par sabotage. *Un compteur à zéro ressemble
+  à un succès* — c'est le troisième outil de contrôle de ce dépôt pris en
+  défaut de cette façon.
+
+### Compteurs après
+
+| Compteur | Valeur | Ce qu'il verrouille |
+| --- | --- | --- |
+| `viewmodel_stored_state` | 168 | L'état stocké du VM ne peut que baisser |
+| `viewmodel_facades_to_combine` | 0 | Le cas 4 — vérifié par sabotage |
+| `observable_stored_without_private_set` | 123 | Remplace `published_without_private_set` |
+
+### ⚠️ Ce qui **n'est pas** fait, et qui appartient à l'auteur
+
+Le chantier A n'est **pas** clos, et le chantier B ne s'ouvre pas avant :
+
+1. **La mesure F3 « avant »** (tag `pre-refactor-observable`, bundle bâti
+   depuis `e1bb12f`). Sans elle le critère de succès du §5 bis n'a pas de
+   témoin.
+2. **La vérification à l'écran** — huit contrôles : pastille d'alertes après
+   un scan de raccourcis, épinglage/désépinglage de catégorie Nexus, notes et
+   avatars de sauvegarde, réglages d'IA locale, clé DeepL, bascule de langue,
+   fenêtre de rapport d'installation, et la latence de frappe F3 contre le
+   témoin. Aucun agent ne lance l'app (convention du dépôt) ; et le seul angle
+   mort de ce chantier est précisément « une vue cesse de se rafraîchir sans
+   erreur ni plantage », que seul l'écran tranche.
