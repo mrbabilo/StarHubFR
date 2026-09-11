@@ -255,13 +255,23 @@ plante. C'est le profil de défaut que `@Observable` introduit.
 
 **Le patron de l'amont (`@EnvironmentObject`)** — ils ont livré 8 stores + un
 `AppCoordinator` qui ne publie rien, injectés en un point et déclarés par
-111 `@EnvironmentObject`. Écarté pour deux raisons mesurées : leur choix était
-**contraint** (ils ciblent macOS 13, `project.yml` et `Info.plist` — `@Observable`
-ne leur était pas disponible), et `@EnvironmentObject` plante à l'exécution, pas
-à la compilation, alors que nous avons **deux scènes `Window`**
-(`StarHubTHApp.swift:132` et `:232`) dont l'une n'hérite pas de l'environnement
-de l'autre. Aucun agent ne lance l'application ici : un défaut que seul l'auteur
-peut voir est le plus cher du dépôt.
+111 `@EnvironmentObject`. Écarté pour deux raisons mesurées.
+
+D'abord, **leur choix était contraint** : ils ciblent macOS 13 (`project.yml`,
+`Info.plist`), où `@Observable` n'existe pas. Ce n'est pas une préférence
+d'architecture qu'on pourrait reprendre par déférence — c'est la seule option
+qu'ils avaient, et elle n'est pas la nôtre.
+
+Ensuite, un `@EnvironmentObject` manquant n'est **pas vu par le compilateur** :
+il échoue à l'exécution, sur l'écran qui le déclare. Or nous avons **deux scènes
+`Window`** (`StarHubTHApp.swift:132` et `:232`), et une injection posée sur le
+contenu de la première ne descend pas dans la seconde — chaque scène exige la
+sienne. Le dépôt a d'ailleurs déjà tranché autrement à cet endroit :
+`InstallReportWindow(vm:localization:)` reçoit ses deux dépendances **par
+paramètre**. Ce n'est donc pas un obstacle infranchissable, c'est un coût
+récurrent payé en défauts que le compilateur laisse passer — et ici, aucun agent
+ne lance l'application : seul l'auteur peut les voir. Le patron retenu (§4) n'a
+pas ce profil, puisqu'il ne touche pas aux vues du tout.
 
 **Leur `AppCoordinator`** — sa bonne idée (« ne rien posséder, c'est ne jamais
 pouvoir dériver de ce qu'on coordonne ») est retenue comme *cible* du ViewModel,
