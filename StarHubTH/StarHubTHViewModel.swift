@@ -292,7 +292,7 @@ final class StarHubTHViewModel {
     /// filter works even before the user re-checks. Mods without a known
     /// category simply don't appear under any category scope.
     var nexusCategories: [String: Int] = [:] {
-        didSet { categoryCache.removeAll() }
+        didSet { invalidateCategoryCache() }
     }
 
     /// `{ nexusModId: NexusModExtra }` map (summary + primary picture URL)
@@ -422,7 +422,7 @@ final class StarHubTHViewModel {
 
     var mods: [ModItem] = [] {
         didSet {
-            categoryCache.removeAll()
+            invalidateCategoryCache()
             recomputeFrenchCoverage()
             // Le parc est connu ici, avant même qu'on ouvre l'onglet Alertes
             // système — c'est ce qui rend le compte de la pastille (tâche 7)
@@ -1771,15 +1771,37 @@ final class StarHubTHViewModel {
     /// children re-ran on every call (badge, filter, `availableCategories`,
     /// counts) within the same render.
     ///
-    /// ⚠️ Celui-ci reste **suivi**, à l'inverse de `deltaReadCache` : sur un
-    /// succès, `category(for:)` ne lit *que* ce dictionnaire — le vider (via
-    /// `nexusMetadata.onInvalidate` ou le `didSet` de `nexusCategories`) est
-    /// donc l'unique signal qui rafraîchit la liste après un épinglage. Lui
-    /// mettre `@ObservationIgnored` par symétrie ferait disparaître ce
-    /// rafraîchissement sans erreur ni plantage. Il ne risque pas la boucle
-    /// des créneaux uniques : un cache-dictionnaire converge (mesuré, deux
-    /// passes pour cinq vues sœurs).
+    /// ⚠️ Hors suivi, **et** doublé d'une révision qui, elle, l'est. Le laisser
+    /// suivi coûtait un rendu complet de la liste : `category(for:)` est appelée
+    /// depuis six `body` (`ModListView` balaie tout le parc), et remplir une
+    /// seule entrée manquante depuis la fiche d'un mod réveillait la liste
+    /// entière. Mais l'ignorer *seul* aurait cassé l'épinglage en silence : sur
+    /// un succès de cache, la fonction ne lit rien d'autre, donc vider le
+    /// dictionnaire était l'unique signal de rafraîchissement. D'où la même
+    /// forme que `deltaReadCache` — le cache ne publie plus, la révision publie.
+    @ObservationIgnored
     private var categoryCache: [String: NexusCategory?] = [:]
+    /// La révision **suivie** du cache ci-dessus : le seul signal qui rafraîchit
+    /// les vues quand les catégories changent. Toujours passer par
+    /// `invalidateCategoryCache()`, jamais par `categoryCache.removeAll()` nu.
+    private var categoryCacheRevision = 0
+
+    /// Vide le cache des catégories **et** publie le changement. Les deux vont
+    /// ensemble : le dictionnaire est hors suivi.
+    private func invalidateCategoryCache() {
+        categoryCache.removeAll()
+        categoryCacheRevision += 1
+    }
+
+    /// Enregistre la dépendance de suivi du cache des catégories.
+    ///
+    /// À appeler au début de **chaque** lecture du cache, succès compris —
+    /// c'est la contrepartie du `@ObservationIgnored` ci-dessus. Sans cet
+    /// appel, une vue servie par le cache n'observe plus rien et cesse de se
+    /// rafraîchir après un épinglage, sans erreur ni plantage.
+    private func trackCategoryCache() {
+        _ = categoryCacheRevision
+    }
 
     /// Top-level enabled mods (packs included as their own header entry).
     /// Feeds `ModConfigBackupManager`, which resolves each pack's enabled
@@ -2052,7 +2074,7 @@ final class StarHubTHViewModel {
         // emprunte). Sans elle, une catégorie épinée laisserait les lignes
         // sur une valeur périmée. Le patron existe déjà sur
         // `nexusCategories.didSet` et le `didSet` de `mods`.
-        nexusMetadata.onInvalidate = { [weak self] in self?.categoryCache.removeAll() }
+        nexusMetadata.setOnInvalidate { [weak self] in self?.invalidateCategoryCache() }
         // Seed the first launch step label synchronously so the overlay never
         // shows an empty string before the first async hop lands.
         self.launchStep = self.localization.L(L10n.Main.launchStepInit)
@@ -4610,6 +4632,7 @@ final class StarHubTHViewModel {
     /// 3. For pack headers: the dominant category among the children.
     /// 4. `nil` — unknown.
     func category(for mod: ModItem) -> NexusCategory? {
+        trackCategoryCache()
         if let cached = categoryCache[mod.folderName] {
             return cached
         }
@@ -8491,6 +8514,7 @@ final class StarHubTHViewModel {
     /// (`HomeView`, `BisectionCard`) observent le runner lui-même ; le
     /// suivre ici n'invaliderait que le VM entier à chaque état de
     /// bissection.
+    @ObservationIgnored
     private var _bisection: BisectionRunner?
     var bisection: BisectionRunner {
         if let _bisection { return _bisection }

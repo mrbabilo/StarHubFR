@@ -85,4 +85,49 @@ import Testing
         #expect(store.customCategories["New"] == 7)
         #expect(store.customModIds["Old"] == nil)
     }
+
+    /// Le crochet d'invalidation, sur **les cinq** mutations.
+    ///
+    /// Depuis le passage à `@Observable`, ce crochet n'est plus un confort :
+    /// c'est l'unique chemin par lequel le ViewModel apprend qu'il doit purger
+    /// son cache de catégories et publier la révision qui rafraîchit la liste.
+    /// Une mutation qui l'oublierait laisserait une catégorie épinglée
+    /// invisible à l'écran — sans erreur ni plantage. Chaque mutation est donc
+    /// vérifiée nommément, pas une seule en échantillon.
+    @Test func everyMutationFiresTheInvalidationHook() {
+        let defaults = makeDefaults()
+        let store = NexusMetadataStore(defaults: defaults)
+        var fired = 0
+        store.setOnInvalidate { fired += 1 }
+
+        store.setCustomCategory(42, for: "Mod")
+        #expect(fired == 1, "setCustomCategory")
+        store.setCustomModId("1234", for: "Mod")
+        #expect(fired == 2, "setCustomModId")
+        store.mergeCustomModIds(["Autre": "99"])
+        #expect(fired == 3, "mergeCustomModIds")
+        store.migrateFolderName(from: "Mod", to: "Renomme", shared: false)
+        #expect(fired > 3, "migrateFolderName")
+
+        let beforePurge = fired
+        #expect(store.purgeMod(folderName: "Renomme"))
+        #expect(fired > beforePurge, "purgeMod")
+    }
+
+    /// Poser le crochet ne doit pas le déclencher, et le retirer doit le taire :
+    /// sinon le VM purgerait son cache au montage, à chaque lancement.
+    @Test func settingTheHookIsSilentAndClearingItStops() {
+        let defaults = makeDefaults()
+        let store = NexusMetadataStore(defaults: defaults)
+        var fired = 0
+        store.setOnInvalidate { fired += 1 }
+        #expect(fired == 0)
+
+        store.setCustomCategory(1, for: "Mod")
+        #expect(fired == 1)
+
+        store.setOnInvalidate(nil)
+        store.setCustomCategory(2, for: "Mod")
+        #expect(fired == 1, "le crochet retiré ne doit plus être appelé")
+    }
 }

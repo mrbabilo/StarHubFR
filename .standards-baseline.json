@@ -20,7 +20,7 @@
   "file:StarHubTH/NexusUpdateChecker.swift": 861,
   "file:StarHubTH/SaveManager.swift": 1297,
   "file:StarHubTH/SmapiInstaller.swift": 561,
-  "file:StarHubTH/StarHubTHViewModel.swift": 10307,
+  "file:StarHubTH/StarHubTHViewModel.swift": 10331,
   "file:StarHubTH/Views/Components/SmapiHealthCard.swift": 672,
   "file:StarHubTH/Views/DiscoverView.swift": 525,
   "file:StarHubTH/Views/HomeView.swift": 433,
@@ -43,11 +43,11 @@
   "non_final_classes": 8,
   "observable_stored_without_private_set": 123,
   "our_shared_singletons": 91,
-  "oversized_excess_lines": 25898,
+  "oversized_excess_lines": 25922,
   "oversized_files": 37,
   "print_calls": 30,
   "try_optional": 333,
   "viewmodel_facades_to_combine": 0,
-  "viewmodel_stored_state": 167,
+  "viewmodel_stored_state": 168,
   "vm_dot_L_calls": 0
 }

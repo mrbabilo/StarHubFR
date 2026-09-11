@@ -121,11 +121,28 @@ final class NexusMetadataStore {
     // MARK: - Persistance
 
     /// Posée par le possesseur : appelée après chaque persistance, c'est-à-dire
-    /// après toute mutation. Le VM y purge son cache de catégories — sous
-    /// `@Observable`, ce cache n'est invalidé que par une écriture suivie,
-    /// plus par une publication globale. Testable : un test du store pose une
-    /// closure qui compte.
-    public var onInvalidate: (() -> Void)?
+    /// après toute mutation. Le VM y purge son cache de catégories et incrémente
+    /// la révision qui le publie — sous `@Observable`, il n'y a plus de
+    /// publication globale à laquelle se raccrocher, ce crochet **est** le
+    /// chemin d'invalidation, le seul.
+    ///
+    /// ⚠️ `@ObservationIgnored` : une closure stockée dans une classe
+    /// `@Observable` devient de l'état observable comme le reste. La lire dans
+    /// `persistCategories()` enregistrerait un accès dans n'importe quelle
+    /// portée de suivi active, et la poser publierait un changement — pour un
+    /// champ qui n'est pas de l'état.
+    ///
+    /// L'écriture passe par `setOnInvalidate(_:)` : parce que ce crochet est
+    /// unique, l'écraser désactive le rafraîchissement des catégories sans
+    /// erreur ni plantage, et un point d'écriture nommé se cherche au `grep`.
+    @ObservationIgnored
+    public private(set) var onInvalidate: (() -> Void)?
+
+    /// Pose le crochet d'invalidation. Voir `onInvalidate` — il n'y en a qu'un,
+    /// et le poser deux fois remplace le premier.
+    public func setOnInvalidate(_ handler: (() -> Void)?) {
+        onInvalidate = handler
+    }
 
     private func persistCategories() {
         onInvalidate?()
