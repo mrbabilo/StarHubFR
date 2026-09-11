@@ -686,6 +686,54 @@ et la bannière de réparation que rien n'efface à tort). Ce qui a été exerc�
 4. la corbeille affiche ses événements, un geste de remise/purge la
    rafraîchit **en remplaçant** la liste (pas de doublon).
 
+### Domaine 5 — Profils, livré le 2026-09-11
+
+Trois commits (`da2119e`, `0f8dce6`, et celui-ci), gate exit 0, **3 056 tests
+verts**. `ProfileStore` (`@Observable`, 10 tests, deux sabotages). ViewModel
+10 252 → **10 269** (⚠️ +17) ; `viewmodel_stored_state` 138 → **134**.
+
+Les décisions étaient déjà en Core (`ProfileActivation`,
+`ProfileConfigCapture`, `ProfileRecovery`, `ProfileFactory`) — il ne restait
+que l'état. Ce que l'extraction achète : le **lookup** `profile(with:)`,
+réécrit dix fois en `first(where:)` dans le ViewModel ; `activeProfile` sans
+risque d'identifiant orphelin ; et `endApplying()`, qui efface **ensemble** le
+drapeau de verrou et l'identité du spinner — posés, eux, à deux rythmes
+différents (aiguillage puis orchestration).
+
+⚠️ **Le relevé des écritures a manqué six sites, une troisième fois — et le
+profil du trou est maintenant clair.** Ni un grep des `=`, ni un relevé des
+`append` ne voient les **mutations par indice** : `modProfiles[i].x = …`,
+`.merge(…)`, `.setNote(…)`, six sites sur quatre fonctions. Le store gagne
+`add`, `removeProfile(with:)` et `mutateProfile(with:_:)` (inout, `false` si
+le profil manque). **La règle pour les domaines 6 à 8 : grepper tout ce qui
+méthode ou indice sur la propriété**, pas seulement les affectations — c'est
+le compilateur qui l'a trouvé, trois domaines de suite.
+
+⚠️ **Verrou de taille +17 lignes (10 252 → 10 269), deuxième domaine de suite
+en hausse brute.** Cette fois sans une seule façade `get`+`set` : ce sont les
+closures `mutateProfile`, intrinsèquement plus longues que l'affectation par
+indice. Les compteurs de l'axe baissent (134, 109) — la ligne brute ne mesure
+pas ce que ce chantier déplace. **La reprise des vues (P8) mérite maintenant
+une vraie tranche** : chaque façade du ViewModel est une ligne que la vue
+pourrait lire sur le store directement.
+
+`profileManagedConfigMods` **reste** au ViewModel : c'est un magasin persisté
+(load/save, migrations, purges), le voisinage de `favoriteMods` et
+`blacklistedMods` — pas l'état de ce domaine.
+
+**Vérification à l'écran — due, auteur.** Cinq contrôles, sur la vue Profils :
+
+1. créer un profil — il apparaît ; le renommer garde ses mods ;
+2. activer un profil — le spinner remplace le bouton de la ligne pendant
+   l'opération, **et les deux disparaissent ensemble** à la fin (c'est
+   `endApplying`) ;
+3. activer un second profil pendant que le premier tourne est impossible
+   (les boutons sont désactivés — le verrou) ;
+4. supprimer le profil actif — aucun profil actif à l'écran, pas de nom
+   fantôme dans le pied de page ;
+5. ajouter une dépendance manquante à un profil (fiche d'un mod) — elle
+   entre dans la liste du profil sans toucher les autres.
+
 ### Quand un domaine est-il extrait ?
 
 Les quatre conditions du §6 s'appliquent telles quelles, avec un ajustement
