@@ -1,9 +1,10 @@
 # Phase 2 du refactor — vider le ViewModel de son état publié
 
-> **Statut** : cadrage validé le 2026-09-11. **Chantier A écrit et livré le même
-> jour** (11 commits, gate vert, 2 976 tests verts) — mais **pas clos** : la
-> mesure F3 « avant » et la vérification à l'écran restent dues, et elles
-> appartiennent à l'auteur. Le chantier B ne s'ouvre pas avant. → **§9**.
+> **Statut** : cadrage validé le 2026-09-11. **Chantier A livré et vérifié à
+> l'écran le même jour** (13 commits, gate vert, 2 976 tests verts, contrôles
+> de l'auteur OK). Le **chantier B est ouvert**. Reste dû, séparément : la
+> mesure de latence **F3**, qui est un item de ROADMAP à part entière et non
+> un contrôle de conformité. → **§9**.
 > Rattaché à l'**axe F** de `ROADMAP.md` et au **§6** de `REFACTORING.md`, qui
 > annonçait cette phase sans la cadrer. Ce document la cadre ; il ne la planifie
 > pas — le découpage en tâches vient après (§8).
@@ -553,17 +554,23 @@ hors du fil principal sera désormais silencieuse.
 | `viewmodel_facades_to_combine` | 0 | Le cas 4 — vérifié par sabotage |
 | `observable_stored_without_private_set` | 123 | Remplace `published_without_private_set` |
 
-### ⚠️ Ce qui **n'est pas** fait, et qui appartient à l'auteur
+### La vérification à l'écran — **OK**, auteur, 2026-09-11
 
-Le chantier A n'est **pas** clos, et le chantier B ne s'ouvre pas avant :
+C'était le verrou, et il n'était pas formel : le seul angle mort de ce chantier
+est « une vue cesse de se rafraîchir sans erreur ni plantage », que ni le gate
+ni les tests ne voient, et qu'aucun agent ne peut trancher (convention du
+dépôt : aucun agent ne lance l'app). Les contrôles portaient sur les chemins
+que la conversion a touchés — pastille d'alertes après un scan de raccourcis,
+épinglage/désépinglage de catégorie Nexus, notes et avatars de sauvegarde,
+réglages d'IA locale, clé DeepL, bascule de langue, fenêtre de rapport
+d'installation.
 
-1. **La mesure F3 « avant »** (tag `pre-refactor-observable`, bundle bâti
-   depuis `e1bb12f`). Sans elle le critère de succès du §5 bis n'a pas de
-   témoin.
-2. **La vérification à l'écran** — huit contrôles : pastille d'alertes après
-   un scan de raccourcis, épinglage/désépinglage de catégorie Nexus, notes et
-   avatars de sauvegarde, réglages d'IA locale, clé DeepL, bascule de langue,
-   fenêtre de rapport d'installation, et la latence de frappe F3 contre le
-   témoin. Aucun agent ne lance l'app (convention du dépôt) ; et le seul angle
-   mort de ce chantier est précisément « une vue cesse de se rafraîchir sans
-   erreur ni plantage », que seul l'écran tranche.
+**Le chantier B est ouvert** (§4).
+
+### Ce qui reste dû, et qui n'est pas une condition
+
+**La mesure F3.** Elle est le critère de succès *de la phase* (§5 bis), pas un
+contrôle de conformité du chantier A : le mécanisme peut être correct et le
+gain nul. Elle vit dans la ROADMAP comme item à part entière, avec son
+protocole A/B propre. Le témoin d'avant la conversion existe — tag
+`pre-refactor-observable` sur `e1bb12f`, à bâtir en bundle.

@@ -1461,6 +1461,17 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
       lignes de la page avec leurs images, badges, interrupteurs et boutons. Noter qu'un
       debounce de 200 ms a été retiré en 1.7.0 *parce qu'il aggravait* le lag perçu ; le
       remettre suppose un réglage différent, pas un retour en arrière.
+      **⚠️ Le terrain a changé le 2026-09-11** — à lire avant de rouvrir cette
+      tâche. La « piste restante » ci-dessus (le **rendu**) est exactement ce que
+      le chantier A du refactor a touché : le VM et trois stores sont passés
+      `@Observable`, donc une vue ne se réinvalide plus que sur les propriétés
+      qu'elle **lit**, là où chaque `@Published` publiait à toute la fenêtre.
+      Deux conséquences pour la passe : le gain attendu n'a **pas** été mesuré
+      (c'est ce qui reste dû), et l'A/B a désormais **deux** témoins — le bundle
+      v1.11.1 pour la question régression/préexistant, et le tag
+      `pre-refactor-observable` (`e1bb12f`) pour l'effet de la conversion seule.
+      Les mesurer ensemble évite de confondre les deux réponses.
+      → `docs/refactoring-vider-le-viewmodel.md` §5 bis et §9.
       **Non tranché : régression ou défaut préexistant.** `bundles/StarHubFR_v1.11.1.zip`
       est la version d'avant B1-T2 et sert de témoin pour un A/B — première étape de la
       passe, avant d'écrire quoi que ce soit : les deux réponses mènent à des travaux

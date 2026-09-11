@@ -297,9 +297,11 @@ Conséquence pour la suite : **une vue ne se réinvalide plus que sur ce qu'elle
 lit**, et le suivi traverse une façade jusqu'au store possédé. Extraire un
 domaine ne demande donc plus de toucher aux vues.
 
-⚠️ **Livré n'est pas clos** : la mesure F3 « avant » et la vérification à
-l'écran restent dues, et le chantier B (le tri des propriétés, §6) ne s'ouvre
-pas avant. → **§9 de
+**Vérifié à l'écran par l'auteur le 2026-09-11** — c'était le verrou, le seul
+angle mort du chantier étant « une vue cesse de se rafraîchir sans erreur ni
+plantage ». **Le chantier B (le tri des propriétés, §6) est ouvert.** Reste dû
+séparément, sans en être une condition : la mesure de latence **F3**.
+→ **§9 de
 [`refactoring-vider-le-viewmodel.md`](refactoring-vider-le-viewmodel.md)**,
 qui porte aussi les défauts trouvés après coup — dont une perte de données
 réelle antérieure au chantier, et trois compteurs de contrôle pris en défaut.
@@ -525,8 +527,8 @@ que la préparation.
 > `@Observable`, et les vues ne déclarent plus `@ObservedObject var vm`. La
 > section ci-dessous décrit donc un mécanisme **révolu** — elle est conservée
 > parce que le tri des 135 propriétés, lui, reste à faire (c'est le chantier B).
-> Le chantier A n'est pas **clos** pour autant : la mesure F3 « avant » et la
-> vérification à l'écran restent dues → **§9 du cadrage**.
+> Vérifié à l'écran par l'auteur le 2026-09-11 : le **chantier B est ouvert**.
+> → **§9 du cadrage**.
 > Ce qui suit reste vrai, mais le cadrage le corrige sur un point mesuré : un
 > spike a montré que sous `@Observable` (macOS 14, que nous ciblons), une vue ne
 > se réinvalide que sur les propriétés qu'elle **lit** — le défaut décrit
