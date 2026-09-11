@@ -182,6 +182,7 @@ let package = Package(
                 "Models/ProfileActivation.swift",
                 "Models/ProfileConfigCapture.swift",
                 "Models/ProfileRecovery.swift",
+                "Models/ModRootResolver.swift",
                 "Models/ProfileApplyJournal.swift",
                 "Models/GameLaunchGate.swift",
                 "Models/ModUpdateSnoozer.swift",
@@ -327,6 +328,11 @@ let package = Package(
             name: "ProfileRecoveryTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ProfileRecoveryTests"
+        ),
+        .testTarget(
+            name: "ModRootResolverTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ModRootResolverTests"
         ),
         .testTarget(
             name: "GameLaunchGateTests",

@@ -10035,29 +10035,13 @@ class StarHubTHViewModel: ObservableObject {
                                        userFiles: [MaintenanceInventory.UserFile])
     -> MaintenanceInventory.InstalledState {
         let fm = FileManager.default
-        guard let current = Self.resolvingModRoot(of: folderName, modsRoot: modsRoot) else {
+        guard let current = ModRootResolver.physicalRoot(of: folderName, modsRoot: modsRoot) else {
             return .init(presentFiles: nil)
         }
         let present = userFiles.filter {
             fm.fileExists(atPath: (current as NSString).appendingPathComponent($0.relativePath))
         }
         return .init(presentFiles: Set(present.map(\.relativePath)))
-    }
-
-    /// Le dossier réel d'un mod — chaque composant essayé actif puis en pause
-    /// (préfixe point), `nil` si l'un d'eux manque. C'est la résolution que
-    /// l'inventaire juge et que la récupération d'un fichier protégé écrit.
-    private static func resolvingModRoot(of folderName: String, modsRoot: String) -> String? {
-        let fm = FileManager.default
-        var current = modsRoot
-        for component in folderName.components(separatedBy: "/") {
-            let plain = (current as NSString).appendingPathComponent(component)
-            let dotted = (current as NSString).appendingPathComponent("." + component)
-            if fm.fileExists(atPath: plain) { current = plain }
-            else if fm.fileExists(atPath: dotted) { current = dotted }
-            else { return nil }
-        }
-        return current
     }
 
     /// Met à la corbeille les sauvegardes que `keepPerMod` écarte, et rend leur
@@ -10199,8 +10183,9 @@ class StarHubTHViewModel: ObservableObject {
     -> RecoverableFile? {
         guard let backup = maintenanceBackup(forSession: session) else { return nil }
         let modsRoot = (gameDir as NSString).appendingPathComponent("Mods")
-        guard let installedRoot = Self.resolvingModRoot(of: backup.originalFolderName,
-                                                        modsRoot: modsRoot) else { return nil }
+        guard let installedRoot = ModRootResolver.physicalRoot(of: backup.originalFolderName,
+                                                               modsRoot: modsRoot)
+        else { return nil }
         return RecoverableFile(
             folderName: backup.originalFolderName,
             modName: backup.modMetadata.name,
