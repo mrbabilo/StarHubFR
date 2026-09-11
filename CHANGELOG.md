@@ -26,6 +26,10 @@ where the exact log format was verified.
 
 - **Les trois derniers verts d'état « installé » rejoignent le vert de l'application.** Les greffes et suppléments installés, et la mention « traduction en place » de la fiche d'un mod, portaient encore le vert système — le même écart de teinte que celui corrigé sur la fiche d'un pack.
 
+- **Le report de clés renommées atteint les mods traduits en sous-dossiers.** Un mod dont les traductions vivent dans `i18n/fr/` plutôt que dans un `fr.json` était ignoré sans un mot, et l'écran concluait « rien à reporter ». Cinq mods du parc étaient dans ce cas.
+
+- **Deux mods homonymes ne changent plus de place d'une vérification à l'autre.** La liste des mises à jour les départage désormais par identifiant, là où leur ordre dépendait de ce que le tri rendait ce jour-là.
+
 ## [1.43.1] - 2026-09-10
 
 ### Fixed
