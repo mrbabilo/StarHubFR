@@ -721,7 +721,9 @@ pourrait lire sur le store directement.
 (load/save, migrations, purges), le voisinage de `favoriteMods` et
 `blacklistedMods` — pas l'état de ce domaine.
 
-**Vérification à l'écran — due, auteur.** Cinq contrôles, sur la vue Profils :
+**Vérification à l'écran — OK, auteur, 2026-09-11.** Les cinq contrôles sont
+passés, dont les deux qui portent (le couple drapeau/identité qui disparaît
+ensemble, et le verrou anti double activation). Ce qui a été exercé :
 
 1. créer un profil — il apparaît ; le renommer garde ses mods ;
 2. activer un profil — le spinner remplace le bouton de la ligne pendant
