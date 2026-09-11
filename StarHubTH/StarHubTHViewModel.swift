@@ -8679,37 +8679,44 @@ class StarHubTHViewModel: ObservableObject {
     /// dispatch). Reprendre sans restaurer laisserait sur disque les configs
     /// du profil sortant sans aucun marqueur.
     func resumeInterruptedApply() {
-        guard let journal = pendingApplyRecovery ?? unresolvedApplyJournal else { return }
-        pendingApplyRecovery = nil
-        guard !isApplyingProfile else { return }
-        guard let profile = modProfiles.first(where: { $0.id == journal.profileId }) else {
-            clearUnresolvedJournal(implicitKeepNamed: journal.profileName)
+        let journal = pendingApplyRecovery ?? unresolvedApplyJournal
+        // Le dialogue se ferme dès qu'un geste est fait, y compris sur un
+        // refus : c'est l'alerte qui reprendra la main au prochain lancement.
+        if journal != nil { pendingApplyRecovery = nil }
+        // Les quatre gardes vivent dans `ProfileRecovery` (Core, 11 tests),
+        // `isGameRunning()` en closure paresseuse comme pour l'activation.
+        switch ProfileRecovery.resume(journal: journal, profiles: modProfiles,
+                                      isApplying: isApplyingProfile,
+                                      gameRunning: { self.isGameRunning() }) {
+        case .nothingToResume, .refused:
             return
-        }
-        if isGameRunning() {
-            // Refus net, même garde que l'activation ; le journal reste —
-            // l'alerte reviendra au prochain lancement, et le re-clic du
-            // profil actif re-présente le résolveur.
-            let message = String(format: self.localization.L(L10n.VM.profileApplyRefusedGame), profile.name)
+
+        case .clearJournal(let name):
+            clearUnresolvedJournal(implicitKeepNamed: name)
+
+        case .refusedGameRunning(let name):
+            let message = String(format: localization.L(L10n.VM.profileApplyRefusedGame), name)
             log(message, level: .warning)
             showModal(message: message)
-            return
-        }
-        applyingProfileId = profile.id
-        applyProfileToFilesystem(profile: profile) { [weak self] _ in
-            self?.restoreProfileConfigs(for: profile.id)
+
+        case .resume(let profileId):
+            guard let profile = modProfiles.first(where: { $0.id == profileId }) else { return }
+            applyingProfileId = profileId
+            applyProfileToFilesystem(profile: profile) { [weak self] _ in
+                self?.restoreProfileConfigs(for: profileId)
+            }
         }
     }
 
     /// « Garder l'état actuel » — l'adoption explicite de l'état du disque,
     /// celle que `syncActiveProfileIds` refuse tant que le journal vit.
     func keepCurrentDiskState() {
-        guard let journal = pendingApplyRecovery ?? unresolvedApplyJournal else { return }
+        let journal = pendingApplyRecovery ?? unresolvedApplyJournal
+        guard case .settle(let name, let adopting) = ProfileRecovery.keepDiskState(
+            journal: journal, active: activeProfileId) else { return }
         pendingApplyRecovery = nil
-        clearUnresolvedJournal(implicitKeepNamed: journal.profileName)
-        if activeProfileId == journal.profileId {
-            syncActiveProfileIds()
-        }
+        clearUnresolvedJournal(implicitKeepNamed: name)
+        if adopting { syncActiveProfileIds() }
     }
 
     /// Le garde des entrées qui **appliquent un profil au disque**.
