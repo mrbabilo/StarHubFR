@@ -1168,6 +1168,7 @@
   "settings_chain_toggle": "Auto-toggle related mods",
   "settings_chain_toggle_hint": "When enabling a mod, required dependencies are enabled automatically. When disabling, mods that depend on it are disabled too.",
   "settings_clear_disabled_confirm": "This permanently deletes all disabled mods in the current profile. Continue?",
+  "settings_clear_disabled_confirm_count": "This permanently deletes %lld disabled mod folder(s) — they do not go to the Trash. Continue?",
   "settings_clear_disabled_mods": "Clear Disabled Mods",
   "settings_close_launcher": "Close launcher automatically after game launches",
   "settings_default_launch_mode": "Default Launch Mode",

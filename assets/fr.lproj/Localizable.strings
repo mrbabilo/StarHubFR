@@ -1168,6 +1168,7 @@
 "settings_chain_toggle" = "Activer/désactiver automatiquement les mods liés";
 "settings_chain_toggle_hint" = "Lors de l'activation d'un mod, ses dépendances requises sont activées automatiquement. Lors de la désactivation, les mods qui en dépendent sont désactivés aussi.";
 "settings_clear_disabled_confirm" = "Cela supprime définitivement tous les mods désactivés du profil actuel. Continuer ?";
+"settings_clear_disabled_confirm_count" = "Cela supprime définitivement %lld dossier(s) de mods désactivés — ils ne passent pas par la corbeille. Continuer ?";
 "settings_clear_disabled_mods" = "Vider les mods désactivés";
 "settings_close_launcher" = "Fermer automatiquement le lanceur après le démarrage du jeu";
 "settings_default_launch_mode" = "Mode de lancement par défaut";

@@ -17,6 +17,10 @@ struct SettingsView: View {
     @State private var nexusApiKeyInput: String = ""
     @State private var nexusKeySavedFlash: Bool = false
     @State private var showClearDisabledConfirm = false
+    /// Les dossiers relevés au clic, que la confirmation chiffre et que la
+    /// suppression reprend tels quels — annoncer un compte puis en supprimer
+    /// un autre serait pire que de ne rien annoncer.
+    @State private var disabledModsToClear: [String] = []
 
     init(vm: StarHubTHViewModel, localization: LocalizationStore) {
         self.localization = localization
@@ -63,9 +67,10 @@ struct SettingsView: View {
             // du profil sans retour possible.
             Alert(
                 title: Text(localization.L(L10n.Settings.clearDisabledMods)),
-                message: Text(localization.L(L10n.Settings.clearDisabledConfirm)),
+                message: Text(String(format: localization.L(L10n.Settings.clearDisabledConfirmCount),
+                                     Int64(disabledModsToClear.count))),
                 primaryButton: .destructive(Text(localization.L(L10n.Settings.deleteJunkMods))) {
-                    vm.cleanDisabledMods()
+                    vm.cleanDisabledMods(targets: disabledModsToClear)
                 },
                 secondaryButton: .cancel(Text(localization.L(L10n.Saves.cancel)))
             )
@@ -410,7 +415,16 @@ struct SettingsView: View {
                     Text(localization.L(L10n.Settings.clearDisabledMods))
                         .font(AppDesign.Font.body)
                     Spacer()
-                    Button(action: { showClearDisabledConfirm = true }) {
+                    Button(action: {
+                        disabledModsToClear = vm.disabledModTargets()
+                        // Rien à supprimer : le dire, plutôt qu'ouvrir une
+                        // alerte destructive qui n'emporterait rien.
+                        if disabledModsToClear.isEmpty {
+                            vm.showModal(message: localization.L(L10n.VM.cleanModsNotFound))
+                        } else {
+                            showClearDisabledConfirm = true
+                        }
+                    }) {
                         Text(localization.L(L10n.Settings.deleteJunkMods))
                     }
                     .foregroundColor(.red)

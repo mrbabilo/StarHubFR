@@ -875,6 +875,11 @@ enum L10n {
         static let openFolder           = "settings_open_folder"
         static let clearDisabledMods    = "settings_clear_disabled_mods"
         static let clearDisabledConfirm = "settings_clear_disabled_confirm"
+        /// Le même avertissement, mais **chiffré** : ce geste supprime
+        /// définitivement, et sur un gros parc il peut emporter des centaines
+        /// de dossiers (721 sur le parc de référence). L'ampleur doit être
+        /// visible avant le clic, pas après.
+        static let clearDisabledConfirmCount = "settings_clear_disabled_confirm_count"
         static let deleteJunkMods       = "settings_delete_junk_mods"
         static let settings             = "settings_settings"
         static let gameDirNotSet        = "settings_game_dir_not_set"

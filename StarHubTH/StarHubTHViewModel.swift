@@ -7388,23 +7388,34 @@ class StarHubTHViewModel: ObservableObject {
         zipToDesktop(sourceDir: modsDir, filePrefix: "StardewMods_Backup", successKey: L10n.VM.backupModsSuccess, errorKey: L10n.VM.zipModsError)
     }
     
-    func cleanDisabledMods() {
+    /// Les dossiers que « Vider les mods désactivés » supprimerait, relevés
+    /// **une fois**.
+    ///
+    /// L'écran s'en sert pour chiffrer sa confirmation, puis passe la **même**
+    /// liste à `cleanDisabledMods(targets:)` : ce qui est annoncé est
+    /// exactement ce qui part. Deux relevés à deux instants laisseraient un
+    /// dossier mis en pause entre-temps être supprimé sans avoir été compté.
+    func disabledModTargets() -> [String] {
+        guard !gameDir.isEmpty else { return [] }
+        let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
+        guard let entries = try? FileManager.default.contentsOfDirectory(atPath: modsPath) else {
+            return []
+        }
+        return DisabledModsCleanup.targets(in: entries)
+    }
+
+    /// ⚠️ Suppression **définitive**, pas la corbeille. Le tri qui a désigné
+    /// ces dossiers vit dans `DisabledModsCleanup` (Core, 11 tests) ; sur le
+    /// parc de référence, 721 dossiers sont en pause.
+    func cleanDisabledMods(targets: [String]) {
         guard !gameDir.isEmpty else { return }
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
         let fm = FileManager.default
 
-        guard let entries = try? fm.contentsOfDirectory(atPath: modsPath) else {
-            showModal(message: localization.L(L10n.VM.cleanModsNotFound))
-            return
-        }
-
-        // ⚠️ Suppression **définitive**, pas la corbeille, et le tri décide de
-        // ce qui part : il vit dans `DisabledModsCleanup` (Core, 11 tests).
-        // Sur le parc de référence, 721 dossiers sont en pause.
         var removed = 0
         var failed = 0
         var firstError: Error?
-        for entry in DisabledModsCleanup.targets(in: entries) {
+        for entry in targets {
             do {
                 try fm.removeItem(atPath: (modsPath as NSString).appendingPathComponent(entry))
                 removed += 1
