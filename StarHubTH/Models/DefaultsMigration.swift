@@ -29,7 +29,8 @@ public enum DefaultsMigration {
     public static let ownedKeys: [String] = [
         "SaveNotes_v2", "activeProfileId", "appColorScheme", "autoCheckNexusUpdates",
         "blacklistedMods", "chainToggleDependencies", "closeAfterLaunch", "currentLanguage",
-        "deepLFallbackEnabled", "didSeedDefaultProfile", "disabledModsMigratedToDotPrefix",
+        "deepLFallbackEnabled", "defaultProfileId", "didSeedDefaultProfile",
+        "disabledModsMigratedToDotPrefix",
         "discoveryHideInstalled", "favoriteMods", "gameDir", "installDateGraceFolders",
         "installedModRegistry", "installedModRegistryBackup", "keepNexusArchives",
         "launchProfile", "localAIBaseURL", "localAIModel", "modActivationTimestamps",
@@ -82,14 +83,17 @@ public enum DefaultsMigration {
     /// Elle est déclenchée de deux endroits — `AppSupport.resolve()` et
     /// `StarHubTHApp` — et c'est délibéré. L'ordre des initialisateurs de
     /// propriétés de `StarHubTHApp` **ne doit pas être porteur** : ce serait
-    /// une affirmation statique, du genre que ce dépôt a déjà payé. Le premier
-    /// initialisateur stocké du ViewModel qui touche quoi que ce soit est
-    /// `modCompatibility = ModCompatibilityStore.load()`, qui passe par
-    /// `AppSupport.directory` — vérifié, pas déduit : `gameDir` s'initialise à
-    /// `""` et ne lit sa préférence qu'au `didSet`, et les lectures de
-    /// `localAIBaseURL`/`localAIModel` sont des propriétés **calculées**.
-    /// Déclencher depuis `resolve()` garantit donc l'antériorité ; le second
-    /// appel ne coûte rien.
+    /// une affirmation statique, du genre que ce dépôt a déjà payé. Depuis le
+    /// passage des préférences IA/DeepL en propriétés **stockées** (miroirs du
+    /// chantier `@Observable`, 2026-09-11), ce ne sont plus des lectures
+    /// calculées : ce sont des initialisateurs de propriété qui lisent
+    /// `UserDefaults` directement. Deux garanties tiennent l'antériorité :
+    /// l'App déclenche `runOnce` avant de construire le ViewModel
+    /// (`bootstrapDefaults`, initialisateur de propriété de `StarHubTHApp`,
+    /// donc avant son `init` qui construit le VM), et au sein du VM le premier
+    /// lecteur defaults reste `modCompatibility` (L114) — toute nouvelle
+    /// propriété liseuse defaults déclarée AVANT lui serait semée de valeurs
+    /// pré-migration. Le second appel ne coûte rien.
     public static let runOnce: Void = {
         let copied = importLegacyIfNeeded(from: UserDefaults(suiteName: legacyDomain),
                                           to: .standard)

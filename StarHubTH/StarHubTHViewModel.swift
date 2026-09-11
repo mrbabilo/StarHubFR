@@ -802,16 +802,18 @@ class StarHubTHViewModel: ObservableObject {
     }
 
     /// L'endpoint IA validé depuis les préférences, `nil` si l'URL saisie
-    /// n'est pas du loopback admissible.
-    private var localAIEndpoint: URL? {
-        UserDefaults.standard.string(forKey: UDKey.localAIBaseURL)
-            .flatMap(LocalLLMEndpoint.validate)
-    }
+    /// n'est pas du loopback admissible. **Miroir** : la clé est écrite par
+    /// `SettingsView` en `@AppStorage`, hors du VM — lire `UserDefaults` dans
+    /// un corps calculé ne serait pas suivi sous `@Observable` (cadrage §3
+    /// bis, cas 6). La valeur stockée est resynchronisée par
+    /// `resyncMirroredDefaults()`, branchée sur `didChangeNotification`.
+    @Published private(set) var localAIEndpoint: URL? =
+        StarHubTHViewModel.readLocalAIEndpoint()
 
-    /// Le nom de modèle choisi, chaîne vide si non configuré.
-    private var localAIModelName: String {
-        UserDefaults.standard.string(forKey: UDKey.localAIModel) ?? ""
-    }
+    /// Le nom de modèle choisi, chaîne vide si non configuré. **Miroir** (voir
+    /// `localAIEndpoint`).
+    @Published private(set) var localAIModelName: String =
+        StarHubTHViewModel.readLocalAIModelName()
 
     /// `true` quand URL validée **et** modèle nommé.
     var isLocalAIConfigured: Bool {
@@ -858,12 +860,45 @@ class StarHubTHViewModel: ObservableObject {
         isLocalAIConfigured || isFallbackEnabled
     }
 
+    /// La case « secours DeepL ». **Miroir** (voir `localAIEndpoint`) : la
+    /// clé est écrite en `@AppStorage` par `SettingsView`.
+    @Published private(set) var deepLFallbackEnabled: Bool =
+        StarHubTHViewModel.readDeepLFallbackEnabled()
+
+    /// Les lectures des miroirs en **un seul endroit** : les initialisateurs
+    /// des propriétés et `resyncMirroredDefaults()` partagent la même
+    /// transformation, sinon un changement de règle d'un seul côté ferait
+    /// diverger les sessions neuves des sessions resynchronisées.
+    private static func readLocalAIEndpoint() -> URL? {
+        UserDefaults.standard.string(forKey: UDKey.localAIBaseURL)
+            .flatMap(LocalLLMEndpoint.validate)
+    }
+
+    private static func readLocalAIModelName() -> String {
+        UserDefaults.standard.string(forKey: UDKey.localAIModel) ?? ""
+    }
+
+    private static func readDeepLFallbackEnabled() -> Bool {
+        UserDefaults.standard.bool(forKey: UDKey.deepLFallbackEnabled)
+    }
+
+    /// Resynchronise les miroirs des préférences écrites hors du VM
+    /// (`@AppStorage` de `SettingsView`). Sans garde, chaque écriture
+    /// defaults du processus — n'importe laquelle — republierait.
+    private func resyncMirroredDefaults() {
+        let endpoint = Self.readLocalAIEndpoint()
+        if localAIEndpoint != endpoint { localAIEndpoint = endpoint }
+        let model = Self.readLocalAIModelName()
+        if localAIModelName != model { localAIModelName = model }
+        let fallback = Self.readDeepLFallbackEnabled()
+        if deepLFallbackEnabled != fallback { deepLFallbackEnabled = fallback }
+    }
+
     /// Le secours part-il vraiment ? Une case cochée sans clé n'envoie rien,
     /// et une clé sans case non plus : les deux conditions, jamais l'une.
-    /// Ne touche pas au trousseau — c'est cette propriété que l'interface
-    /// interroge, à chaque passe de rendu.
+    /// C'est cette propriété que l'interface interroge.
     var isFallbackEnabled: Bool {
-        hasDeepLKey && UserDefaults.standard.bool(forKey: UDKey.deepLFallbackEnabled)
+        hasDeepLKey && deepLFallbackEnabled
     }
 
     /// Propose une traduction par IA locale pour une ligne du diff. Rend la
@@ -1947,6 +1982,7 @@ class StarHubTHViewModel: ObservableObject {
     /// (Revue du chantier A, Task 1.)
     @Published private(set) var keybindReport: KeybindScanner.KeybindReport?
     private var keybindCancellable: AnyCancellable?
+    private var defaultsCancellable: AnyCancellable?
     
     init(localization: LocalizationStore) {
         self.localization = localization
@@ -1985,6 +2021,15 @@ class StarHubTHViewModel: ObservableObject {
         keybindCancellable = reports
             .removeDuplicates()
             .sink { [weak self] in self?.keybindReport = $0 }
+        // Les réglages IA/DeepL sont écrits par SettingsView en @AppStorage,
+        // hors du VM : la notification système est l'unique point où
+        // l'écriture est visible (prouvée postée en-process, cadrage plan
+        // Task 2). La garde de différence évite de republier une valeur
+        // inchangée — la notification porte TOUTES les écritures defaults.
+        defaultsCancellable = NotificationCenter.default
+            .publisher(for: UserDefaults.didChangeNotification)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.resyncMirroredDefaults() }
         // Le relais : les vues n'observent pas encore le store directement
         // (façades provisoires ci-dessus) — sans lui, elles resteraient sur
         // l'ancienne valeur après chaque écriture du store.
@@ -7705,12 +7750,17 @@ class StarHubTHViewModel: ObservableObject {
         return modProfiles.first { $0.id == id }
     }
 
-    private let defaultProfileKey = "defaultProfileId"
+    private static let defaultProfileKey = "defaultProfileId"
 
-    /// The id of the auto-created default profile (nil if none was seeded).
-    var defaultProfileId: UUID? {
-        UserDefaults.standard.string(forKey: defaultProfileKey).flatMap(UUID.init(uuidString:))
-    }
+    /// L'id du profil par défaut auto-créé (`nil` si aucun n'a été seedé).
+    /// **Miroir** : la seule écriture est le seed du VM
+    /// (`ensureDefaultProfileIfNeeded`), qui met la stockée et `UserDefaults`
+    /// à jour ensemble — c'est pourquoi il ne participe pas à
+    /// `resyncMirroredDefaults()` : aucune écriture extérieure à resuivre.
+    /// La seed lit la constante **statique** : un initialisateur de propriété
+    /// ne peut pas lire un `let` d'instance.
+    @Published private(set) var defaultProfileId: UUID? =
+        UserDefaults.standard.string(forKey: StarHubTHViewModel.defaultProfileKey).flatMap(UUID.init(uuidString:))
 
     /// The default profile is protected from deletion (it's the always-present
     /// baseline). Everything else about it behaves like a normal profile.
@@ -7759,7 +7809,8 @@ class StarHubTHViewModel: ObservableObject {
             createProfile(name: localization.L(L10n.Profiles.defaultName), seed: .currentlyEnabledMods)
             // Record the seeded profile as the (undeletable) default.
             if let seeded = modProfiles.last {
-                UserDefaults.standard.set(seeded.id.uuidString, forKey: defaultProfileKey)
+                defaultProfileId = seeded.id
+                UserDefaults.standard.set(seeded.id.uuidString, forKey: Self.defaultProfileKey)
             }
         }
         UserDefaults.standard.set(true, forKey: key)
