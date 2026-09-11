@@ -88,6 +88,7 @@ let package = Package(
                 "Models/NexusArchiveStore.swift",
                 "Models/ConfigLabelResolver.swift",
                 "Models/MaintenanceInventory.swift",
+                "Models/MaintenanceState.swift",
                 "Models/PathoschildCompatibilityList.swift",
                 "Models/PathoschildNexusIndex.swift",
                 "Models/ModDuplicateIndex.swift",
@@ -234,6 +235,7 @@ let package = Package(
                 "Stores/SmapiHealthStore.swift",
                 "Stores/ErrorHistoryStore.swift",
                 "Stores/DiscoveryStore.swift",
+                "Stores/MaintenanceStore.swift",
                 "Models/ModScanner.swift",
                 "Models/DependencyIndex.swift",
                 "Models/TogglePlan.swift",
@@ -644,6 +646,11 @@ let package = Package(
             name: "SmapiLogDiagnosticsTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/SmapiLogDiagnosticsTests"
+        ),
+        .testTarget(
+            name: "MaintenanceStoreTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/MaintenanceStoreTests"
         ),
         .testTarget(
             name: "DiscoveryStoreTests",

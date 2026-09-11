@@ -1922,13 +1922,6 @@ final class StarHubTHViewModel {
     /// Trash" action. Published (not @State on the view) because the recycle
     /// completion fires asynchronously after the view struct may have been
     /// recreated — capturing the VM reference keeps the update observable.
-    /// Résultat d'une action de quarantaine : le texte affiché, et s'il
-    /// s'agit d'une erreur (rendue en rouge, pas en vert de succès).
-    struct QuarantineMessage: Equatable {
-        let text: String
-        let isError: Bool
-    }
-
     var quarantineActionMessage: QuarantineMessage? = nil
 
     // MARK: Journal — le store du domaine (cadrage §4, domaine 2). Il porte
