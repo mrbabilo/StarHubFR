@@ -6093,27 +6093,27 @@ final class StarHubTHViewModel {
 
     /// Le résultat d'une recherche par nom dans la vitrine : les cartes et le
     /// total serveur — la poignée affichée n'est jamais tout ce qui existe.
-    private(set) var discovery: [ModCatalog.SectionKind: ModCatalog.SectionState] = [:]
-    private(set) var discoveryLoading = false
-    private(set) var discoverySearch: DiscoverySearchResult?
+    // MARK: Le store du domaine (cadrage §4, domaine 3). Il porte l'état de
+    // la vitrine ; le réseau, le cache disque et le calcul des cartes restent
+    // ici — `discoveryRows` lit `mods`, donc le domaine Scan.
+    private let discoveryStore = DiscoveryStore()
+
+    var discovery: [ModCatalog.SectionKind: ModCatalog.SectionState] { discoveryStore.sections }
+    var discoveryLoading: Bool { discoveryStore.loading }
+    var discoverySearch: DiscoverySearchResult? { discoveryStore.search }
+    var discoveryDetail: NexusModSearch.Detail? { discoveryStore.detail }
+    var discoveryDetailState: DiscoveryDetailState { discoveryStore.detailState }
+    var lastDiscoveryError: NexusSearchError? { discoveryStore.lastError }
+    var discoveryCategory: NexusCategory? { discoveryStore.category }
+
     /// Ce qui dit si une réponse de recherche est encore attendue. Les
     /// réponses arrivent sur le fil principal (`NexusSearchClient`), comme les
-    /// mutations d'ici.
+    /// mutations d'ici. Reste au ViewModel : c'est l'orchestration réseau qui
+    /// l'ouvre et le vérifie, pas l'état affiché.
     private var discoveryEpoch = RequestEpoch()
-    private(set) var discoveryDetail: NexusModSearch.Detail?
-    private(set) var discoveryDetailState: DiscoveryDetailState = .idle
     /// Même rôle que `discoveryEpoch`, pour la fiche : la feuille se ferme et
     /// s'ouvre sur un autre mod plus vite qu'une requête ne revient.
     private var discoveryDetailEpoch = RequestEpoch()
-    /// La dernière panne réseau des sections — un seul message en haut de
-    /// l'onglet, chaque section n'a pas à répéter (spec §8).
-    private(set) var lastDiscoveryError: NexusSearchClient.SearchError?
-    /// La catégorie à laquelle les trois sections sont restreintes, `nil`
-    /// pour toutes. Le filtre part au **serveur** : sur 50 mods de tendances
-    /// on compte déjà 15 catégories, trier la page reçue n'aurait rien rendu.
-    private(set) var discoveryCategory: NexusCategory?
-
-    private var pendingSectionFetches = 0
 
     /// Les mods installés depuis Nexus **pendant cette session**, par leur
     /// identifiant de page.
@@ -6150,8 +6150,7 @@ final class StarHubTHViewModel {
     /// précis, le lui cacher parce qu'il est rangé ailleurs rendrait un vide
     /// inexplicable.
     func setDiscoveryCategory(_ category: NexusCategory?) {
-        guard category?.id != discoveryCategory?.id else { return }
-        discoveryCategory = category
+        guard discoveryStore.setCategory(category) else { return }
         loadDiscovery()
         // Une recherche affichée se refait sous la nouvelle catégorie : la
         // laisser telle quelle montrerait des résultats que le filtre visible
@@ -6163,10 +6162,10 @@ final class StarHubTHViewModel {
         // La panne d'avant ne parle pas de la tentative qui commence : sans
         // cette remise à zéro, un bandeau d'erreur restait en haut de
         // l'onglet pour toujours, y compris après un chargement réussi.
-        lastDiscoveryError = nil
+        discoveryStore.startLoad()
         for kind in ModCatalog.SectionKind.allCases {
             let state = discoveryCatalog.state(kind, category: discoveryCategory?.id)
-            discovery[kind] = state
+            discoveryStore.setSection(kind, to: state)
             switch state {
             case .fresh where !force: continue
             default: fetchDiscoverySection(kind)
@@ -6175,8 +6174,7 @@ final class StarHubTHViewModel {
     }
 
     private func fetchDiscoverySection(_ kind: ModCatalog.SectionKind) {
-        pendingSectionFetches += 1
-        discoveryLoading = true
+        discoveryStore.beginFetch()
         // La catégorie demandée est retenue ici : la réponse peut arriver
         // après que l'utilisateur en a choisi une autre. Elle est alors
         // rangée dans **son** cache mais n'est pas affichée — sinon la
@@ -6185,27 +6183,27 @@ final class StarHubTHViewModel {
         NexusSearchClient.listing(sort: kind.defaultSort, tag: kind.defaultTag,
                                   category: category?.englishName) { [weak self] result in
             guard let self else { return }
-            self.pendingSectionFetches = max(0, self.pendingSectionFetches - 1)
-            if self.pendingSectionFetches == 0 { self.discoveryLoading = false }
-            let stillWanted = self.discoveryCategory?.id == category?.id
+            self.discoveryStore.finishFetch()
+            let stillWanted = self.discoveryStore.isStillWanted(category: category)
             switch result {
             case .success(let page):
                 self.discoveryCatalog.record(kind, category: category?.id, page: page)
                 // Relu depuis le cache : c'est la page dédoublonnée qui
                 // s'affiche.
                 guard stillWanted else { return }
-                self.discovery[kind] = self.discoveryCatalog.state(kind,
-                                                                   category: category?.id)
+                self.discoveryStore.setSection(kind,
+                                               to: self.discoveryCatalog.state(kind,
+                                                                               category: category?.id))
             case .failure(let error):
                 guard stillWanted else { return }
                 // La panne est dite dans tous les cas (spec §8) : garder des
                 // lignes de la veille sans prévenir qu'elles n'ont pas pu
                 // être rafraîchies, c'est mentir en silence.
-                self.lastDiscoveryError = error
+                self.discoveryStore.recordFailure(error)
                 // Le stale reste affiché pendant la panne (spec §6) — le
                 // bandeau suffit, on ne blanchit pas la section.
                 if case .stale = self.discovery[kind] ?? .empty(.neverLoaded) { return }
-                self.discovery[kind] = .empty(.failed)
+                self.discoveryStore.setSection(kind, to: .empty(.failed))
             }
         }
     }
@@ -6257,24 +6255,23 @@ final class StarHubTHViewModel {
               DiscoveryScoping.hasMore(received: page.hits.count,
                                        serverTotal: page.totalCount) else { return }
         let category = discoveryCategory
-        pendingSectionFetches += 1
-        discoveryLoading = true
+        discoveryStore.beginFetch()
         NexusSearchClient.listing(sort: kind.defaultSort, tag: kind.defaultTag,
                                   category: category?.englishName,
                                   offset: DiscoveryScoping.nextOffset(received: page.hits.count)) { [weak self] result in
             guard let self else { return }
-            self.pendingSectionFetches = max(0, self.pendingSectionFetches - 1)
-            if self.pendingSectionFetches == 0 { self.discoveryLoading = false }
-            guard self.discoveryCategory?.id == category?.id else { return }
+            self.discoveryStore.finishFetch()
+            guard self.discoveryStore.isStillWanted(category: category) else { return }
             switch result {
             case .success(let next):
                 self.discoveryCatalog.append(kind, category: category?.id, page: next)
-                self.discovery[kind] = self.discoveryCatalog.state(kind,
-                                                                   category: category?.id)
+                self.discoveryStore.setSection(kind,
+                                               to: self.discoveryCatalog.state(kind,
+                                                                               category: category?.id))
             case .failure(let error):
                 // La bande déjà là ne bouge pas : seule la suite manque, et
                 // le bandeau dit pourquoi.
-                self.lastDiscoveryError = error
+                self.discoveryStore.recordFailure(error)
             }
         }
     }
@@ -6289,7 +6286,7 @@ final class StarHubTHViewModel {
             // Vider le champ périme ce qui est en vol : sinon la réponse
             // arrivée une seconde plus tard ferait revenir la liste.
             discoveryEpoch.abandonAll()
-            discoverySearch = nil
+            discoveryStore.setSearch(nil)
             return
         }
         let token = discoveryEpoch.open()
@@ -6298,16 +6295,16 @@ final class StarHubTHViewModel {
             guard let self, self.discoveryEpoch.isCurrent(token) else { return }
             switch result {
             case .success(let page):
-                self.lastDiscoveryError = nil
-                self.discoverySearch = DiscoverySearchResult(
+                self.discoveryStore.clearFailure()
+                self.discoveryStore.setSearch(DiscoverySearchResult(
                     rows: self.discoveryRows(in: page.hits, hidingInstalled: false,
                                              francophoneOnly: false),
                     totalCount: page.totalCount,
                     term: name,
-                    loaded: page.hits.count)
+                    loaded: page.hits.count))
             case .failure(let error):
-                self.lastDiscoveryError = error
-                self.discoverySearch = nil
+                self.discoveryStore.recordFailure(error)
+                self.discoveryStore.setSearch(nil)
             }
         }
     }
@@ -6333,16 +6330,16 @@ final class StarHubTHViewModel {
             case .success(let page):
                 var seen = Set(now.rows.map(\.hit.modId))
                 let fresh = page.hits.filter { seen.insert($0.modId).inserted }
-                self.lastDiscoveryError = nil
-                self.discoverySearch = DiscoverySearchResult(
+                self.discoveryStore.clearFailure()
+                self.discoveryStore.setSearch(DiscoverySearchResult(
                     rows: now.rows + self.discoveryRows(in: fresh, hidingInstalled: false,
                                                         francophoneOnly: false),
                     totalCount: page.totalCount,
                     term: current.term,
-                    loaded: now.loaded + page.hits.count)
+                    loaded: now.loaded + page.hits.count))
             case .failure(let error):
                 // Les résultats déjà là restent : seule la suite manque.
-                self.lastDiscoveryError = error
+                self.discoveryStore.recordFailure(error)
             }
         }
     }
@@ -6353,15 +6350,14 @@ final class StarHubTHViewModel {
         // Périmer d'abord : une réponse en vol repeuplerait sinon la liste
         // que l'utilisateur vient de fermer.
         discoveryEpoch.abandonAll()
-        discoverySearch = nil
+        discoveryStore.setSearch(nil)
     }
 
     /// Fiche : le cache 24 h d'abord, le réseau ensuite (spec §5.3).
     func loadDiscoveryDetail(modId: Int) {
-        discoveryDetailState = .loading
+        discoveryStore.setDetail(discoveryDetail, state: .loading)
         if let cached = discoveryCatalog.detail(for: modId) {
-            discoveryDetail = cached
-            discoveryDetailState = .loaded
+            discoveryStore.setDetail(cached, state: .loaded)
             return
         }
         let token = discoveryDetailEpoch.open()
@@ -6372,19 +6368,16 @@ final class StarHubTHViewModel {
             switch result {
             case .success(let detail):
                 self.discoveryCatalog.recordDetail(detail)
-                self.discoveryDetail = detail
-                self.discoveryDetailState = .loaded
+                self.discoveryStore.setDetail(detail, state: .loaded)
             case .failure:
-                self.discoveryDetail = nil
-                self.discoveryDetailState = .failed
+                self.discoveryStore.setDetail(nil, state: .failed)
             }
         }
     }
 
     func closeDiscoveryDetail() {
         discoveryDetailEpoch.abandonAll()
-        discoveryDetail = nil
-        discoveryDetailState = .idle
+        discoveryStore.setDetail(nil, state: .idle)
     }
 
     // MARK: - Mods favoris (B3-T2)

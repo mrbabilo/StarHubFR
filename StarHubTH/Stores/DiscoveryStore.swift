@@ -84,6 +84,13 @@ final class DiscoveryStore {
     /// qui commence. Sans cette remise à zéro, un bandeau d'erreur restait en
     /// haut de l'onglet pour toujours, y compris après un chargement réussi.
     func startLoad() {
+        clearFailure()
+    }
+
+    /// Une requête a abouti : le bandeau de la panne précédente n'a plus lieu
+    /// d'être. Même effet que `startLoad()`, dit à l'endroit où il se produit
+    /// — un succès n'est pas un début de chargement.
+    func clearFailure() {
         lastError = nil
     }
 
