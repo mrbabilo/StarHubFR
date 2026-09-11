@@ -675,8 +675,14 @@ temporaire, `.build` intact), les 294 fichiers en whole-module, deux fois :
 
 | Passe | Avertissements | Durée |
 | --- | ---: | ---: |
-| Sans drapeau — ce que le build rend aujourd'hui | 13 | 210 s |
+| Sans drapeau — le code tel qu'il compile aujourd'hui | 13 | 210 s |
 | `-strict-concurrency=complete` | **467** | 212 s |
+
+⚠️ Ces 13 ne sont **pas** « ce que le build rend » : le gate compile en
+**incrémental** depuis F2-T2, et seul un fichier recompilé réémet ses
+avertissements. Compté sur le journal d'un gate réel : **0**, parce que rien
+n'avait changé. Les 13 ne se voient qu'à une passe complète — d'où le fait que
+personne ne les regarde.
 
 ⚠️ Le drapeau du plan, `-Xfrontend -warn-concurrency`, est l'**ancienne
 orthographe** ; l'équivalent d'aujourd'hui est `-strict-concurrency=complete`.
@@ -706,8 +712,8 @@ shared mutable state » — est **protégé par un `NSLock` dédié** (`regexCac
 pris à la lecture comme à l'écriture) : la règle du dépôt est respectée, le
 compilateur ne voit simplement pas un verrou manuel. Compter n'est pas lire.
 
-**Les 13 qui passent déjà sous les yeux à chaque build** méritent en revanche
-d'être regardés, et personne ne les regarde. Quatre ne sont pas des formalités :
+**Les 13 que le code porte déjà** méritent en revanche d'être regardés, et
+l'incrémental fait que personne ne les voit. Quatre ne sont pas des formalités :
 `SmapiUpdateClient.swift:110/112` prend et rend un `NSLock` **dans un contexte
 asynchrone** (`unavailable from asynchronous contexts`) — un verrou tenu à
 travers une suspension ; `NexusArchiveStore.swift:117` porte un `??` dont le

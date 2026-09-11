@@ -81,6 +81,24 @@ les chantiers, **§7** pour la dette technique.
 ## 4. Correctifs identifiés — à traiter en premier
 
 Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées.
+
+- [ ] **X106** — **Un `NSLock` est pris et rendu dans un contexte asynchrone.**
+      `SmapiUpdateClient.swift:110` et `:112` — le compilateur le dit déjà
+      (`instance method 'lock' is unavailable from asynchronous contexts`), et
+      c'est l'un des **13 avertissements que le code porte aujourd'hui**, qu'un
+      build incrémental ne réémet pas (relevé P5 du 2026-09-11,
+      `docs/REFACTORING.md` §9). Un verrou tenu à travers une suspension
+      immobilise un thread du pool coopératif, qui en compte autant que de
+      cœurs : c'est la seule des quatre trouvailles du relevé qui soit un risque
+      **d'exécution** et non une branche morte. Remplacer par un verrouillage
+      porté par un acteur, ou borner la section critique en dehors de tout
+      `await`. ⚠️ Mesurer d'abord s'il y a réellement un `await` **dans** la
+      section : le diagnostic vise le contexte, pas la portée du verrou.
+      *(Trois autres trouvailles du même relevé, sans risque d'exécution :
+      `NexusArchiveStore.swift:117` un `??` à membre gauche non optionnel donc
+      une branche morte, `StarHubTHViewModel.swift:2909` un `seedFolder` calculé
+      jamais utilisé, `StarHubTHApp.swift:105` un `bootstrapDefaults` inféré
+      `Void`.)*
 ---
 
 
