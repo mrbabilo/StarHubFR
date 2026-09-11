@@ -245,6 +245,16 @@ RULES: dict[str, Callable[[str], int]] = {
     # à un objet resté en Combine perd le suivi sans erreur ni plantage. Doit
     # rester à 0. ⚠️ **Pas** « zéro ObservableObject » : cinq subsistent
     # volontairement (cadrage §3).
+    # ⚠️ Portée réelle, mesurée le 2026-09-11 — ce 0 ne dit pas « aucune façade
+    # n'existe », il dit « aucune propriété calculée du VM n'en est une » :
+    #  • la règle ne balaie que des **propriétés calculées**. Une *méthode*
+    #    façade échapperait au relevé. Six corps de fonction citent une de ces
+    #    instances (`installSmapi`, `toggleAllMods`…) : tous des **verbes**, et
+    #    le cas 4 ne mord que sur une lecture rendue par un `body`.
+    #  • `localization` est hors de COMBINE_INSTANCES exprès : les 45 vues qui
+    #    traduisent le reçoivent en `@ObservedObject` et l'observent donc
+    #    directement (cas 1). Aucune ne passe par le VM — `vm_dot_L_calls` = 0.
+    # Refaire ces deux mesures avant de conclure quoi que ce soit d'un 0 futur.
     "viewmodel_facades_to_combine": _rule_vm_facades_to_combine,
     # §6.1 — `DispatchQueue` là où `async`/`await` suffirait.
     "dispatch_queue": lambda t: len(re.findall(r"\bDispatchQueue\b", t)),

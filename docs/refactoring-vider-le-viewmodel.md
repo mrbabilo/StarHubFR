@@ -346,6 +346,17 @@ rendu nécessaire par le chantier A :
 Le deuxième est le plus important : il transforme un défaut invisible en échec
 de build.
 
+⚠️ **Ce que son `0` dit — et ce qu'il ne dit pas** (mesuré le 2026-09-11, à
+refaire avant d'en conclure quoi que ce soit plus tard). Il dit « aucune
+**propriété calculée** du VM ne délègue à un objet resté en Combine ». Il ne dit
+pas « aucune façade n'existe » : une *méthode* façade échapperait au relevé.
+Deux vérifications, hors cliquet, ferment l'écart aujourd'hui — six corps de
+fonction citent une de ces instances (`installSmapi`, `toggleAllMods`…), tous
+des **verbes**, or le cas 4 ne mord que sur une lecture rendue par un `body` ;
+et `localization`, exclu de la liste exprès, est reçu en `@ObservedObject` par
+les 45 vues qui traduisent — elles l'observent directement (cas 1), aucune ne
+passe par le VM (`vm_dot_L_calls` = 0).
+
 ⚠️ **Le chantier A vide deux compteurs existants de leur sens, et il faut les
 redéfinir dans le même commit — sans quoi le cliquet applaudira une régression.**
 Sous `@Observable`, le mot-clé `@Published` disparaît du dépôt : compter les
