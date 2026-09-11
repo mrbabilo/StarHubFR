@@ -534,6 +534,52 @@ l'absence de re-journalisation des mêmes alertes). Ce qui a été exercé :
 4. la section des conflits Content Patcher affiche toujours ses conflits, avec
    la date du journal.
 
+### Domaine 2 — Journal, tranche 3 (historique d'erreurs), livrée le 2026-09-11
+
+`ErrorHistoryStore` (Core, `@Observable`, 13 tests, **six sabotages**).
+ViewModel 10 288 → **10 266** ; `viewmodel_stored_state` 154 → **151**.
+Gate exit 0, **3 031 tests verts**.
+
+**Ce que l'extraction achète ici n'est pas de la testabilité : c'est une garde
+qui cesse d'être facultative.** Tant que l'historique n'a pas été lu du
+disque, rien ne doit le muter — le muter reviendrait à écrire un historique
+vide par-dessus le fichier, et cet historique **ne se rebâtit pas** (le
+journal SMAPI suivant écrase le précédent). La règle vivait sous forme de deux
+`if errorHistoryLoaded` **posés au point d'appel** : un troisième appelant
+aurait pu l'oublier, et la perte ne se serait vue qu'au lancement suivant. Le
+type la tient maintenant, et aucun appelant ne peut la contourner.
+
+`recordErrorHistory` passe de 30 lignes à 12 : `SmapiHealthFold`, extrait à la
+tranche 2, l'attendait. Ce qui reste au ViewModel est exactement ce qui a
+besoin du parc.
+
+**Un détail de `@Observable` qui coûte une compilation** : `private lazy var`
+ne compile pas dans une classe `@Observable` — la macro en fait une propriété
+calculée (« 'lazy' cannot be used on a computed property »). Un store qui a
+besoin d'un crochet vers son propriétaire le reçoit donc **après**
+construction, patron déjà tranché par `NexusMetadataStore.setOnInvalidate`.
+
+⚠️ **Troisième écart d'un point sur la prédiction des compteurs, troisième
+fois la même cause — et cette fois le remède est outillé.** Je compte de tête
+ce que le code neuf ajoute et j'oublie toujours une propriété (ici `isLoaded`,
+au domaine 2 `loggedAlerts`, au domaine 1 le `.shared` de la closure).
+`check_standards.py` porte déjà `class_members_with_lines`, qui énumère les
+stockées d'un fichier avec leur `private(set)` : **c'est lui qui doit prédire
+le solde**, pas moi. À faire ainsi dès le domaine 3.
+
+**Le domaine 2 est clos pour son état.** Ce qui reste au ViewModel est de
+l'orchestration : `log(_:level:)`, `loadSmapiLog`, `parseSMAPILog`,
+`parseAndAppendSmapiLog`, `recordErrorHistory` — toutes des verbes, et les
+deux dernières lisent `mods`, donc le domaine Scan, extrait en dernier.
+
+**Vérification à l'écran — due, auteur.** Trois contrôles, tous sur la fiche
+d'un mod (onglet Mods → un mod qui a déjà journalisé des erreurs) :
+
+1. l'historique d'erreurs de la fiche affiche toujours ses lignes ;
+2. renommer le dossier d'un mod **conserve** son historique sous le nouveau
+   nom ;
+3. jeter un mod à la corbeille fait disparaître son historique.
+
 ### Quand un domaine est-il extrait ?
 
 Les quatre conditions du §6 s'appliquent telles quelles, avec un ajustement
