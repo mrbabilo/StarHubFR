@@ -4691,7 +4691,9 @@ class StarHubTHViewModel: ObservableObject {
         if let cached = categoryCache[mod.folderName] {
             return cached
         }
-        let result = computeCategory(for: mod)
+        let result = NexusCategoryResolver.resolveCategory(
+            for: mod, customCategories: nexusCustomCategories,
+            categoriesByNexusId: nexusCategories, customModIds: nexusCustomModIds)
         categoryCache[mod.folderName] = result
         return result
     }
@@ -4700,43 +4702,6 @@ class StarHubTHViewModel: ObservableObject {
     /// (first) child — mirrors upstream's "group shows its primary child's tag".
     func inferredTagKey(for mod: ModItem) -> String {
         ModListScoping.inferredTagKey(for: mod)
-    }
-
-    private func computeCategory(for mod: ModItem) -> NexusCategory? {
-        if let cid = nexusCustomCategories[mod.folderName],
-           let cat = NexusCategory.from(id: cid) {
-            return cat
-        }
-        // Use the effective id (custom override OR manifest) so categories
-        // fetched via the per-mod editor apply to mods with no manifest id.
-        let effectiveId = effectiveNexusModId(for: mod)
-        if !effectiveId.isEmpty,
-           let cid = nexusCategories[effectiveId],
-           let cat = NexusCategory.from(id: cid) {
-            return cat
-        }
-        // Pack header: fall back to the most common child category.
-        if mod.isGroup, let children = mod.children {
-            return dominantCategory(among: children)
-        }
-        return nil
-    }
-
-    /// Most frequent non-nil category among a set of (child) mods. Ties resolve
-    /// to the lower category id for stable output. Returns `nil` when no child
-    /// has a known category.
-    private func dominantCategory(among children: [ModItem]) -> NexusCategory? {
-        var counts: [Int: Int] = [:]
-        for c in children {
-            if let cat = category(for: c) {
-                counts[cat.id, default: 0] += 1
-            }
-        }
-        guard let dominantId = counts.max(by: { lhs, rhs in
-            if lhs.value != rhs.value { return lhs.value < rhs.value }
-            return lhs.key > rhs.key
-        })?.key else { return nil }
-        return NexusCategory.from(id: dominantId)
     }
 
     /// The category id the user manually pinned on this mod, or `nil` when the
