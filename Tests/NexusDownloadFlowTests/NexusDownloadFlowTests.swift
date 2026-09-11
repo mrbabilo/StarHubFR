@@ -51,13 +51,12 @@ struct NexusDownloadFlowTests {
         let completion = NexusDownloadFlow.completion(
             for: .success(NexusDownloadOutcome(zip: zip, resolvedFile: file)), modId: 191)
 
-        guard case .installable(let gotZip, let modId, let facts, let journal) = completion else {
+        guard case .installable(let gotZip, let modId, let facts) = completion else {
             Issue.record("attendait .installable"); return
         }
         #expect(gotZip == zip)
         #expect(modId == 191)
         #expect(facts?.fileId == 7)
-        #expect(journal == .plain("vm_nexus_dl_completed"))
     }
 
     /// Un succès **sans** fichier résolu reste installable : le zip est là,
@@ -67,7 +66,7 @@ struct NexusDownloadFlowTests {
         let completion = NexusDownloadFlow.completion(
             for: .success(NexusDownloadOutcome(zip: URL(fileURLWithPath: "/tmp/m.zip"),
                                                resolvedFile: nil)), modId: 191)
-        guard case .installable(_, _, let facts, _) = completion else {
+        guard case .installable(_, _, let facts) = completion else {
             Issue.record("attendait .installable"); return
         }
         #expect(facts == nil)
@@ -77,7 +76,7 @@ struct NexusDownloadFlowTests {
     /// aucune alerte ne s'ouvre sur un geste volontaire.
     @Test func cancellationJournalsWithoutAlerting() {
         let completion = NexusDownloadFlow.completion(for: .failure(.cancelled), modId: 191)
-        #expect(completion == .cancelled(journal: .plain("vm_nexus_dl_cancelled")))
+        #expect(completion == .cancelled)
     }
 
     /// Une vraie panne alerte **et** journalise, avec le même message.
@@ -111,11 +110,12 @@ struct NexusDownloadFlowTests {
     @Test func resolutionAppliesTheCallersBundle() {
         let bundle: (String) -> String = { key in
             ["vm_nexus_dl_rate_limited": "Trop de requêtes",
-             "vm_nexus_dl_server_error": "Erreur serveur %d",
+             "vm_nexus_dl_server_error": "Nexus a renvoyé une réponse inattendue (%lld).",
              "vm_nexus_dl_request_failed": "Échec : %@"][key] ?? key
         }
         #expect(NexusDownloadFlow.message(for: .rateLimited).resolved(bundle) == "Trop de requêtes")
-        #expect(NexusDownloadFlow.message(for: .serverError(503)).resolved(bundle) == "Erreur serveur 503")
+        #expect(NexusDownloadFlow.message(for: .serverError(503)).resolved(bundle)
+                == "Nexus a renvoyé une réponse inattendue (503).")
         #expect(NexusDownloadFlow.message(for: .requestFailed("DNS")).resolved(bundle) == "Échec : DNS")
     }
 

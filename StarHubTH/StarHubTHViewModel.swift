@@ -5150,7 +5150,7 @@ class StarHubTHViewModel: ObservableObject {
             guard let self = self else { return }
             self.clearNexusDownloadState()
             switch NexusDownloadFlow.completion(for: result, modId: modId) {
-            case .installable(let zip, let modId, let facts, _):
+            case .installable(let zip, let modId, let facts):
                 self.pendingDownloadedZip = zip
                 self.pendingNexusSource = NexusInstallSource(modId: modId, facts: facts)
                 self.log(self.nexusDownloadLogMessage(named: L10n.VM.nexusDlCompletedNamed,

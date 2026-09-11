@@ -83,10 +83,15 @@ enum NexusDownloadFlow {
         /// est X9 — ce que le téléchargement savait du fichier posé — et vaut
         /// `nil` quand la page ne datait pas son fichier : l'app s'abstient
         /// d'ancrer plutôt que d'inventer.
-        case installable(zip: URL, modId: Int, facts: NexusInstallFacts?, journal: Message)
-        /// Annuler n'est pas une panne : le journal garde la trace de ce qui
+        case installable(zip: URL, modId: Int, facts: NexusInstallFacts?)
+        /// Annuler n'est pas une panne : l'appelant garde la trace de ce qui
         /// n'a pas été installé, aucune alerte ne s'ouvre.
-        case cancelled(journal: Message)
+        ///
+        /// Le libellé reste à l'appelant, et ce n'est pas un oubli : il sait
+        /// nommer le mod (`nexusDownloadLogMessage` le résout depuis `mods`),
+        /// ce que Core ne peut pas faire. Rendre une phrase d'ici obligerait
+        /// à la variante sans nom — une régression visible au journal.
+        case cancelled
         /// Une vraie panne : alerte **et** journal, même message.
         case failed(message: Message)
     }
@@ -99,10 +104,9 @@ enum NexusDownloadFlow {
                 zip: outcome.zip, modId: modId,
                 facts: outcome.resolvedFile.flatMap {
                     NexusInstallFacts(resolvedFile: $0, modId: String(modId))
-                },
-                journal: .plain("vm_nexus_dl_completed"))
+                })
         case .failure(.cancelled):
-            return .cancelled(journal: .plain("vm_nexus_dl_cancelled"))
+            return .cancelled
         case .failure(let error):
             return .failed(message: message(for: error))
         }
