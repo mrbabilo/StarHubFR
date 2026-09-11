@@ -94,6 +94,119 @@ def count_shared(text: str) -> tuple[int, int]:
     return ours, framework
 
 
+# ─── Le lot `@Observable` (chantier A, 2026-09-11) ───────────────────────────
+# Trois compteurs remplacent `published_without_private_set` : le mot-clé
+# `@Published` a disparu des quatre classes du lot, et compter un mot-clé
+# absent mesure 0 par construction — le cliquet applaudirait la disparition de
+# la règle qu'il protège (cadrage §5).
+LOT_FILES = (
+    "StarHubTH/StarHubTHViewModel.swift",
+    "StarHubTH/Stores/GameEnvironmentStore.swift",
+    "StarHubTH/Stores/NexusMetadataStore.swift",
+    "StarHubTH/SaveManager.swift",
+)
+# Les instances Combine que le VM peut lire dans un corps calculé — le défaut
+# du cas 4 (un `@Observable` lisant un `ObservableObject` perd le suivi en
+# silence). `localization` en est VOLONTAIREMENT absente : les lectures
+# `localization.L(...)` des libellés sont légitimes (le store est observé par
+# les vues elles-mêmes), et les compter verrouillerait un faux défaut.
+COMBINE_INSTANCES = ("keybindScanService", "smapiInstaller", "bisection", "modList")
+
+# ⚠️ Le reste de la ligne est analysé, pas filtré par le motif : une stockée
+# peut n'avoir **ni** `=` **ni** `{` (`var x: T?`, dont la valeur par défaut
+# est `nil`). Le premier jet exigeait l'un des deux et manquait ces
+# propriétés-là — trouvé par la vérification à la main exigée avant de poser
+# la base, sur `keybindReport`.
+_VAR_DECL = re.compile(
+    r"^\s*(?:@\w+\s+)*((?:private\(set\) )?)"
+    r"(?:private |public |fileprivate )?var (\w+)\b(.*)$")
+
+
+def class_members_with_lines(path: str) -> list[tuple[str, bool, bool, int]]:
+    """Les `var` de la classe principale : (nom, est_stockée, private_set, ligne).
+
+    Profondeur de classe 1, types imbriqués exclus, commentaires strippés.
+    « Stockée » = déclarée avec `=`, ou avec une accolade qui porte des
+    observateurs (`didSet`/`willSet`) — dix propriétés du ViewModel sont dans
+    ce cas. Trois décomptes à la main ont raté cette distinction (21, 25, 34) :
+    le parseur est la seule mesure qui fasse foi, et il a été vérifié contre
+    une lecture du fichier avant que la base ne soit posée.
+    """
+    lines = strip_comments(read_source(path)).splitlines()
+    out: list[tuple[str, bool, bool, int]] = []
+    depth = 0
+    inside = False
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        if not inside:
+            if re.match(r"^\s*(?:@\w+\s+)*(?:final )?class \w+", line):
+                inside = True
+                depth = line.count("{") - line.count("}")
+            i += 1
+            continue
+        if depth == 1 and re.match(
+                r"^\s*(?:@\w+\s+)*(?:final )?(?:private |public )?"
+                r"(?:struct|enum|class|extension)\s", line):
+            d = line.count("{") - line.count("}")
+            i += 1
+            while d > 0 and i < len(lines):
+                d += lines[i].count("{") - lines[i].count("}")
+                i += 1
+            continue
+        m = _VAR_DECL.match(line) if depth == 1 else None
+        if m:
+            pset, name, rest = bool(m.group(1)), m.group(2), m.group(3).rstrip()
+            # Ce qui décide est l'ordre de `=` et `{` — un corps peut tenir sur
+            # la même ligne (`var x: Int { healthIssues.count }`), et une
+            # stockée peut s'initialiser par une closure (`var x = { … }()`).
+            eq, brace = rest.find("="), rest.find("{")
+            if eq != -1 and (brace == -1 or eq < brace):
+                stored = True                      # `var x = …` / `var x: T = …`
+            elif brace != -1:                      # corps : calculée, sauf
+                lookahead = " ".join(lines[i:i + 3])   # observateurs
+                stored = bool(re.search(r"\b(didSet|willSet)\b", lookahead))
+            else:
+                stored = True                      # `var x: T?` — défaut nil
+            out.append((name, stored, pset, i + 1))
+        depth += line.count("{") - line.count("}")
+        i += 1
+    return out
+
+
+def _computed_bodies(path: str) -> list[tuple[int, str]]:
+    """Le corps de chaque propriété calculée : de sa ligne à celle du membre
+    suivant. Approximation suffisante pour un cliquet — elle ne peut que
+    sur-compter, jamais manquer une façade."""
+    members = class_members_with_lines(path)
+    lines = read_source(path).splitlines()
+    bodies = []
+    for idx, (_name, stored, _p, ln) in enumerate(members):
+        if stored:
+            continue
+        end = members[idx + 1][3] - 1 if idx + 1 < len(members) else len(lines)
+        bodies.append((ln, strip_comments("\n".join(lines[ln - 1:end]))))
+    return bodies
+
+
+def _rule_vm_stored_state(_: str) -> int:
+    return sum(1 for _n, stored, _p, _l in
+               class_members_with_lines("StarHubTH/StarHubTHViewModel.swift")
+               if stored)
+
+
+def _rule_vm_facades_to_combine(_: str) -> int:
+    path = "StarHubTH/StarHubTHViewModel.swift"
+    return sum(any(re.search(rf"\b{inst}\.\w+", body) for inst in COMBINE_INSTANCES)
+               for _ln, body in _computed_bodies(path))
+
+
+def _rule_observable_without_private_set(_: str) -> int:
+    return sum(1 for path in LOT_FILES
+               for _n, stored, pset, _l in class_members_with_lines(path)
+               if stored and not pset)
+
+
 RULES: dict[str, Callable[[str], int]] = {
     # §1.4 — abréviations : `vm` est l'abréviation la plus répandue du dépôt.
     "abbreviation_vm": lambda t: len(re.findall(r"\bvm\b", t)),
@@ -118,11 +231,21 @@ RULES: dict[str, Callable[[str], int]] = {
     "try_optional": lambda t: len(re.findall(r"\btry\?", t)),
     # §7.3 — `print` est invisible dans une app livrée.
     "print_calls": lambda t: len(re.findall(r"(?<![\w.])print\(", t)),
-    # §8 — une propriété publiée que toute vue peut muter n'a pas de propriétaire.
-    "published_without_private_set": lambda t: (
-        len(re.findall(r"@Published\b", t))
-        - len(re.findall(r"@Published\s+private\(set\)", t))
-    ),
+    # §8 — un état que toute vue peut muter n'a pas de propriétaire. Porte la
+    # règle de `published_without_private_set`, retirée avec le mot-clé
+    # `@Published` que le lot `@Observable` a fait disparaître : le compteur
+    # d'origine mesurerait désormais 0 par construction.
+    "observable_stored_without_private_set": _rule_observable_without_private_set,
+    # La phase « vider le ViewModel » (docs/refactoring-vider-le-viewmodel.md)
+    # se mesure ici : l'état stocké du VM ne peut que baisser. Une façade de
+    # lecture — autorisée depuis que le suivi la traverse — ne le fait pas
+    # monter.
+    "viewmodel_stored_state": _rule_vm_stored_state,
+    # Le seul angle mort silencieux du chantier : une façade du VM qui délègue
+    # à un objet resté en Combine perd le suivi sans erreur ni plantage. Doit
+    # rester à 0. ⚠️ **Pas** « zéro ObservableObject » : cinq subsistent
+    # volontairement (cadrage §3).
+    "viewmodel_facades_to_combine": _rule_vm_facades_to_combine,
     # §6.1 — `DispatchQueue` là où `async`/`await` suffirait.
     "dispatch_queue": lambda t: len(re.findall(r"\bDispatchQueue\b", t)),
     # §4.1 — nos propres singletons atteints depuis un site d'appel.
