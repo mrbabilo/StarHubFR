@@ -1931,10 +1931,17 @@ final class StarHubTHViewModel {
     /// list when the count fluctuates between game sessions).
     private var lastLoggedSMAPIErrors: Set<String> = []
 
-    var logEntries: [LogEntry] = []
-    /// Maximum number of log entries retained in memory to avoid unbounded growth
-    /// during long sessions (each SMAPI reload can append hundreds of lines).
-    private let maxLogEntries = 2000
+    // MARK: Journal — le store du domaine (cadrage §4, domaine 2). Il porte
+    // les deux sources : les lignes que StarHubFR écrit lui-même et le bloc
+    // relu depuis `SMAPI-latest.txt`. Le plafond mémoire et sa règle de
+    // composition vivent dans `LogBudget` (Core, testé).
+    private let logStore = LogStore()
+
+    var logEntries: [LogEntry] { logStore.entries }
+
+    /// « Vider les journaux » de l'onglet Journaux. Ne retire que les lignes
+    /// de StarHubFR — voir `LogStore.clearApp()`.
+    func clearAppLog() { logStore.clearApp() }
     var alertMessage: String = ""
     var showAlert: Bool = false
     var editingSave: SaveGameInfo? = nil {
@@ -3343,11 +3350,7 @@ final class StarHubTHViewModel {
     }()
 
     private func appendLogEntry(_ entry: LogEntry) {
-        logEntries.append(entry)
-        // Cap memory usage: drop oldest entries when over the limit.
-        if logEntries.count > maxLogEntries {
-            logEntries.removeFirst(logEntries.count - maxLogEntries)
-        }
+        logStore.append(entry)
     }
 
     func log(_ message: String, level: LogLevel = .info) {
@@ -3400,24 +3403,14 @@ final class StarHubTHViewModel {
         // N lines therefore threw away exactly the lines that matter: they
         // stayed in the diagnostics card (which parses the full file) but
         // vanished from the log list, so the two disagreed.
-        let trimmedEntries = Self.trimPreservingSignal(entries, cap: maxLogEntries)
+        //
+        // Cet écrêtage-ci est celui du travail : il borne ce que la passe
+        // d'imputation ci-dessous a à parcourir. Le plafond qui décide de
+        // l'affichage, lui, est appliqué par `LogStore` — c'est lui qui
+        // connaît le compte des entrées de l'app.
+        let trimmedEntries = LogBudget.trimPreservingSignal(entries, cap: LogStore.defaultCap)
 
         DispatchQueue.main.async {
-            // Reload semantics: SMAPI-latest.txt is a single snapshot file, so
-            // each load replaces the previously-loaded SMAPI entries instead of
-            // stacking another full copy. Without this, every game launch
-            // (startSmapiLogWatcher) and every tab open appended the whole log
-            // again, producing N duplicate copies after N launches.
-            self.logEntries.removeAll { $0.source == .smapi }
-            // Budget the SMAPI block to whatever room is left after the app
-            // entries, instead of trimming the *combined* array from the front.
-            // The front holds the StarHubFR (app) entries, so a front-trim wiped
-            // the whole app log whenever the SMAPI log was large (~2000 lines).
-            let appCount = self.logEntries.count
-            let smapiBudget = max(0, self.maxLogEntries - appCount)
-            // Same rule as above: shed TRACE noise, never the startup
-            // diagnostic at the head of the log.
-            let cappedSmapi = Self.trimPreservingSignal(trimmedEntries, cap: smapiBudget)
             // Les imputations **devinées** dans le préfixe d'un message sont
             // confrontées au parc, ici et pas dans le parseur : celui-ci tourne
             // sur `DispatchQueue.global`, où `mods` n'est pas lisible. Sans
@@ -3431,11 +3424,14 @@ final class StarHubTHViewModel {
             // ne juge rien plutôt que de tout déclarer inconnu — sinon
             // l'imputation disparaîtrait aussi des lignes qui la méritent.
             let displayed = self.mods.isEmpty
-                ? cappedSmapi
-                : SmapiLogParser.dismissingUnknownInferredMods(cappedSmapi) { name in
+                ? trimmedEntries
+                : SmapiLogParser.dismissingUnknownInferredMods(trimmedEntries) { name in
                     self.resolveModFolder(forLoggedName: name) != nil
                 }
-            self.logEntries.append(contentsOf: displayed)
+            // Remplace le bloc SMAPI et le budgète sur ce que les entrées de
+            // l'app laissent — les deux règles vivent dans `LogBudget`, avec
+            // leurs deux bugs historiques.
+            self.logStore.replaceSmapi(with: displayed)
             self.smapiDiagnostics = smapiDiag
             self.smapiLogDate = smapiDate
             self.smapiLogStale = smapiStale
@@ -3567,18 +3563,6 @@ final class StarHubTHViewModel {
             guard names.count == 2 else { return nil }
             return ModConflictPair(names[0], names[1])
         }
-    }
-
-    /// Applies the memory cap to parsed SMAPI entries, dropping TRACE noise
-    /// rather than the head of the log (see `LogNoise.trimIndices`).
-    static func trimPreservingSignal(_ entries: [LogEntry], cap: Int) -> [LogEntry] {
-        guard entries.count > cap else { return entries }
-        let keep = LogNoise.trimIndices(
-            count: entries.count,
-            cap: cap,
-            isNoise: { entries[$0].level == .trace }
-        )
-        return keep.map { entries[$0] }
     }
 
     /// Chemin du journal SMAPI. Non privé : la recherche guidée surveille sa
@@ -9079,15 +9063,16 @@ final class StarHubTHViewModel {
             // message so the Logs tab (source = StarHubFR) shows exactly which
             // mod(s) failed, in which direction, and why.
             //
-            // NOTE: `self.log(...)` mutates `@Published logEntries`. The renames
-            // above ran on a global queue, so these calls technically happen
-            // off the main thread — consistent with the rest of this method
-            // (which already publishes `@Published` state from the same global
-            // queue via DispatchQueue.main.async). The standards ratchet
-            // (`dispatch_queue` baseline) prefers this shape over adding extra
-            // `.async { }` hops; the runtime tolerates it because SwiftUI
-            // doesn't synchronously check thread on @Published writes from
-            // non-annotated ObservableObjects.
+            // Les renommages ci-dessus tournent sur une file globale, donc
+            // ces appels aussi. C'est sans danger : `log(_:level:)` saute
+            // lui-même sur le fil principal (`Thread.isMainThread`) avant
+            // d'écrire — aucun état suivi n'est muté d'ici.
+            //
+            // ⚠️ Ce commentaire disait autrefois que « le runtime tolère »
+            // une écriture `@Published` hors fil principal. C'était déjà faux
+            // (le saut existe dans `log`), et ça ne veut plus rien dire :
+            // sous `@Observable`, plus aucun diagnostic n'est émis — le
+            // garde-fou est parti avec le chantier A.
             for failure in failures {
                 self.log(
                     String(format: self.localization.L(L10n.VM.applyProfileMoveFail),

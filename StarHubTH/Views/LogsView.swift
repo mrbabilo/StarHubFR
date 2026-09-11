@@ -404,7 +404,7 @@ struct LogsView: View {
             // macOS auto-appends a localized Cancel button since none here has
             // role .cancel. Only app entries are wiped; SMAPI entries are kept.
             Button(localization.L(L10n.Logs.clearLogs), role: .destructive) {
-                vm.logEntries.removeAll { $0.source == .app }
+                vm.clearAppLog()
             }
         } message: {
             Text(localization.L(L10n.Logs.clearConfirmMessage))
