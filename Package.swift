@@ -70,6 +70,7 @@ let package = Package(
                 "Models/DependencyTree.swift",
                 "Models/SmapiLogDiagnostics.swift",
                 "Models/LogNoise.swift",
+                "Models/LogBudget.swift",
                 "Models/ModErrorHistory.swift",
                 "Models/ModErrorHistoryStore.swift",
                 "Models/ModAnomaly.swift",
@@ -636,6 +637,11 @@ let package = Package(
             name: "SmapiLogDiagnosticsTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/SmapiLogDiagnosticsTests"
+        ),
+        .testTarget(
+            name: "LogBudgetTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/LogBudgetTests"
         ),
         .testTarget(
             name: "LogNoiseTests",
