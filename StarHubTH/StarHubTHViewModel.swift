@@ -2174,7 +2174,7 @@ final class StarHubTHViewModel {
             self.favoriteMods = favorites
             self.blacklistedMods = blacklisted
             self.profileManagedConfigMods = managedConfigs
-            self.installedTranslations = translations
+            self.translationHub.setInstalled(translations)
             self.modConflictVerdicts = conflictVerdicts
 
             // Pré-charger le dump Pathoschild pendant que le splash est encore
@@ -4354,7 +4354,9 @@ final class StarHubTHViewModel {
         }
 
         // 12. Les traductions et greffes posées sur ce mod.
-        if installedTranslations.rename(host: old, to: new) {
+        var renamed = false
+        translationHub.mutateInstalled { renamed = $0.rename(host: old, to: new) }
+        if renamed {
             if !InstalledTranslationStore.save(installedTranslations) {
                 log("Suivi des traductions non enregistré après renommage : il ne survivra pas à la fermeture",
                     level: .warning)
@@ -5290,26 +5292,35 @@ final class StarHubTHViewModel {
 
     // MARK: - Traductions communautaires (A3-T3)
 
+    // MARK: Hub de traduction FR — le store du domaine (cadrage §4,
+    // domaine 6, tranche 1). Le registre et ses règles sont en Core
+    // (`InstalledTranslationRegistry`) ; le store les publie, avec les deux
+    // moitiés de la recherche et les vols mod par mod.
+    private let translationHub = TranslationHubStore()
+
     /// Ce qui est posé sur quel mod. Relu au lancement, réécrit à chaque dépôt
     /// ou retrait — c'est la seule trace : la perdre rendrait toute
     /// désinstallation impossible.
-    private(set) var installedTranslations = InstalledTranslationRegistry()
+    var installedTranslations: InstalledTranslationRegistry { translationHub.installed }
     /// Les traductions françaises trouvées pour un mod, par `folderName`.
     /// Vidé à chaque nouvelle recherche : ce n'est pas un cache, c'est le
     /// résultat de la dernière question posée.
-    private(set) var translationHits: [String: [NexusModSearch.Hit]] = [:]
+    var translationHits: [String: [NexusModSearch.Hit]] { translationHub.hits }
     /// Les résultats **correspondant à ce qui est déjà posé**, retirés des
     /// propositions mais gardés : c'est là que se lit une version plus récente,
     /// et c'est vers eux que rattache le menu.
-    private(set) var translationInstalledHits: [String: [NexusModSearch.Hit]] = [:]
+    var translationInstalledHits: [String: [NexusModSearch.Hit]] { translationHub.installedHits }
     /// Les mods dont une recherche est en cours.
     ///
     /// Un ensemble, pas un seul nom : la fiche désactive ses boutons **mod par
     /// mod**, si bien qu'un verrou unique rendait muet le clic sur un second
     /// mod — le bouton restait actif et ne faisait rien.
-    private(set) var searchingTranslations: Set<String> = []
+    /// Un ensemble, pas un seul nom : la fiche désactive ses boutons **mod par
+    /// mod**, si bien qu'un verrou unique rendait muet le clic sur un second
+    /// mod — le bouton restait actif et ne faisait rien.
+    var searchingTranslations: Set<String> { translationHub.searching }
     /// Les mods dont une traduction s'installe ou se retire.
-    private(set) var busyTranslations: Set<String> = []
+    var busyTranslations: Set<String> { translationHub.busy }
 
     /// La traduction posée sur ce mod, s'il y en a une.
     func translation(for mod: ModItem) -> InstalledTranslation? {
@@ -5371,7 +5382,7 @@ final class StarHubTHViewModel {
         let decl = DeclaredTranslation(nexusModId: modId, nexusName: name,
                                        version: version, updatedAt: updatedAt,
                                        declaredAt: Date())
-        installedTranslations.declare(decl, forHost: mod.folderName)
+        translationHub.mutateInstalled { $0.declare(decl, forHost: mod.folderName) }
         if InstalledTranslationStore.save(installedTranslations) {
             log("Traduction déclarée sur \(mod.folderName) : \(name) (#\(modId))", level: .info)
         } else {
@@ -5384,7 +5395,9 @@ final class StarHubTHViewModel {
     /// fichiers posés par l'utilisateur restent en place, seul le registre
     /// perd la ligne. C'est l'utilisateur qui a écrit, c'est lui qui enlève.
     func undeclareTranslation(for mod: ModItem) {
-        guard installedTranslations.undeclare(forHost: mod.folderName) else { return }
+        var undeclared = false
+        translationHub.mutateInstalled { undeclared = $0.undeclare(forHost: mod.folderName) }
+        guard undeclared else { return }
         if InstalledTranslationStore.save(installedTranslations) {
             log("Déclaration de traduction retirée pour \(mod.folderName)", level: .info)
         } else {
@@ -5514,7 +5527,7 @@ final class StarHubTHViewModel {
     /// plus récente existe » sur la ligne en place. Refermer une liste veut
     /// dire « j'ai fini de chercher », pas « oublie ce que tu as appris ».
     func dismissTranslationResults(for mod: ModItem) {
-        translationHits[mod.folderName] = nil
+        translationHub.setHits(nil, for: mod.folderName)
     }
 
     /// Referme les propositions de suppléments d'un mod.
@@ -5544,7 +5557,7 @@ final class StarHubTHViewModel {
     private func withoutInstalledTranslation(_ hits: [NexusModSearch.Hit],
                                              for mod: ModItem) -> [NexusModSearch.Hit] {
         guard let installed = translation(for: mod) else {
-            translationInstalledHits[mod.folderName] = []
+            translationHub.setInstalledHits([], for: mod.folderName)
             return hits
         }
         // **Retirée des propositions, pas jetée.** C'est dans cette moitié que
@@ -5557,7 +5570,7 @@ final class StarHubTHViewModel {
             hits,
             installedNexusIds: installed.nexusModId > 0 ? [installed.nexusModId] : [],
             installedTitles: [installed.nexusName])
-        translationInstalledHits[mod.folderName] = split.installed
+        translationHub.setInstalledHits(split.installed, for: mod.folderName)
         // Rattacher sans rien demander quand deux signaux concordent : le titre
         // et l'identifiant lu dans le nom du fichier téléchargé.
         adoptConfirmedNexusId(for: installed, among: split.installed,
@@ -5587,11 +5600,13 @@ final class StarHubTHViewModel {
             nexusName: confirmed.name, version: confirmed.version,
             updatedAt: entry.installedAt, installedAt: entry.installedAt,
             files: entry.files, replacedFiles: entry.replacedFiles)
-        if isTranslation {
-            installedTranslations.record(linked)
-        } else {
-            installedTranslations.forgetAddon(entry)
-            installedTranslations.recordAddon(linked)
+        translationHub.mutateInstalled {
+            if isTranslation {
+                $0.record(linked)
+            } else {
+                $0.forgetAddon(entry)
+                $0.recordAddon(linked)
+            }
         }
         if !InstalledTranslationStore.save(installedTranslations) {
             log("Rattachement Nexus non enregistré : le suivi ne survivra pas à la fermeture",
@@ -5636,11 +5651,13 @@ final class StarHubTHViewModel {
             hostFolderName: entry.hostFolderName, nexusModId: hit.modId, nexusName: hit.name,
             version: hit.version, updatedAt: entry.installedAt, installedAt: entry.installedAt,
             files: entry.files, replacedFiles: entry.replacedFiles)
-        if isTranslation {
-            installedTranslations.record(linked)
-        } else {
-            installedTranslations.forgetAddon(entry)
-            installedTranslations.recordAddon(linked)
+        translationHub.mutateInstalled {
+            if isTranslation {
+                $0.record(linked)
+            } else {
+                $0.forgetAddon(entry)
+                $0.recordAddon(linked)
+            }
         }
         if !InstalledTranslationStore.save(installedTranslations) {
             showModal(message: localization.L(L10n.Mods.translationNotTracked))
@@ -5653,10 +5670,12 @@ final class StarHubTHViewModel {
         // rejoint ce qui est en place. L'y oublier ferait disparaître la mise à
         // jour qu'il annonce jusqu'à la recherche suivante.
         if isTranslation {
-            translationHits[mod.folderName] =
-                (translationHits[mod.folderName] ?? []).filter { $0.modId != hit.modId }
-            translationInstalledHits[mod.folderName] =
-                (translationInstalledHits[mod.folderName] ?? []) + [hit]
+            translationHub.setHits(
+                (translationHits[mod.folderName] ?? []).filter { $0.modId != hit.modId },
+                for: mod.folderName)
+            translationHub.setInstalledHits(
+                (translationInstalledHits[mod.folderName] ?? []) + [hit],
+                for: mod.folderName)
         } else if let previous = supplementSearches[mod.folderName] {
             supplementSearches[mod.folderName] = SupplementSearch(
                 hits: previous.hits.filter { $0.modId != hit.modId },
@@ -5668,15 +5687,15 @@ final class StarHubTHViewModel {
 
     /// Retire une greffe posée sur ce mod, et **rend** ce qu'elle avait recouvert.
     func removeAddon(_ addon: InstalledTranslation, from mod: ModItem) {
-        guard !busyTranslations.contains(mod.folderName) else { return }
-        busyTranslations.insert(mod.folderName)
-        defer { busyTranslations.remove(mod.folderName) }
+        guard !translationHub.isBusy(mod.folderName) else { return }
+        translationHub.setBusy(true, for: mod.folderName)
+        defer { translationHub.setBusy(false, for: mod.folderName) }
         let hostPath = URL(fileURLWithPath: gameDir)
             .appendingPathComponent("Mods")
             .appendingPathComponent(mod.physicalFolderName)
         let failures = ManifestlessInstaller.uninstall(addon, hostPath: hostPath)
         if failures.isEmpty {
-            installedTranslations.forgetAddon(addon)
+            translationHub.mutateInstalled { $0.forgetAddon(addon) }
             if !InstalledTranslationStore.save(installedTranslations) {
                 showModal(message: localization.L(L10n.Mods.translationRemoveNotTracked))
             }
@@ -5743,12 +5762,12 @@ final class StarHubTHViewModel {
     /// traductions relevées, 77 le portent, et le serveur fait alors le tri.
     /// Le titre ne sert que de filet pour les trois autres.
     func searchTranslations(for mod: ModItem) {
-        guard !searchingTranslations.contains(mod.folderName) else { return }
-        searchingTranslations.insert(mod.folderName)
+        guard !translationHub.isSearching(mod.folderName) else { return }
+        translationHub.setSearching(true, for: mod.folderName)
         let host = Int(mod.nexusModId)
         NexusSearchClient.search(name: mod.name, tag: NexusModSearch.frenchTag) { [weak self] result in
             guard let self else { return }
-            self.searchingTranslations.remove(mod.folderName)
+            self.translationHub.setSearching(false, for: mod.folderName)
             switch result {
             case .success(let page):
                 // Le filet : si le tag n'a rien rendu, on retente large et on
@@ -5763,13 +5782,14 @@ final class StarHubTHViewModel {
                     // La traduction déjà posée n'a rien à faire dans la liste
                     // des propositions : elle a sa propre ligne, qui porte son
                     // retrait et sa mise à jour.
-                    self.translationHits[mod.folderName] = self.withoutInstalledTranslation(
-                        NexusModSearch.ranked(page.hits, excluding: host), for: mod)
+                    self.translationHub.setHits(self.withoutInstalledTranslation(
+                        NexusModSearch.ranked(page.hits, excluding: host), for: mod),
+                        for: mod.folderName)
                 }
             case .failure(let error):
                 // Une panne n'est pas une absence : `[]` ferait afficher
                 // « aucune traduction trouvée » pour une recherche cassée.
-                self.translationHits[mod.folderName] = nil
+                self.translationHub.setHits(nil, for: mod.folderName)
                 self.log("Recherche de traduction : \(error)", level: .warning)
                 self.showModal(message: self.localization.L(L10n.Mods.translationSearchFailed))
             }
@@ -5777,24 +5797,24 @@ final class StarHubTHViewModel {
     }
 
     private func searchTranslationsByTitle(for mod: ModItem) {
-        searchingTranslations.insert(mod.folderName)
+        translationHub.setSearching(true, for: mod.folderName)
         let host = Int(mod.nexusModId)
         NexusSearchClient.search(name: mod.name) { [weak self] result in
             guard let self else { return }
-            self.searchingTranslations.remove(mod.folderName)
+            self.translationHub.setSearching(false, for: mod.folderName)
             switch result {
             case .success(let page):
                 // Recherche large : ici rien d'autre que le titre ne distingue
                 // une traduction, le filtre est à sa place.
-                self.translationHits[mod.folderName] = self.withoutInstalledTranslation(
+                self.translationHub.setHits(self.withoutInstalledTranslation(
                     NexusModSearch.frenchTranslations(among: page.hits, excluding: host),
-                    for: mod)
+                    for: mod), for: mod.folderName)
             case .failure(let error):
                 // Une panne n'est pas une absence : afficher « aucune traduction
                 // trouvée » ici ferait passer une recherche cassée pour un
                 // résultat, exactement ce que le décodeur refuse de faire sur
                 // les erreurs GraphQL.
-                self.translationHits[mod.folderName] = nil
+                self.translationHub.setHits(nil, for: mod.folderName)
                 self.log("Recherche de traduction (titre) : \(error)", level: .warning)
                 self.showModal(message: self.localization.L(L10n.Mods.translationSearchFailed))
             }
@@ -5806,12 +5826,12 @@ final class StarHubTHViewModel {
     /// Le dépôt ne crée rien dans `Mods/` : il écrit **dans** un mod existant,
     /// après avoir mis à l'abri chaque fichier recouvert.
     func installTranslation(_ hit: NexusModSearch.Hit, into mod: ModItem) {
-        guard !busyTranslations.contains(mod.folderName) else { return }
+        guard !translationHub.isBusy(mod.folderName) else { return }
         // Un seul téléchargement Nexus à la fois, traductions comprises : elles
         // passent par le même téléchargeur que les mods, et deux en vol se
         // disputeraient `pendingDownloadedZip`.
         if rejectNexusDownloadIfBusy() { return }
-        busyTranslations.insert(mod.folderName)
+        translationHub.setBusy(true, for: mod.folderName)
         isDownloadingFromNexus = true
         downloadingNexusModId = hit.modId
         nexusDownloadInFlight = nexusDownloader.download(
@@ -5832,9 +5852,9 @@ final class StarHubTHViewModel {
                     self.depositTranslation(archive: outcome.zip, hit: hit, into: mod)
                 case .failure(.cancelled):
                     // Geste volontaire : rien à annoncer.
-                    self.busyTranslations.remove(mod.folderName)
+                    self.translationHub.setBusy(false, for: mod.folderName)
                 case .failure(let error):
-                    self.busyTranslations.remove(mod.folderName)
+                    self.translationHub.setBusy(false, for: mod.folderName)
                     // Sans lien direct, la voie manuelle reste ouverte : le
                     // message nomme le bouton qui y mène plutôt que de laisser
                     // l'utilisateur devant une impasse.
@@ -5852,7 +5872,7 @@ final class StarHubTHViewModel {
     }
 
     private func depositTranslation(archive: URL, hit: NexusModSearch.Hit, into mod: ModItem) {
-        defer { busyTranslations.remove(mod.folderName) }
+        defer { translationHub.setBusy(false, for: mod.folderName) }
         // L'archive téléchargée n'a plus d'usage passé ce point : la laisser
         // derrière nous encombrerait le dossier temporaire d'un fichier dont
         // plus personne ne connaît le chemin. `discardDownloaded` emporte le
@@ -5964,10 +5984,12 @@ final class StarHubTHViewModel {
                 return (nil, String(format: localization.L(L10n.Mods.translationRemovePartial),
                                     failures.joined(separator: ", ")))
             }
-            if plan.kind == .translation {
-                installedTranslations.forget(host: host.folderName)
-            } else {
-                installedTranslations.forgetAddon(incumbent)
+            translationHub.mutateInstalled {
+                if plan.kind == .translation {
+                    $0.forget(host: host.folderName)
+                } else {
+                    $0.forgetAddon(incumbent)
+                }
             }
         }
 
@@ -6011,10 +6033,12 @@ final class StarHubTHViewModel {
         let recorded = identity.entry(hostFolderName: host.folderName, sourceName: sourceName,
                                       installedAt: now, files: written.written,
                                       replacedFiles: written.replaced)
-        if plan.kind == .translation {
-            installedTranslations.record(recorded)
-        } else {
-            installedTranslations.recordAddon(recorded)
+        translationHub.mutateInstalled {
+            if plan.kind == .translation {
+                $0.record(recorded)
+            } else {
+                $0.recordAddon(recorded)
+            }
         }
         guard InstalledTranslationStore.save(installedTranslations) else {
             // Les fichiers sont posés mais rien ne les retient : le dire,
@@ -6027,16 +6051,16 @@ final class StarHubTHViewModel {
     /// Retire la traduction posée sur ce mod et **rend** ce qu'elle avait
     /// recouvert.
     func removeTranslation(from mod: ModItem) {
-        guard !busyTranslations.contains(mod.folderName),
+        guard !translationHub.isBusy(mod.folderName),
               let translation = translation(for: mod) else { return }
-        busyTranslations.insert(mod.folderName)
-        defer { busyTranslations.remove(mod.folderName) }
+        translationHub.setBusy(true, for: mod.folderName)
+        defer { translationHub.setBusy(false, for: mod.folderName) }
         let hostPath = URL(fileURLWithPath: gameDir)
             .appendingPathComponent("Mods")
             .appendingPathComponent(mod.physicalFolderName)
         let failures = ManifestlessInstaller.uninstall(translation, hostPath: hostPath)
         if failures.isEmpty {
-            installedTranslations.forget(host: mod.folderName)
+            translationHub.mutateInstalled { $0.forget(host: mod.folderName) }
             if !InstalledTranslationStore.save(installedTranslations) {
                 showModal(message: localization.L(L10n.Mods.translationRemoveNotTracked))
             }
@@ -9622,7 +9646,9 @@ final class StarHubTHViewModel {
     private func forgetTranslations(of folder: String) {
         let strandedOriginals = installedTranslations.entries(forHost: folder)
             .flatMap { $0.replacedFiles.values }
-        guard installedTranslations.forgetEverything(host: folder) else { return }
+        var forgotten = false
+        translationHub.mutateInstalled { forgotten = $0.forgetEverything(host: folder) }
+        guard forgotten else { return }
         if !InstalledTranslationStore.save(installedTranslations) {
             log("Registre des traductions : \(folder) retiré en mémoire seulement",
                 level: .warning)

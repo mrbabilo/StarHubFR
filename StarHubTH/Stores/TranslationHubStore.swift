@@ -41,6 +41,11 @@ final class TranslationHubStore {
 
     // MARK: - Le registre
 
+    /// Le chargement initial, depuis les préférences.
+    func setInstalled(_ newRegistry: InstalledTranslationRegistry) {
+        installed = newRegistry
+    }
+
     /// Muté en place, sous observation. La **persistance** reste à l'appelant :
     /// le registre est la seule trace des traductions posées, sa perte rend
     /// toute désinstallation impossible.

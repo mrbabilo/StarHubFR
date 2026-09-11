@@ -30,6 +30,15 @@ import Foundation
         #expect(s.installed.translation(forHost: "Mod") != nil)
     }
 
+    @Test func loadingReplacesTheWholeRegistry() {
+        let s = TranslationHubStore()
+        s.mutateInstalled { $0.record(InstalledTranslation(
+            hostFolderName: "Mod", nexusModId: 7, nexusName: "Mod FR",
+            version: "1.0", updatedAt: nil, installedAt: Date(), files: [])) }
+        s.setInstalled(InstalledTranslationRegistry())
+        #expect(s.installed.translation(forHost: "Mod") == nil)
+    }
+
     // MARK: - Les deux moitiés d'une recherche
 
     @Test func aNilHitRemovesTheKeyRatherThanHidingAnEmptyValue() {
