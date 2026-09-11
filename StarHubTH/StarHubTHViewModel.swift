@@ -8743,87 +8743,69 @@ class StarHubTHViewModel: ObservableObject {
     }
 
     func applyProfile(id: UUID?) {
-        // Serialize activations: refuse to start a new one while a previous
-        // profile is still being applied (mod folders being renamed /
-        // rescanned), so two activations can't race on the same paths.
-        guard !isApplyingProfile else { return }
+        // L'aiguillage — six branches, dont trois qui ne se rencontrent
+        // qu'après un crash ou une application partielle — vit dans
+        // `ProfileActivation` (Core, 16 tests). Ici ne restent que les effets.
+        //
+        // ⚠️ `isGameRunning()` est passé **en closure** : il informe au
+        // passage le garde anti double-lancement, et le consulter pour un
+        // départ ou un refus déplacerait ce garde sans qu'aucune activation
+        // soit en jeu. Un test épingle cette paresse.
+        let decision = ProfileActivation.decide(requested: id, profiles: modProfiles,
+                                                active: activeProfileId,
+                                                isApplying: isApplyingProfile,
+                                                gameRunning: { self.isGameRunning() },
+                                                journal: unresolvedApplyJournal,
+                                                incomplete: incompletelyAppliedProfileIds)
+        switch decision {
+        case .refused:
+            return
 
-        guard let id = id, let profile = modProfiles.first(where: { $0.id == id }) else {
-            // Quitter un profil sans en prendre un autre est une transition
-            // réelle : le config est capturé au crédit du profil qu'on quitte,
-            // même si aucun dossier ne bouge.
-            if let leaving = activeProfileId {
-                captureProfileConfigs(for: leaving)
-                // R2 : quitter le profil journalisé tranche la question posée
-                // par le crash — sinon le prochain lancement re-proposerait de
-                // reprendre un profil explicitement quitté.
-                if let journal = unresolvedApplyJournal, journal.profileId == leaving {
-                    clearUnresolvedJournal(implicitKeepNamed: journal.profileName)
-                }
+        case .refusedGameRunning(let name):
+            let message = String(format: localization.L(L10n.VM.profileApplyRefusedGame), name)
+            log(message, level: .warning)
+            showModal(message: message)
+
+        case .leave(let capturing, let clearingJournalNamed):
+            if let capturing { captureProfileConfigs(for: capturing) }
+            if let clearingJournalNamed {
+                clearUnresolvedJournal(implicitKeepNamed: clearingJournalNamed)
             }
             syncProfileConfigsDesyncMarker(entering: nil)
             activeProfileId = nil
             saveProfiles()
-            return
-        }
 
-        // R2 : activer un profil déplace des centaines de dossiers — refus net
-        // tant que le jeu tourne, avant la moindre mutation (capture,
-        // activeProfileId, saveProfiles). La bissection passe par ailleurs :
-        // elle gère elle-même l'état du jeu et appelle le cœur directement.
-        if isGameRunning() {
-            let message = String(format: self.localization.L(L10n.VM.profileApplyRefusedGame), profile.name)
-            log(message, level: .warning)
-            showModal(message: message)
-            return
-        }
+        case .presentRecovery:
+            pendingApplyRecovery = unresolvedApplyJournal
 
-        // Activation is exclusive: setting activeProfileId below replaces any
-        // previously-active profile (only one can be active at a time).
-        if activeProfileId == id {
-            // R2 : le re-clic du profil journalisé re-présente le résolveur —
-            // sinon le garde de syncActiveProfileIds rendrait le geste muet.
-            if let journal = unresolvedApplyJournal, journal.profileId == id {
-                pendingApplyRecovery = journal
-                return
+        case .resume(let profileId):
+            guard let profile = modProfiles.first(where: { $0.id == profileId }) else { return }
+            applyingProfileId = profileId
+            applyProfileToFilesystem(profile: profile)
+
+        case .adoptManualToggles:
+            syncActiveProfileIds()
+
+        case .activate(let profileId, let capturing, let clearingJournalNamed):
+            guard let profile = modProfiles.first(where: { $0.id == profileId }) else { return }
+            // Capture AVANT tout : le disque porte encore les réglages du
+            // profil sortant. C'est la seule fenêtre où ils existent.
+            if let capturing { captureProfileConfigs(for: capturing) }
+            if let clearingJournalNamed {
+                clearUnresolvedJournal(implicitKeepNamed: clearingJournalNamed)
             }
-            if incompletelyAppliedProfileIds.contains(id) {
-                // La dernière application s'est arrêtée en chemin. Re-cliquer
-                // le profil actif est le seul geste de reprise offert (le
-                // bouton « Activer » est masqué pour lui) : reprendre les
-                // déplacements, plutôt qu'enregistrer l'état où l'échec les a
-                // laissés — ce qui effacerait justement ce qu'il restait à
-                // faire.
-                applyingProfileId = id
-                applyProfileToFilesystem(profile: profile)
-            } else {
-                // Cas courant : le profil actif adopte les bascules faites à
-                // la main depuis la page des mods.
-                syncActiveProfileIds()
+            syncProfileConfigsDesyncMarker(entering: profileId)
+            activeProfileId = profileId
+            saveProfiles()
+            applyingProfileId = profileId
+            // Restauration dans le completion : après les déplacements de
+            // dossiers et après le rescane, quand les chemins sont ceux du
+            // profil entrant.
+            applyProfileToFilesystem(profile: profile) { [weak self] _ in
+                self?.restoreProfileConfigs(for: profileId)
             }
-            return
+            log(String(format: localization.L(L10n.VM.switchProfile), profile.name))
         }
-
-        // Capture AVANT tout : le disque porte encore les réglages du profil
-        // sortant. C'est la seule fenêtre où ils existent.
-        if let leaving = activeProfileId { captureProfileConfigs(for: leaving) }
-        // R2 : activer un autre profil ferme aussi la question posée par le
-        // crash — capture bloquée ci-dessus (le disque n'est pas attribuable
-        // au sortant), puis journal effacé avant que celui du profil entrant
-        // ne s'écrive.
-        if let journal = unresolvedApplyJournal, journal.profileId != id {
-            clearUnresolvedJournal(implicitKeepNamed: journal.profileName)
-        }
-        syncProfileConfigsDesyncMarker(entering: id)
-        activeProfileId = id
-        saveProfiles()
-        applyingProfileId = id
-        // Restauration dans le completion : après les déplacements de dossiers
-        // et après le rescane, quand les chemins sont ceux du profil entrant.
-        applyProfileToFilesystem(profile: profile) { [weak self] _ in
-            self?.restoreProfileConfigs(for: id)
-        }
-        self.log(String(format: localization.L(L10n.VM.switchProfile), profile.name))
     }
 
     /// Actually move mod files to match the given profile's enabledModIds.
