@@ -403,6 +403,74 @@ figé l'onglet jusqu'au prochain lancement, en silence). Ce qui a été exercé 
    figé jusqu'au prochain lancement) ;
 6. la palette de commandes (⌘K) trouve toujours une sauvegarde par son nom.
 
+### Domaine 2 — Journal, tranche 1, livrée le 2026-09-11
+
+Deux commits (`c6f408c`, `ef80744`), gate exit 0, **3 000 tests verts** (+13).
+Plan : `docs/superpowers/plans/2026-09-11-chantier-b2-journal.md`.
+
+**Le cadrage disait « deux consommateurs connus ». Il y en a huit**, dont un
+qui n'est pas une vue : `LogsView`, `ModConflictSection`, `SystemAlertsView`,
+`SmapiHealthCard`, `BisectionCard`, `SystemStatusFooter`, `ModDetailView` — et
+`BisectionRunner.swift`, l'un des cinq `ObservableObject` restés en Combine.
+Ce n'est **pas** une raison de rétrograder le domaine : le nombre de
+consommateurs a cessé d'être un coût le jour où le cas 1 a été acquis. Ce qui
+justifierait un report serait une dépendance vers un domaine non extrait — et
+laisser l'orchestration au ViewModel la neutralise.
+
+**La couture n'était pas celle que le cadrage annonçait.** `logEntries` n'est
+pas un état « journal SMAPI » : 76 appels `log(…)` du ViewModel et 10 `vm.log(…)`
+des vues y écrivent des entrées `.app`. Ce qui sépare les deux moitiés est
+l'arithmétique du plafond — `smapiBudget = max(0, cap - appCount)` ne se teste
+pas sans le compte des entrées de l'app. D'où :
+
+| Unité | Contenu | État |
+| --- | --- | --- |
+| **Les entrées et leur plafond** | `logEntries`, `maxLogEntries`, `appendLogEntry`, `trimPreservingSignal`, la budgétisation | ✅ `LogBudget` (pur, 9 tests) + `LogStore` (`@Observable`, 4 tests) |
+| **La santé SMAPI** | `smapiDiagnostics`, `smapiLogDate`, `smapiLogStale`, `smapiErrors`, `showSmapiAlerts`, `contentPatcherConflicts`, `modErrorHistory` + ses deux drapeaux, `lastLoggedSMAPIErrors` | tranche 2 |
+
+**Le gain est la mise sous test de deux bugs réels**, que les commentaires du
+ViewModel décrivaient sans qu'aucun test ne les retienne : un rechargement qui
+**empilait** une copie entière du journal SMAPI (N copies après N lancements),
+et un écrêtage par la **tête** du tableau combiné qui effaçait tout le journal
+de l'app dès que le journal SMAPI était gros. Le *quoi jeter*, lui, était déjà
+couvert (`LogNoise.trimIndices`) — seule la composition manquait.
+
+⚠️ **Une vue a été touchée, contre la règle du chantier, et c'est le
+compilateur qui l'a exigé.** `LogsView` faisait
+`vm.logEntries.removeAll { $0.source == .app }`. **Mon relevé d'écritures
+cherchait `vm.<propriété> =` et ne voyait pas les mutations par méthode** —
+à refaire autrement pour les domaines 3 à 8 : une façade en lecture seule
+transforme le défaut en erreur de compilation, mais seulement si l'on sait
+qu'il faut s'y attendre. « Vider les journaux » est descendu dans le store
+(`clearApp()`), et il **garde** le bloc SMAPI : l'effacer ne ferait que le
+faire revenir au prochain rechargement, et entre-temps la liste contredirait
+la carte de santé.
+
+⚠️ **Un changement de comportement, assumé** : la passe d'imputation
+(`dismissingUnknownInferredMods`) s'applique désormais aux entrées écrêtées au
+plafond global, non plus au budget restant. On impute donc quelques lignes de
+plus que nécessaire, jamais moins — et cette passe ne change aucune ligne,
+elle retire un lien mort.
+
+**Compteurs — trois prédictions, trois justes** (contre quatre sur cinq au
+domaine 1) : `viewmodel_stored_state` 163 → **162**,
+`observable_stored_without_private_set` 122 → **121**,
+`viewmodel_facades_to_combine` **0**. ViewModel 10 312 → **10 297** lignes.
+Cliquet resserré dans le commit de câblage.
+
+**Vérification à l'écran — due, auteur.** Deux des cinq contrôles portent les
+bugs historiques :
+
+1. l'onglet Journaux affiche des lignes, app **et** SMAPI ;
+2. **le bouton de rechargement ne duplique pas le bloc SMAPI** — le compte
+   reste stable d'un rechargement à l'autre (premier bug historique) ;
+3. **après un rechargement sur un gros journal, les lignes StarHubFR sont
+   toujours là** (second bug historique) ;
+4. « Vider les journaux » retire les lignes de StarHubFR **et garde** celles de
+   SMAPI ;
+5. la carte de santé SMAPI et la pastille d'alertes affichent toujours leur
+   compte.
+
 ### Quand un domaine est-il extrait ?
 
 Les quatre conditions du §6 s'appliquent telles quelles, avec un ajustement
