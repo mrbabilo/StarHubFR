@@ -3988,202 +3988,33 @@ class StarHubTHViewModel: ObservableObject {
 
     /// Transforme les verdicts de smapi.io en lignes affichables, et retient
     /// les motifs de non-vérifiabilité.
+    ///
+    /// Les décisions (classification, filet « sans réponse », fusion avec le
+    /// cache plat, fusion des verdicts de compatibilité) vivent dans
+    /// `SmapiVerdicts` (Core, testé). Ici ne restent que la publication, la
+    /// persistance, la journalisation des faits rendus par le rapport, et le
+    /// lancement de la reprise Nexus — tout ce qui touche un autre domaine.
     private func applySmapiResults(_ mods: [SmapiUpdateResponse.Mod],
                                    entries: [SmapiUpdateRequest.Entry],
                                    folders: [NexusIdLearning.Folder]) {
-        let assertedVersion = Dictionary(entries.map { ($0.id, $0.installedVersion) },
-                                         uniquingKeysWith: { first, _ in first })
-        // Les `UpdateKeys` telles qu'envoyées — donc y compris la clé
-        // synthétique construite depuis un identifiant saisi à la main. C'est
-        // le repli quand smapi.io ne connaît pas le mod ; voir
-        // `ModManifest.resolveNexusId`.
-        let declaredKeys = Dictionary(entries.map { ($0.id, $0.updateKeys) },
-                                      uniquingKeysWith: { first, _ in first })
         // Le nom que le mod déclare, celui que la liste des mods affiche : un
         // même mod ne doit pas changer de nom d'un écran à l'autre.
         let installedName = Dictionary(
             allInstalledMods().filter { !$0.uniqueId.isEmpty }.map { ($0.uniqueId, $0.name) },
             uniquingKeysWith: { first, _ in first })
-        var updates: [NexusUpdateChecker.ModUpdate] = []
-        var unverifiable: [(uniqueId: String, name: String,
-                            blocker: SmapiUpdateResponse.Blocker)] = []
-        // Le matériau de la reprise Nexus (B2-T10). Seuls les mods **sans
-        // suggestion** y entrent : une mise à jour trouvée est un verdict,
-        // quoi qu'ait dit l'une des autres clés du mod.
-        var blocked: [NexusFallbackCheck.Blocked] = []
+        let app = SmapiVerdicts.apply(
+            mods, entries: entries,
+            installedNames: installedName,
+            anchors: anchorStore.all(),
+            pathoschildIndex: PathoschildNexusIndex.loadFromCache(),
+            previousRows: NexusUpdateChecker.shared.cachedUpdates(),
+            previousVerdicts: modCompatibility)
 
-for mod in mods {
-            if let first = mod.errors.first {
-                // Même résolution de nom que les lignes de mise à jour : un
-                // mod ne doit pas changer de nom d'un écran à l'autre.
-                let name = ModManifest.resolveDisplayName(
-                    installedName: installedName[mod.id],
-                    metadataName: mod.metadata?.name,
-                    uniqueId: mod.id)
-                unverifiable.append((uniqueId: mod.id, name: name,
-                                     blocker: SmapiUpdateResponse.blocker(for: first)))
-                if mod.suggestedUpdate == nil {
-                    blocked.append(NexusFallbackCheck.Blocked(
-                        uniqueId: mod.id,
-                        name: name,
-                        // La version **affirmée** — l'ancre, pas ce qu'on a
-                        // envoyé. Les deux diffèrent quand l'ancre est une
-                        // étiquette Nexus libre que smapi.io ne sait pas lire :
-                        // on lui a alors envoyé le manifeste, mais la page
-                        // Nexus, elle, parle ce vocabulaire-là. Comparer
-                        // l'envoi ferait reparaître une ligne éteinte.
-                        installedVersion: SmapiUpdateRequest.comparedVersion(
-                            anchored: anchorStore.anchor(for: mod.id)?.anchoredVersion,
-                            sent: assertedVersion[mod.id] ?? ""),
-                        declaredKeys: declaredKeys[mod.id] ?? [],
-                        metadataNexusId: mod.metadata?.nexusID,
-                        errors: mod.errors,
-                        // X9 : le fichier que l'app a elle-même posé sur la
-                        // page de ce mod, s'il y en a un — la reprise Nexus en
-                        // fera son verdict (« plus récent que celui qu'on
-                        // tient ») au lieu du libellé.
-                        heldFacts: anchorStore.anchor(for: mod.id)?.nexusFacts))
-                }
-            }
-            guard let suggested = mod.suggestedUpdate else { continue }
-            updates.append(NexusUpdateChecker.ModUpdate(
-                uniqueId: mod.id,
-                name: ModManifest.resolveDisplayName(installedName: installedName[mod.id],
-                                                     metadataName: mod.metadata?.name,
-                                                     uniqueId: mod.id),
-                installedVersion: assertedVersion[mod.id] ?? "",
-                latestVersion: suggested.version,
-                // `?? mod.id` reste la sentinelle : un mod suivi seulement par
-                // GitHub ou CurseForge n'a pas de page Nexus, et sa ligne doit
-                // légitimement rester sans bouton de téléchargement.
-                nexusModId: ModManifest.resolveNexusId(
-                    metadataNexusID: mod.metadata?.nexusID,
-                    updateKeys: declaredKeys[mod.id]) ?? mod.id,
-                url: suggested.url ?? "",
-                uploadedTime: nil))
+        unverifiableMods = app.unverifiable.map {
+            (uniqueId: $0.uniqueId, name: $0.name, blocker: $0.blocker)
         }
-
-        // Un mod ABSENT de la réponse n'a pas de verdict — il n'est pas « à
-        // jour ». Le client rend ce qui a abouti même quand un lot échoue :
-        // sur 7 lots, un 503 au quatrième laisse ~510 mods sans réponse.
-        // Les traiter comme confirmés serait le défaut d'origine sous une
-        // autre forme. On conserve donc leur ligne précédente.
-        //
-        // `ModUpdate.id` est désormais l'`UniqueID`, tout comme `Mod.id` de la
-        // réponse et `Entry.id` de la requête : une seule forme d'identité de
-        // bout en bout, plus de correspondance croisée à tenir.
-        let answered = Set(mods.map(\.id))
-
-        // Mods ENVOYÉS mais SANS réponse smapi.io : un mod absent de la
-        // réponse ne peut pas recevoir de verdict de cette source. smapi.io
-        // omet silencieusement les `UniqueID` qu'elle ne connaît pas, et c'est
-        // précisément le défaut qu'on a vu sur UltraSmooth / 50971 : le champ
-        // `metadata` revient `nil`, sans erreur, et la reprise Nexus n'est
-        // jamais déclenchée parce qu'`applySmapiResults` ne peuple `blocked`
-        // que sur `errors.first`.
-        //
-        // Filet : l'index Pathoschild (`PathoschildNexusIndex`) associe
-        // `UniqueID → nexusID` offline, depuis le dump mis en cache par
-        // `applyPathoschildFallback`. On l'utilise comme `metadataNexusId`
-        // factice, et on pousse le mod vers `blocked` — la reprise Nexus
-        // directe reprend alors le relais avec sa clé d'API.
-        //
-        // Sans entrée dans le dump (mod hors base Pathoschild, ex. UltraSmooth
-        // mesuré) ET sans override manuel, le mod reste muet — c'est le
-        // comportement historique, et l'utilisateur a dans ce cas le champ
-        // "Nexus Mod ID" dans la fiche détail pour saisir l'identifiant.
-        let pathoschildIndex = PathoschildNexusIndex.loadFromCache()
-        let answeredIds = answered
-        for entry in entries where !answeredIds.contains(entry.id) {
-            guard !entry.id.isEmpty else { continue }
-            // L'override manuel d'abord — c'est lui que l'utilisateur a posé,
-            // et c'est lui qui prime sur tout (cf. `SmapiUpdateRequest.resolvedUpdateKeys`).
-            let manualId = ModManifest.parseNexusId(fromUpdateKeys: entry.updateKeys)?.id
-            let pathoschildId = pathoschildIndex[entry.id].map(String.init)
-            let resolvedId = manualId ?? pathoschildId
-            guard let id = resolvedId else { continue }
-            let name = installedName[entry.id] ?? entry.id
-            blocked.append(NexusFallbackCheck.Blocked(
-                uniqueId: entry.id,
-                name: name,
-                // Même règle que plus haut : l'ancre commande la comparaison,
-                // et `assertedVersion` ne sert que de repli — l'entrée a été
-                // construite pour smapi.io, qui n'a rien répondu.
-                installedVersion: SmapiUpdateRequest.comparedVersion(
-                    anchored: anchorStore.anchor(for: entry.id)?.anchoredVersion,
-                    sent: assertedVersion[entry.id] ?? ""),
-                declaredKeys: entry.updateKeys,
-                metadataNexusId: Int(id),
-                // Préfixe `nexus:` volontaire : `NexusFallbackCheck.needsNexusVerdict`
-                // matche sur ce fragment pour décider de la reprise. Un mod
-                // sans réponse smapi.io ET avec un identifiant Nexus connu
-                // (manuel ou Pathoschild) est par définition un candidat à la
-                // reprise Nexus directe.
-                errors: ["nexus: no smapi.io answer; resolved via \(manualId != nil ? "manual override" : "Pathoschild dump")"],
-                heldFacts: anchorStore.anchor(for: entry.id)?.nexusFacts))
-            log("Reprise Nexus déclenchée sans verdict smapi.io : \(entry.id) → \(id)",
-                level: .info)
-        }
-
-        // …mais une ligne n'est conservée que si son mod est **encore
-        // installé**. `NexusUpdateMerge` purgeait les mods disparus ; c'est la
-        // seule de ses quatre règles à n'avoir pas eu de remplaçant, et sans
-        // elle une ligne de mod désinstallé n'est jamais « répondue », donc
-        // conservée à vie. `entries` décrit exactement le parc envoyé.
-        let stillInstalled = Set(entries.map(\.id))
-        // Les lignes précédentes viennent du **cache**, pas de `nexusUpdates`.
-        // La liste affichée est consolidée par pack : une ligne de pack porte
-        // le nom du pack et l'`UniqueID` d'un seul de ses composants. Fusionner
-        // à partir d'elle, puis persister le résultat, écrivait cette ligne
-        // hybride dans le cache — un pack y prenait la place de ses enfants.
-        // Le cache est la vérité, à plat ; l'affichage n'en est qu'une vue.
-        let previousRows = NexusUpdateChecker.shared.cachedUpdates()
-        let unanswered = previousRows.filter {
-            guard !answered.contains($0.id), stillInstalled.contains($0.id) else { return false }
-            // …et seulement tant qu'elle est encore due. Une ligne posée avant
-            // un « Je l'ai déjà » n'était jamais reconfrontée à l'ancre : elle
-            // survivait à toutes les passes suivantes, faute d'être « répondue ».
-            return AffirmedUpdates.isStillDue(
-                $0, anchored: anchorStore.anchor(for: $0.id)?.anchoredVersion)
-        }
-        let dropped = previousRows.filter {
-            !answered.contains($0.id) && !stillInstalled.contains($0.id)
-        }.count
-
-        let merged = (updates + unanswered)
-            .sorted { $0.name.lowercased() < $1.name.lowercased() }
-        // Même ordre que les mises à jour, et pour la même raison : la
-        // réponse smapi.io suit l'ordre d'envoi, pas un ordre lisible.
-        // Un seul tri, départagé par l'`UniqueID` : deux mods peuvent porter le
-        // même nom, et `sorted` n'est pas stable en Swift — l'ordre de deux
-        // homonymes changerait alors d'une vérification à l'autre.
-        unverifiableMods = unverifiable.sorted {
-            let byName = $0.name.localizedCaseInsensitiveCompare($1.name)
-            return byName == .orderedSame ? $0.uniqueId < $1.uniqueId : byName == .orderedAscending
-        }
-
-        // Les verdicts de compatibilité, que la réponse portait déjà et que
-        // personne ne lisait. Fusionnés et non remplacés, pour la raison qui
-        // vaut pour les lignes de mise à jour : un lot en échec laisse des mods
-        // sans réponse, et les oublier effacerait un « cassé depuis la 1.6 »
-        // que rien ne contredit.
-        var verdicts = modCompatibility
-        for mod in mods {
-            guard let metadata = mod.metadata else { continue }
-            if let verdict = ModCompatibility.from(status: metadata.compatibilityStatus,
-                                                   brokeIn: metadata.brokeIn,
-                                                   summary: metadata.compatibilitySummary) {
-                verdicts[mod.id] = verdict
-            } else {
-                // smapi.io ne sait rien de ce mod : retirer un verdict devenu
-                // caduc vaut mieux que d'afficher celui d'avant.
-                verdicts.removeValue(forKey: mod.id)
-            }
-        }
-        // Un mod désinstallé n'a plus de verdict à porter.
-        verdicts = verdicts.filter { stillInstalled.contains($0.key) }
-        modCompatibility = verdicts
-        if !ModCompatibilityStore.save(verdicts) {
+        modCompatibility = app.verdicts
+        if !ModCompatibilityStore.save(app.verdicts) {
             // Les verdicts valent pour cette session, mais l'avertissement à
             // l'activation ne se rouvrira pas au prochain lancement.
             log("Verdicts de compatibilité non enregistrés : l'avertissement à "
@@ -4202,28 +4033,32 @@ for mod in mods {
         learnNexusIds(from: mods, folders: folders)
 
         // Persister, sinon tout ceci meurt à la fermeture et le lancement
-        // suivant réaffiche `cachedUpdates()` — la liste écrite par le code que
-        // cette branche remplace.
-        NexusUpdateChecker.shared.replaceCachedUpdates(merged)
+        // suivant réaffiche `cachedUpdates()` — la liste écrite par le code
+        // que cette branche remplace.
+        NexusUpdateChecker.shared.replaceCachedUpdates(app.merged)
         // Puis republier depuis ce cache : une vérification manuelle affiche
         // désormais la même chose qu'un redémarrage. Le regroupement par pack
         // ne s'appliquait qu'au chargement, si bien que le même parc donnait
         // deux décomptes selon le chemin emprunté.
         republishUpdatesFromCache()
 
+        for trigger in app.report.resumeTriggered {
+            log("Reprise Nexus déclenchée sans verdict smapi.io : \(trigger.uniqueId) → \(trigger.resolvedId)",
+                level: .info)
+        }
         let missing = entries.count - mods.count
         if missing > 0 {
             log("Vérification incomplète : \(mods.count) mods sur \(entries.count) ont répondu ; "
-                + "\(unanswered.count) lignes conservées faute de verdict",
+                + "\(app.report.unansweredCount) lignes conservées faute de verdict",
                 level: .warning)
         }
-        if dropped > 0 {
-            log("\(dropped) lignes retirées : leur mod n'est plus installé", level: .info)
+        if app.report.droppedCount > 0 {
+            log("\(app.report.droppedCount) lignes retirées : leur mod n'est plus installé", level: .info)
         }
-        log("[MAJ] Mises à jour : \(updates.count) trouvée(s) sur \(mods.count) mods interrogés, \(unverifiable.count) non vérifiables",
-            level: updates.isEmpty ? .info : .warning)
+        log("[MAJ] Mises à jour : \(app.updates.count) trouvée(s) sur \(mods.count) mods interrogés, \(app.unverifiable.count) non vérifiables",
+            level: app.updates.isEmpty ? .info : .warning)
 
-        recheckBlockedViaNexus(blocked)
+        recheckBlockedViaNexus(app.blocked)
     }
 
     /// A2-T3 — quand smapi.io est muet, on tente le dump Pathoschild.

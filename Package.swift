@@ -125,6 +125,7 @@ let package = Package(
                 "SmapiUpdateClient.swift",
                 "Models/SmapiUpdateRequest.swift",
                 "Models/SmapiUpdateResponse.swift",
+                "Models/SmapiVerdicts.swift",
                 "Models/ManifestFields.swift",
                 "Models/ManifestVersionReader.swift",
                 "Models/SaveTree.swift",
@@ -729,6 +730,11 @@ let package = Package(
             name: "NexusFallbackCheckTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/NexusFallbackCheckTests"
+        ),
+        .testTarget(
+            name: "SmapiVerdictsTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/SmapiVerdictsTests"
         ),
         .testTarget(
             name: "NexusIdLearningTests",
