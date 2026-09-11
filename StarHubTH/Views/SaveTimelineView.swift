@@ -21,7 +21,7 @@ private enum SaveTimelineConfirmation: Identifiable {
 }
 
 struct SaveTimelineView: View {
-    @ObservedObject var vm: StarHubTHViewModel
+     @Bindable var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let save: SaveGameInfo
     
@@ -186,7 +186,7 @@ struct SaveTimelineView: View {
 }
 
 struct BackupRow: View {
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let backup: SaveBackup
     let isLast: Bool

@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct HomeView: View {
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     @ObservedObject var smapiInstaller: SmapiInstaller
     @ObservedObject private var bisection: BisectionRunner
@@ -317,7 +317,7 @@ struct CoreToolSlot {
 
 // Helper for core mod status rows
 struct CoreModRow: View {
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let title: String
     let status: CoreModStatus

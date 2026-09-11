@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     @ObservedObject var smapiInstaller: SmapiInstaller
 
@@ -563,7 +563,7 @@ struct SettingsView: View {
 /// d'installation. La saisie manuelle reste toujours possible — le champ
 /// n'est jamais verrouillé sur ce que le sondage a vu.
 private struct LocalAISettingsSection: View {
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
 
     @AppStorage(UDKey.localAIBaseURL) private var baseURL: String = ""
@@ -1046,7 +1046,7 @@ private struct LocalAISettingsSection: View {
 /// été mesuré, et c'est le cas normal, pas le cas limite. D'où l'état
 /// « jamais mesuré » explicite, avec ce qui le fera apparaître.
 private struct NexusQuotaRow: View {
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
 
     var body: some View {

@@ -8,7 +8,7 @@ import SwiftUI
 /// Fermer en cours de route ne perd rien : chaque résultat est persisté dès
 /// qu'il arrive, avant tout le reste (spec §8.4).
 struct TranslationBatchView: View {
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let mod: ModItem
     let locale: String

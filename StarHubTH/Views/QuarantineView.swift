@@ -8,7 +8,7 @@ import SwiftUI
 /// moves them to the Mac Trash where they can be recovered until the user
 /// empties the Trash themselves.
 struct QuarantineView: View {
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     @State private var showEmptyConfirmation = false
 

@@ -10,7 +10,7 @@ import SwiftUI
 /// comparaison de traduction travaille sur des fichiers plats, celle-ci
 /// sur des arbres à 8 niveaux.
 struct ProfileConfigCompareView: View {
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let mod: ModItem
     let other: ModProfile

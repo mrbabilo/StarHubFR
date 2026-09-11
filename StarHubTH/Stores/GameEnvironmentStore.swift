@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 
 /// Le domaine Environnement (REFACTORING §6) : où est le jeu, qui est le
 /// joueur Steam, quelle version de SMAPI est installée.
@@ -18,23 +19,24 @@ import Foundation
 /// appelé depuis les files de fond de `refresh()`/`performInitialLoad` et
 /// repasse par main pour publier ; `checkSmapiVersion` publie sur le fil de
 /// l'appelant, comme avant.
-final class GameEnvironmentStore: ObservableObject {
+@Observable
+final class GameEnvironmentStore {
 
     /// Le dossier `Contents/MacOS` du jeu. **Ne déclenche jamais de scan** :
     /// chaque appelant qui le change relance `refresh()` lui-même. Le didSet
     /// auto-refresh d'origine lançait deux scans concurrents qui écrivaient
     /// `gameDir` et `mods` sans synchronisation — c'est l'histoire de la
     /// propriété, pas un raffinement à défaire.
-    @Published private(set) var gameDir: String = "" {
+    private(set) var gameDir: String = "" {
         didSet { defaults.set(gameDir, forKey: UDKey.gameDir) }
     }
     /// Nom du compte Steam le plus récent, tel que `loginusers.vdf` le dit.
-    @Published private(set) var steamUsername: String = ""
+    private(set) var steamUsername: String = ""
     /// Avatar local du compte (`avatarcache/<steamID>.png|.jpg`), quand il
     /// existe. Une recherche infructueuse ne l'efface pas.
-    @Published private(set) var steamAvatarPath: String?
+    private(set) var steamAvatarPath: String?
     /// Version de SMAPI installée, ou `nil` = pas installé.
-    @Published private(set) var smapiInstalledVersion: String?
+    private(set) var smapiInstalledVersion: String?
 
     private let defaults: UserDefaults
     private let picker: FilePicking

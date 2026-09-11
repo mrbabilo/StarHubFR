@@ -189,7 +189,7 @@ final class LaunchSplashController {
 /// Splash contents: cover artwork, app identity, and the creeping progress bar.
 /// Draws its own rounded background since the hosting panel is borderless.
 struct LaunchSplashView: View {
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
 
     var body: some View {
@@ -339,7 +339,7 @@ private extension NSColor {
 /// teleports, then freezes during each gap. `displayed` chases `target` on a
 /// timer — always moving, even mid-gap — so the splash never looks stuck.
 struct LaunchProgressBar: View {
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     @State private var displayed: Double = 0
 

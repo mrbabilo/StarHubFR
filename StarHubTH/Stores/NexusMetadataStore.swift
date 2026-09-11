@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 import Combine
 
 /// Les métadonnées Nexus **écrites par l'utilisateur** : la catégorie
@@ -16,14 +17,15 @@ import Combine
 /// migration (`ModFolderRename.migrate`) et de purge
 /// (`ModRemovalPurge.purge`) — déjà Core — sont appelées ici, si bien que
 /// la persistance ne peut plus être oubliée par un appelant.
-final class NexusMetadataStore: ObservableObject {
+@Observable
+final class NexusMetadataStore {
 
     /// `{ folderName: categoryId }` — la catégorie épinglée par
     /// l'utilisateur, qui gagne sur celle de l'API.
-    @Published private(set) var customCategories: [String: Int] = [:]
+    private(set) var customCategories: [String: Int] = [:]
     /// `{ folderName: modId }` — l'identifiant Nexus attribué à la main,
     /// qui gagne sur les `UpdateKeys` du manifeste.
-    @Published private(set) var customModIds: [String: String] = [:]
+    private(set) var customModIds: [String: String] = [:]
 
     private let defaults: UserDefaults
     // Les clés historiques, inchangées : les données des utilisateurs
@@ -118,12 +120,21 @@ final class NexusMetadataStore: ObservableObject {
 
     // MARK: - Persistance
 
+    /// Posée par le possesseur : appelée après chaque persistance, c'est-à-dire
+    /// après toute mutation. Le VM y purge son cache de catégories — sous
+    /// `@Observable`, ce cache n'est invalidé que par une écriture suivie,
+    /// plus par une publication globale. Testable : un test du store pose une
+    /// closure qui compte.
+    public var onInvalidate: (() -> Void)?
+
     private func persistCategories() {
+        onInvalidate?()
         guard let data = try? JSONEncoder().encode(customCategories) else { return }
         defaults.set(data, forKey: Self.categoriesKey)
     }
 
     private func persistModIds() {
+        onInvalidate?()
         guard let data = try? JSONEncoder().encode(customModIds) else { return }
         defaults.set(data, forKey: Self.modIdsKey)
     }

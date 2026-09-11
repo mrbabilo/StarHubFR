@@ -8,7 +8,7 @@ import SwiftUI
 // Intégré dans ModListView.swift dans la branche `if vm.mods.isEmpty`.
 
 struct EmptyStateDropZone: View {
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let onInstall: () -> Void
     @State private var isHovered = false

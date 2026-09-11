@@ -3,7 +3,7 @@ import SwiftUI
 /// Guide pas à pas jusqu'au mod responsable. Un seul message et un seul choix
 /// par écran : la personne en face a un jeu qui plante, pas envie de lire.
 struct BisectionCard: View {
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     @ObservedObject private var runner: BisectionRunner
     @State private var showMods = false

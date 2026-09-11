@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ModProfilesView: View {
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     /// Bound to `MainView.currentTab` so "Manage mods" can jump to the Mods page.
     @Binding var currentTab: SidebarDestination
@@ -402,7 +402,7 @@ struct ProfileRow: View {
     /// La mesure est en cours : un témoin, plutôt qu'un chiffre qui monterait
     /// sous les yeux de l'utilisateur.
     let isMeasuringTranslation: Bool
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let onApply: () -> Void
     let onManage: () -> Void

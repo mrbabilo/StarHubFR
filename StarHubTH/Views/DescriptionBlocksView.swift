@@ -212,7 +212,7 @@ private struct LinkHandCursor: ViewModifier {
 /// items inside a `ScrollView` thrashes layout instead of helping.
 struct DescriptionBlocksView: View {
     let blocks: [DescriptionBlock]
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
 
     var body: some View {
@@ -293,7 +293,7 @@ struct DescriptionBlocksView: View {
 struct SpoilerView: View {
     let title: String
     private let blocks: [DescriptionBlock]
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     @State private var isExpanded = false
 

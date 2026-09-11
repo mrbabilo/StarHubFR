@@ -18,7 +18,7 @@ struct ModInstallBackupsView: View {
     /// ⌘F amène ici (voir `SearchFieldShortcut`).
     @FocusState private var searchFocused: Bool
 
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     @State private var backups: [ModInstallBackup] = []
     @State private var showRecoverable = false

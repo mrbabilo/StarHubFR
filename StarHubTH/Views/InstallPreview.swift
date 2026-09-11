@@ -4,7 +4,7 @@ import SwiftUI
 struct InstallPreview: View {
     let zipModInfo: ZipModInfo
     let installer: ModZipInstaller
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     @Binding var tempDir: URL?
     @Binding var isInstalling: Bool
@@ -412,7 +412,7 @@ struct InstallPreview: View {
 /// in-pack / missing) with optional Nexus link.
 struct DependencyRow: View {
     let entry: InstallPreview.DepEntry
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
 
     var body: some View {
@@ -530,7 +530,7 @@ struct DependencyRow: View {
 struct ConflictRow: View {
     let conflict: ModConflict
     @Binding var resolution: ConflictResolution
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
 
     var body: some View {
@@ -571,7 +571,7 @@ struct DetectedModRow: View {
     let selection: InstallSelection?
     let onSelectionChange: (InstallSelection) -> Void
     let existingMods: [ModItem]
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
 
     @State private var showDetails = false

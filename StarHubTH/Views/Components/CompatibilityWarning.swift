@@ -54,7 +54,7 @@ enum CompatibilityWarning {
 
 /// Le bandeau permanent de la fiche d'un mod.
 struct CompatibilityBanner: View {
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let mod: ModItem
 

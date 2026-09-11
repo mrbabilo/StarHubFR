@@ -9,7 +9,7 @@ import SwiftUI
 /// **Elle n'écrit jamais** : naviguer seulement. Une frappe rapide ne doit pas
 /// pouvoir toucher à `Mods/`.
 struct CommandPaletteView: View {
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     @Binding var isPresented: Bool
     @AppStorage("showThaiTranslationHub") private var showThaiTranslationHub = false

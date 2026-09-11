@@ -18,7 +18,7 @@ struct ModListView: View {
     /// ⌘F amène ici (voir `SearchFieldShortcut`).
     @FocusState private var searchFocused: Bool
 
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     /// L'onglet affiché, pour les rares endroits d'où la liste **mène
     /// ailleurs** (le badge de profil actif). Même patron que
@@ -1217,7 +1217,7 @@ struct ModListView: View {
 struct ModSectionGroup: View {
     let title: String
     let mods: [ModItem]
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     @ObservedObject var listState: ModListState
 
@@ -1250,7 +1250,7 @@ struct ModSectionGroup: View {
 struct ModGroupRow: View {
     let mod: ModItem
     let children: [ModItem]
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     @ObservedObject var listState: ModListState
     @State private var isExpanded = false
@@ -1288,7 +1288,7 @@ struct ModGroupRow: View {
 // MARK: - Row
 struct ModListRow: View {
     let mod: ModItem
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     /// Porté pour les gestes qui touchent au cadrage de la liste — par
     /// exemple, lever le filtre « à écarter » quand le dernier mod marqué
@@ -2282,7 +2282,7 @@ private struct ModWeightLabel: View {
 /// souvent ne dirait plus rien.
 private struct AnomalyBadge: View {
     let anomaly: ModAnomaly
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
 
     private var tint: Color { anomaly.severity == .error ? .orange : .yellow }
 

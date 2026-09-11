@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 import Combine
 import Cocoa
 import SwiftUI
@@ -8,10 +9,11 @@ enum SaveViewMode: String, Codable {
     case grid
 }
 
-class StarHubTHViewModel: ObservableObject {
-    @Published var saveViewMode: SaveViewMode = .list
-    @Published var saveSortOption: SaveSortOption = .lastPlayed
-    @Published var saveFilterTag: String = ""
+@Observable
+final class StarHubTHViewModel {
+    var saveViewMode: SaveViewMode = .list
+    var saveSortOption: SaveSortOption = .lastPlayed
+    var saveFilterTag: String = ""
 
     // MARK: Environnement — le store du domaine (REFACTORING §6), et ses
     // façades provisoires (condition 1) : les vues lisent encore
@@ -24,7 +26,6 @@ class StarHubTHViewModel: ObservableObject {
     // l'auto-refresh historique lançait deux scans concurrents qui
     // écrivaient `gameDir` et `mods` sans synchronisation.
     private let environment = GameEnvironmentStore(picker: LiveFilePicker())
-    private var environmentCancellable: AnyCancellable?
 
     var gameDir: String { environment.gameDir }
     var steamUsername: String { environment.steamUsername }
@@ -37,23 +38,23 @@ class StarHubTHViewModel: ObservableObject {
     // publie plus rien pour lui : plus de façade, plus de relais.
     let localization: LocalizationStore
     
-    @Published var outOfDateMods: [ModUpdateInfo] = []
-    @Published var smapiErrors: [String] = []
-    @Published var showSmapiAlerts: Bool = false
+    var outOfDateMods: [ModUpdateInfo] = []
+    var smapiErrors: [String] = []
+    var showSmapiAlerts: Bool = false
     /// Structured health diagnostics parsed from SMAPI-latest.txt (nil until
     /// first parse). Drives the SMAPI health card in LogsView.
-    @Published var smapiDiagnostics: SmapiDiagnostics?
+    var smapiDiagnostics: SmapiDiagnostics?
     /// mtime of the parsed SMAPI log (nil if unread); used for the "stale" badge.
-    @Published var smapiLogDate: Date?
+    var smapiLogDate: Date?
     /// True when the log's mtime predates this app session (= no game launch
     /// logged since StarHubFR was opened).
-    @Published var smapiLogStale: Bool = false
+    var smapiLogStale: Bool = false
     /// Les conflits de chargement que Content Patcher a constatés lors de la
     /// **dernière partie** journalisée. La date de ce constat est `smapiLogDate`
     /// (mtime de `SMAPI-latest.txt`), pas maintenant : ce n'est pas l'état du
     /// parc aujourd'hui, un conflit rapporté peut concerner deux mods qui sont
     /// en pause à l'instant où on le lit.
-    @Published private(set) var contentPatcherConflicts: [LoadConflict] = []
+    private(set) var contentPatcherConflicts: [LoadConflict] = []
     /// App-session start captured once at init (= app launch for the single
     /// @StateObject VM). Reference for SMAPI-log staleness.
     private let sessionStart = Date()
@@ -62,21 +63,21 @@ class StarHubTHViewModel: ObservableObject {
     /// nil when no toggle operation is in flight. Drives the spinner shown
     /// next to the toggle in ModListRow during the (now fast, but still
     /// background-dispatched) rename within Mods/.
-    @Published var pendingToggleFolder: String? = nil
+    var pendingToggleFolder: String? = nil
 
     /// Folder name of the mod currently being deleted, or nil when no delete
     /// is in flight. Drives the per-row spinner shown in place of the delete
     /// button (and the row is dimmed) during the (potentially slow) folder
     /// removal + rescan.
-    @Published var pendingDeleteFolder: String? = nil
+    var pendingDeleteFolder: String? = nil
 
     /// Mods with an available update on Nexus Mods (from last user-triggered check).
-    @Published var nexusUpdates: [NexusUpdateChecker.ModUpdate] = []
+    var nexusUpdates: [NexusUpdateChecker.ModUpdate] = []
     /// R3 — les mises à jour en veille : vraies, mais repoussées par un
     /// snooze encore vivant. Affichées repliées sous la liste, jamais dans
     /// l'inventaire masquées. Le badge sidebar ne les compte pas (`nexusUpdates`
     /// seul y figure).
-    @Published private(set) var snoozedUpdates: [NexusUpdateChecker.ModUpdate] = []
+    private(set) var snoozedUpdates: [NexusUpdateChecker.ModUpdate] = []
     /// R3 — le store des snoozes (persistance UserDefaults, expiration
     /// paresseuse). Touche principale uniquement, comme `nexusUpdates`.
     let updateSnoozer = ModUpdateSnoozer()
@@ -89,7 +90,7 @@ class StarHubTHViewModel: ObservableObject {
     /// L'`UniqueID` accompagne le nom depuis B2-T10 : une ligne sur laquelle on
     /// veut agir — ici la retirer quand Nexus a fini par la trancher — doit
     /// pouvoir être désignée, et deux mods peuvent porter le même nom.
-    @Published private(set) var unverifiableMods: [(uniqueId: String,
+    private(set) var unverifiableMods: [(uniqueId: String,
                                                     name: String,
                                                     blocker: SmapiUpdateResponse.Blocker)] = []
     /// Les mods que « Je l'ai déjà » a fait taire (X12).
@@ -100,7 +101,7 @@ class StarHubTHViewModel: ObservableObject {
     /// `healthIssues` et rangé en F3. Rafraîchi aux trois seuls moments où la
     /// liste peut changer : après un scan, après une affirmation, après un
     /// réaffichage.
-    @Published private(set) var affirmedUpdates: [AffirmedUpdates.Row] = []
+    private(set) var affirmedUpdates: [AffirmedUpdates.Row] = []
 
     /// Ce que smapi.io sait de la compatibilité de chaque mod, par `UniqueID`.
     ///
@@ -111,7 +112,7 @@ class StarHubTHViewModel: ObservableObject {
     /// Mesuré sur le parc : 281 mods `Ok`, 7 signalés, et **552 sans verdict**.
     /// Une absence n'est donc pas un satisfecit, et rien ne doit l'afficher
     /// comme tel.
-    @Published private(set) var modCompatibility: [String: ModCompatibility] =
+    private(set) var modCompatibility: [String: ModCompatibility] =
         ModCompatibilityStore.load() {
         didSet { compatibilityStatuses = modCompatibility.mapValues(\.status) }
     }
@@ -125,7 +126,7 @@ class StarHubTHViewModel: ObservableObject {
     /// Mesuré le 2026-09-05 sur le parc de référence : **zéro ligne** — les
     /// deux mods concernés portent l'un « Broken on Android », l'autre
     /// « use Nexus, ModDrop is NOT updated », tous deux écartés à raison.
-    @Published private(set) var modWarnings: [String: [String]] = [:]
+    private(set) var modWarnings: [String: [String]] = [:]
 
     /// Les mêmes verdicts réduits à leur statut, **tenus à jour plutôt que
     /// recalculés** : `anomaly(for:)` tourne sur chaque ligne du parc, deux
@@ -142,23 +143,23 @@ class StarHubTHViewModel: ObservableObject {
         case diskCache
         case none
     }
-    @Published private(set) var compatibilitySource: CompatibilitySource = .none
+    private(set) var compatibilitySource: CompatibilitySource = .none
     /// La date du dump Pathoschild effectivement utilisé (`fetchedAt` du
     /// décodeur, ou `nil` quand aucun dump n'a jamais été posé).
-    @Published private(set) var pathoschildDumpDate: Date? = nil
+    private(set) var pathoschildDumpDate: Date? = nil
     /// True while a Nexus check is in flight.
-    @Published var isCheckingNexusUpdates: Bool = false
+    var isCheckingNexusUpdates: Bool = false
     /// Last error message from a Nexus check (nil = none / not run yet).
-    @Published var nexusCheckError: String? = nil
+    var nexusCheckError: String? = nil
     /// Progress of the in-flight Nexus check: `(done, total)`. `nil` when idle.
-    @Published var nexusCheckProgress: (done: Int, total: Int)? = nil
+    var nexusCheckProgress: (done: Int, total: Int)? = nil
     /// Whether the user has provided a Nexus API key (kept in sync with Keychain).
-    @Published var hasNexusApiKey: Bool = false
+    var hasNexusApiKey: Bool = false
     /// Le compte Nexus, `nil` tant qu'on ne sait pas.
     ///
     /// Sert à ne pas proposer ce qui échouera : le téléchargement direct par
     /// l'API est réservé aux comptes premium.
-    @Published private(set) var nexusAccount: NexusAccount? = nil
+    private(set) var nexusAccount: NexusAccount? = nil
 
     /// `true` seulement quand on **sait** que le compte n'est pas premium.
     /// L'ignorance ne retire rien : mieux vaut un bouton qui échoue qu'un
@@ -167,10 +168,10 @@ class StarHubTHViewModel: ObservableObject {
 
     /// Dernier quota Nexus relevé, `nil` tant qu'aucune réponse de l'API n'a été
     /// vue. Rafraîchi à l'ouverture des réglages et à chaque relevé (B2-T6).
-    @Published private(set) var nexusQuota: NexusQuota? = nil
+    private(set) var nexusQuota: NexusQuota? = nil
     /// Set when a Nexus download finishes; MainView observes it to open the
     /// install sheet pre-loaded with the downloaded .zip.
-    @Published var pendingDownloadedZip: URL?
+    var pendingDownloadedZip: URL?
     /// Ce que l'app sait du téléchargement Nexus qui attend sa feuille
     /// d'installation. `facts` n'est renseigné que quand l'app a **choisi**
     /// le fichier elle-même (résolution du MAIN le plus récent) — l'ancre de
@@ -187,18 +188,18 @@ class StarHubTHViewModel: ObservableObject {
     }
     /// Set alongside pendingDownloadedZip when the zip came from a Nexus download,
     /// so the post-install step can reconcile the manifest version.
-    @Published var pendingNexusSource: NexusInstallSource?
+    var pendingNexusSource: NexusInstallSource?
     /// X103-C — le magasin d'archives Nexus. Inerte tant que le réglage
     /// `keepNexusArchives` est éteint : rien n'appelle `keep`.
-    lazy var nexusArchiveStore = NexusArchiveStore(
+    var nexusArchiveStore = NexusArchiveStore(
         root: NexusArchiveStore.defaultRoot(
             applicationSupport: AppSupport.directory
                 ?? URL(fileURLWithPath: NSTemporaryDirectory())))
-    @Published var isDownloadingFromNexus = false
+    var isDownloadingFromNexus = false
     /// Nexus mod id of the mod currently being downloaded, or nil when idle.
     /// Drives the per-row spinner in the Updates list while a premium update
     /// is in flight (isDownloadingFromNexus only tells "one is running").
-    @Published var downloadingNexusModId: Int? = nil
+    var downloadingNexusModId: Int? = nil
     private let nexusDownloader = NexusDownloader()
 
     /// Où en est le téléchargement Nexus en cours (B2-T1). `nil` au repos, et
@@ -211,7 +212,7 @@ class StarHubTHViewModel: ObservableObject {
     /// sont plus refusées pour autant — elles attendent dans
     /// `nexusDownloadQueue` et reprennent tour à tour à chaque bascule de
     /// repos.
-    @Published private(set) var nexusDownloadProgress: DownloadProgress?
+    private(set) var nexusDownloadProgress: DownloadProgress?
 
     /// Le téléchargement en vol, seul point d'annulation. Existe dès la
     /// demande, donc avant que le lien ne soit résolu.
@@ -230,10 +231,10 @@ class StarHubTHViewModel: ObservableObject {
     /// (Task 3 data layer; nav wiring lands in a later task).
     // `ModDetailState` vit en Core (Models/ModDetailState.swift, REFACTORING
     // §6) avec ses transitions testées ; le VM garde l'état publié.
-    @Published var modDetailState: ModDetailState?
+    var modDetailState: ModDetailState?
     /// Non-nil = the detail pane is showing this mod. Its didSet kicks off
     /// loading (cache/local instantly, then a background refresh).
-    @Published var viewingModDetail: ModItem? {
+    var viewingModDetail: ModItem? {
         didSet { if let m = viewingModDetail { loadModDetail(for: m) } }
     }
 
@@ -290,7 +291,7 @@ class StarHubTHViewModel: ObservableObject {
     /// Survives launches (cached in UserDefaults) so the mods-list category
     /// filter works even before the user re-checks. Mods without a known
     /// category simply don't appear under any category scope.
-    @Published var nexusCategories: [String: Int] = [:] {
+    var nexusCategories: [String: Int] = [:] {
         didSet { categoryCache.removeAll() }
     }
 
@@ -298,7 +299,7 @@ class StarHubTHViewModel: ObservableObject {
     /// populated alongside `nexusCategories` from the same API response.
     /// Survives launches (cached in UserDefaults). Powers the preview shown
     /// in the mod details popover.
-    @Published var nexusModExtras: [String: NexusUpdateChecker.NexusModExtra] = [:]
+    var nexusModExtras: [String: NexusUpdateChecker.NexusModExtra] = [:]
 
     // Les overrides **écrits par l'utilisateur** (catégorie épinglée,
     // identifiant Nexus saisi) vivent dans `NexusMetadataStore` (Core,
@@ -313,7 +314,6 @@ class StarHubTHViewModel: ObservableObject {
     /// les vues ne l'observent pas directement (P8) ; le relais ci-dessous
     /// républie à chaque écriture.
     private let nexusMetadata = NexusMetadataStore()
-    private var nexusMetadataCancellable: AnyCancellable?
 
     /// `{ folderName: lastActivatedDate }` — stamped every time a mod (or a
     /// whole pack, which moves as a single folder) transitions from
@@ -321,37 +321,37 @@ class StarHubTHViewModel: ObservableObject {
     /// `applyProfileToFilesystem()`. Never touched on disable — it records
     /// the *last activation*, not the last state change. Drives the
     /// "Activation order" sort in the mods list. Persisted in UserDefaults.
-    @Published var modActivationTimestamps: [String: Date] = [:]
+    var modActivationTimestamps: [String: Date] = [:]
     /// Les mods marqués comme favoris, par leur `folderName` **logique** —
     /// celui qui ne porte pas le point d'un dossier en pause, donc le marquage
     /// survit à une mise en pause. Même clé que `modActivationTimestamps`.
-    @Published private(set) var favoriteMods: Set<String> = []
+    private(set) var favoriteMods: Set<String> = []
     /// Les mods marqués « à écarter » (blacklist) — même clé que
     /// `favoriteMods` : `folderName` **logique**, pour survivre à une mise en
     /// pause. Le mod reste installé et activable ; il est juste **grisé** dans
     /// la liste, et un filtre / import dans un profil le distingue du reste.
-    @Published private(set) var blacklistedMods: Set<String> = []
+    private(set) var blacklistedMods: Set<String> = []
     /// Les mods dont le `config.json` suit le profil actif (B3-T5), par nom
     /// **logique** de dossier — même clé que `favoriteMods`.
-    @Published private(set) var profileManagedConfigMods: Set<String> = []
+    private(set) var profileManagedConfigMods: Set<String> = []
 
     /// L'inventaire de l'écran « Entretien » (X25). `nil` tant qu'il n'a pas
     /// été construit — distinct d'un rapport vide, qui veut dire « rien à
     /// faire ».
-    @Published private(set) var maintenanceReport: MaintenanceInventory.Report?
-    @Published private(set) var isBuildingMaintenanceReport = false
+    private(set) var maintenanceReport: MaintenanceInventory.Report?
+    private(set) var isBuildingMaintenanceReport = false
 
     /// True during the initial launch load (mod scan + save reload + profile
     /// load). Drives the launch spinner overlay in `MainView` so the user sees
     /// immediate feedback before the first mod list is ready.
-    @Published var isLaunching: Bool = true
+    var isLaunching: Bool = true
     /// Granular progress for the launch overlay, 0.0 → 1.0. Drives a
     /// determinate progress bar instead of an indeterminate spinner, so the
     /// user sees exactly where the app is in its startup sequence.
-    @Published var launchProgress: Double = 0.0
+    var launchProgress: Double = 0.0
     /// Localized label of the current launch step (e.g. "Scanning mods…").
     /// Updated atomically with `launchProgress` from `performInitialLoad`.
-    @Published var launchStep: String = ""
+    var launchStep: String = ""
 
     /// Per-mod progress published (throttled) during `scanMods()`'s top-level
     /// enumeration, so the launch overlay can show "Analyse de <mod>… (X/N)"
@@ -360,7 +360,7 @@ class StarHubTHViewModel: ObservableObject {
     /// slice of the launch bar.
     // `ScanProgress` vit désormais en Core (`Models/ModScanner.swift`, avec
     // le scanner qui le produit) — même nom, mêmes champs, `phase` compris.
-    @Published var scanProgress: ScanProgress? = nil
+    var scanProgress: ScanProgress? = nil
 
 
     /// Launch-bar slice reserved for the "Scanning mods" phase. Kept as
@@ -420,7 +420,7 @@ class StarHubTHViewModel: ObservableObject {
                            entries: entries, modsFound: modsFound)
     }
 
-    @Published var mods: [ModItem] = [] {
+    var mods: [ModItem] = [] {
         didSet {
             categoryCache.removeAll()
             recomputeFrenchCoverage()
@@ -526,17 +526,17 @@ class StarHubTHViewModel: ObservableObject {
     /// fiche mod doit pouvoir dire **ce qui** manque — les clés absentes, et
     /// surtout les vides, qui cassent l'affichage en jeu au lieu de retomber
     /// sur l'anglais.
-    @Published private(set) var frenchCoverageByMod: [String: TranslationCoverage.Coverage] = [:]
+    private(set) var frenchCoverageByMod: [String: TranslationCoverage.Coverage] = [:]
 
     /// L'index des clés obsolètes, relu après chaque calcul de diff. Le lire
     /// depuis le disque à chaque ligne de la liste ouvrirait un fichier par mod
     /// affiché.
-    @Published private(set) var outdatedKeysByMod: [String: Int] = [:]
+    private(set) var outdatedKeysByMod: [String: Int] = [:]
 
     /// Les mods dont l'anglais est plus récent que le français, mesuré au scan.
     /// Deux lectures d'attributs par dossier `i18n` : assez léger pour la liste
     /// entière, contrairement à la lecture des fichiers eux-mêmes.
-    @Published private(set) var staleTranslationMods: Set<String> = []
+    private(set) var staleTranslationMods: Set<String> = []
 
     /// `@MainActor` explicite : `translationDiff(for:)` n'est pas lui-même
     /// isolé à l'acteur principal, et la reprise après un `await` sur une
@@ -807,12 +807,12 @@ class StarHubTHViewModel: ObservableObject {
     /// un corps calculé ne serait pas suivi sous `@Observable` (cadrage §3
     /// bis, cas 6). La valeur stockée est resynchronisée par
     /// `resyncMirroredDefaults()`, branchée sur `didChangeNotification`.
-    @Published private(set) var localAIEndpoint: URL? =
+    private(set) var localAIEndpoint: URL? =
         StarHubTHViewModel.readLocalAIEndpoint()
 
     /// Le nom de modèle choisi, chaîne vide si non configuré. **Miroir** (voir
     /// `localAIEndpoint`).
-    @Published private(set) var localAIModelName: String =
+    private(set) var localAIModelName: String =
         StarHubTHViewModel.readLocalAIModelName()
 
     /// `true` quand URL validée **et** modèle nommé.
@@ -838,7 +838,7 @@ class StarHubTHViewModel: ObservableObject {
     /// se pose à chaque passe de rendu de l'onglet Traduction, et interroger
     /// le trousseau à ce rythme se paie. Les deux écritures ci-dessous sont
     /// les seules qui la changent.
-    @Published private(set) var hasDeepLKey = KeychainSecret.deepLApiKey.read() != nil
+    private(set) var hasDeepLKey = KeychainSecret.deepLApiKey.read() != nil
 
     /// Enregistre la clé du secours. Rend `false` si le trousseau refuse —
     /// l'appelant ne doit pas annoncer une clé enregistrée qui ne l'est pas.
@@ -867,7 +867,7 @@ class StarHubTHViewModel: ObservableObject {
 
     /// La case « secours DeepL ». **Miroir** (voir `localAIEndpoint`) : la
     /// clé est écrite en `@AppStorage` par `SettingsView`.
-    @Published private(set) var deepLFallbackEnabled: Bool =
+    private(set) var deepLFallbackEnabled: Bool =
         StarHubTHViewModel.readDeepLFallbackEnabled()
 
     /// Les lectures des miroirs en **un seul endroit** : les initialisateurs
@@ -1008,8 +1008,8 @@ class StarHubTHViewModel: ObservableObject {
     typealias BatchProgress = TranslationBatchRun.Progress
     typealias BatchReport = TranslationBatchRun.Report
 
-    @Published private(set) var batchProgress: BatchProgress?
-    @Published private(set) var batchReport: BatchReport?
+    private(set) var batchProgress: BatchProgress?
+    private(set) var batchReport: BatchReport?
     private var batchTask: Task<Void, Never>?
 
     /// Lance le lot — **une requête à la fois** : le GPU local est le goulot
@@ -1586,7 +1586,7 @@ class StarHubTHViewModel: ObservableObject {
     ///
     /// Le grain diffère aussi : la pastille de la liste mesure un dossier de
     /// premier niveau **entier**, quand un profil raisonne par composant.
-    @Published private(set) var profileTranslationSummaries: [UUID: ProfileTranslationSummary] = [:]
+    private(set) var profileTranslationSummaries: [UUID: ProfileTranslationSummary] = [:]
 
     /// `UniqueID` en minuscules → couverture propre au mod (mods imbriqués
     /// exclus, voir `ownDirectoriesOnly`). Mesuré une fois par mod : la passe
@@ -1604,7 +1604,7 @@ class StarHubTHViewModel: ObservableObject {
 
     /// Vrai pendant la passe de mesure : la page des profils montre un témoin
     /// plutôt qu'un pourcentage faux.
-    @Published private(set) var isMeasuringProfileTranslation = false
+    private(set) var isMeasuringProfileTranslation = false
 
     /// Mesure ce qui manque, puis republie les résumés.
     ///
@@ -1790,7 +1790,7 @@ class StarHubTHViewModel: ObservableObject {
     /// Mesuré le 2026-08-25 : **7 identifiants sur 14 dossiers**, dont trois
     /// avec leurs deux copies actives (le mod Swim, à plat et dans son dossier
     /// de téléchargement). Rien ne le disait jusqu'ici.
-    @Published private(set) var duplicateIndex: ModDuplicateIndex = .empty
+    private(set) var duplicateIndex: ModDuplicateIndex = .empty
 
     /// Manifest decode cache, keyed by manifest.json absolute path. Each
     /// entry stores the file's mtime alongside the decoded JSON so a stale
@@ -1808,14 +1808,14 @@ class StarHubTHViewModel: ObservableObject {
     private let scanner = ModScanner()
 
     // Thai Translation Hub State
-    @Published var thaiTranslations: [ThaiTranslationMod] = []
+    var thaiTranslations: [ThaiTranslationMod] = []
     /// Set when fetchThaiTranslations() fails (network error, bad response,
     /// unparseable content) — lets the hub show a retry state instead of
     /// spinning forever, since thaiTranslations staying empty is otherwise
     /// indistinguishable from "still loading".
-    @Published var thaiTranslationsError: String? = nil
-    @Published var viewingThaiMod: ThaiTranslationMod? = nil
-    @Published var editingModConfig: ModItem? = nil {
+    var thaiTranslationsError: String? = nil
+    var viewingThaiMod: ThaiTranslationMod? = nil
+    var editingModConfig: ModItem? = nil {
         didSet {
             // Fermeture de l'éditeur ⇒ rescan du rapport de raccourcis
             // (ronde finale de revue). `saveConfig()` écrit le `config.json`
@@ -1866,7 +1866,7 @@ class StarHubTHViewModel: ObservableObject {
     /// Result of the last automatic mod-folder repair run. Non-nil when the
     /// repairer quarantined corrupt items or found duplicates; the UI surfaces
     /// a banner so the user knows what was moved to `_Trash_` and can review.
-    @Published var lastRepairReport: ModFolderRepairer.Report? = nil
+    var lastRepairReport: ModFolderRepairer.Report? = nil
 
     /// Transient result message from the Quarantine view's "empty to Mac
     /// Trash" action. Published (not @State on the view) because the recycle
@@ -1879,21 +1879,21 @@ class StarHubTHViewModel: ObservableObject {
         let isError: Bool
     }
 
-    @Published var quarantineActionMessage: QuarantineMessage? = nil
+    var quarantineActionMessage: QuarantineMessage? = nil
 
     /// Tracks the set of SMAPI errors already journaled, so only genuinely
     /// new alerts are logged on each re-parse (prevents re-logging the full
     /// list when the count fluctuates between game sessions).
     private var lastLoggedSMAPIErrors: Set<String> = []
 
-    @Published var logEntries: [LogEntry] = []
+    var logEntries: [LogEntry] = []
     /// Maximum number of log entries retained in memory to avoid unbounded growth
     /// during long sessions (each SMAPI reload can append hundreds of lines).
     private let maxLogEntries = 2000
-    @Published var alertMessage: String = ""
-    @Published var showAlert: Bool = false
-    @Published var saves: [SaveGameInfo] = []
-    @Published var editingSave: SaveGameInfo? = nil {
+    var alertMessage: String = ""
+    var showAlert: Bool = false
+    var saves: [SaveGameInfo] = []
+    var editingSave: SaveGameInfo? = nil {
         didSet {
             guard let save = editingSave else {
                 inventoryToEdit = []
@@ -1914,11 +1914,11 @@ class StarHubTHViewModel: ObservableObject {
             }
         }
     }
-    @Published var inventoryToEdit: [InventoryItem] = []
-    @Published var viewingSaveTimeline: SaveGameInfo? = nil
+    var inventoryToEdit: [InventoryItem] = []
+    var viewingSaveTimeline: SaveGameInfo? = nil
     
-    @Published var saveToDuplicate: SaveGameInfo? = nil
-    @Published var backupToBranch: SaveBackup? = nil
+    var saveToDuplicate: SaveGameInfo? = nil
+    var backupToBranch: SaveBackup? = nil
 
     /// Vrai pendant qu'une écriture de sauvegarde (suppression, duplication,
     /// backup, restauration) tourne en tâche de fond.
@@ -1928,21 +1928,21 @@ class StarHubTHViewModel: ObservableObject {
     /// sans ce drapeau, deux clics sur « Dupliquer » lanceraient deux copies
     /// concurrentes du même dossier. Même rôle qu'`isApplyingProfile` —
     /// `guard` dans le ViewModel, `.disabled` sur les boutons.
-    @Published private(set) var isSaveOperationRunning = false
+    private(set) var isSaveOperationRunning = false
 
-    @Published var modProfiles: [ModProfile] = []
-    @Published var activeProfileId: UUID? = nil
+    var modProfiles: [ModProfile] = []
+    var activeProfileId: UUID? = nil
 
     /// True while a profile is being applied to disk (mod folders moving, then
     /// the rescan). Blocks starting another activation until it finishes, and
     /// lets the UI disable the Activate/Manage buttons meanwhile.
-    @Published var isApplyingProfile = false
+    var isApplyingProfile = false
 
     /// Id of the profile currently being applied, or nil when none is in
     /// flight. Drives the per-row spinner in ModProfilesView (the Activate
     /// button of the matching row is replaced by a ProgressView). Cleared
     /// together with `isApplyingProfile` once the move + rescan completes.
-    @Published var applyingProfileId: UUID? = nil
+    var applyingProfileId: UUID? = nil
 
     /// Délai anti double-lancement (R2bis) : ponte la fenêtre où le jeu lancé
     /// n'apparaît pas encore dans `NSWorkspace.runningApplications`. La porte
@@ -1951,12 +1951,12 @@ class StarHubTHViewModel: ObservableObject {
     private var launchGate = GameLaunchGate()
 
     /// When true, toggling a mod also cascades to its dependencies / dependents.
-    @Published var chainToggleDependencies: Bool = UserDefaults.standard.object(forKey: UDKey.chainToggleDependencies) as? Bool ?? true {
+    var chainToggleDependencies: Bool = UserDefaults.standard.object(forKey: UDKey.chainToggleDependencies) as? Bool ?? true {
         didSet {
             UserDefaults.standard.set(chainToggleDependencies, forKey: UDKey.chainToggleDependencies)
         }
     }
-    @Published var autoCheckNexusUpdates: Bool = UserDefaults.standard.object(forKey: UDKey.autoCheckNexusUpdates) as? Bool ?? true {
+    var autoCheckNexusUpdates: Bool = UserDefaults.standard.object(forKey: UDKey.autoCheckNexusUpdates) as? Bool ?? true {
         didSet {
             UserDefaults.standard.set(autoCheckNexusUpdates, forKey: UDKey.autoCheckNexusUpdates)
         }
@@ -1985,7 +1985,7 @@ class StarHubTHViewModel: ObservableObject {
     /// accident de l'ordre des écritures du scanner. `removeDuplicates()` :
     /// un scan émet plusieurs fois sans toujours changer le rapport.
     /// (Revue du chantier A, Task 1.)
-    @Published private(set) var keybindReport: KeybindScanner.KeybindReport?
+    private(set) var keybindReport: KeybindScanner.KeybindReport?
     private var keybindCancellable: AnyCancellable?
     private var defaultsCancellable: AnyCancellable?
     
@@ -2035,20 +2035,15 @@ class StarHubTHViewModel: ObservableObject {
             .publisher(for: UserDefaults.didChangeNotification)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.resyncMirroredDefaults() }
-        // Le relais : les vues n'observent pas encore le store directement
-        // (façades provisoires ci-dessus) — sans lui, elles resteraient sur
-        // l'ancienne valeur après chaque écriture du store.
-        environmentCancellable = environment.objectWillChange.sink { [weak self] _ in
-            self?.objectWillChange.send()
-        }
-        // Le store des métadonnées utilisateur : ses écritures invalident le
-        // cache de catégories (le travail des `didSet` d'origine) et
-        // republient.
-        nexusMetadataCancellable = nexusMetadata.objectWillChange.sink { [weak self] _ in
-            guard let self else { return }
-            self.categoryCache.removeAll()
-            self.objectWillChange.send()
-        }
+        // La publication est inutile sous @Observable : une vue qui lit une
+        // façade suit la propriété du store à travers elle (cadrage §2, cas
+        // 1). Le store n'a plus d'objectWillChange non plus — l'invalidation
+        // du cache de catégories passe par la closure qu'on lui injecte
+        // (appelée par persistCategories/persistModIds, que toute mutation
+        // emprunte). Sans elle, une catégorie épinée laisserait les lignes
+        // sur une valeur périmée. Le patron existe déjà sur
+        // `nexusCategories.didSet` et le `didSet` de `mods`.
+        nexusMetadata.onInvalidate = { [weak self] in self?.categoryCache.removeAll() }
         // Seed the first launch step label synchronously so the overlay never
         // shows an empty string before the first async hop lands.
         self.launchStep = self.localization.L(L10n.Main.launchStepInit)
@@ -2180,7 +2175,7 @@ class StarHubTHViewModel: ObservableObject {
 
     /// `true` pendant qu'un `refreshSmapiLog()` tourne — piloter le bouton de
     /// la page des alertes système (spinner, anti double-clic).
-    @Published private(set) var isRefreshingSmapiLog = false
+    private(set) var isRefreshingSmapiLog = false
 
     /// Relit le journal SMAPI et recalcule ce qui en découle : alertes
     /// système, diagnostics, mods signalés à jour. Sortie ciblée de
@@ -2549,10 +2544,10 @@ class StarHubTHViewModel: ObservableObject {
     // MARK: - Poids du parc (B2-T2)
 
     /// Ce que pèsent les mods, `nil` tant qu'aucune mesure n'a abouti.
-    @Published private(set) var modsFolderSizes: ModsFolderSizes? = nil
+    private(set) var modsFolderSizes: ModsFolderSizes? = nil
     /// `true` pendant la traversée. Le pied de barre l'annonce : sans ça, il
     /// reste vide quelques secondes au lancement, ce qui se lit comme un bug.
-    @Published private(set) var isMeasuringModsFolder: Bool = false
+    private(set) var isMeasuringModsFolder: Bool = false
 
     /// Sérialise les mesures : `scanMods()` est appelé depuis 29 endroits
     /// (installation, suppression, bascule, application de profil…) et deux
@@ -2867,7 +2862,7 @@ class StarHubTHViewModel: ObservableObject {
     /// Progress of an in-flight bulk enable/disable-all operation:
     /// `(done, total)`. `nil` when idle. Drives the progress overlay in
     /// `ModListView`. Published on the main thread after each individual move.
-    @Published var bulkToggleProgress: (done: Int, total: Int)? = nil
+    var bulkToggleProgress: (done: Int, total: Int)? = nil
 
     /// Les deux temps d'une application de profil. Le second n'est pas de la
     /// décoration : le rescane d'un parc de près de mille mods dure, et sans
@@ -2893,11 +2888,11 @@ class StarHubTHViewModel: ObservableObject {
     /// à `toggleAllMods` : les partager ferait qu'activer un profil bloquerait
     /// « tout activer », un couplage que personne n'a demandé. L'application
     /// d'un profil a son propre verrou, `isApplyingProfile`.
-    @Published private(set) var profileApplyProgress: ProfileApplyProgress? = nil
+    private(set) var profileApplyProgress: ProfileApplyProgress? = nil
     /// Direction of the in-flight bulk toggle: `true` = enabling all,
     /// `false` = disabling all. Meaningful only while
     /// `bulkToggleProgress` is non-nil.
-    @Published var bulkToggleEnabling: Bool = false
+    var bulkToggleEnabling: Bool = false
 
     // Toggle Mod Status (Enabled / Disabled)
     //
@@ -3095,7 +3090,7 @@ class StarHubTHViewModel: ObservableObject {
         }
     }
     
-    @Published var selectedMod: ModItem? = nil {
+    var selectedMod: ModItem? = nil {
         didSet {
             if let mod = selectedMod, selectedModID != mod.folderName {
                 selectedModID = mod.folderName
@@ -3108,14 +3103,14 @@ class StarHubTHViewModel: ObservableObject {
     /// are built in an `if/else` chain, so when the request is made from the
     /// Logs tab `ModListView` doesn't exist yet and can't observe a
     /// notification. It reads and clears this on appear instead.
-    @Published var pendingModFocus: String? = nil
+    var pendingModFocus: String? = nil
 
     /// Le mod dont la fiche doit s'ouvrir **sur son onglet Traduction**, par
     /// dossier logique. Posé par la couverture française d'un profil (B3-T4),
     /// où le geste attendu n'est pas « regarde ce mod » mais « traduis-le ».
     /// La fiche le consomme à son apparition ; il ne survit pas au passage
     /// d'un mod à l'autre.
-    @Published var pendingTranslationFocus: String? = nil
+    var pendingTranslationFocus: String? = nil
 
     /// Le mod dont l'**éditeur de configuration** doit s'ouvrir après un
     /// changement d'onglet, par dossier logique. Posé par le rapport de
@@ -3123,7 +3118,7 @@ class StarHubTHViewModel: ObservableObject {
     /// `onChange` de `MainView` après sa remise à zéro des états de détail —
     /// poser `editingModConfig` avant la bascule ne sert à rien, la remise à
     /// zéro l'efface aussitôt (même piège que `pendingTranslationFocus`).
-    @Published var pendingConfigFocus: String? = nil
+    var pendingConfigFocus: String? = nil
 
     /// Le mod dont la **fiche** doit s'ouvrir après un changement d'onglet —
     /// une requête libre (dossier OU nom affiché), résolue via
@@ -3133,7 +3128,7 @@ class StarHubTHViewModel: ObservableObject {
     /// voir sa doc), celui-ci ouvre la fiche elle-même — même piège, même
     /// cure que `pendingConfigFocus` : consommé dans le `onChange` de
     /// `MainView`, après la remise à zéro des états de détail.
-    @Published var pendingModDetailFocus: String? = nil
+    var pendingModDetailFocus: String? = nil
 
     /// L'onglet sur lequel la prochaine fiche de mod doit s'ouvrir, quand
     /// l'appelant ne veut pas la description par défaut. Posé avec
@@ -3146,14 +3141,14 @@ class StarHubTHViewModel: ObservableObject {
     /// : `selectedTab` est un `@State` privé de cette vue. Remis à `nil` par
     /// `MainView` quand la résolution échoue, sinon la demande survivrait
     /// jusqu'à la prochaine fiche ouverte à la main.
-    @Published var pendingDetailTab: DetailTab? = nil
+    var pendingDetailTab: DetailTab? = nil
 
     /// C2-T4 — le cadrage du diff de traduction demandé par le bouton
     /// « Traduire les nouveaux textes » de la section « Dernière mise à jour ».
     /// Consommé au `.task` de `TranslationDiffView` (là seul où le filtre
     /// existe avant que les groupes se rebâtissent), remis à `nil` aussitôt —
     /// la réouverture manuelle de l'onglet ne rejoue pas le cadrage.
-    @Published var pendingTranslationDiffFilter: TranslationDiffView.DiffFilter? = nil
+    var pendingTranslationDiffFilter: TranslationDiffView.DiffFilter? = nil
 
     /// Le texte à préremplir dans la recherche des Journaux après un
     /// changement d'onglet. Posé par `SystemAlertsView` (H-T6b) pour ses
@@ -3167,7 +3162,7 @@ class StarHubTHViewModel: ObservableObject {
     /// que `pendingModFocus`/`consumePendingModFocus()` dans `ModListView`
     /// (« une requête peut arriver avant que la vue n'existe »), pas celui de
     /// `pendingConfigFocus`.
-    @Published var pendingLogFocus: String? = nil
+    var pendingLogFocus: String? = nil
 
     /// Cadrage de la liste des mods : recherche, filtres, tri, page courante.
     ///
@@ -3181,7 +3176,7 @@ class StarHubTHViewModel: ObservableObject {
     /// `ModListState`.
     let modList = ModListState()
 
-    @Published var selectedModID: String? = nil {
+    var selectedModID: String? = nil {
         didSet {
             if let id = selectedModID, selectedMod?.folderName != id {
                 selectedMod = mods.first { $0.folderName == id }
@@ -3429,7 +3424,7 @@ class StarHubTHViewModel: ObservableObject {
 
     /// Per-mod, per-version error history (see `ModErrorHistory`). Loaded once,
     /// then kept in memory; the mod detail view reads it.
-    @Published var modErrorHistory = ModErrorHistory()
+    var modErrorHistory = ModErrorHistory()
     /// Log timestamp of the last fold, so the same log is never counted twice.
     private var lastErrorHistoryLogDate: Date?
     private var errorHistoryLoaded = false
@@ -4894,7 +4889,7 @@ class StarHubTHViewModel: ObservableObject {
     /// Les archives conservées, telles que l'écran Entretien les lit.
     /// En lecture seule au-dehors : la liste se recharge par
     /// `refreshNexusArchives()`, jamais en la réécrivant depuis une vue.
-    @Published private(set) var nexusArchives: [NexusArchiveEntry] = []
+    private(set) var nexusArchives: [NexusArchiveEntry] = []
 
     func refreshNexusArchives() {
         nexusArchives = nexusArchiveStore.entries()
@@ -5293,23 +5288,23 @@ class StarHubTHViewModel: ObservableObject {
     /// Ce qui est posé sur quel mod. Relu au lancement, réécrit à chaque dépôt
     /// ou retrait — c'est la seule trace : la perdre rendrait toute
     /// désinstallation impossible.
-    @Published private(set) var installedTranslations = InstalledTranslationRegistry()
+    private(set) var installedTranslations = InstalledTranslationRegistry()
     /// Les traductions françaises trouvées pour un mod, par `folderName`.
     /// Vidé à chaque nouvelle recherche : ce n'est pas un cache, c'est le
     /// résultat de la dernière question posée.
-    @Published private(set) var translationHits: [String: [NexusModSearch.Hit]] = [:]
+    private(set) var translationHits: [String: [NexusModSearch.Hit]] = [:]
     /// Les résultats **correspondant à ce qui est déjà posé**, retirés des
     /// propositions mais gardés : c'est là que se lit une version plus récente,
     /// et c'est vers eux que rattache le menu.
-    @Published private(set) var translationInstalledHits: [String: [NexusModSearch.Hit]] = [:]
+    private(set) var translationInstalledHits: [String: [NexusModSearch.Hit]] = [:]
     /// Les mods dont une recherche est en cours.
     ///
     /// Un ensemble, pas un seul nom : la fiche désactive ses boutons **mod par
     /// mod**, si bien qu'un verrou unique rendait muet le clic sur un second
     /// mod — le bouton restait actif et ne faisait rien.
-    @Published private(set) var searchingTranslations: Set<String> = []
+    private(set) var searchingTranslations: Set<String> = []
     /// Les mods dont une traduction s'installe ou se retire.
-    @Published private(set) var busyTranslations: Set<String> = []
+    private(set) var busyTranslations: Set<String> = []
 
     /// La traduction posée sur ce mod, s'il y en a une.
     func translation(for mod: ModItem) -> InstalledTranslation? {
@@ -5426,9 +5421,9 @@ class StarHubTHViewModel: ObservableObject {
         var isCapped: Bool { serverTotal > received }
     }
     /// Les suppléments trouvés pour un mod, par `folderName`.
-    @Published private(set) var supplementSearches: [String: SupplementSearch] = [:]
+    private(set) var supplementSearches: [String: SupplementSearch] = [:]
     /// Les mods dont une recherche de suppléments est en cours.
-    @Published private(set) var searchingSupplements: Set<String> = []
+    private(set) var searchingSupplements: Set<String> = []
 
     /// Ce qu'une recherche d'identité a rendu — voir
     /// `NexusModSearch.identityCandidates`.
@@ -5444,9 +5439,9 @@ class StarHubTHViewModel: ObservableObject {
         var isCapped: Bool { serverTotal > received }
     }
     /// Les fiches Nexus candidates pour un mod sans identifiant, par `folderName`.
-    @Published private(set) var identitySearches: [String: IdentitySearch] = [:]
+    private(set) var identitySearches: [String: IdentitySearch] = [:]
     /// Les mods dont une recherche d'identité est en cours.
-    @Published private(set) var searchingIdentity: Set<String> = []
+    private(set) var searchingIdentity: Set<String> = []
 
     /// Cherche sur Nexus la fiche d'un mod qui n'en déclare aucune.
     ///
@@ -6120,25 +6115,25 @@ class StarHubTHViewModel: ObservableObject {
     /// Où en est une fiche demandée depuis la vitrine.
     enum DiscoveryDetailState { case idle, loading, loaded, failed }
 
-    @Published private(set) var discovery: [ModCatalog.SectionKind: ModCatalog.SectionState] = [:]
-    @Published private(set) var discoveryLoading = false
-    @Published private(set) var discoverySearch: DiscoverySearchResult?
+    private(set) var discovery: [ModCatalog.SectionKind: ModCatalog.SectionState] = [:]
+    private(set) var discoveryLoading = false
+    private(set) var discoverySearch: DiscoverySearchResult?
     /// Ce qui dit si une réponse de recherche est encore attendue. Les
     /// réponses arrivent sur le fil principal (`NexusSearchClient`), comme les
     /// mutations d'ici.
     private var discoveryEpoch = RequestEpoch()
-    @Published private(set) var discoveryDetail: NexusModSearch.Detail?
-    @Published private(set) var discoveryDetailState: DiscoveryDetailState = .idle
+    private(set) var discoveryDetail: NexusModSearch.Detail?
+    private(set) var discoveryDetailState: DiscoveryDetailState = .idle
     /// Même rôle que `discoveryEpoch`, pour la fiche : la feuille se ferme et
     /// s'ouvre sur un autre mod plus vite qu'une requête ne revient.
     private var discoveryDetailEpoch = RequestEpoch()
     /// La dernière panne réseau des sections — un seul message en haut de
     /// l'onglet, chaque section n'a pas à répéter (spec §8).
-    @Published private(set) var lastDiscoveryError: NexusSearchClient.SearchError?
+    private(set) var lastDiscoveryError: NexusSearchClient.SearchError?
     /// La catégorie à laquelle les trois sections sont restreintes, `nil`
     /// pour toutes. Le filtre part au **serveur** : sur 50 mods de tendances
     /// on compte déjà 15 catégories, trier la page reçue n'aurait rien rendu.
-    @Published private(set) var discoveryCategory: NexusCategory?
+    private(set) var discoveryCategory: NexusCategory?
 
     private var pendingSectionFetches = 0
 
@@ -6153,7 +6148,7 @@ class StarHubTHViewModel: ObservableObject {
     /// l'app vient d'installer, elle le sait tout de suite : elle le dit tout
     /// de suite. Rien à persister — au prochain lancement, le scan porte
     /// l'identifiant.
-    @Published private(set) var recentNexusInstalls: Set<Int> = []
+    private(set) var recentNexusInstalls: Set<Int> = []
 
     /// Cache sur disque : `~/Library/Caches/StarHubFR/discovery/` (spec §6).
     private let discoveryCatalog: ModCatalog = {
@@ -6432,15 +6427,15 @@ class StarHubTHViewModel: ObservableObject {
 
     /// L'alerte à présenter — `nil` = rien. Posé seulement pour le chemin
     /// du lancement, et seulement si le tag n'a pas déjà été acquitté.
-    @Published private(set) var availableAppRelease: GitHubRelease?
+    private(set) var availableAppRelease: GitHubRelease?
     /// La dernière release connue — l'état de Réglages → À propos en
     /// dérive, indépendant du tag acquitté : vue mais non installée, une
     /// release reste « disponible ».
-    @Published private(set) var lastKnownRelease: GitHubRelease?
-    @Published private(set) var releaseCheckInFlight = false
+    private(set) var lastKnownRelease: GitHubRelease?
+    private(set) var releaseCheckInFlight = false
     /// L'échec du check — dit **seulement** sur le check manuel ; au
     /// lancement, une app hors-ligne ne doit pas brair à chaque ouverture.
-    @Published private(set) var releaseCheckFailedMessage: String?
+    private(set) var releaseCheckFailedMessage: String?
 
     private static let appReleaseURL = URL(string:
         "https://api.github.com/repos/mrbabilo/StarHubFR/releases/latest")!
@@ -6586,11 +6581,11 @@ class StarHubTHViewModel: ObservableObject {
     /// Posé au succès de l'installation ; la `MainView` l'observe pour
     /// ouvrir la fenêtre de bilan. Sa remise à nil se fait à la fermeture
     /// de la fenêtre (ou avant réouverture de la feuille).
-    @Published private(set) var pendingInstallReport: InstallReport?
+    private(set) var pendingInstallReport: InstallReport?
     /// La file de dépôt multiple, migrée du `@State` de `ModInstallView` :
     /// la fenêtre de bilan vit entre deux zips, un état de feuille serait
     /// perdu à sa fermeture.
-    @Published private(set) var pendingDropQueue = InstallDropQueue()
+    private(set) var pendingDropQueue = InstallDropQueue()
 
     func dropQueuePush(_ urls: [URL]) { pendingDropQueue.push(urls) }
     @discardableResult func dropQueueAdvance() -> URL? { pendingDropQueue.advance() }
@@ -6623,7 +6618,7 @@ class StarHubTHViewModel: ObservableObject {
     /// observé par la MainView. ⚠️ Ne passe JAMAIS par le `onDismiss` qui
     /// discard : ce sont les fichiers originaux de l'utilisateur, pas des
     /// téléchargements.
-    @Published private(set) var pendingDropPresentation: URL?
+    private(set) var pendingDropPresentation: URL?
 
     /// « Archive suivante (n) » : dépile la prochaine archive, la pose pour
     /// réouverture de la feuille et referme le bilan. **Dépile** — voir
@@ -6661,7 +6656,7 @@ class StarHubTHViewModel: ObservableObject {
     /// donc LÀ où vit l'état : MainView consomme ce canal et choisit la
     /// pose directe ou le passage par le changement d'onglet (patron
     /// B3-T4 — poser les pendings avant `currentTab` ne marche jamais).
-    @Published private(set) var reportDetailFocus: String?
+    private(set) var reportDetailFocus: String?
 
     /// Consommé par MainView : la fiche est demandée (pose directe ou
     /// changement d'onglet), le canal peut retomber.
@@ -6680,7 +6675,7 @@ class StarHubTHViewModel: ObservableObject {
     /// `.commands` vit dans la scène App, `currentTab` est un `@State` de
     /// MainView : le menu ne peut pas l'écrire. Même canal que
     /// `reportDetailFocus` ci-dessus, pour la même raison (patron B3-T4).
-    @Published private(set) var pendingTabRequest: SidebarDestination?
+    private(set) var pendingTabRequest: SidebarDestination?
 
     func requestTab(_ destination: SidebarDestination) {
         pendingTabRequest = destination
@@ -6694,7 +6689,7 @@ class StarHubTHViewModel: ObservableObject {
     /// Ouverture de la palette demandée depuis le menu — ⌘K y est déclaré pour
     /// être visible et découvrable. Même problème, même remède : la
     /// superposition est un `@State` de MainView.
-    @Published private(set) var paletteRequested = false
+    private(set) var paletteRequested = false
 
     func requestPalette() {
         paletteRequested = true
@@ -6711,7 +6706,7 @@ class StarHubTHViewModel: ObservableObject {
     // MARK: - Delta de clés de mise à jour (C2-T4)
 
     /// Les deltas de la dernière installation, pour l'écran de succès.
-    @Published private(set) var lastInstallKeyDeltas: [ModUpdateKeyDelta] = []
+    private(set) var lastInstallKeyDeltas: [ModUpdateKeyDelta] = []
 
     /// Écrit le store pour chaque chemin installé portant un delta. Appelé
     /// dans le completion de `performInstall` AVANT l'écran de succès : un
@@ -6743,7 +6738,7 @@ class StarHubTHViewModel: ObservableObject {
     /// suppression) : la section fiche relit le delta et rejoue le matcher
     /// (le magasin n'est pas `@Published` — sans ce compteur, ni le
     /// rafraîchissement ni l'invalidation des caches ci-dessous ne marchent).
-    @Published private(set) var updateKeyDeltasRevision = 0
+    private(set) var updateKeyDeltasRevision = 0
 
     /// Caches de lecture de la fiche. Le body relit le delta à CHAQUE rendu
     /// et le matcher de renommage est O(retirées × ajoutées) — sans
@@ -7251,7 +7246,6 @@ class StarHubTHViewModel: ObservableObject {
     func setAvatar(forSave folderName: String, iconPath: String) {
         let note = SaveNotesStore.shared.note(for: folderName)
         SaveNotesStore.shared.setNote(for: folderName, tag: note.tag, note: note.note, customIconPath: iconPath)
-        objectWillChange.send()
     }
     
     func selectCustomAvatar(forSave folderName: String, completion: ((String) -> Void)? = nil) {
@@ -7391,7 +7385,6 @@ class StarHubTHViewModel: ObservableObject {
         // Preserve existing customIconPath
         let existing = SaveNotesStore.shared.note(for: folderName)
         SaveNotesStore.shared.setNote(for: folderName, tag: tag, note: note, customIconPath: existing.customIconPath)
-        objectWillChange.send()
     }
 
     // MARK: - Backup & Management
@@ -7764,7 +7757,7 @@ class StarHubTHViewModel: ObservableObject {
     /// `resyncMirroredDefaults()` : aucune écriture extérieure à resuivre.
     /// La seed lit la constante **statique** : un initialisateur de propriété
     /// ne peut pas lire un `let` d'instance.
-    @Published private(set) var defaultProfileId: UUID? =
+    private(set) var defaultProfileId: UUID? =
         UserDefaults.standard.string(forKey: StarHubTHViewModel.defaultProfileKey).flatMap(UUID.init(uuidString:))
 
     /// The default profile is protected from deletion (it's the always-present
@@ -7796,7 +7789,7 @@ class StarHubTHViewModel: ObservableObject {
     /// jamais pendant le splash : un dialogue attaché à une fenêtre hors
     /// écran ne se présente pas, et le cycle de lancement est un terrain
     /// documenté comme meurtrier.
-    @Published private(set) var pendingApplyRecovery: ProfileApplyJournal?
+    private(set) var pendingApplyRecovery: ProfileApplyJournal?
 
     /// One-time: on a fresh install, create a starter profile capturing the
     /// current mod setup so there's always an active profile to work from.
@@ -7843,8 +7836,8 @@ class StarHubTHViewModel: ObservableObject {
 
     /// Ce qu'une mise à jour de mod a emporté et qu'une sauvegarde peut rendre.
     /// Vide tant que `scanRecoverableFiles()` n'a pas tourné.
-    @Published private(set) var recoverableFiles: [RecoverableFile] = []
-    @Published private(set) var isScanningRecoverableFiles = false
+    private(set) var recoverableFiles: [RecoverableFile] = []
+    private(set) var isScanningRecoverableFiles = false
 
     /// Balaye les sauvegardes d'installation à la recherche des fichiers perdus.
     ///
@@ -8434,7 +8427,7 @@ class StarHubTHViewModel: ObservableObject {
     /// Chargé au démarrage (dans `seedNexusAndUserData`, avec les autres
     /// registres utilisateur), réécrit à chaque décision. Fichier :
     /// `Application Support/StarHubFR/mod_conflicts.json`.
-    @Published private(set) var modConflictVerdicts = ModConflictVerdicts()
+    private(set) var modConflictVerdicts = ModConflictVerdicts()
 
     /// Écrit le magasin, et **le dit quand il n'a pas pu** — même patron que
     /// `InstalledTranslationStore` : un verdict qui ne survit pas à la
@@ -8465,9 +8458,21 @@ class StarHubTHViewModel: ObservableObject {
 
     // MARK: - Bissection (recherche du mod responsable)
 
-    /// Pilote une recherche par moitiés. Créée à la demande : la grande majorité
-    /// des sessions ne s'en sert jamais, inutile de l'instancier au démarrage.
-    lazy var bisection = BisectionRunner(vm: self)
+    /// Pilote une recherche par moitiés. Créée à la demande : la grande
+    /// majorité des sessions ne s'en sert jamais. La paresse d'origine
+    /// (`lazy`) est refusée par la macro `@Observable` — sa transformation
+    /// fait de la propriété un calcul — d'où le stockage privé et
+    /// l'accesseur. Volontairement **non suivi** : les vues qui l'affichent
+    /// (`HomeView`, `BisectionCard`) observent le runner lui-même ; le
+    /// suivre ici n'invaliderait que le VM entier à chaque état de
+    /// bissection.
+    private var _bisection: BisectionRunner?
+    var bisection: BisectionRunner {
+        if let _bisection { return _bisection }
+        let created = BisectionRunner(vm: self)
+        _bisection = created
+        return created
+    }
 
     /// Active exactement les dossiers de premier niveau donnés, met les autres
     /// en pause, puis rescane. Chemin dédié à la bissection : il réutilise le
@@ -9775,7 +9780,7 @@ class StarHubTHViewModel: ObservableObject {
     /// demande (ouverture de l'écran Entretien, geste de remise/purge) — pas
     /// un état que le scan entretient, la corbeille est hors liste par
     /// construction.
-    @Published private(set) var trashEvents: [ModTrash.Event] = []
+    private(set) var trashEvents: [ModTrash.Event] = []
 
     func refreshTrash() {
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")

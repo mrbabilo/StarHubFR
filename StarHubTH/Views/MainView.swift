@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct MainView: View {
-    @ObservedObject var vm: StarHubTHViewModel
+     @Bindable var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     // Observé séparément (même patron que `smapiInstaller`/`bisection` dans
     // HomeView) : `report` est publié par `KeybindScanService`, un
@@ -496,7 +496,7 @@ struct MainView: View {
 /// posé dans le `ScrollView` de la colonne : en fenêtre basse, ce sont ces
 /// lignes qui défilent, pas les réglages du bas.
 struct SidebarNavGroups: View {
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     @Binding var currentTab: SidebarDestination
     @AppStorage("showThaiTranslationHub") private var showThaiTranslationHub = false
@@ -558,7 +558,7 @@ struct SidebarNavGroups: View {
 /// visible quelle que soit la hauteur de la fenêtre — c'est lui que
 /// l'ancienne pile plein-fixe laissait écrêter en premier.
 struct SidebarPinnedFooter: View {
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     @Binding var appColorScheme: String
 
@@ -591,7 +591,7 @@ struct SidebarPinnedFooter: View {
 /// `localization.currentLanguage` swaps the bundle live (same path as before), so the UI
 /// re-localizes immediately.
 struct LanguageFlagToggle: View {
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
 
     var body: some View {
@@ -629,7 +629,7 @@ struct LanguageFlagToggle: View {
 /// / Light / Dark, mirroring the language flag toggle on the right. Writes the
 /// same `appColorScheme` AppStorage the app reads for `preferredColorScheme`.
 struct ThemeToggle: View {
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     @Binding var appColorScheme: String
 
@@ -690,7 +690,7 @@ struct SidebarSectionHeader: View {
 // MARK: - SMAPI Alerts UI
 // MARK: - Updates View (macOS System Settings style)
 struct UpdatesView: View {
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     @Binding var currentTab: SidebarDestination
     
@@ -1324,7 +1324,7 @@ struct UpdatesView: View {
 /// Le contenu — mod visé, annulation, progression, débit — reste identique ;
 /// seul l'habillage en fait un volet flottant plutôt qu'une ligne du pied.
 struct NexusDownloadFooter: View {
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
 
     var body: some View {
@@ -1442,7 +1442,7 @@ struct NexusDownloadFooter: View {
 }
 
 struct ModsWeightFooter: View {
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
 
     /// Reprises telles quelles de `ModListRow` : la barre d'accent verte d'un

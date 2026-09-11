@@ -16,7 +16,7 @@ import SwiftUI
 /// pastille « FR » de la ligne du profil), sans quoi elle resterait invisible
 /// sur un profil sans le moindre défaut.
 struct ProfileDiagnosticsView: View {
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let profile: ModProfile
     @Binding var isPresented: Bool

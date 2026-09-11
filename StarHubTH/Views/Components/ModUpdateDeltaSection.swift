@@ -6,7 +6,7 @@ import SwiftUI
 /// manquantes). Se rend vide quand le mod n'a pas de delta — c'est l'état
 /// ordinaire, pas un problème.
 struct ModUpdateDeltaSection: View {
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let mod: ModItem
     /// Ouvre l'éditeur de config sur ce mod. La fiche vit déjà sur l'onglet

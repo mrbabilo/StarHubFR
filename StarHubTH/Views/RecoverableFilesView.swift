@@ -8,7 +8,7 @@ import SwiftUI
 /// Mesuré sur le parc de référence le 2026-08-24 : **10 `i18n/fr.json`** ne
 /// vivent plus que dans une sauvegarde.
 struct RecoverableFilesView: View {
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     @Binding var isPresented: Bool
 

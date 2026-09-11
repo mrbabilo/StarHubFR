@@ -4,7 +4,7 @@ struct LogsView: View {
     /// ⌘F amène ici (voir `SearchFieldShortcut`).
     @FocusState private var searchFocused: Bool
 
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
 
     // Source tabs: nil = All, .app = StarHubFR, .smapi = SMAPI
@@ -599,7 +599,7 @@ struct LogsView: View {
 struct LogGroupRow: View {
     let entries: [LogEntry]
     let isExpanded: Bool
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let toggle: () -> Void
 
@@ -659,7 +659,7 @@ struct LogGroupRow: View {
 // MARK: - Log Entry Row
 struct LogEntryRow: View {
     let entry: LogEntry
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     @State private var isHovered = false
 

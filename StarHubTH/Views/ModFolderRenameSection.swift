@@ -14,7 +14,7 @@ import SwiftUI
 /// ça, l'utilisateur renommerait au hasard celui que la liste des mods lui
 /// montre — c'est-à-dire, justement, celui qu'elle a choisi arbitrairement.
 struct ModFolderRenameSection: View {
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let folderName: String
     let onDone: () -> Void

@@ -11,7 +11,7 @@ import SwiftUI
 //   - Errors (rouge)     : erreurs SMAPI détectées (masqué si 0)
 
 struct SystemStatusFooter: View {
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
 
     private var enabledCount: Int { vm.mods.filter(\.isEnabled).count }
@@ -104,7 +104,7 @@ struct SystemStatusFooter: View {
 ///   2. Profil actif (si défini) : capsule accent
 ///   3. Métadonnées : mods actifs/total + statut SMAPI
 struct AccountHeaderCard: View {
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let isActive: Bool
     let isHovered: Bool

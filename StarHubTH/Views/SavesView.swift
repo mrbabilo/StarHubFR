@@ -62,7 +62,7 @@ struct SaveAvatarViewLocal: View {
 struct SaveAvatarView: View {
     let folderName: String
     let size: CGFloat
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
 
     var body: some View {
         SaveAvatarViewLocal(iconPath: vm.getNote(for: folderName).customIconPath ?? "", size: size)
@@ -84,7 +84,7 @@ struct SavesView: View {
     /// ⌘F amène ici (voir `SearchFieldShortcut`).
     @FocusState private var searchFocused: Bool
 
-    @ObservedObject var vm: StarHubTHViewModel
+     @Bindable var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     @State private var searchText = ""
 
@@ -341,7 +341,7 @@ struct SavesView: View {
 
 // MARK: - Grid View
 struct SavesGridView: View {
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let saves: [SaveGameInfo]
     let columns = [GridItem(.adaptive(minimum: 130, maximum: 170), spacing: 16)]
@@ -360,7 +360,7 @@ struct SavesGridView: View {
 
 struct SaveCardView: View {
     @State private var confirmingDelete = false
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let save: SaveGameInfo
     @State private var isHovered = false
@@ -437,7 +437,7 @@ struct SaveCardView: View {
 
 // MARK: - Tree List View
 struct SaveTreeListView: View {
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let nodes: [SaveNode]
     let depth: Int
@@ -479,7 +479,7 @@ struct SaveTreeListView: View {
 // MARK: - Save Row (List)
 struct SaveRow: View {
     @State private var confirmingDelete = false
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let save: SaveGameInfo
     let depth: Int
@@ -773,7 +773,7 @@ private enum SaveEditorConfirmation {
 }
 
 struct SaveEditorView: View {
-    @ObservedObject var vm: StarHubTHViewModel
+     @Bindable var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let save: SaveGameInfo
     
@@ -923,8 +923,7 @@ struct SaveEditorView: View {
                                             iconPath = key
                                             SaveNotesStore.shared.setNote(for: save.folderName,
                                                 tag: noteTag, note: noteText, customIconPath: key)
-                                            vm.objectWillChange.send()
-                                        }) {
+                                                                                    }) {
                                             ZStack {
                                                 Circle()
                                                     .fill(iconPath == key ? Color.accentColor.opacity(0.2) : Color.secondary.opacity(0.1))
@@ -955,8 +954,7 @@ struct SaveEditorView: View {
                                     iconPath = ""
                                     SaveNotesStore.shared.setNote(for: save.folderName,
                                         tag: noteTag, note: noteText, customIconPath: nil)
-                                    vm.objectWillChange.send()
-                                }
+                                                                    }
                                 .buttonStyle(.plain)
                                 .foregroundColor(.secondary)
                                 .controlSize(.small)

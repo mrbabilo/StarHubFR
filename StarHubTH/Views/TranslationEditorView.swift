@@ -6,7 +6,7 @@ import SwiftUI
 /// apparaît selon le contenu ferait sauter le champ de saisie d'une clé à
 /// l'autre — insupportable quand on en enchaîne des centaines.
 struct TranslationEditorView: View {
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let mod: ModItem
     let locale: String

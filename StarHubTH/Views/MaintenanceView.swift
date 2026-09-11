@@ -24,7 +24,7 @@ private enum MaintenanceConfirmation {
 /// Trois états distincts — chargement, « rien à faire », rapport garni — parce
 /// que « pas encore mesuré » et « rien à mesurer » ne s'affichent pas pareil.
 struct MaintenanceView: View {
-    @ObservedObject var vm: StarHubTHViewModel
+     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
 
     @State private var confirmation: MaintenanceConfirmation?

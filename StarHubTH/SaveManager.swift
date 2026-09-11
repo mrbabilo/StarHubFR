@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 #if canImport(AppKit)
 import AppKit
 #endif
@@ -26,7 +27,8 @@ struct SaveNote: Codable {
 
 // MARK: - Save Notes Store (UserDefaults-backed)
 
-class SaveNotesStore {
+@Observable
+final class SaveNotesStore {
     static let shared = SaveNotesStore()
     private let key = "SaveNotes_v2" // Upgraded version key to prevent conflicts
 

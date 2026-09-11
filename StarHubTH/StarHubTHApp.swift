@@ -110,7 +110,7 @@ struct StarHubTHApp: App {
     // avant toute vue, ils observent la source elle-même. Le ViewModel la
     // reçoit à l'init et ne la possède pas.
     @StateObject private var localization: LocalizationStore
-    @StateObject private var vm: StarHubTHViewModel
+    @State private var vm: StarHubTHViewModel
     @AppStorage("showThaiTranslationHub") private var showThaiHub = false
 
     init() {
@@ -119,7 +119,7 @@ struct StarHubTHApp: App {
         // lire un autre `@StateObject` de la même struct dans son init.
         let store = LocalizationStore()
         _localization = StateObject(wrappedValue: store)
-        _vm = StateObject(wrappedValue: StarHubTHViewModel(localization: store))
+        _vm = State(initialValue: StarHubTHViewModel(localization: store))
         // currentLanguage (désormais `LocalizationStore`) reste l'unique
         // source de vérité. Son didSet resynchronise `AppleLanguages` (via
         // UDKey.appleLanguagesOverride) — aucune écriture à faire ici.
