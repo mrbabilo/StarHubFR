@@ -386,8 +386,12 @@ La condition 1 assouplie autorise une façade de **lecture** à demeure ; ces
 fonctions sont des verbes, et elles traversent `showModal` et `localization`.
 Les descendre est une tranche à part, pas un oubli.
 
-**Vérification à l'écran — due, auteur.** Même angle mort que le chantier A :
-une vue qui cesse de se rafraîchir sans erreur ni plantage. À exercer :
+**Vérification à l'écran — OK, auteur, 2026-09-11.** Même angle mort que le
+chantier A : une vue qui cesse de se rafraîchir sans erreur ni plantage. Les
+six contrôles sont passés, dont les deux qui portaient — le filtre par
+étiquette (le seul chemin qui exerce la closure `tagForSave` *et* le suivi à
+travers elle) et la duplication (le verrou : un relâchement manquant aurait
+figé l'onglet jusqu'au prochain lancement, en silence). Ce qui a été exercé :
 
 1. l'onglet Sauvegardes s'affiche, en arbre **et** en grille ;
 2. changer le tri (nom / dernière partie / argent) — l'ordre bouge ;
