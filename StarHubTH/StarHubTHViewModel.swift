@@ -6038,12 +6038,11 @@ class StarHubTHViewModel: ObservableObject {
 
     // MARK: - Découverte (axe G)
 
-    /// Une carte de la vitrine : le hit Nexus, et s'il est déjà dans le parc.
-    struct DiscoveryRow: Identifiable {
-        let hit: NexusModSearch.Hit
-        let installed: Bool
-        var id: Int { hit.modId }
-    }
+    /// La carte de la vitrine vit en Core (`DiscoveryScoping.Row`), avec les
+    /// trois écarts qui décident de ce qu'elle contient. L'alias tient les
+    /// vues en place — elles nomment encore `StarHubTHViewModel.DiscoveryRow`
+    /// — et tombera au découpage des vues (REFACTORING §5, P8).
+    typealias DiscoveryRow = DiscoveryScoping.Row
 
     /// Le résultat d'une recherche par nom dans la vitrine : les cartes et le
     /// total serveur — la poignée affichée n'est jamais tout ce qui existe.
@@ -6189,19 +6188,14 @@ class StarHubTHViewModel: ObservableObject {
     private func discoveryRows(in hits: [NexusModSearch.Hit],
                                hidingInstalled: Bool,
                                francophoneOnly: Bool) -> [DiscoveryRow] {
-        let installedIds = installedNexusIds()
-        let installedTitles = Set(mods.map(\.name))
-        // Trois écarts, une seule passe : contenu adulte (spec §8),
-        // traductions non françaises en vitrine, et « masquer installés ».
-        return hits.filter {
-            !$0.adultContent && (!francophoneOnly || NexusModSearch.vitrineEligible($0))
-        }
-            .map { hit in
-            let installed = installedIds.contains(hit.modId)
-                || installedTitles.contains { NexusModSearch.namesMatch($0, hit.name) }
-            return DiscoveryRow(hit: hit, installed: installed)
-        }
-        .filter { !(hidingInstalled && $0.installed) }
+        // Les trois écarts et la reconnaissance du parc vivent dans
+        // `DiscoveryScoping` (Core, 14 tests) ; ici ne restent que les deux
+        // ensembles que seul le VM connaît.
+        DiscoveryScoping.rows(from: hits,
+                              installedNexusIds: installedNexusIds(),
+                              installedTitles: Set(mods.map(\.name)),
+                              hidingInstalled: hidingInstalled,
+                              francophoneOnly: francophoneOnly)
     }
 
     /// Les cartes visibles d'une section, ce qui a été **reçu** pour elle, et
@@ -6228,13 +6222,14 @@ class StarHubTHViewModel: ObservableObject {
     /// filtres viennent d'écarter.
     func loadMoreDiscovery(_ kind: ModCatalog.SectionKind) {
         guard let page = discovery[kind]?.page,
-              page.hits.count < page.totalCount else { return }
+              DiscoveryScoping.hasMore(received: page.hits.count,
+                                       serverTotal: page.totalCount) else { return }
         let category = discoveryCategory
         pendingSectionFetches += 1
         discoveryLoading = true
         NexusSearchClient.listing(sort: kind.defaultSort, tag: kind.defaultTag,
                                   category: category?.englishName,
-                                  offset: page.hits.count) { [weak self] result in
+                                  offset: DiscoveryScoping.nextOffset(received: page.hits.count)) { [weak self] result in
             guard let self else { return }
             self.pendingSectionFetches = max(0, self.pendingSectionFetches - 1)
             if self.pendingSectionFetches == 0 { self.discoveryLoading = false }
