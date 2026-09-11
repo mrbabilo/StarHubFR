@@ -54,7 +54,6 @@ final class StarHubTHViewModel {
     
     var outOfDateMods: [ModUpdateInfo] = []
     var smapiErrors: [String] = []
-    var showSmapiAlerts: Bool = false
     /// Structured health diagnostics parsed from SMAPI-latest.txt (nil until
     /// first parse). Drives the SMAPI health card in LogsView.
     var smapiDiagnostics: SmapiDiagnostics?
