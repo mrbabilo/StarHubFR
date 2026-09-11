@@ -5,10 +5,10 @@
   "get_prefixed_funcs": 4,
   "non_final_classes": 10,
   "our_shared_singletons": 91,
-  "oversized_excess_lines": 25842,
+  "oversized_excess_lines": 25829,
   "oversized_files": 37,
   "print_calls": 30,
   "published_without_private_set": 68,
-  "try_optional": 334,
+  "try_optional": 333,
   "vm_dot_L_calls": 0
 }

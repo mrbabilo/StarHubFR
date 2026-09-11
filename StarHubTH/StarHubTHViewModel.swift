@@ -5283,27 +5283,20 @@ class StarHubTHViewModel: ObservableObject {
         return Self.modFolderHasFrenchTranslation(mod: mod, basePath: gameDir)
     }
 
-    /// Le test disque, isolé pour pouvoir être réutilisé (et testé) sans
-    /// trainer le VM. `mod` est résolu via son `physicalFolderName` pour
-    /// respecter le toggle point (un mod en pause vit dans `Mods/.X`).
-    /// `basePath` est le `gameDir` côté UI, ou un dossier jetable côté test.
+    /// Le test disque, isolé pour pouvoir être appelé sans traîner le VM.
+    /// `mod` est résolu via son `physicalFolderName` pour respecter le toggle
+    /// point (un mod en pause vit dans `Mods/.X`). `basePath` est le `gameDir`
+    /// côté UI, ou un dossier jetable côté test.
+    ///
+    /// La règle elle-même vit dans `TranslationPresence` (Core, testé) : elle
+    /// était réimplémentée ici, **sans** la règle « la racine gagne » que
+    /// `I18nLocaleResolver` porte déjà.
     static func modFolderHasFrenchTranslation(mod: ModItem, basePath: String) -> Bool {
         guard !basePath.isEmpty else { return false }
         let hostURL = URL(fileURLWithPath: basePath, isDirectory: true)
             .appendingPathComponent("Mods", isDirectory: true)
             .appendingPathComponent(mod.physicalFolderName, isDirectory: true)
-        // Layout A — `i18n/fr.json` direct. Layout B — `i18n/fr/*.json`.
-        // On accepte l'un ou l'autre : la déclaration manuelle n'a pas à
-        // trancher ce que le traducteur a rangé où.
-        let i18n = hostURL.appendingPathComponent("i18n", isDirectory: true)
-        let frJson = i18n.appendingPathComponent("fr.json")
-        if FileManager.default.fileExists(atPath: frJson.path) { return true }
-        let frDir = i18n.appendingPathComponent("fr", isDirectory: true)
-        if let entries = try? FileManager.default.contentsOfDirectory(atPath: frDir.path),
-           entries.contains(where: { $0.hasSuffix(".json") && !$0.hasPrefix(".") }) {
-            return true
-        }
-        return false
+        return TranslationPresence.hasFrench(inModDirectory: hostURL)
     }
 
     /// Enregistre une déclaration manuelle pour ce mod (A3-T6). Le geste
@@ -5346,14 +5339,10 @@ class StarHubTHViewModel: ObservableObject {
     /// traducteurs reprennent le numéro du mod traduit, ou ne le bougent pas.
     func translationUpdateAvailable(for mod: ModItem) -> NexusModSearch.Hit? {
         guard let installed = translation(for: mod) else { return nil }
-        // L'union des deux moitiés : le résultat qui porte la mise à jour est
-        // par nature celui qu'on a retiré des propositions.
-        let seen = (translationHits[mod.folderName] ?? [])
-            + (translationInstalledHits[mod.folderName] ?? [])
-        return seen.first {
-            $0.modId == installed.nexusModId
-                && InstalledTranslationRegistry.isNewer($0.updatedAt, than: installed.updatedAt)
-        }
+        return TranslationPresence.update(
+            for: installed,
+            amongAvailable: translationHits[mod.folderName] ?? [],
+            andInstalled: translationInstalledHits[mod.folderName] ?? [])
     }
 
     /// Ce qu'une recherche de suppléments a rendu — **et ce qu'elle n'a pas vu**.
@@ -5563,12 +5552,10 @@ class StarHubTHViewModel: ObservableObject {
     /// main n'en a pas — c'est ce que `linkToNexus` répare.
     func addonUpdateAvailable(_ addon: InstalledTranslation,
                               for mod: ModItem) -> NexusModSearch.Hit? {
-        guard addon.nexusModId > 0 else { return nil }
-        let seen = (supplementSearches[mod.folderName].map { $0.hits + $0.alreadyInstalled }) ?? []
-        return seen.first {
-            $0.modId == addon.nexusModId
-                && InstalledTranslationRegistry.isNewer($0.updatedAt, than: addon.updatedAt)
-        }
+        let search = supplementSearches[mod.folderName]
+        return TranslationPresence.update(for: addon,
+                                          amongAvailable: search?.hits ?? [],
+                                          andInstalled: search?.alreadyInstalled ?? [])
     }
 
     /// Rattache une traduction ou une greffe déposée à la main à sa page Nexus.

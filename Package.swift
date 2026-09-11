@@ -211,6 +211,7 @@ let package = Package(
                 "Models/TranslationTarget.swift",
                 "Models/TranslationBatchRun.swift",
                 "Models/DepositIdentity.swift",
+                "Models/TranslationPresence.swift",
                 "Models/ModListScoping.swift",
                 "Stores/InstalledModRegistryStore.swift",
                 "Stores/FilePicking.swift",
@@ -287,6 +288,11 @@ let package = Package(
             name: "DepositIdentityTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/DepositIdentityTests"
+        ),
+        .testTarget(
+            name: "TranslationPresenceTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/TranslationPresenceTests"
         ),
         .testTarget(
             name: "ModListScopingTests",
