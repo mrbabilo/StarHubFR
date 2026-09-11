@@ -354,11 +354,17 @@ final class StarHubTHViewModel {
     /// **logique** de dossier — même clé que `favoriteMods`.
     private(set) var profileManagedConfigMods: Set<String> = []
 
+    // MARK: Entretien & corbeille — le store du domaine (cadrage §4,
+    // domaine 4). Les calculs vivent en Core (`MaintenanceInventory`,
+    // `ModFolderRepairer`, `ModTrash`) ; ici ne restent que l'état et le
+    // verrou de construction.
+    private let maintenanceStore = MaintenanceStore()
+
     /// L'inventaire de l'écran « Entretien » (X25). `nil` tant qu'il n'a pas
     /// été construit — distinct d'un rapport vide, qui veut dire « rien à
     /// faire ».
-    private(set) var maintenanceReport: MaintenanceInventory.Report?
-    private(set) var isBuildingMaintenanceReport = false
+    var maintenanceReport: MaintenanceInventory.Report? { maintenanceStore.report }
+    var isBuildingMaintenanceReport: Bool { maintenanceStore.isBuilding }
 
     /// True during the initial launch load (mod scan + save reload + profile
     /// load). Drives the launch spinner overlay in `MainView` so the user sees
@@ -1916,13 +1922,21 @@ final class StarHubTHViewModel {
     /// Result of the last automatic mod-folder repair run. Non-nil when the
     /// repairer quarantined corrupt items or found duplicates; the UI surfaces
     /// a banner so the user knows what was moved to `_Trash_` and can review.
-    var lastRepairReport: ModFolderRepairer.Report? = nil
+    /// `set` : la vue Quarantaine l'efface après avoir vidé la corbeille.
+    var lastRepairReport: ModFolderRepairer.Report? {
+        get { maintenanceStore.lastRepairReport }
+        set { maintenanceStore.setRepairReport(newValue) }
+    }
 
     /// Transient result message from the Quarantine view's "empty to Mac
     /// Trash" action. Published (not @State on the view) because the recycle
     /// completion fires asynchronously after the view struct may have been
     /// recreated — capturing the VM reference keeps the update observable.
-    var quarantineActionMessage: QuarantineMessage? = nil
+    /// `get`+`set` : c'est la vue Quarantaine qui le pose après chaque action.
+    var quarantineActionMessage: QuarantineMessage? {
+        get { maintenanceStore.quarantineMessage }
+        set { maintenanceStore.setQuarantineMessage(newValue) }
+    }
 
     // MARK: Journal — le store du domaine (cadrage §4, domaine 2). Il porte
     // les deux sources : les lignes que StarHubFR écrit lui-même et le bloc
@@ -2551,9 +2565,9 @@ final class StarHubTHViewModel {
                                            reason: "No manifest.json found — not listable as a mod. Left in place.")
                 }
                 if published.isEmpty && published.reviewItems.isEmpty {
-                    self.lastRepairReport = nil
+                    self.maintenanceStore.setRepairReport(nil)
                 } else {
-                    self.lastRepairReport = published
+                    self.maintenanceStore.setRepairReport(published)
                     if !repairReport.isEmpty {
                         self.log("Folder repair: \(repairReport.quarantined.count) item(s) quarantined, \(repairReport.duplicates.count) duplicate(s) found.", level: .info)
                     }
@@ -9737,14 +9751,14 @@ final class StarHubTHViewModel {
     /// demande (ouverture de l'écran Entretien, geste de remise/purge) — pas
     /// un état que le scan entretient, la corbeille est hors liste par
     /// construction.
-    private(set) var trashEvents: [ModTrash.Event] = []
+    var trashEvents: [ModTrash.Event] { maintenanceStore.trashEvents }
 
     func refreshTrash() {
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let events = ModTrash.events(modsPath: modsPath)
             DispatchQueue.main.async {
-                self?.trashEvents = events
+                self?.maintenanceStore.setTrashEvents(events)
             }
         }
     }
@@ -9874,8 +9888,7 @@ final class StarHubTHViewModel {
     /// Mesuré le 2026-09-04 : 0,86 s pour 17 628 fichiers, d'où le passage
     /// hors du fil principal et le témoin de chargement.
     func buildMaintenanceReport() {
-        guard !isBuildingMaintenanceReport else { return }
-        isBuildingMaintenanceReport = true
+        guard maintenanceStore.beginBuilding() else { return }
         // X74 — les en-têtes de packs comptent : une préférence se pose sur la
         // **ligne** qu'on a sous les yeux, pas sur une identité. Le champ
         // « identifiant Nexus » et le sélecteur de catégorie sont offerts sur
@@ -9915,8 +9928,8 @@ final class StarHubTHViewModel {
                 userTranslationPathsByHost: translationPathsByHost,
                 preferenceKeys: self.maintenancePreferenceKeys())
             DispatchQueue.main.async {
-                self.maintenanceReport = report
-                self.isBuildingMaintenanceReport = false
+                self.maintenanceStore.setReport(report)
+                self.maintenanceStore.endBuilding()
             }
         }
     }
