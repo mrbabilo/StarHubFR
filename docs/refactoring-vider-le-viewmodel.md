@@ -51,12 +51,19 @@ SwiftUI s'appuie pour enregistrer ce qu'un `body` a lu) a mesuré six cas :
 | 5 | Tenir la référence sans lire de propriété | n'abonne à rien |
 | 6 | Façade lisant un singleton non observable | pas de suivi |
 
-Et deux gardes, vérifiés en compilant :
+Et trois faits, vérifiés en compilant ou en exécutant :
 
 - `@ObservedObject` sur un type `@Observable` → **erreur de compilation**
   (« requires that 'X' conform to 'ObservableObject' »).
 - `objectWillChange.send()` dans un type `@Observable` → **erreur de
   compilation** (« cannot find 'objectWillChange' in scope »).
+- **La macro préserve les observateurs de propriété** — prouvé en exécutant un
+  programme minimal : `didSet` voit `oldValue` et la nouvelle valeur, dans
+  l'ordre. Décisif car **dix** `@Published` du VM portent un `didSet` ou un
+  `willSet` — dont `viewingModDetail` (qui déclenche `loadModDetail`),
+  `nexusCategories` (qui purge le cache de catégories) et `mods` — et ils
+  survivront à la conversion tels quels. Sans cette preuve, dix points
+  d'invalidation auraient été suspects à chaque passe.
 
 **Le cas 3 est le pivot** : le défaut que le §6 attribuait aux 128 `@Published`
 — « chaque `@Published` publie à toute la fenêtre » — **disparaît sans qu'un
@@ -78,11 +85,13 @@ rendu, pas le rendu. La vérification à l'écran reste due (§5, condition 4).
 | Élément | Nombre | Attrapé par le compilateur ? |
 | --- | ---: | --- |
 | `@Published` du ViewModel | 128 | — (à retirer) |
+| `@Published` des trois autres classes du lot | **6** (`GameEnvironmentStore` 4, `NexusMetadataStore` 2, `SaveNotesStore` 0) | — (à retirer) |
 | Classes à convertir | **4** | — (voir ci-dessous) |
 | `@ObservedObject var vm:` dans les vues | **87** | **oui** |
 | `@StateObject` (les deux de l'App) | 2 | **oui** |
 | `objectWillChange.send()` | 6 | **oui** |
 | Bindings `$vm.…` (à passer en `@Bindable`) | 5 | **oui** |
+| `didSet`/`willSet` sur `@Published` | **10** | **non** — mais prouvés préservés par la macro (§2, troisième fait) |
 
 ### Ce que le lot doit contenir — et ce qu'il peut laisser dehors
 
@@ -184,7 +193,15 @@ apparaître ces treize-là.
 | **Couvert par le lot** — lit une source qui devient `@Observable` | 19, dont les 4 façades `gameDir`…, les façades `nexusMetadata`, `savesHierarchy`/`availableFilterTags` (la lecture `SaveNotesStore.shared.note(…)` devient trackée dès que le store entre dans le lot), `coreExtensionsSnapshot` (lit `mods`), et les dérivées d'état publié (`systemAlertCount`, `enabledMods`, `activeProfile`…) | Rien à faire |
 | **UserDefaults / Trousseau** | 6 — `localAIEndpoint`, `localAIModelName`, `isLocalAIConfigured`, `deepLCredentials`, `isFallbackEnabled`, `defaultProfileId` | Le patron existe déjà : `hasDeepLKey` est **mémorisé** dans une propriété suivie, invalidée par le chemin d'écriture. Généraliser ; ne jamais interroger `UserDefaults` dans un corps calculé |
 | **Service Combine hors lot** | 2 — `keybindProblemCount`, `healthIssues` (toutes deux lisent `keybindScanService.report`) | Voir ci-dessous — **la découverte de l'inventaire** |
-| **Disque / PATH** | 4 — `unarInstalled`, `sevenZipInstalled`, `coreExtensionsSnapshot` (indirect), `smapiLogPath` (chemin, constant) | Rattrapé par le scan : le snapshot lit aussi `mods`, tracké — la valeur se recalcule au prochain scan. Dégradation minime, acceptée |
+| **Disque / PATH** | 4 — `unarInstalled`, `sevenZipInstalled`, `coreExtensionsSnapshot` (indirect), `smapiLogPath` (chemin dérivé du home, constant — rien à rafraîchir) | Rattrapé par le scan : le snapshot lit aussi `mods`, tracké — la valeur se recalcule au prochain scan. Dégradation minime, acceptée |
+
+⚠️ **Limite de cet inventaire : il couvre les propriétés calculées, pas les
+fonctions que les corps de rendu appellent.** `category(for:)` et
+`sizeOnDisk(of:)` ont été vérifiées l'une après l'autre — la seconde lit
+`modsFolderSizes` (tracké ✓), la première lit un cache dont le sort dépend de
+l'étape 3 corrigée ci-dessus. Les autres n'ont pas été passées en revue : le
+plan doit les traiter au contact, et la vérification à l'écran reste le filet
+final (§5, condition 4).
 
 **La découverte : `SystemAlertsView` afficherait un compte figé.** Mesuré, pas
 déduit : elle observe `vm` et `localization`, **pas** `KeybindScanService`
@@ -223,10 +240,23 @@ vérifiable par compilation :
    liste des erreurs **est** la liste de travail.
 2. Reprendre les 87 `@ObservedObject var vm` → propriété simple, les
    2 `@StateObject` → `@State`, les 5 bindings → `@Bindable`.
-3. Supprimer les deux relais `objectWillChange` (`:1982`, `:1988`) et les
-   `AnyCancellable` qui les portent : le cas 1 les rend inutiles.
+3. Supprimer la **publication** des deux relais `objectWillChange`
+   (`:1982`, `:1988`) — le cas 1 la rend inutile. ⚠️ **Pas leurs
+   `AnyCancellable` sans examen : le relais `:1988` porte aussi la purge du
+   `categoryCache` (`:1990`), et cette purge-là doit survivre.** Le cache est
+   un `private var` stocké du VM : sous `@Observable` il devient tracké, donc
+   la purge **est** l'invalidation des lignes rendues — la supprimer ferait
+   rendre un cache périmé après chaque catégorie épinée, en silence. Le sink
+   devient un invalidateur muet (`sink { $0.categoryCache.removeAll() }`, sans
+   `send`), exactement le patron que `nexusCategories.didSet` (`:294`) et le
+   `didSet` de `mods` (`:425`) appliquent déjà aux autres chemins.
 4. Traiter les quatre rafraîchissements manuels restants.
-5. Les deux gates, puis la vérification à l'écran.
+5. Les deux gates, puis la vérification à l'écran — **la conversion reste
+   atomique, la vérification commence par un seul écran** : le plus dense
+   (`ModListView`), avec la liste des 8 sites à remède en tête d'affiche. Il
+   n'existe pas de moyen de « convertir un seul écran » : les 87 sites cassent
+   à la compilation d'un coup, c'est le prix de l'atomicité (§3) — ce qui se
+   séquence, c'est la *constatation*, pas la conversion.
 
 ## 4. Chantier B — extraire les domaines en stores
 
@@ -408,18 +438,18 @@ cadrage : la phase coûte une passe mécanique, pas une refonte des vues.
 
 | Risque | Ce qui le contient |
 | --- | --- |
-| Une vue cesse de se rafraîchir sans erreur ni plantage | Le seul angle mort réel. Contenu par : zéro `ObservableObject` restant (cliquet), les quatre sites connus traités, et une condition 4 ciblée sur le rafraîchissement |
+| Une vue cesse de se rafraîchir sans erreur ni plantage | Le seul angle mort réel. Contenu par : la règle du cliquet « aucune façade du VM ne pointe vers un `ObservableObject` » (§5 — **pas** « zéro `ObservableObject` », cinq subsistent), les 8 sites à remède traités (§3 bis), et une condition 4 ciblée sur le rafraîchissement |
 | Le chantier A casse le build longtemps | Assumé, et borné : 87 sites + 4 classes, tous désignés par le compilateur. Le build est incrémental (~30 s quand une signature du VM bouge, 59 s à froid) mais **chaque passe touche le VM**, donc aucune ne sera à 2,4 s : compter en dizaines de builds, pas en centaines |
 | Le gain de réactivité est nul et personne ne s'en aperçoit | Le vrai risque du but n°1, et le seul que les compteurs ne voient pas. Contenu par le §5 bis : mesure A/B de F3 **avant** le chantier, même manipulation après |
-| `@Observable` se comporte autrement dans SwiftUI que dans `withObservationTracking` | Non prouvé par le spike. C'est la première chose que la vérification à l'écran doit constater, sur un seul écran, **avant** de convertir les 87 sites |
-| Le chantier B s'enlise comme les tranches 15-21 (−20 lignes pour cinq tranches) | Le critère de succès de B n'est pas le nombre de lignes mais `viewmodel_published`, qui ne peut que baisser |
+| `@Observable` se comporte autrement dans SwiftUI que dans `withObservationTracking` | Non prouvé par le spike. C'est la première chose que la vérification à l'écran doit constater, sur un seul écran, **avant** de considérer le chantier clos |
+| Le chantier B s'enlise comme les tranches 15-21 (−20 lignes pour cinq tranches) | Le critère de succès de B n'est pas le nombre de lignes mais `viewmodel_stored_state`, qui ne peut que baisser |
 
 ## 8. Découpage — ce que ce document ne fait pas
 
 Le plan d'exécution (tâches, tests, ordre des commits) n'est pas ici. Il sera
-écrit séparément, et il commence par une tâche qui n'est pas une conversion :
-**convertir un seul écran et le vérifier à l'écran**, pour lever le dernier
-risque du §7 avant d'engager les 87 sites.
+écrit séparément, et sa particularité est connue d'avance : **la conversion est
+atomique (§3), donc ce qui se séquence est la vérification, pas le code** —
+elle commence par un écran, avec les 8 sites à remède en tête d'affiche.
 
 Deux conventions du dépôt s'appliquent à l'ouverture du chantier : un tag
 `pre-refactor-observable` sur le commit de départ (§4.6 de `REFACTORING.md` —
