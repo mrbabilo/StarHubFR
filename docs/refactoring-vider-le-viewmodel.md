@@ -736,6 +736,57 @@ ensemble, et le verrou anti double activation). Ce qui a été exercé :
 5. ajouter une dépendance manquante à un profil (fiche d'un mod) — elle
    entre dans la liste du profil sans toucher les autres.
 
+### Domaine 6 — Traduction FR, tranche 1 (le hub), livrée le 2026-09-11
+
+Trois commits (`ff1a125`, `3273926`, et celui-ci), gate exit 0, **3 063 tests
+verts**. `TranslationHubStore` (`@Observable`, 7 tests, trois sabotages).
+ViewModel 10 269 → **10 295** (⚠️ +26) ; `viewmodel_stored_state` 134 → **129**.
+
+Le domaine était composite — la reconnaissance en trouve **cinq familles**
+là où le cadrage en voyait une :
+
+| Famille | Propriétés | État |
+| --- | --- | --- |
+| **Le hub communautaire** | `installedTranslations`, `translationHits`, `translationInstalledHits`, `searchingTranslations`, `busyTranslations` | ✅ cette tranche |
+| **La couverture d'un profil** | `profileTranslationSummaries`, `profileTranslationCoverage`, `profileTranslationTask`, `profileTranslationCacheEntries`, `profileTranslationCacheLoaded`, `isMeasuringProfileTranslation` | tranche 2 |
+| **Les réglages IA/DeepL** | `localAI*`, `deepL*`, `batchProgress`, `batchReport`, `batchTask` | reste — **miroirs synchrones du chantier A**, leur déplacement reprendrait ce câblage |
+| **Le thaï** | `thaiTranslations`, `thaiTranslationsError` | reste — fonctionnalité upstream distincte |
+| **Hors domaine** | `staleTranslationMods` (écrit par le **scan**), `pendingTranslation*` (navigation), `renamePairsCache` (X60) | reste |
+
+Les règles épinglées par le store : une recherche rend **deux moitiés** (les
+propositions et ce qui est posé — la moitié posée porte la pastille de mise à
+jour, la jeter la faisait disparaître) et se vide **ensemble** ;
+`setHits(nil)` **retire la clé** plutôt que de cacher un tableau vide ; les
+vols sont des **ensembles** mod par mod, pas des drapeaux.
+
+**14 mutations du registre** passent par `mutateInstalled { … }` — les
+blocs miroirs (record + forgetAddon + recordAddon, deux exemplaires
+identiques) dans une closure unique. La persistance reste à l'appelant, qui
+lit la façade. Trois gardes `guard registry.<mutating>(…)` deviennent
+var + mutate + guard : plus verbeux, mais l'écriture a un point nommé.
+
+⚠️ **Verrou de taille +26 lignes, troisième domaine de suite.** Les closures
+ajoutent de l'indentation à chaque bloc miroir. **Constat consigné : la
+ligne brute du ViewModel ne redescendra plus beaucoup tant que ses façades
+restent nombreuses — la reprise des vues (P8) doit devenir une tranche de
+son côté**, sinon le chantier continuera d'échanger des lignes contre de
+l'état gouverné.
+
+**Vérification à l'écran — due, auteur.** Cinq contrôles, depuis la fiche
+d'un mod :
+
+1. chercher une traduction — la recherche tourne (le bouton de la fiche est
+   désactivé), les autres fiches restent utilisables pendant ce temps
+   (l'ensemble mod par mod) ;
+2. les résultats s'affichent ; si une traduction est déjà posée, elle sort
+   des propositions et apparaît comme « posée » avec sa mise à jour éventuelle ;
+3. rattacher un résultat Nexus — il **change de moitié** (proposition →
+   posée) sans nouvelle requête ;
+4. retirer une traduction — les propositions reviennent, le registre survit
+   à un redémarrage ;
+5. deux recherches de suites sur deux mods différents — la seconde
+   n'hérite rien de la première (les deux moitiés se vident ensemble).
+
 ### Quand un domaine est-il extrait ?
 
 Les quatre conditions du §6 s'appliquent telles quelles, avec un ajustement
