@@ -47,6 +47,23 @@ final class SavesStore {
         self.saves = saves
     }
 
+    // MARK: - Le verrou d'écriture
+
+    /// Prend le verrou, ou rend `false` s'il est déjà tenu. Test-et-pose en
+    /// **une** opération : les huit appelants l'écrivaient en deux temps.
+    func beginOperation() -> Bool {
+        if isOperationRunning { return false }
+        isOperationRunning = true
+        return true
+    }
+
+    /// Relâche le verrou. Idempotent — un `endOperation()` de trop ne fait rien
+    /// de mal, mais un manquant fige l'onglet : chaque `beginOperation()` qui a
+    /// rendu `true` doit avoir le sien sur **tous** ses chemins de sortie.
+    func endOperation() {
+        isOperationRunning = false
+    }
+
     // MARK: - Ce que l'onglet affiche
 
     /// L'arbre des sauvegardes tel qu'il s'affiche.

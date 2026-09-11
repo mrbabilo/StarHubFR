@@ -87,4 +87,28 @@ import Foundation
         s.replace(saves: [save("Farm_1"), save("Farm_1_2")])
         #expect(s.availableFilterTags == ["hiver"])
     }
+
+    // MARK: - Verrou
+
+    @Test func theFirstOperationTakesTheLock() {
+        let s = store()
+        #expect(s.beginOperation() == true)
+        #expect(s.isOperationRunning)
+    }
+
+    @Test func aSecondOperationIsRefusedWhileTheFirstRuns() {
+        let s = store()
+        _ = s.beginOperation()
+        #expect(s.beginOperation() == false)
+        // Et le refus ne relâche rien : la première tourne toujours.
+        #expect(s.isOperationRunning)
+    }
+
+    @Test func theLockIsFreeAgainAfterTheOperationEnds() {
+        let s = store()
+        _ = s.beginOperation()
+        s.endOperation()
+        #expect(s.isOperationRunning == false)
+        #expect(s.beginOperation() == true)
+    }
 }
