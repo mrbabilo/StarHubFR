@@ -8218,13 +8218,11 @@ class StarHubTHViewModel: ObservableObject {
             existing: modProfiles[index].enabledModIds)
         guard !resolution.ids.isEmpty else { return resolution }
 
-        let byId = Dictionary(mods.flattenedMods.map { ($0.uniqueId.lowercased(), $0) },
-                              uniquingKeysWith: { first, _ in first })
-        for id in resolution.ids {
-            guard let mod = byId[id.lowercased()] else { continue }
-            modProfiles[index].modMetadata[id] = ProfileModMetadata(name: mod.name,
-                                                                    nexusModId: mod.nexusModId)
-        }
+        // La résolution (casse, composants de pack, doublons d'identifiant)
+        // vit dans `ProfileFactory.metadata(forIds:in:)` — elle était écrite
+        // ici en deux exemplaires, un par import.
+        modProfiles[index].modMetadata.merge(
+            ProfileFactory.metadata(forIds: resolution.ids, in: mods)) { _, new in new }
         // Capturés **avant** `updateProfile` : sur un profil actif, il
         // réapplique le profil au disque, et le rescan qui suit fait passer
         // `syncActiveProfileIds`, qui réécrit `enabledModIds` depuis les mods
@@ -8268,13 +8266,11 @@ class StarHubTHViewModel: ObservableObject {
             existing: modProfiles[index].enabledModIds)
         guard !resolution.ids.isEmpty else { return resolution }
 
-        let byId = Dictionary(mods.flattenedMods.map { ($0.uniqueId.lowercased(), $0) },
-                              uniquingKeysWith: { first, _ in first })
-        for id in resolution.ids {
-            guard let mod = byId[id.lowercased()] else { continue }
-            modProfiles[index].modMetadata[id] = ProfileModMetadata(name: mod.name,
-                                                                    nexusModId: mod.nexusModId)
-        }
+        // La résolution (casse, composants de pack, doublons d'identifiant)
+        // vit dans `ProfileFactory.metadata(forIds:in:)` — elle était écrite
+        // ici en deux exemplaires, un par import.
+        modProfiles[index].modMetadata.merge(
+            ProfileFactory.metadata(forIds: resolution.ids, in: mods)) { _, new in new }
         let name = modProfiles[index].name
         let newIds = modProfiles[index].enabledModIds + resolution.ids
         let importedCount = resolution.ids.count

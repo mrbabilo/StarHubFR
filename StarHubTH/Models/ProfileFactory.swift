@@ -53,6 +53,35 @@ enum ProfileFactory {
         return result
     }
 
+    /// La même métadonnée, mais pour des mods désignés **par leurs
+    /// identifiants** — le cas des imports de favoris et de mods à écarter,
+    /// où l'on part d'une liste d'`UniqueID` résolue ailleurs.
+    ///
+    /// Elle n'est pas décorative : `modMetadata` est la seule source qui
+    /// permette encore de **nommer** un mod du profil une fois qu'il aura été
+    /// désinstallé (voir le diagnostic de profil). L'omettre dégraderait ce
+    /// diagnostic sans que rien ne le montre avant des mois.
+    ///
+    /// La correspondance est **insensible à la casse** des deux côtés : les
+    /// `UniqueID` des manifestes ne s'accordent pas dessus, et une résolution
+    /// stricte perdrait la métadonnée en silence. La clé rendue est
+    /// l'identifiant **tel que demandé**, celui qui entre dans
+    /// `enabledModIds` — une autre clé ne serait jamais retrouvée.
+    static func metadata(forIds ids: [String],
+                         in mods: [ModItem]) -> [String: ProfileModMetadata] {
+        // Deux dossiers peuvent porter le même `UniqueID` — un mod actif et sa
+        // copie en pause, cas réel du parc : le premier gagne, pour que le
+        // résultat ne dépende pas de l'ordre d'itération d'un dictionnaire.
+        let byId = Dictionary(mods.flattenedMods.map { ($0.uniqueId.lowercased(), $0) },
+                              uniquingKeysWith: { first, _ in first })
+        var result: [String: ProfileModMetadata] = [:]
+        for id in ids {
+            guard let mod = byId[id.lowercased()] else { continue }
+            result[id] = ProfileModMetadata(name: mod.name, nexusModId: mod.nexusModId)
+        }
+        return result
+    }
+
     /// Copie un profil sous un nouveau nom.
     ///
     /// La copie porte son **propre identifiant** : `ModProfile` s'identifie par
