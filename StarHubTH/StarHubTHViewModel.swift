@@ -4197,6 +4197,10 @@ class StarHubTHViewModel: ObservableObject {
     /// Une page après l'autre. `settled` retient les mods dont Nexus a bien
     /// rendu un verdict — mise à jour trouvée **ou** confirmation qu'il n'y en
     /// a pas : dans les deux cas le mod n'est plus « non vérifiable ».
+    ///
+    /// Les décisions d'une page (page sans version ≠ verdict, 429 arrêtant la
+    /// reprise, verdicts nommés) vivent dans `NexusResume` (Core, testé) ; la
+    /// récursion, la progression et l'émission du journal restent ici.
     private func fetchNexusFallback(_ targets: [NexusFallbackCheck.Target],
                                     index: Int,
                                     found: [NexusUpdateChecker.ModUpdate],
@@ -4210,86 +4214,31 @@ class StarHubTHViewModel: ObservableObject {
         let target = targets[index]
         NexusUpdateChecker.shared.fetchSingleMod(modId: target.nexusId) { [weak self] result in
             guard let self else { return }
-            var found = found
-            var settled = settled
-            var failures = failures
-            switch result {
-            case .success(let version, _, let extra, let pageFile):
-                // Une page **sans version** n'est pas un verdict. L'API Nexus
-                // exige seulement que le champ existe, et une chaîne vide s'y
-                // décode sans broncher : la tenir pour « à jour » retirerait le
-                // mod des invérifiables sur un quitus inventé — le défaut même
-                // que cette reprise existe pour supprimer.
-                let page = version.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !page.isEmpty else {
-                    failures += 1
-                    self.log("Reprise Nexus : la page \(target.nexusId) ne publie aucune "
-                             + "version — \(target.mods.count) mod(s) toujours sans verdict",
-                             level: .warning)
-                    break
-                }
-                let rows = NexusFallbackCheck.rows(for: target,
-                                                   pageVersion: page,
-                                                   uploadedTime: extra.uploadedTime,
-                                                   pageFile: pageFile)
-                self.logNexusFallbackVerdicts(target, pageVersion: page, updates: rows)
-                found += rows
-                settled.formUnion(target.mods.map(\.uniqueId))
-            case .rateLimited(let retryAfter):
-                // Inutile d'insister : les suivantes seraient refusées
-                // localement, et ce qui a abouti reste acquis.
-                self.log("Reprise Nexus interrompue par la limitation de débit "
-                         + "(\(Int(retryAfter)) s) après \(index) page(s)", level: .warning)
-                self.finishNexusFallback(found: found, settled: settled,
-                                         failures: failures, attempted: index)
+            let outcome = NexusResume.applyPage(result, target: target,
+                                                pageIndex: index,
+                                                found: found, settled: settled,
+                                                failures: failures)
+            for line in outcome.journal {
+                self.log(line.text, level: line.level)
+            }
+            if outcome.rateLimitedRetryAfter != nil {
+                self.finishNexusFallback(found: outcome.found, settled: outcome.settled,
+                                         failures: outcome.failures, attempted: index)
                 return
-            case .noApiKey, .error:
-                failures += 1
             }
             self.nexusCheckProgress = (index + 1, targets.count)
             self.fetchNexusFallback(targets, index: index + 1,
-                                    found: found, settled: settled, failures: failures)
-        }
-    }
-
-    /// Nomme, mod par mod, ce que la page vient de trancher.
-    ///
-    /// Les compteurs seuls ne répondaient pas à la seule question qui se pose
-    /// devant eux : *lequel ?* Une mise à jour se retrouve dans la fenêtre,
-    /// mais un mod **confirmé à jour** n'apparaît nulle part ailleurs — et
-    /// c'est précisément le verdict qu'on venait de gagner, sur des mods qui
-    /// n'en avaient d'aucune source. Le taire refaisait, en plus petit, le
-    /// défaut que toute cette reprise corrige.
-    ///
-    /// Une ligne par mod plutôt qu'une liste sur une seule : le journal en
-    /// tient 2 000 et sait chercher, si bien qu'un nom se retrouve à coup sûr
-    /// — ce qu'une ligne de cinquante noms rendrait illisible. Les deux
-    /// versions figurent dans les deux cas, pour que la comparaison soit
-    /// vérifiable plutôt que crue sur parole.
-    private func logNexusFallbackVerdicts(_ target: NexusFallbackCheck.Target,
-                                          pageVersion: String,
-                                          updates: [NexusUpdateChecker.ModUpdate]) {
-        let outdated = Set(updates.map(\.uniqueId))
-        for mod in target.mods {
-            // Un manifeste sans champ `Version` existe : ne pas afficher un
-            // blanc là où le lecteur attend un numéro.
-            let installed = mod.installedVersion.isEmpty ? "version inconnue" : mod.installedVersion
-            if outdated.contains(mod.uniqueId) {
-                // Préfixe `[MAJ]` pour repérer les mises à jour d'un coup d'œil
-                // dans le journal, et niveau `.warning` pour qu'elles soient
-                // visuellement distinctes des lignes d'info ordinaires (le
-                // rendu SwiftUI applique un glyphe et une couleur dédiés).
-                log("[MAJ] Reprise Nexus : \(mod.name) — \(installed) → \(pageVersion) "
-                    + "(page \(target.nexusId))", level: .warning)
-            } else {
-                log("Reprise Nexus : \(mod.name) à jour (installé \(installed), "
-                    + "page \(pageVersion))")
-            }
+                                    found: outcome.found, settled: outcome.settled,
+                                    failures: outcome.failures)
         }
     }
 
     /// Publie ce que la reprise a trouvé, et retire de la liste des « non
     /// vérifiables » les mods qu'elle a tranchés.
+    ///
+    /// La substitution du cache et le décompte honnête vivent dans
+    /// `NexusResume.settle` (Core, testé) — y compris le niveau du bilan,
+    /// `.warning` dès que la reprise a trouvé quelque chose.
     private func finishNexusFallback(found: [NexusUpdateChecker.ModUpdate],
                                      settled: Set<String>,
                                      failures: Int,
@@ -4302,36 +4251,20 @@ class StarHubTHViewModel: ObservableObject {
         isCheckingNexusUpdates = false
         nexusCheckProgress = nil
 
+        let settlement = NexusResume.settle(
+            found: found, settled: settled, failures: failures,
+            attempted: attempted,
+            cachedRows: NexusUpdateChecker.shared.cachedUpdates())
         if !found.isEmpty {
-            // Les lignes Nexus se **substituent** aux lignes précédentes des
-            // mêmes mods plutôt que de s'y ajouter : le cache est indexé par
-            // `UniqueID`, et deux lignes de même identité donneraient des
-            // doublons à un `ForEach`.
-            let replaced = Set(found.map(\.uniqueId))
-            let kept = NexusUpdateChecker.shared.cachedUpdates()
-                .filter { !replaced.contains($0.uniqueId) }
-            NexusUpdateChecker.shared.replaceCachedUpdates(
-                (kept + found).sorted { $0.name.lowercased() < $1.name.lowercased() })
+            NexusUpdateChecker.shared.replaceCachedUpdates(settlement.merged)
             republishUpdatesFromCache()
         }
         if !settled.isEmpty {
             unverifiableMods = unverifiableMods.filter { !settled.contains($0.uniqueId) }
         }
-
-        // Un décompte honnête : ce qui a été tenté, ce qui a été trouvé, ce qui
-        // a été confirmé à jour, ce qui a échoué. Une reprise silencieuse
-        // laisserait croire qu'elle n'a rien trouvé alors qu'elle n'a pas
-        // abouti.
-        // Préfixe `[MAJ]` quand la reprise a effectivement trouvé quelque chose, et
-        // `.warning` au décompte final pour qu'il attire l'œil dans le journal
-        // — un simple `[INFO] Mises à jour : 2 sur 478 …` se perdait dans le
-        // flux des `[INFO] Reprise Nexus déclenchée…`. Le niveau d'origine
-        // (`.warning` si échec) est conservé.
-        let level: LogLevel = (found.isEmpty ? .info : .warning)
-        log("[MAJ] Reprise Nexus : \(attempted) page(s) interrogée(s), "
-            + "\(found.count) mise(s) à jour trouvée(s), "
-            + "\(settled.count - found.count) mod(s) confirmé(s) à jour, "
-            + "\(failures) échec(s)", level: level)
+        for line in settlement.journal {
+            log(line.text, level: line.level)
+        }
     }
 
     /// Retient l'identifiant Nexus que smapi.io connaît, pour les mods dont le
