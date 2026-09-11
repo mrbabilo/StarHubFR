@@ -175,17 +175,36 @@ def class_members_with_lines(path: str) -> list[tuple[str, bool, bool, int]]:
 
 
 def _computed_bodies(path: str) -> list[tuple[int, str]]:
-    """Le corps de chaque propriété calculée : de sa ligne à celle du membre
-    suivant. Approximation suffisante pour un cliquet — elle ne peut que
-    sur-compter, jamais manquer une façade."""
-    members = class_members_with_lines(path)
-    lines = read_source(path).splitlines()
+    """Le corps de chaque propriété calculée, délimité par ses accolades.
+
+    ⚠️ Deux défauts ont vécu ici le 2026-09-11, tous deux rendant **0** — ce
+    qui ressemblait à un succès. Les éviter en modifiant cette fonction :
+
+    1. Les lignes viennent de la source **strippée**, comme celles que rend
+       `class_members_with_lines`. Découper la source brute avec ces
+       numéros-là décalait chaque fenêtre de la hauteur des commentaires
+       (3 949 lignes sur le ViewModel) : le relevé ne décrivait plus aucune
+       propriété. Garder les deux fonctions sur la même source.
+    2. La fenêtre s'arrêtait au `var` suivant, donc elle avalait les `func`
+       intercalées. `scopingInputs` héritait ainsi de `toggleAllMods` et de
+       son `modList.filters` — un faux positif, mais surtout un **masque** :
+       une vraie façade ajoutée dans la même fenêtre n'aurait rien incrémenté,
+       le compteur valant déjà 1 pour ce corps. D'où le comptage d'accolades,
+       qui donne le corps exact."""
+    lines = strip_comments(read_source(path)).splitlines()
     bodies = []
-    for idx, (_name, stored, _p, ln) in enumerate(members):
+    for _name, stored, _p, ln in class_members_with_lines(path):
         if stored:
             continue
-        end = members[idx + 1][3] - 1 if idx + 1 < len(members) else len(lines)
-        bodies.append((ln, strip_comments("\n".join(lines[ln - 1:end]))))
+        depth, body, started = 0, [], False
+        for line in lines[ln - 1:]:
+            body.append(line)
+            depth += line.count("{") - line.count("}")
+            if line.count("{"):
+                started = True
+            if started and depth <= 0:
+                break
+        bodies.append((ln, "\n".join(body)))
     return bodies
 
 
@@ -247,14 +266,17 @@ RULES: dict[str, Callable[[str], int]] = {
     # volontairement (cadrage §3).
     # ⚠️ Portée réelle, mesurée le 2026-09-11 — ce 0 ne dit pas « aucune façade
     # n'existe », il dit « aucune propriété calculée du VM n'en est une » :
-    #  • la règle ne balaie que des **propriétés calculées**. Une *méthode*
-    #    façade échapperait au relevé. Six corps de fonction citent une de ces
-    #    instances (`installSmapi`, `toggleAllMods`…) : tous des **verbes**, et
-    #    le cas 4 ne mord que sur une lecture rendue par un `body`.
+    #  • la règle ne balaie que des **propriétés calculées** (30, corps exact
+    #    par comptage d'accolades). Une *méthode* façade échapperait au relevé.
+    #    Six corps de fonction citent une de ces instances (`installSmapi`,
+    #    `toggleAllMods`…) : tous des **verbes**, et le cas 4 ne mord que sur
+    #    une lecture rendue par un `body`.
     #  • `localization` est hors de COMBINE_INSTANCES exprès : les 45 vues qui
     #    traduisent le reçoivent en `@ObservedObject` et l'observent donc
     #    directement (cas 1). Aucune ne passe par le VM — `vm_dot_L_calls` = 0.
     # Refaire ces deux mesures avant de conclure quoi que ce soit d'un 0 futur.
+    # Le 0 lui-même est vérifié par sabotage : ajouter une propriété calculée
+    # lisant `modList.filters` fait monter le compteur à 1.
     "viewmodel_facades_to_combine": _rule_vm_facades_to_combine,
     # §6.1 — `DispatchQueue` là où `async`/`await` suffirait.
     "dispatch_queue": lambda t: len(re.findall(r"\bDispatchQueue\b", t)),
