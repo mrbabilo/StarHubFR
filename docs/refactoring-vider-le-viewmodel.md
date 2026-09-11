@@ -672,8 +672,9 @@ question d'une reprise des vues (P8) se reposera au cas par cas** : une façade
 `get`+`set` est le signe qu'une vue écrit de l'état de domaine, et le vrai
 remède est de lui donner un verbe nommé — pas d'écrire le champ nu.
 
-**Vérification à l'écran — due, auteur.** Quatre contrôles, sur l'écran
-Entretien et la vue Quarantaine :
+**Vérification à l'écran — OK, auteur, 2026-09-11.** Les quatre contrôles
+sont passés, dont les deux qui portent (le verrou du bouton de construction,
+et la bannière de réparation que rien n'efface à tort). Ce qui a été exercé :
 
 1. construire l'inventaire affiche son rapport, le spinner tourne **et se
    réactive** (le verrou) ;
