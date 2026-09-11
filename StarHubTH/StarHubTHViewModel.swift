@@ -5805,7 +5805,7 @@ class StarHubTHViewModel: ObservableObject {
         do {
             let extracted = try installer.extractToTemp(zipUrl: archive)
             defer { try? FileManager.default.removeItem(at: extracted) }
-            let paths = Self.archivePaths(under: extracted)
+            let paths = ManifestlessArchive.paths(under: extracted)
             let outcome = ManifestlessArchive.classify(
                 paths: paths, installedFolderNames: [mod.folderName])
             // La traduction vise **ce** mod : quel que soit le nom du dossier
@@ -6035,21 +6035,6 @@ class StarHubTHViewModel: ObservableObject {
         return owners.mapValues { Array(Set($0)).sorted() }
     }
 
-    /// Les chemins d'une archive dépliée, relatifs à sa racine.
-    static func archivePaths(under root: URL) -> [String] {
-        guard let walker = FileManager.default.enumerator(
-            at: root, includingPropertiesForKeys: [.isRegularFileKey], options: [.skipsHiddenFiles])
-        else { return [] }
-        var paths: [String] = []
-        for case let url as URL in walker {
-            guard (try? url.resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile == true
-            else { continue }
-            let full = url.resolvingSymlinksInPath().path
-            let base = root.resolvingSymlinksInPath().path + "/"
-            if full.hasPrefix(base) { paths.append(String(full.dropFirst(base.count))) }
-        }
-        return paths
-    }
 
     // MARK: - Découverte (axe G)
 

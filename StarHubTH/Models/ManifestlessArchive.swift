@@ -34,6 +34,7 @@ import Foundation
 /// `DroppedContentRecognizer`, qui désigne l'hôte par son `UniqueID` SMAPI — la
 /// bonne clé — là où ce classificateur ne connaît que des noms de dossier.
 public enum ManifestlessArchive {
+
     public enum Kind: Equatable, Sendable {
         /// Des fichiers de langue, à poser dans le mod traduit.
         case translation

@@ -48,6 +48,7 @@ let package = Package(
                 "Models/InstalledTranslation.swift",
                 "Models/InstalledTranslationStore.swift",
                 "Models/ManifestlessArchive.swift",
+                "Models/ArchivePaths.swift",
                 "Models/NexusArchiveName.swift",
                 "Models/ManifestlessInstaller.swift",
                 "Models/ManifestVersionPatcher.swift",
