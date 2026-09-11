@@ -58,6 +58,10 @@ python3 check_sources.py --offline       # sources externes, contrôles locaux s
   code viole massivement ces règles aujourd'hui. Faire baisser puis `--update`
   pour resserrer ; un ajout délibéré exige un `--update` explicite, visible
   dans le diff. `--skip-standards` débloque un build ponctuel.
+  La **taille** est verrouillée **par fichier** (clés `file:<chemin>`, une par
+  fichier au-dessus de 400 lignes) : les deux sommes de taille se compensaient
+  entre fichiers, et laissaient ~16 000 lignes de marge muette au ViewModel
+  (mesuré le 2026-09-11 — `docs/REFACTORING.md` §3 bis).
 - **`check_sources.py`** / `.sources-baseline.json` — le pendant pour ce qui
   vit **hors** du dépôt : API appelées, dumps téléchargés, projets dont du code
   a été repris. Carte et raisonnement dans `docs/SOURCES.md`.

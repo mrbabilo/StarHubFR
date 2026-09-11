@@ -302,6 +302,11 @@ raisonnement derrière les choix anciens, `.kilo/plans/`.
 - **`check_standards.py` n'échoue qu'à l'**augmentation** d'un compteur**
   par rapport à `.standards-baseline.json`. Un `--update` explicite est
   requis pour assumer une nouvelle violation, visible dans le diff.
+  **La taille des fichiers est verrouillée par fichier** (clés `file:<chemin>`
+  pour chacun des 37 au-dessus de 400 lignes, ViewModel compris) : allonger un
+  gros fichier échoue même en raccourcissant un autre. Les deux sommes
+  (`oversized_files`, `oversized_excess_lines`) se compensaient entre fichiers
+  — ~16 000 lignes de marge muette, mesurées le 2026-09-11.
 - **Lire l'exit code du gate directement** : `python3 build_app.py | tail`
   rend le code de `tail` (vert même bloqué) ; et les diagnostics SourceKit
   juste après un build sont de la ré-indexation, pas des erreurs du code.

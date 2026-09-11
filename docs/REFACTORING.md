@@ -46,6 +46,10 @@ chiffre :
   la réponse à cette classe d'échec — le cliquet (`check_standards.py`), qui échoue à
   l'augmentation d'un compteur et exige un `--update` visible dans le diff. Y inscrire
   le nombre de lignes du ViewModel est le seul mécanisme qui rende F1-T2 opposable.
+  ✅ **Fait le 2026-09-11** : `file:StarHubTH/StarHubTHViewModel.swift` est dans
+  `.standards-baseline.json`, à 10 212. Les deux compteurs de taille posés la veille
+  n'y suffisaient pas — ce sont des sommes, et elles se compensaient entre fichiers
+  (§3 bis, avec la mesure).
 - **Le dossier `Stores/`, tranché le 2026-08-01 (§9), n'a jamais été créé.** La décision
   est prise, elle n'attend rien ; elle n'a simplement jamais eu de première occupation.
 
@@ -129,6 +133,38 @@ compteurs plutôt qu'un :
 | --- | ---: | --- |
 | `oversized_files` | 37 | Ouvrir un **nouveau** fourre-tout |
 | `oversized_excess_lines` (somme des dépassements) | 27 414 | **Engraisser** ceux qui existent — et il tombe dès qu'un fichier repasse sous le seuil, donc il récompense le découpage |
+
+⚠️ **Ces deux compteurs ne suffisaient pas non plus : ils sont des sommes, et une
+somme se compense.** Mesuré le 2026-09-11 sur le dépôt, pas déduit — 120 lignes
+ajoutées au ViewModel et 120 retirées de `ModListView` sortent en `[SUCCESS]`,
+code 0, sans un mot, le cliquet félicitant même sur un autre compteur au passage.
+La marge ainsi disponible valait **~16 000 lignes** : 25 804 d'excès total, dont
+9 812 pour le seul ViewModel, et tout ce que les 36 autres fichiers peuvent encore
+perdre, le God module pouvait le prendre en silence. Ce n'est pas un cas d'école —
+**P8 va précisément faire fondre `ModListView` de ~1 950 lignes d'excès**, et
+aurait ouvert d'autant la porte qu'on croyait fermée.
+
+D'où un **troisième compteur, par fichier** (clés `file:<chemin>` dans la base,
+une par fichier au-dessus du seuil, 37 au 2026-09-11) : une somme ne peut plus
+masquer un transfert, et le diff de `.standards-baseline.json` **nomme** le fichier
+qui a grossi au lieu d'un total où personne ne le retrouve. C'est ce que le §1
+réclamait depuis le 2026-08-01 — *« y inscrire le nombre de lignes du ViewModel est
+le seul mécanisme qui rende F1-T2 opposable »* — et `file:StarHubTH/StarHubTHViewModel.swift: 10212`
+est désormais dans la base, nommément.
+
+Le bruit ajouté est quasi nul, et c'est ce qui rend la règle tenable : **sans**
+compensation, faire grossir un fichier faisait *déjà* monter `oversized_excess_lines`
+et échouer le cliquet. Les clés par fichier ne mordent donc que là où la somme se
+laissait berner.
+
+**Un trou de cache fermé au passage, du même genre.** `check_standards.py` mémoïse
+son verdict sur une empreinte des **sources Swift** ; le garde censé couvrir un
+changement de *règles* comparait les **noms** des compteurs. Il ne voyait donc ni un
+corps de règle réécrit, ni une clé dérivée des sources — et la première exécution
+du compteur par fichier est sortie **verte sur un cache d'avant sa création**.
+L'empreinte porte désormais un **hachage du script lui-même** : toute modification
+de `check_standards.py` invalide le cache. Coût mesuré : 61 ms sur un cache chaud,
+contre 49 ms auparavant.
 
 Seul compteur du script à se mesurer sur les lignes **brutes**, commentaires compris :
 les autres cherchent des violations, et écrire *sur* une violation n'en est pas une ;
@@ -374,7 +410,7 @@ première version de ce plan :
 | Chantier | Quand | Pourquoi ici |
 | --- | --- | --- |
 | **Découper les vues** (leur P8, cible ~150 lignes) | **Au contact** : quand on extrait un domaine, on découpe la vue qui le consomme, dans le même mouvement | Au 2026-09-10 : `ModListView` **2340** lignes, `ModDetailView` **2145**, `MainView` **1536**, `SavesView` **1162**, `LogsView` 746 — la même pente que le ViewModel (`ModDetailView` a triplé depuis le relevé de 683). Une campagne dédiée serait un big-bang sans filet ; couplé à l'extraction, le découpage a une raison d'être et un périmètre |
-| **Verrouiller les règles** (leur P9) | ✅ **Fait le 2026-09-10** | `build_app.py` refuse désormais qu'un fichier du target SPM importe SwiftUI — barre dure, échec rapide avant compilation (pas un cliquet), épreuve §4.7 faite (injection volontaire → `[ERROR]` → restauration). **Elle a mordu à l'installation** : `NexusCategory` et `SaveFarmerPalette` importaient SwiftUI pour leurs couleurs — conversion §4.4 en `RGBColor` (Core) rendu par `Color(RGBColor)` (AppDesignUI). `AppKit` reste volontairement hors barrière : quatre fichiers Core en dépendent (dette ci-dessous, au contact de chacun) |
+| **Verrouiller les règles** (leur P9) | ✅ **Fait le 2026-09-10**, **complété le 2026-09-11** | Complément du 2026-09-11 : le cliquet de taille est passé **par fichier** — les deux sommes se compensaient entre fichiers, et ~16 000 lignes de marge muette étaient ouvertes au ViewModel (démonstration et chiffres au §3 bis). Un trou de cache du même genre fermé dans la foulée (empreinte du script). C'est ce qui rend **F1-T2 opposable**, ce que le §1 réclamait sans que ce soit fait. `build_app.py` refuse par ailleurs qu'un fichier du target SPM importe SwiftUI — barre dure, échec rapide avant compilation (pas un cliquet), épreuve §4.7 faite (injection volontaire → `[ERROR]` → restauration). **Elle a mordu à l'installation** : `NexusCategory` et `SaveFarmerPalette` importaient SwiftUI pour leurs couleurs — conversion §4.4 en `RGBColor` (Core) rendu par `Color(RGBColor)` (AppDesignUI). `AppKit` reste volontairement hors barrière : quatre fichiers Core en dépendent (dette ci-dessous, au contact de chacun) |
 
 **Deux dettes de couche, à traiter au contact plutôt qu'en campagne** — trouvées en
 passant leurs correctifs en revue (§8), et sans urgence propre :
