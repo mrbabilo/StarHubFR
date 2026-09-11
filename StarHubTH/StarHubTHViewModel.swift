@@ -6845,26 +6845,42 @@ class StarHubTHViewModel: ObservableObject {
             let i18nDir = URL(fileURLWithPath: modsRoot)
                 .appendingPathComponent(physical, isDirectory: true)
                 .appendingPathComponent("i18n", isDirectory: true)
-            let frURL = i18nDir.appendingPathComponent("fr.json")
-            guard let data = try? Data(contentsOf: frURL),
-                  let text = I18nFileDecoder.decode(data)?.text else { continue }
+            // **Tous** les fichiers de la locale, jamais un `i18n/fr.json`
+            // composé à la main : un mod rangé en layout B (`i18n/fr/
+            // dialogue.json`…) n'en a aucun, et cette boucle abandonnait ici
+            // sans rien journaliser — 5 mods du parc dans ce cas.
+            let frFiles = I18nLocaleResolver.files(in: i18nDir, locale: "fr")
+                .compactMap { url -> RenameReport.FrenchFile? in
+                    guard let data = try? Data(contentsOf: url),
+                          let text = I18nFileDecoder.decode(data)?.text else { return nil }
+                    return RenameReport.FrenchFile(id: url.path, text: text)
+                }
+            guard !frFiles.isEmpty else {
+                log("Report de traduction (\(mod.name)) : aucun fichier français lisible "
+                    + "dans \(i18nDir.path)", level: .warning)
+                continue
+            }
 
-            let (rewritten, done) = RenameReport.applyToFrench(
-                text, pairs: routedPairs.map(\.raw))
-            guard !done.isEmpty else { continue }
+            let spread = RenameReport.applyToFrenchFiles(frFiles, pairs: routedPairs.map(\.raw))
+            guard !spread.files.isEmpty else { continue }
 
             // X7 : ouvrir les droits avant d'écrire dans le dossier du mod.
             ModZipInstaller.grantOwnerWriteAccess(in: i18nDir)
-            do {
-                try rewritten.write(toFile: frURL.path, atomically: true, encoding: .utf8)
-                for d in done {
-                    if let q = routedPairs.first(where: { $0.raw == d })?.pair {
-                        applied.append(q)
+            for rewrite in spread.files {
+                do {
+                    try rewrite.text.write(toFile: rewrite.id, atomically: true, encoding: .utf8)
+                    // Seules les paires de CE fichier entrent au bilan : une
+                    // écriture ratée ne doit pas emporter celles des autres
+                    // sections, ni les faire compter comme reportées.
+                    for d in rewrite.applied {
+                        if let q = routedPairs.first(where: { $0.raw == d })?.pair {
+                            applied.append(q)
+                        }
                     }
+                } catch {
+                    log("Report de traduction (\(mod.name)) : \(error.localizedDescription)",
+                        level: .warning)
                 }
-            } catch {
-                log("Report de traduction (\(mod.name)) : \(error.localizedDescription)",
-                    level: .warning)
             }
         }
 

@@ -44,6 +44,54 @@ public enum RenameReport {
         else { return (text, []) }
         return (rewritten, applied)
     }
+    /// Un fichier d'une locale, identifié par ce que l'appelant saura
+    /// retrouver — un nom de fichier, un chemin.
+    public struct FrenchFile: Equatable, Sendable {
+        public let id: String
+        public let text: String
+
+        public init(id: String, text: String) {
+            self.id = id
+            self.text = text
+        }
+    }
+
+    /// Ce qu'un report a produit sur un fichier — et seuls les fichiers
+    /// **réellement modifiés** en portent un. Réécrire les autres serait du
+    /// travail pour rien, et chaque écriture dans un dossier de mod en ouvre
+    /// les droits (X7).
+    public struct FileRewrite: Equatable, Sendable {
+        public let id: String
+        public let text: String
+        /// Les paires appliquées **dans ce fichier**. La ventilation compte :
+        /// l'appelant écrit fichier par fichier, et une écriture qui échoue
+        /// ne doit retirer du bilan que ses propres paires.
+        public let applied: [RenamePair]
+    }
+
+    /// Ce qu'un report a produit sur un ensemble de fichiers, dans l'ordre où
+    /// ils ont été traités.
+    public struct Spread: Equatable, Sendable {
+        public let files: [FileRewrite]
+
+        public var applied: [RenamePair] { files.flatMap(\.applied) }
+    }
+
+    public static func applyToFrenchFiles(_ files: [FrenchFile],
+                                          pairs: [RenamePair]) -> Spread {
+        var remaining = pairs
+        var rewrites: [FileRewrite] = []
+        for file in files {
+            guard !remaining.isEmpty else { break }
+            let outcome = applyToFrench(file.text, pairs: remaining)
+            guard !outcome.applied.isEmpty else { continue }
+            rewrites.append(FileRewrite(id: file.id, text: outcome.text,
+                                        applied: outcome.applied))
+            let done = Set(outcome.applied)
+            remaining.removeAll { done.contains($0) }
+        }
+        return Spread(files: rewrites)
+    }
 }
 
 extension RenameReport {
