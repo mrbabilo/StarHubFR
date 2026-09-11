@@ -521,7 +521,9 @@ pas ici parce qu'il est muté par méthode en trois endroits du ViewModel
 persistance (`ModErrorHistoryStore`) : c'est un sous-domaine, pas un reste.
 `SmapiHealthFold.observations` l'attend déjà, testée.
 
-**Vérification à l'écran — due, auteur.** Quatre contrôles :
+**Vérification à l'écran — OK, auteur, 2026-09-11.** Les quatre contrôles
+sont passés, dont les deux qui portent (le verrou du bouton de relecture, et
+l'absence de re-journalisation des mêmes alertes). Ce qui a été exercé :
 
 1. la carte de santé SMAPI affiche sa version, ses mods ignorés, ses alertes ;
 2. le bouton de relecture de la page des alertes système tourne **et se
