@@ -152,7 +152,7 @@ struct DiscoverView: View {
         }
     }
 
-    private func searchResults(_ search: StarHubTHViewModel.DiscoverySearchResult) -> some View {
+    private func searchResults(_ search: DiscoverySearchResult) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             // Le total toujours rendu : la poignée affichée n'est pas tout ce
             // qui existe (« Content Patcher » en rend 428).

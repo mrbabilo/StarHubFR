@@ -6086,26 +6086,13 @@ final class StarHubTHViewModel {
     /// La carte de la vitrine vit en Core (`DiscoveryScoping.Row`), avec les
     /// trois écarts qui décident de ce qu'elle contient. L'alias tient les
     /// vues en place — elles nomment encore `StarHubTHViewModel.DiscoveryRow`
-    /// — et tombera au découpage des vues (REFACTORING §5, P8).
+    /// — et tombera au découpage des vues (REFACTORING §5, P8). Il reste ici
+    /// exprès : `DiscoverySearchResult` a rejoint Core sans lui, pour ne pas
+    /// toucher trois lignes de `DiscoverView` au passage.
     typealias DiscoveryRow = DiscoveryScoping.Row
 
     /// Le résultat d'une recherche par nom dans la vitrine : les cartes et le
     /// total serveur — la poignée affichée n'est jamais tout ce qui existe.
-    struct DiscoverySearchResult {
-        let rows: [DiscoveryRow]
-        let totalCount: Int
-        /// Le terme qui a produit ces lignes — « voir plus » redemande la
-        /// tranche suivante du **même** terme, pas de ce que le champ de
-        /// recherche contient au moment du clic.
-        let term: String
-        /// Les résultats reçus, doublons compris — ce sur quoi se calcule la
-        /// tranche suivante.
-        let loaded: Int
-    }
-
-    /// Où en est une fiche demandée depuis la vitrine.
-    enum DiscoveryDetailState { case idle, loading, loaded, failed }
-
     private(set) var discovery: [ModCatalog.SectionKind: ModCatalog.SectionState] = [:]
     private(set) var discoveryLoading = false
     private(set) var discoverySearch: DiscoverySearchResult?

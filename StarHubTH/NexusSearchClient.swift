@@ -12,13 +12,10 @@ import Foundation
 /// précédente intacte, et le jour où Nexus ajoutera ces en-têtes, le compte
 /// suivra sans qu'on y revienne.
 enum NexusSearchClient {
-    enum SearchError: Error {
-        case noApiKey
-        case rateLimited(retryAfter: TimeInterval)
-        case transport(String)
-        case http(Int)
-        case read(NexusModSearch.Failure)
-    }
+    /// L'erreur vit en Core (`NexusSearchError`) : l'état de la vitrine la
+    /// porte, et un store testable ne peut pas dépendre de ce fichier-ci.
+    /// L'alias garde les appelants inchangés.
+    typealias SearchError = NexusSearchError
 
     /// Cherche les mods dont le nom contient `name`.
     ///
