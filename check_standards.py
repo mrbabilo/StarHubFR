@@ -27,9 +27,14 @@ manquait — et celle qui aurait crié pendant les 41 jours où le ViewModel a
 triplé. Repris avec un écart assumé : leur version ne compte que les fichiers
 en dépassement, ce qui ne bouge pas quand un fichier déjà trop gros grossit
 encore. Voir le commentaire de `FILE_RULES`.
+
+S'y ajoute un compteur **par fichier** (clés `file:<chemin>`) pour chaque
+fichier au-dessus du seuil. Voir le commentaire de `FILE_PREFIX` : les deux
+agrégats se compensent entre fichiers, celui-ci ne se compense pas.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -185,6 +190,29 @@ FILE_RULES: dict[str, Callable[[dict[str, int]], int]] = {
     ),
 }
 
+# § le même défaut, un cran plus loin : **les deux agrégats se compensent entre
+# fichiers**. Mesuré le 2026-09-11 sur ce dépôt — 120 lignes ajoutées au
+# ViewModel et 120 retirées de `ModListView` sortent en `[SUCCESS]`, code 0,
+# sans un mot. La marge silencieuse ainsi disponible valait **~16 000 lignes**
+# (25 804 d'excès total, dont 9 812 au seul ViewModel) : tout ce que les autres
+# fichiers peuvent encore perdre, le God module peut le prendre. Et ce n'est pas
+# un cas d'école — P8 (découpage des vues) va justement faire fondre
+# `ModListView` de ~1 950 lignes d'excès.
+#
+# D'où un compteur **par fichier** pour chacun de ceux qui dépassent : la
+# compensation devient impossible, et la baseline nomme dans le diff le fichier
+# qui a grossi, au lieu d'un total où personne ne le retrouve. C'est ce que
+# `docs/REFACTORING.md` §1 réclamait — « y inscrire le nombre de lignes du
+# ViewModel est le seul mécanisme qui rende F1-T2 opposable ».
+#
+# Le bruit ajouté est quasi nul : sans compensation, faire grossir un fichier
+# faisait **déjà** monter `oversized_excess_lines` et échouer le cliquet. Ces
+# clés ne mordent donc que là où l'agrégat se laissait berner.
+#
+# Un fichier qui repasse sous le seuil perd sa clé : c'est voulu, il sort du
+# périmètre de la règle et `oversized_files` enregistre le gain.
+FILE_PREFIX = "file:"
+
 
 def measure(force: bool = False) -> tuple[dict[str, int], dict[str, int]]:
     """Run every ratchet rule over the source tree.
@@ -201,9 +229,11 @@ def measure(force: bool = False) -> tuple[dict[str, int], dict[str, int]]:
         try:
             current_newest, current_sizes = source_fingerprint()
             with open(cache_path, encoding="utf-8") as f:
-                cached_newest, cached_sizes_json = f.read().split("\n", 1)
+                cached_rules, cached_newest, cached_sizes_json = f.read().split("\n", 2)
             cached_sizes: dict[str, int] = json.loads(cached_sizes_json)
-            if cached_newest == current_newest and cached_sizes == current_sizes:
+            if (cached_rules == ruleset_fingerprint()
+                    and cached_newest == current_newest
+                    and cached_sizes == current_sizes):
                 # Same source since the last run → same counts and same
                 # informationals. Re-read both from the cache instead of
                 # re-sweeping 211 files.
@@ -218,7 +248,15 @@ def measure(force: bool = False) -> tuple[dict[str, int], dict[str, int]]:
                 # signalée comme inconnue — elle sautait en silence, et
                 # `build_app.py` passe justement par ce chemin. Comparer les
                 # clés attendues referme ça sans fichier supplémentaire.
-                if (set(cached_counts) == set(RULES) | set(FILE_RULES)
+                #
+                # Les clés `file:` sont exclues de cette comparaison : elles
+                # dérivent des **sources**, pas du jeu de règles, et l'empreinte
+                # ci-dessus couvre déjà tout changement de source. Les y inclure
+                # rendrait le cache inutilisable dès qu'un fichier franchit le
+                # seuil — l'empreinte a alors déjà invalidé l'entrée.
+                cached_rule_keys = {k for k in cached_counts
+                                    if not k.startswith(FILE_PREFIX)}
+                if (cached_rule_keys == set(RULES) | set(FILE_RULES)
                         and set(cached_info) == set(INFORMATIONAL)):
                     return cached_counts, cached_info
         except (OSError, ValueError):
@@ -228,6 +266,8 @@ def measure(force: bool = False) -> tuple[dict[str, int], dict[str, int]]:
     counts = {name: rule(text) for name, rule in RULES.items()}
     line_counts = file_line_counts()
     counts.update({name: rule(line_counts) for name, rule in FILE_RULES.items()})
+    counts.update({FILE_PREFIX + path: n for path, n in line_counts.items()
+                   if n > LINE_LIMIT})
     info = {name: rule(text) for name, rule in INFORMATIONAL.items()}
 
     # Persist the verdict for next time. Errors here are non-fatal — a failed
@@ -235,7 +275,8 @@ def measure(force: bool = False) -> tuple[dict[str, int], dict[str, int]]:
     try:
         current_newest, current_sizes = source_fingerprint()
         with open(cache_path, "w", encoding="utf-8") as f:
-            f.write(f"{current_newest}\n{json.dumps(current_sizes, sort_keys=True)}")
+            f.write(f"{ruleset_fingerprint()}\n{current_newest}\n"
+                    f"{json.dumps(current_sizes, sort_keys=True)}")
         with open(counts_path, "w", encoding="utf-8") as f:
             json.dump(counts, f, sort_keys=True)
         with open(info_path, "w", encoding="utf-8") as f:
@@ -244,6 +285,23 @@ def measure(force: bool = False) -> tuple[dict[str, int], dict[str, int]]:
         pass
 
     return counts, info
+
+
+def ruleset_fingerprint() -> str:
+    """Empreinte du script lui-même, jointe au cache.
+
+    L'empreinte des sources ne couvre que le Swift : modifier le jeu de règles
+    sans toucher une ligne de Swift rendait un verdict caché d'où la règle
+    neuve était absente — `build_app.py` passe justement par ce chemin. Le
+    garde précédent comparait les *noms* des règles, ce qui ne voit ni un corps
+    de règle réécrit, ni une clé dérivée des sources comme `file:`. Hacher le
+    fichier voit les deux, pour une lecture de 400 lignes.
+    """
+    try:
+        with open(__file__, "rb") as handle:
+            return hashlib.sha256(handle.read()).hexdigest()
+    except OSError:
+        return "unknown"  # cache alors toujours invalide : sûr, pas silencieux
 
 
 def source_fingerprint() -> tuple[str, dict[str, int]]:
@@ -285,8 +343,14 @@ def main() -> int:
     counts, info = measure(force=force)
 
     if "--report" in args:
-        width = max(len(k) for k in list(counts) + list(info))
-        for name, value in sorted(counts.items()):
+        # Les clés `file:` sont tenues hors de ce listing : elles sont une par
+        # fichier en dépassement (37 au 2026-09-11), elles noieraient les dix
+        # compteurs de conventions — et la section ci-dessous les rend déjà,
+        # triées et avec leur écart au seuil.
+        rules_only = {k: v for k, v in counts.items()
+                      if not k.startswith(FILE_PREFIX)}
+        width = max(len(k) for k in list(rules_only) + list(info))
+        for name, value in sorted(rules_only.items()):
             print(f"  {name:<{width}}  {value}")
         for name, value in sorted(info.items()):
             print(f"  {name:<{width}}  {value}  (informatif)")
@@ -296,9 +360,14 @@ def main() -> int:
         oversized = sorted(((n, p) for p, n in file_line_counts().items()
                             if n > LINE_LIMIT), reverse=True)
         if oversized:
+            # L'écart à la **base** compte autant que l'écart au seuil : c'est
+            # lui qui dit si le fichier a bougé depuis le dernier verrou.
+            baseline = load_baseline() or {}
             print(f"\n  Les plus gros fichiers (> {LINE_LIMIT} lignes) :")
             for count, path in oversized[:10]:
-                print(f"    {count:>6}  (+{count - LINE_LIMIT})  {path}")
+                was = baseline.get(FILE_PREFIX + path)
+                drift = "" if was is None or was == count else f"  [{count - was:+d} / base]"
+                print(f"    {count:>6}  (+{count - LINE_LIMIT})  {path}{drift}")
             if len(oversized) > 10:
                 print(f"    … et {len(oversized) - 10} autres")
         return 0
@@ -324,14 +393,46 @@ def main() -> int:
         elif value < baseline[name]:
             improvements.append((name, baseline[name], value))
 
+    # Un fichier verrouillé qui n'est plus mesuré est repassé sous le seuil,
+    # a été découpé, renommé ou supprimé — le gain que ce cliquet cherche. Il
+    # ne se voit nulle part ailleurs : `main()` n'itère que sur les compteurs
+    # relevés, donc la clé resterait dans la base sans que rien ne le dise.
+    # ⚠️ Le message ne dit **pas** « repasse sous le seuil » : d'ici, les trois
+    # causes sont indiscernables, et P8 (découpage des vues) renomme et déplace
+    # des fichiers par construction. Affirmer la mauvaise des trois ferait
+    # consigner une mesure fausse dans `docs/REFACTORING.md`.
+    for name in sorted(baseline):
+        if name.startswith(FILE_PREFIX) and name not in counts:
+            print(f"[INFO]  {name[len(FILE_PREFIX):]} : plus mesuré — repassé "
+                  f"sous {LINE_LIMIT} lignes, renommé ou supprimé. "
+                  f"Resserrer avec `--update`.")
+
     for name in unknown:
-        print(f"[ERROR] Règle « {name} » absente de la base — lancer `--update`.")
+        if name.startswith(FILE_PREFIX):
+            path = name[len(FILE_PREFIX):]
+            # Indiscernable d'ici : un fichier neuf au-dessus du seuil, ou une
+            # base pas encore à jour. Le message ne tranche donc pas — il dit
+            # ce qui est mesuré, et `--update` assume dans le diff.
+            print(f"[ERROR] {path} : {counts[name]} lignes, au-dessus de "
+                  f"{LINE_LIMIT} et absent de la base — `--update` pour l'assumer.")
+        else:
+            print(f"[ERROR] Règle « {name} » absente de la base — lancer `--update`.")
 
     for name, was, now in regressions:
-        print(f"[ERROR] {name} : {was} → {now} (+{now - was}) — nouvelle violation.")
+        if name.startswith(FILE_PREFIX):
+            path = name[len(FILE_PREFIX):]
+            print(f"[ERROR] {path} : {was} → {now} (+{now - was} lignes) — "
+                  f"un fichier déjà trop gros grossit encore.")
+        else:
+            print(f"[ERROR] {name} : {was} → {now} (+{now - was}) — nouvelle violation.")
 
     for name, was, now in improvements:
-        print(f"[INFO]  {name} : {was} → {now} (−{was - now}) — resserrer avec `--update`.")
+        if name.startswith(FILE_PREFIX):
+            path = name[len(FILE_PREFIX):]
+            print(f"[INFO]  {path} : {was} → {now} (−{was - now} lignes) — "
+                  f"resserrer avec `--update`.")
+        else:
+            print(f"[INFO]  {name} : {was} → {now} (−{was - now}) — resserrer avec `--update`.")
 
     if regressions or unknown:
         print("[ERROR] Le cliquet des conventions a reculé. Corriger, ou "
