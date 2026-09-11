@@ -1770,6 +1770,15 @@ final class StarHubTHViewModel {
     /// change. Without it, a group's dominant-category scan over its
     /// children re-ran on every call (badge, filter, `availableCategories`,
     /// counts) within the same render.
+    ///
+    /// ⚠️ Celui-ci reste **suivi**, à l'inverse de `deltaReadCache` : sur un
+    /// succès, `category(for:)` ne lit *que* ce dictionnaire — le vider (via
+    /// `nexusMetadata.onInvalidate` ou le `didSet` de `nexusCategories`) est
+    /// donc l'unique signal qui rafraîchit la liste après un épinglage. Lui
+    /// mettre `@ObservationIgnored` par symétrie ferait disparaître ce
+    /// rafraîchissement sans erreur ni plantage. Il ne risque pas la boucle
+    /// des créneaux uniques : un cache-dictionnaire converge (mesuré, deux
+    /// passes pour cinq vues sœurs).
     private var categoryCache: [String: NexusCategory?] = [:]
 
     /// Top-level enabled mods (packs included as their own header entry).
@@ -6749,7 +6758,23 @@ final class StarHubTHViewModel {
     /// montre qu'un mod, et la révision invalide à toute mutation du store.
     /// Touchés du fil principal seulement (body, actions de boutons,
     /// completion d'installation sur `DispatchQueue.main`).
+    ///
+    /// ⚠️ `@ObservationIgnored` est **obligatoire** ici, et c'est un piège
+    /// propre à `@Observable` : sous `ObservableObject`, écrire un stocké non
+    /// publié pendant un rendu ne réveillait personne ; désormais **tout**
+    /// stocké est suivi. Un cache à créneau unique lu depuis un `body` et
+    /// réécrit à chaque manque invalide alors les vues **sœurs** qui l'avaient
+    /// lu — mesuré le 2026-09-11 sur `withObservationTracking` : deux vues
+    /// lisant deux clés bouclent **à l'infini** (60 rendus, garde atteinte),
+    /// là où un cache-dictionnaire converge en deux passes. Aujourd'hui
+    /// `ModUpdateDeltaSection` n'est instanciée qu'une fois (la fiche d'un
+    /// mod) — la boucle est à une liste près, pas dans le code livré.
+    /// Retirer le suivi est sûr parce que l'invalidation ne passe pas par le
+    /// cache : les deux lisent `updateKeyDeltasRevision`, un stocké suivi, à
+    /// **chaque** appel — succès de cache compris.
+    @ObservationIgnored
     private var deltaReadCache: (uniqueId: String, revision: Int, delta: ModUpdateKeyDelta?)?
+    @ObservationIgnored
     private var renamePairsCache: (uniqueId: String, revision: Int,
                                    result: (translation: [RenamePair], config: [RenamePair]))?
 
