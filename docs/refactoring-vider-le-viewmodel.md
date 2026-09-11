@@ -458,8 +458,9 @@ domaine 1) : `viewmodel_stored_state` 163 → **162**,
 `viewmodel_facades_to_combine` **0**. ViewModel 10 312 → **10 297** lignes.
 Cliquet resserré dans le commit de câblage.
 
-**Vérification à l'écran — due, auteur.** Deux des cinq contrôles portent les
-bugs historiques :
+**Vérification à l'écran — OK, auteur, 2026-09-11.** Les cinq contrôles sont
+passés, dont les deux qui portent les bugs historiques (2 et 3). Ce qui a été
+exercé :
 
 1. l'onglet Journaux affiche des lignes, app **et** SMAPI ;
 2. **le bouton de rechargement ne duplique pas le bloc SMAPI** — le compte
