@@ -247,10 +247,14 @@ vérifiable par compilation :
    `categoryCache` (`:1990`), et cette purge-là doit survivre.** Le cache est
    un `private var` stocké du VM : sous `@Observable` il devient tracké, donc
    la purge **est** l'invalidation des lignes rendues — la supprimer ferait
-   rendre un cache périmé après chaque catégorie épinée, en silence. Le sink
-   devient un invalidateur muet (`sink { $0.categoryCache.removeAll() }`, sans
-   `send`), exactement le patron que `nexusCategories.didSet` (`:294`) et le
-   `didSet` de `mods` (`:425`) appliquent déjà aux autres chemins.
+   rendre un cache périmé après chaque catégorie épinée, en silence.
+   ⚠️ **Correction du 2026-09-11, par la rédaction du plan : le « sink
+   muet » envisagé d'abord est inexécutable — `objectWillChange` disparaît du
+   store avec la conversion elle-même.** Le remède est une **closure
+   d'invalidation injectée** (`onInvalidate` sur `NexusMetadataStore`, appelée
+   par `persistCategories()`/`persistModIds()`, que les cinq mutateurs
+   empruntent) — testable en Core, là où le sink ne pouvait pas exister.
+   Détail et code dans le plan, Task 4, étape 3.
 4. Traiter les quatre rafraîchissements manuels restants.
 5. Les deux gates, puis la vérification à l'écran — **la conversion reste
    atomique, la vérification commence par un seul écran** : le plus dense
